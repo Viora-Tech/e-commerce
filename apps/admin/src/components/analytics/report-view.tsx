@@ -8,7 +8,7 @@ import { useEffect, useState } from 'react'
 import PillTabs from '@/components/layout/pill-tabs'
 import ProoflyPageHeader from '@/components/layout/proofly-page-header'
 import StatusChip from '@/components/layout/status-chip'
-import { analyticsContent as copy } from '@/data/analytics'
+import { analyticsContent } from '@/data/analytics'
 import { type RangeState, rangeQuery, sameRange } from '@/lib/analytics-range'
 import { api } from '@/lib/api-client'
 import { downloadCsv, toCsv } from '@/lib/csv'
@@ -28,7 +28,7 @@ type Shape = ReportDefinition['chart']
 
 /** Header, CSV rows and totals row for the export; the metric's previous value rides along. */
 function csvOf(report: ReportDefinition, data: ReportResult): string {
-  const c = copy.reports
+  const c = analyticsContent.reports
   const metric = report.columns.find((col) => col.id === report.metric)
   const compare = data.previousTotals !== null && metric !== undefined
   const headers = [
@@ -92,7 +92,7 @@ export default function ReportView({ report, initialRange, initial }: ReportView
   }
 
   // Render logic
-  const c = copy.reports
+  const c = analyticsContent.reports
 
   return (
     <div className="mx-auto flex w-full max-w-[75rem] flex-col gap-5 px-4 py-6 md:px-8 md:py-8">

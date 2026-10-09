@@ -5,8 +5,9 @@ import { useEffect, useState } from 'react'
 import ChartCard from '@/components/layout/chart-card'
 import ProoflyPageHeader from '@/components/layout/proofly-page-header'
 import { methodLabel } from '@/components/orders/order-detail-types'
-import { analyticsContent as copy } from '@/data/analytics'
+import { analyticsContent } from '@/data/analytics'
 import { INDIAN_STATES } from '@/data/india'
+import { useCopy } from '@/hooks/use-copy'
 import { formatDay, type RangeState, rangeQuery, sameRange } from '@/lib/analytics-range'
 import { api } from '@/lib/api-client'
 import { formatPaiseCompact } from '@/lib/money'
@@ -53,6 +54,7 @@ export default function AnalyticsOverviewPage({
   initial,
 }: AnalyticsOverviewPageProps) {
   // Hooks
+  const copy = useCopy(analyticsContent)
   const [range, setRange] = useState(initialRange)
   const [data, setData] = useState(initial)
   const [loading, setLoading] = useState(false)

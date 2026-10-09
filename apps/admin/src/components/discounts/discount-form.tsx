@@ -21,6 +21,7 @@ import ProoflyPageHeader from '@/components/layout/proofly-page-header'
 import SaveBar from '@/components/layout/save-bar'
 import StatusChip from '@/components/layout/status-chip'
 import { discountFormContent, discountsContent } from '@/data/discounts'
+import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 import { routes } from '@/lib/routes'
 import ConditionsCard from './conditions-card'
@@ -42,14 +43,14 @@ type DiscountFormProps = {
   discount: LoadedDiscount | null
 }
 
-const copy = discountFormContent
-
 function initialForm(discount: LoadedDiscount | null): DiscountFormState {
   return discount ? fromDiscount(discount) : emptyForm()
 }
 
 export default function DiscountForm({ discount }: DiscountFormProps) {
   // Hooks
+  const copy = useCopy(discountFormContent)
+  const list = useCopy(discountsContent)
   const router = useRouter()
   const [form, setForm] = useState<DiscountFormState>(() => initialForm(discount))
   const [saved, setSaved] = useState(() => JSON.stringify(initialForm(discount)))
@@ -119,7 +120,7 @@ export default function DiscountForm({ discount }: DiscountFormProps) {
   const title = discount ? discount.title : copy.newTitle
 
   const summary = discount
-    ? `${form.status === 'active' ? discountsContent.lifecycle.active : discountsContent.lifecycle.disabled} · ${copy.usedTimes(discount.usedCount)}`
+    ? `${form.status === 'active' ? list.lifecycle.active : list.lifecycle.disabled} · ${copy.usedTimes(discount.usedCount)}`
     : copy.newSummary
 
   return (
@@ -129,10 +130,10 @@ export default function DiscountForm({ discount }: DiscountFormProps) {
           <ProoflyPageHeader
             title={title}
             summary={summary}
-            back={{ label: discountsContent.title, href: routes.discounts.list() }}
+            back={{ label: list.title, href: routes.discounts.list() }}
             badges={
               discount && form.status === 'disabled' ? (
-                <StatusChip>{discountsContent.lifecycle.disabled}</StatusChip>
+                <StatusChip>{list.lifecycle.disabled}</StatusChip>
               ) : null
             }
             actions={

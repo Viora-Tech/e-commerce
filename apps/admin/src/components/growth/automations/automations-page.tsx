@@ -18,8 +18,9 @@ import { useState } from 'react'
 import { toast } from 'sonner'
 import ProoflyListPage from '@/components/layout/proofly-list-page'
 import StatusChip from '@/components/layout/status-chip'
-import { automationsContent as copy } from '@/data/marketing-automations'
+import { automationsContent } from '@/data/marketing-automations'
 import { campaignReportContent } from '@/data/marketing-campaigns'
+import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 import { formatPaise } from '@/lib/money'
 import { routes } from '@/lib/routes'
@@ -31,6 +32,7 @@ type AutomationsPageProps = { automations: Item[] }
 /** Growth > Automations: the store's automations with results, then the template gallery. */
 export default function AutomationsPage({ automations }: AutomationsPageProps) {
   // Hooks
+  const copy = useCopy(automationsContent)
   const router = useRouter()
   const [busy, setBusy] = useState<string | null>(null)
 

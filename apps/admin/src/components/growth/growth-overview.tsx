@@ -9,7 +9,8 @@ import { useEffect, useState } from 'react'
 import RangePicker from '@/components/analytics/range-picker'
 import ChartCard from '@/components/layout/chart-card'
 import ProoflyPageHeader from '@/components/layout/proofly-page-header'
-import { growthOverviewContent as copy } from '@/data/growth'
+import { growthOverviewContent } from '@/data/growth'
+import { useCopy } from '@/hooks/use-copy'
 import { formatDay, type RangeState, rangeQuery, sameRange } from '@/lib/analytics-range'
 import { api } from '@/lib/api-client'
 import { formatPaiseCompact } from '@/lib/money'
@@ -25,15 +26,16 @@ type GrowthOverviewPageProps = {
 }
 
 const SHORTCUTS = [
-  { ...copy.shortcuts.campaigns, icon: Send },
-  { ...copy.shortcuts.automations, icon: Workflow },
-  { ...copy.shortcuts.links, icon: LinkIcon },
-  { ...copy.shortcuts.discounts, icon: BadgePercent },
+  { ...growthOverviewContent.shortcuts.campaigns, icon: Send },
+  { ...growthOverviewContent.shortcuts.automations, icon: Workflow },
+  { ...growthOverviewContent.shortcuts.links, icon: LinkIcon },
+  { ...growthOverviewContent.shortcuts.discounts, icon: BadgePercent },
 ]
 
 /** Growth overview: KPIs, sales by source and channel, and top campaigns. */
 export default function GrowthOverviewPage({ initialRange, initial }: GrowthOverviewPageProps) {
   // Hooks
+  const copy = useCopy(growthOverviewContent)
   const [range, setRange] = useState(initialRange)
   const [data, setData] = useState(initial)
   const [loading, setLoading] = useState(false)

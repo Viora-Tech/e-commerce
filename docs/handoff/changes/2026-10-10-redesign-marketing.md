@@ -27,6 +27,6 @@ Figma `YmMNC5JOimqg61sI0eFI5a`, frames "Marketing / ...".
 - **Links list** (saved tagged links with clicks): no storage exists; the builder is restyled only.
 - **Growth overview / campaign detail / automation flow builder**: restyled headers and tiles; the flow-builder
   canvas of the frame is not rebuilt.
-- Hindi overlays for the new strings (discounts, analytics reports, campaigns) are not added: those sections
+- Hindi overlays added for the page-level copy (discounts, analytics, growth, campaigns, automations); deeper groups (form fields, report columns, editor steps) are marked `untranslated` for a later pass.
   have no overlay yet, English shows through `useCopy`.
 - Browser check against Figma was skipped: no local login available to this session.

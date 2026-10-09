@@ -36,6 +36,7 @@ import { campaignReportContent } from '@/data/marketing-campaigns'
 import { api } from '@/lib/api-client'
 import { formatPaise } from '@/lib/money'
 import { routes } from '@/lib/routes'
+import AutomationFlow from './automation-flow'
 import AutomationRunsCard from './automation-runs-card'
 import AutomationStepCard from './automation-step-card'
 import AutomationTriggerCard from './automation-trigger-card'
@@ -95,6 +96,7 @@ export default function AutomationEditor({
   const [error, setError] = useState<string | null>(null)
   const [templates, setTemplates] = useState<TemplatesResult | null>(null)
   const [confirmDelete, setConfirmDelete] = useState(false)
+  const [selected, setSelected] = useState('trigger')
 
   useEffect(() => {
     if (!form.steps.some((s) => s.type === 'whatsapp') || templates) return
@@ -105,6 +107,12 @@ export default function AutomationEditor({
   const setSteps = (steps: AutomationStep[]) => setForm((f) => ({ ...f, steps }))
 
   // Event handlers
+  const handleAdd = (type: AutomationStepType) => {
+    const step = newStep(type)
+    setSteps([...form.steps, step])
+    setSelected(step.id)
+  }
+
   const handleSave = async () => {
     setBusy(true)
     setError(null)
@@ -153,6 +161,9 @@ export default function AutomationEditor({
 
   // Render logic
   const trigger = automation.trigger as AutomationTrigger
+  const selectedIndex = form.steps.findIndex((x) => x.id === selected)
+  const selectedStep = form.steps[selectedIndex]
+  const current = selectedStep ? selected : 'trigger'
   const dirty = JSON.stringify(form) !== saved
   // Basket triggers fire once the basket has been quiet this long, so steps count from there.
   const triggerDelay = TRIGGER_HAS_CART[trigger] ? (form.settings.afterMinutes ?? 60) : 0
@@ -211,36 +222,34 @@ export default function AutomationEditor({
         ))}
       </div>
       <p className="text-caption text-muted-foreground">{copy.convertedHelp}</p>
-      <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
-        <div className="flex min-w-0 flex-col gap-5">
-          <Card inset={4}>
-            <Field>
-              <FieldLabel htmlFor="automation-name">{copy.name}</FieldLabel>
-              <Input
-                id="automation-name"
-                value={form.name}
-                maxLength={120}
-                onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
-              />
-            </Field>
-          </Card>
-          <AutomationTriggerCard
-            trigger={trigger}
-            settings={form.settings}
-            onChange={(settings) => setForm((f) => ({ ...f, settings }))}
+      <Card inset={4}>
+        <Field>
+          <FieldLabel htmlFor="automation-name">{copy.name}</FieldLabel>
+          <Input
+            id="automation-name"
+            value={form.name}
+            maxLength={120}
+            onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
           />
-          <div className="flex items-center justify-between">
-            <h2 className="text-kit-title text-foreground">{copy.steps.title}</h2>
+        </Field>
+      </Card>
+      <div className="grid grid-cols-1 items-start gap-5 lg:grid-cols-[minmax(0,1fr)_22rem]">
+        <AutomationFlow
+          trigger={trigger}
+          steps={form.steps}
+          selected={current}
+          onSelect={setSelected}
+          addStep={
             <DropdownMenu>
               <DropdownMenuTrigger render={<Button variant="outline" size="sm" />}>
                 <Plus />
                 {copy.steps.add}
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-64">
+              <DropdownMenuContent align="center" className="w-64">
                 {STEP_TYPES.map((t) => (
                   <DropdownMenuItem
                     key={t}
-                    onClick={() => setSteps([...form.steps, newStep(t)])}
+                    onClick={() => handleAdd(t)}
                     className="flex-col items-start gap-0"
                   >
                     <span className="font-medium">{copy.steps.types[t]}</span>
@@ -251,29 +260,40 @@ export default function AutomationEditor({
                 ))}
               </DropdownMenuContent>
             </DropdownMenu>
-          </div>
-          {form.steps.length === 0 ? (
-            <p className="text-body text-muted-foreground">{copy.steps.empty}</p>
-          ) : null}
-          {form.steps.map((step, i) => (
+          }
+        />
+        <div className="flex min-w-0 flex-col gap-3">
+          <h2 className="text-card-title text-ink-strong">{copy.flow.settings}</h2>
+          {selectedStep ? (
             <AutomationStepCard
-              key={step.id}
-              step={step}
-              index={i}
+              key={selectedStep.id}
+              step={selectedStep}
+              index={selectedIndex}
               count={form.steps.length}
-              offsetMinutes={triggerDelay + minutesBefore(form.steps, i)}
+              offsetMinutes={triggerDelay + minutesBefore(form.steps, selectedIndex)}
               hasCart={TRIGGER_HAS_CART[trigger]}
               templates={templates}
               storeName={storeName}
               storefrontUrl={storefrontUrl}
-              onChange={(next) => setSteps(form.steps.map((x) => (x.id === step.id ? next : x)))}
-              onMove={(delta) => handleMove(i, delta)}
-              onRemove={() => setSteps(form.steps.filter((x) => x.id !== step.id))}
+              onChange={(next) =>
+                setSteps(form.steps.map((x) => (x.id === selectedStep.id ? next : x)))
+              }
+              onMove={(delta) => handleMove(selectedIndex, delta)}
+              onRemove={() => {
+                setSteps(form.steps.filter((x) => x.id !== selectedStep.id))
+                setSelected('trigger')
+              }}
             />
-          ))}
+          ) : (
+            <AutomationTriggerCard
+              trigger={trigger}
+              settings={form.settings}
+              onChange={(settings) => setForm((f) => ({ ...f, settings }))}
+            />
+          )}
         </div>
-        <AutomationRunsCard runs={automation.runs} stepCount={form.steps.length} />
       </div>
+      <AutomationRunsCard runs={automation.runs} stepCount={form.steps.length} />
       <DeleteAutomationDialog
         open={confirmDelete}
         onOpenChange={setConfirmDelete}
