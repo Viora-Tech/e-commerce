@@ -4,9 +4,9 @@ import { financialYear, formatSeriesNumber } from '@commerce/invoices'
 import { Button } from '@commerce/ui/shadcn/button'
 import { FieldGroup } from '@commerce/ui/shadcn/field'
 import Link from 'next/link'
-import GeneralTextField from '@/components/settings/general-text-field'
 import SettingsCard from '@/components/settings/settings-card'
-import SwitchField from '@/components/themes/switch-field'
+import SettingsTextRow from '@/components/settings/settings-text-row'
+import SettingsToggleRow from '@/components/settings/settings-toggle-row'
 import { taxesContent } from '@/data/taxes'
 import type { TaxesErrors, TaxesFormState } from './taxes-form'
 
@@ -56,43 +56,42 @@ export default function NumberingCard({
     >
       <FieldGroup>
         {installed ? null : (
-          <div className="flex flex-col gap-3 rounded-lg border border-border bg-muted/50 p-3 sm:flex-row sm:items-center">
+          <div className="mb-5 flex flex-col gap-3 rounded-lg border border-border bg-muted/50 p-3 sm:flex-row sm:items-center">
             <p className="flex-1 text-caption text-foreground">{copy.appMissing}</p>
             <Button variant="outline" size="sm" render={<Link href="/apps" />} nativeButton={false}>
               {copy.goToApps}
             </Button>
           </div>
         )}
-        <div className="grid gap-4 sm:grid-cols-2">
-          <GeneralTextField
-            id="tax-invoice-prefix"
-            label={copy.prefix}
-            value={numbering.prefix}
-            onChange={(prefix) => patch({ prefix: prefix.toUpperCase().replace(/\s/g, '') })}
-            error={errors['numbering.prefix']}
-            help={copy.prefixHelp}
-          />
-          <GeneralTextField
-            id="tax-invoice-next"
-            label={copy.next}
-            value={String(numbering.nextNumber)}
-            onChange={(v) => patch({ nextNumber: Number(v.replace(/\D/g, '')) || 0 })}
-            error={errors['numbering.nextNumber']}
-            help={copy.nextHelp(lowest)}
-            inputMode="numeric"
-          />
-        </div>
-        <SwitchField
+        <SettingsTextRow
+          id="tax-invoice-prefix"
+          label={copy.prefix}
+          description={copy.prefixHelp}
+          value={numbering.prefix}
+          onChange={(prefix) => patch({ prefix: prefix.toUpperCase().replace(/\s/g, '') })}
+          error={errors['numbering.prefix']}
+        />
+        <SettingsTextRow
+          id="tax-invoice-next"
+          label={copy.next}
+          description={copy.nextHelp(lowest)}
+          value={String(numbering.nextNumber)}
+          onChange={(v) => patch({ nextNumber: Number(v.replace(/\D/g, '')) || 0 })}
+          error={errors['numbering.nextNumber']}
+          inputMode="numeric"
+        />
+        <SettingsToggleRow
+          id="tax-reset-year"
           label={copy.reset}
-          help={copy.resetHelp}
+          description={copy.resetHelp}
           checked={numbering.resetEachYear}
           onChange={(resetEachYear) => patch({ resetEachYear })}
         />
-        <p aria-live="polite" className="text-body font-medium text-foreground">
+        <p aria-live="polite" className="pt-5 text-body font-semibold text-ink-strong">
           {copy.preview(sample)}
         </p>
         {installed ? (
-          <p className="text-caption text-muted-foreground">
+          <p className="pt-2 text-caption text-muted-foreground">
             {copy.moreSeries}{' '}
             <Link href="/apps/gst-invoices/settings" className="font-medium underline">
               {copy.openApp}
