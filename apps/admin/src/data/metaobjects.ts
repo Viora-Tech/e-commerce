@@ -129,6 +129,8 @@ export const presetContent: Record<PresetKey | 'blank', { title: string; body: s
 
 export const newContentTypeContent = {
   title: 'New content type',
+  summary: 'Start from a ready-made type, or build your own.',
+  startBlank: 'Start blank',
   back: 'Content types',
   pick: {
     heading: 'What do you want to make?',
@@ -151,11 +153,17 @@ export const metaobjectListContent = {
   heading: 'Content types',
   subtitle:
     'Your own kinds of content, like size guides, FAQs or store locations, to show on your store.',
-  add: 'Add content type',
+  add: 'New content type',
+  fromTemplate: 'Start from template',
+  summary: (types: number, entries: number) =>
+    types === 0
+      ? 'Your own kinds of content, like size guides and FAQs.'
+      : `${types} content ${types === 1 ? 'type' : 'types'} · ${entries} ${entries === 1 ? 'entry' : 'entries'} you can use on any page`,
+  entryCount: (n: number) => (n === 1 ? '1 entry' : `${n} entries`),
   resource: { singular: 'content type', plural: 'content types' },
   columns: {
     name: 'Name',
-    type: 'Handle',
+    type: 'Content type',
     fields: 'Fields',
     entries: 'Entries',
     updated: 'Last updated',
@@ -283,7 +291,8 @@ export const fieldDialogContent = {
 
 export const entryListContent = {
   add: 'Add entry',
-  editDefinition: 'Edit fields',
+  summary: (n: number) => (n === 1 ? '1 entry' : `${n} entries`),
+  editDefinition: 'Edit definition',
   back: 'Content types',
   resource: { singular: 'entry', plural: 'entries' },
   columns: { name: 'Name', handle: 'Handle', status: 'Status', updated: 'Last updated' },

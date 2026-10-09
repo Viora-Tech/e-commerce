@@ -5,6 +5,7 @@ import { Field, FieldDescription, FieldGroup, FieldLabel } from '@commerce/ui/sh
 import { Input } from '@commerce/ui/shadcn/input'
 import { Textarea } from '@commerce/ui/shadcn/textarea'
 import { onlineStoreContent } from '@/data/online-store'
+import { useCopy } from '@/hooks/use-copy'
 
 type SeoPatch = { handle?: string; seoTitle?: string; seoDescription?: string }
 
@@ -15,8 +16,6 @@ type PageSeoCardProps = {
   onChange: (patch: SeoPatch) => void
 }
 
-const copy = onlineStoreContent.form.seo
-
 /** Handle, page title and meta description for search engines. */
 export default function PageSeoCard({
   handle,
@@ -24,6 +23,11 @@ export default function PageSeoCard({
   seoDescription,
   onChange,
 }: PageSeoCardProps) {
+  // Hooks
+  const {
+    form: { seo: copy },
+  } = useCopy(onlineStoreContent)
+
   // Render logic
   return (
     <Card size="form">

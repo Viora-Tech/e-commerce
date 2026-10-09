@@ -5,6 +5,7 @@ import { cn } from '@commerce/ui/lib/utils'
 import { Input } from '@commerce/ui/shadcn/input'
 import { useEffect, useState } from 'react'
 import { menusContent, type NavigationItemType } from '@/data/menus'
+import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 
 type DestinationPickerProps = {
@@ -14,8 +15,6 @@ type DestinationPickerProps = {
 }
 
 type Candidate = { value: string; title: string }
-
-const copy = menusContent.item
 
 async function loadCandidates(type: DestinationPickerProps['type']): Promise<Candidate[]> {
   if (type === 'collection') {
@@ -38,6 +37,7 @@ export default function DestinationPicker({
   onSelect,
 }: DestinationPickerProps) {
   // Hooks
+  const { item: copy } = useCopy(menusContent)
   const [query, setQuery] = useState('')
   const [candidates, setCandidates] = useState<Candidate[]>([])
   const [loading, setLoading] = useState(true)

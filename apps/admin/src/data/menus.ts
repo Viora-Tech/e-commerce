@@ -67,16 +67,35 @@ export const storefrontContent = {
 
 export const menusContent = {
   title: 'Menus',
+  summary: (n: number, where: string) => {
+    if (n === 0) return 'The links shoppers use to move around your store.'
+    const count = `${n} ${n === 1 ? 'menu' : 'menus'}`
+    return where ? `${count} · used in your ${where}` : count
+  },
+  usedInJoin: (parts: string[]) => parts.join(' and '),
+  resource: { singular: 'menu', plural: 'menus' },
   add: 'Add menu',
-  redirects: 'URL redirects',
-  columns: { title: 'Menu', handle: 'Handle', items: 'Items', updated: 'Updated' },
+  redirects: 'Redirects',
+  headerFooter: 'Header and footer',
+  columns: {
+    title: 'Menu',
+    handle: 'Handle',
+    items: 'Links',
+    usedIn: 'Used in',
+    status: 'Status',
+    updated: 'Updated',
+  },
+  status: { active: 'Active', unused: 'Not used' },
   /** Small badges on the title cell, showing where the storefront uses this menu. */
   usage: { header: 'Header', footer: 'Footer' },
+  /** Lower-case place names for the summary line. */
+  where: { header: 'header', footer: 'footer' },
+  notUsed: 'Not used yet',
   empty: {
     heading: 'No menus yet',
     body: 'Menus drive the storefront header and footer. Add one to start.',
   },
-  itemCount: (n: number) => (n === 1 ? '1 item' : `${n} items`),
+  itemCount: (n: number) => (n === 1 ? '1 link' : `${n} links`),
   /** The row actions menu on the menus table. */
   actions: {
     label: 'Menu actions',
@@ -114,6 +133,16 @@ export const menusContent = {
   },
   editor: {
     back: 'Menus',
+    summary: (links: number, where: string) => {
+      const count = links === 1 ? '1 link' : `${links} links`
+      return where ? `${count} · shown in your store ${where}` : count
+    },
+    deleteMenu: 'Delete menu',
+    previewHeading: 'Preview',
+    previewEmpty: 'Add a link to see it here.',
+    detailsHeading: 'Name and handle',
+    handleLabel: 'Handle',
+    handleHelp: 'Used internally, never shown to shoppers.',
     itemsHeading: 'Menu items',
     addItem: 'Add menu item',
     save: 'Save',

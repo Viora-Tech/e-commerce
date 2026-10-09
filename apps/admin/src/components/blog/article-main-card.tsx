@@ -7,6 +7,7 @@ import { Input } from '@commerce/ui/shadcn/input'
 import { Textarea } from '@commerce/ui/shadcn/textarea'
 import RichTextField from '@/components/fields/rich-text-field'
 import { articleFormContent } from '@/data/blog'
+import { useCopy } from '@/hooks/use-copy'
 
 type ArticleMainCardProps = {
   title: string
@@ -15,10 +16,11 @@ type ArticleMainCardProps = {
   onChange: (patch: { title?: string; body?: RichTextValue; excerpt?: string }) => void
 }
 
-const copy = articleFormContent.main
-
 /** Title, the post itself and its excerpt, as the first card of Shopify's post editor. */
 export default function ArticleMainCard({ title, body, excerpt, onChange }: ArticleMainCardProps) {
+  // Hooks
+  const { main: copy } = useCopy(articleFormContent)
+
   // Render logic
   return (
     <Card size="form">

@@ -22,6 +22,7 @@ import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import { onlineStoreContent } from '@/data/online-store'
+import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 
 type CreatePageDialogProps = {
@@ -29,10 +30,11 @@ type CreatePageDialogProps = {
   onOpenChange: (open: boolean) => void
 }
 
-const copy = onlineStoreContent.pages.create
-
 export default function CreatePageDialog({ open, onOpenChange }: CreatePageDialogProps) {
   // Hooks
+  const {
+    pages: { create: copy },
+  } = useCopy(onlineStoreContent)
   const router = useRouter()
   const [title, setTitle] = useState('')
   const [handle, setHandle] = useState('')

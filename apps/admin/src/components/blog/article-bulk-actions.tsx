@@ -2,6 +2,7 @@
 
 import { Button } from '@commerce/ui/shadcn/button'
 import { blogListContent } from '@/data/blog'
+import { useCopy } from '@/hooks/use-copy'
 
 type ArticleBulkActionsProps = {
   busy: boolean
@@ -10,8 +11,6 @@ type ArticleBulkActionsProps = {
   onDelete: () => void
 }
 
-const copy = blogListContent.bulk
-
 /** Buttons inside the selection bar of the blog post list. */
 export default function ArticleBulkActions({
   busy,
@@ -19,6 +18,9 @@ export default function ArticleBulkActions({
   onUnpublish,
   onDelete,
 }: ArticleBulkActionsProps) {
+  // Hooks
+  const { bulk: copy } = useCopy(blogListContent)
+
   // Render logic
   return (
     <>

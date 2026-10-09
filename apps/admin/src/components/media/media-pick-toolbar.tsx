@@ -11,6 +11,7 @@ import {
 } from '@commerce/ui/shadcn/select'
 import { ToggleGroup, ToggleGroupItem } from '@commerce/ui/shadcn/toggle-group'
 import { mediaContent } from '@/data/media'
+import { useCopy } from '@/hooks/use-copy'
 
 export type MediaSortKey = 'newest' | 'oldest' | 'name' | 'size'
 export type MediaFileTypeFilter = 'all' | 'image' | 'video'
@@ -35,31 +36,6 @@ type MediaPickToolbarProps = {
   onView: (value: MediaViewMode) => void
 }
 
-const copy = mediaContent.picker
-
-const SORT_ITEMS = {
-  newest: copy.sort.newest,
-  oldest: copy.sort.oldest,
-  name: copy.sort.name,
-  size: copy.sort.size,
-}
-const FILE_TYPE_ITEMS = {
-  all: copy.filters.fileType.all,
-  image: copy.filters.fileType.image,
-  video: copy.filters.fileType.video,
-}
-const SIZE_ITEMS = {
-  all: copy.filters.size.all,
-  small: copy.filters.size.small,
-  medium: copy.filters.size.medium,
-  large: copy.filters.size.large,
-}
-const USED_ITEMS = {
-  all: copy.filters.used.all,
-  used: copy.filters.used.used,
-  unused: copy.filters.used.unused,
-}
-
 /** Search, sort, grid/list toggle and the File type / File size / Used in filter chips. */
 export default function MediaPickToolbar({
   restricted,
@@ -76,6 +52,31 @@ export default function MediaPickToolbar({
   onUsed,
   onView,
 }: MediaPickToolbarProps) {
+  // Hooks
+  const { picker: copy } = useCopy(mediaContent)
+  const SORT_ITEMS = {
+    newest: copy.sort.newest,
+    oldest: copy.sort.oldest,
+    name: copy.sort.name,
+    size: copy.sort.size,
+  }
+  const FILE_TYPE_ITEMS = {
+    all: copy.filters.fileType.all,
+    image: copy.filters.fileType.image,
+    video: copy.filters.fileType.video,
+  }
+  const SIZE_ITEMS = {
+    all: copy.filters.size.all,
+    small: copy.filters.size.small,
+    medium: copy.filters.size.medium,
+    large: copy.filters.size.large,
+  }
+  const USED_ITEMS = {
+    all: copy.filters.used.all,
+    used: copy.filters.used.used,
+    unused: copy.filters.used.unused,
+  }
+
   // Render logic
   return (
     <>

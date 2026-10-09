@@ -6,6 +6,7 @@ import { Field, FieldDescription, FieldLabel } from '@commerce/ui/shadcn/field'
 import { Input } from '@commerce/ui/shadcn/input'
 import { RadioGroup, RadioGroupItem } from '@commerce/ui/shadcn/radio-group'
 import { articleFormContent } from '@/data/blog'
+import { useCopy } from '@/hooks/use-copy'
 import { formatDateTime } from '@/lib/format-date'
 
 type ArticleVisibilityCardProps = {
@@ -14,7 +15,6 @@ type ArticleVisibilityCardProps = {
   onChange: (patch: { status?: ArticleStatus; publishedAt?: string }) => void
 }
 
-const copy = articleFormContent.visibility
 const OPTIONS = ['published', 'scheduled', 'draft'] as const
 
 /** Visible now, visible from a date and time, or hidden. */
@@ -23,6 +23,9 @@ export default function ArticleVisibilityCard({
   publishedAt,
   onChange,
 }: ArticleVisibilityCardProps) {
+  // Hooks
+  const { visibility: copy } = useCopy(articleFormContent)
+
   // Event handlers
   const handleStatus = (next: ArticleStatus) => {
     // Publishing now keeps an earlier date; a draft forgets it; scheduling asks for one.
