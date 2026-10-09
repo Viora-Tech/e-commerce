@@ -111,11 +111,11 @@ export const ordersContent = {
   } satisfies Record<OrderMark, string>,
   guest: 'Guest',
   columns: {
-    order: 'Order id',
+    order: 'Order',
     product: 'Product',
     date: 'Date',
     customer: 'Customer',
-    total: 'Price',
+    total: 'Total',
     payment: 'Payment',
     fulfilment: 'Fulfilment',
     status: 'Status',

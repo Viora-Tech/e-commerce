@@ -52,6 +52,7 @@ export const NAV_GROUPS: NavGroup[] = [
         icon: ShoppingBag,
         permission: permissions.ORDERS_READ,
         children: [
+          { href: routes.orders.list(), label: 'All orders' },
           { href: routes.orders.drafts(), label: 'Drafts', permission: permissions.DRAFTS_READ },
           {
             href: routes.orders.abandonedCheckouts(),

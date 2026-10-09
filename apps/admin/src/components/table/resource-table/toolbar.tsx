@@ -38,7 +38,7 @@ type ToolbarProps<T extends RowData> = {
 /* Filter bar after the Saleor Dashboard list filters (BSD-3): 32px controls on hairlines,
    6px radius, search first, then Filters with its count, then sort and columns. */
 const CONTROL =
-  'inline-flex h-8 shrink-0 items-center justify-center gap-1.5 rounded-md border border-input bg-card text-body font-medium text-foreground transition-colors hover:border-border-strong hover:bg-muted/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring data-[popup-open]:bg-muted [&_svg]:size-4 [&_svg]:shrink-0'
+  'inline-flex h-[2.375rem] shrink-0 items-center justify-center gap-1.5 rounded-[0.625rem] border border-border bg-card text-body font-medium text-foreground transition-colors hover:border-border-strong hover:bg-muted/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring data-[popup-open]:bg-muted [&_svg]:size-4 [&_svg]:shrink-0'
 
 export default function ResourceTableToolbar<T extends RowData>({
   table,
@@ -60,10 +60,11 @@ export default function ResourceTableToolbar<T extends RowData>({
   const hasApplied = applied.length > 0 || query.length > 0
 
   return (
-    <div className="flex flex-col">
-      {tabs ? <div className="no-scrollbar overflow-x-auto px-4 pt-4 md:px-6">{tabs}</div> : null}
-      <div className="flex flex-wrap items-center gap-2 px-4 py-3 md:px-6">
-        <label className="flex h-8 w-full min-w-0 items-center gap-2 rounded-md border border-input bg-card px-2.5 transition-colors focus-within:border-ring focus-within:ring-3 focus-within:ring-ring/25 hover:border-border-strong sm:w-72 lg:w-80">
+    <div className="flex flex-col gap-3">
+      <div className="flex flex-wrap items-center gap-3">
+      {tabs ? <div className="no-scrollbar min-w-0 overflow-x-auto">{tabs}</div> : null}
+      <div className="flex w-full flex-wrap items-center gap-3 sm:ml-auto sm:w-auto">
+        <label className="flex h-[2.375rem] w-full min-w-0 items-center gap-2 rounded-[0.625rem] border border-border bg-input-surface px-3 transition-colors focus-within:border-ring focus-within:ring-3 focus-within:ring-ring/25 hover:border-border-strong sm:w-[16.25rem]">
           <Search className="size-4 shrink-0 text-muted-foreground" strokeWidth={1.6} />
           <input
             value={query}
@@ -75,7 +76,7 @@ export default function ResourceTableToolbar<T extends RowData>({
         </label>
         {filters ? (
           <Popover>
-            <PopoverTrigger render={<ToolbarButton className="px-2.5" />} nativeButton>
+            <PopoverTrigger render={<ToolbarButton className="px-2.5" aria-label={tableCopy.filter} />} nativeButton>
               <SlidersHorizontal strokeWidth={1.6} />
               {tableCopy.filter}
               {applied.length > 0 ? (
@@ -93,7 +94,7 @@ export default function ResourceTableToolbar<T extends RowData>({
           {sortable.length > 0 ? (
             <DropdownMenu>
               <DropdownMenuTrigger
-                render={<ToolbarButton aria-label={tableCopy.sort} className="size-8" />}
+                render={<ToolbarButton aria-label={tableCopy.sort} className="size-[2.375rem]" />}
                 nativeButton
               >
                 <ArrowUpDown strokeWidth={1.6} />
@@ -117,7 +118,7 @@ export default function ResourceTableToolbar<T extends RowData>({
           {hideable.length > 0 ? (
             <DropdownMenu>
               <DropdownMenuTrigger
-                render={<ToolbarButton aria-label={tableCopy.toggleColumns} className="size-8" />}
+                render={<ToolbarButton aria-label={tableCopy.toggleColumns} className="size-[2.375rem]" />}
                 nativeButton
               >
                 <Columns strokeWidth={1.6} />
@@ -141,8 +142,9 @@ export default function ResourceTableToolbar<T extends RowData>({
           ) : null}
         </div>
       </div>
+      </div>
       {hasApplied && onClearAll ? (
-        <div className="-mt-1 flex flex-wrap items-center gap-1.5 px-4 pb-3 md:px-6">
+        <div className="flex flex-wrap items-center gap-1.5">
           {applied.map((f) => (
             <span
               key={f.key}
