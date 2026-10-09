@@ -27,6 +27,8 @@ type SettingsTableProps = {
   description?: string
   /** Adds the empty trailing column for row actions. */
   actions?: boolean
+  /** Content under the grid (an empty state) inside the same card. */
+  after?: ReactNode
 }
 
 /* Proofly table (Figma "Table · Header / Row"), the same density as the resource tables. */
@@ -45,6 +47,7 @@ export default function SettingsTable({
   heading,
   description,
   actions = false,
+  after,
 }: SettingsTableProps) {
   // Hooks
   const copy = useCopy(tableContent)
@@ -70,6 +73,7 @@ export default function SettingsTable({
         </TableHeader>
         <TableBody>{children}</TableBody>
       </Table>
+      {after}
       {total === undefined || total === 0 ? null : (
         <p className="px-4 py-3 text-caption text-muted-foreground md:px-6">
           {copy.showing(1, total, total)}
