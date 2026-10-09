@@ -1,13 +1,14 @@
 import { formatNumber } from '@commerce/money'
 import KitThumb from '@/components/kit/kit-thumb'
 import type { ResourceColumnSpec } from '@/components/table/resource-table'
-import { inventoryContent as copy } from '@/data/inventory'
+import type { inventoryContent } from '@/data/inventory'
 import type { api } from '@/lib/api-client'
 import AvailableCell from './available-cell'
 
 export type InventoryRow = Awaited<ReturnType<typeof api.inventory.list>>['rows'][number]
 
 type ColumnOptions = {
+  copy: typeof inventoryContent
   canEdit: boolean
   onCommit: (row: InventoryRow, delta: number) => Promise<boolean>
   onHistory: (row: InventoryRow) => void
@@ -21,6 +22,7 @@ export function rowName(row: InventoryRow): string {
 
 /** Columns of the inventory table (Shopify order): item, SKU, then the four counts. */
 export function inventoryColumns({
+  copy,
   canEdit,
   onCommit,
   onHistory,

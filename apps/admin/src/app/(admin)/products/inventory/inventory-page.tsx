@@ -32,6 +32,7 @@ import {
   STOCK_STATES,
   type StockState,
 } from '@/data/inventory'
+import { useCopy } from '@/hooks/use-copy'
 import { usePermissions } from '@/hooks/use-permissions'
 import { api } from '@/lib/api-client'
 import type { ListQuery } from '@/lib/list-query'
@@ -60,7 +61,6 @@ type Query = {
 }
 
 const PER_PAGE = siteConfig.ui.rowsPerPage.default
-const copy = inventoryContent
 
 function listFilters(locationId: string, q: Query) {
   return {
@@ -80,15 +80,17 @@ function fetchPage(locationId: string, q: Query) {
   ])
 }
 
-const EMPTY = {
-  heading: copy.empty.heading,
-  body: copy.empty.body,
-  action: (
-    <Button render={<Link href={routes.products.new()} />} nativeButton={false}>
-      <Plus />
-      {copy.empty.action}
-    </Button>
-  ),
+function emptyState(copy: typeof inventoryContent) {
+  return {
+    heading: copy.empty.heading,
+    body: copy.empty.body,
+    action: (
+      <Button render={<Link href={routes.products.new()} />} nativeButton={false}>
+        <Plus />
+        {copy.empty.action}
+      </Button>
+    ),
+  }
 }
 
 function untouched(initial: InventoryInitial, locationId: string, q: Query) {
@@ -105,6 +107,7 @@ function untouched(initial: InventoryInitial, locationId: string, q: Query) {
 
 function InventoryContent({ initial }: { initial: InventoryInitial }) {
   // Hooks
+  const copy = useCopy(inventoryContent)
   const { hasPermission } = usePermissions()
   const [q, setQ] = useQueryStates(
     {
@@ -272,7 +275,7 @@ function InventoryContent({ initial }: { initial: InventoryInitial }) {
     >
       <ResourceTable
         resourceName={copy.resource}
-        columns={inventoryColumns({ canEdit, onCommit: commitRow, onHistory: setHistory })}
+        columns={inventoryColumns({ copy, canEdit, onCommit: commitRow, onHistory: setHistory })}
         items={rows}
         getId={(r) => r.variantId}
         loading={loading}
@@ -311,7 +314,7 @@ function InventoryContent({ initial }: { initial: InventoryInitial }) {
         bulkActions={(ids, clear) => (
           <InventoryBulkActions busy={busy} onPick={(mode) => setBulk({ mode, ids, clear })} />
         )}
-        empty={filtered ? { heading: copy.noMatch } : EMPTY}
+        empty={filtered ? { heading: copy.noMatch } : emptyState(copy)}
       />
 
       <InventoryBulkDialog

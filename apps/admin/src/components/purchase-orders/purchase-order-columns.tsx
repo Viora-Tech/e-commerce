@@ -1,14 +1,16 @@
 import RelativeTime from '@/components/layout/relative-time'
 import StatusLabel from '@/components/status/status-label'
 import type { ResourceColumnSpec } from '@/components/table/resource-table'
-import { purchaseOrdersContent as copy } from '@/data/inventory'
+import type { purchaseOrdersContent } from '@/data/inventory'
 import type { api } from '@/lib/api-client'
 import { formatPaise } from '@/lib/money'
 
 export type PurchaseOrderRow = Awaited<ReturnType<typeof api.purchaseOrders.list>>['rows'][number]
 
 /** Columns of the purchase order list. */
-export const purchaseOrderColumns: ResourceColumnSpec<PurchaseOrderRow>[] = [
+export const purchaseOrderColumns = (
+  copy: typeof purchaseOrdersContent,
+): ResourceColumnSpec<PurchaseOrderRow>[] => [
   {
     id: 'number',
     title: copy.columns.number,

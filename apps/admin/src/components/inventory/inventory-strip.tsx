@@ -1,6 +1,7 @@
 'use client'
 
 import { inventoryContent, type ManualReasonValue } from '@/data/inventory'
+import { useCopy } from '@/hooks/use-copy'
 import LocationSelect, { type StoreLocation } from './location-select'
 import ReasonSelect from './reason-select'
 
@@ -13,8 +14,6 @@ type InventoryStripProps = {
   onReasonChange: (reason: ManualReasonValue) => void
 }
 
-const copy = inventoryContent
-
 /** Location picker, the reason inline edits are logged with, then the stat tiles. */
 export default function InventoryStrip({
   locations,
@@ -23,6 +22,10 @@ export default function InventoryStrip({
   reason,
   onReasonChange,
 }: InventoryStripProps) {
+  // Hooks
+  const copy = useCopy(inventoryContent)
+
+  // Render logic
   return (
     <div className="flex flex-wrap items-end gap-4">
       <div className="flex flex-col gap-1.5">

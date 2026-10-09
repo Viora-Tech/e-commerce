@@ -20,6 +20,7 @@ import {
   type PurchaseOrderStatus,
   purchaseOrdersContent,
 } from '@/data/inventory'
+import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 import { type ListQuery, sameListQuery } from '@/lib/list-query'
 import { usePrimaryAction } from '@/lib/primary-action'
@@ -36,7 +37,6 @@ export type PurchaseOrdersInitial = {
 
 const PER_PAGE = siteConfig.ui.rowsPerPage.default
 const NEW_HREF = routes.products.newPurchaseOrder()
-const copy = purchaseOrdersContent
 
 function allCount(c: PurchaseOrderCounts): number {
   return c.draft + c.open + c.received + c.closed
@@ -44,6 +44,7 @@ function allCount(c: PurchaseOrderCounts): number {
 
 function PurchaseOrdersContent({ initial }: { initial: PurchaseOrdersInitial }) {
   // Hooks
+  const copy = useCopy(purchaseOrdersContent)
   usePrimaryAction(NEW_HREF)
   const [q, setQ] = useQueryStates(
     {
@@ -104,7 +105,7 @@ function PurchaseOrdersContent({ initial }: { initial: PurchaseOrdersInitial }) 
     >
       <ResourceTable
         resourceName={copy.resource}
-        columns={purchaseOrderColumns}
+        columns={purchaseOrderColumns(copy)}
         items={rows}
         getId={(r) => r.id}
         href={(r) => routes.products.purchaseOrder(r.id)}
