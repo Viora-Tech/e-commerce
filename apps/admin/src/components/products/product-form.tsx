@@ -1,7 +1,7 @@
 'use client'
 
 import type { ProductStatus } from '@commerce/core/catalog'
-import { CircleAlert, Package, Save } from '@commerce/ui/icons'
+import { CircleAlert } from '@commerce/ui/icons'
 import { Alert, AlertDescription, AlertTitle } from '@commerce/ui/shadcn/alert'
 import {
   AlertDialog,
@@ -16,17 +16,17 @@ import {
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
-import KitButton from '@/components/kit/kit-button'
 import DataCard from '@/components/layout/data-card'
-import DetailLayout from '@/components/layout/detail-layout'
-import PageHeader from '@/components/layout/page-header'
+import ProoflyDetailPage from '@/components/layout/proofly-detail-page'
+import ProoflyPageHeader from '@/components/layout/proofly-page-header'
 import SaveBar from '@/components/layout/save-bar'
+import StatusChip from '@/components/layout/status-chip'
 import MetafieldsCard from '@/components/metaobjects/metafields-card'
-import StatusLabel from '@/components/status/status-label'
 import TemplateSelectCard from '@/components/themes/template-select-card'
-import { productFormContent, productsListContent } from '@/data/products'
+import { productBannerContent, productFormContent, productsListContent } from '@/data/products'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { routes } from '@/lib/routes'
 import AiWriterButton from './ai-writer-button'
 import {
   emptyForm,
@@ -42,6 +42,7 @@ import {
   toWrite,
   type VariantRow,
 } from './form-state'
+import ProductBanner from './product-banner'
 import ProductCategoriesCard from './product-categories-card'
 import ProductCollectionsCard from './product-collections-card'
 import ProductFormActions from './product-form-actions'
@@ -78,8 +79,8 @@ const SINGLE_SECTIONS = [
 ] as const
 const MATRIX_SECTIONS = ['media', 'details', 'variants', 'shipping', 'seo', 'more'] as const
 
-/** Jump-nav targets land below the sticky page header instead of under it. */
-const SECTION = 'scroll-mt-[calc(var(--detail-header-height,11rem)+1rem)]'
+/** Jump-nav targets keep a little air above them when scrolled into view. */
+const SECTION = 'scroll-mt-6'
 
 function initialForm(product: LoadedProduct | null): ProductFormState {
   return product ? fromProduct(product) : emptyForm()
@@ -100,6 +101,7 @@ export default function ProductForm({
   // Hooks
   const copy = useCopy(productFormContent)
   const listCopy = useCopy(productsListContent)
+  const bannerCopy = useCopy(productBannerContent)
   const router = useRouter()
   const [form, setForm] = useState<ProductFormState>(() => initialForm(product))
   const [saved, setSaved] = useState(() => snapshot(initialForm(product)))
@@ -155,13 +157,18 @@ export default function ProductForm({
       setSaved(snapshot(fresh))
       setRevision((r) => r + 1)
       toast.success(product ? copy.toasts.saved : copy.toasts.created)
-      if (!product) router.replace(`/products/${result.id}`)
+      if (!product) router.replace(routes.products.detail(result.id))
       else router.refresh()
     } catch (err) {
       setServerError(err instanceof Error ? err.message : copy.toasts.failed)
     } finally {
       setBusy(false)
     }
+  }
+
+  const handleUpdateInventory = () => {
+    const target = document.getElementById('inventory') ?? document.getElementById('variants')
+    target?.scrollIntoView({ behavior: 'smooth', block: 'start' })
   }
 
   const handleDiscard = () => {
@@ -178,7 +185,7 @@ export default function ProductForm({
     try {
       const { id } = await api.products.duplicate({ id: product.id })
       toast.success(copy.duplicate.toast)
-      router.push(`/products/${id}`)
+      router.push(routes.products.detail(id))
     } catch (err) {
       toast.error(err instanceof Error ? err.message : copy.duplicate.failed)
       setBusy(false)
@@ -191,7 +198,7 @@ export default function ProductForm({
     try {
       const { outcome } = await api.products.delete({ id: product.id })
       toast.success(outcome === 'deleted' ? copy.toasts.deleted : copy.toasts.archived)
-      router.push('/products')
+      router.push(routes.products.list())
       router.refresh()
     } catch (err) {
       setServerError(err instanceof Error ? err.message : copy.toasts.failed)
@@ -216,8 +223,7 @@ export default function ProductForm({
   const working = busy || uploading
 
   return (
-    <DetailLayout
-      stickySide
+    <ProoflyDetailPage
       header={
         <>
           <SaveBar
@@ -229,17 +235,25 @@ export default function ProductForm({
             onDiscard={handleDiscard}
             saving={busy}
           />
-          <PageHeader
+          <ProoflyPageHeader
             title={product ? product.title : copy.newTitle}
-            icon={<Package aria-hidden="true" />}
-            tone={form.status === 'active' ? 'success' : 'neutral'}
+            back={{ label: copy.backLabel, href: routes.products.list() }}
             badges={
-              product ? <StatusLabel kind="product" value={form.status} variant="pill" /> : null
+              product ? (
+                <StatusChip tone={form.status === 'draft' ? 'info' : 'neutral'}>
+                  {listCopy.status[form.status]}
+                </StatusChip>
+              ) : null
             }
-            breadcrumbs={[
-              { label: listCopy.title, href: '/products' },
-              { label: product ? product.title : copy.newTitle },
-            ]}
+            summary={
+              product
+                ? bannerCopy.summary(
+                    bannerCopy.state[form.status],
+                    form.productType || null,
+                    form.vendor || null,
+                  )
+                : undefined
+            }
             actions={
               <ProductPageActions
                 busy={working}
@@ -248,6 +262,13 @@ export default function ProductForm({
               />
             }
           />
+          {product ? (
+            <ProductBanner
+              form={form}
+              onUpdateInventory={handleUpdateInventory}
+              onSetStatus={() => void handleSave('active')}
+            />
+          ) : null}
           <ProductSectionNav
             sections={single ? SINGLE_SECTIONS : MATRIX_SECTIONS}
             onJump={(id) => id === 'more' && setMoreOpen(true)}
@@ -330,23 +351,6 @@ export default function ProductForm({
             />
             {product ? <StockHistoryCard productId={product.id} /> : null}
           </ProductMoreSection>
-          <div className="flex flex-wrap justify-end gap-2 px-4 py-6 md:px-6">
-            <KitButton
-              variant="secondary"
-              onClick={() => void handleSave('draft')}
-              disabled={working}
-            >
-              <Save className="size-4" aria-hidden="true" />
-              {copy.saveDraft}
-            </KitButton>
-            <KitButton
-              variant="primary"
-              onClick={() => void handleSave('active')}
-              disabled={working}
-            >
-              {copy.publish}
-            </KitButton>
-          </div>
         </>
       }
       side={
@@ -400,6 +404,6 @@ export default function ProductForm({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </DetailLayout>
+    </ProoflyDetailPage>
   )
 }

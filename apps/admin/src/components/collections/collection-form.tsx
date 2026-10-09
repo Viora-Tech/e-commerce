@@ -1,33 +1,35 @@
 'use client'
 
 import { emptyCollectionRules } from '@commerce/core/collections'
-import { Blocks } from '@commerce/ui/icons'
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@commerce/ui/shadcn/alert-dialog'
+import { Eye, MoreVertical } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@commerce/ui/shadcn/dropdown-menu'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
-import PageBody from '@/components/layout/page-body'
-import PageColumns from '@/components/layout/page-columns'
-import PageHeader from '@/components/layout/page-header'
+import ProoflyDetailPage from '@/components/layout/proofly-detail-page'
+import ProoflyPageHeader from '@/components/layout/proofly-page-header'
 import SaveBar from '@/components/layout/save-bar'
+import StatusChip from '@/components/layout/status-chip'
 import MetafieldsCard from '@/components/metaobjects/metafields-card'
 import TemplateSelectCard from '@/components/themes/template-select-card'
-import { collectionsListContent, collectionFormContent as copy } from '@/data/collections'
+import { collectionDetailContent, collectionFormContent } from '@/data/collections'
+import { useCopy, useFormat } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
-import CollectionDetailsCard from './collection-details-card'
-import CollectionMembersCard from './collection-members-card'
+import { routes } from '@/lib/routes'
+import CollectionImageCard from './collection-image-card'
+import CollectionProductsCard from './collection-products-card'
+import CollectionRulesBuilder from './collection-rules-builder'
 import CollectionSeoCard from './collection-seo-card'
-import CollectionStatusCard from './collection-status-card'
+import CollectionTitleCard from './collection-title-card'
+import CollectionTypeCard from './collection-type-card'
+import CollectionVisibilityCard from './collection-visibility-card'
+import DeleteCollectionDialog from './delete-collection-dialog'
 import {
   type CollectionFormState,
   emptyCollectionForm,
@@ -36,15 +38,30 @@ import {
   toWrite,
 } from './form-state'
 
-type CollectionFormProps = { collection: LoadedCollection | null }
+type CollectionFormProps = {
+  collection: LoadedCollection | null
+  /** Public origin of the store (`https://shop.example`), for the preview link and search listing. */
+  storefrontOrigin: string
+}
 
 function initialForm(collection: LoadedCollection | null): CollectionFormState {
   return collection ? fromCollection(collection) : emptyCollectionForm()
 }
 
-export default function CollectionForm({ collection }: CollectionFormProps) {
+function hostOf(origin: string): string {
+  try {
+    return new URL(origin).host
+  } catch {
+    return origin
+  }
+}
+
+export default function CollectionForm({ collection, storefrontOrigin }: CollectionFormProps) {
   // Hooks
   const router = useRouter()
+  const copy = useCopy(collectionFormContent)
+  const detail = useCopy(collectionDetailContent)
+  const fmt = useFormat()
   const [form, setForm] = useState<CollectionFormState>(() => initialForm(collection))
   const [saved, setSaved] = useState(() => JSON.stringify(initialForm(collection)))
   const [busy, setBusy] = useState(false)
@@ -87,7 +104,7 @@ export default function CollectionForm({ collection }: CollectionFormProps) {
         const { id } = await api.collections.create(toWrite(form))
         setSaved(JSON.stringify(form))
         toast.success(copy.created)
-        router.replace(`/products/collections/${id}`)
+        router.replace(routes.products.collection(id))
       }
     } catch (err) {
       toast.error(err instanceof Error ? err.message : copy.saveFailed)
@@ -105,7 +122,7 @@ export default function CollectionForm({ collection }: CollectionFormProps) {
     try {
       await api.collections.delete({ id: collection.id })
       toast.success(copy.deleted)
-      router.push('/products/collections')
+      router.push(routes.products.collections())
     } catch (err) {
       toast.error(err instanceof Error ? err.message : copy.saveFailed)
     } finally {
@@ -115,11 +132,117 @@ export default function CollectionForm({ collection }: CollectionFormProps) {
 
   // Render logic
   const dirty = JSON.stringify(form) !== saved
+  const count = form.kind === 'automatic' && matches !== null ? matches : form.products.length
+  const updated = collection?.updatedAt ? fmt.day(collection.updatedAt) : null
+  const header = (
+    <ProoflyPageHeader
+      title={form.title || (collection ? collection.title : detail.newTitle)}
+      back={{ label: detail.back, href: routes.products.collections() }}
+      badges={
+        collection ? (
+          <StatusChip tone={form.status === 'active' ? 'neutral' : 'attention'}>
+            {form.status === 'active' ? detail.visibility.chipOn : detail.visibility.chipOff}
+          </StatusChip>
+        ) : null
+      }
+      summary={collection ? detail.summary(count, updated) : detail.newSummary}
+      actions={
+        <>
+          {collection ? (
+            <Button
+              variant="key-neutral"
+              render={
+                <a
+                  href={`${storefrontOrigin}/collections/${collection.handle}`}
+                  target="_blank"
+                  rel="noreferrer"
+                />
+              }
+              nativeButton={false}
+            >
+              <Eye aria-hidden />
+              {detail.preview}
+            </Button>
+          ) : null}
+          {collection ? (
+            <DropdownMenu>
+              <DropdownMenuTrigger
+                render={
+                  <Button variant="outline" size="icon" aria-label={detail.more}>
+                    <MoreVertical aria-hidden />
+                  </Button>
+                }
+              />
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem
+                  className="text-danger focus:text-danger"
+                  onClick={() => setConfirmDelete(true)}
+                >
+                  {copy.delete.action}
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          ) : null}
+          <Button onClick={handleSave} loading={busy} disabled={Boolean(collection) && !dirty}>
+            {copy.save}
+          </Button>
+        </>
+      }
+    />
+  )
 
   return (
-    <PageBody width="narrow" className="kit-form gap-4">
+    <ProoflyDetailPage
+      header={header}
+      main={
+        <>
+          <CollectionTitleCard title={form.title} description={form.description} onChange={patch} />
+          {form.kind === 'automatic' ? (
+            <CollectionRulesBuilder
+              rules={form.rules}
+              matches={matches}
+              onChange={(rules) => patch({ rules })}
+            />
+          ) : null}
+          <CollectionProductsCard
+            kind={form.kind}
+            products={form.products}
+            sortOrder={form.sortOrder}
+            onSortChange={(sortOrder) => patch({ sortOrder })}
+            onProducts={(products) => patch({ products })}
+          />
+          <MetafieldsCard ownerType="collection" ownerId={collection?.id ?? null} />
+        </>
+      }
+      side={
+        <>
+          <CollectionImageCard imageUrl={form.imageUrl} onChange={patch} />
+          <CollectionVisibilityCard status={form.status} onChange={(status) => patch({ status })} />
+          <CollectionTypeCard
+            kind={form.kind}
+            locked={collection !== null}
+            onChange={(kind) =>
+              patch({ kind, rules: kind === 'automatic' ? form.rules : emptyCollectionRules() })
+            }
+          />
+          <CollectionSeoCard
+            seoTitle={form.seoTitle}
+            seoDescription={form.seoDescription}
+            title={form.title}
+            host={hostOf(storefrontOrigin)}
+            handle={collection?.handle ?? null}
+            onChange={patch}
+          />
+          <TemplateSelectCard
+            kind="collection"
+            value={form.templateSuffix}
+            onChange={(templateSuffix) => patch({ templateSuffix })}
+          />
+        </>
+      }
+    >
       <SaveBar
-        open={dirty}
+        open={dirty && Boolean(collection)}
         message={copy.unsaved}
         saveLabel={busy ? copy.saving : copy.save}
         discardLabel={copy.discard}
@@ -127,85 +250,11 @@ export default function CollectionForm({ collection }: CollectionFormProps) {
         onDiscard={handleDiscard}
         saving={busy}
       />
-      <PageHeader
-        title={collection ? copy.editTitle : copy.newTitle}
-        icon={<Blocks aria-hidden="true" />}
-        tone={form.status === 'active' ? 'success' : 'neutral'}
-        breadcrumbs={[
-          { label: collectionsListContent.title, href: '/products/collections' },
-          { label: collection ? copy.editTitle : copy.newTitle },
-        ]}
-        actions={
-          collection ? (
-            <Button variant="outline" onClick={() => setConfirmDelete(true)} disabled={busy}>
-              {copy.delete.action}
-            </Button>
-          ) : (
-            <Button onClick={handleSave} disabled={busy}>
-              {busy ? copy.saving : copy.save}
-            </Button>
-          )
-        }
+      <DeleteCollectionDialog
+        open={confirmDelete}
+        onCancel={() => setConfirmDelete(false)}
+        onConfirm={handleDelete}
       />
-      <PageColumns
-        main={
-          <>
-            <CollectionDetailsCard
-              title={form.title}
-              description={form.description}
-              imageUrl={form.imageUrl}
-              onChange={patch}
-            />
-            <CollectionMembersCard
-              kind={form.kind}
-              rules={form.rules}
-              products={form.products}
-              matches={matches}
-              onKind={(kind) =>
-                patch({ kind, rules: kind === 'automatic' ? form.rules : emptyCollectionRules() })
-              }
-              onRules={(rules) => patch({ rules })}
-              onProducts={(products) => patch({ products })}
-            />
-            <MetafieldsCard ownerType="collection" ownerId={collection?.id ?? null} />
-          </>
-        }
-        side={
-          <>
-            <CollectionStatusCard
-              status={form.status}
-              onChange={(status) => patch({ status })}
-              sortOrder={form.sortOrder}
-              onSortChange={(sortOrder) => patch({ sortOrder })}
-            />
-            <TemplateSelectCard
-              kind="collection"
-              value={form.templateSuffix}
-              onChange={(templateSuffix) => patch({ templateSuffix })}
-            />
-            <CollectionSeoCard
-              seoTitle={form.seoTitle}
-              seoDescription={form.seoDescription}
-              onChange={patch}
-            />
-          </>
-        }
-      />
-
-      <AlertDialog open={confirmDelete} onOpenChange={setConfirmDelete}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>{copy.delete.heading}</AlertDialogTitle>
-            <AlertDialogDescription>{copy.delete.body}</AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>{copy.delete.cancel}</AlertDialogCancel>
-            <AlertDialogAction variant="destructive" onClick={handleDelete}>
-              {copy.delete.confirm}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-    </PageBody>
+    </ProoflyDetailPage>
   )
 }

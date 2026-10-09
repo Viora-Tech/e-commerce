@@ -7,9 +7,9 @@ import { toast } from 'sonner'
 import ConfirmActionDialog from '@/components/inventory/confirm-action-dialog'
 import type { StoreLocation } from '@/components/inventory/location-select'
 import NotesCard from '@/components/inventory/notes-card'
-import PageBody from '@/components/layout/page-body'
 import PageColumns from '@/components/layout/page-columns'
-import PageHeader from '@/components/layout/page-header'
+import ProoflyPageBody from '@/components/layout/proofly-page-body'
+import ProoflyPageHeader from '@/components/layout/proofly-page-header'
 import { transferFormContent, transfersContent } from '@/data/inventory'
 import { api } from '@/lib/api-client'
 import RouteCard from './route-card'
@@ -135,14 +135,11 @@ export default function TransferForm({ transfer, locations }: TransferFormProps)
   const sameRoute = form.fromLocationId === form.toLocationId
 
   return (
-    <PageBody width="narrow" className="kit-form gap-4">
-      <PageHeader
+    <ProoflyPageBody>
+      <ProoflyPageHeader
         title={transfer ? copy.title(transfer.number) : copy.newTitle}
-        subtitle={status ? transfersContent.status[status] : undefined}
-        breadcrumbs={[
-          { label: copy.back, href: LIST },
-          { label: transfer ? transfersContent.number(transfer.number) : copy.newTitle },
-        ]}
+        summary={status ? transfersContent.status[status] : undefined}
+        back={{ label: copy.back, href: LIST }}
         actions={
           draft ? (
             <>
@@ -206,6 +203,6 @@ export default function TransferForm({ transfer, locations }: TransferFormProps)
         destructive
         onConfirm={handleDelete}
       />
-    </PageBody>
+    </ProoflyPageBody>
   )
 }

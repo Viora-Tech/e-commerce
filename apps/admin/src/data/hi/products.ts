@@ -15,6 +15,20 @@ export default [
     export: 'एक्सपोर्ट',
     import: 'इंपोर्ट',
     tabs: { all: 'सभी प्रोडक्ट' },
+    summary: (total: number, low: number, out: number) =>
+      [
+        `${total} प्रोडक्ट`,
+        low > 0 ? `${low} का स्टॉक कम` : null,
+        out > 0 ? `${out} का स्टॉक खत्म` : null,
+      ]
+        .filter(Boolean)
+        .join(' · '),
+    tiles: {
+      total: 'कुल प्रोडक्ट',
+      low: 'कम स्टॉक',
+      out: 'स्टॉक खत्म',
+      draft: 'ड्राफ़्ट',
+    },
     filters: {
       label: 'फ़िल्टर',
       vendor: 'वेंडर',

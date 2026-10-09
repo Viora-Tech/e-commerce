@@ -5,11 +5,13 @@ import assistant from './assistant'
 import bugReport from './bug-report'
 import businessGst from './business-gst'
 import checkoutSettings from './checkout-settings'
+import collections from './collections'
 import common from './common'
 import dates from './dates'
 import domains from './domains'
 import gstInvoices from './gst-invoices'
 import home from './home'
+import inventory from './inventory'
 import layout from './layout'
 import metaobjects from './metaobjects'
 import navigation from './navigation'
@@ -19,6 +21,7 @@ import payments from './payments'
 import paymentsSetup from './payments-setup'
 import products from './products'
 import reviews from './reviews'
+import selectProducts from './select-products'
 import settings from './settings'
 import shipping from './shipping'
 import shippingRates from './shipping-rates'
@@ -53,7 +56,10 @@ export const hindiCopy: readonly TranslationPair[] = [
   ...orders,
   ...payments,
   ...paymentsSetup,
+  ...collections,
+  ...inventory,
   ...products,
+  ...selectProducts,
   ...reviews,
   ...settings,
   ...shipping,

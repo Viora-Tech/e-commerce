@@ -70,6 +70,7 @@ export const NAV_GROUPS: NavGroup[] = [
         icon: Package,
         permission: permissions.PRODUCTS_READ,
         children: [
+          { href: routes.products.list(), label: 'All products' },
           { href: routes.products.collections(), label: 'Collections' },
           {
             href: routes.products.inventory(),

@@ -1,7 +1,8 @@
+import { siteConfig } from '@commerce/config/site'
 import type { Metadata } from 'next'
 import { PURCHASE_ORDER_STATUSES } from '@/data/inventory'
 import { appRouter, call, serverContext } from '@/lib/api'
-import { LIST_PER_PAGE, parseListQuery, type SearchParams } from '@/lib/list-query'
+import { parseListQuery, type SearchParams } from '@/lib/list-query'
 import PurchaseOrdersPage from './purchase-orders-page'
 
 export const metadata: Metadata = { title: 'Purchase orders' }
@@ -16,7 +17,7 @@ export default async function Page({ searchParams }: Props) {
       appRouter.purchaseOrders.list,
       {
         page: query.page,
-        perPage: LIST_PER_PAGE,
+        perPage: siteConfig.ui.rowsPerPage.default,
         search: query.query || undefined,
         status: query.status ?? undefined,
       },
