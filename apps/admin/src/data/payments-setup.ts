@@ -197,9 +197,8 @@ export const paymentsSetupContent = {
     title: 'How getting paid online works',
     body: 'A payment company (like Razorpay or Cashfree) takes the money from the shopper by UPI or card and sends it to your bank account. They keep a small fee, usually around 2%.',
   },
-  whatsapp: {
-    label: 'Need help? Chat with us on WhatsApp',
-    soon: 'WhatsApp help is coming soon. Email support for now.',
+  guide: {
+    label: 'View setup guide',
   },
   wizard: {
     progress: (step: number, total: number) => `Step ${step} of ${total}`,

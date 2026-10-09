@@ -2,8 +2,6 @@
 
 import { GST_RATE_OPTIONS } from '@commerce/core/tax-settings'
 import { InfoIcon } from '@commerce/ui/icons'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@commerce/ui/shadcn/card'
-import { Field, FieldDescription, FieldGroup, FieldLabel } from '@commerce/ui/shadcn/field'
 import {
   Select,
   SelectContent,
@@ -11,8 +9,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@commerce/ui/shadcn/select'
-import GeneralTextField from '@/components/settings/general-text-field'
-import SwitchField from '@/components/themes/switch-field'
+import SettingsCard from '@/components/settings/settings-card'
+import SettingsRow from '@/components/settings/settings-row'
+import SettingsTextRow from '@/components/settings/settings-text-row'
+import SettingsToggleRow from '@/components/settings/settings-toggle-row'
 import { taxesContent } from '@/data/taxes'
 import type { TaxesErrors, TaxesFormState } from './taxes-form'
 
@@ -42,67 +42,67 @@ export default function ChargingCard({ form, errors, onPatch }: ChargingCardProp
   const rateItems = Object.fromEntries(rates.map((r) => [String(r), copy.rateLabel(r)]))
 
   return (
-    <Card size="form" id="charging" className="scroll-mt-6">
-      <CardHeader>
-        <CardTitle>{copy.heading}</CardTitle>
-        <CardDescription>{copy.help}</CardDescription>
-      </CardHeader>
-      <CardContent>
-        <FieldGroup>
-          <SwitchField
-            label={copy.composition}
-            help={copy.compositionHelp}
-            checked={form.composition}
-            onChange={(composition) => onPatch({ composition })}
+    <SettingsCard
+      id="charging"
+      className="scroll-mt-6"
+      title={copy.heading}
+      description={copy.help}
+    >
+      <SettingsToggleRow
+        id="tax-composition"
+        label={copy.composition}
+        description={copy.compositionHelp}
+        checked={form.composition}
+        onChange={(composition) => onPatch({ composition })}
+      />
+      {form.composition ? (
+        <Note>{copy.compositionOn}</Note>
+      ) : (
+        <>
+          <SettingsToggleRow
+            id="tax-prices-include"
+            label={copy.pricesInclude}
+            description={copy.pricesIncludeHelp}
+            checked={form.pricesIncludeGst}
+            onChange={(pricesIncludeGst) => onPatch({ pricesIncludeGst })}
           />
-          {form.composition ? (
-            <Note>{copy.compositionOn}</Note>
-          ) : (
-            <>
-              <SwitchField
-                label={copy.pricesInclude}
-                help={copy.pricesIncludeHelp}
-                checked={form.pricesIncludeGst}
-                onChange={(pricesIncludeGst) => onPatch({ pricesIncludeGst })}
-              />
-              {form.pricesIncludeGst ? null : <Note>{copy.pricesExcludeNote}</Note>}
-            </>
-          )}
-          <div className="grid gap-4 sm:grid-cols-2">
-            <Field data-invalid={errors.gstRatePercent ? true : undefined}>
-              <FieldLabel htmlFor="tax-rate">{copy.rate}</FieldLabel>
-              <Select
-                items={rateItems}
-                value={String(form.gstRatePercent)}
-                onValueChange={(v) => v !== null && onPatch({ gstRatePercent: Number(v) })}
-              >
-                <SelectTrigger size="lg" id="tax-rate" className="w-full">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {rates.map((r) => (
-                    <SelectItem key={r} value={String(r)}>
-                      {copy.rateLabel(r)}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <FieldDescription>{errors.gstRatePercent ?? copy.rateHelp}</FieldDescription>
-            </Field>
-            <GeneralTextField
-              id="tax-hsn"
-              label={copy.hsn}
-              value={form.defaultHsn}
-              onChange={(defaultHsn) => onPatch({ defaultHsn: defaultHsn.replace(/\D/g, '') })}
-              error={errors.defaultHsn}
-              help={copy.hsnHelp}
-              inputMode="numeric"
-            />
-          </div>
-          <p className="text-caption text-muted-foreground">{copy.perProduct}</p>
-        </FieldGroup>
-      </CardContent>
-    </Card>
+          {form.pricesIncludeGst ? null : <Note>{copy.pricesExcludeNote}</Note>}
+        </>
+      )}
+      <SettingsRow
+        label={copy.rate}
+        description={copy.rateHelp}
+        htmlFor="tax-rate"
+        error={errors.gstRatePercent}
+      >
+        <Select
+          items={rateItems}
+          value={String(form.gstRatePercent)}
+          onValueChange={(v) => v !== null && onPatch({ gstRatePercent: Number(v) })}
+        >
+          <SelectTrigger size="lg" id="tax-rate" className="w-full">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {rates.map((r) => (
+              <SelectItem key={r} value={String(r)}>
+                {copy.rateLabel(r)}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </SettingsRow>
+      <SettingsTextRow
+        id="tax-hsn"
+        label={copy.hsn}
+        description={copy.hsnHelp}
+        value={form.defaultHsn}
+        onChange={(defaultHsn) => onPatch({ defaultHsn: defaultHsn.replace(/\D/g, '') })}
+        error={errors.defaultHsn}
+        inputMode="numeric"
+      />
+      <p className="pt-5 text-caption text-muted-foreground">{copy.perProduct}</p>
+    </SettingsCard>
   )
 }
 

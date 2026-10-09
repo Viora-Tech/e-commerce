@@ -1,15 +1,15 @@
 'use client'
 
-import { Bell } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
-import { Card, CardContent } from '@commerce/ui/shadcn/card'
+import { Card } from '@commerce/ui/shadcn/card'
 import { Skeleton } from '@commerce/ui/shadcn/skeleton'
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
-import PageHeader from '@/components/layout/page-header'
 import HelpFooter from '@/components/payments/help-footer'
 import HealthLine from '@/components/settings/health-line'
+import SettingsPageHeader from '@/components/settings/settings-page-header'
+import SettingsTable from '@/components/settings/settings-table'
 import WhatsThisHelp from '@/components/settings/whats-this-help'
 import { notificationsSettingsContent as copy, type MessageGroupId } from '@/data/notifications'
 import { senderEmailContent } from '@/data/sender-email'
@@ -69,8 +69,18 @@ export default function NotificationsPage() {
     )
 
   const rows = (group: MessageGroupId) => (data?.messages ?? []).filter((m) => m.group === group)
-  const renderRows = (list: MessageRowData[]) => (
-    <ul className="flex flex-col divide-y divide-border">
+  const renderRows = (list: MessageRowData[], heading?: string, description?: string) => (
+    <SettingsTable
+      heading={heading}
+      description={description}
+      actions
+      total={list.length}
+      columns={[
+        { label: copy.list.columns.message },
+        { label: copy.list.columns.sentOn },
+        { label: copy.list.columns.status, center: true },
+      ]}
+    >
       {list.map((m) => (
         <MessageRow
           key={m.id}
@@ -82,7 +92,7 @@ export default function NotificationsPage() {
           onTest={() => handleTest(m)}
         />
       ))}
-    </ul>
+    </SettingsTable>
   )
 
   // Event handlers
@@ -142,7 +152,7 @@ export default function NotificationsPage() {
   const whatsappOn = data.channels.whatsapp.state === 'connected'
   return (
     <div className="flex flex-col gap-5">
-      <PageHeader
+      <SettingsPageHeader
         title={copy.title}
         subtitle={
           <span className="flex flex-wrap items-center gap-x-3 gap-y-1">
@@ -154,7 +164,6 @@ export default function NotificationsPage() {
             />
           </span>
         }
-        icon={<Bell aria-hidden="true" />}
       />
 
       <HealthLine
@@ -186,19 +195,7 @@ export default function NotificationsPage() {
         {GROUPS.map((g) => {
           const list = rows(g)
           if (list.length === 0) return null
-          return (
-            <Card key={g}>
-              <CardContent className="flex flex-col gap-3">
-                <div className="flex flex-col gap-0.5">
-                  <h3 className="text-body font-semibold text-foreground">
-                    {copy.groups[g].title}
-                  </h3>
-                  <p className="text-caption text-muted-foreground">{copy.groups[g].help}</p>
-                </div>
-                {renderRows(list)}
-              </CardContent>
-            </Card>
-          )
+          return <div key={g}>{renderRows(list, copy.groups[g].title, copy.groups[g].help)}</div>
         })}
       </section>
 
@@ -209,9 +206,7 @@ export default function NotificationsPage() {
           </h2>
           <p className="text-body text-muted-foreground">{copy.groups.you.help}</p>
         </div>
-        <Card>
-          <CardContent>{renderRows(rows('you'))}</CardContent>
-        </Card>
+        {renderRows(rows('you'))}
       </section>
 
       <section className="flex flex-col gap-2" aria-labelledby="notifications-sender">

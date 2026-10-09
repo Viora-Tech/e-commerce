@@ -34,6 +34,7 @@ export const notificationsSettingsContent = {
   },
 
   list: {
+    columns: { message: 'Message', sentOn: 'Sent on', status: 'Status' },
     heading: 'Messages your customers get',
     help: 'Turn off any message you do not want to send. Everything is on to begin with.',
     on: 'On',

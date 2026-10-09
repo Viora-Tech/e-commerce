@@ -3,7 +3,6 @@
 import { CircleAlert, CircleCheck, TriangleAlert } from '@commerce/ui/icons'
 import { Alert, AlertDescription } from '@commerce/ui/shadcn/alert'
 import { Button } from '@commerce/ui/shadcn/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@commerce/ui/shadcn/card'
 import { Field, FieldLabel } from '@commerce/ui/shadcn/field'
 import { Input } from '@commerce/ui/shadcn/input'
 import { Spinner } from '@commerce/ui/shadcn/spinner'
@@ -11,6 +10,7 @@ import { useState } from 'react'
 import { shippingSettingsContent } from '@/data/shipping'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import SettingsCard from './settings-card'
 
 type Estimate = Awaited<ReturnType<typeof api.store.estimateDelivery>>
 type Tone = 'success' | 'warning' | 'critical'
@@ -71,37 +71,35 @@ export default function ShippingTryPin() {
   const shown = estimate ? describe(copy.tryPin, estimate) : null
 
   return (
-    <Card size="form">
-      <CardHeader>
-        <CardTitle>{copy.tryPin.heading}</CardTitle>
-        <CardDescription>{copy.tryPin.help}</CardDescription>
-      </CardHeader>
-      <CardContent className="flex flex-col gap-4">
-        <div className="flex flex-wrap items-end gap-3">
-          <Field className="w-44">
-            <FieldLabel htmlFor="try-pin">{copy.tryPin.label}</FieldLabel>
-            <Input
-              size="lg"
-              id="try-pin"
-              inputMode="numeric"
-              maxLength={6}
-              value={pincode}
-              onChange={(e) => setPincode(e.target.value.replace(/\D/g, ''))}
-              autoComplete="off"
-            />
-          </Field>
-          <Button
-            type="button"
-            variant="outline"
-            onClick={handleCheck}
-            disabled={checking || pincode.length < 6}
-          >
-            {checking ? <Spinner /> : null}
-            {checking ? copy.tryPin.checking : copy.tryPin.button}
-          </Button>
-        </div>
-        {shown ? <ResultAlert tone={shown.tone} lines={shown.lines} /> : null}
-      </CardContent>
-    </Card>
+    <SettingsCard
+      title={copy.tryPin.heading}
+      description={copy.tryPin.help}
+      bodyClassName="flex flex-col gap-4"
+    >
+      <div className="flex flex-wrap items-end gap-3">
+        <Field className="w-44">
+          <FieldLabel htmlFor="try-pin">{copy.tryPin.label}</FieldLabel>
+          <Input
+            size="lg"
+            id="try-pin"
+            inputMode="numeric"
+            maxLength={6}
+            value={pincode}
+            onChange={(e) => setPincode(e.target.value.replace(/\D/g, ''))}
+            autoComplete="off"
+          />
+        </Field>
+        <Button
+          type="button"
+          variant="outline"
+          onClick={handleCheck}
+          disabled={checking || pincode.length < 6}
+        >
+          {checking ? <Spinner /> : null}
+          {checking ? copy.tryPin.checking : copy.tryPin.button}
+        </Button>
+      </div>
+      {shown ? <ResultAlert tone={shown.tone} lines={shown.lines} /> : null}
+    </SettingsCard>
   )
 }

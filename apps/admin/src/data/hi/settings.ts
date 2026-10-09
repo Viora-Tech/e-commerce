@@ -110,6 +110,7 @@ export default [
       allDone: 'सब हो गया। आपकी दुकान बेचने के लिए तैयार है।',
       doneLabel: 'पूरा',
       open: 'खोलें',
+      setUp: 'सेटअप करें',
       loadFailed: 'आपकी चेकलिस्ट लोड नहीं हो पाई।',
       items: {
         store: {

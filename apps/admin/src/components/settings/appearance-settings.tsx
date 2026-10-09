@@ -1,26 +1,19 @@
 'use client'
 
 import { ACCENT_PRESETS, DEFAULT_ACCENT } from '@commerce/core/admin-accent'
-import { Palette } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from '@commerce/ui/shadcn/card'
+import { Card } from '@commerce/ui/shadcn/card'
 import { Skeleton } from '@commerce/ui/shadcn/skeleton'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
-import PageHeader from '@/components/layout/page-header'
 import { appearanceContent } from '@/data/appearance'
 import { writeAccentCookie } from '@/lib/accent-cookie'
 import { api } from '@/lib/api-client'
 import AccentPicker from './accent-picker'
 import AccentPreview from './accent-preview'
+import SettingsCard from './settings-card'
+import SettingsPageHeader from './settings-page-header'
 import ThemeModeField from './theme-mode-field'
 
 type Loaded = Awaited<ReturnType<typeof api.appearance.get>>
@@ -88,11 +81,7 @@ export default function AppearanceSettings() {
   if (!loaded) {
     return (
       <div className="flex flex-col gap-4">
-        <PageHeader
-          title={copy.title}
-          subtitle={copy.intro}
-          icon={<Palette aria-hidden="true" />}
-        />
+        <SettingsPageHeader title={copy.title} subtitle={copy.intro} hideBack />
         <Card gap={4} inset={6}>
           <Skeleton className="h-5 w-40" />
           <Skeleton className="h-9 w-full" />
@@ -108,20 +97,16 @@ export default function AppearanceSettings() {
 
   return (
     <div className="flex flex-col gap-4">
-      <PageHeader title={copy.title} subtitle={copy.intro} icon={<Palette aria-hidden="true" />} />
-      <Card size="form">
-        <CardHeader>
-          <CardTitle>{copy.accent.heading}</CardTitle>
-          <CardDescription>{copy.accent.body}</CardDescription>
-        </CardHeader>
-        <CardContent className="grid gap-6 md:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)]">
+      <SettingsPageHeader title={copy.title} subtitle={copy.intro} hideBack />
+      <SettingsCard title={copy.accent.heading} description={copy.accent.body}>
+        <div className="grid gap-6 md:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)]">
           <div className="flex flex-col gap-3">
             <AccentPicker value={draft} onChange={setDraft} />
             <p className="text-caption text-muted-foreground">{sourceLine(loaded)}</p>
           </div>
           <AccentPreview accent={draft} />
-        </CardContent>
-        <CardFooter className="flex flex-wrap items-center gap-2">
+        </div>
+        <div className="mt-5 flex flex-wrap items-center gap-2 border-t border-hairline pt-5">
           <Button onClick={handleSave} disabled={busy || unchanged}>
             {copy.accent.save}
           </Button>
@@ -129,23 +114,19 @@ export default function AppearanceSettings() {
             {copy.accent.reset}
           </Button>
           <span className="text-caption text-muted-foreground">{copy.accent.resetHelp}</span>
-        </CardFooter>
-      </Card>
+        </div>
+      </SettingsCard>
       {loaded.canSetStoreDefault ? (
-        <Card size="form">
-          <CardHeader>
-            <CardTitle>{copy.store.heading}</CardTitle>
-            <CardDescription>{copy.store.body}</CardDescription>
-          </CardHeader>
-          <CardContent className="flex items-center gap-2 text-body text-foreground">
+        <SettingsCard title={copy.store.heading} description={copy.store.body}>
+          <div className="flex items-center gap-2 text-body text-foreground">
             <span
               aria-hidden
               className="size-4 rounded-full border border-border"
               style={{ backgroundColor: loaded.storeDefault ?? DEFAULT_ACCENT }}
             />
             {copy.store.current(colourName(loaded.storeDefault))}
-          </CardContent>
-          <CardFooter className="flex flex-wrap gap-2">
+          </div>
+          <div className="mt-5 flex flex-wrap gap-2 border-t border-hairline pt-5">
             <Button
               variant="outline"
               onClick={handleStoreDefault}
@@ -160,18 +141,12 @@ export default function AppearanceSettings() {
             >
               {copy.store.reset}
             </Button>
-          </CardFooter>
-        </Card>
+          </div>
+        </SettingsCard>
       ) : null}
-      <Card size="form">
-        <CardHeader>
-          <CardTitle>{copy.mode.heading}</CardTitle>
-          <CardDescription>{copy.mode.body}</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <ThemeModeField />
-        </CardContent>
-      </Card>
+      <SettingsCard title={copy.mode.heading} description={copy.mode.body}>
+        <ThemeModeField />
+      </SettingsCard>
     </div>
   )
 }

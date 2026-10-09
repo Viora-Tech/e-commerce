@@ -20,10 +20,9 @@ import SettingsSearch from './settings-search'
 const FOCUS =
   'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2'
 
-/* CodeHelp's vertical tabs: 32px icon + label rows, active one on a soft
-   rounded surface, the rest muted until hovered. */
-const TAB = `relative isolate flex h-8 w-full min-w-0 items-center gap-2.5 rounded-[0.5rem] px-3 text-nav text-muted-foreground transition-colors hover:bg-sidebar-accent hover:text-foreground [&_svg]:size-4 [&_svg]:shrink-0 ${FOCUS}`
-const TAB_ACTIVE = 'font-medium text-ink-strong hover:bg-transparent'
+/* Proofly settings nav: text-only 32px rows, the active one on a soft blue fill. */
+const TAB = `relative isolate flex h-8 w-full min-w-0 items-center rounded-md px-3 text-nav text-ink-strong transition-colors hover:bg-muted ${FOCUS}`
+const TAB_ACTIVE = 'text-sidebar-accent-foreground hover:bg-transparent'
 
 /* Phones: the Settings home is the list, so a page only needs the way back to it. */
 const BACK = `-ml-1 inline-flex h-9 items-center gap-1 self-start rounded-md pr-2 pl-1 text-nav text-muted-foreground transition-colors hover:text-foreground [&_svg]:size-4 ${FOCUS}`
@@ -53,7 +52,7 @@ export default function SettingsNav() {
   return (
     <nav
       aria-label={copy.nav.label}
-      className="flex w-full flex-col gap-3 md:sticky md:top-6 md:max-h-[calc(100dvh-6rem)] md:w-56 md:shrink-0 md:self-start md:overflow-y-auto md:no-scrollbar"
+      className="flex w-full flex-col gap-3 md:sticky md:top-6 md:max-h-[calc(100dvh-6rem)] md:w-60 md:shrink-0 md:self-start md:overflow-y-auto md:no-scrollbar"
     >
       {onHome ? null : (
         <Link href={SETTINGS_HOME.href} className={cn(BACK, 'md:hidden')}>
@@ -70,7 +69,10 @@ export default function SettingsNav() {
         </ul>
         {SETTINGS_GROUPS.map((group) => (
           <div key={group.id} className="flex flex-col gap-1">
-            <p id={`settings-group-${group.id}`} className="text-eyebrow px-3">
+            <p
+              id={`settings-group-${group.id}`}
+              className="px-3 text-caption text-muted-foreground"
+            >
               {copy.groups[group.id]}
             </p>
             <ul aria-labelledby={`settings-group-${group.id}`} className="flex flex-col">
@@ -113,11 +115,10 @@ function NavTab({ section, pathname, locale, slide }: NavTabProps) {
           <motion.span
             layoutId="settings-nav-pill"
             transition={slide}
-            className="absolute inset-0 -z-10 rounded-[0.5rem] bg-secondary"
+            className="absolute inset-0 -z-10 rounded-md bg-sidebar-accent"
             aria-hidden
           />
         ) : null}
-        <section.icon />
         <span className="min-w-0 truncate">{pageName(section.href, section.title, locale)}</span>
       </Link>
     </li>

@@ -9,8 +9,8 @@ import Link from 'next/link'
 import { type ReactNode, useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import EmptyState from '@/components/layout/empty-state'
-import PageHeader from '@/components/layout/page-header'
 import SaveBar from '@/components/layout/save-bar'
+import SettingsPageHeader from '@/components/settings/settings-page-header'
 import { providerSettingsContent as copy } from '@/data/provider-settings'
 import ProviderCard, { type ProviderDef } from './provider-card'
 import SectionTabs, { type SectionTab } from './section-tabs'
@@ -85,7 +85,6 @@ function LoadingCards() {
 export default function ProviderSettingsForm<Extra extends object>({
   title,
   intro,
-  icon,
   load,
   save,
   emptyExtra,
@@ -168,11 +167,14 @@ export default function ProviderSettingsForm<Extra extends object>({
         onDiscard={handleDiscard}
         saving={busy}
       />
-      <PageHeader
+      <SettingsPageHeader
         title={title}
         subtitle={intro}
-        icon={back ? undefined : icon}
-        breadcrumbs={back ? [back, { label: title }] : undefined}
+        onSave={handleSave}
+        dirty={dirty}
+        saving={busy}
+        saveLabel={copy.save}
+        back={back?.href ? { label: back.label, href: back.href } : undefined}
       />
       {error ? (
         <Alert variant="destructive">

@@ -2,23 +2,23 @@
 
 import type { PolicySettings, StorePolicy } from '@commerce/core'
 import { REQUIRED_POLICY_TYPES } from '@commerce/core/policies'
-import { ClipboardList, InfoIcon } from '@commerce/ui/icons'
+import { InfoIcon } from '@commerce/ui/icons'
 import { Alert, AlertDescription, AlertTitle } from '@commerce/ui/shadcn/alert'
 import { Badge } from '@commerce/ui/shadcn/badge'
 import { Button } from '@commerce/ui/shadcn/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@commerce/ui/shadcn/card'
-import { Field, FieldDescription, FieldGroup, FieldLabel } from '@commerce/ui/shadcn/field'
-import { Input } from '@commerce/ui/shadcn/input'
 import { Skeleton } from '@commerce/ui/shadcn/skeleton'
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
-import PageHeader from '@/components/layout/page-header'
 import SaveBar from '@/components/layout/save-bar'
 import { policiesContent as copy } from '@/data/policies'
 import { settingsContent } from '@/data/settings'
 import { api } from '@/lib/api-client'
 import { formatDate } from '@/lib/format-date'
+import { routes } from '@/lib/routes'
+import SettingsCard from './settings-card'
+import SettingsPageHeader from './settings-page-header'
+import SettingsTextRow from './settings-text-row'
 
 type PolicyRowProps = {
   policy: StorePolicy
@@ -96,10 +96,13 @@ export default function PoliciesSettings() {
         onDiscard={handleDiscard}
         saving={busy}
       />
-      <PageHeader
+      <SettingsPageHeader
         title={copy.title}
         subtitle={copy.subtitle}
-        icon={<ClipboardList aria-hidden="true" />}
+        onSave={handleSave}
+        dirty={dirty}
+        saving={busy}
+        saveLabel={copy.save}
       />
       <Alert>
         <InfoIcon aria-hidden="true" />
@@ -110,72 +113,50 @@ export default function PoliciesSettings() {
         <Skeleton className="h-64 w-full rounded-2xl" />
       ) : (
         <>
-          <Card size="form">
-            <CardHeader>
-              <CardTitle>{copy.list.heading}</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <ul className="flex flex-col divide-y divide-border">
-                {policies.map((p) => (
-                  <PolicyRow key={p.type} policy={p} />
-                ))}
-              </ul>
-            </CardContent>
-          </Card>
+          <SettingsCard title={copy.list.heading}>
+            <ul className="flex flex-col divide-y divide-border">
+              {policies.map((p) => (
+                <PolicyRow key={p.type} policy={p} />
+              ))}
+            </ul>
+          </SettingsCard>
 
-          <Card size="form">
-            <CardHeader>
-              <CardTitle>{copy.business.heading}</CardTitle>
-              <CardDescription>{copy.business.help}</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <FieldGroup>
-                <Field>
-                  <FieldLabel htmlFor="policy-legal-name">{copy.business.legalName}</FieldLabel>
-                  <Input
-                    size="lg"
-                    id="policy-legal-name"
-                    value={form.legalName}
-                    maxLength={200}
-                    onChange={(e) => setForm({ ...form, legalName: e.target.value })}
-                  />
-                  <FieldDescription>{copy.business.legalNameHint}</FieldDescription>
-                </Field>
-                <Button
-                  variant="outline"
-                  className="self-start"
-                  render={<Link href="/settings/store" />}
-                >
-                  {copy.business.generalLink}
-                </Button>
-              </FieldGroup>
-            </CardContent>
-          </Card>
+          <SettingsCard title={copy.business.heading} description={copy.business.help}>
+            <SettingsTextRow
+              id="policy-legal-name"
+              label={copy.business.legalName}
+              description={copy.business.legalNameHint}
+              value={form.legalName}
+              onChange={(legalName) => setForm({ ...form, legalName })}
+            />
+            <div className="pt-5">
+              <Button
+                variant="outline"
+                render={<Link href={routes.settings.store()} />}
+                nativeButton={false}
+              >
+                {copy.business.generalLink}
+              </Button>
+            </div>
+          </SettingsCard>
 
-          <Card size="form" id="grievance">
-            <CardHeader>
-              <CardTitle>{copy.grievance.heading}</CardTitle>
-              <CardDescription>{copy.grievance.help}</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <FieldGroup className="grid gap-4 sm:grid-cols-2">
-                {OFFICER_FIELDS.map((f) => (
-                  <Field key={f.key}>
-                    <FieldLabel htmlFor={`grievance-${f.key}`}>{copy.grievance[f.key]}</FieldLabel>
-                    <Input
-                      size="lg"
-                      id={`grievance-${f.key}`}
-                      type={f.type}
-                      placeholder={f.placeholder}
-                      value={form.grievanceOfficer[f.key]}
-                      onChange={(e) => patchOfficer(f.key, e.target.value)}
-                    />
-                  </Field>
-                ))}
-              </FieldGroup>
-              <p className="mt-3 text-caption text-muted-foreground">{copy.grievance.shownIn}</p>
-            </CardContent>
-          </Card>
+          <SettingsCard
+            id="grievance"
+            title={copy.grievance.heading}
+            description={copy.grievance.help}
+          >
+            {OFFICER_FIELDS.map((f) => (
+              <SettingsTextRow
+                key={f.key}
+                id={`grievance-${f.key}`}
+                type={f.type}
+                label={copy.grievance[f.key]}
+                value={form.grievanceOfficer[f.key]}
+                onChange={(v) => patchOfficer(f.key, v)}
+              />
+            ))}
+            <p className="mt-3 text-caption text-muted-foreground">{copy.grievance.shownIn}</p>
+          </SettingsCard>
         </>
       )}
     </div>

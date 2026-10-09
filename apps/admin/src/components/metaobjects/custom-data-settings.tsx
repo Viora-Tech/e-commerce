@@ -1,7 +1,7 @@
 'use client'
 
 import { permissions } from '@commerce/core/permissions'
-import { Braces, Plus } from '@commerce/ui/icons'
+import { Plus } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import {
   Card,
@@ -14,13 +14,14 @@ import {
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
-import PageHeader from '@/components/layout/page-header'
 import SectionTabs from '@/components/settings/section-tabs'
+import SettingsPageHeader from '@/components/settings/settings-page-header'
 import SettingsSection from '@/components/settings/settings-section'
 import { customDataContent } from '@/data/metaobjects'
 import { useCopy } from '@/hooks/use-copy'
 import { usePermissions } from '@/hooks/use-permissions'
 import { api } from '@/lib/api-client'
+import { routes } from '@/lib/routes'
 import { type DefinitionSummary, entriesPath } from './form-state'
 import type { MetafieldDefinitionRow } from './metafield-definition-dialog'
 import MetafieldDefinitionsCard from './metafield-definitions-card'
@@ -71,7 +72,7 @@ export default function CustomDataSettings() {
 
   return (
     <div className="flex flex-col gap-4">
-      <PageHeader title={copy.title} subtitle={copy.intro} icon={<Braces aria-hidden="true" />} />
+      <SettingsPageHeader title={copy.title} subtitle={copy.intro} />
       <SectionTabs tabs={tabs}>
         <SettingsSection id={copy.tabs.products.id}>
           <MetafieldDefinitionsCard
@@ -99,7 +100,7 @@ export default function CustomDataSettings() {
               <CardAction>
                 <Button
                   variant="outline"
-                  render={<Link href="/content/metaobjects/new" />}
+                  render={<Link href={routes.content.newContentType()} />}
                   nativeButton={false}
                 >
                   <Plus />

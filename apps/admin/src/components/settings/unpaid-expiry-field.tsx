@@ -1,10 +1,10 @@
 'use client'
 
-import { Card, CardContent, CardHeader, CardTitle } from '@commerce/ui/shadcn/card'
 import { Field, FieldDescription, FieldGroup, FieldLabel } from '@commerce/ui/shadcn/field'
 import { Input } from '@commerce/ui/shadcn/input'
 import { paymentsSettingsContent } from '@/data/payments'
 import { useCopy } from '@/hooks/use-copy'
+import SettingsCard from './settings-card'
 
 type UnpaidExpiryFieldProps = {
   /** Minutes; 0 means never. */
@@ -27,28 +27,23 @@ export default function UnpaidExpiryField({ value, onChange }: UnpaidExpiryField
   const copy = useCopy(paymentsSettingsContent)
 
   return (
-    <Card size="form">
-      <CardHeader>
-        <CardTitle>{copy.unpaid.heading}</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <FieldGroup>
-          <Field>
-            <FieldLabel htmlFor="unpaid-expiry">{copy.unpaid.label}</FieldLabel>
-            <Input
-              size="lg"
-              id="unpaid-expiry"
-              type="number"
-              min={0}
-              max={MAX_MINUTES}
-              value={String(value)}
-              onChange={(e) => onChange(toMinutes(e.target.value))}
-              autoComplete="off"
-            />
-            <FieldDescription>{copy.unpaid.help}</FieldDescription>
-          </Field>
-        </FieldGroup>
-      </CardContent>
-    </Card>
+    <SettingsCard title={copy.unpaid.heading}>
+      <FieldGroup>
+        <Field>
+          <FieldLabel htmlFor="unpaid-expiry">{copy.unpaid.label}</FieldLabel>
+          <Input
+            size="lg"
+            id="unpaid-expiry"
+            type="number"
+            min={0}
+            max={MAX_MINUTES}
+            value={String(value)}
+            onChange={(e) => onChange(toMinutes(e.target.value))}
+            autoComplete="off"
+          />
+          <FieldDescription>{copy.unpaid.help}</FieldDescription>
+        </Field>
+      </FieldGroup>
+    </SettingsCard>
   )
 }

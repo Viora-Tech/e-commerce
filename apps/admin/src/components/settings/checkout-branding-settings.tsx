@@ -20,6 +20,7 @@ import ChoiceField from '@/components/themes/choice-field'
 import ColourField from '@/components/themes/colour-field'
 import { checkoutBrandingContent } from '@/data/checkout-settings'
 import { useCopy } from '@/hooks/use-copy'
+import SettingsCard from './settings-card'
 
 type CheckoutBrandingSettingsProps = {
   branding: CheckoutBranding
@@ -68,139 +69,122 @@ export default function CheckoutBrandingSettings({
     <div className="grid items-start gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)]">
       <div className="flex min-w-0 flex-col gap-4">
         <p className="text-body text-muted-foreground">{copy.intro}</p>
-        <Card size="form">
-          <CardHeader>
-            <CardTitle>{copy.look.heading}</CardTitle>
-            <CardDescription>{copy.look.description}</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <FieldGroup>
-              <CheckoutImageField
-                label={copy.look.logo}
-                hint={copy.look.logoHint}
-                value={branding.logo}
-                pickLabel={copy.look.pickLogo}
-                removeLabel={copy.look.remove}
-                dialogTitle={copy.look.logoDialog}
-                empty={copy.look.noImages}
-                fit="contain"
-                onChange={(logo) => onBranding({ logo })}
-              />
-              <div className="flex flex-col gap-1">
-                <ColourField
-                  label={copy.look.accent}
-                  value={branding.accent}
-                  onChange={(accent) => onBranding({ accent })}
-                />
-                <p className="text-caption text-muted-foreground">{copy.look.accentHint}</p>
-              </div>
-              <div className="flex flex-col gap-1">
-                <ColourField
-                  label={copy.look.button}
-                  value={branding.button}
-                  onChange={(button) => onBranding({ button })}
-                />
-                <p className="text-caption text-muted-foreground">{copy.look.buttonHint}</p>
-              </div>
-              <div className="flex flex-col gap-1.5">
-                <span className="text-body text-foreground">{copy.look.font}</span>
-                <ToggleGroup
-                  value={[branding.font]}
-                  onValueChange={(values: unknown[]) => {
-                    const next = fonts.find((f) => f.value === values[0])
-                    if (next) onBranding({ font: next.value })
-                  }}
-                  variant="outline"
-                  size="sm"
-                  aria-label={copy.look.font}
-                  className="grid w-full grid-cols-2 sm:grid-cols-3"
-                >
-                  {fonts.map((f) => (
-                    <ToggleGroupItem
-                      key={f.value}
-                      value={f.value}
-                      style={{ fontFamily: `"${f.label}", sans-serif` }}
-                    >
-                      {f.label}
-                    </ToggleGroupItem>
-                  ))}
-                </ToggleGroup>
-              </div>
-              <ChoiceField
-                label={copy.look.corners}
-                value={branding.corners}
-                options={corners}
-                onChange={(c) => onBranding({ corners: c })}
-              />
-            </FieldGroup>
-          </CardContent>
-        </Card>
-
-        <Card size="form">
-          <CardHeader>
-            <CardTitle>{copy.summary.heading}</CardTitle>
-            <CardDescription>{copy.summary.description}</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <FieldGroup>
-              <ChoiceField
-                label={copy.summary.kind}
-                value={summary.kind}
-                options={kinds}
-                onChange={(kind) => onBranding({ summary: { ...summary, kind } })}
-              />
+        <SettingsCard title={copy.look.heading} description={copy.look.description}>
+          <FieldGroup>
+            <CheckoutImageField
+              label={copy.look.logo}
+              hint={copy.look.logoHint}
+              value={branding.logo}
+              pickLabel={copy.look.pickLogo}
+              removeLabel={copy.look.remove}
+              dialogTitle={copy.look.logoDialog}
+              empty={copy.look.noImages}
+              fit="contain"
+              onChange={(logo) => onBranding({ logo })}
+            />
+            <div className="flex flex-col gap-1">
               <ColourField
-                label={copy.summary.colour}
-                value={summary.colour}
-                onChange={(colour) => onBranding({ summary: { ...summary, colour } })}
+                label={copy.look.accent}
+                value={branding.accent}
+                onChange={(accent) => onBranding({ accent })}
               />
-              {summary.kind === 'image' ? (
-                <CheckoutImageField
-                  label={copy.summary.kindChoices.image}
-                  hint={copy.summary.imageHint}
-                  value={summary.image}
-                  pickLabel={copy.summary.pickImage}
-                  removeLabel={copy.look.remove}
-                  dialogTitle={copy.summary.imageDialog}
-                  empty={copy.look.noImages}
-                  fit="cover"
-                  onChange={(image) => onBranding({ summary: { ...summary, image } })}
-                />
-              ) : null}
-            </FieldGroup>
-          </CardContent>
-        </Card>
+              <p className="text-caption text-muted-foreground">{copy.look.accentHint}</p>
+            </div>
+            <div className="flex flex-col gap-1">
+              <ColourField
+                label={copy.look.button}
+                value={branding.button}
+                onChange={(button) => onBranding({ button })}
+              />
+              <p className="text-caption text-muted-foreground">{copy.look.buttonHint}</p>
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <span className="text-body text-foreground">{copy.look.font}</span>
+              <ToggleGroup
+                value={[branding.font]}
+                onValueChange={(values: unknown[]) => {
+                  const next = fonts.find((f) => f.value === values[0])
+                  if (next) onBranding({ font: next.value })
+                }}
+                variant="outline"
+                size="sm"
+                aria-label={copy.look.font}
+                className="grid w-full grid-cols-2 sm:grid-cols-3"
+              >
+                {fonts.map((f) => (
+                  <ToggleGroupItem
+                    key={f.value}
+                    value={f.value}
+                    style={{ fontFamily: `"${f.label}", sans-serif` }}
+                  >
+                    {f.label}
+                  </ToggleGroupItem>
+                ))}
+              </ToggleGroup>
+            </div>
+            <ChoiceField
+              label={copy.look.corners}
+              value={branding.corners}
+              options={corners}
+              onChange={(c) => onBranding({ corners: c })}
+            />
+          </FieldGroup>
+        </SettingsCard>
 
-        <Card size="form" id="gstin">
-          <CardHeader>
-            <CardTitle>{copy.shown.heading}</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <FieldGroup>
-              <CheckoutToggleRow
-                id="checkout-gstin"
-                label={copy.shown.gstin}
-                hint={copy.shown.gstinHint}
-                checked={gstin}
-                onChange={onGstin}
+        <SettingsCard title={copy.summary.heading} description={copy.summary.description}>
+          <FieldGroup>
+            <ChoiceField
+              label={copy.summary.kind}
+              value={summary.kind}
+              options={kinds}
+              onChange={(kind) => onBranding({ summary: { ...summary, kind } })}
+            />
+            <ColourField
+              label={copy.summary.colour}
+              value={summary.colour}
+              onChange={(colour) => onBranding({ summary: { ...summary, colour } })}
+            />
+            {summary.kind === 'image' ? (
+              <CheckoutImageField
+                label={copy.summary.kindChoices.image}
+                hint={copy.summary.imageHint}
+                value={summary.image}
+                pickLabel={copy.summary.pickImage}
+                removeLabel={copy.look.remove}
+                dialogTitle={copy.summary.imageDialog}
+                empty={copy.look.noImages}
+                fit="cover"
+                onChange={(image) => onBranding({ summary: { ...summary, image } })}
               />
-              <CheckoutToggleRow
-                id="checkout-notes"
-                label={copy.shown.notes}
-                hint={copy.shown.notesHint}
-                checked={orderNotes}
-                onChange={onOrderNotes}
-              />
-              <CheckoutToggleRow
-                id="checkout-trust"
-                label={copy.shown.trust}
-                hint={copy.shown.trustHint}
-                checked={branding.trustBadges}
-                onChange={(trustBadges) => onBranding({ trustBadges })}
-              />
-            </FieldGroup>
-          </CardContent>
-        </Card>
+            ) : null}
+          </FieldGroup>
+        </SettingsCard>
+
+        <SettingsCard id="gstin" title={copy.shown.heading}>
+          <FieldGroup>
+            <CheckoutToggleRow
+              id="checkout-gstin"
+              label={copy.shown.gstin}
+              hint={copy.shown.gstinHint}
+              checked={gstin}
+              onChange={onGstin}
+            />
+            <CheckoutToggleRow
+              id="checkout-notes"
+              label={copy.shown.notes}
+              hint={copy.shown.notesHint}
+              checked={orderNotes}
+              onChange={onOrderNotes}
+            />
+            <CheckoutToggleRow
+              id="checkout-trust"
+              label={copy.shown.trust}
+              hint={copy.shown.trustHint}
+              checked={branding.trustBadges}
+              onChange={(trustBadges) => onBranding({ trustBadges })}
+            />
+          </FieldGroup>
+        </SettingsCard>
       </div>
 
       <Card className="xl:sticky xl:top-20">

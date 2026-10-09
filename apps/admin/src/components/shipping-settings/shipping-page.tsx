@@ -1,18 +1,17 @@
 'use client'
 
-import { Truck } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Card } from '@commerce/ui/shadcn/card'
 import { Skeleton } from '@commerce/ui/shadcn/skeleton'
 import Link from 'next/link'
 import { type ReactNode, useEffect, useState } from 'react'
 import { toast } from 'sonner'
-import PageHeader from '@/components/layout/page-header'
 import SaveBar from '@/components/layout/save-bar'
 import HelpFooter from '@/components/payments/help-footer'
 import BoxPresetsFields from '@/components/settings/box-presets-fields'
 import CourierRuleFields from '@/components/settings/courier-rule-fields'
 import HealthLine from '@/components/settings/health-line'
+import SettingsPageHeader from '@/components/settings/settings-page-header'
 import ShippingPolicyFields from '@/components/settings/shipping-policy-fields'
 import ShippingTryPin from '@/components/settings/shipping-try-pin'
 import WhatsThisHelp from '@/components/settings/whats-this-help'
@@ -20,6 +19,7 @@ import ShippingZonesCard from '@/components/shipping-zones/shipping-zones-card'
 import { shippingSettingsContent } from '@/data/shipping'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { routes } from '@/lib/routes'
 import DemoCourierSection from './demo-courier-section'
 
 type Loaded = Awaited<ReturnType<typeof api.store.getShipping>>
@@ -113,8 +113,12 @@ export default function ShippingPage() {
         onDiscard={handleDiscard}
         saving={busy}
       />
-      <PageHeader
+      <SettingsPageHeader
         title={copy.title}
+        onSave={handleSave}
+        dirty={dirty}
+        saving={busy}
+        saveLabel={copy.save}
         subtitle={
           <span className="flex flex-wrap items-center gap-x-3 gap-y-1">
             {copy.intro}
@@ -125,7 +129,6 @@ export default function ShippingPage() {
             />
           </span>
         }
-        icon={<Truck aria-hidden="true" />}
       />
 
       <HealthLine
@@ -134,7 +137,7 @@ export default function ShippingPage() {
         help={couriers.length > 0 ? null : copy.health.noCourierHelp}
         action={
           couriers.length > 0 ? null : (
-            <Button nativeButton={false} render={<Link href="/apps" />}>
+            <Button nativeButton={false} render={<Link href={routes.apps.list()} />}>
               {copy.health.connect}
             </Button>
           )
