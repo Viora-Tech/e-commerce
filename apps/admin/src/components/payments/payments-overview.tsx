@@ -2,11 +2,11 @@
 
 import { ExternalLink, Plus } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
-import { Card, CardContent } from '@commerce/ui/shadcn/card'
 import { Spinner } from '@commerce/ui/shadcn/spinner'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { toast } from 'sonner'
+import SettingsCard from '@/components/settings/settings-card'
 import SettingsPageHeader from '@/components/settings/settings-page-header'
 import { paymentsSetupContent } from '@/data/payments-setup'
 import { useCopy } from '@/hooks/use-copy'
@@ -118,24 +118,18 @@ export default function PaymentsOverview({ setup, onReload, onOpenGuide }: Payme
         />
       </section>
 
-      <section className="flex flex-col gap-2" aria-labelledby="payments-methods">
-        <h2 id="payments-methods" className="text-card font-semibold text-foreground">
-          {copy.methods.heading}
-        </h2>
-        <Card>
-          <CardContent className="flex flex-col gap-3">
-            <p className="text-body text-muted-foreground">
-              {hasGateway ? copy.methods.help : copy.methods.needsGateway}
-            </p>
-            <MethodsList
-              methods={methods}
-              hasGateway={hasGateway}
-              disabled={savingMethods}
-              onChange={saveMethods}
-            />
-          </CardContent>
-        </Card>
-      </section>
+      <SettingsCard
+        id="payments-methods"
+        title={copy.methods.heading}
+        description={hasGateway ? copy.methods.help : copy.methods.needsGateway}
+      >
+        <MethodsList
+          methods={methods}
+          hasGateway={hasGateway}
+          disabled={savingMethods}
+          onChange={saveMethods}
+        />
+      </SettingsCard>
 
       <div className="flex flex-wrap gap-2">
         <Button variant="outline" size="lg" className="gap-1.5" onClick={handleOpenAdd}>
