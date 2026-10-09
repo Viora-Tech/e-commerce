@@ -11,6 +11,8 @@ type StatTileProps = {
   trendNote?: string
   /** A rise is bad news (cancellations): the colours flip. */
   invert?: boolean
+  /** A plain line under the figure when there is no trend ("56% of all customers"). */
+  note?: string
   /** Makes the tile a filter button; `active` marks the current one. */
   onSelect?: () => void
   active?: boolean
@@ -29,6 +31,7 @@ export default function StatTile({
   trend,
   trendNote,
   invert = false,
+  note,
   onSelect,
   active = false,
   className,
@@ -57,8 +60,8 @@ export default function StatTile({
             <span className="font-normal text-muted-foreground">{trendNote}</span>
           ) : null}
         </span>
-      ) : trendNote ? (
-        <span className="text-caption text-muted-foreground">{trendNote}</span>
+      ) : note || trendNote ? (
+        <span className="text-caption text-muted-foreground">{note ?? trendNote}</span>
       ) : null}
     </>
   )

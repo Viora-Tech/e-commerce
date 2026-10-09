@@ -10,6 +10,7 @@ import OtpInput from '@/components/auth/otp-input'
 import { loginContent } from '@/data/login'
 import { useCopy } from '@/hooks/use-copy'
 import { authClient } from '@/lib/auth-client'
+import { routes } from '@/lib/routes'
 
 type Step = 'email' | 'otp'
 type Mode = 'sign-in' | 'sign-up'
@@ -70,7 +71,7 @@ export default function LoginForm() {
     const res = await authClient.signIn.emailOtp({ email, otp })
     setBusy(false)
     if (res.error) return setError(res.error.message ?? copy.wrongCode)
-    router.push('/')
+    router.push(routes.home())
     router.refresh()
   }
 
