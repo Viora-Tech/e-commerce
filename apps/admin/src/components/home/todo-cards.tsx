@@ -99,7 +99,7 @@ export default async function TodoCards({ needsYou }: TodoCardsProps) {
   const rows = buildRows(needsYou, c.rows)
 
   return (
-    <section className="flex flex-col gap-3">
+    <section className="flex flex-col gap-3.5">
       <SectionHead title={page.title} aside={rows.length > 0 ? page.count(rows.length) : null} />
       {rows.length === 0 ? (
         <div className="flex items-center gap-3 rounded-xl surface-card p-4">
@@ -110,18 +110,23 @@ export default async function TodoCards({ needsYou }: TodoCardsProps) {
           </div>
         </div>
       ) : (
-        <ul className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
+        <ul className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
           {rows.map((row) => (
             <li
               key={row.key}
-              className="flex flex-col items-start gap-3 rounded-xl surface-card p-4"
+              className="flex flex-col items-start gap-3.5 rounded-xl surface-card p-5"
             >
-              <IconBadge icon={row.icon} tone="info" />
-              <div className="min-w-0">
-                <p className="text-body-strong text-ink-strong">{row.label}</p>
-                <p className="text-caption font-normal text-muted-foreground">{row.help}</p>
+              {/* Figma 226:537: 40px square tile, 12px corners, soft brand fill. */}
+              <span className="flex size-10 items-center justify-center rounded-[0.75rem] bg-primary-soft text-primary [&_svg]:size-5">
+                <row.icon aria-hidden="true" />
+              </span>
+              <div className="flex min-w-0 flex-col gap-1">
+                <p className="text-card-title text-ink-strong">{row.label}</p>
+                <p className="text-[0.8125rem] leading-[1.1875rem] text-muted-foreground">
+                  {row.help}
+                </p>
               </div>
-              <Button variant="outline" size="sm" render={<Link href={row.href} />}>
+              <Button variant="outline" render={<Link href={row.href} />}>
                 {row.cta}
               </Button>
             </li>

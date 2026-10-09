@@ -43,7 +43,7 @@ export default function DashboardPage({
   abandoned,
 }: DashboardPageProps) {
   return (
-    <PageBody width="frame" className="gap-8">
+    <PageBody width="frame" className="max-w-[65rem] gap-8 md:mx-auto">
       <HomeGreeting
         firstName={firstName}
         ordersToday={summary.today.ordersCount}
@@ -55,7 +55,7 @@ export default function DashboardPage({
       {signals ? <FinishSetup productCount={summary.report.products} signals={signals} /> : null}
       <TodoCards needsYou={summary.needsYou} />
       <SalesHero today={summary.today} yesterdayHourly={summary.yesterday.hourly} charts={charts} />
-      <div className="grid grid-cols-1 gap-5 xl:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)]">
+      <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)]">
         <LatestOrders orders={summary.recentOrders} />
         <LiveNow initial={summary} />
       </div>

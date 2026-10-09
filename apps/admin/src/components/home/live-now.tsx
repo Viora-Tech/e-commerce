@@ -44,7 +44,7 @@ export default function LiveNow({ initial }: LiveNowProps) {
   const visitors = data.liveVisitors.last30
 
   return (
-    <section className="flex min-w-0 flex-col gap-3">
+    <section className="flex min-w-0 flex-col gap-3.5">
       <SectionHead
         title={
           <span className="flex items-center gap-2">
@@ -53,8 +53,8 @@ export default function LiveNow({ initial }: LiveNowProps) {
           </span>
         }
       />
-      <div className="flex flex-1 flex-col overflow-hidden rounded-2xl surface-card">
-        <div className="flex flex-col gap-1 p-5">
+      <div className="flex flex-1 flex-col overflow-hidden rounded-xl surface-card">
+        <div className="flex flex-col gap-0.5 p-6">
           <p className="font-[family-name:var(--font-display)] text-[2.5rem] leading-[2.75rem] font-bold tracking-tight text-ink-strong tabular-nums">
             {fmt.compact(visitors)}
           </p>
@@ -65,8 +65,8 @@ export default function LiveNow({ initial }: LiveNowProps) {
             {copy.today(copy.ordersWord(data.today.ordersCount), fmt.money(data.today.salesPaise))}
           </p>
         </div>
-        {markers.length > 0 && webglOk ? (
-          <div className="relative mt-auto h-44 overflow-hidden">
+        {webglOk ? (
+          <div className="relative mt-auto h-[11.375rem] overflow-hidden">
             <div className="mx-auto w-[min(100%,28rem)]">
               <LiveGlobeCanvas
                 markers={markers}
@@ -76,6 +76,7 @@ export default function LiveNow({ initial }: LiveNowProps) {
                 focus={INDIA_FOCUS}
                 activeId={activeId}
                 onActiveChange={setActiveId}
+                brand
               />
             </div>
           </div>

@@ -43,6 +43,8 @@ export type GlobeCanvasProps = {
    * view uses it to sit the globe on the right while the stats float over the left.
    */
   shiftX?: number
+  /** Home card (Figma 227:548): land in the brand blue instead of muted grey, and no zoom buttons. */
+  brand?: boolean
   /**
    * The "Globe settings" panel's state, and its gear button next to the zoom controls. Only
    * the WebGL globe reads or shows any of this — the Home card's cobe globe (which never

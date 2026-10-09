@@ -24,11 +24,11 @@ const FOCUS =
 
 /* Proofly rail: 36px rows, icon left and chevron right; children are indented under the label.
    The active row is a soft blue fill (a shared layout element, so it slides) with a blue icon. */
-const ROW = `group/row relative isolate flex h-9 w-full min-w-0 items-center gap-2.5 rounded-md px-3 text-nav text-sidebar-foreground transition-colors hover:bg-muted [&_svg]:size-[1.125rem] [&_svg]:shrink-0 [&_svg]:text-muted-foreground group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0 ${FOCUS}`
+const ROW = `group/row relative isolate flex h-8 w-full min-w-0 items-center gap-2.5 rounded-[0.5rem] px-2.5 text-nav text-sidebar-foreground transition-colors hover:bg-muted [&_svg]:size-[1.125rem] [&_svg]:shrink-0 [&_svg]:text-muted-foreground group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0 ${FOCUS}`
 const ROW_ACTIVE =
   'text-sidebar-accent-foreground hover:bg-transparent hover:text-sidebar-accent-foreground [&_svg]:text-sidebar-accent-foreground'
 const ROW_OPEN = 'font-medium text-ink-strong'
-const CHILD = `relative isolate flex h-8 w-full min-w-0 items-center rounded-md px-3 text-nav text-muted-foreground transition-colors hover:bg-muted hover:text-foreground ${FOCUS}`
+const CHILD = `relative isolate flex h-8 w-full min-w-0 items-center rounded-[0.5rem] px-2.5 text-nav text-muted-foreground transition-colors hover:bg-muted hover:text-foreground ${FOCUS}`
 const CHILD_ACTIVE = 'text-sidebar-accent-foreground hover:bg-transparent'
 
 /** One rail entry: the section link, a chevron toggle when it has sub-pages, and the guided child list. */
