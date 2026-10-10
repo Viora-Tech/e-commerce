@@ -1,7 +1,6 @@
 'use client'
 
-import { whatsappHelpUrl } from '@commerce/config/site'
-import { BugIcon, Language, LogOut, Settings, WhatsappLogo } from '@commerce/ui/icons'
+import { BugIcon, LogOut, Settings } from '@commerce/ui/icons'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -18,7 +17,6 @@ import { ACCOUNT_PAGES } from '@/data/account'
 import { bugReportContent } from '@/data/bug-report'
 import { navigationContent } from '@/data/navigation'
 import { useCopy, useLocale } from '@/hooks/use-copy'
-import { useSwitchLocale } from '@/hooks/use-switch-locale'
 import { authClient } from '@/lib/auth-client'
 import { openBugReport } from '@/lib/bug-report-events'
 import { pageName } from '@/lib/page-names'
@@ -37,8 +35,9 @@ type UserMenuProps = {
 }
 
 /**
- * The member's menu, one for the sidebar's user row and the top bar's avatar: account pages,
- * Settings, Help on WhatsApp, the English / हिंदी switch, and Log out.
+ * The member's menu, one for the sidebar's user row and the top bar's avatar: account pages
+ * first (Account, Appearance; the language choice lives on the Account page), then Settings,
+ * and Log out.
  */
 export default function UserMenu({
   user,
@@ -54,7 +53,6 @@ export default function UserMenu({
   const bugCopy = useCopy(bugReportContent)
   const locale = useLocale()
   const router = useRouter()
-  const switchLocale = useSwitchLocale()
 
   // Event handlers
   const handleSignOut = async () => {
@@ -64,8 +62,6 @@ export default function UserMenu({
   }
 
   // Render logic
-  const nextLocale = locale === 'en' ? 'hi' : 'en'
-
   return (
     <DropdownMenu>
       <DropdownMenuTrigger aria-label={triggerLabel} className={triggerClassName}>
@@ -80,26 +76,16 @@ export default function UserMenu({
         </DropdownMenuGroup>
         <DropdownMenuSeparator />
         <DropdownMenuGroup>
-          <DropdownMenuItem render={<Link href={routes.settings.home()} />}>
-            <Settings className="size-4" />
-            {copy.menu.settings}
-          </DropdownMenuItem>
-          {/* Your own preferences live here, not in store Settings. */}
+          {/* Your own preferences first, then the store's Settings. */}
           {ACCOUNT_PAGES.map((page) => (
             <DropdownMenuItem key={page.href} render={<Link href={page.href} />}>
               <page.icon className="size-4" />
               {pageName(page.href, page.title, locale)}
             </DropdownMenuItem>
           ))}
-          <DropdownMenuItem
-            render={<a href={whatsappHelpUrl()} target="_blank" rel="noreferrer" />}
-          >
-            <WhatsappLogo className="size-4" />
-            {copy.menu.help}
-          </DropdownMenuItem>
-          <DropdownMenuItem onClick={() => switchLocale(nextLocale)} lang={nextLocale}>
-            <Language className="size-4" />
-            {nextLocale === 'hi' ? copy.menu.hindi : copy.menu.english}
+          <DropdownMenuItem render={<Link href={routes.settings.home()} />}>
+            <Settings className="size-4" />
+            {copy.menu.settings}
           </DropdownMenuItem>
         </DropdownMenuGroup>
         <DropdownMenuSeparator />
