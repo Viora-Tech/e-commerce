@@ -452,9 +452,9 @@ kind and no table:
 
 - **Settings** in `store.apps` under `umami` (`./settings`, pure and client-safe): the Umami
   address, website id, `waitForConsent`, and the API key as an `encryptSecret` blob that never
-  leaves the server (the admin sees `hasApiKey` only). Note: `scripts/rotate-secrets.ts` does
-  not walk `store.apps`; the key keeps decrypting through `SETTINGS_SECRET_PREVIOUS` and is
-  re-encrypted the next time it is saved.
+  leaves the server (the admin sees `hasApiKey` only). `bun run rotate-secrets` re-encrypts it
+  with the rest (`rotateAppSettings` walks every encrypted value under `store.apps.settings`),
+  so any app may keep an `encryptSecret` string in its settings entry.
 - **Outbound calls** (`./client`): the merchant's Umami address goes through
   `@commerce/core/safe-fetch` (public https hosts only; `safeFetch` now takes `method`,
   `headers` and `body`, and drops headers on a redirect to another origin). The platform's own

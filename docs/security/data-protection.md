@@ -97,8 +97,8 @@ documents the variable names, not real values.
    and `SETTINGS_SECRET` set to the new one. Both keys now work for decryption; only the
    new key is used for new writes.
 3. Run `bun run rotate-secrets` (dry run) to see what it would touch, then
-   `bun run rotate-secrets --apply`. It walks every store's provider settings, gift card
-   codes, Shopify import connection tokens and customer phones, re-encrypting anything
+   `bun run rotate-secrets --apply`. It walks every store's provider settings, the apps'
+   own settings in `store.apps` (the Umami API key), gift card codes, Shopify import connection tokens and customer phones, re-encrypting anything
    still under an old key and recomputing `customer.phone_index` under the new key. Run it
    soon after the deploy: phone search cannot find a customer whose index is still under
    the old key. Settings blobs are also re-encrypted whenever they are saved (lazy rotation).

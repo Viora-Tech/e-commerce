@@ -11,8 +11,10 @@ import EmptyState from '@/components/layout/empty-state'
 import StatTile from '@/components/layout/stat-tile'
 import { analyticsContent } from '@/data/analytics'
 import { umamiContent } from '@/data/umami'
+import { useCopy, useLocale } from '@/hooks/use-copy'
 import { formatDay, formatRate, type RangeState } from '@/lib/analytics-range'
 import { api } from '@/lib/api-client'
+import { INTL_LOCALE } from '@/lib/i18n'
 import { formatCompact } from '@/lib/money'
 import { routes } from '@/lib/routes'
 import VisitorListCard, { type VisitorListRow } from './visitor-list-card'
@@ -25,7 +27,7 @@ type Kpi = Ready['report']['kpis'][number]
 type Breakdown = keyof Ready['report']['breakdowns']
 type Row = Ready['report']['breakdowns'][Breakdown][number]
 
-const copy = umamiContent.visitors
+type Copy = (typeof umamiContent)['visitors']
 
 const LISTS: readonly Breakdown[] = [
   'pages',
@@ -36,34 +38,35 @@ const LISTS: readonly Breakdown[] = [
   'browsers',
 ]
 
-const regionNames = new Intl.DisplayNames(['en'], { type: 'region' })
+/** What a row's label needs: the copy, and country names in the member's language. */
+type Labels = { copy: Copy; regions: Intl.DisplayNames }
 
-function countryName(code: string): string {
+function countryName(regions: Intl.DisplayNames, code: string): string {
   try {
-    return regionNames.of(code.toUpperCase()) ?? code
+    return regions.of(code.toUpperCase()) ?? code
   } catch {
     return code
   }
 }
 
 /** A row's label as merchants read it: country names, plain device words, Umami's empty bucket named. */
-function rowLabel(list: Breakdown, label: string | null): string {
+function rowLabel({ copy, regions }: Labels, list: Breakdown, label: string | null): string {
   if (label === null) return copy.lists[list].none
-  if (list === 'countries') return countryName(label)
-  if (list === 'devices') return copy.devices[label] ?? label
+  if (list === 'countries') return countryName(regions, label)
+  if (list === 'devices') return (copy.devices as Record<string, string>)[label] ?? label
   return label
 }
 
-function toListRows(list: Breakdown, rows: Row[]): VisitorListRow[] {
+function toListRows(labels: Labels, list: Breakdown, rows: Row[]): VisitorListRow[] {
   return rows.map((r, i) => ({
     key: `${r.label ?? ''}-${i}`,
-    label: rowLabel(list, r.label),
+    label: rowLabel(labels, list, r.label),
     count: r.count,
     share: r.share,
   }))
 }
 
-function formatKpi(kpi: Kpi): string {
+function formatKpi(copy: Copy, kpi: Kpi): string {
   if (kpi.id === 'bounceRate') return formatRate(kpi.value)
   if (kpi.id === 'visitDuration') return copy.seconds(kpi.value)
   return formatCompact(kpi.value)
@@ -79,6 +82,9 @@ const trendOf = (kpi: Kpi) => (kpi.delta === null ? null : Math.round(kpi.delta 
  */
 export default function VisitorsSection({ range }: VisitorsSectionProps) {
   // Hooks
+  const umami = useCopy(umamiContent)
+  const analytics = useCopy(analyticsContent)
+  const locale = useLocale()
   const [view, setView] = useState<ReportView | null>(null)
 
   useEffect(() => {
@@ -93,7 +99,7 @@ export default function VisitorsSection({ range }: VisitorsSectionProps) {
         if (live) {
           setView({
             state: 'error',
-            message: err instanceof Error ? err.message : umamiContent.failed,
+            message: err instanceof Error ? err.message : '',
           })
         }
       })
@@ -103,10 +109,12 @@ export default function VisitorsSection({ range }: VisitorsSectionProps) {
   }, [range])
 
   // Early returns
+  const copy = umami.visitors
+  const heading = <SectionHeading title={copy.title} intro={copy.intro} />
   if (view === null) {
     return (
       <section aria-label={copy.title} aria-busy className="flex flex-col gap-4">
-        <SectionHeading />
+        {heading}
         <Skeleton className="h-64 w-full rounded-xl" />
         <span className="sr-only">{copy.loading}</span>
       </section>
@@ -120,13 +128,13 @@ export default function VisitorsSection({ range }: VisitorsSectionProps) {
           ? { ...copy.empty.notConnected, href: routes.apps.page('umami') }
           : {
               title: copy.empty.error.title,
-              body: view.message,
+              body: view.message || umami.failed,
               action: copy.empty.error.action,
               href: routes.apps.page('umami'),
             }
     return (
       <section aria-label={copy.title} className="flex flex-col gap-4">
-        <SectionHeading />
+        {heading}
         <Card inset="y-10">
           <EmptyState
             heading={empty.title}
@@ -144,6 +152,10 @@ export default function VisitorsSection({ range }: VisitorsSectionProps) {
   }
 
   // Render logic
+  const labels: Labels = {
+    copy,
+    regions: new Intl.DisplayNames([INTL_LOCALE[locale]], { type: 'region' }),
+  }
   const { report } = view
   const days = view.range.days
   const visitorPoints = days.map((d, i) => ({
@@ -159,6 +171,8 @@ export default function VisitorsSection({ range }: VisitorsSectionProps) {
   return (
     <section aria-label={copy.title} className="flex flex-col gap-4">
       <SectionHeading
+        title={copy.title}
+        intro={copy.intro}
         action={
           <Button
             variant="key-neutral"
@@ -175,9 +189,9 @@ export default function VisitorsSection({ range }: VisitorsSectionProps) {
           <StatTile
             key={kpi.id}
             label={copy.kpis[kpi.id]}
-            value={formatKpi(kpi)}
+            value={formatKpi(copy, kpi)}
             trend={trendOf(kpi)}
-            trendNote={analyticsContent.compare}
+            trendNote={analytics.compare}
             invert={kpi.id === 'bounceRate'}
           />
         ))}
@@ -186,7 +200,7 @@ export default function VisitorsSection({ range }: VisitorsSectionProps) {
         title={copy.trend.title}
         subtitle={copy.trend.subtitle(
           formatCompact(totalVisitors),
-          analyticsContent.salesOverTime.spans[view.range.key as RangeState['key']] ?? '',
+          analytics.salesOverTime.spans[view.range.key as RangeState['key']] ?? '',
         )}
         periods={[
           { id: 'visitors', label: copy.trend.visitors, data: visitorPoints },
@@ -201,7 +215,7 @@ export default function VisitorsSection({ range }: VisitorsSectionProps) {
           <VisitorListCard
             key={list}
             title={copy.lists[list].title}
-            rows={toListRows(list, report.breakdowns[list])}
+            rows={toListRows(labels, list, report.breakdowns[list])}
             empty={copy.lists[list].empty}
           />
         ))}
@@ -211,13 +225,21 @@ export default function VisitorsSection({ range }: VisitorsSectionProps) {
 }
 
 /** "Visitors" with its one-line intro, and an action on the right. */
-function SectionHeading({ action }: { action?: ReactNode }) {
+function SectionHeading({
+  title,
+  intro,
+  action,
+}: {
+  title: string
+  intro: string
+  action?: ReactNode
+}) {
   // Render logic
   return (
     <div className="flex flex-wrap items-end justify-between gap-3 pt-2">
       <div className="flex flex-col gap-0.5">
-        <h2 className="text-card-title text-ink-strong">{copy.title}</h2>
-        <p className="text-body text-muted-foreground">{copy.intro}</p>
+        <h2 className="text-card-title text-ink-strong">{title}</h2>
+        <p className="text-body text-muted-foreground">{intro}</p>
       </div>
       {action}
     </div>

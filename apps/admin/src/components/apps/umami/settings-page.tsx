@@ -9,7 +9,8 @@ import { toast } from 'sonner'
 import ProoflyPageHeader from '@/components/layout/proofly-page-header'
 import SettingsCard from '@/components/settings/settings-card'
 import SettingsRow from '@/components/settings/settings-row'
-import { umamiContent as copy } from '@/data/umami'
+import { umamiContent } from '@/data/umami'
+import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 import { routes } from '@/lib/routes'
 
@@ -26,10 +27,12 @@ const formOf = (view: View): Form => ({
   waitForConsent: view.waitForConsent,
 })
 
-const errorText = (err: unknown) =>
+type Copy = typeof umamiContent
+
+const errorText = (copy: Copy, err: unknown) =>
   err instanceof Error && err.message ? err.message : copy.failed
 
-function statusOf(view: View): string {
+function statusOf(copy: Copy, view: View): string {
   if (view.reporting) return copy.status.reporting
   if (view.tracking) return copy.status.tracking
   return copy.status.notSetUp
@@ -42,6 +45,7 @@ function statusOf(view: View): string {
  */
 export default function SettingsPage() {
   // Hooks
+  const copy = useCopy(umamiContent)
   const [view, setView] = useState<View | null>(null)
   const [form, setForm] = useState<Form | null>(null)
   const [busy, setBusy] = useState<Busy>(null)
@@ -74,7 +78,7 @@ export default function SettingsPage() {
     try {
       await work()
     } catch (err) {
-      toast.error(errorText(err))
+      toast.error(errorText(copy, err))
     } finally {
       setBusy(null)
     }
@@ -134,7 +138,7 @@ export default function SettingsPage() {
         }
       />
       <p className="rounded-xl surface-banner px-4 py-3 text-body text-foreground">
-        {statusOf(view)}{' '}
+        {statusOf(copy, view)}{' '}
         {view.reporting ? (
           <Link href={routes.analytics.home()} className="font-medium underline">
             {copy.status.analyticsLink}

@@ -85,7 +85,7 @@ export const umamiContent = {
       laptop: 'Laptop',
       mobile: 'Phone',
       tablet: 'Tablet',
-    } as Record<string, string>,
+    },
     empty: {
       notInstalled: {
         title: 'See who visits your store',

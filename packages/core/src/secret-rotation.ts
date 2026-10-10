@@ -35,6 +35,8 @@ const SETTINGS_COLUMNS = [
 export type RotationCounts = {
   /** Secret fields inside the store's settings blobs. */
   settings: number
+  /** Encrypted values inside apps' own settings (`store.apps.settings.<app>`, the Umami key). */
+  appSettings: number
   /** Per `CipherColumn.label`. */
   columns: Record<string, number>
   /** `customer.phone`, re-encrypted with its blind index recomputed. */
@@ -84,8 +86,44 @@ function rotateSettings(
 }
 
 /**
+ * `store.apps` with every encrypted value inside the apps' own settings
+ * (`settings.<appId>`, at any depth) moved onto the current key. Apps keep a secret there
+ * as a plain `encryptSecret` string (the Umami API key); anything else, and the install list,
+ * is left exactly as it is.
+ */
+export function rotateAppSettings(
+  apps: unknown,
+  keyring: Keyring,
+): { next: unknown; moved: number; unreadable: number } {
+  let moved = 0
+  let unreadable = 0
+  const walk = (value: unknown): unknown => {
+    if (isEncrypted(value)) {
+      if (isUnderCurrentKey(value, keyring.current)) return value
+      const plain = tryDecrypt(value, keyring)
+      if (plain === null) {
+        unreadable += 1
+        return value
+      }
+      moved += 1
+      return encryptSecret(plain, keyring.current)
+    }
+    if (Array.isArray(value)) return value.map(walk)
+    if (value && typeof value === 'object') {
+      return Object.fromEntries(Object.entries(value).map(([k, v]) => [k, walk(v)]))
+    }
+    return value
+  }
+  if (!apps || typeof apps !== 'object' || !('settings' in apps)) {
+    return { next: apps, moved, unreadable }
+  }
+  const settings = walk((apps as { settings: unknown }).settings)
+  return { next: moved > 0 ? { ...apps, settings } : apps, moved, unreadable }
+}
+
+/**
  * Moves every secret one store holds onto `keyring.current`: the provider settings
- * blobs on `store`, each `CipherColumn`, and `customer.phone` (whose blind index is
+ * blobs on `store`, the apps' own settings (`store.apps`), each `CipherColumn`, and `customer.phone` (whose blind index is
  * keyed by the secret too, so it is recomputed). Values already under the current key
  * are untouched, so a second run reports zero. With `apply: false` nothing is written
  * and the counts say what would change.
@@ -100,7 +138,13 @@ export async function rotateStoreSecrets(
   keyring: Keyring,
   opts: { apply: boolean; columns?: CipherColumn[] | undefined },
 ): Promise<RotationCounts> {
-  const counts: RotationCounts = { settings: 0, columns: {}, phones: 0, unreadable: 0 }
+  const counts: RotationCounts = {
+    settings: 0,
+    appSettings: 0,
+    columns: {},
+    phones: 0,
+    unreadable: 0,
+  }
 
   const [row] = await tx
     .select({
@@ -109,11 +153,12 @@ export async function rotateStoreSecrets(
       shipping: store.shipping,
       storage: store.storage,
       loginProviders: store.loginProviders,
+      apps: store.apps,
     })
     .from(store)
     .where(eq(store.id, storeId))
   if (row) {
-    const updates: Partial<Record<(typeof SETTINGS_COLUMNS)[number], unknown>> = {}
+    const updates: Partial<Record<(typeof SETTINGS_COLUMNS)[number] | 'apps', unknown>> = {}
     for (const col of SETTINGS_COLUMNS) {
       const value = row[col]
       if (!isProviderSettings(value)) continue
@@ -122,6 +167,10 @@ export async function rotateStoreSecrets(
       counts.settings += r.moved
       if (r.moved > 0) updates[col] = r.next
     }
+    const apps = rotateAppSettings(row.apps, keyring)
+    counts.unreadable += apps.unreadable
+    counts.appSettings += apps.moved
+    if (apps.moved > 0) updates.apps = apps.next
     if (opts.apply && Object.keys(updates).length > 0) {
       await tx.update(store).set(updates).where(eq(store.id, storeId))
     }

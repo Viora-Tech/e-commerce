@@ -14,6 +14,7 @@ import { loadEnv } from '@commerce/config'
  * Covers every `encryptSecret` usage in the codebase (`rotateStoreSecrets` in
  * `packages/core/src/secret-rotation.ts`):
  *   - store.payments / .notifications / .shipping / .storage / .login_providers
+ *   - store.apps: encrypted values inside apps' own settings (the Umami API key)
  *   - gift_card.code_cipher
  *   - customer.phone (and its blind index customer.phone_index, which is keyed by the secret)
  *   - shopify_import_connection.access_token (added below; the plugin owns that table)
@@ -66,13 +67,18 @@ async function main() {
       rotateStoreSecrets(tx, s.id, keyring, { apply, columns: PLUGIN_COLUMNS }),
     )
     const columns = Object.entries(counts.columns).filter(([, n]) => n > 0)
-    const moved = counts.settings + counts.phones + columns.reduce((sum, [, n]) => sum + n, 0)
+    const moved =
+      counts.settings +
+      counts.appSettings +
+      counts.phones +
+      columns.reduce((sum, [, n]) => sum + n, 0)
     if (moved + counts.unreadable === 0) continue
     totals.stores += 1
     totals.secrets += moved
     totals.unreadable += counts.unreadable
     const parts = [
       `${counts.settings} settings secret(s)`,
+      `${counts.appSettings} app setting secret(s)`,
       `${counts.phones} customer phone(s)`,
       ...columns.map(([label, n]) => `${n} ${label}`),
     ]

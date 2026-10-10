@@ -69,7 +69,8 @@ decrypt; only the new one encrypts.
 
 ### Re-encrypt everything
 
-`bun run rotate-secrets` (dry run), then `--apply`. Covers provider settings, gift card codes,
+`bun run rotate-secrets` (dry run), then `--apply`. Covers provider settings, apps' own
+settings in `store.apps` (any encrypted value, such as the Umami API key), gift card codes,
 Shopify import tokens and customer phones (with their search index), one store per
 transaction. Settings blobs are also re-encrypted on their own whenever they are saved.
 
