@@ -41,6 +41,7 @@ import shopifyImport from './shopify-import'
 import staff from './staff'
 import staffInvites from './staff-invites'
 import states from './states'
+import storageWarning from './storage-warning'
 import storeData from './store-data'
 import table from './table'
 import themeImport from './theme-import'
@@ -95,6 +96,7 @@ export const hindiCopy: readonly TranslationPair[] = [
   ...staffInvites,
   ...states,
   ...storeData,
+  ...storageWarning,
   ...table,
   ...themeImport,
   ...themes,

@@ -1,5 +1,6 @@
 import type { DashboardChartsData, DashboardSummary } from '@commerce/api'
 import PageBody from '@/components/layout/page-body'
+import LocalStorageWarning from '@/components/media/local-storage-warning'
 import AskAiCard from './ask-ai-card'
 import ChartsPanel from './charts/charts-panel'
 import PaymentStatusDonuts from './charts/payment-status-donuts'
@@ -50,6 +51,7 @@ export default function DashboardPage({
         toShip={summary.today.toShipCount}
         now={new Date()}
       />
+      <LocalStorageWarning />
       <AskAiCard enabled={assistant} />
       {signals ? <FinishSetup productCount={summary.report.products} signals={signals} /> : null}
       <TodoCards needsYou={summary.needsYou} />

@@ -287,18 +287,12 @@ export const Compass = defineIcon(PhCompass, 'Compass')
 export const Language = defineIcon(Translate, 'Language')
 /** "Report a bug" (test server only): the account menu item and the floating button. */
 export const BugIcon = defineIcon(Bug, 'BugIcon')
-/* Kit 5:1384 "arrow-menu-close": a bar on the right with a chevron pointing at it. Mirror with `-scale-x-100` when collapsed. */
-export const PanelLeftClose = definePath(
-  ['M20 5v14', 'M13 8l-4 4 4 4', 'M9 12h7'],
-  'PanelLeftClose',
-)
-export const PanelLeftIcon = definePath(
-  [
-    'M4.5 5.5h15a1 1 0 0 1 1 1v11a1 1 0 0 1-1 1h-15a1 1 0 0 1-1-1v-11a1 1 0 0 1 1-1z',
-    'M9.5 5.5v13',
-  ],
-  'PanelLeftIcon',
-)
+/* Top bar panel toggle (Figma 223:414): a rounded box with a bar on the left. */
+const PANEL_PATHS = [
+  'M4.5 5.5h15a1 1 0 0 1 1 1v11a1 1 0 0 1-1 1h-15a1 1 0 0 1-1-1v-11a1 1 0 0 1 1-1z',
+  'M9.5 5.5v13',
+]
+export const PanelLeftIcon = definePath(PANEL_PATHS, 'PanelLeftIcon')
 export const ExternalLink = defineIcon(ArrowSquareOut, 'ExternalLink') // kit Your Shop
 
 /* Arrows and chevrons */
