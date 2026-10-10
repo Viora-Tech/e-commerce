@@ -1,6 +1,13 @@
 import type { ComponentConfig, Fields } from '@puckeditor/core'
 import AnnouncementBar from '../../components/sections/announcement-bar'
 import { announcementBarContent as copy } from '../../data/zero-drift/announcement-bar'
+import {
+  bleedFrameProps,
+  defaultSectionSettings,
+  migrateSectionSettings,
+  type SectionSettingsValue,
+  sectionSettingsField,
+} from '../../section-settings'
 import { SCHEMES } from '../framed'
 import { inlineRichtext } from '../inline-fields'
 
@@ -19,13 +26,19 @@ export type AnnouncementBarProps = LegacyAnnouncement & {
   marqueeSpeed: number
   showSocial: boolean
   socials: { platform: string; url: string }[]
+  /** Spacing, visibility and anchor (`bleed` section settings), on a frame around the bar. */
+  settings: SectionSettingsValue
 }
 
 const f = copy.fields
 
 const onOff = (label: string) => ({ type: 'radio', label, options: copy.onOff }) as const
 
+/** The bar was never framed, so its settings start with no padding: it looks as it did. */
+const BAR_SETTINGS = defaultSectionSettings({ padTop: 0, padBottom: 0 })
+
 const defaults: AnnouncementBarProps = {
+  settings: BAR_SETTINGS,
   announcements: copy.announcements.map((a) => ({ ...a })),
   scheme: copy.scheme,
   displayMode: copy.displayMode,
@@ -78,6 +91,7 @@ export function announcementBarSection(): ComponentConfig {
         },
       },
       scheme: { type: 'select', label: f.scheme, options: SCHEMES },
+      settings: sectionSettingsField(SCHEMES, 'bleed'),
     } as Fields<AnnouncementBarProps>,
     defaultProps: defaults,
     // Rewrites a pre-port bar into the new shape the first time the editor loads it: its one
@@ -90,16 +104,20 @@ export function announcementBarSection(): ComponentConfig {
     },
     render: (p) => {
       const legacy = legacyAnnouncement(p)
+      // The bar's own `scheme` is its colour; only spacing, visibility and anchor come from here.
+      const frame = bleedFrameProps(migrateSectionSettings({ settings: p.settings }, BAR_SETTINGS))
       return (
-        <AnnouncementBar
-          announcements={legacy ? [legacy] : (p.announcements ?? [])}
-          displayMode={legacy || p.displayMode === 'rotate' ? 'rotate' : 'marquee'}
-          autorotate={p.autorotate !== false}
-          autorotateSpeed={Number(p.autorotateSpeed) || copy.autorotateSpeed}
-          marqueeSpeed={Number(p.marqueeSpeed) || copy.marqueeSpeed}
-          socials={p.showSocial === false ? [] : (p.socials ?? [])}
-          scheme={p.scheme}
-        />
+        <div {...frame} className={`section-frame${frame.className ? ` ${frame.className}` : ''}`}>
+          <AnnouncementBar
+            announcements={legacy ? [legacy] : (p.announcements ?? [])}
+            displayMode={legacy || p.displayMode === 'rotate' ? 'rotate' : 'marquee'}
+            autorotate={p.autorotate !== false}
+            autorotateSpeed={Number(p.autorotateSpeed) || copy.autorotateSpeed}
+            marqueeSpeed={Number(p.marqueeSpeed) || copy.marqueeSpeed}
+            socials={p.showSocial === false ? [] : (p.socials ?? [])}
+            scheme={p.scheme}
+          />
+        </div>
       )
     },
   }
