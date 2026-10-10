@@ -11,7 +11,9 @@ import {
   MAX_THEMES,
   publishTheme,
   renameTheme,
+  setThemeThumbnail,
   ThemeLibraryError,
+  touchTheme,
   updateThemeSettings,
 } from './library'
 import { applyThemePreset } from './presets'
@@ -113,6 +115,36 @@ describe('theme library', () => {
     await expect(
       owner.insert(theme).values({ storeId, name: 'X', role: 'main', settings: defaultTheme }),
     ).rejects.toThrow()
+  })
+})
+
+describe('last saved by and thumbnails', () => {
+  it('records who saved, keeps it when nobody is named, and copies the picture on duplicate', async () => {
+    const storeId = await seedStore()
+    const main = await inStore(storeId, (tx) => ensureMainTheme(tx, storeId))
+    expect(main).toMatchObject({ updatedBy: null, thumbnailUrl: null })
+
+    const renamed = await inStore(storeId, (tx) => renameTheme(tx, main.id, 'Zero Drift', 'Asha'))
+    expect(renamed.updatedBy).toBe('Asha')
+    const unnamed = await inStore(storeId, (tx) =>
+      updateThemeSettings(tx, main.id, renamed.settings),
+    )
+    expect(unnamed.updatedBy).toBe('Asha')
+
+    await inStore(storeId, (tx) => setThemeThumbnail(tx, main.id, 'https://cdn.test/t.webp?v=1'))
+    const [pictured] = await inStore(storeId, (tx) => listThemes(tx))
+    // A picture is not a save: the time and author stay as they were.
+    expect(pictured).toMatchObject({
+      thumbnailUrl: 'https://cdn.test/t.webp?v=1',
+      updatedBy: 'Asha',
+    })
+    expect(pictured?.updatedAt.getTime()).toBe(unnamed.updatedAt.getTime())
+
+    await inStore(storeId, (tx) => touchTheme(tx, main.id, 'Ravi'))
+    const copy = await inStore(storeId, (tx) => duplicateTheme(tx, storeId, main.id, 'Ravi'))
+    expect(copy).toMatchObject({ thumbnailUrl: 'https://cdn.test/t.webp?v=1', updatedBy: 'Ravi' })
+    const [touched] = await inStore(storeId, (tx) => listThemes(tx))
+    expect(touched?.updatedBy).toBe('Ravi')
   })
 })
 

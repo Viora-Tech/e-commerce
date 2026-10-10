@@ -24,7 +24,7 @@ export default function OnlineStoreTabs({ active }: OnlineStoreTabsProps) {
   return (
     <nav
       aria-label={tabs.label}
-      className="inline-flex w-fit items-center gap-0.5 rounded-lg border border-hairline bg-chip-neutral p-0.5"
+      className="inline-flex w-fit items-center gap-0.5 rounded-[0.6875rem] bg-muted p-[0.1875rem]"
     >
       {items.map((item) => (
         <Link
@@ -32,8 +32,8 @@ export default function OnlineStoreTabs({ active }: OnlineStoreTabsProps) {
           href={item.href}
           aria-current={active === item.id ? 'page' : undefined}
           className={cn(
-            'flex h-7 items-center rounded-md px-3 text-body font-medium text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
-            active === item.id && 'bg-card text-foreground shadow-sm ring-1 ring-border',
+            'flex h-8 items-center rounded-lg border border-transparent px-3 text-body font-medium text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+            active === item.id && 'border-border bg-card font-semibold text-foreground',
           )}
         >
           {item.label}

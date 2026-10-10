@@ -1,14 +1,13 @@
 'use client'
 
 import type { ThemePresetId } from '@commerce/core/theme'
-import { Plus, Upload } from '@commerce/ui/icons'
+import { Plus } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
-import { Card, CardDescription, CardHeader, CardTitle } from '@commerce/ui/shadcn/card'
 import Link from 'next/link'
 import { useState } from 'react'
 import { toast } from 'sonner'
-import PageBody from '@/components/layout/page-body'
-import PageHeader from '@/components/layout/page-header'
+import ProoflyPageBody from '@/components/layout/proofly-page-body'
+import ProoflyPageHeader from '@/components/layout/proofly-page-header'
 import { themeImportContent } from '@/data/theme-import'
 import { themesContent } from '@/data/themes'
 import { useCopy } from '@/hooks/use-copy'
@@ -27,6 +26,8 @@ type ThemesLibraryProps = {
   initial: ThemeItem[]
   origin: string
   canPublish: boolean
+  /** Sections the Add panel offers our own themes (the live card's "N sections ready"). */
+  sectionCount: number
 }
 
 /** Live first, then the library by last saved, as the server orders them. */
@@ -51,8 +52,16 @@ function download(theme: ThemeItem): void {
   URL.revokeObjectURL(url)
 }
 
-/** Online Store › Themes: the live theme up top, the theme library below, Shopify style. */
-export default function ThemesLibrary({ initial, origin, canPublish }: ThemesLibraryProps) {
+/**
+ * Online Store › Themes (Figma "Online store / Themes", 309:19887): the live theme up top, the
+ * theme library below, Shopify style.
+ */
+export default function ThemesLibrary({
+  initial,
+  origin,
+  canPublish,
+  sectionCount,
+}: ThemesLibraryProps) {
   // Hooks
   const [themes, setThemes] = useState(initial)
   const [busy, setBusy] = useState(false)
@@ -127,10 +136,10 @@ export default function ThemesLibrary({ initial, origin, canPublish }: ThemesLib
   const library = themes.filter((t) => t.role !== 'main')
 
   return (
-    <PageBody className="max-w-[81.5rem] gap-6 md:px-8 md:py-8">
-      <PageHeader
+    <ProoflyPageBody>
+      <ProoflyPageHeader
         title={title}
-        subtitle={copy.subtitle}
+        summary={copy.subtitle}
         actions={
           <>
             <Button
@@ -139,7 +148,6 @@ export default function ThemesLibrary({ initial, origin, canPublish }: ThemesLib
               nativeButton={false}
               render={<Link href={routes.onlineStore.themeImportNew()} />}
             >
-              <Upload aria-hidden />
               {importCopy.button}
             </Button>
             <Button onClick={() => setAdding(true)} disabled={busy}>
@@ -154,20 +162,23 @@ export default function ThemesLibrary({ initial, origin, canPublish }: ThemesLib
         <CurrentThemeCard
           theme={live}
           origin={origin}
+          sectionCount={sectionCount}
           busy={busy}
           onAction={(action) => handleAction(live, action)}
         />
       ) : null}
-      <Card gap="none" inset="none">
-        <CardHeader className="border-b border-border px-5 py-4">
-          <CardTitle>{copy.libraryHeading}</CardTitle>
-          <CardDescription>{copy.libraryBody}</CardDescription>
-        </CardHeader>
+      <section className="flex flex-col gap-1.5 rounded-2xl border border-border surface-card px-4 py-4 md:px-[1.375rem] md:py-5">
+        <h2 className="text-card-title">{copy.libraryHeading}</h2>
+        <p className="text-[0.8125rem] leading-[1.1875rem] text-muted-foreground">
+          {copy.libraryBody}
+        </p>
         {library.length === 0 ? (
-          <div className="flex flex-col items-center gap-1 px-5 py-10 text-center">
-            <p className="text-body font-semibold text-foreground">{copy.emptyTitle}</p>
+          <div className="flex flex-col items-center gap-2.5 py-9 text-center">
+            <p className="text-[0.9375rem] leading-[1.375rem] font-semibold text-foreground">
+              {copy.emptyTitle}
+            </p>
             <p className="text-body text-muted-foreground">{copy.emptyBody}</p>
-            <div className="mt-3 flex flex-wrap justify-center gap-2">
+            <div className="flex flex-wrap justify-center gap-2.5">
               {live ? (
                 <Button
                   variant="outline"
@@ -184,7 +195,7 @@ export default function ThemesLibrary({ initial, origin, canPublish }: ThemesLib
             </div>
           </div>
         ) : (
-          <ul className="divide-y divide-border">
+          <ul className="mt-2 divide-y divide-border border-t border-border">
             {library.map((t) => (
               <ThemeLibraryRow
                 key={t.id}
@@ -197,7 +208,7 @@ export default function ThemesLibrary({ initial, origin, canPublish }: ThemesLib
             ))}
           </ul>
         )}
-      </Card>
+      </section>
       <AddThemeDialog open={adding} busy={busy} onOpenChange={setAdding} onAdd={handleAdd} />
       {renaming ? (
         <RenameThemeDialog
@@ -213,6 +224,6 @@ export default function ThemesLibrary({ initial, origin, canPublish }: ThemesLib
         onCancel={() => setDeleting(null)}
         onConfirm={handleDelete}
       />
-    </PageBody>
+    </ProoflyPageBody>
   )
 }

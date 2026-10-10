@@ -2098,6 +2098,10 @@ export const theme = pgTable(
     /** The preset it was created from; informational ("Based on Minimal"). */
     preset: text('preset'),
     settings: jsonb('settings').notNull(),
+    /** A small webp of the home page, taken in Customize on Save; null until the first one. */
+    thumbnailUrl: text('thumbnail_url'),
+    /** Who saved it last (the member's name, or email when they have none), for "Last saved by". */
+    updatedBy: text('updated_by'),
     createdAt: createdAt(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
     publishedAt: timestamp('published_at', { withTimezone: true }),

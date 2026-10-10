@@ -32,6 +32,7 @@ import { DynamicSourceContext, scopeFor } from '@/lib/dynamic-sources'
 import { useCustomizePreview } from '@/lib/use-customize-preview'
 import { useLiquidTheme } from '@/lib/use-liquid-theme'
 import { partsOf, useTemplateDrafts } from '@/lib/use-template-drafts'
+import { useThemeThumbnail } from '@/lib/use-theme-thumbnail'
 import ThemePresets from '../theme-presets'
 import type { PreviewDevice } from '../theme-preview'
 import ThemeSettings from '../theme-settings'
@@ -66,6 +67,10 @@ const FONT_SAMPLES = `https://fonts.googleapis.com/css2?${THEME_FONT_IDS.map(
 ).join('&')}&display=swap`
 
 const sameRef = (a: TemplateRef, b: TemplateRef) => a.key === b.key && a.suffix === b.suffix
+
+/** The canvas shows the default home page at desktop width: what the Themes page pictures. */
+const isDesktopHome = (loaded: Loaded | null, device: PreviewDevice) =>
+  loaded?.ref.key === 'home' && loaded.ref.suffix === '' && device === 'desktop'
 
 /** Save's only refusal is a connected setting whose source is gone; its message names it. */
 const isSourceError = (err: unknown): err is Error =>
@@ -122,6 +127,12 @@ export default function CustomizeEditor({
   const preview = useCustomizePreview(ref.key, initial.resource)
   // An imported Shopify theme: section fields from each `{% schema %}`, its head for the canvas.
   const liquidTheme = useLiquidTheme(record.id)
+  // The Themes page's picture of this theme, retaken on Save of the home page.
+  const thumbnail = useThemeThumbnail({
+    themeId: record.id,
+    hasPicture: Boolean(record.thumbnailUrl),
+    onSavedHome: isDesktopHome(loaded, device) && !switching && !templatesDirty,
+  })
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: `drafts` only holds refs; reloading keys on the theme, template and discard nonce.
   useEffect(() => {
@@ -198,6 +209,7 @@ export default function CustomizeEditor({
       }
       setTemplatesDirty(false)
       toast.success(copy.saved)
+      if (isDesktopHome(loaded, device)) thumbnail.refresh()
     } catch (err) {
       // A connected setting whose source is gone names itself (see dynamic sources).
       toast.error(isSourceError(err) ? err.message : copy.saveFailed)
