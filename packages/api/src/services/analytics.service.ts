@@ -372,7 +372,12 @@ export async function analyticsLive(
     .orderBy(desc(cart.createdAt))
     .limit(LIVE_EVENTS)
 
-  const lastHour = recentOrders.filter((o) => o.placedAt >= hourAgo)
+  // Counted on its own: the event list starts at IST midnight and is capped, so between 00:00
+  // and 01:00 (or on a busy day) it would miss orders from the last hour.
+  const [lastHour] = await tx
+    .select({ n: count(), revenue: sum(order.totalPaise) })
+    .from(order)
+    .where(and(counted, gte(order.placedAt, hourAgo)))
   const events: AnalyticsLive['events'] = [
     ...recentOrders.map((o) => ({
       id: `order-${o.id}`,
@@ -395,8 +400,8 @@ export async function analyticsLive(
   return {
     visitors,
     activeCarts: cartsRow?.n ?? 0,
-    ordersLastHour: lastHour.length,
-    revenueLastHourPaise: lastHour.reduce((n, o) => n + o.totalPaise, 0),
+    ordersLastHour: Number(lastHour?.n ?? 0),
+    revenueLastHourPaise: Number(lastHour?.revenue ?? 0),
     events,
   }
 }
