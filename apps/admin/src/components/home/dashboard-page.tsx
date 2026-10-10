@@ -43,7 +43,7 @@ export default function DashboardPage({
   abandoned,
 }: DashboardPageProps) {
   return (
-    <PageBody width="frame" className="max-w-[68rem] gap-8 md:mx-auto">
+    <PageBody width="frame" className="max-w-[68rem] gap-10 md:mx-auto md:pt-9">
       <HomeGreeting
         firstName={firstName}
         ordersToday={summary.today.ordersCount}

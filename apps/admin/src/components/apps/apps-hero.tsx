@@ -86,7 +86,10 @@ export default function AppsHero({ apps, busyId, onInstall }: AppsHeroProps) {
         </div>
       </div>
       <div className="hidden w-[26.25rem] shrink-0 items-center justify-center bg-gradient-to-b from-primary-soft to-primary-tint md:flex">
-        <AppLogo id={app.id} icon={app.admin.icon} size={160} />
+        {/* Figma 332:54763: the logo on a soft white disc over the brand wash. */}
+        <span className="flex size-[14.5rem] items-center justify-center rounded-full bg-card/80 shadow-lift">
+          <AppLogo id={app.id} icon={app.admin.icon} size={160} />
+        </span>
       </div>
     </section>
   )

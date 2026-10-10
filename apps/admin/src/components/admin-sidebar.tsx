@@ -137,14 +137,14 @@ export default function AdminSidebar({
 
   return (
     <Sidebar collapsible="icon" className="group-data-[side=left]:border-r-0">
-      <SidebarHeader className="gap-2 px-3 pt-3 pb-1 group-data-[collapsible=icon]:items-center group-data-[collapsible=icon]:px-2">
+      <SidebarHeader className="gap-2.5 px-4 pt-4 pb-1 group-data-[collapsible=icon]:items-center group-data-[collapsible=icon]:px-2">
         <DropdownMenu>
           <DropdownMenuTrigger aria-label={copy.switchStore} className={ROW_TRIGGER}>
             {/* The store's key tile: its logo when the theme has one, else the store glyph. */}
             <span
               aria-hidden="true"
               className={cn(
-                'flex size-9 shrink-0 items-center justify-center overflow-hidden rounded-lg',
+                'flex size-8 shrink-0 items-center justify-center overflow-hidden rounded-[0.5625rem]',
                 logoUrl ? 'border border-hairline bg-card' : 'key-primary',
               )}
             >
@@ -199,7 +199,7 @@ export default function AdminSidebar({
           target="_blank"
           rel="noreferrer"
           aria-label={copy.openStoreAddress(domain)}
-          className="flex h-8 items-center gap-2 rounded-md bg-muted px-2.5 text-body text-foreground transition-colors hover:bg-chip-neutral focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring group-data-[collapsible=icon]:hidden"
+          className="flex h-8 items-center gap-2 rounded-[0.5rem] border border-border bg-muted px-2.5 text-body font-medium text-foreground transition-colors hover:bg-chip-neutral focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring group-data-[collapsible=icon]:hidden"
         >
           <Globe className="size-4 shrink-0 text-muted-foreground" />
           <span className="min-w-0 flex-1 truncate">{domain}</span>
@@ -227,7 +227,7 @@ export default function AdminSidebar({
         />
       </SidebarContent>
 
-      <SidebarFooter className="gap-3 px-3 pt-2 pb-3 group-data-[collapsible=icon]:px-2">
+      <SidebarFooter className="gap-3 px-4 pt-2 pb-4 group-data-[collapsible=icon]:px-2">
         {usage ? <SidebarUsageCard usage={usage} /> : null}
         <UserMenu
           user={user}

@@ -4,6 +4,7 @@ import { translation } from '@/lib/i18n'
 export default [
   translation(appsContent, {
     title: 'ऐप्स',
+    browseStore: 'ऐप स्टोर देखें',
     intro:
       'अपने स्टोर में इनवॉइसिंग, इम्पोर्टर और मार्केटिंग जैसे टूल जोड़ें। हर ऐप एक प्लगइन है जिसे आप कभी भी चालू या बंद कर सकते हैं।',
     summary: {

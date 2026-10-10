@@ -14,6 +14,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@commerce/ui/shadcn/alert-dialog'
+import { Button } from '@commerce/ui/shadcn/button'
 import { Input } from '@commerce/ui/shadcn/input'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
@@ -120,8 +121,19 @@ export default function AppsList() {
   const builtCount = available.filter((a) => a.kind === 'builtin').length
 
   return (
-    <PageBody className="gap-8">
-      <PageHeader title={copy.title} subtitle={apps === null ? copy.intro : summary} />
+    <PageBody className="max-w-[80.5rem] gap-8">
+      <PageHeader
+        title={copy.title}
+        subtitle={apps === null ? copy.intro : summary}
+        actions={
+          available.length > 0 ? (
+            <Button nativeButton={false} render={<a href="#app-store" />}>
+              <Search aria-hidden="true" />
+              {copy.browseStore}
+            </Button>
+          ) : null
+        }
+      />
       {error ? (
         <Alert variant="destructive">
           <CircleAlert />
@@ -171,7 +183,7 @@ export default function AppsList() {
             )}
           </section>
 
-          <section className="flex flex-col gap-3.5">
+          <section id="app-store" className="flex scroll-mt-6 flex-col gap-3.5">
             <SectionHead
               title={copy.sections.store.title}
               intro={copy.sections.store.intro(siteConfig.brand.name)}
