@@ -10,6 +10,7 @@ import bulkEdit from './bulk-edit'
 import businessGst from './business-gst'
 import checkoutSettings from './checkout-settings'
 import collections from './collections'
+import commandPalette from './command-palette'
 import common from './common'
 import content from './content'
 import contentBlog from './content-blog'
@@ -91,6 +92,7 @@ export const hindiCopy: readonly TranslationPair[] = [
   ...payments,
   ...paymentsSetup,
   ...collections,
+  ...commandPalette,
   ...inventory,
   ...products,
   ...purchaseDocuments,
