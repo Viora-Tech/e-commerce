@@ -453,9 +453,10 @@ export async function arrangeReturnPickup(
   if (!from) throw new ReturnNotAllowed('This order has no address to collect from.', ctx.storeId)
   const [s] = await ctx.tx.select().from(store).where(eq(store.id, ctx.storeId))
   const settings = parseShippingSettings(s?.shipping)
-  // Back to the location the order left from when it has courier pickup on.
+  // Back to the location the returned goods left from, when it has courier pickup on.
   const backTo = await shipFromFor(ctx.tx, {
     taxOrigin: o.taxOrigin,
+    locationId: await returnPickupLocation(ctx, id),
     settings,
     storeName: s?.name ?? '',
   })
@@ -517,6 +518,32 @@ export async function sellingLocation(
     .from(inventoryLevel)
     .where(and(eq(inventoryLevel.variantId, variantId), primarySellingLevel(variantId)))
   return level?.locationId ?? undefined
+}
+
+/**
+ * Where a courier brings a return: the location the most of its value left from (an order
+ * shipped in parcels from two warehouses may return goods from either). Undefined when none of
+ * its lines were packed from a parcel (the order's tax origin then decides).
+ */
+export async function returnPickupLocation(
+  ctx: StoreContext,
+  returnId: string,
+): Promise<string | undefined> {
+  const lines = await ctx.tx
+    .select({
+      orderLineId: returnRequestLine.orderLineId,
+      quantity: returnRequestLine.quantity,
+      unitPricePaise: orderLine.unitPricePaise,
+    })
+    .from(returnRequestLine)
+    .innerJoin(orderLine, eq(orderLine.id, returnRequestLine.orderLineId))
+    .where(eq(returnRequestLine.returnRequestId, returnId))
+  const value = new Map<string, number>()
+  for (const l of lines) {
+    const at = await lineLocation(ctx, l.orderLineId)
+    if (at) value.set(at, (value.get(at) ?? 0) + l.quantity * l.unitPricePaise)
+  }
+  return [...value].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))[0]?.[0]
 }
 
 /**

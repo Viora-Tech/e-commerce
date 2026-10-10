@@ -673,6 +673,13 @@
       "when": 1791633843326,
       "tag": "0100_invoice_per_parcel",
       "breakpoints": true
+    },
+    {
+      "idx": 96,
+      "version": "7",
+      "when": 1791635103657,
+      "tag": "0101_credit_notes_per_gstin",
+      "breakpoints": true
     }
   ]
 }

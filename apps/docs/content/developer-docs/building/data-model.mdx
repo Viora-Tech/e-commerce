@@ -294,9 +294,15 @@ parcel the figures are exactly the order-level ones.
   money and GST checkout stored on the parcel, or for a parcel without them its goods-value share
   of the order's discount, fee and shipping. A composition GSTIN's parcel prints a bill of supply.
   Order confirmations, packing slips and vouchers stay per order (null parcel). A receipt
-  voucher's advance is cited on one parcel invoice only. Credit notes on an order with more than
-  one issued invoice refuse for now (`InvoiceError('invalid')`): allocating a refund per GSTIN is
-  the next step.
+  voucher's advance is cited on one parcel invoice only.
+- **Credit notes per GSTIN** (0101: `invoice_refund_unique` per refund and parcel).
+  `issueCreditNotes` gives a refund on an order with several issued invoices one credit note per
+  invoice it reduces, from that invoice's GSTIN and on its parcel (REFUND_ALLOCATION,
+  `refund-allocation.ts`): by returned value per parcel when a return lists the refund in
+  `refund_ids`, else pro rata to what each invoice can still be credited; never past an invoice's
+  remaining credit. One invoice behaves exactly as before. Return pickups go back to the location
+  the returned value left from (`returnPickupLocation`), and a whole-order booking leaves from its
+  parcel's location (`shipFromFor({ locationId })`).
 - The seller block is the app's own (`settings.seller`) when it is that GSTIN's, so a
   single-GSTIN store prints what it always did; any other GSTIN prints its business's PAN name
   and its registration's legal address.

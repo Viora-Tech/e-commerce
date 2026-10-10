@@ -86,19 +86,22 @@ function storeWide(settings: ShippingSettings, storeName: string): ShipFrom {
 }
 
 /**
- * Where the courier collects this order's parcel: the location it sells from (the order's tax
- * origin; older orders use the default location) when courier pickup is on there and its
- * address is complete, else the store-wide return address.
+ * Where the courier collects a parcel: `locationId` (the parcel's location, or for a return the
+ * one its goods left from), else the order's tax origin (older orders: the default location),
+ * when courier pickup is on there and its address is complete; else the store-wide return
+ * address.
  */
 export async function shipFromFor(
   tx: StoreTx,
   input: {
     taxOrigin: OrderTaxOrigin | null
+    /** The parcel's own location; wins over the order's tax origin. */
+    locationId?: string | null | undefined
     settings: ShippingSettings
     storeName: string
   },
 ): Promise<ShipFrom> {
-  const id = input.taxOrigin?.locationId ?? null
+  const id = input.locationId ?? input.taxOrigin?.locationId ?? null
   const [loc] = await tx
     .select()
     .from(location)

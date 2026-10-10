@@ -12,7 +12,7 @@ import {
   GST_INVOICES_ID,
   gstr1ForPeriod,
   InvoiceError,
-  issueCreditNote,
+  issueCreditNotes,
   issueDocument,
   issueDrafts,
   listDocuments,
@@ -368,16 +368,19 @@ export const gstInvoicesRouter = {
     .input(z.object({ refundId: z.uuid() }))
     .handler(async ({ context, input }) => {
       await requireInstalled(context)
-      const issued = await issueCreditNote(context.tx, context.scope.storeId, input.refundId).catch(
-        asOrpc,
-      )
-      if (!issued) {
+      const issued =
+        (await issueCreditNotes(context.tx, context.scope.storeId, input.refundId).catch(asOrpc)) ??
+        []
+      if (issued.length === 0) {
         throw new ORPCError('BAD_REQUEST', {
           message: 'Issue the tax invoice first; a credit note reverses an invoice.',
         })
       }
-      const done = await renderAndStore(renderDeps(context), issued.row.id)
-      return { id: done.id, number: done.number }
+      // A refund on an order billed in parcels makes one credit note per GST number.
+      const done = []
+      for (const note of issued) done.push(await renderAndStore(renderDeps(context), note.row.id))
+      const [first] = done
+      return { id: first?.id ?? '', number: first?.number ?? null }
     }),
 
   list: can(permissions.ORDERS_READ)
