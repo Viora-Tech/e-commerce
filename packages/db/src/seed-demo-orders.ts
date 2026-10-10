@@ -9,10 +9,10 @@ import {
   orderLine,
   payment,
   product,
-  sellableLevel,
   store,
   variant,
 } from './schema'
+import { primarySellingLevel } from './stock'
 
 /**
  * Demo orders so the dashboard has shape in development: ~60 orders over the
@@ -152,7 +152,10 @@ export async function seedDemoOrders(ownerUrl: string, opts: { clean?: boolean }
       })
       .from(variant)
       .innerJoin(product, eq(product.id, variant.productId))
-      .innerJoin(inventoryLevel, and(eq(inventoryLevel.variantId, variant.id), sellableLevel))
+      .innerJoin(
+        inventoryLevel,
+        and(eq(inventoryLevel.variantId, variant.id), primarySellingLevel(variant.id)),
+      )
       .where(
         and(
           eq(variant.storeId, storeId),

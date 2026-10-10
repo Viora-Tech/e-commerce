@@ -11,12 +11,11 @@ import { abandonedStats, notSystemTest, UNFULFILLED_STATUSES } from '@commerce/c
 import { formatInZone, startOfDay } from '@commerce/dates'
 import {
   type Db,
-  inventoryLevel,
   order,
   orderLine,
   product,
   type StoreTx,
-  sellableLevel,
+  sellableStock,
   variant,
   withStore,
 } from '@commerce/db'
@@ -32,7 +31,7 @@ export type ToolOutput = { facts: Fact[] }
 const DAY_MS = 86_400_000
 const notDraft = ne(order.status, 'draft')
 const live = and(notDraft, ne(order.status, 'cancelled'))
-const available = sql<number>`${inventoryLevel.onHand} - ${inventoryLevel.reserved}`
+const available = sql<number>`${sellableStock.onHand} - ${sellableStock.reserved}`
 
 export type ToolEnv = { db: Db; store: StoreFacts; now: () => Date; taint?: Taint | undefined }
 
@@ -175,15 +174,15 @@ export function storeTools(env: ToolEnv): AiToolSet {
               variantTitle: variant.title,
               available: available.mapWith(Number),
             })
-            .from(inventoryLevel)
-            .innerJoin(variant, and(eq(variant.id, inventoryLevel.variantId), sellableLevel))
+            .from(sellableStock)
+            .innerJoin(variant, eq(variant.id, sellableStock.variantId))
             .innerJoin(product, eq(product.id, variant.productId))
             .where(where)
           const rows = await base.orderBy(asc(available)).limit(input.limit)
           const [count] = await tx
             .select({ n: sql<number>`count(*)::int` })
-            .from(inventoryLevel)
-            .innerJoin(variant, and(eq(variant.id, inventoryLevel.variantId), sellableLevel))
+            .from(sellableStock)
+            .innerJoin(variant, eq(variant.id, sellableStock.variantId))
             .innerJoin(product, eq(product.id, variant.productId))
             .where(where)
           const total = count?.n ?? 0

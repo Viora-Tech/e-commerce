@@ -118,6 +118,13 @@ export const ShippingSettingsSchema = z.object({
   /** Named boxes for the booking flow; one may be marked default. No migration - lives in the
    *  same JSON column as everything else here. */
   boxPresets: z.array(BoxPresetSchema).max(20).default([]),
+  /** How checkout splits an order across warehouses (order/routing.ts). */
+  routing: z
+    .object({
+      /** The most parcels one order may be split into before the default location tops up. */
+      maxParcels: z.number().int().min(1).max(5).default(2),
+    })
+    .default({ maxParcels: 2 }),
 })
 export type ShippingSettings = z.infer<typeof ShippingSettingsSchema>
 export type ShippingPolicySettings = z.infer<typeof ShippingPolicySchema>

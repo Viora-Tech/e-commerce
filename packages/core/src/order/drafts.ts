@@ -1,25 +1,23 @@
 import {
   address,
   customer,
-  inventoryLevel,
   notification,
   order,
   orderLine,
   orderNote,
   payment,
   product,
-  sellableLevel,
   store,
   variant,
 } from '@commerce/db'
 import { and, desc, eq, inArray, sql } from 'drizzle-orm'
 import { z } from 'zod'
 import type { StoreContext } from '../context'
-import { CommerceError, OutOfStock } from '../errors'
-import { defaultLocationId } from '../inventory/levels'
+import { CommerceError } from '../errors'
 import { assertCustomerInStore } from '../store-scope'
-import { createFulfillmentOrders, groupIntoParcels } from './fulfillment-orders'
+import { createFulfillmentOrders } from './fulfillment-orders'
 import { recomputeOrderStatuses } from './recompute'
+import { routeAndReserve } from './routing-service'
 
 /**
  * Draft orders: an order a merchant builds by hand (phone order, WhatsApp
@@ -323,49 +321,36 @@ export async function convertDraft(
   const lines = await ctx.tx.select().from(orderLine).where(eq(orderLine.orderId, id))
   if (lines.length === 0) throw new DraftEmpty(id, ctx.storeId)
 
-  /** Where each line's stock is held: its parcel. Untracked goods hold nothing (default location). */
-  const heldAt = new Map<string, string | null>()
-  for (const line of lines) {
-    /* Untracked variants are never held, as in placeOrder, so release has nothing to undo. */
-    const [v] = await ctx.tx
-      .select({ trackInventory: variant.trackInventory })
-      .from(variant)
-      .where(eq(variant.id, line.variantId))
-    if (v && !v.trackInventory) continue
-    const held = await ctx.tx
-      .update(inventoryLevel)
-      .set({ reserved: sql`${inventoryLevel.reserved} + ${line.quantity}` })
-      .where(
-        and(
-          eq(inventoryLevel.variantId, line.variantId),
-          sellableLevel,
-          sql`${inventoryLevel.onHand} - ${inventoryLevel.reserved} >= ${line.quantity}`,
-        ),
-      )
-      .returning({ variantId: inventoryLevel.variantId, locationId: inventoryLevel.locationId })
-    heldAt.set(line.id, held[0]?.locationId ?? null)
-    /* An untracked variant has no inventory row; only a tracked, short one comes back empty. */
-    if (held.length === 0) {
-      const [level] = await ctx.tx
-        .select({ variantId: inventoryLevel.variantId })
-        .from(inventoryLevel)
-        .where(and(eq(inventoryLevel.variantId, line.variantId), sellableLevel))
-      if (level) throw new OutOfStock(line.variantId, ctx.storeId)
-    }
-  }
-
+  /* Routed and held like a checkout (order/routing.ts), to the draft's shipping state; the
+     stock guard queues two conversions, so they cannot oversell. Drafts never pre-order. */
+  const [shipTo] = o.shippingAddressId
+    ? await ctx.tx
+        .select({ stateCode: address.stateCode })
+        .from(address)
+        .where(eq(address.id, o.shippingAddressId))
+    : []
+  const { parcels } = await routeAndReserve(ctx, {
+    lines: lines.map((l) => ({
+      key: l.id,
+      variantId: l.variantId,
+      quantity: l.quantity,
+      giftCard: l.giftCard,
+      preorder: null,
+    })),
+    buyerState: shipTo?.stateCode ?? null,
+  })
   await createFulfillmentOrders(ctx, {
     orderId: id,
-    plans: groupIntoParcels(
-      lines
-        .filter((l) => !l.giftCard)
-        .map((l) => ({
-          orderLineId: l.id,
-          quantity: l.quantity,
-          locationId: heldAt.get(l.id) ?? null,
-        })),
-      await defaultLocationId(ctx.tx, ctx.storeId),
-    ),
+    plans: parcels.map((p) => ({
+      locationId: p.locationId,
+      status: p.status,
+      needsTransfer: p.needsTransfer,
+      lines: p.lines.map((l) => ({
+        orderLineId: l.key,
+        quantity: l.quantity,
+        fulfilledQuantity: 0,
+      })),
+    })),
     fallbackRegistrationId: o.gstRegistrationId,
   })
 

@@ -6,10 +6,10 @@ import {
   media,
   order,
   orderLine,
+  primarySellingLevel,
   productMedia,
   returnRequest,
   returnRequestLine,
-  sellableLevel,
   shipment,
   store,
   variant,
@@ -507,7 +507,7 @@ export async function arrangeReturnPickup(
   })
 }
 
-/** The location a variant sells from online. */
+/** The location a variant mainly sells from online (`primarySellingLevel`). */
 export async function sellingLocation(
   ctx: StoreContext,
   variantId: string,
@@ -515,7 +515,7 @@ export async function sellingLocation(
   const [level] = await ctx.tx
     .select({ locationId: inventoryLevel.locationId })
     .from(inventoryLevel)
-    .where(and(eq(inventoryLevel.variantId, variantId), sellableLevel))
+    .where(and(eq(inventoryLevel.variantId, variantId), primarySellingLevel(variantId)))
   return level?.locationId ?? undefined
 }
 

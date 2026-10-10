@@ -4,6 +4,7 @@ import {
   inventoryAdjustment,
   inventoryLevel,
   media,
+  primarySellingLevel,
   product,
   productMedia,
   store,
@@ -278,7 +279,7 @@ export async function searchVariants(
       inventoryLevel,
       input.locationId
         ? joinLevel(input.locationId)
-        : and(eq(inventoryLevel.variantId, variant.id), eq(inventoryLevel.fulfilsOnline, true)),
+        : and(eq(inventoryLevel.variantId, variant.id), primarySellingLevel(variant.id)),
     )
     .where(
       and(

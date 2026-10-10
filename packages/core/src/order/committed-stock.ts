@@ -1,4 +1,10 @@
-import { inventoryAdjustment, inventoryLevel, newId, sellableLevel, variant } from '@commerce/db'
+import {
+  inventoryAdjustment,
+  inventoryLevel,
+  newId,
+  primarySellingLevel,
+  variant,
+} from '@commerce/db'
 import { and, eq, sql } from 'drizzle-orm'
 import type { StoreContext } from '../context'
 
@@ -7,7 +13,7 @@ import type { StoreContext } from '../context'
  * tracked line's quantity to `reserved` (shown as Committed) at the location it
  * was reserved at, which becomes the order's parcel (fulfillment-orders.ts).
  * Moves name that location; without one they fall back to the variant's
- * selling row (the inventory_level row with fulfils_online), as before parcels.
+ * primary selling row (`primarySellingLevel`), as before parcels.
  *
  * - Packing n units: on_hand and reserved both drop by n (the goods left).
  * - Cancelling: reserved drops by the unpacked remainder; on_hand is untouched.
@@ -20,14 +26,16 @@ import type { StoreContext } from '../context'
 export type StockMove = {
   variantId: string
   quantity: number
-  /** The parcel's location; omitted, the variant's selling row. */
+  /** The parcel's location; omitted, the variant's primary selling row. */
   locationId?: string | undefined
 }
 
 const levelOf = (move: StockMove) =>
   and(
     eq(inventoryLevel.variantId, move.variantId),
-    move.locationId ? eq(inventoryLevel.locationId, move.locationId) : sellableLevel,
+    move.locationId
+      ? eq(inventoryLevel.locationId, move.locationId)
+      : primarySellingLevel(move.variantId),
   )
 
 async function isTracked(ctx: StoreContext, variantId: string): Promise<boolean> {

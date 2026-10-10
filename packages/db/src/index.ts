@@ -26,5 +26,6 @@ export {
 } from './resolve-store'
 export * from './schema'
 export * from './shopper-login-schema'
+export * from './stock'
 export * from './store-data-schema'
 export { type StoreTx, withoutStore, withStore } from './with-store'

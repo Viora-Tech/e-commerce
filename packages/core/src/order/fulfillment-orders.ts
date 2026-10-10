@@ -20,8 +20,8 @@ import {
   location,
   order,
   orderLine,
+  primarySellingLevel,
   type StoreTx,
-  sellableLevel,
   shipment,
 } from '@commerce/db'
 import { and, asc, desc, eq, inArray, isNull, ne, sql } from 'drizzle-orm'
@@ -43,6 +43,8 @@ export type ParcelLineInput = {
 export type ParcelPlan = {
   locationId: string
   status: Extract<FulfillmentOrderStatus, 'open' | 'on_hold'>
+  /** It holds more than its location has (order/routing.ts rule 4). */
+  needsTransfer?: boolean | undefined
   lines: { orderLineId: string; quantity: number; fulfilledQuantity: number }[]
 }
 
@@ -128,6 +130,7 @@ export async function createFulfillmentOrders(
         gstRegistrationId: registrations.get(plan.locationId) ?? input.fallbackRegistrationId,
         position,
         status: input.cancelled ? 'cancelled' : statusAfterPacking(plan),
+        needsTransfer: plan.needsTransfer ?? false,
       })
       .returning({ id: fulfillmentOrder.id })
     if (!fo) throw new Error('fulfilment order insert returned nothing')
@@ -145,7 +148,7 @@ export async function createFulfillmentOrders(
   return ids
 }
 
-/** The location each variant sells online from (its `fulfils_online` row). */
+/** The location each variant mainly sells online from (`primarySellingLevel`). */
 export async function sellingLocations(
   tx: StoreTx,
   variantIds: readonly string[],
@@ -155,7 +158,9 @@ export async function sellingLocations(
   const rows = await tx
     .select({ variantId: inventoryLevel.variantId, locationId: inventoryLevel.locationId })
     .from(inventoryLevel)
-    .where(and(inArray(inventoryLevel.variantId, ids), sellableLevel))
+    .where(
+      and(inArray(inventoryLevel.variantId, ids), primarySellingLevel(inventoryLevel.variantId)),
+    )
   return new Map(rows.flatMap((r) => (r.locationId ? [[r.variantId, r.locationId] as const] : [])))
 }
 

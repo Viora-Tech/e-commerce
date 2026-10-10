@@ -56,6 +56,18 @@ export class PaymentFailed extends CommerceError {
 }
 
 /** The store has shipping zones but none covers this address, or no rate fits the cart. */
+/**
+ * No warehouse may send these goods to the buyer's state: the only ones that could are billed
+ * under a composition GSTIN, which cannot supply goods to another state (order/routing.ts).
+ */
+export class CannotShipToState extends CommerceError {
+  constructor(stateCode: string | null, storeId?: string) {
+    super('CANNOT_SHIP_TO_STATE', `No location may ship to ${stateCode ?? 'this state'}`, {
+      storeId,
+    })
+  }
+}
+
 export class ShippingUnavailable extends CommerceError {
   constructor(pincode: string, storeId?: string) {
     super('SHIPPING_UNAVAILABLE', `No shipping rate covers ${pincode}`, { storeId })

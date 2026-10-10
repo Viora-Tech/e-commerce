@@ -18,7 +18,7 @@ import { afterAll, beforeEach, describe, expect, it } from 'vitest'
 import { placeOrder } from '../order/place-order'
 import { FakePaymentProvider } from '../providers/payment'
 import { gstinCheckChar } from './gstin'
-import { pickTaxOrigin, resolveTaxOrigin } from './origin'
+import { pickTaxOrigin, taxOriginForParcels } from './origin'
 import { addRegistration, cancelRegistration, linkLocationRegistration } from './registrations'
 
 const owner = createDb(process.env.DATABASE_URL_OWNER as string)
@@ -236,22 +236,32 @@ describe('placeOrder charges GST from the tax origin', () => {
     expect((await orderTo(seed, 'KA')).tax.igstPaise).toBe(18_000)
   })
 
-  it('resolveTaxOrigin ignores lines with no stock row and weighs the rest', async () => {
+  it('taxOriginForParcels bills from the parcel holding the most value', async () => {
     const seed = await seedStore('main')
-    const { hr } = await registerBoth(seed)
+    const { ka } = await registerBoth(seed)
     const origin = await inStore(seed.storeId, (tx) =>
-      resolveTaxOrigin(tx, {
-        lines: [
-          { variantId: seed.variantId, grossPaise: 100 },
-          { variantId: '0199a000-0000-7000-8000-000000000001', grossPaise: 900 },
+      taxOriginForParcels(tx, {
+        parcels: [
+          { locationId: seed.mainId, grossPaise: 100 },
+          { locationId: seed.blrId, grossPaise: 900 },
         ],
-        storeState: 'KA',
+        storeState: 'HR',
       }),
     )
     expect(origin).toMatchObject({
       source: 'location',
-      locationId: seed.mainId,
-      gstRegistrationId: hr,
+      locationId: seed.blrId,
+      gstRegistrationId: ka,
+      stateCode: 'KA',
     })
+  })
+
+  it('taxOriginForParcels with no parcels (gift cards only) uses the default GSTIN', async () => {
+    const seed = await seedStore('main')
+    const { hr } = await registerBoth(seed)
+    const origin = await inStore(seed.storeId, (tx) =>
+      taxOriginForParcels(tx, { parcels: [], storeState: 'KA' }),
+    )
+    expect(origin).toMatchObject({ source: 'default_registration', gstRegistrationId: hr })
   })
 })
