@@ -340,7 +340,7 @@ export function sectionSettingsField(
             options: [
               { label: 'None', value: 'none' },
               { label: 'Small', value: 'sm' },
-              { label: 'Medium', value: 'md' },
+              { label: 'Med', value: 'md' },
               { label: 'Large', value: 'lg' },
             ],
           },
