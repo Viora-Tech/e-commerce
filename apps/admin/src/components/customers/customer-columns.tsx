@@ -2,6 +2,7 @@ import type { ResourceColumnSpec } from '@/components/table/resource-table'
 import { customerActivity, type customersContent } from '@/data/customers'
 import type { api } from '@/lib/api-client'
 import { formatPaise } from '@/lib/money'
+import { phoneForDisplay } from '@/lib/phone-display'
 import CustomerAvatar from './customer-avatar'
 import CustomerStatusChip from './customer-status-chip'
 
@@ -49,7 +50,7 @@ export function customerColumns(copy: CustomerColumnCopy): ResourceColumnSpec<Cu
       sortValue: (c) => c.phone ?? '',
       render: (c) =>
         c.phone ? (
-          <span className="tabular-nums">{c.phone}</span>
+          <span className="tabular-nums">{phoneForDisplay(c.phone)}</span>
         ) : (
           <span className="text-muted-foreground-soft">-</span>
         ),

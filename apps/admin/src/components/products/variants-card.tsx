@@ -128,7 +128,9 @@ export default function VariantsCard({
       <CardHeader>
         <CardTitle className="flex items-center gap-2.5">
           {copy.heading}
-          {hasOptions ? <StatusChip tone="neutral">{copy.count(variants.length)}</StatusChip> : null}
+          {hasOptions ? (
+            <StatusChip tone="neutral">{copy.count(variants.length)}</StatusChip>
+          ) : null}
         </CardTitle>
         <CardAction className="flex items-center gap-2">
           {hasMatrix ? (
