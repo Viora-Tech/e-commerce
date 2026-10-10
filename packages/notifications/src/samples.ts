@@ -253,6 +253,19 @@ export const sampleTemplateDataByTemplate: Record<TemplateId, TemplateData> = {
       platformName: siteConfig.brand.name,
     },
   },
+  staff_new_order: {
+    ...base,
+    actionUrl: `https://admin.${siteConfig.brand.domain}/orders/sample`,
+  },
+  staff_daily_summary: {
+    ...base,
+    orderNumber: undefined,
+    lines: [],
+    taxBreakdown: undefined,
+    totalLabel: '',
+    actionUrl: `https://admin.${siteConfig.brand.domain}/`,
+    dailySummary: { periodLabel: 'Today so far', orders: 14, salesLabel: '₹28,640', toShip: 6 },
+  },
   email_change_code: {
     ...base,
     storeName: siteConfig.brand.name,

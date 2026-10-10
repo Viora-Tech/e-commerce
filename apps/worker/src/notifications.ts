@@ -9,6 +9,7 @@ import {
   fulfilGiftCardsForOrder,
   NOTIFICATIONS_QUEUE,
   type NotificationJob,
+  notifyMembersOfNewOrder,
   storefrontOriginFor,
 } from '@commerce/core'
 import { registriesForStore } from '@commerce/core/registries'
@@ -35,6 +36,8 @@ export function createNotificationWorker(
     storefrontUrl?: string | undefined
     /** Order paid/shipped notifications double as the app lifecycle events. */
     appEvents?: AppEventQueue | undefined
+    /** The admin's URL (`ADMIN_URL`): team members' new-order alerts link to the order there. */
+    adminUrl?: string | undefined
   },
 ) {
   const { concurrency, perStore } = QUEUE_LIMITS.notifications
@@ -161,6 +164,27 @@ export function createNotificationWorker(
         const bad = sent.filter((r) => !r.ok)
         if (bad.length > 0) throw new Error(bad.map((r) => `${r.channel}: ${r.error}`).join('; '))
         return sent
+      }
+      // Team members who asked for new-order alerts (Account → Notifications). First attempt
+      // only, so a retry for the customer's own message never alerts them twice; a failure
+      // here is logged and never fails the customer's job.
+      if (template === 'order_placed' && job.attemptsMade === 0 && opts.adminUrl) {
+        const adminUrl = opts.adminUrl
+        await withStore(db, storeId, async (tx) =>
+          notifyMembersOfNewOrder({ storeId, tx }, orderId, {
+            registry: (await registriesForStore(tx, storeId)).notifications,
+            settingsSecret: opts.settingsSecret,
+            adminUrl,
+          }),
+        )
+          .then((sent) => {
+            for (const r of sent) {
+              console.log(
+                `[member alert] staff_new_order order=${orderId} ${r.channel}→${r.to} ${r.ok ? 'sent' : `failed: ${r.error}`}`,
+              )
+            }
+          })
+          .catch((err: unknown) => console.warn('[member alert] new order failed:', err))
       }
       const event = appEventForTemplate(template)
       // Queued before delivery: a channel failure retries this job, and the app

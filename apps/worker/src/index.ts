@@ -13,6 +13,7 @@ import { createDomainPoller, createDomainRouteWorker, VERIFY_EVERY_MS } from './
 import { createImportSnapshotCleanup, SNAPSHOT_CLEANUP_EVERY_MS } from './import-snapshots'
 import { createMarketingWorker, MARKETING_TICK_MS, retireAbandonedSweep } from './marketing'
 import { createMediaProcessWorker } from './media-process'
+import { createMemberDailySummary, DAILY_SUMMARY_EVERY_MS } from './member-daily-summary'
 import { createNotificationWorker } from './notifications'
 import { initSentry, reportError } from './observability'
 import { createOutboxRelay, RELAY_EVERY_MS } from './outbox-relay'
@@ -44,6 +45,7 @@ const notificationWorker = createNotificationWorker(redis, db, {
   settingsSecret: env.SETTINGS_SECRET,
   storefrontUrl: env.STOREFRONT_URL,
   appEvents,
+  adminUrl: env.ADMIN_URL,
 })
 const appEventWorker = createAppEventWorker(redis, db, {
   settingsSecret: env.SETTINGS_SECRET,
@@ -86,6 +88,10 @@ const importSnapshots = createImportSnapshotCleanup(redis, db, {
   settingsSecret: env.SETTINGS_SECRET,
 })
 const reviewRequests = createReviewRequestSweep(redis, db)
+const memberDailySummary = createMemberDailySummary(redis, db, {
+  settingsSecret: env.SETTINGS_SECRET,
+  adminUrl: env.ADMIN_URL,
+})
 const outboxRelay = createOutboxRelay(redis, db, {
   notifications,
   appEvents,
@@ -113,6 +119,7 @@ reportWorkerFailures(aiBulkWrite.worker, 'ai-bulk-write', reportError)
 reportWorkerFailures(purchaseDocuments.worker, 'purchase-documents', reportError)
 reportWorkerFailures(importSnapshots.worker, 'import-snapshot-cleanup', reportError)
 reportWorkerFailures(reviewRequests.worker, 'review-requests', reportError)
+reportWorkerFailures(memberDailySummary.worker, 'member-daily-summary', reportError)
 
 await queue.upsertJobScheduler('heartbeat-every-minute', { every: 60_000 }, { name: 'tick' })
 await tracker.queue.upsertJobScheduler(
@@ -161,6 +168,11 @@ await importSnapshots.queue.upsertJobScheduler(
 await reviewRequests.queue.upsertJobScheduler(
   'queue-review-requests',
   { every: REVIEW_REQUESTS_EVERY_MS },
+  { name: 'sweep' },
+)
+await memberDailySummary.queue.upsertJobScheduler(
+  'member-daily-summary',
+  { every: DAILY_SUMMARY_EVERY_MS },
   { name: 'sweep' },
 )
 
@@ -220,6 +232,8 @@ const shutdown = async () => {
   await importSnapshots.queue.close()
   await reviewRequests.worker.close()
   await reviewRequests.queue.close()
+  await memberDailySummary.worker.close()
+  await memberDailySummary.queue.close()
   await queue.close()
   await notifications.close()
   redis.disconnect()

@@ -16,6 +16,7 @@ export {
   storesWithBalanceDue,
   storesWithDueReviewRequests,
   storesWithMarketingWork,
+  storesWithMemberDailySummaries,
   storesWithOpenShipments,
   storesWithPendingDomains,
   storesWithPendingManualOrders,

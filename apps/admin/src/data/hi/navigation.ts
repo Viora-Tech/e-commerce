@@ -117,6 +117,7 @@ export const hindiPageNames: Record<string, { title: string; body?: string }> = 
   '/account': { title: 'अकाउंट' },
   '/account/security': { title: 'साइन-इन और सुरक्षा' },
   '/account/sessions': { title: 'सेशन' },
+  '/account/notifications': { title: 'नोटिफ़िकेशन' },
   '/account/stores': { title: 'स्टोर' },
   '/account/language': { title: 'भाषा और क्षेत्र' },
   '/account/appearance': {

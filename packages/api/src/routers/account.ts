@@ -4,31 +4,39 @@ import {
   checkRateLimit,
   createMemoryRateLimitStore,
   decodeAvatarDataUrl,
+  deliverPlatformAccountDeletionCode,
   deliverPlatformEmailChanged,
   getPlatformEmail,
   InvalidAvatar,
+  loadMemberAlertPrefs,
+  MemberAlertPrefsInputSchema,
   MemberProfileInputSchema,
   type RateLimitRule,
   rateLimitKey,
   retryAfterSeconds,
+  saveMemberAlertPrefs,
 } from '@commerce/core'
 import { ORPCError } from '@orpc/server'
 import { z } from 'zod'
 import type { ApiContext } from '../context'
-import { protectedProcedure, storeProcedureDetached } from '../procedures'
+import { protectedProcedure, storeProcedure, storeProcedureDetached } from '../procedures'
 import {
   assertCanLeaveStore,
+  deleteMemberAccount,
   describeSessions,
   forgetStoreMembership,
   LeaveStoreRefused,
   memberProfile,
   memberStores,
+  ownedStoreNames,
   recentSignIns,
   removeMemberAvatar,
   sessionTokenFor,
   setMemberAvatar,
+  storeHasWhatsapp,
   updateMemberProfile,
 } from '../services/account.service'
+import { storeNameOf } from '../services/staff-invites.service'
 
 /** In-process fallback, as in the other routers, for hosts that wire no shared store. */
 const fallbackRateLimit = createMemoryRateLimitStore()
@@ -43,6 +51,19 @@ const EMAIL_CODE_RULE = { limit: 5, windowMs: HOUR }
 
 /** Tries at the code per member, on top of Better Auth's 3 tries per code. */
 const EMAIL_CONFIRM_RULE = { limit: 10, windowMs: HOUR }
+
+/** Account deletion codes per member. */
+const DELETE_CODE_RULE = { limit: 3, windowMs: HOUR }
+
+/** Better Auth's OTP store namespace the deletion code lives in; it never signs anyone in. */
+const DELETE_CODE_TYPE = 'email-verification' as const
+
+/** While they own a store the account stays: a store always keeps its owner. */
+function ownsStores(names: string[]): never {
+  throw new ORPCError('FORBIDDEN', {
+    message: `You own ${names.join(', ')}. Hand ${names.length === 1 ? 'it' : 'them'} over or close ${names.length === 1 ? 'it' : 'them'} before deleting your account.`,
+  })
+}
 
 /** Refuses with a plain "try again in N minutes" once `rule` is used up for this member. */
 async function limit(
@@ -272,4 +293,97 @@ export const accountRouter = {
       .catch(authRefusal('Could not sign the other devices out. Try again.'))
     return { ok: true as const }
   }),
+
+  /**
+   * Notifications: the member's own alerts for the store they are in, whether the store can
+   * send WhatsApp, and whether they gave a mobile for it.
+   */
+  notifications: storeProcedure.handler(async ({ context }) => {
+    const { storeId, userId, isOwner } = context.scope
+    const prefs = await loadMemberAlertPrefs(context.tx, storeId, userId, isOwner)
+    const whatsappAvailable = await storeHasWhatsapp(context.tx, storeId, settingsSecret())
+    const profile = await memberProfile(context.db, userId)
+    const storeName = (await storeNameOf(context.tx, storeId)) ?? ''
+    return { storeName, prefs, whatsappAvailable, hasPhone: Boolean(profile?.phone) }
+  }),
+
+  /** Saves the member's own alerts for this store, on their own staff row only. */
+  updateNotifications: storeProcedure
+    .input(MemberAlertPrefsInputSchema)
+    .handler(({ context, input }) =>
+      saveMemberAlertPrefs(
+        context.tx,
+        context.scope.storeId,
+        context.scope.userId,
+        context.scope.isOwner,
+        input,
+      ),
+    ),
+
+  /** Delete my account, step 0: whether anything blocks it (stores they own). */
+  deletion: protectedProcedure.handler(async ({ context }) => ({
+    email: context.session.user.email,
+    ownedStores: await ownedStoreNames(context.db, context.session.user.id),
+  })),
+
+  /**
+   * Delete my account, step 1: a 6-digit code to their sign-in email. Refused while they own
+   * a store. Without a platform email account (development only) the code is printed.
+   */
+  sendDeletionCode: protectedProcedure.handler(async ({ context }) => {
+    const { id, email } = context.session.user
+    const owned = await ownedStoreNames(context.db, id)
+    if (owned.length) ownsStores(owned)
+    await limit(
+      context,
+      'member-delete-code',
+      id,
+      DELETE_CODE_RULE,
+      (m) => `Too many codes asked for. Try again in about ${m} minute(s).`,
+    )
+    const code = await context.auth.api.createVerificationOTP({
+      body: { email, type: DELETE_CODE_TYPE },
+    })
+    const sent = await deliverPlatformAccountDeletionCode(
+      { email, code },
+      context.platformEmail ?? getPlatformEmail(),
+    )
+    if (!sent) {
+      if (process.env.NODE_ENV === 'production') {
+        throw new ORPCError('INTERNAL_SERVER_ERROR', {
+          message: 'Could not send the code. Try again in a minute.',
+        })
+      }
+      console.log(`[otp] account deletion code for ${email}: ${code}`)
+    }
+    return { sentTo: email }
+  }),
+
+  /**
+   * Delete my account, step 2: their email typed out and the code. Removes every staff row,
+   * their photo and the user (sessions, passkeys and memberships go with it).
+   */
+  deleteAccount: protectedProcedure
+    .input(
+      z.object({
+        email: z.string().trim().max(254),
+        otp: z
+          .string()
+          .trim()
+          .regex(/^\d{6}$/, 'Enter the 6-digit code'),
+      }),
+    )
+    .handler(async ({ context, input }) => {
+      const { id, email } = context.session.user
+      if (input.email.toLowerCase() !== email.toLowerCase()) {
+        throw new ORPCError('BAD_REQUEST', { message: 'Type your sign-in email exactly.' })
+      }
+      const owned = await ownedStoreNames(context.db, id)
+      if (owned.length) ownsStores(owned)
+      await context.auth.api
+        .checkVerificationOTP({ body: { email, type: DELETE_CODE_TYPE, otp: input.otp } })
+        .catch(authRefusal('That code did not work. Check it and try again.'))
+      await deleteMemberAccount(context.db, id, settingsSecret())
+      return { ok: true as const }
+    }),
 }

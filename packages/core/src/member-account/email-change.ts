@@ -1,4 +1,4 @@
-/** SOURCE OF TRUTH: member email change emails — WHAT: the code to a member's NEW sign-in address and the notice to the OLD one, through the platform email account / WHY: Better Auth only calls a hook with the code; the notice to the old address is ours, so a change nobody asked for does not go unnoticed */
+/** SOURCE OF TRUTH: member account emails — WHAT: the code to a member's NEW sign-in address, the notice to the OLD one, and the code that confirms deleting their account, all through the platform email account / WHY: Better Auth only calls a hook with the change code; the notice and the deletion code are ours, so a change nobody asked for does not go unnoticed */
 
 import type { PlatformCodeSender } from '../accounts/deliver-code'
 import { getPlatformEmail } from '../sender-email/platform'
@@ -64,4 +64,23 @@ export async function deliverPlatformEmailChanged(
     },
   })
   return r.ok ? 'sent' : 'refused'
+}
+
+/**
+ * The one-time code that confirms deleting a member's account (Account → Profile → Delete my
+ * account), to their current sign-in address. False when there is no platform account
+ * (development) or the provider refused.
+ */
+export async function deliverPlatformAccountDeletionCode(
+  input: { email: string; code: string },
+  platform: PlatformCodeSender = getPlatformEmail(),
+): Promise<boolean> {
+  const sender = platformChannel(platform)
+  if (!sender) return false
+  const r = await sender.channel.send({
+    to: { email: input.email },
+    template: 'account_deletion_code',
+    data: { ...NO_ORDER, storeName: sender.name, code: input.code },
+  })
+  return r.ok
 }

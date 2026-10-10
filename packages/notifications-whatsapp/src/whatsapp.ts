@@ -79,6 +79,16 @@ export function templateParams(template: TemplateId, d: TemplateData): string[] 
       return [d.storeName, d.review?.productTitle ?? '-', d.review?.productUrl ?? '-']
     case 'unpaid_cancel_notice':
       return [d.storeName, n, d.totalLabel, d.deadlineLabel ?? '-']
+    case 'staff_new_order':
+      return [d.storeName, n, d.totalLabel, d.actionUrl ?? '-']
+    case 'staff_daily_summary':
+      return [
+        d.storeName,
+        d.dailySummary?.periodLabel ?? '-',
+        String(d.dailySummary?.orders ?? 0),
+        d.dailySummary?.salesLabel ?? '-',
+        String(d.dailySummary?.toShip ?? 0),
+      ]
     case 'back_in_stock_confirm':
       return [d.backInStock?.productTitle ?? '-', d.backInStock?.confirmUrl ?? '-']
     case 'back_in_stock_alert':

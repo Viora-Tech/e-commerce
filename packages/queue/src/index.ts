@@ -51,6 +51,8 @@ export const IMPORT_SNAPSHOT_CLEANUP_QUEUE = '{imports}-snapshot-cleanup'
 export const MEDIA_PROCESS_QUEUE = '{media}-process'
 /** Repeat job that queues due review request and reminder emails (Reviews app). */
 export const REVIEW_REQUESTS_QUEUE = '{reviews}-requests'
+/** Repeat job that sends team members their daily summary at the hour each chose. */
+export const MEMBER_DAILY_SUMMARY_QUEUE = '{members}-daily-summary'
 
 /**
  * Worker concurrency and the per-store cap for every queue that carries store jobs (see

@@ -72,6 +72,16 @@ export type TemplateId =
    */
   | 'staff_invite'
   /**
+   * To a TEAM MEMBER who turned on new-order alerts (Account → Notifications): an order came
+   * in. `actionUrl` opens it in the admin. Email or WhatsApp.
+   */
+  | 'staff_new_order'
+  /**
+   * To a TEAM MEMBER who turned on the daily summary: the day's orders, sales and what waits
+   * to be shipped (`dailySummary`). `actionUrl` opens the admin. Email or WhatsApp.
+   */
+  | 'staff_daily_summary'
+  /**
    * PLATFORM message: the code that confirms a member's NEW sign-in email (Account → Sign-in &
    * security → Change email). Sent to the new address; `code` is the one-time code. Email only.
    */
@@ -208,6 +218,10 @@ export type TemplateData = {
   /** For contact_message: who wrote and what they said. */
   contactMessage?:
     | { name: string; email: string; phone: string; text: string; path: string }
+    | undefined
+  /** For staff_daily_summary: the period and its figures, already formatted. */
+  dailySummary?:
+    | { periodLabel: string; orders: number; salesLabel: string; toShip: number }
     | undefined
   /** For email_changed: the new sign-in address, masked ("a•••@gmail.com"). */
   emailChange?: { newEmail: string } | undefined

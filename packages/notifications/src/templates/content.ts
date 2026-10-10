@@ -51,6 +51,11 @@ export const balanceTemplates = {
   },
 } satisfies Record<'balance_request' | 'balance_reminder' | 'balance_received', TemplateCopy>
 
+/** "Asha" for a staff alert, or "A customer" when the order has no name ("there" is the shopper fallback). */
+const buyer = (d: TemplateData): string =>
+  d.customerName && d.customerName !== 'there' ? d.customerName : 'A customer'
+const ordersCount = (n: number): string => (n === 1 ? '1 order' : `${n} orders`)
+
 export const transferTemplates = {
   payment_reminder: {
     subject: (d) => `${d.storeName}: order #${d.orderNumber} is waiting for payment`,
@@ -83,7 +88,40 @@ export const transferTemplates = {
     whatsapp: (d) =>
       `${d.storeName}: order #${d.orderNumber} was cancelled because the ${d.totalLabel} payment did not arrive. Paid already? Just reply.`,
   },
-} satisfies Record<'payment_reminder' | 'unpaid_cancel_notice' | 'unpaid_cancelled', TemplateCopy>
+  staff_new_order: {
+    subject: (d) => `${d.storeName}: new order #${d.orderNumber} (${d.totalLabel})`,
+    heading: (d) => `New order #${d.orderNumber}`,
+    intro: (d) =>
+      `${buyer(d)} placed an order for ${d.totalLabel}${d.paymentMethodLabel ? `, paid by ${d.paymentMethodLabel}` : ''}.`,
+    outro: () =>
+      'You get this because new-order alerts are on in your admin, under Account → Notifications.',
+    whatsapp: (d) =>
+      `${d.storeName}: new order #${d.orderNumber}, ${d.totalLabel}.${d.actionUrl ? ` Open: ${d.actionUrl}` : ''}`,
+  },
+  staff_daily_summary: {
+    subject: (d) =>
+      `${d.storeName}: ${ordersCount(d.dailySummary?.orders ?? 0)}, ${d.dailySummary?.salesLabel ?? ''}`,
+    heading: (d) => `Your day at ${d.storeName}`,
+    intro: (d) => {
+      const s = d.dailySummary
+      if (!s) return ''
+      return `${s.periodLabel}: ${ordersCount(s.orders)} worth ${s.salesLabel}. ${
+        s.toShip === 1 ? '1 order is' : `${s.toShip} orders are`
+      } waiting to be shipped.`
+    },
+    outro: () =>
+      'You get this every day at the time you chose in your admin, under Account → Notifications.',
+    whatsapp: (d) =>
+      `${d.storeName} ${d.dailySummary?.periodLabel ?? ''}: ${ordersCount(d.dailySummary?.orders ?? 0)}, ${d.dailySummary?.salesLabel ?? ''}, ${d.dailySummary?.toShip ?? 0} to ship.`,
+  },
+} satisfies Record<
+  | 'payment_reminder'
+  | 'unpaid_cancel_notice'
+  | 'unpaid_cancelled'
+  | 'staff_new_order'
+  | 'staff_daily_summary',
+  TemplateCopy
+>
 
 export const backInStockTemplates = {
   back_in_stock_confirm: {

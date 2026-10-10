@@ -79,7 +79,7 @@ export const notificationsSettingsContent = {
     },
     you: {
       title: 'Messages you get',
-      help: 'Sent to your shop email address, not to customers.',
+      help: 'Sent to your shop email or to each team member who asked, never to customers.',
     },
   } satisfies Record<MessageGroupId, { title: string; help: string }>,
 
@@ -213,6 +213,14 @@ export const notificationsSettingsContent = {
     unpaid_cancel_notice: {
       name: 'Unpaid order will be cancelled',
       when: 'Before an unpaid UPI or bank transfer order is cancelled for you.',
+    },
+    staff_new_order: {
+      name: 'New order alert (team)',
+      when: 'To each team member who turned on new-order alerts in Account → Notifications.',
+    },
+    staff_daily_summary: {
+      name: 'Daily summary (team)',
+      when: 'Once a day, at the hour each team member chose in Account → Notifications.',
     },
   } as Record<string, { name: string; when: string }>,
 

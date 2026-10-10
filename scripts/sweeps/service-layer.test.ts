@@ -136,6 +136,7 @@ const ALLOWLIST: AllowEntry[] = [
   { path: 'apps/worker/src/marketing.ts', exact: true, reason: WORKER },
   { path: 'apps/worker/src/media-process.ts', exact: true, reason: WORKER },
   { path: 'apps/worker/src/media-reprocess.ts', exact: true, reason: WORKER },
+  { path: 'apps/worker/src/member-daily-summary.ts', exact: true, reason: WORKER },
   { path: 'apps/worker/src/notifications.ts', exact: true, reason: WORKER },
   { path: 'apps/worker/src/outbox-relay.ts', exact: true, reason: WORKER },
   { path: 'apps/worker/src/payments-expiry.ts', exact: true, reason: WORKER },

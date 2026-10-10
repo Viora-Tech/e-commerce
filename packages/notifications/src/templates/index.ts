@@ -29,6 +29,8 @@ export const TEMPLATE_IDS: TemplateId[] = [
   'balance_received',
   'payment_reminder',
   'unpaid_cancel_notice',
+  'staff_new_order',
+  'staff_daily_summary',
   'contact_message',
   'review_request',
   'review_reminder',
@@ -80,6 +82,8 @@ export const TEMPLATE_NAMES: Record<TemplateId, string> = {
   balance_received: 'Balance received',
   payment_reminder: 'Payment reminder',
   unpaid_cancel_notice: 'Unpaid order will be cancelled (merchant)',
+  staff_new_order: 'New order (team member alert)',
+  staff_daily_summary: 'Daily summary (team member alert)',
   contact_message: 'New form message (merchant)',
   review_request: 'Review request',
   review_reminder: 'Review reminder',
@@ -122,6 +126,8 @@ function eyebrowFor(template: TemplateId, d: TemplateData): string {
       return 'Gift card'
     case 'staff_invite':
       return 'Team invitation'
+    case 'staff_daily_summary':
+      return 'Daily summary'
     case 'email_change_code':
     case 'email_changed':
       return 'Your sign-in email'
@@ -178,6 +184,10 @@ function primaryActionFor(
       return d.actionUrl ? { label: 'Confirm my email', url: d.actionUrl } : undefined
     case 'staff_invite':
       return d.actionUrl ? { label: 'Accept invitation', url: d.actionUrl } : undefined
+    case 'staff_new_order':
+      return d.actionUrl ? { label: 'Open the order', url: d.actionUrl } : undefined
+    case 'staff_daily_summary':
+      return d.actionUrl ? { label: 'Open your admin', url: d.actionUrl } : undefined
     case 'document_copy':
       return d.links?.[0] ? { label: d.links[0].label, url: d.links[0].url } : undefined
     case 'balance_request':

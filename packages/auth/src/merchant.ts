@@ -5,7 +5,6 @@ import type { Db } from '@commerce/db'
 import { betterAuth } from 'better-auth'
 import { drizzleAdapter } from 'better-auth/adapters/drizzle'
 import { emailOTP, organization } from 'better-auth/plugins'
-import { recordSignIn } from './sign-in-log'
 
 export type SendOtp = (input: { email: string; otp: string; type: string }) => Promise<void>
 
@@ -63,6 +62,25 @@ export type MerchantAuthOptions = {
    * client can send (security audit D-01).
    */
   trustedProxy?: 'cloudflare' | 'none'
+  /**
+   * Called after every sign-in (a new session) with what Account → Sign-in & security shows;
+   * the admin writes it to the sign-in log (`recordMemberSignIn` in @commerce/core). A
+   * failure is logged and never blocks the sign-in.
+   */
+  onSignIn?: (event: SignInEvent) => Promise<void>
+}
+
+/** One sign-in, as `onSignIn` receives it. */
+export type SignInEvent = {
+  userId: string
+  sessionId: string
+  /** The Better Auth endpoint that opened the session ("/sign-in/email-otp", "/passkey/…"). */
+  path: string | null | undefined
+  ipAddress: string | null | undefined
+  userAgent: string | null | undefined
+  headers: Headers | undefined
+  /** True behind Cloudflare (`trustedProxy`), the only time its location headers are believed. */
+  trustLocation: boolean
 }
 
 /**
@@ -89,15 +107,18 @@ export function createMerchantAuth(opts: MerchantAuthOptions) {
           // Account → Sign-in & security lists recent sign-ins. A failed write never blocks
           // the sign-in itself.
           after: async (session, ctx) => {
-            await recordSignIn(opts.db, {
-              userId: session.userId,
-              sessionId: session.id,
-              path: ctx?.path,
-              ipAddress: session.ipAddress,
-              userAgent: session.userAgent,
-              headers: ctx?.headers ?? ctx?.request?.headers,
-              trustLocation: opts.trustedProxy === 'cloudflare',
-            }).catch((err: unknown) => console.error('[sign-in log]', err))
+            if (!opts.onSignIn) return
+            await opts
+              .onSignIn({
+                userId: session.userId,
+                sessionId: session.id,
+                path: ctx?.path,
+                ipAddress: session.ipAddress,
+                userAgent: session.userAgent,
+                headers: ctx?.headers ?? ctx?.request?.headers,
+                trustLocation: opts.trustedProxy === 'cloudflare',
+              })
+              .catch((err: unknown) => console.error('[sign-in log]', err))
           },
         },
       },

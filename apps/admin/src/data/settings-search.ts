@@ -311,6 +311,18 @@ export const SETTINGS_SEARCH_INDEX: SettingsSearchEntry[] = [
     keywords: ['devices', 'sign out', 'log out', 'logged in', 'sessions', 'lost phone'],
   },
   {
+    title: 'Your notifications',
+    where: 'Account menu › Account',
+    href: routes.account.notifications(),
+    keywords: ['order alerts', 'new order email', 'daily summary', 'whatsapp alerts', 'my alerts'],
+  },
+  {
+    title: 'Delete my account',
+    where: 'Account menu › Account › Profile',
+    href: `${routes.account.home()}#delete-account`,
+    keywords: ['delete account', 'close account', 'remove me'],
+  },
+  {
     title: 'Your stores',
     where: 'Account menu › Account › Stores',
     href: routes.account.stores(),
