@@ -1,8 +1,10 @@
+import type { ReactNode } from 'react'
 import { asSlot } from '../../slot-types'
 import ElementBox from './element-box'
 import TabsSwitcher from './tabs-switcher'
 
-export type TabsProps = { tabs: { label: string; content: unknown }[]; style: unknown }
+/** Tab labels are strings in storage, React nodes while edited on the canvas. */
+export type TabsProps = { tabs: { label: ReactNode; content: unknown }[]; style: unknown }
 
 /**
  * Tabs whose panels are slots. The panels are drawn here (on the server on the

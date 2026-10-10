@@ -1,3 +1,4 @@
+import { richtextFromLexical } from '@commerce/blocks/puck'
 import type { TemplateSection } from '@commerce/core/theme'
 import { instantiateCustomSection } from '@commerce/core/theme'
 import type { PuckAction } from '@puckeditor/core'
@@ -261,7 +262,9 @@ export function insertCopyActions(
   count: number,
   makeId?: (type: string) => string,
 ): PuckAction[] {
-  const copy = instantiateCustomSection(block, makeId) as TemplateSection
+  // A section saved before the Lexical field was retired carries Lexical JSON; Puck's
+  // richtext field edits HTML (see `normalizeDoc`).
+  const copy = richtextFromLexical(instantiateCustomSection(block, makeId)) as TemplateSection
   const index = clampInsertIndex(target.index, count)
   return [
     {

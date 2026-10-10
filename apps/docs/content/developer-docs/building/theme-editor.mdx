@@ -88,13 +88,42 @@ only the marks our storefront allows. Puck applies them inside `array` items too
 - Body copy is drawn with `RichCopy` (`components/rich-copy.tsx`). On the storefront the value is
   the stored string and goes through `richtextHtml` (`richtext-html.ts`): older plain strings are
   escaped into paragraphs, HTML runs through a small sanitize-html allow-list.
-- The admin frames the `richtext` field like our Lexical `custom` field
-  (`customize-overrides.tsx`), and `canvas-action-bar.tsx` keeps Puck's inline B/I/U menu while
-  `SectionOverlay` keeps the label, move, duplicate and delete actions.
+- Button labels use `inlineLinkField` (`framed.tsx`): the same `{ label, href }` object as
+  `linkField`, with an inline label. Links whose label is only an `aria-label` (Group, Image)
+  keep the plain `linkField`.
+- The Rich text section and the Text element use `inlineRichtextLong`, which adds headings (h2 to
+  h4), quotes and rules.
+- `canvas-action-bar.tsx` keeps Puck's inline B/I/U menu while `SectionOverlay` keeps the label,
+  move, duplicate and delete actions.
 
-The Glide theme sections (`sections/glide.tsx`, one config per section in `sections/glide/`) all
-use these helpers; `test/glide-sections.test.tsx` renders each one with its copy swapped for React
-nodes to catch string handling. Inventory: `docs/design/glide-theme-port.md`.
+Every section on the canvas uses these helpers: the Zero Drift sections (`sections/glide.tsx`, one
+config per section in `sections/glide/`), the library and modern sections (`library.tsx`,
+`modern.tsx`), Featured products, Collection grid and Rich text (`puck-config.tsx`), and the
+build-your-own blocks (Tabs labels, Accordion titles, Heading, Text, Button and Badge). Containers
+and media elements have no copy of their own. `test/glide-sections.test.tsx` and
+`test/library-inline.test.tsx` render each one with its copy swapped for React nodes to catch
+string handling. Inventory: `docs/design/glide-theme-port.md`.
+
+### One rich-text store
+
+Section body copy is stored one way: Puck's richtext HTML. The Lexical rich-text field the Rich
+text section and Text element used before is retired. Docs saved with it still hold Lexical JSON
+(an object, or a JSON string), and nothing is migrated in the database:
+
+- the storefront reads it through `richtextHtml`, which converts it with `lexicalToHtml`
+  (`packages/blocks/src/lexical-html.ts`) before sanitising;
+- Customize converts it when a template loads (`richtextFromLexical` in `normalizeDoc`, and when a
+  saved "My section" is inserted), so Puck's editor gets HTML and the next save stores HTML.
+  Converting on load primes the drafts with the HTML, so opening the editor writes nothing.
+
+The converter keeps paragraphs, h2 to h4 headings, quotes, lists, links, line breaks, rules,
+images and B/I/U/S, so nothing the merchant wrote is lost: a YouTube embed becomes a link to the
+video, and tables, code blocks and collapsibles keep their text. Only alignment and indents are
+dropped. Images are `<img>` with `src`, `alt`, `width` and `height`; the allow-list keeps them only
+for `http(s)` or root-relative sources (never `data:`). Puck's Tiptap has no image node, so the
+admin passes `@tiptap/extension-image` as `richtextExtensions` to `createBlocksConfig`, and the
+long-form fields (`inlineRichtextLong`) keep pictures through an edit. Tests:
+`test/lexical-html.test.ts`, `test/richtext-html.test.tsx`.
 
 ## Motion
 

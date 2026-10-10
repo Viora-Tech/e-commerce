@@ -3,7 +3,7 @@
 import { type KeyboardEvent, type ReactNode, useId, useState } from 'react'
 import { customSectionsContent as copy } from '../../data/custom-sections'
 
-type TabsSwitcherProps = { labels: string[]; panels: ReactNode[] }
+type TabsSwitcherProps = { labels: ReactNode[]; panels: ReactNode[] }
 
 /** WAI-ARIA tabs: arrow keys, Home and End move between tabs; panels stay in the DOM. */
 export default function TabsSwitcher({ labels, panels }: TabsSwitcherProps) {

@@ -1,21 +1,23 @@
-import { parseRichText, RichTextRenderer, type RichTextValue } from '@commerce/richtext'
+import type { ReactNode } from 'react'
+import RichCopy from './rich-copy'
 
 export type RichTextBlockProps = {
-  heading: string
-  /** Lexical JSON from the editor, or a legacy plain string from older pages. */
-  body: RichTextValue | string | null | undefined
+  /** A string in storage, a React node while edited on the canvas. */
+  heading: ReactNode
+  /** Richtext HTML, or a legacy plain string or Lexical JSON from older pages (`RichCopy` reads all three). */
+  body: ReactNode | object
   align: 'left' | 'center'
 }
 
-/** Server-rendered rich text inside Glide's `.rte` typography. */
+/** The Rich text section inside Glide's `.rte` typography. */
 export default function RichTextBlock({ heading, body, align }: RichTextBlockProps) {
-  const value = parseRichText(body)
+  // Render logic
   const className =
     align === 'center' ? 'rich-text-block rich-text-block--center' : 'rich-text-block'
   return (
     <div className={className}>
       {heading ? <h2 className="h2">{heading}</h2> : null}
-      <RichTextRenderer data={value} className="rte" />
+      <RichCopy value={body} className="rte" />
     </div>
   )
 }

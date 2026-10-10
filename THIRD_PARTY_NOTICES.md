@@ -37,6 +37,10 @@ The theme editor's Custom HTML element is sanitised by
 htmlparser2, postcss, deepmerge, escape-string-regexp, is-plain-object, parse-srcset and launder
 are MIT too), licence verified on npm and its GitHub `LICENSE` on 2026-09-27. Layout blocks use
 Puck's slots (MIT, already our editor); no code is copied.
+Long-form section copy in the theme editor (Rich text, Text) keeps pictures through
+[`@tiptap/extension-image`](https://github.com/ueberdosis/tiptap) 3.31.3 (MIT, the same Tiptap
+Puck's richtext field is built on), a dependency of `apps/admin` used in
+`apps/admin/src/lib/customize-config.tsx`; no code is copied.
 Shopper sign-in (`packages/core/src/shopper-login/`) uses, without copying code,
 [Better Auth](https://github.com/better-auth/better-auth) 1.7.6 (MIT, already our merchant
 auth) for its Google, Apple and Facebook provider modules and `verifyGoogleIdToken`,

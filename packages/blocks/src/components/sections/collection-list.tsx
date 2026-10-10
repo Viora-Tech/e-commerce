@@ -1,6 +1,8 @@
+import type { ReactNode } from 'react'
 import type { CardCollection } from '../../types'
 
-type Props = { heading: string; collections: CardCollection[]; empty: string }
+/** `heading` is a string in storage, a React node while edited on the canvas. */
+type Props = { heading: ReactNode; collections: CardCollection[]; empty: string }
 
 // Port of sections/collection-list.liquid: collection tiles with image and title.
 export default function CollectionList({ heading, collections, empty }: Props) {

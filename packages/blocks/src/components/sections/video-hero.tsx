@@ -1,18 +1,21 @@
 'use client'
 
+import type { ReactNode } from 'react'
 import { linkTarget } from '../../link'
 import type { Image, Link } from '../../sections/framed'
 import { safeHref } from '../../slot-types'
 // Pattern after shadcnblocks' video hero layouts (our own implementation). See THIRD_PARTY_NOTICES.md.
 import { useReducedMotion } from '../../use-reduced-motion'
 import Picture from '../picture'
+import RichCopy from '../rich-copy'
 
 type VideoHeroProps = {
   videoUrl: string
   poster: Image
   overlayOpacity: number
-  heading: string
-  text: string
+  /** Copy is a string in storage, a React node while edited on the canvas. */
+  heading: ReactNode
+  text: ReactNode
   button: Link
 }
 
@@ -66,7 +69,7 @@ export default function VideoHero({
       <div aria-hidden className="absolute inset-0 bg-black" style={{ opacity: overlay }} />
       <div className="page-width relative flex flex-col items-center gap-[1.25rem]">
         {heading ? <h1 className="h1 text-white">{heading}</h1> : null}
-        {text ? <p className="text-body max-w-[36rem] text-white/85">{text}</p> : null}
+        <RichCopy value={text} className="text-body max-w-[36rem] text-white/85" />
         {button?.label ? (
           <a
             className="btn btn--primary"

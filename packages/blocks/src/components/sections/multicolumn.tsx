@@ -1,14 +1,17 @@
+import type { ReactNode } from 'react'
 import { focalStyle } from '../../focal-point'
 import type { Image } from '../../sections/framed'
 import Picture from '../picture'
+import RichCopy from '../rich-copy'
 
+/** Copy is a string in storage, a React node while edited on the canvas. */
 type Column = {
-  title: string
-  text: string
+  title: ReactNode
+  text: ReactNode
   image?: Image | undefined
 }
 
-type Props = { heading: string; columns: Column[] }
+type Props = { heading: ReactNode; columns: Column[] }
 
 // Port of sections/multicolumn.liquid: a row of short feature columns.
 export default function Multicolumn({ heading, columns }: Props) {
@@ -18,7 +21,7 @@ export default function Multicolumn({ heading, columns }: Props) {
       <ul className="multicolumn__list">
         {columns.map((c, i) => (
           // biome-ignore lint/suspicious/noArrayIndexKey: merchant-edited rows carry no id and never reorder between renders.
-          <li key={`${c.title}-${i}`} className="multicolumn__item">
+          <li key={i} className="multicolumn__item">
             {c.image?.url ? (
               <Picture
                 image={c.image}
@@ -30,7 +33,7 @@ export default function Multicolumn({ heading, columns }: Props) {
               />
             ) : null}
             <h3 className="h4">{c.title}</h3>
-            <p className="text-body">{c.text}</p>
+            <RichCopy value={c.text} className="text-body" />
           </li>
         ))}
       </ul>

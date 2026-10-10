@@ -1,3 +1,5 @@
+import type { RichtextField } from '@puckeditor/core'
+
 /**
  * SOURCE OF TRUTH KEYWORDS: inlineText, inlineTextarea, inlineRichtext, contentEditable, inline editing
  * WHAT:  The Puck field declarations for text a merchant edits by clicking it on the canvas.
@@ -6,9 +8,10 @@
  *        section that uses these must only render the prop, never call string methods on it
  *        or put it in an attribute. Body copy uses Puck's `richtext` (stored as HTML, B/I/U
  *        menu); it is drawn by `components/rich-copy.tsx`, which also reads legacy plain
- *        strings (`../richtext-html.ts`). Section-wide copy that is not shown on the canvas
- *        (alt text, URLs, aria labels) stays a plain `text` field.
- * WHERE: Glide theme sections (`./glide/*`); the admin frames the richtext field in
+ *        strings and old Lexical JSON (`../richtext-html.ts`). Section-wide copy that is not
+ *        shown on the canvas (alt text, URLs, aria labels) stays a plain `text` field.
+ * WHERE: Every section and element on the canvas (`./glide/*`, `./library.tsx`, `./modern.tsx`,
+ *        `./custom-*.tsx`, `../puck-config.tsx`); the admin frames the richtext field in
  *        `customize-overrides.tsx` and shows its B/I/U menu via `canvas-action-bar.tsx`.
  */
 
@@ -35,4 +38,29 @@ export const inlineRichtext = (label = 'Text') =>
       horizontalRule: false,
       textAlign: false,
     },
+  }) as const
+
+/** The page title is the h1, so section copy starts at h2. */
+const LONG_FORM_LEVELS: (2 | 3 | 4)[] = [2, 3, 4]
+
+/** Extra Tiptap extensions for long-form copy; the admin passes its image node. */
+export type RichtextExtensions = NonNullable<RichtextField['tiptap']>['extensions']
+
+/**
+ * Long-form body copy (the Rich text section, the Text element): the same as `inlineRichtext`
+ * plus headings (h2 to h4), quotes and rules, which those blocks offered before, and images
+ * when the host passes an image extension (the storefront never edits, so it passes none).
+ */
+export const inlineRichtextLong = (label = 'Text', extensions?: RichtextExtensions) =>
+  ({
+    type: 'richtext',
+    label,
+    contentEditable: true,
+    options: {
+      heading: { levels: LONG_FORM_LEVELS },
+      codeBlock: false,
+      code: false,
+      textAlign: false,
+    },
+    ...(extensions?.length ? { tiptap: { extensions } } : {}),
   }) as const
