@@ -214,4 +214,29 @@ describe('discounts', () => {
     )
     expect(single).toMatchObject({ value: 20_000, productValues: null })
   })
+
+  it('duplicates a discount as a paused copy with a free code and no usage', async () => {
+    const a = await merchant('dup@example.com', 'store-dup')
+    const d = await call(
+      appRouter.discounts.create,
+      { title: 'Diwali', kind: 'code', code: 'diwali10', method: 'percent', value: 1000 },
+      { context: a.ctx },
+    )
+    if (!d) throw new Error('create')
+    await owner.update(discount).set({ usedCount: 5 }).where(eq(discount.id, d.id))
+
+    const first = await call(appRouter.discounts.duplicate, { id: d.id }, { context: a.ctx })
+    expect(first).toMatchObject({
+      title: 'Diwali (copy)',
+      code: 'DIWALI10-COPY',
+      status: 'disabled',
+      usedCount: 0,
+      value: 1000,
+    })
+    const second = await call(appRouter.discounts.duplicate, { id: d.id }, { context: a.ctx })
+    expect(second).toMatchObject({ code: 'DIWALI10-COPY2', status: 'disabled' })
+    expect(
+      await call(appRouter.discounts.duplicate, { id: crypto.randomUUID() }, { context: a.ctx }),
+    ).toBeNull()
+  })
 })

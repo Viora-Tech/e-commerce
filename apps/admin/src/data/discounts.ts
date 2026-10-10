@@ -77,6 +77,9 @@ export const discountFormContent = {
     deleted: 'Discount deleted',
     disabled: 'Discount disabled: it has been used on orders, so it was kept for history',
     failed: 'Save failed',
+    paused: 'Discount paused: shoppers cannot use it until you resume it',
+    resumed: 'Discount resumed',
+    duplicated: 'Discount duplicated: the copy is paused until you resume it',
   },
   errors: {
     title: 'Give the discount a title',
@@ -180,6 +183,15 @@ export const discountFormContent = {
       disabled: 'Kept for records; shoppers cannot use it.',
     } as Record<string, string>,
   },
+  pause: {
+    action: 'Pause',
+    resume: 'Resume',
+    title: (name: string) => `Pause ${name}?`,
+    body: 'Shoppers cannot use it while it is paused. Nothing is deleted, and you can resume it any time.',
+    confirm: 'Pause discount',
+    cancel: 'Cancel',
+  },
+  duplicate: { action: 'Duplicate' },
   delete: {
     action: 'Delete discount',
     title: (name: string) => `Delete ${name}?`,
