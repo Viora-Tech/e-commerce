@@ -1,6 +1,6 @@
 ---
 title: Purchase orders and landed cost
-description: Order stock from suppliers in any currency, add freight, customs and clearing bills, and see what each product really costs once it lands.
+description: Order stock from suppliers in any currency, upload freight, customs and clearing bills for Vextro to read, and see what each product really costs once it lands.
 ---
 
 # Purchase orders and landed cost
@@ -83,6 +83,50 @@ One container, air shipment or Bill of Entry often carries **several purchase or
 from different suppliers. Create it under **Products › Inbound shipments**, add the purchase
 orders that came in it, and put the container's freight and customs on the shipment as
 **shared charges**. They are split across every product in every order on it.
+
+## Upload bills and let Vextro read them
+
+Instead of typing every line, upload the bill and let Vextro read it for you. You always check
+what it read before anything changes.
+
+1. Open the purchase order (or the inbound shipment) and scroll to **Bills and documents**.
+2. Pick **What is it**: Supplier invoice, Bill of Entry, Freight bill, Clearing agent (CHA) bill,
+   Bank or exchange advice, or Other bill.
+3. Drop the file in, or click to choose it. PDF, JPG or PNG, up to 15 MB. A phone photo of a
+   paper bill works too.
+4. It shows **Reading…** for a few seconds, then **Ready to check**. Click **Check and apply**.
+
+The check screen shows the file on the left and what Vextro read on the right. Anything it was
+not sure about says **Check this**. Correct any value, untick what you do not want, then press
+**Apply**. Nothing is saved until you do, and everything you ticked is saved together.
+
+### What each bill does
+
+| Bill | What it can apply |
+| --- | --- |
+| **Supplier invoice** | On a draft order: the quantities and prices per product (new products found by their SKU are added), and the currency and exchange rate. On an order you already sent: a **goods adjustment** for any price difference, because the order itself is locked. Freight or insurance printed on the invoice becomes a charge. |
+| **Bill of Entry** | The exchange rate customs used, onto every order in the shipment priced in that currency; the BE number, date and port, onto the shipment; and BCD, SWS and IGST as charges. When every line is matched, each product gets exactly the duty printed for it. IGST stays out of cost (input credit). |
+| **Freight, CHA, bank or other bill** | One charge with its amount before GST and the GST (input credit). You can change which kind of charge it is. |
+
+### How products are matched
+
+For each line on the bill, Vextro looks for the product on your order by the supplier's code or
+SKU first, then by HSN code and name. If it cannot tell, the line says **Not matched**: pick the
+product yourself, or leave it unticked. Vextro never creates new products from a bill.
+
+Differences are shown on each line, for example *Order says 100 @ $12.50, this says 98 @ $12.40*.
+On a sent order, quantity differences are settled when you receive: receive what arrived and
+close the order.
+
+### Good to know
+
+- Each bill applies **once**. To apply it again (say you removed what it added by hand), open it
+  and click **Allow applying again**. That does not undo anything.
+- The file stays private to your store. It is never on a public link.
+- Reading a bill counts as one AI request in your monthly allowance (Settings → AI). Turn
+  **Read bills with AI** off there to keep files without reading them.
+- If a bill could not be read, click **Read again**, or upload a clearer photo or the original
+  PDF.
 
 ## Receiving
 

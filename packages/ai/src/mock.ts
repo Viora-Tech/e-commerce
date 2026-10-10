@@ -12,6 +12,12 @@ import { simulateReadableStream } from 'ai'
 import { MockLanguageModelV4 } from 'ai/test'
 import type { AiFeature } from './features'
 import { mockPlan } from './mock-plan'
+import { MOCK_DOCUMENTS } from './purchase-documents/fixtures'
+import {
+  DOCUMENT_READ_MARKER,
+  DOCUMENT_SHAPES,
+  type DocumentShape,
+} from './purchase-documents/schema'
 import { REVIEW_REPLY_MARKER } from './review-reply'
 
 const USAGE = {
@@ -88,6 +94,26 @@ function productCopy(prompt: Prompt): string {
   })
 }
 
+/** The fixture for the shape named in a document reader's instructions. */
+function documentRead(system: string): string {
+  const named = /Document type: (\w+)/.exec(system)?.[1] as DocumentShape | undefined
+  const shape = named && DOCUMENT_SHAPES.includes(named) ? named : 'service_bill'
+  return JSON.stringify(MOCK_DOCUMENTS[shape])
+}
+
+/** The canned structured answer for whichever writer or reader made the call. */
+function generated(prompt: Prompt): string {
+  const system = systemText(prompt)
+  if (system.includes(DOCUMENT_READ_MARKER)) return documentRead(system)
+  if (system.includes(REVIEW_REPLY_MARKER)) {
+    return JSON.stringify({
+      reply:
+        'Thank you for taking the time to write this. We are glad it works well for you, and we hope you enjoy it for a long time.',
+    })
+  }
+  return productCopy(prompt)
+}
+
 type ToolValue = {
   facts?: { label: string; value: string }[]
   proposal?: { summary: string }
@@ -153,23 +179,13 @@ function answerStream(options: LanguageModelV4CallOptions): LanguageModelV4Strea
   ]
 }
 
-/** A fake model for one feature: canned product copy, or planned tool calls followed by an answer from their results. */
+/** A fake model for one feature: canned product copy or document readings, or planned tool calls followed by an answer from their results. */
 export function mockModel(feature: AiFeature): MockLanguageModelV4 {
   return new MockLanguageModelV4({
     provider: 'mock',
     modelId: `mock-${feature}`,
     doGenerate: async (options) => ({
-      content: [
-        {
-          type: 'text',
-          text: systemText(options.prompt).includes(REVIEW_REPLY_MARKER)
-            ? JSON.stringify({
-                reply:
-                  'Thank you for taking the time to write this. We are glad it works well for you, and we hope you enjoy it for a long time.',
-              })
-            : productCopy(options.prompt),
-        },
-      ],
+      content: [{ type: 'text', text: generated(options.prompt) }],
       finishReason: { unified: 'stop', raw: undefined },
       usage: USAGE,
       warnings: [],

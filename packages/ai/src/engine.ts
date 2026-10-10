@@ -23,6 +23,8 @@ export type AiRuntime = {
 export type AiContent =
   | { type: 'text'; text: string }
   | { type: 'image'; data: Uint8Array; mediaType: string }
+  /** A whole file the model reads, e.g. a scanned PDF (`application/pdf`). */
+  | { type: 'file'; data: Uint8Array; mediaType: string }
 
 export type AiMessage = { role: 'user' | 'assistant'; content: string }
 

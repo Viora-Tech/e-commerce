@@ -303,3 +303,74 @@ export const purchaseOrderReceiptLine = pgTable(
   },
   (t) => [index('purchase_order_receipt_line_receipt').on(t.receiptId)],
 )
+
+const PURCHASE_DOCUMENT_KIND_VALUES = [
+  'supplier_invoice',
+  'bill_of_entry',
+  'freight_bill',
+  'cha_bill',
+  'bank_advice',
+  'other',
+] as const
+const PURCHASE_DOCUMENT_STATUS_VALUES = [
+  'pending',
+  'reading',
+  'ready',
+  'failed',
+  'applied',
+] as const
+
+/**
+ * A supplier or import document (invoice, Bill of Entry, freight, clearing or bank bill)
+ * uploaded to a purchase order or an inbound shipment (exactly one, enforced by the service;
+ * the check only demands an owner, as on `purchase_charge`). The file is private
+ * (`stores/<store>/private/purchase-documents/...`) and only served through the admin API.
+ * The worker reads it with AI into `extracted` (and keeps the PDF's own text in `raw_text`);
+ * nothing reaches the order until the merchant reviews it and presses Apply (`applied_at`).
+ */
+export const purchaseDocument = pgTable(
+  'purchase_document',
+  {
+    id: id(),
+    storeId: storeId(),
+    purchaseOrderId: uuid('purchase_order_id').references(() => purchaseOrder.id, {
+      onDelete: 'cascade',
+    }),
+    inboundShipmentId: uuid('inbound_shipment_id').references(() => inboundShipment.id, {
+      onDelete: 'cascade',
+    }),
+    kind: text('kind', { enum: PURCHASE_DOCUMENT_KIND_VALUES }).notNull(),
+    fileKey: text('file_key').notNull(),
+    fileName: text('file_name').notNull(),
+    mimeType: text('mime_type').notNull(),
+    sizeBytes: integer('size_bytes').notNull(),
+    /** Better Auth user id of the member who uploaded it. */
+    uploadedBy: text('uploaded_by'),
+    status: text('status', { enum: PURCHASE_DOCUMENT_STATUS_VALUES }).notNull().default('pending'),
+    /** What the AI read, shaped by the kind's schema (`@commerce/ai` purchase documents). */
+    extracted: jsonb('extracted'),
+    /** The PDF's own text layer, when it has one (scans and photos have none). */
+    rawText: text('raw_text'),
+    error: text('error'),
+    appliedAt: timestamp('applied_at', { withTimezone: true }),
+    appliedBy: text('applied_by'),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (t) => [
+    index('purchase_document_store_order').on(t.storeId, t.purchaseOrderId),
+    index('purchase_document_store_shipment').on(t.storeId, t.inboundShipmentId),
+    check(
+      'purchase_document_kind_check',
+      sql`${t.kind} in (${oneOf(PURCHASE_DOCUMENT_KIND_VALUES)})`,
+    ),
+    check(
+      'purchase_document_status_check',
+      sql`${t.status} in (${oneOf(PURCHASE_DOCUMENT_STATUS_VALUES)})`,
+    ),
+    check(
+      'purchase_document_owner_check',
+      sql`num_nonnulls(${t.purchaseOrderId}, ${t.inboundShipmentId}) >= 1`,
+    ),
+  ],
+)

@@ -10,6 +10,7 @@ import {
   liveVisitors,
   mediaProcessQueue,
   notificationQueue,
+  purchaseDocumentQueue,
   sharedRedis,
   storeExportQueue,
 } from '@commerce/queue'
@@ -30,6 +31,7 @@ export function apiHost() {
     mediaProcess: mediaProcessQueue(loadEnv(process.env).REDIS_URL),
     storeExport: storeExportQueue(loadEnv(process.env).REDIS_URL),
     aiBulk: aiBulkQueue(loadEnv(process.env).REDIS_URL),
+    purchaseDocuments: purchaseDocumentQueue(loadEnv(process.env).REDIS_URL),
     visitors: {
       live: (storeId: string) => liveVisitors(sharedRedis(loadEnv(process.env).REDIS_URL), storeId),
       daily: (storeId: string, days: string[]) =>

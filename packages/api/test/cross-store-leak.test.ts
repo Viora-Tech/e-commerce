@@ -80,6 +80,8 @@ const SKIP: Record<string, string> = {
   'reviews.writeReply': 'AI model provider (a dev .env key would reach the real gateway)',
   'ai.bulkWrite':
     'AI model provider (runs in the request without a queue); covered by ai-assistant.test.ts',
+  'purchaseDocuments.read':
+    'AI model provider (reads in the request without a queue); covered by purchase-documents.test.ts',
   'domains.connect': 'DNS and certificate provider',
   'domains.verify': 'DNS and certificate provider',
   'onboarding.create': 'creates another store and switches the session to it',

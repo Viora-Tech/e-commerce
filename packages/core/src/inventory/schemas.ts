@@ -224,3 +224,41 @@ export const TransferInputSchema = z
   })
   .refine((t) => hasUniqueVariants(t.lines), UNIQUE_LINES)
 export type TransferInput = z.infer<typeof TransferInputSchema>
+
+/** A charge an applied document creates on its own order or shipment. */
+const DocumentChargeSchema = ChargeFieldsSchema.refine(creditOnlyForGoods, CREDIT_RULE).refine(
+  splitHasLines,
+  SPLIT_RULE,
+)
+export type DocumentCharge = z.infer<typeof DocumentChargeSchema>
+
+/**
+ * What the merchant ticked on the review screen, with the values they confirmed (the AI's
+ * reading, corrected where needed). Applied in one transaction by `applyPurchaseDocument`.
+ */
+export const ApplyDocumentSchema = z
+  .object({
+    id: z.string().uuid(),
+    /**
+     * Draft orders only: lines to set. `lineId` updates that line; without it the variant
+     * is added. Lines not named stay as they are.
+     */
+    lines: z
+      .array(PurchaseOrderLineInputSchema.extend({ lineId: z.string().uuid().optional() }))
+      .max(500)
+      .default([]),
+    /** The order's currency (drafts only) and rate; on a shipment, the rate for its orders in `currency`. */
+    currency: PurchaseCurrencySchema.optional(),
+    fxRate: FxRateSchema.optional(),
+    /** Bill of Entry number, date and port, onto the inbound shipment. */
+    billOfEntry: z
+      .object({ number: optionalText(40), date: DayOrNull, port: optionalText(80) })
+      .optional(),
+    charges: z.array(DocumentChargeSchema).max(50).default([]),
+  })
+  .refine((a) => hasUniqueVariants(a.lines), UNIQUE_LINES)
+  .refine((a) => !a.fxRate || a.currency !== undefined, {
+    message: 'Say which currency the rate is for',
+    path: ['currency'],
+  })
+export type ApplyDocument = z.infer<typeof ApplyDocumentSchema>

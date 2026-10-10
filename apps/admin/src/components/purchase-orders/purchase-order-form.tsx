@@ -18,6 +18,7 @@ import PageColumns from '@/components/layout/page-columns'
 import ProoflyPageBody from '@/components/layout/proofly-page-body'
 import ProoflyPageHeader from '@/components/layout/proofly-page-header'
 import SaveBar from '@/components/layout/save-bar'
+import DocumentsCard from '@/components/purchase-documents/documents-card'
 import type { PickedSupplier } from '@/components/suppliers/new-supplier-dialog'
 import { purchaseOrderFormContent, purchaseOrdersContent } from '@/data/inventory'
 import { poCurrencyContent } from '@/data/purchasing'
@@ -46,6 +47,8 @@ type PurchaseOrderFormProps = {
   locations: StoreLocation[]
   /** Charges and landed cost of the saved order (and its shipment); null while creating. */
   costs: CostPreview | null
+  /** Bills can be read with AI (Settings → AI, and this member's role). */
+  aiReading: boolean
 }
 
 type Dialog = 'receive' | 'close' | 'cancel' | 'delete' | null
@@ -65,7 +68,12 @@ const isPurchaseCurrency = (c: string): c is PurchaseCurrency =>
   (PURCHASE_CURRENCY_CODES as string[]).includes(c)
 
 /** Create or edit a purchase order, add its charges, then order, receive, close or cancel it. */
-export default function PurchaseOrderForm({ po, locations, costs }: PurchaseOrderFormProps) {
+export default function PurchaseOrderForm({
+  po,
+  locations,
+  costs,
+  aiReading,
+}: PurchaseOrderFormProps) {
   // Hooks
   const router = useRouter()
   const currencyCopy = useCopy(poCurrencyContent)
@@ -240,6 +248,11 @@ export default function PurchaseOrderForm({ po, locations, costs }: PurchaseOrde
               onChanged={() => router.refresh()}
             />
             {po && costs ? <LandedCostCard costs={costs} purchaseOrderId={po.id} /> : null}
+            <DocumentsCard
+              owner={po ? { purchaseOrderId: po.id } : null}
+              aiReading={aiReading}
+              onApplied={() => router.refresh()}
+            />
           </>
         }
         side={

@@ -94,6 +94,10 @@ export const aiContent = {
         label: 'Write with AI for many products',
         help: 'On the products list: select products and write them all at once, then review.',
       },
+      documentReader: {
+        label: 'Read bills with AI',
+        help: 'On purchase orders and inbound shipments: reads supplier invoices and Bills of Entry for you to check and apply.',
+      },
     },
     quality: {
       label: 'Writing quality',

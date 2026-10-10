@@ -48,11 +48,13 @@ describe('parsers', () => {
       productWriter: true,
       assistant: true,
       bulkWriter: true,
+      documentReader: true,
     })
     expect(parseFeatureToggles({ bulkWriter: false, junk: 1 })).toEqual({
       productWriter: true,
       assistant: true,
       bulkWriter: false,
+      documentReader: true,
     })
   })
 })
