@@ -1,0 +1,82 @@
+---
+title: Inventory
+description: See how many of each product you have at each place, fix a count, adjust many at once, and read the history of every change.
+---
+
+# Inventory
+
+**Stock → Inventory** lists every product variant that tracks stock, with its counts at one
+place at a time.
+
+## What this is for
+
+- Spotting what is low or sold out before shoppers do.
+- Correcting a count after you counted the shelf.
+- Adding stock that arrived outside a purchase order, or writing off something damaged.
+- Knowing what your stock is worth at cost.
+
+## What the numbers mean
+
+| Column | Meaning |
+| --- | --- |
+| **Available** | What you can sell right now. |
+| **Committed** | Reserved for orders that are not packed yet. |
+| **Incoming** | On a purchase order or transfer that has not arrived. |
+| **On hand** | What is physically there. |
+
+The top has four tiles: **SKUs tracked**, **Out of stock**, **Low stock** (5 or fewer available)
+and **Stock value** (what is on hand, at cost). The tabs **All SKUs**, **Out of stock** and **Low
+stock** filter the list. You can also filter by **Stock**, **Vendor** and **Product type**, and
+search by name or SKU.
+
+## Change a count
+
+<Steps>
+
+### Pick the place
+
+Use **Location** at the top if you have more than one. Counts are per place. The place marked
+**Online orders** is the one your online store sells from.
+
+### Pick a reason
+
+**Reason for edits** is **Correction**, **Received**, **Damaged**, **Returned** or **Theft or
+loss**. It is saved with the change so the history makes sense later.
+
+### Change the number
+
+In the **Available** column press **−** or **+** to add or remove one, or type a new number. You
+will see a short message such as "Glass mouse pad: 12 available".
+
+</Steps>
+
+To change many at once, tick the rows and choose **Adjust by** (add or remove the same number
+from each; use a negative number to remove) or **Set on hand to** (every ticked row gets this
+count). Add a **Note** if you like.
+
+Select **Stock history** on a row to see every change: who, when, how many and why. **Export**
+downloads the list as a CSV file.
+
+<Callout type="info">
+  To receive goods from a supplier, use a [purchase order](/merchant-guide/stock/purchase-orders)
+  instead of typing the new number. Then the product's cost updates too.
+</Callout>
+
+## Add a place
+
+Select **Add location** to add a warehouse, shop or partner: name, address, state, PIN code and
+phone. Its state decides which GST number it bills under. A new place does not sell online until
+you turn on **Ships online orders** for it. See
+[Locations & warehouses](/merchant-guide/settings/locations).
+
+## Common problems and fixes
+
+| Problem | Why it happens | Fix |
+| --- | --- | --- |
+| A product is missing from the list | **Track quantity** is off for it. | Open the product and turn on **Track quantity** under **Inventory**. |
+| The number I typed went back | You may not have permission to change stock. | Ask the owner to give your role the inventory permission. |
+| **Available** is lower than **On hand** | Some units are **Committed** to orders you have not packed. | Pack the orders and the numbers meet again. |
+
+## Related guides
+
+<RelatedGuides ids={['products', 'locations']} />

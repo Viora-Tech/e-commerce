@@ -1,6 +1,6 @@
 ---
 title: Discounts
-description: Make discount codes and automatic offers, choose what they take off, and give a different amount for each product.
+description: Make discount codes and automatic offers, choose what they take off, give a different amount for each product, and pause, resume or duplicate them.
 ---
 
 # Discounts
@@ -59,6 +59,19 @@ The minimum order amount, usage limits and dates work the same way as for any ot
 
 The order keeps the discount's name, code and the rupee amount it took off, so later changes
 to the discount never change an order already placed.
+
+## Pause, resume and duplicate
+
+Open a discount and use the buttons at the top (you need permission to change discounts).
+
+- **Pause** stops shoppers using it, with nothing deleted. Confirm with **Pause discount**. The
+  discount shows as paused, and orders already placed are not touched.
+- **Resume** turns it on again.
+- **Duplicate** makes a copy called "*name* (copy)". Its code gets `-COPY` added (then `-COPY2`
+  and so on), its use count starts at zero, and it starts **paused**, so you can change it and
+  **Resume** it when it is ready. Handy for next month's version of the same offer.
+- **Delete** removes it. A discount already used on an order is disabled instead, so history
+  stays intact.
 
 ## Turning a discount off
 

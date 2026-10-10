@@ -57,6 +57,46 @@ A section wires it in by adding `settings: sectionSettingsField(SCHEMES)` to its
 by hand: `framed()` in `packages/blocks/src/sections/framed.tsx` (used by `library.tsx` and
 the newer `modern.tsx`) adds both, and wraps the section's render in `SectionFrame`.
 
+### Three kinds of settings
+
+`sectionSettingsField(schemes, kind)` takes a `SettingsKind`. The value type is always the full
+`SectionSettingsValue`; the kind only decides which groups the editor offers.
+
+| Kind | Offers | Used by |
+| --- | --- | --- |
+| `section` (default) | Layout, Spacing, Style, Advanced | Everything drawn inside the shared frame: the library and kit sections, Zero Drift sections, Featured products, Collection grid, Rich text |
+| `bleed` | Spacing, and in Advanced only show on mobile / desktop and the anchor | Full-bleed sections that draw their own frame: the Hero carousel and the Announcement bar (width, alignment, background and entrance motion are theirs), and Header and Footer |
+| `flow` | `bleed` plus the colour scheme | Sections the storefront draws for the page: the main sections (product, collection, page, blog, article, cart, search, not found), Related products, Recently viewed |
+
+A `bleed` section puts the result on its own outermost `.section-frame` element with
+`bleedFrameProps(settings)` (padding, visibility classes, anchor id; the hero passes it as
+`HeroCarousel`'s `frameProps`). A `flow` section is wrapped in a frame in `dynamic.tsx` only when
+the settings change something: `isNeutralFlow(settings)` (no padding, scheme 1, shown
+everywhere, no anchor) draws the storefront's output with no frame at all, so pages saved before
+this existed render byte for byte as before. `FLOW_SETTINGS` holds the neutral defaults.
+
+`migrateSectionSettings(props, fallback)` takes the section's own default settings as `fallback`
+for documents saved before it had settings; `normalizeDoc` passes `defaultProps.settings`, so the
+panel shows the padding the section really renders with (not the generic 48 px).
+
+Deliberately without settings, listed with reasons in `test/section-settings-coverage.test.tsx`:
+the three overlays that float over the page (Signup popup, Sticky add to cart, Mobile dock), the
+Cookie banner, and imported Liquid sections (they use their own theme's schema). Layout blocks
+and elements keep their own `style` panel. That test also checks that every other section
+declares settings and applies them (the anchor reaches its HTML).
+
+The editor recognises any of the three shapes: `isSectionSettingsField` accepts settings that
+have spacing and advanced, so a `bleed` or `flow` field gets the Section settings panel in the
+Advanced tab instead of falling back to a plain object field in Basic.
+
+### Background colours are theme names
+
+`style.backgroundColor` stores a theme colour by name (`SECTION_BACKGROUND_TOKENS`: `ink`,
+`brand`, `background`, `surface`, `accent`, mapped to `var(--color-…)`) or a custom colour.
+`sectionBackground(value)` resolves it, with `safeColour` still checking custom values. Because
+none of the names is a CSS colour, they cannot clash with a typed colour, and a named colour
+follows the colour scheme and dark mode.
+
 ### Links and images in section fields
 
 Link and image fields need no special type. Use the `{ label, href }` object shape

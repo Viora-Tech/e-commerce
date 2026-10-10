@@ -125,6 +125,62 @@ export const guides = {
     title: 'Security and data protection',
     description: 'Logins, store isolation, encrypted secrets and backups.',
   },
+  stock: {
+    href: '/merchant-guide/stock',
+    icon: 'package',
+    title: 'Stock overview',
+    description: 'Inventory, purchase orders, inbound shipments, suppliers and transfers.',
+  },
+  inventory: {
+    href: '/merchant-guide/stock/inventory',
+    icon: 'package',
+    title: 'Inventory',
+    description: 'Counts per place, fix a count, adjust many at once, stock history.',
+  },
+  'purchase-orders': {
+    href: '/merchant-guide/stock/purchase-orders',
+    icon: 'receipt',
+    title: 'Purchase orders and landed cost',
+    description: 'Order from suppliers, upload bills, and see what each product really costs.',
+  },
+  transfers: {
+    href: '/merchant-guide/stock/transfers',
+    icon: 'truck',
+    title: 'Transfers',
+    description: 'Move stock between your own places.',
+  },
+  locations: {
+    href: '/merchant-guide/settings/locations',
+    icon: 'package',
+    title: 'Locations & warehouses',
+    description:
+      'Which GST number each place bills under, which ships online orders, courier pickup.',
+  },
+  'multi-warehouse': {
+    href: '/merchant-guide/money/multi-warehouse-gst',
+    icon: 'invoice',
+    title: 'Several warehouses and GST',
+    description:
+      'How orders split into parcels, and what that means for invoices and credit notes.',
+  },
+  profit: {
+    href: '/merchant-guide/money/profit',
+    icon: 'card',
+    title: 'Profit',
+    description: 'What each order, product and month really earned.',
+  },
+  analytics: {
+    href: '/merchant-guide/selling/analytics',
+    icon: 'flow',
+    title: 'Analytics',
+    description: 'Overview, reports, the live view and visitors.',
+  },
+  discounts: {
+    href: '/merchant-guide/selling/discounts',
+    icon: 'card',
+    title: 'Discounts',
+    description: 'Codes and automatic discounts, pause, resume and duplicate.',
+  },
   glossary: {
     href: '/merchant-guide/reference/glossary',
     icon: 'book',

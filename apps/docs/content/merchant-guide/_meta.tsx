@@ -8,6 +8,7 @@ import {
   Rocket,
   Sparkle,
   Storefront,
+  Warehouse,
 } from '@phosphor-icons/react/ssr'
 import NavTitle from '../../components/nav-title'
 import SectionSwitcher from '../../components/section-switcher'
@@ -22,6 +23,7 @@ export default {
   'ai-assistant': { title: <NavTitle icon={<Sparkle weight="light" />}>AI assistant</NavTitle> },
   settings: { title: <NavTitle icon={<GearSix weight="light" />}>Settings</NavTitle> },
   catalog: { title: <NavTitle icon={<Package weight="light" />}>Products and orders</NavTitle> },
+  stock: { title: <NavTitle icon={<Warehouse weight="light" />}>Stock</NavTitle> },
   selling: { title: <NavTitle icon={<Storefront weight="light" />}>Selling</NavTitle> },
   money: { title: <NavTitle icon={<CreditCard weight="light" />}>Money and GST</NavTitle> },
   reference: { title: <NavTitle icon={<BookOpenText weight="light" />}>Reference</NavTitle> },

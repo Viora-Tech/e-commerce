@@ -495,6 +495,54 @@ facts from `profitFacts` (`profit-service.ts`) into net sales ex GST âˆ’ goods â
 with flags for anything unknown. `orders.profit` feeds the order page's Profit card; the Finance
 reports `profit-by-month` and `profit-by-product` (`packages/api/src/services/reports/profit.ts`,
 order overheads shared over lines by value, `allocateProfit`) read the same facts.
+
+### Short links
+
+`short_link` (store, unique `slug` matching `^[a-z0-9][a-z0-9-]{0,59}$`, name, `destination`
+store path, five UTM columns) and `short_link_click_day` (one row per link and store-local day,
+`clicks`, unique on link + day) arrived with `0106_short_links`, both ending in
+`apply_store_rls()`. The storefront route `/l/<slug>` counts a click through `followShortLink`
+(`short-link-clicks.ts`; bots, link previews and HEAD requests do not count: `isBotUserAgent`) and
+redirects to `shortLinkTarget` (the destination with its tags). It sets the 10-minute `wc_lk`
+cookie for the page beacon and, with analytics consent, `wc_attr` with `linkId`. Attribution
+(core `Attribution`, db `MarketingAttribution`) gained `linkId`; a link with no tags and no
+referrer counts as `referral`, never `direct`. Orders and revenue per link are placed orders
+(not draft or cancelled) whose `attribution.linkId` is the link (`shortLinkStats`), counted the
+same way as the Growth overview's `outcomes`. Pure rules: `@commerce/core/marketing`
+`short-links.ts`.
+
+### Themes: thumbnails, versions and blog templates
+
+- `0097_theme_thumbnail`: `theme.thumbnail_url` and `theme.updated_by` (both nullable). The
+  thumbnail is one WebP (at most 256 KB) per theme in the store's storage, written by
+  `themes.thumbnail`.
+- `0102_blog_templates`: `blog.template_suffix` and `article.template_suffix`, so blogs and
+  posts can use alternate templates like products, collections and pages.
+- `0103_theme_versions`: `theme_version` (theme, `batch_id`, `reason` `publish` | `save`,
+  `template`, `suffix`, `sections`, `created_by`). A snapshot is taken by `themes.publish` (when
+  the theme was not live) and by `themes.templates.commit` on the live theme; the newest 20 per
+  template are kept (`packages/core/src/theme/versions.ts`). Restore writes into drafts and never
+  goes live by itself.
+
+### Migrations 0094 to 0106
+
+| Migration | Adds |
+| --- | --- |
+| `0094_landed_cost` | `supplier`, `inbound_shipment`, `purchase_charge`, `purchase_charge_split`, receipts; currency, `fx_rate` and landed cost columns on purchase orders |
+| `0095_purchase_documents` | `purchase_document` (uploaded bills and their AI reading) |
+| `0096_fulfillment_orders` | `fulfillment_order`, `fulfillment_order_line`, `shipment.fulfillment_order_id`, backfill |
+| `0097_theme_thumbnail` | `theme.thumbnail_url`, `theme.updated_by` |
+| `0098_multi_location_routing` | drops `inventory_level_one_sellable`; `location.priority`, `fulfillment_order.needs_transfer`, the sellable-mirror trigger |
+| `0099_gst_per_parcel` | each parcel's money and GST columns |
+| `0100_invoice_per_parcel` | `invoice.fulfillment_order_id`, one live invoice per order, parcel and kind |
+| `0101_credit_notes_per_gstin` | `invoice_refund_unique` per refund and parcel |
+| `0102_blog_templates` | `template_suffix` on `blog` and `article` |
+| `0103_theme_versions` | `theme_version` |
+| `0104_parcel_delivery_estimate` | `fulfillment_order.delivery_estimate` |
+| `0105_order_profit` | `order_line.cost_at_sale_paise` and `cost_estimated`, `shipment.courier_charge_paise`, `payment.fee_paise` |
+| `0106_short_links` | `short_link`, `short_link_click_day` |
+
+
 ### Status columns are text with a CHECK
 
 Status columns are `text` with a fixed value list and a CHECK constraint, not Postgres enums,

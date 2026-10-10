@@ -5,10 +5,12 @@ export default {
   discounts: 'Discounts',
   'online-store': 'Online store',
   content: 'Content types',
+  files: 'Files and storage',
   'build-your-own-section': 'Build your own section',
   'import-from-shopify': 'Move from Shopify',
   'import-shopify-theme': 'Import a Shopify theme',
   growth: 'Growth',
+  analytics: 'Analytics',
   'visitor-analytics': 'Visitor analytics (Umami)',
   apps: 'Apps',
 }

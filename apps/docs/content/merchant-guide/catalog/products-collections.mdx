@@ -92,7 +92,7 @@ box, that box and its volumetric weight are used instead of the store's default 
 Under **Inventory**, turn on **Track quantity**, then set the **Stock quantity**, **SKU (Stock
 Keeping Unit)** and **Barcode (ISBN, UPC, GTIN)**. When you change stock by hand, pick a
 **Reason for change** (Stock received, Damaged, Returned, Sold offline and so on) so the
-history makes sense later.
+history makes sense later. To count or adjust many products at once, use [Stock → Inventory](/merchant-guide/stock/inventory).
 
 ### Organise and publish
 
@@ -105,8 +105,8 @@ product can appear in Google results; it fills itself from the title and descrip
 **Edit** it (a **Page title** up to 70 characters and a **Meta description**). Then select
 **Publish product**, or **Save to draft** to finish later.
 
-Rarely used settings (**Pre-order & launch**, custom data, the theme template and stock
-history) sit under **More settings** at the bottom of the page.
+Rarely used settings (**Pre-order & launch**, the theme template and
+stock history) sit under **More settings** at the bottom of the page.
 
 </Steps>
 
@@ -114,6 +114,20 @@ history) sit under **More settings** at the bottom of the page.
   title="Add a product with sizes in 30 seconds"
   caption="Add product, title and price, add a Size option with S/M/L, set stock for each, Publish product."
 />
+
+## Extra fields
+
+**Where to find it:** a product's page → the **Extra fields** card, just above **More settings**.
+**What to do:** type
+a value into each field, such as a care guide or a warranty period, then press **Save extra
+fields**. **What you'll see:** "Extra fields saved". Your theme can show these on the product
+page, and a section can [connect to them](/merchant-guide/selling/online-store#show-your-stores-own-data-in-a-section).
+
+The card is empty until you have made a field. Press **Add a field** right there to make one
+without leaving the page. **Manage extra fields** opens **Settings → Custom data**, where you
+can edit or delete them. A new product has to be saved once before its extra fields can be
+filled in. Collections have the same card. More in
+[Content types](/merchant-guide/selling/content#extra-fields-on-products-and-collections).
 
 ## Pre-orders and launch countdowns
 
@@ -138,7 +152,32 @@ Products whose handle already exists are updated; the rest are created. **Export
 `products.csv`.
 
 You can also filter the list by **Vendor**, **Product type**, **Tag** and **Stock**, and select
-many products to **Set as active**, **Set as draft**, **Archive**, **Add tag** or **Delete**.
+many products to **Set as active**, **Set as draft**, **Archive**, **Add tag**, **Bulk edit** or
+**Delete**.
+
+## Bulk edit: change many products in a spreadsheet
+
+**Where to find it:** **Products**, tick the products, then **Bulk edit**. **What to do:** change
+the cells you need. **What you'll see:** a spreadsheet with one row per variant, and the cells
+you changed tinted.
+
+The columns are title, status, vendor, type, tags, price, compare-at, cost, SKU, barcode,
+weight (g), HSN, GST % and the stock at each place. A product's own cells (title, status, vendor,
+type, tags) repeat on each of its variant rows and change together.
+
+- **Click a cell and type.** Press Tab or Enter to move on.
+- **Paste a block** copied from Google Sheets or Excel.
+- **Fill down:** drag the small corner handle of a cell, or press <kbd>Ctrl</kbd> <kbd>D</kbd>
+  to copy the cell above.
+- **Wrong values turn red** and are listed above the sheet, for example a compare-at price lower
+  than the price, an HSN that is not 4 to 8 digits, or a SKU used twice. Nothing is saved until
+  they are fixed.
+- Press **Save** once. Everything saves together, or nothing does. A message such as "Saved: 12
+  variants" appears with an **Undo** button; Undo puts the old values back. **Discard** throws
+  away your edits.
+
+Stock changes you save are written to the stock history with the note "Bulk edit". The sheet
+takes up to 500 variants at a time; if you select more, it tells you and shows the first 500.
 
 ## Collections
 
