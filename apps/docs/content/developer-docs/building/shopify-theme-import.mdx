@@ -162,6 +162,24 @@ before any theme script). This is not an emulation of Shopify's API; each call b
 The same table, in code, is `swap.ts` (`SWAP_TABLE`), which also detects each row in a section's
 Liquid for the report.
 
+### Theme scripts wait for React
+
+An imported page is both the theme's HTML and a React tree (our swapped-in sections, the
+layout). The theme's `defer`, `async` and module scripts are parked as inert
+`<script type="text/x-theme-deferred">` placeholders when the Liquid output is placed
+(`apps/storefront/src/lib/liquid-defer.ts`, for sections and the layout's head, before-header
+and after-footer parts) and run by the shim's `window.__commerceBootTheme()` once React has
+hydrated (`components/theme/liquid-boot.tsx`: after the layout's effects and the end of parsing),
+in document order, each external file once. Classic inline scripts (the `js` class, settings
+JSON) still run where they are.
+
+Why: a theme script that ran first edited markup React was about to hydrate (Zero Drift's lens
+zoom adds a span to `.product-gallery__main`, a class our own product section shares). React then
+rebuilt the page on the client, every Liquid section came back through `innerHTML`, its scripts
+never ran again and everything the theme had bound was gone (meteors, reveals, rotating words).
+The shim also replays the common `media="print" onload="this.media='all'"` stylesheet pattern,
+since our CSP blocks inline event handlers.
+
 ## Tests
 
 `packages/core/src/theme-import/engine.test.ts` (no database) and `import.test.ts` (database,

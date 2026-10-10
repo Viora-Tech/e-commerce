@@ -35,6 +35,7 @@ import type { ReactNode } from 'react'
 import StoreChrome from '@/components/checkout/store-chrome'
 import ConsentManager from '@/components/privacy/consent-manager'
 import PredictiveSearch from '@/components/search/predictive-search'
+import LiquidBoot from '@/components/theme/liquid-boot'
 import LiquidHtml from '@/components/theme/liquid-html'
 import PreviewBar from '@/components/theme/preview-bar'
 import ThemePreviewBridge from '@/components/theme/theme-preview-bridge'
@@ -289,6 +290,7 @@ export default async function StoreLayout({ children, params }: Props) {
           </main>
           {footer}
           <LiquidHtml html={liquid.afterFooter} />
+          <LiquidBoot />
           <ThemePreviewBridge adminOrigin={adminOrigin} />
           {preview ? null : <ConsentManager {...consent} themeBanner={themedConsent} />}
         </body>

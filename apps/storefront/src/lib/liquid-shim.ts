@@ -15,6 +15,11 @@
  * - `Shopify.customerPrivacy` (the theme's cookie banner) → our consent: whether to ask
  *   comes from our consent cookie, and the answer goes to `ConsentManager`
  *   (`commerce:consent` event), which stores it and loads the allowed tags.
+ * - The theme's deferred and module scripts (parked by `lib/liquid-defer.ts`) →
+ *   `window.__commerceBootTheme()`, called once React has hydrated (`liquid-boot.tsx`):
+ *   runs them in document order, each external file once, so no theme script edits markup
+ *   React is still hydrating. Inline `onload` handlers (blocked by our CSP) on the common
+ *   "print stylesheet, then all" pattern are replayed here too.
  *
  * Inline, before any theme script, with the request's CSP nonce.
  */
@@ -98,5 +103,46 @@ const SHIM = `(function () {
       return nativeFetch(sectionUrl(url), init);
     }
     return nativeFetch(input, init);
+  };
+  var booted = Object.create(null);
+  function runParked(node) {
+    return new Promise(function (done) {
+      var src = node.getAttribute('data-theme-src');
+      var key = src ? new URL(src, location.href).href : null;
+      if (node.getAttribute('data-theme-ran') || (key && booted[key])) { done(); return; }
+      node.setAttribute('data-theme-ran', '1');
+      if (key) booted[key] = true;
+      var script = document.createElement('script');
+      for (var i = 0; i < node.attributes.length; i++) {
+        var a = node.attributes[i];
+        if (a.name === 'type' || a.name.indexOf('data-theme-') === 0) continue;
+        script.setAttribute(a.name, a.value);
+      }
+      if (node.nonce) script.nonce = node.nonce;
+      if (node.hasAttribute('data-theme-module')) script.type = 'module';
+      if (src) {
+        script.async = false;
+        script.onload = script.onerror = function () { done(); };
+        script.src = src;
+      } else {
+        script.textContent = node.textContent;
+        setTimeout(done, 0);
+      }
+      node.parentNode.insertBefore(script, node.nextSibling);
+    });
+  }
+  function promoteSheets() {
+    document.querySelectorAll('link[rel="stylesheet"][media="print"][onload]').forEach(function (link) {
+      if (!/this\\.media\\s*=\\s*'all'/.test(link.getAttribute('onload') || '')) return;
+      var promote = function () { link.media = 'all'; };
+      if (link.sheet) promote(); else link.addEventListener('load', promote, { once: true });
+    });
+  }
+  window.__commerceBootTheme = function () {
+    promoteSheets();
+    var parked = Array.prototype.slice.call(document.querySelectorAll('script[type="text/x-theme-deferred"]'));
+    return parked.reduce(function (chain, node) {
+      return chain.then(function () { return runParked(node); });
+    }, Promise.resolve());
   };
 })();`
