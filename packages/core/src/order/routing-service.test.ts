@@ -291,3 +291,61 @@ describe('placeOrder routes to warehouses', () => {
     expect(await total()).toBe(3)
   })
 })
+
+describe('each parcel is taxed from its own GSTIN', () => {
+  it('a split order bills each parcel CGST + SGST or IGST by where it leaves from', async () => {
+    const t = await seed()
+    await stock(t, t.shirt, { [t.haryana]: 1 })
+    await stock(t, t.cap, { [t.delhi]: 1 })
+    const placed = await place(
+      t,
+      [
+        [t.shirt, 1],
+        [t.cap, 1],
+      ],
+      'DL',
+    )
+    const parcels = await parcelsOf(placed.orderId)
+    // Delhi is the buyer's own state, so it ships first; Haryana sends the shirt.
+    expect(parcels.map((p) => p.locationId)).toEqual([t.delhi, t.haryana])
+    const [delhi, haryana] = parcels
+    expect(delhi).toMatchObject({
+      gstRegistrationId: t.reg('07'),
+      subtotalPaise: 59_000,
+      totalPaise: 59_000,
+      taxPaise: 9_000,
+      taxBreakdown: expect.objectContaining({ cgstPaise: 4_500, sgstPaise: 4_500, igstPaise: 0 }),
+      taxOrigin: expect.objectContaining({ gstin: GSTINS.DL, stateCode: 'DL' }),
+    })
+    expect(haryana).toMatchObject({
+      gstRegistrationId: t.reg('06'),
+      totalPaise: 118_000,
+      taxPaise: 18_000,
+      taxBreakdown: expect.objectContaining({ igstPaise: 18_000, cgstPaise: 0 }),
+      taxOrigin: expect.objectContaining({ gstin: GSTINS.HR, stateCode: 'HR' }),
+    })
+    const [o] = await owner.select().from(order).where(eq(order.id, placed.orderId))
+    // The shopper pays the same; the order's GST is the parcels' sum.
+    expect(o?.totalPaise).toBe(177_000)
+    expect(o?.taxPaise).toBe(27_000)
+    expect(o?.taxBreakdown).toMatchObject({
+      cgstPaise: 4_500,
+      sgstPaise: 4_500,
+      igstPaise: 18_000,
+      interState: false,
+    })
+    // Billed from the parcel holding the most value.
+    expect(o?.gstRegistrationId).toBe(t.reg('06'))
+  })
+
+  it('a parcel from a composition GSTIN charges no GST', async () => {
+    const t = await seed({ mumbaiComposition: true })
+    await stock(t, t.shirt, { [t.mumbai]: 1 })
+    const placed = await place(t, [[t.shirt, 1]], 'MH')
+    const [only] = await parcelsOf(placed.orderId)
+    expect(only).toMatchObject({ locationId: t.mumbai, totalPaise: 118_000, taxPaise: 0 })
+    const [o] = await owner.select().from(order).where(eq(order.id, placed.orderId))
+    expect(o?.totalPaise).toBe(118_000)
+    expect(o?.taxPaise).toBe(0)
+  })
+})

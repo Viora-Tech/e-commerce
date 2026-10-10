@@ -1,3 +1,4 @@
+import { gstRowsToShow } from '@commerce/core/gst'
 import type { orderDetailContent } from '@/data/orders'
 import type { Formatters } from '@/lib/format'
 import type { OrderDetail } from './order-detail-types'
@@ -37,16 +38,19 @@ function billedFrom(order: OrderDetail, copy: typeof orderDetailContent): TotalR
 function taxRows(order: OrderDetail, copy: typeof orderDetailContent, fmt: Formatters): TotalRow[] {
   const tax = order.taxBreakdown as TaxBreakdown | null
   if (!tax || tax.taxPaise <= 0) return []
-  /* Prices already include GST, so these lines explain the total rather than add to it. */
-  if (tax.interState) {
-    return [
-      { label: copy.items.igst(tax.ratePercent), value: fmt.money(tax.igstPaise), muted: true },
-      ...billedFrom(order, copy),
-    ]
-  }
+  /* Prices already include GST, so these lines explain the total rather than add to it. Parcels
+     from different states put both CGST + SGST and IGST on one order. */
+  const show = gstRowsToShow(tax)
   return [
-    { label: copy.items.cgst(tax.ratePercent), value: fmt.money(tax.cgstPaise), muted: true },
-    { label: copy.items.sgst(tax.ratePercent), value: fmt.money(tax.sgstPaise), muted: true },
+    ...(show.intraState
+      ? [
+          { label: copy.items.cgst(tax.ratePercent), value: fmt.money(tax.cgstPaise), muted: true },
+          { label: copy.items.sgst(tax.ratePercent), value: fmt.money(tax.sgstPaise), muted: true },
+        ]
+      : []),
+    ...(show.interState
+      ? [{ label: copy.items.igst(tax.ratePercent), value: fmt.money(tax.igstPaise), muted: true }]
+      : []),
     ...billedFrom(order, copy),
   ]
 }

@@ -18,6 +18,7 @@ import {
   gstRegistration,
   inventoryLevel,
   location,
+  type OrderTaxOrigin,
   order,
   orderLine,
   primarySellingLevel,
@@ -45,7 +46,23 @@ export type ParcelPlan = {
   status: Extract<FulfillmentOrderStatus, 'open' | 'on_hold'>
   /** It holds more than its location has (order/routing.ts rule 4). */
   needsTransfer?: boolean | undefined
+  /** Its share of the order's money and the GST in it (tax/parcel-gst.ts), when worked out. */
+  money?: ParcelMoney | undefined
   lines: { orderLineId: string; quantity: number; fulfilledQuantity: number }[]
+}
+
+/** A parcel's share of the order's money and tax, as stored on its fulfilment order. */
+export type ParcelMoney = {
+  subtotalPaise: number
+  discountPaise: number
+  adjustmentPaise: number
+  shippingPaise: number
+  totalPaise: number
+  taxPaise: number
+  taxBreakdown: unknown
+  taxOrigin: OrderTaxOrigin
+  /** The GSTIN the tax was split from; wins over the location's link. */
+  gstRegistrationId: string | null
 }
 
 /**
@@ -127,10 +144,13 @@ export async function createFulfillmentOrders(
         storeId: ctx.storeId,
         orderId: input.orderId,
         locationId: plan.locationId,
-        gstRegistrationId: registrations.get(plan.locationId) ?? input.fallbackRegistrationId,
+        gstRegistrationId: plan.money
+          ? plan.money.gstRegistrationId
+          : (registrations.get(plan.locationId) ?? input.fallbackRegistrationId),
         position,
         status: input.cancelled ? 'cancelled' : statusAfterPacking(plan),
         needsTransfer: plan.needsTransfer ?? false,
+        ...(plan.money ?? {}),
       })
       .returning({ id: fulfillmentOrder.id })
     if (!fo) throw new Error('fulfilment order insert returned nothing')

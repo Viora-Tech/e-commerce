@@ -1,4 +1,4 @@
-/** SOURCE OF TRUTH: taxOriginForParcels, pickTaxOrigin, ORIGIN_FALLBACK,
+/** SOURCE OF TRUTH: taxOriginForParcels, compositionRegistrations, pickTaxOrigin, ORIGIN_FALLBACK,
  *   documentRegistration, listGstNumbers, SellerRegistration
  * WHAT:  Which GSTIN an order is billed from (its tax origin), and the seller a GST document
  *        prints for a registration.
@@ -23,7 +23,7 @@ import {
   type OrderTaxOrigin,
   type StoreTx,
 } from '@commerce/db'
-import { asc, desc, eq, inArray, sql } from 'drizzle-orm'
+import { and, asc, desc, eq, inArray, sql } from 'drizzle-orm'
 import { gstinState } from './gstin'
 import { type LegalAddress, LegalAddressSchema } from './registration-schemas'
 import { INDIAN_STATE_NAMES, stateCode } from './states'
@@ -140,6 +140,22 @@ export async function taxOriginForParcels(
     defaultRegistration: fallback ?? null,
     storeState: input.storeState,
   })
+}
+
+/** Which of these GSTINs are under the composition scheme (they charge no GST). */
+export async function compositionRegistrations(
+  tx: StoreTx,
+  ids: readonly (string | null)[],
+): Promise<Set<string>> {
+  const wanted = [...new Set(ids.filter((id): id is string => id !== null))]
+  if (wanted.length === 0) return new Set()
+  const rows = await tx
+    .select({ id: gstRegistration.id })
+    .from(gstRegistration)
+    .where(
+      and(inArray(gstRegistration.id, wanted), eq(gstRegistration.registrationType, 'composition')),
+    )
+  return new Set(rows.map((r) => r.id))
 }
 
 /** Everything a GST document prints about the supplier, for one registration. */

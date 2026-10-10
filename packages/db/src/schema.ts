@@ -1131,6 +1131,22 @@ export const fulfillmentOrder = pgTable(
      * holds more than its location has: the merchant moves stock in before packing.
      */
     needsTransfer: boolean('needs_transfer').notNull().default(false),
+    /*
+     * The parcel's share of the order's money (PARCEL_ALLOCATION in @commerce/core
+     * tax/parcel-gst.ts): its goods, and the order discount, payment fee or discount and
+     * shipping shared out by goods value. Shares add back to the order's totals exactly. Null on
+     * parcels made without them (drafts, orders older than 0099 with more than one parcel).
+     */
+    subtotalPaise: integer('subtotal_paise'),
+    discountPaise: integer('discount_paise'),
+    adjustmentPaise: integer('adjustment_paise'),
+    shippingPaise: integer('shipping_paise'),
+    totalPaise: integer('total_paise'),
+    /** GST inside `total_paise`, split from this parcel's GSTIN state (OrderGst). */
+    taxPaise: integer('tax_paise'),
+    taxBreakdown: jsonb('tax_breakdown'),
+    /** Where this parcel's GST split was worked out from, as at checkout. */
+    taxOrigin: jsonb('tax_origin').$type<OrderTaxOrigin>(),
     createdAt: createdAt(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   },

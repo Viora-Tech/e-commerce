@@ -43,7 +43,7 @@ import {
 } from '../preorder/store-settings'
 import { returnTemplateData } from '../returns/notify'
 import { storeNotificationChannels } from '../sender-email/channels'
-import type { GstBreakdown } from '../tax/gst'
+import { type GstBreakdown, gstRowsToShow } from '../tax/gst'
 import { isMessageOn } from './messages'
 import { parseNotificationSettings } from './settings'
 
@@ -117,16 +117,19 @@ function taxLines(o: typeof order.$inferSelect): TemplateData['taxBreakdown'] {
   const t = o.taxBreakdown
   if (!isGst(t) || t.taxPaise <= 0) return undefined
   const taxableLabel = formatMoney(o.totalPaise - t.taxPaise)
-  if (t.interState) {
-    return [
-      { label: 'Taxable value', amount: taxableLabel },
-      { label: `IGST (${t.ratePercent}%)`, amount: formatMoney(t.igstPaise) },
-    ]
-  }
+  // Parcels from different states put both CGST + SGST and IGST on one order.
+  const show = gstRowsToShow(t)
   return [
     { label: 'Taxable value', amount: taxableLabel },
-    { label: `CGST (${t.ratePercent / 2}%)`, amount: formatMoney(t.cgstPaise) },
-    { label: `SGST (${t.ratePercent / 2}%)`, amount: formatMoney(t.sgstPaise) },
+    ...(show.intraState
+      ? [
+          { label: `CGST (${t.ratePercent / 2}%)`, amount: formatMoney(t.cgstPaise) },
+          { label: `SGST (${t.ratePercent / 2}%)`, amount: formatMoney(t.sgstPaise) },
+        ]
+      : []),
+    ...(show.interState
+      ? [{ label: `IGST (${t.ratePercent}%)`, amount: formatMoney(t.igstPaise) }]
+      : []),
   ]
 }
 
