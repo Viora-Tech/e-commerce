@@ -5,6 +5,7 @@ import {
   freeShippingThreshold,
   loadRateZones,
   parseShippingSettings,
+  previewCartParcels,
   primaryShippingProvider,
   quoteCartShipping,
   type Serviceability,
@@ -30,6 +31,7 @@ import {
   parsePincode,
 } from '@commerce/shipping'
 import { eq } from 'drizzle-orm'
+import { itemTitle, parcelFrom, type ShopperParcel } from './parcels'
 
 const env = () => loadEnv(process.env)
 
@@ -44,25 +46,36 @@ export async function loadShippingSettings(
 /**
  * Delivery estimate for a pincode, with the courier's serviceability answer
  * cached per store for a day. The date maths always runs fresh - it depends
- * on the clock; the cache only remembers what the courier said.
+ * on the clock; the cache only remembers what the courier said. `originPincode`
+ * is where the parcel leaves from (a warehouse's PIN code); omitted, the store's.
  */
 export async function estimateForPincode(
   tx: StoreTx,
   storeId: string,
   pincode: string,
+  originPincode?: string | null,
 ): Promise<DeliveryEstimate> {
   const settings = await loadShippingSettings(tx, storeId)
   const secret = env().SETTINGS_SECRET
   const { shipping } = await registriesForStore(tx, storeId)
   const provider = primaryShippingProvider(shipping, settings, secret)
   const parsed = parsePincode(pincode)
-  const policy = toShippingPolicy(settings)
+  const storePolicy = toShippingPolicy(settings)
+  const origin = originPincode ? parsePincode(originPincode) : null
+  const policy = origin?.ok ? { ...storePolicy, originPincode: origin.pincode } : storePolicy
   if (!provider || !parsed.ok) {
     return estimateDelivery({ pincode, policy, provider, now: new Date() })
   }
 
   const redis = sharedRedis(env().REDIS_URL)
-  const key = serviceabilityKey(storeId, provider.id, parsed.pincode)
+  // Each origin has its own answer; the store's own origin keeps the key it always had.
+  const key = serviceabilityKey(
+    storeId,
+    provider.id,
+    policy.originPincode === storePolicy.originPincode
+      ? parsed.pincode
+      : `${policy.originPincode}>${parsed.pincode}`,
+  )
   let answer = await cacheGet<Serviceability>(redis, key)
   let reachable = true
   if (!answer) {
@@ -117,6 +130,8 @@ export type CheckoutShipping = {
    * this address. `rates`: the options, cheapest first.
    */
   rates: { kind: 'free' } | { kind: 'none' } | { kind: 'rates'; options: CheckoutRate[] }
+  /** "Ships in 2 parcels": filled only when the order would split across warehouses. */
+  parcels: ShopperParcel[]
 }
 
 /** A rate's own delivery promise, or the courier's when the rate sets none. */
@@ -151,13 +166,18 @@ export async function checkoutShipping(
   to: { pincode: string; stateCode: string },
 ): Promise<CheckoutShipping> {
   const delivery = await estimateForPincode(tx, storeId, to.pincode)
-  if (!delivery.ok || !delivery.serviceable) return { delivery, rates: { kind: 'none' } }
+  if (!delivery.ok || !delivery.serviceable) {
+    return { delivery, rates: { kind: 'none' }, parcels: [] }
+  }
+  const split = await checkoutParcels(tx, storeId, cartId, to)
+  const parcels = split.length > 1 ? split : []
   const quote = await quoteCartShipping({ storeId, tx }, cartId, to)
-  if (quote.kind === 'not_configured') return { delivery, rates: { kind: 'free' } }
-  if (quote.kind === 'no_rates') return { delivery, rates: { kind: 'none' } }
+  if (quote.kind === 'not_configured') return { delivery, rates: { kind: 'free' }, parcels }
+  if (quote.kind === 'no_rates') return { delivery, rates: { kind: 'none' }, parcels }
   const settings = await loadShippingSettings(tx, storeId)
   return {
     delivery,
+    parcels,
     rates: {
       kind: 'rates',
       options: quote.options.map((o) => ({
@@ -169,4 +189,36 @@ export async function checkoutShipping(
       })),
     },
   }
+}
+
+/**
+ * Where the cart would ship from to this address, one entry per parcel, each with the courier's
+ * estimate from its own location. Empty when it cannot be worked out (placing the order then
+ * refuses with its own message).
+ */
+export async function checkoutParcels(
+  tx: StoreTx,
+  storeId: string,
+  cartId: string,
+  to: { pincode: string; stateCode: string },
+): Promise<ShopperParcel[]> {
+  const previews = await previewCartParcels({ storeId, tx }, cartId, to.stateCode)
+  const out: ShopperParcel[] = []
+  for (const p of previews) {
+    const e = await estimateForPincode(tx, storeId, to.pincode, p.pincode)
+    const ok = e.ok && e.serviceable
+    out.push({
+      key: `${p.locationId}:${p.status}`,
+      from: parcelFrom(p),
+      items: p.lines.map((l) => ({
+        title: itemTitle(l.title, l.variantTitle),
+        quantity: l.quantity,
+      })),
+      dateRange: ok ? e.dateRange : null,
+      onHold: p.status === 'on_hold',
+      locationId: p.locationId,
+      estimate: ok ? { earliest: e.earliestDate, latest: e.latestDate } : null,
+    })
+  }
+  return out
 }

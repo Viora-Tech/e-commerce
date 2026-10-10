@@ -99,14 +99,15 @@ export async function loadRoutingLocations(
   })
 }
 
-/** Lock and read the inventory rows of these variants at these locations, in id order. */
-async function lockLevels(
+/** Read the inventory rows of these variants at these locations, locked in id order. */
+async function readLevels(
   tx: StoreTx,
   variantIds: readonly string[],
   locationIds: readonly string[],
+  lock: boolean,
 ): Promise<Level[]> {
   if (variantIds.length === 0 || locationIds.length === 0) return []
-  const rows = await tx
+  const query = tx
     .select({
       id: inventoryLevel.id,
       variantId: inventoryLevel.variantId,
@@ -122,7 +123,8 @@ async function lockLevels(
       ),
     )
     .orderBy(asc(inventoryLevel.id))
-    .for('update')
+  // A preview reads without locking; placing an order locks so checkouts queue.
+  const rows = lock ? await query.for('update') : await query
   return rows.flatMap((r) => (r.locationId ? [{ ...r, locationId: r.locationId }] : []))
 }
 
@@ -159,17 +161,11 @@ export async function releaseReserved(
   }
 }
 
-/**
- * Route the order's goods and hold their stock. Throws OutOfStock when the store cannot cover a
- * line, and CannotShipToState when no warehouse may ship to the buyer's state. Gift card lines
- * are left out.
- */
-export async function routeAndReserve(
-  ctx: StoreContext,
-  input: { lines: readonly RouteLineInput[]; buyerState: string | null },
-): Promise<{ parcels: RoutedParcel[]; reserved: ReservedUnits[] }> {
+type RouteInput = { lines: readonly RouteLineInput[]; buyerState: string | null }
+
+/** Load what routing needs and route (order/routing.ts); `lock` holds the stock rows. */
+async function planRoute(ctx: StoreContext, input: RouteInput, lock: boolean) {
   const goods = input.lines.filter((l) => !l.giftCard && l.quantity > 0)
-  if (goods.length === 0) return { parcels: [], reserved: [] }
   const variantIds = [...new Set(goods.map((l) => l.variantId))]
   const trackedRows = await ctx.tx
     .select({ id: variant.id, trackInventory: variant.trackInventory })
@@ -184,10 +180,11 @@ export async function routeAndReserve(
   const { maxParcels } = parseShippingSettings(s?.shipping).routing
 
   const places = await loadRoutingLocations(ctx.tx, ctx.storeId)
-  const levels = await lockLevels(
+  const levels = await readLevels(
     ctx.tx,
     variantIds.filter(tracked),
     places.map((p) => p.id),
+    lock,
   )
   const levelAt = (variantId: string, locationId: string) =>
     levels.find((l) => l.variantId === variantId && l.locationId === locationId)
@@ -211,6 +208,34 @@ export async function routeAndReserve(
     buyerState,
     maxParcels,
   })
+  return { goods, tracked, levelAt, result, buyerState }
+}
+
+/**
+ * Where an order with these lines would ship from, without holding anything: what checkout
+ * shows before the order is placed ("Ships in 2 parcels"). Placing it routes again under locks,
+ * so stock that moves in between can change the answer.
+ */
+export async function previewRoute(ctx: StoreContext, input: RouteInput) {
+  if (!input.lines.some((l) => !l.giftCard && l.quantity > 0)) {
+    return { kind: 'routed' as const, parcels: [] }
+  }
+  return (await planRoute(ctx, input, false)).result
+}
+
+/**
+ * Route the order's goods and hold their stock. Throws OutOfStock when the store cannot cover a
+ * line, and CannotShipToState when no warehouse may ship to the buyer's state. Gift card lines
+ * are left out.
+ */
+export async function routeAndReserve(
+  ctx: StoreContext,
+  input: RouteInput,
+): Promise<{ parcels: RoutedParcel[]; reserved: ReservedUnits[] }> {
+  if (!input.lines.some((l) => !l.giftCard && l.quantity > 0)) {
+    return { parcels: [], reserved: [] }
+  }
+  const { goods, tracked, levelAt, result, buyerState } = await planRoute(ctx, input, true)
   if (result.kind === 'no_location') throw new CannotShipToState(buyerState, ctx.storeId)
   if (result.kind === 'out_of_stock') throw new OutOfStock(result.variantId, ctx.storeId)
 

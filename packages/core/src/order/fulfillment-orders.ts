@@ -21,6 +21,7 @@ import {
   type OrderTaxOrigin,
   order,
   orderLine,
+  type ParcelDeliveryEstimate,
   primarySellingLevel,
   type StoreTx,
   shipment,
@@ -48,6 +49,8 @@ export type ParcelPlan = {
   needsTransfer?: boolean | undefined
   /** Its share of the order's money and the GST in it (tax/parcel-gst.ts), when worked out. */
   money?: ParcelMoney | undefined
+  /** When the shopper was told it arrives (checkout's courier estimate from its location). */
+  deliveryEstimate?: ParcelDeliveryEstimate | null | undefined
   lines: { orderLineId: string; quantity: number; fulfilledQuantity: number }[]
 }
 
@@ -150,6 +153,7 @@ export async function createFulfillmentOrders(
         position,
         status: input.cancelled ? 'cancelled' : statusAfterPacking(plan),
         needsTransfer: plan.needsTransfer ?? false,
+        deliveryEstimate: plan.deliveryEstimate ?? null,
         ...(plan.money ?? {}),
       })
       .returning({ id: fulfillmentOrder.id })

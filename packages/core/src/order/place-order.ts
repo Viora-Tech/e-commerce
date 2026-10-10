@@ -8,9 +8,9 @@ import {
   discountUsage,
   type MarketingAttribution,
   newId,
-  type OrderTaxOrigin,
   order,
   orderLine,
+  type ParcelDeliveryEstimate,
   payment,
   product,
   store,
@@ -64,15 +64,10 @@ import { StoreAddressSchema } from '../settings/general'
 import { quoteShipping, type ShippingRateOption } from '../shipping/rates'
 import { loadRateZones } from '../shipping/rates-service'
 import { computeOrderGst } from '../tax/gst'
-import { compositionRegistrations, taxOriginForParcels } from '../tax/origin'
-import { computeParcelGst, mergeOrderGst, type ParcelGst } from '../tax/parcel-gst'
 import { chargedGstRate, parseStoreTax, type StoreTaxSettings } from '../tax/settings'
 import { runWorkflow, type WorkflowLog, type WorkflowStep } from '../workflow/run'
-import {
-  createFulfillmentOrders,
-  deleteFulfillmentOrders,
-  type ParcelMoney,
-} from './fulfillment-orders'
+import { createFulfillmentOrders, deleteFulfillmentOrders } from './fulfillment-orders'
+import { taxParcels } from './parcel-tax'
 import { recomputeOrderStatuses } from './recompute'
 import type { RoutedParcel } from './routing'
 import { type ReservedUnits, releaseReserved, routeAndReserve } from './routing-service'
@@ -95,6 +90,12 @@ export type PlaceOrderInput = {
   paymentProvider: PaymentProvider
   /** Optional in tests; required by the storefront checkout. */
   checkout?: CheckoutDetails
+  /**
+   * The delivery window checkout showed for parcels from each location (by location id), from
+   * the courier's estimate. Stored on the parcels that ship from there; a parcel routed to a
+   * location checkout did not preview gets none.
+   */
+  deliveryEstimates?: Readonly<Record<string, ParcelDeliveryEstimate>> | undefined
   /**
    * `SETTINGS_SECRET` (the caller already has it — see `packages/api/src/routers/*`'s
    * `secret()` helper), used to encrypt the new/updated `customer.phone` on the customer
@@ -546,57 +547,35 @@ const createOrder: WorkflowStep<State> = {
       quantity * (lines[Number(key)]?.unitPricePaise ?? 0)
     const storeState = storeAddress.success ? storeAddress.data.state : null
     const shipToState = input.checkout?.address.stateCode ?? null
-    const parcelGross = (p: RoutedParcel) =>
-      p.lines.reduce((sum, l) => sum + grossOf(l.key, l.quantity), 0)
-    // The order is billed from the parcel holding the most value; each parcel from its own.
-    const origin = await taxOriginForParcels(ctx.tx, {
-      parcels: parcels.map((p) => ({ locationId: p.locationId, grossPaise: parcelGross(p) })),
-      storeState,
-    })
-    const parcelOrigins = await Promise.all(
-      parcels.map((p) =>
-        taxOriginForParcels(ctx.tx, {
-          parcels: [{ locationId: p.locationId, grossPaise: parcelGross(p) }],
-          storeState,
-        }),
-      ),
-    )
-    const composition = await compositionRegistrations(
-      ctx.tx,
-      parcelOrigins.map((o) => o.gstRegistrationId),
-    )
-    // Each parcel splits its own GST; the order's is their sum (tax/parcel-gst.ts).
-    const parcelGst = computeParcelGst({
-      parcels: parcels.map((p, i) => ({
-        key: String(i),
-        lines: p.lines.map((l) => {
-          const line = lines[Number(l.key)]
-          return {
-            grossPaise: grossOf(l.key, l.quantity),
-            ratePercent: line ? lineGstRate(line, s.gstRatePercent, storeTax) : 0,
-          }
-        }),
-        originState: parcelOrigins[i]?.stateCode ?? null,
-        composition: composition.has(parcelOrigins[i]?.gstRegistrationId ?? ''),
-      })),
+    // Each parcel splits its own GST from its GSTIN; the order's is their sum (parcel-tax.ts).
+    const billed = await taxParcels(ctx.tx, {
+      parcels,
+      lineOf: (key, quantity) => {
+        const line = lines[Number(key)]
+        return {
+          grossPaise: grossOf(key, quantity),
+          ratePercent: line ? lineGstRate(line, s.gstRatePercent, storeTax) : 0,
+        }
+      },
       discountPaise,
       adjustmentPaise,
       shippingPaise,
       shipToState,
+      storeState,
     })
+    const origin = billed.origin
     const tax =
-      parcels.length > 0
-        ? mergeOrderGst(parcelGst.map((g) => g.gst))
-        : computeOrderGst({
-            lines: lines.map((l) => ({
-              grossPaise: l.quantity * l.unitPricePaise,
-              ratePercent: lineGstRate(l, s.gstRatePercent, storeTax),
-            })),
-            totalPaise,
-            reductionPaise: discountPaise + Math.max(0, -adjustmentPaise),
-            shipToState,
-            storeState: origin.stateCode,
-          })
+      billed.tax ??
+      computeOrderGst({
+        lines: lines.map((l) => ({
+          grossPaise: l.quantity * l.unitPricePaise,
+          ratePercent: lineGstRate(l, s.gstRatePercent, storeTax),
+        })),
+        totalPaise,
+        reductionPaise: discountPaise + Math.max(0, -adjustmentPaise),
+        shipToState,
+        storeState: origin.stateCode,
+      })
     const [o] = await ctx.tx
       .insert(order)
       .values({
@@ -678,7 +657,8 @@ const createOrder: WorkflowStep<State> = {
         locationId: p.locationId,
         status: p.status,
         needsTransfer: p.needsTransfer,
-        money: moneyOf(parcelGst[i], parcelOrigins[i]),
+        money: billed.money[i],
+        deliveryEstimate: input.deliveryEstimates?.[p.locationId] ?? null,
         lines: p.lines.map((l) => ({
           orderLineId: lineIds[Number(l.key)] as string,
           quantity: l.quantity,
@@ -796,25 +776,6 @@ async function claimDiscountUse(
  * GST at the line's rate; a gift card sale is a voucher, taxed only when it is
  * redeemed. A composition-scheme store charges no GST on anything.
  */
-/** A parcel's share and tax as its fulfilment order stores them. */
-function moneyOf(
-  gst: ParcelGst | undefined,
-  origin: OrderTaxOrigin | undefined,
-): ParcelMoney | undefined {
-  if (!gst || !origin) return undefined
-  return {
-    subtotalPaise: gst.subtotalPaise,
-    discountPaise: gst.discountPaise,
-    adjustmentPaise: gst.adjustmentPaise,
-    shippingPaise: gst.shippingPaise,
-    totalPaise: gst.totalPaise,
-    taxPaise: gst.gst.taxPaise,
-    taxBreakdown: gst.gst,
-    taxOrigin: origin,
-    gstRegistrationId: origin.gstRegistrationId,
-  }
-}
-
 const lineGstRate = (l: Line, storeRate: number, tax: StoreTaxSettings): number =>
   l.giftCard || !l.taxable ? 0 : chargedGstRate(l.gstRatePercent ?? storeRate, tax)
 

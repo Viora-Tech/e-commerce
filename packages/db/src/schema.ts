@@ -1151,6 +1151,11 @@ export const fulfillmentOrder = pgTable(
     taxBreakdown: jsonb('tax_breakdown'),
     /** Where this parcel's GST split was worked out from, as at checkout. */
     taxOrigin: jsonb('tax_origin').$type<OrderTaxOrigin>(),
+    /**
+     * When the shopper was told this parcel arrives (the courier's estimate from its location to
+     * the address, at checkout): civil dates, `YYYY-MM-DD`. Null when none was worked out.
+     */
+    deliveryEstimate: jsonb('delivery_estimate').$type<ParcelDeliveryEstimate>(),
     createdAt: createdAt(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   },
@@ -1164,6 +1169,9 @@ export const fulfillmentOrder = pgTable(
     ),
   ],
 )
+
+/** A parcel's promised delivery window, civil dates (`2026-10-18`). */
+export type ParcelDeliveryEstimate = { earliest: string; latest: string }
 
 /** How many units of one order line a fulfilment order holds, and how many it has packed. */
 export const fulfillmentOrderLine = pgTable(

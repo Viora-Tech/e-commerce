@@ -13,6 +13,8 @@ import {
 } from '@/data/account'
 import { INDIAN_STATES } from '@/data/checkout'
 import { reorderAction } from '@/lib/account-actions'
+import { shopperParcels } from '@/lib/parcels'
+import OrderParcels from './order-parcels'
 import StatusPill from './status-pill'
 import TrackingTimeline from './tracking-timeline'
 
@@ -101,6 +103,8 @@ export default function OrderDetail({
             </h3>
             <TrackingTimeline tracking={o.tracking} timeZone={timeZone} />
           </section>
+
+          <OrderParcels parcels={shopperParcels(o.parcels)} />
 
           <section className={card} aria-labelledby="order-items">
             <h3 id="order-items" className="h4">

@@ -1,4 +1,5 @@
 import {
+  address,
   business,
   cart,
   cartLine,
@@ -9,6 +10,7 @@ import {
   inventoryLevel,
   location,
   order,
+  orderLine,
   product,
   sellableStock,
   store,
@@ -20,7 +22,9 @@ import { and, asc, eq } from 'drizzle-orm'
 import { afterAll, beforeEach, describe, expect, it } from 'vitest'
 import { CannotShipToState, OutOfStock } from '../errors'
 import { FakePaymentProvider } from '../providers/payment'
-import { placeOrder } from './place-order'
+import { convertDraft } from './drafts'
+import { orderParcelsView, previewCartParcels } from './parcel-view'
+import { type PlaceOrderInput, placeOrder } from './place-order'
 
 const owner = createDb(process.env.DATABASE_URL_OWNER as string)
 const app = createDb(process.env.DATABASE_URL as string)
@@ -135,7 +139,7 @@ async function stock(t: Seeded, variantId: string, at: Record<string, number>) {
   }
 }
 
-async function place(t: Seeded, lines: [string, number][], stateCode: string) {
+async function cartOf(t: Seeded, lines: [string, number][]) {
   const [c] = await owner.insert(cart).values({ storeId: t.storeId }).returning()
   if (!c) throw new Error('seed')
   for (const [variantId, quantity] of lines) {
@@ -147,12 +151,23 @@ async function place(t: Seeded, lines: [string, number][], stateCode: string) {
       unitPricePaise: variantId === t.shirt ? 118_000 : 59_000,
     })
   }
+  return c
+}
+
+async function place(
+  t: Seeded,
+  lines: [string, number][],
+  stateCode: string,
+  extra: Pick<PlaceOrderInput, 'deliveryEstimates'> = {},
+) {
+  const c = await cartOf(t, lines)
   return withStore(app, t.storeId, (tx) =>
     placeOrder(
       { storeId: t.storeId, tx },
       {
         cartId: c.id,
         paymentProvider: new FakePaymentProvider(),
+        ...extra,
         checkout: {
           email: 'a@example.com',
           phone: '9820012345',
@@ -347,5 +362,119 @@ describe('each parcel is taxed from its own GSTIN', () => {
     const [o] = await owner.select().from(order).where(eq(order.id, placed.orderId))
     expect(o?.totalPaise).toBe(118_000)
     expect(o?.taxPaise).toBe(0)
+  })
+})
+
+describe('what the shopper is shown', () => {
+  it('previews the parcels of a cart without holding any stock', async () => {
+    const t = await seed()
+    await owner.update(location).set({ city: 'New Delhi' }).where(eq(location.id, t.delhi))
+    await stock(t, t.shirt, { [t.haryana]: 1 })
+    await stock(t, t.cap, { [t.delhi]: 1 })
+    const c = await cartOf(t, [
+      [t.shirt, 1],
+      [t.cap, 1],
+    ])
+    const preview = await withStore(app, t.storeId, (tx) =>
+      previewCartParcels({ storeId: t.storeId, tx }, c.id, 'DL'),
+    )
+    expect(preview.map((p) => [p.locationName, p.city, p.stateName, p.lines.length])).toEqual([
+      ['Delhi', 'New Delhi', 'Delhi', 1],
+      ['Haryana', null, 'Haryana', 1],
+    ])
+    expect(preview[0]?.lines[0]).toMatchObject({ variantId: t.cap, title: 'Tee', quantity: 1 })
+    expect(await committed(t.cap, t.delhi)).toMatchObject({ reserved: 0 })
+  })
+
+  it('a cart nothing can cover previews no parcels', async () => {
+    const t = await seed()
+    const c = await cartOf(t, [[t.shirt, 1]])
+    const preview = await withStore(app, t.storeId, (tx) =>
+      previewCartParcels({ storeId: t.storeId, tx }, c.id, 'DL'),
+    )
+    expect(preview).toEqual([])
+  })
+
+  it('keeps the delivery window checkout showed on each parcel', async () => {
+    const t = await seed()
+    await stock(t, t.shirt, { [t.haryana]: 1 })
+    await stock(t, t.cap, { [t.delhi]: 1 })
+    const placed = await place(
+      t,
+      [
+        [t.shirt, 1],
+        [t.cap, 1],
+      ],
+      'DL',
+      { deliveryEstimates: { [t.delhi]: { earliest: '2026-10-13', latest: '2026-10-14' } } },
+    )
+    const views = await withStore(app, t.storeId, (tx) => orderParcelsView(tx, placed.orderId))
+    expect(views.map((v) => [v.locationName, v.deliveryEstimate])).toEqual([
+      ['Delhi', { earliest: '2026-10-13', latest: '2026-10-14' }],
+      ['Haryana', null],
+    ])
+  })
+})
+
+describe('a converted draft is billed like a checkout', () => {
+  it('routes, splits and taxes each parcel from its own GSTIN', async () => {
+    const t = await seed()
+    await stock(t, t.shirt, { [t.haryana]: 1 })
+    await stock(t, t.cap, { [t.delhi]: 1 })
+    const [a] = await owner
+      .insert(address)
+      .values({
+        storeId: t.storeId,
+        name: 'Aarav',
+        line1: '1 Road',
+        city: 'Delhi',
+        stateCode: 'DL',
+        pincode: '110001',
+        phone: '9820012345',
+      })
+      .returning()
+    const [d] = await owner
+      .insert(order)
+      .values({
+        storeId: t.storeId,
+        number: 9,
+        status: 'draft',
+        shippingAddressId: a?.id,
+        subtotalPaise: 177_000,
+        totalPaise: 177_000,
+      })
+      .returning()
+    await owner.insert(orderLine).values([
+      {
+        storeId: t.storeId,
+        orderId: d?.id as string,
+        variantId: t.shirt,
+        quantity: 1,
+        unitPricePaise: 118_000,
+        gstRatePercent: 18,
+      },
+      {
+        storeId: t.storeId,
+        orderId: d?.id as string,
+        variantId: t.cap,
+        quantity: 1,
+        unitPricePaise: 59_000,
+        gstRatePercent: 18,
+      },
+    ])
+    await withStore(app, t.storeId, (tx) =>
+      convertDraft({ storeId: t.storeId, tx }, d?.id as string),
+    )
+    const parcels = await parcelsOf(d?.id as string)
+    expect(parcels.map((p) => [p.locationId, p.totalPaise, p.taxPaise])).toEqual([
+      [t.delhi, 59_000, 9_000],
+      [t.haryana, 118_000, 18_000],
+    ])
+    const [o] = await owner
+      .select()
+      .from(order)
+      .where(eq(order.id, d?.id as string))
+    expect(o).toMatchObject({ status: 'open', taxPaise: 27_000, gstRegistrationId: t.reg('06') })
+    expect(o?.taxBreakdown).toMatchObject({ cgstPaise: 4_500, sgstPaise: 4_500, igstPaise: 18_000 })
   })
 })

@@ -190,6 +190,37 @@ function primaryActionFor(
   }
 }
 
+/** "Ships in 2 parcels" as plain text lines; nothing for an order shipping in one. */
+function parcelsText(d: TemplateData): string[] {
+  const parcels = d.parcels ?? []
+  if (parcels.length < 2) return []
+  const p = shared.parcels
+  return [
+    '',
+    `${p.title(parcels.length)}:`,
+    ...parcels.flatMap((parcel, i) => [
+      `${p.parcel(i + 1, parcel.from)}${parcel.onHold ? ` (${p.onHold})` : parcel.dateRange ? ` (${p.arrives(parcel.dateRange)})` : ''}`,
+      ...parcel.items.map((item) => `- ${p.item(item.quantity, item.title)}`),
+    ]),
+  ]
+}
+
+/** The same, as the email's parcels block. */
+function parcelsBlock(d: TemplateData) {
+  const parcels = d.parcels ?? []
+  if (parcels.length < 2) return undefined
+  const p = shared.parcels
+  return {
+    title: p.title(parcels.length),
+    note: p.note,
+    parcels: parcels.map((parcel, i) => ({
+      heading: p.parcel(i + 1, parcel.from),
+      items: parcel.items.map((item) => p.item(item.quantity, item.title)),
+      when: parcel.onHold ? p.onHold : parcel.dateRange ? p.arrives(parcel.dateRange) : null,
+    })),
+  }
+}
+
 export async function renderEmail(template: TemplateId, d: TemplateData): Promise<EmailBody> {
   const c = templateContent[template]
   const lines = d.lines.map(shared.lineText)
@@ -215,6 +246,7 @@ export async function renderEmail(template: TemplateId, d: TemplateData): Promis
             `${shared.totalLabel}: ${d.totalLabel}`,
           ]
         : []),
+    ...parcelsText(d),
     '',
     c.outro(d),
     d.orderUrl ? `${shared.viewOrder}: ${d.orderUrl}` : '',
@@ -241,6 +273,7 @@ export async function renderEmail(template: TemplateId, d: TemplateData): Promis
       lines: gc ? [] : d.lines,
       totalLabel: gc ? undefined : d.totalLabel,
       taxBreakdown: gc ? undefined : d.taxBreakdown,
+      parcels: gc ? undefined : parcelsBlock(d),
       giftCard: gc,
       code: d.code,
       primaryAction,

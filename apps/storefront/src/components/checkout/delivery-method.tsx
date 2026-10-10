@@ -2,6 +2,7 @@
 
 import { formatPaise } from '@commerce/blocks'
 import CheckoutIcon from '@/components/checkout/checkout-icon'
+import CheckoutParcels from '@/components/checkout/checkout-parcels'
 import OptionCard from '@/components/checkout/option-card'
 import { checkoutContent as content } from '@/data/checkout'
 import type { CheckoutRate, CheckoutShipping } from '@/lib/shipping'
@@ -21,7 +22,8 @@ const price = (paise: number): string => (paise === 0 ? content.shippingFree : f
 
 /**
  * How the order travels. Before the PIN code is checked it says so; one rate is shown as
- * the chosen card; several are cards to pick from, each with its own dates and price.
+ * the chosen card; several are cards to pick from, each with its own dates and price. An order
+ * leaving from more than one warehouse lists its parcels under the cards.
  */
 export default function DeliveryMethod({
   shipping,
@@ -69,36 +71,43 @@ export default function DeliveryMethod({
   const free = shipping.rates.kind === 'free'
 
   return (
-    <fieldset className="flex flex-col gap-2.5 border-0! p-0!">
-      <legend className="sr-only">{content.deliveryMethod}</legend>
-      {free ? (
-        <OptionCard
-          name="shipping-rate"
-          value="free"
-          checked
-          onChange={() => undefined}
-          icon="truck"
-          title={content.delivery.free}
-          description={estimate}
-          meta={content.shippingFree}
-        />
-      ) : (
-        rates.map((o) => (
+    <div className="flex flex-col gap-3">
+      <fieldset className="flex flex-col gap-2.5 border-0! p-0!">
+        <legend className="sr-only">{content.deliveryMethod}</legend>
+        {free ? (
           <OptionCard
-            key={o.id}
             name="shipping-rate"
-            value={o.id}
-            checked={selectedId === o.id}
-            onChange={() => onSelect(o.id)}
+            value="free"
+            checked
+            onChange={() => undefined}
             icon="truck"
-            title={o.name || content.delivery.standard}
-            description={
-              o.dateRange ? content.rateDelivery(o.dateRange) : rates.length === 1 ? estimate : null
-            }
-            meta={price(o.pricePaise)}
+            title={content.delivery.free}
+            description={estimate}
+            meta={content.shippingFree}
           />
-        ))
-      )}
-    </fieldset>
+        ) : (
+          rates.map((o) => (
+            <OptionCard
+              key={o.id}
+              name="shipping-rate"
+              value={o.id}
+              checked={selectedId === o.id}
+              onChange={() => onSelect(o.id)}
+              icon="truck"
+              title={o.name || content.delivery.standard}
+              description={
+                o.dateRange
+                  ? content.rateDelivery(o.dateRange)
+                  : rates.length === 1
+                    ? estimate
+                    : null
+              }
+              meta={price(o.pricePaise)}
+            />
+          ))
+        )}
+      </fieldset>
+      <CheckoutParcels parcels={shipping.parcels} />
+    </div>
   )
 }

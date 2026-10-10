@@ -33,6 +33,40 @@ describe('templates', () => {
     expect(renderWhatsapp('order_placed', sampleTemplateData).text).toContain('#42')
   })
 
+  it('an order from two warehouses lists its parcels with dates; one parcel lists none', async () => {
+    const parcels = [
+      {
+        from: 'Gurugram, Haryana',
+        items: [{ title: 'Maboroshi mousepad', quantity: 1 }],
+        dateRange: 'Tue, 13 Oct - Wed, 14 Oct',
+        onHold: false,
+      },
+      {
+        from: 'New Delhi, Delhi',
+        items: [{ title: 'Hitscan Hyperlight / Black', quantity: 2 }],
+        dateRange: null,
+        onHold: true,
+      },
+    ]
+    const split = await renderEmail('order_placed', { ...sampleTemplateData, parcels })
+    expect(split.text).toContain('Ships in 2 parcels:')
+    expect(split.text).toContain(
+      'Parcel 1 from Gurugram, Haryana (Arrives Tue, 13 Oct - Wed, 14 Oct)',
+    )
+    expect(split.text).toContain(
+      'Parcel 2 from New Delhi, Delhi (Pre-order: ships when it arrives)',
+    )
+    expect(split.text).toContain('- 2 × Hitscan Hyperlight / Black')
+    expect(split.html).toContain('Ships in 2 parcels')
+    expect(split.html).toContain('Parcel 2 from New Delhi, Delhi')
+    const single = await renderEmail('order_placed', {
+      ...sampleTemplateData,
+      parcels: parcels.slice(0, 1),
+    })
+    expect(single.text).not.toContain('Ships in')
+    expect(single.html).not.toContain('Ships in')
+  })
+
   it('return messages name the return and say where the money went', async () => {
     const credit = await renderEmail('return_refunded', {
       ...sampleTemplateData,
