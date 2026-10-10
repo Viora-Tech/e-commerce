@@ -93,3 +93,29 @@
     --puck-duration-slow: 0ms;
   }
 }
+
+/* Block outlines on the Customize canvas, as the Figma builder frames draw them: 1px solid
+ * accent around the selected block, 1px dashed around a hovered one, no tinted fill. Puck
+ * mounts this overlay in the admin document over the preview, so admin tokens apply; its
+ * class names are hashed, so they are matched by their stable part. */
+[data-puck-overlay] {
+  --puck-slot-component-color-overlay: transparent;
+  --puck-color-selection-bg: transparent;
+}
+
+[data-puck-overlay] [class*="DraggableComponent-overlay_"] {
+  outline: 1px solid var(--primary);
+  outline-offset: -1px;
+  background: transparent;
+}
+
+[data-puck-overlay][class*="DraggableComponent--hover"]:not([class*="--isSelected"])
+  [class*="DraggableComponent-overlay_"] {
+  outline-style: dashed;
+}
+
+/* Puck's own action bar is empty on the canvas (BlockToolbar draws the one toolbar and takes
+ * its rich-text menu), so its holder must not catch clicks or start a drag. */
+[data-puck-overlay] [class*="DraggableComponent-actionsOverlay"] {
+  pointer-events: none;
+}

@@ -12,10 +12,24 @@
   text-align: center;
 }
 
-.rich-text-block--center .rte ul,
-.rich-text-block--center .rte ol {
-  display: inline-block;
-  text-align: left;
+/* A list shrinks to its items and lines up with the copy around it (the block's own align, or
+ * the section's content alignment from `section-frame.tsx`), so its bullets stay beside the
+ * text instead of at the far left of a centred block. Items stay start-aligned, as a list
+ * reads, and each list keeps its own line. */
+:is(.rich-text-block, .custom-text) .rte ul,
+:is(.rich-text-block, .custom-text) .rte ol {
+  width: fit-content;
+  max-width: 100%;
+  text-align: start;
+}
+
+.rich-text-block--center .rte :is(ul, ol),
+.text-center :is(.rich-text-block, .custom-text) .rte :is(ul, ol) {
+  margin-inline: auto;
+}
+
+.text-right :is(.rich-text-block, .custom-text) .rte :is(ul, ol) {
+  margin-inline-start: auto;
 }
 
 .rte blockquote {

@@ -1,6 +1,7 @@
 import type { Overrides } from '@puckeditor/core'
 import type { ComponentProps, ComponentType } from 'react'
-import CanvasActionBar from '@/components/themes/customize/canvas-action-bar'
+import BlockToolbar from '@/components/themes/customize/block-toolbar'
+import BlockToolbarFormat from '@/components/themes/customize/block-toolbar-format'
 import CustomizeArrayField from '@/components/themes/customize/customize-array-field'
 import CustomizeNumberField from '@/components/themes/customize/customize-number-field'
 import CustomizeObjectField from '@/components/themes/customize/customize-object-field'
@@ -10,7 +11,6 @@ import CustomizeSelectField from '@/components/themes/customize/customize-select
 import CustomizeTextField from '@/components/themes/customize/customize-text-field'
 import InspectorFields from '@/components/themes/customize/inspector-fields'
 import PreviewFrame from '@/components/themes/customize/preview-frame'
-import SectionOverlay from '@/components/themes/customize/section-overlay'
 import { withDynamicSources } from '@/lib/customize-dynamic-fields'
 
 /** The props a field override component expects, for narrowing Puck's wide field props. */
@@ -26,10 +26,10 @@ type FieldOverride<C extends ComponentType<any>> = ComponentProps<C>
  */
 export const CUSTOMIZE_OVERRIDES: Partial<Overrides> = {
   iframe: ({ children, document }) => <PreviewFrame document={document}>{children}</PreviewFrame>,
-  componentOverlay: (props) => <SectionOverlay {...props} />,
-  // Puck's own label + duplicate/delete action bar is replaced by SectionOverlay above;
-  // only its inline rich-text (B/I/U) menu is kept, while body copy is being edited.
-  actionBar: ({ children }) => <CanvasActionBar>{children}</CanvasActionBar>,
+  // One toolbar per selected block: BlockToolbar draws it in Puck's overlay, and Puck's
+  // action bar only hands its inline rich-text menu over to it (BlockToolbarFormat).
+  componentOverlay: (props) => <BlockToolbar {...props} />,
+  actionBar: ({ children }) => <BlockToolbarFormat>{children}</BlockToolbarFormat>,
   // Puck's own field label can't tell field types apart (it only gets the label
   // text), so it's suppressed here: every fieldTypes override below renders its
   // own icon + label through FieldFrame instead.

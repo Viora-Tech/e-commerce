@@ -75,11 +75,6 @@ const PALETTE_ALLOWLIST: AllowEntry[] = [
     reason:
       'printed packing slip: fixed neutral ink on paper, deliberately not the screen theme (dark mode must not print grey on white)',
   },
-  {
-    file: 'apps/admin/src/components/themes/customize/section-overlay.tsx',
-    reason:
-      'theme editor overlay drawn on top of the merchant storefront preview iframe, where the admin theme tokens do not exist; give it its own overlay tokens',
-  },
 ]
 
 function isAllowlisted(file: string): boolean {

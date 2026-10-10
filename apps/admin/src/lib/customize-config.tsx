@@ -5,6 +5,7 @@ import { type ComponentConfig, type Config, DropZone } from '@puckeditor/core'
 import Image from '@tiptap/extension-image'
 import type { ReactNode } from 'react'
 import DynamicSourceSection from '@/components/themes/customize/dynamic-source-section'
+import InlineFormatMenu from '@/components/themes/customize/inline-format-menu'
 import { api } from '@/lib/api-client'
 import { APP_BLOCK_SOURCES } from '../../../../commerce.blocks.config'
 
@@ -65,9 +66,29 @@ function withHiding(component: ComponentConfig): ComponentConfig {
     props._hidden === true ? null : <DynamicSourceSection render={render} props={props} />
   return {
     ...component,
+    fields: withInlineMenu(component.fields) as ComponentConfig['fields'],
     render: hidden as unknown as ComponentConfig['render'],
     ...(component.resolveData ? { resolveData: withFallbacks(component.resolveData) } : {}),
   }
+}
+
+/**
+ * Every richtext field, nested ones included, gets our inline menu (B/I/U plus a link
+ * control). Done here rather than in `@commerce/blocks` so the storefront never loads it.
+ */
+function withInlineMenu(fields: unknown): unknown {
+  if (!fields || typeof fields !== 'object') return fields
+  return Object.fromEntries(
+    Object.entries(fields as Record<string, Record<string, unknown>>).map(([key, field]) => {
+      if (!field || typeof field !== 'object') return [key, field]
+      if (field.type === 'richtext') return [key, { ...field, renderInlineMenu: InlineFormatMenu }]
+      if (field.type === 'array')
+        return [key, { ...field, arrayFields: withInlineMenu(field.arrayFields) }]
+      if (field.type === 'object')
+        return [key, { ...field, objectFields: withInlineMenu(field.objectFields) }]
+      return [key, field]
+    }),
+  )
 }
 
 type ResolveData = NonNullable<ComponentConfig['resolveData']>
