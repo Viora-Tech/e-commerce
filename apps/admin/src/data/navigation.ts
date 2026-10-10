@@ -5,6 +5,7 @@ import {
   BadgePercent,
   BarChart3,
   Blocks,
+  Boxes,
   FolderOpen,
   Home,
   Package,
@@ -75,32 +76,20 @@ export const NAV_GROUPS: NavGroup[] = [
         children: [
           { href: routes.products.list(), label: 'All products' },
           { href: routes.products.collections(), label: 'Collections' },
-          {
-            href: routes.products.inventory(),
-            label: 'Inventory',
-            permission: permissions.INVENTORY_READ,
-          },
-          {
-            href: routes.products.purchaseOrders(),
-            label: 'Purchase orders',
-            permission: permissions.INVENTORY_READ,
-          },
-          {
-            href: routes.products.transfers(),
-            label: 'Transfers',
-            permission: permissions.INVENTORY_READ,
-          },
-          {
-            href: routes.products.inboundShipments(),
-            label: 'Inbound shipments',
-            permission: permissions.INVENTORY_READ,
-          },
-          {
-            href: routes.products.suppliers(),
-            label: 'Suppliers',
-            permission: permissions.INVENTORY_READ,
-          },
           { href: routes.products.giftCards(), label: 'Gift cards' },
+        ],
+      },
+      {
+        href: routes.stock.home(),
+        label: 'Stock',
+        icon: Boxes,
+        permission: permissions.INVENTORY_READ,
+        children: [
+          { href: routes.stock.inventory(), label: 'Inventory' },
+          { href: routes.stock.purchaseOrders(), label: 'Purchase orders' },
+          { href: routes.stock.inboundShipments(), label: 'Inbound shipments' },
+          { href: routes.stock.suppliers(), label: 'Suppliers' },
+          { href: routes.stock.transfers(), label: 'Transfers' },
         ],
       },
       {
@@ -249,7 +238,7 @@ export function isChildActive(pathname: string, child: NavChild): boolean {
 }
 
 /**
- * The one child to highlight: the most specific match, so `/products/purchase-orders`
+ * The one child to highlight: the most specific match, so `/stock/purchase-orders`
  * lights "Purchase orders" and not also "All products" (`/products`).
  */
 export function activeChildHref(pathname: string, children: readonly NavChild[]): string | null {

@@ -31,7 +31,7 @@ export type InboundShipmentsInitial = {
 }
 
 const ROWS = siteConfig.ui.rowsPerPage.default
-const CREATE_HREF = routes.products.newInboundShipment()
+const CREATE_HREF = routes.stock.newInboundShipment()
 
 function InboundShipmentsContent({ initial }: { initial: InboundShipmentsInitial }) {
   // Hooks
@@ -82,7 +82,7 @@ function InboundShipmentsContent({ initial }: { initial: InboundShipmentsInitial
         columns={inboundShipmentColumns(copy)}
         items={result.rows}
         getId={(r) => r.id}
-        href={(r) => routes.products.inboundShipment(r.id)}
+        href={(r) => routes.stock.inboundShipment(r.id)}
         loading={loading}
         selectable={false}
         query={state.query}

@@ -345,7 +345,7 @@ describe('dashboard.summary', () => {
       ordersToShip: { count: 0, href: '/orders?status=unfulfilled' },
       upiToVerify: { count: 0, href: '/orders?status=pending_upi' },
       gstQueued: null,
-      lowStock: { count: 0, href: '/products/inventory' },
+      lowStock: { count: 0, href: '/stock/inventory' },
       preorderBalanceDue: { count: 0, href: '/orders' },
       failedDeliveries: null,
     })

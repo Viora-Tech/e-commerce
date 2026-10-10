@@ -51,7 +51,7 @@ function draftFrom(s: LoadedSupplier | null): Draft {
   }
 }
 
-const LIST = routes.products.suppliers()
+const LIST = routes.stock.suppliers()
 
 /** Add or edit a supplier: who they are, how to reach them, and the terms they sell on. */
 export default function SupplierForm({ supplier }: SupplierFormProps) {
@@ -89,7 +89,7 @@ export default function SupplierForm({ supplier }: SupplierFormProps) {
       setSaved(JSON.stringify(d))
       toast.success(supplier ? copy.saved : copy.created)
       if (supplier) router.refresh()
-      else router.replace(routes.products.supplier(id))
+      else router.replace(routes.stock.supplier(id))
     } catch (err) {
       toast.error(err instanceof Error ? err.message : copy.failed)
     } finally {

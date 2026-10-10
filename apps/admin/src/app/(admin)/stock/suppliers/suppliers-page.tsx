@@ -22,7 +22,7 @@ type SuppliersResult = Awaited<ReturnType<typeof api.suppliers.list>>
 export type SuppliersInitial = { query: ListQuery<never>; result: SuppliersResult }
 
 const ROWS = siteConfig.ui.rowsPerPage.default
-const ADD_HREF = routes.products.newSupplier()
+const ADD_HREF = routes.stock.newSupplier()
 
 function SuppliersContent({ initial }: { initial: SuppliersInitial }) {
   // Hooks
@@ -71,7 +71,7 @@ function SuppliersContent({ initial }: { initial: SuppliersInitial }) {
         columns={supplierColumns(copy)}
         items={result.rows}
         getId={(r) => r.id}
-        href={(r) => routes.products.supplier(r.id)}
+        href={(r) => routes.stock.supplier(r.id)}
         loading={loading}
         selectable={false}
         query={state.query}

@@ -35,7 +35,7 @@ export type TransfersInitial = {
 }
 
 const PER_PAGE = siteConfig.ui.rowsPerPage.default
-const NEW_HREF = routes.products.newTransfer()
+const NEW_HREF = routes.stock.newTransfer()
 const copy = transfersContent
 
 function TransfersContent({ initial }: { initial: TransfersInitial }) {
@@ -112,7 +112,7 @@ function TransfersContent({ initial }: { initial: TransfersInitial }) {
           columns={transferColumns}
           items={rows}
           getId={(r) => r.id}
-          href={(r) => routes.products.transfer(r.id)}
+          href={(r) => routes.stock.transfer(r.id)}
           loading={loading}
           selectable={false}
           query={q.query}

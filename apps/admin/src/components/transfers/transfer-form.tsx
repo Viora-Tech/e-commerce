@@ -12,6 +12,7 @@ import ProoflyPageBody from '@/components/layout/proofly-page-body'
 import ProoflyPageHeader from '@/components/layout/proofly-page-header'
 import { transferFormContent, transfersContent } from '@/data/inventory'
 import { api } from '@/lib/api-client'
+import { routes } from '@/lib/routes'
 import RouteCard from './route-card'
 import TransferLinesCard, { type TransferLine } from './transfer-lines-card'
 
@@ -25,7 +26,7 @@ type TransferFormProps = {
 type Form = { fromLocationId: string; toLocationId: string; note: string; lines: TransferLine[] }
 
 const copy = transferFormContent
-const LIST = '/products/transfers'
+const LIST = routes.stock.transfers()
 
 function initialForm(transfer: LoadedTransfer | null, locations: StoreLocation[]): Form {
   if (transfer) {

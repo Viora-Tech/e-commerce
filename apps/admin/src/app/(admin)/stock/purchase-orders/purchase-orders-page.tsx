@@ -36,7 +36,7 @@ export type PurchaseOrdersInitial = {
 }
 
 const PER_PAGE = siteConfig.ui.rowsPerPage.default
-const NEW_HREF = routes.products.newPurchaseOrder()
+const NEW_HREF = routes.stock.newPurchaseOrder()
 
 function allCount(c: PurchaseOrderCounts): number {
   return c.draft + c.open + c.received + c.closed + c.cancelled
@@ -108,7 +108,7 @@ function PurchaseOrdersContent({ initial }: { initial: PurchaseOrdersInitial }) 
         columns={purchaseOrderColumns(copy)}
         items={rows}
         getId={(r) => r.id}
-        href={(r) => routes.products.purchaseOrder(r.id)}
+        href={(r) => routes.stock.purchaseOrder(r.id)}
         loading={loading}
         selectable={false}
         query={q.query}

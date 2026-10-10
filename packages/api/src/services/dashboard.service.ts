@@ -916,7 +916,7 @@ export async function dashboardSummary(
       ordersToShip: { count: ordersToShipRow?.n ?? 0, href: '/orders?status=unfulfilled' },
       upiToVerify: { count: upiToVerifyRow?.n ?? 0, href: '/orders?status=pending_upi' },
       gstQueued,
-      lowStock: { count: lowStockCountRow?.n ?? 0, href: '/products/inventory' },
+      lowStock: { count: lowStockCountRow?.n ?? 0, href: '/stock/inventory' },
       preorderBalanceDue: { count: preorderBalanceDueRow?.n ?? 0, href: '/orders' },
       failedDeliveries: null,
     },

@@ -4,13 +4,13 @@ import { activeChildHref } from './navigation'
 
 const children = [
   { href: routes.products.list(), label: 'All products' },
-  { href: routes.products.purchaseOrders(), label: 'Purchase orders' },
+  { href: routes.stock.purchaseOrders(), label: 'Purchase orders' },
 ]
 
 describe('activeChildHref', () => {
   it('lights only the most specific child', () => {
-    expect(activeChildHref(`${routes.products.purchaseOrders()}/abc`, children)).toBe(
-      routes.products.purchaseOrders(),
+    expect(activeChildHref(`${routes.stock.purchaseOrders()}/abc`, children)).toBe(
+      routes.stock.purchaseOrders(),
     )
   })
 

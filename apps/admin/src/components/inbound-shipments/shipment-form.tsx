@@ -46,7 +46,7 @@ function draftFrom(s: LoadedShipment | null): ShipmentDraft {
   }
 }
 
-const LIST = routes.products.inboundShipments()
+const LIST = routes.stock.inboundShipments()
 
 /** One import consignment: its details, the orders it carried, shared charges and landed cost. */
 export default function ShipmentForm({ shipment, costs, aiReading }: ShipmentFormProps) {
@@ -79,7 +79,7 @@ export default function ShipmentForm({ shipment, costs, aiReading }: ShipmentFor
       setSaved(JSON.stringify(d))
       toast.success(shipment ? copy.saved : copy.created)
       if (shipment) router.refresh()
-      else router.replace(routes.products.inboundShipment(id))
+      else router.replace(routes.stock.inboundShipment(id))
     } catch (err) {
       toast.error(err instanceof Error ? err.message : copy.failed)
     } finally {
