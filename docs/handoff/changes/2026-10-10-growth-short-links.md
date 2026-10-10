@@ -1,6 +1,6 @@
 # Growth → Links: saved short links with clicks, orders and revenue
 
-Branch `feat/growth-links`. **Migration 0105_short_links** (tables `short_link`,
+Branch `feat/growth-links`. **Migration 0106_short_links** (tables `short_link`,
 `short_link_click_day`; ends with `apply_store_rls()`).
 
 - Storefront `/l/<slug>` (`app/-s/[storeId]/l/[slug]/route.ts`): counts the click per
