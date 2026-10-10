@@ -98,6 +98,12 @@ function viewFilter(view: OrderView): SQL | undefined {
   }
 }
 
+/** "#1234" or "1234" is an order number; anything else is a name or an email. */
+export function orderNumberFromSearch(search: string): number | null {
+  const match = /^#?(\d{1,9})$/.exec(search.trim())
+  return match ? Number(match[1]) : null
+}
+
 export async function listOrders(
   tx: StoreTx,
   input: {
@@ -110,11 +116,16 @@ export async function listOrders(
     fulfillmentStatus?: OrderFulfillmentStatus[] | undefined
   },
 ) {
+  const byNumber = input.search ? orderNumberFromSearch(input.search) : null
   const where = and(
     notDraft,
     input.view ? viewFilter(input.view) : undefined,
     input.search
-      ? or(ilike(order.email, `%${input.search}%`), ilike(customer.name, `%${input.search}%`))
+      ? or(
+          ilike(order.email, `%${input.search}%`),
+          ilike(customer.name, `%${input.search}%`),
+          byNumber === null ? undefined : eq(order.number, byNumber),
+        )
       : undefined,
     input.status ? eq(order.status, input.status) : undefined,
     input.paymentStatus?.length ? inArray(order.paymentStatus, input.paymentStatus) : undefined,
