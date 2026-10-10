@@ -79,6 +79,17 @@ export type Recipient = {
   name?: string | undefined
 }
 
+/** One parcel of an order that ships from several warehouses, for "Ships in 2 parcels". */
+export type EmailParcel = {
+  /** "New Delhi, Delhi" */
+  from: string
+  items: { title: string; quantity: number }[]
+  /** "Tue, 18 Aug - Thu, 20 Aug"; null when no estimate was worked out. */
+  dateRange: string | null
+  /** Pre-order items that ship once they arrive. */
+  onHold: boolean
+}
+
 /** Everything a template needs; built by the worker from the order row. */
 export type TemplateData = {
   storeName: string
@@ -89,6 +100,11 @@ export type TemplateData = {
   lines: { title: string; quantity: number; priceLabel: string; imageUrl?: string | undefined }[]
   /** GST split shown above the total, e.g. CGST/SGST or IGST rows. Omit to show only the total. */
   taxBreakdown?: { label: string; amount: string }[] | undefined
+  /**
+   * An order shipped from more than one warehouse: each parcel's origin, items and expected
+   * dates ("Ships in 2 parcels"). Omitted for an order that ships in one.
+   */
+  parcels?: EmailParcel[] | undefined
   paymentMethodLabel: string
   /** Printed in the footer under the store name, when the store has set one. */
   storeAddress?: string | undefined

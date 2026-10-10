@@ -368,7 +368,15 @@ priority, then most stock), else the fewest parcels up to `store.shipping.routin
 (default 2), else the home location takes the rest past its stock with
 `fulfillment_order.needs_transfer` set. Composition-scheme GSTINs never ship to another state
 (`CannotShipToState`, "We can't deliver this item to your state yet"). Pre-order lines that no
-stock covers wait in their own `on_hold` parcel at the home location. `routeAndReserve`
+stock covers wait in their own `on_hold` parcel at the home location.
+
+Shoppers see a split before and after paying: `previewCartParcels`
+(`packages/core/src/order/parcel-view.ts`, routing without locks) feeds the checkout's
+"Ships in 2 parcels" with each warehouse's courier estimate (storefront `checkoutParcels`,
+origin = the location's PIN code). `placeOrder` stores the window shown on each parcel
+(`fulfillment_order.delivery_estimate`, 0104); the thank-you page, the account order page
+(`ShopperOrderDetail.parcels`) and the order emails (`TemplateData.parcels`) read it back through
+`orderParcelsView`. Converted drafts are billed like checkout (`taxParcels`, `parcel-tax.ts`). `routeAndReserve`
 (`routing-service.ts`) locks the variants' inventory rows, routes and reserves each parcel at its
 location; `placeOrder` and `convertDraft` use it.
 

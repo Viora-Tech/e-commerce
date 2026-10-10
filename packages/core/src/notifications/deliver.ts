@@ -18,12 +18,14 @@ import {
 import { formatMoney } from '@commerce/money'
 import type {
   Attachment,
+  EmailParcel,
   NotificationChannel,
   NotificationRegistry,
   Recipient,
   TemplateData,
   TemplateId,
 } from '@commerce/notifications'
+import { formatDeliveryRange } from '@commerce/shipping'
 import { and, eq, inArray, or, sql } from 'drizzle-orm'
 import type { StoreContext } from '../context'
 import { newsletterConfirmToken, newsletterConfirmUrl } from '../customers/newsletter'
@@ -31,6 +33,7 @@ import { phoneBlindIndex } from '../customers/phone-crypto'
 import { storefrontOriginFor } from '../domains/origin'
 import { GIFT_CARD_PROVIDER } from '../gift-cards/service'
 import { mayNudgeKnownContact, phoneLookupVariants } from '../marketing/recipient'
+import { orderParcelsView, type ParcelView } from '../order/parcel-view'
 import { manualCancelAt } from '../payments/manual-followup'
 import { parsePaymentSettings } from '../payments/settings'
 import { balanceOwed } from '../preorder/balance'
@@ -131,6 +134,30 @@ function taxLines(o: typeof order.$inferSelect): TemplateData['taxBreakdown'] {
       ? [{ label: `IGST (${t.ratePercent}%)`, amount: formatMoney(t.igstPaise) }]
       : []),
   ]
+}
+
+/** "Ships in 2 parcels" for an order leaving from several warehouses; undefined for one parcel. */
+function emailParcels(views: readonly ParcelView[]): EmailParcel[] | undefined {
+  const live = views.filter((p) => p.status !== 'cancelled')
+  if (live.length < 2) return undefined
+  return live.map((p) => ({
+    from: [p.city, p.stateName].filter(Boolean).join(', ') || p.locationName,
+    items: p.lines.map((l) => {
+      const variantTitle = l.variantTitle?.trim()
+      const title = l.title?.trim() || 'Item'
+      return {
+        title:
+          variantTitle && variantTitle !== 'Default' && variantTitle !== 'Default Title'
+            ? `${title} / ${variantTitle}`
+            : title,
+        quantity: l.quantity,
+      }
+    }),
+    dateRange: p.deliveryEstimate
+      ? formatDeliveryRange(p.deliveryEstimate.earliest, p.deliveryEstimate.latest)
+      : null,
+    onHold: p.status === 'on_hold',
+  }))
 }
 
 /** Human label for a refund's method, for the refund_issued message. */
@@ -258,6 +285,7 @@ export async function buildTemplateData(
     .from(shipment)
     .where(eq(shipment.orderId, orderId))
   const method = o.paymentMethod ?? ''
+  const parcels = emailParcels(await orderParcelsView(ctx.tx, orderId))
   return {
     data: {
       storeName: s?.name ?? '',
@@ -274,6 +302,7 @@ export async function buildTemplateData(
           l.variantImage ?? images.find((i) => i.productId === l.productId)?.url ?? undefined,
       })),
       taxBreakdown: taxLines(o),
+      ...(parcels ? { parcels } : {}),
       paymentMethodLabel: PAYMENT_LABELS[method] ?? method,
       orderUrl:
         storefrontUrl && settingsSecret

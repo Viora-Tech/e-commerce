@@ -14,8 +14,11 @@ import { and, desc, eq, inArray, sql } from 'drizzle-orm'
 import { z } from 'zod'
 import type { StoreContext } from '../context'
 import { CommerceError } from '../errors'
+import { StoreAddressSchema } from '../settings/general'
 import { assertCustomerInStore } from '../store-scope'
+import { chargedGstRate, parseStoreTax } from '../tax/settings'
 import { createFulfillmentOrders } from './fulfillment-orders'
+import { taxParcels } from './parcel-tax'
 import { recomputeOrderStatuses } from './recompute'
 import { routeAndReserve } from './routing-service'
 
@@ -339,12 +342,40 @@ export async function convertDraft(
     })),
     buyerState: shipTo?.stateCode ?? null,
   })
+  /* Billed like a checkout: each parcel's GST from its own GSTIN, the order's their sum. A
+     draft with no shipping state is split as IGST (it cannot be proven local). */
+  const [s] = await ctx.tx
+    .select({ address: store.address, gstRatePercent: store.gstRatePercent, apps: store.apps })
+    .from(store)
+    .where(eq(store.id, ctx.storeId))
+  const storeTax = parseStoreTax(s?.apps)
+  const storeAddress = StoreAddressSchema.safeParse(s?.address ?? {})
+  const byId = new Map(lines.map((l) => [l.id, l]))
+  const billed = await taxParcels(ctx.tx, {
+    parcels,
+    lineOf: (key, quantity) => {
+      const line = byId.get(key)
+      return {
+        grossPaise: quantity * (line?.unitPricePaise ?? 0),
+        ratePercent:
+          !line || line.giftCard
+            ? 0
+            : chargedGstRate(line.gstRatePercent ?? s?.gstRatePercent ?? 18, storeTax),
+      }
+    },
+    discountPaise: o.discountPaise,
+    adjustmentPaise: o.paymentAdjustmentPaise,
+    shippingPaise: o.shippingPaise,
+    shipToState: shipTo?.stateCode ?? null,
+    storeState: storeAddress.success ? storeAddress.data.state : null,
+  })
   await createFulfillmentOrders(ctx, {
     orderId: id,
-    plans: parcels.map((p) => ({
+    plans: parcels.map((p, i) => ({
       locationId: p.locationId,
       status: p.status,
       needsTransfer: p.needsTransfer,
+      money: billed.money[i],
       lines: p.lines.map((l) => ({
         orderLineId: l.key,
         quantity: l.quantity,
@@ -357,7 +388,19 @@ export async function convertDraft(
   const method = opts.paymentMethod ?? o.paymentMethod ?? 'manual'
   const [updated] = await ctx.tx
     .update(order)
-    .set({ status: 'open', paymentMethod: method, placedAt: new Date() })
+    .set({
+      status: 'open',
+      paymentMethod: method,
+      placedAt: new Date(),
+      ...(billed.tax
+        ? {
+            taxPaise: billed.tax.taxPaise,
+            taxBreakdown: billed.tax,
+            gstRegistrationId: billed.origin.gstRegistrationId,
+            taxOrigin: billed.origin,
+          }
+        : {}),
+    })
     .where(eq(order.id, id))
     .returning()
   await ctx.tx.insert(payment).values({

@@ -1,5 +1,5 @@
 import type { TemplateData } from '../types'
-import type { TaxLine } from './components'
+import type { ParcelsBlockProps, TaxLine } from './components'
 import {
   Body,
   CodeBlock,
@@ -8,6 +8,7 @@ import {
   Heading,
   ItemsTable,
   LinkLine,
+  ParcelsBlock,
   PrimaryButton,
   TotalsBlock,
 } from './components'
@@ -24,6 +25,8 @@ export type TransactionalEmailProps = {
   lines: TemplateData['lines']
   totalLabel?: string | undefined
   taxBreakdown?: TaxLine[] | undefined
+  /** "Ships in 2 parcels", already in words. */
+  parcels?: ParcelsBlockProps | undefined
   giftCard?: TemplateData['giftCard']
   code?: string | undefined
   primaryAction?: { label: string; url: string } | undefined
@@ -48,6 +51,7 @@ export function TransactionalEmail({
   lines,
   totalLabel,
   taxBreakdown,
+  parcels,
   giftCard,
   code,
   primaryAction,
@@ -76,6 +80,7 @@ export function TransactionalEmail({
       {lines.length > 0 && totalLabel ? (
         <TotalsBlock totalLabel={totalLabel} taxBreakdown={taxBreakdown} />
       ) : null}
+      {parcels ? <ParcelsBlock {...parcels} /> : null}
       <Body>{outro}</Body>
       {primaryAction ? (
         <PrimaryButton href={primaryAction.url}>{primaryAction.label}</PrimaryButton>

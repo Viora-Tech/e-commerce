@@ -4,6 +4,7 @@ import {
   canViewOrder,
   GIFT_CARD_PROVIDER,
   installedApps,
+  orderParcelsView,
   orderViewToken,
   storeCheckoutLook,
   storefrontOriginFor,
@@ -20,6 +21,7 @@ import CheckoutBalance from '@/components/checkout/checkout-balance'
 import ThankYouTemplate from '@/components/checkout/thank-you'
 import { currentCustomer } from '@/lib/customer-session'
 import { db } from '@/lib/db'
+import { shopperParcels } from '@/lib/parcels'
 import { balanceView, storePreorderPolicy } from '@/lib/preorder'
 import { inStore } from '@/lib/store-context'
 
@@ -90,6 +92,7 @@ export default async function ThankYouPage({ params, searchParams }: Params) {
       images,
       look,
       shipTo: shipTo ?? null,
+      parcels: shopperParcels(await orderParcelsView(tx, o.id)),
     }
   })
 
@@ -132,6 +135,7 @@ export default async function ThankYouPage({ params, searchParams }: Params) {
       look={data.look}
       images={data.images}
       shipTo={data.shipTo}
+      parcels={data.parcels}
       balance={
         data.balance ? (
           <CheckoutBalance

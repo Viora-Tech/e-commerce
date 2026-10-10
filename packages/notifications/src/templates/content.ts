@@ -442,4 +442,12 @@ export const sharedContent = {
   lineText: (l: TemplateData['lines'][number]) => `${l.title} x${l.quantity}, ${l.priceLabel}`,
   footer: (d: TemplateData) =>
     `Sent by ${d.storeName}. Reply to this email if anything looks wrong.`,
+  parcels: {
+    title: (count: number) => `Ships in ${count} parcels`,
+    note: 'Your order comes from more than one warehouse, so it arrives in separate parcels, each with its own invoice.',
+    parcel: (position: number, from: string) => `Parcel ${position} from ${from}`,
+    item: (quantity: number, title: string) => `${quantity} × ${title}`,
+    arrives: (range: string) => `Arrives ${range}`,
+    onHold: 'Pre-order: ships when it arrives',
+  },
 } as const

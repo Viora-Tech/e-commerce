@@ -159,6 +159,15 @@ export const accountContent = {
     trackOnSite: 'Track with courier',
     noTracking: 'We will share tracking details as soon as your order ships.',
     noEvents: 'The courier has not reported any scans yet.',
+    parcels: {
+      title: (count: number) => `Ships in ${count} parcels`,
+      note: 'Your order comes from more than one warehouse, so it arrives in separate parcels, each with its own invoice.',
+      parcel: (position: number) => `Parcel ${position}`,
+      from: (place: string) => `from ${place}`,
+      arrives: (range: string) => `Arrives ${range}`,
+      onHold: 'Pre-order: ships when it arrives',
+      item: (quantity: number, title: string) => `${quantity} × ${title}`,
+    },
   },
   addresses: {
     title: 'Addresses',

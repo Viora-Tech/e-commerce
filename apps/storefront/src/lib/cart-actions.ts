@@ -29,7 +29,7 @@ import {
   syncOpenQrAttempt,
   thankYouPath,
 } from '@commerce/core'
-import { payment } from '@commerce/db'
+import { type ParcelDeliveryEstimate, payment } from '@commerce/db'
 import { formatMoney } from '@commerce/money'
 import type { ClientConfirmation } from '@commerce/payments'
 import { and, desc, eq, ne } from 'drizzle-orm'
@@ -46,7 +46,7 @@ import { nudgeOutbox } from './outbox'
 import { storePaymentProviders } from './payments'
 import { clientIp, rateLimited } from './rate-limit'
 import { requestStoreId } from './request-store'
-import { estimateForPincode } from './shipping'
+import { checkoutParcels, estimateForPincode } from './shipping'
 import { storeSignIn } from './sign-in-methods'
 import { inStore } from './store-context'
 
@@ -176,6 +176,8 @@ export async function checkoutAction(submitted: CheckoutForm): Promise<CheckoutR
   const current = await inStore(storeId, (tx) => getCart({ storeId, tx }, cartId))
   const digitalOnly = !!current?.lines.length && current.lines.every((l) => l.giftCard)
 
+  /** The delivery window each warehouse's parcel was shown with, stored on the order's parcels. */
+  let deliveryEstimates: Record<string, ParcelDeliveryEstimate> = {}
   if (!digitalOnly) {
     // The courier's word on the destination, never the client's. A cached answer makes this cheap.
     const delivery = await inStore(storeId, (tx) => estimateForPincode(tx, storeId, form.pincode))
@@ -185,6 +187,12 @@ export async function checkoutAction(submitted: CheckoutForm): Promise<CheckoutR
     if (form.payment === 'cod' && !delivery.codAvailable) {
       return { error: checkoutContent.errors.codUnavailable }
     }
+    const parcels = await inStore(storeId, (tx) =>
+      checkoutParcels(tx, storeId, cartId, { pincode: form.pincode, stateCode: form.stateCode }),
+    ).catch(() => [])
+    deliveryEstimates = Object.fromEntries(
+      parcels.flatMap((p) => (p.estimate ? [[p.locationId, p.estimate] as const] : [])),
+    )
   }
 
   /* The order and its stock are committed first; the gateway is asked after
@@ -206,6 +214,7 @@ export async function checkoutAction(submitted: CheckoutForm): Promise<CheckoutR
         paymentProvider: provider,
         giftCardIds,
         shippingRateId: form.shippingRate || null,
+        deliveryEstimates,
         secret: settingsSecret(),
         checkout: {
           name: form.name,
