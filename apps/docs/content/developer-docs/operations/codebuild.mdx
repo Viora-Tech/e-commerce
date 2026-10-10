@@ -4,9 +4,17 @@ title: Builds on CodeBuild
 
 # Builds on CodeBuild
 
-Production images are no longer built on the server. AWS CodeBuild (ARM, same architecture as the
-t4g server) builds them, pushes them to Amazon ECR, and then rolls them out through the Dokploy
-API. The server only pulls and restarts, so a build can no longer starve production of memory.
+Production images are built by AWS CodeBuild instead of on the server. CodeBuild (ARM, same
+architecture as the t4g server) builds them, pushes them to Amazon ECR, and then rolls them out
+through the Dokploy API. The server only pulls and restarts, so a build can no longer starve
+production of memory.
+
+<Callout type="warning">
+  **Status (10 October 2026): code only.** The scripts and this guide are in the repo. No AWS
+  resource has been created yet, Dokploy still builds on the server, and the Dokploy field names
+  the deploy script uses come from the API's tool schemas, not from a run against the live
+  server. The first real run should use `SKIP_DEPLOY=1` (see "Try it safely"), then one app.
+</Callout>
 
 ```mermaid
 flowchart LR
@@ -19,7 +27,7 @@ flowchart LR
 
 Code lives in `deploy/codebuild/`: `buildspec.yml`, `detect-changes.sh`, `build-images.sh`,
 `deploy-dokploy.mjs`. The AWS CLI commands to create every resource are in
-`deploy/codebuild/README.md`.
+[`deploy/codebuild/README.md`](https://github.com/Viora-Tech/e-commerce/blob/main/deploy/codebuild/README.md).
 
 ## What a run does
 

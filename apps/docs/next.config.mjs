@@ -31,6 +31,12 @@ export default withNextra({
         destination: '/merchant-guide/settings/taxes',
         permanent: false,
       },
+      // Stock got its own menu in October 2026; purchase orders moved out of "Products and orders".
+      {
+        source: '/merchant-guide/catalog/purchase-orders',
+        destination: '/merchant-guide/stock/purchase-orders',
+        permanent: false,
+      },
     ]
   },
   turbopack: {

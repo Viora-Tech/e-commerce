@@ -65,6 +65,14 @@ Each is tagged with the full commit sha and `latest`. The compose file runs
 
 ### Test server deploys (vioratech.in)
 
+<Callout type="info">
+  Code for moving image builds off this server (CodeBuild builds ARM images, pushes them to ECR
+  and calls the Dokploy API to deploy one app at a time) is in the repo, but no AWS resource
+  exists yet and Dokploy still builds on the server. Until the apps switch to the Docker
+  provider, this section describes what runs. See [Builds on CodeBuild](/developer-docs/operations/codebuild)
+  and [`deploy/codebuild/README.md`](https://github.com/Viora-Tech/e-commerce/blob/main/deploy/codebuild/README.md).
+</Callout>
+
 The test server is one EC2 machine running Dokploy, which builds the apps from `dev` with their
 Dockerfiles. Builds are heavy, so:
 

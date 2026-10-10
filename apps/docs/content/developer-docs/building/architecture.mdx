@@ -124,6 +124,52 @@ A provider only exists for a store once its plugin is installed
 (`store.apps`), then enabled and configured under Settings. Secrets are
 AES-256-GCM encrypted at rest under `SETTINGS_SECRET` and masked in the API.
 
+### 2.5 Parcels, routing, GST and cost
+
+Stock, tax and cost are decided per **parcel** (a `fulfillment_order`: one order's goods from one
+location under one GSTIN), not per order. An order always has at least one parcel unless it holds
+only gift cards. Tables and rules are in the [data model](/developer-docs/building/data-model);
+this is how the pieces connect.
+
+```mermaid
+flowchart LR
+  cart[cart] --> route["routeAndReserve<br/>core/order/routing-service.ts<br/>pure rules: routing.ts"]
+  route --> parcels[("fulfillment_order<br/>+ lines, per location")]
+  parcels --> tax["taxParcels → computeParcelGst<br/>per parcel, own GSTIN state"]
+  tax --> order[("order = sum of parcels<br/>mergeOrderGst")]
+  parcels --> pack["pack / cancel / return<br/>shipCommittedStock · releaseCommittedStock<br/>with the parcel's locationId"]
+  parcels --> inv["GST invoice plugin<br/>one invoice per parcel<br/>credit notes per GSTIN"]
+  parcels --> ship["shipment.fulfillment_order_id<br/>pickup from the parcel's location"]
+  receive["receive purchase order"] --> cost["recost → weighted average cost<br/>variant.cost_paise"]
+  cost --> profit["order_line.cost_at_sale_paise<br/>profit_service"]
+  order --> profit
+```
+
+- **Routing** (`routing.ts`, pure): one location with everything, else the fewest parcels up to
+  `store.shipping.routing.maxParcels`, else the default location tops up and the parcel is
+  flagged `needs_transfer`. `routeAndReserve` locks the variants' `inventory_level` rows and
+  reserves per parcel inside `placeOrder` and `convertDraft`; it is the saga's reserve step.
+- **Reading stock** goes through `sellableStock` (`packages/db/src/stock.ts`) everywhere: a
+  variant may sell from several locations, and its stock is the sum of the selling ones.
+- **GST** is split per parcel from its location's GSTIN (`computeParcelGst`), the order stores the
+  merged figures, and the invoice plugin issues one invoice per parcel and one credit note per
+  invoice a refund reduces.
+- **Cost** is a separate chain: purchase orders and their charges feed `recost`
+  (`core/inventory/costing.ts`), which keeps each variant's weighted average `cost_paise`;
+  `placeOrder` snapshots it onto the order line (`cost_at_sale_paise`) and `profit.ts` turns
+  orders into profit. Bills uploaded to a purchase order are read by the AI engine on the worker
+  (`{ai}-purchase-documents` queue) and applied only after a person reviews them. See
+  [AI engine](/developer-docs/building/ai-engine).
+- **Short links.** The storefront route `/l/<slug>` (`app/-s/[storeId]/l/[slug]/route.ts`) counts
+  the click and redirects with the link's UTM tags; attribution gained `linkId`. Tables
+  `short_link` and `short_link_click_day`, rules in `@commerce/core/marketing`.
+- **Theme versions.** Publishing a theme, or publishing changes to the live one, snapshots its
+  templates into `theme_version` (newest 20 per template); a storefront preview link with
+  `?theme-version=<batch>` renders one. See [Theme editor](/developer-docs/building/theme-editor).
+- **Visitor analytics.** The Umami app (`packages/plugin-umami`) is a `connection` app: its script
+  loads from `ConsentManager` after analytics consent, and the Analytics page reads Umami through
+  `safeFetch`. See [Plugins SDK](/developer-docs/building/plugins).
+
 ## 3. Tenancy model
 
 **What exists**

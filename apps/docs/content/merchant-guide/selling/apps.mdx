@@ -32,6 +32,16 @@ flowchart TD
   app -->|some apps| work["Work in the background<br/>e.g. issue an invoice when an order is paid"]
 ```
 
+## Recommended for your store
+
+At the top of **Apps** a strip called **Recommended for** *your store's name* suggests up to three
+apps you have not installed yet, each with a short reason. It looks at what is missing: with no
+courier connected it suggests Delhivery (then Shiprocket or RapidShyp); with no reviews it suggests
+Reviews; then WhatsApp, GST invoices, Back in stock and a payment gateway. A gap counts as
+covered as soon as you have any app that does that job, so the strip only ever shows what you
+actually lack, and goes away when nothing is missing. Select an app to see what it does, and
+**Install** to add it. You see what the app can do before it is switched on.
+
 ## Built-in apps vs connections
 
 The Apps page has two sections:
@@ -51,6 +61,8 @@ The Apps page has two sections:
 | Razorpay | Connection, by Razorpay | Cards, UPI, netbanking, and UPI — confirmed automatically (a QR per order). |
 | Cashfree | Connection, by Cashfree Payments | UPI, cards, netbanking, wallets and pay later. See [Cashfree](/merchant-guide/money/cashfree). |
 | Delhivery | Connection, by Delhivery | Rates, labels, pickups, tracking, and a **Delivery checker** block. |
+| RapidShyp | Connection, by RapidShyp | Multi-courier rates, labels, pickups and tracking. Tracking is checked on a schedule rather than by webhook. See [Shipments](/merchant-guide/selling/shipments). |
+| Umami | Connection, by Umami | Visitor analytics without cookies: a **Visitors** section on Analytics. See [Visitor analytics (Umami)](/merchant-guide/selling/visitor-analytics). |
 | Shiprocket | Connection, by Shiprocket | Multi-courier rates, labels, tracking, and a **Delivery checker** block. |
 | Amazon SES email | Connection, by Amazon Web Services | Sends order emails through Amazon SES. |
 | WhatsApp | Connection, by Meta | Order updates on WhatsApp through the Meta Cloud API. |

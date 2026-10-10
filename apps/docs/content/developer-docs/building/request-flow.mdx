@@ -47,7 +47,7 @@ sequenceDiagram
   participant DB as Postgres
   participant R as /-s/[storeId]/… route
   B->>P: GET https://ashahandlooms.in/products/kurta
-  P->>P: strip client-sent x-store-id, x-visitor-country, x-theme-preview
+  P->>P: strip client-sent x-store-id, x-visitor-country, x-theme-preview, x-theme-version
   P->>C: hostname
   C->>DB: select * from resolve_host('ashahandlooms.in')
   DB-->>C: store_id, primary_hostname, redirect
@@ -140,6 +140,15 @@ Things worth knowing:
 - **The order commits before the gateway is called.** A gateway error marks the attempt
   `failed` and the order stays placed; the shopper can retry (a new attempt row,
   `<orderId>:<attempt>` idempotency key).
+- **`reserveStock` routes into parcels.** It is `routeAndReserve`
+  (`packages/core/src/order/routing-service.ts`): it locks the variants' stock rows, splits the
+  cart over the locations that sell online (`routing.ts`), reserves per location and creates the
+  order's `fulfillment_order` rows. `placeOrder` then stores each parcel's share of the money and
+  its GST (`taxParcels`), and the order's tax is their sum. See
+  [Architecture](/developer-docs/building/architecture#25-parcels-routing-gst-and-cost).
+- **Short links skip the page route.** `GET /l/<slug>` (`app/-s/[storeId]/l/[slug]/route.ts`)
+  counts the click and redirects with the link's UTM tags, setting `wc_lk` so the page beacon
+  credits the link.
 - **`lockCartOrReplay`** takes `SELECT … FOR UPDATE` on the cart; a second submit of a
   converted cart returns the existing order (`replayed: true`) instead of a duplicate.
 - **Every capture goes through `applyPaymentStatus`** (`packages/core/src/payments/confirm.ts`):

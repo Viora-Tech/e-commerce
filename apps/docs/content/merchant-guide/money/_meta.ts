@@ -1,5 +1,6 @@
 export default {
   'gst-invoices': 'GST invoices',
+  'multi-warehouse-gst': 'Several warehouses and GST',
   payments: 'Payments',
   profit: 'Profit',
   cashfree: 'Cashfree',

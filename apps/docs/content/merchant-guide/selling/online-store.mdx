@@ -40,7 +40,15 @@ save.
 On **Online Store → Themes**, each theme shows a picture of its home page, when it was last
 saved and by whom, and an **Unsaved changes** label when the editor holds edits nobody has saved
 yet. The picture updates by itself each time you save the home page in the editor; a theme that
-has never been opened shows its colours until then.
+has never been opened shows its colours until then. Above the list are **Import Shopify theme**
+(see [Import a Shopify theme](/merchant-guide/selling/import-shopify-theme)) and **Add theme**
+(start from a preset). **Themes** and **Preferences** are two tabs under the page title.
+
+<Callout type="warning">
+  **Always try changes on a copy.** Open the theme's **⋯** menu, select **Duplicate**, then
+  **Customize** the copy. Your Live theme is what shoppers see, so a copy is the safe place to
+  experiment. Publish the copy only when you are happy with it.
+</Callout>
 
 <Screenshot
   name="Themes library"
@@ -59,9 +67,12 @@ then **Customize** the copy.
 
 ### Pick the page to edit
 
-Use the page switcher at the top to choose a template: Home, Product, Collection, Cart and so
-on. The **Sections** list on the left groups the page into **Header**, **Template** and
-**Footer**. Select a group's name to fold it away when you don't need it.
+Use the page switcher in the middle of the top bar to choose a template: Home, Product,
+Collection, Cart and so on. You can also open the **Pages** panel in the narrow strip of icons on
+the left and pick one there. The strip has, from the top: **Add section**, **Pages**,
+**Sections**, **Media** and **Theme settings**. The **Sections** panel groups the page into
+**Header**, **Template** and **Footer**. Select a group's name to fold it away when you don't
+need it.
 
 Products, collections, pages, blogs and blog posts can each have **alternate templates** (for
 example a "preorder" product layout). In the page switcher every alternate shows how many items
@@ -80,7 +91,8 @@ Decide where it goes first, then pick it:
 - **Anywhere, by dragging**: open the **Add** panel and drag a section onto the page.
 
 Each way opens the same list. The **Sections** tab has the library (banners, product grids,
-rich text, testimonials and more); the **Apps** tab has blocks from apps you installed. Pick
+rich text, testimonials and more), each with a small picture of how it looks; point at one for a
+bigger picture. The **Apps** tab has blocks from apps you installed. Pick
 one and it goes in exactly where you chose. Some sections first ask you to **choose a style**:
 a hero as a slideshow, centred, split or with a video; feature cards 3 or 4 across or without
 icons; a banner with its words centred or on the left. Every setting stays editable afterwards,
@@ -94,29 +106,39 @@ the right.
 
 ### Change its settings
 
-Select the section on the canvas or in the list. A small toolbar appears above it on the page
-(**Move up**, **Move down**, **Duplicate**, **Remove**) and its settings open on the right: first
-its own settings (text, images, links), then **Section settings** in four groups: **Layout**,
-**Spacing**, **Style** and **Advanced** (details below).
+Select the section on the canvas or in the list. A small bar appears above it on the page (see
+[The bar above a block](#the-bar-above-a-block)) and its settings open on the right in two tabs.
+**Basic** holds the section's own settings (text, images, links). **Advanced** holds **Section
+settings** in four groups: **Layout**, **Spacing**, **Style** and **Advanced** (details below).
+A path at the top of the panel, such as *Template › Group › Image banner*, shows where you are;
+select any name in it to jump to that block.
 
 ### Type straight onto the page
 
-In the Zero Drift theme sections (see [Zero Drift theme sections](#zero-drift-theme-sections)) you can click a
-heading, a button label or a paragraph on the canvas and type, the same as in a document. The
-setting on the right updates as you type.
+Click a heading, a button label or a paragraph on the canvas and type, the same as in a
+document. This works in every section: the library sections, the
+[Zero Drift theme sections](#zero-drift-theme-sections) and the blocks you build yourself (Tabs,
+Accordion, Heading, Text, Button). The setting on the right updates as you type.
 
-When you click a paragraph, a small formatting bar appears above the section: **Bold**,
-**Italic**, **Underline**, lists and **Link**. Select some words first, then pick a button. The
-section's own toolbar (**Move up**, **Move down**, **Duplicate**, **Remove**) stays where it is.
+When you click a paragraph, text buttons appear at the end of the bar above it: **Bold**,
+**Italic**, **Underline**, **Link** and **Clear formatting**. Select some words first, then pick
+a button. The other buttons stay where they are.
 
 To drag a section somewhere else, grab it by an empty area or use the sections list, not the
 text you are editing.
 
+<Callout type="info">
+  In the editor, every answer of a **FAQ** section is shown open so you can click and edit it.
+  Shoppers still see the answers closed.
+</Callout>
+
 ### Check it on a phone
 
-Use the dock under the canvas to switch between **Desktop**, **Tablet** and **Mobile**, and
-between **Light** and **Dark** if your theme has a dark mode. **Undo** and **Redo** are there
-too.
+Use the three buttons in the top bar to switch between **Desktop**, **Tablet** and **Mobile**.
+The page is drawn at that device's real width (1440, 768 or 390 px) and shrunk to fit your
+screen. **Undo** and **Redo** are in the top bar too. Under the canvas, switch between **Light**
+and **Dark** if your theme has a dark mode; that only changes how the editor shows the page. To
+look closer, see [Zoom](#zoom).
 
 ### Save
 
@@ -155,23 +177,111 @@ text, ready to edit on the right. Hover a block and select **×** to remove it.
   caption="The Sections list with the Header, Template and Footer groups, one row's ⋯ menu open on Duplicate, Rename and Remove, and the blue insert line with its + between two sections."
 />
 
+## The bar above a block
+
+Click a section or a block on the page and a small bar floats above it, with its name on the
+left. It follows the block as you scroll, and it stays inside the page for a block at the very
+top. It has:
+
+- **Move up** and **Move down**. They are greyed out at the top and bottom of the page.
+- **Duplicate** and **Remove**.
+- **⋯ More**: **Hide on the page** (or **Show on the page**) and **Copy**, so you can paste the
+  block into another page.
+- For a block inside another block (a button inside a group, say), **Select** the container.
+  Select it to jump to the block around it.
+- While you are typing in a paragraph: **Bold**, **Italic**, **Underline**, **Link** and **Clear
+  formatting**. To add a link, select some words, press **Link**, then paste an address or type a path like
+  `/about`.
+
+Pointing at a block outlines it with a dashed line and shows just its name. A selected block has
+a solid outline.
+
+## Check the page for mistakes (Audit)
+
+Open the **Sections** panel and switch from **Sections** to **Audit**. The number on the tab says
+how many things to fix on this page. It looks for:
+
+- pictures with no description (shoppers who use screen readers hear nothing);
+- buttons that have words but no link;
+- sections hidden on both phones and computers;
+- empty headings;
+- theme colours that are hard to read.
+
+Each row says what is wrong and how to fix it. Select a row and the page scrolls to that block,
+which is selected so you can fix it at once. A colour row opens **Theme settings**. Blocks you
+hid with the eye are not checked. When the page is fine it says **Nothing to fix**.
+
+## Pages, Media and Theme settings
+
+The strip of icons on the left opens these panels:
+
+- **Pages** lists the pages and templates you can edit. Select one to switch. For templates that
+  have alternates it shows how many items use each one, with a **⋯** menu to rename, duplicate
+  or delete it. **Create template** makes a new alternate.
+- **Media** shows the pictures in your store. Search them, or press **Upload**. **Click** a
+  picture to put it in the section you selected (it goes into the first empty picture setting).
+  Or **drag** a picture onto the page and drop it on a block, which is outlined with a dashed
+  line while you hover. If no section is selected, it says to select one first. Add or tidy
+  pictures in **Content → Files**.
+- **Theme settings** holds colours, fonts, buttons, product cards, layout and your logo for the
+  whole store. It also opens when nothing is selected.
+
+## Zoom
+
+The top bar shows the page width and zoom, for example **1440 PX / 60 %**. Select it to pick
+**Fit** (the default) or a fixed zoom from 25 % to 200 %, or use **Zoom in** and **Zoom out**.
+Zooming changes only how big the page looks while you edit; it never changes the store. The bar
+above a block, the **+** insert line and the outlines keep their size.
+
 ## Section settings
 
-Under each section's own settings there's a **Section settings** area with four groups. Each
-group shows a short summary when it's closed (for example "Normal · Center" or "Mobile only"),
-so you can see what's set without opening it:
+Select a section, open the **Advanced** tab on the right, and you'll find **Section settings**
+with four groups. Each group shows a short summary when it's closed (for example "Normal ·
+Center" or "Mobile only"), so you can see what's set without opening it.
 
-- **Layout**: content width (narrow, normal, wide or full), alignment and the gap between
-  items inside it.
-- **Spacing**: padding above and below, with a box each for mobile, tablet and desktop side by
-  side, so a section can be tighter on a phone than on a wide screen.
-- **Style**: colour scheme, an optional background colour or image (with an overlay), corner
-  rounding, a border toggle and a shadow.
-- **Advanced**: show or hide the section on mobile or desktop, an entrance animation (fade,
-  slide up or zoom in as it scrolls into view) and an anchor ID for linking straight to it.
+**Where to find it:** Customize → select a section → **Advanced**. **What to do:** change the
+setting. **What you'll see:** the page changes straight away; shoppers see it after you save.
+
+- **Layout**
+  - **Content width**: Narrow, Normal, Wide or Full. Pick one of the four buttons.
+  - **Alignment**: Left, Center or Right.
+  - **Gap**: the space between the items inside the section.
+- **Spacing** (the space above and below the section)
+  - Choose the screen under **Editing**: desktop, tablet or mobile. A section can be tighter on
+    a phone than on a wide screen.
+  - The box shows a **Section** block with a number above it (top) and below it (bottom). Type a
+    number, or press **−** and **+**. Each press moves 4 px; hold <kbd>Shift</kbd> to move 40 px.
+  - **Quick sizes** set top and bottom together for that screen: **None**, **S**, **M**, **L** or
+    **XL**.
+- **Style**
+  - **Colour scheme**: small coloured chips named after your theme's schemes. Pick one.
+  - **Background**: switch between **Colour** and **Image**. Colour offers **None**, **Text**,
+    **Brand**, **Background**, **White** and **Custom** (opens a colour picker). The theme
+    colours follow your colour scheme and dark mode; a line named **Current** says which colour
+    is on. For **Image**, pick a picture and set how dark the shade over it is.
+  - **Corner radius**: None, Small, Med or Large. **Border** on or off. **Shadow**: None, Small
+    or Medium.
+- **Advanced**
+  - **Show on mobile** and **Show on desktop**: hide the section on one of them.
+  - **Entrance animation**: None, Fade, Slide up or Zoom, played as the section scrolls into
+    view. A **Preview** label next to it plays the effect so you can see it without saving.
+    Shoppers whose device is set to reduce motion see the section plain.
+  - **Anchor ID**: a name for linking straight to the section, such as `reviews`.
 
 Sections you edited before this panel existed keep looking exactly the same. Their old colour
 scheme and padding are carried into these groups the first time you open them.
+
+A few sections show fewer settings, because their design decides the rest:
+
+| Section | What you can change |
+| --- | --- |
+| **Hero carousel** and **Announcement bar** | Spacing, show on mobile and desktop, anchor ID. |
+| **Header** and **Footer** | The same, without a colour scheme (the footer is always the dark band). |
+| **Product, collection, page, blog, cart and search pages**, **Related products**, **Recently viewed** | Spacing, colour scheme, show on mobile and desktop, anchor ID. |
+| **Cookie banner**, **Signup popup**, **Sticky add to cart**, **Mobile dock** | None. They float over the page. |
+| Sections from an **imported Shopify theme** | None here. They use their own theme's settings. |
+
+Blocks you build yourself (Group, Tabs and so on) keep their own **Style** panel.
 
 <Screenshot
   name="Section settings panel"
@@ -398,7 +508,7 @@ nothing to shoppers until you reinstall the app.
 
 ## Pages
 
-**Online Store → Pages** lists every page built with the editor, with its title, URL, status
+**Content → Pages** lists every page built with the editor, with its title, URL, status
 (**Published** or **Draft**) and when it was last updated. Select **Add page** to start one.
 Each page has its own **Search engine listing** (title and description), **Visibility**
 (Visible or Hidden) and a **Theme template**; **Edit content** opens it in the editor.
