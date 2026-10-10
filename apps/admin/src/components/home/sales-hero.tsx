@@ -126,16 +126,18 @@ export default function SalesHero({ today, yesterdayHourly, charts }: SalesHeroP
 
   return (
     <section className="grid grid-cols-1 gap-6 rounded-xl surface-card p-[1.875rem] md:grid-cols-[minmax(0,1fr)_minmax(0,1.3fr)] md:items-center">
-      <div className="flex flex-col items-start gap-3">
-        <p className="text-caption font-normal text-muted-foreground">{title}</p>
-        <p className="font-[family-name:var(--font-display)] text-[3rem] leading-[3.25rem] font-bold tracking-tight text-ink-strong tabular-nums">
+      <div className="flex flex-col items-start gap-1.5">
+        <p className="text-[0.8125rem] leading-[1.1875rem] font-medium text-muted-foreground">
+          {title}
+        </p>
+        <p className="font-[family-name:var(--font-display)] text-[3.5rem] leading-[3.75rem] font-extrabold tracking-[-0.1rem] text-ink-strong tabular-nums">
           {fmt.money(value)}
         </p>
-        <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-caption font-normal text-muted-foreground">
+        <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[0.8125rem] leading-[1.1875rem] text-muted-foreground">
           {change !== null ? (
             <span
               className={cn(
-                'inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 font-medium',
+                'inline-flex items-center gap-1 rounded-[0.5rem] px-2 py-[0.1875rem] text-xs font-semibold',
                 up ? 'bg-success-soft text-success' : 'bg-danger-soft text-danger',
               )}
             >

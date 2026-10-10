@@ -55,13 +55,13 @@ export default function LiveNow({ initial }: LiveNowProps) {
       />
       <div className="flex flex-1 flex-col overflow-hidden rounded-xl surface-card">
         <div className="flex flex-col gap-0.5 p-6">
-          <p className="font-[family-name:var(--font-display)] text-[2.5rem] leading-[2.75rem] font-bold tracking-tight text-ink-strong tabular-nums">
+          <p className="font-[family-name:var(--font-display)] text-[2.5rem] leading-[2.875rem] font-extrabold tracking-[-0.0625rem] text-ink-strong tabular-nums">
             {fmt.compact(visitors)}
           </p>
-          <p className="text-caption font-normal text-muted-foreground">
+          <p className="text-[0.8125rem] leading-[1.1875rem] text-muted-foreground">
             {copy.visitors(visitors)}
           </p>
-          <p className="text-caption font-normal text-muted-foreground">
+          <p className="text-[0.8125rem] leading-[1.1875rem] font-medium text-foreground">
             {copy.today(copy.ordersWord(data.today.ordersCount), fmt.money(data.today.salesPaise))}
           </p>
         </div>
