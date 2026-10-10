@@ -114,6 +114,24 @@ puppeteer-core (dev dependency, Apache-2.0, no browser download) with reduced mo
 animations sit at their end state. `section-previews.test.ts` checks that every listed type has
 both files under 40 KB.
 
+### Starter kit sections
+
+`packages/blocks/src/sections/kit.tsx` (`kitSections()`, copy in `src/data/kit-sections.ts`,
+components in `src/components/sections/kit/`) holds polished sections for every merchant. Each is
+`framed()` (shared section settings), draws its copy through the inline field helpers, reads only
+theme tokens (`--color-ink`, `--color-surface`, `--color-brand`…), and keeps motion in a shared
+effect under `src/effects/` that loads Motion after hydration and stands still under reduced
+motion: `retro-grid`, `border-beam`, `word-rotate`, `number-ticker` (adapted from Magic UI,
+MIT). Shared pieces: `kit-buttons.tsx` (primary and secondary links, blank label hides one) and
+`kit-media.tsx` (picture or a brand-tinted placeholder). Centre with flex, not `mx-auto`: the
+theme's base CSS resets margins on plain elements, which beats Tailwind's layered utilities.
+
+Adding one: the config in `kitSections()`, its type in `SECTION_CATEGORIES`, a description in
+the admin's `data/customize.ts`, a glyph and kind (`lib/customize-puck.ts`,
+`lib/customize-section-kinds.ts`), a credit in `sources.ts` and `THIRD_PARTY_NOTICES.md` when
+it adapts outside code, then `bun run section-previews`. `test/library-inline.test.tsx` and
+`test/kit-sections.test.tsx` cover it.
+
 ### Nested blocks (slots)
 
 Layout blocks (Group, Columns, Grid, Tabs, Accordion, Carousel) hold other blocks in Puck

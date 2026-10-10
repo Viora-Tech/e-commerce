@@ -8,7 +8,8 @@
  * plus `src/lib/section-previews.ts`, the list the admin reads. Run it after adding a section
  * or changing how one looks, and commit what it writes.
  *
- * Chrome: `CHROME_PATH`, else the usual install location for this OS.
+ * Chrome: `CHROME_PATH`, else the usual install location for this OS. `--serve` only serves the
+ * page of sections (add `?mode=dark`) to look at in a browser, without taking pictures.
  */
 import { existsSync } from 'node:fs'
 import { mkdir, readFile, rm, writeFile } from 'node:fs/promises'
@@ -111,6 +112,11 @@ async function main() {
       return new Response(html, { headers: { 'content-type': 'text/html' } })
     },
   })
+  if (process.argv.includes('--serve')) {
+    // Look at every section as the script draws it (add ?mode=dark), without taking pictures.
+    console.log(`Sections page: ${server.url}  (Ctrl+C to stop)`)
+    return
+  }
   const browser = await puppeteer.launch({ executablePath: chromePath(), headless: true })
   const shapes: Record<string, number> = {}
   const darkDone = new Set<string>()

@@ -12,6 +12,12 @@ export const SECTION_SOURCES: Record<string, SectionSource> = {
   FaqAccordion: { name: 'shadcnblocks', href: 'https://www.shadcnblocks.com' },
   CtaBanner: { name: 'Magic UI', href: 'https://magicui.design' },
   Gallery: { name: 'shadcnblocks', href: 'https://www.shadcnblocks.com' },
+  // The starter kit (`./kit.tsx`): sections built on a Magic UI effect.
+  GridHero: { name: 'Magic UI', href: 'https://magicui.design' },
+  RotatingHero: { name: 'Magic UI', href: 'https://magicui.design' },
+  ShowcaseHero: { name: 'Magic UI', href: 'https://magicui.design' },
+  StatsCards: { name: 'Magic UI', href: 'https://magicui.design' },
+  CtaCard: { name: 'Magic UI', href: 'https://magicui.design' },
   // Zero Drift theme sections built on a shared UI-kit effect (`../effects/`).
   ReviewsShowcase: { name: 'Magic UI and Aceternity UI', href: 'https://magicui.design' },
   LatestDrop: { name: 'Aceternity UI', href: 'https://ui.aceternity.com' },
