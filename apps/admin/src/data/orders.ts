@@ -455,6 +455,25 @@ const IMPORTED_STATUS: Record<string, string> = {
 const PLATFORMS: Record<string, string> = { shopify: 'Shopify' }
 
 /** The card on an order brought over from another platform. */
+/** The order page's "Ships from" card: one parcel per warehouse. */
+export const parcelsCardContent = {
+  title: (count: number) => (count === 1 ? 'Ships from' : `Ships in ${count} parcels`),
+  parcel: (position: number) => `Parcel ${position}`,
+  from: (place: string) => `From ${place}`,
+  billedUnder: (gstin: string) => `GST ${gstin}`,
+  units: (count: number) => (count === 1 ? '1 item' : `${count} items`),
+  status: {
+    open: 'To pack',
+    on_hold: 'On hold (pre-order)',
+    fulfilled: 'Packed',
+    cancelled: 'Cancelled',
+  },
+  needsTransfer: 'Needs stock moved',
+  needsTransferHelp:
+    'This location did not have all of it when the order was placed. Move the stock here before packing.',
+  packed: (done: number, of: number) => `${done} of ${of} packed`,
+}
+
 export const importedOrderContent = {
   title: (platform: string) => `Imported from ${PLATFORMS[platform] ?? platform}`,
   body: 'A historical order kept as a record. It did not change stock, send messages or create invoices, and it cannot be fulfilled or refunded here.',

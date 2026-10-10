@@ -23,6 +23,7 @@ import {
 import { and, asc, desc, eq, isNull, ne, sql } from 'drizzle-orm'
 import { CommerceError } from '../errors'
 import { listLocations } from '../inventory/levels'
+import { parseShippingSettings } from '../shipping/settings'
 import { gstinState, panFromGstin, validateGstin } from './gstin'
 import {
   type BusinessInput,
@@ -75,12 +76,19 @@ export type LocationBillingView = {
   phone: string | null
   /** Couriers collect from here (shipping/ship-from.ts); null uses Settings › Shipping. */
   courierPickup: LocationCourierPickup | null
+  /** Checkout routes orders here (order/routing.ts); the default location always does. */
+  fulfilsOnlineOrders: boolean
+  /** Routing order among locations that ship online orders: lower ships first. */
+  priority: number
 }
 
 export type BusinessGstView = {
   businesses: Business[]
   registrations: GstRegistrationView[]
+  /** In routing order (`priority`), the order checkout tries them in. */
   locations: LocationBillingView[]
+  /** The most parcels one order may be split into (`store.shipping.routing.maxParcels`). */
+  maxParcels: number
 }
 
 const PAN_MISMATCH_MESSAGE = 'This GST number belongs to a different PAN. Is it another business?'
@@ -123,8 +131,11 @@ export async function listBusinessGst(tx: StoreTx, storeId: string): Promise<Bus
   const [businesses, registrations, locations] = [
     await listBusinesses(tx),
     await listRegistrations(tx),
-    await listLocations(tx, storeId),
+    (await listLocations(tx, storeId)).sort(
+      (a, b) => a.priority - b.priority || Number(b.isDefault) - Number(a.isDefault),
+    ),
   ]
+  const [s] = await tx.select({ shipping: store.shipping }).from(store).where(eq(store.id, storeId))
   const registeredStates = new Set(registrations.filter((r) => r.active).map((r) => r.state))
   return {
     businesses,
@@ -145,8 +156,11 @@ export async function listBusinessGst(tx: StoreTx, storeId: string): Promise<Bus
         stateUnregistered: stateCode !== null && !registeredStates.has(stateCode),
         phone: l.phone,
         courierPickup: l.courierPickup ?? null,
+        fulfilsOnlineOrders: l.fulfilsOnlineOrders,
+        priority: l.priority,
       }
     }),
+    maxParcels: parseShippingSettings(s?.shipping).routing.maxParcels,
   }
 }
 

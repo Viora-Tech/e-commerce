@@ -100,6 +100,25 @@ export const LocationPickupInputSchema = z.object({
 })
 export type LocationPickupInput = z.input<typeof LocationPickupInputSchema>
 
+/** Whether a location ships online orders (checkout routes orders to it). */
+export const LocationSellingInputSchema = z.object({
+  locationId: z.uuid(),
+  sells: z.boolean(),
+})
+export type LocationSellingInput = z.infer<typeof LocationSellingInputSchema>
+
+/** The order checkout tries locations in: every location id, first ships first. */
+export const LocationOrderInputSchema = z.object({
+  locationIds: z.array(z.uuid()).min(1).max(100),
+})
+export type LocationOrderInput = z.infer<typeof LocationOrderInputSchema>
+
+/** The most parcels one order may be split into (Settings › Locations). */
+export const MAX_PARCELS_LIMIT = 5
+export const MaxParcelsInputSchema = z.object({
+  maxParcels: z.number().int().min(1).max(MAX_PARCELS_LIMIT),
+})
+
 /** Why a Business and GST change was refused. The admin narrows on these, never on text. */
 export const GST_REGISTRATION_ERROR_CODES = [
   'NOT_FOUND',
@@ -112,5 +131,6 @@ export const GST_REGISTRATION_ERROR_CODES = [
   'STATE_MISMATCH',
   'MANAGED_ELSEWHERE',
   'ADDRESS_INCOMPLETE',
+  'DEFAULT_SELLS',
 ] as const
 export type GstRegistrationErrorCode = (typeof GST_REGISTRATION_ERROR_CODES)[number]

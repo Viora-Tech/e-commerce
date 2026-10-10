@@ -5,6 +5,7 @@ import {
   type OrderPaymentStatus,
   type OrderStatus,
   type OrderStatusChange,
+  orderParcelsView,
   type PaymentProvider,
   parsePaymentSettings,
   refundPayment,
@@ -298,6 +299,8 @@ export async function getOrder(tx: StoreTx, id: string) {
     paymentEvents: await eventsForPayments(tx, payments),
     customer: cust ?? null,
     shippingAddress: ship ?? null,
+    /** Where each part ships from: one parcel per warehouse (order/routing.ts). */
+    parcels: await orderParcelsView(tx, id),
   }
 }
 
