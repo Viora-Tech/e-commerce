@@ -9,7 +9,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@commerce/ui/shadcn/too
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { parseAsInteger, parseAsString, parseAsStringLiteral, useQueryStates } from 'nuqs'
-import { Suspense, useEffect, useState } from 'react'
+import { Suspense, useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
 import PillTabs from '@/components/layout/pill-tabs'
 import ProoflyListPage from '@/components/layout/proofly-list-page'
@@ -108,12 +108,18 @@ function ProductsContent({ initial }: { initial: ProductsInitial }) {
   )
   const [aiRefresh, setAiRefresh] = useState(0)
 
+  const hydrated = useRef(false)
+
   useEffect(() => {
     const sameQuery = sameListQuery(
       { page: q.page, query: q.query, status: q.status },
       initial.query,
     )
-    if (sameQuery && !hasFilters(q) && q.perPage === DEFAULT_PER_PAGE) return
+    // The server's first page is used once; after any change (including back to the first
+    // tab) the list is fetched again, so it never keeps another tab's rows.
+    const firstRun = !hydrated.current
+    hydrated.current = true
+    if (firstRun && sameQuery && !hasFilters(q) && q.perPage === DEFAULT_PER_PAGE) return
     let cancelled = false
     setLoading(true)
     api.products

@@ -7,7 +7,7 @@ import { Kbd } from '@commerce/ui/shadcn/kbd'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@commerce/ui/shadcn/tooltip'
 import Link from 'next/link'
 import { parseAsInteger, parseAsString, parseAsStringLiteral, useQueryStates } from 'nuqs'
-import { Suspense, useEffect, useState } from 'react'
+import { Suspense, useEffect, useRef, useState } from 'react'
 import PillTabs from '@/components/layout/pill-tabs'
 import ProoflyListPage from '@/components/layout/proofly-list-page'
 import { purchaseOrderColumns } from '@/components/purchase-orders/purchase-order-columns'
@@ -59,8 +59,14 @@ function PurchaseOrdersContent({ initial }: { initial: PurchaseOrdersInitial }) 
   const [total, setTotal] = useState(initial.result.total)
   const [loading, setLoading] = useState(false)
 
+  const hydrated = useRef(false)
+
   useEffect(() => {
-    if (sameListQuery(q, initial.query) && q.perPage === PER_PAGE) return
+    // The server's first page is used once; after any change (including back to the first
+    // tab) the list is fetched again, so it never keeps another tab's rows.
+    const firstRun = !hydrated.current
+    hydrated.current = true
+    if (firstRun && sameListQuery(q, initial.query) && q.perPage === PER_PAGE) return
     let cancelled = false
     setLoading(true)
     api.purchaseOrders

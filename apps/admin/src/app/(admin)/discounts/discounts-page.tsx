@@ -7,7 +7,7 @@ import { Kbd } from '@commerce/ui/shadcn/kbd'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@commerce/ui/shadcn/tooltip'
 import Link from 'next/link'
 import { parseAsInteger, parseAsString, parseAsStringLiteral, useQueryStates } from 'nuqs'
-import { Suspense, useEffect, useState } from 'react'
+import { Suspense, useEffect, useRef, useState } from 'react'
 import { discountColumns } from '@/components/discounts/discount-columns'
 import DiscountTiles, { type DiscountStats } from '@/components/discounts/discount-tiles'
 import PillTabs from '@/components/layout/pill-tabs'
@@ -50,10 +50,19 @@ function DiscountsContent({ initial }: { initial: DiscountsInitial }) {
   const [items, setItems] = useState(initial.result.items)
   const [total, setTotal] = useState(initial.result.total)
   const [loading, setLoading] = useState(false)
+  const hydrated = useRef(false)
+
   useEffect(() => {
-    if (sameListQuery({ page, query, status }, initial.query) && perPage === DEFAULT_PER_PAGE) {
+    // The server's first page is used once; after any change (including back to the first
+    // tab) the list is fetched again, so it never keeps another tab's rows.
+    const firstRun = !hydrated.current
+    hydrated.current = true
+    if (
+      firstRun &&
+      sameListQuery({ page, query, status }, initial.query) &&
+      perPage === DEFAULT_PER_PAGE
+    )
       return
-    }
     let cancelled = false
     setLoading(true)
     api.discounts

@@ -5,7 +5,7 @@ import { Plus } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import Link from 'next/link'
 import { parseAsInteger, parseAsString, parseAsStringLiteral, useQueryStates } from 'nuqs'
-import { Suspense, useEffect, useState } from 'react'
+import { Suspense, useEffect, useRef, useState } from 'react'
 import { inboundShipmentColumns } from '@/components/inbound-shipments/shipment-columns'
 import PillTabs from '@/components/layout/pill-tabs'
 import ProoflyListPage from '@/components/layout/proofly-list-page'
@@ -49,8 +49,14 @@ function InboundShipmentsContent({ initial }: { initial: InboundShipmentsInitial
   const [result, setResult] = useState(initial.result)
   const [loading, setLoading] = useState(false)
 
+  const hydrated = useRef(false)
+
   useEffect(() => {
-    if (sameListQuery(state, initial.query) && state.perPage === ROWS) return
+    // The server's first page is used once; after any change (including back to the first
+    // tab) the list is fetched again, so it never keeps another tab's rows.
+    const firstRun = !hydrated.current
+    hydrated.current = true
+    if (firstRun && sameListQuery(state, initial.query) && state.perPage === ROWS) return
     let stale = false
     setLoading(true)
     api.inboundShipments

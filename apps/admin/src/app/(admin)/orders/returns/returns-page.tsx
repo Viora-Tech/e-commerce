@@ -4,7 +4,7 @@ import type { ReturnReason } from '@commerce/core/returns'
 import { Button } from '@commerce/ui/shadcn/button'
 import Link from 'next/link'
 import { parseAsInteger, parseAsString, parseAsStringLiteral, useQueryStates } from 'nuqs'
-import { Suspense, useEffect, useState } from 'react'
+import { Suspense, useEffect, useRef, useState } from 'react'
 import PillTabs from '@/components/layout/pill-tabs'
 import OrderChip from '@/components/orders/order-chip'
 import OrdersListFrame from '@/components/orders/orders-list-frame'
@@ -137,9 +137,20 @@ function ReturnsContent({ initial }: { initial: ReturnsInitial }) {
   const [total, setTotal] = useState(initial.result.total)
   const [loading, setLoading] = useState(false)
 
+  const hydrated = useRef(false)
+
   useEffect(() => {
     const size = parseRowsPerPage(rawPerPage)
-    if (size === initial.perPage && sameListQuery({ page, query, status }, initial.query)) return
+    // The server's first page is used once; after any change (including back to the first
+    // tab) the list is fetched again, so it never keeps another tab's rows.
+    const firstRun = !hydrated.current
+    hydrated.current = true
+    if (
+      firstRun &&
+      size === initial.perPage &&
+      sameListQuery({ page, query, status }, initial.query)
+    )
+      return
     let cancelled = false
     setLoading(true)
     fetchReturns({ page, query, status }, size)
