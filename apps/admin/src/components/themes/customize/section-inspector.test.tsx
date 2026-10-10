@@ -59,7 +59,7 @@ vi.mock('./inspector-breadcrumb', () => ({ default: () => null }))
 
 function setup(selected: Selected) {
   puck.selectedItem = selected
-  render(<SectionInspector settings={<p>Theme settings form</p>} />)
+  render(<SectionInspector />)
   return userEvent.setup()
 }
 
@@ -69,10 +69,12 @@ beforeEach(() => {
 })
 
 describe('SectionInspector', () => {
-  it('shows the theme settings when nothing is selected', () => {
+  it('says how to pick a section when nothing is selected (theme settings live in the rail)', () => {
     setup(null)
-    expect(screen.getByRole('region', { name: panels.theme })).toBeTruthy()
-    expect(screen.getByText('Theme settings form')).toBeTruthy()
+    const empty = customizeContent.inspectorEmpty
+    expect(screen.getByRole('region', { name: empty.title })).toBeTruthy()
+    expect(screen.getByText(empty.body)).toBeTruthy()
+    expect(screen.queryByRole('region', { name: panels.theme })).toBeNull()
   })
 
   it('names the selected section, by its merchant-given name when it has one', () => {

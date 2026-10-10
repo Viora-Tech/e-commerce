@@ -109,6 +109,22 @@ export default [
     help: 'मदद लें',
     back: 'थीम पर वापस',
   }),
+  translation(customizeContent.view, {
+    fullView: 'पूरा पेज',
+    fullViewHint: (keys: string) => `सिर्फ़ पेज देखें (${keys})`,
+    exitFullView: 'पूरे पेज से बाहर',
+    exitHint: 'Esc',
+    hideLeft: 'बायाँ पैनल छिपाएँ',
+    showLeft: 'बायाँ पैनल दिखाएँ',
+    hideRight: 'सेटिंग्स पैनल छिपाएँ',
+    showRight: 'सेटिंग्स पैनल दिखाएँ',
+  }),
+  translation(customizeContent.inspectorEmpty, {
+    title: 'पेज',
+    body: 'बदलने के लिए कोई सेक्शन चुनें।',
+    tipsTitle: 'शुरू करने के तरीक़े',
+    tips: ['पेज पर किसी सेक्शन पर क्लिक करें।', 'बाईं ओर Layers में कोई चुनें।', 'रेल में + से नया जोड़ें।'],
+  }),
   translation(customizeContent.identity, {
     title: (store: string, template: string) => `${store} · ${template}`,
   }),

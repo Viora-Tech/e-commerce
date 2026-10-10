@@ -112,6 +112,24 @@ banner" (`inspector-breadcrumb.tsx`), and each container in it selects that cont
 - **Canvas**: 32px above and 24px beside the page frame (10px corners); the selected block's name
   chip sits on the block's top edge, flush with its left side; hover stays a dashed outline.
 
+### Panels and full view
+
+- Theme settings live only in the rail's **Theme** tab. With nothing selected, the right panel
+  shows "Page · Select a section to edit it." with a small drawing and three ways to start
+  (`inspector-empty.tsx`, Figma 369:129005).
+- Each side panel hides and shows from a small tab on the canvas edge (`panel-toggle.tsx`); the
+  choice is remembered in this browser (`lib/customize-view.ts`, `customize.panels.v1`). A rail
+  tab reopens a hidden left panel.
+- **Full view** (`full-view-button.tsx` in the top bar, `\` or Ctrl/⌘ + `.`) hides the rail, both
+  panels and the canvas dock; a floating "Exit full view" pill and Esc bring them back
+  (`full-view-exit.tsx`, listening in the admin and the canvas frame, never while typing).
+- Scrolling: every left tab and the inspector scroll inside their own column. The Add panel's
+  list scrolls in a box outside Puck's `Drawer`, which has no height of its own.
+- The storefront's block CSS (needed in the admin document so Puck mirrors it into the canvas)
+  uppercases and resizes every h1–h6 and sets inputs to 16px; `vendor-puck.css` undoes that for
+  the chrome (`[data-editor-chrome]` on the layout root, and portalled `data-slot="…-content"`
+  popovers and dialogs) in the `components` layer.
+
 ### Loading screen
 
 Until the first page has loaded, `editor-loading.tsx` draws the editor's own frame as

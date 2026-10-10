@@ -3,11 +3,15 @@
  * call sites still import everything from `@commerce/ui/icons`.
  */
 import {
+  CornersIn,
+  CornersOut,
   ListBullets,
   ListNumbers,
   Minus,
+  Cursor as PhCursor,
   Question,
   Quotes,
+  SidebarSimple,
   Stack,
   TextB,
   TextItalic,
@@ -30,3 +34,11 @@ export const ListBulleted = defineIcon(ListBullets, 'ListBulleted')
 export const ListNumbered = defineIcon(ListNumbers, 'ListNumbered')
 export const QuoteIcon = defineIcon(Quotes, 'QuoteIcon')
 export const RuleIcon = defineIcon(Minus, 'RuleIcon')
+
+/** The theme editor's full view: hide the panels to see the page alone, and back. */
+export const FullViewIcon = defineIcon(CornersOut, 'FullView')
+export const ExitFullViewIcon = defineIcon(CornersIn, 'ExitFullView')
+/** Show or hide a side panel. */
+export const SidebarToggleIcon = defineIcon(SidebarSimple, 'SidebarToggle')
+/** A pointer: "click it". */
+export const Cursor = defineIcon(PhCursor, 'Cursor')

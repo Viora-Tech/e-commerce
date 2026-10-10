@@ -6,7 +6,7 @@ import { cn } from '@commerce/ui/lib/utils'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Puck } from '@puckeditor/core'
 import { motion, useReducedMotion } from 'motion/react'
-import { type MouseEvent, type ReactNode, useState } from 'react'
+import { type MouseEvent, useState } from 'react'
 import { customizeContent } from '@/data/customize'
 import { useCopy } from '@/hooks/use-copy'
 import { deleteWithCollapse } from '@/lib/customize-canvas-motion'
@@ -17,13 +17,9 @@ import { InspectorTabContext } from '@/lib/customize-inspector-tab'
 import { useCustomizePuck } from '@/lib/customize-puck'
 import { locateBlock } from '@/lib/customize-slots'
 import InspectorBreadcrumb from './inspector-breadcrumb'
+import InspectorEmpty from './inspector-empty'
 import PanelHeader from './panel-header'
 import SectionIcon from './section-icon'
-
-type SectionInspectorProps = {
-  /** Shown instead of the empty state, so the pane is never just blank text. */
-  settings: ReactNode
-}
 
 type Tab = 'basic' | 'advanced'
 
@@ -31,9 +27,10 @@ const TABS: Tab[] = ['basic', 'advanced']
 
 /** The right pane: the selected section's settings, drawn by Puck's own field
  * renderer, under a header naming the section and the group it sits in, with Basic (the
- * section's own fields) and Advanced (layout, spacing, style) tabs — or, with nothing
- * selected, the theme settings, so there's always something to edit here. */
-export default function SectionInspector({ settings }: SectionInspectorProps) {
+ * section's own fields) and Advanced (layout, spacing, style) tabs. With nothing selected it
+ * says how to pick one (`InspectorEmpty`, Figma 369:129005); theme settings live only in the
+ * rail's Theme tab. */
+export default function SectionInspector() {
   // Hooks
   const copy = useCopy(customizeContent.inspector)
   const panels = useCopy(customizeContent.panels)
@@ -60,14 +57,7 @@ export default function SectionInspector({ settings }: SectionInspectorProps) {
   }
 
   // Early returns
-  if (!selected) {
-    return (
-      <section aria-label={panels.theme} className="flex min-h-0 flex-1 flex-col">
-        <PanelHeader title={panels.theme} hint={panels.themeHint} />
-        <div className="min-h-0 flex-1 overflow-y-auto">{settings}</div>
-      </section>
-    )
-  }
+  if (!selected) return <InspectorEmpty />
 
   // Render logic
   const component = components[selected.type]

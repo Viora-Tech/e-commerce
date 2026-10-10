@@ -10,14 +10,17 @@ import { useCopy } from '@/hooks/use-copy'
 import { CHROME_PANEL } from '@/lib/customize-chrome'
 import type { InsertTarget } from '@/lib/customize-insert'
 import { InsertContext } from '@/lib/customize-insert-context'
+import { EditorViewContext, useEditorViewState } from '@/lib/customize-view'
 import { type CanvasZoom, CanvasZoomContext, DEVICE_PX, fitZoom } from '@/lib/customize-zoom'
 import type { PreviewDevice } from '../theme-preview'
 import AddSectionDialog from './add-section-dialog'
 import AddSectionPanel from './add-section-panel'
 import AiPanel from './ai-panel'
 import CustomizeRail, { type RailPanel } from './customize-rail'
+import FullViewExit from './full-view-exit'
 import MediaPanel from './media-panel'
 import PanelIdentity from './panel-identity'
+import PanelToggle from './panel-toggle'
 import SectionInspector from './section-inspector'
 import SectionsPanel from './sections-panel'
 import StoreSettingsPanel from './store-settings-panel'
@@ -58,6 +61,7 @@ export default function CustomizeLayout({
 }: CustomizeLayoutProps) {
   // Hooks
   const [panel, setPanel] = useState<RailPanel>('sections')
+  const view = useEditorViewState()
   const [inserting, setInserting] = useState<InsertTarget | null>(null)
   const reducedMotion = useReducedMotion()
   const panels = useCopy(customizeContent.panels)
@@ -77,6 +81,13 @@ export default function CustomizeLayout({
     observer.observe(stage)
     return () => observer.disconnect()
   }, [stage])
+
+  // Event handlers
+  /** A rail tab opens the left panel if it was hidden. */
+  const openPanel = (next: RailPanel) => {
+    setPanel(next)
+    if (!view.left) view.setLeft(true)
+  }
 
   // Render logic
   const headers: Record<RailPanel, { title: string; hint: string }> = {
@@ -104,87 +115,114 @@ export default function CustomizeLayout({
   const zoom = zoomMode === 'fit' ? fit : zoomMode
   const zoomState = { zoom, mode: zoomMode, fit, devicePx, setMode: setZoomMode }
   const resize = reducedMotion ? '' : 'duration-200 ease-out'
+  const showLeft = view.left && !view.full
+  const showRight = view.right && !view.full
 
   return (
-    <CanvasZoomContext.Provider value={zoomState}>
-      <InsertContext.Provider value={setInserting}>
-        <div className="flex h-svh flex-col bg-sidebar">
-          {topBar}
-          <div className="flex min-h-0 flex-1 border-t border-border">
-            <CustomizeRail active={panel} onChange={setPanel} store={store} />
-            <aside className={cn(CHROME_PANEL, 'w-[19rem] border-r border-border')}>
-              <PanelIdentity
-                title={identity.title(store.name, templateLabel)}
-                domain={store.domain}
-                panel={panel === 'add' ? null : headers[panel]}
-              />
-              <AnimatePresence mode="wait" initial={false}>
-                <motion.div
-                  key={panel}
-                  initial={reducedMotion ? false : { opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={reducedMotion ? undefined : { opacity: 0 }}
-                  transition={{ duration: reducedMotion ? 0 : 0.15, ease: 'easeOut' }}
-                  className={cn(
-                    'flex min-h-0 flex-1 flex-col',
-                    // The Add panel sits in the panel's own 16px gutter (Figma 369:4899).
-                    panel === 'add' && 'px-4 pt-4',
-                    // The Add panel (AddSectionBrowser, `fill`) owns its own internal
-                    // scroll below a sticky search box and tabs — scrolling here too
-                    // would carry that header away with the list. Every other panel
-                    // (Sections tree, Theme settings) has no such header and still
-                    // wants this level to scroll.
-                    panel === 'add' || panel === 'pages' || panel === 'ai'
-                      ? 'overflow-hidden'
-                      : 'overflow-y-auto',
-                  )}
-                >
-                  {panelContent}
-                </motion.div>
-              </AnimatePresence>
-            </aside>
-            <main id="main" className="relative flex min-w-0 flex-1 bg-muted">
-              {/* The page is laid out at the device's real width and scaled (CSS transform) to
-                the zoom; the outer box takes the scaled size, so a zoom wider than the space
-                scrolls sideways. Inside the canvas everything keeps its own coordinates. */}
-              <div
-                ref={setStage}
-                data-canvas-stage=""
-                className="flex min-h-0 min-w-0 flex-1 overflow-x-auto overflow-y-hidden px-6 pt-8 pb-16"
+    <EditorViewContext.Provider value={view}>
+      <CanvasZoomContext.Provider value={zoomState}>
+        <InsertContext.Provider value={setInserting}>
+          <div data-editor-chrome="" className="flex h-svh flex-col bg-sidebar">
+            {topBar}
+            <div className="flex min-h-0 flex-1 border-t border-border">
+              {view.full ? null : (
+                <CustomizeRail active={panel} onChange={openPanel} store={store} />
+              )}
+              <aside
+                hidden={!showLeft}
+                className={cn(
+                  CHROME_PANEL,
+                  'w-[19rem] border-r border-border',
+                  !showLeft && 'hidden',
+                )}
               >
-                <div
-                  style={{ width: devicePx * zoom, height: room.height }}
-                  className={cn(
-                    'mx-auto shrink-0 overflow-hidden rounded-[0.625rem] bg-card shadow-popover',
-                    resize && `transition-[width] ${resize}`,
-                    room.width === 0 && 'invisible',
-                    loading && 'pointer-events-none opacity-60 transition-opacity duration-200',
-                  )}
-                >
-                  <div
-                    style={{
-                      width: devicePx,
-                      height: room.height / zoom,
-                      transform: `scale(${zoom})`,
-                    }}
+                <PanelIdentity
+                  title={identity.title(store.name, templateLabel)}
+                  domain={store.domain}
+                  panel={panel === 'add' ? null : headers[panel]}
+                />
+                <AnimatePresence mode="wait" initial={false}>
+                  <motion.div
+                    key={panel}
+                    initial={reducedMotion ? false : { opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={reducedMotion ? undefined : { opacity: 0 }}
+                    transition={{ duration: reducedMotion ? 0 : 0.15, ease: 'easeOut' }}
                     className={cn(
-                      'origin-top-left',
-                      resize && `transition-[width,transform] ${resize}`,
+                      'flex min-h-0 flex-1 flex-col',
+                      // The Add panel sits in the panel's own 16px gutter (Figma 369:4899).
+                      panel === 'add' && 'px-4 pt-4',
+                      // The Add panel (AddSectionBrowser, `fill`) owns its own internal
+                      // scroll below a sticky search box and tabs — scrolling here too
+                      // would carry that header away with the list. Every other panel
+                      // (Sections tree, Theme settings) has no such header and still
+                      // wants this level to scroll.
+                      panel === 'add' || panel === 'pages' || panel === 'ai'
+                        ? 'overflow-hidden'
+                        : 'overflow-y-auto',
                     )}
                   >
-                    <Puck.Preview />
+                    {panelContent}
+                  </motion.div>
+                </AnimatePresence>
+              </aside>
+              <main id="main" className="relative flex min-w-0 flex-1 bg-muted">
+                {/* The page is laid out at the device's real width and scaled (CSS transform) to
+                the zoom; the outer box takes the scaled size, so a zoom wider than the space
+                scrolls sideways. Inside the canvas everything keeps its own coordinates. */}
+                <div
+                  ref={setStage}
+                  data-canvas-stage=""
+                  className="flex min-h-0 min-w-0 flex-1 overflow-x-auto overflow-y-hidden px-6 pt-8 pb-16"
+                >
+                  <div
+                    style={{ width: devicePx * zoom, height: room.height }}
+                    className={cn(
+                      'mx-auto shrink-0 overflow-hidden rounded-[0.625rem] bg-card shadow-popover',
+                      resize && `transition-[width] ${resize}`,
+                      room.width === 0 && 'invisible',
+                      loading && 'pointer-events-none opacity-60 transition-opacity duration-200',
+                    )}
+                  >
+                    <div
+                      style={{
+                        width: devicePx,
+                        height: room.height / zoom,
+                        transform: `scale(${zoom})`,
+                      }}
+                      className={cn(
+                        'origin-top-left',
+                        resize && `transition-[width,transform] ${resize}`,
+                      )}
+                    >
+                      <Puck.Preview />
+                    </div>
                   </div>
                 </div>
-              </div>
-              {dock}
-            </main>
-            <aside className={cn(CHROME_PANEL, 'w-[17.75rem] border-l border-border')}>
-              <SectionInspector settings={settings} />
-            </aside>
+                {view.full ? null : (
+                  <>
+                    {dock}
+                    <PanelToggle side="left" />
+                    <PanelToggle side="right" />
+                  </>
+                )}
+                <FullViewExit />
+              </main>
+              <aside
+                hidden={!showRight}
+                className={cn(
+                  CHROME_PANEL,
+                  'w-[17.75rem] border-l border-border',
+                  !showRight && 'hidden',
+                )}
+              >
+                <SectionInspector />
+              </aside>
+            </div>
           </div>
-        </div>
-        <AddSectionDialog target={inserting} onClose={() => setInserting(null)} />
-      </InsertContext.Provider>
-    </CanvasZoomContext.Provider>
+          <AddSectionDialog target={inserting} onClose={() => setInserting(null)} />
+        </InsertContext.Provider>
+      </CanvasZoomContext.Provider>
+    </EditorViewContext.Provider>
   )
 }

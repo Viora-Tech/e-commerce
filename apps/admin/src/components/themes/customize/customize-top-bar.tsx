@@ -31,6 +31,7 @@ import { displayThemeName } from '@/lib/customize-theme-name'
 import { initials } from '@/lib/initials'
 import { routes } from '@/lib/routes'
 import type { PreviewDevice } from '../theme-preview'
+import FullViewButton from './full-view-button'
 import ZoomMenu from './zoom-menu'
 
 type CustomizeTopBarProps = {
@@ -141,6 +142,7 @@ export default function CustomizeTopBar({
           ))}
         </fieldset>
         <ZoomMenu />
+        <FullViewButton className={ICON_BUTTON} />
         {aiConnected ? (
           <span className="hidden shrink-0 items-center gap-1.5 rounded-full bg-success-soft px-2.5 py-[0.3125rem] text-xs leading-[1.0625rem] font-medium text-foreground xl:flex">
             <span aria-hidden className="size-[0.4375rem] rounded-full bg-success" />

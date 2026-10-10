@@ -113,6 +113,29 @@
   font-family: var(--font-primary), ui-sans-serif, system-ui, sans-serif;
 }
 
+/* The storefront's block CSS (vendor-blocks.css) has to be in the admin document so Puck can
+ * mirror it into the canvas frame, which means its element rules reach the editor's own chrome
+ * too: every h1–h6 uppercased at 2–2.5rem with 0.01em tracking and weight 500, and every text
+ * input at 16px. Undo them for the chrome only: the layout's root (`data-editor-chrome`, a div,
+ * which Puck does not copy into the frame as it does <html>/<body> attributes) and the
+ * dialogs, popovers and menus portalled to <body> (`data-slot="…-content"`), in the
+ * `components` layer: after `vendor`, so it wins there, and
+ * before `utilities`, so the chrome's own classes still decide. */
+@layer components {
+  :is([data-editor-chrome], [data-slot$="-content"]) :is(h1, h2, h3, h4, h5, h6) {
+    font-family: inherit;
+    font-size: inherit;
+    font-weight: inherit;
+    letter-spacing: inherit;
+    line-height: inherit;
+    text-transform: none;
+  }
+  :is([data-editor-chrome], [data-slot$="-content"])
+    input:not([type="checkbox"], [type="radio"], [type="range"], [type="color"]) {
+    font-size: inherit;
+  }
+}
+
 /* One screen pixel at any canvas zoom (`--canvas-zoom`, lib/customize-zoom.ts). */
 [data-puck-overlay] [class*="DraggableComponent-overlay_"] {
   outline: calc(1px / var(--canvas-zoom, 1)) solid var(--primary);

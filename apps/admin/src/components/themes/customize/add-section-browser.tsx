@@ -142,8 +142,8 @@ export default function AddSectionBrowser({
 
   // Render logic
   const listClass = fill
-    ? 'flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto pb-4'
-    : 'flex max-h-96 flex-col gap-4 overflow-y-auto'
+    ? 'min-h-0 flex-1 overflow-y-auto overscroll-contain pb-4 [&>div]:gap-4'
+    : 'max-h-96 overflow-y-auto overscroll-contain [&>div]:gap-4'
 
   return (
     // biome-ignore lint/a11y/noStaticElementInteractions: clears the hover preview only; every item inside is its own focusable button.
@@ -161,8 +161,10 @@ export default function AddSectionBrowser({
         aria-label={copy.search}
         className="h-10 rounded-[0.625rem] px-3 text-sm"
       />
-      <Drawer>
-        <div className={listClass}>
+      {/* The scroller sits outside Puck's Drawer: the Drawer is a plain flex column with no
+          height of its own, so a list inside it never got a height to scroll within. */}
+      <div className={listClass}>
+        <Drawer>
           <SectionsTab
             group={group}
             kind={kind}
@@ -198,8 +200,8 @@ export default function AddSectionBrowser({
               />
             </AddSectionGroup>
           ) : null}
-        </div>
-      </Drawer>
+        </Drawer>
+      </div>
     </div>
   )
 }

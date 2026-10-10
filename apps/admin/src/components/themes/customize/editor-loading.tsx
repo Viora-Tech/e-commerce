@@ -36,7 +36,7 @@ export default function EditorLoading({ storeName, state, onRetry }: EditorLoadi
   const still = reducedMotion === true || failed
 
   return (
-    <div className="flex h-svh flex-col bg-sidebar" aria-busy={!failed}>
+    <div data-editor-chrome="" className="flex h-svh flex-col bg-sidebar" aria-busy={!failed}>
       <div className="flex h-14 shrink-0 items-center gap-3 border-b border-border bg-card px-4">
         <Bone still={still} className="h-9 w-24 rounded-[0.625rem]" />
         <Bone still={still} className="h-5 w-28" />
