@@ -69,6 +69,7 @@ export const productsListContent = {
   launching: (date: Date) =>
     `Launching ${date.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}`,
   bulk: {
+    bulkEdit: 'Bulk edit',
     setActive: 'Set as active',
     setDraft: 'Set as draft',
     archive: 'Archive',

@@ -11,6 +11,7 @@ type ProductBulkActionsProps = {
   busy: boolean
   onStatus: (status: ProductStatus) => void
   onTag: () => void
+  onBulkEdit: () => void
   onDelete: () => void
   /** Bulk "Write with AI"; absent when AI is off or the role cannot write products. */
   onWriteAi?: (() => void) | undefined
@@ -21,6 +22,7 @@ export default function ProductBulkActions({
   busy,
   onStatus,
   onTag,
+  onBulkEdit,
   onDelete,
   onWriteAi,
 }: ProductBulkActionsProps) {
@@ -36,6 +38,9 @@ export default function ProductBulkActions({
           {ai.button}
         </Button>
       ) : null}
+      <Button variant="outline" size="sm" disabled={busy} onClick={onBulkEdit}>
+        {copy.bulkEdit}
+      </Button>
       <Button variant="outline" size="sm" disabled={busy} onClick={() => onStatus('active')}>
         {copy.setActive}
       </Button>

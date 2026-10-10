@@ -58,6 +58,7 @@
     "nuqs": "^2.8.6",
     "pdf-lib": "^1.17.1",
     "react": "^19.2.0",
+    "react-data-grid": "7.0.0-beta.61",
     "react-dom": "^19.2.0",
     "recharts": "3.8.0",
     "server-only": "^0.0.1",

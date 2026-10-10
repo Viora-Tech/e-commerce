@@ -35,6 +35,7 @@ export const routes = {
   products: {
     list: () => '/products',
     new: () => '/products/new',
+    bulkEdit: (productIds: string[]) => `/products/bulk-edit?ids=${productIds.map(id).join(',')}`,
     detail: (productId: string) => `/products/${id(productId)}`,
     collections: () => '/products/collections',
     newCollection: () => '/products/collections/new',

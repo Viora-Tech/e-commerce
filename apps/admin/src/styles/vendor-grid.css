@@ -1,0 +1,2 @@
+/* react-data-grid (MIT) base styles, layered below the admin's utilities. */
+@import "react-data-grid/lib/styles.css" layer(vendor);
