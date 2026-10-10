@@ -1,6 +1,6 @@
 'use client'
 
-import { CheckIcon, LinkIcon, X } from '@commerce/ui/icons'
+import { CheckIcon, LinkIcon, RotateCcw, X } from '@commerce/ui/icons'
 import { RichTextMenu, type RichtextField } from '@puckeditor/core'
 import { type FormEvent, type KeyboardEvent, useState } from 'react'
 import { customizeContent } from '@/data/customize'
@@ -12,7 +12,8 @@ const copy = customizeContent.toolbar
 
 /**
  * The inline rich-text menu on the canvas (`renderInlineMenu` on every richtext field, see
- * `customize-config.tsx`): Puck's bold, italic and underline, plus a link control. The link
+ * `customize-config.tsx`): Puck's bold, italic and underline, a link control and clear
+ * formatting (Figma "Builder / Block toolbar", State=Text editing, 500:5981). The link
  * form lives inside the menu (`data-puck-rte-menu`), so typing in it keeps the text selected
  * and the menu open. Links take the same targets the link picker accepts (`normalisePastedUrl`).
  */
@@ -51,6 +52,9 @@ export default function InlineFormatMenu({ children, editor, readOnly }: InlineF
     editor?.chain().focus().extendMarkRange('link').unsetLink().run()
     setDraft(null)
   }
+  const handleClear = () => {
+    editor?.chain().focus().unsetAllMarks().run()
+  }
   const handleKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
     e.stopPropagation()
     if (e.key === 'Escape') handleClose()
@@ -72,6 +76,16 @@ export default function InlineFormatMenu({ children, editor, readOnly }: InlineF
           aria-pressed={active}
         >
           <LinkIcon aria-hidden weight="regular" />
+        </button>
+        <span aria-hidden className="mx-0.5 h-4 w-px shrink-0 self-center bg-border" />
+        <button
+          type="button"
+          onClick={handleClear}
+          disabled={readOnly || !editor}
+          aria-label={copy.clearFormatting}
+          title={copy.clearFormatting}
+        >
+          <RotateCcw aria-hidden weight="regular" />
         </button>
       </RichTextMenu.Group>
       {draft === null ? null : (

@@ -2,16 +2,20 @@
 
 Branch `feat/builder-block-toolbar`. No migration.
 
+- Designed first in Figma: component set "Builder / Block toolbar" (500:5981, Online store page,
+  dark preview 500:147723), placed on copies of the Hero and Heading selected screens
+  (500:145823, 500:146285, 500:146747, 500:147220). States:
+  - Section selected: name chip, move up/down, duplicate, delete, more (hide, copy).
+  - Element selected: adds "select container" for a block inside a layout block.
+  - Text editing: name chip, then B / I / U / link / clear formatting in place of the actions.
+  - Hovered: the name only, in a quiet chip.
+  - Disabled actions: move up/down off at the ends of a zone.
 - `section-overlay.tsx` and `canvas-action-bar.tsx` are gone. `block-toolbar.tsx` (Puck's
-  `componentOverlay`) draws one bar for the selected block. It holds:
-  - the block's name in the accent "selected" chip from the Figma builder frame (369:4809,
-    label 369:5160);
-  - move up/down, duplicate and delete;
-  - B/I/U and link, only while text in that block is being edited.
+  `componentOverlay`) draws those states; `block-toolbar-more.tsx` is the more menu.
 - `block-toolbar-format.tsx` (Puck's `actionBar`) portals Puck's inline rich-text menu into a slot
   at the end of the bar, so Puck's own bar stays empty. The formatting controls append at the end
   and never shift the other buttons.
-- Link control: `inline-format-menu.tsx`, set as `renderInlineMenu` on every richtext field
+- Link and clear formatting: `inline-format-menu.tsx`, set as `renderInlineMenu` on every richtext field
   (nested ones too) in `customize-config.tsx`, so the storefront never loads it. It validates with
   `normalisePastedUrl` and opens links in the same tab.
 - Puck mounts the overlay in the admin document over the canvas, not inside the storefront
