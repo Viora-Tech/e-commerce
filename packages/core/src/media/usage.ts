@@ -1,3 +1,4 @@
+/** SOURCE OF TRUTH: media file types (image, video, document), the library's type filter and the storage usage breakdown */
 import type { StoreTx } from '@commerce/db'
 import { media } from '@commerce/db'
 import { and, desc, eq, ilike, isNotNull, sql } from 'drizzle-orm'
@@ -10,7 +11,7 @@ export function fileTypeWhere(fileType: MediaFileType) {
   return sql`coalesce(${media.contentType}, '') not ilike 'image/%' and coalesce(${media.contentType}, '') not ilike 'video/%'`
 }
 
-export const kindOf = sql<MediaFileType>`case when ${media.contentType} ilike 'image/%' then 'image' when ${media.contentType} ilike 'video/%' then 'video' else 'document' end`
+const kindOf = sql<MediaFileType>`case when ${media.contentType} ilike 'image/%' then 'image' when ${media.contentType} ilike 'video/%' then 'video' else 'document' end`
 
 /**
  * What the Files storage page shows: bytes and file count per type (images, videos,
