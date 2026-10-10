@@ -28,8 +28,9 @@ import {
   placeOf,
   type SeriesContext,
 } from '@commerce/invoices'
-import { and, eq, ne, sql } from 'drizzle-orm'
+import { and, eq, isNull, ne, sql } from 'drizzle-orm'
 import { takeNumber } from './numbers'
+import { invoiceParcels, parcelSource } from './parcels'
 import { assertPeriodOpen } from './periods'
 import { documentIssuer, type Issuer, orderIssuer, sellerFor } from './registration'
 import { invoice, invoiceLine, invoiceSettings } from './schema'
@@ -122,6 +123,8 @@ export async function orderSnapshot(
   prior?: ExportSupply | null,
   /** The GSTIN issuing it; undefined resolves the order's (see registration.ts). */
   issuer?: Issuer,
+  /** The parcel a tax invoice bills (parcels.ts); null or omitted prints the whole order. */
+  parcelId?: string | null,
 ): Promise<DocumentSnapshot> {
   const [o] = await tx.select().from(order).where(eq(order.id, orderId))
   if (!o) throw new InvoiceError('order_not_found', `order ${orderId} not found`)
@@ -130,8 +133,10 @@ export async function orderSnapshot(
     .from(store)
     .where(eq(store.id, storeId))
   const storeTax = parseStoreTax(s?.apps)
-  const lines = await tx
+  const parcel = parcelId ? await parcelSource(tx, storeId, orderId, parcelId) : null
+  const allLines = await tx
     .select({
+      id: orderLine.id,
       title: orderLine.title,
       variantTitle: orderLine.variantTitle,
       quantity: orderLine.quantity,
@@ -145,6 +150,13 @@ export async function orderSnapshot(
     .leftJoin(variant, eq(variant.id, orderLine.variantId))
     .where(eq(orderLine.orderId, orderId))
     .orderBy(orderLine.id)
+  // A parcel's invoice prints its own units; a composition GSTIN's carries no GST.
+  const lines = parcel
+    ? allLines.flatMap((l) => {
+        const quantity = parcel.quantities.get(l.id) ?? 0
+        return quantity > 0 ? [{ ...l, quantity, rate: parcel.composition ? 0 : l.rate }] : []
+      })
+    : allLines
   const [ship] = o.shippingAddressId
     ? await tx.select().from(address).where(eq(address.id, o.shippingAddressId))
     : []
@@ -193,12 +205,12 @@ export async function orderSnapshot(
       placedAt: o.placedAt,
       paymentMethod: paymentLabel(o.paymentMethod),
       collectPaise: kind === 'packing_slip' && cod ? o.totalPaise : 0,
-      shippingPaise: o.shippingPaise,
-      discountPaise: o.discountPaise,
-      paymentAdjustmentPaise: o.paymentAdjustmentPaise,
+      shippingPaise: parcel ? parcel.shippingPaise : o.shippingPaise,
+      discountPaise: parcel ? parcel.discountPaise : o.discountPaise,
+      paymentAdjustmentPaise: parcel ? parcel.paymentAdjustmentPaise : o.paymentAdjustmentPaise,
       paymentAdjustmentLabel: o.paymentAdjustmentLabel,
-      totalPaise: o.totalPaise,
-      taxBreakdown: o.taxBreakdown,
+      totalPaise: parcel ? parcel.totalPaise : o.totalPaise,
+      taxBreakdown: parcel ? parcel.taxBreakdown : o.taxBreakdown,
     },
     lines: lines.map((l) => ({
       title: l.title,
@@ -211,7 +223,9 @@ export async function orderSnapshot(
     })),
     seller: sellerFor(
       settings,
-      issuer === undefined ? await orderIssuer(tx, orderId) : issuer,
+      issuer === undefined
+        ? await orderIssuer(tx, orderId, parcel?.parcel.gstRegistrationId)
+        : issuer,
       s?.name ?? '',
     ),
     buyer,
@@ -222,18 +236,33 @@ export async function orderSnapshot(
     defaultHsn: settings.defaultHsn,
     hsnDigits: settings.hsnDigits,
     fallbackRatePercent: chargedGstRate(s?.gstRatePercent ?? 18, storeTax),
-    composition: storeTax.composition,
+    composition: storeTax.composition || (parcel?.composition ?? false),
   })
-  return kind === 'tax_invoice' ? { ...doc, advance: await advanceOf(tx, orderId) } : doc
+  return kind === 'tax_invoice'
+    ? { ...doc, advance: await advanceOf(tx, storeId, orderId, parcelId ?? null) }
+    : doc
 }
 
 /**
  * A pre-order's advance: the issued receipt voucher (rule 50), which the tax
- * invoice at dispatch adjusts against its full value. Null on other orders.
+ * invoice at dispatch adjusts against its full value. Null on other orders. With several
+ * parcels only one invoice cites it: the first parcel billed under the GSTIN that took the
+ * advance, else the first parcel.
  */
-async function advanceOf(tx: StoreTx, orderId: string): Promise<DocumentSnapshot['advance']> {
+async function advanceOf(
+  tx: StoreTx,
+  storeId: string,
+  orderId: string,
+  parcelId: string | null,
+): Promise<DocumentSnapshot['advance']> {
   const rv = await existing(tx, orderId, 'receipt_voucher')
   if (rv?.status !== 'issued' || !rv.number) return null
+  if (parcelId) {
+    const parcels = await invoiceParcels(tx, storeId, orderId)
+    const cites =
+      parcels.find((p) => p.gstRegistrationId === rv.gstRegistrationId) ?? parcels[0] ?? null
+    if (cites?.id !== parcelId) return null
+  }
   return { number: rv.number, issuedAt: rv.issuedAt.toISOString(), amountPaise: rv.totalPaise }
 }
 
@@ -260,6 +289,8 @@ export async function insertDocument(
     refundId?: string | null
     /** The issuing GSTIN; null in a store without a registration. */
     gstRegistrationId: string | null
+    /** The parcel a tax invoice bills; null for order-level documents. */
+    fulfillmentOrderId?: string | null
     seq?: number | null
     fyStartYear?: number | null
     status?: InvoiceRow['status']
@@ -276,6 +307,7 @@ export async function insertDocument(
       orderId: doc.order.id,
       refundId: extra.refundId ?? null,
       gstRegistrationId: extra.gstRegistrationId,
+      fulfillmentOrderId: extra.fulfillmentOrderId ?? null,
       kind: doc.kind,
       number: doc.number,
       seq: extra.seq ?? null,
@@ -339,16 +371,48 @@ export async function writeLines(
   )
 }
 
-/** The order's live (draft or issued, never cancelled) document of a kind. */
-export async function existing(tx: StoreTx, orderId: string, kind: DocumentKind) {
+/**
+ * The order's live (draft or issued, never cancelled) document of a kind. Order-level kinds
+ * take no parcel; a tax invoice is per parcel (`fulfillmentOrderId`), and without one this
+ * finds the order's first live invoice, whichever parcel it bills.
+ */
+export async function existing(
+  tx: StoreTx,
+  orderId: string,
+  kind: DocumentKind,
+  fulfillmentOrderId?: string | null,
+) {
   const [row] = await tx
+    .select()
+    .from(invoice)
+    .where(
+      and(
+        eq(invoice.orderId, orderId),
+        eq(invoice.kind, kind),
+        ne(invoice.status, 'cancelled'),
+        fulfillmentOrderId === undefined
+          ? undefined
+          : sameParcel(invoice.fulfillmentOrderId, fulfillmentOrderId),
+      ),
+    )
+    .orderBy(invoice.createdAt, invoice.id)
+    .limit(1)
+  return row ?? null
+}
+
+/** Every live document of a kind for the order: one tax invoice per parcel. */
+export async function liveDocuments(tx: StoreTx, orderId: string, kind: DocumentKind) {
+  return tx
     .select()
     .from(invoice)
     .where(
       and(eq(invoice.orderId, orderId), eq(invoice.kind, kind), ne(invoice.status, 'cancelled')),
     )
-  return row ?? null
+    .orderBy(invoice.createdAt, invoice.id)
 }
+
+const sameParcel = (column: typeof invoice.fulfillmentOrderId, id: string | null) =>
+  id ? eq(column, id) : isNull(column)
 
 /**
  * Issue an order's packing slip or order confirmation, or return the one
@@ -448,6 +512,7 @@ export async function regenerateDocument(
       opts.buyerGstin === undefined ? prior.buyer.gstin : opts.buyerGstin,
       prior.exportSupply ? { ...prior.exportSupply, ...opts.exportDetails } : null,
       issuer,
+      row.fulfillmentOrderId,
     )
   }
   const [updated] = await tx
@@ -495,8 +560,18 @@ export async function issueCreditNote(
   if (prior) return { row: prior, created: false }
   const [r] = await tx.select().from(refund).where(eq(refund.id, refundId))
   if (!r || r.status === 'failed') return null
-  const original = await existing(tx, r.orderId, 'tax_invoice')
-  if (original?.status !== 'issued') return null
+  const issued = (await liveDocuments(tx, r.orderId, 'tax_invoice')).filter(
+    (d) => d.status === 'issued',
+  )
+  // An order billed in parcels from more than one GSTIN needs a credit note per GSTIN.
+  if (issued.length > 1) {
+    throw new InvoiceError(
+      'invalid',
+      'This order was billed in parcels under more than one GST number. Its credit notes are issued per parcel, which is not automatic yet.',
+    )
+  }
+  const [original] = issued
+  if (!original) return null
   const settings = await loadSettings(tx, storeId)
   if (!settings.documents.credit_note.enabled) return null
   await tx.execute(

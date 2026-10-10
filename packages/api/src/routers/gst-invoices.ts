@@ -8,7 +8,7 @@ import {
   documentIssuer,
   documentsByIds,
   documentsForOrder,
-  enqueueOrder,
+  enqueueOrderParcels,
   GST_INVOICES_ID,
   gstr1ForPeriod,
   InvoiceError,
@@ -216,8 +216,14 @@ export const gstInvoicesRouter = {
           const byNumber = await orderIdsByNumber(context.tx, input.orderNumbers)
           let added = 0
           for (const orderId of [...input.orderIds, ...byNumber.ids]) {
-            const r = await enqueueOrder(context.tx, context.scope.storeId, orderId, 'manual')
-            if (r?.created) added++
+            const queued = await enqueueOrderParcels(
+              context.tx,
+              context.scope.storeId,
+              orderId,
+              'manual',
+            )
+            // One draft per parcel; a split order adds one per GSTIN.
+            added += queued.filter((q) => q.created).length
           }
           return { added, missing: byNumber.missing }
         } catch (err) {

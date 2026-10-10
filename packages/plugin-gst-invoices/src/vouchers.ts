@@ -5,6 +5,7 @@ import {
   existing,
   type InvoiceRow,
   insertDocument,
+  liveDocuments,
   loadSettings,
   orderSnapshot,
   seriesContextOf,
@@ -107,8 +108,10 @@ export async function issueRefundVoucher(
   const [r] = await tx.select().from(refund).where(eq(refund.id, refundId))
   if (!r || r.status === 'failed') return null
   const receipt = await existing(tx, r.orderId, 'receipt_voucher')
-  const invoiced = await existing(tx, r.orderId, 'tax_invoice')
-  if (!receipt || invoiced?.status === 'issued') return null
+  const invoiced = (await liveDocuments(tx, r.orderId, 'tax_invoice')).some(
+    (d) => d.status === 'issued',
+  )
+  if (!receipt || invoiced) return null
   const settings = await loadSettings(tx, storeId)
   if (!settings.documents.refund_voucher.enabled) return null
   await tx.execute(

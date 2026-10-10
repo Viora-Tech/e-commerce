@@ -141,6 +141,13 @@ each one is its own GST taxpayer, so:
   number. To tell them apart at a glance, put `{GST}` in the prefix: `{GST}/{FY}/` prints
   `HR/26-27/0001` and `KA/26-27/0001` (or the invoice prefix you saved for that GST number).
   `{GST}` counts as 5 characters toward the 16-character limit.
+- **An order sent from two warehouses gets two invoices.** When part of an order ships from
+  your Haryana warehouse and part from Karnataka, each part (parcel) is a separate sale by that
+  GST number. The queue shows one invoice per parcel, each with only that parcel's items and its
+  share of shipping and discount; together they add up to what the customer paid. A warehouse
+  on the composition scheme prints a bill of supply instead, with no GST. Credit notes for such
+  an order are not automatic yet: until they are, a refund on a split order is recorded without
+  one, so ask your accountant to record the credit note for now.
 - **Each GST number files its own GSTR-1.** A **GST number** picker sits at the top of
   **Queue**, **Invoices** and **Returns**. On **Returns**, pick the GST number, then **Export
   GSTR-1**, **Mark filed** or **Close period** for that one only.

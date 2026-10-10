@@ -3,9 +3,9 @@ import type { Attachment } from '@commerce/notifications'
 import { type AppHookContext, definePlugin } from '@commerce/plugins'
 import { eq, sql } from 'drizzle-orm'
 import { z } from 'zod'
-import { existing, InvoiceError, issueCreditNote, issueDocument, loadSettings } from './issue'
+import { InvoiceError, issueCreditNote, issueDocument, liveDocuments, loadSettings } from './issue'
 import { orderLinks } from './links'
-import { enqueueOrder, isPreorder, issueDrafts, removeFromQueue } from './queue'
+import { enqueueOrderParcels, isPreorder, issueDrafts, removeFromQueue } from './queue'
 import { pdfBytes, pdfFilename, renderAndStore } from './render'
 import { documentsByIds } from './reports'
 import { invoiceBatch } from './schema'
@@ -33,12 +33,16 @@ const DOCUMENT_LABELS = {
 async function onOrderEvent(ctx: AppHookContext, orderId: string, event: 'paid' | 'fulfilled') {
   const now = new Date()
   const settings = await ctx.inStore((tx) => loadSettings(tx, ctx.storeId))
-  const queued = await ctx.inStore((tx) => enqueueOrder(tx, ctx.storeId, orderId, event, now))
-  if (queued) ctx.log(`order ${orderId} ${queued.created ? 'queued' : 'already queued'}`)
-  if (queued?.row.status === 'draft' && settings.autoIssue) {
+  // One draft per parcel: an order shipped from two warehouses is billed by both GSTINs.
+  const queued = await ctx.inStore((tx) =>
+    enqueueOrderParcels(tx, ctx.storeId, orderId, event, now),
+  )
+  for (const q of queued) {
+    ctx.log(`order ${orderId} ${q.created ? 'queued' : 'already queued'}`)
+    if (q.row.status !== 'draft' || !settings.autoIssue) continue
     try {
       const [issued] = await ctx.inStore((tx) =>
-        issueDrafts(tx, ctx.storeId, [{ id: queued.row.id, invoiceDate: now }], {
+        issueDrafts(tx, ctx.storeId, [{ id: q.row.id, invoiceDate: now }], {
           commit: true,
           now,
         }),
@@ -90,9 +94,18 @@ async function onRefund(ctx: AppHookContext, orderId: string, refundId: string) 
   if (!voucher) return
   if (voucher.created || voucher.row.pdfStatus !== 'ready')
     await renderAndStore(ctx, voucher.row.id)
-  // Nothing was supplied: the queued invoice for the cancelled pre-order goes too.
-  const draft = await ctx.inStore((tx) => existing(tx, orderId, 'tax_invoice'))
-  if (draft?.status === 'draft') await ctx.inStore((tx) => removeFromQueue(tx, [draft.id]))
+  // Nothing was supplied: the queued invoices for the cancelled pre-order go too.
+  const drafts = (await ctx.inStore((tx) => liveDocuments(tx, orderId, 'tax_invoice'))).filter(
+    (d) => d.status === 'draft',
+  )
+  if (drafts.length) {
+    await ctx.inStore((tx) =>
+      removeFromQueue(
+        tx,
+        drafts.map((d) => d.id),
+      ),
+    )
+  }
   ctx.log(`refund voucher ${voucher.row.number} for refund ${refundId}`)
 }
 
@@ -109,8 +122,9 @@ async function emailAttachments(
     inv.attachToEmail &&
     (input.template === 'payment_received' || input.template === 'order_shipped')
   ) {
-    const row = await ctx.inStore((tx) => existing(tx, input.orderId, 'tax_invoice'))
-    if (row?.status === 'issued') {
+    // Every parcel's invoice: a split order has one per GSTIN.
+    const rows = await ctx.inStore((tx) => liveDocuments(tx, input.orderId, 'tax_invoice'))
+    for (const row of rows.filter((r) => r.status === 'issued')) {
       files.push({
         filename: pdfFilename(row),
         contentType: 'application/pdf',

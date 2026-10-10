@@ -2,6 +2,7 @@
 export * from './issue'
 export * from './links'
 export * from './numbers'
+export * from './parcels'
 export * from './periods'
 export * from './plugin'
 export * from './queue'
