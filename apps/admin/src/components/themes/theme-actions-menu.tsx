@@ -13,7 +13,7 @@ import Link from 'next/link'
 import { themesContent } from '@/data/themes'
 import { useCopy } from '@/hooks/use-copy'
 
-export type ThemeAction = 'rename' | 'duplicate' | 'download' | 'delete'
+export type ThemeAction = 'rename' | 'duplicate' | 'versions' | 'download' | 'delete'
 
 type ThemeActionsMenuProps = {
   actions: readonly ThemeAction[]
@@ -25,7 +25,7 @@ type ThemeActionsMenuProps = {
   onAction: (action: ThemeAction) => void
 }
 
-/** The kebab on a theme card: customize, duplicate, rename, download settings, delete. */
+/** The kebab on a theme card: customize, duplicate, rename, versions, download settings, delete. */
 export default function ThemeActionsMenu({
   actions,
   customizeHref,

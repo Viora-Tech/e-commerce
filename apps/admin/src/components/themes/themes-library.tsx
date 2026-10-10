@@ -21,6 +21,7 @@ import RenameThemeDialog from './rename-theme-dialog'
 import type { ThemeAction } from './theme-actions-menu'
 import ThemeLibraryRow from './theme-library-row'
 import type { ThemeItem } from './theme-types'
+import ThemeVersionsDialog from './theme-versions-dialog'
 
 type ThemesLibraryProps = {
   initial: ThemeItem[]
@@ -71,6 +72,7 @@ export default function ThemesLibrary({
   const copy = useCopy(themesContent.library)
   const [renaming, setRenaming] = useState<ThemeItem | null>(null)
   const [deleting, setDeleting] = useState<ThemeItem | null>(null)
+  const [versioning, setVersioning] = useState<ThemeItem | null>(null)
 
   // Helpers
   const run = async (work: () => Promise<void>) => {
@@ -111,6 +113,14 @@ export default function ThemesLibrary({
       toast.success(copy.published(live.name))
     })
 
+  /** A version became the theme's drafts: refresh so its "Unsaved changes" chip shows. */
+  const handleRestored = () => {
+    api.themes.list().then(
+      (next) => setThemes(order(next)),
+      () => undefined,
+    )
+  }
+
   const handleDelete = (id: string) =>
     run(async () => {
       await api.themes.delete({ id })
@@ -123,6 +133,7 @@ export default function ThemesLibrary({
     if (action === 'rename') setRenaming(theme)
     else if (action === 'delete') setDeleting(theme)
     else if (action === 'download') download(theme)
+    else if (action === 'versions') setVersioning(theme)
     else
       run(async () => {
         const copied = await api.themes.duplicate({ id: theme.id })
@@ -217,6 +228,15 @@ export default function ThemesLibrary({
           busy={busy}
           onCancel={() => setRenaming(null)}
           onRename={handleRename}
+        />
+      ) : null}
+      {versioning ? (
+        <ThemeVersionsDialog
+          key={versioning.id}
+          theme={versioning}
+          origin={origin}
+          onClose={() => setVersioning(null)}
+          onRestored={handleRestored}
         />
       ) : null}
       <DeleteThemeDialog
