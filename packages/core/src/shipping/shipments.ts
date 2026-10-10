@@ -3,6 +3,7 @@ import { ASSUMED_WEIGHT_GRAMS, type ShippingProvider, type Tracking } from '@com
 import { eq, inArray } from 'drizzle-orm'
 import type { StoreContext } from '../context'
 import { fulfilRemainingLines } from '../order/fulfil'
+import { ensureFulfillmentOrders, soleFulfillmentOrder } from '../order/fulfillment-orders'
 import { recomputeOrderStatuses } from '../order/recompute'
 import { insertOutboxEvent } from '../outbox/write'
 import { recordRtoForShipment } from '../returns/rto'
@@ -131,11 +132,14 @@ export async function createShipmentForOrder(
     weightGrams,
   })
 
+  // The whole order goes in this consignment: it carries the order's parcel when it has one.
+  await ensureFulfillmentOrders(ctx, o.id)
   const [row] = await ctx.tx
     .insert(shipment)
     .values({
       storeId: ctx.storeId,
       orderId: o.id,
+      fulfillmentOrderId: await soleFulfillmentOrder(ctx, o.id),
       provider: provider.id,
       waybill: result.waybill,
       providerRef: result.providerRef ?? null,

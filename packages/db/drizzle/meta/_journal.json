@@ -638,6 +638,13 @@
       "when": 1791610958174,
       "tag": "0095_purchase_documents",
       "breakpoints": true
+    },
+    {
+      "idx": 91,
+      "version": "7",
+      "when": 1791629219677,
+      "tag": "0096_fulfillment_orders",
+      "breakpoints": true
     }
   ]
 }

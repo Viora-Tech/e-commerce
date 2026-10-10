@@ -8,6 +8,7 @@ import {
   discountUsage,
   inventoryLevel,
   type MarketingAttribution,
+  newId,
   order,
   orderLine,
   payment,
@@ -53,6 +54,7 @@ import {
   redeemGiftCards,
   reverseGiftCardRedemptions,
 } from '../gift-cards/service'
+import { defaultLocationId } from '../inventory/levels'
 import { insertOutboxEvent } from '../outbox/write'
 import { applyPaymentAdjustment, type PaymentAdjustment } from '../payments/adjustments'
 import { createPaymentAttempt, startPaymentAttempt } from '../payments/attempts'
@@ -68,6 +70,11 @@ import { computeOrderGst } from '../tax/gst'
 import { resolveTaxOrigin } from '../tax/origin'
 import { chargedGstRate, parseStoreTax, type StoreTaxSettings } from '../tax/settings'
 import { runWorkflow, type WorkflowLog, type WorkflowStep } from '../workflow/run'
+import {
+  createFulfillmentOrders,
+  deleteFulfillmentOrders,
+  groupIntoParcels,
+} from './fulfillment-orders'
 import { recomputeOrderStatuses } from './recompute'
 
 export type CheckoutDetails = {
@@ -147,6 +154,9 @@ type Line = {
   preorder: ReturnType<typeof resolvePreorderSettings>
 }
 
+/** A line whose stock is held, and the location holding it (its parcel's). */
+type ReservedLine = Line & { locationId: string | null }
+
 type State = {
   ctx: StoreContext
   input: PlaceOrderInput
@@ -159,7 +169,7 @@ type State = {
   shipping: ShippingRateOption | null
   /** Contact fields as Settings → Checkout allows them; null without checkout details. */
   contact: CheckoutContact | null
-  reserved: Line[]
+  reserved: ReservedLine[]
   orderId: string | null
   orderNumber: number | null
   /** Order total: subtotal less discount, plus the payment-method fee or discount and shipping. */
@@ -371,7 +381,7 @@ function paymentAdjustmentFor(
 const reserveStock: WorkflowStep<State> = {
   name: 'reserveStock',
   async run({ ctx, lines }) {
-    const reserved: Line[] = []
+    const reserved: ReservedLine[] = []
     for (const line of lines) {
       // Untracked variants (made-to-order, digital) never run out: nothing to reserve.
       if (line.giftCard) continue
@@ -407,9 +417,10 @@ const reserveStock: WorkflowStep<State> = {
             ),
           ),
         )
-        .returning({ id: inventoryLevel.id })
-      if (rows.length === 0) throw new OutOfStock(line.variantId, ctx.storeId)
-      reserved.push(line)
+        .returning({ id: inventoryLevel.id, locationId: inventoryLevel.locationId })
+      const [held] = rows
+      if (!held) throw new OutOfStock(line.variantId, ctx.storeId)
+      reserved.push({ ...line, locationId: held.locationId })
     }
     return { reserved }
   },
@@ -418,14 +429,28 @@ const reserveStock: WorkflowStep<State> = {
       await ctx.tx
         .update(inventoryLevel)
         .set({ reserved: sql`${inventoryLevel.reserved} - ${line.quantity}` })
-        .where(and(eq(inventoryLevel.variantId, line.variantId), sellableLevel))
+        .where(
+          and(
+            eq(inventoryLevel.variantId, line.variantId),
+            line.locationId ? eq(inventoryLevel.locationId, line.locationId) : sellableLevel,
+          ),
+        )
     }
   },
 }
 
 const createOrder: WorkflowStep<State> = {
   name: 'createOrder',
-  async run({ ctx, lines, input, discount: applied, cartAttribution, shipping, contact }) {
+  async run({
+    ctx,
+    lines,
+    reserved,
+    input,
+    discount: applied,
+    cartAttribution,
+    shipping,
+    contact,
+  }) {
     let customerId: string | null = null
     let shippingAddressId: string | null = null
     if (input.checkout) {
@@ -635,8 +660,10 @@ const createOrder: WorkflowStep<State> = {
     // workflow's compensation (below) deletes the order and the whole
     // transaction rolls back, taking this row with it.
     await insertOutboxEvent(ctx.tx, ctx.storeId, 'order.placed', { orderId: o.id })
+    const lineIds = lines.map(() => newId())
     await ctx.tx.insert(orderLine).values(
-      lines.map((l) => ({
+      lines.map((l, i) => ({
+        id: lineIds[i],
         storeId: ctx.storeId,
         orderId: o.id,
         variantId: l.variantId,
@@ -652,6 +679,27 @@ const createOrder: WorkflowStep<State> = {
           l.preorder.enabled && !l.giftCard ? resolveShipDate(l.preorder, new Date()) : null,
       })),
     )
+    /* One parcel per location the stock was reserved at. Untracked goods (nothing held) go
+       with the location the order is billed from, else the default one. */
+    const heldAt = new Map(reserved.map((r) => [r.variantId, r.locationId]))
+    await createFulfillmentOrders(ctx, {
+      orderId: o.id,
+      plans: groupIntoParcels(
+        lines.flatMap((l, i) =>
+          l.giftCard
+            ? []
+            : [
+                {
+                  orderLineId: lineIds[i] as string,
+                  quantity: l.quantity,
+                  locationId: heldAt.get(l.variantId) ?? origin.locationId,
+                },
+              ],
+        ),
+        await defaultLocationId(ctx.tx, ctx.storeId),
+      ),
+      fallbackRegistrationId: origin.gstRegistrationId,
+    })
     if (applied) {
       const email = (contact ? contact.email : input.checkout?.email.trim().toLowerCase()) || null
       await claimDiscountUse(ctx, applied.discount.id, email)
@@ -675,6 +723,7 @@ const createOrder: WorkflowStep<State> = {
         .set({ usedCount: sql`greatest(${discount.usedCount} - 1, 0)` })
         .where(eq(discount.id, applied.discount.id))
     }
+    await deleteFulfillmentOrders(ctx.tx, orderId)
     await ctx.tx.delete(orderLine).where(eq(orderLine.orderId, orderId))
     await ctx.tx.delete(order).where(eq(order.id, orderId))
   },

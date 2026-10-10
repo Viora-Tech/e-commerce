@@ -1,4 +1,4 @@
-import { order, orderLine, payment } from '@commerce/db'
+import { order, payment } from '@commerce/db'
 import { and, desc, eq, inArray, isNull, notInArray } from 'drizzle-orm'
 import type { StoreContext } from '../context'
 import { CommerceError } from '../errors'
@@ -7,8 +7,8 @@ import { insertOutboxEvent } from '../outbox/write'
 import { applyPaymentStatus } from '../payments/confirm'
 import { OPEN_ATTEMPT_STATUSES } from '../payments/transitions'
 import { capturedPaise, checkoutDuePaise } from './aggregate-status'
-import { releaseCommittedStock } from './committed-stock'
 import { fulfilRemainingLines } from './fulfil'
+import { releaseFulfillmentOrders } from './fulfillment-orders'
 import { recomputeOrderStatuses } from './recompute'
 import { refundedPaise, refundPayment } from './refund'
 
@@ -89,19 +89,8 @@ export async function cancelOrder(
     if (current?.status === 'draft') throw new OrderStatusLocked(orderId, 'draft', ctx.storeId)
     return current ?? null
   }
-  const lines = await ctx.tx
-    .select()
-    .from(orderLine)
-    .where(eq(orderLine.orderId, orderId))
-    .for('update')
-  for (const line of lines) {
-    // Gift card lines hold no stock.
-    if (line.giftCard) continue
-    await releaseCommittedStock(ctx, {
-      variantId: line.variantId,
-      quantity: line.quantity - line.fulfilledQuantity,
-    })
-  }
+  // Each parcel gives back its unpacked units at its own location (gift cards hold none).
+  await releaseFulfillmentOrders(ctx, orderId)
   if (opts.returnGiftCards !== false) await returnGiftCardPayments(ctx, orderId)
   if (opts.notifyCustomer !== false) {
     await insertOutboxEvent(ctx.tx, ctx.storeId, 'order.cancel_notice', { orderId })

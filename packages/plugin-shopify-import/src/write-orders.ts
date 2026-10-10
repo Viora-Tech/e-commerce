@@ -6,6 +6,7 @@
  */
 
 import {
+  deleteFulfillmentOrders,
   encryptCustomerPhone,
   importedOrderStatuses,
   phoneBlindIndex,
@@ -301,7 +302,9 @@ async function applyOrder(
   if (existing) {
     orderId = existing.id
     await tx.update(order).set(fields).where(eq(order.id, orderId))
-    // Lines and the payment record are rebuilt: nothing else points at them.
+    // Lines and the payment record are rebuilt: nothing else points at them (parcels made
+    // for the old lines by the 0096 backfill go with them).
+    await deleteFulfillmentOrders(tx, orderId)
     await tx.delete(orderLine).where(eq(orderLine.orderId, orderId))
     await tx.delete(payment).where(eq(payment.orderId, orderId))
   } else {

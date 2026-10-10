@@ -1093,6 +1093,77 @@ export const orderLine = pgTable('order_line', {
   preorderShipDate: timestamp('preorder_ship_date', { withTimezone: true }),
 })
 
+/**
+ * SOURCE OF TRUTH: fulfillment_order, fulfillmentOrder, FULFILLMENT_ORDER_STATUSES
+ * WHAT:  One parcel of an order: the goods one location sends, billed under that location's
+ *        GSTIN. Every non-draft order with goods has at least one; gift card lines have none.
+ * WHY:   Stock is held, packed and given back at a location, so each unit of an order needs
+ *        to know which location holds it. Splitting an order across warehouses (more than one
+ *        fulfilment order) builds on this; until then every order has exactly one.
+ * WHERE: @commerce/core order/fulfillment-orders.ts creates them (placeOrder, draft
+ *        conversion, `ensureFulfillmentOrders` for older orders) and moves their stock.
+ *        `order_line.fulfilled_quantity` stays the order-level total the statuses read.
+ */
+export const FULFILLMENT_ORDER_STATUSES = ['open', 'on_hold', 'fulfilled', 'cancelled'] as const
+export type FulfillmentOrderStatus = (typeof FULFILLMENT_ORDER_STATUSES)[number]
+
+export const fulfillmentOrder = pgTable(
+  'fulfillment_order',
+  {
+    id: id(),
+    storeId: storeId(),
+    orderId: uuid('order_id')
+      .notNull()
+      .references(() => order.id),
+    /** Where the goods are held and leave from. */
+    locationId: uuid('location_id')
+      .notNull()
+      .references(() => location.id),
+    /** The GSTIN this parcel is billed under, as it was when the parcel was made. */
+    gstRegistrationId: uuid('gst_registration_id').references(() => gstRegistration.id),
+    /** Parcel 1, 2, ... within the order, in the order they were made. */
+    position: integer('position').notNull().default(1),
+    status: text('status', { enum: FULFILLMENT_ORDER_STATUSES }).notNull().default('open'),
+    createdAt: createdAt(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    uniqueIndex('fulfillment_order_position').on(t.orderId, t.position),
+    index('fulfillment_order_store_order').on(t.storeId, t.orderId),
+    index('fulfillment_order_store_location').on(t.storeId, t.locationId, t.status),
+    check(
+      'fulfillment_order_status_check',
+      sql`${t.status} in (${oneOf(FULFILLMENT_ORDER_STATUSES)})`,
+    ),
+  ],
+)
+
+/** How many units of one order line a fulfilment order holds, and how many it has packed. */
+export const fulfillmentOrderLine = pgTable(
+  'fulfillment_order_line',
+  {
+    id: id(),
+    storeId: storeId(),
+    fulfillmentOrderId: uuid('fulfillment_order_id')
+      .notNull()
+      .references(() => fulfillmentOrder.id, { onDelete: 'cascade' }),
+    orderLineId: uuid('order_line_id')
+      .notNull()
+      .references(() => orderLine.id),
+    quantity: integer('quantity').notNull(),
+    fulfilledQuantity: integer('fulfilled_quantity').notNull().default(0),
+  },
+  (t) => [
+    uniqueIndex('fulfillment_order_line_unique').on(t.fulfillmentOrderId, t.orderLineId),
+    index('fulfillment_order_line_order_line').on(t.orderLineId),
+    check('fulfillment_order_line_quantity_check', sql`${t.quantity} > 0`),
+    check(
+      'fulfillment_order_line_fulfilled_check',
+      sql`${t.fulfilledQuantity} >= 0 and ${t.fulfilledQuantity} <= ${t.quantity}`,
+    ),
+  ],
+)
+
 export const PAYMENT_STATUSES = [
   'created',
   'pending',
@@ -1269,6 +1340,8 @@ export const shipment = pgTable(
     orderId: uuid('order_id')
       .notNull()
       .references(() => order.id),
+    /** The parcel (fulfilment order) this consignment carries; null on shipments booked before parcels. */
+    fulfillmentOrderId: uuid('fulfillment_order_id').references(() => fulfillmentOrder.id),
     provider: text('provider').notNull(),
     waybill: text('waybill').notNull(),
     /** Whatever id the courier's own API needs for a later call (cancel, pickup, label) when
@@ -1319,6 +1392,7 @@ export const shipment = pgTable(
     uniqueIndex('shipment_provider_waybill').on(t.provider, t.waybill),
     index('shipment_store_ndr').on(t.storeId, t.ndrStatus),
     index('shipment_pickup_id').on(t.pickupId),
+    index('shipment_fulfillment_order').on(t.fulfillmentOrderId),
   ],
 )
 

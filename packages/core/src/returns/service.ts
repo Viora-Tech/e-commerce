@@ -19,6 +19,7 @@ import { and, asc, count, desc, eq, ilike, inArray, or, sql } from 'drizzle-orm'
 import type { StoreContext } from '../context'
 import { CommerceError } from '../errors'
 import { adjustStock } from '../inventory/levels'
+import { lineLocation } from '../order/fulfillment-orders'
 import { recomputeOrderStatuses } from '../order/recompute'
 import { insertOutboxEvent } from '../outbox/write'
 import { resolveParcelWeightGrams } from '../shipping/parcel'
@@ -506,7 +507,7 @@ export async function arrangeReturnPickup(
   })
 }
 
-/** The location a variant sells from online; returned units go back there. */
+/** The location a variant sells from online. */
 export async function sellingLocation(
   ctx: StoreContext,
   variantId: string,
@@ -516,6 +517,17 @@ export async function sellingLocation(
     .from(inventoryLevel)
     .where(and(eq(inventoryLevel.variantId, variantId), sellableLevel))
   return level?.locationId ?? undefined
+}
+
+/**
+ * Where returned units of an order line go back to: the location its parcel left from, else
+ * (an order line no parcel packed) where the variant sells from.
+ */
+export async function returnLocation(
+  ctx: StoreContext,
+  line: { orderLineId: string; variantId: string },
+): Promise<string | undefined> {
+  return (await lineLocation(ctx, line.orderLineId)) ?? sellingLocation(ctx, line.variantId)
 }
 
 /**
@@ -536,6 +548,7 @@ export async function restockReturn(ctx: StoreContext, id: string) {
       id: returnRequestLine.id,
       quantity: returnRequestLine.quantity,
       restocked: returnRequestLine.restockedQuantity,
+      orderLineId: returnRequestLine.orderLineId,
       variantId: orderLine.variantId,
     })
     .from(returnRequestLine)
@@ -548,7 +561,7 @@ export async function restockReturn(ctx: StoreContext, id: string) {
     await adjustStock(ctx.tx, {
       storeId: ctx.storeId,
       variantId: l.variantId,
-      locationId: await sellingLocation(ctx, l.variantId),
+      locationId: await returnLocation(ctx, l),
       delta: remaining,
       reason: 'returned',
       note: `${r.kind === 'rto' ? 'RTO' : 'Return'} ${returnLabel(r.number)}`,
