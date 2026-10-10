@@ -49,7 +49,7 @@ export default function LiveView({ initial, globe }: LiveViewProps) {
         summary={c.updating}
         back={{ label: analyticsContent.title, href: routes.analytics.home() }}
       />
-      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+      <div className="grid grid-cols-2 gap-4 lg:grid-flow-col lg:grid-cols-none lg:auto-cols-fr">
         <StatTile
           label={c.visitors}
           value={formatCompact(data.visitors.last30)}

@@ -84,7 +84,10 @@ export default function GrowthOverviewPage({ initialRange, initial }: GrowthOver
           </div>
         }
       />
-      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4" aria-busy={loading || undefined}>
+      <div
+        className="grid grid-cols-2 gap-4 lg:grid-flow-col lg:grid-cols-none lg:auto-cols-fr"
+        aria-busy={loading || undefined}
+      >
         {data.kpis.map((kpi) => (
           <GrowthKpiTile key={kpi.id} kpi={kpi} />
         ))}

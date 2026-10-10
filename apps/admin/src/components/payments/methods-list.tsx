@@ -37,17 +37,12 @@ export default function MethodsList({ methods, hasGateway, disabled, onChange }:
       onReorder={onChange}
       getTitle={nameOf}
       labels={sortLabels}
-      className="flex flex-col"
+      className="-my-3.5 flex flex-col divide-y divide-hairline"
       renderItem={(m, { handle }) => {
         const locked = !hasGateway && m.id !== 'cod'
         const inputId = `method-${m.id}`
         return (
-          <div
-            className={cn(
-              'flex items-center gap-3 border-b border-hairline py-4 first:pt-0 last:border-b-0 last:pb-0',
-              locked && 'opacity-70',
-            )}
-          >
+          <div className={cn('flex items-center gap-3 py-3.5', locked && 'opacity-70')}>
             {handle}
             <label htmlFor={inputId} className="flex min-w-0 flex-1 cursor-pointer flex-col">
               <span className="text-body font-semibold text-ink-strong">{nameOf(m)}</span>

@@ -14,7 +14,7 @@ type HealthLineProps = {
 
 const BOX: Record<HealthTone, string> = {
   ok: 'border-success/30 bg-success-soft',
-  warn: 'border-warning/40 bg-warning-soft',
+  warn: 'border-transparent surface-card',
   bad: 'border-destructive/30 bg-destructive/5',
 }
 
@@ -33,16 +33,18 @@ export default function HealthLine({ tone, title, help, action }: HealthLineProp
     <div
       role="status"
       className={cn(
-        'flex flex-col gap-3 rounded-xl border p-4 sm:flex-row sm:items-center',
+        'flex flex-col gap-3 rounded-xl border p-5 sm:flex-row sm:items-center',
         BOX[tone],
       )}
     >
       <div className="flex flex-1 items-start gap-3">
-        <Icon
-          aria-hidden="true"
-          weight="fill"
-          className={cn('mt-0.5 size-5 shrink-0', ICON[tone])}
-        />
+        {tone === 'warn' ? null : (
+          <Icon
+            aria-hidden="true"
+            weight="fill"
+            className={cn('mt-0.5 size-5 shrink-0', ICON[tone])}
+          />
+        )}
         <div className="flex flex-col gap-0.5">
           <p className="text-body font-semibold text-foreground">{title}</p>
           {help ? <p className="text-body text-muted-foreground">{help}</p> : null}

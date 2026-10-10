@@ -1,7 +1,7 @@
 'use client'
 
 import { siteConfig } from '@commerce/config/site'
-import { ChevronLeftIcon, ChevronRightIcon } from '@commerce/ui/icons'
+import { ChevronDownIcon, ChevronLeftIcon, ChevronRightIcon } from '@commerce/ui/icons'
 import { tableContent } from '@/data/table'
 import { useCopy } from '@/hooks/use-copy'
 
@@ -44,17 +44,24 @@ export default function ResourceTablePagination({
         {onPerPageChange ? (
           <label className="hidden items-center gap-2 sm:flex">
             <span>{tableCopy.rowsPerPage}</span>
-            <select
-              value={perPage}
-              onChange={(e) => onPerPageChange(Number(e.target.value))}
-              className="h-[1.875rem] rounded-[0.5rem] border border-input bg-input-surface pr-2 pl-2.5 text-[0.8125rem] font-medium text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-            >
-              {siteConfig.ui.rowsPerPage.options.map((n) => (
-                <option key={n} value={n}>
-                  {n}
-                </option>
-              ))}
-            </select>
+            {/* Figma Rows select (260:1620): a small field with its own chevron, not the OS arrow. */}
+            <span className="relative inline-flex">
+              <select
+                value={perPage}
+                onChange={(e) => onPerPageChange(Number(e.target.value))}
+                className="h-[1.875rem] cursor-pointer appearance-none rounded-[0.5rem] border border-input bg-input-surface pr-7 pl-2.5 text-[0.8125rem] font-medium text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              >
+                {siteConfig.ui.rowsPerPage.options.map((n) => (
+                  <option key={n} value={n}>
+                    {n}
+                  </option>
+                ))}
+              </select>
+              <ChevronDownIcon
+                aria-hidden="true"
+                className="pointer-events-none absolute top-1/2 right-2 size-3.5 -translate-y-1/2 text-muted-foreground"
+              />
+            </span>
           </label>
         ) : null}
         <span className="hidden tabular-nums sm:inline">{tableCopy.pageOf(page, totalPages)}</span>

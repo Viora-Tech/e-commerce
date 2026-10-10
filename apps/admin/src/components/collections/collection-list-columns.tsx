@@ -26,7 +26,7 @@ export function collectionListColumns(
       render: (c) => (
         <span className="flex min-w-0 items-center gap-3 text-left">
           <ProductThumb url={c.imageUrl} />
-          <span className="line-clamp-2 text-body-strong text-ink-strong">{c.title}</span>
+          <span className="line-clamp-2 text-body font-semibold text-ink-strong">{c.title}</span>
         </span>
       ),
     },
@@ -70,7 +70,7 @@ export function collectionListColumns(
       sortValue: (c) => new Date(c.updatedAt).getTime(),
       render: (c) => (
         <span className="text-muted-foreground" title={fmt.dateTime(c.updatedAt)}>
-          {fmt.day(c.updatedAt)}
+          {fmt.when(c.updatedAt)}
         </span>
       ),
     },

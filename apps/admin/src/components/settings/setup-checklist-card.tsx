@@ -91,12 +91,7 @@ export default function SetupChecklistCard() {
                   />
                 )}
                 <span className="flex min-w-0 flex-1 flex-col gap-0.5">
-                  <span
-                    className={cn(
-                      'text-body font-semibold',
-                      item.done ? 'text-muted-foreground' : 'text-ink-strong',
-                    )}
-                  >
+                  <span className={cn('text-body font-semibold', 'text-ink-strong')}>
                     {words.title}
                   </span>
                   <span className="text-caption text-muted-foreground">

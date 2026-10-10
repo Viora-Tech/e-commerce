@@ -98,7 +98,10 @@ export default function AnalyticsOverviewPage({
       />
       {/* Figma 306:16434: KPIs in one row, the sales chart full width, then funnel + top
           products side by side; the state and payment breakdowns follow. */}
-      <div className="grid grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-6" aria-busy={loading || undefined}>
+      <div
+        className="grid grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-6"
+        aria-busy={loading || undefined}
+      >
         {data.kpis.map((kpi) => (
           <KpiTile key={kpi.id} kpi={kpi} />
         ))}
