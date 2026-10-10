@@ -16,6 +16,23 @@ export const appsContent = {
   settings: 'Settings',
   needsSetup: 'Needs setup',
   featured: 'Featured',
+  /** "Recommended for <store>" strip: apps for what the store does not have yet. */
+  recommended: {
+    heading: (store: string) => `Recommended for ${store}`,
+    intro: 'Picked from the tools your store does not have yet.',
+    /** Why each app is suggested, by plugin id; an app without one shows its own description. */
+    reasons: {
+      delhivery: 'You have no courier connected yet: book pickups and print labels in one click.',
+      shiprocket: 'You have no courier connected yet: compare couriers and save on labels.',
+      rapidshyp: 'You have no courier connected yet: ship with one account and print labels.',
+      reviews: 'Shoppers trust a product more with photo reviews on its page.',
+      whatsapp: 'Send order updates on WhatsApp so shoppers ask you less where their parcel is.',
+      'gst-invoices': 'Make a GST invoice for every order without typing it out.',
+      'back-in-stock': 'Tell shoppers when a sold-out product is available again.',
+      razorpay: 'Take UPI, cards and netbanking without sending shoppers away.',
+      cashfree: 'Take UPI, cards and netbanking without sending shoppers away.',
+    } as Record<string, string>,
+  },
   previous: 'Previous app',
   next: 'Next app',
   goTo: (n: number) => `Show app ${n}`,
