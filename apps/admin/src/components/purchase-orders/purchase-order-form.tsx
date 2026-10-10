@@ -1,21 +1,35 @@
 'use client'
 
+import {
+  PURCHASE_CURRENCY_CODES,
+  type PurchaseCurrency,
+  remainingOf,
+} from '@commerce/core/inventory'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import ConfirmActionDialog from '@/components/inventory/confirm-action-dialog'
 import type { StoreLocation } from '@/components/inventory/location-select'
 import NotesCard from '@/components/inventory/notes-card'
+import ChargesCard from '@/components/landed-cost/charges-card'
+import LandedCostCard from '@/components/landed-cost/landed-cost-card'
+import type { CostPreview } from '@/components/landed-cost/types'
 import PageColumns from '@/components/layout/page-columns'
 import ProoflyPageBody from '@/components/layout/proofly-page-body'
 import ProoflyPageHeader from '@/components/layout/proofly-page-header'
 import SaveBar from '@/components/layout/save-bar'
+import type { PickedSupplier } from '@/components/suppliers/new-supplier-dialog'
 import { purchaseOrderFormContent, purchaseOrdersContent } from '@/data/inventory'
+import { poCurrencyContent } from '@/data/purchasing'
+import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { routes } from '@/lib/routes'
 import CostSummaryCard from './cost-summary-card'
+import CurrencyCard from './currency-card'
 import DestinationCard from './destination-card'
 import {
   emptyPoForm,
+  formProblem,
   fromPurchaseOrder,
   type LoadedPurchaseOrder,
   type PoForm,
@@ -24,17 +38,20 @@ import {
 import PoActions from './po-actions'
 import PoLinesCard from './po-lines-card'
 import ReceiveDialog from './receive-dialog'
+import ShipmentLinkCard from './shipment-link-card'
 import SupplierCard from './supplier-card'
 
 type PurchaseOrderFormProps = {
   po: LoadedPurchaseOrder | null
   locations: StoreLocation[]
+  /** Charges and landed cost of the saved order (and its shipment); null while creating. */
+  costs: CostPreview | null
 }
 
-type Dialog = 'receive' | 'close' | 'delete' | null
+type Dialog = 'receive' | 'close' | 'cancel' | 'delete' | null
 
 const copy = purchaseOrderFormContent
-const LIST = '/products/purchase-orders'
+const LIST = routes.products.purchaseOrders()
 
 function initialForm(po: LoadedPurchaseOrder | null, locations: StoreLocation[]): PoForm {
   if (po) return fromPurchaseOrder(po)
@@ -44,10 +61,14 @@ function initialForm(po: LoadedPurchaseOrder | null, locations: StoreLocation[])
 
 const message = (err: unknown) => (err instanceof Error ? err.message : copy.saveFailed)
 
-/** Create or edit a purchase order, then order, receive and close it. */
-export default function PurchaseOrderForm({ po, locations }: PurchaseOrderFormProps) {
+const isPurchaseCurrency = (c: string): c is PurchaseCurrency =>
+  (PURCHASE_CURRENCY_CODES as string[]).includes(c)
+
+/** Create or edit a purchase order, add its charges, then order, receive, close or cancel it. */
+export default function PurchaseOrderForm({ po, locations, costs }: PurchaseOrderFormProps) {
   // Hooks
   const router = useRouter()
+  const currencyCopy = useCopy(poCurrencyContent)
   const [form, setForm] = useState<PoForm>(() => initialForm(po, locations))
   const [saved, setSaved] = useState(() => JSON.stringify(initialForm(po, locations)))
   const [busy, setBusy] = useState(false)
@@ -66,6 +87,11 @@ export default function PurchaseOrderForm({ po, locations }: PurchaseOrderFormPr
       toast.error(copy.needSupplier)
       return null
     }
+    const problem = formProblem(form)
+    if (problem) {
+      toast.error(problem === 'rate' ? currencyCopy.badRate : currencyCopy.badPrice)
+      return null
+    }
     const id = await api.purchaseOrders.save(toInput(form, po?.id, order))
     setSaved(JSON.stringify(form))
     return id
@@ -82,7 +108,16 @@ export default function PurchaseOrderForm({ po, locations }: PurchaseOrderFormPr
     }
   }
 
-  const reopen = (id: string) => (po ? router.refresh() : router.replace(`${LIST}/${id}`))
+  const reopen = (id: string) =>
+    po ? router.refresh() : router.replace(routes.products.purchaseOrder(id))
+
+  const act = (call: (id: string) => Promise<unknown>, done: string) =>
+    run(async () => {
+      if (!po) return
+      await call(po.id)
+      toast.success(done)
+      router.refresh()
+    })
 
   // Event handlers
   const handleSave = () =>
@@ -105,13 +140,22 @@ export default function PurchaseOrderForm({ po, locations }: PurchaseOrderFormPr
       reopen(id)
     })
 
-  const handleClose = () =>
-    run(async () => {
-      if (!po) return
-      await api.purchaseOrders.close({ id: po.id })
-      toast.success(copy.closed)
-      router.refresh()
+  const handlePickSupplier = (s: PickedSupplier) => {
+    const draft = !po || po.status === 'draft'
+    const currency = draft && isPurchaseCurrency(s.currency) ? s.currency : form.currency
+    patch({
+      supplierId: s.id,
+      supplierName: s.name,
+      supplierEmail: s.email ?? '',
+      supplierPhone: s.phone ?? '',
+      currency,
+      fxRate: currency === form.currency ? form.fxRate : currency === 'INR' ? '1' : '',
     })
+  }
+
+  const handleClose = () => act((id) => api.purchaseOrders.close({ id }), copy.closed)
+  const handleCancel = () => act((id) => api.purchaseOrders.cancel({ id }), copy.cancelled)
+  const handleReopen = () => act((id) => api.purchaseOrders.reopen({ id }), copy.reopened)
 
   const handleDelete = () =>
     run(async () => {
@@ -125,9 +169,11 @@ export default function PurchaseOrderForm({ po, locations }: PurchaseOrderFormPr
 
   // Render logic
   const status = po?.status ?? null
-  const finished = status === 'received' || status === 'closed'
+  const finished = status === 'received' || status === 'closed' || status === 'cancelled'
   const draft = status === null || status === 'draft'
   const dirty = JSON.stringify(form) !== saved
+  const nothingArrived = (po?.lines ?? []).every((l) => l.received + l.rejected === 0)
+  const outstanding = (po?.lines ?? []).some((l) => remainingOf(l) > 0)
 
   return (
     <ProoflyPageBody>
@@ -148,10 +194,14 @@ export default function PurchaseOrderForm({ po, locations }: PurchaseOrderFormPr
           <PoActions
             status={status}
             busy={busy}
+            cancellable={status === 'ordered' && nothingArrived}
+            reopenable={status === 'cancelled' || (status === 'closed' && outstanding)}
             onSave={handleSave}
             onMarkOrdered={handleMarkOrdered}
             onReceive={() => setDialog('receive')}
             onClose={() => setDialog('close')}
+            onCancel={() => setDialog('cancel')}
+            onReopen={handleReopen}
             onDelete={() => setDialog('delete')}
           />
         }
@@ -165,19 +215,31 @@ export default function PurchaseOrderForm({ po, locations }: PurchaseOrderFormPr
         main={
           <>
             <SupplierCard
+              supplierId={form.supplierId}
               name={form.supplierName}
               email={form.supplierEmail}
               phone={form.supplierPhone}
               disabled={finished}
               onChange={patch}
+              onPick={handlePickSupplier}
             />
             <PoLinesCard
               lines={form.lines}
               locationId={form.locationId}
+              currency={form.currency}
               locked={!draft}
+              hsnLocked={finished}
               showReceived={!draft}
               onChange={(lines) => patch({ lines })}
             />
+            <ChargesCard
+              costs={costs}
+              owner={po ? { purchaseOrderId: po.id } : null}
+              editable={po !== null && status !== 'cancelled'}
+              shipmentNumber={po?.shipment?.number ?? null}
+              onChanged={() => router.refresh()}
+            />
+            {po && costs ? <LandedCostCard costs={costs} purchaseOrderId={po.id} /> : null}
           </>
         }
         side={
@@ -190,7 +252,15 @@ export default function PurchaseOrderForm({ po, locations }: PurchaseOrderFormPr
               disabled={finished}
               onChange={patch}
             />
-            <CostSummaryCard form={form} disabled={finished} onChange={patch} />
+            <CurrencyCard
+              currency={form.currency}
+              fxRate={form.fxRate}
+              currencyLocked={!draft}
+              disabled={finished}
+              onChange={patch}
+            />
+            {po ? <ShipmentLinkCard shipment={po.shipment} /> : null}
+            <CostSummaryCard form={form} chargesPaise={po?.totals.chargesPaise ?? 0} />
             <NotesCard
               id="po-note"
               heading={copy.notes.heading}
@@ -205,6 +275,7 @@ export default function PurchaseOrderForm({ po, locations }: PurchaseOrderFormPr
       {po ? (
         <ReceiveDialog
           po={po}
+          costs={costs}
           open={dialog === 'receive'}
           onOpenChange={(open) => setDialog(open ? 'receive' : null)}
           onReceived={() => router.refresh()}
@@ -215,6 +286,13 @@ export default function PurchaseOrderForm({ po, locations }: PurchaseOrderFormPr
         onOpenChange={(open) => setDialog(open ? 'close' : null)}
         copy={copy.confirmClose}
         onConfirm={handleClose}
+      />
+      <ConfirmActionDialog
+        open={dialog === 'cancel'}
+        onOpenChange={(open) => setDialog(open ? 'cancel' : null)}
+        copy={copy.confirmCancel}
+        destructive
+        onConfirm={handleCancel}
       />
       <ConfirmActionDialog
         open={dialog === 'delete'}

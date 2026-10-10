@@ -615,49 +615,7 @@ export const inventoryAdjustment = pgTable('inventory_adjustment', {
   createdAt: createdAt(),
 })
 
-/** Stock ordered from a supplier into one location; receiving turns incoming into on_hand. */
-export const purchaseOrder = pgTable(
-  'purchase_order',
-  {
-    id: id(),
-    storeId: storeId(),
-    number: integer('number').notNull(),
-    supplierName: text('supplier_name').notNull(),
-    supplierEmail: text('supplier_email'),
-    supplierPhone: text('supplier_phone'),
-    locationId: uuid('location_id')
-      .notNull()
-      .references(() => location.id),
-    status: text('status', {
-      enum: ['draft', 'ordered', 'partially_received', 'received', 'closed'],
-    })
-      .notNull()
-      .default('draft'),
-    expectedAt: timestamp('expected_at', { withTimezone: true }),
-    currency: text('currency').notNull().default('INR'),
-    shippingPaise: integer('shipping_paise').notNull().default(0),
-    taxPaise: integer('tax_paise').notNull().default(0),
-    note: text('note'),
-    orderedAt: timestamp('ordered_at', { withTimezone: true }),
-    createdAt: createdAt(),
-    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
-  },
-  (t) => [uniqueIndex('purchase_order_store_number').on(t.storeId, t.number)],
-)
-
-export const purchaseOrderLine = pgTable('purchase_order_line', {
-  id: id(),
-  storeId: storeId(),
-  purchaseOrderId: uuid('purchase_order_id')
-    .notNull()
-    .references(() => purchaseOrder.id, { onDelete: 'cascade' }),
-  variantId: uuid('variant_id')
-    .notNull()
-    .references(() => variant.id),
-  quantity: integer('quantity').notNull(),
-  received: integer('received').notNull().default(0),
-  unitCostPaise: integer('unit_cost_paise').notNull().default(0),
-})
+// purchase_order and purchase_order_line: purchasing-schema.ts (suppliers, landed cost).
 
 /** Stock moving between two locations: shipping moves it to incoming, receiving lands it. */
 export const transfer = pgTable(

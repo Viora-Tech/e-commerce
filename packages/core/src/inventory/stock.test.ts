@@ -57,19 +57,29 @@ describe('stock maths', () => {
     expect(purchaseOrderStatus(none, 'closed')).toBe('closed')
   })
 
-  it('totals a purchase order with shipping and tax', () => {
+  it('counts rejected units as arrived, not outstanding', () => {
+    const line = { quantity: 10, received: 4, rejected: 2 }
+    expect(remainingOf(line)).toBe(4)
+    expect(clampReceipt(line, 9)).toBe(4)
+    expect(purchaseOrderStatus([{ quantity: 5, received: 3, rejected: 2 }], 'ordered')).toBe(
+      'received',
+    )
+    expect(purchaseOrderStatus([{ quantity: 5, received: 0 }], 'cancelled')).toBe('cancelled')
+  })
+
+  it('totals a purchase order from goods and its charges', () => {
     const totals = purchaseOrderTotals(
       [
-        { quantity: 4, received: 1, unitCostPaise: 25000 },
-        { quantity: 2, received: 2, unitCostPaise: 10000 },
+        { quantity: 4, received: 1, goodsPaise: 100000 },
+        { quantity: 2, received: 2, goodsPaise: 20000 },
       ],
-      5000,
-      21600,
+      26600,
     )
     expect(totals).toEqual({
       units: 6,
       receivedUnits: 3,
       subtotalPaise: 120000,
+      chargesPaise: 26600,
       totalPaise: 146600,
     })
   })

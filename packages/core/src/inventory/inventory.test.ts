@@ -21,9 +21,9 @@ import {
   closePurchaseOrder,
   deletePurchaseOrder,
   markOrdered,
-  receivePurchaseOrder,
   savePurchaseOrder,
 } from './purchase-orders'
+import { receivePurchaseOrder } from './receiving'
 import { PurchaseOrderInputSchema, TransferInputSchema } from './schemas'
 import { receiveTransfer, saveTransfer, shipTransfer } from './transfers'
 
@@ -135,9 +135,9 @@ describe('purchase orders', () => {
       savePurchaseOrder(tx, storeId, {
         supplierName: 'Pulsar',
         locationId: loc,
-        shippingPaise: 0,
-        taxPaise: 0,
-        lines: [{ variantId, quantity: 6, unitCostPaise: 40000 }],
+        currency: 'INR',
+        fxRate: '1',
+        lines: [{ variantId, quantity: 6, unitPriceMinor: 40000 }],
       }),
     )
     await withStore(app, storeId, (tx) => markOrdered(tx, storeId, id))
@@ -149,9 +149,9 @@ describe('purchase orders', () => {
       .where(eq(purchaseOrderLine.purchaseOrderId, id))
     const lineId = line?.id as string
     const got = await withStore(app, storeId, (tx) =>
-      receivePurchaseOrder(tx, storeId, { id, receipts: [{ lineId, quantity: 4 }] }),
+      receivePurchaseOrder(tx, storeId, { id, receipts: [{ lineId, accepted: 4, rejected: 0 }] }),
     )
-    expect(got).toBe(4)
+    expect(got.units).toBe(4)
     let level = await levelAt(variantId, loc)
     expect(level).toMatchObject({ onHand: 14, incoming: 2 })
     let [po] = await owner.select().from(purchaseOrder).where(eq(purchaseOrder.id, id))
@@ -159,7 +159,7 @@ describe('purchase orders', () => {
 
     // Over-receiving is clamped to what is outstanding.
     await withStore(app, storeId, (tx) =>
-      receivePurchaseOrder(tx, storeId, { id, receipts: [{ lineId, quantity: 99 }] }),
+      receivePurchaseOrder(tx, storeId, { id, receipts: [{ lineId, accepted: 99, rejected: 0 }] }),
     )
     level = await levelAt(variantId, loc)
     expect(level).toMatchObject({ onHand: 16, incoming: 0 })
@@ -174,9 +174,9 @@ describe('purchase orders', () => {
       savePurchaseOrder(tx, storeId, {
         supplierName: 'Talongames',
         locationId: loc,
-        shippingPaise: 0,
-        taxPaise: 0,
-        lines: [{ variantId, quantity: 5, unitCostPaise: 0 }],
+        currency: 'INR',
+        fxRate: '1',
+        lines: [{ variantId, quantity: 5, unitPriceMinor: 0 }],
       }),
     )
     await withStore(app, storeId, (tx) => markOrdered(tx, storeId, id))
@@ -189,7 +189,7 @@ describe('purchase orders', () => {
 })
 
 describe('purchase order fixes', () => {
-  const base = { supplierName: 'Pulsar', shippingPaise: 0, taxPaise: 0 }
+  const base = { supplierName: 'Pulsar', currency: 'INR' as const, fxRate: '1' }
 
   it('saves and orders in one step when asked', async () => {
     const { storeId, variantId } = await seed()
@@ -199,7 +199,7 @@ describe('purchase order fixes', () => {
         ...base,
         locationId: loc,
         markOrdered: true,
-        lines: [{ variantId, quantity: 3, unitCostPaise: 100 }],
+        lines: [{ variantId, quantity: 3, unitPriceMinor: 100 }],
       }),
     )
     const [po] = await owner.select().from(purchaseOrder).where(eq(purchaseOrder.id, id))
@@ -227,7 +227,7 @@ describe('purchase order fixes', () => {
           savePurchaseOrder(tx, storeId, {
             ...base,
             locationId: loc,
-            lines: [{ variantId, quantity: 1, unitCostPaise: 0 }],
+            lines: [{ variantId, quantity: 1, unitPriceMinor: 0 }],
           }),
         ),
       ),
@@ -240,7 +240,7 @@ describe('purchase order fixes', () => {
   it('refuses to change lines or destination once ordered, but takes header edits', async () => {
     const { storeId, variantId } = await seed()
     const loc = await withStore(app, storeId, (tx) => defaultLocationId(tx, storeId))
-    const lines = [{ variantId, quantity: 4, unitCostPaise: 50 }]
+    const lines = [{ variantId, quantity: 4, unitPriceMinor: 50 }]
     const id = await withStore(app, storeId, (tx) =>
       savePurchaseOrder(tx, storeId, { ...base, locationId: loc, markOrdered: true, lines }),
     )
@@ -250,7 +250,7 @@ describe('purchase order fixes', () => {
           ...base,
           id,
           locationId: loc,
-          lines: [{ variantId, quantity: 9, unitCostPaise: 50 }],
+          lines: [{ variantId, quantity: 9, unitPriceMinor: 50 }],
         }),
       ),
     ).rejects.toMatchObject({ code: 'PO_LINES_LOCKED' })
@@ -268,7 +268,7 @@ describe('purchase order fixes', () => {
   })
 
   it('rejects the same product twice', () => {
-    const line = { variantId: newId(), quantity: 1, unitCostPaise: 0 }
+    const line = { variantId: newId(), quantity: 1, unitPriceMinor: 0 }
     const po = { ...base, locationId: newId(), lines: [line, { ...line, quantity: 2 }] }
     expect(PurchaseOrderInputSchema.safeParse(po).success).toBe(false)
     const t = { fromLocationId: newId(), toLocationId: newId(), lines: [line, line] }
@@ -298,7 +298,7 @@ describe('purchase order fixes', () => {
         savePurchaseOrder(tx, mine.storeId, {
           ...base,
           locationId: loc,
-          lines: [{ variantId: theirVariant, quantity: 1, unitCostPaise: 0 }],
+          lines: [{ variantId: theirVariant, quantity: 1, unitPriceMinor: 0 }],
         }),
       ),
     ).rejects.toMatchObject({ code: 'VARIANT_NOT_FOUND' })
@@ -316,7 +316,7 @@ describe('purchase order fixes', () => {
       savePurchaseOrder(tx, storeId, {
         ...base,
         locationId: loc,
-        lines: [{ variantId, quantity: 1, unitCostPaise: 0 }],
+        lines: [{ variantId, quantity: 1, unitPriceMinor: 0 }],
       }),
     )
     const [v] = await owner.select().from(variant).where(eq(variant.id, variantId))

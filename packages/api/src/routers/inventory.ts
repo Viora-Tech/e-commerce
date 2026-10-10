@@ -1,6 +1,7 @@
 import {
   adjustStock,
   BulkStockEditSchema,
+  cancelPurchaseOrder,
   closePurchaseOrder,
   createLocation,
   deletePurchaseOrder,
@@ -15,6 +16,7 @@ import {
   ReceiptSchema,
   receivePurchaseOrder,
   receiveTransfer,
+  reopenPurchaseOrder,
   StockEditSchema,
   savePurchaseOrder,
   saveTransfer,
@@ -33,6 +35,7 @@ import {
   listInventory,
   searchVariants,
 } from '../services/inventory.service'
+import { previewCosts } from '../services/landed-cost.service'
 import {
   getPurchaseOrder,
   listPurchaseOrders,
@@ -41,7 +44,7 @@ import {
 import { getTransfer, listTransfers } from '../services/transfer.service'
 
 /** Stock rules the merchant broke (negative stock, wrong status) come back as 400s. */
-async function friendly<T>(fn: () => Promise<T>): Promise<T> {
+export async function friendly<T>(fn: () => Promise<T>): Promise<T> {
   try {
     return await fn()
   } catch (err) {
@@ -186,13 +189,38 @@ export const purchaseOrdersRouter = {
   receive: can(permissions.INVENTORY_WRITE)
     .input(ReceiptSchema)
     .handler(({ context, input }) =>
-      friendly(() => receivePurchaseOrder(context.tx, context.scope.storeId, input)),
+      friendly(() =>
+        receivePurchaseOrder(context.tx, context.scope.storeId, input, context.scope.userId),
+      ),
     ),
 
   close: can(permissions.INVENTORY_WRITE)
     .input(z.object({ id: z.uuid() }))
     .handler(({ context, input }) =>
       friendly(() => closePurchaseOrder(context.tx, context.scope.storeId, input.id)),
+    ),
+
+  /** Call off a draft or an order nothing has arrived on. */
+  cancel: can(permissions.INVENTORY_WRITE)
+    .input(z.object({ id: z.uuid() }))
+    .handler(({ context, input }) =>
+      friendly(() => cancelPurchaseOrder(context.tx, context.scope.storeId, input.id)),
+    ),
+
+  /** Undo a close or a cancel. */
+  reopen: can(permissions.INVENTORY_WRITE)
+    .input(z.object({ id: z.uuid() }))
+    .handler(({ context, input }) =>
+      friendly(() => reopenPurchaseOrder(context.tx, context.scope.storeId, input.id)),
+    ),
+
+  /** Charges, their splits and each line's landed cost for this order and its shipment. No writes. */
+  costs: can(permissions.INVENTORY_READ)
+    .input(z.object({ id: z.uuid() }))
+    .handler(({ context, input }) =>
+      friendly(() =>
+        previewCosts(context.tx, context.scope.storeId, { purchaseOrderId: input.id }),
+      ),
     ),
 
   delete: can(permissions.INVENTORY_WRITE)

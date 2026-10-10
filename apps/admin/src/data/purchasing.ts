@@ -1,0 +1,295 @@
+/** Copy for suppliers, inbound shipments, purchase charges and landed cost (Products). */
+import type {
+  CostWarning,
+  InboundShipmentStatus,
+  PurchaseChargeKind,
+  SplitMethod,
+} from '@commerce/core/inventory'
+
+export {
+  INBOUND_SHIPMENT_STATUSES,
+  type InboundShipmentStatus,
+  PURCHASE_CHARGE_KINDS,
+  PURCHASE_CURRENCY_CODES,
+  SPLIT_METHODS,
+} from '@commerce/core/inventory'
+
+export const suppliersContent = {
+  heading: 'Suppliers',
+  summary: 'Who you buy stock from',
+  resource: { singular: 'supplier', plural: 'suppliers' },
+  create: 'Add supplier',
+  columns: {
+    name: 'Supplier',
+    country: 'Country',
+    currency: 'Bills in',
+    gstin: 'GSTIN',
+    terms: 'Payment terms',
+    orders: 'Purchase orders',
+  },
+  none: 'None',
+  empty: {
+    heading: 'No suppliers yet',
+    body: 'Save the people you buy stock from once, then pick them on every purchase order.',
+  },
+} as const
+
+export const supplierFormContent = {
+  newTitle: 'Add supplier',
+  back: 'Suppliers',
+  details: {
+    heading: 'Supplier',
+    name: 'Name',
+    gstin: 'GSTIN',
+    gstinHint: 'Only for suppliers registered in India',
+    country: 'Country code',
+    countryHint: 'Two letters, like IN, CN or US',
+    currency: 'Bills in',
+  },
+  contact: { heading: 'Contact', email: 'Email', phone: 'Phone', address: 'Address' },
+  terms: {
+    heading: 'Terms and notes',
+    paymentTerms: 'Payment terms',
+    paymentTermsPlaceholder: '30% advance, the rest before dispatch',
+    notes: 'Notes',
+  },
+  orders: {
+    heading: 'Purchase orders',
+    empty: 'No purchase orders from this supplier yet.',
+    number: (n: number) => `#PO${n}`,
+  },
+  save: 'Save',
+  saving: 'Saving',
+  saved: 'Supplier saved',
+  created: 'Supplier added',
+  failed: 'Could not save supplier',
+  needName: 'Add the supplier name',
+  delete: 'Delete',
+  deleted: 'Supplier deleted',
+  unsaved: 'Unsaved supplier',
+  discard: 'Discard',
+  confirmDelete: {
+    title: 'Delete this supplier?',
+    body: 'Purchase orders keep the supplier name; they just stop pointing at this record.',
+    confirm: 'Delete supplier',
+    cancel: 'Cancel',
+  },
+} as const
+
+export const supplierPickerContent = {
+  search: 'Search saved suppliers',
+  new: 'New supplier',
+  linked: 'Saved supplier',
+  change: 'Change',
+  newTitle: 'New supplier',
+  newBody: 'Saved for next time. You can add the rest of the details under Suppliers.',
+  create: 'Add supplier',
+  creating: 'Adding',
+  cancel: 'Cancel',
+  failed: 'Could not add supplier',
+} as const
+
+export const poCurrencyContent = {
+  heading: 'Currency',
+  currency: 'Supplier bills in',
+  fxRate: 'Exchange rate',
+  fxHint: (code: string) =>
+    `Rupees for 1 ${code}. Use the rate on your Bill of Entry or bank advice.`,
+  locked: 'The currency is fixed once the order is sent.',
+  badRate: 'Enter an exchange rate above 0',
+  badPrice: 'Check the unit prices: too many decimals for this currency',
+} as const
+
+export const poShipmentContent = {
+  heading: 'Inbound shipment',
+  none: 'Not on a shipment. Add it from an inbound shipment to share its freight and customs.',
+  on: (n: number, reference: string | null) => (reference ? `#IS${n} · ${reference}` : `#IS${n}`),
+  open: 'Open shipment',
+} as const
+
+export const inboundShipmentsContent = {
+  heading: 'Inbound shipments',
+  summary: 'Imports on their way: one Bill of Entry or container, with its freight and customs',
+  resource: { singular: 'inbound shipment', plural: 'inbound shipments' },
+  create: 'Create inbound shipment',
+  number: (n: number) => `#IS${n}`,
+  status: {
+    in_transit: 'On the way',
+    at_port: 'At the port',
+    cleared: 'Customs cleared',
+    delivered: 'Delivered',
+  } satisfies Record<InboundShipmentStatus, string>,
+  tabs: { all: 'All' },
+  columns: {
+    number: 'Shipment',
+    reference: 'Reference',
+    billOfEntry: 'Bill of Entry',
+    port: 'Port',
+    status: 'Status',
+    orders: 'Orders',
+    arrived: 'Arrived',
+  },
+  none: 'None',
+  empty: {
+    heading: 'No inbound shipments',
+    body: 'An inbound shipment groups the purchase orders that came in one container or Bill of Entry, so their freight and customs split across all of them.',
+  },
+} as const
+
+export const inboundShipmentFormContent = {
+  newTitle: 'Create inbound shipment',
+  title: (n: number) => `Inbound shipment #IS${n}`,
+  back: 'Inbound shipments',
+  details: {
+    heading: 'Shipment',
+    reference: 'Your reference',
+    referencePlaceholder: 'Container, AWB or forwarder job number',
+    billOfEntryNo: 'Bill of Entry number',
+    billOfEntryDate: 'Bill of Entry date',
+    port: 'Port',
+    portPlaceholder: 'Nhava Sheva, Chennai, Delhi Air Cargo',
+    arrivedAt: 'Arrived on',
+    status: 'Status',
+  },
+  orders: {
+    heading: 'Purchase orders',
+    search: 'Search purchase orders to add',
+    empty:
+      'Add the purchase orders that came in this shipment. Its charges split across all their products.',
+    remove: 'Remove from shipment',
+    units: (n: number) => `${n} ${n === 1 ? 'unit' : 'units'}`,
+    number: (n: number) => `#PO${n}`,
+    added: 'Purchase order added. Costs updated.',
+    removed: 'Purchase order removed. Costs updated.',
+    elsewhere: 'On another shipment',
+  },
+  notes: { heading: 'Notes', placeholder: 'Forwarder, vessel or anything else' },
+  saveFirst: 'Save the shipment first, then add its orders and charges.',
+  save: 'Save',
+  saving: 'Saving',
+  saved: 'Shipment saved',
+  created: 'Shipment created',
+  failed: 'Could not save shipment',
+  delete: 'Delete',
+  deleted: 'Shipment deleted',
+  unsaved: 'Unsaved shipment',
+  discard: 'Discard',
+  confirmDelete: {
+    title: 'Delete this shipment?',
+    body: 'Its shared charges are deleted too. Remove its purchase orders first.',
+    confirm: 'Delete shipment',
+    cancel: 'Cancel',
+  },
+} as const
+
+export const chargesContent = {
+  heading: 'Charges',
+  shipmentHeading: 'Shared charges',
+  summary: 'Freight, customs duty, clearing and bank charges become part of each product’s cost.',
+  empty: 'No charges yet.',
+  saveFirst: 'Save the order first, then add its charges.',
+  add: 'Add charge',
+  edit: 'Edit',
+  remove: 'Remove',
+  fromShipment: (n: number) => `Shared, from shipment #IS${n}`,
+  kinds: {
+    goods_adjustment: 'Goods adjustment',
+    freight_insurance: 'Freight and insurance',
+    customs_bcd: 'Basic customs duty (BCD)',
+    customs_sws: 'Social welfare surcharge (SWS)',
+    customs_igst: 'IGST paid at customs',
+    cha_fee: 'Clearing agent (CHA) fee',
+    port_handling: 'Port and handling',
+    freight_local: 'Local freight',
+    bank_fx: 'Bank and exchange charges',
+    other: 'Other',
+  } satisfies Record<PurchaseChargeKind, string>,
+  methods: {
+    by_weight: 'By weight',
+    by_value: 'By value',
+    by_quantity: 'By quantity',
+    specific_lines: 'Only some products',
+    manual: 'Amount per product',
+  } satisfies Record<SplitMethod, string>,
+  inCost: 'In product cost',
+  notInCost: 'Input credit, not in cost',
+  gst: (amount: string) => `+ ${amount} GST`,
+  dialog: {
+    addTitle: 'Add charge',
+    editTitle: 'Edit charge',
+    kind: 'What is it for',
+    amount: 'Amount, before GST',
+    amountHint: 'A goods adjustment can be negative, for a supplier credit.',
+    currency: 'Currency',
+    fxRate: 'Exchange rate',
+    fxHint: (code: string) => `Rupees for 1 ${code}`,
+    gst: 'GST on this bill (₹)',
+    gstHint: 'You claim this back as input credit, so it is never part of product cost.',
+    recoverable: 'Claim back as input credit',
+    recoverableHint:
+      'On for IGST paid at customs. The amount is tracked but left out of product cost.',
+    split: 'Split across products',
+    lines: 'Products',
+    manualLeft: (amount: string) => `${amount} left to assign`,
+    manualDone: 'Every rupee is assigned',
+    payee: 'Paid to',
+    payeePlaceholder: 'Shipping line, CHA or bank',
+    note: 'Note',
+    incurredAt: 'Bill date',
+    save: 'Save charge',
+    saving: 'Saving',
+    cancel: 'Cancel',
+    needAmount: 'Enter the amount',
+    badRate: 'Enter an exchange rate above 0',
+    needLines: 'Pick at least one product',
+    manualOff: 'The amounts per product must add up to the charge',
+  },
+  added: 'Charge added. Costs updated.',
+  saved: 'Charge saved. Costs updated.',
+  removed: 'Charge removed. Costs updated.',
+  failed: 'Could not save the charge',
+  confirmRemove: {
+    title: 'Remove this charge?',
+    body: 'Product costs are worked out again without it. Stock already received is revalued.',
+    confirm: 'Remove charge',
+    cancel: 'Cancel',
+  },
+  warnings: {
+    missing_weight: (n: number) =>
+      `Split by value instead: ${n} ${n === 1 ? 'product has' : 'products have'} no weight. Add weights to the products to split by weight.`,
+    manual_mismatch: 'Split by value instead: the amounts per product do not add up to the charge.',
+    no_selected_lines: 'Split by value instead: the products picked are no longer on the order.',
+    zero_basis: 'Split by quantity instead: every product here is worth nothing or weighs nothing.',
+    no_lines: 'Not in any cost yet: add a purchase order to this shipment.',
+  },
+} as const
+
+/** The warning text for one fallback. */
+export function warningText(copy: typeof chargesContent, w: CostWarning): string {
+  if (w.code === 'missing_weight') return copy.warnings.missing_weight(w.lineIds.length)
+  return copy.warnings[w.code]
+}
+
+export const landedCostContent = {
+  heading: 'Landed cost',
+  summary:
+    'What each unit really costs once freight, duty and clearing are added. GST you claim back is left out.',
+  columns: {
+    product: 'Product',
+    quantity: 'Qty',
+    goods: 'Goods',
+    charges: 'Charges',
+    landed: 'Per unit',
+    current: 'Cost now',
+  },
+  order: (n: number) => `#PO${n}`,
+  totals: {
+    goods: 'Goods',
+    charges: 'Charges in cost',
+    recoverable: 'IGST and other input credit',
+    gst: 'GST on bills',
+    landed: 'Landed total',
+  },
+  notSet: 'Not set',
+  empty: 'Add products to see what they land at.',
+} as const

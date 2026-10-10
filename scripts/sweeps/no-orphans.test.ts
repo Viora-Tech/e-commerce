@@ -18,6 +18,21 @@ type AllowEntry = { file: string; names: string[]; reason: string }
 
 const ALLOWLIST: AllowEntry[] = [
   {
+    file: 'packages/core/src/inventory/landed-cost.ts',
+    names: ['allocate'],
+    reason: 'the largest-remainder split behind computeLandedCosts, exported for its unit test',
+  },
+  {
+    file: 'packages/core/src/inventory/schemas.ts',
+    names: ['FxRateSchema'],
+    reason: 'the exchange-rate rule inside the purchase schemas, exported for its unit test',
+  },
+  {
+    file: 'packages/db/src/purchasing-schema.ts',
+    names: ['INBOUND_SHIPMENT_STATUS_VALUES', 'PURCHASE_CHARGE_KIND_VALUES', 'SPLIT_METHOD_VALUES'],
+    reason: 'the column enums; landed-cost.test.ts checks core keeps the same lists',
+  },
+  {
     file: 'packages/api/src/services/bug-report.service.ts',
     names: ['scrubSecrets'],
     reason: 'the redaction rule behind buildBugIssue, exported for its unit test',

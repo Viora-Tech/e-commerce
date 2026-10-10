@@ -39,7 +39,7 @@ const PER_PAGE = siteConfig.ui.rowsPerPage.default
 const NEW_HREF = routes.products.newPurchaseOrder()
 
 function allCount(c: PurchaseOrderCounts): number {
-  return c.draft + c.open + c.received + c.closed
+  return c.draft + c.open + c.received + c.closed + c.cancelled
 }
 
 function PurchaseOrdersContent({ initial }: { initial: PurchaseOrdersInitial }) {

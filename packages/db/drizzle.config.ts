@@ -8,6 +8,7 @@ export default defineConfig({
     './src/auth-schema.ts',
     './src/marketing-schema.ts',
     './src/privacy-schema.ts',
+    './src/purchasing-schema.ts',
     './src/shopper-login-schema.ts',
     './src/store-data-schema.ts',
     // Installable apps that own tables. Their migrations join the one chain here.

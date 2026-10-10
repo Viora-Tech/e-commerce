@@ -9,5 +9,5 @@ export default async function Page() {
   const context = await serverContext()
   const locations = await call(appRouter.inventory.locations, undefined, { context })
 
-  return <PurchaseOrderForm po={null} locations={locations} />
+  return <PurchaseOrderForm po={null} locations={locations} costs={null} />
 }
