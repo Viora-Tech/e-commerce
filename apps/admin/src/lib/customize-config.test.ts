@@ -13,4 +13,15 @@ describe('createCustomizeConfig', () => {
   it('leaves the Apps tab empty when nothing is installed', () => {
     expect(createCustomizeConfig().categories?.apps?.components ?? []).toEqual([])
   })
+
+  it('gives every richtext field, nested ones included, the canvas link menu', () => {
+    type Field = { type?: string; renderInlineMenu?: unknown; arrayFields?: Record<string, Field> }
+    const fields = (type: string) =>
+      createCustomizeConfig().components[type]?.fields as unknown as Record<string, Field>
+    expect(fields('RichText').body?.renderInlineMenu).toBeTypeOf('function')
+    expect(fields('Multicolumn').columns?.arrayFields?.text?.renderInlineMenu).toBeTypeOf(
+      'function',
+    )
+    expect(fields('RichText').heading?.renderInlineMenu).toBeUndefined()
+  })
 })

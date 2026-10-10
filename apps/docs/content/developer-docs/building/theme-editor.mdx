@@ -16,7 +16,7 @@ all share one Puck state. Every change the editor makes is a Puck action (`inser
 ```mermaid
 flowchart LR
   tree["Sections sidebar<br/>SectionsTree → SectionGroup → SectionTreeItem"] -->|Puck actions| store[("Puck state<br/>one doc per template")]
-  canvas["Canvas<br/>SectionOverlay, CanvasInsertLine"] -->|Puck actions| store
+  canvas["Canvas<br/>BlockToolbar, CanvasInsertLine"] -->|Puck actions| store
   inspector["Inspector<br/>Puck.Fields + our field overrides"] -->|onChange| store
   store -->|onChange| drafts["useTemplateDrafts<br/>autosaved drafts"]
 ```
@@ -93,8 +93,30 @@ only the marks our storefront allows. Puck applies them inside `array` items too
   keep the plain `linkField`.
 - The Rich text section and the Text element use `inlineRichtextLong`, which adds headings (h2 to
   h4), quotes and rules.
-- `canvas-action-bar.tsx` keeps Puck's inline B/I/U menu while `SectionOverlay` keeps the label,
-  move, duplicate and delete actions.
+- While body copy is edited, its B/I/U and link controls join the block toolbar (below).
+
+### Block toolbar
+
+The selected block gets one floating toolbar (`block-toolbar.tsx`, Puck's `componentOverlay`
+override): the block's name in the accent "selected" chip from the Figma builder frames, move up
+and down, duplicate and delete, and, only while text in that block is being edited, bold, italic,
+underline and link. Puck hands its inline rich-text menu to its own action bar, so the
+`actionBar` override (`block-toolbar-format.tsx`) portals that menu into a slot at the end of
+the toolbar and Puck's bar stays empty. The menu is `inline-format-menu.tsx`, which
+`customize-config.tsx` sets as `renderInlineMenu` on every richtext field: Puck's B/I/U plus a
+link form that accepts what the link picker accepts (`normalisePastedUrl`) and opens in the same
+tab.
+
+- Puck mounts the overlay in the admin document laid over the canvas, so the toolbar uses admin
+  tokens and follows the admin's light or dark theme.
+- It rests on the block's top edge and sticks to the top of the canvas while a tall block scrolls
+  under it (a block at the very top shows it just inside). New controls append at the end, so
+  the buttons never shift.
+- It is registered with `registerOverlayPortal` and stops its clicks, so pressing a button never
+  drags the block or clears the selection. Moves use `stepActions`, so the moved block stays
+  selected.
+- Selected blocks get a 1px solid accent outline and hovered ones a dashed one, no tinted fill
+  (`vendor-puck.css`). The bar fades in over 150 ms; reduced motion shows it at once.
 
 Every section on the canvas uses these helpers: the Zero Drift sections (`sections/glide.tsx`, one
 config per section in `sections/glide/`), the library and modern sections (`library.tsx`,

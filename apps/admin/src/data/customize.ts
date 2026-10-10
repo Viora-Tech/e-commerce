@@ -134,9 +134,17 @@ export const customizeContent = {
     title: 'Add section',
     description: 'Pick a section. It goes in where you clicked.',
   },
-  overlay: {
+  toolbar: {
+    label: (name: string) => `${name} actions`,
     moveUp: (name: string) => `Move ${name} up`,
     moveDown: (name: string) => `Move ${name} down`,
+    format: 'Text style',
+    link: 'Link',
+    editLink: 'Edit link',
+    linkPlaceholder: 'Paste a link or type /page',
+    applyLink: 'Add link',
+    removeLink: 'Remove link',
+    cancelLink: 'Cancel',
   },
   addSection: {
     search: 'Search sections',

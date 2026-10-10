@@ -12,7 +12,8 @@ import type { RichtextField } from '@puckeditor/core'
  *        shown on the canvas (alt text, URLs, aria labels) stays a plain `text` field.
  * WHERE: Every section and element on the canvas (`./glide/*`, `./library.tsx`, `./modern.tsx`,
  *        `./custom-*.tsx`, `../puck-config.tsx`); the admin frames the richtext field in
- *        `customize-overrides.tsx` and shows its B/I/U menu via `canvas-action-bar.tsx`.
+ *        `customize-overrides.tsx`; its B/I/U and link menu sits in the block toolbar
+ *        (`block-toolbar.tsx`, `inline-format-menu.tsx`).
  */
 
 /** A one-line text the merchant can also type into on the canvas. */
