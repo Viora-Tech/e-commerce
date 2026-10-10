@@ -36,7 +36,7 @@ export default function CustomerView({ customer, startEditing = false }: Custome
   const step = nextStepFor(customer)
 
   return (
-    <PageBody width="frame" className="max-w-[77.5rem] gap-6 md:mx-auto">
+    <PageBody width="frame" className="max-w-[80.5rem] gap-6 md:mx-auto">
       <CustomerHeader customer={customer} onEdit={() => setEditing(true)} />
       {step ? <CustomerNextStep customer={customer} step={step} /> : null}
       <PageColumns

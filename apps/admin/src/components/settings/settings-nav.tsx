@@ -52,7 +52,7 @@ export default function SettingsNav() {
   return (
     <nav
       aria-label={copy.nav.label}
-      className="flex w-full flex-col gap-3 md:sticky md:top-6 md:max-h-[calc(100dvh-6rem)] md:w-60 md:shrink-0 md:self-start md:overflow-y-auto md:no-scrollbar"
+      className="flex w-full flex-col gap-3 md:sticky md:top-6 md:max-h-[calc(100dvh-6rem)] md:w-[13.75rem] md:shrink-0 md:self-start md:overflow-y-auto md:no-scrollbar"
     >
       {onHome ? null : (
         <Link href={SETTINGS_HOME.href} className={cn(BACK, 'md:hidden')}>
