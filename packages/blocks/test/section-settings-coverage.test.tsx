@@ -59,3 +59,14 @@ describe('section settings on every section', () => {
     })
   }
 })
+
+describe('section background colour', () => {
+  it('follows a theme colour by name and keeps a typed colour', async () => {
+    const { sectionBackground } = await import('../src/section-settings')
+    expect(sectionBackground('brand')).toBe('var(--color-brand)')
+    expect(sectionBackground('background')).toBe('var(--color-bg)')
+    expect(sectionBackground('#ffffff')).toBe('#ffffff')
+    expect(sectionBackground('url(x)')).toBeNull()
+    expect(sectionBackground('')).toBeNull()
+  })
+})

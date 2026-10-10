@@ -18,10 +18,11 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from '@commerce/ui/shadcn/collapsible'
-import { AutoField, type Field } from '@puckeditor/core'
+import type { Field } from '@puckeditor/core'
 import { customizeContent } from '@/data/customize'
 import type { FieldLike } from '@/lib/customize-field-shape'
 import { settingsGroupSummary } from '@/lib/customize-settings-summary'
+import SettingsGroupBody from './settings-group-body'
 
 type SectionSettingsGroupsProps = {
   field: FieldLike
@@ -108,15 +109,13 @@ export default function SectionSettingsGroups({
                 />
               </CollapsibleTrigger>
               <CollapsibleContent>
-                <div className="flex flex-col gap-4 px-2 pt-2 pb-3">
-                  {Object.entries(subFields).map(([subKey, subField]) => (
-                    <AutoField
-                      key={subKey}
-                      field={subField}
-                      value={groupValue[subKey]}
-                      onChange={(next: unknown) => handleChange(key, subKey, next)}
-                    />
-                  ))}
+                <div className="px-2 pt-2 pb-3">
+                  <SettingsGroupBody
+                    group={key}
+                    fields={subFields}
+                    value={groupValue}
+                    onChange={(subKey, next) => handleChange(key, subKey, next)}
+                  />
                 </div>
               </CollapsibleContent>
             </Collapsible>

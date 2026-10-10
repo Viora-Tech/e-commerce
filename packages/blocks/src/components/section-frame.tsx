@@ -6,6 +6,7 @@ import {
   migrateSectionSettings,
   type SectionSettingsValue,
   type Shadow,
+  sectionBackground,
   sectionPaddingStyle,
   sectionVisibilityClassName,
 } from '../section-settings'
@@ -83,6 +84,7 @@ export default function SectionFrame({
   const s = migrateSectionSettings({ scheme, padTop, padBottom, settings })
   const { layout, spacing, style, advanced } = s
   const hasBackgroundImage = Boolean(style.backgroundImage.url)
+  const background = sectionBackground(style.backgroundColor)
   const outerClasses = join(
     'section-frame',
     'relative',
@@ -96,7 +98,7 @@ export default function SectionFrame({
   )
   const outerStyle: CSSProperties = {
     ...sectionPaddingStyle(spacing),
-    ...(style.backgroundColor ? { backgroundColor: style.backgroundColor } : {}),
+    ...(background ? { backgroundColor: background } : {}),
   }
   const contentClasses =
     layout.contentWidth === 'full'
