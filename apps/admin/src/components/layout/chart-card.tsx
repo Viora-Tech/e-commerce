@@ -6,7 +6,7 @@ import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@commerce/ui/
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
 import { type ReactNode, useState } from 'react'
 import { Area, AreaChart, CartesianGrid, XAxis, YAxis } from 'recharts'
-import KitWeekToggle from '@/components/kit/kit-week-toggle'
+import PillTabs from '@/components/layout/pill-tabs'
 import { base, instant } from '@/lib/motion'
 import CardMenu, { type MenuLink } from './card-menu'
 import { type ChartPoint, chartConfig } from './chart-config'
@@ -55,13 +55,14 @@ export default function ChartCard({
   const config = seriesLabel ? { value: { ...chartConfig.value, label: seriesLabel } } : chartConfig
 
   return (
-    <Card className={cn('h-[28.75rem] gap-0 p-5', className)}>
+    <Card className={cn('gap-0 p-5', className)}>
       <div className="flex h-[2.375rem] items-center justify-between gap-3">
         <p className="text-kit-title text-foreground">{title}</p>
         <div className="flex items-center gap-2">
           {periods.length > 1 ? (
-            <KitWeekToggle
-              options={periods.map((p) => ({ id: p.id, label: p.label }))}
+            <PillTabs
+              variant="segmented"
+              tabs={periods.map((p) => ({ value: p.id, label: p.label }))}
               value={periodId}
               onChange={setPeriodId}
             />
@@ -78,7 +79,7 @@ export default function ChartCard({
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           transition={fade}
-          className="mt-8"
+          className="mt-6"
         >
           <ChartContainer
             config={config}

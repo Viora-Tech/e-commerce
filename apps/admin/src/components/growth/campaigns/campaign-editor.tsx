@@ -161,7 +161,7 @@ export default function CampaignEditor({
   const title = campaign ? form.name : form.kind === 'email' ? copy.newEmail : copy.newWhatsapp
 
   return (
-    <div className="mx-auto flex w-full max-w-[75rem] flex-col gap-5 px-4 py-6 md:px-8 md:py-8">
+    <div className="mx-auto flex w-full max-w-[81.5rem] flex-col gap-6 px-4 py-6 md:px-8 md:py-8">
       <SaveBar
         open={dirty}
         message={copy.saveBar.message}

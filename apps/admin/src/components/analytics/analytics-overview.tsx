@@ -90,32 +90,34 @@ export default function AnalyticsOverviewPage({
   const weekPoints = data.salesOverTime.week.map((p) => ({ ...p, label: formatDay(p.label) }))
 
   return (
-    <div className="mx-auto flex w-full max-w-[75rem] flex-col gap-5 px-4 py-6 md:px-8 md:py-8">
+    <div className="mx-auto flex w-full max-w-[81.5rem] flex-col gap-6 px-4 py-6 md:px-8 md:py-8">
       <ProoflyPageHeader
         title={copy.title}
         summary={copy.intro}
         actions={<RangePicker value={range} onChange={handleRange} />}
       />
-      <div className="grid grid-cols-2 gap-4 lg:grid-cols-3" aria-busy={loading || undefined}>
+      {/* Figma 306:16434: KPIs in one row, the sales chart full width, then funnel + top
+          products side by side; the state and payment breakdowns follow. */}
+      <div className="grid grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-6" aria-busy={loading || undefined}>
         {data.kpis.map((kpi) => (
           <KpiTile key={kpi.id} kpi={kpi} />
         ))}
       </div>
-      <div className="grid grid-cols-1 items-stretch gap-5 xl:grid-cols-[minmax(0,739fr)_minmax(0,361fr)]">
-        <ChartCard
-          title={copy.salesOverTime.title}
-          periods={[
-            { id: 'day', label: copy.salesOverTime.day, data: dayPoints },
-            { id: 'week', label: copy.salesOverTime.week, data: weekPoints },
-          ]}
-          seriesKey={`sales-${range.key}`}
-          seriesLabel={copy.salesOverTime.series}
-          formatValue={formatPaiseCompact}
-        />
+      <ChartCard
+        title={copy.salesOverTime.title}
+        periods={[
+          { id: 'day', label: copy.salesOverTime.day, data: dayPoints },
+          { id: 'week', label: copy.salesOverTime.week, data: weekPoints },
+        ]}
+        seriesKey={`sales-${range.key}`}
+        seriesLabel={copy.salesOverTime.series}
+        formatValue={formatPaiseCompact}
+      />
+      <div className="grid grid-cols-1 items-stretch gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)]">
         <FunnelCard steps={data.funnel} />
-      </div>
-      <div className="grid grid-cols-1 items-stretch gap-5 lg:grid-cols-3">
         <TopProductsCard products={data.topProducts} />
+      </div>
+      <div className="grid grid-cols-1 items-stretch gap-6 lg:grid-cols-2">
         <BreakdownCard
           title={copy.byState.title}
           rows={toStateRows(data)}
