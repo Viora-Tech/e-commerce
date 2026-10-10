@@ -47,6 +47,7 @@ export const DERIVED_HEADERS = [
   'x-store-id',
   'x-visitor-country',
   'x-theme-preview',
+  'x-theme-version',
   'x-form-posted',
   'x-pathname',
 ] as const

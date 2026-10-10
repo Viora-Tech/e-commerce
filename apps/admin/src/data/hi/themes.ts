@@ -25,6 +25,7 @@ export default [
     rename: 'नाम बदलें',
     duplicate: 'डुप्लिकेट करें',
     download: 'थीम सेटिंग्स डाउनलोड करें',
+    versions: 'वर्शन',
     delete: 'हटाएँ',
     actions: 'थीम के विकल्प',
     thumbnail: (name: string) => `आपके स्टोर पर ${name}`,

@@ -2189,6 +2189,38 @@ export const themeTemplate = pgTable(
 )
 
 /**
+ * Version history of a theme's templates: a copy of a template's saved sections each time it
+ * went live (the theme was published, or a live theme was saved). Rows taken together share
+ * a `batch_id` (one publish or save). Restore copies a version into the template's draft; it
+ * never goes live by itself. The newest 20 per template are kept.
+ */
+export const themeVersion = pgTable(
+  'theme_version',
+  {
+    id: id(),
+    storeId: storeId(),
+    themeId: uuid('theme_id')
+      .notNull()
+      .references(() => theme.id, { onDelete: 'cascade' }),
+    batchId: uuid('batch_id').notNull(),
+    /** What made it: `publish` (the theme went live) or `save` (a live theme was saved). */
+    reason: text('reason').notNull(),
+    template: text('template').notNull(),
+    suffix: text('suffix').notNull().default(''),
+    sections: jsonb('sections').notNull(),
+    /** The member's name (or email) who published or saved. */
+    createdBy: text('created_by'),
+    createdAt: createdAt(),
+  },
+  (t) => [
+    check('theme_version_reason', sql`${t.reason} in ('publish','save')`),
+    index('theme_version_theme').on(t.themeId, t.template, t.suffix, t.createdAt),
+    index('theme_version_batch').on(t.batchId),
+    index('theme_version_store').on(t.storeId),
+  ],
+)
+
+/**
  * The files of a theme imported from Shopify (`@commerce/core` theme-import): its Liquid
  * sections, snippets, blocks, layout, locales, config and assets, exactly as uploaded,
  * so the Liquid engine can render the theme's own markup and the storefront can serve its

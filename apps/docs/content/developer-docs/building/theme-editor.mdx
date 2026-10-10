@@ -101,6 +101,25 @@ The click goes through `InsertContext` (`lib/customize-insert-context.ts`) to `C
 which opens the browser in a dialog in the admin document. The "+" is registered with Puck's
 `registerOverlayPortal` so pressing it never starts a section drag.
 
+### Version history
+
+`theme_version` (migration `0103_theme_versions`) keeps a copy of a theme's saved templates each
+time it goes live: `themes.publish` takes a batch with reason `publish` (only when the theme was
+not live already), and `themes.templates.commit` on the live theme takes one with reason `save`
+(the top bar's Publish on a live theme). One batch is one publish or save (`batch_id`); the
+newest `VERSIONS_KEPT` (20) rows per template are kept (`snapshotTheme` in
+`packages/core/src/theme/versions.ts`).
+
+The theme ⋯ menu on the Themes page opens **Versions** (`theme-versions-dialog.tsx`,
+`themes.versions.list`): each batch with when, by whom and how many pages, **Preview** and
+**Restore**. Preview opens the storefront preview link with `&theme-version=<batch>`: the proxy
+passes it on as `x-theme-version` (only with a valid preview token, uuid only, stripped from
+incoming requests) and `renderTemplate` renders that batch's template (`versionTemplate`, same
+theme only) instead of the current one. Restore (`themes.versions.restore`,
+`restoreThemeVersion`) writes each template of the batch into the theme's drafts; a template the
+theme no longer has is recreated with the code default as its saved sections. Nothing reaches
+shoppers until the merchant publishes the changes.
+
 ### Alternate templates
 
 `ALTERNATE_KINDS` (`product`, `collection`, `page`, `blog`, `article`) can have alternates
