@@ -14,6 +14,7 @@ import { ABANDONED_LIST_FILTERS, type AbandonedListFilter, abandonedContent } fr
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 import { type ListQuery, sameListQuery } from '@/lib/list-query'
+import { routes } from '@/lib/routes'
 import { parseRowsPerPage } from '@/lib/rows-per-page'
 
 type ListResult = Awaited<ReturnType<typeof api.orders.listAbandoned>>
@@ -198,12 +199,18 @@ function AbandonedContent({ initial }: { initial: AbandonedInitial }) {
         columns={columns}
         items={items}
         getId={(c) => c.id}
+        href={(c) => routes.orders.abandonedCheckout(c.id)}
         loading={loading}
-        rowActions={(c) =>
-          c.recovered || !c.email ? null : (
-            <RowMenu items={[{ label: copy.send, onSelect: () => handleSend(c.id) }]} />
-          )
-        }
+        rowActions={(c) => (
+          <RowMenu
+            items={[
+              { label: copy.view, href: routes.orders.abandonedCheckout(c.id) },
+              ...(c.recovered || !c.email
+                ? []
+                : [{ label: copy.send, onSelect: () => handleSend(c.id) }]),
+            ]}
+          />
+        )}
         query={query}
         onQueryChange={(query) => setQ({ query, page: 1 })}
         onClearAll={() => setQ({ query: '', status: null, page: 1 })}
