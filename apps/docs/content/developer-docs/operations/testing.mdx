@@ -37,6 +37,24 @@ TEST_DB_NAMESPACE=agent7 TEST_WORKERS=2 bun run affected
 
 Details and the reasons behind each piece: `docs/guardrails.md`, "Testing fast".
 
+## Admin component tests
+
+Admin components are tested with [Testing Library](https://testing-library.com/) on jsdom. A file
+named `*.test.tsx` next to the component starts with `// @vitest-environment jsdom`; plain
+`*.test.ts` files stay on Node. `apps/admin/test/dom.ts` (a vitest setup file) stubs what jsdom
+lacks (`ResizeObserver`, `IntersectionObserver`, `matchMedia`, `scrollIntoView`) and unmounts after
+each test.
+
+The Customize editor's panels read the Puck store through `useCustomizePuck`, so a test mocks
+that one hook with a small store (`dispatch` as a `vi.fn()`, `config.components`, `selectedItem`)
+and asserts the Puck actions dispatched, rather than mounting Puck. Query by role and accessible
+name from `data/customize.ts` copy, not by class names. Examples:
+`apps/admin/src/components/themes/customize/{template-list,template-picker,section-tree-item,link-picker,add-section-browser,section-inspector}.test.tsx`.
+
+```sh filename="Terminal"
+cd apps/admin && bunx vitest run src/components/themes/customize/link-picker.test.tsx
+```
+
 ## Test databases
 
 Tests never run against the dev database. `packages/config/src/test-env.ts` loads `.env.test`
