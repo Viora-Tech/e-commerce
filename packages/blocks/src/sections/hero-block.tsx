@@ -1,8 +1,15 @@
 import type { ComponentConfig, Fields } from '@puckeditor/core'
 import HeroCarousel from '../components/hero-carousel'
 import { heroCarouselContent as copy } from '../data/zero-drift/hero-carousel'
+import {
+  bleedFrameProps,
+  defaultSectionSettings,
+  migrateSectionSettings,
+  type SectionSettingsValue,
+  sectionSettingsField,
+} from '../section-settings'
 import type { CardProduct } from '../types'
-import type { Image, Link } from './framed'
+import { type Image, type Link, SCHEMES } from './framed'
 import { heroFields } from './hero-fields'
 import type { SingleProductLoader } from './library'
 
@@ -32,6 +39,8 @@ export type HeroSlideProps = {
 
 export type HeroProps = {
   slides: HeroSlideProps[]
+  /** Spacing, visibility and anchor (`bleed` section settings), on the hero's own frame. */
+  settings: SectionSettingsValue
   frame: 'full' | 'inset'
   pin: boolean
   autoplay: boolean
@@ -67,7 +76,11 @@ type HeroLoaders = { loadProduct?: SingleProductLoader | undefined }
 
 const noImage = { url: '', alt: '' }
 
+/** The hero's frame always had the shared frame's 40px padding; settings start from that look. */
+const HERO_SETTINGS = defaultSectionSettings({ padTop: 40, padBottom: 40 })
+
 const defaultProps: HeroProps = {
+  settings: HERO_SETTINGS,
   slides: [
     {
       kind: 'image',
@@ -136,7 +149,10 @@ function legacySettings(p: HeroProps): Partial<HeroProps> {
 export function heroBlock(loaders: HeroLoaders = {}): ComponentConfig<HeroProps> {
   return {
     label: copy.label,
-    fields: heroFields as unknown as Fields<HeroProps>,
+    fields: {
+      ...heroFields,
+      settings: sectionSettingsField(SCHEMES, 'bleed'),
+    } as unknown as Fields<HeroProps>,
     defaultProps,
     resolveData: async ({ props }) => ({
       props: {
@@ -157,6 +173,7 @@ export function heroBlock(loaders: HeroLoaders = {}): ComponentConfig<HeroProps>
       const p = { ...props, ...legacySettings(props) }
       return (
         <HeroCarousel
+          frameProps={bleedFrameProps(migrateSectionSettings(p, HERO_SETTINGS))}
           slides={(p.slides ?? []).map((s, i) => ({
             ...s,
             mediaSide: s.splitMediaPosition,

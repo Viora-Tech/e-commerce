@@ -1,4 +1,5 @@
 import type { Fields } from '@puckeditor/core'
+import type { CSSProperties } from 'react'
 import { safeColour } from './element-style'
 
 /** Layout / spacing / style / advanced settings every section can carry. */
@@ -182,15 +183,32 @@ function mergeSettings(
  * so the storefront — which calls `render()` directly, not through
  * `normalizeDoc` — renders old docs correctly too.
  */
-export function migrateSectionSettings(props: LegacySectionProps): SectionSettingsValue {
+export function migrateSectionSettings(
+  props: LegacySectionProps,
+  /**
+   * The section's own default settings, for a section saved before it had any (its look
+   * then, e.g. a hero's 40px frame padding). Without it the generic defaults apply.
+   */
+  fallback?: SectionSettingsValue,
+): SectionSettingsValue {
   const legacyScheme = schemeOr(props.scheme, '') || undefined
   const legacyPadTop = typeof props.padTop === 'number' ? props.padTop : undefined
   const legacyPadBottom = typeof props.padBottom === 'number' ? props.padBottom : undefined
-  const base = defaultSectionSettings({
-    scheme: legacyScheme,
-    padTop: legacyPadTop,
-    padBottom: legacyPadBottom,
-  })
+  const base = fallback
+    ? mergeSettings(fallback, {
+        ...(legacyScheme ? { style: { ...fallback.style, colorScheme: legacyScheme } } : {}),
+        spacing: {
+          paddingTop: responsivePadding(legacyPadTop ?? fallback.spacing.paddingTop.desktop),
+          paddingBottom: responsivePadding(
+            legacyPadBottom ?? fallback.spacing.paddingBottom.desktop,
+          ),
+        },
+      })
+    : defaultSectionSettings({
+        scheme: legacyScheme,
+        padTop: legacyPadTop,
+        padBottom: legacyPadBottom,
+      })
   if (isPlainObject(props.settings)) return mergeSettings(base, props.settings)
   return base
 }
@@ -206,6 +224,14 @@ const YES_NO = (label: string) =>
   }) as const
 
 /**
+ * Which settings a section offers. `section` is the full set for sections drawn inside the
+ * shared frame. `bleed` is for full-bleed sections that draw their own frame (the hero, the
+ * announcement bar): spacing plus show on mobile/desktop and the anchor, since width,
+ * alignment, background and entrance motion are theirs to decide.
+ */
+export type SettingsKind = 'section' | 'bleed'
+
+/**
  * The grouped Puck fields for `migrateSectionSettings`'s shape. Each top
  * group (`layout`/`spacing`/`style`/`advanced`) is a nested `object` field,
  * which `apps/admin/src/components/themes/customize/customize-object-field.tsx`
@@ -214,12 +240,40 @@ const YES_NO = (label: string) =>
  */
 export function sectionSettingsField(
   schemeOptions: { label: string; value: string }[],
+  kind: SettingsKind = 'section',
 ): Fields[string] {
   const paddingFields = {
     mobile: { type: 'number', label: 'Mobile', min: 0, max: 160 },
     tablet: { type: 'number', label: 'Tablet', min: 0, max: 160 },
     desktop: { type: 'number', label: 'Desktop', min: 0, max: 160 },
   } as const
+
+  const spacing = {
+    type: 'object',
+    label: 'Spacing',
+    objectFields: {
+      paddingTop: { type: 'object', label: 'Padding top', objectFields: paddingFields },
+      paddingBottom: { type: 'object', label: 'Padding bottom', objectFields: paddingFields },
+    },
+  } as const
+  if (kind === 'bleed') {
+    return {
+      type: 'object',
+      label: 'Section settings',
+      objectFields: {
+        spacing,
+        advanced: {
+          type: 'object',
+          label: 'Advanced',
+          objectFields: {
+            showOnMobile: YES_NO('Show on mobile'),
+            showOnDesktop: YES_NO('Show on desktop'),
+            anchorId: { type: 'text', label: 'Anchor ID' },
+          },
+        },
+      },
+    } as unknown as Fields[string]
+  }
 
   return {
     type: 'object',
@@ -251,14 +305,7 @@ export function sectionSettingsField(
           gap: { type: 'number', label: 'Gap', min: 0, max: 16 },
         },
       },
-      spacing: {
-        type: 'object',
-        label: 'Spacing',
-        objectFields: {
-          paddingTop: { type: 'object', label: 'Padding top', objectFields: paddingFields },
-          paddingBottom: { type: 'object', label: 'Padding bottom', objectFields: paddingFields },
-        },
-      },
+      spacing,
       style: {
         type: 'object',
         label: 'Style',
@@ -324,6 +371,37 @@ export function sectionSettingsField(
       },
     },
   } as unknown as Fields[string]
+}
+
+/** The responsive padding custom properties `.section-frame[data-content-width]` reads. */
+export function sectionPaddingStyle(spacing: SectionSettingsValue['spacing']): CSSProperties {
+  const vars = (prefix: 'pt' | 'pb', value: ResponsivePadding) => ({
+    [`--section-${prefix}-mobile`]: `${value.mobile}px`,
+    [`--section-${prefix}-tablet`]: `${value.tablet}px`,
+    [`--section-${prefix}-desktop`]: `${value.desktop}px`,
+  })
+  return {
+    ...vars('pt', spacing.paddingTop),
+    ...vars('pb', spacing.paddingBottom),
+  } as CSSProperties
+}
+
+/**
+ * The attributes a `bleed` section puts on its own outermost element, which carries the
+ * `section-frame` class: its padding, its mobile/desktop visibility and its anchor.
+ */
+export function bleedFrameProps(settings: SectionSettingsValue): {
+  className: string
+  style: CSSProperties
+  id: string | undefined
+  'data-content-width': ContentWidth
+} {
+  return {
+    className: sectionVisibilityClassName(settings.advanced),
+    style: sectionPaddingStyle(settings.spacing),
+    id: settings.advanced.anchorId || undefined,
+    'data-content-width': 'full',
+  }
 }
 
 /** Tailwind classes that hide the section below/at the `md` breakpoint. No JS, no layout shift. */

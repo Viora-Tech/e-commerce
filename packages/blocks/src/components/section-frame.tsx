@@ -6,6 +6,7 @@ import {
   migrateSectionSettings,
   type SectionSettingsValue,
   type Shadow,
+  sectionPaddingStyle,
   sectionVisibilityClassName,
 } from '../section-settings'
 import SectionReveal from './section-reveal'
@@ -45,16 +46,6 @@ const RADIUS_CLASS: Record<CornerRadius, string> = {
   lg: 'rounded-3xl',
 }
 const SHADOW_CLASS: Record<Shadow, string> = { none: '', sm: 'shadow-sm', md: 'shadow-md' }
-
-const paddingVars = (
-  prefix: 'pt' | 'pb',
-  value: SectionSettingsValue['spacing']['paddingTop'],
-): CSSProperties =>
-  ({
-    [`--section-${prefix}-mobile`]: `${value.mobile}px`,
-    [`--section-${prefix}-tablet`]: `${value.tablet}px`,
-    [`--section-${prefix}-desktop`]: `${value.desktop}px`,
-  }) as CSSProperties
 
 /**
  * Port of snippets/section-frame.liquid: colour scheme class + vertical
@@ -104,8 +95,7 @@ export default function SectionFrame({
     className,
   )
   const outerStyle: CSSProperties = {
-    ...paddingVars('pt', spacing.paddingTop),
-    ...paddingVars('pb', spacing.paddingBottom),
+    ...sectionPaddingStyle(spacing),
     ...(style.backgroundColor ? { backgroundColor: style.backgroundColor } : {}),
   }
   const contentClasses =

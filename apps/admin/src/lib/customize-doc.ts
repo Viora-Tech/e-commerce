@@ -73,7 +73,13 @@ const withDefaults = (sections: TemplateSection[], config: Config): TemplateSect
     // get it migrated from the section's *raw stored* props — never the already-defaulted
     // `merged` object above, which would mask an old doc's real scheme/padTop/padBottom
     // under `defaultProps.settings` and make the Field panel show the wrong values.
-    if ('settings' in defaults) merged.settings = migrateSectionSettings(s.props as never)
+    // The section's own default settings stand in for what it had before settings existed
+    // (a hero's 40px frame, a banner's 0px), so the panel shows the look it renders with.
+    if ('settings' in defaults)
+      merged.settings = migrateSectionSettings(
+        s.props as never,
+        defaults.settings as Parameters<typeof migrateSectionSettings>[1],
+      )
     return { ...s, props: merged }
   })
 
