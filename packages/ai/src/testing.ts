@@ -63,3 +63,34 @@ export function scriptedModel(steps: MockStep[]): MockLanguageModelV4 {
     },
   })
 }
+
+/**
+ * A one-page PDF with `lines` as real text (Helvetica, top to bottom), built by hand so tests
+ * need no PDF library. Only ASCII; parentheses and backslashes are escaped.
+ */
+export function textPdf(lines: string[]): Uint8Array<ArrayBuffer> {
+  const pdfString = (s: string) => s.replace(/[\\()]/g, (c) => `\\${c}`)
+  const stream = [
+    'BT /F1 11 Tf 14 TL 50 790 Td',
+    ...lines.map((line) => `(${pdfString(line)}) Tj T*`),
+    'ET',
+  ].join('\n')
+  const objects = [
+    '<< /Type /Catalog /Pages 2 0 R >>',
+    '<< /Type /Pages /Kids [3 0 R] /Count 1 >>',
+    '<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Contents 4 0 R /Resources << /Font << /F1 5 0 R >> >> >>',
+    `<< /Length ${stream.length} >>\nstream\n${stream}\nendstream`,
+    '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>',
+  ]
+  let body = '%PDF-1.4\n'
+  const offsets: number[] = []
+  for (const [i, object] of objects.entries()) {
+    offsets.push(body.length)
+    body += `${i + 1} 0 obj\n${object}\nendobj\n`
+  }
+  const xref = body.length
+  body += `xref\n0 ${objects.length + 1}\n0000000000 65535 f \n`
+  for (const offset of offsets) body += `${String(offset).padStart(10, '0')} 00000 n \n`
+  body += `trailer\n<< /Size ${objects.length + 1} /Root 1 0 R >>\nstartxref\n${xref}\n%%EOF\n`
+  return new TextEncoder().encode(body)
+}

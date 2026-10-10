@@ -5,6 +5,7 @@ import type {
   AppJobQueue,
   MediaProcessQueue,
   NotificationQueue,
+  PurchaseDocumentQueue,
   RateLimitStore,
   StoreExportQueue,
 } from '@commerce/core'
@@ -28,6 +29,8 @@ export type ApiContext = {
   storeExport?: StoreExportQueue | undefined
   /** Bulk "Write with AI" runs, worked through by the worker. Absent in tests: the run happens in the request. */
   aiBulk?: AiBulkQueue | undefined
+  /** AI reads of uploaded purchase documents, done by the worker. Absent in tests: the read happens in the request. */
+  purchaseDocuments?: PurchaseDocumentQueue | undefined
   /** Live storefront visitors from Dragonfly; absent in tests, the dashboard then shows zeros. */
   visitors?: VisitorSource
   /** Reports an unexpected procedure error (never an intentional ORPCError) to Sentry. No-op in tests. */

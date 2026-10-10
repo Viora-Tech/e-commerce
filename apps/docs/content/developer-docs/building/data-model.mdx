@@ -333,6 +333,38 @@ units per delivery, with the landed unit cost and the variant's cost before and 
   (shipping as cost, taxes as recoverable) and backfilled `unit_price_minor`; the old columns
   are no longer read or written.
 
+#### Purchase documents (AI reading of bills)
+
+`purchase_document` (migration `0095_purchase_documents`) is a file on a purchase order **or**
+an inbound shipment (the service keeps it to exactly one, like `purchase_charge`): `kind`
+(`supplier_invoice`, `bill_of_entry`, `freight_bill`, `cha_bill`, `bank_advice`, `other`),
+`file_key`, name, MIME type and size, `status` (`pending` → `reading` → `ready` | `failed` →
+`applied`), `extracted` (jsonb), `raw_text` (the PDF's own text layer), `error` (a code, worded
+by the admin) and `applied_at` / `applied_by`.
+
+- **Files** are private: `stores/<store>/private/purchase-documents/<id>.<ext>` through the
+  store's storage adapter (`put` / `get`), served only by `purchaseDocuments.download` (an oRPC
+  `File`, never a public URL). PDF, JPG, PNG, 15 MB (`document-rules.ts`, checked in the
+  browser and in core).
+- **Reading** runs in the worker (`{ai}-purchase-documents` queue, `apps/worker/src/purchase-documents.ts`,
+  fair per store) through `readPurchaseDocument` (`packages/core/src/ai/document-read.ts`): admit
+  and meter one `documentReader` call, take the PDF text with `unpdf` (or send the scan or photo
+  as a file part when there is no text), and ask for the kind's zod schema
+  (`packages/ai/src/purchase-documents/schema.ts`: supplier invoice, Bill of Entry, service bill;
+  every field is `{ value, confidence }`). `AI_PROVIDER=mock` answers with fixed fixtures per
+  shape. The API's `read` is `canDetached` + `heavy('documentRead')`; without a queue (tests) it
+  reads in the request.
+- **Matching** (`document-match.ts`, pure) runs on every `review`: supplier code / SKU exact
+  (order lines first, then store variants on a draft order), then HSN (first six digits) plus a
+  word-overlap title score, else unmatched. Products are never created.
+- **Apply** (`document-apply.ts`) takes the merchant's explicit selection
+  (`ApplyDocumentSchema`) and, in the request's one transaction: rewrites draft lines through
+  `savePurchaseOrder`, sets the order's currency and rate (a Bill of Entry's rate goes to every
+  live order in the shipment in that currency; finished orders and currency switches on sent
+  orders are skipped), writes the BE number, date and port on the shipment, adds charges through
+  `addPurchaseCharge` (duty per line as `manual` splits when every line is matched), then marks
+  the document applied. A second apply is refused (`DOC_APPLIED`) until `reset`.
+
 ### Status columns are text with a CHECK
 
 Status columns are `text` with a fixed value list and a CHECK constraint, not Postgres enums,

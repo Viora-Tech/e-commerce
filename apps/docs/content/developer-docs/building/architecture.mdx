@@ -194,7 +194,8 @@ price of a hard guarantee; raise `perStore` for a queue if a lone store's speed 
 are rate-limited per store (`heavy(action)` middleware, `packages/api/src/procedures/heavy.ts`,
 on the existing Dragonfly sliding-window store). Each kind is one budget per store, shared by
 every button of that kind: import 20 an hour (a preview and a run count separately), bulk 60
-per 10 minutes, export 30 per 10 minutes, full store data 5 an hour. Over budget the API
+per 10 minutes, export 30 per 10 minutes, full store data 5 an hour, AI reads of purchase
+documents (`documentRead`) 30 an hour. Over budget the API
 answers `TOO_MANY_REQUESTS` with a plain "try again in N minutes".
 
 ### Store export and offboarding

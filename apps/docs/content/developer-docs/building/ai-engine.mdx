@@ -43,7 +43,7 @@ Every call goes to one of two tiers in `MODEL_TIERS` (`packages/ai/src/features.
 
 | Tier | Default | Used for | Override |
 |---|---|---|---|
-| `fast` | `anthropic/claude-haiku-4.5` | the assistant (chat and tools), quick writing | `AI_MODEL` |
+| `fast` | `anthropic/claude-haiku-4.5` | the assistant (chat and tools), quick writing, reading purchase documents (`documentReader`) | `AI_MODEL` |
 | `strong` | `anthropic/claude-sonnet-4.5` | long writing (`productWriter`, `bulkWriter`) when the store picks **Best** writing quality in Settings → AI | `AI_MODEL_STRONG` |
 
 `tierFor(feature, quality)` decides; features marked `writes: true` move to `strong` at "best".
@@ -56,7 +56,8 @@ deterministic planner (`packages/ai/src/mock-plan.ts`) that turns a message into
 "Create discount DIWALI10: 10% off collection Mice, 20 Oct to 5 Nov" really becomes that
 proposal, and "Raise prices 5% in collection Mice", "Add 8 products to new collection Glasspads",
 "Write this product in Hindi" (on a product page) and "Draft a reply to order #2250" each
-produce their card. Use it for local demos and screenshots with no key. It is refused when
+produce their card. A purchase document read (`documentReader`) answers a fixed supplier invoice,
+Bill of Entry or service bill (`packages/ai/src/purchase-documents/fixtures.ts`). Use it for local demos and screenshots with no key. It is refused when
 `NODE_ENV=production`.
 
 Cost on the fast tier (Claude Haiku 4.5, $1 in / $5 out per million tokens): a product write is

@@ -13,6 +13,7 @@ import PageColumns from '@/components/layout/page-columns'
 import ProoflyPageBody from '@/components/layout/proofly-page-body'
 import ProoflyPageHeader from '@/components/layout/proofly-page-header'
 import SaveBar from '@/components/layout/save-bar'
+import DocumentsCard from '@/components/purchase-documents/documents-card'
 import { inboundShipmentFormContent, inboundShipmentsContent } from '@/data/purchasing'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
@@ -26,6 +27,8 @@ type ShipmentFormProps = {
   shipment: LoadedShipment | null
   /** Charges and landed cost across its orders; null while creating. */
   costs: CostPreview | null
+  /** Bills can be read with AI (Settings → AI, and this member's role). */
+  aiReading: boolean
 }
 
 const day = (value: Date | string | null) =>
@@ -46,7 +49,7 @@ function draftFrom(s: LoadedShipment | null): ShipmentDraft {
 const LIST = routes.products.inboundShipments()
 
 /** One import consignment: its details, the orders it carried, shared charges and landed cost. */
-export default function ShipmentForm({ shipment, costs }: ShipmentFormProps) {
+export default function ShipmentForm({ shipment, costs, aiReading }: ShipmentFormProps) {
   // Hooks
   const copy = useCopy(inboundShipmentFormContent)
   const listCopy = useCopy(inboundShipmentsContent)
@@ -148,6 +151,11 @@ export default function ShipmentForm({ shipment, costs }: ShipmentFormProps) {
               onChanged={() => router.refresh()}
             />
             {costs ? <LandedCostCard costs={costs} /> : null}
+            <DocumentsCard
+              owner={shipment ? { inboundShipmentId: shipment.id } : null}
+              aiReading={aiReading}
+              onApplied={() => router.refresh()}
+            />
           </>
         }
         side={

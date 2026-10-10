@@ -19,7 +19,10 @@ export default async function Page({ params }: Props) {
     }),
     call(appRouter.inventory.locations, undefined, { context }),
   ])
-  const costs = await call(appRouter.purchaseOrders.costs, { id }, { context })
+  const [costs, ai] = await Promise.all([
+    call(appRouter.purchaseOrders.costs, { id }, { context }),
+    call(appRouter.ai.status, undefined, { context }).catch(() => null),
+  ])
 
   // Keyed on updatedAt so a refresh after ordering or receiving remounts the form with fresh state.
   return (
@@ -28,6 +31,7 @@ export default async function Page({ params }: Props) {
       po={po}
       locations={locations}
       costs={costs}
+      aiReading={ai?.documentReader ?? false}
     />
   )
 }

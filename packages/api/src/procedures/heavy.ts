@@ -18,7 +18,7 @@ import { ORPCError, os } from '@orpc/server'
  * meets them in normal use. Imports are counted twice per run (preview, then import or
  * start), so 20 an hour is about ten imports.
  */
-export type HeavyAction = 'import' | 'bulk' | 'export' | 'storeData'
+export type HeavyAction = 'import' | 'bulk' | 'export' | 'storeData' | 'documentRead'
 
 export const HEAVY_ACTION_RULES: Record<HeavyAction, RateLimitRule> = {
   import: { limit: 20, windowMs: 60 * 60_000 },
@@ -26,6 +26,8 @@ export const HEAVY_ACTION_RULES: Record<HeavyAction, RateLimitRule> = {
   export: { limit: 30, windowMs: 10 * 60_000 },
   /** A full store export (every table plus files) or a store delete. */
   storeData: { limit: 5, windowMs: 60 * 60_000 },
+  /** An AI read of an uploaded supplier invoice or Bill of Entry (each one is a model call). */
+  documentRead: { limit: 30, windowMs: 60 * 60_000 },
 }
 
 /** Same in-process fallback as the other routers, for hosts that wire no shared store. */
