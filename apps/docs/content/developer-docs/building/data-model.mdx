@@ -260,15 +260,15 @@ erDiagram
 
 #### Tax origin (phase 3)
 
-`placeOrder` resolves the order's tax origin before it splits the GST (`resolveTaxOrigin`,
-ORIGIN_FALLBACK): the active GSTIN linked to the location the goods sell from
-(`inventory_level_one_sellable`; with lines at different locations, the one holding the most
-order value), else the default GSTIN, else `store.address` with no GSTIN, exactly as before.
+`placeOrder` resolves the order's tax origin before it splits the GST (`taxOriginForParcels`,
+ORIGIN_FALLBACK): the active GSTIN linked to the location the order's parcels ship from (with
+several parcels, the one holding the most order value), else the default GSTIN, else
+`store.address` with no GSTIN, exactly as before.
 Prices include GST, so the origin only flips CGST + SGST and IGST; the total never changes. The
 result is snapshotted on the order (`gst_registration_id`, `tax_origin`) and never recomputed.
 Orders placed before 0084 have neither and bill from the default GSTIN. An order still has one
-origin: splitting an order across warehouses (fulfilment orders, one invoice per GSTIN) is
-phase 4.
+origin even when it ships in several parcels; GST worked out per parcel, with an invoice per
+GSTIN, is the next step.
 
 #### Documents per GSTIN (phase 2)
 
@@ -326,8 +326,27 @@ unpacked units back there, and a return restocks where the line's parcel left fr
 (`lineLocation`). `order_line.fulfilled_quantity` stays the order-level total that
 `recomputeOrderStatuses` reads; `fulfillment_order_line.fulfilled_quantity` is the same count per
 parcel. A shipment carries one parcel (`shipment.fulfillment_order_id`, null for bookings made
-before parcels). Today every order has exactly one parcel; splitting an order across warehouses
-builds on this table.
+before parcels).
+
+### Selling from several warehouses (routing)
+
+A location sells online when `location.fulfils_online_orders` is on and it is active; a trigger
+(0098) mirrors that onto each `inventory_level.fulfils_online`, and a variant may sell from
+several locations at once. Never join `inventory_level` on `variant_id` alone for "the stock":
+join `sellableStock` (`packages/db/src/stock.ts`, one row per variant summed over selling
+locations). A whole-variant stock edit, and any move without a parcel, uses
+`primarySellingLevel` (the default location's row when it sells, else the first by
+`location.priority`).
+
+Checkout routes each order (`routeOrder`, pure, in `packages/core/src/order/routing.ts`;
+ROUTING_RULES in its header): one location with everything (the buyer's state first, then
+priority, then most stock), else the fewest parcels up to `store.shipping.routing.maxParcels`
+(default 2), else the home location takes the rest past its stock with
+`fulfillment_order.needs_transfer` set. Composition-scheme GSTINs never ship to another state
+(`CannotShipToState`, "We can't deliver this item to your state yet"). Pre-order lines that no
+stock covers wait in their own `on_hold` parcel at the home location. `routeAndReserve`
+(`routing-service.ts`) locks the variants' inventory rows, routes and reserves each parcel at its
+location; `placeOrder` and `convertDraft` use it.
 
 ### Returns and RTO
 

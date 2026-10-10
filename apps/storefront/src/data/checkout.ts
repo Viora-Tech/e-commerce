@@ -286,6 +286,7 @@ export const checkoutContent = {
     codUnavailable:
       'Cash on delivery is not available for this PIN code. Pick another payment method.',
     noShipping: (pincode: string) => `We do not ship to ${pincode} yet. Try another address.`,
+    cannotShipToState: "We can't deliver this item to your state yet.",
     rateChanged:
       'The shipping options for your order changed, so it was not placed. Pick a shipping method and place it again.',
     discountUnavailable:

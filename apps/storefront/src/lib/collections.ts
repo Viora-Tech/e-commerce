@@ -5,11 +5,10 @@ import type { StoreTx } from '@commerce/db'
 import {
   collection,
   collectionProduct,
-  inventoryLevel,
   media,
   product,
   productMedia,
-  sellableLevel,
+  sellableStock,
   variant,
 } from '@commerce/db'
 import type { RichTextValue } from '@commerce/richtext'
@@ -150,12 +149,12 @@ export async function listCollectionProducts(
       productId: variant.productId,
       pricePaise: variant.pricePaise,
       mrpPaise: variant.mrpPaise,
-      onHand: inventoryLevel.onHand,
-      reserved: inventoryLevel.reserved,
+      onHand: sellableStock.onHand,
+      reserved: sellableStock.reserved,
       trackInventory: variant.trackInventory,
     })
     .from(variant)
-    .leftJoin(inventoryLevel, and(eq(inventoryLevel.variantId, variant.id), sellableLevel))
+    .leftJoin(sellableStock, eq(sellableStock.variantId, variant.id))
     .where(and(inArray(variant.productId, ids), isNull(variant.archivedAt)))
   const images = await tx
     .select({

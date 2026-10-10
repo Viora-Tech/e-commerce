@@ -4,7 +4,6 @@ import {
   blog,
   collection,
   collectionProduct,
-  inventoryLevel,
   media,
   navigationMenu,
   page,
@@ -13,7 +12,7 @@ import {
   productOption,
   productOptionValue,
   type StoreTx,
-  sellableLevel,
+  sellableStock,
   store,
   variant,
   variantOptionValue,
@@ -116,14 +115,14 @@ async function loadProducts(tx: StoreTx, ids: string[]): Promise<LiquidProductDa
         barcode: variant.barcode,
         weight: variant.weightGrams,
         track: variant.trackInventory,
-        onHand: inventoryLevel.onHand,
-        reserved: inventoryLevel.reserved,
+        onHand: sellableStock.onHand,
+        reserved: sellableStock.reserved,
         imageUrl: media.url,
         position: variant.position,
         preorder: variant.preorderOverride,
       })
       .from(variant)
-      .leftJoin(inventoryLevel, and(eq(inventoryLevel.variantId, variant.id), sellableLevel))
+      .leftJoin(sellableStock, eq(sellableStock.variantId, variant.id))
       .leftJoin(media, eq(media.id, variant.mediaId))
       .where(and(inArray(variant.productId, ids), isNull(variant.archivedAt)))
       .orderBy(asc(variant.position)),

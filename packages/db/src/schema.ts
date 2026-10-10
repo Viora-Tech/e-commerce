@@ -519,8 +519,9 @@ export const gstRegistration = pgTable(
 
 /**
  * Where stock physically sits. Every store has exactly one default location,
- * created with the store (or by the inventory_level insert trigger), and it is
- * the one that fulfils online orders.
+ * created with the store (or by the inventory_level insert trigger). The default
+ * location sells online; others do when the merchant turns "Ships online orders"
+ * on, and checkout routes each order to them (@commerce/core fulfilment/routing.ts).
  */
 export const location = pgTable(
   'location',
@@ -539,6 +540,8 @@ export const location = pgTable(
     active: boolean('active').notNull().default(true),
     /** Stock here is what the storefront sells and orders reserve. */
     fulfilsOnlineOrders: boolean('fulfils_online_orders').notNull().default(false),
+    /** Routing order among locations that sell online: lower ships first. The default is 0. */
+    priority: integer('priority').notNull().default(0),
     /** The GSTIN goods dispatched from here are billed under. Null: not chosen yet. */
     gstRegistrationId: uuid('gst_registration_id').references(() => gstRegistration.id),
     /**
@@ -566,9 +569,11 @@ export type LocationCourierPickup = {
  * (shown as Committed) is held by open orders, incoming is on purchase orders or
  * transfers not yet received. Available = on_hand - reserved.
  *
- * Exactly one row per variant has fulfils_online = true: the row the storefront,
- * carts and orders read. Filter on it with `sellableLevel` whenever joining on
- * variant_id alone.
+ * fulfils_online mirrors its location's "Ships online orders" (kept in sync by
+ * trigger). A variant may sell from several locations: what the storefront shows
+ * is the sum over those rows (`sellableStock` in stock.ts), and an order reserves
+ * at the location its parcel ships from. Never join on variant_id alone expecting
+ * one row.
  */
 export const inventoryLevel = pgTable(
   'inventory_level',
@@ -587,15 +592,11 @@ export const inventoryLevel = pgTable(
   },
   (t) => [
     uniqueIndex('inventory_level_variant_location').on(t.variantId, t.locationId),
-    uniqueIndex('inventory_level_one_sellable').on(t.variantId).where(sql`${t.fulfilsOnline}`),
+    index('inventory_level_variant_sellable').on(t.variantId).where(sql`${t.fulfilsOnline}`),
   ],
 )
 
-/**
- * The one inventory row per variant that online selling reads. Add it to any
- * join or filter on inventory_level.variant_id alone, or rows at other
- * locations multiply the result.
- */
+/** Inventory rows at locations that sell online (there may be several per variant). */
 export const sellableLevel = eq(inventoryLevel.fulfilsOnline, true)
 
 /** Every change to on_hand, with why. Reconciles counts against the merchant's memory. */
@@ -1098,10 +1099,11 @@ export const orderLine = pgTable('order_line', {
  * WHAT:  One parcel of an order: the goods one location sends, billed under that location's
  *        GSTIN. Every non-draft order with goods has at least one; gift card lines have none.
  * WHY:   Stock is held, packed and given back at a location, so each unit of an order needs
- *        to know which location holds it. Splitting an order across warehouses (more than one
- *        fulfilment order) builds on this; until then every order has exactly one.
- * WHERE: @commerce/core order/fulfillment-orders.ts creates them (placeOrder, draft
- *        conversion, `ensureFulfillmentOrders` for older orders) and moves their stock.
+ *        to know which location holds it. Checkout may split an order into several parcels
+ *        (fewest first, up to the store's limit), each from one warehouse under its GSTIN.
+ * WHERE: @commerce/core fulfilment/routing.ts decides them; order/fulfillment-orders.ts creates
+ *        them (placeOrder, draft conversion, `ensureFulfillmentOrders` for older orders) and
+ *        moves their stock.
  *        `order_line.fulfilled_quantity` stays the order-level total the statuses read.
  */
 export const FULFILLMENT_ORDER_STATUSES = ['open', 'on_hold', 'fulfilled', 'cancelled'] as const
@@ -1124,6 +1126,11 @@ export const fulfillmentOrder = pgTable(
     /** Parcel 1, 2, ... within the order, in the order they were made. */
     position: integer('position').notNull().default(1),
     status: text('status', { enum: FULFILLMENT_ORDER_STATUSES }).notNull().default('open'),
+    /**
+     * No location could send the whole order within the store's parcel limit, so this parcel
+     * holds more than its location has: the merchant moves stock in before packing.
+     */
+    needsTransfer: boolean('needs_transfer').notNull().default(false),
     createdAt: createdAt(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   },

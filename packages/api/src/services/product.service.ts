@@ -3,11 +3,12 @@ import type { StoreTx } from '@commerce/db'
 import {
   inventoryLevel,
   media,
+  primarySellingLevel,
   product,
   productMedia,
   productOption,
   productOptionValue,
-  sellableLevel,
+  sellableStock,
   variant,
   variantOptionValue,
 } from '@commerce/db'
@@ -117,11 +118,11 @@ export async function listProducts(
     .select({
       productId: variant.productId,
       pricePaise: variant.pricePaise,
-      onHand: inventoryLevel.onHand,
-      reserved: inventoryLevel.reserved,
+      onHand: sellableStock.onHand,
+      reserved: sellableStock.reserved,
     })
     .from(variant)
-    .leftJoin(inventoryLevel, and(eq(inventoryLevel.variantId, variant.id), sellableLevel))
+    .leftJoin(sellableStock, eq(sellableStock.variantId, variant.id))
     .where(inArray(variant.productId, ids))
   const images = await tx
     .select({ productId: productMedia.productId, url: media.url })
@@ -176,11 +177,11 @@ export async function getProduct(tx: StoreTx, id: string) {
       packageWidthCm: variant.packageWidthCm,
       packageHeightCm: variant.packageHeightCm,
       mediaId: variant.mediaId,
-      onHand: inventoryLevel.onHand,
-      reserved: inventoryLevel.reserved,
+      onHand: sellableStock.onHand,
+      reserved: sellableStock.reserved,
     })
     .from(variant)
-    .leftJoin(inventoryLevel, and(eq(inventoryLevel.variantId, variant.id), sellableLevel))
+    .leftJoin(sellableStock, eq(sellableStock.variantId, variant.id))
     .where(and(eq(variant.productId, id), isNull(variant.archivedAt)))
     .orderBy(asc(variant.position))
   const options = await tx
@@ -287,10 +288,19 @@ export async function updateVariant(tx: StoreTx, id: string, patch: VariantPatch
     await tx.update(variant).set(variantPatch).where(eq(variant.id, id))
   }
   if (onHand !== undefined) {
-    await tx
-      .update(inventoryLevel)
-      .set({ onHand })
-      .where(and(eq(inventoryLevel.variantId, id), sellableLevel))
+    /* "Stock" is what sells online, summed over the locations that ship online orders. The
+       change lands on the primary selling row, so the total becomes what was typed. */
+    const [current] = await tx
+      .select({ onHand: sellableStock.onHand })
+      .from(sellableStock)
+      .where(eq(sellableStock.variantId, id))
+    const delta = onHand - (current?.onHand ?? 0)
+    if (delta !== 0) {
+      await tx
+        .update(inventoryLevel)
+        .set({ onHand: sql`greatest(0, ${inventoryLevel.onHand} + ${delta})` })
+        .where(and(eq(inventoryLevel.variantId, id), primarySellingLevel(id)))
+    }
   }
   const [row] = await tx.select().from(variant).where(eq(variant.id, id))
   return row ?? null
@@ -418,11 +428,11 @@ export async function pickProducts(
       title: variant.title,
       sku: variant.sku,
       pricePaise: variant.pricePaise,
-      onHand: inventoryLevel.onHand,
-      reserved: inventoryLevel.reserved,
+      onHand: sellableStock.onHand,
+      reserved: sellableStock.reserved,
     })
     .from(variant)
-    .leftJoin(inventoryLevel, and(eq(inventoryLevel.variantId, variant.id), sellableLevel))
+    .leftJoin(sellableStock, eq(sellableStock.variantId, variant.id))
     .where(
       and(
         inArray(

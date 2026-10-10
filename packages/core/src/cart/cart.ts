@@ -1,12 +1,4 @@
-import {
-  cart,
-  cartLine,
-  inventoryLevel,
-  media,
-  product,
-  sellableLevel,
-  variant,
-} from '@commerce/db'
+import { cart, cartLine, media, product, sellableStock, variant } from '@commerce/db'
 import { and, eq } from 'drizzle-orm'
 import type { StoreContext } from '../context'
 import { CartNotOpen, NotLaunchedYet } from '../errors'
@@ -91,8 +83,8 @@ export async function getCart(ctx: StoreContext, cartId: string): Promise<CartVi
       productHandle: product.handle,
       productTitle: product.title,
       variantTitle: variant.title,
-      onHand: inventoryLevel.onHand,
-      reserved: inventoryLevel.reserved,
+      onHand: sellableStock.onHand,
+      reserved: sellableStock.reserved,
       trackInventory: variant.trackInventory,
       imageUrl: media.url,
       giftCard: product.isGiftCard,
@@ -109,7 +101,7 @@ export async function getCart(ctx: StoreContext, cartId: string): Promise<CartVi
     .from(cartLine)
     .innerJoin(variant, eq(variant.id, cartLine.variantId))
     .innerJoin(product, eq(product.id, variant.productId))
-    .leftJoin(inventoryLevel, and(eq(inventoryLevel.variantId, variant.id), sellableLevel))
+    .leftJoin(sellableStock, eq(sellableStock.variantId, variant.id))
     .leftJoin(media, eq(media.id, variant.mediaId))
     .where(eq(cartLine.cartId, cartId))
   const lines: CartLineView[] = rows.map((r) => ({

@@ -9,13 +9,12 @@ import {
 } from '@commerce/core/preorder'
 import type { StoreTx } from '@commerce/db'
 import {
-  inventoryLevel,
   media,
   product,
   productMedia,
   productOption,
   productOptionValue,
-  sellableLevel,
+  sellableStock,
   variant,
   variantOptionValue,
 } from '@commerce/db'
@@ -64,12 +63,12 @@ export async function listCardProducts(
       productId: variant.productId,
       pricePaise: variant.pricePaise,
       mrpPaise: variant.mrpPaise,
-      onHand: inventoryLevel.onHand,
-      reserved: inventoryLevel.reserved,
+      onHand: sellableStock.onHand,
+      reserved: sellableStock.reserved,
       trackInventory: variant.trackInventory,
     })
     .from(variant)
-    .leftJoin(inventoryLevel, and(eq(inventoryLevel.variantId, variant.id), sellableLevel))
+    .leftJoin(sellableStock, eq(sellableStock.variantId, variant.id))
     .where(and(inArray(variant.productId, ids), isNull(variant.archivedAt)))
 
   const images = await tx
@@ -165,14 +164,14 @@ export async function getProductByHandle(
       sku: variant.sku,
       pricePaise: variant.pricePaise,
       mrpPaise: variant.mrpPaise,
-      onHand: inventoryLevel.onHand,
-      reserved: inventoryLevel.reserved,
+      onHand: sellableStock.onHand,
+      reserved: sellableStock.reserved,
       trackInventory: variant.trackInventory,
       imageUrl: media.url,
       preorderOverride: variant.preorderOverride,
     })
     .from(variant)
-    .leftJoin(inventoryLevel, and(eq(inventoryLevel.variantId, variant.id), sellableLevel))
+    .leftJoin(sellableStock, eq(sellableStock.variantId, variant.id))
     .leftJoin(media, eq(media.id, variant.mediaId))
     .where(and(eq(variant.productId, p.id), isNull(variant.archivedAt)))
     .orderBy(asc(variant.position))

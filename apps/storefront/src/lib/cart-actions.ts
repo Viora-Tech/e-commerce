@@ -5,6 +5,7 @@ import 'server-only'
 import { settingsSecret } from '@commerce/config'
 import {
   addToCart,
+  CannotShipToState,
   CheckoutRuleViolation,
   captureCartContact,
   confirmClientPayment,
@@ -232,6 +233,9 @@ export async function checkoutAction(submitted: CheckoutForm): Promise<CheckoutR
       // Rates are the store's to set; the shopper can only change the address or re-pick.
       if (err instanceof ShippingUnavailable)
         return { error: checkoutContent.errors.noShipping(form.pincode) }
+      // Only a composition-scheme warehouse holds it, and those cannot ship to another state.
+      if (err instanceof CannotShipToState)
+        return { error: checkoutContent.errors.cannotShipToState }
       if (err instanceof ShippingRateUnavailable)
         return { error: checkoutContent.errors.rateChanged }
       // Settings → Checkout, re-checked by placeOrder whatever the form showed.

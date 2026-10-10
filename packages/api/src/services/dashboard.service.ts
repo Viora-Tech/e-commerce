@@ -13,13 +13,12 @@ import {
   address,
   customer,
   inventoryAdjustment,
-  inventoryLevel,
   media,
   order,
   orderLine,
   product,
   productMedia,
-  sellableLevel,
+  sellableStock,
   store,
   variant,
 } from '@commerce/db'
@@ -444,11 +443,11 @@ export async function dashboardSummary(
     .where(and(ne(product.status, 'archived'), notSystemTest))
   const stockRows = await tx
     .select({
-      variantId: inventoryLevel.variantId,
-      available: sql<number>`${inventoryLevel.onHand} - ${inventoryLevel.reserved}`.mapWith(Number),
+      variantId: sellableStock.variantId,
+      available: sql<number>`${sellableStock.onHand} - ${sellableStock.reserved}`.mapWith(Number),
     })
-    .from(inventoryLevel)
-    .innerJoin(variant, and(eq(variant.id, inventoryLevel.variantId), sellableLevel))
+    .from(sellableStock)
+    .innerJoin(variant, eq(variant.id, sellableStock.variantId))
     .where(eq(variant.trackInventory, true))
   const inStock = stockRows.filter((r) => r.available > 0).length
   const outOfStock = stockRows.length - inStock
@@ -535,19 +534,19 @@ export async function dashboardSummary(
       productId: variant.productId,
       title: product.title,
       variantTitle: variant.title,
-      available: sql<number>`${inventoryLevel.onHand} - ${inventoryLevel.reserved}`.mapWith(Number),
+      available: sql<number>`${sellableStock.onHand} - ${sellableStock.reserved}`.mapWith(Number),
     })
-    .from(inventoryLevel)
-    .innerJoin(variant, and(eq(variant.id, inventoryLevel.variantId), sellableLevel))
+    .from(sellableStock)
+    .innerJoin(variant, eq(variant.id, sellableStock.variantId))
     .innerJoin(product, eq(product.id, variant.productId))
     .where(
       and(
         eq(variant.trackInventory, true),
         ne(product.status, 'archived'),
-        lt(sql`${inventoryLevel.onHand} - ${inventoryLevel.reserved}`, LOW_STOCK_THRESHOLD + 1),
+        lt(sql`${sellableStock.onHand} - ${sellableStock.reserved}`, LOW_STOCK_THRESHOLD + 1),
       ),
     )
-    .orderBy(asc(sql`${inventoryLevel.onHand} - ${inventoryLevel.reserved}`))
+    .orderBy(asc(sql`${sellableStock.onHand} - ${sellableStock.reserved}`))
     .limit(LOW_STOCK_ROWS)
   const imageIds = [...new Set([...topIds, ...lowStockRows.map((r) => r.productId)])]
   const images = imageIds.length
@@ -570,10 +569,10 @@ export async function dashboardSummary(
         .select({
           productId: variant.productId,
           pricePaise: sql<number>`min(${variant.pricePaise})`.mapWith(Number),
-          inStock: sql<boolean>`bool_or(${variant.trackInventory} = false or coalesce(${inventoryLevel.onHand} - ${inventoryLevel.reserved}, 0) > 0)`,
+          inStock: sql<boolean>`bool_or(${variant.trackInventory} = false or coalesce(${sellableStock.onHand} - ${sellableStock.reserved}, 0) > 0)`,
         })
         .from(variant)
-        .leftJoin(inventoryLevel, and(eq(inventoryLevel.variantId, variant.id), sellableLevel))
+        .leftJoin(sellableStock, eq(sellableStock.variantId, variant.id))
         .where(inArray(variant.productId, topIds))
         .groupBy(variant.productId)
     : []
@@ -724,14 +723,14 @@ export async function dashboardSummary(
     )
   const [lowStockCountRow] = await tx
     .select({ n: count() })
-    .from(inventoryLevel)
-    .innerJoin(variant, and(eq(variant.id, inventoryLevel.variantId), sellableLevel))
+    .from(sellableStock)
+    .innerJoin(variant, eq(variant.id, sellableStock.variantId))
     .innerJoin(product, eq(product.id, variant.productId))
     .where(
       and(
         eq(variant.trackInventory, true),
         ne(product.status, 'archived'),
-        lt(sql`${inventoryLevel.onHand} - ${inventoryLevel.reserved}`, LOW_STOCK_THRESHOLD + 1),
+        lt(sql`${sellableStock.onHand} - ${sellableStock.reserved}`, LOW_STOCK_THRESHOLD + 1),
       ),
     )
   const [preorderBalanceDueRow] = await tx
