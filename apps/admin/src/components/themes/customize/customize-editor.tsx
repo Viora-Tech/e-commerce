@@ -229,7 +229,8 @@ export default function CustomizeEditor({
     setRef(next)
   }
 
-  const handleSave = async () => {
+  /** Saves the drafts and theme settings; true when it worked. */
+  const handleSave = async (): Promise<boolean> => {
     setSaving(true)
     try {
       await drafts.flush()
@@ -242,9 +243,11 @@ export default function CustomizeEditor({
       setTemplatesDirty(false)
       toast.success(copy.saved)
       if (isDesktopHome(loaded, device)) thumbnail.refresh()
+      return true
     } catch (err) {
       // A connected setting whose source is gone names itself (see dynamic sources).
       toast.error(isSourceError(err) ? err.message : copy.saveFailed)
+      return false
     } finally {
       setSaving(false)
     }
@@ -260,7 +263,9 @@ export default function CustomizeEditor({
     toast.success(copy.discarded)
   }
 
+  /** Makes this theme the live one, saving unsaved changes first. */
   const handlePublish = async () => {
+    if ((templatesDirty || settingsDirty) && !(await handleSave())) return
     setPublishing(true)
     try {
       setRecord(await api.themes.publish({ id: record.id }))

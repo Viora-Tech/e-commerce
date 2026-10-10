@@ -122,7 +122,10 @@ banner" (`inspector-breadcrumb.tsx`), and each container in it selects that cont
   more letters is capitalised, so `ZERO DRIFT` reads "Zero Drift"), the page switcher in Figma's
   muted 240px style, a green "AI connected" chip when an AI gateway is set up, and the member's
   avatar with the account menu at the far right. The page reads the store, the member and
-  `ai.status` on the server.
+  `ai.status` on the server. With changes the chip reads "Unsaved changes" (attention tone);
+  Save and Publish follow Figma 369:126247: on a draft theme Save (outline, only with changes)
+  commits the drafts and Publish (key button) saves first and then publishes the theme; on the
+  live theme saving is publishing, so Publish alone commits. Discard stays in ⋯.
 - **Type and icons**: DM Sans everywhere in the chrome, Puck's own parts included
   (`--puck-font-family` names `--font-primary`), and the chrome drawn inside the canvas iframe
   (block toolbar and its menus) is pinned to DM Sans too, since the frame's body uses the

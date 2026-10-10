@@ -20,22 +20,23 @@ you change what is on each page in the **editor**, section by section, without w
 Every store has one **Live** theme (what shoppers see) and can keep others in the theme
 library, marked **Unpublished**. Inside a theme, each page type (home, product, collection,
 cart and so on) has a template made of **sections**. Your edits are kept as a draft while you
-work, and only reach shoppers when you **Save** a Live theme, or **Publish** another one.
+work, and only reach shoppers when you **Publish**: on the Live theme that saves your changes,
+on an Unpublished theme it makes that theme Live.
 
 ```mermaid
 flowchart TD
   edit["You edit a section<br/>in the editor"] -->|kept automatically<br/>as you work| draft[("Draft<br/>only you see it")]
   draft --> preview["Editor preview<br/>shows the draft"]
-  draft -->|Save| saved["Saved version<br/>draft cleared"]
+  draft -->|"Save (Unpublished theme)<br/>or Publish (Live theme)"| saved["Saved version<br/>draft cleared"]
   draft -->|Discard| back["Draft thrown away<br/>back to your last save"]
   saved --> live{"Is this theme<br/>Live?"}
   live -->|Yes| shoppers(["Shoppers see it<br/>on their next page load"])
-  live -->|"No, it's Unpublished"| publish["Publish<br/>from More actions"] --> shoppers
+  live -->|"No, it's Unpublished"| publish["Publish<br/>in the top bar"] --> shoppers
 ```
 
-The toolbar tells you where you are: **Unsaved changes** while there is a draft, **All
-changes saved** once you save. Nothing you do in the editor is visible to shoppers until you
-save.
+The chip next to the theme's name tells you where you are: **Unsaved changes** while there is a
+draft, **Live** or **Unpublished** once it is saved. Nothing you do in the editor is visible to
+shoppers until you publish.
 
 On **Online Store → Themes**, each theme shows a picture of its home page, when it was last
 saved and by whom, and an **Unsaved changes** label when the editor holds edits nobody has saved
@@ -152,9 +153,10 @@ look closer, see [Zoom](#zoom).
 
 ### Save
 
-Select **Save**. The status changes to **All changes saved**. If this is your Live theme,
-shoppers now see the change. If it is an Unpublished theme, open **More actions** and select
-**Publish** when you are ready.
+On your **Live** theme, select **Publish**: shoppers see the change on their next page load.
+On an **Unpublished** theme, **Save** (next to Publish, while you have changes) keeps your work
+without going live, and **Publish** saves it and makes this theme the Live one. Throw away
+unsaved changes from **More actions** → **Discard**.
 
 </Steps>
 
