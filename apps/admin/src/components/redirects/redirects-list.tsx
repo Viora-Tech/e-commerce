@@ -102,7 +102,7 @@ export default function RedirectsList({ initial }: RedirectsListProps) {
       id: 'updated',
       title: copy.columns.updated,
       align: 'end',
-      render: (r) => <span className="text-muted-foreground">{fmt.day(r.updatedAt)}</span>,
+      render: (r) => <span className="text-muted-foreground">{fmt.when(r.updatedAt)}</span>,
     },
   ]
   const addButton = (

@@ -51,6 +51,7 @@ export default [
       return parts.join(' · ')
     },
     add: 'पेज जोड़ें',
+    open: 'पेज खोलें',
     search: 'पेज खोजें',
     resource: { singular: 'पेज', plural: 'पेज' },
     tabs: { all: 'सभी', live: 'चालू', hidden: 'छिपे' },

@@ -48,6 +48,7 @@ export const pagesListContent = {
     return parts.join(' · ')
   },
   add: 'Add page',
+  open: 'Open page',
   search: 'Search pages',
   resource: { singular: 'page', plural: 'pages' },
   tabs: { all: 'All', live: 'Published', hidden: 'Hidden' },

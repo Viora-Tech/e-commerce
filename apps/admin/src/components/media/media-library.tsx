@@ -164,6 +164,7 @@ function MediaLibraryContent({ initial }: { initial: MediaLibraryInitial }) {
         <>
           <div className="flex flex-wrap items-center justify-between gap-3">
             <PillTabs
+              variant="segmented"
               value={type}
               onChange={(next) => setQ({ type: next, page: 1 })}
               tabs={[

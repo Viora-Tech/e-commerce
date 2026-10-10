@@ -59,7 +59,7 @@ const columnsFor = (
     title: copy.columns.updated,
     sortValue: (d) => new Date(d.updatedAt),
     align: 'end',
-    render: (d) => <span className="text-muted-foreground">{fmt.day(d.updatedAt)}</span>,
+    render: (d) => <span className="text-muted-foreground">{fmt.when(d.updatedAt)}</span>,
   },
 ]
 
