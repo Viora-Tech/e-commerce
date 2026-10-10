@@ -43,6 +43,21 @@ describe('richtext HTML from the Puck editor', () => {
     expect(out).toBe('<p>Hi<a>x</a></p>')
   })
 
+  it('keeps http(s) and root-relative images, nothing else', () => {
+    expect(
+      richtextHtml(
+        '<p><img src="https://cdn.test/a.jpg" alt="A" width="40" title="t" style="x"><img src="/media/b.jpg" alt=""></p>',
+      ),
+    ).toBe(
+      '<p><img src="https://cdn.test/a.jpg" alt="A" width="40" loading="lazy" decoding="async" /><img src="/media/b.jpg" alt="" loading="lazy" decoding="async" /></p>',
+    )
+    expect(
+      richtextHtml(
+        '<p>x<img src="data:image/png;base64,AAAA"><img src="//evil.test/a.jpg"><img src="b.jpg"><img></p>',
+      ),
+    ).toBe('<p>x</p>')
+  })
+
   it('adds rel=noopener to links that open a new tab', () => {
     expect(richtextHtml('<p><a href="https://x.test" target="_blank">x</a></p>')).toBe(
       '<p><a href="https://x.test" target="_blank" rel="noopener noreferrer">x</a></p>',

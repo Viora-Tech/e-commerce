@@ -14,6 +14,8 @@ type FaqAccordionProps = {
   intro: ReactNode
   items: FaqItem[]
   multiOpen: boolean
+  /** On the Customize canvas every answer is open, so it can be clicked and edited. */
+  editing?: boolean | undefined
 }
 
 type FaqPanelProps = {
@@ -27,7 +29,13 @@ type FaqPanelProps = {
 
 const TRANSITION = { duration: 0.25, ease: 'easeOut' } as const
 
-export default function FaqAccordion({ heading, intro, items, multiOpen }: FaqAccordionProps) {
+export default function FaqAccordion({
+  heading,
+  intro,
+  items,
+  multiOpen,
+  editing = false,
+}: FaqAccordionProps) {
   // Hooks
   const reducedMotion = useReducedMotion()
   const [openIds, setOpenIds] = useState<Set<number>>(new Set())
@@ -64,7 +72,7 @@ export default function FaqAccordion({ heading, intro, items, multiOpen }: FaqAc
       </div>
       <div className="divide-y divide-[var(--color-line)] border-y border-[var(--color-line)]">
         {items.map((item, i) => {
-          const isOpen = openIds.has(i)
+          const isOpen = editing || openIds.has(i)
           const panelId = `faq-panel-${i}`
           const buttonId = `faq-button-${i}`
           return (

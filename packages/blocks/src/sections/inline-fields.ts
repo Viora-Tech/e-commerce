@@ -1,3 +1,5 @@
+import type { RichtextField } from '@puckeditor/core'
+
 /**
  * SOURCE OF TRUTH KEYWORDS: inlineText, inlineTextarea, inlineRichtext, contentEditable, inline editing
  * WHAT:  The Puck field declarations for text a merchant edits by clicking it on the canvas.
@@ -41,11 +43,15 @@ export const inlineRichtext = (label = 'Text') =>
 /** The page title is the h1, so section copy starts at h2. */
 const LONG_FORM_LEVELS: (2 | 3 | 4)[] = [2, 3, 4]
 
+/** Extra Tiptap extensions for long-form copy; the admin passes its image node. */
+export type RichtextExtensions = NonNullable<RichtextField['tiptap']>['extensions']
+
 /**
  * Long-form body copy (the Rich text section, the Text element): the same as `inlineRichtext`
- * plus headings (h2 to h4), quotes and rules, which those blocks offered before.
+ * plus headings (h2 to h4), quotes and rules, which those blocks offered before, and images
+ * when the host passes an image extension (the storefront never edits, so it passes none).
  */
-export const inlineRichtextLong = (label = 'Text') =>
+export const inlineRichtextLong = (label = 'Text', extensions?: RichtextExtensions) =>
   ({
     type: 'richtext',
     label,
@@ -56,4 +62,5 @@ export const inlineRichtextLong = (label = 'Text') =>
       code: false,
       textAlign: false,
     },
+    ...(extensions?.length ? { tiptap: { extensions } } : {}),
   }) as const

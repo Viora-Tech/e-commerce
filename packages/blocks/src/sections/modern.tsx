@@ -297,8 +297,14 @@ export function modernSections(): ModernConfig {
         items: copy.faqAccordion.items.map((q) => ({ ...q })),
         multiOpen: false,
       },
-      (p) => (
-        <FaqAccordion heading={p.heading} intro={p.intro} items={p.items} multiOpen={p.multiOpen} />
+      (p, _meta, editing) => (
+        <FaqAccordion
+          heading={p.heading}
+          intro={p.intro}
+          items={p.items}
+          multiOpen={p.multiOpen}
+          editing={editing}
+        />
       ),
     ),
 

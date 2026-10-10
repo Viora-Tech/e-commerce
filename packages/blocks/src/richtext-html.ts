@@ -19,7 +19,7 @@ import { asLexical, lexicalToHtml } from './lexical-html'
 
 /**
  * Tags the Puck richtext menu can produce (B/I/U, lists, links, line breaks), plus the
- * headings, quotes and rules the long-form fields (`inlineRichtextLong`) allow.
+ * headings, quotes, rules and images the long-form fields (`inlineRichtextLong`) allow.
  */
 const RICHTEXT_TAGS = [
   'p',
@@ -39,12 +39,23 @@ const RICHTEXT_TAGS = [
   'h4',
   'blockquote',
   'hr',
+  'img',
 ]
+
+/** An absolute http(s) URL or a root-relative path (not protocol-relative `//`). */
+const IMAGE_SRC = /^(https?:\/\/|\/(?!\/))/i
 
 const OPTIONS: sanitizeHtml.IOptions = {
   allowedTags: RICHTEXT_TAGS,
-  allowedAttributes: { a: ['href', 'target', 'rel'] },
+  allowedAttributes: {
+    a: ['href', 'target', 'rel'],
+    img: ['src', 'alt', 'width', 'height', 'loading', 'decoding'],
+  },
   allowedSchemes: ['https', 'http', 'mailto', 'tel'],
+  // Images load from http(s) or our own root-relative media paths; never data:, other schemes
+  // or a bare relative path.
+  allowedSchemesByTag: { img: ['https', 'http'] },
+  exclusiveFilter: (frame) => frame.tag === 'img' && !IMAGE_SRC.test(frame.attribs.src ?? ''),
   allowProtocolRelative: false,
   transformTags: {
     a: (tagName, attribs) => ({
@@ -53,6 +64,10 @@ const OPTIONS: sanitizeHtml.IOptions = {
         ...attribs,
         ...(attribs.target === '_blank' ? { rel: 'noopener noreferrer' } : {}),
       },
+    }),
+    img: (tagName, attribs) => ({
+      tagName,
+      attribs: { ...attribs, loading: 'lazy', decoding: 'async' },
     }),
   },
 }

@@ -267,7 +267,7 @@ export function librarySections(loaders: Loaders): LibraryConfig {
         },
       },
       { heading: copy.faq.heading, items: copy.faq.items.map((q) => ({ ...q })) },
-      (p) => <Faq heading={p.heading} items={p.items} />,
+      (p, _meta, editing) => <Faq heading={p.heading} items={p.items} editing={editing} />,
     ),
 
     Video: framed<LibraryProps['Video']>(

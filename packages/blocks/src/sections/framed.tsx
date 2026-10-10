@@ -90,7 +90,8 @@ export function framed<P extends Frame>(
   label: string,
   fields: Record<string, unknown>,
   defaults: Omit<P, keyof Frame>,
-  body: (props: P, meta: SectionMetadata) => ReactNode,
+  /** `editing` is true on the Customize canvas, where collapsed copy has to be reachable. */
+  body: (props: P, meta: SectionMetadata, editing: boolean) => ReactNode,
   extra: {
     defaultProps?: P
     resolveData?: (data: { props: P }) => Promise<{ props: Partial<P>; readOnly: object }>
@@ -105,7 +106,7 @@ export function framed<P extends Frame>(
       const settings = migrateSectionSettings(p as unknown as LegacySectionProps)
       return (
         <SectionFrame settings={settings}>
-          {body(p, (puck?.metadata ?? {}) as SectionMetadata)}
+          {body(p, (puck?.metadata ?? {}) as SectionMetadata, puck?.isEditing === true)}
         </SectionFrame>
       )
     },

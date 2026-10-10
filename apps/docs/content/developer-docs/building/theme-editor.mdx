@@ -116,9 +116,14 @@ text section and Text element used before is retired. Docs saved with it still h
   saved "My section" is inserted), so Puck's editor gets HTML and the next save stores HTML.
   Converting on load primes the drafts with the HTML, so opening the editor writes nothing.
 
-The converter keeps paragraphs, h2 to h4 headings, quotes, lists, links, line breaks, rules and
-B/I/U/S. Images, YouTube embeds and alignment have no place in section copy and are dropped;
-tables, code blocks and collapsibles keep their text. Tests: `test/lexical-html.test.ts`.
+The converter keeps paragraphs, h2 to h4 headings, quotes, lists, links, line breaks, rules,
+images and B/I/U/S, so nothing the merchant wrote is lost: a YouTube embed becomes a link to the
+video, and tables, code blocks and collapsibles keep their text. Only alignment and indents are
+dropped. Images are `<img>` with `src`, `alt`, `width` and `height`; the allow-list keeps them only
+for `http(s)` or root-relative sources (never `data:`). Puck's Tiptap has no image node, so the
+admin passes `@tiptap/extension-image` as `richtextExtensions` to `createBlocksConfig`, and the
+long-form fields (`inlineRichtextLong`) keep pictures through an edit. Tests:
+`test/lexical-html.test.ts`, `test/richtext-html.test.tsx`.
 
 ## Motion
 

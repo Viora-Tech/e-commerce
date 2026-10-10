@@ -18,6 +18,7 @@ import type { TextProps } from '../components/custom/text-element'
 import type { VideoElementProps } from '../components/custom/video-element'
 import { customElementBlocks, ELEMENT_BLOCKS, type ElementBlockType } from './custom-elements'
 import { customLayoutBlocks, LAYOUT_BLOCKS, type LayoutBlockType } from './custom-layout'
+import type { RichtextExtensions } from './inline-fields'
 import type { SingleProductLoader } from './library'
 
 export { SLOT_DISALLOW } from './custom-fields'
@@ -46,6 +47,7 @@ export type CustomProps = {
 }
 
 type Options = {
+  richtextExtensions?: RichtextExtensions | undefined
   loadProduct?: SingleProductLoader | undefined
 }
 

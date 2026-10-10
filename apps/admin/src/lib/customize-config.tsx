@@ -2,10 +2,18 @@ import { type AppBlockOwner, type CardProduct, createBlocksConfig } from '@comme
 import { applyBindings, isBinding } from '@commerce/core/dynamic-sources'
 import { GROUP_SECTIONS, SINGLE_SECTIONS } from '@commerce/core/theme'
 import { type ComponentConfig, type Config, DropZone } from '@puckeditor/core'
+import Image from '@tiptap/extension-image'
 import type { ReactNode } from 'react'
 import DynamicSourceSection from '@/components/themes/customize/dynamic-source-section'
 import { api } from '@/lib/api-client'
 import { APP_BLOCK_SOURCES } from '../../../../commerce.blocks.config'
+
+/**
+ * Pictures in long-form copy (Rich text, Text): Puck's Tiptap has no image node, so without
+ * this an image converted from old Lexical copy would vanish on the next edit. Inline, so it
+ * sits in its paragraph the way `lexicalToHtml` writes it; data: URLs are refused.
+ */
+const RICHTEXT_EXTENSIONS = [Image.configure({ inline: true, allowBase64: false })]
 
 type ListedProduct = Awaited<ReturnType<typeof api.products.list>>['items'][number]
 
@@ -106,6 +114,7 @@ export function createCustomizeConfig(
       )
     },
     {
+      richtextExtensions: RICHTEXT_EXTENSIONS,
       loadArticles: (query) => api.blog.recent(query),
       loadCollections: async (handles) => {
         const all = await api.collections.list()

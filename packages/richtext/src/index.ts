@@ -3,7 +3,7 @@
 export { defaultConverters } from './converters'
 export { renderText } from './render-text'
 export { RichTextRenderer } from './rich-text-renderer'
-export { sanitizeHref, sanitizeImageSrc } from './sanitize'
+export { isYouTubeId, sanitizeHref, sanitizeImageSrc } from './sanitize'
 export {
   emptyRichText,
   isRichTextEmpty,

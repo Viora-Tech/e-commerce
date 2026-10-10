@@ -22,7 +22,7 @@ import {
   glideProductSections,
 } from './sections/glide-product'
 import { type HeroProps, heroBlock } from './sections/hero-block'
-import { inlineRichtextLong, inlineText } from './sections/inline-fields'
+import { inlineRichtextLong, inlineText, type RichtextExtensions } from './sections/inline-fields'
 import {
   type CollectionLoader,
   type LibraryProps,
@@ -118,6 +118,11 @@ export type RichTextProps = Frame & {
 }
 
 export type BlocksConfigOptions = {
+  /**
+   * Extra Tiptap extensions for the long-form richtext fields (Rich text, Text). The admin
+   * passes its image node so pictures in that copy survive editing; the storefront leaves it out.
+   */
+  richtextExtensions?: RichtextExtensions | undefined
   /** Posts for the "Blog posts" block; without it the block renders nothing. */
   loadArticles?: ArticleLoader | undefined
   /** Collections for the collection list section. */
@@ -278,10 +283,10 @@ export function createBlocksConfig(
         loadArticles: options.loadArticles,
       }) as unknown as Pick<Config<BlockProps>['components'], keyof GlideProps>),
       ...(modernSections() as unknown as Pick<Config<BlockProps>['components'], keyof ModernProps>),
-      ...(customSections({ loadProduct: options.loadProduct }) as unknown as Pick<
-        Config<BlockProps>['components'],
-        keyof CustomProps
-      >),
+      ...(customSections({
+        loadProduct: options.loadProduct,
+        richtextExtensions: options.richtextExtensions,
+      }) as unknown as Pick<Config<BlockProps>['components'], keyof CustomProps>),
       ...(glideProductSections() as unknown as Pick<
         Config<BlockProps>['components'],
         keyof GlideProductProps
@@ -389,7 +394,7 @@ export function createBlocksConfig(
         label: 'Rich text',
         fields: {
           heading: inlineText('Heading'),
-          body: inlineRichtextLong('Body'),
+          body: inlineRichtextLong('Body', options.richtextExtensions),
           align: {
             type: 'radio',
             label: 'Align',

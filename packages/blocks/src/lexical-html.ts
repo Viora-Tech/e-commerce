@@ -3,9 +3,11 @@ import {
   IS_ITALIC,
   IS_STRIKETHROUGH,
   IS_UNDERLINE,
+  isYouTubeId,
   type RichTextValue,
   type SerializedNode,
   sanitizeHref,
+  sanitizeImageSrc,
 } from '@commerce/richtext'
 
 /**
@@ -17,9 +19,9 @@ import {
  *        database: the storefront converts on read (`richtextHtml`), and the admin converts
  *        when Customize loads a template (`richtextFromLexical` in `normalizeDoc`), so the next
  *        save stores HTML. Only what the richtext allow-list keeps is written: paragraphs,
- *        headings (h2 to h4), quotes, lists, links, line breaks, rules and B/I/U/S. Images,
- *        videos and alignment have no place in section copy and are left out; tables,
- *        code and collapsibles keep their text.
+ *        headings (h2 to h4), quotes, lists, links, line breaks, rules, images and B/I/U/S.
+ *        Nothing the merchant wrote is lost: a YouTube embed becomes a link to the video;
+ *        tables, code and collapsibles keep their text. Only alignment and indents are dropped.
  * WHERE: `./richtext-html.ts` (storefront and canvas render), `apps/admin/src/lib/customize-doc.ts`.
  */
 
@@ -64,6 +66,24 @@ function plainText(node: SerializedNode): string {
   if (typeof node.text === 'string') return escapeHtml(node.text)
   if (node.type === 'linebreak') return '<br>'
   return (node.children ?? []).map(plainText).join('')
+}
+
+/** An `<img>` the Customize image extension and the allow-list both keep; nothing for an unsafe source. */
+function imageHtml(node: SerializedNode): string {
+  const src = sanitizeImageSrc(typeof node.src === 'string' ? node.src : '')
+  if (!src) return ''
+  const alt = typeof node.altText === 'string' ? node.altText : ''
+  const width =
+    typeof node.width === 'number' && node.width > 0 ? ` width="${Math.round(node.width)}"` : ''
+  const height =
+    typeof node.height === 'number' && node.height > 0 ? ` height="${Math.round(node.height)}"` : ''
+  return `<img src="${escapeHtml(src)}" alt="${escapeHtml(alt)}"${width}${height}>`
+}
+
+/** Section copy never embeds players, so a saved YouTube video becomes a link to it. */
+function youtubeLink(id: string): string {
+  const url = `https://www.youtube.com/watch?v=${id}`
+  return `<p><a href="${url}">${url}</a></p>`
 }
 
 function headingTag(tag: unknown): string {
@@ -111,8 +131,9 @@ function nodeHtml(node: SerializedNode): string {
     case 'collapsible-title':
       return `<p><strong>${plainText(node)}</strong></p>`
     case 'image':
+      return imageHtml(node)
     case 'youtube':
-      return ''
+      return isYouTubeId(node.videoID) ? youtubeLink(node.videoID) : ''
     default:
       return inner()
   }

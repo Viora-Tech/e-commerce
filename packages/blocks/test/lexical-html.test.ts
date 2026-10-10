@@ -111,12 +111,49 @@ describe('lexicalToHtml', () => {
     expect(html).toContain('<ol><li>Step one</li></ol><ul><li>Done</li></ul>')
   })
 
-  it('keeps the text of tables, code and collapsibles, and leaves out images and videos', () => {
+  it('keeps the text of tables, code and collapsibles', () => {
     expect(html).toContain('<p>Size · XL</p>')
     expect(html).toContain('<p>const x = 1 &lt; 2</p>')
     expect(html).toContain('<p><strong>Specs</strong></p><p>490 x 420 mm</p>')
-    expect(html).not.toContain('img')
+  })
+
+  it('keeps images, and turns a YouTube embed into a link to the video', () => {
+    expect(html).toContain(
+      '<hr /><img src="https://cdn.waimers.in/pad.jpg" alt="Pad" loading="lazy" decoding="async" />',
+    )
+    expect(html).toContain(
+      '<p><a href="https://www.youtube.com/watch?v=dQw4w9WgXcQ">https://www.youtube.com/watch?v=dQw4w9WgXcQ</a></p>',
+    )
     expect(html).not.toContain('iframe')
+  })
+
+  it('keeps an image inline in its paragraph, with its size and our root-relative media paths', () => {
+    const inline = doc(
+      el('paragraph', [
+        text('See '),
+        {
+          type: 'image',
+          src: '/media/store/pad.webp',
+          altText: 'Pad "XL"',
+          width: 480,
+          height: 320.4,
+          version: 1,
+        },
+      ]),
+    )
+    expect(richtextHtml(inline)).toBe(
+      '<p>See <img src="/media/store/pad.webp" alt="Pad &quot;XL&quot;" width="480" height="320" loading="lazy" decoding="async" /></p>',
+    )
+  })
+
+  it('drops only what was never safe to show: data: or script images and bad video ids', () => {
+    const unsafe = doc(
+      { type: 'image', src: 'data:image/png;base64,AAAA', altText: 'evil', version: 1 },
+      { type: 'image', src: 'javascript:alert(1)', altText: 'evil', version: 1 },
+      { type: 'youtube', videoID: '"><script>', version: 1 },
+      el('paragraph', [text('Kept')]),
+    )
+    expect(richtextHtml(unsafe)).toBe('<p>Kept</p>')
   })
 
   it('needs no sanitising to be safe: text is escaped as it is written', () => {

@@ -16,7 +16,7 @@ import { CUSTOM_ICON_NAMES } from '../custom-icons'
 import { customSectionsContent as copy } from '../data/custom-sections'
 import { colourChoice, component, f, labels, px, responsive, yesNo } from './custom-fields'
 import { imageField, inlineLinkField, linkField } from './framed'
-import { inlineRichtextLong, inlineText } from './inline-fields'
+import { inlineRichtextLong, inlineText, type RichtextExtensions } from './inline-fields'
 import type { SingleProductLoader } from './library'
 
 export const ELEMENT_BLOCKS = [
@@ -35,6 +35,7 @@ export const ELEMENT_BLOCKS = [
 export type ElementBlockType = (typeof ELEMENT_BLOCKS)[number]
 
 type Options = {
+  richtextExtensions?: RichtextExtensions | undefined
   loadProduct?: SingleProductLoader | undefined
 }
 
@@ -62,7 +63,7 @@ export function customElementBlocks(
 
     Text: component(
       labels.Text,
-      { body: inlineRichtextLong(f.body) },
+      { body: inlineRichtextLong(f.body, options.richtextExtensions) },
       { body: copy.defaults.text },
       ({ puck: _puck, ...props }) => <TextElement {...(props as unknown as TextProps)} />,
     ),
