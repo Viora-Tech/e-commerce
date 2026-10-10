@@ -115,7 +115,7 @@ export const homePageContent = {
   },
   more: {
     title: 'More numbers',
-    subtitle: 'Sales over time, products, payments and when people buy',
+    subtitle: 'Sales over time, products and payments',
   },
 }
 

@@ -111,7 +111,7 @@ export default [
     },
     more: {
       title: 'और आंकड़े',
-      subtitle: 'समय के साथ बिक्री, प्रोडक्ट, पेमेंट और लोग कब खरीदते हैं',
+      subtitle: 'समय के साथ बिक्री, प्रोडक्ट और पेमेंट',
     },
   }),
   translation(homeContent, {
