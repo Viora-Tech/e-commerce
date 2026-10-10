@@ -95,6 +95,13 @@ export const guides = {
     title: 'Growth',
     description: 'Sales by source, tagged links, campaigns and automations.',
   },
+  reports: {
+    href: '/merchant-guide/selling/reports',
+    icon: 'sparkle',
+    title: 'Reports',
+    description:
+      'Ask a question in plain words, save the reports you check often, start from templates.',
+  },
   payments: {
     href: '/merchant-guide/money/payments',
     icon: 'card',

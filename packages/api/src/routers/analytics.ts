@@ -4,6 +4,12 @@ import { can } from '../procedures'
 import { analyticsLive, analyticsOverview } from '../services/analytics.service'
 import { analyticsReport } from '../services/analytics-report.service'
 import { REPORTS } from '../services/analytics-reports'
+import {
+  deleteSavedReport,
+  listSavedReports,
+  renameSavedReport,
+  saveReport,
+} from '../services/saved-reports.service'
 
 const rangeInput = z.object({
   key: z.enum(['today', '7d', '30d', '90d', 'custom']).default('30d'),
@@ -45,4 +51,29 @@ export const analyticsRouter = {
     .handler(({ context, input }) =>
       analyticsReport(context.tx, input.slug, { range: input.range }),
     ),
+
+  /** Reports saved under the merchant's own name: a catalogue report and its range. */
+  savedReports: can(permissions.ANALYTICS_READ).handler(({ context }) =>
+    listSavedReports(context.tx),
+  ),
+
+  saveReport: can(permissions.ANALYTICS_READ)
+    .input(
+      z.object({
+        name: z.string().trim().min(1).max(120),
+        reportSlug: z.string().trim().min(1).max(60),
+        range: rangeInput,
+      }),
+    )
+    .handler(({ context, input }) =>
+      saveReport(context.tx, context.scope.storeId, input, context.session?.user?.id ?? null),
+    ),
+
+  renameSavedReport: can(permissions.ANALYTICS_READ)
+    .input(z.object({ id: z.uuid(), name: z.string().trim().min(1).max(120) }))
+    .handler(({ context, input }) => renameSavedReport(context.tx, input.id, input.name)),
+
+  deleteSavedReport: can(permissions.ANALYTICS_READ)
+    .input(z.object({ id: z.uuid() }))
+    .handler(({ context, input }) => deleteSavedReport(context.tx, input.id)),
 }
