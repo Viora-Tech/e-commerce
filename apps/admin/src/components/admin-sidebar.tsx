@@ -232,8 +232,8 @@ export default function AdminSidebar({
         <UserMenu
           user={user}
           bugReports={bugReports}
-          align="start"
-          side="top"
+          align="end"
+          side="right"
           triggerLabel={copy.account}
           triggerClassName={ROW_TRIGGER}
           trigger={

@@ -190,6 +190,56 @@ export function accentVars(t: AccentTokens): Record<string, string> {
   }
 }
 
+/**
+ * The Proofly look draws its blue from more than `--primary`: the key buttons (`--key-*`), the
+ * active nav pill, soft accent fills, links and the next-step banner wash. These follow the
+ * chosen accent too, mixed from it in CSS so light and dark keep the stylesheet's recipe.
+ */
+export function designVars(t: AccentTokens, mode: 'light' | 'dark'): Record<string, string> {
+  const p = t.primary
+  const tint = (pct: number, over: string) => `color-mix(in oklab, ${p} ${pct}%, ${over})`
+  const alpha = (pct: number) => `color-mix(in oklab, ${p} ${pct}%, transparent)`
+  const shared = {
+    '--brand-wash': alpha(mode === 'light' ? 10 : 6),
+    '--brand-wash-end': mode === 'light' ? alpha(10) : alpha(0),
+    '--brand-border': alpha(30),
+  }
+  if (mode === 'light') {
+    const ink = tint(85, 'black')
+    return {
+      ...shared,
+      '--key-top': tint(10, 'white'),
+      '--key-bottom': tint(21, 'white'),
+      '--key-border': tint(36, 'white'),
+      '--key-edge': alpha(32),
+      '--key-glow': alpha(38),
+      '--key-ink': ink,
+      '--brand-select': tint(11, 'white'),
+      '--accent': tint(11, 'white'),
+      '--accent-foreground': ink,
+      '--sidebar-accent': tint(11, 'white'),
+      '--sidebar-accent-foreground': ink,
+      '--link': ink,
+    }
+  }
+  const soft = tint(22, '#101216')
+  const ink = tint(55, 'white')
+  return {
+    ...shared,
+    '--key-top': p,
+    '--key-bottom': tint(85, 'black'),
+    '--key-border': alpha(60),
+    '--key-glow': alpha(55),
+    '--key-ink': '#ffffff',
+    '--brand-select': alpha(6),
+    '--accent': soft,
+    '--accent-foreground': ink,
+    '--sidebar-accent': soft,
+    '--sidebar-accent-foreground': ink,
+    '--link': ink,
+  }
+}
+
 const declarations = (vars: Record<string, string>) =>
   Object.entries(vars)
     .map(([k, v]) => `${k}:${v}`)
@@ -207,8 +257,8 @@ export function accentCss(value: unknown, scope?: string): string {
   const hex = scope ? normaliseAccent(value) : accentOverride(value)
   if (!hex) return ''
   const p = deriveAccentPalette(hex)
-  const light = declarations(accentVars(p.light))
-  const dark = declarations(accentVars(p.dark))
+  const light = declarations({ ...accentVars(p.light), ...designVars(p.light, 'light') })
+  const dark = declarations({ ...accentVars(p.dark), ...designVars(p.dark, 'dark') })
   return scope
     ? `${scope}{${light}}.dark ${scope}{${dark}}`
     : `:root:root{${light}}:root.dark{${dark}}`
