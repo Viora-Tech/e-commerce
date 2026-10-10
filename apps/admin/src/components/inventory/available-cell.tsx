@@ -15,8 +15,9 @@ type AvailableCellProps = {
 
 const copy = inventoryContent.cell
 
+// Resting cell is a plain bordered number (Figma 279:15066); the steppers open on hover or focus.
 const STEP =
-  'flex size-7 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-background hover:text-foreground disabled:opacity-40'
+  'flex h-7 w-0 shrink-0 items-center justify-center overflow-hidden rounded-md text-muted-foreground opacity-0 transition-[width,opacity,color] duration-150 ease-out hover:text-foreground disabled:opacity-40 group-focus-within:w-7 group-focus-within:opacity-100 group-hover:w-7 group-hover:opacity-100'
 
 function parse(text: string): number | null {
   if (!/^-?\d+$/.test(text.trim())) return null
@@ -69,7 +70,7 @@ export default function AvailableCell({ name, available, disabled, onCommit }: A
     <fieldset
       aria-label={copy.label(name)}
       className={cn(
-        'mx-auto flex w-fit min-w-0 items-center gap-0.5 rounded-lg border border-transparent p-0.5 transition-colors focus-within:border-line focus-within:bg-card',
+        'group mx-auto flex w-fit min-w-0 items-center gap-0.5 rounded-lg border border-line bg-card p-0.5 transition-colors',
         changed && 'border-primary',
       )}
       onBlur={handleBlur}
@@ -94,7 +95,7 @@ export default function AvailableCell({ name, available, disabled, onCommit }: A
           if (e.key === 'Escape') setText(String(available))
         }}
         className={cn(
-          'h-7 w-14 rounded-md bg-transparent text-center text-kit-cell tabular-nums outline-none focus:bg-background',
+          'h-7 w-11 rounded-md bg-transparent text-center text-kit-cell tabular-nums outline-none focus:bg-background',
           available <= 0 && !changed && 'text-destructive',
         )}
       />

@@ -255,7 +255,7 @@ function InventoryContent({ initial }: { initial: InventoryInitial }) {
             {copy.export}
           </Button>
           {canEdit ? (
-            <Button variant="outline" onClick={() => setAddingLocation(true)}>
+            <Button onClick={() => setAddingLocation(true)}>
               <Plus strokeWidth={1.6} />
               {locationsContent.add}
             </Button>

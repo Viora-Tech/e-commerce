@@ -286,6 +286,7 @@ export default function ProductForm({
             actions={
               <ProductPageActions
                 busy={working}
+                live={Boolean(product) && form.status === 'active'}
                 onPublish={() => void handleSave('active')}
                 onSaveDraft={() => void handleSave('draft')}
               />

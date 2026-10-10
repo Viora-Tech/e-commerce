@@ -239,13 +239,13 @@ function ProductsContent({ initial }: { initial: ProductsInitial }) {
       }
       actions={
         <>
-          <Button variant="outline" onClick={handleExport} disabled={busy}>
-            <Download strokeWidth={1.6} />
-            {copy.export}
-          </Button>
           <Button variant="outline" onClick={() => setImporting(true)} disabled={busy}>
             <Upload strokeWidth={1.6} />
             {copy.import}
+          </Button>
+          <Button variant="outline" onClick={handleExport} disabled={busy}>
+            <Download strokeWidth={1.6} />
+            {copy.export}
           </Button>
           <Tooltip>
             <TooltipTrigger

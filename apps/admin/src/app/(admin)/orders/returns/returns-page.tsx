@@ -1,6 +1,8 @@
 'use client'
 
 import type { ReturnReason } from '@commerce/core/returns'
+import { Button } from '@commerce/ui/shadcn/button'
+import Link from 'next/link'
 import { parseAsInteger, parseAsString, parseAsStringLiteral, useQueryStates } from 'nuqs'
 import { Suspense, useEffect, useState } from 'react'
 import PillTabs from '@/components/layout/pill-tabs'
@@ -164,7 +166,19 @@ function ReturnsContent({ initial }: { initial: ReturnsInitial }) {
   }
 
   return (
-    <OrdersListFrame title={copy.title} summary={copy.subtitle}>
+    <OrdersListFrame
+      title={copy.title}
+      summary={c.requested > 0 ? copy.needDecision(c.requested) : copy.subtitle}
+      actions={
+        <Button
+          variant="outline"
+          render={<Link href={routes.settings.returns()} />}
+          nativeButton={false}
+        >
+          {copy.rules}
+        </Button>
+      }
+    >
       <ResourceTable
         resourceName={copy.resource}
         columns={returnColumns(copy, fmt)}

@@ -9,6 +9,8 @@ import {
 export const returnsContent = {
   title: 'Returns',
   subtitle: 'Items customers are sending back, and parcels the courier brought back (RTO).',
+  needDecision: (n: number) => `${n} ${n === 1 ? 'return needs' : 'returns need'} your decision`,
+  rules: 'Return rules',
   resource: { singular: 'return', plural: 'returns' },
   openReturn: 'Open return',
   empty: 'No returns yet. When a customer asks to send something back, it shows up here.',
