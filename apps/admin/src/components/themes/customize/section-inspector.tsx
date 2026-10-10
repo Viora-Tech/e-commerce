@@ -10,12 +10,13 @@ import { type MouseEvent, type ReactNode, useState } from 'react'
 import { customizeContent } from '@/data/customize'
 import { useCopy } from '@/hooks/use-copy'
 import { deleteWithCollapse } from '@/lib/customize-canvas-motion'
-import { type CustomizeDoc, FOOTER_ZONE, HEADER_ZONE } from '@/lib/customize-doc'
+import type { CustomizeDoc } from '@/lib/customize-doc'
 import { isElementStyleField, isSectionSettingsField } from '@/lib/customize-field-shape'
 import { sectionName } from '@/lib/customize-insert'
 import { InspectorTabContext } from '@/lib/customize-inspector-tab'
 import { useCustomizePuck } from '@/lib/customize-puck'
-import { findBlock, locateBlock, slotOwner } from '@/lib/customize-slots'
+import { locateBlock } from '@/lib/customize-slots'
+import InspectorBreadcrumb from './inspector-breadcrumb'
 import PanelHeader from './panel-header'
 import SectionIcon from './section-icon'
 
@@ -28,13 +29,6 @@ type Tab = 'basic' | 'advanced'
 
 const TABS: Tab[] = ['basic', 'advanced']
 
-/** The group a zone belongs to, in the member's language. */
-function zoneLabel(groups: Record<'header' | 'template' | 'footer', string>, zone: string): string {
-  if (zone === HEADER_ZONE) return groups.header
-  if (zone === FOOTER_ZONE) return groups.footer
-  return groups.template
-}
-
 /** The right pane: the selected section's settings, drawn by Puck's own field
  * renderer, under a header naming the section and the group it sits in, with Basic (the
  * section's own fields) and Advanced (layout, spacing, style) tabs — or, with nothing
@@ -42,7 +36,6 @@ function zoneLabel(groups: Record<'header' | 'template' | 'footer', string>, zon
 export default function SectionInspector({ settings }: SectionInspectorProps) {
   // Hooks
   const copy = useCopy(customizeContent.inspector)
-  const groups = useCopy(customizeContent.groups)
   const panels = useCopy(customizeContent.panels)
   const selected = useCustomizePuck((s) => s.selectedItem)
   const components = useCustomizePuck((s) => s.config.components)
@@ -87,15 +80,6 @@ export default function SectionInspector({ settings }: SectionInspectorProps) {
       isSectionSettingsField(field as never, name) || isElementStyleField(field as never, name),
   )
   const active: Tab = hasAdvanced ? tab : 'basic'
-  const located = locateBlock(data, selected.props.id)
-  // A nested block names its container ("In Promo strip"); a section its group.
-  const owner = located ? slotOwner(data, located.zone) : null
-  const parent = owner ? findBlock(data, owner.id) : null
-  const crumb = parent
-    ? copy.inside(sectionName(parent, components[parent.type]?.label ?? parent.type))
-    : located
-      ? zoneLabel(groups, located.zone)
-      : null
 
   return (
     <motion.section
@@ -109,7 +93,7 @@ export default function SectionInspector({ settings }: SectionInspectorProps) {
       <PanelHeader
         icon={<SectionIcon type={selected.type} tile="md" />}
         title={label}
-        hint={crumb}
+        hint={<InspectorBreadcrumb blockId={selected.props.id} />}
         actions={
           <>
             {SINGLE_SECTIONS.has(selected.type) ? null : (
