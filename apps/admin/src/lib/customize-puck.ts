@@ -48,4 +48,11 @@ export const SECTION_ICONS: Record<string, string> = {
   NotesSeries: 'news',
   SocialWall: 'gallery',
   DiscordCta: 'megaphone',
+  GridHero: 'spotlight',
+  RotatingHero: 'split',
+  ShowcaseHero: 'image',
+  LogoCloud: 'shapes',
+  StatsCards: 'stats',
+  CtaCard: 'megaphone',
+  CtaSplit: 'split',
 }

@@ -2,6 +2,7 @@ import { createElement } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it } from 'vitest'
 import { createBlocksConfig, ELEMENT_BLOCKS, LAYOUT_BLOCKS } from '../src/puck-config'
+import { kitSections } from '../src/sections/kit'
 import { librarySections } from '../src/sections/library'
 import { modernSections } from '../src/sections/modern'
 import { renderBlock } from '../src/slots'
@@ -25,6 +26,7 @@ const ZERO_DRIFT = new Set(['AnnouncementBar', 'FeaturedProduct', 'Newsletter'])
 const GENERIC = [
   ...Object.keys(librarySections({})).filter((key) => !ZERO_DRIFT.has(key)),
   ...Object.keys(modernSections()),
+  ...Object.keys(kitSections()),
   'FeaturedProducts',
   'CollectionGrid',
   'RichText',
