@@ -9,7 +9,7 @@ export type RichTextBlockProps = {
   align: 'left' | 'center'
 }
 
-/** The Rich text section inside Glide's `.rte` typography. */
+/** The Rich text section inside Zero Drift's `.rte` typography. */
 export default function RichTextBlock({ heading, body, align }: RichTextBlockProps) {
   // Render logic
   const className =

@@ -5,7 +5,7 @@ import { remToPx } from './data/motion'
 const PILL_PAD_REM = 0.875
 
 /**
- * The desktop menu's hover indicator (Glide `assets/nav-decoration.js`): one element, a
+ * The desktop menu's hover indicator (Zero Drift `assets/nav-decoration.js`): one element, a
  * glowing underline or a soft pill, that slides and stretches to the item under the pointer
  * or keyboard focus. It is moved with transform and width straight on the element, so the row
  * never reflows and React never re-renders for it. Appears in place on first show rather than

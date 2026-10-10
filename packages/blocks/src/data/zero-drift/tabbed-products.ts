@@ -2,7 +2,7 @@
  * SOURCE OF TRUTH KEYWORDS: tabbed products copy, product grid tabs, TABBED_PRODUCTS
  * WHAT:  Every default and fixed UI string of the Tabbed products section (Puck key
  *        `ProductGrid`, component `TabbedProducts`), plus its motion timing.
- * WHY:   Defaults come from Glide's templates/index.json (instance "tabbed-products"), the
+ * WHY:   Defaults come from Zero Drift's templates/index.json (instance "tabbed-products"), the
  *        liquid schema and locales (sections.tabbed_products). The theme's tabs name the
  *        owner's own collections, so the default here is one "All" tab that works in any store.
  * WHERE: `components/product-grid.tsx`, `components/tabbed-products-*.tsx`,

@@ -8,7 +8,7 @@ type DropRevealHostProps = {
   children: ReactNode
 }
 
-// The pinned host element of the drop reveal (Glide's <drop-reveal>): renders the final frame
+// The pinned host element of the drop reveal (Zero Drift's <drop-reveal>): renders the final frame
 // on the server and starts the scroll-scrubbed timeline once mounted.
 export default function DropRevealHost({ count, children }: DropRevealHostProps) {
   // Hooks

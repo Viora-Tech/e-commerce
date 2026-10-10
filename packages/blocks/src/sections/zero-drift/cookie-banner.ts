@@ -5,7 +5,7 @@ import { inlineRichtext, inlineText } from '../inline-fields'
 
 /**
  * SOURCE OF TRUTH KEYWORDS: cookieBannerDef, cookieBannerSettings, CookieBanner section
- * WHAT:  The CookieBanner dynamic section (Glide `sections/cookie-banner.liquid`): how the
+ * WHAT:  The CookieBanner dynamic section (Zero Drift `sections/cookie-banner.liquid`): how the
  *        consent banner looks and what its buttons say. It decides nothing about consent.
  * WHY:   Consent (the cookie, its version, what each answer loads, the `#cookie-settings`
  *        reopen link) stays in the storefront's ConsentManager; the footer group only owns

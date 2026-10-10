@@ -2,7 +2,7 @@
  * SOURCE OF TRUTH KEYWORDS: hero carousel copy, hero slides, hero defaults, HERO_CAROUSEL
  * WHAT:  Every default and fixed UI string of the Hero carousel section (Puck key `Hero`),
  *        plus the carousel's timing constants.
- * WHY:   Defaults come from Glide's templates/index.json (instance "hero"), the liquid schema
+ * WHY:   Defaults come from Zero Drift's templates/index.json (instance "hero"), the liquid schema
  *        and locales (sections.hero, general.slider, products.card, general.countdown). The
  *        theme's own slides are videos from Shopify files, which do not exist here, so the
  *        default slides are the theme's two typographic slides instead.

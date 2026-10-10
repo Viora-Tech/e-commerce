@@ -45,7 +45,7 @@ const footerMeta = (): SectionMetadata => ({
   },
 })
 
-describe('Footer (Glide footer)', () => {
+describe('Footer (Zero Drift footer)', () => {
   it('renders help cards, the about column, menus, payment marks and policies by default', () => {
     const html = render('Footer', components.Footer?.defaultProps ?? {}, { metadata: footerMeta() })
     expect(html).toContain('footer__help-card')
@@ -114,7 +114,7 @@ describe('Footer (Glide footer)', () => {
   })
 })
 
-describe('Newsletter (Glide newsletter)', () => {
+describe('Newsletter (Zero Drift newsletter)', () => {
   const meta = { metadata: {} }
 
   it('renders the card with meteors, interests and the email field', () => {
@@ -140,7 +140,7 @@ describe('Newsletter (Glide newsletter)', () => {
   })
 })
 
-describe('CookieBanner (Glide cookie banner)', () => {
+describe('CookieBanner (Zero Drift cookie banner)', () => {
   it('is a static picture in the admin canvas, with the section labels', () => {
     const html = render('CookieBanner', components.CookieBanner?.defaultProps ?? {}, {
       metadata: footerMeta(),
@@ -178,7 +178,7 @@ describe('CookieBanner (Glide cookie banner)', () => {
   })
 })
 
-describe('SignupPopup (Glide signup popup)', () => {
+describe('SignupPopup (Zero Drift signup popup)', () => {
   it('is a slim strip in the editor until it is selected', () => {
     const html = render(
       'SignupPopup',

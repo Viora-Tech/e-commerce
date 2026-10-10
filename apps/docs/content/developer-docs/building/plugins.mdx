@@ -425,7 +425,7 @@ tables, a storefront surface and emails:
   `reviews` (`./settings`, pure and client-safe).
 - **Ratings** are worked out from published reviews on every read (`ratingSummaries`), so
   approve, hide, delete and import never leave a stale average.
-- **Storefront**: the product page hands the Glide Product reviews section
+- **Storefront**: the product page hands the Zero Drift Product reviews section
   `appBlockContext.reviews` (`apps/storefront/src/lib/reviews.ts`); the widget
   (`packages/blocks/src/components/reviews/*`) posts to `/reviews/photo`, `/reviews/submit` and
   `/reviews/helpful` (`apps/storefront/src/lib/review-actions.ts`). The store comes from the

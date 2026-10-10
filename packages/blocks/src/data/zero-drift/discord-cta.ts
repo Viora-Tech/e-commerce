@@ -1,4 +1,4 @@
-/** Default copy and fixed UI strings for the Discord CTA section (Glide `discord-cta`). */
+/** Default copy and fixed UI strings for the Discord CTA section (Zero Drift `discord-cta`). */
 export const discordCtaContent = {
   label: 'Community invite',
   eyebrow: 'The Waimers community',

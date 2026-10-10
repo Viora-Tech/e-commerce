@@ -15,7 +15,7 @@ type FieldShape = {
 
 /**
  * Every section and block outside the Zero Drift theme (that one has
- * `glide-sections.test.tsx`): the generic library and modern sections, the
+ * `zero-drift-sections.test.tsx`): the generic library and modern sections, the
  * product and rich-text sections in `puck-config.tsx`, and the build-your-own
  * layout containers and elements.
  */

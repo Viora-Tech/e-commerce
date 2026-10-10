@@ -13,7 +13,7 @@ export type { HeroSlide } from './hero-slide-view'
 
 type HeroCarouselProps = {
   slides: HeroSlide[]
-  /** Seconds per slide; 0 turns autoplay off (how slides saved before the Glide refresh say it). */
+  /** Seconds per slide; 0 turns autoplay off (how slides saved before the Zero Drift refresh say it). */
   autoplaySeconds?: number | undefined
   /** Slide height as a share of the screen. */
   heightVh?: number | undefined

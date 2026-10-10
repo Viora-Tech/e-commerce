@@ -5,7 +5,7 @@ type Item = { quote: ReactNode; author: ReactNode; role: ReactNode }
 
 type Props = { heading: ReactNode; items: Item[] }
 
-// Port of the Glide testimonials block: quote cards with the author underneath.
+// Port of the Zero Drift testimonials block: quote cards with the author underneath.
 export default function Testimonials({ heading, items }: Props) {
   return (
     <div className="testimonials page-width">

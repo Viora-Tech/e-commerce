@@ -59,7 +59,7 @@ const headerProps = {
   cartCount: 2,
 }
 
-describe('AnnouncementBar (Glide header group)', () => {
+describe('AnnouncementBar (Zero Drift header group)', () => {
   it('renders the theme announcements as a marquee by default', () => {
     const html = renderSection('AnnouncementBar', {})
     expect(html).toContain('announcement-bar--marquee')
@@ -118,7 +118,7 @@ describe('AnnouncementBar (Glide header group)', () => {
   })
 })
 
-describe('Header (Glide header group)', () => {
+describe('Header (Zero Drift header group)', () => {
   it('still renders a header saved as { menu }', () => {
     const html = renderToStaticMarkup(
       <Header {...headerProps} settings={headerSettings({ menu: 'main-menu' })} />,
@@ -195,7 +195,7 @@ describe('Header (Glide header group)', () => {
   })
 })
 
-describe('MobileDock (Glide footer group)', () => {
+describe('MobileDock (Zero Drift footer group)', () => {
   it('renders the theme links and the cart last', () => {
     const html = renderSection('MobileDock', {})
     for (const link of mobileDockContent.links) expect(html).toContain(`href="${link.url}"`)

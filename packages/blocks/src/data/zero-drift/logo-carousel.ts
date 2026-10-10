@@ -1,8 +1,8 @@
 /**
  * SOURCE OF TRUTH KEYWORDS: logo carousel copy, brand marquee, press strip
  * WHAT:  Every default and fixed UI string of the Logo carousel section, plus the marquee
- *        motion constants ported from Glide's assets/marquee-motion.js.
- * WHY:   Defaults come from Glide's templates/index.json (instance "logos"): the brands are
+ *        motion constants ported from Zero Drift's assets/marquee-motion.js.
+ * WHY:   Defaults come from Zero Drift's templates/index.json (instance "logos"): the brands are
  *        picked by collection handle, and their picture, name and link come from that
  *        collection. The one uploaded logo in the theme is a shopify:// image, so it is empty here.
  * WHERE: `components/sections/zero-drift/logo-carousel*.tsx`, `sections/zero-drift/logo-carousel.tsx`.

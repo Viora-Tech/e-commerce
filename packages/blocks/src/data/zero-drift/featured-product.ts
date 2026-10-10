@@ -3,8 +3,8 @@
  * WHAT:  Every default and fixed UI string of the Featured product section (Puck key
  *        `FeaturedProduct`). The lockup's own strings (share, help, view details) are the
  *        Featured carousel's, since both draw the same lockup.
- * WHY:   Defaults come from Glide's templates/index.json (instance "featured_product") and the
- *        liquid schema (sections.featured_product). The theme's product is a real Glide product,
+ * WHY:   Defaults come from Zero Drift's templates/index.json (instance "featured_product") and the
+ *        liquid schema (sections.featured_product). The theme's product is a real Zero Drift product,
  *        so the handle starts empty here.
  * WHERE: `components/sections/zero-drift/featured-product.tsx`, `sections/zero-drift/featured-product.tsx`.
  */

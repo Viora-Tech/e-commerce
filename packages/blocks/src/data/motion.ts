@@ -1,5 +1,5 @@
 /**
- * Timing for the storefront's Motion effects, ported from Glide's reveal.js,
+ * Timing for the storefront's Motion effects, ported from Zero Drift's reveal.js,
  * overlay-motion.js and hero-carousel.js. Durations are seconds (Motion's unit);
  * distances are rem so they scale with the merchant's body size.
  */

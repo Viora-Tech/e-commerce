@@ -92,14 +92,14 @@ const data = (content: TemplateSection[]): TemplateData => ({
   zones: {},
 })
 
-/** One of Glide's three signup popups, as `sections/footer-group.json` sets it up. */
+/** One of Zero Drift's three signup popups, as `sections/footer-group.json` sets it up. */
 const popup = (id: string, props: Record<string, unknown>): TemplateSection => ({
   type: 'SignupPopup',
   props: { id, ...props },
 })
 
 /**
- * Glide's footer group (`sections/footer-group.json`), in its order: the newsletter card,
+ * Zero Drift's footer group (`sections/footer-group.json`), in its order: the newsletter card,
  * the footer, the phone dock, the cookie banner and the three signup popups (one shows per
  * visit at most). Anything not set here takes the blocks' defaults, which are the theme's;
  * product handles are left out because they name the theme store's own products.
@@ -136,7 +136,7 @@ const FOOTER_GROUP: TemplateSection[] = [
  * did before templates existed.
  */
 export function defaultTemplate(key: TemplateKey): TemplateData {
-  // Glide's header group (`sections/header-group.json`): the announcement bar over the
+  // Zero Drift's header group (`sections/header-group.json`): the announcement bar over the
   // header. Both take their settings from the blocks' defaults, which are the theme's.
   if (key === 'header') {
     return data([section('AnnouncementBar', 'announcement-bar'), section('Header', 'header')])

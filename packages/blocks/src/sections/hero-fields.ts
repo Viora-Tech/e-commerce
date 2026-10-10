@@ -19,7 +19,7 @@ const range = (label: string, min: number, max: number, step = 1) =>
 
 /**
  * The Puck fields of the `Hero` section, mirroring sections/hero-carousel.liquid's schema.
- * Glide has two block types (image_slide, video_slide); Puck arrays have one item shape, so
+ * Zero Drift has two block types (image_slide, video_slide); Puck arrays have one item shape, so
  * every slide carries both and `kind` picks which media it plays.
  */
 export const heroFields = {

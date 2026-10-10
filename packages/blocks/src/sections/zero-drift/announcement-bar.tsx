@@ -5,7 +5,7 @@ import { SCHEMES } from '../framed'
 import { inlineRichtext } from '../inline-fields'
 
 /**
- * Saved before the Glide port: one plain-text message and a labelled link. Still read, as a
+ * Saved before the Zero Drift port: one plain-text message and a labelled link. Still read, as a
  * single announcement, until the editor's `resolveData` rewrites it into `announcements`.
  */
 type LegacyAnnouncement = { text?: unknown; link?: { label?: unknown; href?: unknown } }
@@ -44,7 +44,7 @@ function legacyAnnouncement(p: LegacyAnnouncement): { text: string; link: string
 }
 
 /**
- * Glide's announcement bar (`sections/announcement-bar.liquid`). Keeps the `AnnouncementBar`
+ * Zero Drift's announcement bar (`sections/announcement-bar.liquid`). Keeps the `AnnouncementBar`
  * key and its old `{ text, link, scheme }` props, so bars saved before the port still render.
  */
 export function announcementBarSection(): ComponentConfig {

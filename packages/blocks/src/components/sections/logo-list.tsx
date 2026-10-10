@@ -6,7 +6,7 @@ type Logo = { image: { url: string; alt: string }; href: string }
 /** `heading` is a string in storage, a React node while edited on the canvas. */
 type Props = { heading: ReactNode; logos: Logo[] }
 
-// Port of the Glide logo list: a row of partner or press logos, optionally linked.
+// Port of the Zero Drift logo list: a row of partner or press logos, optionally linked.
 export default function LogoList({ heading, logos }: Props) {
   return (
     <div className="logo-list page-width">

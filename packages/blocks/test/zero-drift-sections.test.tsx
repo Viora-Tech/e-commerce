@@ -49,10 +49,10 @@ function asEditorProps(value: unknown, fields: Record<string, FieldShape>): unkn
   return out
 }
 
-describe('Glide theme sections', () => {
+describe('Zero Drift theme sections', () => {
   const config = createBlocksConfig(async () => [])
 
-  it('are all registered and listed in the Glide theme category', () => {
+  it('are all registered and listed in the Zero Drift theme category', () => {
     expect(ZERO_DRIFT_SECTIONS.length).toBeGreaterThanOrEqual(15)
     expect([...SECTION_CATEGORIES.zeroDrift.components]).toEqual(ZERO_DRIFT_SECTIONS)
     for (const key of ZERO_DRIFT_SECTIONS) expect(config.components[key], key).toBeTruthy()

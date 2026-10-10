@@ -9,7 +9,7 @@ import { inlineText } from '../inline-fields'
 import type { ZeroDriftLoaders } from './loaders'
 
 /**
- * One tab as stored. Glide binds a tab to a collection; tabs saved before the refresh hold
+ * One tab as stored. Zero Drift binds a tab to a collection; tabs saved before the refresh hold
  * `{ label, productType, limit }` (a product type, blank = every product) and keep working.
  */
 export type ProductGridTab = {

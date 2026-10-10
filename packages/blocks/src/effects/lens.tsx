@@ -4,7 +4,7 @@
 // by the owner, see docs/licences/aceternity-pro.md), https://ui.aceternity.com/components/lens.
 // Same technique as the original: a second copy of the media, scaled by `zoomFactor` around
 // the pointer and masked to a circle. Changes: pointer events instead of mouse events, the
-// Glide guards (only with a fine pointer and hover, from 990px up, as the theme's lens zoom
+// Zero Drift guards (only with a fine pointer and hover, from 990px up, as the theme's lens zoom
 // did), the copy is aria-hidden and inert, a CSS fade replaces Motion's AnimatePresence (so
 // the product page loads no animation library), a ring in the theme's colours marks the lens,
 // and sizes are rem. The static `position` mode was dropped: the product gallery never uses it.
@@ -23,7 +23,7 @@ type LensProps = {
 /** Where the lens is, in px inside the box; null while the pointer is away. */
 type Spot = { x: number; y: number } | null
 
-/** Glide's lens zoom ran only on desktop layouts with a real pointer. */
+/** Zero Drift's lens zoom ran only on desktop layouts with a real pointer. */
 const LENS_MEDIA = '(hover: hover) and (pointer: fine) and (min-width: 990px)'
 
 function lensStyle(spot: { x: number; y: number }, radiusPx: number): CSSProperties {

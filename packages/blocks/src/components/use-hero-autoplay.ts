@@ -12,7 +12,7 @@ type HeroAutoplay = {
 }
 
 /**
- * The autoplay clock of Glide's hero-carousel.js: one interval, paused on hover, pointer
+ * The autoplay clock of Zero Drift's hero-carousel.js: one interval, paused on hover, pointer
  * down, a hidden tab or the hero leaving the screen, and resumed with whatever was left of
  * the current slide's time (hover behaves like pausing a video). `onTick` advances a slide.
  */

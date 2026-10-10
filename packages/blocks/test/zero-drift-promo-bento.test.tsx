@@ -16,7 +16,7 @@ function html(config: ReturnType<typeof promoBentoSection>, extra: Record<string
   return renderToStaticMarkup(config.render(props))
 }
 
-describe('Glide batch: ships-today, category-panels, promo-bento, drops-teaser, notes-series', () => {
+describe('Zero Drift batch: ships-today, category-panels, promo-bento, drops-teaser, notes-series', () => {
   it('renders each section with its defaults and no empty image sources', () => {
     for (const make of [
       shipsTodaySection,

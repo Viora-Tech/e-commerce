@@ -84,7 +84,7 @@ export const noImage: Image = { url: '', alt: '' }
 
 /**
  * A library section: its own fields plus the colour scheme and padding every
- * section shares, rendered inside the Glide section frame.
+ * section shares, rendered inside the Zero Drift section frame.
  */
 export function framed<P extends Frame>(
   label: string,

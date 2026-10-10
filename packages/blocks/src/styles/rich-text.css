@@ -1,6 +1,6 @@
 /* ------------------------------------------------------------------ */
 /* Rich text block: Lexical output rendered inside .rte                 */
-/* Covers the node types Glide's .rte never had: tables, checklists,    */
+/* Covers the node types Zero Drift's .rte never had: tables, checklists,    */
 /* figures, video embeds, collapsibles and code.                        */
 /* ------------------------------------------------------------------ */
 .rich-text-block {

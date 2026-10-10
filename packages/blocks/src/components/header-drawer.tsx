@@ -21,7 +21,7 @@ function lockScroll(locked: boolean): void {
  * The mobile menu: a slide-in drawer where each level opens as an accordion
  * (native details, so it works before hydration). Each section starts with the
  * parent's own link, since the parent row itself only expands. Motion slides the
- * panel in and out (Glide's overlay-motion.js); reduced motion opens it instantly.
+ * panel in and out (Zero Drift's overlay-motion.js); reduced motion opens it instantly.
  * The animation library is fetched when the browser goes idle, not with the page.
  */
 export default function HeaderDrawer({ storeName, links }: HeaderDrawerProps) {

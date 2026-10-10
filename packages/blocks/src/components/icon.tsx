@@ -1,4 +1,4 @@
-// Glide's icon set (snippets/icon.liquid). All use currentColor.
+// Zero Drift's icon set (snippets/icon.liquid). All use currentColor.
 export type IconName =
   | 'search'
   | 'sun'

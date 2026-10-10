@@ -1,7 +1,7 @@
 /**
  * SOURCE OF TRUTH KEYWORDS: brand lab copy, brand story band
  * WHAT:  Every default and fixed UI string of the Brand lab section.
- * WHY:   Defaults come from Glide's templates/index.json (the home page instance); logos are
+ * WHY:   Defaults come from Zero Drift's templates/index.json (the home page instance); logos are
  *        left empty because the theme's shopify:// images do not exist here. Links point at the
  *        collections the theme linked to.
  * WHERE: `components/sections/zero-drift/brand-lab.tsx`, `sections/zero-drift/brand-lab.tsx`.

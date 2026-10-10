@@ -120,13 +120,13 @@ tab.
 - Selected blocks get a 1px solid accent outline and hovered ones a dashed one, no tinted fill
   (`vendor-puck.css`). The bar fades in over 150 ms; reduced motion shows it at once.
 
-Every section on the canvas uses these helpers: the Zero Drift sections (`sections/glide.tsx`, one
-config per section in `sections/glide/`), the library and modern sections (`library.tsx`,
+Every section on the canvas uses these helpers: the Zero Drift sections (`sections/zero-drift.tsx`, one
+config per section in `sections/zero-drift/`), the library and modern sections (`library.tsx`,
 `modern.tsx`), Featured products, Collection grid and Rich text (`puck-config.tsx`), and the
 build-your-own blocks (Tabs labels, Accordion titles, Heading, Text, Button and Badge). Containers
-and media elements have no copy of their own. `test/glide-sections.test.tsx` and
+and media elements have no copy of their own. `test/zero-drift-sections.test.tsx` and
 `test/library-inline.test.tsx` render each one with its copy swapped for React nodes to catch
-string handling. Inventory: `docs/design/glide-theme-port.md`.
+string handling. Inventory: `docs/design/zero-drift-theme-port.md`.
 
 ### One rich-text store
 

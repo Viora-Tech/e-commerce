@@ -6,7 +6,7 @@ import { inlineText } from '../inline-fields'
 
 /**
  * SOURCE OF TRUTH KEYWORDS: headerDef, headerSettings, Header section settings
- * WHAT:  The Header dynamic section's fields and defaults (Glide `sections/header.liquid`:
+ * WHAT:  The Header dynamic section's fields and defaults (Zero Drift `sections/header.liquid`:
  *        menu, logo position, sticky, wishlist, menu images and hover look, the dropdowns'
  *        feature cards, the search overlay's popular terms and brand collections), and
  *        `headerSettings`, which turns saved settings into typed values.
