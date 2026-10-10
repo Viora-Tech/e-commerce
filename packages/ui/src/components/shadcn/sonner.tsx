@@ -25,6 +25,7 @@ const Toaster = ({ ...props }: ToasterProps) => {
         loading: <Loader2Icon className="size-4 animate-spin" />,
       }}
       position="bottom-right"
+      richColors
       offset={20}
       gap={10}
       duration={4000}
@@ -35,15 +36,28 @@ const Toaster = ({ ...props }: ToasterProps) => {
           '--normal-text': 'var(--popover-foreground)',
           '--normal-border': 'var(--hairline)',
           '--border-radius': 'var(--radius)',
+          /* Rich colours: the whole toast is tinted with the kit's status hue, mixed into the popover. */
+          '--success-bg': 'color-mix(in oklab, var(--success) 14%, var(--popover))',
+          '--success-border': 'color-mix(in oklab, var(--success) 38%, var(--popover))',
+          '--success-text': 'var(--success)',
+          '--warning-bg': 'color-mix(in oklab, var(--warning) 16%, var(--popover))',
+          '--warning-border': 'color-mix(in oklab, var(--warning) 42%, var(--popover))',
+          '--warning-text': 'var(--warning)',
+          '--error-bg': 'color-mix(in oklab, var(--danger) 12%, var(--popover))',
+          '--error-border': 'color-mix(in oklab, var(--danger) 36%, var(--popover))',
+          '--error-text': 'var(--danger)',
+          '--info-bg': 'color-mix(in oklab, var(--info) 12%, var(--popover))',
+          '--info-border': 'color-mix(in oklab, var(--info) 36%, var(--popover))',
+          '--info-text': 'var(--info)',
         } as React.CSSProperties
       }
       toastOptions={{
         classNames: {
-          /* Proofly toast: raised surface, hairline, Elevation/2; the status shows only in the icon. */
+          /* Proofly toast: glass for plain toasts; success/error/warning/info are tinted (rich colours). */
           toast:
-            'cn-toast !rounded-lg !border-glass-border !bg-glass-popover !shadow-glass !backdrop-blur-xl !backdrop-saturate-150 [@media(prefers-reduced-transparency:reduce)]:!bg-raised [@media(prefers-reduced-transparency:reduce)]:!backdrop-filter-none !px-4 !py-3 !gap-3 !text-body [&[data-type=success]_[data-icon]]:text-success [&[data-type=error]_[data-icon]]:text-danger [&[data-type=warning]_[data-icon]]:text-warning [&[data-type=info]_[data-icon]]:text-info',
-          title: '!font-medium !text-foreground',
-          description: '!text-caption !text-muted-foreground',
+            'cn-toast !rounded-lg !shadow-glass !px-4 !py-3 !gap-3 !text-body [&:not([data-type=success]):not([data-type=error]):not([data-type=warning]):not([data-type=info])]:!border-glass-border [&:not([data-type=success]):not([data-type=error]):not([data-type=warning]):not([data-type=info])]:!bg-glass-popover [&:not([data-type=success]):not([data-type=error]):not([data-type=warning]):not([data-type=info])]:!backdrop-blur-xl [&:not([data-type=success]):not([data-type=error]):not([data-type=warning]):not([data-type=info])]:!backdrop-saturate-150 [@media(prefers-reduced-transparency:reduce)]:!backdrop-filter-none [@media(prefers-reduced-transparency:reduce)]:[&:not([data-type=success]):not([data-type=error]):not([data-type=warning]):not([data-type=info])]:!bg-raised',
+          title: '!font-medium',
+          description: '!text-caption !text-current !opacity-80',
           actionButton: '!bg-primary-soft !text-link !rounded-md !text-caption !font-medium',
           cancelButton: '!bg-muted !text-muted-foreground !rounded-md !text-caption',
           closeButton: '!border-hairline !bg-raised !text-muted-foreground hover:!text-foreground',
