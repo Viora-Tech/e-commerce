@@ -100,9 +100,24 @@ banner" (`inspector-breadcrumb.tsx`), and each container in it selects that cont
 - **AI** (`ai-panel.tsx`): the admin assistant's conversation (`useAssistant`, the same thread as
   the ⌘J bar), with suggestions for the page. It answers and runs its usual tools with approval; it
   does not edit the canvas. Without AI it links to Settings › AI.
-- **Store settings** (`store-settings-panel.tsx`): what a theme shows that is set elsewhere
-  (title and sharing picture, menus, store details, policies, cookie banner, checkout, domains),
-  each opened in a new tab so the editor keeps its work, and a way back to the theme's own settings.
+- **Page settings** (`page-settings-panel.tsx`, Figma 381:7763): the home page gets a real form
+  (`home-page-settings.tsx`) over the store preferences (`api.store.getPreferences` /
+  `updatePreferences`): read-only title and `/`, SEO title and description with a Google preview,
+  social image (`MediaPickDialog`), visibility (Published, or Password: the store password, at
+  least `PREFERENCE_LIMITS.passwordMin` characters) and its own **Save page settings**. Product,
+  collection, page, blog and blog post templates say each item has its own listing and link to
+  the previewed one and the list; cart, search and 404 have none. **Store-wide settings** folds
+  open `store-settings-panel.tsx` (menus, store details, policies, cookie banner, checkout,
+  domains, each in a new tab).
+- **Theme settings** (`theme-panel.tsx`, Figma 369:121884): reset in the head; Colours as five
+  swatches (`swatch-row.tsx`; Brand = `button`, Accent, Background, Text, and Buttons, whose
+  popover picks text or brand colour); Typography as two compact font dropdowns and Size scale
+  S / M / L; Buttons as Corner radius Square / Soft / Round, Filled / Outline and a sample on the
+  theme's background (`lib/theme-quick-settings.ts` maps the choices onto the theme's numbers and
+  reads back the nearest one). "All colours", "More type settings" and "More button settings"
+  (`more-settings.tsx`) open the existing exact controls; Presets, Logo & favicon, Layout and
+  Product cards are closed rows (`theme-panel-section.tsx`); Checkout branding links out. The old
+  full-page customizer keeps `theme-settings.tsx`.
 - **Top bar**: the theme's name in normal case (`displayThemeName`: a word in capitals of four or
   more letters is capitalised, so `ZERO DRIFT` reads "Zero Drift"), the page switcher in Figma's
   muted 240px style, a green "AI connected" chip when an AI gateway is set up, and the member's
