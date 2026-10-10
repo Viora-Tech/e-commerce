@@ -1,7 +1,7 @@
 'use client'
 
 import { type ReactNode, useEffect, useState, useTransition } from 'react'
-import { stickyAtcContent as copy } from '../data/glide/sticky-atc'
+import { stickyAtcContent as copy } from '../data/zero-drift/sticky-atc'
 import { onVariantChange } from '../product-variant-event'
 import type { ProductDetail } from '../types'
 import Picture from './picture'

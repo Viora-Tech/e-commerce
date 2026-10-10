@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react'
-import { TABBED_PRODUCTS } from '../data/glide/tabbed-products'
+import { TABBED_PRODUCTS } from '../data/zero-drift/tabbed-products'
 
 type TabbedProductsHeadingProps = {
   /** A string in storage but a React node while editing on the canvas. */

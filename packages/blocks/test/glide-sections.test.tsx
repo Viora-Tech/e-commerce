@@ -1,7 +1,7 @@
 import { createElement } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it } from 'vitest'
-import { createBlocksConfig, GLIDE_SECTIONS, SECTION_CATEGORIES } from '../src/puck-config'
+import { createBlocksConfig, SECTION_CATEGORIES, ZERO_DRIFT_SECTIONS } from '../src/puck-config'
 
 type FieldShape = {
   type?: string
@@ -53,12 +53,12 @@ describe('Glide theme sections', () => {
   const config = createBlocksConfig(async () => [])
 
   it('are all registered and listed in the Glide theme category', () => {
-    expect(GLIDE_SECTIONS.length).toBeGreaterThanOrEqual(15)
-    expect([...SECTION_CATEGORIES.glide.components]).toEqual(GLIDE_SECTIONS)
-    for (const key of GLIDE_SECTIONS) expect(config.components[key], key).toBeTruthy()
+    expect(ZERO_DRIFT_SECTIONS.length).toBeGreaterThanOrEqual(15)
+    expect([...SECTION_CATEGORIES.zeroDrift.components]).toEqual(ZERO_DRIFT_SECTIONS)
+    for (const key of ZERO_DRIFT_SECTIONS) expect(config.components[key], key).toBeTruthy()
   })
 
-  for (const key of GLIDE_SECTIONS) {
+  for (const key of ZERO_DRIFT_SECTIONS) {
     describe(key, () => {
       const component = config.components[key]
       if (!component) throw new Error(`${key} is not registered`)

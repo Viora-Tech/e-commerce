@@ -1,7 +1,7 @@
 'use client'
 
 import { type KeyboardEvent, type ReactNode, useEffect, useRef, useState } from 'react'
-import { tabbedProductsContent as copy } from '../data/glide/tabbed-products'
+import { tabbedProductsContent as copy } from '../data/zero-drift/tabbed-products'
 import { safeHref } from '../slot-types'
 import type { CardProduct } from '../types'
 import { useReducedMotion } from '../use-reduced-motion'

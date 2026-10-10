@@ -3,9 +3,9 @@ import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it } from 'vitest'
 import {
   createBlocksConfig,
-  GLIDE_PRODUCT_SECTIONS,
   SECTION_CATEGORIES,
   type SectionMetadata,
+  ZERO_DRIFT_PRODUCT_SECTIONS,
 } from '../src/puck-config'
 import type { ProductDetail } from '../src/types'
 
@@ -88,14 +88,14 @@ describe('Zero Drift product page sections', () => {
   const config = createBlocksConfig(async () => [])
 
   it('are registered in the Products category', () => {
-    expect(GLIDE_PRODUCT_SECTIONS.length).toBeGreaterThanOrEqual(7)
-    for (const key of GLIDE_PRODUCT_SECTIONS) {
+    expect(ZERO_DRIFT_PRODUCT_SECTIONS.length).toBeGreaterThanOrEqual(7)
+    for (const key of ZERO_DRIFT_PRODUCT_SECTIONS) {
       expect(config.components[key], key).toBeTruthy()
       expect(SECTION_CATEGORIES.products.components).toContain(key)
     }
   })
 
-  for (const key of GLIDE_PRODUCT_SECTIONS) {
+  for (const key of ZERO_DRIFT_PRODUCT_SECTIONS) {
     describe(key, () => {
       const component = config.components[key]
       if (!component) throw new Error(`${key} is not registered`)
@@ -146,7 +146,7 @@ describe('Zero Drift product page sections', () => {
       'ProductSpecStrip',
       'ProductFeatures',
     ]) {
-      const component = config.components[key as (typeof GLIDE_PRODUCT_SECTIONS)[number]]
+      const component = config.components[key as (typeof ZERO_DRIFT_PRODUCT_SECTIONS)[number]]
       // @ts-expect-error -- loose test props
       const out = component.render({ ...component.defaultProps, puck: { metadata: { product } } })
       expect(renderToStaticMarkup(out), key).toBe('')
@@ -154,7 +154,10 @@ describe('Zero Drift product page sections', () => {
   })
 
   /** Render one section with a product in metadata, loosely typed like the stored props. */
-  const draw = (key: (typeof GLIDE_PRODUCT_SECTIONS)[number], props: Record<string, unknown>) => {
+  const draw = (
+    key: (typeof ZERO_DRIFT_PRODUCT_SECTIONS)[number],
+    props: Record<string, unknown>,
+  ) => {
     const component = config.components[key] as unknown as {
       defaultProps: Record<string, unknown>
       render: (p: Record<string, unknown>) => ReactElement

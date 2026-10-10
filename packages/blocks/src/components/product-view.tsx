@@ -2,7 +2,7 @@
 
 import { msUntil } from '@commerce/dates'
 import { type ComponentType, type ReactNode, useEffect, useState } from 'react'
-import { mainProductContent as copy } from '../data/glide/main-product'
+import { mainProductContent as copy } from '../data/zero-drift/main-product'
 import { announceVariant } from '../product-variant-event'
 import {
   hasCopy,

@@ -1,5 +1,5 @@
 import { type RefObject, useEffect } from 'react'
-import { HERO_CAROUSEL } from '../data/glide/hero-carousel'
+import { HERO_CAROUSEL } from '../data/zero-drift/hero-carousel'
 
 type HeroEnhancements = {
   /** "Fill the screen" height: publish what sits above the hero for the stylesheet to subtract. */

@@ -14,13 +14,6 @@ import {
 } from './section-settings'
 import { type CustomProps, customSections, ELEMENT_BLOCKS, LAYOUT_BLOCKS } from './sections/custom'
 import { type DynamicSection, dynamicSections, type SectionSettings } from './sections/dynamic'
-import { GLIDE_SECTIONS, type GlideProps, glideSections } from './sections/glide'
-import { type ProductGridProps, tabbedProductsSection } from './sections/glide/tabbed-products'
-import {
-  GLIDE_PRODUCT_SECTIONS,
-  type GlideProductProps,
-  glideProductSections,
-} from './sections/glide-product'
 import { type HeroProps, heroBlock } from './sections/hero-block'
 import { inlineRichtextLong, inlineText, type RichtextExtensions } from './sections/inline-fields'
 import {
@@ -31,6 +24,13 @@ import {
 } from './sections/library'
 import { liquidSectionConfig } from './sections/liquid'
 import { type ModernProps, modernSections } from './sections/modern'
+import { ZERO_DRIFT_SECTIONS, type ZeroDriftProps, zeroDriftSections } from './sections/zero-drift'
+import { type ProductGridProps, tabbedProductsSection } from './sections/zero-drift/tabbed-products'
+import {
+  ZERO_DRIFT_PRODUCT_SECTIONS,
+  type ZeroDriftProductProps,
+  zeroDriftProductSections,
+} from './sections/zero-drift-product'
 import type { CardProduct } from './types'
 
 export type { ArticleLoader, BlogPostsProps } from './blog-posts-block'
@@ -57,13 +57,16 @@ export {
   type SectionRenderer,
   type SectionSettings,
 } from './sections/dynamic'
-export { GLIDE_SECTIONS, type GlideProps } from './sections/glide'
-export type { ProductGridProps } from './sections/glide/tabbed-products'
-export { GLIDE_PRODUCT_SECTIONS, type GlideProductProps } from './sections/glide-product'
 export type { CollectionLoader, LibraryProps, SingleProductLoader } from './sections/library'
 export type { ModernProps } from './sections/modern'
 export type { SectionSource } from './sections/sources'
 export { SECTION_SOURCES } from './sections/sources'
+export { ZERO_DRIFT_SECTIONS, type ZeroDriftProps } from './sections/zero-drift'
+export type { ProductGridProps } from './sections/zero-drift/tabbed-products'
+export {
+  ZERO_DRIFT_PRODUCT_SECTIONS,
+  type ZeroDriftProductProps,
+} from './sections/zero-drift-product'
 export type { CardCollection, CardProduct } from './types'
 
 /**
@@ -139,8 +142,8 @@ export type BlockProps = {
   RichText: RichTextProps
   BlogPosts: BlogPostsProps
 } & LibraryProps &
-  GlideProps &
-  GlideProductProps &
+  ZeroDriftProps &
+  ZeroDriftProductProps &
   ModernProps &
   CustomProps &
   Record<DynamicSection | 'LiquidSection', SectionSettings>
@@ -150,8 +153,8 @@ export type BlockProps = {
  * footer are placed by their template or group, never added from here.
  */
 export const SECTION_CATEGORIES = {
-  // Rebuilt from our own Shopify theme (Zero Drift, formerly Glide); see ./sections/glide.tsx.
-  glide: { title: 'Zero Drift theme', components: GLIDE_SECTIONS },
+  // Rebuilt from our own Shopify theme (Zero Drift, formerly Glide); see ./sections/zero-drift.tsx.
+  zeroDrift: { title: 'Zero Drift theme', components: ZERO_DRIFT_SECTIONS },
   banners: {
     title: 'Banners',
     components: [
@@ -190,8 +193,8 @@ export const SECTION_CATEGORIES = {
       'CollectionList',
       'RelatedProducts',
       'RecentlyViewed',
-      // The Zero Drift theme's product-page sections; see ./sections/glide-product.tsx.
-      ...GLIDE_PRODUCT_SECTIONS,
+      // The Zero Drift theme's product-page sections; see ./sections/zero-drift-product.tsx.
+      ...ZERO_DRIFT_PRODUCT_SECTIONS,
     ],
   },
   media: { title: 'Media', components: ['Video', 'Gallery'] },
@@ -241,7 +244,10 @@ export function createBlocksConfig(
   return {
     appBlockOwners: appBlocks.owners,
     categories: {
-      glide: { ...SECTION_CATEGORIES.glide, components: [...SECTION_CATEGORIES.glide.components] },
+      zeroDrift: {
+        ...SECTION_CATEGORIES.zeroDrift,
+        components: [...SECTION_CATEGORIES.zeroDrift.components],
+      },
       banners: {
         ...SECTION_CATEGORIES.banners,
         components: [...SECTION_CATEGORIES.banners.components],
@@ -276,20 +282,20 @@ export function createBlocksConfig(
         loadCollections: options.loadCollections,
         loadProduct: options.loadProduct,
       }) as unknown as Pick<Config<BlockProps>['components'], keyof LibraryProps>),
-      ...(glideSections({
+      ...(zeroDriftSections({
         loadProducts,
         loadCollections: options.loadCollections,
         loadProduct: options.loadProduct,
         loadArticles: options.loadArticles,
-      }) as unknown as Pick<Config<BlockProps>['components'], keyof GlideProps>),
+      }) as unknown as Pick<Config<BlockProps>['components'], keyof ZeroDriftProps>),
       ...(modernSections() as unknown as Pick<Config<BlockProps>['components'], keyof ModernProps>),
       ...(customSections({
         loadProduct: options.loadProduct,
         richtextExtensions: options.richtextExtensions,
       }) as unknown as Pick<Config<BlockProps>['components'], keyof CustomProps>),
-      ...(glideProductSections() as unknown as Pick<
+      ...(zeroDriftProductSections() as unknown as Pick<
         Config<BlockProps>['components'],
-        keyof GlideProductProps
+        keyof ZeroDriftProductProps
       >),
       ...(dynamicSections() as unknown as Pick<Config<BlockProps>['components'], DynamicSection>),
       // Sections of an imported Shopify theme; see ./sections/liquid.tsx.
@@ -297,7 +303,7 @@ export function createBlocksConfig(
         liquidSectionConfig as unknown as Config<BlockProps>['components']['LiquidSection'],
       Hero: heroBlock({ loadProduct: options.loadProduct }),
 
-      // Glide's tabbed-products section; config in ./sections/glide/tabbed-products.tsx.
+      // Glide's tabbed-products section; config in ./sections/zero-drift/tabbed-products.tsx.
       ProductGrid: tabbedProductsSection({
         loadProducts,
         loadCollections: options.loadCollections,

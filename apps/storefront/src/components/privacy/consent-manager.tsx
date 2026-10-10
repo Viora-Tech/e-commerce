@@ -1,6 +1,6 @@
 'use client'
 
-import { type CookieBannerSettings, GlideCookieBanner } from '@commerce/blocks'
+import { type CookieBannerSettings, ZeroDriftCookieBanner } from '@commerce/blocks'
 import {
   allowedTags,
   CONSENT_COOKIE,
@@ -113,7 +113,7 @@ export default function ConsentManager({
       {consent?.analytics ? <VisitBeacon /> : null}
       <TrackingTags {...tags} nonce={nonce} />
       {asking && appearance ? (
-        <GlideCookieBanner
+        <ZeroDriftCookieBanner
           {...appearance}
           storeMessage={bannerMessage}
           initial={current}

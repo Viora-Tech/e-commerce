@@ -1,4 +1,4 @@
-import { heroCarouselContent as copy } from '../data/glide/hero-carousel'
+import { heroCarouselContent as copy } from '../data/zero-drift/hero-carousel'
 import { imageField, linkField } from './framed'
 import { inlineText } from './inline-fields'
 

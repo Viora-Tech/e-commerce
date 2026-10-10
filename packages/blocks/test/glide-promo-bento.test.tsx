@@ -1,13 +1,13 @@
 import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it } from 'vitest'
-import { categoryPanelsSection } from '../src/sections/glide/category-panels'
-import { dropsTeaserSection } from '../src/sections/glide/drops-teaser'
-import type { GlideLoaders } from '../src/sections/glide/loaders'
-import { notesSeriesSection } from '../src/sections/glide/notes-series'
-import { promoBentoSection } from '../src/sections/glide/promo-bento'
-import { shipsTodaySection } from '../src/sections/glide/ships-today'
+import { categoryPanelsSection } from '../src/sections/zero-drift/category-panels'
+import { dropsTeaserSection } from '../src/sections/zero-drift/drops-teaser'
+import type { ZeroDriftLoaders } from '../src/sections/zero-drift/loaders'
+import { notesSeriesSection } from '../src/sections/zero-drift/notes-series'
+import { promoBentoSection } from '../src/sections/zero-drift/promo-bento'
+import { shipsTodaySection } from '../src/sections/zero-drift/ships-today'
 
-const loaders: GlideLoaders = { loadProducts: async () => [] }
+const loaders: ZeroDriftLoaders = { loadProducts: async () => [] }
 const puck = { metadata: {} }
 
 function html(config: ReturnType<typeof promoBentoSection>, extra: Record<string, unknown> = {}) {

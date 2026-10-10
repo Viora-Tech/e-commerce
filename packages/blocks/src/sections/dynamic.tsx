@@ -4,11 +4,11 @@ import EditorOverlay from '../components/editor-overlay'
 import type { NewsletterAction } from '../components/sections/newsletter'
 import { sectionsContent } from '../data/sections'
 import type { ProductDetail } from '../types'
-import { cookieBannerDef } from './glide/cookie-banner'
-import { footerDef } from './glide/footer'
-import { headerDef } from './glide/header'
 import { inlineText } from './inline-fields'
 import { mainProductDefaults, mainProductFields, showHide as yesNo } from './main-product-settings'
+import { cookieBannerDef } from './zero-drift/cookie-banner'
+import { footerDef } from './zero-drift/footer'
+import { headerDef } from './zero-drift/header'
 
 /**
  * Sections bound to what the shopper is looking at: the header and footer (store

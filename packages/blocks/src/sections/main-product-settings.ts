@@ -1,6 +1,6 @@
 import type { Fields } from '@puckeditor/core'
 import { isValidElement, type ReactNode } from 'react'
-import { mainProductContent as copy } from '../data/glide/main-product'
+import { mainProductContent as copy } from '../data/zero-drift/main-product'
 import { inlineRichtext, inlineText } from './inline-fields'
 
 /**

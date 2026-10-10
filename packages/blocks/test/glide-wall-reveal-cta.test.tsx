@@ -1,8 +1,8 @@
 import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it } from 'vitest'
-import { discordCtaSection } from '../src/sections/glide/discord-cta'
-import { dropRevealSection } from '../src/sections/glide/drop-reveal'
-import { socialWallSection } from '../src/sections/glide/social-wall'
+import { discordCtaSection } from '../src/sections/zero-drift/discord-cta'
+import { dropRevealSection } from '../src/sections/zero-drift/drop-reveal'
+import { socialWallSection } from '../src/sections/zero-drift/social-wall'
 import type { CardProduct } from '../src/types'
 
 const product = (n: number): CardProduct => ({

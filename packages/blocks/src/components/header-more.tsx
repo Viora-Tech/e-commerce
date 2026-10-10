@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import { headerContent as copy } from '../data/glide/header'
+import { headerContent as copy } from '../data/zero-drift/header'
 import type { ThemeMode } from '../types'
 import Icon from './icon'
 import ThemeToggle from './theme-toggle'

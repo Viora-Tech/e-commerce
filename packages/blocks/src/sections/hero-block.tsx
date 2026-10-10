@@ -1,6 +1,6 @@
 import type { ComponentConfig, Fields } from '@puckeditor/core'
 import HeroCarousel from '../components/hero-carousel'
-import { heroCarouselContent as copy } from '../data/glide/hero-carousel'
+import { heroCarouselContent as copy } from '../data/zero-drift/hero-carousel'
 import type { CardProduct } from '../types'
 import type { Image, Link } from './framed'
 import { heroFields } from './hero-fields'

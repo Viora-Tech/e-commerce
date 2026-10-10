@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react'
-import { announcementBarContent as copy } from '../../data/glide/announcement-bar'
+import { announcementBarContent as copy } from '../../data/zero-drift/announcement-bar'
 import Marquee from '../../effects/marquee'
 import { cx, safeHref } from '../../slot-types'
 import Icon from '../icon'

@@ -2,13 +2,13 @@ import { createElement, type ReactNode } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it } from 'vitest'
 import Footer from '../src/components/footer'
-import CookieBanner from '../src/components/sections/glide/cookie-banner'
-import { pageAllowed } from '../src/components/sections/glide/signup-popup-timing'
+import CookieBanner from '../src/components/sections/zero-drift/cookie-banner'
+import { pageAllowed } from '../src/components/sections/zero-drift/signup-popup-timing'
 import { EditorSelectionContext } from '../src/editor-selection'
 import { createBlocksConfig } from '../src/puck-config'
 import type { SectionMetadata } from '../src/sections/dynamic'
-import { cookieBannerSettings } from '../src/sections/glide/cookie-banner'
-import { footerSettings } from '../src/sections/glide/footer'
+import { cookieBannerSettings } from '../src/sections/zero-drift/cookie-banner'
+import { footerSettings } from '../src/sections/zero-drift/footer'
 
 const config = createBlocksConfig(async () => [])
 const components = config.components as unknown as Record<

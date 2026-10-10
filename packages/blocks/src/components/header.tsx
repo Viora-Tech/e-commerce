@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react'
 import { navigationContent } from '../data/navigation'
 import { type MenuCollection, menuCardsFor } from '../header-menu'
-import { type HeaderSettings, headerSettings } from '../sections/glide/header'
+import { type HeaderSettings, headerSettings } from '../sections/zero-drift/header'
 import type { NavLink, ThemeMode } from '../types'
 import HeaderDrawer from './header-drawer'
 import HeaderMore from './header-more'

@@ -2,7 +2,7 @@
 
 import { formatCountdown, formatInZone } from '@commerce/dates'
 import { type ComponentType, useState, useTransition } from 'react'
-import { mainProductContent as copy } from '../data/glide/main-product'
+import { mainProductContent as copy } from '../data/zero-drift/main-product'
 import { formatPaise } from '../money'
 import { safeHref } from '../slot-types'
 import type { ProductDetail } from '../types'

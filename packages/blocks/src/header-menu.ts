@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react'
-import { headerContent as copy } from './data/glide/header'
-import type { FeatureCardSetting } from './sections/glide/header'
+import { headerContent as copy } from './data/zero-drift/header'
 import { hasCopy } from './sections/main-product-settings'
+import type { FeatureCardSetting } from './sections/zero-drift/header'
 import type { NavLink } from './types'
 
 /**

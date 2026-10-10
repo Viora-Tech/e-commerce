@@ -1,7 +1,7 @@
 'use client'
 
 import type { Ref } from 'react'
-import { mainProductContent as copy } from '../data/glide/main-product'
+import { mainProductContent as copy } from '../data/zero-drift/main-product'
 import type { MediaImage } from '../types'
 import Icon from './icon'
 import Picture from './picture'

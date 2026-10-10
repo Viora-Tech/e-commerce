@@ -19,10 +19,10 @@ import {
   type Link,
   noImage,
 } from './framed'
-import { type AnnouncementBarProps, announcementBarSection } from './glide/announcement-bar'
-import { type FeaturedProductProps, featuredProductSection } from './glide/featured-product'
-import { type NewsletterProps, newsletterSection } from './glide/newsletter'
 import { inlineRichtext, inlineText, inlineTextarea } from './inline-fields'
+import { type AnnouncementBarProps, announcementBarSection } from './zero-drift/announcement-bar'
+import { type FeaturedProductProps, featuredProductSection } from './zero-drift/featured-product'
+import { type NewsletterProps, newsletterSection } from './zero-drift/newsletter'
 
 /** Collections for the collection list section, in the order the handles were given. */
 export type CollectionLoader = (handles: string[]) => Promise<CardCollection[]>
@@ -212,7 +212,7 @@ export function librarySections(loaders: Loaders): LibraryConfig {
       },
     ),
 
-    // Glide's featured-product section; config in ./glide/featured-product.tsx.
+    // Glide's featured-product section; config in ./zero-drift/featured-product.tsx.
     FeaturedProduct: featuredProductSection(loaders),
 
     Testimonials: framed<LibraryProps['Testimonials']>(
