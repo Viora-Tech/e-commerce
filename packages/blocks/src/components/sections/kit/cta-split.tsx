@@ -38,7 +38,7 @@ export default function CtaSplit({
           }
           sizes="(min-width: 768px) 50vw, 100vw"
         />
-        <div className="flex flex-col justify-center gap-[1rem] p-[1.75rem] md:p-[3rem]">
+        <div className="flex flex-col items-start justify-center gap-[1rem] p-[1.75rem] text-left md:p-[3rem]">
           {eyebrow ? (
             <p className="text-caption uppercase tracking-[0.08em] text-[var(--color-brand)]">
               {eyebrow}
