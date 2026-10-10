@@ -7,7 +7,7 @@ import {
   type TemplateKind,
   templateName,
 } from '@commerce/core/theme'
-import { editorGlyphs, Plus } from '@commerce/ui/icons'
+import { editorGlyphs, Home, type IconComponent, Plus } from '@commerce/ui/icons'
 import { cn } from '@commerce/ui/lib/utils'
 import {
   Command,
@@ -41,13 +41,28 @@ type TemplateListProps = {
 
 const copy = customizeContent.templates
 
-/** The Pages panel's look (Figma 381:6609): a 40px search, uppercase "PAGES" / "TEMPLATES"
- * labels, 35px rows with a page glyph, the open one tinted rather than ticked. */
-const FILL =
-  'min-h-0 flex-1 bg-transparent p-0 px-4 **:data-[slot=command-input-wrapper]:p-0 **:data-[slot=input-group]:h-10! **:data-[slot=input-group]:rounded-[0.625rem]! **:data-[slot=command-group]:p-0 **:[[cmdk-group-heading]]:hidden'
-const FILL_ITEM =
+/**
+ * Figma's page list (381:6609 in the Pages panel, 369:125349 in the top bar's popover): a 40px
+ * search, uppercase "PAGES" / "TEMPLATES" labels, 35px rows with the kind's glyph, the open one
+ * tinted rather than ticked. The kinds' own headings stay for screen readers only.
+ */
+const LOOK =
+  'bg-transparent **:data-[slot=command-input-wrapper]:p-0 **:data-[slot=input-group]:h-10! **:data-[slot=input-group]:rounded-[0.625rem]! **:data-[slot=command-group]:p-0 **:[[cmdk-group-heading]]:sr-only'
+const ITEM =
   'min-h-[2.1875rem] rounded-lg px-2 text-[0.8125rem] data-[checked=true]:bg-primary-soft data-[checked=true]:font-medium data-[checked=true]:text-primary [&>svg:last-child]:hidden'
-const PageGlyph = editorGlyphs.page
+
+/** Each kind's glyph, from the editor set (Phosphor regular). */
+const KIND_ICONS: Record<TemplateKind, IconComponent> = {
+  home: Home,
+  product: editorGlyphs.package,
+  collection: editorGlyphs.grid,
+  page: editorGlyphs.page,
+  blog: editorGlyphs.news,
+  article: editorGlyphs.text,
+  cart: editorGlyphs.cart,
+  search: editorGlyphs.search,
+  not_found: editorGlyphs.notFound,
+}
 
 const isAlternateKind = (key: TemplateKind): key is AlternateKind =>
   (ALTERNATE_KINDS as readonly string[]).includes(key)
@@ -63,11 +78,12 @@ export function usedLabel(
 }
 
 /**
- * Every page and template of the theme to jump between: a search, the pages (home, product,
- * collection...) and the templates with their alternates, each kind with "Create template".
- * Each alternate shows how many resources use it and has a small manager (rename, duplicate,
+ * Every page and template of the theme to jump between: a search, the pages (home, cart,
+ * search, 404) and the templates with their alternates, each kind with "Create template". Each
+ * alternate shows how many resources use it and has a small manager (rename, duplicate,
  * delete); the default template has none. The top bar's template picker and the Pages panel
- * share it, and each renders `TemplateManagerDialogs` for its manager.
+ * share it, and each renders `TemplateManagerDialogs` for its manager; the picker's popover adds
+ * "New page" under the pages and the keys at the foot.
  */
 export default function TemplateList({
   value,
@@ -80,6 +96,7 @@ export default function TemplateList({
 }: TemplateListProps) {
   // Hooks
   const groups = useCopy(customizeContent.groups)
+  const panels = useCopy(customizeContent.panels)
 
   // Event handlers
   const handleAction = (kind: AlternateKind, suffix: string, action: AlternateAction) => {
@@ -90,46 +107,37 @@ export default function TemplateList({
 
   // Render logic
   return (
-    <Command className={cn(fill && FILL)}>
+    <Command className={cn(LOOK, fill ? 'min-h-0 flex-1 p-0 px-4' : 'p-2')}>
       <CommandInput placeholder={copy.search} aria-label={copy.search} />
-      <CommandList className={cn(fill && 'max-h-none flex-1 pb-4')}>
+      <CommandList className={cn(fill ? 'max-h-none flex-1 pb-4' : 'max-h-[27rem]')}>
         <CommandEmpty>{copy.empty}</CommandEmpty>
         {['pages', 'templates'].map((section) => (
           <div key={section}>
             <p
-              className={
-                fill
-                  ? 'px-0 pt-4 pb-2 text-xs leading-[1.0625rem] font-medium tracking-[0.04em] text-muted-foreground uppercase'
-                  : 'px-3 pt-2 pb-1 text-caption font-semibold text-foreground'
-              }
+              className={cn(
+                'pt-4 pb-2 text-xs leading-[1.0625rem] font-medium tracking-[0.04em] text-muted-foreground uppercase',
+                fill ? 'px-0' : 'px-2',
+              )}
             >
               {section === 'pages' ? groups.pages : groups.templates}
             </p>
             {TEMPLATE_KINDS.filter((key) => isAlternateKind(key) === (section === 'templates')).map(
               (key) => {
                 const own = alternates.filter((a) => a.template === key && a.suffix)
-                const currentIsDefault = value.key === key && value.suffix === ''
+                const Icon = KIND_ICONS[key]
                 return (
                   <CommandGroup key={key} heading={copy.names[key]}>
                     <CommandItem
                       value={`${copy.names[key]} ${own.length > 0 ? copy.default : ''}`}
-                      data-checked={currentIsDefault ? 'true' : undefined}
+                      data-checked={value.key === key && value.suffix === '' ? 'true' : undefined}
                       onSelect={() => onPick({ key, suffix: '' })}
-                      className={cn(fill && FILL_ITEM)}
+                      className={ITEM}
                     >
-                      {fill ? (
-                        <>
-                          <PageGlyph aria-hidden weight="regular" />
-                          <span className="min-w-0 flex-1 truncate">{copy.names[key]}</span>
-                          {isAlternateKind(key) ? (
-                            <span className={`shrink-0 ${CHROME_META}`}>{copy.default}</span>
-                          ) : null}
-                        </>
-                      ) : own.length > 0 ? (
-                        copy.default
-                      ) : (
-                        copy.names[key]
-                      )}
+                      <Icon aria-hidden weight="regular" />
+                      <span className="min-w-0 flex-1 truncate">{copy.names[key]}</span>
+                      {isAlternateKind(key) ? (
+                        <span className={`shrink-0 ${CHROME_META}`}>{copy.default}</span>
+                      ) : null}
                     </CommandItem>
                     {isAlternateKind(key)
                       ? own.map((a) => {
@@ -142,7 +150,7 @@ export default function TemplateList({
                                 value.key === key && value.suffix === a.suffix ? 'true' : undefined
                               }
                               onSelect={() => onPick({ key, suffix: a.suffix })}
-                              className={cn(fill && `${FILL_ITEM} pl-8`)}
+                              className={`${ITEM} pl-8`}
                             >
                               <span className="min-w-0 truncate">{a.suffix}</span>
                               {used ? (
@@ -160,7 +168,7 @@ export default function TemplateList({
                       <CommandItem
                         value={`${copy.names[key]} ${copy.create}`}
                         onSelect={() => onCreate(key)}
-                        className={cn(fill && `${FILL_ITEM} pl-8 text-muted-foreground`)}
+                        className={`${ITEM} pl-8 text-muted-foreground`}
                       >
                         <Plus aria-hidden />
                         {copy.create}
@@ -170,9 +178,29 @@ export default function TemplateList({
                 )
               },
             )}
+            {section === 'pages' && !fill ? (
+              // cmdk sorts items within their group, so this one has its own.
+              <CommandGroup>
+                <CommandItem
+                  value={panels.newPage}
+                  onSelect={() => onCreate('page')}
+                  className={`${ITEM} text-muted-foreground`}
+                >
+                  <Plus aria-hidden />
+                  {panels.newPage}
+                </CommandItem>
+              </CommandGroup>
+            ) : null}
           </div>
         ))}
       </CommandList>
+      {fill ? null : (
+        <p className="flex gap-3 border-t border-border px-2 pt-2 text-xs leading-[1.0625rem] text-muted-foreground">
+          <span>{copy.keys.move}</span>
+          <span>{copy.keys.open}</span>
+          <span>{copy.keys.close}</span>
+        </p>
+      )}
     </Command>
   )
 }

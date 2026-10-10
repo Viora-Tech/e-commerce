@@ -41,13 +41,17 @@ function setup(overrides: Partial<Parameters<typeof TemplateList>[0]> = {}) {
 const option = (name: string | RegExp) => screen.getByRole('option', { name })
 
 describe('TemplateList', () => {
-  it('lists every kind, with "Default" only where the kind has alternates', () => {
+  it('lists every kind by name, templates marked "Default"', () => {
     setup()
     const products = screen.getByRole('group', { name: copy.names.product })
-    expect(within(products).getByRole('option', { name: copy.default })).toBeTruthy()
+    expect(
+      within(products).getByRole('option', { name: `${copy.names.product}${copy.default}` }),
+    ).toBeTruthy()
     expect(within(products).getByRole('option', { name: /preorder/ })).toBeTruthy()
     const collections = screen.getByRole('group', { name: copy.names.collection })
-    expect(within(collections).getByRole('option', { name: copy.names.collection })).toBeTruthy()
+    expect(
+      within(collections).getByRole('option', { name: `${copy.names.collection}${copy.default}` }),
+    ).toBeTruthy()
     expect(screen.getByRole('option', { name: copy.names.home })).toBeTruthy()
   })
 
@@ -105,5 +109,18 @@ describe('TemplateList', () => {
       suffix: 'preorder',
     })
     expect(props.onPick).not.toHaveBeenCalled()
+  })
+
+  it('offers New page and the keys in the top bar popover, not in the Pages panel', async () => {
+    const { props, user } = setup()
+    await user.click(option(customizeContent.panels.newPage))
+    expect(props.onCreate).toHaveBeenCalledWith('page')
+    expect(screen.getByText(copy.keys.move)).toBeTruthy()
+  })
+
+  it('leaves New page to the Pages panel head when it fills the panel', () => {
+    setup({ fill: true })
+    expect(screen.queryByRole('option', { name: customizeContent.panels.newPage })).toBeNull()
+    expect(screen.queryByText(copy.keys.move)).toBeNull()
   })
 })
