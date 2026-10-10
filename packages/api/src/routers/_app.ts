@@ -40,6 +40,7 @@ import { reviewsRouter } from './reviews'
 import { shipmentsRouter } from './shipments'
 import { shippingRouter } from './shipping'
 import { shopifyImportRouter } from './shopify-import'
+import { shortLinksRouter } from './short-links'
 import { staffRouter } from './staff'
 import { storeRouter } from './store'
 import { storeDataRouter } from './store-data'
@@ -79,6 +80,7 @@ export const appRouter = {
   customers: customersRouter,
   discounts: discountsRouter,
   marketing: marketingRouter,
+  shortLinks: shortLinksRouter,
   giftCards: giftCardsRouter,
   apps: appsRouter,
   gstInvoices: gstInvoicesRouter,

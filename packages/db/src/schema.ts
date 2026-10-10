@@ -774,6 +774,8 @@ export type MarketingAttribution = {
   messageId?: string | undefined
   campaignId?: string | undefined
   automationId?: string | undefined
+  /** The short link (Growth → Links) the visit came through. */
+  linkId?: string | undefined
   /** ISO time of the touch. */
   at: string
 }

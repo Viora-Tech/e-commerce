@@ -7,6 +7,8 @@ export const ATTRIBUTION_COOKIE = 'wc_attr'
 export const SESSION_COOKIE = 'wc_ses'
 /** Set by a tracked email or WhatsApp link for the landing page's beacon to pick up. */
 export const MARKETING_CLICK_COOKIE = 'wc_mk'
+/** Set by a short link (`/l/<slug>`) for the landing page's beacon: the link's id only. */
+export const LINK_CLICK_COOKIE = 'wc_lk'
 
 export const ATTRIBUTION_MAX_AGE = 60 * 60 * 24 * 30
 export const SESSION_MAX_AGE = 30 * 60
@@ -34,6 +36,11 @@ export function decodeMarketingClick(raw: string | undefined): MarketingClick | 
     campaignId: c && UUID.test(c) ? c : undefined,
     automationId: a && UUID.test(a) ? a : undefined,
   }
+}
+
+/** The short link a visit came through, from `wc_lk`; anything but a UUID is ignored. */
+export function decodeLinkClick(raw: string | undefined): string | null {
+  return raw && UUID.test(raw) ? raw : null
 }
 
 /** The shopper's current touch, for server actions that create carts. */
