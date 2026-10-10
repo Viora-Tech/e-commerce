@@ -187,6 +187,15 @@ export async function commitTemplateDrafts(tx: StoreTx, themeId: string): Promis
   return rows.length
 }
 
+/** Themes with Customize edits not saved yet (the library's "Unsaved changes" chip). */
+export async function themesWithDrafts(tx: StoreTx): Promise<Set<string>> {
+  const rows = await tx
+    .selectDistinct({ themeId: themeTemplate.themeId })
+    .from(themeTemplate)
+    .where(isNotNull(themeTemplate.draft))
+  return new Set(rows.map((r) => r.themeId))
+}
+
 /** Throws away every unsaved edit of the theme. */
 export async function discardTemplateDrafts(tx: StoreTx, themeId: string): Promise<void> {
   await tx

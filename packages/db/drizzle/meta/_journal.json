@@ -645,6 +645,13 @@
       "when": 1791629219677,
       "tag": "0096_fulfillment_orders",
       "breakpoints": true
+    },
+    {
+      "idx": 92,
+      "version": "7",
+      "when": 1791630372888,
+      "tag": "0097_theme_thumbnail",
+      "breakpoints": true
     }
   ]
 }

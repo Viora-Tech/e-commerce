@@ -12,6 +12,13 @@ export const themesContent = {
     current: 'Current theme',
     live: 'Live',
     lastSaved: (when: string) => `Last saved ${when.charAt(0).toLowerCase()}${when.slice(1)}`,
+    savedBy: (saved: string, who: string) => `${saved} by ${who}`,
+    sections: (count: number) =>
+      `${count} sections ready to use. Customize it, or preview how shoppers see it.`,
+    sectionsFallback: 'Customize it, or preview how shoppers see it.',
+    unsaved: 'Unsaved changes',
+    unsavedHelp:
+      'Edits in Customize that are not saved yet. Open Customize to save or discard them.',
     customize: 'Customize',
     preview: 'Preview',
     publish: 'Publish',
@@ -21,6 +28,7 @@ export const themesContent = {
     delete: 'Delete',
     actions: 'Theme actions',
     thumbnail: (name: string) => `${name} on your storefront`,
+    pictureHint: 'The picture updates each time you save the home page in Customize.',
     libraryHeading: 'Theme library',
     libraryBody: 'Themes you have added or copied. Publish one to make it live.',
     libraryEmpty: 'No other themes yet. Add one from a preset or duplicate the current theme.',

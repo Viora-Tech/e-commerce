@@ -24,6 +24,10 @@ export type ThemeRecord = {
   role: ThemeRole
   preset: string | null
   settings: Theme
+  /** The home page as a small webp (Customize takes it on Save); null until the first one. */
+  thumbnailUrl: string | null
+  /** Who saved it last, as their name (or email); null for themes saved before it was kept. */
+  updatedBy: string | null
   createdAt: Date
   updatedAt: Date
   publishedAt: Date | null
@@ -65,11 +69,16 @@ function toRecord(row: typeof theme.$inferSelect): ThemeRecord {
     role: row.role === 'main' ? 'main' : 'unpublished',
     preset: row.preset,
     settings: parseTheme(row.settings),
+    thumbnailUrl: row.thumbnailUrl,
+    updatedBy: row.updatedBy,
     createdAt: row.createdAt,
     updatedAt: row.updatedAt,
     publishedAt: row.publishedAt,
   }
 }
+
+/** The `updatedBy` column for a save; left alone when the caller does not say who. */
+const savedBy = (by: string | undefined) => (by ? { updatedBy: by } : {})
 
 function cleanName(name: string): string {
   const trimmed = name.trim().replace(/\s+/g, ' ')
@@ -153,6 +162,7 @@ export async function createThemeFromPreset(
   tx: StoreTx,
   storeId: string,
   input: { preset: ThemePresetId; name?: string | undefined },
+  by?: string,
 ): Promise<ThemeRecord> {
   await assertRoom(tx)
   const live = await ensureMainTheme(tx, storeId)
@@ -166,6 +176,7 @@ export async function createThemeFromPreset(
       role: 'unpublished',
       preset: input.preset,
       settings,
+      updatedBy: by ?? null,
     })
     .returning()
   if (!created) throw new Error('theme insert returned nothing')
@@ -179,23 +190,29 @@ export async function updateThemeSettings(
   tx: StoreTx,
   id: string,
   settings: unknown,
+  by?: string,
 ): Promise<ThemeRecord> {
   await mustGet(tx, id)
   const parsed = ThemeSchema.parse(settings)
   const [row] = await tx
     .update(theme)
-    .set({ settings: parsed, preset: parsed.preset, updatedAt: new Date() })
+    .set({ settings: parsed, preset: parsed.preset, updatedAt: new Date(), ...savedBy(by) })
     .where(eq(theme.id, id))
     .returning()
   if (!row) throw new ThemeLibraryError('THEME_NOT_FOUND', `No theme ${id}`)
   return toRecord(row)
 }
 
-export async function renameTheme(tx: StoreTx, id: string, name: string): Promise<ThemeRecord> {
+export async function renameTheme(
+  tx: StoreTx,
+  id: string,
+  name: string,
+  by?: string,
+): Promise<ThemeRecord> {
   await mustGet(tx, id)
   const [row] = await tx
     .update(theme)
-    .set({ name: cleanName(name), updatedAt: new Date() })
+    .set({ name: cleanName(name), updatedAt: new Date(), ...savedBy(by) })
     .where(eq(theme.id, id))
     .returning()
   if (!row) throw new ThemeLibraryError('THEME_NOT_FOUND', `No theme ${id}`)
@@ -207,6 +224,7 @@ export async function duplicateTheme(
   tx: StoreTx,
   storeId: string,
   id: string,
+  by?: string,
 ): Promise<ThemeRecord> {
   const source = await mustGet(tx, id)
   await assertRoom(tx)
@@ -219,6 +237,9 @@ export async function duplicateTheme(
       role: 'unpublished',
       preset: source.preset,
       settings: source.settings,
+      // Same look and templates, so the same picture until the copy is saved in Customize.
+      thumbnailUrl: source.thumbnailUrl,
+      updatedBy: by ?? null,
     })
     .returning()
   if (!created) throw new Error('theme insert returned nothing')
@@ -254,4 +275,21 @@ export async function deleteTheme(tx: StoreTx, id: string): Promise<void> {
     throw new ThemeLibraryError('THEME_LIVE', 'Publish another theme before deleting the live one')
   }
   await tx.delete(theme).where(eq(theme.id, id))
+}
+
+/**
+ * Stores the theme's home page picture. Not a save: "Last saved" and its author stay as they
+ * are, so a picture taken after Save never moves the library order.
+ */
+export async function setThemeThumbnail(tx: StoreTx, id: string, url: string): Promise<void> {
+  await mustGet(tx, id)
+  await tx.update(theme).set({ thumbnailUrl: url }).where(eq(theme.id, id))
+}
+
+/** Marks a theme saved now, by this member (Customize's Save of its templates). */
+export async function touchTheme(tx: StoreTx, id: string, by?: string): Promise<void> {
+  await tx
+    .update(theme)
+    .set({ updatedAt: new Date(), ...savedBy(by) })
+    .where(eq(theme.id, id))
 }

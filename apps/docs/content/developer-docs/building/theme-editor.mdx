@@ -21,6 +21,39 @@ flowchart LR
   store -->|onChange| drafts["useTemplateDrafts<br/>autosaved drafts"]
 ```
 
+## Themes page
+
+Online Store → Themes (`components/themes/themes-library.tsx`, Figma "Online store / Themes",
+309:19887) lists the live theme in `CurrentThemeCard` and the rest in `ThemeLibraryRow`s.
+`themes.list` returns each theme with three facts read once per list (`libraryFacts` in
+`packages/api/src/routers/themes.ts`): `imported`, `hasDraft` (any `theme_template.draft`, the
+"Unsaved changes" chip) and `sectionCount` (an imported theme's `sections/*.liquid`; our own
+themes show how many sections the Add panel offers, counted from `SECTION_CATEGORIES` on the
+server page).
+
+"Last saved by" is `theme.updated_by`: the member's name (or email) written by create,
+duplicate, rename, settings saves and `templates.commit` (which also bumps `updated_at` through
+`touchTheme`, so a content-only Save moves the theme up the library).
+
+### Thumbnails
+
+There is no headless browser in the stack, and none is needed: the Customize canvas is a
+same-origin iframe already drawing the home page. `lib/capture-theme-thumbnail.ts` draws its top
+16:10 into a 640 × 400 webp with modern-screenshot (the library "Report a bug" uses), leaving
+out Puck's overlays and every node below the fold, with a 4 s cap per image or font.
+`lib/use-theme-thumbnail.ts` sends it to `themes.thumbnail`:
+
+- after every Save while the canvas shows the default home template at desktop width;
+- once, 2.5 s after a theme with no picture opens on its saved home page, so existing themes get
+  one just by being opened.
+
+The server (`services/theme-thumbnail.service.ts`) accepts only a real WebP (RIFF/WEBP header)
+up to 256 KB, writes one object per theme (`stores/<store>/themes/<theme>/thumbnail.webp`,
+overwritten each time) through the store's storage provider, and stores its URL with `?v=<time>`
+in `theme.thumbnail_url`. Setting the picture is not a save: `updated_at` and `updated_by` stay.
+A duplicate starts with its source's picture. Until a theme has one, the live card falls back to
+the scaled storefront iframe and library rows to `ThemeSwatch`.
+
 ## Sections sidebar
 
 `SectionsTree` renders three `SectionGroup`s: **Header**, **Template**, **Footer**. Each group

@@ -10,7 +10,7 @@ import { formatWhen } from '@/lib/format-date'
 import { routes } from '@/lib/routes'
 import ThemeActionsMenu, { type ThemeAction } from './theme-actions-menu'
 import ThemeSwatch from './theme-swatch'
-import type { ThemeItem } from './theme-types'
+import { savedLine, type ThemeItem } from './theme-types'
 
 type ThemeLibraryRowProps = {
   theme: ThemeItem
@@ -20,9 +20,12 @@ type ThemeLibraryRowProps = {
   onAction: (action: ThemeAction) => void
 }
 
-const ACTIONS = ['rename', 'duplicate', 'download', 'delete'] as const
+const ACTIONS = ['duplicate', 'rename', 'download', 'delete'] as const
 
-/** One unpublished theme: swatch, name, last saved, then Publish, Customize and the kebab. */
+/**
+ * One unpublished theme: its home page picture (its colours until Customize takes one), name and
+ * chips, when and by whom it was saved, then Publish, Customize and the kebab.
+ */
 export default function ThemeLibraryRow({
   theme,
   busy,
@@ -36,15 +39,33 @@ export default function ThemeLibraryRow({
 
   // Render logic
   return (
-    <li className="flex flex-wrap items-center gap-4 px-5 py-4">
-      <ThemeSwatch theme={theme.settings} className="h-14 w-20 shrink-0 rounded-md" />
-      <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-        <span className="flex min-w-0 items-center gap-2">
+    <li className="flex flex-wrap items-center gap-x-4 gap-y-3 py-4">
+      <span className="flex aspect-[16/10] w-24 shrink-0 overflow-hidden rounded-lg border border-border bg-muted sm:w-28">
+        {theme.thumbnailUrl ? (
+          // biome-ignore lint/performance/noImgElement: a small stored webp from the store's storage.
+          <img
+            src={theme.thumbnailUrl}
+            alt={copy.thumbnail(theme.name)}
+            loading="lazy"
+            decoding="async"
+            className="size-full object-cover object-top"
+          />
+        ) : (
+          <ThemeSwatch theme={theme.settings} className="size-full rounded-lg border-0 p-2" />
+        )}
+      </span>
+      <div className="flex min-w-0 flex-1 basis-48 flex-col gap-1">
+        <span className="flex min-w-0 flex-wrap items-center gap-2">
           <span className="truncate text-body font-semibold text-foreground">{theme.name}</span>
-          {theme.imported ? <StatusChip>{importCopy.badge}</StatusChip> : null}
+          {theme.imported ? <StatusChip className="h-5 px-2">{importCopy.badge}</StatusChip> : null}
+          {theme.hasDraft ? (
+            <StatusChip tone="attention" className="h-5 px-2">
+              <span title={copy.unsavedHelp}>{copy.unsaved}</span>
+            </StatusChip>
+          ) : null}
         </span>
-        <span className="text-caption text-muted-foreground">
-          {copy.lastSaved(formatWhen(theme.updatedAt))}
+        <span className="text-caption font-normal text-muted-foreground">
+          {savedLine(copy, formatWhen(theme.updatedAt), theme.updatedBy)}
           {theme.imported ? (
             <>
               {' · '}
