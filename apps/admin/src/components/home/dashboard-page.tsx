@@ -2,7 +2,6 @@ import type { DashboardChartsData, DashboardSummary } from '@commerce/api'
 import PageBody from '@/components/layout/page-body'
 import AskAiCard from './ask-ai-card'
 import ChartsPanel from './charts/charts-panel'
-import HoursHeatmap from './charts/hours-heatmap'
 import PaymentStatusDonuts from './charts/payment-status-donuts'
 import SalesByStateChart from './charts/sales-by-state-chart'
 import FinishSetup from './finish-setup'
@@ -71,7 +70,6 @@ export default function DashboardPage({
           <PaymentStatusDonuts paymentMix={summary.paymentMix} statusMix={summary.statusMix} />
           <SalesByStateChart salesByState={summary.salesByState} />
         </div>
-        <HoursHeatmap hoursHeatmap={summary.hoursHeatmap} />
         <SalesGoalRing month={summary.month} />
       </MoreNumbers>
     </PageBody>
