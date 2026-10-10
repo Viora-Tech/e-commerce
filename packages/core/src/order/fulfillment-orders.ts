@@ -395,7 +395,8 @@ export async function soleFulfillmentOrder(
 
 /**
  * Remove an order's parcels before its lines are deleted (a failed checkout undone, an
- * imported order rewritten). Shipments that pointed at them keep their order and lose the link.
+ * imported order rewritten). Shipments and invoices that pointed at them keep their order and
+ * lose the link.
  */
 export async function deleteFulfillmentOrders(tx: StoreTx, orderId: string): Promise<void> {
   const ids = (
@@ -409,5 +410,12 @@ export async function deleteFulfillmentOrders(tx: StoreTx, orderId: string): Pro
     .update(shipment)
     .set({ fulfillmentOrderId: null })
     .where(inArray(shipment.fulfillmentOrderId, ids))
+  // GST invoices (an app's table, same database) keep their order and lose the parcel link.
+  await tx.execute(
+    sql`update invoice set fulfillment_order_id = null where fulfillment_order_id in (${sql.join(
+      ids.map((id) => sql`${id}`),
+      sql`, `,
+    )})`,
+  )
   await tx.delete(fulfillmentOrder).where(inArray(fulfillmentOrder.id, ids))
 }

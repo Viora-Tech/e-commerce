@@ -24,6 +24,7 @@ import {
   writeLines,
 } from './issue'
 import { takeNumber } from './numbers'
+import { invoiceParcels } from './parcels'
 import { assertPeriodOpen, PeriodError } from './periods'
 import { gstToken, orderIssuer, sameRegistration } from './registration'
 import { invoice, invoiceSequence } from './schema'
@@ -58,17 +59,19 @@ export async function isPreorder(tx: StoreTx, orderId: string, tag: string): Pro
 
 /**
  * Put an order in the queue when the rule says it is due (or when the
- * merchant adds it by hand). Idempotent: an order has at most one live tax
- * invoice, draft or issued. A dispatch on an existing draft records the
- * dispatch date, which becomes the default invoice date.
+ * merchant adds it by hand): one draft per parcel, each under its parcel's
+ * GSTIN (parcels.ts). Idempotent: a parcel has at most one live tax invoice,
+ * draft or issued. A dispatch on an existing draft records the dispatch date,
+ * which becomes the default invoice date. Returns every parcel's invoice; empty
+ * when the order is not due yet or sold only gift cards.
  */
-export async function enqueueOrder(
+export async function enqueueOrderParcels(
   tx: StoreTx,
   storeId: string,
   orderId: string,
   reason: QueueReason,
   at: Date = new Date(),
-): Promise<{ row: InvoiceRow; created: boolean } | null> {
+): Promise<{ row: InvoiceRow; created: boolean }[]> {
   const settings = await loadSettings(tx, storeId)
   if (await soldOnlyGiftCards(tx, orderId)) {
     if (reason === 'manual') {
@@ -77,52 +80,86 @@ export async function enqueueOrder(
         'This order only sold gift cards. A gift card is a voucher: GST is charged when it is redeemed, so there is no tax invoice at sale.',
       )
     }
-    return null
+    return []
   }
-  const prior = await existing(tx, orderId, 'tax_invoice')
-  if (prior) {
-    if (reason === 'fulfilled' && prior.status === 'draft' && !prior.dispatchedAt) {
-      const [row] = await tx
-        .update(invoice)
-        .set({ dispatchedAt: at, eligibleAt: prior.eligibleAt ?? at, updatedAt: new Date() })
-        .where(eq(invoice.id, prior.id))
-        .returning()
-      return { row: row ?? prior, created: false }
+  const parcels = await invoiceParcels(tx, storeId, orderId)
+  // An order with no parcel at all (nothing to ship) is still invoiced as a whole.
+  const targets: { id: string | null; gstRegistrationId: string | null }[] = parcels.length
+    ? parcels
+    : [{ id: null, gstRegistrationId: null }]
+  let due: boolean | null = null
+  const isDue = async () => {
+    if (reason === 'manual') {
+      if (!settings.documents.tax_invoice.enabled) {
+        throw new InvoiceError(
+          'disabled',
+          'Tax invoices are switched off in the GST invoices settings',
+        )
+      }
+      return true
     }
-    return { row: prior, created: false }
+    const pre = await isPreorder(tx, orderId, settings.preorderTag)
+    return isEligible(settings, reason, pre)
   }
-  if (reason !== 'manual') {
-    if (reason === 'paid' || reason === 'fulfilled') {
-      const pre = await isPreorder(tx, orderId, settings.preorderTag)
-      if (!isEligible(settings, reason, pre)) return null
+  const results: { row: InvoiceRow; created: boolean }[] = []
+  for (const parcel of targets) {
+    const prior = await existing(tx, orderId, 'tax_invoice', parcel.id)
+    if (prior) {
+      if (reason === 'fulfilled' && prior.status === 'draft' && !prior.dispatchedAt) {
+        const [row] = await tx
+          .update(invoice)
+          .set({ dispatchedAt: at, eligibleAt: prior.eligibleAt ?? at, updatedAt: new Date() })
+          .where(eq(invoice.id, prior.id))
+          .returning()
+        results.push({ row: row ?? prior, created: false })
+      } else {
+        results.push({ row: prior, created: false })
+      }
+      continue
     }
-  } else if (!settings.documents.tax_invoice.enabled) {
-    throw new InvoiceError('disabled', 'Tax invoices are switched off in the GST invoices settings')
+    due ??= await isDue()
+    if (!due) continue
+    const issuer = await orderIssuer(tx, orderId, parcel.gstRegistrationId)
+    const draft = await orderSnapshot(
+      tx,
+      storeId,
+      orderId,
+      'tax_invoice',
+      null,
+      at,
+      settings,
+      undefined,
+      null,
+      issuer,
+      parcel.id,
+    )
+    const row = await insertDocument(tx, storeId, draft, {
+      gstRegistrationId: issuer?.id ?? null,
+      fulfillmentOrderId: parcel.id,
+      status: 'draft',
+      eligibleAt: at,
+      dispatchedAt: reason === 'fulfilled' ? at : null,
+    })
+    if (row) {
+      results.push({ row, created: true })
+      continue
+    }
+    const raced = await existing(tx, orderId, 'tax_invoice', parcel.id)
+    if (raced) results.push({ row: raced, created: false })
   }
-  const issuer = await orderIssuer(tx, orderId)
-  const draft = await orderSnapshot(
-    tx,
-    storeId,
-    orderId,
-    'tax_invoice',
-    null,
-    at,
-    settings,
-    undefined,
-    null,
-    issuer,
-  )
-  const row = await insertDocument(tx, storeId, draft, {
-    gstRegistrationId: issuer?.id ?? null,
-    status: 'draft',
-    eligibleAt: at,
-    dispatchedAt: reason === 'fulfilled' ? at : null,
-  })
-  if (!row) {
-    const raced = await existing(tx, orderId, 'tax_invoice')
-    return raced ? { row: raced, created: false } : null
-  }
-  return { row, created: true }
+  return results
+}
+
+/** `enqueueOrderParcels` for an order with one parcel: its invoice, or null when not due. */
+export async function enqueueOrder(
+  tx: StoreTx,
+  storeId: string,
+  orderId: string,
+  reason: QueueReason,
+  at: Date = new Date(),
+): Promise<{ row: InvoiceRow; created: boolean } | null> {
+  const [first] = await enqueueOrderParcels(tx, storeId, orderId, reason, at)
+  return first ?? null
 }
 
 /** Take an order out of the queue. Only drafts: an issued number is never deleted. */
@@ -216,7 +253,7 @@ export async function issueDrafts(
     if (item.invoiceDate.getTime() > now.getTime() + 60_000) {
       throw new InvoiceError('invalid', 'An invoice cannot be dated in the future')
     }
-    // The order's GSTIN numbers it, and that GSTIN's return month must be open.
+    // The parcel's GSTIN (the draft's own) numbers it, and that GSTIN's return month must be open.
     const issuer = await orderIssuer(tx, row.orderId, row.gstRegistrationId)
     const registrationId = issuer?.id ?? null
     try {
@@ -239,6 +276,7 @@ export async function issueDrafts(
           row.buyerGstin,
           draft.exportSupply,
           issuer,
+          row.fulfillmentOrderId,
         )
       : draft
     const series = pickSeries(settings.series, 'tax_invoice', seriesContextOf(doc))

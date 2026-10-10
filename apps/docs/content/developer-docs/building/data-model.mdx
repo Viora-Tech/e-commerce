@@ -287,6 +287,16 @@ parcel the figures are exactly the order-level ones.
 - A document is issued by the order's GSTIN (`orderIssuer`: a draft's own, else
   `order.gst_registration_id`, else the default). Credit notes and refund vouchers use the
   original document's GSTIN, even after it is cancelled (`documentIssuer`).
+- **One tax invoice per parcel** (0100). `invoice.fulfillment_order_id` names the parcel a tax
+  invoice bills; `invoice_order_kind_live` is unique per order, parcel and kind. The queue makes a
+  draft per live parcel under the parcel's GSTIN (`enqueueOrderParcels`;
+  `packages/plugin-gst-invoices/src/parcels.ts`); its document prints the parcel's units and the
+  money and GST checkout stored on the parcel, or for a parcel without them its goods-value share
+  of the order's discount, fee and shipping. A composition GSTIN's parcel prints a bill of supply.
+  Order confirmations, packing slips and vouchers stay per order (null parcel). A receipt
+  voucher's advance is cited on one parcel invoice only. Credit notes on an order with more than
+  one issued invoice refuse for now (`InvoiceError('invalid')`): allocating a refund per GSTIN is
+  the next step.
 - The seller block is the app's own (`settings.seller`) when it is that GSTIN's, so a
   single-GSTIN store prints what it always did; any other GSTIN prints its business's PAN name
   and its registration's legal address.
