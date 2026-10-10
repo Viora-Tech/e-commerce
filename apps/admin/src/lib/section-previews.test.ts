@@ -23,7 +23,8 @@ describe('section pictures (bun run section-previews)', () => {
 
   it('lists only sections the Add panel offers, each with a sane shape', () => {
     for (const [type, ratio] of Object.entries(SECTION_PREVIEWS)) {
-      expect(ADDABLE.has(type), type).toBe(true)
+      // Style pictures are named `<Type>--<style>`; the type part must be addable.
+      expect(ADDABLE.has(type.split('--')[0] ?? type), type).toBe(true)
       expect(ratio).toBeGreaterThan(0)
       expect(ratio).toBeLessThanOrEqual(0.75)
     }
