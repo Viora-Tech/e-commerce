@@ -1,4 +1,4 @@
-# AWS CodeBuild spec: build the Vextro app images on ARM, push to ECR, then roll them out
+# AWS CodeBuild spec: build the Vextro app images on x86 (amd64), push to ECR, then roll them out
 # through the Dokploy API. Nothing secret is baked into an image. Setup: deploy/codebuild/README.md.
 #
 # Plain environment variables set on the CodeBuild project:

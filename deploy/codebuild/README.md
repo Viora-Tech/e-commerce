@@ -1,6 +1,6 @@
 # Builds on CodeBuild
 
-CodeBuild (ARM) builds the `worker`, `admin` and `storefront` images, pushes them to ECR, then
+CodeBuild (x86) builds the `worker`, `admin` and `storefront` images, pushes them to ECR, then
 calls the Dokploy API to deploy each changed app one at a time (worker first, it runs
 migrations). The server stops building. Full guide, switch steps, rollback and cost:
 `apps/docs/content/developer-docs/operations/codebuild.mdx`.
@@ -67,12 +67,12 @@ aws iam put-role-policy --role-name vextro-codebuild --policy-name build --polic
 # 4. GitHub access: create a CodeConnections connection once in the console (Developer Tools >
 #    Connections > GitHub), authorise it, and note its ARN (CONNECTION_ARN). Needed for private repos.
 
-# 5. The project: ARM large (8 GB, admin needs > 4 GB), privileged for Docker, full git history
+# 5. The project: x86 large (15 GB, admin needs > 4 GB), privileged for Docker, full git history
 aws codebuild create-project --region $AWS_REGION --name vextro-images \
   --source "type=GITHUB,location=$GITHUB_REPO,gitCloneDepth=0,buildspec=deploy/codebuild/buildspec.yml,auth={type=CODECONNECTIONS,resource=$CONNECTION_ARN}" \
   --source-version dev \
   --artifacts type=NO_ARTIFACTS \
-  --environment "type=ARM_CONTAINER,computeType=BUILD_GENERAL1_LARGE,image=aws/codebuild/amazonlinux-aarch64-standard:3.0,privilegedMode=true,environmentVariables=[{name=AWS_ACCOUNT_ID,value=$AWS_ACCOUNT_ID,type=PLAINTEXT},{name=ECR_PREFIX,value=$PREFIX,type=PLAINTEXT}]" \
+  --environment "type=LINUX_CONTAINER,computeType=BUILD_GENERAL1_LARGE,image=aws/codebuild/amazonlinux-x86_64-standard:5.0,privilegedMode=true,environmentVariables=[{name=AWS_ACCOUNT_ID,value=$AWS_ACCOUNT_ID,type=PLAINTEXT},{name=ECR_PREFIX,value=$PREFIX,type=PLAINTEXT}]" \
   --service-role arn:aws:iam::$AWS_ACCOUNT_ID:role/vextro-codebuild \
   --timeout-in-minutes 60
 
