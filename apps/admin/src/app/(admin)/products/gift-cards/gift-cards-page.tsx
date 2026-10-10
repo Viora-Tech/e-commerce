@@ -9,7 +9,7 @@ import { Kbd } from '@commerce/ui/shadcn/kbd'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@commerce/ui/shadcn/tooltip'
 import Link from 'next/link'
 import { parseAsInteger, parseAsString, parseAsStringLiteral, useQueryStates } from 'nuqs'
-import { Suspense, useEffect, useState } from 'react'
+import { Suspense, useEffect, useRef, useState } from 'react'
 import GiftCardProductDialog from '@/components/gift-cards/gift-card-product-dialog'
 import GiftCardProductsCard from '@/components/gift-cards/gift-card-products-card'
 import GiftCardSettingsCard from '@/components/gift-cards/gift-card-settings-card'
@@ -165,8 +165,15 @@ function GiftCardsContent({ initial }: { initial: GiftCardsInitial }) {
   const [products, setProducts] = useState<Products>(initial.products)
   const [loading, setLoading] = useState(false)
   const [productOpen, setProductOpen] = useState(false)
+  const hydrated = useRef(false)
+
   useEffect(() => {
-    if (sameListQuery({ page, query, status }, initial.query) && perPage === PER_PAGE) return
+    // The server's first page is used once; after any change (including back to the first
+    // tab) the list is fetched again, so it never keeps another tab's rows.
+    const firstRun = !hydrated.current
+    hydrated.current = true
+    if (firstRun && sameListQuery({ page, query, status }, initial.query) && perPage === PER_PAGE)
+      return
     let cancelled = false
     setLoading(true)
     fetchCards({ page, perPage, query, status })

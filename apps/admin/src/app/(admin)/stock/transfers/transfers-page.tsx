@@ -9,7 +9,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@commerce/ui/shadcn/too
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { parseAsInteger, parseAsString, parseAsStringLiteral, useQueryStates } from 'nuqs'
-import { Suspense, useEffect, useState } from 'react'
+import { Suspense, useEffect, useRef, useState } from 'react'
 import AddLocationDialog from '@/components/inventory/add-location-dialog'
 import type { StoreLocation } from '@/components/inventory/location-select'
 import PillTabs from '@/components/layout/pill-tabs'
@@ -57,8 +57,14 @@ function TransfersContent({ initial }: { initial: TransfersInitial }) {
   const [loading, setLoading] = useState(false)
   const [adding, setAdding] = useState(false)
 
+  const hydrated = useRef(false)
+
   useEffect(() => {
-    if (sameListQuery(q, initial.query) && q.perPage === PER_PAGE) return
+    // The server's first page is used once; after any change (including back to the first
+    // tab) the list is fetched again, so it never keeps another tab's rows.
+    const firstRun = !hydrated.current
+    hydrated.current = true
+    if (firstRun && sameListQuery(q, initial.query) && q.perPage === PER_PAGE) return
     let cancelled = false
     setLoading(true)
     api.transfers

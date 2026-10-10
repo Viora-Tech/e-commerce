@@ -10,7 +10,7 @@ import {
 } from '@commerce/ui/shadcn/dropdown-menu'
 import Link from 'next/link'
 import { parseAsInteger, parseAsString, parseAsStringLiteral, useQueryStates } from 'nuqs'
-import { Suspense, useEffect, useState } from 'react'
+import { Suspense, useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
 import { type CustomerRow, customerColumns } from '@/components/customers/customer-columns'
 import CustomerFilters, {
@@ -95,13 +95,19 @@ function CustomersContent({ initial }: { initial: CustomersInitial }) {
   const [tagAction, setTagAction] = useState<'add' | 'remove' | null>(null)
   const [tagIds, setTagIds] = useState<string[]>([])
   const [reloadKey, setReloadKey] = useState(0)
+  const hydrated = useRef(false)
+
   useEffect(() => {
     const untouched =
       sameListQuery({ page, query, status }, initial.query) &&
       perPage === initial.perPage &&
       !hasCustomerFilters(filters) &&
       reloadKey === 0
-    if (untouched) return
+    // The server's first page is used once; after any change (including back to the first
+    // tab) the list is fetched again, so it never keeps another tab's rows.
+    const firstRun = !hydrated.current
+    hydrated.current = true
+    if (firstRun && untouched) return
     let cancelled = false
     setLoading(true)
     setFailed(false)

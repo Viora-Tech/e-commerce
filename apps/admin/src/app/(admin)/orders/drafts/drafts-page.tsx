@@ -6,7 +6,7 @@ import { Kbd } from '@commerce/ui/shadcn/kbd'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@commerce/ui/shadcn/tooltip'
 import Link from 'next/link'
 import { parseAsInteger, parseAsString, parseAsStringLiteral, useQueryStates } from 'nuqs'
-import { Suspense, useEffect, useState } from 'react'
+import { Suspense, useEffect, useRef, useState } from 'react'
 import CustomerAvatar from '@/components/customers/customer-avatar'
 import PillTabs from '@/components/layout/pill-tabs'
 import StatTile from '@/components/layout/stat-tile'
@@ -111,11 +111,20 @@ function DraftsContent({ initial }: { initial: DraftsInitial }) {
   const [total, setTotal] = useState(initial.result.total)
   const [loading, setLoading] = useState(false)
 
+  const hydrated = useRef(false)
+
   useEffect(() => {
     const size = parseRowsPerPage(rawPerPage)
-    if (size === initial.perPage && sameListQuery({ page, query, status }, initial.query)) {
+    // The server's first page is used once; after any change (including back to the first
+    // tab) the list is fetched again, so it never keeps another tab's rows.
+    const firstRun = !hydrated.current
+    hydrated.current = true
+    if (
+      firstRun &&
+      size === initial.perPage &&
+      sameListQuery({ page, query, status }, initial.query)
+    )
       return
-    }
     let cancelled = false
     setLoading(true)
     api.orders
