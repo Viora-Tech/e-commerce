@@ -10,9 +10,19 @@ import StatsCounter from '../components/sections/stats-counter'
 import TestimonialMarquee from '../components/sections/testimonial-marquee'
 import VideoHero from '../components/sections/video-hero'
 import { modernSectionsContent as copy } from '../data/modern-sections'
-import { type Frame, framed, type Image, imageField, type Link, linkField, noImage } from './framed'
+import {
+  type Frame,
+  framed,
+  type Image,
+  imageField,
+  inlineLinkField,
+  type Link,
+  linkField,
+  noImage,
+} from './framed'
+import { inlineRichtext, inlineText, inlineTextarea } from './inline-fields'
 
-const heading = { type: 'text', label: 'Heading' } as const
+const heading = inlineText('Heading')
 const noLink: Link = { label: '', href: '' }
 
 export type ModernProps = {
@@ -78,9 +88,9 @@ export function modernSections(): ModernConfig {
       'Spotlight hero',
       {
         heading,
-        text: { type: 'textarea', label: 'Text' },
-        primary: linkField('Primary button'),
-        secondary: linkField('Secondary button'),
+        text: inlineRichtext('Text'),
+        primary: inlineLinkField('Primary button'),
+        secondary: inlineLinkField('Secondary button'),
       },
       {
         heading: copy.spotlightHero.heading,
@@ -101,10 +111,10 @@ export function modernSections(): ModernConfig {
     SplitHero: framed<ModernProps['SplitHero']>(
       'Split hero',
       {
-        eyebrow: { type: 'text', label: 'Eyebrow' },
+        eyebrow: inlineText('Eyebrow'),
         heading,
-        text: { type: 'textarea', label: 'Text' },
-        button: linkField(),
+        text: inlineRichtext('Text'),
+        button: inlineLinkField(),
         image: imageField(),
         imageFirst: {
           type: 'radio',
@@ -133,8 +143,8 @@ export function modernSections(): ModernConfig {
         poster: imageField('Poster image'),
         overlayOpacity: { type: 'number', label: 'Overlay opacity (%)', min: 0, max: 90 },
         heading,
-        text: { type: 'textarea', label: 'Text' },
-        button: linkField(),
+        text: inlineRichtext('Text'),
+        button: inlineLinkField(),
       },
       {
         videoUrl: '',
@@ -165,8 +175,8 @@ export function modernSections(): ModernConfig {
           label: 'Tiles',
           getItemSummary: (t: { title?: string }) => t.title || 'Tile',
           arrayFields: {
-            title: { type: 'text', label: 'Title' },
-            text: { type: 'textarea', label: 'Text' },
+            title: inlineText('Title'),
+            text: inlineRichtext('Text'),
             image: imageField(),
             size: {
               type: 'select',
@@ -225,9 +235,9 @@ export function modernSections(): ModernConfig {
           label: 'Testimonials',
           getItemSummary: (t: { author?: string }) => t.author || 'Testimonial',
           arrayFields: {
-            quote: { type: 'textarea', label: 'Quote' },
-            author: { type: 'text', label: 'Name' },
-            role: { type: 'text', label: 'Detail' },
+            quote: inlineTextarea('Quote'),
+            author: inlineText('Name'),
+            role: inlineText('Detail'),
           },
         },
       },
@@ -248,9 +258,9 @@ export function modernSections(): ModernConfig {
           getItemSummary: (s: { label?: string }) => s.label || 'Stat',
           arrayFields: {
             value: { type: 'number', label: 'Value' },
-            prefix: { type: 'text', label: 'Prefix' },
-            suffix: { type: 'text', label: 'Suffix' },
-            label: { type: 'text', label: 'Label' },
+            prefix: inlineText('Prefix'),
+            suffix: inlineText('Suffix'),
+            label: inlineText('Label'),
           },
         },
       },
@@ -262,14 +272,14 @@ export function modernSections(): ModernConfig {
       'FAQ accordion',
       {
         heading,
-        intro: { type: 'textarea', label: 'Side intro (desktop)' },
+        intro: inlineRichtext('Side intro (desktop)'),
         items: {
           type: 'array',
           label: 'Questions',
           getItemSummary: (q: { question?: string }) => q.question || 'Question',
           arrayFields: {
-            question: { type: 'text', label: 'Question' },
-            answer: { type: 'textarea', label: 'Answer' },
+            question: inlineText('Question'),
+            answer: inlineRichtext('Answer'),
           },
         },
         multiOpen: {
@@ -296,9 +306,9 @@ export function modernSections(): ModernConfig {
       'CTA banner with glow',
       {
         heading,
-        text: { type: 'textarea', label: 'Text' },
-        button: linkField('Primary button'),
-        secondaryButton: linkField('Secondary button'),
+        text: inlineRichtext('Text'),
+        button: inlineLinkField('Primary button'),
+        secondaryButton: inlineLinkField('Secondary button'),
       },
       {
         heading: copy.ctaBanner.heading,
@@ -335,7 +345,7 @@ export function modernSections(): ModernConfig {
           getItemSummary: (i: { caption?: string }) => i.caption || 'Image',
           arrayFields: {
             image: imageField(),
-            caption: { type: 'text', label: 'Caption' },
+            caption: inlineText('Caption'),
             link: linkField('Link'),
           },
         },

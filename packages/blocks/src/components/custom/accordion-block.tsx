@@ -1,8 +1,10 @@
+import type { ReactNode } from 'react'
 import { asSlot } from '../../slot-types'
 import ElementBox from './element-box'
 
 export type AccordionProps = {
-  items: { title: string; open: boolean; content: unknown }[]
+  /** `title` is a string in storage, a React node while edited on the canvas. */
+  items: { title: ReactNode; open: boolean; content: unknown }[]
   allowMultiple: boolean
   style: unknown
 }

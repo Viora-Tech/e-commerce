@@ -1,7 +1,9 @@
+import type { ReactNode } from 'react'
 import ElementBox from './element-box'
 
 export type HeadingProps = {
-  text: string
+  /** A string in storage, a React node while edited on the canvas. */
+  text: ReactNode
   level: 'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6'
   style: unknown
 }

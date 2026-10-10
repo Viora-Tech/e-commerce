@@ -1,4 +1,4 @@
-import { migrateSectionSettings } from '@commerce/blocks/puck'
+import { migrateSectionSettings, richtextFromLexical } from '@commerce/blocks/puck'
 import type { TemplateData, TemplateSection } from '@commerce/core/theme'
 import type { Config } from '@puckeditor/core'
 
@@ -62,7 +62,10 @@ export function locateSection(
 }
 
 const withDefaults = (sections: TemplateSection[], config: Config): TemplateSection[] =>
-  sections.map((s) => {
+  sections.map((stored) => {
+    // Body copy saved by the retired Lexical field becomes the HTML Puck's richtext field
+    // edits (slots included), so the next save stores HTML (`@commerce/blocks` lexical-html).
+    const s = { ...stored, props: richtextFromLexical(stored.props) }
     const defaults = config.components[s.type]?.defaultProps as Record<string, unknown> | undefined
     if (!defaults) return s
     const merged = { ...defaults, ...s.props }

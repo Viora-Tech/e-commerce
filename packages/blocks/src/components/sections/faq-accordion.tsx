@@ -1,15 +1,17 @@
 'use client'
 
 // Pattern after shadcnblocks' FAQ accordion (our own implementation). See THIRD_PARTY_NOTICES.md.
-import { useEffect, useRef, useState } from 'react'
+import { type ReactNode, useEffect, useRef, useState } from 'react'
 import { loadMotion } from '../../lazy-motion'
 import { useReducedMotion } from '../../use-reduced-motion'
+import RichCopy from '../rich-copy'
 
-type FaqItem = { question: string; answer: string }
+/** Copy is a string in storage, a React node while edited on the canvas. */
+type FaqItem = { question: ReactNode; answer: ReactNode }
 
 type FaqAccordionProps = {
-  heading: string
-  intro: string
+  heading: ReactNode
+  intro: ReactNode
   items: FaqItem[]
   multiOpen: boolean
 }
@@ -18,7 +20,7 @@ type FaqPanelProps = {
   id: string
   labelledBy: string
   open: boolean
-  answer: string
+  answer: ReactNode
   /** Called once a closing panel has finished its exit, so the parent can unmount it. */
   onExited: () => void
 }
@@ -58,7 +60,7 @@ export default function FaqAccordion({ heading, intro, items, multiOpen }: FaqAc
     <div className="page-width grid grid-cols-1 gap-[2rem] md:grid-cols-[1fr_2fr]">
       <div>
         {heading ? <h2 className="h2 text-[var(--color-ink)]">{heading}</h2> : null}
-        {intro ? <p className="text-body mt-[0.75rem] text-[var(--color-muted)]">{intro}</p> : null}
+        <RichCopy value={intro} className="text-body mt-[0.75rem] text-[var(--color-muted)]" />
       </div>
       <div className="divide-y divide-[var(--color-line)] border-y border-[var(--color-line)]">
         {items.map((item, i) => {
@@ -67,7 +69,7 @@ export default function FaqAccordion({ heading, intro, items, multiOpen }: FaqAc
           const buttonId = `faq-button-${i}`
           return (
             // biome-ignore lint/suspicious/noArrayIndexKey: merchant-edited rows carry no id and never reorder between renders.
-            <div key={`${item.question}-${i}`}>
+            <div key={i}>
               <button
                 type="button"
                 id={buttonId}
@@ -163,7 +165,7 @@ function FaqPanel({ id, labelledBy, open, answer, onExited }: FaqPanelProps) {
   return (
     // biome-ignore lint/a11y/useSemanticElements: the same div + role the Motion version rendered; a <section> would pick up the theme's section styles.
     <div id={id} role="region" aria-labelledby={labelledBy} ref={ref} className="overflow-hidden">
-      <p className="text-body pb-[1rem] text-[var(--color-muted)]">{answer}</p>
+      <RichCopy value={answer} className="text-body pb-[1rem] text-[var(--color-muted)]" />
     </div>
   )
 }

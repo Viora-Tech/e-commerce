@@ -1,7 +1,6 @@
 import { type AppBlockOwner, type CardProduct, createBlocksConfig } from '@commerce/blocks/puck'
 import { applyBindings, isBinding } from '@commerce/core/dynamic-sources'
 import { GROUP_SECTIONS, SINGLE_SECTIONS } from '@commerce/core/theme'
-import { RichTextEditor } from '@commerce/editor'
 import { type ComponentConfig, type Config, DropZone } from '@puckeditor/core'
 import type { ReactNode } from 'react'
 import DynamicSourceSection from '@/components/themes/customize/dynamic-source-section'
@@ -107,7 +106,6 @@ export function createCustomizeConfig(
       )
     },
     {
-      RichTextEditor,
       loadArticles: (query) => api.blog.recent(query),
       loadCollections: async (handles) => {
         const all = await api.collections.list()

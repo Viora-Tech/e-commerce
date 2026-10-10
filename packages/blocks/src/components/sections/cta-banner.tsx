@@ -2,16 +2,18 @@
 
 // Adapted from Magic UI's Shine Border (MIT). See THIRD_PARTY_NOTICES.md and
 // packages/blocks/THIRD_PARTY_LICENSES.md.
-import { useEffect, useRef } from 'react'
+import { type ReactNode, useEffect, useRef } from 'react'
 import { loadMotion } from '../../lazy-motion'
 import { linkTarget } from '../../link'
 import type { Link } from '../../sections/framed'
 import { safeHref } from '../../slot-types'
 import { useReducedMotion } from '../../use-reduced-motion'
+import RichCopy from '../rich-copy'
 
+/** Copy is a string in storage, a React node while edited on the canvas. */
 type CtaBannerProps = {
-  heading: string
-  text: string
+  heading: ReactNode
+  text: ReactNode
   button: Link
   secondaryButton: Link
 }
@@ -61,7 +63,7 @@ export default function CtaBanner({ heading, text, button, secondaryButton }: Ct
         )}
         <div className="relative flex flex-col items-center gap-[1rem] rounded-[calc(var(--radius-card)-2px)] bg-[var(--color-surface)] px-[2rem] py-[3rem] text-center">
           {heading ? <h2 className="h2 text-[var(--color-ink)]">{heading}</h2> : null}
-          {text ? <p className="text-body text-[var(--color-muted)]">{text}</p> : null}
+          <RichCopy value={text} className="text-body text-[var(--color-muted)]" />
           <div className="flex flex-wrap items-center justify-center gap-[0.75rem]">
             {button?.label ? (
               <a

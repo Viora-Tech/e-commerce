@@ -1,6 +1,13 @@
+import type { ReactNode } from 'react'
 import { videoEmbedUrl as embedUrl } from '../../video-url'
 
-type Props = { heading: string; url: string; poster: { url: string; alt: string }; empty: string }
+/** `heading` is a string in storage, a React node while edited on the canvas. */
+type Props = {
+  heading: ReactNode
+  url: string
+  poster: { url: string; alt: string }
+  empty: string
+}
 
 // Port of sections/video.liquid: an embedded or self-hosted video at 16:9.
 export default function Video({ heading, url, poster, empty }: Props) {
@@ -13,7 +20,7 @@ export default function Video({ heading, url, poster, empty }: Props) {
         {embed ? (
           <iframe
             src={embed}
-            title={heading || 'Video'}
+            title={typeof heading === 'string' && heading ? heading : 'Video'}
             loading="lazy"
             allow="autoplay; encrypted-media; picture-in-picture"
             allowFullScreen

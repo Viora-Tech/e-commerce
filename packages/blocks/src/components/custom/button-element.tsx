@@ -1,9 +1,11 @@
+import type { ReactNode } from 'react'
 import { linkTarget } from '../../link'
 import { cx, safeHref } from '../../slot-types'
 import ElementBox from './element-box'
 
 export type ButtonElementProps = {
-  button: { label: string; href: string; newTab?: boolean | undefined }
+  /** `label` is a string in storage, a React node while edited on the canvas. */
+  button: { label: ReactNode; href: string; newTab?: boolean | undefined }
   variant: 'primary' | 'secondary' | 'plain'
   fullWidth: boolean
   style: unknown

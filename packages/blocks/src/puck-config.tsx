@@ -1,4 +1,3 @@
-import type { RichTextValue } from '@commerce/richtext'
 import type { Config, Data } from '@puckeditor/core'
 import { type AppBlockOwner, type AppBlockSource, buildAppBlocks } from './app-blocks'
 import { type ArticleLoader, type BlogPostsProps, blogPostsBlock } from './blog-posts-block'
@@ -23,6 +22,7 @@ import {
   glideProductSections,
 } from './sections/glide-product'
 import { type HeroProps, heroBlock } from './sections/hero-block'
+import { inlineRichtextLong, inlineText } from './sections/inline-fields'
 import {
   type CollectionLoader,
   type LibraryProps,
@@ -31,11 +31,11 @@ import {
 } from './sections/library'
 import { liquidSectionConfig } from './sections/liquid'
 import { type ModernProps, modernSections } from './sections/modern'
-import { type RichTextFieldEditor, richTextField } from './sections/rich-text-field'
 import type { CardProduct } from './types'
 
 export type { ArticleLoader, BlogPostsProps } from './blog-posts-block'
 export type { NewsletterAction, NewsletterState } from './components/sections/newsletter'
+export { richtextFromLexical } from './lexical-html'
 export {
   defaultSectionSettings,
   type LegacySectionProps,
@@ -109,20 +109,15 @@ export type CollectionGridProps = Frame & {
 
 export type RichTextProps = Frame & {
   heading: string
-  /** Lexical JSON. Older pages may still hold a plain string; the block renders both. */
-  body: RichTextValue | string
+  /**
+   * Richtext HTML (Puck's Tiptap field). Older pages may still hold a plain string or Lexical
+   * JSON; `richtextHtml` renders all three and Customize converts them on load.
+   */
+  body: string | object
   align: 'left' | 'center'
 }
 
-export type { RichTextFieldEditor } from './sections/rich-text-field'
-
 export type BlocksConfigOptions = {
-  /**
-   * Editor for rich-text fields. Only the admin needs it; the storefront
-   * renders published data and never shows a field, so it leaves this out
-   * and keeps the client editor out of its bundle.
-   */
-  RichTextEditor?: RichTextFieldEditor | undefined
   /** Posts for the "Blog posts" block; without it the block renders nothing. */
   loadArticles?: ArticleLoader | undefined
   /** Collections for the collection list section. */
@@ -283,10 +278,10 @@ export function createBlocksConfig(
         loadArticles: options.loadArticles,
       }) as unknown as Pick<Config<BlockProps>['components'], keyof GlideProps>),
       ...(modernSections() as unknown as Pick<Config<BlockProps>['components'], keyof ModernProps>),
-      ...(customSections({
-        RichTextEditor: options.RichTextEditor,
-        loadProduct: options.loadProduct,
-      }) as unknown as Pick<Config<BlockProps>['components'], keyof CustomProps>),
+      ...(customSections({ loadProduct: options.loadProduct }) as unknown as Pick<
+        Config<BlockProps>['components'],
+        keyof CustomProps
+      >),
       ...(glideProductSections() as unknown as Pick<
         Config<BlockProps>['components'],
         keyof GlideProductProps
@@ -306,8 +301,8 @@ export function createBlocksConfig(
       FeaturedProducts: {
         label: 'Featured products',
         fields: {
-          kicker: { type: 'text', label: 'Kicker' },
-          heading: { type: 'text', label: 'Heading' },
+          kicker: inlineText('Kicker'),
+          heading: inlineText('Heading'),
           productType: { type: 'text', label: 'Product type (blank = all)' },
           limit: { type: 'number', label: 'Products', min: 1, max: 12 },
           ...frameFields,
@@ -348,7 +343,7 @@ export function createBlocksConfig(
       CollectionGrid: {
         label: 'Collection grid',
         fields: {
-          heading: { type: 'text', label: 'Heading' },
+          heading: inlineText('Heading'),
           collectionHandle: { type: 'text', label: 'Collection handle' },
           limit: { type: 'number', label: 'Products', min: 1, max: 24 },
           columns: { type: 'number', label: 'Columns', min: 2, max: 5 },
@@ -374,7 +369,15 @@ export function createBlocksConfig(
             <TabbedProducts
               heading={heading}
               columns={columns}
-              tabs={[{ label: heading, products: resolved ?? [] }]}
+              headingFollowsTab={false}
+              // The tab's name is also its panel's aria-label, so it needs the stored string;
+              // while the heading is edited on the canvas that is a node, and the handle stands in.
+              tabs={[
+                {
+                  label: typeof heading === 'string' ? heading : props.collectionHandle,
+                  products: resolved ?? [],
+                },
+              ]}
             />
           </SectionFrame>
         ),
@@ -385,8 +388,8 @@ export function createBlocksConfig(
       RichText: {
         label: 'Rich text',
         fields: {
-          heading: { type: 'text', label: 'Heading' },
-          body: richTextField(options.RichTextEditor),
+          heading: inlineText('Heading'),
+          body: inlineRichtextLong('Body'),
           align: {
             type: 'radio',
             label: 'Align',

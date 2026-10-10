@@ -1,15 +1,17 @@
-import type { CSSProperties } from 'react'
+import type { CSSProperties, ReactNode } from 'react'
 import { focalStyle } from '../../focal-point'
 import { linkTarget } from '../../link'
 import type { Image } from '../../sections/framed'
 import { safeHref } from '../../slot-types'
 import Picture from '../picture'
+import RichCopy from '../rich-copy'
 
 type Props = {
   image: Image
-  heading: string
-  text: string
-  button: { label: string; href: string }
+  /** Copy is a string in storage, a React node while edited on the canvas. */
+  heading: ReactNode
+  text: ReactNode
+  button: { label: ReactNode; href: string; newTab?: boolean | undefined }
   height: 'small' | 'medium' | 'large'
   align: 'left' | 'center'
   overlay: number
@@ -47,7 +49,7 @@ export default function ImageBanner({
       )}
       <div className="image-banner__content page-width">
         {heading ? <h2 className="h1">{heading}</h2> : null}
-        {text ? <p className="text-body">{text}</p> : null}
+        <RichCopy value={text} className="text-body" />
         {button.label ? (
           <a
             className="btn btn--primary"

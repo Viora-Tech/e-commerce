@@ -1,13 +1,14 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { type ReactNode, useEffect, useRef, useState } from 'react'
 // Adapted from Magic UI's Number Ticker (MIT). See THIRD_PARTY_NOTICES.md and
 // packages/blocks/THIRD_PARTY_LICENSES.md.
 import { useReducedMotion } from '../../use-reduced-motion'
 
-type Stat = { value: number; prefix: string; suffix: string; label: string }
+/** Copy is a string in storage, a React node while edited on the canvas. */
+type Stat = { value: number; prefix: ReactNode; suffix: ReactNode; label: ReactNode }
 
-type StatsCounterProps = { heading: string; stats: Stat[] }
+type StatsCounterProps = { heading: ReactNode; stats: Stat[] }
 
 const DURATION_MS = 1400
 
@@ -28,7 +29,7 @@ export default function StatsCounter({ heading, stats }: StatsCounterProps) {
       <div className="mt-[1.5rem] grid grid-cols-2 gap-[1.5rem] text-center md:grid-cols-4">
         {stats.map((stat, i) => (
           // biome-ignore lint/suspicious/noArrayIndexKey: merchant-edited rows carry no id and never reorder between renders.
-          <div key={`${stat.label}-${i}`} className="flex flex-col items-center gap-[0.25rem]">
+          <div key={i} className="flex flex-col items-center gap-[0.25rem]">
             <Counter stat={stat} />
             {stat.label ? (
               <p className="text-body text-[var(--color-muted)]">{stat.label}</p>

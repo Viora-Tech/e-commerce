@@ -19,7 +19,6 @@ import type { VideoElementProps } from '../components/custom/video-element'
 import { customElementBlocks, ELEMENT_BLOCKS, type ElementBlockType } from './custom-elements'
 import { customLayoutBlocks, LAYOUT_BLOCKS, type LayoutBlockType } from './custom-layout'
 import type { SingleProductLoader } from './library'
-import type { RichTextFieldEditor } from './rich-text-field'
 
 export { SLOT_DISALLOW } from './custom-fields'
 export { ELEMENT_BLOCKS, LAYOUT_BLOCKS }
@@ -47,7 +46,6 @@ export type CustomProps = {
 }
 
 type Options = {
-  RichTextEditor?: RichTextFieldEditor | undefined
   loadProduct?: SingleProductLoader | undefined
 }
 

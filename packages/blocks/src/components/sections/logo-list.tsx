@@ -1,8 +1,10 @@
+import type { ReactNode } from 'react'
 import { safeHref } from '../../slot-types'
 
 type Logo = { image: { url: string; alt: string }; href: string }
 
-type Props = { heading: string; logos: Logo[] }
+/** `heading` is a string in storage, a React node while edited on the canvas. */
+type Props = { heading: ReactNode; logos: Logo[] }
 
 // Port of the Glide logo list: a row of partner or press logos, optionally linked.
 export default function LogoList({ heading, logos }: Props) {

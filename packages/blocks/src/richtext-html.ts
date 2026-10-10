@@ -1,4 +1,5 @@
 import sanitizeHtml from 'sanitize-html'
+import { asLexical, lexicalToHtml } from './lexical-html'
 
 /**
  * SOURCE OF TRUTH KEYWORDS: richtextHtml, isRichtextHtml, RICHTEXT_TAGS, inline copy, Puck richtext
@@ -8,15 +9,37 @@ import sanitizeHtml from 'sanitize-html'
  * WHY:   Older theme docs hold plain strings in the same props (they were `text`/`textarea`
  *        fields). `richtextHtml` migrates them on read: escaped and split into paragraphs, the
  *        way Puck's own editor reads a tag-free string, so nothing is rewritten in the database
- *        and a saved section keeps rendering. HTML is always run through a small allow-list
- *        (inline marks, paragraphs, lists, links): the storefront draws sections outside Puck's
+ *        and a saved section keeps rendering. Copy saved by the retired Lexical field (JSON) is
+ *        read too, through `./lexical-html.ts`. HTML is always run through a small allow-list
+ *        (inline marks, paragraphs, short headings, quotes, lists, links): the storefront draws sections outside Puck's
  *        `<Render>`, so this is the only place merchant HTML is checked before it is shown.
  *        Deliberately narrower than the Embed element's list (`./embed-sanitize.ts`).
  * WHERE: `components/rich-copy.tsx` renders it; `sections/inline-fields.ts` declares the field.
  */
 
-/** Tags the Puck richtext menu can produce (B/I/U, lists, links, line breaks). */
-const RICHTEXT_TAGS = ['p', 'br', 'strong', 'b', 'em', 'i', 'u', 's', 'a', 'ul', 'ol', 'li']
+/**
+ * Tags the Puck richtext menu can produce (B/I/U, lists, links, line breaks), plus the
+ * headings, quotes and rules the long-form fields (`inlineRichtextLong`) allow.
+ */
+const RICHTEXT_TAGS = [
+  'p',
+  'br',
+  'strong',
+  'b',
+  'em',
+  'i',
+  'u',
+  's',
+  'a',
+  'ul',
+  'ol',
+  'li',
+  'h2',
+  'h3',
+  'h4',
+  'blockquote',
+  'hr',
+]
 
 const OPTIONS: sanitizeHtml.IOptions = {
   allowedTags: RICHTEXT_TAGS,
@@ -62,6 +85,8 @@ function plainToRichtextHtml(text: string): string {
 
 /** Any stored body-copy value as sanitised HTML; empty string for nothing to show. */
 export function richtextHtml(value: unknown): string {
+  const lexical = asLexical(value)
+  if (lexical) return sanitizeHtml(lexicalToHtml(lexical), OPTIONS)
   if (typeof value !== 'string' || !value.trim()) return ''
   if (!isRichtextHtml(value)) return plainToRichtextHtml(value)
   return sanitizeHtml(value, OPTIONS)

@@ -11,6 +11,7 @@ import {
 } from '../section-settings'
 import type { MediaImage } from '../types'
 import type { SectionMetadata } from './dynamic'
+import { inlineText } from './inline-fields'
 
 /**
  * Every section carries a `settings` object (layout/spacing/style/advanced —
@@ -63,6 +64,19 @@ export const linkField = (label = 'Button') =>
     label,
     objectFields: {
       label: { type: 'text', label: 'Label' },
+      href: { type: 'text', label: 'Link' },
+    },
+  }) as const
+/**
+ * A button whose label the merchant can also type into on the canvas: the label arrives as a
+ * React node while editing, so only use it where the label is drawn, never as an aria-label.
+ */
+export const inlineLinkField = (label = 'Button') =>
+  ({
+    type: 'object',
+    label,
+    objectFields: {
+      label: inlineText('Label'),
       href: { type: 'text', label: 'Link' },
     },
   }) as const

@@ -10,10 +10,19 @@ import Video from '../components/sections/video'
 import { sectionsContent as copy } from '../data/sections'
 import { defaultSectionSettings } from '../section-settings'
 import type { CardCollection, CardProduct } from '../types'
-import { type Frame, framed, type Image, imageField, type Link, linkField, noImage } from './framed'
+import {
+  type Frame,
+  framed,
+  type Image,
+  imageField,
+  inlineLinkField,
+  type Link,
+  noImage,
+} from './framed'
 import { type AnnouncementBarProps, announcementBarSection } from './glide/announcement-bar'
 import { type FeaturedProductProps, featuredProductSection } from './glide/featured-product'
 import { type NewsletterProps, newsletterSection } from './glide/newsletter'
+import { inlineRichtext, inlineText, inlineTextarea } from './inline-fields'
 
 /** Collections for the collection list section, in the order the handles were given. */
 export type CollectionLoader = (handles: string[]) => Promise<CardCollection[]>
@@ -66,7 +75,7 @@ type Loaders = {
 
 type LibraryConfig = Record<keyof LibraryProps, ComponentConfig>
 
-const heading = { type: 'text', label: 'Heading' } as const
+const heading = inlineText('Heading')
 
 export function librarySections(loaders: Loaders): LibraryConfig {
   return {
@@ -77,8 +86,8 @@ export function librarySections(loaders: Loaders): LibraryConfig {
       {
         image: imageField(),
         heading,
-        text: { type: 'textarea', label: 'Text' },
-        button: linkField(),
+        text: inlineRichtext('Text'),
+        button: inlineLinkField(),
         height: {
           type: 'select',
           label: 'Height',
@@ -127,8 +136,8 @@ export function librarySections(loaders: Loaders): LibraryConfig {
       {
         image: imageField(),
         heading,
-        text: { type: 'textarea', label: 'Text' },
-        button: linkField(),
+        text: inlineRichtext('Text'),
+        button: inlineLinkField(),
         imageFirst: {
           type: 'radio',
           label: 'Image position',
@@ -157,8 +166,8 @@ export function librarySections(loaders: Loaders): LibraryConfig {
           label: 'Columns',
           getItemSummary: (c: { title?: string }) => c.title || 'Column',
           arrayFields: {
-            title: { type: 'text', label: 'Title' },
-            text: { type: 'textarea', label: 'Text' },
+            title: inlineText('Title'),
+            text: inlineRichtext('Text'),
             image: imageField(),
           },
         },
@@ -215,9 +224,9 @@ export function librarySections(loaders: Loaders): LibraryConfig {
           label: 'Testimonials',
           getItemSummary: (t: { author?: string }) => t.author || 'Testimonial',
           arrayFields: {
-            quote: { type: 'textarea', label: 'Quote' },
-            author: { type: 'text', label: 'Name' },
-            role: { type: 'text', label: 'Detail' },
+            quote: inlineTextarea('Quote'),
+            author: inlineText('Name'),
+            role: inlineText('Detail'),
           },
         },
       },
@@ -252,8 +261,8 @@ export function librarySections(loaders: Loaders): LibraryConfig {
           label: 'Questions',
           getItemSummary: (q: { question?: string }) => q.question || 'Question',
           arrayFields: {
-            question: { type: 'text', label: 'Question' },
-            answer: { type: 'textarea', label: 'Answer' },
+            question: inlineText('Question'),
+            answer: inlineRichtext('Answer'),
           },
         },
       },
