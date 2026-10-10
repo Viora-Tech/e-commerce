@@ -33,6 +33,18 @@ export default [
       day: 'रोज़',
       week: 'हफ़्ते के हिसाब से',
       series: 'कमाई',
+      subtitle: (total: string, span: string, bestDay: string | null) =>
+        bestDay ? `${span} में ${total}, सबसे अच्छा दिन ${bestDay}` : `${span} में ${total}`,
+      spans: {
+        today: 'आज',
+        '7d': 'पिछले 7 दिन',
+        '30d': 'पिछले 30 दिन',
+        '90d': 'पिछले 90 दिन',
+        custom: 'इस रेंज',
+      },
+      export: 'एक्सपोर्ट',
+      exportFile: (from: string, to: string) => `sales-${from}-to-${to}.csv`,
+      exportHeaders: ['दिन', 'कमाई (INR)'],
     },
     topProducts: { title: 'टॉप प्रोडक्ट', empty: 'इस रेंज में अभी कोई बिक्री नहीं।', units: 'बिके' },
     byState: { title: 'राज्य के हिसाब से बिक्री', empty: 'इस रेंज में अभी कोई शिप ऑर्डर नहीं।' },
@@ -206,6 +218,9 @@ export default [
     },
     live: {
       title: 'लाइव व्यू',
+      people: (n: number) => `अभी आपके स्टोर पर ${n} लोग`,
+      pause: 'अपडेट रोकें',
+      resume: 'अपडेट फिर चालू करें',
       visitors: 'पिछले 30 मिनट के विज़िटर',
       perMinute: 'हर मिनट विज़िटर',
       activeCarts: 'पिछले घंटे के कार्ट',

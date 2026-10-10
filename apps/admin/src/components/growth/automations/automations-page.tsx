@@ -1,29 +1,22 @@
 'use client'
 
+import { siteConfig } from '@commerce/config/site'
 import { AUTOMATION_TEMPLATES, type AutomationTemplateId } from '@commerce/core/marketing'
-import { formatNumber } from '@commerce/money'
+import { Plus } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Card } from '@commerce/ui/shadcn/card'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@commerce/ui/shadcn/table'
-import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { toast } from 'sonner'
+import PillTabs from '@/components/layout/pill-tabs'
 import ProoflyListPage from '@/components/layout/proofly-list-page'
-import StatusChip from '@/components/layout/status-chip'
+import ResourceTable from '@/components/table/resource-table'
+import RowMenu from '@/components/table/row-menu'
 import { automationsContent } from '@/data/marketing-automations'
-import { campaignReportContent } from '@/data/marketing-campaigns'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
-import { formatPaise } from '@/lib/money'
 import { routes } from '@/lib/routes'
+import { automationColumns } from './automation-columns'
 
 type Item = Awaited<ReturnType<typeof api.marketing.automations.list>>[number]
 
@@ -35,6 +28,10 @@ export default function AutomationsPage({ automations }: AutomationsPageProps) {
   const copy = useCopy(automationsContent)
   const router = useRouter()
   const [busy, setBusy] = useState<string | null>(null)
+  const [tab, setTab] = useState<Item['status'] | null>(null)
+  const [query, setQuery] = useState('')
+  const [page, setPage] = useState(1)
+  const [perPage, setPerPage] = useState<number>(siteConfig.ui.rowsPerPage.default)
 
   // Event handlers
   const handleUse = async (template: AutomationTemplateId) => {
@@ -48,68 +45,91 @@ export default function AutomationsPage({ automations }: AutomationsPageProps) {
     }
   }
 
+  const handleBrowse = () =>
+    document.getElementById('automation-templates')?.scrollIntoView({ behavior: 'smooth' })
+
   // Render logic
   const used = (id: string) => automations.filter((a) => a.template === id).length
-  const c = copy.columns
+  const running = automations.filter((a) => a.status === 'active').length
+  const orders = automations.reduce((n, a) => n + a.stats.orders, 0)
+  const q = query.trim().toLowerCase()
+  const filtered = automations.filter(
+    (a) => (!tab || a.status === tab) && (!q || a.name.toLowerCase().includes(q)),
+  )
+  const items = filtered.slice((page - 1) * perPage, page * perPage)
+  const back = { label: copy.back, href: routes.growth.home() }
 
   return (
-    <ProoflyListPage title={copy.title} summary={copy.intro}>
-      <Card gap="none" inset={5}>
-        <p className="text-card-title text-ink-strong">{copy.listTitle}</p>
-        {automations.length === 0 ? (
-          <p className="mt-4 text-body text-muted-foreground">{copy.empty}</p>
-        ) : (
-          <Table className="mt-3">
-            <TableHeader>
-              <TableRow>
-                <TableHead>{c.name}</TableHead>
-                <TableHead className="text-center">{c.status}</TableHead>
-                <TableHead className="text-right">{c.runs}</TableHead>
-                <TableHead className="text-right">{c.sent}</TableHead>
-                <TableHead className="text-right">{c.clickRate}</TableHead>
-                <TableHead className="text-right">{c.orders}</TableHead>
-                <TableHead className="text-right">{c.sales}</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {automations.map((a) => (
-                <TableRow key={a.id}>
-                  <TableCell className="max-w-80 whitespace-normal">
-                    <Link
-                      href={routes.growth.automation(a.id)}
-                      className="flex flex-col hover:underline"
-                    >
-                      <span className="text-body-strong">{a.name}</span>
-                      <span className="text-caption text-muted-foreground">
-                        {copy.triggers[a.trigger as keyof typeof copy.triggers] ?? a.trigger}
-                      </span>
-                    </Link>
-                  </TableCell>
-                  <TableCell className="text-center">
-                    <StatusChip>{copy.status[a.status]}</StatusChip>
-                  </TableCell>
-                  <TableCell className="text-right tabular-nums">
-                    {formatNumber(a.stats.runs)}
-                  </TableCell>
-                  <TableCell className="text-right tabular-nums">
-                    {formatNumber(a.stats.sent)}
-                  </TableCell>
-                  <TableCell className="text-right tabular-nums">
-                    {campaignReportContent.rate(a.stats.clicked, a.stats.sent)}
-                  </TableCell>
-                  <TableCell className="text-right tabular-nums">
-                    {formatNumber(a.stats.orders)}
-                  </TableCell>
-                  <TableCell className="text-right tabular-nums">
-                    {formatPaise(a.stats.revenuePaise)}
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        )}
-      </Card>
-      <section className="flex flex-col gap-3">
+    <ProoflyListPage
+      title={copy.title}
+      summary={
+        automations.length === 0 ? copy.intro : copy.summary(automations.length, running, orders)
+      }
+      back={back}
+      actions={
+        <>
+          <Button variant="outline" onClick={handleBrowse}>
+            {copy.browseTemplates}
+          </Button>
+          <Button onClick={handleBrowse}>
+            <Plus strokeWidth={1.6} />
+            {copy.newAutomation}
+          </Button>
+        </>
+      }
+    >
+      {automations.length > 0 ? (
+        <ResourceTable
+          resourceName={copy.resource}
+          columns={automationColumns(copy)}
+          items={items}
+          getId={(a) => a.id}
+          href={(a) => routes.growth.automation(a.id)}
+          rowActions={(a) => (
+            <RowMenu items={[{ label: copy.open, href: routes.growth.automation(a.id) }]} />
+          )}
+          query={query}
+          onQueryChange={(next) => {
+            setQuery(next)
+            setPage(1)
+          }}
+          onClearAll={() => {
+            setQuery('')
+            setTab(null)
+            setPage(1)
+          }}
+          tabs={
+            <PillTabs
+              variant="segmented"
+              value={tab}
+              onChange={(next) => {
+                setTab(next)
+                setPage(1)
+              }}
+              tabs={[
+                { value: null, label: copy.tabs.all, count: automations.length },
+                { value: 'active' as const, label: copy.tabs.active, count: running },
+                {
+                  value: 'paused' as const,
+                  label: copy.tabs.paused,
+                  count: automations.length - running,
+                },
+              ]}
+            />
+          }
+          page={page}
+          perPage={perPage}
+          onPerPageChange={(next) => {
+            setPerPage(next)
+            setPage(1)
+          }}
+          total={filtered.length}
+          onPageChange={setPage}
+          selectable={false}
+          empty={{ heading: copy.empty }}
+        />
+      ) : null}
+      <section id="automation-templates" className="flex scroll-mt-6 flex-col gap-3">
         <div>
           <h2 className="text-card-title text-ink-strong">{copy.templatesTitle}</h2>
           <p className="text-caption text-muted-foreground">{copy.templatesIntro}</p>

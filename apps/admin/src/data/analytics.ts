@@ -29,6 +29,18 @@ export const analyticsContent = {
     day: 'By day',
     week: 'By week',
     series: 'Revenue',
+    subtitle: (total: string, span: string, bestDay: string | null) =>
+      bestDay ? `${total} in ${span}, best day ${bestDay}` : `${total} in ${span}`,
+    spans: {
+      today: 'today',
+      '7d': 'the last 7 days',
+      '30d': 'the last 30 days',
+      '90d': 'the last 90 days',
+      custom: 'this range',
+    },
+    export: 'Export',
+    exportFile: (from: string, to: string) => `sales-${from}-to-${to}.csv`,
+    exportHeaders: ['Day', 'Revenue (INR)'],
   },
   topProducts: { title: 'Top products', empty: 'No sales in this range yet.', units: 'sold' },
   byState: { title: 'Sales by state', empty: 'No shipped orders in this range yet.' },
@@ -214,6 +226,10 @@ export const analyticsContent = {
     orderEvent: (label: string) => `Order ${label}`,
     cartEvent: (label: string) => (label ? `Cart started by ${label}` : 'Cart started'),
     updating: 'Updates every 15 seconds',
+    people: (n: number) =>
+      n === 1 ? '1 person on your store right now' : `${n} people on your store right now`,
+    pause: 'Pause updates',
+    resume: 'Resume updates',
   },
 } as const
 

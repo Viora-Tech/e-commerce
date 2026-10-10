@@ -38,13 +38,24 @@ export default function CampaignsPage({ campaigns }: CampaignsPageProps) {
   // Render logic
   const sentCount = campaigns.filter((c) => c.status === 'sent').length
   const sales = campaigns.reduce((n, c) => n + c.stats.revenuePaise, 0)
+  const back = { label: copy.back, href: routes.growth.home() }
   const summary = copy.summary(campaigns.length, sentCount, fmt.money(sales))
 
   if (campaigns.length === 0) {
     return (
-      <ProoflyListPage title={copy.title} actions={<CreateCampaignMenu />}>
+      <ProoflyListPage
+        title={copy.title}
+        summary={copy.summaryEmpty}
+        back={back}
+        actions={<CreateCampaignMenu />}
+      >
         <Card inset="y-10">
-          <EmptyState heading={copy.empty.heading} body={copy.empty.body} icon={Send} />
+          <EmptyState
+            heading={copy.empty.heading}
+            body={copy.empty.body}
+            icon={Send}
+            action={<CreateCampaignMenu />}
+          />
         </Card>
       </ProoflyListPage>
     )
@@ -57,7 +68,12 @@ export default function CampaignsPage({ campaigns }: CampaignsPageProps) {
   const items = filtered.slice((page - 1) * perPage, page * perPage)
 
   return (
-    <ProoflyListPage title={copy.title} summary={summary} actions={<CreateCampaignMenu />}>
+    <ProoflyListPage
+      title={copy.title}
+      summary={summary}
+      back={back}
+      actions={<CreateCampaignMenu />}
+    >
       <ResourceTable
         resourceName={copy.resource}
         columns={campaignColumns(copy, fmt)}

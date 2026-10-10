@@ -17,11 +17,13 @@ export const campaignsContent = {
   tabs: { all: 'All', sent: 'Sent', scheduled: 'Scheduled', draft: 'Draft' },
   summary: (count: number, sent: number, sales: string) =>
     `${count} ${count === 1 ? 'campaign' : 'campaigns'} · ${sent} sent · ${sales} in sales`,
+  summaryEmpty: 'No campaigns yet',
+  back: 'Growth',
   notSent: 'Not sent',
   row: { open: 'Open campaign' },
   empty: {
     heading: 'Send your first campaign',
-    body: 'Email or WhatsApp your customers about a launch, a sale or a restock. Pick a segment, write it once, and see opens, clicks and sales come back here.',
+    body: 'Reach a group of customers on WhatsApp or email with an offer, a restock or news. We show who opened it and what they bought.',
   },
   columns: {
     name: 'Campaign',
