@@ -25,7 +25,7 @@ import { useUploadQueue } from './use-upload-queue'
 type ListResult = Awaited<ReturnType<typeof api.media.list>>
 type Item = ListResult['items'][number]
 
-export type FileCounts = { all: number; image: number; video: number }
+export type FileCounts = { all: number; image: number; video: number; document: number }
 
 export type MediaLibraryInitial = {
   page: number
@@ -34,15 +34,21 @@ export type MediaLibraryInitial = {
   type: FileTab | null
   result: ListResult
   counts: FileCounts
+  /** Bytes the store's ready files take, for the summary line. */
+  usedBytes: number
 }
 
-async function fetchCounts(): Promise<FileCounts> {
-  const [all, image, video] = await Promise.all([
-    api.media.list({ page: 1, perPage: 1 }),
-    api.media.list({ page: 1, perPage: 1, fileType: 'image' }),
-    api.media.list({ page: 1, perPage: 1, fileType: 'video' }),
-  ])
-  return { all: all.total, image: image.total, video: video.total }
+async function fetchCounts(): Promise<{ counts: FileCounts; usedBytes: number }> {
+  const usage = await api.media.usage()
+  return {
+    counts: {
+      all: usage.files,
+      image: usage.image.files,
+      video: usage.video.files,
+      document: usage.document.files,
+    },
+    usedBytes: usage.totalBytes,
+  }
 }
 
 function fetchMedia(page: number, perPage: number, query: string, type: FileTab | null) {
@@ -70,6 +76,7 @@ function MediaLibraryContent({ initial }: { initial: MediaLibraryInitial }) {
   const [items, setItems] = useState<Item[]>(initial.result.items)
   const [total, setTotal] = useState(initial.result.total)
   const [counts, setCounts] = useState(initial.counts)
+  const [usedBytes, setUsedBytes] = useState(initial.usedBytes)
   const [editing, setEditing] = useState<Item | null>(null)
   const [deleting, setDeleting] = useState<Item | null>(null)
   const [draft, setDraft] = useState(initial.query)
@@ -79,7 +86,10 @@ function MediaLibraryContent({ initial }: { initial: MediaLibraryInitial }) {
       setItems(r.items)
       setTotal(r.total)
     })
-    fetchCounts().then(setCounts)
+    fetchCounts().then((r) => {
+      setCounts(r.counts)
+      setUsedBytes(r.usedBytes)
+    })
   })
   useEffect(() => {
     const sameAsServer =
@@ -114,7 +124,10 @@ function MediaLibraryContent({ initial }: { initial: MediaLibraryInitial }) {
   const handleDeleted = (id: string) => {
     setItems((list) => list.filter((i) => i.id !== id))
     setTotal((n) => Math.max(0, n - 1))
-    fetchCounts().then(setCounts)
+    fetchCounts().then((r) => {
+      setCounts(r.counts)
+      setUsedBytes(r.usedBytes)
+    })
     toast.success(mediaContent.toasts.deleted)
   }
 
@@ -124,7 +137,7 @@ function MediaLibraryContent({ initial }: { initial: MediaLibraryInitial }) {
   return (
     <ProoflyListPage
       title={copy.title}
-      summary={copy.summary(counts.all)}
+      summary={copy.summary(counts.all, formatBytes(usedBytes))}
       actions={
         <>
           <Button
@@ -171,6 +184,7 @@ function MediaLibraryContent({ initial }: { initial: MediaLibraryInitial }) {
                 { value: null, label: copy.tabs.all, count: counts.all },
                 { value: 'image', label: copy.tabs.image, count: counts.image },
                 { value: 'video', label: copy.tabs.video, count: counts.video },
+                { value: 'document', label: copy.tabs.document, count: counts.document },
               ]}
             />
             <form onSubmit={handleSearch} className="relative w-full max-w-xs">

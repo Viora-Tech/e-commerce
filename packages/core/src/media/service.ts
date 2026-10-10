@@ -13,6 +13,7 @@ import { z } from 'zod'
 import { CommerceError } from '../errors'
 import { memberAccess } from '../permissions/service'
 import { permissions } from '../permissions/statement'
+import { fileTypeWhere, type MediaFileType } from './usage'
 
 export const UploadIntentSchema = z.object({
   filename: z.string().trim().min(1).max(255),
@@ -202,9 +203,10 @@ export async function saveImageForProcessing(
 }
 
 export type MediaSort = 'newest' | 'oldest' | 'name' | 'size'
-export type MediaFileType = 'image' | 'video'
 export type MediaSizeBucket = 'small' | 'medium' | 'large'
 export type MediaUsedFilter = 'used' | 'unused'
+
+export type { MediaFileType } from './usage'
 
 export type MediaListInput = {
   page: number
@@ -235,7 +237,7 @@ export async function listMedia(tx: StoreTx, input: MediaListInput) {
     input.search
       ? or(ilike(media.alt, `%${input.search}%`), ilike(media.key, `%${input.search}%`))
       : undefined,
-    input.fileType ? ilike(media.contentType, `${input.fileType}/%`) : undefined,
+    input.fileType ? fileTypeWhere(input.fileType) : undefined,
     sizeMin !== null ? sql`${media.size} >= ${sizeMin}` : undefined,
     sizeMax !== null ? sql`${media.size} < ${sizeMax}` : undefined,
     input.used === 'used' ? sql`${usedSubquery} > 0` : undefined,

@@ -6,6 +6,7 @@ import {
   enqueueMediaProcess,
   InvalidUpload,
   listMedia,
+  mediaUsage,
   permissions,
   UploadIntentSchema,
   updateMedia,
@@ -82,12 +83,14 @@ export const mediaRouter = {
         perPage: z.number().int().min(1).max(PAGE_SIZE_MAX).default(40),
         search: z.string().trim().max(SEARCH_MAX).optional(),
         sort: z.enum(['newest', 'oldest', 'name', 'size']).optional(),
-        fileType: z.enum(['image', 'video']).optional(),
+        fileType: z.enum(['image', 'video', 'document']).optional(),
         size: z.enum(['small', 'medium', 'large']).optional(),
         used: z.enum(['used', 'unused']).optional(),
       }),
     )
     .handler(({ context, input }) => listMedia(context.tx, input)),
+
+  usage: can(permissions.CONTENT_READ).handler(({ context }) => mediaUsage(context.tx)),
 
   update: can(permissions.CONTENT_WRITE)
     .input(z.object({ id: z.uuid(), alt: z.string().trim().max(300).nullable() }))

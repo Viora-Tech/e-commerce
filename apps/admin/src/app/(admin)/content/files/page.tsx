@@ -22,15 +22,13 @@ export default async function Page({ searchParams }: Props) {
   const rawType = first(sp.type)
   const type: FileTab | null = FILE_TABS.find((t) => t === rawType) ?? null
   const context = await serverContext()
-  const [result, all, image, video] = await Promise.all([
+  const [result, usage] = await Promise.all([
     call(
       appRouter.media.list,
       { page, perPage, search: query || undefined, fileType: type ?? undefined },
       { context },
     ),
-    call(appRouter.media.list, { page: 1, perPage: 1 }, { context }),
-    call(appRouter.media.list, { page: 1, perPage: 1, fileType: 'image' }, { context }),
-    call(appRouter.media.list, { page: 1, perPage: 1, fileType: 'video' }, { context }),
+    call(appRouter.media.usage, undefined, { context }),
   ])
   return (
     <MediaLibrary
@@ -40,7 +38,13 @@ export default async function Page({ searchParams }: Props) {
         query,
         type,
         result,
-        counts: { all: all.total, image: image.total, video: video.total },
+        counts: {
+          all: usage.files,
+          image: usage.image.files,
+          video: usage.video.files,
+          document: usage.document.files,
+        },
+        usedBytes: usage.totalBytes,
       }}
     />
   )

@@ -20,6 +20,7 @@ import {
   storageUsageBytes,
 } from './service'
 import { builtInStorageRegistry, resolveStorageProvider, storageDefaultsFromEnv } from './settings'
+import { mediaUsage } from './usage'
 
 const owner = createDb(process.env.DATABASE_URL_OWNER as string)
 const app = createDb(process.env.DATABASE_URL as string)
@@ -231,6 +232,50 @@ describe('storageUsageBytes / checkStorageQuota', () => {
     await readyUpload(storeId, provider, 'a.png')
     const check = await withStore(app, storeId, (tx) => checkStorageQuota(tx, storeId, 100))
     expect(check.ok).toBe(false)
+  })
+})
+
+describe('mediaUsage and the document filter', () => {
+  it('splits bytes by type, lists the largest files, and filters documents', async () => {
+    const storeId = await seedStore()
+    const row = (key: string, contentType: string | null, size: number) => ({
+      storeId,
+      url: `https://x/${key}`,
+      key,
+      contentType,
+      size,
+      status: 'ready' as const,
+    })
+    await owner
+      .insert(media)
+      .values([
+        row('a.png', 'image/png', 1000),
+        row('b.jpg', 'image/jpeg', 3000),
+        row('c.mp4', 'video/mp4', 20_000),
+        row('d.pdf', 'application/pdf', 500),
+        row('e.bin', null, 100),
+        { ...row('pending.png', 'image/png', 9_999_999), status: 'pending' as const },
+      ])
+    const usage = await withStore(app, storeId, (tx) => mediaUsage(tx, 2))
+    expect(usage).toMatchObject({
+      files: 5,
+      totalBytes: 24_600,
+      image: { files: 2, bytes: 4000 },
+      video: { files: 1, bytes: 20_000 },
+      document: { files: 2, bytes: 600 },
+    })
+    expect(usage.largest.map((f) => f.key)).toEqual(['c.mp4', 'b.jpg'])
+
+    const docs = await withStore(app, storeId, (tx) =>
+      listMedia(tx, { page: 1, perPage: 10, fileType: 'document' }),
+    )
+    expect(docs.items.map((f) => f.key).sort()).toEqual(['d.pdf', 'e.bin'])
+  })
+
+  it('reports zeros for an empty library', async () => {
+    const storeId = await seedStore()
+    const usage = await withStore(app, storeId, (tx) => mediaUsage(tx))
+    expect(usage).toMatchObject({ files: 0, totalBytes: 0, largest: [] })
   })
 })
 
