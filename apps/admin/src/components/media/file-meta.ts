@@ -1,5 +1,5 @@
 /** The Files tabs besides All; they filter by the file's type. */
-export const FILE_TABS = ['image', 'video'] as const
+export const FILE_TABS = ['image', 'video', 'document'] as const
 export type FileTab = (typeof FILE_TABS)[number]
 
 /** "1.2 MB", "840 KB": file sizes in the units the Files screens show. */
