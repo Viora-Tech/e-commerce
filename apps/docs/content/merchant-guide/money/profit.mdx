@@ -1,0 +1,60 @@
+---
+title: Profit
+description: What each order, product and month really earned, after what the goods cost you, courier charges, payment fees and RTO.
+---
+
+# Profit
+
+Sales tell you what came in. Profit tells you what you kept. Vextro works it out for every order,
+using what the goods actually cost you (your landed cost from purchase orders: price, freight,
+customs and the rest).
+
+## What this is for
+
+- Seeing if an order made money, on the order page.
+- Finding which products earn the most, and which barely pay for themselves.
+- Watching profit month by month.
+
+## How it is worked out
+
+For each order:
+
+1. **Net sales (without GST)**: what the customer paid, less refunds, without the GST inside it.
+   If the order was cancelled or came back undelivered (RTO), only the money you actually
+   collected counts.
+2. **Less the cost of goods**: what each item cost you *when it sold*. This is saved on the order
+   when it is placed, so later cost changes do not change old orders. Items returned to stock do
+   not count.
+3. **Less courier charges**: what the courier charged for the parcel. When you book through a
+   connected courier that tells us its charge, it is filled in for you. Otherwise type it on the
+   order page.
+4. **Less payment fees**: what the payment gateway kept. If the gateway reports its fee, that is
+   used. Otherwise your rate from **Settings → Costs for profit** is used. For cash on delivery,
+   the courier's COD fee from the same page is used.
+5. **Less RTO costs**: what the courier charged to bring an undelivered parcel back.
+
+What is left is the **profit**, and the **margin** is profit as a share of net sales.
+
+When something is not known (an item without a cost, a parcel without a courier charge, a payment
+method without a fee rate), it counts as zero and the order page says so. Nothing is guessed.
+
+## Where to see it
+
+- **Order page → Profit**: the lines above for that order, with a note when something is
+  missing. If the order has a parcel, you can type its courier charge here.
+- **Analytics → Reports → Profit by month** and **Profit by product**. By product, each order's
+  courier charge, fees and RTO are shared across its items by their value.
+- **Settings → Costs for profit**: your gateway fee for each payment method you have switched on
+  (a percent, plus a fixed amount if your gateway charges one), and your courier's cash on
+  delivery fee.
+
+Orders placed before profit tracking began use each item's cost from that day, marked as
+estimated.
+
+## Try it
+
+1. Open **Settings → Costs for profit** and enter your Razorpay fee, for example 2 percent.
+2. Open a recent order. The **Profit** card shows net sales, cost of goods, courier charges, fees
+   and the profit.
+3. If it says the courier charge is not known, type it under the card and select **Save**.
+4. Open **Analytics → Reports → Profit by product** to see your best earners.

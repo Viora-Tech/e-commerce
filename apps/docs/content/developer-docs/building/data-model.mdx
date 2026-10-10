@@ -456,6 +456,21 @@ by the admin) and `applied_at` / `applied_by`.
   `addPurchaseCharge` (duty per line as `manual` splits when every line is matched), then marks
   the document applied. A second apply is refused (`DOC_APPLIED`) until `reset`.
 
+
+#### Profit (landed cost step 3)
+
+`order_line.cost_at_sale_paise` snapshots the variant's weighted average cost when the order is
+placed (`placeOrder`) or a draft is converted; `cost_estimated` marks lines the 0105 backfill
+filled from the cost on that day. `shipment.courier_charge_paise` comes from the courier's booking
+answer (`CreateShipmentResult.chargePaise`) or is typed on the order page
+(`orders.setCourierCharge`); `payment.fee_paise` holds a fee a gateway reports. The store's fallback
+rates (`ProfitCostSettings`: per method `{ percentBps, fixedPaise }`, plus `codFee`) live in
+`store.apps.settings.core.profit` (Settings › Costs for profit, `profitCosts.*`).
+`computeOrderProfit` (`packages/core/src/order/profit.ts`, PROFIT_FORMULA header, pure) turns the
+facts from `profitFacts` (`profit-service.ts`) into net sales ex GST − goods − courier − fees − RTO,
+with flags for anything unknown. `orders.profit` feeds the order page's Profit card; the Finance
+reports `profit-by-month` and `profit-by-product` (`packages/api/src/services/reports/profit.ts`,
+order overheads shared over lines by value, `allocateProfit`) read the same facts.
 ### Status columns are text with a CHECK
 
 Status columns are `text` with a fixed value list and a CHECK constraint, not Postgres enums,

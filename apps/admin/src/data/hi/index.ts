@@ -34,6 +34,7 @@ import orders from './orders'
 import payments from './payments'
 import paymentsSetup from './payments-setup'
 import products from './products'
+import profitCosts from './profit-costs'
 import purchaseDocuments from './purchase-documents'
 import purchasing from './purchasing'
 import reviews from './reviews'
@@ -92,6 +93,7 @@ export const hindiCopy: readonly TranslationPair[] = [
   ...inventory,
   ...products,
   ...purchaseDocuments,
+  ...profitCosts,
   ...purchasing,
   ...selectProducts,
   ...reviews,

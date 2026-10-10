@@ -2,6 +2,7 @@ import { loadEnv, settingsSecret } from '@commerce/config'
 import {
   ABANDONED_LIST_STATUSES,
   CommerceError,
+  CourierChargeInputSchema,
   DRAFT_LIST_STATUSES,
   DraftInputSchema,
   InvalidOrderContact,
@@ -12,10 +13,12 @@ import {
   ORDER_MARKS,
   ORDER_PAYMENT_STATUSES,
   OrderNotFound,
+  orderProfit,
   permissions,
   ReminderTooSoon,
   requestBalance,
   sendManualPaymentReminder,
+  setCourierCharge,
   updateOrderContact,
 } from '@commerce/core'
 import { ORPCError } from '@orpc/server'
@@ -114,6 +117,20 @@ export const ordersRouter = {
       ])
       return { ...o, shipment, balance, customerOrders, customerOrderNumber }
     }),
+
+  /** What the order earned: net sales less goods, courier, fees and RTO (order/profit.ts). */
+  profit: can(permissions.ANALYTICS_READ)
+    .input(z.object({ orderId: z.uuid() }))
+    .handler(({ context, input }) =>
+      orderProfit({ storeId: context.scope.storeId, tx: context.tx }, input.orderId),
+    ),
+
+  /** What the courier charged for a consignment, typed by the merchant. */
+  setCourierCharge: can(permissions.ORDERS_WRITE)
+    .input(CourierChargeInputSchema)
+    .handler(({ context, input }) =>
+      setCourierCharge({ storeId: context.scope.storeId, tx: context.tx }, input),
+    ),
 
   /** Order numbers either side of this one, for the arrows in the detail header. */
   neighbours: can(permissions.ORDERS_READ)
