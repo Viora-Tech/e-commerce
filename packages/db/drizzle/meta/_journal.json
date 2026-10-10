@@ -708,6 +708,13 @@
       "when": 1791640829311,
       "tag": "0105_order_profit",
       "breakpoints": true
+    },
+    {
+      "idx": 101,
+      "version": "7",
+      "when": 1791644660253,
+      "tag": "0106_short_links",
+      "breakpoints": true
     }
   ]
 }

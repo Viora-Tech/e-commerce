@@ -34,6 +34,8 @@ export type Attribution = {
   messageId?: string | undefined
   campaignId?: string | undefined
   automationId?: string | undefined
+  /** The short link (Growth → Links) the visit came through. */
+  linkId?: string | undefined
   /** ISO time of the touch. */
   at: string
 }
@@ -180,6 +182,8 @@ export function attributionFromVisit(input: {
     campaignId?: string | undefined
     automationId?: string | undefined
   }
+  /** Set when the visit came through a short link (`/l/<slug>`). */
+  linkId?: string | undefined
   now?: Date | undefined
 }): Attribution {
   let params = new URLSearchParams()
@@ -199,7 +203,7 @@ export function attributionFromVisit(input: {
   const externalRef = refHost && refHost !== ownHost ? refHost : null
   const source = clip(params.get('utm_source'))
   const medium = clip(params.get('utm_medium'))
-  const channel = classifyChannel({
+  const classified = classifyChannel({
     source,
     medium,
     referrerHost: externalRef,
@@ -210,6 +214,9 @@ export function attributionFromVisit(input: {
     },
     marketingMessage: Boolean(input.marketing),
   })
+  // A short link is never a direct visit: untagged and opened from an app (no referrer), it
+  // still came from wherever the merchant shared it, and must not lose to an older touch.
+  const channel = classified === 'direct' && input.linkId ? 'referral' : classified
   return {
     channel,
     source: source ?? externalRef ?? undefined,
@@ -222,6 +229,7 @@ export function attributionFromVisit(input: {
     messageId: input.marketing?.messageId,
     campaignId: input.marketing?.campaignId,
     automationId: input.marketing?.automationId,
+    linkId: input.linkId,
     at: (input.now ?? new Date()).toISOString(),
   }
 }
@@ -275,6 +283,7 @@ export function decodeAttribution(raw: string | null | undefined): Attribution |
       messageId: str(v.messageId, 40),
       campaignId: str(v.campaignId, 40),
       automationId: str(v.automationId, 40),
+      linkId: str(v.linkId, 40),
       at: v.at,
     }
   } catch {

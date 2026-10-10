@@ -1,6 +1,7 @@
 import { sql } from 'drizzle-orm'
 import {
   check,
+  date,
   index,
   integer,
   jsonb,
@@ -239,4 +240,50 @@ export const newsletterSignup = pgTable(
     uniqueIndex('newsletter_signup_store_email').on(t.storeId, t.email),
     check('newsletter_signup_status_check', sql`${t.status} in ('pending', 'confirmed')`),
   ],
+)
+
+/**
+ * A short link (Growth → Links): `/l/<slug>` on the storefront redirects to `destination` (a
+ * path on this store) with its UTM tags added, counts the click and marks the visit so orders
+ * it brings carry `attribution.linkId`.
+ */
+export const shortLink = pgTable(
+  'short_link',
+  {
+    id: id(),
+    storeId: storeId(),
+    /** Lower-case letters, numbers and hyphens; unique per store. */
+    slug: text('slug').notNull(),
+    name: text('name').notNull(),
+    /** A path on the store, with any query string: `/collections/glasspads?sort=new`. */
+    destination: text('destination').notNull(),
+    utmSource: text('utm_source'),
+    utmMedium: text('utm_medium'),
+    utmCampaign: text('utm_campaign'),
+    utmContent: text('utm_content'),
+    utmTerm: text('utm_term'),
+    /** The staff user who made it. */
+    createdBy: text('created_by'),
+    createdAt: createdAt(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    uniqueIndex('short_link_store_slug').on(t.storeId, t.slug),
+    check('short_link_slug_format', sql`${t.slug} ~ '^[a-z0-9][a-z0-9-]{0,59}$'`),
+  ],
+)
+
+/** Clicks on a short link per store-local day; bots and link previews are not counted. */
+export const shortLinkClickDay = pgTable(
+  'short_link_click_day',
+  {
+    id: id(),
+    storeId: storeId(),
+    linkId: uuid('link_id')
+      .notNull()
+      .references(() => shortLink.id, { onDelete: 'cascade' }),
+    day: date('day', { mode: 'string' }).notNull(),
+    clicks: integer('clicks').notNull().default(0),
+  },
+  (t) => [uniqueIndex('short_link_click_day_link_day').on(t.linkId, t.day)],
 )
