@@ -127,7 +127,7 @@ export default function ThemesLibrary({ initial, origin, canPublish }: ThemesLib
   const library = themes.filter((t) => t.role !== 'main')
 
   return (
-    <PageBody>
+    <PageBody className="max-w-[81.5rem] gap-6 md:px-8 md:py-8">
       <PageHeader
         title={title}
         subtitle={copy.subtitle}

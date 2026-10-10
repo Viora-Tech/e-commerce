@@ -53,7 +53,7 @@ export function articleColumns(
       align: 'end',
       render: (a) => (
         <span className="text-muted-foreground">
-          {a.publishedAt && a.status !== 'draft' ? fmt.day(a.publishedAt) : copy.none}
+          {a.publishedAt && a.status !== 'draft' ? fmt.when(a.publishedAt) : copy.none}
         </span>
       ),
     },

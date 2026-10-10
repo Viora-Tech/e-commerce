@@ -9,6 +9,7 @@ import PillTabs from '@/components/layout/pill-tabs'
 import ProoflyListPage from '@/components/layout/proofly-list-page'
 import StatusChip from '@/components/layout/status-chip'
 import ResourceTable, { type ResourceColumnSpec } from '@/components/table/resource-table'
+import RowMenu from '@/components/table/row-menu'
 import { pagesListContent } from '@/data/content'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
@@ -95,7 +96,7 @@ function PagesContent() {
       title: copy.columns.updated,
       sortValue: (p) => new Date(p.updatedAt),
       align: 'end',
-      render: (p) => <span className="text-muted-foreground">{fmt.day(p.updatedAt)}</span>,
+      render: (p) => <span className="text-muted-foreground">{fmt.when(p.updatedAt)}</span>,
     },
   ]
 
@@ -118,12 +119,16 @@ function PagesContent() {
         items={pageRows}
         getId={(p) => p.id}
         href={(p) => routes.onlineStore.page(p.id)}
+        rowActions={(p) => (
+          <RowMenu items={[{ label: copy.open, href: routes.onlineStore.page(p.id) }]} />
+        )}
         loading={loading}
         query={q.query}
         onQueryChange={(query) => setQ({ query, page: 1 })}
         onClearAll={() => setQ({ query: '', tab: null, page: 1 })}
         tabs={
           <PillTabs
+            variant="segmented"
             value={q.tab}
             onChange={(tab) => setQ({ tab, page: 1 })}
             tabs={[
