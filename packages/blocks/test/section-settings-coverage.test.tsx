@@ -1,29 +1,29 @@
 import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it } from 'vitest'
-import {
-  createBlocksConfig,
-  DYNAMIC_SECTIONS,
-  ELEMENT_BLOCKS,
-  LAYOUT_BLOCKS,
-} from '../src/puck-config'
+import { createBlocksConfig, ELEMENT_BLOCKS, LAYOUT_BLOCKS } from '../src/puck-config'
 import { renderBlock } from '../src/slots'
 
 /**
- * Sections that float over the page instead of sitting in it, so spacing, width and
- * background have nothing to act on. Each one shows itself only where it makes sense.
+ * The deliberate exceptions, with why. Every other section must offer the shared settings.
+ * Overlays float over the page, so spacing, width and background have nothing to act on;
+ * an imported Shopify section carries its own theme's schema instead.
  */
-const OVERLAYS: Record<string, string> = {
-  MobileDock: 'fixed to the bottom of phone screens',
+const SKIPS: Record<string, string> = {
+  MobileDock: 'a bar fixed to the bottom of phone screens',
   SignupPopup: 'a popup dialog',
   StickyAtc: 'a bar fixed to the bottom of the product page',
+  CookieBanner: 'floats over the page until answered',
+  LiquidSection: "an imported Shopify section, set by its own theme's schema",
 }
+
+/** A stand-in for what the storefront draws for each dynamic section. */
+const renderers = new Proxy({}, { get: () => () => <p>drawn by the storefront</p> })
 
 const config = createBlocksConfig(async () => [])
 const components = config.components as unknown as Parameters<typeof renderBlock>[1]
-const dynamic = new Set<string>([...DYNAMIC_SECTIONS, 'LiquidSection'])
 const custom = new Set<string>([...LAYOUT_BLOCKS, ...ELEMENT_BLOCKS])
 const types = Object.keys(config.components)
-const sections = types.filter((t) => !dynamic.has(t) && !custom.has(t) && !(t in OVERLAYS))
+const sections = types.filter((t) => !custom.has(t) && !(t in SKIPS))
 const fieldsOf = (type: string) =>
   (config.components[type as never] as { fields?: Record<string, unknown> }).fields ?? {}
 
@@ -32,12 +32,36 @@ describe('section settings on every section', () => {
     expect(sections.filter((t) => !('settings' in fieldsOf(t)))).toEqual([])
   })
 
+  it('includes the header, footer, every main section and the product lists', () => {
+    for (const type of [
+      'Header',
+      'Footer',
+      'MainProduct',
+      'MainCollection',
+      'MainPage',
+      'MainBlog',
+      'MainArticle',
+      'MainCart',
+      'MainSearch',
+      'MainNotFound',
+      'RelatedProducts',
+      'RecentlyViewed',
+      'Hero',
+      'AnnouncementBar',
+    ]) {
+      expect(sections, type).toContain(type)
+    }
+  })
+
   it('every layout block and element offers its own style panel', () => {
     expect([...custom].filter((t) => !('style' in fieldsOf(t)))).toEqual([])
   })
 
-  it('the overlay exceptions are real sections, so the list stays honest', () => {
-    for (const type of Object.keys(OVERLAYS)) expect(types, type).toContain(type)
+  it('the exceptions are real sections without settings, so the list stays honest', () => {
+    for (const type of Object.keys(SKIPS)) {
+      expect(types, type).toContain(type)
+      expect('settings' in fieldsOf(type), type).toBe(false)
+    }
   })
 
   for (const type of sections) {
@@ -53,7 +77,9 @@ describe('section settings on every section', () => {
         settings: { ...settings, advanced: { ...settings.advanced, anchorId: 'qa-anchor' } },
       }
       const html = renderToStaticMarkup(
-        <div>{renderBlock({ type, props }, components, { isEditing: true, metadata: {} })}</div>,
+        <div>
+          {renderBlock({ type, props }, components, { isEditing: true, metadata: { renderers } })}
+        </div>,
       )
       expect(html).toContain('id="qa-anchor"')
     })
@@ -68,5 +94,42 @@ describe('section background colour', () => {
     expect(sectionBackground('#ffffff')).toBe('#ffffff')
     expect(sectionBackground('url(x)')).toBeNull()
     expect(sectionBackground('')).toBeNull()
+  })
+})
+
+describe('dynamic sections without a changed setting', () => {
+  it('draw exactly what the storefront drew, with no frame around it', () => {
+    const html = renderToStaticMarkup(
+      <div>
+        {renderBlock({ type: 'MainPage', props: { id: 'main' } }, components, {
+          isEditing: false,
+          metadata: { renderers },
+        })}
+      </div>,
+    )
+    expect(html).toBe('<div><p>drawn by the storefront</p></div>')
+  })
+
+  it('wrap it in a frame with the scheme once one is chosen', () => {
+    const settings = (
+      config.components.MainPage as unknown as { defaultProps: { settings: { style: object } } }
+    ).defaultProps.settings
+    const html = renderToStaticMarkup(
+      <div>
+        {renderBlock(
+          {
+            type: 'MainPage',
+            props: {
+              id: 'main',
+              settings: { ...settings, style: { ...settings.style, colorScheme: 'scheme-2' } },
+            },
+          },
+          components,
+          { isEditing: false, metadata: { renderers } },
+        )}
+      </div>,
+    )
+    expect(html).toContain('class="section-frame color-scheme-2"')
+    expect(html).toContain('<p>drawn by the storefront</p>')
   })
 })
