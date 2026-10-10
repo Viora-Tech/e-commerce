@@ -26,6 +26,7 @@ import {
   type SourceType,
   type SourceValues,
 } from './format'
+import { loopProblems } from './loops'
 
 /**
  * Dynamic sources on the server: what a template can connect to, and the values
@@ -126,6 +127,14 @@ export async function assertTemplateBindings(
       catalogs.set(t.template, types)
     }
     problems.push(...bindingProblems(t.data, t.template, types))
+  }
+  if (templates.some((t) => JSON.stringify(t.data).includes('"$loop"'))) {
+    const visible = await tx
+      .select({ type: metaobjectDefinition.type })
+      .from(metaobjectDefinition)
+      .where(eq(metaobjectDefinition.storefrontAccess, true))
+    const types = new Set(visible.map((d) => d.type))
+    for (const t of templates) problems.push(...loopProblems(t.data, types))
   }
   if (problems.length) throw new InvalidBindings(problems)
 }
