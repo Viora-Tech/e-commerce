@@ -15,8 +15,12 @@ import type { GlobeCanvasProps } from './types'
 
 type LiveGlobeHeroProps = {
   initial: DashboardSummary
-  /** The live stats, floated over the left of the globe on wide screens, below it on phones. */
-  children: ReactNode
+  /** The page title, summary and Pause button: a glass pill over the top-left of the globe. */
+  header: ReactNode
+  /** The stats card: the left edge on wide screens, stacked at the bottom on phones. */
+  left: ReactNode
+  /** The activity card: the right edge on wide screens, under the stats on phones. */
+  right: ReactNode
 }
 
 /** Where the camera eases to on load: a point roughly in the middle of India. Also "Start
@@ -33,10 +37,6 @@ const WORLD_FOCUS = { lat: 5, lng: 15 }
 const GEOLOCATION_MAX_AGE_MS = 600_000
 const GEOLOCATION_TIMEOUT_MS = 8_000
 
-/** On wide screens the globe sits right of centre so the stats column never hides it. */
-const WIDE_QUERY = '(min-width: 64rem)'
-const WIDE_SHIFT = 0.16
-
 /** Our WebGL globe (`webgl-globe-canvas.tsx`), fetched only on this page and only once the
  * stats have painted, so it never delays them. */
 function loadGlobe(): Promise<ComponentType<GlobeCanvasProps>> {
@@ -48,7 +48,7 @@ function loadGlobe(): Promise<ComponentType<GlobeCanvasProps>> {
  * fills the whole panel as a free-flowing backdrop, and the stats float above it. Zooming
  * grows the globe underneath the cards.
  */
-export default function LiveGlobeHero({ initial, children }: LiveGlobeHeroProps) {
+export default function LiveGlobeHero({ initial, header, left, right }: LiveGlobeHeroProps) {
   // Hooks
   const locale = useLocale()
   const { resolvedTheme } = useTheme()
@@ -57,7 +57,6 @@ export default function LiveGlobeHero({ initial, children }: LiveGlobeHeroProps)
   const data = useLiveGlobeData(initial, settings.data.timeRange)
   const [activeId, setActiveId] = useState<string | null>(null)
   const [webglOk, setWebglOk] = useState(true)
-  const [wide, setWide] = useState(false)
   const [Globe, setGlobe] = useState<ComponentType<GlobeCanvasProps> | null>(null)
   const [myLocation, setMyLocation] = useState<{ lat: number; lng: number } | null>(null)
 
@@ -78,14 +77,6 @@ export default function LiveGlobeHero({ initial, children }: LiveGlobeHeroProps)
     return () => {
       cancelled = true
     }
-  }, [])
-
-  useEffect(() => {
-    const query = window.matchMedia(WIDE_QUERY)
-    const sync = () => setWide(query.matches)
-    sync()
-    query.addEventListener('change', sync)
-    return () => query.removeEventListener('change', sync)
   }, [])
 
   useEffect(() => {
@@ -121,13 +112,12 @@ export default function LiveGlobeHero({ initial, children }: LiveGlobeHeroProps)
         : INDIA_FOCUS
 
   return (
-    <section className="relative -mx-4 -mb-5 md:-mx-6 md:-mb-6 lg:h-[calc(100svh-8.5rem)] lg:min-h-[38rem]">
+    <section className="relative size-full">
       {webglOk ? (
-        <div className="relative h-[24rem] lg:absolute lg:inset-0 lg:h-auto">
+        <div className="absolute inset-0">
           {Globe ? (
             <Globe
               className="h-full"
-              shiftX={wide ? WIDE_SHIFT : 0}
               markers={markers}
               arcs={arcs}
               reducedMotion={Boolean(reducedMotion)}
@@ -140,23 +130,31 @@ export default function LiveGlobeHero({ initial, children }: LiveGlobeHeroProps)
               onSettingsReset={reset}
             />
           ) : null}
-          <p className="pointer-events-none absolute right-3 bottom-3 text-caption text-muted-foreground">
+          <p className="pointer-events-none absolute right-4 bottom-2 hidden text-caption text-muted-foreground lg:block">
             {copy.credit}
           </p>
         </div>
       ) : null}
-      <div className="relative z-10 flex flex-col gap-4 p-4 lg:pointer-events-none lg:absolute lg:inset-y-0 lg:left-0 lg:w-[26rem] lg:overflow-y-auto [&>*]:pointer-events-auto">
-        <div className="rounded-xl bg-card/80 px-4 py-3 backdrop-blur-sm">
-          <p className="text-kit-title text-foreground">{copy.heroTitle}</p>
-          <p className="text-kit-body text-muted-foreground">
-            {!webglOk
-              ? copy.heroUnsupported
-              : markers.length === 0
-                ? copy.heroEmpty
-                : copy.heroSubtitle}
-          </p>
+      <div className="pointer-events-none relative z-10 flex size-full flex-col gap-3 p-3 md:p-5">
+        {/* Stops short of the top-right, where the globe keeps its own gear and zoom buttons. */}
+        <div className="glass-bar pointer-events-auto w-fit max-w-[calc(100%-9.5rem)] rounded-2xl px-4 py-3 md:max-w-[calc(100%-11rem)]">
+          {header}
         </div>
-        {children}
+        <p className="mx-auto hidden max-w-md text-center text-caption text-muted-foreground lg:block">
+          {!webglOk
+            ? copy.heroUnsupported
+            : markers.length === 0
+              ? copy.heroEmpty
+              : copy.heroSubtitle}
+        </p>
+        <div className="flex min-h-0 flex-1 flex-col justify-end gap-3 lg:flex-row lg:items-start lg:justify-between">
+          <div className="pointer-events-auto flex max-h-[55%] min-w-0 flex-col gap-3 overflow-y-auto lg:max-h-full lg:w-[22rem] lg:shrink-0">
+            {left}
+          </div>
+          <div className="pointer-events-auto flex max-h-[40%] min-w-0 flex-col gap-3 overflow-y-auto lg:max-h-full lg:w-[22rem] lg:shrink-0">
+            {right}
+          </div>
+        </div>
       </div>
     </section>
   )

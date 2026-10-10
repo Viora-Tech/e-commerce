@@ -257,14 +257,21 @@ export default function WebglGlobeCanvas({
         const inView = sx > -8 && sx < w + 8 && sy > -8 && sy < h + 8
         return { x: sx, y: sy, visible: inView && (z >= 0 || x * x + y * y > 1) }
       })
-      rafId = requestAnimationFrame(tick)
+      if (document.visibilityState === 'visible') rafId = requestAnimationFrame(tick)
     }
     rafId = requestAnimationFrame(tick)
+    // A hidden tab draws nothing (no GPU or battery use) and picks up again when shown.
+    const handleVisibility = () => {
+      cancelAnimationFrame(rafId)
+      if (document.visibilityState === 'visible') rafId = requestAnimationFrame(tick)
+    }
+    document.addEventListener('visibilitychange', handleVisibility)
     const detach = attachControls(canvas, s, reducedMotion)
 
     return () => {
       alive = false
       cancelAnimationFrame(rafId)
+      document.removeEventListener('visibilitychange', handleVisibility)
       detach()
       renderer.destroy()
     }
