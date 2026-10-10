@@ -145,9 +145,12 @@ each one is its own GST taxpayer, so:
   your Haryana warehouse and part from Karnataka, each part (parcel) is a separate sale by that
   GST number. The queue shows one invoice per parcel, each with only that parcel's items and its
   share of shipping and discount; together they add up to what the customer paid. A warehouse
-  on the composition scheme prints a bill of supply instead, with no GST. Credit notes for such
-  an order are not automatic yet: until they are, a refund on a split order is recorded without
-  one, so ask your accountant to record the credit note for now.
+  on the composition scheme prints a bill of supply instead, with no GST.
+- **A refund on such an order gets a credit note from each GST number it touches.** Money back
+  for a returned item is credited by the GST number that sent that item. Any other refund (a
+  goodwill amount, shipping) is shared between the invoices by their value. No credit note ever
+  credits more than its invoice. A courier collecting a return brings it back to the warehouse
+  it left from.
 - **Each GST number files its own GSTR-1.** A **GST number** picker sits at the top of
   **Queue**, **Invoices** and **Returns**. On **Returns**, pick the GST number, then **Export
   GSTR-1**, **Mark filed** or **Close period** for that one only.
