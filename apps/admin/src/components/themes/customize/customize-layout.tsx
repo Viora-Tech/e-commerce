@@ -16,7 +16,7 @@ import AddSectionPanel from './add-section-panel'
 import CustomizeRail, { type RailPanel } from './customize-rail'
 import PanelHeader from './panel-header'
 import SectionInspector from './section-inspector'
-import SectionsTree from './sections-tree'
+import SectionsPanel from './sections-panel'
 
 type CustomizeLayoutProps = {
   topBar: ReactNode
@@ -59,7 +59,13 @@ export default function CustomizeLayout({
     theme: { title: panels.theme, hint: panels.themeHint },
   }
   const panelContent =
-    panel === 'theme' ? settings : panel === 'add' ? <AddSectionPanel /> : <SectionsTree />
+    panel === 'theme' ? (
+      settings
+    ) : panel === 'add' ? (
+      <AddSectionPanel />
+    ) : (
+      <SectionsPanel onOpenTheme={() => setPanel('theme')} />
+    )
 
   return (
     <InsertContext.Provider value={setInserting}>

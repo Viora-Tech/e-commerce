@@ -250,6 +250,33 @@ export const customizeContent = {
       link: 'Browse apps',
     },
   },
+  audit: {
+    tabs: { sections: 'Sections', audit: 'Audit' },
+    tabsLabel: 'Sections or audit',
+    hint: 'Things on this page shoppers could trip over. Pick one to fix it.',
+    empty: 'Nothing to fix',
+    emptyHint: 'Pictures have descriptions, buttons go somewhere and the colours are easy to read.',
+    theme: 'Theme colours',
+    issues: {
+      alt: (n: number) =>
+        n === 1 ? 'A picture has no description' : `${n} pictures have no description`,
+      link: (n: number) => (n === 1 ? 'A button goes nowhere' : `${n} buttons go nowhere`),
+      hidden: () => 'Hidden on phones and computers',
+      heading: () => 'The heading is empty',
+    },
+    fixes: {
+      alt: 'Describe it for people who use screen readers.',
+      link: 'Pick a page for it, or clear its words.',
+      hidden: 'Show it on at least one, or remove it.',
+      heading: 'Write a heading, or remove the block.',
+      contrast: 'Pick colours with more contrast in Theme settings.',
+    },
+    count: (n: number) => (n === 1 ? '1 thing to fix' : `${n} things to fix`),
+  },
+  breadcrumb: {
+    label: 'Where this is',
+    select: (name: string) => `Select ${name}`,
+  },
   inspector: {
     empty: 'Select a section to edit its settings.',
     emptyFields: 'This section has no settings.',
