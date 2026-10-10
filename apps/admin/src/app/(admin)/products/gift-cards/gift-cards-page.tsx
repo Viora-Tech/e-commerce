@@ -138,7 +138,7 @@ type TabsProps = {
 function StateTabs({ value, allCount, onChange }: TabsProps) {
   return (
     <PillTabs
-      variant="pill"
+      variant="segmented"
       value={value}
       onChange={onChange}
       tabs={[

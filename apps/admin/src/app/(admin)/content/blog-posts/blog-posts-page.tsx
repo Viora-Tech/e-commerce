@@ -203,6 +203,7 @@ function BlogPostsContent({ initial }: { initial: BlogPostsInitial }) {
         applied={applied}
         tabs={
           <PillTabs
+            variant="segmented"
             value={q.status}
             onChange={(status) => setQ({ status, page: 1 })}
             tabs={[

@@ -295,7 +295,7 @@ function InventoryContent({ initial }: { initial: InventoryInitial }) {
         applied={applied}
         tabs={
           <PillTabs
-            variant="pill"
+            variant="segmented"
             value={q.stock === 'out' || q.stock === 'low' ? q.stock : null}
             onChange={(stock) => setQ({ stock, page: 1 })}
             tabs={[

@@ -79,7 +79,7 @@ export default function CampaignsPage({ campaigns }: CampaignsPageProps) {
         }}
         tabs={
           <PillTabs
-            variant="pill"
+            variant="segmented"
             value={tab}
             onChange={(next) => {
               setTab(next)

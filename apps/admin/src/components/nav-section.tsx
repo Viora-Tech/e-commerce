@@ -71,7 +71,7 @@ export default function NavSection({ item, pathname }: NavSectionProps) {
             <motion.span
               layoutId="nav-active-pill"
               transition={slide}
-              className="absolute inset-0 -z-10 rounded-md bg-sidebar-accent"
+              className="absolute inset-0 -z-10 rounded-[0.5rem] bg-sidebar-accent"
               aria-hidden
             />
           ) : null}
@@ -109,12 +109,12 @@ export default function NavSection({ item, pathname }: NavSectionProps) {
             animate={{ height: 'auto', opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
             transition={reveal}
-            className="ml-6 flex flex-col gap-0.5 overflow-hidden group-data-[collapsible=icon]:hidden"
+            className="mt-1 ml-6 flex flex-col overflow-hidden border-l border-border pl-1.5 group-data-[collapsible=icon]:hidden"
           >
-            {children.map((child, i) => {
+            {children.map((child) => {
               const active = isChildActive(pathname, child)
               return (
-                <li key={child.href} className={cn(i === 0 && 'mt-1')}>
+                <li key={child.href}>
                   <Link
                     href={child.href}
                     aria-current={active ? 'page' : undefined}

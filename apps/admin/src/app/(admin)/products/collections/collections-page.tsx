@@ -114,7 +114,7 @@ function CollectionsContent({ initial }: { initial: CollectionsInitial }) {
         onClearAll={() => setQ({ query: '', tab: null, page: 1 })}
         tabs={
           <PillTabs
-            variant="pill"
+            variant="segmented"
             value={q.tab}
             onChange={(tab) => setQ({ tab, page: 1 })}
             tabs={[
