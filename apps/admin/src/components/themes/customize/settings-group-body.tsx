@@ -1,6 +1,7 @@
 'use client'
 
 import { AutoField, type Field } from '@puckeditor/core'
+import AnimationField from './animation-field'
 import BackgroundField from './background-field'
 import SchemeChips from './scheme-chips'
 import SettingsSegmented from './settings-segmented'
@@ -12,6 +13,8 @@ type SettingsGroupBodyProps = {
   fields: Record<string, Field>
   value: Record<string, unknown>
   onChange: (key: string, value: unknown) => void
+  /** Several settings of this group in one edit. */
+  onPatch: (patch: Record<string, unknown>) => void
 }
 
 type Options = { label: string; value: string | number | boolean }[]
@@ -42,6 +45,7 @@ export default function SettingsGroupBody({
   fields,
   value,
   onChange,
+  onPatch,
 }: SettingsGroupBodyProps) {
   // Render logic
   const isSpacing = group === 'spacing' && 'paddingTop' in fields && 'paddingBottom' in fields
@@ -58,7 +62,7 @@ export default function SettingsGroupBody({
         <SpacingField
           value={value as Parameters<typeof SpacingField>[0]['value']}
           max={maxOf(fields.paddingTop)}
-          onChange={onChange}
+          onChange={onPatch}
         />
       ) : null}
       {Object.entries(fields).map(([key, field]) => {
@@ -76,6 +80,17 @@ export default function SettingsGroupBody({
               onColour={(next) => onChange('backgroundColor', next)}
               onImage={(next) => onChange('backgroundImage', next)}
               onOverlay={(next) => onChange('overlayOpacity', next)}
+            />
+          )
+        }
+        if (group === 'advanced' && key === 'entranceAnimation' && optionsOf(field).length > 0) {
+          return (
+            <AnimationField
+              key={key}
+              label={labelOf(field, key)}
+              options={optionsOf(field) as { label: string; value: string }[]}
+              value={typeof value[key] === 'string' ? (value[key] as string) : 'none'}
+              onChange={(next) => onChange(key, next)}
             />
           )
         }

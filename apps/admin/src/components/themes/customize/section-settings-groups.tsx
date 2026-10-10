@@ -69,6 +69,10 @@ export default function SectionSettingsGroups({
     const current = (value[group] ?? {}) as Record<string, unknown>
     onChange({ ...value, [group]: { ...current, [key]: next } })
   }
+  const handlePatch = (group: string, patch: Record<string, unknown>) => {
+    const current = (value[group] ?? {}) as Record<string, unknown>
+    onChange({ ...value, [group]: { ...current, ...patch } })
+  }
 
   // Render logic
   const groups = Object.entries((field.objectFields ?? {}) as Record<string, GroupField>)
@@ -115,6 +119,7 @@ export default function SectionSettingsGroups({
                     fields={subFields}
                     value={groupValue}
                     onChange={(subKey, next) => handleChange(key, subKey, next)}
+                    onPatch={(patch) => handlePatch(key, patch)}
                   />
                 </div>
               </CollapsibleContent>

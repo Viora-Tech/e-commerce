@@ -28,6 +28,7 @@ const copy = customizeContent.settingsControls
 /** The theme colours offered first; stored by name (`SECTION_BACKGROUND_TOKENS`) or as hex. */
 const TOKENS = ['ink', 'brand', 'background'] as const
 const WHITE = '#ffffff'
+const HEX = /^#[0-9a-f]{6}$/i
 
 /**
  * A section's background (Figma inspector 369:5139): "Colour | Image" on a segmented switch.
@@ -65,6 +66,12 @@ export default function BackgroundField({
     { value: WHITE, label: copy.backgroundTokens.white },
   ]
   const valid = safeColour(colour)
+  const chosen = chips.find((c) => c.value === colour)
+  const hex = swatch[colour] ?? (valid && HEX.test(valid) ? valid : undefined)
+  const currentLabel =
+    colour === ''
+      ? copy.currentNone
+      : [chosen?.label ?? copy.custom, hex?.toUpperCase()].filter(Boolean).join(' · ')
 
   return (
     <div className="flex flex-col gap-2">
@@ -133,10 +140,13 @@ export default function BackgroundField({
           </div>
           {customOpen ? (
             <div className="relative">
-              <span
-                aria-hidden
-                className="absolute top-1/2 left-2 size-4 -translate-y-1/2 rounded-sm ring-1 ring-border"
-                style={valid ? { backgroundColor: valid } : undefined}
+              {/* The swatch is the browser's colour picker; typing a value works too. */}
+              <input
+                type="color"
+                value={valid && HEX.test(valid) ? valid : WHITE}
+                onChange={(e) => onColour(e.target.value)}
+                aria-label={`${copy.backgroundColour}, ${copy.custom}`}
+                className="absolute top-1/2 left-1.5 size-5 -translate-y-1/2 cursor-pointer rounded-sm border-0 bg-transparent p-0 [&::-webkit-color-swatch]:rounded-sm [&::-webkit-color-swatch]:border-0 [&::-webkit-color-swatch-wrapper]:p-0"
               />
               <Input
                 value={(TOKENS as readonly string[]).includes(colour) ? '' : colour}
@@ -151,6 +161,10 @@ export default function BackgroundField({
               />
             </div>
           ) : null}
+          <p className="flex items-center justify-between text-[0.8125rem] leading-[1.1875rem]">
+            <span className="text-muted-foreground">{copy.current}</span>
+            <span className="text-foreground tabular-nums">{currentLabel}</span>
+          </p>
         </div>
       ) : (
         <div className="flex flex-col gap-3">
