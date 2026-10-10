@@ -1,4 +1,4 @@
-/** Default copy and fixed UI strings for the Social wall section (Glide `social-wall`). */
+/** Default copy and fixed UI strings for the Social wall section (Zero Drift `social-wall`). */
 export const socialWallContent = {
   label: 'Social wall',
   heading: 'From the community',

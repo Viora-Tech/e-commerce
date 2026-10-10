@@ -1,9 +1,9 @@
 /**
  * SOURCE OF TRUTH KEYWORDS: featured carousel copy, featured lockup, product slides
  * WHAT:  Every default and fixed UI string of the Featured carousel section, plus its motion timing.
- * WHY:   Defaults come from Glide's templates/index.json (instance "featured_carousel"), the
+ * WHY:   Defaults come from Zero Drift's templates/index.json (instance "featured_carousel"), the
  *        liquid schema and locales (sections.featured_carousel, products.*). The theme's seven
- *        product handles are real Glide products, so slides start empty here.
+ *        product handles are real Zero Drift products, so slides start empty here.
  * WHERE: `components/sections/zero-drift/featured-carousel*.tsx`, `sections/zero-drift/featured-carousel.tsx`.
  */
 export const featuredCarouselContent = {

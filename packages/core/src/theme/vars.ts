@@ -18,7 +18,7 @@ export function schemeVars(s: ColorScheme): CssVars {
     '--color-on-brand': s.buttonText,
     '--color-accent': s.accent,
     '--color-accent-2': s.accent,
-    // The always-dark band: a constant, not a derivation (see Glide's css-variables).
+    // The always-dark band: a constant, not a derivation (see Zero Drift's css-variables).
     '--color-dark-band': s.text,
     '--color-on-dark-band': s.background,
   }

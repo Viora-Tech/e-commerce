@@ -1,7 +1,7 @@
 /**
  * SOURCE OF TRUTH KEYWORDS: reviews copy, customer reviews section, spotlight review, rating stars
  * WHAT:  Every default and fixed UI string of the Customer reviews section (Puck key `Reviews`).
- * WHY:   Defaults come from Glide's templates/index.json (instance "reviews"), the liquid schema
+ * WHY:   Defaults come from Zero Drift's templates/index.json (instance "reviews"), the liquid schema
  *        and locales (sections.reviews, reviews.*, products.rating). Like the theme's preset, the
  *        three starting reviews are empty: a review shows only once a real customer's name and
  *        words are filled in, so the store never ships invented reviews.

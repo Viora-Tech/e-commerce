@@ -11,7 +11,7 @@ type StickyHeaderProps = {
 const SCROLLED_PAST_PX = 4
 
 /**
- * The header's wrapper (Glide `<sticky-header>` in header.js). Pinning itself is CSS
+ * The header's wrapper (Zero Drift `<sticky-header>` in header.js). Pinning itself is CSS
  * (`data-sticky-type`, section-header.css); this marks `.scrolled-past` once the page moves
  * and, for "on scroll up", hides the header while scrolling down past it.
  */

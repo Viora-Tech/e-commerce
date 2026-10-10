@@ -2,7 +2,7 @@
  * SOURCE OF TRUTH KEYWORDS: image comparison copy, before after slider, IMAGE_COMPARISON
  * WHAT:  Every default and fixed UI string of the Image comparison section (Puck key
  *        `ImageComparison`), plus its entrance timing.
- * WHY:   Defaults come from Glide's templates/index.json (instance "glass_vs_cloth": the heading)
+ * WHY:   Defaults come from Zero Drift's templates/index.json (instance "glass_vs_cloth": the heading)
  *        and the liquid schema (everything else; the instance's two product handles and its
  *        rotate/zoom are tuned to the owner's own mouse photos). Locales: sections.image_comparison.
  * WHERE: `components/sections/zero-drift/image-comparison.tsx`, `sections/zero-drift/image-comparison.tsx`.

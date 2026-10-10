@@ -4,7 +4,7 @@ import { collectionsContent as copy } from '@/data/collections'
 
 type CollectionGridProps = { products: CardProduct[] }
 
-/** Glide's product grid, reused for a collection's page and the Puck block. */
+/** Zero Drift's product grid, reused for a collection's page and the Puck block. */
 export default function CollectionGrid({ products }: CollectionGridProps) {
   // Early returns
   if (products.length === 0) {

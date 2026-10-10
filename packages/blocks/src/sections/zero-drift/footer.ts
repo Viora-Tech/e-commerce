@@ -6,7 +6,7 @@ import { inlineRichtext, inlineText } from '../inline-fields'
 
 /**
  * SOURCE OF TRUTH KEYWORDS: footerDef, footerSettings, Footer section settings
- * WHAT:  The Footer dynamic section's fields and defaults (Glide `sections/footer.liquid`:
+ * WHAT:  The Footer dynamic section's fields and defaults (Zero Drift `sections/footer.liquid`:
  *        help cards, the about text with logo and socials, payment icons, policy links), and
  *        `footerSettings`, which turns saved settings into `<Footer>` props.
  * WHY:   The footer is drawn by the storefront (store menus, policies, grievance officer,

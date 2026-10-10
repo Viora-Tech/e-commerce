@@ -4,7 +4,7 @@
 // permitted by the owner, see docs/licences/aceternity-pro.md), https://ui.aceternity.com/components/meteors.
 // Changes: the meteors are spread and timed from their index instead of Math.random(), so
 // the server and the browser draw the same markup (no hydration mismatch); colours come from
-// the theme (`--color-ink` head, `--color-brand` tail, as Glide's newsletter card had them);
+// the theme (`--color-ink` head, `--color-brand` tail, as Zero Drift's newsletter card had them);
 // rem sizes; the CSS fade-in replaces the Motion wrapper; nothing renders under reduced
 // motion. Keyframes: `styles/effects.css`. Place it as the first child of a
 // `relative overflow-hidden isolate` box.

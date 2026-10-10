@@ -45,7 +45,7 @@ const DEFAULT_CARDS = {
 } as const
 const DEFAULT_BRAND = { logo: null, logoWidth: 140, favicon: null }
 
-/** One colour scheme, same roles as Glide's color_scheme_group. */
+/** One colour scheme, same roles as Zero Drift's color_scheme_group. */
 export const ColorSchemeSchema = z.object({
   /** Becomes a CSS class inside the storefront's <style> block, so only a safe slug is allowed. */
   id: z.string().regex(/^[a-z0-9-]{1,40}$/, 'lowercase letters, digits and hyphens'),
@@ -131,7 +131,7 @@ export const ThemeSchema = z.object({
 })
 export type Theme = z.infer<typeof ThemeSchema>
 
-/** Waimers' live Glide configuration, 2026-09. */
+/** Waimers' live Zero Drift configuration, 2026-09. */
 export const defaultTheme: Theme = {
   schemes: [
     {

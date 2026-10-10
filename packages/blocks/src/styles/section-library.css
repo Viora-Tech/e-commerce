@@ -1,7 +1,7 @@
 /**
  * The Customize section library: image banner, image with
  * text, multicolumn, collection list, featured product, testimonials, logo list,
- * FAQ, video and email signup. Ported from the Glide sections' layout and
+ * FAQ, video and email signup. Ported from the Zero Drift sections' layout and
  * spacing, drawn only with the theme's custom properties so every colour scheme
  * and dark mode apply unchanged.
  */
@@ -274,4 +274,4 @@
   border: 0;
 }
 
-/* Email signup: section-newsletter.css (the Glide newsletter card). */
+/* Email signup: section-newsletter.css (the Zero Drift newsletter card). */

@@ -18,7 +18,7 @@ function cartCountOf(meta: SectionMetadata): number {
 }
 
 /**
- * Glide's mobile dock (`sections/mobile-dock.liquid`), a footer-group section. Not framed:
+ * Zero Drift's mobile dock (`sections/mobile-dock.liquid`), a footer-group section. Not framed:
  * the bar is fixed to the bottom of the screen, so a padded section box around it would only
  * leave a gap in the footer.
  */

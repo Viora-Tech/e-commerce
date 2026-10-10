@@ -8,7 +8,7 @@ import { useReducedMotion } from '../use-reduced-motion'
 type RevealProps = { children: ReactNode }
 
 /**
- * Port of Glide's reveal.js: a section fades and rises in the first time it scrolls
+ * Port of Zero Drift's reveal.js: a section fades and rises in the first time it scrolls
  * into view. The server HTML is always visible (no-JS visitors, crawlers and the LCP
  * element never wait on script); only a section still below the fold once the
  * animation library has loaded is hidden, and only when the visitor has not asked

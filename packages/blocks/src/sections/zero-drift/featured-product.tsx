@@ -9,7 +9,7 @@ import { inlineRichtext, inlineText } from '../inline-fields'
 import type { SingleProductLoader } from '../library'
 
 /**
- * Keys saved before the Glide refresh (`kicker`, `handle`, `text`, `button`) keep their names,
+ * Keys saved before the Zero Drift refresh (`kicker`, `handle`, `text`, `button`) keep their names,
  * so those sections render as they did; the rest are the theme's lockup settings.
  */
 export type FeaturedProductProps = Frame & {

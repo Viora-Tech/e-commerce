@@ -20,13 +20,13 @@ import { type SignupPopupProps, signupPopupSection } from './zero-drift/signup-p
 import { type SocialWallProps, socialWallSection } from './zero-drift/social-wall'
 
 /**
- * SOURCE OF TRUTH KEYWORDS: zeroDriftSections, ZeroDriftProps, ZERO_DRIFT_SECTIONS, Glide theme port
- * WHAT:  The registry of sections rebuilt from our own Shopify theme (Glide), one entry per
+ * SOURCE OF TRUTH KEYWORDS: zeroDriftSections, ZeroDriftProps, ZERO_DRIFT_SECTIONS, Zero Drift theme port
+ * WHAT:  The registry of sections rebuilt from our own Shopify theme (Zero Drift), one entry per
  *        `sections/<name>.liquid`, in the home page's order.
  * WHY:   Each section's config lives beside it in `./zero-drift/<name>.tsx` (fields, defaults from
  *        the theme's `templates/index.json`, loaders); this file only lists them, so
  *        `createBlocksConfig` and the tests derive the set from one place. Inventory and
- *        status of every theme section: `docs/design/glide-theme-port.md`.
+ *        status of every theme section: `docs/design/zero-drift-theme-port.md`.
  * WHERE: `../puck-config.tsx` registers and categorises them; components in
  *        `../components/sections/zero-drift/`, styles in `../styles/section-<name>.css`.
  */
@@ -72,7 +72,7 @@ const BUILDERS: { [K in keyof ZeroDriftProps]: (loaders: ZeroDriftLoaders) => Co
   SignupPopup: signupPopupSection,
 }
 
-/** Every Glide section key, in the theme home page's order. */
+/** Every Zero Drift section key, in the theme home page's order. */
 export const ZERO_DRIFT_SECTIONS = Object.keys(BUILDERS) as (keyof ZeroDriftProps)[]
 
 export type { ZeroDriftLoaders } from './zero-drift/loaders'

@@ -1,4 +1,4 @@
-/** Default copy and fixed UI strings for the Drop reveal section (Glide `drop-reveal`). */
+/** Default copy and fixed UI strings for the Drop reveal section (Zero Drift `drop-reveal`). */
 export const dropRevealContent = {
   label: 'Drop reveal',
   collectionHandle: 'preorder',

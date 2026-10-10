@@ -212,7 +212,7 @@ export function librarySections(loaders: Loaders): LibraryConfig {
       },
     ),
 
-    // Glide's featured-product section; config in ./zero-drift/featured-product.tsx.
+    // Zero Drift's featured-product section; config in ./zero-drift/featured-product.tsx.
     FeaturedProduct: featuredProductSection(loaders),
 
     Testimonials: framed<LibraryProps['Testimonials']>(

@@ -2,7 +2,7 @@
  * Newsletter banner (sections/newsletter.liquid, components/sections/newsletter.tsx):
  * rounded card, headline + reasons on the left, interests and the email
  * capture on the right. Stacks to a single column below 750px. The meteors
- * behind the copy are Aceternity's (effects/meteors.tsx), not Glide's script.
+ * behind the copy are Aceternity's (effects/meteors.tsx), not Zero Drift's script.
  *
  * The card's palette is a handful of local custom properties (--nl-*)
  * rather than hard-coded colours; they track the section frame's

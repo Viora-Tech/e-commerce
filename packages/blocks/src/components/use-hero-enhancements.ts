@@ -11,7 +11,7 @@ type HeroEnhancements = {
 }
 
 /**
- * The progressive enhancements of Glide's hero-carousel.js that are not the slide clock:
+ * The progressive enhancements of Zero Drift's hero-carousel.js that are not the slide clock:
  * a vertical wheel always scrolls the page (never the track), the viewport-height offset,
  * pointer parallax and the pinned hero's release. `root` is the `.hero-carousel` element,
  * `track` its scroll-snap track; both only gain behaviour, so the server HTML stands alone.

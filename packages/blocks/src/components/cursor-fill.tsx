@@ -23,7 +23,7 @@ function setOrigin(el: HTMLElement, event: PointerEvent): void {
 }
 
 /**
- * Port of Glide's motion.js cursor-origin fill: buttons fill from the point the
+ * Port of Zero Drift's motion.js cursor-origin fill: buttons fill from the point the
  * cursor came in and drain toward the point it left. The sweep itself is the CSS
  * clip-path transition in base.css; this only supplies the origin and the class,
  * and marks <html> so the plain :hover swap steps aside. Renders nothing.

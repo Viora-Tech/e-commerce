@@ -5,7 +5,7 @@
 @source "../../../../packages/blocks/src/**/*.tsx";
 
 /*
- * Glide's token names, unchanged. Values are injected per store by the
+ * Zero Drift's token names, unchanged. Values are injected per store by the
  * layout (see @commerce/core themeToCss). Tailwind classes below map onto
  * them so components write `bg-surface text-ink border-line`.
  */
@@ -159,7 +159,7 @@ h3 {
   font-size: calc(1.25rem * var(--font-heading-scale, 1));
 }
 
-/* Fields in Glide's language (account forms, the cart's code entry). */
+/* Fields in Zero Drift's language (account forms, the cart's code entry). */
 .field {
   display: grid;
   gap: 0.35rem;

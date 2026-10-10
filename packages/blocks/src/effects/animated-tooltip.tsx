@@ -6,7 +6,7 @@
 // the pointer (rotate and shift follow the pointer's offset from the avatar's centre). Changes:
 // CSS transitions with a springy curve replace Motion's springs (no animation library on the
 // page), the card also opens on keyboard focus, avatars without a photo show initials on a hue
-// (Glide's reviewer avatars), theme colours and rem sizes, and nothing swings under reduced motion.
+// (Zero Drift's reviewer avatars), theme colours and rem sizes, and nothing swings under reduced motion.
 import { type CSSProperties, type MouseEvent, type ReactNode, useState } from 'react'
 import Picture from '../components/picture'
 import { cx } from '../slot-types'

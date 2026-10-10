@@ -1,7 +1,7 @@
 /**
  * SOURCE OF TRUTH KEYWORDS: latest drop copy, spotlight, countdown labels
  * WHAT:  Every default and fixed UI string of the Latest drop section.
- * WHY:   Components never carry copy literals; defaults come from Glide's templates/index.json
+ * WHY:   Components never carry copy literals; defaults come from Zero Drift's templates/index.json
  *        and locales (sections.latest_drop, general.countdown).
  * WHERE: `components/sections/zero-drift/latest-drop*.tsx`, `sections/zero-drift/latest-drop.tsx`.
  */

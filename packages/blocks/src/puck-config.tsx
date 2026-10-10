@@ -153,7 +153,7 @@ export type BlockProps = {
  * footer are placed by their template or group, never added from here.
  */
 export const SECTION_CATEGORIES = {
-  // Rebuilt from our own Shopify theme (Zero Drift, formerly Glide); see ./sections/zero-drift.tsx.
+  // Rebuilt from our own Shopify theme, Zero Drift; see ./sections/zero-drift.tsx.
   zeroDrift: { title: 'Zero Drift theme', components: ZERO_DRIFT_SECTIONS },
   banners: {
     title: 'Banners',
@@ -303,7 +303,7 @@ export function createBlocksConfig(
         liquidSectionConfig as unknown as Config<BlockProps>['components']['LiquidSection'],
       Hero: heroBlock({ loadProduct: options.loadProduct }),
 
-      // Glide's tabbed-products section; config in ./sections/zero-drift/tabbed-products.tsx.
+      // Zero Drift's tabbed-products section; config in ./sections/zero-drift/tabbed-products.tsx.
       ProductGrid: tabbedProductsSection({
         loadProducts,
         loadCollections: options.loadCollections,

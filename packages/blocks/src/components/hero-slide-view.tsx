@@ -22,7 +22,7 @@ type HeroLink = { label: string; href: string; newTab?: boolean | undefined }
 
 /**
  * One slide as the carousel draws it. Only `heading` and `image` were ever required, so slides
- * saved before the Glide refresh (`heading`, `subheading`, `image`, `cta`, `cta2`,
+ * saved before the Zero Drift refresh (`heading`, `subheading`, `image`, `cta`, `cta2`,
  * `textPosition`) still draw as full-bleed picture slides. Text may arrive as React nodes
  * while it is being edited on the canvas.
  */

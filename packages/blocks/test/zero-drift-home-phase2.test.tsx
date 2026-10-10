@@ -57,7 +57,7 @@ const resolveAndRender = async (key: Key, props: Record<string, unknown> = {}) =
 
 const node = (label: string) => createElement('span', { 'data-inline': label }, label)
 
-describe('Hero (Glide hero-carousel)', () => {
+describe('Hero (Zero Drift hero-carousel)', () => {
   it('renders its defaults with the first heading as the page h1 and no empty sources', () => {
     const html = render('Hero')
     expect(html).toContain('<h1 class="hero-carousel__heading h1">')
@@ -146,7 +146,7 @@ describe('Hero (Glide hero-carousel)', () => {
   })
 })
 
-describe('ProductGrid (Glide tabbed-products)', () => {
+describe('ProductGrid (Zero Drift tabbed-products)', () => {
   it('renders collection tabs with counts and a View all link', async () => {
     const html = await resolveAndRender('ProductGrid', {
       tabs: [{ label: '', collection: 'mice' }],
@@ -179,7 +179,7 @@ describe('ProductGrid (Glide tabbed-products)', () => {
   })
 })
 
-describe('FeaturedProduct (Glide featured-product)', () => {
+describe('FeaturedProduct (Zero Drift featured-product)', () => {
   it('renders the lockup with stamp, share and help', async () => {
     const html = await resolveAndRender('FeaturedProduct', {
       handle: 'glass-pad',
@@ -214,7 +214,7 @@ describe('FeaturedProduct (Glide featured-product)', () => {
   })
 })
 
-describe('Reviews (Glide reviews)', () => {
+describe('Reviews (Zero Drift reviews)', () => {
   const reviews = [
     {
       name: 'Asha',
@@ -274,7 +274,7 @@ describe('Reviews (Glide reviews)', () => {
   })
 })
 
-describe('ImageComparison (Glide image-comparison)', () => {
+describe('ImageComparison (Zero Drift image-comparison)', () => {
   it('renders placeholders and a range when no pictures are set', () => {
     const html = render('ImageComparison')
     expect(html).toContain('image-comparison__placeholder')

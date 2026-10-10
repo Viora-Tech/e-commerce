@@ -127,14 +127,14 @@ from the pure subpaths that exist for this: `@commerce/core/catalog`, `/permissi
 `/segments`, `/navigation`, `/adjustments`, `/emi` and so on. If the value you need has no pure
 subpath yet, move it into one rather than importing the barrel.
 
-## Storefront theme CSS (the Glide port exception)
+## Storefront theme CSS (the Zero Drift port exception)
 
 New code uses Tailwind. The one exception is `packages/blocks/src/styles/`: the storefront
-sections are ports of our own Shopify theme (Glide, the owner's `Shopify/theme` repo), and their BEM
+sections are ports of our own Shopify theme (Zero Drift, formerly Glide, the owner's `Shopify/theme` repo), and their BEM
 stylesheets are ported alongside them (`section-<name>.css`, imported by `styles/index.css`) so
 the rebuild stays pixel-faithful and a theme change can be diffed against the original file.
 Those files still follow the other rules: rem sizes, colours from the theme's CSS variables,
-never hardcoded. Inventory and status of the port: `docs/design/glide-theme-port.md`.
+never hardcoded. Inventory and status of the port: `docs/design/zero-drift-theme-port.md`.
 
 ## Motion
 
