@@ -101,6 +101,14 @@ export default [
     settings: 'स्टोर सेटिंग्स',
     help: 'एडिटर में मदद',
   }),
+  translation(customizeContent.loading, {
+    message: (store: string) => `${store} एडिटर में खुल रहा है…`,
+    failedTitle: 'हम आपके स्टोरफ़्रंट तक नहीं पहुँच पाए',
+    failedBody: 'पेज लोड नहीं हुआ। अपना कनेक्शन जाँचें और फिर से कोशिश करें।',
+    retry: 'फिर से कोशिश करें',
+    help: 'मदद लें',
+    back: 'थीम पर वापस',
+  }),
   translation(customizeContent.identity, {
     title: (store: string, template: string) => `${store} · ${template}`,
   }),
