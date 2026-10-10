@@ -80,6 +80,18 @@ export function createMerchantAuth(opts: MerchantAuthOptions) {
           ? { ipAddressHeaders: ['cf-connecting-ip'] }
           : { disableIpTracking: true },
     },
+    databaseHooks: {
+      user: {
+        update: {
+          // A member's photo is set only by the admin API (`account.setAvatar`), which
+          // re-encodes it into our own storage and writes the row directly. Better Auth's
+          // client-callable update-user would otherwise let anyone point their `image` at any
+          // URL, which their teammates' browsers then load from the staff list. Hooks can only
+          // add fields, not drop one, so an update that carries a photo is refused whole.
+          before: async (data) => (data.image === undefined ? undefined : false),
+        },
+      },
+    },
     session: {
       expiresIn: 60 * 60 * 24 * 30,
       updateAge: 60 * 60 * 24,

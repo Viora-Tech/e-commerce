@@ -13,17 +13,16 @@ import {
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import type { ReactNode } from 'react'
-import { ACCOUNT_PAGES } from '@/data/account'
+import { ACCOUNT_MENU, accountContent } from '@/data/account'
 import { bugReportContent } from '@/data/bug-report'
 import { navigationContent } from '@/data/navigation'
-import { useCopy, useLocale } from '@/hooks/use-copy'
+import { useCopy } from '@/hooks/use-copy'
 import { authClient } from '@/lib/auth-client'
 import { openBugReport } from '@/lib/bug-report-events'
-import { pageName } from '@/lib/page-names'
 import { routes } from '@/lib/routes'
 
 type UserMenuProps = {
-  user: { name: string; email: string }
+  user: { name: string; email: string; image?: string | null }
   /** Adds "Report a bug" (test server only). */
   bugReports: boolean
   /** The button that opens the menu: its look is the caller's. */
@@ -51,7 +50,7 @@ export default function UserMenu({
   // Hooks
   const copy = useCopy(navigationContent)
   const bugCopy = useCopy(bugReportContent)
-  const locale = useLocale()
+  const accountCopy = useCopy(accountContent)
   const router = useRouter()
 
   // Event handlers
@@ -77,10 +76,10 @@ export default function UserMenu({
         <DropdownMenuSeparator />
         <DropdownMenuGroup>
           {/* Your own preferences first, then the store's Settings. */}
-          {ACCOUNT_PAGES.map((page) => (
+          {ACCOUNT_MENU.map((page) => (
             <DropdownMenuItem key={page.href} render={<Link href={page.href} />}>
               <page.icon className="size-4" />
-              {pageName(page.href, page.title, locale)}
+              {accountCopy.pages[page.id]}
             </DropdownMenuItem>
           ))}
           <DropdownMenuItem render={<Link href={routes.settings.home()} />}>

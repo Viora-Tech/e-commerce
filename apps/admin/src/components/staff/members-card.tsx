@@ -16,6 +16,7 @@ import {
   SelectValue,
 } from '@commerce/ui/shadcn/select'
 import { toast } from 'sonner'
+import MemberAvatar from '@/components/account/member-avatar'
 import RelativeTime from '@/components/layout/relative-time'
 import SettingsTable from '@/components/settings/settings-table'
 import SettingsTableCell from '@/components/settings/settings-table-cell'
@@ -25,13 +26,13 @@ import RowActionsCell from '@/components/table/row-actions-cell'
 import { staffContent } from '@/data/staff'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
-import { initials } from '@/lib/initials'
 
 export type StaffMemberRow = {
   id: string
   userId: string
   name: string | null
   email: string | null
+  image?: string | null
   roleId: string
   roleName: string
   roleSlug: string
@@ -102,9 +103,13 @@ export default function MembersCard({
             <SettingsTableRow key={m.id}>
               <SettingsTableCell>
                 <div className="flex min-w-0 items-center gap-3">
-                  <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-primary-soft text-caption font-medium text-ink-strong ring-1 ring-primary/20">
-                    {initials(m.name, m.email)}
-                  </span>
+                  <MemberAvatar
+                    name={m.name}
+                    email={m.email}
+                    image={m.image}
+                    className="size-8 ring-1 ring-primary/20"
+                    fallbackClassName="bg-primary-soft text-caption font-medium text-ink-strong"
+                  />
                   <span className="min-w-0">
                     <span className="block truncate text-body font-semibold text-ink-strong">
                       {m.name ?? m.email ?? m.userId}

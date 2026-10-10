@@ -2,7 +2,7 @@ import { type Permission, permissions } from '@commerce/core/permissions'
 import type { LucideIcon } from '@commerce/ui/icons'
 import { Palette, Plus, Settings } from '@commerce/ui/icons'
 import { routes } from '@/lib/routes'
-import { ACCOUNT_PAGES } from './account'
+import { ACCOUNT_NAV } from './account'
 import { NAV_GROUPS, SETTINGS_NAV } from './navigation'
 import { SETTINGS_SECTIONS } from './settings'
 
@@ -213,7 +213,7 @@ export const PAGE_LINKS: PaletteLink[] = [
     ]),
   ),
   { label: SETTINGS_NAV.label, href: SETTINGS_NAV.href, icon: SETTINGS_NAV.icon },
-  ...ACCOUNT_PAGES.map(
+  ...ACCOUNT_NAV.map(
     (p): PaletteLink => ({
       label: p.title,
       hint: paletteContent.account,

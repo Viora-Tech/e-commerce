@@ -15,7 +15,10 @@ export const routes = {
   acceptInvitation: (invitationId: string) => `/accept-invitation/${id(invitationId)}`,
 
   account: {
+    /** Profile: the page the account menu's "Account" opens. */
     home: () => '/account',
+    stores: () => '/account/stores',
+    language: () => '/account/language',
     appearance: () => '/account/appearance',
   },
 

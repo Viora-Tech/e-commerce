@@ -729,6 +729,13 @@
       "when": 1791647594206,
       "tag": "0108_metafield_owners",
       "breakpoints": true
+    },
+    {
+      "idx": 104,
+      "version": "7",
+      "when": 1791653365392,
+      "tag": "0109_member_phone",
+      "breakpoints": true
     }
   ]
 }

@@ -18,7 +18,7 @@ type StoreOption = { id: string; name: string; slug: string }
 
 type AdminFrameProps = {
   children: ReactNode
-  user: { name: string; email: string }
+  user: { name: string; email: string; image: string | null }
   stores: StoreOption[]
   activeStoreId: string | null
   storefrontUrl: string

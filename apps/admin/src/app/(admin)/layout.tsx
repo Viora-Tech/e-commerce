@@ -43,7 +43,11 @@ export default async function AdminLayout({ children }: { children: ReactNode })
     <>
       <AccentStyle organizationId={active?.id ?? null} />
       <AdminFrame
-        user={{ name: session.user.name, email: session.user.email }}
+        user={{
+          name: session.user.name,
+          email: session.user.email,
+          image: session.user.image ?? null,
+        }}
         stores={storeOptions}
         activeStoreId={active?.id ?? null}
         storefrontUrl={await storefrontOrigin()}

@@ -74,6 +74,7 @@ export const staffRouter = {
       id: m.userId,
       name: (m.user as { name?: string | null }).name ?? null,
       email: (m.user as { email?: string | null }).email ?? null,
+      image: (m.user as { image?: string | null }).image ?? null,
     }))
     return mergeDirectory(rows, directory)
   }),

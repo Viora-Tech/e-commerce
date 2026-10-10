@@ -30,9 +30,9 @@ import {
 import { useCopy, useLocale } from '@/hooks/use-copy'
 import { usePermissions } from '@/hooks/use-permissions'
 import { authClient } from '@/lib/auth-client'
-import { initials } from '@/lib/initials'
 import { localizeNavItems, navGroupName } from '@/lib/page-names'
 import { routes } from '@/lib/routes'
+import MemberAvatar from './account/member-avatar'
 import SidebarUsageCard, { type SidebarUsage } from './layout/sidebar-usage-card'
 import UserMenu from './layout/user-menu'
 import NavGroupBlock from './nav-group-block'
@@ -44,7 +44,7 @@ type AdminSidebarProps = {
   activeStoreId: string | null
   apps: { id: string; name: string; icon: string | null }[]
   logoUrl: string | null
-  user: { name: string; email: string }
+  user: { name: string; email: string; image: string | null }
   /** The live storefront's address; its host is the domain pill. */
   storefrontUrl: string
   bugReports: boolean
@@ -238,12 +238,13 @@ export default function AdminSidebar({
           triggerClassName={ROW_TRIGGER}
           trigger={
             <>
-              <span
-                aria-hidden="true"
-                className="flex size-8 shrink-0 items-center justify-center rounded-full bg-ink-strong text-caption font-semibold text-background"
-              >
-                {initials(user.name, user.email)}
-              </span>
+              <MemberAvatar
+                name={user.name}
+                email={user.email}
+                image={user.image}
+                className="size-8"
+                fallbackClassName="bg-ink-strong text-caption text-background"
+              />
               <span className="flex min-w-0 flex-1 flex-col leading-tight group-data-[collapsible=icon]:hidden">
                 <span className="truncate text-body-strong font-semibold text-ink-strong">
                   {user.name}

@@ -11,7 +11,8 @@ import {
 import { Field, FieldLabel } from '@commerce/ui/shadcn/field'
 import { Textarea } from '@commerce/ui/shadcn/textarea'
 import { shippingSettingsContent } from '@/data/shipping'
-import { useCopy } from '@/hooks/use-copy'
+import { useCopy, useRegion } from '@/hooks/use-copy'
+import { orderWeekdays } from '@/lib/region'
 import SettingsCard from './settings-card'
 import SettingsRow from './settings-row'
 import SettingsTextRow from './settings-text-row'
@@ -49,6 +50,7 @@ type WeekdayPickerProps = {
 function WeekdayPicker({ name, legend, description, selected, onChange }: WeekdayPickerProps) {
   // Hooks
   const copy = useCopy(shippingSettingsContent)
+  const region = useRegion()
 
   // Helpers
   const toggle = (day: number, on: boolean) =>
@@ -57,7 +59,7 @@ function WeekdayPicker({ name, legend, description, selected, onChange }: Weekda
   return (
     <SettingsRow label={legend} description={description}>
       <div className="flex flex-wrap gap-x-5 gap-y-2">
-        {copy.weekdays.map((d) => {
+        {orderWeekdays(copy.weekdays, region).map((d) => {
           const id = `${name}-${d.value}`
           return (
             <Field key={d.value} orientation="horizontal" className="w-auto">
