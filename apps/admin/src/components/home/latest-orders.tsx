@@ -80,7 +80,10 @@ export default async function LatestOrders({ orders }: LatestOrdersProps) {
                         #{order.number} · <RelativeTime value={order.placedAt} />
                       </span>
                     </span>
-                    <StatusChip tone={chip.tone}>{chip.label}</StatusChip>
+                    {/* A fixed slot so every chip sits centred on the same line, whatever its length. */}
+                    <span className="flex w-28 shrink-0 justify-center">
+                      <StatusChip tone={chip.tone}>{chip.label}</StatusChip>
+                    </span>
                     <span className="w-[5.625rem] shrink-0 text-right text-body font-semibold text-ink-strong tabular-nums">
                       {fmt.money(order.totalPaise)}
                     </span>
