@@ -20,6 +20,8 @@ export const hindiPageNames: Record<string, { title: string; body?: string }> = 
   '/products/inventory': { title: 'इन्वेंटरी' },
   '/products/purchase-orders': { title: 'परचेज़ ऑर्डर' },
   '/products/transfers': { title: 'ट्रांसफ़र' },
+  '/products/inbound-shipments': { title: 'आने वाली खेप' },
+  '/products/suppliers': { title: 'सप्लायर' },
   '/products/gift-cards': { title: 'गिफ़्ट कार्ड' },
   '/customers': { title: 'ग्राहक' },
   '/customers/segments': { title: 'सेगमेंट' },

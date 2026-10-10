@@ -19,9 +19,15 @@ export default async function Page({ params }: Props) {
     }),
     call(appRouter.inventory.locations, undefined, { context }),
   ])
+  const costs = await call(appRouter.purchaseOrders.costs, { id }, { context })
 
   // Keyed on updatedAt so a refresh after ordering or receiving remounts the form with fresh state.
   return (
-    <PurchaseOrderForm key={new Date(po.updatedAt).toISOString()} po={po} locations={locations} />
+    <PurchaseOrderForm
+      key={new Date(po.updatedAt).toISOString()}
+      po={po}
+      locations={locations}
+      costs={costs}
+    />
   )
 }

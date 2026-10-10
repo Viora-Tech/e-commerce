@@ -106,6 +106,7 @@ export default [
       partially_received: 'आंशिक रूप से मिला',
       received: 'मिल गया',
       closed: 'बंद',
+      cancelled: 'रद्द',
     },
     tabs: { all: 'सभी' },
     tiles: {

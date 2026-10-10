@@ -304,6 +304,35 @@ order's derived `fulfillment_status` (`returned` once every unit is back). Every
 `packages/core/src/returns/*` and writes its outbox event (`return.requested`, `return.approved`,
 `return.rejected`, `return.received`, `return.refunded`, `order.rto`) in the same transaction.
 
+### Purchasing and landed cost
+
+`purchasing-schema.ts` holds `supplier`, `purchase_order` and `purchase_order_line`,
+`inbound_shipment` (one Bill of Entry or container), `purchase_charge` (on an order **or** a
+shipment; the service keeps it to exactly one), `purchase_charge_split` (one charge's paise on
+one line) and `purchase_order_receipt` / `purchase_order_receipt_line` (accepted and rejected
+units per delivery, with the landed unit cost and the variant's cost before and after).
+
+- Money: line prices are `unit_price_minor` in the order's `currency`; `fx_rate` is
+  `numeric(18,6)` INR per unit of that currency. Charges carry their own currency and rate,
+  `amount_minor` ex-GST and `gst_paise` (always input credit). Amounts that can grow past
+  ₹2 crore are `bigint`.
+- The maths is pure and lives in `packages/core/src/inventory/landed-cost.ts`: FX to paise,
+  largest-remainder splits (they sum to the charge exactly), landed unit cost
+  `(goods + non-recoverable splits) / quantity`, weighted average cost and revaluation. Every
+  division rounds half up (away from zero for negatives) in BigInt.
+- `recost` (`costing.ts`) is called after every write that can move a cost: it splits the
+  costing group (an order, or every live order in its shipment), stores the splits and each
+  line's `landed_unit_cost_paise`, and revalues stock already received. A line remembers
+  `costed_units` and `booked_cost_paise` (what those units added to inventory value), so a late
+  charge moves the variant's `cost_paise` by the difference, applied only to the share of those
+  units still on hand.
+- Locks: a costing group is locked shipment row first, then its orders by id
+  (`lockCostingGroup`), and a variant row before its cost is read, so concurrent receipts and
+  charge edits queue instead of deadlocking.
+- Migration `0094_landed_cost` moved the old `shipping_paise` / `tax_paise` into charges
+  (shipping as cost, taxes as recoverable) and backfilled `unit_price_minor`; the old columns
+  are no longer read or written.
+
 ### Status columns are text with a CHECK
 
 Status columns are `text` with a fixed value list and a CHECK constraint, not Postgres enums,

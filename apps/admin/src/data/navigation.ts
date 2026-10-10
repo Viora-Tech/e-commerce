@@ -90,6 +90,16 @@ export const NAV_GROUPS: NavGroup[] = [
             label: 'Transfers',
             permission: permissions.INVENTORY_READ,
           },
+          {
+            href: routes.products.inboundShipments(),
+            label: 'Inbound shipments',
+            permission: permissions.INVENTORY_READ,
+          },
+          {
+            href: routes.products.suppliers(),
+            label: 'Suppliers',
+            permission: permissions.INVENTORY_READ,
+          },
           { href: routes.products.giftCards(), label: 'Gift cards' },
         ],
       },

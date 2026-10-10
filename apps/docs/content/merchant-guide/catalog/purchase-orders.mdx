@@ -1,0 +1,127 @@
+---
+title: Purchase orders and landed cost
+description: Order stock from suppliers in any currency, add freight, customs and clearing bills, and see what each product really costs once it lands.
+---
+
+# Purchase orders and landed cost
+
+A **purchase order** records what you ordered from a supplier. When the stock arrives, you
+receive it, and two things happen: the units go on your shelf, and each product's **cost** is
+updated to what it really cost you to get it there: the price you paid **plus** its share of
+freight, customs duty and clearing. That true cost is the **landed cost**.
+
+You find all of this under **Products**: **Purchase orders**, **Inbound shipments** and
+**Suppliers**.
+
+## What this is for
+
+- Knowing your real margin. A mouse pad bought for $5 does not cost you ₹425 once freight,
+  duty and the clearing agent are paid. It may cost ₹540.
+- Buying from abroad in USD, CNY or another currency, at the rate on your Bill of Entry.
+- Sharing one container's freight and customs across several orders and suppliers.
+- Adding a bill that arrives weeks later, without redoing anything.
+
+## Suppliers
+
+Save each supplier once under **Products › Suppliers**: name, country, the currency they bill
+in, GSTIN (for Indian suppliers), contact details and payment terms. On a purchase order,
+search for the supplier or click **New supplier**. A new order starts in that supplier's
+currency.
+
+## Currency and exchange rate
+
+In the **Currency** card, pick what the supplier bills in. For anything other than rupees,
+enter the **exchange rate**: how many rupees one unit of that currency is. Use the rate on your
+Bill of Entry (customs uses it) or on your bank's payment advice. Unit prices on the order are
+then typed in that currency, and every total is shown in rupees.
+
+The currency is fixed once the order is sent. The rate can still be corrected until the order
+is finished.
+
+## Charges
+
+Everything you pay on top of the goods is a **charge**. Add them in the **Charges** card on a
+purchase order, or as **shared charges** on an inbound shipment.
+
+| Charge | Part of product cost? |
+| --- | --- |
+| Freight and insurance | Yes |
+| Basic customs duty (BCD) | Yes |
+| Social welfare surcharge (SWS) | Yes |
+| IGST paid at customs | **No**: you claim it back as input credit |
+| Clearing agent (CHA) fee | Yes (its GST is input credit) |
+| Port and handling | Yes |
+| Local freight | Yes |
+| Bank and exchange charges | Yes |
+| Goods adjustment | Yes. Can be negative, for a supplier credit |
+| Other | Yes, unless you switch it off |
+
+For each charge, type the amount **before GST** and, separately, the GST on that bill. GST on a
+bill is always input credit, so it is tracked but never added to product cost. IGST paid at
+customs is marked **Claim back as input credit** for the same reason. You can switch that on or
+off for any charge.
+
+## How a charge is split across products
+
+| Split | Use it for |
+| --- | --- |
+| **By weight** | Freight and insurance (the default). Heavier products carry more. |
+| **By value** | Customs duty and most other charges (the default). Dearer products carry more. |
+| **By quantity** | An equal share per unit. |
+| **Only some products** | A charge that belongs to a few products only, split by value among them. |
+| **Amount per product** | When the bill already says the amount per product, like duty per line on a Bill of Entry. The amounts must add up to the charge. |
+
+If a product has **no weight** saved, a by-weight charge is split **by value** instead, and the
+Charges card says which products need a weight. Add weights to the products (on the product
+page) and the split follows.
+
+Splits are worked out in whole paise and always add up to the charge exactly.
+
+## Inbound shipments
+
+One container, air shipment or Bill of Entry often carries **several purchase orders**, even
+from different suppliers. Create it under **Products › Inbound shipments**, add the purchase
+orders that came in it, and put the container's freight and customs on the shipment as
+**shared charges**. They are split across every product in every order on it.
+
+## Receiving
+
+Click **Receive items**. For each product, enter how many you **accept** (they go on hand) and
+how many you **reject** (damaged or wrong; they stop showing as incoming but are not stocked).
+The dialog shows what the product's cost becomes before you confirm.
+
+### How the product cost changes
+
+The new cost is the **weighted average** of what you already had and what just arrived:
+
+> new cost = (units on hand × current cost + units accepted × landed cost) ÷ (units on hand + units accepted)
+
+If you had none on hand, the landed cost simply becomes the cost.
+
+**Example.** You have 10 pads at ₹500. You receive 10 more that landed at ₹800 each.
+New cost = (10 × 500 + 10 × 800) ÷ 20 = **₹650**.
+
+## A bill that arrives later
+
+Clearing agents and freight forwarders often bill after the goods are in. Just add the charge to
+the order or shipment, even if it is already received. The landed cost is worked out again, and
+the extra cost is added to the units **still on your shelf**. Units you already sold keep the
+cost they were sold at.
+
+**Example.** You received 10 pads at ₹1,000 and sold 4. A ₹1,000 CHA bill arrives: that is ₹100
+a pad. The 6 still on hand go up to ₹1,100. Fix or remove the charge later and the cost moves
+back the same way.
+
+## Cancel, close and reopen
+
+- **Cancel order**: for an order nothing has arrived on yet. It stops showing as incoming and
+  stops sharing any shipment's charges.
+- **Close**: stop waiting for the rest of a partly received order.
+- **Reopen**: undo a close (if something is still outstanding) or a cancel.
+
+## Good to know
+
+- Old purchase orders: their Shipping and Taxes fields became charges. Shipping counts as cost;
+  Taxes were GST, so they are marked as input credit.
+- Stock received before landed cost existed keeps its old cost. Only receipts from now on are
+  averaged in.

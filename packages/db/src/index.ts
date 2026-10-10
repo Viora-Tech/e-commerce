@@ -5,6 +5,7 @@ export { seedWaimersShipping } from './default-shipping'
 export { isUniqueViolation } from './errors'
 export * from './marketing-schema'
 export * from './privacy-schema'
+export * from './purchasing-schema'
 export {
   type HostRoute,
   isStoreSlugTaken,

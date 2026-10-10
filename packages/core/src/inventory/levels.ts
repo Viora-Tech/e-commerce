@@ -58,7 +58,7 @@ export async function assertVariants(tx: StoreTx, storeId: string, ids: string[]
 export async function nextDocumentNumber(
   tx: StoreTx,
   storeId: string,
-  kind: 'purchase_order' | 'transfer',
+  kind: 'purchase_order' | 'transfer' | 'inbound_shipment',
   max: SQL<number>,
   from: PgTable,
 ): Promise<number> {

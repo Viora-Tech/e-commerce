@@ -1,0 +1,150 @@
+'use client'
+
+import type { PurchaseCurrency } from '@commerce/core/inventory'
+import { Button } from '@commerce/ui/shadcn/button'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@commerce/ui/shadcn/dialog'
+import { Field, FieldGroup, FieldLabel } from '@commerce/ui/shadcn/field'
+import { Input } from '@commerce/ui/shadcn/input'
+import { useState } from 'react'
+import { toast } from 'sonner'
+import CurrencySelect from '@/components/landed-cost/currency-select'
+import { supplierFormContent, supplierPickerContent } from '@/data/purchasing'
+import { useCopy } from '@/hooks/use-copy'
+import { api } from '@/lib/api-client'
+
+export type PickedSupplier = {
+  id: string
+  name: string
+  email: string | null
+  phone: string | null
+  currency: string
+}
+
+type NewSupplierDialogProps = {
+  open: boolean
+  /** What was typed in the search box, as a starting name. */
+  initialName: string
+  onOpenChange: (open: boolean) => void
+  onCreated: (supplier: PickedSupplier) => void
+}
+
+/** The few fields a purchase order needs; the rest can be filled in under Suppliers. */
+export default function NewSupplierDialog({
+  open,
+  initialName,
+  onOpenChange,
+  onCreated,
+}: NewSupplierDialogProps) {
+  // Hooks
+  const copy = useCopy(supplierPickerContent)
+  const fields = useCopy(supplierFormContent)
+  const [name, setName] = useState(initialName)
+  const [country, setCountry] = useState('IN')
+  const [currency, setCurrency] = useState<PurchaseCurrency>('INR')
+  const [email, setEmail] = useState('')
+  const [phone, setPhone] = useState('')
+  const [busy, setBusy] = useState(false)
+
+  // Event handlers
+  const handleCreate = async () => {
+    if (name.trim() === '') {
+      toast.error(fields.needName)
+      return
+    }
+    setBusy(true)
+    try {
+      const id = await api.suppliers.save({
+        name: name.trim(),
+        country: country.trim() || 'IN',
+        currency,
+        email: email.trim(),
+        phone: phone.trim() || undefined,
+      })
+      onCreated({
+        id,
+        name: name.trim(),
+        email: email.trim() || null,
+        phone: phone.trim() || null,
+        currency,
+      })
+      onOpenChange(false)
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : copy.failed)
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  // Render logic
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>{copy.newTitle}</DialogTitle>
+          <DialogDescription>{copy.newBody}</DialogDescription>
+        </DialogHeader>
+        <FieldGroup>
+          <Field>
+            <FieldLabel htmlFor="new-supplier-name">{fields.details.name}</FieldLabel>
+            <Input id="new-supplier-name" value={name} onChange={(e) => setName(e.target.value)} />
+          </Field>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Field>
+              <FieldLabel htmlFor="new-supplier-country">{fields.details.country}</FieldLabel>
+              <Input
+                id="new-supplier-country"
+                value={country}
+                maxLength={2}
+                onChange={(e) => setCountry(e.target.value.toUpperCase())}
+              />
+            </Field>
+            <Field>
+              <FieldLabel htmlFor="new-supplier-currency">{fields.details.currency}</FieldLabel>
+              <CurrencySelect
+                id="new-supplier-currency"
+                value={currency}
+                onChange={setCurrency}
+                className="w-full"
+              />
+            </Field>
+          </div>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Field>
+              <FieldLabel htmlFor="new-supplier-email">{fields.contact.email}</FieldLabel>
+              <Input
+                id="new-supplier-email"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+              />
+            </Field>
+            <Field>
+              <FieldLabel htmlFor="new-supplier-phone">{fields.contact.phone}</FieldLabel>
+              <Input
+                id="new-supplier-phone"
+                type="tel"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+              />
+            </Field>
+          </div>
+        </FieldGroup>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>
+            {copy.cancel}
+          </Button>
+          <Button onClick={handleCreate} disabled={busy}>
+            {busy ? copy.creating : copy.create}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  )
+}

@@ -32,6 +32,7 @@ import { campaignsContent } from '@/data/marketing-campaigns'
 import { onlineStoreContent } from '@/data/online-store'
 import { orderDetailContent, ordersContent } from '@/data/orders'
 import { productsListContent } from '@/data/products'
+import { type InboundShipmentStatus, inboundShipmentsContent } from '@/data/purchasing'
 import { returnsContent } from '@/data/returns'
 import { reviewsContent } from '@/data/reviews'
 import { shipmentPanelContent } from '@/data/shipping'
@@ -166,7 +167,14 @@ export const STATUS = {
     partially_received: entry(purchaseOrdersContent.status.partially_received, 'pending'),
     received: entry(purchaseOrdersContent.status.received, 'success'),
     closed: entry(purchaseOrdersContent.status.closed, 'neutral'),
+    cancelled: entry(purchaseOrdersContent.status.cancelled, 'error'),
   } satisfies Record<PurchaseOrderStatus, StatusEntry>,
+  inboundShipment: {
+    in_transit: entry(inboundShipmentsContent.status.in_transit, 'pending'),
+    at_port: entry(inboundShipmentsContent.status.at_port, 'accent'),
+    cleared: entry(inboundShipmentsContent.status.cleared, 'info'),
+    delivered: entry(inboundShipmentsContent.status.delivered, 'success'),
+  } satisfies Record<InboundShipmentStatus, StatusEntry>,
   transfer: {
     draft: entry(transfersContent.status.draft, 'neutral'),
     in_transit: entry(transfersContent.status.in_transit, 'pending'),

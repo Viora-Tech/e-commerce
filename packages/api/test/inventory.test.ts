@@ -108,10 +108,13 @@ describe('inventory router', () => {
       {
         supplierName: 'Pulsar Gaming',
         locationId,
-        shippingPaise: 10000,
-        taxPaise: 0,
-        lines: [{ variantId, quantity: 10, unitCostPaise: 120000 }],
+        lines: [{ variantId, quantity: 10, unitPriceMinor: 120000 }],
       },
+      { context: m.ctx },
+    )
+    await call(
+      appRouter.purchaseCharges.add,
+      { purchaseOrderId: id, kind: 'freight_local', amountMinor: 10000 },
       { context: m.ctx },
     )
     await call(appRouter.purchaseOrders.markOrdered, { id }, { context: m.ctx })
@@ -123,7 +126,7 @@ describe('inventory router', () => {
     const lineId = po?.lines[0]?.id as string
     await call(
       appRouter.purchaseOrders.receive,
-      { id, receipts: [{ lineId, quantity: 10 }] },
+      { id, receipts: [{ lineId, accepted: 10 }] },
       { context: m.ctx },
     )
     ;[row] = (await call(appRouter.inventory.list, { locationId }, { context: m.ctx })).rows
@@ -152,9 +155,7 @@ describe('inventory router', () => {
         {
           supplierName,
           locationId: loc?.id as string,
-          shippingPaise: 0,
-          taxPaise: 0,
-          lines: [{ variantId, quantity: 1, unitCostPaise: 0 }],
+          lines: [{ variantId, quantity: 1, unitPriceMinor: 0 }],
         },
         { context: m.ctx },
       )
