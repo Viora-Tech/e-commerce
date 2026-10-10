@@ -46,7 +46,7 @@ export default function RotatingHero({
 
   return (
     <div className="page-width grid grid-cols-1 items-center gap-[2rem] md:grid-cols-2 md:gap-[3.5rem]">
-      <div className={imageSide === 'left' ? 'md:order-2' : undefined}>
+      <div className={imageSide === 'left' ? 'text-left md:order-2' : 'text-left'}>
         <h1 className="h1 text-balance text-[var(--color-ink)]">
           {before} <WordRotate words={list} className="text-[var(--color-brand)]" /> {after}
         </h1>

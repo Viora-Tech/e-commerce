@@ -175,6 +175,7 @@ export const SECTION_CATEGORIES = {
       'ShowcaseHero',
       'CtaCard',
       'CtaSplit',
+      'FeatureChecklist',
     ],
   },
   text: {
@@ -191,6 +192,13 @@ export const SECTION_CATEGORIES = {
       'TestimonialMarquee',
       'LogoMarquee',
       'StatsCards',
+      'FeatureCards',
+      'FeatureSteps',
+      'TestimonialGrid',
+      'TestimonialSpotlight',
+      'FaqSplit',
+      'ComparisonTable',
+      'PricingCards',
     ],
   },
   products: {

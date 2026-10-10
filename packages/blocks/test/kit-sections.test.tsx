@@ -28,7 +28,15 @@ describe('starter kit sections', () => {
   })
 
   it('credit Magic UI on every section built on one of its effects', () => {
-    for (const type of ['GridHero', 'RotatingHero', 'ShowcaseHero', 'StatsCards', 'CtaCard']) {
+    for (const type of [
+      'GridHero',
+      'RotatingHero',
+      'ShowcaseHero',
+      'StatsCards',
+      'CtaCard',
+      'FeatureCards',
+      'PricingCards',
+    ]) {
       expect(SECTION_SOURCES[type]?.name, type).toBe('Magic UI')
     }
   })
@@ -55,6 +63,49 @@ describe('starter kit sections', () => {
     const html = draw('StatsCards')
     expect(html).toContain('50,000')
     expect(html).toContain('4.8')
+  })
+
+  it('opens every answer on the canvas and none on the storefront', () => {
+    const live = draw('FaqSplit')
+    expect(live).toContain('<details')
+    expect(live).not.toContain('open=""')
+    const editing = renderToStaticMarkup(
+      <div>
+        {renderBlock(
+          {
+            type: 'FaqSplit',
+            props: {
+              id: 'FaqSplit',
+              ...(config.components['FaqSplit' as never] as { defaultProps: object }).defaultProps,
+            },
+          },
+          components,
+          { isEditing: true, metadata: {} },
+        )}
+      </div>,
+    )
+    expect(editing).toContain('open=""')
+  })
+
+  it('splits plan features into ticked lines and labels ticks for screen readers', () => {
+    const html = draw('PricingCards')
+    expect(html).toContain('>Gift wrapping included</span>')
+    expect(html).toContain('Most popular')
+    const table = draw('ComparisonTable')
+    expect(table).toContain('aria-label="Included"')
+    expect(table).toContain('aria-label="Not included"')
+  })
+
+  it('reads ratings out as words and draws no stars for zero', () => {
+    const html = draw('TestimonialGrid', {
+      quotes: [
+        { quote: 'Great', author: 'Asha', role: '', rating: 4 },
+        { quote: 'Fine', author: 'Ravi', role: '', rating: 0 },
+      ],
+    })
+    expect(html).toContain('aria-label="4 out of 5 stars"')
+    expect(html).not.toContain('0 out of 5 stars')
+    expect(html).toContain('>A</span>')
   })
 
   it('hides a button whose label is blank and turns unsafe links into #', () => {

@@ -18,6 +18,8 @@ export const SECTION_SOURCES: Record<string, SectionSource> = {
   ShowcaseHero: { name: 'Magic UI', href: 'https://magicui.design' },
   StatsCards: { name: 'Magic UI', href: 'https://magicui.design' },
   CtaCard: { name: 'Magic UI', href: 'https://magicui.design' },
+  FeatureCards: { name: 'Magic UI', href: 'https://magicui.design' },
+  PricingCards: { name: 'Magic UI', href: 'https://magicui.design' },
   // Zero Drift theme sections built on a shared UI-kit effect (`../effects/`).
   ReviewsShowcase: { name: 'Magic UI and Aceternity UI', href: 'https://magicui.design' },
   LatestDrop: { name: 'Aceternity UI', href: 'https://ui.aceternity.com' },

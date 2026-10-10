@@ -55,4 +55,12 @@ export const SECTION_ICONS: Record<string, string> = {
   StatsCards: 'stats',
   CtaCard: 'megaphone',
   CtaSplit: 'split',
+  FeatureCards: 'grid',
+  FeatureSteps: 'list',
+  FeatureChecklist: 'split',
+  TestimonialGrid: 'quote',
+  TestimonialSpotlight: 'quote',
+  FaqSplit: 'list',
+  ComparisonTable: 'columns',
+  PricingCards: 'columns',
 }
