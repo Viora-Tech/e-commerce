@@ -24,6 +24,7 @@ import { headers } from 'next/headers'
 import { readCartId } from './cart-cookie'
 import { NONCE_HEADER } from './csp'
 import { formsInstalled } from './forms-context'
+import { deferThemeScripts } from './liquid-defer'
 import { requestOrigin } from './seo'
 import { readPreview } from './storefront-gate'
 
@@ -142,8 +143,9 @@ export async function prerenderLiquidSections(
     )
     const wrapper = sectionWrapper(ctx.bundle, section)
     // The theme's own `<script>` tags already carry this request's nonce (written at parse
-    // time, `nonceThemeScripts` in core); a script that came in with data never does.
-    out.set(String(item.props.id), { html, ...wrapper })
+    // time, `nonceThemeScripts` in core); a script that came in with data never does. Its
+    // deferred and module scripts wait for React (`./liquid-defer.ts`).
+    out.set(String(item.props.id), { html: deferThemeScripts(html), ...wrapper })
   }
   return out
 }
@@ -151,7 +153,13 @@ export async function prerenderLiquidSections(
 /** The parts of the theme's `layout/theme.liquid` the store layout draws around `<main>`. */
 export async function liquidLayoutFor(ctx: LiquidPageContext) {
   const parts = await renderLiquidLayout(ctx, (err) => console.error('[liquid] layout failed', err))
-  return { ...parts, fontsHref: googleFontsHref(parts.fonts) }
+  return {
+    ...parts,
+    head: deferThemeScripts(parts.head),
+    beforeHeader: deferThemeScripts(parts.beforeHeader),
+    afterFooter: deferThemeScripts(parts.afterFooter),
+    fontsHref: googleFontsHref(parts.fonts),
+  }
 }
 
 /** The theme this request renders: the verified preview's, else the live one. */
