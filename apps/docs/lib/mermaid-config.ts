@@ -5,8 +5,8 @@
  *
  * Look: Mermaid's hand-drawn style (`look: 'handDrawn'`, rough.js strokes), supported by
  * Mermaid 11+ for flowcharts, state and ER diagrams; sequence diagrams keep the classic
- * look. Colours mirror the tokens in app/globals.css: Ocean Green accent (#4ea674 light,
- * #30d158 dark) on neutral greys, readable on both page backgrounds.
+ * look. Colours mirror the tokens in app/globals.css: the admin's blue (#3f72dc light,
+ * #7fa2f5 dark) on its neutral greys, readable on both page backgrounds.
  */
 import type { MermaidConfig } from 'mermaid'
 
@@ -26,33 +26,33 @@ type Palette = {
 }
 
 const light: Palette = {
-  text: '#171717',
-  muted: '#666666',
-  line: '#8f8f8f',
+  text: '#111318',
+  muted: '#5e6470',
+  line: '#8a909b',
   nodeFill: '#ffffff',
-  nodeBorder: '#4ea674',
-  accent: '#3a845c',
-  accentFill: '#eef7f1',
-  groupFill: '#fafafa',
-  groupBorder: '#d6d6d6',
+  nodeBorder: '#3f72dc',
+  accent: '#2f62cf',
+  accentFill: '#eaf1fd',
+  groupFill: '#f7f8fa',
+  groupBorder: '#d5d8de',
   noteFill: '#fffbeb',
   noteBorder: '#fcd34d',
   pageBg: '#ffffff',
 }
 
 const dark: Palette = {
-  text: '#ededed',
-  muted: '#a1a1a1',
-  line: '#737373',
-  nodeFill: '#1a1a1a',
-  nodeBorder: '#30d158',
-  accent: '#30d158',
-  accentFill: '#14261a',
-  groupFill: '#141414',
-  groupBorder: '#383838',
+  text: '#dde1e7',
+  muted: '#959ba6',
+  line: '#80868f',
+  nodeFill: '#181a20',
+  nodeBorder: '#7fa2f5',
+  accent: '#7fa2f5',
+  accentFill: '#1f283d',
+  groupFill: '#14161b',
+  groupBorder: '#2b2e36',
   noteFill: '#2a2310',
   noteBorder: '#a16207',
-  pageBg: '#111111',
+  pageBg: '#101216',
 }
 
 /** Stable strokes, so a diagram doesn't wobble differently on every render or theme switch. */

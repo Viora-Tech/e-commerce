@@ -1,26 +1,36 @@
 import type { Metadata } from 'next'
-import { Geist, Geist_Mono } from 'next/font/google'
+import { Bricolage_Grotesque, DM_Sans, Geist_Mono } from 'next/font/google'
 import { Head, Search } from 'nextra/components'
 import { getPageMap } from 'nextra/page-map'
 import { Footer, Layout, Navbar } from 'nextra-theme-docs'
 import type { ReactNode } from 'react'
 import LogoMark from '../components/logo-mark'
 import SiteFooter from '../components/site-footer'
+import { brand } from '../data/home'
 import './globals.css'
 import 'nextra-theme-docs/style.css'
 
 export const metadata: Metadata = {
   title: {
-    default: 'Waimers Commerce Docs',
-    template: '%s – Waimers Commerce Docs',
+    default: `${brand.name} ${brand.suffix}`,
+    template: `%s – ${brand.name} ${brand.suffix}`,
   },
-  description: 'Merchant guide and developer docs for the Waimers Commerce Platform.',
+  description: `Merchant guide and developer docs for ${brand.name}.`,
 }
 
-/* Geist (SIL OFL 1.1), same face as apps/admin. */
-const sans = Geist({
+/* DM Sans (SIL OFL 1.1) for text and Bricolage Grotesque (SIL OFL 1.1) for headings: the same
+   pair as apps/admin/src/app/layout.tsx. Geist Mono stays for code. */
+const sans = DM_Sans({
   subsets: ['latin'],
-  variable: '--font-geist-sans',
+  variable: '--font-primary',
+  weight: ['400', '500', '600'],
+  display: 'swap',
+  fallback: ['system-ui', 'sans-serif'],
+})
+const display = Bricolage_Grotesque({
+  subsets: ['latin'],
+  variable: '--font-display-face',
+  weight: ['700', '800'],
   display: 'swap',
   fallback: ['system-ui', 'sans-serif'],
 })
@@ -33,15 +43,15 @@ const mono = Geist_Mono({
 
 const GITHUB_URL = 'https://github.com/Viora-Tech/e-commerce'
 
-/* Ocean Green accent (#4ea674 light, #30d158 dark) through Nextra's primary-colour hook; it
-   drives the active sidebar link, links, focus rings and the TOC. Backgrounds are our white
-   light theme and Nextra's normal dark grey. */
+/* The admin's single blue (#3f72dc light, #7fa2f5 dark, packages/ui/src/styles.css) through
+   Nextra's primary-colour hook; it drives the active sidebar link, links, focus rings and the
+   TOC. Page backgrounds are the admin's card white and its dark panel. */
 const primaryColor = {
-  hue: { light: 146, dark: 135 },
-  saturation: { light: 36, dark: 64 },
-  lightness: { light: 48, dark: 50 },
+  hue: { light: 219, dark: 224 },
+  saturation: { light: 70, dark: 86 },
+  lightness: { light: 55, dark: 72 },
 }
-const backgroundColor = { light: '#ffffff', dark: 'rgb(17,17,17)' }
+const backgroundColor = { light: '#ffffff', dark: '#101216' }
 
 const navbar = (
   <Navbar logo={<LogoMark size={20} withWordmark />} projectLink={GITHUB_URL} align="right" />
@@ -63,7 +73,7 @@ export default async function RootLayout({ children }: RootLayoutProps) {
     <html
       lang="en"
       dir="ltr"
-      className={`${sans.variable} ${mono.variable}`}
+      className={`${sans.variable} ${display.variable} ${mono.variable}`}
       suppressHydrationWarning
     >
       <Head color={primaryColor} backgroundColor={backgroundColor} />

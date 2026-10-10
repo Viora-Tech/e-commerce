@@ -1,5 +1,7 @@
+import { siteConfig } from '@commerce/config/site'
+
 export const brand = {
-  name: 'Waimers Commerce',
+  name: siteConfig.brand.name,
   suffix: 'Docs',
 }
 
@@ -25,48 +27,59 @@ export const pathCards = [
   },
 ] as const
 
-export const popularGuides = [
+/** The "I want to…" cards on the home page: one per thing a merchant comes here to do. */
+export const taskCards = [
   {
-    href: '/merchant-guide/apps/couriers#connect-a-courier',
-    icon: 'plugs',
-    title: 'Connect Delhivery',
-    description: 'Paste your API token and pickup location to get rates and labels.',
+    href: '/merchant-guide/start-here/set-up-your-store',
+    icon: 'checklist',
+    title: 'Set up my store',
+    description: 'The day-one checklist, from GSTIN to your first test order.',
   },
   {
-    href: '/merchant-guide/orders/shipments#ship-orders-step-by-step',
+    href: '/merchant-guide/start-here/move-from-shopify',
+    icon: 'swap',
+    title: 'Move from Shopify',
+    description: 'Bring products, customers, orders and your theme across.',
+  },
+  {
+    href: '/merchant-guide/products/products-collections',
+    icon: 'package',
+    title: 'Add products',
+    description: 'Variants, prices, HSN codes, stock and collections.',
+  },
+  {
+    href: '/merchant-guide/orders/shipments',
     icon: 'truck',
-    title: 'Book your first shipment',
+    title: 'Ship orders',
     description: 'Compare rates, print labels and schedule a pickup.',
-  },
-  {
-    href: '/merchant-guide/online-store/website-builder',
-    icon: 'paintbrush',
-    title: 'Edit your store design',
-    description: 'Sections, theme settings and app blocks in the editor.',
-  },
-  {
-    href: '/merchant-guide/money-and-gst/gst-invoices',
-    icon: 'receipt',
-    title: 'GST invoices',
-    description: 'Tax invoices, credit notes and packing slips from orders.',
   },
   {
     href: '/merchant-guide/money-and-gst/payments',
     icon: 'creditCard',
-    title: 'Payments',
+    title: 'Get paid',
     description: 'Turn on payment methods and connect Razorpay.',
   },
   {
-    href: '/merchant-guide/start-here/set-up-your-store',
-    icon: 'checklist',
-    title: 'Set up your store',
-    description: 'The day-one checklist, from GSTIN to your first test order.',
+    href: '/merchant-guide/online-store/website-builder',
+    icon: 'paintbrush',
+    title: 'Change my website',
+    description: 'Sections, theme settings and app blocks in the editor.',
+  },
+  {
+    href: '/merchant-guide/analytics/overview',
+    icon: 'chart',
+    title: 'See my sales',
+    description: 'Sales, reports and where your orders come from.',
+  },
+  {
+    href: '/merchant-guide/money-and-gst/gst-invoices',
+    icon: 'receipt',
+    title: 'Send GST invoices',
+    description: 'Tax invoices, credit notes and packing slips from orders.',
   },
 ] as const
 
-export type HomeCardIcon =
-  | (typeof pathCards)[number]['icon']
-  | (typeof popularGuides)[number]['icon']
+export type HomeCardIcon = (typeof pathCards)[number]['icon'] | (typeof taskCards)[number]['icon']
 
 export const helpStrip = {
   description: "Can't find what you're looking for, or something looks wrong?",
