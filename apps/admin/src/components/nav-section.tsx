@@ -65,7 +65,7 @@ export default function NavSection({ item, pathname }: NavSectionProps) {
             ROW,
             linkActive && ROW_ACTIVE,
             open && !linkActive && ROW_OPEN,
-            children.length > 0 && 'pr-9 group-data-[collapsible=icon]:pr-3',
+            children.length > 0 && 'pr-9 group-data-[collapsible=icon]:pr-0',
           )}
         >
           {linkActive ? (

@@ -4,8 +4,9 @@ import type { AnalyticsLive, DashboardSummary } from '@commerce/api'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Card } from '@commerce/ui/shadcn/card'
 import { useEffect, useState } from 'react'
+import CountUp from '@/components/layout/count-up'
+import MiniBars from '@/components/layout/mini-bars'
 import ProoflyPageHeader from '@/components/layout/proofly-page-header'
-import StatTile from '@/components/layout/stat-tile'
 import { analyticsContent } from '@/data/analytics'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
@@ -18,7 +19,7 @@ type LiveViewProps = { initial: AnalyticsLive; globe: DashboardSummary }
 
 const POLL_MS = 15_000
 
-/** The activity card floats over the globe: see-through enough to feel part of it, still readable. */
+/** Stats and activity cards float over the globe: see-through enough to feel part of it, still readable. */
 const FLOATING_CARD = 'gap-0 bg-card/85 p-5 shadow-lift backdrop-blur-md'
 
 /** Visitors, carts and orders as they happen, with the live orders globe; refreshes itself every
@@ -45,6 +46,8 @@ export default function LiveView({ initial, globe }: LiveViewProps) {
   }, [paused])
 
   // Render logic
+  const bars = data.visitors.perMinute.map((value, i) => ({ label: String(i), value }))
+
   return (
     <div className="mx-auto flex w-full max-w-[81.5rem] flex-col gap-6 px-4 py-6 md:px-8 md:py-8">
       <ProoflyPageHeader
@@ -57,17 +60,35 @@ export default function LiveView({ initial, globe }: LiveViewProps) {
           </Button>
         }
       />
-      <div className="grid grid-cols-2 gap-4 lg:grid-flow-col lg:grid-cols-none lg:auto-cols-fr">
-        <StatTile
-          label={c.visitors}
-          value={formatCompact(data.visitors.last30)}
-          className="bg-primary-soft shadow-[inset_0_0_0_1px_var(--primary)]"
-        />
-        <StatTile label={c.activeCarts} value={formatCompact(data.activeCarts)} />
-        <StatTile label={c.ordersLastHour} value={formatCompact(data.ordersLastHour)} />
-        <StatTile label={c.revenueLastHour} value={formatPaise(data.revenueLastHourPaise)} />
-      </div>
       <LiveGlobeHero initial={globe}>
+        <Card className={FLOATING_CARD}>
+          <p className="text-body text-muted-foreground">{c.visitors}</p>
+          <p className="mt-2 text-stat text-ink-strong tabular-nums">
+            <CountUp value={formatCompact(data.visitors.last30)} />
+          </p>
+          <p className="mt-5 text-body font-medium text-muted-foreground">{c.perMinute}</p>
+          <MiniBars data={bars} className="mt-3 h-14" />
+          <div className="mt-5 grid grid-cols-3 gap-3">
+            <div>
+              <p className="text-caption text-muted-foreground">{c.activeCarts}</p>
+              <p className="mt-1 text-stat-sm text-foreground tabular-nums">
+                {formatCompact(data.activeCarts)}
+              </p>
+            </div>
+            <div>
+              <p className="text-caption text-muted-foreground">{c.ordersLastHour}</p>
+              <p className="mt-1 text-stat-sm text-foreground tabular-nums">
+                {formatCompact(data.ordersLastHour)}
+              </p>
+            </div>
+            <div>
+              <p className="text-caption text-muted-foreground">{c.revenueLastHour}</p>
+              <p className="mt-1 text-stat-sm text-foreground tabular-nums">
+                {formatPaise(data.revenueLastHourPaise)}
+              </p>
+            </div>
+          </div>
+        </Card>
         <Card className={FLOATING_CARD}>
           <p className="text-card-title text-foreground">{c.events}</p>
           {data.events.length === 0 ? (
