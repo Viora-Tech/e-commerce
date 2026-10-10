@@ -1,14 +1,34 @@
 import { newId, purchaseOrder, purchaseOrderLine, type StoreTx } from '@commerce/db'
 import { asc, eq, sql } from 'drizzle-orm'
-import { adjustIncoming, adjustStock, defaultLocationId, InventoryError } from './levels'
+import {
+  adjustIncoming,
+  adjustStock,
+  assertLocations,
+  assertVariants,
+  defaultLocationId,
+  InventoryError,
+  nextDocumentNumber,
+} from './levels'
 import type { PurchaseOrderInput, Receipt } from './schemas'
 import { clampReceipt, purchaseOrderStatus, remainingOf } from './stock'
 
-async function nextNumber(tx: StoreTx): Promise<number> {
-  const [row] = await tx
-    .select({ n: sql<number>`coalesce(max(${purchaseOrder.number}), 0) + 1`.mapWith(Number) })
-    .from(purchaseOrder)
-  return row?.n ?? 1
+const nextNumber = (tx: StoreTx, storeId: string) =>
+  nextDocumentNumber(
+    tx,
+    storeId,
+    'purchase_order',
+    sql<number>`max(${purchaseOrder.number})`,
+    purchaseOrder,
+  )
+
+type LineKey = { variantId: string; quantity: number; unitCostPaise: number }
+
+/** Lines as one comparable string, so their order does not matter. */
+function lineSignature(lines: LineKey[]): string {
+  return lines
+    .map((l) => `${l.variantId}:${l.quantity}:${l.unitCostPaise}`)
+    .sort()
+    .join('|')
 }
 
 async function load(tx: StoreTx, storeId: string, id: string) {
@@ -24,13 +44,27 @@ async function load(tx: StoreTx, storeId: string, id: string) {
 
 /**
  * Create a draft, or edit one. Once ordered only the supplier details, dates,
- * costs and note can change: lines are locked because stock is already incoming.
+ * costs and note can change: lines are locked because stock is already incoming,
+ * and a save that tries to change them is refused rather than half applied.
+ * With `markOrdered` the draft is also sent to the supplier in the same transaction.
  */
 export async function savePurchaseOrder(
   tx: StoreTx,
   storeId: string,
   input: PurchaseOrderInput,
 ): Promise<string> {
+  await assertLocations(tx, storeId, [input.locationId])
+  await assertVariants(
+    tx,
+    storeId,
+    input.lines.map((l) => l.variantId),
+  )
+  const id = await writeOrder(tx, storeId, input)
+  if (input.markOrdered) await markOrdered(tx, storeId, id)
+  return id
+}
+
+async function writeOrder(tx: StoreTx, storeId: string, input: PurchaseOrderInput) {
   const fields = {
     supplierName: input.supplierName,
     supplierEmail: input.supplierEmail || null,
@@ -46,7 +80,7 @@ export async function savePurchaseOrder(
     await tx.insert(purchaseOrder).values({
       id,
       storeId,
-      number: await nextNumber(tx),
+      number: await nextNumber(tx, storeId),
       locationId: input.locationId || (await defaultLocationId(tx, storeId)),
       status: 'draft',
       ...fields,
@@ -58,11 +92,18 @@ export async function savePurchaseOrder(
     }
     return id
   }
-  const { po } = await load(tx, storeId, input.id)
+  const { po, lines } = await load(tx, storeId, input.id)
   if (po.status === 'closed' || po.status === 'received') {
     throw new InventoryError('PO_LOCKED', 'This purchase order is finished', { storeId })
   }
   if (po.status !== 'draft') {
+    if (input.locationId !== po.locationId || lineSignature(input.lines) !== lineSignature(lines)) {
+      throw new InventoryError(
+        'PO_LINES_LOCKED',
+        'Products, quantities, costs and the destination cannot change after the order is sent',
+        { storeId },
+      )
+    }
     await tx.update(purchaseOrder).set(fields).where(eq(purchaseOrder.id, po.id))
     return po.id
   }

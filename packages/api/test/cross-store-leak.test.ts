@@ -258,6 +258,11 @@ const NAME_HINTS: [RegExp, string][] = [
   [/Location$/, 'location'],
 ]
 
+/** Id fields whose table is set by the procedure, not by the field name alone. */
+const PROCEDURE_KEY_TABLE: Record<string, string> = {
+  'purchaseOrders.receive.lineId': 'purchase_order_line',
+}
+
 const KEY_ALIAS: Record<string, string> = {
   orderLineId: 'order_line',
   lineId: 'order_line',
@@ -285,6 +290,8 @@ const KEY_ALIAS: Record<string, string> = {
 const snake = (s: string) => s.replace(/[A-Z]/g, (c) => `_${c.toLowerCase()}`)
 
 function tableFor(key: string, path: string[], tables: Set<string>): string {
+  const byProcedure = PROCEDURE_KEY_TABLE[`${path.join('.')}.${key}`]
+  if (byProcedure) return byProcedure
   if (KEY_ALIAS[key]) return KEY_ALIAS[key]
   const m = key.match(/^(.+?)Ids?$/)
   if (m?.[1] && tables.has(snake(m[1]))) return snake(m[1])

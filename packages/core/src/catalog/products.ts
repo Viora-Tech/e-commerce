@@ -9,6 +9,8 @@ import {
   productMedia,
   productOption,
   productOptionValue,
+  purchaseOrderLine,
+  transferLine,
   variant,
   variantOptionValue,
 } from '@commerce/db'
@@ -361,6 +363,22 @@ async function pruneOptionValues(tx: StoreTx, productId: string) {
   }
 }
 
+/** Variants that sit on a purchase order or a transfer; those lines must keep their variant. */
+async function stockDocumentVariants(tx: StoreTx, ids: string[]): Promise<Set<string>> {
+  if (ids.length === 0) return new Set()
+  const [po, transfers] = await Promise.all([
+    tx
+      .select({ id: purchaseOrderLine.variantId })
+      .from(purchaseOrderLine)
+      .where(inArray(purchaseOrderLine.variantId, ids)),
+    tx
+      .select({ id: transferLine.variantId })
+      .from(transferLine)
+      .where(inArray(transferLine.variantId, ids)),
+  ])
+  return new Set([...po, ...transfers].map((r) => r.id))
+}
+
 async function removeVariants(tx: StoreTx, ids: string[]) {
   const referenced = new Set([
     ...(
@@ -375,6 +393,7 @@ async function removeVariants(tx: StoreTx, ids: string[]) {
         .from(cartLine)
         .where(inArray(cartLine.variantId, ids))
     ).map((r) => r.id),
+    ...(await stockDocumentVariants(tx, ids)),
   ])
   const archive = ids.filter((id) => referenced.has(id))
   const del = ids.filter((id) => !referenced.has(id))
@@ -444,7 +463,8 @@ export async function deleteProduct(
           .where(inArray(cartLine.variantId, ids))
       )[0]?.n
     : 0
-  if (Number(referenced) > 0 || Number(carted) > 0) {
+  const onStockDocuments = (await stockDocumentVariants(tx, ids)).size
+  if (Number(referenced) > 0 || Number(carted) > 0 || onStockDocuments > 0) {
     await tx
       .update(product)
       .set({ status: 'archived', updatedAt: new Date() })

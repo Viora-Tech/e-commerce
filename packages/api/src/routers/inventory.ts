@@ -9,6 +9,7 @@ import {
   LocationInputSchema,
   listLocations,
   markOrdered,
+  PURCHASE_ORDER_STATUSES,
   PurchaseOrderInputSchema,
   permissions,
   ReceiptSchema,
@@ -154,9 +155,7 @@ export const purchaseOrdersRouter = {
   list: can(permissions.INVENTORY_READ)
     .input(
       z.object({
-        status: z
-          .enum(['all', 'draft', 'ordered', 'partially_received', 'received', 'closed'])
-          .optional(),
+        status: z.enum(['all', ...PURCHASE_ORDER_STATUSES]).optional(),
         search: z.string().trim().max(SEARCH_MAX).optional(),
         page: z.number().int().min(1).default(1),
         perPage: z.number().int().min(1).max(PAGE_SIZE_MAX).default(25),
@@ -166,7 +165,11 @@ export const purchaseOrdersRouter = {
 
   get: can(permissions.INVENTORY_READ)
     .input(z.object({ id: z.uuid() }))
-    .handler(({ context, input }) => getPurchaseOrder(context.tx, input.id)),
+    .handler(async ({ context, input }) => {
+      const po = await getPurchaseOrder(context.tx, input.id)
+      if (!po) throw new ORPCError('NOT_FOUND', { message: 'This purchase order was not found' })
+      return po
+    }),
 
   save: can(permissions.INVENTORY_WRITE)
     .input(PurchaseOrderInputSchema)

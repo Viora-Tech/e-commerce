@@ -1,3 +1,4 @@
+import { ORPCError } from '@orpc/server'
 import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 import PurchaseOrderForm from '@/components/purchase-orders/purchase-order-form'
@@ -12,10 +13,12 @@ export default async function Page({ params }: Props) {
   const { id } = await params
   const context = await serverContext()
   const [po, locations] = await Promise.all([
-    call(appRouter.purchaseOrders.get, { id }, { context }),
+    call(appRouter.purchaseOrders.get, { id }, { context }).catch((err: unknown) => {
+      if (err instanceof ORPCError && err.code === 'NOT_FOUND') notFound()
+      throw err
+    }),
     call(appRouter.inventory.locations, undefined, { context }),
   ])
-  if (!po) notFound()
 
   // Keyed on updatedAt so a refresh after ordering or receiving remounts the form with fresh state.
   return (
