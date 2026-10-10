@@ -247,6 +247,16 @@ export const customizeContent = {
     applyLink: 'Add link',
     removeLink: 'Remove link',
     cancelLink: 'Cancel',
+    formatting: {
+      bold: 'Bold',
+      italic: 'Italic',
+      underline: 'Underline',
+      strike: 'Strikethrough',
+      bulletList: 'Bulleted list',
+      orderedList: 'Numbered list',
+      quote: 'Quote',
+      rule: 'Divider line',
+    },
   },
   addSection: {
     search: 'Search layouts',

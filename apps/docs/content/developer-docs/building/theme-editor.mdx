@@ -103,6 +103,12 @@ banner" (`inspector-breadcrumb.tsx`), and each container in it selects that cont
   muted 240px style, a green "AI connected" chip when an AI gateway is set up, and the member's
   avatar with the account menu at the far right. The page reads the store, the member and
   `ai.status` on the server.
+- **Type and icons**: DM Sans everywhere in the chrome, Puck's own parts included
+  (`--puck-font-family` names `--font-primary`), and the chrome drawn inside the canvas iframe
+  (block toolbar and its menus) is pinned to DM Sans too, since the frame's body uses the
+  storefront theme's font. Icons are Phosphor regular, as the Figma icons page (104:109) says;
+  Puck's built-in text-formatting buttons are replaced by `richtext-format-controls.tsx` in the
+  canvas menu (`renderInlineMenu`) and the right panel's (`renderMenu`, `field-format-menu.tsx`).
 - **Canvas**: 32px above and 24px beside the page frame (10px corners); the selected block's name
   chip sits on the block's top edge, flush with its left side; hover stays a dashed outline.
 

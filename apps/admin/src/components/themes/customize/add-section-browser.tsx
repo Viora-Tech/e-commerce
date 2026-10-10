@@ -2,7 +2,6 @@
 
 import { presetProps, presetsFor } from '@commerce/blocks/section-presets'
 import type { CustomSection, SectionGroup, TemplateSection } from '@commerce/core/theme'
-import { Search } from '@commerce/ui/icons'
 import { cn } from '@commerce/ui/lib/utils'
 import { Input } from '@commerce/ui/shadcn/input'
 import { Drawer } from '@puckeditor/core'
@@ -153,20 +152,15 @@ export default function AddSectionBrowser({
       onMouseLeave={() => setHovered(null)}
     >
       <KindSwitch value={kind} onChange={setKind} />
-      <div className="relative">
-        <Search
-          aria-hidden
-          className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground"
-        />
-        <Input
-          type="search"
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          placeholder={copy.search}
-          aria-label={copy.search}
-          className="h-10 rounded-[0.625rem] pl-9 text-sm"
-        />
-      </div>
+      {/* Figma 369:4908: a plain field, no magnifier. */}
+      <Input
+        type="search"
+        value={query}
+        onChange={(e) => setQuery(e.target.value)}
+        placeholder={copy.search}
+        aria-label={copy.search}
+        className="h-10 rounded-[0.625rem] px-3 text-sm"
+      />
       <Drawer>
         <div className={listClass}>
           <SectionsTab
