@@ -47,6 +47,7 @@
     "./admin-accent": "./src/admin-accent/accent.ts",
     "./shipping-rates": "./src/shipping/rates.ts",
     "./parcel": "./src/shipping/parcel.ts",
+    "./shipment-tabs": "./src/shipping/tabs.ts",
     "./tracking-numbers": "./src/shipping/tracking-numbers.ts",
     "./preorder": "./src/preorder/client.ts",
     "./preorder-block": "./src/preorder/block.tsx",

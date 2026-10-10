@@ -18,6 +18,7 @@ import {
   type RowData,
   type RowSelectionState,
   type SortingState,
+  type Updater,
   useTable,
 } from '@tanstack/react-table'
 import { useRouter } from 'next/navigation'
@@ -65,6 +66,11 @@ export type ResourceTableProps<T extends RowData> = {
   /** Shows the rows-per-page select (10 / 25 / 50 / 100) in the footer. */
   onPerPageChange?: (perPage: number) => void
   selectable?: boolean
+  /**
+   * Controlled selection, for a page whose own buttons act on the selected rows (Shipments'
+   * "Book selected"). Without it the table keeps the selection itself.
+   */
+  selection?: { ids: string[]; onChange: (ids: string[]) => void }
   /** Rendered in the selection bar; call `clear` after a bulk action. */
   bulkActions?: (selectedIds: string[], clear: () => void) => ReactNode
   empty?: { heading: string; body?: string; action?: ReactNode }
@@ -83,6 +89,22 @@ export type ResourceTableProps<T extends RowData> = {
 }
 
 const SKELETON_ROWS = 6
+
+/** The table's row selection: the page's own (`selection`) when given, else kept here. */
+function useRowSelection(
+  controlled: { ids: string[]; onChange: (ids: string[]) => void } | undefined,
+) {
+  const [own, setOwn] = useState<RowSelectionState>({})
+  const value: RowSelectionState = controlled
+    ? Object.fromEntries(controlled.ids.map((id) => [id, true]))
+    : own
+  const set = (next: Updater<RowSelectionState>) => {
+    const resolved = typeof next === 'function' ? next(value) : next
+    if (controlled) controlled.onChange(Object.keys(resolved).filter((id) => resolved[id]))
+    else setOwn(resolved)
+  }
+  return [value, set] as const
+}
 
 /* Icon cells are 44px squares (the row height); the column drops its padding so the
    dividers run the full row height. */
@@ -159,7 +181,7 @@ export default function ResourceTable<T extends RowData>(props: ResourceTablePro
   const router = useRouter()
   const [sorting, setSorting] = useState<SortingState>([])
   const [columnVisibility, setColumnVisibility] = useState<ColumnVisibilityState>({})
-  const [rowSelection, setRowSelection] = useState<RowSelectionState>({})
+  const [rowSelection, setRowSelection] = useRowSelection(props.selection)
   const table = useTable({
     features: resourceTableFeatures,
     data: props.items,
