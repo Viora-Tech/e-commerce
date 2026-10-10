@@ -38,7 +38,11 @@ export type TemplateData = {
 export const TEMPLATE_SUFFIX = /^[a-z0-9-]{0,40}$/
 
 /** Kinds a resource can pick an alternate for (Shopify's "Theme template" select). */
-export const ALTERNATE_KINDS = ['product', 'collection', 'page'] as const
+export const ALTERNATE_KINDS = ['product', 'collection', 'page', 'blog', 'article'] as const
+/** A template kind a resource can pick an alternate of (`product.preorder`). */
+export type AlternateKind = (typeof ALTERNATE_KINDS)[number]
+/** How many resources of each kind use each alternate, by suffix. Store-wide, not per theme. */
+export type TemplateAssignments = Record<AlternateKind, Record<string, number>>
 
 /**
  * The section each resource template is built around. It renders the resource

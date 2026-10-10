@@ -112,6 +112,8 @@ export function sectionBlocks(
     )
     .map(([key, field]) => {
       const items = Array.isArray(props[key]) ? (props[key] as Record<string, unknown>[]) : []
+      // A list filled from store data (a loop) has no blocks of its own to add or remove.
+      const linked = props[key] != null && !Array.isArray(props[key])
       return {
         key,
         label: field.label ?? key,
@@ -120,8 +122,8 @@ export function sectionBlocks(
           index,
           title: field.getItemSummary?.(item, index) || fallback(index),
         })),
-        canAdd: field.max === undefined || items.length < field.max,
-        canRemove: items.length > (field.min ?? 0),
+        canAdd: !linked && (field.max === undefined || items.length < field.max),
+        canRemove: !linked && items.length > (field.min ?? 0),
       }
     })
 }

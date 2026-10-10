@@ -4,6 +4,7 @@ import {
   orderDetailContent,
   ordersContent,
   ordersSectionsContent,
+  parcelsCardContent,
 } from '@/data/orders'
 import { translation } from '@/lib/i18n'
 
@@ -465,6 +466,22 @@ export default [
       body: 'यहाँ अब कुछ करना नहीं है। इतिहास में सब दिखता है।',
       history: 'इतिहास देखें',
     },
+  }),
+  translation(parcelsCardContent, {
+    title: (count) => (count === 1 ? 'कहाँ से जाएगा' : `${count} पार्सल में जाएगा`),
+    parcel: (position) => `पार्सल ${position}`,
+    from: (place) => `${place} से`,
+    billedUnder: (gstin) => `GST ${gstin}`,
+    units: (count) => (count === 1 ? '1 सामान' : `${count} सामान`),
+    status: {
+      open: 'पैक करना है',
+      on_hold: 'रुका है (प्री-ऑर्डर)',
+      fulfilled: 'पैक हो गया',
+      cancelled: 'कैंसिल',
+    },
+    needsTransfer: 'स्टॉक भेजना है',
+    needsTransferHelp: 'ऑर्डर आते समय इस लोकेशन पर पूरा सामान नहीं था। पैक करने से पहले स्टॉक यहाँ भेज दें।',
+    packed: (done, of) => `${of} में से ${done} पैक`,
   }),
   translation(importedOrderContent, {
     title: (platform) => `${PLATFORMS[platform] ?? platform} से इंपोर्ट किया`,

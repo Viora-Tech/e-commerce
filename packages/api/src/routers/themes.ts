@@ -1,5 +1,6 @@
 import { settingsSecret } from '@commerce/config'
 import {
+  ALTERNATE_KINDS,
   commitTemplateDrafts,
   createTemplateAlternate,
   createThemeFromPreset,
@@ -15,14 +16,19 @@ import {
   listCustomSections,
   listTemplates,
   listThemes,
+  loadLoopCatalog,
+  loadLoopValues,
   loadSourceCatalog,
   loadSourceValues,
   loadTemplate,
   permissions,
+  previewCollectionProducts,
   publishTheme,
   renameCustomSection,
+  renameTemplateAlternate,
   renameTheme,
   SECTION_GROUPS,
+  SETTING_KINDS,
   saveCustomSection,
   saveTemplateDraft,
   setThemeThumbnail,
@@ -33,6 +39,7 @@ import {
   ThemeLibraryError,
   type ThemeRecord,
   ThemeSchema,
+  templateAssignments,
   themesWithDrafts,
   touchTheme,
   updateThemeSettings,
@@ -141,6 +148,35 @@ const templatesRouter = {
       }),
     ),
 
+  /** What a list (loop) can read: storefront-visible content types with their fields, collections. */
+  loopSources: can(permissions.ONLINE_STORE_READ).handler(({ context }) =>
+    loadLoopCatalog(context.tx),
+  ),
+
+  /** Sample rows for the Customize preview of lists bound to store data. */
+  loopValues: can(permissions.ONLINE_STORE_READ)
+    .input(
+      z.object({
+        loops: z
+          .array(
+            z.object({
+              source: z.string().max(260),
+              limit: z.number().int().min(1).max(50),
+              map: z.record(
+                z.string().max(64),
+                z.object({ from: z.string().max(64), kind: z.enum(SETTING_KINDS) }),
+              ),
+            }),
+          )
+          .max(20),
+      }),
+    )
+    .handler(({ context, input }) =>
+      loadLoopValues(context.tx, input.loops, {
+        collectionProducts: (handle, limit) => previewCollectionProducts(context.tx, handle, limit),
+      }),
+    ),
+
   discard: can(permissions.ONLINE_STORE_WRITE)
     .input(z.object({ themeId: z.string().uuid() }))
     .handler(async ({ context, input }) => {
@@ -152,6 +188,25 @@ const templatesRouter = {
     .input(TemplateRef.extend({ basedOn: z.string().regex(TEMPLATE_SUFFIX).optional() }))
     .handler(({ context, input }) =>
       libraryErrors(() => createTemplateAlternate(context.tx, context.scope.storeId, input)),
+    ),
+
+  /** How many products, collections, pages, blogs and posts use each alternate (store-wide). */
+  assignments: can(permissions.ONLINE_STORE_READ).handler(({ context }) =>
+    templateAssignments(context.tx),
+  ),
+
+  /** Renames an alternate of this theme; resources assigned to it follow (`moved`). */
+  rename: can(permissions.ONLINE_STORE_WRITE)
+    .input(
+      z.object({
+        themeId: z.string().uuid(),
+        template: z.enum(ALTERNATE_KINDS),
+        from: z.string().regex(TEMPLATE_SUFFIX),
+        to: z.string().regex(TEMPLATE_SUFFIX),
+      }),
+    )
+    .handler(({ context, input }) =>
+      libraryErrors(async () => ({ moved: await renameTemplateAlternate(context.tx, input) })),
     ),
 
   delete: can(permissions.ONLINE_STORE_WRITE)

@@ -32,6 +32,7 @@ import {
   groupIntoParcels,
   lineLocation,
 } from './fulfillment-orders'
+import { orderParcelsView } from './parcel-view'
 import { placeOrder } from './place-order'
 import { cancelOrder } from './status'
 
@@ -432,5 +433,29 @@ describe('draft conversion makes the parcel', () => {
     expect(fos[0]).toMatchObject({ locationId: t.haryana.id, gstRegistrationId: t.registrationId })
     expect(lines[0]).toMatchObject({ quantity: 3, fulfilledQuantity: 0 })
     expect((await levels(t)).haryana).toEqual({ onHand: 10, committed: 3 })
+  })
+})
+
+describe('orderParcelsView', () => {
+  it('shows where each parcel ships from, its items and packing', async () => {
+    const t = await seed()
+    await owner
+      .update(location)
+      .set({ city: 'Gurugram', stateCode: 'HR' })
+      .where(eq(location.id, t.haryana.id))
+    const { orderId } = await legacyOrder(t)
+    await inStore(t, (ctx) => ensureFulfillmentOrders(ctx, orderId))
+    const [view] = await inStore(t, (ctx) => orderParcelsView(ctx.tx, orderId))
+    expect(view).toMatchObject({
+      position: 1,
+      status: 'open',
+      needsTransfer: false,
+      locationName: 'Haryana',
+      city: 'Gurugram',
+      stateCode: 'HR',
+      stateName: 'Haryana',
+      gstin: '06AAAPL1234C1Z5',
+      lines: [{ quantity: 3, fulfilledQuantity: 0 }],
+    })
   })
 })

@@ -29,6 +29,7 @@ import { nextStepKind } from './order-next-step-kind'
 import OrderPageFrame from './order-page-frame'
 import OrderReturnsCard from './order-returns-card'
 import PackingSlip from './packing-slip'
+import ParcelsCard from './parcels-card'
 import PaymentCard from './payment-card'
 import RefundDialog from './refund-dialog'
 import ShipmentPanel from './shipment-panel'
@@ -208,6 +209,7 @@ export default function OrderView({ order, appCards = [] }: OrderViewProps) {
         <>
           <ImportedOrderCard order={order} />
           {readOnly ? null : <UnfulfilledCard order={order} onFulfil={() => setFulfilling(true)} />}
+          {readOnly ? null : <ParcelsCard order={order} />}
           <LineItemsCard
             order={order}
             payment={pay}

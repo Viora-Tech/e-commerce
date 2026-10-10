@@ -12,7 +12,8 @@ import { renderTemplate } from '@/lib/template-render'
 
 type Params = {
   params: Promise<{ storeId: string; blog: string }>
-  searchParams: Promise<{ tag?: string; page?: string }>
+  /** `view` is the Customize preview's alternate template. */
+  searchParams: Promise<{ tag?: string; page?: string; view?: string }>
 }
 
 export async function generateMetadata({ params }: Params): Promise<Metadata> {
@@ -102,6 +103,10 @@ export default async function BlogPage({ params, searchParams }: Params) {
     </section>
   )
   return inStore(storeId, (tx) =>
-    renderTemplate(tx, storeId, 'blog', { renderers: { MainBlog: () => main } }),
+    renderTemplate(tx, storeId, 'blog', {
+      suffix: blog.templateSuffix,
+      view: query.view,
+      renderers: { MainBlog: () => main },
+    }),
   )
 }

@@ -16,7 +16,11 @@ import { breadcrumbList, jsonLd, requestOrigin } from '@/lib/seo'
 import { inStore } from '@/lib/store-context'
 import { renderTemplate } from '@/lib/template-render'
 
-type Params = { params: Promise<{ storeId: string; blog: string; article: string }> }
+type Params = {
+  params: Promise<{ storeId: string; blog: string; article: string }>
+  /** `?view=` from the Customize preview: the alternate template being edited. */
+  searchParams?: Promise<{ view?: string }>
+}
 
 async function load(storeId: string, blogHandle: string, handle: string) {
   return inStore(storeId, async (tx) => {
@@ -53,8 +57,9 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
   }
 }
 
-export default async function ArticlePage({ params }: Params) {
+export default async function ArticlePage({ params, searchParams }: Params) {
   const { storeId, blog: blogHandle, article: handle } = await params
+  const view = (await searchParams)?.view
   const found = await load(storeId, blogHandle, handle)
   if (!found) notFound()
 
@@ -151,6 +156,10 @@ export default async function ArticlePage({ params }: Params) {
     </div>
   )
   return inStore(storeId, (tx) =>
-    renderTemplate(tx, storeId, 'article', { renderers: { MainArticle: () => main } }),
+    renderTemplate(tx, storeId, 'article', {
+      suffix: post.templateSuffix,
+      view,
+      renderers: { MainArticle: () => main },
+    }),
   )
 }

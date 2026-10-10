@@ -11,6 +11,12 @@ export const BlogWriteSchema = z.object({
   title: z.string().trim().min(1).max(120),
   handle: HandleSchema.optional(),
   commentPolicy: CommentPolicySchema.optional(),
+  /** Alternate template of the live theme (`<kind>.<suffix>`); blank or null is the default. */
+  templateSuffix: z
+    .string()
+    .regex(/^[a-z0-9-]{0,40}$/)
+    .nullable()
+    .optional(),
   seoTitle: z.string().trim().max(200).nullable().optional(),
   seoDescription: z.string().trim().max(400).nullable().optional(),
 })
@@ -29,6 +35,12 @@ export const ArticleWriteSchema = z.object({
   status: ArticleStatusSchema,
   /** Required when scheduling; when publishing now it defaults to the save time. */
   publishedAt: z.coerce.date().nullable().optional(),
+  /** Alternate template of the live theme (`<kind>.<suffix>`); blank or null is the default. */
+  templateSuffix: z
+    .string()
+    .regex(/^[a-z0-9-]{0,40}$/)
+    .nullable()
+    .optional(),
   seoTitle: z.string().trim().max(200).nullable().optional(),
   seoDescription: z.string().trim().max(400).nullable().optional(),
 })

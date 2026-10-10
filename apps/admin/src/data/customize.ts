@@ -47,10 +47,45 @@ export const customizeContent = {
       footer: 'Footer',
     } satisfies Record<TemplateKey, string>,
     alternate: (kind: string, suffix: string) => `${kind}: ${suffix}`,
+    /** "Used by 3 products" beside an alternate in the picker; nothing when none use it. */
+    usedBy: (count: number, kind: 'product' | 'collection' | 'page' | 'blog' | 'article') => {
+      const nouns = {
+        product: ['product', 'products'],
+        collection: ['collection', 'collections'],
+        page: ['page', 'pages'],
+        blog: ['blog', 'blogs'],
+        article: ['blog post', 'blog posts'],
+      } as const
+      return `${count} ${nouns[kind][count === 1 ? 0 : 1]}`
+    },
+    manage: (name: string) => `Manage ${name}`,
+    rename: 'Rename',
+    duplicate: 'Duplicate',
+    delete: 'Delete',
+    copySuffix: (suffix: string) => `${suffix}-copy`,
+    duplicated: (name: string) => `Duplicated as ${name}`,
+    renamed: 'Template renamed',
+    deleted: 'Template deleted',
+    failed: 'That did not work. Try again.',
+    renameDialog: {
+      title: 'Rename template',
+      name: 'Name',
+      help: 'Lowercase letters, numbers and hyphens.',
+      moves: (used: string) => `${used} using it will move to the new name.`,
+      cancel: 'Cancel',
+      confirm: 'Rename',
+    },
+    deleteDialog: {
+      title: (name: string) => `Delete ${name}?`,
+      body: 'Its sections are removed from this theme for good.',
+      fallback: (used: string) => `${used} using it will show the default template instead.`,
+      cancel: 'Cancel',
+      confirm: 'Delete template',
+    },
   },
   createDialog: {
     title: 'Create template',
-    body: 'A new template starts as a copy of the one you choose. Assign it to products, collections or pages from their own settings.',
+    body: 'A new template starts as a copy of the one you choose. Assign it to products, collections, pages, blogs or blog posts from their own settings.',
     kind: 'Template type',
     name: 'Name',
     nameHelp: 'Lowercase letters, numbers and hyphens, for example preorder.',
@@ -443,7 +478,13 @@ export const customizeContent = {
   },
   assign: {
     heading: 'Theme template',
-    default: { product: 'Default product', collection: 'Default collection' },
+    default: {
+      product: 'Default product',
+      collection: 'Default collection',
+      page: 'Default page',
+      blog: 'Default blog',
+      article: 'Default blog post',
+    },
     help: 'Alternates are created in Customize from the template menu.',
   },
   preview: {

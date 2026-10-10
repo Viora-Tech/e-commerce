@@ -148,6 +148,7 @@ export const blogsManageContent = {
     handle: 'URL handle',
     handleHelp: 'Leave empty to build it from the title.',
     comments: 'Comments',
+    template: 'Theme template',
     cancel: 'Cancel',
     save: 'Save',
     saving: 'Saving…',

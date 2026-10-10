@@ -5,13 +5,14 @@ description: The places you keep stock, the state each one is in, which GST numb
 
 # Locations & warehouses
 
-**Settings → Locations & warehouses** lists every place you keep stock: your main location (the one that
-sells online) and any warehouses you added under **Products → Inventory**.
+**Settings → Locations & warehouses** lists every place you keep stock: your default location and
+any warehouses you added under **Products → Inventory**, in the order orders are sent from them.
 
 ## What this is for
 
 - Seeing which GST number each location bills under.
 - Spotting a location in a state where you have no GST number yet.
+- Choosing which warehouses send online orders, and in what order.
 - Letting couriers collect parcels from the warehouse that sends them.
 
 ## How it works
@@ -30,6 +31,32 @@ Orders whose products sell from a location are billed from its GST number: its s
 CGST + SGST or IGST, and its invoices carry that GST number. Your prices include GST, so the
 shopper pays the same either way. A location with no GST number chosen bills from your default
 one.
+
+### Sending orders from more than one warehouse
+
+The **Online orders** column says whether a location **Ships** online orders or keeps **Stock
+only**. Your default location always ships. Open another location and turn on **Ships online
+orders** to let orders be sent from its stock; its stock then counts toward what your store shows
+as available.
+
+When a customer orders, the order is sent from one location that has everything, picking the
+customer's own state first, then the order of the list (use the arrows in **Order** to change
+it). If no single location has everything, the order is split into parcels from more than one
+location, never more than **Most parcels per order** under **How orders are sent** (2 unless you
+change it). Each parcel is billed by its own location's GST number and gets its own invoice; the
+customer still sees one order and pays the same.
+
+If an order would need more parcels than you allow, your default location sends the rest even
+though it does not have it all. That parcel shows **Needs stock moved** on the order page: move
+the stock there before you pack it. An order is only refused when all your locations together do
+not have enough.
+
+A location whose GST number is on the composition scheme never sends to another state (the law
+does not allow it). If only such a location has the item, a customer in another state sees *"We
+can't deliver this item to your state yet."*
+
+The order page shows where each part goes from under **Ships from** (or **Ships in 2 parcels**):
+each parcel's location, its GST number, its items and how many are packed.
 
 ### Courier pickup
 
@@ -55,3 +82,7 @@ and save to go back to the return address in **Settings → Shipping**.
    number** button.
 4. On a location with a full address, turn on **Couriers pick up from this address**, type the
    pickup name from your courier dashboard and select **Save pickup**.
+5. Open a second warehouse and turn on **Ships online orders**. Back on the list, move it up with
+   the arrows and set **Most parcels per order**.
+6. Place a test order for two items that sit in different warehouses: the order page shows
+   **Ships in 2 parcels**, one from each.

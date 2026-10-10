@@ -17,6 +17,7 @@ import { usePermissions } from '@/hooks/use-permissions'
 import { api } from '@/lib/api-client'
 import { routes } from '@/lib/routes'
 import LocationPickupCard from './location-pickup-card'
+import LocationSellingCard from './location-selling-card'
 
 type LocationDetailProps = {
   location: LocationBillingView
@@ -132,6 +133,7 @@ export default function LocationDetail({ location, registrations }: LocationDeta
           </p>
         )}
       </SettingsCard>
+      <LocationSellingCard location={location} canManage={canManage} />
       <LocationPickupCard location={location} canManage={canManage} />
     </div>
   )

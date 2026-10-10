@@ -4,9 +4,12 @@ import { createBlocksConfig, type PageData, type SectionMetadata } from '@commer
 import { renderBlock } from '@commerce/blocks/slots'
 import {
   applyBindings,
+  applyLoops,
+  boundLoops,
   boundPaths,
   defaultTemplate,
   isSectionHidden,
+  loadLoopValues,
   loadSourceValues,
   loadTemplate,
   mainThemeId,
@@ -104,7 +107,18 @@ export async function renderTemplate(
   const data = themeId
     ? (await loadTemplate(tx, themeId, key, suffix, { withDraft: preview })).data
     : defaultTemplate(key)
-  const shown = { ...data, content: data.content.filter((s) => !isSectionHidden(s)) }
+  const visibleSections = { ...data, content: data.content.filter((s) => !isSectionHidden(s)) }
+  // Lists bound to store data (FAQ items from a content type, a collection's products) fill
+  // their rows now, capped and under this store's RLS; an empty list shows the typed-in rows.
+  const loops = boundLoops(visibleSections)
+  const shown = loops.length
+    ? applyLoops(
+        visibleSections,
+        await loadLoopValues(tx, loops, {
+          collectionProducts: (handle, limit) => collectionCards(tx, handle, limit),
+        }),
+      )
+    : visibleSections
   // Connected settings read their source now, per request and under this store's RLS;
   // an empty source renders what the merchant typed in.
   const paths = boundPaths(shown)
