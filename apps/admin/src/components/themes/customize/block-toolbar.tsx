@@ -1,19 +1,21 @@
 'use client'
 
 import { SINGLE_SECTIONS } from '@commerce/core/theme'
-import { ArrowDown, ArrowUp, Copy, Trash2 } from '@commerce/ui/icons'
+import { ArrowDown, ArrowUp, ChevronUpIcon, Copy, Trash2 } from '@commerce/ui/icons'
 import { cn } from '@commerce/ui/lib/utils'
 import { registerOverlayPortal } from '@puckeditor/core'
 import { motion, useReducedMotion } from 'motion/react'
 import { type MouseEvent, type ReactNode, useEffect, useState } from 'react'
+import { toast } from 'sonner'
 import { customizeContent } from '@/data/customize'
 import { deleteWithCollapse } from '@/lib/customize-canvas-motion'
+import { copyBlock } from '@/lib/customize-clipboard'
 import type { CustomizeDoc } from '@/lib/customize-doc'
 import { sectionName } from '@/lib/customize-insert'
 import { useCustomizePuck } from '@/lib/customize-puck'
-import { findBlock, locateBlock, stepActions, zoneItems } from '@/lib/customize-slots'
+import { findBlock, locateBlock, slotOwner, stepActions, zoneItems } from '@/lib/customize-slots'
 import { BLOCK_TOOLBAR_FORMAT_SLOT } from './block-toolbar-format'
-import SectionIcon from './section-icon'
+import BlockToolbarMore from './block-toolbar-more'
 
 type BlockToolbarProps = {
   children: ReactNode
@@ -26,27 +28,39 @@ type BlockToolbarProps = {
 const copy = customizeContent
 
 /*
- * Puck mounts this overlay in the admin document, laid over the preview iframe, so the bar
- * uses the admin's own tokens and follows its light or dark theme.
+ * Figma: "Builder / Block toolbar" (500:5981, Online store page), built from the "Selected
+ * label" chip (369:5850) and the glass link popover (369:124622). Puck mounts this overlay in
+ * the canvas with the admin's stylesheet, so admin tokens apply and light/dark follow the admin.
  */
+const BAR =
+  'glass-popover pointer-events-auto sticky top-1 z-10 flex h-[1.875rem] w-fit items-center gap-0.5 rounded-[0.625rem] border border-glass-border p-[0.1875rem]'
+
+const CHIP =
+  'inline-flex max-w-[14rem] items-center rounded-[0.3125rem] px-2 py-0.5 text-xs leading-[1.0625rem] font-medium whitespace-nowrap'
+
 const TOOL =
-  'flex size-6 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors duration-150 hover:bg-accent hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none disabled:pointer-events-none disabled:opacity-35 motion-reduce:transition-none'
+  'flex size-6 shrink-0 items-center justify-center rounded-[0.375rem] text-muted-foreground transition-colors duration-150 hover:bg-accent hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none disabled:pointer-events-none disabled:opacity-35 motion-reduce:transition-none'
 
 const SEPARATOR = 'mx-0.5 h-4 w-px shrink-0 bg-border'
 
 /**
- * The one floating toolbar of the selected block on the Customize canvas (Puck's
- * `componentOverlay` override): the block's name in the accent "selected" chip from the
- * Figma builder frames, then move up/down, duplicate and delete (the same Puck actions the
- * Sections tree dispatches, so undo covers both), then — only while text in this block is
- * being edited — Puck's B/I/U and our link control, which `BlockToolbarFormat` portals into
- * the slot at the end. It sits on the block's top edge and, like Puck's own action bar,
- * sticks to the top of the canvas while a tall block scrolls under it (so a block at the
- * very top shows it just inside). A hovered block only gets its dashed outline.
+ * The one floating toolbar on the Customize canvas (Puck's `componentOverlay` override).
+ *
+ * - Selected: the block's name chip, "select container" for a block inside a layout block,
+ *   move up/down, duplicate, delete and a "more" menu (hide, copy). Moves use the same Puck
+ *   actions as the Sections tree and Alt+Up/Down, so undo covers them and the block stays
+ *   selected.
+ * - Text editing: the name chip, then bold, italic, underline, link and clear formatting in
+ *   place of the block actions. `BlockToolbarFormat` portals Puck's inline menu into the slot,
+ *   and the bar's `:has()` rule swaps the groups, so no state has to cross the portal.
+ * - Hovered: the name only, in a quiet chip.
+ *
+ * It rests on the block's top edge and sticks to the top of the canvas while a tall block
+ * scrolls under it (a block at the very top shows it just inside).
  */
 export default function BlockToolbar({
   children,
-  hover: _hover,
+  hover,
   isSelected,
   componentId,
   componentType,
@@ -61,13 +75,21 @@ export default function BlockToolbar({
   // a click on the canvas (which would clear the selection and close the bar).
   useEffect(() => (bar ? registerOverlayPortal(bar, { disableDrag: true }) : undefined), [bar])
 
+  // Helpers
+  const labelOf = (type: string): string => components[type]?.label ?? type
+
   // Event handlers
   const handleMove = (step: -1 | 1) => {
     const located = locateBlock(data, componentId)
     if (!located) return
-    // Reorder and keep the moved block selected, as Alt+Up/Down and the Sections tree do.
     const count = zoneItems(data, located.zone).length
     for (const action of stepActions(located.zone, located.index, count, step)) dispatch(action)
+  }
+  const handleSelectParent = () => {
+    const located = locateBlock(data, componentId)
+    const owner = located ? slotOwner(data, located.zone) : null
+    if (owner)
+      dispatch({ type: 'setUi', ui: { itemSelector: { index: owner.index, zone: owner.zone } } })
   }
   const handleDuplicate = () => {
     const located = locateBlock(data, componentId)
@@ -82,19 +104,44 @@ export default function BlockToolbar({
     )
     deleteWithCollapse(dispatch, located, el, reducedMotion === true)
   }
+  const handleToggleHidden = () => {
+    const located = locateBlock(data, componentId)
+    const block = findBlock(data, componentId)
+    if (!located || !block) return
+    dispatch({
+      type: 'replace',
+      destinationIndex: located.index,
+      destinationZone: located.zone,
+      data: { ...block, props: { ...block.props, _hidden: block.props._hidden !== true } },
+    })
+  }
+  const handleCopy = () => {
+    const block = findBlock(data, componentId)
+    if (!block) return
+    copyBlock(block)
+    toast.success(copy.clipboard.copied(sectionName(block, labelOf(block.type))))
+  }
 
   // Early returns
   const located = locateBlock(data, componentId)
-  // `children` is Puck's own outline; a hovered block keeps just that (dashed, vendor-puck.css).
-  if (!located || !isSelected) return <>{children}</>
+  // `children` is Puck's own outline (solid when selected, dashed on hover: vendor-puck.css).
+  if (!located || !(isSelected || hover)) return <>{children}</>
 
   // Render logic
   const block = findBlock(data, componentId)
-  const typeLabel = components[componentType]?.label ?? componentType
+  const typeLabel = labelOf(componentType)
   const label = block ? sectionName(block, typeLabel) : typeLabel
   const locked = SINGLE_SECTIONS.has(componentType)
   const { zone, index } = located
   const count = zoneItems(data, zone).length
+  const owner = slotOwner(data, zone)
+  const ownerBlock = owner ? findBlock(data, owner.id) : null
+  const ownerLabel = ownerBlock ? sectionName(ownerBlock, labelOf(ownerBlock.type)) : null
+  const fade = {
+    initial: reducedMotion ? false : { opacity: 0, y: 4 },
+    animate: { opacity: 1, y: 0 },
+    transition: { duration: reducedMotion ? 0 : 0.15, ease: 'easeOut' as const },
+  }
 
   return (
     <>
@@ -102,67 +149,101 @@ export default function BlockToolbar({
       {/* A band from 2.125rem above the block to its bottom: the bar rests at its top (on the
           block's edge) and sticks to the top of the canvas while the block scrolls under it. */}
       <div className="pointer-events-none absolute inset-x-0 -top-[2.125rem] bottom-0">
-        <motion.div
-          ref={setBar}
-          // A click that reached Puck's canvas would clear the selection and close the bar.
-          onClick={(e) => e.stopPropagation()}
-          role="toolbar"
-          aria-label={copy.toolbar.label(label)}
-          initial={reducedMotion ? false : { opacity: 0, y: 4 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: reducedMotion ? 0 : 0.15, ease: 'easeOut' }}
-          className="pointer-events-auto sticky top-1 z-10 flex h-[1.875rem] w-fit items-center gap-1 rounded-lg bg-popover p-[0.1875rem] text-popover-foreground shadow-popover ring-1 ring-border"
-        >
-          <span className="inline-flex h-6 max-w-[14rem] items-center gap-1 rounded-[0.3125rem] bg-primary px-2 text-xs leading-[1.0625rem] font-medium whitespace-nowrap text-primary-foreground">
-            <SectionIcon type={componentType} className="size-3.5 shrink-0 opacity-90" />
-            <span className="truncate">{label}</span>
-          </span>
-          <button
-            type="button"
-            onClick={() => handleMove(-1)}
-            disabled={index === 0}
-            aria-label={copy.toolbar.moveUp(label)}
-            title={copy.toolbar.moveUp(label)}
-            className={TOOL}
+        {isSelected ? (
+          <motion.div
+            ref={setBar}
+            // A click that reached Puck's canvas would clear the selection and close the bar.
+            onClick={(e) => e.stopPropagation()}
+            role="toolbar"
+            aria-label={copy.toolbar.label(label)}
+            {...fade}
+            className={cn(
+              BAR,
+              // While text is being edited the format controls replace the block actions.
+              '[&:has([data-block-toolbar-format]>*)_[data-block-actions]]:hidden',
+            )}
           >
-            <ArrowUp aria-hidden weight="regular" className="size-3.5" />
-          </button>
-          <button
-            type="button"
-            onClick={() => handleMove(1)}
-            disabled={index === count - 1}
-            aria-label={copy.toolbar.moveDown(label)}
-            title={copy.toolbar.moveDown(label)}
-            className={TOOL}
-          >
-            <ArrowDown aria-hidden weight="regular" className="size-3.5" />
-          </button>
-          {locked ? null : (
-            <>
-              <span aria-hidden className={SEPARATOR} />
+            <span className={cn(CHIP, 'bg-primary text-primary-foreground')}>
+              <span className="truncate">{label}</span>
+            </span>
+            <span data-block-actions="" className="contents">
+              {owner && ownerLabel ? (
+                <button
+                  type="button"
+                  onClick={handleSelectParent}
+                  aria-label={copy.toolbar.selectParent(ownerLabel)}
+                  title={copy.toolbar.selectParent(ownerLabel)}
+                  className={TOOL}
+                >
+                  <ChevronUpIcon aria-hidden weight="regular" className="size-3.5" />
+                </button>
+              ) : null}
               <button
                 type="button"
-                onClick={handleDuplicate}
-                aria-label={copy.tree.duplicate(label)}
-                title={copy.tree.duplicate(label)}
+                onClick={() => handleMove(-1)}
+                disabled={index === 0}
+                aria-label={copy.toolbar.moveUp(label)}
+                title={copy.toolbar.moveUp(label)}
                 className={TOOL}
               >
-                <Copy aria-hidden weight="regular" className="size-3.5" />
+                <ArrowUp aria-hidden weight="regular" className="size-3.5" />
               </button>
               <button
                 type="button"
-                onClick={handleRemove}
-                aria-label={copy.tree.remove(label)}
-                title={copy.tree.remove(label)}
-                className={cn(TOOL, 'hover:bg-danger-soft hover:text-danger')}
+                onClick={() => handleMove(1)}
+                disabled={index === count - 1}
+                aria-label={copy.toolbar.moveDown(label)}
+                title={copy.toolbar.moveDown(label)}
+                className={TOOL}
               >
-                <Trash2 aria-hidden weight="regular" className="size-3.5" />
+                <ArrowDown aria-hidden weight="regular" className="size-3.5" />
               </button>
-            </>
-          )}
-          {/* Puck's B/I/U and the link control land here while this block's text is edited. */}
-          <span {...{ [BLOCK_TOOLBAR_FORMAT_SLOT]: '' }} className="contents" />
-        </motion.div>
+              {locked ? null : (
+                <>
+                  <span aria-hidden className={SEPARATOR} />
+                  <button
+                    type="button"
+                    onClick={handleDuplicate}
+                    aria-label={copy.tree.duplicate(label)}
+                    title={copy.tree.duplicate(label)}
+                    className={TOOL}
+                  >
+                    <Copy aria-hidden weight="regular" className="size-3.5" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleRemove}
+                    aria-label={copy.tree.remove(label)}
+                    title={copy.tree.remove(label)}
+                    className={cn(TOOL, 'hover:bg-danger-soft hover:text-danger')}
+                  >
+                    <Trash2 aria-hidden weight="regular" className="size-3.5" />
+                  </button>
+                </>
+              )}
+              <span aria-hidden className={SEPARATOR} />
+              <BlockToolbarMore
+                label={label}
+                hidden={block?.props._hidden === true}
+                onToggleHidden={handleToggleHidden}
+                onCopy={handleCopy}
+              />
+            </span>
+            {/* Puck's B/I/U plus link and clear formatting land here while text is edited. */}
+            <span {...{ [BLOCK_TOOLBAR_FORMAT_SLOT]: '' }} className="contents" />
+          </motion.div>
+        ) : (
+          <motion.span
+            {...fade}
+            className={cn(
+              CHIP,
+              // Rests on the block's edge like the bar (2.125rem band minus its own height).
+              'sticky top-1 mt-[0.5625rem] w-fit border border-border bg-popover text-popover-foreground',
+            )}
+          >
+            <span className="truncate">{label}</span>
+          </motion.span>
+        )}
       </div>
     </>
   )

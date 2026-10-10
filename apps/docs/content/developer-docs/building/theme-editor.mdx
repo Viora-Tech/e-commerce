@@ -98,13 +98,15 @@ only the marks our storefront allows. Puck applies them inside `array` items too
 ### Block toolbar
 
 The selected block gets one floating toolbar (`block-toolbar.tsx`, Puck's `componentOverlay`
-override): the block's name in the accent "selected" chip from the Figma builder frames, move up
-and down, duplicate and delete, and, only while text in that block is being edited, bold, italic,
-underline and link. Puck hands its inline rich-text menu to its own action bar, so the
+override), designed in Figma as "Builder / Block toolbar" (500:5981). A selected block shows its
+name chip, "select container" when it sits inside a layout block, move up and down, duplicate,
+delete and a more menu (hide on the page, copy; `block-toolbar-more.tsx`). While its text is being
+edited, bold, italic, underline, link and clear formatting take the place of those actions. A
+hovered block shows just its name in a quiet chip. Puck hands its inline rich-text menu to its own action bar, so the
 `actionBar` override (`block-toolbar-format.tsx`) portals that menu into a slot at the end of
 the toolbar and Puck's bar stays empty. The menu is `inline-format-menu.tsx`, which
-`customize-config.tsx` sets as `renderInlineMenu` on every richtext field: Puck's B/I/U plus a
-link form that accepts what the link picker accepts (`normalisePastedUrl`) and opens in the same
+`customize-config.tsx` sets as `renderInlineMenu` on every richtext field: Puck's B/I/U, clear
+formatting and a link form that accepts what the link picker accepts (`normalisePastedUrl`) and opens in the same
 tab.
 
 - Puck mounts the overlay in the admin document laid over the canvas, so the toolbar uses admin
