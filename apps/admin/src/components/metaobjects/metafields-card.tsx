@@ -51,6 +51,7 @@ export default function MetafieldsCard({ ownerType, ownerId }: MetafieldsCardPro
   const [targets, setTargets] = useState<{ id: string; name: string }[]>([])
   const [reload, setReload] = useState(0)
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: `reload` re-runs the fetch after a field is added here.
   useEffect(() => {
     let live = true
     const request = ownerId
