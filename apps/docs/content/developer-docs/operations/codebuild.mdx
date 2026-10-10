@@ -4,8 +4,8 @@ title: Builds on CodeBuild
 
 # Builds on CodeBuild
 
-Production images are built by AWS CodeBuild instead of on the server. CodeBuild (ARM, same
-architecture as the t4g server) builds them, pushes them to Amazon ECR, and then rolls them out
+Production images are built by AWS CodeBuild instead of on the server. CodeBuild (x86, same
+architecture as the app server) builds them, pushes them to Amazon ECR, and then rolls them out
 through the Dokploy API. The server only pulls and restarts, so a build can no longer starve
 production of memory.
 
@@ -18,7 +18,7 @@ production of memory.
 
 ```mermaid
 flowchart LR
-  trig["02:30 IST schedule<br/>or manual start"] --> cb["CodeBuild (ARM, 8 GB)"]
+  trig["02:30 IST schedule<br/>or manual start"] --> cb["CodeBuild (x86, 15 GB)"]
   cb --> ecr["ECR vextro/worker, admin, storefront<br/>:sha  :dev-latest  :buildcache"]
   cb --> api["Dokploy API"]
   api --> w["worker (migrations)"] --> a["admin"] --> s["storefront"]
@@ -60,7 +60,7 @@ secrets stay in Dokploy's environment, never in an image.
 
 - 3 ECR repositories `vextro/worker`, `vextro/admin`, `vextro/storefront` with a lifecycle policy
   keeping the last 25 images (20 releases plus the cache tag).
-- CodeBuild project `vextro-images`: ARM container, `BUILD_GENERAL1_LARGE` (the admin build needs
+- CodeBuild project `vextro-images`: x86 Linux container, `BUILD_GENERAL1_LARGE` (the admin build needs
   more than 4 GB), privileged mode, full git clone depth.
 - IAM role: ECR push to those repos, CloudWatch Logs, SSM read on `/vextro/deploy/*` (write only
   on `last-sha/*`), Secrets Manager read on `vextro/dokploy`.
@@ -110,7 +110,7 @@ else uses it, and update the "Test server deploys" paragraph in the Deployment p
 
 | Item | Per month |
 | --- | --- |
-| CodeBuild ARM large, about 6 to 15 min a night, only when something changed | $3 to $10 |
+| CodeBuild x86 large, about 6 to 15 min a night, only when something changed | $3 to $10 |
 | ECR storage, roughly 3 repos x 25 images, compressed | $1 to $3 |
 | EventBridge, SSM standard parameters, Secrets Manager (1 secret) | about $0.50 |
 | CloudWatch Logs | under $1 |
