@@ -2,9 +2,15 @@
 
 import { EditorSelectionContext } from '@commerce/blocks/editor-selection'
 import { themeRootAttrs, themeToCss } from '@commerce/core/theme'
+import { useGetPuck } from '@puckeditor/core'
 import { useReducedMotion } from 'motion/react'
 import { type ReactNode, useEffect } from 'react'
-import { canvasMotionCss, installCanvasMotion } from '@/lib/customize-canvas-motion'
+import {
+  canvasMotionCss,
+  installCanvasMotion,
+  scrollToSection,
+} from '@/lib/customize-canvas-motion'
+import { CANVAS_DROP_CSS, installMediaDrop } from '@/lib/customize-media-drop'
 import { useCustomizePuck } from '@/lib/customize-puck'
 import { useLiquidHead, usePreviewMode, useThemePreview } from '@/lib/customize-theme-context'
 import CanvasInsertLine from './canvas-insert-line'
@@ -29,6 +35,7 @@ export default function PreviewFrame({ children, document }: PreviewFrameProps) 
   const mode = usePreviewMode()
   const liquid = useLiquidHead()
   const reducedMotion = useReducedMotion()
+  const getPuck = useGetPuck()
   // Popups and the cookie banner open in the canvas only while selected (EditorOverlay).
   const selectedId = useCustomizePuck((s) => {
     const id = s.selectedItem?.props?.id
@@ -89,6 +96,21 @@ export default function PreviewFrame({ children, document }: PreviewFrameProps) 
       root.style.removeProperty('--admin-accent-soft')
     }
   }, [document])
+
+  // Pictures dragged in from the Media panel land in the section under the pointer.
+  useEffect(() => {
+    if (!document) return
+    const style = document.createElement('style')
+    style.textContent = CANVAS_DROP_CSS
+    document.head.appendChild(style)
+    const uninstall = installMediaDrop(document, getPuck as never, (id) =>
+      scrollToSection(id, reducedMotion === true),
+    )
+    return () => {
+      style.remove()
+      uninstall()
+    }
+  }, [document, getPuck, reducedMotion])
 
   useEffect(() => {
     if (!document) return

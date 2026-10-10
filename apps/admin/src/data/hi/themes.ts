@@ -85,6 +85,8 @@ export default [
     label: 'एडिटर पैनल',
     sections: 'लेयर',
     add: 'सेक्शन जोड़ें',
+    pages: 'पेज',
+    media: 'मीडिया',
     theme: 'थीम सेटिंग्स',
   }),
   translation(customizeContent.panels, {
@@ -94,6 +96,10 @@ export default [
     addHint: 'जोड़ने के लिए क्लिक करें, या पेज पर खींचें',
     theme: 'थीम सेटिंग्स',
     themeHint: 'पूरे स्टोर के रंग, फ़ॉन्ट और लेआउट',
+    pages: 'पेज',
+    pagesHint: 'किसी दूसरे पेज या टेम्पलेट पर जाएँ',
+    media: 'मीडिया',
+    mediaHint: 'तस्वीर को किसी सेक्शन पर खींचें, या इस्तेमाल करने के लिए क्लिक करें',
     deselect: 'थीम सेटिंग्स पर वापस',
   }),
   translation(customizeContent.groups, {

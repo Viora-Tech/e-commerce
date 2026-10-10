@@ -1,23 +1,26 @@
 'use client'
 
 import { siteConfig } from '@commerce/config/site'
-import { ListTree, Palette, Plus } from '@commerce/ui/icons'
+import { editorGlyphs, ImageIcon, ListTree, Palette, Plus } from '@commerce/ui/icons'
 import { cn } from '@commerce/ui/lib/utils'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@commerce/ui/shadcn/tooltip'
 import { customizeContent } from '@/data/customize'
 import { useCopy } from '@/hooks/use-copy'
 import { CHROME_FOCUS, CHROME_TRANSITION } from '@/lib/customize-chrome'
 
-export type RailPanel = 'sections' | 'add' | 'theme'
+export type RailPanel = 'sections' | 'add' | 'pages' | 'media' | 'theme'
 
 type CustomizeRailProps = {
   active: RailPanel
   onChange: (panel: RailPanel) => void
 }
 
+/** In the Figma rail's order: add, pages, sections, media, theme. */
 const ITEMS: { panel: RailPanel; icon: typeof ListTree }[] = [
   { panel: 'add', icon: Plus },
+  { panel: 'pages', icon: editorGlyphs.page },
   { panel: 'sections', icon: ListTree },
+  { panel: 'media', icon: ImageIcon },
   { panel: 'theme', icon: Palette },
 ]
 

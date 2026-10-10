@@ -45,6 +45,7 @@ import CustomizeTopBar from './customize-top-bar'
 import ImportedThemeSettings from './imported-theme-settings'
 import LiquidCanvasSection from './liquid-canvas-section'
 import ResourcePicker from './resource-picker'
+import TemplateList from './template-list'
 import TemplatePicker, { type TemplateRef } from './template-picker'
 
 type CustomizeEditorProps = {
@@ -190,6 +191,11 @@ export default function CustomizeEditor({
     drafts.schedule(parts)
   }
 
+  const handleCreateFor = (kind: AlternateKind) => {
+    setCreatingKind(kind)
+    setCreating('open')
+  }
+
   const handleTemplate = async (next: TemplateRef) => {
     if (sameRef(next, ref)) return
     setSwitching(true)
@@ -316,10 +322,7 @@ export default function CustomizeEditor({
             alternates={alternates}
             loading={switching}
             onChange={handleTemplate}
-            onCreate={(kind) => {
-              setCreatingKind(kind)
-              setCreating('open')
-            }}
+            onCreate={handleCreateFor}
           />
           {preview.kind ? (
             <ResourcePicker
@@ -369,6 +372,15 @@ export default function CustomizeEditor({
                   <CustomizeLayout
                     topBar={topBar}
                     settings={settingsPanel}
+                    pages={
+                      <TemplateList
+                        value={ref}
+                        alternates={alternates}
+                        onPick={handleTemplate}
+                        onCreate={handleCreateFor}
+                        fill
+                      />
+                    }
                     dock={
                       <CanvasDock
                         mode={mode}

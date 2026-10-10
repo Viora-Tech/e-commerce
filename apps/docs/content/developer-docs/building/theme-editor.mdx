@@ -68,6 +68,20 @@ Rename. Rename stores the merchant's name in `props._name` (`renamedProps` in
 `lib/customize-insert.ts`); a blank name, or the type's own label, removes it again. Neither
 `_hidden` nor `_name` is a field, so they never show in the inspector.
 
+### Pages and Media panels
+
+The rail follows the Figma builder rail: Add, Pages, Sections, Media, Theme settings.
+- **Pages** is the template list the top bar's picker uses (`template-list.tsx`), open in the panel:
+  search, pages and templates with their alternates, "Create template". Picking one switches the
+  canvas as the picker does.
+- **Media** (`media-panel.tsx`) is the store's pictures with a search and an upload button.
+  Clicking a picture puts it into the selected block's first empty picture setting (else its first);
+  dragging one onto the canvas drops it into the innermost block under the pointer that has a
+  picture setting, outlined while hovering (`lib/customize-media-drop.ts`, installed by
+  `preview-frame.tsx`). Both are one Puck `replace` (`mediaAction` in
+  `lib/customize-media-insert.ts`), so undo covers them; a written alt text is kept and the old
+  focal point dropped.
+
 ### Insert points
 
 There are three ways to reach the Add section browser (`add-section-browser.tsx`) at an exact

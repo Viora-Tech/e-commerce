@@ -1,25 +1,12 @@
 'use client'
 
-import {
-  ALTERNATE_KINDS,
-  TEMPLATE_KINDS,
-  type TemplateKind,
-  templateName,
-} from '@commerce/core/theme'
-import { ChevronDown, Home, Loader2Icon, Plus } from '@commerce/ui/icons'
+import type { ALTERNATE_KINDS, TemplateKind } from '@commerce/core/theme'
+import { ChevronDown, Home, Loader2Icon } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
-import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-  CommandList,
-} from '@commerce/ui/shadcn/command'
 import { Popover, PopoverContent, PopoverTrigger } from '@commerce/ui/shadcn/popover'
 import { useState } from 'react'
 import { customizeContent } from '@/data/customize'
-import { useCopy } from '@/hooks/use-copy'
+import TemplateList from './template-list'
 
 export type TemplateRef = { key: TemplateKind; suffix: string }
 type AlternateKind = (typeof ALTERNATE_KINDS)[number]
@@ -37,9 +24,6 @@ type TemplatePickerProps = {
 
 const copy = customizeContent.templates
 
-const isAlternateKind = (key: TemplateKind): key is AlternateKind =>
-  (ALTERNATE_KINDS as readonly string[]).includes(key)
-
 export const templateLabel = (ref: TemplateRef) =>
   ref.suffix ? copy.alternate(copy.names[ref.key], ref.suffix) : copy.names[ref.key]
 
@@ -53,8 +37,6 @@ export default function TemplatePicker({
 }: TemplatePickerProps) {
   // Hooks
   const [open, setOpen] = useState(false)
-
-  const groups = useCopy(customizeContent.groups)
 
   // Event handlers
   const handlePick = (ref: TemplateRef) => {
@@ -89,57 +71,12 @@ export default function TemplatePicker({
         }
       />
       <PopoverContent align="center" className="w-[26rem] gap-0 p-0">
-        <Command>
-          <CommandInput placeholder={copy.search} aria-label={copy.search} />
-          <CommandList>
-            <CommandEmpty>{copy.empty}</CommandEmpty>
-            {['pages', 'templates'].map((section) => (
-              <div key={section}>
-                <p className="px-3 pt-2 pb-1 text-caption font-semibold text-foreground">
-                  {section === 'pages' ? groups.pages : groups.templates}
-                </p>
-                {TEMPLATE_KINDS.filter(
-                  (key) => isAlternateKind(key) === (section === 'templates'),
-                ).map((key) => {
-                  const own = alternates.filter((a) => a.template === key && a.suffix)
-                  const currentIsDefault = value.key === key && value.suffix === ''
-                  return (
-                    <CommandGroup key={key} heading={copy.names[key]}>
-                      <CommandItem
-                        value={`${copy.names[key]} ${own.length > 0 ? copy.default : ''}`}
-                        data-checked={currentIsDefault ? 'true' : undefined}
-                        onSelect={() => handlePick({ key, suffix: '' })}
-                      >
-                        {own.length > 0 ? copy.default : copy.names[key]}
-                      </CommandItem>
-                      {own.map((a) => (
-                        <CommandItem
-                          key={templateName(key, a.suffix)}
-                          value={`${copy.names[key]} ${a.suffix}`}
-                          data-checked={
-                            value.key === key && value.suffix === a.suffix ? 'true' : undefined
-                          }
-                          onSelect={() => handlePick({ key, suffix: a.suffix })}
-                        >
-                          {a.suffix}
-                        </CommandItem>
-                      ))}
-                      {isAlternateKind(key) ? (
-                        <CommandItem
-                          value={`${copy.names[key]} ${copy.create}`}
-                          onSelect={() => handleCreate(key)}
-                        >
-                          <Plus aria-hidden />
-                          {copy.create}
-                        </CommandItem>
-                      ) : null}
-                    </CommandGroup>
-                  )
-                })}
-              </div>
-            ))}
-          </CommandList>
-        </Command>
+        <TemplateList
+          value={value}
+          alternates={alternates}
+          onPick={handlePick}
+          onCreate={handleCreate}
+        />
       </PopoverContent>
     </Popover>
   )
