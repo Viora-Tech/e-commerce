@@ -328,6 +328,8 @@ export const blog = pgTable(
     commentPolicy: text('comment_policy', { enum: ['disabled', 'moderated', 'open'] })
       .notNull()
       .default('disabled'),
+    /** Alternate `blog.<suffix>` template of the live theme; null uses the default. */
+    templateSuffix: text('template_suffix'),
     seoTitle: text('seo_title'),
     seoDescription: text('seo_description'),
     createdAt: createdAt(),
@@ -361,6 +363,8 @@ export const article = pgTable(
       .notNull()
       .default('draft'),
     publishedAt: timestamp('published_at', { withTimezone: true }),
+    /** Alternate `article.<suffix>` template of the live theme; null uses the default. */
+    templateSuffix: text('template_suffix'),
     seoTitle: text('seo_title'),
     seoDescription: text('seo_description'),
     createdAt: createdAt(),

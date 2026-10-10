@@ -1,5 +1,6 @@
 import { settingsSecret } from '@commerce/config'
 import {
+  ALTERNATE_KINDS,
   commitTemplateDrafts,
   createTemplateAlternate,
   createThemeFromPreset,
@@ -21,6 +22,7 @@ import {
   permissions,
   publishTheme,
   renameCustomSection,
+  renameTemplateAlternate,
   renameTheme,
   SECTION_GROUPS,
   saveCustomSection,
@@ -33,6 +35,7 @@ import {
   ThemeLibraryError,
   type ThemeRecord,
   ThemeSchema,
+  templateAssignments,
   themesWithDrafts,
   touchTheme,
   updateThemeSettings,
@@ -152,6 +155,25 @@ const templatesRouter = {
     .input(TemplateRef.extend({ basedOn: z.string().regex(TEMPLATE_SUFFIX).optional() }))
     .handler(({ context, input }) =>
       libraryErrors(() => createTemplateAlternate(context.tx, context.scope.storeId, input)),
+    ),
+
+  /** How many products, collections, pages, blogs and posts use each alternate (store-wide). */
+  assignments: can(permissions.ONLINE_STORE_READ).handler(({ context }) =>
+    templateAssignments(context.tx),
+  ),
+
+  /** Renames an alternate of this theme; resources assigned to it follow (`moved`). */
+  rename: can(permissions.ONLINE_STORE_WRITE)
+    .input(
+      z.object({
+        themeId: z.string().uuid(),
+        template: z.enum(ALTERNATE_KINDS),
+        from: z.string().regex(TEMPLATE_SUFFIX),
+        to: z.string().regex(TEMPLATE_SUFFIX),
+      }),
+    )
+    .handler(({ context, input }) =>
+      libraryErrors(async () => ({ moved: await renameTemplateAlternate(context.tx, input) })),
     ),
 
   delete: can(permissions.ONLINE_STORE_WRITE)

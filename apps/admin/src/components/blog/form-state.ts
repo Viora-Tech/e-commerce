@@ -22,6 +22,8 @@ export type ArticleFormState = {
   publishedAt: string
   seoTitle: string
   seoDescription: string
+  /** Alternate `article.<suffix>` template; blank is the default. */
+  templateSuffix: string
 }
 
 /** `datetime-local` wants local wall time without the zone. */
@@ -48,6 +50,7 @@ export function emptyArticleForm(blogId: string, author: string): ArticleFormSta
     publishedAt: '',
     seoTitle: '',
     seoDescription: '',
+    templateSuffix: '',
   }
 }
 
@@ -67,6 +70,7 @@ export function fromArticle(a: LoadedArticle): ArticleFormState {
     publishedAt: toLocalInput(a.publishedAt),
     seoTitle: a.seoTitle ?? '',
     seoDescription: a.seoDescription ?? '',
+    templateSuffix: a.templateSuffix ?? '',
   }
 }
 
@@ -85,5 +89,6 @@ export function toWrite(form: ArticleFormState): ArticleWrite {
     publishedAt: form.publishedAt ? new Date(form.publishedAt) : null,
     seoTitle: form.seoTitle.trim() || null,
     seoDescription: form.seoDescription.trim() || null,
+    templateSuffix: form.templateSuffix || null,
   }
 }

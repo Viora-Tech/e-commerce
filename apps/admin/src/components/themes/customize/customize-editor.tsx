@@ -32,6 +32,7 @@ import { DynamicSourceContext, scopeFor } from '@/lib/dynamic-sources'
 import { useCustomizePreview } from '@/lib/use-customize-preview'
 import { useLiquidTheme } from '@/lib/use-liquid-theme'
 import { partsOf, useTemplateDrafts } from '@/lib/use-template-drafts'
+import type { TemplateChange } from '@/lib/use-template-manager'
 import { useThemeThumbnail } from '@/lib/use-theme-thumbnail'
 import ThemePresets from '../theme-presets'
 import type { PreviewDevice } from '../theme-preview'
@@ -240,6 +241,18 @@ export default function CustomizeEditor({
     }
   }
 
+  /** The picker renamed, duplicated or deleted an alternate: refresh it, follow the open one. */
+  const handleManaged = (change: TemplateChange) => {
+    api.themes.templates.list({ themeId: record.id }).then(setAlternates, () => undefined)
+    const open = ref.key === change.kind
+    if (change.type === 'renamed' && open && ref.suffix === change.from) {
+      setRef({ key: change.kind, suffix: change.to })
+    } else if (change.type === 'deleted' && open && ref.suffix === change.suffix) {
+      setSwitching(true)
+      setRef({ key: change.kind, suffix: '' })
+    }
+  }
+
   const handleCreate = async (kind: TemplateKind, suffix: string, basedOn: string) => {
     setCreating('busy')
     try {
@@ -312,6 +325,7 @@ export default function CustomizeEditor({
       pickers={
         <>
           <TemplatePicker
+            themeId={record.id}
             value={ref}
             alternates={alternates}
             loading={switching}
@@ -320,6 +334,7 @@ export default function CustomizeEditor({
               setCreatingKind(kind)
               setCreating('open')
             }}
+            onManaged={handleManaged}
           />
           {preview.kind ? (
             <ResourcePicker

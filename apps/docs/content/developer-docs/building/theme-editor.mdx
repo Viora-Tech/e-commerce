@@ -101,6 +101,22 @@ The click goes through `InsertContext` (`lib/customize-insert-context.ts`) to `C
 which opens the browser in a dialog in the admin document. The "+" is registered with Puck's
 `registerOverlayPortal` so pressing it never starts a section drag.
 
+### Alternate templates
+
+`ALTERNATE_KINDS` (`product`, `collection`, `page`, `blog`, `article`) can have alternates
+(`product.preorder`): a `theme_template` row with that suffix, and a `template_suffix` on the
+resource (`product`, `collection`, `page`, `blog`, `article`). The storefront renders the
+resource's alternate, falling back to the default when the theme has no such row.
+
+The template picker (`template-picker.tsx`, logic in `lib/use-template-manager.ts`) shows how many
+resources use each alternate (`themes.templates.assignments`, `templateAssignments` in core,
+store-wide) and has a small manager per alternate: **Rename** (`themes.templates.rename`,
+`renameTemplateAlternate`: renames this theme's row and moves the resources with
+`reassignTemplate`; other themes keep the old name, unused), **Duplicate** (a create based on it,
+named `<suffix>-copy`) and **Delete** (resources keep their suffix and render the default). The
+default template has no manager. Resource forms pick an alternate with `TemplateSelectField` /
+`TemplateSelectCard`.
+
 ### Section pictures in the Add panel
 
 Each tile in the Add panel's Sections tab (Figma grid 369:4918) and its hover card show a real

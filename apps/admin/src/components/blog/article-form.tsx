@@ -8,6 +8,7 @@ import { toast } from 'sonner'
 import ProoflyDetailPage from '@/components/layout/proofly-detail-page'
 import ProoflyPageHeader from '@/components/layout/proofly-page-header'
 import SaveBar from '@/components/layout/save-bar'
+import TemplateSelectCard from '@/components/themes/template-select-card'
 import { articleFormContent } from '@/data/blog'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
@@ -185,6 +186,11 @@ export default function ArticleForm({
             tagSuggestions={tags}
             onChange={patch}
             onBlogCreated={() => void api.blog.blogs().then(setBlogs)}
+          />
+          <TemplateSelectCard
+            kind="article"
+            value={form.templateSuffix}
+            onChange={(templateSuffix) => patch({ templateSuffix })}
           />
         </>
       }

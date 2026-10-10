@@ -137,6 +137,7 @@ export default [
       handle: 'पता (URL)',
       handleHelp: 'खाली छोड़ें तो नाम से बन जाएगा।',
       comments: 'कमेंट',
+      template: 'थीम टेम्पलेट',
       cancel: 'रद्द करें',
       save: 'सेव करें',
       saving: 'सेव हो रहा है…',
