@@ -15,6 +15,26 @@ export const customizeContent = {
     settings: 'Store settings',
     help: 'Help with the editor',
   },
+  view: {
+    fullView: 'Full view',
+    fullViewHint: (keys: string) => `See the page alone (${keys})`,
+    exitFullView: 'Exit full view',
+    exitHint: 'Esc',
+    hideLeft: 'Hide the left panel',
+    showLeft: 'Show the left panel',
+    hideRight: 'Hide the settings panel',
+    showRight: 'Show the settings panel',
+  },
+  inspectorEmpty: {
+    title: 'Page',
+    body: 'Select a section to edit it.',
+    tipsTitle: 'Ways to start',
+    tips: [
+      'Click a section on the page.',
+      'Pick one in Layers on the left.',
+      'Add a new one with + in the rail.',
+    ],
+  },
   identity: {
     title: (store: string, template: string) => `${store} · ${template}`,
   },
