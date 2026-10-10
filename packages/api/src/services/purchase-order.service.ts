@@ -1,4 +1,4 @@
-import { purchaseOrderTotals } from '@commerce/core'
+import { type PurchaseOrderStatus, purchaseOrderTotals } from '@commerce/core'
 import type { StoreTx } from '@commerce/db'
 import {
   location,
@@ -13,13 +13,16 @@ import { and, asc, count, desc, eq, ilike, inArray, or, sql } from 'drizzle-orm'
 
 // Services are the only code that runs queries. They receive a store-scoped tx.
 
-export type PurchaseOrderStatusFilter =
-  | 'all'
-  | 'draft'
-  | 'ordered'
-  | 'partially_received'
-  | 'received'
-  | 'closed'
+export type PurchaseOrderStatusFilter = 'all' | PurchaseOrderStatus
+
+/**
+ * What the search box means by a number: `12`, `#12`, `PO12`, `#PO12` and `po 12`
+ * all find order 12. Anything else is a supplier name.
+ */
+function purchaseOrderNumberFromSearch(term: string): number | null {
+  const m = term.trim().match(/^#?\s*(?:po)?\s*#?\s*(\d{1,9})$/i)
+  return m?.[1] ? Number(m[1]) : null
+}
 
 export async function listPurchaseOrders(
   tx: StoreTx,
@@ -31,12 +34,13 @@ export async function listPurchaseOrders(
   },
 ) {
   const term = q.search?.trim()
+  const number = term ? purchaseOrderNumberFromSearch(term) : null
   const where = and(
     q.status && q.status !== 'all' ? eq(purchaseOrder.status, q.status) : undefined,
     term
       ? or(
           ilike(purchaseOrder.supplierName, `%${term}%`),
-          sql`${purchaseOrder.number}::text = ${term.replace(/^#/, '')}`,
+          number === null ? undefined : eq(purchaseOrder.number, number),
         )
       : undefined,
   )

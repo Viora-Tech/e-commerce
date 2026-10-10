@@ -141,4 +141,34 @@ describe('inventory router', () => {
     const none = await call(appRouter.transfers.list, { search: 'Warehouse' }, { context: a.ctx })
     expect(none.total).toBe(0)
   })
+
+  it('finds a purchase order by its displayed number and says when one is missing', async () => {
+    const m = await merchant('search@example.com', 'inv-e')
+    const variantId = await seedVariant(m.storeId, 0)
+    const [loc] = await call(appRouter.inventory.locations, undefined, { context: m.ctx })
+    const make = (supplierName: string) =>
+      call(
+        appRouter.purchaseOrders.save,
+        {
+          supplierName,
+          locationId: loc?.id as string,
+          shippingPaise: 0,
+          taxPaise: 0,
+          lines: [{ variantId, quantity: 1, unitCostPaise: 0 }],
+        },
+        { context: m.ctx },
+      )
+    await make('Alpha')
+    await make('Beta')
+    for (const search of ['2', '#2', 'PO2', '#PO2', 'po 2', ' #po 2 ']) {
+      const res = await call(appRouter.purchaseOrders.list, { search }, { context: m.ctx })
+      expect(
+        res.rows.map((r) => r.supplierName),
+        search,
+      ).toEqual(['Beta'])
+    }
+    await expect(
+      call(appRouter.purchaseOrders.get, { id: newId() }, { context: m.ctx }),
+    ).rejects.toMatchObject({ code: 'NOT_FOUND' })
+  })
 })

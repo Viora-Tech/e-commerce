@@ -84,9 +84,14 @@ export function lineNumbers(form: PoForm) {
   }))
 }
 
-export function toInput(form: PoForm, id: string | undefined): PurchaseOrderInput {
+export function toInput(
+  form: PoForm,
+  id: string | undefined,
+  markOrdered = false,
+): PurchaseOrderInput {
   return {
     id,
+    markOrdered,
     supplierName: form.supplierName.trim(),
     supplierEmail: form.supplierEmail.trim(),
     supplierPhone: form.supplierPhone.trim() || undefined,

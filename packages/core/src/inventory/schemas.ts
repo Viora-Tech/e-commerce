@@ -41,18 +41,27 @@ export const PurchaseOrderLineInputSchema = z.object({
   unitCostPaise: z.number().int().min(0).max(100_000_000),
 })
 
-export const PurchaseOrderInputSchema = z.object({
-  id: z.string().uuid().optional(),
-  supplierName: z.string().trim().min(1).max(120),
-  supplierEmail: z.string().trim().email().optional().or(z.literal('')),
-  supplierPhone: z.string().trim().max(20).optional(),
-  locationId: z.string().uuid(),
-  expectedAt: z.coerce.date().nullable().optional(),
-  shippingPaise: z.number().int().min(0).default(0),
-  taxPaise: z.number().int().min(0).default(0),
-  note: z.string().trim().max(2000).optional(),
-  lines: z.array(PurchaseOrderLineInputSchema).max(500),
-})
+/** Each product may appear on a document once; two lines for one variant should be one. */
+const hasUniqueVariants = (lines: { variantId: string }[]) =>
+  new Set(lines.map((l) => l.variantId)).size === lines.length
+const UNIQUE_LINES = { message: 'Each product can only be added once', path: ['lines'] }
+
+export const PurchaseOrderInputSchema = z
+  .object({
+    id: z.string().uuid().optional(),
+    supplierName: z.string().trim().min(1).max(120),
+    supplierEmail: z.string().trim().email().optional().or(z.literal('')),
+    supplierPhone: z.string().trim().max(20).optional(),
+    locationId: z.string().uuid(),
+    expectedAt: z.coerce.date().nullable().optional(),
+    shippingPaise: z.number().int().min(0).default(0),
+    taxPaise: z.number().int().min(0).default(0),
+    note: z.string().trim().max(2000).optional(),
+    lines: z.array(PurchaseOrderLineInputSchema).max(500),
+    /** Also send the draft to the supplier, in the same step as saving it. */
+    markOrdered: z.boolean().optional(),
+  })
+  .refine((po) => hasUniqueVariants(po.lines), UNIQUE_LINES)
 export type PurchaseOrderInput = z.infer<typeof PurchaseOrderInputSchema>
 
 export const ReceiptSchema = z.object({
@@ -80,4 +89,5 @@ export const TransferInputSchema = z
     message: 'Pick two different locations',
     path: ['toLocationId'],
   })
+  .refine((t) => hasUniqueVariants(t.lines), UNIQUE_LINES)
 export type TransferInput = z.infer<typeof TransferInputSchema>

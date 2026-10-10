@@ -56,13 +56,17 @@ export default function PurchaseOrderForm({ po, locations }: PurchaseOrderFormPr
   // Helpers
   const patch = (next: Partial<PoForm>) => setForm((f) => ({ ...f, ...next }))
 
-  /** Saves the form; returns the order id, or null when it is not valid yet. */
-  const persist = async (): Promise<string | null> => {
+  /**
+   * Saves the form; returns the order id, or null when it is not valid yet. With
+   * `order` the draft is also sent to the supplier in the same request, so a failure
+   * leaves nothing half done and a retry cannot create a second draft.
+   */
+  const persist = async (order = false): Promise<string | null> => {
     if (form.supplierName.trim() === '') {
       toast.error(copy.needSupplier)
       return null
     }
-    const id = await api.purchaseOrders.save(toInput(form, po?.id))
+    const id = await api.purchaseOrders.save(toInput(form, po?.id, order))
     setSaved(JSON.stringify(form))
     return id
   }
@@ -95,9 +99,8 @@ export default function PurchaseOrderForm({ po, locations }: PurchaseOrderFormPr
         toast.error(copy.needLines)
         return
       }
-      const id = await persist()
+      const id = await persist(true)
       if (!id) return
-      await api.purchaseOrders.markOrdered({ id })
       toast.success(copy.ordered)
       reopen(id)
     })
