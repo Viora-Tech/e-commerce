@@ -15,6 +15,8 @@ type PeriodOption = { id: string; label: string; data: ChartPoint[] }
 
 type ChartCardProps = {
   title: string
+  /** A plain line under the title ("₹4,61,320 in the last 30 days, best day 5 Oct"). */
+  subtitle?: string
   /** Toggle pill in the header; the first option is selected initially. */
   periods: PeriodOption[]
   /** Big-number tabs above the chart. */
@@ -36,6 +38,7 @@ type ChartCardProps = {
  */
 export default function ChartCard({
   title,
+  subtitle,
   periods,
   tabs,
   seriesKey = 'value',
@@ -56,8 +59,11 @@ export default function ChartCard({
 
   return (
     <Card className={cn('gap-0 p-5', className)}>
-      <div className="flex h-[2.375rem] items-center justify-between gap-3">
-        <p className="text-kit-title text-foreground">{title}</p>
+      <div className="flex min-h-[2.375rem] items-center justify-between gap-3">
+        <div className="flex min-w-0 flex-col">
+          <p className="text-kit-title text-foreground">{title}</p>
+          {subtitle ? <p className="text-kit-mini text-muted-foreground-soft">{subtitle}</p> : null}
+        </div>
         <div className="flex items-center gap-2">
           {periods.length > 1 ? (
             <PillTabs

@@ -206,7 +206,7 @@ export const customerDetailContent = {
     failed: 'Could not save the customer',
   },
   totals: {
-    heading: 'Stats',
+    heading: 'Lifetime',
     orders: 'Orders',
     spent: 'Total spent',
     lastOrder: 'Last order',
@@ -284,7 +284,7 @@ export const segmentsContent = {
   intro: 'A segment is a saved filter. Open one to see who is in it right now.',
   summary: (n: number) =>
     n === 0
-      ? 'Save a filter to reuse it for discounts and messages.'
+      ? 'No segments yet'
       : n === 1
         ? '1 saved filter, counted live'
         : `${n} saved filters, counted live`,
@@ -293,8 +293,8 @@ export const segmentsContent = {
   create: 'Create segment',
   columns: { name: 'Segment', customers: 'Customers', updated: 'Updated' },
   empty: {
-    heading: 'No segments yet',
-    body: 'Save a filter as a segment to reuse it for discounts and messages.',
+    heading: 'Group customers who behave alike',
+    body: 'Make a segment like "bought twice in 60 days" and send it a WhatsApp campaign or a discount.',
   },
   notFound: {
     heading: 'Segment not found',
