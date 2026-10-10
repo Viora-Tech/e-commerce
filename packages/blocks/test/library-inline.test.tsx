@@ -19,7 +19,7 @@ type FieldShape = {
  * product and rich-text sections in `puck-config.tsx`, and the build-your-own
  * layout containers and elements.
  */
-/** Library entries whose config is a Zero Drift section (`../src/sections/glide/*`), tested there. */
+/** Library entries whose config is a Zero Drift section (`../src/sections/zero-drift/*`), tested there. */
 const ZERO_DRIFT = new Set(['AnnouncementBar', 'FeaturedProduct', 'Newsletter'])
 
 const GENERIC = [

@@ -2,7 +2,6 @@ import {
   cookieBannerSettings,
   Footer,
   footerSettings,
-  GlideCookieBanner,
   Header,
   headerSettings,
   mainProductSettings,
@@ -13,6 +12,7 @@ import {
   RichTextBlock,
   SectionFrame,
   TabbedProducts,
+  ZeroDriftCookieBanner,
 } from '@commerce/blocks'
 import type { CardProduct, SectionMetadata } from '@commerce/blocks/puck'
 import { isValidElement } from 'react'
@@ -101,7 +101,7 @@ export function previewMetadata({
         />
       ),
       // The live banner only runs on the storefront; here it is a still picture to edit.
-      CookieBanner: (s) => <GlideCookieBanner {...cookieBannerSettings(s)} />,
+      CookieBanner: (s) => <ZeroDriftCookieBanner {...cookieBannerSettings(s)} />,
       MainProduct: (s) =>
         resource?.kind === 'product' ? (
           <ProductView product={resource.product} settings={mainProductSettings(s)} />

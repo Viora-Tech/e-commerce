@@ -1,8 +1,8 @@
 'use client'
 
 import { type ReactNode, useActionState, useId } from 'react'
-import { newsletterContent } from '../../data/glide/newsletter'
 import { sectionsContent } from '../../data/sections'
+import { newsletterContent } from '../../data/zero-drift/newsletter'
 import Meteors from '../../effects/meteors'
 import Icon, { type IconName } from '../icon'
 import RichCopy from '../rich-copy'

@@ -1,4 +1,4 @@
-import type { PaymentMethod } from '../sections/glide/footer'
+import type { PaymentMethod } from '../sections/zero-drift/footer'
 
 type PaymentIconProps = {
   method: PaymentMethod

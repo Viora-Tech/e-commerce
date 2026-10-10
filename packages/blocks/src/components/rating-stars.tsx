@@ -1,4 +1,4 @@
-import { reviewsContent as copy } from '../data/glide/reviews'
+import { reviewsContent as copy } from '../data/zero-drift/reviews'
 import Icon from './icon'
 
 type RatingStarsProps = {

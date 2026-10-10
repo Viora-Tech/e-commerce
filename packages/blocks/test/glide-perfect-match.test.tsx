@@ -1,7 +1,7 @@
 import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it } from 'vitest'
-import { perfectMatchSection } from '../src/sections/glide/perfect-match'
-import { pickMatchProducts } from '../src/sections/glide/perfect-match-picks'
+import { perfectMatchSection } from '../src/sections/zero-drift/perfect-match'
+import { pickMatchProducts } from '../src/sections/zero-drift/perfect-match-picks'
 import type { CardProduct } from '../src/types'
 
 const product = (handle: string, available = 5, image = true): CardProduct => ({

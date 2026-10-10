@@ -34,7 +34,7 @@ export { default as Reveal } from './components/reveal'
 export { default as RichTextBlock, type RichTextBlockProps } from './components/rich-text'
 export { default as SectionFrame } from './components/section-frame'
 export { default as SectionHeading } from './components/section-heading'
-export { default as GlideCookieBanner } from './components/sections/glide/cookie-banner'
+export { default as ZeroDriftCookieBanner } from './components/sections/zero-drift/cookie-banner'
 export { default as ThemeToggle } from './components/theme-toggle'
 export { type MenuCollection, type SearchShortcut, searchShortcuts } from './header-menu'
 export { formatPaise } from './money'
@@ -45,8 +45,11 @@ export {
   sectionVisibilityClassName,
   shouldAnimateEntrance,
 } from './section-settings'
-export { type CookieBannerSettings, cookieBannerSettings } from './sections/glide/cookie-banner'
-export { footerSettings } from './sections/glide/footer'
-export { headerSettings } from './sections/glide/header'
 export { type MainProductSettings, mainProductSettings } from './sections/main-product-settings'
+export {
+  type CookieBannerSettings,
+  cookieBannerSettings,
+} from './sections/zero-drift/cookie-banner'
+export { footerSettings } from './sections/zero-drift/footer'
+export { headerSettings } from './sections/zero-drift/header'
 export * from './types'

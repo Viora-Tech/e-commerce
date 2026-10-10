@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react'
-import { heroCarouselContent as copy } from '../data/glide/hero-carousel'
+import { heroCarouselContent as copy } from '../data/zero-drift/hero-carousel'
 import { type FocalPoint, focalStyle } from '../focal-point'
 import { linkTarget } from '../link'
 import { safeHref } from '../slot-types'

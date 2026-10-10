@@ -1,6 +1,6 @@
 import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it } from 'vitest'
-import { reviewsShowcaseSection } from '../src/sections/glide/reviews-showcase'
+import { reviewsShowcaseSection } from '../src/sections/zero-drift/reviews-showcase'
 
 const render = (overrides: Record<string, unknown> = {}) => {
   const config = reviewsShowcaseSection()

@@ -1,6 +1,6 @@
 /**
  * Mobile dock, ported from the Glide theme's assets/section-mobile-dock.css
- * (components/sections/glide/mobile-dock.tsx).
+ * (components/sections/zero-drift/mobile-dock.tsx).
  *
  * A fixed bottom bar under 750px, hidden above. Its height is one custom property
  * (safe-area inclusive) so the bar, the body padding that keeps it off the page's last

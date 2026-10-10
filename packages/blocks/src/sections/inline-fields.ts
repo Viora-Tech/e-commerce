@@ -10,7 +10,7 @@ import type { RichtextField } from '@puckeditor/core'
  *        menu); it is drawn by `components/rich-copy.tsx`, which also reads legacy plain
  *        strings and old Lexical JSON (`../richtext-html.ts`). Section-wide copy that is not
  *        shown on the canvas (alt text, URLs, aria labels) stays a plain `text` field.
- * WHERE: Every section and element on the canvas (`./glide/*`, `./library.tsx`, `./modern.tsx`,
+ * WHERE: Every section and element on the canvas (`./zero-drift/*`, `./library.tsx`, `./modern.tsx`,
  *        `./custom-*.tsx`, `../puck-config.tsx`); the admin frames the richtext field in
  *        `customize-overrides.tsx`; its B/I/U and link menu sits in the block toolbar
  *        (`block-toolbar.tsx`, `inline-format-menu.tsx`).

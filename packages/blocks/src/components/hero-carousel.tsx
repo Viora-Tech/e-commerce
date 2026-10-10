@@ -1,7 +1,7 @@
 'use client'
 
 import { type ReactNode, useEffect, useRef, useState } from 'react'
-import { heroCarouselContent as copy, HERO_CAROUSEL } from '../data/glide/hero-carousel'
+import { heroCarouselContent as copy, HERO_CAROUSEL } from '../data/zero-drift/hero-carousel'
 import { useReducedMotion } from '../use-reduced-motion'
 import HeroSlideView, { type HeroSlide } from './hero-slide-view'
 import Icon from './icon'

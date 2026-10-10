@@ -1,9 +1,9 @@
 import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it } from 'vitest'
-import { brandLabSection } from '../src/sections/glide/brand-lab'
-import { featuredCarouselSection } from '../src/sections/glide/featured-carousel'
-import { latestDropSection } from '../src/sections/glide/latest-drop'
-import { logoCarouselSection } from '../src/sections/glide/logo-carousel'
+import { brandLabSection } from '../src/sections/zero-drift/brand-lab'
+import { featuredCarouselSection } from '../src/sections/zero-drift/featured-carousel'
+import { latestDropSection } from '../src/sections/zero-drift/latest-drop'
+import { logoCarouselSection } from '../src/sections/zero-drift/logo-carousel'
 import type { CardCollection, CardProduct } from '../src/types'
 
 const product = (handle: string): CardProduct => ({
