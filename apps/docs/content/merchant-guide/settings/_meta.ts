@@ -23,6 +23,7 @@ export default {
   ai: 'AI',
   'custom-data': 'Custom data',
   '-- account': { type: 'separator', title: 'Your account' },
+  'your-account': 'Profile, stores, language & time',
   language: 'Language (हिंदी)',
   'store-data': 'Download your data or delete your store',
 }

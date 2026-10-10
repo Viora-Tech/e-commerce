@@ -9,7 +9,7 @@ import LocaleProvider from '@/components/layout/locale-provider'
 import MotionProvider from '@/components/layout/motion-provider'
 import { layoutContent } from '@/data/layout'
 import { localize } from '@/lib/copy'
-import { getLocale } from '@/lib/copy-server'
+import { getLocale, getRegion } from '@/lib/copy-server'
 import { NONCE_HEADER } from '@/lib/csp'
 
 export const metadata: Metadata = { title: 'Admin' }
@@ -36,6 +36,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
   // The admin language comes from a cookie and is read here, on the server, so the first
   // paint is already in it (no flash) and client components get it through LocaleProvider.
   const locale = await getLocale()
+  const region = await getRegion()
   const copy = localize(layoutContent, locale)
   // The script CSP's nonce for this request (`proxy.ts`): next-themes' no-flash script needs it.
   const nonce = (await headers()).get(NONCE_HEADER) ?? undefined
@@ -57,7 +58,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
         </a>
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem nonce={nonce}>
           <NuqsAdapter>
-            <LocaleProvider locale={locale}>
+            <LocaleProvider locale={locale} region={region}>
               <MotionProvider>{children}</MotionProvider>
             </LocaleProvider>
           </NuqsAdapter>

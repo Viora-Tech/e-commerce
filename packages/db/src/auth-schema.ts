@@ -12,6 +12,8 @@ export const user = pgTable('user', {
   email: text('email').notNull().unique(),
   emailVerified: boolean('email_verified').notNull().default(false),
   image: text('image'),
+  /** The member's own mobile, E.164 ("+919804682471"), for their WhatsApp alerts. Written by Account → Profile, not by Better Auth. */
+  phone: text('phone'),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
 })

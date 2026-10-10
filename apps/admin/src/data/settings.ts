@@ -175,11 +175,11 @@ export const SETTINGS_GROUPS: SettingsGroup[] = [
         icon: Braces,
       },
       {
-        // Your own light/dark and language; the page lives under your account, linked here too
+        // Your own light/dark and accent; the page lives under your account, linked here too
         // so nobody hunts for it.
         href: routes.account.appearance(),
         title: 'Appearance',
-        body: 'Light or dark mode and the admin language, just for you.',
+        body: 'Light or dark mode and your accent colour, just for you.',
         icon: Palette,
       },
     ],

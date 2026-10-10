@@ -9,14 +9,19 @@ import {
 } from '@/lib/format-date'
 import { INTL_LOCALE, type Locale } from '@/lib/i18n'
 import { formatCompact, formatPaise, formatPaiseCompact } from '@/lib/money'
+import { DEFAULT_REGION, type Region, regionValue, weekStartsOn } from '@/lib/region'
 
 /**
  * Money, numbers and dates for one admin language, as `useFormat()` hands them to components
  * (server code calls `formatters(await getLocale())`). Numbers keep Indian lakh/crore
  * grouping and Latin digits in both languages; Hindi only changes words and month names.
+ * Times follow the member's region (12- or 24-hour, Account → Language & region).
  */
 export type Formatters = {
   locale: Locale
+  region: Region
+  /** For a day picker's `weekStartsOn`: 0 Sunday, 1 Monday. */
+  weekStartsOn: 0 | 1
   /** `en-IN` or `hi-IN`, for any `Intl` formatter a component still builds itself. */
   intl: string
   money: (paise: number) => string
@@ -32,31 +37,43 @@ export type Formatters = {
   pattern: (value: Date | string | number, options: Intl.DateTimeFormatOptions) => string
 }
 
-function build(locale: Locale): Formatters {
+function build(locale: Locale, region: Region): Formatters {
+  const { clock } = region
   return {
     locale,
+    region,
+    weekStartsOn: weekStartsOn(region),
     intl: INTL_LOCALE[locale],
     money: (paise) => formatPaise(paise, locale),
     moneyCompact: (paise) => formatPaiseCompact(paise, locale),
     number: (n) => formatNumber(n, { locale: INTL_LOCALE[locale] }),
     compact: (n) => formatCompact(n, locale),
-    when: (value, now) => formatWhen(value, now, locale),
+    when: (value, now) => formatWhen(value, now, locale, clock),
     ago: (value, now) => formatAgo(value, now, locale),
     day: (value, now) => formatDay(value, now, locale),
-    dateTime: (value) => formatDateTime(value, locale),
+    dateTime: (value) => formatDateTime(value, locale, clock),
     date: (value) => formatDate(value, locale),
-    pattern: (value, options) => formatPattern(value, options, locale),
+    // A pattern with an hour follows the member's clock unless it names its own.
+    pattern: (value, options) =>
+      formatPattern(
+        value,
+        options.hour && options.hour12 === undefined && options.hourCycle === undefined
+          ? { ...options, hour12: clock === '12h' }
+          : options,
+        locale,
+      ),
   }
 }
 
-const byLocale = new Map<Locale, Formatters>()
+const cache = new Map<string, Formatters>()
 
-/** The formatters for `locale`, built once per language so references stay stable. */
-export function formatters(locale: Locale): Formatters {
-  let f = byLocale.get(locale)
+/** The formatters for `locale` and `region`, built once per pair so references stay stable. */
+export function formatters(locale: Locale, region: Region = DEFAULT_REGION): Formatters {
+  const key = `${locale}:${regionValue(region)}`
+  let f = cache.get(key)
   if (!f) {
-    f = build(locale)
-    byLocale.set(locale, f)
+    f = build(locale, region)
+    cache.set(key, f)
   }
   return f
 }

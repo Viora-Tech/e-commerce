@@ -62,6 +62,7 @@
     "./customer-accounts": "./src/customer-accounts/client.ts",
     "./onboarding": "./src/onboarding/client.ts",
     "./media-pipeline": "./src/media/pipeline.ts",
+    "./member-account": "./src/member-account/profile.ts",
     "./media-queue": "./src/media/queue.ts",
     "./media-loader": "./src/media/loader.ts",
     "./safe-fetch": "./src/net/safe-fetch.ts",

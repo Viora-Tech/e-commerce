@@ -4,6 +4,8 @@
  * "COD", "GST", "courier"). Client-side only; nothing is fetched.
  */
 
+import { routes } from '@/lib/routes'
+
 export type SettingsSearchEntry = {
   title: string
   /** The page it lives on, shown under the title. */
@@ -279,14 +281,37 @@ export const SETTINGS_SEARCH_INDEX: SettingsSearchEntry[] = [
   {
     title: 'Appearance',
     where: 'Account menu',
-    href: '/account/appearance',
+    href: routes.account.appearance(),
     keywords: ['dark mode', 'light mode', 'theme', 'colour', 'color', 'accent'],
   },
   {
-    title: 'Admin language',
+    title: 'Profile',
     where: 'Account menu › Account',
-    href: '/account',
-    keywords: ['language', 'hindi', 'english', 'हिंदी', 'भाषा', 'translate', 'account'],
+    href: routes.account.home(),
+    keywords: ['name', 'photo', 'avatar', 'picture', 'phone', 'mobile', 'whatsapp', 'account'],
+  },
+  {
+    title: 'Your stores',
+    where: 'Account menu › Account › Stores',
+    href: routes.account.stores(),
+    keywords: ['switch store', 'leave store', 'stores', 'role', 'owner'],
+  },
+  {
+    title: 'Admin language',
+    where: 'Account menu › Account › Language & region',
+    href: routes.account.language(),
+    keywords: [
+      'language',
+      'hindi',
+      'english',
+      'हिंदी',
+      'भाषा',
+      'translate',
+      '24-hour',
+      '12-hour',
+      'time format',
+      'week starts',
+    ],
   },
   // Customers
   {

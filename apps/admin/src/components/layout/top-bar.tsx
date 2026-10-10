@@ -10,12 +10,12 @@ import { useSyncExternalStore } from 'react'
 import { navigationContent } from '@/data/navigation'
 import { useCopy } from '@/hooks/use-copy'
 import { openAssistant } from '@/lib/assistant-events'
-import { initials } from '@/lib/initials'
 import { openPalette } from '@/lib/palette-events'
+import MemberAvatar from '../account/member-avatar'
 import UserMenu from './user-menu'
 
 type TopBarProps = {
-  user: { name: string; email: string }
+  user: { name: string; email: string; image: string | null }
   /** Opens the live storefront in a new tab. */
   storefrontUrl: string
   /** Adds "Report a bug" to the account menu (test server only). */
@@ -109,7 +109,15 @@ export default function TopBar({ user, storefrontUrl, bugReports, scrolled = fal
           bugReports={bugReports}
           triggerLabel={copy.account}
           triggerClassName="flex size-9 shrink-0 items-center justify-center rounded-full bg-ink-strong text-caption font-semibold text-background transition-opacity hover:opacity-85 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-sidebar"
-          trigger={initials(user.name, user.email)}
+          trigger={
+            <MemberAvatar
+              name={user.name}
+              email={user.email}
+              image={user.image}
+              className="size-9"
+              fallbackClassName="bg-ink-strong text-caption text-background"
+            />
+          }
         />
       </div>
     </header>
