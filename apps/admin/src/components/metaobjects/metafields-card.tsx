@@ -1,6 +1,7 @@
 'use client'
 
 import type { FieldValidations, MetafieldOwnerType } from '@commerce/core/metaobjects'
+import { Plus } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import {
   Card,
@@ -20,6 +21,7 @@ import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 import FieldInput from './field-input'
 import { fieldErrorsOf } from './form-state'
+import MetafieldDefinitionDialog from './metafield-definition-dialog'
 
 type MetafieldsCardProps = {
   ownerType: MetafieldOwnerType
@@ -44,6 +46,10 @@ export default function MetafieldsCard({ ownerType, ownerId }: MetafieldsCardPro
   const [saved, setSaved] = useState('{}')
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [busy, setBusy] = useState(false)
+  /** Adding a field right here, so nobody leaves the product page to define one (#296). */
+  const [adding, setAdding] = useState(false)
+  const [targets, setTargets] = useState<{ id: string; name: string }[]>([])
+  const [reload, setReload] = useState(0)
 
   useEffect(() => {
     let live = true
@@ -63,12 +69,21 @@ export default function MetafieldsCard({ ownerType, ownerId }: MetafieldsCardPro
     return () => {
       live = false
     }
-  }, [ownerType, ownerId])
+  }, [ownerType, ownerId, reload])
 
   // Event handlers
   const handleChange = (id: string, value: unknown) => {
     setValues((v) => ({ ...v, [id]: value }))
     setErrors(({ [id]: _gone, ...rest }) => rest)
+  }
+
+  const handleAdd = () => {
+    setAdding(true)
+    // Reference fields pick a content type; the list is only needed once the dialog opens.
+    api.metaobjects
+      .definitions()
+      .then((d) => setTargets(d.map((t) => ({ id: t.id, name: t.name }))))
+      .catch(() => setTargets([]))
   }
 
   const handleSave = async () => {
@@ -116,6 +131,13 @@ export default function MetafieldsCard({ ownerType, ownerId }: MetafieldsCardPro
         <CardContent>
           <Skeleton className="h-16 w-full" />
         </CardContent>
+      ) : definitions.length === 0 ? (
+        <CardContent>
+          <Button variant="outline" onClick={handleAdd}>
+            <Plus aria-hidden="true" />
+            {copy.addField}
+          </Button>
+        </CardContent>
       ) : definitions.length > 0 ? (
         <CardContent>
           {ownerId ? (
@@ -135,6 +157,14 @@ export default function MetafieldsCard({ ownerType, ownerId }: MetafieldsCardPro
           )}
         </CardContent>
       ) : null}
+      <MetafieldDefinitionDialog
+        open={adding}
+        ownerType={ownerType}
+        definition={null}
+        targets={targets}
+        onClose={() => setAdding(false)}
+        onSaved={() => setReload((n) => n + 1)}
+      />
     </Card>
   )
 }

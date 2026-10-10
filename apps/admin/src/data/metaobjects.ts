@@ -459,6 +459,7 @@ export const metafieldsCardContent = {
   heading: 'Extra fields',
   empty: 'Add your own fields, like a care guide or warranty, to show more details.',
   manage: 'Manage extra fields',
+  addField: 'Add a field',
   saveFirst: 'Save first, then fill in the extra fields.',
   save: 'Save extra fields',
   saving: 'Saving',

@@ -365,6 +365,8 @@ export default function ProductForm({
               onHandle={(handle) => patch({ handle })}
             />
           </section>
+          {/* Extra fields stay in view, not inside "More" (#296: nobody found them there). */}
+          <MetafieldsCard ownerType="product" ownerId={product?.id ?? null} />
           <ProductMoreSection open={moreOpen} onOpenChange={setMoreOpen}>
             <DataCard title={copy.preorder.heading}>
               <ProductPreorderSection
@@ -373,7 +375,6 @@ export default function ProductForm({
                 onPatch={patch}
               />
             </DataCard>
-            <MetafieldsCard ownerType="product" ownerId={product?.id ?? null} />
             <TemplateSelectCard
               kind="product"
               value={form.templateSuffix}
