@@ -151,6 +151,22 @@ named `<suffix>-copy`) and **Delete** (resources keep their suffix and render th
 default template has no manager. Resource forms pick an alternate with `TemplateSelectField` /
 `TemplateSelectCard`.
 
+### Section styles
+
+Some sections ask for a **Style** when they are added: Hero (slideshow, centred, split, video),
+Feature cards (3, 4 or 2 across, text only), Image banner (centred, left, tall), Image with text
+and Feature checklist (picture left or right). A style is a starting point, not another
+component: `@commerce/blocks/section-presets` lists, per type, a function from the section's
+own `defaultProps` to the style's props (`presetProps` deep-copies the defaults first, so the
+editor's are never shared), and the first style is the plain defaults. Clicking such a card in
+the Add panel opens a second step (`add-section-styles.tsx`); the pick is inserted with
+`insertCopyActions` (fresh ids, then a `replace` with the style's props). Dragging a card onto
+the page still adds the defaults. Add a style by adding an entry and its words to
+`packages/blocks/src/data/section-presets.ts`; keep it to settings the section already has.
+
+The style step shows `public/section-previews/<Type>--<style>.webp` when the pictures script
+made one, else the section's own picture, else its glyph.
+
 ### Section pictures in the Add panel
 
 Each tile in the Add panel's Sections tab (Figma grid 369:4918) and its hover card show a real
@@ -168,7 +184,8 @@ Regenerate after adding a section or changing how one looks, and commit the resu
 cd apps/admin && bun run section-previews   # CHROME_PATH=/path/to/chrome if not installed in the usual place
 ```
 
-`scripts/section-previews/entry.tsx` renders every addable section through
+`scripts/section-previews/entry.tsx` renders every addable section, and then each of its
+styles after the first (as `<Type>--<style>`), through
 `@commerce/blocks` (`resolveAllData` then `renderBlock`, as the storefront does) with stand-in
 products, collections and posts (`demo-data.ts`); `run.ts` bundles it with Bun, styles it with
 the storefront's own Tailwind build, and photographs each section in a local Chrome through

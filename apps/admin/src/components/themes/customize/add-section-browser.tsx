@@ -1,5 +1,6 @@
 'use client'
 
+import { presetProps, presetsFor } from '@commerce/blocks/section-presets'
 import type { CustomSection, SectionGroup, TemplateSection } from '@commerce/core/theme'
 import { Search } from '@commerce/ui/icons'
 import { cn } from '@commerce/ui/lib/utils'
@@ -15,6 +16,7 @@ import { insertCopyActions } from '@/lib/customize-slots'
 import AppsTab from './add-section-apps-tab'
 import MySectionsTab from './add-section-my-tab'
 import SectionsTab from './add-section-sections-tab'
+import AddSectionStyles from './add-section-styles'
 
 type AddSectionBrowserProps = {
   /** Puck zone the section lands in when added by click, or dropped without crossing to another zone. */
@@ -58,25 +60,68 @@ export default function AddSectionBrowser({
   const [tab, setTab] = useState<Tab>('sections')
   const [query, setQuery] = useState('')
   const [hovered, setHovered] = useState<string | null>(null)
+  /** A section with styles that was clicked: its style step is showing. */
+  const [styling, setStyling] = useState<string | null>(null)
   const dispatch = useCustomizePuck((s) => s.dispatch)
   const components = useCustomizePuck((s) => s.config.components)
 
   // Helpers
   const labelOf = (type: string) => components[type]?.label ?? type
 
-  // Event handlers
-  const handleAdd = (type: string) => {
-    for (const action of insertActions({ zone, index }, type, count)) dispatch(action)
+  const finish = () => {
     setQuery('')
+    setStyling(null)
     onAdd?.()
+  }
+
+  // Event handlers
+  /** A section with styles asks for one first; any other is added with its defaults. */
+  const handleAdd = (type: string) => {
+    if (presetsFor(type).length > 0) {
+      setStyling(type)
+      setHovered(null)
+      return
+    }
+    for (const action of insertActions({ zone, index }, type, count)) dispatch(action)
+    finish()
+  }
+
+  const handleAddStyled = (presetId: string) => {
+    if (!styling) return
+    const defaults = (components[styling]?.defaultProps ?? {}) as Record<string, unknown>
+    const block = {
+      type: styling,
+      props: { ...presetProps(styling, presetId, defaults), id: styling },
+    } as TemplateSection
+    for (const action of insertCopyActions({ zone, index }, block, count)) dispatch(action)
+    finish()
   }
 
   const handleAddCopy = (section: CustomSection) => {
     const block = section.block as TemplateSection
     for (const action of insertCopyActions({ zone, index }, block, count)) dispatch(action)
     toast.success(customizeContent.mySections.added(section.name))
-    setQuery('')
-    onAdd?.()
+    finish()
+  }
+
+  // Early returns
+  if (styling) {
+    return (
+      <div
+        className={cn(
+          'relative flex flex-1 flex-col gap-2 p-2',
+          fill ? 'min-h-0' : 'max-h-[28rem]',
+        )}
+      >
+        <AddSectionStyles
+          type={styling}
+          label={labelOf(styling)}
+          presets={presetsFor(styling)}
+          onPick={handleAddStyled}
+          onBack={() => setStyling(null)}
+        />
+      </div>
+    )
   }
 
   // Render logic

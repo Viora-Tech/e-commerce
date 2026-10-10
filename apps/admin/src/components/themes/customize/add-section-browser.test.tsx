@@ -15,7 +15,7 @@ const puck = {
   dispatch,
   config: {
     components: {
-      Hero: { label: 'Hero' },
+      Hero: { label: 'Hero', defaultProps: { slides: [{ heading: 'Hi', layout: 'full_bleed' }] } },
       RichText: { label: 'Rich text' },
       AnnouncementBar: { label: 'Announcement bar' },
       ReviewsWidget: { label: 'Product reviews' },
@@ -105,15 +105,44 @@ describe('AddSectionBrowser', () => {
 
   it('keeps the insert index inside the zone', async () => {
     const { user } = setup({ index: 9, count: 3 })
-    await user.click(card('Hero'))
+    await user.click(card('Rich text'))
     expect(dispatch.mock.calls[0]?.[0]).toMatchObject({ destinationIndex: 3 })
   })
 
   it('adds from the keyboard too', async () => {
     const { user } = setup()
-    card('Hero').focus()
+    card('Rich text').focus()
     await user.keyboard('{Enter}')
-    expect(dispatch.mock.calls[0]?.[0]).toMatchObject({ type: 'insert', componentType: 'Hero' })
+    expect(dispatch.mock.calls[0]?.[0]).toMatchObject({
+      type: 'insert',
+      componentType: 'RichText',
+    })
+  })
+
+  it('asks for a style first for a section that has styles, and adds it in that style', async () => {
+    const { onAdd, user } = setup()
+    await user.click(card('Hero'))
+    expect(dispatch).not.toHaveBeenCalled()
+    expect(screen.getByText(copy.styles.title('Hero'))).toBeTruthy()
+    await user.click(screen.getByRole('button', { name: copy.styles.add('Split') }))
+    const [insert, replace] = dispatch.mock.calls.map(([action]) => action)
+    expect(insert).toMatchObject({ type: 'insert', componentType: 'Hero', destinationIndex: 1 })
+    expect(replace.data.props.slides).toEqual([
+      expect.objectContaining({ heading: 'Hi', layout: 'split', splitMediaPosition: 'right' }),
+    ])
+    expect(replace.data.props.id).toBe(insert.id)
+    expect(onAdd).toHaveBeenCalledTimes(1)
+    // The editor's own defaults are left as they were.
+    expect(puck.config.components.Hero.defaultProps.slides[0]?.layout).toBe('full_bleed')
+  })
+
+  it('goes back to the list from the style step without adding anything', async () => {
+    const { onAdd, user } = setup()
+    await user.click(card('Hero'))
+    await user.click(screen.getByRole('button', { name: copy.styles.back }))
+    expect(card('Rich text')).toBeTruthy()
+    expect(dispatch).not.toHaveBeenCalled()
+    expect(onAdd).not.toHaveBeenCalled()
   })
 
   it('filters by name or description and says when nothing matches', async () => {

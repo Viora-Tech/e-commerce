@@ -1,10 +1,12 @@
 /**
  * Browser half of `bun run section-previews` (see ./run.ts): draws every section the Add panel
  * offers, each with its own default settings and the default theme, one under the other, so
- * the runner can photograph them. Product, collection and blog sections read the neutral
- * stand-ins in ./demo-data. `?mode=dark` draws the dark colours.
+ * the runner can photograph them, then each style a section offers when added
+ * (`@commerce/blocks/section-presets`) as `<Type>--<style>`. Product, collection and blog
+ * sections read the neutral stand-ins in ./demo-data. `?mode=dark` draws the dark colours.
  */
 import { createBlocksConfig, SECTION_CATEGORIES } from '@commerce/blocks/puck'
+import { presetPictureKey, presetProps, presetsFor } from '@commerce/blocks/section-presets'
 import { renderBlock } from '@commerce/blocks/slots'
 import { defaultTheme, GROUP_SECTIONS, themeRootAttrs, themeToCss } from '@commerce/core/theme'
 import { type Data, resolveAllData } from '@puckeditor/core'
@@ -42,6 +44,22 @@ const config = createBlocksConfig(async ({ limit }) => DEMO_PRODUCTS.slice(0, li
 
 const DEFAULTS = config.components as Record<string, { defaultProps?: object } | undefined>
 
+/** Every picture to take: each type with its defaults, then each of its styles after it. */
+const ENTRIES = TYPES.flatMap((type) => {
+  const defaults = (DEFAULTS[type]?.defaultProps ?? {}) as Record<string, unknown>
+  return [
+    { name: type, type, props: defaults },
+    // The first style is the plain defaults, already drawn above.
+    ...presetsFor(type)
+      .slice(1)
+      .map((p) => ({
+        name: presetPictureKey(type, p.id),
+        type,
+        props: presetProps(type, p.id, defaults),
+      })),
+  ]
+})
+
 /** Empty product and collection handles point at the stand-ins, so those sections show cards. */
 function withDemoHandles(value: unknown, key = ''): unknown {
   if (Array.isArray(value)) return value.map((v) => withDemoHandles(v))
@@ -77,12 +95,9 @@ async function main() {
   const data = (await resolveAllData(
     {
       root: { props: {} },
-      content: TYPES.map((type) => ({
-        type,
-        props: {
-          ...(withDemoHandles(DEFAULTS[type]?.defaultProps ?? {}) as object),
-          id: type,
-        },
+      content: ENTRIES.map((entry) => ({
+        type: entry.type,
+        props: { ...(withDemoHandles(entry.props) as object), id: entry.name },
       })),
     } as Partial<Data>,
     config as never,
@@ -95,7 +110,11 @@ async function main() {
   if (!host) return
   createRoot(host).render(
     data.content.map((item) => (
-      <section key={item.type} data-preview={item.type} className="flow-root bg-bg">
+      <section
+        key={String(item.props.id)}
+        data-preview={String(item.props.id)}
+        className="flow-root bg-bg"
+      >
         <Guard>{renderBlock(item as never, components, puck)}</Guard>
       </section>
     )),

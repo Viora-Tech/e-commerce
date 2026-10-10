@@ -213,6 +213,13 @@ export const customizeContent = {
     add: 'Add',
     picture: (label: string) => `${label} with its default settings`,
     title: 'Add section',
+    styles: {
+      title: (label: string) => `${label}: choose a style`,
+      hint: 'Every setting stays editable after you add it.',
+      back: 'Back to all sections',
+      picture: (label: string, style: string) => `${label}, ${style} style`,
+      add: (style: string) => `Add the ${style} style`,
+    },
     descriptions: {
       Hero: 'A large banner with a heading, text and a button',
       ImageBanner: 'A full-width image with a caption over it',
