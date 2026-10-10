@@ -15,7 +15,7 @@ type FinishSetupProps = {
 type Step = { key: string; title: string; body: string; done: boolean; href: string }
 
 /**
- * Three set-up cards (products, payments, shipping), shown only while one is still open.
+ * Three set-up cards (products, payments, shipping), always shown; done ones are ticked.
  * A done card is ticked and quiet; an open one links to where it gets done.
  */
 export default async function FinishSetup({ productCount, signals }: FinishSetupProps) {
@@ -44,8 +44,8 @@ export default async function FinishSetup({ productCount, signals }: FinishSetup
       href: routes.apps.list(),
     },
   ]
+  // Always shown (Figma 224:584); finished steps stay, ticked.
   const doneCount = steps.filter((s) => s.done).length
-  if (doneCount === steps.length) return null
 
   return (
     <section className="flex flex-col gap-3.5">

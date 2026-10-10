@@ -73,7 +73,27 @@ export default async function Suggestions({ summary, signals, abandoned }: Sugge
       imageUrl: null,
     })
   }
-  if (items.length === 0) return null
+  // Figma 226:565 always shows four: two ideas that suit every store fill the row.
+  items.push(
+    {
+      id: 'describe',
+      icon: 'ai',
+      title: c.describeTitle,
+      body: c.describeBody,
+      cta: c.describeCta,
+      href: routes.products.list(),
+      imageUrl: null,
+    },
+    {
+      id: 'sale',
+      icon: 'sale',
+      title: c.saleTitle,
+      body: c.saleBody,
+      cta: c.saleCta,
+      href: routes.discounts.new(),
+      imageUrl: null,
+    },
+  )
 
   return (
     <SuggestionCards

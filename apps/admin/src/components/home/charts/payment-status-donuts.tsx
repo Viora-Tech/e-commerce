@@ -52,7 +52,7 @@ export default function PaymentStatusDonuts({ paymentMix, statusMix }: PaymentSt
   const topStatus = statusSlices[0]
 
   return (
-    <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+    <div className="grid h-full grid-cols-1 gap-6 sm:grid-cols-2">
       <Donut
         title={c.paymentTitle}
         slices={paymentSlices}
@@ -85,7 +85,7 @@ function Donut({ title, slices, line, empty }: DonutProps) {
   const total = slices.reduce((n, s) => n + s.count, 0)
 
   return (
-    <DataCard title={title}>
+    <DataCard title={title} className="h-full">
       {total === 0 ? (
         <p className="text-body text-muted-foreground">{empty}</p>
       ) : (

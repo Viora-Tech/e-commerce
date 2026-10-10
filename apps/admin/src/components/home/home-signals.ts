@@ -20,7 +20,9 @@ export type HomeAppRow = {
 /** Boils the app list down to {@link HomeSignals}. */
 export function homeSignals(apps: HomeAppRow[]): HomeSignals {
   const firstConnected = (kind: 'payments' | 'shipping') =>
-    apps.find((a) => a.connected && a.provides[kind].length > 0)?.name ?? null
+    // The core plugin (cash on delivery, demo courier) is always there; only a real
+    // gateway or courier finishes these set-up steps.
+    apps.find((a) => a.id !== 'core' && a.connected && a.provides[kind].length > 0)?.name ?? null
   return {
     payments: firstConnected('payments'),
     shipping: firstConnected('shipping'),
