@@ -281,7 +281,7 @@ function ProductsContent({ initial }: { initial: ProductsInitial }) {
               { label: copy.row.edit, href: routes.products.detail(p.id) },
               {
                 label: copy.row.inventory,
-                href: `${routes.products.inventory()}?query=${encodeURIComponent(p.title)}`,
+                href: `${routes.stock.inventory()}?query=${encodeURIComponent(p.title)}`,
               },
             ]}
           />

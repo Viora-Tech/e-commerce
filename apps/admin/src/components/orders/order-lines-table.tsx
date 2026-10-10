@@ -110,7 +110,7 @@ export default function OrderLinesTable({ rows }: OrderLinesTableProps) {
                           ? [
                               {
                                 label: copy.items.stockForSku,
-                                href: `${routes.products.inventory()}?query=${encodeURIComponent(line.sku)}`,
+                                href: `${routes.stock.inventory()}?query=${encodeURIComponent(line.sku)}`,
                               },
                             ]
                           : []),

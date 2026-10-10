@@ -55,7 +55,7 @@ export default function SupplierCard({
               <span className="flex min-w-0 flex-col">
                 <span className="text-caption text-muted-foreground">{picker.linked}</span>
                 <Link
-                  href={routes.products.supplier(supplierId)}
+                  href={routes.stock.supplier(supplierId)}
                   className="truncate text-body-strong hover:underline"
                 >
                   {name}

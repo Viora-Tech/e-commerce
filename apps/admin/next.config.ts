@@ -46,6 +46,17 @@ const config: NextConfig = {
         destination: '/growth/automations/:path*',
         permanent: true,
       },
+      // Stock pages left Products for their own section (October 2026); old links keep working.
+      ...['inventory', 'purchase-orders', 'inbound-shipments', 'suppliers', 'transfers'].flatMap(
+        (page) => [
+          { source: `/products/${page}`, destination: `/stock/${page}`, permanent: false },
+          {
+            source: `/products/${page}/:path*`,
+            destination: `/stock/${page}/:path*`,
+            permanent: false,
+          },
+        ],
+      ),
       // Settings were regrouped (October 2026); every old page address still opens its new home.
       ...SETTINGS_REDIRECTS.map((r) => ({ ...r, permanent: false })),
     ]

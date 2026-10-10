@@ -51,7 +51,7 @@ type PurchaseOrderFormProps = {
 type Dialog = 'receive' | 'close' | 'cancel' | 'delete' | null
 
 const copy = purchaseOrderFormContent
-const LIST = routes.products.purchaseOrders()
+const LIST = routes.stock.purchaseOrders()
 
 function initialForm(po: LoadedPurchaseOrder | null, locations: StoreLocation[]): PoForm {
   if (po) return fromPurchaseOrder(po)
@@ -109,7 +109,7 @@ export default function PurchaseOrderForm({ po, locations, costs }: PurchaseOrde
   }
 
   const reopen = (id: string) =>
-    po ? router.refresh() : router.replace(routes.products.purchaseOrder(id))
+    po ? router.refresh() : router.replace(routes.stock.purchaseOrder(id))
 
   const act = (call: (id: string) => Promise<unknown>, done: string) =>
     run(async () => {

@@ -127,7 +127,7 @@ export default function ShipmentOrdersCard({
               className="flex items-center gap-3 border-line border-b px-5 py-3 last:border-b-0"
             >
               <Link
-                href={routes.products.purchaseOrder(o.id)}
+                href={routes.stock.purchaseOrder(o.id)}
                 className="text-body-strong hover:underline"
               >
                 {copy.number(o.number)}

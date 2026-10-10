@@ -31,7 +31,7 @@ export default function SupplierOrdersCard({ orders }: SupplierOrdersCardProps) 
             {orders.map((o) => (
               <li key={o.id} className="flex items-center justify-between gap-3">
                 <Link
-                  href={routes.products.purchaseOrder(o.id)}
+                  href={routes.stock.purchaseOrder(o.id)}
                   className="text-body-strong hover:underline"
                 >
                   {copy.number(o.number)}

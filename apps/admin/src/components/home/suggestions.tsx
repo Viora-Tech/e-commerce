@@ -36,7 +36,7 @@ export default async function Suggestions({ summary, signals, abandoned }: Sugge
       title: c.restockTitle,
       body: c.restockBody(best.title, best.units, low.available),
       cta: c.restockCta,
-      href: routes.products.inventory(),
+      href: routes.stock.inventory(),
       imageUrl: low.imageUrl,
     })
   }

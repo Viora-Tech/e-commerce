@@ -24,7 +24,7 @@ export default function ShipmentLinkCard({ shipment }: ShipmentLinkCardProps) {
       <CardContent className="text-body">
         {shipment ? (
           <Link
-            href={routes.products.inboundShipment(shipment.id)}
+            href={routes.stock.inboundShipment(shipment.id)}
             className="text-body-strong hover:underline"
           >
             {copy.on(shipment.number, shipment.reference)}
