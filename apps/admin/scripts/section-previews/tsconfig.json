@@ -1,0 +1,11 @@
+{
+  "extends": "@commerce/config/tsconfig.base.json",
+  "compilerOptions": {
+    "lib": ["ES2023", "DOM", "DOM.Iterable"],
+    "jsx": "react-jsx",
+    "types": ["bun"],
+    "noEmit": true,
+    "exactOptionalPropertyTypes": false
+  },
+  "include": ["*.ts", "*.tsx"]
+}

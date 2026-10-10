@@ -8,6 +8,7 @@
     "build": "next build",
     "start": "bun run --env-file=../../.env next start --port 3200",
     "typecheck": "tsc --noEmit",
+    "section-previews": "bun run scripts/section-previews/run.ts",
     "test": "vitest run"
   },
   "dependencies": {
@@ -70,10 +71,13 @@
   "devDependencies": {
     "@tailwindcss/postcss": "^4.3.3",
     "@tanstack/react-table": "^9.2.4",
+    "@types/bun": "^1.4.2",
     "@types/node": "^22.20.4",
     "@types/react": "^19.2.8",
     "@types/react-dom": "^19.2.3",
     "babel-plugin-react-compiler": "1.0.0",
+    "postcss": "8.5.23",
+    "puppeteer-core": "^24.43.1",
     "tailwindcss": "^4.3.3",
     "typescript": "~5.9.3",
     "vitest": "^4.1.11"

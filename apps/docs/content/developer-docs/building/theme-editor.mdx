@@ -89,6 +89,31 @@ The click goes through `InsertContext` (`lib/customize-insert-context.ts`) to `C
 which opens the browser in a dialog in the admin document. The "+" is registered with Puck's
 `registerOverlayPortal` so pressing it never starts a section drag.
 
+### Section pictures in the Add panel
+
+Each tile in the Add panel's Sections tab (Figma grid 369:4918) and its hover card show a real
+picture of the section: drawn with its default settings and the default theme, light and dark
+(`section-picture.tsx`, following the admin's mode). The pictures are files in
+`apps/admin/public/section-previews/` (`<Type>.webp`, `<Type>-dark.webp`, 512 px wide, at most
+40 KB, about 6 KB on average), listed with their shape in the generated
+`apps/admin/src/lib/section-previews.ts`. Types without a picture keep the drawn glyph
+(`section-preview.tsx`): Layout and Elements blocks, and sections that need a store to show
+anything (a scroll-driven reveal, reviews, an empty rich text).
+
+Regenerate after adding a section or changing how one looks, and commit the result:
+
+```bash
+cd apps/admin && bun run section-previews   # CHROME_PATH=/path/to/chrome if not installed in the usual place
+```
+
+`scripts/section-previews/entry.tsx` renders every addable section through
+`@commerce/blocks` (`resolveAllData` then `renderBlock`, as the storefront does) with stand-in
+products, collections and posts (`demo-data.ts`); `run.ts` bundles it with Bun, styles it with
+the storefront's own Tailwind build, and photographs each section in a local Chrome through
+puppeteer-core (dev dependency, Apache-2.0, no browser download) with reduced motion, so reveal
+animations sit at their end state. `section-previews.test.ts` checks that every listed type has
+both files under 40 KB.
+
 ### Nested blocks (slots)
 
 Layout blocks (Group, Columns, Grid, Tabs, Accordion, Carousel) hold other blocks in Puck

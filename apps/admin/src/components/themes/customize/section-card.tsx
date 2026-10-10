@@ -1,6 +1,7 @@
 'use client'
 
 import { SECTION_SOURCES } from '@commerce/blocks/puck'
+import { Plus } from '@commerce/ui/icons'
 import { cn } from '@commerce/ui/lib/utils'
 import { Drawer } from '@puckeditor/core'
 import { motion, useReducedMotion } from 'motion/react'
@@ -16,6 +17,7 @@ import {
 } from '@/lib/customize-chrome'
 import SectionIcon from './section-icon'
 import SectionLivePreview from './section-live-preview'
+import SectionPicture, { hasSectionPicture } from './section-picture'
 import SectionPreview from './section-preview'
 
 type SectionCardProps = {
@@ -27,7 +29,10 @@ type SectionCardProps = {
   hovered: boolean
   onHover: (type: string | null) => void
   onAdd: () => void
-  /** `tile` (Figma 369:4809 Sections tab): caption above a blue layout thumbnail, two per row. */
+  /**
+   * `tile` (Figma 369:4918): caption above an 8 × 5.5 rem tile with the section's picture (its
+   * drawn glyph when it has none), two per row.
+   */
   layout?: 'row' | 'tile'
 }
 
@@ -89,6 +94,7 @@ export default function SectionCard({
   // Render logic
   const AppBadge = appIcon ? appIconFor(appIcon) : null
   const source = SECTION_SOURCES[type]
+  const pictured = hasSectionPicture(type)
   const preview =
     hovered && anchor ? (
       <motion.div
@@ -98,7 +104,16 @@ export default function SectionCard({
         style={{ top: anchor.top, left: anchor.left }}
         className="pointer-events-none fixed z-50 hidden w-64 flex-col gap-2 rounded-xl border border-border bg-popover p-2 shadow-dialog lg:flex"
       >
-        <SectionLivePreview type={type} className="aspect-video w-full" />
+        {pictured ? (
+          <SectionPicture
+            type={type}
+            label={label}
+            fit="card"
+            className="w-full rounded-md border border-border"
+          />
+        ) : (
+          <SectionLivePreview type={type} className="aspect-video w-full" />
+        )}
         <div className="flex flex-col gap-0.5 px-1 pb-1">
           <span className="text-[0.8125rem] font-medium text-foreground">{label}</span>
           <span className="text-xs text-muted-foreground">{description}</span>
@@ -132,13 +147,25 @@ export default function SectionCard({
           >
             {layout === 'tile' ? (
               <>
-                <span className="truncate text-[0.625rem] leading-3 font-medium tracking-wide text-muted-foreground uppercase">
+                <span className="truncate text-[0.625rem] leading-[1.0625rem] font-medium tracking-[0.06em] text-muted-foreground uppercase">
                   {label}
                 </span>
-                <SectionPreview
-                  type={type}
-                  className="aspect-[106/72] w-full rounded-lg border-border bg-card transition-[border-color,box-shadow] group-hover/card:border-primary/50 group-hover/card:shadow-lift [&_.bg-muted]:bg-card [&_.bg-muted-foreground\/30]:bg-primary/70 [&_.border-muted-foreground\/40]:border-primary/70"
-                />
+                <span className="relative flex aspect-[128/88] w-full overflow-hidden rounded-[0.625rem] border border-border bg-muted transition-[border-color,box-shadow] group-hover/card:border-primary group-hover/card:shadow-lift group-focus-visible/card:border-primary">
+                  {pictured ? (
+                    <SectionPicture type={type} label={label} fit="tile" className="size-full" />
+                  ) : (
+                    <SectionPreview
+                      type={type}
+                      className="size-full rounded-none border-0 bg-muted [&_.bg-muted]:bg-muted [&_.bg-muted-foreground\/30]:bg-primary/70 [&_.border-muted-foreground\/40]:border-primary/70"
+                    />
+                  )}
+                  <span className="pointer-events-none absolute inset-0 flex items-center justify-center opacity-0 transition-opacity group-hover/card:opacity-100 group-focus-visible/card:opacity-100 motion-reduce:transition-none">
+                    <span className="flex h-6 items-center gap-1 rounded-md bg-primary px-2 text-xs font-semibold text-primary-foreground shadow-sm">
+                      <Plus aria-hidden className="size-3" />
+                      {copy.add}
+                    </span>
+                  </span>
+                </span>
               </>
             ) : (
               <>
