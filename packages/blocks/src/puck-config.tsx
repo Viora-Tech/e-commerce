@@ -199,6 +199,9 @@ export const SECTION_CATEGORIES = {
       'FaqSplit',
       'ComparisonTable',
       'PricingCards',
+      'Timeline',
+      'TeamGrid',
+      'TrustBadges',
     ],
   },
   products: {
@@ -215,8 +218,8 @@ export const SECTION_CATEGORIES = {
       ...ZERO_DRIFT_PRODUCT_SECTIONS,
     ],
   },
-  media: { title: 'Media', components: ['Video', 'Gallery', 'LogoCloud'] },
-  more: { title: 'More', components: ['BlogPosts', 'Newsletter'] },
+  media: { title: 'Media', components: ['Video', 'Gallery', 'LogoCloud', 'Lookbook'] },
+  more: { title: 'More', components: ['BlogPosts', 'Newsletter', 'NewsletterBand'] },
   // Build your own: containers whose content is slots, and the elements that go in them.
   layout: { title: 'Layout', components: LAYOUT_BLOCKS },
   elements: { title: 'Elements', components: ELEMENT_BLOCKS },

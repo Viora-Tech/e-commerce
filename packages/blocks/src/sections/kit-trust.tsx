@@ -18,7 +18,7 @@ import {
   noImage,
 } from './framed'
 import { inlineRichtext, inlineText, inlineTextarea } from './inline-fields'
-import { f, ICONS, sideField, yesNo } from './kit-fields'
+import { f, ICONS, sideField, summary, yesNo } from './kit-fields'
 
 export type KitTrustProps = {
   FeatureCards: Frame & {
@@ -101,8 +101,7 @@ export function kitTrustSections(): Record<keyof KitTrustProps, ComponentConfig>
             text: inlineTextarea(f.text),
           },
           defaultItemProps: { icon: 'check', title: '', text: '' },
-          getItemSummary: (item: { title?: unknown }) =>
-            typeof item.title === 'string' && item.title ? item.title : f.item,
+          getItemSummary: (item: { title?: unknown }) => summary(item.title, f.item),
         },
       },
       {
@@ -125,8 +124,7 @@ export function kitTrustSections(): Record<keyof KitTrustProps, ComponentConfig>
           max: 5,
           arrayFields: { title: inlineText(f.title), text: inlineTextarea(f.text) },
           defaultItemProps: { title: '', text: '' },
-          getItemSummary: (item: { title?: unknown }) =>
-            typeof item.title === 'string' && item.title ? item.title : f.step,
+          getItemSummary: (item: { title?: unknown }) => summary(item.title, f.step),
         },
       },
       {
@@ -149,8 +147,7 @@ export function kitTrustSections(): Record<keyof KitTrustProps, ComponentConfig>
           max: 8,
           arrayFields: { text: inlineText(f.point) },
           defaultItemProps: { text: '' },
-          getItemSummary: (item: { text?: unknown }) =>
-            typeof item.text === 'string' && item.text ? item.text : f.point,
+          getItemSummary: (item: { text?: unknown }) => summary(item.text, f.point),
         },
         primary: inlineLinkField(f.primary),
         image: imageField(f.image),
@@ -184,8 +181,7 @@ export function kitTrustSections(): Record<keyof KitTrustProps, ComponentConfig>
             rating: { type: 'number', label: f.rating, min: 0, max: 5 },
           },
           defaultItemProps: { quote: '', author: '', role: '', rating: 5 },
-          getItemSummary: (item: { author?: unknown }) =>
-            typeof item.author === 'string' && item.author ? item.author : f.quote,
+          getItemSummary: (item: { author?: unknown }) => summary(item.author, f.quote),
         },
       },
       {
@@ -226,8 +222,7 @@ export function kitTrustSections(): Record<keyof KitTrustProps, ComponentConfig>
           max: 20,
           arrayFields: { question: inlineText(f.question), answer: inlineRichtext(f.answer) },
           defaultItemProps: { question: '', answer: '' },
-          getItemSummary: (item: { question?: unknown }) =>
-            typeof item.question === 'string' && item.question ? item.question : f.question,
+          getItemSummary: (item: { question?: unknown }) => summary(item.question, f.question),
         },
       },
       {
@@ -257,8 +252,7 @@ export function kitTrustSections(): Record<keyof KitTrustProps, ComponentConfig>
             theirs: yesNo(f.theirsHas),
           },
           defaultItemProps: { feature: '', ours: true, theirs: false },
-          getItemSummary: (item: { feature?: unknown }) =>
-            typeof item.feature === 'string' && item.feature ? item.feature : f.row,
+          getItemSummary: (item: { feature?: unknown }) => summary(item.feature, f.row),
         },
       },
       {
@@ -297,8 +291,7 @@ export function kitTrustSections(): Record<keyof KitTrustProps, ComponentConfig>
             button: { label: '', href: '/collections/all' },
             highlight: false,
           },
-          getItemSummary: (item: { name?: unknown }) =>
-            typeof item.name === 'string' && item.name ? item.name : f.plan,
+          getItemSummary: (item: { name?: unknown }) => summary(item.name, f.plan),
         },
       },
       {

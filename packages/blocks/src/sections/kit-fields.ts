@@ -50,3 +50,7 @@ export const ICONS: { label: string; value: IconName }[] = [
   { label: 'WhatsApp', value: 'whatsapp' },
   { label: 'Question', value: 'question' },
 ]
+
+/** A row's own text for the blocks list, or the fallback while it is blank or being typed. */
+export const summary = (value: unknown, fallback: string): string =>
+  typeof value === 'string' && value ? value : fallback

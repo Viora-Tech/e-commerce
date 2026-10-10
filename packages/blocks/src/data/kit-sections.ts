@@ -19,6 +19,11 @@ export const kitSectionsContent = {
     faqSplit: 'FAQ with contact',
     comparisonTable: 'Comparison table',
     pricingCards: 'Plans and bundles',
+    lookbook: 'Lookbook',
+    newsletterBand: 'Email signup band',
+    timeline: 'Our story timeline',
+    teamGrid: 'Team',
+    trustBadges: 'Trust badges',
   },
   fields: {
     badge: 'Badge',
@@ -83,6 +88,18 @@ export const kitSectionsContent = {
     button: 'Button',
     highlight: 'Highlight this plan',
     highlightLabel: 'Highlight label',
+    photos: 'Photos',
+    photo: 'Photo',
+    caption: 'Caption',
+    reassurance: 'Small print',
+    milestones: 'Milestones',
+    milestone: 'Milestone',
+    date: 'Year or date',
+    people: 'People',
+    person: 'Person',
+    bio: 'Short bio',
+    badges: 'Badges',
+    badge2: 'Badge',
   },
   /** Read out by screen readers; never drawn. */
   a11y: {
@@ -343,5 +360,60 @@ export const kitSectionsContent = {
       },
     ],
     highlightLabel: 'Most popular',
+  },
+  lookbook: {
+    heading: 'The lookbook',
+    text: 'Styled by our team, worn by you.',
+    photos: ['Morning light', 'Weekend edit', 'Studio picks', 'Gift ready', 'New season'],
+  },
+  newsletterBand: {
+    heading: 'Get 10% off your first order',
+    text: 'New arrivals, restocks and subscriber-only offers. About two emails a month.',
+    button: 'Subscribe',
+    reassurance: 'Unsubscribe any time. We never share your email.',
+  },
+  timeline: {
+    heading: 'Our story',
+    text: 'From a kitchen table to doorsteps across the country.',
+    milestones: [
+      {
+        date: '2019',
+        title: 'It started at home',
+        text: 'Our first ten pieces, made by hand and sold to friends.',
+      },
+      {
+        date: '2021',
+        title: 'Our own studio',
+        text: 'A small team, a bigger space and our first online store.',
+      },
+      {
+        date: '2023',
+        title: '10,000 customers',
+        text: 'Shipping to every state, with a five star average.',
+      },
+      {
+        date: 'Today',
+        title: 'Still made with care',
+        text: 'Every order is packed by the same people who design it.',
+      },
+    ],
+  },
+  teamGrid: {
+    heading: 'Meet the team',
+    text: 'The people who design, make and pack every order.',
+    people: [
+      { name: 'Aditi Rao', role: 'Founder', bio: 'Designs every collection.' },
+      { name: 'Kabir Shah', role: 'Studio lead', bio: 'Keeps quality high.' },
+      { name: 'Sana Mirza', role: 'Customer care', bio: 'Answers every message.' },
+      { name: 'Vikram Nair', role: 'Shipping', bio: 'Packs with care.' },
+    ],
+  },
+  trustBadges: {
+    badges: [
+      { icon: 'shipping', title: 'Free shipping', text: 'On orders above ₹999' },
+      { icon: 'payment', title: 'Secure payments', text: 'UPI, cards and wallets' },
+      { icon: 'shield', title: 'Easy returns', text: 'Within seven days' },
+      { icon: 'guaranteed', title: 'Quality checked', text: 'Every piece, by hand' },
+    ],
   },
 } as const

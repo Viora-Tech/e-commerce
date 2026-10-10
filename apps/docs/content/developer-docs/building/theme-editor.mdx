@@ -118,7 +118,8 @@ both files under 40 KB.
 
 `packages/blocks/src/sections/kit.tsx` (`kitSections()`: heroes, logos, stats, calls to
 action) and `kit-trust.tsx` (`kitTrustSections()`: features, steps, testimonials, FAQ,
-comparison, plans), with the shared field helpers in `kit-fields.ts`, copy in
+comparison, plans) and `kit-story.tsx` (`kitStorySections()`: lookbook, email signup band,
+timeline, team, trust badges), with the shared field helpers in `kit-fields.ts`, copy in
 `src/data/kit-sections.ts` and components in `src/components/sections/kit/`, hold polished
 sections for every merchant. Each is
 `framed()` (shared section settings), draws its copy through the inline field helpers, reads only
@@ -131,7 +132,8 @@ intro) and `kit-stars.tsx` (a rating read out as words). Centre with flex, not `
 theme's base CSS resets margins on plain elements, which beats Tailwind's layered utilities.
 The same goes for the theme's heading classes (`.h2`, `.h3`: uppercase): a utility cannot undo
 them, so copy that must not be uppercase uses sizes directly. The section frame centres text by
-default, so layouts that read left to right set `text-left` themselves.
+default, so layouts that read left to right set `text-left` themselves. The email signup band
+posts to `metadata.newsletterAction`, the storefront action the Email signup section uses.
 
 Adding one: the config in `kitSections()`, its type in `SECTION_CATEGORIES`, a description in
 the admin's `data/customize.ts`, a glyph and kind (`lib/customize-puck.ts`,

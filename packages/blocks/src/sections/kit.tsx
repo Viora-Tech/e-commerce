@@ -19,50 +19,64 @@ import {
 } from './framed'
 import { inlineRichtext, inlineText } from './inline-fields'
 import { beamField, f, sideField } from './kit-fields'
+import { type KitStoryProps, kitStorySections } from './kit-story'
 import { type KitTrustProps, kitTrustSections } from './kit-trust'
 
-export type KitProps = KitTrustProps & {
-  GridHero: Frame & { badge: string; heading: string; text: string; primary: Link; secondary: Link }
-  RotatingHero: Frame & {
-    before: string
-    words: { word: string }[]
-    after: string
-    text: string
-    primary: Link
-    proof: string
-    image: Image
-    imageSide: 'left' | 'right'
+export type KitProps = KitTrustProps &
+  KitStoryProps & {
+    GridHero: Frame & {
+      badge: string
+      heading: string
+      text: string
+      primary: Link
+      secondary: Link
+    }
+    RotatingHero: Frame & {
+      before: string
+      words: { word: string }[]
+      after: string
+      text: string
+      primary: Link
+      proof: string
+      image: Image
+      imageSide: 'left' | 'right'
+    }
+    ShowcaseHero: Frame & {
+      eyebrow: string
+      heading: string
+      text: string
+      primary: Link
+      secondary: Link
+      image: Image
+      beam: boolean
+    }
+    LogoCloud: Frame & {
+      heading: string
+      columns: 3 | 4 | 6
+      logos: { image: Image; name: string; href: string }[]
+    }
+    StatsCards: Frame & {
+      heading: string
+      stats: { value: number; prefix: string; suffix: string; label: string; detail: string }[]
+    }
+    CtaCard: Frame & {
+      heading: string
+      text: string
+      primary: Link
+      secondary: Link
+      beam: boolean
+    }
+    CtaSplit: Frame & {
+      eyebrow: string
+      heading: string
+      text: string
+      primary: Link
+      image: Image
+      imageSide: 'left' | 'right'
+    }
   }
-  ShowcaseHero: Frame & {
-    eyebrow: string
-    heading: string
-    text: string
-    primary: Link
-    secondary: Link
-    image: Image
-    beam: boolean
-  }
-  LogoCloud: Frame & {
-    heading: string
-    columns: 3 | 4 | 6
-    logos: { image: Image; name: string; href: string }[]
-  }
-  StatsCards: Frame & {
-    heading: string
-    stats: { value: number; prefix: string; suffix: string; label: string; detail: string }[]
-  }
-  CtaCard: Frame & { heading: string; text: string; primary: Link; secondary: Link; beam: boolean }
-  CtaSplit: Frame & {
-    eyebrow: string
-    heading: string
-    text: string
-    primary: Link
-    image: Image
-    imageSide: 'left' | 'right'
-  }
-}
 
-type KitConfig = Record<keyof KitProps | keyof KitTrustProps, ComponentConfig>
+type KitConfig = Record<keyof KitProps, ComponentConfig>
 
 /** Edge to edge with no padding of its own: the grid hero draws its own space and floor. */
 function fullBleed(): SectionSettingsValue {
@@ -86,6 +100,7 @@ const gridHeroDefaults: Omit<KitProps['GridHero'], keyof Frame> = {
 export function kitSections(): KitConfig {
   return {
     ...kitTrustSections(),
+    ...kitStorySections(),
     GridHero: framed<KitProps['GridHero']>(
       copy.labels.gridHero,
       {

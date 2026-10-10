@@ -29,7 +29,8 @@ above), `SplitHero`, `VideoHero`, `FaqAccordion`, `Gallery` (shadcnblocks patter
 copied).
 
 The starter kit's `LogoCloud`, `CtaSplit`, `FeatureSteps`, `FeatureChecklist`,
-`TestimonialGrid`, `TestimonialSpotlight`, `FaqSplit` and `ComparisonTable` are our own layouts
+`TestimonialGrid`, `TestimonialSpotlight`, `FaqSplit`, `ComparisonTable`, `Lookbook`,
+`NewsletterBand`, `Timeline`, `TeamGrid` and `TrustBadges` are our own layouts
 after common patterns; no code is copied. The Add panel's section pictures are made by a dev-only script with
 [puppeteer-core](https://github.com/puppeteer/puppeteer) (Apache License 2.0, admin dev dependency,
 nothing of it ships).
