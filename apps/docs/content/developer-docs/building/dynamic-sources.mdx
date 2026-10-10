@@ -142,6 +142,44 @@ connected prop it hands back unchanged is restored, so resolving never disconnec
   `Image banner › heading is connected to product.metafields.custom.fabric, which no longer exists`,
   which the editor shows as a toast.
 
+## Lists (loops)
+
+A repeatable field (an `array`: FAQ questions, quotes, logos, people, photos) can be filled from
+a list in the store instead of rows typed in the editor. The array's value becomes a loop
+(`packages/core/src/dynamic-sources/loops.ts`, pure):
+
+```json
+{
+  "$loop": {
+    "source": "metaobject:faq",
+    "limit": 6,
+    "map": {
+      "question": { "from": "question", "kind": "text" },
+      "answer": { "from": "answer", "kind": "richtext" }
+    }
+  },
+  "fallback": [{ "question": "Typed before linking", "answer": "…" }]
+}
+```
+
+- `source`: `metaobject:<type>` (active entries of a storefront-visible content type, oldest
+  first) or `collection:<handle>.products` (the collection's visible products, in its order).
+- `limit`: rows drawn, capped at `LOOP_MAX` (50).
+- `map`: which field of each row reads which field of each entry (its field key, or `handle`) or
+  product (`title`, `price`, `compare_at_price`, `vendor`, `type`, `featured_image`, `url`), and
+  the setting kind it is coerced to (the same coercion single-value bindings use).
+- `fallback`: the rows typed before linking. They render when the list is empty or cannot be
+  read, and are what "Unlink" restores (`unlinkLoop`).
+
+The storefront renderer (`template-render.tsx`) finds loops (`boundLoops`), loads their rows in
+one pass per content type and collection (`loadLoopValues` in `loop-service.ts`, under the
+request's RLS; products come from the storefront's own `collectionCards`, so visibility and order
+are the catalogue's), then `applyLoops` swaps each loop for its rows. A row keeps the first
+fallback row's other settings, so unmapped fields (an icon, a rating) still show. Loops run
+before single-value bindings. `applyBindings` on its own (the editor, no store) shows the
+fallback rows, so a section never receives the loop object. Save refuses a loop over an unknown
+source or a content type the store no longer shows (`loopProblems`).
+
 ## Adding a source
 
 1. Add the field to `PRODUCT_SOURCE_FIELDS`, `COLLECTION_SOURCE_FIELDS` or `SHOP_SOURCE_FIELDS`
