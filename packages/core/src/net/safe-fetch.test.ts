@@ -108,6 +108,36 @@ describe('safeFetch', () => {
     expect(res.headers.get('content-type')).toBe('image/png')
     expect(await readCapped(res, 10)).toEqual(new Uint8Array([1, 2, 3]))
   })
+
+  it('sends headers only to the first origin, dropping them on a redirect elsewhere', async () => {
+    const seen: (HeadersInit | undefined)[] = []
+    const fn = (async (input: string | URL | Request, init?: RequestInit) => {
+      seen.push(init?.headers)
+      return String(input) === 'https://api.example/a'
+        ? new Response(null, { status: 302, headers: { location: 'https://other.example/b' } })
+        : new Response('ok')
+    }) as typeof fetch
+    const headers = { authorization: 'Bearer secret' }
+    await safeFetch('https://api.example/a', { fetch: fn, lookup: lookup(), headers })
+    expect(seen).toEqual([headers, undefined])
+  })
+
+  it('sends a POST once with its body and returns its redirect unfollowed', async () => {
+    const inits: RequestInit[] = []
+    const fn = (async (_input: string | URL | Request, init?: RequestInit) => {
+      inits.push(init ?? {})
+      return new Response(null, { status: 307, headers: { location: 'https://api.example/c' } })
+    }) as typeof fetch
+    const res = await safeFetch('https://api.example/a', {
+      fetch: fn,
+      lookup: lookup(),
+      method: 'POST',
+      body: '{"name":"x"}',
+    })
+    expect(res.status).toBe(307)
+    expect(inits).toHaveLength(1)
+    expect(inits[0]).toMatchObject({ method: 'POST', body: '{"name":"x"}', redirect: 'manual' })
+  })
 })
 
 describe('readCapped', () => {

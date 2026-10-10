@@ -132,6 +132,12 @@ const shape = z.object({
    */
   BACKUP_ENCRYPTION_KEY: z.string().min(16).optional(),
   /**
+   * Umami addresses the server may reach on a private network or over http (comma-separated
+   * origins, e.g. our own `http://umami:3000`). Every other Umami address a store saves goes
+   * through the SSRF guard (`@commerce/core/safe-fetch`): public https hosts only.
+   */
+  UMAMI_TRUSTED_ORIGINS: z.string().optional(),
+  /**
    * Razorpay Technology Partner OAuth app ("Connect Razorpay"). Both set turns
    * the one-click connect button on; unset, merchants paste API keys instead.
    * The app's redirect URL must be `<ADMIN_URL>/api/apps/razorpay/oauth/callback`.

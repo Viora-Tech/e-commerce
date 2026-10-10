@@ -33,6 +33,7 @@ import ConnectPage from '@/components/apps/shopify-import/connect-page'
 import CsvPage from '@/components/apps/shopify-import/csv-page'
 import ImportsPage from '@/components/apps/shopify-import/imports-page'
 import RunPage from '@/components/apps/shopify-import/run-page'
+import UmamiSettingsPage from '@/components/apps/umami/settings-page'
 
 /** What a page of an app receives: the dynamic segments of its path, e.g. `{ id }`. */
 export type AppPageProps = { params: Record<string, string> }
@@ -146,6 +147,9 @@ export const ADMIN_APPS: Record<string, AdminApp> = {
       connect: ConnectPage,
       'runs/[id]': RunPage,
     },
+  },
+  umami: {
+    pages: { '': UmamiSettingsPage },
   },
 }
 
