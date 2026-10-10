@@ -5,6 +5,7 @@
 import {
   CornersIn,
   CornersOut,
+  Keyboard,
   ListBullets,
   ListNumbers,
   Minus,
@@ -42,3 +43,5 @@ export const ExitFullViewIcon = defineIcon(CornersIn, 'ExitFullView')
 export const SidebarToggleIcon = defineIcon(SidebarSimple, 'SidebarToggle')
 /** A pointer: "click it". */
 export const Cursor = defineIcon(PhCursor, 'Cursor')
+/** Keyboard shortcuts. */
+export const KeyboardIcon = defineIcon(Keyboard, 'KeyboardIcon')

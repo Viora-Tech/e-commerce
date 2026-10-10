@@ -27,9 +27,11 @@ import { customizeContent } from '@/data/customize'
 import { themesContent } from '@/data/themes'
 import { useCopy } from '@/hooks/use-copy'
 import { useCustomizePuck } from '@/lib/customize-puck'
+import type { EditorKey } from '@/lib/customize-shortcuts'
 import { displayThemeName } from '@/lib/customize-theme-name'
 import { initials } from '@/lib/initials'
 import { routes } from '@/lib/routes'
+import { useEditorKeys } from '@/lib/use-editor-keys'
 import type { PreviewDevice } from '../theme-preview'
 import FullViewButton from './full-view-button'
 import ZoomMenu from './zoom-menu'
@@ -95,6 +97,15 @@ export default function CustomizeTopBar({
   const editor = useCopy(themesContent.editor)
   const devices = useCopy(themesContent.preview.devices)
   const history = useCustomizePuck((s) => s.history)
+  // ⌘/Ctrl + S saves (on the live theme that is Publish); 1, 2, 3 switch the device.
+  useEditorKeys((key: EditorKey, e: KeyboardEvent) => {
+    if (key === 'save') {
+      e.preventDefault()
+      if (dirty && !saving && !publishing) onSave()
+    } else if (key === 'desktop' || key === 'tablet' || key === 'mobile') {
+      onDevice(key)
+    }
+  })
 
   // Render logic
   return (

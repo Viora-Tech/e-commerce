@@ -14,8 +14,10 @@ import { CHROME_PANEL } from '@/lib/customize-chrome'
 import type { InsertTarget } from '@/lib/customize-insert'
 import { InsertContext } from '@/lib/customize-insert-context'
 import type { ResourceKind } from '@/lib/customize-resource'
+import type { EditorKey } from '@/lib/customize-shortcuts'
 import { EditorViewContext, useEditorViewState } from '@/lib/customize-view'
 import { type CanvasZoom, CanvasZoomContext, DEVICE_PX, fitZoom } from '@/lib/customize-zoom'
+import { useEditorKeys } from '@/lib/use-editor-keys'
 import type { PreviewDevice } from '../theme-preview'
 import AddSectionDialog from './add-section-dialog'
 import AddSectionPanel from './add-section-panel'
@@ -30,6 +32,7 @@ import PanelTitle from './panel-title'
 import PanelToggle from './panel-toggle'
 import SectionInspector from './section-inspector'
 import SectionsPanel from './sections-panel'
+import ShortcutsDialog from './shortcuts-dialog'
 
 type CustomizeLayoutProps = {
   topBar: ReactNode
@@ -75,10 +78,13 @@ export default function CustomizeLayout({
   const [panel, setPanel] = useState<RailPanel>('sections')
   const view = useEditorViewState()
   const [inserting, setInserting] = useState<InsertTarget | null>(null)
+  const [shortcuts, setShortcuts] = useState(false)
   const reducedMotion = useReducedMotion()
   const panels = useCopy(customizeContent.panels)
   const identity = useCopy(customizeContent.identity)
   const [zoomMode, setZoomMode] = useState<CanvasZoom>('fit')
+  // Called later, on a key press, so it can use the handler declared below.
+  useEditorKeys((key, e) => handleKey(key, e))
   // The canvas area's inner size: Fit scales the page into its width, and the frame fills
   // its height.
   const [stage, setStage] = useState<HTMLDivElement | null>(null)
@@ -99,6 +105,17 @@ export default function CustomizeLayout({
   const openPanel = (next: RailPanel) => {
     setPanel(next)
     if (!view.left) view.setLeft(true)
+  }
+  /** `/` opens Add (leaving full view), `?` the shortcuts dialog (`lib/customize-shortcuts.ts`). */
+  const handleKey = (key: EditorKey, e: KeyboardEvent) => {
+    if (key === 'shortcuts') {
+      e.preventDefault()
+      setShortcuts((open) => !open)
+    } else if (key === 'addSection') {
+      e.preventDefault()
+      if (view.full) view.setFull(false)
+      openPanel('add')
+    }
   }
 
   // Render logic
@@ -256,6 +273,7 @@ export default function CustomizeLayout({
             </div>
           </div>
           <AddSectionDialog target={inserting} onClose={() => setInserting(null)} />
+          <ShortcutsDialog open={shortcuts} onOpenChange={setShortcuts} />
         </InsertContext.Provider>
       </CanvasZoomContext.Provider>
     </EditorViewContext.Provider>
