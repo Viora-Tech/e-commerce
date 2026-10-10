@@ -2,7 +2,11 @@ import { order, orderLine, shipment } from '@commerce/db'
 import { and, eq, sql } from 'drizzle-orm'
 import type { StoreContext } from '../context'
 import { BalanceDue, CommerceError } from '../errors'
-import { type PackPick, packFulfillmentOrderLines } from './fulfillment-orders'
+import {
+  ensureFulfillmentOrders,
+  type PackPick,
+  packFulfillmentOrderLines,
+} from './fulfillment-orders'
 import { recomputeOrderStatuses } from './recompute'
 
 export type FulfilLineInput = { lineId: string; quantity: number }
@@ -52,9 +56,11 @@ const UNFULFILLABLE = new Set(['draft', 'cancelled'])
 /**
  * Lock the order and its lines for the rest of the transaction, so a second
  * pack or a cancel running at the same time waits and then sees this one's
- * result instead of moving the same stock twice.
+ * result instead of moving the same stock twice. An order older than parcels
+ * gets them first, from what was packed before this call moves anything.
  */
 async function lockOrder(ctx: StoreContext, orderId: string) {
+  await ensureFulfillmentOrders(ctx, orderId)
   const [o] = await ctx.tx
     .select({
       id: order.id,
