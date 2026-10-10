@@ -14,6 +14,7 @@ import type { PreviewDevice } from '../theme-preview'
 import AddSectionDialog from './add-section-dialog'
 import AddSectionPanel from './add-section-panel'
 import CustomizeRail, { type RailPanel } from './customize-rail'
+import MediaPanel from './media-panel'
 import PanelHeader from './panel-header'
 import SectionInspector from './section-inspector'
 import SectionsPanel from './sections-panel'
@@ -22,6 +23,8 @@ type CustomizeLayoutProps = {
   topBar: ReactNode
   /** The Theme settings panel (presets and settings groups). */
   settings: ReactNode
+  /** The Pages panel: every page and template to jump between (`TemplateList`). */
+  pages: ReactNode
   /** Floating controls over the bottom of the canvas. */
   dock: ReactNode
   device: PreviewDevice
@@ -42,6 +45,7 @@ const DEVICE_WIDTH: Record<PreviewDevice, string> = {
 export default function CustomizeLayout({
   topBar,
   settings,
+  pages,
   dock,
   device,
   loading,
@@ -56,16 +60,18 @@ export default function CustomizeLayout({
   const headers: Record<RailPanel, { title: string; hint: string }> = {
     sections: { title: panels.sections, hint: panels.sectionsHint },
     add: { title: panels.add, hint: panels.addHint },
+    pages: { title: panels.pages, hint: panels.pagesHint },
+    media: { title: panels.media, hint: panels.mediaHint },
     theme: { title: panels.theme, hint: panels.themeHint },
   }
-  const panelContent =
-    panel === 'theme' ? (
-      settings
-    ) : panel === 'add' ? (
-      <AddSectionPanel />
-    ) : (
-      <SectionsPanel onOpenTheme={() => setPanel('theme')} />
-    )
+  const content: Record<RailPanel, ReactNode> = {
+    add: <AddSectionPanel />,
+    pages,
+    sections: <SectionsPanel onOpenTheme={() => setPanel('theme')} />,
+    media: <MediaPanel />,
+    theme: settings,
+  }
+  const panelContent = content[panel]
 
   return (
     <InsertContext.Provider value={setInserting}>
@@ -89,7 +95,7 @@ export default function CustomizeLayout({
                   // would carry that header away with the list. Every other panel
                   // (Sections tree, Theme settings) has no such header and still
                   // wants this level to scroll.
-                  panel === 'add' ? 'overflow-hidden' : 'overflow-y-auto',
+                  panel === 'add' || panel === 'pages' ? 'overflow-hidden' : 'overflow-y-auto',
                 )}
               >
                 {panelContent}

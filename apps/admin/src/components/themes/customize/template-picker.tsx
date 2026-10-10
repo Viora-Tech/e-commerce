@@ -1,31 +1,14 @@
 'use client'
 
-import {
-  ALTERNATE_KINDS,
-  type AlternateKind,
-  TEMPLATE_KINDS,
-  type TemplateKind,
-  templateName,
-} from '@commerce/core/theme'
-import { ChevronDown, Home, Loader2Icon, Plus } from '@commerce/ui/icons'
+import type { AlternateKind, TemplateKind } from '@commerce/core/theme'
+import { ChevronDown, Home, Loader2Icon } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
-import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-  CommandList,
-} from '@commerce/ui/shadcn/command'
 import { Popover, PopoverContent, PopoverTrigger } from '@commerce/ui/shadcn/popover'
 import { useState } from 'react'
 import { customizeContent } from '@/data/customize'
-import { useCopy } from '@/hooks/use-copy'
-import { CHROME_META } from '@/lib/customize-chrome'
 import { type TemplateChange, useTemplateManager } from '@/lib/use-template-manager'
-import DeleteTemplateDialog from './delete-template-dialog'
-import RenameTemplateDialog from './rename-template-dialog'
-import TemplateAlternateMenu, { type AlternateAction } from './template-alternate-menu'
+import TemplateList from './template-list'
+import TemplateManagerDialogs from './template-manager-dialogs'
 
 export type TemplateRef = { key: TemplateKind; suffix: string }
 
@@ -45,16 +28,13 @@ type TemplatePickerProps = {
 
 const copy = customizeContent.templates
 
-const isAlternateKind = (key: TemplateKind): key is AlternateKind =>
-  (ALTERNATE_KINDS as readonly string[]).includes(key)
-
 export const templateLabel = (ref: TemplateRef) =>
   ref.suffix ? copy.alternate(copy.names[ref.key], ref.suffix) : copy.names[ref.key]
 
 /**
- * Shopify's template switcher: search, every template kind grouped with its alternates, and
- * Create. Each alternate shows how many resources use it and has a small manager (rename,
- * duplicate, delete); the default template has none.
+ * Shopify's template switcher in the top bar: `TemplateList` (search, every template kind
+ * grouped with its alternates, usage counts, the alternate manager, Create) in a popover. The
+ * manager's dialogs sit outside the popover, which closes when one opens.
  */
 export default function TemplatePicker({
   themeId,
@@ -67,14 +47,7 @@ export default function TemplatePicker({
 }: TemplatePickerProps) {
   // Hooks
   const [open, setOpen] = useState(false)
-  const groups = useCopy(customizeContent.groups)
   const manager = useTemplateManager({ themeId, alternates, onChanged: onManaged })
-
-  // Helpers
-  const used = (kind: AlternateKind, suffix: string) => {
-    const n = manager.usedBy(kind, suffix)
-    return n > 0 ? copy.usedBy(n, kind) : ''
-  }
 
   // Event handlers
   const handleOpen = (next: boolean) => {
@@ -89,15 +62,8 @@ export default function TemplatePicker({
     onCreate(kind)
     setOpen(false)
   }
-  const handleAction = (kind: AlternateKind, suffix: string, action: AlternateAction) => {
-    setOpen(false)
-    if (action === 'duplicate') void manager.duplicate(kind, suffix)
-    else manager.setPending({ action, kind, suffix })
-  }
 
   // Render logic
-  const pending = manager.pending
-
   return (
     <>
       <Popover open={open} onOpenChange={handleOpen}>
@@ -121,90 +87,17 @@ export default function TemplatePicker({
           }
         />
         <PopoverContent align="center" className="w-[26rem] gap-0 p-0">
-          <Command>
-            <CommandInput placeholder={copy.search} aria-label={copy.search} />
-            <CommandList>
-              <CommandEmpty>{copy.empty}</CommandEmpty>
-              {['pages', 'templates'].map((section) => (
-                <div key={section}>
-                  <p className="px-3 pt-2 pb-1 text-caption font-semibold text-foreground">
-                    {section === 'pages' ? groups.pages : groups.templates}
-                  </p>
-                  {TEMPLATE_KINDS.filter(
-                    (key) => isAlternateKind(key) === (section === 'templates'),
-                  ).map((key) => {
-                    const own = alternates.filter((a) => a.template === key && a.suffix)
-                    const currentIsDefault = value.key === key && value.suffix === ''
-                    return (
-                      <CommandGroup key={key} heading={copy.names[key]}>
-                        <CommandItem
-                          value={`${copy.names[key]} ${own.length > 0 ? copy.default : ''}`}
-                          data-checked={currentIsDefault ? 'true' : undefined}
-                          onSelect={() => handlePick({ key, suffix: '' })}
-                        >
-                          {own.length > 0 ? copy.default : copy.names[key]}
-                        </CommandItem>
-                        {isAlternateKind(key)
-                          ? own.map((a) => (
-                              <CommandItem
-                                key={templateName(key, a.suffix)}
-                                value={`${copy.names[key]} ${a.suffix}`}
-                                data-checked={
-                                  value.key === key && value.suffix === a.suffix
-                                    ? 'true'
-                                    : undefined
-                                }
-                                onSelect={() => handlePick({ key, suffix: a.suffix })}
-                              >
-                                <span className="min-w-0 truncate">{a.suffix}</span>
-                                {used(key, a.suffix) ? (
-                                  <span className={`shrink-0 ${CHROME_META}`}>
-                                    {used(key, a.suffix)}
-                                  </span>
-                                ) : null}
-                                <TemplateAlternateMenu
-                                  name={copy.alternate(copy.names[key], a.suffix)}
-                                  onAction={(action) => handleAction(key, a.suffix, action)}
-                                />
-                              </CommandItem>
-                            ))
-                          : null}
-                        {isAlternateKind(key) ? (
-                          <CommandItem
-                            value={`${copy.names[key]} ${copy.create}`}
-                            onSelect={() => handleCreate(key)}
-                          >
-                            <Plus aria-hidden />
-                            {copy.create}
-                          </CommandItem>
-                        ) : null}
-                      </CommandGroup>
-                    )
-                  })}
-                </div>
-              ))}
-            </CommandList>
-          </Command>
+          <TemplateList
+            value={value}
+            alternates={alternates}
+            manager={manager}
+            onPick={handlePick}
+            onCreate={handleCreate}
+            onAction={() => setOpen(false)}
+          />
         </PopoverContent>
       </Popover>
-      {pending?.action === 'rename' ? (
-        <RenameTemplateDialog
-          key={`${pending.kind}.${pending.suffix}`}
-          suffix={pending.suffix}
-          used={used(pending.kind, pending.suffix)}
-          busy={manager.busy}
-          onCancel={() => manager.setPending(null)}
-          onRename={manager.rename}
-        />
-      ) : null}
-      {pending?.action === 'delete' ? (
-        <DeleteTemplateDialog
-          name={copy.alternate(copy.names[pending.kind], pending.suffix)}
-          used={used(pending.kind, pending.suffix)}
-          onCancel={() => manager.setPending(null)}
-          onConfirm={manager.remove}
-        />
-      ) : null}
+      <TemplateManagerDialogs manager={manager} />
     </>
   )
 }
