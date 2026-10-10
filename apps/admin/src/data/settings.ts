@@ -8,6 +8,7 @@ import {
   Globe,
   Home,
   MapPinLineIcon,
+  Palette,
   ReceiptIcon,
   ShieldCheck,
   ShoppingCart,
@@ -165,6 +166,14 @@ export const SETTINGS_GROUPS: SettingsGroup[] = [
         title: 'Custom data',
         body: 'Extra fields on products and collections, and your content types.',
         icon: Braces,
+      },
+      {
+        // Your own light/dark and language; the page lives under your account, linked here too
+        // so nobody hunts for it.
+        href: routes.account.appearance(),
+        title: 'Appearance',
+        body: 'Light or dark mode and the admin language, just for you.',
+        icon: Palette,
       },
     ],
   },

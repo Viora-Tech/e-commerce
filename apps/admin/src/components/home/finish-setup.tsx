@@ -55,23 +55,22 @@ export default async function FinishSetup({ productCount, signals }: FinishSetup
           <li key={step.key}>
             <Link
               href={step.href}
-              className="flex h-full items-center gap-3 rounded-xl surface-card p-4 transition-shadow duration-150 ease-out hover:shadow-card-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              className="flex h-full items-start gap-3.5 rounded-xl surface-card p-[1.125rem] transition-shadow duration-150 ease-out hover:shadow-card-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
               <span
                 className={cn(
-                  'flex size-6 shrink-0 items-center justify-center rounded-full text-caption',
-                  step.done
-                    ? 'bg-primary-soft text-primary'
-                    : 'border border-border text-muted-foreground',
+                  'flex size-[1.625rem] shrink-0 items-center justify-center rounded-full text-caption',
+                  // Figma 224:591 "Tick done": the key material (gradient, rim, lip, glow).
+                  step.done ? 'key-primary' : 'border border-border text-muted-foreground',
                 )}
               >
                 {step.done ? <CheckIcon className="size-3.5" aria-hidden="true" /> : i + 1}
               </span>
               <span className="min-w-0">
-                <span className="block truncate text-body-strong text-ink-strong">
+                <span className="block truncate text-body font-semibold text-ink-strong">
                   {step.title}
                 </span>
-                <span className="block truncate text-caption font-normal text-muted-foreground">
+                <span className="mt-1 block truncate text-[0.8125rem] leading-[1.1875rem] text-muted-foreground">
                   {step.body}
                 </span>
               </span>
