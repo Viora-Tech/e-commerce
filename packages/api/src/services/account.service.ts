@@ -2,6 +2,8 @@ import { randomUUID } from 'node:crypto'
 import {
   avatarKey,
   CommerceError,
+  type DeviceDescription,
+  describeUserAgent,
   isOwnAvatarKey,
   memberAccess,
   processAvatar,
@@ -15,7 +17,7 @@ import {
   withStore,
 } from '@commerce/db'
 import type { StorageProvider } from '@commerce/storage'
-import { and, asc, eq } from 'drizzle-orm'
+import { and, asc, desc, eq, inArray } from 'drizzle-orm'
 import { storeRegistries } from './apps.service'
 import { storageProviderFor } from './media.service'
 
@@ -243,4 +245,122 @@ export async function forgetStoreMembership(db: Db, storeId: string, userId: str
       .delete(storeMember)
       .where(and(eq(storeMember.storeId, storeId), eq(storeMember.userId, userId))),
   )
+}
+
+/** One row of Account → Sign-in & security → Recent sign-ins. */
+export type RecentSignIn = {
+  id: string
+  method: string
+  device: DeviceDescription
+  ipMasked: string | null
+  city: string | null
+  country: string | null
+  at: Date
+  /** The sign-in that opened the session this browser is using. */
+  current: boolean
+}
+
+/** The member's latest sign-ins, newest first; only ever their own. */
+export async function recentSignIns(
+  db: Db,
+  userId: string,
+  currentSessionId: string | null,
+  limit = 10,
+): Promise<RecentSignIn[]> {
+  const rows = await db
+    .select()
+    .from(authSchema.memberSignIn)
+    .where(eq(authSchema.memberSignIn.userId, userId))
+    .orderBy(desc(authSchema.memberSignIn.createdAt))
+    .limit(limit)
+  return rows.map((r) => ({
+    id: r.id,
+    method: r.method,
+    device: describeUserAgent(r.userAgent),
+    ipMasked: r.ipMasked,
+    city: r.city,
+    country: r.country,
+    at: r.createdAt,
+    current: r.sessionId !== null && r.sessionId === currentSessionId,
+  }))
+}
+
+/** A signed-in device as Account → Sessions shows it. Never carries the session token. */
+export type MemberSession = {
+  id: string
+  device: DeviceDescription
+  ipMasked: string | null
+  city: string | null
+  country: string | null
+  signedInAt: Date
+  lastActiveAt: Date
+  current: boolean
+}
+
+type AuthSession = {
+  id: string
+  userAgent?: string | null | undefined
+  createdAt: Date
+  updatedAt: Date
+}
+
+/** Better Auth's sessions for the member, with where each began, newest activity first. */
+export async function describeSessions(
+  db: Db,
+  userId: string,
+  sessions: readonly AuthSession[],
+  currentSessionId: string | null,
+): Promise<MemberSession[]> {
+  const ids = sessions.map((s) => s.id)
+  const starts = ids.length
+    ? await db
+        .select({
+          sessionId: authSchema.memberSignIn.sessionId,
+          ipMasked: authSchema.memberSignIn.ipMasked,
+          city: authSchema.memberSignIn.city,
+          country: authSchema.memberSignIn.country,
+        })
+        .from(authSchema.memberSignIn)
+        .where(
+          and(
+            eq(authSchema.memberSignIn.userId, userId),
+            inArray(authSchema.memberSignIn.sessionId, ids),
+          ),
+        )
+    : []
+  const bySession = new Map(starts.map((s) => [s.sessionId, s]))
+  return sessions
+    .map((s) => {
+      const start = bySession.get(s.id)
+      return {
+        id: s.id,
+        device: describeUserAgent(s.userAgent),
+        ipMasked: start?.ipMasked ?? null,
+        city: start?.city ?? null,
+        country: start?.country ?? null,
+        signedInAt: s.createdAt,
+        lastActiveAt: s.updatedAt,
+        current: s.id === currentSessionId,
+      }
+    })
+    .sort((a, b) =>
+      a.current === b.current
+        ? b.lastActiveAt.getTime() - a.lastActiveAt.getTime()
+        : a.current
+          ? -1
+          : 1,
+    )
+}
+
+/** The token of one of the member's own sessions, so Better Auth can revoke it; null if not theirs. */
+export async function sessionTokenFor(
+  db: Db,
+  userId: string,
+  sessionId: string,
+): Promise<string | null> {
+  const [row] = await db
+    .select({ token: authSchema.session.token })
+    .from(authSchema.session)
+    .where(and(eq(authSchema.session.id, sessionId), eq(authSchema.session.userId, userId)))
+  return row?.token ?? null
 }

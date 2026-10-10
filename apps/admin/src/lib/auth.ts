@@ -2,6 +2,7 @@ import 'server-only'
 import { createMerchantAuth, type MerchantAuth } from '@commerce/auth'
 import { loadEnv } from '@commerce/config'
 import {
+  deliverPlatformEmailChangeCode,
   deliverPlatformLoginCode,
   deliverPlatformStaffInvite,
   getPlatformEmail,
@@ -26,10 +27,15 @@ export function auth(): MerchantAuth {
       // emailed and never logged: a logged code lets anyone with log access sign in. Without
       // it (development) the code is printed and handed to the readback route so the login
       // page can show it when DEV_LOGIN_OTP is on.
+      // `change-email` is the code to a member's NEW address (Account → Sign-in & security);
+      // every other type is a sign-in code.
       sendOtp: async ({ email, otp, type }) => {
         if (getPlatformEmail().transport) {
-          const sent = await deliverPlatformLoginCode({ email, code: otp })
-          if (!sent) throw new Error('Could not send the sign-in code. Try again in a minute.')
+          const sent =
+            type === 'change-email'
+              ? await deliverPlatformEmailChangeCode({ email, code: otp })
+              : await deliverPlatformLoginCode({ email, code: otp })
+          if (!sent) throw new Error('Could not send the code. Try again in a minute.')
           return
         }
         if (!mayPrintCodes()) {

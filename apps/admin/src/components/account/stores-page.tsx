@@ -15,7 +15,7 @@ import { useCopy, useFormat } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 import { authClient } from '@/lib/auth-client'
 import { routes } from '@/lib/routes'
-import LeaveStoreDialog from './leave-store-dialog'
+import ConfirmDialog from './confirm-dialog'
 
 type MemberStore = Awaited<ReturnType<typeof api.account.stores>>[number]
 
@@ -174,9 +174,16 @@ export default function StoresPage() {
       {stores?.some((s) => s.isOwner) ? (
         <p className="px-1 text-caption text-muted-foreground">{copy.ownerCannotLeave}</p>
       ) : null}
-      <LeaveStoreDialog
-        storeName={leaving?.name ?? null}
-        lastStore={(stores?.length ?? 0) <= 1}
+      <ConfirmDialog
+        open={leaving !== null}
+        title={copy.leaveDialog.title(leaving?.name ?? '')}
+        body={
+          (stores?.length ?? 0) <= 1
+            ? `${copy.leaveDialog.body} ${copy.leaveDialog.lastStore}`
+            : copy.leaveDialog.body
+        }
+        confirmLabel={copy.leaveDialog.confirm}
+        cancelLabel={copy.leaveDialog.cancel}
         busy={busy}
         onOpenChange={handleDialogChange}
         onConfirm={handleLeave}

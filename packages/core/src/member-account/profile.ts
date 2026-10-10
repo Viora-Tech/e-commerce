@@ -1,7 +1,7 @@
 /** SOURCE OF TRUTH: member profile, member phone — WHAT: the rules for a team member's own name and the E.164 mobile their WhatsApp alerts go to (Account → Profile) / WHY: one rule for the admin form and the API, so the two never disagree about a valid number; pure and client-safe (`@commerce/core/member-account`) */
 import { z } from 'zod'
 
-export const MEMBER_NAME_MAX = 80
+const MEMBER_NAME_MAX = 80
 
 /**
  * A phone number as E.164, India by default: "98046 82471", "098046 82471" and

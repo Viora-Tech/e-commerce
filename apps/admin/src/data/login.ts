@@ -32,6 +32,11 @@ export const loginContent = {
   },
   sendFailed: 'Could not send the code',
   wrongCode: 'Wrong code',
+  passkey: {
+    or: 'or',
+    button: 'Sign in with a passkey',
+    failed: 'Could not sign in with a passkey. Use a code by email instead.',
+  },
   terms: {
     prefix: 'By continuing you agree to the',
     terms: 'Terms of Service',

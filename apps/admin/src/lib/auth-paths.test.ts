@@ -15,12 +15,27 @@ describe('isBlockedAuthPath', () => {
     }
   })
 
+  it('refuses the endpoints the admin API wraps', () => {
+    for (const p of [
+      '/api/auth/email-otp/request-email-change',
+      '/api/auth/email-otp/change-email',
+      '/api/auth/update-user',
+      '/api/auth/list-sessions',
+      '/api/auth/List-Sessions/',
+    ]) {
+      expect(isBlockedAuthPath(p), p).toBe(true)
+    }
+  })
+
   it('lets the rest of Better Auth through', () => {
     for (const p of [
       '/api/auth/email-otp/send-verification-otp',
       '/api/auth/organization/set-active',
       '/api/auth/organization/list',
       '/api/auth/sign-out',
+      '/api/auth/passkey/list-user-passkeys',
+      '/api/auth/passkey/verify-authentication',
+      '/api/auth/revoke-session',
     ]) {
       expect(isBlockedAuthPath(p), p).toBe(false)
     }

@@ -291,6 +291,26 @@ export const SETTINGS_SEARCH_INDEX: SettingsSearchEntry[] = [
     keywords: ['name', 'photo', 'avatar', 'picture', 'phone', 'mobile', 'whatsapp', 'account'],
   },
   {
+    title: 'Sign-in & security',
+    where: 'Account menu › Account',
+    href: routes.account.security(),
+    keywords: [
+      'change email',
+      'email',
+      'passkey',
+      'fingerprint',
+      'face id',
+      'sign-in history',
+      'security',
+    ],
+  },
+  {
+    title: 'Sessions',
+    where: 'Account menu › Account',
+    href: routes.account.sessions(),
+    keywords: ['devices', 'sign out', 'log out', 'logged in', 'sessions', 'lost phone'],
+  },
+  {
     title: 'Your stores',
     where: 'Account menu › Account › Stores',
     href: routes.account.stores(),

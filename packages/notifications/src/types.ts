@@ -72,6 +72,16 @@ export type TemplateId =
    */
   | 'staff_invite'
   /**
+   * PLATFORM message: the code that confirms a member's NEW sign-in email (Account → Sign-in &
+   * security → Change email). Sent to the new address; `code` is the one-time code. Email only.
+   */
+  | 'email_change_code'
+  /**
+   * PLATFORM message: tells the OLD address that the member's sign-in email was changed, so a
+   * change they did not make does not go unnoticed. `emailChange.newEmail` is masked. Email only.
+   */
+  | 'email_changed'
+  /**
    * To a SUPPLIER: the store's purchase order, with the PDF attached. Sent from the admin's
    * "Email to supplier" through the store's own sender email. Email only.
    */
@@ -199,6 +209,8 @@ export type TemplateData = {
   contactMessage?:
     | { name: string; email: string; phone: string; text: string; path: string }
     | undefined
+  /** For email_changed: the new sign-in address, masked ("a•••@gmail.com"). */
+  emailChange?: { newEmail: string } | undefined
   /** For staff_invite: who sent it, the role offered and the platform's own name (PLATFORM_EMAIL_NAME). */
   staffInvite?:
     | {

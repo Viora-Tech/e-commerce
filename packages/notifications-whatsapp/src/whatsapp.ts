@@ -50,7 +50,10 @@ export function templateParams(template: TemplateId, d: TemplateData): string[] 
       return [d.customerName, d.storeName, n, d.links?.[0]?.url ?? '-']
     case 'login_code':
     case 'account_deletion_code':
+    case 'email_change_code':
       return [d.code ?? '-', d.storeName]
+    case 'email_changed':
+      return [d.storeName, d.emailChange?.newEmail ?? '-']
     case 'login_link':
     case 'newsletter_confirm':
     case 'staff_invite':
