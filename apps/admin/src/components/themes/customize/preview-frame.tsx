@@ -13,6 +13,7 @@ import {
 import { CANVAS_DROP_CSS, installMediaDrop } from '@/lib/customize-media-drop'
 import { useCustomizePuck } from '@/lib/customize-puck'
 import { useLiquidHead, usePreviewMode, useThemePreview } from '@/lib/customize-theme-context'
+import { CANVAS_ZOOM_VAR, useCanvasZoom } from '@/lib/customize-zoom'
 import CanvasInsertLine from './canvas-insert-line'
 
 type PreviewFrameProps = {
@@ -43,6 +44,7 @@ export default function PreviewFrame({ children, document }: PreviewFrameProps) 
   const mode = usePreviewMode()
   const liquid = useLiquidHead()
   const reducedMotion = useReducedMotion()
+  const { zoom } = useCanvasZoom()
   const getPuck = useGetPuck()
   // Popups and the cookie banner open in the canvas only while selected (EditorOverlay).
   const selectedId = useCustomizePuck((s) => {
@@ -115,6 +117,17 @@ export default function PreviewFrame({ children, document }: PreviewFrameProps) 
       root.style.removeProperty('--admin-accent-soft')
     }
   }, [document])
+
+  // The canvas zoom, for the editor chrome inside it that keeps its on-screen size
+  // (`UNZOOMED`, vendor-puck.css outlines).
+  // A stylesheet rather than an inline style: the storefront rewrites the root's `style`.
+  useEffect(() => {
+    if (!document) return
+    const style = document.createElement('style')
+    style.textContent = `:root { ${CANVAS_ZOOM_VAR}: ${zoom}; }`
+    document.head.appendChild(style)
+    return () => style.remove()
+  }, [document, zoom])
 
   // Pictures dragged in from the Media panel land in the section under the pointer.
   useEffect(() => {

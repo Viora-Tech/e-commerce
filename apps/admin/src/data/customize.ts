@@ -344,7 +344,13 @@ export const customizeContent = {
   bar: {
     themes: 'Themes',
     device: 'Preview size',
-    width: { desktop: 'Full width', tablet: '768 px', mobile: '390 px' },
+    zoom: {
+      label: (px: number, zoom: string) => `Page ${px} px wide, shown at ${zoom}. Change zoom`,
+      px: (px: number) => `${px} PX`,
+      zoomIn: 'Zoom in',
+      zoomOut: 'Zoom out',
+      fit: (zoom: string) => `Fit (${zoom})`,
+    },
     preview: 'Preview',
     publish: 'Publish',
     undo: 'Undo',

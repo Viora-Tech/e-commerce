@@ -28,6 +28,7 @@ import { useCopy } from '@/hooks/use-copy'
 import { useCustomizePuck } from '@/lib/customize-puck'
 import { routes } from '@/lib/routes'
 import type { PreviewDevice } from '../theme-preview'
+import ZoomMenu from './zoom-menu'
 
 type CustomizeTopBarProps = {
   name: string
@@ -58,7 +59,8 @@ const ICON_BUTTON =
 
 /**
  * Customize's bar (Figma "Website builder"): back to Themes, theme name and Live chip on the
- * left; the page switcher centred; device switch, undo and redo, Preview and Publish on the right.
+ * left; the page switcher centred; device switch, the "1440 PX / 60 %" zoom readout, undo and redo,
+ * Preview and Publish on the right.
  * On the live theme Publish commits the saved drafts (what Save did); on a draft theme the key
  * button stays Save and the menu publishes the whole theme.
  */
@@ -126,9 +128,7 @@ export default function CustomizeTopBar({
             </button>
           ))}
         </fieldset>
-        <span className="hidden min-w-16 text-caption text-muted-foreground tabular-nums xl:block">
-          {copy.width[device]}
-        </span>
+        <ZoomMenu />
         <button
           type="button"
           onClick={history.back}

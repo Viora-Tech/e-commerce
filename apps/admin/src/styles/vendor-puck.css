@@ -103,9 +103,10 @@
   --puck-color-selection-bg: transparent;
 }
 
+/* One screen pixel at any canvas zoom (`--canvas-zoom`, lib/customize-zoom.ts). */
 [data-puck-overlay] [class*="DraggableComponent-overlay_"] {
-  outline: 1px solid var(--primary);
-  outline-offset: -1px;
+  outline: calc(1px / var(--canvas-zoom, 1)) solid var(--primary);
+  outline-offset: calc(-1px / var(--canvas-zoom, 1));
   background: transparent;
 }
 

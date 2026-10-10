@@ -16,7 +16,7 @@ type PuckState = {
 /** Marks the block a dragged picture would land in; styled in `CANVAS_DROP_CSS`. */
 const DROP_ATTR = 'data-media-drop'
 
-export const CANVAS_DROP_CSS = `[${DROP_ATTR}] { outline: 2px dashed var(--admin-accent, currentColor); outline-offset: -2px; }`
+export const CANVAS_DROP_CSS = `[${DROP_ATTR}] { outline: calc(2px / var(--canvas-zoom, 1)) dashed var(--admin-accent, currentColor); outline-offset: calc(-2px / var(--canvas-zoom, 1)); }`
 
 /**
  * Lets a picture dragged from the Media panel be dropped onto a section in the canvas: the

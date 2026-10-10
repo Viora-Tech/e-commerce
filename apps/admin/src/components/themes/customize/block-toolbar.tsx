@@ -14,6 +14,7 @@ import type { CustomizeDoc } from '@/lib/customize-doc'
 import { sectionName } from '@/lib/customize-insert'
 import { useCustomizePuck } from '@/lib/customize-puck'
 import { findBlock, locateBlock, slotOwner, stepActions, zoneItems } from '@/lib/customize-slots'
+import { UNZOOMED } from '@/lib/customize-zoom'
 import { BLOCK_TOOLBAR_FORMAT_SLOT } from './block-toolbar-format'
 import BlockToolbarMore from './block-toolbar-more'
 
@@ -146,9 +147,10 @@ export default function BlockToolbar({
   return (
     <>
       {children}
-      {/* A band from 2.125rem above the block to its bottom: the bar rests at its top (on the
-          block's edge) and sticks to the top of the canvas while the block scrolls under it. */}
-      <div className="pointer-events-none absolute inset-x-0 -top-[2.125rem] bottom-0">
+      {/* A band from 2.125rem (on screen, at any canvas zoom) above the block to its bottom: the
+          bar rests at its top (on the block's edge) and sticks to the top of the canvas while
+          the block scrolls under it. The bar and chip undo the canvas zoom (`UNZOOMED`). */}
+      <div className="pointer-events-none absolute inset-x-0 -top-[calc(2.125rem/var(--canvas-zoom,1))] bottom-0">
         {isSelected ? (
           <motion.div
             ref={setBar}
@@ -159,6 +161,7 @@ export default function BlockToolbar({
             {...fade}
             className={cn(
               BAR,
+              UNZOOMED,
               // While text is being edited the format controls replace the block actions.
               '[&:has([data-block-toolbar-format]>*)_[data-block-actions]]:hidden',
             )}
@@ -237,6 +240,7 @@ export default function BlockToolbar({
             {...fade}
             className={cn(
               CHIP,
+              UNZOOMED,
               // Rests on the block's edge like the bar (2.125rem band minus its own height).
               'sticky top-1 mt-[0.5625rem] w-fit border border-border bg-popover text-popover-foreground',
             )}
