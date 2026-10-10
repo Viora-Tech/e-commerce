@@ -17,6 +17,7 @@ import {
   toDailyPoints,
   toWeeklyPoints,
 } from './analytics-buckets'
+import { type GrowthOutcomes, growthOutcomes } from './growth-outcomes.service'
 
 /** Orders placed before attribution existed, or without a beacon (API, drafts), have no channel. */
 export type OverviewChannel = MarketingChannel | 'untracked'
@@ -102,6 +103,8 @@ export type MarketingOverview = {
   /** The best-performing non-direct, non-other source this period, or null with too little data. */
   bestSource: SourceKey | null
   campaigns: CampaignRow[]
+  /** What marketing earned: campaigns, automations, discounts and links (Figma outcomes). */
+  outcomes: GrowthOutcomes
 }
 
 const TOP_CAMPAIGNS = 10
@@ -462,5 +465,6 @@ export async function marketingOverview(
     sources,
     bestSource: bestSource(sources),
     campaigns: await campaignRows(tx, sessions, orders),
+    outcomes: await growthOutcomes(tx, range, opts.now ?? new Date()),
   }
 }
