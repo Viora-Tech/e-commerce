@@ -158,6 +158,8 @@ export const customizeContent = {
     emptyHint: 'Try another word, or clear the search.',
     clearSearch: 'Clear search',
     by: (source: string) => `by ${source}`,
+    add: 'Add',
+    picture: (label: string) => `${label} with its default settings`,
     title: 'Add section',
     descriptions: {
       Hero: 'A large banner with a heading, text and a button',
