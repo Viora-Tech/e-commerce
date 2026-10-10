@@ -1,0 +1,172 @@
+---
+title: Glossary
+description: Plain-words meanings of AWB, NDR, RTO, GSTIN, HSN, SKU, COD, UPI and the other terms you'll meet in your admin.
+---
+
+# Glossary
+
+The words you'll see in your admin, courier dashboards and GST paperwork, in plain words, with
+where each one shows up in Waimers.
+
+## Shipping
+
+### AWB
+
+**Air waybill**: the courier's tracking number for one parcel, printed on the shipping label.
+Every booked shipment gets one. In Waimers it's the **Waybill** column in **Orders →
+Shipments**, and **AWB** on the order's shipping panel.
+
+### NDR
+
+**Non-delivery report**: the courier tried to deliver and couldn't (shopper not home, phone off,
+address incomplete). You decide what happens next under **Delivery problems**: **Try delivery
+again**, **Use a new address** or **Send it back (RTO)**. See
+[Shipments](/merchant-guide/orders/shipments#delivery-problems-ndr).
+
+### RTO
+
+**Return to origin**: the parcel is sent back to your pickup address instead of the shopper.
+Shows as **Returning to you** on the shipment. If every parcel on an order comes back, the
+order's Fulfilment becomes **Returned**. Couriers usually charge for RTO, so fix NDRs quickly.
+
+### Pickup and manifest
+
+A **pickup** is a request for the courier to collect parcels from you on a date and time. A
+**manifest** is the one-page list of parcels in that pickup, signed by the delivery person.
+
+### Parcel
+
+One part of an order that is packed and sent from one place. Most orders are a single parcel.
+When your stock is in more than one warehouse, an order can split into parcels, each with its own
+GST invoice and courier booking. The shopper still has one order. See
+[Several warehouses and GST](/merchant-guide/money-and-gst/several-warehouses-and-gst).
+
+## Tax
+
+### GSTIN
+
+**GST identification number**: your 15-character GST registration, for example
+`27AAPFU0939F1ZV`. The first two digits are your state code (27 is Maharashtra). Enter it in
+**Settings → GST & invoices** and in the GST invoices app's **Business details**. A B2B buyer's GSTIN
+goes on their invoice as **Buyer GSTIN**.
+
+### HSN
+
+**Harmonised System of Nomenclature**: the code that says what kind of goods something is, which
+decides its GST rate. Cotton T-shirts are `6109`, for example. In Waimers it's the product's
+**HS (harmonised system) code** on the **Shipping** card, and it prints on every invoice line.
+
+### CGST, SGST and IGST
+
+The parts GST is split into. Selling within your own state: half **CGST** (central) and half
+**SGST** (state). Selling to another state: all **IGST** (integrated). Waimers picks the split
+from your state and the shipping state.
+
+### GSTR-1
+
+The monthly (or quarterly) GST return listing your sales. Export it from **Apps → GST invoices
+→ Returns → Export GSTR-1** and give it to your CA.
+
+### Credit note
+
+A GST document that reduces an earlier invoice, issued when you refund. Waimers issues one
+automatically for refunds on invoiced orders.
+
+## Payments
+
+### COD
+
+**Cash on delivery**: the shopper pays the delivery person. COD orders are never auto-cancelled
+for being unpaid. You can add a handling fee in **Settings → Payments**.
+
+### UPI
+
+**Unified Payments Interface**: India's instant bank-to-bank payments (GPay, PhonePe, Paytm,
+BHIM). Waimers takes UPI three ways: through Razorpay checkout, as a single-use QR that confirms
+itself (**UPI — confirmed automatically**), or straight to your UPI ID, which you confirm by hand
+(**UPI to your own ID — you confirm it**).
+
+### Webhook
+
+A message a service (like Razorpay) sends to your store the moment something happens, such as
+"payment captured". It's how orders mark themselves paid without you checking.
+
+### Pre-order
+
+Selling a product before it's in stock, with an expected ship date. Set it up under
+**Pre-order & launch** on the product.
+
+### Balance due
+
+On a pre-order paid with a deposit, the part still to be paid. Say ₹500 deposit on ₹3,000:
+₹2,500 is the balance due. You can't ship the order until it's collected.
+
+### Refund needed
+
+A payment arrived that the order can't keep (it was cancelled first, or paid twice). The order
+shows **Refund needed** until you refund it.
+
+## Products
+
+### SKU
+
+**Stock keeping unit**: your own code for one variant, like `KUR-M-IND` (kurta, medium, indigo).
+Set it in **Inventory → SKU (Stock Keeping Unit)**.
+
+### Variant
+
+One buyable version of a product, made from its options. A kurta with Size (S, M, L) and Colour
+(Indigo, Rust) has 6 variants, each with its own price, SKU and stock.
+
+### Collection
+
+A group of products shown as one category page: **Manual** (you pick the products) or
+**Automatic** (products matching conditions, such as "Price is less than 999").
+
+### MRP and compare-at price
+
+The **Compare at price** on a product is shown struck through next to the real price, so
+shoppers see the saving. Most Indian stores use it for the MRP.
+
+### Landed cost
+
+What a product really costs you once it is in your warehouse: the price you paid the supplier
+plus its share of freight, customs duty and clearing. IGST paid at customs is left out because
+you claim it back. See [Purchase orders and landed cost](/merchant-guide/stock/purchase-orders).
+
+### Weighted average cost
+
+The cost a product is shown at when you bought it at different prices. Each time you receive
+stock, the new cost is the average of what you had and what just arrived, weighted by quantity.
+
+### Inbound shipment
+
+One container, air shipment or Bill of Entry that carries several purchase orders. Its freight and
+customs are shared across everything in it.
+
+## Online store
+
+### Theme
+
+The design of your whole store: colours, fonts, and the sections on each page. One theme is
+**Live**; others wait in the theme library as **Unpublished**.
+
+### Section
+
+One building block of a page, like a banner, a product grid or a testimonials strip. You add,
+move and style sections in the editor.
+
+### App block
+
+A section that comes from an installed app, found in the editor's **Add** panel on the **Apps**
+tab: **Notify me** (Back in stock), **Delivery checker** (Delhivery, Shiprocket) and
+**Pre-order countdown** (built in).
+
+### Template
+
+The layout for one kind of page (home, product, collection, cart...). A product can use an
+alternate template for a different look.
+
+## Related guides
+
+<RelatedGuides ids={['shipments', 'gst', 'payments', 'products']} />

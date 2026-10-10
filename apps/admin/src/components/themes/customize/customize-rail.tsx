@@ -39,7 +39,7 @@ const ITEMS: { panel: RailPanel; icon: typeof Plus }[] = [
 ]
 
 /** The editor's page in the merchant guide, behind the rail's help button. */
-export const EDITOR_HELP_URL = `${siteConfig.urls.docs}/merchant-guide/selling/online-store`
+export const EDITOR_HELP_URL = `${siteConfig.urls.docs}/merchant-guide/online-store/website-builder`
 
 const ITEM = cn(
   'flex size-10 items-center justify-center rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground [&_svg]:size-5',

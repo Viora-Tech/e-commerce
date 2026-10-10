@@ -14,7 +14,7 @@ the [Vercel AI SDK](https://ai-sdk.dev) directly; they go through a small interf
 | Provider | `packages/ai/src/provider.ts` | `aiProvider()` reads `AI_PROVIDER` and the gateway keys; `aiModel(feature, env, tier)` returns the model or `null` (AI off) |
 | Features and models | `packages/ai/src/features.ts` | `AI_FEATURES`, the two `MODEL_TIERS` (fast, strong), `FEATURE_MODELS` (tier, output cap, temperature, tool steps per feature), `tierFor` and `TIER_CALL_WEIGHT` |
 | Injection guard | `packages/ai/src/guard-text.ts` | `guardData` (store text made safe for a model), `DATA_RULES` (the prompt rule) |
-| Assistant | `packages/ai/src/assistant/` | prompt, hard limits (`ASSISTANT_LIMITS`), page context (`pageContextFor`); see [AI assistant](./ai-assistant) |
+| Assistant | `packages/ai/src/assistant/` | prompt, hard limits (`ASSISTANT_LIMITS`), page context (`pageContextFor`); see [AI assistant](/developer-docs/building/ai-assistant) |
 | Plans | `packages/ai/src/plans.ts` | `PLAN_QUOTAS` (calls and tokens per month per plan), `checkQuota`, `aiMonth` (IST month) |
 | Prompts and schemas | `packages/ai/src/<feature>/` | the feature's instructions and its output schema |
 | Client-safe surface | `@commerce/ai/client` | features, plans, schemas: safe in `'use client'` code |
@@ -110,7 +110,7 @@ and stops.
 
 A tool with `risk: 'propose'` runs, but changes nothing in the store: it validates the model's
 input and stores a proposal. The AI assistant's write tools are all `propose` tools; the change
-itself runs only from the merchant's Approve, outside the model (see [AI assistant](./ai-assistant)).
+itself runs only from the merchant's Approve, outside the model (see [AI assistant](/developer-docs/building/ai-assistant)).
 
 ## What data goes to the model
 
@@ -154,7 +154,7 @@ Say you are adding "Reply to a review".
 
    For a streamed, tool-using feature copy `assistant/assistant.ts`: `streamAnswer` plus tools
    built with `defineAiTool`, each opening its own `withStore` for `runtime.storeId`. To give the
-   assistant a new tool instead of a new feature, see [AI assistant](./ai-assistant).
+   assistant a new tool instead of a new feature, see [AI assistant](/developer-docs/building/ai-assistant).
 4. **Procedure**: add it to `packages/api/src/routers/ai.ts` with
    `canDetached(permissions.X)`, and give `ai.status` a boolean for the button (map the feature
    to its permission in `settings.service.ts`). Add the procedure to the cross-store leak test's

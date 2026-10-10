@@ -1,0 +1,315 @@
+---
+title: What's new
+description: Everything shipped, newest first. A plain-words summary of each big day, then every merged pull request grouped by area.
+---
+
+# What's new
+
+Everything we've shipped, newest first. Big days get a plain-words summary below. The tables after
+that list every change by area, one merged pull
+request per row; select the number to see exactly what changed.
+
+<Callout type="info">
+  This page is built from the merged pull request titles in the repository (`git log
+  --merges`), so it matches what's actually in the product. **Fix** marks a bug fix.
+</Callout>
+
+## 10 October 2026
+
+A big day: about 80 changes. In plain words, grouped by what you do.
+
+### Website builder
+
+- **Click any text to edit it**, in every section, not only a few. Select words for **Bold**,
+  **Italic**, **Underline** and **Link**.
+- **One bar above each block** with move up and down, duplicate, remove, hide and copy.
+- **Section settings are easier**: width and alignment as buttons, spacing for each screen with
+  **−** and **+** and quick sizes, colour swatches, a background colour or picture, corners,
+  border, shadow, show or hide on phone or computer, and an entrance animation you can preview.
+  Almost every section has them now, including the hero, header and footer.
+- **Pick a style when you add a section**, such as a hero as a slideshow, centred, split or with
+  a video. **Pictures in the Add panel** show what each section looks like.
+- **20 new sections**: heroes, logo cloud, stat cards, calls to action, feature cards, how it
+  works, testimonials, FAQ, comparison table, plans, lookbook, email signup band, timeline, team
+  and trust badges.
+- **New side panels**: **Pages**, **Media** (click or drag a picture onto a block) and **Audit**,
+  which finds pictures with no description, buttons with no link and hard-to-read colours. A path
+  at the top of the settings shows where you are.
+- **Zoom** from 25 % to 200 %. Phone, tablet and computer previews now use the real screen width.
+- **Templates**: blogs and blog posts can use different layouts; each layout shows how many items
+  use it and can be renamed, duplicated or deleted.
+- **Use content from…**: fill a list of rows (questions, quotes, team) from your content types or
+  a collection's products.
+- **Version history**: every time a theme goes live, a version is kept. **Preview** or **Restore**
+  one. The Themes page shows a picture of each theme and who saved it last.
+- **Shopify theme import now brings product, collection and page templates**, not only the home
+  page. If you imported a theme earlier, import it again to get them.
+
+Always try changes on a duplicated theme first. See [Online store](/merchant-guide/online-store/website-builder).
+
+### Stock and purchasing
+
+- **A new Stock menu**: Inventory, Purchase orders, Inbound shipments, Suppliers and Transfers.
+  See [Stock](/merchant-guide/stock/overview).
+- **Suppliers**, with their currency and GSTIN.
+- **Purchase orders in any currency**, with an exchange rate, and charges such as freight, customs
+  (BCD, SWS, IGST) and clearing agent fees, split by weight or value.
+- **Landed cost**: the real cost of each product, with a weighted average on every receipt, and
+  **late bills** that update the cost of what is still on the shelf.
+- **Receive with accept and reject**, **cancel and reopen**.
+- **Upload a bill and let Vextro read it**, then check and apply.
+- **Print, download or email a purchase order** to the supplier.
+- **Bulk edit**: change prices, stock, tags and more for many products in a spreadsheet.
+  See [Products and collections](/merchant-guide/products/products-collections).
+
+### Several warehouses and GST
+
+- **Send online orders from more than one warehouse**, in the order you choose.
+- A big order can **split into parcels**, each billed by its own warehouse's GST number, with one
+  **tax invoice per parcel** and **credit notes per GST number**.
+- Shoppers see **Ships in 2 parcels** at checkout, on the thank-you page and in the email.
+- Orders show **Ships from**, and **Needs stock moved** when a part must wait for a transfer.
+  See [Several warehouses and GST](/merchant-guide/money-and-gst/several-warehouses-and-gst).
+
+### Profit
+
+- Every order has a **Profit** card: sales without GST, minus the cost of goods, courier,
+  payment fees and returns.
+- **Settings → Costs for profit**, and **Profit by month** and **Profit by product** reports.
+  See [Profit](/merchant-guide/analytics/profit).
+
+### Shipping
+
+- **Shipments** has tabs (To book, Booked, In transit, Delivered, Returned), **Book selected**,
+  a **Pickups** panel, a delivery-problems panel and your Shiprocket wallet at a glance.
+  See [Shipments](/merchant-guide/orders/shipments).
+- **Abandoned checkouts** has its own page for each cart, with **Send reminder** and **Copy cart link**.
+  See [Orders](/merchant-guide/orders/orders).
+
+### Growth and analytics
+
+- **Links**: short links like `yourstore.in/l/diwali` that count clicks, orders and sales.
+- **Growth overview** says what your marketing earned: campaigns, automations, discounts and links.
+  See [Growth](/merchant-guide/growth/overview).
+- **Live view** shows how many people are on your store right now, with a pause button.
+- **Umami**: visitor analytics without cookies, with a **Visitors** section on Analytics.
+  See [Analytics](/merchant-guide/analytics/overview) and
+  [Visitor analytics (Umami)](/merchant-guide/analytics/visitor-analytics).
+
+### Admin polish
+
+- **A new look** across the admin: new sidebar and top bar, Home, Orders, Products, Customers,
+  Content, Analytics, Growth, Apps, Settings and the login page. Light and dark.
+- **Discounts**: **Pause**, **Resume** and **Duplicate**.
+- **Files**: how much space you use, a **Documents** tab and a list of your largest files.
+  See [Files and storage](/merchant-guide/content/files-and-storage).
+- **Apps**: a **Recommended for your store** strip. See [Apps](/merchant-guide/apps/app-store).
+- **Hindi** for more screens, including Umami and the purchase order form.
+
+## Highlights from late September
+
+- **Shipments workspace** with Delhivery and Shiprocket: compare rates, print labels, schedule
+  pickups, handle delivery problems ([Shipments](/merchant-guide/orders/shipments)).
+- **Theme editor**: per-section Layout, Spacing, Style and Advanced settings, app blocks, and a
+  new editor shell ([Online store](/merchant-guide/online-store/website-builder)).
+- **Data protection**: encrypted credentials and customer phone numbers, encrypted backups, key
+  rotation ([Security](/merchant-guide/money-and-gst/security)).
+- **Apps** split into Built-in apps and Connections, with local disk as the default storage
+  ([Apps](/merchant-guide/apps/app-store)).
+
+## Shipping
+
+| Date | What changed | PR |
+| --- | --- | --- |
+| 26 Sep 2026 | Shipments: Ready to ship list, box presets, fix store picker | [#145](https://github.com/Viora-Tech/e-commerce/pull/145) |
+| 25 Sep 2026 | Shipping: Shiprocket connector + multi-courier Shipments workspace | [#137](https://github.com/Viora-Tech/e-commerce/pull/137) |
+| 25 Sep 2026 | Delhivery: Guided, near-one-click Connect page | [#134](https://github.com/Viora-Tech/e-commerce/pull/134) |
+| 25 Sep 2026 | **Fix:** Admin: Delhivery Connect page rendered blank | [#133](https://github.com/Viora-Tech/e-commerce/pull/133) |
+| 25 Sep 2026 | Shipping: Courier connector, Delhivery app, and the Shipments workspace | [#127](https://github.com/Viora-Tech/e-commerce/pull/127) |
+| 24 Sep 2026 | Admin: Settings > Shipping > Shipping rates | [#109](https://github.com/Viora-Tech/e-commerce/pull/109) |
+| 24 Sep 2026 | Shipping: Zones and rates, charged at checkout | [#106](https://github.com/Viora-Tech/e-commerce/pull/106) |
+
+## Payments and checkout
+
+| Date | What changed | PR |
+| --- | --- | --- |
+| 26 Sep 2026 | Easy payments setup: guided first-time setup, Shoppers can pay with, ₹1 test order, Cashfree, Connect Razorpay | This release |
+| 24 Sep 2026 | Auto-confirmed UPI (Razorpay QR), transfer reminders, Pending UPI filter | [#119](https://github.com/Viora-Tech/e-commerce/pull/119) |
+| 24 Sep 2026 | Pre-orders: Collect the pre-order balance | [#116](https://github.com/Viora-Tech/e-commerce/pull/116) |
+| 24 Sep 2026 | Catalog: Pre-order settings, launch countdown, deposit checkout | [#114](https://github.com/Viora-Tech/e-commerce/pull/114) |
+| 24 Sep 2026 | Cancel unpaid online orders after a store window | [#111](https://github.com/Viora-Tech/e-commerce/pull/111) |
+| 24 Sep 2026 | Payment attempts, gateway after commit, idempotent webhooks | [#110](https://github.com/Viora-Tech/e-commerce/pull/110) |
+| 23 Sep 2026 | **Fix:** Collection-scoped discounts load each line's collections | [#98](https://github.com/Viora-Tech/e-commerce/pull/98) |
+| 23 Sep 2026 | **Fix:** Discounts and refunds: Atomic usage limits and a locked refund ceiling | [#97](https://github.com/Viora-Tech/e-commerce/pull/97) |
+| 23 Sep 2026 | **Fix:** Checkout: Lock the cart and replay the order on a second submit | [#96](https://github.com/Viora-Tech/e-commerce/pull/96) |
+| 23 Sep 2026 | Issue, sell and redeem gift cards (migration 0048) | [#80](https://github.com/Viora-Tech/e-commerce/pull/80) |
+| 22 Sep 2026 | Codes and automatic discounts, admin CRUD, checkout application | [#34](https://github.com/Viora-Tech/e-commerce/pull/34) |
+
+## Orders
+
+| Date | What changed | PR |
+| --- | --- | --- |
+| 24 Sep 2026 | Orders: Split order status into lifecycle, payment and fulfilment | [#120](https://github.com/Viora-Tech/e-commerce/pull/120) |
+| 24 Sep 2026 | Admin: Format order lines table so lint passes on main | [#108](https://github.com/Viora-Tech/e-commerce/pull/108) |
+| 24 Sep 2026 | Admin: Orders list and detail on the Saleor layout | [#102](https://github.com/Viora-Tech/e-commerce/pull/102) |
+| 23 Sep 2026 | **Fix:** Core: Release committed stock on fulfil and cancel | [#72](https://github.com/Viora-Tech/e-commerce/pull/72) |
+| 22 Sep 2026 | Orders: Order detail with fulfilment, GST totals, payment collection and grouped timeline | [#50](https://github.com/Viora-Tech/e-commerce/pull/50) |
+| 22 Sep 2026 | Draft orders and abandoned checkouts with recovery | [#49](https://github.com/Viora-Tech/e-commerce/pull/49) |
+| 22 Sep 2026 | Admin: A distinct colour per order status | [#47](https://github.com/Viora-Tech/e-commerce/pull/47) |
+| 22 Sep 2026 | Admin: One StatusLabel component for every status; orders columns match the frame | [#46](https://github.com/Viora-Tech/e-commerce/pull/46) |
+| 22 Sep 2026 | Admin: Orders list and detail matched to the Dealport frame | [#37](https://github.com/Viora-Tech/e-commerce/pull/37) |
+| 21 Sep 2026 | Admin: Order detail, Shopify route structure and polish | [#24](https://github.com/Viora-Tech/e-commerce/pull/24) |
+
+## Online store and editor
+
+| Date | What changed | PR |
+| --- | --- | --- |
+| 26 Sep 2026 | Themes: per-section settings, accent colour, editor fixes | [#152](https://github.com/Viora-Tech/e-commerce/pull/152) |
+| 26 Sep 2026 | Modern editor chrome, canvas dock, field overrides | [#148](https://github.com/Viora-Tech/e-commerce/pull/148) |
+| 25 Sep 2026 | **Fix:** Blocks: Empty tabs/collections no longer 500 the storefront | [#144](https://github.com/Viora-Tech/e-commerce/pull/144) |
+| 25 Sep 2026 | Editor: Shell v2 — icon rail, Sections/Apps add panel, visible motion | [#138](https://github.com/Viora-Tech/e-commerce/pull/138) |
+| 25 Sep 2026 | Editor: Upgrade Puck to 0.23, new canvas overlay and shortcuts | [#132](https://github.com/Viora-Tech/e-commerce/pull/132) |
+| 25 Sep 2026 | Editor: Shared media picker, page switcher, add-section live previews | [#129](https://github.com/Viora-Tech/e-commerce/pull/129) |
+| 25 Sep 2026 | **Fix:** Editor: Zone heights, default props on load, empty images | [#125](https://github.com/Viora-Tech/e-commerce/pull/125) |
+| 23 Sep 2026 | Online store: Shopify-style Customize editor with templates and section library | [#71](https://github.com/Viora-Tech/e-commerce/pull/71) |
+| 23 Sep 2026 | Online store: Themes library, full-screen theme editor route, preferences | [#68](https://github.com/Viora-Tech/e-commerce/pull/68) |
+| 23 Sep 2026 | Navigation: Shopify-style drag and drop menu editor with nested items | [#65](https://github.com/Viora-Tech/e-commerce/pull/65) |
+| 23 Sep 2026 | Online store: Theme editor with live storefront preview | [#64](https://github.com/Viora-Tech/e-commerce/pull/64) |
+| 23 Sep 2026 | Navigation: Store menus for the storefront header and footer | [#61](https://github.com/Viora-Tech/e-commerce/pull/61) |
+| 20 Sep 2026 | Puck page builder, pages API, storefront renders stored pages | [#7](https://github.com/Viora-Tech/e-commerce/pull/7) |
+
+## Apps
+
+| Date | What changed | PR |
+| --- | --- | --- |
+| 26 Sep 2026 | **Fix:** Shopify importer: Match customers by phone blind index | [#150](https://github.com/Viora-Tech/e-commerce/pull/150) |
+| 25 Sep 2026 | App blocks SDK for installed apps | [#142](https://github.com/Viora-Tech/e-commerce/pull/142) |
+| 25 Sep 2026 | Split Apps into Built-in apps and Connections; local disk as default storage | [#135](https://github.com/Viora-Tech/e-commerce/pull/135) |
+| 25 Sep 2026 | Apps gallery, premium app shell, first-run setup checklist | [#124](https://github.com/Viora-Tech/e-commerce/pull/124) |
+| 24 Sep 2026 | Back-in-stock alerts app | [#117](https://github.com/Viora-Tech/e-commerce/pull/117) |
+| 23 Sep 2026 | Apps credit the open-source projects they are built on | [#95](https://github.com/Viora-Tech/e-commerce/pull/95) |
+| 23 Sep 2026 | Apps: Shopify importer (CSV and Admin API, preview, idempotent re-runs) | [#87](https://github.com/Viora-Tech/e-commerce/pull/87) |
+| 23 Sep 2026 | Admin: Installed apps nest under Apps in the sidebar | [#70](https://github.com/Viora-Tech/e-commerce/pull/70) |
+| 23 Sep 2026 | Apps: GST invoices app with invoicely templates, credit notes and GSTR-1 export | [#69](https://github.com/Viora-Tech/e-commerce/pull/69) |
+
+## Products and inventory
+
+| Date | What changed | PR |
+| --- | --- | --- |
+| 24 Sep 2026 | Admin: Products list and detail on the Saleor layout | [#104](https://github.com/Viora-Tech/e-commerce/pull/104) |
+| 23 Sep 2026 | **Fix:** Core: Automatic collection price rules never matched | [#85](https://github.com/Viora-Tech/e-commerce/pull/85) |
+| 23 Sep 2026 | **Fix:** API: Permission checks on the collections router | [#74](https://github.com/Viora-Tech/e-commerce/pull/74) |
+| 23 Sep 2026 | Locations, inventory table, purchase orders with receiving, transfers | [#66](https://github.com/Viora-Tech/e-commerce/pull/66) |
+| 22 Sep 2026 | Collections from the Dealport frame, storefront pages and Puck block | [#58](https://github.com/Viora-Tech/e-commerce/pull/58) |
+| 22 Sep 2026 | Products: Product form laid out from the Dealport Add Product frame | [#57](https://github.com/Viora-Tech/e-commerce/pull/57) |
+| 22 Sep 2026 | Products: List filters, bulk actions, CSV import and export, richer product form | [#55](https://github.com/Viora-Tech/e-commerce/pull/55) |
+| 22 Sep 2026 | Storage provider SDK with R2 adapter, product media upload and library | [#36](https://github.com/Viora-Tech/e-commerce/pull/36) |
+| 21 Sep 2026 | Admin: Product create/edit form with variants, inventory and SEO | [#17](https://github.com/Viora-Tech/e-commerce/pull/17) |
+
+## Storefront
+
+| Date | What changed | PR |
+| --- | --- | --- |
+| 23 Sep 2026 | URL redirects on the storefront, read-only imported orders (migration 0050) | [#86](https://github.com/Viora-Tech/e-commerce/pull/86) |
+| 23 Sep 2026 | Storefront collection filters and sorting, search results page, predictive search | [#84](https://github.com/Viora-Tech/e-commerce/pull/84) |
+| 23 Sep 2026 | Storefront shopper accounts: email code sign-in, orders, addresses, profile | [#83](https://github.com/Viora-Tech/e-commerce/pull/83) |
+| 23 Sep 2026 | Settings: Custom domains with verification, SSL status and primary redirects | [#82](https://github.com/Viora-Tech/e-commerce/pull/82) |
+| 23 Sep 2026 | Content: Metaobjects, metafield definitions and storefront data layer | [#81](https://github.com/Viora-Tech/e-commerce/pull/81) |
+| 23 Sep 2026 | Storefront: SEO foundation: sitemap, robots, llms.txt, canonicals, JSON-LD | [#78](https://github.com/Viora-Tech/e-commerce/pull/78) |
+| 23 Sep 2026 | **Fix:** Admin: Theme toggle hydration mismatch | [#77](https://github.com/Viora-Tech/e-commerce/pull/77) |
+| 23 Sep 2026 | Storefront: Motion animations for the ported Zero Drift effects | [#75](https://github.com/Viora-Tech/e-commerce/pull/75) |
+| 23 Sep 2026 | Storefront: Dark mode toggle (light/dark/device), footer position, theme-color | [#73](https://github.com/Viora-Tech/e-commerce/pull/73) |
+| 23 Sep 2026 | Content: Blog posts with storefront blog pages | [#67](https://github.com/Viora-Tech/e-commerce/pull/67) |
+| 20 Sep 2026 | Storefront: Hostname routing and first product page | [#2](https://github.com/Viora-Tech/e-commerce/pull/2) |
+
+## Customers, marketing and analytics
+
+| Date | What changed | PR |
+| --- | --- | --- |
+| 27 Sep 2026 | Analytics: Live view globe zooms into India with sharper, finer dots | [#188](https://github.com/Viora-Tech/e-commerce/pull/188) |
+| 25 Sep 2026 | Admin: Cobe Live view globe replaces the India SVG order map | [#131](https://github.com/Viora-Tech/e-commerce/pull/131) |
+| 23 Sep 2026 | Marketing: automations, abandoned-cart recovery moved in, newsletter welcome | [#91](https://github.com/Viora-Tech/e-commerce/pull/91) |
+| 23 Sep 2026 | Marketing: email and WhatsApp campaigns | [#90](https://github.com/Viora-Tech/e-commerce/pull/90) |
+| 23 Sep 2026 | Marketing: channel and UTM attribution, Marketing overview | [#88](https://github.com/Viora-Tech/e-commerce/pull/88) |
+| 23 Sep 2026 | Analytics: Full reports catalogue, India-first, with period comparison | [#76](https://github.com/Viora-Tech/e-commerce/pull/76) |
+| 22 Sep 2026 | Customers: List rebuilt to the Dealport frame with overview chart | [#56](https://github.com/Viora-Tech/e-commerce/pull/56) |
+| 22 Sep 2026 | Customers: Filters, bulk actions, richer detail and real segments | [#54](https://github.com/Viora-Tech/e-commerce/pull/54) |
+| 22 Sep 2026 | Analytics: Overview, reports and live view on real store data | [#53](https://github.com/Viora-Tech/e-commerce/pull/53) |
+| 21 Sep 2026 | Admin: Customers list and detail with customer records | [#31](https://github.com/Viora-Tech/e-commerce/pull/31) |
+
+## Admin
+
+| Date | What changed | PR |
+| --- | --- | --- |
+| 26 Sep 2026 | Admin: Unsaved-changes bar as a small floating pill | [#149](https://github.com/Viora-Tech/e-commerce/pull/149) |
+| 25 Sep 2026 | Admin: Add charts to the home dashboard | [#130](https://github.com/Viora-Tech/e-commerce/pull/130) |
+| 25 Sep 2026 | Rebuild the admin home page: briefing, not a KPI grid | [#126](https://github.com/Viora-Tech/e-commerce/pull/126) |
+| 24 Sep 2026 | **Fix:** Admin: Sidebar sections, Settings at the bottom, dark header controls | [#122](https://github.com/Viora-Tech/e-commerce/pull/122) |
+| 24 Sep 2026 | Admin: Premium UI pass | [#118](https://github.com/Viora-Tech/e-commerce/pull/118) |
+| 24 Sep 2026 | **Fix:** Admin: One top-left curve, panel flush right and bottom, no rail border | [#115](https://github.com/Viora-Tech/e-commerce/pull/115) |
+| 24 Sep 2026 | Admin: Bring back the rounded content panel | [#105](https://github.com/Viora-Tech/e-commerce/pull/105) |
+| 24 Sep 2026 | Admin: Saleor Dashboard layout foundations | [#100](https://github.com/Viora-Tech/e-commerce/pull/100) |
+| 23 Sep 2026 | Merchant-chosen admin accent colour | [#99](https://github.com/Viora-Tech/e-commerce/pull/99) |
+| 22 Sep 2026 | Store roles and permissions with a staff and roles settings page | [#59](https://github.com/Viora-Tech/e-commerce/pull/59) |
+| 22 Sep 2026 | UI: Rich colors on sonner toasts | [#52](https://github.com/Viora-Tech/e-commerce/pull/52) |
+| 22 Sep 2026 | Admin: Kit-styled sonner toasts, action errors as toasts | [#51](https://github.com/Viora-Tech/e-commerce/pull/51) |
+| 22 Sep 2026 | **Fix:** Admin: Info status tone readable in dark mode | [#48](https://github.com/Viora-Tech/e-commerce/pull/48) |
+| 22 Sep 2026 | Admin: Report card tabs switch the weekly chart series | [#45](https://github.com/Viora-Tech/e-commerce/pull/45) |
+| 22 Sep 2026 | Admin: Dashboard parity with the frame: live visitors card, add-product panel, kit glyphs | [#44](https://github.com/Viora-Tech/e-commerce/pull/44) |
+| 22 Sep 2026 | Admin: Kit design system (colours, type, space, effects, components) and dashboard rebuilt from it | [#43](https://github.com/Viora-Tech/e-commerce/pull/43) |
+| 22 Sep 2026 | Admin: Satoshi typeface, Hugeicons icon set, wordmark and avatar identity | [#42](https://github.com/Viora-Tech/e-commerce/pull/42) |
+| 22 Sep 2026 | Admin: Settings sections are real tabs that show only their own content | [#41](https://github.com/Viora-Tech/e-commerce/pull/41) |
+| 22 Sep 2026 | Admin: Settings section tabs above content; visible layered shadows | [#40](https://github.com/Viora-Tech/e-commerce/pull/40) |
+| 22 Sep 2026 | Admin: Dashboard matched to the Dealport frame; demo orders seed | [#35](https://github.com/Viora-Tech/e-commerce/pull/35) |
+| 22 Sep 2026 | **Fix:** Admin: Density tokens applied at the root (body 12px, table 12px, sidebar 15rem) | [#33](https://github.com/Viora-Tech/e-commerce/pull/33) |
+| 21 Sep 2026 | Admin: Rebuild pages 1:1 from the Dealport Figma frames | [#30](https://github.com/Viora-Tech/e-commerce/pull/30) |
+| 21 Sep 2026 | Admin: Design fixes pass 1 - copy, loading/error states, dead UI, save bar, radii | [#29](https://github.com/Viora-Tech/e-commerce/pull/29) |
+| 21 Sep 2026 | Admin: Settings, apps and pages on shadcn; remove Polaris | [#28](https://github.com/Viora-Tech/e-commerce/pull/28) |
+| 21 Sep 2026 | Admin: Smaller type scale (Shopify density) | [#25](https://github.com/Viora-Tech/e-commerce/pull/25) |
+| 21 Sep 2026 | Admin: Design system from Figma kit — tokens, shell, charts, dashboard | [#21](https://github.com/Viora-Tech/e-commerce/pull/21) |
+
+## Security and data protection
+
+| Date | What changed | PR |
+| --- | --- | --- |
+| 26 Sep 2026 | Data protection: secret fields, key rotation, encrypted backups, customer phone encryption | [#147](https://github.com/Viora-Tech/e-commerce/pull/147) |
+| 25 Sep 2026 | **Fix:** Security: Order IDOR, SVG XSS, path traversal, webhook auth, headers | [#139](https://github.com/Viora-Tech/e-commerce/pull/139) |
+| 25 Sep 2026 | **Fix:** API: Restore rate-limit imports dropped in #135 merge | [#136](https://github.com/Viora-Tech/e-commerce/pull/136) |
+| 24 Sep 2026 | Rate limiting: Dragonfly-backed limiter for auth and checkout paths | [#113](https://github.com/Viora-Tech/e-commerce/pull/113) |
+
+## Platform and tooling
+
+| Date | What changed | PR |
+| --- | --- | --- |
+| 25 Sep 2026 | **Fix:** Tests can never touch the dev database | [#143](https://github.com/Viora-Tech/e-commerce/pull/143) |
+| 25 Sep 2026 | Cleanup: one source of truth for money, dates, status types, colours | [#141](https://github.com/Viora-Tech/e-commerce/pull/141) |
+| 25 Sep 2026 | Guardrails: Architecture sweeps, server-only boundaries | [#140](https://github.com/Viora-Tech/e-commerce/pull/140) |
+| 25 Sep 2026 | **Fix:** Sentry v11 config import, dev memory blow-up, AWS SDK types | [#128](https://github.com/Viora-Tech/e-commerce/pull/128) |
+| 25 Sep 2026 | Ops: Error tracking (Sentry SDKs + GlitchTip) and database backups | [#123](https://github.com/Viora-Tech/e-commerce/pull/123) |
+| 24 Sep 2026 | Rebuild transactional emails with React Email | [#121](https://github.com/Viora-Tech/e-commerce/pull/121) |
+| 23 Sep 2026 | **Fix:** Database: Demo seed never places orders in the future | [#92](https://github.com/Viora-Tech/e-commerce/pull/92) |
+| 23 Sep 2026 | Keep local agent worktrees out of lint and git | [#79](https://github.com/Viora-Tech/e-commerce/pull/79) |
+| 23 Sep 2026 | Accept invitation page, idempotent demo seed, client import lint rule, tracked env example | [#63](https://github.com/Viora-Tech/e-commerce/pull/63) |
+| 23 Sep 2026 | Tests: Per-checkout test databases via TEST_DB_NAMESPACE | [#62](https://github.com/Viora-Tech/e-commerce/pull/62) |
+| 21 Sep 2026 | Enforce React component structure (checker in lint) and fix violations | [#32](https://github.com/Viora-Tech/e-commerce/pull/32) |
+| 21 Sep 2026 | Add design taste skills for agents | [#26](https://github.com/Viora-Tech/e-commerce/pull/26) |
+
+## Docs
+
+| Date | What changed | PR |
+| --- | --- | --- |
+| 26 Sep 2026 | Fix repo references to moved docs pages | [#154](https://github.com/Viora-Tech/e-commerce/pull/154) |
+| 26 Sep 2026 | Next.js docs layout with icons, switcher and our colours | [#153](https://github.com/Viora-Tech/e-commerce/pull/153) |
+| 26 Sep 2026 | Premium branded redesign of the Waimers Commerce docs site | [#151](https://github.com/Viora-Tech/e-commerce/pull/151) |
+| 26 Sep 2026 | Add Nextra docs site: merchant guide + developer docs | [#146](https://github.com/Viora-Tech/e-commerce/pull/146) |
+| 24 Sep 2026 | Record Aceternity UI Pro permission for builder blocks | [#103](https://github.com/Viora-Tech/e-commerce/pull/103) |
+| 23 Sep 2026 | OSS commerce gap analysis vs Medusa, Saleor, Vendure | [#94](https://github.com/Viora-Tech/e-commerce/pull/94) |
+| 23 Sep 2026 | Third-party notices, open-source radar and the rule for adapting code | [#93](https://github.com/Viora-Tech/e-commerce/pull/93) |
+| 22 Sep 2026 | Handoff note for fresh sessions | [#60](https://github.com/Viora-Tech/e-commerce/pull/60) |
+| 21 Sep 2026 | Admin design audit (redesign skill) | [#27](https://github.com/Viora-Tech/e-commerce/pull/27) |
+| 21 Sep 2026 | Architecture overview and scale roadmap | [#18](https://github.com/Viora-Tech/e-commerce/pull/18) |
+| 20 Sep 2026 | Branch naming and pull request workflow | [#1](https://github.com/Viora-Tech/e-commerce/pull/1) |
+
+## Related guides
+
+<RelatedGuides ids={["getting-started", "set-up", "architecture", "glossary"]} />

@@ -124,6 +124,7 @@
       "name": "@commerce/docs",
       "version": "0.0.0",
       "dependencies": {
+        "@commerce/config": "workspace:*",
         "@phosphor-icons/react": "^2.1.10",
         "@theguild/remark-mermaid": "^0.3.0",
         "mermaid": "^11.17.2",
