@@ -11,3 +11,5 @@ inspector frames (369:129537–369:131510).
   plays the chosen effect with the same poses as `section-reveal.tsx`; still under reduced motion.
 - Background colour (`background-field.tsx`): the custom swatch is the browser's colour picker,
   and a "Current" line names the colour and its hex, as in Figma.
+- Corner radius "Medium" is labelled "Med" so the four segments fit the 17.75rem inspector
+  without truncating; Shadow's three fit as they are.
