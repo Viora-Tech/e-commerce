@@ -290,7 +290,7 @@ export function sectionSettingsField(
               { label: 'Narrow', value: 'narrow' },
               { label: 'Normal', value: 'normal' },
               { label: 'Wide', value: 'wide' },
-              { label: 'Full width', value: 'full' },
+              { label: 'Full', value: 'full' },
             ],
           },
           alignment: {
@@ -371,6 +371,27 @@ export function sectionSettingsField(
       },
     },
   } as unknown as Fields[string]
+}
+
+/**
+ * Theme colours a section background can follow (stored by name, so they change with the colour
+ * scheme and dark mode). None of these names is a CSS colour, so they never clash with a
+ * typed custom colour, which `safeColour` still checks.
+ */
+export const SECTION_BACKGROUND_TOKENS = {
+  ink: 'var(--color-ink)',
+  brand: 'var(--color-brand)',
+  background: 'var(--color-bg)',
+  surface: 'var(--color-surface)',
+  accent: 'var(--color-accent)',
+} as const
+
+/** The CSS value of a stored section background: a theme colour name or a custom colour. */
+export function sectionBackground(value: string): string | null {
+  if (Object.hasOwn(SECTION_BACKGROUND_TOKENS, value)) {
+    return SECTION_BACKGROUND_TOKENS[value as keyof typeof SECTION_BACKGROUND_TOKENS]
+  }
+  return safeColour(value)
 }
 
 /** The responsive padding custom properties `.section-frame[data-content-width]` reads. */

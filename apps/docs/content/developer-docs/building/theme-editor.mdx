@@ -182,6 +182,15 @@ admin passes `@tiptap/extension-image` as `richtextExtensions` to `createBlocksC
 long-form fields (`inlineRichtextLong`) keep pictures through an edit. Tests:
 `test/lexical-html.test.ts`, `test/richtext-html.test.tsx`.
 
+### Section settings controls
+
+Every placed section carries the shared Section settings (`section-settings.ts`; the hero and the
+announcement bar a smaller `bleed` set). In the inspector's Advanced tab they use the Figma
+controls: segmented switches for width, alignment, corners and shadow, padding per screen size
+behind a device switch, the colour scheme as swatch chips, and the background as "Colour |
+Image", where theme colours are stored by name so they follow the scheme and dark mode
+(`settings-group-body.tsx` and the controls beside it).
+
 ## Motion
 
 All editor motion uses Motion (`motion/react`), 150 to 200 ms, easing out, never overshooting,
