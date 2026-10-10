@@ -15,7 +15,11 @@ import {
   listDefinitions,
   listEntries,
   listMetafieldDefinitions,
+  METAFIELD_OWNER_PERMISSIONS,
+  METAFIELD_READ_PERMISSIONS,
+  METAFIELD_WRITE_PERMISSIONS,
   MetafieldDefinitionWriteSchema,
+  type MetafieldOwnerType,
   MetafieldOwnerTypeSchema,
   MetaobjectDefinitionWriteSchema,
   MetaobjectWriteSchema,
@@ -29,7 +33,15 @@ import {
 } from '@commerce/core'
 import { ORPCError } from '@orpc/server'
 import { z } from 'zod'
-import { BULK_MAX, can, PAGE_MAX, PAGE_SIZE_MAX, SEARCH_MAX } from '../procedures'
+import {
+  BULK_MAX,
+  can,
+  canAny,
+  PAGE_MAX,
+  PAGE_SIZE_MAX,
+  SEARCH_MAX,
+  type StoreScope,
+} from '../procedures'
 
 /** Validation failures answer 400 with per-field messages the forms show inline. */
 async function invalidToBadRequest<T>(fn: () => Promise<T>): Promise<T> {
@@ -48,7 +60,35 @@ async function invalidToBadRequest<T>(fn: () => Promise<T>): Promise<T> {
 
 const read = () => can(permissions.CONTENT_READ)
 const write = () => can(permissions.CONTENT_WRITE)
+/** Content types and extra fields themselves: their shape, not their entries or values. */
+const manageTypes = () => can(permissions.CONTENT_MANAGE_TYPES)
 const id = z.object({ id: z.uuid() })
+
+/** Refuses unless the member may read (or write) extra fields on this kind of record. */
+function assertOwnerAccess(
+  scope: Pick<StoreScope, 'can'>,
+  ownerType: MetafieldOwnerType,
+  mode: 'read' | 'write',
+) {
+  const needed = METAFIELD_OWNER_PERMISSIONS[ownerType][mode]
+  if (scope.can(needed)) return
+  // Whoever manages the fields may list them for any owner (Settings → Custom data).
+  if (mode === 'read' && scope.can(permissions.CONTENT_MANAGE_TYPES)) return
+  throw new ORPCError('FORBIDDEN', { message: `Your role does not allow ${needed}` })
+}
+
+/** The shop's extra fields belong to the store itself, whatever id the caller sent. */
+const ownerIdFor = (
+  input: { ownerType: MetafieldOwnerType; ownerId?: string | undefined },
+  storeId: string,
+) => (input.ownerType === 'shop' ? storeId : input.ownerId)
+
+const OwnerInput = z
+  .object({ ownerType: MetafieldOwnerTypeSchema, ownerId: z.uuid().optional() })
+  .refine((o) => o.ownerType === 'shop' || o.ownerId !== undefined, {
+    message: 'Say which record the extra fields belong to',
+    path: ['ownerId'],
+  })
 
 /** Metaobject definitions and entries (Content → Content types in the admin). */
 export const metaobjectsRouter = {
@@ -67,14 +107,14 @@ export const metaobjectsRouter = {
       return { ...row, filled: await filledFieldKeys(context.tx, row.id) }
     }),
 
-  createDefinition: write()
+  createDefinition: manageTypes()
     .input(MetaobjectDefinitionWriteSchema)
     .handler(({ context, input }) =>
       invalidToBadRequest(() => createDefinition(context.tx, context.scope.storeId, input)),
     ),
 
   /** A ready-made content type (Size guide, FAQ, ...) from `METAOBJECT_PRESETS`. */
-  fromPreset: write()
+  fromPreset: manageTypes()
     .input(FromPresetInputSchema)
     .handler(({ context, input }) =>
       invalidToBadRequest(() =>
@@ -82,13 +122,13 @@ export const metaobjectsRouter = {
       ),
     ),
 
-  updateDefinition: write()
+  updateDefinition: manageTypes()
     .input(z.object({ id: z.uuid(), write: MetaobjectDefinitionWriteSchema }))
     .handler(({ context, input }) =>
       invalidToBadRequest(() => updateDefinition(context.tx, input.id, input.write)),
     ),
 
-  deleteDefinition: write()
+  deleteDefinition: manageTypes()
     .input(id)
     .handler(({ context, input }) =>
       invalidToBadRequest(async () => {
@@ -150,13 +190,20 @@ export const metaobjectsRouter = {
     )
     .handler(({ context, input }) => referenceOptions(context.tx, input)),
 
-  /* Product and collection metafields ("Extra fields": Settings → Custom data, and the product/collection forms). */
+  /*
+   * Metafields ("Extra fields": Settings → Custom data, and the cards on product, variant,
+   * collection, customer, order, page and blog post pages, plus the store's own). Values need
+   * the owner's own access (METAFIELD_OWNER_PERMISSIONS); the definitions need manage_types.
+   */
 
-  metafieldDefinitions: can(permissions.PRODUCTS_READ)
+  metafieldDefinitions: canAny(METAFIELD_READ_PERMISSIONS)
     .input(z.object({ ownerType: MetafieldOwnerTypeSchema }))
-    .handler(({ context, input }) => listMetafieldDefinitions(context.tx, input.ownerType)),
+    .handler(({ context, input }) => {
+      assertOwnerAccess(context.scope, input.ownerType, 'read')
+      return listMetafieldDefinitions(context.tx, input.ownerType)
+    }),
 
-  createMetafieldDefinition: can(permissions.SETTINGS_MANAGE)
+  createMetafieldDefinition: manageTypes()
     .input(MetafieldDefinitionWriteSchema)
     .handler(({ context, input }) =>
       invalidToBadRequest(() =>
@@ -164,7 +211,7 @@ export const metaobjectsRouter = {
       ),
     ),
 
-  updateMetafieldDefinition: can(permissions.SETTINGS_MANAGE)
+  updateMetafieldDefinition: manageTypes()
     .input(z.object({ id: z.uuid(), write: MetafieldDefinitionWriteSchema }))
     .handler(({ context, input }) =>
       invalidToBadRequest(async () => {
@@ -173,29 +220,33 @@ export const metaobjectsRouter = {
       }),
     ),
 
-  deleteMetafieldDefinition: can(permissions.SETTINGS_MANAGE)
+  deleteMetafieldDefinition: manageTypes()
     .input(id)
     .handler(async ({ context, input }) => {
       await deleteMetafieldDefinition(context.tx, input.id)
       return { ok: true as const }
     }),
 
-  metafields: can(permissions.PRODUCTS_READ)
-    .input(z.object({ ownerType: MetafieldOwnerTypeSchema, ownerId: z.uuid() }))
-    .handler(({ context, input }) => getMetafields(context.tx, input.ownerType, input.ownerId)),
+  metafields: canAny(METAFIELD_READ_PERMISSIONS)
+    .input(OwnerInput)
+    .handler(({ context, input }) => {
+      assertOwnerAccess(context.scope, input.ownerType, 'read')
+      const ownerId = ownerIdFor(input, context.scope.storeId) as string
+      return getMetafields(context.tx, input.ownerType, ownerId)
+    }),
 
-  setMetafields: can(permissions.PRODUCTS_WRITE)
-    .input(
-      z.object({
-        ownerType: MetafieldOwnerTypeSchema,
-        ownerId: z.uuid(),
-        values: z.record(z.uuid(), z.unknown()),
-      }),
-    )
-    .handler(({ context, input }) =>
-      invalidToBadRequest(async () => {
-        await setMetafields(context.tx, context.scope.storeId, input)
+  setMetafields: canAny(METAFIELD_WRITE_PERMISSIONS)
+    .input(OwnerInput.and(z.object({ values: z.record(z.uuid(), z.unknown()) })))
+    .handler(({ context, input }) => {
+      assertOwnerAccess(context.scope, input.ownerType, 'write')
+      const ownerId = ownerIdFor(input, context.scope.storeId) as string
+      return invalidToBadRequest(async () => {
+        await setMetafields(context.tx, context.scope.storeId, {
+          ownerType: input.ownerType,
+          ownerId,
+          values: input.values,
+        })
         return { ok: true as const }
-      }),
-    ),
+      })
+    }),
 }

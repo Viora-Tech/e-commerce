@@ -1,5 +1,6 @@
 import {
   decryptCustomerPhone,
+  deleteMetafieldsOf,
   encryptCustomerPhone,
   evaluateSegment,
   normalisePhoneDigits,
@@ -394,6 +395,7 @@ export async function deleteCustomer(tx: StoreTx, id: string) {
   const [linked] = await tx.select({ total: count() }).from(order).where(eq(order.customerId, id))
   const orders = linked?.total ?? 0
   if (orders > 0) return { deleted: false as const, orders }
+  await deleteMetafieldsOf(tx, 'customer', [id])
   await tx.delete(customer).where(eq(customer.id, id))
   return { deleted: true as const, orders: 0 }
 }

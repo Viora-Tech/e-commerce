@@ -7,8 +7,9 @@ description: Metaobject definitions, entries and metafields, their field types a
 
 Merchants see **Content types**, **Entries** and **Extra fields**. The code, the API
 (`metaobjects.*`), templates and these docs keep Shopify's names: a **metaobject definition**
-(`metaobject_definition`) with **entries** (`metaobject`), and **metafields** on products and
-collections (`metafield_definition`, `metafield`). Merchant guide:
+(`metaobject_definition`) with **entries** (`metaobject`), and **metafields**
+(`metafield_definition`, `metafield`) on products, variants, collections, customers, orders,
+pages, articles and the shop. Merchant guide:
 [Content types](/merchant-guide/selling/content).
 
 | Piece | File |
@@ -107,6 +108,31 @@ or draft entries.
 | `page_reference` | `{ id, handle, title }` |
 | `article_reference` | `{ id, handle, title, blogHandle }` |
 | `variant_reference` | `{ id, title, sku, price, productHandle, productTitle }` |
+
+## Metafield owners and permissions
+
+`METAFIELD_OWNER_TYPES` (`schemas.ts`) lists the owners: `product`, `variant`, `collection`,
+`customer`, `order`, `page`, `article` and `shop`. Migration `0108_metafield_owners` widened the
+`metafield_definition_owner` CHECK to match (`MetafieldOwnerType` in `@commerce/db` is the same
+union). `shop` values hang on the store row itself: the API ignores any `ownerId` and uses the
+caller's store id; every other owner needs `ownerId`, and `setMetafields` checks the row exists in
+the store (RLS hides other stores' rows, the `store` row included).
+
+- **Values** are guarded by the record's own access, `METAFIELD_OWNER_PERMISSIONS`
+  (`owner-permissions.ts`): products, variants and collections `products.*`, customers
+  `customers.*`, orders `orders.*`, pages `online_store.*`, articles `content.*`, the shop
+  `settings.read` / `settings.manage`. The procedures use `canAny` and then check the exact grain
+  (`assertOwnerAccess`); listing definitions is also allowed with `content.manage_types`.
+- **Definitions** (metafield definitions and content types) need `content.manage_types`. 0108
+  grants it to every role that held `content.write` or `settings.manage` (the old guards) and to
+  the system Administrator role.
+- `PRIVATE_METAFIELD_OWNERS` (`customer`, `order`) always save `storefront_access = false`; the
+  storefront only ever reads product and collection metafields.
+- `deleteMetafieldsOf` removes a customer's values when the customer is deleted
+  (`deleteCustomer`) or erased (`anonymiseCustomer`).
+- Admin: `MetafieldsCard` takes any owner (the shop with `ownerId={null}`), hides Save without the
+  write grain and "Add a field" without `content.manage_types`; `VariantMetafieldsCard` adds a
+  variant picker on the product page; Settings → Custom data has a tab per owner.
 
 ## Theme bindings
 

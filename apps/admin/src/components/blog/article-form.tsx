@@ -8,6 +8,7 @@ import { toast } from 'sonner'
 import ProoflyDetailPage from '@/components/layout/proofly-detail-page'
 import ProoflyPageHeader from '@/components/layout/proofly-page-header'
 import SaveBar from '@/components/layout/save-bar'
+import MetafieldsCard from '@/components/metaobjects/metafields-card'
 import TemplateSelectCard from '@/components/themes/template-select-card'
 import { articleFormContent } from '@/data/blog'
 import { useCopy } from '@/hooks/use-copy'
@@ -168,6 +169,7 @@ export default function ArticleForm({
             storefrontOrigin={storefrontOrigin}
             onChange={patch}
           />
+          <MetafieldsCard ownerType="article" ownerId={article?.id ?? null} />
         </>
       }
       side={

@@ -58,6 +58,7 @@ import SeoCard from './seo-card'
 import ShippingCard from './shipping-card'
 import StatusCard from './status-card'
 import StockHistoryCard from './stock-history-card'
+import VariantMetafieldsCard from './variant-metafields-card'
 import VariantsCard from './variants-card'
 
 type ProductFormProps = {
@@ -231,6 +232,9 @@ export default function ProductForm({
   if (!first) return null
 
   // Render logic
+  const savedVariants = form.variants.flatMap((v) =>
+    v.id ? [{ id: v.id, label: v.optionValues.join(' / ') || form.title }] : [],
+  )
   const isDirty = snapshot(form) !== saved
   const errors = formErrors(copy, form)
   const showErrors = attempted
@@ -367,6 +371,7 @@ export default function ProductForm({
           </section>
           {/* Extra fields stay in view, not inside "More" (#296: nobody found them there). */}
           <MetafieldsCard ownerType="product" ownerId={product?.id ?? null} />
+          <VariantMetafieldsCard variants={savedVariants} />
           <ProductMoreSection open={moreOpen} onOpenChange={setMoreOpen}>
             <DataCard title={copy.preorder.heading}>
               <ProductPreorderSection

@@ -13,6 +13,7 @@ import RichTextField from '@/components/fields/rich-text-field'
 import ProoflyDetailPage from '@/components/layout/proofly-detail-page'
 import ProoflyPageHeader from '@/components/layout/proofly-page-header'
 import SaveBar from '@/components/layout/save-bar'
+import MetafieldsCard from '@/components/metaobjects/metafields-card'
 import { onlineStoreContent } from '@/data/online-store'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
@@ -141,6 +142,7 @@ export default function PageForm({ page, suffixes, contentHref, storefrontOrigin
             seoDescription={form.seoDescription}
             onChange={patch}
           />
+          <MetafieldsCard ownerType="page" ownerId={page.id} />
         </>
       }
       side={

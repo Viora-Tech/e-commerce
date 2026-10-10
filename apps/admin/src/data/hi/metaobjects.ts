@@ -373,12 +373,20 @@ export default [
 
   translation(customDataContent, {
     title: 'कस्टम डेटा',
-    intro: 'अपने प्रोडक्ट और कलेक्शन में एक्स्ट्रा फ़ील्ड जोड़ें, और अपने कंटेंट टाइप संभालें।',
+    intro:
+      'प्रोडक्ट, वेरिएंट, कलेक्शन, कस्टमर, ऑर्डर, पेज, ब्लॉग पोस्ट और अपने स्टोर में एक्स्ट्रा फ़ील्ड जोड़ें, और अपने कंटेंट टाइप संभालें।',
     tabs: {
       products: { id: 'products', label: 'प्रोडक्ट' },
+      variants: { id: 'variants', label: 'वेरिएंट' },
       collections: { id: 'collections', label: 'कलेक्शन' },
+      customers: { id: 'customers', label: 'कस्टमर' },
+      orders: { id: 'orders', label: 'ऑर्डर' },
+      pages: { id: 'pages', label: 'पेज' },
+      articles: { id: 'articles', label: 'ब्लॉग पोस्ट' },
+      shop: { id: 'store', label: 'स्टोर' },
       metaobjects: { id: 'metaobjects', label: 'कंटेंट टाइप' },
     },
+    shopValues: 'आपके स्टोर की वैल्यू',
     metafields: {
       heading: (owner) => `${owner} के एक्स्ट्रा फ़ील्ड`,
       body: (owner) => `हर ${owner} में भरने वाले फ़ील्ड, उसके पेज पर एक्स्ट्रा फ़ील्ड कार्ड में।`,
@@ -400,6 +408,7 @@ export default [
       description: 'संकेत',
       storefront: 'स्टोर पर दिखाएं',
       storefrontHelp: 'आपकी थीम यह वैल्यू दिखा सके।',
+      privateNote: 'कस्टमर और ऑर्डर के एक्स्ट्रा फ़ील्ड निजी रहते हैं: ये आपके स्टोर पर कभी नहीं दिखते।',
       fixed: 'इसमें क्या जाएगा और इसकी की, सेव के बाद नहीं बदलते।',
       save: 'सेव करें',
       saving: 'सेव हो रहा है',
@@ -421,7 +430,16 @@ export default [
       empty: 'अभी कोई कंटेंट टाइप नहीं।',
       entries: (n) => `${n} एंट्री`,
     },
-    owners: { product: 'प्रोडक्ट', collection: 'कलेक्शन' },
+    owners: {
+      product: 'प्रोडक्ट',
+      variant: 'वेरिएंट',
+      collection: 'कलेक्शन',
+      customer: 'कस्टमर',
+      order: 'ऑर्डर',
+      page: 'पेज',
+      article: 'ब्लॉग पोस्ट',
+      shop: 'स्टोर',
+    },
     loadFailed: 'लोड नहीं हो पाया। फिर कोशिश करने के लिए पेज रीलोड करें।',
   }),
 
@@ -431,6 +449,8 @@ export default [
     manage: 'एक्स्ट्रा फ़ील्ड संभालें',
     addField: 'फ़ील्ड जोड़ें',
     saveFirst: 'पहले सेव करें, फिर एक्स्ट्रा फ़ील्ड भरें।',
+    variant: 'वेरिएंट',
+    variantHeading: 'वेरिएंट के एक्स्ट्रा फ़ील्ड',
     save: 'एक्स्ट्रा फ़ील्ड सेव करें',
     saving: 'सेव हो रहा है',
     saved: 'एक्स्ट्रा फ़ील्ड सेव हो गए',

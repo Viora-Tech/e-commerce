@@ -2019,9 +2019,20 @@ export const metaobject = pgTable(
   ],
 )
 
-export type MetafieldOwnerType = 'product' | 'collection'
+export type MetafieldOwnerType =
+  | 'product'
+  | 'variant'
+  | 'collection'
+  | 'customer'
+  | 'order'
+  | 'page'
+  | 'article'
+  | 'shop'
 
-/** A typed custom field on products or collections (`namespace.key`). */
+/**
+ * A typed custom field ("extra field", `namespace.key`) on products, variants, collections,
+ * customers, orders, pages, blog articles or the shop itself (owner id = the store's id).
+ */
 export const metafieldDefinition = pgTable(
   'metafield_definition',
   {
@@ -2042,13 +2053,16 @@ export const metafieldDefinition = pgTable(
   },
   (t) => [
     uniqueIndex('metafield_definition_owner_key').on(t.storeId, t.ownerType, t.namespace, t.key),
-    check('metafield_definition_owner', sql`${t.ownerType} in ('product', 'collection')`),
+    check(
+      'metafield_definition_owner',
+      sql`${t.ownerType} in ('product', 'variant', 'collection', 'customer', 'order', 'page', 'article', 'shop')`,
+    ),
     check('metafield_definition_key', sql`${t.key} ~ '^[a-z][a-z0-9_]{0,63}$'`),
     check('metafield_definition_namespace', sql`${t.namespace} ~ '^[a-z][a-z0-9_]{0,63}$'`),
   ],
 )
 
-/** The value of one definition on one product or collection. */
+/** The value of one definition on one owner (product, customer, order, ... or the shop). */
 export const metafield = pgTable(
   'metafield',
   {

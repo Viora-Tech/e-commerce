@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import PageBody from '@/components/layout/page-body'
 import PageColumns from '@/components/layout/page-columns'
+import MetafieldsCard from '@/components/metaobjects/metafields-card'
 import CustomerActivityCard from './customer-activity-card'
 import CustomerAddressesCard from './customer-addresses-card'
 import { type CustomerDetail, nextStepFor } from './customer-detail-types'
@@ -59,6 +60,7 @@ export default function CustomerView({ customer, startEditing = false }: Custome
             <CustomerNoteCard customerId={customer.id} note={customer.note} onChanged={refresh} />
             <CustomerTagsCard customerId={customer.id} tags={customer.tags} onChanged={refresh} />
             <CustomerStatsCard customer={customer} />
+            <MetafieldsCard ownerType="customer" ownerId={customer.id} />
           </>
         }
       />
