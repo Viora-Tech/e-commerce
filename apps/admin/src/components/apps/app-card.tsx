@@ -84,13 +84,13 @@ export default function AppCard({ app, variant, busy, onInstall, onUninstall }: 
   const attention = needsSetup(app)
 
   return (
-    <div className="flex h-full flex-col gap-3 rounded-2xl border border-border surface-card px-5 py-[1.125rem] transition-shadow duration-200 ease-out hover:shadow-card-hover motion-reduce:transition-none">
+    <div className="relative flex h-full cursor-pointer flex-col gap-3 rounded-2xl border border-border surface-card px-5 py-[1.125rem] transition-shadow duration-200 ease-out hover:shadow-card-hover motion-reduce:transition-none">
       <div className="flex items-center gap-3">
         <AppLogo id={app.id} icon={app.admin.icon} />
         <div className="flex min-w-0 flex-1 flex-col">
           <Link
             href={routes.apps.page(app.id)}
-            className="truncate text-[0.9375rem] leading-[1.375rem] font-semibold text-foreground hover:text-primary"
+            className="truncate text-[0.9375rem] leading-[1.375rem] font-semibold text-foreground after:absolute after:inset-0 after:rounded-2xl after:content-[''] hover:text-primary focus-visible:outline-none focus-visible:after:ring-2 focus-visible:after:ring-ring"
           >
             {app.name}
           </Link>
@@ -105,7 +105,7 @@ export default function AppCard({ app, variant, busy, onInstall, onUninstall }: 
       {app.description ? (
         <p className="text-body text-muted-foreground">{app.description}</p>
       ) : null}
-      <div className="mt-auto flex items-center gap-2 pt-1">
+      <div className="relative z-10 mt-auto flex items-center gap-2 pt-1">
         {variant === 'installed' ? (
           <>
             {openHref ? (
