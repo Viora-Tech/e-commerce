@@ -3,7 +3,7 @@
 Branch `feat/template-assignment` (plan D1/D2).
 
 - Blogs and blog posts can use alternate templates like products, collections and pages:
-  migration `0101_blog_templates` adds `template_suffix` to `blog` and `article`;
+  migration `0102_blog_templates` adds `template_suffix` to `blog` and `article`;
   `ALTERNATE_KINDS` gains `blog` and `article`; the storefront blog and post pages render the
   alternate (and Customize's `?view=`).
 - Admin: blog post form has the **Theme template** card; the blog dialog has a **Theme
