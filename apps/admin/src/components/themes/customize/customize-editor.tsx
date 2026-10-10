@@ -32,6 +32,7 @@ import { DynamicSourceContext, scopeFor } from '@/lib/dynamic-sources'
 import { useCustomizePreview } from '@/lib/use-customize-preview'
 import { useLiquidTheme } from '@/lib/use-liquid-theme'
 import { partsOf, useTemplateDrafts } from '@/lib/use-template-drafts'
+import type { TemplateChange } from '@/lib/use-template-manager'
 import { useThemeThumbnail } from '@/lib/use-theme-thumbnail'
 import ThemePresets from '../theme-presets'
 import type { PreviewDevice } from '../theme-preview'
@@ -44,6 +45,7 @@ import CustomizeLayout from './customize-layout'
 import CustomizeTopBar from './customize-top-bar'
 import ImportedThemeSettings from './imported-theme-settings'
 import LiquidCanvasSection from './liquid-canvas-section'
+import PagesPanel from './pages-panel'
 import ResourcePicker from './resource-picker'
 import TemplatePicker, { type TemplateRef } from './template-picker'
 
@@ -190,6 +192,11 @@ export default function CustomizeEditor({
     drafts.schedule(parts)
   }
 
+  const handleCreateFor = (kind: AlternateKind) => {
+    setCreatingKind(kind)
+    setCreating('open')
+  }
+
   const handleTemplate = async (next: TemplateRef) => {
     if (sameRef(next, ref)) return
     setSwitching(true)
@@ -237,6 +244,18 @@ export default function CustomizeEditor({
       toast.error(themesContent.library.failed)
     } finally {
       setPublishing(false)
+    }
+  }
+
+  /** The picker renamed, duplicated or deleted an alternate: refresh it, follow the open one. */
+  const handleManaged = (change: TemplateChange) => {
+    api.themes.templates.list({ themeId: record.id }).then(setAlternates, () => undefined)
+    const open = ref.key === change.kind
+    if (change.type === 'renamed' && open && ref.suffix === change.from) {
+      setRef({ key: change.kind, suffix: change.to })
+    } else if (change.type === 'deleted' && open && ref.suffix === change.suffix) {
+      setSwitching(true)
+      setRef({ key: change.kind, suffix: '' })
     }
   }
 
@@ -312,14 +331,13 @@ export default function CustomizeEditor({
       pickers={
         <>
           <TemplatePicker
+            themeId={record.id}
             value={ref}
             alternates={alternates}
             loading={switching}
             onChange={handleTemplate}
-            onCreate={(kind) => {
-              setCreatingKind(kind)
-              setCreating('open')
-            }}
+            onCreate={handleCreateFor}
+            onManaged={handleManaged}
           />
           {preview.kind ? (
             <ResourcePicker
@@ -369,6 +387,16 @@ export default function CustomizeEditor({
                   <CustomizeLayout
                     topBar={topBar}
                     settings={settingsPanel}
+                    pages={
+                      <PagesPanel
+                        themeId={record.id}
+                        value={ref}
+                        alternates={alternates}
+                        onPick={handleTemplate}
+                        onCreate={handleCreateFor}
+                        onManaged={handleManaged}
+                      />
+                    }
                     dock={
                       <CanvasDock
                         mode={mode}

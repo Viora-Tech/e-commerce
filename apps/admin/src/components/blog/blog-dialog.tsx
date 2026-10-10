@@ -20,6 +20,7 @@ import {
 } from '@commerce/ui/shadcn/select'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
+import TemplateSelectField from '@/components/themes/template-select-field'
 import { blogsManageContent } from '@/data/blog'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
@@ -29,6 +30,7 @@ export type EditableBlog = {
   title: string
   handle: string
   commentPolicy: CommentPolicy
+  templateSuffix: string | null
 }
 
 type BlogDialogProps = {
@@ -48,6 +50,7 @@ export default function BlogDialog({ open, blog, onOpenChange, onSaved }: BlogDi
   const [title, setTitle] = useState('')
   const [handle, setHandle] = useState('')
   const [policy, setPolicy] = useState<CommentPolicy>('disabled')
+  const [template, setTemplate] = useState('')
   const [busy, setBusy] = useState(false)
 
   useEffect(() => {
@@ -55,6 +58,7 @@ export default function BlogDialog({ open, blog, onOpenChange, onSaved }: BlogDi
     setTitle(blog?.title ?? '')
     setHandle(blog?.handle ?? '')
     setPolicy(blog?.commentPolicy ?? 'disabled')
+    setTemplate(blog?.templateSuffix ?? '')
   }, [open, blog])
 
   // Event handlers
@@ -62,6 +66,7 @@ export default function BlogDialog({ open, blog, onOpenChange, onSaved }: BlogDi
     const write = {
       title: title.trim(),
       commentPolicy: policy,
+      templateSuffix: template || null,
       ...(handle.trim() ? { handle: handle.trim() } : {}),
     }
     if (!write.title) return
@@ -134,6 +139,13 @@ export default function BlogDialog({ open, blog, onOpenChange, onSaved }: BlogDi
               </SelectContent>
             </Select>
           </Field>
+          <TemplateSelectField
+            id="blog-template"
+            kind="blog"
+            label={copy.dialog.template}
+            value={template}
+            onChange={setTemplate}
+          />
         </FieldGroup>
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={busy}>

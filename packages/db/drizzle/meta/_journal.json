@@ -680,6 +680,20 @@
       "when": 1791635103657,
       "tag": "0101_credit_notes_per_gstin",
       "breakpoints": true
+    },
+    {
+      "idx": 97,
+      "version": "7",
+      "when": 1791636515830,
+      "tag": "0102_blog_templates",
+      "breakpoints": true
+    },
+    {
+      "idx": 98,
+      "version": "7",
+      "when": 1791638606272,
+      "tag": "0103_theme_versions",
+      "breakpoints": true
     }
   ]
 }

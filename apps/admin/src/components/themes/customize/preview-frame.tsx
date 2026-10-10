@@ -2,9 +2,15 @@
 
 import { EditorSelectionContext } from '@commerce/blocks/editor-selection'
 import { themeRootAttrs, themeToCss } from '@commerce/core/theme'
+import { useGetPuck } from '@puckeditor/core'
 import { useReducedMotion } from 'motion/react'
 import { type ReactNode, useEffect } from 'react'
-import { canvasMotionCss, installCanvasMotion } from '@/lib/customize-canvas-motion'
+import {
+  canvasMotionCss,
+  installCanvasMotion,
+  scrollToSection,
+} from '@/lib/customize-canvas-motion'
+import { CANVAS_DROP_CSS, installMediaDrop } from '@/lib/customize-media-drop'
 import { useCustomizePuck } from '@/lib/customize-puck'
 import { useLiquidHead, usePreviewMode, useThemePreview } from '@/lib/customize-theme-context'
 import { CANVAS_ZOOM_VAR, useCanvasZoom } from '@/lib/customize-zoom'
@@ -16,13 +22,21 @@ type PreviewFrameProps = {
 }
 
 /**
+ * The page itself in the theme's colours, as the storefront's globals.css paints it. Puck
+ * mirrors the admin's stylesheets into the frame, and without this the admin's own body
+ * background and text (dark in a dark admin) showed through sections with no background.
+ */
+const CANVAS_PAGE_CSS =
+  ':root{background:var(--color-bg)}body{background:var(--color-bg);color:var(--color-ink);font-family:var(--font-body)}'
+
+/**
  * Paints the theme being edited into Puck's preview iframe, as the storefront
  * preview bridge does: the same CSS and root attributes. The theme and mode
  * come from context (see `PreviewModeContext`) so this stays one stable override. It goes into the frame
  * only, since the theme's variable names overlap the admin's own tokens. Also
- * where the canvas gets its drag/drop/enter motion — vendor-puck.css and the
- * admin's own stylesheets never reach the iframe, so this is the only place
- * that can style what's inside it.
+ * where the canvas gets its drag/drop/enter motion. Puck mirrors the admin's
+ * stylesheets into the frame (so editor chrome there uses admin tokens), but the
+ * theme's CSS and the page colours reach it only from here.
  */
 export default function PreviewFrame({ children, document }: PreviewFrameProps) {
   // Hooks
@@ -31,6 +45,7 @@ export default function PreviewFrame({ children, document }: PreviewFrameProps) 
   const liquid = useLiquidHead()
   const reducedMotion = useReducedMotion()
   const { zoom } = useCanvasZoom()
+  const getPuck = useGetPuck()
   // Popups and the cookie banner open in the canvas only while selected (EditorOverlay).
   const selectedId = useCustomizePuck((s) => {
     const id = s.selectedItem?.props?.id
@@ -40,13 +55,24 @@ export default function PreviewFrame({ children, document }: PreviewFrameProps) 
     // An imported Shopify theme brings its own CSS (below); ours would fight it.
     if (!document || !theme || liquid) return
     const style = document.createElement('style')
-    style.textContent = themeToCss(theme)
+    style.textContent = themeToCss(theme) + CANVAS_PAGE_CSS
     document.head.appendChild(style)
     const root = document.documentElement
     for (const [name, value] of Object.entries(themeRootAttrs(theme)))
       root.setAttribute(name, value)
     root.setAttribute('data-theme', mode)
-    return () => style.remove()
+    // Puck copies the admin's <html> attributes into the frame (after this runs), including
+    // next-themes' inline `color-scheme`; the theme's own CSS decides that here.
+    const dropAdminScheme = () => {
+      if (root.style.colorScheme) root.style.removeProperty('color-scheme')
+    }
+    dropAdminScheme()
+    const observer = new MutationObserver(dropAdminScheme)
+    observer.observe(root, { attributes: true, attributeFilter: ['style'] })
+    return () => {
+      observer.disconnect()
+      style.remove()
+    }
   }, [document, theme, mode, liquid])
 
   // An imported Shopify theme: its stylesheets, CSS variables and fonts in the frame's
@@ -102,6 +128,21 @@ export default function PreviewFrame({ children, document }: PreviewFrameProps) 
     document.head.appendChild(style)
     return () => style.remove()
   }, [document, zoom])
+
+  // Pictures dragged in from the Media panel land in the section under the pointer.
+  useEffect(() => {
+    if (!document) return
+    const style = document.createElement('style')
+    style.textContent = CANVAS_DROP_CSS
+    document.head.appendChild(style)
+    const uninstall = installMediaDrop(document, getPuck as never, (id) =>
+      scrollToSection(id, reducedMotion === true),
+    )
+    return () => {
+      style.remove()
+      uninstall()
+    }
+  }, [document, getPuck, reducedMotion])
 
   useEffect(() => {
     if (!document) return

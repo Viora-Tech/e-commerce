@@ -328,6 +328,8 @@ export const blog = pgTable(
     commentPolicy: text('comment_policy', { enum: ['disabled', 'moderated', 'open'] })
       .notNull()
       .default('disabled'),
+    /** Alternate `blog.<suffix>` template of the live theme; null uses the default. */
+    templateSuffix: text('template_suffix'),
     seoTitle: text('seo_title'),
     seoDescription: text('seo_description'),
     createdAt: createdAt(),
@@ -361,6 +363,8 @@ export const article = pgTable(
       .notNull()
       .default('draft'),
     publishedAt: timestamp('published_at', { withTimezone: true }),
+    /** Alternate `article.<suffix>` template of the live theme; null uses the default. */
+    templateSuffix: text('template_suffix'),
     seoTitle: text('seo_title'),
     seoDescription: text('seo_description'),
     createdAt: createdAt(),
@@ -2181,6 +2185,38 @@ export const themeTemplate = pgTable(
     check('theme_template_suffix', sql`${t.suffix} ~ '^[a-z0-9-]{0,40}$'`),
     uniqueIndex('theme_template_unique').on(t.themeId, t.template, t.suffix),
     index('theme_template_store').on(t.storeId),
+  ],
+)
+
+/**
+ * Version history of a theme's templates: a copy of a template's saved sections each time it
+ * went live (the theme was published, or a live theme was saved). Rows taken together share
+ * a `batch_id` (one publish or save). Restore copies a version into the template's draft; it
+ * never goes live by itself. The newest 20 per template are kept.
+ */
+export const themeVersion = pgTable(
+  'theme_version',
+  {
+    id: id(),
+    storeId: storeId(),
+    themeId: uuid('theme_id')
+      .notNull()
+      .references(() => theme.id, { onDelete: 'cascade' }),
+    batchId: uuid('batch_id').notNull(),
+    /** What made it: `publish` (the theme went live) or `save` (a live theme was saved). */
+    reason: text('reason').notNull(),
+    template: text('template').notNull(),
+    suffix: text('suffix').notNull().default(''),
+    sections: jsonb('sections').notNull(),
+    /** The member's name (or email) who published or saved. */
+    createdBy: text('created_by'),
+    createdAt: createdAt(),
+  },
+  (t) => [
+    check('theme_version_reason', sql`${t.reason} in ('publish','save')`),
+    index('theme_version_theme').on(t.themeId, t.template, t.suffix, t.createdAt),
+    index('theme_version_batch').on(t.batchId),
+    index('theme_version_store').on(t.storeId),
   ],
 )
 

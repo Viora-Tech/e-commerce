@@ -20,7 +20,7 @@ type ThemeLibraryRowProps = {
   onAction: (action: ThemeAction) => void
 }
 
-const ACTIONS = ['duplicate', 'rename', 'download', 'delete'] as const
+const ACTIONS = ['duplicate', 'rename', 'versions', 'download', 'delete'] as const
 
 /**
  * One unpublished theme: its home page picture (its colours until Customize takes one), name and

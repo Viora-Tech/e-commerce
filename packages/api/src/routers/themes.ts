@@ -1,5 +1,6 @@
 import { settingsSecret } from '@commerce/config'
 import {
+  ALTERNATE_KINDS,
   commitTemplateDrafts,
   createTemplateAlternate,
   createThemeFromPreset,
@@ -15,24 +16,33 @@ import {
   listCustomSections,
   listTemplates,
   listThemes,
+  listThemeVersions,
+  loadLoopCatalog,
+  loadLoopValues,
   loadSourceCatalog,
   loadSourceValues,
   loadTemplate,
   permissions,
+  previewCollectionProducts,
   publishTheme,
   renameCustomSection,
+  renameTemplateAlternate,
   renameTheme,
+  restoreThemeVersion,
   SECTION_GROUPS,
+  SETTING_KINDS,
   saveCustomSection,
   saveTemplateDraft,
   setThemeThumbnail,
   signThemePreviewToken,
+  snapshotTheme,
   TEMPLATE_KINDS,
   TEMPLATE_SUFFIX,
   THEME_PRESET_IDS,
   ThemeLibraryError,
   type ThemeRecord,
   ThemeSchema,
+  templateAssignments,
   themesWithDrafts,
   touchTheme,
   updateThemeSettings,
@@ -114,7 +124,18 @@ const templatesRouter = {
     .handler(({ context, input }) =>
       libraryErrors(async () => {
         const saved = await commitTemplateDrafts(context.tx, input.themeId)
-        if (saved > 0) await touchTheme(context.tx, input.themeId, savedBy(context))
+        if (saved > 0) {
+          await touchTheme(context.tx, input.themeId, savedBy(context))
+          // Saving the live theme is what shoppers see next: remember it in the history.
+          const current = await getTheme(context.tx, input.themeId)
+          if (current?.role === 'main') {
+            await snapshotTheme(context.tx, context.scope.storeId, {
+              themeId: input.themeId,
+              reason: 'save',
+              by: savedBy(context),
+            })
+          }
+        }
         return { saved }
       }),
     ),
@@ -141,6 +162,35 @@ const templatesRouter = {
       }),
     ),
 
+  /** What a list (loop) can read: storefront-visible content types with their fields, collections. */
+  loopSources: can(permissions.ONLINE_STORE_READ).handler(({ context }) =>
+    loadLoopCatalog(context.tx),
+  ),
+
+  /** Sample rows for the Customize preview of lists bound to store data. */
+  loopValues: can(permissions.ONLINE_STORE_READ)
+    .input(
+      z.object({
+        loops: z
+          .array(
+            z.object({
+              source: z.string().max(260),
+              limit: z.number().int().min(1).max(50),
+              map: z.record(
+                z.string().max(64),
+                z.object({ from: z.string().max(64), kind: z.enum(SETTING_KINDS) }),
+              ),
+            }),
+          )
+          .max(20),
+      }),
+    )
+    .handler(({ context, input }) =>
+      loadLoopValues(context.tx, input.loops, {
+        collectionProducts: (handle, limit) => previewCollectionProducts(context.tx, handle, limit),
+      }),
+    ),
+
   discard: can(permissions.ONLINE_STORE_WRITE)
     .input(z.object({ themeId: z.string().uuid() }))
     .handler(async ({ context, input }) => {
@@ -152,6 +202,25 @@ const templatesRouter = {
     .input(TemplateRef.extend({ basedOn: z.string().regex(TEMPLATE_SUFFIX).optional() }))
     .handler(({ context, input }) =>
       libraryErrors(() => createTemplateAlternate(context.tx, context.scope.storeId, input)),
+    ),
+
+  /** How many products, collections, pages, blogs and posts use each alternate (store-wide). */
+  assignments: can(permissions.ONLINE_STORE_READ).handler(({ context }) =>
+    templateAssignments(context.tx),
+  ),
+
+  /** Renames an alternate of this theme; resources assigned to it follow (`moved`). */
+  rename: can(permissions.ONLINE_STORE_WRITE)
+    .input(
+      z.object({
+        themeId: z.string().uuid(),
+        template: z.enum(ALTERNATE_KINDS),
+        from: z.string().regex(TEMPLATE_SUFFIX),
+        to: z.string().regex(TEMPLATE_SUFFIX),
+      }),
+    )
+    .handler(({ context, input }) =>
+      libraryErrors(async () => ({ moved: await renameTemplateAlternate(context.tx, input) })),
     ),
 
   delete: can(permissions.ONLINE_STORE_WRITE)
@@ -339,9 +408,28 @@ async function presentOne(tx: LibraryTx, storeId: string, t: ThemeRecord) {
 const savedBy = (context: { session: { user: { name?: string | null; email: string } } }) =>
   context.session.user.name?.trim() || context.session.user.email
 
+/**
+ * Version history (`@commerce/core` theme/versions): what went live, newest first, and
+ * restoring one into the drafts. Restore never publishes.
+ */
+const versionsRouter = {
+  list: can(permissions.ONLINE_STORE_READ)
+    .input(z.object({ themeId: z.string().uuid() }))
+    .handler(({ context, input }) => listThemeVersions(context.tx, input.themeId)),
+
+  restore: can(permissions.ONLINE_STORE_WRITE)
+    .input(z.object({ themeId: z.string().uuid(), batchId: z.string().uuid() }))
+    .handler(({ context, input }) =>
+      libraryErrors(async () => ({
+        restored: await restoreThemeVersion(context.tx, context.scope.storeId, input),
+      })),
+    ),
+}
+
 /** Online Store › Themes: the library, Shopify style. One theme is live (`main`). */
 export const themesRouter = {
   templates: templatesRouter,
+  versions: versionsRouter,
   customSections: customSectionsRouter,
   import: importRouter,
 
@@ -442,9 +530,19 @@ export const themesRouter = {
   publish: can(permissions.ONLINE_STORE_PUBLISH)
     .input(IdInput)
     .handler(({ context, input }) =>
-      libraryErrors(async () =>
-        presentOne(context.tx, context.scope.storeId, await publishTheme(context.tx, input.id)),
-      ),
+      libraryErrors(async () => {
+        const wasLive = (await getTheme(context.tx, input.id))?.role === 'main'
+        const live = await publishTheme(context.tx, input.id)
+        // Publishing the theme that is already live changes nothing, so it adds no version.
+        if (!wasLive) {
+          await snapshotTheme(context.tx, context.scope.storeId, {
+            themeId: live.id,
+            reason: 'publish',
+            by: savedBy(context),
+          })
+        }
+        return presentOne(context.tx, context.scope.storeId, live)
+      }),
     ),
 
   delete: can(permissions.ONLINE_STORE_WRITE)

@@ -8,6 +8,47 @@ import type {
 
 /** Copy for "Connect dynamic source" in Online Store › Themes › Customize. */
 export const dynamicSourcesContent = {
+  /** "Use content from…" on repeatable fields (FAQ items, quotes, logos, people, photos). */
+  loops: {
+    use: 'Use content from…',
+    title: 'Use content from your store',
+    intro:
+      'Fill these rows from a content type or a collection. They update when that content changes.',
+    source: 'Content',
+    sourcePlaceholder: 'Choose content',
+    types: 'Content types',
+    collections: 'Collections',
+    collectionProducts: (title: string) => `Products in ${title}`,
+    limit: 'How many rows',
+    limitHelp: 'Up to 50.',
+    map: 'What each row shows',
+    mapNone: 'Nothing',
+    mapHelp:
+      'Fields set to Nothing stay empty. Other settings, such as icons, come from your first typed row.',
+    noFields: 'This content has nothing that fits these rows.',
+    cancel: 'Cancel',
+    confirm: 'Use this content',
+    loading: 'Loading content',
+    failed: 'Could not load your content',
+    empty: 'Nothing to use yet. Add a content type in Content › Content types, or a collection.',
+    linked: 'Rows come from',
+    rows: (n: number) => (n === 1 ? '1 row now' : `${n} rows now`),
+    none: 'No rows yet: the rows you typed show instead',
+    change: 'Change',
+    unlink: 'Unlink',
+    unlinkHelp: 'Unlink puts back the rows you typed.',
+    unknown: 'Content that no longer exists',
+    product: {
+      title: 'Title',
+      price: 'Price',
+      compare_at_price: 'Compare-at price',
+      vendor: 'Brand',
+      type: 'Type',
+      featured_image: 'Main image',
+      url: 'Product page',
+    },
+    handle: 'Handle',
+  },
   connect: 'Connect dynamic source',
   change: 'Change source',
   disconnect: 'Disconnect',

@@ -86,6 +86,7 @@ export async function listBlogs(tx: StoreTx, storeId: string) {
       title: blog.title,
       handle: blog.handle,
       commentPolicy: blog.commentPolicy,
+      templateSuffix: blog.templateSuffix,
       seoTitle: blog.seoTitle,
       seoDescription: blog.seoDescription,
       updatedAt: blog.updatedAt,
@@ -104,6 +105,7 @@ export async function createBlog(tx: StoreTx, storeId: string, write: BlogWrite)
     handle,
     title: write.title,
     commentPolicy: write.commentPolicy ?? 'disabled',
+    templateSuffix: write.templateSuffix || null,
     seoTitle: write.seoTitle || null,
     seoDescription: write.seoDescription || null,
   })
@@ -118,6 +120,10 @@ export async function updateBlog(tx: StoreTx, id: string, write: BlogWrite): Pro
       title: write.title,
       ...(handle ? { handle } : {}),
       ...(write.commentPolicy ? { commentPolicy: write.commentPolicy } : {}),
+      // Left alone when the form does not send it (older clients), cleared when sent blank.
+      ...(write.templateSuffix !== undefined
+        ? { templateSuffix: write.templateSuffix || null }
+        : {}),
       seoTitle: write.seoTitle || null,
       seoDescription: write.seoDescription || null,
       updatedAt: new Date(),
@@ -161,6 +167,7 @@ function articleRow(write: ArticleWrite, now: Date) {
     imageMediaId: write.imageMediaId ?? null,
     imageAlt: write.imageAlt?.trim() || null,
     tags: normaliseTags(write.tags ?? []),
+    ...(write.templateSuffix !== undefined ? { templateSuffix: write.templateSuffix || null } : {}),
     seoTitle: write.seoTitle || null,
     seoDescription: write.seoDescription || null,
     ...resolvePublication(write, now),
@@ -334,6 +341,7 @@ export async function getArticle(tx: StoreTx, id: string) {
       tags: article.tags,
       status: article.status,
       publishedAt: article.publishedAt,
+      templateSuffix: article.templateSuffix,
       seoTitle: article.seoTitle,
       seoDescription: article.seoDescription,
       blogHandle: blog.handle,

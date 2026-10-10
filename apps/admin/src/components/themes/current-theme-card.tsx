@@ -21,7 +21,7 @@ type CurrentThemeCardProps = {
   onAction: (action: ThemeAction) => void
 }
 
-const ACTIONS = ['duplicate', 'rename', 'download'] as const
+const ACTIONS = ['duplicate', 'rename', 'versions', 'download'] as const
 
 /**
  * The live theme (Figma "Online store / Themes", Card 309:20554): the home page picture in its

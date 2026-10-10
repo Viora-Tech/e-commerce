@@ -243,6 +243,7 @@ const NAMESPACE_TABLE: Record<string, string> = {
   domains: 'store_domain',
   themes: 'theme',
   'themes.templates': 'theme_template',
+  'themes.versions': 'theme_version',
   storeData: 'store_export',
   'backInStock.signups': 'back_in_stock_signup',
 }

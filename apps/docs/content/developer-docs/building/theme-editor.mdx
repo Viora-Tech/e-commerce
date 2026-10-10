@@ -80,6 +80,21 @@ with the eye are skipped. Picking a row selects the block and scrolls to it; a c
 Theme settings. The inspector header shows where the selection sits, "Template › Group › Image
 banner" (`inspector-breadcrumb.tsx`), and each container in it selects that container.
 
+### Pages and Media panels
+
+The rail follows the Figma builder rail: Add, Pages, Sections, Media, Theme settings.
+- **Pages** (`pages-panel.tsx`) is the template list the top bar's picker uses
+  (`template-list.tsx`), open in the panel: search, pages and templates with their alternates,
+  usage counts, the ⋯ manager (rename, duplicate, delete) and "Create template". Picking one
+  switches the canvas as the picker does.
+- **Media** (`media-panel.tsx`) is the store's pictures with a search and an upload button.
+  Clicking a picture puts it into the selected block's first empty picture setting (else its first);
+  dragging one onto the canvas drops it into the innermost block under the pointer that has a
+  picture setting, outlined while hovering (`lib/customize-media-drop.ts`, installed by
+  `preview-frame.tsx`). Both are one Puck `replace` (`mediaAction` in
+  `lib/customize-media-insert.ts`), so undo covers them; a written alt text is kept and the old
+  focal point dropped.
+
 ### Insert points
 
 There are three ways to reach the Add section browser (`add-section-browser.tsx`) at an exact
@@ -100,6 +115,41 @@ section edge within `0.75rem` of the pointer, and `targetForEdge` turns it into 
 The click goes through `InsertContext` (`lib/customize-insert-context.ts`) to `CustomizeLayout`,
 which opens the browser in a dialog in the admin document. The "+" is registered with Puck's
 `registerOverlayPortal` so pressing it never starts a section drag.
+
+### Version history
+
+`theme_version` (migration `0103_theme_versions`) keeps a copy of a theme's saved templates each
+time it goes live: `themes.publish` takes a batch with reason `publish` (only when the theme was
+not live already), and `themes.templates.commit` on the live theme takes one with reason `save`
+(the top bar's Publish on a live theme). One batch is one publish or save (`batch_id`); the
+newest `VERSIONS_KEPT` (20) rows per template are kept (`snapshotTheme` in
+`packages/core/src/theme/versions.ts`).
+
+The theme ⋯ menu on the Themes page opens **Versions** (`theme-versions-dialog.tsx`,
+`themes.versions.list`): each batch with when, by whom and how many pages, **Preview** and
+**Restore**. Preview opens the storefront preview link with `&theme-version=<batch>`: the proxy
+passes it on as `x-theme-version` (only with a valid preview token, uuid only, stripped from
+incoming requests) and `renderTemplate` renders that batch's template (`versionTemplate`, same
+theme only) instead of the current one. Restore (`themes.versions.restore`,
+`restoreThemeVersion`) writes each template of the batch into the theme's drafts; a template the
+theme no longer has is recreated with the code default as its saved sections. Nothing reaches
+shoppers until the merchant publishes the changes.
+
+### Alternate templates
+
+`ALTERNATE_KINDS` (`product`, `collection`, `page`, `blog`, `article`) can have alternates
+(`product.preorder`): a `theme_template` row with that suffix, and a `template_suffix` on the
+resource (`product`, `collection`, `page`, `blog`, `article`). The storefront renders the
+resource's alternate, falling back to the default when the theme has no such row.
+
+The template picker (`template-picker.tsx`, logic in `lib/use-template-manager.ts`) shows how many
+resources use each alternate (`themes.templates.assignments`, `templateAssignments` in core,
+store-wide) and has a small manager per alternate: **Rename** (`themes.templates.rename`,
+`renameTemplateAlternate`: renames this theme's row and moves the resources with
+`reassignTemplate`; other themes keep the old name, unused), **Duplicate** (a create based on it,
+named `<suffix>-copy`) and **Delete** (resources keep their suffix and render the default). The
+default template has no manager. Resource forms pick an alternate with `TemplateSelectField` /
+`TemplateSelectCard`.
 
 ### Section pictures in the Add panel
 
@@ -254,6 +304,14 @@ controls: segmented switches for width, alignment, corners and shadow, padding p
 behind a device switch, the colour scheme as swatch chips, and the background as "Colour |
 Image", where theme colours are stored by name so they follow the scheme and dark mode
 (`settings-group-body.tsx` and the controls beside it).
+
+### Canvas page colours
+
+The canvas iframe gets the admin's stylesheets and `<html>` attributes from Puck, so
+`preview-frame.tsx` paints the page itself from the theme (`--color-bg`, `--color-ink`,
+`--font-body`, as the storefront's globals.css does) and removes the admin's inline
+`color-scheme`. The canvas follows the theme and the dock's light/dark switch, never the admin's
+own light or dark mode.
 
 ### Canvas zoom
 
