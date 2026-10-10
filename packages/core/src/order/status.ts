@@ -8,7 +8,7 @@ import { applyPaymentStatus } from '../payments/confirm'
 import { OPEN_ATTEMPT_STATUSES } from '../payments/transitions'
 import { capturedPaise, checkoutDuePaise } from './aggregate-status'
 import { fulfilRemainingLines } from './fulfil'
-import { releaseFulfillmentOrders } from './fulfillment-orders'
+import { ensureFulfillmentOrders, releaseFulfillmentOrders } from './fulfillment-orders'
 import { recomputeOrderStatuses } from './recompute'
 import { refundedPaise, refundPayment } from './refund'
 
@@ -79,6 +79,8 @@ export async function cancelOrder(
     notifyCustomer?: boolean | undefined
   } = {},
 ) {
+  // An order older than parcels gets them while it is still live, so they hold its stock.
+  await ensureFulfillmentOrders(ctx, orderId)
   const [cancelled] = await ctx.tx
     .update(order)
     .set({ status: 'cancelled' })
