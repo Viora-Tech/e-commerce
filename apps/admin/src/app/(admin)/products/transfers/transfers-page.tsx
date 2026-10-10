@@ -120,7 +120,7 @@ function TransfersContent({ initial }: { initial: TransfersInitial }) {
           onClearAll={() => setQ({ query: '', status: null, page: 1 })}
           tabs={
             <PillTabs
-              variant="pill"
+              variant="segmented"
               value={q.status}
               onChange={(status) => setQ({ status, page: 1 })}
               tabs={[

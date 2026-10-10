@@ -313,7 +313,7 @@ function ProductsContent({ initial }: { initial: ProductsInitial }) {
         applied={applied}
         tabs={
           <PillTabs
-            variant="pill"
+            variant="segmented"
             value={q.status}
             onChange={(status) => setQ({ status, page: 1 })}
             tabs={[

@@ -114,7 +114,7 @@ function DiscountsContent({ initial }: { initial: DiscountsInitial }) {
         onClearAll={() => setQ({ query: '', status: null, page: 1 })}
         tabs={
           <PillTabs
-            variant="pill"
+            variant="segmented"
             value={status}
             onChange={(next) => setQ({ status: next, page: 1 })}
             tabs={[
