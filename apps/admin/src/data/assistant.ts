@@ -47,9 +47,9 @@ export const assistantContent = {
 
   chips: {
     home: [
-      'How were sales this week?',
-      'Which orders are late?',
-      "What's running out?",
+      'Which products sold most this week?',
+      'Why did conversion drop?',
+      'Draft a Diwali offer',
       'Create discount DIWALI10: 10% off, 20 Oct to 5 Nov',
     ],
     products: [

@@ -108,7 +108,10 @@ export const hindiPageNames: Record<string, { title: string; body?: string }> = 
   },
   '/settings/invoices': { title: 'इनवॉइस' },
   '/account': { title: 'अकाउंट' },
-  '/account/appearance': { title: 'रंग-रूप' },
+  '/account/appearance': {
+    title: 'रंग-रूप',
+    body: 'लाइट या डार्क मोड और एडमिन की भाषा, सिर्फ़ आपके लिए।',
+  },
   '/content/files/storage': { title: 'फ़ाइल स्टोरेज' },
   '/dev': { title: 'डेवलपर' },
 }
