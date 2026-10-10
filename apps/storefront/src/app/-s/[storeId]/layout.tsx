@@ -57,6 +57,7 @@ import { inStore } from '@/lib/store-context'
 import { readPreview } from '@/lib/storefront-gate'
 import { renderTemplate } from '@/lib/template-render'
 import { htmlThemeAttr, resolveThemeMode, THEME_COOKIE, themeViewport } from '@/lib/theme-mode'
+import { umamiTrackerOf } from '@/lib/umami'
 
 type Props = { children: ReactNode; params: Promise<{ storeId: string }> }
 
@@ -226,6 +227,7 @@ export default async function StoreLayout({ children, params }: Props) {
     bannerVersion: privacy.bannerVersion,
     initial: decodeConsent(jar.get(CONSENT_COOKIE)?.value),
     nonce,
+    umami: umamiTrackerOf(current.apps),
   }
   let themedConsent = false
   let consentDrawn = false

@@ -19,6 +19,7 @@ import FunnelCard from './funnel-card'
 import KpiTile from './kpi-tile'
 import RangePicker from './range-picker'
 import TopProductsCard from './top-products-card'
+import VisitorsSection from './visitors-section'
 
 type AnalyticsOverviewPageProps = {
   initialRange: RangeState
@@ -161,6 +162,7 @@ export default function AnalyticsOverviewPage({
           empty={copy.paymentMethods.empty}
         />
       </div>
+      <VisitorsSection range={range} />
     </div>
   )
 }

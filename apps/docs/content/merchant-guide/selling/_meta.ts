@@ -9,5 +9,6 @@ export default {
   'import-from-shopify': 'Move from Shopify',
   'import-shopify-theme': 'Import a Shopify theme',
   growth: 'Growth',
+  'visitor-analytics': 'Visitor analytics (Umami)',
   apps: 'Apps',
 }

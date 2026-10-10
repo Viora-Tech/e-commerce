@@ -39,7 +39,7 @@ copying: projects relicense (Unleash moved to AGPL, Cal.com moved to MIT).
 | Messaging | [Novu](https://github.com/novuhq/novu) | MIT outside `enterprise/packages` | Notification workflows, digests, preference centre | Notifications |
 | Marketing | [Dittofeed](https://github.com/dittofeed/dittofeed) | MIT | Journeys, segments | Automations |
 | Marketing | [listmonk](https://github.com/knadh/listmonk), [Mautic](https://github.com/mautic/mautic) | AGPL-3.0, GPL-3.0 | | Ideas only |
-| Analytics | [Umami](https://github.com/umami-software/umami) | MIT | Sessions, referrers, visitor map | Live view globe and analytics |
+| Analytics | [Umami](https://github.com/umami-software/umami) | MIT | Sessions, referrers, visitor map | Live view globe and analytics; adopted as the Umami app (connection plugin, `packages/plugin-umami`, 2026-10-10) |
 | Analytics | [PostHog](https://github.com/PostHog/posthog) | MIT outside `ee/` | Funnels, feature flags, session replay design | Ideas, selective code |
 | Analytics | [Plausible](https://github.com/plausible/analytics) | AGPL-3.0 | | Ideas only |
 | Experiments | [GrowthBook](https://github.com/growthbook/growthbook) | MIT outside its enterprise folders | A/B tests on sections and prices | Experiments plugin |

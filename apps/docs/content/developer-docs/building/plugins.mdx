@@ -447,6 +447,27 @@ tables, a storefront surface and emails:
   adds Shopify's `reviews.rating` / `reviews.rating_count` product metafields and Judge.me's
   `shop.metafields.judgeme.*` (see the theme import page).
 
+`packages/plugin-umami` (Umami) is the worked example of a `connection` app with no provider
+kind and no table:
+
+- **Settings** in `store.apps` under `umami` (`./settings`, pure and client-safe): the Umami
+  address, website id, `waitForConsent`, and the API key as an `encryptSecret` blob that never
+  leaves the server (the admin sees `hasApiKey` only). Note: `scripts/rotate-secrets.ts` does
+  not walk `store.apps`; the key keeps decrypting through `SETTINGS_SECRET_PREVIOUS` and is
+  re-encrypted the next time it is saved.
+- **Outbound calls** (`./client`): the merchant's Umami address goes through
+  `@commerce/core/safe-fetch` (public https hosts only; `safeFetch` now takes `method`,
+  `headers` and `body`, and drops headers on a redirect to another origin). The platform's own
+  Umami on a private network or over http is listed in `UMAMI_TRUSTED_ORIGINS`.
+- **Storefront**: `apps/storefront/src/lib/umami.ts` reads the tracker from the store row and
+  `ConsentManager` renders `UmamiScript` (`next/script` with the request nonce) once
+  `umamiAllowed` says so: after a yes to analytics, or until a no when the store does not wait.
+- **Admin**: `api.umami.settings.{get,save,test,createWebsite}` for the app page, and
+  `api.umami.report({ range })` for the Analytics page's `VisitorsSection`, which always gets a
+  drawable state (`not-installed`, `not-connected`, `error`, `ready`), never a thrown error.
+  `./report` normalises Umami 3 and Umami 2 answers (`path` vs `url` metric names, flat figures
+  vs `{ value, prev }`).
+
 ## 7. Storefront app blocks
 
 An app can add sections merchants pick from the theme editor's Add panel →

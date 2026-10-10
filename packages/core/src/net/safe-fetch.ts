@@ -27,6 +27,15 @@ export type SafeFetchOptions = {
   timeoutMs?: number
   /** Aborts the request and its body early (the caller's own deadline), on top of `timeoutMs`. */
   signal?: AbortSignal | undefined
+  /** `GET` by default. Any other method is sent once: its redirects are returned, not followed. */
+  method?: string | undefined
+  /**
+   * Request headers (an API token, say). Sent only to the first URL's origin: a redirect to
+   * another host drops them, so a token never follows a hop the caller did not choose.
+   */
+  headers?: Record<string, string> | undefined
+  /** Request body, for a method other than GET/HEAD. */
+  body?: string | undefined
 }
 
 /**
@@ -142,19 +151,26 @@ async function assertPublicUrl(url: URL, lookup: LookupAll, allowHttp: boolean):
 
 const REDIRECTS = new Set([301, 302, 303, 307, 308])
 
-/** GET an untrusted URL, only ever reaching public hosts. See the file comment. */
+/** Fetch an untrusted URL (GET unless `method` says otherwise), only ever reaching public hosts. See the file comment. */
 export async function safeFetch(raw: string, opts: SafeFetchOptions = {}): Promise<Response> {
   const doFetch = opts.fetch ?? fetch
   const lookup = opts.lookup ?? defaultLookup
   const maxRedirects = opts.maxRedirects ?? 3
   const timeout = AbortSignal.timeout(opts.timeoutMs ?? 30_000)
   const signal = opts.signal ? AbortSignal.any([opts.signal, timeout]) : timeout
+  const method = (opts.method ?? 'GET').toUpperCase()
+  const follows = method === 'GET' || method === 'HEAD'
   let url = new URL(raw)
+  const origin = url.origin
   for (let hop = 0; ; hop++) {
     await assertPublicUrl(url, lookup, opts.allowHttp ?? false)
-    const res = await doFetch(url.href, { redirect: 'manual', signal })
+    const init: RequestInit = { redirect: 'manual', signal }
+    if (method !== 'GET') init.method = method
+    if (opts.headers && url.origin === origin) init.headers = opts.headers
+    if (opts.body !== undefined && hop === 0) init.body = opts.body
+    const res = await doFetch(url.href, init)
     const location = res.headers.get('location')
-    if (!REDIRECTS.has(res.status) || !location) return res
+    if (!REDIRECTS.has(res.status) || !location || !follows) return res
     await res.body?.cancel()
     if (hop >= maxRedirects) throw new BlockedUrlError('too many redirects')
     url = new URL(location, url)

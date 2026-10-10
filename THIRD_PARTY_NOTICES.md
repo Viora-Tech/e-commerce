@@ -153,6 +153,16 @@ Candidate projects, with verified licences and what to take from each: [`docs/op
   `oxlint` MIT (oxc project) — https://github.com/oxc-project/oxc. Installed as dev
   dependencies; no code copied.
 
+## Umami
+
+- Used in: the Umami app (`packages/plugin-umami`, `apps/admin/src/components/apps/umami`,
+  `apps/admin/src/components/analytics/visitors-section.tsx`,
+  `apps/storefront/src/components/analytics/umami-script.tsx`). The storefront loads the
+  store's own Umami tracker (`script.js`) from the store's Umami server or Umami Cloud, and the
+  admin reads Umami's REST API. No Umami code is copied or bundled.
+- Licence: MIT, Copyright (c) 2022 Umami Software, Inc. — https://github.com/umami-software/umami
+  (licence checked on GitHub 2026-10-10).
+
 ## Third-party app logos (trademarks)
 
 - Used in: `apps/admin/public/app-logos/` (Apps page, install step): Cashfree, Decentro, Delhivery,

@@ -46,6 +46,7 @@ import { storeRouter } from './store'
 import { storeDataRouter } from './store-data'
 import { taxesRouter } from './taxes'
 import { themesRouter } from './themes'
+import { umamiRouter } from './umami'
 
 export const appRouter = {
   me: protectedProcedure.handler(({ context }) => context.session),
@@ -91,6 +92,7 @@ export const appRouter = {
   emi: emiRouter,
   forms: formsRouter,
   reviews: reviewsRouter,
+  umami: umamiRouter,
   dashboard: dashboardRouter,
   analytics: analyticsRouter,
   ai: aiRouter,
