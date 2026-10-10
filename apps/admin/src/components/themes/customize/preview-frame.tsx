@@ -15,13 +15,21 @@ type PreviewFrameProps = {
 }
 
 /**
+ * The page itself in the theme's colours, as the storefront's globals.css paints it. Puck
+ * mirrors the admin's stylesheets into the frame, and without this the admin's own body
+ * background and text (dark in a dark admin) showed through sections with no background.
+ */
+const CANVAS_PAGE_CSS =
+  ':root{background:var(--color-bg)}body{background:var(--color-bg);color:var(--color-ink);font-family:var(--font-body)}'
+
+/**
  * Paints the theme being edited into Puck's preview iframe, as the storefront
  * preview bridge does: the same CSS and root attributes. The theme and mode
  * come from context (see `PreviewModeContext`) so this stays one stable override. It goes into the frame
  * only, since the theme's variable names overlap the admin's own tokens. Also
- * where the canvas gets its drag/drop/enter motion — vendor-puck.css and the
- * admin's own stylesheets never reach the iframe, so this is the only place
- * that can style what's inside it.
+ * where the canvas gets its drag/drop/enter motion. Puck mirrors the admin's
+ * stylesheets into the frame (so editor chrome there uses admin tokens), but the
+ * theme's CSS and the page colours reach it only from here.
  */
 export default function PreviewFrame({ children, document }: PreviewFrameProps) {
   // Hooks
@@ -38,13 +46,24 @@ export default function PreviewFrame({ children, document }: PreviewFrameProps) 
     // An imported Shopify theme brings its own CSS (below); ours would fight it.
     if (!document || !theme || liquid) return
     const style = document.createElement('style')
-    style.textContent = themeToCss(theme)
+    style.textContent = themeToCss(theme) + CANVAS_PAGE_CSS
     document.head.appendChild(style)
     const root = document.documentElement
     for (const [name, value] of Object.entries(themeRootAttrs(theme)))
       root.setAttribute(name, value)
     root.setAttribute('data-theme', mode)
-    return () => style.remove()
+    // Puck copies the admin's <html> attributes into the frame (after this runs), including
+    // next-themes' inline `color-scheme`; the theme's own CSS decides that here.
+    const dropAdminScheme = () => {
+      if (root.style.colorScheme) root.style.removeProperty('color-scheme')
+    }
+    dropAdminScheme()
+    const observer = new MutationObserver(dropAdminScheme)
+    observer.observe(root, { attributes: true, attributeFilter: ['style'] })
+    return () => {
+      observer.disconnect()
+      style.remove()
+    }
   }, [document, theme, mode, liquid])
 
   // An imported Shopify theme: its stylesheets, CSS variables and fonts in the frame's

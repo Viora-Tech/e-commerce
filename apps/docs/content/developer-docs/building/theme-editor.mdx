@@ -290,6 +290,14 @@ behind a device switch, the colour scheme as swatch chips, and the background as
 Image", where theme colours are stored by name so they follow the scheme and dark mode
 (`settings-group-body.tsx` and the controls beside it).
 
+### Canvas page colours
+
+The canvas iframe gets the admin's stylesheets and `<html>` attributes from Puck, so
+`preview-frame.tsx` paints the page itself from the theme (`--color-bg`, `--color-ink`,
+`--font-body`, as the storefront's globals.css does) and removes the admin's inline
+`color-scheme`. The canvas follows the theme and the dock's light/dark switch, never the admin's
+own light or dark mode.
+
 ## Motion
 
 All editor motion uses Motion (`motion/react`), 150 to 200 ms, easing out, never overshooting,
