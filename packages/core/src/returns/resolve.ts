@@ -11,7 +11,7 @@ import { refundedPaise, refundPayment } from '../order/refund'
 import { insertOutboxEvent } from '../outbox/write'
 import { createShipmentForOrder } from '../shipping/shipments'
 import { returnLabel } from './policy'
-import { lockReturn, ReturnNotAllowed, sellingLocation, updateReturnRow } from './service'
+import { lockReturn, ReturnNotAllowed, returnLocation, updateReturnRow } from './service'
 
 /** Captured payments on an order and how much of each can still go back. */
 export async function refundablePayments(ctx: StoreContext, orderId: string) {
@@ -277,6 +277,7 @@ export async function reshipReturn(ctx: StoreContext, id: string, provider: Ship
   const lines = await ctx.tx
     .select({
       restocked: returnRequestLine.restockedQuantity,
+      orderLineId: returnRequestLine.orderLineId,
       variantId: orderLine.variantId,
     })
     .from(returnRequestLine)
@@ -287,7 +288,7 @@ export async function reshipReturn(ctx: StoreContext, id: string, provider: Ship
     await adjustStock(ctx.tx, {
       storeId: ctx.storeId,
       variantId: l.variantId,
-      locationId: await sellingLocation(ctx, l.variantId),
+      locationId: await returnLocation(ctx, l),
       delta: -l.restocked,
       reason: 'sold',
       note: `Re-shipped after RTO ${returnLabel(r.number)}`,

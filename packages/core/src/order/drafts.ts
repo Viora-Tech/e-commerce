@@ -16,7 +16,9 @@ import { and, desc, eq, inArray, sql } from 'drizzle-orm'
 import { z } from 'zod'
 import type { StoreContext } from '../context'
 import { CommerceError, OutOfStock } from '../errors'
+import { defaultLocationId } from '../inventory/levels'
 import { assertCustomerInStore } from '../store-scope'
+import { createFulfillmentOrders, groupIntoParcels } from './fulfillment-orders'
 import { recomputeOrderStatuses } from './recompute'
 
 /**
@@ -321,6 +323,8 @@ export async function convertDraft(
   const lines = await ctx.tx.select().from(orderLine).where(eq(orderLine.orderId, id))
   if (lines.length === 0) throw new DraftEmpty(id, ctx.storeId)
 
+  /** Where each line's stock is held: its parcel. Untracked goods hold nothing (default location). */
+  const heldAt = new Map<string, string | null>()
   for (const line of lines) {
     /* Untracked variants are never held, as in placeOrder, so release has nothing to undo. */
     const [v] = await ctx.tx
@@ -338,7 +342,8 @@ export async function convertDraft(
           sql`${inventoryLevel.onHand} - ${inventoryLevel.reserved} >= ${line.quantity}`,
         ),
       )
-      .returning({ variantId: inventoryLevel.variantId })
+      .returning({ variantId: inventoryLevel.variantId, locationId: inventoryLevel.locationId })
+    heldAt.set(line.id, held[0]?.locationId ?? null)
     /* An untracked variant has no inventory row; only a tracked, short one comes back empty. */
     if (held.length === 0) {
       const [level] = await ctx.tx
@@ -348,6 +353,21 @@ export async function convertDraft(
       if (level) throw new OutOfStock(line.variantId, ctx.storeId)
     }
   }
+
+  await createFulfillmentOrders(ctx, {
+    orderId: id,
+    plans: groupIntoParcels(
+      lines
+        .filter((l) => !l.giftCard)
+        .map((l) => ({
+          orderLineId: l.id,
+          quantity: l.quantity,
+          locationId: heldAt.get(l.id) ?? null,
+        })),
+      await defaultLocationId(ctx.tx, ctx.storeId),
+    ),
+    fallbackRegistrationId: o.gstRegistrationId,
+  })
 
   const method = opts.paymentMethod ?? o.paymentMethod ?? 'manual'
   const [updated] = await ctx.tx

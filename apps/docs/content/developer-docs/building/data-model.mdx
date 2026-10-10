@@ -29,7 +29,12 @@ erDiagram
   order ||--|{ order_line : "lines"
   order ||--o{ payment : "attempts"
   payment ||--o{ refund : "refunded by"
-  order ||--o{ shipment : "parcels"
+  order ||--o{ fulfillment_order : "parcels"
+  location ||--o{ fulfillment_order : "sends"
+  fulfillment_order ||--|{ fulfillment_order_line : "units"
+  order_line ||--o{ fulfillment_order_line : "held in"
+  order ||--o{ shipment : "consignments"
+  fulfillment_order |o--o{ shipment : "carried by"
   shipment_pickup |o--o{ shipment : "collects"
   order ||--o{ notification : "messages"
   order ||--o{ return_request : "returns and RTOs"
@@ -54,9 +59,25 @@ erDiagram
     text idempotency_key "orderId:attempt"
     bool refund_needed
   }
+  fulfillment_order {
+    uuid id PK
+    uuid order_id FK
+    uuid location_id FK "where the stock is held"
+    uuid gst_registration_id FK "GSTIN it is billed under"
+    int position "parcel 1, 2, ..."
+    text status "open, on_hold, fulfilled, cancelled"
+  }
+  fulfillment_order_line {
+    uuid id PK
+    uuid fulfillment_order_id FK
+    uuid order_line_id FK
+    int quantity
+    int fulfilled_quantity
+  }
   shipment {
     uuid id PK
     uuid order_id FK
+    uuid fulfillment_order_id FK "null before parcels"
     text waybill "AWB"
     text status "created to delivered, rto"
     text ndr_status
@@ -288,6 +309,25 @@ events written in the same transaction as the change), `order_note`, `discount` 
 `purchase_order`, `transfer`, `page`, `navigation_menu`, `store_domain`, metaobjects and
 metafields, `role` / `role_permission` / `store_member` / `store_invitation`, and the marketing
 tables in `marketing-schema.ts`.
+
+### Parcels (fulfilment orders)
+
+Every placed order with goods has at least one `fulfillment_order`: the units one location
+holds for it, billed under that location's GSTIN (else the order's). Gift card lines belong to
+none. `placeOrder` and `convertDraft` write them where they reserved the stock
+(`createFulfillmentOrders` in `packages/core/src/order/fulfillment-orders.ts`); orders older than
+migration 0096 got theirs from its backfill, and any order still without one gets it from
+`ensureFulfillmentOrders` on its next stock move.
+
+Stock moves go through the parcel, never the variant's selling row: packing
+(`packFulfillmentOrderLines`, called by `fulfilOrderLines`, `fulfilRemainingLines` and courier
+bookings) takes units out at the parcel's location, cancelling (`releaseFulfillmentOrders`) gives
+unpacked units back there, and a return restocks where the line's parcel left from
+(`lineLocation`). `order_line.fulfilled_quantity` stays the order-level total that
+`recomputeOrderStatuses` reads; `fulfillment_order_line.fulfilled_quantity` is the same count per
+parcel. A shipment carries one parcel (`shipment.fulfillment_order_id`, null for bookings made
+before parcels). Today every order has exactly one parcel; splitting an order across warehouses
+builds on this table.
 
 ### Returns and RTO
 
