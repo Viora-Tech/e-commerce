@@ -17,6 +17,7 @@ import {
 } from '@commerce/db'
 import { resetDb } from '@commerce/db/test'
 import { call } from '@orpc/server'
+import { eq } from 'drizzle-orm'
 import { afterAll, beforeEach, describe, expect, it } from 'vitest'
 import type { ApiContext } from '../src/context'
 import { appRouter } from '../src/routers/_app'
@@ -741,6 +742,85 @@ describe('analytics.report', () => {
       lastOrder: istDay(daysAgo(3)),
     })
     expect(top.rows.map((r) => r.values.email)).toContain('Guest@Example.com')
+  })
+
+  it('reports profit by month and by product after goods, courier, fees and RTO', async () => {
+    const a = await merchant('p@example.com', 'store-p')
+    await owner
+      .update(store)
+      .set({
+        apps: {
+          installed: [],
+          settings: { core: { profit: { gatewayFees: { razorpay: { percentBps: 200 } } } } },
+        },
+      })
+      .where(eq(store.id, a.storeId))
+    const [p] = await owner
+      .insert(product)
+      .values({ storeId: a.storeId, handle: 'shirt', title: 'Shirt' })
+      .returning()
+    const [v] = await owner
+      .insert(variant)
+      .values({ storeId: a.storeId, productId: p?.id as string, title: 'M', pricePaise: 118_000 })
+      .returning()
+    const placedAt = daysAgo(2)
+    const [o] = await owner
+      .insert(order)
+      .values({
+        storeId: a.storeId,
+        number: 1,
+        subtotalPaise: 118_000,
+        totalPaise: 118_000,
+        taxPaise: 18_000,
+        status: 'open',
+        paymentStatus: 'paid',
+        paymentMethod: 'razorpay',
+        placedAt,
+      })
+      .returning()
+    await owner.insert(orderLine).values({
+      storeId: a.storeId,
+      orderId: o?.id as string,
+      variantId: v?.id as string,
+      quantity: 1,
+      unitPricePaise: 118_000,
+      costAtSalePaise: 50_000,
+    })
+    await owner.insert(payment).values({
+      storeId: a.storeId,
+      orderId: o?.id as string,
+      provider: 'razorpay',
+      providerRef: 'pay_p1',
+      status: 'captured',
+      amountPaise: 118_000,
+    })
+    await owner.insert(shipment).values({
+      storeId: a.storeId,
+      orderId: o?.id as string,
+      provider: 'fake',
+      waybill: 'P1',
+      courierChargePaise: 6_000,
+    })
+    const month = istDay(placedAt).slice(0, 7)
+    const byMonth = await report(a, 'profit-by-month', '30d')
+    expect(row(byMonth, month)).toMatchObject({
+      orders: 1,
+      netSales: 100_000,
+      costOfGoods: 50_000,
+      courierCost: 6_000,
+      gatewayFees: 2_360,
+      rtoCost: 0,
+      profit: 41_640,
+    })
+    expect(byMonth.totals.profit).toBe(41_640)
+    const byProduct = await report(a, 'profit-by-product', '30d')
+    expect(row(byProduct, p?.id as string)).toMatchObject({
+      product: 'Shirt',
+      units: 1,
+      netSales: 100_000,
+      costOfGoods: 50_000,
+      profit: 41_640,
+    })
   })
 
   it('answers every report in the catalogue on an empty store', async () => {

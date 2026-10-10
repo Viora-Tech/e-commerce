@@ -32,6 +32,7 @@ import { pagesRouter } from './pages'
 import { paymentsRouter } from './payments'
 import { policiesRouter } from './policies'
 import { productsRouter } from './products'
+import { profitCostsRouter } from './profit-costs'
 import { purchaseDocumentsRouter } from './purchase-documents'
 import { inboundShipmentsRouter, purchaseChargesRouter, suppliersRouter } from './purchasing'
 import { redirectsRouter } from './redirects'
@@ -84,6 +85,7 @@ export const appRouter = {
   gstInvoices: gstInvoicesRouter,
   taxes: taxesRouter,
   businessGst: businessGstRouter,
+  profitCosts: profitCostsRouter,
   shopifyImport: shopifyImportRouter,
   backInStock: backInStockRouter,
   emi: emiRouter,

@@ -152,6 +152,13 @@ export const analyticsContent = {
       perDay: 'Sold per day',
       daysOfCover: 'Days of cover',
       cumulativeShare: 'Cumulative share',
+      month: 'Month',
+      costOfGoods: 'Cost of goods',
+      courierCost: 'Courier charges',
+      gatewayFees: 'Payment fees',
+      rtoCost: 'RTO costs',
+      profit: 'Profit',
+      margin: 'Margin',
     } as Record<string, string>,
     /** Words for the fixed keys some columns hold (status, COD or prepaid, finance lines). */
     labels: {

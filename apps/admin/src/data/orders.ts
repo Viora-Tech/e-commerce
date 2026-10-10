@@ -474,6 +474,31 @@ export const parcelsCardContent = {
   packed: (done: number, of: number) => `${done} of ${of} packed`,
 }
 
+/** The order page's Profit card (order/profit.ts in core). */
+export const profitCardContent = {
+  title: 'Profit',
+  netSales: 'Net sales (without GST)',
+  goods: 'Cost of goods',
+  courier: 'Courier charges',
+  fees: 'Payment fees',
+  rto: 'RTO costs',
+  profit: 'Profit',
+  margin: (percent: string) => `${percent} margin`,
+  notes: {
+    costEstimated: 'Some item costs were filled in after the sale from the cost at that time.',
+    costMissing: 'Some items have no cost yet, so they count as free. Add the cost on the product.',
+    courierMissing: 'The courier charge is not known yet. Add it below.',
+    feeFromRate: 'Payment fees use your rates in Settings › Costs for profit.',
+    feeMissing: 'No fee rate is set for this payment method.',
+  },
+  setRates: 'Set fee rates',
+  courierLabel: 'Courier charge (₹)',
+  courierSave: 'Save',
+  courierSaved: 'Courier charge saved',
+  courierInvalid: 'Type an amount in rupees, like 65 or 65.50.',
+  failed: 'Could not save',
+}
+
 export const importedOrderContent = {
   title: (platform: string) => `Imported from ${PLATFORMS[platform] ?? platform}`,
   body: 'A historical order kept as a record. It did not change stock, send messages or create invoices, and it cannot be fulfilled or refunded here.',

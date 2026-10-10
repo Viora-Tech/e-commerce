@@ -385,6 +385,14 @@ export async function convertDraft(
     fallbackRegistrationId: o.gstRegistrationId,
   })
 
+  // Cost at sale is the variant's cost when the draft becomes an order (order/profit.ts).
+  await ctx.tx
+    .update(orderLine)
+    .set({
+      costAtSalePaise: sql`(select v.cost_paise from variant v where v.id = ${orderLine.variantId})`,
+    })
+    .where(and(eq(orderLine.orderId, id), eq(orderLine.giftCard, false)))
+
   const method = opts.paymentMethod ?? o.paymentMethod ?? 'manual'
   const [updated] = await ctx.tx
     .update(order)

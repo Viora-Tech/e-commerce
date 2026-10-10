@@ -1096,6 +1096,14 @@ export const orderLine = pgTable('order_line', {
   preorder: boolean('preorder').notNull().default(false),
   /** Expected ship date shown on the order/email; resolved from the product's settings at order time. */
   preorderShipDate: timestamp('preorder_ship_date', { withTimezone: true }),
+  /**
+   * What one unit cost the store when it sold: the variant's weighted average cost
+   * (`variant.cost_paise`, landed cost) at placement. Profit reads this, never today's cost.
+   * Null when the variant had no cost.
+   */
+  costAtSalePaise: integer('cost_at_sale_paise'),
+  /** The cost was filled in later from the variant's cost then, not snapshotted at sale (0105). */
+  costEstimated: boolean('cost_estimated').notNull().default(false),
 })
 
 /**
@@ -1231,6 +1239,8 @@ export const payment = pgTable(
      */
     status: text('status', { enum: PAYMENT_STATUSES }).notNull(),
     amountPaise: integer('amount_paise').notNull(),
+    /** What the gateway kept from this payment, when it reported it; null uses the store's fee rate. */
+    feePaise: integer('fee_paise'),
     /** 1 for the first attempt on an order, then 2, 3… for each retry. */
     attempt: integer('attempt').notNull().default(1),
     /** `<orderId>:<attempt>`; sent to the gateway so one attempt is never charged twice. */
@@ -1420,6 +1430,8 @@ export const shipment = pgTable(
     ndrActionRef: text('ndr_action_ref'),
     rtoDeliveredAt: timestamp('rto_delivered_at', { withTimezone: true }),
     pickupId: uuid('pickup_id'),
+    /** What the courier charged for this consignment (from the booking, or typed by the merchant). */
+    courierChargePaise: integer('courier_charge_paise'),
     createdAt: createdAt(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   },
