@@ -4,7 +4,7 @@ import { resetDb } from '@commerce/db/test'
 import { eq } from 'drizzle-orm'
 import { afterAll, afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { phoneBlindIndex } from './customers/phone-crypto'
-import { rotateStoreSecrets } from './secret-rotation'
+import { rotateAppSettings, rotateStoreSecrets } from './secret-rotation'
 import { decryptSecret, encryptSecret, isUnderCurrentKey, keyId, reencryptSecret } from './secrets'
 import { decryptProviderSettings, encryptProviderSettings } from './settings/secrets'
 
@@ -51,6 +51,12 @@ async function seedStore() {
       shipping: {
         enabled: ['delhivery'],
         providers: { delhivery: { token: encryptSecret('dl-token', NEW) } },
+      },
+      apps: {
+        installed: ['umami'],
+        settings: {
+          umami: { url: 'https://umami.example', apiKey: encryptSecret('umami-key', OLD) },
+        },
       },
     })
     .returning()
@@ -124,6 +130,37 @@ describe('keyring helpers', () => {
   })
 })
 
+describe('rotateAppSettings', () => {
+  it('moves encrypted values at any depth and leaves everything else as it is', () => {
+    const apps = {
+      installed: ['umami', 'x'],
+      settings: {
+        umami: { url: 'https://u.example', apiKey: encryptSecret('k', OLD), waitForConsent: true },
+        x: { tokens: [legacyBlob('t', OLD), encryptSecret('fresh', NEW)], note: 'v3. not a blob' },
+      },
+    }
+    const r = rotateAppSettings(apps, keyring)
+    expect(r.moved).toBe(2)
+    expect(r.unreadable).toBe(0)
+    const next = r.next as typeof apps
+    expect(next.installed).toEqual(['umami', 'x'])
+    expect(next.settings.umami.url).toBe('https://u.example')
+    expect(next.settings.umami.waitForConsent).toBe(true)
+    expect(decryptSecret(next.settings.umami.apiKey, NEW, [])).toBe('k')
+    expect(decryptSecret(next.settings.x.tokens[0] ?? '', NEW, [])).toBe('t')
+    expect(next.settings.x.tokens[1]).toBe(apps.settings.x.tokens[1])
+    expect(next.settings.x.note).toBe('v3. not a blob')
+  })
+
+  it('returns the same object when nothing moves, and counts what no key opens', () => {
+    const apps = { installed: [], settings: { a: { key: encryptSecret('k', NEW) } } }
+    expect(rotateAppSettings(apps, keyring)).toEqual({ next: apps, moved: 0, unreadable: 0 })
+    const lost = { settings: { a: { key: encryptSecret('k', 'nobody-has-this-key-1') } } }
+    expect(rotateAppSettings(lost, keyring)).toMatchObject({ moved: 0, unreadable: 1 })
+    expect(rotateAppSettings(null, keyring)).toEqual({ next: null, moved: 0, unreadable: 0 })
+  })
+})
+
 describe('rotateStoreSecrets', () => {
   it('dry run counts without writing; apply moves everything; a second run finds nothing', async () => {
     const storeId = await seedStore()
@@ -133,6 +170,7 @@ describe('rotateStoreSecrets', () => {
     )
     expect(dry).toEqual({
       settings: 2,
+      appSettings: 1,
       columns: { 'gift card codes': 1 },
       phones: 1,
       unreadable: 0,
@@ -159,6 +197,11 @@ describe('rotateStoreSecrets', () => {
     expect(decryptSecret(cfg.key_secret ?? '', NEW, [])).toBe('rzp-secret')
     expect(decryptSecret(cfg.webhook_secret ?? '', NEW, [])).toBe('hook-secret')
 
+    const apps = after?.apps as { installed: string[]; settings: { umami: Record<string, string> } }
+    expect(apps.installed).toEqual(['umami'])
+    expect(apps.settings.umami.url).toBe('https://umami.example')
+    expect(decryptSecret(apps.settings.umami.apiKey ?? '', NEW, [])).toBe('umami-key')
+
     const [card] = await owner.select().from(giftCard).where(eq(giftCard.storeId, storeId))
     expect(decryptSecret(card?.codeCipher ?? '', NEW, [])).toBe('GIFT-CODE-1')
 
@@ -172,6 +215,7 @@ describe('rotateStoreSecrets', () => {
     )
     expect(again).toEqual({
       settings: 0,
+      appSettings: 0,
       columns: { 'gift card codes': 0 },
       phones: 0,
       unreadable: 0,

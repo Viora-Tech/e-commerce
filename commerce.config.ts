@@ -9,6 +9,7 @@ import { formsPlugin } from '@commerce/plugin-forms'
 import { gstInvoicesPlugin } from '@commerce/plugin-gst-invoices'
 import { reviewsPlugin } from '@commerce/plugin-reviews'
 import { shopifyImportPlugin } from '@commerce/plugin-shopify-import'
+import { umamiPlugin } from '@commerce/plugin-umami'
 import { defineConfig } from '@commerce/plugins'
 import { delhiveryPlugin } from '@commerce/shipping-delhivery'
 import { rapidshypPlugin } from '@commerce/shipping-rapidshyp'
@@ -40,5 +41,6 @@ export default defineConfig({
     emiPlugin,
     formsPlugin,
     reviewsPlugin,
+    umamiPlugin,
   ],
 })

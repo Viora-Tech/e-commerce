@@ -31,6 +31,7 @@ import OrderReturnsCard from './order-returns-card'
 import PackingSlip from './packing-slip'
 import ParcelsCard from './parcels-card'
 import PaymentCard from './payment-card'
+import ProfitCard from './profit-card'
 import RefundDialog from './refund-dialog'
 import ShipmentPanel from './shipment-panel'
 import TagsCard from './tags-card'
@@ -244,6 +245,19 @@ export default function OrderView({ order, appCards = [] }: OrderViewProps) {
       side={
         <>
           <CustomerCard order={order} />
+          {readOnly ? null : (
+            <ProfitCard
+              orderId={order.id}
+              shipment={
+                order.shipment
+                  ? {
+                      id: order.shipment.id,
+                      courierChargePaise: order.shipment.courierChargePaise,
+                    }
+                  : null
+              }
+            />
+          )}
           {appCards.map((id) => {
             const Card = ADMIN_APPS[id]?.OrderCard
             return Card ? <Card key={id} orderId={order.id} /> : null

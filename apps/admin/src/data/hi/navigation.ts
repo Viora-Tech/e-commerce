@@ -81,6 +81,10 @@ export const hindiPageNames: Record<string, { title: string; body?: string }> = 
     title: 'GST और इनवॉइस',
     body: 'आपके GST नंबर, कीमतों में GST कैसे जुड़ता है, और इनवॉइस के नंबर कैसे बनते हैं।',
   },
+  '/settings/costs': {
+    title: 'मुनाफ़े के लिए खर्च',
+    body: 'पेमेंट गेटवे और कैश ऑन डिलीवरी पर आपका कितना खर्च होता है, ताकि ऑर्डर का मुनाफ़ा सही दिखे।',
+  },
   '/settings/customer-accounts': {
     title: 'ग्राहक अकाउंट',
     body: 'बिना अकाउंट चेकआउट, और ईमेल, SMS या WhatsApp से साइन-इन कोड।',

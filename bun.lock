@@ -22,6 +22,7 @@
         "@commerce/plugin-gst-invoices": "workspace:*",
         "@commerce/plugin-reviews": "workspace:*",
         "@commerce/plugin-shopify-import": "workspace:*",
+        "@commerce/plugin-umami": "workspace:*",
         "@commerce/plugins": "workspace:*",
         "@commerce/shipping-delhivery": "workspace:*",
         "@commerce/shipping-rapidshyp": "workspace:*",
@@ -62,6 +63,7 @@
         "@commerce/plugin-forms": "workspace:*",
         "@commerce/plugin-reviews": "workspace:*",
         "@commerce/plugin-shopify-import": "workspace:*",
+        "@commerce/plugin-umami": "workspace:*",
         "@commerce/queue": "workspace:*",
         "@commerce/richtext": "workspace:*",
         "@commerce/shipping-delhivery": "workspace:*",
@@ -161,6 +163,7 @@
         "@commerce/plugin-gst-invoices": "workspace:*",
         "@commerce/plugin-reviews": "workspace:*",
         "@commerce/plugin-shopify-import": "workspace:*",
+        "@commerce/plugin-umami": "workspace:*",
         "@commerce/queue": "workspace:*",
         "@commerce/richtext": "workspace:*",
         "@commerce/shipping": "workspace:*",
@@ -204,6 +207,7 @@
         "@commerce/plugin-forms": "workspace:*",
         "@commerce/plugin-reviews": "workspace:*",
         "@commerce/plugin-shopify-import": "workspace:*",
+        "@commerce/plugin-umami": "workspace:*",
         "@commerce/queue": "workspace:*",
         "@commerce/shipping": "workspace:*",
         "@commerce/storage": "workspace:*",
@@ -262,6 +266,7 @@
         "@commerce/plugin-gst-invoices": "workspace:*",
         "@commerce/plugin-reviews": "workspace:*",
         "@commerce/plugin-shopify-import": "workspace:*",
+        "@commerce/plugin-umami": "workspace:*",
         "@commerce/plugins": "workspace:*",
         "@commerce/shipping": "workspace:*",
         "@commerce/storage": "workspace:*",
@@ -724,6 +729,21 @@
         "vitest": "^4.1.11",
       },
     },
+    "packages/plugin-umami": {
+      "name": "@commerce/plugin-umami",
+      "version": "0.0.0",
+      "dependencies": {
+        "@commerce/core": "workspace:*",
+        "@commerce/plugins": "workspace:*",
+        "zod": "^4.6.5",
+      },
+      "devDependencies": {
+        "@commerce/config": "workspace:*",
+        "@types/node": "^22.20.4",
+        "typescript": "~5.9.3",
+        "vitest": "^4.1.11",
+      },
+    },
     "packages/plugins": {
       "name": "@commerce/plugins",
       "version": "0.0.0",
@@ -1173,6 +1193,8 @@
     "@commerce/plugin-reviews": ["@commerce/plugin-reviews@workspace:packages/plugin-reviews"],
 
     "@commerce/plugin-shopify-import": ["@commerce/plugin-shopify-import@workspace:packages/plugin-shopify-import"],
+
+    "@commerce/plugin-umami": ["@commerce/plugin-umami@workspace:packages/plugin-umami"],
 
     "@commerce/plugins": ["@commerce/plugins@workspace:packages/plugins"],
 

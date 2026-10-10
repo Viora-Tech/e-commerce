@@ -149,6 +149,8 @@ type Line = {
   giftCard: boolean
   /** Variant weight; null counts as 0 for weight-based rates. */
   weightGrams: number | null
+  /** The variant's weighted average cost now: snapshotted as the line's cost at sale. */
+  costPaise: number | null
   /** Store-timezone instant the product goes on sale; null = always on sale. */
   launchAt: Date | null
   /** Resolved pre-order settings (product merged with the variant's override, if any). */
@@ -203,6 +205,7 @@ const loadCart: WorkflowStep<State> = {
         hsCode: variant.hsCode,
         giftCard: product.isGiftCard,
         weightGrams: variant.weightGrams,
+        costPaise: variant.costPaise,
         launchAt: product.launchAt,
         preorderOverride: variant.preorderOverride,
         preorderEnabled: product.preorderEnabled,
@@ -230,6 +233,7 @@ const loadCart: WorkflowStep<State> = {
       hsCode: r.hsCode,
       giftCard: r.giftCard,
       weightGrams: r.weightGrams,
+      costPaise: r.costPaise,
       launchAt: r.launchAt,
       preorder: resolvePreorderSettings(r, r.preorderOverride),
     }))
@@ -646,6 +650,8 @@ const createOrder: WorkflowStep<State> = {
         hsCode: l.giftCard ? null : l.hsCode,
         giftCard: l.giftCard,
         preorder: l.preorder.enabled && !l.giftCard,
+        // What the unit cost the store as it sold: profit never reads today's cost.
+        costAtSalePaise: l.giftCard ? null : l.costPaise,
         preorderShipDate:
           l.preorder.enabled && !l.giftCard ? resolveShipDate(l.preorder, new Date()) : null,
       })),

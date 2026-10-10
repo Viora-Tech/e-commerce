@@ -146,6 +146,7 @@ export const routes = {
     newShippingZone: () => '/settings/shipping/zones/new',
     shippingZone: (zoneId: string) => `/settings/shipping/zones/${id(zoneId)}`,
     taxes: () => '/settings/taxes',
+    costs: () => '/settings/costs',
     locations: () => '/settings/locations',
     location: (locationId: string) => `/settings/locations/${id(locationId)}`,
     domains: () => '/settings/domains',

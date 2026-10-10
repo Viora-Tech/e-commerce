@@ -155,6 +155,13 @@ export default [
         perDay: 'रोज़ की बिक्री',
         daysOfCover: 'कितने दिन चलेगा',
         cumulativeShare: 'जुड़ता हिस्सा',
+        month: 'महीना',
+        costOfGoods: 'माल की लागत',
+        courierCost: 'कूरियर खर्च',
+        gatewayFees: 'पेमेंट फ़ीस',
+        rtoCost: 'RTO खर्च',
+        profit: 'मुनाफ़ा',
+        margin: 'मार्जिन',
       },
       labels: {
         unfulfilled: 'भेजना बाकी',

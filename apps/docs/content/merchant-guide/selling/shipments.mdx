@@ -6,8 +6,9 @@ description: Connect Delhivery, Shiprocket or RapidShyp, compare rates, book, pr
 # Shipments
 
 **Orders → Shipments** is where every parcel across every courier gets booked, tracked,
-labelled and handled. It has five tabs: **Ready to ship**, **Shipments**, **Pickups**,
-**Delivery problems** and **RTO**.
+labelled and handled. One table has five tabs: **To book**, **Booked**, **In transit**,
+**Delivered** and **Returned (RTO)**. **Pickups** (in the header) and the deliveries that
+need you (the "need attention" link under the title) open in a side panel.
 
 ## What this is for
 
@@ -20,7 +21,7 @@ labelled and handled. It has five tabs: **Ready to ship**, **Shipments**, **Pick
 
 ## How it works
 
-You connect a courier account once. After that, each paid order waits in **Ready to ship**.
+You connect a courier account once. After that, each paid order waits in **To book**.
 When you book, the courier gives back an **AWB** (the waybill number that tracks the parcel)
 and a shipping label. From then on we check the courier's tracking every 30 minutes (and
 instantly, when the courier supports tracking webhooks), and the order's Fulfilment status
@@ -28,7 +29,7 @@ follows along by itself.
 
 ```mermaid
 flowchart TD
-  ready["Ready to ship<br/>paid order, no label yet"] -->|Book| booked["Booked<br/>AWB + label from the courier"]
+  ready["To book<br/>paid order, no label yet"] -->|Book| booked["Booked<br/>AWB + label from the courier"]
   booked -->|Schedule pickup| picked["Picked up"]
   booked -->|Cancel shipment| cancelled["Cancelled"]
   picked --> transit["In transit"]
@@ -46,8 +47,8 @@ and the order gets a **Returned to you (RTO)** task. See [Returns and RTO](/merc
 
 ## Connect a courier
 
-If no courier is connected yet you'll see "Connect a courier to start shipping", with
-**Connect Delhivery**, **Connect Shiprocket** and **Connect RapidShyp** buttons.
+If no courier is connected yet you'll see **Connect a courier** with a **Browse courier apps**
+button that opens **Apps**.
 
 <Tabs items={['Delhivery', 'Shiprocket', 'RapidShyp']}>
 <Tabs.Tab>
@@ -160,7 +161,7 @@ Delhivery and Shiprocket.
 <Callout type="warning">
   RapidShyp has no tracking webhook documented, so shipments are checked on the same polling
   schedule as Delhivery and Shiprocket rather than updating instantly. Wallet balance has no
-  documented API either - enter it by hand from the RapidShyp dashboard's own balance.
+  documented API either, so it gets no wallet strip; check the balance on the RapidShyp dashboard.
 </Callout>
 
 </Tabs.Tab>
@@ -182,39 +183,42 @@ mailer, 25 × 20 × 5 cm, 80 g", and **Make main box** the one you use most. The
 fills in the size when booking. The parcel weight is the sum of your products' weights when
 they have one, otherwise the box weight.
 
-### Pick orders in Ready to ship
+### Pick orders in To book
 
-Paid orders waiting on a label show up in **Ready to ship**. Tick the ones you want.
+Paid orders waiting on a label show up in **To book**, with who they go to, the parcel
+weight (from your products' weights) and the courier. Tick the ones you want.
 
-### Compare rates
+### Book selected
 
-Select **Compare rates**. For each order you see the couriers side by side, with **Store
-default**, **Cheapest**, **Fastest** and **Recommended** picks. Tick **Insure these
-shipments** for high-value parcels, then **Book** them.
+Select **Book selected**. When more than one courier can take an order you see them side by
+side, with **Store default**, **Cheapest**, **Fastest** and **Recommended** picks; with one
+courier you just confirm. Then **Book** them.
 
 <Screenshot
   name="Compare couriers"
-  caption="Ready to ship → Compare couriers dialog for 3 selected orders, Delhivery, Shiprocket and RapidShyp rates side by side with the Cheapest badge on one and the Book 3 shipments button at the bottom."
+  caption="To book → Book selected dialog for 3 selected orders, Delhivery, Shiprocket and RapidShyp rates side by side with the Cheapest badge on one and the Book 3 shipments button at the bottom."
 />
 
 ### Print labels
 
-Select **Print labels** to get every label for the batch in one file.
+Select **Print labels** when the booking is done, or tick parcels in **Booked** and select
+**Print labels** there.
 
 ### Schedule pickup
 
-Select **Schedule pickup**, pick a **Pickup date** and a start time (**From**, 24-hour, e.g.
-`14:00`). The courier gets the request; the pickup shows under **Pickups → Recent pickups**.
+Select **Pickups** in the header, tick the booked parcels, pick a **Pickup date** and a start
+time (**From**, 24-hour, e.g. `14:00`). The courier gets the request; the pickup shows under
+**Recent pickups**.
 
 </Steps>
 
-There's also **Advanced: book by order number** if you'd rather type order numbers than tick
-them.
+There's also **Book by order number** in the header's **⋯** menu if you'd rather type order
+numbers than tick them. Use it for cash on delivery orders, which **To book** doesn't list.
 
 ## Pickups and manifests
 
-Pick shipments in the **Shipments** tab, then come back to **Pickups** to book the courier
-pickup for them. **Create manifest** groups a pickup's shipments into one printable label
+Select **Pickups** in the header and tick the booked parcels to book the courier pickup for
+them. **Create manifest** groups a pickup's shipments into one printable label
 sheet for the delivery person to sign. Delhivery has no separate manifest API yet, so the
 sheet is made from your saved labels.
 
@@ -222,7 +226,8 @@ sheet is made from your saved labels.
 
 When a courier can't deliver a parcel (shopper not home, phone switched off, address
 incomplete) it's called an **NDR**, a non-delivery report. A parcel moves into **Delivery
-problems** by itself as soon as the courier's own tracking update says so - the same tracking
+problems** (the red "need attention" link under the title, and a **Delivery failed** chip in
+**In transit**) by itself as soon as the courier's own tracking update says so - the same tracking
 check that flips a parcel to **Out for delivery** or **Delivered** (every 30 minutes for
 RapidShyp - it has no tracking webhook - and instantly over a webhook for Delhivery and
 Shiprocket) also reads the courier's remark for a failed attempt and, if it looks like one,
@@ -253,20 +258,20 @@ dismiss by hand.
 
 ## RTO: parcels that came back
 
-The **RTO** tab shows the last 30 days: how many parcels came back, what share of your
-shipments that is, the value of the goods, and the courier charges you entered on each RTO.
-Each RTO opens a task on its order where you put the items back in stock with one click, then
+The **Returned (RTO)** tab lists the parcels that came back. Each RTO opens a task on its order where you put the items back in stock with one click, then
 refund the customer or ship it again. The full steps are in
 [Returns and RTO](/merchant-guide/selling/returns).
 
 ## Courier wallet balance
 
-Delhivery, Shiprocket and RapidShyp are prepaid: shipments are charged from a wallet on their side. They
-don't share the balance over their APIs yet, so you enter it by hand after checking the
-courier's dashboard (**Balance on the courier dashboard (₹)**, then **Save balance**). Set
-**Warn me when my courier wallet is below (₹)** under **Settings → Shipping → When orders go
-out → More options**, say
-₹2,000, and you'll see "Balance is low. Recharge soon to avoid shipments getting stuck."
+Delhivery, Shiprocket and RapidShyp are prepaid: shipments are charged from a wallet on their
+side. Shiprocket shares its balance, so a strip above the table shows "Shiprocket wallet ·
+₹1,240" with **Recharge**, which opens Shiprocket's wallet page. Set **Warn me when my courier
+wallet is below (₹)** under **Settings → Shipping → When orders go out → More options**, say
+₹2,000; below it the strip says "Below your ₹2,000 alert. Recharge before booking more."
+
+Delhivery and RapidShyp don't share their balance over an API, so they get no strip; check the
+balance on their own dashboards.
 
 <Callout type="info">
   **Tip.** Put your real dispatch days, order cutoff (for example `14:00`) and holidays (Diwali,
@@ -280,7 +285,7 @@ out → More options**, say
 | --- | --- | --- |
 | **Test connection** fails for Delhivery | Token expired or was regenerated. | Request a new live token in Delhivery One and paste it straight away. |
 | Booking fails with a pickup location error | **Pickup location name** doesn't match Delhivery exactly. | Copy the warehouse name from Delhivery character for character. |
-| Order missing from **Ready to ship** | The list only shows paid (or deposit-paid) orders that aren't packed yet and aren't tagged `hold` or `on-hold`. Unpaid cash on delivery orders aren't listed. | Book COD orders with **Advanced: book by order number**, or from the order page. Remove a `hold` tag when it's ready. |
+| Order missing from **To book** | The list only shows paid (or deposit-paid) orders that aren't packed yet and aren't tagged `hold` or `on-hold`. Unpaid cash on delivery orders aren't listed. | Book COD orders with **⋯ → Book by order number**, or from the order page. Remove a `hold` tag when it's ready. |
 | Rates look too high | The parcel weight fell back to the box weight. | Add weights to your products so the real weight is used. |
 | Status stuck on **Booked** | The courier hasn't picked it up yet. | Check **Pickups**; schedule one if you haven't. |
 

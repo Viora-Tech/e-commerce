@@ -32,6 +32,7 @@ import { pagesRouter } from './pages'
 import { paymentsRouter } from './payments'
 import { policiesRouter } from './policies'
 import { productsRouter } from './products'
+import { profitCostsRouter } from './profit-costs'
 import { purchaseDocumentsRouter } from './purchase-documents'
 import { inboundShipmentsRouter, purchaseChargesRouter, suppliersRouter } from './purchasing'
 import { redirectsRouter } from './redirects'
@@ -46,6 +47,7 @@ import { storeRouter } from './store'
 import { storeDataRouter } from './store-data'
 import { taxesRouter } from './taxes'
 import { themesRouter } from './themes'
+import { umamiRouter } from './umami'
 
 export const appRouter = {
   me: protectedProcedure.handler(({ context }) => context.session),
@@ -86,11 +88,13 @@ export const appRouter = {
   gstInvoices: gstInvoicesRouter,
   taxes: taxesRouter,
   businessGst: businessGstRouter,
+  profitCosts: profitCostsRouter,
   shopifyImport: shopifyImportRouter,
   backInStock: backInStockRouter,
   emi: emiRouter,
   forms: formsRouter,
   reviews: reviewsRouter,
+  umami: umamiRouter,
   dashboard: dashboardRouter,
   analytics: analyticsRouter,
   ai: aiRouter,

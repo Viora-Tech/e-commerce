@@ -159,6 +159,8 @@ export async function createShipmentForOrder(
       heightCm: parcelPackage?.heightCm ?? null,
       insured,
       declaredValuePaise: o.totalPaise,
+      // What the courier charges, when its booking said; the merchant can type it otherwise.
+      courierChargePaise: result.chargePaise ?? null,
     })
     .returning()
   if (!row) throw new Error('could not record shipment')

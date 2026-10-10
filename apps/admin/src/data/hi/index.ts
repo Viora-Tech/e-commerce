@@ -34,6 +34,7 @@ import orders from './orders'
 import payments from './payments'
 import paymentsSetup from './payments-setup'
 import products from './products'
+import profitCosts from './profit-costs'
 import purchaseDocuments from './purchase-documents'
 import purchasing from './purchasing'
 import reviews from './reviews'
@@ -50,6 +51,7 @@ import storeData from './store-data'
 import table from './table'
 import themeImport from './theme-import'
 import themes from './themes'
+import umami from './umami'
 
 /**
  * Every Hindi translation, as [English export, Hindi overlay] pairs. A `data/<feature>.ts`
@@ -92,6 +94,7 @@ export const hindiCopy: readonly TranslationPair[] = [
   ...inventory,
   ...products,
   ...purchaseDocuments,
+  ...profitCosts,
   ...purchasing,
   ...selectProducts,
   ...reviews,
@@ -108,4 +111,5 @@ export const hindiCopy: readonly TranslationPair[] = [
   ...table,
   ...themeImport,
   ...themes,
+  ...umami,
 ]

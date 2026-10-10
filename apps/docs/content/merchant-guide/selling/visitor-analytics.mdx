@@ -1,0 +1,54 @@
+---
+title: Visitor analytics (Umami)
+description: Connect Umami to see visitors, top pages, where people came from, campaigns, devices and countries on the Analytics page. Cookieless.
+---
+
+# Visitor analytics (Umami)
+
+The **Umami** app adds a **Visitors** section to your **Analytics** page: how many people
+opened your store, which pages they looked at, where they came from (Google, Instagram, a
+WhatsApp link…), which ad or post campaigns brought them, and their phones, browsers and
+countries.
+
+[Umami](https://umami.is) is a free, open-source analytics tool. It sets **no cookies** and
+keeps no personal data about your shoppers.
+
+## What you need
+
+- An Umami account. Use **Umami Cloud** (sign up at umami.is) or your own Umami server.
+- An **API key** from Umami, so this page can read your numbers. In Umami: **Settings → API
+  keys → Create key**.
+
+## Connect it
+
+1. Go to **Apps**, find **Umami** under **Connections** and click **Install**.
+2. Open **Apps → Umami** in the sidebar.
+3. Fill in **Umami address**: your Umami server's address, or `cloud.umami.is` for Umami Cloud.
+4. Paste your **API key**. It is stored locked (encrypted) and never shown again.
+5. Click **Create a website for this store**, or paste the **Website id** of a website you
+   already added in Umami.
+6. Click **Test connection**. You should see "Connected to … in Umami".
+7. Click **Save**.
+
+Your store starts counting visitors right away. Open **Analytics** and scroll to **Visitors**.
+
+## Cookie consent
+
+**Wait for cookie consent** is on by default: a visitor is counted only after they allow
+analytics on your cookie banner. Umami sets no cookies, so you can turn this off to count
+every visitor until they say no. A "no" on the banner always stops counting.
+
+## Campaigns
+
+To see which ad or post brought a visitor, add a campaign name to the link you share, for
+example `https://yourstore.in/?utm_source=instagram&utm_campaign=diwali-sale`. The
+**Campaigns (UTM)** card on Analytics lists each campaign.
+
+## If something is wrong
+
+- **"Umami did not accept the API key"**: create a new key in Umami and paste it again.
+- **"Umami has no website with that id"**: check the website id, or click **Create a website
+  for this store**.
+- **"Could not reach Umami"**: check the address, and that your Umami server is running. The
+  address must start with `https://`.
+- The rest of your Analytics page keeps working even when Umami cannot be reached.
