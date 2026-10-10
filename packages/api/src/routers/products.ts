@@ -233,7 +233,9 @@ export const productsRouter = {
         status: ProductStatusSchema.optional(),
       }),
     )
-    .handler(({ context, input: { id, ...patch } }) => updateProduct(context.tx, id, patch)),
+    .handler(({ context, input: { id, ...patch } }) =>
+      updateProduct(context.tx, context.scope.storeId, id, patch),
+    ),
 
   updateVariant: can(permissions.INVENTORY_WRITE)
     .input(

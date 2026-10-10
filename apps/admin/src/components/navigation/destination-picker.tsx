@@ -1,5 +1,6 @@
 'use client'
 
+import { POLICY_TITLES, POLICY_TYPES } from '@commerce/core/policies'
 import { Search } from '@commerce/ui/icons'
 import { cn } from '@commerce/ui/lib/utils'
 import { Input } from '@commerce/ui/shadcn/input'
@@ -9,7 +10,7 @@ import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 
 type DestinationPickerProps = {
-  type: Exclude<NavigationItemType, 'home' | 'url'>
+  type: Exclude<NavigationItemType, 'home' | 'url' | 'search' | 'collections'>
   selectedValue?: string
   onSelect: (value: string, title: string) => void
 }
@@ -17,6 +18,23 @@ type DestinationPickerProps = {
 type Candidate = { value: string; title: string }
 
 async function loadCandidates(type: DestinationPickerProps['type']): Promise<Candidate[]> {
+  if (type === 'policy') {
+    // A policy is a page with a fixed handle; only published ones open on the store.
+    const pages = await api.pages.list()
+    const live = new Set(pages.filter((p) => p.publishedAt).map((p) => p.handle))
+    return POLICY_TYPES.filter((t) => live.has(t)).map((t) => ({
+      value: t,
+      title: pages.find((p) => p.handle === t)?.title ?? POLICY_TITLES[t],
+    }))
+  }
+  if (type === 'blog') {
+    const rows = await api.blog.blogs()
+    return rows.map((b) => ({ value: b.handle, title: b.title }))
+  }
+  if (type === 'article') {
+    const { rows } = await api.blog.list({ page: 1, perPage: 100, status: 'published' })
+    return rows.map((a) => ({ value: `${a.blogHandle}/${a.handle}`, title: a.title }))
+  }
   if (type === 'collection') {
     const rows = await api.collections.list()
     return rows

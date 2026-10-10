@@ -19,6 +19,7 @@ import { CommerceError } from '../errors'
 import { adjustStock, setStock } from '../inventory/levels'
 import { setProductMedia } from '../media/service'
 import { validateDepositAgainstPrice } from '../preorder/settings'
+import { onHandleChange } from '../redirects/handle-change'
 import { mediaInStore, withKnownMedia } from '../store-scope'
 import type { InventoryReason, ProductWrite } from './schemas'
 import { slugify } from './slug'
@@ -161,13 +162,17 @@ export async function createProduct(tx: StoreTx, storeId: string, write: Product
 export async function updateProduct(tx: StoreTx, storeId: string, id: string, write: ProductWrite) {
   const errors = [...variantErrors(write.options, write.variants), ...preorderErrors(write)]
   if (errors.length) throw new InvalidProduct(errors)
-  const [existing] = await tx.select({ id: product.id }).from(product).where(eq(product.id, id))
+  const [existing] = await tx
+    .select({ id: product.id, handle: product.handle })
+    .from(product)
+    .where(eq(product.id, id))
   if (!existing) throw new CommerceError('NOT_FOUND', `Product ${id} not found`, { storeId })
   const handle = write.handle ? await uniqueHandle(tx, write.handle, id) : undefined
   await tx
     .update(product)
     .set({ ...productRow(write), ...(handle ? { handle } : {}) })
     .where(eq(product.id, id))
+  await onHandleChange(tx, storeId, 'product', existing.handle, handle)
   // A variant image must be this store's media; a foreign or stale id is dropped.
   const known = await mediaInStore(
     tx,

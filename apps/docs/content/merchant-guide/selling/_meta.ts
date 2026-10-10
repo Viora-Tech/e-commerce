@@ -6,6 +6,7 @@ export default {
   'online-store': 'Online store',
   content: 'Content types',
   files: 'Files and storage',
+  'menus-and-redirects': 'Menus and redirects',
   'build-your-own-section': 'Build your own section',
   'import-from-shopify': 'Move from Shopify',
   'import-shopify-theme': 'Import a Shopify theme',

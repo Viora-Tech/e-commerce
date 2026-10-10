@@ -1,0 +1,74 @@
+---
+title: Menus and redirects
+description: Menu item types and how they resolve, the broken-link check, redirects that follow handle changes, and the redirects CSV.
+---
+
+# Menus and redirects
+
+Merchant guide: [Menus and URL redirects](/merchant-guide/selling/menus-and-redirects).
+
+| Piece | File |
+| --- | --- |
+| Item types, schema (`NAVIGATION_ITEM_TYPES`, `VALUELESS_ITEM_TYPES`) | `packages/core/src/navigation/items.ts` |
+| Type + value → public path (`itemPath`, `itemHref`) | `packages/core/src/navigation/resolve.ts` |
+| Broken-link check (`menuLinkProblems`) | `packages/core/src/navigation/link-check.ts` |
+| Redirects and menus after a handle change (`onHandleChange`) | `packages/core/src/redirects/handle-change.ts` |
+| Redirects CSV format (`parseRedirectsCsv`, `redirectsToCsv`) | `packages/core/src/redirects/csv.ts` |
+| Writes (`importRedirectsCsv`, `allRedirects`) | `packages/core/src/redirects/service.ts` |
+| Routers | `packages/api/src/routers/navigation.ts`, `redirects.ts` |
+| Admin | `apps/admin/src/components/navigation/`, `components/redirects/` |
+
+## Item types
+
+`navigation_menu.items` is a JSON tree of `NavigationItem` (`@commerce/db`). `value` holds a
+handle, never an id:
+
+| Type | `value` | Path |
+| --- | --- | --- |
+| `home` | none | `/` |
+| `product`, `collection`, `page`, `blog` | handle | `/products/…`, `/collections/…`, `/pages/…`, `/blogs/…` |
+| `article` | `blog-handle/article-handle` | `/blogs/<blog>/<article>` |
+| `policy` | a `POLICY_TYPES` value | `/policies/<type>` |
+| `search` | none | `/search` |
+| `collections` | none | `/collections` |
+| `url` | the URL as typed | as typed |
+
+`MenuItemsSchema` checks an article value has exactly one slash and a policy value is a known
+policy. The storefront renders menus through `toNavLinks` / `toFooterColumns`, which call
+`itemHref`, so the new types need no storefront change.
+
+## Broken-link check
+
+`navigation.checkLinks({ items })` (online_store:read) runs `menuLinkProblems` on the menu as
+the editor holds it (the admin calls it 400 ms after each change). It collects every item that
+points inside the store, including `url` items whose path matches `/products/…`,
+`/collections/…` (not `all`), `/pages/…`, `/blogs/…` or `/policies/…`, and looks the handles up
+in batches: products and collections must be `active`, pages and policies published, posts
+`published` (or `scheduled` and due). Each answer is `{ itemId, title, path, problem:
+'missing' | 'hidden', redirectTo? }`; `redirectTo` is set when a stored redirect still catches a
+missing path. Outside links are never fetched.
+
+## Handle changes
+
+`onHandleChange(tx, storeId, kind, oldHandle, newHandle)` runs inside the write that changes the
+handle: core `updateProduct` (the product form and bulk edit), the API product patch
+(`products.update`), core `updateCollection` and the API `updatePage`. When the handle changed it:
+
+1. deletes any redirect **from** the new path (the proxy checks redirects before routes, so it
+   would hide the live page);
+2. points redirects whose target is the old path at the new one (no chains);
+3. upserts old path → new path with `source = 'auto'` (`url_redirect.source` is a text column, so
+   no migration);
+4. rewrites menu items of that kind and handle at every level (`renameMenuTargets`).
+
+Blog and article handle changes are not covered yet.
+
+## Redirects CSV
+
+`redirects.exportCsv` (online_store:read, `heavy('export')`) returns every redirect as
+`Redirect from,Redirect to` (Shopify's headers) with a UTF-8 BOM. `redirects.importCsv({ csv,
+dryRun })` (online_store:write, `heavy('import')`, 2 MB) parses with `parseRedirectsCsv`: the
+header row is optional, each row goes through `RedirectWriteSchema` (the dialog's rules), a
+repeated path keeps its last row, at most 5,000 rows, and problems carry the file's line number.
+`dryRun` writes nothing so the admin can preview; otherwise `importRedirectsCsv` adds new paths
+and updates changed ones as `manual`.

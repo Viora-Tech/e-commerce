@@ -138,3 +138,63 @@ export async function hasRedirects(tx: StoreTx): Promise<boolean> {
   const [row] = await tx.select({ one: sql<number>`1` }).from(urlRedirect).limit(1)
   return Boolean(row)
 }
+
+/** Every redirect, path order, for the CSV export. */
+export async function allRedirects(tx: StoreTx, limit = 50_000) {
+  return tx
+    .select({ path: urlRedirect.path, target: urlRedirect.target })
+    .from(urlRedirect)
+    .orderBy(asc(urlRedirect.path))
+    .limit(limit)
+}
+
+export type RedirectImportResult = { created: number; updated: number; unchanged: number }
+
+/**
+ * Write rows from a redirects CSV (`parseRedirectsCsv`): new paths are added, a path that is
+ * already redirected takes the file's target. Rows from a file count as the merchant's own
+ * (`manual`), whatever wrote them before.
+ */
+export async function importRedirectsCsv(
+  tx: StoreTx,
+  storeId: string,
+  rows: readonly { path: string; target: string }[],
+): Promise<RedirectImportResult> {
+  const result: RedirectImportResult = { created: 0, updated: 0, unchanged: 0 }
+  if (rows.length === 0) return result
+  const existing = new Map<string, { id: string; target: string }>()
+  for (let i = 0; i < rows.length; i += 500) {
+    const found = await tx
+      .select({ id: urlRedirect.id, path: urlRedirect.path, target: urlRedirect.target })
+      .from(urlRedirect)
+      .where(
+        inArray(
+          urlRedirect.path,
+          rows.slice(i, i + 500).map((r) => r.path),
+        ),
+      )
+    for (const f of found) existing.set(f.path, { id: f.id, target: f.target })
+  }
+  const fresh: { storeId: string; path: string; target: string; source: 'manual' }[] = []
+  for (const row of rows) {
+    const hit = existing.get(row.path)
+    if (!hit) {
+      fresh.push({ storeId, path: row.path, target: row.target, source: 'manual' })
+      continue
+    }
+    if (hit.target === row.target) {
+      result.unchanged++
+      continue
+    }
+    await tx
+      .update(urlRedirect)
+      .set({ target: row.target, source: 'manual', updatedAt: new Date() })
+      .where(eq(urlRedirect.id, hit.id))
+    result.updated++
+  }
+  for (let i = 0; i < fresh.length; i += 500) {
+    await tx.insert(urlRedirect).values(fresh.slice(i, i + 500))
+  }
+  result.created = fresh.length
+  return result
+}

@@ -1,10 +1,11 @@
 'use client'
 
 import { siteConfig } from '@commerce/config/site'
-import { ArrowRight, Plus } from '@commerce/ui/icons'
+import { ArrowRight, Download, Plus, Upload } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
+import { saveFile } from '@/components/apps/gst-invoices/save-file'
 import ProoflyDetailPage from '@/components/layout/proofly-detail-page'
 import ProoflyPageHeader from '@/components/layout/proofly-page-header'
 import ResourceTable, { type ResourceColumnSpec } from '@/components/table/resource-table'
@@ -13,6 +14,7 @@ import { useCopy, useFormat } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 import { routes } from '@/lib/routes'
 import DeleteRedirectsDialog from './delete-redirects-dialog'
+import ImportRedirectsDialog from './import-redirects-dialog'
 import RedirectActions from './redirect-actions'
 import RedirectDialog from './redirect-dialog'
 
@@ -30,6 +32,8 @@ export default function RedirectsList({ initial }: RedirectsListProps) {
   const [perPage, setPerPage] = useState<number>(siteConfig.ui.rowsPerPage.default)
   const [loading, setLoading] = useState(false)
   const [creating, setCreating] = useState(false)
+  const [importing, setImporting] = useState(false)
+  const [exporting, setExporting] = useState(false)
   const [editing, setEditing] = useState<RedirectListItem | null>(null)
   const [removing, setRemoving] = useState<{ ids: string[]; clear: () => void } | null>(null)
   const [version, setVersion] = useState(0)
@@ -75,6 +79,18 @@ export default function RedirectsList({ initial }: RedirectsListProps) {
 
   const handleChanged = () => setVersion((v) => v + 1)
 
+  const handleExport = async () => {
+    setExporting(true)
+    try {
+      saveFile(await api.redirects.exportCsv())
+      toast.success(copy.csv.exported)
+    } catch {
+      toast.error(copy.csv.exportFailed)
+    } finally {
+      setExporting(false)
+    }
+  }
+
   // Render logic
   const columns: ResourceColumnSpec<RedirectListItem>[] = [
     {
@@ -119,7 +135,24 @@ export default function RedirectsList({ initial }: RedirectsListProps) {
           title={copy.title}
           summary={copy.summary(data.total)}
           back={{ label: copy.back, href: routes.content.menus() }}
-          actions={addButton}
+          actions={
+            <>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={handleExport}
+                disabled={exporting || data.total === 0}
+              >
+                <Download aria-hidden="true" />
+                {copy.csv.export}
+              </Button>
+              <Button type="button" variant="outline" onClick={() => setImporting(true)}>
+                <Upload aria-hidden="true" />
+                {copy.csv.import}
+              </Button>
+              {addButton}
+            </>
+          }
         />
       }
       main={
@@ -170,6 +203,9 @@ export default function RedirectsList({ initial }: RedirectsListProps) {
           }}
           onSaved={handleChanged}
         />
+      ) : null}
+      {importing ? (
+        <ImportRedirectsDialog onClose={() => setImporting(false)} onImported={handleChanged} />
       ) : null}
       {removing ? (
         <DeleteRedirectsDialog
