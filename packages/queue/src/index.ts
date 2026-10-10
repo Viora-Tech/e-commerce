@@ -13,6 +13,9 @@ import {
   NOTIFICATIONS_QUEUE,
   type NotificationJob,
   type NotificationQueue,
+  PURCHASE_DOCUMENT_QUEUE,
+  type PurchaseDocumentJob,
+  type PurchaseDocumentQueue,
   STORE_EXPORT_QUEUE,
   type StoreExportJob,
   type StoreExportQueue,
@@ -68,6 +71,8 @@ export const QUEUE_LIMITS = {
   storeExport: { concurrency: 2, perStore: 1 },
   /** Bulk "Write with AI" runs: one product at a time per store, so a 200-product run never starves another store's. */
   aiBulkWrite: { concurrency: 2, perStore: 1 },
+  /** AI reads of uploaded supplier invoices and Bills of Entry: one at a time per store. */
+  purchaseDocuments: { concurrency: 2, perStore: 1 },
 } as const satisfies Record<string, QueueLimits>
 
 export function createConnection(redisUrl: string): IORedis {
@@ -185,6 +190,23 @@ export function aiBulkQueue(redisUrl: string): AiBulkQueue {
   const g = globalThis as { __aiBulkQueue?: AiBulkQueue }
   if (!g.__aiBulkQueue) g.__aiBulkQueue = createAiBulkQueue(createConnection(redisUrl))
   return g.__aiBulkQueue
+}
+
+export type { PurchaseDocumentJob, PurchaseDocumentQueue }
+
+export function createPurchaseDocumentQueue(
+  connection: IORedis,
+): Queue<PurchaseDocumentJob> & PurchaseDocumentQueue {
+  return new Queue<PurchaseDocumentJob>(PURCHASE_DOCUMENT_QUEUE, { connection })
+}
+
+/** Process-wide purchase document read queue, cached like the others. */
+export function purchaseDocumentQueue(redisUrl: string): PurchaseDocumentQueue {
+  const g = globalThis as { __purchaseDocumentQueue?: PurchaseDocumentQueue }
+  if (!g.__purchaseDocumentQueue) {
+    g.__purchaseDocumentQueue = createPurchaseDocumentQueue(createConnection(redisUrl))
+  }
+  return g.__purchaseDocumentQueue
 }
 
 /** Process-wide app jobs queue. */

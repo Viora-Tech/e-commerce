@@ -73,6 +73,12 @@ The test server's "Report a bug" button (`apps/admin/src/lib/capture-page.ts`) t
 screenshot with [modern-screenshot](https://github.com/qq15725/modern-screenshot) 4.7.0 (MIT,
 Copyright (c) 2021-present wxm), licence verified with `npm view modern-screenshot license` and its `LICENSE` on 2026-10-05.
 Used as a library, loaded only when a screenshot is taken; no code is copied.
+Reading uploaded purchase documents (`packages/ai/src/purchase-documents/prompt.ts`, run in
+`apps/worker`) takes a PDF's text layer with [unpdf](https://github.com/unjs/unpdf) 1.8.1 (MIT,
+Copyright (c) 2023-PRESENT Johann Schopplich), which ships a serverless build of Mozilla's
+[PDF.js](https://github.com/mozilla/pdf.js) (Apache License 2.0). unpdf's licence read from its
+`package.json` and `LICENSE` in `node_modules` on 2026-10-10; PDF.js's from its GitHub `LICENSE`.
+Used as a library, loaded only when a document is read; no code is copied.
 Framework credit, not an adaptation: `apps/docs` (the docs site) is built with
 [Nextra](https://github.com/shuding/nextra) (MIT), verified on
 [npm](https://www.npmjs.com/package/nextra) and its

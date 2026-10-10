@@ -5,7 +5,7 @@
  * Pure and client-safe.
  */
 
-export const AI_FEATURES = ['productWriter', 'assistant', 'bulkWriter'] as const
+export const AI_FEATURES = ['productWriter', 'assistant', 'bulkWriter', 'documentReader'] as const
 export type AiFeature = (typeof AI_FEATURES)[number]
 
 /**
@@ -47,7 +47,8 @@ export type FeatureModel = {
 
 /**
  * Rough cost per call on the fast tier: product write ~$0.009 (~5k in, ~800 out, three
- * photos), assistant turn ~$0.012 (~9k in over 2-4 steps, ~500 out).
+ * photos), assistant turn ~$0.012 (~9k in over 2-4 steps, ~500 out), document read ~$0.02
+ * (~8k in for a two-page invoice, ~2k out).
  */
 export const FEATURE_MODELS: Record<AiFeature, FeatureModel> = {
   productWriter: {
@@ -69,6 +70,14 @@ export const FEATURE_MODELS: Record<AiFeature, FeatureModel> = {
     writes: true,
     maxOutputTokens: 1_800,
     temperature: 0.7,
+    maxSteps: 1,
+  },
+  /** Reads a supplier invoice or Bill of Entry: long structured output, no creativity. */
+  documentReader: {
+    tier: 'fast',
+    writes: false,
+    maxOutputTokens: 8_000,
+    temperature: 0,
     maxSteps: 1,
   },
 }

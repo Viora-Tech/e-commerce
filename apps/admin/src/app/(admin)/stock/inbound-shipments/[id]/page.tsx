@@ -18,7 +18,10 @@ export default async function Page({ params }: Props) {
       throw err
     },
   )
-  const costs = await call(appRouter.inboundShipments.costs, { id }, { context })
+  const [costs, ai] = await Promise.all([
+    call(appRouter.inboundShipments.costs, { id }, { context }),
+    call(appRouter.ai.status, undefined, { context }).catch(() => null),
+  ])
 
   // Keyed on updatedAt so a refresh after saving remounts the form with fresh values.
   return (
@@ -26,6 +29,7 @@ export default async function Page({ params }: Props) {
       key={new Date(shipment.updatedAt).toISOString()}
       shipment={shipment}
       costs={costs}
+      aiReading={ai?.documentReader ?? false}
     />
   )
 }

@@ -69,3 +69,16 @@ export {
   type WriterLanguage,
   type WriterTone,
 } from './product-writer/schema'
+export {
+  type BillOfEntry,
+  BillOfEntrySchema,
+  DOCUMENT_SHAPES,
+  type DocumentShape,
+  type ExtractedDocument,
+  LOW_CONFIDENCE,
+  parseExtracted,
+  type ServiceBill,
+  ServiceBillSchema,
+  type SupplierInvoice,
+  SupplierInvoiceSchema,
+} from './purchase-documents/schema'

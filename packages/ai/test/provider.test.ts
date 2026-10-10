@@ -63,12 +63,14 @@ describe('models and plans from the environment', () => {
       productWriter: true,
       assistant: false,
       bulkWriter: true,
+      documentReader: true,
     })
     expect(parseFeatureToggles({ askStore: false, assistant: true }).assistant).toBe(true)
     expect(parseFeatureToggles('junk')).toEqual({
       productWriter: true,
       assistant: true,
       bulkWriter: true,
+      documentReader: true,
     })
   })
 

@@ -19,6 +19,7 @@ import { createOutboxRelay, RELAY_EVERY_MS } from './outbox-relay'
 import { paymentWebhooks } from './payments'
 import { createUnpaidOrderExpiry, EXPIRY_EVERY_MS } from './payments-expiry'
 import { BALANCE_EVERY_MS, createPreorderBalanceJob } from './preorder-balance'
+import { createPurchaseDocumentWorker } from './purchase-documents'
 import { createConnection, createHeartbeat } from './queues'
 import { createReviewRequestSweep, REVIEW_REQUESTS_EVERY_MS } from './reviews'
 import { createSenderEmailPoller, SENDER_CHECK_EVERY_MS } from './sender-email'
@@ -80,6 +81,7 @@ const backInStock = createBackInStockWorker(redis, db, {
 })
 const storeExport = createStoreExportWorker(redis, db, { settingsSecret: env.SETTINGS_SECRET })
 const aiBulkWrite = createAiBulkWriteWorker(redis, db, { settingsSecret: env.SETTINGS_SECRET })
+const purchaseDocuments = createPurchaseDocumentWorker(redis, db)
 const importSnapshots = createImportSnapshotCleanup(redis, db, {
   settingsSecret: env.SETTINGS_SECRET,
 })
@@ -108,6 +110,7 @@ reportWorkerFailures(backInStock.worker, 'back-in-stock', reportError)
 reportWorkerFailures(mediaProcess.worker, 'media-process', reportError)
 reportWorkerFailures(storeExport.worker, 'store-export', reportError)
 reportWorkerFailures(aiBulkWrite.worker, 'ai-bulk-write', reportError)
+reportWorkerFailures(purchaseDocuments.worker, 'purchase-documents', reportError)
 reportWorkerFailures(importSnapshots.worker, 'import-snapshot-cleanup', reportError)
 reportWorkerFailures(reviewRequests.worker, 'review-requests', reportError)
 
@@ -211,6 +214,8 @@ const shutdown = async () => {
   await storeExport.queue.close()
   await aiBulkWrite.worker.close()
   await aiBulkWrite.queue.close()
+  await purchaseDocuments.worker.close()
+  await purchaseDocuments.queue.close()
   await importSnapshots.worker.close()
   await importSnapshots.queue.close()
   await reviewRequests.worker.close()

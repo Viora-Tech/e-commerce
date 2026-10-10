@@ -32,6 +32,7 @@ import { pagesRouter } from './pages'
 import { paymentsRouter } from './payments'
 import { policiesRouter } from './policies'
 import { productsRouter } from './products'
+import { purchaseDocumentsRouter } from './purchase-documents'
 import { inboundShipmentsRouter, purchaseChargesRouter, suppliersRouter } from './purchasing'
 import { redirectsRouter } from './redirects'
 import { returnsRouter } from './returns'
@@ -59,6 +60,7 @@ export const appRouter = {
   suppliers: suppliersRouter,
   inboundShipments: inboundShipmentsRouter,
   purchaseCharges: purchaseChargesRouter,
+  purchaseDocuments: purchaseDocumentsRouter,
   pages: pagesRouter,
   blog: blogRouter,
   metaobjects: metaobjectsRouter,
