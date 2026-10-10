@@ -13,3 +13,8 @@ Branch `feat/builder-settings-dynamic`. No migration.
 - Deliberate skips, listed with their reasons in `test/section-settings-coverage.test.tsx`:
   Cookie banner, Signup popup, Sticky add to cart and Mobile dock (they float over the page) and
   imported Liquid sections (their own theme's schema).
+- Fix (also for #370's hero and announcement bar): the inspector only recognised the full
+  four-group settings, so the smaller kinds showed as a plain object field in the Basic tab.
+  `isSectionSettingsField` now accepts any settings with spacing and advanced
+  (`lib/customize-field-shape.ts`, test `customize-field-shape.test.ts`), so they get the
+  Section settings panel in the Advanced tab.
