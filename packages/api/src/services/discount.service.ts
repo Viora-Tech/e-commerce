@@ -242,3 +242,35 @@ export async function deleteDiscount(
   const rows = await tx.delete(discount).where(eq(discount.id, id)).returning({ id: discount.id })
   return rows.length ? { outcome: 'deleted' } : null
 }
+
+/** A paused copy of a discount: "<title> (copy)", the code suffixed until free, no usage carried over. */
+export async function duplicateDiscount(tx: StoreTx, id: string) {
+  const [source] = await tx.select().from(discount).where(eq(discount.id, id))
+  if (!source) return null
+  let code: string | null = null
+  if (source.code) {
+    const base = `${source.code}-COPY`
+    code = base
+    for (let n = 2; ; n++) {
+      const [clash] = await tx
+        .select({ id: discount.id })
+        .from(discount)
+        .where(eq(discount.code, code))
+      if (!clash) break
+      code = `${base}${n}`
+    }
+  }
+  const { id: _id, usedCount: _used, createdAt: _created, ...rest } = source
+  const [created] = await tx
+    .insert(discount)
+    .values({
+      ...rest,
+      title: `${source.title} (copy)`,
+      code,
+      usedCount: 0,
+      status: 'disabled',
+      updatedAt: new Date(),
+    })
+    .returning()
+  return created ?? null
+}

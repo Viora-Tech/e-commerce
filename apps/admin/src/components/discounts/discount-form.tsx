@@ -1,6 +1,7 @@
 'use client'
 
-import { CircleAlert, Trash2 } from '@commerce/ui/icons'
+import { permissions } from '@commerce/core/permissions'
+import { CircleAlert, Copy, Trash2 } from '@commerce/ui/icons'
 import { Alert, AlertDescription, AlertTitle } from '@commerce/ui/shadcn/alert'
 import {
   AlertDialog,
@@ -22,6 +23,7 @@ import SaveBar from '@/components/layout/save-bar'
 import StatusChip from '@/components/layout/status-chip'
 import { discountFormContent, discountsContent } from '@/data/discounts'
 import { useCopy } from '@/hooks/use-copy'
+import { usePermissions } from '@/hooks/use-permissions'
 import { api } from '@/lib/api-client'
 import { routes } from '@/lib/routes'
 import ConditionsCard from './conditions-card'
@@ -52,12 +54,14 @@ export default function DiscountForm({ discount }: DiscountFormProps) {
   const copy = useCopy(discountFormContent)
   const list = useCopy(discountsContent)
   const router = useRouter()
+  const { hasPermission } = usePermissions()
   const [form, setForm] = useState<DiscountFormState>(() => initialForm(discount))
   const [saved, setSaved] = useState(() => JSON.stringify(initialForm(discount)))
   const [busy, setBusy] = useState(false)
   const [serverError, setServerError] = useState<string | null>(null)
   const [attempted, setAttempted] = useState(false)
   const [confirmDelete, setConfirmDelete] = useState(false)
+  const [confirmPause, setConfirmPause] = useState(false)
 
   // Helpers
   const patch = (p: Partial<DiscountFormState>) => setForm((f) => ({ ...f, ...p }))
@@ -99,6 +103,42 @@ export default function DiscountForm({ discount }: DiscountFormProps) {
     setServerError(null)
   }
 
+  const handleStatus = async (status: 'active' | 'disabled') => {
+    if (!discount) return
+    setBusy(true)
+    setServerError(null)
+    try {
+      const result = await api.discounts.toggle({ id: discount.id, status })
+      if (!result) throw new Error(copy.toasts.failed)
+      setForm((f) => ({ ...f, status }))
+      setSaved((raw) => JSON.stringify({ ...JSON.parse(raw), status }))
+      toast.success(status === 'disabled' ? copy.toasts.paused : copy.toasts.resumed)
+      router.refresh()
+    } catch (err) {
+      setServerError(err instanceof Error ? err.message : copy.toasts.failed)
+    } finally {
+      setBusy(false)
+      setConfirmPause(false)
+    }
+  }
+
+  const handleDuplicate = async () => {
+    if (!discount) return
+    setBusy(true)
+    setServerError(null)
+    try {
+      const copied = await api.discounts.duplicate({ id: discount.id })
+      if (!copied) throw new Error(copy.toasts.failed)
+      toast.success(copy.toasts.duplicated)
+      router.push(routes.discounts.detail(copied.id))
+      router.refresh()
+    } catch (err) {
+      setServerError(err instanceof Error ? err.message : copy.toasts.failed)
+    } finally {
+      setBusy(false)
+    }
+  }
+
   const handleRemove = async () => {
     if (!discount) return
     setBusy(true)
@@ -118,6 +158,8 @@ export default function DiscountForm({ discount }: DiscountFormProps) {
   const dirty = JSON.stringify(form) !== saved
   const errors = attempted ? formErrors(form) : {}
   const title = discount ? discount.title : copy.newTitle
+  const canWrite = hasPermission(permissions.DISCOUNTS_WRITE)
+  const paused = form.status === 'disabled'
 
   const summary = discount
     ? `${form.status === 'active' ? list.lifecycle.active : list.lifecycle.disabled} · ${copy.usedTimes(discount.usedCount)}`
@@ -138,10 +180,29 @@ export default function DiscountForm({ discount }: DiscountFormProps) {
             }
             actions={
               discount ? (
-                <Button variant="outline" onClick={() => setConfirmDelete(true)}>
-                  <Trash2 />
-                  {copy.delete.action}
-                </Button>
+                <>
+                  {canWrite ? (
+                    <Button
+                      variant="outline"
+                      disabled={busy}
+                      onClick={paused ? () => handleStatus('active') : () => setConfirmPause(true)}
+                    >
+                      {paused ? copy.pause.resume : copy.pause.action}
+                    </Button>
+                  ) : null}
+                  {canWrite ? (
+                    <Button variant="outline" disabled={busy} onClick={handleDuplicate}>
+                      <Copy />
+                      {copy.duplicate.action}
+                    </Button>
+                  ) : null}
+                  {canWrite ? (
+                    <Button variant="outline" onClick={() => setConfirmDelete(true)}>
+                      <Trash2 />
+                      {copy.delete.action}
+                    </Button>
+                  ) : null}
+                </>
               ) : dirty ? null : (
                 <Button onClick={handleSave} loading={busy}>
                   {copy.saveBar.save}
@@ -193,6 +254,20 @@ export default function DiscountForm({ discount }: DiscountFormProps) {
         onDiscard={handleDiscard}
         saving={busy}
       />
+      <AlertDialog open={confirmPause} onOpenChange={setConfirmPause}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{copy.pause.title(discount?.title ?? '')}</AlertDialogTitle>
+            <AlertDialogDescription>{copy.pause.body}</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={busy}>{copy.pause.cancel}</AlertDialogCancel>
+            <AlertDialogAction onClick={() => handleStatus('disabled')} disabled={busy}>
+              {copy.pause.confirm}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
       <AlertDialog open={confirmDelete} onOpenChange={setConfirmDelete}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -207,7 +282,6 @@ export default function DiscountForm({ discount }: DiscountFormProps) {
               onClick={handleRemove}
               disabled={busy}
             >
-              {copy.delete.confirm}
               {copy.delete.confirm}
             </AlertDialogAction>
           </AlertDialogFooter>
