@@ -9,6 +9,8 @@ import {
   productMedia,
   productOption,
   productOptionValue,
+  purchaseOrderLine,
+  transferLine,
   variant,
   variantOptionValue,
 } from '@commerce/db'
@@ -17,6 +19,7 @@ import { CommerceError } from '../errors'
 import { adjustStock, setStock } from '../inventory/levels'
 import { setProductMedia } from '../media/service'
 import { validateDepositAgainstPrice } from '../preorder/settings'
+import { onHandleChange } from '../redirects/handle-change'
 import { mediaInStore, withKnownMedia } from '../store-scope'
 import type { InventoryReason, ProductWrite } from './schemas'
 import { slugify } from './slug'
@@ -159,13 +162,17 @@ export async function createProduct(tx: StoreTx, storeId: string, write: Product
 export async function updateProduct(tx: StoreTx, storeId: string, id: string, write: ProductWrite) {
   const errors = [...variantErrors(write.options, write.variants), ...preorderErrors(write)]
   if (errors.length) throw new InvalidProduct(errors)
-  const [existing] = await tx.select({ id: product.id }).from(product).where(eq(product.id, id))
+  const [existing] = await tx
+    .select({ id: product.id, handle: product.handle })
+    .from(product)
+    .where(eq(product.id, id))
   if (!existing) throw new CommerceError('NOT_FOUND', `Product ${id} not found`, { storeId })
   const handle = write.handle ? await uniqueHandle(tx, write.handle, id) : undefined
   await tx
     .update(product)
     .set({ ...productRow(write), ...(handle ? { handle } : {}) })
     .where(eq(product.id, id))
+  await onHandleChange(tx, storeId, 'product', existing.handle, handle)
   // A variant image must be this store's media; a foreign or stale id is dropped.
   const known = await mediaInStore(
     tx,
@@ -361,6 +368,22 @@ async function pruneOptionValues(tx: StoreTx, productId: string) {
   }
 }
 
+/** Variants that sit on a purchase order or a transfer; those lines must keep their variant. */
+async function stockDocumentVariants(tx: StoreTx, ids: string[]): Promise<Set<string>> {
+  if (ids.length === 0) return new Set()
+  const [po, transfers] = await Promise.all([
+    tx
+      .select({ id: purchaseOrderLine.variantId })
+      .from(purchaseOrderLine)
+      .where(inArray(purchaseOrderLine.variantId, ids)),
+    tx
+      .select({ id: transferLine.variantId })
+      .from(transferLine)
+      .where(inArray(transferLine.variantId, ids)),
+  ])
+  return new Set([...po, ...transfers].map((r) => r.id))
+}
+
 async function removeVariants(tx: StoreTx, ids: string[]) {
   const referenced = new Set([
     ...(
@@ -375,6 +398,7 @@ async function removeVariants(tx: StoreTx, ids: string[]) {
         .from(cartLine)
         .where(inArray(cartLine.variantId, ids))
     ).map((r) => r.id),
+    ...(await stockDocumentVariants(tx, ids)),
   ])
   const archive = ids.filter((id) => referenced.has(id))
   const del = ids.filter((id) => !referenced.has(id))
@@ -444,7 +468,8 @@ export async function deleteProduct(
           .where(inArray(cartLine.variantId, ids))
       )[0]?.n
     : 0
-  if (Number(referenced) > 0 || Number(carted) > 0) {
+  const onStockDocuments = (await stockDocumentVariants(tx, ids)).size
+  if (Number(referenced) > 0 || Number(carted) > 0 || onStockDocuments > 0) {
     await tx
       .update(product)
       .set({ status: 'archived', updatedAt: new Date() })

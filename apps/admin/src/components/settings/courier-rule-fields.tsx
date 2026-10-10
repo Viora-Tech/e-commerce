@@ -17,6 +17,7 @@ import DataCard from '@/components/layout/data-card'
 import { shippingSettingsContent } from '@/data/shipping'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { routes } from '@/lib/routes'
 
 type CourierRuleFieldsProps = {
   value: CourierRuleSettings | undefined
@@ -221,7 +222,7 @@ export default function CourierRuleFields({ value, onChange }: CourierRuleFields
           variant="outline"
           className="w-fit"
           nativeButton={false}
-          render={<Link href="/apps" />}
+          render={<Link href={routes.apps.list()} />}
         >
           {copy.manage}
         </Button>

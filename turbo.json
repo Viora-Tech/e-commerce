@@ -26,6 +26,8 @@
         "@commerce/payments-razorpay#build",
         "@commerce/plugin-back-in-stock#build",
         "@commerce/plugin-emi#build",
+        "@commerce/plugin-forms#build",
+        "@commerce/plugin-reviews#build",
         "@commerce/plugin-gst-invoices#build",
         "@commerce/plugin-shopify-import#build",
         "@commerce/plugins#build",

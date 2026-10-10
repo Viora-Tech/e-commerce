@@ -512,3 +512,37 @@ storefront can name a product's category for theme dynamic sources); its licence
 [`packages/core/THIRD_PARTY_LICENSES.md`](../../packages/core/THIRD_PARTY_LICENSES.md). This app
 still searches it in `src/lib/product-taxonomy.ts` for the product category picker.
 
+
+## react-data-grid (MIT)
+
+Source: https://github.com/adazzle/react-data-grid (7.0.0-beta.61)
+
+Used as an npm dependency for the spreadsheet grid of the bulk product editor
+(`src/components/products/bulk-edit`). Nothing is copied; the licence ships with the package.
+
+```text
+The MIT License (MIT)
+
+Original work Copyright (c) 2014 Prometheus Research
+Modified work Copyright 2015 Comcast
+
+For the original source code please see https://github.com/prometheusresearch-archive/react-grid
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+THE SOFTWARE.
+```

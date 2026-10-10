@@ -2,7 +2,11 @@ import { order, orderLine, shipment } from '@commerce/db'
 import { and, eq, sql } from 'drizzle-orm'
 import type { StoreContext } from '../context'
 import { BalanceDue, CommerceError } from '../errors'
-import { shipCommittedStock } from './committed-stock'
+import {
+  ensureFulfillmentOrders,
+  type PackPick,
+  packFulfillmentOrderLines,
+} from './fulfillment-orders'
 import { recomputeOrderStatuses } from './recompute'
 
 export type FulfilLineInput = { lineId: string; quantity: number }
@@ -52,9 +56,11 @@ const UNFULFILLABLE = new Set(['draft', 'cancelled'])
 /**
  * Lock the order and its lines for the rest of the transaction, so a second
  * pack or a cancel running at the same time waits and then sees this one's
- * result instead of moving the same stock twice.
+ * result instead of moving the same stock twice. An order older than parcels
+ * gets them first, from what was packed before this call moves anything.
  */
 async function lockOrder(ctx: StoreContext, orderId: string) {
+  await ensureFulfillmentOrders(ctx, orderId)
   const [o] = await ctx.tx
     .select({
       id: order.id,
@@ -93,6 +99,7 @@ export async function fulfilRemainingLines(ctx: StoreContext, orderId: string): 
   const { o, lines } = await lockOrder(ctx, orderId)
   if (!o || UNFULFILLABLE.has(o.status)) return
   assertNoBalanceDue(ctx, orderId, o)
+  const picks: PackPick[] = []
   for (const line of lines) {
     const remaining = line.quantity - line.fulfilledQuantity
     if (remaining <= 0) continue
@@ -100,8 +107,12 @@ export async function fulfilRemainingLines(ctx: StoreContext, orderId: string): 
       .update(orderLine)
       .set({ fulfilledQuantity: line.quantity })
       .where(eq(orderLine.id, line.id))
-    await shipCommittedStock(ctx, { variantId: line.variantId, quantity: remaining })
+    // Gift cards are vouchers: nothing leaves a shelf.
+    if (!line.giftCard) {
+      picks.push({ orderLineId: line.id, variantId: line.variantId, quantity: remaining })
+    }
   }
+  await packFulfillmentOrderLines(ctx, orderId, picks)
   await recomputeOrderStatuses(ctx, orderId)
 }
 
@@ -140,14 +151,21 @@ export async function fulfilOrderLines(
     packing.set(pick.lineId, total)
   }
 
+  const picks: PackPick[] = []
   for (const pick of wanted) {
     await ctx.tx
       .update(orderLine)
       .set({ fulfilledQuantity: sql`${orderLine.fulfilledQuantity} + ${pick.quantity}` })
       .where(and(eq(orderLine.id, pick.lineId), eq(orderLine.orderId, input.orderId)))
     const line = byId.get(pick.lineId)
-    if (line) await shipCommittedStock(ctx, { variantId: line.variantId, quantity: pick.quantity })
+    if (line && !line.giftCard) {
+      picks.push({ orderLineId: line.id, variantId: line.variantId, quantity: pick.quantity })
+    }
   }
+  const packed = await packFulfillmentOrderLines(ctx, input.orderId, picks)
+  // A parcel booked by hand carries the one parcel its units came out of, when there is one.
+  const parcels = [...new Set(packed.map((p) => p.fulfillmentOrderId))]
+  const fulfillmentOrderId = parcels.length === 1 ? (parcels[0] ?? null) : null
 
   const after = await ctx.tx.select().from(orderLine).where(eq(orderLine.orderId, input.orderId))
   const complete = after.every((l) => l.fulfilledQuantity >= l.quantity)
@@ -162,6 +180,7 @@ export async function fulfilOrderLines(
       .values({
         storeId: ctx.storeId,
         orderId: input.orderId,
+        fulfillmentOrderId,
         provider: input.courier?.trim() || MANUAL_PROVIDER,
         waybill,
         status: 'created',
@@ -169,7 +188,7 @@ export async function fulfilOrderLines(
       })
       .onConflictDoUpdate({
         target: [shipment.provider, shipment.waybill],
-        set: { orderId: input.orderId, updatedAt: new Date() },
+        set: { orderId: input.orderId, fulfillmentOrderId, updatedAt: new Date() },
       })
       .returning({ id: shipment.id })
     shipmentId = row?.id ?? null

@@ -4,7 +4,9 @@ import { bindingProblems } from '../dynamic-sources/format'
 import { assertTemplateBindings, InvalidBindings } from '../dynamic-sources/service'
 import { sanitizeTemplateEmbeds } from './embeds'
 import { ThemeLibraryError } from './library'
+import { reassignTemplate } from './template-assignments'
 import {
+  type AlternateKind,
   defaultTemplate,
   parseTemplateData,
   stableTemplateJson,
@@ -187,6 +189,15 @@ export async function commitTemplateDrafts(tx: StoreTx, themeId: string): Promis
   return rows.length
 }
 
+/** Themes with Customize edits not saved yet (the library's "Unsaved changes" chip). */
+export async function themesWithDrafts(tx: StoreTx): Promise<Set<string>> {
+  const rows = await tx
+    .selectDistinct({ themeId: themeTemplate.themeId })
+    .from(themeTemplate)
+    .where(isNotNull(themeTemplate.draft))
+  return new Set(rows.map((r) => r.themeId))
+}
+
 /** Throws away every unsaved edit of the theme. */
 export async function discardTemplateDrafts(tx: StoreTx, themeId: string): Promise<void> {
   await tx
@@ -243,6 +254,41 @@ export async function deleteTemplateAlternate(
         eq(themeTemplate.suffix, input.suffix),
       ),
     )
+}
+
+/**
+ * Renames an alternate (`product.preorder` to `product.pre-order`) in this theme. The default
+ * cannot be renamed. Resources assigned to the old name follow it: assignments are store-wide,
+ * so other themes that still have the old name keep it, unused, until renamed there too.
+ * Returns how many resources moved.
+ */
+export async function renameTemplateAlternate(
+  tx: StoreTx,
+  input: { themeId: string; template: AlternateKind; from: string; to: string },
+): Promise<number> {
+  if (!input.from) {
+    throw new ThemeLibraryError('THEME_LIVE', 'The default template cannot be renamed')
+  }
+  if (!input.to) throw new ThemeLibraryError('THEME_NAME_INVALID', 'Give the template a name')
+  assertSuffix(input.to)
+  if (input.to === input.from) return 0
+  if (!(await findRow(tx, input.themeId, input.template, input.from))) {
+    throw new ThemeLibraryError('THEME_NOT_FOUND', 'That template no longer exists')
+  }
+  if (await findRow(tx, input.themeId, input.template, input.to)) {
+    throw new ThemeLibraryError('THEME_NAME_INVALID', 'A template with that name already exists')
+  }
+  await tx
+    .update(themeTemplate)
+    .set({ suffix: input.to, updatedAt: new Date() })
+    .where(
+      and(
+        eq(themeTemplate.themeId, input.themeId),
+        eq(themeTemplate.template, input.template),
+        eq(themeTemplate.suffix, input.from),
+      ),
+    )
+  return reassignTemplate(tx, input.template, input.from, input.to)
 }
 
 /** Copies a theme's saved templates onto another (duplicate, new theme from a preset). */

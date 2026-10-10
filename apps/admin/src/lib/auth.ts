@@ -2,13 +2,15 @@ import 'server-only'
 import { createMerchantAuth, type MerchantAuth } from '@commerce/auth'
 import { loadEnv } from '@commerce/config'
 import {
+  deliverPlatformEmailChangeCode,
   deliverPlatformLoginCode,
   deliverPlatformStaffInvite,
   getPlatformEmail,
+  recordMemberSignIn,
 } from '@commerce/core'
 import { headers } from 'next/headers'
 import { db } from './db'
-import { rememberDevOtp } from './dev-otp'
+import { mayPrintCodes, rememberDevOtp } from './dev-otp'
 
 const g = globalThis as unknown as { __merchantAuth?: MerchantAuth }
 
@@ -22,15 +24,27 @@ export function auth(): MerchantAuth {
       secret: env.AUTH_SECRET,
       trustedOrigins: [env.ADMIN_URL],
       trustedProxy: env.TRUSTED_PROXY,
+      onSignIn: (event) => recordMemberSignIn(db(), event),
       // With the platform email account configured (SENDER_EMAIL_PROVIDER=ses) the code is
       // emailed and never logged: a logged code lets anyone with log access sign in. Without
       // it (development) the code is printed and handed to the readback route so the login
       // page can show it when DEV_LOGIN_OTP is on.
+      // `change-email` is the code to a member's NEW address (Account → Sign-in & security);
+      // every other type is a sign-in code.
       sendOtp: async ({ email, otp, type }) => {
         if (getPlatformEmail().transport) {
-          const sent = await deliverPlatformLoginCode({ email, code: otp })
-          if (!sent) throw new Error('Could not send the sign-in code. Try again in a minute.')
+          const sent =
+            type === 'change-email'
+              ? await deliverPlatformEmailChangeCode({ email, code: otp })
+              : await deliverPlatformLoginCode({ email, code: otp })
+          if (!sent) throw new Error('Could not send the code. Try again in a minute.')
           return
+        }
+        if (!mayPrintCodes()) {
+          console.error(
+            '[otp] no platform email account (SENDER_EMAIL_PROVIDER=ses); code not sent',
+          )
+          throw new Error('Could not send the sign-in code. Try again in a minute.')
         }
         console.log(`[otp] ${type} code for ${email}: ${otp}`)
         rememberDevOtp(email, otp)
@@ -48,7 +62,9 @@ export function auth(): MerchantAuth {
           acceptUrl: invite.acceptUrl,
         })
         if (result === 'sent') return
-        if (result === 'refused') throw new Error("Couldn't send the invite email")
+        if (result === 'refused' || !mayPrintCodes()) {
+          throw new Error("Couldn't send the invite email")
+        }
         console.log(`[invite] ${invite.email} for ${invite.organizationName}: ${invite.acceptUrl}`)
       },
     })

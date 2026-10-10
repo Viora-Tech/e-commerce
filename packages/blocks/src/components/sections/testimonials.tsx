@@ -1,8 +1,11 @@
-type Item = { quote: string; author: string; role: string }
+import type { ReactNode } from 'react'
 
-type Props = { heading: string; items: Item[] }
+/** Copy is a string in storage, a React node while edited on the canvas. */
+type Item = { quote: ReactNode; author: ReactNode; role: ReactNode }
 
-// Port of the Glide testimonials block: quote cards with the author underneath.
+type Props = { heading: ReactNode; items: Item[] }
+
+// Port of the Zero Drift testimonials block: quote cards with the author underneath.
 export default function Testimonials({ heading, items }: Props) {
   return (
     <div className="testimonials page-width">
@@ -10,7 +13,7 @@ export default function Testimonials({ heading, items }: Props) {
       <ul className="testimonials__list">
         {items.map((t, i) => (
           // biome-ignore lint/suspicious/noArrayIndexKey: merchant-edited rows carry no id and never reorder between renders.
-          <li key={`${t.author}-${i}`} className="testimonials__card">
+          <li key={i} className="testimonials__card">
             <blockquote className="testimonials__quote text-body">{t.quote}</blockquote>
             <p className="testimonials__author text-small">
               <strong>{t.author}</strong>

@@ -40,15 +40,21 @@ export type PutInput = {
   key: string
   body: Uint8Array
   contentType: string
+  /** Gives up on the write (the caller's deadline); providers that cannot cancel may ignore it. */
+  signal?: AbortSignal | undefined
 }
 
-/** A server-side write straight from a download, never held whole in memory. */
+/**
+ * A server-side write straight from a download, never held whole in memory. No size:
+ * a download's `content-length` is not the length of the bytes `fetch` hands over
+ * (it is the compressed length when the response is gzip/br encoded), so a provider
+ * must never declare it up front. Errors and aborts of `body` must reject the write.
+ */
 export type PutStreamInput = {
   key: string
   body: ReadableStream<Uint8Array>
   contentType: string
-  /** Exact byte length (object stores need it up front for a single PUT). */
-  size: number
+  signal?: AbortSignal | undefined
 }
 
 export type StorageProvider = {
@@ -62,9 +68,9 @@ export type StorageProvider = {
    */
   put(input: PutInput): Promise<void>
   /**
-   * Optional streaming `put` for a body of known size (the Shopify importer copies
-   * images and files download → bucket without buffering them). Without it callers
-   * read the body into memory and use `put`.
+   * Optional streaming `put` for a body of unknown length (the Shopify importer copies
+   * videos download → bucket without holding them whole). Without it callers read the
+   * body into memory and use `put`.
    */
   putStream?(input: PutStreamInput): Promise<void>
   /** Server-side read; resolves null for a missing key. Used to stream private files. */

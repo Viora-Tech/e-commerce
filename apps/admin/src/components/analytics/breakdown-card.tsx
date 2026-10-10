@@ -21,7 +21,7 @@ type BreakdownCardProps = {
 export default function BreakdownCard({ title, rows, empty }: BreakdownCardProps) {
   // Render logic
   return (
-    <Card className="gap-0 p-5">
+    <Card gap="none" inset={5}>
       <p className="text-kit-title text-foreground">{title}</p>
       {rows.length === 0 ? (
         <p className="mt-5 text-kit-body text-muted-foreground">{empty}</p>

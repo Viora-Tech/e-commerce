@@ -1,15 +1,18 @@
-/** SOURCE OF TRUTH: the Liquid page context — WHAT: what one request renders with: the request and render options, the Shopify globals (shop, settings, routes, request, localization, collections, linklists, cart...) and our routes and cart in Shopify's shape / WHY: every section on a page shares one context, so they all see the same data and cost one set of loads */
+/** SOURCE OF TRUTH: the Liquid page context — WHAT: what one request renders with: the request and render options, the Shopify globals (shop, settings, routes, request, localization, collections, linklists, metaobjects, cart...) and our routes and cart in Shopify's shape / WHY: every section on a page shares one context, so they all see the same data and cost one set of loads */
 
 import { type EngineEntry, engineFor, type ThemeBundle } from './bundle'
 import { LiquidDataCache } from './cache'
+import { MetaobjectsDrop, ShopMetafieldsDrop } from './custom-drops'
 import { imageDrop, LIQUID_ROUTES, type LiquidCartData, type LiquidDataSource } from './drops'
-import type { EngineRuntime } from './engine'
+import { type EngineRuntime, newRenderBudget, type RenderBudget } from './engine'
 import { numericId } from './numeric-id'
 import {
   AllProductsDrop,
   BlogsDrop,
+  CollectionDrop,
   CollectionsDrop,
   LinklistsDrop,
+  PageDrop,
   PagesDrop,
   ProductDrop,
 } from './resource-drops'
@@ -26,6 +29,8 @@ export type LiquidRequest = {
   designMode: boolean
   /** `?form_posted=<type>` after one of our form handlers redirected back. */
   postedForm: string | null
+  /** False when the Forms app is not installed (contact forms show a notice); default true. */
+  formsAvailable?: boolean | undefined
   /** CSP nonce for inline scripts on the storefront; blank in the editor. */
   nonce: string
 }
@@ -71,6 +76,60 @@ async function themeSettingsFor(bundle: ThemeBundle, cache: LiquidDataCache) {
   return settings
 }
 
+/** The path segment of each resource page: `/products/<handle>`, `/collections/<handle>`... */
+const RESOURCE_SEGMENT = { product: 'products', collection: 'collections', page: 'pages' } as const
+type ResourceKind = keyof typeof RESOURCE_SEGMENT
+
+/** The handle a resource page's path names (`/products/mouse?x=1` → `mouse`), or null. */
+export function resourceHandle(
+  template: string,
+  path: string,
+): { kind: ResourceKind; handle: string } | null {
+  const kind = template.split('.')[0] as ResourceKind
+  const segment = RESOURCE_SEGMENT[kind]
+  if (!segment) return null
+  const m = new RegExp(`^/${segment}/([^/?#]+)`).exec(path)
+  if (!m?.[1]) return null
+  try {
+    return { kind, handle: decodeURIComponent(m[1]) }
+  } catch {
+    return null
+  }
+}
+
+/**
+ * Shopify's `product`, `collection` or `page` global on that resource's page, so the theme's
+ * own sections around our main section (specs, size guide, related products…) read it. Loaded
+ * once here; null when the handle names nothing.
+ */
+async function resourceGlobals(
+  request: LiquidRequest,
+  cache: LiquidDataCache,
+): Promise<Record<string, unknown>> {
+  const found = resourceHandle(request.template, request.path)
+  if (!found) return {}
+  const { kind, handle } = found
+  const read = () =>
+    kind === 'product'
+      ? cache.product(handle)
+      : kind === 'collection'
+        ? cache.collection(handle)
+        : cache.page(handle)
+  let data = read()
+  if (!data && cache.missing) {
+    await cache.fill()
+    data = read()
+  }
+  if (!data) return {}
+  const drop =
+    kind === 'product'
+      ? new ProductDrop(data as NonNullable<ReturnType<LiquidDataCache['product']>>, cache)
+      : kind === 'collection'
+        ? new CollectionDrop(data as NonNullable<ReturnType<LiquidDataCache['collection']>>, cache)
+        : new PageDrop(data as NonNullable<ReturnType<LiquidDataCache['page']>>)
+  return { [kind]: drop, handle, page_title: data.title }
+}
+
 /** The Shopify globals one request renders with, shared by every section on the page. */
 export type LiquidPageContext = {
   bundle: ThemeBundle
@@ -80,6 +139,8 @@ export type LiquidPageContext = {
   options: LiquidRenderOptions
   /** The request's data, read synchronously by renders (see `cache.ts`). */
   cache: LiquidDataCache
+  /** Render time this page has used; every render is held to `LIQUID_LIMITS.pageMs` (engine.ts). */
+  budget: RenderBudget
 }
 
 export async function createPageContext(options: LiquidRenderOptions): Promise<LiquidPageContext> {
@@ -89,6 +150,7 @@ export async function createPageContext(options: LiquidRenderOptions): Promise<L
   const cart = await data.cart()
   const cache = new LiquidDataCache(data, collectionList)
   const settings = await themeSettingsFor(bundle, cache)
+  const resource = await resourceGlobals(request, cache)
   const runtime: EngineRuntime = {
     assetUrl: (file) => {
       const clean = file.replace(/^\/+/, '')
@@ -103,8 +165,11 @@ export async function createPageContext(options: LiquidRenderOptions): Promise<L
     nonce: request.nonce,
     shopifyHost: options.shopifyHost,
     postedForm: request.postedForm,
+    formsAvailable: request.formsAvailable ?? true,
   }
   const shop = data.shop
+  // Content entries (metaobjects): the `metaobjects` global and `shop.metaobjects` are one object.
+  const metaobjects = new MetaobjectsDrop(cache)
   const globals: Record<string, unknown> = {
     _rt: runtime,
     settings,
@@ -133,7 +198,10 @@ export async function createPageContext(options: LiquidRenderOptions): Promise<L
       customer_accounts_optional: true,
       types: [],
       vendors: [],
-      metafields: {},
+      // Extra fields live on products and collections only; the shop's read blank, except
+      // the Reviews app's Judge.me data.
+      metafields: new ShopMetafieldsDrop(cache),
+      metaobjects,
       brand: { logo: null, colors: {}, short_description: shop.description },
     },
     routes: LIQUID_ROUTES,
@@ -165,7 +233,8 @@ export async function createPageContext(options: LiquidRenderOptions): Promise<L
     linklists: new LinklistsDrop(cache),
     blogs: new BlogsDrop(cache),
     pages: new PagesDrop(cache),
-    cart: cartDrop(cart),
+    metaobjects,
+    cart: cartDrop(cart, cache),
     customer: null,
     content_for_header: '',
     content_for_index: '',
@@ -182,11 +251,12 @@ export async function createPageContext(options: LiquidRenderOptions): Promise<L
     additional_checkout_buttons: false,
     images: {},
     scripts: null,
+    ...resource,
   }
-  return { bundle, entry, globals, runtime, options, cache }
+  return { bundle, entry, globals, runtime, options, cache, budget: newRenderBudget() }
 }
 
-function cartDrop(cart: LiquidCartData): Record<string, unknown> {
+function cartDrop(cart: LiquidCartData, cache: LiquidDataCache): Record<string, unknown> {
   return {
     item_count: cart.itemCount,
     total_price: cart.totalPrice,
@@ -213,7 +283,7 @@ function cartDrop(cart: LiquidCartData): Record<string, unknown> {
       final_line_price: i.linePrice,
       original_line_price: i.linePrice,
       variant_id: numericId(i.id),
-      product: i.product ? new ProductDrop(i.product) : null,
+      product: i.product ? new ProductDrop(i.product, cache) : null,
       variant: { title: i.variantTitle },
       image: imageDrop(i.image),
       url: i.url,

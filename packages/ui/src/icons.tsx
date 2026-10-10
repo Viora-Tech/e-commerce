@@ -19,6 +19,7 @@ import {
   BellSimple,
   BellSimpleRinging,
   BracketsCurly,
+  Bug,
   CaretDown,
   CaretLeft,
   CaretRight,
@@ -115,13 +116,16 @@ import {
   PencilSimpleLine,
   BookmarkSimple as PhBookmarkSimple,
   Clock as PhClock,
+  Compass as PhCompass,
   Cookie as PhCookie,
   Diamond as PhDiamond,
   Globe as PhGlobe,
   HandHeart as PhHandHeart,
   Headphones as PhHeadphones,
   Images as PhImages,
+  Lock as PhLock,
   Monitor as PhMonitor,
+  Phone,
   Palette as PhPalette,
   ShoppingBag as PhShoppingBag,
   ShoppingCart as PhShoppingCart,
@@ -149,6 +153,7 @@ import {
   TextAlignLeft,
   TextT,
   ToggleLeft,
+  Translate,
   Trash,
   Tray,
   TreeStructure,
@@ -165,6 +170,7 @@ import {
   WarningDiamond,
   WarningOctagon,
   WhatsappLogo,
+  WifiSlash,
   X,
   XCircle,
   YoutubeLogo,
@@ -238,6 +244,8 @@ export const YoutubeLogo_ = defineIcon(YoutubeLogo, 'YoutubeLogo', 'duotone')
 export { YoutubeLogo_ as YoutubeLogo }
 export const GoogleLogo_ = defineIcon(GoogleLogo, 'GoogleLogo', 'duotone')
 export { GoogleLogo_ as GoogleLogo }
+export const Phone_ = defineIcon(Phone, 'Phone', 'duotone')
+export { Phone_ as Phone }
 export const WhatsappLogo_ = defineIcon(WhatsappLogo, 'WhatsappLogo', 'duotone')
 export { WhatsappLogo_ as WhatsappLogo }
 
@@ -272,12 +280,19 @@ export const Moon_ = defineIcon(Moon, 'Moon')
 export { Moon_ as Moon }
 export const MoonIcon = Moon_
 export const LogOut = defineIcon(SignOut, 'LogOut') // kit user card
-/* Kit 5:1384 "arrow-menu-close": a bar on the right with a chevron pointing at it. Mirror with `-scale-x-100` when collapsed. */
-export const PanelLeftClose = definePath(
-  ['M20 5v14', 'M13 8l-4 4 4 4', 'M9 12h7'],
-  'PanelLeftClose',
-)
-export const PanelLeftIcon = PanelLeftClose
+/* Page states: offline, no access, not found; and the language switch. */
+export const WifiOff = defineIcon(WifiSlash, 'WifiOff')
+export const Lock = defineIcon(PhLock, 'Lock')
+export const Compass = defineIcon(PhCompass, 'Compass')
+export const Language = defineIcon(Translate, 'Language')
+/** "Report a bug" (test server only): the account menu item and the floating button. */
+export const BugIcon = defineIcon(Bug, 'BugIcon')
+/* Top bar panel toggle (Figma 223:414): a rounded box with a bar on the left. */
+const PANEL_PATHS = [
+  'M4.5 5.5h15a1 1 0 0 1 1 1v11a1 1 0 0 1-1 1h-15a1 1 0 0 1-1-1v-11a1 1 0 0 1 1-1z',
+  'M9.5 5.5v13',
+]
+export const PanelLeftIcon = definePath(PANEL_PATHS, 'PanelLeftIcon')
 export const ExternalLink = defineIcon(ArrowSquareOut, 'ExternalLink') // kit Your Shop
 
 /* Arrows and chevrons */
@@ -480,4 +495,5 @@ export const icons = {
   spinner: Loader2Icon,
 } as const
 
+export * from './icons-more'
 export { Circle, Flag, Highlighter, Sparkle }

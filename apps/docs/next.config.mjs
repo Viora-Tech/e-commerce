@@ -1,5 +1,6 @@
 import { fileURLToPath } from 'node:url'
 import nextra from 'nextra'
+import { movedPages } from './redirects.mjs'
 
 const withNextra = nextra({
   contentDirBasePath: '/',
@@ -19,19 +20,14 @@ export default withNextra({
   // Standalone build for the optional production Docker image (apps/docs/Dockerfile).
   output: 'standalone',
   outputFileTracingRoot: fileURLToPath(new URL('../..', import.meta.url)),
+  transpilePackages: ['@commerce/config'],
   images: {
     unoptimized: true,
   },
-  // Settings were regrouped in October 2026: "Business and GST" is now the GST numbers tab of
-  // Taxes & GST, so its guide merged into that one.
+  // Pages that moved keep their old links working (redirects.mjs; scripts/check-redirects.mjs
+  // checks every target exists).
   async redirects() {
-    return [
-      {
-        source: '/merchant-guide/settings/business-and-gst',
-        destination: '/merchant-guide/settings/taxes',
-        permanent: false,
-      },
-    ]
+    return movedPages.map(([source, destination]) => ({ source, destination, permanent: true }))
   },
   turbopack: {
     resolveAlias: {

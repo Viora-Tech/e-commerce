@@ -2,6 +2,7 @@
 
 import { CircleAlert, CircleCheck } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
+import { Card, CardContent } from '@commerce/ui/shadcn/card'
 import { Field, FieldDescription, FieldGroup, FieldLabel } from '@commerce/ui/shadcn/field'
 import { Input } from '@commerce/ui/shadcn/input'
 import { Spinner } from '@commerce/ui/shadcn/spinner'
@@ -19,6 +20,8 @@ type GatewayConnectFormProps = {
   providerId: GatewayId
   setup: PaymentsSetup
   onConnected: () => void
+  /** The wizard look: the steps in one card, the mode, keys and buttons in another. */
+  twoColumn?: boolean
 }
 
 type Mode = 'test' | 'live'
@@ -69,6 +72,7 @@ export default function GatewayConnectForm({
   providerId,
   setup,
   onConnected,
+  twoColumn = false,
 }: GatewayConnectFormProps) {
   // Hooks
   const { connect: copy } = useCopy(paymentsSetupContent)
@@ -197,48 +201,127 @@ export default function GatewayConnectForm({
       />
     ) : null
 
+  const modeBlock = (
+    <div className="flex flex-col gap-2">
+      <div className="flex flex-wrap items-center gap-3">
+        <span id={`${providerId}-mode-label`} className="text-body font-medium text-foreground">
+          {copy.mode.label}
+        </span>
+        <ToggleGroup
+          aria-labelledby={`${providerId}-mode-label`}
+          value={[mode]}
+          onValueChange={handleMode}
+          variant="outline"
+          spacing={0}
+        >
+          <ToggleGroupItem value="test">{copy.mode.test}</ToggleGroupItem>
+          <ToggleGroupItem value="live">{copy.mode.live}</ToggleGroupItem>
+        </ToggleGroup>
+      </div>
+      <p className="text-caption text-muted-foreground">
+        {mode === 'test' ? copy.mode.testHelp : copy.mode.liveHelp}
+      </p>
+    </div>
+  )
+
+  const oauthBlock = oauth ? (
+    <div className="flex flex-col gap-2">
+      <Button
+        size="lg"
+        className="w-full gap-2 sm:w-fit"
+        onClick={handleOAuth}
+        disabled={redirecting}
+      >
+        {redirecting ? <Spinner /> : null}
+        {copy.oneClick(guide.name)}
+      </Button>
+      <p className="text-caption text-muted-foreground">{copy.oneClickHelp}</p>
+      {showKeys ? null : (
+        <Button variant="link" className="w-fit px-0" onClick={handleShowKeys}>
+          {copy.orKeys}
+        </Button>
+      )}
+    </div>
+  ) : null
+
+  const actions = (
+    <div className="flex flex-col gap-2">
+      <div className="flex flex-wrap gap-2">
+        <Button
+          type="button"
+          variant="outline"
+          size="lg"
+          onClick={handleTest}
+          disabled={!filled || test.status === 'testing'}
+        >
+          {test.status === 'testing' ? <Spinner /> : null}
+          {test.status === 'testing' ? copy.testing : copy.testConnection}
+        </Button>
+        <Button
+          type="button"
+          size="lg"
+          onClick={handleSave}
+          disabled={!filled || saving || mismatch}
+        >
+          {saving ? <Spinner /> : null}
+          {saving ? copy.saving : copy.save}
+        </Button>
+      </div>
+      {test.status === 'ok' ? (
+        <p className="flex items-center gap-1.5 text-body font-medium text-success">
+          <CircleCheck aria-hidden="true" className="size-4 shrink-0" />
+          {test.message}
+        </p>
+      ) : test.status === 'error' ? (
+        <p className="flex items-center gap-1.5 text-body font-medium text-destructive">
+          <CircleAlert aria-hidden="true" className="size-4 shrink-0" />
+          {test.message}
+        </p>
+      ) : (
+        <p className="text-caption text-muted-foreground">{copy.testHint}</p>
+      )}
+    </div>
+  )
+
+  if (twoColumn) {
+    return (
+      <div
+        className={
+          showKeys ? 'grid gap-6 lg:grid-cols-[minmax(0,22rem)_minmax(0,1fr)]' : 'grid gap-6'
+        }
+      >
+        {showKeys ? (
+          <Card size="form">
+            <CardContent>
+              <GatewayGuide
+                guide={guide}
+                done={[openedDashboard || filled, filled, providerId === 'cashfree' || filled]}
+                onOpenDashboard={handleOpenDashboard}
+              />
+            </CardContent>
+          </Card>
+        ) : null}
+        <Card size="form">
+          <CardContent className="flex flex-col gap-6">
+            {modeBlock}
+            {oauthBlock}
+            {showKeys ? (
+              <>
+                {keyBoxes}
+                {webhookBoxes}
+                {actions}
+              </>
+            ) : null}
+          </CardContent>
+        </Card>
+      </div>
+    )
+  }
+
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex flex-col gap-2">
-        <div className="flex flex-wrap items-center gap-3">
-          <span id={`${providerId}-mode-label`} className="text-body font-medium text-foreground">
-            {copy.mode.label}
-          </span>
-          <ToggleGroup
-            aria-labelledby={`${providerId}-mode-label`}
-            value={[mode]}
-            onValueChange={handleMode}
-            variant="outline"
-            spacing={0}
-          >
-            <ToggleGroupItem value="test">{copy.mode.test}</ToggleGroupItem>
-            <ToggleGroupItem value="live">{copy.mode.live}</ToggleGroupItem>
-          </ToggleGroup>
-        </div>
-        <p className="text-caption text-muted-foreground">
-          {mode === 'test' ? copy.mode.testHelp : copy.mode.liveHelp}
-        </p>
-      </div>
-
-      {oauth ? (
-        <div className="flex flex-col gap-2">
-          <Button
-            size="lg"
-            className="w-full gap-2 sm:w-fit"
-            onClick={handleOAuth}
-            disabled={redirecting}
-          >
-            {redirecting ? <Spinner /> : null}
-            {copy.oneClick(guide.name)}
-          </Button>
-          <p className="text-caption text-muted-foreground">{copy.oneClickHelp}</p>
-          {showKeys ? null : (
-            <Button variant="link" className="w-fit px-0" onClick={handleShowKeys}>
-              {copy.orKeys}
-            </Button>
-          )}
-        </div>
-      ) : null}
+      {modeBlock}
+      {oauthBlock}
 
       {showKeys ? (
         <>
@@ -250,42 +333,7 @@ export default function GatewayConnectForm({
             stepThree={webhookBoxes}
           />
 
-          <div className="flex flex-col gap-2">
-            <div className="flex flex-wrap gap-2">
-              <Button
-                type="button"
-                variant="outline"
-                size="lg"
-                onClick={handleTest}
-                disabled={!filled || test.status === 'testing'}
-              >
-                {test.status === 'testing' ? <Spinner /> : null}
-                {test.status === 'testing' ? copy.testing : copy.testConnection}
-              </Button>
-              <Button
-                type="button"
-                size="lg"
-                onClick={handleSave}
-                disabled={!filled || saving || mismatch}
-              >
-                {saving ? <Spinner /> : null}
-                {saving ? copy.saving : copy.save}
-              </Button>
-            </div>
-            {test.status === 'ok' ? (
-              <p className="flex items-center gap-1.5 text-body font-medium text-success">
-                <CircleCheck aria-hidden="true" className="size-4 shrink-0" />
-                {test.message}
-              </p>
-            ) : test.status === 'error' ? (
-              <p className="flex items-center gap-1.5 text-body font-medium text-destructive">
-                <CircleAlert aria-hidden="true" className="size-4 shrink-0" />
-                {test.message}
-              </p>
-            ) : (
-              <p className="text-caption text-muted-foreground">{copy.testHint}</p>
-            )}
-          </div>
+          {actions}
         </>
       ) : null}
     </div>

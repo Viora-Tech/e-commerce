@@ -9,8 +9,8 @@ import Link from 'next/link'
 import { type ReactNode, useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import EmptyState from '@/components/layout/empty-state'
-import PageHeader from '@/components/layout/page-header'
 import SaveBar from '@/components/layout/save-bar'
+import SettingsPageHeader from '@/components/settings/settings-page-header'
 import { providerSettingsContent as copy } from '@/data/provider-settings'
 import ProviderCard, { type ProviderDef } from './provider-card'
 import SectionTabs, { type SectionTab } from './section-tabs'
@@ -40,6 +40,8 @@ type ProviderSettingsFormProps<Extra> = {
   renderHint?: ((provider: ProviderDef) => ReactNode) | undefined
   /** A plain line on what a provider is, at the top of its card. */
   renderDescription?: ((provider: ProviderDef) => ReactNode) | undefined
+  /** Extra buttons in the header, before Save (a "View setup guide" link). */
+  headerActions?: ReactNode
   /** The parent page, shown as the back button beside the title. */
   back?: { label: string; href: string } | undefined
   /** Rendered under an enabled provider, receives and updates the extra part. */
@@ -66,7 +68,7 @@ function LoadingCards() {
   return (
     <>
       {[0, 1].map((i) => (
-        <Card key={i} className="gap-4 p-6">
+        <Card key={i} gap={4} inset={6}>
           <Skeleton className="h-5 w-40" />
           <Skeleton className="h-10 w-full" />
           <Skeleton className="h-10 w-full" />
@@ -85,12 +87,12 @@ function LoadingCards() {
 export default function ProviderSettingsForm<Extra extends object>({
   title,
   intro,
-  icon,
   load,
   save,
   emptyExtra,
   renderHint,
   renderDescription,
+  headerActions,
   back,
   renderExtra,
   renderFooter,
@@ -168,11 +170,15 @@ export default function ProviderSettingsForm<Extra extends object>({
         onDiscard={handleDiscard}
         saving={busy}
       />
-      <PageHeader
+      <SettingsPageHeader
         title={title}
         subtitle={intro}
-        icon={back ? undefined : icon}
-        breadcrumbs={back ? [back, { label: title }] : undefined}
+        actions={headerActions}
+        onSave={handleSave}
+        dirty={dirty}
+        saving={busy}
+        saveLabel={copy.save}
+        back={back?.href ? { label: back.label, href: back.href } : undefined}
       />
       {error ? (
         <Alert variant="destructive">
@@ -196,7 +202,11 @@ export default function ProviderSettingsForm<Extra extends object>({
                   heading={copy.noProviders.heading}
                   body={copy.noProviders.body}
                   action={
-                    <Button variant="outline" render={<Link href={copy.noProviders.href} />}>
+                    <Button
+                      nativeButton={false}
+                      variant="outline"
+                      render={<Link href={copy.noProviders.href} />}
+                    >
                       {copy.noProviders.action}
                     </Button>
                   }

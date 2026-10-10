@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest'
-import { apexOf, isApex, isPlatformHostname, normaliseHostname, wwwCounterpart } from './hostname'
+import {
+  apexOf,
+  isApex,
+  isPlatformHostname,
+  normaliseHostname,
+  platformRoots,
+  wwwCounterpart,
+} from './hostname'
 import { dnsRecordsFor, relativeName } from './records'
 
 describe('normaliseHostname', () => {
@@ -71,5 +78,20 @@ describe('dnsRecordsFor', () => {
 
   it('omits the TXT when there is no token', () => {
     expect(dnsRecordsFor('brand.in', null, targets)).toHaveLength(1)
+  })
+})
+
+// Audit 2026-09-28: store addresses and the login host must not be connectable.
+describe('platformRoots', () => {
+  it('includes the store domain and the accounts host', () => {
+    const roots = platformRoots({
+      PLATFORM_DOMAINS: ['waimers.in', 'admin.waimers.in'],
+      PLATFORM_STORE_DOMAIN: 'waimers.store',
+      ACCOUNTS_URL: 'https://login.waimers.co',
+    })
+    expect(isPlatformHostname('somebrand.waimers.store', roots)).toBe(true)
+    expect(isPlatformHostname('accounts.waimers.store', roots)).toBe(true)
+    expect(isPlatformHostname('login.waimers.co', roots)).toBe(true)
+    expect(isPlatformHostname('shop.somebrand.in', roots)).toBe(false)
   })
 })

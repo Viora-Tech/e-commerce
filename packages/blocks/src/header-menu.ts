@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react'
-import { headerContent as copy } from './data/glide/header'
-import type { FeatureCardSetting } from './sections/glide/header'
+import { headerContent as copy } from './data/zero-drift/header'
 import { hasCopy } from './sections/main-product-settings'
+import type { FeatureCardSetting } from './sections/zero-drift/header'
 import type { NavLink } from './types'
 
 /**
@@ -9,7 +9,7 @@ import type { NavLink } from './types'
  * WHAT:  Turns the Header section's settings into what the header draws beyond the menu
  *        itself: the cards in a dropdown's right-hand zone, and the search overlay's
  *        popular-term and brand pills.
- * WHY:   Glide's header.liquid resolves both from section blocks, the menu and the store's
+ * WHY:   Zero Drift's header.liquid resolves both from section blocks, the menu and the store's
  *        collections; the storefront and the admin canvas must agree, so it lives here.
  * WHERE: `components/header.tsx` (cards); the storefront layout (search shortcuts for
  *        its predictive search).

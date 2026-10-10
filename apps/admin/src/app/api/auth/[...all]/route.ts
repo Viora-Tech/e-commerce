@@ -9,6 +9,7 @@ import {
 import { sharedRedis } from '@commerce/queue'
 import { toNextJsHandler } from 'better-auth/next-js'
 import { auth } from '@/lib/auth'
+import { isBlockedAuthPath } from '@/lib/auth-paths'
 
 /**
  * Built on the first request, not at import: `next build` imports every route to read its config,
@@ -18,7 +19,10 @@ let handlers: ReturnType<typeof toNextJsHandler> | undefined
 const authHandlers = () => (handlers ??= toNextJsHandler(auth()))
 const authPost = (request: Request) => authHandlers().POST(request)
 
-export function GET(request: Request): Promise<Response> {
+export async function GET(request: Request): Promise<Response> {
+  if (isBlockedAuthPath(new URL(request.url).pathname)) {
+    return Response.json({ error: 'Not found' }, { status: 404 })
+  }
   return authHandlers().GET(request)
 }
 
@@ -51,7 +55,12 @@ function tooManyRequests(retryAfter: number) {
  * straight through.
  */
 export async function POST(request: Request): Promise<Response> {
-  if (!new URL(request.url).pathname.endsWith(OTP_SEND_PATH)) return authPost(request)
+  const path = new URL(request.url).pathname
+  // Organizations are made only by `onboarding.create`, which checks the signup gate and
+  // makes the store with them; Better Auth's own endpoint would let anyone signed in make
+  // one (security audit 2026-09-28 branch, ported 2026-10-06).
+  if (isBlockedAuthPath(path)) return Response.json({ error: 'Not found' }, { status: 404 })
+  if (!path.endsWith(OTP_SEND_PATH)) return authPost(request)
 
   const ip = clientIp(request.headers)
   const byIp = await checkRateLimit(

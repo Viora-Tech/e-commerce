@@ -1,20 +1,20 @@
 'use client'
 
-import { ArrowLeft, Download } from '@commerce/ui/icons'
+import { Download } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Input } from '@commerce/ui/shadcn/input'
-import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import type { AppPageProps } from '@/apps/registry'
 import CopyButton from '@/components/fields/copy-button'
-import DataCard from '@/components/layout/data-card'
-import PageHeader from '@/components/layout/page-header'
-import StatusLabel from '@/components/status/status-label'
+import ProoflyPageHeader from '@/components/layout/proofly-page-header'
+import SettingsCard from '@/components/settings/settings-card'
+import StatusLabelChip from '@/components/status/status-label-chip'
 import { gstInvoicesContent } from '@/data/gst-invoices'
 import { api } from '@/lib/api-client'
 import { formatDay } from '@/lib/format-date'
 import { formatPaise } from '@/lib/money'
+import { routes } from '@/lib/routes'
 import { saveFile } from './save-file'
 import TextField from './text-field'
 
@@ -110,10 +110,11 @@ export default function InvoiceDetail({ params }: AppPageProps) {
 
   return (
     <div className="flex flex-col gap-4">
-      <PageHeader
+      <ProoflyPageHeader
         title={`${kinds[doc.kind]} ${doc.number ?? ''}`.trim()}
-        badges={<StatusLabel kind="gstDoc" value={doc.status} variant="pill" size="sm" />}
-        subtitle={
+        back={{ label: copy.back, href: routes.apps.page('gst-invoices', 'invoices') }}
+        badges={<StatusLabelChip kind="gstDoc" value={doc.status} />}
+        summary={
           doc.number ? (
             <span className="group/row flex items-center gap-1">
               {doc.number}
@@ -122,19 +123,13 @@ export default function InvoiceDetail({ params }: AppPageProps) {
           ) : undefined
         }
         actions={
-          <>
-            <Button variant="ghost" render={<Link href="/apps/gst-invoices/invoices" />}>
-              <ArrowLeft />
-              {copy.back}
-            </Button>
-            <Button variant="outline" disabled={busy} onClick={handleDownload}>
-              <Download />
-              {copy.download}
-            </Button>
-          </>
+          <Button variant="outline" disabled={busy} onClick={handleDownload}>
+            <Download />
+            {copy.download}
+          </Button>
         }
       />
-      <DataCard title={s.buyer.name}>
+      <SettingsCard title={s.buyer.name}>
         <dl className="grid gap-3 sm:grid-cols-3">
           {facts.map((f) => (
             <div key={f.label} className="flex flex-col gap-0.5">
@@ -154,9 +149,9 @@ export default function InvoiceDetail({ params }: AppPageProps) {
         {doc.reportedPeriod && s.buyer.gstin ? (
           <p className="mt-1 text-caption text-muted-foreground">{copy.b2bCreditNotice}</p>
         ) : null}
-      </DataCard>
+      </SettingsCard>
       {s.exportSupply && doc.status !== 'cancelled' && !doc.reportedPeriod ? (
-        <DataCard title={copy.shipping}>
+        <SettingsCard title={copy.shipping}>
           <div className="grid gap-3 md:grid-cols-3">
             <TextField
               id="exp-port"
@@ -203,10 +198,10 @@ export default function InvoiceDetail({ params }: AppPageProps) {
           <Button className="mt-3" variant="outline" disabled={busy} onClick={handleShipping}>
             {copy.saveShipping}
           </Button>
-        </DataCard>
+        </SettingsCard>
       ) : null}
       {cancellable ? (
-        <DataCard title={copy.cancel}>
+        <SettingsCard title={copy.cancel}>
           <div className="flex flex-col gap-2 sm:flex-row">
             <Input
               size="lg"
@@ -224,7 +219,7 @@ export default function InvoiceDetail({ params }: AppPageProps) {
               {copy.cancel}
             </Button>
           </div>
-        </DataCard>
+        </SettingsCard>
       ) : null}
     </div>
   )

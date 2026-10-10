@@ -1,0 +1,1 @@
+ALTER TABLE "fulfillment_order" ADD COLUMN "delivery_estimate" jsonb;

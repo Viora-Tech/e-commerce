@@ -8,13 +8,13 @@ import { Card, CardContent, CardHeader, CardTitle } from '@commerce/ui/shadcn/ca
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
-import PageBody from '@/components/layout/page-body'
-import PageHeader from '@/components/layout/page-header'
+import ProoflyPageHeader from '@/components/layout/proofly-page-header'
 import StatusLabel from '@/components/status/status-label'
 import { campaignsContent, campaignReportContent as copy } from '@/data/marketing-campaigns'
 import { api } from '@/lib/api-client'
 import { formatDateTime } from '@/lib/format-date'
 import { formatPaise } from '@/lib/money'
+import { routes } from '@/lib/routes'
 import EmailPreview from './email-preview'
 import type { LoadedCampaign } from './form-state'
 import WhatsappPreview from './whatsapp-preview'
@@ -31,7 +31,7 @@ const POLL_MS = 5000
 
 function Stat({ label, value, detail }: StatProps) {
   return (
-    <Card className="gap-0 p-4">
+    <Card gap="none" inset={4}>
       <p className="text-card-title">{label}</p>
       <p className="mt-2 text-stat text-ink-strong tabular-nums">{value}</p>
       <p className="mt-1 min-h-4 text-period text-muted-foreground">{detail ?? ''}</p>
@@ -75,7 +75,7 @@ export default function CampaignReport({
     setBusy(false)
     if (!copyRow) return
     toast.success(copy.duplicated)
-    router.push(`/growth/campaigns/${copyRow.id}`)
+    router.push(routes.growth.campaign(copyRow.id))
   }
 
   const handleCancel = async () => {
@@ -99,14 +99,11 @@ export default function CampaignReport({
   ].filter(Boolean)
 
   return (
-    <PageBody width="wide">
-      <PageHeader
+    <div className="mx-auto flex w-full max-w-[81.5rem] flex-col gap-6 px-4 py-6 md:px-8 md:py-8">
+      <ProoflyPageHeader
         title={campaign.name}
-        subtitle={headline(campaign)}
-        breadcrumbs={[
-          { label: copy.breadcrumb, href: '/growth/campaigns' },
-          { label: campaign.name },
-        ]}
+        summary={headline(campaign)}
+        back={{ label: copy.breadcrumb, href: routes.growth.campaigns() }}
         actions={
           <div className="flex items-center gap-2">
             <StatusLabel kind="campaign" value={campaign.status} variant="pill" />
@@ -165,6 +162,6 @@ export default function CampaignReport({
           <WhatsappPreview value={campaign.whatsapp} body={null} storeName={storeName} />
         )}
       </div>
-    </PageBody>
+    </div>
   )
 }

@@ -1,4 +1,5 @@
 import { config } from 'zod'
+import { installClientErrorBuffer } from '@/lib/client-errors'
 
 /**
  * Runs in the browser before the app hydrates. Zod's object parser probes for `new Function`
@@ -7,3 +8,6 @@ import { config } from 'zod'
  * unchanged.
  */
 config({ jitless: true })
+
+/* "Report a bug" sends the tab's recent errors; start remembering them from page load. */
+installClientErrorBuffer()

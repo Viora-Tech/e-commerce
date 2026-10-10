@@ -1,0 +1,76 @@
+/**
+ * SOURCE OF TRUTH KEYWORDS: reviews widget copy, write a review, verified buyer, helpful
+ * WHAT:  Every shopper-facing string of the Reviews app's product page widget: the summary,
+ *        filter chips, review cards, the write-a-review form and its messages.
+ * WHY:   One place for the words a shopper reads, in plain English (the 50-year-old test).
+ * WHERE: `components/reviews/*`.
+ */
+export const reviewsWidgetContent = {
+  basedOn: (n: number) => `Based on ${n} ${n === 1 ? 'review' : 'reviews'}`,
+  noReviews: 'No reviews yet. Bought this? Tell other buyers how it went.',
+  write: 'Write a review',
+  onlyBuyers: 'Only customers who bought this product can review it.',
+  signIn: 'Sign in to review',
+  notBuyer: 'Reviews come from customers who bought this product.',
+  starsRow: (n: number) => `${n}★`,
+  starCount: (n: number, count: number) => `${n} stars: ${count} reviews`,
+  chips: {
+    all: 'All',
+    photos: (n: number) => `With photos (${n})`,
+    five: '5★',
+    four: '4★',
+    low: '3★ and below',
+  },
+  noMatch: 'No reviews match this filter yet.',
+  verified: 'Verified buyer',
+  replyFrom: (store: string) => `Reply from ${store}`,
+  helpful: 'Was this helpful?',
+  helpfulThanks: 'Thanks!',
+  helpfulCount: (n: number) => `${n}`,
+  more: 'Show more reviews',
+  photoAlt: (name: string) => `Photo from ${name}'s review`,
+  form: {
+    title: 'Write a review',
+    close: 'Close',
+    rating: 'Your rating',
+    ratingHint: 'Tap a star',
+    ratingNames: ['', 'Poor', 'Fair', 'Okay', 'Good', 'Excellent'] as readonly string[],
+    ratingValue: (n: number, name: string) => `${n} out of 5 · ${name}`,
+    star: (n: number) => `${n} ${n === 1 ? 'star' : 'stars'}`,
+    reviewTitle: 'Title',
+    reviewTitlePlaceholder: 'Sum it up in a few words',
+    body: 'Your review',
+    bodyPlaceholder: 'What did you like? How are you using it?',
+    photos: 'Photos (optional)',
+    addPhotos: (max: number) => `Add up to ${max} photos`,
+    removePhoto: 'Remove photo',
+    uploading: 'Adding photo...',
+    name: 'Your name',
+    nameHelp: 'We show your first name and last initial.',
+    email: 'Your email',
+    emailHelp: 'Never shown. We use it only if we need to reach you about your review.',
+    verifiedNote: (order: number) =>
+      `You bought this in order #${order}, so your review gets a Verified buyer badge.`,
+    send: 'Send review',
+    sending: 'Sending...',
+    thanksTitle: 'Thank you!',
+    thanksLive: 'Your review is live on this page.',
+    thanksHeld: 'Your review will show here once the store has had a look.',
+    done: 'Done',
+    errors: {
+      rating: 'Please pick a star rating.',
+      body: 'Please write a few words about the product.',
+      name: 'Please add your name.',
+      email: 'Please check your email address.',
+      not_allowed: 'Only customers who bought this product can review it.',
+      limit: 'You have sent a lot of reviews today. Please try again tomorrow.',
+      already: 'You have already reviewed this product. Thank you!',
+      product: 'This product cannot be reviewed right now.',
+      busy: 'Too many tries. Please wait a few minutes and try again.',
+      photo: 'That photo could not be added. Use a JPG, PNG or WebP picture.',
+      generic: 'Something went wrong. Please try again.',
+    },
+  },
+}
+
+export type ReviewsWidgetCopy = typeof reviewsWidgetContent

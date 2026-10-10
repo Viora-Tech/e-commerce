@@ -1,7 +1,6 @@
 'use client'
 
 import { permissions } from '@commerce/core/permissions'
-import { UserCog } from '@commerce/ui/icons'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -15,19 +14,18 @@ import {
 import { Button } from '@commerce/ui/shadcn/button'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
-import PageHeader from '@/components/layout/page-header'
 import SectionTabs from '@/components/settings/section-tabs'
+import SettingsPageHeader from '@/components/settings/settings-page-header'
 import SettingsSection from '@/components/settings/settings-section'
 import InviteDialog from '@/components/staff/invite-dialog'
 import MembersCard, { type StaffMemberRow } from '@/components/staff/members-card'
 import PendingInvitesCard, { type PendingInviteRow } from '@/components/staff/pending-invites-card'
 import RoleSheet from '@/components/staff/role-sheet'
 import RolesCard, { type RoleRow } from '@/components/staff/roles-card'
-import { staffContent as copy } from '@/data/staff'
+import { staffContent } from '@/data/staff'
+import { useCopy } from '@/hooks/use-copy'
 import { refreshPermissions, usePermissions } from '@/hooks/use-permissions'
 import { api } from '@/lib/api-client'
-
-const TABS = [copy.tabs.members, copy.tabs.roles]
 
 type Team = { members: StaffMemberRow[]; roles: RoleRow[]; invites: PendingInviteRow[] }
 
@@ -47,6 +45,7 @@ async function fetchTeam(): Promise<Team> {
 /** Team and roles for this store. Server procedures re-check every action. */
 export default function StaffSettings() {
   // Hooks
+  const copy = useCopy(staffContent)
   const { member, hasPermission } = usePermissions()
   const [members, setMembers] = useState<StaffMemberRow[] | null>(null)
   const [roles, setRoles] = useState<RoleRow[] | null>(null)
@@ -57,6 +56,7 @@ export default function StaffSettings() {
   const [pendingRemove, setPendingRemove] = useState<StaffMemberRow | null>(null)
   const [pendingDelete, setPendingDelete] = useState<RoleRow | null>(null)
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: load the team once per mount
   useEffect(() => {
     let live = true
     fetchTeam()
@@ -128,14 +128,15 @@ export default function StaffSettings() {
   }
 
   // Render logic
+  const tabs = [copy.tabs.members, copy.tabs.roles]
   const canManage = hasPermission(permissions.STAFF_MANAGE)
   const canInvite = hasPermission(permissions.STAFF_INVITE)
   const roleOptions = (roles ?? []).map((r) => ({ id: r.id, name: r.name, slug: r.slug }))
 
   return (
     <div className="flex flex-col gap-4">
-      <PageHeader title={copy.title} subtitle={copy.intro} icon={<UserCog aria-hidden="true" />} />
-      <SectionTabs tabs={TABS}>
+      <SettingsPageHeader title={copy.title} subtitle={copy.intro} />
+      <SectionTabs tabs={tabs}>
         <SettingsSection id={copy.tabs.members.id} className="flex flex-col gap-4">
           {canInvite ? (
             <div className="flex justify-end">

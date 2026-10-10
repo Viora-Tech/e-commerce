@@ -81,12 +81,12 @@ export function liquidSettingValue(
     }
     case 'product': {
       const found = text ? data.product(text) : null
-      return found ? new ProductDrop(found) : null
+      return found ? new ProductDrop(found, data) : null
     }
     case 'product_list':
       return handlesOf(value).flatMap((h) => {
         const p = data.product(h)
-        return p ? [new ProductDrop(p)] : []
+        return p ? [new ProductDrop(p, data)] : []
       })
     case 'collection': {
       const found = text ? data.collection(text) : null
@@ -99,7 +99,7 @@ export function liquidSettingValue(
       })
     case 'link_list': {
       const menu = text ? data.menu(text) : null
-      return menu ? new LinklistDrop(menu) : null
+      return menu ? new LinklistDrop(menu, data) : null
     }
     case 'blog': {
       const blog = text ? data.blog(text) : null

@@ -2,16 +2,18 @@
 
 // Pattern after Aceternity UI's Spotlight (our own implementation, not copied code).
 // See THIRD_PARTY_NOTICES.md.
-import { type PointerEvent, useEffect, useRef, useState } from 'react'
+import { type PointerEvent, type ReactNode, useEffect, useRef, useState } from 'react'
 import { loadMotion } from '../../lazy-motion'
 import { linkTarget } from '../../link'
 import type { Link } from '../../sections/framed'
 import { safeHref } from '../../slot-types'
 import { useReducedMotion } from '../../use-reduced-motion'
+import RichCopy from '../rich-copy'
 
+/** Copy is a string in storage, a React node while edited on the canvas. */
 type SpotlightHeroProps = {
-  heading: string
-  text: string
+  heading: ReactNode
+  text: ReactNode
   primary: Link
   secondary: Link
 }
@@ -100,7 +102,7 @@ export default function SpotlightHero({ heading, text, primary, secondary }: Spo
       )}
       <div className="page-width relative flex flex-col items-center gap-[1.25rem]">
         <h1 className="h1 text-[var(--color-ink)]">{heading}</h1>
-        {text ? <p className="text-body max-w-[36rem] text-[var(--color-muted)]">{text}</p> : null}
+        <RichCopy value={text} className="text-body max-w-[36rem] text-[var(--color-muted)]" />
         <div className="flex flex-wrap items-center justify-center gap-[0.75rem]">
           {primary?.label ? (
             <a

@@ -1,5 +1,5 @@
 import type { CSSProperties } from 'react'
-import type { FooterSettings } from '../sections/glide/footer'
+import type { FooterSettings } from '../sections/zero-drift/footer'
 import { safeHref } from '../slot-types'
 import type { ThemeMode } from '../types'
 import FooterBottom from './footer-bottom'

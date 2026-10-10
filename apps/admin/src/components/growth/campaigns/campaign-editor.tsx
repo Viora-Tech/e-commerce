@@ -8,11 +8,11 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
-import PageBody from '@/components/layout/page-body'
-import PageHeader from '@/components/layout/page-header'
+import ProoflyPageHeader from '@/components/layout/proofly-page-header'
 import SaveBar from '@/components/layout/save-bar'
 import { campaignEditorContent as copy } from '@/data/marketing-campaigns'
 import { api } from '@/lib/api-client'
+import { routes } from '@/lib/routes'
 import CampaignSettingsCard from './campaign-settings-card'
 import DeleteCampaignDialog from './delete-campaign-dialog'
 import EmailContentCard from './email-content-card'
@@ -102,7 +102,7 @@ export default function CampaignEditor({
     try {
       const id = await persist()
       toast.success(campaign ? copy.toasts.saved : copy.toasts.created)
-      if (!campaign && id) router.replace(`/growth/campaigns/${id}`)
+      if (!campaign && id) router.replace(routes.growth.campaign(id))
       else router.refresh()
     } catch (err) {
       setError(err instanceof Error ? err.message : copy.toasts.failed)
@@ -124,7 +124,7 @@ export default function CampaignEditor({
       })
       toast.success(at ? copy.schedule.scheduled : copy.schedule.sent)
       setDialog(null)
-      router.replace(`/growth/campaigns/${id}`)
+      router.replace(routes.growth.campaign(id))
       router.refresh()
     } catch (err) {
       setError(err instanceof Error ? err.message : copy.toasts.failed)
@@ -139,7 +139,7 @@ export default function CampaignEditor({
     try {
       await api.marketing.campaigns.delete({ id: campaign.id })
       toast.success(copy.toasts.deleted)
-      router.push('/growth/campaigns')
+      router.push(routes.growth.campaigns())
       router.refresh()
     } catch (err) {
       setError(err instanceof Error ? err.message : copy.toasts.failed)
@@ -161,7 +161,7 @@ export default function CampaignEditor({
   const title = campaign ? form.name : form.kind === 'email' ? copy.newEmail : copy.newWhatsapp
 
   return (
-    <PageBody width="wide">
+    <div className="mx-auto flex w-full max-w-[81.5rem] flex-col gap-6 px-4 py-6 md:px-8 md:py-8">
       <SaveBar
         open={dirty}
         message={copy.saveBar.message}
@@ -171,9 +171,9 @@ export default function CampaignEditor({
         onDiscard={() => setForm(JSON.parse(saved) as CampaignForm)}
         saving={busy}
       />
-      <PageHeader
+      <ProoflyPageHeader
         title={title}
-        breadcrumbs={[{ label: copy.breadcrumb, href: '/growth/campaigns' }, { label: title }]}
+        back={{ label: copy.breadcrumb, href: routes.growth.campaigns() }}
         actions={
           <div className="flex items-center gap-2">
             {campaign ? (
@@ -207,7 +207,7 @@ export default function CampaignEditor({
           <CircleAlert />
           <AlertDescription>
             {copy.channel.noEmail}{' '}
-            <Link href="/settings/notifications" className="underline">
+            <Link href={routes.settings.notifications()} className="underline">
               {copy.channel.settings}
             </Link>
           </AlertDescription>
@@ -275,6 +275,6 @@ export default function CampaignEditor({
         busy={busy}
         onConfirm={handleDelete}
       />
-    </PageBody>
+    </div>
   )
 }

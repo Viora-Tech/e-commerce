@@ -1,8 +1,9 @@
 'use client'
 
 import { Button } from '@commerce/ui/shadcn/button'
+import type { CSSProperties } from 'react'
 import type { PendingUpload } from '@/components/media/use-upload-queue'
-import { productFormContent } from '@/data/products'
+import { productFormContent } from '@/data/product-form'
 import { useCopy } from '@/hooks/use-copy'
 
 type ProductImagePendingProps = {
@@ -49,8 +50,8 @@ export default function ProductImagePending({
             <span className="text-caption tabular-nums">{copy.uploading(pct)}</span>
             <span className="h-1 overflow-hidden rounded-full bg-muted">
               <span
-                className="block h-full rounded-full bg-primary transition-[width] duration-150 motion-reduce:transition-none"
-                style={{ width: `${pct}%` }}
+                className="block h-full rounded-full w-(--w) bg-primary transition-[width] duration-150 motion-reduce:transition-none"
+                style={{ '--w': `${pct}%` } as CSSProperties}
               />
             </span>
           </>

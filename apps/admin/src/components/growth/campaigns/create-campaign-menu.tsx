@@ -10,6 +10,7 @@ import {
 } from '@commerce/ui/shadcn/dropdown-menu'
 import { useRouter } from 'next/navigation'
 import { campaignsContent as copy } from '@/data/marketing-campaigns'
+import { routes } from '@/lib/routes'
 
 const OPTIONS = [
   { kind: 'email', icon: Send, label: copy.createEmail, hint: copy.createEmailHint },
@@ -29,7 +30,7 @@ export default function CreateCampaignMenu() {
   // Render logic
   return (
     <DropdownMenu>
-      <DropdownMenuTrigger render={<Button size="lg" />}>
+      <DropdownMenuTrigger render={<Button />}>
         {copy.create}
         <ChevronDown />
       </DropdownMenuTrigger>
@@ -37,7 +38,7 @@ export default function CreateCampaignMenu() {
         {OPTIONS.map((o) => (
           <DropdownMenuItem
             key={o.kind}
-            onClick={() => router.push(`/growth/campaigns/new?kind=${o.kind}`)}
+            onClick={() => router.push(`${routes.growth.newCampaign()}?kind=${o.kind}`)}
             className="items-start gap-3 py-2"
           >
             <o.icon className="mt-0.5 size-4 text-muted-foreground" />

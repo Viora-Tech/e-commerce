@@ -1,3 +1,4 @@
+import { siteConfig } from '@commerce/config/site'
 import { navigationContent } from '@/data/navigation'
 import { translation } from '@/lib/i18n'
 
@@ -16,9 +17,12 @@ export const hindiPageNames: Record<string, { title: string; body?: string }> = 
   '/orders/returns': { title: 'रिटर्न' },
   '/products': { title: 'प्रोडक्ट' },
   '/products/collections': { title: 'कलेक्शन' },
-  '/products/inventory': { title: 'इन्वेंटरी' },
-  '/products/purchase-orders': { title: 'परचेज़ ऑर्डर' },
-  '/products/transfers': { title: 'ट्रांसफ़र' },
+  '/stock': { title: 'स्टॉक' },
+  '/stock/inventory': { title: 'इन्वेंटरी' },
+  '/stock/purchase-orders': { title: 'परचेज़ ऑर्डर' },
+  '/stock/transfers': { title: 'ट्रांसफ़र' },
+  '/stock/inbound-shipments': { title: 'आने वाली खेप' },
+  '/stock/suppliers': { title: 'सप्लायर' },
   '/products/gift-cards': { title: 'गिफ़्ट कार्ड' },
   '/customers': { title: 'ग्राहक' },
   '/customers/segments': { title: 'सेगमेंट' },
@@ -77,6 +81,10 @@ export const hindiPageNames: Record<string, { title: string; body?: string }> = 
     title: 'GST और इनवॉइस',
     body: 'आपके GST नंबर, कीमतों में GST कैसे जुड़ता है, और इनवॉइस के नंबर कैसे बनते हैं।',
   },
+  '/settings/costs': {
+    title: 'मुनाफ़े के लिए खर्च',
+    body: 'पेमेंट गेटवे और कैश ऑन डिलीवरी पर आपका कितना खर्च होता है, ताकि ऑर्डर का मुनाफ़ा सही दिखे।',
+  },
   '/settings/customer-accounts': {
     title: 'ग्राहक अकाउंट',
     body: 'बिना अकाउंट चेकआउट, और ईमेल, SMS या WhatsApp से साइन-इन कोड।',
@@ -107,16 +115,25 @@ export const hindiPageNames: Record<string, { title: string; body?: string }> = 
   },
   '/settings/invoices': { title: 'इनवॉइस' },
   '/account': { title: 'अकाउंट' },
-  '/account/appearance': { title: 'रंग-रूप' },
+  '/account/security': { title: 'साइन-इन और सुरक्षा' },
+  '/account/sessions': { title: 'सेशन' },
+  '/account/notifications': { title: 'नोटिफ़िकेशन' },
+  '/account/stores': { title: 'स्टोर' },
+  '/account/language': { title: 'भाषा और क्षेत्र' },
+  '/account/appearance': {
+    title: 'रंग-रूप',
+    body: 'लाइट या डार्क मोड और आपका एक्सेंट रंग, सिर्फ़ आपके लिए।',
+  },
   '/content/files/storage': { title: 'फ़ाइल स्टोरेज' },
   '/dev': { title: 'डेवलपर' },
 }
 
 /** Sidebar group headings, keyed by their English label. */
 export const hindiNavGroups: Record<string, string> = {
-  'Main menu': 'मेन मेन्यू',
+  Workspace: 'वर्कस्पेस',
   'Sales channels': 'सेल्स चैनल',
   Apps: 'ऐप्स',
+  Settings: 'सेटिंग',
 }
 
 export default [
@@ -126,20 +143,39 @@ export default [
     allStores: 'सभी स्टोर',
     storesAvailable: (n) => `${n} उपलब्ध`,
     viewStore: 'स्टोर देखें',
-    signOut: 'साइन आउट',
+    signOut: 'लॉग आउट',
     collapse: 'साइडबार छोटा करें',
-    adminGroup: 'एडमिन',
+    expand: 'साइडबार बड़ा करें',
+    togglePanel: 'साइडबार दिखाएं या छिपाएं',
+    settingsGroup: 'सेटिंग',
     expandSection: (label) => `${label} के पेज दिखाएं`,
     collapseSection: (label) => `${label} के पेज छिपाएं`,
     search: {
       placeholder: 'ऑर्डर, प्रोडक्ट या ग्राहक खोजें',
+      field: `खोजें या ${siteConfig.brand.name} AI से पूछें…`,
       shortcut: '⌘K',
+      askAi: 'AI से पूछें',
       empty: 'कुछ नहीं मिला',
       orders: 'ऑर्डर',
       products: 'प्रोडक्ट',
       orderLabel: (n, who) => `#${n}${who ? `, ${who}` : ''}`,
     },
+    storeRole: { owner: 'मालिक', member: 'टीम मेंबर' },
+    switchStore: 'स्टोर बदलें',
+    openStoreAddress: (domain) => `${domain} खोलें`,
+    usage: {
+      title: 'इस महीने के ऑर्डर',
+      of: (used, limit) => `${limit} में से ${used}`,
+      moreRoom: (plan) => `${plan} प्लान में ज़्यादा जगह`,
+    },
     account: 'अकाउंट',
+    menu: {
+      settings: 'सेटिंग',
+      help: 'WhatsApp पर मदद',
+      language: 'भाषा',
+      english: 'English',
+      hindi: 'हिंदी',
+    },
     toggleTheme: 'थीम बदलें',
     openMenu: 'मेन्यू खोलें',
     notifications: { label: 'नोटिफ़िकेशन', empty: 'अभी देखने को कुछ नया नहीं है।' },

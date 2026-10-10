@@ -116,6 +116,14 @@ describe('store permissions', () => {
     await expect(
       call(appRouter.store.updateGeneral, { name: 'Renamed' }, { context: ctx(helperHeaders) }),
     ).rejects.toMatchObject({ code: 'FORBIDDEN' })
+    // Stopping an import needs the same grant as starting one (Apps: manage).
+    await expect(
+      call(
+        appRouter.shopifyImport.stop,
+        { id: '00000000-0000-4000-8000-000000000001' },
+        { context: ctx(helperHeaders) },
+      ),
+    ).rejects.toMatchObject({ code: 'FORBIDDEN' })
 
     const [o] = await owner
       .insert(order)

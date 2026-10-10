@@ -28,8 +28,8 @@ export default function DraftAddressCard({ address, onChange }: DraftAddressCard
 
   // Render logic
   return (
-    <Card className="gap-4 p-5">
-      <p className="text-kit-card-title text-foreground">{copy.address.heading}</p>
+    <Card gap={4} inset={5}>
+      <p className="text-card-title text-ink-strong">{copy.address.heading}</p>
       <Field>
         <FieldLabel htmlFor="draft-addr-name">{copy.address.name}</FieldLabel>
         <Input

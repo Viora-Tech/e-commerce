@@ -1,10 +1,11 @@
 'use client'
 
+import type { CSSProperties } from 'react'
 import SuggestInput from '@/components/fields/suggest-input'
 import TagInput from '@/components/fields/tag-input'
 import KitField from '@/components/kit/kit-field'
 import DataCard from '@/components/layout/data-card'
-import { productFormContent } from '@/data/products'
+import { productFormContent } from '@/data/product-form'
 import { useCopy } from '@/hooks/use-copy'
 import type { Facets } from './form-state'
 import ProductCategoryPicker from './product-category-picker'
@@ -100,8 +101,8 @@ export default function ProductCategoriesCard({
                     {swatch ? (
                       <span
                         title={colour}
-                        style={{ backgroundColor: swatch }}
-                        className="block size-8 rounded-md ring-1 ring-border ring-inset"
+                        style={{ '--swatch': swatch } as CSSProperties}
+                        className="block size-8 rounded-md bg-(color:--swatch) ring-1 ring-border ring-inset"
                       >
                         <span className="sr-only">{colour}</span>
                       </span>

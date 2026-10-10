@@ -1,6 +1,6 @@
 'use client'
 
-import { Plus, Trash2 } from '@commerce/ui/icons'
+import { Trash2 } from '@commerce/ui/icons'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -11,14 +11,15 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@commerce/ui/shadcn/alert-dialog'
-import { Badge } from '@commerce/ui/shadcn/badge'
 import { Button } from '@commerce/ui/shadcn/button'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import CopyButton from '@/components/fields/copy-button'
 import DataCard from '@/components/layout/data-card'
-import { customerAddressesContent as copy } from '@/data/customers'
+import StatusChip from '@/components/layout/status-chip'
+import { customerAddressesContent } from '@/data/customers'
 import { INDIAN_STATES } from '@/data/india'
+import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 import CustomerAddressDialog from './customer-address-dialog'
 import type { CustomerAddressRow, CustomerDetail } from './customer-detail-types'
@@ -48,6 +49,7 @@ function lines(a: CustomerAddressRow): string[] {
  */
 export default function CustomerAddressesCard({ customer, onChanged }: CustomerAddressesCardProps) {
   // Hooks
+  const copy = useCopy(customerAddressesContent)
   const [editing, setEditing] = useState<CustomerAddressRow | 'new' | null>(null)
   const [deleting, setDeleting] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
@@ -92,9 +94,9 @@ export default function CustomerAddressesCard({ customer, onChanged }: CustomerA
   return (
     <DataCard
       title={copy.heading}
+      className="rounded-xl"
       action={
-        <Button type="button" variant="outline" size="sm" onClick={() => setEditing('new')}>
-          <Plus />
+        <Button type="button" variant="ghost" size="sm" onClick={() => setEditing('new')}>
           {copy.add}
         </Button>
       }
@@ -119,10 +121,10 @@ export default function CustomerAddressesCard({ customer, onChanged }: CustomerA
                 {a.id === null ? (
                   <span className="text-caption text-muted-foreground">{copy.fromOrder}</span>
                 ) : a.isDefault ? (
-                  <Badge variant="secondary">{copy.default}</Badge>
+                  <StatusChip>{copy.default}</StatusChip>
                 ) : null}
                 <div className="ml-auto flex items-center gap-1">
-                  <Button type="button" variant="outline" size="sm" onClick={() => setEditing(a)}>
+                  <Button type="button" variant="ghost" size="sm" onClick={() => setEditing(a)}>
                     {copy.edit}
                   </Button>
                   {a.id ? (

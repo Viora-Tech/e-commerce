@@ -12,9 +12,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@commerce/ui/shadcn/alert-dialog'
-import { Badge } from '@commerce/ui/shadcn/badge'
 import { Button } from '@commerce/ui/shadcn/button'
-import { Card } from '@commerce/ui/shadcn/card'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -24,6 +22,11 @@ import {
 import { useState } from 'react'
 import { toast } from 'sonner'
 import RelativeTime from '@/components/layout/relative-time'
+import StatusChip from '@/components/layout/status-chip'
+import SettingsTable from '@/components/settings/settings-table'
+import SettingsTableCell from '@/components/settings/settings-table-cell'
+import SettingsTableRow from '@/components/settings/settings-table-row'
+import RowActionsCell from '@/components/table/row-actions-cell'
 import { staffInvitesContent } from '@/data/staff-invites'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
@@ -44,9 +47,6 @@ type PendingInvitesCardProps = {
   canInvite: boolean
   onChanged: () => void
 }
-
-const ROW =
-  'grid grid-cols-[minmax(0,2fr)_minmax(0,1fr)_minmax(0,0.8fr)_minmax(0,0.8fr)_7rem] items-center gap-3 px-4'
 
 /** The admin's own accept page for an invitation, as the invite email links to it. */
 function inviteLink(id: string): string {
@@ -106,100 +106,104 @@ export default function PendingInvitesCard({
   }
 
   return (
-    <Card className="gap-0 p-0">
-      <div className="flex flex-col gap-1 px-4 pt-4 pb-3">
-        <h2 className="text-card-title text-ink-strong">{copy.heading}</h2>
-        <p className="text-body text-muted-foreground">{copy.intro}</p>
-      </div>
-      <div className={`${ROW} h-10 bg-muted/60 text-table-head text-muted-foreground`}>
-        <span>{copy.columns.person}</span>
-        <span>{copy.columns.role}</span>
-        <span>{copy.columns.sent}</span>
-        <span>{copy.columns.expires}</span>
-        <span />
-      </div>
-      {invites.length === 0 ? (
-        <p className="px-4 py-6 text-body text-muted-foreground">{copy.empty}</p>
-      ) : (
-        invites.map((invite) => {
-          const busy = busyId === invite.id
-          return (
-            <div key={invite.id} className={`${ROW} min-h-14 border-border border-t py-2`}>
-              <span className={cn('min-w-0', invite.expired && 'opacity-60')}>
-                <span className="block truncate text-body-strong text-ink-strong">
-                  {invite.email}
-                </span>
-                {invite.invitedBy ? (
-                  <span className="block truncate text-caption text-muted-foreground">
-                    {copy.invitedBy(invite.invitedBy)}
+    <>
+      <SettingsTable
+        heading={copy.heading}
+        description={copy.intro}
+        actions
+        total={invites.length}
+        columns={[
+          { label: copy.columns.person },
+          { label: copy.columns.role },
+          { label: copy.columns.sent },
+          { label: copy.columns.expires },
+        ]}
+      >
+        {invites.length === 0 ? (
+          <SettingsTableRow>
+            <SettingsTableCell className="text-muted-foreground">{copy.empty}</SettingsTableCell>
+          </SettingsTableRow>
+        ) : (
+          invites.map((invite) => {
+            const busy = busyId === invite.id
+            return (
+              <SettingsTableRow key={invite.id}>
+                <SettingsTableCell className={cn(invite.expired && 'opacity-60')}>
+                  <span className="block truncate font-semibold text-ink-strong">
+                    {invite.email}
                   </span>
-                ) : null}
-              </span>
-              <span className={cn('truncate text-body', invite.expired && 'opacity-60')}>
-                {invite.roleName ?? copy.defaultRole}
-              </span>
-              <RelativeTime
-                value={invite.sentAt}
-                className={cn('text-body text-muted-foreground', invite.expired && 'opacity-60')}
-              />
-              {invite.expired ? (
-                <Badge variant="neutral" className="w-fit">
-                  {copy.expired}
-                </Badge>
-              ) : (
-                <span className="text-body text-muted-foreground">
-                  {format.date(invite.expiresAt)}
-                </span>
-              )}
-              {canInvite ? (
-                <div className="flex items-center justify-end gap-1">
-                  {invite.expired ? (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      disabled={busy}
-                      onClick={() => handleResend(invite)}
-                    >
-                      {copy.actions.resendShort}
-                    </Button>
+                  {invite.invitedBy ? (
+                    <span className="block truncate text-caption text-muted-foreground">
+                      {copy.invitedBy(invite.invitedBy)}
+                    </span>
                   ) : null}
-                  <DropdownMenu>
-                    <DropdownMenuTrigger
-                      render={
+                </SettingsTableCell>
+                <SettingsTableCell className={cn(invite.expired && 'opacity-60')}>
+                  {invite.roleName ?? copy.defaultRole}
+                </SettingsTableCell>
+                <SettingsTableCell className={cn(invite.expired && 'opacity-60')}>
+                  <RelativeTime value={invite.sentAt} className="text-body text-muted-foreground" />
+                </SettingsTableCell>
+                <SettingsTableCell className="text-muted-foreground">
+                  {invite.expired ? (
+                    <StatusChip>{copy.expired}</StatusChip>
+                  ) : (
+                    format.date(invite.expiresAt)
+                  )}
+                </SettingsTableCell>
+                <SettingsTableCell className="w-16 p-0 last:pr-2 md:last:pr-2">
+                  {canInvite ? (
+                    <RowActionsCell>
+                      {invite.expired ? (
                         <Button
-                          variant="ghost"
-                          size="icon"
+                          variant="outline"
+                          size="sm"
                           disabled={busy}
-                          aria-label={copy.actions.menu}
-                        />
-                      }
-                    >
-                      <MoreHorizontal />
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      {invite.expired ? null : (
-                        <>
-                          <DropdownMenuItem onClick={() => handleCopy(invite)}>
-                            {copy.actions.copy}
+                          onClick={() => handleResend(invite)}
+                        >
+                          {copy.actions.resendShort}
+                        </Button>
+                      ) : null}
+                      <DropdownMenu>
+                        <DropdownMenuTrigger
+                          render={
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              disabled={busy}
+                              aria-label={copy.actions.menu}
+                            />
+                          }
+                        >
+                          <MoreHorizontal />
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          {invite.expired ? null : (
+                            <>
+                              <DropdownMenuItem onClick={() => handleCopy(invite)}>
+                                {copy.actions.copy}
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => handleResend(invite)}>
+                                {copy.actions.resend}
+                              </DropdownMenuItem>
+                            </>
+                          )}
+                          <DropdownMenuItem
+                            variant="destructive"
+                            onClick={() => setCancelling(invite)}
+                          >
+                            {copy.actions.cancel}
                           </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => handleResend(invite)}>
-                            {copy.actions.resend}
-                          </DropdownMenuItem>
-                        </>
-                      )}
-                      <DropdownMenuItem variant="destructive" onClick={() => setCancelling(invite)}>
-                        {copy.actions.cancel}
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </div>
-              ) : (
-                <span />
-              )}
-            </div>
-          )
-        })
-      )}
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </RowActionsCell>
+                  ) : null}
+                </SettingsTableCell>
+              </SettingsTableRow>
+            )
+          })
+        )}
+      </SettingsTable>
 
       <AlertDialog open={cancelling !== null} onOpenChange={() => setCancelling(null)}>
         <AlertDialogContent>
@@ -217,6 +221,6 @@ export default function PendingInvitesCard({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </Card>
+    </>
   )
 }

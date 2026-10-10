@@ -3,12 +3,22 @@ import type { ReactNode } from 'react'
 import EditorOverlay from '../components/editor-overlay'
 import type { NewsletterAction } from '../components/sections/newsletter'
 import { sectionsContent } from '../data/sections'
+import {
+  bleedFrameProps,
+  defaultSectionSettings,
+  isNeutralFlow,
+  migrateSectionSettings,
+  type SectionSettingsValue,
+  type SettingsKind,
+  sectionSettingsField,
+} from '../section-settings'
 import type { ProductDetail } from '../types'
-import { cookieBannerDef } from './glide/cookie-banner'
-import { footerDef } from './glide/footer'
-import { headerDef } from './glide/header'
+import { SCHEMES } from './framed'
 import { inlineText } from './inline-fields'
 import { mainProductDefaults, mainProductFields, showHide as yesNo } from './main-product-settings'
+import { cookieBannerDef } from './zero-drift/cookie-banner'
+import { footerDef } from './zero-drift/footer'
+import { headerDef } from './zero-drift/header'
 
 /**
  * Sections bound to what the shopper is looking at: the header and footer (store
@@ -73,6 +83,33 @@ export type SectionMetadata = {
 
 type Def = { label: string; fields: Fields; defaultProps: SectionSettings }
 
+/**
+ * Which shared Section settings each dynamic section offers (`../section-settings.ts`).
+ * - `flow`: spacing, colour scheme, show on mobile/desktop and the anchor, on a frame around
+ *   what the storefront draws for the page.
+ * - `bleed` (header and footer): the same without the colour scheme, which their own design
+ *   sets (the footer is always the dark band).
+ * - none: the cookie banner floats over the page, so spacing and schemes have nothing to act on.
+ * Defaults change nothing, and an untouched section is drawn with no frame at all.
+ */
+const SETTINGS_KIND: Partial<Record<DynamicSection, Exclude<SettingsKind, 'section'>>> = {
+  Header: 'bleed',
+  Footer: 'bleed',
+  MainProduct: 'flow',
+  MainCollection: 'flow',
+  MainPage: 'flow',
+  MainBlog: 'flow',
+  MainArticle: 'flow',
+  MainCart: 'flow',
+  MainSearch: 'flow',
+  MainNotFound: 'flow',
+  RelatedProducts: 'flow',
+  RecentlyViewed: 'flow',
+}
+
+/** No padding and the default scheme: the look these sections had before settings. */
+const FLOW_SETTINGS = defaultSectionSettings({ padTop: 0, padBottom: 0 })
+
 const DEFS: Record<DynamicSection, Def> = {
   Header: headerDef,
   Footer: footerDef,
@@ -129,15 +166,35 @@ const DEFS: Record<DynamicSection, Def> = {
 /** Dynamic sections that float over the page on the store rather than sitting in its flow. */
 const OVERLAY_SECTIONS: ReadonlySet<DynamicSection> = new Set(['CookieBanner'])
 
+/** What the storefront drew, inside a frame only when a setting asks for one. */
+function framedFlow(section: ReactNode, settings: SectionSettingsValue): ReactNode {
+  if (section === null || isNeutralFlow(settings)) return section
+  const frame = bleedFrameProps(settings)
+  const scheme =
+    settings.style.colorScheme !== 'scheme-1' ? ` color-${settings.style.colorScheme}` : ''
+  return (
+    <div
+      {...frame}
+      className={`section-frame${scheme}${frame.className ? ` ${frame.className}` : ''}`}
+    >
+      {section}
+    </div>
+  )
+}
+
 function dynamicSection(type: DynamicSection): ComponentConfig<SectionSettings> {
   const def = DEFS[type]
+  const kind = SETTINGS_KIND[type]
   return {
     label: def.label,
-    fields: def.fields,
-    defaultProps: def.defaultProps,
+    fields: kind ? { ...def.fields, settings: sectionSettingsField(SCHEMES, kind) } : def.fields,
+    defaultProps: kind ? { ...def.defaultProps, settings: FLOW_SETTINGS } : def.defaultProps,
     render: ({ puck, id, ...settings }) => {
       const meta = (puck?.metadata ?? {}) as SectionMetadata
-      const section = meta.renderers?.[type]?.({ ...def.defaultProps, ...settings }) ?? null
+      const drawn = meta.renderers?.[type]?.({ ...def.defaultProps, ...settings }) ?? null
+      const section = kind
+        ? framedFlow(drawn, migrateSectionSettings({ settings: settings.settings }, FLOW_SETTINGS))
+        : drawn
       // Floats over the page on the store: a strip in the canvas until selected.
       if (puck?.isEditing && OVERLAY_SECTIONS.has(type)) {
         return (

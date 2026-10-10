@@ -34,6 +34,7 @@ export const notificationsSettingsContent = {
   },
 
   list: {
+    columns: { message: 'Message', sentOn: 'Sent on', status: 'Status' },
     heading: 'Messages your customers get',
     help: 'Turn off any message you do not want to send. Everything is on to begin with.',
     on: 'On',
@@ -78,7 +79,7 @@ export const notificationsSettingsContent = {
     },
     you: {
       title: 'Messages you get',
-      help: 'Sent to your shop email address, not to customers.',
+      help: 'Sent to your shop email or to each team member who asked, never to customers.',
     },
   } satisfies Record<MessageGroupId, { title: string; help: string }>,
 
@@ -145,6 +146,10 @@ export const notificationsSettingsContent = {
       name: 'Copy of an invoice',
       when: 'When you email an invoice or credit note from an order.',
     },
+    purchase_order: {
+      name: 'Purchase order to a supplier',
+      when: 'When you email a purchase order to its supplier.',
+    },
     login_code: {
       name: 'Sign-in code',
       when: 'When a customer signs in to their account on your shop.',
@@ -189,9 +194,33 @@ export const notificationsSettingsContent = {
       name: 'Return refunded',
       when: 'When you refund a return or give store credit.',
     },
+    contact_message: {
+      name: 'New form message',
+      when: 'When a shopper sends a message from a contact or advice form (Forms app).',
+    },
+    review_request: {
+      name: 'Review request',
+      when: 'Some days after an order is delivered, asking for a review (Reviews app settings).',
+    },
+    review_reminder: {
+      name: 'Review reminder',
+      when: 'Once, when no review came after the request (Reviews app settings).',
+    },
+    review_reply: {
+      name: 'Reply to a review',
+      when: 'The first time you reply to a customer review (Reviews app).',
+    },
     unpaid_cancel_notice: {
       name: 'Unpaid order will be cancelled',
       when: 'Before an unpaid UPI or bank transfer order is cancelled for you.',
+    },
+    staff_new_order: {
+      name: 'New order alert (team)',
+      when: 'To each team member who turned on new-order alerts in Account → Notifications.',
+    },
+    staff_daily_summary: {
+      name: 'Daily summary (team)',
+      when: 'Once a day, at the hour each team member chose in Account → Notifications.',
     },
   } as Record<string, { name: string; when: string }>,
 

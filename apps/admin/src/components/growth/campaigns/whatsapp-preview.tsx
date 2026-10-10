@@ -23,7 +23,7 @@ export default function WhatsappPreview({ value, body, storeName }: WhatsappPrev
   const text = body ? previewWhatsappBody(body, filled) : filled.join(' ')
 
   return (
-    <Card className="sticky top-4 gap-0 overflow-hidden p-0">
+    <Card gap="none" inset="none" className="sticky top-4 overflow-hidden">
       <p className="border-b border-border px-4 py-3 text-card-title">{copy.previewTitle}</p>
       <div className="min-h-64 bg-muted p-4">
         {value ? (

@@ -23,6 +23,11 @@ const NOT_FOR_APPS: Record<string, string> = {
   BACKUP_R2_BUCKET: 'backup service only',
   BACKUP_LOCAL_DIR: 'dev backups only',
   LOCAL_STORAGE_DIR: 'local disk storage is not used in production',
+  NODE_ENV: 'set by the images and x-app-env itself (production), never by the operator',
+  DOKPLOY_URL: 'worker only (its own environment block)',
+  DOKPLOY_API_KEY: 'worker only (its own environment block), kept out of admin and storefront',
+  DOKPLOY_STOREFRONT_APPLICATION_ID: 'worker only (its own environment block)',
+  DOKPLOY_STOREFRONT_PORT: 'worker only (its own environment block)',
 }
 
 function schemaKeys(): string[] {

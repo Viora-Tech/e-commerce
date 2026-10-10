@@ -1,6 +1,7 @@
 'use client'
 
-import { Newspaper, Plus, SquarePlus } from '@commerce/ui/icons'
+import { siteConfig } from '@commerce/config/site'
+import { SquarePlus } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Kbd } from '@commerce/ui/shadcn/kbd'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@commerce/ui/shadcn/tooltip'
@@ -12,13 +13,15 @@ import ArticleBulkActions from '@/components/blog/article-bulk-actions'
 import { articleColumns } from '@/components/blog/article-columns'
 import ArticleFilters from '@/components/blog/article-filters'
 import ConfirmDeleteArticles from '@/components/blog/confirm-delete-articles'
-import KitListPage from '@/components/kit/kit-list-page'
 import PillTabs from '@/components/layout/pill-tabs'
+import ProoflyListPage from '@/components/layout/proofly-list-page'
 import ResourceTable, { type AppliedFilter } from '@/components/table/resource-table'
-import { ARTICLE_TABS, type ArticleTab, blogListContent as copy } from '@/data/blog'
+import { ARTICLE_TABS, type ArticleTab, blogListContent } from '@/data/blog'
+import { useCopy, useFormat } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
-import { LIST_PER_PAGE, type ListQuery, sameListQuery } from '@/lib/list-query'
+import { type ListQuery, sameListQuery } from '@/lib/list-query'
 import { usePrimaryAction } from '@/lib/primary-action'
+import { routes } from '@/lib/routes'
 
 type ListResult = Awaited<ReturnType<typeof api.blog.list>>
 type Counts = Awaited<ReturnType<typeof api.blog.counts>>
@@ -27,6 +30,7 @@ type Blogs = Awaited<ReturnType<typeof api.blog.blogs>>
 /** First page rendered on the server so the table never paints empty. */
 export type BlogPostsInitial = {
   query: ListQuery<ArticleTab>
+  perPage: number
   result: ListResult
   counts: Counts
   blogs: Blogs
@@ -35,6 +39,7 @@ export type BlogPostsInitial = {
 
 type Query = {
   page: number
+  perPage: number
   query: string
   status: ArticleTab | null
   blog: string | null
@@ -43,12 +48,10 @@ type Query = {
 
 type Pending = { ids: string[]; clear: () => void }
 
-const PER_PAGE = LIST_PER_PAGE
-
 function listInput(q: Query) {
   return {
     page: q.page,
-    perPage: PER_PAGE,
+    perPage: q.perPage,
     query: q.query || undefined,
     status: q.status ?? ('all' as const),
     blogId: q.blog ?? undefined,
@@ -58,11 +61,14 @@ function listInput(q: Query) {
 
 function BlogPostsContent({ initial }: { initial: BlogPostsInitial }) {
   // Hooks
-  usePrimaryAction('/content/blog-posts/new')
+  const copy = useCopy(blogListContent)
+  const fmt = useFormat()
+  usePrimaryAction(routes.content.newBlogPost())
   const [q, setQ] = useQueryStates(
     {
       query: parseAsString.withDefault(''),
       page: parseAsInteger.withDefault(1),
+      perPage: parseAsInteger.withDefault(siteConfig.ui.rowsPerPage.default),
       status: parseAsStringLiteral(ARTICLE_TABS),
       blog: parseAsString,
       tag: parseAsString,
@@ -76,7 +82,9 @@ function BlogPostsContent({ initial }: { initial: BlogPostsInitial }) {
   const [deleting, setDeleting] = useState<Pending | null>(null)
 
   useEffect(() => {
-    const same = sameListQuery({ page: q.page, query: q.query, status: q.status }, initial.query)
+    const same =
+      sameListQuery({ page: q.page, query: q.query, status: q.status }, initial.query) &&
+      q.perPage === initial.perPage
     if (same && !q.blog && !q.tag) {
       setResult(initial.result)
       return
@@ -90,7 +98,7 @@ function BlogPostsContent({ initial }: { initial: BlogPostsInitial }) {
     return () => {
       cancelled = true
     }
-  }, [q, initial.query, initial.result])
+  }, [q, initial.query, initial.perPage, initial.result])
 
   // Helpers
   const refresh = async () => {
@@ -145,27 +153,22 @@ function BlogPostsContent({ initial }: { initial: BlogPostsInitial }) {
   ].filter(Boolean) as AppliedFilter[]
 
   return (
-    <KitListPage
+    <ProoflyListPage
       title={copy.heading}
+      summary={copy.summary(counts.all, counts.published, counts.scheduled, counts.draft)}
       actions={
         <>
           <Button
-            variant="outline"
-            size="lg"
-            render={<Link href="/content/blog-posts/blogs" />}
+            variant="key-neutral"
             nativeButton={false}
+            render={<Link href={routes.content.blogs()} />}
           >
-            <Newspaper strokeWidth={1.6} />
             {copy.manageBlogs}
           </Button>
           <Tooltip>
             <TooltipTrigger
               render={
-                <Button
-                  size="lg"
-                  render={<Link href="/content/blog-posts/new" />}
-                  nativeButton={false}
-                >
+                <Button nativeButton={false} render={<Link href={routes.content.newBlogPost()} />}>
                   <SquarePlus strokeWidth={1.6} />
                   {copy.add}
                 </Button>
@@ -179,12 +182,11 @@ function BlogPostsContent({ initial }: { initial: BlogPostsInitial }) {
       }
     >
       <ResourceTable
-        size="frame"
         resourceName={copy.resource}
-        columns={articleColumns}
+        columns={articleColumns(copy, fmt)}
         items={result.rows}
         getId={(a) => a.id}
-        href={(a) => `/content/blog-posts/${a.id}`}
+        href={(a) => routes.content.blogPost(a.id)}
         loading={loading}
         query={q.query}
         onQueryChange={(query) => setQ({ query, page: 1 })}
@@ -201,7 +203,7 @@ function BlogPostsContent({ initial }: { initial: BlogPostsInitial }) {
         applied={applied}
         tabs={
           <PillTabs
-            size="frame"
+            variant="segmented"
             value={q.status}
             onChange={(status) => setQ({ status, page: 1 })}
             tabs={[
@@ -211,9 +213,10 @@ function BlogPostsContent({ initial }: { initial: BlogPostsInitial }) {
           />
         }
         page={q.page}
-        perPage={PER_PAGE}
+        perPage={q.perPage}
         total={result.total}
         onPageChange={(page) => setQ({ page })}
+        onPerPageChange={(perPage) => setQ({ perPage, page: 1 })}
         bulkActions={(ids, clear) => (
           <ArticleBulkActions
             busy={busy}
@@ -238,8 +241,8 @@ function BlogPostsContent({ initial }: { initial: BlogPostsInitial }) {
           heading: copy.empty.heading,
           body: copy.empty.body,
           action: (
-            <Button render={<Link href="/content/blog-posts/new" />} nativeButton={false}>
-              <Plus />
+            <Button nativeButton={false} render={<Link href={routes.content.newBlogPost()} />}>
+              <SquarePlus strokeWidth={1.6} />
               {copy.add}
             </Button>
           ),
@@ -253,7 +256,7 @@ function BlogPostsContent({ initial }: { initial: BlogPostsInitial }) {
         onOpenChange={(open) => !open && setDeleting(null)}
         onConfirm={handleConfirmDelete}
       />
-    </KitListPage>
+    </ProoflyListPage>
   )
 }
 

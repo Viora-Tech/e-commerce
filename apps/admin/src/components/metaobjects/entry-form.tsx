@@ -8,9 +8,8 @@ import { FieldGroup } from '@commerce/ui/shadcn/field'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { toast } from 'sonner'
-import PageBody from '@/components/layout/page-body'
-import PageColumns from '@/components/layout/page-columns'
-import PageHeader from '@/components/layout/page-header'
+import ProoflyDetailPage from '@/components/layout/proofly-detail-page'
+import ProoflyPageHeader from '@/components/layout/proofly-page-header'
 import SaveBar from '@/components/layout/save-bar'
 import { entryFormContent, entryListContent } from '@/data/metaobjects'
 import { useCopy } from '@/hooks/use-copy'
@@ -131,7 +130,55 @@ export default function EntryForm({ definition, entry, title }: EntryFormProps) 
   const dirty = JSON.stringify(form) !== saved
 
   return (
-    <PageBody width="narrow" className="kit-form gap-4 pb-24">
+    <ProoflyDetailPage
+      header={
+        <ProoflyPageHeader
+          title={title ?? copy.newTitle(definition.name)}
+          back={{ label: definition.name, href: entriesPath(definition.type) }}
+          actions={
+            entry ? (
+              <>
+                <Button variant="outline" onClick={handleDuplicate} disabled={busy}>
+                  <Copy />
+                  {copy.duplicate}
+                </Button>
+                <Button variant="outline" onClick={() => setConfirmDelete(true)} disabled={busy}>
+                  {copy.delete}
+                </Button>
+              </>
+            ) : (
+              <Button className="max-sm:hidden" onClick={handleSave} disabled={busy}>
+                {busy ? copy.saving : copy.save}
+              </Button>
+            )
+          }
+        />
+      }
+      main={
+        <Card size="form">
+          <CardContent>
+            <FieldGroup>
+              {fields.map((f) => (
+                <FieldInput
+                  key={f.key}
+                  rule={f}
+                  value={form.fields[f.key]}
+                  error={errors[f.key]}
+                  onChange={(value) => setField(f.key, value)}
+                />
+              ))}
+            </FieldGroup>
+          </CardContent>
+        </Card>
+      }
+      side={
+        <EntrySideCards
+          status={form.status}
+          handle={form.handle}
+          onChange={(patch) => setForm((f) => ({ ...f, ...patch }))}
+        />
+      }
+    >
       <SaveBar
         open={dirty || !entry}
         message={copy.unsaved}
@@ -144,56 +191,6 @@ export default function EntryForm({ definition, entry, title }: EntryFormProps) 
         }}
         saving={busy}
       />
-      <PageHeader
-        title={title ?? copy.newTitle(definition.name)}
-        breadcrumbs={[
-          { label: listCopy.back, href: '/content/metaobjects' },
-          { label: definition.name, href: entriesPath(definition.type) },
-        ]}
-        actions={
-          entry ? (
-            <>
-              <Button variant="outline" onClick={handleDuplicate} disabled={busy}>
-                <Copy />
-                {copy.duplicate}
-              </Button>
-              <Button variant="outline" onClick={() => setConfirmDelete(true)} disabled={busy}>
-                {copy.delete}
-              </Button>
-            </>
-          ) : (
-            <Button className="max-sm:hidden" onClick={handleSave} disabled={busy}>
-              {busy ? copy.saving : copy.save}
-            </Button>
-          )
-        }
-      />
-      <PageColumns
-        main={
-          <Card size="form">
-            <CardContent>
-              <FieldGroup>
-                {fields.map((f) => (
-                  <FieldInput
-                    key={f.key}
-                    rule={f}
-                    value={form.fields[f.key]}
-                    error={errors[f.key]}
-                    onChange={(value) => setField(f.key, value)}
-                  />
-                ))}
-              </FieldGroup>
-            </CardContent>
-          </Card>
-        }
-        side={
-          <EntrySideCards
-            status={form.status}
-            handle={form.handle}
-            onChange={(patch) => setForm((f) => ({ ...f, ...patch }))}
-          />
-        }
-      />
       <ConfirmDelete
         open={confirmDelete}
         busy={busy}
@@ -204,6 +201,6 @@ export default function EntryForm({ definition, entry, title }: EntryFormProps) 
         onOpenChange={setConfirmDelete}
         onConfirm={handleDelete}
       />
-    </PageBody>
+    </ProoflyDetailPage>
   )
 }

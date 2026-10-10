@@ -1,3 +1,4 @@
+import { onHandleChange } from '@commerce/core'
 import type { StoreTx } from '@commerce/db'
 import { page } from '@commerce/db'
 import { desc, eq } from 'drizzle-orm'
@@ -63,9 +64,9 @@ export type PageUpdate = {
  * Page details: title, handle, content, SEO, visibility and its theme template.
  * The layout lives in the theme template (Customize), not on the page.
  */
-export async function updatePage(tx: StoreTx, id: string, input: PageUpdate) {
+export async function updatePage(tx: StoreTx, storeId: string, id: string, input: PageUpdate) {
   const [current] = await tx
-    .select({ publishedAt: page.publishedAt })
+    .select({ publishedAt: page.publishedAt, handle: page.handle })
     .from(page)
     .where(eq(page.id, id))
   if (!current) return null
@@ -78,6 +79,8 @@ export async function updatePage(tx: StoreTx, id: string, input: PageUpdate) {
   if (templateSuffix !== undefined) set.templateSuffix = templateSuffix || null
   if (visible !== undefined) set.publishedAt = visible ? (current.publishedAt ?? new Date()) : null
   const [p] = await tx.update(page).set(set).where(eq(page.id, id)).returning()
+  // A new handle leaves a redirect behind and moves menu links with it.
+  if (p) await onHandleChange(tx, storeId, 'page', current.handle, p.handle)
   return p ?? null
 }
 

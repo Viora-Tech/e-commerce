@@ -13,7 +13,7 @@ import {
 import { Switch } from '@commerce/ui/shadcn/switch'
 import MoneyInput from '@/components/fields/money-input'
 import KitField from '@/components/kit/kit-field'
-import { productFormContent } from '@/data/products'
+import { productFormContent } from '@/data/product-form'
 import { useCopy } from '@/hooks/use-copy'
 import type { VariantRow } from './form-state'
 

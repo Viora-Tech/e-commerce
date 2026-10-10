@@ -1,30 +1,33 @@
 'use client'
 
-import { Braces, Plus, Settings, SquarePlus } from '@commerce/ui/icons'
+import { siteConfig } from '@commerce/config/site'
+import { Braces, Plus, SquarePlus } from '@commerce/ui/icons'
 import { Badge } from '@commerce/ui/shadcn/badge'
 import { Button } from '@commerce/ui/shadcn/button'
-import { Card } from '@commerce/ui/shadcn/card'
 import { Kbd } from '@commerce/ui/shadcn/kbd'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@commerce/ui/shadcn/tooltip'
 import Link from 'next/link'
 import { useState } from 'react'
-import KitListPage from '@/components/kit/kit-list-page'
 import EmptyState from '@/components/layout/empty-state'
-import RelativeTime from '@/components/layout/relative-time'
+import ProoflyListPage from '@/components/layout/proofly-list-page'
 import ResourceTable, { type ResourceColumnSpec } from '@/components/table/resource-table'
 import { metaobjectListContent } from '@/data/metaobjects'
-import { useCopy } from '@/hooks/use-copy'
+import { useCopy, useFormat } from '@/hooks/use-copy'
 import { usePrimaryAction } from '@/lib/primary-action'
+import { routes } from '@/lib/routes'
 import { type DefinitionSummary, entriesPath } from './form-state'
 
 type DefinitionsPageProps = { definitions: DefinitionSummary[] }
 
 type ListCopy = typeof metaobjectListContent
 
-const columnsFor = (copy: ListCopy): ResourceColumnSpec<DefinitionSummary>[] => [
+const columnsFor = (
+  copy: ListCopy,
+  fmt: ReturnType<typeof useFormat>,
+): ResourceColumnSpec<DefinitionSummary>[] => [
   {
     id: 'name',
-    title: copy.columns.name,
+    title: copy.columns.type,
     sortValue: (d) => d.name,
     hideable: false,
     align: 'start',
@@ -32,20 +35,12 @@ const columnsFor = (copy: ListCopy): ResourceColumnSpec<DefinitionSummary>[] => 
     render: (d) => (
       <span className="flex flex-col text-left">
         <span className="flex items-center gap-2">
-          <span className="text-body-strong">{d.name}</span>
+          <span className="font-medium text-ink-strong">{d.name}</span>
           {d.storefrontAccess ? null : <Badge variant="neutral">{copy.hidden}</Badge>}
         </span>
-        {d.description ? (
-          <span className="line-clamp-1 text-caption text-muted-foreground">{d.description}</span>
-        ) : null}
+        <span className="text-caption text-muted-foreground">{d.type}</span>
       </span>
     ),
-  },
-  {
-    id: 'type',
-    title: copy.columns.type,
-    sortValue: (d) => d.type,
-    render: (d) => <span className="font-mono text-caption">{d.type}</span>,
   },
   {
     id: 'fields',
@@ -57,13 +52,14 @@ const columnsFor = (copy: ListCopy): ResourceColumnSpec<DefinitionSummary>[] => 
     id: 'entries',
     title: copy.columns.entries,
     sortValue: (d) => d.entries,
-    render: (d) => <span className="tabular-nums">{d.entries}</span>,
+    render: (d) => <span className="tabular-nums">{copy.entryCount(d.entries)}</span>,
   },
   {
     id: 'updated',
     title: copy.columns.updated,
     sortValue: (d) => new Date(d.updatedAt),
-    render: (d) => <RelativeTime value={d.updatedAt} />,
+    align: 'end',
+    render: (d) => <span className="text-muted-foreground">{fmt.when(d.updatedAt)}</span>,
   },
 ]
 
@@ -71,20 +67,39 @@ const columnsFor = (copy: ListCopy): ResourceColumnSpec<DefinitionSummary>[] => 
 export default function DefinitionsPage({ definitions }: DefinitionsPageProps) {
   // Hooks
   const copy = useCopy(metaobjectListContent)
-  usePrimaryAction('/content/metaobjects/new')
+  const fmt = useFormat()
+  usePrimaryAction(routes.content.newBlankContentType())
   const [query, setQuery] = useState('')
+  const [page, setPage] = useState(1)
+  const [perPage, setPerPage] = useState<number>(siteConfig.ui.rowsPerPage.default)
+
+  // Event handlers
+  const handleQuery = (next: string) => {
+    setQuery(next)
+    setPage(1)
+  }
+
+  const handlePerPage = (next: number) => {
+    setPerPage(next)
+    setPage(1)
+  }
 
   // Render logic
-  const columns = columnsFor(copy)
+  const columns = columnsFor(copy, fmt)
   const q = query.trim().toLowerCase()
-  const shown = q
+  const matching = q
     ? definitions.filter((d) => d.name.toLowerCase().includes(q) || d.type.includes(q))
     : definitions
+  const shown = matching.slice((page - 1) * perPage, page * perPage)
+  const entries = definitions.reduce((n, d) => n + d.entries, 0)
   const addButton = (
     <Tooltip>
       <TooltipTrigger
         render={
-          <Button size="lg" render={<Link href="/content/metaobjects/new" />} nativeButton={false}>
+          <Button
+            render={<Link href={routes.content.newBlankContentType()} />}
+            nativeButton={false}
+          >
             <SquarePlus strokeWidth={1.6} />
             {copy.add}
           </Button>
@@ -97,40 +112,38 @@ export default function DefinitionsPage({ definitions }: DefinitionsPageProps) {
   )
 
   return (
-    <KitListPage
+    <ProoflyListPage
       title={copy.heading}
+      summary={copy.summary(definitions.length, entries)}
       actions={
         <>
           <Button
-            variant="outline"
-            size="lg"
-            render={<Link href="/settings/custom-data" />}
+            variant="key-neutral"
+            render={<Link href={routes.content.newContentType()} />}
             nativeButton={false}
           >
-            <Settings strokeWidth={1.6} />
-            {copy.customData}
+            {copy.fromTemplate}
           </Button>
-          {definitions.length > 0 ? addButton : null}
+          {addButton}
         </>
       }
     >
       {definitions.length === 0 ? (
-        <Card>
+        <div className="rounded-2xl border surface-card">
           <EmptyState
             icon={Braces}
             heading={copy.empty.heading}
             body={copy.empty.body}
             action={
-              <Button render={<Link href="/content/metaobjects/new" />} nativeButton={false}>
+              <Button render={<Link href={routes.content.newContentType()} />} nativeButton={false}>
                 <Plus />
                 {copy.add}
               </Button>
             }
           />
-        </Card>
+        </div>
       ) : (
         <ResourceTable
-          size="frame"
           resourceName={copy.resource}
           columns={columns}
           items={shown}
@@ -138,13 +151,14 @@ export default function DefinitionsPage({ definitions }: DefinitionsPageProps) {
           href={(d) => entriesPath(d.type)}
           selectable={false}
           query={query}
-          onQueryChange={setQuery}
-          page={1}
-          perPage={Math.max(shown.length, 1)}
-          total={shown.length}
-          onPageChange={() => {}}
+          onQueryChange={handleQuery}
+          page={page}
+          perPage={perPage}
+          total={matching.length}
+          onPageChange={setPage}
+          onPerPageChange={handlePerPage}
         />
       )}
-    </KitListPage>
+    </ProoflyListPage>
   )
 }

@@ -115,7 +115,9 @@ export class FakeShippingProvider implements ShippingProvider {
     // A short time suffix keeps a second booking for the same order (a re-ship after RTO) unique.
     const waybill = `DEMO${String(input.orderNumber).padStart(8, '0')}${this.now().toString(36).slice(-4).toUpperCase()}`
     this.created.set(waybill, { at: this.now() })
-    return { waybill, providerRef: waybill }
+    // A demo charge so profit has a courier cost to show: ₹40 plus ₹20 a kilo.
+    const kilos = Math.max(1, Math.ceil(input.weightGrams / 1000))
+    return { waybill, providerRef: waybill, chargePaise: 4000 + 2000 * kilos }
   }
 
   /** Advances one stage every 12 hours after creation, so a demo order visibly moves. */

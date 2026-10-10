@@ -1,7 +1,7 @@
 'use client'
 
 import { useRef, useState } from 'react'
-import { mainProductContent as copy } from '../data/glide/main-product'
+import { mainProductContent as copy } from '../data/zero-drift/main-product'
 import Lens from '../effects/lens'
 import type { MediaImage } from '../types'
 import Icon from './icon'

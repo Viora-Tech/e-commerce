@@ -328,6 +328,8 @@ export const blog = pgTable(
     commentPolicy: text('comment_policy', { enum: ['disabled', 'moderated', 'open'] })
       .notNull()
       .default('disabled'),
+    /** Alternate `blog.<suffix>` template of the live theme; null uses the default. */
+    templateSuffix: text('template_suffix'),
     seoTitle: text('seo_title'),
     seoDescription: text('seo_description'),
     createdAt: createdAt(),
@@ -361,6 +363,8 @@ export const article = pgTable(
       .notNull()
       .default('draft'),
     publishedAt: timestamp('published_at', { withTimezone: true }),
+    /** Alternate `article.<suffix>` template of the live theme; null uses the default. */
+    templateSuffix: text('template_suffix'),
     seoTitle: text('seo_title'),
     seoDescription: text('seo_description'),
     createdAt: createdAt(),
@@ -519,8 +523,9 @@ export const gstRegistration = pgTable(
 
 /**
  * Where stock physically sits. Every store has exactly one default location,
- * created with the store (or by the inventory_level insert trigger), and it is
- * the one that fulfils online orders.
+ * created with the store (or by the inventory_level insert trigger). The default
+ * location sells online; others do when the merchant turns "Ships online orders"
+ * on, and checkout routes each order to them (@commerce/core fulfilment/routing.ts).
  */
 export const location = pgTable(
   'location',
@@ -539,6 +544,8 @@ export const location = pgTable(
     active: boolean('active').notNull().default(true),
     /** Stock here is what the storefront sells and orders reserve. */
     fulfilsOnlineOrders: boolean('fulfils_online_orders').notNull().default(false),
+    /** Routing order among locations that sell online: lower ships first. The default is 0. */
+    priority: integer('priority').notNull().default(0),
     /** The GSTIN goods dispatched from here are billed under. Null: not chosen yet. */
     gstRegistrationId: uuid('gst_registration_id').references(() => gstRegistration.id),
     /**
@@ -566,9 +573,11 @@ export type LocationCourierPickup = {
  * (shown as Committed) is held by open orders, incoming is on purchase orders or
  * transfers not yet received. Available = on_hand - reserved.
  *
- * Exactly one row per variant has fulfils_online = true: the row the storefront,
- * carts and orders read. Filter on it with `sellableLevel` whenever joining on
- * variant_id alone.
+ * fulfils_online mirrors its location's "Ships online orders" (kept in sync by
+ * trigger). A variant may sell from several locations: what the storefront shows
+ * is the sum over those rows (`sellableStock` in stock.ts), and an order reserves
+ * at the location its parcel ships from. Never join on variant_id alone expecting
+ * one row.
  */
 export const inventoryLevel = pgTable(
   'inventory_level',
@@ -587,15 +596,11 @@ export const inventoryLevel = pgTable(
   },
   (t) => [
     uniqueIndex('inventory_level_variant_location').on(t.variantId, t.locationId),
-    uniqueIndex('inventory_level_one_sellable').on(t.variantId).where(sql`${t.fulfilsOnline}`),
+    index('inventory_level_variant_sellable').on(t.variantId).where(sql`${t.fulfilsOnline}`),
   ],
 )
 
-/**
- * The one inventory row per variant that online selling reads. Add it to any
- * join or filter on inventory_level.variant_id alone, or rows at other
- * locations multiply the result.
- */
+/** Inventory rows at locations that sell online (there may be several per variant). */
 export const sellableLevel = eq(inventoryLevel.fulfilsOnline, true)
 
 /** Every change to on_hand, with why. Reconciles counts against the merchant's memory. */
@@ -615,49 +620,7 @@ export const inventoryAdjustment = pgTable('inventory_adjustment', {
   createdAt: createdAt(),
 })
 
-/** Stock ordered from a supplier into one location; receiving turns incoming into on_hand. */
-export const purchaseOrder = pgTable(
-  'purchase_order',
-  {
-    id: id(),
-    storeId: storeId(),
-    number: integer('number').notNull(),
-    supplierName: text('supplier_name').notNull(),
-    supplierEmail: text('supplier_email'),
-    supplierPhone: text('supplier_phone'),
-    locationId: uuid('location_id')
-      .notNull()
-      .references(() => location.id),
-    status: text('status', {
-      enum: ['draft', 'ordered', 'partially_received', 'received', 'closed'],
-    })
-      .notNull()
-      .default('draft'),
-    expectedAt: timestamp('expected_at', { withTimezone: true }),
-    currency: text('currency').notNull().default('INR'),
-    shippingPaise: integer('shipping_paise').notNull().default(0),
-    taxPaise: integer('tax_paise').notNull().default(0),
-    note: text('note'),
-    orderedAt: timestamp('ordered_at', { withTimezone: true }),
-    createdAt: createdAt(),
-    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
-  },
-  (t) => [uniqueIndex('purchase_order_store_number').on(t.storeId, t.number)],
-)
-
-export const purchaseOrderLine = pgTable('purchase_order_line', {
-  id: id(),
-  storeId: storeId(),
-  purchaseOrderId: uuid('purchase_order_id')
-    .notNull()
-    .references(() => purchaseOrder.id, { onDelete: 'cascade' }),
-  variantId: uuid('variant_id')
-    .notNull()
-    .references(() => variant.id),
-  quantity: integer('quantity').notNull(),
-  received: integer('received').notNull().default(0),
-  unitCostPaise: integer('unit_cost_paise').notNull().default(0),
-})
+// purchase_order and purchase_order_line: purchasing-schema.ts (suppliers, landed cost).
 
 /** Stock moving between two locations: shipping moves it to incoming, receiving lands it. */
 export const transfer = pgTable(
@@ -811,6 +774,8 @@ export type MarketingAttribution = {
   messageId?: string | undefined
   campaignId?: string | undefined
   automationId?: string | undefined
+  /** The short link (Growth → Links) the visit came through. */
+  linkId?: string | undefined
   /** ISO time of the touch. */
   at: string
 }
@@ -1133,7 +1098,116 @@ export const orderLine = pgTable('order_line', {
   preorder: boolean('preorder').notNull().default(false),
   /** Expected ship date shown on the order/email; resolved from the product's settings at order time. */
   preorderShipDate: timestamp('preorder_ship_date', { withTimezone: true }),
+  /**
+   * What one unit cost the store when it sold: the variant's weighted average cost
+   * (`variant.cost_paise`, landed cost) at placement. Profit reads this, never today's cost.
+   * Null when the variant had no cost.
+   */
+  costAtSalePaise: integer('cost_at_sale_paise'),
+  /** The cost was filled in later from the variant's cost then, not snapshotted at sale (0105). */
+  costEstimated: boolean('cost_estimated').notNull().default(false),
 })
+
+/**
+ * SOURCE OF TRUTH: fulfillment_order, fulfillmentOrder, FULFILLMENT_ORDER_STATUSES
+ * WHAT:  One parcel of an order: the goods one location sends, billed under that location's
+ *        GSTIN. Every non-draft order with goods has at least one; gift card lines have none.
+ * WHY:   Stock is held, packed and given back at a location, so each unit of an order needs
+ *        to know which location holds it. Checkout may split an order into several parcels
+ *        (fewest first, up to the store's limit), each from one warehouse under its GSTIN.
+ * WHERE: @commerce/core fulfilment/routing.ts decides them; order/fulfillment-orders.ts creates
+ *        them (placeOrder, draft conversion, `ensureFulfillmentOrders` for older orders) and
+ *        moves their stock.
+ *        `order_line.fulfilled_quantity` stays the order-level total the statuses read.
+ */
+export const FULFILLMENT_ORDER_STATUSES = ['open', 'on_hold', 'fulfilled', 'cancelled'] as const
+export type FulfillmentOrderStatus = (typeof FULFILLMENT_ORDER_STATUSES)[number]
+
+export const fulfillmentOrder = pgTable(
+  'fulfillment_order',
+  {
+    id: id(),
+    storeId: storeId(),
+    orderId: uuid('order_id')
+      .notNull()
+      .references(() => order.id),
+    /** Where the goods are held and leave from. */
+    locationId: uuid('location_id')
+      .notNull()
+      .references(() => location.id),
+    /** The GSTIN this parcel is billed under, as it was when the parcel was made. */
+    gstRegistrationId: uuid('gst_registration_id').references(() => gstRegistration.id),
+    /** Parcel 1, 2, ... within the order, in the order they were made. */
+    position: integer('position').notNull().default(1),
+    status: text('status', { enum: FULFILLMENT_ORDER_STATUSES }).notNull().default('open'),
+    /**
+     * No location could send the whole order within the store's parcel limit, so this parcel
+     * holds more than its location has: the merchant moves stock in before packing.
+     */
+    needsTransfer: boolean('needs_transfer').notNull().default(false),
+    /*
+     * The parcel's share of the order's money (PARCEL_ALLOCATION in @commerce/core
+     * tax/parcel-gst.ts): its goods, and the order discount, payment fee or discount and
+     * shipping shared out by goods value. Shares add back to the order's totals exactly. Null on
+     * parcels made without them (drafts, orders older than 0099 with more than one parcel).
+     */
+    subtotalPaise: integer('subtotal_paise'),
+    discountPaise: integer('discount_paise'),
+    adjustmentPaise: integer('adjustment_paise'),
+    shippingPaise: integer('shipping_paise'),
+    totalPaise: integer('total_paise'),
+    /** GST inside `total_paise`, split from this parcel's GSTIN state (OrderGst). */
+    taxPaise: integer('tax_paise'),
+    taxBreakdown: jsonb('tax_breakdown'),
+    /** Where this parcel's GST split was worked out from, as at checkout. */
+    taxOrigin: jsonb('tax_origin').$type<OrderTaxOrigin>(),
+    /**
+     * When the shopper was told this parcel arrives (the courier's estimate from its location to
+     * the address, at checkout): civil dates, `YYYY-MM-DD`. Null when none was worked out.
+     */
+    deliveryEstimate: jsonb('delivery_estimate').$type<ParcelDeliveryEstimate>(),
+    createdAt: createdAt(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    uniqueIndex('fulfillment_order_position').on(t.orderId, t.position),
+    index('fulfillment_order_store_order').on(t.storeId, t.orderId),
+    index('fulfillment_order_store_location').on(t.storeId, t.locationId, t.status),
+    check(
+      'fulfillment_order_status_check',
+      sql`${t.status} in (${oneOf(FULFILLMENT_ORDER_STATUSES)})`,
+    ),
+  ],
+)
+
+/** A parcel's promised delivery window, civil dates (`2026-10-18`). */
+export type ParcelDeliveryEstimate = { earliest: string; latest: string }
+
+/** How many units of one order line a fulfilment order holds, and how many it has packed. */
+export const fulfillmentOrderLine = pgTable(
+  'fulfillment_order_line',
+  {
+    id: id(),
+    storeId: storeId(),
+    fulfillmentOrderId: uuid('fulfillment_order_id')
+      .notNull()
+      .references(() => fulfillmentOrder.id, { onDelete: 'cascade' }),
+    orderLineId: uuid('order_line_id')
+      .notNull()
+      .references(() => orderLine.id),
+    quantity: integer('quantity').notNull(),
+    fulfilledQuantity: integer('fulfilled_quantity').notNull().default(0),
+  },
+  (t) => [
+    uniqueIndex('fulfillment_order_line_unique').on(t.fulfillmentOrderId, t.orderLineId),
+    index('fulfillment_order_line_order_line').on(t.orderLineId),
+    check('fulfillment_order_line_quantity_check', sql`${t.quantity} > 0`),
+    check(
+      'fulfillment_order_line_fulfilled_check',
+      sql`${t.fulfilledQuantity} >= 0 and ${t.fulfilledQuantity} <= ${t.quantity}`,
+    ),
+  ],
+)
 
 export const PAYMENT_STATUSES = [
   'created',
@@ -1167,6 +1241,8 @@ export const payment = pgTable(
      */
     status: text('status', { enum: PAYMENT_STATUSES }).notNull(),
     amountPaise: integer('amount_paise').notNull(),
+    /** What the gateway kept from this payment, when it reported it; null uses the store's fee rate. */
+    feePaise: integer('fee_paise'),
     /** 1 for the first attempt on an order, then 2, 3… for each retry. */
     attempt: integer('attempt').notNull().default(1),
     /** `<orderId>:<attempt>`; sent to the gateway so one attempt is never charged twice. */
@@ -1311,6 +1387,8 @@ export const shipment = pgTable(
     orderId: uuid('order_id')
       .notNull()
       .references(() => order.id),
+    /** The parcel (fulfilment order) this consignment carries; null on shipments booked before parcels. */
+    fulfillmentOrderId: uuid('fulfillment_order_id').references(() => fulfillmentOrder.id),
     provider: text('provider').notNull(),
     waybill: text('waybill').notNull(),
     /** Whatever id the courier's own API needs for a later call (cancel, pickup, label) when
@@ -1354,6 +1432,8 @@ export const shipment = pgTable(
     ndrActionRef: text('ndr_action_ref'),
     rtoDeliveredAt: timestamp('rto_delivered_at', { withTimezone: true }),
     pickupId: uuid('pickup_id'),
+    /** What the courier charged for this consignment (from the booking, or typed by the merchant). */
+    courierChargePaise: integer('courier_charge_paise'),
     createdAt: createdAt(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   },
@@ -1361,6 +1441,7 @@ export const shipment = pgTable(
     uniqueIndex('shipment_provider_waybill').on(t.provider, t.waybill),
     index('shipment_store_ndr').on(t.storeId, t.ndrStatus),
     index('shipment_pickup_id').on(t.pickupId),
+    index('shipment_fulfillment_order').on(t.fulfillmentOrderId),
   ],
 )
 
@@ -1585,6 +1666,12 @@ export const discount = pgTable(
     appliesTo: text('applies_to').$type<DiscountAppliesTo>().notNull().default('all'),
     /** Product or collection ids when applies_to narrows the scope. */
     appliesToIds: jsonb('applies_to_ids').$type<string[]>().notNull().default([]),
+    /**
+     * A different amount for each product: `{ productId: value }`, value in the same unit
+     * as `value` (basis points or paise), taken off every unit of that product. Only with
+     * applies_to `products` and method `percent` or `fixed`; null means `value` applies.
+     */
+    productValues: jsonb('product_values').$type<Record<string, number>>(),
     usageLimit: integer('usage_limit'),
     usagePerCustomer: integer('usage_per_customer'),
     usedCount: integer('used_count').notNull().default(0),
@@ -1616,6 +1703,7 @@ export const discountUsage = pgTable('discount_usage', {
 export type DomainKind = 'platform' | 'custom'
 export type DomainStatus = 'pending' | 'active' | 'failed'
 export type DomainSslStatus = 'pending' | 'issuing' | 'active' | 'failed'
+export type DomainRouteStatus = 'none' | 'pending' | 'ready' | 'failed'
 
 /**
  * Hostnames that serve a store. `platform` domains come with the store and
@@ -1642,6 +1730,15 @@ export const storeDomain = pgTable(
     error: text('error'),
     lastCheckedAt: timestamp('last_checked_at', { withTimezone: true }),
     verifiedAt: timestamp('verified_at', { withTimezone: true }),
+    /**
+     * The HTTPS route on the proxy (a Dokploy domain on the storefront app), added by the
+     * worker once DNS is verified: `none` (not asked for, or routing is off), `pending`
+     * (queued), `ready` (the proxy has it, the certificate follows), `failed` (gave up
+     * after retries; the next poll asks again). See `domains/routes.ts`.
+     */
+    routeStatus: text('route_status').$type<DomainRouteStatus>().notNull().default('none'),
+    /** When the route was last asked for, so a stuck request is asked again. */
+    routeRequestedAt: timestamp('route_requested_at', { withTimezone: true }),
     createdAt: createdAt(),
   },
   (t) => [
@@ -1651,6 +1748,10 @@ export const storeDomain = pgTable(
     check(
       'store_domain_ssl_status',
       sql`${t.sslStatus} in ('pending', 'issuing', 'active', 'failed')`,
+    ),
+    check(
+      'store_domain_route_status',
+      sql`${t.routeStatus} in ('none', 'pending', 'ready', 'failed')`,
     ),
   ],
 )
@@ -1918,9 +2019,20 @@ export const metaobject = pgTable(
   ],
 )
 
-export type MetafieldOwnerType = 'product' | 'collection'
+export type MetafieldOwnerType =
+  | 'product'
+  | 'variant'
+  | 'collection'
+  | 'customer'
+  | 'order'
+  | 'page'
+  | 'article'
+  | 'shop'
 
-/** A typed custom field on products or collections (`namespace.key`). */
+/**
+ * A typed custom field ("extra field", `namespace.key`) on products, variants, collections,
+ * customers, orders, pages, blog articles or the shop itself (owner id = the store's id).
+ */
 export const metafieldDefinition = pgTable(
   'metafield_definition',
   {
@@ -1941,13 +2053,16 @@ export const metafieldDefinition = pgTable(
   },
   (t) => [
     uniqueIndex('metafield_definition_owner_key').on(t.storeId, t.ownerType, t.namespace, t.key),
-    check('metafield_definition_owner', sql`${t.ownerType} in ('product', 'collection')`),
+    check(
+      'metafield_definition_owner',
+      sql`${t.ownerType} in ('product', 'variant', 'collection', 'customer', 'order', 'page', 'article', 'shop')`,
+    ),
     check('metafield_definition_key', sql`${t.key} ~ '^[a-z][a-z0-9_]{0,63}$'`),
     check('metafield_definition_namespace', sql`${t.namespace} ~ '^[a-z][a-z0-9_]{0,63}$'`),
   ],
 )
 
-/** The value of one definition on one product or collection. */
+/** The value of one definition on one owner (product, customer, order, ... or the shop). */
 export const metafield = pgTable(
   'metafield',
   {
@@ -1979,8 +2094,11 @@ export const urlRedirect = pgTable(
     storeId: storeId(),
     path: text('path').notNull(),
     target: text('target').notNull(),
-    /** `import` rows came from a store migration; the merchant can edit either. */
-    source: text('source', { enum: ['manual', 'import'] })
+    /**
+     * `import` rows came from a store migration, `auto` ones when a product, collection or page
+     * handle changed; the merchant can edit any of them.
+     */
+    source: text('source', { enum: ['manual', 'import', 'auto'] })
       .notNull()
       .default('manual'),
     createdAt: createdAt(),
@@ -2013,14 +2131,28 @@ export const page = pgTable(
   (t) => [uniqueIndex('page_store_handle').on(t.storeId, t.handle)],
 )
 
-export type NavigationItemType = 'home' | 'product' | 'collection' | 'page' | 'url'
+export type NavigationItemType =
+  | 'home'
+  | 'product'
+  | 'collection'
+  | 'page'
+  | 'blog'
+  | 'article'
+  | 'policy'
+  | 'search'
+  | 'collections'
+  | 'url'
 
 /** One entry in a storefront menu, kept in order inside navigation_menu.items. */
 export type NavigationItem = {
   id: string
   title: string
   type: NavigationItemType
-  /** Handle for product/collection/page, the URL for url; absent for home. */
+  /**
+   * Handle for product/collection/page/blog, `blog-handle/article-handle` for an article, the
+   * policy type (`refund-policy`) for a policy, the URL for url; absent for home, search and
+   * collections (all collections).
+   */
   value?: string | undefined
   /**
    * Nested items. A menu is at most three levels deep (top, dropdown, and the
@@ -2046,6 +2178,10 @@ export const theme = pgTable(
     /** The preset it was created from; informational ("Based on Minimal"). */
     preset: text('preset'),
     settings: jsonb('settings').notNull(),
+    /** A small webp of the home page, taken in Customize on Save; null until the first one. */
+    thumbnailUrl: text('thumbnail_url'),
+    /** Who saved it last (the member's name, or email when they have none), for "Last saved by". */
+    updatedBy: text('updated_by'),
     createdAt: createdAt(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
     publishedAt: timestamp('published_at', { withTimezone: true }),
@@ -2102,6 +2238,38 @@ export const themeTemplate = pgTable(
     check('theme_template_suffix', sql`${t.suffix} ~ '^[a-z0-9-]{0,40}$'`),
     uniqueIndex('theme_template_unique').on(t.themeId, t.template, t.suffix),
     index('theme_template_store').on(t.storeId),
+  ],
+)
+
+/**
+ * Version history of a theme's templates: a copy of a template's saved sections each time it
+ * went live (the theme was published, or a live theme was saved). Rows taken together share
+ * a `batch_id` (one publish or save). Restore copies a version into the template's draft; it
+ * never goes live by itself. The newest 20 per template are kept.
+ */
+export const themeVersion = pgTable(
+  'theme_version',
+  {
+    id: id(),
+    storeId: storeId(),
+    themeId: uuid('theme_id')
+      .notNull()
+      .references(() => theme.id, { onDelete: 'cascade' }),
+    batchId: uuid('batch_id').notNull(),
+    /** What made it: `publish` (the theme went live) or `save` (a live theme was saved). */
+    reason: text('reason').notNull(),
+    template: text('template').notNull(),
+    suffix: text('suffix').notNull().default(''),
+    sections: jsonb('sections').notNull(),
+    /** The member's name (or email) who published or saved. */
+    createdBy: text('created_by'),
+    createdAt: createdAt(),
+  },
+  (t) => [
+    check('theme_version_reason', sql`${t.reason} in ('publish','save')`),
+    index('theme_version_theme').on(t.themeId, t.template, t.suffix, t.createdAt),
+    index('theme_version_batch').on(t.batchId),
+    index('theme_version_store').on(t.storeId),
   ],
 )
 
@@ -2234,6 +2402,12 @@ export const storeMember = pgTable(
     invitedBy: text('invited_by'),
     /** This member's own admin accent (#rrggbb); null falls back to the store's `admin_accent`. */
     adminAccent: text('admin_accent'),
+    /**
+     * This member's own alerts for this store (Account → Notifications): which events reach
+     * them by email or WhatsApp, the daily summary's hour and the day it last went. Null means
+     * the defaults (`@commerce/core/member-account`, `parseMemberAlertPrefs`).
+     */
+    notificationPrefs: jsonb('notification_prefs'),
     createdAt: createdAt(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   },
@@ -2414,4 +2588,31 @@ export const returnRequestLine = pgTable(
     index('return_request_line_order_line').on(t.orderLineId),
     check('return_request_line_quantity_check', sql`${t.quantity} > 0`),
   ],
+)
+
+/** The range a saved report runs over: a preset (`30d`) or fixed `from`/`to` days. */
+export type SavedReportRange = {
+  key: 'today' | '7d' | '30d' | '90d' | 'custom'
+  from?: string | undefined
+  to?: string | undefined
+}
+
+/**
+ * A report a merchant saved from Analytics → Reports under their own name: which report
+ * (`report_slug`, from the catalogue) and the range it runs over. Store-wide, like the
+ * catalogue; `created_by` is the staff user who saved it.
+ */
+export const savedReport = pgTable(
+  'saved_report',
+  {
+    id: id(),
+    storeId: storeId(),
+    name: text('name').notNull(),
+    reportSlug: text('report_slug').notNull(),
+    range: jsonb('range').$type<SavedReportRange>().notNull(),
+    createdBy: text('created_by'),
+    createdAt: createdAt(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index('saved_report_store_created').on(t.storeId, t.createdAt)],
 )

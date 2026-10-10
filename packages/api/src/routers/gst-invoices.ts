@@ -8,11 +8,11 @@ import {
   documentIssuer,
   documentsByIds,
   documentsForOrder,
-  enqueueOrder,
+  enqueueOrderParcels,
   GST_INVOICES_ID,
   gstr1ForPeriod,
   InvoiceError,
-  issueCreditNote,
+  issueCreditNotes,
   issueDocument,
   issueDrafts,
   listDocuments,
@@ -216,8 +216,14 @@ export const gstInvoicesRouter = {
           const byNumber = await orderIdsByNumber(context.tx, input.orderNumbers)
           let added = 0
           for (const orderId of [...input.orderIds, ...byNumber.ids]) {
-            const r = await enqueueOrder(context.tx, context.scope.storeId, orderId, 'manual')
-            if (r?.created) added++
+            const queued = await enqueueOrderParcels(
+              context.tx,
+              context.scope.storeId,
+              orderId,
+              'manual',
+            )
+            // One draft per parcel; a split order adds one per GSTIN.
+            added += queued.filter((q) => q.created).length
           }
           return { added, missing: byNumber.missing }
         } catch (err) {
@@ -362,16 +368,19 @@ export const gstInvoicesRouter = {
     .input(z.object({ refundId: z.uuid() }))
     .handler(async ({ context, input }) => {
       await requireInstalled(context)
-      const issued = await issueCreditNote(context.tx, context.scope.storeId, input.refundId).catch(
-        asOrpc,
-      )
-      if (!issued) {
+      const issued =
+        (await issueCreditNotes(context.tx, context.scope.storeId, input.refundId).catch(asOrpc)) ??
+        []
+      if (issued.length === 0) {
         throw new ORPCError('BAD_REQUEST', {
           message: 'Issue the tax invoice first; a credit note reverses an invoice.',
         })
       }
-      const done = await renderAndStore(renderDeps(context), issued.row.id)
-      return { id: done.id, number: done.number }
+      // A refund on an order billed in parcels makes one credit note per GST number.
+      const done = []
+      for (const note of issued) done.push(await renderAndStore(renderDeps(context), note.row.id))
+      const [first] = done
+      return { id: first?.id ?? '', number: first?.number ?? null }
     }),
 
   list: can(permissions.ORDERS_READ)

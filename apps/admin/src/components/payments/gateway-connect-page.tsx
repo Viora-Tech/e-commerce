@@ -1,16 +1,20 @@
 'use client'
 
-import { Card, CardContent } from '@commerce/ui/shadcn/card'
+import { siteConfig } from '@commerce/config/site'
+import { ExternalLink } from '@commerce/ui/icons'
+import { Button } from '@commerce/ui/shadcn/button'
+import { Card } from '@commerce/ui/shadcn/card'
 import { Skeleton } from '@commerce/ui/shadcn/skeleton'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
-import PageHeader from '@/components/layout/page-header'
+import AppLogo from '@/components/apps/app-logo'
+import { appsContent } from '@/data/apps'
 import { gatewayGuides, paymentsSetupContent } from '@/data/payments-setup'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
-import BackToPayments, { PAYMENTS_PAGE_HREF } from './back-to-payments'
+import { routes } from '@/lib/routes'
+import BackToPayments from './back-to-payments'
 import GatewayConnectForm from './gateway-connect-form'
-import HelpFooter from './help-footer'
 import type { GatewayId, PaymentsSetup } from './types'
 
 type GatewayConnectPageProps = {
@@ -22,6 +26,7 @@ export default function GatewayConnectPage({ providerId }: GatewayConnectPagePro
   // Hooks
   const copy = useCopy(paymentsSetupContent)
   const guides = useCopy(gatewayGuides)
+  const apps = useCopy(appsContent)
   const router = useRouter()
   const [setup, setSetup] = useState<PaymentsSetup | null>(null)
 
@@ -30,7 +35,7 @@ export default function GatewayConnectPage({ providerId }: GatewayConnectPagePro
   }, [])
 
   // Event handlers
-  const handleConnected = () => router.push('/settings/payments')
+  const handleConnected = () => router.push(routes.settings.payments())
 
   // Render logic
   const guide = guides[providerId]
@@ -38,29 +43,37 @@ export default function GatewayConnectPage({ providerId }: GatewayConnectPagePro
   return (
     <div className="flex flex-col gap-4">
       <BackToPayments />
-      <PageHeader
-        title={copy.wizard.connect.title(guide.name)}
-        breadcrumbs={[{ label: copy.title, href: PAYMENTS_PAGE_HREF }, { label: guide.name }]}
-        subtitle={guide.intro}
-      />
-      <Card size="form">
-        <CardContent>
-          {setup ? (
-            <GatewayConnectForm
-              providerId={providerId}
-              setup={setup}
-              onConnected={handleConnected}
-            />
-          ) : (
-            <div className="flex flex-col gap-4">
-              <Skeleton className="h-5 w-40" />
-              <Skeleton className="h-10 w-full" />
-              <Skeleton className="h-10 w-full" />
-            </div>
-          )}
-        </CardContent>
-      </Card>
-      <HelpFooter />
+      <div className="flex flex-wrap items-center gap-4">
+        <AppLogo id={providerId} icon={null} size={48} />
+        <div className="flex min-w-[min(100%,16rem)] flex-1 flex-col">
+          <h1 className="text-page-title text-ink-strong">
+            {copy.wizard.connect.title(guide.name)}
+          </h1>
+          <p className="text-caption text-muted-foreground">{guide.intro}</p>
+        </div>
+        <Button
+          variant="ghost"
+          nativeButton={false}
+          render={<a href={siteConfig.urls.docs} target="_blank" rel="noreferrer" />}
+        >
+          {apps.viewGuide}
+          <ExternalLink aria-hidden="true" className="size-3.5" />
+        </Button>
+      </div>
+      {setup ? (
+        <GatewayConnectForm
+          providerId={providerId}
+          setup={setup}
+          onConnected={handleConnected}
+          twoColumn
+        />
+      ) : (
+        <Card gap={4} inset={6}>
+          <Skeleton className="h-5 w-40" />
+          <Skeleton className="h-10 w-full" />
+          <Skeleton className="h-10 w-full" />
+        </Card>
+      )}
     </div>
   )
 }

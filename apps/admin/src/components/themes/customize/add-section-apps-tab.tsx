@@ -66,11 +66,7 @@ export default function AppsTab({ query, hovered, onHover, labelOf, onAdd }: App
     <>
       {[...byApp.entries()].map(([app, types]) => (
         <div key={app} className="flex flex-col">
-          <p
-            className={`sticky top-0 z-10 bg-[var(--add-surface,var(--popover))] px-2 pt-3 pb-1 ${CHROME_GROUP_LABEL}`}
-          >
-            {app}
-          </p>
+          <p className={`pb-1 ${CHROME_GROUP_LABEL}`}>{app}</p>
           {types.map((type) => (
             <SectionCard
               key={type}

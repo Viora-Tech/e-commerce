@@ -1,8 +1,8 @@
 'use client'
 
 import { type ReactNode, useActionState, useId } from 'react'
-import { newsletterContent } from '../../data/glide/newsletter'
 import { sectionsContent } from '../../data/sections'
+import { newsletterContent } from '../../data/zero-drift/newsletter'
 import Meteors from '../../effects/meteors'
 import Icon, { type IconName } from '../icon'
 import RichCopy from '../rich-copy'
@@ -28,7 +28,7 @@ const copy = sectionsContent.newsletter
 const idle: NewsletterState = { status: 'idle' }
 const noop: NewsletterAction = async () => ({ status: 'error' })
 
-/** Ledger numbering, as Glide prints it: 01, 02, ... */
+/** Ledger numbering, as Zero Drift prints it: 01, 02, ... */
 const ordinal = (index: number) => String(index + 1).padStart(2, '0')
 
 // Port of sections/newsletter.liquid: a rounded card with the pitch and reasons on the

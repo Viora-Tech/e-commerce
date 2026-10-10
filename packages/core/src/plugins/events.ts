@@ -4,6 +4,7 @@ import type { AppEvent, AppHookContext, LoadedPlugins } from '@commerce/plugins'
 import type { StorageProvider } from '@commerce/storage'
 import { eq } from 'drizzle-orm'
 import { parseAppsSettings } from '../apps/settings'
+import { storefrontOriginFor } from '../domains/origin'
 import { addMediaProcessJob, type MediaProcessQueue } from '../media/queue'
 
 /** BullMQ queue for app lifecycle events. Braces keep every key on one Redis slot. */
@@ -36,6 +37,25 @@ export type AppEventQueue = {
   ): Promise<unknown>
 }
 
+/** The queue's job id for an app job queued with `dedupeKey`. */
+const appJobId = (storeId: string, pluginId: string, dedupeKey: string) =>
+  // BullMQ allows ':' in a custom id only as exactly three parts.
+  `${storeId}:${pluginId}:${dedupeKey.replace(/:/g, '-')}`
+
+/**
+ * Take a job queued with `dedupeKey` off the queue, if it is still waiting. False
+ * when the queue cannot remove jobs or the job already started (or is gone).
+ */
+export async function removeAppJob(
+  queue: AppJobQueue,
+  job: { storeId: string; pluginId: string },
+  dedupeKey: string,
+): Promise<boolean> {
+  if (!queue.remove) return false
+  const removed = await queue.remove(appJobId(job.storeId, job.pluginId, dedupeKey))
+  return removed === 1 || removed === true
+}
+
 /** One job per order event (or per refund) per app; a repeat enqueue is a no-op. */
 export const appEventJobId = (job: AppEventJob): string =>
   `${job.storeId}:${job.event}:${job.refundId ?? job.orderId}${job.pluginId ? `:${job.pluginId}` : ''}`
@@ -66,6 +86,10 @@ export type DispatchDeps = {
   /** Resolves the store's active storage provider inside its transaction. */
   storage: (storeId: string) => Promise<StorageProvider>
   settingsSecret: string
+  /**
+   * Platform storefront URL (`STOREFRONT_URL`). `storeAppContext` swaps it for the store's
+   * own primary domain; this is only the fallback for a store without one.
+   */
   storefrontUrl: string | null
   log?: ((message: string) => void) | undefined
   /** Sends order emails for `ctx.notify`; the worker wires it to the notification channels. */
@@ -92,7 +116,7 @@ export async function installedApps(db: Db, storeId: string): Promise<string[]> 
 }
 
 /** The context every hook, job and attachment callback receives for one store. */
-export function appContext(deps: DispatchDeps, storeId: string, tag: string): AppHookContext {
+function appContext(deps: DispatchDeps, storeId: string, tag: string): AppHookContext {
   const log = deps.log ?? (() => {})
   return {
     storeId,
@@ -115,6 +139,23 @@ export function appContext(deps: DispatchDeps, storeId: string, tag: string): Ap
 }
 
 /**
+ * `appContext` with `storefrontUrl` set to the store's own origin (its live primary domain,
+ * else the platform fallback), so links apps build (e.g. an invoice download in an email)
+ * open on a host that serves this store.
+ */
+export async function storeAppContext(
+  deps: DispatchDeps,
+  storeId: string,
+  tag: string,
+): Promise<AppHookContext> {
+  const fallback = deps.storefrontUrl
+  const storefrontUrl = fallback
+    ? await withStore(deps.db, storeId, (tx) => storefrontOriginFor(tx, storeId, fallback))
+    : null
+  return { ...appContext(deps, storeId, tag), storefrontUrl }
+}
+
+/**
  * Run every installed app's hook for one event, or (when the outbox relay set
  * `job.pluginId`) just that one app's. Scoping to one app per job means a hook
  * that throws only fails and retries its own job; every other app's hook, run
@@ -128,7 +169,7 @@ export async function dispatchAppEvent(
   const allHooks = deps.plugins.hooksFor(job.event, installed)
   const hooks = job.pluginId ? allHooks.filter((h) => h.pluginId === job.pluginId) : allHooks
   const log = deps.log ?? (() => {})
-  const ctx = appContext(deps, job.storeId, job.event)
+  const ctx = await storeAppContext(deps, job.storeId, job.event)
   for (const { pluginId, hook } of hooks) {
     await hook(ctx, { storeId: job.storeId, orderId: job.orderId, refundId: job.refundId })
     log(`[${job.event}] ${pluginId} order=${job.orderId}`)
@@ -157,6 +198,8 @@ export type AppJobQueue = {
       removeOnComplete?: boolean | number
     },
   ): Promise<unknown>
+  /** Take a waiting or delayed job off the queue (BullMQ `Queue.remove`); 0 when it is running. */
+  remove?(jobId: string): Promise<unknown>
 }
 
 /**
@@ -169,10 +212,7 @@ export async function enqueueAppJob(
   dedupeKey?: string,
 ): Promise<void> {
   await queue.add(`${job.pluginId}:${job.name}`, job, {
-    // BullMQ allows ':' in a custom id only as exactly three parts.
-    ...(dedupeKey
-      ? { jobId: `${job.storeId}:${job.pluginId}:${dedupeKey.replace(/:/g, '-')}` }
-      : {}),
+    ...(dedupeKey ? { jobId: appJobId(job.storeId, job.pluginId, dedupeKey) } : {}),
     attempts: 3,
     backoff: { type: 'exponential', delay: 5_000 },
     removeOnComplete: true,
@@ -187,7 +227,7 @@ export async function dispatchAppJob(
   const installed = await installedApps(deps.db, job.storeId)
   const run = deps.plugins.jobFor(job.pluginId, job.name, installed)
   if (!run) return { ran: false }
-  await run(appContext(deps, job.storeId, `${job.pluginId}:${job.name}`), job.data)
+  await run(await storeAppContext(deps, job.storeId, `${job.pluginId}:${job.name}`), job.data)
   return { ran: true }
 }
 
@@ -205,7 +245,7 @@ export async function dispatchAppJobFailure(
   const onFailed = deps.plugins.jobFailedFor(job.pluginId, job.name, installed)
   if (!onFailed) return { ran: false }
   await onFailed(
-    appContext(deps, job.storeId, `${job.pluginId}:${job.name}:failed`),
+    await storeAppContext(deps, job.storeId, `${job.pluginId}:${job.name}:failed`),
     job.data,
     reason,
   )

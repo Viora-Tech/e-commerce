@@ -6,7 +6,8 @@ import {
   variantTitle,
 } from '@commerce/core/catalog'
 import { isRichTextEmpty, parseRichText, type RichTextValue } from '@commerce/richtext'
-import { type productFormContent, rupees } from '@/data/products'
+import type { productFormContent } from '@/data/product-form'
+import { rupees } from '@/data/products'
 import type { api } from '@/lib/api-client'
 
 export type LoadedProduct = NonNullable<Awaited<ReturnType<typeof api.products.get>>>
@@ -175,27 +176,32 @@ export function fromProduct(p: LoadedProduct): ProductFormState {
       name: o.name,
       values: o.values.map((v) => v.value),
     })),
-    variants: p.variants.map((v) => ({
-      id: v.id,
-      optionValues: v.optionValues,
-      price: rupees.toField(v.pricePaise),
-      mrp: rupees.toField(v.mrpPaise),
-      cost: rupees.toField(v.costPaise),
-      sku: v.sku ?? '',
-      barcode: v.barcode ?? '',
-      taxable: v.taxable,
-      trackInventory: v.trackInventory,
-      quantity: String(v.onHand ?? 0),
-      weight: v.weightGrams == null ? '' : String(v.weightGrams),
-      hsCode: v.hsCode ?? '',
-      countryOfOrigin: v.countryOfOrigin ?? '',
-      gstRate: v.gstRatePercent == null ? '' : String(v.gstRatePercent),
-      boxPresetId: v.boxPresetId ?? null,
-      packageLengthCm: v.packageLengthCm ?? null,
-      packageWidthCm: v.packageWidthCm ?? null,
-      packageHeightCm: v.packageHeightCm ?? null,
-      mediaId: v.mediaId,
-    })),
+    // A product imported without variants (Shopify "historical" items) still needs one row,
+    // or the editor has nothing to show and renders a blank page.
+    variants:
+      p.variants.length === 0
+        ? [emptyVariant([])]
+        : p.variants.map((v) => ({
+            id: v.id,
+            optionValues: v.optionValues,
+            price: rupees.toField(v.pricePaise),
+            mrp: rupees.toField(v.mrpPaise),
+            cost: rupees.toField(v.costPaise),
+            sku: v.sku ?? '',
+            barcode: v.barcode ?? '',
+            taxable: v.taxable,
+            trackInventory: v.trackInventory,
+            quantity: String(v.onHand ?? 0),
+            weight: v.weightGrams == null ? '' : String(v.weightGrams),
+            hsCode: v.hsCode ?? '',
+            countryOfOrigin: v.countryOfOrigin ?? '',
+            gstRate: v.gstRatePercent == null ? '' : String(v.gstRatePercent),
+            boxPresetId: v.boxPresetId ?? null,
+            packageLengthCm: v.packageLengthCm ?? null,
+            packageWidthCm: v.packageWidthCm ?? null,
+            packageHeightCm: v.packageHeightCm ?? null,
+            mediaId: v.mediaId,
+          })),
     media: p.images.map((i) => ({ id: i.id, url: i.url, alt: i.alt, contentType: i.contentType })),
     inventoryReason: 'correction',
   }

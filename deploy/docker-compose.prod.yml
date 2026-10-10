@@ -79,6 +79,12 @@ x-app-env: &app-env
   # Release-tag Sentry events with the image's commit sha when IMAGE_TAG is pinned; override
   # with SENTRY_RELEASE, or leave both unset.
   SENTRY_RELEASE: ${SENTRY_RELEASE:-${IMAGE_TAG:-}}
+  # "Report a bug" button: test server only, off unless set. On needs GITHUB_ISSUES_TOKEN
+  # (fine-grained, only Issues: write on GITHUB_ISSUES_REPO) or the apps refuse to start.
+  BUG_REPORTS_ENABLED: ${BUG_REPORTS_ENABLED:-false}
+  GITHUB_ISSUES_TOKEN: ${GITHUB_ISSUES_TOKEN:-}
+  GITHUB_ISSUES_REPO: ${GITHUB_ISSUES_REPO:-}
+  SOURCE_COMMIT: ${SOURCE_COMMIT:-${IMAGE_TAG:-}}
   NODE_ENV: production
   # V8 heap cap, sized under each service's mem_limit (below) so the process fails fast with a
   # clear OOM inside its own container instead of the kernel OOM-killer picking a victim among
@@ -271,6 +277,12 @@ services:
       # best-effort basis. 320 leaves headroom under the 384m mem_limit for the queue
       # connections and BullMQ's own buffers, which live outside the JS heap.
       NODE_OPTIONS: --max-old-space-size=320
+      # Automatic HTTPS routes for custom domains (Dokploy API). Worker only: the admin and
+      # storefront never call Dokploy, so the key stays out of their environment.
+      DOKPLOY_URL: ${DOKPLOY_URL:-}
+      DOKPLOY_API_KEY: ${DOKPLOY_API_KEY:-}
+      DOKPLOY_STOREFRONT_APPLICATION_ID: ${DOKPLOY_STOREFRONT_APPLICATION_ID:-}
+      DOKPLOY_STOREFRONT_PORT: ${DOKPLOY_STOREFRONT_PORT:-3100}
     depends_on:
       migrate:
         condition: service_completed_successfully

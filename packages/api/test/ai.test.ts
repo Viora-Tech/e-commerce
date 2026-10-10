@@ -158,6 +158,7 @@ describe('AI off', () => {
       productWriter: false,
       assistant: false,
       bulkWriter: false,
+      documentReader: false,
     })
     await expect(
       call(appRouter.ai.writeProduct, writeInput, { context: a.ctx }),
@@ -232,12 +233,18 @@ describe('settings, switches and quota', () => {
       { features: { productWriter: false } },
       { context: a.ctx },
     )
-    expect(saved.features).toEqual({ productWriter: false, assistant: true, bulkWriter: true })
+    expect(saved.features).toEqual({
+      productWriter: false,
+      assistant: true,
+      bulkWriter: true,
+      documentReader: true,
+    })
     expect(await call(appRouter.ai.status, undefined, { context: a.ctx })).toEqual({
       configured: true,
       productWriter: false,
       assistant: true,
       bulkWriter: true,
+      documentReader: true,
     })
     await expect(
       call(appRouter.ai.writeProduct, writeInput, { context: a.ctx }),
@@ -299,6 +306,8 @@ describe('permissions', () => {
       productWriter: false,
       assistant: true,
       bulkWriter: false,
+      // The staff role may write inventory, so it may have bills read.
+      documentReader: true,
     })
     await expect(
       call(appRouter.ai.writeProduct, writeInput, { context: staff }),

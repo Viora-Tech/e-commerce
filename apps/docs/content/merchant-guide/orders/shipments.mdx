@@ -1,0 +1,194 @@
+---
+title: Shipments
+description: Connect Delhivery, Shiprocket or RapidShyp, compare rates, book, print labels, schedule pickups and handle delivery problems.
+---
+
+# Shipments
+
+**Orders → Shipments** is where every parcel across every courier gets booked, tracked,
+labelled and handled. One table has five tabs: **To book**, **Booked**, **In transit**,
+**Delivered** and **Returned (RTO)**. **Pickups** (in the header) and the deliveries that
+need you (the "need attention" link under the title) open in a side panel.
+
+## What this is for
+
+- Booking 20 Diwali orders with a courier in one go, instead of typing each address into the
+  courier's website.
+- Comparing Delhivery, Shiprocket and RapidShyp prices for a 500 g parcel from Jaipur
+  (`302001`) to Guwahati (`781001`) before you book.
+- Printing all labels as one sheet, and asking the courier to come and collect.
+- Seeing which parcels are stuck, and telling the courier what to do with them.
+
+## How it works
+
+You connect a courier account once. After that, each paid order waits in **To book**.
+When you book, the courier gives back an **AWB** (the waybill number that tracks the parcel)
+and a shipping label. From then on we check the courier's tracking every 30 minutes (and
+instantly, when the courier supports tracking webhooks), and the order's Fulfilment status
+follows along by itself.
+
+```mermaid
+flowchart TD
+  ready["To book<br/>paid order, no label yet"] -->|Book| booked["Booked<br/>AWB + label from the courier"]
+  booked -->|Schedule pickup| picked["Picked up"]
+  booked -->|Cancel shipment| cancelled["Cancelled"]
+  picked --> transit["In transit"]
+  transit --> ofd["Out for delivery"]
+  ofd --> delivered(["Delivered"])
+  ofd -->|courier couldn't deliver| ndr{"Delivery problem<br/>(NDR)"}
+  ndr -->|Try delivery again| ofd
+  ndr -->|Use a new address| transit
+  ndr -->|"Send it back (RTO)"| rto(["Returning to you<br/>(RTO)"])
+```
+
+When every parcel on an order is **Delivered** (and the order is paid), the order becomes
+**Completed**. If every parcel comes back as **RTO**, the order's Fulfilment shows **Returned**
+and the order gets a **Returned to you (RTO)** task. See [Returns and RTO](/merchant-guide/orders/returns-and-rto).
+
+## Connect a courier
+
+Connect your Delhivery, Shiprocket or RapidShyp account once under **Apps → Couriers**. See [Couriers](/merchant-guide/apps/couriers).
+
+## Ship orders step by step
+
+<Steps>
+
+### Set up your boxes once
+
+Under **Settings → Shipping → Your boxes**, add the boxes you pack into, for example "Small
+mailer, 25 × 20 × 5 cm, 80 g", and **Make main box** the one you use most. The main box
+fills in the size when booking. The parcel weight is the sum of your products' weights when
+they have one, otherwise the box weight.
+
+### Pick orders in To book
+
+Paid orders waiting on a label show up in **To book**, with who they go to, the parcel
+weight (from your products' weights) and the courier. Tick the ones you want.
+
+### Book selected
+
+Select **Book selected**. When more than one courier can take an order you see them side by
+side, with **Store default**, **Cheapest**, **Fastest** and **Recommended** picks; with one
+courier you just confirm. Then **Book** them.
+
+<Screenshot
+  name="Compare couriers"
+  caption="To book → Book selected dialog for 3 selected orders, Delhivery, Shiprocket and RapidShyp rates side by side with the Cheapest badge on one and the Book 3 shipments button at the bottom."
+/>
+
+### Print labels
+
+Select **Print labels** when the booking is done, or tick parcels in **Booked** and select
+**Print labels** there.
+
+### Schedule pickup
+
+Select **Pickups** in the header, tick the booked parcels, pick a **Pickup date** and a start
+time (**From**, 24-hour, e.g. `14:00`). The courier gets the request; the pickup shows under
+**Recent pickups**.
+
+</Steps>
+
+There's also **Book by order number** in the header's **⋯** menu if you'd rather type order
+numbers than tick them. Use it for cash on delivery orders, which **To book** doesn't list.
+
+## Pickups and manifests
+
+Select **Pickups** in the header and tick the booked parcels to book the courier pickup for
+them. **Create manifest** groups a pickup's shipments into one printable label
+sheet for the delivery person to sign. Delhivery has no separate manifest API yet, so the
+sheet is made from your saved labels.
+
+## Delivery problems (NDR)
+
+When a courier can't deliver a parcel (shopper not home, phone switched off, address
+incomplete) it's called an **NDR**, a non-delivery report. A parcel moves into **Delivery
+problems** (the red "need attention" link under the title, and a **Delivery failed** chip in
+**In transit**) by itself as soon as the courier's own tracking update says so - the same tracking
+check that flips a parcel to **Out for delivery** or **Delivered** (every 30 minutes for
+RapidShyp - it has no tracking webhook - and instantly over a webhook for Delhivery and
+Shiprocket) also reads the courier's remark for a failed attempt and, if it looks like one,
+opens it here with what the **Courier said**. No parcel needs a manual nudge into this tab.
+For each one choose:
+
+- **Try delivery again**: the courier re-attempts.
+- **Use a new address**: fix the address or phone number, and the courier tries there.
+- **Send it back (RTO)**: return to origin. The parcel comes back to your pickup address.
+
+Then select **Send to courier**. Once the courier's next update reports **Delivered** or
+**RTO**, the parcel clears out of Delivery problems automatically too - there's nothing to
+dismiss by hand.
+
+<Callout type="info">
+  **How the match works.** None of Delhivery, Shiprocket or RapidShyp has a single fixed
+  "this is an NDR" status code over their tracking APIs - each describes a failed attempt in
+  free text (Delhivery's scan remarks, Shiprocket's and RapidShyp's "Undelivered" activity
+  text) rather than a coded field. Detection matches that wording, so an unusual phrasing
+  from a courier could in rare cases be missed; if a parcel sits on **Out for delivery** for
+  more than a day without moving here, check it from your courier's dashboard directly.
+</Callout>
+
+<Callout type="warning">
+  Shiprocket does not accept **Send it back (RTO)** over its API yet; raise the RTO in
+  Shiprocket itself.
+</Callout>
+
+## RTO: parcels that came back
+
+The **Returned (RTO)** tab lists the parcels that came back. Each RTO opens a task on its order where you put the items back in stock with one click, then
+refund the customer or ship it again. The full steps are in
+[Returns and RTO](/merchant-guide/orders/returns-and-rto).
+
+## Courier wallet balance
+
+Your courier wallet balance and recharge link are covered in [Couriers](/merchant-guide/apps/couriers#courier-wallet-balance).
+
+## Common problems and fixes
+
+| Problem | Why it happens | Fix |
+| --- | --- | --- |
+| **Test connection** fails for Delhivery | Token expired or was regenerated. | Request a new live token in Delhivery One and paste it straight away. |
+| Booking fails with a pickup location error | **Pickup location name** doesn't match Delhivery exactly. | Copy the warehouse name from Delhivery character for character. |
+| Order missing from **To book** | The list only shows paid (or deposit-paid) orders that aren't packed yet and aren't tagged `hold` or `on-hold`. Unpaid cash on delivery orders aren't listed. | Book COD orders with **⋯ → Book by order number**, or from the order page. Remove a `hold` tag when it's ready. |
+| Rates look too high | The parcel weight fell back to the box weight. | Add weights to your products so the real weight is used. |
+| Status stuck on **Booked** | The courier hasn't picked it up yet. | Check **Pickups**; schedule one if you haven't. |
+
+## FAQ
+
+<Faq>
+
+<FaqItem question="Can I use Delhivery and Shiprocket together?">
+
+Yes. Install both and compare them on every booking. **Settings → Shipping → Which courier
+ships** decides which one is pre-selected: **Cheapest price**, **Fastest delivery**, **Always the
+same courier** or **The state it goes to**.
+
+</FaqItem>
+
+<FaqItem question="Does cash on delivery work with couriers?">
+
+Yes, where the courier offers COD for that PIN code. Turn on **Offer cash on delivery where the
+courier allows it** in **When orders go out**. The courier collects the cash and pays it to you
+on their own remittance schedule.
+
+</FaqItem>
+
+<FaqItem question="What is an AWB?">
+
+The air waybill number: the courier's tracking number for one parcel. It's printed on the label
+and shown as **Waybill** in the Shipments list. See the [Glossary](/merchant-guide/help/glossary).
+
+</FaqItem>
+
+<FaqItem question="Can I ship without a courier account?">
+
+Yes. Open the order, select **Fulfil items**, and type the courier name, tracking number and
+tracking link yourself. Tracking won't update automatically for these.
+
+</FaqItem>
+
+</Faq>
+
+## Related guides
+
+<RelatedGuides ids={['orders', 'returns', 'apps', 'glossary']} />

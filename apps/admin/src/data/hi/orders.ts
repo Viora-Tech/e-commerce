@@ -1,8 +1,11 @@
+import { orderNextStepContent } from '@/data/order-next-step'
 import {
   importedOrderContent,
   orderDetailContent,
   ordersContent,
   ordersSectionsContent,
+  parcelsCardContent,
+  profitCardContent,
 } from '@/data/orders'
 import { translation } from '@/lib/i18n'
 
@@ -36,6 +39,22 @@ export default [
     },
     title: 'ऑर्डर',
     heading: 'ऑर्डर लिस्ट',
+    summary: (total, toShip, pendingUpi) =>
+      [
+        `${total} ऑर्डर`,
+        toShip > 0 ? `${toShip} भेजने बाकी` : null,
+        pendingUpi > 0 ? `${pendingUpi} UPI पेमेंट बाकी` : null,
+      ]
+        .filter(Boolean)
+        .join(' · '),
+    tiles: {
+      newToday: { label: 'आज के नए ऑर्डर', trendNote: 'कल के मुकाबले' },
+      ready: { label: 'भेजने के लिए तैयार', note: 'पेमेंट हो गया, कूरियर का इंतज़ार' },
+      pendingUpi: { label: 'UPI बाकी', note: 'ट्रांसफ़र का इंतज़ार' },
+      sales: { label: 'इस हफ़्ते की बिक्री', trendNote: 'पिछले हफ़्ते के मुकाबले' },
+    },
+    noResults: { heading: 'कोई ऑर्डर नहीं मिला', body: 'दूसरा शब्द खोजें या फ़िल्टर हटाएं।' },
+    loadFailed: 'ऑर्डर लोड नहीं हो पाए',
     addOrder: 'ऑर्डर जोड़ें',
     moreActions: 'और विकल्प',
     menu: { drafts: 'ड्राफ़्ट ऑर्डर', abandoned: 'अधूरे चेकआउट', returns: 'रिटर्न' },
@@ -118,6 +137,7 @@ export default [
       cancel: 'ऑर्डर कैंसिल करें',
       refund: 'रिफ़ंड',
       print: 'पैकिंग स्लिप प्रिंट करें',
+      printShort: 'प्रिंट',
       more: 'और विकल्प',
     },
     moved: (status) => `ऑर्डर "${status}" मार्क किया गया`,
@@ -157,6 +177,7 @@ export default [
       heading: 'भेजना बाकी',
       fulfilled: 'भेज दिया',
       ofQuantity: (done, total) => `${total} में से ${done} पैक`,
+      itemsCount: (n) => `${n} आइटम`,
       waybill: 'ट्रैकिंग',
     },
     fulfilDialog: {
@@ -355,6 +376,8 @@ export default [
       state: 'राज्य',
       pincode: 'पिन कोड',
       copyAll: 'सब कॉपी करें',
+      call: 'कॉल करें',
+      whatsapp: 'WhatsApp',
       copyAllHint: 'नाम, फ़ोन, पता, शहर, राज्य और पिन कोड, हर एक अलग लाइन में, कूरियर ऐप के लिए तैयार',
       allDetails: 'ग्राहक की जानकारी',
       billing: 'बिलिंग पता',
@@ -391,6 +414,99 @@ export default [
     },
   }),
 
+  translation(orderNextStepContent, {
+    eyebrow: { next: 'अगला कदम', progress: 'रास्ते में', done: 'पूरा', closed: 'बंद' },
+    upi: {
+      title: 'UPI पेमेंट जाँचें',
+      body: (amount, ago) =>
+        `${amount} का UPI अनुरोध ${ago} भेजा गया था। अपने बैंक ऐप में ट्रांसफ़र मिलाएं, फिर पेमेंट हो गया मार्क करें।`,
+      resend: 'पेमेंट लिंक फिर भेजें',
+      markPaid: 'पेमेंट हो गया मार्क करें',
+      reminder: 'रिमाइंडर',
+    },
+    collect: {
+      title: (amount) => `${amount} लें`,
+      body: 'पेमेंट अभी बाकी है। पैसे मिलते ही यहाँ दर्ज करें।',
+      action: 'पेमेंट लें',
+    },
+    ship: {
+      title: (n) => `${n} आइटम पैक करके भेजें`,
+      cod: (amount) =>
+        `कैश ऑन डिलीवरी: कूरियर दरवाज़े पर ${amount} लेगा। आइटम भेजें दबाकर कूरियर और ट्रैकिंग जोड़ें।`,
+      paid: (method) => `${method} से पेमेंट हो चुका है। आइटम भेजें दबाकर कूरियर और ट्रैकिंग जोड़ें।`,
+      action: 'आइटम भेजें',
+      compare: 'कूरियर की तुलना करें',
+    },
+    transit: {
+      title: (name) => `${name} तक रास्ते में`,
+      fallbackName: 'ग्राहक',
+      noTracking: 'भेज दिया गया है। पहुँचते ही डिलीवर हो गया मार्क करें।',
+      expected: (date) => `${date} तक पहुँचेगा`,
+      tracking: (waybill) => `ट्रैकिंग ${waybill}`,
+      copyLink: 'ट्रैकिंग लिंक कॉपी करें',
+      linkCopied: 'ट्रैकिंग लिंक कॉपी हुआ',
+      delivered: 'डिलीवर हो गया मार्क करें',
+      steps: {
+        picked_up: 'उठा लिया',
+        in_transit: 'रास्ते में',
+        out_for_delivery: 'डिलीवरी के लिए निकला',
+        delivered: 'डिलीवर हुआ',
+      },
+      now: 'अभी',
+      expectedStep: (date) => `${date} तक`,
+    },
+    done: {
+      title: (date) => `${date} को डिलीवर हुआ`,
+      titleNoDate: 'डिलीवर हो गया',
+      body: (name, collected) =>
+        `${name} को ऑर्डर मिल गया।${collected ? ` ${collected} कैश ऑन डिलीवरी लिया गया।` : ''}`,
+      startReturn: 'रिटर्न शुरू करें',
+    },
+    cancelled: {
+      title: 'यह ऑर्डर कैंसिल हुआ',
+      body: 'यहाँ अब कुछ करना नहीं है। इतिहास में सब दिखता है।',
+      history: 'इतिहास देखें',
+    },
+  }),
+  translation(parcelsCardContent, {
+    title: (count) => (count === 1 ? 'कहाँ से जाएगा' : `${count} पार्सल में जाएगा`),
+    parcel: (position) => `पार्सल ${position}`,
+    from: (place) => `${place} से`,
+    billedUnder: (gstin) => `GST ${gstin}`,
+    units: (count) => (count === 1 ? '1 सामान' : `${count} सामान`),
+    status: {
+      open: 'पैक करना है',
+      on_hold: 'रुका है (प्री-ऑर्डर)',
+      fulfilled: 'पैक हो गया',
+      cancelled: 'कैंसिल',
+    },
+    needsTransfer: 'स्टॉक भेजना है',
+    needsTransferHelp: 'ऑर्डर आते समय इस लोकेशन पर पूरा सामान नहीं था। पैक करने से पहले स्टॉक यहाँ भेज दें।',
+    packed: (done, of) => `${of} में से ${done} पैक`,
+  }),
+  translation(profitCardContent, {
+    title: 'मुनाफ़ा',
+    netSales: 'कुल बिक्री (GST के बिना)',
+    goods: 'माल की लागत',
+    courier: 'कूरियर खर्च',
+    fees: 'पेमेंट फ़ीस',
+    rto: 'RTO खर्च',
+    profit: 'मुनाफ़ा',
+    margin: (percent) => `${percent} मार्जिन`,
+    notes: {
+      costEstimated: 'कुछ सामान की लागत बिक्री के बाद, उस समय की लागत से भरी गई है।',
+      costMissing: 'कुछ सामान की लागत अभी नहीं डाली, इसलिए वह मुफ़्त गिना गया। प्रोडक्ट पर लागत डालें।',
+      courierMissing: 'कूरियर का खर्च अभी पता नहीं। नीचे डालें।',
+      feeFromRate: 'पेमेंट फ़ीस Settings › Costs for profit में आपकी दरों से है।',
+      feeMissing: 'इस पेमेंट तरीके की फ़ीस दर नहीं डाली गई।',
+    },
+    setRates: 'फ़ीस दरें डालें',
+    courierLabel: 'कूरियर खर्च (₹)',
+    courierSave: 'सेव करें',
+    courierSaved: 'कूरियर खर्च सेव हो गया',
+    courierInvalid: 'रुपये में रकम लिखें, जैसे 65 या 65.50।',
+    failed: 'सेव नहीं हो सका',
+  }),
   translation(importedOrderContent, {
     title: (platform) => `${PLATFORMS[platform] ?? platform} से इंपोर्ट किया`,
     body: 'पुराना ऑर्डर, सिर्फ़ रिकॉर्ड के लिए रखा है। इससे स्टॉक नहीं बदला, कोई मैसेज या इनवॉइस नहीं गया, और इसे यहाँ से भेजा या रिफ़ंड नहीं किया जा सकता।',

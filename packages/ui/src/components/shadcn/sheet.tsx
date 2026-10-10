@@ -26,10 +26,7 @@ function SheetOverlay({ className, ...props }: SheetPrimitive.Backdrop.Props) {
   return (
     <SheetPrimitive.Backdrop
       data-slot="sheet-overlay"
-      className={cn(
-        'fixed inset-0 z-50 bg-black/10 motion-backdrop supports-backdrop-filter:backdrop-blur-xs',
-        className,
-      )}
+      className={cn('glass-scrim fixed inset-0 z-50 motion-backdrop', className)}
       {...props}
     />
   )

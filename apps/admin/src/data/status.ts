@@ -32,7 +32,9 @@ import { campaignsContent } from '@/data/marketing-campaigns'
 import { onlineStoreContent } from '@/data/online-store'
 import { orderDetailContent, ordersContent } from '@/data/orders'
 import { productsListContent } from '@/data/products'
+import { type InboundShipmentStatus, inboundShipmentsContent } from '@/data/purchasing'
 import { returnsContent } from '@/data/returns'
+import { reviewsContent } from '@/data/reviews'
 import { shipmentPanelContent } from '@/data/shipping'
 import { shopifyImportContent } from '@/data/shopify-import'
 import { staffContent } from '@/data/staff'
@@ -165,7 +167,14 @@ export const STATUS = {
     partially_received: entry(purchaseOrdersContent.status.partially_received, 'pending'),
     received: entry(purchaseOrdersContent.status.received, 'success'),
     closed: entry(purchaseOrdersContent.status.closed, 'neutral'),
+    cancelled: entry(purchaseOrdersContent.status.cancelled, 'error'),
   } satisfies Record<PurchaseOrderStatus, StatusEntry>,
+  inboundShipment: {
+    in_transit: entry(inboundShipmentsContent.status.in_transit, 'pending'),
+    at_port: entry(inboundShipmentsContent.status.at_port, 'accent'),
+    cleared: entry(inboundShipmentsContent.status.cleared, 'info'),
+    delivered: entry(inboundShipmentsContent.status.delivered, 'success'),
+  } satisfies Record<InboundShipmentStatus, StatusEntry>,
   transfer: {
     draft: entry(transfersContent.status.draft, 'neutral'),
     in_transit: entry(transfersContent.status.in_transit, 'pending'),
@@ -210,12 +219,19 @@ export const STATUS = {
     notified: entry(backInStockContent.signups.status.notified, 'success'),
     unsubscribed: entry(backInStockContent.signups.status.unsubscribed, 'neutral'),
   },
+  /** Product reviews (Reviews app). */
+  review: {
+    pending: entry(reviewsContent.status.pending, 'pending'),
+    published: entry(reviewsContent.status.published, 'success'),
+    hidden: entry(reviewsContent.status.hidden, 'neutral'),
+  },
   /** Shopify import runs; a finished dry run reads "Preview ready". */
   importRun: {
     queued: entry(shopifyImportContent.status.queued, 'neutral'),
     running: entry(shopifyImportContent.status.running, 'pending'),
     completed: entry(shopifyImportContent.status.completed, 'success'),
     failed: entry(shopifyImportContent.status.failed, 'error'),
+    cancelled: entry(shopifyImportContent.status.cancelled, 'neutral'),
     preview: entry(shopifyImportContent.previewReady, 'info'),
   },
   /** One type on "What's left to import". */

@@ -274,6 +274,16 @@ export const checkoutContent = {
     standard: 'Standard delivery',
     digital: 'Delivered by email',
   },
+  /** When one order ships from more than one warehouse. */
+  parcels: {
+    title: (count: number) => `Ships in ${count} parcels`,
+    note: 'One order and one payment. Each parcel comes from a different warehouse, with its own invoice.',
+    parcel: (position: number) => `Parcel ${position}`,
+    from: (place: string) => `from ${place}`,
+    arrives: (range: string) => `Arrives ${range}`,
+    onHold: 'Pre-order: ships when it arrives',
+    item: (quantity: number, title: string) => `${quantity} × ${title}`,
+  },
   giftCardAddress: 'Billing address',
   giftCardDelivery: 'Gift cards are delivered by email as soon as the payment is confirmed.',
   depositNonRefundable: (days: number) =>
@@ -286,6 +296,7 @@ export const checkoutContent = {
     codUnavailable:
       'Cash on delivery is not available for this PIN code. Pick another payment method.',
     noShipping: (pincode: string) => `We do not ship to ${pincode} yet. Try another address.`,
+    cannotShipToState: "We can't deliver this item to your state yet.",
     rateChanged:
       'The shipping options for your order changed, so it was not placed. Pick a shipping method and place it again.',
     discountUnavailable:

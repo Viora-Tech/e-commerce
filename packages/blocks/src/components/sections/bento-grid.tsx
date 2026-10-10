@@ -1,18 +1,21 @@
 // Adapted from Magic UI's Bento Grid (MIT). See THIRD_PARTY_NOTICES.md and
 // packages/blocks/THIRD_PARTY_LICENSES.md.
 
+import type { ReactNode } from 'react'
 import { focalStyle } from '../../focal-point'
 import type { Image } from '../../sections/framed'
 import Picture from '../picture'
+import RichCopy from '../rich-copy'
 
+/** Copy is a string in storage, a React node while edited on the canvas. */
 type Tile = {
-  title: string
-  text: string
+  title: ReactNode
+  text: ReactNode
   image: Image
   size: 'small' | 'wide' | 'tall'
 }
 
-type BentoGridProps = { heading: string; tiles: Tile[] }
+type BentoGridProps = { heading: ReactNode; tiles: Tile[] }
 
 const SIZE_CLASS: Record<Tile['size'], string> = {
   small: 'md:col-span-1 md:row-span-1',
@@ -31,7 +34,7 @@ export default function BentoGrid({ heading, tiles }: BentoGridProps) {
         {tiles.map((tile, i) => (
           <div
             // biome-ignore lint/suspicious/noArrayIndexKey: merchant-edited rows carry no id and never reorder between renders.
-            key={`${tile.title}-${i}`}
+            key={i}
             className={`group relative flex flex-col justify-end overflow-hidden rounded-[var(--radius-card)] border border-[var(--color-line)] bg-[var(--color-surface)] p-[1.25rem] transition-transform duration-300 ease-out hover:-translate-y-[0.25rem] ${SIZE_CLASS[tile.size]}`}
           >
             {tile.image?.url ? (
@@ -52,9 +55,10 @@ export default function BentoGrid({ heading, tiles }: BentoGridProps) {
             )}
             <div className="relative">
               {tile.title ? <p className="h5 text-[var(--color-ink)]">{tile.title}</p> : null}
-              {tile.text ? (
-                <p className="text-body mt-[0.25rem] text-[var(--color-muted)]">{tile.text}</p>
-              ) : null}
+              <RichCopy
+                value={tile.text}
+                className="text-body mt-[0.25rem] text-[var(--color-muted)]"
+              />
             </div>
           </div>
         ))}

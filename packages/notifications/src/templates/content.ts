@@ -1,3 +1,4 @@
+import { siteConfig } from '@commerce/config/site'
 import type { TemplateData, TemplateId } from '../types'
 
 /**
@@ -50,6 +51,11 @@ export const balanceTemplates = {
   },
 } satisfies Record<'balance_request' | 'balance_reminder' | 'balance_received', TemplateCopy>
 
+/** "Asha" for a staff alert, or "A customer" when the order has no name ("there" is the shopper fallback). */
+const buyer = (d: TemplateData): string =>
+  d.customerName && d.customerName !== 'there' ? d.customerName : 'A customer'
+const ordersCount = (n: number): string => (n === 1 ? '1 order' : `${n} orders`)
+
 export const transferTemplates = {
   payment_reminder: {
     subject: (d) => `${d.storeName}: order #${d.orderNumber} is waiting for payment`,
@@ -82,7 +88,40 @@ export const transferTemplates = {
     whatsapp: (d) =>
       `${d.storeName}: order #${d.orderNumber} was cancelled because the ${d.totalLabel} payment did not arrive. Paid already? Just reply.`,
   },
-} satisfies Record<'payment_reminder' | 'unpaid_cancel_notice' | 'unpaid_cancelled', TemplateCopy>
+  staff_new_order: {
+    subject: (d) => `${d.storeName}: new order #${d.orderNumber} (${d.totalLabel})`,
+    heading: (d) => `New order #${d.orderNumber}`,
+    intro: (d) =>
+      `${buyer(d)} placed an order for ${d.totalLabel}${d.paymentMethodLabel ? `, paid by ${d.paymentMethodLabel}` : ''}.`,
+    outro: () =>
+      'You get this because new-order alerts are on in your admin, under Account → Notifications.',
+    whatsapp: (d) =>
+      `${d.storeName}: new order #${d.orderNumber}, ${d.totalLabel}.${d.actionUrl ? ` Open: ${d.actionUrl}` : ''}`,
+  },
+  staff_daily_summary: {
+    subject: (d) =>
+      `${d.storeName}: ${ordersCount(d.dailySummary?.orders ?? 0)}, ${d.dailySummary?.salesLabel ?? ''}`,
+    heading: (d) => `Your day at ${d.storeName}`,
+    intro: (d) => {
+      const s = d.dailySummary
+      if (!s) return ''
+      return `${s.periodLabel}: ${ordersCount(s.orders)} worth ${s.salesLabel}. ${
+        s.toShip === 1 ? '1 order is' : `${s.toShip} orders are`
+      } waiting to be shipped.`
+    },
+    outro: () =>
+      'You get this every day at the time you chose in your admin, under Account → Notifications.',
+    whatsapp: (d) =>
+      `${d.storeName} ${d.dailySummary?.periodLabel ?? ''}: ${ordersCount(d.dailySummary?.orders ?? 0)}, ${d.dailySummary?.salesLabel ?? ''}, ${d.dailySummary?.toShip ?? 0} to ship.`,
+  },
+} satisfies Record<
+  | 'payment_reminder'
+  | 'unpaid_cancel_notice'
+  | 'unpaid_cancelled'
+  | 'staff_new_order'
+  | 'staff_daily_summary',
+  TemplateCopy
+>
 
 export const backInStockTemplates = {
   back_in_stock_confirm: {
@@ -244,7 +283,8 @@ const shipmentTemplates = {
   TemplateCopy
 >
 
-const platformName = (d: TemplateData): string => d.staffInvite?.platformName || 'Vextro'
+const platformName = (d: TemplateData): string =>
+  d.staffInvite?.platformName || siteConfig.brand.name
 const asRole = (d: TemplateData): string =>
   d.staffInvite?.roleLabel ? ` as ${d.staffInvite.roleLabel}` : ''
 const invitedBy = (d: TemplateData): string => d.staffInvite?.inviterEmail || 'The store owner'
@@ -261,10 +301,49 @@ const platformTemplates = {
     whatsapp: (d) =>
       `${invitedBy(d)} invited you to help run ${d.storeName} on ${platformName(d)}.${d.actionUrl ? ` Accept: ${d.actionUrl}` : ''}`,
   },
-} satisfies Record<'staff_invite', TemplateCopy>
+  email_change_code: {
+    subject: (d) => `${d.code} is your code to confirm your new ${d.storeName} email`,
+    heading: () => 'Confirm your new email',
+    intro: (d) =>
+      `Enter ${d.code} on the Sign-in & security page to make this the email you sign in to ${d.storeName} with.`,
+    outro: () =>
+      'The code works once and expires in 10 minutes. If you did not ask for this, ignore this email and nothing changes.',
+    whatsapp: (d) => `${d.code} confirms your new ${d.storeName} email. It expires in 10 minutes.`,
+  },
+  email_changed: {
+    subject: (d) => `Your ${d.storeName} sign-in email was changed`,
+    heading: () => 'Your sign-in email was changed',
+    intro: (d) =>
+      `You now sign in to ${d.storeName} with ${d.emailChange?.newEmail ?? 'a new email address'}. Sign-in codes no longer come to this address.`,
+    outro: () =>
+      `If you did not make this change, tell your store owner straight away or write to ${siteConfig.contact.supportEmail}.`,
+    whatsapp: (d) =>
+      `Your ${d.storeName} sign-in email was changed to ${d.emailChange?.newEmail ?? 'a new address'}.`,
+  },
+} satisfies Record<'staff_invite' | 'email_change_code' | 'email_changed', TemplateCopy>
+
+const poLabel = (d: TemplateData): string => d.purchaseOrder?.numberLabel ?? ''
+const poExpected = (d: TemplateData): string =>
+  d.purchaseOrder?.expectedLabel
+    ? ` We expect it to arrive by ${d.purchaseOrder.expectedLabel}.`
+    : ''
+
+/** Messages a store sends to its suppliers, not its shoppers. */
+const supplierTemplates = {
+  purchase_order: {
+    subject: (d) => `${d.storeName}: purchase order ${poLabel(d)}`,
+    heading: (d) => `Hello ${d.purchaseOrder?.supplierName || 'there'}`,
+    intro: (d) =>
+      `Please find purchase order ${poLabel(d)} from ${d.storeName} attached (${d.totalLabel}).${poExpected(d)}`,
+    outro: (d) =>
+      `${d.purchaseOrder?.message ? `${d.purchaseOrder.message} ` : ''}Please confirm the order and the dispatch date by replying to this email.`,
+    whatsapp: (d) => `${d.storeName}: purchase order ${poLabel(d)} (${d.totalLabel}).`,
+  },
+} satisfies Record<'purchase_order', TemplateCopy>
 
 export const templateContent: Record<TemplateId, TemplateCopy> = {
   ...platformTemplates,
+  ...supplierTemplates,
   ...balanceTemplates,
   ...transferTemplates,
   ...backInStockTemplates,
@@ -350,6 +429,63 @@ export const templateContent: Record<TemplateId, TemplateCopy> = {
     whatsapp: (d) =>
       `Sign in to ${d.storeName}: ${d.actionUrl ?? ''} (works once, expires in 15 minutes).`,
   },
+  review_request: {
+    subject: (d) => d.review?.subject || `How was your order from ${d.storeName}?`,
+    heading: (d) => `Hi ${d.customerName}, how is it going?`,
+    intro: (d) => {
+      const names = (d.review?.items ?? []).map((i) => i.title)
+      const what = names.length === 1 ? names[0] : 'what you bought'
+      return `Your order${d.orderNumber ? ` #${d.orderNumber}` : ''} arrived a few days ago. Would you tell other shoppers what you think of ${what}? It takes a minute, and photos are welcome.`
+    },
+    outro: (d) =>
+      d.review?.unsubscribeUrl
+        ? 'Not keen on these emails? The "Stop review emails" link below ends them.'
+        : '',
+    whatsapp: (d) =>
+      `${d.storeName}: how was your order? Leave a review: ${d.review?.items?.[0]?.url ?? ''}`,
+  },
+  review_reminder: {
+    subject: (d) => d.review?.subject || `A quick review for ${d.storeName}?`,
+    heading: (d) => `Hi ${d.customerName}, one quick question`,
+    intro: (d) => {
+      const names = (d.review?.items ?? []).map((i) => i.title)
+      const what = names.length === 1 ? names[0] : 'your order'
+      return `We would love to hear how ${what} is working out for you. Your review helps other shoppers choose, and it only takes a minute. This is the last time we ask.`
+    },
+    outro: (d) =>
+      d.review?.unsubscribeUrl
+        ? 'Not keen on these emails? The "Stop review emails" link below ends them.'
+        : '',
+    whatsapp: (d) => `${d.storeName}: a quick review? ${d.review?.items?.[0]?.url ?? ''}`,
+  },
+  review_reply: {
+    subject: (d) => `${d.storeName} replied to your review`,
+    heading: (d) => `Hi ${d.customerName}, ${d.storeName} replied`,
+    intro: (d) =>
+      `Thanks for reviewing ${d.review?.productTitle ?? 'your purchase'}. Here is the reply:
+
+${d.review?.reply ?? ''}`,
+    outro: () => 'The reply shows under your review on the product page.',
+    whatsapp: (d) =>
+      `${d.storeName} replied to your review of ${d.review?.productTitle ?? 'your purchase'}.`,
+  },
+  contact_message: {
+    subject: (d) =>
+      `${d.storeName}: new message from ${d.contactMessage?.name || d.contactMessage?.email || 'a shopper'}`,
+    heading: () => 'You have a new message',
+    intro: (d) => {
+      const m = d.contactMessage
+      const who = [m?.name, m?.email, m?.phone].filter(Boolean).join(' | ')
+      return `${who} wrote${m?.path ? ` on ${m.path}` : ''}:
+
+${m?.text ?? ''}`
+    },
+    outro: (d) =>
+      d.contactMessage?.email
+        ? `Reply to ${d.contactMessage.email} to answer. All messages are kept in Apps, Forms.`
+        : 'All messages are kept in Apps, Forms.',
+    whatsapp: (d) => `${d.storeName}: new message from ${d.contactMessage?.name || 'a shopper'}.`,
+  },
   newsletter_confirm: {
     subject: (d) => `Confirm your ${d.storeName} newsletter signup`,
     heading: () => 'Please confirm your email',
@@ -383,4 +519,12 @@ export const sharedContent = {
   lineText: (l: TemplateData['lines'][number]) => `${l.title} x${l.quantity}, ${l.priceLabel}`,
   footer: (d: TemplateData) =>
     `Sent by ${d.storeName}. Reply to this email if anything looks wrong.`,
+  parcels: {
+    title: (count: number) => `Ships in ${count} parcels`,
+    note: 'Your order comes from more than one warehouse, so it arrives in separate parcels, each with its own invoice.',
+    parcel: (position: number, from: string) => `Parcel ${position} from ${from}`,
+    item: (quantity: number, title: string) => `${quantity} × ${title}`,
+    arrives: (range: string) => `Arrives ${range}`,
+    onHold: 'Pre-order: ships when it arrives',
+  },
 } as const

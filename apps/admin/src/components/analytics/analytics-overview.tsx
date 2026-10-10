@@ -1,21 +1,25 @@
 'use client'
 
 import type { AnalyticsOverview } from '@commerce/api'
+import { Button } from '@commerce/ui/shadcn/button'
 import { useEffect, useState } from 'react'
 import ChartCard from '@/components/layout/chart-card'
-import PageBody from '@/components/layout/page-body'
-import PageHeader from '@/components/layout/page-header'
+import ProoflyPageHeader from '@/components/layout/proofly-page-header'
 import { methodLabel } from '@/components/orders/order-detail-types'
-import { analyticsContent as copy } from '@/data/analytics'
+import { analyticsContent } from '@/data/analytics'
 import { INDIAN_STATES } from '@/data/india'
+import { useCopy } from '@/hooks/use-copy'
 import { formatDay, type RangeState, rangeQuery, sameRange } from '@/lib/analytics-range'
 import { api } from '@/lib/api-client'
-import { formatPaiseCompact } from '@/lib/money'
+import { downloadCsv, toCsv } from '@/lib/csv'
+import { formatPaise, formatPaiseCompact } from '@/lib/money'
+import { routes } from '@/lib/routes'
 import BreakdownCard, { type BreakdownRow } from './breakdown-card'
 import FunnelCard from './funnel-card'
 import KpiTile from './kpi-tile'
 import RangePicker from './range-picker'
 import TopProductsCard from './top-products-card'
+import VisitorsSection from './visitors-section'
 
 type AnalyticsOverviewPageProps = {
   initialRange: RangeState
@@ -53,6 +57,7 @@ export default function AnalyticsOverviewPage({
   initial,
 }: AnalyticsOverviewPageProps) {
   // Hooks
+  const copy = useCopy(analyticsContent)
   const [range, setRange] = useState(initialRange)
   const [data, setData] = useState(initial)
   const [loading, setLoading] = useState(false)
@@ -80,43 +85,72 @@ export default function AnalyticsOverviewPage({
   // Event handlers
   const handleRange = (next: RangeState) => {
     setRange(next)
-    window.history.replaceState(null, '', `/analytics${rangeQuery(next)}`)
+    window.history.replaceState(null, '', `${routes.analytics.home()}${rangeQuery(next)}`)
+  }
+
+  const handleExport = () => {
+    const rows = data.salesOverTime.day.map((p) => [p.label, p.value / 100])
+    downloadCsv(
+      copy.salesOverTime.exportFile(data.range.from, data.range.to),
+      toCsv([...copy.salesOverTime.exportHeaders], rows),
+    )
   }
 
   // Render logic
   const dayPoints = data.salesOverTime.day.map((p) => ({ ...p, label: formatDay(p.label) }))
   const weekPoints = data.salesOverTime.week.map((p) => ({ ...p, label: formatDay(p.label) }))
+  const totalPaise = data.salesOverTime.day.reduce((sum, p) => sum + p.value, 0)
+  const best = data.salesOverTime.day.reduce<(typeof data.salesOverTime.day)[number] | null>(
+    (top, p) => (p.value > (top?.value ?? 0) ? p : top),
+    null,
+  )
+  // Figma shows five tiles; the order count is already the last step of the funnel below.
+  const kpis = data.kpis.filter((kpi) => kpi.id !== 'orders')
 
   return (
-    <PageBody width="frame" className="gap-5">
-      <PageHeader
+    <div className="mx-auto flex w-full max-w-[81.5rem] flex-col gap-6 px-4 py-6 md:px-8 md:py-8">
+      <ProoflyPageHeader
         title={copy.title}
-        subtitle={copy.intro}
-        actions={<RangePicker value={range} onChange={handleRange} />}
+        summary={copy.intro}
+        actions={
+          <>
+            <RangePicker value={range} onChange={handleRange} />
+            <Button variant="key-neutral" onClick={handleExport}>
+              {copy.salesOverTime.export}
+            </Button>
+          </>
+        }
       />
+      {/* Figma 306:16434: KPIs in one row, the sales chart full width, then funnel + top
+          products side by side; the state and payment breakdowns follow. */}
       <div
-        className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3"
+        className="grid grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-5"
         aria-busy={loading || undefined}
       >
-        {data.kpis.map((kpi) => (
+        {kpis.map((kpi) => (
           <KpiTile key={kpi.id} kpi={kpi} />
         ))}
       </div>
-      <div className="grid grid-cols-1 items-stretch gap-5 xl:grid-cols-[minmax(0,739fr)_minmax(0,361fr)]">
-        <ChartCard
-          title={copy.salesOverTime.title}
-          periods={[
-            { id: 'day', label: copy.salesOverTime.day, data: dayPoints },
-            { id: 'week', label: copy.salesOverTime.week, data: weekPoints },
-          ]}
-          seriesKey={`sales-${range.key}`}
-          seriesLabel={copy.salesOverTime.series}
-          formatValue={formatPaiseCompact}
-        />
+      <ChartCard
+        title={copy.salesOverTime.title}
+        subtitle={copy.salesOverTime.subtitle(
+          formatPaise(totalPaise),
+          copy.salesOverTime.spans[range.key],
+          best ? formatDay(best.label) : null,
+        )}
+        periods={[
+          { id: 'day', label: copy.salesOverTime.day, data: dayPoints },
+          { id: 'week', label: copy.salesOverTime.week, data: weekPoints },
+        ]}
+        seriesKey={`sales-${range.key}`}
+        seriesLabel={copy.salesOverTime.series}
+        formatValue={formatPaiseCompact}
+      />
+      <div className="grid grid-cols-1 items-stretch gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)]">
         <FunnelCard steps={data.funnel} />
-      </div>
-      <div className="grid grid-cols-1 items-stretch gap-5 lg:grid-cols-3">
         <TopProductsCard products={data.topProducts} />
+      </div>
+      <div className="grid grid-cols-1 items-stretch gap-6 lg:grid-cols-2">
         <BreakdownCard
           title={copy.byState.title}
           rows={toStateRows(data)}
@@ -128,6 +162,7 @@ export default function AnalyticsOverviewPage({
           empty={copy.paymentMethods.empty}
         />
       </div>
-    </PageBody>
+      <VisitorsSection range={range} />
+    </div>
   )
 }

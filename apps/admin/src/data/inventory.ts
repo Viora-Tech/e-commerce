@@ -36,6 +36,9 @@ export const REASON_LABELS: Record<string, string> = {
 
 export const inventoryContent = {
   heading: 'Inventory',
+  tabs: { all: 'All SKUs', out: 'Out of stock', low: 'Low stock' },
+  summary: (skus: number, out: number) =>
+    `${skus} ${skus === 1 ? 'SKU' : 'SKUs'} tracked · ${out} out of stock`,
   resource: { singular: 'SKU', plural: 'SKUs' },
   export: 'Export',
   location: 'Location',
@@ -148,6 +151,7 @@ export const locationsContent = {
 
 export const purchaseOrdersContent = {
   heading: 'Purchase orders',
+  summary: 'What you ordered from suppliers and what has arrived',
   resource: { singular: 'purchase order', plural: 'purchase orders' },
   create: 'Create purchase order',
   status: {
@@ -156,6 +160,7 @@ export const purchaseOrdersContent = {
     partially_received: 'Partially received',
     received: 'Received',
     closed: 'Closed',
+    cancelled: 'Cancelled',
   } satisfies Record<PurchaseOrderStatus, string>,
   tabs: { all: 'All' },
   tiles: {
@@ -203,10 +208,11 @@ export const purchaseOrderFormContent = {
   },
   lines: {
     heading: 'Products',
-    search: 'Search products to add',
+    add: 'Add products',
     empty: 'Add the variants you are ordering.',
     quantity: 'Quantity',
-    cost: 'Unit cost',
+    cost: 'Unit price',
+    hsn: 'HSN',
     received: 'Received',
     lineTotal: 'Total',
     remove: 'Remove',
@@ -216,9 +222,10 @@ export const purchaseOrderFormContent = {
     heading: 'Cost summary',
     subtotal: 'Subtotal',
     units: (n: number) => `${n} ${n === 1 ? 'unit' : 'units'}`,
-    shipping: 'Shipping',
-    tax: 'Taxes',
+    charges: 'Charges on this order',
+    chargesHint: 'Freight, duty and other bills, with their GST',
     total: 'Total',
+    converted: (code: string, rate: string) => `Goods in ${code} at ₹${rate}`,
   },
   notes: { heading: 'Notes', placeholder: 'Reference numbers, terms or anything else' },
   save: 'Save',
@@ -235,8 +242,38 @@ export const purchaseOrderFormContent = {
   closed: 'Purchase order closed',
   delete: 'Delete',
   deleted: 'Purchase order deleted',
-  locked: 'Received and closed purchase orders cannot be edited.',
-  headerOnly: 'Lines are locked once ordered. Supplier details and notes can still change.',
+  locked:
+    'Received, closed and cancelled purchase orders cannot be edited. Late bills can still be added as charges.',
+  headerOnly:
+    'Products, prices and currency are locked once ordered. Supplier details, exchange rate, HSN codes and notes can still change.',
+  cancel: 'Cancel order',
+  cancelled: 'Purchase order cancelled',
+  reopen: 'Reopen',
+  reopened: 'Purchase order reopened',
+  more: 'More actions',
+  print: 'Print',
+  download: 'Download PDF',
+  emailSupplier: 'Email to supplier',
+  email: {
+    title: 'Email to supplier',
+    body: 'The purchase order goes as a PDF from your store’s email address. Replies come back to you.',
+    to: 'Supplier email',
+    message: 'Message (optional)',
+    messagePlaceholder: 'Anything the supplier should know, like packing or labelling',
+    markOrdered: 'Also mark as ordered',
+    markOrderedHint: 'Units start showing as incoming at the destination.',
+    send: 'Send',
+    sending: 'Sending',
+    cancel: 'Cancel',
+    sent: (to: string) => `Purchase order sent to ${to}`,
+    sentOrdered: (to: string) => `Sent to ${to} and marked as ordered`,
+  },
+  confirmCancel: {
+    title: 'Cancel this purchase order?',
+    body: 'Nothing has arrived yet. It stops showing as incoming and stops sharing any shipment charges. You can reopen it later.',
+    confirm: 'Cancel order',
+    cancel: 'Keep it',
+  },
   unsaved: 'Unsaved purchase order',
   discard: 'Discard',
   confirmDelete: {
@@ -253,12 +290,19 @@ export const purchaseOrderFormContent = {
   },
   receiving: {
     title: 'Receive items',
-    body: 'Enter what arrived. Received units move from incoming to available at the destination.',
+    body: 'Enter what arrived. Accepted units go on hand at their landed cost; rejected units stop showing as incoming.',
+    accepted: 'Accept',
+    rejected: 'Reject',
+    costChange: (before: string, after: string) => `Cost ${before} → ${after}`,
+    costNew: (after: string) => `Cost becomes ${after}`,
+    tooMany: 'Accepted and rejected together cannot be more than what is outstanding',
     all: 'Receive all',
     outstanding: (n: number) => `${n} outstanding`,
     confirm: 'Receive',
     cancel: 'Cancel',
     done: (n: number) => `Received ${n} ${n === 1 ? 'unit' : 'units'}`,
+    doneRejected: (n: number, r: number) =>
+      `Received ${n} ${n === 1 ? 'unit' : 'units'}, rejected ${r}`,
     nothing: 'Enter at least one quantity',
     failed: 'Could not receive items',
   },
@@ -266,6 +310,7 @@ export const purchaseOrderFormContent = {
 
 export const transfersContent = {
   heading: 'Transfers',
+  summary: 'Stock you move between your locations',
   resource: { singular: 'transfer', plural: 'transfers' },
   create: 'Create transfer',
   status: {

@@ -1,44 +1,56 @@
 'use client'
 
+import type { TemplateKey } from '@commerce/core/theme'
+import { Plus } from '@commerce/ui/icons'
 import { cn } from '@commerce/ui/lib/utils'
+import { Button } from '@commerce/ui/shadcn/button'
 import { Puck } from '@puckeditor/core'
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
 import type { ReactNode } from 'react'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { customizeContent } from '@/data/customize'
+import { useCopy } from '@/hooks/use-copy'
 import { CHROME_PANEL } from '@/lib/customize-chrome'
 import type { InsertTarget } from '@/lib/customize-insert'
 import { InsertContext } from '@/lib/customize-insert-context'
+import type { ResourceKind } from '@/lib/customize-resource'
+import { EditorViewContext, useEditorViewState } from '@/lib/customize-view'
+import { type CanvasZoom, CanvasZoomContext, DEVICE_PX, fitZoom } from '@/lib/customize-zoom'
 import type { PreviewDevice } from '../theme-preview'
 import AddSectionDialog from './add-section-dialog'
 import AddSectionPanel from './add-section-panel'
+import AiPanel from './ai-panel'
 import CustomizeRail, { type RailPanel } from './customize-rail'
-import PanelHeader from './panel-header'
+import FullViewExit from './full-view-exit'
+import HelpPanel from './help-panel'
+import MediaPanel from './media-panel'
+import PageSettingsPanel from './page-settings-panel'
+import PanelIdentity from './panel-identity'
+import PanelTitle from './panel-title'
+import PanelToggle from './panel-toggle'
 import SectionInspector from './section-inspector'
-import SectionsTree from './sections-tree'
+import SectionsPanel from './sections-panel'
 
 type CustomizeLayoutProps = {
   topBar: ReactNode
   /** The Theme settings panel (presets and settings groups). */
   settings: ReactNode
+  /** The Pages panel: every page and template to jump between (`TemplateList`). */
+  pages: ReactNode
   /** Floating controls over the bottom of the canvas. */
   dock: ReactNode
   device: PreviewDevice
   loading: boolean
-}
-
-const DEVICE_WIDTH: Record<PreviewDevice, string> = {
-  desktop: 'w-full',
-  tablet: 'w-[48rem] max-w-full',
-  mobile: 'w-[24.375rem] max-w-full',
-}
-
-const panels = customizeContent.panels
-
-const PANEL_HEADERS: Record<RailPanel, { title: string; hint: string }> = {
-  sections: { title: panels.sections, hint: panels.sectionsHint },
-  add: { title: panels.add, hint: panels.addHint },
-  theme: { title: panels.theme, hint: panels.themeHint },
+  /** The store, for the rail's tile and the left panel's "<Store> · <Template>" heading. */
+  store: { id: string | null; name: string; domain: string; logoUrl: string | null }
+  /** The open template's name, as the page switcher shows it. */
+  templateLabel: string
+  /** The open template, for Page settings. */
+  template: TemplateKey
+  /** The product, collection or page previewed on the canvas, for Page settings. */
+  previewResource: { kind: ResourceKind; id: string | null; title: string | null } | null
+  /** The AI assistant is on for this store and member (the AI tab can chat). */
+  aiEnabled: boolean
 }
 
 /**
@@ -49,70 +61,203 @@ const PANEL_HEADERS: Record<RailPanel, { title: string; hint: string }> = {
 export default function CustomizeLayout({
   topBar,
   settings,
+  pages,
   dock,
   device,
   loading,
+  store,
+  templateLabel,
+  template,
+  previewResource,
+  aiEnabled,
 }: CustomizeLayoutProps) {
   // Hooks
   const [panel, setPanel] = useState<RailPanel>('sections')
+  const view = useEditorViewState()
   const [inserting, setInserting] = useState<InsertTarget | null>(null)
   const reducedMotion = useReducedMotion()
+  const panels = useCopy(customizeContent.panels)
+  const identity = useCopy(customizeContent.identity)
+  const [zoomMode, setZoomMode] = useState<CanvasZoom>('fit')
+  // The canvas area's inner size: Fit scales the page into its width, and the frame fills
+  // its height.
+  const [stage, setStage] = useState<HTMLDivElement | null>(null)
+  const [room, setRoom] = useState({ width: 0, height: 0 })
+  useEffect(() => {
+    if (!stage) return
+    const observer = new ResizeObserver(([entry]) => {
+      if (!entry) return
+      const { width, height } = entry.contentRect
+      setRoom((prev) => (prev.width === width && prev.height === height ? prev : { width, height }))
+    })
+    observer.observe(stage)
+    return () => observer.disconnect()
+  }, [stage])
+
+  // Event handlers
+  /** A rail tab opens the left panel if it was hidden. */
+  const openPanel = (next: RailPanel) => {
+    setPanel(next)
+    if (!view.left) view.setLeft(true)
+  }
 
   // Render logic
-  const panelContent =
-    panel === 'theme' ? settings : panel === 'add' ? <AddSectionPanel /> : <SectionsTree />
+  // Pages, AI and Theme settings draw their own head (each has its own action); Add opens on
+  // its switch.
+  const titles: Partial<Record<RailPanel, string>> = {
+    media: panels.media,
+    settings: panels.settings,
+    help: panels.help,
+  }
+  const title = titles[panel]
+  const content: Record<RailPanel, ReactNode> = {
+    add: <AddSectionPanel />,
+    ai: <AiPanel storeId={store.id} enabled={aiEnabled} />,
+    pages,
+    sections: <SectionsPanel onOpenTheme={() => setPanel('theme')} templateLabel={templateLabel} />,
+    media: <MediaPanel />,
+    theme: settings,
+    help: <HelpPanel />,
+    settings: (
+      <PageSettingsPanel
+        template={template}
+        templateLabel={templateLabel}
+        domain={store.domain}
+        resource={previewResource}
+        onOpenTheme={() => setPanel('theme')}
+      />
+    ),
+  }
+  const panelContent = content[panel]
+
+  const devicePx = DEVICE_PX[device]
+  const fit = fitZoom(devicePx, room.width)
+  const zoom = zoomMode === 'fit' ? fit : zoomMode
+  const zoomState = { zoom, mode: zoomMode, fit, devicePx, setMode: setZoomMode }
+  const resize = reducedMotion ? '' : 'duration-200 ease-out'
+  const showLeft = view.left && !view.full
+  const showRight = view.right && !view.full
 
   return (
-    <InsertContext.Provider value={setInserting}>
-      <div className="flex h-svh flex-col bg-sidebar">
-        {topBar}
-        <div className="flex min-h-0 flex-1 gap-2 px-2 pb-2">
-          <CustomizeRail active={panel} onChange={setPanel} />
-          <aside className={cn(CHROME_PANEL, 'w-[17.5rem]')}>
-            <PanelHeader title={PANEL_HEADERS[panel].title} hint={PANEL_HEADERS[panel].hint} />
-            <AnimatePresence mode="wait" initial={false}>
-              <motion.div
-                key={panel}
-                initial={reducedMotion ? false : { opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={reducedMotion ? undefined : { opacity: 0 }}
-                transition={{ duration: reducedMotion ? 0 : 0.15, ease: 'easeOut' }}
+    <EditorViewContext.Provider value={view}>
+      <CanvasZoomContext.Provider value={zoomState}>
+        <InsertContext.Provider value={setInserting}>
+          <div data-editor-chrome="" className="flex h-svh flex-col bg-sidebar">
+            {topBar}
+            <div className="flex min-h-0 flex-1 border-t border-border">
+              {view.full ? null : (
+                <CustomizeRail active={panel} onChange={openPanel} store={store} />
+              )}
+              <aside
+                hidden={!showLeft}
                 className={cn(
-                  'flex min-h-0 flex-1 flex-col',
-                  // The Add panel (AddSectionBrowser, `fill`) owns its own internal
-                  // scroll below a sticky search box and tabs — scrolling here too
-                  // would carry that header away with the list. Every other panel
-                  // (Sections tree, Theme settings) has no such header and still
-                  // wants this level to scroll.
-                  panel === 'add' ? 'overflow-hidden' : 'overflow-y-auto',
+                  CHROME_PANEL,
+                  'w-[19rem] border-r border-border',
+                  !showLeft && 'hidden',
                 )}
               >
-                {panelContent}
-              </motion.div>
-            </AnimatePresence>
-          </aside>
-          <main
-            id="main"
-            className="relative flex min-w-0 flex-1 justify-center rounded-xl border border-border/60 bg-muted/70 bg-[image:radial-gradient(var(--border)_1px,transparent_1px)] [background-size:1rem_1rem] px-4 pt-4 pb-16"
-          >
-            <div
-              className={cn(
-                'h-full overflow-hidden rounded-lg bg-card shadow-popover ring-1 ring-border',
-                !reducedMotion && 'transition-[width] duration-200 ease-out will-change-[width]',
-                DEVICE_WIDTH[device],
-                loading && 'pointer-events-none opacity-60 transition-opacity duration-200',
-              )}
-            >
-              <Puck.Preview />
+                {panel === 'add' || panel === 'sections' ? (
+                  <PanelIdentity
+                    title={identity.title(store.name, templateLabel)}
+                    domain={store.domain}
+                  />
+                ) : null}
+                {panel === 'sections' ? (
+                  <PanelTitle
+                    size="md"
+                    title={panels.sections}
+                    action={
+                      <Button variant="outline" onClick={() => setPanel('add')}>
+                        <Plus aria-hidden />
+                        {panels.addSection}
+                      </Button>
+                    }
+                  />
+                ) : null}
+                {title ? <PanelTitle title={title} /> : null}
+                <AnimatePresence mode="wait" initial={false}>
+                  <motion.div
+                    key={panel}
+                    initial={reducedMotion ? false : { opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={reducedMotion ? undefined : { opacity: 0 }}
+                    transition={{ duration: reducedMotion ? 0 : 0.15, ease: 'easeOut' }}
+                    className={cn(
+                      'flex min-h-0 flex-1 flex-col',
+                      // The Add panel sits in the panel's own 16px gutter (Figma 369:4899).
+                      panel === 'add' && 'px-4 pt-4',
+                      // The Add panel (AddSectionBrowser, `fill`) owns its own internal
+                      // scroll below a sticky search box and tabs — scrolling here too
+                      // would carry that header away with the list. Every other panel
+                      // (Sections tree, Theme settings) has no such header and still
+                      // wants this level to scroll.
+                      panel === 'add' || panel === 'pages' || panel === 'ai'
+                        ? 'overflow-hidden'
+                        : 'overflow-y-auto',
+                    )}
+                  >
+                    {panelContent}
+                  </motion.div>
+                </AnimatePresence>
+              </aside>
+              <main id="main" className="relative flex min-w-0 flex-1 bg-muted">
+                {/* The page is laid out at the device's real width and scaled (CSS transform) to
+                the zoom; the outer box takes the scaled size, so a zoom wider than the space
+                scrolls sideways. Inside the canvas everything keeps its own coordinates. */}
+                <div
+                  ref={setStage}
+                  data-canvas-stage=""
+                  className="flex min-h-0 min-w-0 flex-1 overflow-x-auto overflow-y-hidden px-6 pt-8 pb-16"
+                >
+                  <div
+                    style={{ width: devicePx * zoom, height: room.height }}
+                    className={cn(
+                      'mx-auto shrink-0 overflow-hidden rounded-[0.625rem] bg-card shadow-popover',
+                      resize && `transition-[width] ${resize}`,
+                      room.width === 0 && 'invisible',
+                      loading && 'pointer-events-none opacity-60 transition-opacity duration-200',
+                    )}
+                  >
+                    <div
+                      style={{
+                        width: devicePx,
+                        height: room.height / zoom,
+                        transform: `scale(${zoom})`,
+                      }}
+                      className={cn(
+                        'origin-top-left',
+                        resize && `transition-[width,transform] ${resize}`,
+                      )}
+                    >
+                      <Puck.Preview />
+                    </div>
+                  </div>
+                </div>
+                {view.full ? null : (
+                  <>
+                    {dock}
+                    <PanelToggle side="left" />
+                    <PanelToggle side="right" />
+                  </>
+                )}
+                <FullViewExit />
+              </main>
+              <aside
+                hidden={!showRight}
+                data-inspector=""
+                className={cn(
+                  CHROME_PANEL,
+                  'w-[21.25rem] border-l border-border',
+                  !showRight && 'hidden',
+                )}
+              >
+                <SectionInspector />
+              </aside>
             </div>
-            {dock}
-          </main>
-          <aside className={cn(CHROME_PANEL, 'w-[20.5rem]')}>
-            <SectionInspector settings={settings} />
-          </aside>
-        </div>
-      </div>
-      <AddSectionDialog target={inserting} onClose={() => setInserting(null)} />
-    </InsertContext.Provider>
+          </div>
+          <AddSectionDialog target={inserting} onClose={() => setInserting(null)} />
+        </InsertContext.Provider>
+      </CanvasZoomContext.Provider>
+    </EditorViewContext.Provider>
   )
 }

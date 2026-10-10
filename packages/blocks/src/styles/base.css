@@ -355,7 +355,7 @@ h6,
   line-height: 1.2;
 }
 
-/* Heading sizes are the Glide scale times the theme's heading scale (1 by default). */
+/* Heading sizes are the Zero Drift scale times the theme's heading scale (1 by default). */
 h1,
 .h1 {
   font-size: calc(2.5rem * var(--font-heading-scale, 1));
@@ -1665,7 +1665,7 @@ html.js .heading-rise.is-revealed .heading-rise__inner {
    above it, which reads whenever the announcement bar runs the dark
    scheme - the white page crests over it like a card. Modelled on the
    reference theme's section--rounded, where every section is a
-   top-rounded sheet stacking over the last while scrolling. Glide
+   top-rounded sheet stacking over the last while scrolling. Zero Drift
    applies it where a background edge exists to reveal it: the page itself,
    and panel-ground sections. --section-radius is 0px when the setting is
    off, so every rule below collapses harmlessly. */
@@ -1787,7 +1787,7 @@ main#MainContent {
 /* ── Light / dark / device toggle ────────────────────────────────────────
    Shared by the header and the footer instances. Three stacked glyphs, one
    per mode (sun = light, moon = dark, half disc = follow the device); the
-   button's data-mode picks which one shows. Glide's two-state toggle showed
+   button's data-mode picks which one shows. Zero Drift's two-state toggle showed
    the mode you would GET; with a third state that stops being readable, so
    the glyph names the mode in use and the label says what a click does. */
 .theme-toggle {

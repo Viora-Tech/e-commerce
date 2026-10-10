@@ -30,7 +30,10 @@ FROM installer AS builder
 # `next build` runs on Node, not Bun: Bun 1.3.11 segfaults mid-build on linux/arm64 (Graviton)
 # under memory pressure. `bun run` honours the `#!/usr/bin/env node` shebang once Node exists.
 # Build stage only; the runtime image is unchanged.
-RUN apk add --no-cache nodejs
+# icu-data-full: Alpine's nodejs ships English-only ICU data (icu-data-en), so Intl treats
+# en-IN as en-US ("01/14/2026", "1,234,567") and drops hi-IN, while browsers use the real
+# locale ("14/01/2026", "12,34,567"). Server and browser text then differ: React error #418.
+RUN apk add --no-cache nodejs icu-data-full
 COPY --from=pruner /repo/out/full/ .
 # turbo prune only copies workspace packages, not root-only files — packages/core imports
 # this one by relative path (see apps/docs/content/developer-docs/building/plugins.mdx).
@@ -49,7 +52,8 @@ RUN bun run build --filter=@commerce/storefront
 FROM base AS runner
 # The standalone Next server runs on Node: Bun 1.3.11 fails to load Next's compiled
 # server runtime ("Expected CommonJS module to have a function wrapper").
-RUN apk add --no-cache nodejs
+# icu-data-full: real en-IN/hi-IN formats on the server, see the builder stage (React #418).
+RUN apk add --no-cache nodejs icu-data-full
 WORKDIR /app
 RUN addgroup -S nodejs && adduser -S nextjs -G nodejs
 ENV NODE_ENV=production

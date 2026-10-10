@@ -1,12 +1,19 @@
-import { inventoryAdjustment, inventoryLevel, newId, sellableLevel, variant } from '@commerce/db'
+import {
+  inventoryAdjustment,
+  inventoryLevel,
+  newId,
+  primarySellingLevel,
+  variant,
+} from '@commerce/db'
 import { and, eq, sql } from 'drizzle-orm'
 import type { StoreContext } from '../context'
 
 /*
  * Stock an open order holds. Placing an order (or converting a draft) adds each
- * tracked line's quantity to `reserved` (shown as Committed) on the variant's
- * selling row, the one inventory_level row with fulfils_online. That row is the
- * location the order ships from, so everything here reads and writes it too.
+ * tracked line's quantity to `reserved` (shown as Committed) at the location it
+ * was reserved at, which becomes the order's parcel (fulfillment-orders.ts).
+ * Moves name that location; without one they fall back to the variant's
+ * primary selling row (`primarySellingLevel`), as before parcels.
  *
  * - Packing n units: on_hand and reserved both drop by n (the goods left).
  * - Cancelling: reserved drops by the unpacked remainder; on_hand is untouched.
@@ -16,7 +23,20 @@ import type { StoreContext } from '../context'
  * so a repeated request finds nothing left to move and calls in with zero.
  */
 
-export type StockMove = { variantId: string; quantity: number }
+export type StockMove = {
+  variantId: string
+  quantity: number
+  /** The parcel's location; omitted, the variant's primary selling row. */
+  locationId?: string | undefined
+}
+
+const levelOf = (move: StockMove) =>
+  and(
+    eq(inventoryLevel.variantId, move.variantId),
+    move.locationId
+      ? eq(inventoryLevel.locationId, move.locationId)
+      : primarySellingLevel(move.variantId),
+  )
 
 async function isTracked(ctx: StoreContext, variantId: string): Promise<boolean> {
   const [v] = await ctx.tx
@@ -37,7 +57,7 @@ export async function shipCommittedStock(ctx: StoreContext, move: StockMove): Pr
       onHand: sql`greatest(0, ${inventoryLevel.onHand} - ${move.quantity})`,
       reserved: sql`greatest(0, ${inventoryLevel.reserved} - ${move.quantity})`,
     })
-    .where(and(eq(inventoryLevel.variantId, move.variantId), sellableLevel))
+    .where(levelOf(move))
     .returning({ locationId: inventoryLevel.locationId })
   if (!level) return
   await ctx.tx.insert(inventoryAdjustment).values({
@@ -58,5 +78,5 @@ export async function releaseCommittedStock(ctx: StoreContext, move: StockMove):
   await ctx.tx
     .update(inventoryLevel)
     .set({ reserved: sql`greatest(0, ${inventoryLevel.reserved} - ${move.quantity})` })
-    .where(and(eq(inventoryLevel.variantId, move.variantId), sellableLevel))
+    .where(levelOf(move))
 }

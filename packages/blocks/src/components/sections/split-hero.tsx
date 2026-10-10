@@ -1,15 +1,18 @@
 // Pattern after shadcnblocks' split hero layouts (our own implementation). See THIRD_PARTY_NOTICES.md.
 
+import type { ReactNode } from 'react'
 import { focalStyle } from '../../focal-point'
 import { linkTarget } from '../../link'
 import type { Image, Link } from '../../sections/framed'
 import { safeHref } from '../../slot-types'
 import Picture from '../picture'
+import RichCopy from '../rich-copy'
 
+/** Copy is a string in storage, a React node while edited on the canvas. */
 type SplitHeroProps = {
-  eyebrow: string
-  heading: string
-  text: string
+  eyebrow: ReactNode
+  heading: ReactNode
+  text: ReactNode
   button: Link
   image: Image
   imageFirst: boolean
@@ -38,7 +41,7 @@ export default function SplitHero({
           </p>
         ) : null}
         {heading ? <h1 className="h1 text-[var(--color-ink)]">{heading}</h1> : null}
-        {text ? <p className="text-body mt-[1rem] text-[var(--color-muted)]">{text}</p> : null}
+        <RichCopy value={text} className="text-body mt-[1rem] text-[var(--color-muted)]" />
         {button?.label ? (
           <a
             className="btn btn--primary mt-[1.5rem] inline-flex"

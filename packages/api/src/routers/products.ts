@@ -1,4 +1,7 @@
 import {
+  BULK_EDIT_MAX,
+  BulkEditInputSchema,
+  bulkEdit,
   bulkUpdateProducts,
   createProduct,
   deleteProduct,
@@ -19,18 +22,19 @@ import {
 import { ORPCError } from '@orpc/server'
 import { z } from 'zod'
 import { BULK_MAX, can, heavy, PAGE_SIZE_MAX, SEARCH_MAX } from '../procedures'
+import { loadBulkEditSheet } from '../services/bulk-edit.service'
 import {
   getProduct,
   listProductHandles,
   listProductIds,
   listProducts,
-  productAdjustments,
+  pickProducts,
   productFacets,
-  productStats,
   searchVariants,
   updateProduct,
   updateVariant,
 } from '../services/product.service'
+import { productAdjustments, productStats } from '../services/product-stats.service'
 
 const ListFiltersSchema = z.object({
   search: z.string().trim().max(SEARCH_MAX).optional(),
@@ -75,6 +79,19 @@ export const productsRouter = {
     .handler(({ context, input }) => getProduct(context.tx, input.id)),
 
   facets: can(permissions.PRODUCTS_READ).handler(({ context }) => productFacets(context.tx)),
+
+  /** Rows for the shared "Select products" dialog, variants included. */
+  pick: can(permissions.PRODUCTS_READ)
+    .input(
+      z.object({
+        search: z.string().trim().max(SEARCH_MAX).optional(),
+        collectionId: z.uuid().optional(),
+        productType: z.string().trim().max(100).optional(),
+        status: ProductStatusSchema.optional(),
+        limit: z.number().int().min(1).max(50).default(30),
+      }),
+    )
+    .handler(({ context, input }) => pickProducts(context.tx, input)),
 
   /** Variant picker for the draft order editor. */
   searchVariants: can(permissions.PRODUCTS_READ)
@@ -124,6 +141,29 @@ export const productsRouter = {
       }),
     )
     .handler(({ context, input }) => bulkUpdateProducts(context.tx, input.ids, input.action)),
+
+  /** The bulk editor's sheet: every live variant of the chosen products, with stock per location. */
+  bulkEditSheet: can(permissions.PRODUCTS_READ)
+    .input(z.object({ ids: z.array(z.uuid()).min(1).max(BULK_EDIT_MAX) }))
+    .handler(({ context, input }) => loadBulkEditSheet(context.tx, input.ids)),
+
+  /**
+   * One save for the whole sheet: every row is checked first, then all of it is written in one
+   * transaction, or none of it, with per-row errors. Stock cells also need inventory access.
+   */
+  bulkEdit: can(permissions.PRODUCTS_WRITE)
+    .use(heavy('bulk'))
+    .input(BulkEditInputSchema)
+    .handler(({ context, input }) => {
+      if (input.rows.some((r) => r.stock) && !context.scope.can(permissions.INVENTORY_WRITE)) {
+        throw new ORPCError('FORBIDDEN', { message: 'Your role cannot change stock.' })
+      }
+      return bulkEdit(context.tx, context.scope.storeId, input.rows).then(async (result) => {
+        /* A title, type, vendor, tag or price edit can move a product in or out of an automatic collection. */
+        if (result.ok) await syncAutomaticCollections(context.tx, context.scope.storeId)
+        return result
+      })
+    }),
 
   duplicate: can(permissions.PRODUCTS_WRITE)
     .input(z.object({ id: z.uuid() }))
@@ -193,7 +233,9 @@ export const productsRouter = {
         status: ProductStatusSchema.optional(),
       }),
     )
-    .handler(({ context, input: { id, ...patch } }) => updateProduct(context.tx, id, patch)),
+    .handler(({ context, input: { id, ...patch } }) =>
+      updateProduct(context.tx, context.scope.storeId, id, patch),
+    ),
 
   updateVariant: can(permissions.INVENTORY_WRITE)
     .input(

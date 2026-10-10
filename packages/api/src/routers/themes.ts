@@ -1,5 +1,6 @@
 import { settingsSecret } from '@commerce/config'
 import {
+  ALTERNATE_KINDS,
   commitTemplateDrafts,
   createTemplateAlternate,
   createThemeFromPreset,
@@ -10,32 +11,47 @@ import {
   duplicateTheme,
   ensureMainTheme,
   getTheme,
+  importedSectionCounts,
   importedThemeIds,
   listCustomSections,
   listTemplates,
   listThemes,
+  listThemeVersions,
+  loadLoopCatalog,
+  loadLoopValues,
   loadSourceCatalog,
   loadSourceValues,
   loadTemplate,
   permissions,
+  previewCollectionProducts,
   publishTheme,
   renameCustomSection,
+  renameTemplateAlternate,
   renameTheme,
+  restoreThemeVersion,
   SECTION_GROUPS,
+  SETTING_KINDS,
   saveCustomSection,
   saveTemplateDraft,
+  setThemeThumbnail,
   signThemePreviewToken,
+  snapshotTheme,
   TEMPLATE_KINDS,
   TEMPLATE_SUFFIX,
   THEME_PRESET_IDS,
   ThemeLibraryError,
   type ThemeRecord,
   ThemeSchema,
+  templateAssignments,
+  themesWithDrafts,
+  touchTheme,
   updateThemeSettings,
 } from '@commerce/core'
 import { ORPCError } from '@orpc/server'
 import { z } from 'zod'
-import { can } from '../procedures'
+import { can, heavy } from '../procedures'
+import { storeRegistries } from '../services/apps.service'
+import { storageProviderFor } from '../services/media.service'
 import {
   importThemeZip,
   liquidEditorInfo,
@@ -43,6 +59,12 @@ import {
   themeImportReport,
 } from '../services/theme-import.service'
 import { themePreviewContext } from '../services/theme-preview.service'
+import {
+  decodeThumbnail,
+  InvalidThumbnail,
+  THUMBNAIL_DATA_URL_MAX,
+  uploadThumbnail,
+} from '../services/theme-thumbnail.service'
 
 const IdInput = z.object({ id: z.string().uuid() })
 
@@ -100,9 +122,22 @@ const templatesRouter = {
   commit: can(permissions.ONLINE_STORE_WRITE)
     .input(z.object({ themeId: z.string().uuid() }))
     .handler(({ context, input }) =>
-      libraryErrors(async () => ({
-        saved: await commitTemplateDrafts(context.tx, input.themeId),
-      })),
+      libraryErrors(async () => {
+        const saved = await commitTemplateDrafts(context.tx, input.themeId)
+        if (saved > 0) {
+          await touchTheme(context.tx, input.themeId, savedBy(context))
+          // Saving the live theme is what shoppers see next: remember it in the history.
+          const current = await getTheme(context.tx, input.themeId)
+          if (current?.role === 'main') {
+            await snapshotTheme(context.tx, context.scope.storeId, {
+              themeId: input.themeId,
+              reason: 'save',
+              by: savedBy(context),
+            })
+          }
+        }
+        return { saved }
+      }),
     ),
 
   /** Dynamic sources a template's settings can connect to (the editor's picker). */
@@ -127,6 +162,35 @@ const templatesRouter = {
       }),
     ),
 
+  /** What a list (loop) can read: storefront-visible content types with their fields, collections. */
+  loopSources: can(permissions.ONLINE_STORE_READ).handler(({ context }) =>
+    loadLoopCatalog(context.tx),
+  ),
+
+  /** Sample rows for the Customize preview of lists bound to store data. */
+  loopValues: can(permissions.ONLINE_STORE_READ)
+    .input(
+      z.object({
+        loops: z
+          .array(
+            z.object({
+              source: z.string().max(260),
+              limit: z.number().int().min(1).max(50),
+              map: z.record(
+                z.string().max(64),
+                z.object({ from: z.string().max(64), kind: z.enum(SETTING_KINDS) }),
+              ),
+            }),
+          )
+          .max(20),
+      }),
+    )
+    .handler(({ context, input }) =>
+      loadLoopValues(context.tx, input.loops, {
+        collectionProducts: (handle, limit) => previewCollectionProducts(context.tx, handle, limit),
+      }),
+    ),
+
   discard: can(permissions.ONLINE_STORE_WRITE)
     .input(z.object({ themeId: z.string().uuid() }))
     .handler(async ({ context, input }) => {
@@ -138,6 +202,25 @@ const templatesRouter = {
     .input(TemplateRef.extend({ basedOn: z.string().regex(TEMPLATE_SUFFIX).optional() }))
     .handler(({ context, input }) =>
       libraryErrors(() => createTemplateAlternate(context.tx, context.scope.storeId, input)),
+    ),
+
+  /** How many products, collections, pages, blogs and posts use each alternate (store-wide). */
+  assignments: can(permissions.ONLINE_STORE_READ).handler(({ context }) =>
+    templateAssignments(context.tx),
+  ),
+
+  /** Renames an alternate of this theme; resources assigned to it follow (`moved`). */
+  rename: can(permissions.ONLINE_STORE_WRITE)
+    .input(
+      z.object({
+        themeId: z.string().uuid(),
+        template: z.enum(ALTERNATE_KINDS),
+        from: z.string().regex(TEMPLATE_SUFFIX),
+        to: z.string().regex(TEMPLATE_SUFFIX),
+      }),
+    )
+    .handler(({ context, input }) =>
+      libraryErrors(async () => ({ moved: await renameTemplateAlternate(context.tx, input) })),
     ),
 
   delete: can(permissions.ONLINE_STORE_WRITE)
@@ -216,7 +299,9 @@ const LiquidSectionInput = z.object({
  * import report, and the Customize canvas's renders of its Liquid sections.
  */
 const importRouter = {
+  // The store's import budget (`heavy`): an import unpacks a zip and downloads its files.
   shopify: can(permissions.ONLINE_STORE_WRITE)
+    .use(heavy('import'))
     .input(
       z.object({
         file: z
@@ -234,7 +319,10 @@ const importRouter = {
         const result = await importThemeZip(context.tx, storeId, input)
         const created = await getTheme(context.tx, result.themeId)
         if (!created) throw new ORPCError('NOT_FOUND', { message: 'Theme not found' })
-        return { theme: present(storeId, created, true), report: result.report }
+        return {
+          theme: await presentOne(context.tx, storeId, created),
+          report: result.report,
+        }
       }),
     ),
 
@@ -273,31 +361,75 @@ async function libraryErrors<T>(fn: () => Promise<T>): Promise<T> {
   }
 }
 
+/** What the library shows beside a theme beyond its row: unsaved edits and imported sections. */
+type ThemeFacts = { imported: boolean; hasDraft: boolean; sectionCount: number | null }
+
+const NO_FACTS: ThemeFacts = { imported: false, hasDraft: false, sectionCount: null }
+
 /**
  * A theme as the admin sees it, with a signed token that lets the storefront render
  * exactly this theme (for the library thumbnail, the Preview button and the editor).
  */
-function present(storeId: string, t: ThemeRecord, imported = false) {
+function present(storeId: string, t: ThemeRecord, facts: ThemeFacts = NO_FACTS) {
   return {
     ...t,
     /** Imported from a Shopify theme zip: renders through the Liquid engine, has a report. */
-    imported,
+    imported: facts.imported,
+    /** Customize holds edits that are not saved yet. */
+    hasDraft: facts.hasDraft,
+    /** Liquid sections an imported theme brought; null for our own (they share one library). */
+    sectionCount: facts.sectionCount,
     previewToken: signThemePreviewToken({ secret: settingsSecret(), storeId, themeId: t.id }),
   }
 }
 
-/** `present`, with the imported flag read for this one theme. */
-async function presentOne(
-  tx: Parameters<typeof importedThemeIds>[0],
-  storeId: string,
-  t: ThemeRecord,
-) {
-  return present(storeId, t, (await importedThemeIds(tx)).has(t.id))
+type LibraryTx = Parameters<typeof importedThemeIds>[0]
+
+/** The facts for every theme of the store, read once for a whole list. */
+async function libraryFacts(tx: LibraryTx): Promise<(id: string) => ThemeFacts> {
+  const [imported, drafts, counts] = await Promise.all([
+    importedThemeIds(tx),
+    themesWithDrafts(tx),
+    importedSectionCounts(tx),
+  ])
+  return (id) => ({
+    imported: imported.has(id),
+    hasDraft: drafts.has(id),
+    sectionCount: counts.get(id) ?? null,
+  })
+}
+
+/** `present`, with the facts read for this one theme. */
+async function presentOne(tx: LibraryTx, storeId: string, t: ThemeRecord) {
+  return present(storeId, t, (await libraryFacts(tx))(t.id))
+}
+
+/** The member saving, as "Last saved by" shows them: their name, else their email. */
+const savedBy = (context: { session: { user: { name?: string | null; email: string } } }) =>
+  context.session.user.name?.trim() || context.session.user.email
+
+/**
+ * Version history (`@commerce/core` theme/versions): what went live, newest first, and
+ * restoring one into the drafts. Restore never publishes.
+ */
+const versionsRouter = {
+  list: can(permissions.ONLINE_STORE_READ)
+    .input(z.object({ themeId: z.string().uuid() }))
+    .handler(({ context, input }) => listThemeVersions(context.tx, input.themeId)),
+
+  restore: can(permissions.ONLINE_STORE_WRITE)
+    .input(z.object({ themeId: z.string().uuid(), batchId: z.string().uuid() }))
+    .handler(({ context, input }) =>
+      libraryErrors(async () => ({
+        restored: await restoreThemeVersion(context.tx, context.scope.storeId, input),
+      })),
+    ),
 }
 
 /** Online Store › Themes: the library, Shopify style. One theme is live (`main`). */
 export const themesRouter = {
   templates: templatesRouter,
+  versions: versionsRouter,
   customSections: customSectionsRouter,
   import: importRouter,
 
@@ -305,8 +437,8 @@ export const themesRouter = {
     const { storeId } = context.scope
     await ensureMainTheme(context.tx, storeId)
     const themes = await listThemes(context.tx)
-    const imported = await importedThemeIds(context.tx)
-    return themes.map((t) => present(storeId, t, imported.has(t.id)))
+    const facts = await libraryFacts(context.tx)
+    return themes.map((t) => present(storeId, t, facts(t.id)))
   }),
 
   get: can(permissions.ONLINE_STORE_READ)
@@ -314,8 +446,7 @@ export const themesRouter = {
     .handler(async ({ context, input }) => {
       const found = await getTheme(context.tx, input.id)
       if (!found) throw new ORPCError('NOT_FOUND', { message: 'Theme not found' })
-      const imported = await importedThemeIds(context.tx)
-      return present(context.scope.storeId, found, imported.has(found.id))
+      return presentOne(context.tx, context.scope.storeId, found)
     }),
 
   create: can(permissions.ONLINE_STORE_WRITE)
@@ -324,7 +455,7 @@ export const themesRouter = {
       libraryErrors(async () =>
         present(
           context.scope.storeId,
-          await createThemeFromPreset(context.tx, context.scope.storeId, input),
+          await createThemeFromPreset(context.tx, context.scope.storeId, input, savedBy(context)),
         ),
       ),
     ),
@@ -336,7 +467,7 @@ export const themesRouter = {
         presentOne(
           context.tx,
           context.scope.storeId,
-          await updateThemeSettings(context.tx, input.id, input.settings),
+          await updateThemeSettings(context.tx, input.id, input.settings, savedBy(context)),
         ),
       ),
     ),
@@ -348,7 +479,7 @@ export const themesRouter = {
         presentOne(
           context.tx,
           context.scope.storeId,
-          await renameTheme(context.tx, input.id, input.name),
+          await renameTheme(context.tx, input.id, input.name, savedBy(context)),
         ),
       ),
     ),
@@ -360,18 +491,58 @@ export const themesRouter = {
         presentOne(
           context.tx,
           context.scope.storeId,
-          await duplicateTheme(context.tx, context.scope.storeId, input.id),
+          await duplicateTheme(context.tx, context.scope.storeId, input.id, savedBy(context)),
         ),
       ),
+    ),
+
+  /**
+   * The home page picture Customize takes on Save (a webp data URL, see
+   * theme-thumbnail.service). Not a save itself: the theme's "Last saved" stays put.
+   */
+  thumbnail: can(permissions.ONLINE_STORE_WRITE)
+    .input(z.object({ id: z.string().uuid(), image: z.string().max(THUMBNAIL_DATA_URL_MAX) }))
+    .handler(({ context, input }) =>
+      libraryErrors(async () => {
+        let bytes: Uint8Array
+        try {
+          bytes = decodeThumbnail(input.image)
+        } catch (err) {
+          if (err instanceof InvalidThumbnail) {
+            throw new ORPCError('BAD_REQUEST', { message: err.message })
+          }
+          throw err
+        }
+        // Read under RLS first: another store's theme id never reaches storage.
+        if (!(await getTheme(context.tx, input.id))) {
+          throw new ORPCError('NOT_FOUND', { message: 'Theme not found' })
+        }
+        const { storeId } = context.scope
+        const { storage: registry } = await storeRegistries(context.tx, storeId)
+        const storage = await storageProviderFor(context.tx, storeId, registry, settingsSecret())
+        const url = await uploadThumbnail(storage, { storeId, themeId: input.id, bytes })
+        await setThemeThumbnail(context.tx, input.id, url)
+        return { url }
+      }),
     ),
 
   /** Making a theme live is its own permission, as Shopify separates edit and publish. */
   publish: can(permissions.ONLINE_STORE_PUBLISH)
     .input(IdInput)
     .handler(({ context, input }) =>
-      libraryErrors(async () =>
-        presentOne(context.tx, context.scope.storeId, await publishTheme(context.tx, input.id)),
-      ),
+      libraryErrors(async () => {
+        const wasLive = (await getTheme(context.tx, input.id))?.role === 'main'
+        const live = await publishTheme(context.tx, input.id)
+        // Publishing the theme that is already live changes nothing, so it adds no version.
+        if (!wasLive) {
+          await snapshotTheme(context.tx, context.scope.storeId, {
+            themeId: live.id,
+            reason: 'publish',
+            by: savedBy(context),
+          })
+        }
+        return presentOne(context.tx, context.scope.storeId, live)
+      }),
     ),
 
   delete: can(permissions.ONLINE_STORE_WRITE)

@@ -1,5 +1,6 @@
 'use client'
 
+import { siteConfig } from '@commerce/config/site'
 import { Store, Upload } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Card, CardContent } from '@commerce/ui/shadcn/card'
@@ -16,7 +17,6 @@ import RunStatusLabel from './run-status-label'
 import { type RunListItem, totals } from './types'
 
 const base = shopifyImportContent.base
-const PER_PAGE = 20
 
 const columnsFor = (
   all: typeof shopifyImportContent,
@@ -81,13 +81,14 @@ export default function ImportsPage() {
   const all = useCopy(shopifyImportContent)
   const fmt = useFormat()
   const [page, setPage] = useState(1)
+  const [perPage, setPerPage] = useState<number>(siteConfig.ui.rowsPerPage.default)
   const [data, setData] = useState<{ items: RunListItem[]; total: number } | null>(null)
   const [shop, setShop] = useState<string | null | undefined>(undefined)
 
   useEffect(() => {
     let live = true
     const load = () =>
-      api.shopifyImport.runs({ page, perPage: PER_PAGE }).then((next) => {
+      api.shopifyImport.runs({ page, perPage }).then((next) => {
         if (live) setData(next)
       })
     load().catch(() => {})
@@ -99,7 +100,7 @@ export default function ImportsPage() {
       live = false
       clearInterval(timer)
     }
-  }, [page])
+  }, [page, perPage])
 
   useEffect(() => {
     api.shopifyImport
@@ -166,7 +167,11 @@ export default function ImportsPage() {
         query=""
         onQueryChange={() => {}}
         page={page}
-        perPage={PER_PAGE}
+        perPage={perPage}
+        onPerPageChange={(next) => {
+          setPerPage(next)
+          setPage(1)
+        }}
         total={data?.total ?? 0}
         onPageChange={setPage}
         selectable={false}

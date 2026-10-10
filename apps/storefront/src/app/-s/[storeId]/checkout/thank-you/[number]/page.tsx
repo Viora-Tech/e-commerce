@@ -1,10 +1,13 @@
 import { loadEnv } from '@commerce/config'
 import {
   payPath as buildPayPath,
+  canViewOrder,
   GIFT_CARD_PROVIDER,
   installedApps,
+  orderParcelsView,
   orderViewToken,
   storeCheckoutLook,
+  storefrontOriginFor,
   variantImageUrls,
   verifyOrderViewToken,
 } from '@commerce/core'
@@ -18,6 +21,7 @@ import CheckoutBalance from '@/components/checkout/checkout-balance'
 import ThankYouTemplate from '@/components/checkout/thank-you'
 import { currentCustomer } from '@/lib/customer-session'
 import { db } from '@/lib/db'
+import { shopperParcels } from '@/lib/parcels'
 import { balanceView, storePreorderPolicy } from '@/lib/preorder'
 import { inStore } from '@/lib/store-context'
 
@@ -88,6 +92,7 @@ export default async function ThankYouPage({ params, searchParams }: Params) {
       images,
       look,
       shipTo: shipTo ?? null,
+      parcels: shopperParcels(await orderParcelsView(tx, o.id)),
     }
   })
 
@@ -99,16 +104,28 @@ export default async function ThankYouPage({ params, searchParams }: Params) {
       storeId,
       inStore: (fn) => withStore(db(), storeId, fn),
       settingsSecret: env.SETTINGS_SECRET,
-      storefrontUrl: env.STOREFRONT_URL ?? null,
+      // Links apps build open on this store's own domain (STOREFRONT_URL is the fallback).
+      storefrontUrl: await inStore(storeId, (tx) =>
+        storefrontOriginFor(tx, storeId, env.STOREFRONT_URL),
+      ),
       surface: 'storefront',
     },
     data.order.id,
   )
-  // Reuses the incoming token when there was one, so "Pay now" doesn't mint a
-  // fresh token on every render; a signed-in owner without one gets a new one.
-  const payToken = token ?? orderViewToken(data.order.id, env.SETTINGS_SECRET)
+  // Reuses the incoming token when it is valid for this order, so "Pay now" doesn't mint a
+  // fresh token on every render; a signed-in owner without one (or with a stale one) gets a
+  // new one. The page's actions prove access with it (`lib/order-access.ts`).
+  const tokenFits =
+    !!token &&
+    canViewOrder(
+      { id: data.order.id, customerId: null },
+      { customerId: null, token },
+      env.SETTINGS_SECRET,
+    )
+  const payToken = tokenFits ? token : orderViewToken(data.order.id, env.SETTINGS_SECRET)
   return (
     <ThankYouTemplate
+      viewToken={payToken}
       order={data.order}
       lines={data.lines}
       payment={data.pay}
@@ -118,10 +135,12 @@ export default async function ThankYouPage({ params, searchParams }: Params) {
       look={data.look}
       images={data.images}
       shipTo={data.shipTo}
+      parcels={data.parcels}
       balance={
         data.balance ? (
           <CheckoutBalance
             orderNumber={data.order.number}
+            viewToken={payToken}
             balance={data.balance}
             session={data.balanceAttempt?.checkoutSession as CheckoutSession | null | undefined}
           />

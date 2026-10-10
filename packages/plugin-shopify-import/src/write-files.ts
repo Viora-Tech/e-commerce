@@ -7,6 +7,7 @@
  */
 import { isAllowedContentType } from '@commerce/storage'
 import type { LeftBehindReason } from './client'
+import { IMPORT_VIDEO_MAX_BYTES, sizeText } from './limits'
 import { mediaSourceKey } from './media'
 import { errorMessage, findMapping, type ImportContext, saveMapping } from './runtime'
 import type { NFile } from './types'
@@ -56,7 +57,7 @@ function whyNotHostable(f: NFile): Exclude<HostedFile, { ok: true }> | null {
       : {
           ok: false,
           reason: 'video_too_large',
-          message: 'Every mp4 copy of this video is over the 100 MB limit',
+          message: `Every mp4 copy of this video is over the ${sizeText(IMPORT_VIDEO_MAX_BYTES)} limit`,
         }
   }
   if (!f.url) {
@@ -73,6 +74,16 @@ function whyNotHostable(f: NFile): Exclude<HostedFile, { ok: true }> | null {
   return null
 }
 
+/**
+ * Records the file's Shopify name (`intro.mp4`) against our media row (resource
+ * `file_name`), so a theme import that refers to `shopify://files/videos/intro.mp4`
+ * reuses this copy instead of downloading it again.
+ */
+async function saveFileName(ctx: ImportContext, f: NFile, mediaId: string): Promise<void> {
+  const name = f.filename?.trim().toLowerCase()
+  if (name) await ctx.inStore((tx) => saveMapping(tx, ctx.storeId, 'file_name', name, mediaId))
+}
+
 /** Our media id for a Shopify file, copying it once. Throws when the download fails. */
 export async function hostShopifyFile(ctx: ImportContext, f: NFile): Promise<HostedFile> {
   const why = whyNotHostable(f)
@@ -83,11 +94,15 @@ export async function hostShopifyFile(ctx: ImportContext, f: NFile): Promise<Hos
   const existing = await ctx.inStore((tx) => findMapping(tx, 'files', f.sourceId))
   if (existing) {
     const url = await ctx.media.urlOf(existing)
-    if (url) return { ok: true, mediaId: existing }
+    if (url) {
+      await saveFileName(ctx, f, existing)
+      return { ok: true, mediaId: existing }
+    }
   }
   const mediaId = await ctx.media.host(f.url as string, f.alt)
   if (!mediaId) throw new Error('the file could not be copied')
   await ctx.inStore((tx) => saveMapping(tx, ctx.storeId, 'files', f.sourceId, mediaId))
+  await saveFileName(ctx, f, mediaId)
   return { ok: true, mediaId }
 }
 

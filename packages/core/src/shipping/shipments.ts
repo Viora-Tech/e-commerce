@@ -1,8 +1,9 @@
-import { address, order, orderLine, shipment, store, variant } from '@commerce/db'
+import { address, fulfillmentOrder, order, orderLine, shipment, store, variant } from '@commerce/db'
 import { ASSUMED_WEIGHT_GRAMS, type ShippingProvider, type Tracking } from '@commerce/shipping'
 import { eq, inArray } from 'drizzle-orm'
 import type { StoreContext } from '../context'
 import { fulfilRemainingLines } from '../order/fulfil'
+import { ensureFulfillmentOrders, soleFulfillmentOrder } from '../order/fulfillment-orders'
 import { recomputeOrderStatuses } from '../order/recompute'
 import { insertOutboxEvent } from '../outbox/write'
 import { recordRtoForShipment } from '../returns/rto'
@@ -76,9 +77,19 @@ export async function createShipmentForOrder(
     .from(orderLine)
     .leftJoin(variant, eq(variant.id, orderLine.variantId))
     .where(eq(orderLine.orderId, orderId))
-  // The location the goods sell from when it has courier pickup on, else Settings › Shipping.
+  /* The parcel's location (the order's, when it ships whole) when it has courier pickup on,
+     else Settings › Shipping. */
+  await ensureFulfillmentOrders(ctx, o.id)
+  const parcelId = await soleFulfillmentOrder(ctx, o.id)
+  const [parcel] = parcelId
+    ? await ctx.tx
+        .select({ locationId: fulfillmentOrder.locationId })
+        .from(fulfillmentOrder)
+        .where(eq(fulfillmentOrder.id, parcelId))
+    : []
   const shipFrom = await shipFromFor(ctx.tx, {
     taxOrigin: o.taxOrigin,
+    locationId: parcel?.locationId,
     settings,
     storeName: s?.name ?? '',
   })
@@ -131,11 +142,13 @@ export async function createShipmentForOrder(
     weightGrams,
   })
 
+  // The whole order goes in this consignment: it carries the order's parcel when it has one.
   const [row] = await ctx.tx
     .insert(shipment)
     .values({
       storeId: ctx.storeId,
       orderId: o.id,
+      fulfillmentOrderId: parcelId,
       provider: provider.id,
       waybill: result.waybill,
       providerRef: result.providerRef ?? null,
@@ -146,6 +159,8 @@ export async function createShipmentForOrder(
       heightCm: parcelPackage?.heightCm ?? null,
       insured,
       declaredValuePaise: o.totalPaise,
+      // What the courier charges, when its booking said; the merchant can type it otherwise.
+      courierChargePaise: result.chargePaise ?? null,
     })
     .returning()
   if (!row) throw new Error('could not record shipment')

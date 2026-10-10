@@ -1,7 +1,7 @@
 /** SOURCE OF TRUTH: rendering an imported Shopify theme — WHAT: the section, theme-block and layout renders the storefront and the editor canvas call (synchronous passes over the request's data cache), Shopify's section wrappers and the layout split around `<main>` / WHY: every imported section, on every page and in Customize, renders through this one path */
 import { parsed, type ThemeBundle } from './bundle'
 import type { FontDrop } from './drops'
-import type { EngineRuntime } from './engine'
+import { type EngineRuntime, renderBounded } from './engine'
 import { escapeAttr } from './filters'
 import type { LiquidPageContext, LiquidSectionInput } from './page-context'
 import type { ShopifySectionSchema } from './schema'
@@ -99,10 +99,12 @@ export async function renderLiquidSection(
     const runtime = withHooks(ctx)
     const tpl = parsed(ctx.entry, `sections/${section.type}.liquid`, def.source)
     return await renderUntilComplete(ctx, () =>
-      ctx.entry.engine.renderSync(
+      renderBounded(
+        ctx.entry.engine,
+        ctx.budget,
         tpl,
         { section: sectionObject(ctx, section) },
-        { globals: { ...ctx.globals, _rt: runtime } },
+        { ...ctx.globals, _rt: runtime },
       ),
     )
   } catch (err) {
@@ -128,10 +130,12 @@ function withHooks(ctx: LiquidPageContext): EngineRuntime {
       }
       const wrapper = sectionWrapper(ctx.bundle, section)
       const tpl = parsed(ctx.entry, `sections/${type}.liquid`, def.source)
-      const html = ctx.entry.engine.renderSync(
+      const html = renderBounded(
+        ctx.entry.engine,
+        ctx.budget,
         tpl,
         { section: sectionObject(ctx, section) },
-        { globals: { ...ctx.globals, _rt: withHooks(ctx) } },
+        { ...ctx.globals, _rt: withHooks(ctx) },
       )
       return `<${wrapper.tag} id="${wrapper.id}" class="${wrapper.className}">${html}</${wrapper.tag}>`
     },
@@ -140,7 +144,7 @@ function withHooks(ctx: LiquidPageContext): EngineRuntime {
       const def = b.type ? ctx.bundle.blocks.get(b.type) : undefined
       if (!def || !b.type) return ''
       const tpl = parsed(ctx.entry, `blocks/${b.type}.liquid`, def.source)
-      return ctx.entry.engine.renderSync(tpl, { block, section }, { globals: liquidCtx.globals })
+      return renderBounded(ctx.entry.engine, ctx.budget, tpl, { block, section }, liquidCtx.globals)
     },
   }
 }
@@ -179,9 +183,14 @@ export type LiquidLayoutParts = {
   fonts: FontDrop[]
 }
 
+/** Longest attribute text read from `<html>`, `<body>` or `<main>`; real ones are a few hundred. */
+const ATTRS_MAX = 10_000
+
 function attrsOf(tag: string): Record<string, string> {
   const out: Record<string, string> = {}
-  for (const m of tag.matchAll(/([\w:-]+)(?:\s*=\s*("([^"]*)"|'([^']*)'|([^\s"'>]+)))?/g)) {
+  for (const m of tag
+    .slice(0, ATTRS_MAX)
+    .matchAll(/([\w:-]+)(?:\s*=\s*("([^"]*)"|'([^']*)'|([^\s"'>]+)))?/g)) {
     const name = m[1]?.toLowerCase()
     if (!name || name === 'html' || name === 'body' || name === 'main') continue
     out[name] = m[3] ?? m[4] ?? m[5] ?? ''
@@ -189,8 +198,66 @@ function attrsOf(tag: string): Record<string, string> {
   return out
 }
 
-/** Head tags the storefront writes itself: SEO and the viewport. */
-const OWN_HEAD = /<title[\s\S]*?<\/title>|<meta\b[^>]*>|<link\b[^>]*rel=["']?canonical[^>]*>/gi
+/*
+ * The layout split below reads markup the theme wrote, so it never uses a pattern that can
+ * backtrack over the whole output (`[^>]*` or `[\s\S]*?` with nothing to stop it): a layout
+ * of `<head<head<head…` with no `>` would make those quadratic and hold the server. Each
+ * helper finds a fixed string, then the next `>` or closing tag, and moves forward.
+ */
+
+/** The first `<name …>` at or after `from`: where it starts and ends, and its attribute text. */
+function openTag(
+  html: string,
+  name: string,
+  from = 0,
+): { start: number; end: number; attrs: string } | null {
+  const re = new RegExp(`<${name}\\b`, 'gi')
+  re.lastIndex = from
+  const m = re.exec(html)
+  if (!m) return null
+  const close = html.indexOf('>', m.index)
+  if (close === -1) return null
+  return { start: m.index, end: close + 1, attrs: html.slice(m.index + m[0].length, close) }
+}
+
+/** Where `</name>` starts, at or after `from`; -1 when there is none. */
+function closeTag(html: string, name: string, from = 0): number {
+  const re = new RegExp(`</${name}>`, 'gi')
+  re.lastIndex = from
+  return re.exec(html)?.index ?? -1
+}
+
+/** Head tags the storefront writes itself (SEO and the viewport): `<title>`, `<meta>`, canonical. */
+function withoutOwnHead(head: string): string {
+  type Found = { name: 'title' | 'meta' | 'link'; tag: NonNullable<ReturnType<typeof openTag>> }
+  // The next tag of each name, kept until passed, so each name's search only moves forward.
+  const ahead = new Map<Found['name'], Found | null>()
+  let out = ''
+  let at = 0
+  for (;;) {
+    for (const name of ['title', 'meta', 'link'] as const) {
+      const known = ahead.get(name)
+      if (known === null || (known && known.tag.start >= at)) continue
+      const tag = openTag(head, name, at)
+      ahead.set(name, tag ? { name, tag } : null)
+    }
+    const next = [...ahead.values()]
+      .filter((f): f is Found => f !== null)
+      .sort((a, b) => a.tag.start - b.tag.start)[0]
+    if (!next) break
+    let end = next.tag.end
+    // A `<title>` with no `</title>` is left as it is (so is everything after it).
+    const titleEnd = next.name === 'title' ? closeTag(head, 'title', end) : -1
+    if (titleEnd !== -1) end = titleEnd + '</title>'.length
+    const drop =
+      next.name === 'meta' ||
+      (next.name === 'title' && titleEnd !== -1) ||
+      (next.name === 'link' && /\brel\s*=\s*["']?canonical/i.test(next.tag.attrs))
+    out += head.slice(at, drop ? next.tag.start : end)
+    at = end
+  }
+  return out + head.slice(at)
+}
 
 /** Renders `layout/theme.liquid` around markers and splits it into the parts around `<main>`. */
 export async function renderLiquidLayout(
@@ -216,10 +283,12 @@ export async function renderLiquidLayout(
   try {
     const tpl = parsed(ctx.entry, 'layout/theme.liquid', ctx.bundle.layout)
     html = await renderUntilComplete(ctx, () =>
-      ctx.entry.engine.renderSync(
+      renderBounded(
+        ctx.entry.engine,
+        ctx.budget,
         tpl,
         { content_for_layout: MARK.content },
-        { globals: { ...ctx.globals, _rt: runtime } },
+        { ...ctx.globals, _rt: runtime },
       ),
     )
   } catch (err) {
@@ -227,22 +296,24 @@ export async function renderLiquidLayout(
     onError?.(err)
     return empty
   }
-  const htmlTag = /<html\b([^>]*)>/i.exec(html)
-  const headMatch = /<head\b[^>]*>([\s\S]*?)<\/head>/i.exec(html)
-  const bodyTag = /<body\b([^>]*)>/i.exec(html)
-  const bodyStart = bodyTag ? bodyTag.index + bodyTag[0].length : 0
-  const bodyEnd = html.search(/<\/body>/i)
+  const htmlTag = openTag(html, 'html')
+  const headTag = openTag(html, 'head')
+  const headEnd = headTag ? closeTag(html, 'head', headTag.end) : -1
+  const head = headTag && headEnd !== -1 ? html.slice(headTag.end, headEnd) : ''
+  const bodyTag = openTag(html, 'body')
+  const bodyStart = bodyTag ? bodyTag.end : 0
+  const bodyEnd = closeTag(html, 'body', bodyStart)
   const body = html.slice(bodyStart, bodyEnd === -1 ? undefined : bodyEnd)
   const headerAt = body.indexOf(MARK.header)
   const footerAt = body.indexOf(MARK.footer)
-  const mainTag = /<main\b([^>]*)>/i.exec(body)
+  const mainTag = openTag(body, 'main')
   return {
-    head: (headMatch?.[1] ?? '').replace(OWN_HEAD, ''),
-    htmlAttrs: attrsOf(htmlTag?.[1] ?? ''),
-    bodyAttrs: attrsOf(bodyTag?.[1] ?? ''),
+    head: withoutOwnHead(head),
+    htmlAttrs: attrsOf(htmlTag?.attrs ?? ''),
+    bodyAttrs: attrsOf(bodyTag?.attrs ?? ''),
     beforeHeader: headerAt >= 0 ? body.slice(0, headerAt) : '',
     afterFooter: footerAt >= 0 ? body.slice(footerAt + MARK.footer.length) : '',
-    mainAttrs: attrsOf(mainTag?.[1] ?? ''),
+    mainAttrs: attrsOf(mainTag?.attrs ?? ''),
     fonts: [...ctx.runtime.fonts.values(), ...runtime.fonts.values()],
   }
 }

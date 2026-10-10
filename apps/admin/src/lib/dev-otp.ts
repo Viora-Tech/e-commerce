@@ -23,6 +23,15 @@ export function devOtpEnabled(): boolean {
 }
 
 /**
+ * Whether a sign-in code or invite link may be printed to the server log when no email
+ * account is set up. Never in production: anyone who can read the logs (the host, a log
+ * drain, error tracking) could sign in as any merchant or join their store with it.
+ */
+export function mayPrintCodes(): boolean {
+  return process.env.NODE_ENV !== 'production'
+}
+
+/**
  * The env flags alone are not enough: they can leak into a shared or
  * publicly-reachable deployment of a dev build, and this route hands out
  * working login codes. So the route also refuses any request whose `Host`

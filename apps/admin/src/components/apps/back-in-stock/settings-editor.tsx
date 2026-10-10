@@ -2,12 +2,12 @@
 
 import { Button } from '@commerce/ui/shadcn/button'
 import { Input } from '@commerce/ui/shadcn/input'
-import { Label } from '@commerce/ui/shadcn/label'
 import { Switch } from '@commerce/ui/shadcn/switch'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
-import DataCard from '@/components/layout/data-card'
-import PageHeader from '@/components/layout/page-header'
+import ProoflyPageHeader from '@/components/layout/proofly-page-header'
+import SettingsCard from '@/components/settings/settings-card'
+import SettingsRow from '@/components/settings/settings-row'
 import { backInStockContent } from '@/data/back-in-stock'
 import { api } from '@/lib/api-client'
 
@@ -44,54 +44,49 @@ export default function SettingsEditor() {
   if (!form) return null
 
   return (
-    <div className="flex flex-col gap-4">
-      <PageHeader
+    <div className="flex flex-col gap-5">
+      <ProoflyPageHeader
         title={copy.title}
-        subtitle={copy.subtitle}
+        summary={copy.subtitle}
         actions={
-          <Button disabled={busy} onClick={handleSave}>
+          <Button loading={busy} onClick={handleSave}>
             {copy.save}
           </Button>
         }
       />
-      <DataCard title={copy.channels}>
-        <div className="flex flex-col gap-4 p-4">
-          <div className="flex items-center justify-between">
-            <Label htmlFor="bis-email">{copy.emailEnabled}</Label>
-            <Switch
-              id="bis-email"
-              checked={form.emailEnabled}
-              onCheckedChange={(v) => setForm((f) => (f ? { ...f, emailEnabled: v } : f))}
-            />
-          </div>
-          <div className="flex items-center justify-between">
-            <div className="flex flex-col">
-              <Label htmlFor="bis-whatsapp">{copy.whatsappEnabled}</Label>
-              <span className="text-caption text-muted-foreground">{copy.whatsappHelp}</span>
-            </div>
-            <Switch
-              id="bis-whatsapp"
-              checked={form.whatsappEnabled}
-              onCheckedChange={(v) => setForm((f) => (f ? { ...f, whatsappEnabled: v } : f))}
-            />
-          </div>
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="bis-batch">{copy.batchSize}</Label>
-            <Input
-              id="bis-batch"
-              type="number"
-              min={1}
-              max={2000}
-              className="max-w-40"
-              value={form.batchSize}
-              onChange={(e) =>
-                setForm((f) => (f ? { ...f, batchSize: Number(e.target.value) || 1 } : f))
-              }
-            />
-            <span className="text-caption text-muted-foreground">{copy.batchSizeHelp}</span>
-          </div>
-        </div>
-      </DataCard>
+      <SettingsCard title={copy.channels}>
+        <SettingsRow label={copy.emailEnabled} htmlFor="bis-email">
+          <Switch
+            id="bis-email"
+            checked={form.emailEnabled}
+            onCheckedChange={(v) => setForm((f) => (f ? { ...f, emailEnabled: v } : f))}
+          />
+        </SettingsRow>
+        <SettingsRow
+          label={copy.whatsappEnabled}
+          description={copy.whatsappHelp}
+          htmlFor="bis-whatsapp"
+        >
+          <Switch
+            id="bis-whatsapp"
+            checked={form.whatsappEnabled}
+            onCheckedChange={(v) => setForm((f) => (f ? { ...f, whatsappEnabled: v } : f))}
+          />
+        </SettingsRow>
+        <SettingsRow label={copy.batchSize} description={copy.batchSizeHelp} htmlFor="bis-batch">
+          <Input
+            id="bis-batch"
+            type="number"
+            min={1}
+            max={2000}
+            className="max-w-40"
+            value={form.batchSize}
+            onChange={(e) =>
+              setForm((f) => (f ? { ...f, batchSize: Number(e.target.value) || 1 } : f))
+            }
+          />
+        </SettingsRow>
+      </SettingsCard>
     </div>
   )
 }

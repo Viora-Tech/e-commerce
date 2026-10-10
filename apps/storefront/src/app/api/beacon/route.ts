@@ -15,7 +15,9 @@ import { cookies, headers } from 'next/headers'
 import {
   ATTRIBUTION_COOKIE,
   ATTRIBUTION_MAX_AGE,
+  decodeLinkClick,
   decodeMarketingClick,
+  LINK_CLICK_COOKIE,
   MARKETING_CLICK_COOKIE,
   SESSION_COOKIE,
   SESSION_MAX_AGE,
@@ -91,6 +93,7 @@ export async function POST(request: Request) {
 
   const { href, referrer } = await readBody(request)
   const click = decodeMarketingClick(jar.get(MARKETING_CLICK_COOKIE)?.value)
+  const linkId = decodeLinkClick(jar.get(LINK_CLICK_COOKIE)?.value)
   const inSession = Boolean(jar.get(SESSION_COOKIE)?.value)
   jar.set(SESSION_COOKIE, '1', {
     httpOnly: true,
@@ -99,17 +102,20 @@ export async function POST(request: Request) {
     path: '/',
     maxAge: SESSION_MAX_AGE,
   })
-  if (inSession && !click && !hasCampaignSignal(href)) return new Response(null, { status: 204 })
+  if (inSession && !click && !linkId && !hasCampaignSignal(href)) {
+    return new Response(null, { status: 204 })
+  }
 
   const current = attributionFromVisit({
     landingUrl: href || request.url,
     referrer,
     storeHost: h.get('host'),
     ...(click ? { marketing: click } : {}),
+    ...(linkId ? { linkId } : {}),
   })
   const previous = decodeAttribution(jar.get(ATTRIBUTION_COOKIE)?.value)
   // Reloading a tagged page inside a live session is the same session, not a new one.
-  if (inSession && !click && previous && sameTouch(current, previous)) {
+  if (inSession && !click && !linkId && previous && sameTouch(current, previous)) {
     return new Response(null, { status: 204 })
   }
   const picked = compactAttribution(pickAttribution(current, previous))
@@ -131,5 +137,6 @@ export async function POST(request: Request) {
     maxAge: ATTRIBUTION_MAX_AGE,
   })
   if (click) jar.delete(MARKETING_CLICK_COOKIE)
+  if (linkId) jar.delete(LINK_CLICK_COOKIE)
   return new Response(null, { status: 204 })
 }

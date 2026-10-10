@@ -77,9 +77,16 @@ export async function deleteRedirects(tx: StoreTx, ids: string[]): Promise<numbe
 }
 
 /**
+ * Why an imported redirect was left alone: the same one is already here, the
+ * merchant's own (manual) redirect for that path wins, or the path is the home
+ * page or empty.
+ */
+export type RedirectSkip = 'unchanged' | 'manual' | 'invalid'
+
+/**
  * Write a redirect an import produced. A redirect the merchant created or
  * edited by hand wins: an imported one never overwrites a manual row.
- * Returns whether a row was created, updated, or left alone.
+ * Returns whether a row was created, updated, or left alone (`detail` says why).
  */
 export async function upsertImportedRedirect(
   tx: StoreTx,
@@ -87,22 +94,33 @@ export async function upsertImportedRedirect(
   path: string,
   target: string,
 ): Promise<'created' | 'updated' | 'skipped'> {
+  return (await importRedirect(tx, storeId, path, target)).outcome
+}
+
+/** `upsertImportedRedirect` with the reason a skipped one was left alone. */
+export async function importRedirect(
+  tx: StoreTx,
+  storeId: string,
+  path: string,
+  target: string,
+): Promise<{ outcome: 'created' | 'updated' | 'skipped'; skip?: RedirectSkip }> {
   const from = normaliseRedirectPath(path)
-  if (!from || from === '/') return 'skipped'
+  if (!from || from === '/') return { outcome: 'skipped', skip: 'invalid' }
   const [existing] = await tx
     .select({ id: urlRedirect.id, source: urlRedirect.source, target: urlRedirect.target })
     .from(urlRedirect)
     .where(eq(urlRedirect.path, from))
   if (!existing) {
     await tx.insert(urlRedirect).values({ storeId, path: from, target, source: 'import' })
-    return 'created'
+    return { outcome: 'created' }
   }
-  if (existing.source === 'manual' || existing.target === target) return 'skipped'
+  if (existing.source === 'manual') return { outcome: 'skipped', skip: 'manual' }
+  if (existing.target === target) return { outcome: 'skipped', skip: 'unchanged' }
   await tx
     .update(urlRedirect)
     .set({ target, updatedAt: new Date() })
     .where(eq(urlRedirect.id, existing.id))
-  return 'updated'
+  return { outcome: 'updated' }
 }
 
 /** The storefront's lookup: the target for one normalised path, or null. */
@@ -119,4 +137,64 @@ export async function findRedirect(tx: StoreTx, path: string): Promise<string | 
 export async function hasRedirects(tx: StoreTx): Promise<boolean> {
   const [row] = await tx.select({ one: sql<number>`1` }).from(urlRedirect).limit(1)
   return Boolean(row)
+}
+
+/** Every redirect, path order, for the CSV export. */
+export async function allRedirects(tx: StoreTx, limit = 50_000) {
+  return tx
+    .select({ path: urlRedirect.path, target: urlRedirect.target })
+    .from(urlRedirect)
+    .orderBy(asc(urlRedirect.path))
+    .limit(limit)
+}
+
+export type RedirectImportResult = { created: number; updated: number; unchanged: number }
+
+/**
+ * Write rows from a redirects CSV (`parseRedirectsCsv`): new paths are added, a path that is
+ * already redirected takes the file's target. Rows from a file count as the merchant's own
+ * (`manual`), whatever wrote them before.
+ */
+export async function importRedirectsCsv(
+  tx: StoreTx,
+  storeId: string,
+  rows: readonly { path: string; target: string }[],
+): Promise<RedirectImportResult> {
+  const result: RedirectImportResult = { created: 0, updated: 0, unchanged: 0 }
+  if (rows.length === 0) return result
+  const existing = new Map<string, { id: string; target: string }>()
+  for (let i = 0; i < rows.length; i += 500) {
+    const found = await tx
+      .select({ id: urlRedirect.id, path: urlRedirect.path, target: urlRedirect.target })
+      .from(urlRedirect)
+      .where(
+        inArray(
+          urlRedirect.path,
+          rows.slice(i, i + 500).map((r) => r.path),
+        ),
+      )
+    for (const f of found) existing.set(f.path, { id: f.id, target: f.target })
+  }
+  const fresh: { storeId: string; path: string; target: string; source: 'manual' }[] = []
+  for (const row of rows) {
+    const hit = existing.get(row.path)
+    if (!hit) {
+      fresh.push({ storeId, path: row.path, target: row.target, source: 'manual' })
+      continue
+    }
+    if (hit.target === row.target) {
+      result.unchanged++
+      continue
+    }
+    await tx
+      .update(urlRedirect)
+      .set({ target: row.target, source: 'manual', updatedAt: new Date() })
+      .where(eq(urlRedirect.id, hit.id))
+    result.updated++
+  }
+  for (let i = 0; i < fresh.length; i += 500) {
+    await tx.insert(urlRedirect).values(fresh.slice(i, i + 500))
+  }
+  result.created = fresh.length
+  return result
 }

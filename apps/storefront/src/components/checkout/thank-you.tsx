@@ -5,6 +5,7 @@ import type { address, order, orderLine, payment } from '@commerce/db'
 import type { CheckoutSession } from '@commerce/payments'
 import type { ReactNode } from 'react'
 import CheckoutIcon from '@/components/checkout/checkout-icon'
+import CheckoutParcels from '@/components/checkout/checkout-parcels'
 import CheckoutShell from '@/components/checkout/checkout-shell'
 import OrderDetails from '@/components/checkout/order-details'
 import OrderSummary from '@/components/checkout/order-summary'
@@ -15,6 +16,7 @@ import UpiQrPayment from '@/components/checkout/upi-qr-payment'
 import { thankYouContent as content } from '@/data/checkout'
 import { retryPaymentAction } from '@/lib/cart-actions'
 import { CK_BUTTON_PRIMARY, CK_BUTTON_SECONDARY, CK_HEADING } from '@/lib/checkout-classes'
+import type { ShopperParcel } from '@/lib/parcels'
 
 type ThankYouTemplateProps = {
   order: typeof order.$inferSelect
@@ -29,11 +31,15 @@ type ThankYouTemplateProps = {
   balance?: ReactNode
   /** The signed `/checkout/pay/...` path for "Pay now", token included. */
   payPath: string
+  /** The order's view token; "Retry payment" and the UPI QR prove access with it. */
+  viewToken: string
   look: CheckoutLook
   /** Variant images by variant id, for the summary's thumbnails. */
   images?: Record<string, string>
   /** The delivery address snapshot; null for an emailed gift card. */
   shipTo?: typeof address.$inferSelect | null
+  /** Where each part ships from; listed when the order left from more than one warehouse. */
+  parcels?: ShopperParcel[]
 }
 
 /** Attempts still waiting on the shopper or the gateway. */
@@ -69,9 +75,11 @@ export default function ThankYouTemplate({
   links = [],
   balance = null,
   payPath,
+  viewToken,
   look,
   images = {},
   shipTo = null,
+  parcels = [],
 }: ThankYouTemplateProps) {
   // Render logic
   const awaiting = o.paymentMethod !== 'cod' && OPEN_STATUSES.has(pay?.status ?? '')
@@ -120,12 +128,14 @@ export default function ThankYouTemplate({
         </div>
 
         {manual ? <TransferInstructions instructions={manual} amountLabel={due} /> : null}
-        {qr ? <UpiQrPayment orderNumber={o.number} qr={qr} amountLabel={due} /> : null}
+        {qr ? (
+          <UpiQrPayment orderNumber={o.number} viewToken={viewToken} qr={qr} amountLabel={due} />
+        ) : null}
         {balance}
         {failed || (awaiting && session?.kind === 'client') ? (
           <div className="flex flex-col gap-3">
             {failed ? (
-              <form action={retryPaymentAction.bind(null, o.number)}>
+              <form action={retryPaymentAction.bind(null, o.number, viewToken)}>
                 <button type="submit" className={CK_BUTTON_PRIMARY}>
                   {session?.kind === 'upi_qr' ? content.newQr : content.retryPayment}
                 </button>
@@ -145,6 +155,7 @@ export default function ThankYouTemplate({
         </p>
 
         <OrderDetails order={o} shipTo={shipTo} />
+        <CheckoutParcels parcels={parcels} />
 
         <div className="flex flex-col gap-3">
           {links.map((l) => (

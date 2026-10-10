@@ -15,6 +15,7 @@ import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import { type MenuListItem, menusContent } from '@/data/menus'
+import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 
 type RenameMenuDialogProps = {
@@ -22,14 +23,13 @@ type RenameMenuDialogProps = {
   onClose: () => void
 }
 
-const copy = menusContent.rename
-
 /**
  * Renames one menu. There is no rename procedure, so the row is read back first
  * and saved whole: the handle and the items travel through untouched.
  */
 export default function RenameMenuDialog({ menu, onClose }: RenameMenuDialogProps) {
   // Hooks
+  const { rename: copy } = useCopy(menusContent)
   const router = useRouter()
   const [title, setTitle] = useState(menu.title)
   const [busy, setBusy] = useState(false)

@@ -1,15 +1,25 @@
 import {
   type AppEventQueue,
   appEventForTemplate,
+  deliverEmailTo,
   deliverNewsletterConfirm,
   deliverNotification,
+  deliverToStoreContact,
   enqueueAppEvent,
   fulfilGiftCardsForOrder,
   NOTIFICATIONS_QUEUE,
   type NotificationJob,
+  notifyMembersOfNewOrder,
+  storefrontOriginFor,
 } from '@commerce/core'
 import { registriesForStore } from '@commerce/core/registries'
 import { type Db, withStore } from '@commerce/db'
+import { getContactMessage, messageText } from '@commerce/plugin-forms/server'
+import {
+  loadReviewsSettings,
+  replyEmailData,
+  reviewRequestEmail,
+} from '@commerce/plugin-reviews/server'
 import { fairProcessor, type IORedis, QUEUE_LIMITS, Worker } from '@commerce/queue'
 import { appEmailExtras } from './app-events'
 
@@ -26,13 +36,25 @@ export function createNotificationWorker(
     storefrontUrl?: string | undefined
     /** Order paid/shipped notifications double as the app lifecycle events. */
     appEvents?: AppEventQueue | undefined
+    /** The admin's URL (`ADMIN_URL`): team members' new-order alerts link to the order there. */
+    adminUrl?: string | undefined
   },
 ) {
   const { concurrency, perStore } = QUEUE_LIMITS.notifications
   return new Worker<NotificationJob>(
     NOTIFICATIONS_QUEUE,
     fairProcessor(connection, NOTIFICATIONS_QUEUE, { perStore }, async (job) => {
-      const { storeId, orderId, template, key, returnId, refundId, signupId } = job.data
+      const {
+        storeId,
+        orderId,
+        template,
+        key,
+        returnId,
+        refundId,
+        signupId,
+        contactMessageId,
+        reviewId,
+      } = job.data
       // The one message without an order: the newsletter confirm link (double opt-in).
       if (template === 'newsletter_confirm') {
         if (!signupId || !opts.storefrontUrl) return []
@@ -56,6 +78,113 @@ export function createNotificationWorker(
         const bad = sent.filter((r) => !r.ok)
         if (bad.length > 0) throw new Error(bad.map((r) => `${r.channel}: ${r.error}`).join('; '))
         return sent
+      }
+      // To the merchant, no order: a message from a theme's contact or advice form (Forms app).
+      if (template === 'contact_message') {
+        if (!contactMessageId) return []
+        const sent = await withStore(db, storeId, async (tx) => {
+          const msg = await getContactMessage(tx, contactMessageId)
+          if (!msg) return []
+          return deliverToStoreContact(
+            { storeId, tx },
+            template,
+            {
+              contactMessage: {
+                name: msg.name,
+                email: msg.email,
+                phone: msg.phone,
+                text: messageText(msg),
+                path: msg.path,
+              },
+            },
+            {
+              registry: (await registriesForStore(tx, storeId)).notifications,
+              settingsSecret: opts.settingsSecret,
+            },
+          )
+        })
+        const bad = sent.filter((r) => !r.ok)
+        if (bad.length > 0) throw new Error(bad.map((r) => `${r.channel}: ${r.error}`).join('; '))
+        return sent
+      }
+      // Reviews app: the request or reminder for an order's products, and the store's reply.
+      if (template === 'review_request' || template === 'review_reminder') {
+        const fallback = opts.storefrontUrl
+        if (!fallback) return []
+        const sent = await withStore(db, storeId, async (tx) => {
+          const settings = await loadReviewsSettings(tx, storeId)
+          const email = await reviewRequestEmail(
+            tx,
+            storeId,
+            orderId,
+            template === 'review_request' ? 'request' : 'reminder',
+            settings,
+            {
+              secret: opts.settingsSecret,
+              storefrontUrl: await storefrontOriginFor(tx, storeId, fallback),
+            },
+          )
+          if (!email) return []
+          return deliverEmailTo({ storeId, tx }, template, email.to, email.data, {
+            registry: (await registriesForStore(tx, storeId)).notifications,
+            settingsSecret: opts.settingsSecret,
+          })
+        })
+        const bad = sent.filter((r) => !r.ok)
+        if (bad.length > 0) throw new Error(bad.map((r) => `${r.channel}: ${r.error}`).join('; '))
+        return sent
+      }
+      if (template === 'review_reply') {
+        if (!reviewId) return []
+        const fallback = opts.storefrontUrl ?? ''
+        const sent = await withStore(db, storeId, async (tx) => {
+          const r = await replyEmailData(tx, reviewId)
+          if (!r?.email || !r.reply) return []
+          const base = (await storefrontOriginFor(tx, storeId, fallback)).replace(/\/+$/, '')
+          return deliverEmailTo(
+            { storeId, tx },
+            template,
+            r.email,
+            {
+              customerName: r.name.split(' ')[0] || 'there',
+              review: {
+                productTitle: r.productTitle,
+                productUrl: base
+                  ? `${base}/products/${encodeURIComponent(r.handle)}#reviews`
+                  : undefined,
+                reply: r.reply,
+              },
+            },
+            {
+              registry: (await registriesForStore(tx, storeId)).notifications,
+              settingsSecret: opts.settingsSecret,
+            },
+          )
+        })
+        const bad = sent.filter((r) => !r.ok)
+        if (bad.length > 0) throw new Error(bad.map((r) => `${r.channel}: ${r.error}`).join('; '))
+        return sent
+      }
+      // Team members who asked for new-order alerts (Account → Notifications). First attempt
+      // only, so a retry for the customer's own message never alerts them twice; a failure
+      // here is logged and never fails the customer's job.
+      if (template === 'order_placed' && job.attemptsMade === 0 && opts.adminUrl) {
+        const adminUrl = opts.adminUrl
+        await withStore(db, storeId, async (tx) =>
+          notifyMembersOfNewOrder({ storeId, tx }, orderId, {
+            registry: (await registriesForStore(tx, storeId)).notifications,
+            settingsSecret: opts.settingsSecret,
+            adminUrl,
+          }),
+        )
+          .then((sent) => {
+            for (const r of sent) {
+              console.log(
+                `[member alert] staff_new_order order=${orderId} ${r.channel}→${r.to} ${r.ok ? 'sent' : `failed: ${r.error}`}`,
+              )
+            }
+          })
+          .catch((err: unknown) => console.warn('[member alert] new order failed:', err))
       }
       const event = appEventForTemplate(template)
       // Queued before delivery: a channel failure retries this job, and the app

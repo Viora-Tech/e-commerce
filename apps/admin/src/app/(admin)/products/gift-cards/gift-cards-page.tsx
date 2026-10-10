@@ -1,5 +1,6 @@
 'use client'
 
+import { siteConfig } from '@commerce/config/site'
 import { maskedGiftCardCode } from '@commerce/core/gift-cards'
 import { Gift, SquarePlus } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
@@ -8,22 +9,23 @@ import { Kbd } from '@commerce/ui/shadcn/kbd'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@commerce/ui/shadcn/tooltip'
 import Link from 'next/link'
 import { parseAsInteger, parseAsString, parseAsStringLiteral, useQueryStates } from 'nuqs'
-import { Suspense, useEffect, useState } from 'react'
+import { Suspense, useEffect, useRef, useState } from 'react'
 import GiftCardProductDialog from '@/components/gift-cards/gift-card-product-dialog'
 import GiftCardProductsCard from '@/components/gift-cards/gift-card-products-card'
 import GiftCardSettingsCard from '@/components/gift-cards/gift-card-settings-card'
 import GiftCardTiles from '@/components/gift-cards/gift-card-tiles'
 import EmptyState from '@/components/layout/empty-state'
-import PageBody from '@/components/layout/page-body'
 import PillTabs from '@/components/layout/pill-tabs'
+import ProoflyListPage from '@/components/layout/proofly-list-page'
 import RelativeTime from '@/components/layout/relative-time'
 import StatusLabel from '@/components/status/status-label'
 import ResourceTable, { type ResourceColumnSpec } from '@/components/table/resource-table'
 import { GIFT_CARD_STATES, type GiftCardStateFilter, giftCardsContent } from '@/data/gift-cards'
 import { api } from '@/lib/api-client'
-import { LIST_PER_PAGE, type ListQuery, sameListQuery } from '@/lib/list-query'
+import { type ListQuery, sameListQuery } from '@/lib/list-query'
 import { formatPaise } from '@/lib/money'
 import { usePrimaryAction } from '@/lib/primary-action'
+import { routes } from '@/lib/routes'
 
 type ListResult = Awaited<ReturnType<typeof api.giftCards.list>>
 type Item = ListResult['rows'][number]
@@ -40,16 +42,16 @@ export type GiftCardsInitial = {
 }
 
 const copy = giftCardsContent
-const PER_PAGE = LIST_PER_PAGE
+const PER_PAGE = siteConfig.ui.rowsPerPage.default
 
 /** `expiresOn` is a bare `YYYY-MM-DD`: read as local midnight so the day never shifts. */
 const asDate = (d: Date | string) =>
   typeof d === 'string' && d.length === 10 ? new Date(`${d}T00:00:00`) : new Date(d)
 
-function fetchCards(q: Query) {
+function fetchCards(q: Query & { perPage: number }) {
   return api.giftCards.list({
     page: q.page,
-    perPage: PER_PAGE,
+    perPage: q.perPage,
     q: q.query || undefined,
     state: q.status ?? undefined,
   })
@@ -136,6 +138,7 @@ type TabsProps = {
 function StateTabs({ value, allCount, onChange }: TabsProps) {
   return (
     <PillTabs
+      variant="segmented"
       value={value}
       onChange={onChange}
       tabs={[
@@ -148,11 +151,12 @@ function StateTabs({ value, allCount, onChange }: TabsProps) {
 
 function GiftCardsContent({ initial }: { initial: GiftCardsInitial }) {
   // Hooks
-  usePrimaryAction('/products/gift-cards/new')
-  const [{ page, query, status }, setQ] = useQueryStates(
+  usePrimaryAction(routes.products.newGiftCard())
+  const [{ page, perPage, query, status }, setQ] = useQueryStates(
     {
       query: parseAsString.withDefault(''),
       page: parseAsInteger.withDefault(1),
+      perPage: parseAsInteger.withDefault(PER_PAGE),
       status: parseAsStringLiteral(GIFT_CARD_STATES),
     },
     { shallow: true },
@@ -161,17 +165,24 @@ function GiftCardsContent({ initial }: { initial: GiftCardsInitial }) {
   const [products, setProducts] = useState<Products>(initial.products)
   const [loading, setLoading] = useState(false)
   const [productOpen, setProductOpen] = useState(false)
+  const hydrated = useRef(false)
+
   useEffect(() => {
-    if (sameListQuery({ page, query, status }, initial.query)) return
+    // The server's first page is used once; after any change (including back to the first
+    // tab) the list is fetched again, so it never keeps another tab's rows.
+    const firstRun = !hydrated.current
+    hydrated.current = true
+    if (firstRun && sameListQuery({ page, query, status }, initial.query) && perPage === PER_PAGE)
+      return
     let cancelled = false
     setLoading(true)
-    fetchCards({ page, query, status })
+    fetchCards({ page, perPage, query, status })
       .then((r) => !cancelled && setResult(r))
       .finally(() => !cancelled && setLoading(false))
     return () => {
       cancelled = true
     }
-  }, [page, query, status, initial.query])
+  }, [page, perPage, query, status, initial.query])
 
   // Event handlers
   const handleProductCreated = async () => {
@@ -182,7 +193,7 @@ function GiftCardsContent({ initial }: { initial: GiftCardsInitial }) {
   const fresh = initial.allCount === 0 && products.length === 0
   const actions = (
     <div className="flex items-center gap-2">
-      <Button variant="outline" size="lg" onClick={() => setProductOpen(true)}>
+      <Button variant="outline" onClick={() => setProductOpen(true)}>
         {copy.addProduct}
       </Button>
       <Tooltip>
@@ -190,7 +201,7 @@ function GiftCardsContent({ initial }: { initial: GiftCardsInitial }) {
           render={
             <Button
               size="lg"
-              render={<Link href="/products/gift-cards/new" />}
+              render={<Link href={routes.products.newGiftCard()} />}
               nativeButton={false}
             >
               <SquarePlus strokeWidth={1.6} />
@@ -206,11 +217,20 @@ function GiftCardsContent({ initial }: { initial: GiftCardsInitial }) {
   )
 
   return (
-    <PageBody className="gap-6">
-      <div className="flex min-h-9 flex-wrap items-center justify-between gap-3">
-        <h1 className="text-page-title">{copy.heading}</h1>
-        {fresh ? null : actions}
-      </div>
+    <ProoflyListPage
+      title={copy.heading}
+      summary={copy.summary}
+      actions={fresh ? null : actions}
+      stats={
+        fresh ? undefined : (
+          <GiftCardTiles
+            activeCount={result.activeCount}
+            outstandingPaise={result.outstandingPaise}
+            products={products}
+          />
+        )
+      }
+    >
       {fresh ? (
         <Card className="py-6">
           <EmptyState
@@ -221,37 +241,31 @@ function GiftCardsContent({ initial }: { initial: GiftCardsInitial }) {
           />
         </Card>
       ) : (
-        <>
-          <GiftCardTiles
-            activeCount={result.activeCount}
-            outstandingPaise={result.outstandingPaise}
-            products={products}
-          />
-          <ResourceTable
-            resourceName={copy.resource}
-            columns={columns}
-            items={result.rows}
-            getId={(g) => g.id}
-            href={(g) => `/products/gift-cards/${g.id}`}
-            loading={loading}
-            query={query}
-            onQueryChange={(query) => setQ({ query, page: 1 })}
-            onClearAll={() => setQ({ query: '', status: null, page: 1 })}
-            tabs={
-              <StateTabs
-                value={status}
-                allCount={initial.allCount}
-                onChange={(s) => setQ({ status: s, page: 1 })}
-              />
-            }
-            page={page}
-            perPage={PER_PAGE}
-            total={result.total}
-            onPageChange={(page) => setQ({ page })}
-            selectable={false}
-            empty={copy.empty}
-          />
-        </>
+        <ResourceTable
+          resourceName={copy.resource}
+          columns={columns}
+          items={result.rows}
+          getId={(g) => g.id}
+          href={(g) => routes.products.giftCard(g.id)}
+          loading={loading}
+          query={query}
+          onQueryChange={(query) => setQ({ query, page: 1 })}
+          onClearAll={() => setQ({ query: '', status: null, page: 1 })}
+          tabs={
+            <StateTabs
+              value={status}
+              allCount={initial.allCount}
+              onChange={(s) => setQ({ status: s, page: 1 })}
+            />
+          }
+          page={page}
+          perPage={perPage}
+          onPerPageChange={(next) => setQ({ perPage: next, page: 1 })}
+          total={result.total}
+          onPageChange={(page) => setQ({ page })}
+          selectable={false}
+          empty={copy.empty}
+        />
       )}
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
         <GiftCardProductsCard products={products} onAdd={() => setProductOpen(true)} />
@@ -263,7 +277,7 @@ function GiftCardsContent({ initial }: { initial: GiftCardsInitial }) {
         onOpenChange={setProductOpen}
         onCreated={handleProductCreated}
       />
-    </PageBody>
+    </ProoflyListPage>
   )
 }
 

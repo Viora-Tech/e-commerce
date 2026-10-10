@@ -1,4 +1,4 @@
-/** SOURCE OF TRUTH: importing a Shopify theme — WHAT: zip → a NEW unpublished theme "<name> (imported)": its files stored, its Shopify-hosted images copied into Files (SSRF-safe), the home page and header/footer groups turned into `LiquidSection` templates, and the import report / WHY: merchants moving from Shopify keep their look; nothing touches the live theme, and the report says in plain words what now runs on our features */
+/** SOURCE OF TRUTH: importing a Shopify theme — WHAT: zip → a NEW unpublished theme "<name> (imported)": its files stored, its Shopify-hosted images copied into Files (SSRF-safe), the home page, the product, collection and page templates (with alternates; our own main section in place of the theme's) and the header/footer groups turned into `LiquidSection` templates, and the import report / WHY: merchants moving from Shopify keep their look; nothing touches the live theme, and the report says in plain words what now runs on our features */
 
 import { createHash } from 'node:crypto'
 import { newId, type StoreTx, theme, themeFile, themeImport, themeTemplate } from '@commerce/db'
@@ -7,7 +7,14 @@ import { eq, sql } from 'drizzle-orm'
 import type { LookupAll } from '../net/safe-fetch'
 import { MAX_THEMES, ThemeLibraryError } from '../theme/library'
 import { defaultTheme, parseTheme } from '../theme/schema'
-import type { TemplateData, TemplateKey } from '../theme/templates-data'
+import {
+  defaultTemplate,
+  MAIN_SECTION,
+  TEMPLATE_SUFFIX,
+  type TemplateData,
+  type TemplateKey,
+  type TemplateSection,
+} from '../theme/templates-data'
 import { archiveText, readThemeArchive, type ThemeArchive, ThemeArchiveProblem } from './archive'
 import {
   LIQUID_SECTION,
@@ -19,16 +26,20 @@ import {
 import {
   collectShopImages,
   collectShopVideos,
+  connectedShopifyHost,
   copyImage,
   copyLiveVideos,
+  findImportedMedia,
   type Hosted,
   inBatches,
   livePage,
+  newMediaBudget,
   SHOP_IMAGE,
   SHOP_VIDEO,
+  takeMedia,
 } from './import-media'
 import { buildReport, collectHandles, missingHandles, type Wanted } from './import-report'
-import { IMPORTED_TEMPLATES, type ImportReport } from './report'
+import { type ImportReport, isMainSection } from './report'
 import {
   extractSchema,
   parseJsonTemplate,
@@ -112,50 +123,76 @@ function storedSettings(
   return out
 }
 
-/** One JSON template (or group) as our template data. */
+/**
+ * Our own main section for a resource template (`MainProduct`…), as a fresh template starts
+ * it. A theme's main section (`main-product`, Dawn's `main-collection-banner` +
+ * `main-collection-product-grid`…) draws the part shoppers act on, which runs on ours.
+ */
+function ourMainSection(key: TemplateKey): TemplateSection | null {
+  const type = (MAIN_SECTION as Partial<Record<string, string>>)[key]
+  if (!type) return null
+  return defaultTemplate(key).content.find((s) => s.type === type) ?? null
+}
+
+/**
+ * One JSON template (or group) as our template data. In a resource template (product,
+ * collection, page) the theme's first main section becomes ours and any further one is
+ * dropped (ours covers it); every other section stays the theme's own. A product or
+ * collection template with no main section gets ours first.
+ */
 function toTemplateData(
   tpl: ShopifyJsonTemplate,
   schemas: Map<string, ShopifySectionSchema | null>,
   schemaLocale: Record<string, unknown>,
   hosted: Hosted,
+  key: TemplateKey,
 ): TemplateData {
-  return {
-    root: { props: {} },
-    content: tpl.order.flatMap((key) => {
-      const s = tpl.sections[key]
-      if (!s || !schemas.has(s.type)) return []
-      const schema = schemas.get(s.type) ?? null
-      const order = s.block_order ?? Object.keys(s.blocks ?? {})
-      const blocks: LiquidBlockItem[] = order.flatMap((id) => {
-        const b = s.blocks?.[id]
-        if (!b) return []
-        const blockSchema = schema?.blocks?.find((x) => x.type === b.type)
-        return [
-          {
-            id,
-            type: b.type,
-            ...(b.disabled ? { disabled: true } : {}),
-            settings: storedSettings(blockSchema?.settings, b.settings, hosted),
-          },
-        ]
-      })
+  const main = ourMainSection(key)
+  let mainPlaced = false
+  const content = tpl.order.flatMap((sectionKey): TemplateSection[] => {
+    const s = tpl.sections[sectionKey]
+    if (!s) return []
+    if (main && isMainSection(s.type)) {
+      if (mainPlaced) return []
+      mainPlaced = true
+      return [{ ...main, props: { ...main.props, ...(s.disabled ? { _hidden: true } : {}) } }]
+    }
+    if (!schemas.has(s.type)) return []
+    const schema = schemas.get(s.type) ?? null
+    const order = s.block_order ?? Object.keys(s.blocks ?? {})
+    const blocks: LiquidBlockItem[] = order.flatMap((id) => {
+      const b = s.blocks?.[id]
+      if (!b) return []
+      const blockSchema = schema?.blocks?.find((x) => x.type === b.type)
       return [
         {
-          type: LIQUID_SECTION,
-          props: {
-            id: liquidSectionId(key),
-            sectionType: s.type,
-            sectionKey: key,
-            // Customize shows `_name` as the section's name (merchants can rename it).
-            _name: schemaText(schema?.name, schemaLocale) || s.type,
-            blocks,
-            ...settingsToProps(storedSettings(schema?.settings, s.settings, hosted)),
-            ...(s.disabled ? { _hidden: true } : {}),
-          },
+          id,
+          type: b.type,
+          ...(b.disabled ? { disabled: true } : {}),
+          settings: storedSettings(blockSchema?.settings, b.settings, hosted),
         },
       ]
-    }),
-  }
+    })
+    return [
+      {
+        type: LIQUID_SECTION,
+        props: {
+          id: liquidSectionId(sectionKey),
+          sectionType: s.type,
+          sectionKey,
+          // Customize shows `_name` as the section's name (merchants can rename it).
+          _name: schemaText(schema?.name, schemaLocale) || s.type,
+          blocks,
+          ...settingsToProps(storedSettings(schema?.settings, s.settings, hosted)),
+          ...(s.disabled ? { _hidden: true } : {}),
+        },
+      },
+    ]
+  })
+  // A product or collection page without the part shoppers buy from would be a dead end:
+  // when the theme's template has no main section, ours opens the page. Pages may go without.
+  if (main && !mainPlaced && (key === 'product' || key === 'collection')) content.unshift(main)
+  return { root: { props: {} }, content }
 }
 
 /** `config/settings_data.json`'s current settings (a preset name or the object itself). */
@@ -170,8 +207,34 @@ function currentSettings(archive: ThemeArchive): Record<string, unknown> {
   return current && typeof current === 'object' ? (current as Record<string, unknown>) : {}
 }
 
-/** The templates and groups an import turns into ours. */
-const IMPORTED_PAGES = [...IMPORTED_TEMPLATES, 'header-group', 'footer-group']
+/** Shopify resource templates turned into ours, by the base of their name. */
+const RESOURCE_TEMPLATES: Record<string, TemplateKey> = {
+  product: 'product',
+  collection: 'collection',
+  page: 'page',
+}
+
+/**
+ * The theme's templates and groups an import turns into ours, as `[our key, suffix, Shopify
+ * name]`: the home page, the header and footer groups, and the product, collection and page
+ * templates with their alternates (`page.about` → page `about`). An alternate whose name our
+ * templates cannot hold is left out (its pages run on the default template).
+ */
+export function importedPages(names: Iterable<string>): [TemplateKey, string, string][] {
+  const out: [TemplateKey, string, string][] = [
+    ['home', '', 'index'],
+    ['header', '', 'header-group'],
+    ['footer', '', 'footer-group'],
+  ]
+  for (const name of [...names].sort()) {
+    const [base = '', ...rest] = name.split('.')
+    const key = RESOURCE_TEMPLATES[base]
+    const suffix = rest.join('.')
+    if (!key || !TEMPLATE_SUFFIX.test(suffix)) continue
+    out.push([key, suffix, name])
+  }
+  return out
+}
 
 /** `theme_info` from settings_schema.json. */
 function themeInfoOf(archive: ThemeArchive, fileName: string) {
@@ -216,7 +279,9 @@ export async function importShopifyTheme(
     )
   }
 
-  const host = cleanShopifyHost(input.shopifyHost)
+  // The typed address wins; otherwise the store's connected Shopify importer.
+  const host =
+    cleanShopifyHost(input.shopifyHost) ?? cleanShopifyHost(await connectedShopifyHost(tx))
   const schemaLocale =
     [...archive.files.keys()]
       .filter((p) => p.startsWith('locales/') && p.endsWith('.default.schema.json'))
@@ -244,23 +309,37 @@ export async function importShopifyTheme(
     if (liquidTpl) liquidTemplates.push(liquidTpl)
   }
 
+  // The templates and groups that become ours, and their Shopify names.
+  const pages = importedPages(templates.keys())
+  const importedNames = pages.map(([, , name]) => name)
+
   // Videos need the live home page (see `copyLiveVideos`); read it first, before the image
   // downloads, so Shopify's rate limit is not already spent.
   const videoNames = new Set<string>()
-  for (const name of IMPORTED_PAGES) collectShopVideos(templates.get(name), videoNames)
-  const homePage = host && videoNames.size ? await livePage(host, '/', deps) : null
-
-  // Images the theme's templates and settings point at, copied from the old store.
+  for (const name of importedNames) collectShopVideos(templates.get(name), videoNames)
   const settings = currentSettings(archive)
   const wanted = new Set<string>()
-  for (const name of IMPORTED_PAGES) {
-    collectShopImages(templates.get(name), wanted)
-  }
+  for (const name of importedNames) collectShopImages(templates.get(name), wanted)
   collectShopImages(settings, wanted)
-  const hosted: Hosted = { images: new Map(), videos: new Map() }
+
+  // Files the Shopify importer already copied are reused, so only what is missing is downloaded.
+  const hosted = await findImportedMedia(tx, wanted, videoNames)
   const failed: string[] = []
+  const missingImages = [...wanted].filter((n) => !hosted.images.has(n))
+  const homePage =
+    host && [...videoNames].some((n) => !hosted.videos.has(n))
+      ? await livePage(host, '/', deps)
+      : null
+
+  // Images the theme's templates and settings point at, copied from the old store.
+  const budget = newMediaBudget()
   if (host) {
-    await inBatches([...wanted], 6, async (name) => {
+    await inBatches(missingImages, 6, async (name) => {
+      const refused = takeMedia(budget, 'images')
+      if (refused) {
+        failed.push(`${name}: ${refused}`)
+        return
+      }
       try {
         hosted.images.set(name, await copyImage(tx, storeId, host, name, deps))
       } catch (err) {
@@ -274,9 +353,9 @@ export async function importShopifyTheme(
   if (homePage && 'problem' in homePage) {
     failed.push(`videos: could not read https://${host}/ (${homePage.problem})`)
   } else if (homePage) {
-    for (const name of IMPORTED_PAGES) {
+    for (const name of importedNames) {
       const tpl = templates.get(name)
-      if (tpl) await copyLiveVideos(tx, storeId, homePage.html, tpl, hosted, failed, deps)
+      if (tpl) await copyLiveVideos(tx, storeId, homePage.html, tpl, hosted, failed, deps, budget)
     }
   }
 
@@ -321,14 +400,9 @@ export async function importShopifyTheme(
   const themeSettings = storedSettings(settingsSchema, settings, hosted)
   for (const [k, v] of Object.entries(settings)) if (!(k in themeSettings)) themeSettings[k] = v
 
-  // Home, header and footer as our templates.
+  // Home, header, footer, product, collection and page templates (with alternates) as ours.
   const schemas = new Map([...sections].map(([type, s]) => [type, s.schema]))
-  const pages: [TemplateKey, string][] = [
-    ['home', 'index'],
-    ['header', 'header-group'],
-    ['footer', 'footer-group'],
-  ]
-  for (const [key, source] of pages) {
+  for (const [key, suffix, source] of pages) {
     const tpl = templates.get(source)
     if (!tpl) continue
     await tx.insert(themeTemplate).values({
@@ -336,8 +410,8 @@ export async function importShopifyTheme(
       storeId,
       themeId,
       template: key,
-      suffix: '',
-      sections: toTemplateData(tpl, schemas, schemaLocale, hosted),
+      suffix,
+      sections: toTemplateData(tpl, schemas, schemaLocale, hosted, key),
     })
   }
 
@@ -348,7 +422,7 @@ export async function importShopifyTheme(
     blogs: new Set(),
   }
   const videos = new Set<string>()
-  for (const [, source] of pages) {
+  for (const source of importedNames) {
     collectHandles(templates.get(source), schemas, wantedHandles)
     collectShopVideos(templates.get(source), videos)
   }
@@ -362,7 +436,7 @@ export async function importShopifyTheme(
       copied: hosted.images.size,
       videosCopied: hosted.videos.size,
       failed,
-      skippedNoHost: host ? 0 : wanted.size,
+      skippedNoHost: host ? 0 : missingImages.length,
     },
     skippedFiles: archive.skipped,
     missing: await missingHandles(tx, wantedHandles),

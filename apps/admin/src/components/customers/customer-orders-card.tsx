@@ -1,55 +1,116 @@
-import { ShoppingBag } from '@commerce/ui/icons'
+'use client'
+
+import { ArrowRight, Plus } from '@commerce/ui/icons'
 import { cn } from '@commerce/ui/lib/utils'
+import { Button } from '@commerce/ui/shadcn/button'
 import Link from 'next/link'
 import DataCard from '@/components/layout/data-card'
+import EmptyState from '@/components/layout/empty-state'
 import RelativeTime from '@/components/layout/relative-time'
-import { orderStage } from '@/components/orders/order-stage'
-import StatusLabel from '@/components/status/status-label'
-import { customerDetailContent as copy } from '@/data/customers'
+import { customerDetailContent } from '@/data/customers'
+import { useCopy } from '@/hooks/use-copy'
 import { formatPaise } from '@/lib/money'
-import type { CustomerOrder } from './customer-detail-types'
+import { routes } from '@/lib/routes'
+import type { CustomerDetail } from './customer-detail-types'
+import OrderStatusChip from './order-status-chip'
 
 type CustomerOrdersCardProps = {
-  orders: CustomerOrder[]
+  customer: CustomerDetail
 }
 
-/* Frame 5:2038 column rhythm: order, date, status, amount right-aligned 24px from the edge. */
-const ROW = 'grid grid-cols-[7rem_minmax(0,1fr)_9rem_7rem] items-center px-6'
+/** How many orders the card lists; the rest are one click away on the orders page. */
+const RECENT = 5
 
-/** Every order this customer placed, newest first, linking into the order page. */
-export default function CustomerOrdersCard({ orders }: CustomerOrdersCardProps) {
-  const c = copy.orders
+/* Order, date, status (centred), total, then the open arrow. */
+const ROW = 'grid grid-cols-[5rem_minmax(0,1fr)_7rem_6.5rem_1.5rem] items-center gap-x-3 px-5'
+
+/** The last few orders, newest first, each linking into the order page. */
+export default function CustomerOrdersCard({ customer }: CustomerOrdersCardProps) {
+  // Hooks
+  const copy = useCopy(customerDetailContent).orders
+
+  // Render logic
+  const orders = customer.orders
+  const recent = orders.slice(0, RECENT)
+  const viewAll = customer.email
+    ? `${routes.orders.list()}?query=${encodeURIComponent(customer.email)}`
+    : routes.orders.list()
+
   return (
-    <DataCard title={c.heading} flush>
-      <div className={cn(ROW, 'h-8 text-xs text-muted-foreground')}>
-        <span>{c.columns.order}</span>
-        <span>{c.columns.date}</span>
-        <span>{c.columns.status}</span>
-        <span className="text-right">{c.columns.total}</span>
-      </div>
+    <DataCard
+      title={copy.heading}
+      className="rounded-xl"
+      flush
+      icon={
+        <span className="rounded-md bg-chip-neutral px-1.5 text-caption font-medium text-muted-foreground tabular-nums">
+          {orders.length}
+        </span>
+      }
+      action={
+        orders.length > 0 ? (
+          <Button variant="ghost" size="sm" render={<Link href={viewAll} />} nativeButton={false}>
+            {copy.viewAll}
+          </Button>
+        ) : null
+      }
+    >
       {orders.length === 0 ? (
-        <p className="flex items-center gap-2 px-6 py-6 text-body text-muted-foreground">
-          <ShoppingBag className="size-4 shrink-0" />
-          {c.empty}
-        </p>
+        <EmptyState
+          heading={copy.emptyHeading}
+          body={copy.emptyBody}
+          action={
+            <Button
+              variant="outline"
+              render={<Link href={routes.orders.newDraft()} />}
+              nativeButton={false}
+            >
+              <Plus />
+              {copy.createOrder}
+            </Button>
+          }
+        />
       ) : (
-        <div className="mt-1 flex flex-col gap-1">
-          {orders.map((o) => (
+        <>
+          <div
+            className={cn(ROW, 'h-10 bg-muted/60 text-caption font-medium text-muted-foreground')}
+          >
+            <span>{copy.columns.order}</span>
+            <span>{copy.columns.date}</span>
+            <span className="text-center">{copy.columns.status}</span>
+            <span className="text-right">{copy.columns.total}</span>
+            <span />
+          </div>
+          {recent.map((o) => (
             <Link
               key={o.id}
-              href={`/orders/${o.id}`}
+              href={routes.orders.detail(o.id)}
               className={cn(
                 ROW,
-                'h-10 text-xs text-foreground transition-colors hover:bg-background',
+                'group/order h-12 border-b border-line text-body text-foreground transition-colors hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring',
               )}
             >
               <span className="font-medium tabular-nums">#{o.number}</span>
-              <RelativeTime value={o.placedAt} />
-              <StatusLabel {...orderStage(o)} size="sm" />
+              <RelativeTime value={o.placedAt} className="text-muted-foreground" />
+              <span className="flex justify-center">
+                <OrderStatusChip order={o} />
+              </span>
               <span className="text-right tabular-nums">{formatPaise(o.totalPaise)}</span>
+              <ArrowRight
+                className="size-4 text-muted-foreground opacity-40 transition-opacity group-hover/order:opacity-100"
+                aria-hidden
+              />
             </Link>
           ))}
-        </div>
+          <div className="flex items-center justify-between gap-3 px-5 pt-4 text-caption text-muted-foreground">
+            <span>{copy.showing(recent.length, orders.length)}</span>
+            <Link
+              href={viewAll}
+              className="font-medium text-primary underline-offset-4 hover:underline"
+            >
+              {copy.viewAll}
+            </Link>
+          </div>
+        </>
       )}
     </DataCard>
   )

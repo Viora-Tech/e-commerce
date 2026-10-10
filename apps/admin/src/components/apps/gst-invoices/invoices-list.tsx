@@ -17,16 +17,17 @@ import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import CopyButton from '@/components/fields/copy-button'
-import DataCard from '@/components/layout/data-card'
-import PageHeader from '@/components/layout/page-header'
+import ProoflyPageHeader from '@/components/layout/proofly-page-header'
 import RelativeTime from '@/components/layout/relative-time'
-import StatusLabel from '@/components/status/status-label'
+import StatusLabelChip from '@/components/status/status-label-chip'
 import { gstInvoicesContent } from '@/data/gst-invoices'
 import { api } from '@/lib/api-client'
 import { formatPaise } from '@/lib/money'
+import { routes } from '@/lib/routes'
 import ChoiceField from './choice-field'
 import GstNumberPicker from './gst-number-picker'
 import { saveFile } from './save-file'
+import { CELL, HEAD } from './table-classes'
 
 type Page = Awaited<ReturnType<typeof api.gstInvoices.list>>
 type Progress = { batchId: string; total: number; sent: number; failed: number }
@@ -159,12 +160,12 @@ export default function InvoicesList() {
 
   return (
     <div className="flex flex-col gap-4">
-      <PageHeader
+      <ProoflyPageHeader
         title={copy.title}
-        subtitle={copy.subtitle}
+        summary={copy.subtitle}
         actions={<GstNumberPicker value={gst} onChange={handleGst} allowAll />}
       />
-      <DataCard title={copy.title} flush>
+      <div className="overflow-hidden rounded-xl surface-card">
         <div className="flex flex-col gap-3 p-4">
           <div className="grid gap-3 md:grid-cols-[1fr_12rem_10rem_10rem]">
             <Input
@@ -235,21 +236,21 @@ export default function InvoicesList() {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead className="w-10">
+              <TableHead className={`${HEAD} w-10`}>
                 <Checkbox
                   checked={allOnPage || everything}
                   onCheckedChange={(v) => handleTogglePage(Boolean(v))}
                   aria-label={copy.selectAll}
                 />
               </TableHead>
-              <TableHead>{copy.columns.number}</TableHead>
-              <TableHead>{copy.columns.kind}</TableHead>
-              <TableHead>{copy.columns.order}</TableHead>
-              <TableHead>{copy.columns.buyer}</TableHead>
-              <TableHead>{copy.columns.date}</TableHead>
-              <TableHead>{copy.columns.status}</TableHead>
-              <TableHead className="text-right">{copy.columns.tax}</TableHead>
-              <TableHead className="text-right">{copy.columns.total}</TableHead>
+              <TableHead className={HEAD}>{copy.columns.number}</TableHead>
+              <TableHead className={HEAD}>{copy.columns.kind}</TableHead>
+              <TableHead className={HEAD}>{copy.columns.order}</TableHead>
+              <TableHead className={HEAD}>{copy.columns.buyer}</TableHead>
+              <TableHead className={HEAD}>{copy.columns.date}</TableHead>
+              <TableHead className={`${HEAD} text-center`}>{copy.columns.status}</TableHead>
+              <TableHead className={`${HEAD} text-right`}>{copy.columns.tax}</TableHead>
+              <TableHead className={`${HEAD} text-right`}>{copy.columns.total}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -262,28 +263,31 @@ export default function InvoicesList() {
             ) : null}
             {rows.map((r) => (
               <TableRow key={r.id}>
-                <TableCell>
+                <TableCell className={CELL}>
                   <Checkbox
                     checked={everything || picked.has(r.id)}
                     onCheckedChange={(v) => handleToggle(r.id, Boolean(v))}
                     aria-label={r.number ?? r.orderName}
                   />
                 </TableCell>
-                <TableCell className="font-medium">
+                <TableCell className={`${CELL} font-medium`}>
                   <span className="group/row flex items-center gap-1">
-                    <Link href={`/apps/gst-invoices/invoices/${r.id}`} className="hover:underline">
+                    <Link
+                      href={routes.apps.page('gst-invoices', 'invoices', r.id)}
+                      className="hover:underline"
+                    >
                       {r.number ?? '-'}
                     </Link>
                     {r.number ? <CopyButton value={r.number} what={copy.columns.number} /> : null}
                   </span>
                 </TableCell>
-                <TableCell>{kindCopy[r.kind]}</TableCell>
-                <TableCell>
-                  <Link href={`/orders/${r.orderId}`} className="hover:underline">
+                <TableCell className={CELL}>{kindCopy[r.kind]}</TableCell>
+                <TableCell className={CELL}>
+                  <Link href={routes.orders.detail(r.orderId)} className="hover:underline">
                     {r.orderName}
                   </Link>
                 </TableCell>
-                <TableCell>
+                <TableCell className={CELL}>
                   <span className="flex flex-col">
                     {r.buyerName}
                     {r.buyerGstin ? (
@@ -291,21 +295,23 @@ export default function InvoicesList() {
                     ) : null}
                   </span>
                 </TableCell>
-                <TableCell>
+                <TableCell className={CELL}>
                   <RelativeTime value={r.invoiceDate ?? r.issuedAt} />
                 </TableCell>
-                <TableCell>
-                  <StatusLabel kind="gstDoc" value={r.status} />
+                <TableCell className={`${CELL} text-center`}>
+                  <StatusLabelChip kind="gstDoc" value={r.status} />
                 </TableCell>
-                <TableCell className="text-right tabular-nums">{formatPaise(r.taxPaise)}</TableCell>
-                <TableCell className="text-right tabular-nums">
+                <TableCell className={`${CELL} text-right tabular-nums`}>
+                  {formatPaise(r.taxPaise)}
+                </TableCell>
+                <TableCell className={`${CELL} text-right tabular-nums`}>
                   {formatPaise(r.totalPaise)}
                 </TableCell>
               </TableRow>
             ))}
           </TableBody>
         </Table>
-        <div className="flex justify-end gap-2 p-4">
+        <div className="flex justify-end gap-2 border-t border-line p-4">
           <Button
             variant="outline"
             size="sm"
@@ -323,7 +329,7 @@ export default function InvoicesList() {
             {copy.next}
           </Button>
         </div>
-      </DataCard>
+      </div>
     </div>
   )
 }

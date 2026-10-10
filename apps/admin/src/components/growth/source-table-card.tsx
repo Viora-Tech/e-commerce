@@ -14,6 +14,7 @@ import {
   TableRow,
 } from '@commerce/ui/shadcn/table'
 import Link from 'next/link'
+import type { CSSProperties } from 'react'
 import { Fragment, useState } from 'react'
 import { growthOverviewContent as copy, SOURCE_LABELS } from '@/data/growth'
 import { formatRate } from '@/lib/analytics-range'
@@ -44,7 +45,7 @@ export default function SourceTableCard({ rows, campaigns }: SourceTableCardProp
   const forSource = (source: string) => campaigns.filter((row) => row.sourceKey === source)
 
   return (
-    <Card className="gap-0 p-5">
+    <Card gap="none" inset={5}>
       <p className="text-kit-title text-foreground">{copy.sources.title}</p>
       {rows.length === 0 ? (
         <p className="mt-5 text-kit-body text-muted-foreground">{copy.sources.empty}</p>
@@ -90,8 +91,8 @@ export default function SourceTableCard({ rows, campaigns }: SourceTableCardProp
                       <div className="flex items-center justify-end gap-2">
                         <div className="h-1.5 w-16 overflow-hidden rounded-full bg-muted">
                           <div
-                            className="h-full rounded-full bg-primary"
-                            style={{ width: shareWidth(row.shareOfSales) }}
+                            className="h-full w-(--w) rounded-full bg-primary"
+                            style={{ '--w': shareWidth(row.shareOfSales) } as CSSProperties}
                           />
                         </div>
                         <span className="tabular-nums">{formatRate(row.shareOfSales)}</span>

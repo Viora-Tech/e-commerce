@@ -1,21 +1,23 @@
 'use client'
 
 import type { MarketingOverview } from '@commerce/api'
-import { BadgePercent, LinkIcon, Send, Workflow } from '@commerce/ui/icons'
+import { BadgePercent, LinkIcon, Plus, Send, Workflow } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Card } from '@commerce/ui/shadcn/card'
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import RangePicker from '@/components/analytics/range-picker'
 import ChartCard from '@/components/layout/chart-card'
-import PageBody from '@/components/layout/page-body'
-import PageHeader from '@/components/layout/page-header'
-import { growthOverviewContent as copy } from '@/data/growth'
+import ProoflyPageHeader from '@/components/layout/proofly-page-header'
+import StatTile from '@/components/layout/stat-tile'
+import { growthOverviewContent } from '@/data/growth'
+import { useCopy, useFormat } from '@/hooks/use-copy'
 import { formatDay, type RangeState, rangeQuery, sameRange } from '@/lib/analytics-range'
 import { api } from '@/lib/api-client'
 import { formatPaiseCompact } from '@/lib/money'
+import { routes } from '@/lib/routes'
 import BestSourceCallout from './best-source-callout'
-import GrowthKpiTile from './growth-kpi-tile'
+import OutcomesCard from './outcomes-card'
 import SourceOrChannelCard from './source-or-channel-card'
 import TopCampaignsCard from './top-campaigns-card'
 
@@ -25,15 +27,21 @@ type GrowthOverviewPageProps = {
 }
 
 const SHORTCUTS = [
-  { ...copy.shortcuts.campaigns, icon: Send },
-  { ...copy.shortcuts.automations, icon: Workflow },
-  { ...copy.shortcuts.links, icon: LinkIcon },
-  { ...copy.shortcuts.discounts, icon: BadgePercent },
+  { ...growthOverviewContent.shortcuts.campaigns, icon: Send },
+  { ...growthOverviewContent.shortcuts.automations, icon: Workflow },
+  { ...growthOverviewContent.shortcuts.links, icon: LinkIcon },
+  { ...growthOverviewContent.shortcuts.discounts, icon: BadgePercent },
 ]
 
-/** Growth overview: KPIs, sales by source and channel, and top campaigns. */
+/**
+ * Growth overview (Figma "Marketing / Growth overview"): what marketing earned (sales from
+ * campaigns, automations, discount codes and links, messages sent, subscribers), then sales
+ * over time, by source and channel, and the top campaigns.
+ */
 export default function GrowthOverviewPage({ initialRange, initial }: GrowthOverviewPageProps) {
   // Hooks
+  const copy = useCopy(growthOverviewContent)
+  const fmt = useFormat()
   const [range, setRange] = useState(initialRange)
   const [data, setData] = useState(initial)
   const [loading, setLoading] = useState(false)
@@ -61,35 +69,74 @@ export default function GrowthOverviewPage({ initialRange, initial }: GrowthOver
   // Event handlers
   const handleRange = (next: RangeState) => {
     setRange(next)
-    window.history.replaceState(null, '', `/growth${rangeQuery(next)}`)
+    window.history.replaceState(null, '', `${routes.growth.home()}${rangeQuery(next)}`)
   }
 
   // Render logic
+  const o = data.outcomes
+  const earnedTrend =
+    o.earnedPrevPaise > 0
+      ? Math.round(((o.earnedPaise - o.earnedPrevPaise) / o.earnedPrevPaise) * 1000) / 10
+      : null
   const dayPoints = data.salesOverTime.day.map((p) => ({ ...p, label: formatDay(p.label) }))
   const weekPoints = data.salesOverTime.week.map((p) => ({ ...p, label: formatDay(p.label) }))
 
   return (
-    <PageBody width="frame" className="gap-5">
-      <PageHeader
+    <div className="mx-auto flex w-full max-w-[81.5rem] flex-col gap-6 px-4 py-6 md:px-8 md:py-8">
+      <ProoflyPageHeader
         title={copy.title}
-        subtitle={copy.intro}
+        summary={copy.outcomes.summary(
+          fmt.money(o.earnedPaise),
+          copy.outcomes.periods[data.range.key] ?? copy.outcomes.periods.custom ?? '',
+        )}
         actions={
           <div className="flex items-center gap-2">
             <RangePicker value={range} onChange={handleRange} />
-            <Button render={<Link href="/growth/campaigns" />} nativeButton={false}>
-              {copy.createCampaign}
+            <Button
+              variant="outline"
+              render={<Link href={routes.growth.links()} />}
+              nativeButton={false}
+            >
+              {copy.links}
+            </Button>
+            <Button render={<Link href={routes.growth.newCampaign()} />} nativeButton={false}>
+              <Plus aria-hidden />
+              {copy.newCampaign}
             </Button>
           </div>
         }
       />
       <div
-        className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4"
+        className="grid grid-cols-2 gap-4 lg:grid-flow-col lg:grid-cols-none lg:auto-cols-fr"
         aria-busy={loading || undefined}
       >
-        {data.kpis.map((kpi) => (
-          <GrowthKpiTile key={kpi.id} kpi={kpi} />
-        ))}
+        <StatTile
+          label={copy.outcomes.tiles.earned}
+          value={fmt.money(o.earnedPaise)}
+          trend={earnedTrend}
+          trendNote={copy.outcomes.vsPrevious}
+          active
+        />
+        <StatTile
+          label={copy.outcomes.tiles.messages}
+          value={fmt.number(o.messages.email + o.messages.whatsapp)}
+          note={copy.outcomes.messagesNote(
+            fmt.number(o.messages.whatsapp),
+            fmt.number(o.messages.email),
+          )}
+        />
+        <StatTile
+          label={copy.outcomes.tiles.automationOrders}
+          value={fmt.number(o.automationOrders)}
+          note={copy.outcomes.automationNote}
+        />
+        <StatTile
+          label={copy.outcomes.tiles.subscribers}
+          value={fmt.number(o.subscribers.total)}
+          note={copy.outcomes.subscribersNote(fmt.number(o.subscribers.newThisWeek))}
+        />
       </div>
+      <OutcomesCard outcomes={o} />
       <ChartCard
         title={copy.salesOverTime.title}
         periods={[
@@ -110,21 +157,25 @@ export default function GrowthOverviewPage({ initialRange, initial }: GrowthOver
         <TopCampaignsCard rows={data.campaigns} />
       </div>
       <section className="flex flex-col gap-3">
-        <h2 className="text-kit-title text-foreground">{copy.shortcuts.title}</h2>
+        <h2 className="text-card-title text-ink-strong">{copy.shortcuts.title}</h2>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {SHORTCUTS.map((s) => (
             <Link key={s.href} href={s.href} className="group">
-              <Card className="h-full flex-row items-start gap-3 p-4 transition-colors group-hover:bg-muted/50">
+              <Card
+                gap={3}
+                inset={4}
+                className="h-full flex-row items-start transition-colors group-hover:bg-muted/50"
+              >
                 <s.icon className="mt-0.5 size-5 shrink-0 text-muted-foreground" />
                 <div className="flex flex-col gap-1">
-                  <p className="text-kit-body font-medium text-foreground">{s.title}</p>
-                  <p className="text-kit-mini text-muted-foreground">{s.body}</p>
+                  <p className="text-body-strong text-foreground">{s.title}</p>
+                  <p className="text-caption text-muted-foreground">{s.body}</p>
                 </div>
               </Card>
             </Link>
           ))}
         </div>
       </section>
-    </PageBody>
+    </div>
   )
 }

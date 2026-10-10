@@ -228,6 +228,9 @@ server (UTC) and the browser (IST) disagree on the day and the text — a hydrat
 `useFormat()` (`date`, `dateTime`, `when`, `pattern`) or `lib/format-date.ts`
 (`formatPattern`, `formatNumericDate`, `todayKey`). Day maths (`dayKey`, `startOfDay`,
 `startOfMonth`, `wallClock`) lives there too. **Allow-list**: per file with a reason.
+The same sweep checks that every Dockerfile installing Alpine's `nodejs` also installs
+`icu-data-full`: without it the server formats `en-IN` as `en-US` and drops `hi-IN`, so
+server and browser text differ (React #418 on `/discounts`, issue #292).
 
 ### p. `server-only-guard` (`scripts/sweeps/server-only-guard.test.ts`)
 
@@ -273,6 +276,20 @@ every package that depends on core adds it to its `test`/`typecheck` `dependsOn`
 depends on core has no such `turbo.json`. Without it, editing a plugin would replay a stale
 cached pass for core, the API and the apps.
 
+### v. `admin-routes` (`scripts/sweeps/admin-routes.test.ts`)
+
+Admin URLs live once in `apps/admin/src/lib/routes.ts` (`routes.orders.detail(id)`). A string
+literal admin path in an `href` or in `redirect` / `push` / `replace` under `apps/admin/src` is a
+hardcoded one. Ratchet by **count per file**: a new one (or one more in a listed file) fails;
+migrating one means lowering that file's number, and a stale (too high) number fails too.
+`data/settings-search.ts` keeps hash and query links (`/settings/taxes?tab=...#x`) until `routes`
+grows a query helper.
+
+### w. `site-config` (`scripts/sweeps/site-config.test.ts`)
+
+The brand name (`siteConfig.brand.name`, `packages/config/src/site.ts`) may not appear as a
+literal string or JSX text anywhere else (tests and the docs app excepted). Not allow-listed.
+
 ## `server-only`
 
 The `server-only` npm package throws unconditionally when the bundler resolving it does
@@ -311,8 +328,7 @@ Proof this doesn't break anything: `apps/worker/src/index.ts` still bundles clea
 
 Every `packages/api/src/routers/*.ts` handler that changes or reads store-wide data is
 gated with `can(permission)` (`../procedures`), which requires the caller's role to hold
-that grant. Two routers also use the bare `storeProcedure` (no permission) for specific
-handlers, deliberately:
+that grant. A few handlers also use the bare `storeProcedure` (no permission), deliberately:
 
 - `appearance.get` / `appearance.setMine` — every store member may read and set their
   *own* accent colour pick; there is no permission to check because the data is
@@ -323,6 +339,10 @@ handlers, deliberately:
   configured, and each feature on for the store and allowed by the caller's own role). Same
   reasoning as `staff.me`; usage, plan and the switches themselves sit behind
   `can(SETTINGS_READ)` / `can(SETTINGS_MANAGE)` (`ai.settings`, `ai.saveSettings`).
+- `store.origin` — every member may read the store's public web address
+  (`https://<live primary domain>`, `STOREFRONT_URL` only when it has none) that the admin's
+  "View store", preview and share links start from. It is what every shopper already sees, and
+  staff without `settings.read` (which `store.current` needs) must still get working links.
 
 One more gate exists for handlers that serve several permission grains at once and check the
 exact one themselves: `canAny([...])` (and `canDetached([...])` for model calls), which requires

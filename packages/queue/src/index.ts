@@ -13,6 +13,9 @@ import {
   NOTIFICATIONS_QUEUE,
   type NotificationJob,
   type NotificationQueue,
+  PURCHASE_DOCUMENT_QUEUE,
+  type PurchaseDocumentJob,
+  type PurchaseDocumentQueue,
   STORE_EXPORT_QUEUE,
   type StoreExportJob,
   type StoreExportQueue,
@@ -32,6 +35,8 @@ export const PREORDER_BALANCE_QUEUE = '{payments}-preorder-balance'
 export const ABANDONED_SWEEP_QUEUE = '{abandoned}-sweep'
 /** Repeat job that checks custom domains still waiting on DNS or a certificate. */
 export const DOMAIN_VERIFY_QUEUE = '{domains}-verify'
+/** One job per custom-domain HTTPS route to add or delete on the proxy (Dokploy). Platform work, one at a time. */
+export const DOMAIN_ROUTE_QUEUE = '{domains}-route'
 /** Repeat job that checks store sender email domains (pending, and verified ones daily). */
 export const SENDER_EMAIL_VERIFY_QUEUE = '{sender-email}-verify'
 /** Repeat job that claims undispatched outbox rows and fans them out. */
@@ -44,6 +49,10 @@ export const MARKETING_SEND_QUEUE = '{marketing}-send'
 export const IMPORT_SNAPSHOT_CLEANUP_QUEUE = '{imports}-snapshot-cleanup'
 /** One job per confirmed image upload (or Shopify-import media row); runs the upload-time pipeline. */
 export const MEDIA_PROCESS_QUEUE = '{media}-process'
+/** Repeat job that queues due review request and reminder emails (Reviews app). */
+export const REVIEW_REQUESTS_QUEUE = '{reviews}-requests'
+/** Repeat job that sends team members their daily summary at the hour each chose. */
+export const MEMBER_DAILY_SUMMARY_QUEUE = '{members}-daily-summary'
 
 /**
  * Worker concurrency and the per-store cap for every queue that carries store jobs (see
@@ -64,6 +73,8 @@ export const QUEUE_LIMITS = {
   storeExport: { concurrency: 2, perStore: 1 },
   /** Bulk "Write with AI" runs: one product at a time per store, so a 200-product run never starves another store's. */
   aiBulkWrite: { concurrency: 2, perStore: 1 },
+  /** AI reads of uploaded supplier invoices and Bills of Entry: one at a time per store. */
+  purchaseDocuments: { concurrency: 2, perStore: 1 },
 } as const satisfies Record<string, QueueLimits>
 
 export function createConnection(redisUrl: string): IORedis {
@@ -181,6 +192,23 @@ export function aiBulkQueue(redisUrl: string): AiBulkQueue {
   const g = globalThis as { __aiBulkQueue?: AiBulkQueue }
   if (!g.__aiBulkQueue) g.__aiBulkQueue = createAiBulkQueue(createConnection(redisUrl))
   return g.__aiBulkQueue
+}
+
+export type { PurchaseDocumentJob, PurchaseDocumentQueue }
+
+export function createPurchaseDocumentQueue(
+  connection: IORedis,
+): Queue<PurchaseDocumentJob> & PurchaseDocumentQueue {
+  return new Queue<PurchaseDocumentJob>(PURCHASE_DOCUMENT_QUEUE, { connection })
+}
+
+/** Process-wide purchase document read queue, cached like the others. */
+export function purchaseDocumentQueue(redisUrl: string): PurchaseDocumentQueue {
+  const g = globalThis as { __purchaseDocumentQueue?: PurchaseDocumentQueue }
+  if (!g.__purchaseDocumentQueue) {
+    g.__purchaseDocumentQueue = createPurchaseDocumentQueue(createConnection(redisUrl))
+  }
+  return g.__purchaseDocumentQueue
 }
 
 /** Process-wide app jobs queue. */

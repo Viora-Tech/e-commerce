@@ -12,12 +12,13 @@ import {
   AlertDialogTitle,
 } from '@commerce/ui/shadcn/alert-dialog'
 import { Button } from '@commerce/ui/shadcn/button'
-import { Card, CardContent, CardHeader, CardTitle } from '@commerce/ui/shadcn/card'
+import { Card, CardAction, CardContent, CardHeader, CardTitle } from '@commerce/ui/shadcn/card'
 import { Field, FieldDescription, FieldError, FieldLabel } from '@commerce/ui/shadcn/field'
 import { useState } from 'react'
 import SuggestInput from '@/components/fields/suggest-input'
 import TagInput from '@/components/fields/tag-input'
-import { productFormContent } from '@/data/products'
+import StatusChip from '@/components/layout/status-chip'
+import { productFormContent } from '@/data/product-form'
 import { useCopy } from '@/hooks/use-copy'
 import {
   MAX_OPTIONS,
@@ -125,16 +126,41 @@ export default function VariantsCard({
   return (
     <Card size="form" className="pb-0">
       <CardHeader>
-        <CardTitle>{copy.heading}</CardTitle>
-        {hasOptions ? (
-          <span className="text-body text-muted-foreground">{copy.count(variants.length)}</span>
-        ) : null}
+        <CardTitle className="flex items-center gap-2.5">
+          {copy.heading}
+          {hasOptions ? (
+            <StatusChip tone="neutral">{copy.count(variants.length)}</StatusChip>
+          ) : null}
+        </CardTitle>
+        <CardAction className="flex items-center gap-2">
+          {hasMatrix ? (
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={handleAutoFillSku}
+              title={copy.autoFillSkuHelp}
+            >
+              {copy.autoFillSku}
+            </Button>
+          ) : null}
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={handleAddOption}
+            disabled={atMax}
+          >
+            <Plus />
+            {hasOptions ? copy.addAnother : copy.addOption}
+          </Button>
+        </CardAction>
       </CardHeader>
       <CardContent className="flex flex-col gap-4 pb-(--card-spacing)">
         {options.map((o, i) => (
           <div
             key={o.id ?? `new-${i}`}
-            className="grid gap-3 rounded-lg border p-3 md:grid-cols-[1fr_2fr_auto] md:items-start"
+            className="grid gap-3 md:grid-cols-[1fr_2fr_auto] md:items-start"
           >
             <Field>
               <FieldLabel htmlFor={`option-name-${i}`}>{copy.optionName}</FieldLabel>
@@ -170,30 +196,7 @@ export default function VariantsCard({
             </Button>
           </div>
         ))}
-        <div className="flex flex-wrap items-center gap-3">
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={handleAddOption}
-            disabled={atMax}
-          >
-            <Plus />
-            {hasOptions ? copy.addAnother : copy.addOption}
-          </Button>
-          {hasMatrix ? (
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              onClick={handleAutoFillSku}
-              title={copy.autoFillSkuHelp}
-            >
-              {copy.autoFillSku}
-            </Button>
-          ) : null}
-          {atMax ? <span className="text-xs text-muted-foreground">{copy.maxOptions}</span> : null}
-        </div>
+        {atMax ? <span className="text-xs text-muted-foreground">{copy.maxOptions}</span> : null}
         {waiting && !error ? (
           <p className="text-caption text-muted-foreground">{copy.needsValues}</p>
         ) : null}
@@ -230,7 +233,7 @@ export default function VariantsCard({
             <AlertDialogCancel>{copy.confirmRemoveCancel}</AlertDialogCancel>
             <AlertDialogAction
               variant="destructive"
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90 dark:bg-destructive dark:text-destructive-foreground dark:hover:bg-destructive/90"
+              tone="destructive"
               onClick={handleConfirmRemove}
             >
               {copy.confirmRemoveConfirm}

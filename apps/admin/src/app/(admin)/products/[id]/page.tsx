@@ -1,8 +1,9 @@
-import { loadEnv } from '@commerce/config'
 import { notFound, redirect } from 'next/navigation'
 import ProductForm from '@/components/products/product-form'
 import { appRouter, call, serverContext } from '@/lib/api'
+import { routes } from '@/lib/routes'
 import { orNoStore } from '@/lib/store-guard'
+import { storefrontOrigin } from '@/lib/storefront-origin'
 
 type Params = { params: Promise<{ id: string }> }
 
@@ -15,13 +16,13 @@ export default async function ProductEditPage({ params }: Params) {
     // AI is optional: any failure just hides the button.
     call(appRouter.ai.status, undefined, { context }).catch(() => null),
   ]).catch(orNoStore([undefined, undefined, null] as const))
-  if (product === undefined || !facets) redirect('/select-store')
+  if (product === undefined || !facets) redirect(routes.selectStore())
   if (!product) notFound()
   return (
     <ProductForm
       product={product}
       facets={facets}
-      storefrontOrigin={loadEnv(process.env).STOREFRONT_URL}
+      storefrontOrigin={await storefrontOrigin()}
       aiWriter={ai?.productWriter ?? false}
     />
   )

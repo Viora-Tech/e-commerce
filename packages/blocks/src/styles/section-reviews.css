@@ -1,4 +1,4 @@
-/* Ported from Glide assets/section-reviews.css (px to rem; custom elements to classes). */
+/* Ported from Zero Drift assets/section-reviews.css (px to rem; custom elements to classes). */
 /**
  * Customer reviews (sections/reviews.liquid).
  *
@@ -472,7 +472,7 @@
   margin-top: var(--space-4);
 }
 
-/* From Glide assets/base.css (snippets/rating-stars.liquid). */
+/* From Zero Drift assets/base.css (snippets/rating-stars.liquid). */
 /* Star rating row (snippets/rating-stars.liquid). Here rather than inline
    in the snippet, which renders once per rating row. */
 .rating-stars {

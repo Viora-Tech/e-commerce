@@ -6,10 +6,10 @@ import {
   media,
   order,
   orderLine,
+  primarySellingLevel,
   productMedia,
   returnRequest,
   returnRequestLine,
-  sellableLevel,
   shipment,
   store,
   variant,
@@ -19,6 +19,7 @@ import { and, asc, count, desc, eq, ilike, inArray, or, sql } from 'drizzle-orm'
 import type { StoreContext } from '../context'
 import { CommerceError } from '../errors'
 import { adjustStock } from '../inventory/levels'
+import { lineLocation } from '../order/fulfillment-orders'
 import { recomputeOrderStatuses } from '../order/recompute'
 import { insertOutboxEvent } from '../outbox/write'
 import { resolveParcelWeightGrams } from '../shipping/parcel'
@@ -452,9 +453,10 @@ export async function arrangeReturnPickup(
   if (!from) throw new ReturnNotAllowed('This order has no address to collect from.', ctx.storeId)
   const [s] = await ctx.tx.select().from(store).where(eq(store.id, ctx.storeId))
   const settings = parseShippingSettings(s?.shipping)
-  // Back to the location the order left from when it has courier pickup on.
+  // Back to the location the returned goods left from, when it has courier pickup on.
   const backTo = await shipFromFor(ctx.tx, {
     taxOrigin: o.taxOrigin,
+    locationId: await returnPickupLocation(ctx, id),
     settings,
     storeName: s?.name ?? '',
   })
@@ -506,7 +508,7 @@ export async function arrangeReturnPickup(
   })
 }
 
-/** The location a variant sells from online; returned units go back there. */
+/** The location a variant mainly sells from online (`primarySellingLevel`). */
 export async function sellingLocation(
   ctx: StoreContext,
   variantId: string,
@@ -514,8 +516,45 @@ export async function sellingLocation(
   const [level] = await ctx.tx
     .select({ locationId: inventoryLevel.locationId })
     .from(inventoryLevel)
-    .where(and(eq(inventoryLevel.variantId, variantId), sellableLevel))
+    .where(and(eq(inventoryLevel.variantId, variantId), primarySellingLevel(variantId)))
   return level?.locationId ?? undefined
+}
+
+/**
+ * Where a courier brings a return: the location the most of its value left from (an order
+ * shipped in parcels from two warehouses may return goods from either). Undefined when none of
+ * its lines were packed from a parcel (the order's tax origin then decides).
+ */
+export async function returnPickupLocation(
+  ctx: StoreContext,
+  returnId: string,
+): Promise<string | undefined> {
+  const lines = await ctx.tx
+    .select({
+      orderLineId: returnRequestLine.orderLineId,
+      quantity: returnRequestLine.quantity,
+      unitPricePaise: orderLine.unitPricePaise,
+    })
+    .from(returnRequestLine)
+    .innerJoin(orderLine, eq(orderLine.id, returnRequestLine.orderLineId))
+    .where(eq(returnRequestLine.returnRequestId, returnId))
+  const value = new Map<string, number>()
+  for (const l of lines) {
+    const at = await lineLocation(ctx, l.orderLineId)
+    if (at) value.set(at, (value.get(at) ?? 0) + l.quantity * l.unitPricePaise)
+  }
+  return [...value].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))[0]?.[0]
+}
+
+/**
+ * Where returned units of an order line go back to: the location its parcel left from, else
+ * (an order line no parcel packed) where the variant sells from.
+ */
+export async function returnLocation(
+  ctx: StoreContext,
+  line: { orderLineId: string; variantId: string },
+): Promise<string | undefined> {
+  return (await lineLocation(ctx, line.orderLineId)) ?? sellingLocation(ctx, line.variantId)
 }
 
 /**
@@ -536,6 +575,7 @@ export async function restockReturn(ctx: StoreContext, id: string) {
       id: returnRequestLine.id,
       quantity: returnRequestLine.quantity,
       restocked: returnRequestLine.restockedQuantity,
+      orderLineId: returnRequestLine.orderLineId,
       variantId: orderLine.variantId,
     })
     .from(returnRequestLine)
@@ -548,7 +588,7 @@ export async function restockReturn(ctx: StoreContext, id: string) {
     await adjustStock(ctx.tx, {
       storeId: ctx.storeId,
       variantId: l.variantId,
-      locationId: await sellingLocation(ctx, l.variantId),
+      locationId: await returnLocation(ctx, l),
       delta: remaining,
       reason: 'returned',
       note: `${r.kind === 'rto' ? 'RTO' : 'Return'} ${returnLabel(r.number)}`,

@@ -129,7 +129,7 @@ export default function SenderEmailCard() {
   // Early returns
   if (!data) {
     return (
-      <Card className="gap-3 p-6">
+      <Card gap={3} inset={6}>
         <Skeleton className="h-5 w-48" />
         <Skeleton className="h-10 w-full" />
       </Card>

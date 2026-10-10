@@ -10,7 +10,7 @@ type SettingsEmptyProps = SectionEmptyContent & { icon: LucideIcon }
 /** Empty state for a settings tab that has nothing to configure yet; the layout supplies the frame. */
 export default function SettingsEmpty({ heading, body, action, icon }: SettingsEmptyProps) {
   return (
-    <Card className="py-10">
+    <Card inset="y-10">
       <EmptyState
         heading={heading}
         body={body}

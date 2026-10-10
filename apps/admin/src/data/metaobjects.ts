@@ -129,6 +129,8 @@ export const presetContent: Record<PresetKey | 'blank', { title: string; body: s
 
 export const newContentTypeContent = {
   title: 'New content type',
+  summary: 'Start from a ready-made type, or build your own.',
+  startBlank: 'Start blank',
   back: 'Content types',
   pick: {
     heading: 'What do you want to make?',
@@ -151,11 +153,17 @@ export const metaobjectListContent = {
   heading: 'Content types',
   subtitle:
     'Your own kinds of content, like size guides, FAQs or store locations, to show on your store.',
-  add: 'Add content type',
+  add: 'New content type',
+  fromTemplate: 'Start from template',
+  summary: (types: number, entries: number) =>
+    types === 0
+      ? 'Your own kinds of content, like size guides and FAQs.'
+      : `${types} content ${types === 1 ? 'type' : 'types'} · ${entries} ${entries === 1 ? 'entry' : 'entries'} you can use on any page`,
+  entryCount: (n: number) => (n === 1 ? '1 entry' : `${n} entries`),
   resource: { singular: 'content type', plural: 'content types' },
   columns: {
     name: 'Name',
-    type: 'Handle',
+    type: 'Content type',
     fields: 'Fields',
     entries: 'Entries',
     updated: 'Last updated',
@@ -283,7 +291,8 @@ export const fieldDialogContent = {
 
 export const entryListContent = {
   add: 'Add entry',
-  editDefinition: 'Edit fields',
+  summary: (n: number) => (n === 1 ? '1 entry' : `${n} entries`),
+  editDefinition: 'Edit definition',
   back: 'Content types',
   resource: { singular: 'entry', plural: 'entries' },
   columns: { name: 'Name', handle: 'Handle', status: 'Status', updated: 'Last updated' },
@@ -389,12 +398,21 @@ export const fieldInputContent = {
 
 export const customDataContent = {
   title: 'Custom data',
-  intro: 'Add extra fields to your products and collections, and manage your content types.',
+  intro:
+    'Add extra fields to products, variants, collections, customers, orders, pages, blog posts and your store, and manage your content types.',
   tabs: {
     products: { id: 'products', label: 'Products' },
+    variants: { id: 'variants', label: 'Variants' },
     collections: { id: 'collections', label: 'Collections' },
+    customers: { id: 'customers', label: 'Customers' },
+    orders: { id: 'orders', label: 'Orders' },
+    pages: { id: 'pages', label: 'Pages' },
+    articles: { id: 'articles', label: 'Blog posts' },
+    shop: { id: 'store', label: 'Store' },
     metaobjects: { id: 'metaobjects', label: 'Content types' },
   },
+  /** The Store tab: the store's own values under its fields. */
+  shopValues: 'Your store’s values',
   metafields: {
     heading: (owner: string) => `${owner} extra fields`,
     body: (owner: string) =>
@@ -418,6 +436,8 @@ export const customDataContent = {
     description: 'Hint',
     storefront: 'Show on your store',
     storefrontHelp: 'Let your theme show this value.',
+    privateNote:
+      'Customer and order extra fields stay private: they are never shown on your store.',
     fixed: 'What goes in it and the key are fixed once the extra field is saved.',
     save: 'Save',
     saving: 'Saving',
@@ -442,7 +462,16 @@ export const customDataContent = {
     empty: 'No content types yet.',
     entries: (n: number) => (n === 1 ? '1 entry' : `${n} entries`),
   },
-  owners: { product: 'Product', collection: 'Collection' },
+  owners: {
+    product: 'Product',
+    variant: 'Variant',
+    collection: 'Collection',
+    customer: 'Customer',
+    order: 'Order',
+    page: 'Page',
+    article: 'Blog post',
+    shop: 'Store',
+  },
   loadFailed: 'Could not load. Reload the page to try again.',
 } as const
 
@@ -450,7 +479,10 @@ export const metafieldsCardContent = {
   heading: 'Extra fields',
   empty: 'Add your own fields, like a care guide or warranty, to show more details.',
   manage: 'Manage extra fields',
+  addField: 'Add a field',
   saveFirst: 'Save first, then fill in the extra fields.',
+  variant: 'Variant',
+  variantHeading: 'Variant extra fields',
   save: 'Save extra fields',
   saving: 'Saving',
   saved: 'Extra fields saved',

@@ -13,14 +13,18 @@ import {
   ProductDrop,
   renderLiquidLayout,
   renderLiquidSection,
+  resolveThemeProductId,
   sectionWrapper,
   storeLiquidData,
   themeImportFor,
 } from '@commerce/core'
 import type { StoreTx } from '@commerce/db'
+import { reviewsLiquidSource } from '@commerce/plugin-reviews/server'
 import { headers } from 'next/headers'
 import { readCartId } from './cart-cookie'
 import { NONCE_HEADER } from './csp'
+import { formsInstalled } from './forms-context'
+import { deferThemeScripts } from './liquid-defer'
 import { requestOrigin } from './seo'
 import { readPreview } from './storefront-gate'
 
@@ -53,12 +57,6 @@ async function cartFor(tx: StoreTx, storeId: string): Promise<LiquidCartData> {
       url: `/products/${l.productHandle}`,
     })),
   }
-}
-
-/** Adds the request's CSP nonce to every script the theme writes, so the theme's look JS runs. */
-export function withNonce(html: string, nonce: string): string {
-  if (!nonce) return html
-  return html.replace(/<script\b(?![^>]*\bnonce=)/gi, `<script nonce="${nonce}"`)
 }
 
 /** Shopify's `template.name` for a storefront path. */
@@ -101,6 +99,7 @@ export async function liquidContextFor(
       host: url.host,
       origin,
       cart: () => cartFor(tx, storeId),
+      reviews: await reviewsLiquidSource(tx, storeId),
     }),
     request: {
       template,
@@ -109,6 +108,7 @@ export async function liquidContextFor(
       origin,
       designMode: false,
       postedForm: posted,
+      formsAvailable: await formsInstalled(tx, storeId),
       nonce: h.get(NONCE_HEADER) ?? '',
     },
     assetBase: `/theme-assets/${themeId}`,
@@ -142,10 +142,10 @@ export async function prerenderLiquidSections(
       console.error(`[liquid] ${type} failed to render`, err),
     )
     const wrapper = sectionWrapper(ctx.bundle, section)
-    out.set(String(item.props.id), {
-      html: withNonce(html, ctx.runtime.nonce),
-      ...wrapper,
-    })
+    // The theme's own `<script>` tags already carry this request's nonce (written at parse
+    // time, `nonceThemeScripts` in core); a script that came in with data never does. Its
+    // deferred and module scripts wait for React (`./liquid-defer.ts`).
+    out.set(String(item.props.id), { html: deferThemeScripts(html), ...wrapper })
   }
   return out
 }
@@ -153,12 +153,11 @@ export async function prerenderLiquidSections(
 /** The parts of the theme's `layout/theme.liquid` the store layout draws around `<main>`. */
 export async function liquidLayoutFor(ctx: LiquidPageContext) {
   const parts = await renderLiquidLayout(ctx, (err) => console.error('[liquid] layout failed', err))
-  const nonce = ctx.runtime.nonce
   return {
     ...parts,
-    head: withNonce(parts.head, nonce),
-    beforeHeader: withNonce(parts.beforeHeader, nonce),
-    afterFooter: withNonce(parts.afterFooter, nonce),
+    head: deferThemeScripts(parts.head),
+    beforeHeader: deferThemeScripts(parts.beforeHeader),
+    afterFooter: deferThemeScripts(parts.afterFooter),
     fontsHref: googleFontsHref(parts.fonts),
   }
 }
@@ -179,23 +178,30 @@ export async function renderStaticLiquidSection(
   storeId: string,
   sectionType: string,
   path: string,
+  prepare?: (ctx: LiquidPageContext) => Promise<void>,
 ): Promise<string | null> {
   const themeId = await requestThemeId(tx, storeId)
   const ctx = themeId ? await liquidContextFor(tx, storeId, themeId) : null
-  if (!ctx?.bundle.sections.has(sectionType)) return null
+  if (!ctx) return null
+  // Shopify's section ids read `template--123__<key>`; the key is the section's type for
+  // the sections a theme ships by default.
+  const key = sectionType.split('__').pop() ?? sectionType
+  const type = [sectionType, key].find((t) => ctx.bundle.sections.has(t))
+  if (!type) return null
   const collection = /^\/collections\/([^/]+)/.exec(path)?.[1]
   const product = /^\/products\/([^/]+)/.exec(path)?.[1]
   if (collection) {
-    const found = await ctx.options.data.collection(decodeURIComponent(collection))
+    const found = await ctx.options.data.collection(decodedSegment(collection))
     if (found) ctx.globals.collection = new CollectionDrop(found, ctx.cache)
   }
   if (product) {
-    const found = await ctx.options.data.product(decodeURIComponent(product))
-    if (found) ctx.globals.product = new ProductDrop(found)
+    const found = await ctx.options.data.product(decodedSegment(product))
+    if (found) ctx.globals.product = new ProductDrop(found, ctx.cache)
   }
+  await prepare?.(ctx)
   const section: LiquidSectionInput = {
-    id: sectionType,
-    type: sectionType,
+    id: type,
+    type,
     settings: {},
     blocks: [],
     location: 'template',
@@ -203,10 +209,40 @@ export async function renderStaticLiquidSection(
   }
   const html = await renderLiquidSection(ctx, section)
   const w = sectionWrapper(ctx.bundle, section)
-  return withNonce(
-    `<${w.tag} id="${w.id}" class="${w.className}">${html}</${w.tag}>`,
-    ctx.runtime.nonce,
-  )
+  return `<${w.tag} id="${w.id}" class="${w.className}">${html}</${w.tag}>`
+}
+
+/**
+ * Our answer to Shopify's `/recommendations/products?product_id=&limit=&section_id=`: the
+ * theme's own section rendered with `recommendations.products` filled from the product's
+ * related products (shared collection, then type and tags; published and in stock only).
+ * Null when the section is not in the theme, or the product is not ours.
+ */
+export async function renderRecommendations(
+  tx: StoreTx,
+  storeId: string,
+  input: { sectionId: string; productId: string; limit: number },
+): Promise<string | null> {
+  const productId = await resolveThemeProductId(tx, input.productId)
+  if (!productId) return null
+  return renderStaticLiquidSection(tx, storeId, input.sectionId, '/', async (ctx) => {
+    const related = await ctx.options.data.relatedProducts(productId, input.limit)
+    ctx.globals.recommendations = {
+      performed: true,
+      intent: 'related',
+      products: related.map((p) => new ProductDrop(p, ctx.cache)),
+      products_count: related.length,
+    }
+  })
+}
+
+/** A path segment decoded, or as it came when it is not valid percent-encoding (never a 500). */
+function decodedSegment(segment: string): string {
+  try {
+    return decodeURIComponent(segment)
+  } catch {
+    return segment
+  }
 }
 
 /** Theme layout attributes (`class`, `data-*`, `lang`) as React props; handlers and styles dropped. */

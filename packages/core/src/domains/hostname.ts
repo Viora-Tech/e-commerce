@@ -91,3 +91,25 @@ export function wwwCounterpart(hostname: string): string | null {
 export function isPlatformHostname(hostname: string, platformRoots: readonly string[]): boolean {
   return platformRoots.some((root) => hostname === root || hostname.endsWith(`.${root}`))
 }
+
+/**
+ * Every root a merchant may never connect as their own: the platform domains, the
+ * domain new stores get addresses under (`<slug>.<PLATFORM_STORE_DOMAIN>`) and the
+ * shopper login host. Without the store domain a merchant could connect
+ * `somebrand.waimers.store` or `accounts.waimers.store` (audit 2026-09-28).
+ */
+export function platformRoots(env: {
+  PLATFORM_DOMAINS: readonly string[]
+  PLATFORM_STORE_DOMAIN: string
+  ACCOUNTS_URL?: string | undefined
+}): string[] {
+  const roots = [...env.PLATFORM_DOMAINS, env.PLATFORM_STORE_DOMAIN]
+  if (env.ACCOUNTS_URL) {
+    try {
+      roots.push(new URL(env.ACCOUNTS_URL).hostname)
+    } catch {
+      // A malformed ACCOUNTS_URL is refused at env load; nothing to add.
+    }
+  }
+  return [...new Set(roots.map((r) => r.trim().toLowerCase()).filter(Boolean))]
+}

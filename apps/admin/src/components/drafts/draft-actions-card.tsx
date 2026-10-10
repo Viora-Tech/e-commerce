@@ -17,8 +17,6 @@ type DraftActionsCardProps = {
   busy: boolean
   paymentMethod: string
   onPaymentMethod: (method: string) => void
-  onSendInvoice: () => void
-  onConvert: () => void
   onDelete: () => void
 }
 
@@ -29,14 +27,12 @@ export default function DraftActionsCard({
   busy,
   paymentMethod,
   onPaymentMethod,
-  onSendInvoice,
-  onConvert,
   onDelete,
 }: DraftActionsCardProps) {
   // Render logic
   return (
-    <Card className="gap-4 p-5">
-      <p className="text-kit-card-title text-foreground">{copy.actions.heading}</p>
+    <Card gap={4} inset={5}>
+      <p className="text-card-title text-ink-strong">{copy.actions.heading}</p>
       <Field>
         <FieldLabel htmlFor="draft-method">{copy.paymentMethod}</FieldLabel>
         <Select
@@ -57,12 +53,6 @@ export default function DraftActionsCard({
         </Select>
       </Field>
       <div className="flex flex-col gap-2">
-        <Button variant="outline" disabled={!saved || busy} onClick={onSendInvoice}>
-          {copy.actions.sendInvoice}
-        </Button>
-        <Button disabled={!saved || busy} onClick={onConvert}>
-          {copy.actions.convert}
-        </Button>
         <Button variant="ghost" disabled={!saved || busy} onClick={onDelete}>
           {copy.actions.delete}
         </Button>

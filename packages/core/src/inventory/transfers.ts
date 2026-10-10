@@ -1,14 +1,17 @@
-import { location, newId, type StoreTx, transfer, transferLine } from '@commerce/db'
-import { asc, eq, inArray, sql } from 'drizzle-orm'
-import { adjustIncoming, adjustStock, InventoryError } from './levels'
+import { newId, type StoreTx, transfer, transferLine } from '@commerce/db'
+import { asc, eq, sql } from 'drizzle-orm'
+import {
+  adjustIncoming,
+  adjustStock,
+  assertLocations,
+  assertVariants,
+  InventoryError,
+  nextDocumentNumber,
+} from './levels'
 import type { TransferInput } from './schemas'
 
-async function nextNumber(tx: StoreTx): Promise<number> {
-  const [row] = await tx
-    .select({ n: sql<number>`coalesce(max(${transfer.number}), 0) + 1`.mapWith(Number) })
-    .from(transfer)
-  return row?.n ?? 1
-}
+const nextNumber = (tx: StoreTx, storeId: string) =>
+  nextDocumentNumber(tx, storeId, 'transfer', sql<number>`max(${transfer.number})`, transfer)
 
 async function load(tx: StoreTx, storeId: string, id: string) {
   const [t] = await tx.select().from(transfer).where(eq(transfer.id, id)).for('update')
@@ -21,13 +24,6 @@ async function load(tx: StoreTx, storeId: string, id: string) {
   return { t, lines }
 }
 
-async function assertLocations(tx: StoreTx, storeId: string, ids: string[]) {
-  const found = await tx.select({ id: location.id }).from(location).where(inArray(location.id, ids))
-  if (found.length !== new Set(ids).size) {
-    throw new InventoryError('LOCATION_NOT_FOUND', 'Location not found', { storeId })
-  }
-}
-
 /** Create or edit a draft transfer. */
 export async function saveTransfer(
   tx: StoreTx,
@@ -35,6 +31,11 @@ export async function saveTransfer(
   input: TransferInput,
 ): Promise<string> {
   await assertLocations(tx, storeId, [input.fromLocationId, input.toLocationId])
+  await assertVariants(
+    tx,
+    storeId,
+    input.lines.map((l) => l.variantId),
+  )
   const fields = {
     fromLocationId: input.fromLocationId,
     toLocationId: input.toLocationId,
@@ -45,7 +46,7 @@ export async function saveTransfer(
     id = newId()
     await tx
       .insert(transfer)
-      .values({ id, storeId, number: await nextNumber(tx), status: 'draft', ...fields })
+      .values({ id, storeId, number: await nextNumber(tx, storeId), status: 'draft', ...fields })
   } else {
     const { t } = await load(tx, storeId, id)
     if (t.status !== 'draft') {

@@ -5,24 +5,17 @@ import { usePermissions } from '@/hooks/use-permissions'
 import NavSection from './nav-section'
 
 type NavGroupBlockProps = {
-  /** Draw a hairline and the group's name above it (every group after the first). */
-  divided?: boolean
-  /** The group's name: announced to screen readers, and shown small when `divided`. */
+  /** The group's name: announced to screen readers and shown small above its items. */
   label?: string | undefined
   items: NavItem[]
   pathname: string
 }
 
 /**
- * One logical group of rail entries. Like the Saleor Dashboard sidebar it draws no label:
- * groups are told apart by the gap between them, and each item expands to its sub-pages.
+ * One named group of rail entries (Workspace, Sales channels, Apps, Settings); each item
+ * expands in place to its sub-pages.
  */
-export default function NavGroupBlock({
-  label,
-  items,
-  pathname,
-  divided = false,
-}: NavGroupBlockProps) {
+export default function NavGroupBlock({ label, items, pathname }: NavGroupBlockProps) {
   // Hooks
   const { loading, hasPermission } = usePermissions()
 
@@ -40,11 +33,13 @@ export default function NavGroupBlock({
   if (visible.length === 0) return null
 
   return (
-    <nav aria-label={label} className={divided ? 'border-border border-t pt-3' : undefined}>
-      {divided && label ? (
-        <p className="text-eyebrow mb-1.5 px-5 group-data-[collapsible=icon]:hidden">{label}</p>
+    <nav aria-label={label}>
+      {label ? (
+        <p className="mb-1 px-6 text-caption font-normal text-muted-foreground-soft group-data-[collapsible=icon]:hidden">
+          {label}
+        </p>
       ) : null}
-      <ul className="flex flex-col gap-0.5 px-3 group-data-[collapsible=icon]:px-2">
+      <ul className="flex flex-col gap-1 px-4 group-data-[collapsible=icon]:px-2">
         {visible.map((item) => (
           <NavSection key={item.href} item={item} pathname={pathname} />
         ))}

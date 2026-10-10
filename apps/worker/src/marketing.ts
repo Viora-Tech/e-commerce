@@ -4,6 +4,7 @@ import {
   processDueRuns,
   sendCampaignBatch,
   startDueCampaigns,
+  storefrontOriginFor,
 } from '@commerce/core'
 import { registriesForStore } from '@commerce/core/registries'
 import { type Db, type StoreTx, storesWithMarketingWork, withStore } from '@commerce/db'
@@ -31,7 +32,8 @@ async function depsFor(tx: StoreTx, storeId: string, opts: Opts): Promise<Market
   return {
     registry: (await registriesForStore(tx, storeId)).notifications,
     settingsSecret: opts.settingsSecret,
-    storefrontUrl: opts.storefrontUrl,
+    // Shop, click and unsubscribe links go to the store's own domain (env URL is the fallback).
+    storefrontUrl: await storefrontOriginFor(tx, storeId, opts.storefrontUrl),
   }
 }
 

@@ -35,19 +35,23 @@ type Row = {
   key: string
   label: string
   inShopify: number | null
-  fromPreviewAt: string | null
+  /** Where Shopify's number came from when Shopify could not count it live. */
+  countedFrom: 'preview' | 'import' | null
+  countedAt: string | null
   here: number | null
   state: ResourceStatus['state']
   missing: number
   /** What its button starts ("Import remaining" for just this). */
   resources: ImportResource[] | null
-  action: 'import' | 'images' | 'files' | null
+  action: 'import' | 'images' | 'files' | 'preview' | null
 }
 
 const base = shopifyImportContent.base
 const ROWS_LOADING = 6
 
 function actionOf(r: ResourceStatus): Row['action'] {
+  // Shopify's number is not known: a preview counts it (never "Done" without one).
+  if (r.state === 'unknown') return 'preview'
   if (r.missing === 0) return null
   if (r.state === 'not_copied') return 'files'
   return r.state === 'missing' || r.state === 'never' ? 'import' : null
@@ -60,25 +64,28 @@ function rowsOf(status: ImportStatus, labels: Record<ImportResource, string>, im
       key: r.resource,
       label: labels[r.resource],
       inShopify: r.inShopify,
-      fromPreviewAt: r.countedFrom === 'preview' ? r.countedAt : null,
+      countedFrom: r.countedFrom === 'shopify' ? null : r.countedFrom,
+      countedAt: r.countedFrom === 'shopify' ? null : r.countedAt,
       here: r.state === 'unknown' ? null : r.imported,
       state: r.state,
       missing: r.missing,
       resources: [r.resource],
       action: actionOf(r),
     })
-    if (r.resource === 'products' && status.images.expected !== null) {
-      const missing = status.images.missing
+    if (r.resource === 'products') {
+      // Always shown: unknown reads "Not checked yet", never a silent gap.
+      const img = status.images
       rows.push({
         key: 'images',
         label: images,
-        inShopify: status.images.expected,
-        fromPreviewAt: status.images.countedAt,
-        here: Math.max(0, status.images.expected - missing),
-        state: status.images.state,
-        missing,
+        inShopify: img.expected,
+        countedFrom: img.countedFrom,
+        countedAt: img.countedAt,
+        here: img.here,
+        state: img.state,
+        missing: img.missing,
         resources: ['products'],
-        action: missing > 0 ? 'images' : null,
+        action: img.missing > 0 ? 'images' : img.state === 'unknown' ? 'preview' : null,
       })
     }
   }
@@ -128,9 +135,21 @@ export default function RemainingCard({ connected }: RemainingCardProps) {
       : row.action
         ? copy.action[row.action]
         : ''
+  const countedText = (row: Row) =>
+    row.countedFrom === 'preview' && row.countedAt
+      ? copy.fromPreview(fmt.date(row.countedAt))
+      : row.countedFrom === 'import' && row.countedAt
+        ? copy.fromImport(fmt.date(row.countedAt))
+        : row.countedFrom === 'import'
+          ? copy.fromIssues
+          : copy.fromShopify
 
   // Event handlers
-  const handleStart = async (key: string, resources: ImportResource[]) => {
+  const handleStart = async (key: string, resources: ImportResource[], action?: Row['action']) => {
+    if (action === 'preview') {
+      router.push(`${base}/connect`)
+      return
+    }
     setBusy(key)
     try {
       const run = await api.shopifyImport.importRemaining({ resources })
@@ -154,7 +173,7 @@ export default function RemainingCard({ connected }: RemainingCardProps) {
   // Render logic
   const rows = status ? rowsOf(status, labels, copy.images) : []
   const remaining = status?.remaining ?? []
-  const previewAt = rows.find((r) => r.fromPreviewAt)?.fromPreviewAt ?? null
+  const previewAt = rows.find((r) => r.countedFrom === 'preview' && r.countedAt)?.countedAt ?? null
   const facts = [
     status?.lastImportAt ? copy.lastImport(fmt.when(status.lastImportAt)) : copy.nothingYet,
     status?.freshPreview ? copy.previewReused(fmt.when(status.freshPreview.takenAt)) : null,
@@ -224,15 +243,7 @@ export default function RemainingCard({ connected }: RemainingCardProps) {
                     </span>
                   </TableCell>
                   <TableCell className="hidden text-right tabular-nums sm:table-cell">
-                    <span
-                      title={
-                        row.fromPreviewAt
-                          ? copy.fromPreview(fmt.date(row.fromPreviewAt))
-                          : copy.fromShopify
-                      }
-                    >
-                      {number(row.inShopify)}
-                    </span>
+                    <span title={countedText(row)}>{number(row.inShopify)}</span>
                   </TableCell>
                   <TableCell className="hidden text-right tabular-nums sm:table-cell">
                     {number(row.here)}
@@ -245,7 +256,7 @@ export default function RemainingCard({ connected }: RemainingCardProps) {
                           label={actionLabel(row)}
                           busy={busy === row.key}
                           disabled={busy !== null}
-                          onClick={() => handleStart(row.key, row.resources ?? [])}
+                          onClick={() => handleStart(row.key, row.resources ?? [], row.action)}
                         />
                       </span>
                     ) : null}
@@ -256,7 +267,7 @@ export default function RemainingCard({ connected }: RemainingCardProps) {
                         label={actionLabel(row)}
                         busy={busy === row.key}
                         disabled={busy !== null}
-                        onClick={() => handleStart(row.key, row.resources ?? [])}
+                        onClick={() => handleStart(row.key, row.resources ?? [], row.action)}
                       />
                     ) : null}
                   </TableCell>

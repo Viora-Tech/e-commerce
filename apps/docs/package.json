@@ -5,16 +5,19 @@
   "type": "module",
   "scripts": {
     "dev": "next dev --port 3500",
-    "build": "next build",
+    "build": "node scripts/check-redirects.mjs && node scripts/check-links.mjs && next build",
     "postbuild": "pagefind --site .next/server/app --output-path public/_pagefind",
     "start": "next start --port 3500",
+    "check:redirects": "node scripts/check-redirects.mjs",
+    "check:links": "node scripts/check-links.mjs",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@commerce/config": "workspace:*",
     "@phosphor-icons/react": "^2.1.10",
     "@theguild/remark-mermaid": "^0.3.0",
     "mermaid": "^11.17.2",
-    "next": "16.3.5",
+    "next": "16.4.0",
     "nextra": "4.6.0",
     "nextra-theme-docs": "4.6.0",
     "react": "^19.2.0",

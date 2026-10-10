@@ -20,4 +20,5 @@ export const deliveryEstimateContent = {
   prepaidOnly: 'Prepaid only for this PIN code.',
   fallback: 'Estimate based on typical transit times.',
   unserviceable: (pincode: string) => `Sorry, we cannot deliver to ${pincode} yet.`,
+  rateLimited: 'Too many checks. Try again in a minute.',
 } as const

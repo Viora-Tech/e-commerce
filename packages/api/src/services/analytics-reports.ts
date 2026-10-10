@@ -212,6 +212,43 @@ const ENTRIES: Entry[] = [
     chart: 'series',
   },
   {
+    slug: 'profit-by-month',
+    title: 'Profit by month',
+    description:
+      'Net sales without GST, less what the goods cost when they sold, courier charges, payment fees and RTO costs.',
+    category: 'finance',
+    columns: [
+      c('month', 'month'),
+      ORDERS,
+      c('netSales', 'money'),
+      c('costOfGoods', 'money'),
+      c('courierCost', 'money'),
+      c('gatewayFees', 'money'),
+      c('rtoCost', 'money'),
+      c('profit', 'money'),
+      c('margin', 'percent'),
+    ],
+    metric: 'profit',
+    chart: 'series',
+  },
+  {
+    slug: 'profit-by-product',
+    title: 'Profit by product',
+    description:
+      'What each product earned after its cost and its share of courier charges, payment fees and RTO costs, best first.',
+    category: 'finance',
+    columns: [
+      c('product', 'text'),
+      UNITS,
+      c('netSales', 'money'),
+      c('costOfGoods', 'money'),
+      c('profit', 'money'),
+      c('margin', 'percent'),
+    ],
+    metric: 'profit',
+    chart: 'bars',
+  },
+  {
     slug: 'payments-by-method',
     title: 'Payments by method',
     description:

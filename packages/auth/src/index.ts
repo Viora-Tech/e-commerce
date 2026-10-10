@@ -5,4 +5,5 @@ export {
   runInvite,
   type SendInvite,
   type SendOtp,
+  type SignInEvent,
 } from './merchant'

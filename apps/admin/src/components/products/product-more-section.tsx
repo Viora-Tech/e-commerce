@@ -8,7 +8,7 @@ import {
   CollapsibleTrigger,
 } from '@commerce/ui/shadcn/collapsible'
 import type { ReactNode } from 'react'
-import { productFormContent } from '@/data/products'
+import { productFormContent } from '@/data/product-form'
 import { useCopy } from '@/hooks/use-copy'
 
 type ProductMoreSectionProps = {

@@ -24,7 +24,7 @@
   padding: var(--space-5);
   overflow: hidden;
   border-radius: var(--radius-m);
-  /* Glide hardcodes this dark ground behind the photograph. */
+  /* Zero Drift hardcodes this dark ground behind the photograph. */
   background-color: var(--color-category-panel-ground, #17171b);
   color: #fff;
   text-decoration: none;

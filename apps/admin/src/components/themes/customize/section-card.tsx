@@ -1,6 +1,7 @@
 'use client'
 
 import { SECTION_SOURCES } from '@commerce/blocks/puck'
+import { Plus } from '@commerce/ui/icons'
 import { cn } from '@commerce/ui/lib/utils'
 import { Drawer } from '@puckeditor/core'
 import { motion, useReducedMotion } from 'motion/react'
@@ -16,6 +17,8 @@ import {
 } from '@/lib/customize-chrome'
 import SectionIcon from './section-icon'
 import SectionLivePreview from './section-live-preview'
+import SectionPicture, { hasSectionPicture } from './section-picture'
+import SectionPreview from './section-preview'
 
 type SectionCardProps = {
   type: string
@@ -26,6 +29,11 @@ type SectionCardProps = {
   hovered: boolean
   onHover: (type: string | null) => void
   onAdd: () => void
+  /**
+   * `tile` (Figma 369:4918): caption above an 8 × 5.5 rem tile with the section's picture (its
+   * drawn glyph when it has none), two per row.
+   */
+  layout?: 'row' | 'tile'
 }
 
 type Anchor = { top: number; left: number }
@@ -65,6 +73,7 @@ export default function SectionCard({
   hovered,
   onHover,
   onAdd,
+  layout = 'row',
 }: SectionCardProps) {
   // Hooks
   const reducedMotion = useReducedMotion()
@@ -85,6 +94,7 @@ export default function SectionCard({
   // Render logic
   const AppBadge = appIcon ? appIconFor(appIcon) : null
   const source = SECTION_SOURCES[type]
+  const pictured = hasSectionPicture(type)
   const preview =
     hovered && anchor ? (
       <motion.div
@@ -94,7 +104,16 @@ export default function SectionCard({
         style={{ top: anchor.top, left: anchor.left }}
         className="pointer-events-none fixed z-50 hidden w-64 flex-col gap-2 rounded-xl border border-border bg-popover p-2 shadow-dialog lg:flex"
       >
-        <SectionLivePreview type={type} className="aspect-video w-full" />
+        {pictured ? (
+          <SectionPicture
+            type={type}
+            label={label}
+            fit="card"
+            className="w-full rounded-md border border-border"
+          />
+        ) : (
+          <SectionLivePreview type={type} className="aspect-video w-full" />
+        )}
         <div className="flex flex-col gap-0.5 px-1 pb-1">
           <span className="text-[0.8125rem] font-medium text-foreground">{label}</span>
           <span className="text-xs text-muted-foreground">{description}</span>
@@ -118,32 +137,62 @@ export default function SectionCard({
             onMouseEnter={handleHover}
             onFocus={handleHover}
             className={cn(
-              'group/card flex w-full cursor-grab items-center gap-2.5 rounded-lg px-2 py-1.5 text-left active:cursor-grabbing',
-              CHROME_ROW_HOVER,
+              layout === 'tile'
+                ? 'group/card flex w-full min-w-0 cursor-grab flex-col gap-1.5 rounded-lg text-left active:cursor-grabbing'
+                : 'group/card flex w-full cursor-grab items-center gap-2.5 rounded-lg px-2 py-1.5 text-left active:cursor-grabbing',
+              layout === 'row' && CHROME_ROW_HOVER,
               CHROME_TRANSITION,
               CHROME_FOCUS,
             )}
           >
-            <span className="relative flex shrink-0">
-              <SectionIcon type={type} tile="md" />
-              {AppBadge ? (
-                // `appIcon` is an icon name from the app's manifest ("CreditCard"), not a URL.
-                <span className="absolute -right-1 -bottom-1 flex size-4 items-center justify-center rounded-full bg-card text-foreground ring-1 ring-border">
-                  <AppBadge aria-hidden weight="regular" className="size-2.5" />
+            {layout === 'tile' ? (
+              <>
+                <span className="truncate text-[0.625rem] leading-[1.0625rem] font-medium tracking-[0.06em] text-muted-foreground uppercase">
+                  {label}
                 </span>
-              ) : null}
-            </span>
-            <span className="flex min-w-0 flex-1 flex-col">
-              <span className="truncate text-[0.8125rem] leading-5 font-medium text-foreground">
-                {label}
-              </span>
-              <span className="truncate text-xs leading-4 text-muted-foreground">
-                {description}
-              </span>
-              {source ? (
-                <span className={cn('truncate pt-0.5', CHROME_META)}>{copy.by(source.name)}</span>
-              ) : null}
-            </span>
+                <span className="relative flex aspect-[128/88] w-full overflow-hidden rounded-[0.625rem] border border-border bg-muted transition-[border-color,box-shadow] group-hover/card:border-primary group-hover/card:shadow-lift group-focus-visible/card:border-primary">
+                  {pictured ? (
+                    <SectionPicture type={type} label={label} fit="tile" className="size-full" />
+                  ) : (
+                    <SectionPreview
+                      type={type}
+                      className="size-full rounded-none border-0 bg-muted [&_.bg-muted]:bg-muted [&_.bg-muted-foreground\/30]:bg-primary/70 [&_.border-muted-foreground\/40]:border-primary/70"
+                    />
+                  )}
+                  <span className="pointer-events-none absolute inset-0 flex items-center justify-center opacity-0 transition-opacity group-hover/card:opacity-100 group-focus-visible/card:opacity-100 motion-reduce:transition-none">
+                    <span className="flex h-6 items-center gap-1 rounded-md bg-primary px-2 text-xs font-semibold text-primary-foreground shadow-sm">
+                      <Plus aria-hidden className="size-3" />
+                      {copy.add}
+                    </span>
+                  </span>
+                </span>
+              </>
+            ) : (
+              <>
+                <span className="relative flex shrink-0">
+                  <SectionIcon type={type} tile="md" />
+                  {AppBadge ? (
+                    // `appIcon` is an icon name from the app's manifest ("CreditCard"), not a URL.
+                    <span className="absolute -right-1 -bottom-1 flex size-4 items-center justify-center rounded-full bg-card text-foreground ring-1 ring-border">
+                      <AppBadge aria-hidden weight="regular" className="size-2.5" />
+                    </span>
+                  ) : null}
+                </span>
+                <span className="flex min-w-0 flex-1 flex-col">
+                  <span className="truncate text-[0.8125rem] leading-5 font-medium text-foreground">
+                    {label}
+                  </span>
+                  <span className="truncate text-xs leading-4 text-muted-foreground">
+                    {description}
+                  </span>
+                  {source ? (
+                    <span className={cn('truncate pt-0.5', CHROME_META)}>
+                      {copy.by(source.name)}
+                    </span>
+                  ) : null}
+                </span>
+              </>
+            )}
           </div>
         )}
       </Drawer.Item>

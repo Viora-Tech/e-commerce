@@ -1,3 +1,5 @@
+import { routes } from '@/lib/routes'
+
 export const DISCOUNT_LIFECYCLES = ['active', 'scheduled', 'expired', 'disabled'] as const
 export type DiscountLifecycle = (typeof DISCOUNT_LIFECYCLES)[number]
 
@@ -7,14 +9,17 @@ export const discountsContent = {
   heading: 'Discount list',
   resource: { singular: 'discount', plural: 'discounts' },
   create: 'Create discount',
+  summary: (active: number, scheduled: number, used: number) =>
+    `${active} active · ${scheduled} starting soon · ${used} orders used a discount in the last 30 days`,
   tiles: {
-    active: 'Active',
+    active: 'Active discounts',
     scheduled: 'Scheduled',
     expired: 'Expired',
-    usedThisMonth: 'Orders with a discount',
+    usedThisMonth: 'Orders with a discount (30 days)',
     now: 'Right now',
     month: 'Last 30 days',
   },
+  row: { edit: 'Edit discount' },
   tabs: {
     all: 'All discounts',
     active: 'Active',
@@ -39,6 +44,9 @@ export const discountsContent = {
   } satisfies Record<DiscountLifecycle, string>,
   usedOf: (used: number, limit: number | null) =>
     limit === null ? `${used}` : `${used} / ${limit}`,
+  since: (from: string) => `Since ${from}`,
+  until: (to: string) => `Until ${to}`,
+  ongoing: 'Ongoing',
   noEnd: 'No end date',
   always: 'Always',
   empty: {
@@ -48,18 +56,20 @@ export const discountsContent = {
   index: {
     heading: 'No discounts',
     body: 'Discount codes and automatic offers: a percentage off, a fixed amount or free shipping, applied at checkout.',
-    action: { label: 'Create discount', href: '/discounts/new' },
+    action: { label: 'Create discount', href: routes.discounts.new() },
   },
   detail: {
     heading: 'Discount not found',
     body: 'This discount does not exist in the current store.',
-    action: { label: 'Back to discounts', href: '/discounts' },
+    action: { label: 'Back to discounts', href: routes.discounts.list() },
   },
 } as const
 
 /** Copy for the create and edit form. */
 export const discountFormContent = {
   newTitle: 'Create discount',
+  newSummary: 'Set it up, then save to start offering it.',
+  usedTimes: (n: number) => (n === 1 ? 'used once' : `used ${n} times`),
   saveBar: { message: 'Unsaved changes', save: 'Save', discard: 'Discard' },
   toasts: {
     saved: 'Discount saved',
@@ -67,6 +77,9 @@ export const discountFormContent = {
     deleted: 'Discount deleted',
     disabled: 'Discount disabled: it has been used on orders, so it was kept for history',
     failed: 'Save failed',
+    paused: 'Discount paused: shoppers cannot use it until you resume it',
+    resumed: 'Discount resumed',
+    duplicated: 'Discount duplicated: the copy is paused until you resume it',
   },
   errors: {
     title: 'Give the discount a title',
@@ -75,6 +88,8 @@ export const discountFormContent = {
     percent: 'Percent must be between 0.01 and 100',
     dates: 'End must be after start',
     products: 'Pick at least one product',
+    productValues: 'Enter an amount above zero for every product',
+    productPercents: 'Enter a percentage between 0.01 and 100 for every product',
   },
   method: {
     heading: 'Type',
@@ -105,6 +120,11 @@ export const discountFormContent = {
     productsHelp: 'Pick the products this discount covers.',
     productSearch: 'Search products',
     noProducts: 'No products match',
+    perProduct: 'Different amount for each product',
+    perProductHelp:
+      'Type an amount next to each product. It comes off every piece, so 2 of a product get it twice.',
+    amountFor: (title: string) => `Amount off ${title}`,
+    percentFor: (title: string) => `Percentage off ${title}`,
   },
   minimum: {
     heading: 'Minimum requirement',
@@ -163,6 +183,15 @@ export const discountFormContent = {
       disabled: 'Kept for records; shoppers cannot use it.',
     } as Record<string, string>,
   },
+  pause: {
+    action: 'Pause',
+    resume: 'Resume',
+    title: (name: string) => `Pause ${name}?`,
+    body: 'Shoppers cannot use it while it is paused. Nothing is deleted, and you can resume it any time.',
+    confirm: 'Pause discount',
+    cancel: 'Cancel',
+  },
+  duplicate: { action: 'Duplicate' },
   delete: {
     action: 'Delete discount',
     title: (name: string) => `Delete ${name}?`,

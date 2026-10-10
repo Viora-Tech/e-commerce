@@ -1,9 +1,10 @@
-import { ExternalLink } from '@commerce/ui/icons'
 import ProductThumb from '@/components/products/product-thumb'
-import RowIconCells from '@/components/table/row-icon-cells'
+import RowActionsCell from '@/components/table/row-actions-cell'
 import { orderDetailContent } from '@/data/orders'
 import { useCopy, useFormat } from '@/hooks/use-copy'
+import { routes } from '@/lib/routes'
 import type { OrderLine } from './order-detail-types'
+import RowMenu from './row-menu'
 
 type LineRow = {
   line: OrderLine
@@ -16,13 +17,13 @@ type OrderLinesTableProps = {
 }
 
 const HEAD =
-  'h-10 px-3 text-left text-caption font-normal text-foreground first:pl-4 last:pr-4 md:first:pl-6 md:last:pr-6'
+  'h-[2.375rem] border-b border-line bg-muted px-3 text-left text-caption font-medium text-muted-foreground first:pl-5 last:pr-3'
 /* SKU and variant get their own columns only when the section is wide enough (a container
    query, so a collapsed rail counts); narrower, they stack under the title so quantity,
    price and total stay in view instead of scrolling off the edge. */
-const WIDE_ONLY = 'hidden @min-[64rem]:table-cell'
+const WIDE_ONLY = 'hidden @min-[48rem]:table-cell'
 const CELL =
-  'h-11 border-border border-t px-3 text-body whitespace-nowrap first:pl-4 last:pr-4 md:first:pl-6 md:last:pr-6'
+  'h-[4.3125rem] border-line border-t px-3 text-body whitespace-nowrap first:pl-5 last:pr-3'
 
 function variantOf(line: OrderLine): string {
   return line.variantTitle && line.variantTitle !== 'Default' ? line.variantTitle : ''
@@ -44,7 +45,7 @@ export default function OrderLinesTable({ rows }: OrderLinesTableProps) {
   const fmt = useFormat()
 
   return (
-    <div className="@container no-scrollbar -mx-4 overflow-x-auto md:-mx-6">
+    <div className="@container no-scrollbar overflow-x-auto">
       <table className="w-full min-w-[30rem] border-collapse">
         <thead>
           <tr>
@@ -54,7 +55,7 @@ export default function OrderLinesTable({ rows }: OrderLinesTableProps) {
             <th className={`${HEAD} text-right`}>{copy.items.columns.quantity}</th>
             <th className={`${HEAD} text-right`}>{copy.items.columns.price}</th>
             <th className={`${HEAD} text-right`}>{copy.items.columns.total}</th>
-            <th className="w-22 p-0">
+            <th className="w-20 border-b border-line bg-muted p-0">
               <span className="sr-only">{copy.items.columns.actions}</span>
             </th>
           </tr>
@@ -62,19 +63,19 @@ export default function OrderLinesTable({ rows }: OrderLinesTableProps) {
         <tbody>
           {rows.map(({ line, quantity }) => (
             <tr key={line.id}>
-              <td className={`${CELL} w-full max-w-0 @min-[64rem]:w-auto @min-[64rem]:max-w-none`}>
+              <td className={`${CELL} w-full max-w-0 @min-[48rem]:w-auto @min-[48rem]:max-w-none`}>
                 <span className="flex min-w-0 items-center gap-3">
-                  <ProductThumb url={line.imageUrl} />
+                  <ProductThumb url={line.imageUrl} className="size-10" />
                   <span className="flex min-w-0 flex-col">
                     <span
-                      className="block truncate text-ink-strong @min-[64rem]:max-w-72"
+                      className="block truncate text-ink-strong @min-[48rem]:max-w-72"
                       title={line.title ?? undefined}
                     >
                       {line.title}
                     </span>
                     {subLine(line) ? (
                       <span
-                        className="block truncate text-caption text-muted-foreground @min-[64rem]:hidden"
+                        className="block truncate text-caption text-muted-foreground @min-[48rem]:hidden"
                         title={subLine(line)}
                       >
                         {subLine(line)}
@@ -96,29 +97,26 @@ export default function OrderLinesTable({ rows }: OrderLinesTableProps) {
               <td className={`${CELL} text-right tabular-nums`}>
                 {fmt.money(line.unitPricePaise * quantity)}
               </td>
-              <td className="w-22 border-border border-t p-0">
+              <td className="w-20 border-line border-t p-0 pr-2">
                 {line.productId ? (
-                  <RowIconCells
-                    links={[
-                      {
-                        label: copy.items.openProduct,
-                        icon: ExternalLink,
-                        href: `/products/${line.productId}`,
-                        newTab: true,
-                      },
-                    ]}
-                    menu={[
-                      { label: copy.items.viewProduct, href: `/products/${line.productId}` },
-                      ...(line.sku
-                        ? [
-                            {
-                              label: copy.items.stockForSku,
-                              href: `/products/inventory?query=${encodeURIComponent(line.sku)}`,
-                            },
-                          ]
-                        : []),
-                    ]}
-                  />
+                  <RowActionsCell href={routes.products.detail(line.productId)}>
+                    <RowMenu
+                      items={[
+                        {
+                          label: copy.items.viewProduct,
+                          href: routes.products.detail(line.productId),
+                        },
+                        ...(line.sku
+                          ? [
+                              {
+                                label: copy.items.stockForSku,
+                                href: `${routes.stock.inventory()}?query=${encodeURIComponent(line.sku)}`,
+                              },
+                            ]
+                          : []),
+                      ]}
+                    />
+                  </RowActionsCell>
                 ) : null}
               </td>
             </tr>

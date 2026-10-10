@@ -1,0 +1,198 @@
+import { growthLinksContent, growthOverviewContent } from '@/data/growth'
+import { translation, untranslated } from '@/lib/i18n'
+
+export default [
+  translation(growthOverviewContent, {
+    title: 'ग्रोथ',
+    intro: 'Instagram, Google, WhatsApp, AI असिस्टेंट और सीधे आने वालों से कितनी बिक्री हो रही है।',
+    createCampaign: 'कैंपेन बनाएं',
+    links: 'लिंक',
+    newCampaign: 'नया कैंपेन',
+    outcomes: {
+      summary: (amount: string, period: string) =>
+        `कैंपेन, ऑटोमेशन, डिस्काउंट और लिंक से ${period} ${amount} की बिक्री हुई`,
+      periods: {
+        today: 'आज',
+        '7d': 'पिछले 7 दिनों में',
+        '30d': 'पिछले 30 दिनों में',
+        '90d': 'पिछले 90 दिनों में',
+        custom: 'इस अवधि में',
+      },
+      tiles: {
+        earned: 'ग्रोथ से बिक्री',
+        messages: 'भेजे गए मैसेज',
+        automationOrders: 'ऑटोमेशन से ऑर्डर',
+        subscribers: 'सब्सक्राइबर',
+      },
+      vsPrevious: 'पिछली अवधि के मुकाबले',
+      messagesNote: (whatsapp: string, email: string) => `WhatsApp ${whatsapp} · ईमेल ${email}`,
+      automationNote: 'आपके ऑटोमेशन से आए ऑर्डर',
+      subscribersNote: (n: string) => `इस हफ़्ते ${n} नए`,
+      card: {
+        title: 'मार्केटिंग से कितनी कमाई हुई',
+        subtitle: (orders: string) =>
+          `${orders} ऑर्डर। एक ऑर्डर कैंपेन और कोड दोनों से आ सकता है; कुल में वह एक बार गिना गया है।`,
+        kinds: {
+          campaigns: 'कैंपेन',
+          automations: 'ऑटोमेशन',
+          discounts: 'डिस्काउंट कोड',
+          links: 'लिंक',
+        },
+        orders: (n: string) => `${n} ऑर्डर`,
+        top: (name: string, amount: string) => `सबसे आगे: ${name} · ${amount}`,
+        nothing: {
+          campaigns: 'अभी कैंपेन से कोई बिक्री नहीं',
+          automations: 'अभी ऑटोमेशन से कोई बिक्री नहीं',
+          discounts: 'अभी किसी ऑर्डर में कोड नहीं लगा',
+          links: 'अभी आपके लिंक से कोई बिक्री नहीं',
+        },
+        share: (pct: string) => `मार्केटिंग की कमाई का ${pct}`,
+      },
+    },
+    kpis: {
+      sessions: { label: 'सेशन', help: 'इसे चालू करने के बाद पहली स्टोर विज़िट से गिना गया।' },
+      attributed_sales: {
+        label: 'मार्केटिंग से बिक्री',
+        help: 'वे ऑर्डर जिनकी आख़िरी गैर-सीधी विज़िट किसी चैनल या कैंपेन से आई।',
+      },
+      attributed_orders: {
+        label: 'मार्केटिंग से ऑर्डर',
+        help: 'सीधे के अलावा किसी चैनल को मिले ऑर्डर।',
+      },
+      conversion: { label: 'कन्वर्ज़न रेट', help: 'ट्रैक हुए ऑर्डर को सेशन से भाग देकर।' },
+    },
+    salesOverTime: {
+      title: 'समय के साथ मार्केटिंग से बिक्री',
+      day: 'रोज़',
+      week: 'हफ़्ते के हिसाब से',
+      series: 'मार्केटिंग से बिक्री',
+    },
+    view: { label: 'देखें', bySource: 'सोर्स के हिसाब से', byChannel: 'चैनल के हिसाब से' },
+    bestSource: {
+      title: 'इस अवधि में आपका सबसे अच्छा सोर्स {source} है',
+      body: 'सीधे आने वालों को छोड़कर, सबसे ज़्यादा बिक्री इसी से आई।',
+    },
+    sources: {
+      title: 'सोर्स के हिसाब से बिक्री',
+      empty:
+        'इस रेंज में अभी कोई विज़िट नहीं। जैसे ही ग्राहक Instagram, Google, WhatsApp, AI असिस्टेंट वगैरह से आएँगे, सोर्स यहाँ दिखेंगे। हर लिंक सही दिखे, इसलिए उन्हें लिंक पेज पर टैग करें।',
+      columns: {
+        source: 'सोर्स',
+        sessions: 'विज़िट',
+        orders: 'ऑर्डर',
+        sales: 'बिक्री',
+        conversion: 'कन्वर्ज़न',
+        share: 'बिक्री का हिस्सा',
+      },
+      campaignsUnder: 'इस सोर्स के कैंपेन',
+      noCampaigns: 'इस सोर्स से अभी कोई टैग किया लिंक या कैंपेन नहीं।',
+    },
+    channels: {
+      title: 'चैनल के हिसाब से विज़िट और बिक्री',
+      empty:
+        'इस रेंज में अभी कोई विज़िट नहीं। जैसे ही ग्राहक सर्च, सोशल, ईमेल और WhatsApp से आएँगे, चैनल यहाँ दिखेंगे।',
+      columns: {
+        channel: 'चैनल',
+        sessions: 'विज़िट',
+        orders: 'ऑर्डर',
+        sales: 'बिक्री',
+        conversion: 'कन्वर्ज़न',
+      },
+    },
+    campaigns: {
+      title: 'टॉप कैंपेन',
+      empty:
+        'अभी दिखाने को कुछ नहीं। लिंक पर utm_campaign टैग लगाएँ, या ईमेल / WhatsApp कैंपेन भेजें, नतीजे यहाँ आएँगे।',
+      columns: {
+        campaign: 'कैंपेन',
+        source: 'सोर्स / माध्यम',
+        sessions: 'विज़िट',
+        orders: 'ऑर्डर',
+        sales: 'बिक्री',
+      },
+      kinds: {
+        email: 'ईमेल',
+        whatsapp: 'WhatsApp',
+        automation: 'ऑटोमेशन',
+        utm: 'टैग किया लिंक',
+      },
+    },
+    shortcuts: {
+      title: 'अपने ग्राहकों तक पहुँचें',
+      campaigns: {
+        title: 'कैंपेन',
+        body: 'ग्राहकों के किसी सेगमेंट को ईमेल या WhatsApp ब्रॉडकास्ट भेजें।',
+        href: untranslated,
+      },
+      automations: {
+        title: 'ऑटोमेशन',
+        body: 'छोड़े हुए चेकआउट वापस पाएँ, नए सब्सक्राइबर का स्वागत करें और पुराने खरीदारों को वापस लाएँ।',
+        href: untranslated,
+      },
+      links: {
+        title: 'लिंक',
+        body: 'अपने Instagram बायो, WhatsApp ब्रॉडकास्ट या विज्ञापन के लिए टैग किया लिंक बनाएँ।',
+        href: untranslated,
+      },
+      discounts: {
+        title: 'डिस्काउंट',
+        body: 'कैंपेन और ऑटोमेशन में इस्तेमाल करने के लिए कोड बनाएँ।',
+        href: untranslated,
+      },
+    },
+  }),
+  translation(growthLinksContent, {
+    title: 'लिंक',
+    resource: { singular: 'लिंक', plural: 'लिंक' },
+    summary: (links: number, clicks: string, orders: string) =>
+      `${links} छोटे लिंक · ${clicks} क्लिक · ${orders} ऑर्डर`,
+    noLinks: 'अभी कोई लिंक नहीं',
+    newLink: 'नया लिंक',
+    columns: {
+      link: 'लिंक',
+      tags: 'ट्रैकिंग टैग',
+      clicks: 'क्लिक',
+      orders: 'ऑर्डर',
+      revenue: 'बिक्री',
+      created: 'बनाया',
+    },
+    noTags: 'कोई टैग नहीं',
+    menu: { copy: 'लिंक कॉपी करें', edit: 'बदलें', open: 'लिंक खोलें', delete: 'हटाएं' },
+    copied: 'लिंक कॉपी हो गया',
+    deleted: 'लिंक हटा दिया',
+    empty: {
+      heading: 'ऐसा लिंक बनाएं जिसे आप ट्रैक कर सकें',
+      body: 'WhatsApp, Instagram या YouTube के लिए छोटा लिंक बनाएं। हम बताएंगे कि कितने क्लिक ऑर्डर बने।',
+    },
+    dialog: {
+      newTitle: 'नया लिंक',
+      editTitle: 'लिंक बदलें',
+      name: 'नाम',
+      namePlaceholder: 'दिवाली सेल WhatsApp',
+      destination: 'यह कहां ले जाए?',
+      destinationPlaceholder: 'https://waimers.in/collections/glasspads',
+      destinationHelp: 'आपके स्टोर का कोई पेज, या उसका पूरा पता।',
+      destinationInvalid: 'अपने स्टोर का पेज डालें, जैसे /collections/glasspads।',
+      slug: 'छोटा नाम',
+      slugHelp: (url: string) => `लिंक होगा ${url}`,
+      slugInvalid: 'सिर्फ़ छोटे अक्षर, अंक और हाइफ़न।',
+      placement: 'इसे कहां शेयर करेंगे?',
+      placementHelp: 'सोर्स और मीडियम अपने आप भर जाएंगे।',
+      custom: 'अपने हिसाब से',
+      source: 'सोर्स',
+      medium: 'मीडियम',
+      campaign: 'कैंपेन',
+      cancel: 'रद्द करें',
+      create: 'लिंक बनाएं',
+      save: 'सेव करें',
+      created: 'लिंक बन गया',
+      saved: 'लिंक सेव हो गया',
+    },
+    deleteDialog: {
+      title: (name: string) => `${name} हटाएं?`,
+      body: 'छोटा लिंक काम करना बंद कर देगा। जो ऑर्डर यह पहले ला चुका है, वे ग्रोथ में गिने रहेंगे।',
+      cancel: 'रद्द करें',
+      confirm: 'हटाएं',
+    },
+  }),
+]

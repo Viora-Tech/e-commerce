@@ -5,12 +5,15 @@ import { Button } from '@commerce/ui/shadcn/button'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { toast } from 'sonner'
-import PageBody from '@/components/layout/page-body'
-import PageColumns from '@/components/layout/page-columns'
-import PageHeader from '@/components/layout/page-header'
+import ProoflyDetailPage from '@/components/layout/proofly-detail-page'
+import ProoflyPageHeader from '@/components/layout/proofly-page-header'
 import SaveBar from '@/components/layout/save-bar'
-import { articleFormContent as copy } from '@/data/blog'
+import MetafieldsCard from '@/components/metaobjects/metafields-card'
+import TemplateSelectCard from '@/components/themes/template-select-card'
+import { articleFormContent } from '@/data/blog'
+import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { routes } from '@/lib/routes'
 import ArticleImageCard from './article-image-card'
 import ArticleMainCard from './article-main-card'
 import ArticleOrganisationCard from './article-organisation-card'
@@ -52,6 +55,7 @@ export default function ArticleForm({
   storefrontOrigin,
 }: ArticleFormProps) {
   // Hooks
+  const copy = useCopy(articleFormContent)
   const router = useRouter()
   const [form, setForm] = useState<ArticleFormState>(() =>
     initialForm(article, initialBlogs, defaultAuthor),
@@ -83,7 +87,7 @@ export default function ArticleForm({
         const { id } = await api.blog.create(toWrite(form))
         setSaved(JSON.stringify(form))
         toast.success(copy.created)
-        router.replace(`/content/blog-posts/${id}`)
+        router.replace(routes.content.blogPost(id))
       }
     } catch (err) {
       toast.error(err instanceof Error ? err.message : copy.saveFailed)
@@ -101,7 +105,7 @@ export default function ArticleForm({
     try {
       await api.blog.delete({ ids: [article.id] })
       toast.success(copy.deletedToast)
-      router.push('/content/blog-posts')
+      router.push(routes.content.blogPosts())
     } catch (err) {
       toast.error(err instanceof Error ? err.message : copy.saveFailed)
       setBusy(false)
@@ -116,7 +120,83 @@ export default function ArticleForm({
     : null
 
   return (
-    <PageBody width="wide" className="kit-form gap-4">
+    <ProoflyDetailPage
+      header={
+        <ProoflyPageHeader
+          title={article ? article.title : copy.newTitle}
+          back={{ label: copy.back, href: routes.content.blogPosts() }}
+          actions={
+            article ? (
+              <>
+                {liveUrl && article.status !== 'draft' ? (
+                  <Button
+                    variant="outline"
+                    render={<a href={liveUrl} target="_blank" rel="noreferrer" />}
+                    nativeButton={false}
+                  >
+                    <ExternalLink />
+                    {copy.viewLive}
+                  </Button>
+                ) : null}
+                <Button variant="outline" onClick={() => setConfirmDelete(true)} disabled={busy}>
+                  {copy.delete.action}
+                </Button>
+              </>
+            ) : (
+              <Button onClick={handleSave} disabled={busy}>
+                {busy ? copy.saving : copy.save}
+              </Button>
+            )
+          }
+        />
+      }
+      main={
+        <>
+          <ArticleMainCard
+            title={form.title}
+            body={form.body}
+            excerpt={form.excerpt}
+            onChange={patch}
+          />
+          <ArticleSeoCard
+            title={form.title}
+            body={form.body}
+            excerpt={form.excerpt}
+            seoTitle={form.seoTitle}
+            seoDescription={form.seoDescription}
+            handle={form.handle}
+            blogHandle={blogHandle}
+            storefrontOrigin={storefrontOrigin}
+            onChange={patch}
+          />
+          <MetafieldsCard ownerType="article" ownerId={article?.id ?? null} />
+        </>
+      }
+      side={
+        <>
+          <ArticleVisibilityCard
+            status={form.status}
+            publishedAt={form.publishedAt}
+            onChange={patch}
+          />
+          <ArticleImageCard imageUrl={form.imageUrl} imageAlt={form.imageAlt} onChange={patch} />
+          <ArticleOrganisationCard
+            blogs={blogs}
+            blogId={form.blogId}
+            author={form.author}
+            tags={form.tags}
+            tagSuggestions={tags}
+            onChange={patch}
+            onBlogCreated={() => void api.blog.blogs().then(setBlogs)}
+          />
+          <TemplateSelectCard
+            kind="article"
+            value={form.templateSuffix}
+            onChange={(templateSuffix) => patch({ templateSuffix })}
+          />
+        </>
+      }
+    >
       <SaveBar
         open={dirty}
         message={copy.unsaved}
@@ -126,76 +206,6 @@ export default function ArticleForm({
         onDiscard={handleDiscard}
         saving={busy}
       />
-      <PageHeader
-        title={article ? article.title : copy.newTitle}
-        breadcrumbs={[{ label: copy.back, href: '/content/blog-posts' }]}
-        actions={
-          article ? (
-            <>
-              {liveUrl && article.status !== 'draft' ? (
-                <Button
-                  variant="outline"
-                  render={<a href={liveUrl} target="_blank" rel="noreferrer" />}
-                  nativeButton={false}
-                >
-                  <ExternalLink />
-                  {copy.viewLive}
-                </Button>
-              ) : null}
-              <Button variant="outline" onClick={() => setConfirmDelete(true)} disabled={busy}>
-                {copy.delete.action}
-              </Button>
-            </>
-          ) : (
-            <Button onClick={handleSave} disabled={busy}>
-              {busy ? copy.saving : copy.save}
-            </Button>
-          )
-        }
-      />
-      <PageColumns
-        main={
-          <>
-            <ArticleMainCard
-              title={form.title}
-              body={form.body}
-              excerpt={form.excerpt}
-              onChange={patch}
-            />
-            <ArticleSeoCard
-              title={form.title}
-              body={form.body}
-              excerpt={form.excerpt}
-              seoTitle={form.seoTitle}
-              seoDescription={form.seoDescription}
-              handle={form.handle}
-              blogHandle={blogHandle}
-              storefrontOrigin={storefrontOrigin}
-              onChange={patch}
-            />
-          </>
-        }
-        side={
-          <>
-            <ArticleVisibilityCard
-              status={form.status}
-              publishedAt={form.publishedAt}
-              onChange={patch}
-            />
-            <ArticleImageCard imageUrl={form.imageUrl} imageAlt={form.imageAlt} onChange={patch} />
-            <ArticleOrganisationCard
-              blogs={blogs}
-              blogId={form.blogId}
-              author={form.author}
-              tags={form.tags}
-              tagSuggestions={tags}
-              onChange={patch}
-              onBlogCreated={() => void api.blog.blogs().then(setBlogs)}
-            />
-          </>
-        }
-      />
-
       <ConfirmDeleteArticles
         count={1}
         open={confirmDelete}
@@ -203,6 +213,6 @@ export default function ArticleForm({
         onOpenChange={setConfirmDelete}
         onConfirm={handleDelete}
       />
-    </PageBody>
+    </ProoflyDetailPage>
   )
 }

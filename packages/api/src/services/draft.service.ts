@@ -1,10 +1,12 @@
 import {
+  type AbandonedListStatus,
   abandonedStats,
   captureCartContact,
   convertDraft,
   createDraft,
   DraftEmpty,
   type DraftInput,
+  type DraftListStatus,
   DraftNotEditable,
   deleteDraft,
   deliverCartRecovery,
@@ -13,13 +15,27 @@ import {
   markRecoverySent,
   RECOVERY_NO_CONSENT,
   recoveryUrl,
+  storefrontOriginFor,
   updateDraft,
 } from '@commerce/core'
 import type { StoreTx } from '@commerce/db'
-import { address, customer, notification, order, orderLine, orderNote, variant } from '@commerce/db'
+import {
+  address,
+  cart,
+  cartLine,
+  customer,
+  media,
+  notification,
+  order,
+  orderLine,
+  orderNote,
+  product,
+  productMedia,
+  variant,
+} from '@commerce/db'
 import type { NotificationRegistry } from '@commerce/notifications'
 import { ORPCError } from '@orpc/server'
-import { and, asc, eq } from 'drizzle-orm'
+import { and, asc, count, eq, sql } from 'drizzle-orm'
 
 /**
  * Draft orders and abandoned checkouts for the admin. Core owns the rules;
@@ -41,8 +57,31 @@ function draftErrorToRpc(err: unknown): never {
 export const listStoreDrafts = (
   tx: StoreTx,
   storeId: string,
-  input: { page: number; perPage: number; search?: string | undefined },
+  input: {
+    page: number
+    perPage: number
+    search?: string | undefined
+    status?: DraftListStatus | undefined
+  },
 ) => listDrafts(ctxOf(tx, storeId), input)
+
+/** The stat cards above the drafts list: open drafts, invoices sent, and what they add up to. */
+export async function draftTiles(tx: StoreTx) {
+  const [row] = await tx
+    .select({
+      total: count(),
+      invoiced:
+        sql<number>`count(*) filter (where exists (select 1 from notification n where n.order_id = ${order.id} and n.template = 'draft_invoice' and n.status = 'sent'))::int`.mapWith(
+          Number,
+        ),
+      valuePaise: sql<number>`coalesce(sum(${order.totalPaise}), 0)::bigint`.mapWith(Number),
+    })
+    .from(order)
+    .where(eq(order.status, 'draft'))
+  const total = row?.total ?? 0
+  const invoiced = row?.invoiced ?? 0
+  return { open: total - invoiced, invoiced, total, valuePaise: row?.valuePaise ?? 0 }
+}
 
 /** The draft plus everything its editor needs: lines with titles, address, note. */
 export async function getDraft(tx: StoreTx, id: string) {
@@ -146,11 +185,17 @@ export async function recordInvoiceSent(tx: StoreTx, storeId: string, orderId: s
 export const listStoreAbandoned = (
   tx: StoreTx,
   storeId: string,
-  input: { page: number; perPage: number; sinceDays?: number | undefined },
+  input: {
+    page: number
+    perPage: number
+    sinceDays?: number | undefined
+    status?: AbandonedListStatus | undefined
+    search?: string | undefined
+  },
 ) => listAbandoned(ctxOf(tx, storeId), input)
 
-export const storeAbandonedStats = (tx: StoreTx, storeId: string) =>
-  abandonedStats(ctxOf(tx, storeId))
+export const storeAbandonedStats = (tx: StoreTx, storeId: string, days?: number) =>
+  abandonedStats(ctxOf(tx, storeId), { days })
 
 export { captureCartContact }
 
@@ -162,15 +207,17 @@ export async function sendRecovery(
     cartId: string
     registry: NotificationRegistry
     settingsSecret: string
+    /** STOREFRONT_URL: the fallback when the store has no live primary domain. */
     storefrontUrl: string
   },
 ) {
   const ctx = ctxOf(tx, storeId)
+  const origin = await storefrontOriginFor(tx, storeId, input.storefrontUrl)
   const results = await deliverCartRecovery(
     ctx,
     {
       cartId: input.cartId,
-      actionUrl: recoveryUrl(input.cartId, input.settingsSecret, input.storefrontUrl),
+      actionUrl: recoveryUrl(input.cartId, input.settingsSecret, origin),
     },
     { registry: input.registry, settingsSecret: input.settingsSecret },
   )
@@ -186,4 +233,54 @@ export async function sendRecovery(
     })
   }
   return { sent: results.filter((r) => r.ok).length, results }
+}
+
+/**
+ * One abandoned checkout for its detail page: the contact, each line with its photo and
+ * price, the timestamps the activity list needs, and a fresh signed recovery link.
+ */
+export async function getStoreAbandoned(
+  tx: StoreTx,
+  storeId: string,
+  cartId: string,
+  link: { settingsSecret: string; storefrontUrl: string },
+) {
+  const [row] = await tx.select().from(cart).where(eq(cart.id, cartId))
+  if (!row) throw new ORPCError('NOT_FOUND', { message: 'Checkout not found' })
+  const lines = await tx
+    .select({
+      id: cartLine.id,
+      quantity: cartLine.quantity,
+      unitPricePaise: cartLine.unitPricePaise,
+      productTitle: product.title,
+      variantTitle: variant.title,
+      image: sql<string | null>`coalesce(${media.url}, (
+        select m.url from ${productMedia} pm join ${media} m on m.id = pm.media_id
+        where pm.product_id = ${variant.productId} order by pm.position limit 1))`,
+    })
+    .from(cartLine)
+    .innerJoin(variant, eq(variant.id, cartLine.variantId))
+    .innerJoin(product, eq(product.id, variant.productId))
+    .leftJoin(media, eq(media.id, variant.mediaId))
+    .where(eq(cartLine.cartId, cartId))
+    .orderBy(asc(cartLine.id))
+  const origin = await storefrontOriginFor(tx, storeId, link.storefrontUrl)
+  const recovered = row.status === 'converted'
+  return {
+    id: row.id,
+    email: row.email,
+    phone: row.phone,
+    customerName: row.customerName,
+    discountCode: row.discountCode,
+    source: row.attribution?.source ?? row.attribution?.channel ?? null,
+    createdAt: row.createdAt,
+    updatedAt: row.updatedAt,
+    recoverySentAt: row.recoverySentAt,
+    recovered,
+    lines: lines.map((l) => ({ ...l, totalPaise: l.quantity * l.unitPricePaise })),
+    itemCount: lines.reduce((n, l) => n + l.quantity, 0),
+    subtotalPaise: lines.reduce((n, l) => n + l.quantity * l.unitPricePaise, 0),
+    /** Not offered for a cart that already became an order: the link would show an empty basket. */
+    recoveryUrl: recovered ? null : recoveryUrl(row.id, link.settingsSecret, origin),
+  }
 }

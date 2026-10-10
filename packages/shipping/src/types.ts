@@ -92,6 +92,8 @@ export type CreateShipmentResult = {
   labelUrl?: string | undefined
   /** Whatever id the courier gave us for support queries; often the waybill again. */
   providerRef: string
+  /** What the courier charges for this consignment, when its booking answer says (paise). */
+  chargePaise?: number | undefined
 }
 
 export type ShipmentStatus =

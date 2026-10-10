@@ -1,7 +1,8 @@
 'use client'
 
+import { METAFIELD_OWNER_TYPES, type MetafieldOwnerType } from '@commerce/core/metaobjects'
 import { permissions } from '@commerce/core/permissions'
-import { Braces, Plus } from '@commerce/ui/icons'
+import { Plus } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import {
   Card,
@@ -14,33 +15,55 @@ import {
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
-import PageHeader from '@/components/layout/page-header'
 import SectionTabs from '@/components/settings/section-tabs'
+import SettingsPageHeader from '@/components/settings/settings-page-header'
 import SettingsSection from '@/components/settings/settings-section'
 import { customDataContent } from '@/data/metaobjects'
 import { useCopy } from '@/hooks/use-copy'
 import { usePermissions } from '@/hooks/use-permissions'
 import { api } from '@/lib/api-client'
+import { routes } from '@/lib/routes'
 import { type DefinitionSummary, entriesPath } from './form-state'
 import type { MetafieldDefinitionRow } from './metafield-definition-dialog'
 import MetafieldDefinitionsCard from './metafield-definitions-card'
+import MetafieldsCard from './metafields-card'
 
 type Loaded = {
-  product: MetafieldDefinitionRow[]
-  collection: MetafieldDefinitionRow[]
+  fields: Record<MetafieldOwnerType, MetafieldDefinitionRow[]>
   metaobjects: DefinitionSummary[]
 }
 
+type Tabs = (typeof customDataContent)['tabs']
+
+/** Each owner's tab, in the order the page shows them. */
+const OWNER_TABS: { owner: MetafieldOwnerType; tab: keyof Tabs }[] = [
+  { owner: 'product', tab: 'products' },
+  { owner: 'variant', tab: 'variants' },
+  { owner: 'collection', tab: 'collections' },
+  { owner: 'customer', tab: 'customers' },
+  { owner: 'order', tab: 'orders' },
+  { owner: 'page', tab: 'pages' },
+  { owner: 'article', tab: 'articles' },
+  { owner: 'shop', tab: 'shop' },
+]
+
 async function load(): Promise<Loaded> {
-  const [product, collection, metaobjects] = await Promise.all([
-    api.metaobjects.metafieldDefinitions({ ownerType: 'product' }),
-    api.metaobjects.metafieldDefinitions({ ownerType: 'collection' }),
+  const [lists, metaobjects] = await Promise.all([
+    Promise.all(
+      METAFIELD_OWNER_TYPES.map((ownerType) => api.metaobjects.metafieldDefinitions({ ownerType })),
+    ),
     api.metaobjects.definitions(),
   ])
-  return { product, collection, metaobjects }
+  const fields = Object.fromEntries(
+    METAFIELD_OWNER_TYPES.map((ownerType, i) => [ownerType, lists[i] ?? []]),
+  ) as Loaded['fields']
+  return { fields, metaobjects }
 }
 
-/** Settings → Custom data: product and collection metafields, and metaobject definitions. */
+/**
+ * Settings → Custom data: extra fields for every kind of record (and the store's own values),
+ * and the content types.
+ */
 export default function CustomDataSettings() {
   // Hooks
   const copy = useCopy(customDataContent)
@@ -65,32 +88,33 @@ export default function CustomDataSettings() {
   }
 
   // Render logic
-  const tabs = [copy.tabs.products, copy.tabs.collections, copy.tabs.metaobjects]
-  const canManage = hasPermission(permissions.SETTINGS_MANAGE)
+  const tabs = [...OWNER_TABS.map((t) => copy.tabs[t.tab]), copy.tabs.metaobjects]
+  const canManage = hasPermission(permissions.CONTENT_MANAGE_TYPES)
   const targets = (data?.metaobjects ?? []).map((d) => ({ id: d.id, name: d.name }))
 
   return (
     <div className="flex flex-col gap-4">
-      <PageHeader title={copy.title} subtitle={copy.intro} icon={<Braces aria-hidden="true" />} />
+      <SettingsPageHeader title={copy.title} subtitle={copy.intro} />
       <SectionTabs tabs={tabs}>
-        <SettingsSection id={copy.tabs.products.id}>
-          <MetafieldDefinitionsCard
-            ownerType="product"
-            definitions={data?.product ?? null}
-            targets={targets}
-            canManage={canManage}
-            onChanged={reload}
-          />
-        </SettingsSection>
-        <SettingsSection id={copy.tabs.collections.id}>
-          <MetafieldDefinitionsCard
-            ownerType="collection"
-            definitions={data?.collection ?? null}
-            targets={targets}
-            canManage={canManage}
-            onChanged={reload}
-          />
-        </SettingsSection>
+        {OWNER_TABS.map(({ owner, tab }) => (
+          <SettingsSection key={owner} id={copy.tabs[tab].id} className="flex flex-col gap-4">
+            <MetafieldDefinitionsCard
+              ownerType={owner}
+              definitions={data?.fields[owner] ?? null}
+              targets={targets}
+              canManage={canManage}
+              onChanged={reload}
+            />
+            {owner === 'shop' && data && data.fields.shop.length > 0 ? (
+              <MetafieldsCard
+                key={data.fields.shop.length}
+                ownerType="shop"
+                ownerId={null}
+                title={copy.shopValues}
+              />
+            ) : null}
+          </SettingsSection>
+        ))}
         <SettingsSection id={copy.tabs.metaobjects.id}>
           <Card>
             <CardHeader>
@@ -99,7 +123,7 @@ export default function CustomDataSettings() {
               <CardAction>
                 <Button
                   variant="outline"
-                  render={<Link href="/content/metaobjects/new" />}
+                  render={<Link href={routes.content.newContentType()} />}
                   nativeButton={false}
                 >
                   <Plus />

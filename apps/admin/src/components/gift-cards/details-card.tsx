@@ -2,6 +2,7 @@ import { Card } from '@commerce/ui/shadcn/card'
 import Link from 'next/link'
 import { giftCardDetailContent, giftCardsContent } from '@/data/gift-cards'
 import { formatPattern } from '@/lib/format-date'
+import { routes } from '@/lib/routes'
 
 type DetailsCardProps = {
   card: {
@@ -26,9 +27,9 @@ const WHEN = {
 
 function Row({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <div className="flex flex-col gap-0.5">
+    <div className="flex items-baseline justify-between gap-4 border-hairline border-b pb-3 last:border-b-0 last:pb-0">
       <span className="text-caption text-muted-foreground">{label}</span>
-      <span className="text-body text-foreground">{children}</span>
+      <span className="min-w-0 text-right text-body text-foreground">{children}</span>
     </div>
   )
 }
@@ -36,13 +37,13 @@ function Row({ label, children }: { label: string; children: React.ReactNode }) 
 /** Where the card came from and whether its code has been emailed. */
 export default function DetailsCard({ card }: DetailsCardProps) {
   return (
-    <Card className="gap-3 p-5">
+    <Card gap={4} inset={5}>
       <p className="text-card-title text-foreground">{copy.heading}</p>
       <Row label={copy.issued}>{formatPattern(card.createdAt, WHEN)}</Row>
       {card.createdBy ? <Row label={copy.by}>{card.createdBy}</Row> : null}
       <Row label={copy.source}>
         {card.source === 'purchase' && card.orderId ? (
-          <Link href={`/orders/${card.orderId}`} className="text-link hover:underline">
+          <Link href={routes.orders.detail(card.orderId)} className="text-link hover:underline">
             {giftCardsContent.source.purchase(card.orderNumber)}
           </Link>
         ) : (

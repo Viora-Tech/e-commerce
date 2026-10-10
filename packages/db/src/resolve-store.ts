@@ -135,6 +135,20 @@ export async function storesWithPendingDomains(db: Db): Promise<string[]> {
   return rows.map((r) => r.id)
 }
 
+/** Store ids with review requests or reminders to send (Reviews app), for the worker. SECURITY DEFINER backed. */
+export async function storesWithDueReviewRequests(db: Db): Promise<string[]> {
+  const rows = await db.execute<{ id: string }>(sql`select stores_with_due_review_requests() as id`)
+  return rows.map((r) => r.id)
+}
+
+/** Store ids where a member asked for a daily summary (Account → Notifications). SECURITY DEFINER backed. */
+export async function storesWithMemberDailySummaries(db: Db): Promise<string[]> {
+  const rows = await db.execute<{ id: string }>(
+    sql`select stores_with_member_daily_summaries() as id`,
+  )
+  return rows.map((r) => r.id)
+}
+
 /** Store ids whose sender email domain is pending, or verified but due its daily re-check. SECURITY DEFINER backed. */
 export async function storesWithSenderEmailChecks(db: Db): Promise<string[]> {
   const rows = await db.execute<{ id: string }>(sql`select stores_with_sender_email_checks() as id`)

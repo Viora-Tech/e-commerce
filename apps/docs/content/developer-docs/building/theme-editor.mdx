@@ -16,10 +16,43 @@ all share one Puck state. Every change the editor makes is a Puck action (`inser
 ```mermaid
 flowchart LR
   tree["Sections sidebar<br/>SectionsTree → SectionGroup → SectionTreeItem"] -->|Puck actions| store[("Puck state<br/>one doc per template")]
-  canvas["Canvas<br/>SectionOverlay, CanvasInsertLine"] -->|Puck actions| store
+  canvas["Canvas<br/>BlockToolbar, CanvasInsertLine"] -->|Puck actions| store
   inspector["Inspector<br/>Puck.Fields + our field overrides"] -->|onChange| store
   store -->|onChange| drafts["useTemplateDrafts<br/>autosaved drafts"]
 ```
+
+## Themes page
+
+Online Store → Themes (`components/themes/themes-library.tsx`, Figma "Online store / Themes",
+309:19887) lists the live theme in `CurrentThemeCard` and the rest in `ThemeLibraryRow`s.
+`themes.list` returns each theme with three facts read once per list (`libraryFacts` in
+`packages/api/src/routers/themes.ts`): `imported`, `hasDraft` (any `theme_template.draft`, the
+"Unsaved changes" chip) and `sectionCount` (an imported theme's `sections/*.liquid`; our own
+themes show how many sections the Add panel offers, counted from `SECTION_CATEGORIES` on the
+server page).
+
+"Last saved by" is `theme.updated_by`: the member's name (or email) written by create,
+duplicate, rename, settings saves and `templates.commit` (which also bumps `updated_at` through
+`touchTheme`, so a content-only Save moves the theme up the library).
+
+### Thumbnails
+
+There is no headless browser in the stack, and none is needed: the Customize canvas is a
+same-origin iframe already drawing the home page. `lib/capture-theme-thumbnail.ts` draws its top
+16:10 into a 640 × 400 webp with modern-screenshot (the library "Report a bug" uses), leaving
+out Puck's overlays and every node below the fold, with a 4 s cap per image or font.
+`lib/use-theme-thumbnail.ts` sends it to `themes.thumbnail`:
+
+- after every Save while the canvas shows the default home template at desktop width;
+- once, 2.5 s after a theme with no picture opens on its saved home page, so existing themes get
+  one just by being opened.
+
+The server (`services/theme-thumbnail.service.ts`) accepts only a real WebP (RIFF/WEBP header)
+up to 256 KB, writes one object per theme (`stores/<store>/themes/<theme>/thumbnail.webp`,
+overwritten each time) through the store's storage provider, and stores its URL with `?v=<time>`
+in `theme.thumbnail_url`. Setting the picture is not a save: `updated_at` and `updated_by` stay.
+A duplicate starts with its source's picture. Until a theme has one, the live card falls back to
+the scaled storefront iframe and library rows to `ThemeSwatch`.
 
 ## Sections sidebar
 
@@ -34,6 +67,139 @@ name, the eye (hide/show, stored as `props._hidden`), and a "more" menu with **D
 Rename. Rename stores the merchant's name in `props._name` (`renamedProps` in
 `lib/customize-insert.ts`); a blank name, or the type's own label, removes it again. Neither
 `_hidden` nor `_name` is a field, so they never show in the inspector.
+
+### Audit tab and breadcrumb
+
+The Sections panel has a "Sections | Audit" switch (`sections-panel.tsx`). Audit
+(`audit-panel.tsx`, checks in `lib/customize-audit.ts`) lists what on the open template a shopper
+would trip over, in plain words: a picture with no description (`{ url, alt }` with a picture and
+no alt), a button that goes nowhere (`{ label, href }` with words and no link), a section hidden
+on phones and computers, a heading emptied (the Heading element, or a section whose default
+heading was cleared) and theme colour pairs below 4.5:1 (`themeContrastWarnings`). Blocks hidden
+with the eye are skipped. Picking a row selects the block and scrolls to it; a colour row opens
+Theme settings. The inspector header shows where the selection sits, "Template › Group › Image
+banner" (`inspector-breadcrumb.tsx`), and each container in it selects that container.
+
+### Editor chrome (Figma 369:4809)
+
+- **Rail** (`customize-rail.tsx`, 64px): the store's tile (its live theme's logo, else its
+  initial) on top; Add, AI, Pages, Layers (Sections), Media, Theme settings and Store settings in
+  the middle; Help pinned at the bottom, which opens the Help panel (`help-panel.tsx`, Figma
+  381:8563: every real shortcut with its keys, the merchant guide's editor page and what's new). The open tab wears
+  `bg-primary-soft`; each button names itself in a tooltip.
+- **Left panel** (304px): Add and Layers open on `panel-identity.tsx` (`<Store> · <Template>` and
+  the store's domain over a hairline, Figma 369:121298); every panel then has its own head
+  (`panel-title.tsx`): Layers 14px with **Add**, and Pages (**New page**, a new page template),
+  Media, Theme settings, Store settings and **Build with AI** (spark, **New chat**) 16px, as their
+  Figma frames (381:5919, 381:6945, 369:121794, 385:4119).
+- **Layers groups** (`section-group.tsx`, Figma 392:5543): "Header group" and "Footer group" with
+  an "On every page" chip, and "Template: <page>" (`templateLabel` from the layout).
+- **Add** (`add-section-browser.tsx`): a "Sections | Blocks" switch, "Search layouts", then folding
+  category groups (`add-section-group.tsx`) of picture tiles, two across. Sections holds the section
+  library and My sections; Blocks holds Layout, Elements and the installed apps' blocks. A search
+  opens every group with a match. The style step (Section styles) is unchanged.
+- **AI** (`ai-panel.tsx`): the admin assistant's conversation (`useAssistant`, the same thread as
+  the ⌘J bar), with suggestions for the page. It answers and runs its usual tools with approval; it
+  does not edit the canvas. Without AI it links to Settings › AI.
+- **Page settings** (`page-settings-panel.tsx`, Figma 381:7763): the home page gets a real form
+  (`home-page-settings.tsx`) over the store preferences (`api.store.getPreferences` /
+  `updatePreferences`): read-only title and `/`, SEO title and description with a Google preview,
+  social image (`MediaPickDialog`), visibility (Published, or Password: the store password, at
+  least `PREFERENCE_LIMITS.passwordMin` characters) and its own **Save page settings**. Product,
+  collection, page, blog and blog post templates say each item has its own listing and link to
+  the previewed one and the list; cart, search and 404 have none. **Store-wide settings** folds
+  open `store-settings-panel.tsx` (menus, store details, policies, cookie banner, checkout,
+  domains, each in a new tab).
+- **Theme settings** (`theme-panel.tsx`, Figma 369:121884): reset in the head; Colours as five
+  swatches (`swatch-row.tsx`; Brand = `button`, Accent, Background, Text, and Buttons, whose
+  popover picks text or brand colour); Typography as two compact font dropdowns and Size scale
+  S / M / L; Buttons as Corner radius Square / Soft / Round, Filled / Outline and a sample on the
+  theme's background (`lib/theme-quick-settings.ts` maps the choices onto the theme's numbers and
+  reads back the nearest one). "All colours", "More type settings" and "More button settings"
+  (`more-settings.tsx`) open the existing exact controls; Presets, Logo & favicon, Layout and
+  Product cards are closed rows (`theme-panel-section.tsx`); Checkout branding links out. The old
+  full-page customizer keeps `theme-settings.tsx`.
+- **Top bar**: the theme's name in normal case (`displayThemeName`: a word in capitals of four or
+  more letters is capitalised, so `ZERO DRIFT` reads "Zero Drift"), the page switcher in Figma's
+  muted 240px style, a green "AI connected" chip when an AI gateway is set up, and the member's
+  avatar with the account menu at the far right. The page reads the store, the member and
+  `ai.status` on the server. With changes the chip reads "Unsaved changes" (attention tone);
+  Save and Publish follow Figma 369:126247: on a draft theme Save (outline, only with changes)
+  commits the drafts and Publish (key button) saves first and then publishes the theme; on the
+  live theme saving is publishing, so Publish alone commits. Discard stays in ⋯.
+- **Type and icons**: DM Sans everywhere in the chrome, Puck's own parts included
+  (`--puck-font-family` names `--font-primary`), and the chrome drawn inside the canvas iframe
+  (block toolbar and its menus) is pinned to DM Sans too, since the frame's body uses the
+  storefront theme's font. Icons are Phosphor regular, as the Figma icons page (104:109) says;
+  Puck's built-in text-formatting buttons are replaced by `richtext-format-controls.tsx` in the
+  canvas menu (`renderInlineMenu`) and the right panel's (`renderMenu`, `field-format-menu.tsx`).
+- **Canvas**: 32px above and 24px beside the page frame (10px corners); the selected block's name
+  chip sits on the block's top edge, flush with its left side; hover stays a dashed outline.
+
+### Panels and full view
+
+- Theme settings live only in the rail's **Theme** tab. With nothing selected, the right panel
+  shows "Page · Select a section to edit it." with a small drawing and three ways to start
+  (`inspector-empty.tsx`, Figma 369:129005).
+- Each side panel hides and shows from a small tab on the canvas edge (`panel-toggle.tsx`); the
+  choice is remembered in this browser (`lib/customize-view.ts`, `customize.panels.v1`). A rail
+  tab reopens a hidden left panel.
+- **Full view** (`full-view-button.tsx` in the top bar, `\` or Ctrl/⌘ + `.`) hides the rail, both
+  panels and the canvas dock; a floating "Exit full view" pill and Esc bring them back
+  (`full-view-exit.tsx`, listening in the admin and the canvas frame, never while typing).
+- Scrolling: every left tab and the inspector scroll inside their own column. The Add panel's
+  list scrolls in a box outside Puck's `Drawer`, which has no height of its own.
+- The storefront's block CSS (needed in the admin document so Puck mirrors it into the canvas)
+  uppercases and resizes every h1–h6 and sets inputs to 16px; `vendor-puck.css` undoes that for
+  the chrome (`[data-editor-chrome]` on the layout root, and portalled `data-slot="…-content"`
+  popovers and dialogs) in the `components` layer.
+
+### Inspector (Figma 381:6210)
+
+- 340px (`w-[21.25rem]`), one 16px-gutter column that scrolls as a whole: the section's name in
+  16px semibold with a trash button, the Basic | Advanced switch (`bg-muted`, 32px rows, the
+  active one `bg-card shadow-card`) and its 12px hint. **Esc** deselects (`customize-hotkeys.tsx`,
+  not inside a menu or dialog, not in full view).
+- Basic: the section's own fields in one **Content** card (`inspector-fields.tsx`,
+  `inspector-card.tsx`: bordered, 12px radius, 13px semibold title, chevron, open by default).
+- Advanced: where the block sits (`inspector-breadcrumb.tsx`), then one card per settings group
+  (`section-settings-groups.tsx`: Layout, Spacing, Style, Advanced; a custom block's Size,
+  Typography, Colour, Corners).
+- Fields (`field-frame.tsx`): 13px medium labels in the foreground colour, 6px above the control;
+  text boxes 40px with a 10px radius, selects and number boxes 36px (`customize-field-styles.ts`).
+
+### Loading screen
+
+Until the first page has loaded, `editor-loading.tsx` draws the editor's own frame as
+placeholders (top bar, rail, panel) around a skeleton page (header, hero, a row of product
+cards) with a soft shimmer (Motion; still under reduced motion), the store's name and "Opening
+`<store>` in the editor…". If the page has not loaded after 20 seconds (`LOAD_TIMEOUT_MS` in
+`customize-editor.tsx`), or loading fails, it shows "We couldn’t reach your storefront" with
+**Try again** (loads again), **Get help** (the editor's help page) and a link back to Themes.
+Switching pages later keeps the current page on screen instead.
+
+### Pages and Media panels
+
+The rail's Pages and Media tabs:
+- **Pages** (`pages-panel.tsx`) is the template list the top bar's picker uses
+  (`template-list.tsx`), open in the panel: search, pages and templates with their alternates,
+  usage counts, the ⋯ manager (rename, duplicate, delete) and "Create template". Picking one
+  switches the canvas as the picker does. In the panel (`fill`) it takes Figma 381:5919's look:
+  a 40px search, uppercase PAGES / TEMPLATES labels, 35px rows with a page glyph and "Default",
+  the open one tinted `bg-primary-soft` instead of ticked. The top bar's page switcher popover
+  (Figma 369:125349, 360px) uses the same list with each kind's glyph, adds "New page" under the
+  pages and the "↑↓ move · Enter open · Esc close" keys at its foot.
+- **Media** (`media-panel.tsx`, Figma 381:6945) is a drop zone (drop files, or click to browse;
+  several at once), a search and the store's pictures as tiles with their file names
+  (`fileName` in `components/media/file-meta.ts` drops the media id the upload adds) and a
+  **Used** / **Unused** badge (used = this page's data holds the picture's address), with a hint
+  at the foot.
+  Clicking a picture puts it into the selected block's first empty picture setting (else its first);
+  dragging one onto the canvas drops it into the innermost block under the pointer that has a
+  picture setting, outlined while hovering (`lib/customize-media-drop.ts`, installed by
+  `preview-frame.tsx`). Both are one Puck `replace` (`mediaAction` in
+  `lib/customize-media-insert.ts`), so undo covers them; a written alt text is kept and the old
+  focal point dropped.
 
 ### Insert points
 
@@ -55,6 +221,110 @@ section edge within `0.75rem` of the pointer, and `targetForEdge` turns it into 
 The click goes through `InsertContext` (`lib/customize-insert-context.ts`) to `CustomizeLayout`,
 which opens the browser in a dialog in the admin document. The "+" is registered with Puck's
 `registerOverlayPortal` so pressing it never starts a section drag.
+
+### Version history
+
+`theme_version` (migration `0103_theme_versions`) keeps a copy of a theme's saved templates each
+time it goes live: `themes.publish` takes a batch with reason `publish` (only when the theme was
+not live already), and `themes.templates.commit` on the live theme takes one with reason `save`
+(the top bar's Publish on a live theme). One batch is one publish or save (`batch_id`); the
+newest `VERSIONS_KEPT` (20) rows per template are kept (`snapshotTheme` in
+`packages/core/src/theme/versions.ts`).
+
+The theme ⋯ menu on the Themes page opens **Versions** (`theme-versions-dialog.tsx`,
+`themes.versions.list`): each batch with when, by whom and how many pages, **Preview** and
+**Restore**. Preview opens the storefront preview link with `&theme-version=<batch>`: the proxy
+passes it on as `x-theme-version` (only with a valid preview token, uuid only, stripped from
+incoming requests) and `renderTemplate` renders that batch's template (`versionTemplate`, same
+theme only) instead of the current one. Restore (`themes.versions.restore`,
+`restoreThemeVersion`) writes each template of the batch into the theme's drafts; a template the
+theme no longer has is recreated with the code default as its saved sections. Nothing reaches
+shoppers until the merchant publishes the changes.
+
+### Alternate templates
+
+`ALTERNATE_KINDS` (`product`, `collection`, `page`, `blog`, `article`) can have alternates
+(`product.preorder`): a `theme_template` row with that suffix, and a `template_suffix` on the
+resource (`product`, `collection`, `page`, `blog`, `article`). The storefront renders the
+resource's alternate, falling back to the default when the theme has no such row.
+
+The template picker (`template-picker.tsx`, logic in `lib/use-template-manager.ts`) shows how many
+resources use each alternate (`themes.templates.assignments`, `templateAssignments` in core,
+store-wide) and has a small manager per alternate: **Rename** (`themes.templates.rename`,
+`renameTemplateAlternate`: renames this theme's row and moves the resources with
+`reassignTemplate`; other themes keep the old name, unused), **Duplicate** (a create based on it,
+named `<suffix>-copy`) and **Delete** (resources keep their suffix and render the default). The
+default template has no manager. Resource forms pick an alternate with `TemplateSelectField` /
+`TemplateSelectCard`.
+
+### Section styles
+
+Some sections ask for a **Style** when they are added: Hero (slideshow, centred, split, video),
+Feature cards (3, 4 or 2 across, text only), Image banner (centred, left, tall), Image with text
+and Feature checklist (picture left or right). A style is a starting point, not another
+component: `@commerce/blocks/section-presets` lists, per type, a function from the section's
+own `defaultProps` to the style's props (`presetProps` deep-copies the defaults first, so the
+editor's are never shared), and the first style is the plain defaults. Clicking such a card in
+the Add panel opens a second step (`add-section-styles.tsx`); the pick is inserted with
+`insertCopyActions` (fresh ids, then a `replace` with the style's props). Dragging a card onto
+the page still adds the defaults. Add a style by adding an entry and its words to
+`packages/blocks/src/data/section-presets.ts`; keep it to settings the section already has.
+
+The style step shows `public/section-previews/<Type>--<style>.webp` when the pictures script
+made one, else the section's own picture, else its glyph.
+
+### Section pictures in the Add panel
+
+Each tile in the Add panel's Sections tab (Figma grid 369:4918) and its hover card show a real
+picture of the section: drawn with its default settings and the default theme, light and dark
+(`section-picture.tsx`, following the admin's mode). The pictures are files in
+`apps/admin/public/section-previews/` (`<Type>.webp`, `<Type>-dark.webp`, 512 px wide, at most
+40 KB, about 6 KB on average), listed with their shape in the generated
+`apps/admin/src/lib/section-previews.ts`. Types without a picture keep the drawn glyph
+(`section-preview.tsx`): Layout and Elements blocks, and sections that need a store to show
+anything (a scroll-driven reveal, reviews, an empty rich text).
+
+Regenerate after adding a section or changing how one looks, and commit the result:
+
+```bash
+cd apps/admin && bun run section-previews   # CHROME_PATH=/path/to/chrome if not installed in the usual place
+```
+
+`scripts/section-previews/entry.tsx` renders every addable section, and then each of its
+styles after the first (as `<Type>--<style>`), through
+`@commerce/blocks` (`resolveAllData` then `renderBlock`, as the storefront does) with stand-in
+products, collections and posts (`demo-data.ts`); `run.ts` bundles it with Bun, styles it with
+the storefront's own Tailwind build, and photographs each section in a local Chrome through
+puppeteer-core (dev dependency, Apache-2.0, no browser download) with reduced motion, so reveal
+animations sit at their end state. `section-previews.test.ts` checks that every listed type has
+both files under 40 KB.
+
+### Starter kit sections
+
+`packages/blocks/src/sections/kit.tsx` (`kitSections()`: heroes, logos, stats, calls to
+action) and `kit-trust.tsx` (`kitTrustSections()`: features, steps, testimonials, FAQ,
+comparison, plans) and `kit-story.tsx` (`kitStorySections()`: lookbook, email signup band,
+timeline, team, trust badges), with the shared field helpers in `kit-fields.ts`, copy in
+`src/data/kit-sections.ts` and components in `src/components/sections/kit/`, hold polished
+sections for every merchant. Each is
+`framed()` (shared section settings), draws its copy through the inline field helpers, reads only
+theme tokens (`--color-ink`, `--color-surface`, `--color-brand`…), and keeps motion in a shared
+effect under `src/effects/` that loads Motion after hydration and stands still under reduced
+motion: `retro-grid`, `border-beam`, `word-rotate`, `number-ticker`, `magic-card` (adapted
+from Magic UI, MIT). Shared pieces: `kit-buttons.tsx` (primary and secondary links, blank label hides one) and
+`kit-media.tsx` (picture or a brand-tinted placeholder), `kit-heading.tsx` (heading and
+intro) and `kit-stars.tsx` (a rating read out as words). Centre with flex, not `mx-auto`: the
+theme's base CSS resets margins on plain elements, which beats Tailwind's layered utilities.
+The same goes for the theme's heading classes (`.h2`, `.h3`: uppercase): a utility cannot undo
+them, so copy that must not be uppercase uses sizes directly. The section frame centres text by
+default, so layouts that read left to right set `text-left` themselves. The email signup band
+posts to `metadata.newsletterAction`, the storefront action the Email signup section uses.
+
+Adding one: the config in `kitSections()`, its type in `SECTION_CATEGORIES`, a description in
+the admin's `data/customize.ts`, a glyph and kind (`lib/customize-puck.ts`,
+`lib/customize-section-kinds.ts`), a credit in `sources.ts` and `THIRD_PARTY_NOTICES.md` when
+it adapts outside code, then `bun run section-previews`. `test/library-inline.test.tsx` and
+`test/kit-sections.test.tsx` cover it.
 
 ### Nested blocks (slots)
 
@@ -88,13 +358,97 @@ only the marks our storefront allows. Puck applies them inside `array` items too
 - Body copy is drawn with `RichCopy` (`components/rich-copy.tsx`). On the storefront the value is
   the stored string and goes through `richtextHtml` (`richtext-html.ts`): older plain strings are
   escaped into paragraphs, HTML runs through a small sanitize-html allow-list.
-- The admin frames the `richtext` field like our Lexical `custom` field
-  (`customize-overrides.tsx`), and `canvas-action-bar.tsx` keeps Puck's inline B/I/U menu while
-  `SectionOverlay` keeps the label, move, duplicate and delete actions.
+- Button labels use `inlineLinkField` (`framed.tsx`): the same `{ label, href }` object as
+  `linkField`, with an inline label. Links whose label is only an `aria-label` (Group, Image)
+  keep the plain `linkField`.
+- The Rich text section and the Text element use `inlineRichtextLong`, which adds headings (h2 to
+  h4), quotes and rules.
+- While body copy is edited, its B/I/U and link controls join the block toolbar (below).
 
-The Glide theme sections (`sections/glide.tsx`, one config per section in `sections/glide/`) all
-use these helpers; `test/glide-sections.test.tsx` renders each one with its copy swapped for React
-nodes to catch string handling. Inventory: `docs/design/glide-theme-port.md`.
+### Block toolbar
+
+The selected block gets one floating toolbar (`block-toolbar.tsx`, Puck's `componentOverlay`
+override), designed in Figma as "Builder / Block toolbar" (500:5981). A selected block shows its
+name chip, "select container" when it sits inside a layout block, move up and down, duplicate,
+delete and a more menu (hide on the page, copy; `block-toolbar-more.tsx`). While its text is being
+edited, bold, italic, underline, link and clear formatting take the place of those actions. A
+hovered block shows just its name in a quiet chip. Puck hands its inline rich-text menu to its own action bar, so the
+`actionBar` override (`block-toolbar-format.tsx`) portals that menu into a slot at the end of
+the toolbar and Puck's bar stays empty. The menu is `inline-format-menu.tsx`, which
+`customize-config.tsx` sets as `renderInlineMenu` on every richtext field: Puck's B/I/U, clear
+formatting and a link form that accepts what the link picker accepts (`normalisePastedUrl`) and opens in the same
+tab.
+
+- Puck mounts the overlay in the admin document laid over the canvas, so the toolbar uses admin
+  tokens and follows the admin's light or dark theme.
+- It rests on the block's top edge and sticks to the top of the canvas while a tall block scrolls
+  under it (a block at the very top shows it just inside). New controls append at the end, so
+  the buttons never shift.
+- It is registered with `registerOverlayPortal` and stops its clicks, so pressing a button never
+  drags the block or clears the selection. Moves use `stepActions`, so the moved block stays
+  selected.
+- Selected blocks get a 1px solid accent outline and hovered ones a dashed one, no tinted fill
+  (`vendor-puck.css`). The bar fades in over 150 ms; reduced motion shows it at once.
+
+Every section on the canvas uses these helpers: the Zero Drift sections (`sections/zero-drift.tsx`, one
+config per section in `sections/zero-drift/`), the library and modern sections (`library.tsx`,
+`modern.tsx`), Featured products, Collection grid and Rich text (`puck-config.tsx`), and the
+build-your-own blocks (Tabs labels, Accordion titles, Heading, Text, Button and Badge). Containers
+and media elements have no copy of their own. `test/zero-drift-sections.test.tsx` and
+`test/library-inline.test.tsx` render each one with its copy swapped for React nodes to catch
+string handling. Inventory: `docs/design/zero-drift-theme-port.md`.
+
+### One rich-text store
+
+Section body copy is stored one way: Puck's richtext HTML. The Lexical rich-text field the Rich
+text section and Text element used before is retired. Docs saved with it still hold Lexical JSON
+(an object, or a JSON string), and nothing is migrated in the database:
+
+- the storefront reads it through `richtextHtml`, which converts it with `lexicalToHtml`
+  (`packages/blocks/src/lexical-html.ts`) before sanitising;
+- Customize converts it when a template loads (`richtextFromLexical` in `normalizeDoc`, and when a
+  saved "My section" is inserted), so Puck's editor gets HTML and the next save stores HTML.
+  Converting on load primes the drafts with the HTML, so opening the editor writes nothing.
+
+The converter keeps paragraphs, h2 to h4 headings, quotes, lists, links, line breaks, rules,
+images and B/I/U/S, so nothing the merchant wrote is lost: a YouTube embed becomes a link to the
+video, and tables, code blocks and collapsibles keep their text. Only alignment and indents are
+dropped. Images are `<img>` with `src`, `alt`, `width` and `height`; the allow-list keeps them only
+for `http(s)` or root-relative sources (never `data:`). Puck's Tiptap has no image node, so the
+admin passes `@tiptap/extension-image` as `richtextExtensions` to `createBlocksConfig`, and the
+long-form fields (`inlineRichtextLong`) keep pictures through an edit. Tests:
+`test/lexical-html.test.ts`, `test/richtext-html.test.tsx`.
+
+### Section settings controls
+
+Every placed section carries the shared Section settings (`section-settings.ts`; the hero and the
+announcement bar a smaller `bleed` set). In the inspector's Advanced tab they use the Figma
+controls: segmented switches for width, alignment, corners and shadow, padding per screen size
+behind a device switch, the colour scheme as swatch chips, and the background as "Colour |
+Image", where theme colours are stored by name so they follow the scheme and dark mode
+(`settings-group-body.tsx` and the controls beside it).
+
+### Canvas page colours
+
+The canvas iframe gets the admin's stylesheets and `<html>` attributes from Puck, so
+`preview-frame.tsx` paints the page itself from the theme (`--color-bg`, `--color-ink`,
+`--font-body`, as the storefront's globals.css does) and removes the admin's inline
+`color-scheme`. The canvas follows the theme and the dock's light/dark switch, never the admin's
+own light or dark mode.
+
+### Canvas zoom
+
+The page is laid out at the device's real width (desktop 1440 px, tablet 768, phone 390;
+`DEVICE_PX` in `lib/customize-zoom.ts`) and scaled with a CSS transform. The top bar's
+"1440 PX / 60 %" readout (`zoom-menu.tsx`) opens Zoom in / out, Fit (the default: as large as
+fits, never above 100 %) and 25–200 %. A zoom wider than the canvas area scrolls sideways.
+- Inside the canvas nothing changes coordinates, so selection, drag, inline editing and the
+  insert line work at any zoom (dnd-kit reads the frame's scale itself).
+- `preview-frame.tsx` puts the zoom in the canvas as `--canvas-zoom`. Editor chrome drawn there
+  keeps its size on screen: the block toolbar and the "+" use `UNZOOMED` (CSS `zoom: 1/zoom`),
+  and Puck's outline width is divided by it (vendor-puck.css).
+- The "+" between sections spans only the part of the section in view, so it never sits off to
+  the side when zoomed in.
 
 ## Motion
 

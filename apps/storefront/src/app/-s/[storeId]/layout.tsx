@@ -35,6 +35,7 @@ import type { ReactNode } from 'react'
 import StoreChrome from '@/components/checkout/store-chrome'
 import ConsentManager from '@/components/privacy/consent-manager'
 import PredictiveSearch from '@/components/search/predictive-search'
+import LiquidBoot from '@/components/theme/liquid-boot'
 import LiquidHtml from '@/components/theme/liquid-html'
 import PreviewBar from '@/components/theme/preview-bar'
 import ThemePreviewBridge from '@/components/theme/theme-preview-bridge'
@@ -56,6 +57,7 @@ import { inStore } from '@/lib/store-context'
 import { readPreview } from '@/lib/storefront-gate'
 import { renderTemplate } from '@/lib/template-render'
 import { htmlThemeAttr, resolveThemeMode, THEME_COOKIE, themeViewport } from '@/lib/theme-mode'
+import { umamiTrackerOf } from '@/lib/umami'
 
 type Props = { children: ReactNode; params: Promise<{ storeId: string }> }
 
@@ -225,6 +227,7 @@ export default async function StoreLayout({ children, params }: Props) {
     bannerVersion: privacy.bannerVersion,
     initial: decodeConsent(jar.get(CONSENT_COOKIE)?.value),
     nonce,
+    umami: umamiTrackerOf(current.apps),
   }
   let themedConsent = false
   let consentDrawn = false
@@ -289,6 +292,7 @@ export default async function StoreLayout({ children, params }: Props) {
           </main>
           {footer}
           <LiquidHtml html={liquid.afterFooter} />
+          <LiquidBoot />
           <ThemePreviewBridge adminOrigin={adminOrigin} />
           {preview ? null : <ConsentManager {...consent} themeBanner={themedConsent} />}
         </body>

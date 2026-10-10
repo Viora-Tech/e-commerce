@@ -4,27 +4,39 @@ import { SECTION_CATEGORIES } from '@commerce/blocks/puck'
 import { GROUP_SECTIONS, type SectionGroup } from '@commerce/core/theme'
 import { SearchX } from '@commerce/ui/icons'
 import { customizeContent } from '@/data/customize'
-import { CHROME_GROUP_LABEL } from '@/lib/customize-chrome'
+import AddSectionGroup from './add-section-group'
 import SectionCard from './section-card'
+
+/** The Add panel's two kinds (Figma's "Sections | Blocks" switch). */
+export type AddKind = 'sections' | 'blocks'
 
 type SectionsTabProps = {
   group: SectionGroup | null
+  /** Sections lists the section library; Blocks the build-your-own layout and element blocks. */
+  kind: AddKind
   query: string
   hovered: string | null
+  /** Categories the merchant folded, by title; a search shows every match regardless. */
+  closed: ReadonlySet<string>
+  onToggle: (title: string) => void
   onHover: (type: string | null) => void
   labelOf: (type: string) => string
   onAdd: (type: string) => void
 }
 
+/** Library categories that are blocks to build with rather than whole sections. */
+const BLOCK_CATEGORIES = new Set(['layout', 'elements'])
+
 const copy = customizeContent.addSection
 
-/** Categories to offer: the whole library for a template, the group's list for a group. */
-function categoriesFor(group: SectionGroup | null) {
+/** Categories to offer: the library's sections or blocks for a template, the group's list for a group. */
+function categoriesFor(group: SectionGroup | null, kind: AddKind) {
   if (!group)
-    return Object.values(SECTION_CATEGORIES).map((c) => ({
-      title: c.title,
-      types: [...c.components] as string[],
-    }))
+    return Object.entries(SECTION_CATEGORIES)
+      .filter(([id]) => BLOCK_CATEGORIES.has(id) === (kind === 'blocks'))
+      .map(([, c]) => ({ title: c.title, types: [...c.components] as string[] }))
+  // A header or footer group takes its own sections; it has no blocks of its own.
+  if (kind === 'blocks') return []
   const allowed = GROUP_SECTIONS[group].filter((t) => t !== 'Header' && t !== 'Footer')
   return [{ title: customizeContent.groups[group], types: [...allowed] }]
 }
@@ -36,18 +48,26 @@ function matches(type: string, label: string, needle: string): boolean {
   return label.toLowerCase().includes(needle) || description.includes(needle)
 }
 
-/** The Add panel's Sections tab: our own section library, grouped into categories. */
+/**
+ * The Add panel's library (Figma 369:4899): each category a folding group of picture tiles, two
+ * across, with a small caption above each.
+ */
 export default function SectionsTab({
   group,
+  kind,
   query,
   hovered,
+  closed,
+  onToggle,
   onHover,
   labelOf,
   onAdd,
 }: SectionsTabProps) {
   // Early returns
   const needle = query.trim().toLowerCase()
-  const categories = categoriesFor(group)
+  const offered = categoriesFor(group, kind)
+  if (offered.length === 0) return null
+  const categories = offered
     .map((c) => ({ ...c, types: c.types.filter((t) => matches(t, labelOf(t), needle)) }))
     .filter((c) => c.types.length > 0)
   if (categories.length === 0) {
@@ -66,24 +86,27 @@ export default function SectionsTab({
   return (
     <>
       {categories.map((c) => (
-        <div key={c.title} className="flex flex-col">
-          <p
-            className={`sticky top-0 z-10 bg-[var(--add-surface,var(--popover))] px-2 pt-3 pb-1 ${CHROME_GROUP_LABEL}`}
-          >
-            {c.title}
-          </p>
-          {c.types.map((type) => (
-            <SectionCard
-              key={type}
-              type={type}
-              label={labelOf(type)}
-              description={copy.descriptions[type] ?? ''}
-              hovered={hovered === type}
-              onHover={onHover}
-              onAdd={() => onAdd(type)}
-            />
-          ))}
-        </div>
+        <AddSectionGroup
+          key={c.title}
+          title={c.title}
+          open={Boolean(needle) || !closed.has(c.title)}
+          onToggle={() => onToggle(c.title)}
+        >
+          <div className="grid grid-cols-2 gap-x-3 gap-y-3.5">
+            {c.types.map((type) => (
+              <SectionCard
+                key={type}
+                layout="tile"
+                type={type}
+                label={labelOf(type)}
+                description={copy.descriptions[type] ?? ''}
+                hovered={hovered === type}
+                onHover={onHover}
+                onAdd={() => onAdd(type)}
+              />
+            ))}
+          </div>
+        </AddSectionGroup>
       ))}
     </>
   )

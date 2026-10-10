@@ -9,6 +9,8 @@ import type { BalanceView } from '@/lib/preorder'
 
 type CheckoutBalanceProps = {
   orderNumber: number
+  /** The order's view token; "Pay balance" proves access with it, never the number alone. */
+  viewToken: string
   balance: BalanceView
   /** The open balance attempt's session, when it is a transfer waiting on the shopper. */
   session?: CheckoutSession | null | undefined
@@ -21,6 +23,7 @@ type CheckoutBalanceProps = {
  */
 export default function CheckoutBalance({
   orderNumber,
+  viewToken,
   balance,
   session,
   timeZone = 'Asia/Kolkata',
@@ -58,7 +61,7 @@ export default function CheckoutBalance({
         </p>
       ) : null}
       {manual ? <TransferInstructions instructions={manual} amountLabel={owed} /> : null}
-      <form action={payBalanceAction.bind(null, orderNumber)}>
+      <form action={payBalanceAction.bind(null, orderNumber, viewToken)}>
         <button type="submit" className={CK_BUTTON_PRIMARY}>
           {content.pay(owed)}
         </button>

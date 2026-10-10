@@ -4,15 +4,19 @@ import { createBlocksConfig, type PageData, type SectionMetadata } from '@commer
 import { renderBlock } from '@commerce/blocks/slots'
 import {
   applyBindings,
+  applyLoops,
+  boundLoops,
   boundPaths,
   defaultTemplate,
   isSectionHidden,
+  loadLoopValues,
   loadSourceValues,
   loadTemplate,
   mainThemeId,
   recentVisibleArticles,
   type TemplateKey,
   toCardArticle,
+  versionTemplate,
 } from '@commerce/core'
 import { preorderBlocks } from '@commerce/core/preorder-block'
 import { appBlockSourcesForStore } from '@commerce/core/registries'
@@ -56,10 +60,13 @@ export async function isThemePreview(storeId: string): Promise<boolean> {
 
 /** Which theme this request renders, and whether it is the Customize preview. */
 async function requestTheme(tx: StoreTx, storeId: string) {
-  const preview = readPreview(storeId, (await headers()).get('x-theme-preview'))
+  const all = await headers()
+  const preview = readPreview(storeId, all.get('x-theme-preview'))
   return {
     themeId: preview?.themeId ?? (await mainThemeId(tx)),
     preview: Boolean(preview),
+    /** A version from the theme's history to show instead (preview only, set by the proxy). */
+    version: preview ? all.get('x-theme-version') : null,
   }
 }
 
@@ -99,12 +106,29 @@ export async function renderTemplate(
   key: TemplateKey,
   options: TemplateOptions = {},
 ) {
-  const { themeId, preview } = await requestTheme(tx, storeId)
+  const { themeId, preview, version } = await requestTheme(tx, storeId)
   const suffix = (preview && options.view) || options.suffix || ''
-  const data = themeId
-    ? (await loadTemplate(tx, themeId, key, suffix, { withDraft: preview })).data
-    : defaultTemplate(key)
-  const shown = { ...data, content: data.content.filter((s) => !isSectionHidden(s)) }
+  const versioned =
+    themeId && version
+      ? await versionTemplate(tx, { themeId, batchId: version, template: key, suffix })
+      : null
+  const data =
+    versioned ??
+    (themeId
+      ? (await loadTemplate(tx, themeId, key, suffix, { withDraft: preview })).data
+      : defaultTemplate(key))
+  const visibleSections = { ...data, content: data.content.filter((s) => !isSectionHidden(s)) }
+  // Lists bound to store data (FAQ items from a content type, a collection's products) fill
+  // their rows now, capped and under this store's RLS; an empty list shows the typed-in rows.
+  const loops = boundLoops(visibleSections)
+  const shown = loops.length
+    ? applyLoops(
+        visibleSections,
+        await loadLoopValues(tx, loops, {
+          collectionProducts: (handle, limit) => collectionCards(tx, handle, limit),
+        }),
+      )
+    : visibleSections
   // Connected settings read their source now, per request and under this store's RLS;
   // an empty source renders what the merchant typed in.
   const paths = boundPaths(shown)

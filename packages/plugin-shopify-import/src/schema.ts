@@ -107,6 +107,13 @@ export const importRun = pgTable(
     retryOf: uuid('retry_of').references((): AnyPgColumn => importRun.id, {
       onDelete: 'set null',
     }),
+    /**
+     * Stop import: when it was asked for and by whom. A queued run is cancelled at once;
+     * a running one is stopped by its worker within seconds (or by the next read after
+     * `STOP_GRACE_MS` if the worker does not answer), then `status` is `cancelled`.
+     */
+    stopRequestedAt: timestamp('stop_requested_at', { withTimezone: true }),
+    stoppedBy: text('stopped_by'),
     startedAt: timestamp('started_at', { withTimezone: true }),
     finishedAt: timestamp('finished_at', { withTimezone: true }),
     createdAt: at('created_at'),
@@ -116,7 +123,7 @@ export const importRun = pgTable(
     check('shopify_import_run_mode', sql`${t.mode} in ('csv', 'api')`),
     check(
       'shopify_import_run_status',
-      sql`${t.status} in ('queued', 'running', 'completed', 'failed')`,
+      sql`${t.status} in ('queued', 'running', 'completed', 'failed', 'cancelled')`,
     ),
     index('shopify_import_run_store_created').on(t.storeId, t.createdAt),
     index('shopify_import_run_snapshot_taken')

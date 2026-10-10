@@ -1,5 +1,5 @@
-import { footerContent as copy } from '../data/glide/footer'
-import type { PaymentMethod } from '../sections/glide/footer'
+import { footerContent as copy } from '../data/zero-drift/footer'
+import type { PaymentMethod } from '../sections/zero-drift/footer'
 import type { ThemeMode } from '../types'
 import Icon from './icon'
 import PaymentIcon from './payment-icon'

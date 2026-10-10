@@ -2,6 +2,7 @@ import { DEFAULT_TIME_ZONE, formatInZone, wallClock, dayKey as zoneDayKey } from
 import { datesContent } from '@/data/dates'
 import { localize } from '@/lib/copy'
 import { INTL_LOCALE, type Locale } from '@/lib/i18n'
+import type { Clock } from '@/lib/region'
 
 const DAY_MS = 86_400_000
 /**
@@ -27,16 +28,18 @@ export function formatPattern(
  */
 const monthStyle = (locale: Locale) => (locale === 'hi' ? 'long' : 'short')
 
-function formats(locale: Locale) {
+/** `clock` is the member's time format (Account → Language & region); 12-hour unless they chose 24. */
+function formats(locale: Locale, clock: Clock = '12h') {
   const month = monthStyle(locale)
+  const hour12 = clock === '12h'
   const as = (options: Intl.DateTimeFormatOptions) => ({
     format: (d: Date) => formatPattern(d, options, locale),
   })
   return {
-    time: as({ hour: 'numeric', minute: '2-digit', hour12: true }),
+    time: as({ hour: hour12 ? 'numeric' : '2-digit', minute: '2-digit', hour12 }),
     dayMonth: as({ day: 'numeric', month }),
     dayMonthYear: as({ day: 'numeric', month, year: 'numeric' }),
-    full: as({ dateStyle: 'medium', timeStyle: 'short' }),
+    full: as({ dateStyle: 'medium', timeStyle: 'short', hour12 }),
     medium: as({ dateStyle: 'medium' }),
   }
 }
@@ -62,21 +65,23 @@ function daysApart(value: Date, now: Date): number {
   return Math.round((istDayNumber(now) - istDayNumber(value)) / DAY_MS)
 }
 
-const DAYS_AGO_LIMIT = 6
-
 /**
- * "Today, 9:15 pm", "Yesterday, 4:02 pm", "3 days ago", then "12 Sept" (the year joins once
- * it is not this year). Pair with `formatDateTime` as a title/tooltip for the exact moment.
+ * "Today 4:05 pm", "Yesterday 9:12 am", then "5 Oct" (the year joins once it is not this
+ * year): the Proofly stamp. Pair with `formatDateTime` as a title/tooltip for the exact moment.
  */
-export function formatWhen(value: Date | string, now = new Date(), locale: Locale = 'en'): string {
+export function formatWhen(
+  value: Date | string,
+  now = new Date(),
+  locale: Locale = 'en',
+  clock: Clock = '12h',
+): string {
   const date = new Date(value)
   const days = daysApart(date, now)
-  const f = formats(locale)
+  const f = formats(locale, clock)
   const copy = localize(datesContent, locale)
   const at = f.time.format(date).toLowerCase()
   if (days === 0) return copy.todayAt(at)
   if (days === 1) return copy.yesterdayAt(at)
-  if (days > 1 && days <= DAYS_AGO_LIMIT) return copy.daysAgo(days)
   const day = istYear(date) === istYear(now) ? f.dayMonth : f.dayMonthYear
   return day.format(date)
 }
@@ -103,8 +108,12 @@ export function formatDay(value: Date | string, now = new Date(), locale: Locale
 }
 
 /** Date and time in one line, for tables and print. */
-export function formatDateTime(value: Date | string, locale: Locale = 'en'): string {
-  return formats(locale).full.format(new Date(value))
+export function formatDateTime(
+  value: Date | string,
+  locale: Locale = 'en',
+  clock: Clock = '12h',
+): string {
+  return formats(locale, clock).full.format(new Date(value))
 }
 
 /** Date only, no time: "12 Sept 2026". */

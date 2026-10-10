@@ -14,6 +14,7 @@ import {
 import { Textarea } from '@commerce/ui/shadcn/textarea'
 import { useState } from 'react'
 import { articleFormContent } from '@/data/blog'
+import { useCopy } from '@/hooks/use-copy'
 
 type SeoPatch = { seoTitle?: string; seoDescription?: string; handle?: string }
 
@@ -29,7 +30,6 @@ type ArticleSeoCardProps = {
   onChange: (patch: SeoPatch) => void
 }
 
-const copy = articleFormContent.seo
 const TITLE_MAX = 70
 const DESCRIPTION_MAX = 320
 
@@ -46,6 +46,7 @@ export default function ArticleSeoCard({
   onChange,
 }: ArticleSeoCardProps) {
   // Hooks
+  const { seo: copy } = useCopy(articleFormContent)
   const [editing, setEditing] = useState(Boolean(seoTitle || seoDescription))
 
   // Render logic

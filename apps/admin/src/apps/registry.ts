@@ -9,6 +9,7 @@ import DecentroOverviewPage from '@/components/apps/decentro/overview-page'
 import DelhiveryConnectPage from '@/components/apps/delhivery/connect-page'
 import DelhiveryOverviewPage from '@/components/apps/delhivery/overview-page'
 import EmiSettingsPage from '@/components/apps/emi/settings-page'
+import SubmissionsList from '@/components/apps/forms/submissions-list'
 import InvoiceDetail from '@/components/apps/gst-invoices/invoice-detail'
 import InvoicesList from '@/components/apps/gst-invoices/invoices-list'
 import GstOrderCard from '@/components/apps/gst-invoices/order-card'
@@ -21,6 +22,10 @@ import RapidshypConnectPage from '@/components/apps/rapidshyp/connect-page'
 import RapidshypOverviewPage from '@/components/apps/rapidshyp/overview-page'
 import RazorpayConnectPage from '@/components/apps/razorpay/connect-page'
 import RazorpayOverviewPage from '@/components/apps/razorpay/overview-page'
+import ReviewsImportPage from '@/components/apps/reviews/import-page'
+import ReviewDetail from '@/components/apps/reviews/review-detail'
+import ReviewsPage from '@/components/apps/reviews/reviews-page'
+import ReviewsSettingsPage from '@/components/apps/reviews/settings-page'
 import S3ConnectPage from '@/components/apps/s3/connect-page'
 import ShiprocketConnectPage from '@/components/apps/shiprocket/connect-page'
 import ShiprocketOverviewPage from '@/components/apps/shiprocket/overview-page'
@@ -28,6 +33,7 @@ import ConnectPage from '@/components/apps/shopify-import/connect-page'
 import CsvPage from '@/components/apps/shopify-import/csv-page'
 import ImportsPage from '@/components/apps/shopify-import/imports-page'
 import RunPage from '@/components/apps/shopify-import/run-page'
+import UmamiSettingsPage from '@/components/apps/umami/settings-page'
 
 /** What a page of an app receives: the dynamic segments of its path, e.g. `{ id }`. */
 export type AppPageProps = { params: Record<string, string> }
@@ -76,6 +82,11 @@ export const ADMIN_APPS: Record<string, AdminApp> = {
       '': EmiSettingsPage,
     },
   },
+  forms: {
+    pages: {
+      '': SubmissionsList,
+    },
+  },
   'gst-invoices': {
     pages: {
       '': QueuePage,
@@ -96,6 +107,14 @@ export const ADMIN_APPS: Record<string, AdminApp> = {
     pages: {
       '': RazorpayOverviewPage,
       connect: RazorpayConnectPage,
+    },
+  },
+  reviews: {
+    pages: {
+      '': ReviewsPage,
+      import: ReviewsImportPage,
+      settings: ReviewsSettingsPage,
+      'reviews/[id]': ReviewDetail,
     },
   },
   s3: {
@@ -128,6 +147,9 @@ export const ADMIN_APPS: Record<string, AdminApp> = {
       connect: ConnectPage,
       'runs/[id]': RunPage,
     },
+  },
+  umami: {
+    pages: { '': UmamiSettingsPage },
   },
 }
 

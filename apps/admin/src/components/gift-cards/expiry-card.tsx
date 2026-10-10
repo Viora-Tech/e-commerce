@@ -53,7 +53,7 @@ export default function ExpiryCard({ card, onChanged }: ExpiryCardProps) {
     : copy.never
 
   return (
-    <Card className="gap-3 p-5">
+    <Card gap={3} inset={5}>
       <div className="flex items-center justify-between gap-3">
         <p className="text-card-title text-foreground">{copy.heading}</p>
         {editing ? null : (

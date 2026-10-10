@@ -1,5 +1,6 @@
 import { formatPaise } from '@commerce/blocks'
 import type { ShopperOrderDetail } from '@commerce/core'
+import { gstRowsToShow } from '@commerce/core/gst'
 import Link from 'next/link'
 import type { ReactNode } from 'react'
 import {
@@ -12,6 +13,8 @@ import {
 } from '@/data/account'
 import { INDIAN_STATES } from '@/data/checkout'
 import { reorderAction } from '@/lib/account-actions'
+import { shopperParcels } from '@/lib/parcels'
+import OrderParcels from './order-parcels'
 import StatusPill from './status-pill'
 import TrackingTimeline from './tracking-timeline'
 
@@ -50,6 +53,8 @@ export default function OrderDetail({
   const canReorder = o.lines.some((l) => l.purchasable)
   const buyAgain = reorderAction.bind(null, o.number)
   const gst = o.gst
+  // Parcels from different states put both CGST + SGST and IGST on one order.
+  const gstRows = gst ? gstRowsToShow(gst) : null
   const card = 'flex flex-col gap-4 rounded-2xl border border-line p-6'
   const row = 'flex justify-between gap-4 text-body'
 
@@ -98,6 +103,8 @@ export default function OrderDetail({
             </h3>
             <TrackingTimeline tracking={o.tracking} timeZone={timeZone} />
           </section>
+
+          <OrderParcels parcels={shopperParcels(o.parcels)} />
 
           <section className={card} aria-labelledby="order-items">
             <h3 id="order-items" className="h4">
@@ -176,12 +183,7 @@ export default function OrderDetail({
               {gst && gst.taxPaise > 0 ? (
                 <div className="flex flex-col gap-1 pt-1 text-small text-muted">
                   <span>{copy.gstIncluded(formatPaise(gst.taxPaise))}</span>
-                  {gst.interState ? (
-                    <div className="flex justify-between">
-                      <span>{copy.igst(gst.ratePercent)}</span>
-                      <span>{formatPaise(gst.igstPaise)}</span>
-                    </div>
-                  ) : (
+                  {gstRows?.intraState ? (
                     <>
                       <div className="flex justify-between">
                         <span>{copy.cgst(gst.ratePercent)}</span>
@@ -192,7 +194,13 @@ export default function OrderDetail({
                         <span>{formatPaise(gst.sgstPaise)}</span>
                       </div>
                     </>
-                  )}
+                  ) : null}
+                  {gstRows?.interState ? (
+                    <div className="flex justify-between">
+                      <span>{copy.igst(gst.ratePercent)}</span>
+                      <span>{formatPaise(gst.igstPaise)}</span>
+                    </div>
+                  ) : null}
                 </div>
               ) : null}
             </div>

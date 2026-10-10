@@ -1,38 +1,42 @@
 import {
+  ArrowsLeftRight,
+  ChartBar,
   Code,
   CreditCard,
   ListChecks,
+  Package,
   PaintBrush,
-  Plugs,
   Receipt,
   Storefront,
   Truck,
 } from '@phosphor-icons/react/ssr'
 import Link from 'next/link'
-import { type HomeCardIcon, pathCards, popularGuides } from '../data/home'
+import { type HomeCardIcon, pathCards, taskCards } from '../data/home'
 
 type HomeCardsProps = {
-  group: 'paths' | 'guides'
+  group: 'paths' | 'tasks'
 }
 
 const icons = {
   storefront: Storefront,
   code: Code,
-  plugs: Plugs,
+  package: Package,
   truck: Truck,
   paintbrush: PaintBrush,
   receipt: Receipt,
   creditCard: CreditCard,
   checklist: ListChecks,
+  chart: ChartBar,
+  swap: ArrowsLeftRight,
 } satisfies Record<HomeCardIcon, unknown>
 
 /** Home-page card grid: icon, title and one line per card. */
 export default function HomeCards({ group }: HomeCardsProps) {
-  const cards = group === 'paths' ? pathCards : popularGuides
+  const cards = group === 'paths' ? pathCards : taskCards
 
   return (
     <div
-      className={`not-prose mt-6 grid gap-4 sm:grid-cols-2 ${group === 'guides' ? 'lg:grid-cols-3' : ''}`}
+      className={`not-prose mt-6 grid gap-4 sm:grid-cols-2 ${group === 'tasks' ? 'lg:grid-cols-4' : ''}`}
     >
       {cards.map((card) => {
         const Icon = icons[card.icon]

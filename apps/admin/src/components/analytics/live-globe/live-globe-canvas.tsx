@@ -49,6 +49,7 @@ export default function LiveGlobeCanvas({
   onActiveChange,
   className,
   shiftX = 0,
+  brand = false,
 }: GlobeCanvasProps) {
   // Hooks
   const canvasRef = useRef<HTMLCanvasElement>(null)
@@ -70,7 +71,7 @@ export default function LiveGlobeCanvas({
     motionRef.current = s
     let revealStartedAt = performance.now()
     let lastNewestId = markersRef.current.find((m) => m.isNewest)?.id ?? null
-    const palette = readPalette(dark)
+    const palette = readPalette(dark, undefined, brand)
 
     const globe: Globe = createGlobe(canvas, {
       devicePixelRatio: Math.min(window.devicePixelRatio || 1, 2),
@@ -158,7 +159,7 @@ export default function LiveGlobeCanvas({
     }
     // Re-run on theme/focus changes; markers/arcs update through the refs above so drag state
     // and the reveal/pulse animation are not interrupted by every new-order poll.
-  }, [dark, reducedMotion, focus.lat, focus.lng, shiftX])
+  }, [dark, reducedMotion, focus.lat, focus.lng, shiftX, brand])
 
   // Event handlers
   const handleZoom = (direction: -1 | 0 | 1) => {
@@ -189,7 +190,7 @@ export default function LiveGlobeCanvas({
         markers={markers}
         activeId={activeId}
         onActiveChange={onActiveChange}
-        onZoom={handleZoom}
+        onZoom={brand ? undefined : handleZoom}
       />
     </div>
   )

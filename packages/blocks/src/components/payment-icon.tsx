@@ -1,4 +1,4 @@
-import type { PaymentMethod } from '../sections/glide/footer'
+import type { PaymentMethod } from '../sections/zero-drift/footer'
 
 type PaymentIconProps = {
   method: PaymentMethod
@@ -7,7 +7,7 @@ type PaymentIconProps = {
 }
 
 /*
- * Glide drew Shopify's `payment_type_svg_tag` here, which has no source to port. These are
+ * Zero Drift drew Shopify's `payment_type_svg_tag` here, which has no source to port. These are
  * our own one-colour marks on a card outline, drawn in currentColor so they follow the
  * footer's ink in every colour scheme; no brand palettes.
  */

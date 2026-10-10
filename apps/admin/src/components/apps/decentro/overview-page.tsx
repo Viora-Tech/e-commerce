@@ -9,6 +9,7 @@ import ProviderOverviewPage, {
 } from '@/components/apps/shared/provider-overview-page'
 import type { FieldValues } from '@/components/apps/shared/provider-settings'
 import { decentroAppContent as appCopy } from '@/data/decentro'
+import { routes } from '@/lib/routes'
 
 const copy = appCopy.overview
 
@@ -31,7 +32,7 @@ const connectedBody = () => (
     <Button
       variant="outline"
       className="w-fit"
-      render={<Link href="/apps/decentro/connect" />}
+      render={<Link href={routes.apps.connect('decentro')} />}
       nativeButton={false}
     >
       {copy.manage}
@@ -39,7 +40,7 @@ const connectedBody = () => (
     <Button
       variant="outline"
       className="w-fit"
-      render={<Link href="/settings/payments" />}
+      render={<Link href={routes.settings.payments()} />}
       nativeButton={false}
     >
       {copy.paymentsCta}

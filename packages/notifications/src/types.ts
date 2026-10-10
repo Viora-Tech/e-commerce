@@ -40,6 +40,14 @@ export type TemplateId =
   | 'balance_received'
   /** A manual UPI / bank transfer order is still unpaid; links to the payment details. Sent by the merchant. */
   | 'payment_reminder'
+  /** To the MERCHANT: a shopper sent a message from a contact or advice form (Forms app). Email only. */
+  | 'contact_message'
+  /** Asks the shopper to review what a delivered order brought (Reviews app). Email only. */
+  | 'review_request'
+  /** The one reminder when no review came after a review request (Reviews app). Email only. */
+  | 'review_reminder'
+  /** The store replied to the shopper's review (Reviews app). Email only. */
+  | 'review_reply'
   /** To the MERCHANT: an unpaid transfer order will be cancelled automatically. Email only. */
   | 'unpaid_cancel_notice'
   /** A manual UPI / bank transfer order was cancelled for non-payment. */
@@ -63,12 +71,48 @@ export type TemplateId =
    * platform email account straight away; `actionUrl` is the accept link. Email only.
    */
   | 'staff_invite'
+  /**
+   * To a TEAM MEMBER who turned on new-order alerts (Account → Notifications): an order came
+   * in. `actionUrl` opens it in the admin. Email or WhatsApp.
+   */
+  | 'staff_new_order'
+  /**
+   * To a TEAM MEMBER who turned on the daily summary: the day's orders, sales and what waits
+   * to be shipped (`dailySummary`). `actionUrl` opens the admin. Email or WhatsApp.
+   */
+  | 'staff_daily_summary'
+  /**
+   * PLATFORM message: the code that confirms a member's NEW sign-in email (Account → Sign-in &
+   * security → Change email). Sent to the new address; `code` is the one-time code. Email only.
+   */
+  | 'email_change_code'
+  /**
+   * PLATFORM message: tells the OLD address that the member's sign-in email was changed, so a
+   * change they did not make does not go unnoticed. `emailChange.newEmail` is masked. Email only.
+   */
+  | 'email_changed'
+  /**
+   * To a SUPPLIER: the store's purchase order, with the PDF attached. Sent from the admin's
+   * "Email to supplier" through the store's own sender email. Email only.
+   */
+  | 'purchase_order'
 
 export type Recipient = {
   email?: string | undefined
   /** E.164 without the plus, e.g. 919876543210. */
   phone?: string | undefined
   name?: string | undefined
+}
+
+/** One parcel of an order that ships from several warehouses, for "Ships in 2 parcels". */
+export type EmailParcel = {
+  /** "New Delhi, Delhi" */
+  from: string
+  items: { title: string; quantity: number }[]
+  /** "Tue, 18 Aug - Thu, 20 Aug"; null when no estimate was worked out. */
+  dateRange: string | null
+  /** Pre-order items that ship once they arrive. */
+  onHold: boolean
 }
 
 /** Everything a template needs; built by the worker from the order row. */
@@ -81,6 +125,11 @@ export type TemplateData = {
   lines: { title: string; quantity: number; priceLabel: string; imageUrl?: string | undefined }[]
   /** GST split shown above the total, e.g. CGST/SGST or IGST rows. Omit to show only the total. */
   taxBreakdown?: { label: string; amount: string }[] | undefined
+  /**
+   * An order shipped from more than one warehouse: each parcel's origin, items and expected
+   * dates ("Ships in 2 parcels"). Omitted for an order that ships in one.
+   */
+  parcels?: EmailParcel[] | undefined
   paymentMethodLabel: string
   /** Printed in the footer under the store name, when the store has set one. */
   storeAddress?: string | undefined
@@ -151,12 +200,48 @@ export type TemplateData = {
         refundMethod?: 'original' | 'store_credit' | undefined
       }
     | undefined
+  /**
+   * For review_request / review_reminder: the products to review, each with its own link, the
+   * merchant's subject and the stop-these-emails link. For review_reply: the product and reply.
+   */
+  review?:
+    | {
+        items?: { title: string; url: string; imageUrl?: string | undefined }[] | undefined
+        /** The merchant's subject, product name already filled in. */
+        subject?: string | undefined
+        unsubscribeUrl?: string | undefined
+        productTitle?: string | undefined
+        productUrl?: string | undefined
+        reply?: string | undefined
+      }
+    | undefined
+  /** For contact_message: who wrote and what they said. */
+  contactMessage?:
+    | { name: string; email: string; phone: string; text: string; path: string }
+    | undefined
+  /** For staff_daily_summary: the period and its figures, already formatted. */
+  dailySummary?:
+    | { periodLabel: string; orders: number; salesLabel: string; toShip: number }
+    | undefined
+  /** For email_changed: the new sign-in address, masked ("a•••@gmail.com"). */
+  emailChange?: { newEmail: string } | undefined
   /** For staff_invite: who sent it, the role offered and the platform's own name (PLATFORM_EMAIL_NAME). */
   staffInvite?:
     | {
         inviterEmail: string
         roleLabel?: string | undefined
         platformName: string
+      }
+    | undefined
+  /** For purchase_order: which order, who it is for, when it should arrive and the merchant's note. */
+  purchaseOrder?:
+    | {
+        /** "PO7". */
+        numberLabel: string
+        supplierName: string
+        expectedLabel?: string | undefined
+        /** The merchant's own words, printed under the items. */
+        message?: string | undefined
       }
     | undefined
   /** For gift_card_issued: the code in full (the only place it is ever shown) and its terms. */

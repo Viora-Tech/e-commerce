@@ -6,13 +6,13 @@ import {
   type Db,
   discount,
   discountUsage,
-  inventoryLevel,
   type MarketingAttribution,
+  newId,
   order,
   orderLine,
+  type ParcelDeliveryEstimate,
   payment,
   product,
-  sellableLevel,
   store,
   variant,
   withStore,
@@ -42,7 +42,6 @@ import {
   CheckoutRuleViolation,
   DiscountUnavailable,
   NotLaunchedYet,
-  OutOfStock,
   ShippingRateUnavailable,
   ShippingUnavailable,
 } from '../errors'
@@ -65,10 +64,13 @@ import { StoreAddressSchema } from '../settings/general'
 import { quoteShipping, type ShippingRateOption } from '../shipping/rates'
 import { loadRateZones } from '../shipping/rates-service'
 import { computeOrderGst } from '../tax/gst'
-import { resolveTaxOrigin } from '../tax/origin'
 import { chargedGstRate, parseStoreTax, type StoreTaxSettings } from '../tax/settings'
 import { runWorkflow, type WorkflowLog, type WorkflowStep } from '../workflow/run'
+import { createFulfillmentOrders, deleteFulfillmentOrders } from './fulfillment-orders'
+import { taxParcels } from './parcel-tax'
 import { recomputeOrderStatuses } from './recompute'
+import type { RoutedParcel } from './routing'
+import { type ReservedUnits, releaseReserved, routeAndReserve } from './routing-service'
 
 export type CheckoutDetails = {
   /** Blank is allowed only when Settings → Checkout makes email optional. */
@@ -88,6 +90,12 @@ export type PlaceOrderInput = {
   paymentProvider: PaymentProvider
   /** Optional in tests; required by the storefront checkout. */
   checkout?: CheckoutDetails
+  /**
+   * The delivery window checkout showed for parcels from each location (by location id), from
+   * the courier's estimate. Stored on the parcels that ship from there; a parcel routed to a
+   * location checkout did not preview gets none.
+   */
+  deliveryEstimates?: Readonly<Record<string, ParcelDeliveryEstimate>> | undefined
   /**
    * `SETTINGS_SECRET` (the caller already has it — see `packages/api/src/routers/*`'s
    * `secret()` helper), used to encrypt the new/updated `customer.phone` on the customer
@@ -141,6 +149,8 @@ type Line = {
   giftCard: boolean
   /** Variant weight; null counts as 0 for weight-based rates. */
   weightGrams: number | null
+  /** The variant's weighted average cost now: snapshotted as the line's cost at sale. */
+  costPaise: number | null
   /** Store-timezone instant the product goes on sale; null = always on sale. */
   launchAt: Date | null
   /** Resolved pre-order settings (product merged with the variant's override, if any). */
@@ -159,7 +169,9 @@ type State = {
   shipping: ShippingRateOption | null
   /** Contact fields as Settings → Checkout allows them; null without checkout details. */
   contact: CheckoutContact | null
-  reserved: Line[]
+  /** Where the goods ship from, by line index (`key`); empty for gift cards only. */
+  parcels: RoutedParcel[]
+  reserved: ReservedUnits[]
   orderId: string | null
   orderNumber: number | null
   /** Order total: subtotal less discount, plus the payment-method fee or discount and shipping. */
@@ -193,6 +205,7 @@ const loadCart: WorkflowStep<State> = {
         hsCode: variant.hsCode,
         giftCard: product.isGiftCard,
         weightGrams: variant.weightGrams,
+        costPaise: variant.costPaise,
         launchAt: product.launchAt,
         preorderOverride: variant.preorderOverride,
         preorderEnabled: product.preorderEnabled,
@@ -220,6 +233,7 @@ const loadCart: WorkflowStep<State> = {
       hsCode: r.hsCode,
       giftCard: r.giftCard,
       weightGrams: r.weightGrams,
+      costPaise: r.costPaise,
       launchAt: r.launchAt,
       preorder: resolvePreorderSettings(r, r.preorderOverride),
     }))
@@ -368,64 +382,33 @@ function paymentAdjustmentFor(
   }
 }
 
+/**
+ * Route the goods to warehouses and hold their stock there (order/routing.ts). Pre-order lines
+ * may sell past stock within their limit; untracked goods hold nothing. Gift cards are left out.
+ */
 const reserveStock: WorkflowStep<State> = {
   name: 'reserveStock',
-  async run({ ctx, lines }) {
-    const reserved: Line[] = []
-    for (const line of lines) {
-      // Untracked variants (made-to-order, digital) never run out: nothing to reserve.
-      if (line.giftCard) continue
-      const [v] = await ctx.tx
-        .select({ trackInventory: variant.trackInventory })
-        .from(variant)
-        .where(eq(variant.id, line.variantId))
-      if (v && !v.trackInventory) continue
-      /*
-       * Normal stock covers the line, OR pre-order is on and the shortfall
-       * this reservation would create (reserved - on_hand, after adding this
-       * line's quantity) stays within the pre-order limit (unlimited when the
-       * limit is null). `reserved - on_hand` is only ever positive because of
-       * a pre-order oversell, so it doubles as "pre-order units already
-       * committed" without a separate counter, and the whole check runs in
-       * one atomic UPDATE so concurrent checkouts can't both slip under the
-       * limit.
-       */
-      const rows = await ctx.tx
-        .update(inventoryLevel)
-        .set({ reserved: sql`${inventoryLevel.reserved} + ${line.quantity}` })
-        .where(
-          and(
-            eq(inventoryLevel.variantId, line.variantId),
-            sellableLevel,
-            or(
-              sql`${inventoryLevel.onHand} - ${inventoryLevel.reserved} >= ${line.quantity}`,
-              line.preorder.enabled
-                ? line.preorder.limit == null
-                  ? sql`true`
-                  : sql`(${inventoryLevel.reserved} - ${inventoryLevel.onHand} + ${line.quantity}) <= ${line.preorder.limit}`
-                : sql`false`,
-            ),
-          ),
-        )
-        .returning({ id: inventoryLevel.id })
-      if (rows.length === 0) throw new OutOfStock(line.variantId, ctx.storeId)
-      reserved.push(line)
-    }
-    return { reserved }
+  async run({ ctx, input, lines }) {
+    const { parcels, reserved } = await routeAndReserve(ctx, {
+      lines: lines.map((l, i) => ({
+        key: String(i),
+        variantId: l.variantId,
+        quantity: l.quantity,
+        giftCard: l.giftCard,
+        preorder: l.preorder.enabled ? { enabled: true, limit: l.preorder.limit } : null,
+      })),
+      buyerState: input.checkout?.address.stateCode ?? null,
+    })
+    return { parcels, reserved }
   },
   async compensate({ ctx, reserved }) {
-    for (const line of reserved) {
-      await ctx.tx
-        .update(inventoryLevel)
-        .set({ reserved: sql`${inventoryLevel.reserved} - ${line.quantity}` })
-        .where(and(eq(inventoryLevel.variantId, line.variantId), sellableLevel))
-    }
+    await releaseReserved(ctx, reserved)
   },
 }
 
 const createOrder: WorkflowStep<State> = {
   name: 'createOrder',
-  async run({ ctx, lines, input, discount: applied, cartAttribution, shipping, contact }) {
+  async run({ ctx, lines, parcels, input, discount: applied, cartAttribution, shipping, contact }) {
     let customerId: string | null = null
     let shippingAddressId: string | null = null
     if (input.checkout) {
@@ -563,23 +546,40 @@ const createOrder: WorkflowStep<State> = {
     }, 0)
     const tags = preorderLines.length > 0 ? ['pre-order'] : []
     const storeAddress = StoreAddressSchema.safeParse(s.address ?? {})
-    // The GSTIN of the location the goods sell from decides CGST + SGST or IGST (tax/origin.ts).
-    const origin = await resolveTaxOrigin(ctx.tx, {
-      lines: lines
-        .filter((l) => !l.giftCard)
-        .map((l) => ({ variantId: l.variantId, grossPaise: l.quantity * l.unitPricePaise })),
-      storeState: storeAddress.success ? storeAddress.data.state : null,
+    // The GSTIN of the location the goods ship from decides CGST + SGST or IGST (tax/origin.ts).
+    const grossOf = (key: string, quantity: number) =>
+      quantity * (lines[Number(key)]?.unitPricePaise ?? 0)
+    const storeState = storeAddress.success ? storeAddress.data.state : null
+    const shipToState = input.checkout?.address.stateCode ?? null
+    // Each parcel splits its own GST from its GSTIN; the order's is their sum (parcel-tax.ts).
+    const billed = await taxParcels(ctx.tx, {
+      parcels,
+      lineOf: (key, quantity) => {
+        const line = lines[Number(key)]
+        return {
+          grossPaise: grossOf(key, quantity),
+          ratePercent: line ? lineGstRate(line, s.gstRatePercent, storeTax) : 0,
+        }
+      },
+      discountPaise,
+      adjustmentPaise,
+      shippingPaise,
+      shipToState,
+      storeState,
     })
-    const tax = computeOrderGst({
-      lines: lines.map((l) => ({
-        grossPaise: l.quantity * l.unitPricePaise,
-        ratePercent: lineGstRate(l, s.gstRatePercent, storeTax),
-      })),
-      totalPaise,
-      reductionPaise: discountPaise + Math.max(0, -adjustmentPaise),
-      shipToState: input.checkout?.address.stateCode ?? null,
-      storeState: origin.stateCode,
-    })
+    const origin = billed.origin
+    const tax =
+      billed.tax ??
+      computeOrderGst({
+        lines: lines.map((l) => ({
+          grossPaise: l.quantity * l.unitPricePaise,
+          ratePercent: lineGstRate(l, s.gstRatePercent, storeTax),
+        })),
+        totalPaise,
+        reductionPaise: discountPaise + Math.max(0, -adjustmentPaise),
+        shipToState,
+        storeState: origin.stateCode,
+      })
     const [o] = await ctx.tx
       .insert(order)
       .values({
@@ -635,8 +635,10 @@ const createOrder: WorkflowStep<State> = {
     // workflow's compensation (below) deletes the order and the whole
     // transaction rolls back, taking this row with it.
     await insertOutboxEvent(ctx.tx, ctx.storeId, 'order.placed', { orderId: o.id })
+    const lineIds = lines.map(() => newId())
     await ctx.tx.insert(orderLine).values(
-      lines.map((l) => ({
+      lines.map((l, i) => ({
+        id: lineIds[i],
         storeId: ctx.storeId,
         orderId: o.id,
         variantId: l.variantId,
@@ -648,10 +650,29 @@ const createOrder: WorkflowStep<State> = {
         hsCode: l.giftCard ? null : l.hsCode,
         giftCard: l.giftCard,
         preorder: l.preorder.enabled && !l.giftCard,
+        // What the unit cost the store as it sold: profit never reads today's cost.
+        costAtSalePaise: l.giftCard ? null : l.costPaise,
         preorderShipDate:
           l.preorder.enabled && !l.giftCard ? resolveShipDate(l.preorder, new Date()) : null,
       })),
     )
+    // The parcels routing chose, where reserveStock holds their stock.
+    await createFulfillmentOrders(ctx, {
+      orderId: o.id,
+      plans: parcels.map((p, i) => ({
+        locationId: p.locationId,
+        status: p.status,
+        needsTransfer: p.needsTransfer,
+        money: billed.money[i],
+        deliveryEstimate: input.deliveryEstimates?.[p.locationId] ?? null,
+        lines: p.lines.map((l) => ({
+          orderLineId: lineIds[Number(l.key)] as string,
+          quantity: l.quantity,
+          fulfilledQuantity: 0,
+        })),
+      })),
+      fallbackRegistrationId: origin.gstRegistrationId,
+    })
     if (applied) {
       const email = (contact ? contact.email : input.checkout?.email.trim().toLowerCase()) || null
       await claimDiscountUse(ctx, applied.discount.id, email)
@@ -675,6 +696,7 @@ const createOrder: WorkflowStep<State> = {
         .set({ usedCount: sql`greatest(${discount.usedCount} - 1, 0)` })
         .where(eq(discount.id, applied.discount.id))
     }
+    await deleteFulfillmentOrders(ctx.tx, orderId)
     await ctx.tx.delete(orderLine).where(eq(orderLine.orderId, orderId))
     await ctx.tx.delete(order).where(eq(order.id, orderId))
   },
@@ -977,6 +999,7 @@ export async function placeOrder(
       discount: null,
       shipping: null,
       contact: null,
+      parcels: [],
       reserved: [],
       orderId: null,
       orderNumber: null,

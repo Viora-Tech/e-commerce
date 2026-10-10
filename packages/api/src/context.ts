@@ -5,6 +5,8 @@ import type {
   AppJobQueue,
   MediaProcessQueue,
   NotificationQueue,
+  PlatformCodeSender,
+  PurchaseDocumentQueue,
   RateLimitStore,
   StoreExportQueue,
 } from '@commerce/core'
@@ -28,12 +30,18 @@ export type ApiContext = {
   storeExport?: StoreExportQueue | undefined
   /** Bulk "Write with AI" runs, worked through by the worker. Absent in tests: the run happens in the request. */
   aiBulk?: AiBulkQueue | undefined
+  /** AI reads of uploaded purchase documents, done by the worker. Absent in tests: the read happens in the request. */
+  purchaseDocuments?: PurchaseDocumentQueue | undefined
   /** Live storefront visitors from Dragonfly; absent in tests, the dashboard then shows zeros. */
   visitors?: VisitorSource
   /** Reports an unexpected procedure error (never an intentional ORPCError) to Sentry. No-op in tests. */
   reportError?: ErrorReporter | undefined
   /** Backs per-store rate limits (e.g. the Connect page's "Test connection" button). Falls back to an in-process store when absent, which is fine for tests but not for a multi-instance deployment. */
   rateLimit?: RateLimitStore | undefined
+  /** The platform email account for account notices (email changed). Absent: the process's own (`getPlatformEmail`). Tests pass a fake. */
+  platformEmail?: PlatformCodeSender | undefined
+  /** `fetch` for GitHub's issues API ("Report a bug"). Absent: the global fetch. Tests pass a fake so they never reach GitHub. */
+  githubFetch?: typeof fetch | undefined
 }
 
 export type LiveVisitors = {

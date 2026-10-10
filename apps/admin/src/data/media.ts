@@ -42,10 +42,16 @@ export const mediaContent = {
   },
   library: {
     title: 'Files',
+    summary: (n: number, used: string) =>
+      n === 0
+        ? 'Photos, videos and documents for your store.'
+        : `${n === 1 ? '1 file' : `${n} files`} · ${used} used`,
+    tabs: { all: 'All', image: 'Images', video: 'Videos', document: 'Documents' },
+    noMatch: 'No files match your search.',
     storage: 'Storage',
     intro: 'Everything uploaded to this store. Files stay here when removed from a product.',
-    search: 'Search by alt text or file name',
-    upload: 'Upload',
+    search: 'Search files',
+    upload: 'Upload files',
     empty: {
       heading: 'No files yet',
       body: 'Upload product images here or from any product page. They are stored where Storage on this page says.',
@@ -124,6 +130,27 @@ export const mediaContent = {
     cancel: 'Cancel',
     done: 'Done',
     selectedCount: (n: number) => (n === 1 ? '1 selected' : `${n} selected`),
+  },
+  usage: {
+    heading: 'Where your space goes',
+    used: (size: string) => `${size} used`,
+    kinds: { image: 'Images', video: 'Videos', document: 'Documents' },
+    bar: 'Storage used by file type',
+    largest: {
+      heading: 'Largest files',
+      name: 'Name',
+      type: 'Type',
+      size: 'Size',
+      usedOn: 'Used on',
+      uploaded: (when: string) => `Uploaded ${when}`,
+      unused: 'Not used',
+      products: (n: number) => (n === 1 ? '1 product' : `${n} products`),
+      footer: (n: number) =>
+        n === 1 ? 'Showing the largest file' : `Showing the ${n} largest files`,
+      viewAll: 'View all files',
+      empty: 'Files you upload will show up here, biggest first.',
+      kind: { image: 'Image', video: 'Video', document: 'Document' },
+    },
   },
   settings: {
     title: 'File storage',

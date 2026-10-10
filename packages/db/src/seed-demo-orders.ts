@@ -3,15 +3,16 @@ import { createDb } from './client'
 import {
   address,
   customer,
+  fulfillmentOrder,
   inventoryLevel,
   order,
   orderLine,
   payment,
   product,
-  sellableLevel,
   store,
   variant,
 } from './schema'
+import { primarySellingLevel } from './stock'
 
 /**
  * Demo orders so the dashboard has shape in development: ~60 orders over the
@@ -105,7 +106,7 @@ export async function seedDemoOrders(ownerUrl: string, opts: { clean?: boolean }
     if (!s) throw new Error('seed the store first (bun run db:seed)')
     const storeId = s.id
 
-    // Remove the demo orders (by hand: payments, lines, then orders and their addresses).
+    // Remove the demo orders (by hand: payments, parcels, lines, then orders and their addresses).
     const demoOrders = await db
       .select({ id: order.id, addressId: order.shippingAddressId })
       .from(order)
@@ -113,6 +114,7 @@ export async function seedDemoOrders(ownerUrl: string, opts: { clean?: boolean }
     if (demoOrders.length > 0) {
       const ids = demoOrders.map((o) => o.id)
       await db.delete(payment).where(inArray(payment.orderId, ids))
+      await db.delete(fulfillmentOrder).where(inArray(fulfillmentOrder.orderId, ids))
       await db.delete(orderLine).where(inArray(orderLine.orderId, ids))
       await db.delete(order).where(inArray(order.id, ids))
       const addrIds = demoOrders.map((o) => o.addressId).filter((x): x is string => !!x)
@@ -150,7 +152,10 @@ export async function seedDemoOrders(ownerUrl: string, opts: { clean?: boolean }
       })
       .from(variant)
       .innerJoin(product, eq(product.id, variant.productId))
-      .innerJoin(inventoryLevel, and(eq(inventoryLevel.variantId, variant.id), sellableLevel))
+      .innerJoin(
+        inventoryLevel,
+        and(eq(inventoryLevel.variantId, variant.id), primarySellingLevel(variant.id)),
+      )
       .where(
         and(
           eq(variant.storeId, storeId),

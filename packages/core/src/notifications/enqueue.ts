@@ -20,6 +20,10 @@ export type NotificationJob = {
   refundId?: string | undefined
   /** For newsletter_confirm: the pending `newsletter_signup`. */
   signupId?: string | undefined
+  /** For contact_message: the `contact_message` row (Forms app). */
+  contactMessageId?: string | undefined
+  /** For review_reply: the `review` the store answered (Reviews app). */
+  reviewId?: string | undefined
 }
 
 /**

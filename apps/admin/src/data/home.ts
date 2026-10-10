@@ -7,23 +7,116 @@ export function greetingWord(hour: number): string {
   return 'Good evening'
 }
 
-/** The one-line briefing at the top: "Good evening, Kuldeep. 14 orders today worth ₹23,400, 3 need shipping." */
-export function briefingSentence(input: {
-  greeting: string
-  firstName: string
+/** The plain-language line under the greeting: "3 orders today worth ₹43,699, 2 need shipping." */
+export function summaryLine(input: {
   ordersToday: number
   salesToday: string
   toShip: number
 }): string {
-  const { greeting, firstName, ordersToday, salesToday, toShip } = input
-  if (ordersToday === 0) {
-    return `${greeting}, ${firstName}. No orders yet today.`
-  }
+  const { ordersToday, salesToday, toShip } = input
+  if (ordersToday === 0) return 'No orders yet today.'
   const orderWord = ordersToday === 1 ? 'order' : 'orders'
-  const base = `${greeting}, ${firstName}. ${ordersToday} ${orderWord} today worth ${salesToday}`
+  const base = `${ordersToday} ${orderWord} today worth ${salesToday}`
   if (toShip === 0) return `${base}.`
   const shipWord = toShip === 1 ? 'needs' : 'need'
   return `${base}, ${toShip} ${shipWord} shipping.`
+}
+
+/** "Good evening, Waimers", or just the greeting when the member has no first name. */
+export function greetingTitle(greeting: string, firstName: string): string {
+  return firstName ? `${greeting}, ${firstName}` : greeting
+}
+
+/** The Home page's own layout copy: set-up cards, to do, sales hero, orders, live, suggestions. */
+export const homePageContent = {
+  ask: {
+    placeholder: 'Ask anything about your store…',
+    button: 'Ask',
+    label: 'Ask the AI assistant',
+  },
+  setup: {
+    title: 'Finish setting up',
+    progress: (done: number, total: number) => `${done} of ${total} done`,
+    products: {
+      title: 'Add your products',
+      done: (n: number) => (n === 1 ? '1 product in your store' : `${n} products in your store`),
+      todo: 'Add your first product to start selling',
+    },
+    payments: {
+      title: 'Connect payments',
+      done: (name: string) => `${name} is receiving payments`,
+      todo: 'Connect a gateway to accept UPI and cards',
+    },
+    shipping: {
+      title: 'Set up shipping',
+      done: (name: string) => `${name} is connected`,
+      todo: 'Connect a courier to print labels',
+    },
+  },
+  todo: {
+    title: 'To do',
+    count: (n: number) => `${n} need you`,
+  },
+  sales: {
+    title: 'Sales today',
+    titleDays: (n: number) => `Sales, last ${n} days`,
+    today: 'Today',
+    days7: '7 days',
+    days30: '30 days',
+    vsYesterday: 'vs yesterday',
+    vsPrevious: (n: number) => `vs the ${n} days before`,
+    orders: (n: number) => (n === 1 ? '1 order' : `${n} orders`),
+    hourlyNote: 'Orders by hour, today against yesterday',
+    empty: 'A sales chart will appear here once you have paid orders.',
+    series: { today: 'Today', yesterday: 'Yesterday', sales: 'Sales', before: 'Before' },
+  },
+  latest: {
+    title: 'Latest orders',
+    viewAll: 'View all',
+    empty: 'New orders will show up here the moment they come in.',
+    toShip: 'To ship',
+    shipped: 'Shipped',
+    delivered: 'Delivered',
+    cancelled: 'Cancelled',
+    paymentDue: 'Payment due',
+    refund: 'Refund due',
+    done: 'Paid',
+  },
+  live: {
+    title: 'Live now',
+    visitors: (n: number) => (n === 1 ? 'visitor on your store' : 'visitors on your store'),
+    today: (orders: string, sales: string) => `${orders} today · ${sales}`,
+    ordersWord: (n: number) => (n === 1 ? '1 order' : `${n} orders`),
+  },
+  suggest: {
+    title: 'Suggested for you',
+    note: 'Based on your store',
+    dismiss: 'Hide this suggestion',
+    restockTitle: 'Restock your best seller',
+    restockBody: (title: string, units: number, left: number) =>
+      `${title} sold ${units} this week and only ${left} ${left === 1 ? 'is' : 'are'} left.`,
+    restockCta: 'Restock',
+    abandonedTitle: 'Recover abandoned carts',
+    abandonedBody: (carts: number, value: string) =>
+      `${carts} ${carts === 1 ? 'cart' : 'carts'} worth ${value} were left behind this week. Send a gentle reminder.`,
+    abandonedCta: 'Open',
+    reviewsTitle: 'Collect product reviews',
+    reviewsBody: 'Install the Reviews app so shoppers can rate what they bought.',
+    reviewsCta: 'Open',
+    describeTitle: 'Write product descriptions',
+    describeBody: 'Draft them with AI in English and Hindi; you approve each one.',
+    describeCta: 'Open',
+    saleTitle: 'Plan a sale',
+    saleBody: 'Create a discount for your next sale in one step, ready in minutes.',
+    saleCta: 'Open',
+    whatsappTitle: 'Send order updates on WhatsApp',
+    whatsappBody: 'Connect WhatsApp so shoppers hear about their order without calling you.',
+    whatsappCta: 'Connect',
+  },
+  more: {
+    title: 'More numbers',
+    subtitle: 'Sales over time, products and payments',
+  },
 }
 
 export const homeContent = {
@@ -43,26 +136,22 @@ export const homeContent = {
     allClearBody: 'Nothing needs your attention right now. Nice work.',
     rows: {
       ordersToShip: {
-        label: (n: number) =>
-          n === 1 ? '1 order is ready to ship' : `${n} orders are ready to ship`,
+        label: (n: number) => (n === 1 ? 'Ship 1 order' : `Ship ${n} orders`),
         help: 'Paid, packed and waiting on a courier.',
         cta: 'Ship orders',
       },
       upiToVerify: {
-        label: (n: number) =>
-          n === 1 ? '1 UPI payment needs checking' : `${n} UPI payments need checking`,
-        help: 'Match the transfer to the order, then mark it paid.',
+        label: (n: number) => (n === 1 ? 'Check 1 UPI payment' : `Check ${n} UPI payments`),
+        help: 'Match the transfer, then mark it paid.',
         cta: 'Check payments',
       },
       gstQueued: {
-        label: (n: number) =>
-          n === 1 ? '1 GST invoice is queued' : `${n} GST invoices are queued`,
+        label: (n: number) => (n === 1 ? 'Issue 1 GST invoice' : `Issue ${n} GST invoices`),
         help: 'Waiting for you to issue them.',
         cta: 'Issue invoices',
       },
       lowStock: {
-        label: (n: number) =>
-          n === 1 ? '1 product is running low' : `${n} products are running low`,
+        label: (n: number) => (n === 1 ? 'Restock 1 product' : `Restock ${n} products`),
         help: 'Running out soon at the current pace.',
         cta: 'Restock',
       },

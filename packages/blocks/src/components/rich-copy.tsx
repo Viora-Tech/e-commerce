@@ -1,12 +1,14 @@
 import type { ReactNode } from 'react'
+import { asLexical } from '../lexical-html'
 import { richtextHtml } from '../richtext-html'
 
 type RichCopyProps = {
   /**
    * The prop as the section received it: in the Customize editor Puck swaps a `richtext`
-   * prop for its own inline editor (a React node); on the storefront it is the stored string.
+   * prop for its own inline editor (a React node); on the storefront it is the stored string,
+   * or on older pages the Lexical JSON the retired rich-text field saved.
    */
-  value: ReactNode
+  value: ReactNode | object
   className?: string | undefined
 }
 
@@ -17,7 +19,9 @@ type RichCopyProps = {
 export default function RichCopy({ value, className }: RichCopyProps) {
   // Early returns
   if (value === null || value === undefined || value === false) return null
-  if (typeof value !== 'string') return <div className={className}>{value}</div>
+  if (typeof value !== 'string' && !asLexical(value)) {
+    return <div className={className}>{value as ReactNode}</div>
+  }
   const html = richtextHtml(value)
   if (!html) return null
 

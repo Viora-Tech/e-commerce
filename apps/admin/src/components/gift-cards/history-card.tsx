@@ -13,6 +13,7 @@ import Link from 'next/link'
 import { giftCardDetailContent } from '@/data/gift-cards'
 import { formatPattern } from '@/lib/format-date'
 import { formatPaise } from '@/lib/money'
+import { routes } from '@/lib/routes'
 
 type Transaction = {
   id: string
@@ -40,7 +41,7 @@ const WHEN = {
 /** Every balance movement, newest first, with the order it came from and who made it. */
 export default function HistoryCard({ transactions }: HistoryCardProps) {
   return (
-    <Card className="gap-4 p-5">
+    <Card gap={4} inset={5}>
       <p className="text-card-title text-foreground">{copy.heading}</p>
       <div className="-mx-5">
         <Table>
@@ -65,7 +66,10 @@ export default function HistoryCard({ transactions }: HistoryCardProps) {
                       {t.orderId && t.orderNumber ? (
                         <>
                           {' · '}
-                          <Link href={`/orders/${t.orderId}`} className="text-link hover:underline">
+                          <Link
+                            href={routes.orders.detail(t.orderId)}
+                            className="text-link hover:underline"
+                          >
                             {copy.order(t.orderNumber)}
                           </Link>
                         </>

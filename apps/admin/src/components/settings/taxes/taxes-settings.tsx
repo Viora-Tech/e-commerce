@@ -2,7 +2,7 @@
 
 import { Card } from '@commerce/ui/shadcn/card'
 import { Skeleton } from '@commerce/ui/shadcn/skeleton'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
 import SaveBar from '@/components/layout/save-bar'
 import { taxesContent as copy } from '@/data/taxes'
@@ -21,7 +21,11 @@ type TaxesSettingsProps = {
   refreshKey: string
   /** The tab that holds the GST numbers; nothing of this form shows on it but the save bar. */
   gstTab: string
+  /** Tells the page header whether there is something to save, and how to save it. */
+  onSaveState: (state: TaxesSaveState) => void
 }
+
+export type TaxesSaveState = { dirty: boolean; busy: boolean; save: () => void }
 
 const same = (a: TaxesFormState, b: TaxesFormState) => JSON.stringify(a) === JSON.stringify(b)
 
@@ -29,7 +33,7 @@ function LoadingCards() {
   return (
     <>
       {[0, 1, 2].map((i) => (
-        <Card key={i} className="gap-4 p-6">
+        <Card key={i} gap={4} inset={6}>
           <Skeleton className="h-5 w-40" />
           <Skeleton className="h-10 w-full" />
           <Skeleton className="h-10 w-full" />
@@ -44,13 +48,14 @@ function LoadingCards() {
  * tab (numbering, e-invoicing) of Settings › Taxes & GST. It stays mounted on every tab so one
  * save bar covers both and a half-made change survives a tab switch.
  */
-export default function TaxesSettings({ refreshKey, gstTab }: TaxesSettingsProps) {
+export default function TaxesSettings({ refreshKey, gstTab, onSaveState }: TaxesSettingsProps) {
   // Hooks
   const active = useActiveSection()
   const [view, setView] = useState<TaxesView | null>(null)
   const [form, setForm] = useState<TaxesFormState | null>(null)
   const [busy, setBusy] = useState(false)
   const [attempted, setAttempted] = useState(false)
+  const saveRef = useRef<() => void>(() => undefined)
   // biome-ignore lint/correctness/useExhaustiveDependencies: reload when GST numbers change, not on every edit.
   useEffect(() => {
     api.taxes
@@ -64,6 +69,16 @@ export default function TaxesSettings({ refreshKey, gstTab }: TaxesSettingsProps
       })
       .catch(() => toast.error(copy.loadFailed))
   }, [refreshKey])
+
+  // Report the save state to the page header; `saveRef` always points at the latest handleSave.
+  useEffect(() => {
+    saveRef.current = handleSave
+  })
+  // biome-ignore lint/correctness/useExhaustiveDependencies: `onSaveState` is a state setter.
+  useEffect(() => {
+    const dirty = form !== null && view !== null && !same(form, formOf(view))
+    onSaveState({ dirty, busy, save: () => saveRef.current() })
+  }, [form, view, busy])
 
   // Helpers
   const patch = (p: Partial<TaxesFormState>) => setForm((f) => (f ? { ...f, ...p } : f))

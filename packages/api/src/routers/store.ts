@@ -26,13 +26,14 @@ import {
   StoreGeneralSchema,
   StorePreferencesSchema,
   signThemePreviewToken,
+  storefrontOriginFor,
   ThemeSchema,
   updateThemeSettings,
 } from '@commerce/core'
 import { CORE_PLUGIN_ID } from '@commerce/plugins'
 import { ORPCError } from '@orpc/server'
 import { z } from 'zod'
-import { can } from '../procedures'
+import { can, storeProcedure } from '../procedures'
 import { storeRegistries } from '../services/apps.service'
 import {
   loadStorageSettings,
@@ -85,6 +86,16 @@ export const storeRouter = {
       role: context.scope.role,
     }
   }),
+
+  /**
+   * The store's public web address (`https://<live primary domain>`, STOREFRONT_URL only
+   * when it has none): every admin "View store", preview and share link starts here. Bare
+   * `storeProcedure` on purpose (docs/guardrails.md): it is the address shoppers already
+   * see, and staff without `settings.read` still need working links.
+   */
+  origin: storeProcedure.handler(({ context }) =>
+    storefrontOriginFor(context.tx, context.scope.storeId, loadEnv(process.env).STOREFRONT_URL),
+  ),
 
   /** The Settings home's setup checklist: what is done, from real data. */
   setupChecklist: can(permissions.SETTINGS_READ).handler(({ context }) =>

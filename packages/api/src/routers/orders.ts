@@ -1,6 +1,9 @@
 import { loadEnv, settingsSecret } from '@commerce/config'
 import {
+  ABANDONED_LIST_STATUSES,
   CommerceError,
+  CourierChargeInputSchema,
+  DRAFT_LIST_STATUSES,
   DraftInputSchema,
   InvalidOrderContact,
   insertOutboxEvent,
@@ -10,10 +13,12 @@ import {
   ORDER_MARKS,
   ORDER_PAYMENT_STATUSES,
   OrderNotFound,
+  orderProfit,
   permissions,
   ReminderTooSoon,
   requestBalance,
   sendManualPaymentReminder,
+  setCourierCharge,
   updateOrderContact,
 } from '@commerce/core'
 import { ORPCError } from '@orpc/server'
@@ -22,7 +27,9 @@ import { can, PAGE_SIZE_MAX, SEARCH_MAX } from '../procedures'
 import { storeRegistries } from '../services/apps.service'
 import {
   convertStoreDraft,
+  draftTiles,
   getDraft,
+  getStoreAbandoned,
   listStoreAbandoned,
   listStoreDrafts,
   recordInvoiceSent,
@@ -38,6 +45,7 @@ import {
   listOrders,
   ORDER_VIEWS,
   orderStats,
+  orderTiles,
   refundOrderPayment,
   setOrderStatus,
   setOrderTags,
@@ -58,6 +66,7 @@ import {
 } from '../services/shipping.service'
 
 const storefrontUrl = () => loadEnv(process.env).STOREFRONT_URL
+const recoveryLink = () => ({ settingsSecret: settingsSecret(), storefrontUrl: storefrontUrl() })
 
 /** What "Mark as" on the order page records; the statuses are then derived. */
 const change = z.enum(ORDER_MARKS)
@@ -93,6 +102,8 @@ export const ordersRouter = {
 
   stats: can(permissions.ORDERS_READ).handler(({ context }) => orderStats(context.tx)),
 
+  tiles: can(permissions.ORDERS_READ).handler(({ context }) => orderTiles(context.tx)),
+
   get: can(permissions.ORDERS_READ)
     .input(z.object({ id: z.uuid() }))
     .handler(async ({ context, input }) => {
@@ -106,6 +117,20 @@ export const ordersRouter = {
       ])
       return { ...o, shipment, balance, customerOrders, customerOrderNumber }
     }),
+
+  /** What the order earned: net sales less goods, courier, fees and RTO (order/profit.ts). */
+  profit: can(permissions.ANALYTICS_READ)
+    .input(z.object({ orderId: z.uuid() }))
+    .handler(({ context, input }) =>
+      orderProfit({ storeId: context.scope.storeId, tx: context.tx }, input.orderId),
+    ),
+
+  /** What the courier charged for a consignment, typed by the merchant. */
+  setCourierCharge: can(permissions.ORDERS_WRITE)
+    .input(CourierChargeInputSchema)
+    .handler(({ context, input }) =>
+      setCourierCharge({ storeId: context.scope.storeId, tx: context.tx }, input),
+    ),
 
   /** Order numbers either side of this one, for the arrows in the detail header. */
   neighbours: can(permissions.ORDERS_READ)
@@ -406,9 +431,12 @@ export const ordersRouter = {
         page: z.number().int().min(1).default(1),
         perPage: z.number().int().min(1).max(PAGE_SIZE_MAX).default(25),
         search: z.string().trim().max(SEARCH_MAX).optional(),
+        status: z.enum(DRAFT_LIST_STATUSES).optional(),
       }),
     )
     .handler(({ context, input }) => listStoreDrafts(context.tx, context.scope.storeId, input)),
+
+  draftTiles: can(permissions.DRAFTS_READ).handler(({ context }) => draftTiles(context.tx)),
 
   getDraft: can(permissions.DRAFTS_READ)
     .input(z.object({ id: z.uuid() }))
@@ -456,13 +484,23 @@ export const ordersRouter = {
         page: z.number().int().min(1).default(1),
         perPage: z.number().int().min(1).max(PAGE_SIZE_MAX).default(25),
         sinceDays: z.number().int().min(1).max(90).default(30),
+        status: z.enum(ABANDONED_LIST_STATUSES).optional(),
+        search: z.string().trim().max(SEARCH_MAX).optional(),
       }),
     )
     .handler(({ context, input }) => listStoreAbandoned(context.tx, context.scope.storeId, input)),
 
-  abandonedStats: can(permissions.ORDERS_READ).handler(({ context }) =>
-    storeAbandonedStats(context.tx, context.scope.storeId),
-  ),
+  abandonedStats: can(permissions.ORDERS_READ)
+    .input(z.object({ days: z.number().int().min(1).max(90).optional() }).optional())
+    .handler(({ context, input }) =>
+      storeAbandonedStats(context.tx, context.scope.storeId, input?.days),
+    ),
+
+  getAbandoned: can(permissions.ORDERS_READ)
+    .input(z.object({ id: z.uuid() }))
+    .handler(({ context, input }) =>
+      getStoreAbandoned(context.tx, context.scope.storeId, input.id, recoveryLink()),
+    ),
 
   sendRecovery: can(permissions.ORDERS_WRITE)
     .input(z.object({ cartId: z.uuid() }))

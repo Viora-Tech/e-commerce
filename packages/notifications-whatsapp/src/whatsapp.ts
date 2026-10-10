@@ -50,10 +50,14 @@ export function templateParams(template: TemplateId, d: TemplateData): string[] 
       return [d.customerName, d.storeName, n, d.links?.[0]?.url ?? '-']
     case 'login_code':
     case 'account_deletion_code':
+    case 'email_change_code':
       return [d.code ?? '-', d.storeName]
+    case 'email_changed':
+      return [d.storeName, d.emailChange?.newEmail ?? '-']
     case 'login_link':
     case 'newsletter_confirm':
     case 'staff_invite':
+    case 'purchase_order':
       return [d.storeName, d.actionUrl ?? '-']
     case 'gift_card_issued':
       return [d.customerName, d.storeName, d.giftCard?.balanceLabel ?? '-', d.giftCard?.code ?? '-']
@@ -66,8 +70,25 @@ export function templateParams(template: TemplateId, d: TemplateData): string[] 
       return [d.customerName, d.storeName, n, d.totalLabel, d.orderUrl ?? '-']
     case 'unpaid_cancelled':
       return [d.customerName, d.storeName, n, d.totalLabel]
+    case 'contact_message':
+      return [d.storeName, d.contactMessage?.name || '-']
+    case 'review_request':
+    case 'review_reminder':
+      return [d.customerName, d.storeName, d.review?.items?.[0]?.url ?? '-']
+    case 'review_reply':
+      return [d.storeName, d.review?.productTitle ?? '-', d.review?.productUrl ?? '-']
     case 'unpaid_cancel_notice':
       return [d.storeName, n, d.totalLabel, d.deadlineLabel ?? '-']
+    case 'staff_new_order':
+      return [d.storeName, n, d.totalLabel, d.actionUrl ?? '-']
+    case 'staff_daily_summary':
+      return [
+        d.storeName,
+        d.dailySummary?.periodLabel ?? '-',
+        String(d.dailySummary?.orders ?? 0),
+        d.dailySummary?.salesLabel ?? '-',
+        String(d.dailySummary?.toShip ?? 0),
+      ]
     case 'back_in_stock_confirm':
       return [d.backInStock?.productTitle ?? '-', d.backInStock?.confirmUrl ?? '-']
     case 'back_in_stock_alert':

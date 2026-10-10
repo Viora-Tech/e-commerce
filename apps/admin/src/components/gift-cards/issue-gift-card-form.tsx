@@ -12,12 +12,13 @@ import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import MoneyInput from '@/components/fields/money-input'
-import PageBody from '@/components/layout/page-body'
 import PageColumns from '@/components/layout/page-columns'
-import PageHeader from '@/components/layout/page-header'
+import ProoflyPageBody from '@/components/layout/proofly-page-body'
+import ProoflyPageHeader from '@/components/layout/proofly-page-header'
 import { giftCardIssueContent as copy, GIFT_CARD_PRESETS } from '@/data/gift-cards'
 import { useFormat } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { routes } from '@/lib/routes'
 import CodeRevealDialog, { type IssuedCard } from './code-reveal-dialog'
 import CustomerPicker, { type PickedCustomer } from './customer-picker'
 
@@ -81,16 +82,13 @@ export default function IssueGiftCardForm({ today }: IssueGiftCardFormProps) {
   const canSave = !busy && valuePaise !== null && (!expires || expiresOn >= today)
 
   return (
-    <PageBody className="gap-6">
-      <PageHeader
+    <ProoflyPageBody>
+      <ProoflyPageHeader
         title={copy.heading}
-        breadcrumbs={[
-          { label: copy.breadcrumb, href: '/products/gift-cards' },
-          { label: copy.heading },
-        ]}
+        back={{ label: copy.breadcrumb, href: routes.products.giftCards() }}
         actions={
           <>
-            <Button variant="outline" onClick={() => router.push('/products/gift-cards')}>
+            <Button variant="outline" onClick={() => router.push(routes.products.giftCards())}>
               {copy.cancel}
             </Button>
             <Button onClick={handleSave} disabled={!canSave}>
@@ -101,7 +99,7 @@ export default function IssueGiftCardForm({ today }: IssueGiftCardFormProps) {
       />
       <PageColumns
         main={
-          <Card className="gap-5 p-5">
+          <Card gap={5} inset={5}>
             <p className="text-card-title text-foreground">{copy.details}</p>
             <Field>
               <FieldLabel htmlFor="gc-value">{copy.value}</FieldLabel>
@@ -162,7 +160,7 @@ export default function IssueGiftCardForm({ today }: IssueGiftCardFormProps) {
         }
         side={
           <>
-            <Card className="gap-4 p-5">
+            <Card gap={4} inset={5}>
               <p className="text-card-title text-foreground">{copy.customer}</p>
               <CustomerPicker value={customer} onChange={setCustomer} />
               <p className="text-caption text-muted-foreground">{copy.customerHelp}</p>
@@ -207,7 +205,7 @@ export default function IssueGiftCardForm({ today }: IssueGiftCardFormProps) {
                 </Label>
               </div>
             </Card>
-            <Card className="gap-3 p-5">
+            <Card gap={3} inset={5}>
               <Label htmlFor="gc-note" className="text-card-title">
                 {copy.note}
               </Label>
@@ -226,6 +224,6 @@ export default function IssueGiftCardForm({ today }: IssueGiftCardFormProps) {
         issued={issued}
         onDone={(id) => router.push(`/products/gift-cards/${id}`)}
       />
-    </PageBody>
+    </ProoflyPageBody>
   )
 }

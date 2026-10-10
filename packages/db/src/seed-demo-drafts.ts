@@ -11,10 +11,10 @@ import {
   orderLine,
   orderNote,
   product,
-  sellableLevel,
   store,
   variant,
 } from './schema'
+import { primarySellingLevel } from './stock'
 
 /**
  * Demo draft orders and abandoned checkouts, so both screens have something to
@@ -122,7 +122,10 @@ export async function seedDemoDrafts(ownerUrl: string, opts: { clean?: boolean }
       })
       .from(variant)
       .innerJoin(product, eq(product.id, variant.productId))
-      .innerJoin(inventoryLevel, and(eq(inventoryLevel.variantId, variant.id), sellableLevel))
+      .innerJoin(
+        inventoryLevel,
+        and(eq(inventoryLevel.variantId, variant.id), primarySellingLevel(variant.id)),
+      )
       .where(
         and(
           eq(variant.storeId, storeId),

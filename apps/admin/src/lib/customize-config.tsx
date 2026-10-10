@@ -1,12 +1,21 @@
 import { type AppBlockOwner, type CardProduct, createBlocksConfig } from '@commerce/blocks/puck'
 import { applyBindings, isBinding } from '@commerce/core/dynamic-sources'
 import { GROUP_SECTIONS, SINGLE_SECTIONS } from '@commerce/core/theme'
-import { RichTextEditor } from '@commerce/editor'
 import { type ComponentConfig, type Config, DropZone } from '@puckeditor/core'
+import Image from '@tiptap/extension-image'
 import type { ReactNode } from 'react'
 import DynamicSourceSection from '@/components/themes/customize/dynamic-source-section'
+import FieldFormatMenu from '@/components/themes/customize/field-format-menu'
+import InlineFormatMenu from '@/components/themes/customize/inline-format-menu'
 import { api } from '@/lib/api-client'
 import { APP_BLOCK_SOURCES } from '../../../../commerce.blocks.config'
+
+/**
+ * Pictures in long-form copy (Rich text, Text): Puck's Tiptap has no image node, so without
+ * this an image converted from old Lexical copy would vanish on the next edit. Inline, so it
+ * sits in its paragraph the way `lexicalToHtml` writes it; data: URLs are refused.
+ */
+const RICHTEXT_EXTENSIONS = [Image.configure({ inline: true, allowBase64: false })]
 
 type ListedProduct = Awaited<ReturnType<typeof api.products.list>>['items'][number]
 
@@ -58,9 +67,30 @@ function withHiding(component: ComponentConfig): ComponentConfig {
     props._hidden === true ? null : <DynamicSourceSection render={render} props={props} />
   return {
     ...component,
+    fields: withInlineMenu(component.fields) as ComponentConfig['fields'],
     render: hidden as unknown as ComponentConfig['render'],
     ...(component.resolveData ? { resolveData: withFallbacks(component.resolveData) } : {}),
   }
+}
+
+/**
+ * Every richtext field, nested ones included, gets our menus: the canvas one (B/I/U plus a link
+ * control) and the right panel's, both in Phosphor glyphs instead of Puck's built-in icons. Done here rather than in `@commerce/blocks` so the storefront never loads it.
+ */
+function withInlineMenu(fields: unknown): unknown {
+  if (!fields || typeof fields !== 'object') return fields
+  return Object.fromEntries(
+    Object.entries(fields as Record<string, Record<string, unknown>>).map(([key, field]) => {
+      if (!field || typeof field !== 'object') return [key, field]
+      if (field.type === 'richtext')
+        return [key, { ...field, renderInlineMenu: InlineFormatMenu, renderMenu: FieldFormatMenu }]
+      if (field.type === 'array')
+        return [key, { ...field, arrayFields: withInlineMenu(field.arrayFields) }]
+      if (field.type === 'object')
+        return [key, { ...field, objectFields: withInlineMenu(field.objectFields) }]
+      return [key, field]
+    }),
+  )
 }
 
 type ResolveData = NonNullable<ComponentConfig['resolveData']>
@@ -107,7 +137,7 @@ export function createCustomizeConfig(
       )
     },
     {
-      RichTextEditor,
+      richtextExtensions: RICHTEXT_EXTENSIONS,
       loadArticles: (query) => api.blog.recent(query),
       loadCollections: async (handles) => {
         const all = await api.collections.list()

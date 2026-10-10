@@ -18,9 +18,62 @@ type AllowEntry = { file: string; names: string[]; reason: string }
 
 const ALLOWLIST: AllowEntry[] = [
   {
+    file: 'packages/core/src/member-account/profile.ts',
+    names: ['normaliseMemberPhone'],
+    reason: 'the E.164 rule behind MemberProfileInputSchema, exported for its unit test',
+  },
+  {
+    file: 'packages/core/src/member-account/email-change.ts',
+    names: ['maskEmail'],
+    reason: 'the masking rule behind the email-changed notice, exported for its unit test',
+  },
+  {
+    file: 'packages/core/src/member-account/sign-ins.ts',
+    names: ['maskIp', 'signInMethod'],
+    reason:
+      'the IP masking and method rules behind recordMemberSignIn, exported for their unit test',
+  },
+  {
+    file: 'packages/core/src/inventory/landed-cost.ts',
+    names: ['allocate'],
+    reason: 'the largest-remainder split behind computeLandedCosts, exported for its unit test',
+  },
+  {
+    file: 'packages/core/src/inventory/schemas.ts',
+    names: ['FxRateSchema'],
+    reason: 'the exchange-rate rule inside the purchase schemas, exported for its unit test',
+  },
+  {
+    file: 'packages/db/src/purchasing-schema.ts',
+    names: ['INBOUND_SHIPMENT_STATUS_VALUES', 'PURCHASE_CHARGE_KIND_VALUES', 'SPLIT_METHOD_VALUES'],
+    reason: 'the column enums; landed-cost.test.ts checks core keeps the same lists',
+  },
+  {
+    file: 'packages/api/src/services/bug-report.service.ts',
+    names: ['scrubSecrets'],
+    reason: 'the redaction rule behind buildBugIssue, exported for its unit test',
+  },
+  {
     file: 'packages/core/src/theme-import/archive.ts',
     names: ['safeThemePath'],
     reason: 'the zip-slip guard behind readThemeArchive, exported for its unit test',
+  },
+  {
+    file: 'packages/core/src/theme-import/bundle.ts',
+    names: ['nonceThemeScripts'],
+    reason:
+      'the source rewrite behind buildThemeBundle (nonces only on the theme own scripts, security audit 2026-10-06), exported for its unit test',
+  },
+  {
+    file: 'packages/core/src/theme-import/engine.ts',
+    names: ['LIQUID_LIMITS'],
+    reason: 'the render budgets renderBounded applies, exported so security.test.ts can pin them',
+  },
+  {
+    file: 'packages/core/src/theme-import/import-media.ts',
+    names: ['THEME_MEDIA_LIMITS', 'liveVideosIn'],
+    reason:
+      'the download budget and live-page reader behind importShopifyTheme (security audit 2026-10-06), exported for their unit tests',
   },
   {
     file: 'packages/core/src/theme-import/fields.ts',
@@ -34,7 +87,7 @@ const ALLOWLIST: AllowEntry[] = [
   },
   {
     file: 'packages/core/src/theme-import/import.ts',
-    names: ['ThemeImportError', 'cleanShopifyHost'],
+    names: ['cleanShopifyHost'],
     reason: 'thrown and used by importShopifyTheme, exported for its tests',
   },
   {
@@ -120,11 +173,6 @@ const ALLOWLIST: AllowEntry[] = [
   {
     file: 'packages/api/src/services/page.service.ts',
     names: ['getPublishedPageByHandle'],
-    reason: 'no external importer today — investigate before removing',
-  },
-  {
-    file: 'packages/api/src/services/product.service.ts',
-    names: ['LOW_STOCK_AT'],
     reason: 'no external importer today — investigate before removing',
   },
   {
@@ -245,6 +293,12 @@ const ALLOWLIST: AllowEntry[] = [
     file: 'packages/core/src/domains/records.ts',
     names: ['relativeName'],
     reason: 'no external importer today — investigate before removing',
+  },
+  {
+    file: 'packages/core/src/domains/routes.ts',
+    names: ['ROUTE_RETRY_MS', 'isRoutableHostname', 'ensureRoute', 'removeRoute'],
+    reason:
+      'the guard, retry window and idempotent Dokploy steps behind runDomainRouteJob, exported for their unit tests',
   },
   {
     file: 'packages/core/src/domains/service.ts',
@@ -745,6 +799,31 @@ const ALLOWLIST: AllowEntry[] = [
     file: 'packages/plugin-emi/src/plugin.ts',
     names: ['emiPlugin'],
     reason: 'imported only by the root commerce.config.ts, like backInStockPlugin',
+  },
+  {
+    file: 'packages/plugin-forms/src/plugin.ts',
+    names: ['formsPlugin'],
+    reason: 'imported only by the root commerce.config.ts, like emiPlugin',
+  },
+  {
+    file: 'packages/plugin-reviews/src/plugin.ts',
+    names: ['reviewsPlugin'],
+    reason: 'imported only by the root commerce.config.ts, like formsPlugin',
+  },
+  {
+    file: 'packages/plugin-reviews/src/judgeme.ts',
+    names: ['parseJudgemeCsv', 'matchJudgemeRows'],
+    reason: 'the pure CSV reader and the matcher, used inside this file and tested directly',
+  },
+  {
+    file: 'packages/core/src/theme-import/data.ts',
+    names: ['withReviewMetafields'],
+    reason: 'the pure metafield merge, used inside this file and tested directly',
+  },
+  {
+    file: 'packages/core/src/theme-import/related.ts',
+    names: ['rankRelated'],
+    reason: 'the pure ranking, used inside this file and tested directly',
   },
   {
     file: 'packages/plugin-gst-invoices/src/issue.ts',

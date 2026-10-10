@@ -3,7 +3,7 @@
 // packages/blocks/THIRD_PARTY_LICENSES.md.
 // Same composition: four vertical Marquees (forward, reverse, reverse, forward) on one plane
 // tilted by translateX/translateZ and rotateX/Y/Z, every column pausing on hover. Changes: the
-// columns are any content (the caller's cards), the plane angles are Glide's (its review wall
+// columns are any content (the caller's cards), the plane angles are Zero Drift's (its review wall
 // ran a little flatter than the demo), the four soft edges are a mask instead of painted
 // gradients (painted ones showed as a darker box whenever the band colour was not exactly
 // `--background`), and sizes are rem.
@@ -23,7 +23,7 @@ type Marquee3dProps = {
 /** The demo's direction pattern, repeated for more than four columns. */
 const REVERSED = [false, true, true, false]
 
-/** Glide's plane (the demo uses -100px, -100px, 20deg, -10deg, 20deg). */
+/** Zero Drift's plane (the demo uses -100px, -100px, 20deg, -10deg, 20deg). */
 const PLANE = 'translateX(-2.5rem) translateZ(-5rem) rotateX(18deg) rotateY(-10deg) rotateZ(16deg)'
 
 const EDGE_MASK = [

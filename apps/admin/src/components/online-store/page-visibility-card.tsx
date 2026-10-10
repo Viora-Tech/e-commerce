@@ -4,13 +4,17 @@ import { Card, CardContent, CardHeader, CardTitle } from '@commerce/ui/shadcn/ca
 import { Field, FieldLabel } from '@commerce/ui/shadcn/field'
 import { RadioGroup, RadioGroupItem } from '@commerce/ui/shadcn/radio-group'
 import { onlineStoreContent } from '@/data/online-store'
+import { useCopy } from '@/hooks/use-copy'
 
 type PageVisibilityCardProps = { visible: boolean; onChange: (visible: boolean) => void }
 
-const copy = onlineStoreContent.form.visibility
-
 /** Visible to shoppers or hidden, as Shopify's page visibility card. */
 export default function PageVisibilityCard({ visible, onChange }: PageVisibilityCardProps) {
+  // Hooks
+  const {
+    form: { visibility: copy },
+  } = useCopy(onlineStoreContent)
+
   // Render logic
   return (
     <Card>

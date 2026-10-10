@@ -4,6 +4,7 @@ import Link from 'next/link'
 import StatusLabel from '@/components/status/status-label'
 import { giftCardProductsContent as copy } from '@/data/gift-cards'
 import { formatPaise } from '@/lib/money'
+import { routes } from '@/lib/routes'
 
 type GiftCardProduct = {
   id: string
@@ -20,7 +21,7 @@ type GiftCardProductsCardProps = {
 /** The gift card products shoppers can buy, each linking to its product page. */
 export default function GiftCardProductsCard({ products, onAdd }: GiftCardProductsCardProps) {
   return (
-    <Card className="gap-4 p-5">
+    <Card gap={4} inset={5}>
       <div className="flex items-start justify-between gap-3">
         <div className="flex flex-col gap-1">
           <p className="text-card-title text-foreground">{copy.heading}</p>
@@ -37,7 +38,7 @@ export default function GiftCardProductsCard({ products, onAdd }: GiftCardProduc
           {products.map((p) => (
             <li key={p.id}>
               <Link
-                href={`/products/${p.id}`}
+                href={routes.products.detail(p.id)}
                 className="flex items-center justify-between gap-3 py-3 hover:text-link"
               >
                 <span className="flex min-w-0 flex-col">

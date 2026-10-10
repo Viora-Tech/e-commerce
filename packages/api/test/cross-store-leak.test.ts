@@ -77,8 +77,11 @@ const SKIP: Record<string, string> = {
   'shopifyImport.status': 'Shopify API',
   'ai.writeProduct': 'AI model provider (a dev .env key would reach the real gateway)',
   'ai.assistant': 'AI model provider (a dev .env key would reach the real gateway)',
+  'reviews.writeReply': 'AI model provider (a dev .env key would reach the real gateway)',
   'ai.bulkWrite':
     'AI model provider (runs in the request without a queue); covered by ai-assistant.test.ts',
+  'purchaseDocuments.read':
+    'AI model provider (reads in the request without a queue); covered by purchase-documents.test.ts',
   'domains.connect': 'DNS and certificate provider',
   'domains.verify': 'DNS and certificate provider',
   'onboarding.create': 'creates another store and switches the session to it',
@@ -240,6 +243,7 @@ const NAMESPACE_TABLE: Record<string, string> = {
   domains: 'store_domain',
   themes: 'theme',
   'themes.templates': 'theme_template',
+  'themes.versions': 'theme_version',
   storeData: 'store_export',
   'backInStock.signups': 'back_in_stock_signup',
 }
@@ -256,6 +260,11 @@ const NAME_HINTS: [RegExp, string][] = [
   [/Role$/, 'role'],
   [/Location$/, 'location'],
 ]
+
+/** Id fields whose table is set by the procedure, not by the field name alone. */
+const PROCEDURE_KEY_TABLE: Record<string, string> = {
+  'purchaseOrders.receive.lineId': 'purchase_order_line',
+}
 
 const KEY_ALIAS: Record<string, string> = {
   orderLineId: 'order_line',
@@ -284,6 +293,8 @@ const KEY_ALIAS: Record<string, string> = {
 const snake = (s: string) => s.replace(/[A-Z]/g, (c) => `_${c.toLowerCase()}`)
 
 function tableFor(key: string, path: string[], tables: Set<string>): string {
+  const byProcedure = PROCEDURE_KEY_TABLE[`${path.join('.')}.${key}`]
+  if (byProcedure) return byProcedure
   if (KEY_ALIAS[key]) return KEY_ALIAS[key]
   const m = key.match(/^(.+?)Ids?$/)
   if (m?.[1] && tables.has(snake(m[1]))) return snake(m[1])

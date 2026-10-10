@@ -43,6 +43,7 @@ export const staffContent = {
   },
   roles: {
     heading: 'Roles',
+    columns: { role: 'Role', members: 'Members' },
     create: 'Create role',
     empty: 'No custom roles yet.',
     builtIn: 'Built in',

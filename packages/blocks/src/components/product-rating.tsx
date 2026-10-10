@@ -1,4 +1,4 @@
-import { mainProductContent as copy } from '../data/glide/main-product'
+import { mainProductContent as copy } from '../data/zero-drift/main-product'
 import Icon from './icon'
 
 type ProductRatingProps = {

@@ -1,15 +1,14 @@
 /** What the product list triggers: CSV import, duplicate and bulk edits. */
 import type { StoreTx } from '@commerce/db'
 import {
-  inventoryLevel,
   product,
   productOption,
   productOptionValue,
-  sellableLevel,
+  sellableStock,
   variant,
   variantOptionValue,
 } from '@commerce/db'
-import { and, asc, eq, inArray } from 'drizzle-orm'
+import { asc, eq, inArray } from 'drizzle-orm'
 import type { ImportProduct } from './import-csv'
 import { createProduct, deleteProduct, uniqueHandle, updateProduct } from './products'
 import type { ProductStatus, ProductWrite } from './schemas'
@@ -170,10 +169,10 @@ export async function exportRows(tx: StoreTx, productIds: string[]): Promise<Exp
       mrpPaise: variant.mrpPaise,
       costPaise: variant.costPaise,
       weightGrams: variant.weightGrams,
-      onHand: inventoryLevel.onHand,
+      onHand: sellableStock.onHand,
     })
     .from(variant)
-    .leftJoin(inventoryLevel, and(eq(inventoryLevel.variantId, variant.id), sellableLevel))
+    .leftJoin(sellableStock, eq(sellableStock.variantId, variant.id))
     .where(inArray(variant.productId, productIds))
     .orderBy(asc(variant.position))
 
@@ -249,15 +248,12 @@ export async function duplicateProduct(tx: StoreTx, storeId: string, id: string)
   ).filter((v) => v.archivedAt === null)
   const levels = variants.length
     ? await tx
-        .select({ variantId: inventoryLevel.variantId, onHand: inventoryLevel.onHand })
-        .from(inventoryLevel)
+        .select({ variantId: sellableStock.variantId, onHand: sellableStock.onHand })
+        .from(sellableStock)
         .where(
-          and(
-            inArray(
-              inventoryLevel.variantId,
-              variants.map((v) => v.id),
-            ),
-            sellableLevel,
+          inArray(
+            sellableStock.variantId,
+            variants.map((v) => v.id),
           ),
         )
     : []

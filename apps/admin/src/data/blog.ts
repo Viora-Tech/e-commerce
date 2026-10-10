@@ -11,7 +11,15 @@ const status: Record<ArticleStatus, string> = {
 
 export const blogListContent = {
   heading: 'Blog posts',
-  add: 'Add blog post',
+  add: 'Write post',
+  summary: (all: number, live: number, scheduled: number, drafts: number) => {
+    if (all === 0) return 'Stories, launches and guides for your shoppers.'
+    const parts = [`${all} ${all === 1 ? 'post' : 'posts'}`]
+    if (live > 0) parts.push(`${live} live`)
+    if (scheduled > 0) parts.push(`${scheduled} scheduled`)
+    if (drafts > 0) parts.push(`${drafts} ${drafts === 1 ? 'draft' : 'drafts'}`)
+    return parts.join(' · ')
+  },
   manageBlogs: 'Manage blogs',
   resource: { singular: 'blog post', plural: 'blog posts' },
   none: 'None',
@@ -140,6 +148,7 @@ export const blogsManageContent = {
     handle: 'URL handle',
     handleHelp: 'Leave empty to build it from the title.',
     comments: 'Comments',
+    template: 'Theme template',
     cancel: 'Cancel',
     save: 'Save',
     saving: 'Saving…',

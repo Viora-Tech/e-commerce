@@ -1,9 +1,9 @@
 /**
  * Shopify Files (Content → Files): images, videos and other uploads, read page
  * by page, plus a single-file lookup for files that metafields and entries link
- * to. Videos come back as the best mp4 Shopify has under our video limit.
+ * to. Videos come back as the best mp4 Shopify has under the import's video limit (1 GB, streamed).
  */
-import { VIDEO_MAX_UPLOAD_BYTES } from '@commerce/storage'
+import { IMPORT_VIDEO_MAX_BYTES } from './limits'
 import type { ShopifyClient } from './shopify-client'
 import type { NFile } from './types'
 
@@ -23,12 +23,13 @@ export type GFile = {
   originalFileSize?: number | null
   sources?: VideoSource[]
   originUrl?: string | null
+  filename?: string | null
 }
 
 const FILE_FIELDS = `__typename id alt fileStatus
   ... on MediaImage { mimeType image { url } originalSource { fileSize } }
   ... on GenericFile { url mimeType originalFileSize }
-  ... on Video { originalSource { url mimeType fileSize } sources { url mimeType fileSize } }
+  ... on Video { filename originalSource { url mimeType fileSize } sources { url mimeType fileSize } }
   ... on ExternalVideo { originUrl }`
 
 const FILES_QUERY = `query Files($cursor: String, $query: String) {
@@ -46,7 +47,7 @@ function bestMp4(f: GFile): { url: string | null; size: number | null; tooLarge:
     (s): s is VideoSource => Boolean(s?.url) && s?.mimeType === 'video/mp4',
   )
   const fits = all
-    .filter((s) => (s.fileSize ?? 0) <= VIDEO_MAX_UPLOAD_BYTES)
+    .filter((s) => (s.fileSize ?? 0) <= IMPORT_VIDEO_MAX_BYTES)
     .sort((a, b) => (b.fileSize ?? 0) - (a.fileSize ?? 0))
   const pick = fits[0]
   if (pick) return { url: pick.url, size: pick.fileSize, tooLarge: false }
@@ -69,6 +70,7 @@ export function mapFile(f: GFile): NFile {
       return {
         ...base,
         kind: 'video',
+        filename: f.filename ?? null,
         url: mp4.url,
         mimeType: mp4.url ? 'video/mp4' : (f.originalSource?.mimeType ?? null),
         size: mp4.size,

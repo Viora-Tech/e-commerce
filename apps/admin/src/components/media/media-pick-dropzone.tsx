@@ -6,6 +6,7 @@ import { Button } from '@commerce/ui/shadcn/button'
 import { Input } from '@commerce/ui/shadcn/input'
 import type { ChangeEvent, RefObject } from 'react'
 import { mediaContent } from '@/data/media'
+import { useCopy } from '@/hooks/use-copy'
 
 type MediaPickDropzoneProps = {
   inputRef: RefObject<HTMLInputElement | null>
@@ -19,8 +20,6 @@ type MediaPickDropzoneProps = {
   onUrlValueChange: (value: string) => void
   onUrlAdd: () => void
 }
-
-const copy = mediaContent.picker
 
 /**
  * The upload well at the top of the picker, drawn like the theme editor's image field
@@ -38,6 +37,9 @@ export default function MediaPickDropzone({
   onUrlValueChange,
   onUrlAdd,
 }: MediaPickDropzoneProps) {
+  // Hooks
+  const { picker: copy } = useCopy(mediaContent)
+
   // Render logic
   return (
     <div className="flex flex-col gap-2">

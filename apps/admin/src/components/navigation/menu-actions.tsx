@@ -9,12 +9,11 @@ import {
 } from '@commerce/ui/shadcn/dropdown-menu'
 import { useState } from 'react'
 import { type MenuListItem, menusContent } from '@/data/menus'
+import { useCopy } from '@/hooks/use-copy'
 import DeleteMenuDialog from './delete-menu-dialog'
 import RenameMenuDialog from './rename-menu-dialog'
 
 type MenuActionsProps = { menu: MenuListItem }
-
-const copy = menusContent.actions
 
 /* Frame 5:3151: the 20px kebab, sitting at the end of the row's Action cell. */
 const KEBAB =
@@ -27,6 +26,7 @@ const KEBAB =
  */
 export default function MenuActions({ menu }: MenuActionsProps) {
   // Hooks
+  const { actions: copy } = useCopy(menusContent)
   const [renaming, setRenaming] = useState(false)
   const [removing, setRemoving] = useState(false)
 

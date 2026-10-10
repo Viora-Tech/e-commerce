@@ -6,7 +6,7 @@ import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@commerce/ui/
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
 import { type ReactNode, useState } from 'react'
 import { Area, AreaChart, CartesianGrid, XAxis, YAxis } from 'recharts'
-import KitWeekToggle from '@/components/kit/kit-week-toggle'
+import PillTabs from '@/components/layout/pill-tabs'
 import { base, instant } from '@/lib/motion'
 import CardMenu, { type MenuLink } from './card-menu'
 import { type ChartPoint, chartConfig } from './chart-config'
@@ -15,6 +15,8 @@ type PeriodOption = { id: string; label: string; data: ChartPoint[] }
 
 type ChartCardProps = {
   title: string
+  /** A plain line under the title ("₹4,61,320 in the last 30 days, best day 5 Oct"). */
+  subtitle?: string
   /** Toggle pill in the header; the first option is selected initially. */
   periods: PeriodOption[]
   /** Big-number tabs above the chart. */
@@ -36,6 +38,7 @@ type ChartCardProps = {
  */
 export default function ChartCard({
   title,
+  subtitle,
   periods,
   tabs,
   seriesKey = 'value',
@@ -55,13 +58,17 @@ export default function ChartCard({
   const config = seriesLabel ? { value: { ...chartConfig.value, label: seriesLabel } } : chartConfig
 
   return (
-    <Card className={cn('h-[28.75rem] gap-0 p-5', className)}>
-      <div className="flex h-[2.375rem] items-center justify-between gap-3">
-        <p className="text-kit-title text-foreground">{title}</p>
+    <Card className={cn('gap-0 p-5', className)}>
+      <div className="flex min-h-[2.375rem] items-center justify-between gap-3">
+        <div className="flex min-w-0 flex-col">
+          <p className="text-kit-title text-foreground">{title}</p>
+          {subtitle ? <p className="text-kit-mini text-muted-foreground-soft">{subtitle}</p> : null}
+        </div>
         <div className="flex items-center gap-2">
           {periods.length > 1 ? (
-            <KitWeekToggle
-              options={periods.map((p) => ({ id: p.id, label: p.label }))}
+            <PillTabs
+              variant="segmented"
+              tabs={periods.map((p) => ({ value: p.id, label: p.label }))}
               value={periodId}
               onChange={setPeriodId}
             />
@@ -78,7 +85,7 @@ export default function ChartCard({
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           transition={fade}
-          className="mt-8"
+          className="mt-6"
         >
           <ChartContainer
             config={config}

@@ -138,6 +138,15 @@ describe('order list tabs and filters on the split statuses', () => {
     ).rejects.toThrow()
   })
 
+  it('search finds an order by its number, with or without the #, never a draft', async () => {
+    const m = await merchant('number@example.com', 'number')
+    await seedOrders(m.storeId)
+    expect(await numbers(m, { search: '#4' })).toEqual([4])
+    expect(await numbers(m, { search: '4' })).toEqual([4])
+    expect(await numbers(m, { search: '6' })).toEqual([])
+    expect(await numbers(m, { search: 'nobody' })).toEqual([])
+  })
+
   it('the rows carry both derived statuses for the list pills', async () => {
     const m = await merchant('pills@example.com', 'pills')
     await seedOrders(m.storeId)

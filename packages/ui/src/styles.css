@@ -175,6 +175,8 @@
   --font-sans:
     var(--font-primary), ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji",
     "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+  /* Bricolage Grotesque: page titles and big numbers only. */
+  --font-display: var(--font-display-face), var(--font-primary), ui-sans-serif, system-ui, sans-serif;
   --font-mono: var(--font-mono-code), ui-monospace, SFMono-Regular, Menlo, monospace;
 
   --color-background: var(--background);
@@ -218,7 +220,27 @@
   --color-ink-strong: var(--ink-strong);
   --color-muted-foreground-soft: var(--muted-foreground-soft);
   --color-input: var(--input);
+  --color-raised: var(--raised);
+  --color-hairline: var(--hairline);
+  --color-chip-neutral: var(--chip-neutral);
+  --color-key-ink: var(--key-ink);
+  --color-key-border: var(--key-border);
   --color-ring: var(--ring);
+  --color-panel-border: var(--panel-border);
+  --color-input-surface: var(--input-surface);
+  --color-brand-wash: var(--brand-wash);
+  --color-brand-wash-end: var(--brand-wash-end);
+  --color-brand-border: var(--brand-border);
+  --color-brand-select: var(--brand-select);
+  --color-chip-neutral-text: var(--chip-neutral-text);
+  --color-card-edge: var(--card-edge);
+  --color-card-shadow: var(--card-shadow);
+  --color-glass-bar: var(--glass-bar);
+  --color-glass-popover: var(--glass-popover);
+  --color-glass-border: var(--glass-border);
+  --color-glass-scrim: var(--glass-scrim);
+  --color-glass-active: var(--glass-active);
+  --color-glass-active-ink: var(--glass-active-ink);
 
   --color-chart-1: var(--chart-1);
   --color-chart-2: var(--chart-2);
@@ -241,6 +263,7 @@
   --radius-xl: calc(var(--radius) + 4px);
 
   --shadow-card: var(--shadow-card);
+  --shadow-glass: var(--shadow-glass);
   --shadow-card-hover: var(--shadow-card-hover);
   --shadow-kit-1: var(--shadow-kit-1);
   --shadow-kit-3: var(--shadow-kit-3);
@@ -276,184 +299,390 @@
 }
 
 /*
- * Neutral surfaces, hairlines and overlay shadows after Macaw UI (CC BY 4.0,
- * Saleor Commerce; see apps/admin/THIRD_PARTY_LICENSES.md): text default1/default2,
- * border default1/default2, overlay and modal shadows. Values are adapted, not
- * copied 1:1. The accent (--primary*, --ring, --chart-1) is the merchant's pick
- * (@commerce/core/admin-accent) and is overridden per member at runtime; actions
- * (primary buttons, active tabs and nav) stay ink via --action.
+ * Proofly look (Figma file YmMNC5JOimqg61sI0eFI5a, Foundations page; variable collection
+ * "Vextro", modes "Proofly light" / "Proofly dark"). Names match the Figma code syntax.
+ *
+ * One blue (--primary) with opacity tints only. Layers, light: shell (--sidebar, top bar) <
+ * panel (--background) < card < raised. Dark is layered the same way, never flat black.
+ * "Key" material (gradient, top highlight, bottom lip, soft glow) is for the one primary
+ * action per screen and main header actions only; everything small is plain and flat.
+ * Components reference only these semantic names, never a raw colour. The member's own accent
+ * pick (@commerce/core/admin-accent) still overrides --primary* at runtime.
  */
 :root {
-  --radius: 0.5rem; /* 8px cards and tables; controls use radius-md (6px), chips radius-sm (4px) */
-  /* Depth is a hairline, not a blur: cards and tables are drawn by a 1px ring. */
+  --radius: 0.75rem; /* 12px cards; controls radius-md (10px), chips radius-sm (8px), panel radius-xl (16px) */
+
+  /* Elevation (Figma Elevation/1-3 and Card/Soft). */
+  --shadow-04: rgb(0 0 0 / 0.04);
+  --shadow-06: rgb(0 0 0 / 0.06);
+  --shadow-08: rgb(0 0 0 / 0.08);
+  --shadow-12: rgb(0 0 0 / 0.12);
+  --shadow-14: rgb(0 0 0 / 0.14);
+  --highlight-06: rgb(255 255 255 / 0.6);
+  --card-highlight: rgb(255 255 255 / 0.9);
+  --card-edge: rgb(17 19 24 / 0.06);
+  --card-shadow: rgb(17 19 24 / 0.06);
+  --card-surface: linear-gradient(to bottom, var(--card-top), var(--card-bottom));
+  --card-top: #ffffff;
+  --card-bottom: #ffffff;
   --shadow-kit-1: 0 0 0 1px var(--border);
-  --shadow-kit-3: 0 0 0 1px var(--border), 0 3px 8px 0 hsl(211 42% 16% / 0.08);
-  --shadow-kit-6: 0 0 0 1px var(--border), 0 8px 16px 0 hsl(211 42% 16% / 0.08);
-  /* Hairline plus a soft, low lift so boxed cards read as objects on the page. */
-  --shadow-card: 0 0 0 1px var(--border), 0 1px 2px 0 hsl(211 42% 16% / 0.04), 0 6px 16px -4px hsl(211 42% 16% / 0.08);
-  --shadow-card-hover: 0 0 0 1px var(--border-strong), 0 2px 4px 0 hsl(211 42% 16% / 0.06), 0 10px 24px -6px hsl(211 42% 16% / 0.12);
+  --shadow-kit-3: inset 0 1px 0 var(--highlight-06), 0 4px 12px 0 var(--shadow-08), 0 12px 32px 0 var(--shadow-08);
+  --shadow-kit-6: inset 0 1px 0 var(--highlight-06), 0 8px 24px 0 var(--shadow-12), 0 24px 48px 0 var(--shadow-14);
+  /* Card/Soft. Light: a hairline, a 1px lift and a soft spread. Dark keeps the deeper recipe. */
+  --shadow-card: inset 0 0 0 1px var(--border-soft), inset 0 1px 0 var(--card-highlight), 0 1px 2px 0 var(--shadow-06), 0 4px 12px 0 var(--shadow-04);
+  --shadow-card-hover: inset 0 0 0 1px var(--border-soft), inset 0 1px 0 var(--card-highlight), 0 1px 2px 0 var(--shadow-06), 0 10px 24px -10px var(--shadow-14);
+  --shadow-glass: inset 0 1px 0 var(--glass-highlight), 0 4px 12px 0 var(--shadow-08), 0 12px 32px 0 var(--shadow-08);
   --shadow-rail: 1px 0 0 0 var(--border);
-  --shadow-lift: 0 1px 1px 0 hsl(212 44% 13% / 0.08);
-  --shadow-toggle: 0 1px 2px 0 hsl(212 44% 13% / 0.16);
+  --shadow-lift: 0 1px 1px 0 var(--shadow-08);
+  --shadow-toggle: 0 1px 2px 0 var(--shadow-14);
   --shadow-popover: var(--shadow-kit-3);
   --shadow-dialog: var(--shadow-kit-6);
   --shadow-bar: 0 1px 0 0 var(--border);
 
-  /* Surfaces (Saleor Dashboard): a light grey shell (rail, top bar, grouped sub-sections)
-     around a white content panel; cards and panels are white. */
-  --background: #f7f7f7;
-  --foreground: #262626;
-  --ink-strong: #141414; /* page titles, primary cell text, figures */
-  --brand-secondary: #121f30; /* the dark neutral action (Saleor's default primary button) */
+  /* Surfaces */
+  --background: #f7f8fa; /* the content panel */
+  --foreground: #111318;
+  --ink-strong: #111318; /* page titles, primary cell text, figures */
+  --brand-secondary: #111318;
   --brand-secondary-foreground: #ffffff;
-  --helper: #7b7e7e;
+  --helper: #5e6470;
   --card: #ffffff;
   --card-foreground: var(--foreground);
   --popover: #ffffff;
   --popover-foreground: var(--foreground);
+  --raised: #ffffff; /* menus, floating bars, anything lifted above a card */
+  --panel-border: #e6e8ec; /* the content panel's 1px edge */
+  --input-surface: #ffffff; /* input and select fill */
+  --brand-wash: rgb(63 114 220 / 0.1); /* next-step and info banners, left to right */
+  --brand-wash-end: rgb(63 114 220 / 0.1);
+  --brand-border: rgb(63 114 220 / 0.3);
+  --brand-select: #eaf1fd; /* selected option fill */
+  --chip-neutral-text: #5e6470;
 
-  /* Action: the ink fill of primary buttons and active states (Macaw buttonDefaultPrimary,
-     hsl(211 45% 13%)). Saleor keeps actions near-black and uses its accent sparingly. */
-  --action: #121f30;
-  --action-foreground: #ffffff;
+  /* Glass: floating layers only (top bar once scrolled, menus, floating bars, toasts, scrims). */
+  --glass-bar: rgb(255 255 255 / 0.72);
+  --glass-popover: rgb(255 255 255 / 0.84);
+  --glass-border: rgb(255 255 255 / 0.5);
+  --glass-highlight: rgb(255 255 255 / 0.8);
+  --glass-scrim: rgb(13 15 26 / 0.28);
+  --glass-active: rgb(63 114 220 / 0.12);
+  --glass-active-ink: #2f62cf;
 
-  /* Accent (the merchant pick; default Ocean Green): links, focus rings, selection,
-     charts and small highlights only. */
-  --primary: #4ea674;
+  /* Action is the one blue. */
+  --action: var(--primary);
+  --action-foreground: var(--primary-foreground);
+
+  --primary: #3f72dc;
   --primary-foreground: #ffffff;
-  --primary-soft: #eaf8e7; /* selected rows, bulk bar, subtle accent fills */
-  --primary-tint: #c1e6ba;
-  --link: #1f2323; /* links are ink and underlined, like Saleor's body links */
-  --link-soft: #eef2ff;
-  --secondary: #eef0f2;
-  --secondary-foreground: #252929;
-  --muted: #f3f4f5;
-  --muted-foreground: #676c6c;
-  --muted-foreground-soft: #8b8f8f;
-  --accent: #f1f2f3; /* menu item hover and focus: neutral, never tinted */
-  --accent-foreground: #141717;
+  --primary-soft: #eaf1fd; /* selected rows, active nav, soft accent fills */
+  --primary-tint: #eaf1fd;
+  --link: #2f62cf;
+  --link-soft: #eaf1fd;
+  --secondary: #f1f2f4;
+  --secondary-foreground: #111318;
+  --muted: #f1f2f4;
+  --muted-foreground: #5e6470;
+  --muted-foreground-soft: #8a909b;
+  --accent: #eaf1fd;
+  --accent-foreground: #2f62cf;
+  --chip-neutral: #eef0f3; /* done / neutral status chips */
 
-  /* Status: a semantic soft tint beside each solid, for icon badges, dot pills and chips. */
-  --destructive: #dc3a26;
+  /* Status: soft tint beside each solid. Chips are coloured only when action is needed. */
+  --destructive: #e5484d;
   --destructive-foreground: #ffffff;
-  --danger: var(--destructive);
+  --danger: #ce2c31;
   --danger-foreground: var(--destructive-foreground);
-  --danger-soft: #fbe9e6;
-  --success: #1f9d61;
+  --danger-soft: #feebec;
+  --success: #2a7e3b;
   --success-foreground: #ffffff;
-  --success-soft: #e5f6ec;
-  --warning: #e8b320;
-  --warning-foreground: #3d2c00;
-  --warning-soft: #fdf3dc;
-  --info: #3b5bdb;
+  --success-soft: #e9f6e9;
+  --warning: #ab6400;
+  --warning-foreground: #4f3422;
+  --warning-soft: #fff7c2;
+  --info: #0d74ce;
   --info-foreground: #ffffff;
-  --info-soft: #eaeefb;
+  --info-soft: #e6f4fe;
 
   /* Lines and focus */
-  --border: #dde1e5; /* card, table and field hairline */
-  --border-strong: #a5adb6; /* hovered field, emphasised divider */
-  --border-soft: #eceef0;
-  --line: #e7eaed; /* table row dividers */
-  --line-list: #e7eaed;
-  --input: #d9dee3;
-  --ring: #4ea674;
+  --border: #e3e6eb;
+  --hairline: #e6e8ec;
+  --border-strong: #d5d8de;
+  --border-soft: #e3e6eb;
+  --line: #eef0f3; /* table row dividers */
+  --line-list: #eef0f3;
+  --input: #e6e8ec;
+  --ring: var(--primary);
 
-  /* Charts: accent, indigo, amber, red, grey */
-  --chart-1: #4ea674;
-  --chart-2: #6467f2;
-  --chart-3: #f5b400;
-  --chart-4: #ef4343;
-  --chart-5: #8b909a;
+  /* Key material: primary (blue) and neutral. */
+  --key-top: #eaf2ff;
+  --key-bottom: #d5e5ff;
+  --key-border: #b9cff6;
+  --key-edge: rgb(70 120 215 / 0.32);
+  --key-glow: rgb(63 114 220 / 0.38);
+  --key-ink: #2f62cf;
+  --key-highlight: rgb(255 255 255 / 0.9);
+  --key-neutral-top: #ffffff;
+  --key-neutral-bottom: #f4f5f7;
+  --key-neutral-edge: rgb(17 19 24 / 0.06);
+  --key-neutral-shadow: rgb(17 19 24 / 0.28);
+  --key-neutral-highlight: rgb(255 255 255 / 0.9);
 
-  /* Sidebar: the grey shell; the active row is a slightly darker grey pill */
-  --sidebar: #f2f2f2; /* warm neutral shell, the calm grey premium dashboards sit on */
-  --sidebar-foreground: #2b2f2f;
+  /* Charts: the one blue first, then calm neutrals and the status hues */
+  --chart-1: #3f72dc;
+  --chart-2: #8fb0f0;
+  --chart-3: #b9cff6;
+  --chart-4: #8a909b;
+  --chart-5: #d5d8de;
+
+  /* Sidebar and top bar: the shell. The active row is a soft blue fill. */
+  --sidebar: #ffffff;
+  --sidebar-foreground: #111318;
   --sidebar-primary: var(--primary);
   --sidebar-primary-foreground: var(--primary-foreground);
-  --sidebar-accent: #eaebeb;
-  --sidebar-accent-foreground: #141717;
+  --sidebar-accent: #eaf1fd;
+  --sidebar-accent-foreground: #2f62cf;
   --sidebar-border: var(--border);
   --sidebar-ring: var(--ring);
 }
 
 .dark {
-  --shadow-kit-1: 0 0 0 1px var(--border);
-  --shadow-kit-3: 0 0 0 1px var(--border), 0 8px 24px -4px rgb(0 0 0 / 0.5);
-  --shadow-kit-6: 0 0 0 1px var(--border), 0 24px 64px -12px rgb(0 0 0 / 0.7);
-  --shadow-card: 0 0 0 1px var(--border);
-  --shadow-card-hover: 0 0 0 1px var(--border-strong), 0 10px 24px -6px rgb(0 0 0 / 0.45);
-  --shadow-rail: 1px 0 0 0 var(--border);
+  --shadow-kit-3: inset 0 1px 0 var(--highlight-06), 0 0 0 1px var(--border), 0 8px 24px -4px rgb(0 0 0 / 0.5);
+  --shadow-kit-6: inset 0 1px 0 var(--highlight-06), 0 0 0 1px var(--border), 0 24px 64px -12px rgb(0 0 0 / 0.7);
+  /* Card/Soft, dark: top highlight, a 1px black edge and a deep soft spread. */
+  --shadow-card: inset 0 0 0 1px var(--border-soft), inset 0 1px 0 var(--card-highlight), 0 1px 0 0 var(--card-edge), 0 10px 28px -12px var(--card-shadow);
+  --shadow-card-hover: inset 0 0 0 1px var(--border-soft), inset 0 1px 0 var(--card-highlight), 0 1px 0 0 var(--card-edge), 0 14px 32px -12px var(--card-shadow);
+  --shadow-glass: inset 0 1px 0 var(--glass-highlight), 0 0 0 1px var(--glass-border), 0 12px 32px -8px rgb(0 0 0 / 0.55);
   --shadow-lift: 0 1px 1px 0 rgb(0 0 0 / 0.4);
   --shadow-toggle: 0 1px 2px 0 rgb(0 0 0 / 0.4);
-  --shadow-popover: var(--shadow-kit-3);
-  --shadow-dialog: var(--shadow-kit-6);
-  --shadow-bar: 0 1px 0 0 var(--border);
+  --highlight-06: rgb(255 255 255 / 0.06);
+  --card-highlight: rgb(255 255 255 / 0.06);
+  --card-edge: rgb(0 0 0 / 0.45);
+  --card-shadow: rgb(0 0 0 / 0.55);
+  --card-top: #1b1d23;
+  --card-bottom: #16181d;
 
-  --background: #000000;
-  --foreground: #ebebf0;
-  --ink-strong: #ffffff;
-  --brand-secondary: #eef1f4;
-  --brand-secondary-foreground: #121416;
-  --helper: #8d9399;
-  --card: #1c1c1e;
-  --card-foreground: var(--foreground);
-  --popover: #2c2c2e;
-  --popover-foreground: var(--foreground);
+  /* Layers: shell #0a0b0e < panel #101216 (+ panel-border) < card #181a20 < raised #1d2027. */
+  --background: #101216;
+  --panel-border: rgb(255 255 255 / 0.06);
+  --foreground: #dde1e7;
+  --card-foreground: #dde1e7;
+  --ink-strong: #f2f4f7;
+  --brand-secondary: #1e2638;
+  --brand-secondary-foreground: #dce6ff;
+  --helper: #959ba6;
+  --card: #181a20;
+  --popover: #1d2027;
+  --popover-foreground: #edeef0;
+  --raised: #1d2027;
+  --input-surface: #121419;
+  --brand-wash: rgb(127 162 245 / 0.06);
+  --brand-wash-end: rgb(127 162 245 / 0);
+  --brand-border: rgb(127 162 245 / 0.3);
+  --brand-select: rgb(127 162 245 / 0.06);
+  --chip-neutral-text: #b9bfc9;
 
-  --action: #f2f2f7; /* Macaw dark buttonDefaultPrimary: white-ish fill, dark ink */
-  --action-foreground: #000000;
+  --glass-bar: rgb(22 23 28 / 0.64);
+  --glass-popover: rgb(22 23 28 / 0.76);
+  --glass-border: rgb(255 255 255 / 0.08);
+  --glass-highlight: rgb(255 255 255 / 0.1);
+  --glass-scrim: rgb(0 0 0 / 0.5);
+  --glass-active: rgb(255 255 255 / 0.14);
+  --glass-active-ink: #ffffff;
 
-  --primary: #30d158;
-  --primary-foreground: #0b1a11;
-  --primary-soft: #0f2a17;
-  --primary-tint: #2f5a3d;
-  --link: #eceef0;
-  --link-soft: rgb(99 125 255 / 0.16);
-  --secondary: #2c2c2e;
-  --secondary-foreground: #ebebf0;
-  --muted: #2c2c2e;
-  --muted-foreground: #8e8e93;
-  --muted-foreground-soft: #636366;
-  --accent: #26292d;
-  --accent-foreground: #f5f6f7;
+  --primary: #7fa2f5;
+  --primary-foreground: #0e1430;
+  --primary-soft: #1f283d;
+  --primary-tint: #1f283d;
+  --link: #9db8f7;
+  --link-soft: #1f283d;
+  --secondary: #1b1e24;
+  --secondary-foreground: #edeef0;
+  --muted: #1b1e24;
+  --muted-foreground: #959ba6;
+  --muted-foreground-soft: #80868f;
+  --accent: #172038;
+  --accent-foreground: #a9c1f8;
+  --chip-neutral: #252831;
 
-  --destructive: #ff453a;
-  --destructive-foreground: #1a0a0a;
-  --danger: var(--destructive);
-  --danger-foreground: var(--destructive-foreground);
-  --danger-soft: #3a1310;
-  --success: #30d158;
-  --success-foreground: #05200f;
-  --success-soft: #0f2a17;
-  --warning: #ff9f0a;
-  --warning-foreground: #2b2000;
-  --warning-soft: #2e1f06;
-  --info: #0a84ff;
-  --info-foreground: #0d0e2b;
-  --info-soft: #0a2340;
+  --destructive: #f2706b;
+  --destructive-foreground: #ffffff;
+  --danger: #f2706b;
+  --danger-soft: rgb(242 112 107 / 0.12);
+  --success: #5fd18a;
+  --success-foreground: #ffffff;
+  --success-soft: rgb(95 209 138 / 0.12);
+  --warning: #f2b24a;
+  --warning-foreground: #1a1200;
+  --warning-soft: rgb(242 178 74 / 0.12);
+  --info: #8fb0f7;
+  --info-foreground: #ffffff;
+  --info-soft: rgb(127 162 245 / 0.14);
 
-  --border: #38383a;
-  --border-strong: #545458;
-  --border-soft: #2c2c2e;
-  --line: #2c2c2e;
-  --line-list: #2c2c2e;
-  --input: #3a3a3c;
-  --ring: #30d158;
+  --border: rgb(255 255 255 / 0.1);
+  --hairline: rgb(255 255 255 / 0.07);
+  --border-strong: rgb(255 255 255 / 0.16);
+  --border-soft: rgb(255 255 255 / 0.09);
+  --line: rgb(255 255 255 / 0.07);
+  --line-list: rgb(255 255 255 / 0.06);
+  --input: rgb(255 255 255 / 0.12);
 
-  --chart-1: #30d158;
-  --chart-2: #8b8dff;
-  --chart-3: #f7c440;
-  --chart-4: #f87272;
-  --chart-5: #7d8491;
+  --key-top: #4c7fea;
+  --key-bottom: #3a69d6;
+  --key-border: rgb(91 140 240 / 0.6);
+  --key-edge: rgb(0 0 0 / 0.35);
+  --key-glow: rgb(76 127 234 / 0.55);
+  --key-ink: #ffffff;
+  --key-highlight: rgb(255 255 255 / 0.22);
+  --key-neutral-top: #23262d;
+  --key-neutral-bottom: #1c1f25;
+  --key-neutral-edge: rgb(0 0 0 / 0.45);
+  --key-neutral-shadow: rgb(0 0 0 / 0.5);
+  --key-neutral-highlight: rgb(255 255 255 / 0.1);
 
-  --sidebar: #000000;
-  --sidebar-foreground: #aeaeb2;
-  --sidebar-primary: var(--primary);
-  --sidebar-primary-foreground: var(--primary-foreground);
-  --sidebar-accent: #1c1c1e;
-  --sidebar-accent-foreground: #ffffff;
-  --sidebar-border: var(--border);
-  --sidebar-ring: var(--ring);
+  --chart-1: #7fa2f5;
+  --chart-2: #4d6fb8;
+  --chart-3: #3b5596;
+  --chart-4: #6f7580;
+  --chart-5: #3a3d46;
+
+  --sidebar: #0a0b0e;
+  --sidebar-foreground: #edeef0;
+  --sidebar-accent: #172038;
+  --sidebar-accent-foreground: #a9c1f8;
+}
+
+/*
+ * Card surface: the Card/Soft recipe. Dark cards are a top-to-bottom gradient with a hairline,
+ * a top highlight, a black edge and a deep soft spread (light is flat white with a soft lift).
+ * Use it for cards, stat tiles and table cards, never on floating layers (those are glass).
+ */
+@utility surface-card {
+  background-color: var(--card);
+  background-image: var(--card-surface);
+  box-shadow: var(--shadow-card);
+}
+
+/* Next-step and info banners: card surface, brand border, a left-to-right brand wash. Never solid. */
+@utility surface-banner {
+  background-color: var(--card);
+  background-image: linear-gradient(to right, var(--brand-wash), var(--brand-wash-end));
+  border: 1px solid var(--brand-border);
+}
+
+/*
+ * Glass, subtle, floating layers only (Figma Glass/Bar, Glass/Popover, Glass/Scrim): a translucent
+ * surface, backdrop blur + saturate and a 1px inner highlight edge. Without backdrop-filter, or with
+ * "reduce transparency", the surface is solid so text never sits on a busy backdrop.
+ */
+@utility glass-bar {
+  background-color: var(--glass-bar);
+  box-shadow: var(--shadow-glass);
+  -webkit-backdrop-filter: blur(20px) saturate(1.5);
+  backdrop-filter: blur(20px) saturate(1.5);
+  @supports not (backdrop-filter: blur(1px)) {
+    background-color: var(--raised);
+  }
+  @media (prefers-reduced-transparency: reduce) {
+    background-color: var(--raised);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+}
+
+@utility glass-popover {
+  background-color: var(--glass-popover);
+  box-shadow: var(--shadow-glass);
+  -webkit-backdrop-filter: blur(16px) saturate(1.5);
+  backdrop-filter: blur(16px) saturate(1.5);
+  @supports not (backdrop-filter: blur(1px)) {
+    background-color: var(--popover);
+  }
+  @media (prefers-reduced-transparency: reduce) {
+    background-color: var(--popover);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+}
+
+@utility glass-scrim {
+  background-color: var(--glass-scrim);
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+  @media (prefers-reduced-transparency: reduce) {
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+}
+
+/* Menus, selects and comboboxes: 150ms fade with a 4px rise away from the trigger (Base UI
+   data-side), out of the trigger's origin. Reduced motion keeps the fade only. */
+@utility motion-menu {
+  --motion-menu-rise: 0.25rem;
+  transform-origin: var(--transform-origin);
+  transition-property: opacity, translate;
+  transition-duration: 150ms;
+  transition-timing-function: var(--ease-out);
+  &[data-starting-style],
+  &[data-ending-style] {
+    opacity: 0;
+    translate: 0 var(--motion-menu-rise);
+  }
+  &[data-side="top"][data-starting-style],
+  &[data-side="top"][data-ending-style] {
+    translate: 0 calc(var(--motion-menu-rise) * -1);
+  }
+  &[data-ending-style] {
+    transition-duration: calc(150ms * var(--motion-exit-ratio));
+  }
+  &[data-instant] {
+    transition-duration: 0ms;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    --motion-menu-rise: 0rem;
+  }
+}
+
+/*
+ * Key material: the pressable "key" look for the one primary action per screen
+ * (key-primary) and main header actions (key-neutral). Gradient fill, 1px rim, top highlight,
+ * bottom lip and a soft glow; pressed sits flat and inset. Not for anything small.
+ */
+@utility key-primary {
+  border: 1px solid var(--key-border);
+  background-image: linear-gradient(to bottom, var(--key-top), var(--key-bottom));
+  color: var(--key-ink);
+  box-shadow:
+    inset 0 1px 0 var(--key-highlight),
+    inset 0 -3px 0 var(--key-edge),
+    0 6px 16px -6px var(--key-glow);
+  &:hover:not(:disabled, [aria-disabled="true"]) {
+    box-shadow:
+      inset 0 1px 0 var(--key-highlight),
+      inset 0 -3px 0 var(--key-edge),
+      0 10px 22px -6px var(--key-glow);
+  }
+  &:active:not(:disabled, [aria-disabled="true"]) {
+    background-image: linear-gradient(to bottom, var(--key-bottom), var(--key-bottom));
+    box-shadow: inset 0 2px 4px var(--key-edge);
+  }
+}
+
+@utility key-neutral {
+  border: 1px solid var(--border);
+  background-image: linear-gradient(to bottom, var(--key-neutral-top), var(--key-neutral-bottom));
+  color: var(--foreground);
+  box-shadow:
+    inset 0 1px 0 var(--key-neutral-highlight),
+    inset 0 -3px 0 var(--key-neutral-edge),
+    0 1px 2px var(--key-neutral-edge),
+    0 12px 28px -14px var(--key-neutral-shadow);
+  &:hover:not(:disabled, [aria-disabled="true"]) {
+    background-image: linear-gradient(to bottom, var(--card), var(--key-neutral-top));
+  }
+  &:active:not(:disabled, [aria-disabled="true"]) {
+    background-image: linear-gradient(to bottom, var(--muted), var(--muted));
+    box-shadow: inset 0 2px 4px var(--key-neutral-edge);
+  }
 }
 
 /* Tiny uppercase tracked meta label for field/section headings (customer, product, order,
@@ -483,6 +712,21 @@
     @apply bg-background text-foreground;
     font-feature-settings: "rlig" 1, "calt" 1;
   }
+  /* Bricolage Grotesque: page titles and big numbers only; DM Sans everywhere else. */
+  .text-page-title,
+  .text-stat,
+  .text-kit-stat,
+  .text-kit-stat-tight,
+  .text-kit-heading {
+    font-family: var(--font-display);
+  }
+  /* Headings default to ink-strong; a utility colour on the element still wins. */
+  .text-page-title,
+  .text-card-title,
+  .text-kit-heading,
+  .text-kit-title {
+    color: var(--ink-strong);
+  }
   /* Figures line up in tiles, tables and prices. */
   .text-stat,
   .text-stat-sm,
@@ -504,29 +748,29 @@
 @theme {
   /* Saleor Dashboard scale: large, regular-weight headings (1.75rem page title, 1.25rem section
      title), 0.8125rem body and cells, 0.75rem captions and table heads, 0.8125rem/500 nav. Rem only. */
-  --text-page-title: 1.75rem;
-  --text-page-title--line-height: 2.25rem;
-  --text-page-title--font-weight: 400;
-  --text-page-title--letter-spacing: -0.01em;
+  --text-page-title: 2rem;
+  --text-page-title--line-height: 2.5rem;
+  --text-page-title--font-weight: 700;
+  --text-page-title--letter-spacing: -0.02em;
 
-  --text-card-title: 1.25rem;
-  --text-card-title--line-height: 1.75rem;
-  --text-card-title--font-weight: 400;
+  --text-card-title: 1rem;
+  --text-card-title--line-height: 1.5rem;
+  --text-card-title--font-weight: 600;
 
-  --text-stat: 1.25rem;
-  --text-stat--line-height: 1.5rem;
-  --text-stat--font-weight: 600;
-  --text-stat--letter-spacing: -0.01em;
+  --text-stat: 1.75rem;
+  --text-stat--line-height: 2.125rem;
+  --text-stat--font-weight: 700;
+  --text-stat--letter-spacing: -0.02em;
 
   --text-stat-sm: 1rem;
   --text-stat-sm--line-height: 1.25rem;
   --text-stat-sm--font-weight: 600;
   --text-stat-sm--letter-spacing: -0.01em;
 
-  --text-body: 0.8125rem;
+  --text-body: 0.875rem;
   --text-body--line-height: 1.25rem;
 
-  --text-body-strong: 0.8125rem;
+  --text-body-strong: 0.875rem;
   --text-body-strong--line-height: 1.25rem;
   --text-body-strong--font-weight: 500;
 
@@ -538,7 +782,7 @@
   --text-table-head--line-height: 1rem;
   --text-table-head--font-weight: 500;
 
-  --text-nav: 0.8125rem;
+  --text-nav: 0.875rem;
   --text-nav--line-height: 1.25rem;
   --text-nav--font-weight: 500;
 

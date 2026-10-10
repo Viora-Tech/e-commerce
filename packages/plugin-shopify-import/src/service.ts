@@ -78,7 +78,14 @@ export async function startRun(tx: StoreTx, id: string): Promise<RunRow> {
   }
   const [row] = await tx
     .update(importRun)
-    .set({ dryRun: false, status: 'queued', error: null, updatedAt: new Date() })
+    .set({
+      dryRun: false,
+      status: 'queued',
+      error: null,
+      stopRequestedAt: null,
+      stoppedBy: null,
+      updatedAt: new Date(),
+    })
     .where(eq(importRun.id, id))
     .returning()
   if (!row) throw new ImportError('Import not found')
@@ -96,9 +103,12 @@ export const runJobKey = (run: Pick<RunRow, 'id' | 'updatedAt'>) =>
   `run-${run.id}-${run.updatedAt.getTime()}`
 
 /**
- * A running import touches its row at least every minute (`executeRun`'s
- * heartbeat, plus every progress flush). One silent for this long lost its
- * worker (a crash or out-of-memory kill) without anything marking it failed.
+ * A running import touches its row at least every minute while it is getting
+ * somewhere (`executeRun`'s heartbeat, plus every progress flush). One silent for
+ * this long lost its worker (a crash or out-of-memory kill) without anything
+ * marking it failed. A run whose worker is alive but stuck is stopped by
+ * `executeRun`'s own watchdog (STUCK_MS in run.ts), which also stops touching the
+ * row, so this backstop still applies if stopping it goes wrong.
  */
 const RUN_STALE_MS = 10 * 60 * 1000
 
@@ -124,8 +134,29 @@ export async function failInterruptedRun(tx: StoreTx, id: string): Promise<boole
   return rows.length > 0
 }
 
-/** Backstop for a lost failure event: fail runs `running` with no sign of life for `RUN_STALE_MS`. */
+/**
+ * Stop import on a running run: its worker checks every few seconds and stops
+ * within seconds. One that has not stopped this long after (a hung or dead
+ * worker) is marked stopped by the next read; if its job ever wakes up, it sees
+ * the run stopped and does nothing.
+ */
+const STOP_GRACE_MS = 60_000
+
+/**
+ * Backstops, run on every read: fail runs `running` with no sign of life for
+ * `RUN_STALE_MS` (a lost failure event), and mark stopped those asked to stop
+ * more than `STOP_GRACE_MS` ago that their worker never acknowledged.
+ */
 async function failStaleRuns(tx: StoreTx, now = new Date()): Promise<void> {
+  await tx
+    .update(importRun)
+    .set({ status: 'cancelled', finishedAt: now, updatedAt: now })
+    .where(
+      and(
+        eq(importRun.status, 'running'),
+        lt(importRun.stopRequestedAt, new Date(now.getTime() - STOP_GRACE_MS)),
+      ),
+    )
   await tx
     .update(importRun)
     .set({ status: 'failed', error: INTERRUPTED_ERROR, finishedAt: now, updatedAt: now })
@@ -145,6 +176,48 @@ export async function failRun(tx: StoreTx, id: string, error: string): Promise<v
     .where(eq(importRun.id, id))
 }
 
+/**
+ * Stop import. A queued run is cancelled at once (`jobKey` is its queued job, for
+ * the caller to take off the queue). A running one is asked to stop: its worker
+ * stops between records and aborts its copies within seconds, then marks it
+ * cancelled (`STOP_GRACE_MS` backstop above). Whatever it imported stays.
+ */
+export async function requestStop(
+  tx: StoreTx,
+  id: string,
+  stoppedBy: string | null,
+  now = new Date(),
+): Promise<{ run: RunRow; jobKey: string | null }> {
+  await failStaleRuns(tx, now)
+  const [current] = await tx.select().from(importRun).where(eq(importRun.id, id))
+  if (!current) throw new ImportError('Import not found')
+  if (current.status !== 'queued' && current.status !== 'running') {
+    throw new ImportError('This import is not running')
+  }
+  if (current.status === 'queued') {
+    const [row] = await tx
+      .update(importRun)
+      .set({
+        status: 'cancelled',
+        stopRequestedAt: now,
+        stoppedBy,
+        finishedAt: now,
+        updatedAt: now,
+      })
+      .where(and(eq(importRun.id, id), eq(importRun.status, 'queued')))
+      .returning()
+    if (row) return { run: row, jobKey: runJobKey(current) }
+  }
+  // Running (or it started a moment ago): its worker stops it. A second press keeps the first time.
+  const [row] = await tx
+    .update(importRun)
+    .set({ stopRequestedAt: current.stopRequestedAt ?? now, stoppedBy })
+    .where(and(eq(importRun.id, id), inArray(importRun.status, ['queued', 'running'])))
+    .returning()
+  if (!row) throw new ImportError('This import is not running')
+  return { run: row, jobKey: null }
+}
+
 export async function listRuns(tx: StoreTx, input: { page: number; perPage: number }) {
   await failStaleRuns(tx)
   const [total] = await tx.select({ n: count() }).from(importRun)
@@ -159,6 +232,7 @@ export async function listRuns(tx: StoreTx, input: { page: number; perPage: numb
       progress: importRun.progress,
       error: importRun.error,
       createdBy: importRun.createdBy,
+      stoppedBy: importRun.stoppedBy,
       createdAt: importRun.createdAt,
       finishedAt: importRun.finishedAt,
     })

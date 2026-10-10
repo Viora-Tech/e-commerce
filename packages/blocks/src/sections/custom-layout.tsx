@@ -18,6 +18,7 @@ import {
   yesNo,
 } from './custom-fields'
 import { imageField, linkField } from './framed'
+import { inlineText } from './inline-fields'
 
 export const LAYOUT_BLOCKS = ['Group', 'Columns', 'Grid', 'Tabs', 'Accordion', 'Carousel'] as const
 export type LayoutBlockType = (typeof LAYOUT_BLOCKS)[number]
@@ -159,7 +160,7 @@ export function customLayoutBlocks(): Record<LayoutBlockType, ComponentConfig> {
           getItemSummary: (item: { label?: string }, i?: number) =>
             item?.label || copy.defaults.tab((i ?? 0) + 1),
           defaultItemProps: (i: number) => ({ label: copy.defaults.tab(i + 1), content: [] }),
-          arrayFields: { label: { type: 'text', label: f.tabLabel }, content: slot(f.content) },
+          arrayFields: { label: inlineText(f.tabLabel), content: slot(f.content) },
         },
       },
       {
@@ -187,7 +188,7 @@ export function customLayoutBlocks(): Record<LayoutBlockType, ComponentConfig> {
             content: [],
           }),
           arrayFields: {
-            title: { type: 'text', label: f.title },
+            title: inlineText(f.title),
             open: yesNo(f.openAtStart),
             content: slot(f.content),
           },

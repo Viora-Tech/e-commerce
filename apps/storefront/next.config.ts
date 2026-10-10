@@ -63,6 +63,9 @@ const config: NextConfig = {
     '@commerce/invoices',
     '@commerce/plugin-emi',
     '@commerce/plugin-gst-invoices',
+    '@commerce/plugin-forms',
+    '@commerce/plugin-reviews',
+    '@commerce/plugin-umami',
     '@commerce/plugin-shopify-import',
   ],
   // react-pdf and pdf-lib load fonts and wasm at runtime; keep them out of the bundle.

@@ -151,6 +151,24 @@ function coerceValue(
   }
 }
 
+/**
+ * A loaded value as a setting of `kind` receives it, or `undefined` when it is empty or does
+ * not fit (loops use it for each mapped field of a row; see `./loops.ts`).
+ */
+export const coerceSourceValue = (
+  kind: SettingKind,
+  type: SourceType,
+  value: unknown,
+  timeZone?: string | undefined,
+): unknown => coerceValue(kind, type, value, undefined, timeZone)
+
+/** A list binding (`./loops.ts`); checked here by shape so the two modules do not import each other. */
+const loopFallback = (value: object): unknown[] | null => {
+  const v = value as { $loop?: unknown; fallback?: unknown }
+  if (typeof v.$loop !== 'object' || v.$loop === null) return null
+  return Array.isArray(v.fallback) ? v.fallback : []
+}
+
 /** The value a binding renders: the source when it has one, else the typed-in fallback. */
 function resolveBinding(binding: Binding, values: SourceValues): unknown {
   const loaded = values[binding.$source]
@@ -170,6 +188,9 @@ function replace(
   if (typeof value !== 'object' || value === null) return value
   // Non-JSON values (React elements, class instances) and repeat visits pass through untouched.
   if (seen.has(value) || !isPlainData(value)) return value
+  // A list not filled yet (`applyLoops` runs first where the store can be read) shows its rows.
+  const rows = Array.isArray(value) ? null : loopFallback(value)
+  if (rows) return replace(rows, values, seen)
   seen.add(value)
   if (Array.isArray(value)) return value.map((v) => replace(v, values, seen))
   const out: Record<string, unknown> = {}

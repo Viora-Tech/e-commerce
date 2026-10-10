@@ -13,6 +13,7 @@ import { z } from 'zod'
 import { CommerceError } from '../errors'
 import { memberAccess } from '../permissions/service'
 import { permissions } from '../permissions/statement'
+import { fileTypeWhere, type MediaFileType } from './usage'
 
 export const UploadIntentSchema = z.object({
   filename: z.string().trim().min(1).max(255),
@@ -162,10 +163,50 @@ export async function authorizeLocalUpload(
   return { ok: true, maxBytes: maxUploadBytesFor(announced) }
 }
 
+/**
+ * Image bytes the server received or fetched itself (a shopper's review photo, a photo
+ * copied from another app), saved the way a direct upload ends up: the original in the
+ * store's storage under a fresh media key, a `processing` media row, and the caller
+ * queues the upload-time pipeline, which strips EXIF and GPS, caps the size and makes
+ * the variants before the row turns `ready`. Same type and size rules as an upload
+ * (images only, `maxUploadBytesFor`).
+ */
+export async function saveImageForProcessing(
+  tx: StoreTx,
+  storeId: string,
+  provider: StorageProvider,
+  input: { filename: string; contentType: string; bytes: Uint8Array },
+): Promise<{ mediaId: string; url: string }> {
+  const contentType = input.contentType.toLowerCase()
+  if (!isAllowedContentType(contentType) || !isImageContentType(contentType)) {
+    throw new InvalidUpload(`${input.contentType} is not an image we accept`)
+  }
+  const limit = maxUploadBytesFor(contentType)
+  if (input.bytes.byteLength <= 0 || input.bytes.byteLength > limit) {
+    throw new InvalidUpload(`images must be under ${Math.round(limit / 1024 / 1024)} MB`)
+  }
+  const id = newId()
+  const key = mediaKey({ storeId, filename: input.filename, contentType, id })
+  await provider.put({ key, body: input.bytes, contentType })
+  const url = provider.publicUrl(key)
+  await tx.insert(media).values({
+    id,
+    storeId,
+    url,
+    key,
+    provider: provider.id,
+    contentType,
+    size: input.bytes.byteLength,
+    status: 'processing',
+  })
+  return { mediaId: id, url }
+}
+
 export type MediaSort = 'newest' | 'oldest' | 'name' | 'size'
-export type MediaFileType = 'image' | 'video'
 export type MediaSizeBucket = 'small' | 'medium' | 'large'
 export type MediaUsedFilter = 'used' | 'unused'
+
+export type { MediaFileType } from './usage'
 
 export type MediaListInput = {
   page: number
@@ -196,7 +237,7 @@ export async function listMedia(tx: StoreTx, input: MediaListInput) {
     input.search
       ? or(ilike(media.alt, `%${input.search}%`), ilike(media.key, `%${input.search}%`))
       : undefined,
-    input.fileType ? ilike(media.contentType, `${input.fileType}/%`) : undefined,
+    input.fileType ? fileTypeWhere(input.fileType) : undefined,
     sizeMin !== null ? sql`${media.size} >= ${sizeMin}` : undefined,
     sizeMax !== null ? sql`${media.size} < ${sizeMax}` : undefined,
     input.used === 'used' ? sql`${usedSubquery} > 0` : undefined,

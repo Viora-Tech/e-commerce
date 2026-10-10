@@ -1,3 +1,4 @@
+import { siteConfig } from '@commerce/config/site'
 import type { ImportStatus, ReportReason, SwapKey } from '@commerce/core/theme-import'
 
 /** Copy for importing a Shopify theme: the upload dialog and the import report. */
@@ -20,7 +21,7 @@ export const themeImportContent = {
     change: 'Choose a different file',
     host: 'Your Shopify store address (optional)',
     hostHint:
-      'For example waimers.in or yourstore.myshopify.com. We copy your theme’s pictures from it into Files. Leave it empty to skip the pictures.',
+      'Filled in from your connected Shopify store, so you can leave it empty. Pictures and videos you already imported are reused. Type an address (like waimers.in) only to use a different store.',
     hostPlaceholder: 'yourstore.myshopify.com',
     cancel: 'Cancel',
     confirm: 'Import theme',
@@ -29,6 +30,24 @@ export const themeImportContent = {
     failed: 'We could not import this theme. Check the file and try again.',
     tooLarge: 'This file is larger than 50 MB. Upload only the theme zip.',
     notZip: 'Choose the .zip file Shopify emailed you.',
+  },
+  screen: {
+    title: 'Import a Shopify theme',
+    subtitle: `Upload a theme zip and we will rebuild it with your ${siteConfig.brand.name} store`,
+    back: 'Themes',
+    drop: 'Drop your theme .zip here',
+    dropBody: `We keep the exact look. Cart, checkout, accounts and apps are swapped for ${siteConfig.brand.name}’s own, and you get a plain-words report of what changed.`,
+    limits: 'Up to 50 MB · .zip exported from Shopify',
+    bullets: [
+      'Your Shopify store is never touched. We only read the zip you give us.',
+      'Sections, blocks and settings are kept, so you can keep editing them.',
+    ],
+    workingTitle: 'Importing your theme',
+    workingSubtitle: 'This takes about a minute. Stay on this page.',
+    progress: 'Import progress',
+    failedSubtitle: 'We could not read this file',
+    failedTitle: 'This import did not finish',
+    chooseAnother: 'Choose another file',
   },
   editor: {
     settingsTitle: 'Colours, fonts and layout come from your Shopify theme',
@@ -44,7 +63,7 @@ export const themeImportContent = {
     preview: 'Preview',
     intro:
       'Your theme keeps its look. Everything a shopper does (adding to cart, paying, searching, signing in) runs on this store’s own features. Here is each part of your theme and what happens to it.',
-    onPages: 'On your home page, header and footer',
+    onPages: 'On the pages that use your theme’s sections',
     wholeTheme: 'All sections in the theme',
     status: {
       imported: { label: 'Imported exactly', help: 'Looks and works the same.' },
@@ -73,15 +92,17 @@ export const themeImportContent = {
       newsletter: 'Signups join your subscriber list',
       contact: 'The contact form cannot send yet',
       app_blocks: 'Shopify app blocks are left out',
-      metafields: 'Metafields show blank until you add matching fields',
+      metafields: 'Metafields and metaobjects read from your extra fields and content types',
       fonts: 'Fonts load from Google Fonts',
       hosted_images: 'Pictures copied into Files',
       payment_icons: 'Simple payment marks',
       localization: 'India and rupees only',
       recommendations: 'Recommendations are empty for now',
       preorder: 'Pre-order uses our built-in pre-order',
-      app_data: 'Reads data from a Shopify app (such as Judge.me), so it stays hidden for now',
-      main_template: 'This page uses our own page, with your header and footer',
+      app_data:
+        'Reads review data (Judge.me); it shows your reviews once the Reviews app is installed',
+      main_template:
+        'Our own version of this part (product details, collection grid, page text), among your theme’s sections',
       parse_error: 'Its code uses something we cannot read yet',
     } satisfies Record<ReportReason, string>,
     swapsHeading: 'What Shopify used, and what runs here instead',
@@ -118,7 +139,7 @@ export const themeImportContent = {
       },
       metafields: {
         shopify: 'Metafields and metaobjects',
-        ours: 'Blank until you add matching extra fields or content types.',
+        ours: 'Read from your extra fields (products and collections) and content types. The Shopify importer copies them over.',
       },
       fonts: { shopify: 'Shopify fonts', ours: 'The same fonts from Google Fonts.' },
       hosted_images: { shopify: 'Pictures in Shopify Files', ours: 'Copied into your Files.' },
@@ -134,12 +155,14 @@ export const themeImportContent = {
       preorder: { shopify: 'Pre-order apps', ours: 'Our built-in pre-order.' },
       app_data: {
         shopify: 'Data from Shopify apps (Judge.me reviews…)',
-        ours: 'Not available yet. The section stays hidden until our Reviews app has reviews.',
+        ours: 'Our Reviews app. Install it and import your Judge.me reviews; stars and review sections then show them.',
       },
     } satisfies Record<SwapKey, { shopify: string; ours: string }>,
     pagesHeading: 'Pages',
     pagesBody:
-      'Your home page uses your theme’s sections. Other pages use our pages, inside your theme’s header and footer.',
+      'Your home, product, collection and other pages use your theme’s sections; the part shoppers buy from runs on ours. Cart, search, blog and account pages use our pages, inside your theme’s header and footer.',
+    /** An alternate template, e.g. "Pages: about". */
+    alternate: (page: string, suffix: string) => `${page}: ${suffix}`,
     pages: { imported: 'Your theme’s sections', ours: 'Our page, your header and footer' },
     pageNames: {
       index: 'Home page',

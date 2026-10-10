@@ -4,8 +4,9 @@ import { Video } from '@commerce/ui/icons'
 import { cn } from '@commerce/ui/lib/utils'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Checkbox } from '@commerce/ui/shadcn/checkbox'
-import type { KeyboardEvent } from 'react'
+import type { CSSProperties, KeyboardEvent } from 'react'
 import { mediaContent } from '@/data/media'
+import { useCopy } from '@/hooks/use-copy'
 import {
   extLabel,
   filenameFrom,
@@ -27,8 +28,6 @@ type MediaPickGridProps = {
   onRetry: (key: string) => void
   onDismiss: (key: string) => void
 }
-
-const copy = mediaContent.picker
 
 /** How many columns a CSS grid is currently laying out, for arrow-key moves between rows. */
 function columnsOf(el: HTMLElement): number {
@@ -72,6 +71,9 @@ export default function MediaPickGrid({
   onRetry,
   onDismiss,
 }: MediaPickGridProps) {
+  // Hooks
+  const { picker: copy } = useCopy(mediaContent)
+
   // Event handlers
   const handleDoubleClick = (id: string) => {
     onToggle(id)
@@ -153,8 +155,8 @@ export default function MediaPickGrid({
                     className="h-1 overflow-hidden rounded-full bg-muted"
                   >
                     <span
-                      className="block h-full rounded-full bg-primary transition-[width] duration-150 motion-reduce:transition-none"
-                      style={{ width: `${pct}%` }}
+                      className="block h-full rounded-full w-(--w) bg-primary transition-[width] duration-150 motion-reduce:transition-none"
+                      style={{ '--w': `${pct}%` } as CSSProperties}
                     />
                   </span>
                 )}

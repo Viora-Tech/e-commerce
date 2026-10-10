@@ -1,4 +1,3 @@
-import type { RichTextValue } from '@commerce/richtext'
 import type { Config, Data } from '@puckeditor/core'
 import { type AppBlockOwner, type AppBlockSource, buildAppBlocks } from './app-blocks'
 import { type ArticleLoader, type BlogPostsProps, blogPostsBlock } from './blog-posts-block'
@@ -15,14 +14,9 @@ import {
 } from './section-settings'
 import { type CustomProps, customSections, ELEMENT_BLOCKS, LAYOUT_BLOCKS } from './sections/custom'
 import { type DynamicSection, dynamicSections, type SectionSettings } from './sections/dynamic'
-import { GLIDE_SECTIONS, type GlideProps, glideSections } from './sections/glide'
-import { type ProductGridProps, tabbedProductsSection } from './sections/glide/tabbed-products'
-import {
-  GLIDE_PRODUCT_SECTIONS,
-  type GlideProductProps,
-  glideProductSections,
-} from './sections/glide-product'
 import { type HeroProps, heroBlock } from './sections/hero-block'
+import { inlineRichtextLong, inlineText, type RichtextExtensions } from './sections/inline-fields'
+import { type KitProps, kitSections } from './sections/kit'
 import {
   type CollectionLoader,
   type LibraryProps,
@@ -31,11 +25,18 @@ import {
 } from './sections/library'
 import { liquidSectionConfig } from './sections/liquid'
 import { type ModernProps, modernSections } from './sections/modern'
-import { type RichTextFieldEditor, richTextField } from './sections/rich-text-field'
+import { ZERO_DRIFT_SECTIONS, type ZeroDriftProps, zeroDriftSections } from './sections/zero-drift'
+import { type ProductGridProps, tabbedProductsSection } from './sections/zero-drift/tabbed-products'
+import {
+  ZERO_DRIFT_PRODUCT_SECTIONS,
+  type ZeroDriftProductProps,
+  zeroDriftProductSections,
+} from './sections/zero-drift-product'
 import type { CardProduct } from './types'
 
 export type { ArticleLoader, BlogPostsProps } from './blog-posts-block'
 export type { NewsletterAction, NewsletterState } from './components/sections/newsletter'
+export { richtextFromLexical } from './lexical-html'
 export {
   defaultSectionSettings,
   type LegacySectionProps,
@@ -57,13 +58,17 @@ export {
   type SectionRenderer,
   type SectionSettings,
 } from './sections/dynamic'
-export { GLIDE_SECTIONS, type GlideProps } from './sections/glide'
-export type { ProductGridProps } from './sections/glide/tabbed-products'
-export { GLIDE_PRODUCT_SECTIONS, type GlideProductProps } from './sections/glide-product'
+export type { KitProps } from './sections/kit'
 export type { CollectionLoader, LibraryProps, SingleProductLoader } from './sections/library'
 export type { ModernProps } from './sections/modern'
 export type { SectionSource } from './sections/sources'
 export { SECTION_SOURCES } from './sections/sources'
+export { ZERO_DRIFT_SECTIONS, type ZeroDriftProps } from './sections/zero-drift'
+export type { ProductGridProps } from './sections/zero-drift/tabbed-products'
+export {
+  ZERO_DRIFT_PRODUCT_SECTIONS,
+  type ZeroDriftProductProps,
+} from './sections/zero-drift-product'
 export type { CardCollection, CardProduct } from './types'
 
 /**
@@ -109,20 +114,20 @@ export type CollectionGridProps = Frame & {
 
 export type RichTextProps = Frame & {
   heading: string
-  /** Lexical JSON. Older pages may still hold a plain string; the block renders both. */
-  body: RichTextValue | string
+  /**
+   * Richtext HTML (Puck's Tiptap field). Older pages may still hold a plain string or Lexical
+   * JSON; `richtextHtml` renders all three and Customize converts them on load.
+   */
+  body: string | object
   align: 'left' | 'center'
 }
 
-export type { RichTextFieldEditor } from './sections/rich-text-field'
-
 export type BlocksConfigOptions = {
   /**
-   * Editor for rich-text fields. Only the admin needs it; the storefront
-   * renders published data and never shows a field, so it leaves this out
-   * and keeps the client editor out of its bundle.
+   * Extra Tiptap extensions for the long-form richtext fields (Rich text, Text). The admin
+   * passes its image node so pictures in that copy survive editing; the storefront leaves it out.
    */
-  RichTextEditor?: RichTextFieldEditor | undefined
+  richtextExtensions?: RichtextExtensions | undefined
   /** Posts for the "Blog posts" block; without it the block renders nothing. */
   loadArticles?: ArticleLoader | undefined
   /** Collections for the collection list section. */
@@ -139,9 +144,10 @@ export type BlockProps = {
   RichText: RichTextProps
   BlogPosts: BlogPostsProps
 } & LibraryProps &
-  GlideProps &
-  GlideProductProps &
+  ZeroDriftProps &
+  ZeroDriftProductProps &
   ModernProps &
+  KitProps &
   CustomProps &
   Record<DynamicSection | 'LiquidSection', SectionSettings>
 
@@ -150,8 +156,8 @@ export type BlockProps = {
  * footer are placed by their template or group, never added from here.
  */
 export const SECTION_CATEGORIES = {
-  // Rebuilt from our own Shopify theme (Zero Drift, formerly Glide); see ./sections/glide.tsx.
-  glide: { title: 'Zero Drift theme', components: GLIDE_SECTIONS },
+  // Rebuilt from our own Shopify theme, Zero Drift; see ./sections/zero-drift.tsx.
+  zeroDrift: { title: 'Zero Drift theme', components: ZERO_DRIFT_SECTIONS },
   banners: {
     title: 'Banners',
     components: [
@@ -163,6 +169,13 @@ export const SECTION_CATEGORIES = {
       'SplitHero',
       'VideoHero',
       'CtaBanner',
+      // The starter kit (`./sections/kit.tsx`).
+      'GridHero',
+      'RotatingHero',
+      'ShowcaseHero',
+      'CtaCard',
+      'CtaSplit',
+      'FeatureChecklist',
     ],
   },
   text: {
@@ -178,6 +191,17 @@ export const SECTION_CATEGORIES = {
       'FaqAccordion',
       'TestimonialMarquee',
       'LogoMarquee',
+      'StatsCards',
+      'FeatureCards',
+      'FeatureSteps',
+      'TestimonialGrid',
+      'TestimonialSpotlight',
+      'FaqSplit',
+      'ComparisonTable',
+      'PricingCards',
+      'Timeline',
+      'TeamGrid',
+      'TrustBadges',
     ],
   },
   products: {
@@ -190,12 +214,12 @@ export const SECTION_CATEGORIES = {
       'CollectionList',
       'RelatedProducts',
       'RecentlyViewed',
-      // The Zero Drift theme's product-page sections; see ./sections/glide-product.tsx.
-      ...GLIDE_PRODUCT_SECTIONS,
+      // The Zero Drift theme's product-page sections; see ./sections/zero-drift-product.tsx.
+      ...ZERO_DRIFT_PRODUCT_SECTIONS,
     ],
   },
-  media: { title: 'Media', components: ['Video', 'Gallery'] },
-  more: { title: 'More', components: ['BlogPosts', 'Newsletter'] },
+  media: { title: 'Media', components: ['Video', 'Gallery', 'LogoCloud', 'Lookbook'] },
+  more: { title: 'More', components: ['BlogPosts', 'Newsletter', 'NewsletterBand'] },
   // Build your own: containers whose content is slots, and the elements that go in them.
   layout: { title: 'Layout', components: LAYOUT_BLOCKS },
   elements: { title: 'Elements', components: ELEMENT_BLOCKS },
@@ -241,7 +265,10 @@ export function createBlocksConfig(
   return {
     appBlockOwners: appBlocks.owners,
     categories: {
-      glide: { ...SECTION_CATEGORIES.glide, components: [...SECTION_CATEGORIES.glide.components] },
+      zeroDrift: {
+        ...SECTION_CATEGORIES.zeroDrift,
+        components: [...SECTION_CATEGORIES.zeroDrift.components],
+      },
       banners: {
         ...SECTION_CATEGORIES.banners,
         components: [...SECTION_CATEGORIES.banners.components],
@@ -276,20 +303,21 @@ export function createBlocksConfig(
         loadCollections: options.loadCollections,
         loadProduct: options.loadProduct,
       }) as unknown as Pick<Config<BlockProps>['components'], keyof LibraryProps>),
-      ...(glideSections({
+      ...(zeroDriftSections({
         loadProducts,
         loadCollections: options.loadCollections,
         loadProduct: options.loadProduct,
         loadArticles: options.loadArticles,
-      }) as unknown as Pick<Config<BlockProps>['components'], keyof GlideProps>),
+      }) as unknown as Pick<Config<BlockProps>['components'], keyof ZeroDriftProps>),
       ...(modernSections() as unknown as Pick<Config<BlockProps>['components'], keyof ModernProps>),
+      ...(kitSections() as unknown as Pick<Config<BlockProps>['components'], keyof KitProps>),
       ...(customSections({
-        RichTextEditor: options.RichTextEditor,
         loadProduct: options.loadProduct,
+        richtextExtensions: options.richtextExtensions,
       }) as unknown as Pick<Config<BlockProps>['components'], keyof CustomProps>),
-      ...(glideProductSections() as unknown as Pick<
+      ...(zeroDriftProductSections() as unknown as Pick<
         Config<BlockProps>['components'],
-        keyof GlideProductProps
+        keyof ZeroDriftProductProps
       >),
       ...(dynamicSections() as unknown as Pick<Config<BlockProps>['components'], DynamicSection>),
       // Sections of an imported Shopify theme; see ./sections/liquid.tsx.
@@ -297,7 +325,7 @@ export function createBlocksConfig(
         liquidSectionConfig as unknown as Config<BlockProps>['components']['LiquidSection'],
       Hero: heroBlock({ loadProduct: options.loadProduct }),
 
-      // Glide's tabbed-products section; config in ./sections/glide/tabbed-products.tsx.
+      // Zero Drift's tabbed-products section; config in ./sections/zero-drift/tabbed-products.tsx.
       ProductGrid: tabbedProductsSection({
         loadProducts,
         loadCollections: options.loadCollections,
@@ -306,8 +334,8 @@ export function createBlocksConfig(
       FeaturedProducts: {
         label: 'Featured products',
         fields: {
-          kicker: { type: 'text', label: 'Kicker' },
-          heading: { type: 'text', label: 'Heading' },
+          kicker: inlineText('Kicker'),
+          heading: inlineText('Heading'),
           productType: { type: 'text', label: 'Product type (blank = all)' },
           limit: { type: 'number', label: 'Products', min: 1, max: 12 },
           ...frameFields,
@@ -348,7 +376,7 @@ export function createBlocksConfig(
       CollectionGrid: {
         label: 'Collection grid',
         fields: {
-          heading: { type: 'text', label: 'Heading' },
+          heading: inlineText('Heading'),
           collectionHandle: { type: 'text', label: 'Collection handle' },
           limit: { type: 'number', label: 'Products', min: 1, max: 24 },
           columns: { type: 'number', label: 'Columns', min: 2, max: 5 },
@@ -374,7 +402,15 @@ export function createBlocksConfig(
             <TabbedProducts
               heading={heading}
               columns={columns}
-              tabs={[{ label: heading, products: resolved ?? [] }]}
+              headingFollowsTab={false}
+              // The tab's name is also its panel's aria-label, so it needs the stored string;
+              // while the heading is edited on the canvas that is a node, and the handle stands in.
+              tabs={[
+                {
+                  label: typeof heading === 'string' ? heading : props.collectionHandle,
+                  products: resolved ?? [],
+                },
+              ]}
             />
           </SectionFrame>
         ),
@@ -385,8 +421,8 @@ export function createBlocksConfig(
       RichText: {
         label: 'Rich text',
         fields: {
-          heading: { type: 'text', label: 'Heading' },
-          body: richTextField(options.RichTextEditor),
+          heading: inlineText('Heading'),
+          body: inlineRichtextLong('Body', options.richtextExtensions),
           align: {
             type: 'radio',
             label: 'Align',

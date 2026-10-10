@@ -10,6 +10,7 @@ import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import { customizeContent } from '@/data/customize'
 import { themesContent } from '@/data/themes'
+import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 import { prefersReducedMotion, scrollToSection } from '@/lib/customize-canvas-motion'
 import { createCustomizeConfig } from '@/lib/customize-config'
@@ -32,24 +33,38 @@ import { DynamicSourceContext, scopeFor } from '@/lib/dynamic-sources'
 import { useCustomizePreview } from '@/lib/use-customize-preview'
 import { useLiquidTheme } from '@/lib/use-liquid-theme'
 import { partsOf, useTemplateDrafts } from '@/lib/use-template-drafts'
-import ThemePresets from '../theme-presets'
+import type { TemplateChange } from '@/lib/use-template-manager'
+import { useThemeThumbnail } from '@/lib/use-theme-thumbnail'
 import type { PreviewDevice } from '../theme-preview'
-import ThemeSettings from '../theme-settings'
-import type { ThemeItem } from '../theme-types'
+import { previewUrl, type ThemeItem } from '../theme-types'
 import CanvasDock from './canvas-dock'
 import CreateTemplateDialog, { type AlternateKind } from './create-template-dialog'
 import CustomizeHotkeys from './customize-hotkeys'
 import CustomizeLayout from './customize-layout'
 import CustomizeTopBar from './customize-top-bar'
+import EditorLoading from './editor-loading'
 import ImportedThemeSettings from './imported-theme-settings'
 import LiquidCanvasSection from './liquid-canvas-section'
+import PagesPanel from './pages-panel'
+import PanelTitle from './panel-title'
 import ResourcePicker from './resource-picker'
-import TemplatePicker, { type TemplateRef } from './template-picker'
+import TemplatePicker, { type TemplateRef, templateLabel } from './template-picker'
+import ThemePanel from './theme-panel'
 
 type CustomizeEditorProps = {
   theme: ThemeItem
+  /** The storefront origin, for the Preview link. */
+  origin: string
   canPublish: boolean
+  /** Installed app ids, read on the server so Puck mounts once with the real Apps tab. */
+  installedApps: string[]
   initial: { template: TemplateKind; suffix: string; resource: string | null }
+  /** The store being edited: the rail's tile and the left panel's heading. */
+  store: { id: string | null; name: string; domain: string; logoUrl: string | null }
+  /** The signed-in member, for the top bar's avatar. */
+  user: { name: string; email: string }
+  /** AI is set up (the "AI connected" chip) and the assistant is on for this member (AI tab). */
+  ai: { connected: boolean; assistant: boolean }
 }
 
 type Loaded = { ref: TemplateRef; doc: CustomizeDoc; nonce: number }
@@ -62,6 +77,13 @@ const FONT_SAMPLES = `https://fonts.googleapis.com/css2?${THEME_FONT_IDS.map(
 ).join('&')}&display=swap`
 
 const sameRef = (a: TemplateRef, b: TemplateRef) => a.key === b.key && a.suffix === b.suffix
+
+/** How long the first page may take before the loading screen says it could not be reached. */
+const LOAD_TIMEOUT_MS = 20_000
+
+/** The canvas shows the default home page at desktop width: what the Themes page pictures. */
+const isDesktopHome = (loaded: Loaded | null, device: PreviewDevice) =>
+  loaded?.ref.key === 'home' && loaded.ref.suffix === '' && device === 'desktop'
 
 /** Save's only refusal is a connected setting whose source is gone; its message names it. */
 const isSourceError = (err: unknown): err is Error =>
@@ -88,10 +110,20 @@ function revealInserted(action: PuckAction, next: { data: Data }): void {
  * theme; Save commits them, which for the live theme is what shoppers see.
  */
 
-export default function CustomizeEditor({ theme, canPublish, initial }: CustomizeEditorProps) {
+export default function CustomizeEditor({
+  theme,
+  origin,
+  canPublish,
+  installedApps,
+  initial,
+  store,
+  user,
+  ai,
+}: CustomizeEditorProps) {
   // Hooks
   const [record, setRecord] = useState(theme)
   const [settings, setSettings] = useState(theme.settings)
+  const panels = useCopy(customizeContent.panels)
   const [ref, setRef] = useState<TemplateRef>({ key: initial.template, suffix: initial.suffix })
   const [loaded, setLoaded] = useState<Loaded | null>(null)
   const [switching, setSwitching] = useState(false)
@@ -104,44 +136,36 @@ export default function CustomizeEditor({ theme, canPublish, initial }: Customiz
   const [device, setDevice] = useState<PreviewDevice>('desktop')
   const [modePick, setModePick] = useState<'light' | 'dark'>('light')
   const [nonce, setNonce] = useState(0)
-  const [config, setConfig] = useState(() => createCustomizeConfig())
-  // Bumped once the real installed-apps set replaces the empty-set config Puck
-  // first mounted with — see the effect below for why this has to force a
-  // Puck remount rather than rely on the `config` prop changing in place.
-  const [appsVersion, setAppsVersion] = useState(0)
+  /** The first page could not be loaded (an error, or no answer in `LOAD_TIMEOUT_MS`). */
+  const [loadFailed, setLoadFailed] = useState(false)
+  const [attempt, setAttempt] = useState(0)
+  // `<Puck>` only reads `config` at mount, so the installed apps (the Add panel's
+  // Apps tab, and the "app is off" placeholder for blocks from an uninstalled
+  // app) come from the server: the editor mounts once, already right.
+  const [config] = useState(() => createCustomizeConfig(new Set(installedApps)))
   const drafts = useTemplateDrafts(record.id, () => toast.error(copy.draftFailed))
   const preview = useCustomizePreview(ref.key, initial.resource)
   // An imported Shopify theme: section fields from each `{% schema %}`, its head for the canvas.
   const liquidTheme = useLiquidTheme(record.id)
+  // The Themes page's picture of this theme, retaken on Save of the home page.
+  const thumbnail = useThemeThumbnail({
+    themeId: record.id,
+    hasPicture: Boolean(record.thumbnailUrl),
+    onSavedHome: isDesktopHome(loaded, device) && !switching && !templatesDirty,
+  })
 
-  // Which apps this store has installed, for the Add panel's Apps tab and the
-  // storefront-matching "app is off" placeholder for anything already placed
-  // from an app since uninstalled. `<Puck>` only reads its `config` prop at
-  // mount — a later `setConfig` alone does not make it re-derive
-  // `categories`/`components`, so the Apps tab stayed stuck on the
-  // enabled-nothing config it mounted with even after this resolved. Folding
-  // `appsVersion` into the `key` below forces the one-time remount that
-  // actually picks the new config up.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: `drafts` only holds refs; reloading keys on the theme, template, discard nonce and retry.
   useEffect(() => {
     let active = true
-    api.apps.list().then((apps) => {
-      if (!active) return
-      setConfig(createCustomizeConfig(new Set(apps.filter((a) => a.installed).map((a) => a.id))))
-      setAppsVersion((v) => v + 1)
-    })
-    return () => {
-      active = false
-    }
-  }, [])
-
-  // biome-ignore lint/correctness/useExhaustiveDependencies: `drafts` only holds refs; reloading keys on the theme, template and discard nonce.
-  useEffect(() => {
-    let active = true
+    setLoadFailed(false)
+    // Only the first load shows the loading screen; a later switch keeps the page on screen.
+    const timer = window.setTimeout(() => active && setLoadFailed(true), LOAD_TIMEOUT_MS)
     const get = (template: TemplateRef['key'] | 'header' | 'footer', suffix = '') =>
       api.themes.templates.get({ themeId: record.id, template, suffix })
     Promise.all([get('header'), get(ref.key, ref.suffix), get('footer')]).then(
       ([header, main, footer]) => {
         if (!active) return
+        window.clearTimeout(timer)
         const doc = normalizeDoc(
           composeDoc({ header: header.data, main: main.data, footer: footer.data }),
           config,
@@ -152,15 +176,18 @@ export default function CustomizeEditor({ theme, canPublish, initial }: Customiz
         setSwitching(false)
       },
       () => {
+        window.clearTimeout(timer)
         toast.error(themesContent.failed)
         setSwitching(false)
+        if (active) setLoadFailed(true)
       },
     )
     api.themes.templates.list({ themeId: record.id }).then((rows) => active && setAlternates(rows))
     return () => {
       active = false
+      window.clearTimeout(timer)
     }
-  }, [record.id, ref, nonce])
+  }, [record.id, ref, nonce, attempt])
 
   // Section edits are kept as drafts on the server, so leaving only loses a write
   // still in flight, or theme settings (which save with Save).
@@ -190,6 +217,11 @@ export default function CustomizeEditor({ theme, canPublish, initial }: Customiz
     drafts.schedule(parts)
   }
 
+  const handleCreateFor = (kind: AlternateKind) => {
+    setCreatingKind(kind)
+    setCreating('open')
+  }
+
   const handleTemplate = async (next: TemplateRef) => {
     if (sameRef(next, ref)) return
     setSwitching(true)
@@ -197,7 +229,8 @@ export default function CustomizeEditor({ theme, canPublish, initial }: Customiz
     setRef(next)
   }
 
-  const handleSave = async () => {
+  /** Saves the drafts and theme settings; true when it worked. */
+  const handleSave = async (): Promise<boolean> => {
     setSaving(true)
     try {
       await drafts.flush()
@@ -209,9 +242,12 @@ export default function CustomizeEditor({ theme, canPublish, initial }: Customiz
       }
       setTemplatesDirty(false)
       toast.success(copy.saved)
+      if (isDesktopHome(loaded, device)) thumbnail.refresh()
+      return true
     } catch (err) {
       // A connected setting whose source is gone names itself (see dynamic sources).
       toast.error(isSourceError(err) ? err.message : copy.saveFailed)
+      return false
     } finally {
       setSaving(false)
     }
@@ -227,7 +263,9 @@ export default function CustomizeEditor({ theme, canPublish, initial }: Customiz
     toast.success(copy.discarded)
   }
 
+  /** Makes this theme the live one, saving unsaved changes first. */
   const handlePublish = async () => {
+    if ((templatesDirty || settingsDirty) && !(await handleSave())) return
     setPublishing(true)
     try {
       setRecord(await api.themes.publish({ id: record.id }))
@@ -236,6 +274,18 @@ export default function CustomizeEditor({ theme, canPublish, initial }: Customiz
       toast.error(themesContent.library.failed)
     } finally {
       setPublishing(false)
+    }
+  }
+
+  /** The picker renamed, duplicated or deleted an alternate: refresh it, follow the open one. */
+  const handleManaged = (change: TemplateChange) => {
+    api.themes.templates.list({ themeId: record.id }).then(setAlternates, () => undefined)
+    const open = ref.key === change.kind
+    if (change.type === 'renamed' && open && ref.suffix === change.from) {
+      setRef({ key: change.kind, suffix: change.to })
+    } else if (change.type === 'deleted' && open && ref.suffix === change.suffix) {
+      setSwitching(true)
+      setRef({ key: change.kind, suffix: '' })
     }
   }
 
@@ -302,20 +352,24 @@ export default function CustomizeEditor({ theme, canPublish, initial }: Customiz
       saving={saving}
       publishing={publishing}
       canPublish={canPublish}
+      device={device}
+      previewHref={previewUrl(origin, record.previewToken)}
+      aiConnected={ai.connected}
+      user={user}
+      onDevice={setDevice}
       onDiscard={handleDiscard}
       onSave={handleSave}
       onPublish={handlePublish}
       pickers={
         <>
           <TemplatePicker
+            themeId={record.id}
             value={ref}
             alternates={alternates}
             loading={switching}
             onChange={handleTemplate}
-            onCreate={(kind) => {
-              setCreatingKind(kind)
-              setCreating('open')
-            }}
+            onCreate={handleCreateFor}
+            onManaged={handleManaged}
           />
           {preview.kind ? (
             <ResourcePicker
@@ -331,22 +385,27 @@ export default function CustomizeEditor({ theme, canPublish, initial }: Customiz
   )
 
   const settingsPanel = liquidInfo ? (
-    <ImportedThemeSettings themeId={record.id} />
-  ) : (
     <>
-      <div className="border-b border-border px-4 py-4">
-        <ThemePresets theme={settings} onChange={setSettings} />
-      </div>
-      <ThemeSettings theme={settings} mode={mode} onChange={setSettings} />
+      <PanelTitle title={panels.theme} />
+      <ImportedThemeSettings themeId={record.id} />
     </>
+  ) : (
+    <ThemePanel theme={settings} mode={mode} onChange={setSettings} />
   )
+  const previewResource = preview.kind
+    ? {
+        kind: preview.kind,
+        id: preview.resourceId,
+        title: preview.options.find((o) => o.id === preview.resourceId)?.title ?? null,
+      }
+    : null
 
   return (
     <>
       <link rel="stylesheet" href={FONT_SAMPLES} precedence="default" />
       {doc ? (
         <Puck
-          key={`${loaded?.ref.key}.${loaded?.ref.suffix}.${loaded?.nonce}.${appsVersion}`}
+          key={`${loaded?.ref.key}.${loaded?.ref.suffix}.${loaded?.nonce}`}
           config={config}
           data={doc as unknown as Data}
           metadata={metadata}
@@ -365,17 +424,30 @@ export default function CustomizeEditor({ theme, canPublish, initial }: Customiz
                   <CustomizeLayout
                     topBar={topBar}
                     settings={settingsPanel}
+                    pages={
+                      <PagesPanel
+                        themeId={record.id}
+                        value={ref}
+                        alternates={alternates}
+                        onPick={handleTemplate}
+                        onCreate={handleCreateFor}
+                        onManaged={handleManaged}
+                      />
+                    }
                     dock={
                       <CanvasDock
-                        device={device}
                         mode={mode}
                         darkMode={settings.darkMode.enabled}
-                        onDevice={setDevice}
                         onMode={setModePick}
                       />
                     }
                     device={device}
                     loading={switching}
+                    store={store}
+                    templateLabel={templateLabel(ref)}
+                    template={ref.key}
+                    previewResource={previewResource}
+                    aiEnabled={ai.assistant}
                   />
                 </DynamicSourceContext.Provider>
               </PreviewModeContext.Provider>
@@ -383,9 +455,11 @@ export default function CustomizeEditor({ theme, canPublish, initial }: Customiz
           </ThemePreviewContext.Provider>
         </Puck>
       ) : (
-        <div className="flex h-svh items-center justify-center bg-background text-body text-muted-foreground">
-          {themesContent.preview.connecting}
-        </div>
+        <EditorLoading
+          storeName={store.name || record.name}
+          state={loadFailed ? 'failed' : 'loading'}
+          onRetry={() => setAttempt((n) => n + 1)}
+        />
       )}
       {creating === 'closed' ? null : (
         <CreateTemplateDialog

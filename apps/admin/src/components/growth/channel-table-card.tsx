@@ -23,7 +23,7 @@ export default function ChannelTableCard({ rows }: ChannelTableCardProps) {
   const c = copy.columns
 
   return (
-    <Card className="gap-0 p-5">
+    <Card gap="none" inset={5}>
       <p className="text-kit-title text-foreground">{copy.title}</p>
       {rows.length === 0 ? (
         <p className="mt-5 text-kit-body text-muted-foreground">{copy.empty}</p>

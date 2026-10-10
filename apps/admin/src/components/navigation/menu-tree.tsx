@@ -3,6 +3,8 @@
 import { MENU_MAX_LEVELS } from '@commerce/core/navigation-tree'
 import { SortableTree, type SortableTreeLabels } from '@commerce/ui/sortable'
 import { MENU_INDENT_REM, type MenuItem, menusContent } from '@/data/menus'
+import { useCopy } from '@/hooks/use-copy'
+import type { MenuLinkProblem } from './link-problems'
 import MenuAddRow from './menu-add-row'
 import MenuRowContent from './menu-row-content'
 
@@ -13,14 +15,23 @@ type MenuTreeProps = {
   onRemove: (id: string) => void
   /** Opens the new-item dialog; null adds at the top level. */
   onAdd: (parentId: string | null) => void
+  /** Broken or hidden links by item id, from the link check. */
+  problems?: ReadonlyMap<string, MenuLinkProblem> | undefined
 }
 
-const copy = menusContent
-
-const LABELS: SortableTreeLabels = { ...copy.a11y, handle: copy.item.drag }
-
 /** The nestable, draggable list of menu items (Shopify's menu editor), on the shared SortableTree. */
-export default function MenuTree({ items, onChange, onEdit, onRemove, onAdd }: MenuTreeProps) {
+export default function MenuTree({
+  items,
+  onChange,
+  onEdit,
+  onRemove,
+  onAdd,
+  problems,
+}: MenuTreeProps) {
+  // Hooks
+  const copy = useCopy(menusContent)
+  const labels: SortableTreeLabels = { ...copy.a11y, handle: copy.item.drag }
+
   // Render logic
   return (
     <>
@@ -28,7 +39,7 @@ export default function MenuTree({ items, onChange, onEdit, onRemove, onAdd }: M
         items={items}
         onChange={onChange}
         getTitle={(item) => item.title}
-        labels={LABELS}
+        labels={labels}
         maxLevels={MENU_MAX_LEVELS}
         indentRem={MENU_INDENT_REM}
         renderRow={(row) => (
@@ -40,6 +51,7 @@ export default function MenuTree({ items, onChange, onEdit, onRemove, onAdd }: M
             hasChildren={row.hasChildren}
             collapsed={row.collapsed}
             grip={row.handle}
+            problem={problems?.get(row.item.id)}
             onToggle={row.onToggle}
             onEdit={() => onEdit(row.item)}
             onRemove={() => onRemove(row.item.id)}

@@ -94,7 +94,9 @@ export function zoneScore(
   zone: Pick<ShippingZoneInput, 'stateCodes' | 'pincodeRules'>,
   to: ShippingDestination,
 ) {
-  const pin = to.pincode.trim()
+  // One spelling of the PIN code (`560 100`, `560-100`) for every rule (security audit
+  // 2026-09-28 branch, ported 2026-10-06: a space dodged an exclude rule).
+  const pin = to.pincode.replace(/[\s-]/g, '')
   if (zone.pincodeRules.some((r) => r.mode === 'exclude' && pincodeMatches(r.pattern, pin))) {
     return null
   }

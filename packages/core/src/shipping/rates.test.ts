@@ -128,6 +128,17 @@ describe('zone matching', () => {
     expect(pickZone([india, south, blrZone], to)?.id).toBe('south')
   })
 
+  // Security audit 2026-09-28 branch, ported 2026-10-06: a space in the PIN dodged an exclude.
+  it('applies exclude rules to a spaced or hyphenated PIN code too', () => {
+    const both = zone({
+      stateCodes: ['KA'],
+      pincodeRules: [{ pattern: '560100', mode: 'exclude' }],
+    })
+    for (const pincode of ['560 100', '560-100', ' 560100 ']) {
+      expect(zoneScore(both, { stateCode: 'KA', pincode }), pincode).toBeNull()
+    }
+  })
+
   it('treats a zone with only excludes as everywhere else', () => {
     const notNe = zone({ pincodeRules: [{ pattern: '79*', mode: 'exclude' }] })
     expect(zoneScore(notNe, { stateCode: 'DL', pincode: '110001' })).toBe(0)

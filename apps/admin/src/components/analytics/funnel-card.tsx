@@ -17,7 +17,7 @@ export default function FunnelCard({ steps }: FunnelCardProps) {
   const shareLabel = steps[0]?.value === widest ? c.ofSessions : c.ofPeak
 
   return (
-    <Card className="gap-0 p-5">
+    <Card gap="none" inset={5}>
       <p className="text-kit-title text-foreground">{c.title}</p>
       {empty ? (
         <p className="mt-5 text-kit-body text-muted-foreground">{c.help}</p>

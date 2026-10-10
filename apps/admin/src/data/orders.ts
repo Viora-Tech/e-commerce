@@ -45,6 +45,26 @@ export const ordersContent = {
   title: 'Orders',
   /* Frame 5:2353: "Order List" heading, Add Order + More Action, four tiles, tab group. */
   heading: 'Order list',
+  /** The plain-language line under the page title: counts only, zeros left out. */
+  summary: (total: number, toShip: number, pendingUpi: number) =>
+    [
+      `${total} ${total === 1 ? 'order' : 'orders'}`,
+      toShip > 0 ? `${toShip} need shipping` : null,
+      pendingUpi > 0
+        ? `${pendingUpi} UPI ${pendingUpi === 1 ? 'payment' : 'payments'} pending`
+        : null,
+    ]
+      .filter(Boolean)
+      .join(' · '),
+  /** The four stat cards above the list. */
+  tiles: {
+    newToday: { label: 'New orders today', trendNote: 'vs yesterday' },
+    ready: { label: 'Ready to ship', note: 'Paid and waiting on a courier' },
+    pendingUpi: { label: 'Pending UPI', note: 'Awaiting the transfer' },
+    sales: { label: 'Sales this week', trendNote: 'vs last week' },
+  },
+  noResults: { heading: 'No orders match', body: 'Try another search, or clear the filters.' },
+  loadFailed: 'Could not load orders',
   addOrder: 'Add order',
   moreActions: 'More actions',
   menu: { drafts: 'Draft orders', abandoned: 'Abandoned checkouts', returns: 'Returns' },
@@ -91,11 +111,11 @@ export const ordersContent = {
   } satisfies Record<OrderMark, string>,
   guest: 'Guest',
   columns: {
-    order: 'Order id',
+    order: 'Order',
     product: 'Product',
     date: 'Date',
     customer: 'Customer',
-    total: 'Price',
+    total: 'Total',
     payment: 'Payment',
     fulfilment: 'Fulfilment',
     status: 'Status',
@@ -129,6 +149,7 @@ export const orderDetailContent = {
     cancel: 'Cancel order',
     refund: 'Refund',
     print: 'Print packing slip',
+    printShort: 'Print',
     more: 'More actions',
   },
   moved: (status: string) => `Order marked as ${status}`,
@@ -169,6 +190,7 @@ export const orderDetailContent = {
     heading: 'Unfulfilled',
     fulfilled: 'Fulfilled',
     ofQuantity: (done: number, total: number) => `${done} of ${total} packed`,
+    itemsCount: (n: number) => `${n} ${n === 1 ? 'item' : 'items'}`,
     waybill: 'Tracking',
   },
   fulfilDialog: {
@@ -372,6 +394,8 @@ export const orderDetailContent = {
     state: 'State',
     pincode: 'PIN code',
     copyAll: 'Copy all',
+    call: 'Call',
+    whatsapp: 'WhatsApp',
     copyAllHint:
       'Name, phone, address, city, state and PIN code, one per line, ready for a courier app',
     allDetails: 'Customer details',
@@ -431,6 +455,50 @@ const IMPORTED_STATUS: Record<string, string> = {
 const PLATFORMS: Record<string, string> = { shopify: 'Shopify' }
 
 /** The card on an order brought over from another platform. */
+/** The order page's "Ships from" card: one parcel per warehouse. */
+export const parcelsCardContent = {
+  title: (count: number) => (count === 1 ? 'Ships from' : `Ships in ${count} parcels`),
+  parcel: (position: number) => `Parcel ${position}`,
+  from: (place: string) => `From ${place}`,
+  billedUnder: (gstin: string) => `GST ${gstin}`,
+  units: (count: number) => (count === 1 ? '1 item' : `${count} items`),
+  status: {
+    open: 'To pack',
+    on_hold: 'On hold (pre-order)',
+    fulfilled: 'Packed',
+    cancelled: 'Cancelled',
+  },
+  needsTransfer: 'Needs stock moved',
+  needsTransferHelp:
+    'This location did not have all of it when the order was placed. Move the stock here before packing.',
+  packed: (done: number, of: number) => `${done} of ${of} packed`,
+}
+
+/** The order page's Profit card (order/profit.ts in core). */
+export const profitCardContent = {
+  title: 'Profit',
+  netSales: 'Net sales (without GST)',
+  goods: 'Cost of goods',
+  courier: 'Courier charges',
+  fees: 'Payment fees',
+  rto: 'RTO costs',
+  profit: 'Profit',
+  margin: (percent: string) => `${percent} margin`,
+  notes: {
+    costEstimated: 'Some item costs were filled in after the sale from the cost at that time.',
+    costMissing: 'Some items have no cost yet, so they count as free. Add the cost on the product.',
+    courierMissing: 'The courier charge is not known yet. Add it below.',
+    feeFromRate: 'Payment fees use your rates in Settings › Costs for profit.',
+    feeMissing: 'No fee rate is set for this payment method.',
+  },
+  setRates: 'Set fee rates',
+  courierLabel: 'Courier charge (₹)',
+  courierSave: 'Save',
+  courierSaved: 'Courier charge saved',
+  courierInvalid: 'Type an amount in rupees, like 65 or 65.50.',
+  failed: 'Could not save',
+}
+
 export const importedOrderContent = {
   title: (platform: string) => `Imported from ${PLATFORMS[platform] ?? platform}`,
   body: 'A historical order kept as a record. It did not change stock, send messages or create invoices, and it cannot be fulfilled or refunded here.',

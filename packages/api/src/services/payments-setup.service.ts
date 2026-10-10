@@ -14,6 +14,7 @@ import {
   type PaymentSettings,
   parsePaymentSettings,
   recoveryUrl,
+  storefrontOriginFor,
 } from '@commerce/core'
 import { getRegistries } from '@commerce/core/registries'
 import type { StoreTx } from '@commerce/db'
@@ -40,6 +41,7 @@ export type PaymentsEnv = {
   previousSecrets: string[]
   /** Public worker URL, where gateways post payment updates. */
   workerUrl: string
+  /** STOREFRONT_URL: the fallback when the store has no live primary domain. */
   storefrontUrl: string
   /** True when RAZORPAY_OAUTH_CLIENT_ID and _SECRET are set. */
   razorpayOAuth: boolean
@@ -510,5 +512,6 @@ export async function paymentTestOrderLink(
   env: Pick<PaymentsEnv, 'secret' | 'storefrontUrl'>,
 ): Promise<string> {
   const cartId = await createPaymentTestCart({ storeId, tx })
-  return recoveryUrl(cartId, env.secret, env.storefrontUrl)
+  // The checkout (and the gateway's return to it) must run on a host that serves this store.
+  return recoveryUrl(cartId, env.secret, await storefrontOriginFor(tx, storeId, env.storefrontUrl))
 }

@@ -19,6 +19,7 @@ import {
   refreshWallet,
   resolveOrderNumbers,
   schedulePickupForStore,
+  shipmentCounts,
 } from '../services/shipments-workspace.service'
 
 const ndrAction = z.enum(['reattempt', 'change_address', 'rto'])
@@ -42,6 +43,9 @@ export const shipmentsRouter = {
       }),
     )
     .handler(({ context, input }) => listShipments(context.tx, input)),
+
+  /** Rows per Shipments tab, plus "booked today" and "need attention" for the summary line. */
+  counts: can(permissions.ORDERS_READ).handler(({ context }) => shipmentCounts(context.tx)),
 
   /** Ready to ship tab: paid, unfulfilled orders - the main Shopify-style booking flow. */
   readyToShip: can(permissions.ORDERS_READ)

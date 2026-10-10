@@ -3,10 +3,62 @@ import type { CollectionField, CollectionOp, CollectionSort } from '@commerce/co
 /** Frame 5:3936 "Categories": every string the collections screens show. */
 export const collectionsListContent = {
   title: 'Collections',
+  summary: (total: number, automatic: number, empty: number) =>
+    [
+      `${total} ${total === 1 ? 'collection' : 'collections'}`,
+      `${automatic} automatic`,
+      `${empty} empty`,
+    ].join(' · '),
+  list: {
+    tiles: {
+      all: 'All collections',
+      automatic: 'Automatic',
+      automaticNote: 'Rule based',
+      manual: 'Manual',
+      manualNote: 'Hand picked',
+      empty: 'Empty',
+      emptyNote: 'Nothing inside yet',
+    },
+    tabs: { all: 'All', automatic: 'Automatic', manual: 'Manual', empty: 'Empty' },
+    resource: { singular: 'collection', plural: 'collections' },
+    search: 'Search collections',
+    columns: {
+      collection: 'Collection',
+      products: 'Products',
+      type: 'Type',
+      visibility: 'Visibility',
+      updated: 'Updated',
+    },
+    kind: { manual: 'Manual', automatic: 'Automatic' },
+    visibility: { active: 'Online store', draft: 'Hidden' },
+    ruleField: {
+      title: 'Title',
+      type: 'Type',
+      vendor: 'Vendor',
+      tag: 'Tag',
+      price: 'Price',
+    },
+    ruleOp: {
+      eq: 'is',
+      neq: 'is not',
+      contains: 'contains',
+      starts_with: 'starts with',
+      gt: '>',
+      lt: '<',
+    },
+    row: { open: 'Open', edit: 'Edit collection', delete: 'Delete collection' },
+    noRules: 'No conditions yet',
+    deleted: 'Collection deleted',
+    deleteFailed: 'Could not delete the collection',
+    empty: {
+      heading: 'No collections match',
+      body: 'Try another search or tab.',
+    },
+  },
   heading: 'Discover',
   add: 'Add product',
   moreActions: 'More actions',
-  newCollection: 'New collection',
+  newCollection: 'Create collection',
   allCollections: 'All collections',
   searchProducts: 'Search your product',
   searchCollections: 'Search collections',
@@ -159,4 +211,91 @@ export const productCollectionsCardContent = {
   automaticLabel: 'Added automatically',
   automaticHelp: 'Smart collections whose rules match this product.',
   automaticNone: 'Not added to any smart collection yet.',
+} as const
+
+/** Frames "Collection / Detail" (manual 293:22374, automatic 293:20872): card and column copy. */
+export const collectionDetailContent = {
+  back: 'Collections',
+  preview: 'Preview',
+  more: 'More actions',
+  newTitle: 'New collection',
+  summary: (products: number, updated: string | null) =>
+    [
+      `${products} ${products === 1 ? 'product' : 'products'}`,
+      updated ? `Updated ${updated}` : null,
+    ]
+      .filter(Boolean)
+      .join(' · '),
+  newSummary: 'Give it a name, then choose how products get in.',
+  titleCard: 'Title and description',
+  image: {
+    heading: 'Collection image',
+    replace: 'Replace',
+    add: 'Add image',
+    remove: 'Remove image',
+    none: 'No image yet',
+  },
+  visibility: {
+    heading: 'Visibility',
+    chipOn: 'Online store',
+    chipOff: 'Hidden',
+    label: 'Online store',
+    help: 'Shoppers can browse this collection',
+    helpOff: 'Hidden from shoppers',
+  },
+  type: {
+    heading: 'Collection type',
+    manual: 'Manual',
+    manualHelp: 'You pick each product and set the order.',
+    automatic: 'Automatic',
+    automaticHelp: 'Products are added when they match your rules.',
+    locked: 'The type is locked after you create the collection.',
+    choose: 'Choose how products get into this collection.',
+  },
+  seo: {
+    heading: 'Search engine listing',
+    edit: 'Edit',
+    done: 'Done',
+    fallback: 'Add a title and description to see how this page may appear in search.',
+  },
+  conditions: {
+    heading: 'Conditions',
+    help: 'Products that match these rules are added automatically.',
+    mustMatch: 'Products must match',
+    all: 'all conditions',
+    any: 'any condition',
+    add: 'Add another condition',
+    remove: 'Remove condition',
+    matches: (n: number) => `${n} ${n === 1 ? 'product matches' : 'products match'}`,
+    counting: 'Counting products',
+  },
+  products: {
+    heading: 'Products in this collection',
+    add: 'Add products',
+    search: 'Search in this collection',
+    sort: 'Sort',
+    columns: { product: 'Product', status: 'Status', stock: 'Stock', price: 'Price' },
+    inStock: (n: number) => `${n} in stock`,
+    outOfStock: 'Out of stock',
+    open: 'Open product',
+    remove: 'Remove from collection',
+    reorder: 'Drag to reorder',
+    emptyManual: 'No products yet',
+    emptyManualBody: 'Add products to build this collection.',
+    emptyAutomatic: 'No products match yet',
+    emptyAutomaticBody: 'Products appear here once they match your conditions.',
+    emptySearch: 'No products match your search',
+    automaticNote: 'Saved collections update on their own when products change.',
+    sortLabels: {
+      instructions:
+        'Press space to pick up a product, arrow keys to move it, space again to drop it.',
+      handle: (title: string) => `Move ${title}`,
+      picked: (title: string) => `Picked up ${title}`,
+      moved: (title: string, position: number, total: number) =>
+        `${title} moved to position ${position} of ${total}`,
+      dropped: (title: string, position: number, total: number) =>
+        `${title} dropped at position ${position} of ${total}`,
+      cancelled: (title: string) => `Move of ${title} cancelled`,
+    },
+  },
 } as const

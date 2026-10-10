@@ -1,4 +1,4 @@
-import { gstRegistration, newId, order, refund, store } from '@commerce/db'
+import { fulfillmentOrder, gstRegistration, newId, order, refund, store } from '@commerce/db'
 import { sql } from 'drizzle-orm'
 import {
   check,
@@ -104,6 +104,12 @@ export const invoice = pgTable(
     refundId: uuid('refund_id').references(() => refund.id),
     /** The GSTIN that issues it: the order's, or for a credit note its invoice's. */
     gstRegistrationId: gstRegistrationId(),
+    /**
+     * The parcel a tax invoice bills (or a credit note corrects): an order shipped from two
+     * warehouses gets one invoice per parcel, each under its parcel's GSTIN. Null on order-level
+     * documents (order confirmation, packing slip, vouchers) and on older documents.
+     */
+    fulfillmentOrderId: uuid('fulfillment_order_id').references(() => fulfillmentOrder.id),
     kind: text('kind', { enum: INVOICE_KINDS }).notNull(),
     status: text('status', { enum: INVOICE_STATUSES }).notNull().default('issued'),
     /** GST serial; null on packing slips and order confirmations. */
@@ -157,14 +163,23 @@ export const invoice = pgTable(
         t.number,
       )
       .where(sql`${t.number} is not null`),
-    // Idempotency: one invoice, slip or confirmation per order...
-    // A cancelled invoice frees the order for a fresh one.
+    // Idempotency: one invoice per parcel, one slip or confirmation per order...
+    // A cancelled invoice frees the parcel or order for a fresh one.
     uniqueIndex('invoice_order_kind_live')
-      .on(t.storeId, t.orderId, t.kind)
+      .on(
+        t.storeId,
+        t.orderId,
+        sql`coalesce(${t.fulfillmentOrderId}, '00000000-0000-0000-0000-000000000000'::uuid)`,
+        t.kind,
+      )
       .where(sql`${t.kind} <> 'credit_note' and ${t.status} <> 'cancelled'`),
-    // ...and one credit note per refund.
+    // ...and one credit note per refund and parcel (a split order's refund credits each GSTIN).
     uniqueIndex('invoice_refund_unique')
-      .on(t.storeId, t.refundId)
+      .on(
+        t.storeId,
+        t.refundId,
+        sql`coalesce(${t.fulfillmentOrderId}, '00000000-0000-0000-0000-000000000000'::uuid)`,
+      )
       .where(sql`${t.refundId} is not null`),
     index('invoice_store_issued').on(t.storeId, t.issuedAt),
   ],

@@ -28,7 +28,7 @@ describe('searchSettings', () => {
     expect(first('data request')?.href).toBe('/settings/privacy/requests')
     expect(first('r2')?.href).toBe('/content/files/storage')
     expect(first('dark mode')?.href).toBe('/account/appearance')
-    expect(first('hindi')?.href).toBe('/account')
+    expect(first('hindi')?.href).toBe('/account/language')
     expect(first('sender')?.href).toBe('/settings/notifications#notifications-sender')
   })
 

@@ -3,15 +3,27 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@comm
 import type { themeImportContent } from '@/data/theme-import'
 
 type ImportReportPagesProps = {
-  copy: (typeof themeImportContent)['report']
+  copy: Copy
   templates: TemplateReport[]
+}
+
+type Copy = (typeof themeImportContent)['report']
+
+/** A template's name for merchants; an alternate (`page.about`) as "Pages: about". */
+function pageName(copy: Copy, name: string): string {
+  const names = copy.pageNames as Record<string, string>
+  const known = names[name]
+  if (known) return known
+  const [base = '', ...rest] = name.split('.')
+  const page = names[base]
+  return page && rest.length > 0 ? copy.alternate(page, rest.join('.')) : name
 }
 
 /** Which pages use the theme's own sections and which use ours inside its header and footer. */
 export default function ImportReportPages({ copy, templates }: ImportReportPagesProps) {
   // Render logic
   return (
-    <Card className="gap-0 p-0">
+    <Card gap="none" inset="none">
       <CardHeader className="border-b border-border px-5 py-4">
         <CardTitle>{copy.pagesHeading}</CardTitle>
         <CardDescription>{copy.pagesBody}</CardDescription>
@@ -24,7 +36,7 @@ export default function ImportReportPages({ copy, templates }: ImportReportPages
               className="flex flex-wrap items-center justify-between gap-2 px-5 py-3"
             >
               <span className="text-body font-medium text-foreground">
-                {copy.pageNames[t.name] ?? t.name}
+                {pageName(copy, t.name)}
               </span>
               <span className="text-body text-muted-foreground">{copy.pages[t.status]}</span>
             </li>

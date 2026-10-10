@@ -1,23 +1,26 @@
 import {
   address,
   customer,
-  inventoryLevel,
   notification,
   order,
   orderLine,
   orderNote,
   payment,
   product,
-  sellableLevel,
   store,
   variant,
 } from '@commerce/db'
 import { and, desc, eq, inArray, sql } from 'drizzle-orm'
 import { z } from 'zod'
 import type { StoreContext } from '../context'
-import { CommerceError, OutOfStock } from '../errors'
+import { CommerceError } from '../errors'
+import { StoreAddressSchema } from '../settings/general'
 import { assertCustomerInStore } from '../store-scope'
+import { chargedGstRate, parseStoreTax } from '../tax/settings'
+import { createFulfillmentOrders } from './fulfillment-orders'
+import { taxParcels } from './parcel-tax'
 import { recomputeOrderStatuses } from './recompute'
+import { routeAndReserve } from './routing-service'
 
 /**
  * Draft orders: an order a merchant builds by hand (phone order, WhatsApp
@@ -242,13 +245,27 @@ async function setDraftNote(ctx: StoreContext, orderId: string, body: string) {
   }
 }
 
+/** The drafts list's tabs after "All" (`?status=`). */
+export const DRAFT_LIST_STATUSES = ['open', 'invoice_sent'] as const
+export type DraftListStatus = (typeof DRAFT_LIST_STATUSES)[number]
+
 export async function listDrafts(
   ctx: StoreContext,
-  input: { page: number; perPage: number; search?: string | undefined },
+  input: {
+    page: number
+    perPage: number
+    search?: string | undefined
+    status?: DraftListStatus | undefined
+  },
 ): Promise<{ items: DraftListItem[]; total: number }> {
   const search = input.search?.trim()
+  const invoiceSent = sql`exists (
+    select 1 from notification n
+    where n.order_id = ${order.id} and n.template = 'draft_invoice' and n.status = 'sent')`
   const where = and(
     eq(order.status, 'draft'),
+    input.status === 'open' ? sql`not ${invoiceSent}` : undefined,
+    input.status === 'invoice_sent' ? invoiceSent : undefined,
     search
       ? sql`(${order.email} ilike ${`%${search}%`} or ${customer.name} ilike ${`%${search}%`} or cast(${order.number} as text) like ${`%${search}%`})`
       : undefined,
@@ -307,38 +324,91 @@ export async function convertDraft(
   const lines = await ctx.tx.select().from(orderLine).where(eq(orderLine.orderId, id))
   if (lines.length === 0) throw new DraftEmpty(id, ctx.storeId)
 
-  for (const line of lines) {
-    /* Untracked variants are never held, as in placeOrder, so release has nothing to undo. */
-    const [v] = await ctx.tx
-      .select({ trackInventory: variant.trackInventory })
-      .from(variant)
-      .where(eq(variant.id, line.variantId))
-    if (v && !v.trackInventory) continue
-    const held = await ctx.tx
-      .update(inventoryLevel)
-      .set({ reserved: sql`${inventoryLevel.reserved} + ${line.quantity}` })
-      .where(
-        and(
-          eq(inventoryLevel.variantId, line.variantId),
-          sellableLevel,
-          sql`${inventoryLevel.onHand} - ${inventoryLevel.reserved} >= ${line.quantity}`,
-        ),
-      )
-      .returning({ variantId: inventoryLevel.variantId })
-    /* An untracked variant has no inventory row; only a tracked, short one comes back empty. */
-    if (held.length === 0) {
-      const [level] = await ctx.tx
-        .select({ variantId: inventoryLevel.variantId })
-        .from(inventoryLevel)
-        .where(and(eq(inventoryLevel.variantId, line.variantId), sellableLevel))
-      if (level) throw new OutOfStock(line.variantId, ctx.storeId)
-    }
-  }
+  /* Routed and held like a checkout (order/routing.ts), to the draft's shipping state; the
+     stock guard queues two conversions, so they cannot oversell. Drafts never pre-order. */
+  const [shipTo] = o.shippingAddressId
+    ? await ctx.tx
+        .select({ stateCode: address.stateCode })
+        .from(address)
+        .where(eq(address.id, o.shippingAddressId))
+    : []
+  const { parcels } = await routeAndReserve(ctx, {
+    lines: lines.map((l) => ({
+      key: l.id,
+      variantId: l.variantId,
+      quantity: l.quantity,
+      giftCard: l.giftCard,
+      preorder: null,
+    })),
+    buyerState: shipTo?.stateCode ?? null,
+  })
+  /* Billed like a checkout: each parcel's GST from its own GSTIN, the order's their sum. A
+     draft with no shipping state is split as IGST (it cannot be proven local). */
+  const [s] = await ctx.tx
+    .select({ address: store.address, gstRatePercent: store.gstRatePercent, apps: store.apps })
+    .from(store)
+    .where(eq(store.id, ctx.storeId))
+  const storeTax = parseStoreTax(s?.apps)
+  const storeAddress = StoreAddressSchema.safeParse(s?.address ?? {})
+  const byId = new Map(lines.map((l) => [l.id, l]))
+  const billed = await taxParcels(ctx.tx, {
+    parcels,
+    lineOf: (key, quantity) => {
+      const line = byId.get(key)
+      return {
+        grossPaise: quantity * (line?.unitPricePaise ?? 0),
+        ratePercent:
+          !line || line.giftCard
+            ? 0
+            : chargedGstRate(line.gstRatePercent ?? s?.gstRatePercent ?? 18, storeTax),
+      }
+    },
+    discountPaise: o.discountPaise,
+    adjustmentPaise: o.paymentAdjustmentPaise,
+    shippingPaise: o.shippingPaise,
+    shipToState: shipTo?.stateCode ?? null,
+    storeState: storeAddress.success ? storeAddress.data.state : null,
+  })
+  await createFulfillmentOrders(ctx, {
+    orderId: id,
+    plans: parcels.map((p, i) => ({
+      locationId: p.locationId,
+      status: p.status,
+      needsTransfer: p.needsTransfer,
+      money: billed.money[i],
+      lines: p.lines.map((l) => ({
+        orderLineId: l.key,
+        quantity: l.quantity,
+        fulfilledQuantity: 0,
+      })),
+    })),
+    fallbackRegistrationId: o.gstRegistrationId,
+  })
+
+  // Cost at sale is the variant's cost when the draft becomes an order (order/profit.ts).
+  await ctx.tx
+    .update(orderLine)
+    .set({
+      costAtSalePaise: sql`(select v.cost_paise from variant v where v.id = ${orderLine.variantId})`,
+    })
+    .where(and(eq(orderLine.orderId, id), eq(orderLine.giftCard, false)))
 
   const method = opts.paymentMethod ?? o.paymentMethod ?? 'manual'
   const [updated] = await ctx.tx
     .update(order)
-    .set({ status: 'open', paymentMethod: method, placedAt: new Date() })
+    .set({
+      status: 'open',
+      paymentMethod: method,
+      placedAt: new Date(),
+      ...(billed.tax
+        ? {
+            taxPaise: billed.tax.taxPaise,
+            taxBreakdown: billed.tax,
+            gstRegistrationId: billed.origin.gstRegistrationId,
+            taxOrigin: billed.origin,
+          }
+        : {}),
+    })
     .where(eq(order.id, id))
     .returning()
   await ctx.tx.insert(payment).values({

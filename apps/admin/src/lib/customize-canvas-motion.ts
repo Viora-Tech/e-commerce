@@ -226,7 +226,7 @@ const MAX_WAIT_FRAMES = 60
  */
 export function scrollToSection(id: string, reducedMotion: boolean): void {
   // Selecting a row also dispatches Puck's own `setUi`, which re-renders the
-  // canvas's selection chrome (SectionOverlay) a tick later — scrolling in
+  // canvas's selection chrome (BlockToolbar) a tick later — scrolling in
   // the same call stack raced that re-render and was silently un-done before
   // it ever painted. Waiting a frame lets that settle first. A section that
   // was only just inserted may take a few more frames to render inside the

@@ -11,9 +11,12 @@ const PAGE_TITLES: [prefix: string, title: string][] = [
   ['/orders/returns', 'Returns'],
   ['/products', 'Products'],
   ['/products/collections', 'Collections'],
-  ['/products/inventory', 'Inventory'],
-  ['/products/purchase-orders', 'Purchase orders'],
-  ['/products/transfers', 'Transfers'],
+  ['/stock', 'Stock'],
+  ['/stock/inventory', 'Inventory'],
+  ['/stock/purchase-orders', 'Purchase orders'],
+  ['/stock/transfers', 'Transfers'],
+  ['/stock/inbound-shipments', 'Inbound shipments'],
+  ['/stock/suppliers', 'Suppliers'],
   ['/products/gift-cards', 'Gift cards'],
   ['/customers', 'Customers'],
   ['/customers/segments', 'Segments'],
@@ -47,6 +50,11 @@ const PAGE_TITLES: [prefix: string, title: string][] = [
   ['/settings/invoices', 'Invoices'],
   ['/content/files/storage', 'File storage'],
   ['/account', 'Account'],
+  ['/account/security', 'Sign-in & security'],
+  ['/account/sessions', 'Sessions'],
+  ['/account/notifications', 'Notifications'],
+  ['/account/stores', 'Stores'],
+  ['/account/language', 'Language & region'],
   ['/account/appearance', 'Appearance'],
   ['/dev', 'Developer'],
 ]
@@ -73,7 +81,7 @@ export function pageTitleFor(pathname: string): string {
  * Every other page (lists, details, settings sections) renders its own PageHeader, so the
  * frame adds nothing and the title appears once.
  */
-const UNHEADED = ['/content', '/content/menus', '/content/menus/redirects', '/online-store/pages']
+const UNHEADED: string[] = []
 
 /** True when the page draws its own h1 (PageHeader, KitListPage or the dashboard). */
 export function hasOwnHeading(pathname: string): boolean {

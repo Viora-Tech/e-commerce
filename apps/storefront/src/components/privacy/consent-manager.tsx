@@ -1,6 +1,6 @@
 'use client'
 
-import { type CookieBannerSettings, GlideCookieBanner } from '@commerce/blocks'
+import { type CookieBannerSettings, ZeroDriftCookieBanner } from '@commerce/blocks'
 import {
   allowedTags,
   CONSENT_COOKIE,
@@ -11,8 +11,10 @@ import {
   encodeConsent,
   type StoredConsent,
 } from '@commerce/core/consent'
+import { type UmamiTracker, umamiAllowed } from '@commerce/plugin-umami/settings'
 import { useEffect, useState } from 'react'
 import TrackingTags from '@/components/analytics/tracking-tags'
+import UmamiScript from '@/components/analytics/umami-script'
 import VisitBeacon from '@/components/analytics/visit-beacon'
 import CookieBanner from '@/components/privacy/cookie-banner'
 import { consentContent } from '@/data/online-store'
@@ -28,6 +30,11 @@ type ConsentManagerProps = {
   initial: StoredConsent | null
   /** This request's script CSP nonce; the tracking tags need it to run. */
   nonce?: string | undefined
+  /**
+   * The Umami app's tracker, when installed and set up. Cookieless, so the store may let it
+   * count visitors who have not answered yet (`waitForConsent: false`); a no always stops it.
+   */
+  umami?: UmamiTracker | null | undefined
   /**
    * The footer group's CookieBanner section (its look and labels), when the theme has one.
    * Only the banner changes: the cookie, the version check and what each answer loads do not.
@@ -51,10 +58,11 @@ function remember(consent: Consent, version: number): void {
 
 /**
  * The cookie banner (DPDP: necessary always on, analytics and marketing only
- * after a yes) and everything it gates: our own visit beacon (analytics), GA4
- * and Tag Manager (analytics) and the Meta pixel (marketing). Nothing optional
- * renders before consent; each loads the moment its category is allowed,
- * without a reload. A choice made for an older banner version does not count.
+ * after a yes) and everything it gates: our own visit beacon, GA4, Tag Manager and
+ * the Umami app's tracker (analytics) and the Meta pixel (marketing). Nothing
+ * optional renders before consent, except Umami (cookieless) when the store chose
+ * not to wait; each loads the moment its category is allowed, without a reload,
+ * and a no stops them all. A choice made for an older banner version does not count.
  */
 export default function ConsentManager({
   tracking,
@@ -64,6 +72,7 @@ export default function ConsentManager({
   nonce,
   appearance,
   themeBanner,
+  umami,
 }: ConsentManagerProps) {
   // Hooks
   const [consent, setConsent] = useState<Consent | null>(currentConsent(initial, bannerVersion))
@@ -112,8 +121,9 @@ export default function ConsentManager({
     <>
       {consent?.analytics ? <VisitBeacon /> : null}
       <TrackingTags {...tags} nonce={nonce} />
+      {umami && umamiAllowed(umami, consent) ? <UmamiScript tracker={umami} nonce={nonce} /> : null}
       {asking && appearance ? (
-        <GlideCookieBanner
+        <ZeroDriftCookieBanner
           {...appearance}
           storeMessage={bannerMessage}
           initial={current}

@@ -15,9 +15,9 @@ import VideoElement, { type VideoElementProps } from '../components/custom/video
 import { CUSTOM_ICON_NAMES } from '../custom-icons'
 import { customSectionsContent as copy } from '../data/custom-sections'
 import { colourChoice, component, f, labels, px, responsive, yesNo } from './custom-fields'
-import { imageField, linkField } from './framed'
+import { imageField, inlineLinkField, linkField } from './framed'
+import { inlineRichtextLong, inlineText, type RichtextExtensions } from './inline-fields'
 import type { SingleProductLoader } from './library'
-import { type RichTextFieldEditor, richTextField } from './rich-text-field'
 
 export const ELEMENT_BLOCKS = [
   'Heading',
@@ -35,7 +35,7 @@ export const ELEMENT_BLOCKS = [
 export type ElementBlockType = (typeof ELEMENT_BLOCKS)[number]
 
 type Options = {
-  RichTextEditor?: RichTextFieldEditor | undefined
+  richtextExtensions?: RichtextExtensions | undefined
   loadProduct?: SingleProductLoader | undefined
 }
 
@@ -47,7 +47,7 @@ export function customElementBlocks(
     Heading: component(
       labels.Heading,
       {
-        text: { type: 'text', label: f.text },
+        text: inlineText(f.text),
         level: {
           type: 'select',
           label: f.level,
@@ -63,7 +63,7 @@ export function customElementBlocks(
 
     Text: component(
       labels.Text,
-      { body: richTextField(options.RichTextEditor, f.body) },
+      { body: inlineRichtextLong(f.body, options.richtextExtensions) },
       { body: copy.defaults.text },
       ({ puck: _puck, ...props }) => <TextElement {...(props as unknown as TextProps)} />,
     ),
@@ -100,7 +100,7 @@ export function customElementBlocks(
     Button: component(
       labels.Button,
       {
-        button: linkField(f.button),
+        button: inlineLinkField(f.button),
         variant: {
           type: 'select',
           label: f.style,
@@ -181,7 +181,7 @@ export function customElementBlocks(
     Badge: component(
       labels.Badge,
       {
-        text: { type: 'text', label: f.badgeText },
+        text: inlineText(f.badgeText),
         tone: {
           type: 'select',
           label: f.tone,

@@ -15,6 +15,11 @@ export type GlobePalette = {
   borderDot: Rgb01
 }
 
+/** The Home globe's deep navy (Figma 227:549): the brand blue at about a third. */
+function deep(c: Rgb01): Rgb01 {
+  return c.map((v) => v * 0.38) as Rgb01
+}
+
 function clamp01(v: number): number {
   return Math.min(1, Math.max(0, v))
 }
@@ -42,7 +47,7 @@ export type GlobeLookColors = {
  * whole dashboard uses, so the merchant's accent and the light/dark theme both apply; the other
  * presets are fixed colours, overridable per-channel by the custom pickers. Shared by both
  * globes (the cobe Home card always calls this with no `look`, i.e. "Store accent"). */
-export function readPalette(dark: boolean, look?: GlobeLookColors): GlobePalette {
+export function readPalette(dark: boolean, look?: GlobeLookColors, brand = false): GlobePalette {
   const fallbackBase: Rgb01 = dark ? [0.45, 0.45, 0.47] : [0.6, 0.6, 0.62]
   const fallbackPrimary: Rgb01 = dark ? [0.19, 0.82, 0.34] : [0.31, 0.65, 0.46]
   const theme = look?.theme ?? 'accent'
@@ -51,8 +56,12 @@ export function readPalette(dark: boolean, look?: GlobeLookColors): GlobePalette
   const [base, ocean, accent]: [Rgb01, Rgb01, Rgb01] =
     theme === 'accent'
       ? [
-          readCssColorVar('--muted-foreground', fallbackBase),
-          readCssColorVar('--muted-foreground', fallbackBase),
+          brand
+            ? deep(readCssColorVar('--primary', fallbackPrimary))
+            : readCssColorVar('--muted-foreground', fallbackBase),
+          brand
+            ? deep(readCssColorVar('--primary', fallbackPrimary))
+            : readCssColorVar('--muted-foreground', fallbackBase),
           readCssColorVar('--primary', fallbackPrimary),
         ]
       : [THEME_COLORS[theme].land, THEME_COLORS[theme].ocean, THEME_COLORS[theme].accent]

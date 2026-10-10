@@ -1,7 +1,7 @@
-import { boolean, pgTable, text, timestamp } from 'drizzle-orm/pg-core'
+import { boolean, index, integer, pgTable, text, timestamp } from 'drizzle-orm/pg-core'
 
 /**
- * Better Auth tables for merchants (core + emailOTP + organization plugins).
+ * Better Auth tables for merchants (core + emailOTP + organization + passkey plugins).
  * Platform-level: no store_id, no RLS. Owned and written by Better Auth only.
  * Field names follow Better Auth's defaults so the Drizzle adapter maps them.
  */
@@ -12,6 +12,8 @@ export const user = pgTable('user', {
   email: text('email').notNull().unique(),
   emailVerified: boolean('email_verified').notNull().default(false),
   image: text('image'),
+  /** The member's own mobile, E.164 ("+919804682471"), for their WhatsApp alerts. Written by Account → Profile, not by Better Auth. */
+  phone: text('phone'),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
 })
@@ -92,3 +94,58 @@ export const invitation = pgTable('invitation', {
     .references(() => user.id, { onDelete: 'cascade' }),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 })
+
+/** Better Auth passkey plugin: a member's WebAuthn credentials (Account → Sign-in & security). */
+export const passkey = pgTable(
+  'passkey',
+  {
+    id: text('id').primaryKey(),
+    /** The member's own label ("Work laptop"). */
+    name: text('name'),
+    publicKey: text('public_key').notNull(),
+    userId: text('user_id')
+      .notNull()
+      .references(() => user.id, { onDelete: 'cascade' }),
+    credentialID: text('credential_id').notNull(),
+    counter: integer('counter').notNull(),
+    deviceType: text('device_type').notNull(),
+    backedUp: boolean('backed_up').notNull(),
+    transports: text('transports'),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
+    /** Authenticator model id from registration; names the password manager in the list. */
+    aaguid: text('aaguid'),
+  },
+  (t) => [
+    index('passkey_user_id_idx').on(t.userId),
+    index('passkey_credential_id_idx').on(t.credentialID),
+  ],
+)
+
+/**
+ * One row per merchant sign-in, written by the auth hook when a session is created; Account →
+ * Sign-in & security lists the latest. Platform-level like the tables above (no store_id). The
+ * IP is stored masked (last IPv4 octet, IPv6 after /48) and city/country only when the trusted
+ * proxy (Cloudflare) sent them.
+ */
+export const memberSignIn = pgTable(
+  'member_sign_in',
+  {
+    id: text('id').primaryKey(),
+    userId: text('user_id')
+      .notNull()
+      .references(() => user.id, { onDelete: 'cascade' }),
+    /** The Better Auth session it opened; null once that session is gone. */
+    sessionId: text('session_id'),
+    /** `email_otp`, `passkey` or `other`. */
+    method: text('method').notNull(),
+    ipMasked: text('ip_masked'),
+    userAgent: text('user_agent'),
+    city: text('city'),
+    country: text('country'),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    index('member_sign_in_user_created').on(t.userId, t.createdAt),
+    index('member_sign_in_session').on(t.sessionId),
+  ],
+)

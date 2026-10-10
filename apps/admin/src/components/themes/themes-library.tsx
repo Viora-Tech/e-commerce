@@ -1,33 +1,35 @@
 'use client'
 
 import type { ThemePresetId } from '@commerce/core/theme'
-import { Plus, Upload } from '@commerce/ui/icons'
+import { Plus } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
-import { Card, CardDescription, CardHeader, CardTitle } from '@commerce/ui/shadcn/card'
+import Link from 'next/link'
 import { useState } from 'react'
 import { toast } from 'sonner'
-import PageBody from '@/components/layout/page-body'
-import PageHeader from '@/components/layout/page-header'
+import ProoflyPageBody from '@/components/layout/proofly-page-body'
+import ProoflyPageHeader from '@/components/layout/proofly-page-header'
 import { themeImportContent } from '@/data/theme-import'
 import { themesContent } from '@/data/themes'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { routes } from '@/lib/routes'
 import AddThemeDialog from './add-theme-dialog'
 import CurrentThemeCard from './current-theme-card'
 import DeleteThemeDialog from './delete-theme-dialog'
-import ImportThemeDialog from './import-theme-dialog'
+import OnlineStoreTabs from './online-store-tabs'
 import RenameThemeDialog from './rename-theme-dialog'
 import type { ThemeAction } from './theme-actions-menu'
 import ThemeLibraryRow from './theme-library-row'
 import type { ThemeItem } from './theme-types'
+import ThemeVersionsDialog from './theme-versions-dialog'
 
 type ThemesLibraryProps = {
   initial: ThemeItem[]
   origin: string
   canPublish: boolean
+  /** Sections the Add panel offers our own themes (the live card's "N sections ready"). */
+  sectionCount: number
 }
-
-const copy = themesContent.library
 
 /** Live first, then the library by last saved, as the server orders them. */
 function order(themes: ThemeItem[]): ThemeItem[] {
@@ -51,16 +53,26 @@ function download(theme: ThemeItem): void {
   URL.revokeObjectURL(url)
 }
 
-/** Online Store › Themes: the live theme up top, the theme library below, Shopify style. */
-export default function ThemesLibrary({ initial, origin, canPublish }: ThemesLibraryProps) {
+/**
+ * Online Store › Themes (Figma "Online store / Themes", 309:19887): the live theme up top, the
+ * theme library below, Shopify style.
+ */
+export default function ThemesLibrary({
+  initial,
+  origin,
+  canPublish,
+  sectionCount,
+}: ThemesLibraryProps) {
   // Hooks
   const [themes, setThemes] = useState(initial)
   const [busy, setBusy] = useState(false)
   const [adding, setAdding] = useState(false)
-  const [importing, setImporting] = useState(false)
   const importCopy = useCopy(themeImportContent)
+  const { title } = useCopy(themesContent)
+  const copy = useCopy(themesContent.library)
   const [renaming, setRenaming] = useState<ThemeItem | null>(null)
   const [deleting, setDeleting] = useState<ThemeItem | null>(null)
+  const [versioning, setVersioning] = useState<ThemeItem | null>(null)
 
   // Helpers
   const run = async (work: () => Promise<void>) => {
@@ -101,6 +113,14 @@ export default function ThemesLibrary({ initial, origin, canPublish }: ThemesLib
       toast.success(copy.published(live.name))
     })
 
+  /** A version became the theme's drafts: refresh so its "Unsaved changes" chip shows. */
+  const handleRestored = () => {
+    api.themes.list().then(
+      (next) => setThemes(order(next)),
+      () => undefined,
+    )
+  }
+
   const handleDelete = (id: string) =>
     run(async () => {
       await api.themes.delete({ id })
@@ -113,6 +133,7 @@ export default function ThemesLibrary({ initial, origin, canPublish }: ThemesLib
     if (action === 'rename') setRenaming(theme)
     else if (action === 'delete') setDeleting(theme)
     else if (action === 'download') download(theme)
+    else if (action === 'versions') setVersioning(theme)
     else
       run(async () => {
         const copied = await api.themes.duplicate({ id: theme.id })
@@ -126,14 +147,18 @@ export default function ThemesLibrary({ initial, origin, canPublish }: ThemesLib
   const library = themes.filter((t) => t.role !== 'main')
 
   return (
-    <PageBody>
-      <PageHeader
-        title={themesContent.title}
-        subtitle={copy.subtitle}
+    <ProoflyPageBody>
+      <ProoflyPageHeader
+        title={title}
+        summary={copy.subtitle}
         actions={
           <>
-            <Button variant="outline" onClick={() => setImporting(true)} disabled={busy}>
-              <Upload aria-hidden />
+            <Button
+              variant="outline"
+              disabled={busy}
+              nativeButton={false}
+              render={<Link href={routes.onlineStore.themeImportNew()} />}
+            >
               {importCopy.button}
             </Button>
             <Button onClick={() => setAdding(true)} disabled={busy}>
@@ -143,23 +168,45 @@ export default function ThemesLibrary({ initial, origin, canPublish }: ThemesLib
           </>
         }
       />
+      <OnlineStoreTabs active="themes" />
       {live ? (
         <CurrentThemeCard
           theme={live}
           origin={origin}
+          sectionCount={sectionCount}
           busy={busy}
           onAction={(action) => handleAction(live, action)}
         />
       ) : null}
-      <Card className="gap-0 p-0">
-        <CardHeader className="border-b border-border px-5 py-4">
-          <CardTitle>{copy.libraryHeading}</CardTitle>
-          <CardDescription>{copy.libraryBody}</CardDescription>
-        </CardHeader>
+      <section className="flex flex-col gap-1.5 rounded-2xl border border-border surface-card px-4 py-4 md:px-[1.375rem] md:py-5">
+        <h2 className="text-card-title">{copy.libraryHeading}</h2>
+        <p className="text-[0.8125rem] leading-[1.1875rem] text-muted-foreground">
+          {copy.libraryBody}
+        </p>
         {library.length === 0 ? (
-          <p className="px-5 py-6 text-body text-muted-foreground">{copy.libraryEmpty}</p>
+          <div className="flex flex-col items-center gap-2.5 py-9 text-center">
+            <p className="text-[0.9375rem] leading-[1.375rem] font-semibold text-foreground">
+              {copy.emptyTitle}
+            </p>
+            <p className="text-body text-muted-foreground">{copy.emptyBody}</p>
+            <div className="flex flex-wrap justify-center gap-2.5">
+              {live ? (
+                <Button
+                  variant="outline"
+                  disabled={busy}
+                  onClick={() => handleAction(live, 'duplicate')}
+                >
+                  {copy.duplicateCurrent}
+                </Button>
+              ) : null}
+              <Button variant="outline" disabled={busy} onClick={() => setAdding(true)}>
+                <Plus aria-hidden />
+                {copy.addFromPreset}
+              </Button>
+            </div>
+          </div>
         ) : (
-          <ul className="divide-y divide-border">
+          <ul className="mt-2 divide-y divide-border border-t border-border">
             {library.map((t) => (
               <ThemeLibraryRow
                 key={t.id}
@@ -172,9 +219,8 @@ export default function ThemesLibrary({ initial, origin, canPublish }: ThemesLib
             ))}
           </ul>
         )}
-      </Card>
+      </section>
       <AddThemeDialog open={adding} busy={busy} onOpenChange={setAdding} onAdd={handleAdd} />
-      <ImportThemeDialog open={importing} onOpenChange={setImporting} />
       {renaming ? (
         <RenameThemeDialog
           key={renaming.id}
@@ -184,11 +230,20 @@ export default function ThemesLibrary({ initial, origin, canPublish }: ThemesLib
           onRename={handleRename}
         />
       ) : null}
+      {versioning ? (
+        <ThemeVersionsDialog
+          key={versioning.id}
+          theme={versioning}
+          origin={origin}
+          onClose={() => setVersioning(null)}
+          onRestored={handleRestored}
+        />
+      ) : null}
       <DeleteThemeDialog
         theme={deleting}
         onCancel={() => setDeleting(null)}
         onConfirm={handleDelete}
       />
-    </PageBody>
+    </ProoflyPageBody>
   )
 }

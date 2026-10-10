@@ -163,6 +163,53 @@ export function TotalsBlock({
   )
 }
 
+export type ParcelsBlockProps = {
+  title: string
+  note: string
+  parcels: { heading: string; items: string[]; when: string | null }[]
+}
+
+/** "Ships in 2 parcels": each parcel's origin, items and expected dates. */
+export function ParcelsBlock({ title, note, parcels }: ParcelsBlockProps) {
+  return (
+    <Section
+      style={{
+        margin: '8px 0 16px',
+        padding: '16px',
+        border: `1px solid ${theme.border}`,
+        borderRadius: '10px',
+      }}
+    >
+      <Text style={{ fontSize: '14px', fontWeight: 700, color: theme.ink, margin: '0 0 4px' }}>
+        {title}
+      </Text>
+      <Text style={{ fontSize: '12px', lineHeight: '18px', color: theme.muted, margin: '0 0 8px' }}>
+        {note}
+      </Text>
+      {parcels.map((p) => (
+        <Section
+          key={p.heading}
+          style={{ padding: '8px 0 0', borderTop: `1px solid ${theme.border}` }}
+        >
+          <Text style={{ fontSize: '13px', fontWeight: 600, color: theme.ink, margin: '0 0 2px' }}>
+            {p.heading}
+          </Text>
+          {p.items.map((item) => (
+            <Text key={item} style={{ fontSize: '13px', color: theme.ink, margin: 0 }}>
+              {item}
+            </Text>
+          ))}
+          {p.when ? (
+            <Text style={{ fontSize: '12px', color: theme.muted, margin: '2px 0 8px' }}>
+              {p.when}
+            </Text>
+          ) : null}
+        </Section>
+      ))}
+    </Section>
+  )
+}
+
 export function GiftCardBlock({
   code,
   balanceLabel,

@@ -18,7 +18,7 @@ export default function CartLines({ lines }: { lines: CartLineView[] }) {
         <li key={l.id} className="cart-line">
           <a href={`/products/${l.productHandle}`} className="cart-line__image-link">
             {l.imageUrl ? (
-              // biome-ignore lint/performance/noImgElement: Glide markup, CDN thumbnail.
+              // biome-ignore lint/performance/noImgElement: Zero Drift markup, CDN thumbnail.
               <img className="cart-line__image" src={l.imageUrl} alt="" width={120} height={120} />
             ) : (
               <span className="cart-line__image" />

@@ -60,9 +60,9 @@ export default function DraftCustomerCard({ form, onChange }: DraftCustomerCardP
 
   // Render logic
   return (
-    <Card className="gap-4 p-5">
+    <Card gap={4} inset={5}>
       <div className="flex items-center justify-between gap-3">
-        <p className="text-kit-card-title text-foreground">{copy.customer.heading}</p>
+        <p className="text-card-title text-ink-strong">{copy.customer.heading}</p>
         {form.customerId ? (
           <Button variant="ghost" size="sm" onClick={handleClear}>
             {copy.customer.clear}

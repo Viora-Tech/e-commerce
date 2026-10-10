@@ -1,4 +1,5 @@
-import { productFormContent, productsListContent, productsSectionsContent } from '@/data/products'
+import { productFormContent } from '@/data/product-form'
+import { productsListContent, productsSectionsContent } from '@/data/products'
 import { translation } from '@/lib/i18n'
 
 export default [
@@ -15,6 +16,20 @@ export default [
     export: 'एक्सपोर्ट',
     import: 'इंपोर्ट',
     tabs: { all: 'सभी प्रोडक्ट' },
+    summary: (total: number, low: number, out: number) =>
+      [
+        `${total} प्रोडक्ट`,
+        low > 0 ? `${low} का स्टॉक कम` : null,
+        out > 0 ? `${out} का स्टॉक खत्म` : null,
+      ]
+        .filter(Boolean)
+        .join(' · '),
+    tiles: {
+      total: 'कुल प्रोडक्ट',
+      low: 'कम स्टॉक',
+      out: 'स्टॉक खत्म',
+      draft: 'ड्राफ़्ट',
+    },
     filters: {
       label: 'फ़िल्टर',
       vendor: 'वेंडर',
@@ -47,6 +62,7 @@ export default [
     launching: (date) =>
       `${date.toLocaleDateString('hi-IN', { day: 'numeric', month: 'short' })} को लॉन्च`,
     bulk: {
+      bulkEdit: 'एक साथ बदलें',
       setActive: 'चालू करें',
       setDraft: 'ड्राफ़्ट बनाएं',
       archive: 'आर्काइव करें',
@@ -110,6 +126,7 @@ export default [
     editTitle: 'प्रोडक्ट बदलें',
     searchPlaceholder: 'जोड़ने के लिए प्रोडक्ट खोजें',
     publish: 'प्रोडक्ट पब्लिश करें',
+    saveChanges: 'बदलाव सेव करें',
     saveDraft: 'ड्राफ़्ट में सेव करें',
     addAnother: 'एक और प्रोडक्ट बनाएं',
     basics: 'बुनियादी जानकारी',
@@ -133,6 +150,20 @@ export default [
       depositMissing: 'एडवांस की रकम डालें',
       depositTooHigh: 'एडवांस कीमत से कम होना चाहिए',
       depositPercent: '1 से 99 के बीच प्रतिशत डालें',
+      invalidField: (field, reason) => `${field}: ${reason}`,
+      tooLong: (max) => `बहुत लंबा है, ${max} अक्षर या उससे कम रखें`,
+      fieldFallback: 'कोई एक फ़ील्ड',
+      fields: {
+        title: 'टाइटल',
+        handle: 'URL हैंडल',
+        description: 'विवरण',
+        vendor: 'वेंडर',
+        productType: 'प्रोडक्ट टाइप',
+        tags: 'टैग',
+        seoTitle: 'सर्च इंजन टाइटल',
+        seoDescription: 'सर्च इंजन विवरण',
+        variants: 'वेरिएंट',
+      },
     },
     currency: 'रुपये',
     sectionNav: {

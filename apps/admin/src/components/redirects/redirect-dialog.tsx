@@ -14,6 +14,7 @@ import { Spinner } from '@commerce/ui/shadcn/spinner'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import { type RedirectListItem, redirectsContent } from '@/data/redirects'
+import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 
 type RedirectDialogProps = {
@@ -23,10 +24,9 @@ type RedirectDialogProps = {
   onSaved: () => void
 }
 
-const copy = redirectsContent.dialog
-
 export default function RedirectDialog({ redirect, onClose, onSaved }: RedirectDialogProps) {
   // Hooks
+  const { dialog: copy } = useCopy(redirectsContent)
   const [path, setPath] = useState(redirect?.path ?? '')
   const [target, setTarget] = useState(redirect?.target ?? '')
   const [busy, setBusy] = useState(false)

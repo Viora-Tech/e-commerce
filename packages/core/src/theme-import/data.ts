@@ -1,10 +1,9 @@
-/** SOURCE OF TRUTH: the store data an imported theme reads — WHAT: a per-request `LiquidDataSource` over our database (products with variants, options and images; collections and their products; menus; blogs; pages; the shop), cached within the request / WHY: imported Liquid asks for Shopify objects by handle; this answers from our catalogue under the store's RLS, so the theme shows our live data */
+/** SOURCE OF TRUTH: the store data an imported theme reads — WHAT: a per-request `LiquidDataSource` over our database (products with variants, options and images; collections and their products; menus; blogs; pages; the shop; extra fields and content entries through `custom-data.ts`), cached within the request / WHY: imported Liquid asks for Shopify objects by handle; this answers from our catalogue under the store's RLS, so the theme shows our live data */
 import {
   article,
   blog,
   collection,
   collectionProduct,
-  inventoryLevel,
   media,
   navigationMenu,
   page,
@@ -13,24 +12,29 @@ import {
   productOption,
   productOptionValue,
   type StoreTx,
-  sellableLevel,
+  sellableStock,
   store,
   variant,
   variantOptionValue,
 } from '@commerce/db'
 import { and, asc, desc, eq, inArray, isNotNull, isNull, like, sql } from 'drizzle-orm'
+import { keyFromName } from '../metaobjects/validate'
 import { toNavLinks } from '../navigation/resolve'
+import { loadMetafields, loadMetaobjects, loadMetaobjectsOfType } from './custom-data'
 import type {
   LiquidBlogData,
   LiquidCartData,
   LiquidCollectionData,
+  LiquidCustomData,
   LiquidDataSource,
   LiquidImageData,
   LiquidLinkData,
   LiquidProductData,
+  LiquidReviewsSource,
   LiquidShopData,
 } from './drops'
 import { uuidPrefixOf } from './numeric-id'
+import { MAX_RECOMMENDATIONS, relatedProductIds } from './related'
 import { richTextHtml } from './rich-html'
 
 export type StoreLiquidDataOptions = {
@@ -40,6 +44,45 @@ export type StoreLiquidDataOptions = {
   origin: string
   /** The shopper's cart, from the storefront cart cookie; empty in the editor. */
   cart?: (() => Promise<LiquidCartData>) | undefined
+  /** The Reviews app's data, when the store installed it (see `withReviewMetafields`). */
+  reviews?: LiquidReviewsSource | undefined
+}
+
+/**
+ * Our ratings as Shopify's standard review metafields (`reviews.rating`, a rating out of 5,
+ * and `reviews.rating_count`), which review apps keep on each product and themes read for
+ * stars on cards and product pages. A product with our reviews gets ours in place of any
+ * copied from Shopify; one without keeps what the importer brought.
+ */
+export function withReviewMetafields(
+  data: LiquidCustomData,
+  ratings: Map<string, { rating: number; count: number }>,
+): LiquidCustomData {
+  const metafields = { ...data.metafields }
+  for (const [id, r] of ratings) {
+    if (r.count <= 0) continue
+    const others = (metafields[id] ?? []).filter((f) => f.namespace !== 'reviews')
+    metafields[id] = [
+      ...others,
+      {
+        namespace: 'reviews',
+        key: 'rating',
+        type: 'rating',
+        list: false,
+        measure: null,
+        value: { value: r.rating, max: 5 },
+      },
+      {
+        namespace: 'reviews',
+        key: 'rating_count',
+        type: 'number_integer',
+        list: false,
+        measure: null,
+        value: r.count,
+      },
+    ]
+  }
+  return { ...data, metafields }
 }
 
 const EMPTY_CART: LiquidCartData = { itemCount: 0, totalPrice: 0, items: [] }
@@ -72,14 +115,14 @@ async function loadProducts(tx: StoreTx, ids: string[]): Promise<LiquidProductDa
         barcode: variant.barcode,
         weight: variant.weightGrams,
         track: variant.trackInventory,
-        onHand: inventoryLevel.onHand,
-        reserved: inventoryLevel.reserved,
+        onHand: sellableStock.onHand,
+        reserved: sellableStock.reserved,
         imageUrl: media.url,
         position: variant.position,
         preorder: variant.preorderOverride,
       })
       .from(variant)
-      .leftJoin(inventoryLevel, and(eq(inventoryLevel.variantId, variant.id), sellableLevel))
+      .leftJoin(sellableStock, eq(sellableStock.variantId, variant.id))
       .leftJoin(media, eq(media.id, variant.mediaId))
       .where(and(inArray(variant.productId, ids), isNull(variant.archivedAt)))
       .orderBy(asc(variant.position)),
@@ -324,6 +367,14 @@ export async function storeLiquidData(
         )
       }),
     collections: collectionList,
+    relatedProducts: (productId, limit) =>
+      once(`rel:${productId}:${limit}`, async () => {
+        const wanted = Math.min(Math.max(1, Math.trunc(limit) || 4), MAX_RECOMMENDATIONS)
+        const ids = await relatedProductIds(tx, productId)
+        // Over-read: sold-out products are dropped after loading (stock lives on the variants).
+        const loaded = await loadProducts(tx, ids.slice(0, wanted * 3))
+        return loaded.filter((p) => p.variants.some((v) => v.available)).slice(0, wanted)
+      }),
     menu: (handle) =>
       once(`m:${handle}`, async () => {
         const [row] = await tx
@@ -385,7 +436,30 @@ export async function storeLiquidData(
           : null
       }),
     cart: () => once('cart', () => options.cart?.() ?? Promise.resolve(EMPTY_CART)),
+    metafields: async (ownerType, ownerIds) => {
+      const data = await loadMetafields(tx, ownerType, ownerIds)
+      if (ownerType !== 'product' || !options.reviews) return data
+      return withReviewMetafields(data, await options.reviews.ratings(ownerIds))
+    },
+    judgeme: () =>
+      once('judgeme', async () => (options.reviews ? options.reviews.judgeme() : null)),
+    metaobjectsOfType: (type) =>
+      once(`mt:${type}`, () => loadMetaobjectsOfType(tx, keyFromName(type))),
+    metaobjects: (ids) => loadMetaobjects(tx, ids),
   }
+}
+
+/** The product an imported theme's script names: our UUID or the whole number it was shown. Null when neither matches. */
+export async function resolveThemeProductId(tx: StoreTx, raw: string): Promise<string | null> {
+  if (UUID.test(raw)) return raw
+  const prefix = uuidPrefixOf(raw)
+  if (!prefix) return null
+  const rows = await tx
+    .select({ id: product.id })
+    .from(product)
+    .where(like(sql`${product.id}::text`, `${prefix}%`))
+    .limit(2)
+  return rows.length === 1 ? (rows[0]?.id ?? null) : null
 }
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i

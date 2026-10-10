@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import { headerContent as copy } from '../data/glide/header'
+import { headerContent as copy } from '../data/zero-drift/header'
 import type { ThemeMode } from '../types'
 import Icon from './icon'
 import ThemeToggle from './theme-toggle'
@@ -13,7 +13,7 @@ type HeaderMoreProps = {
 }
 
 /**
- * The header's one menu on desktop (Glide `<header-more>`): the account, the wishlist and the
+ * The header's one menu on desktop (Zero Drift `<header-more>`): the account, the wishlist and the
  * light/dark switch behind one button beside the cart. A native `<details>`, so it opens with
  * no script; this adds closing on an outside click and on Escape (focus returns to the button).
  */

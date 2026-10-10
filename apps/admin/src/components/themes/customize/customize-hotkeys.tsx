@@ -27,7 +27,9 @@ const copy = customizeContent.clipboard
  * - Delete/Backspace is intercepted so it plays the same collapse the canvas
  *   overlay and the Sections tree use before removing (Puck's own handler, on
  *   both the admin document and the iframe, removes instantly, so this
- *   pre-empts it on the capture phase).
+ *   pre-empts it on the capture phase);
+ * - Escape deselects, back to the right panel's "Select a section" state, unless it was meant
+ *   for an open menu or dialog, or the panel is hidden (full view's Esc is its own).
  *
  * Undo/redo stay Puck's global hotkeys. None of these fire while typing in a
  * field or with text selected. Renders nothing; mounted once inside `<Puck>`.
@@ -117,6 +119,17 @@ export default function CustomizeHotkeys() {
       deleteWithCollapse(dispatch, { index: selector.index, zone }, el, reducedMotion === true)
     }
 
+    const handleDeselect = (e: KeyboardEvent) => {
+      const inPopup =
+        e.target instanceof Element &&
+        e.target.closest(
+          '[role="dialog"], [role="menu"], [role="listbox"], [data-slot$="-content"]',
+        )
+      const inspector = document.querySelector<HTMLElement>('[data-inspector]')
+      if (inPopup || !inspector || inspector.hidden) return
+      dispatch({ type: 'setUi', ui: { itemSelector: null } })
+    }
+
     const handleKeyDown = (e: KeyboardEvent) => {
       if (isEditableTarget(e.target)) return
       const key = e.key.toLowerCase()
@@ -127,6 +140,7 @@ export default function CustomizeHotkeys() {
       else if (e.altKey && key === 'arrowup') handleMove(e, -1)
       else if (e.altKey && key === 'arrowdown') handleMove(e, 1)
       else if (key === 'delete' || key === 'backspace') handleDelete(e)
+      else if (key === 'escape' && !mod && !e.altKey) handleDeselect(e)
     }
 
     if (!selectionKey) return

@@ -1,29 +1,18 @@
 'use client'
 
-import {
-  ALTERNATE_KINDS,
-  TEMPLATE_KINDS,
-  type TemplateKind,
-  templateName,
-} from '@commerce/core/theme'
-import { ChevronDown, Loader2Icon, Plus } from '@commerce/ui/icons'
-import { Button } from '@commerce/ui/shadcn/button'
-import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-  CommandList,
-} from '@commerce/ui/shadcn/command'
+import type { AlternateKind, TemplateKind } from '@commerce/core/theme'
+import { ChevronDown, Home, Loader2Icon } from '@commerce/ui/icons'
 import { Popover, PopoverContent, PopoverTrigger } from '@commerce/ui/shadcn/popover'
 import { useState } from 'react'
 import { customizeContent } from '@/data/customize'
+import { type TemplateChange, useTemplateManager } from '@/lib/use-template-manager'
+import TemplateList from './template-list'
+import TemplateManagerDialogs from './template-manager-dialogs'
 
 export type TemplateRef = { key: TemplateKind; suffix: string }
-type AlternateKind = (typeof ALTERNATE_KINDS)[number]
 
 type TemplatePickerProps = {
+  themeId: string
   value: TemplateRef
   /** Stored alternates of this theme, by kind. */
   alternates: { template: string; suffix: string }[]
@@ -32,28 +21,38 @@ type TemplatePickerProps = {
   onChange: (ref: TemplateRef) => void
   /** Kind is the group "Create template" was clicked in, when it supports alternates. */
   onCreate: (kind: AlternateKind) => void
+  /** An alternate was renamed, duplicated or deleted from the picker's manager. */
+  onManaged: (change: TemplateChange) => void
 }
 
 const copy = customizeContent.templates
 
-const isAlternateKind = (key: TemplateKind): key is AlternateKind =>
-  (ALTERNATE_KINDS as readonly string[]).includes(key)
-
 export const templateLabel = (ref: TemplateRef) =>
   ref.suffix ? copy.alternate(copy.names[ref.key], ref.suffix) : copy.names[ref.key]
 
-/** Shopify's template switcher: search, every template kind grouped with its alternates, and Create. */
+/**
+ * Shopify's template switcher in the top bar (Figma 369:4855, the page switcher): `TemplateList` (search, every template kind
+ * grouped with its alternates, usage counts, the alternate manager, Create) in a popover. The
+ * manager's dialogs sit outside the popover, which closes when one opens.
+ */
 export default function TemplatePicker({
+  themeId,
   value,
   alternates,
   loading,
   onChange,
   onCreate,
+  onManaged,
 }: TemplatePickerProps) {
   // Hooks
   const [open, setOpen] = useState(false)
+  const manager = useTemplateManager({ themeId, alternates, onChanged: onManaged })
 
   // Event handlers
+  const handleOpen = (next: boolean) => {
+    setOpen(next)
+    if (next) manager.refresh()
+  }
   const handlePick = (ref: TemplateRef) => {
     onChange(ref)
     setOpen(false)
@@ -65,68 +64,37 @@ export default function TemplatePicker({
 
   // Render logic
   return (
-    <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger
-        render={
-          <Button
-            variant="outline"
-            className="min-w-52 justify-between rounded-lg text-[0.8125rem] font-medium"
-            aria-label={copy.label}
-          >
-            <span className="flex min-w-0 items-center gap-2">
-              {loading ? (
-                <Loader2Icon className="size-3.5 shrink-0 animate-spin" aria-hidden />
-              ) : null}
-              <span className="truncate">{templateLabel(value)}</span>
-            </span>
-            <ChevronDown aria-hidden className="size-3.5 text-muted-foreground" />
-          </Button>
-        }
-      />
-      <PopoverContent align="center" className="w-72 gap-0 p-0">
-        <Command>
-          <CommandInput placeholder={copy.search} aria-label={copy.search} />
-          <CommandList>
-            <CommandEmpty>{copy.empty}</CommandEmpty>
-            {TEMPLATE_KINDS.map((key) => {
-              const own = alternates.filter((a) => a.template === key && a.suffix)
-              const currentIsDefault = value.key === key && value.suffix === ''
-              return (
-                <CommandGroup key={key} heading={copy.names[key]}>
-                  <CommandItem
-                    value={`${copy.names[key]} ${own.length > 0 ? copy.default : ''}`}
-                    data-checked={currentIsDefault ? 'true' : undefined}
-                    onSelect={() => handlePick({ key, suffix: '' })}
-                  >
-                    {own.length > 0 ? copy.default : copy.names[key]}
-                  </CommandItem>
-                  {own.map((a) => (
-                    <CommandItem
-                      key={templateName(key, a.suffix)}
-                      value={`${copy.names[key]} ${a.suffix}`}
-                      data-checked={
-                        value.key === key && value.suffix === a.suffix ? 'true' : undefined
-                      }
-                      onSelect={() => handlePick({ key, suffix: a.suffix })}
-                    >
-                      {a.suffix}
-                    </CommandItem>
-                  ))}
-                  {isAlternateKind(key) ? (
-                    <CommandItem
-                      value={`${copy.names[key]} ${copy.create}`}
-                      onSelect={() => handleCreate(key)}
-                    >
-                      <Plus aria-hidden />
-                      {copy.create}
-                    </CommandItem>
-                  ) : null}
-                </CommandGroup>
-              )
-            })}
-          </CommandList>
-        </Command>
-      </PopoverContent>
-    </Popover>
+    <>
+      <Popover open={open} onOpenChange={handleOpen}>
+        <PopoverTrigger
+          render={
+            <button
+              type="button"
+              aria-label={copy.label}
+              className="flex h-[2.375rem] w-60 items-center gap-2 rounded-[0.625rem] bg-muted pr-2.5 pl-3 text-left text-sm leading-5 font-semibold text-foreground transition-colors duration-150 hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring/70 focus-visible:outline-none motion-reduce:transition-none data-[popup-open]:bg-accent"
+            >
+              {loading || manager.busy ? (
+                <Loader2Icon className="size-4 shrink-0 animate-spin" aria-hidden />
+              ) : (
+                <Home className="size-4 shrink-0" aria-hidden weight="regular" />
+              )}
+              <span className="min-w-0 flex-1 truncate">{templateLabel(value)}</span>
+              <ChevronDown aria-hidden className="size-3.5 shrink-0 text-muted-foreground" />
+            </button>
+          }
+        />
+        <PopoverContent align="center" className="w-[22.5rem] gap-0 p-0">
+          <TemplateList
+            value={value}
+            alternates={alternates}
+            manager={manager}
+            onPick={handlePick}
+            onCreate={handleCreate}
+            onAction={() => setOpen(false)}
+          />
+        </PopoverContent>
+      </Popover>
+      <TemplateManagerDialogs manager={manager} />
+    </>
   )
 }

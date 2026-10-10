@@ -17,6 +17,8 @@ export type StaffMember = {
   userId: string
   name: string | null
   email: string | null
+  /** Their photo from Account → Profile, or null for initials. */
+  image: string | null
   roleId: string
   roleName: string
   roleSlug: string
@@ -25,7 +27,12 @@ export type StaffMember = {
   createdAt: Date
 }
 
-type DirectoryEntry = { id: string; name: string | null; email: string | null }
+type DirectoryEntry = {
+  id: string
+  name: string | null
+  email: string | null
+  image?: string | null | undefined
+}
 
 /**
  * Joins the authorisation rows with the Better Auth directory. The user table
@@ -42,6 +49,7 @@ export function mergeDirectory(
     userId: m.userId,
     name: byId.get(m.userId)?.name ?? null,
     email: byId.get(m.userId)?.email ?? null,
+    image: byId.get(m.userId)?.image ?? null,
     roleId: m.roleId,
     roleName: m.roleName,
     roleSlug: m.roleSlug,

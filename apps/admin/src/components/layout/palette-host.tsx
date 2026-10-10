@@ -29,6 +29,7 @@ export default function PaletteHost() {
     function onKey(e: KeyboardEvent) {
       if (e.key === 'k' && (e.metaKey || e.ctrlKey)) {
         e.preventDefault()
+        if (e.repeat) return
         setOpen((o) => !o)
         return
       }

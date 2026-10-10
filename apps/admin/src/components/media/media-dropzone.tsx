@@ -4,6 +4,7 @@ import { ImagePlus } from '@commerce/ui/icons'
 import { cn } from '@commerce/ui/lib/utils'
 import { type DragEvent, useRef, useState } from 'react'
 import { mediaContent } from '@/data/media'
+import { useCopy } from '@/hooks/use-copy'
 
 type MediaDropzoneProps = {
   onFiles: (files: File[]) => void
@@ -12,14 +13,13 @@ type MediaDropzoneProps = {
   disabled?: boolean | undefined
 }
 
-const copy = mediaContent.dropzone
-
 function filesFrom(list: FileList | null): File[] {
   return list ? Array.from(list) : []
 }
 
 export default function MediaDropzone({ onFiles, compact, disabled }: MediaDropzoneProps) {
   // Hooks
+  const { dropzone: copy } = useCopy(mediaContent)
   const inputRef = useRef<HTMLInputElement>(null)
   const [over, setOver] = useState(false)
 

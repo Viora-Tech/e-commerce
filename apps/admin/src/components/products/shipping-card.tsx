@@ -21,10 +21,12 @@ import {
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import MoneyInput from '@/components/fields/money-input'
+import SettingsRow from '@/components/settings/settings-row'
 import { COUNTRIES } from '@/data/countries'
-import { productFormContent } from '@/data/products'
+import { productFormContent } from '@/data/product-form'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { routes } from '@/lib/routes'
 import type { VariantRow } from './form-state'
 
 type ShippingCardProps = {
@@ -139,48 +141,41 @@ export default function ShippingCard({
       </CardHeader>
       <CardContent>
         <FieldGroup>
-          <div className="grid gap-4 md:grid-cols-2">
-            <Field>
-              <FieldLabel htmlFor="variant-weight">{copy.weight}</FieldLabel>
-              <MoneyInput
-                size="lg"
-                id="variant-weight"
-                currency={false}
-                suffix="g"
-                value={variant.weight}
-                onChange={(weight) => onChange({ weight })}
-              />
-              <FieldDescription>{copy.weightHelp}</FieldDescription>
-            </Field>
-            <Field>
-              <FieldLabel htmlFor="variant-hs">{copy.hsCode}</FieldLabel>
-              <Input
-                size="lg"
-                id="variant-hs"
-                value={variant.hsCode}
-                onChange={(e) => onChange({ hsCode: e.target.value })}
-                autoComplete="off"
-                inputMode="numeric"
-              />
-              <FieldDescription>{copy.hsCodeHelp}</FieldDescription>
-            </Field>
-            <Field>
-              <FieldLabel htmlFor="variant-gst">{copy.gstRate}</FieldLabel>
-              <Input
-                size="lg"
-                id="variant-gst"
-                value={variant.gstRate}
-                onChange={(e) =>
-                  onChange({ gstRate: e.target.value.replace(/\D/g, '').slice(0, 2) })
-                }
-                autoComplete="off"
-                inputMode="numeric"
-              />
-              <FieldDescription>{copy.gstRateHelp}</FieldDescription>
-            </Field>
-          </div>
-          <Field>
-            <FieldLabel htmlFor="variant-origin">{copy.country}</FieldLabel>
+          {/* Figma 283:14681 Shipping: label and help on the left, a 330px control on the right. */}
+          <SettingsRow label={copy.weight} description={copy.weightHelp} htmlFor="variant-weight">
+            <MoneyInput
+              size="lg"
+              id="variant-weight"
+              currency={false}
+              suffix="g"
+              value={variant.weight}
+              onChange={(weight) => onChange({ weight })}
+              className="md:max-w-[20.75rem]"
+            />
+          </SettingsRow>
+          <SettingsRow label={copy.hsCode} description={copy.hsCodeHelp} htmlFor="variant-hs">
+            <Input
+              size="lg"
+              id="variant-hs"
+              value={variant.hsCode}
+              onChange={(e) => onChange({ hsCode: e.target.value })}
+              autoComplete="off"
+              inputMode="numeric"
+              className="md:max-w-[20.75rem]"
+            />
+          </SettingsRow>
+          <SettingsRow label={copy.gstRate} description={copy.gstRateHelp} htmlFor="variant-gst">
+            <Input
+              size="lg"
+              id="variant-gst"
+              value={variant.gstRate}
+              onChange={(e) => onChange({ gstRate: e.target.value.replace(/\D/g, '').slice(0, 2) })}
+              autoComplete="off"
+              inputMode="numeric"
+              className="md:max-w-[20.75rem]"
+            />
+          </SettingsRow>
+          <SettingsRow label={copy.country} description={copy.countryHelp} htmlFor="variant-origin">
             <Select
               items={items}
               value={variant.countryOfOrigin || NONE}
@@ -188,7 +183,7 @@ export default function ShippingCard({
                 onChange({ countryOfOrigin: next === NONE ? '' : String(next) })
               }
             >
-              <SelectTrigger size="lg" id="variant-origin" className="w-full">
+              <SelectTrigger size="lg" id="variant-origin" className="w-full md:max-w-[20.75rem]">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -200,16 +195,18 @@ export default function ShippingCard({
                 ))}
               </SelectContent>
             </Select>
-            <FieldDescription>{copy.countryHelp}</FieldDescription>
-          </Field>
-          <Field>
-            <FieldLabel htmlFor="variant-package">{copy.package}</FieldLabel>
+          </SettingsRow>
+          <SettingsRow
+            label={copy.package}
+            description={copy.packageHelp}
+            htmlFor="variant-package"
+          >
             <Select
               items={packageItems}
               value={packageValue}
               onValueChange={(next) => handlePackage(String(next))}
             >
-              <SelectTrigger size="lg" id="variant-package" className="w-full">
+              <SelectTrigger size="lg" id="variant-package" className="w-full md:max-w-[20.75rem]">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -223,12 +220,12 @@ export default function ShippingCard({
               </SelectContent>
             </Select>
             <FieldDescription>
-              {copy.packageHelp} {singleVariant ? null : `${copy.packageAllVariants} `}
-              <Link href="/settings/shipping" className="underline underline-offset-2">
+              {singleVariant ? null : `${copy.packageAllVariants} `}
+              <Link href={routes.settings.shipping()} className="underline underline-offset-2">
                 {copy.packageManage}
               </Link>
             </FieldDescription>
-          </Field>
+          </SettingsRow>
           {packageValue === CUSTOM ? (
             <div className="grid gap-4 md:grid-cols-3">
               <Field>

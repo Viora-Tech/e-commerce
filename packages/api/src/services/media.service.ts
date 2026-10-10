@@ -74,11 +74,10 @@ export async function testStorageConnection(
   try {
     return await built.provider.verifyCredentials()
   } catch (err) {
-    return {
-      ok: false,
-      message:
-        err instanceof Error ? err.message : `Could not test the ${factory.label} connection.`,
-    }
+    // Never echo the raw error: it can name internal hosts, ports and addresses (security
+    // audit 2026-09-28 branch, ported 2026-10-06). The server log keeps it.
+    console.error('[storage] connection test failed', { providerId, err })
+    return { ok: false, message: `Could not test the ${factory.label} connection.` }
   }
 }
 

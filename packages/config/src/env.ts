@@ -56,6 +56,35 @@ const aiShape = {
   AI_UNLIMITED_STORES: commaList,
 }
 
+/** `true` / `false` (also `1` / `0`, `yes` / `no`), any case. Anything else is refused. */
+const flag = z
+  .string()
+  .default('false')
+  .transform((v) => v.trim().toLowerCase())
+  .pipe(z.enum(['true', 'false', '1', '0', 'yes', 'no']))
+  .transform((v) => v === 'true' || v === '1' || v === 'yes')
+
+/**
+ * The "Report a bug" button (test server only). On, every signed-in admin member sees it and
+ * each report becomes a GitHub issue. With no token, development logs the would-be issue to
+ * the server console instead; production refuses to start (the refine below).
+ */
+const bugReportShape = {
+  BUG_REPORTS_ENABLED: flag,
+  /**
+   * Fine-grained GitHub token for the one repository, with only "Issues: Read and write".
+   * Never a classic token or one with code access.
+   */
+  GITHUB_ISSUES_TOKEN: z.string().min(1).optional(),
+  /** `owner/name` of the repository reports are filed in. */
+  GITHUB_ISSUES_REPO: z
+    .string()
+    .regex(/^[\w.-]+\/[\w.-]+$/)
+    .default('Viora-Tech/e-commerce'),
+  /** The commit this build runs, shown on each bug report. Unset: SENTRY_RELEASE, then "unknown". */
+  SOURCE_COMMIT: z.string().min(1).optional(),
+}
+
 /** Comma-separated platform domains; they and their subdomains cannot be connected as custom. */
 const platformDomains = z
   .string()
@@ -66,6 +95,9 @@ const platformDomains = z
       .map((d) => d.trim().toLowerCase())
       .filter(Boolean),
   )
+
+/** SETTINGS_SECRET's development default. Public, so production refuses it (see `schema`). */
+const DEV_SETTINGS_SECRET = 'dev-only-settings-secret'
 
 /** RFC 5737 documentation address: the offline default, never a real server. */
 const DOC_A_RECORD = '192.0.2.10'
@@ -79,10 +111,14 @@ const shape = z.object({
   AUTH_SECRET: z.string().min(32).optional(),
   /** Public URL of the admin app, used as Better Auth's baseURL. */
   ADMIN_URL: z.string().url().default('http://localhost:3200'),
-  /** Public URL of the storefront, used for links inside notifications. */
+  /**
+   * Platform storefront URL. Fallback only: store links use the store's live primary domain
+   * (`storefrontOriginFor` in `@commerce/core`), this URL when a store has none, and always
+   * in development (a localhost URL).
+   */
   STOREFRONT_URL: z.string().url().default('http://localhost:3100'),
   /** Encrypts gateway credentials stored in store settings. */
-  SETTINGS_SECRET: z.string().min(16).default('dev-only-settings-secret'),
+  SETTINGS_SECRET: z.string().min(16).default(DEV_SETTINGS_SECRET),
   /**
    * Retired SETTINGS_SECRET value(s), comma-separated, kept only while
    * `scripts/rotate-secrets.ts --apply` re-encrypts everything under the new
@@ -95,6 +131,12 @@ const shape = z.object({
    * Required in production; dev without it writes unencrypted backups.
    */
   BACKUP_ENCRYPTION_KEY: z.string().min(16).optional(),
+  /**
+   * Umami addresses the server may reach on a private network or over http (comma-separated
+   * origins, e.g. our own `http://umami:3000`). Every other Umami address a store saves goes
+   * through the SSRF guard (`@commerce/core/safe-fetch`): public https hosts only.
+   */
+  UMAMI_TRUSTED_ORIGINS: z.string().optional(),
   /**
    * Razorpay Technology Partner OAuth app ("Connect Razorpay"). Both set turns
    * the one-click connect button on; unset, merchants paste API keys instead.
@@ -115,6 +157,23 @@ const shape = z.object({
   /** Hostname a subdomain's CNAME must point at. */
   STOREFRONT_CNAME_TARGET: z.string().min(3).default('shops.waimers.localhost'),
   PLATFORM_DOMAINS: platformDomains,
+  /**
+   * Automatic HTTPS routes for custom domains (worker only). With all three set, a custom
+   * domain whose DNS is verified is added to the storefront app in Dokploy (https, Let's
+   * Encrypt, path `/`) and deleted again when the merchant removes it. Any one unset: the
+   * step is skipped and routes are added by hand, as before.
+   * `DOKPLOY_URL` is Dokploy's base URL (no `/api`); the key comes from Dokploy → Settings →
+   * Profile → API/CLI and is only ever sent in the `x-api-key` header.
+   */
+  DOKPLOY_URL: optionalOrBlank(z.url({ protocol: /^https?$/ })),
+  DOKPLOY_API_KEY: optionalOrBlank(z.string().min(1)),
+  /** The storefront application's id in Dokploy (the `applicationId` in its URL). */
+  DOKPLOY_STOREFRONT_APPLICATION_ID: optionalOrBlank(z.string().min(1)),
+  /** The port the storefront container listens on (`next start --port 3100`). */
+  DOKPLOY_STOREFRONT_PORT: z.preprocess(
+    (v) => (v === '' ? undefined : v),
+    z.coerce.number().int().min(1).max(65535).default(3100),
+  ),
   /**
    * Whose client-IP header per-IP rate limits believe (`@commerce/core` `clientIp`).
    * `none` (default): no forwarded header, only the peer address the server sees.
@@ -174,16 +233,32 @@ const shape = z.object({
   LOCAL_STORAGE_DIR: z.string().min(1).optional(),
   ...platformEmailShape,
   ...aiShape,
+  ...bugReportShape,
+  NODE_ENV: z.string().optional(),
 })
 
-const schema = shape.refine(
-  (e) => e.DOMAIN_PROVIDER !== 'dns' || e.STOREFRONT_A_RECORD !== DOC_A_RECORD,
-  {
+const schema = shape
+  .refine((e) => !(e.NODE_ENV === 'production' && e.SETTINGS_SECRET === DEV_SETTINGS_SECRET), {
+    // The default is public (it is in this file). In production it would encrypt every
+    // store's gateway keys and sign every token with a value anyone can read; a blank or
+    // missing SETTINGS_SECRET must stop the app, never fall back to it.
+    message: 'SETTINGS_SECRET is required in production (16+ random characters)',
+    path: ['SETTINGS_SECRET'],
+  })
+  .refine((e) => e.DOMAIN_PROVIDER !== 'dns' || e.STOREFRONT_A_RECORD !== DOC_A_RECORD, {
     // Merchants would be told to point their domain at a documentation address.
     message: 'DOMAIN_PROVIDER=dns needs the server IPv4 in STOREFRONT_A_RECORD',
     path: ['STOREFRONT_A_RECORD'],
-  },
-)
+  })
+  .refine(
+    (e) => !(e.BUG_REPORTS_ENABLED && !e.GITHUB_ISSUES_TOKEN && e.NODE_ENV === 'production'),
+    {
+      // In production a report must reach GitHub; a console line nobody reads would lose it.
+      message:
+        'BUG_REPORTS_ENABLED=true in production needs GITHUB_ISSUES_TOKEN (a fine-grained token with only Issues: write on GITHUB_ISSUES_REPO)',
+      path: ['GITHUB_ISSUES_TOKEN'],
+    },
+  )
 
 export type Env = z.infer<typeof schema>
 
@@ -206,7 +281,10 @@ function withoutBlanks(
 export function loadEnv(source: Record<string, string | undefined>): Env {
   const result = schema.safeParse(withoutBlanks(source))
   if (!result.success) {
-    const keys = result.error.issues.map((i) => i.path.join('.')).join(', ')
+    // Key names only, never values; a cross-key rule adds its sentence so the fix is obvious.
+    const keys = result.error.issues
+      .map((i) => (i.code === 'custom' ? `${i.path.join('.')} (${i.message})` : i.path.join('.')))
+      .join(', ')
     throw new Error(`Invalid environment: ${keys}`)
   }
   return result.data

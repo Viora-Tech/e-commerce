@@ -1,3 +1,4 @@
+import { siteConfig } from '@commerce/config/site'
 import type { TemplateData, TemplateId } from './types'
 
 /** Sample order used by the conformance suite, the dev preview and the admin's message preview. */
@@ -127,6 +128,59 @@ export const sampleTemplateDataByTemplate: Record<TemplateId, TemplateData> = {
   balance_received: { ...base, orderUrl: 'https://waimers.example/orders/42' },
   payment_reminder: { ...base, orderUrl: 'https://waimers.example/orders/42/pay' },
   unpaid_cancel_notice: { ...base, deadlineLabel: '28 Sep 2026' },
+  contact_message: {
+    ...base,
+    orderNumber: undefined,
+    lines: [],
+    taxBreakdown: undefined,
+    contactMessage: {
+      name: 'Asha',
+      email: 'asha@example.com',
+      phone: '',
+      text: 'Which shade suits dry skin?',
+      path: '/pages/contact',
+    },
+  },
+  review_request: {
+    ...base,
+    lines: [],
+    review: {
+      subject: 'How was your Maboroshi mousepad?',
+      items: [
+        {
+          title: 'Maboroshi mousepad',
+          url: 'https://waimers.example/products/maboroshi?review=sample#reviews',
+          imageUrl: 'https://placehold.co/80x80/f2f2f2/141414?text=%20',
+        },
+      ],
+      unsubscribeUrl: 'https://waimers.example/reviews/unsubscribe?t=sample',
+    },
+  },
+  review_reminder: {
+    ...base,
+    lines: [],
+    review: {
+      subject: 'How was your Maboroshi mousepad?',
+      items: [
+        {
+          title: 'Maboroshi mousepad',
+          url: 'https://waimers.example/products/maboroshi?review=sample#reviews',
+        },
+      ],
+      unsubscribeUrl: 'https://waimers.example/reviews/unsubscribe?t=sample',
+    },
+  },
+  review_reply: {
+    ...base,
+    orderNumber: undefined,
+    lines: [],
+    taxBreakdown: undefined,
+    review: {
+      productTitle: 'Maboroshi mousepad',
+      productUrl: 'https://waimers.example/products/maboroshi#reviews',
+      reply: 'Thanks for the kind words, Asha! Enjoy the glide.',
+    },
+  },
   unpaid_cancelled: { ...base },
   back_in_stock_confirm: {
     ...base,
@@ -192,11 +246,62 @@ export const sampleTemplateDataByTemplate: Record<TemplateId, TemplateData> = {
     taxBreakdown: undefined,
     totalLabel: '',
     storeAddress: undefined,
-    actionUrl: 'https://admin.vextro.example/accept-invitation/sample',
+    actionUrl: `https://admin.${siteConfig.brand.domain}/accept-invitation/sample`,
     staffInvite: {
       inviterEmail: 'owner@waimers.example',
       roleLabel: 'Staff',
-      platformName: 'Vextro',
+      platformName: siteConfig.brand.name,
+    },
+  },
+  staff_new_order: {
+    ...base,
+    actionUrl: `https://admin.${siteConfig.brand.domain}/orders/sample`,
+  },
+  staff_daily_summary: {
+    ...base,
+    orderNumber: undefined,
+    lines: [],
+    taxBreakdown: undefined,
+    totalLabel: '',
+    actionUrl: `https://admin.${siteConfig.brand.domain}/`,
+    dailySummary: { periodLabel: 'Today so far', orders: 14, salesLabel: '₹28,640', toShip: 6 },
+  },
+  email_change_code: {
+    ...base,
+    storeName: siteConfig.brand.name,
+    orderNumber: undefined,
+    lines: [],
+    taxBreakdown: undefined,
+    totalLabel: '',
+    storeAddress: undefined,
+    code: '518204',
+  },
+  email_changed: {
+    ...base,
+    storeName: siteConfig.brand.name,
+    orderNumber: undefined,
+    lines: [],
+    taxBreakdown: undefined,
+    totalLabel: '',
+    storeAddress: undefined,
+    emailChange: { newEmail: 'a•••@gmail.com' },
+  },
+  purchase_order: {
+    ...base,
+    customerName: '',
+    orderNumber: undefined,
+    taxBreakdown: undefined,
+    paymentMethodLabel: '',
+    totalLabel: 'USD 1,240.00',
+    lines: [
+      { title: 'Wireless pad / Black', quantity: 100, priceLabel: 'USD 840.00' },
+      { title: 'Pad sleeve', quantity: 200, priceLabel: 'USD 400.00' },
+    ],
+    purchaseOrder: {
+      numberLabel: 'PO7',
+      supplierName: 'Shenzhen Pads',
+      expectedLabel: '15 Nov 2026',
+      message: 'Please pack the sleeves separately.',
     },
   },
 }

@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import { ADMIN_APPS } from '@/apps/registry'
-import DetailLayout from '@/components/layout/detail-layout'
+import MetafieldsCard from '@/components/metaobjects/metafields-card'
 import { type OrderMark, orderDetailContent, ordersContent } from '@/data/orders'
 import { shipmentPanelContent } from '@/data/shipping'
 import { useCopy } from '@/hooks/use-copy'
@@ -14,7 +14,6 @@ import CustomerCard from './customer-card'
 import FulfilDialog from './fulfil-dialog'
 import ImportedOrderCard from './imported-order-card'
 import LineItemsCard from './line-items-card'
-import OrderActionBar from './order-action-bar'
 import OrderActions from './order-actions'
 import {
   isOfflineMethod,
@@ -26,9 +25,14 @@ import {
   unfulfilledLines,
 } from './order-detail-types'
 import OrderHeader from './order-header'
+import OrderNextStep from './order-next-step'
+import { nextStepKind } from './order-next-step-kind'
+import OrderPageFrame from './order-page-frame'
 import OrderReturnsCard from './order-returns-card'
 import PackingSlip from './packing-slip'
+import ParcelsCard from './parcels-card'
 import PaymentCard from './payment-card'
+import ProfitCard from './profit-card'
 import RefundDialog from './refund-dialog'
 import ShipmentPanel from './shipment-panel'
 import TagsCard from './tags-card'
@@ -165,17 +169,11 @@ export default function OrderView({ order, appCards = [] }: OrderViewProps) {
       ? handleSendReminder
       : undefined
 
-  /* One next step, in the order a merchant works: take the money, then pack it. */
-  const nextAction = canCollect
-    ? { label: copy.actions.collect, onClick: () => setCollecting(true) }
-    : canFulfil
-      ? { label: copy.actions.fulfilItems, onClick: () => setFulfilling(true) }
-      : null
+  const awaitingTransfer = live && !order.checkoutPaidAt && order.paymentMethod === 'manual'
+  const stepKind = nextStepKind(order, { readOnly, canCollect, canFulfil, awaitingTransfer })
 
   return (
-    <DetailLayout
-      className="print:hidden"
-      stickySide
+    <OrderPageFrame
       header={
         <OrderHeader
           order={order}
@@ -196,10 +194,24 @@ export default function OrderView({ order, appCards = [] }: OrderViewProps) {
           )}
         />
       }
+      nextStep={
+        stepKind ? (
+          <OrderNextStep
+            order={order}
+            kind={stepKind}
+            busy={busy}
+            onCollect={() => setCollecting(true)}
+            onFulfil={() => setFulfilling(true)}
+            onDelivered={() => handleMove('delivered')}
+            onSendReminder={sendReminder}
+          />
+        ) : null
+      }
       main={
         <>
           <ImportedOrderCard order={order} />
           {readOnly ? null : <UnfulfilledCard order={order} onFulfil={() => setFulfilling(true)} />}
+          {readOnly ? null : <ParcelsCard order={order} />}
           <LineItemsCard
             order={order}
             payment={pay}
@@ -223,13 +235,31 @@ export default function OrderView({ order, appCards = [] }: OrderViewProps) {
               onCancel={handleCancelShipment}
             />
           )}
-          <OrderReturnsCard orderId={order.id} readOnly={readOnly} onChanged={refresh} />
-          <TimelineCard order={order} onChanged={refresh} />
+          <div id="order-returns" className="scroll-mt-6">
+            <OrderReturnsCard orderId={order.id} readOnly={readOnly} onChanged={refresh} />
+          </div>
+          <MetafieldsCard ownerType="order" ownerId={order.id} />
+          <div id="order-timeline" className="scroll-mt-6">
+            <TimelineCard order={order} onChanged={refresh} />
+          </div>
         </>
       }
       side={
         <>
           <CustomerCard order={order} />
+          {readOnly ? null : (
+            <ProfitCard
+              orderId={order.id}
+              shipment={
+                order.shipment
+                  ? {
+                      id: order.shipment.id,
+                      courierChargePaise: order.shipment.courierChargePaise,
+                    }
+                  : null
+              }
+            />
+          )}
           {appCards.map((id) => {
             const Card = ADMIN_APPS[id]?.OrderCard
             return Card ? <Card key={id} orderId={order.id} /> : null
@@ -237,7 +267,6 @@ export default function OrderView({ order, appCards = [] }: OrderViewProps) {
           <TagsCard orderId={order.id} tags={order.tags} onChanged={refresh} />
         </>
       }
-      mainFooter={<OrderActionBar action={nextAction} orderNumber={order.number} busy={busy} />}
     >
       <PackingSlip order={order} />
       <RefundDialog
@@ -259,6 +288,6 @@ export default function OrderView({ order, appCards = [] }: OrderViewProps) {
         onClose={() => setCollecting(false)}
         onDone={closeAndRefresh(() => setCollecting(false))}
       />
-    </DetailLayout>
+    </OrderPageFrame>
   )
 }

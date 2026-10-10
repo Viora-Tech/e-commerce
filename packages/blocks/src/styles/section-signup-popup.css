@@ -1,6 +1,6 @@
-/* Signup popup (sections/signup-popup.liquid, components/sections/glide/signup-popup.tsx).
+/* Signup popup (sections/signup-popup.liquid, components/sections/zero-drift/signup-popup.tsx).
    Three looks share the card, the form and the code box; each look only adds
-   its placement and motion. Glide's cyan is the theme's second accent here. */
+   its placement and motion. Zero Drift's cyan is the theme's second accent here. */
 
 @property --beam-angle {
   syntax: "<angle>";

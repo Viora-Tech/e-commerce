@@ -49,7 +49,7 @@ export default function GiftCardSettingsCard({ initial }: GiftCardSettingsCardPr
   }
 
   return (
-    <Card className="gap-4 p-5">
+    <Card gap={4} inset={5}>
       <div className="flex flex-col gap-1">
         <p className="text-card-title text-foreground">{copy.heading}</p>
         <p className="text-caption text-muted-foreground">{copy.help}</p>

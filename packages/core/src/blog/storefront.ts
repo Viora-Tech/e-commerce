@@ -69,6 +69,7 @@ export async function getVisibleArticle(
       ...cardColumns,
       seoTitle: article.seoTitle,
       seoDescription: article.seoDescription,
+      templateSuffix: article.templateSuffix,
       updatedAt: article.updatedAt,
     })
     .from(article)

@@ -1,18 +1,19 @@
 'use client'
 
-import { Bell } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
-import { Card, CardContent } from '@commerce/ui/shadcn/card'
+import { Card } from '@commerce/ui/shadcn/card'
 import { Skeleton } from '@commerce/ui/shadcn/skeleton'
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
-import PageHeader from '@/components/layout/page-header'
 import HelpFooter from '@/components/payments/help-footer'
 import HealthLine from '@/components/settings/health-line'
+import SettingsPageHeader from '@/components/settings/settings-page-header'
+import SettingsTable from '@/components/settings/settings-table'
 import WhatsThisHelp from '@/components/settings/whats-this-help'
-import { notificationsSettingsContent as copy, type MessageGroupId } from '@/data/notifications'
+import { type MessageGroupId, notificationsSettingsContent } from '@/data/notifications'
 import { senderEmailContent } from '@/data/sender-email'
+import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 import AdvancedSection from './advanced-section'
 import MessageRow from './message-row'
@@ -36,8 +37,6 @@ const GROUPS: MessageGroupId[] = [
 /** Advanced (the developer log) only exists while developing. */
 const DEV = process.env.NODE_ENV !== 'production'
 
-const nameOf = (id: string) => copy.messages[id]?.name ?? id
-
 function errorText(err: unknown, fallback: string): string {
   return err instanceof Error && err.message ? err.message : fallback
 }
@@ -49,6 +48,7 @@ function errorText(err: unknown, fallback: string): string {
  */
 export default function NotificationsPage() {
   // Hooks
+  const copy = useCopy(notificationsSettingsContent)
   const [data, setData] = useState<NotificationsOverview | null>(null)
   const [saving, setSaving] = useState<string | null>(null)
   const [testing, setTesting] = useState<string | null>(null)
@@ -69,8 +69,18 @@ export default function NotificationsPage() {
     )
 
   const rows = (group: MessageGroupId) => (data?.messages ?? []).filter((m) => m.group === group)
-  const renderRows = (list: MessageRowData[]) => (
-    <ul className="flex flex-col divide-y divide-border">
+  const renderRows = (list: MessageRowData[], heading?: string, description?: string) => (
+    <SettingsTable
+      heading={heading}
+      description={description}
+      actions
+      total={list.length}
+      columns={[
+        { label: copy.list.columns.message },
+        { label: copy.list.columns.sentOn },
+        { label: copy.list.columns.status, center: true },
+      ]}
+    >
       {list.map((m) => (
         <MessageRow
           key={m.id}
@@ -82,7 +92,7 @@ export default function NotificationsPage() {
           onTest={() => handleTest(m)}
         />
       ))}
-    </ul>
+    </SettingsTable>
   )
 
   // Event handlers
@@ -91,7 +101,7 @@ export default function NotificationsPage() {
     patchMessage(m.id, on)
     try {
       await api.notifications.setMessage({ id: m.id as MessageId, on })
-      toast.success(copy.list.saved(nameOf(m.id), on))
+      toast.success(copy.list.saved(copy.messages[m.id]?.name ?? m.id, on))
     } catch {
       patchMessage(m.id, !on)
       toast.error(copy.list.saveFailed)
@@ -127,7 +137,7 @@ export default function NotificationsPage() {
       <div className="flex flex-col gap-4">
         <Skeleton className="h-8 w-48" />
         <Skeleton className="h-16 w-full" />
-        <Card className="gap-4 p-6">
+        <Card gap={4} inset={6}>
           <Skeleton className="h-5 w-56" />
           <Skeleton className="h-12 w-full" />
           <Skeleton className="h-12 w-full" />
@@ -142,7 +152,7 @@ export default function NotificationsPage() {
   const whatsappOn = data.channels.whatsapp.state === 'connected'
   return (
     <div className="flex flex-col gap-5">
-      <PageHeader
+      <SettingsPageHeader
         title={copy.title}
         subtitle={
           <span className="flex flex-wrap items-center gap-x-3 gap-y-1">
@@ -154,7 +164,6 @@ export default function NotificationsPage() {
             />
           </span>
         }
-        icon={<Bell aria-hidden="true" />}
       />
 
       <HealthLine
@@ -186,19 +195,7 @@ export default function NotificationsPage() {
         {GROUPS.map((g) => {
           const list = rows(g)
           if (list.length === 0) return null
-          return (
-            <Card key={g}>
-              <CardContent className="flex flex-col gap-3">
-                <div className="flex flex-col gap-0.5">
-                  <h3 className="text-body font-semibold text-foreground">
-                    {copy.groups[g].title}
-                  </h3>
-                  <p className="text-caption text-muted-foreground">{copy.groups[g].help}</p>
-                </div>
-                {renderRows(list)}
-              </CardContent>
-            </Card>
-          )
+          return <div key={g}>{renderRows(list, copy.groups[g].title, copy.groups[g].help)}</div>
         })}
       </section>
 
@@ -209,9 +206,7 @@ export default function NotificationsPage() {
           </h2>
           <p className="text-body text-muted-foreground">{copy.groups.you.help}</p>
         </div>
-        <Card>
-          <CardContent>{renderRows(rows('you'))}</CardContent>
-        </Card>
+        {renderRows(rows('you'))}
       </section>
 
       <section className="flex flex-col gap-2" aria-labelledby="notifications-sender">

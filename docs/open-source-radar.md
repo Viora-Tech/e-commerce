@@ -39,7 +39,7 @@ copying: projects relicense (Unleash moved to AGPL, Cal.com moved to MIT).
 | Messaging | [Novu](https://github.com/novuhq/novu) | MIT outside `enterprise/packages` | Notification workflows, digests, preference centre | Notifications |
 | Marketing | [Dittofeed](https://github.com/dittofeed/dittofeed) | MIT | Journeys, segments | Automations |
 | Marketing | [listmonk](https://github.com/knadh/listmonk), [Mautic](https://github.com/mautic/mautic) | AGPL-3.0, GPL-3.0 | | Ideas only |
-| Analytics | [Umami](https://github.com/umami-software/umami) | MIT | Sessions, referrers, visitor map | Live view globe and analytics |
+| Analytics | [Umami](https://github.com/umami-software/umami) | MIT | Sessions, referrers, visitor map | Live view globe and analytics; adopted as the Umami app (connection plugin, `packages/plugin-umami`, 2026-10-10) |
 | Analytics | [PostHog](https://github.com/PostHog/posthog) | MIT outside `ee/` | Funnels, feature flags, session replay design | Ideas, selective code |
 | Analytics | [Plausible](https://github.com/plausible/analytics) | AGPL-3.0 | | Ideas only |
 | Experiments | [GrowthBook](https://github.com/growthbook/growthbook) | MIT outside its enterprise folders | A/B tests on sections and prices | Experiments plugin |
@@ -51,6 +51,7 @@ copying: projects relicense (Unleash moved to AGPL, Cal.com moved to MIT).
 | Booking | [Cal.com](https://github.com/calcom/cal.com) | MIT | Scheduling, for service-selling stores | Later |
 | Ops | [SigNoz](https://github.com/SigNoz/signoz) | MIT outside `ee/` | Logs, traces, metrics | Self-hosted observability |
 | Ops | [GlitchTip](https://gitlab.com/glitchtip/glitchtip) | MIT | Sentry-protocol-compatible error tracking server | Done: run it as a separate service, point the official Sentry SDKs at its DSN |
+| Ops | [modern-screenshot](https://github.com/qq15725/modern-screenshot) | MIT (npm metadata, 2026-10-05) | DOM to PNG/JPEG in the browser (html-to-image's maintained successor) | In use: the test server's "Report a bug" screenshot (`apps/admin/src/lib/capture-page.ts`). Our own button and GitHub-issue filing instead of Sentry user feedback or a SaaS widget |
 | Invoices | [invoicely](https://github.com/legions-developer/invoicely) | MIT, author's permission | PDF templates | Done: GST invoices app |
 | Catalog | [Shopify Product Taxonomy](https://github.com/Shopify/product-taxonomy) | MIT | Standard product category tree | Done: product category picker (trimmed data, `scripts/trim-product-taxonomy.ts`) |
 | Admin i18n | [next-intl](https://github.com/amannn/next-intl) (MIT), [typesafe-i18n](https://github.com/ivanhofer/typesafe-i18n) (MIT) | MIT | Nothing copied: both want messages as ICU/format strings, and our copy is TS objects with functions in them (`(n) => ...`), so adopting either meant rewriting every `data/*.ts` | Done in-house (checked 2026-09-27): ~150-line typed overlay, `apps/admin/src/lib/i18n.ts`, Hindi in `data/hi/`. Revisit if we add many languages or need ICU plurals |

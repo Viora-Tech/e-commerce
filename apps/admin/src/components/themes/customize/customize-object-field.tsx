@@ -8,7 +8,6 @@ import {
 } from '@commerce/ui/shadcn/collapsible'
 import { AutoField, type Field } from '@puckeditor/core'
 import type { ReactNode } from 'react'
-import { customizeContent } from '@/data/customize'
 import { iconForField } from '@/lib/customize-field-icons'
 import {
   type FieldLike,
@@ -65,19 +64,8 @@ export default function CustomizeObjectField({
   const objectValue = (value ?? {}) as Record<string, unknown>
   const objectFields = (field.objectFields ?? {}) as Record<string, Field>
   const label = field.label ?? name
-  if (isSectionSettingsField(field, name)) {
+  if (isSectionSettingsField(field, name) || isElementStyleField(field, name)) {
     return <SectionSettingsGroups field={field} value={objectValue} onChange={onChange} />
-  }
-  if (isElementStyleField(field, name)) {
-    return (
-      <SectionSettingsGroups
-        field={field}
-        value={objectValue}
-        onChange={onChange}
-        title={customizeContent.styleGroups.title}
-        hint={customizeContent.styleGroups.hint}
-      />
-    )
   }
   if (isColourChoiceField(field)) {
     return (

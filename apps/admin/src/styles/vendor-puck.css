@@ -27,9 +27,11 @@
  * accent pick (--primary) apply automatically — no separate dark block needed.
  */
 :root {
-  /* Type */
-  --puck-font-family: var(--font-sans);
-  --puck-outline-font-family: var(--font-sans);
+  /* Type: DM Sans, the admin's face (`--font-primary`, next/font in app/layout.tsx), named
+   * directly rather than through `--font-sans`, which Tailwind inlines (`@theme inline`) and may
+   * not emit as a variable; an unresolved variable here would leave Puck's own Inter stack. */
+  --puck-font-family: var(--font-primary), ui-sans-serif, system-ui, sans-serif;
+  --puck-outline-font-family: var(--font-primary), ui-sans-serif, system-ui, sans-serif;
 
   /* Accent: links, focus, the primary button, drag affordances */
   --puck-color-interactive: var(--primary);
@@ -92,4 +94,62 @@
     --puck-duration-medium: 0ms;
     --puck-duration-slow: 0ms;
   }
+}
+
+/* Block outlines on the Customize canvas, as the Figma builder frames draw them: 1px solid
+ * accent around the selected block, 1px dashed around a hovered one, no tinted fill. Puck
+ * mounts this overlay in the admin document over the preview, so admin tokens apply; its
+ * class names are hashed, so they are matched by their stable part. */
+[data-puck-overlay] {
+  --puck-slot-component-color-overlay: transparent;
+  --puck-color-selection-bg: transparent;
+}
+
+/* Editor chrome drawn inside the canvas iframe (the block toolbar and its menus, Puck's
+ * overlay): the admin's DM Sans, never the storefront theme's font the frame's body uses.
+ * preview-frame.tsx copies `--font-primary` onto the frame's root. */
+[data-puck-overlay],
+[data-editor-chrome] {
+  font-family: var(--font-primary), ui-sans-serif, system-ui, sans-serif;
+}
+
+/* The storefront's block CSS (vendor-blocks.css) has to be in the admin document so Puck can
+ * mirror it into the canvas frame, which means its element rules reach the editor's own chrome
+ * too: every h1–h6 uppercased at 2–2.5rem with 0.01em tracking and weight 500, and every text
+ * input at 16px. Undo them for the chrome only: the layout's root (`data-editor-chrome`, a div,
+ * which Puck does not copy into the frame as it does <html>/<body> attributes) and the
+ * dialogs, popovers and menus portalled to <body> (`data-slot="…-content"`), in the
+ * `components` layer: after `vendor`, so it wins there, and
+ * before `utilities`, so the chrome's own classes still decide. */
+@layer components {
+  :is([data-editor-chrome], [data-slot$="-content"]) :is(h1, h2, h3, h4, h5, h6) {
+    font-family: inherit;
+    font-size: inherit;
+    font-weight: inherit;
+    letter-spacing: inherit;
+    line-height: inherit;
+    text-transform: none;
+  }
+  :is([data-editor-chrome], [data-slot$="-content"])
+    input:not([type="checkbox"], [type="radio"], [type="range"], [type="color"]) {
+    font-size: inherit;
+  }
+}
+
+/* One screen pixel at any canvas zoom (`--canvas-zoom`, lib/customize-zoom.ts). */
+[data-puck-overlay] [class*="DraggableComponent-overlay_"] {
+  outline: calc(1px / var(--canvas-zoom, 1)) solid var(--primary);
+  outline-offset: calc(-1px / var(--canvas-zoom, 1));
+  background: transparent;
+}
+
+[data-puck-overlay][class*="DraggableComponent--hover"]:not([class*="--isSelected"])
+  [class*="DraggableComponent-overlay_"] {
+  outline-style: dashed;
+}
+
+/* Puck's own action bar is empty on the canvas (BlockToolbar draws the one toolbar and takes
+ * its rich-text menu), so its holder must not catch clicks or start a drag. */
+[data-puck-overlay] [class*="DraggableComponent-actionsOverlay"] {
+  pointer-events: none;
 }

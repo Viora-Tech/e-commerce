@@ -77,7 +77,7 @@ export const SWAP_TABLE: readonly SwapRow[] = [
   {
     key: 'contact',
     shopify: 'Contact form (form "contact")',
-    ours: 'Not available yet: the form shows but cannot send. Show your email or WhatsApp number instead',
+    ours: 'Our Forms app (Apps, Forms): messages are saved there and emailed to you. Until you install it the form shows "not available"',
     kind: 'unavailable',
     detect: /form\s+['"]contact['"]/,
   },
@@ -91,15 +91,15 @@ export const SWAP_TABLE: readonly SwapRow[] = [
   {
     key: 'app_data',
     shopify: 'Data from Shopify apps (Judge.me reviews and similar)',
-    ours: 'Not available yet: the section stays hidden until our Reviews app collects reviews',
-    kind: 'unavailable',
+    ours: 'Our Reviews app (Apps, Reviews): star ratings and Judge.me review data come from your reviews, imported or new. Without it these sections stay hidden',
+    kind: 'replaced',
     detect: /metafields\.(judgeme|reviews|yotpo|loox|stamped|okendo|klaviyo)\b/,
   },
   {
     key: 'metafields',
     shopify: 'Metafields and metaobjects',
-    ours: 'Blank until you add matching extra fields or content types here',
-    kind: 'unavailable',
+    ours: 'Read from your extra fields (products and collections) and content types; the importer copied them from Shopify',
+    kind: 'replaced',
     detect: /\.metafields\.(?!judgeme|reviews|yotpo|loox|stamped|okendo|klaviyo)|metaobjects/,
   },
   {
@@ -133,8 +133,8 @@ export const SWAP_TABLE: readonly SwapRow[] = [
   {
     key: 'recommendations',
     shopify: 'Product recommendations (/recommendations/products)',
-    ours: 'Empty for now; our Related products section can take its place',
-    kind: 'unavailable',
+    ours: 'Our related products: the same collection first, then the same product type and tags (in stock and published only)',
+    kind: 'replaced',
     detect: /product_recommendations_url|recommendations\/products/,
   },
   {

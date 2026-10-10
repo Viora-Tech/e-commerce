@@ -3,7 +3,6 @@ import {
   APP_JOBS_QUEUE,
   type AppEventJob,
   type AppJobData,
-  appContext,
   type DispatchDeps,
   deliverNotification,
   dispatchAppEvent,
@@ -12,6 +11,7 @@ import {
   installedApps,
   isFinalJobFailure,
   storageForStore,
+  storeAppContext,
 } from '@commerce/core'
 import { getRegistries, registriesForStore } from '@commerce/core/registries'
 import { type Db, withStore } from '@commerce/db'
@@ -124,7 +124,7 @@ export function appEmailExtras(db: Db, opts: AppOpts, storeId: string) {
   return async (input: { orderId: string; template: TemplateId }) => {
     const installed = await installedApps(db, storeId)
     if (installed.length === 0) return { links: [], attachments: [] as Attachment[] }
-    const ctx = appContext(deps, storeId, `email:${input.template}`)
+    const ctx = await storeAppContext(deps, storeId, `email:${input.template}`)
     const [links, attachments] = await Promise.all([
       deps.plugins.orderLinks(installed, { ...ctx, surface: 'email' }, input.orderId),
       deps.plugins.emailAttachments(installed, ctx, input),

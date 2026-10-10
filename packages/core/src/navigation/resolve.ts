@@ -13,26 +13,46 @@ export type NavLink = {
 export type NavColumn = { id: string; heading: string; links: NavLink[] }
 
 /**
- * Public path prefixes, keyed by item type. An item stores the handle rather
- * than an id, so resolving is string work with no lookup behind it. The cost of
- * that choice is that renaming a handle breaks any menu pointing at it.
+ * Public path prefixes for the types that store a handle (an article stores
+ * `blog/article`, a policy its type). An item stores the handle rather than an
+ * id, so resolving is string work with no lookup behind it; when a product,
+ * collection or page handle changes, `onHandleChange` rewrites the menus.
  */
-const PREFIX: Record<Extract<NavigationItemType, 'product' | 'collection' | 'page'>, string> = {
+const PREFIX: Record<
+  Extract<NavigationItemType, 'product' | 'collection' | 'page' | 'blog' | 'article' | 'policy'>,
+  string
+> = {
   product: '/products/',
   collection: '/collections/',
   page: '/pages/',
+  blog: '/blogs/',
+  article: '/blogs/',
+  policy: '/policies/',
+}
+
+/** Fixed paths for the types that need no value. */
+const FIXED: Partial<Record<NavigationItemType, string>> = {
+  home: '/',
+  search: '/search',
+  collections: '/collections',
 }
 
 /**
- * The public path an item points at, or null when it cannot resolve: a url item
- * with no value, or a typed item with its destination unset. Public paths carry
- * no store prefix, the proxy adds it.
+ * The public path for a type and value, or null when a typed item has no
+ * destination. Public paths carry no store prefix, the proxy adds it. The admin
+ * menu editor shows the same string as "links to".
  */
+export function itemPath(type: NavigationItemType, value: string | undefined): string | null {
+  const fixed = FIXED[type]
+  if (fixed) return fixed
+  const v = value?.trim()
+  if (!v) return null
+  return type === 'url' ? v : `${PREFIX[type as keyof typeof PREFIX]}${v}`
+}
+
+/** The public path an item points at, or null when it cannot resolve. */
 export function itemHref(item: NavigationItem): string | null {
-  if (item.type === 'home') return '/'
-  const value = item.value?.trim()
-  if (!value) return null
-  return item.type === 'url' ? value : `${PREFIX[item.type]}${value}`
+  return itemPath(item.type, item.value)
 }
 
 /**

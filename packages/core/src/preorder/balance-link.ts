@@ -78,6 +78,25 @@ export function verifyOrderViewToken(
   return verifyOrderToken('order-view', token, secret, now)
 }
 
+/**
+ * Whether this request may see, or act on, an order: the signed-in customer who owns it,
+ * or a valid view token minted for this exact order. The order number alone (sequential,
+ * enumerable) is never enough. Every storefront action that mints a fresh view token for an
+ * order ("Retry payment", "Pay balance", "New QR") goes through here first (security audit
+ * 2026-10-06, A-00: they minted one for any order number a stranger sent).
+ */
+export function canViewOrder(
+  o: { id: string; customerId: string | null },
+  viewer: { customerId: string | null | undefined; token: string | null | undefined },
+  secret: string,
+  now = new Date(),
+): boolean {
+  if (viewer.customerId && o.customerId === viewer.customerId) return true
+  if (!viewer.token) return false
+  const verified = verifyOrderViewToken(viewer.token, secret, now)
+  return verified.ok && verified.orderId === o.id
+}
+
 export const balancePath = (token: string): string => `/checkout/balance/${token}`
 
 export function balanceUrl(

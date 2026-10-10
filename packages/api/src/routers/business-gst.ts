@@ -5,16 +5,22 @@ import {
   cancelRegistration,
   createBusiness,
   GstRegistrationError,
+  LocationOrderInputSchema,
   LocationPickupInputSchema,
   LocationRegistrationSchema,
+  LocationSellingInputSchema,
   linkLocationRegistration,
   listBusinessGst,
+  MaxParcelsInputSchema,
   permissions,
   RegistrationIdSchema,
   RegistrationInputSchema,
   RegistrationUpdateSchema,
+  reorderLocations,
   setDefaultRegistration,
   setLocationCourierPickup,
+  setLocationSelling,
+  setMaxParcels,
   updateBusiness,
   updateRegistration,
 } from '@commerce/core'
@@ -86,6 +92,25 @@ export const businessGstRouter = {
     .handler(({ context, input }) =>
       refusing(() => linkLocationRegistration(context.tx, context.scope.storeId, input)),
     ),
+
+  /** Checkout routes online orders to this location, or not (the default always ships). */
+  setLocationSelling: can(permissions.SETTINGS_MANAGE)
+    .input(LocationSellingInputSchema)
+    .handler(({ context, input }) =>
+      refusing(() => setLocationSelling(context.tx, context.scope.storeId, input)),
+    ),
+
+  /** The order checkout tries locations in. */
+  reorderLocations: can(permissions.SETTINGS_MANAGE)
+    .input(LocationOrderInputSchema)
+    .handler(({ context, input }) =>
+      refusing(() => reorderLocations(context.tx, context.scope.storeId, input)),
+    ),
+
+  /** The most parcels one order may be split into. */
+  setMaxParcels: can(permissions.SETTINGS_MANAGE)
+    .input(MaxParcelsInputSchema)
+    .handler(({ context, input }) => setMaxParcels(context.tx, context.scope.storeId, input)),
 
   /** Couriers collect from this location's address (Settings › Locations), or not. */
   setLocationPickup: can(permissions.SETTINGS_MANAGE)

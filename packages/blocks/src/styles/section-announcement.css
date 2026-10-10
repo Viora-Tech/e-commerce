@@ -1,5 +1,5 @@
 /**
- * Announcement bar, ported from the Glide theme's assets/section-announcement.css.
+ * Announcement bar, ported from the Zero Drift theme's assets/section-announcement.css.
  * Two display modes (components/sections/announcement-bar.tsx):
  * - rotate: one message at a time. The theme drove this with per-instance CSS keyframes
  *   plus header.js's prev/next; here `announcement-rotator.tsx` moves `.is-active` on a

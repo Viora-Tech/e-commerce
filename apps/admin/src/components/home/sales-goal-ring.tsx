@@ -159,7 +159,9 @@ export default function SalesGoalRing({ month }: SalesGoalRingProps) {
           <div className="flex w-full items-center gap-2 border-border border-t pt-3">
             <FireIcon className="size-4 shrink-0 text-warning" />
             <p className="text-caption text-muted-foreground">
-              {month.bestDay ? c.record(fmt.money(month.bestDayPaise), month.bestDay) : c.noRecord}
+              {month.bestDay
+                ? c.record(fmt.money(month.bestDayPaise), fmt.day(month.bestDay))
+                : c.noRecord}
             </p>
           </div>
         </div>
