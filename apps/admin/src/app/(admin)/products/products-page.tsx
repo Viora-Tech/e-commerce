@@ -7,6 +7,7 @@ import { Button } from '@commerce/ui/shadcn/button'
 import { Kbd } from '@commerce/ui/shadcn/kbd'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@commerce/ui/shadcn/tooltip'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { parseAsInteger, parseAsString, parseAsStringLiteral, useQueryStates } from 'nuqs'
 import { Suspense, useEffect, useState } from 'react'
 import { toast } from 'sonner'
@@ -81,6 +82,7 @@ function ProductsContent({ initial }: { initial: ProductsInitial }) {
   const copy = useCopy(productsListContent)
   const fmt = useFormat()
   usePrimaryAction(routes.products.new())
+  const router = useRouter()
   const [q, setQ] = useQueryStates(
     {
       query: parseAsString.withDefault(''),
@@ -338,6 +340,7 @@ function ProductsContent({ initial }: { initial: ProductsInitial }) {
               runBulk(ids, { kind: 'status', status }, clear, (r) => copy.bulk.updated(r.changed))
             }
             onTag={() => setTagging({ ids, clear })}
+            onBulkEdit={() => router.push(routes.products.bulkEdit(ids))}
             onDelete={() => setDeleting({ ids, clear })}
             onWriteAi={initial.aiBulk ? () => setWriting({ ids, jobId: null }) : undefined}
           />

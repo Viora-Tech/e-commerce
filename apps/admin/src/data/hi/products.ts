@@ -62,6 +62,7 @@ export default [
     launching: (date) =>
       `${date.toLocaleDateString('hi-IN', { day: 'numeric', month: 'short' })} को लॉन्च`,
     bulk: {
+      bulkEdit: 'एक साथ बदलें',
       setActive: 'चालू करें',
       setDraft: 'ड्राफ़्ट बनाएं',
       archive: 'आर्काइव करें',

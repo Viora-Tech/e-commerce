@@ -5,7 +5,7 @@
  * their own stylesheets.
  */
 /* Vendor stylesheets (Puck, Lexical, storefront blocks) sit below components/utilities. */
-@layer theme, base, vendor, components, utilities;
+@layer theme, base, vendor, rdg, components, utilities;
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
