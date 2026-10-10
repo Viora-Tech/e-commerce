@@ -7,6 +7,7 @@ import {
   keyFromName,
   type MetafieldOwnerType,
   NO_LIST_TYPES,
+  PRIVATE_METAFIELD_OWNERS,
   ruleProblems,
 } from '@commerce/core/metaobjects'
 import { Button } from '@commerce/ui/shadcn/button'
@@ -223,13 +224,17 @@ export default function MetafieldDefinitionDialog({
               onChange={(list) => patch({ list })}
             />
           ) : null}
-          <ToggleField
-            id="metafield-storefront"
-            label={copy.storefront}
-            help={copy.storefrontHelp}
-            checked={draft.storefrontAccess}
-            onChange={(storefrontAccess) => patch({ storefrontAccess })}
-          />
+          {PRIVATE_METAFIELD_OWNERS.includes(ownerType) ? (
+            <FieldDescription>{copy.privateNote}</FieldDescription>
+          ) : (
+            <ToggleField
+              id="metafield-storefront"
+              label={copy.storefront}
+              help={copy.storefrontHelp}
+              checked={draft.storefrontAccess}
+              onChange={(storefrontAccess) => patch({ storefrontAccess })}
+            />
+          )}
           {draft.type ? (
             <>
               <FieldSeparator />

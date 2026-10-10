@@ -29,6 +29,7 @@ import { phoneLoginOtpKey } from '../accounts/otp'
 import { normaliseMobile } from '../accounts/schemas'
 import type { StoreContext } from '../context'
 import { decryptCustomerPhone } from '../customers/phone-crypto'
+import { deleteMetafieldsOf } from '../metaobjects/service'
 import { CONTACT_NOTE_PATTERN } from '../order/contact'
 import { type PrivacyActor, recordPrivacyEvent } from './audit'
 import { DataRequestError } from './requests'
@@ -148,6 +149,9 @@ export async function anonymiseCustomer(
   await tx.delete(customerLoginTicket).where(eq(customerLoginTicket.customerId, id))
   if (cu.email) await tx.delete(customerLoginTicket).where(eq(customerLoginTicket.email, cu.email))
   if (cu.email) await tx.delete(customerLoginCode).where(eq(customerLoginCode.email, cu.email))
+
+  // Extra fields on the customer may hold anything the merchant chose to record about them.
+  await deleteMetafieldsOf(tx, 'customer', [id])
 
   // Address book: nothing legal hangs on it.
   const addresses = await tx

@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import { ADMIN_APPS } from '@/apps/registry'
+import MetafieldsCard from '@/components/metaobjects/metafields-card'
 import { type OrderMark, orderDetailContent, ordersContent } from '@/data/orders'
 import { shipmentPanelContent } from '@/data/shipping'
 import { useCopy } from '@/hooks/use-copy'
@@ -237,6 +238,7 @@ export default function OrderView({ order, appCards = [] }: OrderViewProps) {
           <div id="order-returns" className="scroll-mt-6">
             <OrderReturnsCard orderId={order.id} readOnly={readOnly} onChanged={refresh} />
           </div>
+          <MetafieldsCard ownerType="order" ownerId={order.id} />
           <div id="order-timeline" className="scroll-mt-6">
             <TimelineCard order={order} onChanged={refresh} />
           </div>

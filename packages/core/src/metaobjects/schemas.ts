@@ -186,8 +186,28 @@ export const MetaobjectWriteSchema = z.object({
 })
 export type MetaobjectWrite = z.infer<typeof MetaobjectWriteSchema>
 
-export const MetafieldOwnerTypeSchema = z.enum(['product', 'collection'])
+/**
+ * What an extra field can sit on. `shop` is the store itself (its owner id is the store's id),
+ * for store-wide values like a return address or a WhatsApp number.
+ */
+export const METAFIELD_OWNER_TYPES = [
+  'product',
+  'variant',
+  'collection',
+  'customer',
+  'order',
+  'page',
+  'article',
+  'shop',
+] as const
+export const MetafieldOwnerTypeSchema = z.enum(METAFIELD_OWNER_TYPES)
 export type MetafieldOwnerType = z.infer<typeof MetafieldOwnerTypeSchema>
+
+/**
+ * Owners whose extra fields hold a shopper's own details: never shown on the storefront, so
+ * their definitions always save with `storefrontAccess` off.
+ */
+export const PRIVATE_METAFIELD_OWNERS: readonly MetafieldOwnerType[] = ['customer', 'order']
 
 export const MetafieldDefinitionWriteSchema = z.object({
   ownerType: MetafieldOwnerTypeSchema,

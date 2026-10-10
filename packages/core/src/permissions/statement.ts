@@ -14,7 +14,7 @@ export const statement = {
   customers: ['read', 'write', 'delete'],
   discounts: ['read', 'write'],
   marketing: ['read', 'write', 'send'],
-  content: ['read', 'write'],
+  content: ['read', 'write', 'manage_types'],
   analytics: ['read'],
   online_store: ['read', 'write', 'publish'],
   apps: ['manage'],
@@ -62,6 +62,8 @@ export const permissions = {
   MARKETING_SEND: permission('marketing', 'send'),
   CONTENT_READ: permission('content', 'read'),
   CONTENT_WRITE: permission('content', 'write'),
+  /** Add, change and delete content types and extra fields (their entries and values need write). */
+  CONTENT_MANAGE_TYPES: permission('content', 'manage_types'),
   ANALYTICS_READ: permission('analytics', 'read'),
   ONLINE_STORE_READ: permission('online_store', 'read'),
   ONLINE_STORE_WRITE: permission('online_store', 'write'),
@@ -95,7 +97,11 @@ export const RESOURCE_METADATA: { [R in Resource]: ResourceMeta } = {
     label: 'Marketing',
     description: 'View marketing reports, edit campaigns and automations, and send them.',
   },
-  content: { label: 'Content', description: 'View and edit files and content entries.' },
+  content: {
+    label: 'Content',
+    description:
+      'View and edit files and content entries, and manage content types and extra fields.',
+  },
   analytics: { label: 'Analytics', description: 'View reports and the live view.' },
   online_store: {
     label: 'Online store',

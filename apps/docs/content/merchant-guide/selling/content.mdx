@@ -99,11 +99,35 @@ Turn on **Must fill** if an entry cannot be saved without it.
   add a new field, or clear the old one in every entry first.
 </Callout>
 
-## Extra fields on products and collections
+## Extra fields
 
-**Extra fields** add your own fields to every product or collection, like a care guide or a
-warranty period. Set them up in **Settings → Custom data**, then fill them in on each product's
-**Extra fields** card.
+**Extra fields** add your own fields to a kind of record, like a care guide on products or a
+"preferred delivery time" on customers. Set them up in **Settings → Custom data**: there is a tab
+for each kind of record. Then fill them in on the record's own page.
+
+| Tab | Where you fill them in | Shown on your store? |
+| --- | --- | --- |
+| Products | The product page, **Extra fields** card | If you switch on **Show on your store** |
+| Variants | The product page, **Variant extra fields** card: pick the variant at the top | If you switch it on |
+| Collections | The collection page | If you switch it on |
+| Customers | The customer page, right column | **Never**: customer details stay private |
+| Orders | The order page, under Returns | **Never** |
+| Pages | Online store › Pages › the page | If you switch it on |
+| Blog posts | The blog post page | If you switch it on |
+| Store | Right on the **Store** tab, under the fields: one value for the whole store, like a return address or a WhatsApp number | If you switch it on |
+
+A few things to know:
+
+- The **Variant extra fields** card only appears once you have added a variant extra field, and
+  only for variants that are saved.
+- Each card saves on its own **Save extra fields** button; it does not touch the rest of the page.
+- Who can fill them in follows the record: anyone who can edit orders can fill in an order's extra
+  fields, anyone who can edit customers a customer's, and so on. The store's own values need
+  **Settings: Manage**.
+- Who can **add, change or delete** extra fields and content types is a separate permission,
+  **Content: Manage types** (Settings › Staff › roles). Administrators have it, and so does every
+  role that could manage content types or extra fields before.
+- When a customer is deleted or erased, their extra fields are deleted with them.
 
 ## Draft or Active
 

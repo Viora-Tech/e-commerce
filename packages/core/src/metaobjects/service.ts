@@ -1,12 +1,18 @@
 import {
+  article,
   collection,
+  customer,
   metafield,
   metafieldDefinition,
   metaobject,
   metaobjectDefinition,
   newId,
+  order,
+  page,
   product,
   type StoreTx,
+  store,
+  variant,
 } from '@commerce/db'
 import { and, asc, count, desc, eq, ilike, inArray, or, sql } from 'drizzle-orm'
 import { slugify } from '../catalog/slug'
@@ -21,6 +27,7 @@ import {
   type MetaobjectDefinitionWrite,
   type MetaobjectWrite,
   NO_LIST_TYPES,
+  PRIVATE_METAFIELD_OWNERS,
 } from './schemas'
 import {
   collectReferences,
@@ -474,7 +481,7 @@ export async function createMetafieldDefinition(
     type: write.type,
     list: write.list,
     validations: write.validations,
-    storefrontAccess: write.storefrontAccess,
+    storefrontAccess: storefrontAccessFor(write),
     position: (last?.n ?? -1) + 1,
   })
   return { id, key }
@@ -512,7 +519,7 @@ export async function updateMetafieldDefinition(
       name: write.name,
       description: write.description || null,
       validations: write.validations,
-      storefrontAccess: write.storefrontAccess,
+      storefrontAccess: storefrontAccessFor(write),
       updatedAt: new Date(),
     })
     .where(eq(metafieldDefinition.id, id))
@@ -524,10 +531,56 @@ export async function deleteMetafieldDefinition(tx: StoreTx, id: string): Promis
   await tx.delete(metafieldDefinition).where(eq(metafieldDefinition.id, id))
 }
 
+/** Customer and order extra fields stay off the storefront whatever the form sent. */
+function storefrontAccessFor(write: MetafieldDefinitionWrite): boolean {
+  return PRIVATE_METAFIELD_OWNERS.includes(write.ownerType) ? false : write.storefrontAccess
+}
+
+const OWNER_TABLES = {
+  product,
+  variant,
+  collection,
+  customer,
+  order,
+  page,
+  article,
+  shop: store,
+} as const satisfies Record<MetafieldOwnerType, unknown>
+
+/** Plain words for "this … no longer exists". */
+const OWNER_WORDS: Record<MetafieldOwnerType, string> = {
+  product: 'product',
+  variant: 'variant',
+  collection: 'collection',
+  customer: 'customer',
+  order: 'order',
+  page: 'page',
+  article: 'blog post',
+  shop: 'store',
+}
+
+/** The owner row is in this store (RLS hides every other store's rows, the store's own included). */
 async function ownerExists(tx: StoreTx, ownerType: MetafieldOwnerType, ownerId: string) {
-  const table = ownerType === 'product' ? product : collection
+  const table = OWNER_TABLES[ownerType]
   const [row] = await tx.select({ id: table.id }).from(table).where(eq(table.id, ownerId))
   return Boolean(row)
+}
+
+/**
+ * Drop every extra field value on these owners. A customer's go when the customer is deleted or
+ * erased: they may hold personal details.
+ */
+export async function deleteMetafieldsOf(
+  tx: StoreTx,
+  ownerType: MetafieldOwnerType,
+  ownerIds: readonly string[],
+): Promise<number> {
+  if (ownerIds.length === 0) return 0
+  const gone = await tx
+    .delete(metafield)
+    .where(and(eq(metafield.ownerType, ownerType), inArray(metafield.ownerId, [...ownerIds])))
+    .returning({ id: metafield.id })
+  return gone.length
 }
 
 /** Definitions for an owner type with this owner's values, keyed by definition id. */
@@ -545,7 +598,8 @@ export async function getMetafields(tx: StoreTx, ownerType: MetafieldOwnerType, 
 }
 
 /**
- * Save values for one product or collection, keyed by definition id. Empty
+ * Save values for one owner (product, variant, customer, order, page, blog post, the shop...),
+ * keyed by definition id. Empty
  * values delete the row; everything is validated (and references confirmed)
  * before anything is written.
  */
@@ -555,7 +609,7 @@ export async function setMetafields(
   input: { ownerType: MetafieldOwnerType; ownerId: string; values: Record<string, unknown> },
 ): Promise<void> {
   if (!(await ownerExists(tx, input.ownerType, input.ownerId))) {
-    throw new InvalidMetaobject([`This ${input.ownerType} no longer exists`])
+    throw new InvalidMetaobject([`This ${OWNER_WORDS[input.ownerType]} no longer exists`])
   }
   const definitions = await listMetafieldDefinitions(tx, input.ownerType)
   const byId = new Map(definitions.map((d) => [d.id, d]))

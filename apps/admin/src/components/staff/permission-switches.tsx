@@ -20,9 +20,10 @@ type PermissionSwitchesProps = {
 
 const RESOURCES = Object.keys(statement) as Resource[]
 
-/** `orders.refund` reads as "Refund" beside its resource heading. */
+/** `orders.refund` reads as "Refund" beside its resource heading; `manage_types` as "Manage types". */
 function actionLabel(action: string): string {
-  return action.charAt(0).toUpperCase() + action.slice(1)
+  const words = action.replaceAll('_', ' ')
+  return words.charAt(0).toUpperCase() + words.slice(1)
 }
 
 function resourcePermissions(resource: Resource): Permission[] {
