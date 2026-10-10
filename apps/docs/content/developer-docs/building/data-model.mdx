@@ -266,9 +266,17 @@ several parcels, the one holding the most order value), else the default GSTIN, 
 `store.address` with no GSTIN, exactly as before.
 Prices include GST, so the origin only flips CGST + SGST and IGST; the total never changes. The
 result is snapshotted on the order (`gst_registration_id`, `tax_origin`) and never recomputed.
-Orders placed before 0084 have neither and bill from the default GSTIN. An order still has one
-origin even when it ships in several parcels; GST worked out per parcel, with an invoice per
-GSTIN, is the next step.
+Orders placed before 0084 have neither and bill from the default GSTIN.
+
+With several parcels, each is taxed on its own (`computeParcelGst`,
+`packages/core/src/tax/parcel-gst.ts`, PARCEL_ALLOCATION): the order discount, payment fee or
+discount and shipping are shared over the parcels by goods value in whole paise, and each
+parcel's share is split CGST + SGST or IGST from its own GSTIN's state (0% under a composition
+GSTIN). The parcel stores its share and tax (`fulfillment_order.subtotal_paise` ...
+`total_paise`, `tax_paise`, `tax_breakdown`, `tax_origin`, 0099); the order stores their sum
+(`mergeOrderGst`) and is billed from the parcel holding the most value. A split order can carry
+CGST + SGST and IGST together: displays use `gstRowsToShow` (`@commerce/core/gst`). With one
+parcel the figures are exactly the order-level ones.
 
 #### Documents per GSTIN (phase 2)
 
