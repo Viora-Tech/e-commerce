@@ -13,7 +13,8 @@ import { coerceSourceValue } from './resolve'
  * `source` is `metaobject:<type>` (active entries of a storefront-visible content type, oldest
  * first) or `collection:<handle>.products` (the collection's products in its own order).
  * `map` says which field of each row reads which field of each entry or product, and what kind
- * of setting it is (so a price reads as text, a file as an image). `fallback` renders whenever
+ * of setting it is (so a price reads as text, a file as an image); `from: ""` empties a field.
+ * Fields not in `map` (an icon, a rating) keep the first fallback row's value. `fallback` renders whenever
  * the list is empty or cannot be read, and is what the array goes back to on "Unlink".
  */
 export type LoopSpec = {
@@ -125,10 +126,25 @@ export function boundLoops(data: DataLike): LoopSpec[] {
   return [...byKey.values()]
 }
 
-/** One loaded row in the shape the section's array item expects; unmapped or empty fields are left out. */
+/** An empty value of a setting kind: what a field mapped to "Nothing" (`from: ''`) shows. */
+function blank(kind: SettingKind): unknown {
+  if (kind === 'image') return { url: '', alt: '' }
+  if (kind === 'link') return { label: '', href: '' }
+  return kind === 'number' ? undefined : ''
+}
+
+/**
+ * One loaded row in the shape the section's array item expects. A field mapped to "Nothing"
+ * (`from: ''`) is emptied; a mapped field whose source is empty is left out.
+ */
 function rowItem(spec: LoopSpec, row: LoopRow): Record<string, unknown> {
   const item: Record<string, unknown> = {}
   for (const [field, { from, kind }] of Object.entries(spec.map ?? {})) {
+    if (from === '' && isSettingKind(kind)) {
+      const empty = blank(kind)
+      if (empty !== undefined) item[field] = empty
+      continue
+    }
     const loaded = row[from]
     if (!loaded || !isSettingKind(kind)) continue
     const value = coerceSourceValue(kind, loaded.type, loaded.value)

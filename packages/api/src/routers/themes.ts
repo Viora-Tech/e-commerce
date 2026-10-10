@@ -16,15 +16,19 @@ import {
   listCustomSections,
   listTemplates,
   listThemes,
+  loadLoopCatalog,
+  loadLoopValues,
   loadSourceCatalog,
   loadSourceValues,
   loadTemplate,
   permissions,
+  previewCollectionProducts,
   publishTheme,
   renameCustomSection,
   renameTemplateAlternate,
   renameTheme,
   SECTION_GROUPS,
+  SETTING_KINDS,
   saveCustomSection,
   saveTemplateDraft,
   setThemeThumbnail,
@@ -141,6 +145,35 @@ const templatesRouter = {
         storeId: context.scope.storeId,
         productId: input.productId,
         collectionId: input.collectionId,
+      }),
+    ),
+
+  /** What a list (loop) can read: storefront-visible content types with their fields, collections. */
+  loopSources: can(permissions.ONLINE_STORE_READ).handler(({ context }) =>
+    loadLoopCatalog(context.tx),
+  ),
+
+  /** Sample rows for the Customize preview of lists bound to store data. */
+  loopValues: can(permissions.ONLINE_STORE_READ)
+    .input(
+      z.object({
+        loops: z
+          .array(
+            z.object({
+              source: z.string().max(260),
+              limit: z.number().int().min(1).max(50),
+              map: z.record(
+                z.string().max(64),
+                z.object({ from: z.string().max(64), kind: z.enum(SETTING_KINDS) }),
+              ),
+            }),
+          )
+          .max(20),
+      }),
+    )
+    .handler(({ context, input }) =>
+      loadLoopValues(context.tx, input.loops, {
+        collectionProducts: (handle, limit) => previewCollectionProducts(context.tx, handle, limit),
       }),
     ),
 

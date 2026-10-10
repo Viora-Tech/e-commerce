@@ -1,9 +1,19 @@
 /** SOURCE OF TRUTH: list binding loading — WHAT the rows behind a template's loops (`./loops.ts`) for one request: active entries of a content type, or a collection's products, capped at 50 per list and read under RLS / WHY sections that repeat rows (FAQ, quotes, logos, people) fill from store data at render time, batched so a page with several lists makes a few queries, not one per row. */
-import { metaobjectDefinition, type StoreTx } from '@commerce/db'
-import { and, eq, inArray } from 'drizzle-orm'
+import {
+  collection,
+  collectionProduct,
+  media,
+  metaobjectDefinition,
+  product,
+  productMedia,
+  type StoreTx,
+  variant,
+} from '@commerce/db'
+import { and, asc, eq, inArray, isNull, min } from 'drizzle-orm'
 import type { FieldType } from '../metaobjects/schemas'
 import { metaobjectsByType } from '../metaobjects/storefront'
 import {
+  LOOP_MAX,
   LOOP_PRODUCT_FIELDS,
   type LoopRow,
   type LoopSpec,
@@ -112,4 +122,97 @@ export async function loadLoopValues(
     )
   }
   return out
+}
+
+/**
+ * A collection's active products in its own order, for the Customize preview of a loop (the
+ * storefront passes its own catalogue loader instead). Three queries whatever the limit.
+ */
+export async function previewCollectionProducts(
+  tx: StoreTx,
+  handle: string,
+  limit: number,
+): Promise<LoopProduct[]> {
+  const [found] = await tx
+    .select({ id: collection.id })
+    .from(collection)
+    .where(eq(collection.handle, handle))
+  if (!found) return []
+  const rows = await tx
+    .select({
+      id: product.id,
+      handle: product.handle,
+      title: product.title,
+      vendor: product.vendor,
+      productType: product.productType,
+    })
+    .from(collectionProduct)
+    .innerJoin(product, eq(product.id, collectionProduct.productId))
+    .where(and(eq(collectionProduct.collectionId, found.id), eq(product.status, 'active')))
+    .orderBy(asc(collectionProduct.position))
+    .limit(Math.min(limit, LOOP_MAX))
+  if (!rows.length) return []
+  const ids = rows.map((r) => r.id)
+  const [prices, images] = await Promise.all([
+    tx
+      .select({
+        productId: variant.productId,
+        price: min(variant.pricePaise),
+        mrp: min(variant.mrpPaise),
+      })
+      .from(variant)
+      .where(and(inArray(variant.productId, ids), isNull(variant.archivedAt)))
+      .groupBy(variant.productId),
+    tx
+      .select({
+        productId: productMedia.productId,
+        url: media.url,
+        alt: media.alt,
+        position: productMedia.position,
+      })
+      .from(productMedia)
+      .innerJoin(media, eq(media.id, productMedia.mediaId))
+      .where(inArray(productMedia.productId, ids))
+      .orderBy(asc(productMedia.position)),
+  ])
+  return rows.map((r) => {
+    const price = prices.find((p) => p.productId === r.id)
+    const image = images.find((i) => i.productId === r.id)
+    return {
+      handle: r.handle,
+      title: r.title,
+      vendor: r.vendor,
+      productType: r.productType,
+      pricePaise: price?.price ?? 0,
+      mrpPaise: price?.mrp ?? null,
+      images: image ? [{ url: image.url, alt: image.alt }] : [],
+    }
+  })
+}
+
+/** What a loop can read, for the editor's "Use content from…": content types and collections. */
+export async function loadLoopCatalog(tx: StoreTx) {
+  const [types, collections] = await Promise.all([
+    tx
+      .select({
+        type: metaobjectDefinition.type,
+        name: metaobjectDefinition.name,
+        fields: metaobjectDefinition.fields,
+      })
+      .from(metaobjectDefinition)
+      .where(eq(metaobjectDefinition.storefrontAccess, true))
+      .orderBy(asc(metaobjectDefinition.name)),
+    tx
+      .select({ handle: collection.handle, title: collection.title })
+      .from(collection)
+      .orderBy(asc(collection.title)),
+  ])
+  return {
+    types: types.map((t) => ({
+      type: t.type,
+      name: t.name,
+      fields: t.fields.map((f) => ({ key: f.key, name: f.name, type: f.type as FieldType })),
+    })),
+    collections,
+  }
 }
