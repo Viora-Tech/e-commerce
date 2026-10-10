@@ -1,0 +1,47 @@
+# AWS CodeBuild spec: build the Vextro app images on ARM, push to ECR, then roll them out
+# through the Dokploy API. Nothing secret is baked into an image. Setup: deploy/codebuild/README.md.
+#
+# Plain environment variables set on the CodeBuild project:
+#   AWS_ACCOUNT_ID, ECR_PREFIX (default "vextro")
+#   BUILD_ALL=1   build every app regardless of changes
+#   SKIP_DEPLOY=1 build and push only, no Dokploy calls
+#   HEALTH_URL_WORKER / _ADMIN / _STOREFRONT (optional public health URLs probed after deploy)
+# Everything else comes from SSM Parameter Store / Secrets Manager below (names only here).
+version: 0.2
+
+env:
+  variables:
+    ECR_PREFIX: vextro
+    BUILD_ALL: '0'
+    SKIP_DEPLOY: '0'
+    DOCKER_BUILDKIT: '1'
+  parameter-store:
+    DOKPLOY_URL: /vextro/deploy/dokploy-url
+    NEXT_PUBLIC_WORKER_URL: /vextro/deploy/next-public-worker-url
+    DOKPLOY_APP_ID_WORKER: /vextro/deploy/dokploy-app-id-worker
+    DOKPLOY_APP_ID_ADMIN: /vextro/deploy/dokploy-app-id-admin
+    DOKPLOY_APP_ID_STOREFRONT: /vextro/deploy/dokploy-app-id-storefront
+  secrets-manager:
+    DOKPLOY_API_KEY: vextro/dokploy:api-key
+
+phases:
+  install:
+    runtime-versions:
+      nodejs: 22
+  pre_build:
+    commands:
+      - export ECR_REGISTRY="$AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com"
+      - export GIT_SHA="$(git rev-parse HEAD)"
+      - aws ecr get-login-password | docker login --username AWS --password-stdin "$ECR_REGISTRY"
+      - docker buildx create --use --driver docker-container --name vextro || docker buildx use vextro
+      - bash deploy/codebuild/detect-changes.sh > apps-to-build.txt
+      - echo "apps to build:" "$(cat apps-to-build.txt)"
+  build:
+    commands:
+      - bash deploy/codebuild/build-images.sh "$(cat apps-to-build.txt)"
+  post_build:
+    commands:
+      - |
+        if [ "$CODEBUILD_BUILD_SUCCEEDING" = "1" ] && [ "$SKIP_DEPLOY" != "1" ] && [ -n "$(cat apps-to-build.txt)" ]; then
+          node deploy/codebuild/deploy-dokploy.mjs "$(cat apps-to-build.txt)"
+        fi

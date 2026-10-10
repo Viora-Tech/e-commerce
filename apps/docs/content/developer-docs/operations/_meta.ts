@@ -5,6 +5,7 @@ export default {
   'email-sending': 'Email sending',
   'key-rotation': 'Key rotation',
   deployment: 'Deployment',
+  codebuild: 'Builds on CodeBuild',
   'release-checklist': 'Release checklist',
   'bug-reports': 'Bug reports',
 }
