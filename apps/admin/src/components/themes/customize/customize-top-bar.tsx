@@ -22,10 +22,13 @@ import { Spinner } from '@commerce/ui/shadcn/spinner'
 import Link from 'next/link'
 import type { ReactNode } from 'react'
 import StatusChip from '@/components/layout/status-chip'
+import UserMenu from '@/components/layout/user-menu'
 import { customizeContent } from '@/data/customize'
 import { themesContent } from '@/data/themes'
 import { useCopy } from '@/hooks/use-copy'
 import { useCustomizePuck } from '@/lib/customize-puck'
+import { displayThemeName } from '@/lib/customize-theme-name'
+import { initials } from '@/lib/initials'
 import { routes } from '@/lib/routes'
 import type { PreviewDevice } from '../theme-preview'
 import ZoomMenu from './zoom-menu'
@@ -42,6 +45,10 @@ type CustomizeTopBarProps = {
   previewHref: string
   /** Template and resource pickers. */
   pickers: ReactNode
+  /** An AI gateway is set up: the green "AI connected" chip shows. */
+  aiConnected: boolean
+  /** The signed-in member, for the avatar and its menu at the far right. */
+  user: { name: string; email: string }
   onDevice: (device: PreviewDevice) => void
   onDiscard: () => void
   onSave: () => void
@@ -58,9 +65,9 @@ const ICON_BUTTON =
   'flex size-8 items-center justify-center rounded-lg text-muted-foreground transition-colors duration-150 hover:bg-muted/60 hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/70 focus-visible:outline-none disabled:pointer-events-none disabled:opacity-40 motion-reduce:transition-none [&_svg]:size-4'
 
 /**
- * Customize's bar (Figma "Website builder"): back to Themes, theme name and Live chip on the
- * left; the page switcher centred; device switch, the "1440 PX / 60 %" zoom readout, undo and redo,
- * Preview and Publish on the right.
+ * Customize's bar (Figma 369:4810): back to Themes, theme name and Live chip on the left; the
+ * page switcher centred; device switch, the "1440 PX / 60 %" zoom readout, "AI connected", undo
+ * and redo, Preview, Publish and the member's avatar on the right.
  * On the live theme Publish commits the saved drafts (what Save did); on a draft theme the key
  * button stays Save and the menu publishes the whole theme.
  */
@@ -74,6 +81,8 @@ export default function CustomizeTopBar({
   device,
   previewHref,
   pickers,
+  aiConnected,
+  user,
   onDevice,
   onDiscard,
   onSave,
@@ -87,7 +96,7 @@ export default function CustomizeTopBar({
 
   // Render logic
   return (
-    <header className="grid h-14 shrink-0 grid-cols-[1fr_auto_1fr] items-center gap-4 px-3">
+    <header className="grid h-14 shrink-0 grid-cols-[1fr_auto_1fr] items-center gap-3 bg-card px-4">
       <div className="flex min-w-0 items-center gap-3">
         <Button
           variant="ghost"
@@ -100,7 +109,9 @@ export default function CustomizeTopBar({
           {copy.themes}
         </Button>
         <div className="flex min-w-0 items-center gap-2">
-          <h1 className="truncate text-body font-semibold text-foreground">{name}</h1>
+          <h1 className="truncate text-sm leading-5 font-semibold text-foreground normal-case">
+            {displayThemeName(name)}
+          </h1>
           <StatusChip>{live ? editor.live : editor.draft}</StatusChip>
         </div>
       </div>
@@ -129,6 +140,12 @@ export default function CustomizeTopBar({
           ))}
         </fieldset>
         <ZoomMenu />
+        {aiConnected ? (
+          <span className="hidden shrink-0 items-center gap-1.5 rounded-full bg-success-soft px-2.5 py-[0.3125rem] text-xs leading-[1.0625rem] font-medium text-foreground xl:flex">
+            <span aria-hidden className="size-[0.4375rem] rounded-full bg-success" />
+            {copy.aiConnected}
+          </span>
+        ) : null}
         <button
           type="button"
           onClick={history.back}
@@ -200,6 +217,13 @@ export default function CustomizeTopBar({
           {saving ? <Spinner /> : null}
           {live ? copy.publish : copy.save}
         </Button>
+        <UserMenu
+          user={user}
+          bugReports={false}
+          triggerLabel={copy.account}
+          triggerClassName="flex size-8 shrink-0 items-center justify-center rounded-full bg-ink-strong text-[0.8125rem] leading-[1.1875rem] font-semibold text-background transition-opacity hover:opacity-85 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-card"
+          trigger={initials(user.name, user.email)}
+        />
       </div>
     </header>
   )

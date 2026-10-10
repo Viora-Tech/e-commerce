@@ -2,7 +2,6 @@
 
 import type { AlternateKind, TemplateKind } from '@commerce/core/theme'
 import { ChevronDown, Home, Loader2Icon } from '@commerce/ui/icons'
-import { Button } from '@commerce/ui/shadcn/button'
 import { Popover, PopoverContent, PopoverTrigger } from '@commerce/ui/shadcn/popover'
 import { useState } from 'react'
 import { customizeContent } from '@/data/customize'
@@ -32,7 +31,7 @@ export const templateLabel = (ref: TemplateRef) =>
   ref.suffix ? copy.alternate(copy.names[ref.key], ref.suffix) : copy.names[ref.key]
 
 /**
- * Shopify's template switcher in the top bar: `TemplateList` (search, every template kind
+ * Shopify's template switcher in the top bar (Figma 369:4855, the page switcher): `TemplateList` (search, every template kind
  * grouped with its alternates, usage counts, the alternate manager, Create) in a popover. The
  * manager's dialogs sit outside the popover, which closes when one opens.
  */
@@ -69,21 +68,19 @@ export default function TemplatePicker({
       <Popover open={open} onOpenChange={handleOpen}>
         <PopoverTrigger
           render={
-            <Button
-              variant="outline"
-              className="w-64 justify-between rounded-lg text-[0.8125rem] font-medium"
+            <button
+              type="button"
               aria-label={copy.label}
+              className="flex h-[2.375rem] w-60 items-center gap-2 rounded-[0.625rem] bg-muted pr-2.5 pl-3 text-left text-sm leading-5 font-semibold text-foreground transition-colors duration-150 hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring/70 focus-visible:outline-none motion-reduce:transition-none data-[popup-open]:bg-accent"
             >
-              <span className="flex min-w-0 items-center gap-2">
-                {loading || manager.busy ? (
-                  <Loader2Icon className="size-3.5 shrink-0 animate-spin" aria-hidden />
-                ) : (
-                  <Home className="size-3.5 shrink-0 text-muted-foreground" aria-hidden />
-                )}
-                <span className="truncate">{templateLabel(value)}</span>
-              </span>
-              <ChevronDown aria-hidden className="size-3.5 text-muted-foreground" />
-            </Button>
+              {loading || manager.busy ? (
+                <Loader2Icon className="size-4 shrink-0 animate-spin" aria-hidden />
+              ) : (
+                <Home className="size-4 shrink-0" aria-hidden />
+              )}
+              <span className="min-w-0 flex-1 truncate">{templateLabel(value)}</span>
+              <ChevronDown aria-hidden className="size-3.5 shrink-0 text-muted-foreground" />
+            </button>
           }
         />
         <PopoverContent align="center" className="w-[26rem] gap-0 p-0">

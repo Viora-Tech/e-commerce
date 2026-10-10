@@ -87,6 +87,8 @@ export default [
     discard: 'रद्द करें',
     discarded: 'बदलाव रद्द किए गए',
     more: 'और विकल्प',
+    aiConnected: 'AI जुड़ा है',
+    account: 'आपका अकाउंट',
   }),
   translation(customizeContent.rail, {
     label: 'एडिटर पैनल',
@@ -95,6 +97,39 @@ export default [
     pages: 'पेज',
     media: 'मीडिया',
     theme: 'थीम सेटिंग्स',
+    ai: 'AI से पूछें',
+    settings: 'स्टोर सेटिंग्स',
+    help: 'एडिटर में मदद',
+  }),
+  translation(customizeContent.identity, {
+    title: (store: string, template: string) => `${store} · ${template}`,
+  }),
+  translation(customizeContent.ai, {
+    title: 'AI से इस पेज में बदलाव करवाएँ',
+    intro:
+      'हेडलाइन, शब्द, किसी सेक्शन या सेल पेज के आइडिया माँगें। AI सुझाव देता है, आप मंज़ूर करते हैं; आपके बिना कुछ नहीं बदलता।',
+    chips: [
+      'मेरे होम पेज बैनर के लिए एक छोटी हेडलाइन लिखो',
+      'दिवाली सेल पेज के लिए सेक्शन सुझाओ',
+      'मेरे About पेज का टेक्स्ट दोस्ताना अंदाज़ में दोबारा लिखो',
+    ],
+    offTitle: 'इस स्टोर के लिए AI सेट नहीं है',
+    offBody: 'इस पेज के बारे में पूछने के लिए Settings → AI में AI असिस्टेंट चालू करें।',
+    offAction: 'AI सेटिंग्स खोलें',
+  }),
+  translation(customizeContent.storeSettings, {
+    theme: { title: 'रंग, फ़ॉन्ट और लेआउट', hint: 'इस थीम की अपनी सेटिंग्स' },
+    heading: 'थीम के बाहर सेट होने वाली चीज़ें',
+    newTab: 'नए टैब में खुलता है',
+    links: {
+      seo: { title: 'टाइटल, डिस्क्रिप्शन और शेयर वाली तस्वीर', hint: 'ऑनलाइन स्टोर › पसंद' },
+      menus: { title: 'मेन्यू', hint: 'हेडर और फ़ुटर के लिंक' },
+      store: { title: 'स्टोर का नाम और संपर्क', hint: 'सेटिंग्स › स्टोर की जानकारी' },
+      policies: { title: 'पॉलिसी', hint: 'रिफ़ंड, प्राइवेसी, शिपिंग, शर्तें' },
+      cookies: { title: 'कुकी बैनर', hint: 'सेटिंग्स › ग्राहक की प्राइवेसी' },
+      checkout: { title: 'चेकआउट', hint: 'चेकआउट के रंग और फ़ील्ड' },
+      domains: { title: 'डोमेन', hint: 'आपके स्टोर का वेब पता' },
+    },
   }),
   translation(customizeContent.panels, {
     sections: 'सेक्शन',
@@ -107,6 +142,10 @@ export default [
     pagesHint: 'किसी दूसरे पेज या टेम्पलेट पर जाएँ',
     media: 'मीडिया',
     mediaHint: 'तस्वीर को किसी सेक्शन पर खींचें, या इस्तेमाल करने के लिए क्लिक करें',
+    ai: 'AI से पूछें',
+    aiHint: 'इस पेज के लिए सुझाव',
+    settings: 'स्टोर सेटिंग्स',
+    settingsHint: 'थीम आपके स्टोर से क्या दिखाती है',
     deselect: 'थीम सेटिंग्स पर वापस',
   }),
   translation(customizeContent.groups, {
