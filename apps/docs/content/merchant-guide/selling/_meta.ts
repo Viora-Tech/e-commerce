@@ -11,6 +11,7 @@ export default {
   'import-shopify-theme': 'Import a Shopify theme',
   growth: 'Growth',
   analytics: 'Analytics',
+  reports: 'Reports',
   'visitor-analytics': 'Visitor analytics (Umami)',
   apps: 'Apps',
 }

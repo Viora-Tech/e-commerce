@@ -1,10 +1,11 @@
 'use client'
 
 import type { ReportDefinition, ReportResult } from '@commerce/api'
-import { Download } from '@commerce/ui/icons'
+import { Bookmark, Download } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Card } from '@commerce/ui/shadcn/card'
 import { useEffect, useState } from 'react'
+import { toast } from 'sonner'
 import PillTabs from '@/components/layout/pill-tabs'
 import ProoflyPageHeader from '@/components/layout/proofly-page-header'
 import StatusChip from '@/components/layout/status-chip'
@@ -16,6 +17,7 @@ import { csvCell } from '@/lib/report-format'
 import { routes } from '@/lib/routes'
 import RangePicker from './range-picker'
 import ReportChart from './report-chart'
+import ReportNameDialog from './report-name-dialog'
 import ReportTable from './report-table'
 
 type ReportViewProps = {
@@ -61,6 +63,7 @@ export default function ReportView({ report, initialRange, initial }: ReportView
   const [range, setRange] = useState(initialRange)
   const [data, setData] = useState(initial)
   const [shape, setShape] = useState<Shape>(report.chart)
+  const [saving, setSaving] = useState(false)
 
   useEffect(() => {
     if (sameRange(range, initialRange)) {
@@ -86,6 +89,15 @@ export default function ReportView({ report, initialRange, initial }: ReportView
     )
   }
 
+  const handleSave = async (name: string) => {
+    try {
+      await api.analytics.saveReport({ name, reportSlug: report.slug, range })
+      toast.success(analyticsContent.reports.save.saved)
+      setSaving(false)
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : String(err))
+    }
+  }
   const handleExport = () => {
     const span = report.ranged ? `${data.range.from}-to-${data.range.to}` : data.range.to
     downloadCsv(`${report.slug}-${span}.csv`, csvOf(report, data))
@@ -101,10 +113,16 @@ export default function ReportView({ report, initialRange, initial }: ReportView
         summary={report.description}
         back={{ label: c.back, href: routes.analytics.reports() }}
         actions={
-          <Button variant="outline" onClick={handleExport}>
-            <Download className="size-4" />
-            {c.export}
-          </Button>
+          <>
+            <Button variant="outline" onClick={handleExport}>
+              <Download className="size-4" />
+              {c.export}
+            </Button>
+            <Button onClick={() => setSaving(true)}>
+              <Bookmark aria-hidden />
+              {c.save.button}
+            </Button>
+          </>
         }
       />
       <Card gap="none" inset={5}>
@@ -131,6 +149,16 @@ export default function ReportView({ report, initialRange, initial }: ReportView
         </div>
       </Card>
       <ReportChart report={report} data={data} shape={shape} />
+      {saving ? (
+        <ReportNameDialog
+          title={c.save.title}
+          description={c.save.help}
+          confirm={c.save.confirm}
+          initialName={report.title}
+          onCancel={() => setSaving(false)}
+          onConfirm={handleSave}
+        />
+      ) : null}
       <Card gap="none" inset={5}>
         <p className="text-card-title text-ink-strong">{c.details}</p>
         <div className="mt-5">
