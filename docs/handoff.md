@@ -189,4 +189,4 @@ idempotency keys, read caching, rate limits); then GST invoices, returns and RTO
 cart automation, Snapmint direct adapter; then deployment (AWS ECS pipeline, Cloudflare,
 Lambda@Edge routing) and the SaaS layer (onboarding, tenant billing, plugin marketplace).
 
-See `apps/docs/content/developer-docs/building/architecture.mdx` for the target architecture and the ordered scale roadmap.
+See `apps/docs/content/developer-docs/getting-started/architecture.mdx` for the target architecture and the ordered scale roadmap.

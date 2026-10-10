@@ -7,7 +7,7 @@ description: How a merchant's own domain goes from pending to live — the recor
 
 A merchant connects `brand.in` in Settings → Domains. The row starts `pending`; the storefront
 only answers a hostname once its `store_domain` row is `status = 'active'` (`resolve_store` /
-`resolve_host`, see [Request flow](./request-flow)). A **domain provider** decides when that
+`resolve_host`, see [Request flow](/developer-docs/core-concepts/request-flow)). A **domain provider** decides when that
 happens.
 
 Code: `packages/core/src/domains/` (`service.ts` for connect / verify / poll, `records.ts` for
@@ -153,7 +153,7 @@ Other things that keep a certificate from issuing:
   **Full (strict)** so it also checks our origin certificate.
 - **An extra AAAA (IPv6) record** pointing at the old host: Let's Encrypt prefers IPv6, so the
   challenge goes there and fails. Ask the merchant to delete it.
-- **Origin locked to Cloudflare's ranges** ([Deployment](../operations/deployment), "Lock the
+- **Origin locked to Cloudflare's ranges** ([Deployment](/developer-docs/operations/deployment), "Lock the
   origin"): a merchant domain that is not on Cloudflare cannot reach the server at all. Servers
   that take custom domains must allow 80/443 from everywhere, or put the storefront behind a
   separate entry point.
@@ -184,7 +184,7 @@ Who calls it:
 | Storefront | `storefrontUrl` handed to apps' order links on the thank-you and account order pages |
 
 `store.origin` is a bare `storeProcedure` (every member, see
-[guardrails](/developer-docs/building/guardrails)): it is the address every shopper already sees,
+[guardrails](/developer-docs/core-concepts/guardrails)): it is the address every shopper already sees,
 and staff without `settings.read` still need working links. Theme preview links
 (`?theme-preview=<token>`) work on any hostname of the store: the storefront proxy checks the
 token against the store the hostname resolves to and never redirects a preview to the primary.

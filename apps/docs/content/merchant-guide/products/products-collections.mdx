@@ -1,0 +1,216 @@
+---
+title: Products and collections
+description: Add products with variants, prices, stock, HSN codes and pre-orders, and group them into collections.
+---
+
+# Products and collections
+
+**Products** is everything you sell. **Collections** group products into category pages on
+your store, like "Cotton kurtas", "New arrivals" or "Under ₹999".
+
+## What this is for
+
+- Adding a kurta in 4 sizes and 3 colours, each with its own price, SKU and stock.
+- Showing an MRP of ₹1,999 with a sale price of ₹1,499 ("Save ₹500").
+- Putting the right HSN code and GST rate on each product, so invoices are correct.
+- Taking pre-orders for a new launch, with a countdown and a deposit.
+- Keeping a "Under ₹999" collection that fills itself.
+
+## How it works
+
+A **product** is what shoppers see as one page. Its **variants** are the versions they choose
+between (Size: S, M, L; Colour: Indigo, Rust). Price, SKU, barcode and stock live on each
+variant. **Collections** point at products: a **Manual** collection holds the products you
+pick, an **Automatic** one holds whatever matches its conditions, and updates itself.
+
+```mermaid
+flowchart TD
+  product["Product<br/>Handloom cotton kurta"] --> opt["Options<br/>Size · Colour"]
+  opt --> v1["Variant: M / Indigo<br/>₹1,499 · SKU KUR-M-IND · 12 in stock"]
+  opt --> v2["Variant: L / Rust<br/>₹1,499 · SKU KUR-L-RST · 0 in stock"]
+  product --> manual["Manual collection<br/>New arrivals"]
+  rule["Automatic collection<br/>Price is less than ₹999"] -.->|"matches when a<br/>variant is under ₹999"| product
+  product --> status{"Status"}
+  status -->|Active| store(["Visible on your store"])
+  status -->|"Draft / Archived"| hidden(["Hidden"])
+```
+
+## Add a product step by step
+
+<Steps>
+
+### Start a product
+
+Go to **Products → Product list** and select **Add product**. Enter a **Title** and
+**Description**. The row of links under the page title (**Media**, **Details**, **Pricing**,
+**Inventory**, **Variants**, **Shipping**, **Google preview**, **More**) jumps to each section,
+and the side column stays in view while you scroll.
+
+### Set the price
+
+Under **Pricing**, enter the **Product price**. Add a **Compare at price** (your MRP) to show a
+saving, and **Cost per item** to see your margin (shoppers never see it). **Charge tax on this
+product** and **Tax included** control GST; in India prices usually include tax, so leave
+**Tax included** on **Yes**.
+
+### Add photos
+
+In **Media**, drop images in or **Browse** the file library.
+
+### Add variants
+
+Under **Variants**, select **Add options like size or colour**. Pick or type an **Option
+name** (Size, Colour, Material or your own) and add **Option values** as chips: type one and
+press Enter. Up to 3 options. Every combination appears as a row straight away (Size S, M, L
+and Colour Indigo, Rust make 6 rows); removing a value removes its rows, and if those rows
+still hold stock you're asked first. Existing variants keep their stock, SKU and order history
+when you add a value or a whole new option.
+
+Set each variant's price, MRP, SKU and quantity in the table, or tick rows and use **Set
+price**, **Set quantity** or **SKU prefix** for many at once (a prefix of `KUR` gives
+`KUR-M-INDIGO`). **Suggest SKUs** fills any blank SKU from the title and the variant.
+
+<Screenshot
+  name="Variants table"
+  caption="Add product → Variants card with options Size (S, M, L) and Colour (Indigo, Rust), showing the 6 generated variants with Price ₹1,499, MRP ₹1,999, SKU and Available columns filled."
+/>
+
+### Shipping and GST details
+
+In **Shipping**, fill **Weight (grams)**, **HS (harmonised system) code** (your HSN, e.g.
+`6211` for kurtas), **GST rate (%)** (e.g. `5` or `12`, blank uses your store rate) and
+**Country of origin**. Weight is used for courier rates; HSN and GST go on invoices.
+
+Under **Package**, pick one of your named boxes from **Settings → Shipping**, or **Custom size**
+for a length × width × height in cm. The card shows the **volumetric weight** (L × W × H ÷
+5000, in kg): couriers bill the higher of that and the actual weight, so a light product in a
+big box costs more to ship. When you book a shipment for an order whose items all use the same
+box, that box and its volumetric weight are used instead of the store's default box.
+
+### Stock
+
+Under **Inventory**, turn on **Track quantity**, then set the **Stock quantity**, **SKU (Stock
+Keeping Unit)** and **Barcode (ISBN, UPC, GTIN)**. When you change stock by hand, pick a
+**Reason for change** (Stock received, Damaged, Returned, Sold offline and so on) so the
+history makes sense later. To count or adjust many products at once, use [Stock → Inventory](/merchant-guide/stock/inventory).
+
+### Organise and publish
+
+In the side column, set **Status** (**Active** shows it on your store), and under
+**Organisation** pick a **Category** (search Shopify's standard list, e.g. "Kurtas"), a
+**Product type**, **Vendor** and **Product tag**s. The **Collections** card adds the product to
+manual collections (select **Save** on the card); automatic collections it matches are listed
+there too, but they follow their own conditions. **Google search preview** shows how the
+product can appear in Google results; it fills itself from the title and description, or
+**Edit** it (a **Page title** up to 70 characters and a **Meta description**). Then select
+**Publish product**, or **Save to draft** to finish later.
+
+Rarely used settings (**Pre-order & launch**, the theme template and
+stock history) sit under **More settings** at the bottom of the page.
+
+</Steps>
+
+<VideoTip
+  title="Add a product with sizes in 30 seconds"
+  caption="Add product, title and price, add a Size option with S/M/L, set stock for each, Publish product."
+/>
+
+## Extra fields
+
+Extra fields have their own guide: [Extra fields](/merchant-guide/products/extra-fields).
+
+## Pre-orders and launch countdowns
+
+Open **More settings → Pre-order & launch** on a product:
+
+- **Allow pre-orders on this product**, with an **Expected ship date** or **Or, ships in
+  (days)**, an optional **Pre-order quantity limit** and a **Pre-order button label** ("Pre-order
+  now").
+- **Payment**: **Charge in full**, **Fixed deposit (₹)** (e.g. ₹500) or **Percentage deposit
+  (%)** (e.g. 20%). The rest becomes the order's **Balance due** (see
+  [Orders](/merchant-guide/orders/orders#pre-orders-and-balance-due)).
+- **Launch countdown → Launches at**: the product can't be bought before this time (store time,
+  Asia/Kolkata). Pair it with the **Pre-order countdown** block in the
+  [editor](/merchant-guide/online-store/website-builder#app-blocks).
+- **Hide from collections until launch** keeps it off category pages until then.
+
+## Import and export
+
+**Import** takes a Shopify products CSV. You see what will happen first (**New products**,
+**Updated products**, **Variants**, **Image links**, **Rows skipped**), then select **Import**.
+Products whose handle already exists are updated; the rest are created. **Export** downloads
+`products.csv`.
+
+You can also filter the list by **Vendor**, **Product type**, **Tag** and **Stock**, and select
+many products to **Set as active**, **Set as draft**, **Archive**, **Add tag**, **Bulk edit** or
+**Delete**.
+
+## Bulk edit: change many products in a spreadsheet
+
+Change many products at once in [Bulk edit](/merchant-guide/products/bulk-edit).
+
+## Collections
+
+Go to **Products → Collections** and select **Create collection**. Give it a **Title** (and
+optionally a **Description** and **Collection image**), then choose how products get in:
+
+- **Manual**: "Add products one by one and drag them into the order shoppers see."
+- **Automatic**: "Products matching these conditions are added and removed for you." Build
+  conditions from **Product title**, **Product type**, **Vendor**, **Tag** or **Price**, with
+  **is equal to**, **contains**, **starts with**, **is greater than**, **is less than** and so on.
+  For "Under ₹999": **Price** **is less than** `999`.
+
+Pick a **Sort order** (**Manual order**, **Title A to Z**, **Price low to high**, **Newest
+first**...), fill the **Search engine listing**, and set **Status** to **Active**.
+
+<Callout type="info">
+  **Tip.** Tag products consistently (`festive`, `cotton`, `bestseller`) from day one. Automatic
+  collections built on tags then look after themselves, even with hundreds of products.
+</Callout>
+
+## Common problems and fixes
+
+| Problem | Why it happens | Fix |
+| --- | --- | --- |
+| Product isn't on my store | **Status** is **Draft** or **Archived**. | Set **Status** to **Active** and save. |
+| Shows "Out of stock" but I have stock | **Track quantity** is on and the variant's quantity is 0. | Set the quantity on that variant, or turn **Track quantity** off. |
+| Missing from an automatic collection | It doesn't match every condition (or any, depending on the setting). | Check the product's tag, type, vendor or price against the conditions. |
+| Can't buy a pre-order product yet | **Launches at** is in the future. | Clear **Launches at** to sell right away. |
+| CSV import skipped rows | Rows with no handle or bad values. | Fix the rows shown under **Rows skipped** and import again; re-importing is safe. |
+
+## FAQ
+
+<Faq>
+
+<FaqItem question="What's the difference between Draft and Archived?">
+
+**Draft**: "Hidden until you publish it." **Archived**: "Hidden and kept for order history." Use
+Archived for products you've stopped selling, so old orders still show them.
+
+</FaqItem>
+
+<FaqItem question="Do I have to enter an HSN code?">
+
+Only if you issue GST invoices. The invoice uses the product's HS code, falling back to the
+**Default HSN** in the GST invoices app settings.
+
+</FaqItem>
+
+<FaqItem question="Can I import from Shopify directly, not just CSV?">
+
+Yes, with the **Shopify importer** app (**Apps → Built-in apps**). It can import from a CSV or
+connect to your Shopify store, preview what will change, and re-run safely.
+
+</FaqItem>
+
+<FaqItem question="Can one product be in several collections?">
+
+Yes, as many as you like, manual and automatic.
+
+</FaqItem>
+
+</Faq>
+
+## Related guides
+
+<RelatedGuides ids={['orders', 'gst', 'online-store', 'set-up']} />

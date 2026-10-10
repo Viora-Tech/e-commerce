@@ -1,6 +1,8 @@
 export default {
-  index: 'Stock overview',
+  overview: 'Overview',
   inventory: 'Inventory',
-  'purchase-orders': 'Purchase orders and landed cost',
+  'purchase-orders': 'Purchase orders & landed cost',
+  suppliers: 'Suppliers',
+  'inbound-shipments': 'Inbound shipments',
   transfers: 'Transfers',
 }

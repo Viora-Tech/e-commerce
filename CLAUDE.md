@@ -5,7 +5,7 @@
   Rules and example: `docs/conventions.md`. `bun run lint` runs the checker.
 - Copy lives in `data/<feature>.ts` (English; Hindi overlay in `data/hi/`, read it with
   `useCopy`/`getCopy`, see developer docs "Admin languages"); sizes in rem; Tailwind only, no handwritten CSS.
-- Architecture: `apps/docs/content/developer-docs/building/architecture.mdx`. Plugins:
+- Architecture: `apps/docs/content/developer-docs/getting-started/architecture.mdx`. Plugins:
   `apps/docs/content/developer-docs/building/plugins.mdx`. Admin design frames:
   `docs/design/admin-frames.md`. Guardrail sweeps (`bun run test:sweeps`): `docs/guardrails.md`.
 - Starting fresh with no conversation history? Read `docs/handoff.md` first.
