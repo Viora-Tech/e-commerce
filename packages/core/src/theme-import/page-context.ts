@@ -9,8 +9,10 @@ import { numericId } from './numeric-id'
 import {
   AllProductsDrop,
   BlogsDrop,
+  CollectionDrop,
   CollectionsDrop,
   LinklistsDrop,
+  PageDrop,
   PagesDrop,
   ProductDrop,
 } from './resource-drops'
@@ -74,6 +76,60 @@ async function themeSettingsFor(bundle: ThemeBundle, cache: LiquidDataCache) {
   return settings
 }
 
+/** The path segment of each resource page: `/products/<handle>`, `/collections/<handle>`... */
+const RESOURCE_SEGMENT = { product: 'products', collection: 'collections', page: 'pages' } as const
+type ResourceKind = keyof typeof RESOURCE_SEGMENT
+
+/** The handle a resource page's path names (`/products/mouse?x=1` → `mouse`), or null. */
+export function resourceHandle(
+  template: string,
+  path: string,
+): { kind: ResourceKind; handle: string } | null {
+  const kind = template.split('.')[0] as ResourceKind
+  const segment = RESOURCE_SEGMENT[kind]
+  if (!segment) return null
+  const m = new RegExp(`^/${segment}/([^/?#]+)`).exec(path)
+  if (!m?.[1]) return null
+  try {
+    return { kind, handle: decodeURIComponent(m[1]) }
+  } catch {
+    return null
+  }
+}
+
+/**
+ * Shopify's `product`, `collection` or `page` global on that resource's page, so the theme's
+ * own sections around our main section (specs, size guide, related products…) read it. Loaded
+ * once here; null when the handle names nothing.
+ */
+async function resourceGlobals(
+  request: LiquidRequest,
+  cache: LiquidDataCache,
+): Promise<Record<string, unknown>> {
+  const found = resourceHandle(request.template, request.path)
+  if (!found) return {}
+  const { kind, handle } = found
+  const read = () =>
+    kind === 'product'
+      ? cache.product(handle)
+      : kind === 'collection'
+        ? cache.collection(handle)
+        : cache.page(handle)
+  let data = read()
+  if (!data && cache.missing) {
+    await cache.fill()
+    data = read()
+  }
+  if (!data) return {}
+  const drop =
+    kind === 'product'
+      ? new ProductDrop(data as NonNullable<ReturnType<LiquidDataCache['product']>>, cache)
+      : kind === 'collection'
+        ? new CollectionDrop(data as NonNullable<ReturnType<LiquidDataCache['collection']>>, cache)
+        : new PageDrop(data as NonNullable<ReturnType<LiquidDataCache['page']>>)
+  return { [kind]: drop, handle, page_title: data.title }
+}
+
 /** The Shopify globals one request renders with, shared by every section on the page. */
 export type LiquidPageContext = {
   bundle: ThemeBundle
@@ -94,6 +150,7 @@ export async function createPageContext(options: LiquidRenderOptions): Promise<L
   const cart = await data.cart()
   const cache = new LiquidDataCache(data, collectionList)
   const settings = await themeSettingsFor(bundle, cache)
+  const resource = await resourceGlobals(request, cache)
   const runtime: EngineRuntime = {
     assetUrl: (file) => {
       const clean = file.replace(/^\/+/, '')
@@ -194,6 +251,7 @@ export async function createPageContext(options: LiquidRenderOptions): Promise<L
     additional_checkout_buttons: false,
     images: {},
     scripts: null,
+    ...resource,
   }
   return { bundle, entry, globals, runtime, options, cache, budget: newRenderBudget() }
 }

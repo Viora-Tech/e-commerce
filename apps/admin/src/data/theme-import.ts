@@ -63,7 +63,7 @@ export const themeImportContent = {
     preview: 'Preview',
     intro:
       'Your theme keeps its look. Everything a shopper does (adding to cart, paying, searching, signing in) runs on this store’s own features. Here is each part of your theme and what happens to it.',
-    onPages: 'On your home page, header and footer',
+    onPages: 'On the pages that use your theme’s sections',
     wholeTheme: 'All sections in the theme',
     status: {
       imported: { label: 'Imported exactly', help: 'Looks and works the same.' },
@@ -101,7 +101,8 @@ export const themeImportContent = {
       preorder: 'Pre-order uses our built-in pre-order',
       app_data:
         'Reads review data (Judge.me); it shows your reviews once the Reviews app is installed',
-      main_template: 'This page uses our own page, with your header and footer',
+      main_template:
+        'Our own version of this part (product details, collection grid, page text), among your theme’s sections',
       parse_error: 'Its code uses something we cannot read yet',
     } satisfies Record<ReportReason, string>,
     swapsHeading: 'What Shopify used, and what runs here instead',
@@ -159,7 +160,9 @@ export const themeImportContent = {
     } satisfies Record<SwapKey, { shopify: string; ours: string }>,
     pagesHeading: 'Pages',
     pagesBody:
-      'Your home page uses your theme’s sections. Other pages use our pages, inside your theme’s header and footer.',
+      'Your home, product, collection and other pages use your theme’s sections; the part shoppers buy from runs on ours. Cart, search, blog and account pages use our pages, inside your theme’s header and footer.',
+    /** An alternate template, e.g. "Pages: about". */
+    alternate: (page: string, suffix: string) => `${page}: ${suffix}`,
     pages: { imported: 'Your theme’s sections', ours: 'Our page, your header and footer' },
     pageNames: {
       index: 'Home page',

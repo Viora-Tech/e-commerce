@@ -6,9 +6,9 @@ import { createThemeEngine } from './engine'
 import { schemaText } from './fields'
 import {
   countStatuses,
-  IMPORTED_TEMPLATES,
   type ImportReport,
   importStatusFor,
+  isImportedTemplate,
   isMainSection,
   type ReportReason,
   type SectionReport,
@@ -86,12 +86,12 @@ export function buildReport(input: {
     }
   })
   const onImported = sections.filter((s) =>
-    s.usedIn.some((u) => u === 'home' || u === 'header' || u === 'footer'),
+    s.usedIn.some((u) => u === 'home' || u === 'header' || u === 'footer' || isImportedTemplate(u)),
   )
   const templateNames = [...input.templates.keys()].filter((n) => !n.endsWith('-group'))
   const templates: TemplateReport[] = [...templateNames, ...input.liquidTemplates]
     .sort()
-    .map((name) => ({ name, status: IMPORTED_TEMPLATES.has(name) ? 'imported' : 'ours' }))
+    .map((name) => ({ name, status: isImportedTemplate(name) ? 'imported' : 'ours' }))
   if (input.images.copied > 0 || input.images.failed.length) swaps.add('hosted_images')
   return {
     version: 1,
