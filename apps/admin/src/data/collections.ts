@@ -58,7 +58,7 @@ export const collectionsListContent = {
   heading: 'Discover',
   add: 'Add product',
   moreActions: 'More actions',
-  newCollection: 'New collection',
+  newCollection: 'Create collection',
   allCollections: 'All collections',
   searchProducts: 'Search your product',
   searchCollections: 'Search collections',

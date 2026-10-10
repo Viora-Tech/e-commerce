@@ -125,6 +125,7 @@ export default [
     editTitle: 'प्रोडक्ट बदलें',
     searchPlaceholder: 'जोड़ने के लिए प्रोडक्ट खोजें',
     publish: 'प्रोडक्ट पब्लिश करें',
+    saveChanges: 'बदलाव सेव करें',
     saveDraft: 'ड्राफ़्ट में सेव करें',
     addAnother: 'एक और प्रोडक्ट बनाएं',
     basics: 'बुनियादी जानकारी',

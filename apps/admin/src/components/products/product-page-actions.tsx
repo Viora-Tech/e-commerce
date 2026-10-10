@@ -9,6 +9,8 @@ import { routes } from '@/lib/routes'
 
 type ProductPageActionsProps = {
   busy: boolean
+  /** An already live product: the key button saves instead of publishing (Figma 283:14681). */
+  live?: boolean
   onPublish: () => void
   onSaveDraft: () => void
 }
@@ -16,6 +18,7 @@ type ProductPageActionsProps = {
 /** Header actions of a product: start another, save to draft, and the one key button, publish. */
 export default function ProductPageActions({
   busy,
+  live = false,
   onPublish,
   onSaveDraft,
 }: ProductPageActionsProps) {
@@ -38,7 +41,7 @@ export default function ProductPageActions({
         {copy.saveDraft}
       </Button>
       <Button onClick={onPublish} loading={busy}>
-        {copy.publish}
+        {live ? copy.saveChanges : copy.publish}
       </Button>
     </>
   )

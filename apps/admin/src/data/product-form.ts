@@ -4,6 +4,7 @@ export const productFormContent = {
   editTitle: 'Edit product',
   searchPlaceholder: 'Search product for add',
   publish: 'Publish product',
+  saveChanges: 'Save changes',
   saveDraft: 'Save to draft',
   addAnother: 'Start another product',
   basics: 'Basic details',
