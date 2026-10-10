@@ -18,6 +18,14 @@ export const customizeContent = {
   identity: {
     title: (store: string, template: string) => `${store} · ${template}`,
   },
+  loading: {
+    message: (store: string) => `Opening ${store} in the editor…`,
+    failedTitle: 'We couldn’t reach your storefront',
+    failedBody: 'The page did not load. Check your connection and try again.',
+    retry: 'Try again',
+    help: 'Get help',
+    back: 'Back to themes',
+  },
   ai: {
     title: 'Ask AI to change this page',
     intro:

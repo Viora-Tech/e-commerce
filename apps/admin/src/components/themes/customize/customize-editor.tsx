@@ -43,6 +43,7 @@ import CreateTemplateDialog, { type AlternateKind } from './create-template-dial
 import CustomizeHotkeys from './customize-hotkeys'
 import CustomizeLayout from './customize-layout'
 import CustomizeTopBar from './customize-top-bar'
+import EditorLoading from './editor-loading'
 import ImportedThemeSettings from './imported-theme-settings'
 import LiquidCanvasSection from './liquid-canvas-section'
 import PagesPanel from './pages-panel'
@@ -75,6 +76,9 @@ const FONT_SAMPLES = `https://fonts.googleapis.com/css2?${THEME_FONT_IDS.map(
 ).join('&')}&display=swap`
 
 const sameRef = (a: TemplateRef, b: TemplateRef) => a.key === b.key && a.suffix === b.suffix
+
+/** How long the first page may take before the loading screen says it could not be reached. */
+const LOAD_TIMEOUT_MS = 20_000
 
 /** The canvas shows the default home page at desktop width: what the Themes page pictures. */
 const isDesktopHome = (loaded: Loaded | null, device: PreviewDevice) =>
@@ -130,6 +134,9 @@ export default function CustomizeEditor({
   const [device, setDevice] = useState<PreviewDevice>('desktop')
   const [modePick, setModePick] = useState<'light' | 'dark'>('light')
   const [nonce, setNonce] = useState(0)
+  /** The first page could not be loaded (an error, or no answer in `LOAD_TIMEOUT_MS`). */
+  const [loadFailed, setLoadFailed] = useState(false)
+  const [attempt, setAttempt] = useState(0)
   // `<Puck>` only reads `config` at mount, so the installed apps (the Add panel's
   // Apps tab, and the "app is off" placeholder for blocks from an uninstalled
   // app) come from the server: the editor mounts once, already right.
@@ -145,14 +152,18 @@ export default function CustomizeEditor({
     onSavedHome: isDesktopHome(loaded, device) && !switching && !templatesDirty,
   })
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: `drafts` only holds refs; reloading keys on the theme, template and discard nonce.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: `drafts` only holds refs; reloading keys on the theme, template, discard nonce and retry.
   useEffect(() => {
     let active = true
+    setLoadFailed(false)
+    // Only the first load shows the loading screen; a later switch keeps the page on screen.
+    const timer = window.setTimeout(() => active && setLoadFailed(true), LOAD_TIMEOUT_MS)
     const get = (template: TemplateRef['key'] | 'header' | 'footer', suffix = '') =>
       api.themes.templates.get({ themeId: record.id, template, suffix })
     Promise.all([get('header'), get(ref.key, ref.suffix), get('footer')]).then(
       ([header, main, footer]) => {
         if (!active) return
+        window.clearTimeout(timer)
         const doc = normalizeDoc(
           composeDoc({ header: header.data, main: main.data, footer: footer.data }),
           config,
@@ -163,15 +174,18 @@ export default function CustomizeEditor({
         setSwitching(false)
       },
       () => {
+        window.clearTimeout(timer)
         toast.error(themesContent.failed)
         setSwitching(false)
+        if (active) setLoadFailed(true)
       },
     )
     api.themes.templates.list({ themeId: record.id }).then((rows) => active && setAlternates(rows))
     return () => {
       active = false
+      window.clearTimeout(timer)
     }
-  }, [record.id, ref, nonce])
+  }, [record.id, ref, nonce, attempt])
 
   // Section edits are kept as drafts on the server, so leaving only loses a write
   // still in flight, or theme settings (which save with Save).
@@ -427,9 +441,11 @@ export default function CustomizeEditor({
           </ThemePreviewContext.Provider>
         </Puck>
       ) : (
-        <div className="flex h-svh items-center justify-center bg-background text-body text-muted-foreground">
-          {themesContent.preview.connecting}
-        </div>
+        <EditorLoading
+          storeName={store.name || record.name}
+          state={loadFailed ? 'failed' : 'loading'}
+          onRetry={() => setAttempt((n) => n + 1)}
+        />
       )}
       {creating === 'closed' ? null : (
         <CreateTemplateDialog

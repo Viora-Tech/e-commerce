@@ -106,6 +106,16 @@ banner" (`inspector-breadcrumb.tsx`), and each container in it selects that cont
 - **Canvas**: 32px above and 24px beside the page frame (10px corners); the selected block's name
   chip sits on the block's top edge, flush with its left side; hover stays a dashed outline.
 
+### Loading screen
+
+Until the first page has loaded, `editor-loading.tsx` draws the editor's own frame as
+placeholders (top bar, rail, panel) around a skeleton page (header, hero, a row of product
+cards) with a soft shimmer (Motion; still under reduced motion), the store's name and "Opening
+<store> in the editor…". If the page has not loaded after 20 seconds (`LOAD_TIMEOUT_MS` in
+`customize-editor.tsx`), or loading fails, it shows "We couldn’t reach your storefront" with
+**Try again** (loads again), **Get help** (the editor's help page) and a link back to Themes.
+Switching pages later keeps the current page on screen instead.
+
 ### Pages and Media panels
 
 The rail's Pages and Media tabs:
