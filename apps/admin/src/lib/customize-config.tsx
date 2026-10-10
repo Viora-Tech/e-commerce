@@ -5,6 +5,7 @@ import { type ComponentConfig, type Config, DropZone } from '@puckeditor/core'
 import Image from '@tiptap/extension-image'
 import type { ReactNode } from 'react'
 import DynamicSourceSection from '@/components/themes/customize/dynamic-source-section'
+import FieldFormatMenu from '@/components/themes/customize/field-format-menu'
 import InlineFormatMenu from '@/components/themes/customize/inline-format-menu'
 import { api } from '@/lib/api-client'
 import { APP_BLOCK_SOURCES } from '../../../../commerce.blocks.config'
@@ -73,15 +74,16 @@ function withHiding(component: ComponentConfig): ComponentConfig {
 }
 
 /**
- * Every richtext field, nested ones included, gets our inline menu (B/I/U plus a link
- * control). Done here rather than in `@commerce/blocks` so the storefront never loads it.
+ * Every richtext field, nested ones included, gets our menus: the canvas one (B/I/U plus a link
+ * control) and the right panel's, both in Phosphor glyphs instead of Puck's built-in icons. Done here rather than in `@commerce/blocks` so the storefront never loads it.
  */
 function withInlineMenu(fields: unknown): unknown {
   if (!fields || typeof fields !== 'object') return fields
   return Object.fromEntries(
     Object.entries(fields as Record<string, Record<string, unknown>>).map(([key, field]) => {
       if (!field || typeof field !== 'object') return [key, field]
-      if (field.type === 'richtext') return [key, { ...field, renderInlineMenu: InlineFormatMenu }]
+      if (field.type === 'richtext')
+        return [key, { ...field, renderInlineMenu: InlineFormatMenu, renderMenu: FieldFormatMenu }]
       if (field.type === 'array')
         return [key, { ...field, arrayFields: withInlineMenu(field.arrayFields) }]
       if (field.type === 'object')

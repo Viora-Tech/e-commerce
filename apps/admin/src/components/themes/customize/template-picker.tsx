@@ -76,7 +76,7 @@ export default function TemplatePicker({
               {loading || manager.busy ? (
                 <Loader2Icon className="size-4 shrink-0 animate-spin" aria-hidden />
               ) : (
-                <Home className="size-4 shrink-0" aria-hidden />
+                <Home className="size-4 shrink-0" aria-hidden weight="regular" />
               )}
               <span className="min-w-0 flex-1 truncate">{templateLabel(value)}</span>
               <ChevronDown aria-hidden className="size-3.5 shrink-0 text-muted-foreground" />

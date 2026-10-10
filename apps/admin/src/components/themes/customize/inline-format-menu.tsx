@@ -5,19 +5,29 @@ import { RichTextMenu, type RichtextField } from '@puckeditor/core'
 import { type FormEvent, type KeyboardEvent, useState } from 'react'
 import { customizeContent } from '@/data/customize'
 import { normalisePastedUrl } from '@/lib/customize-links'
+import RichtextFormatControls from './richtext-format-controls'
 
-type InlineFormatMenuProps = Parameters<NonNullable<RichtextField['renderInlineMenu']>>[0]
+type InlineFormatMenuProps = Parameters<NonNullable<RichtextField['renderInlineMenu']>>[0] & {
+  /** `full`: the right panel's menu (lists, quote, rule, headings too); `inline` on the canvas. */
+  set?: 'inline' | 'full' | undefined
+}
 
 const copy = customizeContent.toolbar
 
 /**
- * The inline rich-text menu on the canvas (`renderInlineMenu` on every richtext field, see
- * `customize-config.tsx`): Puck's bold, italic and underline, a link control and clear
- * formatting (Figma "Builder / Block toolbar", State=Text editing, 500:5981). The link
+ * The rich-text menu on the canvas (`renderInlineMenu` on every richtext field, see
+ * `customize-config.tsx`): bold, italic and underline, a link control and clear formatting
+ * (Figma "Builder / Block toolbar", State=Text editing, 500:5981); with `set="full"` also the
+ * right panel's menu (`field-format-menu.tsx`). The buttons are ours in Phosphor glyphs
+ * (`RichtextFormatControls`), not Puck's built-in ones. The link
  * form lives inside the menu (`data-puck-rte-menu`), so typing in it keeps the text selected
  * and the menu open. Links take the same targets the link picker accepts (`normalisePastedUrl`).
  */
-export default function InlineFormatMenu({ children, editor, readOnly }: InlineFormatMenuProps) {
+export default function InlineFormatMenu({
+  editor,
+  readOnly,
+  set = 'inline',
+}: InlineFormatMenuProps) {
   // Hooks
   const [draft, setDraft] = useState<string | null>(null)
   const [invalid, setInvalid] = useState(false)
@@ -66,7 +76,10 @@ export default function InlineFormatMenu({ children, editor, readOnly }: InlineF
   return (
     <RichTextMenu>
       <RichTextMenu.Group>
-        {children}
+        {set === 'full' && typeof editor?.commands.toggleHeading === 'function' ? (
+          <RichTextMenu.HeadingSelect />
+        ) : null}
+        <RichtextFormatControls editor={editor} readOnly={readOnly} set={set} />
         <button
           type="button"
           onClick={handleOpen}

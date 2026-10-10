@@ -1,7 +1,7 @@
 'use client'
 
 import {
-  ArrowLeft,
+  ChevronLeftIcon,
   Eye,
   Monitor,
   MoreHorizontal,
@@ -105,7 +105,7 @@ export default function CustomizeTopBar({
           nativeButton={false}
           render={<Link href={routes.onlineStore.themes()} />}
         >
-          <ArrowLeft aria-hidden className="size-4" />
+          <ChevronLeftIcon aria-hidden weight="regular" className="size-4" />
           {copy.themes}
         </Button>
         <div className="flex min-w-0 items-center gap-2">
@@ -119,7 +119,7 @@ export default function CustomizeTopBar({
       <div className="flex items-center justify-end gap-2">
         <fieldset
           aria-label={copy.device}
-          className="m-0 flex min-w-0 items-center gap-0.5 rounded-lg border border-hairline bg-chip-neutral p-0.5"
+          className="m-0 flex min-w-0 items-center gap-0.5 rounded-[0.625rem] bg-muted p-[0.1875rem]"
         >
           {DEVICES.map(({ value, icon: Icon }) => (
             <button
@@ -131,8 +131,9 @@ export default function CustomizeTopBar({
               title={devices[value]}
               className={cn(
                 ICON_BUTTON,
-                'size-7 rounded-md',
-                device === value && 'bg-card text-foreground shadow-sm ring-1 ring-border',
+                // Figma 369:4820: 36×30, 8px radius, an 18px glyph; the chosen one raised on a card.
+                'h-[1.875rem] w-9 rounded-lg [&_svg]:size-[1.125rem]',
+                device === value && 'bg-card text-foreground shadow-card',
               )}
             >
               <Icon aria-hidden weight="regular" />

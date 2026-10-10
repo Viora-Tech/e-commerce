@@ -49,7 +49,7 @@ export default function AiPanel({ storeId, enabled }: AiPanelProps) {
     return (
       <div className="flex flex-col items-start gap-3 px-4 py-6">
         <span className="flex size-9 items-center justify-center rounded-xl bg-primary-soft text-primary">
-          <AiIcon aria-hidden className="size-5" />
+          <AiIcon aria-hidden weight="regular" className="size-5" />
         </span>
         <p className="text-sm font-semibold text-foreground">{copy.offTitle}</p>
         <p className="text-xs text-muted-foreground">{copy.offBody}</p>
