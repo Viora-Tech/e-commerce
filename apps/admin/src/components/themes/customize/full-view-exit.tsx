@@ -28,12 +28,22 @@ export default function FullViewExit() {
         view.setFull(false)
       }
     }
-    const docs = [document]
-    const frame = document.querySelector('iframe')?.contentDocument
-    if (frame) docs.push(frame)
-    for (const doc of docs) doc.addEventListener('keydown', handleKeyDown)
+    // The canvas frame swaps its document when it loads, which drops listeners on the old one,
+    // so the frame's listener is attached again on every load.
+    const iframe = document.querySelector('iframe')
+    let frameDoc: Document | null = null
+    const attachFrame = () => {
+      frameDoc?.removeEventListener('keydown', handleKeyDown)
+      frameDoc = iframe?.contentDocument ?? null
+      frameDoc?.addEventListener('keydown', handleKeyDown)
+    }
+    document.addEventListener('keydown', handleKeyDown)
+    attachFrame()
+    iframe?.addEventListener('load', attachFrame)
     return () => {
-      for (const doc of docs) doc.removeEventListener('keydown', handleKeyDown)
+      document.removeEventListener('keydown', handleKeyDown)
+      frameDoc?.removeEventListener('keydown', handleKeyDown)
+      iframe?.removeEventListener('load', attachFrame)
     }
   }, [view])
 

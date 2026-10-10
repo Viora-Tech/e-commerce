@@ -2,7 +2,7 @@
 
 import { Input } from '@commerce/ui/shadcn/input'
 import { Textarea } from '@commerce/ui/shadcn/textarea'
-import { FIELD_CONTROL, FIELD_TEXTAREA } from '@/lib/customize-field-styles'
+import { FIELD_INPUT, FIELD_TEXTAREA } from '@/lib/customize-field-styles'
 import { isLinkTextField } from '@/lib/customize-links'
 import FieldFrame from './field-frame'
 import LinkPicker from './link-picker'
@@ -72,7 +72,7 @@ export default function CustomizeTextField({
           placeholder={field.placeholder}
           disabled={readOnly}
           size="lg"
-          className={FIELD_CONTROL}
+          className={FIELD_INPUT}
         />
       )}
     </FieldFrame>

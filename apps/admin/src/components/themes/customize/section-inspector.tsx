@@ -1,7 +1,7 @@
 'use client'
 
 import { SINGLE_SECTIONS } from '@commerce/core/theme'
-import { Trash2, X } from '@commerce/ui/icons'
+import { Trash2 } from '@commerce/ui/icons'
 import { cn } from '@commerce/ui/lib/utils'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Puck } from '@puckeditor/core'
@@ -18,22 +18,21 @@ import { useCustomizePuck } from '@/lib/customize-puck'
 import { locateBlock } from '@/lib/customize-slots'
 import InspectorBreadcrumb from './inspector-breadcrumb'
 import InspectorEmpty from './inspector-empty'
-import PanelHeader from './panel-header'
 import SectionIcon from './section-icon'
 
 type Tab = 'basic' | 'advanced'
 
 const TABS: Tab[] = ['basic', 'advanced']
 
-/** The right pane: the selected section's settings, drawn by Puck's own field
- * renderer, under a header naming the section and the group it sits in, with Basic (the
- * section's own fields) and Advanced (layout, spacing, style) tabs. With nothing selected it
- * says how to pick one (`InspectorEmpty`, Figma 369:129005); theme settings live only in the
- * rail's Theme tab. */
+/** The right pane (Figma "Inspector", 381:6210): the selected section's name with a delete
+ * button, Basic (the section's own fields, in a Content card) and Advanced (layout, spacing,
+ * style cards, under where the block sits) on a segmented switch with a one-line hint, all
+ * drawn by Puck's own field renderer on one 16px-gutter column. With nothing selected it says
+ * how to pick one (`InspectorEmpty`, Figma 369:129005); theme settings live only in the rail's
+ * Theme tab. Esc deselects (`CustomizeHotkeys`). */
 export default function SectionInspector() {
   // Hooks
   const copy = useCopy(customizeContent.inspector)
-  const panels = useCopy(customizeContent.panels)
   const selected = useCustomizePuck((s) => s.selectedItem)
   const components = useCustomizePuck((s) => s.config.components)
   const data = useCustomizePuck((s) => s.appState.data as unknown as CustomizeDoc)
@@ -77,46 +76,32 @@ export default function SectionInspector() {
       initial={reducedMotion ? false : { opacity: 0, x: 8 }}
       animate={{ opacity: 1, x: 0 }}
       transition={{ duration: reducedMotion ? 0 : 0.2, ease: 'easeOut' }}
-      className="flex min-h-0 flex-1 flex-col"
+      className="flex min-h-0 flex-1 flex-col gap-3.5 overflow-y-auto overscroll-contain p-4"
       aria-label={copy.label}
     >
-      <PanelHeader
-        icon={<SectionIcon type={selected.type} tile="md" />}
-        title={label}
-        hint={<InspectorBreadcrumb blockId={selected.props.id} />}
-        actions={
-          <>
-            {SINGLE_SECTIONS.has(selected.type) ? null : (
-              <Button
-                variant="ghost"
-                size="icon-sm"
-                className="size-7 rounded-md text-muted-foreground hover:text-danger"
-                onClick={handleRemove}
-                aria-label={copy.remove(label)}
-                title={copy.remove(label)}
-              >
-                <Trash2 aria-hidden className="size-4" />
-              </Button>
-            )}
-            <Button
-              variant="ghost"
-              size="icon-sm"
-              className="size-7 rounded-md text-muted-foreground hover:text-foreground"
-              onClick={() => dispatch({ type: 'setUi', ui: { itemSelector: null } })}
-              aria-label={panels.deselect}
-              title={panels.deselect}
-            >
-              <X aria-hidden className="size-4" />
-            </Button>
-          </>
-        }
-      />
+      <header className="flex shrink-0 items-center gap-2">
+        <h2 className="min-w-0 flex-1 truncate text-base leading-[1.4375rem] font-semibold text-foreground">
+          {label}
+        </h2>
+        {SINGLE_SECTIONS.has(selected.type) ? null : (
+          <Button
+            variant="ghost"
+            size="icon-xs"
+            className="text-muted-foreground hover:text-danger"
+            onClick={handleRemove}
+            aria-label={copy.remove(label)}
+            title={copy.remove(label)}
+          >
+            <Trash2 aria-hidden className="size-4" />
+          </Button>
+        )}
+      </header>
       {hasAdvanced ? (
-        <div className="flex flex-col gap-1.5 border-b border-border px-4 py-3">
+        <>
           <div
             role="tablist"
             aria-label={copy.label}
-            className="grid grid-cols-2 gap-0.5 rounded-lg border border-hairline bg-chip-neutral p-0.5"
+            className="grid shrink-0 grid-cols-2 gap-0.5 rounded-lg bg-muted p-0.5"
           >
             {TABS.map((id) => (
               <button
@@ -126,21 +111,26 @@ export default function SectionInspector() {
                 aria-selected={active === id}
                 onClick={() => setTab(id)}
                 className={cn(
-                  'h-7 rounded-md text-caption font-medium text-muted-foreground transition-colors hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/70 focus-visible:outline-none motion-reduce:transition-none',
-                  active === id && 'bg-card text-foreground shadow-sm ring-1 ring-border',
+                  'h-8 rounded-md text-xs leading-[1.0625rem] font-medium text-muted-foreground transition-[color,background-color,box-shadow] duration-150 hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/70 focus-visible:outline-none motion-reduce:transition-none',
+                  active === id && 'bg-card text-foreground shadow-card',
                 )}
               >
                 {copy.tabs[id]}
               </button>
             ))}
           </div>
-          <p className="text-[0.6875rem] leading-4 text-muted-foreground">
+          <p className="text-xs leading-[1.0625rem] text-muted-foreground">
             {copy.tabHints[active]}
           </p>
-        </div>
+        </>
+      ) : null}
+      {active === 'advanced' ? (
+        <p className="flex h-7 shrink-0 items-center text-xs leading-[1.0625rem]">
+          <InspectorBreadcrumb blockId={selected.props.id} />
+        </p>
       ) : null}
       {hasFields ? (
-        <div className="min-h-0 flex-1 overflow-y-auto [&>form]:flex [&>form]:flex-col [&>form]:gap-4 [&>form]:px-4 [&>form]:pt-4 [&>form]:pb-6">
+        <div className="[&>form]:flex [&>form]:flex-col [&>form]:gap-3.5">
           <InspectorTabContext.Provider value={hasAdvanced ? active : 'all'}>
             <Puck.Fields wrapFields={false} />
           </InspectorTabContext.Provider>

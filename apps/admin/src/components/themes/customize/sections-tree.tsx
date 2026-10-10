@@ -14,7 +14,12 @@ import SectionGroup from './section-group'
 const copy = customizeContent.groups
 
 /** The left panel's Sections tab: header group, the template's sections, footer group. */
-export default function SectionsTree() {
+type SectionsTreeProps = {
+  /** The open template's name, for "Template: Home page". */
+  templateLabel: string
+}
+
+export default function SectionsTree({ templateLabel }: SectionsTreeProps) {
   // Hooks
   const data = useCustomizePuck((s) => s.appState.data) as unknown as CustomizeDoc
 
@@ -22,19 +27,21 @@ export default function SectionsTree() {
   return (
     <div className="flex flex-col">
       <SectionGroup
-        title={copy.header}
+        title={copy.headerGroup}
+        everyPage
         zone={HEADER_ZONE}
         group="header"
         sections={zoneSections(data, HEADER_ZONE)}
       />
       <SectionGroup
-        title={copy.template}
+        title={copy.templateOf(templateLabel)}
         zone={MAIN_ZONE}
         group={null}
         sections={zoneSections(data, MAIN_ZONE)}
       />
       <SectionGroup
-        title={copy.footer}
+        title={copy.footerGroup}
+        everyPage
         zone={FOOTER_ZONE}
         group="footer"
         sections={zoneSections(data, FOOTER_ZONE)}

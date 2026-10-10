@@ -55,7 +55,7 @@ vi.mock('motion/react', async (original) => ({
 }))
 const motion = vi.hoisted(() => ({ deleteWithCollapse: vi.fn() }))
 vi.mock('@/lib/customize-canvas-motion', () => motion)
-vi.mock('./inspector-breadcrumb', () => ({ default: () => null }))
+vi.mock('./inspector-breadcrumb', () => ({ default: () => <span data-testid="crumbs" /> }))
 
 function setup(selected: Selected) {
   puck.selectedItem = selected
@@ -122,9 +122,10 @@ describe('SectionInspector', () => {
     expect(screen.queryByRole('button', { name: copy.remove('Product information') })).toBeNull()
   })
 
-  it('goes back to the theme settings', async () => {
-    const user = setup({ type: 'RichText', props: { id: 'text-1' } })
-    await user.click(screen.getByRole('button', { name: panels.deselect }))
-    expect(dispatch).toHaveBeenCalledWith({ type: 'setUi', ui: { itemSelector: null } })
+  it('shows where the block sits on the Advanced tab only (Figma 369:9664)', async () => {
+    const user = setup({ type: 'Hero', props: { id: 'hero-1' } })
+    expect(screen.queryByTestId('crumbs')).toBeNull()
+    await user.click(screen.getByRole('tab', { name: copy.tabs.advanced }))
+    expect(screen.getByTestId('crumbs')).toBeTruthy()
   })
 })

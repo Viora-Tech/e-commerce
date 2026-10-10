@@ -381,7 +381,7 @@ export default function CustomizeEditor({
     <ImportedThemeSettings themeId={record.id} />
   ) : (
     <>
-      <div className="border-b border-border px-4 py-4">
+      <div className="border-b border-border px-4 pb-4">
         <ThemePresets theme={settings} onChange={setSettings} />
       </div>
       <ThemeSettings theme={settings} mode={mode} onChange={setSettings} />
