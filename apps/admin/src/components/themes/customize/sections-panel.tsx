@@ -13,6 +13,8 @@ import SectionsTree from './sections-tree'
 
 type SectionsPanelProps = {
   onOpenTheme: () => void
+  /** The open template's name, for the template group's heading. */
+  templateLabel: string
 }
 
 type Tab = 'sections' | 'audit'
@@ -24,7 +26,7 @@ const TABS: Tab[] = ['sections', 'audit']
  * panel's segmented control), the audit's count beside its name so issues are noticed without
  * opening it.
  */
-export default function SectionsPanel({ onOpenTheme }: SectionsPanelProps) {
+export default function SectionsPanel({ onOpenTheme, templateLabel }: SectionsPanelProps) {
   // Hooks
   const copy = useCopy(customizeContent.audit)
   const data = useCustomizePuck((s) => s.appState.data as unknown as CustomizeDoc)
@@ -70,7 +72,11 @@ export default function SectionsPanel({ onOpenTheme }: SectionsPanelProps) {
         </div>
       </div>
       <div role="tabpanel" className="flex min-h-0 flex-1 flex-col">
-        {tab === 'sections' ? <SectionsTree /> : <AuditPanel onOpenTheme={onOpenTheme} />}
+        {tab === 'sections' ? (
+          <SectionsTree templateLabel={templateLabel} />
+        ) : (
+          <AuditPanel onOpenTheme={onOpenTheme} />
+        )}
       </div>
     </div>
   )

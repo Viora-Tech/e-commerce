@@ -7,7 +7,7 @@ import {
   type TemplateKind,
   templateName,
 } from '@commerce/core/theme'
-import { Plus } from '@commerce/ui/icons'
+import { editorGlyphs, Plus } from '@commerce/ui/icons'
 import { cn } from '@commerce/ui/lib/utils'
 import {
   Command,
@@ -40,6 +40,14 @@ type TemplateListProps = {
 }
 
 const copy = customizeContent.templates
+
+/** The Pages panel's look (Figma 381:6609): a 40px search, uppercase "PAGES" / "TEMPLATES"
+ * labels, 35px rows with a page glyph, the open one tinted rather than ticked. */
+const FILL =
+  'min-h-0 flex-1 bg-transparent p-0 px-4 **:data-[slot=command-input-wrapper]:p-0 **:data-[slot=input-group]:h-10! **:data-[slot=input-group]:rounded-[0.625rem]! **:data-[slot=command-group]:p-0 **:[[cmdk-group-heading]]:hidden'
+const FILL_ITEM =
+  'min-h-[2.1875rem] rounded-lg px-2 text-[0.8125rem] data-[checked=true]:bg-primary-soft data-[checked=true]:font-medium data-[checked=true]:text-primary [&>svg:last-child]:hidden'
+const PageGlyph = editorGlyphs.page
 
 const isAlternateKind = (key: TemplateKind): key is AlternateKind =>
   (ALTERNATE_KINDS as readonly string[]).includes(key)
@@ -82,13 +90,19 @@ export default function TemplateList({
 
   // Render logic
   return (
-    <Command className={cn(fill && 'h-full bg-transparent')}>
+    <Command className={cn(fill && FILL)}>
       <CommandInput placeholder={copy.search} aria-label={copy.search} />
-      <CommandList className={cn(fill && 'max-h-none flex-1')}>
+      <CommandList className={cn(fill && 'max-h-none flex-1 pb-4')}>
         <CommandEmpty>{copy.empty}</CommandEmpty>
         {['pages', 'templates'].map((section) => (
           <div key={section}>
-            <p className="px-3 pt-2 pb-1 text-caption font-semibold text-foreground">
+            <p
+              className={
+                fill
+                  ? 'px-0 pt-4 pb-2 text-xs leading-[1.0625rem] font-medium tracking-[0.04em] text-muted-foreground uppercase'
+                  : 'px-3 pt-2 pb-1 text-caption font-semibold text-foreground'
+              }
+            >
               {section === 'pages' ? groups.pages : groups.templates}
             </p>
             {TEMPLATE_KINDS.filter((key) => isAlternateKind(key) === (section === 'templates')).map(
@@ -101,8 +115,21 @@ export default function TemplateList({
                       value={`${copy.names[key]} ${own.length > 0 ? copy.default : ''}`}
                       data-checked={currentIsDefault ? 'true' : undefined}
                       onSelect={() => onPick({ key, suffix: '' })}
+                      className={cn(fill && FILL_ITEM)}
                     >
-                      {own.length > 0 ? copy.default : copy.names[key]}
+                      {fill ? (
+                        <>
+                          <PageGlyph aria-hidden weight="regular" />
+                          <span className="min-w-0 flex-1 truncate">{copy.names[key]}</span>
+                          {isAlternateKind(key) ? (
+                            <span className={`shrink-0 ${CHROME_META}`}>{copy.default}</span>
+                          ) : null}
+                        </>
+                      ) : own.length > 0 ? (
+                        copy.default
+                      ) : (
+                        copy.names[key]
+                      )}
                     </CommandItem>
                     {isAlternateKind(key)
                       ? own.map((a) => {
@@ -115,6 +142,7 @@ export default function TemplateList({
                                 value.key === key && value.suffix === a.suffix ? 'true' : undefined
                               }
                               onSelect={() => onPick({ key, suffix: a.suffix })}
+                              className={cn(fill && `${FILL_ITEM} pl-8`)}
                             >
                               <span className="min-w-0 truncate">{a.suffix}</span>
                               {used ? (
@@ -132,6 +160,7 @@ export default function TemplateList({
                       <CommandItem
                         value={`${copy.names[key]} ${copy.create}`}
                         onSelect={() => onCreate(key)}
+                        className={cn(fill && `${FILL_ITEM} pl-8 text-muted-foreground`)}
                       >
                         <Plus aria-hidden />
                         {copy.create}

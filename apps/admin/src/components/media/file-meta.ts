@@ -9,9 +9,16 @@ export function formatBytes(bytes: number): string {
   return `${Math.max(1, Math.round(bytes / 1000))} KB`
 }
 
-/** The file's own name: the last part of its storage key. */
+/** The media id `mediaKey` puts before the name (`<uuid>-<name>.<ext>`). */
+const ID_PREFIX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}-/i
+
+/**
+ * The file's own name: the last part of its storage key (or address), without the media id
+ * the upload put in front of it or any query string.
+ */
 export function fileName(key: string): string {
-  return key.split('/').pop() ?? key
+  const last = key.split(/[?#]/)[0]?.split('/').pop() || key
+  return last.replace(ID_PREFIX, '')
 }
 
 /** "JPG", "PNG", "MP4": the short type label under a file. */

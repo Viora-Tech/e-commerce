@@ -86,8 +86,13 @@ banner" (`inspector-breadcrumb.tsx`), and each container in it selects that cont
   initial) on top; Add, AI, Pages, Layers (Sections), Media, Theme settings and Store settings in
   the middle; Help (the merchant guide's editor page) pinned at the bottom. The open tab wears
   `bg-primary-soft`; each button names itself in a tooltip.
-- **Left panel** (304px): `panel-identity.tsx` heads it with `<Store> · <Template>` and the store's
-  domain, then the open panel's name (Add shows its switch instead).
+- **Left panel** (304px): Add and Layers open on `panel-identity.tsx` (`<Store> · <Template>` and
+  the store's domain over a hairline, Figma 369:121298); every panel then has its own head
+  (`panel-title.tsx`): Layers 14px with **Add**, and Pages (**New page**, a new page template),
+  Media, Theme settings, Store settings and **Build with AI** (spark, **New chat**) 16px, as their
+  Figma frames (381:5919, 381:6945, 369:121794, 385:4119).
+- **Layers groups** (`section-group.tsx`, Figma 392:5543): "Header group" and "Footer group" with
+  an "On every page" chip, and "Template: <page>" (`templateLabel` from the layout).
 - **Add** (`add-section-browser.tsx`): a "Sections | Blocks" switch, "Search layouts", then folding
   category groups (`add-section-group.tsx`) of picture tiles, two across. Sections holds the section
   library and My sections; Blocks holds Layout, Elements and the installed apps' blocks. A search
@@ -130,6 +135,20 @@ banner" (`inspector-breadcrumb.tsx`), and each container in it selects that cont
   the chrome (`[data-editor-chrome]` on the layout root, and portalled `data-slot="…-content"`
   popovers and dialogs) in the `components` layer.
 
+### Inspector (Figma 381:6210)
+
+- 340px (`w-[21.25rem]`), one 16px-gutter column that scrolls as a whole: the section's name in
+  16px semibold with a trash button, the Basic | Advanced switch (`bg-muted`, 32px rows, the
+  active one `bg-card shadow-card`) and its 12px hint. **Esc** deselects (`customize-hotkeys.tsx`,
+  not inside a menu or dialog, not in full view).
+- Basic: the section's own fields in one **Content** card (`inspector-fields.tsx`,
+  `inspector-card.tsx`: bordered, 12px radius, 13px semibold title, chevron, open by default).
+- Advanced: where the block sits (`inspector-breadcrumb.tsx`), then one card per settings group
+  (`section-settings-groups.tsx`: Layout, Spacing, Style, Advanced; a custom block's Size,
+  Typography, Colour, Corners).
+- Fields (`field-frame.tsx`): 13px medium labels in the foreground colour, 6px above the control;
+  text boxes 40px with a 10px radius, selects and number boxes 36px (`customize-field-styles.ts`).
+
 ### Loading screen
 
 Until the first page has loaded, `editor-loading.tsx` draws the editor's own frame as
@@ -146,8 +165,14 @@ The rail's Pages and Media tabs:
 - **Pages** (`pages-panel.tsx`) is the template list the top bar's picker uses
   (`template-list.tsx`), open in the panel: search, pages and templates with their alternates,
   usage counts, the ⋯ manager (rename, duplicate, delete) and "Create template". Picking one
-  switches the canvas as the picker does.
-- **Media** (`media-panel.tsx`) is the store's pictures with a search and an upload button.
+  switches the canvas as the picker does. In the panel (`fill`) it takes Figma 381:5919's look:
+  a 40px search, uppercase PAGES / TEMPLATES labels, 35px rows with a page glyph and "Default",
+  the open one tinted `bg-primary-soft` instead of ticked.
+- **Media** (`media-panel.tsx`, Figma 381:6945) is a drop zone (drop files, or click to browse;
+  several at once), a search and the store's pictures as tiles with their file names
+  (`fileName` in `components/media/file-meta.ts` drops the media id the upload adds) and a
+  **Used** / **Unused** badge (used = this page's data holds the picture's address), with a hint
+  at the foot.
   Clicking a picture puts it into the selected block's first empty picture setting (else its first);
   dragging one onto the canvas drops it into the innermost block under the pointer that has a
   picture setting, outlined while hovering (`lib/customize-media-drop.ts`, installed by

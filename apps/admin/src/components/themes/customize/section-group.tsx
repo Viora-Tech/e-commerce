@@ -11,7 +11,8 @@ import { SortableList } from '@commerce/ui/sortable'
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
 import { useState } from 'react'
 import { customizeContent, sectionSortLabels } from '@/data/customize'
-import { CHROME_FOCUS, CHROME_GROUP_LABEL, CHROME_TRANSITION } from '@/lib/customize-chrome'
+import { useCopy } from '@/hooks/use-copy'
+import { CHROME_FOCUS, CHROME_TRANSITION } from '@/lib/customize-chrome'
 import { sectionName } from '@/lib/customize-insert'
 import { useCustomizePuck } from '@/lib/customize-puck'
 import AddSectionPopover from './add-section-popover'
@@ -19,6 +20,8 @@ import SectionTreeItem from './section-tree-item'
 
 type SectionGroupProps = {
   title: string
+  /** The header and footer groups show on every page: a quiet chip says so. */
+  everyPage?: boolean
   zone: string
   group: GroupKey | null
   sections: TemplateSection[]
@@ -38,12 +41,20 @@ function movedIndexes(before: string[], after: string[]): { from: number; to: nu
 }
 
 /**
- * One block of the Sections tree (Header, Template, Footer), Shopify-style: a
- * collapsible heading with a count, the sections as draggable rows with an
- * insert line between each pair, and "+ Add section" closing the group.
+ * One block of the Layers tree (Figma 392:5543 "Section groups": "Header group · On every
+ * page", "Template: Home page", "Footer group · On every page"): a collapsible 12px semibold
+ * heading, the sections as draggable rows with an insert line between each pair, and
+ * "+ Add section" closing the group.
  */
-export default function SectionGroup({ title, zone, group, sections }: SectionGroupProps) {
+export default function SectionGroup({
+  title,
+  everyPage,
+  zone,
+  group,
+  sections,
+}: SectionGroupProps) {
   // Hooks
+  const groups = useCopy(customizeContent.groups)
   const dispatch = useCustomizePuck((s) => s.dispatch)
   const selector = useCustomizePuck((s) => s.appState.ui.itemSelector)
   const components = useCustomizePuck((s) => s.config.components)
@@ -83,8 +94,7 @@ export default function SectionGroup({ title, zone, group, sections }: SectionGr
         aria-expanded={open}
         aria-label={copy.groupToggle(title)}
         className={cn(
-          'group/heading flex h-7 items-center gap-1.5 rounded-md px-2 text-left hover:text-foreground',
-          CHROME_GROUP_LABEL,
+          'group/heading flex h-7 items-center gap-1.5 rounded-md px-2 text-left text-xs leading-[1.0625rem] font-semibold text-foreground',
           CHROME_TRANSITION,
           CHROME_FOCUS,
         )}
@@ -96,8 +106,12 @@ export default function SectionGroup({ title, zone, group, sections }: SectionGr
             !open && '-rotate-90',
           )}
         />
-        <span className="flex-1 group-hover/heading:text-foreground">{title}</span>
-        <span className="min-w-4 text-right tabular-nums text-muted-foreground/80">{count}</span>
+        <span className="min-w-0 flex-1 truncate">{title}</span>
+        {everyPage ? (
+          <span className="shrink-0 rounded-full bg-muted px-1.5 py-px text-[0.6875rem] leading-4 font-medium text-muted-foreground">
+            {groups.everyPage}
+          </span>
+        ) : null}
       </button>
       <AnimatePresence initial={false}>
         {open ? (

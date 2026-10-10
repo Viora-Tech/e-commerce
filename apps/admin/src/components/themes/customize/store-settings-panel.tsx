@@ -43,7 +43,7 @@ export default function StoreSettingsPanel({ onOpenTheme }: StoreSettingsPanelPr
 
   // Render logic
   return (
-    <div className="flex flex-col gap-1 px-2 py-3">
+    <div className="flex flex-col gap-1 px-2 pb-3">
       <button type="button" onClick={onOpenTheme} className={ROW}>
         <span className="flex min-w-0 flex-1 flex-col">
           <span className="text-[0.8125rem] leading-5 font-medium text-foreground">

@@ -1,11 +1,14 @@
 /**
- * One control size for every field in Customize's right panel (Framer and
- * Shopify's editor both run their inspector at 32px controls and 13px text),
- * so a text box, a select and the link picker line up down the panel.
+ * The inspector's control sizes (Figma "Select" 269:4161 and "Input" 269:4131, 14px text):
+ * selects and number boxes 36px with an 8px radius, so a select and the link picker line up
+ * down the panel.
  */
-export const FIELD_CONTROL = 'h-8 rounded-lg px-2.5 text-[0.8125rem]'
+export const FIELD_CONTROL = 'h-9 rounded-lg px-3 text-sm'
 
-export const FIELD_TEXTAREA = 'min-h-[4.5rem] rounded-lg px-2.5 py-1.5 text-[0.8125rem] leading-5'
+/** A text box and search: 40px, 10px radius. */
+export const FIELD_INPUT = 'h-10 rounded-[0.625rem] px-3 text-sm'
+
+export const FIELD_TEXTAREA = 'min-h-[4.5rem] rounded-[0.625rem] px-3 py-2 text-sm leading-5'
 
 /** A swatch chip (Figma inspector "Colour chips", 369:5147): colour dot plus name, pill shaped. */
 export const SWATCH_CHIP =

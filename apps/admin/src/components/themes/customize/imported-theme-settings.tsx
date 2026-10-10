@@ -19,7 +19,7 @@ export default function ImportedThemeSettings({ themeId }: ImportedThemeSettings
 
   // Render logic
   return (
-    <div className="flex flex-col gap-3 px-4 py-4 text-body">
+    <div className="flex flex-col gap-3 px-4 pb-4 text-body">
       <p className="font-medium text-foreground">{copy.settingsTitle}</p>
       <p className="text-muted-foreground">{copy.settingsBody}</p>
       <Link

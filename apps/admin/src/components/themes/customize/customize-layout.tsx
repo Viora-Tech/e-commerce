@@ -1,6 +1,8 @@
 'use client'
 
+import { Plus } from '@commerce/ui/icons'
 import { cn } from '@commerce/ui/lib/utils'
+import { Button } from '@commerce/ui/shadcn/button'
 import { Puck } from '@puckeditor/core'
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
 import type { ReactNode } from 'react'
@@ -20,6 +22,7 @@ import CustomizeRail, { type RailPanel } from './customize-rail'
 import FullViewExit from './full-view-exit'
 import MediaPanel from './media-panel'
 import PanelIdentity from './panel-identity'
+import PanelTitle from './panel-title'
 import PanelToggle from './panel-toggle'
 import SectionInspector from './section-inspector'
 import SectionsPanel from './sections-panel'
@@ -90,20 +93,18 @@ export default function CustomizeLayout({
   }
 
   // Render logic
-  const headers: Record<RailPanel, { title: string; hint: string }> = {
-    sections: { title: panels.sections, hint: panels.sectionsHint },
-    add: { title: panels.add, hint: panels.addHint },
-    ai: { title: panels.ai, hint: panels.aiHint },
-    pages: { title: panels.pages, hint: panels.pagesHint },
-    media: { title: panels.media, hint: panels.mediaHint },
-    theme: { title: panels.theme, hint: panels.themeHint },
-    settings: { title: panels.settings, hint: panels.settingsHint },
+  // Pages and AI draw their own head (each has its own action); Add opens on its switch.
+  const titles: Partial<Record<RailPanel, string>> = {
+    media: panels.media,
+    theme: panels.theme,
+    settings: panels.settings,
   }
+  const title = titles[panel]
   const content: Record<RailPanel, ReactNode> = {
     add: <AddSectionPanel />,
     ai: <AiPanel storeId={store.id} enabled={aiEnabled} />,
     pages,
-    sections: <SectionsPanel onOpenTheme={() => setPanel('theme')} />,
+    sections: <SectionsPanel onOpenTheme={() => setPanel('theme')} templateLabel={templateLabel} />,
     media: <MediaPanel />,
     theme: settings,
     settings: <StoreSettingsPanel onOpenTheme={() => setPanel('theme')} />,
@@ -136,11 +137,25 @@ export default function CustomizeLayout({
                   !showLeft && 'hidden',
                 )}
               >
-                <PanelIdentity
-                  title={identity.title(store.name, templateLabel)}
-                  domain={store.domain}
-                  panel={panel === 'add' ? null : headers[panel]}
-                />
+                {panel === 'add' || panel === 'sections' ? (
+                  <PanelIdentity
+                    title={identity.title(store.name, templateLabel)}
+                    domain={store.domain}
+                  />
+                ) : null}
+                {panel === 'sections' ? (
+                  <PanelTitle
+                    size="md"
+                    title={panels.sections}
+                    action={
+                      <Button variant="outline" onClick={() => setPanel('add')}>
+                        <Plus aria-hidden />
+                        {panels.addSection}
+                      </Button>
+                    }
+                  />
+                ) : null}
+                {title ? <PanelTitle title={title} /> : null}
                 <AnimatePresence mode="wait" initial={false}>
                   <motion.div
                     key={panel}
@@ -210,9 +225,10 @@ export default function CustomizeLayout({
               </main>
               <aside
                 hidden={!showRight}
+                data-inspector=""
                 className={cn(
                   CHROME_PANEL,
-                  'w-[17.75rem] border-l border-border',
+                  'w-[21.25rem] border-l border-border',
                   !showRight && 'hidden',
                 )}
               >
