@@ -26,22 +26,24 @@ export default function StatusBanner({ canTakePayments, canTakeOnline }: StatusB
         canTakeOnline
           ? 'border-success/30 bg-success-soft'
           : canTakePayments
-            ? 'border-warning/40 bg-warning-soft'
+            ? 'border-transparent surface-card'
             : 'border-destructive/30 bg-destructive/5',
       )}
     >
-      <Icon
-        aria-hidden="true"
-        weight="fill"
-        className={cn(
-          'mt-0.5 size-5 shrink-0',
-          canTakeOnline
-            ? 'text-success'
-            : canTakePayments
-              ? 'text-warning-foreground dark:text-warning'
-              : 'text-destructive',
-        )}
-      />
+      {canTakePayments && !canTakeOnline ? null : (
+        <Icon
+          aria-hidden="true"
+          weight="fill"
+          className={cn(
+            'mt-0.5 size-5 shrink-0',
+            canTakeOnline
+              ? 'text-success'
+              : canTakePayments
+                ? 'text-warning-foreground dark:text-warning'
+                : 'text-destructive',
+          )}
+        />
+      )}
       <div className="flex flex-col gap-0.5">
         <p className="text-body font-semibold text-foreground">{title}</p>
         {help ? <p className="text-body text-muted-foreground">{help}</p> : null}

@@ -21,7 +21,7 @@ const FOCUS =
   'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2'
 
 /* Proofly settings nav: text-only 32px rows, the active one on a soft blue fill. */
-const TAB = `relative isolate flex h-8 w-full min-w-0 items-center rounded-md px-3 text-nav text-ink-strong transition-colors hover:bg-muted ${FOCUS}`
+const TAB = `relative isolate flex h-[1.875rem] w-full min-w-0 items-center rounded-[0.5rem] pr-3 pl-5 text-nav text-ink-strong transition-colors hover:bg-muted ${FOCUS}`
 const TAB_ACTIVE = 'text-sidebar-accent-foreground hover:bg-transparent'
 
 /* Phones: the Settings home is the list, so a page only needs the way back to it. */
@@ -115,7 +115,7 @@ function NavTab({ section, pathname, locale, slide }: NavTabProps) {
           <motion.span
             layoutId="settings-nav-pill"
             transition={slide}
-            className="absolute inset-0 -z-10 rounded-md bg-sidebar-accent"
+            className="absolute inset-0 -z-10 rounded-[0.5rem] bg-sidebar-accent"
             aria-hidden
           />
         ) : null}
