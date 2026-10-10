@@ -1,4 +1,4 @@
-import { notSystemTest } from '@commerce/core'
+import { notSystemTest, onHandleChange } from '@commerce/core'
 import type { StoreTx } from '@commerce/db'
 import {
   inventoryLevel,
@@ -264,13 +264,19 @@ export type ProductPatch = {
   status?: ProductStatus | undefined
 }
 
-export async function updateProduct(tx: StoreTx, id: string, patch: ProductPatch) {
+/** A quick edit from the list. A new handle leaves a redirect behind (`onHandleChange`). */
+export async function updateProduct(tx: StoreTx, storeId: string, id: string, patch: ProductPatch) {
   const set = Object.fromEntries(Object.entries(patch).filter(([, v]) => v !== undefined))
+  const [before] = await tx
+    .select({ handle: product.handle })
+    .from(product)
+    .where(eq(product.id, id))
   const [row] = await tx
     .update(product)
     .set({ ...set, updatedAt: new Date() })
     .where(eq(product.id, id))
     .returning()
+  if (row) await onHandleChange(tx, storeId, 'product', before?.handle, row.handle)
   return row ?? null
 }
 

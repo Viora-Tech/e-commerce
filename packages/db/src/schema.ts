@@ -2094,8 +2094,11 @@ export const urlRedirect = pgTable(
     storeId: storeId(),
     path: text('path').notNull(),
     target: text('target').notNull(),
-    /** `import` rows came from a store migration; the merchant can edit either. */
-    source: text('source', { enum: ['manual', 'import'] })
+    /**
+     * `import` rows came from a store migration, `auto` ones when a product, collection or page
+     * handle changed; the merchant can edit any of them.
+     */
+    source: text('source', { enum: ['manual', 'import', 'auto'] })
       .notNull()
       .default('manual'),
     createdAt: createdAt(),
@@ -2128,14 +2131,28 @@ export const page = pgTable(
   (t) => [uniqueIndex('page_store_handle').on(t.storeId, t.handle)],
 )
 
-export type NavigationItemType = 'home' | 'product' | 'collection' | 'page' | 'url'
+export type NavigationItemType =
+  | 'home'
+  | 'product'
+  | 'collection'
+  | 'page'
+  | 'blog'
+  | 'article'
+  | 'policy'
+  | 'search'
+  | 'collections'
+  | 'url'
 
 /** One entry in a storefront menu, kept in order inside navigation_menu.items. */
 export type NavigationItem = {
   id: string
   title: string
   type: NavigationItemType
-  /** Handle for product/collection/page, the URL for url; absent for home. */
+  /**
+   * Handle for product/collection/page/blog, `blog-handle/article-handle` for an article, the
+   * policy type (`refund-policy`) for a policy, the URL for url; absent for home, search and
+   * collections (all collections).
+   */
   value?: string | undefined
   /**
    * Nested items. A menu is at most three levels deep (top, dropdown, and the

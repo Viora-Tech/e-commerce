@@ -15,6 +15,7 @@ export default {
   'shopify-theme-import': 'Shopify theme import',
   'content-types': 'Content types (metaobjects)',
   'dynamic-sources': 'Dynamic sources',
+  'menus-redirects': 'Menus and redirects',
   'custom-sections': 'Slots and custom sections',
   performance: 'Storefront performance',
   'admin-design-system': 'Admin design system',

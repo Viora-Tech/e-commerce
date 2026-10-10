@@ -17,6 +17,8 @@ import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 import { routes } from '@/lib/routes'
 import DeleteMenuDialog from './delete-menu-dialog'
+import LinkCheckBanner from './link-check-banner'
+import { useLinkProblems } from './link-problems'
 import MenuItemDialog from './menu-item-dialog'
 import MenuTree from './menu-tree'
 import type { MenuPlacement } from './placements'
@@ -47,6 +49,7 @@ export default function MenuEditor({ menu, placements }: MenuEditorProps) {
   const [editing, setEditing] = useState<MenuItem | null>(null)
   const [addParent, setAddParent] = useState<string | null>(null)
   const [removing, setRemoving] = useState(false)
+  const problems = useLinkProblems(draft.items)
 
   // Event handlers
   const handleSave = async () => {
@@ -130,6 +133,7 @@ export default function MenuEditor({ menu, placements }: MenuEditorProps) {
             <h2 className="text-card-title text-ink-strong">{copy.editor.itemsHeading}</h2>
             <p className="text-caption text-muted-foreground">{copy.editor.hint}</p>
           </div>
+          <LinkCheckBanner count={problems.size} />
           {draft.items.length === 0 ? (
             <p className="px-4 pt-8 pb-4 text-center text-body text-muted-foreground">
               {copy.editor.empty}
@@ -141,6 +145,7 @@ export default function MenuEditor({ menu, placements }: MenuEditorProps) {
             onEdit={handleEdit}
             onRemove={handleRemove}
             onAdd={handleAdd}
+            problems={problems}
           />
         </div>
       }

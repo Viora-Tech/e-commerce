@@ -1,6 +1,7 @@
 import { collection, collectionProduct, newId, product, type StoreTx } from '@commerce/db'
 import { and, asc, eq, inArray, sql } from 'drizzle-orm'
 import { slugify } from '../catalog/products'
+import { onHandleChange } from '../redirects/handle-change'
 import { type CollectionRules, type RuleProduct, selectMembers } from './rules'
 import { type CollectionWrite, InvalidCollection } from './schemas'
 
@@ -164,15 +165,15 @@ export async function updateCollection(
   write: CollectionWrite,
 ): Promise<void> {
   validate(write)
-  const handle = write.handle
-    ? await uniqueCollectionHandle(tx, write.handle, id)
-    : (
-        await tx.select({ handle: collection.handle }).from(collection).where(eq(collection.id, id))
-      ).at(0)?.handle
+  const before = (
+    await tx.select({ handle: collection.handle }).from(collection).where(eq(collection.id, id))
+  ).at(0)?.handle
+  const handle = write.handle ? await uniqueCollectionHandle(tx, write.handle, id) : before
   await tx
     .update(collection)
     .set({ ...collectionRow(write), handle, updatedAt: new Date() })
     .where(eq(collection.id, id))
+  await onHandleChange(tx, storeId, 'collection', before, handle)
   if (write.kind === 'automatic') await syncAutomaticCollection(tx, storeId, id)
   else if (write.productIds) await writeMembers(tx, storeId, id, write.productIds)
 }

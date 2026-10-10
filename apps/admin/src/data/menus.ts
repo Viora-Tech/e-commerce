@@ -1,7 +1,13 @@
-export const NAVIGATION_ITEM_TYPES = ['home', 'product', 'collection', 'page', 'url'] as const
+import { itemPath, NAVIGATION_ITEM_TYPES } from '@commerce/core/navigation'
+
+export { NAVIGATION_ITEM_TYPES }
 export type NavigationItemType = (typeof NAVIGATION_ITEM_TYPES)[number]
 
-/** One menu item in the editor. 'value' is the handle (product/collection/page) or the URL. */
+/**
+ * One menu item in the editor. 'value' is the handle (product/collection/page/blog),
+ * `blog/post` for a blog post, the policy type, or the URL; none for home, search and all
+ * collections.
+ */
 export type MenuItem = {
   id: string
   title: string
@@ -24,18 +30,7 @@ export type MenuListItem = {
 
 /** The storefront path a menu item points at, for the editor's 'links to' line. */
 export function destinationPath(type: NavigationItemType, value?: string): string {
-  switch (type) {
-    case 'home':
-      return '/'
-    case 'product':
-      return `/products/${value ?? ''}`
-    case 'collection':
-      return `/collections/${value ?? ''}`
-    case 'page':
-      return `/pages/${value ?? ''}`
-    case 'url':
-      return value ?? ''
-  }
+  return itemPath(type, value) ?? ''
 }
 
 /** The compact "Storefront navigation" summary card beside the menus table, and the
@@ -155,6 +150,15 @@ export const menusContent = {
     hint: 'Drag to reorder. Drag right to nest under the item above, left to lift it out.',
     addChild: (parent: string) => `Add menu item to ${parent}`,
     levelLimit: 'Menus go three levels deep.',
+    /** The broken-link check above the items. */
+    linkCheck: {
+      heading: (n: number) =>
+        n === 1 ? '1 link in this menu needs attention' : `${n} links in this menu need attention`,
+      body: 'Shoppers who click them see a page not found or a hidden page. Edit each marked item.',
+      missing: 'Broken link',
+      hidden: 'Hidden from shoppers',
+      redirected: (to: string) => `Broken, but redirected to ${to}`,
+    },
     storefrontNote: 'The storefront renders this menu wherever the header or footer points at it.',
   },
   item: {
@@ -170,6 +174,11 @@ export const menusContent = {
       product: 'Product',
       collection: 'Collection',
       page: 'Page',
+      blog: 'Blog',
+      article: 'Blog post',
+      policy: 'Policy',
+      search: 'Search page',
+      collections: 'All collections',
       url: 'Custom URL',
     } satisfies Record<NavigationItemType, string>,
     urlPlaceholder: 'https:// or /path',

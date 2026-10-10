@@ -2,7 +2,7 @@ export type RedirectListItem = {
   id: string
   path: string
   target: string
-  source: 'manual' | 'import'
+  source: 'manual' | 'import' | 'auto'
   createdAt: string | Date
   updatedAt: string | Date
 }
@@ -25,7 +25,7 @@ export const redirectsContent = {
     source: 'Source',
     updated: 'Updated',
   },
-  source: { manual: 'Manual', import: 'Imported' },
+  source: { manual: 'Manual', import: 'Imported', auto: 'Handle changed' },
   empty: {
     heading: 'Redirect old links',
     body: 'When a product, collection or page moves, add a redirect so saved links and search results still land somewhere useful. Imports from Shopify add them for you.',
@@ -55,5 +55,27 @@ export const redirectsContent = {
     confirmTitle: (n: number) => `Delete ${n} ${n === 1 ? 'redirect' : 'redirects'}?`,
     confirmBody: 'Visitors to these old paths will see a page not found instead.',
     cancel: 'Cancel',
+  },
+  csv: {
+    export: 'Export',
+    exported: 'Redirects downloaded',
+    exportFailed: 'Could not export the redirects',
+    import: 'Import',
+    title: 'Import redirects',
+    body: 'Upload a CSV with two columns, Redirect from and Redirect to. A Shopify redirects export works as it is. A path you already redirect takes the new target.',
+    choose: 'Choose CSV file',
+    reading: 'Checking the file…',
+    ready: (n: number) =>
+      n === 1 ? '1 redirect is ready to import.' : `${n} redirects are ready to import.`,
+    problems: (n: number) => (n === 1 ? '1 row will be skipped:' : `${n} rows will be skipped:`),
+    line: (line: number, reason: string) => `Line ${line}: ${reason}`,
+    more: (n: number) => `and ${n} more`,
+    nothing: 'Nothing in this file can be imported.',
+    confirm: (n: number) => (n === 1 ? 'Import 1 redirect' : `Import ${n} redirects`),
+    importing: 'Importing…',
+    cancel: 'Cancel',
+    done: (created: number, updated: number) => `${created} added, ${updated} updated`,
+    failed: 'Could not import the file',
+    tooBig: 'That file is too big. Split it into files of up to 5,000 redirects.',
   },
 } as const
