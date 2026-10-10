@@ -22,7 +22,8 @@ async function api(method, path, body) {
     headers: { 'x-api-key': env.DOKPLOY_API_KEY, 'content-type': 'application/json' },
     body: body ? JSON.stringify(body) : undefined,
   })
-  if (!res.ok) throw new Error(`Dokploy ${path} -> ${res.status} ${(await res.text()).slice(0, 200)}`)
+  if (!res.ok)
+    throw new Error(`Dokploy ${path} -> ${res.status} ${(await res.text()).slice(0, 200)}`)
   const text = await res.text()
   return text ? JSON.parse(text) : {}
 }
@@ -50,7 +51,8 @@ async function deployApp(app) {
 
   // Wait for the newest deployment created after we started to finish.
   for (;;) {
-    if (Date.now() > startedAt + timeoutMs) throw new Error(`${app}: timed out waiting for deployment`)
+    if (Date.now() > startedAt + timeoutMs)
+      throw new Error(`${app}: timed out waiting for deployment`)
     await sleep(10_000)
     const info = await api('GET', `application.one?applicationId=${applicationId}`)
     const latest = (info.deployments ?? [])
@@ -63,7 +65,12 @@ async function deployApp(app) {
   const healthUrl = env[`HEALTH_URL_${app.toUpperCase()}`]
   if (healthUrl) {
     for (let i = 0; ; i++) {
-      if (await fetch(healthUrl).then((r) => r.ok).catch(() => false)) break
+      if (
+        await fetch(healthUrl)
+          .then((r) => r.ok)
+          .catch(() => false)
+      )
+        break
       if (i >= 17) throw new Error(`${app}: ${healthUrl} never became healthy`)
       await sleep(10_000)
     }
@@ -71,8 +78,15 @@ async function deployApp(app) {
 
   // Remember what is live so the next build only rebuilds what changed.
   execFileSync('aws', [
-    'ssm', 'put-parameter', '--name', `/vextro/deploy/last-sha/${app}`,
-    '--value', env.GIT_SHA, '--type', 'String', '--overwrite',
+    'ssm',
+    'put-parameter',
+    '--name',
+    `/vextro/deploy/last-sha/${app}`,
+    '--value',
+    env.GIT_SHA,
+    '--type',
+    'String',
+    '--overwrite',
   ])
 }
 
