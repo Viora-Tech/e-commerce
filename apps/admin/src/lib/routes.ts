@@ -19,6 +19,7 @@ export const routes = {
     home: () => '/account',
     security: () => '/account/security',
     sessions: () => '/account/sessions',
+    notifications: () => '/account/notifications',
     stores: () => '/account/stores',
     language: () => '/account/language',
     appearance: () => '/account/appearance',

@@ -52,6 +52,7 @@ const PAGE_TITLES: [prefix: string, title: string][] = [
   ['/account', 'Account'],
   ['/account/security', 'Sign-in & security'],
   ['/account/sessions', 'Sessions'],
+  ['/account/notifications', 'Notifications'],
   ['/account/stores', 'Stores'],
   ['/account/language', 'Language & region'],
   ['/account/appearance', 'Appearance'],

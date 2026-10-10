@@ -28,9 +28,10 @@ const ALLOWLIST: AllowEntry[] = [
     reason: 'the masking rule behind the email-changed notice, exported for its unit test',
   },
   {
-    file: 'packages/auth/src/sign-in-log.ts',
+    file: 'packages/core/src/member-account/sign-ins.ts',
     names: ['maskIp', 'signInMethod'],
-    reason: 'the IP masking and method rules behind recordSignIn, exported for their unit test',
+    reason:
+      'the IP masking and method rules behind recordMemberSignIn, exported for their unit test',
   },
   {
     file: 'packages/core/src/inventory/landed-cost.ts',

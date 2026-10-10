@@ -7,6 +7,7 @@ import {
   isOwnAvatarKey,
   memberAccess,
   processAvatar,
+  storeNotificationChannels,
 } from '@commerce/core'
 import {
   authSchema,
@@ -363,4 +364,50 @@ export async function sessionTokenFor(
     .from(authSchema.session)
     .where(and(eq(authSchema.session.id, sessionId), eq(authSchema.session.userId, userId)))
   return row?.token ?? null
+}
+
+/** Whether the store can send WhatsApp at all: a member's WhatsApp switches only show then. */
+export async function storeHasWhatsapp(
+  tx: StoreTx,
+  storeId: string,
+  secret: string,
+): Promise<boolean> {
+  const { notifications } = await storeRegistries(tx, storeId)
+  const channels = await storeNotificationChannels(tx, storeId, {
+    registry: notifications,
+    settingsSecret: secret,
+  })
+  return channels.some((c) => c.requires === 'phone')
+}
+
+/** Names of the stores this member owns: while there are any, the account cannot be deleted. */
+export async function ownedStoreNames(db: Db, userId: string): Promise<string[]> {
+  return (await memberStores(db, userId, null)).filter((s) => s.isOwner).map((s) => s.name)
+}
+
+/**
+ * Deletes a member who owns no store: their staff rows in every store (RLS-scoped, one store
+ * at a time), their photo, then the user row, which takes their sessions, passkeys, sign-in
+ * log, Better Auth memberships and the invitations they sent with it (foreign keys cascade).
+ * The caller has already checked the code and that they own nothing.
+ */
+export async function deleteMemberAccount(db: Db, userId: string, secret: string): Promise<void> {
+  const profile = await memberProfile(db, userId)
+  const memberships = await db
+    .select({ organizationId: authSchema.member.organizationId })
+    .from(authSchema.member)
+    .where(eq(authSchema.member.userId, userId))
+  for (const m of memberships) {
+    const storeId = await resolveStoreForOrganization(db, m.organizationId)
+    if (storeId) await forgetStoreMembership(db, storeId, userId)
+  }
+  const photo = avatarKeyIn(profile?.image ?? null)
+  const photoStore = photo ? /^stores\/([^/]+)\//.exec(photo)?.[1] : undefined
+  if (photo && photoStore) {
+    // The photo only costs a few KB; a store whose storage is gone must not block the delete.
+    await avatarStorage(db, photoStore, secret)
+      .then((storage) => deleteOwnAvatar(storage, profile?.image ?? null, photoStore, userId))
+      .catch(() => undefined)
+  }
+  await db.delete(authSchema.user).where(eq(authSchema.user.id, userId))
 }

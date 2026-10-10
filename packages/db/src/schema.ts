@@ -2402,6 +2402,12 @@ export const storeMember = pgTable(
     invitedBy: text('invited_by'),
     /** This member's own admin accent (#rrggbb); null falls back to the store's `admin_accent`. */
     adminAccent: text('admin_accent'),
+    /**
+     * This member's own alerts for this store (Account → Notifications): which events reach
+     * them by email or WhatsApp, the daily summary's hour and the day it last went. Null means
+     * the defaults (`@commerce/core/member-account`, `parseMemberAlertPrefs`).
+     */
+    notificationPrefs: jsonb('notification_prefs'),
     createdAt: createdAt(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   },

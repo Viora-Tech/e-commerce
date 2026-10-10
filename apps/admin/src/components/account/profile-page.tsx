@@ -18,6 +18,7 @@ import { api } from '@/lib/api-client'
 import { authClient } from '@/lib/auth-client'
 import { phoneForDisplay } from '@/lib/phone-display'
 import AvatarField from './avatar-field'
+import DeleteAccountCard from './delete-account-card'
 
 type Profile = Awaited<ReturnType<typeof api.account.profile>>
 type Form = { name: string; phone: string }
@@ -200,6 +201,7 @@ export default function ProfilePage() {
               autoComplete="tel"
             />
           </SettingsCard>
+          <DeleteAccountCard />
         </>
       )}
     </div>

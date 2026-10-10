@@ -1,4 +1,5 @@
 import { createMerchantAuth } from '@commerce/auth'
+import { recordMemberSignIn } from '@commerce/core'
 import { authSchema, createDb } from '@commerce/db'
 import { resetDb } from '@commerce/db/test'
 import type { Message, NotificationChannel } from '@commerce/notifications'
@@ -20,6 +21,7 @@ const auth = createMerchantAuth({
     codes.push(m)
   },
   sendInvite: async () => undefined,
+  onSignIn: (event) => recordMemberSignIn(app, event),
 })
 
 /** Messages the fake platform account "sent". */

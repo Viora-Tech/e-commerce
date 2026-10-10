@@ -28,7 +28,7 @@ export type MessageDef = {
   id: TemplateId
   group: MessageGroup
   trigger: MessageTrigger
-  /** Channels able to carry it. Messages to the merchant and gift cards are email only. */
+  /** Channels able to carry it. Gift cards and most messages to the merchant are email only; a team member's own alerts can also go by WhatsApp. */
   channels: readonly MessageChannelKind[]
   /** The app whose settings control an `app` message. */
   appId?: string | undefined
@@ -80,6 +80,10 @@ export const MESSAGE_CATALOGUE: readonly MessageDef[] = [
     appId: 'back-in-stock',
   },
   { id: 'unpaid_cancel_notice', group: 'you', trigger: 'auto', channels: EMAIL },
+  // Each team member chooses these for themselves (Account → Notifications); the switch here
+  // turns them off for the whole store.
+  { id: 'staff_new_order', group: 'you', trigger: 'auto', channels: BOTH },
+  { id: 'staff_daily_summary', group: 'you', trigger: 'auto', channels: BOTH },
   { id: 'contact_message', group: 'app', trigger: 'app', channels: EMAIL, appId: 'forms' },
   { id: 'review_request', group: 'app', trigger: 'app', channels: EMAIL, appId: 'reviews' },
   { id: 'review_reminder', group: 'app', trigger: 'app', channels: EMAIL, appId: 'reviews' },

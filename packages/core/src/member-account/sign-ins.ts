@@ -1,3 +1,4 @@
+/** SOURCE OF TRUTH: member sign-in log — WHAT: one row per merchant sign-in (method, device, masked IP, Cloudflare city when trusted), kept 90 days, for Account → Sign-in & security / WHY: Better Auth's sessions disappear on sign-out, so the history needs its own small table; the IP is masked before it is stored */
 import { randomUUID } from 'node:crypto'
 import { authSchema, type Db } from '@commerce/db'
 import { and, eq, lt } from 'drizzle-orm'
@@ -37,6 +38,7 @@ function headerValue(headers: Headers | undefined, name: string, max: number): s
   return value ? value.slice(0, max) : null
 }
 
+/** What Better Auth's session hook hands over (`MerchantAuthOptions.onSignIn`). */
 export type SignInRecord = {
   userId: string
   sessionId: string
@@ -49,7 +51,7 @@ export type SignInRecord = {
 }
 
 /** Writes one sign-in and drops this member's rows older than `KEEP_DAYS`. */
-export async function recordSignIn(db: Db, input: SignInRecord): Promise<void> {
+export async function recordMemberSignIn(db: Db, input: SignInRecord): Promise<void> {
   await db.insert(authSchema.memberSignIn).values({
     id: randomUUID(),
     userId: input.userId,

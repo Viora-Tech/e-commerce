@@ -1,5 +1,6 @@
+/** SOURCE OF TRUTH: member sign-in log tests — WHAT: IP masking and the sign-in method / WHY: the log must never keep a full IP */
 import { describe, expect, it } from 'vitest'
-import { maskIp, signInMethod } from '../src/sign-in-log'
+import { maskIp, signInMethod } from './sign-ins'
 
 describe('maskIp', () => {
   it('hides the last part of an address', () => {

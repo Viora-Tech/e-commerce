@@ -1,5 +1,5 @@
 import type { LucideIcon } from '@commerce/ui/icons'
-import { Language, Monitor, Palette, ShieldCheck, Store, UserRound } from '@commerce/ui/icons'
+import { Bell, Language, Monitor, Palette, ShieldCheck, Store, UserRound } from '@commerce/ui/icons'
 import { routes } from '@/lib/routes'
 
 export type AccountPage = {
@@ -24,6 +24,12 @@ export const ACCOUNT_NAV: AccountPage[] = [
     icon: ShieldCheck,
   },
   { id: 'sessions', href: routes.account.sessions(), title: 'Sessions', icon: Monitor },
+  {
+    id: 'notifications',
+    href: routes.account.notifications(),
+    title: 'Notifications',
+    icon: Bell,
+  },
   { id: 'stores', href: routes.account.stores(), title: 'Stores', icon: Store },
   { id: 'language', href: routes.account.language(), title: 'Language & region', icon: Language },
   { id: 'appearance', href: routes.account.appearance(), title: 'Appearance', icon: Palette },
@@ -48,6 +54,7 @@ export const accountContent = {
     profile: 'Profile',
     security: 'Sign-in & security',
     sessions: 'Sessions',
+    notifications: 'Notifications',
     stores: 'Stores',
     language: 'Language & region',
     appearance: 'Appearance',
@@ -91,6 +98,67 @@ export const accountContent = {
     saved: 'Profile saved',
     failed: 'Could not save your profile. Try again.',
     loadFailed: 'Your profile did not load.',
+    retry: 'Try again',
+    danger: {
+      heading: 'Delete my account',
+      body: 'Removes you from every store you work in and deletes your sign-in, photo and devices. The stores and their orders stay.',
+      button: 'Delete my account',
+      blocked: (stores: string) =>
+        `You own ${stores}. A store always keeps its owner, so hand it over (Settings → Staff) or close it first.`,
+      dialog: {
+        title: 'Delete your account?',
+        body: 'This cannot be undone. You leave every store straight away and are signed out everywhere.',
+        typeEmail: (email: string) => `Type ${email} to confirm`,
+        sendCode: 'Send code',
+        codeSent: (email: string) => `We sent a 6-digit code to ${email}.`,
+        code: 'Code',
+        confirm: 'Delete my account',
+        cancel: 'Cancel',
+        mismatch: 'That is not your sign-in email.',
+        failed: 'Could not delete your account. Try again.',
+        done: 'Your account was deleted',
+      },
+    },
+  },
+  notifications: {
+    title: 'Notifications',
+    intro: (store: string) =>
+      `Your own alerts for ${store}. Each person on your team picks their own.`,
+    heading: 'What you hear about',
+    body: 'Pick how each one reaches you.',
+    channels: { email: 'Email', whatsapp: 'WhatsApp' },
+    alerts: {
+      newOrder: { label: 'New order', help: 'Each order as it comes in.' },
+      lowStock: { label: 'Low stock', help: 'When a product runs low.' },
+      paymentProblem: {
+        label: 'Payment or payout problem',
+        help: 'A failed payment, refund or payout that needs you.',
+      },
+      dailySummary: {
+        label: 'Daily summary',
+        help: 'Orders, sales and what waits to ship, once a day.',
+      },
+      appErrors: {
+        label: 'App or integration error',
+        help: 'When a connected app or courier stops working.',
+      },
+    },
+    summaryTime: 'Send at',
+    hourLabel: (hour: number) =>
+      `${hour % 12 === 0 ? 12 : hour % 12}:00 ${hour < 12 ? 'am' : 'pm'}`,
+    whatsappOff:
+      'WhatsApp alerts appear here once your store sets up WhatsApp in Settings → Notifications.',
+    needPhone: 'Add your mobile number on your Profile to get WhatsApp alerts.',
+    addPhone: 'Add mobile number',
+    soon: 'Coming soon: these switches are saved now and start sending in an update.',
+    soonBadge: 'Soon',
+    storeWide: 'The store can switch team alerts off for everyone in Settings → Notifications.',
+    save: 'Save',
+    discard: 'Discard',
+    unsaved: 'Unsaved changes',
+    saved: 'Notifications saved',
+    failed: 'Could not save. Try again.',
+    loadFailed: 'Your notifications did not load.',
     retry: 'Try again',
   },
   /** "Chrome on Windows", "Safari on iPhone"; any part may be unknown. */
