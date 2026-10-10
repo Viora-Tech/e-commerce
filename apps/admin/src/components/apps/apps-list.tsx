@@ -26,9 +26,11 @@ import { appsContent } from '@/data/apps'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 import { categoriesOf, groupApps, matchesQuery } from '@/lib/apps-gallery'
+import { recommendedApps } from '@/lib/apps-recommended'
 import AppCard, { type AppSummary, needsSetup } from './app-card'
 import AppsHero from './apps-hero'
 import AppsLoading from './apps-loading'
+import AppsRecommended from './apps-recommended'
 import InstallDialog from './install-dialog'
 
 const HERO_LIMIT = 4
@@ -60,12 +62,17 @@ export default function AppsList() {
   const [query, setQuery] = useState('')
   const [category, setCategory] = useState<string | null>(null)
   const [builtOnly, setBuiltOnly] = useState(false)
+  const [storeName, setStoreName] = useState<string | null>(null)
 
   useEffect(() => {
     api.apps
       .list()
       .then(setApps)
       .catch((err) => setError(describeError(err, appsContent.loadFailed)))
+    api.store
+      .current()
+      .then((s) => setStoreName(s?.name ?? null))
+      .catch(() => setStoreName(null))
   }, [])
 
   // Event handlers
@@ -99,6 +106,7 @@ export default function AppsList() {
   const all = [...builtin, ...connections]
   const installed = all.filter((a) => a.installed)
   const available = all.filter((a) => !a.installed)
+  const recommended = recommendedApps(all)
   const setupCount = installed.filter(needsSetup).length
   const store = available.filter(
     (a) =>
@@ -155,6 +163,15 @@ export default function AppsList() {
             busyId={busyId}
             onInstall={setPendingInstall}
           />
+
+          {storeName ? (
+            <AppsRecommended
+              apps={recommended}
+              storeName={storeName}
+              busyId={busyId}
+              onInstall={setPendingInstall}
+            />
+          ) : null}
 
           <section className="flex flex-col gap-3.5">
             <SectionHead
