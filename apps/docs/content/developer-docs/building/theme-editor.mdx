@@ -86,7 +86,7 @@ banner" (`inspector-breadcrumb.tsx`), and each container in it selects that cont
   initial) on top; Add, AI, Pages, Layers (Sections), Media, Theme settings and Store settings in
   the middle; Help (the merchant guide's editor page) pinned at the bottom. The open tab wears
   `bg-primary-soft`; each button names itself in a tooltip.
-- **Left panel** (304px): `panel-identity.tsx` heads it with "<Store> · <Template>" and the store's
+- **Left panel** (304px): `panel-identity.tsx` heads it with `<Store> · <Template>` and the store's
   domain, then the open panel's name (Add shows its switch instead).
 - **Add** (`add-section-browser.tsx`): a "Sections | Blocks" switch, "Search layouts", then folding
   category groups (`add-section-group.tsx`) of picture tiles, two across. Sections holds the section
@@ -117,7 +117,7 @@ banner" (`inspector-breadcrumb.tsx`), and each container in it selects that cont
 Until the first page has loaded, `editor-loading.tsx` draws the editor's own frame as
 placeholders (top bar, rail, panel) around a skeleton page (header, hero, a row of product
 cards) with a soft shimmer (Motion; still under reduced motion), the store's name and "Opening
-<store> in the editor…". If the page has not loaded after 20 seconds (`LOAD_TIMEOUT_MS` in
+`<store>` in the editor…". If the page has not loaded after 20 seconds (`LOAD_TIMEOUT_MS` in
 `customize-editor.tsx`), or loading fails, it shows "We couldn’t reach your storefront" with
 **Try again** (loads again), **Get help** (the editor's help page) and a link back to Themes.
 Switching pages later keeps the current page on screen instead.

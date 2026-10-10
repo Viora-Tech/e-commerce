@@ -146,6 +146,10 @@ export const notificationsSettingsContent = {
       name: 'Copy of an invoice',
       when: 'When you email an invoice or credit note from an order.',
     },
+    purchase_order: {
+      name: 'Purchase order to a supplier',
+      when: 'When you email a purchase order to its supplier.',
+    },
     login_code: {
       name: 'Sign-in code',
       when: 'When a customer signs in to their account on your shop.',

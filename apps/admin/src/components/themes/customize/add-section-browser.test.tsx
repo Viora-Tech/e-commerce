@@ -175,7 +175,8 @@ describe('AddSectionBrowser', () => {
 
   it('lists layout blocks and app blocks under Blocks, by app', async () => {
     const { user } = setup()
-    expect(screen.queryByText('Reviews')).toBeNull()
+    // App blocks only appear under Blocks (a "Reviews" section may sit under Sections).
+    expect(findCard('Product reviews')).toBeNull()
     await user.click(screen.getByRole('tab', { name: copy.kinds.blocks }))
     expect(findCard('Rich text')).toBeNull()
     expect(screen.getByText('Reviews')).toBeTruthy()
