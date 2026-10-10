@@ -51,6 +51,8 @@ type CustomizeEditorProps = {
   /** The storefront origin, for the Preview link. */
   origin: string
   canPublish: boolean
+  /** Installed app ids, read on the server so Puck mounts once with the real Apps tab. */
+  installedApps: string[]
   initial: { template: TemplateKind; suffix: string; resource: string | null }
 }
 
@@ -94,6 +96,7 @@ export default function CustomizeEditor({
   theme,
   origin,
   canPublish,
+  installedApps,
   initial,
 }: CustomizeEditorProps) {
   // Hooks
@@ -111,35 +114,14 @@ export default function CustomizeEditor({
   const [device, setDevice] = useState<PreviewDevice>('desktop')
   const [modePick, setModePick] = useState<'light' | 'dark'>('light')
   const [nonce, setNonce] = useState(0)
-  const [config, setConfig] = useState(() => createCustomizeConfig())
-  // Bumped once the real installed-apps set replaces the empty-set config Puck
-  // first mounted with — see the effect below for why this has to force a
-  // Puck remount rather than rely on the `config` prop changing in place.
-  const [appsVersion, setAppsVersion] = useState(0)
+  // `<Puck>` only reads `config` at mount, so the installed apps (the Add panel's
+  // Apps tab, and the "app is off" placeholder for blocks from an uninstalled
+  // app) come from the server: the editor mounts once, already right.
+  const [config] = useState(() => createCustomizeConfig(new Set(installedApps)))
   const drafts = useTemplateDrafts(record.id, () => toast.error(copy.draftFailed))
   const preview = useCustomizePreview(ref.key, initial.resource)
   // An imported Shopify theme: section fields from each `{% schema %}`, its head for the canvas.
   const liquidTheme = useLiquidTheme(record.id)
-
-  // Which apps this store has installed, for the Add panel's Apps tab and the
-  // storefront-matching "app is off" placeholder for anything already placed
-  // from an app since uninstalled. `<Puck>` only reads its `config` prop at
-  // mount — a later `setConfig` alone does not make it re-derive
-  // `categories`/`components`, so the Apps tab stayed stuck on the
-  // enabled-nothing config it mounted with even after this resolved. Folding
-  // `appsVersion` into the `key` below forces the one-time remount that
-  // actually picks the new config up.
-  useEffect(() => {
-    let active = true
-    api.apps.list().then((apps) => {
-      if (!active) return
-      setConfig(createCustomizeConfig(new Set(apps.filter((a) => a.installed).map((a) => a.id))))
-      setAppsVersion((v) => v + 1)
-    })
-    return () => {
-      active = false
-    }
-  }, [])
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: `drafts` only holds refs; reloading keys on the theme, template and discard nonce.
   useEffect(() => {
@@ -356,7 +338,7 @@ export default function CustomizeEditor({
       <link rel="stylesheet" href={FONT_SAMPLES} precedence="default" />
       {doc ? (
         <Puck
-          key={`${loaded?.ref.key}.${loaded?.ref.suffix}.${loaded?.nonce}.${appsVersion}`}
+          key={`${loaded?.ref.key}.${loaded?.ref.suffix}.${loaded?.nonce}`}
           config={config}
           data={doc as unknown as Data}
           metadata={metadata}
