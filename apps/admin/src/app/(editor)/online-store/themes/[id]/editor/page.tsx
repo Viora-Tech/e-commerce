@@ -20,9 +20,10 @@ export default async function Page({ params, searchParams }: Props) {
   const { id } = await params
   const query = await searchParams
   const context = await serverContext()
-  const [theme, me] = await Promise.all([
+  const [theme, me, apps] = await Promise.all([
     call(appRouter.themes.get, { id }, { context }).catch(() => null),
     call(appRouter.staff.me, {}, { context }).catch(() => null),
+    call(appRouter.apps.list, undefined, { context }).catch(() => []),
   ])
 
   if (!theme) notFound()
@@ -33,6 +34,7 @@ export default async function Page({ params, searchParams }: Props) {
       theme={theme}
       origin={await storefrontOrigin()}
       canPublish={canPublish}
+      installedApps={apps.filter((a) => a.installed).map((a) => a.id)}
       initial={{
         template: isKind(query.template) ? query.template : 'home',
         suffix: query.suffix && TEMPLATE_SUFFIX.test(query.suffix) ? query.suffix : '',
