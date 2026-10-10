@@ -63,4 +63,9 @@ export const SECTION_ICONS: Record<string, string> = {
   FaqSplit: 'list',
   ComparisonTable: 'columns',
   PricingCards: 'columns',
+  Lookbook: 'gallery',
+  NewsletterBand: 'send',
+  Timeline: 'list',
+  TeamGrid: 'grid',
+  TrustBadges: 'shapes',
 }

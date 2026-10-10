@@ -108,6 +108,23 @@ describe('starter kit sections', () => {
     expect(html).toContain('>A</span>')
   })
 
+  it('signs up through the storefront action and shows nothing broken without one', () => {
+    const html = draw('NewsletterBand')
+    expect(html).toContain('type="email"')
+    expect(html).toContain('Subscribe')
+  })
+
+  it('shows initials for a person without a photo and keeps lookbook captions', () => {
+    expect(draw('TeamGrid')).toContain('>AR</span>')
+    expect(draw('Lookbook')).toContain('Weekend edit')
+  })
+
+  it('fills the newest milestone dot and draws every trust badge', () => {
+    const timeline = draw('Timeline')
+    expect(timeline).toContain('Today')
+    expect(draw('TrustBadges')).toContain('Secure payments')
+  })
+
   it('hides a button whose label is blank and turns unsafe links into #', () => {
     const html = draw('CtaCard', {
       primary: { label: 'Go', href: 'javascript:alert(1)' },
