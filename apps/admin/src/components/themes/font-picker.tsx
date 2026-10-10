@@ -18,6 +18,8 @@ type FontPickerProps = {
   /** Headings render the sample larger and bolder. */
   kind: 'heading' | 'body'
   onChange: (id: ThemeFontId) => void
+  /** Just the 32px dropdown, its name read out but not shown, no sample (Figma 369:121934). */
+  compact?: boolean | undefined
 }
 
 const items = THEME_FONT_IDS.map((id) => ({ value: id, label: THEME_FONTS[id].label }))
@@ -30,7 +32,7 @@ const byCategory = (['sans', 'serif'] as const).map((category) => ({
 const family = (id: ThemeFontId) => ({ fontFamily: `"${THEME_FONTS[id].label}"` })
 
 /** Font dropdown where each option is set in its own face, with a live sample underneath. */
-export default function FontPicker({ label, value, kind, onChange }: FontPickerProps) {
+export default function FontPicker({ label, value, kind, onChange, compact }: FontPickerProps) {
   // Event handlers
   const handleChange = (next: unknown) => {
     const id = THEME_FONT_IDS.find((f) => f === next)
@@ -39,9 +41,13 @@ export default function FontPicker({ label, value, kind, onChange }: FontPickerP
 
   return (
     <div className="flex flex-col gap-1.5">
-      <span className="text-body text-foreground">{label}</span>
+      {compact ? null : <span className="text-body text-foreground">{label}</span>}
       <Select items={items} value={value} onValueChange={handleChange}>
-        <SelectTrigger className="w-full" aria-label={label} style={family(value)}>
+        <SelectTrigger
+          className={compact ? 'h-8! w-full rounded-[0.5rem] text-[0.8125rem]' : 'w-full'}
+          aria-label={label}
+          style={family(value)}
+        >
           <SelectValue />
         </SelectTrigger>
         <SelectContent>
@@ -57,16 +63,18 @@ export default function FontPicker({ label, value, kind, onChange }: FontPickerP
           ))}
         </SelectContent>
       </Select>
-      <p
-        className={
-          kind === 'heading'
-            ? 'rounded-md bg-muted px-3 py-2 text-xl leading-tight font-semibold text-foreground'
-            : 'rounded-md bg-muted px-3 py-2 text-body text-foreground'
-        }
-        style={family(value)}
-      >
-        {copy.typography.sample}
-      </p>
+      {compact ? null : (
+        <p
+          className={
+            kind === 'heading'
+              ? 'rounded-md bg-muted px-3 py-2 text-xl leading-tight font-semibold text-foreground'
+              : 'rounded-md bg-muted px-3 py-2 text-body text-foreground'
+          }
+          style={family(value)}
+        >
+          {copy.typography.sample}
+        </p>
+      )}
     </div>
   )
 }

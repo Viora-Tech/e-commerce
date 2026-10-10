@@ -1,5 +1,6 @@
 'use client'
 
+import type { TemplateKey } from '@commerce/core/theme'
 import { Plus } from '@commerce/ui/icons'
 import { cn } from '@commerce/ui/lib/utils'
 import { Button } from '@commerce/ui/shadcn/button'
@@ -12,6 +13,7 @@ import { useCopy } from '@/hooks/use-copy'
 import { CHROME_PANEL } from '@/lib/customize-chrome'
 import type { InsertTarget } from '@/lib/customize-insert'
 import { InsertContext } from '@/lib/customize-insert-context'
+import type { ResourceKind } from '@/lib/customize-resource'
 import { EditorViewContext, useEditorViewState } from '@/lib/customize-view'
 import { type CanvasZoom, CanvasZoomContext, DEVICE_PX, fitZoom } from '@/lib/customize-zoom'
 import type { PreviewDevice } from '../theme-preview'
@@ -21,12 +23,12 @@ import AiPanel from './ai-panel'
 import CustomizeRail, { type RailPanel } from './customize-rail'
 import FullViewExit from './full-view-exit'
 import MediaPanel from './media-panel'
+import PageSettingsPanel from './page-settings-panel'
 import PanelIdentity from './panel-identity'
 import PanelTitle from './panel-title'
 import PanelToggle from './panel-toggle'
 import SectionInspector from './section-inspector'
 import SectionsPanel from './sections-panel'
-import StoreSettingsPanel from './store-settings-panel'
 
 type CustomizeLayoutProps = {
   topBar: ReactNode
@@ -42,6 +44,10 @@ type CustomizeLayoutProps = {
   store: { id: string | null; name: string; domain: string; logoUrl: string | null }
   /** The open template's name, as the page switcher shows it. */
   templateLabel: string
+  /** The open template, for Page settings. */
+  template: TemplateKey
+  /** The product, collection or page previewed on the canvas, for Page settings. */
+  previewResource: { kind: ResourceKind; id: string | null; title: string | null } | null
   /** The AI assistant is on for this store and member (the AI tab can chat). */
   aiEnabled: boolean
 }
@@ -60,6 +66,8 @@ export default function CustomizeLayout({
   loading,
   store,
   templateLabel,
+  template,
+  previewResource,
   aiEnabled,
 }: CustomizeLayoutProps) {
   // Hooks
@@ -93,10 +101,10 @@ export default function CustomizeLayout({
   }
 
   // Render logic
-  // Pages and AI draw their own head (each has its own action); Add opens on its switch.
+  // Pages, AI and Theme settings draw their own head (each has its own action); Add opens on
+  // its switch.
   const titles: Partial<Record<RailPanel, string>> = {
     media: panels.media,
-    theme: panels.theme,
     settings: panels.settings,
   }
   const title = titles[panel]
@@ -107,7 +115,15 @@ export default function CustomizeLayout({
     sections: <SectionsPanel onOpenTheme={() => setPanel('theme')} templateLabel={templateLabel} />,
     media: <MediaPanel />,
     theme: settings,
-    settings: <StoreSettingsPanel onOpenTheme={() => setPanel('theme')} />,
+    settings: (
+      <PageSettingsPanel
+        template={template}
+        templateLabel={templateLabel}
+        domain={store.domain}
+        resource={previewResource}
+        onOpenTheme={() => setPanel('theme')}
+      />
+    ),
   }
   const panelContent = content[panel]
 

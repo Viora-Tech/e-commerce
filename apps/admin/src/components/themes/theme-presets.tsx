@@ -16,12 +16,15 @@ import { themesContent as copy } from '@/data/themes'
 type ThemePresetsProps = {
   theme: Theme
   onChange: (next: Theme) => void
+  /** Only the cards: the editor's Theme panel puts the heading on its row and the reset in
+   * its own head. */
+  bare?: boolean | undefined
 }
 
 const rem = (px: number) => `${px / 16}rem`
 
 /** Preset cards, each drawn in its own colours, radius and heading face, plus Reset to preset. */
-export default function ThemePresets({ theme, onChange }: ThemePresetsProps) {
+export default function ThemePresets({ theme, onChange, bare }: ThemePresetsProps) {
   // Event handlers
   const handlePick = (id: ThemePresetId) => onChange(applyThemePreset(theme, id))
   const handleReset = () => onChange(applyThemePreset(theme, theme.preset))
@@ -31,20 +34,22 @@ export default function ThemePresets({ theme, onChange }: ThemePresetsProps) {
 
   return (
     <div className="flex flex-col gap-3">
-      <div className="flex items-center justify-between gap-3">
-        <h2 className="text-body font-semibold text-foreground">{copy.presets.heading}</h2>
-        <Button
-          type="button"
-          variant="ghost"
-          size="sm"
-          onClick={handleReset}
-          disabled={pristine}
-          title={copy.presets.resetHelp}
-        >
-          <RotateCcw aria-hidden />
-          {copy.presets.reset}
-        </Button>
-      </div>
+      {bare ? null : (
+        <div className="flex items-center justify-between gap-3">
+          <h2 className="text-body font-semibold text-foreground">{copy.presets.heading}</h2>
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            onClick={handleReset}
+            disabled={pristine}
+            title={copy.presets.resetHelp}
+          >
+            <RotateCcw aria-hidden />
+            {copy.presets.reset}
+          </Button>
+        </div>
+      )}
       <div className="grid grid-cols-2 gap-2">
         {THEME_PRESET_IDS.map((id) => {
           const p = THEME_PRESETS[id]

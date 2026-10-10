@@ -10,6 +10,7 @@ import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import { customizeContent } from '@/data/customize'
 import { themesContent } from '@/data/themes'
+import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 import { prefersReducedMotion, scrollToSection } from '@/lib/customize-canvas-motion'
 import { createCustomizeConfig } from '@/lib/customize-config'
@@ -34,9 +35,7 @@ import { useLiquidTheme } from '@/lib/use-liquid-theme'
 import { partsOf, useTemplateDrafts } from '@/lib/use-template-drafts'
 import type { TemplateChange } from '@/lib/use-template-manager'
 import { useThemeThumbnail } from '@/lib/use-theme-thumbnail'
-import ThemePresets from '../theme-presets'
 import type { PreviewDevice } from '../theme-preview'
-import ThemeSettings from '../theme-settings'
 import { previewUrl, type ThemeItem } from '../theme-types'
 import CanvasDock from './canvas-dock'
 import CreateTemplateDialog, { type AlternateKind } from './create-template-dialog'
@@ -47,8 +46,10 @@ import EditorLoading from './editor-loading'
 import ImportedThemeSettings from './imported-theme-settings'
 import LiquidCanvasSection from './liquid-canvas-section'
 import PagesPanel from './pages-panel'
+import PanelTitle from './panel-title'
 import ResourcePicker from './resource-picker'
 import TemplatePicker, { type TemplateRef, templateLabel } from './template-picker'
+import ThemePanel from './theme-panel'
 
 type CustomizeEditorProps = {
   theme: ThemeItem
@@ -122,6 +123,7 @@ export default function CustomizeEditor({
   // Hooks
   const [record, setRecord] = useState(theme)
   const [settings, setSettings] = useState(theme.settings)
+  const panels = useCopy(customizeContent.panels)
   const [ref, setRef] = useState<TemplateRef>({ key: initial.template, suffix: initial.suffix })
   const [loaded, setLoaded] = useState<Loaded | null>(null)
   const [switching, setSwitching] = useState(false)
@@ -378,15 +380,20 @@ export default function CustomizeEditor({
   )
 
   const settingsPanel = liquidInfo ? (
-    <ImportedThemeSettings themeId={record.id} />
-  ) : (
     <>
-      <div className="border-b border-border px-4 pb-4">
-        <ThemePresets theme={settings} onChange={setSettings} />
-      </div>
-      <ThemeSettings theme={settings} mode={mode} onChange={setSettings} />
+      <PanelTitle title={panels.theme} />
+      <ImportedThemeSettings themeId={record.id} />
     </>
+  ) : (
+    <ThemePanel theme={settings} mode={mode} onChange={setSettings} />
   )
+  const previewResource = preview.kind
+    ? {
+        kind: preview.kind,
+        id: preview.resourceId,
+        title: preview.options.find((o) => o.id === preview.resourceId)?.title ?? null,
+      }
+    : null
 
   return (
     <>
@@ -433,6 +440,8 @@ export default function CustomizeEditor({
                     loading={switching}
                     store={store}
                     templateLabel={templateLabel(ref)}
+                    template={ref.key}
+                    previewResource={previewResource}
                     aiEnabled={ai.assistant}
                   />
                 </DynamicSourceContext.Provider>

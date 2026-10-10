@@ -9,12 +9,18 @@ import RangeField from './range-field'
 type TypographySettingsProps = {
   theme: Theme
   onChange: (next: Theme) => void
+  /** Show the heading and body pickers (the editor's Theme panel has its own above). */
+  pickers?: boolean | undefined
 }
 
 const family = (label: string) => ({ fontFamily: `"${label}"` })
 
 /** Pairings, heading and body faces, and the type scale. */
-export default function TypographySettings({ theme, onChange }: TypographySettingsProps) {
+export default function TypographySettings({
+  theme,
+  onChange,
+  pickers = true,
+}: TypographySettingsProps) {
   // Helpers
   const setFonts = (patch: Partial<Theme['fonts']>) =>
     onChange({ ...theme, fonts: { ...theme.fonts, ...patch } })
@@ -57,18 +63,22 @@ export default function TypographySettings({ theme, onChange }: TypographySettin
           })}
         </div>
       </div>
-      <FontPicker
-        label={copy.typography.heading}
-        kind="heading"
-        value={fonts.heading}
-        onChange={(heading) => setFonts({ heading })}
-      />
-      <FontPicker
-        label={copy.typography.body}
-        kind="body"
-        value={fonts.body}
-        onChange={(body) => setFonts({ body })}
-      />
+      {pickers ? (
+        <>
+          <FontPicker
+            label={copy.typography.heading}
+            kind="heading"
+            value={fonts.heading}
+            onChange={(heading) => setFonts({ heading })}
+          />
+          <FontPicker
+            label={copy.typography.body}
+            kind="body"
+            value={fonts.body}
+            onChange={(body) => setFonts({ body })}
+          />
+        </>
+      ) : null}
       <RangeField
         label={copy.typography.headingScale}
         value={fonts.headingScale}

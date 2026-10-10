@@ -17,11 +17,14 @@ type ColourSettingsProps = {
   /** Which mode's colours the fields edit; follows the preview's light/dark toggle. */
   mode: 'light' | 'dark'
   onChange: (next: Theme) => void
+  /** The page colours to list; every one by default (the editor's Theme panel shows the main
+   * five as swatches above and lists the rest here). */
+  roles?: readonly ColourRole[] | undefined
 }
 
-type Role = Exclude<keyof ColorScheme, 'id' | 'name'>
+export type ColourRole = Exclude<keyof ColorScheme, 'id' | 'name'>
 
-const ROLES: Role[] = [
+const ROLES: ColourRole[] = [
   'background',
   'text',
   'textMuted',
@@ -46,9 +49,14 @@ const statusOf = (theme: Theme, mode: 'light' | 'dark') =>
   mode === 'light' ? theme.shared : theme.sharedDark
 
 /** Page colours for the mode being previewed, status colours, dark mode and AA warnings. */
-export default function ColourSettings({ theme, mode, onChange }: ColourSettingsProps) {
+export default function ColourSettings({
+  theme,
+  mode,
+  onChange,
+  roles = ROLES,
+}: ColourSettingsProps) {
   // Event handlers
-  const handleRole = (role: Role, hex: string) => {
+  const handleRole = (role: ColourRole, hex: string) => {
     const id = schemeOf(theme, mode)?.id
     onChange({
       ...theme,
@@ -72,7 +80,7 @@ export default function ColourSettings({ theme, mode, onChange }: ColourSettings
   return (
     <>
       <p className="text-caption text-muted-foreground">{copy.colours.editing(mode)}</p>
-      {ROLES.map((role) => (
+      {roles.map((role) => (
         <ColourField
           key={role}
           label={copy.colours.roles[role]}
