@@ -27,8 +27,6 @@ type SupplierCardProps = {
   onPick: (supplier: PickedSupplier) => void
 }
 
-const copy = purchaseOrderFormContent.supplier
-
 /** Who the stock is ordered from: a saved supplier, or a name typed for this order. */
 export default function SupplierCard({
   supplierId,
@@ -40,6 +38,7 @@ export default function SupplierCard({
   onPick,
 }: SupplierCardProps) {
   // Hooks
+  const { supplier: copy } = useCopy(purchaseOrderFormContent)
   const picker = useCopy(supplierPickerContent)
 
   // Render logic

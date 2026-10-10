@@ -253,4 +253,22 @@ export const sampleTemplateDataByTemplate: Record<TemplateId, TemplateData> = {
       platformName: siteConfig.brand.name,
     },
   },
+  purchase_order: {
+    ...base,
+    customerName: '',
+    orderNumber: undefined,
+    taxBreakdown: undefined,
+    paymentMethodLabel: '',
+    totalLabel: 'USD 1,240.00',
+    lines: [
+      { title: 'Wireless pad / Black', quantity: 100, priceLabel: 'USD 840.00' },
+      { title: 'Pad sleeve', quantity: 200, priceLabel: 'USD 400.00' },
+    ],
+    purchaseOrder: {
+      numberLabel: 'PO7',
+      supplierName: 'Shenzhen Pads',
+      expectedLabel: '15 Nov 2026',
+      message: 'Please pack the sleeves separately.',
+    },
+  },
 }

@@ -42,6 +42,7 @@ export const TEMPLATE_IDS: TemplateId[] = [
   'return_received',
   'return_refunded',
   'staff_invite',
+  'purchase_order',
 ]
 
 /**
@@ -86,6 +87,7 @@ export const TEMPLATE_NAMES: Record<TemplateId, string> = {
   return_received: 'Return received',
   return_refunded: 'Return refunded',
   staff_invite: 'Staff invitation (platform)',
+  purchase_order: 'Purchase order (to supplier)',
 }
 
 /** Drop runs of blank lines left by optional sections. */
@@ -112,6 +114,8 @@ function eyebrowFor(template: TemplateId, d: TemplateData): string {
       return 'Gift card'
     case 'staff_invite':
       return 'Team invitation'
+    case 'purchase_order':
+      return `Purchase order ${d.purchaseOrder?.numberLabel ?? ''}`.trim()
     case 'checkout_recovery':
       return 'Your basket'
     case 'back_in_stock_confirm':

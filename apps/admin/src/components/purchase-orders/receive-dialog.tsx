@@ -17,7 +17,7 @@ import { variantLabel } from '@/components/inventory/variant-picker'
 import KitThumb from '@/components/kit/kit-thumb'
 import type { CostPreview, PreviewLine } from '@/components/landed-cost/types'
 import { purchaseOrderFormContent } from '@/data/inventory'
-import { useFormat } from '@/hooks/use-copy'
+import { useCopy, useFormat } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 import { type LoadedPurchaseOrder, toCount } from './form-state'
 
@@ -30,8 +30,6 @@ type ReceiveDialogProps = {
 }
 
 type Counts = Record<string, { accepted: string; rejected: string }>
-
-const copy = purchaseOrderFormContent.receiving
 
 const outstandingLines = (po: LoadedPurchaseOrder) => po.lines.filter((l) => remainingOf(l) > 0)
 
@@ -59,6 +57,7 @@ export default function ReceiveDialog({
   onReceived,
 }: ReceiveDialogProps) {
   // Hooks
+  const { receiving: copy } = useCopy(purchaseOrderFormContent)
   const fmt = useFormat()
   const [counts, setCounts] = useState<Counts>({})
   const [busy, setBusy] = useState(false)

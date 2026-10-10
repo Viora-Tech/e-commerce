@@ -457,6 +457,30 @@ by the admin) and `applied_at` / `applied_by`.
   the document applied. A second apply is refused (`DOC_APPLIED`) until `reset`.
 
 
+#### Purchase order PDF and "Email to supplier" (landed cost step 4)
+
+No new tables. `loadPurchaseOrderSheet` (`packages/core/src/inventory/purchase-order-sheet.ts`)
+reads one order into a plain `PurchaseOrderSheet` (`po-sheet.ts`, browser-safe through
+`@commerce/core/inventory`): lines in the order's own currency (goods only; landed-cost charges
+are the store's), the buyer (the GST registration the destination location receives under, else
+the default registration, else the store's name, GSTIN and address), the location as ship-to, and
+the supplier with its saved GSTIN, address and payment terms. `renderPurchaseOrderToBuffer`
+(`@commerce/invoices/render`, template `src/purchase-order/purchase-order-pdf.tsx`) prints it on
+A4 with the invoice fonts (Devanagari and CJK when the text needs them).
+
+- `purchaseOrders.pdf` (inventory:read, `heavy('bulk')`) returns the PDF as an oRPC `File`; the
+  admin opens it for printing or saves it.
+- `purchaseOrders.email` (inventory:write, `heavy('bulk')`, `EmailPurchaseOrderSchema`) calls
+  `emailPurchaseOrder`: optionally marks a draft ordered first (so the PDF is dated), saves the
+  address onto an order that had none, renders the PDF and sends template `purchase_order` with
+  it attached through the first email channel of `storeNotificationChannels` that accepts it (the
+  store's verified sender, else the platform address with Reply-To set to the store). Each try is
+  a `notification` row with no `order_id`. When no channel accepts it the call throws, so the
+  whole step, including mark-as-ordered, rolls back.
+- The admin's purchase order lines are added through the shared Select products dialog
+  (`products.pick`, whose variants now carry `costPaise` so a rupee order starts at the current
+  cost).
+
 #### Profit (landed cost step 3)
 
 `order_line.cost_at_sale_paise` snapshots the variant's weighted average cost when the order is

@@ -243,4 +243,41 @@ describe('purchasing routers', () => {
     const back = await call(appRouter.purchaseOrders.get, { id }, { context: m.ctx })
     expect(back.status).toBe('ordered')
   })
+
+  it('prints a purchase order as a PDF and offers the variant cost in the product picker', async () => {
+    const m = await merchant('pdf@example.com', 'pdf-a')
+    const v = await seedVariant(m.storeId, 250, 41_000)
+    const picked = await call(appRouter.products.pick, { search: 'Glasspad' }, { context: m.ctx })
+    expect(picked[0]?.variants[0]).toMatchObject({ id: v, costPaise: 41_000 })
+
+    const [loc] = await call(appRouter.inventory.locations, undefined, { context: m.ctx })
+    const id = await call(
+      appRouter.purchaseOrders.save,
+      {
+        supplierName: 'Local mill',
+        locationId: loc?.id as string,
+        lines: [{ variantId: v, quantity: 3, unitPriceMinor: 41_000 }],
+      },
+      { context: m.ctx },
+    )
+    const file = await call(appRouter.purchaseOrders.pdf, { id }, { context: m.ctx })
+    expect(file.name).toBe('purchase-order-PO1.pdf')
+    expect(file.type).toBe('application/pdf')
+    const head = new TextDecoder().decode(new Uint8Array(await file.arrayBuffer()).slice(0, 5))
+    expect(head).toBe('%PDF-')
+
+    const other = await merchant('pdf-b@example.com', 'pdf-b')
+    await expect(
+      call(appRouter.purchaseOrders.pdf, { id }, { context: other.ctx }),
+    ).rejects.toThrow('Purchase order not found')
+    await expect(
+      call(
+        appRouter.purchaseOrders.email,
+        { id, to: 'mill@example.com', markOrdered: true },
+        { context: other.ctx },
+      ),
+    ).rejects.toThrow('Purchase order not found')
+    const back = await call(appRouter.purchaseOrders.get, { id }, { context: m.ctx })
+    expect(back.status).toBe('draft')
+  })
 })

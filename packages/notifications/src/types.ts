@@ -71,6 +71,11 @@ export type TemplateId =
    * platform email account straight away; `actionUrl` is the accept link. Email only.
    */
   | 'staff_invite'
+  /**
+   * To a SUPPLIER: the store's purchase order, with the PDF attached. Sent from the admin's
+   * "Email to supplier" through the store's own sender email. Email only.
+   */
+  | 'purchase_order'
 
 export type Recipient = {
   email?: string | undefined
@@ -200,6 +205,17 @@ export type TemplateData = {
         inviterEmail: string
         roleLabel?: string | undefined
         platformName: string
+      }
+    | undefined
+  /** For purchase_order: which order, who it is for, when it should arrive and the merchant's note. */
+  purchaseOrder?:
+    | {
+        /** "PO7". */
+        numberLabel: string
+        supplierName: string
+        expectedLabel?: string | undefined
+        /** The merchant's own words, printed under the items. */
+        message?: string | undefined
       }
     | undefined
   /** For gift_card_issued: the code in full (the only place it is ever shown) and its terms. */

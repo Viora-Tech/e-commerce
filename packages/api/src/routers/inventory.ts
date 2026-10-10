@@ -1,3 +1,4 @@
+import { settingsSecret } from '@commerce/config'
 import {
   adjustStock,
   BulkStockEditSchema,
@@ -6,13 +7,17 @@ import {
   createLocation,
   deletePurchaseOrder,
   deleteTransfer,
+  EmailPurchaseOrderSchema,
+  emailPurchaseOrder,
   InventoryError,
   LocationInputSchema,
   listLocations,
+  loadPurchaseOrderSheet,
   markOrdered,
   PURCHASE_ORDER_STATUSES,
   PurchaseOrderInputSchema,
   permissions,
+  poFilename,
   ReceiptSchema,
   receivePurchaseOrder,
   receiveTransfer,
@@ -22,12 +27,15 @@ import {
   saveTransfer,
   setStock,
   shipTransfer,
+  storeNotificationChannels,
   TransferInputSchema,
 } from '@commerce/core'
 import type { StoreTx } from '@commerce/db'
+import { renderPurchaseOrderToBuffer } from '@commerce/invoices/render'
 import { ORPCError } from '@orpc/server'
 import { z } from 'zod'
 import { can, heavy, PAGE_SIZE_MAX, SEARCH_MAX } from '../procedures'
+import { storeRegistries } from '../services/apps.service'
 import {
   inventoryFacets,
   inventoryHistory,
@@ -227,6 +235,39 @@ export const purchaseOrdersRouter = {
     .input(z.object({ id: z.uuid() }))
     .handler(({ context, input }) =>
       friendly(() => deletePurchaseOrder(context.tx, context.scope.storeId, input.id)),
+    ),
+
+  /** The purchase order as a PDF for the supplier: print it or save it. */
+  pdf: can(permissions.INVENTORY_READ)
+    .use(heavy('bulk'))
+    .input(z.object({ id: z.uuid() }))
+    .handler(({ context, input }) =>
+      friendly(async () => {
+        const sheet = await loadPurchaseOrderSheet(context.tx, context.scope.storeId, input.id)
+        const bytes = await renderPurchaseOrderToBuffer(sheet)
+        return new File([bytes as Uint8Array<ArrayBuffer>], poFilename(sheet.number), {
+          type: 'application/pdf',
+        })
+      }),
+    ),
+
+  /** Email the PDF to the supplier through the store's sender email; optionally mark a draft ordered. */
+  email: can(permissions.INVENTORY_WRITE)
+    .use(heavy('bulk'))
+    .input(EmailPurchaseOrderSchema)
+    .handler(({ context, input }) =>
+      friendly(async () => {
+        const { storeId } = context.scope
+        const { notifications } = await storeRegistries(context.tx, storeId)
+        const channels = await storeNotificationChannels(context.tx, storeId, {
+          registry: notifications,
+          settingsSecret: settingsSecret(),
+        })
+        return emailPurchaseOrder(context.tx, storeId, input, {
+          channels,
+          renderPdf: renderPurchaseOrderToBuffer,
+        })
+      }),
     ),
 }
 

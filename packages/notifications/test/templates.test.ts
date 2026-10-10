@@ -155,6 +155,33 @@ describe('templates', () => {
     expect(e.html).toContain('&lt;i&gt;Shop&lt;/i&gt;')
   })
 
+  it('purchase_order names the order, lists its lines in the order currency and the merchant note', async () => {
+    const data = sampleTemplateDataByTemplate.purchase_order
+    const e = await renderEmail('purchase_order', data)
+    expect(e.subject).toBe('Waimers: purchase order PO7')
+    expect(e.text).toContain('Hello Shenzhen Pads')
+    expect(e.text).toContain('Please find purchase order PO7 from Waimers attached (USD 1,240.00).')
+    expect(e.text).toContain('We expect it to arrive by 15 Nov 2026.')
+    expect(e.text).toContain('Wireless pad / Black x100, USD 840.00')
+    expect(e.text).toContain('Please pack the sleeves separately. Please confirm the order')
+    expect(e.text).not.toContain('View your order')
+    expect(e.html).toContain('Purchase order PO7')
+    expect(e.html).not.toContain('Maboroshi')
+    expect(PLATFORM_TEMPLATE_IDS).not.toContain('purchase_order')
+  })
+
+  it('purchase_order reads well with no note and no arrival date', async () => {
+    const data = sampleTemplateDataByTemplate.purchase_order
+    const e = await renderEmail('purchase_order', {
+      ...data,
+      purchaseOrder: { numberLabel: 'PO8', supplierName: '' },
+    })
+    expect(e.text).toContain('Hello there')
+    expect(e.text).toContain('attached (USD 1,240.00).\n')
+    expect(e.text).not.toContain('expect it to arrive')
+    expect(e.text).toContain('\nPlease confirm the order')
+  })
+
   it('keeps platform templates out of the store message list', () => {
     expect(PLATFORM_TEMPLATE_IDS).toContain('staff_invite')
     expect(TEMPLATE_IDS).toContain('staff_invite')

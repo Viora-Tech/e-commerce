@@ -3,6 +3,7 @@
 import { purchaseOrderTotals } from '@commerce/core/inventory'
 import { Card, CardContent, CardHeader, CardTitle } from '@commerce/ui/shadcn/card'
 import { purchaseOrderFormContent } from '@/data/inventory'
+import { useCopy } from '@/hooks/use-copy'
 import { formatPaise } from '@/lib/money'
 import { formRate, lineNumbers, type PoForm } from './form-state'
 
@@ -12,10 +13,11 @@ type CostSummaryCardProps = {
   chargesPaise: number
 }
 
-const copy = purchaseOrderFormContent.cost
-
 /** Goods in rupees (converted at the order's rate) plus the order's charges, to the total. */
 export default function CostSummaryCard({ form, chargesPaise }: CostSummaryCardProps) {
+  // Hooks
+  const { cost: copy } = useCopy(purchaseOrderFormContent)
+
   // Render logic
   const totals = purchaseOrderTotals(lineNumbers(form), chargesPaise)
   const rate = formRate(form)
