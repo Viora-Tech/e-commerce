@@ -18,10 +18,10 @@ import {
   noImage,
 } from './framed'
 import { inlineRichtext, inlineText } from './inline-fields'
+import { beamField, f, sideField } from './kit-fields'
+import { type KitTrustProps, kitTrustSections } from './kit-trust'
 
-const f = copy.fields
-
-export type KitProps = {
+export type KitProps = KitTrustProps & {
   GridHero: Frame & { badge: string; heading: string; text: string; primary: Link; secondary: Link }
   RotatingHero: Frame & {
     before: string
@@ -62,7 +62,7 @@ export type KitProps = {
   }
 }
 
-type KitConfig = Record<keyof KitProps, ComponentConfig>
+type KitConfig = Record<keyof KitProps | keyof KitTrustProps, ComponentConfig>
 
 /** Edge to edge with no padding of its own: the grid hero draws its own space and floor. */
 function fullBleed(): SectionSettingsValue {
@@ -78,24 +78,6 @@ const gridHeroDefaults: Omit<KitProps['GridHero'], keyof Frame> = {
   secondary: { label: copy.gridHero.secondary, href: '/pages/about' },
 }
 
-const sideField = {
-  type: 'radio',
-  label: f.imageSide,
-  options: [
-    { label: f.left, value: 'left' },
-    { label: f.right, value: 'right' },
-  ],
-} as const
-
-const beamField = {
-  type: 'radio',
-  label: f.beam,
-  options: [
-    { label: f.on, value: true },
-    { label: f.off, value: false },
-  ],
-} as const
-
 /**
  * The starter kit: polished, theme-aware sections any shop can use (heroes, logos, stats,
  * calls to action), built on shared effects adapted from Magic UI (MIT) or our own layouts.
@@ -103,6 +85,7 @@ const beamField = {
  */
 export function kitSections(): KitConfig {
   return {
+    ...kitTrustSections(),
     GridHero: framed<KitProps['GridHero']>(
       copy.labels.gridHero,
       {
