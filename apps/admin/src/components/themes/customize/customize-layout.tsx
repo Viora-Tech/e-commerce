@@ -14,11 +14,13 @@ import { type CanvasZoom, CanvasZoomContext, DEVICE_PX, fitZoom } from '@/lib/cu
 import type { PreviewDevice } from '../theme-preview'
 import AddSectionDialog from './add-section-dialog'
 import AddSectionPanel from './add-section-panel'
+import AiPanel from './ai-panel'
 import CustomizeRail, { type RailPanel } from './customize-rail'
 import MediaPanel from './media-panel'
-import PanelHeader from './panel-header'
+import PanelIdentity from './panel-identity'
 import SectionInspector from './section-inspector'
 import SectionsPanel from './sections-panel'
+import StoreSettingsPanel from './store-settings-panel'
 
 type CustomizeLayoutProps = {
   topBar: ReactNode
@@ -30,6 +32,12 @@ type CustomizeLayoutProps = {
   dock: ReactNode
   device: PreviewDevice
   loading: boolean
+  /** The store, for the rail's tile and the left panel's "<Store> · <Template>" heading. */
+  store: { id: string | null; name: string; domain: string; logoUrl: string | null }
+  /** The open template's name, as the page switcher shows it. */
+  templateLabel: string
+  /** The AI assistant is on for this store and member (the AI tab can chat). */
+  aiEnabled: boolean
 }
 
 /**
@@ -44,12 +52,16 @@ export default function CustomizeLayout({
   dock,
   device,
   loading,
+  store,
+  templateLabel,
+  aiEnabled,
 }: CustomizeLayoutProps) {
   // Hooks
   const [panel, setPanel] = useState<RailPanel>('sections')
   const [inserting, setInserting] = useState<InsertTarget | null>(null)
   const reducedMotion = useReducedMotion()
   const panels = useCopy(customizeContent.panels)
+  const identity = useCopy(customizeContent.identity)
   const [zoomMode, setZoomMode] = useState<CanvasZoom>('fit')
   // The canvas area's inner size: Fit scales the page into its width, and the frame fills
   // its height.
@@ -70,16 +82,20 @@ export default function CustomizeLayout({
   const headers: Record<RailPanel, { title: string; hint: string }> = {
     sections: { title: panels.sections, hint: panels.sectionsHint },
     add: { title: panels.add, hint: panels.addHint },
+    ai: { title: panels.ai, hint: panels.aiHint },
     pages: { title: panels.pages, hint: panels.pagesHint },
     media: { title: panels.media, hint: panels.mediaHint },
     theme: { title: panels.theme, hint: panels.themeHint },
+    settings: { title: panels.settings, hint: panels.settingsHint },
   }
   const content: Record<RailPanel, ReactNode> = {
     add: <AddSectionPanel />,
+    ai: <AiPanel storeId={store.id} enabled={aiEnabled} />,
     pages,
     sections: <SectionsPanel onOpenTheme={() => setPanel('theme')} />,
     media: <MediaPanel />,
     theme: settings,
+    settings: <StoreSettingsPanel onOpenTheme={() => setPanel('theme')} />,
   }
   const panelContent = content[panel]
 
@@ -95,9 +111,13 @@ export default function CustomizeLayout({
         <div className="flex h-svh flex-col bg-sidebar">
           {topBar}
           <div className="flex min-h-0 flex-1 border-t border-border">
-            <CustomizeRail active={panel} onChange={setPanel} />
-            <aside className={cn(CHROME_PANEL, 'w-[15.875rem] border-r border-border')}>
-              <PanelHeader title={headers[panel].title} hint={headers[panel].hint} />
+            <CustomizeRail active={panel} onChange={setPanel} store={store} />
+            <aside className={cn(CHROME_PANEL, 'w-[19rem] border-r border-border')}>
+              <PanelIdentity
+                title={identity.title(store.name, templateLabel)}
+                domain={store.domain}
+                panel={panel === 'add' ? null : headers[panel]}
+              />
               <AnimatePresence mode="wait" initial={false}>
                 <motion.div
                   key={panel}
@@ -107,12 +127,16 @@ export default function CustomizeLayout({
                   transition={{ duration: reducedMotion ? 0 : 0.15, ease: 'easeOut' }}
                   className={cn(
                     'flex min-h-0 flex-1 flex-col',
+                    // The Add panel sits in the panel's own 16px gutter (Figma 369:4899).
+                    panel === 'add' && 'px-4 pt-4',
                     // The Add panel (AddSectionBrowser, `fill`) owns its own internal
                     // scroll below a sticky search box and tabs — scrolling here too
                     // would carry that header away with the list. Every other panel
                     // (Sections tree, Theme settings) has no such header and still
                     // wants this level to scroll.
-                    panel === 'add' || panel === 'pages' ? 'overflow-hidden' : 'overflow-y-auto',
+                    panel === 'add' || panel === 'pages' || panel === 'ai'
+                      ? 'overflow-hidden'
+                      : 'overflow-y-auto',
                   )}
                 >
                   {panelContent}
@@ -126,7 +150,7 @@ export default function CustomizeLayout({
               <div
                 ref={setStage}
                 data-canvas-stage=""
-                className="flex min-h-0 min-w-0 flex-1 overflow-x-auto overflow-y-hidden px-5 pt-5 pb-16"
+                className="flex min-h-0 min-w-0 flex-1 overflow-x-auto overflow-y-hidden px-6 pt-8 pb-16"
               >
                 <div
                   style={{ width: devicePx * zoom, height: room.height }}

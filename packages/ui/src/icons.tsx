@@ -495,4 +495,5 @@ export const icons = {
   spinner: Loader2Icon,
 } as const
 
+export * from './icons-more'
 export { Circle, Flag, Highlighter, Sparkle }

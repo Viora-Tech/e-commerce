@@ -147,7 +147,7 @@ describe('AddSectionBrowser', () => {
 
   it('filters by name or description and says when nothing matches', async () => {
     const { user } = setup()
-    const search = screen.getByRole('textbox', { name: copy.search })
+    const search = screen.getByRole('searchbox', { name: copy.search })
     await user.type(search, 'formatted text')
     expect(card('Rich text')).toBeTruthy()
     expect(findCard('Hero')).toBeNull()
@@ -160,12 +160,24 @@ describe('AddSectionBrowser', () => {
     setup({ group: 'header' })
     expect(card('Announcement bar')).toBeTruthy()
     expect(findCard('Hero')).toBeNull()
-    expect(screen.queryByRole('tab', { name: copy.tabs.mine })).toBeNull()
+    expect(screen.queryByRole('button', { name: copy.tabs.mine })).toBeNull()
   })
 
-  it('lists app blocks under their app on the Apps tab', async () => {
+  it('folds a category from its heading and opens it again', async () => {
     const { user } = setup()
-    await user.click(screen.getByRole('tab', { name: copy.tabs.apps }))
+    const heading = screen.getByRole('button', { name: 'Text' })
+    expect(heading.getAttribute('aria-expanded')).toBe('true')
+    await user.click(heading)
+    expect(findCard('Rich text')).toBeNull()
+    await user.click(heading)
+    expect(card('Rich text')).toBeTruthy()
+  })
+
+  it('lists layout blocks and app blocks under Blocks, by app', async () => {
+    const { user } = setup()
+    expect(screen.queryByText('Reviews')).toBeNull()
+    await user.click(screen.getByRole('tab', { name: copy.kinds.blocks }))
+    expect(findCard('Rich text')).toBeNull()
     expect(screen.getByText('Reviews')).toBeTruthy()
     await user.click(card('Product reviews'))
     expect(dispatch.mock.calls[0]?.[0]).toMatchObject({ componentType: 'ReviewsWidget' })
@@ -174,7 +186,8 @@ describe('AddSectionBrowser', () => {
   it('adds a fresh copy of a saved section from My sections', async () => {
     saved.state = { status: 'ready', items: [BANNER] }
     const { onAdd, user } = setup()
-    await user.click(screen.getByRole('tab', { name: copy.tabs.mine }))
+    // My sections is a group of its own on the Sections side.
+    expect(screen.getByRole('button', { name: copy.tabs.mine })).toBeTruthy()
     await user.click(screen.getByRole('button', { name: /^Sale banner/ }))
     const [insert, replace] = dispatch.mock.calls.map(([action]) => action)
     expect(insert).toMatchObject({ type: 'insert', componentType: 'Hero', destinationIndex: 1 })
@@ -184,9 +197,8 @@ describe('AddSectionBrowser', () => {
     expect(onAdd).toHaveBeenCalledTimes(1)
   })
 
-  it('shows the empty state when nothing is saved yet', async () => {
-    const { user } = setup()
-    await user.click(screen.getByRole('tab', { name: copy.tabs.mine }))
+  it('shows the empty state when nothing is saved yet', () => {
+    setup()
     expect(screen.getByText(customizeContent.mySections.empty)).toBeTruthy()
   })
 })

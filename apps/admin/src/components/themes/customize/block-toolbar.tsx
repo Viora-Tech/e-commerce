@@ -147,10 +147,11 @@ export default function BlockToolbar({
   return (
     <>
       {children}
-      {/* A band from 2.125rem (on screen, at any canvas zoom) above the block to its bottom: the
-          bar rests at its top (on the block's edge) and sticks to the top of the canvas while
-          the block scrolls under it. The bar and chip undo the canvas zoom (`UNZOOMED`). */}
-      <div className="pointer-events-none absolute inset-x-0 -top-[calc(2.125rem/var(--canvas-zoom,1))] bottom-0">
+      {/* A band from the bar's height (1.875rem on screen, at any canvas zoom) above the block to
+          its bottom: the bar sits on the block's top edge, flush with its left side (Figma
+          369:5160), and sticks to the top of the canvas while the block scrolls under it. The bar
+          and chip undo the canvas zoom (`UNZOOMED`). */}
+      <div className="pointer-events-none absolute inset-x-0 -top-[calc(1.875rem/var(--canvas-zoom,1))] bottom-0">
         {isSelected ? (
           <motion.div
             ref={setBar}
@@ -241,8 +242,8 @@ export default function BlockToolbar({
             className={cn(
               CHIP,
               UNZOOMED,
-              // Rests on the block's edge like the bar (2.125rem band minus its own height).
-              'sticky top-1 mt-[0.5625rem] w-fit border border-border bg-popover text-popover-foreground',
+              // Rests on the block's edge like the bar (the 1.875rem band minus its own height).
+              'sticky top-1 mt-[0.4375rem] w-fit border border-border bg-popover text-popover-foreground',
             )}
           >
             <span className="truncate">{label}</span>

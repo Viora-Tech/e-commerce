@@ -8,9 +8,45 @@ export const customizeContent = {
     label: 'Editor panels',
     sections: 'Sections',
     add: 'Add section',
+    ai: 'Ask AI',
     pages: 'Pages',
     media: 'Media',
     theme: 'Theme settings',
+    settings: 'Store settings',
+    help: 'Help with the editor',
+  },
+  identity: {
+    title: (store: string, template: string) => `${store} · ${template}`,
+  },
+  ai: {
+    title: 'Ask AI to change this page',
+    intro:
+      'Ask for headlines, wording, ideas for a section or a sale page. AI suggests, you approve; nothing changes without you.',
+    chips: [
+      'Write a short headline for my home page banner',
+      'Suggest sections for a Diwali sale page',
+      'Rewrite my About page text in a friendly tone',
+    ],
+    offTitle: 'AI is not set up for this store',
+    offBody: 'Turn on the AI assistant in Settings → AI to ask it about this page.',
+    offAction: 'Open AI settings',
+  },
+  storeSettings: {
+    theme: {
+      title: 'Colours, fonts and layout',
+      hint: 'This theme’s own settings',
+    },
+    heading: 'Set outside the theme',
+    newTab: 'Opens in a new tab',
+    links: {
+      seo: { title: 'Title, description and sharing picture', hint: 'Online store › Preferences' },
+      menus: { title: 'Menus', hint: 'Header and footer links' },
+      store: { title: 'Store name and contact', hint: 'Settings › Store details' },
+      policies: { title: 'Policies', hint: 'Refund, privacy, shipping, terms' },
+      cookies: { title: 'Cookie banner', hint: 'Settings › Customer privacy' },
+      checkout: { title: 'Checkout', hint: 'Colours and fields at checkout' },
+      domains: { title: 'Domains', hint: 'Your store’s web address' },
+    },
   },
   media: {
     search: 'Search pictures',
@@ -205,7 +241,9 @@ export const customizeContent = {
     cancelLink: 'Cancel',
   },
   addSection: {
-    search: 'Search sections',
+    search: 'Search layouts',
+    kinds: { label: 'What to add', sections: 'Sections', blocks: 'Blocks' },
+    toggleGroup: (name: string) => `Show or hide ${name}`,
     empty: 'No sections match',
     emptyHint: 'Try another word, or clear the search.',
     clearSearch: 'Clear search',
@@ -371,6 +409,8 @@ export const customizeContent = {
     discard: 'Discard',
     discarded: 'Changes discarded',
     more: 'More actions',
+    aiConnected: 'AI connected',
+    account: 'Your account',
   },
   image: {
     choose: 'Choose image',
@@ -447,6 +487,10 @@ export const customizeContent = {
     pagesHint: 'Jump to another page or template',
     media: 'Media',
     mediaHint: 'Drag a picture onto a section, or click to use it',
+    ai: 'Ask AI',
+    aiHint: 'Suggestions for this page',
+    settings: 'Store settings',
+    settingsHint: 'What the theme shows from your store',
     deselect: 'Back to theme settings',
   },
   link: {

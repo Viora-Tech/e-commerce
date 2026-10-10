@@ -80,9 +80,35 @@ with the eye are skipped. Picking a row selects the block and scrolls to it; a c
 Theme settings. The inspector header shows where the selection sits, "Template › Group › Image
 banner" (`inspector-breadcrumb.tsx`), and each container in it selects that container.
 
+### Editor chrome (Figma 369:4809)
+
+- **Rail** (`customize-rail.tsx`, 64px): the store's tile (its live theme's logo, else its
+  initial) on top; Add, AI, Pages, Layers (Sections), Media, Theme settings and Store settings in
+  the middle; Help (the merchant guide's editor page) pinned at the bottom. The open tab wears
+  `bg-primary-soft`; each button names itself in a tooltip.
+- **Left panel** (304px): `panel-identity.tsx` heads it with "<Store> · <Template>" and the store's
+  domain, then the open panel's name (Add shows its switch instead).
+- **Add** (`add-section-browser.tsx`): a "Sections | Blocks" switch, "Search layouts", then folding
+  category groups (`add-section-group.tsx`) of picture tiles, two across. Sections holds the section
+  library and My sections; Blocks holds Layout, Elements and the installed apps' blocks. A search
+  opens every group with a match. The style step (Section styles) is unchanged.
+- **AI** (`ai-panel.tsx`): the admin assistant's conversation (`useAssistant`, the same thread as
+  the ⌘J bar), with suggestions for the page. It answers and runs its usual tools with approval; it
+  does not edit the canvas. Without AI it links to Settings › AI.
+- **Store settings** (`store-settings-panel.tsx`): what a theme shows that is set elsewhere
+  (title and sharing picture, menus, store details, policies, cookie banner, checkout, domains),
+  each opened in a new tab so the editor keeps its work, and a way back to the theme's own settings.
+- **Top bar**: the theme's name in normal case (`displayThemeName`: a word in capitals of four or
+  more letters is capitalised, so `ZERO DRIFT` reads "Zero Drift"), the page switcher in Figma's
+  muted 240px style, a green "AI connected" chip when an AI gateway is set up, and the member's
+  avatar with the account menu at the far right. The page reads the store, the member and
+  `ai.status` on the server.
+- **Canvas**: 32px above and 24px beside the page frame (10px corners); the selected block's name
+  chip sits on the block's top edge, flush with its left side; hover stays a dashed outline.
+
 ### Pages and Media panels
 
-The rail follows the Figma builder rail: Add, Pages, Sections, Media, Theme settings.
+The rail's Pages and Media tabs:
 - **Pages** (`pages-panel.tsx`) is the template list the top bar's picker uses
   (`template-list.tsx`), open in the panel: search, pages and templates with their alternates,
   usage counts, the ⋯ manager (rename, duplicate, delete) and "Create template". Picking one

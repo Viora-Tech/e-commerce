@@ -5,17 +5,18 @@ import type { CustomSection, SectionGroup, TemplateSection } from '@commerce/cor
 import { Search } from '@commerce/ui/icons'
 import { cn } from '@commerce/ui/lib/utils'
 import { Input } from '@commerce/ui/shadcn/input'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@commerce/ui/shadcn/tabs'
 import { Drawer } from '@puckeditor/core'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import { customizeContent } from '@/data/customize'
+import { CHROME_FOCUS } from '@/lib/customize-chrome'
 import { insertActions } from '@/lib/customize-insert'
 import { useCustomizePuck } from '@/lib/customize-puck'
 import { insertCopyActions } from '@/lib/customize-slots'
 import AppsTab from './add-section-apps-tab'
+import AddSectionGroup from './add-section-group'
 import MySectionsTab from './add-section-my-tab'
-import SectionsTab from './add-section-sections-tab'
+import SectionsTab, { type AddKind } from './add-section-sections-tab'
 import AddSectionStyles from './add-section-styles'
 
 type AddSectionBrowserProps = {
@@ -40,12 +41,15 @@ type AddSectionBrowserProps = {
 
 const copy = customizeContent.addSection
 
-type Tab = 'sections' | 'apps' | 'mine'
-const TABS = new Set<string>(['sections', 'apps', 'mine'])
+/** Groups that are not library categories, folded by the same switch. */
+const MINE = 'mine'
+const APPS = 'apps'
 
 /**
- * Shopify's "Add section": searchable, tabbed (Sections / Apps) and categorised,
- * with a glyph and one-line description each. Shared by the per-group popover
+ * The Add panel (Figma 369:4899): a "Sections | Blocks" switch, a search, then folding groups of
+ * picture tiles. Sections holds the section library and the store's saved sections (My
+ * sections); Blocks holds the layout and element blocks and the installed apps' blocks. A
+ * section with styles asks for one first (`AddSectionStyles`). Shared by the per-group popover
  * (`AddSectionPopover`) and the persistent Add rail panel.
  */
 export default function AddSectionBrowser({
@@ -57,16 +61,21 @@ export default function AddSectionBrowser({
   fill,
 }: AddSectionBrowserProps) {
   // Hooks
-  const [tab, setTab] = useState<Tab>('sections')
+  const [kind, setKind] = useState<AddKind>('sections')
   const [query, setQuery] = useState('')
   const [hovered, setHovered] = useState<string | null>(null)
   /** A section with styles that was clicked: its style step is showing. */
   const [styling, setStyling] = useState<string | null>(null)
+  /** Groups the merchant folded, by title (or `mine` / `apps`). */
+  const [closed, setClosed] = useState<ReadonlySet<string>>(() => new Set())
   const dispatch = useCustomizePuck((s) => s.dispatch)
   const components = useCustomizePuck((s) => s.config.components)
 
   // Helpers
   const labelOf = (type: string) => components[type]?.label ?? type
+
+  /** A group is open unless folded; a search opens every group so its matches show. */
+  const isOpen = (title: string) => query.trim() !== '' || !closed.has(title)
 
   const finish = () => {
     setQuery('')
@@ -104,13 +113,21 @@ export default function AddSectionBrowser({
     finish()
   }
 
+  const handleToggle = (title: string) =>
+    setClosed((prev) => {
+      const next = new Set(prev)
+      if (next.has(title)) next.delete(title)
+      else next.add(title)
+      return next
+    })
+
   // Early returns
   if (styling) {
     return (
       <div
         className={cn(
-          'relative flex flex-1 flex-col gap-2 p-2',
-          fill ? 'min-h-0' : 'max-h-[28rem]',
+          'relative flex flex-1 flex-col gap-2',
+          fill ? 'min-h-0' : 'max-h-[28rem] p-2',
         )}
       >
         <AddSectionStyles
@@ -126,57 +143,58 @@ export default function AddSectionBrowser({
 
   // Render logic
   const listClass = fill
-    ? 'flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto'
-    : 'flex max-h-96 flex-col gap-1 overflow-y-auto'
+    ? 'flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto pb-4'
+    : 'flex max-h-96 flex-col gap-4 overflow-y-auto'
 
   return (
     // biome-ignore lint/a11y/noStaticElementInteractions: clears the hover preview only; every item inside is its own focusable button.
     <div
-      className={cn('relative flex flex-1 flex-col gap-2 p-2', fill && 'min-h-0')}
+      className={cn('relative flex flex-1 flex-col gap-4', fill ? 'min-h-0' : 'p-3')}
       onMouseLeave={() => setHovered(null)}
     >
+      <KindSwitch value={kind} onChange={setKind} />
       <div className="relative">
         <Search
           aria-hidden
-          className="pointer-events-none absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2 text-muted-foreground"
+          className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground"
         />
         <Input
+          type="search"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder={copy.search}
           aria-label={copy.search}
-          className="h-8 rounded-lg bg-muted/60 pl-8 text-[0.8125rem] shadow-none focus-visible:bg-card"
+          className="h-10 rounded-[0.625rem] pl-9 text-sm"
         />
       </div>
-      <Tabs
-        value={tab}
-        onValueChange={(v) => {
-          if (typeof v === 'string' && TABS.has(v)) setTab(v as Tab)
-        }}
-        className={cn('gap-2', fill && 'min-h-0 flex-1')}
-      >
-        <TabsList className="grid h-8 w-full auto-cols-fr grid-flow-col text-[0.8125rem]">
-          <TabsTrigger value="sections">{copy.tabs.sections}</TabsTrigger>
-          <TabsTrigger value="apps">{copy.tabs.apps}</TabsTrigger>
-          {group ? null : <TabsTrigger value="mine">{copy.tabs.mine}</TabsTrigger>}
-        </TabsList>
-        <TabsContent value="sections" className={cn(fill && 'flex min-h-0 flex-col')}>
-          <Drawer>
-            <div className={listClass}>
-              <SectionsTab
-                group={group}
-                query={query}
-                hovered={hovered}
-                onHover={setHovered}
-                labelOf={labelOf}
-                onAdd={handleAdd}
-              />
-            </div>
-          </Drawer>
-        </TabsContent>
-        <TabsContent value="apps" className={cn(fill && 'flex min-h-0 flex-col')}>
-          <Drawer>
-            <div className={listClass}>
+      <Drawer>
+        <div className={listClass}>
+          <SectionsTab
+            group={group}
+            kind={kind}
+            query={query}
+            hovered={hovered}
+            closed={closed}
+            onToggle={handleToggle}
+            onHover={setHovered}
+            labelOf={labelOf}
+            onAdd={handleAdd}
+          />
+          {kind === 'sections' && !group ? (
+            <AddSectionGroup
+              title={copy.tabs.mine}
+              open={isOpen(MINE)}
+              onToggle={() => handleToggle(MINE)}
+            >
+              <MySectionsTab query={query} onAdd={handleAddCopy} />
+            </AddSectionGroup>
+          ) : null}
+          {kind === 'blocks' ? (
+            <AddSectionGroup
+              title={copy.tabs.apps}
+              open={isOpen(APPS)}
+              onToggle={() => handleToggle(APPS)}
+            >
               <AppsTab
                 query={query}
                 hovered={hovered}
@@ -184,17 +202,39 @@ export default function AddSectionBrowser({
                 labelOf={labelOf}
                 onAdd={handleAdd}
               />
-            </div>
-          </Drawer>
-        </TabsContent>
-        {group ? null : (
-          <TabsContent value="mine" className={cn(fill && 'flex min-h-0 flex-col')}>
-            <div className={listClass}>
-              <MySectionsTab query={query} onAdd={handleAddCopy} />
-            </div>
-          </TabsContent>
-        )}
-      </Tabs>
+            </AddSectionGroup>
+          ) : null}
+        </div>
+      </Drawer>
+    </div>
+  )
+}
+
+/** Figma's "Sections | Blocks" segmented switch (369:4903): a muted track, the chosen one raised. */
+function KindSwitch({ value, onChange }: { value: AddKind; onChange: (kind: AddKind) => void }) {
+  // Render logic
+  return (
+    <div
+      role="tablist"
+      aria-label={copy.kinds.label}
+      className="flex gap-0.5 rounded-lg bg-muted p-0.5"
+    >
+      {(['sections', 'blocks'] as const).map((k) => (
+        <button
+          key={k}
+          type="button"
+          role="tab"
+          aria-selected={value === k}
+          onClick={() => onChange(k)}
+          className={cn(
+            'flex h-[2.125rem] flex-1 items-center justify-center rounded-md text-xs leading-[1.0625rem] font-medium text-muted-foreground transition-[color,background-color,box-shadow] duration-150 hover:text-foreground motion-reduce:transition-none',
+            CHROME_FOCUS,
+            value === k && 'bg-card text-foreground shadow-card',
+          )}
+        >
+          {copy.kinds[k]}
+        </button>
+      ))}
     </div>
   )
 }

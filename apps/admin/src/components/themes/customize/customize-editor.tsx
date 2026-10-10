@@ -47,7 +47,7 @@ import ImportedThemeSettings from './imported-theme-settings'
 import LiquidCanvasSection from './liquid-canvas-section'
 import PagesPanel from './pages-panel'
 import ResourcePicker from './resource-picker'
-import TemplatePicker, { type TemplateRef } from './template-picker'
+import TemplatePicker, { type TemplateRef, templateLabel } from './template-picker'
 
 type CustomizeEditorProps = {
   theme: ThemeItem
@@ -57,6 +57,12 @@ type CustomizeEditorProps = {
   /** Installed app ids, read on the server so Puck mounts once with the real Apps tab. */
   installedApps: string[]
   initial: { template: TemplateKind; suffix: string; resource: string | null }
+  /** The store being edited: the rail's tile and the left panel's heading. */
+  store: { id: string | null; name: string; domain: string; logoUrl: string | null }
+  /** The signed-in member, for the top bar's avatar. */
+  user: { name: string; email: string }
+  /** AI is set up (the "AI connected" chip) and the assistant is on for this member (AI tab). */
+  ai: { connected: boolean; assistant: boolean }
 }
 
 type Loaded = { ref: TemplateRef; doc: CustomizeDoc; nonce: number }
@@ -105,6 +111,9 @@ export default function CustomizeEditor({
   canPublish,
   installedApps,
   initial,
+  store,
+  user,
+  ai,
 }: CustomizeEditorProps) {
   // Hooks
   const [record, setRecord] = useState(theme)
@@ -324,6 +333,8 @@ export default function CustomizeEditor({
       canPublish={canPublish}
       device={device}
       previewHref={previewUrl(origin, record.previewToken)}
+      aiConnected={ai.connected}
+      user={user}
       onDevice={setDevice}
       onDiscard={handleDiscard}
       onSave={handleSave}
@@ -406,6 +417,9 @@ export default function CustomizeEditor({
                     }
                     device={device}
                     loading={switching}
+                    store={store}
+                    templateLabel={templateLabel(ref)}
+                    aiEnabled={ai.assistant}
                   />
                 </DynamicSourceContext.Provider>
               </PreviewModeContext.Provider>
