@@ -117,6 +117,25 @@ describe('courier pickup per location', () => {
     expect(from.address.phone).toBe('8888888888')
   })
 
+  it("a parcel's own location wins over the order's tax origin", async () => {
+    const { storeId, mainId, blrId } = await seed()
+    await withStore(app, storeId, (tx) =>
+      setLocationCourierPickup(tx, storeId, {
+        locationId: blrId,
+        pickup: { pickupName: 'BLR-WH', contactName: '', phone: '' },
+      }),
+    )
+    const from = await withStore(app, storeId, (tx) =>
+      shipFromFor(tx, {
+        taxOrigin: originAt(mainId),
+        locationId: blrId,
+        settings,
+        storeName: 'Waimers',
+      }),
+    )
+    expect(from).toMatchObject({ pickupLocationName: 'BLR-WH', locationId: blrId })
+  })
+
   it('refuses pickup at a location without a full address, and can be turned off', async () => {
     const { storeId, mainId, blrId } = await seed()
     const err = await withStore(app, storeId, (tx) =>

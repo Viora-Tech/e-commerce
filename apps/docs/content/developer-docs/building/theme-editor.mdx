@@ -68,6 +68,18 @@ Rename. Rename stores the merchant's name in `props._name` (`renamedProps` in
 `lib/customize-insert.ts`); a blank name, or the type's own label, removes it again. Neither
 `_hidden` nor `_name` is a field, so they never show in the inspector.
 
+### Audit tab and breadcrumb
+
+The Sections panel has a "Sections | Audit" switch (`sections-panel.tsx`). Audit
+(`audit-panel.tsx`, checks in `lib/customize-audit.ts`) lists what on the open template a shopper
+would trip over, in plain words: a picture with no description (`{ url, alt }` with a picture and
+no alt), a button that goes nowhere (`{ label, href }` with words and no link), a section hidden
+on phones and computers, a heading emptied (the Heading element, or a section whose default
+heading was cleared) and theme colour pairs below 4.5:1 (`themeContrastWarnings`). Blocks hidden
+with the eye are skipped. Picking a row selects the block and scrolls to it; a colour row opens
+Theme settings. The inspector header shows where the selection sits, "Template › Group › Image
+banner" (`inspector-breadcrumb.tsx`), and each container in it selects that container.
+
 ### Pages and Media panels
 
 The rail follows the Figma builder rail: Add, Pages, Sections, Media, Theme settings.

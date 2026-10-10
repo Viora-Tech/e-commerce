@@ -3,7 +3,7 @@ import type { Attachment } from '@commerce/notifications'
 import { type AppHookContext, definePlugin } from '@commerce/plugins'
 import { eq, sql } from 'drizzle-orm'
 import { z } from 'zod'
-import { InvoiceError, issueCreditNote, issueDocument, liveDocuments, loadSettings } from './issue'
+import { InvoiceError, issueCreditNotes, issueDocument, liveDocuments, loadSettings } from './issue'
 import { orderLinks } from './links'
 import { enqueueOrderParcels, isPreorder, issueDrafts, removeFromQueue } from './queue'
 import { pdfBytes, pdfFilename, renderAndStore } from './render'
@@ -79,10 +79,13 @@ async function onOrderEvent(ctx: AppHookContext, orderId: string, event: 'paid' 
 /** Money back: a credit note against the invoice, or a refund voucher for an undispatched advance. */
 async function onRefund(ctx: AppHookContext, orderId: string, refundId: string) {
   try {
-    const note = await ctx.inStore((tx) => issueCreditNote(tx, ctx.storeId, refundId))
-    if (note) {
-      if (note.created || note.row.pdfStatus !== 'ready') await renderAndStore(ctx, note.row.id)
-      ctx.log(`credit note ${note.row.number} for refund ${refundId}`)
+    // One credit note per GSTIN the refund reduces (an order billed in parcels has several).
+    const notes = await ctx.inStore((tx) => issueCreditNotes(tx, ctx.storeId, refundId))
+    if (notes.length) {
+      for (const note of notes) {
+        if (note.created || note.row.pdfStatus !== 'ready') await renderAndStore(ctx, note.row.id)
+        ctx.log(`credit note ${note.row.number} for refund ${refundId}`)
+      }
       return
     }
   } catch (err) {

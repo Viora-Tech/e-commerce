@@ -12,6 +12,8 @@ import {
   payment,
   product,
   refund,
+  returnRequest,
+  returnRequestLine,
   type StoreTx,
   store,
   variant,
@@ -21,7 +23,7 @@ import { resetDb } from '@commerce/db/test'
 import { DocumentSnapshotSchema } from '@commerce/invoices'
 import { asc, eq } from 'drizzle-orm'
 import { afterAll, beforeEach, describe, expect, it } from 'vitest'
-import { InvoiceError, issueCreditNote } from '../src/issue'
+import { issueCreditNote, issueCreditNotes } from '../src/issue'
 import { enqueueOrder, enqueueOrderParcels, issueDrafts } from '../src/queue'
 import { invoice } from '../src/schema'
 
@@ -373,44 +375,135 @@ describe('one tax invoice per parcel', () => {
     expect(q?.row.igstPaise).toBe(17_143)
     expect(await invoicesOf(t.orderId)).toHaveLength(1)
   })
+})
 
-  it('a refund on a split order does not guess a GSTIN for its credit note', async () => {
-    const t = await seed()
-    await addParcels(t, split(t))
-    const queued = await inStore(t.storeId, (tx) =>
-      enqueueOrderParcels(tx, t.storeId, t.orderId, 'manual', at),
-    )
-    await inStore(t.storeId, (tx) =>
-      issueDrafts(
-        tx,
-        t.storeId,
-        queued.map((q) => ({ id: q.row.id, invoiceDate: at })),
-        { commit: true, now: at },
-      ),
-    )
-    const [pay] = await owner
-      .insert(payment)
-      .values({
-        storeId: t.storeId,
-        orderId: t.orderId,
-        provider: 'razorpay',
-        providerRef: 'pay_1',
-        status: 'captured',
-        amountPaise: 160_000,
-      })
-      .returning()
+/** Both parcel invoices issued, every unit packed, and a captured payment to refund from. */
+async function issuedSplit() {
+  const t = await seed()
+  await addParcels(t, split(t))
+  await owner.update(fulfillmentOrderLine).set({ fulfilledQuantity: 1 })
+  const queued = await inStore(t.storeId, (tx) =>
+    enqueueOrderParcels(tx, t.storeId, t.orderId, 'manual', at),
+  )
+  await inStore(t.storeId, (tx) =>
+    issueDrafts(
+      tx,
+      t.storeId,
+      queued.map((q) => ({ id: q.row.id, invoiceDate: at })),
+      { commit: true, now: at },
+    ),
+  )
+  const [pay] = await owner
+    .insert(payment)
+    .values({
+      storeId: t.storeId,
+      orderId: t.orderId,
+      provider: 'razorpay',
+      providerRef: 'pay_1',
+      status: 'captured',
+      amountPaise: 160_000,
+    })
+    .returning()
+  let returns = 0
+  const refundOf = async (amountPaise: number, returnedLine?: number) => {
     const [r] = await owner
       .insert(refund)
       .values({
         storeId: t.storeId,
         orderId: t.orderId,
         paymentId: pay?.id as string,
-        amountPaise: 10_000,
+        amountPaise,
         status: 'processed',
       })
       .returning()
-    await expect(
-      inStore(t.storeId, (tx) => issueCreditNote(tx, t.storeId, r?.id as string, { at })),
-    ).rejects.toBeInstanceOf(InvoiceError)
+    if (returnedLine !== undefined) {
+      const [ret] = await owner
+        .insert(returnRequest)
+        .values({
+          storeId: t.storeId,
+          orderId: t.orderId,
+          number: ++returns,
+          refundIds: [r?.id as string],
+        })
+        .returning()
+      await owner.insert(returnRequestLine).values({
+        storeId: t.storeId,
+        returnRequestId: ret?.id as string,
+        orderLineId: t.lineIds[returnedLine] as string,
+        quantity: 1,
+      })
+    }
+    return r?.id as string
+  }
+  return { ...t, refundOf }
+}
+
+const creditNotes = (refundId: string) =>
+  owner
+    .select()
+    .from(invoice)
+    .where(eq(invoice.refundId, refundId))
+    .orderBy(asc(invoice.createdAt), asc(invoice.id))
+
+describe('credit notes per GSTIN', () => {
+  it('a refund not tied to items is shared pro rata, one credit note per GSTIN', async () => {
+    const t = await issuedSplit()
+    const refundId = await t.refundOf(16_000)
+    const notes = await inStore(t.storeId, (tx) =>
+      issueCreditNotes(tx, t.storeId, refundId, { at }),
+    )
+    expect(notes.map((n) => n.created)).toEqual([true, true])
+    const rows = await creditNotes(refundId)
+    expect(rows.map((r) => [r.gstRegistrationId, r.totalPaise, r.seq])).toEqual([
+      [t.hr, 10_667, 1],
+      [t.ka, 5_333, 1],
+    ])
+    const invoices = (await invoicesOf(t.orderId)).filter((r) => r.kind === 'tax_invoice')
+    // Each credit note corrects its own parcel's invoice, from that invoice's GSTIN.
+    expect(rows.map((r) => r.fulfillmentOrderId)).toEqual(invoices.map((r) => r.fulfillmentOrderId))
+    const [hrNote, kaNote] = rows.map((r) => DocumentSnapshotSchema.parse(r.snapshot))
+    expect(hrNote?.seller.gstin).toBe(HR)
+    expect(kaNote?.seller.gstin).toBe(KA)
+    expect(kaNote?.original?.number).toBe(invoices[1]?.number)
+  })
+
+  it('a refund for a returned item credits the GSTIN that sent it', async () => {
+    const t = await issuedSplit()
+    // The cap came from Bengaluru.
+    const refundId = await t.refundOf(53_333, 1)
+    await inStore(t.storeId, (tx) => issueCreditNotes(tx, t.storeId, refundId, { at }))
+    const rows = await creditNotes(refundId)
+    expect(rows.map((r) => [r.gstRegistrationId, r.totalPaise])).toEqual([[t.ka, 53_333]])
+  })
+
+  it('never credits an invoice past its total; the rest goes to the other GSTIN', async () => {
+    const t = await issuedSplit()
+    const refundId = await t.refundOf(60_000, 1)
+    await inStore(t.storeId, (tx) => issueCreditNotes(tx, t.storeId, refundId, { at }))
+    const rows = await creditNotes(refundId)
+    expect(rows.map((r) => [r.gstRegistrationId, r.totalPaise])).toEqual([
+      [t.hr, 6_667],
+      [t.ka, 53_333],
+    ])
+    // A later refund counts what is already credited.
+    const next = await t.refundOf(10_000, 1)
+    await inStore(t.storeId, (tx) => issueCreditNotes(tx, t.storeId, next, { at }))
+    expect((await creditNotes(next)).map((r) => [r.gstRegistrationId, r.totalPaise])).toEqual([
+      [t.hr, 10_000],
+    ])
+  })
+
+  it('is idempotent per refund', async () => {
+    const t = await issuedSplit()
+    const refundId = await t.refundOf(16_000)
+    await inStore(t.storeId, (tx) => issueCreditNotes(tx, t.storeId, refundId, { at }))
+    const again = await inStore(t.storeId, (tx) =>
+      issueCreditNotes(tx, t.storeId, refundId, { at }),
+    )
+    expect(again.map((n) => n.created)).toEqual([false, false])
+    expect(await creditNotes(refundId)).toHaveLength(2)
+    // The one-invoice wrapper still answers with the first.
+    const first = await inStore(t.storeId, (tx) => issueCreditNote(tx, t.storeId, refundId, { at }))
+    expect(first?.created).toBe(false)
   })
 })

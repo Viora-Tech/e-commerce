@@ -17,7 +17,7 @@ import CustomizeRail, { type RailPanel } from './customize-rail'
 import MediaPanel from './media-panel'
 import PanelHeader from './panel-header'
 import SectionInspector from './section-inspector'
-import SectionsTree from './sections-tree'
+import SectionsPanel from './sections-panel'
 
 type CustomizeLayoutProps = {
   topBar: ReactNode
@@ -67,7 +67,7 @@ export default function CustomizeLayout({
   const content: Record<RailPanel, ReactNode> = {
     add: <AddSectionPanel />,
     pages,
-    sections: <SectionsTree />,
+    sections: <SectionsPanel onOpenTheme={() => setPanel('theme')} />,
     media: <MediaPanel />,
     theme: settings,
   }

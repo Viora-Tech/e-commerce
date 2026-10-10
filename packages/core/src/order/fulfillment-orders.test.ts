@@ -11,6 +11,8 @@ import {
   order,
   orderLine,
   product,
+  returnRequest,
+  returnRequestLine,
   shipment,
   store,
   variant,
@@ -21,7 +23,7 @@ import { and, eq } from 'drizzle-orm'
 import { afterAll, beforeEach, describe, expect, it } from 'vitest'
 import type { StoreContext } from '../context'
 import { FakePaymentProvider } from '../providers/payment'
-import { returnLocation } from '../returns/service'
+import { returnLocation, returnPickupLocation } from '../returns/service'
 import { convertDraft } from './drafts'
 import { fulfilOrderLines, fulfilRemainingLines } from './fulfil'
 import {
@@ -348,6 +350,24 @@ describe('stock moves at the parcel location', () => {
         returnLocation(ctx, { orderLineId: line.id, variantId: t.variantId }),
       ),
     ).toBe(t.haryana.id)
+  })
+
+  it('a courier brings a return back to the location its parcel left from', async () => {
+    const t = await seed()
+    const { orderId, line } = await legacyOrder(t)
+    await inStore(t, (ctx) => fulfilRemainingLines(ctx, orderId))
+    await moveSellingToDelhi(t)
+    const [r] = await owner
+      .insert(returnRequest)
+      .values({ storeId: t.storeId, orderId, number: 1 })
+      .returning()
+    await owner.insert(returnRequestLine).values({
+      storeId: t.storeId,
+      returnRequestId: r?.id as string,
+      orderLineId: line.id,
+      quantity: 2,
+    })
+    expect(await inStore(t, (ctx) => returnPickupLocation(ctx, r?.id as string))).toBe(t.haryana.id)
   })
 
   it('a line no parcel holds returns to where the variant sells', async () => {
