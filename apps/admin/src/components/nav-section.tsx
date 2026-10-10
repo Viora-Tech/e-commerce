@@ -6,7 +6,7 @@ import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
 import Link from 'next/link'
 import { useState } from 'react'
 import {
-  isChildActive,
+  activeChildHref,
   isSectionActive,
   isSectionLinkActive,
   type NavItem,
@@ -46,6 +46,7 @@ export default function NavSection({ item, pathname }: NavSectionProps) {
   const children = item.children ?? []
   const sectionActive = isSectionActive(pathname, item)
   const linkActive = isSectionLinkActive(pathname, item)
+  const activeHref = activeChildHref(pathname, children)
   const open =
     children.length > 0 && (override?.pathname === pathname ? override.open : sectionActive)
   const toggleLabel = open
@@ -112,7 +113,7 @@ export default function NavSection({ item, pathname }: NavSectionProps) {
             className="mt-1 ml-6 flex flex-col overflow-hidden border-l border-border pl-1.5 group-data-[collapsible=icon]:hidden"
           >
             {children.map((child) => {
-              const active = isChildActive(pathname, child)
+              const active = child.href === activeHref
               return (
                 <li key={child.href}>
                   <Link

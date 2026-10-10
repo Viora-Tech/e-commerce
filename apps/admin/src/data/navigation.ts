@@ -249,6 +249,16 @@ export function isChildActive(pathname: string, child: NavChild): boolean {
 }
 
 /**
+ * The one child to highlight: the most specific match, so `/products/purchase-orders`
+ * lights "Purchase orders" and not also "All products" (`/products`).
+ */
+export function activeChildHref(pathname: string, children: readonly NavChild[]): string | null {
+  const matches = children.filter((c) => isChildActive(pathname, c))
+  if (matches.length === 0) return null
+  return matches.reduce((best, c) => (c.href.length > best.href.length ? c : best)).href
+}
+
+/**
  * The section link highlights when the section is active but no child is, so
  * `/orders/123` lights "Orders" while `/orders/drafts` lights "Drafts".
  */
