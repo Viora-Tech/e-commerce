@@ -60,7 +60,7 @@ export default [
     },
   }),
   translation(documentReviewContent, {
-    title: (kind: string) => `${kind} जांचें`,
+    title: (kind: string) => `${kind}: जांचें और लागू करें`,
     loading: 'दस्तावेज़ खुल रहा है…',
     loadFailed: 'यह दस्तावेज़ खुल नहीं पाया।',
     previewTitle: 'दस्तावेज़',
@@ -133,6 +133,7 @@ export default [
       heading: 'जोड़ने वाले चार्ज',
       none: 'चार्ज के रूप में जोड़ने को कुछ नहीं।',
       amount: 'रकम, GST से पहले',
+      dutyAmount: 'रकम (₹)',
       gst: 'GST (₹)',
       rate: (code: string) => `1 ${code} के रुपये`,
       perLine: 'हर प्रोडक्ट पर छपी ड्यूटी के हिसाब से बंटेगा',

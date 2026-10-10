@@ -42,7 +42,7 @@ export default function ReviewPreview({ file, name }: ReviewPreviewProps) {
       ) : isPdf ? (
         <iframe
           title={name || copy.previewTitle}
-          src={file.url}
+          src={`${file.url}#view=FitH`}
           className="min-h-0 w-full flex-1 bg-background"
         />
       ) : (

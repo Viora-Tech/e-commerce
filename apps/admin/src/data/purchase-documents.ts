@@ -66,7 +66,7 @@ export const purchaseDocumentsContent = {
 } as const
 
 export const documentReviewContent = {
-  title: (kind: string) => `Check the ${kind.toLowerCase()}`,
+  title: (kind: string) => `${kind}: check and apply`,
   loading: 'Opening the document…',
   loadFailed: 'Could not open this document.',
   previewTitle: 'Document',
@@ -139,6 +139,7 @@ export const documentReviewContent = {
     heading: 'Charges to add',
     none: 'Nothing to add as a charge.',
     amount: 'Amount, before GST',
+    dutyAmount: 'Amount (₹)',
     gst: 'GST (₹)',
     rate: (code: string) => `Rupees for 1 ${code}`,
     perLine: 'Split by the duty printed for each product',

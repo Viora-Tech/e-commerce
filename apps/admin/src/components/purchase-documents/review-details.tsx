@@ -1,11 +1,13 @@
 'use client'
 
 import { LOW_CONFIDENCE } from '@commerce/ai/client'
+import { printedToMinor, purchaseCurrencyOf } from '@commerce/core/inventory'
 import { Checkbox } from '@commerce/ui/shadcn/checkbox'
 import { Input } from '@commerce/ui/shadcn/input'
 import { Label } from '@commerce/ui/shadcn/label'
 import { documentReviewContent } from '@/data/purchase-documents'
 import { useCopy } from '@/hooks/use-copy'
+import { formatMinor } from '@/lib/money'
 import ReviewSection from './review-section'
 import { type DocumentReview, isDraft, ownOrder, type ReviewState } from './review-state'
 import UnsureMark from './unsure-mark'
@@ -26,6 +28,14 @@ const fact = (label: string, f: Read): Fact => ({
   unsure: f.value !== null && f.confidence < LOW_CONFIDENCE,
 })
 
+/** A printed total as money in the document's currency ("USD 2,660.20"), as printed when the currency is unknown. */
+function moneyFact(label: string, f: Read, currency: Read): Fact {
+  const code = purchaseCurrencyOf(typeof currency.value === 'string' ? currency.value : null)
+  const minor = typeof f.value === 'number' && code ? printedToMinor(f.value, code) : null
+  const base = fact(label, f)
+  return minor === null || !code ? base : { ...base, value: formatMinor(minor, code) }
+}
+
 /** The document's header as the AI read it, by shape. */
 function factsOf(extracted: NonNullable<DocumentReview['extracted']>, c: Copy['details']): Fact[] {
   if (extracted.shape === 'supplier_invoice') {
@@ -35,7 +45,7 @@ function factsOf(extracted: NonNullable<DocumentReview['extracted']>, c: Copy['d
       fact(c.number, d.invoiceNumber),
       fact(c.date, d.invoiceDate),
       fact(c.currency, d.currency),
-      fact(c.total, d.total),
+      moneyFact(c.total, d.total, d.currency),
     ]
   }
   if (extracted.shape === 'bill_of_entry') {
@@ -53,7 +63,7 @@ function factsOf(extracted: NonNullable<DocumentReview['extracted']>, c: Copy['d
     fact(c.number, d.billNumber),
     fact(c.date, d.billDate),
     fact(c.currency, d.currency),
-    fact(c.total, d.total),
+    moneyFact(c.total, d.total, d.currency),
   ]
 }
 

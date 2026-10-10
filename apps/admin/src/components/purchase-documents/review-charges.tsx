@@ -44,7 +44,7 @@ export default function ReviewCharges({ state, onChange }: ReviewChargesProps) {
                   onCheckedChange={(v) => patchCharge(c.key, { apply: Boolean(v) })}
                 />
                 <span className="min-w-0 flex-1 truncate text-body">{c.label}</span>
-                <span className="w-60 max-w-[50%]">
+                <span className="w-72 max-w-[55%]">
                   <OptionSelect<PurchaseChargeKind>
                     id={`charge-kind-${c.key}`}
                     options={PURCHASE_CHARGE_KINDS}
@@ -57,10 +57,10 @@ export default function ReviewCharges({ state, onChange }: ReviewChargesProps) {
               <div className="ml-6 grid grid-cols-2 gap-2 sm:grid-cols-3">
                 <div className="flex flex-col gap-1">
                   <span className="text-caption text-muted-foreground">
-                    {copy.amount} ({c.currency})
+                    {c.dutyColumn ? copy.dutyAmount : `${copy.amount} (${c.currency})`}
                   </span>
                   <Input
-                    aria-label={`${copy.amount} (${c.currency})`}
+                    aria-label={c.dutyColumn ? copy.dutyAmount : `${copy.amount} (${c.currency})`}
                     value={c.amount}
                     inputMode="decimal"
                     disabled={!c.apply}
