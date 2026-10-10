@@ -24,7 +24,7 @@ export type KitTrustProps = {
   FeatureCards: Frame & {
     heading: string
     text: string
-    columns: 2 | 3
+    columns: 2 | 3 | 4
     items: { icon: string; title: string; text: string }[]
   }
   FeatureSteps: Frame & { heading: string; text: string; steps: { title: string; text: string }[] }
@@ -89,6 +89,7 @@ export function kitTrustSections(): Record<keyof KitTrustProps, ComponentConfig>
           options: [
             { label: '2', value: 2 },
             { label: '3', value: 3 },
+            { label: '4', value: 4 },
           ],
         },
         items: {

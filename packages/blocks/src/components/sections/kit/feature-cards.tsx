@@ -9,11 +9,15 @@ import KitHeading from './kit-heading'
 type FeatureCardsProps = {
   heading: ReactNode
   text: ReactNode
-  columns: 2 | 3
+  columns: 2 | 3 | 4
   items: { icon: string; title: ReactNode; text: ReactNode }[]
 }
 
-const COLUMNS = { 2: 'sm:grid-cols-2', 3: 'sm:grid-cols-2 lg:grid-cols-3' } as const
+const COLUMNS = {
+  2: 'sm:grid-cols-2',
+  3: 'sm:grid-cols-2 lg:grid-cols-3',
+  4: 'sm:grid-cols-2 lg:grid-cols-4',
+} as const
 
 /** Benefits in a grid of cards, each with an icon; the border lights up under the mouse. */
 export default function FeatureCards({ heading, text, columns, items }: FeatureCardsProps) {

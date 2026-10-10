@@ -13,7 +13,8 @@
     "./canvas-html": "./src/canvas-sanitize.ts",
     "./slots": "./src/slots.tsx",
     "./element-style": "./src/element-style.ts",
-    "./editor-selection": "./src/editor-selection.ts"
+    "./editor-selection": "./src/editor-selection.ts",
+    "./section-presets": "./src/section-presets.ts"
   },
   "scripts": {
     "test": "vitest run",
