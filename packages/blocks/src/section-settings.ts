@@ -227,9 +227,11 @@ const YES_NO = (label: string) =>
  * Which settings a section offers. `section` is the full set for sections drawn inside the
  * shared frame. `bleed` is for full-bleed sections that draw their own frame (the hero, the
  * announcement bar): spacing plus show on mobile/desktop and the anchor, since width,
- * alignment, background and entrance motion are theirs to decide.
+ * alignment, background and entrance motion are theirs to decide. `flow` is for the sections
+ * the storefront draws for the page (main sections, related and recently viewed products):
+ * `bleed` plus the colour scheme, applied on a frame around what the storefront drew.
  */
-export type SettingsKind = 'section' | 'bleed'
+export type SettingsKind = 'section' | 'bleed' | 'flow'
 
 /**
  * The grouped Puck fields for `migrateSectionSettings`'s shape. Each top
@@ -256,12 +258,23 @@ export function sectionSettingsField(
       paddingBottom: { type: 'object', label: 'Padding bottom', objectFields: paddingFields },
     },
   } as const
-  if (kind === 'bleed') {
+  if (kind === 'bleed' || kind === 'flow') {
     return {
       type: 'object',
       label: 'Section settings',
       objectFields: {
         spacing,
+        ...(kind === 'flow'
+          ? {
+              style: {
+                type: 'object',
+                label: 'Style',
+                objectFields: {
+                  colorScheme: { type: 'select', label: 'Colour scheme', options: schemeOptions },
+                },
+              },
+            }
+          : {}),
         advanced: {
           type: 'object',
           label: 'Advanced',
@@ -423,6 +436,25 @@ export function bleedFrameProps(settings: SectionSettingsValue): {
     id: settings.advanced.anchorId || undefined,
     'data-content-width': 'full',
   }
+}
+
+/**
+ * Whether `flow` settings change nothing: no padding, the default scheme, shown everywhere and
+ * no anchor. Then the section is drawn without any frame, exactly as before it had settings.
+ */
+export function isNeutralFlow(settings: SectionSettingsValue): boolean {
+  const { paddingTop, paddingBottom } = settings.spacing
+  const noPadding = [paddingTop, paddingBottom].every(
+    (p) => p.mobile === 0 && p.tablet === 0 && p.desktop === 0,
+  )
+  const { advanced } = settings
+  return (
+    noPadding &&
+    settings.style.colorScheme === 'scheme-1' &&
+    advanced.showOnMobile &&
+    advanced.showOnDesktop &&
+    !advanced.anchorId
+  )
 }
 
 /** Tailwind classes that hide the section below/at the `md` breakpoint. No JS, no layout shift. */
