@@ -255,6 +255,20 @@ behind a device switch, the colour scheme as swatch chips, and the background as
 Image", where theme colours are stored by name so they follow the scheme and dark mode
 (`settings-group-body.tsx` and the controls beside it).
 
+### Canvas zoom
+
+The page is laid out at the device's real width (desktop 1440 px, tablet 768, phone 390;
+`DEVICE_PX` in `lib/customize-zoom.ts`) and scaled with a CSS transform. The top bar's
+"1440 PX / 60 %" readout (`zoom-menu.tsx`) opens Zoom in / out, Fit (the default: as large as
+fits, never above 100 %) and 25–200 %. A zoom wider than the canvas area scrolls sideways.
+- Inside the canvas nothing changes coordinates, so selection, drag, inline editing and the
+  insert line work at any zoom (dnd-kit reads the frame's scale itself).
+- `preview-frame.tsx` puts the zoom in the canvas as `--canvas-zoom`. Editor chrome drawn there
+  keeps its size on screen: the block toolbar and the "+" use `UNZOOMED` (CSS `zoom: 1/zoom`),
+  and Puck's outline width is divided by it (vendor-puck.css).
+- The "+" between sections spans only the part of the section in view, so it never sits off to
+  the side when zoomed in.
+
 ## Motion
 
 All editor motion uses Motion (`motion/react`), 150 to 200 ms, easing out, never overshooting,

@@ -66,7 +66,13 @@ export default [
   translation(customizeContent.bar, {
     themes: 'थीम',
     device: 'प्रीव्यू का साइज़',
-    width: { desktop: 'पूरी चौड़ाई', tablet: '768 px', mobile: '390 px' },
+    zoom: {
+      label: (px: number, zoom: string) => `पेज ${px} px चौड़ा, ${zoom} पर दिख रहा है। ज़ूम बदलें`,
+      px: (px: number) => `${px} PX`,
+      zoomIn: 'ज़ूम इन',
+      zoomOut: 'ज़ूम आउट',
+      fit: (zoom: string) => `फ़िट (${zoom})`,
+    },
     preview: 'प्रीव्यू',
     publish: 'पब्लिश करें',
     undo: 'पीछे',
