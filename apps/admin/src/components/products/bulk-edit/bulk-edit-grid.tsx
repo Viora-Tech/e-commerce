@@ -2,9 +2,9 @@
 
 import { type ClipboardEvent, useRef } from 'react'
 import { type CellKeyboardEvent, type CellKeyDownArgs, DataGrid } from 'react-data-grid'
+import 'react-data-grid/lib/styles.css'
 import { bulkEditContent } from '@/data/bulk-edit'
 import { useCopy } from '@/hooks/use-copy'
-import '@/styles/vendor-grid.css'
 import { buildColumns, columnKeys, isEditableKey, type SheetLocation } from './bulk-edit-columns'
 import {
   applyPaste,
@@ -25,6 +25,8 @@ type BulkEditGridProps = {
 }
 
 const ROW_HEIGHT = 40
+/** The same row height in rem, to size the grid to its rows. */
+const ROW_REM = ROW_HEIGHT / 16
 
 const rowKey = (row: GridRow) => row.variantId
 
@@ -121,7 +123,7 @@ export default function BulkEditGrid({
   return (
     <div
       onPasteCapture={handlePaste}
-      className="overflow-hidden rounded-2xl border border-border surface-card [--rdg-background-color:var(--card)] [--rdg-border-color:var(--border)] [--rdg-color:var(--foreground)] [--rdg-header-background-color:var(--muted)] [--rdg-row-hover-background-color:var(--muted)] [--rdg-selection-color:var(--primary)]"
+      className="overflow-hidden rounded-2xl border border-border surface-card"
     >
       <DataGrid
         aria-label={copy.title}
@@ -136,7 +138,8 @@ export default function BulkEditGrid({
         onCellCopy={handleCopy}
         onActivePositionChange={handleActive}
         onCellKeyDown={handleKeyDown}
-        className="h-[min(40rem,calc(100dvh-18rem))] border-0"
+        style={{ height: `min(${(rows.length + 1) * ROW_REM}rem, calc(100dvh - 18rem))` }}
+        className="border-0 [--rdg-background-color:var(--card)] [--rdg-border-color:var(--hairline)] [--rdg-color:var(--foreground)] [--rdg-header-background-color:var(--muted)] [--rdg-row-hover-background-color:var(--muted)] [--rdg-selection-color:var(--primary)]"
       />
     </div>
   )
