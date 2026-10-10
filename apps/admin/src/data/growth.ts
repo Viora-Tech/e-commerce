@@ -53,6 +53,49 @@ export const growthOverviewContent = {
   title: 'Growth',
   intro: 'How much you are selling from Instagram, Google, WhatsApp, AI assistants and direct.',
   createCampaign: 'Create campaign',
+  links: 'Links',
+  newCampaign: 'New campaign',
+  outcomes: {
+    summary: (amount: string, period: string) =>
+      `Campaigns, automations, discounts and links brought in ${amount} ${period}`,
+    periods: {
+      today: 'today',
+      '7d': 'in the last 7 days',
+      '30d': 'in the last 30 days',
+      '90d': 'in the last 90 days',
+      custom: 'in this period',
+    } as Record<string, string>,
+    tiles: {
+      earned: 'Sales from growth',
+      messages: 'Messages sent',
+      automationOrders: 'Automation orders',
+      subscribers: 'Subscribers',
+    },
+    vsPrevious: 'vs previous period',
+    messagesNote: (whatsapp: string, email: string) => `WhatsApp ${whatsapp} · email ${email}`,
+    automationNote: 'Orders your automations led to',
+    subscribersNote: (n: string) => `${n} new this week`,
+    card: {
+      title: 'What marketing earned',
+      subtitle: (orders: string) =>
+        `${orders} orders. One order can come from a campaign and a code; the total counts it once.`,
+      kinds: {
+        campaigns: 'Campaigns',
+        automations: 'Automations',
+        discounts: 'Discount codes',
+        links: 'Links',
+      },
+      orders: (n: string) => `${n} orders`,
+      top: (name: string, amount: string) => `Top: ${name} · ${amount}`,
+      nothing: {
+        campaigns: 'No campaign sales yet',
+        automations: 'No automation sales yet',
+        discounts: 'No orders used a code yet',
+        links: 'No sales from your links yet',
+      },
+      share: (pct: string) => `${pct} of what marketing earned`,
+    },
+  },
   kpis: {
     sessions: {
       label: 'Sessions',

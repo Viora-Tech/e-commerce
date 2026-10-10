@@ -6,6 +6,49 @@ export default [
     title: 'ग्रोथ',
     intro: 'Instagram, Google, WhatsApp, AI असिस्टेंट और सीधे आने वालों से कितनी बिक्री हो रही है।',
     createCampaign: 'कैंपेन बनाएं',
+    links: 'लिंक',
+    newCampaign: 'नया कैंपेन',
+    outcomes: {
+      summary: (amount: string, period: string) =>
+        `कैंपेन, ऑटोमेशन, डिस्काउंट और लिंक से ${period} ${amount} की बिक्री हुई`,
+      periods: {
+        today: 'आज',
+        '7d': 'पिछले 7 दिनों में',
+        '30d': 'पिछले 30 दिनों में',
+        '90d': 'पिछले 90 दिनों में',
+        custom: 'इस अवधि में',
+      },
+      tiles: {
+        earned: 'ग्रोथ से बिक्री',
+        messages: 'भेजे गए मैसेज',
+        automationOrders: 'ऑटोमेशन से ऑर्डर',
+        subscribers: 'सब्सक्राइबर',
+      },
+      vsPrevious: 'पिछली अवधि के मुकाबले',
+      messagesNote: (whatsapp: string, email: string) => `WhatsApp ${whatsapp} · ईमेल ${email}`,
+      automationNote: 'आपके ऑटोमेशन से आए ऑर्डर',
+      subscribersNote: (n: string) => `इस हफ़्ते ${n} नए`,
+      card: {
+        title: 'मार्केटिंग से कितनी कमाई हुई',
+        subtitle: (orders: string) =>
+          `${orders} ऑर्डर। एक ऑर्डर कैंपेन और कोड दोनों से आ सकता है; कुल में वह एक बार गिना गया है।`,
+        kinds: {
+          campaigns: 'कैंपेन',
+          automations: 'ऑटोमेशन',
+          discounts: 'डिस्काउंट कोड',
+          links: 'लिंक',
+        },
+        orders: (n: string) => `${n} ऑर्डर`,
+        top: (name: string, amount: string) => `सबसे आगे: ${name} · ${amount}`,
+        nothing: {
+          campaigns: 'अभी कैंपेन से कोई बिक्री नहीं',
+          automations: 'अभी ऑटोमेशन से कोई बिक्री नहीं',
+          discounts: 'अभी किसी ऑर्डर में कोड नहीं लगा',
+          links: 'अभी आपके लिंक से कोई बिक्री नहीं',
+        },
+        share: (pct: string) => `मार्केटिंग की कमाई का ${pct}`,
+      },
+    },
     kpis: {
       sessions: { label: 'सेशन', help: 'इसे चालू करने के बाद पहली स्टोर विज़िट से गिना गया।' },
       attributed_sales: {

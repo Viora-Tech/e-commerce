@@ -1,7 +1,7 @@
 'use client'
 
 import type { MarketingOverview } from '@commerce/api'
-import { BadgePercent, LinkIcon, Send, Workflow } from '@commerce/ui/icons'
+import { BadgePercent, LinkIcon, Plus, Send, Workflow } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Card } from '@commerce/ui/shadcn/card'
 import Link from 'next/link'
@@ -9,14 +9,15 @@ import { useEffect, useState } from 'react'
 import RangePicker from '@/components/analytics/range-picker'
 import ChartCard from '@/components/layout/chart-card'
 import ProoflyPageHeader from '@/components/layout/proofly-page-header'
+import StatTile from '@/components/layout/stat-tile'
 import { growthOverviewContent } from '@/data/growth'
-import { useCopy } from '@/hooks/use-copy'
+import { useCopy, useFormat } from '@/hooks/use-copy'
 import { formatDay, type RangeState, rangeQuery, sameRange } from '@/lib/analytics-range'
 import { api } from '@/lib/api-client'
 import { formatPaiseCompact } from '@/lib/money'
 import { routes } from '@/lib/routes'
 import BestSourceCallout from './best-source-callout'
-import GrowthKpiTile from './growth-kpi-tile'
+import OutcomesCard from './outcomes-card'
 import SourceOrChannelCard from './source-or-channel-card'
 import TopCampaignsCard from './top-campaigns-card'
 
@@ -32,10 +33,15 @@ const SHORTCUTS = [
   { ...growthOverviewContent.shortcuts.discounts, icon: BadgePercent },
 ]
 
-/** Growth overview: KPIs, sales by source and channel, and top campaigns. */
+/**
+ * Growth overview (Figma "Marketing / Growth overview"): what marketing earned (sales from
+ * campaigns, automations, discount codes and links, messages sent, subscribers), then sales
+ * over time, by source and channel, and the top campaigns.
+ */
 export default function GrowthOverviewPage({ initialRange, initial }: GrowthOverviewPageProps) {
   // Hooks
   const copy = useCopy(growthOverviewContent)
+  const fmt = useFormat()
   const [range, setRange] = useState(initialRange)
   const [data, setData] = useState(initial)
   const [loading, setLoading] = useState(false)
@@ -67,6 +73,11 @@ export default function GrowthOverviewPage({ initialRange, initial }: GrowthOver
   }
 
   // Render logic
+  const o = data.outcomes
+  const earnedTrend =
+    o.earnedPrevPaise > 0
+      ? Math.round(((o.earnedPaise - o.earnedPrevPaise) / o.earnedPrevPaise) * 1000) / 10
+      : null
   const dayPoints = data.salesOverTime.day.map((p) => ({ ...p, label: formatDay(p.label) }))
   const weekPoints = data.salesOverTime.week.map((p) => ({ ...p, label: formatDay(p.label) }))
 
@@ -74,12 +85,23 @@ export default function GrowthOverviewPage({ initialRange, initial }: GrowthOver
     <div className="mx-auto flex w-full max-w-[81.5rem] flex-col gap-6 px-4 py-6 md:px-8 md:py-8">
       <ProoflyPageHeader
         title={copy.title}
-        summary={copy.intro}
+        summary={copy.outcomes.summary(
+          fmt.money(o.earnedPaise),
+          copy.outcomes.periods[data.range.key] ?? copy.outcomes.periods.custom ?? '',
+        )}
         actions={
           <div className="flex items-center gap-2">
             <RangePicker value={range} onChange={handleRange} />
-            <Button render={<Link href={routes.growth.campaigns()} />} nativeButton={false}>
-              {copy.createCampaign}
+            <Button
+              variant="outline"
+              render={<Link href={routes.growth.links()} />}
+              nativeButton={false}
+            >
+              {copy.links}
+            </Button>
+            <Button render={<Link href={routes.growth.newCampaign()} />} nativeButton={false}>
+              <Plus aria-hidden />
+              {copy.newCampaign}
             </Button>
           </div>
         }
@@ -88,10 +110,33 @@ export default function GrowthOverviewPage({ initialRange, initial }: GrowthOver
         className="grid grid-cols-2 gap-4 lg:grid-flow-col lg:grid-cols-none lg:auto-cols-fr"
         aria-busy={loading || undefined}
       >
-        {data.kpis.map((kpi) => (
-          <GrowthKpiTile key={kpi.id} kpi={kpi} />
-        ))}
+        <StatTile
+          label={copy.outcomes.tiles.earned}
+          value={fmt.money(o.earnedPaise)}
+          trend={earnedTrend}
+          trendNote={copy.outcomes.vsPrevious}
+          active
+        />
+        <StatTile
+          label={copy.outcomes.tiles.messages}
+          value={fmt.number(o.messages.email + o.messages.whatsapp)}
+          note={copy.outcomes.messagesNote(
+            fmt.number(o.messages.whatsapp),
+            fmt.number(o.messages.email),
+          )}
+        />
+        <StatTile
+          label={copy.outcomes.tiles.automationOrders}
+          value={fmt.number(o.automationOrders)}
+          note={copy.outcomes.automationNote}
+        />
+        <StatTile
+          label={copy.outcomes.tiles.subscribers}
+          value={fmt.number(o.subscribers.total)}
+          note={copy.outcomes.subscribersNote(fmt.number(o.subscribers.newThisWeek))}
+        />
       </div>
+      <OutcomesCard outcomes={o} />
       <ChartCard
         title={copy.salesOverTime.title}
         periods={[

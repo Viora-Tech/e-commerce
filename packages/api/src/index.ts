@@ -28,6 +28,11 @@ export {
   type DashboardSummary,
 } from './services/dashboard.service'
 export type {
+  GrowthOutcomes,
+  OutcomeKind,
+  OutcomeRow,
+} from './services/growth-outcomes.service'
+export type {
   CampaignRow,
   ChannelRow,
   MarketingKpi,
