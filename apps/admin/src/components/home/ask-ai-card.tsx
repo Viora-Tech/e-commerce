@@ -13,6 +13,14 @@ import { routes } from '@/lib/routes'
 type AskAiCardProps = {
   /** The assistant is on for this store and member; when off, asking leads to AI settings. */
   enabled: boolean
+  /** Another page's wording (Reports): the box's placeholder and label, the example questions. */
+  placeholder?: string | undefined
+  label?: string | undefined
+  chips?: readonly string[] | undefined
+  /** A word before the example questions ("Try"). */
+  chipsLabel?: string | undefined
+  /** A quiet line under the questions ("Read-only…"). */
+  note?: string | undefined
 }
 
 /**
@@ -20,7 +28,14 @@ type AskAiCardProps = {
  * AI bar and send; the conversation itself lives in the bar, on every page. Always shown
  * (Figma 224:610); while AI is off, asking opens the AI settings instead.
  */
-export default function AskAiCard({ enabled }: AskAiCardProps) {
+export default function AskAiCard({
+  enabled,
+  placeholder,
+  label,
+  chips: pageChips,
+  chipsLabel,
+  note,
+}: AskAiCardProps) {
   // Hooks
   const copy = useCopy(homePageContent)
   const assistant = useCopy(assistantContent)
@@ -43,7 +58,7 @@ export default function AskAiCard({ enabled }: AskAiCardProps) {
   }
 
   // Render logic
-  const chips = (assistant.chips.home ?? []).slice(0, 3)
+  const chips = pageChips ?? (assistant.chips.home ?? []).slice(0, 3)
 
   return (
     <div className="flex flex-col gap-3">
@@ -55,13 +70,16 @@ export default function AskAiCard({ enabled }: AskAiCardProps) {
         <input
           value={question}
           onChange={(event) => setQuestion(event.target.value)}
-          placeholder={copy.ask.placeholder}
-          aria-label={copy.ask.label}
+          placeholder={placeholder ?? copy.ask.placeholder}
+          aria-label={label ?? copy.ask.label}
           className="min-w-0 flex-1 bg-transparent text-[0.9375rem] text-foreground outline-none placeholder:text-muted-foreground"
         />
         <Button type="submit">{copy.ask.button}</Button>
       </form>
-      <ul className="flex flex-wrap gap-2">
+      <ul className="flex flex-wrap items-center gap-2">
+        {chipsLabel ? (
+          <li className="text-[0.8125rem] text-muted-foreground">{chipsLabel}</li>
+        ) : null}
         {chips.map((chip) => (
           <li key={chip}>
             <button
@@ -74,6 +92,7 @@ export default function AskAiCard({ enabled }: AskAiCardProps) {
           </li>
         ))}
       </ul>
+      {note ? <p className="text-caption text-muted-foreground">{note}</p> : null}
     </div>
   )
 }

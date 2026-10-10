@@ -2552,3 +2552,30 @@ export const returnRequestLine = pgTable(
     check('return_request_line_quantity_check', sql`${t.quantity} > 0`),
   ],
 )
+
+/** The range a saved report runs over: a preset (`30d`) or fixed `from`/`to` days. */
+export type SavedReportRange = {
+  key: 'today' | '7d' | '30d' | '90d' | 'custom'
+  from?: string | undefined
+  to?: string | undefined
+}
+
+/**
+ * A report a merchant saved from Analytics → Reports under their own name: which report
+ * (`report_slug`, from the catalogue) and the range it runs over. Store-wide, like the
+ * catalogue; `created_by` is the staff user who saved it.
+ */
+export const savedReport = pgTable(
+  'saved_report',
+  {
+    id: id(),
+    storeId: storeId(),
+    name: text('name').notNull(),
+    reportSlug: text('report_slug').notNull(),
+    range: jsonb('range').$type<SavedReportRange>().notNull(),
+    createdBy: text('created_by'),
+    createdAt: createdAt(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index('saved_report_store_created').on(t.storeId, t.createdAt)],
+)
