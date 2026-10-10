@@ -18,7 +18,15 @@ import { customizeContent } from '@/data/customize'
 import { useCopy } from '@/hooks/use-copy'
 import { CHROME_FOCUS, CHROME_TRANSITION } from '@/lib/customize-chrome'
 
-export type RailPanel = 'add' | 'ai' | 'pages' | 'sections' | 'media' | 'theme' | 'settings'
+export type RailPanel =
+  | 'add'
+  | 'ai'
+  | 'pages'
+  | 'sections'
+  | 'media'
+  | 'theme'
+  | 'settings'
+  | 'help'
 
 type CustomizeRailProps = {
   active: RailPanel
@@ -100,12 +108,16 @@ export default function CustomizeRail({ active, onChange, store }: CustomizeRail
       <RailTip
         label={copy.help}
         trigger={
-          <a
-            href={EDITOR_HELP_URL}
-            target="_blank"
-            rel="noreferrer"
+          <button
+            type="button"
+            onClick={() => onChange('help')}
             aria-label={copy.help}
-            className={ITEM}
+            aria-current={active === 'help' ? 'true' : undefined}
+            className={cn(
+              ITEM,
+              active === 'help' &&
+                'bg-primary-soft text-primary hover:bg-primary-soft hover:text-primary',
+            )}
           />
         }
       >

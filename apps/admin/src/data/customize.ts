@@ -58,6 +58,27 @@ export const customizeContent = {
     offBody: 'Turn on the AI assistant in Settings → AI to ask it about this page.',
     offAction: 'Open AI settings',
   },
+  help: {
+    shortcuts: 'Keyboard shortcuts',
+    keys: {
+      undo: 'Undo',
+      redo: 'Redo',
+      duplicate: 'Duplicate selected',
+      copy: 'Copy selected',
+      paste: 'Paste',
+      move: 'Move up or down',
+      remove: 'Remove selected',
+      deselect: 'Deselect',
+      fullView: 'Full view',
+    },
+    guide: 'Open the editor guide',
+    whatsNew: 'What’s new',
+    news: [
+      'Theme settings: colours, fonts and buttons in one place',
+      'Page settings: your home page’s Google listing and social image',
+      'Full view: press \\ to see the page alone',
+    ],
+  },
   themePanel: {
     reset: 'Reset to preset',
     resetHelp: 'Put back every setting of the preset this theme started from',
@@ -179,8 +200,9 @@ export const customizeContent = {
     label: 'Template',
     default: 'Default',
     create: 'Create template',
-    search: 'Search templates',
+    search: 'Search pages and templates',
     empty: 'No templates found',
+    keys: { move: '↑↓ move', open: 'Enter open', close: 'Esc close' },
     names: {
       home: 'Home page',
       product: 'Products',
@@ -611,6 +633,7 @@ export const customizeContent = {
     newPage: 'New page',
     media: 'Media',
     settings: 'Page settings',
+    help: 'Help',
   },
   link: {
     placeholder: 'Choose a link',

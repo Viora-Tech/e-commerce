@@ -22,6 +22,7 @@ import AddSectionPanel from './add-section-panel'
 import AiPanel from './ai-panel'
 import CustomizeRail, { type RailPanel } from './customize-rail'
 import FullViewExit from './full-view-exit'
+import HelpPanel from './help-panel'
 import MediaPanel from './media-panel'
 import PageSettingsPanel from './page-settings-panel'
 import PanelIdentity from './panel-identity'
@@ -106,6 +107,7 @@ export default function CustomizeLayout({
   const titles: Partial<Record<RailPanel, string>> = {
     media: panels.media,
     settings: panels.settings,
+    help: panels.help,
   }
   const title = titles[panel]
   const content: Record<RailPanel, ReactNode> = {
@@ -115,6 +117,7 @@ export default function CustomizeLayout({
     sections: <SectionsPanel onOpenTheme={() => setPanel('theme')} templateLabel={templateLabel} />,
     media: <MediaPanel />,
     theme: settings,
+    help: <HelpPanel />,
     settings: (
       <PageSettingsPanel
         template={template}

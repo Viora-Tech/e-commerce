@@ -68,9 +68,10 @@ const ICON_BUTTON =
 /**
  * Customize's bar (Figma 369:4810): back to Themes, theme name and Live chip on the left; the
  * page switcher centred; device switch, the "1440 PX / 60 %" zoom readout, "AI connected", undo
- * and redo, Preview, Publish and the member's avatar on the right.
- * On the live theme Publish commits the saved drafts (what Save did); on a draft theme the key
- * button stays Save and the menu publishes the whole theme.
+ * and redo, Preview, Save, Publish and the member's avatar on the right.
+ * With changes the chip reads "Unsaved changes" (Figma 369:126247). On a draft theme Save
+ * (outline, only with changes) keeps them and Publish (the key button) makes the theme live,
+ * saving first. On the live theme saving is publishing, so Publish alone commits the changes.
  */
 export default function CustomizeTopBar({
   name,
@@ -113,7 +114,11 @@ export default function CustomizeTopBar({
           <h1 className="truncate text-sm leading-5 font-semibold text-foreground normal-case">
             {displayThemeName(name)}
           </h1>
-          <StatusChip>{live ? editor.live : editor.draft}</StatusChip>
+          {dirty ? (
+            <StatusChip tone="attention">{copy.unsaved}</StatusChip>
+          ) : (
+            <StatusChip>{live ? editor.live : editor.draft}</StatusChip>
+          )}
         </div>
       </div>
       <div className="flex items-center gap-2">{pickers}</div>
@@ -169,15 +174,8 @@ export default function CustomizeTopBar({
         >
           <Redo aria-hidden weight="regular" />
         </button>
-        <span
-          role="status"
-          className="flex shrink-0 items-center gap-1.5 text-caption text-muted-foreground"
-          aria-live="polite"
-        >
-          {dirty ? (
-            <span aria-hidden className="size-1.5 shrink-0 rounded-full bg-warning" />
-          ) : null}
-          <span className="hidden 2xl:inline">{dirty ? copy.unsaved : copy.upToDate}</span>
+        <span role="status" aria-live="polite" className="sr-only">
+          {dirty ? copy.unsaved : copy.upToDate}
         </span>
         <Button
           variant="outline"
@@ -205,21 +203,25 @@ export default function CustomizeTopBar({
             <DropdownMenuItem disabled={!dirty || saving} onClick={onDiscard}>
               {copy.discard}
             </DropdownMenuItem>
-            {!live && canPublish ? (
-              <DropdownMenuItem
-                disabled={dirty || publishing}
-                onClick={onPublish}
-                title={dirty ? editor.publishUnsaved : undefined}
-              >
-                {publishing ? editor.publishing : editor.publish}
-              </DropdownMenuItem>
-            ) : null}
           </DropdownMenuContent>
         </DropdownMenu>
-        <Button onClick={onSave} disabled={!dirty || saving}>
-          {saving ? <Spinner /> : null}
-          {live ? copy.publish : copy.save}
-        </Button>
+        {!live && dirty ? (
+          <Button variant="outline" onClick={onSave} disabled={saving || publishing}>
+            {saving && !publishing ? <Spinner /> : null}
+            {copy.save}
+          </Button>
+        ) : null}
+        {live ? (
+          <Button onClick={onSave} disabled={!dirty || saving}>
+            {saving ? <Spinner /> : null}
+            {copy.publish}
+          </Button>
+        ) : canPublish ? (
+          <Button onClick={onPublish} disabled={saving || publishing}>
+            {publishing ? <Spinner /> : null}
+            {publishing ? editor.publishing : copy.publish}
+          </Button>
+        ) : null}
         <UserMenu
           user={user}
           bugReports={false}

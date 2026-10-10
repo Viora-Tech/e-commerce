@@ -84,7 +84,8 @@ banner" (`inspector-breadcrumb.tsx`), and each container in it selects that cont
 
 - **Rail** (`customize-rail.tsx`, 64px): the store's tile (its live theme's logo, else its
   initial) on top; Add, AI, Pages, Layers (Sections), Media, Theme settings and Store settings in
-  the middle; Help (the merchant guide's editor page) pinned at the bottom. The open tab wears
+  the middle; Help pinned at the bottom, which opens the Help panel (`help-panel.tsx`, Figma
+  381:8563: every real shortcut with its keys, the merchant guide's editor page and what's new). The open tab wears
   `bg-primary-soft`; each button names itself in a tooltip.
 - **Left panel** (304px): Add and Layers open on `panel-identity.tsx` (`<Store> · <Template>` and
   the store's domain over a hairline, Figma 369:121298); every panel then has its own head
@@ -122,7 +123,10 @@ banner" (`inspector-breadcrumb.tsx`), and each container in it selects that cont
   more letters is capitalised, so `ZERO DRIFT` reads "Zero Drift"), the page switcher in Figma's
   muted 240px style, a green "AI connected" chip when an AI gateway is set up, and the member's
   avatar with the account menu at the far right. The page reads the store, the member and
-  `ai.status` on the server.
+  `ai.status` on the server. With changes the chip reads "Unsaved changes" (attention tone);
+  Save and Publish follow Figma 369:126247: on a draft theme Save (outline, only with changes)
+  commits the drafts and Publish (key button) saves first and then publishes the theme; on the
+  live theme saving is publishing, so Publish alone commits. Discard stays in ⋯.
 - **Type and icons**: DM Sans everywhere in the chrome, Puck's own parts included
   (`--puck-font-family` names `--font-primary`), and the chrome drawn inside the canvas iframe
   (block toolbar and its menus) is pinned to DM Sans too, since the frame's body uses the
@@ -182,7 +186,9 @@ The rail's Pages and Media tabs:
   usage counts, the ⋯ manager (rename, duplicate, delete) and "Create template". Picking one
   switches the canvas as the picker does. In the panel (`fill`) it takes Figma 381:5919's look:
   a 40px search, uppercase PAGES / TEMPLATES labels, 35px rows with a page glyph and "Default",
-  the open one tinted `bg-primary-soft` instead of ticked.
+  the open one tinted `bg-primary-soft` instead of ticked. The top bar's page switcher popover
+  (Figma 369:125349, 360px) uses the same list with each kind's glyph, adds "New page" under the
+  pages and the "↑↓ move · Enter open · Esc close" keys at its foot.
 - **Media** (`media-panel.tsx`, Figma 381:6945) is a drop zone (drop files, or click to browse;
   several at once), a search and the store's pictures as tiles with their file names
   (`fileName` in `components/media/file-meta.ts` drops the media id the upload adds) and a

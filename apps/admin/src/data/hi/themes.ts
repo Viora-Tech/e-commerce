@@ -119,6 +119,27 @@ export default [
     hideRight: 'सेटिंग्स पैनल छिपाएँ',
     showRight: 'सेटिंग्स पैनल दिखाएँ',
   }),
+  translation(customizeContent.help, {
+    shortcuts: 'कीबोर्ड शॉर्टकट',
+    keys: {
+      undo: 'वापस लें',
+      redo: 'फिर से करें',
+      duplicate: 'चुने हुए की कॉपी बनाएँ',
+      copy: 'चुने हुए को कॉपी करें',
+      paste: 'पेस्ट करें',
+      move: 'ऊपर या नीचे ले जाएँ',
+      remove: 'चुने हुए को हटाएँ',
+      deselect: 'चुनाव हटाएँ',
+      fullView: 'पूरा पेज देखें',
+    },
+    guide: 'एडिटर गाइड खोलें',
+    whatsNew: 'नया क्या है',
+    news: [
+      'थीम सेटिंग्स: रंग, फ़ॉन्ट और बटन एक जगह',
+      'पेज सेटिंग्स: होम पेज की Google लिस्टिंग और सोशल इमेज',
+      'पूरा पेज: सिर्फ़ पेज देखने के लिए \\ दबाएँ',
+    ],
+  }),
   translation(customizeContent.themePanel, {
     reset: 'प्रीसेट पर वापस',
     resetHelp: 'यह थीम जिस प्रीसेट से शुरू हुई, उसकी हर सेटिंग वापस लाएँ',
@@ -239,6 +260,7 @@ export default [
     newPage: 'नया पेज',
     media: 'मीडिया',
     settings: 'पेज सेटिंग्स',
+    help: 'मदद',
   }),
   translation(customizeContent.groups, {
     header: 'हेडर',
