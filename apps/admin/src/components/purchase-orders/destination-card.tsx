@@ -5,6 +5,7 @@ import { Field, FieldGroup, FieldLabel } from '@commerce/ui/shadcn/field'
 import { Input } from '@commerce/ui/shadcn/input'
 import LocationSelect, { type StoreLocation } from '@/components/inventory/location-select'
 import { purchaseOrderFormContent } from '@/data/inventory'
+import { useCopy } from '@/hooks/use-copy'
 
 type DestinationCardProps = {
   locations: StoreLocation[]
@@ -16,8 +17,6 @@ type DestinationCardProps = {
   onChange: (patch: { locationId?: string; expectedAt?: string }) => void
 }
 
-const copy = purchaseOrderFormContent.destination
-
 /** Where the stock lands and when it is expected. */
 export default function DestinationCard({
   locations,
@@ -27,6 +26,9 @@ export default function DestinationCard({
   disabled,
   onChange,
 }: DestinationCardProps) {
+  // Hooks
+  const { destination: copy } = useCopy(purchaseOrderFormContent)
+
   return (
     <Card size="form">
       <CardHeader>

@@ -265,8 +265,28 @@ const platformTemplates = {
   },
 } satisfies Record<'staff_invite', TemplateCopy>
 
+const poLabel = (d: TemplateData): string => d.purchaseOrder?.numberLabel ?? ''
+const poExpected = (d: TemplateData): string =>
+  d.purchaseOrder?.expectedLabel
+    ? ` We expect it to arrive by ${d.purchaseOrder.expectedLabel}.`
+    : ''
+
+/** Messages a store sends to its suppliers, not its shoppers. */
+const supplierTemplates = {
+  purchase_order: {
+    subject: (d) => `${d.storeName}: purchase order ${poLabel(d)}`,
+    heading: (d) => `Hello ${d.purchaseOrder?.supplierName || 'there'}`,
+    intro: (d) =>
+      `Please find purchase order ${poLabel(d)} from ${d.storeName} attached (${d.totalLabel}).${poExpected(d)}`,
+    outro: (d) =>
+      `${d.purchaseOrder?.message ? `${d.purchaseOrder.message} ` : ''}Please confirm the order and the dispatch date by replying to this email.`,
+    whatsapp: (d) => `${d.storeName}: purchase order ${poLabel(d)} (${d.totalLabel}).`,
+  },
+} satisfies Record<'purchase_order', TemplateCopy>
+
 export const templateContent: Record<TemplateId, TemplateCopy> = {
   ...platformTemplates,
+  ...supplierTemplates,
   ...balanceTemplates,
   ...transferTemplates,
   ...backInStockTemplates,

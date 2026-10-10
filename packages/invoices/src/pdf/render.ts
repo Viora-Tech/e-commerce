@@ -6,11 +6,13 @@
 import { existsSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { type PurchaseOrderSheet, poSheetText } from '@commerce/core/inventory'
 import { renderToBuffer } from '@react-pdf/renderer'
 import { zipSync } from 'fflate'
 import { PDFDocument } from 'pdf-lib'
+import { purchaseOrderElement } from '../purchase-order/purchase-order-pdf'
 import { documentElement, type TemplateProps } from '../templates'
-import { registerFonts } from './fonts'
+import { fontStack, registerFonts } from './fonts'
 
 /**
  * `fonts/` beside `src/`. Bundlers that move this file (Next server chunks)
@@ -33,6 +35,15 @@ export async function renderDocumentToBuffer(props: TemplateProps): Promise<Uint
   const dir = fontsDir()
   registerFonts((file) => join(dir, file))
   const buf = await renderToBuffer(documentElement(props))
+  return new Uint8Array(buf)
+}
+
+/** A purchase order for the supplier (print or email attachment), in the Inter stack. */
+export async function renderPurchaseOrderToBuffer(sheet: PurchaseOrderSheet): Promise<Uint8Array> {
+  const dir = fontsDir()
+  registerFonts((file) => join(dir, file))
+  const fontFamily = fontStack('inter', poSheetText(sheet))
+  const buf = await renderToBuffer(purchaseOrderElement(sheet, fontFamily))
   return new Uint8Array(buf)
 }
 

@@ -362,6 +362,8 @@ export type PickProductVariant = {
   title: string
   sku: string | null
   pricePaise: number
+  /** The variant's cost (weighted average landed cost); a purchase order in rupees starts from it. */
+  costPaise: number | null
   available: number
 }
 
@@ -428,6 +430,7 @@ export async function pickProducts(
       title: variant.title,
       sku: variant.sku,
       pricePaise: variant.pricePaise,
+      costPaise: variant.costPaise,
       onHand: sellableStock.onHand,
       reserved: sellableStock.reserved,
     })
@@ -452,6 +455,7 @@ export async function pickProducts(
         title: v.title,
         sku: v.sku,
         pricePaise: v.pricePaise,
+        costPaise: v.costPaise,
         available: Math.max(0, (v.onHand ?? 0) - (v.reserved ?? 0)),
       }))
     return {

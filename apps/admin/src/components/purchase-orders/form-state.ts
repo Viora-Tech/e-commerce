@@ -151,3 +151,46 @@ export function toInput(
       .filter((l) => l.quantity > 0),
   }
 }
+
+/** What the Select products dialog hands back, cut down to what a purchase order line needs. */
+export type PickedForPo = {
+  product: {
+    title: string
+    imageUrl: string | null
+    variants: { id: string; title: string; sku: string | null; costPaise: number | null }[]
+  }
+  variantIds: string[]
+}[]
+
+/**
+ * The order's lines plus every variant ticked in Select products, in the dialog's order. A
+ * variant already on the order is skipped rather than doubled. A new line starts at quantity
+ * 1 and, when buying in rupees, at the variant's current cost; other currencies start blank.
+ */
+export function addPickedLines(
+  lines: PoLine[],
+  picked: PickedForPo,
+  currency: PurchaseCurrency,
+): PoLine[] {
+  const have = new Set(lines.map((l) => l.variantId))
+  const added: PoLine[] = []
+  for (const { product, variantIds } of picked) {
+    for (const v of product.variants) {
+      if (!variantIds.includes(v.id) || have.has(v.id)) continue
+      have.add(v.id)
+      added.push({
+        variantId: v.id,
+        productTitle: product.title,
+        variantTitle: v.title,
+        sku: v.sku,
+        imageUrl: product.imageUrl,
+        quantity: '1',
+        unitPrice: currency === 'INR' && v.costPaise ? minorToText(v.costPaise, 'INR') : '',
+        hsnCode: '',
+        received: 0,
+        rejected: 0,
+      })
+    }
+  }
+  return [...lines, ...added]
+}

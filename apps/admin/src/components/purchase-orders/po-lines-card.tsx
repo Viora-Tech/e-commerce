@@ -1,19 +1,24 @@
 'use client'
 
 import { type PurchaseCurrency, parseAmountMinor } from '@commerce/core/inventory'
-import { Trash2 } from '@commerce/ui/icons'
-import { Card, CardContent, CardHeader, CardTitle } from '@commerce/ui/shadcn/card'
+import { Plus, Trash2 } from '@commerce/ui/icons'
+import { Button } from '@commerce/ui/shadcn/button'
+import { Card, CardHeader, CardTitle } from '@commerce/ui/shadcn/card'
 import { Input } from '@commerce/ui/shadcn/input'
-import VariantPicker, { type VariantHit, variantLabel } from '@/components/inventory/variant-picker'
+import { useState } from 'react'
+import { variantLabel } from '@/components/inventory/variant-picker'
 import KitIconButton from '@/components/kit/kit-icon-button'
 import KitThumb from '@/components/kit/kit-thumb'
+import SelectProductsDialog, {
+  type PickedProducts,
+} from '@/components/products/select-products-dialog'
 import { purchaseOrderFormContent } from '@/data/inventory'
+import { useCopy } from '@/hooks/use-copy'
 import { formatMinor } from '@/lib/money'
-import { type PoLine, toCount } from './form-state'
+import { addPickedLines, type PoLine, toCount } from './form-state'
 
 type PoLinesCardProps = {
   lines: PoLine[]
-  locationId: string
   currency: PurchaseCurrency
   /** Products, quantities and prices are fixed once the order is placed. */
   locked: boolean
@@ -24,24 +29,7 @@ type PoLinesCardProps = {
   onChange: (lines: PoLine[]) => void
 }
 
-const copy = purchaseOrderFormContent.lines
 const ROW = 'grid-cols-[minmax(0,1fr)_4.5rem_6.5rem_6rem_6.5rem_2.5rem]'
-
-/** A new line's price: the variant's cost when buying in rupees, blank otherwise. */
-function lineFromHit(hit: VariantHit, currency: PurchaseCurrency): PoLine {
-  return {
-    variantId: hit.variantId,
-    productTitle: hit.productTitle,
-    variantTitle: hit.variantTitle,
-    sku: hit.sku,
-    imageUrl: hit.imageUrl,
-    quantity: '1',
-    unitPrice: currency === 'INR' && hit.costPaise ? String(hit.costPaise / 100) : '',
-    hsnCode: '',
-    received: 0,
-    rejected: 0,
-  }
-}
 
 function arrived(line: PoLine): string {
   const base = `${line.received} / ${toCount(line.quantity)}`
@@ -52,16 +40,22 @@ function badPrice(line: PoLine, currency: PurchaseCurrency): boolean {
   return line.unitPrice.trim() !== '' && parseAmountMinor(line.unitPrice, currency) === null
 }
 
-/** Variants on the order with quantity, unit price in the order's currency and HSN code. */
+/**
+ * Variants on the order with quantity, unit price in the order's currency and HSN code.
+ * Products are added through the shared Select products dialog.
+ */
 export default function PoLinesCard({
   lines,
-  locationId,
   currency,
   locked,
   hsnLocked,
   showReceived,
   onChange,
 }: PoLinesCardProps) {
+  // Hooks
+  const { lines: copy } = useCopy(purchaseOrderFormContent)
+  const [picking, setPicking] = useState(false)
+
   // Helpers
   const patchLine = (index: number, patch: Partial<PoLine>) =>
     onChange(lines.map((l, i) => (i === index ? { ...l, ...patch } : l)))
@@ -73,7 +67,7 @@ export default function PoLinesCard({
     )
 
   // Event handlers
-  const handlePick = (hit: VariantHit) => onChange([...lines, lineFromHit(hit, currency)])
+  const handlePick = (picked: PickedProducts) => onChange(addPickedLines(lines, picked, currency))
 
   const handleRemove = (index: number) => onChange(lines.filter((_, i) => i !== index))
 
@@ -87,17 +81,13 @@ export default function PoLinesCard({
             {lines.length}
           </span>
         </CardTitle>
+        {locked ? null : (
+          <Button variant="outline" size="sm" onClick={() => setPicking(true)}>
+            <Plus aria-hidden="true" />
+            {copy.add}
+          </Button>
+        )}
       </CardHeader>
-      {locked ? null : (
-        <CardContent className="pb-4">
-          <VariantPicker
-            placeholder={copy.search}
-            locationId={locationId}
-            pickedIds={lines.map((l) => l.variantId)}
-            onPick={handlePick}
-          />
-        </CardContent>
-      )}
       {lines.length === 0 ? (
         <p className="border-line border-t px-5 py-10 text-center text-body text-muted-foreground">
           {copy.empty}
@@ -175,6 +165,9 @@ export default function PoLinesCard({
             </li>
           ))}
         </ul>
+      )}
+      {locked ? null : (
+        <SelectProductsDialog open={picking} onOpenChange={setPicking} onConfirm={handlePick} />
       )}
     </Card>
   )

@@ -262,3 +262,13 @@ export const ApplyDocumentSchema = z
     path: ['currency'],
   })
 export type ApplyDocument = z.infer<typeof ApplyDocumentSchema>
+
+/** "Email to supplier": the PDF goes to `to`, with the merchant's own words above it. */
+export const EmailPurchaseOrderSchema = z.object({
+  id: z.string().uuid(),
+  to: z.string().trim().toLowerCase().email().max(254),
+  message: z.string().trim().max(2000).default(''),
+  /** Drafts only: mark it ordered in the same step, so stock shows as incoming. */
+  markOrdered: z.boolean().default(false),
+})
+export type EmailPurchaseOrderInput = z.input<typeof EmailPurchaseOrderSchema>

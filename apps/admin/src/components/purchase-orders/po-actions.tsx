@@ -2,6 +2,8 @@
 
 import { Button } from '@commerce/ui/shadcn/button'
 import { type PurchaseOrderStatus, purchaseOrderFormContent } from '@/data/inventory'
+import { useCopy } from '@/hooks/use-copy'
+import PoMoreMenu from './po-more-menu'
 
 type PoActionsProps = {
   /** Null while the order is being created. */
@@ -18,11 +20,15 @@ type PoActionsProps = {
   onCancel: () => void
   onReopen: () => void
   onDelete: () => void
+  onPrint: () => void
+  onDownload: () => void
+  onEmail: () => void
 }
 
-const copy = purchaseOrderFormContent
-
-/** Header buttons for each stage: draft, ordered and receiving, then reopen once finished. */
+/**
+ * Header buttons for each stage: draft, ordered and receiving, then reopen once finished.
+ * A saved order that is not cancelled also gets a menu to print, download or email its PDF.
+ */
 export default function PoActions({
   status,
   busy,
@@ -35,11 +41,22 @@ export default function PoActions({
   onCancel,
   onReopen,
   onDelete,
+  onPrint,
+  onDownload,
+  onEmail,
 }: PoActionsProps) {
+  // Hooks
+  const copy = useCopy(purchaseOrderFormContent)
+
   // Early returns
+  const menu =
+    status === null || status === 'cancelled' ? null : (
+      <PoMoreMenu busy={busy} onPrint={onPrint} onDownload={onDownload} onEmail={onEmail} />
+    )
   if (status === 'received' || status === 'closed' || status === 'cancelled') {
     return (
       <>
+        {menu}
         {status === 'cancelled' ? (
           <Button variant="outline" onClick={onDelete} disabled={busy}>
             {copy.delete}
@@ -59,6 +76,7 @@ export default function PoActions({
 
   return receiving ? (
     <>
+      {menu}
       {cancellable ? (
         <Button variant="outline" onClick={onCancel} disabled={busy}>
           {copy.cancel}
@@ -74,6 +92,7 @@ export default function PoActions({
     </>
   ) : (
     <>
+      {menu}
       {status === 'draft' ? (
         <Button variant="outline" onClick={onDelete} disabled={busy}>
           {copy.delete}

@@ -8,6 +8,7 @@ import {
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { toast } from 'sonner'
+import { saveFile } from '@/components/apps/gst-invoices/save-file'
 import ConfirmActionDialog from '@/components/inventory/confirm-action-dialog'
 import type { StoreLocation } from '@/components/inventory/location-select'
 import NotesCard from '@/components/inventory/notes-card'
@@ -20,7 +21,11 @@ import ProoflyPageHeader from '@/components/layout/proofly-page-header'
 import SaveBar from '@/components/layout/save-bar'
 import DocumentsCard from '@/components/purchase-documents/documents-card'
 import type { PickedSupplier } from '@/components/suppliers/new-supplier-dialog'
-import { purchaseOrderFormContent, purchaseOrdersContent } from '@/data/inventory'
+import {
+  type PurchaseOrderStatus,
+  purchaseOrderFormContent,
+  purchaseOrdersContent,
+} from '@/data/inventory'
 import { poCurrencyContent } from '@/data/purchasing'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
@@ -28,6 +33,7 @@ import { routes } from '@/lib/routes'
 import CostSummaryCard from './cost-summary-card'
 import CurrencyCard from './currency-card'
 import DestinationCard from './destination-card'
+import EmailPoDialog, { type EmailPoRequest } from './email-po-dialog'
 import {
   emptyPoForm,
   formProblem,
@@ -51,9 +57,8 @@ type PurchaseOrderFormProps = {
   aiReading: boolean
 }
 
-type Dialog = 'receive' | 'close' | 'cancel' | 'delete' | null
+type Dialog = 'receive' | 'close' | 'cancel' | 'delete' | 'email' | null
 
-const copy = purchaseOrderFormContent
 const LIST = routes.stock.purchaseOrders()
 
 function initialForm(po: LoadedPurchaseOrder | null, locations: StoreLocation[]): PoForm {
@@ -62,7 +67,8 @@ function initialForm(po: LoadedPurchaseOrder | null, locations: StoreLocation[])
   return emptyPoForm(home?.id ?? '')
 }
 
-const message = (err: unknown) => (err instanceof Error ? err.message : copy.saveFailed)
+const isFinished = (status: PurchaseOrderStatus | null | undefined) =>
+  status === 'received' || status === 'closed' || status === 'cancelled'
 
 const isPurchaseCurrency = (c: string): c is PurchaseCurrency =>
   (PURCHASE_CURRENCY_CODES as string[]).includes(c)
@@ -76,6 +82,8 @@ export default function PurchaseOrderForm({
 }: PurchaseOrderFormProps) {
   // Hooks
   const router = useRouter()
+  const copy = useCopy(purchaseOrderFormContent)
+  const { status: statusLabels } = useCopy(purchaseOrdersContent)
   const currencyCopy = useCopy(poCurrencyContent)
   const [form, setForm] = useState<PoForm>(() => initialForm(po, locations))
   const [saved, setSaved] = useState(() => JSON.stringify(initialForm(po, locations)))
@@ -83,6 +91,8 @@ export default function PurchaseOrderForm({
   const [dialog, setDialog] = useState<Dialog>(null)
 
   // Helpers
+  const message = (err: unknown) => (err instanceof Error ? err.message : copy.saveFailed)
+
   const patch = (next: Partial<PoForm>) => setForm((f) => ({ ...f, ...next }))
 
   /**
@@ -115,6 +125,10 @@ export default function PurchaseOrderForm({
       setBusy(false)
     }
   }
+
+  /** Saves unsaved edits first so the PDF matches the screen; false when the form is not valid. */
+  const saveFirst = async () =>
+    JSON.stringify(form) === saved || isFinished(po?.status) || (await persist()) !== null
 
   const reopen = (id: string) =>
     po ? router.refresh() : router.replace(routes.stock.purchaseOrder(id))
@@ -175,9 +189,24 @@ export default function PurchaseOrderForm({
 
   const handleDiscard = () => setForm(JSON.parse(saved) as PoForm)
 
+  const handlePdf = (mode: 'open' | 'download') =>
+    run(async () => {
+      if (!po || !(await saveFirst())) return
+      saveFile(await api.purchaseOrders.pdf({ id: po.id }), mode)
+    })
+
+  const handleEmail = (request: EmailPoRequest) =>
+    run(async () => {
+      if (!po || !(await saveFirst())) return
+      const r = await api.purchaseOrders.email({ id: po.id, ...request })
+      toast.success(r.markedOrdered ? copy.email.sentOrdered(r.to) : copy.email.sent(r.to))
+      setDialog(null)
+      router.refresh()
+    })
+
   // Render logic
   const status = po?.status ?? null
-  const finished = status === 'received' || status === 'closed' || status === 'cancelled'
+  const finished = isFinished(status)
   const draft = status === null || status === 'draft'
   const dirty = JSON.stringify(form) !== saved
   const nothingArrived = (po?.lines ?? []).every((l) => l.received + l.rejected === 0)
@@ -196,7 +225,7 @@ export default function PurchaseOrderForm({
       />
       <ProoflyPageHeader
         title={po ? copy.title(po.number) : copy.newTitle}
-        summary={status ? purchaseOrdersContent.status[status] : undefined}
+        summary={status ? statusLabels[status] : undefined}
         back={{ label: copy.back, href: LIST }}
         actions={
           <PoActions
@@ -211,6 +240,9 @@ export default function PurchaseOrderForm({
             onCancel={() => setDialog('cancel')}
             onReopen={handleReopen}
             onDelete={() => setDialog('delete')}
+            onPrint={() => handlePdf('open')}
+            onDownload={() => handlePdf('download')}
+            onEmail={() => setDialog('email')}
           />
         }
       />
@@ -233,7 +265,6 @@ export default function PurchaseOrderForm({
             />
             <PoLinesCard
               lines={form.lines}
-              locationId={form.locationId}
               currency={form.currency}
               locked={!draft}
               hsnLocked={finished}
@@ -292,6 +323,16 @@ export default function PurchaseOrderForm({
           open={dialog === 'receive'}
           onOpenChange={(open) => setDialog(open ? 'receive' : null)}
           onReceived={() => router.refresh()}
+        />
+      ) : null}
+      {po ? (
+        <EmailPoDialog
+          open={dialog === 'email'}
+          onOpenChange={(open) => setDialog(open ? 'email' : null)}
+          defaultTo={form.supplierEmail}
+          draft={status === 'draft'}
+          busy={busy}
+          onSend={handleEmail}
         />
       ) : null}
       <ConfirmActionDialog
