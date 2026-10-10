@@ -37,7 +37,7 @@ export default async function StorageLargestFiles({ files }: StorageLargestFiles
           <table className="w-full text-body">
             <thead>
               <tr className="text-start text-caption text-muted-foreground">
-                <th className="py-2 text-start font-medium">{copy.name}</th>
+                <th className="w-1/2 py-2 text-start font-medium">{copy.name}</th>
                 <th className="py-2 text-start font-medium">{copy.type}</th>
                 <th className="py-2 text-end font-medium">{copy.size}</th>
                 <th className="py-2 text-end font-medium">{copy.usedOn}</th>

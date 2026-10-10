@@ -23,8 +23,8 @@ type AbandonedDetailProps = {
   checkout: AbandonedCheckout
 }
 
-/** Short reference shown in the title, from the cart id: "#A41F09C2". */
-const refOf = (id: string) => `#${id.slice(0, 8).toUpperCase()}`
+/** Short reference shown in the title, from the end of the cart id (the start is a timestamp): "#9C2F41". */
+const refOf = (id: string) => `#${id.slice(-6).toUpperCase()}`
 
 export default function AbandonedDetail({ checkout }: AbandonedDetailProps) {
   // Hooks
