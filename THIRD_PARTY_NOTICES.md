@@ -50,6 +50,10 @@ Long-form section copy in the theme editor (Rich text, Text) keeps pictures thro
 [`@tiptap/extension-image`](https://github.com/ueberdosis/tiptap) 3.31.3 (MIT, the same Tiptap
 Puck's richtext field is built on), a dependency of `apps/admin` used in
 `apps/admin/src/lib/customize-config.tsx`; no code is copied.
+Merchant passkeys (Account → Sign-in & security, and "Sign in with a passkey" on the admin login)
+use Better Auth's passkey plugin, [`@better-auth/passkey`](https://github.com/better-auth/better-auth)
+1.7.6 (MIT, read from its `package.json` on 2026-10-10), as a dependency of `packages/auth`; it
+runs on the same SimpleWebAuthn packages listed below. No code is copied.
 Shopper sign-in (`packages/core/src/shopper-login/`) uses, without copying code,
 [Better Auth](https://github.com/better-auth/better-auth) 1.7.6 (MIT, already our merchant
 auth) for its Google, Apple and Facebook provider modules and `verifyGoogleIdToken`,

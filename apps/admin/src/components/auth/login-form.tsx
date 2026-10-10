@@ -7,6 +7,7 @@ import { Input } from '@commerce/ui/shadcn/input'
 import { useRouter } from 'next/navigation'
 import { type FormEvent, useEffect, useState } from 'react'
 import OtpInput from '@/components/auth/otp-input'
+import PasskeySignIn from '@/components/auth/passkey-sign-in'
 import { loginContent } from '@/data/login'
 import { useCopy } from '@/hooks/use-copy'
 import { authClient } from '@/lib/auth-client'
@@ -170,6 +171,7 @@ export default function LoginForm() {
           {busy ? copy.sending : head.submit}
         </Button>
       </form>
+      {mode === 'sign-in' ? <PasskeySignIn /> : null}
       <p className="text-body text-helper">
         {mode === 'sign-in' ? copy.newHere(brand) : copy.signUp.haveAccount}{' '}
         <button

@@ -1,8 +1,11 @@
 import { AsyncLocalStorage } from 'node:async_hooks'
+import { passkey } from '@better-auth/passkey'
+import { siteConfig } from '@commerce/config/site'
 import type { Db } from '@commerce/db'
 import { betterAuth } from 'better-auth'
 import { drizzleAdapter } from 'better-auth/adapters/drizzle'
 import { emailOTP, organization } from 'better-auth/plugins'
+import { recordSignIn } from './sign-in-log'
 
 export type SendOtp = (input: { email: string; otp: string; type: string }) => Promise<void>
 
@@ -63,7 +66,7 @@ export type MerchantAuthOptions = {
 }
 
 /**
- * Platform-level auth for merchants and staff. Email OTP only, no passwords.
+ * Platform-level auth for merchants and staff. Email OTP or a passkey, no passwords.
  * One organization = one store (store.organization_id). Better Auth owns these
  * tables; they carry no store_id and sit outside RLS on purpose.
  */
@@ -81,6 +84,23 @@ export function createMerchantAuth(opts: MerchantAuthOptions) {
           : { disableIpTracking: true },
     },
     databaseHooks: {
+      session: {
+        create: {
+          // Account → Sign-in & security lists recent sign-ins. A failed write never blocks
+          // the sign-in itself.
+          after: async (session, ctx) => {
+            await recordSignIn(opts.db, {
+              userId: session.userId,
+              sessionId: session.id,
+              path: ctx?.path,
+              ipAddress: session.ipAddress,
+              userAgent: session.userAgent,
+              headers: ctx?.headers ?? ctx?.request?.headers,
+              trustLocation: opts.trustedProxy === 'cloudflare',
+            }).catch((err: unknown) => console.error('[sign-in log]', err))
+          },
+        },
+      },
       user: {
         update: {
           // A member's photo is set only by the admin API (`account.setAvatar`), which
@@ -102,6 +122,17 @@ export function createMerchantAuth(opts: MerchantAuthOptions) {
         otpLength: 6,
         expiresIn: 10 * 60,
         sendVerificationOTP: ({ email, otp, type }) => opts.sendOtp({ email, otp, type }),
+        // Account → Sign-in & security → Change email: a code to the NEW address (type
+        // `change-email`); the admin API wraps both steps with its own rate limit and the
+        // notice to the old address.
+        changeEmail: { enabled: true },
+      }),
+      // Passkeys (Account → Sign-in & security) and "Sign in with a passkey" on the login page.
+      // The origin is pinned to the admin's own URL rather than read from the request.
+      passkey({
+        rpID: new URL(opts.baseURL).hostname,
+        rpName: siteConfig.brand.name,
+        origin: new URL(opts.baseURL).origin,
       }),
       organization({
         allowUserToCreateOrganization: true,

@@ -4,21 +4,28 @@ import {
   checkRateLimit,
   createMemoryRateLimitStore,
   decodeAvatarDataUrl,
+  deliverPlatformEmailChanged,
+  getPlatformEmail,
   InvalidAvatar,
   MemberProfileInputSchema,
+  type RateLimitRule,
   rateLimitKey,
   retryAfterSeconds,
 } from '@commerce/core'
 import { ORPCError } from '@orpc/server'
 import { z } from 'zod'
+import type { ApiContext } from '../context'
 import { protectedProcedure, storeProcedureDetached } from '../procedures'
 import {
   assertCanLeaveStore,
+  describeSessions,
   forgetStoreMembership,
   LeaveStoreRefused,
   memberProfile,
   memberStores,
+  recentSignIns,
   removeMemberAvatar,
+  sessionTokenFor,
   setMemberAvatar,
   updateMemberProfile,
 } from '../services/account.service'
@@ -26,13 +33,49 @@ import {
 /** In-process fallback, as in the other routers, for hosts that wire no shared store. */
 const fallbackRateLimit = createMemoryRateLimitStore()
 
+const HOUR = 60 * 60 * 1000
+
 /** Photo changes per member: plenty for trying a few crops, too few to fill a bucket. */
-const AVATAR_RULE = { limit: 20, windowMs: 60 * 60 * 1000 }
+const AVATAR_RULE = { limit: 20, windowMs: HOUR }
+
+/** Codes to a new email per member: a few typos' worth, not a mail cannon. */
+const EMAIL_CODE_RULE = { limit: 5, windowMs: HOUR }
+
+/** Tries at the code per member, on top of Better Auth's 3 tries per code. */
+const EMAIL_CONFIRM_RULE = { limit: 10, windowMs: HOUR }
+
+/** Refuses with a plain "try again in N minutes" once `rule` is used up for this member. */
+async function limit(
+  context: ApiContext,
+  scope: string,
+  userId: string,
+  rule: RateLimitRule,
+  message: (minutes: number) => string,
+) {
+  const result = await checkRateLimit(
+    context.rateLimit ?? fallbackRateLimit,
+    rateLimitKey(scope, userId),
+    rule,
+  )
+  if (!result.ok) {
+    throw new ORPCError('TOO_MANY_REQUESTS', {
+      message: message(Math.ceil(retryAfterSeconds(result) / 60)),
+    })
+  }
+}
+
+/** Better Auth's own refusals ("Invalid OTP", "Email already in use") as a 400 the page shows. */
+function authRefusal(fallback: string) {
+  return (err: unknown): never => {
+    const message = err instanceof Error && err.message ? err.message : fallback
+    throw new ORPCError('BAD_REQUEST', { message })
+  }
+}
 
 /**
- * Account: the signed-in member's own profile and stores (avatar menu → Account). Every
- * procedure acts on the caller only; nothing here needs a store permission, because nothing
- * here reads or changes store data beyond the caller's own membership.
+ * Account: the signed-in member's own profile, stores, sign-in and devices (avatar menu →
+ * Account). Every procedure acts on the caller only; nothing here needs a store permission,
+ * because nothing here reads or changes store data beyond the caller's own membership.
  */
 export const accountRouter = {
   profile: protectedProcedure.handler(async ({ context }) => {
@@ -56,16 +99,13 @@ export const accountRouter = {
     .input(z.object({ photo: z.string().max(AVATAR_DATA_URL_MAX) }))
     .handler(async ({ context, input }) => {
       const userId = context.session.user.id
-      const limit = await checkRateLimit(
-        context.rateLimit ?? fallbackRateLimit,
-        rateLimitKey('member-avatar', userId),
+      await limit(
+        context,
+        'member-avatar',
+        userId,
         AVATAR_RULE,
+        (m) => `Too many photo changes. Try again in about ${m} minute(s).`,
       )
-      if (!limit.ok) {
-        throw new ORPCError('TOO_MANY_REQUESTS', {
-          message: `Too many photo changes. Try again in about ${Math.ceil(retryAfterSeconds(limit) / 60)} minute(s).`,
-        })
-      }
       try {
         return await setMemberAvatar(context.db, {
           userId,
@@ -117,12 +157,119 @@ export const accountRouter = {
           headers: context.headers,
           body: { organizationId: input.organizationId },
         })
-        .catch((err: unknown) => {
-          throw new ORPCError('BAD_REQUEST', {
-            message: err instanceof Error ? err.message : 'Could not leave this store',
-          })
-        })
+        .catch(authRefusal('Could not leave this store'))
       if (storeId) await forgetStoreMembership(context.db, storeId, userId)
       return { wasActive: context.session.activeOrganizationId === input.organizationId }
     }),
+
+  /** Sign-in & security: the email they sign in with and their latest sign-ins (masked IPs). */
+  security: protectedProcedure.handler(async ({ context }) => ({
+    email: context.session.user.email,
+    recentSignIns: await recentSignIns(
+      context.db,
+      context.session.user.id,
+      context.session.sessionId,
+    ),
+  })),
+
+  /**
+   * Change email, step 1: Better Auth emails a code to the NEW address. When that address
+   * already has an account Better Auth answers the same but sends nothing, so nobody can probe
+   * which emails are taken.
+   */
+  requestEmailChange: protectedProcedure
+    .input(z.object({ newEmail: z.email().max(254) }))
+    .handler(async ({ context, input }) => {
+      const newEmail = input.newEmail.trim().toLowerCase()
+      if (newEmail === context.session.user.email.toLowerCase()) {
+        throw new ORPCError('BAD_REQUEST', { message: 'That is already your email.' })
+      }
+      await limit(
+        context,
+        'member-email-code',
+        context.session.user.id,
+        EMAIL_CODE_RULE,
+        (m) => `Too many codes asked for. Try again in about ${m} minute(s).`,
+      )
+      await context.auth.api
+        .requestEmailChangeEmailOTP({ headers: context.headers, body: { newEmail } })
+        .catch(authRefusal('Could not send the code. Try again in a minute.'))
+      return { sentTo: newEmail }
+    }),
+
+  /**
+   * Change email, step 2: the code from the new inbox switches the sign-in email, then the
+   * OLD address is told (masked new address, "if this was not you"). The notice is best
+   * effort: the change has already happened.
+   */
+  confirmEmailChange: protectedProcedure
+    .input(
+      z.object({
+        newEmail: z.email().max(254),
+        otp: z
+          .string()
+          .trim()
+          .regex(/^\d{6}$/, 'Enter the 6-digit code'),
+      }),
+    )
+    .handler(async ({ context, input }) => {
+      const oldEmail = context.session.user.email
+      const newEmail = input.newEmail.trim().toLowerCase()
+      await limit(
+        context,
+        'member-email-confirm',
+        context.session.user.id,
+        EMAIL_CONFIRM_RULE,
+        (m) => `Too many tries. Try again in about ${m} minute(s).`,
+      )
+      await context.auth.api
+        .changeEmailEmailOTP({ headers: context.headers, body: { newEmail, otp: input.otp } })
+        .catch(authRefusal('That code did not work. Check it and try again.'))
+      const notice = await deliverPlatformEmailChanged(
+        { oldEmail, newEmail },
+        context.platformEmail ?? getPlatformEmail(),
+      ).catch(() => 'refused' as const)
+      if (notice !== 'sent') {
+        console.warn(`[account] email-changed notice to the old address: ${notice}`)
+      }
+      return { email: newEmail }
+    }),
+
+  /** Every browser signed in as this member, this one first. No session token leaves the server. */
+  sessions: protectedProcedure.handler(async ({ context }) => {
+    const sessions = await context.auth.api.listSessions({ headers: context.headers })
+    return describeSessions(
+      context.db,
+      context.session.user.id,
+      sessions,
+      context.session.sessionId,
+    )
+  }),
+
+  /** Signs one other device out. This browser signs out from the account menu instead. */
+  revokeSession: protectedProcedure
+    .input(z.object({ id: z.string().min(1).max(200) }))
+    .handler(async ({ context, input }) => {
+      if (input.id === context.session.sessionId) {
+        throw new ORPCError('BAD_REQUEST', {
+          message: 'Use Log out in the account menu to sign out of this device.',
+        })
+      }
+      const token = await sessionTokenFor(context.db, context.session.user.id, input.id)
+      if (!token) {
+        throw new ORPCError('NOT_FOUND', { message: 'That device is already signed out.' })
+      }
+      await context.auth.api
+        .revokeSession({ headers: context.headers, body: { token } })
+        .catch(authRefusal('Could not sign that device out. Try again.'))
+      return { ok: true as const }
+    }),
+
+  /** Signs every other device out; this browser stays signed in. */
+  revokeOtherSessions: protectedProcedure.handler(async ({ context }) => {
+    await context.auth.api
+      .revokeOtherSessions({ headers: context.headers })
+      .catch(authRefusal('Could not sign the other devices out. Try again.'))
+    return { ok: true as const }
+  }),
 }

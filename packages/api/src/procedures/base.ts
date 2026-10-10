@@ -5,7 +5,12 @@ import type { ApiContext } from '../context'
 export const base = os.$context<ApiContext>()
 
 type SessionUser = { id: string; email: string; name: string }
-type Session = { user: SessionUser; activeOrganizationId: string | null }
+type Session = {
+  user: SessionUser
+  activeOrganizationId: string | null
+  /** Better Auth's id for this browser's session (Account → Sessions marks it "This device"). */
+  sessionId: string
+}
 
 /** What a handler behind `protectedProcedure` sees. */
 export type SessionContext = ApiContext & { session: Session }
@@ -18,6 +23,7 @@ export const protectedProcedure = base.use(async ({ context, next }) => {
     user: { id: s.user.id, email: s.user.email, name: s.user.name },
     activeOrganizationId:
       (s.session as { activeOrganizationId?: string | null }).activeOrganizationId ?? null,
+    sessionId: s.session.id,
   }
   return next({ context: { session } })
 })

@@ -42,6 +42,8 @@ export const TEMPLATE_IDS: TemplateId[] = [
   'return_received',
   'return_refunded',
   'staff_invite',
+  'email_change_code',
+  'email_changed',
   'purchase_order',
 ]
 
@@ -49,7 +51,11 @@ export const TEMPLATE_IDS: TemplateId[] = [
  * Templates the platform sends about itself (through the platform email account), never a store's
  * own customer messages. They are not in Settings → Notifications and a merchant cannot switch them off.
  */
-export const PLATFORM_TEMPLATE_IDS: readonly TemplateId[] = ['staff_invite']
+export const PLATFORM_TEMPLATE_IDS: readonly TemplateId[] = [
+  'staff_invite',
+  'email_change_code',
+  'email_changed',
+]
 
 /** Human names for the dev preview list and the admin's document-template picker. */
 export const TEMPLATE_NAMES: Record<TemplateId, string> = {
@@ -87,6 +93,8 @@ export const TEMPLATE_NAMES: Record<TemplateId, string> = {
   return_received: 'Return received',
   return_refunded: 'Return refunded',
   staff_invite: 'Staff invitation (platform)',
+  email_change_code: 'Change email: code (platform)',
+  email_changed: 'Change email: notice to old address (platform)',
   purchase_order: 'Purchase order (to supplier)',
 }
 
@@ -114,6 +122,9 @@ function eyebrowFor(template: TemplateId, d: TemplateData): string {
       return 'Gift card'
     case 'staff_invite':
       return 'Team invitation'
+    case 'email_change_code':
+    case 'email_changed':
+      return 'Your sign-in email'
     case 'purchase_order':
       return `Purchase order ${d.purchaseOrder?.numberLabel ?? ''}`.trim()
     case 'checkout_recovery':

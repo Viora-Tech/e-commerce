@@ -263,7 +263,26 @@ const platformTemplates = {
     whatsapp: (d) =>
       `${invitedBy(d)} invited you to help run ${d.storeName} on ${platformName(d)}.${d.actionUrl ? ` Accept: ${d.actionUrl}` : ''}`,
   },
-} satisfies Record<'staff_invite', TemplateCopy>
+  email_change_code: {
+    subject: (d) => `${d.code} is your code to confirm your new ${d.storeName} email`,
+    heading: () => 'Confirm your new email',
+    intro: (d) =>
+      `Enter ${d.code} on the Sign-in & security page to make this the email you sign in to ${d.storeName} with.`,
+    outro: () =>
+      'The code works once and expires in 10 minutes. If you did not ask for this, ignore this email and nothing changes.',
+    whatsapp: (d) => `${d.code} confirms your new ${d.storeName} email. It expires in 10 minutes.`,
+  },
+  email_changed: {
+    subject: (d) => `Your ${d.storeName} sign-in email was changed`,
+    heading: () => 'Your sign-in email was changed',
+    intro: (d) =>
+      `You now sign in to ${d.storeName} with ${d.emailChange?.newEmail ?? 'a new email address'}. Sign-in codes no longer come to this address.`,
+    outro: () =>
+      `If you did not make this change, tell your store owner straight away or write to ${siteConfig.contact.supportEmail}.`,
+    whatsapp: (d) =>
+      `Your ${d.storeName} sign-in email was changed to ${d.emailChange?.newEmail ?? 'a new address'}.`,
+  },
+} satisfies Record<'staff_invite' | 'email_change_code' | 'email_changed', TemplateCopy>
 
 const poLabel = (d: TemplateData): string => d.purchaseOrder?.numberLabel ?? ''
 const poExpected = (d: TemplateData): string =>

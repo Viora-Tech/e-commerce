@@ -19,7 +19,10 @@ let handlers: ReturnType<typeof toNextJsHandler> | undefined
 const authHandlers = () => (handlers ??= toNextJsHandler(auth()))
 const authPost = (request: Request) => authHandlers().POST(request)
 
-export function GET(request: Request): Promise<Response> {
+export async function GET(request: Request): Promise<Response> {
+  if (isBlockedAuthPath(new URL(request.url).pathname)) {
+    return Response.json({ error: 'Not found' }, { status: 404 })
+  }
   return authHandlers().GET(request)
 }
 

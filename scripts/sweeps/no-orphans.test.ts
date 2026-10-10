@@ -18,6 +18,21 @@ type AllowEntry = { file: string; names: string[]; reason: string }
 
 const ALLOWLIST: AllowEntry[] = [
   {
+    file: 'packages/core/src/member-account/profile.ts',
+    names: ['normaliseMemberPhone'],
+    reason: 'the E.164 rule behind MemberProfileInputSchema, exported for its unit test',
+  },
+  {
+    file: 'packages/core/src/member-account/email-change.ts',
+    names: ['maskEmail'],
+    reason: 'the masking rule behind the email-changed notice, exported for its unit test',
+  },
+  {
+    file: 'packages/auth/src/sign-in-log.ts',
+    names: ['maskIp', 'signInMethod'],
+    reason: 'the IP masking and method rules behind recordSignIn, exported for their unit test',
+  },
+  {
     file: 'packages/core/src/inventory/landed-cost.ts',
     names: ['allocate'],
     reason: 'the largest-remainder split behind computeLandedCosts, exported for its unit test',

@@ -1,5 +1,5 @@
 import type { LucideIcon } from '@commerce/ui/icons'
-import { Language, Palette, Store, UserRound } from '@commerce/ui/icons'
+import { Language, Monitor, Palette, ShieldCheck, Store, UserRound } from '@commerce/ui/icons'
 import { routes } from '@/lib/routes'
 
 export type AccountPage = {
@@ -17,6 +17,13 @@ export type AccountPage = {
  */
 export const ACCOUNT_NAV: AccountPage[] = [
   { id: 'profile', href: routes.account.home(), title: 'Profile', icon: UserRound },
+  {
+    id: 'security',
+    href: routes.account.security(),
+    title: 'Sign-in & security',
+    icon: ShieldCheck,
+  },
+  { id: 'sessions', href: routes.account.sessions(), title: 'Sessions', icon: Monitor },
   { id: 'stores', href: routes.account.stores(), title: 'Stores', icon: Store },
   { id: 'language', href: routes.account.language(), title: 'Language & region', icon: Language },
   { id: 'appearance', href: routes.account.appearance(), title: 'Appearance', icon: Palette },
@@ -39,6 +46,8 @@ export const accountContent = {
   pages: {
     account: 'Account',
     profile: 'Profile',
+    security: 'Sign-in & security',
+    sessions: 'Sessions',
     stores: 'Stores',
     language: 'Language & region',
     appearance: 'Appearance',
@@ -82,6 +91,107 @@ export const accountContent = {
     saved: 'Profile saved',
     failed: 'Could not save your profile. Try again.',
     loadFailed: 'Your profile did not load.',
+    retry: 'Try again',
+  },
+  /** "Chrome on Windows", "Safari on iPhone"; any part may be unknown. */
+  device: {
+    label: (browser: string | null, os: string | null) =>
+      browser && os ? `${browser} on ${os}` : (browser ?? os ?? 'Unknown device'),
+    unknownPlace: 'Place unknown',
+    ip: (masked: string) => `IP ${masked}`,
+  },
+  security: {
+    title: 'Sign-in & security',
+    intro: 'How you sign in, and where you signed in lately.',
+    email: {
+      heading: 'Sign-in email',
+      body: 'We send your sign-in codes to this address.',
+      label: 'Email',
+      change: 'Change email',
+    },
+    changeEmail: {
+      title: 'Change your sign-in email',
+      body: 'We send a code to the new address. Your old address gets a note that it changed.',
+      newEmail: 'New email',
+      placeholder: 'you@example.com',
+      send: 'Send code',
+      codeTitle: 'Enter the code',
+      sentTo: (email: string) =>
+        `We sent a 6-digit code to ${email}. Not there in a few minutes? Check the address, or it may already belong to another account.`,
+      code: 'Code',
+      confirm: 'Change email',
+      back: 'Use a different email',
+      cancel: 'Cancel',
+      done: (email: string) => `You now sign in with ${email}`,
+      invalidEmail: 'Enter a full email address, like you@example.com',
+      failed: 'Could not change your email. Try again.',
+    },
+    passkeys: {
+      heading: 'Passkeys',
+      body: 'Sign in with your fingerprint, face or screen lock instead of a code. Each device or password manager keeps its own passkey.',
+      add: 'Add a passkey',
+      empty: 'No passkeys yet. Add one on each device you use.',
+      unsupported: 'This browser cannot make passkeys. Try Chrome, Safari or Edge.',
+      unnamed: 'Passkey',
+      added: (date: string) => `Added ${date}`,
+      synced: 'Synced',
+      rename: 'Rename',
+      remove: 'Remove',
+      nameLabel: 'Passkey name',
+      namePlaceholder: 'e.g. Work laptop',
+      save: 'Save',
+      cancel: 'Cancel',
+      created: 'Passkey added',
+      renamed: 'Passkey renamed',
+      removed: 'Passkey removed',
+      failed: 'That did not work. Try again.',
+      cancelled: 'Passkey not added',
+      removeDialog: {
+        title: (name: string) => `Remove ${name}?`,
+        body: 'You will not be able to sign in with it any more. You can still sign in with a code by email.',
+        confirm: 'Remove passkey',
+        cancel: 'Cancel',
+      },
+    },
+    recent: {
+      heading: 'Recent sign-ins',
+      body: 'The last 10 times someone signed in to your account. Not you? Sign the device out on Sessions and change your email.',
+      empty: 'No sign-ins recorded yet. New sign-ins show here.',
+      thisDevice: 'This device',
+      methods: { email_otp: 'Code by email', passkey: 'Passkey', other: 'Other' },
+    },
+    loadFailed: 'This page did not load.',
+    retry: 'Try again',
+  },
+  sessions: {
+    title: 'Sessions',
+    intro: (count: number) =>
+      count === 1 ? 'Signed in on 1 device.' : `Signed in on ${count} devices.`,
+    heading: 'Where you are signed in',
+    body: 'Sign out of any device you do not recognise or no longer use.',
+    thisDevice: 'This device',
+    signedIn: (when: string) => `Signed in ${when}`,
+    lastActive: (when: string) => `Active ${when}`,
+    signOut: 'Sign out',
+    signOutOthers: 'Sign out everywhere else',
+    onlyThis: 'This is the only device signed in.',
+    note: 'A device you sign out may keep an open page for up to 5 minutes; after that it has to sign in again.',
+    signOutDialog: {
+      title: (device: string) => `Sign out ${device}?`,
+      body: 'That device has to sign in again with a code or passkey.',
+      confirm: 'Sign out',
+      cancel: 'Cancel',
+    },
+    othersDialog: {
+      title: 'Sign out everywhere else?',
+      body: 'Every other phone and computer has to sign in again. This one stays signed in.',
+      confirm: 'Sign out others',
+      cancel: 'Cancel',
+    },
+    signedOut: 'Device signed out',
+    othersSignedOut: 'Signed out everywhere else',
+    failed: 'That did not work. Try again.',
+    loadFailed: 'Your devices did not load.',
     retry: 'Try again',
   },
   stores: {

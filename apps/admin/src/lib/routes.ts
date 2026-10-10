@@ -17,6 +17,8 @@ export const routes = {
   account: {
     /** Profile: the page the account menu's "Account" opens. */
     home: () => '/account',
+    security: () => '/account/security',
+    sessions: () => '/account/sessions',
     stores: () => '/account/stores',
     language: () => '/account/language',
     appearance: () => '/account/appearance',
