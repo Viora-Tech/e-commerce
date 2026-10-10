@@ -26,6 +26,7 @@ import {
   convertStoreDraft,
   draftTiles,
   getDraft,
+  getStoreAbandoned,
   listStoreAbandoned,
   listStoreDrafts,
   recordInvoiceSent,
@@ -62,6 +63,7 @@ import {
 } from '../services/shipping.service'
 
 const storefrontUrl = () => loadEnv(process.env).STOREFRONT_URL
+const recoveryLink = () => ({ settingsSecret: settingsSecret(), storefrontUrl: storefrontUrl() })
 
 /** What "Mark as" on the order page records; the statuses are then derived. */
 const change = z.enum(ORDER_MARKS)
@@ -475,6 +477,12 @@ export const ordersRouter = {
     .input(z.object({ days: z.number().int().min(1).max(90).optional() }).optional())
     .handler(({ context, input }) =>
       storeAbandonedStats(context.tx, context.scope.storeId, input?.days),
+    ),
+
+  getAbandoned: can(permissions.ORDERS_READ)
+    .input(z.object({ id: z.uuid() }))
+    .handler(({ context, input }) =>
+      getStoreAbandoned(context.tx, context.scope.storeId, input.id, recoveryLink()),
     ),
 
   sendRecovery: can(permissions.ORDERS_WRITE)

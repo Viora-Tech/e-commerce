@@ -155,6 +155,7 @@ export const abandonedContent = {
   status: { open: 'Not recovered', sent: 'Reminder sent', recovered: 'Recovered' },
   anonymous: 'No contact',
   itemCount: (n: number) => (n === 1 ? '1 item' : `${n} items`),
+  view: 'View checkout',
   send: 'Send recovery email',
   sending: 'Sending',
   sent: (n: number) => (n === 1 ? 'Recovery email sent' : `Recovery message sent on ${n} channels`),

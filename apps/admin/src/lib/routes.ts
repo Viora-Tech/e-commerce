@@ -26,6 +26,7 @@ export const routes = {
     newDraft: () => '/orders/drafts/new',
     draft: (draftId: string) => `/orders/drafts/${id(draftId)}`,
     abandonedCheckouts: () => '/orders/abandoned-checkouts',
+    abandonedCheckout: (cartId: string) => `/orders/abandoned-checkouts/${id(cartId)}`,
     shipments: () => '/orders/shipments',
     returns: () => '/orders/returns',
     returnDetail: (returnId: string) => `/orders/returns/${id(returnId)}`,
