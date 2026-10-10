@@ -3,9 +3,11 @@
 import { ChevronLeftIcon, ChevronRightIcon } from '@commerce/ui/icons'
 import { cn } from '@commerce/ui/lib/utils'
 import { Button } from '@commerce/ui/shadcn/button'
+import Link from 'next/link'
 import { useState } from 'react'
 import { appsContent } from '@/data/apps'
 import { useCopy } from '@/hooks/use-copy'
+import { routes } from '@/lib/routes'
 import type { AppSummary } from './app-card'
 import AppLogo from './app-logo'
 
@@ -45,6 +47,13 @@ export default function AppsHero({ apps, busyId, onInstall }: AppsHeroProps) {
         <div className="flex items-center gap-2.5 pt-1.5">
           <Button loading={busyId === app.id} onClick={() => onInstall(app)}>
             {copy.install}
+          </Button>
+          <Button
+            variant="ghost"
+            nativeButton={false}
+            render={<Link href={routes.apps.page(app.id)} />}
+          >
+            {copy.learnMore}
           </Button>
         </div>
         <div className="mt-auto flex items-center gap-3 pt-6">

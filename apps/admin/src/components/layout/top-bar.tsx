@@ -20,7 +20,7 @@ type TopBarProps = {
   storefrontUrl: string
   /** Adds "Report a bug" to the account menu (test server only). */
   bugReports: boolean
-  /** The page has scrolled: the bar turns to glass. */
+  /** The page has scrolled (kept for callers; the bar stays flat so the panel's top corners show). */
   scrolled?: boolean
 }
 
@@ -53,7 +53,7 @@ export default function TopBar({ user, storefrontUrl, bugReports, scrolled = fal
   return (
     <header
       data-scrolled={scrolled || undefined}
-      className="relative z-20 flex h-14 shrink-0 items-center gap-2 bg-sidebar px-3 transition-shadow duration-200 data-[scrolled]:glass-bar md:pr-4 md:pl-1"
+      className="relative z-20 flex h-14 shrink-0 items-center gap-2 bg-sidebar px-3 md:pr-4 md:pl-1"
     >
       <SidebarTrigger aria-label={copy.togglePanel} />
       <button
