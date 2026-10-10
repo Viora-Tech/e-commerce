@@ -1,7 +1,9 @@
 'use client'
 
 import {
+  AiIcon,
   ArrowRight,
+  BadgePercent,
   type IconComponent,
   Package,
   ShoppingCart,
@@ -15,7 +17,7 @@ import SectionHead from './section-head'
 
 export type Suggestion = {
   id: string
-  icon: 'stock' | 'cart' | 'whatsapp' | 'star'
+  icon: 'stock' | 'cart' | 'whatsapp' | 'star' | 'ai' | 'sale'
   title: string
   body: string
   cta: string
@@ -36,6 +38,8 @@ const ICONS: Record<Suggestion['icon'], IconComponent> = {
   cart: ShoppingCart,
   whatsapp: WhatsappLogo,
   star: StarIcon,
+  ai: AiIcon,
+  sale: BadgePercent,
 }
 
 const STORAGE_KEY = 'home-suggestions-dismissed'

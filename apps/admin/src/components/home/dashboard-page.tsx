@@ -67,7 +67,7 @@ export default function DashboardPage({
           streakDays={summary.month.streakDays}
         />
         <ChartsPanel initialRange={30} initial={charts} />
-        <div className="grid grid-cols-1 items-start gap-5 xl:grid-cols-[minmax(0,739fr)_minmax(0,361fr)]">
+        <div className="grid grid-cols-1 items-stretch gap-6 xl:grid-cols-[minmax(0,739fr)_minmax(0,361fr)]">
           <PaymentStatusDonuts paymentMix={summary.paymentMix} statusMix={summary.statusMix} />
           <SalesByStateChart salesByState={summary.salesByState} />
         </div>
