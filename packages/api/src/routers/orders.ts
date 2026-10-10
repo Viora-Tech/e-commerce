@@ -1,6 +1,8 @@
 import { loadEnv, settingsSecret } from '@commerce/config'
 import {
+  ABANDONED_LIST_STATUSES,
   CommerceError,
+  DRAFT_LIST_STATUSES,
   DraftInputSchema,
   InvalidOrderContact,
   insertOutboxEvent,
@@ -410,6 +412,7 @@ export const ordersRouter = {
         page: z.number().int().min(1).default(1),
         perPage: z.number().int().min(1).max(PAGE_SIZE_MAX).default(25),
         search: z.string().trim().max(SEARCH_MAX).optional(),
+        status: z.enum(DRAFT_LIST_STATUSES).optional(),
       }),
     )
     .handler(({ context, input }) => listStoreDrafts(context.tx, context.scope.storeId, input)),
@@ -462,13 +465,17 @@ export const ordersRouter = {
         page: z.number().int().min(1).default(1),
         perPage: z.number().int().min(1).max(PAGE_SIZE_MAX).default(25),
         sinceDays: z.number().int().min(1).max(90).default(30),
+        status: z.enum(ABANDONED_LIST_STATUSES).optional(),
+        search: z.string().trim().max(SEARCH_MAX).optional(),
       }),
     )
     .handler(({ context, input }) => listStoreAbandoned(context.tx, context.scope.storeId, input)),
 
-  abandonedStats: can(permissions.ORDERS_READ).handler(({ context }) =>
-    storeAbandonedStats(context.tx, context.scope.storeId),
-  ),
+  abandonedStats: can(permissions.ORDERS_READ)
+    .input(z.object({ days: z.number().int().min(1).max(90).optional() }).optional())
+    .handler(({ context, input }) =>
+      storeAbandonedStats(context.tx, context.scope.storeId, input?.days),
+    ),
 
   sendRecovery: can(permissions.ORDERS_WRITE)
     .input(z.object({ cartId: z.uuid() }))

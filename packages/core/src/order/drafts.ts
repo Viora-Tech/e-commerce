@@ -242,13 +242,27 @@ async function setDraftNote(ctx: StoreContext, orderId: string, body: string) {
   }
 }
 
+/** The drafts list's tabs after "All" (`?status=`). */
+export const DRAFT_LIST_STATUSES = ['open', 'invoice_sent'] as const
+export type DraftListStatus = (typeof DRAFT_LIST_STATUSES)[number]
+
 export async function listDrafts(
   ctx: StoreContext,
-  input: { page: number; perPage: number; search?: string | undefined },
+  input: {
+    page: number
+    perPage: number
+    search?: string | undefined
+    status?: DraftListStatus | undefined
+  },
 ): Promise<{ items: DraftListItem[]; total: number }> {
   const search = input.search?.trim()
+  const invoiceSent = sql`exists (
+    select 1 from notification n
+    where n.order_id = ${order.id} and n.template = 'draft_invoice' and n.status = 'sent')`
   const where = and(
     eq(order.status, 'draft'),
+    input.status === 'open' ? sql`not ${invoiceSent}` : undefined,
+    input.status === 'invoice_sent' ? invoiceSent : undefined,
     search
       ? sql`(${order.email} ilike ${`%${search}%`} or ${customer.name} ilike ${`%${search}%`} or cast(${order.number} as text) like ${`%${search}%`})`
       : undefined,

@@ -5,15 +5,16 @@ import { Button } from '@commerce/ui/shadcn/button'
 import { Kbd } from '@commerce/ui/shadcn/kbd'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@commerce/ui/shadcn/tooltip'
 import Link from 'next/link'
-import { parseAsInteger, parseAsString, useQueryStates } from 'nuqs'
+import { parseAsInteger, parseAsString, parseAsStringLiteral, useQueryStates } from 'nuqs'
 import { Suspense, useEffect, useState } from 'react'
 import CustomerAvatar from '@/components/customers/customer-avatar'
+import PillTabs from '@/components/layout/pill-tabs'
 import StatTile from '@/components/layout/stat-tile'
 import StatusChip from '@/components/layout/status-chip'
 import OrdersListFrame from '@/components/orders/orders-list-frame'
 import RowMenu from '@/components/orders/row-menu'
 import ResourceTable, { type ResourceColumnSpec } from '@/components/table/resource-table'
-import { draftsContent } from '@/data/drafts'
+import { DRAFT_LIST_FILTERS, type DraftListFilter, draftsContent } from '@/data/drafts'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 import type { Formatters } from '@/lib/format'
@@ -26,7 +27,7 @@ type ListResult = Awaited<ReturnType<typeof api.orders.listDrafts>>
 type Item = ListResult['items'][number]
 
 export type DraftsInitial = {
-  query: ListQuery<never>
+  query: ListQuery<DraftListFilter>
   perPage: number
   result: ListResult
   tiles: Awaited<ReturnType<typeof api.orders.draftTiles>>
@@ -97,9 +98,10 @@ function DraftsContent({ initial }: { initial: DraftsInitial }) {
   const copy = useCopy(draftsContent)
   const fmt = useFormat()
   usePrimaryAction(routes.orders.newDraft())
-  const [{ page, query, perPage: rawPerPage }, setQ] = useQueryStates(
+  const [{ page, query, status, perPage: rawPerPage }, setQ] = useQueryStates(
     {
       query: parseAsString.withDefault(''),
+      status: parseAsStringLiteral(DRAFT_LIST_FILTERS),
       page: parseAsInteger.withDefault(1),
       perPage: parseAsInteger.withDefault(initial.perPage),
     },
@@ -111,13 +113,13 @@ function DraftsContent({ initial }: { initial: DraftsInitial }) {
 
   useEffect(() => {
     const size = parseRowsPerPage(rawPerPage)
-    if (size === initial.perPage && sameListQuery({ page, query, status: null }, initial.query)) {
+    if (size === initial.perPage && sameListQuery({ page, query, status }, initial.query)) {
       return
     }
     let cancelled = false
     setLoading(true)
     api.orders
-      .listDrafts({ page, perPage: size, search: query || undefined })
+      .listDrafts({ page, perPage: size, search: query || undefined, status: status ?? undefined })
       .then((r) => {
         if (cancelled) return
         setItems(r.items)
@@ -127,7 +129,7 @@ function DraftsContent({ initial }: { initial: DraftsInitial }) {
     return () => {
       cancelled = true
     }
-  }, [page, query, rawPerPage, initial.query, initial.perPage])
+  }, [page, query, status, rawPerPage, initial.query, initial.perPage])
 
   // Render logic
   const perPage = parseRowsPerPage(rawPerPage)
@@ -184,7 +186,19 @@ function DraftsContent({ initial }: { initial: DraftsInitial }) {
         loading={loading}
         query={query}
         onQueryChange={(query) => setQ({ query, page: 1 })}
-        onClearAll={() => setQ({ query: '', page: 1 })}
+        onClearAll={() => setQ({ query: '', status: null, page: 1 })}
+        tabs={
+          <PillTabs<DraftListFilter | null>
+            variant="segmented"
+            value={status}
+            onChange={(s) => setQ({ status: s, page: 1 })}
+            tabs={[
+              { value: null, label: copy.tabs.all, count: tiles.total },
+              { value: 'open', label: copy.tabs.open, count: tiles.open },
+              { value: 'invoice_sent', label: copy.tabs.invoice_sent, count: tiles.invoiced },
+            ]}
+          />
+        }
         page={page}
         perPage={perPage}
         total={total}

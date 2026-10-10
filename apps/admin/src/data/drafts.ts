@@ -1,9 +1,15 @@
 /** Every word the draft order and abandoned checkout screens show. */
 
+/** The drafts list's tabs after "All" (`?status=`); mirrors DRAFT_LIST_STATUSES in core. */
+export const DRAFT_LIST_FILTERS = ['open', 'invoice_sent'] as const
+export type DraftListFilter = (typeof DRAFT_LIST_FILTERS)[number]
+
 export const draftsContent = {
   title: 'Draft orders',
   heading: 'Draft orders',
-  intro: 'Orders you build for a customer, invisible to the storefront until you convert them.',
+  intro:
+    'Orders you build for a customer. They stay hidden from your storefront until you convert them.',
+  tabs: { all: 'All drafts', open: 'Open', invoice_sent: 'Invoice sent' },
   create: 'Create draft order',
   summary: (total: number, invoiced: number) =>
     [
@@ -108,27 +114,45 @@ export const draftEditorContent = {
   },
 } as const
 
+/** The abandoned list's tabs after "All" (`?status=`); mirrors ABANDONED_LIST_STATUSES in core. */
+export const ABANDONED_LIST_FILTERS = ['not_recovered', 'reminder_sent', 'recovered'] as const
+export type AbandonedListFilter = (typeof ABANDONED_LIST_FILTERS)[number]
+
 export const abandonedContent = {
   title: 'Abandoned checkouts',
   heading: 'Abandoned checkouts',
   intro: 'Baskets where a shopper left their contact but did not pay.',
+  summary: (carts: number, recovered: number, valuePaise: string) =>
+    `${carts} ${carts === 1 ? 'cart' : 'carts'} left this week · ${recovered} recovered · ${valuePaise} still waiting`,
+  tabs: {
+    all: 'All',
+    not_recovered: 'Not recovered',
+    reminder_sent: 'Reminder sent',
+    recovered: 'Recovered',
+  },
+  search: 'Search carts',
+  sendReminders: 'Send reminders',
+  remindersDone: (n: number) => (n === 1 ? 'Sent 1 reminder' : `Sent ${n} reminders`),
+  nothingToSend: 'No carts are waiting for a reminder',
   resource: { singular: 'checkout', plural: 'checkouts' },
   empty: 'No abandoned checkouts in this period',
   tiles: {
-    carts: 'Abandoned',
-    value: 'Value left behind',
+    carts: 'Abandoned carts',
     recovered: 'Recovered',
-    rate: 'Recovery rate',
+    value: 'Value waiting',
+    reminders: 'Reminders sent',
     period: 'Last 7 days',
+    recoveryRate: (pct: string) => `${pct} recovery`,
   },
   columns: {
-    contact: 'Contact',
-    items: 'Items',
+    contact: 'Customer',
+    cart: 'Cart',
     value: 'Value',
-    activity: 'Last activity',
-    status: 'Status',
+    activity: 'Left',
+    status: 'Recovery',
   },
-  status: { open: 'Abandoned', sent: 'Email sent', recovered: 'Recovered' },
+  more: (n: number) => `+ ${n} more`,
+  status: { open: 'Not recovered', sent: 'Reminder sent', recovered: 'Recovered' },
   anonymous: 'No contact',
   itemCount: (n: number) => (n === 1 ? '1 item' : `${n} items`),
   send: 'Send recovery email',
