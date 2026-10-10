@@ -35,11 +35,11 @@ export default function NavGroupBlock({ label, items, pathname }: NavGroupBlockP
   return (
     <nav aria-label={label}>
       {label ? (
-        <p className="mb-1 px-5 text-caption font-normal text-muted-foreground-soft group-data-[collapsible=icon]:hidden">
+        <p className="mb-1 px-6 text-caption font-normal text-muted-foreground-soft group-data-[collapsible=icon]:hidden">
           {label}
         </p>
       ) : null}
-      <ul className="flex flex-col gap-0.5 px-3 group-data-[collapsible=icon]:px-2">
+      <ul className="flex flex-col gap-1 px-4 group-data-[collapsible=icon]:px-2">
         {visible.map((item) => (
           <NavSection key={item.href} item={item} pathname={pathname} />
         ))}

@@ -130,26 +130,22 @@ export const homeContent = {
     allClearBody: 'Nothing needs your attention right now. Nice work.',
     rows: {
       ordersToShip: {
-        label: (n: number) =>
-          n === 1 ? '1 order is ready to ship' : `${n} orders are ready to ship`,
+        label: (n: number) => (n === 1 ? 'Ship 1 order' : `Ship ${n} orders`),
         help: 'Paid, packed and waiting on a courier.',
         cta: 'Ship orders',
       },
       upiToVerify: {
-        label: (n: number) =>
-          n === 1 ? '1 UPI payment needs checking' : `${n} UPI payments need checking`,
-        help: 'Match the transfer to the order, then mark it paid.',
+        label: (n: number) => (n === 1 ? 'Check 1 UPI payment' : `Check ${n} UPI payments`),
+        help: 'Match the transfer, then mark it paid.',
         cta: 'Check payments',
       },
       gstQueued: {
-        label: (n: number) =>
-          n === 1 ? '1 GST invoice is queued' : `${n} GST invoices are queued`,
+        label: (n: number) => (n === 1 ? 'Issue 1 GST invoice' : `Issue ${n} GST invoices`),
         help: 'Waiting for you to issue them.',
         cta: 'Issue invoices',
       },
       lowStock: {
-        label: (n: number) =>
-          n === 1 ? '1 product is running low' : `${n} products are running low`,
+        label: (n: number) => (n === 1 ? 'Restock 1 product' : `Restock ${n} products`),
         help: 'Running out soon at the current pace.',
         cta: 'Restock',
       },

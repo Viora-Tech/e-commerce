@@ -292,7 +292,13 @@ export const PanelLeftClose = definePath(
   ['M20 5v14', 'M13 8l-4 4 4 4', 'M9 12h7'],
   'PanelLeftClose',
 )
-export const PanelLeftIcon = PanelLeftClose
+export const PanelLeftIcon = definePath(
+  [
+    'M4.5 5.5h15a1 1 0 0 1 1 1v11a1 1 0 0 1-1 1h-15a1 1 0 0 1-1-1v-11a1 1 0 0 1 1-1z',
+    'M9.5 5.5v13',
+  ],
+  'PanelLeftIcon',
+)
 export const ExternalLink = defineIcon(ArrowSquareOut, 'ExternalLink') // kit Your Shop
 
 /* Arrows and chevrons */

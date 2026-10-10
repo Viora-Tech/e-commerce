@@ -1,6 +1,8 @@
 /** Copy for the Apps page: plugins from commerce.config.ts a store can install. */
 export const appsContent = {
   title: 'Apps',
+  /** Header button that jumps to the App Store section (Figma 328:21275). */
+  browseStore: 'Browse App Store',
   intro:
     'Add tools to your store, like invoicing, importers and marketing apps. Each one is a plugin you can turn on or off any time.',
   /** The plain-language line under the page title. Empty parts are left out. */

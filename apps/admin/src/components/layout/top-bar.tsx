@@ -101,8 +101,8 @@ export default function TopBar({ user, storefrontUrl, bugReports, scrolled = fal
         >
           {/* Follows the `dark` class next-themes sets before paint, so the server and the
               client render the same markup and nothing flashes. */}
-          <Sun className="size-[1.125rem] dark:hidden" aria-hidden />
-          <Moon className="hidden size-[1.125rem] dark:block" aria-hidden />
+          <Moon className="size-[1.125rem] dark:hidden" aria-hidden />
+          <Sun className="hidden size-[1.125rem] dark:block" aria-hidden />
         </button>
         <UserMenu
           user={user}
