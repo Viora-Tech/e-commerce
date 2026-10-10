@@ -180,6 +180,21 @@ before single-value bindings. `applyBindings` on its own (the editor, no store) 
 fallback rows, so a section never receives the loop object. Save refuses a loop over an unknown
 source or a content type the store no longer shows (`loopProblems`).
 
+### In the editor
+
+Every repeatable field whose items have at least one field that can take a value (text, rich
+text, image, link, number) shows **Use content from…** under its rows
+(`customize-array-field.tsx`). The dialog (`loop-dialog.tsx`) lists the content types and
+collections a list can read (`themes.templates.loopSources`), a row limit, and what each item
+field shows; `guessMap` (`lib/customize-loops.ts`) fills a first map by name and meaning
+("question" for a heading, "photo" for an image), compatible types only. Fields set to Nothing
+are stored as `from: ""` and are emptied on every row. While linked, the field shows
+`loop-linked-panel.tsx` (source, rows right now, what each row shows, **Change**, **Unlink**)
+instead of the editable rows, and the Sections tree offers no add or remove for it. The canvas
+fills the rows from `themes.templates.loopValues` (`DynamicSourceSection`, cached per source and
+limit); collection products there come from `previewCollectionProducts` (active products in the
+collection's order), the storefront uses its own catalogue loader.
+
 ## Adding a source
 
 1. Add the field to `PRODUCT_SOURCE_FIELDS`, `COLLECTION_SOURCE_FIELDS` or `SHOP_SOURCE_FIELDS`

@@ -85,6 +85,15 @@ describe('filling a loop', () => {
     ])
   })
 
+  it('empties a field mapped to Nothing instead of keeping the typed row’s text', () => {
+    const loop = faqLoop(1)
+    loop.$loop.map.answer = { from: '', kind: 'richtext' }
+    const out = applyLoops(template(loop), {
+      'metaobject:faq#1': [{ question: { type: 'single_line_text', value: 'Q' } }],
+    })
+    expect(out.content[0]?.props.items).toEqual([{ question: 'Q', answer: '', open: true }])
+  })
+
   it('shows the typed rows when the list is empty or was not loaded', () => {
     expect(
       applyLoops(template(faqLoop()), { 'metaobject:faq#6': [] }).content[0]?.props.items,
