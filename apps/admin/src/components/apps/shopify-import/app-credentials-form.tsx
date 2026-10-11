@@ -49,7 +49,7 @@ export default function AppCredentialsForm({ onConnected }: AppCredentialsFormPr
     shopDomain.trim() !== '' && clientId.trim() !== '' && clientSecret.trim() !== '' && !busy
 
   return (
-    <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,26rem)] lg:items-start">
+    <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,26rem)]">
       <Card>
         <CardHeader>
           <CardTitle>{copy.app.stepsHeading}</CardTitle>
@@ -68,7 +68,7 @@ export default function AppCredentialsForm({ onConnected }: AppCredentialsFormPr
           </a>
         </CardContent>
       </Card>
-      <Card className="lg:sticky lg:top-4">
+      <Card>
         <CardHeader>
           <CardTitle>{copy.app.formHeading}</CardTitle>
         </CardHeader>

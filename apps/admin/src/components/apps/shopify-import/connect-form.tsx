@@ -26,7 +26,7 @@ export default function ConnectForm({ onConnected }: ConnectFormProps) {
 
   return (
     <Tabs value={mode} onValueChange={(v) => isMode(v) && setMode(v)}>
-      <TabsList className="w-full max-w-3xl">
+      <TabsList className="w-full">
         <TabsTrigger value="app" className="gap-2">
           {copy.mode.app}
           <Badge variant="secondary">{copy.app.badge}</Badge>
@@ -36,7 +36,7 @@ export default function ConnectForm({ onConnected }: ConnectFormProps) {
       <TabsContent value="app" className="pt-4">
         <AppCredentialsForm onConnected={onConnected} />
       </TabsContent>
-      <TabsContent value="token" className="max-w-3xl pt-4">
+      <TabsContent value="token" className="pt-4">
         <LegacyTokenForm onConnected={onConnected} />
       </TabsContent>
     </Tabs>

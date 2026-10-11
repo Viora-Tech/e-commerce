@@ -1,5 +1,4 @@
 import { ArrowLeft, CircleAlert, Settings } from '@commerce/ui/icons'
-import { cn } from '@commerce/ui/lib/utils'
 import { Alert, AlertDescription, AlertTitle } from '@commerce/ui/shadcn/alert'
 import { Button } from '@commerce/ui/shadcn/button'
 import Link from 'next/link'
@@ -10,6 +9,7 @@ import { appsContent } from '@/data/apps'
 import { getCopy } from '@/lib/copy-server'
 import { routes } from '@/lib/routes'
 import AppLogo from './app-logo'
+import AppNav from './app-nav'
 import AppUninstallButton from './app-uninstall-button'
 
 type AppShellProps = {
@@ -82,7 +82,7 @@ export default async function AppShell({
 
   return (
     <PageBody>
-      <div className="flex flex-col gap-4 border-b border-border pb-0">
+      <div className="flex flex-col gap-4">
         <Link
           href={routes.apps.list()}
           className="flex w-fit items-center gap-1 text-body text-muted-foreground hover:text-foreground"
@@ -95,7 +95,7 @@ export default async function AppShell({
           <div className="flex min-w-[min(100%,16rem)] flex-1 flex-col gap-1">
             <div className="flex flex-wrap items-center gap-3">
               <h1 className="text-page-title text-ink-strong">{name}</h1>
-              <StatusChip tone={setupHref ? 'attention' : 'neutral'} className="h-5 text-xs">
+              <StatusChip tone={setupHref ? 'attention' : 'success'} className="h-5 text-xs">
                 {setupHref ? copy.needsSetup : copy.active}
               </StatusChip>
             </div>
@@ -131,28 +131,20 @@ export default async function AppShell({
             </AlertDescription>
           </Alert>
         ) : null}
-        <nav aria-label={name} className="-mb-px flex gap-1 overflow-x-auto">
-          {tabs.map((t) => {
-            const on = t.path === section
-            return (
-              <Link
-                key={t.path}
-                href={hrefFor(appId, t.path)}
-                aria-current={on ? 'page' : undefined}
-                className={cn(
-                  'border-b-2 px-3 py-2 text-body whitespace-nowrap transition-colors',
-                  on
-                    ? 'border-ring font-medium text-ink-strong'
-                    : 'border-transparent text-muted-foreground hover:text-foreground',
-                )}
-              >
-                {t.label}
-              </Link>
-            )
-          })}
-        </nav>
       </div>
-      {children}
+      <div className="flex flex-col gap-5 md:flex-row md:items-start md:gap-8">
+        {tabs.length > 1 ? (
+          <AppNav
+            label={name}
+            tabs={tabs.map((t) => ({
+              href: hrefFor(appId, t.path),
+              label: t.label,
+              active: t.path === section,
+            }))}
+          />
+        ) : null}
+        <div className="flex min-w-0 flex-1 flex-col gap-5">{children}</div>
+      </div>
     </PageBody>
   )
 }
