@@ -1,3 +1,4 @@
+import { cn } from '@commerce/ui/lib/utils'
 import DataCard from '@/components/layout/data-card'
 import { returnDetailContent as copy } from '@/data/returns'
 import { formatPaise } from '@/lib/money'
@@ -15,7 +16,12 @@ export default function ReturnItemsCard({ detail: r }: ReturnItemsCardProps) {
       <ul className="flex flex-col divide-y divide-border">
         {r.lines.map((l) => (
           <li key={l.returnLineId} className="flex items-center gap-3 px-4 py-3 md:px-6">
-            <span className="flex size-10 shrink-0 items-center justify-center overflow-hidden rounded-md border border-border bg-card">
+            <span
+              className={cn(
+                'flex size-10 shrink-0 items-center justify-center overflow-hidden rounded-md border border-border',
+                l.imageUrl ? 'bg-media' : 'bg-card',
+              )}
+            >
               {l.imageUrl ? (
                 // biome-ignore lint/performance/noImgElement: remote store media, sized by the row.
                 <img src={l.imageUrl} alt="" className="size-9 object-contain" />

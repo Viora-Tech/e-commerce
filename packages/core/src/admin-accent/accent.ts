@@ -154,7 +154,7 @@ export const KIT_PALETTE: AccentPalette = {
   dark: {
     primary: '#7fa2f5',
     primaryForeground: '#0e1430',
-    primarySoft: '#1f283d',
+    primarySoft: 'rgb(127 162 245 / 0.12)',
     primaryTint: '#1f283d',
   },
 }
@@ -162,14 +162,14 @@ export const KIT_PALETTE: AccentPalette = {
 /**
  * The brand tokens for both modes. Light keeps the chosen colour as-is; dark lifts it to
  * OKLCH lightness 0.62..0.82 so it reads on the dark canvas, like the kit's #5fbf87 for
- * #4ea674. Soft and tint surfaces keep the hue at low chroma, matching Aqua Spring and
- * Surf Crest for the default.
+ * #4ea674. Light soft and tint surfaces keep the hue at low chroma; the dark soft fill is the
+ * lifted colour at low alpha, so it layers the same over the shell, the panel and a card.
  */
 export function deriveAccentPalette(hex: string): AccentPalette {
   if (hex === DEFAULT_ACCENT) return KIT_PALETTE
   const base = hexToOklch(hex)
   const darkPrimary = oklchToHex({ ...base, l: clamp(base.l + 0.07, 0.62, 0.82) })
-  const [r, g, b] = hexToRgb(hex).map((v) => Math.round(v * 255))
+  const [r, g, b] = hexToRgb(darkPrimary).map((v) => Math.round(v * 255))
   return {
     light: {
       primary: hex,
@@ -180,8 +180,8 @@ export function deriveAccentPalette(hex: string): AccentPalette {
     dark: {
       primary: darkPrimary,
       primaryForeground: accentForeground(darkPrimary),
-      primarySoft: `rgb(${r} ${g} ${b} / 0.16)`,
-      primaryTint: oklchToHex({ l: 0.42, c: Math.min(base.c * 0.6, 0.08), h: base.h }),
+      primarySoft: `rgb(${r} ${g} ${b} / 0.12)`,
+      primaryTint: oklchToHex({ l: 0.28, c: Math.min(base.c * 0.35, 0.05), h: base.h }),
     },
   }
 }
@@ -230,21 +230,45 @@ export function designVars(t: AccentTokens, mode: 'light' | 'dark'): Record<stri
       '--link': ink,
     }
   }
-  const soft = tint(22, '#101216')
+  const key = darkKey(p)
+  const soft = alpha(12)
   const ink = tint(55, 'white')
   return {
     ...shared,
-    '--key-top': p,
-    '--key-bottom': tint(85, 'black'),
-    '--key-border': alpha(60),
-    '--key-glow': alpha(55),
-    '--key-ink': '#ffffff',
-    '--brand-select': alpha(6),
+    '--key-top': key.top,
+    '--key-bottom': key.bottom,
+    '--key-border': key.border,
+    '--key-glow': alpha(22),
+    '--key-ink': key.ink,
+    '--brand-select': alpha(8),
     '--accent': soft,
     '--accent-foreground': ink,
     '--sidebar-accent': soft,
     '--sidebar-accent-foreground': ink,
     '--link': ink,
+    '--glass-active': alpha(14),
+    '--glass-active-ink': key.ink,
+  }
+}
+
+/**
+ * The dark key button, from the (already lifted) dark primary: a deep, low-chroma well of the
+ * accent's hue with pale ink, the dark twin of light's pale key with deep ink. A saturated fill
+ * with white text and a strong glow reads as plastic on a dark canvas. The stylesheet's `.dark`
+ * key values are this function's output for the default blue.
+ */
+export function darkKey(primary: string): {
+  top: string
+  bottom: string
+  border: string
+  ink: string
+} {
+  const { c, h } = hexToOklch(primary)
+  return {
+    top: oklchToHex({ l: 0.38, c: Math.min(c * 0.6, 0.09), h }),
+    bottom: oklchToHex({ l: 0.33, c: Math.min(c * 0.55, 0.08), h }),
+    border: oklchToHex({ l: 0.47, c: Math.min(c * 0.65, 0.1), h }),
+    ink: oklchToHex({ l: 0.94, c: Math.min(c * 0.3, 0.035), h }),
   }
 }
 

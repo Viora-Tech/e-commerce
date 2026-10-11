@@ -61,9 +61,9 @@ Refines the Saleor look below; where they conflict, this section wins.
   tabular numbers, first column stacks name and sub-line with an avatar.
 - Primitives: `IconBadge`, `CopyButton`, `LiveChip`, `RelativeTime`, keyboard shortcuts
   (`/` or ⌘K search, `N` new, `G` then O/P/C, `?` sheet) via `usePrimaryAction`.
-- Dark mode is iOS-style: black shell and canvas, `#1c1c1e` cards, `#38383a` separators,
-  `#8e8e93` secondary text, Apple dark system colours (green `#30d158`, orange `#ff9f0a`,
-  blue `#0a84ff`, red `#ff453a`) on solid deep tints; primary buttons are light with black text.
+- Dark mode (superseded 11 October 2026 by the premium dark pass): layered cool-tinted surfaces,
+  off-white text, white-alpha hairlines, a deep accent key with pale ink. Values and rules:
+  developer docs, "Admin design system", Dark layers to Scrollbars.
 - Avoid: gradients, glows, beams, sparkles, gradient text, heavy KPI card rows.
 
 ## Saleor look (September 2026)

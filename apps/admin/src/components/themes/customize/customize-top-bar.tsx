@@ -237,7 +237,7 @@ export default function CustomizeTopBar({
           user={user}
           bugReports={false}
           triggerLabel={copy.account}
-          triggerClassName="flex size-8 shrink-0 items-center justify-center rounded-full bg-ink-strong text-[0.8125rem] leading-[1.1875rem] font-semibold text-background transition-opacity hover:opacity-85 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-card"
+          triggerClassName="flex size-8 shrink-0 items-center justify-center rounded-full bg-avatar text-[0.8125rem] leading-[1.1875rem] font-semibold text-avatar-foreground transition-opacity hover:opacity-85 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-card"
           trigger={initials(user.name, user.email)}
         />
       </div>
