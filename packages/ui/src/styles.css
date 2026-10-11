@@ -241,6 +241,10 @@
   --color-glass-scrim: var(--glass-scrim);
   --color-glass-active: var(--glass-active);
   --color-glass-active-ink: var(--glass-active-ink);
+  --color-media: var(--media);
+  --color-media-tile: var(--media-tile);
+  --color-avatar: var(--avatar);
+  --color-avatar-foreground: var(--avatar-foreground);
 
   --color-chart-1: var(--chart-1);
   --color-chart-2: var(--chart-2);
@@ -358,6 +362,11 @@
   --brand-border: rgb(63 114 220 / 0.3);
   --brand-select: #eaf1fd; /* selected option fill */
   --chip-neutral-text: #5e6470;
+  --media: #ffffff; /* behind product pictures: catalogue photos are made for a light ground */
+  --media-tile: rgb(241 242 244 / 0.4);
+  --scrollbar-thumb: rgb(190 190 190 / 0.91);
+  --avatar: var(--ink-strong); /* initials disc when a member has no photo */
+  --avatar-foreground: var(--background);
 
   /* Glass: floating layers only (top bar once scrolled, menus, floating bars, toasts, scrims). */
   --glass-bar: rgb(255 255 255 / 0.72);
@@ -423,6 +432,7 @@
   --key-highlight: rgb(255 255 255 / 0.9);
   --key-neutral-top: #ffffff;
   --key-neutral-bottom: #f4f5f7;
+  --key-neutral-hover: var(--card);
   --key-neutral-edge: rgb(17 19 24 / 0.06);
   --key-neutral-shadow: rgb(17 19 24 / 0.28);
   --key-neutral-highlight: rgb(255 255 255 / 0.9);
@@ -445,110 +455,135 @@
   --sidebar-ring: var(--ring);
 }
 
+/*
+ * Dark: the same layers as light, lifted in small cool-tinted steps (shell #0b0c0e < panel
+ * #101114 < card #16171b < raised #1c1d22), never flat black and never grey-on-grey. Elevation
+ * is a hairline plus a faint top highlight; black shadows only under floating layers. Text is
+ * off-white (#e6e7ea body, #f5f6f8 titles), never pure white. Lines are white at one alpha
+ * scale (0.05 rows .. 0.15 strong) so they read the same on every layer. The key button is a
+ * deep well of the accent with pale ink, the twin of light's pale key with deep ink
+ * (@commerce/core/admin-accent `darkKey`). Status tones are lifted for the dark canvas, on
+ * low-alpha fills, with dark ink on any solid fill. Contrast: body and muted text clear WCAG AA
+ * on card, popover and panel.
+ */
 .dark {
-  --shadow-kit-3: inset 0 1px 0 var(--highlight-06), 0 0 0 1px var(--border), 0 8px 24px -4px rgb(0 0 0 / 0.5);
-  --shadow-kit-6: inset 0 1px 0 var(--highlight-06), 0 0 0 1px var(--border), 0 24px 64px -12px rgb(0 0 0 / 0.7);
-  /* Card/Soft, dark: top highlight, a 1px black edge and a deep soft spread. */
-  --shadow-card: inset 0 0 0 1px var(--border-soft), inset 0 1px 0 var(--card-highlight), 0 1px 0 0 var(--card-edge), 0 10px 28px -12px var(--card-shadow);
-  --shadow-card-hover: inset 0 0 0 1px var(--border-soft), inset 0 1px 0 var(--card-highlight), 0 1px 0 0 var(--card-edge), 0 14px 32px -12px var(--card-shadow);
-  --shadow-glass: inset 0 1px 0 var(--glass-highlight), 0 0 0 1px var(--glass-border), 0 12px 32px -8px rgb(0 0 0 / 0.55);
-  --shadow-lift: 0 1px 1px 0 rgb(0 0 0 / 0.4);
+  --shadow-kit-3: inset 0 1px 0 var(--highlight-06), 0 0 0 1px var(--border), 0 8px 24px -6px rgb(0 0 0 / 0.5);
+  --shadow-kit-6: inset 0 1px 0 var(--highlight-06), 0 0 0 1px var(--border), 0 24px 56px -12px rgb(0 0 0 / 0.65);
+  /* Card/Soft, dark: hairline, a faint top highlight and a 1px contact shadow. No deep spread. */
+  --shadow-card: inset 0 0 0 1px var(--border-soft), inset 0 1px 0 var(--card-highlight), 0 1px 2px 0 var(--card-edge);
+  --shadow-card-hover: inset 0 0 0 1px var(--border), inset 0 1px 0 var(--card-highlight), 0 1px 2px 0 var(--card-edge), 0 12px 28px -14px var(--card-shadow);
+  --shadow-glass: inset 0 1px 0 var(--glass-highlight), 0 0 0 1px var(--glass-border), 0 16px 40px -12px rgb(0 0 0 / 0.6);
+  --shadow-lift: 0 1px 1px 0 rgb(0 0 0 / 0.35);
   --shadow-toggle: 0 1px 2px 0 rgb(0 0 0 / 0.4);
   --highlight-06: rgb(255 255 255 / 0.06);
-  --card-highlight: rgb(255 255 255 / 0.06);
-  --card-edge: rgb(0 0 0 / 0.45);
+  --card-highlight: rgb(255 255 255 / 0.04);
+  --card-edge: rgb(0 0 0 / 0.3);
   --card-shadow: rgb(0 0 0 / 0.55);
-  --card-top: #1b1d23;
-  --card-bottom: #16181d;
+  --card-top: #18191d;
+  --card-bottom: #16171b;
 
-  /* Layers: shell #0a0b0e < panel #101216 (+ panel-border) < card #181a20 < raised #1d2027. */
-  --background: #101216;
+  /* Layers */
+  --background: #101114;
   --panel-border: rgb(255 255 255 / 0.06);
-  --foreground: #dde1e7;
-  --card-foreground: #dde1e7;
-  --ink-strong: #f2f4f7;
+  --foreground: #e6e7ea;
+  --card-foreground: #e6e7ea;
+  --ink-strong: #f5f6f8;
   --brand-secondary: #1e2638;
   --brand-secondary-foreground: #dce6ff;
-  --helper: #959ba6;
-  --card: #181a20;
-  --popover: #1d2027;
-  --popover-foreground: #edeef0;
-  --raised: #1d2027;
-  --input-surface: #121419;
-  --brand-wash: rgb(127 162 245 / 0.06);
-  --brand-wash-end: rgb(127 162 245 / 0);
-  --brand-border: rgb(127 162 245 / 0.3);
-  --brand-select: rgb(127 162 245 / 0.06);
-  --chip-neutral-text: #b9bfc9;
+  --helper: #9aa0ab;
+  --card: #16171b;
+  --popover: #1c1d22;
+  --popover-foreground: #e6e7ea;
+  --raised: #1c1d22;
+  --input-surface: #121316;
+  --brand-wash: rgb(127 162 245 / 0.07);
+  --brand-wash-end: rgb(127 162 245 / 0.02);
+  --brand-border: rgb(127 162 245 / 0.28);
+  --brand-select: rgb(127 162 245 / 0.08);
+  --chip-neutral-text: #b4b9c2;
+  --media: #dfe1e6;
+  --media-tile: #dfe1e6;
+  --scrollbar-thumb: rgb(255 255 255 / 0.16);
+  --avatar: var(--primary-tint);
+  --avatar-foreground: var(--accent-foreground);
 
-  --glass-bar: rgb(22 23 28 / 0.64);
-  --glass-popover: rgb(22 23 28 / 0.76);
+  --glass-bar: rgb(16 17 20 / 0.74);
+  --glass-popover: rgb(28 29 34 / 0.9);
   --glass-border: rgb(255 255 255 / 0.08);
-  --glass-highlight: rgb(255 255 255 / 0.1);
-  --glass-scrim: rgb(0 0 0 / 0.5);
-  --glass-active: rgb(255 255 255 / 0.14);
-  --glass-active-ink: #ffffff;
+  --glass-highlight: rgb(255 255 255 / 0.07);
+  --glass-scrim: rgb(4 5 7 / 0.6);
+  --glass-active: rgb(127 162 245 / 0.14);
+  --glass-active-ink: #e2ebff;
 
   --primary: #7fa2f5;
   --primary-foreground: #0e1430;
-  --primary-soft: #1f283d;
+  --primary-soft: rgb(127 162 245 / 0.12);
   --primary-tint: #1f283d;
   --link: #9db8f7;
-  --link-soft: #1f283d;
-  --secondary: #1b1e24;
-  --secondary-foreground: #edeef0;
-  --muted: #1b1e24;
+  --link-soft: rgb(127 162 245 / 0.12);
+  --secondary: #1c1d22;
+  --secondary-foreground: #e6e7ea;
+  --muted: #1c1d22;
   --muted-foreground: #9aa0ab;
-  --muted-foreground-soft: #80868f;
-  --accent: #172038;
-  --accent-foreground: #a9c1f8;
-  --chip-neutral: #252831;
+  --muted-foreground-soft: #858b95;
+  --accent: rgb(127 162 245 / 0.12);
+  --accent-foreground: #c3d3fa;
+  --chip-neutral: #23252b;
 
-  --destructive: #f2706b;
-  --destructive-foreground: #ffffff;
-  --danger: #f2706b;
-  --danger-soft: rgb(242 112 107 / 0.12);
-  --success: #5fd18a;
-  --success-foreground: #ffffff;
-  --success-soft: rgb(95 209 138 / 0.12);
-  --warning: #f2b24a;
-  --warning-foreground: #1a1200;
-  --warning-soft: rgb(242 178 74 / 0.12);
+  --destructive: #f0756f;
+  --destructive-foreground: #1f0a0a;
+  --danger: #f0756f;
+  --danger-soft: rgb(240 117 111 / 0.12);
+  --success: #5cc68c;
+  --success-foreground: #04210f;
+  --success-soft: rgb(92 198 140 / 0.11);
+  --warning: #f0b65a;
+  --warning-foreground: #1f1400;
+  --warning-soft: rgb(240 182 90 / 0.1);
   --info: #8fb0f7;
-  --info-foreground: #ffffff;
-  --info-soft: rgb(127 162 245 / 0.14);
+  --info-foreground: #0b1530;
+  --info-soft: rgb(143 176 247 / 0.12);
 
-  --border: rgb(255 255 255 / 0.1);
-  --hairline: rgb(255 255 255 / 0.07);
-  --border-strong: rgb(255 255 255 / 0.16);
-  --border-soft: rgb(255 255 255 / 0.09);
-  --line: rgb(255 255 255 / 0.07);
-  --line-list: rgb(255 255 255 / 0.06);
-  --input: rgb(255 255 255 / 0.12);
+  --border: rgb(255 255 255 / 0.09);
+  --hairline: rgb(255 255 255 / 0.06);
+  --border-strong: rgb(255 255 255 / 0.15);
+  --border-soft: rgb(255 255 255 / 0.07);
+  --line: rgb(255 255 255 / 0.06);
+  --line-list: rgb(255 255 255 / 0.05);
+  --input: rgb(255 255 255 / 0.1);
 
-  --key-top: #4c7fea;
-  --key-bottom: #3a69d6;
-  --key-border: rgb(91 140 240 / 0.6);
-  --key-edge: rgb(0 0 0 / 0.35);
-  --key-glow: rgb(76 127 234 / 0.55);
-  --key-ink: #ffffff;
-  --key-highlight: rgb(255 255 255 / 0.22);
-  --key-neutral-top: #23262d;
-  --key-neutral-bottom: #1c1f25;
-  --key-neutral-edge: rgb(0 0 0 / 0.45);
+  /* Key: darkKey('#7fa2f5'). */
+  --key-top: #2f416b;
+  --key-bottom: #243459;
+  --key-border: #45598a;
+  --key-edge: rgb(0 0 0 / 0.3);
+  --key-glow: rgb(127 162 245 / 0.22);
+  --key-ink: #e2ebff;
+  --key-highlight: rgb(255 255 255 / 0.14);
+  --key-neutral-top: #1f2025;
+  --key-neutral-bottom: #1a1b20;
+  --key-neutral-hover: #26272d;
+  --key-neutral-edge: rgb(0 0 0 / 0.35);
   --key-neutral-shadow: rgb(0 0 0 / 0.5);
-  --key-neutral-highlight: rgb(255 255 255 / 0.1);
+  --key-neutral-highlight: rgb(255 255 255 / 0.07);
 
   --chart-1: #7fa2f5;
-  --chart-2: #4d6fb8;
-  --chart-3: #3b5596;
-  --chart-4: #6f7580;
-  --chart-5: #3a3d46;
+  --chart-2: #5277c9;
+  --chart-3: #34497f;
+  --chart-4: #737985;
+  --chart-5: #3d4049;
 
-  --sidebar: #0a0b0e;
-  --sidebar-foreground: #edeef0;
-  --sidebar-accent: #172038;
-  --sidebar-accent-foreground: #a9c1f8;
+  --sidebar: #0b0c0e;
+  --sidebar-foreground: #e6e7ea;
+  --sidebar-accent: rgb(127 162 245 / 0.12);
+  --sidebar-accent-foreground: #c3d3fa;
+}
+
+/* Dark selection follows the accent; light keeps the system highlight. */
+@layer base {
+  .dark ::selection {
+    background-color: color-mix(in oklab, var(--primary) 32%, transparent);
+  }
 }
 
 /*
@@ -677,7 +712,7 @@
     0 1px 2px var(--key-neutral-edge),
     0 12px 28px -14px var(--key-neutral-shadow);
   &:hover:not(:disabled, [aria-disabled="true"]) {
-    background-image: linear-gradient(to bottom, var(--card), var(--key-neutral-top));
+    background-image: linear-gradient(to bottom, var(--key-neutral-hover), var(--key-neutral-top));
   }
   &:active:not(:disabled, [aria-disabled="true"]) {
     background-image: linear-gradient(to bottom, var(--muted), var(--muted));

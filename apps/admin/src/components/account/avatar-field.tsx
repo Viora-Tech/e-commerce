@@ -79,7 +79,7 @@ export default function AvatarField({ name, email, image, onUpload, onRemove }: 
         email={email}
         image={image}
         className="size-20"
-        fallbackClassName="bg-ink-strong text-[1.5rem] text-background"
+        fallbackClassName="bg-avatar text-[1.5rem] text-avatar-foreground"
       />
       <div className="flex flex-col gap-2">
         <div className="flex flex-wrap gap-2">

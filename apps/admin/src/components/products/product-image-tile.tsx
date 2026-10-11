@@ -73,7 +73,7 @@ export default function ProductImageTile({
       transition={{ duration: IMAGE_ENTER_MS / 1000, ease: EASE, ...LAYOUT }}
       {...pointer}
       className={cn(
-        'group/tile relative aspect-square touch-manipulation overflow-hidden rounded-lg border border-border bg-muted/40',
+        'group/tile relative aspect-square touch-manipulation overflow-hidden rounded-lg border border-border bg-media-tile',
         main && 'col-span-2 row-span-2',
         isDragging ? ROW_STATE_CLASS.placeholder : 'cursor-grab',
       )}
@@ -126,7 +126,7 @@ export default function ProductImageTile({
           variant="outline"
           size="sm"
           onClick={onReplace}
-          className="absolute right-2 bottom-2"
+          className="absolute right-2 bottom-2 bg-card/95 shadow-card hover:bg-card"
         >
           <RefreshCw aria-hidden="true" />
           {copy.replace}

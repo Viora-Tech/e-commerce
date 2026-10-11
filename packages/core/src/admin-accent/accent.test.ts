@@ -7,6 +7,7 @@ import {
   accentForeground,
   accentOverride,
   DEFAULT_ACCENT,
+  darkKey,
   deriveAccentPalette,
   hexToOklch,
   KIT_PALETTE,
@@ -85,7 +86,11 @@ describe('deriveAccentPalette', () => {
     // Kit dark primary #5fbf87 is lighter than the light one with the same hue.
     expect(hexToOklch(dark.primary).l).toBeGreaterThan(hexToOklch(light.primary).l)
     expect(Math.abs(hexToOklch(dark.primary).h - hexToOklch(OCEAN_GREEN).h)).toBeLessThan(3)
-    expect(dark.primarySoft).toBe('rgb(78 166 117 / 0.16)')
+    // The dark soft fill is the lifted colour at low alpha.
+    const lifted = Number.parseInt(dark.primary.slice(1), 16)
+    expect(dark.primarySoft).toBe(
+      `rgb(${(lifted >> 16) & 255} ${(lifted >> 8) & 255} ${lifted & 255} / 0.12)`,
+    )
     // Same choice of text colour as the kit made for #5fbf87 in dark mode.
     expect(hexToOklch(dark.primaryForeground).l).toBeLessThan(0.25)
     expect(hexToOklch(dark.primaryTint).l).toBeLessThan(0.5)
@@ -94,6 +99,36 @@ describe('deriveAccentPalette', () => {
   it('lifts a very dark accent so it reads on the dark canvas', () => {
     const { dark } = deriveAccentPalette('#111827')
     expect(hexToOklch(dark.primary).l).toBeGreaterThanOrEqual(0.61)
+  })
+})
+
+describe('darkKey', () => {
+  it('matches the stylesheet .dark key for the default blue', () => {
+    // packages/ui/src/styles.css, `.dark` --key-top / --key-bottom / --key-border / --key-ink.
+    expect(darkKey(KIT_PALETTE.dark.primary)).toEqual({
+      top: '#2f416b',
+      bottom: '#243459',
+      border: '#45598a',
+      ink: '#e2ebff',
+    })
+  })
+
+  it('is a deep well of the accent with pale ink that reaches AA on every preset', () => {
+    for (const p of ACCENT_PRESETS) {
+      const key = darkKey(deriveAccentPalette(p.hex).dark.primary)
+      expect(hexToOklch(key.top).l).toBeLessThan(0.4)
+      expect(contrastRatio(key.ink, key.top)).toBeGreaterThanOrEqual(4.5)
+      expect(contrastRatio(key.ink, key.bottom)).toBeGreaterThanOrEqual(4.5)
+    }
+  })
+
+  it('drives the dark key in an override instead of a white-on-saturated fill', () => {
+    const css = accentCss('#e11d48')
+    const dark = css.slice(css.indexOf(':root.dark{'))
+    const key = darkKey(deriveAccentPalette('#e11d48').dark.primary)
+    expect(dark).toContain(`--key-top:${key.top}`)
+    expect(dark).toContain(`--key-ink:${key.ink}`)
+    expect(dark).not.toContain('--key-ink:#ffffff')
   })
 })
 

@@ -83,14 +83,14 @@ export default function TopBar({ user, storefrontUrl, bugReports, scrolled = fal
           user={user}
           bugReports={bugReports}
           triggerLabel={copy.account}
-          triggerClassName="flex size-9 shrink-0 items-center justify-center rounded-full bg-ink-strong text-caption font-semibold text-background transition-opacity hover:opacity-85 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-sidebar"
+          triggerClassName="flex size-9 shrink-0 items-center justify-center rounded-full bg-avatar text-caption font-semibold text-avatar-foreground transition-opacity hover:opacity-85 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-sidebar"
           trigger={
             <MemberAvatar
               name={user.name}
               email={user.email}
               image={user.image}
               className="size-9"
-              fallbackClassName="bg-ink-strong text-caption text-background"
+              fallbackClassName="bg-avatar text-caption text-avatar-foreground"
             />
           }
         />

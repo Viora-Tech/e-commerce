@@ -18,7 +18,9 @@ const THUMB_PX = { table: 40, list: 56, category: 46 } as const
 export default function KitThumb({ src, alt, size = 'table' }: KitThumbProps) {
   // Render logic
   return (
-    <span className={cn('relative shrink-0 overflow-hidden bg-card', THUMB[size])}>
+    <span
+      className={cn('relative shrink-0 overflow-hidden', src ? 'bg-media' : 'bg-card', THUMB[size])}
+    >
       {src ? (
         <Image
           src={src}
