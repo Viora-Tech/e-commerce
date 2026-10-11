@@ -191,3 +191,28 @@ token against the store the hostname resolves to and never redirects a preview t
 Checkout itself never reads `STOREFRONT_URL`: it runs on the shopper's own host, and gateway
 webhooks go to the worker URL. The one payments link the admin builds (Settings › Payments test
 order) opens on the store's origin like the rest.
+
+## Store addresses (`<slug>.<PLATFORM_STORE_DOMAIN>`)
+
+A new store's own address takes the same route path, so with one wildcard DNS record a store
+works the moment it is created, with no manual step.
+
+1. **DNS, once:** add a wildcard `*` A record for `PLATFORM_STORE_DOMAIN` (for example
+   `*.vioratech.in`) pointing at the proxy server. Our own hosts (admin, shop, worker, panel...)
+   keep their explicit records, which win over the wildcard.
+2. **On creation:** when the Dokploy keys are set, `createStore` is told (`requestPlatformRoute`)
+   to queue the route. The new address row is written with `route_status = 'pending'` and
+   `ssl_status = 'issuing'`, plus a `domain.route_requested` outbox row, all in the store
+   transaction. Store creation never calls Dokploy, so Dokploy being down never blocks it.
+3. **The job** (`runDomainRouteJob`) accepts a platform row only for `<one-label>.<PLATFORM_STORE_DOMAIN>`
+   (`storeDomain` in the route guard), adds it to the storefront app in Dokploy (HTTPS,
+   Let's Encrypt, `DOKPLOY_STOREFRONT_PORT`) unless it is already there, and sets
+   `route_status = 'ready'` and `ssl_status = 'active'`. Retries as for custom domains
+   (6 attempts, exponential backoff); after that the row stays `failed` and the domain page
+   shows "taking longer than usual".
+4. **Reserved names:** the store address cannot be one of our own hostnames
+   (`RESERVED_STORE_SLUGS` in `packages/core/src/onboarding/slug-format.ts`), so a merchant can
+   never take `worker`, `panel`, `dokploy` and the like.
+
+Not covered: changing a store's primary address after `PLATFORM_STORE_DOMAIN` changes. Existing
+stores keep their old address rows; a merchant cannot switch to the new one from Settings → Domains.
