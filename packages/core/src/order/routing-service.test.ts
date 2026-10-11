@@ -1,3 +1,4 @@
+/** SOURCE OF TRUTH: order routing service tests — WHAT: loading locations and routing an order / WHY: guards which location ships each line */
 import {
   address,
   business,

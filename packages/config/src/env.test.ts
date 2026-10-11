@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { loadEnv } from './env'
+import { loadEnv, merchantGoogleSignIn } from './env'
 
 const valid = {
   DATABASE_URL: 'postgres://app:app@localhost:5432/commerce',
@@ -31,6 +31,20 @@ describe('loadEnv', () => {
     expect(() => loadEnv({ ...valid, DATABASE_URL: '' })).toThrow(
       /Invalid environment:.*DATABASE_URL/,
     )
+  })
+
+  it('turns merchant Google sign-in on only with both keys set', () => {
+    expect(merchantGoogleSignIn(loadEnv(valid))).toBeNull()
+    expect(
+      merchantGoogleSignIn(
+        loadEnv({ ...valid, MERCHANT_GOOGLE_CLIENT_ID: 'id', MERCHANT_GOOGLE_CLIENT_SECRET: '' }),
+      ),
+    ).toBeNull()
+    expect(
+      merchantGoogleSignIn(
+        loadEnv({ ...valid, MERCHANT_GOOGLE_CLIENT_ID: 'id', MERCHANT_GOOGLE_CLIENT_SECRET: 's' }),
+      ),
+    ).toEqual({ clientId: 'id', clientSecret: 's' })
   })
 
   it('still rejects a non-blank invalid value', () => {

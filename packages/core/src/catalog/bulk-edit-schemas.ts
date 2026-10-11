@@ -1,5 +1,4 @@
-/**
- * SOURCE OF TRUTH: BULK_EDIT_MAX, BulkEditRow, BulkEditResult, bulk editor field limits — WHAT one
+/** SOURCE OF TRUTH: BULK_EDIT_MAX, BulkEditRow, BulkEditResult, bulk editor field limits — WHAT one
  * spreadsheet-style save sends and returns / WHY the admin grid and the batched API share one
  * shape: the grid validates the same fields the server re-checks. Browser-safe, no database;
  * the transaction is `bulk-edit.ts`.

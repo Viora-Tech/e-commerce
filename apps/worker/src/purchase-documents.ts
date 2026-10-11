@@ -4,7 +4,7 @@ import type { Db } from '@commerce/db'
 import { fairProcessor, type IORedis, QUEUE_LIMITS, Queue, Worker } from '@commerce/queue'
 
 /**
- * "Upload bills and let Vextro read them" (purchase order and inbound shipment pages): one
+ * "Upload bills and let us read them" (purchase order and inbound shipment pages): one
  * job per uploaded document. The reader admits and meters one AI call against the store's
  * plan, reads the PDF text (or sends the scan itself) and stores the result for the merchant
  * to review; nothing reaches the order until they press Apply. Fair per store

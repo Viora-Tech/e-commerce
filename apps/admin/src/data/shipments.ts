@@ -1,3 +1,4 @@
+import { siteConfig } from '@commerce/config/site'
 /** Copy for the Shipments workspace (Orders → Shipments). */
 export const shipmentsContent = {
   title: 'Shipments',
@@ -55,7 +56,7 @@ export const shipmentsContent = {
   },
   noCourier: {
     heading: 'Connect a courier',
-    body: 'Book pickups, print labels and track parcels without leaving Vextro. Delhivery, Shiprocket and RapidShyp are ready.',
+    body: `Book pickups, print labels and track parcels without leaving ${siteConfig.brand.name}. Delhivery, Shiprocket and RapidShyp are ready.`,
     browse: 'Browse courier apps',
   },
   wallet: {

@@ -1,3 +1,4 @@
+/** SOURCE OF TRUTH: short link rules tests — WHAT: slug, UTM target and bot filter cases / WHY: admin form, API and storefront redirect share these rules */
 import { describe, expect, it } from 'vitest'
 import { attributionFromVisit } from './attribution'
 import {

@@ -23,7 +23,7 @@ import { resetDb } from '@commerce/db/test'
 import { DocumentSnapshotSchema } from '@commerce/invoices'
 import { asc, eq } from 'drizzle-orm'
 import { afterAll, beforeEach, describe, expect, it } from 'vitest'
-import { issueCreditNote, issueCreditNotes } from '../src/issue'
+import { issueCreditNote, issueCreditNotes } from '../src/credit-notes'
 import { enqueueOrder, enqueueOrderParcels, issueDrafts } from '../src/queue'
 import { invoice } from '../src/schema'
 

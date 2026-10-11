@@ -16,6 +16,8 @@ describe('signInMethod', () => {
   it('reads the endpoint that opened the session', () => {
     expect(signInMethod('/sign-in/email-otp')).toBe('email_otp')
     expect(signInMethod('/passkey/verify-authentication')).toBe('passkey')
+    expect(signInMethod('/callback/google')).toBe('google')
+    expect(signInMethod('/callback/github')).toBe('other')
     expect(signInMethod('/organization/accept-invitation')).toBe('other')
     expect(signInMethod(undefined)).toBe('other')
   })

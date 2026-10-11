@@ -3,7 +3,7 @@ import { randomUUID } from 'node:crypto'
 import { authSchema, type Db } from '@commerce/db'
 import { and, eq, lt } from 'drizzle-orm'
 
-export type SignInMethod = 'email_otp' | 'passkey' | 'other'
+export type SignInMethod = 'email_otp' | 'passkey' | 'google' | 'other'
 
 /** How long a member's sign-in history is kept. */
 const KEEP_DAYS = 90
@@ -29,6 +29,7 @@ export function maskIp(ip: string | null | undefined): string | null {
 export function signInMethod(path: string | null | undefined): SignInMethod {
   if (path?.startsWith('/sign-in/email-otp')) return 'email_otp'
   if (path?.startsWith('/passkey/')) return 'passkey'
+  if (path === '/callback/google') return 'google'
   return 'other'
 }
 

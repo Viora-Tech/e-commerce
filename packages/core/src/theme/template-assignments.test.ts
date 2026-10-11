@@ -1,3 +1,4 @@
+/** SOURCE OF TRUTH: template assignment tests — WHAT: which theme template a product/blog/page uses / WHY: guards per-resource template choice */
 import { blog, createDb, product, type StoreTx, store, withStore } from '@commerce/db'
 import { resetDb } from '@commerce/db/test'
 import { eq } from 'drizzle-orm'

@@ -27,6 +27,20 @@ describe('isBlockedAuthPath', () => {
     }
   })
 
+  it('refuses the account routes Google sign-in does not need', () => {
+    for (const p of [
+      '/api/auth/link-social',
+      '/api/auth/unlink-account',
+      '/api/auth/list-accounts',
+      '/api/auth/get-access-token',
+      '/api/auth/refresh-token',
+      '/api/auth/account-info',
+      '/api/auth/Link-Social/',
+    ]) {
+      expect(isBlockedAuthPath(p), p).toBe(true)
+    }
+  })
+
   it('lets the rest of Better Auth through', () => {
     for (const p of [
       '/api/auth/email-otp/send-verification-otp',
@@ -36,6 +50,8 @@ describe('isBlockedAuthPath', () => {
       '/api/auth/passkey/list-user-passkeys',
       '/api/auth/passkey/verify-authentication',
       '/api/auth/revoke-session',
+      '/api/auth/sign-in/social',
+      '/api/auth/callback/google',
     ]) {
       expect(isBlockedAuthPath(p), p).toBe(false)
     }

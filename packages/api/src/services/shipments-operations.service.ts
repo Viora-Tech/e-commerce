@@ -1,0 +1,172 @@
+import {
+  applyNdrAction,
+  createManifest,
+  getWalletBalance,
+  listUnpickedShipments,
+  recordWalletBalance,
+  refreshWalletBalance,
+  resolveShippingProviders,
+  type ShippingRegistry,
+  schedulePickup,
+} from '@commerce/core'
+import type { StoreTx } from '@commerce/db'
+import { order, shipment, shipmentManifest, shipmentPickup, store } from '@commerce/db'
+import type { NdrAction } from '@commerce/shipping'
+import { ORPCError } from '@orpc/server'
+import { and, desc, eq, inArray } from 'drizzle-orm'
+import { courierToRpc, requireProvider, requireProviderById } from './shipments-workspace.service'
+import { loadShippingSettings } from './shipping.service'
+
+export async function schedulePickupForStore(
+  tx: StoreTx,
+  storeId: string,
+  registry: ShippingRegistry,
+  secret: string,
+  input: { shipmentIds: string[]; date: string; timeFrom: string; timeTo?: string | undefined },
+) {
+  const provider = await requireProvider(tx, storeId, registry, secret)
+  const settings = await loadShippingSettings(tx, storeId)
+  return schedulePickup({ storeId, tx }, provider, {
+    ...input,
+    pickupLocationName: settings.policy.warehouse.name || 'Warehouse',
+  }).catch(courierToRpc)
+}
+
+export async function createManifestForStore(
+  tx: StoreTx,
+  storeId: string,
+  registry: ShippingRegistry,
+  secret: string,
+  input: { pickupId?: string | undefined; shipmentIds?: string[] | undefined },
+) {
+  const provider = await requireProvider(tx, storeId, registry, secret)
+  return createManifest({ storeId, tx }, provider, input)
+}
+
+export async function listUnpickedForStore(tx: StoreTx, storeId: string) {
+  return listUnpickedShipments({ storeId, tx })
+}
+
+export async function listPickupsForStore(tx: StoreTx, storeId: string) {
+  return tx
+    .select()
+    .from(shipmentPickup)
+    .where(eq(shipmentPickup.storeId, storeId))
+    .orderBy(desc(shipmentPickup.createdAt))
+}
+
+export async function listManifestsForStore(tx: StoreTx, storeId: string) {
+  return tx
+    .select()
+    .from(shipmentManifest)
+    .where(eq(shipmentManifest.storeId, storeId))
+    .orderBy(desc(shipmentManifest.createdAt))
+}
+
+export async function listNdrForStore(tx: StoreTx, storeId: string) {
+  return tx
+    .select({
+      id: shipment.id,
+      orderId: shipment.orderId,
+      orderNumber: order.number,
+      waybill: shipment.waybill,
+      provider: shipment.provider,
+      ndrReason: shipment.ndrReason,
+      ndrRaisedAt: shipment.ndrRaisedAt,
+    })
+    .from(shipment)
+    .innerJoin(order, eq(order.id, shipment.orderId))
+    .where(and(eq(shipment.storeId, storeId), eq(shipment.ndrStatus, 'pending')))
+    .orderBy(desc(shipment.ndrRaisedAt))
+}
+
+export async function actOnNdr(
+  tx: StoreTx,
+  storeId: string,
+  registry: ShippingRegistry,
+  secret: string,
+  input: {
+    shipmentId: string
+    action: NdrAction
+    name?: string | undefined
+    phone?: string | undefined
+    address?: string | undefined
+    comment?: string | undefined
+  },
+) {
+  const [row] = await tx.select().from(shipment).where(eq(shipment.id, input.shipmentId))
+  if (!row) throw new ORPCError('NOT_FOUND')
+  const provider = await requireProviderById(tx, storeId, registry, secret, row.provider)
+  return applyNdrAction({ storeId, tx }, provider, input.shipmentId, input.action, input).catch(
+    courierToRpc,
+  )
+}
+
+/** One wallet card per connected courier, not just the primary - each courier has its own
+ *  account and its own balance. */
+export async function listWalletCards(
+  tx: StoreTx,
+  storeId: string,
+  registry: ShippingRegistry,
+  secret: string,
+) {
+  const settings = await loadShippingSettings(tx, storeId)
+  const { providers } = resolveShippingProviders(registry, settings, secret)
+  return Promise.all(
+    providers.map(async (provider) => {
+      const wallet = await getWalletBalance({ storeId, tx }, provider.id)
+      return {
+        provider: provider.id,
+        providerLabel: provider.label,
+        supportsLiveBalance: Boolean(provider.getWalletBalance),
+        balancePaise: wallet?.balancePaise ?? 0,
+        lowBalanceThresholdPaise:
+          wallet?.lowBalanceThresholdPaise ?? settings.policy.lowWalletBalancePaise,
+        source: wallet?.source ?? 'manual',
+        fetchedAt: wallet?.fetchedAt ?? null,
+        low:
+          (wallet?.balancePaise ?? 0) <
+          (wallet?.lowBalanceThresholdPaise ?? settings.policy.lowWalletBalancePaise),
+      }
+    }),
+  )
+}
+
+export async function refreshWallet(
+  tx: StoreTx,
+  storeId: string,
+  registry: ShippingRegistry,
+  secret: string,
+  providerId: string,
+  lowBalanceThresholdPaise?: number,
+) {
+  const provider = await requireProviderById(tx, storeId, registry, secret, providerId)
+  return refreshWalletBalance({ storeId, tx }, provider, lowBalanceThresholdPaise)
+}
+
+export async function recordWallet(
+  tx: StoreTx,
+  storeId: string,
+  registry: ShippingRegistry,
+  secret: string,
+  providerId: string,
+  balancePaise: number,
+) {
+  const provider = await requireProviderById(tx, storeId, registry, secret, providerId)
+  return recordWalletBalance({ storeId, tx }, provider.id, balancePaise)
+}
+
+/** Order numbers -> ids, for the "book by order number" panel; unmatched numbers are just left out. */
+export async function resolveOrderNumbers(tx: StoreTx, numbers: number[]) {
+  if (numbers.length === 0) return []
+  return tx
+    .select({ id: order.id, number: order.number })
+    .from(order)
+    .where(inArray(order.number, numbers))
+}
+
+/** Store name shown on the pickup/manifest confirmation, without pulling the whole store row. */
+export async function storeName(tx: StoreTx, storeId: string): Promise<string> {
+  const [s] = await tx.select({ name: store.name }).from(store).where(eq(store.id, storeId))
+  return s?.name ?? ''
+}

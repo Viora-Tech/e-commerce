@@ -1,5 +1,4 @@
-/**
- * SOURCE OF TRUTH: purchase order PDF data + "Email to supplier"
+/** SOURCE OF TRUTH: purchase order PDF data + "Email to supplier"
  * WHAT:  `loadPurchaseOrderSheet` reads one order into the plain `PurchaseOrderSheet` the PDF
  *        prints; `emailPurchaseOrder` sends that PDF to the supplier through the store's own
  *        email channel (its verified sender, else the platform address with Reply-To set to

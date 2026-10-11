@@ -13,7 +13,7 @@ import {
 import { resetDb } from '@commerce/db/test'
 import { DocumentSnapshotSchema } from '@commerce/invoices'
 import { afterAll, beforeEach, describe, expect, it } from 'vitest'
-import { issueCreditNote } from '../src/issue'
+import { issueCreditNote } from '../src/credit-notes'
 import { enqueueOrder, issueDrafts } from '../src/queue'
 import { invoice } from '../src/schema'
 import { issueReceiptVoucher, issueRefundVoucher } from '../src/vouchers'

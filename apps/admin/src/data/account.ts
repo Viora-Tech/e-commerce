@@ -194,6 +194,14 @@ export const accountContent = {
       invalidEmail: 'Enter a full email address, like you@example.com',
       failed: 'Could not change your email. Try again.',
     },
+    google: {
+      heading: 'Google',
+      body: 'Sign in with the Google account that uses your sign-in email.',
+      linked: 'Linked',
+      linkedOn: (date: string) => `Linked on ${date}`,
+      notLinked:
+        'Not linked yet. On the login page, click Continue with Google and pick the Google account with your sign-in email.',
+    },
     passkeys: {
       heading: 'Passkeys',
       body: 'Sign in with your fingerprint, face or screen lock instead of a code. Each device or password manager keeps its own passkey.',
@@ -226,7 +234,12 @@ export const accountContent = {
       body: 'The last 10 times someone signed in to your account. Not you? Sign the device out on Sessions and change your email.',
       empty: 'No sign-ins recorded yet. New sign-ins show here.',
       thisDevice: 'This device',
-      methods: { email_otp: 'Code by email', passkey: 'Passkey', other: 'Other' },
+      methods: {
+        email_otp: 'Code by email',
+        passkey: 'Passkey',
+        google: 'Google',
+        other: 'Other',
+      },
     },
     loadFailed: 'This page did not load.',
     retry: 'Try again',

@@ -190,6 +190,14 @@ const shape = z.object({
    * staff invitations to an existing store, which always work.
    */
   MERCHANT_SIGNUP_MODE: z.enum(['invite', 'open']).default('invite'),
+  /**
+   * "Continue with Google" for merchants and staff on the admin login page (a Google Cloud
+   * OAuth web client). Both set turns the button on; either blank hides it
+   * (`merchantGoogleSignIn`). The authorised redirect URI is
+   * `<ADMIN_URL>/api/auth/callback/google`. Not the shopper keys below.
+   */
+  MERCHANT_GOOGLE_CLIENT_ID: optionalOrBlank(z.string().min(1)),
+  MERCHANT_GOOGLE_CLIENT_SECRET: optionalOrBlank(z.string().min(1)),
   /** `<slug>.<PLATFORM_STORE_DOMAIN>` becomes a new store's primary domain. */
   PLATFORM_STORE_DOMAIN: z.string().min(1).default('waimers.store'),
   /**
@@ -300,6 +308,18 @@ export function loadEnv(source: Record<string, string | undefined>): Env {
  */
 export function settingsSecret(): string {
   return loadEnv(process.env).SETTINGS_SECRET
+}
+
+/**
+ * The merchant Google sign-in client, or null when either key is unset: the admin then leaves
+ * the provider out of Better Auth and hides "Continue with Google".
+ */
+export function merchantGoogleSignIn(
+  env: Pick<Env, 'MERCHANT_GOOGLE_CLIENT_ID' | 'MERCHANT_GOOGLE_CLIENT_SECRET'>,
+): { clientId: string; clientSecret: string } | null {
+  const clientId = env.MERCHANT_GOOGLE_CLIENT_ID
+  const clientSecret = env.MERCHANT_GOOGLE_CLIENT_SECRET
+  return clientId && clientSecret ? { clientId, clientSecret } : null
 }
 
 const platformEmailSchema = z.object({ ...platformEmailShape, PLATFORM_DOMAINS: platformDomains })

@@ -136,7 +136,7 @@ export const memberSignIn = pgTable(
       .references(() => user.id, { onDelete: 'cascade' }),
     /** The Better Auth session it opened; null once that session is gone. */
     sessionId: text('session_id'),
-    /** `email_otp`, `passkey` or `other`. */
+    /** `email_otp`, `passkey`, `google` or `other`. */
     method: text('method').notNull(),
     ipMasked: text('ip_masked'),
     userAgent: text('user_agent'),

@@ -300,6 +300,7 @@ export const SETTINGS_SEARCH_INDEX: SettingsSearchEntry[] = [
       'passkey',
       'fingerprint',
       'face id',
+      'google',
       'sign-in history',
       'security',
     ],

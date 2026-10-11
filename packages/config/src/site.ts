@@ -3,7 +3,7 @@
  * WHAT: the one typed place for every value that names the platform or sets a product-wide default:
  *   brand (name, tagline, domain, logos), contact, public URLs, locale (currency, language, zone,
  *   date styles), UI defaults (rows per page, toast times), plan-limit placeholders, social links.
- * WHY: "Vextro" and its siblings were spelled out in templates, user agents and admin copy, so a
+ * WHY: The platform name and its siblings were spelled out in templates, user agents and admin copy, so a
  *   rename (it may change) meant a grep. Everything reads this module instead; the
  *   `site-config` sweep fails on a literal brand name anywhere else.
  * WHERE: admin copy and shell, storefront, worker and emails all import `@commerce/config/site`.
@@ -60,24 +60,24 @@ export type SiteConfig = {
 
 export const siteConfig: SiteConfig = {
   brand: {
-    name: 'Vextro',
+    name: 'Sellverse',
     tagline: 'Run your store in plain words.',
-    domain: 'vextro.example',
+    domain: 'sellverse.app',
     logo: { mark: '/brand/mark.svg', full: '/brand/logo.svg', favicon: '/favicon.ico' },
   },
   contact: {
-    supportEmail: 'support@vextro.example',
+    supportEmail: 'support@sellverse.app',
     whatsappNumber: '910000000000',
     whatsappGreeting: 'Hi, I need help with my store.',
     phone: '+91 00000 00000',
   },
   urls: {
-    site: 'https://vextro.example',
-    docs: 'https://docs.vextro.example',
-    terms: 'https://vextro.example/terms',
-    privacy: 'https://vextro.example/privacy',
-    refunds: 'https://vextro.example/refunds',
-    status: 'https://status.vextro.example',
+    site: 'https://sellverse.app',
+    docs: 'https://docs.sellverse.app',
+    terms: 'https://sellverse.app/terms',
+    privacy: 'https://sellverse.app/privacy',
+    refunds: 'https://sellverse.app/refunds',
+    status: 'https://status.sellverse.app',
   },
   locale: {
     currency: 'INR',
@@ -98,11 +98,11 @@ export const siteConfig: SiteConfig = {
     scale: { name: 'Scale', ordersPerMonth: 10000 },
   },
   social: {
-    x: 'https://x.com/vextro',
-    instagram: 'https://instagram.com/vextro',
-    youtube: 'https://youtube.com/@vextro',
-    linkedin: 'https://linkedin.com/company/vextro',
-    github: 'https://github.com/vextro',
+    x: 'https://x.com/sellverse',
+    instagram: 'https://instagram.com/sellverse',
+    youtube: 'https://youtube.com/@sellverse',
+    linkedin: 'https://linkedin.com/company/sellverse',
+    github: 'https://github.com/sellverse',
   },
 }
 

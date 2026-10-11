@@ -1,4 +1,3 @@
-import { startOfDay } from '@commerce/dates'
 import { order, orderLine, type StoreTx } from '@commerce/db'
 import {
   counterYear,
@@ -7,11 +6,9 @@ import {
   financialYear,
   formatSeriesNumber,
   isEligible,
-  nextNumberProblem,
   pickSeries,
-  type Series,
 } from '@commerce/invoices'
-import { and, asc, desc, eq, gte, inArray, lt, type SQL, sql } from 'drizzle-orm'
+import { and, asc, eq, gte, inArray, lt, type SQL, sql } from 'drizzle-orm'
 import {
   existing,
   InvoiceError,
@@ -23,11 +20,12 @@ import {
   totalsColumns,
   writeLines,
 } from './issue'
+import { latestIssuedDate, peekNext, startOfIstDay } from './next-number'
 import { takeNumber } from './numbers'
 import { invoiceParcels } from './parcels'
 import { assertPeriodOpen, PeriodError } from './periods'
 import { gstToken, orderIssuer, sameRegistration } from './registration'
-import { invoice, invoiceSequence } from './schema'
+import { invoice } from './schema'
 
 /**
  * The invoice queue. Orders wait here as unnumbered drafts; a GST number is
@@ -361,112 +359,6 @@ export function checkRule46(doc: DocumentSnapshot): void {
       `Order ${doc.order.name} is ₹50,000 or more to an unregistered buyer; add the buyer's ${missing.join(', ')} first`,
     )
   }
-}
-
-/**
- * The number a GSTIN's series counter hands out next, without taking it; `fyStartYear` is
- * its {@link counterYear}. `gstRegistrationId` null is a store without a registration.
- */
-export async function peekNext(
-  tx: StoreTx,
-  gstRegistrationId: string | null,
-  seriesId: string,
-  fyStartYear: number,
-): Promise<number> {
-  const [row] = await tx
-    .select({ next: invoiceSequence.next })
-    .from(invoiceSequence)
-    .where(
-      and(
-        sameRegistration(invoiceSequence.gstRegistrationId, gstRegistrationId),
-        eq(invoiceSequence.seriesId, seriesId),
-        eq(invoiceSequence.fyStartYear, fyStartYear),
-      ),
-    )
-  return row?.next ?? 1
-}
-
-/**
- * The lowest next number a series may take in the financial year of `at`:
- * the higher of its yearly counter and its never-resetting one, so switching
- * "start again every April" on or off can never hand out a number twice.
- */
-export async function nextNumberFloor(
-  tx: StoreTx,
-  gstRegistrationId: string | null,
-  series: Pick<Series, 'id'>,
-  at: Date,
-): Promise<number> {
-  const fy = financialYear(at)
-  return Math.max(
-    await peekNext(tx, gstRegistrationId, series.id, fy.startYear),
-    await peekNext(tx, gstRegistrationId, series.id, 0),
-  )
-}
-
-/**
- * Move a series' counter so its next document takes `wanted` (Settings ›
- * Taxes & GST). Refuses numbers below {@link nextNumberFloor}; the counter
- * row is upserted under the same lock issuing takes.
- */
-export async function setNextNumber(
-  tx: StoreTx,
-  storeId: string,
-  gstRegistrationId: string | null,
-  series: Series,
-  wanted: number,
-  at = new Date(),
-): Promise<number> {
-  const floor = await nextNumberFloor(tx, gstRegistrationId, series, at)
-  const problem = nextNumberProblem(floor, wanted)
-  if (problem) throw new InvoiceError('invalid', problem)
-  const fyStartYear = counterYear(series, financialYear(at))
-  await tx
-    .insert(invoiceSequence)
-    .values({
-      storeId,
-      gstRegistrationId,
-      kind: series.kind,
-      seriesId: series.id,
-      fyStartYear,
-      next: wanted,
-    })
-    .onConflictDoUpdate({
-      target: [
-        invoiceSequence.storeId,
-        invoiceSequence.gstRegistrationId,
-        invoiceSequence.seriesId,
-        invoiceSequence.fyStartYear,
-      ],
-      set: { next: sql`greatest(${invoiceSequence.next}, ${wanted})` },
-    })
-  return wanted
-}
-
-async function latestIssuedDate(
-  tx: StoreTx,
-  gstRegistrationId: string | null,
-  seriesId: string,
-  fyStartYear: number,
-): Promise<Date | null> {
-  const [row] = await tx
-    .select({ at: invoice.invoiceDate })
-    .from(invoice)
-    .where(
-      and(
-        sameRegistration(invoice.gstRegistrationId, gstRegistrationId),
-        eq(invoice.seriesId, seriesId),
-        inArray(invoice.status, ['issued', 'cancelled']),
-        eq(invoice.fyStartYear, fyStartYear),
-      ),
-    )
-    .orderBy(desc(invoice.seq))
-    .limit(1)
-  return row?.at ?? null
-}
-
-function startOfIstDay(at: Date): Date {
-  return startOfDay(at)
 }
 
 /**

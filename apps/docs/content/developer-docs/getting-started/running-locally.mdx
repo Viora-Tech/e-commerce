@@ -95,6 +95,24 @@ this and let any signed-in email create a store. `PLATFORM_STORE_DOMAIN` (defaul
 production. The service behind all of this is `createStore`
 (`packages/core/src/onboarding/service.ts`).
 
+## Merchant "Continue with Google" (optional)
+
+The admin login page shows **Continue with Google** only when both keys are set in `.env`:
+
+```sh filename=".env"
+MERCHANT_GOOGLE_CLIENT_ID=
+MERCHANT_GOOGLE_CLIENT_SECRET=
+```
+
+Create an OAuth client of type **Web application** in Google Cloud (APIs & Services →
+Credentials) and add the authorised redirect URI `<ADMIN_URL>/api/auth/callback/google`
+(locally `http://localhost:3200/api/auth/callback/google`; Better Auth's default base path
+`/api/auth`). Restart the admin after changing them. A Google sign-in follows the same path as
+an email code: an existing member with the same verified email signs into their own account,
+anyone else lands on `/onboarding` and meets `MERCHANT_SIGNUP_MODE`. These are not the
+`SHOPPER_GOOGLE_*` keys (storefront shopper sign-in). Security notes:
+[Security](/developer-docs/core-concepts/security).
+
 Existing staff invitations to join an existing store (Settings → Staff, `/accept-invitation/[id]`)
 are unaffected by this gate - they always work.
 

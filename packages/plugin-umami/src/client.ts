@@ -1,3 +1,4 @@
+import { CommerceError } from '@commerce/core'
 import { type LookupAll, readCapped, safeFetch } from '@commerce/core/safe-fetch'
 import {
   BREAKDOWN_TYPES,
@@ -38,10 +39,12 @@ const MESSAGES: Record<UmamiErrorCode, string> = {
   'bad-response': 'Umami sent an answer we could not read. Check the address points at Umami.',
 }
 
-export class UmamiError extends Error {
-  constructor(readonly code: UmamiErrorCode) {
-    super(MESSAGES[code])
-    this.name = 'UmamiError'
+export class UmamiError extends CommerceError {
+  override readonly code: UmamiErrorCode
+
+  constructor(code: UmamiErrorCode) {
+    super(code, MESSAGES[code])
+    this.code = code
   }
 }
 

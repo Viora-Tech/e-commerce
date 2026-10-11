@@ -6,12 +6,20 @@ import { Field, FieldError, FieldLabel } from '@commerce/ui/shadcn/field'
 import { Input } from '@commerce/ui/shadcn/input'
 import { useRouter } from 'next/navigation'
 import { type FormEvent, useEffect, useState } from 'react'
+import GoogleSignIn from '@/components/auth/google-sign-in'
 import OtpInput from '@/components/auth/otp-input'
 import PasskeySignIn from '@/components/auth/passkey-sign-in'
 import { loginContent } from '@/data/login'
 import { useCopy } from '@/hooks/use-copy'
 import { authClient } from '@/lib/auth-client'
 import { routes } from '@/lib/routes'
+
+type LoginFormProps = {
+  /** The admin has a Google client (MERCHANT_GOOGLE_*): show "Continue with Google". */
+  google: boolean
+  /** `?error=` from a refused Google sign-in. */
+  googleError: string | null
+}
 
 type Step = 'email' | 'otp'
 type Mode = 'sign-in' | 'sign-up'
@@ -22,7 +30,7 @@ function clock(seconds: number): string {
   return `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')}`
 }
 
-export default function LoginForm() {
+export default function LoginForm({ google, googleError }: LoginFormProps) {
   // Hooks
   const copy = useCopy(loginContent)
   const router = useRouter()
@@ -150,6 +158,7 @@ export default function LoginForm() {
         <h1 className="text-page-title text-ink-strong">{head.title}</h1>
         <p className="text-body text-helper">{body}</p>
       </div>
+      {google ? <GoogleSignIn errorCode={googleError} /> : null}
       <form onSubmit={handleSendCode} className="flex flex-col gap-4">
         <Field data-invalid={error ? true : undefined}>
           <FieldLabel htmlFor="login-email">{copy.email}</FieldLabel>

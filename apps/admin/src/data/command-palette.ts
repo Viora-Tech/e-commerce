@@ -1,3 +1,4 @@
+import { siteConfig } from '@commerce/config/site'
 import { type Permission, permissions } from '@commerce/core/permissions'
 import type { LucideIcon } from '@commerce/ui/icons'
 import { Palette, Plus, Settings } from '@commerce/ui/icons'
@@ -23,8 +24,8 @@ export type PaletteLink = {
 
 export const paletteContent = {
   title: 'Search',
-  description: 'Search orders, products, customers and pages, or ask Vextro AI.',
-  placeholder: 'Search or ask Vextro AI…',
+  description: `Search orders, products, customers and pages, or ask ${siteConfig.brand.name} AI.`,
+  placeholder: `Search or ask ${siteConfig.brand.name} AI…`,
   esc: 'Esc',
   scopesLabel: 'Search in',
   scopes: {
@@ -53,7 +54,7 @@ export const paletteContent = {
     openCustomize: 'Open Customize',
   },
   clearRecent: 'Clear',
-  askAi: (query: string) => `Ask Vextro AI: “${query}”`,
+  askAi: (query: string) => `Ask ${siteConfig.brand.name} AI: “${query}”`,
   askAiHint: 'Get an answer from your store data',
   seeAll: (n: number) => `See all ${n} →`,
   toggleTheme: 'Switch between light and dark',
@@ -83,7 +84,7 @@ export const paletteContent = {
   loading: 'Searching…',
   count: (n: number) => (n === 1 ? '1 result' : `${n} results`),
   noResults: (query: string) => `No results for “${query}”`,
-  noResultsBody: 'Check the spelling, try fewer words, or ask Vextro AI.',
+  noResultsBody: `Check the spelling, try fewer words, or ask ${siteConfig.brand.name} AI.`,
   tips: [
     'Order numbers work with or without the #',
     'Phone numbers need at least 4 digits',
