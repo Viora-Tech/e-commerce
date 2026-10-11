@@ -14,38 +14,30 @@ import ProductStockSection from './product-stock-section'
 type ProductMainCardProps = {
   form: ProductFormState
   variant: VariantRow
-  /** Pricing and stock live in the variants table once options exist. */
-  singleVariant: boolean
+  /** Which card this renders; the form puts each one in its own tab. */
+  tab: 'details' | 'pricing' | 'inventory'
   titleError?: string | undefined
   quantityChanged: boolean
   onPatch: (patch: Partial<ProductFormState>) => void
   onVariant: (patch: Partial<VariantRow>) => void
   onReason: (reason: InventoryReason) => void
-  /** The media card, drawn first so the jump nav reads top to bottom: Media, Details, Pricing, Inventory. */
-  media?: ReactNode
   /** Right side of the details card header ("Write with AI" when AI is on). */
   detailsAction?: ReactNode
 }
 
-/** Jump-nav targets land below the sticky page header instead of under it. */
-const SECTION = 'scroll-mt-[calc(var(--detail-header-height,11rem)+1rem)]'
-
 /**
- * The product page main column head, after the Saleor Dashboard product page (BSD-3):
- * media, general information, then pricing and inventory as their own cards. Each
- * section carries an id so the compact jump nav (`ProductSectionNav`) can scroll to it;
- * pre-order moved out to the "More" group (`ProductMoreSection`, in `product-form.tsx`).
+ * One card of the product page's Details, Pricing or Inventory tab, after the Saleor Dashboard
+ * product page (BSD-3). Pre-order lives in the "More" tab (`product-form.tsx`).
  */
 export default function ProductMainCard({
   form,
   variant,
-  singleVariant,
+  tab,
   titleError,
   quantityChanged,
   onPatch,
   onVariant,
   onReason,
-  media,
   detailsAction,
 }: ProductMainCardProps) {
   // Hooks
@@ -55,53 +47,46 @@ export default function ProductMainCard({
   const handleDescription = (description: RichTextValue) => onPatch({ description })
 
   // Render logic
+  if (tab === 'details') {
+    return (
+      <DataCard title={copy.basics} action={detailsAction}>
+        <ProductBasicsSection
+          title={form.title}
+          description={form.description}
+          titleError={titleError}
+          onTitle={(title) => onPatch({ title })}
+          onDescription={handleDescription}
+        />
+      </DataCard>
+    )
+  }
+  if (tab === 'pricing') {
+    return (
+      <DataCard title={copy.pricing.heading}>
+        <ProductPricingSection
+          variant={variant}
+          taxIncluded={form.taxIncluded}
+          saleStartsAt={form.saleStartsAt}
+          saleEndsAt={form.saleEndsAt}
+          onVariant={onVariant}
+          onTaxIncluded={(taxIncluded) => onPatch({ taxIncluded })}
+          onSaleStartsAt={(saleStartsAt) => onPatch({ saleStartsAt })}
+          onSaleEndsAt={(saleEndsAt) => onPatch({ saleEndsAt })}
+        />
+      </DataCard>
+    )
+  }
   return (
-    <>
-      <section id="media" className={SECTION}>
-        {media}
-      </section>
-      <section id="details" className={SECTION}>
-        <DataCard title={copy.basics} action={detailsAction}>
-          <ProductBasicsSection
-            title={form.title}
-            description={form.description}
-            titleError={titleError}
-            onTitle={(title) => onPatch({ title })}
-            onDescription={handleDescription}
-          />
-        </DataCard>
-      </section>
-      {singleVariant ? (
-        <>
-          <section id="pricing" className={SECTION}>
-            <DataCard title={copy.pricing.heading}>
-              <ProductPricingSection
-                variant={variant}
-                taxIncluded={form.taxIncluded}
-                saleStartsAt={form.saleStartsAt}
-                saleEndsAt={form.saleEndsAt}
-                onVariant={onVariant}
-                onTaxIncluded={(taxIncluded) => onPatch({ taxIncluded })}
-                onSaleStartsAt={(saleStartsAt) => onPatch({ saleStartsAt })}
-                onSaleEndsAt={(saleEndsAt) => onPatch({ saleEndsAt })}
-              />
-            </DataCard>
-          </section>
-          <section id="inventory" className={SECTION}>
-            <DataCard title={copy.inventory.heading}>
-              <ProductStockSection
-                variant={variant}
-                featured={form.featured}
-                quantityChanged={quantityChanged}
-                reason={form.inventoryReason}
-                onVariant={onVariant}
-                onFeatured={(featured) => onPatch({ featured })}
-                onReason={onReason}
-              />
-            </DataCard>
-          </section>
-        </>
-      ) : null}
-    </>
+    <DataCard title={copy.inventory.heading}>
+      <ProductStockSection
+        variant={variant}
+        featured={form.featured}
+        quantityChanged={quantityChanged}
+        reason={form.inventoryReason}
+        onVariant={onVariant}
+        onFeatured={(featured) => onPatch({ featured })}
+        onReason={onReason}
+      />
+    </DataCard>
   )
 }
