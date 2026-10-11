@@ -60,7 +60,7 @@ function inRange(ip: string, cidr: string): boolean {
   return Math.floor(a / size) === Math.floor(b / size)
 }
 
-const isCloudflare = (ip: string) => CLOUDFLARE_V4.some((cidr) => inRange(ip, cidr))
+export const isCloudflare = (ip: string) => CLOUDFLARE_V4.some((cidr) => inRange(ip, cidr))
 
 const normHost = (h: string) => h.trim().toLowerCase().replace(/\.$/, '')
 
@@ -76,7 +76,7 @@ function errorCode(err: unknown): string {
  * record"), or null when the question could not be answered (timeout, server
  * failure), which the caller treats as "try again later".
  */
-async function lookup<T>(fn: () => Promise<T[]>, timeoutMs: number): Promise<T[] | null> {
+export async function lookup<T>(fn: () => Promise<T[]>, timeoutMs: number): Promise<T[] | null> {
   let timer: ReturnType<typeof setTimeout> | undefined
   const timeout = new Promise<null>((resolve) => {
     timer = setTimeout(() => resolve(null), timeoutMs)

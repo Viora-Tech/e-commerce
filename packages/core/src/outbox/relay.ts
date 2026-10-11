@@ -161,7 +161,12 @@ async function dispatchRow(deps: OutboxRelayDeps, row: Row): Promise<void> {
   if (type === 'domain.route_requested' && payload.domainId && deps.domainRoutes) {
     await deps.domainRoutes.add(
       'add',
-      { action: 'add', storeId: row.storeId, domainId: payload.domainId },
+      {
+        action: 'add',
+        storeId: row.storeId,
+        domainId: payload.domainId,
+        ...(payload.reregister ? { reregister: true } : {}),
+      },
       {
         // Keyed by the row: a re-dispatch is a no-op, a later request (new row) is its own job.
         jobId: `route-add-${row.id}`,

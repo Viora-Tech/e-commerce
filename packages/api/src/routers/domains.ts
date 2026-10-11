@@ -10,6 +10,7 @@ import {
   permissions,
   platformRoots,
   removeDomain,
+  requestCertificateRetry,
   setDomainRedirect,
   setPrimaryDomain,
   verifyDomain,
@@ -84,6 +85,21 @@ export const domainsRouter = {
         })
         return domainView(d, t)
       }),
+    ),
+
+  /**
+   * "Retry certificate": restart the wait and queue a fresh certificate attempt (the worker
+   * re-registers the host and re-checks). At most once every two minutes per domain.
+   */
+  retryCertificate: manage()
+    .input(byId)
+    .handler(({ context, input }) =>
+      domainErrorsToBadRequest(async () =>
+        domainView(
+          await requestCertificateRetry(context.tx, context.scope.storeId, input.id),
+          targets(),
+        ),
+      ),
     ),
 
   setPrimary: manage()

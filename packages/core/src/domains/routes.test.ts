@@ -16,6 +16,7 @@ import {
   ROUTE_JOB_ATTEMPTS,
   ROUTE_RETRY_MS,
   removeRoute,
+  requestDomainRoute,
   runDomainRouteJob,
 } from './routes'
 import { connectDomain, type DomainRow, pollPendingDomains, removeDomain } from './service'
@@ -417,14 +418,38 @@ describe('runDomainRouteJob: store address (platform kind)', () => {
     return { id: row?.id as string, job }
   }
 
-  it('adds the route and flips the address to SSL active', async () => {
+  it('adds the route and starts the certificate wait; it never assumes SSL is active', async () => {
     const { id, job } = await platformRow('asha.vioratech.in')
     const d = fakeDokploy()
     expect(await runDomainRouteJob({ db: app, client: d.client, guard: storeGuard }, job)).toBe(
       'created',
     )
     expect(d.domains).toEqual([{ domainId: 'd1', host: 'asha.vioratech.in' }])
-    expect(await domainRow(id)).toMatchObject({ routeStatus: 'ready', sslStatus: 'active' })
+    const row = await domainRow(id)
+    expect(row).toMatchObject({ routeStatus: 'ready', sslStatus: 'issuing' })
+    expect(row?.sslStartedAt).toBeInstanceOf(Date)
+  })
+
+  it('re-registers when asked: deletes the old Dokploy domain, creates a new one, restarts the wait', async () => {
+    const { id, job } = await platformRow('asha.vioratech.in')
+    const d = fakeDokploy([{ domainId: 'old', host: 'asha.vioratech.in' }])
+    const after: string[] = []
+    const out = await runDomainRouteJob(
+      {
+        db: app,
+        client: d.client,
+        guard: storeGuard,
+        afterReregister: async (_s, domainId) => {
+          after.push(domainId)
+        },
+      },
+      { ...job, reregister: true },
+    )
+    expect(out).toBe('created')
+    expect(d.domains).toEqual([{ domainId: 'd1', host: 'asha.vioratech.in' }])
+    expect(d.calls).toContain('delete old')
+    expect(after).toEqual([id])
+    expect(await domainRow(id)).toMatchObject({ routeStatus: 'ready', sslStatus: 'issuing' })
   })
 
   it('is idempotent', async () => {
@@ -453,5 +478,22 @@ describe('runDomainRouteJob: store address (platform kind)', () => {
       runDomainRouteJob({ db: app, client: d.client, guard: storeGuard }, job),
     ).rejects.toThrow()
     expect((await domainRow(id))?.sslStatus).toBe('issuing')
+  })
+})
+
+describe('route request with reregister', () => {
+  it('reaches the route job as reregister, a plain request does not', async () => {
+    const storeId = await seedStore('rr')
+    const [a] = await connect(storeId, 'one.in')
+    const [b] = await connect(storeId, 'two.in')
+    await withStore(app, storeId, async (tx) => {
+      await requestDomainRoute(tx, storeId, a?.id as string, t0, { reregister: true })
+      await requestDomainRoute(tx, storeId, b?.id as string, t0)
+    })
+    const jobs = await relayRouteJobs(storeId)
+    expect(jobs).toEqual([
+      { action: 'add', storeId, domainId: a?.id, reregister: true },
+      { action: 'add', storeId, domainId: b?.id },
+    ])
   })
 })

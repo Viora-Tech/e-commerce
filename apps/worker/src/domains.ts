@@ -1,4 +1,6 @@
+import * as dns from 'node:dns/promises'
 import {
+  type CertificateDeps,
   createDokployClient,
   createDomainProvider,
   type DokployConfig,
@@ -7,16 +9,23 @@ import {
   markDomainRouteFailed,
   pollPendingDomains,
   type RouteGuard,
+  recheckAfterSettle,
+  runCertificateSweep,
   runDomainRouteJob,
+  tlsCertState,
 } from '@commerce/core'
 import type { Db } from '@commerce/db'
 import {
+  DOMAIN_CERTIFICATE_QUEUE,
   DOMAIN_ROUTE_QUEUE,
   DOMAIN_VERIFY_QUEUE,
   type IORedis,
   Queue,
   Worker,
 } from '@commerce/queue'
+
+/** How often the certificate sweep looks for due hosts; each host's own schedule is in `certCheckInterval`. */
+export const CERTIFICATE_EVERY_MS = 60_000
 
 /** How often domains in flight are checked. DNS changes usually land within minutes. */
 export const VERIFY_EVERY_MS = 2 * 60_000
@@ -64,14 +73,20 @@ export function createDomainPoller(
 export function createDomainRouteWorker(
   connection: IORedis,
   db: Db,
-  opts: { dokploy: DokployConfig | null; guard: RouteGuard },
+  opts: { dokploy: DokployConfig | null; guard: RouteGuard; targets: DomainTargets },
 ) {
   const queue = new Queue<DomainRouteJob>(DOMAIN_ROUTE_QUEUE, { connection })
+  const client = opts.dokploy ? createDokployClient(opts.dokploy) : null
+  const certificate = certificateDeps(db, client, opts)
   const deps = {
     db,
-    client: opts.dokploy ? createDokployClient(opts.dokploy) : null,
+    client,
     guard: opts.guard,
     log: (m: string) => console.log(m),
+    // "Retry certificate": after the forced re-register, wait for Traefik and record the result.
+    afterReregister: async (storeId: string, domainId: string) => {
+      await recheckAfterSettle(certificate, storeId, domainId)
+    },
   }
   const worker = new Worker<DomainRouteJob>(
     DOMAIN_ROUTE_QUEUE,
@@ -88,5 +103,50 @@ export function createDomainRouteWorker(
       )
     }
   })
+  return { queue, worker }
+}
+
+function certificateDeps(
+  db: Db,
+  client: ReturnType<typeof createDokployClient> | null,
+  opts: { guard: RouteGuard; targets: DomainTargets },
+): CertificateDeps {
+  return {
+    db,
+    client,
+    guard: opts.guard,
+    targets: opts.targets,
+    tlsCheck: (host) => tlsCertState(host),
+    resolver: dns,
+    log: (m) => console.log(m),
+  }
+}
+
+/**
+ * One repeat job checks every registered store address and custom domain over TLS: a host that
+ * still has Traefik's default certificate is re-registered in Dokploy once its DNS points here,
+ * on a backoff (`runCertificateSweep`). Only worth running with the real DNS provider; without
+ * it there is no real network to ask.
+ */
+export function createCertificateSweep(
+  connection: IORedis,
+  db: Db,
+  opts: { dokploy: DokployConfig | null; guard: RouteGuard; targets: DomainTargets },
+) {
+  const queue = new Queue(DOMAIN_CERTIFICATE_QUEUE, { connection })
+  const deps = certificateDeps(db, opts.dokploy ? createDokployClient(opts.dokploy) : null, opts)
+  const worker = new Worker(
+    DOMAIN_CERTIFICATE_QUEUE,
+    async () => {
+      const r = await runCertificateSweep(deps)
+      if (r.checked > 0 || r.failed > 0) {
+        console.log(
+          `[domains] certificates: ${r.checked} checked in ${r.stores} stores, ${r.active} active, ${r.reregistered} re-registered, ${r.failed} failed`,
+        )
+      }
+      return r
+    },
+    { connection, concurrency: 1 },
+  )
   return { queue, worker }
 }

@@ -296,9 +296,19 @@ const ALLOWLIST: AllowEntry[] = [
   },
   {
     file: 'packages/core/src/domains/routes.ts',
-    names: ['ROUTE_RETRY_MS', 'isRoutableHostname', 'ensureRoute', 'removeRoute'],
+    names: ['ROUTE_RETRY_MS'],
+    reason: 'the route retry window behind needsRouteRequest, exported for its unit tests',
+  },
+  {
+    file: 'packages/core/src/domains/certificate-retry.ts',
+    names: ['checkCertificate', 'RETRY_REQUEST_GAP_MS'],
     reason:
-      'the guard, retry window and idempotent Dokploy steps behind runDomainRouteJob, exported for their unit tests',
+      'the per-host check and the retry gap behind the sweep and the merchant button, exported for their unit tests',
+  },
+  {
+    file: 'packages/core/src/domains/certificate.ts',
+    names: ['DAY', 'CERT_RETRY_WINDOW_MS'],
+    reason: 'the schedule constants behind certCheckDue, exported for its unit tests',
   },
   {
     file: 'packages/core/src/domains/service.ts',

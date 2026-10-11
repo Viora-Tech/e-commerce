@@ -1739,6 +1739,13 @@ export const storeDomain = pgTable(
     routeStatus: text('route_status').$type<DomainRouteStatus>().notNull().default('none'),
     /** When the route was last asked for, so a stuck request is asked again. */
     routeRequestedAt: timestamp('route_requested_at', { withTimezone: true }),
+    /**
+     * When the current wait for a certificate began: set when the route is first added and
+     * again by "Retry certificate". The retry schedule counts from here (domains/certificate.ts).
+     */
+    sslStartedAt: timestamp('ssl_started_at', { withTimezone: true }),
+    /** When the certificate was last looked at over TLS by the sweep (separate from the DNS poll's `lastCheckedAt`). */
+    sslCheckedAt: timestamp('ssl_checked_at', { withTimezone: true }),
     createdAt: createdAt(),
   },
   (t) => [
