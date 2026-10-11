@@ -9,14 +9,22 @@
  */
 import { AA_TEXT, contrastRatio } from '../theme/vars'
 
-/** Ocean Green, the Figma kit's primary. Choosing it means "no override". */
-export const DEFAULT_ACCENT = '#4ea674'
+/**
+ * Proofly blue, the stylesheet's own `--primary` (packages/ui/src/styles.css, the "Proofly look"
+ * chosen 2026-10-09). Choosing it means "no override". It used to be the Figma kit's Ocean Green;
+ * after the stylesheet moved to blue, picking green fell through to the blue default.
+ */
+export const DEFAULT_ACCENT = '#3f72dc'
+
+/** Ocean Green, the earlier Figma kit primary: now an ordinary preset that overrides. */
+export const OCEAN_GREEN = '#4ea674'
 
 export type AccentPreset = { id: string; hex: string }
 
 /** Swatches on Settings › Appearance, default first. */
 export const ACCENT_PRESETS: AccentPreset[] = [
-  { id: 'ocean-green', hex: DEFAULT_ACCENT },
+  { id: 'proofly-blue', hex: DEFAULT_ACCENT },
+  { id: 'ocean-green', hex: OCEAN_GREEN },
   { id: 'blue', hex: '#2563eb' },
   { id: 'indigo', hex: '#4f46e5' },
   { id: 'violet', hex: '#7c3aed' },
@@ -133,21 +141,21 @@ export type AccentTokens = {
 export type AccentPalette = { light: AccentTokens; dark: AccentTokens }
 
 /**
- * Ocean Green as the Figma kit hand-tuned it (mirrors `packages/ui/src/styles.css`). The
- * default keeps these exact values, white text included, rather than the derived ones.
+ * The default (Proofly blue) exactly as the stylesheet sets it (`packages/ui/src/styles.css`), so the
+ * preview of the default matches the real admin rather than a derived palette.
  */
 export const KIT_PALETTE: AccentPalette = {
   light: {
     primary: DEFAULT_ACCENT,
     primaryForeground: '#ffffff',
-    primarySoft: '#eaf8e7',
-    primaryTint: '#c1e6ba',
+    primarySoft: '#eaf1fd',
+    primaryTint: '#eaf1fd',
   },
   dark: {
-    primary: '#5fbf87',
-    primaryForeground: '#0b1a11',
-    primarySoft: 'rgb(78 166 116 / 0.16)',
-    primaryTint: '#2f5a3d',
+    primary: '#7fa2f5',
+    primaryForeground: '#0e1430',
+    primarySoft: '#1f283d',
+    primaryTint: '#1f283d',
   },
 }
 
