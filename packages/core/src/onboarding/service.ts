@@ -10,9 +10,10 @@ import {
   storeDomain,
   withStore,
 } from '@commerce/db'
-import { eq } from 'drizzle-orm'
+import { and, eq } from 'drizzle-orm'
 import { installApp, parseAppsSettings } from '../apps/settings'
 import { createCollection } from '../collections/service'
+import { requestDomainRoute } from '../domains/routes'
 import { CommerceError } from '../errors'
 import { listRoles, seedSystemRoles, upsertMember } from '../permissions/service'
 import { emptyStoreAddress, StoreAddressSchema } from '../settings/general'
@@ -37,6 +38,11 @@ export type CreateStoreInput = {
   slug: string
   /** e.g. "waimers.store" - `<slug>.<platformDomain>` becomes the primary domain. */
   platformDomain: string
+  /**
+   * True when Dokploy manages the proxy: the new `<slug>.<platformDomain>` is queued for an
+   * HTTPS route (worker job, retried; store creation never waits on Dokploy).
+   */
+  requestPlatformRoute?: boolean
   /** Adds `<slug>.localhost` too, for local development. */
   addLocalhostDomain?: boolean
   /**
@@ -187,6 +193,23 @@ export async function createStore(input: CreateStoreInput): Promise<CreateStoreR
         .from(storeDomain)
         .where(eq(storeDomain.hostname, domain.hostname))
       if (already.length === 0) await tx.insert(storeDomain).values(domain)
+    }
+    if (input.requestPlatformRoute) {
+      // Only a row nobody asked for yet, so a retried createStore queues it once.
+      const [row] = await tx
+        .select({ id: storeDomain.id })
+        .from(storeDomain)
+        .where(
+          and(
+            eq(storeDomain.storeId, storeId),
+            eq(storeDomain.hostname, domains[0]?.hostname ?? ''),
+            eq(storeDomain.routeStatus, 'none'),
+          ),
+        )
+      if (row) {
+        await tx.update(storeDomain).set({ sslStatus: 'issuing' }).where(eq(storeDomain.id, row.id))
+        await requestDomainRoute(tx, storeId, row.id, new Date())
+      }
     }
   })
 

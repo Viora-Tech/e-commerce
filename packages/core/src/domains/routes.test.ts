@@ -401,3 +401,57 @@ describe('removing a domain deletes its route', () => {
     expect(dokploy.calls).toEqual([])
   })
 })
+
+describe('runDomainRouteJob: store address (platform kind)', () => {
+  const storeGuard = { ...guard, storeDomain: 'vioratech.in' }
+
+  async function platformRow(hostname: string) {
+    const storeId = await seedStore('p')
+    const [row] = await withStore(app, storeId, (tx) =>
+      tx
+        .insert(storeDomain)
+        .values({ storeId, hostname, routeStatus: 'pending', sslStatus: 'issuing' })
+        .returning(),
+    )
+    const job: DomainRouteJob = { action: 'add', storeId, domainId: row?.id as string }
+    return { id: row?.id as string, job }
+  }
+
+  it('adds the route and flips the address to SSL active', async () => {
+    const { id, job } = await platformRow('asha.vioratech.in')
+    const d = fakeDokploy()
+    expect(await runDomainRouteJob({ db: app, client: d.client, guard: storeGuard }, job)).toBe(
+      'created',
+    )
+    expect(d.domains).toEqual([{ domainId: 'd1', host: 'asha.vioratech.in' }])
+    expect(await domainRow(id)).toMatchObject({ routeStatus: 'ready', sslStatus: 'active' })
+  })
+
+  it('is idempotent', async () => {
+    const { job } = await platformRow('asha.vioratech.in')
+    const d = fakeDokploy([{ domainId: 'x', host: 'asha.vioratech.in' }])
+    expect(await runDomainRouteJob({ db: app, client: d.client, guard: storeGuard }, job)).toBe(
+      'exists',
+    )
+    expect(d.domains).toHaveLength(1)
+  })
+
+  it('refuses a host that is not a single label under the store domain', async () => {
+    const { job } = await platformRow('a.b.vioratech.in')
+    const d = fakeDokploy()
+    expect(await runDomainRouteJob({ db: app, client: d.client, guard: storeGuard }, job)).toBe(
+      'skipped',
+    )
+    expect(d.domains).toEqual([])
+  })
+
+  it('throws when Dokploy is down so the queue retries, leaving the address issuing', async () => {
+    const { id, job } = await platformRow('asha.vioratech.in')
+    const d = fakeDokploy()
+    d.setDown(true)
+    await expect(
+      runDomainRouteJob({ db: app, client: d.client, guard: storeGuard }, job),
+    ).rejects.toThrow()
+    expect((await domainRow(id))?.sslStatus).toBe('issuing')
+  })
+})

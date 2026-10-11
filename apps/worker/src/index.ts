@@ -70,7 +70,11 @@ const domains = createDomainPoller(redis, db, {
 })
 const domainRoutes = createDomainRouteWorker(redis, db, {
   dokploy,
-  guard: { platformRoots: platformRoots(env), cnameTarget: env.STOREFRONT_CNAME_TARGET },
+  guard: {
+    platformRoots: platformRoots(env),
+    cnameTarget: env.STOREFRONT_CNAME_TARGET,
+    storeDomain: env.PLATFORM_STORE_DOMAIN,
+  },
 })
 const senderEmails = createSenderEmailPoller(redis, db)
 const marketing = createMarketingWorker(redis, db, {

@@ -87,7 +87,7 @@ flowchart TD
 | `SES_REGION` | none | Region of the platform SES account, e.g. `ap-south-1`. Also the MAIL FROM MX (`feedback-smtp.<region>.amazonses.com`). |
 | `SES_ACCESS_KEY_ID`, `SES_SECRET_ACCESS_KEY` | none | IAM user with `ses:SendEmail`, `ses:CreateEmailIdentity`, `ses:GetEmailIdentity`, `ses:DeleteEmailIdentity`, `ses:PutEmailIdentityMailFromAttributes`, `ses:TagResource`. |
 | `PLATFORM_EMAIL_FROM` | none | The platform's verified sender, e.g. `no-reply@mail.waimers.com`. Verify its domain in SES by hand once. |
-| `PLATFORM_EMAIL_NAME` | `Waimers` | Display name when a store has no name. |
+| `PLATFORM_EMAIL_NAME` | the platform name (`siteConfig.brand.name`) | Display name when a store has no name. |
 | `SES_CONFIGURATION_SET` | none | Optional default configuration set for every store identity (event destinations). |
 
 Set these on **all three apps** (admin, storefront, worker): the storefront sends sign-in codes,

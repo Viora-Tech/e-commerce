@@ -2,6 +2,7 @@
 import {
   collection,
   createDb,
+  outboxEvent,
   shippingZone,
   store,
   storeDomain,
@@ -14,6 +15,7 @@ import { eq } from 'drizzle-orm'
 import { afterAll, beforeEach, describe, expect, it } from 'vitest'
 import { listRoles } from '../permissions/service'
 import { createStore, OnboardingError } from './service'
+import { SLUG_MIN, slugFormatProblem } from './slug'
 
 const owner = createDb(process.env.DATABASE_URL_OWNER as string)
 const app = createDb(process.env.DATABASE_URL as string)
@@ -213,4 +215,49 @@ describe('createStore when the organization is refused', () => {
     })
     expect(other.created).toBe(true)
   })
+})
+
+describe('createStore: platform address route', () => {
+  const base = {
+    db: app,
+    ownerUserId: OWNER_USER_ID,
+    name: 'Asha Handlooms',
+    slug: 'asha-handlooms',
+    platformDomain: 'vioratech.in',
+    ...fakeOrg('org_asha'),
+  }
+  const rows = async () => {
+    const domains = await owner.select().from(storeDomain)
+    const events = await owner.select().from(outboxEvent)
+    return { domains, events }
+  }
+
+  it('queues one HTTPS route for the new address when Dokploy manages the proxy', async () => {
+    await createStore({ ...base, requestPlatformRoute: true })
+    await createStore({ ...base, requestPlatformRoute: true })
+    const { domains, events } = await rows()
+    expect(domains).toHaveLength(1)
+    expect(domains[0]).toMatchObject({
+      hostname: 'asha-handlooms.vioratech.in',
+      routeStatus: 'pending',
+      sslStatus: 'issuing',
+    })
+    expect(events.filter((e) => e.type === 'domain.route_requested')).toHaveLength(1)
+  })
+
+  it('queues nothing when Dokploy is not configured', async () => {
+    await createStore(base)
+    const { domains, events } = await rows()
+    expect(domains[0]).toMatchObject({ routeStatus: 'none', sslStatus: 'active' })
+    expect(events).toHaveLength(0)
+  })
+})
+
+describe('reserved store addresses', () => {
+  it.each(['worker', 'dokploy', 'panel', 'maus', 'umami', 'ns1', 'admin-new', 'cdn2', 'l'])(
+    'refuses our own hostname %s',
+    (slug) => {
+      expect(slugFormatProblem(slug) === 'reserved' || slug.length < SLUG_MIN).toBe(true)
+    },
+  )
 })
