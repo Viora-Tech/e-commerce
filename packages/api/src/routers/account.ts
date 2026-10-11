@@ -1,4 +1,4 @@
-import { settingsSecret } from '@commerce/config'
+import { loadEnv, merchantGoogleSignIn, settingsSecret } from '@commerce/config'
 import {
   AVATAR_DATA_URL_MAX,
   checkRateLimit,
@@ -25,6 +25,7 @@ import {
   deleteMemberAccount,
   describeSessions,
   forgetStoreMembership,
+  googleLinkedAt,
   LeaveStoreRefused,
   memberProfile,
   memberStores,
@@ -183,9 +184,16 @@ export const accountRouter = {
       return { wasActive: context.session.activeOrganizationId === input.organizationId }
     }),
 
-  /** Sign-in & security: the email they sign in with and their latest sign-ins (masked IPs). */
+  /**
+   * Sign-in & security: the email they sign in with, whether Google is linked (and whether
+   * the admin offers Google at all), and their latest sign-ins (masked IPs).
+   */
   security: protectedProcedure.handler(async ({ context }) => ({
     email: context.session.user.email,
+    google: {
+      available: merchantGoogleSignIn(loadEnv(process.env)) !== null,
+      linkedAt: await googleLinkedAt(context.db, context.session.user.id),
+    },
     recentSignIns: await recentSignIns(
       context.db,
       context.session.user.id,

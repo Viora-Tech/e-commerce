@@ -15,13 +15,15 @@ import { api } from '@/lib/api-client'
 import { authClient } from '@/lib/auth-client'
 import { deviceName, devicePlace } from '@/lib/device-label'
 import ChangeEmailDialog from './change-email-dialog'
+import GoogleLinkCard from './google-link-card'
 import PasskeysCard from './passkeys-card'
 
 type Security = Awaited<ReturnType<typeof api.account.security>>
 
 /**
- * Account → Sign-in & security: the email codes go to (with Change email), passkeys, and the
- * last sign-ins with device, place and method.
+ * Account → Sign-in & security: the email codes go to (with Change email), the linked Google
+ * account (when the admin offers Google or one is linked), passkeys, and the last sign-ins with
+ * device, place and method.
  */
 export default function SecurityPage() {
   // Hooks
@@ -87,6 +89,9 @@ export default function SecurityPage() {
           </div>
         </SettingsRow>
       </SettingsCard>
+      {security && (security.google.available || security.google.linkedAt) ? (
+        <GoogleLinkCard linkedAt={security.google.linkedAt} />
+      ) : null}
       <PasskeysCard />
       <SettingsCard id="recent" title={copy.recent.heading} description={copy.recent.body}>
         {security === null ? (

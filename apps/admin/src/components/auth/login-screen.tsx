@@ -4,7 +4,12 @@ import LoginPanel from '@/components/auth/login-panel'
 import LoginPanelCompact from '@/components/auth/login-panel-compact'
 import LanguageField from '@/components/settings/language-field'
 
-export default function LoginScreen() {
+type LoginScreenProps = {
+  google: boolean
+  googleError: string | null
+}
+
+export default function LoginScreen({ google, googleError }: LoginScreenProps) {
   return (
     <main className="grid min-h-svh grid-cols-1 bg-background lg:grid-cols-2 lg:p-3">
       <LoginPanelCompact />
@@ -14,7 +19,7 @@ export default function LoginScreen() {
           <LanguageField />
         </header>
         <div className="flex flex-1 items-center justify-center py-10">
-          <LoginForm />
+          <LoginForm google={google} googleError={googleError} />
         </div>
       </div>
       <LoginPanel />
