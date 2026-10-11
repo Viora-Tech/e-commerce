@@ -33,6 +33,7 @@ import type {
   LiquidReviewsSource,
   LiquidShopData,
 } from './drops'
+import { loadImportedFiles } from './imported-files'
 import { uuidPrefixOf } from './numeric-id'
 import { MAX_RECOMMENDATIONS, relatedProductIds } from './related'
 import { richTextHtml } from './rich-html'
@@ -446,6 +447,7 @@ export async function storeLiquidData(
     metaobjectsOfType: (type) =>
       once(`mt:${type}`, () => loadMetaobjectsOfType(tx, keyFromName(type))),
     metaobjects: (ids) => loadMetaobjects(tx, ids),
+    importedFiles: () => once('imported-files', () => loadImportedFiles(tx)),
   }
 }
 

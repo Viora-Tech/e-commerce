@@ -103,6 +103,11 @@ export const importRun = pgTable(
      * problem from their last import; everything already here is left alone.
      */
     onlyMissing: boolean('only_missing').notNull().default(false),
+    /**
+     * Files: by default only files something imported uses (product media, collections, pages,
+     * articles, extra fields) are copied. True also copies the unused ones.
+     */
+    includeUnusedFiles: boolean('include_unused_files').notNull().default(false),
     /** Set on "Retry the ones that were missed": the run whose problems this one retries. */
     retryOf: uuid('retry_of').references((): AnyPgColumn => importRun.id, {
       onDelete: 'set null',

@@ -64,7 +64,7 @@ or a Shopify `money_format` when one is configured), `placeholder_svg_tag`, `jso
 `font_face` / `font_url` / `font_modify` (families loaded from Google Fonts by the layout),
 colour maths (`color_lighten`, `color_mix`, `color_contrast`…), link and URL helpers,
 `time_tag`, `date` with Shopify's named formats, `payment_type_svg_tag` (our own simple marks),
-`video_tag` and `media_tag` for videos (every mp4 rendition as a `<source>`, the smaller one with `media="(max-width: 749px)"`, the poster, `autoplay`/`loop`/`muted`/`controls`), `external_video_tag`. A `video` setting reaches Liquid as a `VideoDrop` with `sources` (1080 and, when copied, 720 high; themes like Zero Drift pick by `source.height`) and `preview_image`; the Customize field is an object (`url`, `mobileUrl`, `poster.url`). Unknown filters pass their input through.
+`file_url` (our stored URL when the Shopify importer copied the file, matched by loose name; the old store's address only when not; read only for themes that call it), `video_tag` and `media_tag` for videos (every mp4 rendition as a `<source>`, the smaller one with `media="(max-width: 749px)"`, the poster, `autoplay`/`loop`/`muted`/`controls`), `external_video_tag`. A `video` setting reaches Liquid as a `VideoDrop` with `sources` (1080 and, when copied, 720 high; themes like Zero Drift pick by `source.height`) and `preview_image`; the Customize field is an object (`url`, `mobileUrl`, `poster.url`). Unknown filters pass their input through.
 
 ### Objects on our data
 

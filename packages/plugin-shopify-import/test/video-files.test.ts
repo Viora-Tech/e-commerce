@@ -10,7 +10,7 @@ const mp4 = (name: string, height: number, fileSize: number) => ({
   width: Math.round((height * 16) / 9),
 })
 
-const video = (sources: GFile['sources'], extra: Partial<GFile> = {}): GFile => ({
+const video = (sources: NonNullable<GFile['sources']>, extra: Partial<GFile> = {}): GFile => ({
   __typename: 'Video',
   id: 'gid://shopify/Video/1',
   alt: null,

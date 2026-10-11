@@ -7,6 +7,7 @@
  */
 import { isAllowedContentType } from '@commerce/storage'
 import type { LeftBehindReason } from './client'
+import type { FilesTally } from './file-usage'
 import { IMPORT_VIDEO_MAX_BYTES, sizeText } from './limits'
 import { mediaSourceKey } from './media'
 import { errorMessage, findMapping, type ImportContext, saveMapping } from './runtime'
@@ -151,7 +152,14 @@ async function alreadyImported(ctx: ImportContext, f: NFile): Promise<boolean> {
   })
 }
 
-export async function writeFile(ctx: ImportContext, f: NFile): Promise<string | null> {
+/** What the Files step tracks across files: the tally for the estimate, and whether unused ones are skipped. */
+export type FilesPlan = { tally: FilesTally; skipUnused: boolean }
+
+export async function writeFile(
+  ctx: ImportContext,
+  f: NFile,
+  plan?: FilesPlan,
+): Promise<string | null> {
   const ref =
     f.alt ||
     (f.url ? mediaSourceKey(f.url).split('/').pop() : null) ||
@@ -165,6 +173,13 @@ export async function writeFile(ctx: ImportContext, f: NFile): Promise<string | 
   }
   try {
     const existed = await alreadyImported(ctx, f)
+    const unused = Boolean(plan?.skipUnused) && !existed && !ctx.fileUsage.has(f)
+    plan?.tally.take(f, unused)
+    if (unused) {
+      ctx.report.count('files', 'skipped')
+      ctx.report.leave('files', 'unused_file', 1, f.kind === 'video' ? 'video' : 'image')
+      return null
+    }
     if (ctx.dryRun) {
       ctx.report.count('files', existed ? 'updated' : 'created')
       ctx.report.sample({

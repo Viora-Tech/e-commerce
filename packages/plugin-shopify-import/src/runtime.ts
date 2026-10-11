@@ -4,7 +4,8 @@
  */
 import type { StoreTx } from '@commerce/db'
 import { and, eq, inArray, sql } from 'drizzle-orm'
-import type { LeftBehindReason } from './client'
+import type { FilesEstimate, LeftBehindReason } from './client'
+import type { FileUsage } from './file-usage'
 import {
   type ImportResource,
   importIssue,
@@ -28,6 +29,10 @@ export type ImportContext = {
   storeId: string
   runId: string
   dryRun: boolean
+  /** Files: also copy the ones nothing imported uses (off by default). */
+  includeUnusedFiles: boolean
+  /** The file names products, collections, pages and articles use, filled as they are read. */
+  fileUsage: FileUsage
   inStore: InStore
   media: MediaHost
   report: Reporter
@@ -148,6 +153,11 @@ export class Reporter {
     const same = p.left.find((l) => l.reason === reason && l.detail === detail)
     if (same) same.count += count
     else p.left.push(detail === undefined ? { reason, count } : { reason, detail, count })
+  }
+
+  /** The Files step's counts and sizes, shown on the preview and kept on the import. */
+  setFilesEstimate(estimate: FilesEstimate) {
+    this.of('files').estimate = estimate
   }
 
   sample(sample: PreviewSample) {

@@ -122,7 +122,10 @@ const EVERYTHING = [
   'gift_cards',
 ] as const
 
-async function setup(state: { giftCardBalance: string; denyGiftCards?: boolean }) {
+async function setup(
+  state: { giftCardBalance: string; denyGiftCards?: boolean },
+  includeUnusedFiles = true,
+) {
   const log: FetchLog = []
   const fetchImpl = withVideo(fakeFetch(shopifyFor(state), log))
   const storeId = await seedStore()
@@ -137,7 +140,7 @@ async function setup(state: { giftCardBalance: string; denyGiftCards?: boolean }
   )
   const d = deps(storeId, new MemoryStorageProvider(), { fetch: fetchImpl, sleep: async () => {} })
   const run = await withStore(app, storeId, (tx) =>
-    createApiRun(tx, storeId, { resources: [...EVERYTHING], createdBy: null }),
+    createApiRun(tx, storeId, { resources: [...EVERYTHING], includeUnusedFiles, createdBy: null }),
   )
   return { storeId, d, runId: run.id, log }
 }
@@ -233,6 +236,35 @@ describe('field types and values', () => {
 })
 
 describe('import everything', () => {
+  it('by default leaves files nothing uses in Shopify and says what the rest would weigh', async () => {
+    const { d, runId, log } = await setup({ giftCardBalance: '500.00' }, false)
+    await executeRun(d, runId)
+    const p = (await progressOf(runId))?.progress ?? {}
+    expect(p.files).toMatchObject({ total: 5, created: 0, skipped: 5 })
+    expect(left(p.files)).toMatchObject({ 'unused_file:image': 1, 'unused_file:video': 1 })
+    expect(p.files?.estimate).toMatchObject({
+      includeUnused: false,
+      images: { count: 0 },
+      videos: { count: 0 },
+      unused: { count: 2 },
+    })
+    expect(log.some((l) => l.url.includes('cdn.shopify.com/files'))).toBe(false)
+  })
+
+  it('with the box ticked it counts what it will copy: 1 picture, 1 video, with sizes', async () => {
+    const { d, runId } = await setup({ giftCardBalance: '500.00' })
+    await executeRun(d, runId)
+    const e = (await progressOf(runId))?.progress.files?.estimate
+    expect(e).toMatchObject({
+      includeUnused: true,
+      images: { count: 1 },
+      videos: { count: 1 },
+      unused: { count: 0 },
+    })
+    expect(e?.videos.bytes).toBeGreaterThan(190_000_000)
+    expect(e?.totalBytes).toBe(e ? e.images.bytes + e.videos.bytes + e.other.bytes : -1)
+  })
+
   it('previews, imports files, content types, extra fields, discounts and gift cards, and re-runs without duplicates', async () => {
     const state = { giftCardBalance: '500.00' }
     const { storeId, d, runId, log } = await setup(state)

@@ -186,6 +186,11 @@ export type LiquidDataSource = {
   /** Published entries by id, with the entries they link to. */
   metaobjects(ids: string[]): Promise<LiquidCustomData>
   /**
+   * Files the Shopify importer copied, by their Shopify file name (lowercase) → our URL, for
+   * `file_url`. Optional: a source without it leaves `file_url` pointing at the old store.
+   */
+  importedFiles?: (() => Promise<Map<string, string>>) | undefined
+  /**
    * Judge.me's shop-wide review data (`shop.metafields.judgeme.*`: `reviews_grid`,
    * `all_reviews_rating`...), built from the Reviews app; null when the app is not installed.
    */

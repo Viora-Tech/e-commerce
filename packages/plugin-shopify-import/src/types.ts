@@ -198,6 +198,11 @@ export type NFile = {
   mobileUrl?: string | null | undefined
   /** Videos: the preview picture Shopify made, used as the poster. */
   posterUrl?: string | null | undefined
+  /** Videos: size of the phone-sized copy, bytes. */
+  mobileSize?: number | null | undefined
+  /** Images: pixels, when Shopify says. */
+  width?: number | null | undefined
+  height?: number | null | undefined
   mimeType: string | null
   /** Bytes, when Shopify says. */
   size: number | null

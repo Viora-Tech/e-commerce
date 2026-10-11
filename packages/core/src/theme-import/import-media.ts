@@ -9,6 +9,7 @@ import {
 import { sql } from 'drizzle-orm'
 import sharp from 'sharp'
 import { readCapped, safeFetch } from '../net/safe-fetch'
+import { importedFileKey } from './filter-values'
 import type { ThemeImportDeps } from './import'
 import type { ShopifyJsonTemplate } from './schema'
 
@@ -353,24 +354,6 @@ export async function connectedShopifyHost(tx: StoreTx): Promise<string | null> 
   return rows[0]?.shop_domain ?? null
 }
 
-/**
- * A Files name as one comparable key. A theme setting says `shopify://files/videos/Keyboard Bento.mp4`
- * while Shopify's own file name may come back as `Keyboard_Bento.mp4` or percent-encoded:
- * case, spaces, underscores and hyphens do not tell two files apart.
- */
-function fileNameKey(name: string): string {
-  let decoded = name
-  try {
-    decoded = decodeURIComponent(name)
-  } catch {
-    // not percent-encoded
-  }
-  return decoded
-    .trim()
-    .toLowerCase()
-    .replace(/[\s_-]+/g, '-')
-}
-
 const baseName = (path: string) => {
   const last = path.split(/[?#]/)[0]?.split('/').pop() ?? ''
   try {
@@ -394,7 +377,7 @@ export async function findImportedMedia(
   const images = new Map<string, HostedImage>()
   const videos = new Map<string, HostedVideo>()
   const wantedImages = new Map([...imageNames].map((n) => [baseName(n), n]))
-  const wantedVideos = new Map([...videoNames].map((n) => [fileNameKey(n), n]))
+  const wantedVideos = new Map([...videoNames].map((n) => [importedFileKey(n), n]))
   if (wantedImages.size === 0 && wantedVideos.size === 0) return { images, videos }
   const rows = await tx.execute<{
     resource: string
@@ -412,7 +395,7 @@ export async function findImportedMedia(
     if (image && r.content_type.startsWith('image/') && !images.has(image))
       images.set(image, { url: r.url, width: r.width, height: r.height })
     const video =
-      r.resource === 'file_name' ? wantedVideos.get(fileNameKey(r.source_id)) : undefined
+      r.resource === 'file_name' ? wantedVideos.get(importedFileKey(r.source_id)) : undefined
     if (video && r.content_type.startsWith('video/') && !videos.has(video))
       videos.set(video, { url: r.url, poster: null, mobileUrl: null })
   }
@@ -440,7 +423,7 @@ async function addVideoExtras(
     from shopify_import_mapping m join media md on md.id = m.local_id
     where m.resource in ('file_poster', 'file_mobile')`)
   for (const r of rows) {
-    const video = videos.get(wanted.get(fileNameKey(r.source_id)) ?? '')
+    const video = videos.get(wanted.get(importedFileKey(r.source_id)) ?? '')
     if (!video) continue
     if (r.resource === 'file_poster')
       video.poster = { url: r.url, width: r.width, height: r.height }
