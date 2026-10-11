@@ -18,6 +18,7 @@ import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 import CsvDropzone from './csv-dropzone'
 import CsvHelp from './csv-help'
+import StorageNotice from './storage-notice'
 
 const base = shopifyImportContent.base
 
@@ -64,6 +65,7 @@ export default function CsvPage() {
   return (
     <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,22rem)] lg:items-start">
       <div className="flex flex-col gap-4">
+        {resource === 'products' ? <StorageNotice /> : null}
         <Card>
           <CardHeader>
             <CardTitle>{copy.kindHeading}</CardTitle>

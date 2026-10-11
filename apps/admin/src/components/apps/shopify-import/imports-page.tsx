@@ -14,6 +14,7 @@ import { api } from '@/lib/api-client'
 import type { Formatters } from '@/lib/format'
 import RemainingCard from './remaining-card'
 import RunStatusLabel from './run-status-label'
+import StorageNotice from './storage-notice'
 import { type RunListItem, totals } from './types'
 
 const base = shopifyImportContent.base
@@ -131,6 +132,7 @@ export default function ImportsPage() {
 
   return (
     <div className="flex flex-col gap-4">
+      <StorageNotice />
       {shop === undefined ? (
         <Skeleton className="h-64 w-full" />
       ) : (
