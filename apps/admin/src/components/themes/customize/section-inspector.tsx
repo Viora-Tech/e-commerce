@@ -15,6 +15,7 @@ import { isElementStyleField, isSectionSettingsField } from '@/lib/customize-fie
 import { sectionName } from '@/lib/customize-insert'
 import { InspectorTabContext } from '@/lib/customize-inspector-tab'
 import { useCustomizePuck } from '@/lib/customize-puck'
+import { sectionHandle } from '@/lib/customize-section-kinds'
 import { locateBlock } from '@/lib/customize-slots'
 import InspectorBreadcrumb from './inspector-breadcrumb'
 import InspectorEmpty from './inspector-empty'
@@ -137,7 +138,7 @@ export default function SectionInspector() {
         </div>
       ) : (
         <div className="flex flex-1 flex-col items-center justify-center gap-2 px-6 text-center">
-          <SectionIcon type={selected.type} tile="md" />
+          <SectionIcon type={selected.type} handle={sectionHandle(selected)} tile="md" />
           <p className="text-[0.8125rem] text-muted-foreground">{copy.emptyFields}</p>
         </div>
       )}

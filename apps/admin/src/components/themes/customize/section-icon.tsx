@@ -4,6 +4,8 @@ import { KIND_TILE, sectionGlyph, sectionKind } from '@/lib/customize-section-ki
 
 type SectionIconProps = {
   type: string
+  /** An imported section's file name (`props.sectionType`): picks its glyph and tint. */
+  handle?: string | undefined
   className?: string
   /**
    * Draw the glyph on its kind's small tinted tile (layout, text, media,
@@ -23,18 +25,19 @@ const TILE_SIZE = {
  * Phosphor family at regular weight (`editorGlyphs`), optionally on a tile
  * tinted by the section's kind.
  */
-export default function SectionIcon({ type, className, tile }: SectionIconProps) {
+export default function SectionIcon({ type, handle, className, tile }: SectionIconProps) {
   // Render logic
-  const Glyph = editorGlyphs[sectionGlyph(type)]
+  const Glyph = editorGlyphs[sectionGlyph(type, handle)]
+  const kind = sectionKind(type, handle)
   if (!tile) return <Glyph aria-hidden className={className} />
   return (
     <span
       aria-hidden
-      data-kind={sectionKind(type)}
+      data-kind={kind}
       className={cn(
         'flex shrink-0 items-center justify-center',
         TILE_SIZE[tile],
-        KIND_TILE[sectionKind(type)],
+        KIND_TILE[kind],
         className,
       )}
     >

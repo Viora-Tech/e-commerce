@@ -1,6 +1,7 @@
 import { cn } from '@commerce/ui/lib/utils'
 import type { ReactNode } from 'react'
 import { SECTION_ICONS } from '@/lib/customize-puck'
+import SectionIcon from './section-icon'
 
 type SectionPreviewProps = { type: string; className?: string }
 
@@ -114,12 +115,22 @@ const SHAPES: Record<string, () => ReactNode> = {
   ),
 }
 
-/** A small static layout mockup for a section type, shown in the add-section preview pane. */
+/**
+ * A small static layout mockup for a section type, shown in the add-section preview pane. A
+ * type with no mockup (the Layout and Elements blocks, app blocks) shows its own glyph on its
+ * kind's tile, the one it wears in Layers, instead of every block sharing the same text lines.
+ */
 export default function SectionPreview({ type, className }: SectionPreviewProps) {
   // Render logic
-  const key = SECTION_ICONS[type] ?? 'text'
-  const render = SHAPES[key] ?? SHAPES.text
-  const shape = render ? render() : null
+  const key = SECTION_ICONS[type]
+  const render = key ? (SHAPES[key] ?? SHAPES.text) : null
+  const shape = render ? (
+    render()
+  ) : (
+    <div className="flex size-full items-center justify-center bg-muted">
+      <SectionIcon type={type} tile="md" className="size-10 rounded-xl [&>svg]:size-5" />
+    </div>
+  )
   return (
     <div className={cn('overflow-hidden rounded-md border border-border', className)}>{shape}</div>
   )

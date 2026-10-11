@@ -212,7 +212,9 @@ export default function CustomizeEditor({
   const handleChange = (data: Data) => {
     if (!loaded) return
     const parts = partsOf(loaded.ref, data as unknown as CustomizeDoc)
-    if (!drafts.differs(parts)) return
+    // Comparing serialises the whole page; once there are changes, the debounced write
+    // compares each row itself, so a keystroke skips it.
+    if (!templatesDirty && !drafts.differs(parts)) return
     setTemplatesDirty(true)
     drafts.schedule(parts)
   }
