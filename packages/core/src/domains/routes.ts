@@ -50,6 +50,8 @@ export const ROUTE_RETRY_MS = 30 * 60_000
 export type RouteGuard = {
   platformRoots: readonly string[]
   cnameTarget: string
+  /** `PLATFORM_STORE_DOMAIN`: the one parent a platform (store address) route may sit under. */
+  storeDomain?: string | undefined
 }
 
 /**
@@ -62,6 +64,14 @@ export function isRoutableHostname(hostname: string, guard: RouteGuard): boolean
   if (!parsed.ok || parsed.hostname !== hostname) return false
   if (isPlatformHostname(hostname, guard.platformRoots)) return false
   return hostname !== guard.cnameTarget.trim().toLowerCase()
+}
+
+/** A store address: exactly one DNS label under the store domain, e.g. `asha.example.com`. */
+function isStoreAddressHostname(hostname: string, guard: RouteGuard): boolean {
+  const parent = guard.storeDomain?.trim().toLowerCase()
+  if (!parent || !hostname.endsWith(`.${parent}`)) return false
+  const label = hostname.slice(0, -(parent.length + 1))
+  return /^[a-z0-9]+(-[a-z0-9]+)*$/.test(label)
 }
 
 const sameHost = (a: string, b: string) => a.trim().toLowerCase().replace(/\.$/, '') === b
@@ -144,14 +154,18 @@ export async function runDomainRouteJob(
     const [d] = await tx.select().from(storeDomain).where(eq(storeDomain.id, job.domainId))
     return d ?? null
   })
-  if (row?.kind !== 'custom' || row.status !== 'active') return 'skipped'
-  if (!isRoutableHostname(row.hostname, deps.guard)) {
+  if (row?.status !== 'active') return 'skipped'
+  const routable =
+    row.kind === 'platform'
+      ? isStoreAddressHostname(row.hostname, deps.guard)
+      : isRoutableHostname(row.hostname, deps.guard)
+  if (!routable) {
     deps.log?.(`[domains] refused to add a route for ${row.hostname}`)
     await setRouteStatus(deps.db, job, 'none')
     return 'skipped'
   }
   const r = await ensureRoute(client, row.hostname)
-  await setRouteStatus(deps.db, job, 'ready')
+  await setRouteStatus(deps.db, job, 'ready', row.kind === 'platform')
   if (r.created) deps.log?.(`[domains] added the HTTPS route for ${row.hostname}`)
   return r.created ? 'created' : 'exists'
 }
@@ -160,9 +174,13 @@ async function setRouteStatus(
   db: Db,
   job: Extract<DomainRouteJob, { action: 'add' }>,
   routeStatus: DomainRow['routeStatus'],
+  sslActive = false,
 ): Promise<void> {
   await withStore(db, job.storeId, (tx) =>
-    tx.update(storeDomain).set({ routeStatus }).where(eq(storeDomain.id, job.domainId)),
+    tx
+      .update(storeDomain)
+      .set(sslActive ? { routeStatus, sslStatus: 'active' } : { routeStatus })
+      .where(eq(storeDomain.id, job.domainId)),
   )
 }
 

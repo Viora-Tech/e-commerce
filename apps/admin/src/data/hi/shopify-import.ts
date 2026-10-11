@@ -72,27 +72,40 @@ const hi = {
   },
 
   csv: {
-    title: 'Shopify की CSV अपलोड करें',
-    subtitle: 'चुनें कि फ़ाइल में क्या है, फिर प्रीव्यू देखें। आपके कहने तक कुछ नहीं लिखा जाता।',
     kindHeading: 'फ़ाइल में क्या है?',
     kinds: {
       products: {
         label: 'प्रोडक्ट',
+        short: 'आइटम, वेरिएंट, कीमत और स्टॉक',
         help: 'Shopify एडमिन में Products, Export, "All products", Excel वाली CSV या सादी CSV। वेरिएंट, कीमत, स्टॉक, फ़ोटो, SEO और HSN वाला कॉलम पढ़ा जाता है।',
       },
       customers: {
         label: 'ग्राहक',
+        short: 'लोग, पते और सहमति',
         help: 'Shopify एडमिन में Customers, Export। पते, ईमेल मार्केटिंग की सहमति, नोट और टैग पढ़े जाते हैं; ग्राहक ईमेल से मिलाए जाते हैं।',
       },
       orders: {
         label: 'ऑर्डर',
+        short: 'पुराने ऑर्डर, इतिहास की तरह',
         help: 'Shopify एडमिन में Orders, Export। ऑर्डर सिर्फ़ पढ़ने वाले इतिहास की तरह आते हैं: स्टॉक नहीं बदलता, मैसेज नहीं जाते, इनवॉइस नहीं बनते।',
       },
     },
     fileHeading: 'फ़ाइल',
-    choose: 'CSV फ़ाइल चुनें',
-    replace: 'दूसरी फ़ाइल चुनें',
-    none: 'कोई फ़ाइल नहीं चुनी',
+    dropTitle: 'CSV फ़ाइल यहाँ खींचकर छोड़ें',
+    dropBrowse: 'या अपने कंप्यूटर से फ़ाइल चुनें',
+    dropActive: 'फ़ाइल चुनने के लिए यहाँ छोड़ें',
+    dropReplace: 'दूसरी फ़ाइल छोड़ें या चुनें, यह बदल जाएगी',
+    maxSize: 'एक .csv फ़ाइल, 15 MB तक',
+    previewHint: 'आगे बढ़ने के लिए फ़ाइल चुनें',
+    howTo: {
+      heading: 'Shopify से एक्सपोर्ट कैसे करें',
+      steps: [
+        'अपने Shopify एडमिन में Products, Customers या Orders खोलें।',
+        'Export दबाएं और सारे आइटम सादी CSV फ़ाइल में चुनें।',
+        'मिली हुई फ़ाइल को बाईं ओर के बॉक्स में खींचकर छोड़ें।',
+      ],
+      moreFor: (what) => `${what} से क्या पढ़ा जाता है`,
+    },
     size: (bytes) => `${(bytes / 1024 / 1024).toFixed(1)} MB`,
     tooBig: 'यह फ़ाइल 15 MB से बड़ी है। इसे बाँटें, या अपना स्टोर जोड़ें।',
     notCsv: 'Shopify से एक्सपोर्ट की गई .csv फ़ाइल चुनें।',
@@ -101,11 +114,10 @@ const hi = {
   },
 
   connect: {
-    title: 'अपना Shopify स्टोर जोड़ें',
-    subtitle:
-      'आपकी जानकारी एन्क्रिप्ट करके रखी जाती है और दोबारा नहीं दिखती। नीचे दिए दो तरीकों में से एक चुनें।',
+    headerConnect: 'Shopify स्टोर जोड़ें',
+    headerEdit: 'कनेक्शन बदलें',
     mode: {
-      app: 'अपने Shopify ऐप से जोड़ें (सुझाया गया)',
+      app: 'अपने Shopify ऐप से जोड़ें',
       token: 'मेरे पास पहले से Admin API टोकन है',
     },
     app: {
@@ -114,12 +126,21 @@ const hi = {
         'Shopify ने 1 जनवरी 2026 से एडमिन में नए कस्टम ऐप बनाना बंद कर दिया है। अब ऐप Dev Dashboard में बनते हैं, इसमें करीब पाँच मिनट लगते हैं।',
       stepsHeading: 'Dev Dashboard में ऐप बनाएं',
       steps: [
-        'Shopify Dev Dashboard (partners.shopify.com या dev.shopify.com) खोलें और एक ऐप बनाएं।',
-        `Configuration में Admin API को ये read scopes दें: ${SCOPE_LIST}।`,
-        'ऐप का एक वर्ज़न रिलीज़ करें।',
-        'Dev Dashboard से ऐप को अपने स्टोर पर इंस्टॉल करें।',
-        'ऐप के API credentials पेज से client ID और client secret कॉपी करें और नीचे पेस्ट करें।',
+        {
+          text: 'Shopify Dev Dashboard खोलें और एक ऐप बनाएं।',
+          link: { label: 'Dev Dashboard खोलें', href: 'https://dev.shopify.com/dashboard' },
+        },
+        { text: 'Configuration में Admin API को ये read scopes दें।', scopes: true },
+        { text: 'ऐप का एक वर्ज़न रिलीज़ करें।' },
+        { text: 'Dev Dashboard से ऐप को अपने स्टोर पर इंस्टॉल करें।' },
+        {
+          text: 'ऐप के API credentials पेज से client ID और client secret कॉपी करें और फ़ॉर्म में पेस्ट करें।',
+        },
       ],
+      scopesLabel: 'Admin API scopes',
+      copyScopes: 'सारे scopes कॉपी करें',
+      scopesCopied: 'Scopes कॉपी हो गए',
+      formHeading: 'आपके ऐप की जानकारी',
       docsLink:
         'https://shopify.dev/docs/apps/build/authentication-authorization/client-credentials-grant',
       docsLabel: 'client credentials grant कैसे काम करता है',
@@ -277,7 +298,9 @@ const hi = {
   remaining: {
     heading: 'क्या इंपोर्ट होना बाकी है',
     subtitle: 'Shopify की गिनती और यहाँ की गिनती साथ-साथ, ताकि दिखे कि क्या अभी बाकी है।',
+    notConnectedHeading: 'अभी मिलाने को कुछ नहीं',
     notConnected: 'क्या बाकी है यह देखने के लिए अपना Shopify स्टोर जोड़ें।',
+    connectAction: 'अपना Shopify स्टोर जोड़ें',
     loadFailed: 'बाकी का हिसाब नहीं मिल पाया। पेज दोबारा खोलें।',
     columns: { what: 'क्या', inShopify: 'Shopify में', here: 'यहाँ', status: 'स्थिति' },
     state: {
@@ -297,6 +320,8 @@ const hi = {
       preview: 'प्रीव्यू चलाएं',
     },
     importRemaining: 'बाकी इंपोर्ट करें',
+    previewEverything: 'सबका प्रीव्यू देखें',
+    previewStarted: 'प्रीव्यू शुरू हुआ',
     allHere: 'सब कुछ यहाँ है',
     fromShopify: 'Shopify से अभी गिना गया',
     fromImport: (when) => `${when} के पूरे इंपोर्ट ने गिना`,

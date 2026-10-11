@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { navigationContent } from '@/data/navigation'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { routes } from '@/lib/routes'
+import { SIDEBAR_BLOCK } from '@/lib/sidebar-motion'
 
 export type SidebarUsage = { used: number; limit: number; planName: string }
 
@@ -21,7 +22,7 @@ export default function SidebarUsageCard({ usage }: SidebarUsageCardProps) {
   const percent = usage.limit > 0 ? Math.min(100, Math.round((usage.used / usage.limit) * 100)) : 0
 
   return (
-    <div className="flex flex-col gap-2 group-data-[collapsible=icon]:hidden">
+    <div className={`flex flex-col gap-2 ${SIDEBAR_BLOCK}`}>
       <div className="flex flex-col gap-2 rounded-lg border border-hairline surface-card p-3">
         <p className="text-caption font-medium text-foreground">{copy.usage.title}</p>
         <div

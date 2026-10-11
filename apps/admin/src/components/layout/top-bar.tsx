@@ -1,17 +1,16 @@
 'use client'
 
-import { AiIcon, Bell, ExternalLink, Moon, Search, Sun } from '@commerce/ui/icons'
+import { AiIcon, Bell, ExternalLink, Search } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Kbd } from '@commerce/ui/shadcn/kbd'
 import { Popover, PopoverContent, PopoverTrigger } from '@commerce/ui/shadcn/popover'
 import { SidebarTrigger } from '@commerce/ui/shadcn/sidebar'
-import { useTheme } from 'next-themes'
-import { useSyncExternalStore } from 'react'
 import { navigationContent } from '@/data/navigation'
 import { useCopy } from '@/hooks/use-copy'
 import { openAssistant } from '@/lib/assistant-events'
 import { openPalette } from '@/lib/palette-events'
 import MemberAvatar from '../account/member-avatar'
+import ThemeToggle from './theme-toggle'
 import UserMenu from './user-menu'
 
 type TopBarProps = {
@@ -24,9 +23,6 @@ type TopBarProps = {
   scrolled?: boolean
 }
 
-/* Nothing to subscribe to: the snapshot only differs between the server and the browser. */
-const noSubscription = () => () => {}
-
 const ICON_BUTTON =
   'flex size-9 items-center justify-center rounded-full border border-hairline bg-card text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring active:scale-[0.96] motion-reduce:active:scale-100'
 
@@ -38,17 +34,6 @@ const ICON_BUTTON =
 export default function TopBar({ user, storefrontUrl, bugReports, scrolled = false }: TopBarProps) {
   // Hooks
   const copy = useCopy(navigationContent)
-  const { resolvedTheme, setTheme } = useTheme()
-  /* The theme lives in localStorage, so the server cannot know it. False while
-     hydrating (matching the server HTML), true straight after, without an effect. */
-  const hydrated = useSyncExternalStore(
-    noSubscription,
-    () => true,
-    () => false,
-  )
-
-  // Render logic
-  const dark = hydrated && resolvedTheme === 'dark'
 
   return (
     <header
@@ -93,17 +78,7 @@ export default function TopBar({ user, storefrontUrl, bugReports, scrolled = fal
             <p className="mt-1 text-body text-muted-foreground">{copy.notifications.empty}</p>
           </PopoverContent>
         </Popover>
-        <button
-          type="button"
-          aria-label={copy.toggleTheme}
-          onClick={() => setTheme(dark ? 'light' : 'dark')}
-          className={ICON_BUTTON}
-        >
-          {/* Follows the `dark` class next-themes sets before paint, so the server and the
-              client render the same markup and nothing flashes. */}
-          <Moon className="size-[1.125rem] dark:hidden" aria-hidden />
-          <Sun className="hidden size-[1.125rem] dark:block" aria-hidden />
-        </button>
+        <ThemeToggle />
         <UserMenu
           user={user}
           bugReports={bugReports}

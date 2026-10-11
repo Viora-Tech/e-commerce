@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { siteConfig } from './site'
 
 /**
  * The platform's own email sending: one Amazon SES account for every store.
@@ -16,7 +17,7 @@ const platformEmailShape = {
   /** The platform's verified sender, used until a store's own address is verified. */
   PLATFORM_EMAIL_FROM: z.string().email().optional(),
   /** Display name when a store has no name yet. */
-  PLATFORM_EMAIL_NAME: z.string().min(1).default('Waimers'),
+  PLATFORM_EMAIL_NAME: z.string().min(1).default(siteConfig.brand.name),
 }
 
 /** Optional, and a blank value (compose's `${KEY:-}`) counts as unset. */

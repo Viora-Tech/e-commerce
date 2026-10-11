@@ -498,7 +498,7 @@
   --secondary: #1b1e24;
   --secondary-foreground: #edeef0;
   --muted: #1b1e24;
-  --muted-foreground: #959ba6;
+  --muted-foreground: #9aa0ab;
   --muted-foreground-soft: #80868f;
   --accent: #172038;
   --accent-foreground: #a9c1f8;
@@ -688,7 +688,7 @@
 /* Tiny uppercase tracked meta label for field/section headings (customer, product, order,
    settings, discounts detail pages), after the reference site's field labels. */
 @utility text-eyebrow {
-  font-size: 0.6875rem;
+  font-size: 0.75rem;
   font-weight: 500;
   text-transform: uppercase;
   letter-spacing: 0.06em;
@@ -774,12 +774,12 @@
   --text-body-strong--line-height: 1.25rem;
   --text-body-strong--font-weight: 500;
 
-  --text-caption: 0.75rem;
-  --text-caption--line-height: 1rem;
+  --text-caption: 0.8125rem;
+  --text-caption--line-height: 1.125rem;
   --text-caption--font-weight: 500;
 
-  --text-table-head: 0.75rem;
-  --text-table-head--line-height: 1rem;
+  --text-table-head: 0.8125rem;
+  --text-table-head--line-height: 1.125rem;
   --text-table-head--font-weight: 500;
 
   --text-nav: 0.875rem;

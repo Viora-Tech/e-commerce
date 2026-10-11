@@ -32,6 +32,12 @@ import { usePermissions } from '@/hooks/use-permissions'
 import { authClient } from '@/lib/auth-client'
 import { localizeNavItems, navGroupName } from '@/lib/page-names'
 import { routes } from '@/lib/routes'
+import {
+  SIDEBAR_BLOCK,
+  SIDEBAR_CONTROL,
+  SIDEBAR_DURATION,
+  SIDEBAR_LABEL,
+} from '@/lib/sidebar-motion'
 import MemberAvatar from './account/member-avatar'
 import SidebarUsageCard, { type SidebarUsage } from './layout/sidebar-usage-card'
 import UserMenu from './layout/user-menu'
@@ -56,7 +62,8 @@ type AdminSidebarProps = {
 const SIDEBAR_APPS = 5
 
 const ROW_TRIGGER =
-  'flex h-12 w-full min-w-0 items-center gap-2.5 rounded-lg px-1.5 text-left transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring group-data-[collapsible=icon]:size-9 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:p-0'
+  'flex h-12 w-full min-w-0 items-center gap-2.5 overflow-hidden rounded-lg px-1.5 text-left transition-[background-color,padding] hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring group-data-[collapsible=icon]:px-0 ' +
+  SIDEBAR_DURATION
 
 /**
  * Installed apps hang under the Apps entry, like Drafts under Orders. Past a handful the list
@@ -137,7 +144,9 @@ export default function AdminSidebar({
 
   return (
     <Sidebar collapsible="icon" className="group-data-[side=left]:border-r-0">
-      <SidebarHeader className="gap-2.5 px-4 pt-4 pb-1 group-data-[collapsible=icon]:items-center group-data-[collapsible=icon]:px-2">
+      <SidebarHeader
+        className={`gap-2.5 px-4 pt-4 pb-1 transition-[padding] group-data-[collapsible=icon]:items-center group-data-[collapsible=icon]:px-2 ${SIDEBAR_DURATION}`}
+      >
         <DropdownMenu>
           <DropdownMenuTrigger aria-label={copy.switchStore} className={ROW_TRIGGER}>
             {/* The store's key tile: its logo when the theme has one, else the store glyph. */}
@@ -160,7 +169,7 @@ export default function AdminSidebar({
                 <Store className="size-5" weight="fill" />
               )}
             </span>
-            <span className="flex min-w-0 flex-1 flex-col leading-tight group-data-[collapsible=icon]:hidden">
+            <span className={cn('flex min-w-0 flex-1 flex-col leading-tight', SIDEBAR_LABEL)}>
               <span className="truncate text-body-strong font-semibold text-ink-strong">
                 {storeName}
               </span>
@@ -170,7 +179,9 @@ export default function AdminSidebar({
                 </span>
               ) : null}
             </span>
-            <ChevronsUpDown className="size-4 shrink-0 text-muted-foreground group-data-[collapsible=icon]:hidden" />
+            <ChevronsUpDown
+              className={cn('size-4 shrink-0 text-muted-foreground', SIDEBAR_CONTROL)}
+            />
           </DropdownMenuTrigger>
           <DropdownMenuContent align="start" className="w-60 bg-popover">
             <DropdownMenuGroup>
@@ -199,7 +210,10 @@ export default function AdminSidebar({
           target="_blank"
           rel="noreferrer"
           aria-label={copy.openStoreAddress(domain)}
-          className="flex h-8 items-center gap-2 rounded-[0.5rem] border border-border bg-muted px-2.5 text-body font-medium text-foreground transition-colors hover:bg-chip-neutral focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring group-data-[collapsible=icon]:hidden"
+          className={cn(
+            'flex h-8 items-center gap-2 rounded-[0.5rem] border border-border bg-muted px-2.5 text-body font-medium text-foreground hover:bg-chip-neutral focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+            SIDEBAR_BLOCK,
+          )}
         >
           <Globe className="size-4 shrink-0 text-muted-foreground" />
           <span className="min-w-0 flex-1 truncate">{domain}</span>
@@ -227,7 +241,9 @@ export default function AdminSidebar({
         />
       </SidebarContent>
 
-      <SidebarFooter className="gap-3 px-4 pt-2 pb-4 group-data-[collapsible=icon]:px-2">
+      <SidebarFooter
+        className={`gap-3 px-4 pt-2 pb-4 transition-[padding] group-data-[collapsible=icon]:px-2 ${SIDEBAR_DURATION}`}
+      >
         {usage ? <SidebarUsageCard usage={usage} /> : null}
         <UserMenu
           user={user}
@@ -245,7 +261,7 @@ export default function AdminSidebar({
                 className="size-8"
                 fallbackClassName="bg-ink-strong text-caption text-background"
               />
-              <span className="flex min-w-0 flex-1 flex-col leading-tight group-data-[collapsible=icon]:hidden">
+              <span className={cn('flex min-w-0 flex-1 flex-col leading-tight', SIDEBAR_LABEL)}>
                 <span className="truncate text-body-strong font-semibold text-ink-strong">
                   {user.name}
                 </span>
@@ -253,7 +269,9 @@ export default function AdminSidebar({
                   {user.email}
                 </span>
               </span>
-              <ChevronsUpDown className="size-4 shrink-0 text-muted-foreground group-data-[collapsible=icon]:hidden" />
+              <ChevronsUpDown
+                className={cn('size-4 shrink-0 text-muted-foreground', SIDEBAR_CONTROL)}
+              />
             </>
           }
         />

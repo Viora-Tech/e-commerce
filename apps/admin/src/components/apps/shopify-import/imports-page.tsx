@@ -4,9 +4,9 @@ import { siteConfig } from '@commerce/config/site'
 import { Store, Upload } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Card, CardContent } from '@commerce/ui/shadcn/card'
+import { Skeleton } from '@commerce/ui/shadcn/skeleton'
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
-import PageHeader from '@/components/layout/page-header'
 import ResourceTable, { type ResourceColumnSpec } from '@/components/table/resource-table'
 import { shopifyImportContent } from '@/data/shopify-import'
 import { useCopy, useFormat } from '@/hooks/use-copy'
@@ -14,6 +14,7 @@ import { api } from '@/lib/api-client'
 import type { Formatters } from '@/lib/format'
 import RemainingCard from './remaining-card'
 import RunStatusLabel from './run-status-label'
+import StorageNotice from './storage-notice'
 import { type RunListItem, totals } from './types'
 
 const base = shopifyImportContent.base
@@ -131,8 +132,12 @@ export default function ImportsPage() {
 
   return (
     <div className="flex flex-col gap-4">
-      <PageHeader title={copy.title} subtitle={copy.subtitle} />
-      <RemainingCard connected={shop !== null} />
+      <StorageNotice />
+      {shop === undefined ? (
+        <Skeleton className="h-64 w-full" />
+      ) : (
+        <RemainingCard connected={shop !== null} />
+      )}
       <div className="grid gap-4 md:grid-cols-2">
         {ways.map((way) => (
           <Card key={way.href}>

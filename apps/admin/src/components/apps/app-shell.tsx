@@ -26,6 +26,8 @@ type AppShellProps = {
   hasSettings: boolean
   /** A connection that is installed but has no working credentials yet; links to where to fix it. */
   setupHref?: string | undefined
+  /** The app's own header button, shown beside the more menu. */
+  headerAction?: ReactNode
   children: ReactNode
 }
 
@@ -71,6 +73,7 @@ export default async function AppShell({
   active,
   hasSettings,
   setupHref,
+  headerAction,
   children,
 }: AppShellProps) {
   // Render logic
@@ -112,6 +115,7 @@ export default async function AppShell({
                 {copy.settings}
               </Button>
             ) : null}
+            {headerAction}
             <AppUninstallButton appId={appId} name={name} />
           </div>
         </div>

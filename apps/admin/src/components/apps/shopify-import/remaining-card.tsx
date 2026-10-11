@@ -1,11 +1,19 @@
 'use client'
 
-import type {
-  ImportResource,
-  ImportStatus,
-  ResourceStatus,
+import {
+  IMPORT_RESOURCES,
+  type ImportResource,
+  type ImportStatus,
+  type ResourceStatus,
 } from '@commerce/plugin-shopify-import/client'
+import { MoreHorizontal, Store } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@commerce/ui/shadcn/dropdown-menu'
 import { Skeleton } from '@commerce/ui/shadcn/skeleton'
 import { Spinner } from '@commerce/ui/shadcn/spinner'
 import {
@@ -16,10 +24,12 @@ import {
   TableHeader,
   TableRow,
 } from '@commerce/ui/shadcn/table'
+import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import DataCard from '@/components/layout/data-card'
+import EmptyState from '@/components/layout/empty-state'
 import StatusLabel from '@/components/status/status-label'
 import { shopifyImportContent } from '@/data/shopify-import'
 import { useCopy, useFormat } from '@/hooks/use-copy'
@@ -78,10 +88,10 @@ function rowsOf(status: ImportStatus, labels: Record<ImportResource, string>, im
       rows.push({
         key: 'images',
         label: images,
-        inShopify: img.expected,
+        inShopify: img.state === 'unknown' ? null : img.expected,
         countedFrom: img.countedFrom,
         countedAt: img.countedAt,
-        here: img.here,
+        here: img.state === 'unknown' ? null : img.here,
         state: img.state,
         missing: img.missing,
         resources: ['products'],
@@ -146,14 +156,13 @@ export default function RemainingCard({ connected }: RemainingCardProps) {
 
   // Event handlers
   const handleStart = async (key: string, resources: ImportResource[], action?: Row['action']) => {
-    if (action === 'preview') {
-      router.push(`${base}/connect`)
-      return
-    }
     setBusy(key)
     try {
-      const run = await api.shopifyImport.importRemaining({ resources })
-      toast.success(copy.started)
+      const run =
+        action === 'preview'
+          ? await api.shopifyImport.createApiRun({ resources })
+          : await api.shopifyImport.importRemaining({ resources })
+      toast.success(action === 'preview' ? copy.previewStarted : copy.started)
       router.push(`${base}/runs/${run.id}`)
     } catch (err) {
       toast.error(err instanceof Error ? err.message : copy.startFailed)
@@ -162,6 +171,10 @@ export default function RemainingCard({ connected }: RemainingCardProps) {
   }
 
   // Early returns
+  const rows = status ? rowsOf(status, labels, copy.images) : []
+  const remaining = status?.remaining ?? []
+  const checked = rows.some((r) => r.state !== 'unknown')
+  const allChecked = rows.length > 0 && rows.every((r) => r.state !== 'unknown')
   if (status === null) {
     return (
       <DataCard title={copy.heading}>
@@ -170,16 +183,40 @@ export default function RemainingCard({ connected }: RemainingCardProps) {
     )
   }
 
+  // Not connected and nothing ever counted: one empty state, not a table of dashes.
+  if (status && !connected && !checked) {
+    return (
+      <DataCard title={copy.heading}>
+        <EmptyState
+          icon={Store}
+          heading={copy.notConnectedHeading}
+          body={copy.notConnected}
+          action={
+            <Button nativeButton={false} render={<Link href={`${base}/connect`} />}>
+              {copy.connectAction}
+            </Button>
+          }
+        />
+      </DataCard>
+    )
+  }
+
   // Render logic
-  const rows = status ? rowsOf(status, labels, copy.images) : []
-  const remaining = status?.remaining ?? []
   const previewAt = rows.find((r) => r.countedFrom === 'preview' && r.countedAt)?.countedAt ?? null
   const facts = [
     status?.lastImportAt ? copy.lastImport(fmt.when(status.lastImportAt)) : copy.nothingYet,
     status?.freshPreview ? copy.previewReused(fmt.when(status.freshPreview.takenAt)) : null,
     previewAt ? copy.fromPreview(fmt.date(previewAt)) : null,
-    connected || previewAt ? null : copy.notConnected,
   ].filter((f): f is string => Boolean(f))
+
+  // "Everything is here" only when every count was checked and none is missing.
+  const done = allChecked && remaining.length === 0
+  const everything = !!status && !allChecked
+  const headerLabel = everything
+    ? copy.previewEverything
+    : done
+      ? copy.allHere
+      : copy.importRemaining
 
   return (
     <DataCard
@@ -188,11 +225,17 @@ export default function RemainingCard({ connected }: RemainingCardProps) {
       action={
         <Button
           type="button"
-          onClick={() => handleStart('all', remaining)}
-          disabled={!status || remaining.length === 0 || busy !== null}
+          onClick={() =>
+            handleStart(
+              'all',
+              everything ? [...IMPORT_RESOURCES] : remaining,
+              everything ? 'preview' : undefined,
+            )
+          }
+          disabled={!status || done || (!everything && remaining.length === 0) || busy !== null}
         >
           {busy === 'all' ? <Spinner /> : null}
-          {status && remaining.length === 0 ? copy.allHere : copy.importRemaining}
+          {headerLabel}
         </Button>
       }
     >
@@ -213,7 +256,7 @@ export default function RemainingCard({ connected }: RemainingCardProps) {
             </TableHead>
             <TableHead className="hidden text-right sm:table-cell">{copy.columns.here}</TableHead>
             <TableHead>{copy.columns.status}</TableHead>
-            <TableHead className="hidden w-0 sm:table-cell" />
+            <TableHead className="w-0" />
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -250,24 +293,15 @@ export default function RemainingCard({ connected }: RemainingCardProps) {
                   </TableCell>
                   <TableCell className="whitespace-nowrap">
                     <StatusLabel kind="importState" value={row.state} label={stateText(row)} />
-                    {row.action ? (
-                      <span className="mt-2 block sm:hidden">
-                        <RowButton
-                          label={actionLabel(row)}
-                          busy={busy === row.key}
-                          disabled={busy !== null}
-                          onClick={() => handleStart(row.key, row.resources ?? [], row.action)}
-                        />
-                      </span>
-                    ) : null}
                   </TableCell>
-                  <TableCell className="hidden text-right sm:table-cell">
+                  <TableCell className="text-right">
                     {row.action ? (
-                      <RowButton
+                      <RowMenu
+                        name={row.label}
                         label={actionLabel(row)}
                         busy={busy === row.key}
                         disabled={busy !== null}
-                        onClick={() => handleStart(row.key, row.resources ?? [], row.action)}
+                        onSelect={() => handleStart(row.key, row.resources ?? [], row.action)}
                       />
                     ) : null}
                   </TableCell>
@@ -279,13 +313,26 @@ export default function RemainingCard({ connected }: RemainingCardProps) {
   )
 }
 
-type RowButtonProps = { label: string; busy: boolean; disabled: boolean; onClick: () => void }
+type RowMenuProps = {
+  name: string
+  label: string
+  busy: boolean
+  disabled: boolean
+  onSelect: () => void
+}
 
-function RowButton({ label, busy, disabled, onClick }: RowButtonProps) {
+/** The ⋯ menu at the end of a row: what that one line can start. */
+function RowMenu({ name, label, busy, disabled, onSelect }: RowMenuProps) {
   return (
-    <Button type="button" variant="outline" size="sm" onClick={onClick} disabled={disabled}>
-      {busy ? <Spinner /> : null}
-      {label}
-    </Button>
+    <DropdownMenu>
+      <DropdownMenuTrigger
+        render={<Button variant="ghost" size="icon-sm" aria-label={name} disabled={disabled} />}
+      >
+        {busy ? <Spinner /> : <MoreHorizontal />}
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-auto min-w-40">
+        <DropdownMenuItem onClick={onSelect}>{label}</DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
   )
 }
