@@ -1,6 +1,8 @@
+import { loadEnv } from '@commerce/config'
 import { Toaster } from '@commerce/ui/shadcn/sonner'
 import { redirect } from 'next/navigation'
 import type { ReactNode } from 'react'
+import BugReportHost from '@/components/bug-report/bug-report-host'
 import AccentStyle from '@/components/layout/accent-style'
 import { getSession } from '@/lib/auth'
 
@@ -18,6 +20,10 @@ export default async function EditorLayout({ children }: { children: ReactNode }
     <>
       <AccentStyle organizationId={activeOrganizationId} />
       {children}
+      {/* Testers report from the editor too (bottom-right, clear of the left rail). */}
+      {loadEnv(process.env).BUG_REPORTS_ENABLED && activeOrganizationId ? (
+        <BugReportHost placement="screen" />
+      ) : null}
       <Toaster />
     </>
   )

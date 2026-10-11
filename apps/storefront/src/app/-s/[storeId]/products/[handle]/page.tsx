@@ -28,7 +28,7 @@ import { storeOffersEmi } from '@/lib/payments'
 import { productReviews } from '@/lib/reviews'
 import { jsonLd, metaDescription, productGraph, requestOrigin } from '@/lib/seo'
 import { estimateDeliveryAction } from '@/lib/shipping-actions'
-import { inStore } from '@/lib/store-context'
+import { storeRead } from '@/lib/store-cache'
 import { renderTemplate } from '@/lib/template-render'
 
 /** Same rule ProductView uses for its initial pick: the first purchasable variant. */
@@ -53,9 +53,9 @@ function withDepositPolicy(product: ProductDetail, policy: PreorderStoreSettings
   }
 }
 
-/** One load per request, shared by the metadata and the page. */
+/** One load per store version (and per request), shared by the metadata and the page. */
 const loadProduct = cache((storeId: string, handle: string) =>
-  inStore(storeId, async (tx) => {
+  storeRead(storeId, `product-page|${handle}`, async (tx) => {
     const found = await getProductByHandle(tx, handle)
     if (!found) return null
     const [seo, [s]] = await Promise.all([
@@ -108,13 +108,13 @@ export default async function ProductPage({ params, searchParams }: Params) {
     storeName: found.storeName,
   })
   const rated = reviews && reviews.summary.count > 0 ? reviews.summary : null
-  const emiApp = await inStore(storeId, (tx) => storeEmiOffers(tx, storeId))
+  const emiApp = await storeRead(storeId, 'emi-offers', (tx) => storeEmiOffers(tx, storeId))
   // Before the EMI & pay later app is installed, the older built-in hint still shows.
   const legacyEmi = emiApp.installed
     ? false
-    : await inStore(storeId, (tx) => storeOffersEmi(tx, storeId))
+    : await storeRead(storeId, 'legacy-emi', (tx) => storeOffersEmi(tx, storeId))
   const UnderPrice = emiApp.config ? EmiOffers : legacyEmi ? EmiHint : undefined
-  const bis = await inStore(storeId, (tx) => backInStockContext(tx, storeId))
+  const bis = await storeRead(storeId, 'back-in-stock', (tx) => backInStockContext(tx, storeId))
   const variant = defaultVariant(product)
   const isPreorder = Boolean(product.preorder?.enabled) && (!variant || variant.available <= 0)
   const schema = productGraph(
@@ -135,83 +135,81 @@ export default async function ProductPage({ params, searchParams }: Params) {
     found.currency,
     found.storeName,
   )
-  const page = await inStore(storeId, (tx) =>
-    renderTemplate(tx, storeId, 'product', {
-      suffix: product.templateSuffix,
-      sources: { productId: product.id },
-      product,
-      productActions: { addToCart: addLineAction },
-      view,
-      appBlockContext: {
-        notifyMe:
-          bis.installed && variant
-            ? {
-                variantId: variant.id,
-                available: variant.available,
-                isPreorder,
-                whatsappEnabled: bis.whatsappEnabled,
-                action: notifyMeAction,
-              }
-            : undefined,
-        preorderCountdown: {
-          enabled: Boolean(product.preorder?.enabled),
-          launchAt: product.launchAt ?? null,
-        },
-        deliveryChecker: { estimate: estimateDeliveryAction },
-        emiOffers: emiOfferFor(emiApp.config, variant?.pricePaise ?? 0),
-        reviews: reviews?.widget,
+  const page = await renderTemplate(storeId, 'product', {
+    suffix: product.templateSuffix,
+    sources: { productId: product.id },
+    product,
+    productActions: { addToCart: addLineAction },
+    view,
+    appBlockContext: {
+      notifyMe:
+        bis.installed && variant
+          ? {
+              variantId: variant.id,
+              available: variant.available,
+              isPreorder,
+              whatsappEnabled: bis.whatsappEnabled,
+              action: notifyMeAction,
+            }
+          : undefined,
+      preorderCountdown: {
+        enabled: Boolean(product.preorder?.enabled),
+        launchAt: product.launchAt ?? null,
       },
-      renderers: {
-        MainProduct: (s) => {
-          const view = (
-            <ProductView
-              product={product}
-              onAddToCart={addLineAction}
-              settings={
-                rated
-                  ? {
-                      ...mainProductSettings(s),
-                      ratingValue: rated.rating,
-                      ratingCount: rated.count,
-                    }
-                  : mainProductSettings(s)
-              }
-              UnderPrice={s.showEmiHint !== false ? UnderPrice : undefined}
-              belowBuy={s.showDeliveryEstimate === false ? undefined : <DeliveryEstimateWidget />}
-              NotifyMe={bis.installed ? NotifyMeForm : undefined}
-              notifyMeProps={bis.installed ? { whatsappEnabled: bis.whatsappEnabled } : undefined}
-            />
-          )
-          return (
-            <>
-              {emiApp.config ? (
-                <EmiOffersProvider config={emiApp.config}>{view}</EmiOffersProvider>
-              ) : (
-                view
-              )}
-              <RecordView handle={product.handle} />
-            </>
-          )
-        },
-        RelatedProducts: (s) => (
-          <RelatedProducts
-            storeId={storeId}
+      deliveryChecker: { estimate: estimateDeliveryAction },
+      emiOffers: emiOfferFor(emiApp.config, variant?.pricePaise ?? 0),
+      reviews: reviews?.widget,
+    },
+    renderers: {
+      MainProduct: (s) => {
+        const view = (
+          <ProductView
             product={product}
-            heading={headingOf(s.heading)}
-            limit={limitOf(s.limit)}
+            onAddToCart={addLineAction}
+            settings={
+              rated
+                ? {
+                    ...mainProductSettings(s),
+                    ratingValue: rated.rating,
+                    ratingCount: rated.count,
+                  }
+                : mainProductSettings(s)
+            }
+            UnderPrice={s.showEmiHint !== false ? UnderPrice : undefined}
+            belowBuy={s.showDeliveryEstimate === false ? undefined : <DeliveryEstimateWidget />}
+            NotifyMe={bis.installed ? NotifyMeForm : undefined}
+            notifyMeProps={bis.installed ? { whatsappEnabled: bis.whatsappEnabled } : undefined}
           />
-        ),
-        RecentlyViewed: (s) => (
-          <RecentlyViewed
-            storeId={storeId}
-            exclude={product.handle}
-            heading={headingOf(s.heading)}
-            limit={limitOf(s.limit)}
-          />
-        ),
+        )
+        return (
+          <>
+            {emiApp.config ? (
+              <EmiOffersProvider config={emiApp.config}>{view}</EmiOffersProvider>
+            ) : (
+              view
+            )}
+            <RecordView handle={product.handle} />
+          </>
+        )
       },
-    }),
-  )
+      RelatedProducts: (s) => (
+        <RelatedProducts
+          storeId={storeId}
+          product={product}
+          heading={headingOf(s.heading)}
+          limit={limitOf(s.limit)}
+        />
+      ),
+      RecentlyViewed: (s) => (
+        <RecentlyViewed
+          storeId={storeId}
+          exclude={product.handle}
+          heading={headingOf(s.heading)}
+          limit={limitOf(s.limit)}
+        />
+      ),
+    },
+  })
   return (
     <>
       {/* biome-ignore lint/security/noDangerouslySetInnerHtml: JSON-LD from our own data; jsonLd() escapes it. */}

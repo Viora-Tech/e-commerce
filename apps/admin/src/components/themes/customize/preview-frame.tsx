@@ -6,8 +6,15 @@ import { useGetPuck } from '@puckeditor/core'
 import { useReducedMotion } from 'motion/react'
 import { type ReactNode, useEffect } from 'react'
 import {
+  CANVAS_INTERACTION_CSS,
+  installCanvasInteraction,
+  selectedControlsCss,
+} from '@/lib/customize-canvas-interaction'
+import {
   canvasMotionCss,
   installCanvasMotion,
+  installOffscreenPause,
+  OFFSCREEN_PAUSE_CSS,
   scrollToSection,
 } from '@/lib/customize-canvas-motion'
 import { CANVAS_DROP_CSS, installMediaDrop } from '@/lib/customize-media-drop'
@@ -147,6 +154,44 @@ export default function PreviewFrame({ children, document }: PreviewFrameProps) 
       uninstall()
     }
   }, [document, getPuck, reducedMotion])
+
+  // The canvas answers the pointer like the page: an arrow, working controls in the selected
+  // section, and a section moves only from its toolbar's grip (lib/customize-canvas-interaction).
+  useEffect(() => {
+    if (!document) return
+    const style = document.createElement('style')
+    style.textContent = CANVAS_INTERACTION_CSS
+    document.head.appendChild(style)
+    const uninstall = installCanvasInteraction(document, () => {
+      const id = getPuck().selectedItem?.props?.id
+      return typeof id === 'string' ? id : null
+    })
+    return () => {
+      style.remove()
+      uninstall()
+    }
+  }, [document, getPuck])
+
+  useEffect(() => {
+    if (!document || !selectedId) return
+    const style = document.createElement('style')
+    style.textContent = selectedControlsCss(selectedId)
+    document.head.appendChild(style)
+    return () => style.remove()
+  }, [document, selectedId])
+
+  // Sections scrolled out of view stop animating, so an idle editor stays idle.
+  useEffect(() => {
+    if (!document) return
+    const style = document.createElement('style')
+    style.textContent = OFFSCREEN_PAUSE_CSS
+    document.head.appendChild(style)
+    const uninstall = installOffscreenPause(document)
+    return () => {
+      style.remove()
+      uninstall()
+    }
+  }, [document])
 
   useEffect(() => {
     if (!document) return

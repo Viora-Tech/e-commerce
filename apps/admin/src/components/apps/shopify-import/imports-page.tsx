@@ -7,6 +7,7 @@ import { Card, CardContent } from '@commerce/ui/shadcn/card'
 import { Skeleton } from '@commerce/ui/shadcn/skeleton'
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
+import BackgroundWorkNotice from '@/components/media/background-work-notice'
 import ResourceTable, { type ResourceColumnSpec } from '@/components/table/resource-table'
 import { shopifyImportContent } from '@/data/shopify-import'
 import { useCopy, useFormat } from '@/hooks/use-copy'
@@ -133,6 +134,7 @@ export default function ImportsPage() {
   return (
     <div className="flex flex-col gap-4">
       <StorageNotice />
+      <BackgroundWorkNotice />
       {shop === undefined ? (
         <Skeleton className="h-64 w-full" />
       ) : (

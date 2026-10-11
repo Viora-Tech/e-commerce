@@ -1,6 +1,7 @@
 'use client'
 
 import type { PurchaseCurrency } from '@commerce/core/inventory'
+import PhoneInput from '@commerce/ui/phone-input'
 import { Button } from '@commerce/ui/shadcn/button'
 import {
   Dialog,
@@ -127,11 +128,11 @@ export default function NewSupplierDialog({
             </Field>
             <Field>
               <FieldLabel htmlFor="new-supplier-phone">{fields.contact.phone}</FieldLabel>
-              <Input
+              <PhoneInput
                 id="new-supplier-phone"
-                type="tel"
                 value={phone}
-                onChange={(e) => setPhone(e.target.value)}
+                onChange={setPhone}
+                autoComplete="tel"
               />
             </Field>
           </div>

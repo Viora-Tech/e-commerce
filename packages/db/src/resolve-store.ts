@@ -160,3 +160,14 @@ export async function storesWithSenderEmailChecks(db: Db): Promise<string[]> {
   const rows = await db.execute<{ id: string }>(sql`select stores_with_sender_email_checks() as id`)
   return rows.map((r) => r.id)
 }
+
+/**
+ * Store ids with a recent Razorpay or Cashfree capture whose fee is not known yet and was not
+ * asked about in the last 6 hours, for the worker's fee sync. SECURITY DEFINER backed.
+ */
+export async function storesWithUnknownPaymentFees(db: Db): Promise<string[]> {
+  const rows = await db.execute<{ id: string }>(
+    sql`select stores_with_unknown_payment_fees() as id`,
+  )
+  return rows.map((r) => r.id)
+}

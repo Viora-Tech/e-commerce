@@ -18,6 +18,7 @@ import { useRouter } from 'next/navigation'
 import { type FormEvent, useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import { domainsContent as copy } from '@/data/domains'
+import { useSetupNext } from '@/hooks/use-setup-next'
 import { api } from '@/lib/api-client'
 
 type ConnectDomainDialogProps = {
@@ -28,6 +29,7 @@ type ConnectDomainDialogProps = {
 /** Step one of connecting: the hostname, then on to its DNS records. */
 export default function ConnectDomainDialog({ open, onOpenChange }: ConnectDomainDialogProps) {
   // Hooks
+  const announceSetup = useSetupNext()
   const router = useRouter()
   const [value, setValue] = useState('')
   const [includeTwin, setIncludeTwin] = useState(true)
@@ -55,6 +57,7 @@ export default function ConnectDomainDialog({ open, onOpenChange }: ConnectDomai
       })
       const first = rows[0]
       toast.success(copy.dialog.connected(parsed.hostname))
+      void announceSetup('domain')
       onOpenChange(false)
       if (first) router.push(`/settings/domains/${first.id}`)
       router.refresh()

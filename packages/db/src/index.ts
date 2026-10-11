@@ -24,11 +24,13 @@ export {
   storesWithSenderEmailChecks,
   storesWithStaleImportSnapshots,
   storesWithUndispatchedOutboxEvents,
+  storesWithUnknownPaymentFees,
   storesWithUnpaidOnlineOrders,
 } from './resolve-store'
 export * from './schema'
 export * from './shopper-login-schema'
 export * from './stock'
 export * from './store-data-schema'
+export * from './storefront-cache'
 export * from './theme-schema'
 export { type StoreTx, withoutStore, withStore } from './with-store'

@@ -49,11 +49,17 @@ const ITEMS: { panel: RailPanel; icon: typeof Plus }[] = [
 /** The editor's page in the merchant guide, behind the rail's help button. */
 export const EDITOR_HELP_URL = `${siteConfig.urls.docs}/merchant-guide/online-store/website-builder`
 
+/*
+ * The admin sidebar's icon standard (nav-section.tsx): Phosphor duotone at 18px in the muted
+ * colour, the open one filled in the accent on its soft tile. One glyph size on a 40px target.
+ */
 const ITEM = cn(
-  'flex size-10 items-center justify-center rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground [&_svg]:size-5',
+  'flex size-10 items-center justify-center rounded-[0.625rem] text-muted-foreground hover:bg-muted hover:text-foreground [&_svg]:size-[1.125rem] [&_svg]:shrink-0',
   CHROME_TRANSITION,
   CHROME_FOCUS,
 )
+
+const ACTIVE = 'bg-primary-soft text-primary hover:bg-primary-soft hover:text-primary'
 
 /**
  * The far-left icon rail (Figma 369:4864): the store's tile on top, the panels in the middle,
@@ -93,15 +99,11 @@ export default function CustomizeRail({ active, onChange, store }: CustomizeRail
                 onClick={() => onChange(panel)}
                 aria-label={copy[panel]}
                 aria-current={active === panel ? 'true' : undefined}
-                className={cn(
-                  ITEM,
-                  active === panel &&
-                    'bg-primary-soft text-primary hover:bg-primary-soft hover:text-primary',
-                )}
+                className={cn(ITEM, active === panel && ACTIVE)}
               />
             }
           >
-            <Icon aria-hidden weight="regular" />
+            <Icon aria-hidden weight={active === panel ? 'fill' : 'duotone'} />
           </RailTip>
         ))}
       </div>
@@ -113,15 +115,11 @@ export default function CustomizeRail({ active, onChange, store }: CustomizeRail
             onClick={() => onChange('help')}
             aria-label={copy.help}
             aria-current={active === 'help' ? 'true' : undefined}
-            className={cn(
-              ITEM,
-              active === 'help' &&
-                'bg-primary-soft text-primary hover:bg-primary-soft hover:text-primary',
-            )}
+            className={cn(ITEM, active === 'help' && ACTIVE)}
           />
         }
       >
-        <HelpCircle aria-hidden weight="regular" />
+        <HelpCircle aria-hidden weight={active === 'help' ? 'fill' : 'duotone'} />
       </RailTip>
     </nav>
   )

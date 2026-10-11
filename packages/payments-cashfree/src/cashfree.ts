@@ -7,6 +7,7 @@
  * - https://www.cashfree.com/docs/payments/online/webhooks/signature-verification
  * - https://www.cashfree.com/docs/api-reference/payments/latest/payments/webhooks
  * - https://www.cashfree.com/docs/api-reference/payments/latest/refunds/webhooks
+ * - Fees and payment methods: see charges.ts.
  *
  * Re-checked 27 September 2026 against Cashfree's official Node SDK instead,
  * because www.cashfree.com and docs.cashfree.com were blocked from the build
@@ -36,6 +37,15 @@ import type {
   WebhookVerification,
 } from '@commerce/payments'
 import { safeEqual } from '@commerce/payments'
+import {
+  type CfChargesDetails,
+  type CfOrderSettlement,
+  type CfPaidPayment,
+  type CfPaymentMethod,
+  chargesFromDetails,
+  chargesOfPayment,
+  methodOnly,
+} from './charges'
 
 export type CashfreeConfig = {
   appId: string
@@ -179,6 +189,7 @@ type CfWebhookPayment = {
   payment_message?: string | null
   payment_time?: string
   payment_group?: string
+  payment_method?: CfPaymentMethod | null
 }
 
 type CfWebhookRefund = {
@@ -195,6 +206,7 @@ type CfWebhookBody = {
     order?: CfWebhookOrder
     payment?: CfWebhookPayment
     refund?: CfWebhookRefund
+    charges_details?: CfChargesDetails
     customer_details?: unknown
     type?: string
     event_time?: string
@@ -387,6 +399,26 @@ export class CashfreeProvider implements PaymentProvider {
     return { status: 'pending', providerPaymentId: null, amountPaise }
   }
 
+  /**
+   * How the payment was paid (the payment) and what Cashfree kept (the order's settlement).
+   * The settlement may not exist yet; the fee then stays unknown and the sync asks again.
+   */
+  async fetchCharges(input: { providerRef: string; providerPaymentId: string }) {
+    const order = `/orders/${input.providerRef}`
+    const pay = await this.request<CfPaidPayment>(
+      'GET',
+      `${order}/payments/${input.providerPaymentId}`,
+    )
+    if (pay.payment_status !== 'SUCCESS') return null
+    const settlement = await this.request<CfOrderSettlement>('GET', `${order}/settlements`).catch(
+      (err) => {
+        if (err instanceof CashfreeApiError && err.status === 404) return null
+        throw err
+      },
+    )
+    return chargesOfPayment(pay, settlement, input.providerPaymentId)
+  }
+
   async refund(
     paymentId: string,
     amountPaise: number,
@@ -468,6 +500,24 @@ export class CashfreeProvider implements PaymentProvider {
           providerPaymentId: String(payment.cf_payment_id),
           idempotencyKey: order.order_tags?.idempotencyKey ?? null,
           amountPaise: Math.round(payment.payment_amount * 100),
+          orderId: order.order_tags?.orderId ?? null,
+          // The fee comes later, in PAYMENT_CHARGES_WEBHOOK or from the fee sync.
+          charges: methodOnly(payment),
+          raw: body,
+        }
+      }
+      // Sent once Cashfree has worked out its fee ("Success Payment TDR" in its dashboard).
+      case 'PAYMENT_CHARGES_WEBHOOK': {
+        const order = body.data?.order
+        const payment = body.data?.payment
+        const fee = chargesFromDetails(body.data?.charges_details)
+        if (!order || !payment || fee.feePaise === null) break
+        return {
+          type: 'payment.charges',
+          providerRef: order.order_id,
+          providerPaymentId: String(payment.cf_payment_id),
+          // Its payment_method may be empty; the success webhook already recorded the method.
+          charges: { ...fee, method: null },
           orderId: order.order_tags?.orderId ?? null,
           raw: body,
         }

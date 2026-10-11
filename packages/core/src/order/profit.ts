@@ -1,5 +1,6 @@
 /** SOURCE OF TRUTH: computeOrderProfit, PROFIT_FORMULA, ProfitCostSettingsSchema,
- *   parseProfitCosts, withProfitCosts, allocateProfit
+ *   parseProfitCosts, withProfitCosts, allocateProfit, paymentFee, methodRateIdOf,
+ *   STANDARD_METHOD_FEES
  * WHAT:  What an order actually earned, and the fee rates the merchant pays that it needs.
  *        Pure, no database: safe for client components (`@commerce/core/profit`).
  * WHY:   Margin is what a merchant decides prices and ads on. Shopify cannot show it for
@@ -12,9 +13,15 @@
  *                        weighted average landed cost when it sold) for units not put back
  *                        in stock after a return
  *          − courier   = what the courier charged per live consignment
- *          − fees      = what the gateway kept (`payment.fee_paise` when reported, else the
- *                        store's rate for that method); cash on delivery pays the courier's
- *                        COD fee on the cash collected instead
+ *          − fees      = what the gateway kept, per payment (paymentFee):
+ *                        1. actual: `payment.fee_paise`, the gateway's own figure;
+ *                        2. else the store's rate for how the shopper paid
+ *                           (`payment.method_detail` → methodRateIdOf, Razorpay and Cashfree);
+ *                        3. else the store's rate for that gateway;
+ *                        cash on delivery pays the courier's COD fee on the cash collected.
+ *                        Rates are before GST and 18% GST is added, as gateways bill it. The
+ *                        GST on a fee is left out when the store can claim it back (a regular
+ *                        GST registration), the same way net sales leave out GST
  *          − RTO       = what couriers charged to bring undelivered parcels back
  *          = profit.   Anything unknown counts as zero and is flagged, never guessed.
  * WHERE: order/profit-service.ts loads the facts; the order page's Profit card and the
@@ -36,12 +43,106 @@ export const FeeRateSchema = z.object({
 })
 export type FeeRate = z.infer<typeof FeeRateSchema>
 
+/** GST on a gateway's or courier's fee: 18%. Rates are typed before it, as gateways quote them. */
+export const FEE_GST_BPS = 1_800
+
+/** How a shopper paid, as Settings › Costs for profit prices it. */
+export const METHOD_RATE_IDS = [
+  'upi',
+  'rupay_debit',
+  'debit_card',
+  'credit_card',
+  'international_card',
+  'corporate_card',
+  'netbanking',
+  'wallet',
+  'emi',
+  'pay_later',
+] as const
+export type MethodRateId = (typeof METHOD_RATE_IDS)[number]
+
+const pct = (percentBps: number): FeeRate => ({ percentBps, fixedPaise: 0 })
+
 /**
- * Settings › Costs for profit. `gatewayFees` by payment method id (razorpay, cashfree, …):
- * used when the gateway did not report its fee on the payment. `codFee`: what the courier
- * keeps for collecting cash on delivery.
+ * Razorpay's published standard rates, before 18% GST (https://razorpay.com/pricing/, read
+ * 11 October 2026): 2% on every domestic method, 2.15% on corporate / business credit cards,
+ * up to 3% on international cards, no fixed fee. Only a starting point: plans differ, so the
+ * merchant checks theirs. Used until the store saves its own rates.
+ */
+export const STANDARD_METHOD_FEES: Record<MethodRateId, FeeRate> = {
+  upi: pct(200),
+  rupay_debit: pct(200),
+  debit_card: pct(200),
+  credit_card: pct(200),
+  international_card: pct(300),
+  corporate_card: pct(215),
+  netbanking: pct(200),
+  wallet: pct(200),
+  emi: pct(200),
+  pay_later: pct(200),
+}
+
+/** Gateways whose payments are priced by method; any other gateway uses its own rate. */
+export const METHOD_RATE_GATEWAYS = new Set(['razorpay', 'razorpay_upi', 'cashfree'])
+
+/** `payment.method_detail`, as the adapters write it (@commerce/payments PaymentMethodDetail). */
+export const PaymentMethodDetailSchema = z.object({
+  kind: z.enum(['upi', 'card', 'netbanking', 'wallet', 'emi', 'cardless_emi', 'paylater', 'other']),
+  cardType: z.enum(['credit', 'debit', 'prepaid']).optional(),
+  network: z.string().max(40).optional(),
+  international: z.boolean().optional(),
+  corporate: z.boolean().optional(),
+  provider: z.string().max(120).optional(),
+})
+export type PaymentMethodDetail = z.infer<typeof PaymentMethodDetailSchema>
+
+/** A stored method detail, or null when there is none or it does not parse. */
+export function parseMethodDetail(raw: unknown): PaymentMethodDetail | null {
+  const r = PaymentMethodDetailSchema.safeParse(raw)
+  return r.success ? r.data : null
+}
+
+/**
+ * Which rate prices this way of paying. International beats corporate (Amex, Diners and
+ * business cards), which beats the card type; null when the gateway did not say enough.
+ */
+export function methodRateIdOf(m: PaymentMethodDetail | null): MethodRateId | null {
+  if (!m) return null
+  switch (m.kind) {
+    case 'upi':
+      return 'upi'
+    case 'netbanking':
+      return 'netbanking'
+    case 'wallet':
+      return 'wallet'
+    case 'emi':
+    case 'cardless_emi':
+      return 'emi'
+    case 'paylater':
+      return 'pay_later'
+    case 'card': {
+      if (m.international) return 'international_card'
+      if (m.corporate || m.network === 'amex' || m.network === 'diners') return 'corporate_card'
+      if (m.cardType === 'debit' || m.cardType === 'prepaid') {
+        return m.network === 'rupay' && m.cardType === 'debit' ? 'rupay_debit' : 'debit_card'
+      }
+      return m.cardType === 'credit' ? 'credit_card' : null
+    }
+    default:
+      return null
+  }
+}
+
+/**
+ * Settings › Costs for profit, all before GST. `methodFees`: by how the shopper paid, for
+ * Razorpay and Cashfree payments whose fee is not reported yet; missing from a saved store,
+ * Razorpay's standard rates. `gatewayFees` by gateway id: when the way of paying is not known,
+ * and for other gateways. `codFee`: what the courier keeps for collecting cash on delivery.
  */
 export const ProfitCostSettingsSchema = z.object({
+  methodFees: z
+    .partialRecord(z.enum(METHOD_RATE_IDS), FeeRateSchema)
+    .default(() => ({ ...STANDARD_METHOD_FEES })),
   gatewayFees: z.record(z.string().min(1).max(40), FeeRateSchema).default({}),
   codFee: FeeRateSchema.nullable().default(null),
 })
@@ -89,7 +190,37 @@ export type ProfitPayment = {
   provider: string
   /** Captured and kept (refunds are taken off net sales, not here). */
   amountPaise: number
+  /** What the gateway reported it kept, GST included; null when it has not yet. */
   feePaise: number | null
+  /** The GST inside `feePaise`. */
+  feeTaxPaise: number | null
+  method: PaymentMethodDetail | null
+}
+
+/** Where a payment's fee came from: the gateway, a rate, nowhere (no rate), or none due. */
+export type FeeSource = 'actual' | 'rate' | 'missing' | 'none'
+
+/** One payment's fee as profit counts it (PROFIT_FORMULA, fees). */
+export function paymentFee(
+  p: ProfitPayment,
+  costs: ProfitCostSettings,
+  gstClaimable: boolean,
+): { paise: number; source: FeeSource } {
+  if (FEE_FREE_METHODS.has(p.provider) || p.amountPaise <= 0) return { paise: 0, source: 'none' }
+  if (p.feePaise !== null) {
+    const fee = Math.max(0, p.feePaise)
+    const tax = Math.min(fee, Math.max(0, p.feeTaxPaise ?? 0))
+    return { paise: gstClaimable ? fee - tax : fee, source: 'actual' }
+  }
+  const byMethod = METHOD_RATE_GATEWAYS.has(p.provider) ? methodRateIdOf(p.method) : null
+  const rate =
+    p.provider === 'cod'
+      ? costs.codFee
+      : ((byMethod ? costs.methodFees[byMethod] : undefined) ?? costs.gatewayFees[p.provider])
+  if (!rate) return { paise: 0, source: 'missing' }
+  const beforeGst = feeOn(p.amountPaise, rate)
+  const gst = Math.round((beforeGst * FEE_GST_BPS) / 10_000)
+  return { paise: gstClaimable ? beforeGst : beforeGst + gst, source: 'rate' }
 }
 
 export type ProfitInput = {
@@ -108,6 +239,8 @@ export type ProfitInput = {
   /** What couriers charged for RTOs on this order. */
   rtoPaise: number
   costs: ProfitCostSettings
+  /** The store can claim back GST on fees (a regular GST registration). */
+  feeGstClaimable: boolean
 }
 
 export type OrderProfit = {
@@ -119,6 +252,11 @@ export type OrderProfit = {
   profitPaise: number
   /** Profit as basis points of net sales; null with no net sales. */
   marginBps: number | null
+  /**
+   * Payment fees as the gateway reported them, estimated from the store's rates, a mix of the
+   * two, or null when no payment took a fee.
+   */
+  feeSource: 'actual' | 'estimated' | 'mixed' | null
   /** Why the figure may be off, in the merchant's terms. */
   flags: {
     /** Some units' cost was filled in after the sale from the cost then. */
@@ -165,22 +303,17 @@ export function computeOrderProfit(input: ProfitInput): OrderProfit {
   }
 
   let feesPaise = 0
+  let feeActual = false
   let feeFromRate = false
   let feeMissing = false
   for (const p of input.payments) {
-    if (FEE_FREE_METHODS.has(p.provider) || p.amountPaise <= 0) continue
-    if (p.feePaise !== null) {
-      feesPaise += p.feePaise
-      continue
-    }
-    const rate = p.provider === 'cod' ? input.costs.codFee : input.costs.gatewayFees[p.provider]
-    if (!rate) {
-      feeMissing = true
-      continue
-    }
-    feesPaise += feeOn(p.amountPaise, rate)
-    feeFromRate = true
+    const fee = paymentFee(p, input.costs, input.feeGstClaimable)
+    feesPaise += fee.paise
+    feeActual ||= fee.source === 'actual'
+    feeFromRate ||= fee.source === 'rate'
+    feeMissing ||= fee.source === 'missing'
   }
+  const estimated = feeFromRate || feeMissing
 
   const rtoPaise = Math.max(0, input.rtoPaise)
   const profitPaise = netSalesPaise - goodsPaise - courierPaise - feesPaise - rtoPaise
@@ -192,6 +325,7 @@ export function computeOrderProfit(input: ProfitInput): OrderProfit {
     rtoPaise,
     profitPaise,
     marginBps: netSalesPaise > 0 ? Math.round((profitPaise * 10_000) / netSalesPaise) : null,
+    feeSource: feeActual ? (estimated ? 'mixed' : 'actual') : estimated ? 'estimated' : null,
     flags: { costEstimated, costMissing, courierMissing, feeFromRate, feeMissing },
   }
 }

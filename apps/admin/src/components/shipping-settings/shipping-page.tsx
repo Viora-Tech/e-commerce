@@ -18,6 +18,7 @@ import WhatsThisHelp from '@/components/settings/whats-this-help'
 import ShippingZonesCard from '@/components/shipping-zones/shipping-zones-card'
 import { shippingSettingsContent } from '@/data/shipping'
 import { useCopy } from '@/hooks/use-copy'
+import { useSetupNext } from '@/hooks/use-setup-next'
 import { api } from '@/lib/api-client'
 import { routes } from '@/lib/routes'
 import DemoCourierSection from './demo-courier-section'
@@ -39,6 +40,7 @@ type SectionProps = { id: string; children: ReactNode }
  */
 export default function ShippingPage() {
   // Hooks
+  const announceSetup = useSetupNext()
   const copy = useCopy(shippingSettingsContent)
   const [loaded, setLoaded] = useState<Loaded | null>(null)
   const [form, setForm] = useState<Settings | null>(null)
@@ -68,6 +70,7 @@ export default function ShippingPage() {
       setForm(next)
       setSaved(JSON.stringify(next))
       toast.success(copy.saved)
+      void announceSetup('shipping')
     } catch (err) {
       toast.error(err instanceof Error ? err.message : copy.saveFailed)
     } finally {

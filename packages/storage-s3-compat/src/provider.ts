@@ -23,7 +23,7 @@ import { defaultSign, S3_COMPAT_PRESIGN_SECONDS, type S3CompatDeps, type SignFn 
  * part way never trips it: a stuck GET held a media job (and its database transaction) for
  * 23 minutes in production on 2026-10-11. Aborting rejects the call so the job retries.
  */
-export const S3_COMPAT_OP_TIMEOUT_MS = 2 * 60_000
+const S3_COMPAT_OP_TIMEOUT_MS = 2 * 60_000
 
 const opSignal = (caller?: AbortSignal): AbortSignal => {
   const deadline = AbortSignal.timeout(S3_COMPAT_OP_TIMEOUT_MS)

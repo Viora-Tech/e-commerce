@@ -1,6 +1,7 @@
 'use client'
 
-import { useActionState } from 'react'
+import PhoneInput from '@commerce/blocks/phone-input-lazy'
+import { useActionState, useState } from 'react'
 import { backInStockContent as content } from '@/data/back-in-stock'
 import { type NotifyMeState, notifyMeAction } from '@/lib/back-in-stock-actions'
 
@@ -14,6 +15,7 @@ const idle: NotifyMeState = { status: 'idle' }
 /** Sold-out variant, not on pre-order: ask for an email (and optionally WhatsApp) alert. */
 export default function NotifyMeForm({ variantId, whatsappEnabled }: NotifyMeFormProps) {
   // Hooks
+  const [phone, setPhone] = useState('')
   const [state, submit, pending] = useActionState(
     (s: NotifyMeState, form: FormData) => notifyMeAction(variantId, s, form),
     idle,
@@ -53,15 +55,14 @@ export default function NotifyMeForm({ variantId, whatsappEnabled }: NotifyMeFor
             <label className="visually-hidden" htmlFor="notify-me-phone">
               {content.whatsappLabel}
             </label>
-            <input
+            <PhoneInput
               id="notify-me-phone"
-              className="field__input"
-              type="tel"
-              name="phone"
-              inputMode="numeric"
               autoComplete="tel"
               placeholder={content.whatsappPlaceholder}
+              value={phone}
+              onChange={setPhone}
             />
+            <input type="hidden" name="phone" value={phone} />
           </>
         ) : null}
         <p className="notify-me__consent text-small">{content.consent}</p>

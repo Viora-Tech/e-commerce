@@ -190,6 +190,13 @@ Rules that keep every adapter interchangeable:
 - Payments: `createPayment` returns a `CheckoutSession` of kind `client`,
   `redirect`, `manual` or `none`; `parseWebhook` must verify the signature with
   a constant-time compare and return a stable `eventId` for deduplication.
+- Payment fees: put the gateway's fee and how the shopper paid on the capture
+  event (`charges: PaymentCharges`: `feePaise` GST included, `feeTaxPaise` the
+  GST inside it, `method` a `PaymentMethodDetail`), use `null` for a fee the
+  gateway has not worked out yet, never a guess. A fee that arrives later can
+  come as a `payment.charges` event, or from the optional read-only
+  `fetchCharges`, which the worker's fee sync calls. Leave out a fee the
+  shopper bore. See [Data model › Gateway fees](/developer-docs/core-concepts/data-model#gateway-fees).
 - Notifications: `send` returns `{ ok, providerRef?, error? }`; never throw for
   a rejected recipient.
 

@@ -102,11 +102,9 @@ export default async function BlogPage({ params, searchParams }: Params) {
       <BlogPagination path={path} tag={tag} page={page} pages={pages} />
     </section>
   )
-  return inStore(storeId, (tx) =>
-    renderTemplate(tx, storeId, 'blog', {
-      suffix: blog.templateSuffix,
-      view: query.view,
-      renderers: { MainBlog: () => main },
-    }),
-  )
+  return renderTemplate(storeId, 'blog', {
+    suffix: blog.templateSuffix,
+    view: query.view,
+    renderers: { MainBlog: () => main },
+  })
 }

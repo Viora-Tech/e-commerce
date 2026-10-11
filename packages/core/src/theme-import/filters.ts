@@ -13,6 +13,7 @@ import {
   imageTag,
   imageUrl,
   money,
+  noteClockRead,
   paymentIcon,
   placeholderSvg,
   rgbToHsl,
@@ -363,9 +364,11 @@ export function registerShopifyFilters(engine: Liquid): void {
     }
     const fmt = named_[format] ?? format
     const impl = typeof baseDate === 'function' ? baseDate : baseDate.handler
+    const clock = value === 'now' || value === 'today'
+    if (clock) noteClockRead(this)
     return (impl as (this: unknown, v: unknown, f: string) => unknown).call(
       this,
-      value === 'now' || value === 'today' ? new Date() : value,
+      clock ? new Date() : value,
       fmt,
     )
   })

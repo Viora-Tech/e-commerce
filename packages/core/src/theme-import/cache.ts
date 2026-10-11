@@ -20,6 +20,8 @@ type Store<T> = Map<string, T | null>
 export class LiquidDataCache {
   readonly source: LiquidDataSource
   readonly #products: Store<LiquidProductData> = new Map()
+  readonly #wantProducts = new Set<string>()
+  readonly #wantCollections = new Set<string>()
   readonly #collections: Store<LiquidCollectionData> = new Map()
   readonly #collectionProducts: Store<LiquidProductData[]> = new Map()
   readonly #menus: Store<LiquidMenuData> = new Map()
@@ -60,18 +62,46 @@ export class LiquidDataCache {
     return null
   }
 
+  /** Products asked for in one pass load together when the source can (`products`). */
   product(handle: string): LiquidProductData | null {
-    return this.#read(this.#products, 'p', handle, () => this.source.product(handle))
+    const batch = this.source.products
+    if (!batch) return this.#read(this.#products, 'p', handle, () => this.source.product(handle))
+    if (this.#products.has(handle)) return this.#products.get(handle) ?? null
+    this.#wantProducts.add(handle)
+    if (!this.#pending.has('p*')) {
+      this.#pending.set('p*', async () => {
+        const handles = [...this.#wantProducts]
+        this.#wantProducts.clear()
+        const found = await batch(handles)
+        for (const h of handles) this.#products.set(h, found.get(h) ?? null)
+      })
+    }
+    return null
   }
 
   collection(handle: string): LiquidCollectionData | null {
     return this.#read(this.#collections, 'c', handle, () => this.source.collection(handle))
   }
 
+  /** Collections asked for in one pass load together when the source can (`collectionsProducts`). */
   collectionProducts(handle: string): LiquidProductData[] | null {
-    return this.#read(this.#collectionProducts, 'cp', handle, () =>
-      this.source.collectionProducts(handle, COLLECTION_PAGE_SIZE),
-    )
+    const batch = this.source.collectionsProducts
+    if (!batch) {
+      return this.#read(this.#collectionProducts, 'cp', handle, () =>
+        this.source.collectionProducts(handle, COLLECTION_PAGE_SIZE),
+      )
+    }
+    if (this.#collectionProducts.has(handle)) return this.#collectionProducts.get(handle) ?? null
+    this.#wantCollections.add(handle)
+    if (!this.#pending.has('cp*')) {
+      this.#pending.set('cp*', async () => {
+        const handles = [...this.#wantCollections]
+        this.#wantCollections.clear()
+        const found = await batch(handles, COLLECTION_PAGE_SIZE)
+        for (const h of handles) this.#collectionProducts.set(h, found.get(h) ?? [])
+      })
+    }
+    return null
   }
 
   menu(handle: string): LiquidMenuData | null {

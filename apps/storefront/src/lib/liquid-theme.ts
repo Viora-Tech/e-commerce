@@ -11,36 +11,61 @@ import {
   loadThemeBundle,
   mainThemeId,
   ProductDrop,
+  peekThemeBundle,
   renderLiquidLayout,
   renderLiquidSection,
   resolveThemeProductId,
   sectionWrapper,
   storeLiquidData,
+  type ThemeBundle,
   themeImportFor,
 } from '@commerce/core'
 import type { StoreTx } from '@commerce/db'
 import { reviewsLiquidSource } from '@commerce/plugin-reviews/server'
 import { headers } from 'next/headers'
+import { cache } from 'react'
 import { readCartId } from './cart-cookie'
 import { NONCE_HEADER } from './csp'
 import { formsInstalled } from './forms-context'
+import {
+  type CachedLiquid,
+  keepable,
+  type LiquidRenderScope,
+  layoutCacheKey,
+  NONCE_MARK,
+  newTrace,
+  type RenderTrace,
+  renderTtl,
+  sectionCacheKey,
+  servable,
+  traceCartReads,
+  withNonce,
+} from './liquid-cache'
+import { cachedLiquidData } from './liquid-data-cache'
 import { deferThemeScripts } from './liquid-defer'
+import { cartIsEmpty, requestCart } from './request-cart'
 import { requestOrigin } from './seo'
+import { CACHE_TTL_MS, cachedForStore, peekForStore, rememberForStore } from './store-cache'
+import { inStore } from './store-context'
 import { readPreview } from './storefront-gate'
 
 /**
- * The storefront side of imported Shopify themes (`@commerce/core` theme-import):
- * one Liquid page context per request, the section HTML the `LiquidSection`
- * renderer draws, and the layout parts (head, icon sprites, cart drawer, scripts)
- * the store layout puts around `<main>`.
+ * The storefront side of imported Shopify themes (`@commerce/core` theme-import): the
+ * section HTML the `LiquidSection` renderer draws, and the layout parts (head, icon sprites,
+ * cart drawer, scripts) the store layout puts around `<main>`.
+ *
+ * Rendered Liquid is cached per store version (`store-cache.ts`, `liquid-cache.ts`): a page
+ * whose sections are all cached renders no Liquid and reads no theme data. Sections that read
+ * the cart are kept only as rendered for an empty cart; a theme preview is never cached.
  */
 
 /** Payment marks the theme's footer draws, from the methods this store offers. */
 const PAYMENT_TYPES = ['upi', 'visa', 'master', 'rupay', 'american_express']
 
-async function cartFor(tx: StoreTx, storeId: string): Promise<LiquidCartData> {
-  const cartId = await readCartId()
-  const cart = cartId ? await getCart({ storeId, tx }, cartId) : null
+type CartView = NonNullable<Awaited<ReturnType<typeof getCart>>>
+
+/** A cart in the shape Liquid reads; an empty one without a cart. */
+function toLiquidCart(cart: CartView | null): LiquidCartData {
   if (!cart) return { itemCount: 0, totalPrice: 0, items: [] }
   return {
     itemCount: cart.itemCount,
@@ -74,92 +99,297 @@ export function liquidTemplateFor(path: string): string {
   return '404'
 }
 
+/** What this request renders Liquid for: from the headers the proxy set, once per request. */
+const requestScope = cache(async (storeId: string) => {
+  const h = await headers()
+  const path = h.get('x-pathname') ?? '/'
+  return {
+    origin: await requestOrigin(),
+    path,
+    template: liquidTemplateFor(path),
+    postedForm: h.get('x-form-posted'),
+    nonce: h.get(NONCE_HEADER) ?? '',
+    preview: readPreview(storeId, h.get('x-theme-preview')) !== null,
+  }
+})
+
+type RequestScope = Awaited<ReturnType<typeof requestScope>>
+
+type ImportedTheme = { bundle: ThemeBundle; shopifyHost: string | null }
+
+/** Runs `read` in `tx` when the caller holds one, else in a transaction of its own. */
+function within<T>(storeId: string, tx: StoreTx | null, read: (tx: StoreTx) => Promise<T>) {
+  return tx ? read(tx) : inStore(storeId, read)
+}
+
 /**
- * The Liquid context for this request when `themeId` is an imported theme, else
- * null. The template name comes from the path the proxy forwarded.
+ * An imported theme's bundle, or null for one of our own themes. The import row's version is
+ * cached per store version; the bundle itself is built once per theme version (core keeps it).
+ * Pass `tx` when the caller already holds a transaction, so no second connection is taken.
+ */
+async function importedTheme(
+  storeId: string,
+  themeId: string,
+  tx: StoreTx | null = null,
+): Promise<ImportedTheme | null> {
+  const info = await cachedForStore(storeId, `theme-import|${themeId}`, () =>
+    within(storeId, tx, async (t) => {
+      const record = await themeImportFor(t, themeId)
+      return record
+        ? {
+            version: record.updatedAt.toISOString(),
+            shopifyHost: record.themeInfo.shopifyHost ?? null,
+          }
+        : null
+    }),
+  )
+  if (!info) return null
+  const bundle =
+    peekThemeBundle(themeId, info.version) ??
+    (await within(storeId, tx, (t) => loadThemeBundle(t, themeId)))
+  return bundle ? { bundle, shopifyHost: info.shopifyHost } : null
+}
+
+/** One page context for `tx`, its theme data read through the store cache. */
+async function createLiquidContext(
+  tx: StoreTx,
+  storeId: string,
+  themeId: string,
+  theme: ImportedTheme,
+  scope: RequestScope,
+  cart: LiquidCartData,
+  nonce: string,
+): Promise<LiquidPageContext> {
+  const host = new URL(scope.origin).host
+  const data = await storeLiquidData(tx, {
+    storeId,
+    host,
+    origin: scope.origin,
+    cart: async () => cart,
+    reviews: await reviewsLiquidSource(tx, storeId),
+  })
+  return createPageContext({
+    bundle: theme.bundle,
+    data: cachedLiquidData(storeId, scope.origin, data),
+    request: {
+      template: scope.template,
+      path: scope.path,
+      host,
+      origin: scope.origin,
+      designMode: false,
+      postedForm: scope.postedForm,
+      formsAvailable: await cachedForStore(storeId, 'forms-installed', () =>
+        formsInstalled(tx, storeId),
+      ),
+      nonce,
+    },
+    assetBase: `/theme-assets/${themeId}`,
+    shopifyHost: theme.shopifyHost,
+    moneyFormat: null,
+    paymentTypes: PAYMENT_TYPES,
+  })
+}
+
+/**
+ * A context whose renders are traced (cart and clock reads, failures), written with the nonce
+ * placeholder so its output can be cached. `start()` begins a new trace for the next render.
+ */
+async function tracedContext(
+  tx: StoreTx,
+  storeId: string,
+  themeId: string,
+  theme: ImportedTheme,
+  scope: RequestScope,
+  cart: LiquidCartData,
+) {
+  let current = newTrace()
+  const ctx = await createLiquidContext(tx, storeId, themeId, theme, scope, cart, NONCE_MARK)
+  ctx.globals.cart = traceCartReads(ctx.globals.cart as object, () => current)
+  ctx.runtime.onClock = () => {
+    current.clock = true
+  }
+  return {
+    ctx,
+    start: (): RenderTrace => {
+      current = newTrace()
+      return current
+    },
+  }
+}
+
+/**
+ * The Liquid context for this request when `themeId` is an imported theme, else null, for the
+ * section rendering endpoints (`theme-actions`). Not cached: they change its globals. Runs in
+ * the caller's transaction.
  */
 export async function liquidContextFor(
   tx: StoreTx,
   storeId: string,
   themeId: string,
 ): Promise<LiquidPageContext | null> {
-  const bundle = await loadThemeBundle(tx, themeId)
-  if (!bundle) return null
-  const record = await themeImportFor(tx, themeId)
-  const origin = await requestOrigin()
-  const h = await headers()
-  const url = new URL(origin)
-  const posted = h.get('x-form-posted')
-  const path = h.get('x-pathname') ?? '/'
-  const template = liquidTemplateFor(path)
-  return createPageContext({
-    bundle,
-    data: await storeLiquidData(tx, {
-      storeId,
-      host: url.host,
-      origin,
-      cart: () => cartFor(tx, storeId),
-      reviews: await reviewsLiquidSource(tx, storeId),
-    }),
-    request: {
-      template,
-      path,
-      host: url.host,
-      origin,
-      designMode: false,
-      postedForm: posted,
-      formsAvailable: await formsInstalled(tx, storeId),
-      nonce: h.get(NONCE_HEADER) ?? '',
-    },
-    assetBase: `/theme-assets/${themeId}`,
-    shopifyHost: record?.themeInfo.shopifyHost ?? null,
-    moneyFormat: null,
-    paymentTypes: PAYMENT_TYPES,
-  })
+  const theme = await importedTheme(storeId, themeId, tx)
+  if (!theme) return null
+  const scope = await requestScope(storeId)
+  const cartId = await readCartId()
+  const cart = cartId ? await getCart({ storeId, tx }, cartId) : null
+  return createLiquidContext(tx, storeId, themeId, theme, scope, toLiquidCart(cart), scope.nonce)
 }
 
 /** Template key → the location Liquid sees (`section.location`). */
 const LOCATION: Record<string, string> = { header: 'header-group', footer: 'footer-group' }
 
+export type LiquidSectionHtml = { html: string; tag: string; id: string; className: string }
+
+/** What the cache keys a render by, or null when nothing may be cached (a theme preview). */
+function cacheScope(
+  scope: RequestScope,
+  themeId: string,
+  bundle: ThemeBundle,
+): LiquidRenderScope | null {
+  if (scope.preview) return null
+  return {
+    themeId,
+    themeVersion: bundle.version,
+    origin: scope.origin,
+    path: scope.path,
+    template: scope.template,
+    postedForm: scope.postedForm,
+  }
+}
+
 /**
- * Renders every `LiquidSection` in a template now, while the store transaction is
- * open; the renderer later only places the HTML. Keyed by Puck id.
+ * Every `LiquidSection` in a template, keyed by Puck id: from the cache, or rendered now (all
+ * the missing ones in one transaction). Null when `themeId` is not an imported theme.
  */
-export async function prerenderLiquidSections(
-  ctx: LiquidPageContext,
+export async function renderLiquidSections(
+  storeId: string,
+  themeId: string,
   key: string,
   content: { type: string; props: Record<string, unknown> }[],
-): Promise<Map<string, { html: string; tag: string; id: string; className: string }>> {
-  const out = new Map<string, { html: string; tag: string; id: string; className: string }>()
+): Promise<Map<string, LiquidSectionHtml> | null> {
+  const theme = await importedTheme(storeId, themeId)
+  if (!theme) return null
+  const liquidItems = content.filter((item) => item.type === 'LiquidSection')
+  if (liquidItems.length === 0) return new Map()
+  const scope = await requestScope(storeId)
+  const cacheKey = cacheScope(scope, themeId, theme.bundle)
   const location = LOCATION[key] ?? 'template'
-  let index = 0
-  for (const item of content) {
-    if (item.type !== 'LiquidSection') continue
+  const placed = liquidItems.map((item, index) => {
     const type = typeof item.props.sectionType === 'string' ? item.props.sectionType : ''
-    const schema = ctx.bundle.sections.get(type)?.schema ?? null
-    const section = liquidPlacement(item.props, schema, location, index++)
-    const html = await renderLiquidSection(ctx, section, (err) =>
-      console.error(`[liquid] ${type} failed to render`, err),
-    )
-    const wrapper = sectionWrapper(ctx.bundle, section)
-    // The theme's own `<script>` tags already carry this request's nonce (written at parse
-    // time, `nonceThemeScripts` in core); a script that came in with data never does. Its
-    // deferred and module scripts wait for React (`./liquid-defer.ts`).
-    out.set(String(item.props.id), { html: deferThemeScripts(html), ...wrapper })
+    const schema = theme.bundle.sections.get(type)?.schema ?? null
+    const section = liquidPlacement(item.props, schema, location, index)
+    return {
+      id: String(item.props.id),
+      type,
+      section,
+      wrapper: sectionWrapper(theme.bundle, section),
+      key: cacheKey ? sectionCacheKey(cacheKey, section) : null,
+    }
+  })
+
+  const out = new Map<string, LiquidSectionHtml>()
+  const missing: typeof placed = []
+  for (const p of placed) {
+    const hit = p.key ? await peekForStore<CachedLiquid>(storeId, p.key) : undefined
+    if (hit && (await servable(hit, () => cartIsEmpty(storeId)))) {
+      out.set(p.id, { html: withNonce(hit.html, scope.nonce), ...p.wrapper })
+    } else missing.push(p)
+  }
+  if (missing.length === 0) return out
+
+  // The cart is read before the transaction: a second connection taken inside one could wait
+  // on a pool that busy requests have filled.
+  const cart = toLiquidCart(await requestCart(storeId))
+  const rendered = await inStore(storeId, async (tx) => {
+    const live = await tracedContext(tx, storeId, themeId, theme, scope, cart)
+    const done: { p: (typeof placed)[number]; html: string; trace: RenderTrace }[] = []
+    for (const p of missing) {
+      const trace = live.start()
+      const html = await renderLiquidSection(live.ctx, p.section, (err) => {
+        trace.failed = true
+        console.error(`[liquid] ${p.type} failed to render`, err)
+      })
+      if (live.ctx.cache.missing) trace.failed = true
+      // The theme's own `<script>` tags carry the nonce (written at parse time,
+      // `nonceThemeScripts` in core); a script that came in with data never does. Its deferred
+      // and module scripts wait for React (`./liquid-defer.ts`).
+      done.push({ p, html: deferThemeScripts(html), trace })
+    }
+    return done
+  })
+  for (const { p, html, trace } of rendered) {
+    out.set(p.id, { html: withNonce(html, scope.nonce), ...p.wrapper })
+    if (p.key && keepable(trace, cart.itemCount === 0)) {
+      const entry: CachedLiquid = { html, cart: trace.cart }
+      await rememberForStore(storeId, p.key, entry, {
+        size: html.length,
+        ttlMs: renderTtl(trace, CACHE_TTL_MS),
+      })
+    }
   }
   return out
 }
 
-/** The parts of the theme's `layout/theme.liquid` the store layout draws around `<main>`. */
-export async function liquidLayoutFor(ctx: LiquidPageContext) {
-  const parts = await renderLiquidLayout(ctx, (err) => console.error('[liquid] layout failed', err))
+export type LiquidLayout = Awaited<ReturnType<typeof renderLiquidLayout>> & {
+  fontsHref: string | null
+}
+
+type CachedLayout = { layout: LiquidLayout; cart: boolean }
+
+/** `withNonce` over every HTML part of a layout. */
+function layoutWithNonce(layout: LiquidLayout, nonce: string): LiquidLayout {
   return {
-    ...parts,
-    head: deferThemeScripts(parts.head),
-    beforeHeader: deferThemeScripts(parts.beforeHeader),
-    afterFooter: deferThemeScripts(parts.afterFooter),
-    fontsHref: googleFontsHref(parts.fonts),
+    ...layout,
+    head: withNonce(layout.head, nonce),
+    beforeHeader: withNonce(layout.beforeHeader, nonce),
+    afterFooter: withNonce(layout.afterFooter, nonce),
   }
+}
+
+/**
+ * The parts of the theme's `layout/theme.liquid` the store layout draws around `<main>`, for
+ * `themeId` (the verified preview's, else the live one). Null for our own themes.
+ */
+export async function liquidLayoutFor(
+  storeId: string,
+  themeId: string,
+): Promise<LiquidLayout | null> {
+  const theme = await importedTheme(storeId, themeId)
+  if (!theme) return null
+  const scope = await requestScope(storeId)
+  const cacheKey = cacheScope(scope, themeId, theme.bundle)
+  const key = cacheKey ? layoutCacheKey(cacheKey) : null
+  const hit = key ? await peekForStore<CachedLayout>(storeId, key) : undefined
+  if (hit && (await servable(hit, () => cartIsEmpty(storeId)))) {
+    return layoutWithNonce(hit.layout, scope.nonce)
+  }
+
+  const cart = toLiquidCart(await requestCart(storeId))
+  const { layout, trace } = await inStore(storeId, async (tx) => {
+    const live = await tracedContext(tx, storeId, themeId, theme, scope, cart)
+    const trace = live.start()
+    const parts = await renderLiquidLayout(live.ctx, (err) => {
+      trace.failed = true
+      console.error('[liquid] layout failed', err)
+    })
+    if (live.ctx.cache.missing) trace.failed = true
+    const layout: LiquidLayout = {
+      ...parts,
+      head: deferThemeScripts(parts.head),
+      beforeHeader: deferThemeScripts(parts.beforeHeader),
+      afterFooter: deferThemeScripts(parts.afterFooter),
+      fontsHref: googleFontsHref(parts.fonts),
+    }
+    return { layout, trace }
+  })
+  if (key && keepable(trace, cart.itemCount === 0)) {
+    const entry: CachedLayout = { layout, cart: trace.cart }
+    await rememberForStore(storeId, key, entry, {
+      size: layout.head.length + layout.beforeHeader.length + layout.afterFooter.length,
+      ttlMs: renderTtl(trace, CACHE_TTL_MS),
+    })
+  }
+  return layoutWithNonce(layout, scope.nonce)
 }
 
 /** The theme this request renders: the verified preview's, else the live one. */

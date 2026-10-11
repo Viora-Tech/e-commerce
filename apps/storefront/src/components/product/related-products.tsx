@@ -1,6 +1,6 @@
 import { type ProductDetail, ProductRecommendations } from '@commerce/blocks'
 import { listCardProducts } from '@/lib/catalog'
-import { inStore } from '@/lib/store-context'
+import { storeRead } from '@/lib/store-cache'
 
 type RelatedProductsProps = {
   storeId: string
@@ -17,8 +17,9 @@ export default async function RelatedProducts({
   limit,
 }: RelatedProductsProps) {
   // Hooks
-  const candidates = await inStore(storeId, (tx) =>
-    listCardProducts(tx, limit + 1, product.productType ?? undefined),
+  const type = product.productType ?? undefined
+  const candidates = await storeRead(storeId, `card-products|${limit + 1}|${type ?? ''}`, (tx) =>
+    listCardProducts(tx, limit + 1, type),
   )
 
   // Render logic

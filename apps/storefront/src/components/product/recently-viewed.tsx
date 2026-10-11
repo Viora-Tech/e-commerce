@@ -2,7 +2,7 @@ import { ProductRecommendations } from '@commerce/blocks'
 import { cookies } from 'next/headers'
 import { listCardProducts } from '@/lib/catalog'
 import { parseRecentlyViewed, RECENTLY_VIEWED_COOKIE } from '@/lib/recently-viewed'
-import { inStore } from '@/lib/store-context'
+import { storeRead } from '@/lib/store-cache'
 
 type RecentlyViewedProps = {
   storeId: string
@@ -24,7 +24,12 @@ export default async function RecentlyViewed({
   const handles = parseRecentlyViewed(jar.get(RECENTLY_VIEWED_COOKIE)?.value)
     .filter((h) => h !== exclude)
     .slice(0, limit)
-  const products = await inStore(storeId, (tx) => listCardProducts(tx, limit, undefined, handles))
+  // Products are the same for everyone; only the list of handles is this shopper's.
+  const products = handles.length
+    ? await storeRead(storeId, `card-products|${limit}||${handles.join(',')}`, (tx) =>
+        listCardProducts(tx, limit, undefined, handles),
+      )
+    : []
 
   // Render logic
   return <ProductRecommendations heading={heading} products={products} />

@@ -21,6 +21,7 @@ import {
   presentStoreGeneral,
   rateLimitKey,
   retryAfterSeconds,
+  SETUP_ITEM_IDS,
   ShippingSettingsSchema,
   StorageSettingsSchema,
   StoreGeneralSchema,
@@ -98,9 +99,11 @@ export const storeRouter = {
   ),
 
   /** The Settings home's setup checklist: what is done, from real data. */
-  setupChecklist: can(permissions.SETTINGS_READ).handler(({ context }) =>
-    settingsChecklist(context.tx, context.scope.storeId),
-  ),
+  setupChecklist: can(permissions.SETTINGS_READ)
+    .input(z.object({ after: z.enum(SETUP_ITEM_IDS).optional() }).optional())
+    .handler(({ context, input }) =>
+      settingsChecklist(context.tx, context.scope.storeId, input?.after),
+    ),
 
   /** Store details for Settings › General. */
   getGeneral: can(permissions.SETTINGS_READ).handler(async ({ context }) => {

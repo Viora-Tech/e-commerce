@@ -1,4 +1,5 @@
 import { validateGstin } from '@commerce/core/gstin'
+import { lenientPhone } from '@commerce/core/phone'
 import { z } from 'zod'
 import { DEFAULT_SERIES, pickSeries, SERIES_KINDS, SeriesSchema, seriesProblem } from './series'
 import type { DocumentKind } from './snapshot'
@@ -114,7 +115,7 @@ const SellerSchema = z.object({
     .refine((v) => v === '' || /^[1-9][0-9]{5}$/.test(v), 'A PIN code is 6 digits')
     .default(''),
   email: z.string().trim().max(200).default(''),
-  phone: z.string().trim().max(20).default(''),
+  phone: lenientPhone(20).default(''),
 })
 export type SellerSettings = z.infer<typeof SellerSchema>
 

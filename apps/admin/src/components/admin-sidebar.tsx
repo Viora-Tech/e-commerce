@@ -257,7 +257,7 @@ export default function AdminSidebar({
                 email={user.email}
                 image={user.image}
                 className="size-8"
-                fallbackClassName="bg-ink-strong text-caption text-background"
+                fallbackClassName="bg-avatar text-caption text-avatar-foreground"
               />
               <span className={cn('flex min-w-0 flex-1 flex-col leading-tight', SIDEBAR_LABEL)}>
                 <span className="truncate text-body-strong font-semibold text-ink-strong">

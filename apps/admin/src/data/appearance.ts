@@ -7,6 +7,7 @@ export const appearanceContent = {
     body: 'Buttons, active tabs, table headers, charts and focus rings use this colour.',
     presetsLabel: 'Preset colours',
     presets: {
+      'proofly-blue': 'Proofly blue',
       'ocean-green': 'Ocean Green',
       blue: 'Blue',
       indigo: 'Indigo',

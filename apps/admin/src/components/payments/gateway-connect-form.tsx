@@ -11,6 +11,7 @@ import { useState } from 'react'
 import { toast } from 'sonner'
 import { gatewayGuides, paymentsSetupContent } from '@/data/payments-setup'
 import { useCopy } from '@/hooks/use-copy'
+import { useSetupNext } from '@/hooks/use-setup-next'
 import { api } from '@/lib/api-client'
 import GatewayGuide from './gateway-guide'
 import RazorpayWebhookFields from './razorpay-webhook-fields'
@@ -75,6 +76,7 @@ export default function GatewayConnectForm({
   twoColumn = false,
 }: GatewayConnectFormProps) {
   // Hooks
+  const announceSetup = useSetupNext()
   const { connect: copy } = useCopy(paymentsSetupContent)
   const guides = useCopy(gatewayGuides)
   const [values, setValues] = useState<Record<string, string>>(() =>
@@ -136,6 +138,7 @@ export default function GatewayConnectForm({
     try {
       await api.payments.connect({ providerId, fields: fieldsToSend() })
       toast.success(copy.saved(guides[providerId].name))
+      void announceSetup('payments')
       onConnected()
     } catch (err) {
       toast.error(err instanceof Error ? err.message : copy.saveFailed)

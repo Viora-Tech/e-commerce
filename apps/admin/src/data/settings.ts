@@ -1,3 +1,4 @@
+import type { SetupItemId } from '@commerce/core/setup-tasks'
 import type { LucideIcon } from '@commerce/ui/icons'
 import {
   AiIcon,
@@ -240,7 +241,7 @@ export const settingsContent = {
       email: 'Contact email',
       emailHelp: 'Shown on order emails. When customers reply, it comes here.',
       phone: 'Phone',
-      phoneHelp: 'For customers and couriers to call you. Include the country code, like +91.',
+      phoneHelp: 'For customers and couriers to call you. Pick the country, then type the number.',
     },
     address: {
       heading: 'Business address',
@@ -287,14 +288,7 @@ export const settingsContent = {
   },
 } as const
 
-export type SetupItemId =
-  | 'store'
-  | 'payments'
-  | 'shipping'
-  | 'taxes'
-  | 'domain'
-  | 'notifications'
-  | 'policies'
+export type { SetupItemId }
 
 /** Copy for the Settings home: the setup checklist and the list of every settings page. */
 export const settingsHomeContent = {
@@ -354,6 +348,15 @@ export const settingsHomeContent = {
         href: routes.settings.policies(),
       },
     } satisfies Record<SetupItemId, { title: string; todo: string; done: string; href: string }>,
+  },
+  /** The prompt shown after saving any setup page while setup is unfinished. */
+  next: {
+    doneTitle: (task: string, done: number, total: number) =>
+      `${task} saved · ${done} of ${total} set up`,
+    progressTitle: (done: number, total: number) => `${done} of ${total} set up`,
+    description: (task: string) => `Next: ${task}`,
+    setUp: 'Set up now',
+    dontShow: 'Don’t show again',
   },
   all: {
     heading: 'All settings',

@@ -1,6 +1,7 @@
 'use client'
 
 import { ChevronDown, MoreVertical, SquarePlus } from '@commerce/ui/icons'
+import { cn } from '@commerce/ui/lib/utils'
 import { Button } from '@commerce/ui/shadcn/button'
 import {
   DropdownMenu,
@@ -93,7 +94,12 @@ function ProductCell({ item }: { item: Item }) {
   const extra = item.lineCount - 1
   return (
     <span className="flex items-center gap-3 text-left">
-      <span className="flex size-8 shrink-0 items-center justify-center overflow-hidden rounded-md border border-hairline bg-card">
+      <span
+        className={cn(
+          'flex size-8 shrink-0 items-center justify-center overflow-hidden rounded-md border border-hairline',
+          item.firstLineImage ? 'bg-media' : 'bg-card',
+        )}
+      >
         {item.firstLineImage ? (
           // biome-ignore lint/performance/noImgElement: remote store media, sized by the frame.
           <img src={item.firstLineImage} alt="" className="size-7 object-contain" />

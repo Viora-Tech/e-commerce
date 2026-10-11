@@ -41,6 +41,10 @@ x-app-env: &app-env
   # Worker image jobs at once, and per store; blank uses the defaults (3 and 3). Near the vCPU count.
   MEDIA_PROCESS_CONCURRENCY: ${MEDIA_PROCESS_CONCURRENCY:-}
   MEDIA_PROCESS_PER_STORE: ${MEDIA_PROCESS_PER_STORE:-}
+  # Storefront render cache (MB, blank = 48, 0 = off) and how long a CDN may keep a page for
+  # visitors without cookies (seconds, blank = 30, 0 = private). See developer docs, performance.
+  STOREFRONT_CACHE_MB: ${STOREFRONT_CACHE_MB:-}
+  STOREFRONT_EDGE_TTL: ${STOREFRONT_EDGE_TTL:-}
   MERCHANT_SIGNUP_MODE: ${MERCHANT_SIGNUP_MODE:-invite}
   # Merchant "Continue with Google" on the admin login page; both blank hides the button.
   MERCHANT_GOOGLE_CLIENT_ID: ${MERCHANT_GOOGLE_CLIENT_ID:-}
@@ -306,6 +310,9 @@ services:
       retries: 3
     mem_limit: 384m
     mem_reservation: 192m
+    # At most one CPU: image processing and imports must never take the whole box from the
+    # storefront (developer docs, Deployment → CPU for the worker).
+    cpus: 1.0
     # `internal` reaches Postgres and Dragonfly; `egress` lets it call payment gateways, couriers,
     # SES and WhatsApp. Nothing on `egress` publishes a port, so it adds no inbound route.
     networks: [internal, egress]

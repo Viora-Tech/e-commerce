@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "bun scripts/dev.ts",
     "start": "bun run src/index.ts",
+    "fees:backfill": "bun run --env-file=../../.env src/payment-fees-backfill.ts",
     "test": "vitest run",
     "typecheck": "tsc --noEmit"
   },

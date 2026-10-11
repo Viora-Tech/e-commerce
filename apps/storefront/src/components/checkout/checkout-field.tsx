@@ -5,8 +5,8 @@ import { CK_INPUT, CK_INPUT_HEIGHT, CK_LABEL } from '@/lib/checkout-classes'
 type CheckoutFieldProps = {
   id: string
   label: string
-  value: string
-  onChange: (e: React.ChangeEvent<HTMLInputElement>) => void
+  value?: string
+  onChange?: (e: React.ChangeEvent<HTMLInputElement>) => void
   onBlur?: (e: React.FocusEvent<HTMLInputElement>) => void
   /** Shown under the field, in red, once the shopper has left it or tried to pay. */
   error?: string | null | undefined
@@ -23,6 +23,8 @@ type CheckoutFieldProps = {
   placeholder?: string
   maxLength?: number
   readOnly?: boolean
+  /** A control that replaces the plain input (the phone picker); it gets the field id and describes itself with the note. */
+  control?: ReactNode
 }
 
 /**
@@ -46,6 +48,7 @@ export default function CheckoutField({
   placeholder,
   maxLength,
   readOnly,
+  control,
 }: CheckoutFieldProps) {
   // Render logic
   const note = error ? `${id}-error` : hint ? `${id}-hint` : undefined
@@ -56,7 +59,8 @@ export default function CheckoutField({
         {label}
       </label>
       <div className="relative">
-        {prefix ? (
+        {control ?? null}
+        {control ? null : prefix ? (
           <span
             aria-hidden="true"
             className="pointer-events-none absolute inset-y-0 left-0 flex items-center border-r border-ck-line pr-3 pl-3.5 text-[1rem] text-ck-muted"
@@ -64,24 +68,26 @@ export default function CheckoutField({
             {prefix}
           </span>
         ) : null}
-        <input
-          id={id}
-          name={id}
-          className={`${CK_INPUT} ${CK_INPUT_HEIGHT} ${prefix ? 'pl-[4.25rem]!' : ''} ${trailing ? 'pr-10!' : ''}`}
-          type={type}
-          inputMode={inputMode}
-          required={required}
-          aria-required={required || undefined}
-          autoComplete={autoComplete}
-          placeholder={placeholder}
-          maxLength={maxLength}
-          value={value}
-          onChange={onChange}
-          onBlur={onBlur}
-          readOnly={readOnly}
-          aria-invalid={error ? true : undefined}
-          aria-describedby={note}
-        />
+        {control ? null : (
+          <input
+            id={id}
+            name={id}
+            className={`${CK_INPUT} ${CK_INPUT_HEIGHT} ${prefix ? 'pl-[4.25rem]!' : ''} ${trailing ? 'pr-10!' : ''}`}
+            type={type}
+            inputMode={inputMode}
+            required={required}
+            aria-required={required || undefined}
+            autoComplete={autoComplete}
+            placeholder={placeholder}
+            maxLength={maxLength}
+            value={value ?? ''}
+            onChange={onChange}
+            onBlur={onBlur}
+            readOnly={readOnly}
+            aria-invalid={error ? true : undefined}
+            aria-describedby={note}
+          />
+        )}
         {trailing ? (
           <span className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3.5 text-ck-muted">
             {trailing}

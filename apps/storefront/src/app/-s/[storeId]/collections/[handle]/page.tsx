@@ -16,8 +16,9 @@ import { COLLECTION_SORTS } from '@/data/browse'
 import { COLLECTION_PER_PAGE } from '@/data/collections'
 import { listCardProducts } from '@/lib/catalog'
 import { getCollectionByHandle } from '@/lib/collections'
+import { digest } from '@/lib/liquid-cache'
 import { canonicalPath, metaDescription, requestOrigin } from '@/lib/seo'
-import { inStore } from '@/lib/store-context'
+import { storeRead } from '@/lib/store-cache'
 import { renderTemplate } from '@/lib/template-render'
 
 type Params = {
@@ -37,7 +38,9 @@ const DEFAULT_SORT: Record<CollectionSort, BrowseSort> = {
 
 export async function generateMetadata({ params, searchParams }: Params): Promise<Metadata> {
   const { storeId, handle } = await params
-  const found = await inStore(storeId, (tx) => getCollectionByHandle(tx, handle))
+  const found = await storeRead(storeId, `collection|${handle}`, (tx) =>
+    getCollectionByHandle(tx, handle),
+  )
   if (!found) return {}
   const query = await searchParams
   const title = found.seoTitle || found.title
@@ -65,7 +68,10 @@ export default async function CollectionPage({ params, searchParams }: Params) {
   const page = parsePage(query.page)
   const filters = parseBrowseFilters(query)
 
-  const data = await inStore(storeId, async (tx) => {
+  // A collection page (with its filters, sort and page) is the same for everyone: cached per
+  // store version.
+  const view = [handle, page, filters, query.sort_by ?? null, query.sort ?? null]
+  const data = await storeRead(storeId, `collection-page|${digest(view)}`, async (tx) => {
     const found = await getCollectionByHandle(tx, handle)
     if (!found) return null
     const defaultSort = DEFAULT_SORT[found.sortOrder]
@@ -86,26 +92,24 @@ export default async function CollectionPage({ params, searchParams }: Params) {
 
   if (!data) notFound()
   const origin = await requestOrigin()
-  return inStore(storeId, (tx) =>
-    renderTemplate(tx, storeId, 'collection', {
-      suffix: data.collection.templateSuffix,
-      sources: { collectionId: data.collection.id },
-      view: typeof query.view === 'string' ? query.view : undefined,
-      renderers: {
-        MainCollection: (settings) => (
-          <MainCollection
-            origin={origin}
-            collection={data.collection}
-            products={data.products}
-            result={data.result}
-            filters={filters}
-            sort={data.sort}
-            defaultSort={data.defaultSort}
-            page={page}
-            settings={settings}
-          />
-        ),
-      },
-    }),
-  )
+  return renderTemplate(storeId, 'collection', {
+    suffix: data.collection.templateSuffix,
+    sources: { collectionId: data.collection.id },
+    view: typeof query.view === 'string' ? query.view : undefined,
+    renderers: {
+      MainCollection: (settings) => (
+        <MainCollection
+          origin={origin}
+          collection={data.collection}
+          products={data.products}
+          result={data.result}
+          filters={filters}
+          sort={data.sort}
+          defaultSort={data.defaultSort}
+          page={page}
+          settings={settings}
+        />
+      ),
+    },
+  })
 }

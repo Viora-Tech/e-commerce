@@ -19,7 +19,7 @@
 @layer base {
   * {
     scrollbar-width: auto;
-    scrollbar-color: #bebebee8 transparent;
+    scrollbar-color: var(--scrollbar-thumb) transparent;
   }
   *::-webkit-scrollbar {
     width: 5px;
@@ -29,7 +29,7 @@
     background: transparent;
   }
   *::-webkit-scrollbar-thumb {
-    background-color: #bebebee8;
+    background-color: var(--scrollbar-thumb);
     border-radius: 10px;
     visibility: hidden;
   }

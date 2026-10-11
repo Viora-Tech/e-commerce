@@ -283,6 +283,8 @@ describe('parseWebhook', () => {
         providerPaymentId: 'DTX1',
         amountPaise: 2699,
         orderId: ORDER_ID,
+        // No fee on Decentro callbacks; the method is always UPI.
+        charges: { feePaise: null, feeTaxPaise: null, method: { kind: 'upi' } },
         raw: successCallback,
       },
     })

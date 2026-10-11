@@ -5,11 +5,11 @@ import type {
   PaymentProviderFactory,
   PaymentStatus,
 } from '@commerce/payments'
+import type { RzpPayment } from './charges'
 import {
   qrWasPaid,
   type RazorpayConfig,
   RazorpayProvider,
-  type RzpPayment,
   type RzpQrCode,
   razorpayFactory,
 } from './razorpay'

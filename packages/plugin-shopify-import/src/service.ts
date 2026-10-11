@@ -219,6 +219,16 @@ export async function requestStop(
   return { run: row, jobKey: null }
 }
 
+/** Whether a real import (not a preview) is writing to the store now: the admin's "busy" notice. */
+export async function importInProgress(tx: StoreTx): Promise<boolean> {
+  const [row] = await tx
+    .select({ id: importRun.id })
+    .from(importRun)
+    .where(and(eq(importRun.status, 'running'), eq(importRun.dryRun, false)))
+    .limit(1)
+  return Boolean(row)
+}
+
 export async function listRuns(tx: StoreTx, input: { page: number; perPage: number }) {
   await failStaleRuns(tx)
   const [total] = await tx.select({ n: count() }).from(importRun)

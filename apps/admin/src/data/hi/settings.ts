@@ -53,7 +53,7 @@ export default [
         email: 'संपर्क ईमेल',
         emailHelp: 'ऑर्डर ईमेल पर दिखता है। ग्राहक जवाब दें तो यहीं आता है।',
         phone: 'फ़ोन',
-        phoneHelp: 'ग्राहक और कूरियर आपको कॉल कर सकें। देश का कोड भी लिखें, जैसे +91।',
+        phoneHelp: 'ग्राहक और कूरियर आपको कॉल कर सकें। देश चुनें, फिर नंबर लिखें।',
       },
       address: {
         heading: 'बिज़नेस का पता',
@@ -156,6 +156,13 @@ export default [
           href: untranslated,
         },
       },
+    },
+    next: {
+      doneTitle: (task, done, total) => `${task} सेव हुआ · ${total} में से ${done} सेटअप`,
+      progressTitle: (done, total) => `${total} में से ${done} सेटअप`,
+      description: (task) => `अगला: ${task}`,
+      setUp: 'अभी सेटअप करें',
+      dontShow: 'दोबारा न दिखाएं',
     },
     all: {
       heading: 'सारी Settings',

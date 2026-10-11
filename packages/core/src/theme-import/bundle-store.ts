@@ -94,6 +94,16 @@ export async function loadThemeBundle(tx: StoreTx, themeId: string): Promise<The
   return bundle
 }
 
+/**
+ * The bundle already built for this theme version, or null, without a query: for a caller that
+ * knows the version (the storefront caches it per store version and skips `loadThemeBundle`'s
+ * import-record read on every render).
+ */
+export function peekThemeBundle(themeId: string, version: string): ThemeBundle | null {
+  const hit = bundles.get(themeId)
+  return hit && hit.version === version ? hit : null
+}
+
 /** One file of `assets/` for the storefront's asset route. */
 export async function themeAssetFile(
   tx: StoreTx,
