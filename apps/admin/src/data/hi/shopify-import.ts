@@ -114,6 +114,8 @@ const hi = {
   },
 
   connect: {
+    headerConnect: 'Shopify स्टोर जोड़ें',
+    headerEdit: 'कनेक्शन बदलें',
     mode: {
       app: 'अपने Shopify ऐप से जोड़ें',
       token: 'मेरे पास पहले से Admin API टोकन है',

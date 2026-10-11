@@ -53,6 +53,7 @@ export default async function AppPage({ params }: Params) {
       hasSettings={app.admin.pages.some((p) => p.path === 'settings')}
       tabs={tabs}
       active={match.page.path}
+      headerAction={registered.HeaderAction ? <registered.HeaderAction /> : undefined}
     >
       <Page params={match.params} />
     </AppShell>

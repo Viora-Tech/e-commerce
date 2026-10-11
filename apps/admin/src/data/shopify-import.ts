@@ -139,6 +139,8 @@ export const shopifyImportContent = {
   },
 
   connect: {
+    headerConnect: 'Connect Shopify store',
+    headerEdit: 'Edit connection',
     mode: {
       app: 'Connect with your Shopify app',
       token: 'I already have an Admin API token',
