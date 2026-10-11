@@ -18,6 +18,19 @@ import type {
 import { defaultSign, S3_COMPAT_PRESIGN_SECONDS, type S3CompatDeps, type SignFn } from './client'
 
 /**
+ * Hard deadline for one bucket call, body included. The SDK's `requestTimeout` is a socket
+ * idle timer that Bun's HTTP layer does not always honour, and a response body that stalls
+ * part way never trips it: a stuck GET held a media job (and its database transaction) for
+ * 23 minutes in production on 2026-10-11. Aborting rejects the call so the job retries.
+ */
+export const S3_COMPAT_OP_TIMEOUT_MS = 2 * 60_000
+
+const opSignal = (caller?: AbortSignal): AbortSignal => {
+  const deadline = AbortSignal.timeout(S3_COMPAT_OP_TIMEOUT_MS)
+  return caller ? AbortSignal.any([caller, deadline]) : deadline
+}
+
+/**
  * `putStream` sends the body in parts of this size, at most `STREAM_PARTS_IN_FLIGHT`
  * at a time, so one streamed copy holds about 16 MB. A body that fits in one part goes
  * as a single PUT with its exact length.
@@ -90,7 +103,7 @@ export abstract class S3CompatProvider implements StorageProvider {
         ContentType: input.contentType,
         ContentLength: input.body.byteLength,
       }),
-      input.signal ? { abortSignal: input.signal } : {},
+      { abortSignal: opSignal(input.signal) },
     )
   }
 
@@ -128,10 +141,19 @@ export abstract class S3CompatProvider implements StorageProvider {
 
   async get(key: string): Promise<Uint8Array | null> {
     try {
+      const abortSignal = opSignal()
       const res = await this.client.send(
         new GetObjectCommand({ Bucket: this.bucket, Key: this.fullKey(key) }),
+        { abortSignal },
       )
-      return res.Body ? await res.Body.transformToByteArray() : null
+      if (!res.Body) return null
+      // The body read is covered too: a stream that stops mid-way rejects at the deadline.
+      return await Promise.race([
+        res.Body.transformToByteArray(),
+        new Promise<never>((_, reject) => {
+          abortSignal.addEventListener('abort', () => reject(abortSignal.reason), { once: true })
+        }),
+      ])
     } catch (err) {
       const name = err instanceof Error ? err.name : ''
       if (name === 'NoSuchKey' || name === 'NotFound') return null
@@ -141,7 +163,10 @@ export abstract class S3CompatProvider implements StorageProvider {
 
   async delete(key: string): Promise<void> {
     // S3 semantics: deleting a missing key is a 204, so this is idempotent for free.
-    await this.client.send(new DeleteObjectCommand({ Bucket: this.bucket, Key: this.fullKey(key) }))
+    await this.client.send(
+      new DeleteObjectCommand({ Bucket: this.bucket, Key: this.fullKey(key) }),
+      { abortSignal: opSignal() },
+    )
   }
 
   /**
@@ -162,6 +187,7 @@ export abstract class S3CompatProvider implements StorageProvider {
           ContinuationToken: token,
           MaxKeys: 1000,
         }),
+        { abortSignal: opSignal() },
       )
       const keys = (page.Contents ?? []).flatMap((o) => (o.Key ? [{ Key: o.Key }] : []))
       if (keys.length > 0) {
@@ -170,6 +196,7 @@ export abstract class S3CompatProvider implements StorageProvider {
             Bucket: this.bucket,
             Delete: { Objects: keys, Quiet: true },
           }),
+          { abortSignal: opSignal() },
         )
         deleted += keys.length
       }
@@ -182,6 +209,7 @@ export abstract class S3CompatProvider implements StorageProvider {
     try {
       const res = await this.client.send(
         new HeadObjectCommand({ Bucket: this.bucket, Key: this.fullKey(key) }),
+        { abortSignal: opSignal() },
       )
       return {
         size: res.ContentLength ?? 0,

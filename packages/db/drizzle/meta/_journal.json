@@ -764,6 +764,13 @@
       "when": 1791729811019,
       "tag": "0113_ssl_retry",
       "breakpoints": true
+    },
+    {
+      "idx": 109,
+      "version": "7",
+      "when": 1791731813855,
+      "tag": "0114_app_idle_tx_timeout",
+      "breakpoints": true
     }
   ]
 }
