@@ -13,6 +13,7 @@ import { toast } from 'sonner'
 import SaveBar from '@/components/layout/save-bar'
 import { policiesContent as copy } from '@/data/policies'
 import { settingsContent } from '@/data/settings'
+import { useSetupNext } from '@/hooks/use-setup-next'
 import { api } from '@/lib/api-client'
 import { formatDate } from '@/lib/format-date'
 import { routes } from '@/lib/routes'
@@ -36,6 +37,7 @@ const OFFICER_FIELDS: { key: keyof Officer; type: string; placeholder?: string }
 /** Settings → Policies: business details every policy prints, then the five policies. */
 export default function PoliciesSettings() {
   // Hooks
+  const announceSetup = useSetupNext()
   const [policies, setPolicies] = useState<StorePolicy[] | null>(null)
   const [form, setForm] = useState<PolicySettings | null>(null)
   const [saved, setSaved] = useState<string | null>(null)
@@ -66,6 +68,7 @@ export default function PoliciesSettings() {
       setForm(next)
       setSaved(JSON.stringify(next))
       toast.success(copy.saved)
+      void announceSetup('policies')
     } catch (err) {
       toast.error(err instanceof Error ? err.message : copy.failed)
     } finally {

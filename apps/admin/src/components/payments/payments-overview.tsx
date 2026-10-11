@@ -10,6 +10,7 @@ import SettingsCard from '@/components/settings/settings-card'
 import SettingsPageHeader from '@/components/settings/settings-page-header'
 import { paymentsSetupContent } from '@/data/payments-setup'
 import { useCopy } from '@/hooks/use-copy'
+import { useSetupNext } from '@/hooks/use-setup-next'
 import { api } from '@/lib/api-client'
 import { routes } from '@/lib/routes'
 import AddGatewayDialog from './add-gateway-dialog'
@@ -35,6 +36,7 @@ type PaymentsOverviewProps = {
  */
 export default function PaymentsOverview({ setup, onReload, onOpenGuide }: PaymentsOverviewProps) {
   // Hooks
+  const announceSetup = useSetupNext()
   const copy = useCopy(paymentsSetupContent)
   const router = useRouter()
   const [methods, setMethods] = useState<CheckoutMethodRow[]>(setup.methods)
@@ -50,6 +52,7 @@ export default function PaymentsOverview({ setup, onReload, onOpenGuide }: Payme
     try {
       await api.payments.saveMethods({ methods: next })
       toast.success(copy.methods.saved)
+      void announceSetup('payments')
       await onReload()
     } catch {
       setMethods(before)

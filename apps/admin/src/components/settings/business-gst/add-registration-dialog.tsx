@@ -24,6 +24,7 @@ import ChoiceField from '@/components/apps/gst-invoices/choice-field'
 import GeneralTextField from '@/components/settings/general-text-field'
 import { businessGstContent } from '@/data/business-gst'
 import { useCopy } from '@/hooks/use-copy'
+import { useSetupNext } from '@/hooks/use-setup-next'
 import { api } from '@/lib/api-client'
 
 type AddRegistrationDialogProps = {
@@ -62,6 +63,7 @@ export default function AddRegistrationDialog({
   onAnotherBusiness,
 }: AddRegistrationDialogProps) {
   // Hooks
+  const announceSetup = useSetupNext()
   const { dialog: copy } = useCopy(businessGstContent)
   const router = useRouter()
   const [form, setForm] = useState(EMPTY)
@@ -109,6 +111,7 @@ export default function AddRegistrationDialog({
     try {
       await api.businessGst.addRegistration(input())
       toast.success(copy.added)
+      void announceSetup('taxes')
       onOpenChange(false)
       router.refresh()
     } catch (err) {

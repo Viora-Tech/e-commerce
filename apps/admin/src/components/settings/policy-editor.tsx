@@ -19,6 +19,7 @@ import SettingsTextRow from '@/components/settings/settings-text-row'
 import SettingsToggleRow from '@/components/settings/settings-toggle-row'
 import { policyEditorContent as copy, policiesContent } from '@/data/policies'
 import { settingsContent } from '@/data/settings'
+import { useSetupNext } from '@/hooks/use-setup-next'
 import { api } from '@/lib/api-client'
 import { formatDate } from '@/lib/format-date'
 import { routes } from '@/lib/routes'
@@ -48,6 +49,7 @@ export default function PolicyEditor({
   storefrontOrigin,
 }: PolicyEditorProps) {
   // Hooks
+  const announceSetup = useSetupNext()
   const [policy, setPolicy] = useState<StorePolicy | null>(null)
   const [draft, setDraft] = useState<Draft | null>(null)
   const [saved, setSaved] = useState<string | null>(null)
@@ -121,6 +123,7 @@ export default function PolicyEditor({
       setDraft(nextDraft)
       setSaved(JSON.stringify(nextDraft))
       toast.success(copy.saved)
+      void announceSetup('policies')
     } catch (err) {
       toast.error(err instanceof Error ? err.message : copy.failed)
     } finally {

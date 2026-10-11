@@ -27,7 +27,7 @@ export default function SetupChecklistCard() {
   useEffect(() => {
     api.store
       .setupChecklist()
-      .then(setItems)
+      .then((r) => setItems(r.items))
       .catch(() => setFailed(true))
   }, [])
 

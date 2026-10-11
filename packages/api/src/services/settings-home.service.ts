@@ -9,20 +9,14 @@ import {
   parsePaymentSettings,
   policyTypeOfHandle,
   presentStoreGeneral,
+  type SetupItem,
+  type SetupItemId,
+  type SetupProgress,
+  setupProgress,
 } from '@commerce/core'
 import type { StoreTx } from '@commerce/db'
 import { listPages } from './page.service'
 import { getStore } from './store.service'
-
-/** Checklist rows on the Settings home, in the order a new shop should do them. */
-export type SetupItemId =
-  | 'store'
-  | 'payments'
-  | 'shipping'
-  | 'taxes'
-  | 'domain'
-  | 'notifications'
-  | 'policies'
 
 const filled = (v: string | null | undefined) => (v ?? '').trim().length > 0
 
@@ -57,9 +51,10 @@ function paymentsChosen(raw: unknown): boolean {
 export async function settingsChecklist(
   tx: StoreTx,
   storeId: string,
-): Promise<{ id: SetupItemId; done: boolean }[]> {
+  after?: SetupItemId,
+): Promise<SetupProgress> {
   const s = await getStore(tx, storeId)
-  if (!s) return []
+  if (!s) return setupProgress([], after)
   const general = presentStoreGeneral(s)
   // One transaction: run the reads one after another.
   const zones = await listShippingZones(tx)
@@ -70,7 +65,7 @@ export async function settingsChecklist(
     const type = p.publishedAt ? policyTypeOfHandle(p.handle) : null
     return type ? [type] : []
   })
-  return [
+  const items: SetupItem[] = [
     {
       id: 'store',
       done:
@@ -93,4 +88,5 @@ export async function settingsChecklist(
       done: missingRequiredPolicies(publishedPolicies).length === 0,
     },
   ]
+  return setupProgress(items, after)
 }

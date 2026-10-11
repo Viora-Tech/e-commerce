@@ -25,6 +25,7 @@ import SettingsPageHeader from '@/components/settings/settings-page-header'
 import { shippingRatesContent } from '@/data/shipping-rates'
 import { useCopy } from '@/hooks/use-copy'
 import { usePermissions } from '@/hooks/use-permissions'
+import { useSetupNext } from '@/hooks/use-setup-next'
 import { api } from '@/lib/api-client'
 import { emptyZone, fromZone, type LoadedZone, toZoneInput, type ZoneFormState } from './form-state'
 import ZonePincodesCard from './zone-pincodes-card'
@@ -44,6 +45,7 @@ const initialForm = (zone: LoadedZone | null): ZoneFormState =>
 /** Create or edit a shipping zone: its name, states, PIN code rules and rates. */
 export default function ZoneForm({ zone }: ZoneFormProps) {
   // Hooks
+  const announceSetup = useSetupNext()
   const { zone: copy } = useCopy(shippingRatesContent)
   const router = useRouter()
   const { hasPermission } = usePermissions()
@@ -69,6 +71,7 @@ export default function ZoneForm({ zone }: ZoneFormProps) {
         const created = await api.shipping.zones.create(data)
         setSaved(JSON.stringify(form))
         toast.success(copy.toasts.created)
+        void announceSetup('shipping')
         router.replace(`/settings/shipping/zones/${created.id}`)
         return
       }
@@ -77,6 +80,7 @@ export default function ZoneForm({ zone }: ZoneFormProps) {
       setForm(next)
       setSaved(JSON.stringify(next))
       toast.success(copy.toasts.saved)
+      void announceSetup('shipping')
       router.refresh()
     } catch (err) {
       setServerError(err instanceof Error ? err.message : copy.toasts.failed)

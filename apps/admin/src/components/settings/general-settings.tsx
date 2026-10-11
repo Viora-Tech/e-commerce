@@ -20,6 +20,7 @@ import { toast } from 'sonner'
 import SaveBar from '@/components/layout/save-bar'
 import { settingsContent } from '@/data/settings'
 import { taxesContent } from '@/data/taxes'
+import { useSetupNext } from '@/hooks/use-setup-next'
 import { api } from '@/lib/api-client'
 import GeneralCompletion, { detailsDone } from './general-completion'
 import SettingsCard from './settings-card'
@@ -65,6 +66,7 @@ function LoadingCards() {
  */
 export default function GeneralSettings() {
   // Hooks
+  const announceSetup = useSetupNext()
   const router = useRouter()
   const [form, setForm] = useState<Loaded | null>(null)
   const [saved, setSaved] = useState<string | null>(null)
@@ -102,6 +104,7 @@ export default function GeneralSettings() {
       setSaved(JSON.stringify(result))
       setAttempted(false)
       toast.success(copy.saved)
+      void announceSetup('store')
     } catch (err) {
       toast.error(err instanceof Error ? err.message : copy.failed)
     } finally {

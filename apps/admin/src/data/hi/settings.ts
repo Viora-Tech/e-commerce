@@ -157,6 +157,13 @@ export default [
         },
       },
     },
+    next: {
+      doneTitle: (task, done, total) => `${task} सेव हुआ · ${total} में से ${done} सेटअप`,
+      progressTitle: (done, total) => `${total} में से ${done} सेटअप`,
+      description: (task) => `अगला: ${task}`,
+      setUp: 'अभी सेटअप करें',
+      dontShow: 'दोबारा न दिखाएं',
+    },
     all: {
       heading: 'सारी Settings',
     },
