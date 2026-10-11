@@ -46,6 +46,7 @@ import shipping from './shipping'
 import shippingRates from './shipping-rates'
 import shopifyImport from './shopify-import'
 import shopifyImportFiles from './shopify-import-files'
+import shopifyImportRun from './shopify-import-run'
 import staff from './staff'
 import staffInvites from './staff-invites'
 import states from './states'
@@ -92,6 +93,7 @@ export const hindiCopy: readonly TranslationPair[] = [
   ...onboarding,
   ...orderCards,
   ...shopifyImportFiles,
+  ...shopifyImportRun,
   ...orders,
   ...payments,
   ...paymentsSetup,

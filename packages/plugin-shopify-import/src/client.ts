@@ -132,6 +132,8 @@ export type PreviewSample = {
   title: string
   action: 'create' | 'update' | 'skip'
   detail?: string | undefined
+  /** A picture to show next to the title (the first product image), when there is one. */
+  image?: string | undefined
 }
 
 /**
