@@ -1,3 +1,4 @@
+/** SOURCE OF TRUTH: order routing settings tests — WHAT: reading and saving routing preferences / WHY: guards the per-store routing rules */
 import {
   createDb,
   inventoryLevel,

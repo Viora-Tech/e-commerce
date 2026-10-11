@@ -408,7 +408,7 @@ const ALLOWLIST: AllowEntry[] = [
   },
   {
     file: 'packages/core/src/metaobjects/storefront.ts',
-    names: ['metaobjectsByType', 'metafieldsFor'],
+    names: ['metafieldsFor'],
     reason: 'no external importer today — investigate before removing',
   },
   {
@@ -433,7 +433,7 @@ const ALLOWLIST: AllowEntry[] = [
   },
   {
     file: 'packages/core/src/notifications/deliver.ts',
-    names: ['buildTemplateData', 'buildCartTemplateData'],
+    names: ['buildCartTemplateData'],
     reason: 'no external importer today — investigate before removing',
   },
   {
@@ -614,7 +614,7 @@ const ALLOWLIST: AllowEntry[] = [
   },
   {
     file: 'packages/core/src/theme/templates-data.ts',
-    names: ['MAIN_SECTION', 'isTemplateKey'],
+    names: ['isTemplateKey'],
     reason: 'no external importer today — investigate before removing',
   },
   {
@@ -629,7 +629,7 @@ const ALLOWLIST: AllowEntry[] = [
   },
   {
     file: 'packages/db/src/schema.ts',
-    names: ['PAYMENT_STATUSES', 'METAFIELD_TYPES', 'THEME_TEMPLATE_KINDS'],
+    names: ['PAYMENT_STATUSES', 'METAFIELD_TYPES'],
     reason: 'no external importer today — investigate before removing',
   },
   {
@@ -755,11 +755,6 @@ const ALLOWLIST: AllowEntry[] = [
     reason: 'no external importer today — investigate before removing',
   },
   {
-    file: 'packages/notifications/src/templates/content.ts',
-    names: ['balanceTemplates', 'transferTemplates', 'backInStockTemplates'],
-    reason: 'no external importer today — investigate before removing',
-  },
-  {
     file: 'packages/payments-razorpay/src/razorpay.ts',
     names: [
       'SNAPMINT_PROVIDER',
@@ -826,8 +821,8 @@ const ALLOWLIST: AllowEntry[] = [
     reason: 'the pure ranking, used inside this file and tested directly',
   },
   {
-    file: 'packages/plugin-gst-invoices/src/issue.ts',
-    names: ['creditNoteCutoff'],
+    file: 'packages/plugin-gst-invoices/src/credit-notes.ts',
+    names: ['creditNoteCutoff', 'issueCreditNote'],
     reason: 'no external importer today — investigate before removing',
   },
   {
@@ -1021,6 +1016,141 @@ const ALLOWLIST: AllowEntry[] = [
     file: 'packages/core/src/shopper-login/identities.ts',
     names: ['connectDecision'],
     reason: 'pure rule behind planConnect (security audit 2026-09), exported for its unit test',
+  },
+  {
+    file: 'packages/api/src/services/growth-outcomes.service.ts',
+    names: ['OUTCOME_KINDS'],
+    reason: 'no external importer today — investigate before removing',
+  },
+  {
+    file: 'packages/api/src/services/growth-outcomes.service.ts',
+    names: ['isEarned', 'outcomeTotals'],
+    reason: 'exported for its unit test; no other importer today',
+  },
+  {
+    file: 'packages/api/src/services/order.service.ts',
+    names: ['orderNumberFromSearch'],
+    reason: 'no external importer today — investigate before removing',
+  },
+  {
+    file: 'packages/api/src/services/short-links.service.ts',
+    names: ['shortLinkStats'],
+    reason: 'no external importer today — investigate before removing',
+  },
+  {
+    file: 'packages/auth/src/merchant.ts',
+    names: ['validateMerchantUserInfo'],
+    reason: 'exported for its unit test; no other importer today',
+  },
+  {
+    file: 'packages/blocks/src/section-settings.ts',
+    names: ['SECTION_BACKGROUND_TOKENS'],
+    reason: 'no external importer today — investigate before removing',
+  },
+  {
+    file: 'packages/core/src/catalog/bulk-edit-schemas.ts',
+    names: ['BulkEditProductPatchSchema', 'BulkEditVariantPatchSchema', 'BulkEditRowSchema'],
+    reason: 'no external importer today — investigate before removing',
+  },
+  {
+    file: 'packages/core/src/order/profit-service.ts',
+    names: ['ShipmentNotFound'],
+    reason: 'no external importer today — investigate before removing',
+  },
+  {
+    file: 'packages/core/src/order/routing-service.ts',
+    names: ['loadRoutingLocations'],
+    reason: 'no external importer today — investigate before removing',
+  },
+  {
+    file: 'packages/core/src/order/routing.ts',
+    names: ['MAX_ROUTING_LOCATIONS'],
+    reason: 'no external importer today — investigate before removing',
+  },
+  {
+    file: 'packages/core/src/redirects/csv.ts',
+    names: ['REDIRECT_CSV_HEADERS'],
+    reason: 'no external importer today — investigate before removing',
+  },
+  {
+    file: 'packages/core/src/redirects/csv.ts',
+    names: ['REDIRECT_CSV_MAX_ROWS'],
+    reason: 'exported for its unit test; no other importer today',
+  },
+  {
+    file: 'packages/core/src/redirects/handle-change.ts',
+    names: ['renameMenuTargets'],
+    reason: 'exported for its unit test; no other importer today',
+  },
+  {
+    file: 'packages/core/src/returns/service.ts',
+    names: ['sellingLocation'],
+    reason: 'no external importer today — investigate before removing',
+  },
+  {
+    file: 'packages/core/src/returns/service.ts',
+    names: ['returnPickupLocation'],
+    reason: 'exported for its unit test; no other importer today',
+  },
+  {
+    file: 'packages/core/src/secret-rotation.ts',
+    names: ['rotateAppSettings'],
+    reason: 'exported for its unit test; no other importer today',
+  },
+  {
+    file: 'packages/core/src/theme-import/import.ts',
+    names: ['importedPages'],
+    reason: 'exported for its unit test; no other importer today',
+  },
+  {
+    file: 'packages/core/src/theme-import/page-context.ts',
+    names: ['resourceHandle'],
+    reason: 'exported for its unit test; no other importer today',
+  },
+  {
+    file: 'packages/core/src/theme-import/report.ts',
+    names: ['IMPORTED_TEMPLATES'],
+    reason: 'no external importer today — investigate before removing',
+  },
+  {
+    file: 'packages/core/src/theme/versions.ts',
+    names: ['VERSIONS_KEPT'],
+    reason: 'exported for its unit test; no other importer today',
+  },
+  {
+    file: 'packages/db/src/auth-schema.ts',
+    names: ['memberSignIn'],
+    reason: 'no external importer today — investigate before removing',
+  },
+  {
+    file: 'packages/db/src/schema.ts',
+    names: ['FULFILLMENT_ORDER_STATUSES'],
+    reason: 'no external importer today — investigate before removing',
+  },
+  {
+    file: 'packages/db/src/theme-schema.ts',
+    names: ['THEME_TEMPLATE_KINDS'],
+    reason: 'exported for its unit test; no other importer today',
+  },
+  {
+    file: 'packages/invoices/src/purchase-order/purchase-order-pdf.tsx',
+    names: ['PurchaseOrderPdf'],
+    reason: 'no external importer today — investigate before removing',
+  },
+  {
+    file: 'packages/plugin-gst-invoices/src/queue.ts',
+    names: ['enqueueOrder'],
+    reason: 'exported for its unit test; no other importer today',
+  },
+  {
+    file: 'packages/plugin-umami/src/plugin.ts',
+    names: ['umamiPlugin'],
+    reason: 'no external importer today — investigate before removing',
+  },
+  {
+    file: 'packages/ui/src/icons-more.tsx',
+    names: ['SidebarToggleIcon'],
+    reason: 'no external importer today — investigate before removing',
   },
 ]
 

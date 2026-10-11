@@ -1,5 +1,4 @@
-/**
- * SOURCE OF TRUTH: bulkEdit — WHAT one transactional save of many product and variant cells
+/** SOURCE OF TRUTH: bulkEdit — WHAT one transactional save of many product and variant cells
  * (title, status, vendor, type, tags, price, compare-at, cost, SKU, barcode, weight, HSN, GST
  * rate, stock per location) does / WHY it validates every row before it writes any: the bulk
  * editor grid shows all errors at once and a bad row never leaves half the sheet saved.

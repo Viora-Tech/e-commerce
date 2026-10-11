@@ -5,20 +5,22 @@ import { BULK_MAX, can, heavy, PAGE_SIZE_MAX, SEARCH_MAX } from '../procedures'
 import { storeRegistries } from '../services/apps.service'
 import {
   actOnNdr,
-  bulkBookShipments,
-  compareRatesForOrders,
   createManifestForStore,
   listManifestsForStore,
   listNdrForStore,
   listPickupsForStore,
-  listReadyToShip,
-  listShipments,
   listUnpickedForStore,
   listWalletCards,
   recordWallet,
   refreshWallet,
   resolveOrderNumbers,
   schedulePickupForStore,
+} from '../services/shipments-operations.service'
+import {
+  bulkBookShipments,
+  compareRatesForOrders,
+  listReadyToShip,
+  listShipments,
   shipmentCounts,
 } from '../services/shipments-workspace.service'
 

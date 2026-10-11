@@ -1,3 +1,4 @@
+/** SOURCE OF TRUTH: order profit service tests — WHAT: profit per order and shipment from landed cost / WHY: guards the money maths */
 import {
   cart,
   cartLine,

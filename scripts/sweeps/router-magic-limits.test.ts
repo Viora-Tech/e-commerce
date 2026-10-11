@@ -47,6 +47,7 @@ const ALLOWLIST: AllowEntry[] = [
   },
   { site: 'packages/api/src/routers/products.ts: limit.max(100)', reason: SMALL },
   { site: 'packages/api/src/routers/products.ts: limit.max(50)', reason: SMALL },
+  { site: 'packages/api/src/routers/theme-templates.ts: limit.max(50)', reason: SMALL },
   {
     site: 'packages/api/src/routers/redirects.ts: ids.max(250)',
     reason: 'redirect bulk delete matches the 250-row redirects page — fold into BULK_MAX with it',

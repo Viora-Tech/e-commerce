@@ -1,3 +1,4 @@
+/** SOURCE OF TRUTH: order routing tests — WHAT: pure `routeOrder` cases / WHY: guards which location ships each line */
 import { describe, expect, it } from 'vitest'
 import { type RoutingLine, type RoutingLocation, routeOrder } from './routing'
 

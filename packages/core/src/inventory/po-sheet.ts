@@ -1,5 +1,4 @@
-/**
- * SOURCE OF TRUTH: purchase order sheet (PO PDF + supplier email)
+/** SOURCE OF TRUTH: purchase order sheet (PO PDF + supplier email)
  * WHAT:  The plain data a printed purchase order shows: buyer, ship-to, supplier, lines in the
  *        order's own currency, and the labels both the PDF and the email to the supplier print.
  * WHY:   One shape for the PDF template (`@commerce/invoices`, which core cannot import) and
@@ -7,6 +6,8 @@
  *        `po-sheet-load.ts`.
  * WHERE: Admin purchase order page → Print / Email to supplier.
  */
+import { formatInZone } from '@commerce/dates'
+import { formatNumber } from '@commerce/money'
 import { currencyDigits } from './landed-cost'
 import type { PurchaseOrderStatus } from './stock'
 
@@ -62,21 +63,17 @@ export const poFilename = (n: number): string => `purchase-order-${poNumberLabel
 /** "₹1,234.00" for rupees, "USD 1,234.50" or "JPY 12,000" for the rest, always with full decimals. */
 export function formatPurchaseAmount(minor: number, currency: string): string {
   const digits = currencyDigits(currency)
-  const amount = new Intl.NumberFormat('en-IN', {
+  const amount = formatNumber(minor / 10 ** digits, {
+    locale: 'en-IN',
     minimumFractionDigits: digits,
     maximumFractionDigits: digits,
-  }).format(minor / 10 ** digits)
+  })
   return currency === 'INR' ? `₹${amount}` : `${currency} ${amount}`
 }
 
 /** "10 Oct 2026" in the store's time zone. */
 export function poDateLabel(at: Date, timeZone: string): string {
-  return new Intl.DateTimeFormat('en-IN', {
-    day: 'numeric',
-    month: 'short',
-    year: 'numeric',
-    timeZone,
-  }).format(at)
+  return formatInZone(at, { day: 'numeric', month: 'short', year: 'numeric' }, { timeZone })
 }
 
 /** Every bit of text on the sheet, so the PDF can pick fonts for the scripts it holds (Hindi, Chinese). */

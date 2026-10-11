@@ -21,7 +21,6 @@ const ALLOWLIST: Record<string, { lines: number; reason: string }> = {
   'packages/api/src/services/analytics-reports.ts': { lines: 554, reason: SPLIT },
   'packages/api/src/services/dashboard.service.ts': { lines: 1027, reason: SPLIT },
   'packages/api/src/services/payments-setup.service.ts': { lines: 515, reason: SPLIT },
-  'packages/api/src/services/shipments-workspace.service.ts': { lines: 548, reason: SPLIT },
   'packages/core/src/gift-cards/service.ts': { lines: 705, reason: SPLIT },
   'packages/core/src/marketing/automations.ts': { lines: 837, reason: SPLIT },
   'packages/core/src/marketing/campaigns.ts': { lines: 508, reason: SPLIT },
@@ -30,7 +29,7 @@ const ALLOWLIST: Record<string, { lines: number; reason: string }> = {
   'packages/core/src/order/place-order.ts': { lines: 1044, reason: SPLIT },
   'packages/core/src/returns/service.ts': { lines: 763, reason: SPLIT },
   'packages/db/src/schema.ts': {
-    lines: 2403,
+    lines: 2446,
     reason: 'the Drizzle schema; split into per-area schema files (like marketing-schema.ts)',
   },
   'packages/invoices/src/document.ts': { lines: 508, reason: SPLIT },
@@ -42,7 +41,7 @@ const ALLOWLIST: Record<string, { lines: number; reason: string }> = {
     lines: 504,
     reason: 'one gateway adapter implementing the whole provider contract',
   },
-  'packages/plugin-gst-invoices/src/issue.ts': { lines: 554, reason: SPLIT },
+  'packages/plugin-gst-invoices/src/issue.ts': { lines: 529, reason: SPLIT },
   'packages/plugin-shopify-import/src/shopify-api.ts': {
     lines: 866,
     reason: 'Shopify GraphQL queries and their typed answers',

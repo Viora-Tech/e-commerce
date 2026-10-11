@@ -2,7 +2,7 @@ import type { ParcelView } from '@commerce/core'
 import { TriangleAlert } from '@commerce/ui/icons'
 import DataCard from '@/components/layout/data-card'
 import StatusChip from '@/components/layout/status-chip'
-import { parcelsCardContent } from '@/data/orders'
+import { parcelsCardContent } from '@/data/order-cards'
 import { useCopy } from '@/hooks/use-copy'
 import type { OrderDetail } from './order-detail-types'
 

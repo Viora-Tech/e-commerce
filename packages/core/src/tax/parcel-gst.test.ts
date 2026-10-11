@@ -1,3 +1,4 @@
+/** SOURCE OF TRUTH: parcel GST tests — WHAT: `computeOrderGst` and `gstRowsToShow` cases / WHY: guards the GST split on parcels */
 import { describe, expect, it } from 'vitest'
 import { computeOrderGst, gstRowsToShow } from './gst'
 import { computeParcelGst, mergeOrderGst, type ParcelGstInput } from './parcel-gst'

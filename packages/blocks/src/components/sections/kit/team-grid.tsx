@@ -14,7 +14,7 @@ type TeamGridProps = {
 }
 
 /** Initials for a person with no photo; a name being edited (a node) gets the person glyph. */
-function initials(name: ReactNode): string {
+function personInitials(name: ReactNode): string {
   if (typeof name !== 'string') return ''
   return name
     .split(/\s+/)
@@ -52,7 +52,7 @@ export default function TeamGrid({ heading, text, people }: TeamGridProps) {
                   aria-hidden
                   className="font-[family-name:var(--font-heading)] text-[2.5rem] text-[var(--color-brand)]"
                 >
-                  {initials(person.name) || <Icon name="user" size={40} />}
+                  {personInitials(person.name) || <Icon name="user" size={40} />}
                 </span>
               )}
             </span>

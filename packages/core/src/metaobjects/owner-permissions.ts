@@ -1,5 +1,4 @@
-/**
- * SOURCE OF TRUTH: who may read and fill in extra fields, per owner
+/** SOURCE OF TRUTH: who may read and fill in extra fields, per owner
  * WHAT:  For each owner type, the permission that reads its extra field values and the one that
  *        writes them: the same grain as the record they sit on (a customer's need customers
  *        access, an order's orders access, the shop's settings access).

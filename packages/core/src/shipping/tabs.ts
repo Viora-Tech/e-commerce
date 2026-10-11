@@ -1,5 +1,4 @@
-/**
- * The Shipments workspace's tabs (Orders → Shipments, Figma "Orders / Shipments"): which
+/** SOURCE OF TRUTH: Shipments workspace tabs — WHAT: the Shipments workspace's tabs (Orders → Shipments, Figma "Orders / Shipments"): which
  * shipment statuses each tab lists. "To book" is orders, not shipments, so it has none.
  * Shared by the API's list and counts and the admin's tabs, so the two never disagree.
  */

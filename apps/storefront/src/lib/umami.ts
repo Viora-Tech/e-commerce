@@ -1,3 +1,4 @@
+import 'server-only'
 import { appSettingsOf, parseAppsSettings } from '@commerce/core'
 import {
   parseUmamiSettings,
