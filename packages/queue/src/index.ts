@@ -67,8 +67,8 @@ export const QUEUE_LIMITS = {
   /** Shopify import runs and invoice PDF batches: one store's import never blocks its own PDFs. */
   appJobs: { concurrency: 4, perStore: 2 },
   marketingSend: { concurrency: 2, perStore: 1 },
-  /** Two at once at most to protect a small 2-vCPU box, so one store gets one. */
-  mediaProcess: { concurrency: 2, perStore: 1 },
+  /** Defaults; `MEDIA_PROCESS_CONCURRENCY` / `MEDIA_PROCESS_PER_STORE` override them (the worker's `mediaProcessLimits`). */
+  mediaProcess: { concurrency: 3, perStore: 3 },
   backInStock: { concurrency: 2, perStore: 1 },
   storeExport: { concurrency: 2, perStore: 1 },
   /** Bulk "Write with AI" runs: one product at a time per store, so a 200-product run never starves another store's. */

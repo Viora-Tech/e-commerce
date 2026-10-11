@@ -6,7 +6,12 @@
  * mirroring `NotificationQueue`/`AppEventQueue` in `../plugins/events.ts`.
  */
 
-export type MediaProcessJob = { storeId: string; mediaId: string }
+export type MediaProcessJob = {
+  storeId: string
+  mediaId: string
+  /** Set by bulk producers (Shopify import): the worker uses the faster encode profile. Absent for a merchant's own upload. */
+  bulk?: boolean | undefined
+}
 
 export type MediaProcessQueue = {
   add(

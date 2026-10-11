@@ -33,7 +33,10 @@ export const shopifyImportPlugin = definePlugin({
           storage: ctx.storage,
           settingsSecret: ctx.settingsSecret,
           log: ctx.log,
-          processMedia: ctx.processMedia,
+          // An import queues thousands of images: they take the faster bulk encode.
+          processMedia: ctx.processMedia
+            ? (mediaId) => ctx.processMedia?.(mediaId, { bulk: true }) ?? Promise.resolve()
+            : undefined,
         },
         RunJob.parse(data).runId,
       )

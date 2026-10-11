@@ -66,11 +66,38 @@ export type ProcessImageInput = {
   quality?: { avif?: number; webp?: number } | undefined
   /** Encoder effort/speed; lower is faster. Defaults tuned for a small 2-vCPU box. */
   effort?: { avif?: number; webp?: number } | undefined
+  /**
+   * 'bulk' (Shopify import, thousands of images): AVIF effort 2 and widths encoded one after
+   * another, so several parallel jobs fit a 2-vCPU box and 1.5 GB. 'interactive' (default) is the
+   * merchant's own upload: full quality, all widths at once. Explicit `effort` still wins.
+   */
+  profile?: ImageProfile | undefined
   /** Override for tests: proves the bomb guard rejects with a small, valid image instead of needing a real 40MP fixture. */
   maxInputPixels?: number | undefined
 }
 
 export { variantKey }
+
+export type ImageProfile = 'interactive' | 'bulk'
+
+/** AVIF effort per profile: 4 balances size and CPU; 2 is roughly 2.5x faster for ~8% bigger files. */
+export const AVIF_EFFORT: Record<ImageProfile, number> = { interactive: 4, bulk: 2 }
+
+/**
+ * libvips threads per encode so `jobs` parallel images share `cpus` cores instead of each asking
+ * for all of them (sharp's default is one thread per core, per operation).
+ */
+export function sharpThreadsFor(cpus: number, jobs: number): number {
+  return Math.max(1, Math.floor(cpus / Math.max(1, jobs)))
+}
+
+/** Call once at worker start. Also caps libvips' own cache so memory stays bounded across parallel jobs. */
+export function tuneImagePipeline(opts: { cpus: number; jobs: number }): number {
+  const threads = sharpThreadsFor(opts.cpus, opts.jobs)
+  sharp.concurrency(threads)
+  sharp.cache({ memory: 100, files: 0, items: 50 })
+  return threads
+}
 
 /**
  * Animated GIF becomes a single animated WebP master (`gif→animated webp`
@@ -142,7 +169,8 @@ function assertRasterFormat(format: string | undefined): void {
 export async function processImage(input: ProcessImageInput): Promise<ProcessImageResult> {
   const avifQuality = input.quality?.avif ?? 55
   const webpQuality = input.quality?.webp ?? 72
-  const avifEffort = input.effort?.avif ?? 4 // 0-9; 4 balances CPU vs. size on a 2-vCPU box
+  const profile = input.profile ?? 'interactive'
+  const avifEffort = input.effort?.avif ?? AVIF_EFFORT[profile] // 0-9
   const webpEffort = input.effort?.webp ?? 4 // 0-6
   const limit = input.maxInputPixels ?? LIMIT_INPUT_PIXELS
 
@@ -202,33 +230,35 @@ export async function processImage(input: ProcessImageInput): Promise<ProcessIma
   const masterContentType = isJpeg ? 'image/jpeg' : 'image/png'
 
   const widths = VARIANT_WIDTHS.filter((w) => w <= masterWidth)
-  const variants = await Promise.all(
-    widths.map(async (width) => {
-      const height = Math.round((width / masterWidth) * masterHeight)
-      const base = sharp(masterBuffer, { limitInputPixels: limit }).resize({
-        width,
-        height,
-        withoutEnlargement: true,
-      })
-      const [avifBuffer, webpBuffer] = await Promise.all([
-        base.clone().avif({ quality: avifQuality, effort: avifEffort }).toBuffer(),
-        base.clone().webp({ quality: webpQuality, effort: webpEffort }).toBuffer(),
-      ])
-      return {
-        width,
-        avif: {
-          contentType: 'image/avif',
-          key: variantKey(input.masterKey, width, 'avif'),
-          body: avifBuffer,
-        },
-        webp: {
-          contentType: 'image/webp',
-          key: variantKey(input.masterKey, width, 'webp'),
-          body: webpBuffer,
-        },
-      }
-    }),
-  )
+  const encodeWidth = async (width: number) => {
+    const height = Math.round((width / masterWidth) * masterHeight)
+    const base = sharp(masterBuffer, { limitInputPixels: limit }).resize({
+      width,
+      height,
+      withoutEnlargement: true,
+    })
+    const [avifBuffer, webpBuffer] = await Promise.all([
+      base.clone().avif({ quality: avifQuality, effort: avifEffort }).toBuffer(),
+      base.clone().webp({ quality: webpQuality, effort: webpEffort }).toBuffer(),
+    ])
+    return {
+      width,
+      avif: {
+        contentType: 'image/avif',
+        key: variantKey(input.masterKey, width, 'avif'),
+        body: avifBuffer,
+      },
+      webp: {
+        contentType: 'image/webp',
+        key: variantKey(input.masterKey, width, 'webp'),
+        body: webpBuffer,
+      },
+    }
+  }
+  // Bulk: one width at a time, so peak memory is one set of encoder buffers per job.
+  const variants: Awaited<ReturnType<typeof encodeWidth>>[] = []
+  if (profile === 'bulk') for (const width of widths) variants.push(await encodeWidth(width))
+  else variants.push(...(await Promise.all(widths.map(encodeWidth))))
 
   const thumbSource = await sharp(masterBuffer, { limitInputPixels: limit })
     .resize({
