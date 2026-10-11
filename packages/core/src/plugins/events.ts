@@ -131,8 +131,12 @@ function appContext(deps: DispatchDeps, storeId: string, tag: string): AppHookCo
         : Promise.resolve({ sent: 0, errors: ['notifications are not available here'] }),
     ...(deps.mediaProcess
       ? {
-          processMedia: (mediaId: string) =>
-            addMediaProcessJob(deps.mediaProcess as MediaProcessQueue, { storeId, mediaId }),
+          processMedia: (mediaId: string, opts?: { bulk?: boolean }) =>
+            addMediaProcessJob(deps.mediaProcess as MediaProcessQueue, {
+              storeId,
+              mediaId,
+              ...(opts?.bulk ? { bulk: true } : {}),
+            }),
         }
       : {}),
   }

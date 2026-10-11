@@ -108,6 +108,10 @@ const shape = z.object({
   DATABASE_URL_OWNER: z.string().url(),
   REDIS_URL: z.string().url(),
   WORKER_PORT: z.coerce.number().int().min(1).max(65535).default(4100),
+  /** Image jobs the worker runs at once; unset uses `QUEUE_LIMITS.mediaProcess` (3). Keep it near the box's vCPU count. */
+  MEDIA_PROCESS_CONCURRENCY: z.coerce.number().int().min(1).max(8).optional(),
+  /** Most image jobs of one store at once (capped at the concurrency); unset uses `QUEUE_LIMITS.mediaProcess` (3). */
+  MEDIA_PROCESS_PER_STORE: z.coerce.number().int().min(1).max(8).optional(),
   /** Better Auth signing secret. Required by the admin app only. */
   AUTH_SECRET: z.string().min(32).optional(),
   /** Public URL of the admin app, used as Better Auth's baseURL. */

@@ -12,6 +12,7 @@ import { createBackInStockWorker } from './back-in-stock'
 import { createDomainPoller, createDomainRouteWorker, VERIFY_EVERY_MS } from './domains'
 import { createImportSnapshotCleanup, SNAPSHOT_CLEANUP_EVERY_MS } from './import-snapshots'
 import { createMarketingWorker, MARKETING_TICK_MS, retireAbandonedSweep } from './marketing'
+import { mediaProcessLimits } from './media-limits'
 import { createMediaProcessWorker } from './media-process'
 import { createMemberDailySummary, DAILY_SUMMARY_EVERY_MS } from './member-daily-summary'
 import { createNotificationWorker } from './notifications'
@@ -51,7 +52,10 @@ const appEventWorker = createAppEventWorker(redis, db, {
   settingsSecret: env.SETTINGS_SECRET,
   storefrontUrl: env.STOREFRONT_URL,
 })
-const mediaProcess = createMediaProcessWorker(redis, db, { settingsSecret: env.SETTINGS_SECRET })
+const mediaProcess = createMediaProcessWorker(redis, db, {
+  settingsSecret: env.SETTINGS_SECRET,
+  limits: mediaProcessLimits(env),
+})
 const appJobWorker = createAppJobWorker(redis, db, {
   settingsSecret: env.SETTINGS_SECRET,
   storefrontUrl: env.STOREFRONT_URL,

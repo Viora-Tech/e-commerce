@@ -1,5 +1,10 @@
+import { availableParallelism } from 'node:os'
 import { markMediaFailed, markMediaProcessed, storageForStore } from '@commerce/core'
-import { DecompressionBombError, processImage } from '@commerce/core/media-pipeline'
+import {
+  DecompressionBombError,
+  processImage,
+  tuneImagePipeline,
+} from '@commerce/core/media-pipeline'
 import { registriesForStore } from '@commerce/core/registries'
 import { type Db, media, withStore } from '@commerce/db'
 import {
@@ -7,14 +12,12 @@ import {
   type IORedis,
   MEDIA_PROCESS_QUEUE,
   type MediaProcessJob,
-  QUEUE_LIMITS,
   Queue,
+  type QueueLimits,
   Worker,
 } from '@commerce/queue'
-import { eq } from 'drizzle-orm'
-
-/** Two jobs at once, at most: the whole point of this pipeline (see docs/) is to protect a small 2-vCPU box, not to race through a backlog. One store gets one of them (`QUEUE_LIMITS`). */
-export const MEDIA_PROCESS_CONCURRENCY = QUEUE_LIMITS.mediaProcess.concurrency
+import { count, eq } from 'drizzle-orm'
+import { profileFor } from './media-limits'
 
 /**
  * One job per confirmed image upload (or Shopify-import media row): loads
@@ -40,12 +43,14 @@ export const MEDIA_PROCESS_CONCURRENCY = QUEUE_LIMITS.mediaProcess.concurrency
 export function createMediaProcessWorker(
   connection: IORedis,
   db: Db,
-  opts: { settingsSecret: string },
+  opts: { settingsSecret: string; limits: QueueLimits },
 ) {
+  // Parallel jobs share the cores: each encode gets its slice of libvips threads.
+  tuneImagePipeline({ cpus: availableParallelism(), jobs: opts.limits.concurrency })
   const queue = new Queue<MediaProcessJob>(MEDIA_PROCESS_QUEUE, { connection })
   const worker = new Worker<MediaProcessJob>(
     MEDIA_PROCESS_QUEUE,
-    fairProcessor(connection, MEDIA_PROCESS_QUEUE, QUEUE_LIMITS.mediaProcess, async (job) => {
+    fairProcessor(connection, MEDIA_PROCESS_QUEUE, opts.limits, async (job) => {
       const { storeId, mediaId } = job.data
       await withStore(db, storeId, async (tx) => {
         const [row] = await tx.select().from(media).where(eq(media.id, mediaId))
@@ -58,10 +63,16 @@ export function createMediaProcessWorker(
         const bytes = await provider.get(row.key)
         if (!bytes) throw new Error(`object missing at ${row.key}`)
 
+        const [{ waiting = 0 } = {}] = await tx
+          .select({ waiting: count() })
+          .from(media)
+          .where(eq(media.status, 'processing'))
+
         const result = await processImage({
           bytes,
           contentType: row.contentType ?? 'image/jpeg',
           masterKey: row.key,
+          profile: profileFor(job.data, waiting),
         })
 
         await provider.put(result.master)
@@ -94,7 +105,7 @@ export function createMediaProcessWorker(
         })
       })
     }),
-    { connection, concurrency: MEDIA_PROCESS_CONCURRENCY },
+    { connection, concurrency: opts.limits.concurrency },
   )
 
   worker.on('failed', async (job, err) => {
