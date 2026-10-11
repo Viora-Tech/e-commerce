@@ -12,11 +12,9 @@ import {
   CONSENT_COOKIE,
   currentConsent,
   decodeConsent,
-  getCart,
   getTheme,
   grievanceOfficerOf,
   liveThemeSettings,
-  mainThemeId,
   parseCustomerPrivacySettings,
   parseNavigationSettings,
   parsePreferences,
@@ -42,20 +40,21 @@ import ThemePreviewBridge from '@/components/theme/theme-preview-bridge'
 import { policyPageContent } from '@/data/policies'
 import { privacyContent } from '@/data/privacy'
 import { searchContent } from '@/data/search'
-import { readCartId } from '@/lib/cart-cookie'
 import { liquidLayoutForPath } from '@/lib/checkout-path'
 import { listCollections } from '@/lib/collections'
 import { COOKIE_SETTINGS_HASH } from '@/lib/cookie-settings'
 import { NONCE_HEADER } from '@/lib/csp'
 import { themeFontVariables } from '@/lib/fonts'
 import { liquidShim } from '@/lib/liquid-shim'
-import { liquidContextFor, liquidLayoutFor, reactAttrs } from '@/lib/liquid-theme'
+import { liquidLayoutFor, reactAttrs } from '@/lib/liquid-theme'
 import { mediaByUrl } from '@/lib/media-lookup'
+import { requestCart } from '@/lib/request-cart'
 import { heightForWidth } from '@/lib/section-images'
 import { requestOrigin } from '@/lib/seo'
+import { storeRead } from '@/lib/store-cache'
 import { inStore } from '@/lib/store-context'
 import { readPreview } from '@/lib/storefront-gate'
-import { renderTemplate } from '@/lib/template-render'
+import { liveThemeId, renderTemplate } from '@/lib/template-render'
 import { htmlThemeAttr, resolveThemeMode, THEME_COOKIE, themeViewport } from '@/lib/theme-mode'
 import { umamiTrackerOf } from '@/lib/umami'
 
@@ -79,22 +78,42 @@ function menuLinks(
   return toNavLinks(menu?.items ?? [])
 }
 
+/** The live theme's settings, cached per store version. */
+function liveTheme(storeId: string) {
+  return storeRead(storeId, 'live-theme-settings', (tx) => liveThemeSettings(tx, storeId))
+}
+
+/** What every page's layout reads from the store, cached per store version. */
+function layoutData(storeId: string) {
+  return storeRead(storeId, 'layout', async (tx) => {
+    const [s] = await tx
+      .select({
+        name: store.name,
+        preferences: store.preferences,
+        navigation: store.navigation,
+        apps: store.apps,
+      })
+      .from(store)
+      .where(eq(store.id, storeId))
+    return {
+      current: s ?? null,
+      menus: await tx.select().from(navigationMenu),
+      policies: await publishedPolicyLinks({ tx, storeId }),
+    }
+  })
+}
+
 /** Browser chrome and colour-scheme hint in the mode this request renders. */
 export async function generateViewport({ params }: Pick<Props, 'params'>): Promise<Viewport> {
   const { storeId } = await params
-  const theme = await inStore(storeId, (tx) => liveThemeSettings(tx, storeId))
+  const theme = await liveTheme(storeId)
   const mode = resolveThemeMode((await cookies()).get(THEME_COOKIE)?.value, theme.darkMode)
   return themeViewport(theme, mode)
 }
 
 export async function generateMetadata({ params }: Pick<Props, 'params'>): Promise<Metadata> {
   const { storeId } = await params
-  const [s] = await inStore(storeId, (tx) =>
-    tx
-      .select({ name: store.name, preferences: store.preferences })
-      .from(store)
-      .where(eq(store.id, storeId)),
-  )
+  const s = (await layoutData(storeId)).current
   if (!s) return {}
   const { seo } = parsePreferences(s.preferences)
   const title = seo.title || s.name
@@ -115,49 +134,34 @@ export async function generateMetadata({ params }: Pick<Props, 'params'>): Promi
 export default async function StoreLayout({ children, params }: Props) {
   const { storeId } = await params
   const preview = await previewRequest(storeId)
-  const { current, menus, policies, theme, previewName, logoHeight } = await inStore(
-    storeId,
-    async (tx) => {
-      const [s] = await tx.select().from(store).where(eq(store.id, storeId))
-      const rows = await tx.select().from(navigationMenu)
-      const previewed = preview?.themeId ? await getTheme(tx, preview.themeId) : null
-      const settings = previewed?.settings ?? (await liveThemeSettings(tx, storeId))
-      const logo = settings.brand.logo
-      return {
-        current: s,
-        menus: rows,
-        policies: await publishedPolicyLinks({ tx, storeId }),
-        theme: settings,
-        previewName: previewed && previewed.role !== 'main' ? previewed.name : null,
-        // The logo's real aspect ratio, so the header reserves its height before it loads.
-        logoHeight: logo
-          ? heightForWidth(
-              (await mediaByUrl(tx, [logo.url])).get(logo.url),
-              settings.brand.logoWidth,
-            )
-          : undefined,
-      }
-    },
-  )
-
+  const { current, menus, policies } = await layoutData(storeId)
   if (!current) notFound()
+  const previewed = preview?.themeId
+    ? await inStore(storeId, (tx) => getTheme(tx, preview.themeId as string))
+    : null
+  const theme = previewed?.settings ?? (await liveTheme(storeId))
+  const previewName = previewed && previewed.role !== 'main' ? previewed.name : null
+  // The logo's real aspect ratio, so the header reserves its height before it loads.
+  const logo = theme.brand.logo
+  const logoHeight = logo
+    ? heightForWidth(
+        (await storeRead(storeId, `media|${logo.url}`, (tx) => mediaByUrl(tx, [logo.url]))).get(
+          logo.url,
+        ),
+        theme.brand.logoWidth,
+      )
+    : undefined
 
   // An imported Shopify theme draws its own page shell (`layout/theme.liquid`): its
   // stylesheets, icon sprites, cart drawer and scripts around our <main>. Never around the
   // locked checkout, which then also skips the theme's header and footer (`liquidLayoutForPath`).
   const pathname = (await headers()).get('x-pathname') ?? '/'
-  const themeLayout = await inStore(storeId, async (tx) => {
-    const themeId = preview?.themeId ?? (await mainThemeId(tx))
-    const ctx = themeId ? await liquidContextFor(tx, storeId, themeId) : null
-    return ctx ? liquidLayoutFor(ctx) : null
-  })
+  const themeId = preview?.themeId ?? (await liveThemeId(storeId))
+  const themeLayout = themeId ? await liquidLayoutFor(storeId, themeId) : null
   const liquid = liquidLayoutForPath(themeLayout, pathname)
   const themeChrome = liquid !== null || themeLayout === null
 
-  const cartId = await readCartId()
-  const cartCount = cartId
-    ? await inStore(storeId, async (tx) => (await getCart({ storeId, tx }, cartId))?.itemCount ?? 0)
-    : 0
+  const cartCount = (await requestCart(storeId))?.itemCount ?? 0
   const jar = await cookies()
   const mode = resolveThemeMode(jar.get(THEME_COOKIE)?.value, theme.darkMode)
   const prefs = parsePreferences(current.preferences)
@@ -180,43 +184,50 @@ export default async function StoreLayout({ children, params }: Props) {
   // The header and footer are the theme's section groups: announcement bars and
   // signups sit around the Header and Footer sections, which draw the store's menus.
   // The store's collections give the menu its card images and the search its brand pills.
-  const header = await inStore(storeId, async (tx) => {
-    if (!themeChrome) return null
-    const collections = await listCollections(tx)
-    return renderTemplate(tx, storeId, 'header', {
-      renderers: {
-        Header: (s) => {
-          const hs = headerSettings(s)
-          const links = menuLinks(menusByHandle, hs.menu, settings.main)
-          const { popular, brands } = searchShortcuts(
-            hs.popularTerms,
-            hs.brandCollections,
-            links,
-            collections,
-          )
-          return (
-            <Header
-              storeName={current.name}
-              links={links}
-              themeMode={mode}
-              showThemeToggle={theme.darkMode.enabled && theme.darkMode.togglePosition === 'header'}
-              cartCount={cartCount}
-              search={
-                <PredictiveSearch label={searchContent.title} popular={popular} brands={brands} />
-              }
-              logo={
-                theme.brand.logo
-                  ? { url: theme.brand.logo.url, width: theme.brand.logoWidth, height: logoHeight }
-                  : null
-              }
-              settings={hs}
-              collections={collections}
-            />
-          )
+  const collections = themeChrome
+    ? await storeRead(storeId, 'collections', (tx) => listCollections(tx))
+    : []
+  const headerGroup = themeChrome
+    ? renderTemplate(storeId, 'header', {
+        renderers: {
+          Header: (s) => {
+            const hs = headerSettings(s)
+            const links = menuLinks(menusByHandle, hs.menu, settings.main)
+            const { popular, brands } = searchShortcuts(
+              hs.popularTerms,
+              hs.brandCollections,
+              links,
+              collections,
+            )
+            return (
+              <Header
+                storeName={current.name}
+                links={links}
+                themeMode={mode}
+                showThemeToggle={
+                  theme.darkMode.enabled && theme.darkMode.togglePosition === 'header'
+                }
+                cartCount={cartCount}
+                search={
+                  <PredictiveSearch label={searchContent.title} popular={popular} brands={brands} />
+                }
+                logo={
+                  theme.brand.logo
+                    ? {
+                        url: theme.brand.logo.url,
+                        width: theme.brand.logoWidth,
+                        height: logoHeight,
+                      }
+                    : null
+                }
+                settings={hs}
+                collections={collections}
+              />
+            )
+          },
         },
-      },
-    })
-  })
+      })
+    : null
   // The consent banner and the tags it gates. Never in a theme preview, where nobody is
   // being tracked. When the footer group holds a CookieBanner section, that section draws
   // it in the theme's look; otherwise the standalone one below does, so there is always
@@ -233,45 +244,46 @@ export default async function StoreLayout({ children, params }: Props) {
   let consentDrawn = false
   // Without the theme's footer group (checkout under an imported theme) the standalone
   // ConsentManager below asks and runs the tags, so a purchase is still measured.
-  const footer = await inStore(storeId, async (tx) => {
-    if (!themeChrome) return null
-    return renderTemplate(tx, storeId, 'footer', {
-      // The mobile dock's cart count.
-      appBlockContext: { cartCount },
-      onSections: (types) => {
-        // The theme's own cookie banner (ours or an imported one) replaces the standalone one.
-        themedConsent = types.has('CookieBanner') || types.has('LiquidSection:cookie-banner')
-      },
-      renderers: {
-        Footer: (s) => (
-          <Footer
-            {...footerSettings(s)}
-            storeName={current.name}
-            columns={footerColumns}
-            policies={policies.map((p) => ({ label: p.title, href: p.href }))}
-            // Reopens the cookie banner, so a choice can be changed any time.
-            cookieSettings={{ label: privacyContent.cookieSettings, href: COOKIE_SETTINGS_HASH }}
-            grievance={officer ? policyPageContent.grievance(officer) : null}
-            themeToggle={
-              theme.darkMode.enabled && theme.darkMode.togglePosition === 'footer' ? mode : null
-            }
-            logo={
-              theme.brand.logo
-                ? { url: theme.brand.logo.url, width: theme.brand.logoWidth, height: logoHeight }
-                : null
-            }
-          />
-        ),
-        CookieBanner: (s) => {
-          // A second CookieBanner section (it is single in Customize, but saved data is data)
-          // must not ask twice.
-          if (preview || consentDrawn) return null
-          consentDrawn = true
-          return <ConsentManager {...consent} appearance={cookieBannerSettings(s)} />
+  const footerGroup = themeChrome
+    ? renderTemplate(storeId, 'footer', {
+        // The mobile dock's cart count.
+        appBlockContext: { cartCount },
+        onSections: (types) => {
+          // The theme's own cookie banner (ours or an imported one) replaces the standalone one.
+          themedConsent = types.has('CookieBanner') || types.has('LiquidSection:cookie-banner')
         },
-      },
-    })
-  })
+        renderers: {
+          Footer: (s) => (
+            <Footer
+              {...footerSettings(s)}
+              storeName={current.name}
+              columns={footerColumns}
+              policies={policies.map((p) => ({ label: p.title, href: p.href }))}
+              // Reopens the cookie banner, so a choice can be changed any time.
+              cookieSettings={{ label: privacyContent.cookieSettings, href: COOKIE_SETTINGS_HASH }}
+              grievance={officer ? policyPageContent.grievance(officer) : null}
+              themeToggle={
+                theme.darkMode.enabled && theme.darkMode.togglePosition === 'footer' ? mode : null
+              }
+              logo={
+                theme.brand.logo
+                  ? { url: theme.brand.logo.url, width: theme.brand.logoWidth, height: logoHeight }
+                  : null
+              }
+            />
+          ),
+          CookieBanner: (s) => {
+            // A second CookieBanner section (it is single in Customize, but saved data is data)
+            // must not ask twice.
+            if (preview || consentDrawn) return null
+            consentDrawn = true
+            return <ConsentManager {...consent} appearance={cookieBannerSettings(s)} />
+          },
+        },
+      })
+    : null
+  // Header and footer render side by side.
+  const [header, footer] = await Promise.all([headerGroup, footerGroup])
 
   if (liquid) {
     return (

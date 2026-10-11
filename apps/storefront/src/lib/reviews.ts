@@ -10,6 +10,7 @@ import {
   reviewsState,
 } from '@commerce/plugin-reviews/server'
 import { currentCustomer } from './customer-session'
+import { storeRead } from './store-cache'
 import { inStore } from './store-context'
 
 const DAY = 24 * 60 * 60 * 1000
@@ -44,53 +45,68 @@ export async function productReviews(
 ): Promise<ProductReviews | undefined> {
   const now = opts.now ?? new Date()
   const me = await currentCustomer(storeId)
-  return inStore(storeId, async (tx) => {
+  // The reviews themselves are the same for every shopper: cached per store version.
+  const shared = await storeRead(storeId, `product-reviews|${product.id}`, async (tx) => {
     const state = await reviewsState(tx, storeId)
-    if (!state.installed) return undefined
-    const { summary, reviews } = await productReviewsFor(tx, product.id, state.settings)
-    const link = opts.requestToken
-      ? openRequestLink(settingsSecret(), opts.requestToken, storeId, now)
-      : null
-    const fromLink = link && link.productId === product.id ? await requestLinkBuyer(tx, link) : null
-    const fromAccount =
-      !fromLink && me
-        ? await purchaseOf(tx, { productId: product.id, customerId: me.id, email: me.email })
-        : null
-    const verifiedOrder = fromLink?.orderNumber ?? fromAccount?.orderNumber ?? null
-    const onlyVerified = state.settings.whoCanReview === 'verified'
-    const write: ReviewsWidgetContext['write'] =
-      !onlyVerified || verifiedOrder !== null ? 'open' : me ? 'not_buyer' : 'signin'
-    const back = `/products/${product.handle}#reviews`
+    if (!state.installed) return null
     return {
-      summary,
-      widget: {
-        productId: product.id,
-        productTitle: product.title,
-        productImage: product.images.find((i) => !i.contentType?.startsWith('video/'))?.url ?? null,
-        storeName: opts.storeName,
-        summary,
-        reviews: reviews.map((r) => ({
-          id: r.id,
-          rating: r.rating,
-          title: r.title,
-          body: r.body,
-          name: r.name,
-          verified: r.verified,
-          helpful: r.helpful,
-          reply: r.reply,
-          whenLabel: ageLabel(r.createdAt, now),
-          photos: r.photos,
-        })),
-        write,
-        signInUrl: `/account/login?return_to=${encodeURIComponent(back)}`,
-        verifiedOrder,
-        requestToken: fromLink ? opts.requestToken : null,
-        knownName: fromLink?.name || me?.name || '',
-        emailKnown: Boolean(fromLink || me?.email),
-        openForm: Boolean(fromLink),
-        onlyVerified,
-        showPhotos: state.settings.storefront.showPhotos,
-      },
+      settings: state.settings,
+      ...(await productReviewsFor(tx, product.id, state.settings)),
     }
   })
+  if (!shared) return undefined
+  const { settings, summary, reviews } = shared
+  // Whether this shopper bought it: through a review request link, or their signed-in account.
+  const link = opts.requestToken
+    ? openRequestLink(settingsSecret(), opts.requestToken, storeId, now)
+    : null
+  const linked = link && link.productId === product.id ? link : null
+  const buyer =
+    linked || me
+      ? await inStore(storeId, async (tx) => {
+          const fromLink = linked ? await requestLinkBuyer(tx, linked) : null
+          const fromAccount =
+            !fromLink && me
+              ? await purchaseOf(tx, { productId: product.id, customerId: me.id, email: me.email })
+              : null
+          return { fromLink, fromAccount }
+        })
+      : { fromLink: null, fromAccount: null }
+  const { fromLink, fromAccount } = buyer
+  const verifiedOrder = fromLink?.orderNumber ?? fromAccount?.orderNumber ?? null
+  const onlyVerified = settings.whoCanReview === 'verified'
+  const write: ReviewsWidgetContext['write'] =
+    !onlyVerified || verifiedOrder !== null ? 'open' : me ? 'not_buyer' : 'signin'
+  const back = `/products/${product.handle}#reviews`
+  return {
+    summary,
+    widget: {
+      productId: product.id,
+      productTitle: product.title,
+      productImage: product.images.find((i) => !i.contentType?.startsWith('video/'))?.url ?? null,
+      storeName: opts.storeName,
+      summary,
+      reviews: reviews.map((r) => ({
+        id: r.id,
+        rating: r.rating,
+        title: r.title,
+        body: r.body,
+        name: r.name,
+        verified: r.verified,
+        helpful: r.helpful,
+        reply: r.reply,
+        whenLabel: ageLabel(r.createdAt, now),
+        photos: r.photos,
+      })),
+      write,
+      signInUrl: `/account/login?return_to=${encodeURIComponent(back)}`,
+      verifiedOrder,
+      requestToken: fromLink ? opts.requestToken : null,
+      knownName: fromLink?.name || me?.name || '',
+      emailKnown: Boolean(fromLink || me?.email),
+      openForm: Boolean(fromLink),
+      onlyVerified,
+      showPhotos: settings.storefront.showPhotos,
+    },
+  }
 }

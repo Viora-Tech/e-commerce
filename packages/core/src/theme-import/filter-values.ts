@@ -22,6 +22,8 @@ export type LiquidRuntime = {
   shopifyHost: string | null
   /** Our URL for a Shopify file name the importer copied (loose name match), else null. */
   importedFileUrl?: ((name: string) => string | null) | undefined
+  /** Told when a render reads the clock (`'now' | date`), so a cache keeps that output briefly. */
+  onClock?: (() => void) | undefined
 }
 
 export type Named = Record<string, unknown>
@@ -35,6 +37,12 @@ export function splitArgs(args: unknown[]): { positional: unknown[]; named: Name
     else positional.push(a)
   }
   return { positional, named }
+}
+
+/** Tells the runtime a render read the clock; a bare engine render (tests) has none to tell. */
+export function noteClockRead(self: unknown): void {
+  const ctx = (self as { context?: { globals?: { _rt?: LiquidRuntime } } }).context
+  ctx?.globals?._rt?.onClock?.()
 }
 
 export function runtimeOf(self: unknown): LiquidRuntime {

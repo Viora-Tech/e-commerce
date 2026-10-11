@@ -18,6 +18,18 @@ type AllowEntry = { file: string; names: string[]; reason: string }
 
 const ALLOWLIST: AllowEntry[] = [
   {
+    file: 'packages/db/src/storefront-cache.ts',
+    names: [
+      'STOREFRONT_CACHE_CHANNEL',
+      'STOREFRONT_CACHE_TABLES',
+      'STOREFRONT_CACHE_SOFT_TABLES',
+      'STOREFRONT_CACHE_EXEMPT',
+      'parseStorefrontCachePayload',
+    ],
+    reason:
+      'the cache trigger classification and payload format, read by its test (the ratchet that makes every new store table pick a side)',
+  },
+  {
     file: 'packages/core/src/member-account/profile.ts',
     names: ['normaliseMemberPhone'],
     reason: 'the E.164 rule behind MemberProfileInputSchema, exported for its unit test',

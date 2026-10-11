@@ -49,15 +49,13 @@ export default async function StorePage({ params, searchParams }: Params) {
   const found = await findPage(storeId, handle)
   // Hidden pages 404 for shoppers; Customize can still preview their template.
   if (!found || (!found.publishedAt && !(await isThemePreview(storeId)))) notFound()
-  return inStore(storeId, (tx) =>
-    renderTemplate(tx, storeId, 'page', {
-      suffix: found.templateSuffix,
-      view,
-      renderers: {
-        MainPage: (s) => (
-          <MainPage title={found.title} body={found.body} showTitle={s.showTitle !== false} />
-        ),
-      },
-    }),
-  )
+  return renderTemplate(storeId, 'page', {
+    suffix: found.templateSuffix,
+    view,
+    renderers: {
+      MainPage: (s) => (
+        <MainPage title={found.title} body={found.body} showTitle={s.showTitle !== false} />
+      ),
+    },
+  })
 }
