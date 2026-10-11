@@ -85,7 +85,13 @@ banner" (`inspector-breadcrumb.tsx`), and each container in it selects that cont
 - **Rail** (`customize-rail.tsx`, 64px): the store's tile (its live theme's logo, else its
   initial) on top; Add, AI, Pages, Layers (Sections), Media, Theme settings and Store settings in
   the middle; Help pinned at the bottom, which opens the Help panel (`help-panel.tsx`, Figma
-  381:8563: every real shortcut with its keys, the merchant guide's editor page and what's new). The open tab wears
+  381:8563: every shortcut with its keys, the merchant guide's editor page and what's new).
+- **Shortcuts**: one list, `lib/customize-shortcuts.ts` (`SHORTCUTS`), drawn by
+  `shortcut-list.tsx` in the Help panel and in the `?` dialog (`shortcuts-dialog.tsx`, Figma
+  392:10617, two columns). The editor-level keys are `editorKeyOf` + `useEditorKeys`
+  (`lib/use-editor-keys.ts`, the admin and the canvas frame, never while typing): Ctrl/⌘ + S
+  saves (top bar; on the live theme that is Publish), `/` opens Add, `?` the dialog, `1 2 3` the
+  device. Selection keys stay in `customize-hotkeys.tsx`, undo/redo are Puck's. The open tab wears
   `bg-primary-soft`; each button names itself in a tooltip.
 - **Left panel** (304px): Add and Layers open on `panel-identity.tsx` (`<Store> · <Template>` and
   the store's domain over a hairline, Figma 369:121298); every panel then has its own head

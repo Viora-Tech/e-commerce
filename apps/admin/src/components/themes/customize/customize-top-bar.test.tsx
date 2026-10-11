@@ -71,4 +71,22 @@ describe('CustomizeTopBar: Save and Publish (Figma 369:126247)', () => {
     expect(button(copy.publish)).toBeNull()
     expect(button(copy.save)).toBeTruthy()
   })
+
+  it('saves on Ctrl/⌘ + S only when something changed, and switches device on 1 2 3', () => {
+    const clean = setup({})
+    document.body.dispatchEvent(
+      new KeyboardEvent('keydown', { key: 's', ctrlKey: true, bubbles: true }),
+    )
+    expect(clean.onSave).not.toHaveBeenCalled()
+    document.body.dispatchEvent(new KeyboardEvent('keydown', { key: '3', bubbles: true }))
+    expect(clean.onDevice).toHaveBeenCalledWith('mobile')
+  })
+
+  it('saves on Ctrl/⌘ + S with changes', () => {
+    const { onSave } = setup({ dirty: true })
+    document.body.dispatchEvent(
+      new KeyboardEvent('keydown', { key: 's', metaKey: true, bubbles: true }),
+    )
+    expect(onSave).toHaveBeenCalledTimes(1)
+  })
 })
