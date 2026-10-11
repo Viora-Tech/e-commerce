@@ -86,7 +86,7 @@ export type AppHookContext = {
    * up anything left `processing`. Absent where no queue is wired (tests,
    * scripts).
    */
-  processMedia?: ((mediaId: string) => Promise<void>) | undefined
+  processMedia?: ((mediaId: string, opts?: { bulk?: boolean }) => Promise<void>) | undefined
 }
 
 export type AppHook = (ctx: AppHookContext, payload: AppEventPayload) => Promise<void>

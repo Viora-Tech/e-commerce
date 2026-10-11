@@ -2,10 +2,12 @@
 import sharp from 'sharp'
 import { describe, expect, it } from 'vitest'
 import {
+  AVIF_EFFORT,
   DecompressionBombError,
   decodeThumbhash,
   MAX_MASTER_LONG_EDGE,
   processImage,
+  sharpThreadsFor,
   VARIANT_WIDTHS,
   variantKey,
 } from './pipeline'
@@ -209,5 +211,36 @@ describe('format check', () => {
     await expect(
       processImage({ bytes: svg, contentType: 'image/png', masterKey: 'stores/s/media/a.png' }),
     ).rejects.toThrow(/not a supported image format/)
+  })
+})
+
+describe('bulk profile', () => {
+  it('produces the same widths and formats as the interactive profile', async () => {
+    const input = await jpegWithGpsAndRotation(1400, 900)
+    const [slow, fast] = await Promise.all([
+      processImage({ bytes: input, contentType: 'image/jpeg', masterKey: 'a.jpg' }),
+      processImage({
+        bytes: input,
+        contentType: 'image/jpeg',
+        masterKey: 'a.jpg',
+        profile: 'bulk',
+      }),
+    ])
+    expect(fast.variants.map((v) => v.width)).toEqual(slow.variants.map((v) => v.width))
+    expect(fast.variants.map((v) => v.avif.key)).toEqual(slow.variants.map((v) => v.avif.key))
+    expect(fast.thumbhash).toBe(slow.thumbhash)
+  })
+
+  it('uses a lower AVIF effort than interactive', () => {
+    expect(AVIF_EFFORT.bulk).toBeLessThan(AVIF_EFFORT.interactive)
+  })
+})
+
+describe('sharpThreadsFor', () => {
+  it('splits the cores across parallel jobs, never below one', () => {
+    expect(sharpThreadsFor(2, 3)).toBe(1)
+    expect(sharpThreadsFor(8, 2)).toBe(4)
+    expect(sharpThreadsFor(4, 1)).toBe(4)
+    expect(sharpThreadsFor(2, 0)).toBe(2)
   })
 })

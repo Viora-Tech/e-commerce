@@ -38,6 +38,9 @@ x-app-env: &app-env
   STOREFRONT_CNAME_TARGET: ${STOREFRONT_CNAME_TARGET:-}
   PLATFORM_DOMAINS: ${PLATFORM_DOMAINS:-}
   PLATFORM_STORE_DOMAIN: ${PLATFORM_STORE_DOMAIN:-}
+  # Worker image jobs at once, and per store; blank uses the defaults (3 and 3). Near the vCPU count.
+  MEDIA_PROCESS_CONCURRENCY: ${MEDIA_PROCESS_CONCURRENCY:-}
+  MEDIA_PROCESS_PER_STORE: ${MEDIA_PROCESS_PER_STORE:-}
   MERCHANT_SIGNUP_MODE: ${MERCHANT_SIGNUP_MODE:-invite}
   # Merchant "Continue with Google" on the admin login page; both blank hides the button.
   MERCHANT_GOOGLE_CLIENT_ID: ${MERCHANT_GOOGLE_CLIENT_ID:-}
