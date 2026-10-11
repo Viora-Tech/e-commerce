@@ -1,3 +1,4 @@
+/** SOURCE OF TRUTH: fulfilment order tests — WHAT: splitting an order into per-location fulfilment orders / WHY: guards the routing-to-fulfilment contract */
 import {
   business,
   cart,

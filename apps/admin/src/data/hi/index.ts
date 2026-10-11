@@ -31,6 +31,7 @@ import metaobjects from './metaobjects'
 import navigation from './navigation'
 import notifications from './notifications'
 import onboarding from './onboarding'
+import orderCards from './order-cards'
 import orders from './orders'
 import payments from './payments'
 import paymentsSetup from './payments-setup'
@@ -88,6 +89,7 @@ export const hindiCopy: readonly TranslationPair[] = [
   ...metaobjects,
   ...navigation,
   ...onboarding,
+  ...orderCards,
   ...orders,
   ...payments,
   ...paymentsSetup,

@@ -11,15 +11,7 @@
  * WHERE: api router `businessGst`; Taxes & GST and General saves call `adoptStoreGstin`.
  *        Every call runs inside `withStore`, so RLS scopes each statement to the store.
  */
-import {
-  business,
-  gstRegistration,
-  type LocationCourierPickup,
-  location,
-  newId,
-  type StoreTx,
-  store,
-} from '@commerce/db'
+import { business, gstRegistration, location, newId, type StoreTx, store } from '@commerce/db'
 import { and, asc, desc, eq, isNull, ne, sql } from 'drizzle-orm'
 import { CommerceError } from '../errors'
 import { listLocations } from '../inventory/levels'
@@ -31,7 +23,6 @@ import {
   type BusinessUpdate,
   BusinessUpdateSchema,
   type GstRegistrationErrorCode,
-  type LegalAddress,
   LegalAddressSchema,
   type LocationRegistration,
   type RegistrationInput,
@@ -39,6 +30,12 @@ import {
   type RegistrationUpdate,
   RegistrationUpdateSchema,
 } from './registration-schemas'
+import type {
+  Business,
+  BusinessGstView,
+  GstRegistrationRow,
+  GstRegistrationView,
+} from './registration-views'
 import { INDIAN_STATE_NAMES } from './states'
 
 export class GstRegistrationError extends CommerceError {
@@ -48,48 +45,13 @@ export class GstRegistrationError extends CommerceError {
   }
 }
 
-export type Business = typeof business.$inferSelect
-export type GstRegistrationRow = typeof gstRegistration.$inferSelect
-
-export type GstRegistrationView = Omit<GstRegistrationRow, 'legalAddress'> & {
-  legalAddress: LegalAddress
-  /** Two-letter state, e.g. 'HR'. */
-  state: string
-  stateName: string
-  active: boolean
-}
-
-export type LocationBillingView = {
-  id: string
-  name: string
-  line1: string | null
-  line2: string | null
-  city: string | null
-  pincode: string | null
-  /** Two-letter state, e.g. 'HR'. */
-  stateCode: string | null
-  stateName: string | null
-  isDefault: boolean
-  gstRegistrationId: string | null
-  /** No active GST number in this location's state. */
-  stateUnregistered: boolean
-  phone: string | null
-  /** Couriers collect from here (shipping/ship-from.ts); null uses Settings › Shipping. */
-  courierPickup: LocationCourierPickup | null
-  /** Checkout routes orders here (order/routing.ts); the default location always does. */
-  fulfilsOnlineOrders: boolean
-  /** Routing order among locations that ship online orders: lower ships first. */
-  priority: number
-}
-
-export type BusinessGstView = {
-  businesses: Business[]
-  registrations: GstRegistrationView[]
-  /** In routing order (`priority`), the order checkout tries them in. */
-  locations: LocationBillingView[]
-  /** The most parcels one order may be split into (`store.shipping.routing.maxParcels`). */
-  maxParcels: number
-}
+export type {
+  Business,
+  BusinessGstView,
+  GstRegistrationRow,
+  GstRegistrationView,
+  LocationBillingView,
+} from './registration-views'
 
 const PAN_MISMATCH_MESSAGE = 'This GST number belongs to a different PAN. Is it another business?'
 

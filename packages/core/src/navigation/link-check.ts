@@ -1,5 +1,4 @@
-/**
- * SOURCE OF TRUTH: menu broken-link check
+/** SOURCE OF TRUTH: menu broken-link check
  * WHAT:  `menuLinkProblems` walks a menu (every level) and reports the items whose destination
  *        is gone (`missing`) or exists but shoppers cannot open it (`hidden`: a draft product,
  *        an unpublished page or post). Custom URLs that point inside the store

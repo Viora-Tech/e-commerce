@@ -1,3 +1,4 @@
+/** SOURCE OF TRUTH: order profit maths tests — WHAT: pure profit calculation cases / WHY: guards the money maths */
 import { describe, expect, it } from 'vitest'
 import {
   allocateProfit,

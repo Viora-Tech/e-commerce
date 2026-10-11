@@ -1,3 +1,4 @@
+import 'server-only'
 import type { ParcelView } from '@commerce/core'
 import type { ParcelDeliveryEstimate } from '@commerce/db'
 import { formatDeliveryRange } from '@commerce/shipping'

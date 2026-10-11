@@ -1,3 +1,4 @@
+/** SOURCE OF TRUTH: short link click counting — WHAT: `/l/<slug>` lookup that counts today's click unless a bot / non-GET / WHY: one place decides what counts as a click */
 import { dayKey } from '@commerce/dates'
 import { type StoreTx, shortLink, shortLinkClickDay } from '@commerce/db'
 import { eq, sql } from 'drizzle-orm'

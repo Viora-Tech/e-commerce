@@ -45,6 +45,11 @@ const ALLOWLIST: AllowEntry[] = [
       'accent-colour presets are stored as invoice.accentColor and passed straight into the react-pdf templates (packages/invoices/src/templates), which render outside the DOM and cannot resolve CSS custom properties — swapping these for var(--chart-N) would store an unusable value and break the PDF',
   },
   {
+    file: 'apps/admin/src/components/themes/customize/background-field.tsx',
+    reason:
+      'the white swatch is a stored section-background value: the setting holds a raw hex string and `<input type="color">` needs a hex start value, neither is app UI colour',
+  },
+  {
     file: 'apps/admin/src/components/metaobjects/colour-input.tsx',
     reason:
       'the Colour field of Content types: a swatch picker for a merchant-chosen raw colour; `<input type="color">` needs a hex start value and the box shows a hex example, neither is app UI colour',

@@ -1,5 +1,4 @@
-/**
- * SOURCE OF TRUTH KEYWORDS: short link, /l/<slug>, link click, bot filter, shortLinkTarget
+/** SOURCE OF TRUTH: short link, /l/<slug>, link click, bot filter, shortLinkTarget
  * WHAT:  Pure rules for Growth → Links: what a slug may be, where a link lands (its store path
  *        with the UTM tags added), which requests are bots or link previews (not counted).
  * WHY:   The admin form, the API and the storefront redirect all apply the same rules.

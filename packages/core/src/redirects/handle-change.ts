@@ -1,5 +1,4 @@
-/**
- * SOURCE OF TRUTH: what happens when a product, collection or page changes its handle
+/** SOURCE OF TRUTH: what happens when a product, collection or page changes its handle
  * WHAT:  `onHandleChange` keeps old links working: a 301 from the old path to the new one
  *        (source `auto`), any redirect that pointed at the old path now points at the new one
  *        (no chains), a redirect from the new path is dropped (it would hide the live page,

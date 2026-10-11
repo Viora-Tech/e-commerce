@@ -1,3 +1,4 @@
+/** SOURCE OF TRUTH: theme import pages tests — WHAT: which Shopify templates an import turns into ours / WHY: guards the import mapping */
 /** Which Shopify templates an import turns into ours, and the resource a page's path names. Pure. */
 import { describe, expect, it } from 'vitest'
 import { importedPages } from './import'

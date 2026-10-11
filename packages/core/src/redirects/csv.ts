@@ -1,5 +1,4 @@
-/**
- * SOURCE OF TRUTH: redirects CSV (import and export)
+/** SOURCE OF TRUTH: redirects CSV (import and export)
  * WHAT:  The file format Settings → Menus → URL redirects reads and writes: Shopify's own two
  *        columns, `Redirect from` and `Redirect to`, so a Shopify export imports as it is and
  *        ours opens in a spreadsheet. `parseRedirectsCsv` checks every row the way the dialog

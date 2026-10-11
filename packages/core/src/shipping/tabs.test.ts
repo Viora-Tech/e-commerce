@@ -1,3 +1,4 @@
+/** SOURCE OF TRUTH: Shipments tabs tests — WHAT: tab to status mapping / WHY: API list/counts and admin tabs must agree */
 import { describe, expect, it } from 'vitest'
 import { SHIPMENT_TAB_STATUSES, SHIPMENT_TABS, type ShipmentStatus } from './tabs'
 

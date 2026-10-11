@@ -30,6 +30,7 @@
         "@commerce/plugin-reviews#build",
         "@commerce/plugin-gst-invoices#build",
         "@commerce/plugin-shopify-import#build",
+        "@commerce/plugin-umami#build",
         "@commerce/plugins#build",
         "@commerce/shipping-delhivery#build",
         "@commerce/shipping-rapidshyp#build",
