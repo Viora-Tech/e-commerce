@@ -4,6 +4,7 @@ import { IMPORT_RESOURCES, type PreviewSample } from '@commerce/plugin-shopify-i
 import { Tabs, TabsList, TabsTrigger } from '@commerce/ui/shadcn/tabs'
 import { useState } from 'react'
 import DataCard from '@/components/layout/data-card'
+import ScrollSection from '@/components/layout/scroll-section'
 import { shopifyImportContent } from '@/data/shopify-import'
 import { shopifyImportRunContent } from '@/data/shopify-import-run'
 import { useCopy } from '@/hooks/use-copy'
@@ -48,11 +49,17 @@ export default function RunSamplesCard({ samples, progress }: RunSamplesCardProp
           </TabsList>
         </div>
         {current ? (
-          <ul className="flex flex-col divide-y divide-hairline rounded-xl border border-hairline">
-            {current.rows.map((s) => (
-              <RunSampleRow key={`${s.resource}-${s.key}`} sample={s} />
-            ))}
-          </ul>
+          <ScrollSection
+            id={`shopify-import-samples-${current.resource}`}
+            label={copy.sampleHeading}
+            count={current.rows.length}
+          >
+            <ul className="flex flex-col divide-y divide-hairline rounded-xl border border-hairline">
+              {current.rows.map((s) => (
+                <RunSampleRow key={`${s.resource}-${s.key}`} sample={s} />
+              ))}
+            </ul>
+          </ScrollSection>
         ) : (
           <p className="text-body text-muted-foreground">{view.samples.empty}</p>
         )}
