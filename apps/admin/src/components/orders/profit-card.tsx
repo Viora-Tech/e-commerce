@@ -89,6 +89,8 @@ export default function ProfitCard({ orderId, shipment }: ProfitCardProps) {
     [copy.fees, profit.feesPaise, true, true],
     [copy.rto, profit.rtoPaise, true, profit.rtoPaise > 0],
   ]
+  // Whether the payment fees are the gateway's own figure or estimated from the store's rates.
+  const feeSource = profit.feeSource
   const notes = NOTE_ORDER.filter((k) => profit.flags[k])
   const loss = profit.profitPaise < 0
 
@@ -99,7 +101,17 @@ export default function ProfitCard({ orderId, shipment }: ProfitCardProps) {
           .filter(([, , , show]) => show)
           .map(([label, paise, cost]) => (
             <div key={label} className="flex justify-between gap-3">
-              <dt className="text-muted-foreground">{label}</dt>
+              <dt className="text-muted-foreground">
+                {label}
+                {label === copy.fees && feeSource ? (
+                  <span
+                    className="ml-1.5 text-caption text-muted-foreground"
+                    title={copy.feeSourceHelp[feeSource]}
+                  >
+                    · {copy.feeSource[feeSource]}
+                  </span>
+                ) : null}
+              </dt>
               <dd className="tabular-nums">
                 {cost && paise > 0 ? `−${fmt.money(paise)}` : fmt.money(paise)}
               </dd>

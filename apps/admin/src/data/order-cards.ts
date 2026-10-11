@@ -31,8 +31,19 @@ export const profitCardContent = {
     costEstimated: 'Some item costs were filled in after the sale from the cost at that time.',
     costMissing: 'Some items have no cost yet, so they count as free. Add the cost on the product.',
     courierMissing: 'The courier charge is not known yet. Add it below.',
-    feeFromRate: 'Payment fees use your rates in Settings › Costs for profit.',
+    feeFromRate:
+      'Payment fees are estimated from your rates in Settings › Costs for profit until Razorpay or Cashfree reports the actual fee.',
     feeMissing: 'No fee rate is set for this payment method.',
+  },
+  feeSource: {
+    actual: 'Actual',
+    estimated: 'Estimated',
+    mixed: 'Partly estimated',
+  },
+  feeSourceHelp: {
+    actual: 'The fee Razorpay or Cashfree reported for this payment.',
+    estimated: 'From your rates, until the gateway reports the actual fee.',
+    mixed: 'Some fees are actual, the rest from your rates until the gateway reports them.',
   },
   setRates: 'Set fee rates',
   courierLabel: 'Courier charge (₹)',

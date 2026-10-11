@@ -1241,8 +1241,20 @@ export const payment = pgTable(
      */
     status: text('status', { enum: PAYMENT_STATUSES }).notNull(),
     amountPaise: integer('amount_paise').notNull(),
-    /** What the gateway kept from this payment, when it reported it; null uses the store's fee rate. */
+    /**
+     * What the gateway kept from this payment, GST included, when it reported it; null uses the
+     * store's fee rate (core order/profit.ts). Never estimated: only the gateway's figure goes here.
+     */
     feePaise: integer('fee_paise'),
+    /** The GST inside `fee_paise` (input tax credit for a GST-registered store). */
+    feeTaxPaise: integer('fee_tax_paise'),
+    /**
+     * How the shopper paid, as the gateway said (core `PaymentMethodDetailSchema`): UPI, card
+     * type and network, international, corporate… Picks the fee rate until the fee is known.
+     */
+    methodDetail: jsonb('method_detail'),
+    /** Last time the fee sync asked the gateway for this payment's fee; it waits before asking again. */
+    feeCheckedAt: timestamp('fee_checked_at', { withTimezone: true }),
     /** 1 for the first attempt on an order, then 2, 3… for each retry. */
     attempt: integer('attempt').notNull().default(1),
     /** `<orderId>:<attempt>`; sent to the gateway so one attempt is never charged twice. */
@@ -1294,6 +1306,12 @@ export const payment = pgTable(
     uniqueIndex('payment_one_balance_capture')
       .on(t.storeId, t.orderId)
       .where(sql`${t.purpose} = 'balance' and ${t.status} = 'captured' and not ${t.refundNeeded}`),
+    /* The fee sync's queue: captured gateway payments whose fee is not known yet. */
+    index('payment_fee_unknown')
+      .on(t.createdAt)
+      .where(
+        sql`${t.feePaise} is null and ${t.providerPaymentId} is not null and ${t.status} in ('captured', 'refunded')`,
+      ),
   ],
 )
 

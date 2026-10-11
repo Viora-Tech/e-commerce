@@ -746,9 +746,11 @@ describe('analytics.report', () => {
 
   it('reports profit by month and by product after goods, courier, fees and RTO', async () => {
     const a = await merchant('p@example.com', 'store-p')
+    // GST-registered, so the 18% GST on the 2% fee is claimed back and left out of profit.
     await owner
       .update(store)
       .set({
+        gstin: '06ABCDE1234F1Z5',
         apps: {
           installed: [],
           settings: { core: { profit: { gatewayFees: { razorpay: { percentBps: 200 } } } } },

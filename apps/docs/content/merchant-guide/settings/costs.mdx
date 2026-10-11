@@ -1,8 +1,78 @@
 ---
 title: Costs for profit
-description: The fees and costs used to work out your profit.
+description: The payment and cash on delivery fees used to work out your profit, until the gateway reports the actual fee.
 ---
 
 # Costs for profit
 
-These feed the [Profit](/merchant-guide/analytics/profit) report.
+These feed the [Profit](/merchant-guide/analytics/profit) report and the **Profit** card on each
+order.
+
+## Actual fees come first
+
+Razorpay and Cashfree tell us what they kept from each payment. That **actual fee** is what
+profit uses. Razorpay usually sends it with the payment; Cashfree sends it a little later, once it
+has worked out its charges. Until the fee arrives, profit uses the rates on this page, and the
+order's Profit card says **Estimated**. When it arrives, the card says **Actual**.
+
+So these rates matter most for brand-new orders, and for gateways that never report a fee.
+
+## Fees by how the customer paid
+
+Gateways charge different rates for UPI, debit cards, credit cards, international cards and so
+on, so you set a rate for each:
+
+| Way of paying | Filled in with |
+| --- | --- |
+| UPI | 2% |
+| RuPay debit cards | 2% |
+| Other debit cards | 2% |
+| Credit cards | 2% |
+| International cards | 3% |
+| Corporate, Amex and Diners cards | 2.15% |
+| Net banking | 2% |
+| Wallets | 2% |
+| EMI | 2% |
+| Pay later | 2% |
+
+These are **Razorpay's standard rates** (razorpay.com/pricing, checked 11 October 2026: 2% on
+every domestic way of paying, 2.15% on corporate and business cards, up to 3% on international
+cards). They are only a starting point: check your own plan, your rates may be lower. Type each
+rate **before GST**, the way gateways quote them. **Use standard rates** puts them back.
+
+This section shows when Razorpay or Cashfree is switched on.
+
+## Fees by gateway
+
+One rate per gateway. It is used when the gateway did not say how the customer paid, and for
+gateways like Decentro that use one rate for everything.
+
+## Cash on delivery
+
+What your courier keeps for collecting cash from the customer, before GST. It shows when cash on
+delivery is switched on.
+
+## GST on fees
+
+Gateways and couriers add 18% GST to their fees.
+
+- If you have a **GST registration** (not composition), you claim that GST back, so profit leaves
+  it out, the same way it leaves GST out of your sales.
+- If you do not, the GST is a real cost, so profit adds 18% to each rate.
+
+The page tells you which one applies to your store.
+
+## Cashfree: turn on the fee update
+
+Cashfree sends its fee in a separate update. In the Cashfree Merchant Dashboard's webhook
+settings, subscribe the same address as your payment updates to **Success Payment TDR**.
+Without it the fee still arrives, just later: we ask Cashfree for it every 30 minutes until it is
+known.
+
+## Try it
+
+1. Open **Settings → Costs for profit**.
+2. Compare the rates with your Razorpay or Cashfree plan and change any that differ. Leave a rate empty if you never take that way of paying.
+3. Select **Save**.
+4. Open a recent order paid online. The **Profit** card shows **Payment fees · Actual** when the
+   gateway reported the fee, or **Estimated** while it uses these rates.

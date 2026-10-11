@@ -24,6 +24,7 @@ export {
   storesWithSenderEmailChecks,
   storesWithStaleImportSnapshots,
   storesWithUndispatchedOutboxEvents,
+  storesWithUnknownPaymentFees,
   storesWithUnpaidOnlineOrders,
 } from './resolve-store'
 export * from './schema'

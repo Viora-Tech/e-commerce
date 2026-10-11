@@ -13,6 +13,7 @@ import type {
 } from '@commerce/payments'
 import { safeEqual } from '@commerce/payments'
 import Razorpay from 'razorpay'
+import { chargesOf, fetchCharges, type RzpPayment } from './charges'
 import { refreshOAuthConfig } from './oauth'
 
 export type RazorpayConfig = {
@@ -170,15 +171,6 @@ function hmacHex(secret: string, body: string): string {
   return createHmac('sha256', secret).update(body).digest('hex')
 }
 
-export type RzpPayment = {
-  id: string
-  order_id?: string | null
-  amount: number
-  status: string
-  error_description?: string | null
-  notes?: Record<string, string> | null
-}
-
 /** Razorpay's QR code entity, the fields we read. Notes may arrive as `[]` when empty. */
 export type RzpQrCode = {
   id: string
@@ -297,6 +289,11 @@ export class RazorpayProvider implements PaymentProvider {
     }
   }
 
+  /** The payment's fee and card details, asked of Razorpay (read-only). */
+  fetchCharges(input: { providerRef: string; providerPaymentId: string }) {
+    return fetchCharges(this.client, input.providerPaymentId)
+  }
+
   /** "Test connection": lists one order, which needs working keys and creates nothing. */
   async testConnection(): Promise<ConnectionTestResult> {
     try {
@@ -378,6 +375,7 @@ export class RazorpayProvider implements PaymentProvider {
           idempotencyKey,
           amountPaise: Number(pay.amount),
           orderId,
+          charges: chargesOf(pay),
           raw: body,
         }
       // Closed unpaid (expired or closed by hand): the attempt failed, the shopper can get a new QR.
@@ -401,6 +399,7 @@ export class RazorpayProvider implements PaymentProvider {
           idempotencyKey,
           amountPaise: Number(pay.amount),
           orderId,
+          charges: chargesOf(pay),
           raw: body,
         }
       case 'payment.authorized':

@@ -1,4 +1,4 @@
-/** SOURCE OF TRUTH: profitFacts, orderProfit, setCourierCharge, saveProfitCosts
+/** SOURCE OF TRUTH: profitFacts, orderProfit, setCourierCharge, saveProfitCosts, feeGstClaimable
  * WHAT:  Loads what PROFIT_FORMULA (order/profit.ts) needs for a set of orders, in a few
  *        queries, and the two writes profit depends on (a courier charge typed by hand, the
  *        store's fee rates).
@@ -7,6 +7,7 @@
  * WHERE: `orders.profit`, `orders.setCourierCharge`, `profitCosts.*`; api reports/profit.ts.
  */
 import {
+  gstRegistration,
   order,
   orderLine,
   payment,
@@ -17,7 +18,7 @@ import {
   shipment,
   store,
 } from '@commerce/db'
-import { and, eq, inArray, ne, sql } from 'drizzle-orm'
+import { and, eq, inArray, isNull, ne, sql } from 'drizzle-orm'
 import { z } from 'zod'
 import type { StoreContext } from '../context'
 import { CommerceError } from '../errors'
@@ -25,10 +26,12 @@ import { parsePaymentSettings } from '../payments/settings'
 import {
   computeOrderProfit,
   FEE_FREE_METHODS,
+  METHOD_RATE_GATEWAYS,
   type OrderProfit,
   type ProfitCostSettings,
   ProfitCostSettingsSchema,
   type ProfitInput,
+  parseMethodDetail,
   parseProfitCosts,
   withProfitCosts,
 } from './profit'
@@ -63,11 +66,27 @@ export async function profitFacts(
   return out
 }
 
+/**
+ * The store can claim back the GST gateways and couriers charge on their fees: it holds a
+ * regular (not composition) GST registration that is not cancelled, or, from before
+ * registrations, a GSTIN on the store.
+ */
+export async function feeGstClaimable(tx: StoreTx, storeId: string): Promise<boolean> {
+  const regs = await tx
+    .select({ type: gstRegistration.registrationType })
+    .from(gstRegistration)
+    .where(and(eq(gstRegistration.storeId, storeId), isNull(gstRegistration.cancelledAt)))
+  if (regs.length > 0) return regs.some((r) => r.type === 'regular')
+  const [s] = await tx.select({ gstin: store.gstin }).from(store).where(eq(store.id, storeId))
+  return Boolean(s?.gstin)
+}
+
 async function factsFor(tx: StoreTx, ids: string[]): Promise<ProfitFacts[]> {
   if (ids.length === 0) return []
   const orders = await tx
     .select({
       id: order.id,
+      storeId: order.storeId,
       status: order.status,
       placedAt: order.placedAt,
       totalPaise: order.totalPaise,
@@ -115,6 +134,8 @@ async function factsFor(tx: StoreTx, ids: string[]): Promise<ProfitFacts[]> {
       provider: payment.provider,
       amountPaise: payment.amountPaise,
       feePaise: payment.feePaise,
+      feeTaxPaise: payment.feeTaxPaise,
+      methodDetail: payment.methodDetail,
     })
     .from(payment)
     .where(and(inArray(payment.orderId, ids), inArray(payment.status, [...TOOK_MONEY])))
@@ -122,6 +143,8 @@ async function factsFor(tx: StoreTx, ids: string[]): Promise<ProfitFacts[]> {
     .select({ orderId: returnRequest.orderId, courierCostPaise: returnRequest.courierCostPaise })
     .from(returnRequest)
     .where(and(inArray(returnRequest.orderId, ids), eq(returnRequest.kind, 'rto')))
+  const storeId = orders[0]?.storeId
+  const claimable = storeId ? await feeGstClaimable(tx, storeId) : false
   const restockedOf = new Map(restocked.map((r) => [r.orderLineId, r.units]))
   const refundedOf = new Map(refunds.map((r) => [r.orderId, r.paise]))
 
@@ -159,8 +182,11 @@ async function factsFor(tx: StoreTx, ids: string[]): Promise<ProfitFacts[]> {
           provider: p.provider,
           amountPaise: p.amountPaise,
           feePaise: p.feePaise,
+          feeTaxPaise: p.feeTaxPaise,
+          method: parseMethodDetail(p.methodDetail),
         })),
         rtoPaise: returned.reduce((n, r) => n + (r.courierCostPaise ?? 0), 0),
+        feeGstClaimable: claimable,
       },
     ]
   })
@@ -173,11 +199,16 @@ export async function profitCostsView(tx: StoreTx, storeId: string) {
     .from(store)
     .where(eq(store.id, storeId))
   const enabled = parsePaymentSettings(s?.payments).enabled
+  const gateways = enabled.filter((id) => id !== 'cod' && !FEE_FREE_METHODS.has(id))
   return {
     costs: parseProfitCosts(s?.apps),
     /** Online gateways switched on (cash on delivery and money paid to you directly take none). */
-    gateways: enabled.filter((id) => id !== 'cod' && !FEE_FREE_METHODS.has(id)),
+    gateways,
+    /** Razorpay or Cashfree is on, so the rates by way of paying apply. */
+    methodRatesOn: gateways.some((id) => METHOD_RATE_GATEWAYS.has(id)),
     codOn: enabled.includes('cod'),
+    /** GST on fees is claimed back, so profit leaves it out. */
+    gstClaimable: await feeGstClaimable(tx, storeId),
   }
 }
 

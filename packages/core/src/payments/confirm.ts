@@ -55,7 +55,8 @@ type PaymentRef =
   | { providerRef: string; idempotencyKey?: string | null | undefined }
   | { paymentId: string }
 
-async function findPaymentId(ctx: StoreContext, ref: PaymentRef): Promise<string | null> {
+/** The attempt a gateway reference (or its idempotency key) names, or a payment id as given. */
+export async function findPaymentId(ctx: StoreContext, ref: PaymentRef): Promise<string | null> {
   if ('paymentId' in ref) return ref.paymentId
   const [byRef] = await ctx.tx
     .select({ id: payment.id })

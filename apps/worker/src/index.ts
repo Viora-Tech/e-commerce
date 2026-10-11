@@ -24,6 +24,7 @@ import { createMemberDailySummary, DAILY_SUMMARY_EVERY_MS } from './member-daily
 import { createNotificationWorker } from './notifications'
 import { initSentry, reportError } from './observability'
 import { createOutboxRelay, RELAY_EVERY_MS } from './outbox-relay'
+import { createPaymentFeeSync, PAYMENT_FEES_EVERY_MS } from './payment-fees'
 import { paymentWebhooks } from './payments'
 import { createUnpaidOrderExpiry, EXPIRY_EVERY_MS } from './payments-expiry'
 import { BALANCE_EVERY_MS, createPreorderBalanceJob } from './preorder-balance'
@@ -70,6 +71,7 @@ const appJobWorker = createAppJobWorker(redis, db, {
 
 const unpaidExpiry = createUnpaidOrderExpiry(redis, db, { settingsSecret: env.SETTINGS_SECRET })
 const preorderBalance = createPreorderBalanceJob(redis, db, { settingsSecret: env.SETTINGS_SECRET })
+const paymentFees = createPaymentFeeSync(redis, db, { settingsSecret: env.SETTINGS_SECRET })
 const tracker = createShippingTracker(redis, db, { settingsSecret: env.SETTINGS_SECRET })
 // Unset Dokploy keys: no routes are asked for and every route job is a no-op (added by hand).
 const dokploy = dokployConfigFrom(env)
@@ -128,6 +130,7 @@ reportWorkerFailures(appJobWorker, 'app-jobs', reportError)
 reportWorkerFailures(tracker.worker, 'shipping-tracker', reportError)
 reportWorkerFailures(unpaidExpiry.worker, 'unpaid-order-expiry', reportError)
 reportWorkerFailures(preorderBalance.worker, 'preorder-balance', reportError)
+reportWorkerFailures(paymentFees.worker, 'payment-fees', reportError)
 reportWorkerFailures(domains.worker, 'domain-verify', reportError)
 reportWorkerFailures(domainRoutes.worker, 'domain-route', reportError)
 reportWorkerFailures(certificates.worker, 'domain-certificate', reportError)
@@ -159,6 +162,11 @@ await preorderBalance.queue.upsertJobScheduler(
   'preorder-balance',
   { every: BALANCE_EVERY_MS },
   { name: 'balance' },
+)
+await paymentFees.queue.upsertJobScheduler(
+  'sync-payment-fees',
+  { every: PAYMENT_FEES_EVERY_MS },
+  { name: 'sync' },
 )
 // Abandoned-cart recovery now runs as a Marketing automation; drop the old sweep's schedule.
 await retireAbandonedSweep(redis)
@@ -241,6 +249,8 @@ const shutdown = async () => {
   await unpaidExpiry.queue.close()
   await preorderBalance.worker.close()
   await preorderBalance.queue.close()
+  await paymentFees.worker.close()
+  await paymentFees.queue.close()
   await domains.worker.close()
   await domains.queue.close()
   await domainRoutes.worker.close()

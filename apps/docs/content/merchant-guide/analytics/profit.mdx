@@ -28,9 +28,12 @@ For each order:
 3. **Less courier charges**: what the courier charged for the parcel. When you book through a
    connected courier that tells us its charge, it is filled in for you. Otherwise type it on the
    order page.
-4. **Less payment fees**: what the payment gateway kept. If the gateway reports its fee, that is
-   used. Otherwise your rate from **Settings → Costs for profit** is used. For cash on delivery,
-   the courier's COD fee from the same page is used.
+4. **Less payment fees**: what the payment gateway kept. Razorpay and Cashfree report the actual
+   fee for each payment, and that is used. Until it arrives, your rate from **Settings → Costs
+   for profit** for how the customer paid (UPI, credit card, net banking…) is used, then your
+   rate for that gateway. For cash on delivery, the courier's COD fee from the same page is used.
+   GST on fees is left out if you have a GST registration (you claim it back), and counted if you
+   do not.
 5. **Less RTO costs**: what the courier charged to bring an undelivered parcel back.
 
 What is left is the **profit**, and the **margin** is profit as a share of net sales.
@@ -41,19 +44,21 @@ method without a fee rate), it counts as zero and the order page says so. Nothin
 ## Where to see it
 
 - **Order page → Profit**: the lines above for that order, with a note when something is
-  missing. If the order has a parcel, you can type its courier charge here.
+  missing. **Payment fees** says **Actual** when the gateway reported the fee, **Estimated**
+  while your rates are used, or **Partly estimated** when an order has both. If the order has a
+  parcel, you can type its courier charge here.
 - **Analytics → Reports → Profit by month** and **Profit by product**. By product, each order's
   courier charge, fees and RTO are shared across its items by their value.
-- **Settings → Costs for profit**: your gateway fee for each payment method you have switched on
-  (a percent, plus a fixed amount if your gateway charges one), and your courier's cash on
-  delivery fee.
+- **[Settings → Costs for profit](/merchant-guide/settings/costs)**: the rates used until the
+  actual fee arrives, by how the customer paid and by gateway (a percent, plus a fixed amount if
+  your gateway charges one), and your courier's cash on delivery fee.
 
 Orders placed before profit tracking began use each item's cost from that day, marked as
 estimated.
 
 ## Try it
 
-1. Open **Settings → Costs for profit** and enter your Razorpay fee, for example 2 percent.
+1. Open **Settings → Costs for profit** and check the rates against your Razorpay plan.
 2. Open a recent order. The **Profit** card shows net sales, cost of goods, courier charges, fees
    and the profit.
 3. If it says the courier charge is not known, type it under the card and select **Save**.
