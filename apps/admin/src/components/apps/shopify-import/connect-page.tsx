@@ -101,7 +101,7 @@ export default function ConnectPage() {
   // Early returns
   if (connection === undefined) {
     return (
-      <div className="flex max-w-3xl flex-col gap-4">
+      <div className="flex flex-col gap-4">
         <Skeleton className="h-48 w-full" />
       </div>
     )
@@ -130,7 +130,7 @@ export default function ConnectPage() {
   ]
 
   return (
-    <div className="flex max-w-3xl flex-col gap-4">
+    <div className="flex flex-col gap-4">
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle>{copy.connection}</CardTitle>

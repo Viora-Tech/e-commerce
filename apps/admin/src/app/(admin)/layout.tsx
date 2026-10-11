@@ -5,6 +5,7 @@ import type { ReactNode } from 'react'
 import AdminFrame from '@/components/admin-frame'
 import AccentStyle from '@/components/layout/accent-style'
 import { appRouter, call, serverContext } from '@/lib/api'
+import { appEntryHref } from '@/lib/apps-gallery'
 import { auth, getSession } from '@/lib/auth'
 import { routes } from '@/lib/routes'
 import { storefrontOrigin } from '@/lib/storefront-origin'
@@ -21,13 +22,13 @@ export default async function AdminLayout({ children }: { children: ReactNode })
   const activeId =
     (session.session as { activeOrganizationId?: string | null }).activeOrganizationId ?? null
   const active = orgs.find((o) => o.id === activeId) ?? null
-  // Installed apps with screens get their own sidebar entry under Apps.
+  // Every installed app gets a sidebar entry under Apps (its pages, or its settings page).
   const apps = active
     ? await call(appRouter.apps.list, undefined, { context: await serverContext() }).catch(() => [])
     : []
   const appLinks = apps
-    .filter((a) => a.installed && a.admin.pages.length > 0)
-    .map((a) => ({ id: a.id, name: a.name, icon: a.admin.icon }))
+    .filter((a) => a.installed && a.id !== 'core')
+    .map((a) => ({ id: a.id, name: a.name, icon: a.admin.icon, href: appEntryHref(a) }))
 
   // The sidebar's brand mark reuses the storefront theme's logo when the store has set one.
   const themes = active

@@ -1,7 +1,7 @@
 'use client'
 
 import { siteConfig } from '@commerce/config/site'
-import { MoreVertical, Plus } from '@commerce/ui/icons'
+import { CheckIcon, MoreVertical, Plus } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import {
   DropdownMenu,
@@ -41,7 +41,8 @@ export type AppSummary = {
 
 type AppCardProps = {
   app: AppSummary
-  /** `installed`: status, Open and a menu. `store`: description and Install. */
+  /** `installed`: status, Open and a menu. `store`: description and Install; an app that is already
+   * installed keeps its place there with an Installed badge, Open and the same menu. */
   variant: 'installed' | 'store'
   busy: boolean
   onInstall: (app: AppSummary) => void
@@ -97,16 +98,25 @@ export default function AppCard({ app, variant, busy, onInstall, onUninstall }: 
           <span className="truncate text-xs text-muted-foreground">{byline}</span>
         </div>
       </div>
-      {variant === 'installed' ? (
-        <StatusChip tone={attention ? 'attention' : 'neutral'} className="h-5 self-start text-xs">
-          {attention ? copy.needsSetup : copy.active}
+      {app.installed ? (
+        <StatusChip tone={attention ? 'attention' : 'success'} className="h-5 self-start text-xs">
+          {attention ? (
+            copy.needsSetup
+          ) : variant === 'store' ? (
+            <>
+              <CheckIcon className="size-3" aria-hidden="true" />
+              {copy.store.installedBadge}
+            </>
+          ) : (
+            copy.active
+          )}
         </StatusChip>
       ) : null}
       {app.description ? (
         <p className="text-body text-muted-foreground">{app.description}</p>
       ) : null}
       <div className="relative z-10 mt-auto flex items-center gap-2 pt-1">
-        {variant === 'installed' ? (
+        {app.installed ? (
           <>
             {openHref ? (
               <Button

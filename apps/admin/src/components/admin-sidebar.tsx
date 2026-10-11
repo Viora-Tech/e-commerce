@@ -48,7 +48,7 @@ type StoreOption = { id: string; name: string; slug: string }
 type AdminSidebarProps = {
   stores: StoreOption[]
   activeStoreId: string | null
-  apps: { id: string; name: string; icon: string | null }[]
+  apps: { id: string; name: string; icon: string | null; href: string }[]
   logoUrl: string | null
   user: { name: string; email: string; image: string | null }
   /** The live storefront's address; its host is the domain pill. */
@@ -74,9 +74,7 @@ function nestApps(
   apps: AdminSidebarProps['apps'],
   viewAllApps: (n: number) => string,
 ): NavItem[] {
-  const shown = apps
-    .slice(0, SIDEBAR_APPS)
-    .map((a) => ({ href: routes.apps.page(a.id), label: a.name }))
+  const shown = apps.slice(0, SIDEBAR_APPS).map((a) => ({ href: a.href, label: a.name }))
   const children =
     apps.length > SIDEBAR_APPS
       ? [...shown, { href: routes.apps.list(), label: viewAllApps(apps.length) }]
