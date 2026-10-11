@@ -27,6 +27,7 @@ import {
   storageForStore,
   updateDataRequest,
 } from '@commerce/core'
+import { lenientPhone } from '@commerce/core/phone'
 import { registriesForStore } from '@commerce/core/registries'
 import type { StoreTx } from '@commerce/db'
 import { ORPCError } from '@orpc/server'
@@ -122,7 +123,7 @@ export const customerPrivacyRouter = {
         source: z.enum(STAFF_REQUEST_SOURCES),
         customerId: z.uuid().nullable(),
         contactEmail: z.string().trim().max(254).nullable().optional(),
-        contactPhone: z.string().trim().max(30).nullable().optional(),
+        contactPhone: lenientPhone(30).nullable().optional(),
         note: z.string().trim().max(PRIVACY_LIMITS.note).nullable().optional(),
       }),
     )

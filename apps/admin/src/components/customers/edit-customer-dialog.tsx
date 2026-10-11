@@ -1,5 +1,6 @@
 'use client'
 
+import PhoneInput from '@commerce/ui/phone-input'
 import { Button } from '@commerce/ui/shadcn/button'
 import {
   Dialog,
@@ -82,12 +83,11 @@ export default function EditCustomerDialog({
           </Field>
           <Field>
             <FieldLabel htmlFor="edit-customer-phone">{copy.edit.phone}</FieldLabel>
-            <Input
+            <PhoneInput
               id="edit-customer-phone"
-              size="lg"
-              inputMode="tel"
               value={draft.phone}
-              onChange={(e) => setDraft({ ...draft, phone: e.target.value })}
+              onChange={(phone) => setDraft({ ...draft, phone })}
+              autoComplete="tel"
             />
           </Field>
         </FieldGroup>

@@ -24,6 +24,7 @@ import { api } from '@/lib/api-client'
 import GeneralCompletion, { detailsDone } from './general-completion'
 import SettingsCard from './settings-card'
 import SettingsPageHeader from './settings-page-header'
+import SettingsPhoneRow from './settings-phone-row'
 import SettingsRow from './settings-row'
 import SettingsTextRow from './settings-text-row'
 import StoreDataSection from './store-data-section'
@@ -170,15 +171,13 @@ export default function GeneralSettings() {
               error={errors.contactEmail}
               autoComplete="email"
             />
-            <SettingsTextRow
+            <SettingsPhoneRow
               id="store-phone"
-              type="tel"
               label={copy.details.phone}
               description={copy.details.phoneHelp}
               value={form.contactPhone}
               onChange={(contactPhone) => patch({ contactPhone })}
               error={errors.contactPhone}
-              autoComplete="tel"
             />
           </SettingsCard>
 

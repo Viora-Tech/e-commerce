@@ -1,6 +1,7 @@
 'use client'
 
 import { type DataRequestKind, STAFF_REQUEST_SOURCES } from '@commerce/core/privacy'
+import PhoneInput from '@commerce/ui/phone-input'
 import { Button } from '@commerce/ui/shadcn/button'
 import {
   Dialog,
@@ -191,12 +192,11 @@ export default function LogRequestDialog({
               </Field>
               <Field>
                 <FieldLabel htmlFor="request-phone">{copy.contactPhone}</FieldLabel>
-                <Input
+                <PhoneInput
                   id="request-phone"
-                  type="tel"
-                  inputMode="tel"
                   value={contactPhone}
-                  onChange={(e) => setContactPhone(e.target.value)}
+                  onChange={setContactPhone}
+                  autoComplete="tel"
                 />
               </Field>
             </div>

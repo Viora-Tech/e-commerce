@@ -3,6 +3,7 @@
 import { Button } from '@commerce/ui/shadcn/button'
 import { Field, FieldLabel } from '@commerce/ui/shadcn/field'
 import { useState } from 'react'
+import PhoneField from '@/components/fields/phone-field'
 import MediaPickDialog from '@/components/media/media-pick-dialog'
 import { gstInvoicesContent } from '@/data/gst-invoices'
 import { INDIAN_STATES } from '@/data/india'
@@ -115,11 +116,10 @@ export default function SellerGroup({
           inputMode="email"
           onChange={(email) => set({ email })}
         />
-        <TextField
+        <PhoneField
           id="gst-phone"
           label={copy.phone}
           value={seller.phone}
-          inputMode="tel"
           onChange={(phone) => set({ phone })}
         />
       </div>

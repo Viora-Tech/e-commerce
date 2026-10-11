@@ -359,6 +359,7 @@ export default function CheckoutForm({
             customer={customer}
             emailOptional={settings.email === 'optional'}
             onField={set}
+            onPhone={(phone) => setForm((prev) => ({ ...prev, phone }))}
             onLeave={handleLeave}
           />
         </CheckoutSection>

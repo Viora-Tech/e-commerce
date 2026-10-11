@@ -14,7 +14,9 @@
     "./slots": "./src/slots.tsx",
     "./element-style": "./src/element-style.ts",
     "./editor-selection": "./src/editor-selection.ts",
-    "./section-presets": "./src/section-presets.ts"
+    "./section-presets": "./src/section-presets.ts",
+    "./phone-input": "./src/components/store-phone-input.tsx",
+    "./phone-input-lazy": "./src/components/store-phone-input-lazy.tsx"
   },
   "scripts": {
     "test": "vitest run",
@@ -27,6 +29,7 @@
     "@commerce/richtext": "workspace:*",
     "@puckeditor/core": "^0.23.0",
     "motion": "^13.4.1",
+    "react-phone-number-input": "^3.4.18",
     "sanitize-html": "^2.17.0",
     "thumbhash": "^0.1.1"
   },

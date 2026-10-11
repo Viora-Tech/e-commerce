@@ -1,6 +1,7 @@
 'use client'
 
 import { CircleCheck, Loader2Icon } from '@commerce/ui/icons'
+import PhoneInput from '@commerce/ui/phone-input'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Field, FieldError, FieldGroup, FieldLabel } from '@commerce/ui/shadcn/field'
 import { Input } from '@commerce/ui/shadcn/input'
@@ -77,16 +78,13 @@ export default function WaitlistForm({ defaultEmail }: WaitlistFormProps) {
         </Field>
         <Field data-invalid={error === copy.waitlist.invalidPhone ? true : undefined}>
           <FieldLabel htmlFor="waitlist-phone">{copy.waitlist.phone}</FieldLabel>
-          <Input
+          <PhoneInput
             id="waitlist-phone"
-            type="tel"
-            size="lg"
-            inputMode="tel"
             value={phone}
-            onChange={(e) => setPhone(e.target.value)}
+            onChange={setPhone}
             placeholder={copy.waitlist.phonePlaceholder}
-            autoComplete="tel"
             required
+            autoComplete="tel"
           />
         </Field>
         <Field>
