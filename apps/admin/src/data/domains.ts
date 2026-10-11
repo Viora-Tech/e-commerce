@@ -108,6 +108,16 @@ export const domainsContent = {
  * server, then the free certificate is issued. Translated in `data/hi/domains.ts`.
  */
 export const domainCertificateContent = {
+  waitingDns:
+    'Waiting for DNS. This address does not point at our server yet. Add or fix its DNS record at your registrar. We keep checking on our own, or press Retry certificate once it is fixed.',
+  failed:
+    'The certificate could not be issued yet. DNS looks right, so we keep trying on our own. You can also try again now.',
+  badgeWaitingDns: 'Waiting for DNS',
+  badgeFailed: 'Certificate failed',
+  retry: 'Retry certificate',
+  retryBusy: 'Retrying',
+  retryStarted: 'Retrying the certificate. This takes about a minute.',
+  retryFailed: 'Could not retry the certificate',
   issuing: 'Getting your security certificate. This can take a few minutes.',
   retrying:
     'Getting your security certificate is taking longer than usual. We keep trying on our own. If it is not done in an hour, contact support.',

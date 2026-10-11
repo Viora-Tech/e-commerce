@@ -135,6 +135,12 @@ export async function storesWithPendingDomains(db: Db): Promise<string[]> {
   return rows.map((r) => r.id)
 }
 
+/** Store ids with a domain whose certificate needs checking or retrying, for the worker. SECURITY DEFINER backed. */
+export async function storesWithCertificateChecks(db: Db): Promise<string[]> {
+  const rows = await db.execute<{ id: string }>(sql`select stores_with_certificate_checks() as id`)
+  return rows.map((r) => r.id)
+}
+
 /** Store ids with review requests or reminders to send (Reviews app), for the worker. SECURITY DEFINER backed. */
 export async function storesWithDueReviewRequests(db: Db): Promise<string[]> {
   const rows = await db.execute<{ id: string }>(sql`select stores_with_due_review_requests() as id`)

@@ -117,6 +117,9 @@ export default function DomainsSettings({ domains }: DomainsSettingsProps) {
                 {d.kind === 'platform' ? (
                   <span className="text-caption text-muted-foreground">{copy.list.platform}</span>
                 ) : null}
+                {d.sslStatus === 'failed' && d.error ? (
+                  <span className="text-caption text-destructive">{d.error}</span>
+                ) : null}
               </div>
             </SettingsTableCell>
             <SettingsTableCell center>

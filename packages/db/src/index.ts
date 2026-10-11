@@ -14,6 +14,7 @@ export {
   resolveStoreForOrganization,
   storesWithAbandonedCarts,
   storesWithBalanceDue,
+  storesWithCertificateChecks,
   storesWithDueReviewRequests,
   storesWithMarketingWork,
   storesWithMemberDailySummaries,
