@@ -16,7 +16,11 @@ function fakePlatform(ok: boolean) {
     },
   }
   const platform: PlatformCodeSender = {
-    transport: { fromEmail: 'no-reply@vioratech.in', fromName: 'Vextro', channel: () => channel },
+    transport: {
+      fromEmail: 'no-reply@vioratech.in',
+      fromName: 'Sellverse',
+      channel: () => channel,
+    },
   }
   return { platform, sent }
 }
@@ -30,7 +34,7 @@ describe('email change emails', () => {
     expect(sent[0]).toMatchObject({
       to: { email: 'new@example.com' },
       template: 'email_change_code',
-      data: { code: '518204', storeName: 'Vextro' },
+      data: { code: '518204', storeName: 'Sellverse' },
     })
   })
 

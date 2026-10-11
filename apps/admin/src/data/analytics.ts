@@ -1,4 +1,5 @@
 import type { ReportCategory } from '@commerce/api'
+import { siteConfig } from '@commerce/config/site'
 
 /** Copy for the Analytics section. */
 export const analyticsContent = {
@@ -218,7 +219,7 @@ export const analyticsContent = {
     home: {
       intro: 'Ask a question in plain words, or open a saved report or a ready-made template.',
       askPlaceholder: 'Ask a question about your store…',
-      askLabel: 'Ask Vextro AI about your store',
+      askLabel: `Ask ${siteConfig.brand.name} AI about your store`,
       ask: 'Ask',
       try: 'Try',
       chips: [
@@ -227,9 +228,8 @@ export const analyticsContent = {
         'Repeat customers by city',
         'COD vs prepaid orders this week',
       ],
-      readOnly:
-        "Read-only. Vextro AI only reads your store's data; it never changes anything here.",
-      aiOff: 'Turn on Vextro AI in Settings to ask questions here.',
+      readOnly: `Read-only. ${siteConfig.brand.name} AI only reads your store's data; it never changes anything here.`,
+      aiOff: `Turn on ${siteConfig.brand.name} AI in Settings to ask questions here.`,
     },
     saved: {
       title: 'Saved reports',

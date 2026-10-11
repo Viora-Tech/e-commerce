@@ -15,7 +15,11 @@ function fakePlatform(result: { ok: boolean }) {
     },
   }
   const platform: PlatformCodeSender = {
-    transport: { fromEmail: 'no-reply@vioratech.in', fromName: 'Vextro', channel: () => channel },
+    transport: {
+      fromEmail: 'no-reply@vioratech.in',
+      fromName: 'Sellverse',
+      channel: () => channel,
+    },
   }
   return { platform, sent }
 }
@@ -32,7 +36,7 @@ describe('deliverPlatformLoginCode', () => {
     expect(sent[0]?.to.email).toBe('owner@example.com')
     expect(sent[0]?.template).toBe('login_code')
     expect(sent[0]?.data.code).toBe('482913')
-    expect(sent[0]?.data.storeName).toBe('Vextro')
+    expect(sent[0]?.data.storeName).toBe('Sellverse')
   })
 
   it('answers false when the provider refuses', async () => {

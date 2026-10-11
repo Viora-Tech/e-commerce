@@ -1,11 +1,12 @@
+import { siteConfig } from '@commerce/config/site'
 import { paletteContent } from '@/data/command-palette'
 import { translation } from '@/lib/i18n'
 
 export default [
   translation(paletteContent, {
     title: 'खोजें',
-    description: 'ऑर्डर, प्रोडक्ट, ग्राहक और पेज खोजें, या Vextro AI से पूछें।',
-    placeholder: 'खोजें या Vextro AI से पूछें…',
+    description: `ऑर्डर, प्रोडक्ट, ग्राहक और पेज खोजें, या ${siteConfig.brand.name} AI से पूछें।`,
+    placeholder: `खोजें या ${siteConfig.brand.name} AI से पूछें…`,
     esc: 'Esc',
     scopesLabel: 'यहाँ खोजें',
     scopes: {
@@ -34,7 +35,7 @@ export default [
       openCustomize: 'कस्टमाइज़ खोलें',
     },
     clearRecent: 'हटाएं',
-    askAi: (query) => `Vextro AI से पूछें: “${query}”`,
+    askAi: (query) => `${siteConfig.brand.name} AI से पूछें: “${query}”`,
     askAiHint: 'अपने स्टोर के डेटा से जवाब पाएं',
     seeAll: (n) => `सभी ${n} देखें →`,
     toggleTheme: 'लाइट और डार्क के बीच बदलें',
@@ -64,7 +65,7 @@ export default [
     loading: 'खोज रहे हैं…',
     count: (n) => `${n} नतीजे`,
     noResults: (query) => `“${query}” के लिए कुछ नहीं मिला`,
-    noResultsBody: 'स्पेलिंग जांचें, कम शब्द लिखें, या Vextro AI से पूछें।',
+    noResultsBody: `स्पेलिंग जांचें, कम शब्द लिखें, या ${siteConfig.brand.name} AI से पूछें।`,
     tips: [
       'ऑर्डर नंबर # के साथ या बिना, दोनों चलते हैं',
       'फ़ोन नंबर में कम से कम 4 अंक चाहिए',
