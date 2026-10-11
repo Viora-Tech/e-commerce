@@ -305,7 +305,9 @@ export async function addRegistration(
     : ((await primaryBusiness(tx)) ??
       (await insertBusiness(tx, storeId, {
         legalName: input.legalName || (await storeName(tx, storeId)),
-        tradeName: '',
+        // The first GST number names the business: its trade name too ("VIORA INDIA" on a
+        // proprietor's certificate whose legal name is the owner).
+        tradeName: input.tradeName,
         pan,
       })))
   if (owner.pan !== pan)

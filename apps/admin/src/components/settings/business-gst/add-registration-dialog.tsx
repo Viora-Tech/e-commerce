@@ -39,6 +39,7 @@ const EMPTY = {
   gstin: '',
   businessId: '',
   legalName: '',
+  tradeName: '',
   composition: false,
   invoicePrefix: '',
   line1: '',
@@ -88,6 +89,7 @@ export default function AddRegistrationDialog({
     gstin: form.gstin,
     ...(form.businessId ? { businessId: form.businessId } : {}),
     legalName: form.legalName,
+    tradeName: form.tradeName,
     registrationType: form.composition ? ('composition' as const) : ('regular' as const),
     invoicePrefix: form.invoicePrefix,
     legalAddress: { line1: form.line1, line2: form.line2, city: form.city, pincode: form.pincode },
@@ -177,6 +179,13 @@ export default function AddRegistrationDialog({
                 autoComplete="organization"
               />
             ) : null}
+            <GeneralTextField
+              id="gst-reg-trade-name"
+              label={copy.tradeName}
+              value={form.tradeName}
+              onChange={(tradeName) => patch({ tradeName })}
+              help={copy.tradeNameHelp}
+            />
             <Label className="flex items-start gap-2 font-normal text-body">
               <Checkbox
                 checked={form.composition}
