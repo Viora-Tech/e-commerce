@@ -31,7 +31,10 @@ export default function KeyboardShortcutsDialog({
               <p className="text-caption font-medium text-muted-foreground">{group.label}</p>
               <div className="flex flex-col gap-2">
                 {group.items.map((item) => (
-                  <div key={item.label} className="flex items-center justify-between gap-4">
+                  <div
+                    key={`${item.label}-${item.keys.join('+')}`}
+                    className="flex items-center justify-between gap-4"
+                  >
                     <span className="text-body text-foreground">{item.label}</span>
                     <span className="flex shrink-0 items-center gap-1">
                       {item.keys.map((key) => (
