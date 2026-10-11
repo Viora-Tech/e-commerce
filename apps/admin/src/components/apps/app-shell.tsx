@@ -95,7 +95,7 @@ export default async function AppShell({
           <div className="flex min-w-[min(100%,16rem)] flex-1 flex-col gap-1">
             <div className="flex flex-wrap items-center gap-3">
               <h1 className="text-page-title text-ink-strong">{name}</h1>
-              <StatusChip tone={setupHref ? 'attention' : 'neutral'} className="h-5 text-xs">
+              <StatusChip tone={setupHref ? 'attention' : 'success'} className="h-5 text-xs">
                 {setupHref ? copy.needsSetup : copy.active}
               </StatusChip>
             </div>

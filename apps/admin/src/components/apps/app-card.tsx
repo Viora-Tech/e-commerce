@@ -99,7 +99,7 @@ export default function AppCard({ app, variant, busy, onInstall, onUninstall }: 
         </div>
       </div>
       {app.installed ? (
-        <StatusChip tone={attention ? 'attention' : 'neutral'} className="h-5 self-start text-xs">
+        <StatusChip tone={attention ? 'attention' : 'success'} className="h-5 self-start text-xs">
           {attention ? (
             copy.needsSetup
           ) : variant === 'store' ? (
