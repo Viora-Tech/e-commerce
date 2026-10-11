@@ -286,6 +286,19 @@ export async function recentSignIns(
   }))
 }
 
+/**
+ * When the member's Google account was linked (their first Google sign-in), or null when it
+ * is not. Only the date: never the Google ids or tokens on the account row.
+ */
+export async function googleLinkedAt(db: Db, userId: string): Promise<Date | null> {
+  const [row] = await db
+    .select({ createdAt: authSchema.account.createdAt })
+    .from(authSchema.account)
+    .where(and(eq(authSchema.account.userId, userId), eq(authSchema.account.providerId, 'google')))
+    .limit(1)
+  return row?.createdAt ?? null
+}
+
 /** A signed-in device as Account → Sessions shows it. Never carries the session token. */
 export type MemberSession = {
   id: string

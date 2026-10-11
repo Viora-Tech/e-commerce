@@ -117,6 +117,19 @@ Full runbook: [Key rotation](/developer-docs/operations/key-rotation).
   entry, never the adapter root: its Node polyfills probe `Function()`, which the policy refuses.
   Both apps set Zod `jitless` in `instrumentation-client.ts` for the same reason, and every
   `not-found` renders per request so its scripts carry the nonce.
+- **Merchant Google sign-in** (`MERCHANT_GOOGLE_CLIENT_ID` / `_SECRET`, both or the provider is
+  left out of Better Auth): redirect flow with PKCE and a state row bound to the browser by a
+  signed cookie; One Tap (`idToken`) is off. `validateMerchantUserInfo`
+  (`packages/auth/src/merchant.ts`) refuses any Google identity whose `email_verified` claim is
+  not `true`, for sign-up, linking and every later sign-in. Linking is implicit only: same
+  email, verified on both sides (Better Auth's `requireLocalEmailVerified`), no trusted
+  providers; a linked Google account is found by its `sub`, so a changed Google email never
+  opens another member. Callback URLs must be on the admin origin (Better Auth's origin check,
+  forced on in every `NODE_ENV`). The admin route refuses `/link-social`, `/unlink-account`,
+  `/list-accounts`, `/get-access-token`, `/refresh-token` and `/account-info`
+  (`apps/admin/src/lib/auth-paths.ts`) and rate limits `/sign-in/social` per IP. Google's
+  tokens are stored encrypted (`encryptOAuthTokens`) and its photo URL is dropped. Tests:
+  `packages/auth/test/merchant-google.test.ts` (fakes Google's token endpoint).
 - **Dev sign-in codes**: `/api/dev/otp` answers 404 in any production build, whatever
   `DEV_LOGIN_OTP` says.
 - **CI**: every action in `.github/workflows` is pinned to a commit SHA with the release as a

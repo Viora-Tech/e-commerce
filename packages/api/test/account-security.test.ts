@@ -153,6 +153,34 @@ describe('recent sign-ins', () => {
   })
 })
 
+describe('Google sign-in', () => {
+  it('says when my Google account was linked, and only mine', async () => {
+    const a = await signIn('asha@example.com')
+    const b = await signIn('bilal@example.com')
+    const before = await call(appRouter.account.security, {}, { context: ctx(a) })
+    // No MERCHANT_GOOGLE_* keys in the test env: the admin does not offer Google.
+    expect(before.google).toEqual({ available: false, linkedAt: null })
+
+    const [asha] = await owner
+      .select({ id: authSchema.user.id })
+      .from(authSchema.user)
+      .where(eq(authSchema.user.email, 'asha@example.com'))
+    await owner.insert(authSchema.account).values({
+      id: 'asha-google',
+      accountId: 'google-sub-1',
+      providerId: 'google',
+      userId: asha?.id as string,
+      accessToken: 'secret-token',
+    })
+    const after = await call(appRouter.account.security, {}, { context: ctx(a) })
+    expect(after.google.linkedAt).toBeInstanceOf(Date)
+    expect(JSON.stringify(after)).not.toContain('secret-token')
+    expect(JSON.stringify(after)).not.toContain('google-sub-1')
+    const other = await call(appRouter.account.security, {}, { context: ctx(b) })
+    expect(other.google.linkedAt).toBeNull()
+  })
+})
+
 describe('change email', () => {
   it('sends a code to the new address, switches on the right code and tells the old address', async () => {
     const a = await signIn('asha@example.com')

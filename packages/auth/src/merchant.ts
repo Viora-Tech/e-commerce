@@ -68,13 +68,18 @@ export type MerchantAuthOptions = {
    * failure is logged and never blocks the sign-in.
    */
   onSignIn?: (event: SignInEvent) => Promise<void>
+  /**
+   * "Continue with Google" (`merchantGoogleSignIn` in @commerce/config). Null or unset leaves
+   * the provider out entirely, so `/sign-in/social` and `/callback/google` answer "not found".
+   */
+  google?: { clientId: string; clientSecret: string } | null | undefined
 }
 
 /** One sign-in, as `onSignIn` receives it. */
 export type SignInEvent = {
   userId: string
   sessionId: string
-  /** The Better Auth endpoint that opened the session ("/sign-in/email-otp", "/passkey/…"). */
+  /** The Better Auth endpoint that opened the session ("/sign-in/email-otp", "/passkey/…", "/callback/google"). */
   path: string | null | undefined
   ipAddress: string | null | undefined
   userAgent: string | null | undefined
@@ -83,8 +88,56 @@ export type SignInEvent = {
   trustLocation: boolean
 }
 
+/** The one social provider the admin offers, and the only one `validateMerchantUserInfo` passes. */
+const GOOGLE = 'google'
+
 /**
- * Platform-level auth for merchants and staff. Email OTP or a passkey, no passwords.
+ * The endpoint path with its params filled in: Better Auth reports the route pattern
+ * ("/callback/:id"), the sign-in log needs the provider ("/callback/google").
+ */
+function filledPath(
+  path: string | undefined,
+  params: Record<string, unknown> | undefined,
+): string | undefined {
+  return path?.replace(/:(\w+)/g, (match, name: string) => {
+    const value = params?.[name]
+    return typeof value === 'string' ? value : match
+  })
+}
+
+type UserInfoCheck = {
+  user: { emailVerified?: unknown }
+  source: {
+    method: string
+    oauth?: { providerId: string; profile?: Record<string, unknown> | undefined } | undefined
+  }
+}
+
+/**
+ * Better Auth's `user.validateUserInfo` gate, run before a Google user is created, linked to an
+ * existing member, or signed in again. Google itself must say the address is verified (the
+ * `email_verified` claim, not only the mapped flag): an unverified Google address is no proof
+ * of owning the inbox, and linking on it would hand that member's account over. Every
+ * non-OAuth method (email OTP) passes untouched.
+ */
+export function validateMerchantUserInfo(
+  data: UserInfoCheck,
+): { error: string; errorDescription: string } | undefined {
+  if (data.source.method !== 'oauth') return undefined
+  if (data.source.oauth?.providerId !== GOOGLE) {
+    return { error: 'provider_not_allowed', errorDescription: 'This sign-in method is off.' }
+  }
+  if (data.user.emailVerified !== true || data.source.oauth.profile?.email_verified !== true) {
+    return {
+      error: 'email_not_verified',
+      errorDescription: 'Google has not verified this email address.',
+    }
+  }
+  return undefined
+}
+
+/**
+ * Platform-level auth for merchants and staff. Email OTP, a passkey or Google, no passwords.
  * One organization = one store (store.organization_id). Better Auth owns these
  * tables; they carry no store_id and sit outside RLS on purpose.
  */
@@ -95,7 +148,45 @@ export function createMerchantAuth(opts: MerchantAuthOptions) {
     trustedOrigins: opts.trustedOrigins ?? [],
     database: drizzleAdapter(opts.db, { provider: 'pg' }),
     emailAndPassword: { enabled: false },
+    socialProviders: opts.google
+      ? {
+          google: {
+            clientId: opts.google.clientId,
+            clientSecret: opts.google.clientSecret,
+            // Always show Google's account chooser, so a shared computer does not quietly
+            // sign the next person in as whoever used Google there last.
+            prompt: 'select_account',
+            // The redirect flow only; the id-token sign-in (One Tap) is a second way in we
+            // do not use.
+            disableIdTokenSignIn: true,
+            // `emailVerified` is the claim itself, strictly true. Google's photo URL is dropped
+            // by the user create hook below.
+            mapProfileToUser: (profile) => ({ emailVerified: profile.email_verified === true }),
+          },
+        }
+      : {},
+    account: {
+      // Sign-in only: Google's tokens are never used, but Better Auth keeps them on the
+      // account row, so they are encrypted with the auth secret.
+      encryptOAuthTokens: true,
+      // A Google sign-in joins the member with the same email only when Google says it is
+      // verified (`validateMerchantUserInfo`) and the member's own email is verified (Better
+      // Auth's default `requireLocalEmailVerified`). No trusted providers: trusting Google
+      // would skip the verified check. `/link-social` is blocked in the admin route.
+      accountLinking: {
+        enabled: true,
+        trustedProviders: [],
+        allowDifferentEmails: false,
+        updateUserInfoOnLink: false,
+      },
+    },
+    user: {
+      validateUserInfo: (data) => validateMerchantUserInfo(data),
+    },
     advanced: {
+      // Better Auth skips its origin and callback-URL checks when NODE_ENV is `test`; keep them
+      // on everywhere, so the tests prove a sign-in is never sent back to another site.
+      disableOriginCheck: false,
       ipAddress:
         opts.trustedProxy === 'cloudflare'
           ? { ipAddressHeaders: ['cf-connecting-ip'] }
@@ -112,7 +203,7 @@ export function createMerchantAuth(opts: MerchantAuthOptions) {
               .onSignIn({
                 userId: session.userId,
                 sessionId: session.id,
-                path: ctx?.path,
+                path: filledPath(ctx?.path, ctx?.params),
                 ipAddress: session.ipAddress,
                 userAgent: session.userAgent,
                 headers: ctx?.headers ?? ctx?.request?.headers,
@@ -123,6 +214,11 @@ export function createMerchantAuth(opts: MerchantAuthOptions) {
         },
       },
       user: {
+        create: {
+          // A Google sign-up would otherwise store Google's photo URL as the new member's
+          // picture. Photos only come from Account → Profile (see update below).
+          before: async (data) => ({ data: { ...data, image: null } }),
+        },
         update: {
           // A member's photo is set only by the admin API (`account.setAvatar`), which
           // re-encodes it into our own storage and writes the row directly. Better Auth's

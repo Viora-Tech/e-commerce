@@ -39,6 +39,9 @@ x-app-env: &app-env
   PLATFORM_DOMAINS: ${PLATFORM_DOMAINS:-}
   PLATFORM_STORE_DOMAIN: ${PLATFORM_STORE_DOMAIN:-}
   MERCHANT_SIGNUP_MODE: ${MERCHANT_SIGNUP_MODE:-invite}
+  # Merchant "Continue with Google" on the admin login page; both blank hides the button.
+  MERCHANT_GOOGLE_CLIENT_ID: ${MERCHANT_GOOGLE_CLIENT_ID:-}
+  MERCHANT_GOOGLE_CLIENT_SECRET: ${MERCHANT_GOOGLE_CLIENT_SECRET:-}
   PLATFORM_SALES_STORE_ID: ${PLATFORM_SALES_STORE_ID:-}
   # Which proxy's client-IP header to believe for per-IP rate limits. `cloudflare` only when the
   # origin is firewalled to Cloudflare's IP ranges (see the deployment runbook); `none` ignores

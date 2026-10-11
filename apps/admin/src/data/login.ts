@@ -32,6 +32,19 @@ export const loginContent = {
   },
   sendFailed: 'Could not send the code',
   wrongCode: 'Wrong code',
+  google: {
+    button: 'Continue with Google',
+    or: 'or use your email',
+    failed: 'Could not sign in with Google. Try again, or use a code by email.',
+    /** Why Google sign-in came back refused (`?error=` on the login page), by Better Auth code. */
+    errors: {
+      access_denied: 'Google sign-in was cancelled.',
+      email_not_verified:
+        'Google has not verified this email address. Sign in with a code by email instead.',
+      account_not_linked:
+        'This email already has an account. Sign in with a code by email instead.',
+    },
+  },
   passkey: {
     or: 'or',
     button: 'Sign in with a passkey',

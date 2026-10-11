@@ -34,6 +34,16 @@ export default [
     },
     sendFailed: 'कोड नहीं भेज सके',
     wrongCode: 'कोड गलत है',
+    google: {
+      button: 'Google से जारी रखें',
+      or: 'या अपने ईमेल से',
+      failed: 'Google से साइन इन नहीं हो सका। फिर से कोशिश करें, या ईमेल वाले कोड से साइन इन करें।',
+      errors: {
+        access_denied: 'Google से साइन इन रद्द हो गया।',
+        email_not_verified: 'Google ने यह ईमेल पता वेरिफ़ाई नहीं किया है। ईमेल वाले कोड से साइन इन करें।',
+        account_not_linked: 'इस ईमेल का अकाउंट पहले से है। ईमेल वाले कोड से साइन इन करें।',
+      },
+    },
     passkey: {
       or: 'या',
       button: 'पासकी से साइन इन करें',
