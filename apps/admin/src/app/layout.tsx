@@ -1,5 +1,5 @@
 import type { Metadata } from 'next'
-import { Bricolage_Grotesque, DM_Sans } from 'next/font/google'
+import { Bricolage_Grotesque, DM_Sans, Geist_Mono } from 'next/font/google'
 import { headers } from 'next/headers'
 import { ThemeProvider } from 'next-themes'
 import { NuqsAdapter } from 'nuqs/adapters/next/app'
@@ -14,11 +14,12 @@ import { NONCE_HEADER } from '@/lib/csp'
 
 export const metadata: Metadata = { title: 'Admin' }
 
+/* Fonts match Proofly: variable DM Sans / Bricolage Grotesque (every weight, no static list)
+   and Geist Mono for numbers and code. */
 /* DM Sans (SIL OFL 1.1): every UI string. */
 const sans = DM_Sans({
   subsets: ['latin'],
   variable: '--font-primary',
-  weight: ['400', '500', '600'],
   display: 'swap',
   fallback: ['system-ui', 'sans-serif'],
 })
@@ -27,9 +28,16 @@ const sans = DM_Sans({
 const display = Bricolage_Grotesque({
   subsets: ['latin'],
   variable: '--font-display-face',
-  weight: ['700', '800'],
   display: 'swap',
   fallback: ['system-ui', 'sans-serif'],
+})
+
+/* Geist Mono (SIL OFL 1.1): code, ids and tabular numbers. */
+const mono = Geist_Mono({
+  subsets: ['latin'],
+  variable: '--font-mono-code',
+  display: 'swap',
+  fallback: ['ui-monospace', 'monospace'],
 })
 
 export default async function RootLayout({ children }: { children: ReactNode }) {
@@ -42,7 +50,11 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
   const nonce = (await headers()).get(NONCE_HEADER) ?? undefined
 
   return (
-    <html lang={locale} className={`${sans.variable} ${display.variable}`} suppressHydrationWarning>
+    <html
+      lang={locale}
+      className={`${sans.variable} ${display.variable} ${mono.variable}`}
+      suppressHydrationWarning
+    >
       {/* Extensions such as Grammarly write attributes onto <body> before React hydrates
           (data-gr-ext-installed, an inline margin). This only silences <body>'s own
           attributes; everything inside it is still checked. */}

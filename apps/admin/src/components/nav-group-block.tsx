@@ -1,7 +1,9 @@
 'use client'
 
+import { cn } from '@commerce/ui/lib/utils'
 import type { NavItem } from '@/data/navigation'
 import { usePermissions } from '@/hooks/use-permissions'
+import { SIDEBAR_DURATION, SIDEBAR_LABEL } from '@/lib/sidebar-motion'
 import NavSection from './nav-section'
 
 type NavGroupBlockProps = {
@@ -35,11 +37,19 @@ export default function NavGroupBlock({ label, items, pathname }: NavGroupBlockP
   return (
     <nav aria-label={label}>
       {label ? (
-        <p className="mb-1 px-6 text-caption font-normal text-muted-foreground-soft group-data-[collapsible=icon]:hidden">
+        <p
+          className={cn(
+            'mb-1 px-6 text-caption font-normal text-muted-foreground-soft group-data-[collapsible=icon]:mb-[-1.125rem]',
+            SIDEBAR_LABEL,
+            'transition-[opacity,margin]',
+          )}
+        >
           {label}
         </p>
       ) : null}
-      <ul className="flex flex-col gap-1 px-4 group-data-[collapsible=icon]:px-2">
+      <ul
+        className={`flex flex-col gap-1 px-4 transition-[padding] group-data-[collapsible=icon]:px-2 ${SIDEBAR_DURATION}`}
+      >
         {visible.map((item) => (
           <NavSection key={item.href} item={item} pathname={pathname} />
         ))}

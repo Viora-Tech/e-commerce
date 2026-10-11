@@ -15,11 +15,6 @@
 @source "../../../../packages/ui/src/**/*.{ts,tsx}";
 @source "../../../../packages/blocks/src/**/*.tsx";
 
-/* Admin-only variables. */
-:root {
-  --font-mono-code: ui-monospace, SFMono-Regular, Menlo, monospace;
-}
-
 /* Thin auto-hiding scrollbar; base styling, not a component. */
 @layer base {
   * {

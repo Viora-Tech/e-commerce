@@ -11,8 +11,26 @@ const plural = (n: number, one: string, many: string) =>
   `${n.toLocaleString('en-IN')} ${n === 1 ? one : many}`
 
 /** Every read scope the import asks for, in the order the Dev Dashboard lists them. */
-export const SCOPE_LIST =
-  'read_products, read_inventory, read_customers, read_orders, read_all_orders, read_content, read_online_store_navigation, read_files, read_metaobject_definitions, read_metaobjects, read_discounts and read_gift_cards'
+export const SCOPES = [
+  'read_products',
+  'read_inventory',
+  'read_customers',
+  'read_orders',
+  'read_all_orders',
+  'read_content',
+  'read_online_store_navigation',
+  'read_files',
+  'read_metaobject_definitions',
+  'read_metaobjects',
+  'read_discounts',
+  'read_gift_cards',
+] as const
+
+/** The scopes as one sentence, for the token steps. */
+export const SCOPE_LIST = `${SCOPES.slice(0, -1).join(', ')} and ${SCOPES[SCOPES.length - 1]}`
+
+/** The scopes as the comma-separated line the Dev Dashboard accepts when pasted. */
+export const SCOPE_CSV = SCOPES.join(',')
 
 export const shopifyImportContent = {
   base: '/apps/shopify-import',
@@ -79,27 +97,40 @@ export const shopifyImportContent = {
   },
 
   csv: {
-    title: 'Upload a Shopify CSV',
-    subtitle: 'Choose what the file holds, then preview. Nothing is written until you confirm.',
     kindHeading: 'What is in the file?',
     kinds: {
       products: {
         label: 'Products',
+        short: 'Items, variants, prices and stock',
         help: 'Shopify admin, Products, Export, "All products" as CSV for Excel or plain CSV. Variants, prices, stock, images, SEO and an HSN metafield column are read.',
       },
       customers: {
         label: 'Customers',
+        short: 'People, addresses and consent',
         help: 'Shopify admin, Customers, Export. Addresses, email marketing consent, notes and tags are read; customers are matched by email.',
       },
       orders: {
         label: 'Orders',
+        short: 'Past orders, as history',
         help: 'Shopify admin, Orders, Export. Orders arrive as read-only history: they do not change stock, send messages or create invoices.',
       },
-    } satisfies Record<CsvResource, { label: string; help: string }>,
+    } satisfies Record<CsvResource, { label: string; short: string; help: string }>,
     fileHeading: 'File',
-    choose: 'Choose CSV file',
-    replace: 'Choose another file',
-    none: 'No file chosen',
+    dropTitle: 'Drag a CSV file here',
+    dropBrowse: 'or choose a file from your computer',
+    dropActive: 'Drop the file to choose it',
+    dropReplace: 'Drop another file or choose one to replace it',
+    maxSize: 'One .csv file, up to 15 MB',
+    previewHint: 'Choose a file to continue',
+    howTo: {
+      heading: 'How to export from Shopify',
+      steps: [
+        'In your Shopify admin, open Products, Customers or Orders.',
+        'Click Export, then choose all items as a plain CSV file.',
+        'Drag the file you receive into the box on the left.',
+      ],
+      moreFor: (what: string) => `What is read from ${what}`,
+    },
     size: (bytes: number) => `${(bytes / 1024 / 1024).toFixed(1)} MB`,
     tooBig: 'This file is larger than 15 MB. Split it, or connect your store instead.',
     notCsv: 'Choose a .csv file exported from Shopify.',
@@ -108,11 +139,8 @@ export const shopifyImportContent = {
   },
 
   connect: {
-    title: 'Connect your Shopify store',
-    subtitle:
-      'Your credentials are stored encrypted and never shown again. Choose one of the two ways below.',
     mode: {
-      app: 'Connect with your Shopify app (recommended)',
+      app: 'Connect with your Shopify app',
       token: 'I already have an Admin API token',
     },
     app: {
@@ -121,12 +149,25 @@ export const shopifyImportContent = {
         'Shopify stopped allowing new custom apps from the admin on 1 January 2026. Apps are now made in the Dev Dashboard instead — it takes about five minutes.',
       stepsHeading: 'Create the app in the Dev Dashboard',
       steps: [
-        'Open the Shopify Dev Dashboard (partners.shopify.com or dev.shopify.com) and create an app.',
-        `Under Configuration, give the Admin API these read scopes: ${SCOPE_LIST}.`,
-        'Release a version of the app.',
-        'Install the app on your own store from the Dev Dashboard.',
-        'Copy the client ID and client secret from the app’s API credentials page and paste them below.',
-      ],
+        {
+          text: 'Open the Shopify Dev Dashboard and create an app.',
+          link: { label: 'Open Dev Dashboard', href: 'https://dev.shopify.com/dashboard' },
+        },
+        { text: 'Under Configuration, give the Admin API these read scopes.', scopes: true },
+        { text: 'Release a version of the app.' },
+        { text: 'Install the app on your own store from the Dev Dashboard.' },
+        {
+          text: 'Copy the client ID and client secret from the app’s API credentials page and paste them in the form.',
+        },
+      ] as {
+        text: string
+        link?: { label: string; href: string }
+        scopes?: true
+      }[],
+      scopesLabel: 'Admin API scopes',
+      copyScopes: 'Copy all scopes',
+      scopesCopied: 'Scopes copied',
+      formHeading: 'Your app’s details',
       docsLink:
         'https://shopify.dev/docs/apps/build/authentication-authorization/client-credentials-grant',
       docsLabel: 'How the client credentials grant works',
@@ -298,7 +339,9 @@ export const shopifyImportContent = {
     heading: 'What’s left to import',
     subtitle:
       'Shopify’s numbers next to what is already here, so you can see what is still missing.',
+    notConnectedHeading: 'Nothing to compare yet',
     notConnected: 'Connect your Shopify store to see what is left to import.',
+    connectAction: 'Connect your Shopify store',
     loadFailed: 'Couldn’t check what is left. Reload the page to try again.',
     columns: { what: 'Type', inShopify: 'In Shopify', here: 'Here', status: 'Status' },
     state: {
@@ -318,6 +361,8 @@ export const shopifyImportContent = {
       preview: 'Run a preview',
     },
     importRemaining: 'Import remaining',
+    previewEverything: 'Preview everything',
+    previewStarted: 'Preview started',
     allHere: 'Everything is here',
     fromShopify: 'Counted live from Shopify',
     fromImport: (when: string) => `Counted by the full import on ${when}`,
