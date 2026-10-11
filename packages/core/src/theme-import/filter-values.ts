@@ -20,6 +20,8 @@ export type LiquidRuntime = {
   nonce: string
   /** The merchant's old Shopify host, for `file_url` images we did not copy. */
   shopifyHost: string | null
+  /** Our URL for a Shopify file name the importer copied (loose name match), else null. */
+  importedFileUrl?: ((name: string) => string | null) | undefined
 }
 
 export type Named = Record<string, unknown>
@@ -281,4 +283,62 @@ export function paymentIcon(type: unknown): string {
       .replace(/\b\w/g, (c) => c.toUpperCase()),
   )
   return `<svg class="icon icon--full-color" xmlns="http://www.w3.org/2000/svg" role="img" viewBox="0 0 38 24" width="38" height="24" aria-label="${label}"><rect x=".5" y=".5" width="37" height="23" rx="3" fill="#fff" stroke="#000" stroke-opacity=".07"/><text x="19" y="15" text-anchor="middle" font-family="Arial, sans-serif" font-size="6.5" font-weight="700" fill="#222">${label.slice(0, 10)}</text></svg>`
+}
+
+type VideoSourceLike = { url?: string; mime_type?: string; height?: number }
+
+/**
+ * `video | video_tag` / `media | media_tag` for a video copied into Files: every mp4
+ * rendition as a `<source>` (the smaller one for phones, `max-width: 749px`), the poster
+ * picture, and the flags the theme asked for.
+ */
+export function videoTag(video: unknown, named: Named): string {
+  const v = video as {
+    sources?: VideoSourceLike[]
+    url?: string
+    preview_image?: { src: string } | null
+  } | null
+  const listed = (v?.sources ?? []).filter(
+    (s) => s.url && (s.mime_type ?? 'video/mp4') === 'video/mp4',
+  )
+  const sources = [...listed].sort((a, b) => (a.height ?? 0) - (b.height ?? 0))
+  const fallback = v?.url ?? (typeof video === 'string' ? video : '')
+  if (sources.length === 0 && !fallback) return ''
+  const flags = ['autoplay', 'loop', 'muted', 'controls']
+    .filter((f) => named[f])
+    .map((f) => `${f}="${f}"`)
+  const attrs = [
+    'playsinline="true"',
+    named.class ? `class="${escapeAttr(named.class)}"` : '',
+    ...flags,
+    `preload="${escapeAttr(named.preload ?? 'metadata')}"`,
+    v?.preview_image ? `poster="${escapeAttr(v.preview_image.src)}"` : '',
+  ].filter(Boolean)
+  const tags =
+    sources.length > 1
+      ? sources.map((s, i) =>
+          i === 0
+            ? `<source src="${escapeAttr(s.url ?? '')}" type="video/mp4" media="(max-width: 749px)">`
+            : `<source src="${escapeAttr(s.url ?? '')}" type="video/mp4">`,
+        )
+      : [`<source src="${escapeAttr(sources[0]?.url ?? fallback)}" type="video/mp4">`]
+  return `<video ${attrs.join(' ')}>${tags.join('')}</video>`
+}
+
+/**
+ * A Shopify Files name as one comparable key. A theme setting says `shopify://files/videos/Keyboard Bento.mp4`
+ * while Shopify's own file name may come back as `Keyboard_Bento.mp4` or percent-encoded:
+ * case, spaces, underscores and hyphens do not tell two files apart.
+ */
+export function importedFileKey(name: string): string {
+  let decoded = name
+  try {
+    decoded = decodeURIComponent(name)
+  } catch {
+    // not percent-encoded
+  }
+  return decoded
+    .trim()
+    .toLowerCase()
+    .replace(/[\s_-]+/g, '-')
 }

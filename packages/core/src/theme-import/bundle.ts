@@ -178,3 +178,20 @@ export function parsed(entry: EngineEntry, key: string, source: string): Templat
   entry.parsed.set(key, tpl)
   return tpl
 }
+
+const fileUrlUse = new WeakMap<ThemeBundle, boolean>()
+
+/** Whether any of the theme's Liquid calls `file_url`; only then is the imported-files lookup read. */
+export function usesFileUrl(bundle: ThemeBundle): boolean {
+  const known = fileUrlUse.get(bundle)
+  if (known !== undefined) return known
+  const sources = [
+    ...[...bundle.sections.values()].map((s) => s.source),
+    ...[...bundle.blocks.values()].map((s) => s.source),
+    ...bundle.snippets.values(),
+    bundle.layout ?? '',
+  ]
+  const uses = sources.some((s) => s.includes('file_url') || s.includes('file_img_url'))
+  fileUrlUse.set(bundle, uses)
+  return uses
+}

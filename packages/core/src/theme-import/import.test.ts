@@ -23,6 +23,7 @@ import { importedThemeIds, loadThemeBundle, themeAssetFile, themeImportFor } fro
 import { resolveThemeVariantId, storeLiquidData } from './data'
 import { LIQUID_SECTION } from './fields'
 import { cleanShopifyHost, importShopifyTheme, ThemeImportError } from './import'
+import { findImportedMedia } from './import-media'
 import { numericId } from './numeric-id'
 import { createPageContext } from './page-context'
 import { renderLiquidSection } from './render'
@@ -493,5 +494,43 @@ describe('importShopifyTheme with media the Shopify importer already copied', ()
     )
     expect(report.images).toMatchObject({ copied: 2, videosCopied: 1, skippedNoHost: 0 })
     expect(shopify.requests).toContain('https://old.example/')
+  })
+})
+
+describe('findImportedMedia for videos', () => {
+  it('matches a differently spelled file name and brings its poster and phone copy', async () => {
+    const storeId = await seedStore()
+    const add = async (name: string, contentType: string, resource: string, sourceId: string) => {
+      const [row] = await owner
+        .insert(media)
+        .values({
+          storeId,
+          url: `https://files.example/${name}`,
+          key: `k/${name}`,
+          provider: 'memory',
+          contentType,
+          size: 10,
+          width: 4,
+          height: 3,
+          status: 'ready',
+        })
+        .returning()
+      await owner.execute(
+        sql`insert into shopify_import_mapping (id, store_id, resource, source_id, local_id)
+          values (${newId()}, ${storeId}, ${resource}, ${sourceId}, ${row?.id})`,
+      )
+    }
+    await add('keyboard.mp4', 'video/mp4', 'file_name', 'keyboard_bento.mp4')
+    await add('keyboard-720.mp4', 'video/mp4', 'file_mobile', 'keyboard_bento.mp4')
+    await add('keyboard.jpg', 'image/jpeg', 'file_poster', 'keyboard_bento.mp4')
+    const found = await inStore(storeId, (tx) =>
+      findImportedMedia(tx, [], ['Keyboard Bento.mp4', 'missing.mp4']),
+    )
+    expect([...found.videos.keys()]).toEqual(['Keyboard Bento.mp4'])
+    expect(found.videos.get('Keyboard Bento.mp4')).toEqual({
+      url: 'https://files.example/keyboard.mp4',
+      mobileUrl: 'https://files.example/keyboard-720.mp4',
+      poster: { url: 'https://files.example/keyboard.jpg', width: 4, height: 3 },
+    })
   })
 })

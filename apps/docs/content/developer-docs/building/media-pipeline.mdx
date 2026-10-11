@@ -41,7 +41,7 @@ better trade for a small deployment. It also means EXIF (see below) is stripped 
      **master**, and it replaces the original at the same storage key. The pre-pipeline
      original (which may have carried GPS) is never left reachable under any key once this
      step finishes.
-   - Generate every width in `VARIANT_WIDTHS` (320/640/960/1280/1920) that doesn't exceed the
+   - Generate every width in `VARIANT_WIDTHS` (320/640/1280/1920; media made before 960 was dropped may still carry a 960 variant, and delivery uses whatever widths the row has) that doesn't exceed the
      master's width — never upscale — in both AVIF and WebP.
    - Hash a ThumbHash (`thumbhash`, MIT) from a small decode of the master.
 4. **Write back.** `markMediaProcessed` sets `status: 'ready'`, `variants` (a

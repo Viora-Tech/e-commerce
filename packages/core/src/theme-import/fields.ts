@@ -245,6 +245,20 @@ function settingField(
           alt: { type: 'text', label: 'Alt text' },
         },
       }
+    case 'video':
+      return {
+        type: 'object',
+        label,
+        objectFields: {
+          url: { type: 'text', label: 'Video URL (mp4)' },
+          mobileUrl: { type: 'text', label: 'Phone-sized video URL (mp4, optional)' },
+          poster: {
+            type: 'object',
+            label: 'Poster picture',
+            objectFields: { url: { type: 'text', label: 'Image URL' } },
+          },
+        },
+      }
     case 'textarea':
     case 'richtext':
     case 'inline_richtext':

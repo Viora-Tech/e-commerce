@@ -194,6 +194,15 @@ export type NFile = {
   alt: string | null
   /** The name in Shopify Files (`intro.mp4`), when Shopify gives it; themes refer to videos by it. */
   filename?: string | null | undefined
+  /** Videos: a smaller (720p or less) mp4 for phones, when Shopify has one. */
+  mobileUrl?: string | null | undefined
+  /** Videos: the preview picture Shopify made, used as the poster. */
+  posterUrl?: string | null | undefined
+  /** Videos: size of the phone-sized copy, bytes. */
+  mobileSize?: number | null | undefined
+  /** Images: pixels, when Shopify says. */
+  width?: number | null | undefined
+  height?: number | null | undefined
   mimeType: string | null
   /** Bytes, when Shopify says. */
   size: number | null

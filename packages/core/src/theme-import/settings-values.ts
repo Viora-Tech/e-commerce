@@ -142,9 +142,17 @@ export function liquidSettingValue(
     case 'video_url':
       return videoUrl(text)
     case 'video': {
-      const v = value as { url?: unknown; poster?: LiquidImageData | null } | null
+      const v = value as {
+        url?: unknown
+        mobileUrl?: unknown
+        poster?: LiquidImageData | null
+      } | null
       return v && typeof v === 'object' && typeof v.url === 'string' && v.url
-        ? new VideoDrop({ url: v.url, poster: v.poster ?? null })
+        ? new VideoDrop({
+            url: v.url,
+            mobileUrl: typeof v.mobileUrl === 'string' && v.mobileUrl ? v.mobileUrl : null,
+            poster: v.poster ?? null,
+          })
         : null
     }
     case 'metaobject':

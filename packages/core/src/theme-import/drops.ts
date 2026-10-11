@@ -186,6 +186,11 @@ export type LiquidDataSource = {
   /** Published entries by id, with the entries they link to. */
   metaobjects(ids: string[]): Promise<LiquidCustomData>
   /**
+   * Files the Shopify importer copied, by their Shopify file name (lowercase) → our URL, for
+   * `file_url`. Optional: a source without it leaves `file_url` pointing at the old store.
+   */
+  importedFiles?: (() => Promise<Map<string, string>>) | undefined
+  /**
    * Judge.me's shop-wide review data (`shop.metafields.judgeme.*`: `reviews_grid`,
    * `all_reviews_rating`...), built from the Reviews app; null when the app is not installed.
    */
@@ -269,11 +274,23 @@ export class VideoDrop extends Drop {
     height: number
   }[]
   readonly preview_image: ImageDrop | null
-  constructor(video: { url: string; poster?: LiquidImageData | null }) {
+  constructor(video: { url: string; mobileUrl?: string | null; poster?: LiquidImageData | null }) {
     super()
     this.id = urlNumber(video.url)
+    // Shopify lists a video's renditions; themes pick by height (a phone-sized one under 720).
     this.sources = [
       { url: video.url, mime_type: 'video/mp4', format: 'mp4', width: 1920, height: 1080 },
+      ...(video.mobileUrl && video.mobileUrl !== video.url
+        ? [
+            {
+              url: video.mobileUrl,
+              mime_type: 'video/mp4',
+              format: 'mp4',
+              width: 1280,
+              height: 720,
+            },
+          ]
+        : []),
     ]
     this.preview_image = imageDrop(video.poster)
   }

@@ -235,6 +235,9 @@ export const shopifyImportContent = {
     chooseHelp:
       'Products come first so collections, orders, discounts and extra fields can link to them.',
     scope: (s: string) => `Needs ${s}`,
+    unusedFiles: 'Also import unused files',
+    unusedFilesHelp:
+      'By default Files copies only the pictures and videos your products, collections, pages and articles use. Tick this to copy everything in your Shopify Files.',
     preview: 'Preview import',
     previewFailed: 'Could not start the preview',
   },
@@ -448,6 +451,8 @@ export const shopifyImportContent = {
       external_video: (n: number) =>
         `${plural(n, 'YouTube or Vimeo link', 'YouTube or Vimeo links')}. Add them to a section by their link.`,
       model_3d: (n: number) => `${plural(n, '3D model', '3D models')}, not supported yet.`,
+      unused_file: (n: number, kind: string) =>
+        `${plural(n, kind === 'video' ? 'unused video' : 'unused picture', kind === 'video' ? 'unused videos' : 'unused pictures')} nothing imported uses. Tick “Also import unused files” to copy ${n === 1 ? 'it' : 'them'}.`,
       file_not_ready: (n: number) =>
         `${plural(n, 'file', 'files')} Shopify was still processing. Run the import again later.`,
       storage_unwritable: (n: number) =>

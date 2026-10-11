@@ -35,6 +35,7 @@ export default function ConnectPage() {
   const [connection, setConnection] = useState<Connection | undefined>(undefined)
   const [chosen, setChosen] = useState<ImportResource[]>([...IMPORT_RESOURCES])
   const [busy, setBusy] = useState(false)
+  const [includeUnused, setIncludeUnused] = useState(false)
   const [checks, setChecks] = useState<PreflightCheck[]>([])
 
   useEffect(() => {
@@ -86,7 +87,10 @@ export default function ConnectPage() {
   const handlePreview = async () => {
     setBusy(true)
     try {
-      const run = await api.shopifyImport.createApiRun({ resources: importable })
+      const run = await api.shopifyImport.createApiRun({
+        resources: importable,
+        includeUnusedFiles: includeUnused && importable.includes('files'),
+      })
       router.push(`${base}/runs/${run.id}`)
     } catch (err) {
       toast.error(err instanceof Error ? err.message : copy.previewFailed)
@@ -180,6 +184,22 @@ export default function ConnectPage() {
             </label>
           ))}
         </CardContent>
+        {importable.includes('files') ? (
+          <CardContent>
+            <label htmlFor="include-unused-files" className="flex items-start gap-3">
+              <Checkbox
+                id="include-unused-files"
+                className="mt-0.5"
+                checked={includeUnused}
+                onCheckedChange={(v) => setIncludeUnused(Boolean(v))}
+              />
+              <span className="flex flex-col">
+                <span className="font-medium text-ink-strong">{copy.unusedFiles}</span>
+                <span className="text-caption text-muted-foreground">{copy.unusedFilesHelp}</span>
+              </span>
+            </label>
+          </CardContent>
+        ) : null}
       </Card>
       <PreflightCard checks={checks} />
       <div className="flex justify-end">

@@ -56,6 +56,8 @@ export const LEFT_BEHIND_REASONS = [
   /** Files the media library cannot hold yet (PDFs and other documents). */
   'file_type',
   'video_too_large',
+  /** A file nothing imported uses; "Also import unused files" copies it. */
+  'unused_file',
   'external_video',
   'model_3d',
   /** Shopify was still processing the file, or it failed there. */
@@ -106,6 +108,21 @@ export type ResourceProgress = {
    */
   copied?: number | undefined
   notCopied?: number | undefined
+  /** Files only: what the Files step copies (or would copy) and weighs once optimized. */
+  estimate?: FilesEstimate | undefined
+}
+
+/** Files counted by kind with their estimated stored size in bytes (after optimizing). */
+export type FilesBucket = { count: number; bytes: number }
+export type FilesEstimate = {
+  images: FilesBucket
+  videos: FilesBucket
+  other: FilesBucket
+  /** Files nothing uses; copied only when `includeUnused`. */
+  unused: FilesBucket
+  includeUnused: boolean
+  /** What will be stored: images, videos and other files that are copied. */
+  totalBytes: number
 }
 
 /** One sample row the dry run shows: what it is and what would happen to it. */
