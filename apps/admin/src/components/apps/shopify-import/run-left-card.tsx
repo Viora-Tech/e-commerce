@@ -1,5 +1,6 @@
 import { IMPORT_RESOURCES } from '@commerce/plugin-shopify-import/client'
 import DataCard from '@/components/layout/data-card'
+import ScrollSection from '@/components/layout/scroll-section'
 import { shopifyImportContent } from '@/data/shopify-import'
 import { useCopy } from '@/hooks/use-copy'
 import RunLeftGroup from './run-left-group'
@@ -27,11 +28,13 @@ export default function RunLeftCard({ run }: RunLeftCardProps) {
     <DataCard title={copy.heading}>
       <div className="flex flex-col gap-4">
         <p className="text-body text-muted-foreground">{copy.intro}</p>
-        <ul className="flex flex-col gap-2">
-          {groups.map(({ resource, left }, i) => (
-            <RunLeftGroup key={resource} resource={resource} left={left} defaultOpen={i < 2} />
-          ))}
-        </ul>
+        <ScrollSection id="shopify-import-left" label={copy.heading} count={groups.length}>
+          <ul className="flex flex-col gap-2">
+            {groups.map(({ resource, left }, i) => (
+              <RunLeftGroup key={resource} resource={resource} left={left} defaultOpen={i < 2} />
+            ))}
+          </ul>
+        </ScrollSection>
       </div>
     </DataCard>
   )

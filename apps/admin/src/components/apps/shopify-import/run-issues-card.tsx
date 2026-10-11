@@ -12,6 +12,7 @@ import {
 } from '@commerce/ui/shadcn/table'
 import { useEffect, useState } from 'react'
 import IconBadge from '@/components/layout/icon-badge'
+import ScrollSection from '@/components/layout/scroll-section'
 import { shopifyImportContent } from '@/data/shopify-import'
 import { shopifyImportRunContent } from '@/data/shopify-import-run'
 import { useCopy } from '@/hooks/use-copy'
@@ -105,29 +106,36 @@ export default function RunIssuesCard({
       </div>
       {all ? (
         <div className="overflow-hidden rounded-xl bg-card">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>{copy.issueColumns.where}</TableHead>
-                <TableHead>{copy.issueColumns.what}</TableHead>
-                <TableHead>{copy.issueColumns.message}</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {items.map((i) => (
-                <TableRow key={i.id}>
-                  <TableCell className="whitespace-nowrap text-muted-foreground">
-                    {i.row
-                      ? copy.line(i.row)
-                      : (resources[i.resource as keyof typeof shopifyImportContent.resources] ??
-                        i.resource)}
-                  </TableCell>
-                  <TableCell className="max-w-56 truncate font-medium">{i.ref ?? ''}</TableCell>
-                  <TableCell className="whitespace-normal">{i.message}</TableCell>
+          <ScrollSection
+            id="shopify-import-issues"
+            label={copy.issuesHeading(count)}
+            count={items.length}
+            maxHeight="min(32rem, 65vh)"
+          >
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>{copy.issueColumns.where}</TableHead>
+                  <TableHead>{copy.issueColumns.what}</TableHead>
+                  <TableHead>{copy.issueColumns.message}</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {items.map((i) => (
+                  <TableRow key={i.id}>
+                    <TableCell className="whitespace-nowrap text-muted-foreground">
+                      {i.row
+                        ? copy.line(i.row)
+                        : (resources[i.resource as keyof typeof shopifyImportContent.resources] ??
+                          i.resource)}
+                    </TableCell>
+                    <TableCell className="max-w-56 truncate font-medium">{i.ref ?? ''}</TableCell>
+                    <TableCell className="whitespace-normal">{i.message}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </ScrollSection>
           {pages > 1 ? (
             <div className="flex justify-end gap-2 p-4">
               <Button

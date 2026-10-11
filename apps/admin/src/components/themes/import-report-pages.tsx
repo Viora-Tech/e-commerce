@@ -1,5 +1,6 @@
 import type { TemplateReport } from '@commerce/core/theme-import'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@commerce/ui/shadcn/card'
+import ScrollSection from '@/components/layout/scroll-section'
 import type { themeImportContent } from '@/data/theme-import'
 
 type ImportReportPagesProps = {
@@ -29,19 +30,26 @@ export default function ImportReportPages({ copy, templates }: ImportReportPages
         <CardDescription>{copy.pagesBody}</CardDescription>
       </CardHeader>
       <CardContent className="p-0">
-        <ul className="divide-y divide-border">
-          {templates.map((t) => (
-            <li
-              key={t.name}
-              className="flex flex-wrap items-center justify-between gap-2 px-5 py-3"
-            >
-              <span className="text-body font-medium text-foreground">
-                {pageName(copy, t.name)}
-              </span>
-              <span className="text-body text-muted-foreground">{copy.pages[t.status]}</span>
-            </li>
-          ))}
-        </ul>
+        <ScrollSection
+          id="theme-report-pages"
+          label={copy.pagesHeading}
+          count={templates.length}
+          className="pb-2"
+        >
+          <ul className="divide-y divide-border">
+            {templates.map((t) => (
+              <li
+                key={t.name}
+                className="flex flex-wrap items-center justify-between gap-2 px-5 py-3"
+              >
+                <span className="text-body font-medium text-foreground">
+                  {pageName(copy, t.name)}
+                </span>
+                <span className="text-body text-muted-foreground">{copy.pages[t.status]}</span>
+              </li>
+            ))}
+          </ul>
+        </ScrollSection>
       </CardContent>
     </Card>
   )

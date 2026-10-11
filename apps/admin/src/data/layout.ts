@@ -117,4 +117,11 @@ export const layoutContent = {
   viewAllApps: (n: number) => `View all apps (${n})`,
   noStore: 'No store selected',
   toggleTheme: 'Toggle theme',
+  scroll: {
+    showing: (n: string) => `Showing ${n} items · scroll for more`,
+    showingAll: (n: string) => `Showing all ${n} items`,
+    more: 'Scroll for more',
+    expand: 'Show all',
+    collapse: 'Show less',
+  },
 } as const
