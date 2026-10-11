@@ -25,6 +25,7 @@ import { CUSTOMIZE_OVERRIDES } from '@/lib/customize-overrides'
 import { previewMetadata } from '@/lib/customize-preview'
 import { zoneItems } from '@/lib/customize-slots'
 import {
+  ImportedThemeContext,
   LiquidHeadContext,
   PreviewModeContext,
   ThemePreviewContext,
@@ -418,39 +419,41 @@ export default function CustomizeEditor({
         >
           <ThemePreviewContext.Provider value={settings}>
             <LiquidHeadContext.Provider value={liquidHead}>
-              <PreviewModeContext.Provider value={mode}>
-                <DynamicSourceContext.Provider value={sourceScope}>
-                  <CustomizeHotkeys />
-                  <CustomizeLayout
-                    topBar={topBar}
-                    settings={settingsPanel}
-                    pages={
-                      <PagesPanel
-                        themeId={record.id}
-                        value={ref}
-                        alternates={alternates}
-                        onPick={handleTemplate}
-                        onCreate={handleCreateFor}
-                        onManaged={handleManaged}
-                      />
-                    }
-                    dock={
-                      <CanvasDock
-                        mode={mode}
-                        darkMode={settings.darkMode.enabled}
-                        onMode={setModePick}
-                      />
-                    }
-                    device={device}
-                    loading={switching}
-                    store={store}
-                    templateLabel={templateLabel(ref)}
-                    template={ref.key}
-                    previewResource={previewResource}
-                    aiEnabled={ai.assistant}
-                  />
-                </DynamicSourceContext.Provider>
-              </PreviewModeContext.Provider>
+              <ImportedThemeContext.Provider value={liquidInfo ?? null}>
+                <PreviewModeContext.Provider value={mode}>
+                  <DynamicSourceContext.Provider value={sourceScope}>
+                    <CustomizeHotkeys />
+                    <CustomizeLayout
+                      topBar={topBar}
+                      settings={settingsPanel}
+                      pages={
+                        <PagesPanel
+                          themeId={record.id}
+                          value={ref}
+                          alternates={alternates}
+                          onPick={handleTemplate}
+                          onCreate={handleCreateFor}
+                          onManaged={handleManaged}
+                        />
+                      }
+                      dock={
+                        <CanvasDock
+                          mode={mode}
+                          darkMode={settings.darkMode.enabled}
+                          onMode={setModePick}
+                        />
+                      }
+                      device={device}
+                      loading={switching}
+                      store={store}
+                      templateLabel={templateLabel(ref)}
+                      template={ref.key}
+                      previewResource={previewResource}
+                      aiEnabled={ai.assistant}
+                    />
+                  </DynamicSourceContext.Provider>
+                </PreviewModeContext.Provider>
+              </ImportedThemeContext.Provider>
             </LiquidHeadContext.Provider>
           </ThemePreviewContext.Provider>
         </Puck>

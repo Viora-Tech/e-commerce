@@ -1,5 +1,6 @@
 import type { Theme } from '@commerce/core/theme'
 import { createContext, useContext } from 'react'
+import type { ImportedTheme } from './imported-sections'
 
 /** The theme being edited, for anything outside Puck's own tree that needs to render storefront sections (e.g. the add-section hover preview). */
 export const ThemePreviewContext = createContext<Theme | null>(null)
@@ -36,4 +37,14 @@ export const LiquidHeadContext = createContext<LiquidHead | null>(null)
 
 export function useLiquidHead(): LiquidHead | null {
   return useContext(LiquidHeadContext)
+}
+
+/**
+ * Set while Customize edits an imported theme: its section schemas, so the Add panel can offer
+ * the theme's own sections. `null` for our own themes.
+ */
+export const ImportedThemeContext = createContext<ImportedTheme | null>(null)
+
+export function useImportedTheme(): ImportedTheme | null {
+  return useContext(ImportedThemeContext)
 }
