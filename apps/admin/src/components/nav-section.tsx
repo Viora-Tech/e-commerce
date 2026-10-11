@@ -13,6 +13,7 @@ import {
   navigationContent,
 } from '@/data/navigation'
 import { base, instant, pill } from '@/lib/motion'
+import { SIDEBAR_CONTROL, SIDEBAR_LABEL } from '@/lib/sidebar-motion'
 
 type NavSectionProps = { item: NavItem; pathname: string }
 
@@ -24,7 +25,7 @@ const FOCUS =
 
 /* Proofly rail: 36px rows, icon left and chevron right; children are indented under the label.
    The active row is a soft blue fill (a shared layout element, so it slides) with a blue icon. */
-const ROW = `group/row relative isolate flex h-8 w-full min-w-0 items-center gap-2.5 rounded-[0.5rem] px-2.5 text-nav text-sidebar-foreground transition-colors hover:bg-muted [&_svg]:size-[1.125rem] [&_svg]:shrink-0 [&_svg]:text-muted-foreground group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0 ${FOCUS}`
+const ROW = `group/row relative isolate flex h-8 w-full min-w-0 items-center gap-2.5 overflow-hidden rounded-[0.5rem] px-[0.4375rem] text-nav text-sidebar-foreground transition-colors hover:bg-muted [&_svg]:size-[1.125rem] [&_svg]:shrink-0 [&_svg]:text-muted-foreground ${FOCUS}`
 const ROW_ACTIVE =
   'text-sidebar-accent-foreground hover:bg-transparent hover:text-sidebar-accent-foreground [&_svg]:text-sidebar-accent-foreground'
 const ROW_OPEN = 'font-medium text-ink-strong'
@@ -65,7 +66,7 @@ export default function NavSection({ item, pathname }: NavSectionProps) {
             ROW,
             linkActive && ROW_ACTIVE,
             open && !linkActive && ROW_OPEN,
-            children.length > 0 && 'pr-9 group-data-[collapsible=icon]:pr-0',
+            children.length > 0 && 'pr-9',
           )}
         >
           {linkActive ? (
@@ -77,9 +78,7 @@ export default function NavSection({ item, pathname }: NavSectionProps) {
             />
           ) : null}
           <item.icon weight={linkActive ? 'fill' : undefined} />
-          <span className="min-w-0 flex-1 truncate group-data-[collapsible=icon]:hidden">
-            {item.label}
-          </span>
+          <span className={cn('min-w-0 flex-1 truncate', SIDEBAR_LABEL)}>{item.label}</span>
         </Link>
         {children.length > 0 ? (
           <button
@@ -88,7 +87,8 @@ export default function NavSection({ item, pathname }: NavSectionProps) {
             aria-label={toggleLabel}
             onClick={handleToggle}
             className={cn(
-              'absolute top-1/2 right-1.5 flex size-6 -translate-y-1/2 items-center justify-center rounded text-muted-foreground transition-colors hover:text-foreground group-data-[collapsible=icon]:hidden',
+              'absolute top-1/2 right-1.5 flex size-6 -translate-y-1/2 items-center justify-center rounded text-muted-foreground hover:text-foreground',
+              SIDEBAR_CONTROL,
               linkActive && '[&_svg]:text-muted-foreground',
               FOCUS,
             )}

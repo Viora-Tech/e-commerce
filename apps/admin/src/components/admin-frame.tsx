@@ -12,6 +12,7 @@ import AdminSidebar from './admin-sidebar'
 import AssistantHost from './assistant/assistant-host'
 import BugReportHost from './bug-report/bug-report-host'
 import PaletteHost from './layout/palette-host'
+import SidebarShortcutGuard from './layout/sidebar-shortcut-guard'
 import TopBar from './layout/top-bar'
 
 type StoreOption = { id: string; name: string; slug: string }
@@ -68,9 +69,10 @@ export default function AdminFrame({
 
   return (
     <SidebarProvider
-      className="h-svh overflow-hidden"
+      className="h-svh overflow-hidden [--sidebar-ms:220ms] in-data-[sidebar-instant]:[--sidebar-ms:0ms] motion-reduce:[--sidebar-ms:0ms] [&_[data-slot=sidebar-container]]:duration-(--sidebar-ms) [&_[data-slot=sidebar-container]]:ease-out [&_[data-slot=sidebar-gap]]:duration-(--sidebar-ms) [&_[data-slot=sidebar-gap]]:ease-out"
       style={{ '--sidebar-width': SIDEBAR_WIDTH } as CSSProperties}
     >
+      <SidebarShortcutGuard />
       <AdminSidebar
         stores={stores}
         activeStoreId={activeStoreId}

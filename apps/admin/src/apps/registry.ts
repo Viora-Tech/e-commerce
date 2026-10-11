@@ -29,6 +29,7 @@ import ReviewsSettingsPage from '@/components/apps/reviews/settings-page'
 import S3ConnectPage from '@/components/apps/s3/connect-page'
 import ShiprocketConnectPage from '@/components/apps/shiprocket/connect-page'
 import ShiprocketOverviewPage from '@/components/apps/shiprocket/overview-page'
+import ConnectHeaderButton from '@/components/apps/shopify-import/connect-header-button'
 import ConnectPage from '@/components/apps/shopify-import/connect-page'
 import CsvPage from '@/components/apps/shopify-import/csv-page'
 import ImportsPage from '@/components/apps/shopify-import/imports-page'
@@ -49,6 +50,8 @@ export type AdminApp = {
   /** Keyed by the manifest page path, e.g. `''`, `'settings'`, `'invoices/[id]'`. */
   pages: Record<string, ComponentType<AppPageProps>>
   OrderCard?: ComponentType<{ orderId: string }>
+  /** A button in the app header beside the more menu, on every tab. */
+  HeaderAction?: ComponentType
 }
 
 export const ADMIN_APPS: Record<string, AdminApp> = {
@@ -141,6 +144,7 @@ export const ADMIN_APPS: Record<string, AdminApp> = {
     },
   },
   'shopify-import': {
+    HeaderAction: ConnectHeaderButton,
     pages: {
       '': ImportsPage,
       csv: CsvPage,

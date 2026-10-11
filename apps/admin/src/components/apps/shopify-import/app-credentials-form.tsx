@@ -1,5 +1,6 @@
 'use client'
 
+import { ExternalLink } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@commerce/ui/shadcn/card'
 import { Field, FieldDescription, FieldGroup, FieldLabel } from '@commerce/ui/shadcn/field'
@@ -10,6 +11,7 @@ import { toast } from 'sonner'
 import { shopifyImportContent } from '@/data/shopify-import'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import ConnectSteps from './connect-steps'
 
 type Connection = NonNullable<Awaited<ReturnType<typeof api.shopifyImport.connect>>>
 
@@ -47,29 +49,29 @@ export default function AppCredentialsForm({ onConnected }: AppCredentialsFormPr
     shopDomain.trim() !== '' && clientId.trim() !== '' && clientSecret.trim() !== '' && !busy
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,26rem)] lg:items-start">
       <Card>
         <CardHeader>
           <CardTitle>{copy.app.stepsHeading}</CardTitle>
         </CardHeader>
-        <CardContent className="flex flex-col gap-3">
+        <CardContent className="flex flex-col gap-5">
           <p className="text-body text-muted-foreground">{copy.app.intro}</p>
-          <ol className="flex list-decimal flex-col gap-2 pl-5 text-body text-muted-foreground">
-            {copy.app.steps.map((step) => (
-              <li key={step}>{step}</li>
-            ))}
-          </ol>
+          <ConnectSteps />
           <a
             href={copy.app.docsLink}
             target="_blank"
             rel="noreferrer"
-            className="text-body font-medium text-foreground underline underline-offset-2"
+            className="inline-flex w-fit items-center gap-1 text-body-strong text-primary underline-offset-4 hover:underline"
           >
             {copy.app.docsLabel}
+            <ExternalLink className="size-3.5" aria-hidden="true" />
           </a>
         </CardContent>
       </Card>
-      <Card>
+      <Card className="lg:sticky lg:top-4">
+        <CardHeader>
+          <CardTitle>{copy.app.formHeading}</CardTitle>
+        </CardHeader>
         <CardContent>
           <form onSubmit={handleConnect} className="flex flex-col gap-4">
             <FieldGroup>

@@ -14,7 +14,6 @@ import { Spinner } from '@commerce/ui/shadcn/spinner'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
-import PageHeader from '@/components/layout/page-header'
 import { shopifyImportContent } from '@/data/shopify-import'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
@@ -99,18 +98,12 @@ export default function ConnectPage() {
   if (connection === undefined) {
     return (
       <div className="flex max-w-3xl flex-col gap-4">
-        <PageHeader title={copy.title} subtitle={copy.subtitle} />
         <Skeleton className="h-48 w-full" />
       </div>
     )
   }
   if (connection === null) {
-    return (
-      <div className="flex max-w-3xl flex-col gap-4">
-        <PageHeader title={copy.title} subtitle={copy.subtitle} />
-        <ConnectForm onConnected={setConnection} />
-      </div>
-    )
+    return <ConnectForm onConnected={setConnection} />
   }
 
   // Render logic
@@ -134,7 +127,6 @@ export default function ConnectPage() {
 
   return (
     <div className="flex max-w-3xl flex-col gap-4">
-      <PageHeader title={copy.title} subtitle={copy.subtitle} />
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle>{copy.connection}</CardTitle>
