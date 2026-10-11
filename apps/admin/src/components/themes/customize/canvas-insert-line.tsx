@@ -2,7 +2,7 @@
 
 import { Plus } from '@commerce/ui/icons'
 import { cn } from '@commerce/ui/lib/utils'
-import { registerOverlayPortal } from '@puckeditor/core'
+import { registerOverlayPortal, useGetPuck } from '@puckeditor/core'
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
 import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
@@ -10,7 +10,6 @@ import { customizeContent } from '@/data/customize'
 import { type CustomizeDoc, locateSection } from '@/lib/customize-doc'
 import { type CanvasEdge, edgeNear, type SectionBox, targetForEdge } from '@/lib/customize-insert'
 import { useRequestInsert } from '@/lib/customize-insert-context'
-import { useCustomizePuck } from '@/lib/customize-puck'
 import { UNZOOMED, useCanvasZoom } from '@/lib/customize-zoom'
 
 type CanvasInsertLineProps = {
@@ -63,7 +62,9 @@ function visibleSpan(doc: Document, zoom: number): { left: number; right: number
  */
 export default function CanvasInsertLine({ document }: CanvasInsertLineProps) {
   // Hooks
-  const data = useCustomizePuck((s) => s.appState.data as unknown as CustomizeDoc)
+  // Read when the pointer moves, not subscribed: typing would otherwise redraw this and
+  // re-bind its listeners on every key.
+  const getPuck = useGetPuck()
   const requestInsert = useRequestInsert()
   const reducedMotion = useReducedMotion()
   const { zoom } = useCanvasZoom()
@@ -78,14 +79,18 @@ export default function CanvasInsertLine({ document }: CanvasInsertLineProps) {
       (BAND_REM *
         Number.parseFloat(view.getComputedStyle(document.documentElement).fontSize || '16')) /
       zoom
-    const handleMove = (e: PointerEvent) => {
+    // At most once a frame: every move measures each section on the page.
+    let frame = 0
+    let pointerY = 0
+    const measure = () => {
+      frame = 0
       const entry = document.querySelector('[data-puck-entry]')
       if (entry?.hasAttribute('data-puck-dragging')) {
         setHit(null)
         return
       }
-      const boxes = sectionBoxes(document, data)
-      const edge = edgeNear(boxes, e.clientY, band)
+      const boxes = sectionBoxes(document, getPuck().appState.data as unknown as CustomizeDoc)
+      const edge = edgeNear(boxes, pointerY, band)
       const box = edge ? boxes.find((b) => b.id === edge.id) : undefined
       if (!edge || !box) {
         setHit(null)
@@ -107,7 +112,15 @@ export default function CanvasInsertLine({ document }: CanvasInsertLineProps) {
           : { ...edge, left, width },
       )
     }
-    const handleHide = () => setHit(null)
+    const handleMove = (e: PointerEvent) => {
+      pointerY = e.clientY
+      if (!frame) frame = view.requestAnimationFrame(measure)
+    }
+    const handleHide = () => {
+      view.cancelAnimationFrame(frame)
+      frame = 0
+      setHit(null)
+    }
     const root = document.documentElement
     document.addEventListener('pointermove', handleMove)
     root.addEventListener('pointerleave', handleHide)
@@ -116,8 +129,9 @@ export default function CanvasInsertLine({ document }: CanvasInsertLineProps) {
       document.removeEventListener('pointermove', handleMove)
       root.removeEventListener('pointerleave', handleHide)
       view.removeEventListener('scroll', handleHide)
+      view.cancelAnimationFrame(frame)
     }
-  }, [document, data, zoom])
+  }, [document, getPuck, zoom])
 
   // Keeps Puck from treating a press on the "+" as the start of a section drag.
   useEffect(() => {
@@ -128,7 +142,7 @@ export default function CanvasInsertLine({ document }: CanvasInsertLineProps) {
   // Event handlers
   const handleInsert = () => {
     if (!hit) return
-    const located = locateSection(data, hit.id)
+    const located = locateSection(getPuck().appState.data as unknown as CustomizeDoc, hit.id)
     if (!located) return
     setHit(null)
     requestInsert(targetForEdge(hit, located))

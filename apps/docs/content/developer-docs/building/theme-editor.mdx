@@ -150,9 +150,15 @@ banner" (`inspector-breadcrumb.tsx`), and each container in it selects that cont
 - Each side panel hides and shows from a small tab on the canvas edge (`panel-toggle.tsx`); the
   choice is remembered in this browser (`lib/customize-view.ts`, `customize.panels.v1`). A rail
   tab reopens a hidden left panel.
-- **Full view** (`full-view-button.tsx` in the top bar, `\` or Ctrl/⌘ + `.`) hides the rail, both
-  panels and the canvas dock; a floating "Exit full view" pill and Esc bring them back
-  (`full-view-exit.tsx`, listening in the admin and the canvas frame, never while typing).
+- **Full view** (`full-view-button.tsx` in the top bar, `\` or Ctrl/⌘ + `.`) hides the top bar,
+  the rail, both panels and the canvas dock, and the page fills the window edge to edge: at
+  Desktop it is laid out at the window's own width with no gutter, frame or rounded corners
+  (tablet and phone keep their width, centred). It opens in **Preview**, Puck's interactive mode
+  (`previewMode: 'interactive'`, set by `customize-layout.tsx`), where a click works as on the
+  live store; the floating pill (`full-view-exit.tsx`) switches between Preview and **Edit** and
+  has "Exit full view"; Esc leaves (listening in the admin and the canvas frame, never while
+  typing). The storefront's `scrollbar-gutter: stable` on `<html>` is undone for the admin
+  document in `vendor-puck.css`, so no empty stripe runs down the editor's right edge.
 - Scrolling: every left tab and the inspector scroll inside their own column. The Add panel's
   list scrolls in a box outside Puck's `Drawer`, which has no height of its own.
 - The storefront's block CSS (needed in the admin document so Puck mirrors it into the canvas)
@@ -393,6 +399,29 @@ tab.
 - It is registered with `registerOverlayPortal` and stops its clicks, so pressing a button never
   drags the block or clears the selection. Moves use `stepActions`, so the moved block stays
   selected.
+- Its grip (six dots, before the name chip) is the only place a block is picked up on the canvas:
+  `forwardSectionDrag` hands the press to the block as its own `pointerdown`, and Puck's drag
+  sensor follows the pointer from there. The Layers tree and Alt+↑/↓ move blocks too.
+- `BlockToolbar` itself only decides whether to draw; the bar (`block-toolbar-bar.tsx`, the one
+  that reads the page from the store) mounts for the hovered and the selected block only.
+
+### Canvas pointer rules
+
+Puck's iframe styles make each section a drag source: a grab hand everywhere and
+`pointer-events: none` on everything inside it. `lib/customize-canvas-interaction.ts` (installed by
+`preview-frame.tsx`) makes the canvas behave like the page instead:
+
+- the page's own arrow over sections; inline text keeps its text cursor, and dragging across it
+  selects words;
+- the selected section's controls (buttons, tabs, `summary`, inputs, `role="button"` and the
+  like, but never Puck's own drag sources) take clicks: carousel arrows, tabs and accordions work
+  while editing;
+- a press on section content never reaches Puck's drag sensor (a window capture listener stops
+  it; clicks still select);
+- links never load inside the canvas and forms never post, in either mode.
+
+Imported (Liquid) sections are server-rendered with their scripts removed, so their own carousels
+and tabs do not move on the canvas; the storefront runs them.
 - Selected blocks get a 1px solid accent outline and hovered ones a dashed one, no tinted fill
   (`vendor-puck.css`). The bar fades in over 150 ms; reduced motion shows it at once.
 
@@ -486,7 +515,10 @@ in `apps/admin/src/lib/customize-chrome.ts` so new panels pick it up instead of 
 | Focus | `CHROME_FOCUS`, a 2px inset accent ring on every button and row |
 | Motion | colour transitions 150ms; heights and slides 150 to 200 ms; all off under reduced motion |
 
-Icons are one family: Phosphor at **regular** weight, 16px in the sidebar and 14px inline. Section
+Icons are one family, Phosphor from `@commerce/ui/icons`. The rail follows the admin sidebar
+(`nav-section.tsx`): **duotone** at 18px in the muted colour, the open panel **filled** in the
+accent on its soft tile. Everywhere else in the chrome: **regular** weight, 16px in the sidebar
+and 14px inline. Section
 glyphs come from `editorGlyphs` in `packages/ui/src/icons.tsx`; `SectionIcon` picks one per type
 (`sectionGlyph`) and, with `tile="sm" | "md"`, draws it on a small tile tinted by the section's
 kind (`lib/customize-section-kinds.ts`):
@@ -500,7 +532,33 @@ kind (`lib/customize-section-kinds.ts`):
 | app | `chart-2` | any `<app-id>/<Name>` app block |
 
 Tints are a 12% wash of the token with the glyph in the full token colour, so light and dark read
-the same. The admin font stays Satoshi (from the Figma kit).
+the same. An imported Shopify section (`LiquidSection`) takes its glyph and kind from words in its
+file name (`props.sectionType`: `hero-carousel`, `logo-carousel`, `reviews-showcase`;
+`sectionHandle` and `IMPORTED_GLYPHS`), so Layers no longer shows one page glyph for all of them.
+In the Add panel, a block with no picture or mockup (Layout, Elements, app blocks) shows its glyph
+on its kind's tile (`section-preview.tsx`) instead of the same three text lines.
+
+## Canvas performance
+
+Measured with Chrome traces on a 24-section home page and the 19-section imported Waimers theme
+(October 2026, `fix/builder-feel`). What keeps the editor fast:
+
+- **Off-screen sections stop animating** (`installOffscreenPause`, `OFFSCREEN_PAUSE_CSS` in
+  `lib/customize-canvas-motion.ts`): an IntersectionObserver marks sections out of view (200px
+  margin) and their CSS animations, pseudo-elements included, and scripted Web Animations pause.
+  Marquees, orbits and shimmers used to keep the page producing frames, and each frame re-layered
+  the whole page: about a third of a CPU core with the editor idle.
+- **The drag FLIP loop runs only during a drag** (it watches `data-puck-dragging`), not every
+  frame for the editor's life.
+- **Layers rows follow their own section**: `SectionGroup` subscribes to a JSON string of its rows'
+  ids and names (`rowsKey`), and each `SectionTreeEntry` selects its own section by index. Puck
+  keeps an unedited section the same object, so a keystroke redraws one row, not the tree.
+- **One store subscription per toolbar, not per block** (`BlockToolbar` / `BlockToolbarBar`).
+- **The insert line reads the page when the pointer moves** (`useGetPuck`) and measures at most
+  once a frame; the audit count (`SectionsPanel`) is a `useDeferredValue`, worked out after the
+  keystroke paints.
+- **Drafts**: once the page has changes, a keystroke skips serialising the page to compare it;
+  the debounced write (600 ms) still compares each row before it sends. The admin font stays Satoshi (from the Figma kit).
 
 ## Data shapes
 

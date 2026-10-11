@@ -1,7 +1,7 @@
 'use client'
 
 import { cn } from '@commerce/ui/lib/utils'
-import { useState } from 'react'
+import { useDeferredValue, useState } from 'react'
 import { customizeContent } from '@/data/customize'
 import { useCopy } from '@/hooks/use-copy'
 import { auditTemplate } from '@/lib/customize-audit'
@@ -29,7 +29,8 @@ const TABS: Tab[] = ['sections', 'audit']
 export default function SectionsPanel({ onOpenTheme, templateLabel }: SectionsPanelProps) {
   // Hooks
   const copy = useCopy(customizeContent.audit)
-  const data = useCustomizePuck((s) => s.appState.data as unknown as CustomizeDoc)
+  // The audit count reads the whole page: worked out after the keystroke has painted.
+  const data = useDeferredValue(useCustomizePuck((s) => s.appState.data as unknown as CustomizeDoc))
   const components = useCustomizePuck((s) => s.config.components)
   const theme = useThemePreview()
   const [tab, setTab] = useState<Tab>('sections')

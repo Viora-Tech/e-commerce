@@ -30,6 +30,7 @@ import {
   CHROME_ROW_SELECTED,
   CHROME_TRANSITION,
 } from '@/lib/customize-chrome'
+import { sectionHandle } from '@/lib/customize-section-kinds'
 import SectionIcon from './section-icon'
 
 type SectionRowProps = {
@@ -151,7 +152,7 @@ export default function SectionRow({
       )}
       {renaming ? (
         <span className="flex min-w-0 flex-1 items-center gap-2 pl-0.5">
-          <SectionIcon type={section.type} tile="sm" />
+          <SectionIcon type={section.type} handle={sectionHandle(section)} tile="sm" />
           <input
             ref={inputRef}
             // biome-ignore lint/a11y/noAutofocus: the input only exists because Rename was just chosen.
@@ -181,6 +182,7 @@ export default function SectionRow({
         >
           <SectionIcon
             type={section.type}
+            handle={sectionHandle(section)}
             tile="sm"
             className={cn(hidden && 'opacity-50 grayscale')}
           />

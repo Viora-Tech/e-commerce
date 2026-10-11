@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { SECTION_ICONS } from './customize-puck'
-import { KIND_TILE, sectionGlyph, sectionKind } from './customize-section-kinds'
+import { KIND_TILE, sectionGlyph, sectionHandle, sectionKind } from './customize-section-kinds'
 
 describe('sectionKind', () => {
   it('reads app blocks from their namespaced type', () => {
@@ -33,5 +33,27 @@ describe('sectionGlyph', () => {
     expect(sectionGlyph('MainProduct')).toBe('package')
     expect(sectionGlyph('acme/Widget')).toBe('shapes')
     expect(sectionGlyph('SomethingNew')).toBe('page')
+  })
+})
+
+describe('imported sections', () => {
+  it('pick a glyph and kind from the section file name', () => {
+    expect(sectionGlyph('LiquidSection', 'hero-carousel')).toBe('carousel')
+    expect(sectionGlyph('LiquidSection', 'logo-carousel')).toBe('shapes')
+    expect(sectionGlyph('LiquidSection', 'reviews-showcase')).toBe('quote')
+    expect(sectionGlyph('LiquidSection', 'announcement-bar')).toBe('megaphone')
+    expect(sectionGlyph('LiquidSection', 'tabbed-products')).toBe('tabs')
+    expect(sectionKind('LiquidSection', 'featured-product')).toBe('product')
+    expect(sectionKind('LiquidSection', 'header')).toBe('layout')
+  })
+
+  it('fall back to the page glyph for a name with no known word', () => {
+    expect(sectionGlyph('LiquidSection', 'xyz')).toBe('page')
+    expect(sectionGlyph('LiquidSection')).toBe('page')
+  })
+
+  it('read the file name from the section props', () => {
+    expect(sectionHandle({ props: { sectionType: 'footer' } })).toBe('footer')
+    expect(sectionHandle({ props: {} })).toBeUndefined()
   })
 })

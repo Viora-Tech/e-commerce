@@ -136,6 +136,14 @@
   }
 }
 
+/* The storefront's base.css reserves a scrollbar gutter on <html> (`scrollbar-gutter: stable`),
+ * which in the admin document left a 15px empty stripe down the editor's right edge, full view
+ * included: the editor never scrolls the page itself. The canvas frame keeps the storefront's
+ * rule (it has no `data-editor-chrome`). */
+:root:has([data-editor-chrome]) {
+  scrollbar-gutter: auto;
+}
+
 /* One screen pixel at any canvas zoom (`--canvas-zoom`, lib/customize-zoom.ts). */
 [data-puck-overlay] [class*="DraggableComponent-overlay_"] {
   outline: calc(1px / var(--canvas-zoom, 1)) solid var(--primary);

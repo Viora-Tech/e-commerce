@@ -109,9 +109,72 @@ const KINDS: Record<string, SectionKind> = {
   CustomHtml: 'app',
 }
 
-/** The kind a section type belongs to; unknown types read as layout. */
-export function sectionKind(type: string): SectionKind {
+/** An imported Shopify theme's sections are all `LiquidSection`; its file name says what each is. */
+const IMPORTED = 'LiquidSection'
+
+/**
+ * Glyphs for an imported section, from words in its file name (`hero-carousel`,
+ * `logo-carousel`, `reviews-showcase`), first match wins. Before this every imported section
+ * showed the same page glyph in Layers.
+ */
+const IMPORTED_GLYPHS: [RegExp, EditorGlyph][] = [
+  [/announcement|ticker/, 'megaphone'],
+  [/footer/, 'footer'],
+  [/header|dock|menu|nav/, 'header'],
+  [/logo|brand|partner/, 'shapes'],
+  [/review|testimonial|quote/, 'quote'],
+  [/faq|accordion|collapsible/, 'accordion'],
+  [/newsletter|signup|email|subscribe|popup/, 'send'],
+  [/video/, 'video'],
+  [/blog|article|notes|news|journal/, 'news'],
+  [/gallery|social|instagram|lookbook/, 'gallery'],
+  [/compar|before-after/, 'split'],
+  [/tab/, 'tabs'],
+  [/hero|slideshow|banner|carousel|slider/, 'carousel'],
+  [/marquee|scroll/, 'marquee'],
+  [/stat|counter|number/, 'stats'],
+  [/bento|grid|panel|collection|category|list/, 'grid'],
+  [/product|drop|ship|match|reveal|cart|shop/, 'package'],
+  [/cta|discord|community|contact/, 'megaphone'],
+  [/cookie|consent/, 'shapes'],
+  [/image|picture|photo/, 'image'],
+  [/text|story|about|content/, 'text'],
+]
+
+const GLYPH_KINDS: Partial<Record<EditorGlyph, SectionKind>> = {
+  header: 'layout',
+  footer: 'layout',
+  tabs: 'layout',
+  accordion: 'layout',
+  shapes: 'media',
+  gallery: 'media',
+  video: 'media',
+  carousel: 'media',
+  marquee: 'media',
+  image: 'media',
+  split: 'media',
+  grid: 'product',
+  package: 'product',
+}
+
+/** An imported section's file name, the `handle` `sectionKind` and `sectionGlyph` take. */
+export function sectionHandle(section: { props?: Record<string, unknown> }): string | undefined {
+  const handle = section.props?.sectionType
+  return typeof handle === 'string' ? handle : undefined
+}
+
+function importedGlyph(handle: string | undefined): EditorGlyph {
+  const name = (handle ?? '').toLowerCase()
+  return IMPORTED_GLYPHS.find(([words]) => words.test(name))?.[1] ?? 'page'
+}
+
+/**
+ * The kind a section type belongs to; unknown types read as layout. `handle` is an imported
+ * section's file name (`props.sectionType`), which decides for `LiquidSection`.
+ */
+export function sectionKind(type: string, handle?: string): SectionKind {
   if (type.includes('/')) return 'app'
+  if (type === IMPORTED) return GLYPH_KINDS[importedGlyph(handle)] ?? 'text'
   return KINDS[type] ?? 'layout'
 }
 
@@ -159,8 +222,9 @@ const EXTRA_GLYPHS: Record<string, EditorGlyph> = {
   CustomHtml: 'code',
 }
 
-/** The glyph a section type shows, from the one editor glyph family. */
-export function sectionGlyph(type: string): EditorGlyph {
+/** The glyph a section type shows, from the one editor glyph family (`handle`: see `sectionKind`). */
+export function sectionGlyph(type: string, handle?: string): EditorGlyph {
+  if (type === IMPORTED) return importedGlyph(handle)
   const extra = EXTRA_GLYPHS[type]
   if (extra) return extra
   if (type.includes('/')) return 'shapes'

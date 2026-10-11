@@ -4,7 +4,7 @@ import type { TemplateKey } from '@commerce/core/theme'
 import { Plus } from '@commerce/ui/icons'
 import { cn } from '@commerce/ui/lib/utils'
 import { Button } from '@commerce/ui/shadcn/button'
-import { Puck } from '@puckeditor/core'
+import { Puck, useGetPuck } from '@puckeditor/core'
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
 import type { ReactNode } from 'react'
 import { useEffect, useState } from 'react'
@@ -13,6 +13,7 @@ import { useCopy } from '@/hooks/use-copy'
 import { CHROME_PANEL } from '@/lib/customize-chrome'
 import type { InsertTarget } from '@/lib/customize-insert'
 import { InsertContext } from '@/lib/customize-insert-context'
+import { useCustomizePuck } from '@/lib/customize-puck'
 import type { ResourceKind } from '@/lib/customize-resource'
 import type { EditorKey } from '@/lib/customize-shortcuts'
 import { EditorViewContext, useEditorViewState } from '@/lib/customize-view'
@@ -83,6 +84,8 @@ export default function CustomizeLayout({
   const panels = useCopy(customizeContent.panels)
   const identity = useCopy(customizeContent.identity)
   const [zoomMode, setZoomMode] = useState<CanvasZoom>('fit')
+  const dispatch = useCustomizePuck((s) => s.dispatch)
+  const getPuck = useGetPuck()
   // Called later, on a key press, so it can use the handler declared below.
   useEditorKeys((key, e) => handleKey(key, e))
   // The canvas area's inner size: Fit scales the page into its width, and the frame fills
@@ -99,6 +102,13 @@ export default function CustomizeLayout({
     observer.observe(stage)
     return () => observer.disconnect()
   }, [stage])
+  // Full view shows the page as shoppers get it: Puck's interactive mode, where a click works
+  // like on the live store. Leaving it goes back to editing.
+  useEffect(() => {
+    const previewMode = view.full ? 'interactive' : 'edit'
+    if (getPuck().appState.ui.previewMode !== previewMode)
+      dispatch({ type: 'setUi', ui: { previewMode } })
+  }, [dispatch, getPuck, view.full])
 
   // Event handlers
   /** A rail tab opens the left panel if it was hidden. */
@@ -147,9 +157,12 @@ export default function CustomizeLayout({
   }
   const panelContent = content[panel]
 
-  const devicePx = DEVICE_PX[device]
+  // Full view at desktop width lays the page out at the window's own width, edge to edge;
+  // tablet and phone keep their width, centred.
+  const fullBleed = view.full && device === 'desktop' && room.width > 0
+  const devicePx = fullBleed ? room.width : DEVICE_PX[device]
   const fit = fitZoom(devicePx, room.width)
-  const zoom = zoomMode === 'fit' ? fit : zoomMode
+  const zoom = fullBleed ? 1 : zoomMode === 'fit' ? fit : zoomMode
   const zoomState = { zoom, mode: zoomMode, fit, devicePx, setMode: setZoomMode }
   const resize = reducedMotion ? '' : 'duration-200 ease-out'
   const showLeft = view.left && !view.full
@@ -160,8 +173,8 @@ export default function CustomizeLayout({
       <CanvasZoomContext.Provider value={zoomState}>
         <InsertContext.Provider value={setInserting}>
           <div data-editor-chrome="" className="flex h-svh flex-col bg-sidebar">
-            {topBar}
-            <div className="flex min-h-0 flex-1 border-t border-border">
+            {view.full ? null : topBar}
+            <div className={cn('flex min-h-0 flex-1', !view.full && 'border-t border-border')}>
               {view.full ? null : (
                 <CustomizeRail active={panel} onChange={openPanel} store={store} />
               )}
@@ -224,12 +237,16 @@ export default function CustomizeLayout({
                 <div
                   ref={setStage}
                   data-canvas-stage=""
-                  className="flex min-h-0 min-w-0 flex-1 overflow-x-auto overflow-y-hidden px-6 pt-8 pb-16"
+                  className={cn(
+                    'flex min-h-0 min-w-0 flex-1 overflow-x-auto overflow-y-hidden',
+                    !view.full && 'px-6 pt-8 pb-16',
+                  )}
                 >
                   <div
                     style={{ width: devicePx * zoom, height: room.height }}
                     className={cn(
-                      'mx-auto shrink-0 overflow-hidden rounded-[0.625rem] bg-card shadow-popover',
+                      'mx-auto shrink-0 overflow-hidden bg-card',
+                      !fullBleed && 'rounded-[0.625rem] shadow-popover',
                       resize && `transition-[width] ${resize}`,
                       room.width === 0 && 'invisible',
                       loading && 'pointer-events-none opacity-60 transition-opacity duration-200',
