@@ -2,7 +2,13 @@ import { paymentEvent } from '@commerce/db'
 import type { PaymentProvider } from '@commerce/payments'
 import { and, eq } from 'drizzle-orm'
 import type { StoreContext } from '../context'
-import { applyPaymentStatus, gatewayPaidTooLittle, paymentAmountFor } from './confirm'
+import { recordPaymentCharges } from './charges'
+import {
+  applyPaymentStatus,
+  findPaymentId,
+  gatewayPaidTooLittle,
+  paymentAmountFor,
+} from './confirm'
 
 export type WebhookOutcome =
   | {
@@ -101,6 +107,14 @@ export async function handlePaymentWebhook(
       })
       applied = r !== null
       if (r?.becameCaptured) capturedOrderId = r.payment.orderId
+      // The gateway's fee and how the shopper paid, when the capture carries them.
+      if (r && e.type === 'payment.captured' && e.charges) {
+        await recordPaymentCharges(ctx.tx, r.payment.id, e.charges)
+      }
+    } else if (e.type === 'payment.charges') {
+      const id = await findPaymentId(ctx, { providerRef: e.providerRef })
+      if (id) await recordPaymentCharges(ctx.tx, id, e.charges)
+      applied = id !== null
     } else if (e.type === 'payment.failed') {
       applied =
         (await applyPaymentStatus(ctx, {

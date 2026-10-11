@@ -1,8 +1,15 @@
 'use client'
 
 import { permissions } from '@commerce/core/permissions'
-import type { FeeRate, ProfitCostSettings } from '@commerce/core/profit'
+import {
+  type FeeRate,
+  METHOD_RATE_IDS,
+  type MethodRateId,
+  type ProfitCostSettings,
+  STANDARD_METHOD_FEES,
+} from '@commerce/core/profit'
 import { parseRupees } from '@commerce/money'
+import { Button } from '@commerce/ui/shadcn/button'
 import { Skeleton } from '@commerce/ui/shadcn/skeleton'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
@@ -17,7 +24,11 @@ import { api } from '@/lib/api-client'
 import FeeRateRow, { type FeeRateText } from './fee-rate-row'
 
 type View = Awaited<ReturnType<typeof api.profitCosts.get>>
-type Form = { gateways: Record<string, FeeRateText>; cod: FeeRateText }
+type Form = {
+  methods: Record<MethodRateId, FeeRateText>
+  gateways: Record<string, FeeRateText>
+  cod: FeeRateText
+}
 
 const COD = 'cod'
 
@@ -35,12 +46,19 @@ function toRate(text: FeeRateText): FeeRate | null | undefined {
   return { percentBps: Math.round(percent * 100), fixedPaise: fixed }
 }
 
+const methodsText = (fees: ProfitCostSettings['methodFees']) =>
+  Object.fromEntries(METHOD_RATE_IDS.map((id) => [id, toText(fees[id])])) as Form['methods']
+
 const formOf = (view: View): Form => ({
+  methods: methodsText(view.costs.methodFees),
   gateways: Object.fromEntries(view.gateways.map((id) => [id, toText(view.costs.gatewayFees[id])])),
   cod: toText(view.costs.codFee),
 })
 
-/** Settings › Costs for profit: each gateway's fee and the courier's cash on delivery fee. */
+/**
+ * Settings › Costs for profit: the fee rates used until the gateway reports the actual fee,
+ * by how the customer paid, by gateway, and the courier's cash on delivery fee.
+ */
 export default function CostsSettings() {
   // Hooks
   const copy = useCopy(profitCostsContent)
@@ -61,11 +79,22 @@ export default function CostsSettings() {
   const nameOf = (id: string) =>
     id === COD
       ? copy.cod.label
-      : (copy.methodNames[id] ?? `${id.charAt(0).toUpperCase()}${id.slice(1)}`)
+      : (copy.methods.names[id] ??
+        copy.methodNames[id] ??
+        `${id.charAt(0).toUpperCase()}${id.slice(1)}`)
 
   // Event handlers
   const handleSave = async () => {
     if (!view || !form) return
+    const methodFees: ProfitCostSettings['methodFees'] = {}
+    for (const id of METHOD_RATE_IDS) {
+      const rate = toRate(form.methods[id])
+      if (rate === undefined) {
+        toast.error(copy.invalid(nameOf(id)))
+        return
+      }
+      if (rate) methodFees[id] = rate
+    }
     const gatewayFees: ProfitCostSettings['gatewayFees'] = { ...view.costs.gatewayFees }
     for (const [id, text] of Object.entries(form.gateways)) {
       const rate = toRate(text)
@@ -83,7 +112,7 @@ export default function CostsSettings() {
     }
     setBusy(true)
     try {
-      const costs = await api.profitCosts.save({ gatewayFees, codFee })
+      const costs = await api.profitCosts.save({ methodFees, gatewayFees, codFee })
       const next = { ...view, costs }
       setView(next)
       setForm(formOf(next))
@@ -97,10 +126,14 @@ export default function CostsSettings() {
   const handleDiscard = () => {
     if (view) setForm(formOf(view))
   }
+  const handleStandardRates = () => {
+    setForm((f) => (f ? { ...f, methods: methodsText(STANDARD_METHOD_FEES) } : f))
+  }
 
   // Render logic
   const canManage = hasPermission(permissions.SETTINGS_MANAGE)
   const dirty = !!view && !!form && JSON.stringify(form) !== JSON.stringify(formOf(view))
+  const gstNote = view?.gstClaimable ? copy.gst.claimable : copy.gst.notClaimable
 
   return (
     <div className="flex flex-col gap-6">
@@ -125,6 +158,30 @@ export default function CostsSettings() {
         <Skeleton className="h-64 w-full rounded-2xl" />
       ) : (
         <>
+          {view.methodRatesOn ? (
+            <SettingsCard title={copy.methods.heading} description={copy.methods.help}>
+              {METHOD_RATE_IDS.map((id) => (
+                <FeeRateRow
+                  key={id}
+                  id={`fee-method-${id}`}
+                  label={nameOf(id)}
+                  value={form.methods[id]}
+                  disabled={!canManage || busy}
+                  onChange={(value) =>
+                    setForm((f) => (f ? { ...f, methods: { ...f.methods, [id]: value } } : f))
+                  }
+                />
+              ))}
+              <div className="flex flex-wrap items-center justify-between gap-3 pt-4">
+                <p className="text-caption text-muted-foreground">{gstNote}</p>
+                {canManage ? (
+                  <Button variant="outline" onClick={handleStandardRates} disabled={busy}>
+                    {copy.methods.reset}
+                  </Button>
+                ) : null}
+              </div>
+            </SettingsCard>
+          ) : null}
           <SettingsCard title={copy.gateways.heading} description={copy.gateways.help}>
             {view.gateways.length === 0 ? (
               <p className="text-body text-muted-foreground">{copy.gateways.none}</p>
@@ -141,6 +198,9 @@ export default function CostsSettings() {
                   }
                 />
               ))
+            )}
+            {view.methodRatesOn ? null : (
+              <p className="pt-4 text-caption text-muted-foreground">{gstNote}</p>
             )}
           </SettingsCard>
           {view.codOn ? (

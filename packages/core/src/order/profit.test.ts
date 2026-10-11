@@ -5,12 +5,34 @@ import {
   computeOrderProfit,
   defaultProfitCosts,
   feeOn,
+  methodRateIdOf,
+  type PaymentMethodDetail,
   type ProfitInput,
+  type ProfitPayment,
   parseProfitCosts,
+  paymentFee,
+  STANDARD_METHOD_FEES,
   withProfitCosts,
 } from './profit'
 
-/** ₹1,180 incl. 18% GST (₹180), one unit that cost ₹500, paid online by Razorpay. */
+/** A captured payment with no fee reported and no method known, unless given. */
+const paid = (
+  provider: string,
+  amountPaise: number,
+  over: Partial<ProfitPayment> = {},
+): ProfitPayment => ({
+  provider,
+  amountPaise,
+  feePaise: null,
+  feeTaxPaise: null,
+  method: null,
+  ...over,
+})
+
+/**
+ * ₹1,180 incl. 18% GST (₹180), one unit that cost ₹500, paid online by Razorpay. The store is
+ * GST-registered, so the GST on fees is claimed back and left out.
+ */
 const base = (over: Partial<ProfitInput> = {}): ProfitInput => ({
   totalPaise: 118_000,
   taxPaise: 18_000,
@@ -26,9 +48,14 @@ const base = (over: Partial<ProfitInput> = {}): ProfitInput => ({
     },
   ],
   shipments: [{ courierChargePaise: 6_500 }],
-  payments: [{ provider: 'razorpay', amountPaise: 118_000, feePaise: null }],
+  payments: [paid('razorpay', 118_000)],
   rtoPaise: 0,
-  costs: { gatewayFees: { razorpay: { percentBps: 236, fixedPaise: 0 } }, codFee: null },
+  costs: {
+    methodFees: {},
+    gatewayFees: { razorpay: { percentBps: 236, fixedPaise: 0 } },
+    codFee: null,
+  },
+  feeGstClaimable: true,
   ...over,
 })
 
@@ -45,6 +72,7 @@ describe('computeOrderProfit', () => {
       profitPaise: 100_000 - 50_000 - 6_500 - 2_785,
     })
     expect(p.marginBps).toBe(4072)
+    expect(p.feeSource).toBe('estimated')
     expect(p.flags).toEqual({
       costEstimated: false,
       costMissing: false,
@@ -56,40 +84,50 @@ describe('computeOrderProfit', () => {
 
   it('a fee the gateway reported wins over the store rate', () => {
     const p = computeOrderProfit(
-      base({ payments: [{ provider: 'razorpay', amountPaise: 118_000, feePaise: 2_000 }] }),
+      base({ payments: [paid('razorpay', 118_000, { feePaise: 2_000 })] }),
     )
     expect(p.feesPaise).toBe(2_000)
     expect(p.flags.feeFromRate).toBe(false)
+    expect(p.feeSource).toBe('actual')
   })
 
   it('a method with no rate and no reported fee is flagged, not guessed', () => {
     const p = computeOrderProfit(base({ costs: defaultProfitCosts }))
     expect(p.feesPaise).toBe(0)
     expect(p.flags.feeMissing).toBe(true)
+    expect(p.feeSource).toBe('estimated')
   })
 
   it('store credit and direct transfers take no fee', () => {
     const p = computeOrderProfit(
-      base({
-        payments: [
-          { provider: 'gift_card', amountPaise: 18_000, feePaise: null },
-          { provider: 'manual', amountPaise: 100_000, feePaise: null },
-        ],
-      }),
+      base({ payments: [paid('gift_card', 18_000), paid('manual', 100_000)] }),
     )
     expect(p.feesPaise).toBe(0)
     expect(p.flags.feeMissing).toBe(false)
+    expect(p.feeSource).toBeNull()
   })
 
   it('cash on delivery pays the courier’s COD fee on the cash collected', () => {
     const p = computeOrderProfit(
       base({
-        payments: [{ provider: 'cod', amountPaise: 118_000, feePaise: null }],
-        costs: { gatewayFees: {}, codFee: { percentBps: 200, fixedPaise: 3_000 } },
+        payments: [paid('cod', 118_000)],
+        costs: { methodFees: {}, gatewayFees: {}, codFee: { percentBps: 200, fixedPaise: 3_000 } },
       }),
     )
     // 2% of ₹1,180 = 2,360 paise + ₹30
     expect(p.feesPaise).toBe(5_360)
+  })
+
+  it('a store that cannot claim GST back pays 18% on top of each rate', () => {
+    const p = computeOrderProfit(
+      base({
+        payments: [paid('cod', 118_000)],
+        costs: { methodFees: {}, gatewayFees: {}, codFee: { percentBps: 200, fixedPaise: 3_000 } },
+        feeGstClaimable: false,
+      }),
+    )
+    // 5,360 + 18% (964.8 → 965)
+    expect(p.feesPaise).toBe(6_325)
   })
 
   it('a refund comes off net sales in proportion, GST share included', () => {
@@ -190,7 +228,11 @@ describe('profit cost settings', () => {
       installed: ['gst-invoices'],
       settings: { core: { tax: { composition: true } }, emi: { on: true } },
     }
-    const costs = { gatewayFees: { razorpay: { percentBps: 200, fixedPaise: 0 } }, codFee: null }
+    const costs = {
+      methodFees: { upi: { percentBps: 0, fixedPaise: 0 } },
+      gatewayFees: { razorpay: { percentBps: 200, fixedPaise: 0 } },
+      codFee: null,
+    }
     const next = withProfitCosts(apps, costs)
     expect(parseProfitCosts(next)).toEqual(costs)
     expect(next.installed).toEqual(['gst-invoices'])
@@ -205,5 +247,122 @@ describe('profit cost settings', () => {
     expect(parseProfitCosts({ settings: { core: { profit: { codFee: 'x' } } } })).toEqual(
       defaultProfitCosts,
     )
+  })
+
+  it('starts from Razorpay’s standard rates until the store saves its own', () => {
+    expect(defaultProfitCosts.methodFees).toEqual(STANDARD_METHOD_FEES)
+    // A store that saved before rates by method existed gets them too.
+    const old = { settings: { core: { profit: { gatewayFees: {}, codFee: null } } } }
+    expect(parseProfitCosts(old).methodFees).toEqual(STANDARD_METHOD_FEES)
+    // Rates the merchant cleared stay cleared.
+    const cleared = { settings: { core: { profit: { methodFees: {} } } } }
+    expect(parseProfitCosts(cleared).methodFees).toEqual({})
+  })
+})
+
+const card = (over: Partial<PaymentMethodDetail> = {}): PaymentMethodDetail => ({
+  kind: 'card',
+  ...over,
+})
+
+describe('methodRateIdOf', () => {
+  it('prices each way of paying, most specific first', () => {
+    expect(methodRateIdOf({ kind: 'upi' })).toBe('upi')
+    expect(methodRateIdOf(card({ cardType: 'debit', network: 'rupay' }))).toBe('rupay_debit')
+    expect(methodRateIdOf(card({ cardType: 'debit', network: 'visa' }))).toBe('debit_card')
+    expect(methodRateIdOf(card({ cardType: 'prepaid', network: 'rupay' }))).toBe('debit_card')
+    expect(methodRateIdOf(card({ cardType: 'credit', network: 'rupay' }))).toBe('credit_card')
+    expect(methodRateIdOf(card({ cardType: 'credit', network: 'amex' }))).toBe('corporate_card')
+    expect(methodRateIdOf(card({ cardType: 'credit', network: 'diners' }))).toBe('corporate_card')
+    expect(methodRateIdOf(card({ cardType: 'credit', corporate: true }))).toBe('corporate_card')
+    expect(methodRateIdOf(card({ cardType: 'debit', network: 'rupay', international: true }))).toBe(
+      'international_card',
+    )
+    expect(methodRateIdOf({ kind: 'netbanking', provider: 'HDFC' })).toBe('netbanking')
+    expect(methodRateIdOf({ kind: 'wallet' })).toBe('wallet')
+    expect(methodRateIdOf({ kind: 'emi', cardType: 'credit' })).toBe('emi')
+    expect(methodRateIdOf({ kind: 'cardless_emi' })).toBe('emi')
+    expect(methodRateIdOf({ kind: 'paylater' })).toBe('pay_later')
+  })
+
+  it('does not guess when the gateway did not say enough', () => {
+    expect(methodRateIdOf(null)).toBeNull()
+    expect(methodRateIdOf(card())).toBeNull()
+    expect(methodRateIdOf({ kind: 'other' })).toBeNull()
+  })
+})
+
+describe('paymentFee', () => {
+  const costs = {
+    methodFees: {
+      upi: { percentBps: 0, fixedPaise: 0 },
+      credit_card: { percentBps: 200, fixedPaise: 0 },
+      corporate_card: { percentBps: 300, fixedPaise: 0 },
+    },
+    gatewayFees: {
+      razorpay: { percentBps: 250, fixedPaise: 0 },
+      decentro: { percentBps: 50, fixedPaise: 0 },
+    },
+    codFee: null,
+  }
+
+  it('uses the gateway’s fee first, without the GST inside it when it can be claimed', () => {
+    const p = paid('razorpay', 100_000, {
+      feePaise: 2_360,
+      feeTaxPaise: 360,
+      method: card({ cardType: 'credit' }),
+    })
+    expect(paymentFee(p, costs, true)).toEqual({ paise: 2_000, source: 'actual' })
+    expect(paymentFee(p, costs, false)).toEqual({ paise: 2_360, source: 'actual' })
+  })
+
+  it('an actual fee with no GST split counts in full', () => {
+    const p = paid('razorpay', 100_000, { feePaise: 1_000 })
+    expect(paymentFee(p, costs, true)).toEqual({ paise: 1_000, source: 'actual' })
+  })
+
+  it('then the rate for how the shopper paid, adding 18% GST unless claimed back', () => {
+    const p = paid('razorpay', 100_000, { method: card({ cardType: 'credit', network: 'visa' }) })
+    // 2% of ₹1,000 = ₹20, + 18% GST = ₹23.60
+    expect(paymentFee(p, costs, true)).toEqual({ paise: 2_000, source: 'rate' })
+    expect(paymentFee(p, costs, false)).toEqual({ paise: 2_360, source: 'rate' })
+    const amex = paid('cashfree', 100_000, {
+      method: card({ cardType: 'credit', network: 'amex' }),
+    })
+    expect(paymentFee(amex, costs, true).paise).toBe(3_000)
+    const upi = paid('razorpay_upi', 100_000, { method: { kind: 'upi' } })
+    expect(paymentFee(upi, costs, false)).toEqual({ paise: 0, source: 'rate' })
+  })
+
+  it('then the gateway’s rate: method unknown, method not priced, or another gateway', () => {
+    expect(paymentFee(paid('razorpay', 100_000), costs, true).paise).toBe(2_500)
+    const wallet = paid('razorpay', 100_000, { method: { kind: 'wallet' } })
+    expect(paymentFee(wallet, costs, true).paise).toBe(2_500)
+    // Decentro is priced by its own rate even though it records UPI.
+    const decentro = paid('decentro', 100_000, { method: { kind: 'upi' } })
+    expect(paymentFee(decentro, costs, true).paise).toBe(500)
+  })
+
+  it('flags a payment nothing prices, and skips fee-free ones', () => {
+    expect(paymentFee(paid('cashfree', 100_000), costs, true)).toEqual({
+      paise: 0,
+      source: 'missing',
+    })
+    expect(paymentFee(paid('gift_card', 100_000), costs, true).source).toBe('none')
+    expect(paymentFee(paid('razorpay', 0), costs, true).source).toBe('none')
+  })
+
+  it('the order shows mixed when some fees are actual and some estimated', () => {
+    const p = computeOrderProfit(
+      base({
+        costs,
+        payments: [
+          paid('razorpay', 50_000, { feePaise: 1_180, feeTaxPaise: 180 }),
+          paid('razorpay', 68_000, { method: card({ cardType: 'credit' }) }),
+        ],
+      }),
+    )
+    expect(p.feesPaise).toBe(1_000 + 1_360)
+    expect(p.feeSource).toBe('mixed')
   })
 })

@@ -481,15 +481,45 @@ A4 with the invoice fonts (Devanagari and CJK when the text needs them).
   (`products.pick`, whose variants now carry `costPaise` so a rupee order starts at the current
   cost).
 
+#### Gateway fees
+
+Profit needs what the gateway really kept, and gateways charge by way of paying (UPI, RuPay
+debit, credit, corporate, international…), so a flat rate per gateway is wrong. Each payment
+records the gateway's own figures (`packages/core/src/payments/charges.ts`):
+
+- **On capture**: the adapter puts `charges` on its `payment.captured` event. Razorpay reads the
+  payment entity's `fee` (GST included) and `tax` (the GST) plus `method` and the card entity;
+  either can be null on the webhook. Cashfree's success webhook gives the method only.
+- **Later**: Cashfree's `PAYMENT_CHARGES_WEBHOOK` becomes a `payment.charges` event
+  (`service_charge` + `service_tax`).
+- **Fee sync** (worker, every 30 minutes, `{payments}-fees` queue): for stores listed by
+  `stores_with_unknown_payment_fees()`, captured Razorpay and Cashfree payments from the last 90
+  days with no fee are asked about through the adapter's read-only `fetchCharges` (Razorpay:
+  fetch the payment with `expand[]=card`; Cashfree: the payment, then the order's settlement),
+  newest first, 100 per store per run, a 250 ms pause between calls, each write in its own short
+  transaction (no gateway call inside a transaction). `fee_checked_at` makes a payment wait 6
+  hours before it is asked again; a payment with a fee is never asked again.
+- **Backfill**: `bun run --cwd apps/worker fees:backfill [--store <id>] [--days 90]` runs the same
+  sync to the end at once (in the worker container: `bun src/payment-fees-backfill.ts`).
+
+`recordPaymentCharges` writes them: a reported fee replaces what was there, a fee the shopper paid
+on top of the attempt (gateway amount above `payment.amount_paise`) is taken off, and a method
+replaces the stored one. Tests use gateway doubles and fixtures; nothing calls a real gateway.
+
 #### Profit (landed cost step 3)
 
 `order_line.cost_at_sale_paise` snapshots the variant's weighted average cost when the order is
 placed (`placeOrder`) or a draft is converted; `cost_estimated` marks lines the 0105 backfill
 filled from the cost on that day. `shipment.courier_charge_paise` comes from the courier's booking
 answer (`CreateShipmentResult.chargePaise`) or is typed on the order page
-(`orders.setCourierCharge`); `payment.fee_paise` holds a fee a gateway reports. The store's fallback
-rates (`ProfitCostSettings`: per method `{ percentBps, fixedPaise }`, plus `codFee`) live in
-`store.apps.settings.core.profit` (Settings › Costs for profit, `profitCosts.*`).
+(`orders.setCourierCharge`). `payment.fee_paise` holds the fee the gateway reported (GST included),
+`payment.fee_tax_paise` the GST inside it and `payment.method_detail` how the shopper paid (UPI,
+card type and network, international, corporate…); only gateway figures are written there, never
+estimates (see *Gateway fees* above). The store's fallback rates (`ProfitCostSettings`, all before
+GST: `methodFees` by way of paying, `gatewayFees` by gateway, `codFee`) live in
+`store.apps.settings.core.profit` (Settings › Costs for profit, `profitCosts.*`). A payment's fee is
+the actual fee, else the method rate (Razorpay and Cashfree payments), else the gateway rate, plus
+18% GST unless the store holds a regular GST registration (`feeGstClaimable`).
 `computeOrderProfit` (`packages/core/src/order/profit.ts`, PROFIT_FORMULA header, pure) turns the
 facts from `profitFacts` (`profit-service.ts`) into net sales ex GST − goods − courier − fees − RTO,
 with flags for anything unknown. `orders.profit` feeds the order page's Profit card; the Finance
@@ -541,6 +571,7 @@ same way as the Growth overview's `outcomes`. Pure rules: `@commerce/core/market
 | `0104_parcel_delivery_estimate` | `fulfillment_order.delivery_estimate` |
 | `0105_order_profit` | `order_line.cost_at_sale_paise` and `cost_estimated`, `shipment.courier_charge_paise`, `payment.fee_paise` |
 | `0106_short_links` | `short_link`, `short_link_click_day` |
+| `0116_payment_fees` | `payment.fee_tax_paise`, `method_detail`, `fee_checked_at`, the `payment_fee_unknown` index, `stores_with_unknown_payment_fees()` |
 
 
 ### Status columns are text with a CHECK

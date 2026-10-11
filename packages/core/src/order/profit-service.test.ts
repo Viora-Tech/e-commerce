@@ -1,8 +1,10 @@
 /** SOURCE OF TRUTH: order profit service tests — WHAT: profit per order and shipment from landed cost / WHY: guards the money maths */
 import {
+  business,
   cart,
   cartLine,
   createDb,
+  gstRegistration,
   inventoryLevel,
   order,
   orderLine,
@@ -23,7 +25,9 @@ import { FakePaymentProvider } from '../providers/payment'
 import { createShipmentForOrder } from '../shipping/shipments'
 import { convertDraft } from './drafts'
 import { placeOrderAndPay } from './place-order'
+import { STANDARD_METHOD_FEES } from './profit'
 import {
+  feeGstClaimable,
   orderProfit,
   profitCosts,
   profitCostsView,
@@ -142,7 +146,7 @@ describe('cost at sale', () => {
 })
 
 describe('order profit', () => {
-  it('takes off goods, the courier’s booking charge and the gateway rate', async () => {
+  it('takes off goods, the courier’s booking charge and the gateway rate plus GST', async () => {
     const t = await seed()
     await inStore(t, (ctx) =>
       saveProfitCosts(ctx.tx, t.storeId, {
@@ -162,10 +166,70 @@ describe('order profit', () => {
       netSalesPaise: 100_000,
       goodsPaise: 50_000,
       courierPaise: 6_000,
-      feesPaise: 2_360,
-      profitPaise: 100_000 - 50_000 - 6_000 - 2_360,
+      // 2% of ₹1,180 = ₹23.60, and the store has no GSTIN so 18% GST on it is a cost: ₹27.85
+      feesPaise: 2_785,
+      profitPaise: 100_000 - 50_000 - 6_000 - 2_785,
     })
     expect(profit?.flags).toMatchObject({ feeFromRate: true, courierMissing: false })
+    expect(profit?.feeSource).toBe('estimated')
+  })
+
+  it('a GST-registered store leaves the GST on fees out (it is claimed back)', async () => {
+    const t = await seed()
+    await owner.update(store).set({ gstin: '06ABCDE1234F1Z5' }).where(eq(store.id, t.storeId))
+    await inStore(t, (ctx) =>
+      saveProfitCosts(ctx.tx, t.storeId, {
+        gatewayFees: { razorpay: { percentBps: 200, fixedPaise: 0 } },
+        codFee: null,
+      }),
+    )
+    const placed = await place(t)
+    expect((await inStore(t, (ctx) => orderProfit(ctx, placed.orderId)))?.feesPaise).toBe(2_360)
+  })
+
+  it('a composition registration cannot claim it back', async () => {
+    const t = await seed()
+    const [b] = await owner
+      .insert(business)
+      .values({ storeId: t.storeId, legalName: 'Waimers', pan: 'ABCDE1234F' })
+      .returning()
+    await owner.insert(gstRegistration).values({
+      storeId: t.storeId,
+      businessId: b?.id as string,
+      gstin: '06ABCDE1234F1Z5',
+      registrationType: 'composition',
+      isDefault: true,
+    })
+    await owner.update(store).set({ gstin: '06ABCDE1234F1Z5' }).where(eq(store.id, t.storeId))
+    expect(await inStore(t, (ctx) => feeGstClaimable(ctx.tx, t.storeId))).toBe(false)
+    await owner.update(gstRegistration).set({ registrationType: 'regular' })
+    expect(await inStore(t, (ctx) => feeGstClaimable(ctx.tx, t.storeId))).toBe(true)
+  })
+
+  it('the gateway’s own fee wins; until then the rate for how the shopper paid', async () => {
+    const t = await seed()
+    await inStore(t, (ctx) =>
+      saveProfitCosts(ctx.tx, t.storeId, {
+        methodFees: { upi: { percentBps: 0, fixedPaise: 0 }, credit_card: { percentBps: 300 } },
+        gatewayFees: { razorpay: { percentBps: 200, fixedPaise: 0 } },
+        codFee: null,
+      }),
+    )
+    const placed = await place(t)
+    const setPayment = (values: Partial<typeof payment.$inferInsert>) =>
+      owner.update(payment).set(values).where(eq(payment.orderId, placed.orderId))
+    const profit = () => inStore(t, (ctx) => orderProfit(ctx, placed.orderId))
+
+    await setPayment({ methodDetail: { kind: 'upi' } })
+    expect(await profit()).toMatchObject({ feesPaise: 0, feeSource: 'estimated' })
+
+    await setPayment({ methodDetail: { kind: 'card', cardType: 'credit', network: 'visa' } })
+    // 3% of ₹1,180 = ₹35.40, + 18% GST = ₹41.77
+    expect((await profit())?.feesPaise).toBe(4_177)
+
+    await setPayment({ feePaise: 2_785, feeTaxPaise: 425 })
+    expect(await profit()).toMatchObject({ feesPaise: 2_785, feeSource: 'actual' })
+    expect((await profit())?.flags.feeFromRate).toBe(false)
   })
 
   it('a courier charge typed by hand replaces the unknown one', async () => {
@@ -224,6 +288,9 @@ describe('Costs for profit settings', () => {
     const view = await inStore(t, (ctx) => profitCostsView(ctx.tx, t.storeId))
     expect(view.gateways).toEqual(['razorpay'])
     expect(view.codOn).toBe(true)
+    expect(view.methodRatesOn).toBe(true)
+    expect(view.gstClaimable).toBe(false)
+    expect(view.costs.methodFees).toEqual(STANDARD_METHOD_FEES)
     await inStore(t, (ctx) =>
       saveProfitCosts(ctx.tx, t.storeId, {
         gatewayFees: {},

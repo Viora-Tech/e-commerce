@@ -31,6 +31,8 @@ export const SHIPPING_TRACK_QUEUE = '{shipping}-track'
 export const UNPAID_EXPIRY_QUEUE = '{payments}-unpaid-expiry'
 /** Repeat job that requests, reminds and applies the unpaid rule for pre-order balances. */
 export const PREORDER_BALANCE_QUEUE = '{payments}-preorder-balance'
+/** Repeat job that asks the gateways for fees their capture webhook did not carry. */
+export const PAYMENT_FEES_QUEUE = '{payments}-fees'
 /** Repeat job that nudges shoppers who left a basket behind. */
 export const ABANDONED_SWEEP_QUEUE = '{abandoned}-sweep'
 /** Repeat job that checks custom domains still waiting on DNS or a certificate. */

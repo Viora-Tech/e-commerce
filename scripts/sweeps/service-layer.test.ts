@@ -139,6 +139,17 @@ const ALLOWLIST: AllowEntry[] = [
   { path: 'apps/worker/src/member-daily-summary.ts', exact: true, reason: WORKER },
   { path: 'apps/worker/src/notifications.ts', exact: true, reason: WORKER },
   { path: 'apps/worker/src/outbox-relay.ts', exact: true, reason: WORKER },
+  {
+    path: 'apps/worker/src/payment-fees.ts',
+    exact: true,
+    reason:
+      'fee sync lists stores through a SECURITY DEFINER helper (ids only) and reads the store payment settings to resolve gateways, like payments-expiry; the payment queries live in core payments/charges.ts',
+  },
+  {
+    path: 'apps/worker/src/payment-fees-backfill.ts',
+    exact: true,
+    reason: 'one-off command: opens the db and lists stores (ids only), then calls payment-fees.ts',
+  },
   { path: 'apps/worker/src/payments-expiry.ts', exact: true, reason: WORKER },
   { path: 'apps/worker/src/payments.ts', exact: true, reason: WORKER },
   { path: 'apps/worker/src/preorder-balance.ts', exact: true, reason: WORKER },

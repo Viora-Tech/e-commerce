@@ -51,6 +51,16 @@ const ALLOWLIST: AllowEntry[] = [
     reason: 'the largest-remainder split behind computeLandedCosts, exported for its unit test',
   },
   {
+    file: 'packages/core/src/payments/charges.ts',
+    names: ['merchantFee'],
+    reason: 'the shopper-paid-fee split behind recordPaymentCharges, exported for its unit test',
+  },
+  {
+    file: 'packages/core/src/order/profit-service.ts',
+    names: ['feeGstClaimable'],
+    reason: 'the GST-on-fees rule behind profitFacts and profitCostsView, exported for its test',
+  },
+  {
     file: 'packages/core/src/inventory/schemas.ts',
     names: ['FxRateSchema'],
     reason: 'the exchange-rate rule inside the purchase schemas, exported for its unit test',
