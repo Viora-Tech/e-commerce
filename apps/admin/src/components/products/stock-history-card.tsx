@@ -3,6 +3,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@commerce/ui/shadcn/card'
 import { Skeleton } from '@commerce/ui/shadcn/skeleton'
 import { useEffect, useState } from 'react'
+import ScrollSection from '@/components/layout/scroll-section'
 import { productFormContent } from '@/data/product-form'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
@@ -56,31 +57,38 @@ export default function StockHistoryCard({ productId }: StockHistoryCardProps) {
         ) : rows.length === 0 ? (
           <p className="text-body text-muted-foreground">{copy.empty}</p>
         ) : (
-          <ul className="flex flex-col">
-            {rows.map((row) => (
-              <li
-                key={row.id}
-                className="grid grid-cols-[1fr_auto] gap-x-4 gap-y-1 border-border-soft border-b py-2 last:border-b-0"
-              >
-                <span className="truncate text-body-strong">{row.variantTitle}</span>
-                <span
-                  className={
-                    row.delta > 0
-                      ? 'text-body-strong text-success tabular-nums'
-                      : 'text-body-strong text-destructive tabular-nums'
-                  }
+          <ScrollSection
+            id={`stock-history-${productId}`}
+            label={copy.heading}
+            count={rows.length}
+            maxHeight="min(24rem, 55vh)"
+          >
+            <ul className="flex flex-col">
+              {rows.map((row) => (
+                <li
+                  key={row.id}
+                  className="grid grid-cols-[1fr_auto] gap-x-4 gap-y-1 border-border-soft border-b py-2 last:border-b-0"
                 >
-                  {row.delta > 0 ? `+${row.delta}` : row.delta}
-                </span>
-                <span className="text-caption text-muted-foreground">
-                  {when.format(new Date(row.createdAt))}
-                </span>
-                <span className="text-caption text-muted-foreground">
-                  {reasonLabels[row.reason] ?? row.reason}
-                </span>
-              </li>
-            ))}
-          </ul>
+                  <span className="truncate text-body-strong">{row.variantTitle}</span>
+                  <span
+                    className={
+                      row.delta > 0
+                        ? 'text-body-strong text-success tabular-nums'
+                        : 'text-body-strong text-destructive tabular-nums'
+                    }
+                  >
+                    {row.delta > 0 ? `+${row.delta}` : row.delta}
+                  </span>
+                  <span className="text-caption text-muted-foreground">
+                    {when.format(new Date(row.createdAt))}
+                  </span>
+                  <span className="text-caption text-muted-foreground">
+                    {reasonLabels[row.reason] ?? row.reason}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </ScrollSection>
         )}
       </CardContent>
     </Card>

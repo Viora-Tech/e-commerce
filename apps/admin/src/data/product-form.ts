@@ -55,8 +55,9 @@ export const productFormContent = {
   },
   /** Aria label for the money prefix so screen readers read the currency. */
   currency: 'Rupees',
-  sectionNav: {
-    label: 'Jump to section',
+  tabs: {
+    label: 'Product sections',
+    errorBadge: 'Needs attention',
     labels: {
       media: 'Media',
       details: 'Details',
@@ -66,6 +67,16 @@ export const productFormContent = {
       shipping: 'Shipping',
       seo: 'Google preview',
       more: 'More',
+    },
+    descriptions: {
+      media: 'Photos and videos shoppers see on the product page',
+      details: 'Title, description and custom fields',
+      pricing: 'Price, compare-at price and cost',
+      inventory: 'SKU, barcode and how many you have in stock',
+      variants: 'Options like size and colour, each with its own price and stock',
+      shipping: 'Weight and package size, used for shipping rates',
+      seo: 'How this product looks on Google, and its web address',
+      more: 'Pre-order and launch, theme template and stock history',
     },
   },
   more: {

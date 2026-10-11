@@ -192,6 +192,49 @@ Checkout itself never reads `STOREFRONT_URL`: it runs on the shopper's own host,
 webhooks go to the worker URL. The one payments link the admin builds (Settings › Payments test
 order) opens on the store's origin like the rest.
 
+## Certificate checks and retries
+
+Traefik asks Let's Encrypt for a certificate once, when the route is added. If DNS does not
+exist yet (NXDOMAIN) the order fails and Traefik does not try again until the route is reloaded,
+so the browser keeps seeing Traefik's self-signed "TRAEFIK DEFAULT CERT". The certificate sweep
+(`runCertificateSweep`, `packages/core/src/domains/certificate-retry.ts`) closes that gap for
+platform addresses and custom domains alike.
+
+- **The check** (`tlsCertState`): a TLS connection to `host:443` without rejecting untrusted
+  certificates, then inspecting what came back: the default certificate, a chain the system
+  does not trust or a name mismatch, nothing, or a certificate trusted for that host (`valid`).
+- **The job:** a repeat job on `{domains}-certificate` every minute, scheduled only when
+  `DOMAIN_PROVIDER=dns`. It looks at rows with `status = 'active'` and `route_status = 'ready'`
+  that are due (`certCheckDue`; `stores_with_certificate_checks()` finds the stores). Waiting
+  rows follow a backoff counted from `ssl_started_at`: every minute for 5 minutes, then every
+  5 minutes up to 30 minutes, every 15 minutes up to 2 hours, hourly up to 6 hours, then every
+  6 hours until 3 days. After that only the merchant's button works. `ssl_checked_at` is the
+  last look. Active rows are re-checked once a day, which also catches a row that was marked
+  active without a real certificate.
+- **The outcome**, per row (`checkCertificate`):
+
+| Seen | Recorded |
+| --- | --- |
+| Trusted certificate for the host | `ssl_status = 'active'`, error cleared |
+| DNS does not resolve to `STOREFRONT_A_RECORD` (or Cloudflare) | `failed`, error `DNS not pointing here yet` |
+| DNS right, no certificate, under 5 minutes in | `issuing` |
+| DNS right, no certificate, later | re-register in Dokploy (delete + create, a new ACME attempt), `issuing`; after a 20 s pause one more look; still none: `failed`, error `Certificate pending` |
+
+  A re-register needs the Dokploy keys, happens at most once every 10 minutes per host (Let's
+  Encrypt allows 5 failed validations an hour per host), and only when DNS is already right. A
+  live host that is merely unreachable for a moment is left alone.
+- **Merchant button:** Settings, Domains, the domain, **Retry certificate**
+  (`domains.retryCertificate`, `settings.manage`). `requestCertificateRetry` refuses an active
+  certificate, a domain whose DNS is not verified, and a second press within 2 minutes; it
+  restarts the wait and writes `domain.route_requested` with `reregister: true`. The route job
+  then deletes and re-creates the Dokploy domain and, after the pause, records the result
+  (`recheckAfterSettle`). The Dokploy keys stay in the worker.
+- **Admin:** `DomainView.sslReason` (`dns` or `certificate`) drives the badge (Waiting for DNS /
+  Certificate failed) and the text on the domain page.
+
+Migration `0113_ssl_retry` adds `ssl_started_at`, `ssl_checked_at` and
+`stores_with_certificate_checks()`.
+
 ## Store addresses (`<slug>.<PLATFORM_STORE_DOMAIN>`)
 
 A new store's own address takes the same route path, so with one wildcard DNS record a store
@@ -207,7 +250,9 @@ works the moment it is created, with no manual step.
 3. **The job** (`runDomainRouteJob`) accepts a platform row only for `<one-label>.<PLATFORM_STORE_DOMAIN>`
    (`storeDomain` in the route guard), adds it to the storefront app in Dokploy (HTTPS,
    Let's Encrypt, `DOKPLOY_STOREFRONT_PORT`) unless it is already there, and sets
-   `route_status = 'ready'` and `ssl_status = 'active'`. Retries as for custom domains
+   `route_status = 'ready'`. It does not assume the certificate: `ssl_status` stays `issuing`
+   and the certificate sweep (below) moves it to `active` once the host really serves one.
+   Retries as for custom domains
    (6 attempts, exponential backoff); after that the row stays `failed` and the domain page
    shows "taking longer than usual".
 4. **Reserved names:** the store address cannot be one of our own hostnames

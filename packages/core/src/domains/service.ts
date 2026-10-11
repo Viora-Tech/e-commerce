@@ -10,6 +10,7 @@ import {
 import { and, asc, desc, eq, inArray, or } from 'drizzle-orm'
 import { CommerceError } from '../errors'
 import { insertOutboxEvent } from '../outbox/write'
+import { type CertReason, reasonOf } from './certificate'
 import { createDevDomainProvider } from './dev-provider'
 import { createDnsDomainProvider } from './dns-provider'
 import { isPlatformHostname, normaliseHostname, wwwCounterpart } from './hostname'
@@ -20,7 +21,11 @@ import { needsRouteRequest, requestDomainRoute } from './routes'
 export type DomainRow = typeof storeDomain.$inferSelect
 
 /** A domain as the admin shows it: the row plus the records to add at the registrar. */
-export type DomainView = Omit<DomainRow, 'storeId'> & { records: DnsRecord[] }
+export type DomainView = Omit<DomainRow, 'storeId'> & {
+  records: DnsRecord[]
+  /** Why the certificate check failed, when it did (`sslStatus` `failed`); the text is in `error`. */
+  sslReason: CertReason | null
+}
 
 export class DomainError extends CommerceError {
   constructor(message: string, storeId?: string) {
@@ -52,6 +57,7 @@ export function domainView(row: DomainRow, targets: DomainTargets): DomainView {
   const { storeId: _storeId, ...rest } = row
   return {
     ...rest,
+    sslReason: row.sslStatus === 'failed' ? reasonOf(row.error) : null,
     records:
       row.kind === 'platform' ? [] : dnsRecordsFor(row.hostname, row.verificationToken, targets),
   }

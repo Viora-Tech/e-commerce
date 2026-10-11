@@ -21,13 +21,13 @@ import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import SettingsCard from '@/components/settings/settings-card'
 import SettingsPageHeader from '@/components/settings/settings-page-header'
-import { domainCertificateContent, domainsContent } from '@/data/domains'
-import { useCopy } from '@/hooks/use-copy'
+import { domainsContent } from '@/data/domains'
 import { usePermissions } from '@/hooks/use-permissions'
 import { api } from '@/lib/api-client'
 import { formatDateTime } from '@/lib/format-date'
 import { routes } from '@/lib/routes'
 import DnsRecordsCard from './dns-records-card'
+import DomainSslSection from './domain-ssl-section'
 import DomainStatusBadge from './domain-status-badge'
 
 const copy = domainsContent.detail
@@ -40,9 +40,8 @@ type DomainDetailProps = {
 }
 
 const settling = (d: DomainView) =>
-  d.kind === 'custom' &&
-  (d.status === 'pending' ||
-    (d.status === 'active' && d.sslStatus !== 'active' && d.sslStatus !== 'failed'))
+  (d.kind === 'custom' && d.status === 'pending') ||
+  (d.status === 'active' && (d.sslStatus === 'pending' || d.sslStatus === 'issuing'))
 
 function connectionText(d: DomainView): string {
   if (d.status === 'active') return copy.verification.connected
@@ -54,7 +53,6 @@ function connectionText(d: DomainView): string {
 export default function DomainDetail({ initial, primaryHostname }: DomainDetailProps) {
   // Hooks
   const { hasPermission } = usePermissions()
-  const certificate = useCopy(domainCertificateContent)
   const router = useRouter()
   const [domain, setDomain] = useState(initial)
   const [checking, setChecking] = useState(false)
@@ -128,13 +126,6 @@ export default function DomainDetail({ initial, primaryHostname }: DomainDetailP
   const canManage = hasPermission(permissions.SETTINGS_MANAGE)
   const isCustom = domain.kind === 'custom'
   const canBePrimary = domain.status === 'active' && domain.sslStatus === 'active'
-  const sslState = domain.status === 'active' ? domain.sslStatus : 'pending'
-  const sslText =
-    sslState !== 'issuing'
-      ? copy.ssl[sslState]
-      : domain.routeStatus === 'failed'
-        ? certificate.retrying
-        : certificate.issuing
   const lastChecked = domain.lastCheckedAt
     ? copy.verification.checked(formatDateTime(domain.lastCheckedAt))
     : copy.verification.never
@@ -180,12 +171,15 @@ export default function DomainDetail({ initial, primaryHostname }: DomainDetailP
               </Button>
             ) : null}
           </div>
-          <div className="border-border flex flex-col gap-1 border-t pt-3">
-            <p className="text-body-strong text-ink-strong">{copy.ssl.heading}</p>
-            <p className="text-body text-muted-foreground">{sslText}</p>
+          <div className="border-border border-t pt-3">
+            <DomainSslSection domain={domain} canManage={canManage} onChange={setDomain} />
           </div>
         </SettingsCard>
-      ) : null}
+      ) : (
+        <SettingsCard>
+          <DomainSslSection domain={domain} canManage={canManage} onChange={setDomain} />
+        </SettingsCard>
+      )}
 
       <SettingsCard title={copy.traffic.heading} bodyClassName="flex flex-col gap-4">
         {domain.isPrimary ? (

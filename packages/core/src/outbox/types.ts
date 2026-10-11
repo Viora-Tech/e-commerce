@@ -88,6 +88,8 @@ export type OutboxPayload = {
   reviewId?: string | undefined
   /** The `store_domain` a `domain.route_requested` event is about. */
   domainId?: string | undefined
+  /** For `domain.route_requested`: delete and re-create the Dokploy domain to force a new certificate attempt. */
+  reregister?: boolean | undefined
   /** For `domain.route_removed`: the hostname, since its `store_domain` row is gone. */
   hostname?: string | undefined
 }

@@ -1,6 +1,8 @@
+import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
 import ProductForm from '@/components/products/product-form'
 import { appRouter, call, serverContext } from '@/lib/api'
+import { PRODUCT_LAYOUT_COOKIE, parseProductLayout } from '@/lib/product-layout'
 import { routes } from '@/lib/routes'
 import { orNoStore } from '@/lib/store-guard'
 import { storefrontOrigin } from '@/lib/storefront-origin'
@@ -19,6 +21,7 @@ export default async function NewProductPage() {
       facets={facets}
       storefrontOrigin={await storefrontOrigin()}
       aiWriter={ai?.productWriter ?? false}
+      layout={parseProductLayout((await cookies()).get(PRODUCT_LAYOUT_COOKIE)?.value)}
     />
   )
 }

@@ -3,12 +3,13 @@
 import { RefreshCw, X } from '@commerce/ui/icons'
 import { cn } from '@commerce/ui/lib/utils'
 import { Button } from '@commerce/ui/shadcn/button'
-import { DragHandle, ROW_STATE_CLASS, SORT_DURATION_MS } from '@commerce/ui/sortable'
+import { DragHandle, ROW_STATE_CLASS } from '@commerce/ui/sortable'
 import { useSortable } from '@dnd-kit/sortable'
 import { AnimatePresence, motion } from 'motion/react'
 import type { MediaTileItem } from '@/components/media/media-tile'
 import { productFormContent } from '@/data/product-form'
 import { useCopy } from '@/hooks/use-copy'
+import { IMAGE_ENTER_MS, IMAGE_GLIDE_SPRING } from '@/hooks/use-image-dnd'
 
 type ProductImageTileProps = {
   item: MediaTileItem
@@ -22,7 +23,7 @@ type ProductImageTileProps = {
 
 /* The shared sortable easing (cubic-bezier(0.25, 1, 0.5, 1)) as a Motion curve. */
 const EASE = [0.25, 1, 0.5, 1] as const
-const LAYOUT = { layout: { duration: SORT_DURATION_MS / 1000, ease: EASE } }
+const LAYOUT = { layout: IMAGE_GLIDE_SPRING }
 
 const BADGE_MOTION = {
   initial: { opacity: 0, y: 4 },
@@ -38,10 +39,10 @@ export function imageName(item: MediaTileItem): string {
 
 /**
  * One image in the product gallery, sortable with @dnd-kit (MIT). The whole tile drags by
- * mouse or touch; the grip is the keyboard handle (space, arrows, space). Tiles hold still
- * while an image is carried (the main image is twice the size, so shuffling them mid-drag
- * would overlap): the tile under it shows a bar on the side the image will land, its own
- * slot turns into a dashed outline, and on drop Motion glides every tile to its new place.
+ * mouse or touch; the grip is the keyboard handle (space, arrows, space). dnd-kit moves
+ * nothing itself (the main image is twice the size, so its strategies would overlap): the
+ * card reorders a preview as the image passes over tiles and Motion glides each tile on a
+ * spring (`useImageDnd`). The carried image's own slot is a dashed outline, its landing place.
  */
 export default function ProductImageTile({
   item,
@@ -53,25 +54,15 @@ export default function ProductImageTile({
 }: ProductImageTileProps) {
   // Hooks
   const { media: copy } = useCopy(productFormContent)
-  const {
-    attributes,
-    listeners,
-    setNodeRef,
-    setActivatorNodeRef,
-    isDragging,
-    isOver,
-    index,
-    activeIndex,
-  } = useSortable({ id: item.id })
+  const { attributes, listeners, setNodeRef, setActivatorNodeRef, isDragging } = useSortable({
+    id: item.id,
+  })
 
   // Render logic
   const name = imageName(item)
   /* Pointer sensors on the whole tile; the keyboard sensor only on the grip, so space or
      enter on the tile's own buttons never picks the image up. */
   const { onKeyDown: _keys, ...pointer } = listeners ?? {}
-  const target = isOver && !isDragging && activeIndex !== -1
-  /* Moving back, the image lands before this tile; moving on, after it. */
-  const landsBefore = activeIndex > index
 
   return (
     <motion.li
@@ -79,13 +70,12 @@ export default function ProductImageTile({
       layout={!reduced}
       initial={reduced ? false : { opacity: 0, scale: 0.96 }}
       animate={{ opacity: 1, scale: 1 }}
-      transition={{ duration: 0.18, ease: EASE, ...LAYOUT }}
+      transition={{ duration: IMAGE_ENTER_MS / 1000, ease: EASE, ...LAYOUT }}
       {...pointer}
       className={cn(
         'group/tile relative aspect-square touch-manipulation overflow-hidden rounded-lg border border-border bg-muted/40',
         main && 'col-span-2 row-span-2',
         isDragging ? ROW_STATE_CLASS.placeholder : 'cursor-grab',
-        target && 'ring-2 ring-primary ring-offset-2 ring-offset-card',
       )}
     >
       <div className="size-full">
@@ -104,20 +94,6 @@ export default function ProductImageTile({
           />
         </button>
       </div>
-      {target ? (
-        <span
-          aria-hidden="true"
-          className="pointer-events-none absolute inset-0 bg-primary-soft/50"
-        >
-          <span
-            className={cn(
-              'absolute inset-y-2 w-1 rounded-full bg-primary',
-              landsBefore ? 'left-1' : 'right-1',
-            )}
-          />
-        </span>
-      ) : null}
-
       <DragHandle
         ref={setActivatorNodeRef}
         label={copy.sort.handle(name)}

@@ -9,9 +9,12 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@commerce/ui/shadcn/dropdown-menu'
-import type { DragEvent } from 'react'
+import { ROW_STATE_CLASS } from '@commerce/ui/sortable'
+import { motion } from 'motion/react'
+import type { Ref } from 'react'
 import { mediaContent } from '@/data/media'
 import { useCopy } from '@/hooks/use-copy'
+import { IMAGE_GLIDE_SPRING } from '@/hooks/use-image-dnd'
 
 export type MediaTileItem = {
   id: string
@@ -39,15 +42,13 @@ type MediaTileProps = {
   /** Landscape thumbnail (the Files library) instead of a square. */
   wide?: boolean | undefined
   actions: MediaTileAction[]
-  /** Native drag-and-drop wiring from the grid; absent in the library. */
-  drag?:
+  /** @dnd-kit wiring from the sortable grid (`MediaSortableTile`); absent in the library. */
+  sortable?:
     | {
-        onDragStart: (e: DragEvent<HTMLLIElement>) => void
-        onDragOver: (e: DragEvent<HTMLLIElement>) => void
-        onDrop: (e: DragEvent<HTMLLIElement>) => void
-        onDragEnd: () => void
+        ref: Ref<HTMLLIElement>
+        props: Record<string, unknown>
         dragging: boolean
-        target: boolean
+        reduced: boolean
       }
     | undefined
 }
@@ -61,7 +62,7 @@ export default function MediaTile({
   meta,
   wide,
   actions,
-  drag,
+  sortable,
 }: MediaTileProps) {
   // Hooks
   const { tile: copy } = useCopy(mediaContent)
@@ -72,16 +73,14 @@ export default function MediaTile({
   const destructive = actions.filter((a) => a.destructive)
 
   return (
-    <li
-      draggable={drag !== undefined}
-      onDragStart={drag?.onDragStart}
-      onDragOver={drag?.onDragOver}
-      onDrop={drag?.onDrop}
-      onDragEnd={drag?.onDragEnd}
+    <motion.li
+      ref={sortable?.ref}
+      layout={sortable !== undefined && !sortable.reduced}
+      transition={{ layout: IMAGE_GLIDE_SPRING }}
+      {...sortable?.props}
       className={cn(
         'group relative flex flex-col gap-1',
-        drag && 'cursor-grab active:cursor-grabbing',
-        drag?.dragging && 'opacity-40',
+        sortable && 'cursor-grab touch-manipulation',
         cover && 'col-span-2 row-span-2',
       )}
     >
@@ -89,7 +88,7 @@ export default function MediaTile({
         className={cn(
           'relative w-full overflow-hidden border bg-muted',
           wide ? 'aspect-[4/3] rounded-xl' : 'aspect-square rounded-lg',
-          drag?.target && 'ring-2 ring-primary ring-offset-2 ring-offset-background',
+          sortable?.dragging && ROW_STATE_CLASS.placeholder,
         )}
       >
         {video ? (
@@ -147,6 +146,6 @@ export default function MediaTile({
         </span>
       ) : null}
       {meta ? <span className="truncate text-caption text-muted-foreground">{meta}</span> : null}
-    </li>
+    </motion.li>
   )
 }

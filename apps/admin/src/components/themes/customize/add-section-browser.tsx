@@ -8,12 +8,17 @@ import { Drawer } from '@puckeditor/core'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import { customizeContent } from '@/data/customize'
+import { themeImportContent } from '@/data/theme-import'
+import { useCopy } from '@/hooks/use-copy'
 import { CHROME_FOCUS } from '@/lib/customize-chrome'
 import { insertActions } from '@/lib/customize-insert'
 import { useCustomizePuck } from '@/lib/customize-puck'
 import { insertCopyActions } from '@/lib/customize-slots'
+import { useImportedTheme } from '@/lib/customize-theme-context'
+import { importedSections, matchesImported, newImportedSection } from '@/lib/imported-sections'
 import AppsTab from './add-section-apps-tab'
 import AddSectionGroup from './add-section-group'
+import ImportedTab from './add-section-imported-tab'
 import MySectionsTab from './add-section-my-tab'
 import SectionsTab, { type AddKind } from './add-section-sections-tab'
 import AddSectionStyles from './add-section-styles'
@@ -43,6 +48,7 @@ const copy = customizeContent.addSection
 /** Groups that are not library categories, folded by the same switch. */
 const MINE = 'mine'
 const APPS = 'apps'
+const IMPORTED = 'imported'
 
 /**
  * The Add panel (Figma 369:4899): a "Sections | Blocks" switch, a search, then folding groups of
@@ -69,6 +75,8 @@ export default function AddSectionBrowser({
   const [closed, setClosed] = useState<ReadonlySet<string>>(() => new Set())
   const dispatch = useCustomizePuck((s) => s.dispatch)
   const components = useCustomizePuck((s) => s.config.components)
+  const importedTheme = useImportedTheme()
+  const importedCopy = useCopy(themeImportContent.addPanel)
 
   // Helpers
   const labelOf = (type: string) => components[type]?.label ?? type
@@ -112,6 +120,15 @@ export default function AddSectionBrowser({
     finish()
   }
 
+  /** A section of the imported Shopify theme, started from its first preset. */
+  const handleAddImported = (type: string, name: string) => {
+    const block = importedTheme ? newImportedSection(importedTheme, type) : null
+    if (!block) return
+    for (const action of insertCopyActions({ zone, index }, block, count)) dispatch(action)
+    toast.success(importedCopy.added(name))
+    finish()
+  }
+
   const handleToggle = (title: string) =>
     setClosed((prev) => {
       const next = new Set(prev)
@@ -141,6 +158,13 @@ export default function AddSectionBrowser({
   }
 
   // Render logic
+  // The store's imported theme: its own sections, only while the Sections switch is on and the
+  // panel is not scoped to a header or footer group. The same search filters them.
+  const needle = query.trim().toLowerCase()
+  const imported =
+    importedTheme && kind === 'sections' && !group
+      ? importedSections(importedTheme).filter((s) => matchesImported(s, needle))
+      : []
   const listClass = fill
     ? 'min-h-0 flex-1 overflow-y-auto overscroll-contain pb-4 [&>div]:gap-4'
     : 'max-h-96 overflow-y-auto overscroll-contain [&>div]:gap-4'
@@ -165,6 +189,15 @@ export default function AddSectionBrowser({
           height of its own, so a list inside it never got a height to scroll within. */}
       <div className={listClass}>
         <Drawer>
+          {imported.length > 0 ? (
+            <AddSectionGroup
+              title={importedCopy.title}
+              open={isOpen(IMPORTED)}
+              onToggle={() => handleToggle(IMPORTED)}
+            >
+              <ImportedTab sections={imported} onAdd={handleAddImported} />
+            </AddSectionGroup>
+          ) : null}
           <SectionsTab
             group={group}
             kind={kind}
@@ -175,6 +208,7 @@ export default function AddSectionBrowser({
             onHover={setHovered}
             labelOf={labelOf}
             onAdd={handleAdd}
+            othersMatch={imported.length > 0}
           />
           {kind === 'sections' && !group ? (
             <AddSectionGroup

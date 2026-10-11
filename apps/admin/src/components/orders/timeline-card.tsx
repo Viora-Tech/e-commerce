@@ -8,6 +8,7 @@ import { type FormEvent, useState } from 'react'
 import { toast } from 'sonner'
 import DataCard from '@/components/layout/data-card'
 import RelativeTime from '@/components/layout/relative-time'
+import ScrollSection from '@/components/layout/scroll-section'
 import { orderDetailContent } from '@/data/orders'
 import { shipmentPanelContent } from '@/data/shipping'
 import { useCopy, useFormat } from '@/hooks/use-copy'
@@ -73,43 +74,50 @@ export default function TimelineCard({ order, onChanged }: TimelineCardProps) {
         </div>
       </form>
 
-      <div className="mt-4 flex flex-col gap-5">
-        {days.map((day) => (
-          <section key={day.key}>
-            <p className="sticky top-[var(--detail-header-height,0rem)] z-1 -mx-5 bg-card px-5 py-1 text-caption text-muted-foreground">
-              {day.label}
-            </p>
-            <ol className="relative mt-2 flex flex-col gap-4 border-l border-border pl-6">
-              {day.entries.map((e) => {
-                const Icon = ICON[e.kind]
-                return (
-                  <li key={e.id} className="relative">
-                    <span
-                      className={cn(
-                        'absolute -left-8 top-0 flex size-6 items-center justify-center rounded-full border border-border bg-card',
-                        e.tone === 'destructive' ? 'text-destructive' : 'text-muted-foreground',
-                      )}
-                      aria-hidden="true"
-                    >
-                      <Icon className="size-3.5" />
-                    </span>
-                    <p
-                      className={cn(
-                        'text-body',
-                        e.kind === 'note' ? 'whitespace-pre-wrap' : 'font-medium',
-                      )}
-                    >
-                      {e.title}
-                    </p>
-                    <RelativeTime value={e.at} className="text-caption font-normal" />
-                    {e.detail ? <p className="text-caption font-normal">{e.detail}</p> : null}
-                  </li>
-                )
-              })}
-            </ol>
-          </section>
-        ))}
-      </div>
+      <ScrollSection
+        id={`order-timeline-${order.id}`}
+        label={copy.timeline.heading}
+        maxHeight="min(32rem, 65vh)"
+        className="mt-4 [--detail-header-height:0rem]"
+      >
+        <div className="flex flex-col gap-5">
+          {days.map((day) => (
+            <section key={day.key}>
+              <p className="sticky top-[var(--detail-header-height,0rem)] z-1 -mx-5 bg-card px-5 py-1 text-caption text-muted-foreground">
+                {day.label}
+              </p>
+              <ol className="relative mt-2 flex flex-col gap-4 border-l border-border pl-6">
+                {day.entries.map((e) => {
+                  const Icon = ICON[e.kind]
+                  return (
+                    <li key={e.id} className="relative">
+                      <span
+                        className={cn(
+                          'absolute -left-8 top-0 flex size-6 items-center justify-center rounded-full border border-border bg-card',
+                          e.tone === 'destructive' ? 'text-destructive' : 'text-muted-foreground',
+                        )}
+                        aria-hidden="true"
+                      >
+                        <Icon className="size-3.5" />
+                      </span>
+                      <p
+                        className={cn(
+                          'text-body',
+                          e.kind === 'note' ? 'whitespace-pre-wrap' : 'font-medium',
+                        )}
+                      >
+                        {e.title}
+                      </p>
+                      <RelativeTime value={e.at} className="text-caption font-normal" />
+                      {e.detail ? <p className="text-caption font-normal">{e.detail}</p> : null}
+                    </li>
+                  )
+                })}
+              </ol>
+            </section>
+          ))}
+        </div>
+      </ScrollSection>
     </DataCard>
   )
 }

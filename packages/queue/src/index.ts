@@ -37,6 +37,8 @@ export const ABANDONED_SWEEP_QUEUE = '{abandoned}-sweep'
 export const DOMAIN_VERIFY_QUEUE = '{domains}-verify'
 /** One job per custom-domain HTTPS route to add or delete on the proxy (Dokploy). Platform work, one at a time. */
 export const DOMAIN_ROUTE_QUEUE = '{domains}-route'
+/** Repeat job that checks every registered store address and custom domain over TLS and retries missing certificates. */
+export const DOMAIN_CERTIFICATE_QUEUE = '{domains}-certificate'
 /** Repeat job that checks store sender email domains (pending, and verified ones daily). */
 export const SENDER_EMAIL_VERIFY_QUEUE = '{sender-email}-verify'
 /** Repeat job that claims undispatched outbox rows and fans them out. */

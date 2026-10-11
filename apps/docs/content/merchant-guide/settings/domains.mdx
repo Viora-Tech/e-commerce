@@ -1,0 +1,40 @@
+---
+title: Domains and security certificates
+description: Your store address and your own domain, what the certificate status means, and what to do when it says Waiting for DNS or Failed.
+---
+
+# Domains and security certificates
+
+Your store answers on its own address (for example `yourshop.vioratech.in`) and, if you like, on
+a domain you bought (like `yourshop.in`). Shoppers see a padlock only when the address has a
+**security certificate**. We get a free one for every address automatically.
+
+Open **Settings → Domains** to see every address and its status.
+
+## What the status means
+
+| Status | What it means | What to do |
+| --- | --- | --- |
+| **Connected** | The address works and has its certificate. | Nothing. |
+| **Issuing SSL** | We are getting the certificate. Usually a minute or two. | Wait. The page refreshes by itself. |
+| **Waiting for DNS** | The address does not point at our server yet, so no certificate can be issued. | Add or fix the DNS record at the company where you bought the domain (see the records on the domain's page). We keep checking on our own. |
+| **Certificate failed** | The address points at us, but the certificate was not issued yet. | Press **Retry certificate**. We also keep trying on our own for three days. |
+
+The reason is written under the address, for example **DNS not pointing here yet** or
+**Certificate pending**.
+
+## Retry certificate
+
+On a domain's page, **Retry certificate** starts a fresh attempt straight away. It takes about a
+minute. You can press it once every two minutes. It is for owners and admins.
+
+You usually do not need it: after you fix DNS we notice within minutes and retry for you, first
+after a few minutes, then after 15 minutes, an hour, and then every six hours for three days.
+
+## If it keeps failing
+
+- Check the DNS records on the domain's page against what your registrar shows. A typo is the
+  most common cause.
+- If you use Cloudflare, turn the orange cloud off (DNS only) while the certificate is issued.
+- Changes at some registrars take up to 48 hours to spread. The status updates once they do.
+- Still stuck after a day? Contact support with the address.

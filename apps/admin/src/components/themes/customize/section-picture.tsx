@@ -36,7 +36,12 @@ export default function SectionPicture({ type, label, fit, className }: SectionP
 
   return (
     <span
-      className={cn('relative flex overflow-hidden bg-muted', className)}
+      className={cn(
+        'relative flex overflow-hidden bg-muted',
+        fit === 'tile' &&
+          'transition-transform duration-150 ease-[cubic-bezier(0.25,1,0.5,1)] group-active/card:scale-[0.97] motion-reduce:transition-none',
+        className,
+      )}
       style={fit === 'card' ? { aspectRatio: `1 / ${ratio}` } : undefined}
     >
       {/* biome-ignore lint/performance/noImgElement: small static webp files from public/, already sized. */}

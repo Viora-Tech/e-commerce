@@ -3,6 +3,7 @@ export default {
   index: 'Overview and Store details',
   '-- store': { type: 'separator', title: 'Store' },
   locations: 'Locations & warehouses',
+  domains: 'Domains and security certificates',
   '-- selling': { type: 'separator', title: 'Selling' },
   payments: 'Payments',
   checkout: 'Checkout',

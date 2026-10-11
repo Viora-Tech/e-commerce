@@ -19,7 +19,13 @@ import { isPlatformHostname, normaliseHostname } from './hostname'
 type DomainRow = typeof storeDomain.$inferSelect
 
 export type DomainRouteJob =
-  | { action: 'add'; storeId: string; domainId: string }
+  | {
+      action: 'add'
+      storeId: string
+      domainId: string
+      /** Delete and re-create the Dokploy domain first, to force a fresh certificate attempt. */
+      reregister?: boolean | undefined
+    }
   | { action: 'remove'; storeId: string; hostname: string }
 
 /** The `{domains}-route` queue as the outbox relay sees it (BullMQ's `Queue#add`). */
@@ -67,7 +73,7 @@ export function isRoutableHostname(hostname: string, guard: RouteGuard): boolean
 }
 
 /** A store address: exactly one DNS label under the store domain, e.g. `asha.example.com`. */
-function isStoreAddressHostname(hostname: string, guard: RouteGuard): boolean {
+export function isStoreAddressHostname(hostname: string, guard: RouteGuard): boolean {
   const parent = guard.storeDomain?.trim().toLowerCase()
   if (!parent || !hostname.endsWith(`.${parent}`)) return false
   const label = hostname.slice(0, -(parent.length + 1))
@@ -111,12 +117,21 @@ export async function requestDomainRoute(
   storeId: string,
   domainId: string,
   now: Date,
+  opts: { reregister?: boolean } = {},
 ): Promise<void> {
+  // A re-register keeps `ready`: the route is there, the certificate is what is missing.
   await tx
     .update(storeDomain)
-    .set({ routeStatus: 'pending', routeRequestedAt: now })
+    .set(
+      opts.reregister
+        ? { routeRequestedAt: now }
+        : { routeStatus: 'pending', routeRequestedAt: now },
+    )
     .where(eq(storeDomain.id, domainId))
-  await insertOutboxEvent(tx, storeId, 'domain.route_requested', { domainId })
+  await insertOutboxEvent(tx, storeId, 'domain.route_requested', {
+    domainId,
+    ...(opts.reregister ? { reregister: true } : {}),
+  })
 }
 
 export type DomainRouteDeps = {
@@ -125,6 +140,8 @@ export type DomainRouteDeps = {
   client: DokployClient | null
   guard: RouteGuard
   log?: ((message: string) => void) | undefined
+  /** After a forced re-register: wait for the certificate and record the result (certificate-retry.ts). */
+  afterReregister?: ((storeId: string, domainId: string) => Promise<void>) | undefined
 }
 
 export type RouteJobOutcome = 'created' | 'exists' | 'removed' | 'absent' | 'skipped'
@@ -161,26 +178,38 @@ export async function runDomainRouteJob(
       : isRoutableHostname(row.hostname, deps.guard)
   if (!routable) {
     deps.log?.(`[domains] refused to add a route for ${row.hostname}`)
-    await setRouteStatus(deps.db, job, 'none')
+    await setRouteStatus(deps.db, job, null)
     return 'skipped'
   }
+  if (job.reregister) await removeRoute(client, row.hostname)
   const r = await ensureRoute(client, row.hostname)
-  await setRouteStatus(deps.db, job, 'ready', row.kind === 'platform')
+  await setRouteStatus(deps.db, job, row, job.reregister === true)
   if (r.created) deps.log?.(`[domains] added the HTTPS route for ${row.hostname}`)
+  if (job.reregister) await deps.afterReregister?.(job.storeId, job.domainId)
   return r.created ? 'created' : 'exists'
 }
 
+/**
+ * Record the outcome of an add job. `row` null: the hostname was refused, route `none`. Otherwise
+ * route `ready`, and the wait for the certificate starts now (or again, for a forced re-register).
+ * The certificate itself is verified by the sweep (certificate-retry.ts), never assumed here.
+ */
 async function setRouteStatus(
   db: Db,
   job: Extract<DomainRouteJob, { action: 'add' }>,
-  routeStatus: DomainRow['routeStatus'],
-  sslActive = false,
+  row: DomainRow | null,
+  restart = false,
 ): Promise<void> {
+  const now = new Date()
+  const set = !row
+    ? { routeStatus: 'none' as const }
+    : {
+        routeStatus: 'ready' as const,
+        ...(restart || !row.sslStartedAt ? { sslStartedAt: now } : {}),
+        ...(restart ? { sslStatus: 'issuing' as const } : {}),
+      }
   await withStore(db, job.storeId, (tx) =>
-    tx
-      .update(storeDomain)
-      .set(sslActive ? { routeStatus, sslStatus: 'active' } : { routeStatus })
-      .where(eq(storeDomain.id, job.domainId)),
+    tx.update(storeDomain).set(set).where(eq(storeDomain.id, job.domainId)),
   )
 }
 

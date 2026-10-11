@@ -1,5 +1,6 @@
 import type { ImportReport } from '@commerce/core/theme-import'
 import { Card, CardContent, CardHeader, CardTitle } from '@commerce/ui/shadcn/card'
+import ScrollSection from '@/components/layout/scroll-section'
 import type { themeImportContent } from '@/data/theme-import'
 
 type ImportReportTodoProps = {
@@ -35,11 +36,17 @@ export default function ImportReportTodo({ copy, report }: ImportReportTodoProps
       <CardContent className="flex flex-col gap-2 px-5 py-4 text-body">
         {items.length === 0 ? <p className="text-muted-foreground">{copy.todoNone}</p> : null}
         {items.length ? (
-          <ul className="flex list-disc flex-col gap-1.5 pl-5 text-foreground">
-            {items.map((item) => (
-              <li key={item}>{item}</li>
-            ))}
-          </ul>
+          <ScrollSection
+            id="theme-report-todo"
+            label={copy.todoHeading}
+            maxHeight="min(20rem, 50vh)"
+          >
+            <ul className="flex list-disc flex-col gap-1.5 pl-5 text-foreground">
+              {items.map((item) => (
+                <li key={item}>{item}</li>
+              ))}
+            </ul>
+          </ScrollSection>
         ) : null}
         {done ? <p className="text-muted-foreground">{done}</p> : null}
       </CardContent>

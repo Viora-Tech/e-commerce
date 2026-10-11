@@ -9,7 +9,13 @@ import { Hono } from 'hono'
 import { createAiBulkWriteWorker } from './ai-bulk-write'
 import { createAppEventWorker, createAppJobWorker } from './app-events'
 import { createBackInStockWorker } from './back-in-stock'
-import { createDomainPoller, createDomainRouteWorker, VERIFY_EVERY_MS } from './domains'
+import {
+  CERTIFICATE_EVERY_MS,
+  createCertificateSweep,
+  createDomainPoller,
+  createDomainRouteWorker,
+  VERIFY_EVERY_MS,
+} from './domains'
 import { createImportSnapshotCleanup, SNAPSHOT_CLEANUP_EVERY_MS } from './import-snapshots'
 import { createMarketingWorker, MARKETING_TICK_MS, retireAbandonedSweep } from './marketing'
 import { mediaProcessLimits } from './media-limits'
@@ -67,18 +73,26 @@ const preorderBalance = createPreorderBalanceJob(redis, db, { settingsSecret: en
 const tracker = createShippingTracker(redis, db, { settingsSecret: env.SETTINGS_SECRET })
 // Unset Dokploy keys: no routes are asked for and every route job is a no-op (added by hand).
 const dokploy = dokployConfigFrom(env)
+const domainTargets = { aRecord: env.STOREFRONT_A_RECORD, cnameTarget: env.STOREFRONT_CNAME_TARGET }
+const domainGuard = {
+  platformRoots: platformRoots(env),
+  cnameTarget: env.STOREFRONT_CNAME_TARGET,
+  storeDomain: env.PLATFORM_STORE_DOMAIN,
+}
 const domains = createDomainPoller(redis, db, {
   provider: env.DOMAIN_PROVIDER,
-  targets: { aRecord: env.STOREFRONT_A_RECORD, cnameTarget: env.STOREFRONT_CNAME_TARGET },
+  targets: domainTargets,
   requestRoutes: dokploy !== null,
 })
 const domainRoutes = createDomainRouteWorker(redis, db, {
   dokploy,
-  guard: {
-    platformRoots: platformRoots(env),
-    cnameTarget: env.STOREFRONT_CNAME_TARGET,
-    storeDomain: env.PLATFORM_STORE_DOMAIN,
-  },
+  guard: domainGuard,
+  targets: domainTargets,
+})
+const certificates = createCertificateSweep(redis, db, {
+  dokploy,
+  guard: domainGuard,
+  targets: domainTargets,
 })
 const senderEmails = createSenderEmailPoller(redis, db)
 const marketing = createMarketingWorker(redis, db, {
@@ -116,6 +130,7 @@ reportWorkerFailures(unpaidExpiry.worker, 'unpaid-order-expiry', reportError)
 reportWorkerFailures(preorderBalance.worker, 'preorder-balance', reportError)
 reportWorkerFailures(domains.worker, 'domain-verify', reportError)
 reportWorkerFailures(domainRoutes.worker, 'domain-route', reportError)
+reportWorkerFailures(certificates.worker, 'domain-certificate', reportError)
 reportWorkerFailures(senderEmails.worker, 'sender-email-verify', reportError)
 reportWorkerFailures(marketing.tick, 'marketing-tick', reportError)
 reportWorkerFailures(marketing.send, 'marketing-send', reportError)
@@ -153,6 +168,16 @@ await domains.queue.upsertJobScheduler(
   { every: VERIFY_EVERY_MS },
   { name: 'verify' },
 )
+// Real network checks only: with the dev provider there is nothing to ask.
+if (env.DOMAIN_PROVIDER === 'dns') {
+  await certificates.queue.upsertJobScheduler(
+    'check-domain-certificates',
+    { every: CERTIFICATE_EVERY_MS },
+    { name: 'check' },
+  )
+} else {
+  await certificates.queue.removeJobScheduler('check-domain-certificates')
+}
 await senderEmails.queue.upsertJobScheduler(
   'verify-sender-emails',
   { every: SENDER_CHECK_EVERY_MS },
@@ -220,6 +245,8 @@ const shutdown = async () => {
   await domains.queue.close()
   await domainRoutes.worker.close()
   await domainRoutes.queue.close()
+  await certificates.worker.close()
+  await certificates.queue.close()
   await senderEmails.worker.close()
   await senderEmails.queue.close()
   await marketing.tick.close()
