@@ -193,6 +193,7 @@ export const customizeContent = {
     uploadFailed: 'Could not upload that picture',
     more: 'Show more',
     drop: 'Drop files to upload',
+    dropNow: 'Drop to upload',
     browse: 'or click to browse',
     used: 'Used',
     unused: 'Unused',

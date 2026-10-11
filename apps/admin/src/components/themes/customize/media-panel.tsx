@@ -1,9 +1,10 @@
 'use client'
 
-import { Plus } from '@commerce/ui/icons'
+import { Plus, Upload } from '@commerce/ui/icons'
 import { cn } from '@commerce/ui/lib/utils'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Input } from '@commerce/ui/shadcn/input'
+import { useReducedMotion } from 'motion/react'
 import { type ChangeEvent, type DragEvent, useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
 import { fileName } from '@/components/media/file-meta'
@@ -18,6 +19,7 @@ import { FIELD_INPUT } from '@/lib/customize-field-styles'
 import { sectionName } from '@/lib/customize-insert'
 import { type FieldShape, MEDIA_DRAG_TYPE, mediaAction } from '@/lib/customize-media-insert'
 import { useCustomizePuck } from '@/lib/customize-puck'
+import { setLiftedDragImage } from '@/lib/image-drag-ghost'
 import { rejectReason, uploadFile } from '@/lib/upload'
 
 const PAGE = 40
@@ -43,6 +45,8 @@ export default function MediaPanel() {
   const [total, setTotal] = useState(0)
   const [uploading, setUploading] = useState(false)
   const [dropping, setDropping] = useState(false)
+  const [dragId, setDragId] = useState<string | null>(null)
+  const prefersReducedMotion = useReducedMotion()
   const fileInput = useRef<HTMLInputElement>(null)
   // The library, filtered by the search after a short pause, then page by page.
   useEffect(() => {
@@ -93,6 +97,8 @@ export default function MediaPanel() {
     e.dataTransfer.effectAllowed = 'copy'
     e.dataTransfer.setData(MEDIA_DRAG_TYPE, JSON.stringify({ url: item.url, alt: item.alt }))
     e.dataTransfer.setData('text/uri-list', item.url)
+    setLiftedDragImage(e.nativeEvent, e.currentTarget, prefersReducedMotion === true)
+    setDragId(item.id)
   }
   const handleFiles = async (files: File[]) => {
     const ok = files.filter((file) => {
@@ -148,18 +154,23 @@ export default function MediaPanel() {
         disabled={uploading}
         aria-label={uploading ? copy.uploading : copy.upload}
         className={cn(
-          'flex flex-col items-center gap-1.5 rounded-xl border border-dashed border-border p-[1.125rem] text-center transition-colors duration-150 hover:border-primary hover:bg-primary-soft/40 disabled:opacity-60 motion-reduce:transition-none',
-          dropping && 'border-primary bg-primary-soft',
+          'flex flex-col items-center gap-1.5 rounded-xl border border-dashed border-border p-[1.125rem] text-center transition-[transform,border-color,background-color] duration-200 ease-[cubic-bezier(0.25,1,0.5,1)] hover:border-primary hover:bg-primary-soft/40 disabled:opacity-60 motion-reduce:transition-none',
+          dropping &&
+            'scale-[1.02] border-2 border-primary bg-primary-soft motion-reduce:scale-100',
           CHROME_FOCUS,
         )}
       >
-        <Plus
-          aria-hidden
-          weight="regular"
-          className={cn('size-5 text-muted-foreground', uploading && 'animate-pulse')}
-        />
+        {dropping ? (
+          <Upload aria-hidden className="size-5 text-primary" />
+        ) : (
+          <Plus
+            aria-hidden
+            weight="regular"
+            className={cn('size-5 text-muted-foreground', uploading && 'animate-pulse')}
+          />
+        )}
         <span className="text-[0.8125rem] leading-[1.1875rem] font-medium text-foreground">
-          {uploading ? copy.uploading : copy.drop}
+          {uploading ? copy.uploading : dropping ? copy.dropNow : copy.drop}
         </span>
         <span className="text-xs leading-[1.0625rem] text-muted-foreground">{copy.browse}</span>
       </button>
@@ -200,11 +211,14 @@ export default function MediaPanel() {
                   type="button"
                   draggable
                   onDragStart={(e) => handleDragStart(e, item)}
+                  onDragEnd={() => setDragId(null)}
                   onClick={() => handleUse(item)}
                   aria-label={copy.use(item.alt || name || copy.picture)}
                   title={item.alt ?? undefined}
                   className={cn(
-                    'relative block h-[5.25rem] w-full cursor-grab overflow-hidden rounded-[0.625rem] border border-border bg-muted transition-[border-color,box-shadow] duration-150 hover:border-primary active:cursor-grabbing motion-reduce:transition-none',
+                    'relative block h-[5.25rem] w-full cursor-grab overflow-hidden rounded-[0.625rem] border border-border bg-muted transition-[border-color,opacity] duration-150 hover:border-primary active:cursor-grabbing motion-reduce:transition-none',
+                    dragId === item.id &&
+                      'border-dashed border-primary/60 bg-primary-soft/60 *:opacity-0',
                     CHROME_FOCUS,
                   )}
                 >
