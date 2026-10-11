@@ -1,24 +1,20 @@
 'use client'
 
-import { Card, CardContent } from '@commerce/ui/shadcn/card'
 import { Skeleton } from '@commerce/ui/shadcn/skeleton'
-import { Spinner } from '@commerce/ui/shadcn/spinner'
 import { useEffect, useState } from 'react'
 import type { AppPageProps } from '@/apps/registry'
 import PageHeader from '@/components/layout/page-header'
 import { shopifyImportContent } from '@/data/shopify-import'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
-import RunActions from './run-actions'
-import RunCurrentStep from './run-current-step'
 import RunFilesCard from './run-files-card'
+import RunHeaderCard from './run-header-card'
 import RunIssuesCard from './run-issues-card'
 import RunLeftCard from './run-left-card'
 import RunPreflight from './run-preflight'
-import RunProgressCard from './run-progress-card'
 import RunSamplesCard from './run-samples-card'
-import RunStatusLabel from './run-status-label'
-import RunStopButton from './run-stop-button'
+import RunStatTiles from './run-stat-tiles'
+import RunTypeGrid from './run-type-grid'
 import type { RunDetail } from './types'
 
 const base = shopifyImportContent.base
@@ -90,7 +86,6 @@ export default function RunPage({ params }: AppPageProps) {
   }
 
   // Render logic
-  const finished = ENDED.has(run.status)
   const previewDone = run.dryRun && run.status === 'completed'
   const source = run.mode === 'csv' ? home.source.csv(run.fileName) : home.source.api
   const reuse = run.snapshotUse
@@ -99,39 +94,34 @@ export default function RunPage({ params }: AppPageProps) {
       ? copy.previewReuse
       : null
 
+  const notes = [
+    reuse,
+    run.retryOf ? copy.retrying : null,
+    run.onlyMissing ? copy.remainingRun : null,
+  ].filter((n): n is string => Boolean(n))
+
   return (
     <div className="flex flex-col gap-4">
       <PageHeader
         title={copy.title(run.dryRun)}
         subtitle={copy.from(source)}
         breadcrumbs={crumbs}
-        actions={
-          <div className="flex flex-wrap gap-2">
-            <RunStopButton run={run} onStopped={handleStopped} />
-            <RunActions run={run} onQueued={handleQueued} />
-          </div>
-        }
       />
-      <Card>
-        <CardContent className="flex flex-wrap items-center gap-3">
-          <RunStatusLabel status={run.status} preview={run.dryRun} />
-          {finished ? null : <Spinner className="size-4 text-muted-foreground" />}
-          <p className="text-body text-muted-foreground">{message(copy, run, fmt.dateTime)}</p>
-          {reuse ? <p className="w-full text-body text-muted-foreground">{reuse}</p> : null}
-          {run.retryOf ? (
-            <p className="w-full text-body text-muted-foreground">{copy.retrying}</p>
-          ) : null}
-          {run.onlyMissing ? (
-            <p className="w-full text-body text-muted-foreground">{copy.remainingRun}</p>
-          ) : null}
-          <RunCurrentStep run={run} />
-        </CardContent>
-      </Card>
+      <RunHeaderCard
+        run={run}
+        message={message(copy, run, fmt.dateTime)}
+        notes={notes}
+        onQueued={handleQueued}
+        onStopped={handleStopped}
+      />
+      <RunStatTiles run={run} />
       {previewDone ? <RunPreflight resources={run.resources} mode={run.mode} /> : null}
-      <RunProgressCard run={run} />
+      <RunTypeGrid run={run} />
       <RunFilesCard run={run} />
       <RunLeftCard run={run} />
-      {run.dryRun && run.preview.length > 0 ? <RunSamplesCard samples={run.preview} /> : null}
+      {run.dryRun && run.preview.length > 0 ? (
+        <RunSamplesCard samples={run.preview} progress={run.progress} />
+      ) : null}
       <RunIssuesCard
         runId={run.id}
         count={run.issueCount}

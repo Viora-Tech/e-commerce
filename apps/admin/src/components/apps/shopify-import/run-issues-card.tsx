@@ -1,6 +1,6 @@
 'use client'
 
-import { ChevronLeftIcon, ChevronRight } from '@commerce/ui/icons'
+import { ChevronLeftIcon, ChevronRight, CircleCheck, TriangleAlert } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import {
   Table,
@@ -11,8 +11,9 @@ import {
   TableRow,
 } from '@commerce/ui/shadcn/table'
 import { useEffect, useState } from 'react'
-import DataCard from '@/components/layout/data-card'
+import IconBadge from '@/components/layout/icon-badge'
 import { shopifyImportContent } from '@/data/shopify-import'
+import { shopifyImportRunContent } from '@/data/shopify-import-run'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 import RunProblemGroups from './run-problem-groups'
@@ -30,8 +31,9 @@ type RunIssuesCardProps = {
 const PER_PAGE = 50
 
 /**
- * What could not be imported: grouped by cause with one fix each, and every
- * record with its reason behind "Show every record".
+ * What could not be imported: a warning card with the problems grouped by cause and
+ * type, each with one example and fix, and every record behind "Show every record".
+ * No problems is one small green line.
  */
 export default function RunIssuesCard({
   runId,
@@ -41,6 +43,7 @@ export default function RunIssuesCard({
 }: RunIssuesCardProps) {
   // Hooks
   const copy = useCopy(shopifyImportContent.run)
+  const view = useCopy(shopifyImportRunContent)
   const resources = useCopy(shopifyImportContent.resources)
   const [page, setPage] = useState(1)
   const [items, setItems] = useState<IssueItem[]>([])
@@ -61,76 +64,96 @@ export default function RunIssuesCard({
     }
   }, [runId, page, count, version, all])
 
+  // Event handlers
+  const handleToggle = () => setAll(!all)
+
   // Early returns
   if (count === 0) {
     return (
-      <DataCard title={copy.issuesHeading(0)}>
-        <p className="text-body text-muted-foreground">{copy.issuesNone}</p>
-      </DataCard>
+      <p className="flex items-center gap-2 rounded-xl border border-hairline bg-card px-4 py-3 text-body font-medium text-success">
+        <CircleCheck weight="fill" className="size-4" aria-hidden />
+        {view.problems.none}
+      </p>
     )
   }
 
   // Render logic
   const pages = Math.ceil(count / PER_PAGE)
-  const toggle = (
-    <Button type="button" variant="ghost" size="sm" onClick={() => setAll(!all)}>
-      {all ? copy.problems.showGrouped : copy.problems.showAll}
-    </Button>
-  )
 
   return (
-    <DataCard title={copy.issuesHeading(count)} action={toggle} flush={all}>
-      {retryable > 0 && retryable !== count ? (
-        <p className={`mb-3 text-caption text-muted-foreground ${all ? 'px-5' : ''}`}>
-          {copy.problems.unit(retryable)}
-        </p>
-      ) : null}
-      {all ? null : <RunProblemGroups runId={runId} version={version} />}
-      <Table className={all ? undefined : 'hidden'}>
-        <TableHeader>
-          <TableRow>
-            <TableHead>{copy.issueColumns.where}</TableHead>
-            <TableHead>{copy.issueColumns.what}</TableHead>
-            <TableHead>{copy.issueColumns.message}</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {items.map((i) => (
-            <TableRow key={i.id}>
-              <TableCell className="whitespace-nowrap text-muted-foreground">
-                {i.row
-                  ? copy.line(i.row)
-                  : (resources[i.resource as keyof typeof shopifyImportContent.resources] ??
-                    i.resource)}
-              </TableCell>
-              <TableCell className="max-w-56 truncate font-medium">{i.ref ?? ''}</TableCell>
-              <TableCell className="whitespace-normal">{i.message}</TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
-      {all && pages > 1 ? (
-        <div className="flex justify-end gap-2 p-4">
-          <Button
-            size="sm"
-            variant="outline"
-            disabled={page <= 1}
-            onClick={() => setPage(page - 1)}
-            aria-label={copy.previous}
-          >
-            <ChevronLeftIcon />
-          </Button>
-          <Button
-            size="sm"
-            variant="outline"
-            disabled={page >= pages}
-            onClick={() => setPage(page + 1)}
-            aria-label={copy.next}
-          >
-            <ChevronRight />
-          </Button>
+    <section className="flex flex-col gap-4 rounded-2xl border border-warning/30 bg-warning-soft/40 p-5">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div className="flex items-start gap-3.5">
+          <IconBadge icon={TriangleAlert} tone="warning" />
+          <div className="flex flex-col gap-1">
+            <h2 className="text-card-title text-ink-strong">{copy.issuesHeading(count)}</h2>
+            <p className="text-body text-muted-foreground">{view.problems.summary(count)}</p>
+            {retryable > 0 && retryable !== count ? (
+              <p className="text-caption text-muted-foreground">{copy.problems.unit(retryable)}</p>
+            ) : null}
+          </div>
         </div>
-      ) : null}
-    </DataCard>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          className="shrink-0 self-start"
+          onClick={handleToggle}
+        >
+          {all ? view.problems.hideRecords : view.problems.showRecords}
+        </Button>
+      </div>
+      {all ? (
+        <div className="overflow-hidden rounded-xl bg-card">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>{copy.issueColumns.where}</TableHead>
+                <TableHead>{copy.issueColumns.what}</TableHead>
+                <TableHead>{copy.issueColumns.message}</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {items.map((i) => (
+                <TableRow key={i.id}>
+                  <TableCell className="whitespace-nowrap text-muted-foreground">
+                    {i.row
+                      ? copy.line(i.row)
+                      : (resources[i.resource as keyof typeof shopifyImportContent.resources] ??
+                        i.resource)}
+                  </TableCell>
+                  <TableCell className="max-w-56 truncate font-medium">{i.ref ?? ''}</TableCell>
+                  <TableCell className="whitespace-normal">{i.message}</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+          {pages > 1 ? (
+            <div className="flex justify-end gap-2 p-4">
+              <Button
+                size="sm"
+                variant="outline"
+                disabled={page <= 1}
+                onClick={() => setPage(page - 1)}
+                aria-label={copy.previous}
+              >
+                <ChevronLeftIcon />
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                disabled={page >= pages}
+                onClick={() => setPage(page + 1)}
+                aria-label={copy.next}
+              >
+                <ChevronRight />
+              </Button>
+            </div>
+          ) : null}
+        </div>
+      ) : (
+        <RunProblemGroups runId={runId} version={version} />
+      )}
+    </section>
   )
 }

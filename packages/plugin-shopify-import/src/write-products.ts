@@ -143,6 +143,7 @@ function preview(ctx: ImportContext, p: NProduct, existingId: string | null) {
     title: p.title,
     action: existingId ? 'update' : 'create',
     detail: `${p.variants.length} ${p.variants.length === 1 ? 'variant' : 'variants'}, ${p.images.length} ${p.images.length === 1 ? 'image' : 'images'}`,
+    image: p.images[0]?.src,
   })
 }
 

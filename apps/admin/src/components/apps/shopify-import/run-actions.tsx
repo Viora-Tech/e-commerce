@@ -1,11 +1,13 @@
 'use client'
 
+import { ExternalLink } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Spinner } from '@commerce/ui/shadcn/spinner'
 import { useRouter } from 'next/navigation'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import { shopifyImportContent } from '@/data/shopify-import'
+import { shopifyImportRunContent } from '@/data/shopify-import-run'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 import type { RunDetail } from './types'
@@ -19,15 +21,32 @@ type RunActionsProps = {
 const base = shopifyImportContent.base
 
 /**
- * What can happen next to a finished run: Import now after a preview, Try again
- * after a failure, Run again after a stop, and after an import with problems
- * "Retry the N that were missed" (only those) next to "Import everything again".
+ * What can happen next to a finished run, secondary first and primary last: Import now
+ * after a preview, Try again after a failure, Run again after a stop, View store after
+ * a clean import, and after an import with problems "Retry the N that were missed"
+ * (only those) next to "Import everything again".
  */
 export default function RunActions({ run, onQueued }: RunActionsProps) {
   // Hooks
   const copy = useCopy(shopifyImportContent.run)
+  const view = useCopy(shopifyImportRunContent)
   const router = useRouter()
   const [busy, setBusy] = useState(false)
+  const [storeUrl, setStoreUrl] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (run.status !== 'completed' || run.dryRun) return
+    let live = true
+    api.store
+      .origin()
+      .then((origin) => {
+        if (live) setStoreUrl(origin)
+      })
+      .catch(() => {})
+    return () => {
+      live = false
+    }
+  }, [run.status, run.dryRun])
 
   // Event handlers
   const handleStart = async () => {
@@ -55,6 +74,20 @@ export default function RunActions({ run, onQueued }: RunActionsProps) {
     }
   }
 
+  const handlePreview = async () => {
+    setBusy(true)
+    try {
+      const next = await api.shopifyImport.createApiRun({
+        resources: run.resources,
+        includeUnusedFiles: run.includeUnusedFiles,
+      })
+      router.push(`${base}/runs/${next.id}`)
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : view.previewAgainFailed)
+      setBusy(false)
+    }
+  }
+
   // Early returns
   if (run.status !== 'completed' && run.status !== 'failed' && run.status !== 'cancelled') {
     return null
@@ -62,18 +95,39 @@ export default function RunActions({ run, onQueued }: RunActionsProps) {
 
   // Render logic
   // A stopped import can be retried like a finished one: only what it missed.
+  const clean = run.status === 'completed' && !run.dryRun
   const canRetry = run.status !== 'failed' && !run.dryRun && run.retryable > 0
+  const canPreview = run.mode === 'api' && (run.dryRun || run.status === 'failed')
+  const showStore = clean && !canRetry && storeUrl
   const label =
     run.status === 'failed' ? copy.tryAgain : run.dryRun ? copy.importNow : copy.runAgain
 
   return (
-    <div className="flex flex-wrap gap-2">
+    <>
+      {canPreview ? (
+        <Button type="button" variant="outline" onClick={handlePreview} disabled={busy}>
+          {view.previewAgain}
+        </Button>
+      ) : null}
       {canRetry && !run.retryOf ? (
         <Button type="button" variant="outline" onClick={handleStart} disabled={busy}>
           {copy.importAll}
         </Button>
       ) : null}
-      {canRetry ? (
+      {showStore ? (
+        <Button type="button" variant="outline" onClick={handleStart} disabled={busy}>
+          {copy.runAgain}
+        </Button>
+      ) : null}
+      {showStore ? (
+        <Button
+          nativeButton={false}
+          render={<a href={storeUrl} target="_blank" rel="noreferrer" />}
+        >
+          {view.viewStore}
+          <ExternalLink />
+        </Button>
+      ) : canRetry ? (
         <Button type="button" onClick={handleRetry} disabled={busy}>
           {busy ? <Spinner /> : null}
           {copy.retryMissed(run.retryable)}
@@ -84,6 +138,6 @@ export default function RunActions({ run, onQueued }: RunActionsProps) {
           {label}
         </Button>
       )}
-    </div>
+    </>
   )
 }
