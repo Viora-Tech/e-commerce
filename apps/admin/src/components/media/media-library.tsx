@@ -16,6 +16,7 @@ import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 import { routes } from '@/lib/routes'
 import AltTextDialog from './alt-text-dialog'
+import BackgroundWorkNotice from './background-work-notice'
 import DeleteMediaDialog from './delete-media-dialog'
 import { FILE_TABS, type FileTab, fileKind, fileName, formatBytes } from './file-meta'
 import MediaDropzone from './media-dropzone'
@@ -165,6 +166,7 @@ function MediaLibraryContent({ initial }: { initial: MediaLibraryInitial }) {
         tabIndex={-1}
         aria-label={copy.upload}
       />
+      <BackgroundWorkNotice />
       {empty ? (
         <div className="flex flex-col items-center gap-2 rounded-2xl border surface-card px-4 py-12 text-center">
           <p className="text-body-strong">{copy.empty.heading}</p>

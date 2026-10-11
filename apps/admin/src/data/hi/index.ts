@@ -5,6 +5,7 @@ import ai from './ai'
 import analytics from './analytics'
 import apps from './apps'
 import assistant from './assistant'
+import backgroundWork from './background-work'
 import bugReport from './bug-report'
 import bulkEdit from './bulk-edit'
 import businessGst from './business-gst'
@@ -69,6 +70,7 @@ export const hindiCopy: readonly TranslationPair[] = [
   ...abandonedDetail,
   ...ai,
   ...assistant,
+  ...backgroundWork,
   ...bugReport,
   ...bulkEdit,
   ...businessGst,
