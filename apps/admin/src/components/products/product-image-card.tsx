@@ -1,26 +1,20 @@
 'use client'
 
 import { ImageIcon, Plus, Upload } from '@commerce/ui/icons'
-import { cn } from '@commerce/ui/lib/utils'
 import { Button } from '@commerce/ui/shadcn/button'
-import { SortableOverlay, useDndSensors } from '@commerce/ui/sortable'
-import {
-  type Announcements,
-  closestCenter,
-  DndContext,
-  type DragEndEvent,
-  type DragStartEvent,
-} from '@dnd-kit/core'
-import { arrayMove, SortableContext, type SortingStrategy } from '@dnd-kit/sortable'
-import { useReducedMotion } from 'motion/react'
+import { type Announcements, closestCenter, DndContext } from '@dnd-kit/core'
+import { SortableContext, type SortingStrategy } from '@dnd-kit/sortable'
+import { AnimatePresence, motion } from 'motion/react'
 import { type DragEvent, useId, useRef, useState } from 'react'
 import DataCard from '@/components/layout/data-card'
 import AltTextDialog from '@/components/media/alt-text-dialog'
+import ImageDragOverlay from '@/components/media/image-drag-overlay'
 import MediaPickDialog, { type PickedMedia } from '@/components/media/media-pick-dialog'
 import type { MediaTileItem } from '@/components/media/media-tile'
 import { useUploadQueue } from '@/components/media/use-upload-queue'
 import { productFormContent } from '@/data/product-form'
 import { useCopy } from '@/hooks/use-copy'
+import { IMAGE_ENTER_MS, inOrder, useImageDnd, useLiveOrder } from '@/hooks/use-image-dnd'
 import ProductImagePending from './product-image-pending'
 import ProductImageTile, { imageName } from './product-image-tile'
 
@@ -34,7 +28,7 @@ type ProductImageCardProps = {
 
 const ACCEPT = 'image/*,video/mp4'
 
-/* Tiles hold still while an image is carried; the drop reflows them (see ProductImageTile). */
+/* dnd-kit moves nothing itself: the card reorders its preview live and Motion glides the tiles. */
 const holdStill: SortingStrategy = () => null
 
 /** A drag from the desktop (files), not a tile being sorted (dnd-kit uses pointer events). */
@@ -51,8 +45,7 @@ function carriesFiles(e: DragEvent): boolean {
 export default function ProductImageCard({ items, onChange, onUploading }: ProductImageCardProps) {
   // Hooks
   const { media: copy } = useCopy(productFormContent)
-  const prefersReducedMotion = useReducedMotion()
-  const sensors = useDndSensors()
+  const { reduced, sensors, dropAnimation } = useImageDnd()
   /* dnd-kit numbers its aria ids per render tree; a React id keeps server and client equal. */
   const dndId = useId()
   /* Set while a Replace upload runs, so its result becomes the main image again. */
@@ -64,9 +57,12 @@ export default function ProductImageCard({ items, onChange, onUploading }: Produ
   })
   const [editing, setEditing] = useState<MediaTileItem | null>(null)
   const [picking, setPicking] = useState(false)
-  const [activeId, setActiveId] = useState<string | null>(null)
   const [fileOver, setFileOver] = useState(false)
   const replaceRef = useRef<HTMLInputElement>(null)
+  /* While a tile is carried the others glide to where it would land. */
+  const { shown, active, handlers } = useLiveOrder(items, (ids) =>
+    onChange((prev) => inOrder(prev, ids)),
+  )
 
   // Helpers
   const nameOf = (id: unknown) => {
@@ -74,7 +70,7 @@ export default function ProductImageCard({ items, onChange, onUploading }: Produ
     return item ? imageName(item) : ''
   }
 
-  const positionOf = (id: unknown) => items.findIndex((i) => i.id === id) + 1
+  const positionOf = (id: unknown) => shown.findIndex((i) => i.id === id) + 1
 
   const upload = (files: File[]) => {
     if (!files.length) return
@@ -104,18 +100,6 @@ export default function ProductImageCard({ items, onChange, onUploading }: Produ
     onChange((prev) => [...prev, ...picked.filter((p) => !prev.some((i) => i.id === p.id))])
   }
 
-  const handleDragStart = ({ active }: DragStartEvent) => setActiveId(String(active.id))
-
-  const handleDragEnd = ({ active, over }: DragEndEvent) => {
-    setActiveId(null)
-    if (!over || active.id === over.id) return
-    onChange((prev) => {
-      const from = prev.findIndex((i) => i.id === active.id)
-      const to = prev.findIndex((i) => i.id === over.id)
-      return from === -1 || to === -1 ? prev : arrayMove(prev, from, to)
-    })
-  }
-
   const handleFileDragOver = (e: DragEvent<HTMLDivElement>) => {
     if (!carriesFiles(e)) return
     e.preventDefault()
@@ -130,8 +114,6 @@ export default function ProductImageCard({ items, onChange, onUploading }: Produ
   }
 
   // Render logic
-  const reduced = prefersReducedMotion === true
-  const active = activeId ? items.find((i) => i.id === activeId) : undefined
   const total = items.length
   const pending = queue.pending
   const announcements: Announcements = {
@@ -170,11 +152,9 @@ export default function ProductImageCard({ items, onChange, onUploading }: Produ
             announcements,
             screenReaderInstructions: { draggable: copy.sort.instructions },
           }}
-          onDragStart={handleDragStart}
-          onDragEnd={handleDragEnd}
-          onDragCancel={() => setActiveId(null)}
+          {...handlers}
         >
-          <SortableContext items={items.map((i) => i.id)} strategy={holdStill}>
+          <SortableContext items={shown.map((i) => i.id)} strategy={holdStill}>
             <ul className="grid grid-cols-3 gap-3 sm:grid-cols-4 xl:grid-cols-5">
               {items.length === 0 ? (
                 <li className="col-span-2 row-span-2 aspect-square">
@@ -188,7 +168,7 @@ export default function ProductImageCard({ items, onChange, onUploading }: Produ
                   </button>
                 </li>
               ) : null}
-              {items.map((item, index) => (
+              {shown.map((item, index) => (
                 <ProductImageTile
                   key={item.id}
                   item={item}
@@ -219,28 +199,38 @@ export default function ProductImageCard({ items, onChange, onUploading }: Produ
               </li>
             </ul>
           </SortableContext>
-          <SortableOverlay className="aspect-square">
+          <ImageDragOverlay reduced={reduced} dropAnimation={dropAnimation}>
             {active ? (
               // biome-ignore lint/performance/noImgElement: media comes from arbitrary storage hosts.
-              <img src={active.url} alt="" className="size-full bg-muted/40 object-cover" />
+              <img
+                src={active.url}
+                alt=""
+                draggable={false}
+                className="size-full bg-muted/40 object-cover"
+              />
             ) : null}
-          </SortableOverlay>
+          </ImageDragOverlay>
         </DndContext>
 
         {total > 1 ? (
           <p className="text-caption text-muted-foreground">{copy.reorderHint}</p>
         ) : null}
 
-        <div
-          aria-hidden="true"
-          className={cn(
-            'pointer-events-none absolute inset-0 flex items-center justify-center gap-2 rounded-lg border-2 border-primary border-dashed bg-primary-soft/70 text-body font-medium text-foreground transition-opacity duration-150 motion-reduce:transition-none',
-            fileOver ? 'opacity-100' : 'opacity-0',
-          )}
-        >
-          <Upload className="size-4" />
-          {copy.dropToUpload}
-        </div>
+        <AnimatePresence>
+          {fileOver ? (
+            <motion.div
+              aria-hidden="true"
+              initial={reduced ? { opacity: 0 } : { opacity: 0, scale: 0.98 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={reduced ? { opacity: 0 } : { opacity: 0, scale: 0.98 }}
+              transition={{ duration: IMAGE_ENTER_MS / 1000, ease: [0.25, 1, 0.5, 1] }}
+              className="pointer-events-none absolute -inset-1 flex flex-col items-center justify-center gap-1.5 rounded-xl border-2 border-primary border-dashed bg-primary-soft/85 text-body font-medium text-foreground backdrop-blur-[2px]"
+            >
+              <Upload className="size-5" />
+              {copy.dropToUpload}
+            </motion.div>
+          ) : null}
+        </AnimatePresence>
       </div>
 
       <input
