@@ -53,7 +53,11 @@ function ctx(headers: Headers): ApiContext {
     headers,
     notifications: { add: async () => undefined },
     platformEmail: {
-      transport: { fromEmail: 'no-reply@example.com', fromName: 'Vextro', channel: () => channel },
+      transport: {
+        fromEmail: 'no-reply@example.com',
+        fromName: 'Sellverse',
+        channel: () => channel,
+      },
     },
   }
 }

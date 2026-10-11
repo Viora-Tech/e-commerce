@@ -1,3 +1,4 @@
+import { siteConfig } from '@commerce/config/site'
 import { analyticsContent } from '@/data/analytics'
 import { translation } from '@/lib/i18n'
 
@@ -220,7 +221,7 @@ export default [
       home: {
         intro: 'आम भाषा में सवाल पूछें, या सेव की हुई रिपोर्ट या तैयार टेम्पलेट खोलें।',
         askPlaceholder: 'अपने स्टोर के बारे में कुछ भी पूछें…',
-        askLabel: 'Vextro AI से अपने स्टोर के बारे में पूछें',
+        askLabel: `${siteConfig.brand.name} AI से अपने स्टोर के बारे में पूछें`,
         ask: 'पूछें',
         try: 'आज़माएं',
         chips: [
@@ -229,8 +230,8 @@ export default [
           'शहर के हिसाब से दोबारा आने वाले ग्राहक',
           'इस हफ़्ते COD बनाम प्रीपेड ऑर्डर',
         ],
-        readOnly: 'सिर्फ़ पढ़ना। Vextro AI आपके स्टोर का डेटा सिर्फ़ पढ़ता है; यहां कुछ नहीं बदलता।',
-        aiOff: 'यहां सवाल पूछने के लिए सेटिंग्स में Vextro AI चालू करें।',
+        readOnly: `सिर्फ़ पढ़ना। ${siteConfig.brand.name} AI आपके स्टोर का डेटा सिर्फ़ पढ़ता है; यहां कुछ नहीं बदलता।`,
+        aiOff: `यहां सवाल पूछने के लिए सेटिंग्स में ${siteConfig.brand.name} AI चालू करें।`,
       },
       saved: {
         title: 'सेव की हुई रिपोर्ट',

@@ -38,7 +38,7 @@ const CATEGORIES = Object.keys(analyticsContent.reports.categories) as ReportCat
 
 /**
  * Analytics → Reports (Figma "Marketing / Reports home"): an ask box that hands the question to
- * Vextro AI (read-only), the reports the merchant saved, and the ready-made reports by topic.
+ * the platform AI (read-only), the reports the merchant saved, and the ready-made reports by topic.
  */
 export default function ReportsHome({ reports, saved: initialSaved, assistant }: ReportsHomeProps) {
   // Hooks
