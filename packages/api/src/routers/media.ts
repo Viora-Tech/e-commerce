@@ -1,16 +1,19 @@
 import { settingsSecret } from '@commerce/config'
 import {
+  backgroundWork,
   confirmUpload,
   createUploadIntent,
   deleteMedia,
   enqueueMediaProcess,
   InvalidUpload,
   listMedia,
+  mediaBacklog,
   mediaUsage,
   permissions,
   UploadIntentSchema,
   updateMedia,
 } from '@commerce/core'
+import { importInProgress } from '@commerce/plugin-shopify-import/server'
 import { ORPCError } from '@orpc/server'
 import { z } from 'zod'
 import { can, PAGE_SIZE_MAX, SEARCH_MAX } from '../procedures'
@@ -91,6 +94,10 @@ export const mediaRouter = {
     .handler(({ context, input }) => listMedia(context.tx, input)),
 
   usage: can(permissions.CONTENT_READ).handler(({ context }) => mediaUsage(context.tx)),
+  /** Images still processing and a running import: the "store may be slower" notice. */
+  backgroundWork: can(permissions.CONTENT_READ).handler(async ({ context }) =>
+    backgroundWork(await mediaBacklog(context.tx), await importInProgress(context.tx)),
+  ),
 
   update: can(permissions.CONTENT_WRITE)
     .input(z.object({ id: z.uuid(), alt: z.string().trim().max(300).nullable() }))

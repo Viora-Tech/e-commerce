@@ -310,6 +310,9 @@ services:
       retries: 3
     mem_limit: 384m
     mem_reservation: 192m
+    # At most one CPU: image processing and imports must never take the whole box from the
+    # storefront (developer docs, Deployment → CPU for the worker).
+    cpus: 1.0
     # `internal` reaches Postgres and Dragonfly; `egress` lets it call payment gateways, couriers,
     # SES and WhatsApp. Nothing on `egress` publishes a port, so it adds no inbound route.
     networks: [internal, egress]

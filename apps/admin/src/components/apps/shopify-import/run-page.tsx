@@ -4,6 +4,7 @@ import { Skeleton } from '@commerce/ui/shadcn/skeleton'
 import { useEffect, useState } from 'react'
 import type { AppPageProps } from '@/apps/registry'
 import PageHeader from '@/components/layout/page-header'
+import BackgroundWorkNotice from '@/components/media/background-work-notice'
 import { shopifyImportContent } from '@/data/shopify-import'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
@@ -107,6 +108,7 @@ export default function RunPage({ params }: AppPageProps) {
         subtitle={copy.from(source)}
         breadcrumbs={crumbs}
       />
+      <BackgroundWorkNotice />
       <RunHeaderCard
         run={run}
         message={message(copy, run, fmt.dateTime)}
