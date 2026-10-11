@@ -52,6 +52,9 @@ export const businessGstContent = {
     legalName: 'Legal name (as on your PAN)',
     legalNameHelp:
       'Proprietorship: your own name on your PAN, like Rahul Sharma, not the business name like Sharma Traders. Add the business name as the trade name under Your business → Edit.',
+    tradeName: 'Trade name (optional)',
+    tradeNameHelp:
+      'The “Trade Name” line on your GST certificate, like Sharma Traders. Printed on invoices from this GST number.',
     composition: 'This GST number is under the composition scheme',
     prefix: 'Invoice prefix (optional)',
     prefixHelp:
