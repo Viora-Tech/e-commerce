@@ -238,6 +238,9 @@ server directly can send that header with any value and get a fresh limit per re
 2. Set `TRUSTED_PROXY=cloudflare` in the environment (it is in
    `deploy/env.production.example`). The apps then read `cf-connecting-ip` and nothing else.
 
+To let Cloudflare cache store pages as well, add the cache rule in
+[Storefront performance → Cloudflare in front](/developer-docs/building/performance#cloudflare-in-front).
+
 `TRUSTED_PROXY=none` (the default, and right for local development) believes no forwarded
 header at all: `cf-connecting-ip`, `x-forwarded-for` and `x-real-ip` are ignored. The worker
 then uses the socket's peer address; a Next.js server action has none, so all of its requests

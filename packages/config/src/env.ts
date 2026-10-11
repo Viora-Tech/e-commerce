@@ -112,6 +112,16 @@ const shape = z.object({
   MEDIA_PROCESS_CONCURRENCY: z.coerce.number().int().min(1).max(8).optional(),
   /** Most image jobs of one store at once (capped at the concurrency); unset uses `QUEUE_LIMITS.mediaProcess` (3). */
   MEDIA_PROCESS_PER_STORE: z.coerce.number().int().min(1).max(8).optional(),
+  /**
+   * Memory the storefront's render cache may hold (rendered theme sections and store data), in
+   * MB; unset is 48. 0 turns the cache off (every page renders from the database).
+   */
+  STOREFRONT_CACHE_MB: z.coerce.number().int().min(0).max(4096).optional(),
+  /**
+   * How long a shared cache (Cloudflare, a CDN) may keep a page for visitors without cookies,
+   * in seconds (`s-maxage`); unset is 30. 0 keeps every page private.
+   */
+  STOREFRONT_EDGE_TTL: z.coerce.number().int().min(0).max(86_400).optional(),
   /** Better Auth signing secret. Required by the admin app only. */
   AUTH_SECRET: z.string().min(32).optional(),
   /** Public URL of the admin app, used as Better Auth's baseURL. */

@@ -1,6 +1,6 @@
 ---
 title: Storefront performance
-description: The storefront's speed budget, what keeps first-load JS small, and how images, fonts, third-party scripts and caching are handled.
+description: The storefront's speed budget, what keeps first-load JS small, how images, fonts and third-party scripts load, and the render cache with its instant invalidation.
 ---
 
 # Storefront performance
@@ -165,12 +165,143 @@ first interaction) and never in the document head.
 
 ## Caching
 
+Store pages render per request (the host, the cart cookie and the CSP nonce differ), but almost
+nothing they draw changes between requests. The render cache keeps it in the storefront process
+until the store changes.
+
+### What is cached
+
+| Cached | Key (besides the store and its version) | Code |
+| --- | --- | --- |
+| An imported theme's rendered sections | theme id + files version, origin, path, template, posted form, a digest of the section's settings | `lib/liquid-theme.ts`, `lib/liquid-cache.ts` |
+| An imported theme's layout (head, icon sprites, cart drawer) | the same, without the section | `liquidLayoutFor` |
+| Theme data Liquid reads (products, collections, menus, pages, blogs, extra fields, content entries) | origin + the read and its arguments | `cachedLiquidData` |
+| Templates, loops, connected sources, section images, the app block list | template key and suffix, a digest of the bound paths | `lib/template-render.tsx` |
+| Layout data (store row, menus, policies, theme settings, logo size, collections) | none | `[storeId]/layout.tsx` |
+| Product page data, reviews, EMI and back-in-stock settings | handle or product id | `products/[handle]/page.tsx`, `lib/reviews.ts` |
+| Collection and search results | handle (or terms), filters, sort and page | `collections/[handle]/page.tsx`, `search/page.tsx` |
+
+**Never cached:** the cart and anything that reads it for a shopper with items (the header
+count, the cart drawer), the signed-in customer, checkout, account pages, a theme preview
+(drafts, `?theme-version=`), and the verified-buyer part of reviews. A Liquid section that reads
+the cart is cached only as rendered for an empty cart: a shopper with items gets their own
+render. A section that reads the clock (`'now' | date`) lives 60 seconds; a section that failed
+to render, 30 seconds.
+
+The CSP nonce: Liquid renders write a random per-process placeholder where the nonce goes, and
+each request swaps in its own (`withNonce`). Theme data cannot contain the placeholder, so a
+script that came in with data never gains a nonce.
+
+Cached values are shared between requests: treat what `storeRead` and `cachedForStore` return as
+read-only. And call them outside `inStore`: on a miss they open their own transaction, and a
+second connection taken inside one can wait forever on a pool that busy requests have filled.
+
+### Invalidation: every write, the moment it commits
+
+Migration `0115_storefront_cache_notify` puts a trigger on every table a page renders
+(`STOREFRONT_CACHE_TABLES` in `packages/db/src/storefront-cache.ts`). Each insert, update or
+delete sends `NOTIFY storefront_cache, '<store id>'` when its transaction commits (Postgres sends
+a repeated payload once per transaction, so a bulk import is one message). The storefront LISTENs
+on one dedicated connection (`listenStorefrontCache`) and bumps that store's version; every
+cache key carries it, so the next request reads fresh data. Admin saves, the worker, importers,
+scripts and orders (stock) all go through the same trigger; nothing has to remember to
+invalidate.
+
+| Write | Effect |
+| --- | --- |
+| Products, variants, options, stock (`inventory_level`), collections, menus, pages, blogs, articles, extra fields, content entries, reviews, discounts, shipping, locations, domains, redirects, theme files, templates, theme publish, store settings | that store's cache, at once |
+| `media` (the worker finishing an image) | at most once a minute per store (`:soft` payload), so an image backlog does not empty the cache every few seconds |
+| The store row's order counter or the admin accent colour | nothing |
+| Carts, orders, customers, admin-only tables (`STOREFRONT_CACHE_EXEMPT`, each with its reason) | nothing |
+
+Changes that write nothing are covered too: the store's next scheduled change (a product's
+`launch_at`, an article's `published_at`, a discount starting or ending,
+`nextScheduledChange` in core) ends the version when it passes. Every entry also expires after
+an hour, the net for anything no trigger sees (a collection sorted by best selling follows
+orders, which are exempt).
+
+`packages/db/test/storefront-cache.test.ts` fails when a new table with a `store_id` is in
+neither list. Rendered by a page: add it to `STOREFRONT_CACHE_TABLES` and create its trigger in a
+migration. Not rendered: add it to `STOREFRONT_CACHE_EXEMPT` with the reason.
+
+If the listener loses its connection, caching stops (every request renders) until it is back,
+and the reconnect starts a new epoch, so nothing cached before the gap is served.
+
+### Warming
+
+After a change, the store's recently viewed pages (up to eight, viewed in the last day, noted
+by `proxy.ts`) are re-rendered in the background once the store has been quiet for three seconds
+(`lib/cache-warm.ts`), one at a time, as a visitor without cookies. A merchant who saves and
+reloads usually gets the warmed page. During an import nothing is warmed until the writes stop.
+
+### Sizes and switches
+
+- `STOREFRONT_CACHE_MB` (default 48): the cache's memory budget, least recently used entries
+  dropped first. Keep it well under the container's memory limit. `0` turns the cache off.
+- `STOREFRONT_EDGE_TTL` (default 30 seconds): see "Shared caches" below. `0` keeps every page
+  private.
+
+### Shared caches (Cloudflare, a CDN)
+
+`proxy.ts` (`lib/edge-cache.ts`) sends
+`Cache-Control: public, max-age=0, s-maxage=30, stale-while-revalidate=300` for a page view that
+is the same for every visitor without cookies:
+
+- `GET`/`HEAD` of the home page, products, collections, pages, blogs and articles, policies and
+  search;
+- no cookie of ours (`wc_*`, `theme`, `recently_viewed`; analytics cookies do not count);
+- not a client-side navigation (`RSC` header), not a theme preview, not the password page, not a
+  form result.
+
+Everything else (cart, checkout, account, actions, APIs, any visitor with a cart or an account)
+keeps Next's `private, no-cache, no-store`. Browsers always revalidate (`max-age=0`); only a
+shared cache keeps the page, for the TTL. A shared cache cannot hear the trigger, so a change
+reaches the visitors it serves within the TTL (plus up to the stale window for the first visitor
+after it expires). The page carries the CSP nonce it was rendered with; that is fine, because an
+attacker who reads a cached nonce would also need markup inside that same cached page, and any
+store write replaces it with a fresh render.
+
+### Cloudflare in front
+
+The origin is ready for it; switching DNS is a separate, owner-run step.
+
+1. **DNS**: the store's records proxied (orange cloud).
+2. **Origin lock**: firewall 80/443 to [Cloudflare's ranges](https://www.cloudflare.com/ips/) and
+   set `TRUSTED_PROXY=cloudflare` (see [Deployment](/developer-docs/operations/deployment)).
+3. **SSL/TLS**: Full (strict).
+4. **Cache rule** (Caching → Cache Rules → Create rule), named "Store pages":
+   - When (expression editor):
+
+     ```text
+     (http.request.method eq "GET"
+       and not http.cookie contains "wc_"
+       and not http.cookie contains "theme="
+       and not http.cookie contains "recently_viewed="
+       and not starts_with(http.request.uri.path, "/checkout")
+       and not starts_with(http.request.uri.path, "/cart")
+       and not starts_with(http.request.uri.path, "/account")
+       and not starts_with(http.request.uri.path, "/api/")
+       and not starts_with(http.request.uri.path, "/theme-actions/"))
+     ```
+
+   - Then: **Eligible for cache**; Edge TTL **Use cache-control header if present, bypass cache
+     if not**; Browser TTL **Respect origin**; cache key keeps the query string (filters, sort
+     and page are in it); status code TTL `500-599` → **No store**.
+
+   The cookie conditions repeat the origin's rule: Cloudflare keys by URL only, so a visitor with
+   a cart must never be answered from it. The origin already marks those pages private; the rule
+   is the second lock.
+5. **Static files**: `/_next/static/*` and `/theme-assets/…?v=` already send `immutable` for a
+   year; Cloudflare caches them by default.
+6. **Purge**: not needed for correctness (the TTL is 30 seconds). To show a big theme change
+   everywhere at once, Caching → Configuration → Purge Everything.
+
+### Static files
+
 - `/_next/static/*` (JS, CSS, fonts) is content-hashed and served by Next with
   `public, max-age=31536000, immutable`. The proxy's matcher skips it.
-- Store HTML is dynamic (it depends on the host, the cart cookie and the shopper), and Next
-  sends `private, no-cache, no-store, max-age=0, must-revalidate` for it. Never add a public
-  `Cache-Control` to a page: the storefront is multi-tenant by host and a shared cache would
-  serve one shopper's cart to the next.
+- An imported theme's `assets/` are files, not inlined: `/theme-assets/<theme>/<file>?v=<checksum>`
+  with `public, max-age=31536000, immutable`.
 - `robots.txt`, `sitemap.xml`, `llms.txt` (`public, max-age=3600`) and
   `/api/search/suggest` (`public, max-age=30, stale-while-revalidate=60`) are per-host
   documents; a shared cache keys them by URL, host included. The proxy does not mint the
@@ -181,6 +312,28 @@ first interaction) and never in the document head.
   `public, max-age=31536000, immutable`. The master is rewritten once in place by the
   pipeline (original, then cleaned master), so it wants a shorter lifetime, such as a day.
   Set it on upload or with a bucket or CDN rule.
+
+### Measuring
+
+Build and start in production mode against a copy of the database, then time the first byte:
+
+```bash
+curl -s -o /dev/null -w "%{time_starttransfer}\n" -H "Host: <store host>" http://localhost:3100/
+```
+
+The first request after a start or a change renders (a miss); the next is a hit. To force a
+miss, send the notification by hand: `select pg_notify('storefront_cache', '<store id>')`.
+October 2026, Waimers' imported Zero Drift theme on a laptop, production build:
+
+| Page | Before | Miss (after a change) | Hit |
+| --- | --- | --- | --- |
+| Home (19 Liquid sections) | 500 ms | 400 ms | 25 ms |
+| Product | 210 ms | 180 ms | 20 ms |
+| Collection | 220 ms | 180 ms | 25 ms |
+
+Database statements on a home page miss went from about 270 to about 160 (products and
+collection products load in one batch per render pass, `LiquidDataCache` in core); a hit for an
+anonymous visitor makes none.
 
 ## Testing on localhost
 

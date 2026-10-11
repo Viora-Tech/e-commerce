@@ -169,9 +169,21 @@ export type LiquidCustomData = {
 export type LiquidDataSource = {
   shop: LiquidShopData
   product(handle: string): Promise<LiquidProductData | null>
+  /**
+   * Several products by handle in one load (a grid of `all_products[...]` reads in one render
+   * pass). Optional: without it the cache asks `product` once per handle.
+   */
+  products?: ((handles: string[]) => Promise<Map<string, LiquidProductData>>) | undefined
   collection(handle: string): Promise<LiquidCollectionData | null>
   /** A collection's products in its own order, the first `limit` of them. */
   collectionProducts(handle: string, limit: number): Promise<LiquidProductData[]>
+  /**
+   * Several collections' products in one load (category tabs, a grid of collections). Optional:
+   * without it the cache asks `collectionProducts` once per collection.
+   */
+  collectionsProducts?:
+    | ((handles: string[], limit: number) => Promise<Map<string, LiquidProductData[]>>)
+    | undefined
   collections(): Promise<LiquidCollectionData[]>
   /** Products related to one (our UUID): shared collection first, then type and tags; available ones only. */
   relatedProducts(productId: string, limit: number): Promise<LiquidProductData[]>

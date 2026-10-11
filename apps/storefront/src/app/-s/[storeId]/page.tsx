@@ -3,7 +3,7 @@ import { store } from '@commerce/db'
 import { eq } from 'drizzle-orm'
 import type { Metadata } from 'next'
 import { jsonLd, requestOrigin, storeGraph } from '@/lib/seo'
-import { inStore } from '@/lib/store-context'
+import { storeRead } from '@/lib/store-cache'
 import { renderTemplate } from '@/lib/template-render'
 
 type Params = { params: Promise<{ storeId: string }> }
@@ -14,29 +14,28 @@ export const metadata: Metadata = { alternates: { canonical: '/' } }
 export default async function Home({ params }: Params) {
   const { storeId } = await params
   const origin = await requestOrigin()
-  const { identity, page } = await inStore(storeId, async (tx) => {
-    const [s] = await tx.select().from(store).where(eq(store.id, storeId))
-    const theme = await liveThemeSettings(tx, storeId)
-    const seo = parsePreferences(s?.preferences).seo
-    return {
-      identity: {
+  const [identity, page] = await Promise.all([
+    storeRead(storeId, 'home-identity', async (tx) => {
+      const [s] = await tx.select().from(store).where(eq(store.id, storeId))
+      const theme = await liveThemeSettings(tx, storeId)
+      return {
         name: s?.name ?? '',
-        origin,
         logoUrl: theme.brand.logo?.url,
-        description: seo.description || undefined,
+        description: parsePreferences(s?.preferences).seo.description || undefined,
         email: s?.contactEmail,
         phone: s?.contactPhone,
-      },
-      page: await renderTemplate(tx, storeId, 'home'),
-    }
-  })
+      }
+    }),
+    renderTemplate(storeId, 'home'),
+  ])
+  const graph = jsonLd(storeGraph({ ...identity, origin }))
   // The sections come first so a theme's `main > section:first-child` rules (the hero
   // painting without a reveal) see the first section, as on Shopify.
   return (
     <>
       {page}
       {/* biome-ignore lint/security/noDangerouslySetInnerHtml: JSON-LD from our own data; jsonLd() escapes it. */}
-      <script type="application/ld+json" dangerouslySetInnerHTML={jsonLd(storeGraph(identity))} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={graph} />
     </>
   )
 }

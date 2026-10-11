@@ -155,11 +155,9 @@ export default async function ArticlePage({ params, searchParams }: Params) {
       </article>
     </div>
   )
-  return inStore(storeId, (tx) =>
-    renderTemplate(tx, storeId, 'article', {
-      suffix: post.templateSuffix,
-      view,
-      renderers: { MainArticle: () => main },
-    }),
-  )
+  return renderTemplate(storeId, 'article', {
+    suffix: post.templateSuffix,
+    view,
+    renderers: { MainArticle: () => main },
+  })
 }

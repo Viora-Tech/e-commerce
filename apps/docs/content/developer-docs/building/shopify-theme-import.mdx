@@ -105,13 +105,23 @@ LiquidJS's async mode creates a promise per value; React's development server tr
 promise in a Server Component, which made a home page take 20 s. Renders are therefore
 **synchronous**: `cache.ts` answers from memory and notes anything not loaded, the section is
 rendered again after one batched load, up to five passes (`render.ts`, `renderUntilComplete`).
-A home page is about 1 s in dev and two passes per section.
+Products (`all_products[...]`, product pickers) and collection products asked for in one pass load
+in one batch (`products`, `collectionsProducts` on the data source). A home page is about 1 s in
+dev and two passes per section.
+
+### Cached renders
+
+The storefront keeps every rendered section and the layout parts per store version, and the
+theme data Liquid reads per store version too: a page whose sections are all cached runs no
+Liquid at all. A save, a stock change or a theme publish drops them at once (a Postgres trigger
+and `LISTEN`). The cart, the clock and the CSP nonce are handled so one render serves everyone it
+should: see [Storefront performance → Caching](/developer-docs/building/performance#caching).
 
 ## Where it renders
 
 - **Storefront.** `apps/storefront/src/lib/liquid-theme.ts`: when the request's theme (live, or a
-  verified preview) has a `theme_import` row, `renderTemplate` renders every `LiquidSection` in the
-  open transaction and the `LiquidSection` renderer places it inside Shopify's own wrapper
+  verified preview) has a `theme_import` row, `renderTemplate` takes every `LiquidSection` from the render cache or
+  renders the missing ones (`renderLiquidSections`, one transaction) and the `LiquidSection` renderer places it inside Shopify's own wrapper
   (`<div id="shopify-section-template--…__hero" class="shopify-section …">`, ids shaped like
   Shopify's because themes key CSS on them). The store layout draws the theme's
   `layout/theme.liquid` head (stylesheets, CSS variables), the body markup before the header group

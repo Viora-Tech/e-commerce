@@ -8,16 +8,11 @@ import {
   navigationMenu,
   page,
   product,
-  productMedia,
-  productOption,
-  productOptionValue,
   type StoreTx,
-  sellableStock,
   store,
   variant,
-  variantOptionValue,
 } from '@commerce/db'
-import { and, asc, desc, eq, inArray, isNotNull, isNull, like, sql } from 'drizzle-orm'
+import { and, asc, desc, eq, isNotNull, like, sql } from 'drizzle-orm'
 import { keyFromName } from '../metaobjects/validate'
 import { toNavLinks } from '../navigation/resolve'
 import { loadMetafields, loadMetaobjects, loadMetaobjectsOfType } from './custom-data'
@@ -27,14 +22,13 @@ import type {
   LiquidCollectionData,
   LiquidCustomData,
   LiquidDataSource,
-  LiquidImageData,
   LiquidLinkData,
-  LiquidProductData,
   LiquidReviewsSource,
   LiquidShopData,
 } from './drops'
 import { loadImportedFiles } from './imported-files'
 import { uuidPrefixOf } from './numeric-id'
+import { collectionsProducts, loadProducts, productsByHandles } from './product-data'
 import { MAX_RECOMMENDATIONS, relatedProductIds } from './related'
 import { richTextHtml } from './rich-html'
 
@@ -88,143 +82,10 @@ export function withReviewMetafields(
 
 const EMPTY_CART: LiquidCartData = { itemCount: 0, totalPrice: 0, items: [] }
 
-/** Untracked variants are always purchasable; mirrors the storefront catalogue. */
-const onHand = (v: { onHand: number | null; reserved: number | null; track: boolean }) =>
-  v.track ? Math.max(0, (v.onHand ?? 0) - (v.reserved ?? 0)) : 999
-
 const toHtml = richTextHtml
 
 const escapeHtml = (s: string) =>
   s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-
-/** Products by id, fully loaded (variants, options, images), in the order given. */
-async function loadProducts(tx: StoreTx, ids: string[]): Promise<LiquidProductData[]> {
-  if (ids.length === 0) return []
-  const [rows, variants, images, options] = await Promise.all([
-    tx
-      .select()
-      .from(product)
-      .where(and(inArray(product.id, ids), eq(product.status, 'active'))),
-    tx
-      .select({
-        id: variant.id,
-        productId: variant.productId,
-        title: variant.title,
-        price: variant.pricePaise,
-        mrp: variant.mrpPaise,
-        sku: variant.sku,
-        barcode: variant.barcode,
-        weight: variant.weightGrams,
-        track: variant.trackInventory,
-        onHand: sellableStock.onHand,
-        reserved: sellableStock.reserved,
-        imageUrl: media.url,
-        position: variant.position,
-        preorder: variant.preorderOverride,
-      })
-      .from(variant)
-      .leftJoin(sellableStock, eq(sellableStock.variantId, variant.id))
-      .leftJoin(media, eq(media.id, variant.mediaId))
-      .where(and(inArray(variant.productId, ids), isNull(variant.archivedAt)))
-      .orderBy(asc(variant.position)),
-    tx
-      .select({
-        productId: productMedia.productId,
-        id: media.id,
-        url: media.url,
-        alt: media.alt,
-        width: media.width,
-        height: media.height,
-        contentType: media.contentType,
-      })
-      .from(productMedia)
-      .innerJoin(media, eq(media.id, productMedia.mediaId))
-      .where(inArray(productMedia.productId, ids))
-      .orderBy(asc(productMedia.position)),
-    tx
-      .select({
-        productId: productOption.productId,
-        name: productOption.name,
-        position: productOption.position,
-        value: productOptionValue.value,
-        valuePosition: productOptionValue.position,
-      })
-      .from(productOption)
-      .leftJoin(productOptionValue, eq(productOptionValue.optionId, productOption.id))
-      .where(inArray(productOption.productId, ids))
-      .orderBy(asc(productOption.position), asc(productOptionValue.position)),
-  ])
-  const variantIds = variants.map((v) => v.id)
-  const values = variantIds.length
-    ? await tx
-        .select({
-          variantId: variantOptionValue.variantId,
-          value: productOptionValue.value,
-          position: productOption.position,
-        })
-        .from(variantOptionValue)
-        .innerJoin(productOptionValue, eq(productOptionValue.id, variantOptionValue.optionValueId))
-        .innerJoin(productOption, eq(productOption.id, productOptionValue.optionId))
-        .where(inArray(variantOptionValue.variantId, variantIds))
-        .orderBy(asc(productOption.position))
-    : []
-  const byId = new Map(rows.map((r) => [r.id, r]))
-  return ids.flatMap((id) => {
-    const p = byId.get(id)
-    if (!p) return []
-    const opts = new Map<string, string[]>()
-    for (const o of options.filter((x) => x.productId === id)) {
-      const list = opts.get(o.name) ?? []
-      if (o.value && !list.includes(o.value)) list.push(o.value)
-      opts.set(o.name, list)
-    }
-    const imgs: LiquidImageData[] = images
-      .filter((i) => i.productId === id && (i.contentType ?? 'image/').startsWith('image/'))
-      .map((i) => ({
-        id: i.id,
-        url: i.url,
-        alt: i.alt ?? p.title,
-        width: i.width,
-        height: i.height,
-      }))
-    const description = toHtml(p.description)
-    return [
-      {
-        id: p.id,
-        handle: p.handle,
-        title: p.title,
-        descriptionHtml: description,
-        vendor: p.vendor ?? '',
-        type: p.productType ?? '',
-        tags: p.tags,
-        images: imgs,
-        options: [...opts].map(([name, vals]) => ({ name, values: vals })),
-        createdAt: p.createdAt,
-        preorder: p.preorderEnabled,
-        variants: variants
-          .filter((v) => v.productId === id)
-          .map((v) => {
-            const qty = onHand(v)
-            // Pre-order variants sell with no stock, as Shopify's "continue selling" does.
-            const preorder = v.preorder?.enabled ?? p.preorderEnabled
-            return {
-              id: v.id,
-              title: v.title,
-              price: v.price,
-              compareAtPrice: v.mrp && v.mrp > v.price ? v.mrp : null,
-              available: qty > 0 || preorder,
-              inventoryQuantity: qty,
-              sku: v.sku,
-              barcode: v.barcode,
-              weightGrams: v.weight,
-              options: values.filter((x) => x.variantId === v.id).map((x) => x.value),
-              image: v.imageUrl ? { url: v.imageUrl, alt: p.title } : null,
-            }
-          }),
-      },
-    ]
-  })
-}
 
 /** Our menu items as Shopify links, three levels deep. */
 function toLinks(links: ReturnType<typeof toNavLinks>): LiquidLinkData[] {
@@ -323,6 +184,7 @@ export async function storeLiquidData(
           .where(and(eq(product.handle, handle), eq(product.status, 'active')))
         return row ? ((await loadProducts(tx, [row.id]))[0] ?? null) : null
       }),
+    products: (handles) => productsByHandles(tx, handles),
     collection: async (handle) => {
       if (handle === 'all') {
         const [count] = await tx
@@ -367,6 +229,7 @@ export async function storeLiquidData(
           rows.map((r) => r.id),
         )
       }),
+    collectionsProducts: (handles, limit) => collectionsProducts(tx, handles, limit),
     collections: collectionList,
     relatedProducts: (productId, limit) =>
       once(`rel:${productId}:${limit}`, async () => {
