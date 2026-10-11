@@ -115,7 +115,8 @@ export async function inBatches<T>(items: T[], limit: number, work: (item: T) =>
 }
 
 export type HostedImage = { url: string; width: number | null; height: number | null }
-export type HostedVideo = { url: string; poster: HostedImage | null }
+/** A copied video: the main mp4, its poster picture and a smaller mp4 for phones, when there are. */
+export type HostedVideo = { url: string; poster: HostedImage | null; mobileUrl: string | null }
 
 /** What the import copied from the old store: images by Files name, videos by Files name. */
 export type Hosted = { images: Map<string, HostedImage>; videos: Map<string, HostedVideo> }
@@ -132,22 +133,33 @@ export function collectShopVideos(value: unknown, into: Set<string>): void {
     for (const v of Object.values(value)) collectShopVideos(v, into)
 }
 
-/** One `<video>` on the live page: its mp4 and poster, both on the store's CDN. */
-export type LiveVideo = { src: string; poster: string | null }
+/** One `<video>` on the live page: its mp4s and poster, all on the store's CDN. */
+export type LiveVideo = { src: string; mobileSrc: string | null; poster: string | null }
 
 /** Longest `<video>` element read from the live page; a real one is a few hundred characters. */
 const VIDEO_ELEMENT_MAX = 4_000
 
-/** The first `<source src="….mp4">` inside a video element, one `<source …>` tag at a time. */
-function mp4SourceIn(inner: string): string | null {
+/**
+ * The mp4 `<source>` tags inside a video element, one tag at a time: the one for phones
+ * (it carries a `media` query) and the main one (the last without a query, the tallest
+ * a theme lists).
+ */
+function mp4SourcesIn(inner: string): { src: string; mobileSrc: string | null } | null {
+  let main: string | null = null
+  let mobile: string | null = null
   for (let at = inner.indexOf('<source'); at !== -1; at = inner.indexOf('<source', at + 1)) {
     const close = inner.indexOf('>', at)
-    if (close === -1) return null
-    const src = /\bsrc="([^"]+\.mp4[^"]*)"/.exec(inner.slice(at, close))?.[1]
-    if (src) return src
+    if (close === -1) break
+    const tag = inner.slice(at, close)
+    const src = /\bsrc="([^"]+\.mp4[^"]*)"/.exec(tag)?.[1]
+    if (src) {
+      if (/\bmedia="/.test(tag)) mobile ??= src
+      else main = src
+    }
     at = close
   }
-  return null
+  const src = main ?? mobile
+  return src ? { src, mobileSrc: main && mobile ? mobile : null } : null
 }
 
 /**
@@ -184,10 +196,14 @@ export function liveVideosIn(html: string, sectionKey: string): LiveVideo[] {
     const openEnd = element.indexOf('>')
     if (openEnd === -1) continue
     const open = element.slice(0, openEnd)
-    const src = mp4SourceIn(element.slice(openEnd + 1))
-    if (!src) continue
+    const found = mp4SourcesIn(element.slice(openEnd + 1))
+    if (!found) continue
     const poster = /\bposter="([^"]+)"/.exec(open)?.[1] ?? null
-    out.push({ src: abs(src), poster: poster ? abs(poster) : null })
+    out.push({
+      src: abs(found.src),
+      mobileSrc: found.mobileSrc ? abs(found.mobileSrc) : null,
+      poster: poster ? abs(poster) : null,
+    })
     at = end
   }
   return out
@@ -276,13 +292,20 @@ export async function copyLiveVideos(
       }
       try {
         const file = await download(live.src, deps, 'video')
-        if (!file) throw new Error('video is larger than 100 MB')
+        if (!file) throw new Error('not copied: the video is larger than 100 MB')
         const video = await storeFile(tx, storeId, name, file, deps)
+        // The phone-sized copy is a nice-to-have: without it phones get the main video.
+        const mobileFile = live.mobileSrc
+          ? await download(live.mobileSrc, deps, 'video').catch(() => null)
+          : null
+        const mobile = mobileFile
+          ? await storeFile(tx, storeId, `mobile-${name}`, mobileFile, deps)
+          : null
         const posterFile = live.poster ? await download(live.poster, deps).catch(() => null) : null
         const poster = posterFile
           ? await storeFile(tx, storeId, `${name}-poster.jpg`, posterFile, deps)
           : null
-        hosted.videos.set(name, { url: video.url, poster })
+        hosted.videos.set(name, { url: video.url, poster, mobileUrl: mobile?.url ?? null })
       } catch (err) {
         failed.push(`${name}: ${err instanceof Error ? err.message : String(err)}`)
       }
@@ -330,6 +353,24 @@ export async function connectedShopifyHost(tx: StoreTx): Promise<string | null> 
   return rows[0]?.shop_domain ?? null
 }
 
+/**
+ * A Files name as one comparable key. A theme setting says `shopify://files/videos/Keyboard Bento.mp4`
+ * while Shopify's own file name may come back as `Keyboard_Bento.mp4` or percent-encoded:
+ * case, spaces, underscores and hyphens do not tell two files apart.
+ */
+function fileNameKey(name: string): string {
+  let decoded = name
+  try {
+    decoded = decodeURIComponent(name)
+  } catch {
+    // not percent-encoded
+  }
+  return decoded
+    .trim()
+    .toLowerCase()
+    .replace(/[\s_-]+/g, '-')
+}
+
 const baseName = (path: string) => {
   const last = path.split(/[?#]/)[0]?.split('/').pop() ?? ''
   try {
@@ -353,7 +394,7 @@ export async function findImportedMedia(
   const images = new Map<string, HostedImage>()
   const videos = new Map<string, HostedVideo>()
   const wantedImages = new Map([...imageNames].map((n) => [baseName(n), n]))
-  const wantedVideos = new Map([...videoNames].map((n) => [baseName(n), n]))
+  const wantedVideos = new Map([...videoNames].map((n) => [fileNameKey(n), n]))
   if (wantedImages.size === 0 && wantedVideos.size === 0) return { images, videos }
   const rows = await tx.execute<{
     resource: string
@@ -366,13 +407,43 @@ export async function findImportedMedia(
     from shopify_import_mapping m join media md on md.id = m.local_id
     where m.resource in ('media', 'file_name') and md.status = 'ready'`)
   for (const r of rows) {
-    const key = r.resource === 'file_name' ? r.source_id.toLowerCase() : baseName(r.source_id)
-    const image = wantedImages.get(key)
+    const key = baseName(r.source_id)
+    const image = r.resource === 'media' ? wantedImages.get(key) : undefined
     if (image && r.content_type.startsWith('image/') && !images.has(image))
       images.set(image, { url: r.url, width: r.width, height: r.height })
-    const video = wantedVideos.get(key)
+    const video =
+      r.resource === 'file_name' ? wantedVideos.get(fileNameKey(r.source_id)) : undefined
     if (video && r.content_type.startsWith('video/') && !videos.has(video))
-      videos.set(video, { url: r.url, poster: null })
+      videos.set(video, { url: r.url, poster: null, mobileUrl: null })
   }
+  if (videos.size > 0) await addVideoExtras(tx, wantedVideos, videos)
   return { images, videos }
+}
+
+/**
+ * The poster picture and phone-sized mp4 the Shopify importer copied beside each video
+ * (resources `file_poster`, `file_mobile`, keyed by the video's file name). A poster still
+ * being optimised counts: its address already works.
+ */
+async function addVideoExtras(
+  tx: StoreTx,
+  wanted: Map<string, string>,
+  videos: Map<string, HostedVideo>,
+): Promise<void> {
+  const rows = await tx.execute<{
+    resource: string
+    source_id: string
+    url: string
+    width: number | null
+    height: number | null
+  }>(sql`select m.resource, m.source_id, md.url, md.width, md.height
+    from shopify_import_mapping m join media md on md.id = m.local_id
+    where m.resource in ('file_poster', 'file_mobile')`)
+  for (const r of rows) {
+    const video = videos.get(wanted.get(fileNameKey(r.source_id)) ?? '')
+    if (!video) continue
+    if (r.resource === 'file_poster')
+      video.poster = { url: r.url, width: r.width, height: r.height }
+    else video.mobileUrl = r.url
+  }
 }

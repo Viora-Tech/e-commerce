@@ -91,7 +91,7 @@ function storedValue(setting: ShopifySetting | undefined, value: unknown, hosted
     const video = SHOP_VIDEO.exec(value)
     if (video?.[1]) {
       const v = hosted.videos.get(video[1])
-      return v ? { url: v.url, poster: v.poster } : ''
+      return v ? { url: v.url, poster: v.poster, mobileUrl: v.mobileUrl } : ''
     }
     const m = SHOP_IMAGE.exec(value)
     if (m?.[1]) {

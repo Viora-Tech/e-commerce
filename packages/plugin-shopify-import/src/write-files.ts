@@ -27,6 +27,11 @@ function fileKindName(mimeType: string | null): string {
   return sub.replace(/^vnd\.|^x-/, '').slice(0, 40)
 }
 
+/** A video's line in the preview: its size is what the merchant weighs before importing. */
+function videoDetail(f: NFile): string {
+  return f.size ? `Video, ${sizeText(f.size)}` : 'Video'
+}
+
 /** Why a file cannot be copied, before downloading anything. Null when it can. */
 function whyNotHostable(f: NFile): Exclude<HostedFile, { ok: true }> | null {
   if (f.status !== 'READY') {
@@ -74,14 +79,45 @@ function whyNotHostable(f: NFile): Exclude<HostedFile, { ok: true }> | null {
   return null
 }
 
+/** The name a theme refers to a Shopify file by, as the mapping key. */
+const nameKey = (f: NFile) => f.filename?.trim().toLowerCase() || null
+
 /**
  * Records the file's Shopify name (`intro.mp4`) against our media row (resource
  * `file_name`), so a theme import that refers to `shopify://files/videos/intro.mp4`
  * reuses this copy instead of downloading it again.
  */
 async function saveFileName(ctx: ImportContext, f: NFile, mediaId: string): Promise<void> {
-  const name = f.filename?.trim().toLowerCase()
+  const name = nameKey(f)
   if (name) await ctx.inStore((tx) => saveMapping(tx, ctx.storeId, 'file_name', name, mediaId))
+}
+
+/**
+ * A video's poster picture and phone-sized mp4, copied beside it and recorded by the
+ * video's name (resources `file_poster`, `file_mobile`). Never fatal: the video plays
+ * without them, and a retry fills them in.
+ */
+async function hostVideoExtras(ctx: ImportContext, f: NFile): Promise<void> {
+  const name = nameKey(f)
+  if (f.kind !== 'video' || !name) return
+  const extras = [
+    ['file_poster', f.posterUrl],
+    ['file_mobile', f.mobileUrl],
+  ] as const
+  for (const [resource, src] of extras) {
+    if (!src || src === f.url) continue
+    try {
+      const id = await ctx.media.host(src, f.alt)
+      if (!id) throw new Error('the file could not be copied')
+      await ctx.inStore((tx) => saveMapping(tx, ctx.storeId, resource, name, id))
+    } catch (err) {
+      ctx.report.issue({
+        resource: 'files',
+        ref: name,
+        message: `${resource === 'file_poster' ? 'Poster picture' : 'Phone-sized copy'} not copied: ${errorMessage(err)}`,
+      })
+    }
+  }
 }
 
 /** Our media id for a Shopify file, copying it once. Throws when the download fails. */
@@ -96,6 +132,7 @@ export async function hostShopifyFile(ctx: ImportContext, f: NFile): Promise<Hos
     const url = await ctx.media.urlOf(existing)
     if (url) {
       await saveFileName(ctx, f, existing)
+      await hostVideoExtras(ctx, f)
       return { ok: true, mediaId: existing }
     }
   }
@@ -103,6 +140,7 @@ export async function hostShopifyFile(ctx: ImportContext, f: NFile): Promise<Hos
   if (!mediaId) throw new Error('the file could not be copied')
   await ctx.inStore((tx) => saveMapping(tx, ctx.storeId, 'files', f.sourceId, mediaId))
   await saveFileName(ctx, f, mediaId)
+  await hostVideoExtras(ctx, f)
   return { ok: true, mediaId }
 }
 
@@ -134,7 +172,7 @@ export async function writeFile(ctx: ImportContext, f: NFile): Promise<string | 
         key: f.sourceId,
         title: ref,
         action: existed ? 'update' : 'create',
-        detail: f.kind === 'video' ? 'Video' : fileKindName(f.mimeType),
+        detail: f.kind === 'video' ? videoDetail(f) : fileKindName(f.mimeType),
       })
       return null
     }

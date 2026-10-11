@@ -182,7 +182,11 @@ describe('linear-time reads of untrusted markup (A-06)', () => {
       '<div id="shopify-section-template--1__hero"><video poster="//cdn.example/p.jpg"><source src="//cdn.example/v.mp4?x=1&amp;y=2" type="video/mp4"></video></div>' +
       '<div id="shopify-section-template--1__other"></div>'
     expect(liveVideosIn(page, 'hero')).toEqual([
-      { src: 'https://cdn.example/v.mp4?x=1&y=2', poster: 'https://cdn.example/p.jpg' },
+      {
+        src: 'https://cdn.example/v.mp4?x=1&y=2',
+        mobileSrc: null,
+        poster: 'https://cdn.example/p.jpg',
+      },
     ])
     const hostile = `<div id="shopify-section-x__hero">${'<video<source src="'.repeat(200_000)}`
     const started = performance.now()

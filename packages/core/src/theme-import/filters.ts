@@ -21,6 +21,7 @@ import {
   str,
   toRgb,
   translate,
+  videoTag,
 } from './filter-values'
 
 /** What `form.errors | default_errors` prints after a post we rejected. */
@@ -320,27 +321,7 @@ export function registerShopifyFilters(engine: Liquid): void {
   })
   add('brightness_difference', (a: unknown, b: unknown) => Math.abs(brightness(a) - brightness(b)))
 
-  add('video_tag', (video: unknown, ...args: unknown[]) => {
-    const { named } = splitArgs(args)
-    const v = video as {
-      sources?: { url: string; mime_type: string }[]
-      url?: string
-      preview_image?: ImageDrop | null
-    } | null
-    const src = v?.sources?.[0]?.url ?? v?.url ?? (typeof video === 'string' ? video : '')
-    if (!src) return ''
-    const flags = ['autoplay', 'loop', 'muted', 'controls']
-      .filter((f) => named[f])
-      .map((f) => `${f}="${f}"`)
-    const attrs = [
-      'playsinline="true"',
-      named.class ? `class="${escapeAttr(named.class)}"` : '',
-      ...flags,
-      `preload="${escapeAttr(named.preload ?? 'metadata')}"`,
-      v?.preview_image ? `poster="${escapeAttr(v.preview_image.src)}"` : '',
-    ].filter(Boolean)
-    return `<video ${attrs.join(' ')}><source src="${escapeAttr(src)}" type="video/mp4"></video>`
-  })
+  add('video_tag', (video: unknown, ...args: unknown[]) => videoTag(video, splitArgs(args).named))
   add('external_video_url', (video: unknown) => {
     const v = video as { host?: string; external_id?: string } | null
     if (!v?.external_id) return ''
@@ -357,7 +338,11 @@ export function registerShopifyFilters(engine: Liquid): void {
         : `https://www.youtube.com/embed/${v.external_id}`
     return `<iframe src="${escapeAttr(src)}" allow="autoplay; encrypted-media" allowfullscreen loading="lazy"></iframe>`
   })
-  add('media_tag', (media: unknown) => imageTag(media, {}))
+  add('media_tag', (media: unknown, ...args: unknown[]) =>
+    (media as { media_type?: string } | null)?.media_type === 'video'
+      ? videoTag(media, splitArgs(args).named)
+      : imageTag(media, {}),
+  )
   add('model_viewer_tag', () => '')
 
   // `date` with Shopify's named formats; LiquidJS's own handles strftime strings.
