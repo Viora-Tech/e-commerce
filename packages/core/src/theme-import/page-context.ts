@@ -1,10 +1,11 @@
 /** SOURCE OF TRUTH: the Liquid page context — WHAT: what one request renders with: the request and render options, the Shopify globals (shop, settings, routes, request, localization, collections, linklists, metaobjects, cart...) and our routes and cart in Shopify's shape / WHY: every section on a page shares one context, so they all see the same data and cost one set of loads */
 
-import { type EngineEntry, engineFor, type ThemeBundle } from './bundle'
+import { type EngineEntry, engineFor, type ThemeBundle, usesFileUrl } from './bundle'
 import { LiquidDataCache } from './cache'
 import { MetaobjectsDrop, ShopMetafieldsDrop } from './custom-drops'
 import { imageDrop, LIQUID_ROUTES, type LiquidCartData, type LiquidDataSource } from './drops'
 import { type EngineRuntime, newRenderBudget, type RenderBudget } from './engine'
+import { importedFileKey } from './filter-values'
 import { numericId } from './numeric-id'
 import {
   AllProductsDrop,
@@ -151,6 +152,7 @@ export async function createPageContext(options: LiquidRenderOptions): Promise<L
   const cache = new LiquidDataCache(data, collectionList)
   const settings = await themeSettingsFor(bundle, cache)
   const resource = await resourceGlobals(request, cache)
+  const importedFiles = usesFileUrl(bundle) ? await data.importedFiles?.() : undefined
   const runtime: EngineRuntime = {
     assetUrl: (file) => {
       const clean = file.replace(/^\/+/, '')
@@ -164,6 +166,9 @@ export async function createPageContext(options: LiquidRenderOptions): Promise<L
     fonts: new Map(),
     nonce: request.nonce,
     shopifyHost: options.shopifyHost,
+    ...(importedFiles
+      ? { importedFileUrl: (name: string) => importedFiles.get(importedFileKey(name)) ?? null }
+      : {}),
     postedForm: request.postedForm,
     formsAvailable: request.formsAvailable ?? true,
   }

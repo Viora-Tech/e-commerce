@@ -53,7 +53,10 @@ export function registerShopifyFilters(engine: Liquid): void {
     return runtimeOf(this).assetText(str(file)) ?? ''
   })
   add('file_url', function (this: unknown, file: unknown) {
-    const host = runtimeOf(this).shopifyHost
+    const rt = runtimeOf(this)
+    const ours = rt.importedFileUrl?.(str(file))
+    if (ours) return ours
+    const host = rt.shopifyHost
     return host ? `https://${host}/cdn/shop/files/${encodeURIComponent(str(file))}` : ''
   })
   engine.registerFilter('file_img_url', engine.filters.file_url as FilterImplOptions)

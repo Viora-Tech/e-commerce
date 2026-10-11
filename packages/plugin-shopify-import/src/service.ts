@@ -48,7 +48,7 @@ export async function createCsvRun(
 export async function createApiRun(
   tx: StoreTx,
   storeId: string,
-  input: { resources: ImportResource[]; createdBy: string | null },
+  input: { resources: ImportResource[]; includeUnusedFiles?: boolean; createdBy: string | null },
 ): Promise<RunRow> {
   if (input.resources.length === 0) throw new ImportError('Choose at least one thing to import')
   const [row] = await tx
@@ -57,6 +57,7 @@ export async function createApiRun(
       storeId,
       mode: 'api',
       resources: [...new Set(input.resources)],
+      includeUnusedFiles: input.includeUnusedFiles ?? false,
       dryRun: true,
       createdBy: input.createdBy,
     })

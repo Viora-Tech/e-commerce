@@ -23,7 +23,7 @@ export type GFile = {
   alt: string | null
   fileStatus: string
   mimeType?: string | null
-  image?: { url: string } | null
+  image?: { url: string; width?: number | null; height?: number | null } | null
   originalSource?: (Partial<VideoSource> & { fileSize?: number | null }) | null
   url?: string | null
   originalFileSize?: number | null
@@ -34,7 +34,7 @@ export type GFile = {
 }
 
 const FILE_FIELDS = `__typename id alt fileStatus
-  ... on MediaImage { mimeType image { url } originalSource { fileSize } }
+  ... on MediaImage { mimeType image { url width height } originalSource { fileSize } }
   ... on GenericFile { url mimeType originalFileSize }
   ... on Video { filename preview { image { url } } originalSource { url mimeType fileSize } sources { url mimeType fileSize height width } }
   ... on ExternalVideo { originUrl }`
@@ -65,6 +65,7 @@ function bestMp4(f: GFile): {
   size: number | null
   tooLarge: boolean
   mobileUrl: string | null
+  mobileSize: number | null
 } {
   const all = [...(f.sources ?? []), f.originalSource as VideoSource | null | undefined].filter(
     (s): s is VideoSource & { url: string } => Boolean(s?.url) && s?.mimeType === 'video/mp4',
@@ -79,13 +80,25 @@ function bestMp4(f: GFile): {
   const largest = [...fits].sort((a, b) => (b.size ?? 0) - (a.size ?? 0))[0]
   const pick = tallest(underMain) ?? (known.length === 0 ? largest : tallest(known))
   if (!pick)
-    return { url: null, size: all[0]?.fileSize ?? null, tooLarge: all.length > 0, mobileUrl: null }
+    return {
+      url: null,
+      size: all[0]?.fileSize ?? null,
+      tooLarge: all.length > 0,
+      mobileUrl: null,
+      mobileSize: null,
+    }
   const mobile = tallest(
     known.filter(
       (s) => (s.height ?? 0) <= MOBILE_MAX_HEIGHT && (s.height ?? 0) < (pick.height ?? 0),
     ),
   )
-  return { url: pick.url, size: pick.size, tooLarge: false, mobileUrl: mobile?.url ?? null }
+  return {
+    url: pick.url,
+    size: pick.size,
+    tooLarge: false,
+    mobileUrl: mobile?.url ?? null,
+    mobileSize: mobile?.size ?? null,
+  }
 }
 
 export function mapFile(f: GFile): NFile {
@@ -98,6 +111,8 @@ export function mapFile(f: GFile): NFile {
         url: f.image?.url ?? null,
         mimeType: f.mimeType ?? null,
         size: f.originalSource?.fileSize ?? null,
+        width: f.image?.width ?? null,
+        height: f.image?.height ?? null,
       }
     case 'Video': {
       const mp4 = bestMp4(f)
@@ -107,6 +122,7 @@ export function mapFile(f: GFile): NFile {
         filename: f.filename ?? null,
         url: mp4.url,
         mobileUrl: mp4.mobileUrl,
+        mobileSize: mp4.mobileSize,
         posterUrl: f.preview?.image?.url ?? null,
         mimeType: mp4.url ? 'video/mp4' : (f.originalSource?.mimeType ?? null),
         size: mp4.size,

@@ -194,7 +194,12 @@ export const shopifyImportRouter = {
   /** Preview an API import of the chosen resources. */
   createApiRun: can(permissions.APPS_MANAGE)
     .use(heavy('import'))
-    .input(z.object({ resources: z.array(z.enum(IMPORT_RESOURCES)).min(1) }))
+    .input(
+      z.object({
+        resources: z.array(z.enum(IMPORT_RESOURCES)).min(1),
+        includeUnusedFiles: z.boolean().optional(),
+      }),
+    )
     .handler(async ({ context, input }) => {
       await requireInstalled(context)
       const connection = await getConnection(context.tx, settingsSecret())
@@ -203,6 +208,7 @@ export const shopifyImportRouter = {
       }
       const run = await createApiRun(context.tx, context.scope.storeId, {
         resources: input.resources,
+        includeUnusedFiles: input.includeUnusedFiles ?? false,
         createdBy: context.session.user.email,
       }).catch(asOrpc)
       await queue(context, run)

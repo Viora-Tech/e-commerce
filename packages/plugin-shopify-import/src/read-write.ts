@@ -11,6 +11,7 @@ import { mapLimit } from './concurrency'
 import { parseCustomersCsv } from './csv-customers'
 import { parseOrdersCsv } from './csv-orders'
 import { parseProductsCsv } from './csv-products'
+import { FilesTally } from './file-usage'
 import { createReferenceResolver } from './references'
 import { errorMessage, type ImportContext, WRITE_BATCH_SIZE } from './runtime'
 import type { ImportResource } from './schema'
@@ -49,7 +50,7 @@ import {
 } from './write-content'
 import { customerSourceId, writeCustomers } from './write-customers'
 import { importDiscounts } from './write-discounts'
-import { writeFile } from './write-files'
+import { type FilesPlan, writeFile } from './write-files'
 import { importGiftCards } from './write-gift-cards'
 import { importMetafields } from './write-metafields'
 import { importMetaobjects } from './write-metaobjects'
@@ -61,6 +62,20 @@ const PRODUCT_BATCH = 25
 const ORDER_BATCH = 100
 /** Files copied at once; the media host's shared cap (MEDIA_IN_FLIGHT) bounds memory across steps. */
 const FILE_CONCURRENCY = 12
+
+/** Resources whose records say which Files are used. */
+const USAGE_RESOURCES: ImportResource[] = ['products', 'collections', 'pages', 'articles']
+
+/** Passes a reader's pages on unchanged, noting each record on the way. */
+async function* noting<T>(
+  source: AsyncGenerator<T[]>,
+  note: (item: T) => void,
+): AsyncGenerator<T[]> {
+  for await (const page of source) {
+    for (const item of page) note(item)
+    yield page
+  }
+}
 
 /** Regroup a reader's pages into batches of `size` for the batched writers. */
 async function* rebatch<T>(source: AsyncGenerator<T[]>, size: number): AsyncGenerator<T[]> {
@@ -257,7 +272,13 @@ export async function runApi(
       // Stock changes do not move a product's update time; read it fresh.
       refresher: () => stockRefresher(client),
     })
-    await forEachChunk(ctx, 'products', products, PRODUCT_BATCH, (b) => writeProducts(ctx, b))
+    await forEachChunk(
+      ctx,
+      'products',
+      noting(products, (p) => ctx.fileUsage.product(p)),
+      PRODUCT_BATCH,
+      (b) => writeProducts(ctx, b),
+    )
   }
   if (wanted('collections')) {
     const collections = read<NCollection>({
@@ -266,7 +287,12 @@ export async function runApi(
       full: () => fetchCollections(client),
       delta: (search) => fetchCollections(client, search),
     })
-    await forEachBatch(ctx, 'collections', collections, (c) => writeCollection(ctx, c))
+    await forEachBatch(
+      ctx,
+      'collections',
+      noting(collections, (c) => ctx.fileUsage.collection(c)),
+      (c) => writeCollection(ctx, c),
+    )
   }
   if (wanted('customers')) {
     ctx.log('Asking Shopify to prepare your customers…')
@@ -295,7 +321,12 @@ export async function runApi(
       full: () => fetchPages(client),
       delta: (search) => fetchPages(client, search),
     })
-    await forEachBatch(ctx, 'pages', pages, (p) => writePage(ctx, p))
+    await forEachBatch(
+      ctx,
+      'pages',
+      noting(pages, (p) => ctx.fileUsage.page(p)),
+      (p) => writePage(ctx, p),
+    )
   }
   if (wanted('articles')) {
     const articles = read<NArticle>({
@@ -304,7 +335,12 @@ export async function runApi(
       full: () => fetchArticles(client),
       delta: (search) => fetchArticles(client, search),
     })
-    await forEachBatch(ctx, 'articles', articles, (a) => writeArticle(ctx, a))
+    await forEachBatch(
+      ctx,
+      'articles',
+      noting(articles, (a) => ctx.fileUsage.article(a)),
+      (a) => writeArticle(ctx, a),
+    )
   }
   // No update or id filter for these: read them all, keep what a retry asks for.
   if (wanted('menus')) {
@@ -329,9 +365,16 @@ export async function runApi(
       full: () => fetchFiles(client),
       delta: (search) => fetchFiles(client, search),
     })
+    // Unused files are skipped unless asked for. A run that did not read products,
+    // collections, pages or articles cannot tell what is used, so it copies what it is given.
+    const plan: FilesPlan = {
+      tally: new FilesTally(),
+      skipUnused: !ctx.includeUnusedFiles && USAGE_RESOURCES.some((r) => wanted(r)),
+    }
     await optional(ctx, 'files', () =>
-      forEachBatch(ctx, 'files', files, (f) => writeFile(ctx, f), FILE_CONCURRENCY),
+      forEachBatch(ctx, 'files', files, (f) => writeFile(ctx, f, plan), FILE_CONCURRENCY),
     )
+    ctx.report.setFilesEstimate(plan.tally.estimate(!plan.skipUnused))
   }
   // Content types and extra fields link to each other: a retry runs them in full (safe, idempotent).
   if (wanted('metaobjects'))

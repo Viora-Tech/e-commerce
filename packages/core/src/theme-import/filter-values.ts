@@ -20,6 +20,8 @@ export type LiquidRuntime = {
   nonce: string
   /** The merchant's old Shopify host, for `file_url` images we did not copy. */
   shopifyHost: string | null
+  /** Our URL for a Shopify file name the importer copied (loose name match), else null. */
+  importedFileUrl?: ((name: string) => string | null) | undefined
 }
 
 export type Named = Record<string, unknown>
@@ -321,4 +323,22 @@ export function videoTag(video: unknown, named: Named): string {
         )
       : [`<source src="${escapeAttr(sources[0]?.url ?? fallback)}" type="video/mp4">`]
   return `<video ${attrs.join(' ')}>${tags.join('')}</video>`
+}
+
+/**
+ * A Shopify Files name as one comparable key. A theme setting says `shopify://files/videos/Keyboard Bento.mp4`
+ * while Shopify's own file name may come back as `Keyboard_Bento.mp4` or percent-encoded:
+ * case, spaces, underscores and hyphens do not tell two files apart.
+ */
+export function importedFileKey(name: string): string {
+  let decoded = name
+  try {
+    decoded = decodeURIComponent(name)
+  } catch {
+    // not percent-encoded
+  }
+  return decoded
+    .trim()
+    .toLowerCase()
+    .replace(/[\s_-]+/g, '-')
 }

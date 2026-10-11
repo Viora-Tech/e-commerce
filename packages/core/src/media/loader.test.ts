@@ -63,9 +63,21 @@ describe('mediaImageLoader', () => {
   })
 })
 
+describe('older media that still carry a 960 variant', () => {
+  it('keeps working: the nearest width is chosen from what the row has', () => {
+    const variants = {
+      '640': { avif: 'a640.avif', webp: 'a640.webp' },
+      '960': { avif: 'a960.avif', webp: 'a960.webp' },
+      '1280': { avif: 'a1280.avif', webp: 'a1280.webp' },
+    }
+    expect(pickVariantUrls({ url: 'https://x/o.jpg', variants }, 1000).avif).toBe('a960.avif')
+    expect(pickVariantUrls({ url: 'https://x/o.jpg', variants }, 1100).avif).toBe('a960.avif')
+  })
+})
+
 describe('generatedWidths', () => {
   it('matches what the pipeline actually generates', () => {
-    expect(generatedWidths()).toEqual([320, 640, 960, 1280, 1920])
+    expect(generatedWidths()).toEqual([320, 640, 1280, 1920])
   })
 })
 

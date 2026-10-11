@@ -12,6 +12,7 @@ import type { StorageProvider } from '@commerce/storage'
 import { and, eq, isNotNull, ne } from 'drizzle-orm'
 import type { SnapshotUse } from './client'
 import { clientFor } from './connection'
+import { FileUsage } from './file-usage'
 import { createMediaHost, type MediaHostOptions } from './media'
 import { type Only, runApi, runCsv } from './read-write'
 import { errorMessage, type ImportContext, type InStore, Reporter } from './runtime'
@@ -219,6 +220,8 @@ export async function executeRun(deps: RunDeps, runId: string): Promise<void> {
     storeId: deps.storeId,
     runId,
     dryRun: run.dryRun,
+    includeUnusedFiles: run.includeUnusedFiles,
+    fileUsage: new FileUsage(),
     inStore: deps.inStore,
     media: createMediaHost({
       storeId: deps.storeId,

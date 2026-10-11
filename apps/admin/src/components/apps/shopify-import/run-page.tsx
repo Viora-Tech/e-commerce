@@ -11,6 +11,7 @@ import { useCopy, useFormat } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 import RunActions from './run-actions'
 import RunCurrentStep from './run-current-step'
+import RunFilesCard from './run-files-card'
 import RunIssuesCard from './run-issues-card'
 import RunLeftCard from './run-left-card'
 import RunPreflight from './run-preflight'
@@ -128,6 +129,7 @@ export default function RunPage({ params }: AppPageProps) {
       </Card>
       {previewDone ? <RunPreflight resources={run.resources} mode={run.mode} /> : null}
       <RunProgressCard run={run} />
+      <RunFilesCard run={run} />
       <RunLeftCard run={run} />
       {run.dryRun && run.preview.length > 0 ? <RunSamplesCard samples={run.preview} /> : null}
       <RunIssuesCard
