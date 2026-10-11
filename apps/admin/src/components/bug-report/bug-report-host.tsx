@@ -10,6 +10,25 @@ import { OPEN_BUG_REPORT_EVENT } from '@/lib/bug-report-events'
 import { capturePage } from '@/lib/capture-page'
 import BugReportDialog from './bug-report-dialog'
 
+type BugReportHostProps = {
+  /**
+   * `frame` (default): absolute, bottom-left of the admin shell's panel. `screen`: fixed to the
+   * window's bottom-right, for full-screen tools without the shell (theme editor, onboarding).
+   */
+  placement?: 'frame' | 'screen'
+}
+
+/** Floating button classes per placement; the shared look comes from BUTTON_LOOK. */
+const BUTTON_PLACEMENT = {
+  frame:
+    'absolute bottom-[calc(max(1rem,env(safe-area-inset-bottom))+3.25rem)] left-4 md:bottom-5 md:left-5',
+  screen:
+    'fixed right-4 bottom-[calc(max(1rem,env(safe-area-inset-bottom))+0.25rem)] md:right-5 md:bottom-5',
+} as const
+
+const BUTTON_LOOK =
+  'z-30 flex size-10 touch-manipulation items-center justify-center rounded-full border border-border bg-card text-muted-foreground shadow-popover transition-[color,border-color,scale] duration-150 ease-out hover:border-border-strong hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring active:scale-[0.96] disabled:cursor-progress [body:has([data-save-bar])_&]:hidden'
+
 type Flow = {
   busy: RefObject<boolean>
   setCapturing: (on: boolean) => void
@@ -37,7 +56,7 @@ async function captureThenOpen(flow: Flow): Promise<void> {
  * account menu opens the same flow through `openBugReport()`. The button is left out of the
  * screenshot.
  */
-export default function BugReportHost() {
+export default function BugReportHost({ placement = 'frame' }: BugReportHostProps) {
   // Hooks
   const copy = useCopy(bugReportContent)
   const [open, setOpen] = useState(false)
@@ -67,11 +86,13 @@ export default function BugReportHost() {
           aria-label={copy.open}
           aria-busy={capturing}
           disabled={capturing}
-          className="absolute bottom-[calc(max(1rem,env(safe-area-inset-bottom))+3.25rem)] left-4 z-30 flex size-10 touch-manipulation items-center justify-center rounded-full border border-border bg-card text-muted-foreground shadow-popover transition-[color,border-color,scale] duration-150 ease-out hover:border-border-strong hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring active:scale-[0.96] disabled:cursor-progress md:bottom-5 md:left-5 [body:has([data-save-bar])_&]:hidden"
+          className={`${BUTTON_PLACEMENT[placement]} ${BUTTON_LOOK}`}
         >
           {capturing ? <Spinner className="size-4" /> : <BugIcon className="size-4.5" />}
         </TooltipTrigger>
-        <TooltipContent side="right">{copy.open}</TooltipContent>
+        <TooltipContent side={placement === 'screen' ? 'left' : 'right'}>
+          {copy.open}
+        </TooltipContent>
       </Tooltip>
       <BugReportDialog open={open} onOpenChange={handleOpenChange} screenshot={screenshot} />
     </>
