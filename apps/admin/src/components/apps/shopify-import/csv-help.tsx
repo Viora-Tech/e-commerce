@@ -18,7 +18,7 @@ export default function CsvHelp({ resource }: CsvHelpProps) {
   const kind = copy.kinds[resource]
 
   return (
-    <aside className="flex flex-col gap-4 rounded-xl border border-hairline bg-card p-5 lg:sticky lg:top-4">
+    <aside className="flex flex-col gap-4 rounded-xl border border-hairline bg-card p-5">
       <h2 className="text-card-title text-ink-strong">{copy.howTo.heading}</h2>
       <ol className="flex flex-col gap-3">
         {copy.howTo.steps.map((step, i) => (

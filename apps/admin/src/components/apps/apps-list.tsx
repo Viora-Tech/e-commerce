@@ -34,6 +34,8 @@ import AppsRecommended from './apps-recommended'
 import InstallDialog from './install-dialog'
 
 const HERO_LIMIT = 4
+type StatusFilter = 'all' | 'installed' | 'notInstalled'
+const STATUS_FILTERS: StatusFilter[] = ['all', 'installed', 'notInstalled']
 const GRID = 'grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3'
 
 function describeError(err: unknown, fallback: string) {
@@ -62,6 +64,7 @@ export default function AppsList() {
   const [query, setQuery] = useState('')
   const [category, setCategory] = useState<string | null>(null)
   const [builtOnly, setBuiltOnly] = useState(false)
+  const [status, setStatus] = useState<StatusFilter>('all')
   const [storeName, setStoreName] = useState<string | null>(null)
 
   useEffect(() => {
@@ -108,9 +111,10 @@ export default function AppsList() {
   const available = all.filter((a) => !a.installed)
   const recommended = recommendedApps(all)
   const setupCount = installed.filter(needsSetup).length
-  const store = available.filter(
+  const store = all.filter(
     (a) =>
       matchesQuery(a, query) &&
+      (status === 'all' || (status === 'installed') === a.installed) &&
       (category === null || a.category === category) &&
       (!builtOnly || a.kind === 'builtin'),
   )
@@ -119,14 +123,14 @@ export default function AppsList() {
     ...(setupCount > 0 ? [copy.summary.needsSetup(setupCount)] : []),
   ].join(' · ')
   const categoryRows = [
-    { value: null, label: copy.store.all, count: available.length },
-    ...categoriesOf(available).map((value) => ({
+    { value: null, label: copy.store.all, count: all.length },
+    ...categoriesOf(all).map((value) => ({
       value,
       label: copy.gallery.categories[value] ?? copy.gallery.categoryFallback(value),
-      count: available.filter((a) => a.category === value).length,
+      count: all.filter((a) => a.category === value).length,
     })),
   ]
-  const builtCount = available.filter((a) => a.kind === 'builtin').length
+  const builtCount = all.filter((a) => a.kind === 'builtin').length
 
   return (
     <PageBody className="max-w-[80.5rem] gap-8">
@@ -205,88 +209,98 @@ export default function AppsList() {
               title={copy.sections.store.title}
               intro={copy.sections.store.intro(siteConfig.brand.name)}
             />
-            {available.length === 0 ? (
-              <InlineState
-                kind="empty"
-                heading={copy.store.allInstalledHeading}
-                body={copy.store.allInstalledBody}
-              />
-            ) : (
-              <div className="flex flex-col gap-6 lg:flex-row">
-                <nav
-                  aria-label={copy.store.categories}
-                  className="flex shrink-0 flex-wrap gap-1 lg:w-50 lg:flex-col"
-                >
-                  {categoryRows.map((row) => (
-                    <button
-                      key={row.value ?? 'all'}
-                      type="button"
-                      aria-current={category === row.value}
-                      onClick={() => setCategory(row.value)}
-                      className={cn(
-                        'flex h-[2.125rem] items-center justify-between gap-3 rounded-[0.625rem] px-2.5 text-body transition-colors',
-                        category === row.value
-                          ? 'bg-primary-soft font-medium text-foreground'
-                          : 'text-muted-foreground hover:bg-muted hover:text-foreground',
-                      )}
-                    >
-                      {row.label}
-                      <span className="text-caption">{row.count}</span>
-                    </button>
-                  ))}
-                </nav>
-                <div className="flex min-w-0 flex-1 flex-col gap-3.5">
-                  <div className="flex flex-wrap items-center gap-2.5">
-                    <div className="relative w-full sm:w-70">
-                      <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
-                      <Input
-                        value={query}
-                        onChange={(e) => setQuery(e.target.value)}
-                        placeholder={copy.gallery.searchPlaceholder}
-                        className="pl-9"
-                        aria-label={copy.gallery.searchPlaceholder}
-                      />
-                    </div>
-                    {builtCount > 0 ? (
+            <div className="flex flex-col gap-6 lg:flex-row">
+              <nav
+                aria-label={copy.store.categories}
+                className="flex shrink-0 flex-wrap gap-1 lg:w-50 lg:flex-col"
+              >
+                {categoryRows.map((row) => (
+                  <button
+                    key={row.value ?? 'all'}
+                    type="button"
+                    aria-current={category === row.value}
+                    onClick={() => setCategory(row.value)}
+                    className={cn(
+                      'flex h-[2.125rem] items-center justify-between gap-3 rounded-[0.625rem] px-2.5 text-body transition-colors',
+                      category === row.value
+                        ? 'bg-primary-soft font-medium text-foreground'
+                        : 'text-muted-foreground hover:bg-muted hover:text-foreground',
+                    )}
+                  >
+                    {row.label}
+                    <span className="text-caption">{row.count}</span>
+                  </button>
+                ))}
+              </nav>
+              <div className="flex min-w-0 flex-1 flex-col gap-3.5">
+                <div className="flex flex-wrap items-center gap-2.5">
+                  <div className="relative w-full sm:w-70">
+                    <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
+                    <Input
+                      value={query}
+                      onChange={(e) => setQuery(e.target.value)}
+                      placeholder={copy.gallery.searchPlaceholder}
+                      className="pl-9"
+                      aria-label={copy.gallery.searchPlaceholder}
+                    />
+                  </div>
+                  <div className="flex gap-1.5">
+                    {STATUS_FILTERS.map((value) => (
                       <button
+                        key={value}
                         type="button"
-                        aria-pressed={builtOnly}
-                        onClick={() => setBuiltOnly(!builtOnly)}
+                        aria-pressed={status === value}
+                        onClick={() => setStatus(value)}
                         className={cn(
-                          'flex h-9 items-center gap-2 rounded-full border px-3.5 text-body transition-colors',
-                          builtOnly
+                          'flex h-9 items-center rounded-full border px-3.5 text-body transition-colors',
+                          status === value
                             ? 'border-primary bg-primary-soft font-medium text-foreground'
                             : 'border-border text-muted-foreground hover:bg-muted hover:text-foreground',
                         )}
                       >
-                        {copy.store.builtBy(siteConfig.brand.name)}
-                        <span className="text-caption">{builtCount}</span>
+                        {copy.store.statusFilters[value]}
                       </button>
-                    ) : null}
+                    ))}
                   </div>
-                  {store.length === 0 ? (
-                    <InlineState
-                      kind="empty"
-                      heading={copy.gallery.noResultsHeading}
-                      body={copy.gallery.noResultsBody}
-                    />
-                  ) : (
-                    <div className={GRID}>
-                      {store.map((app) => (
-                        <AppCard
-                          key={app.id}
-                          app={app}
-                          variant="store"
-                          busy={busyId === app.id}
-                          onInstall={setPendingInstall}
-                          onUninstall={setPendingUninstall}
-                        />
-                      ))}
-                    </div>
-                  )}
+                  {builtCount > 0 ? (
+                    <button
+                      type="button"
+                      aria-pressed={builtOnly}
+                      onClick={() => setBuiltOnly(!builtOnly)}
+                      className={cn(
+                        'flex h-9 items-center gap-2 rounded-full border px-3.5 text-body transition-colors',
+                        builtOnly
+                          ? 'border-primary bg-primary-soft font-medium text-foreground'
+                          : 'border-border text-muted-foreground hover:bg-muted hover:text-foreground',
+                      )}
+                    >
+                      {copy.store.builtBy(siteConfig.brand.name)}
+                      <span className="text-caption">{builtCount}</span>
+                    </button>
+                  ) : null}
                 </div>
+                {store.length === 0 ? (
+                  <InlineState
+                    kind="empty"
+                    heading={copy.gallery.noResultsHeading}
+                    body={copy.gallery.noResultsBody}
+                  />
+                ) : (
+                  <div className={GRID}>
+                    {store.map((app) => (
+                      <AppCard
+                        key={app.id}
+                        app={app}
+                        variant="store"
+                        busy={busyId === app.id}
+                        onInstall={setPendingInstall}
+                        onUninstall={setPendingUninstall}
+                      />
+                    ))}
+                  </div>
+                )}
               </div>
-            )}
+            </div>
           </section>
         </>
       )}

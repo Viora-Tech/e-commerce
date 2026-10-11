@@ -23,8 +23,8 @@ type AdminFrameProps = {
   stores: StoreOption[]
   activeStoreId: string | null
   storefrontUrl: string
-  /** Installed apps with their own pages, listed under Apps in the sidebar. */
-  apps: { id: string; name: string; icon: string | null }[]
+  /** Installed apps, listed under Apps in the sidebar; `href` is the app page or its settings. */
+  apps: { id: string; name: string; icon: string | null; href: string }[]
   /** The live theme's logo, if the store has uploaded one; else the sidebar shows a monogram. */
   logoUrl: string | null
   /** The test server's "Report a bug" button and menu item (`BUG_REPORTS_ENABLED`). */

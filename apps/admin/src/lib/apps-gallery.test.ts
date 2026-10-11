@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { AppSummary } from '@/components/apps/app-card'
-import { categoriesOf, filterConnections, groupApps } from './apps-gallery'
+import { appEntryHref, categoriesOf, filterConnections, groupApps } from './apps-gallery'
 
 const base: Omit<AppSummary, 'id' | 'name' | 'kind' | 'category' | 'company'> = {
   version: '1.0.0',
@@ -85,5 +85,25 @@ describe('filterConnections', () => {
   it('combines search and filter', () => {
     expect(filterConnections(apps, 'r2', 'installed').map((a) => a.id)).toEqual(['r2'])
     expect(filterConnections(apps, 'razorpay', 'shipping')).toEqual([])
+  })
+})
+
+describe('appEntryHref', () => {
+  const provides = { payments: [], shipping: [], notifications: [], storage: [] }
+
+  it('opens the app itself when it has pages', () => {
+    expect(appEntryHref({ id: 'shopify-import', provides, admin: { pages: [{}] } })).toBe(
+      '/apps/shopify-import',
+    )
+  })
+
+  it('opens the settings page of the kind an app without pages provides', () => {
+    expect(
+      appEntryHref({
+        id: 'r2',
+        provides: { ...provides, storage: [{ id: 'r2', label: 'R2' }] },
+        admin: { pages: [] },
+      }),
+    ).toBe('/content/files/storage')
   })
 })

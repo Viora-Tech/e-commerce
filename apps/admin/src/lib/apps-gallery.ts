@@ -1,4 +1,6 @@
 import type { AppSummary } from '@/components/apps/app-card'
+import { type AppKind, appsContent } from '@/data/apps'
+import { routes } from '@/lib/routes'
 
 export type AppsGallery = {
   builtin: AppSummary[]
@@ -44,4 +46,16 @@ export function filterConnections(apps: AppSummary[], query: string, filter: str
     if (filter === 'installed') return a.installed
     return a.category === filter
   })
+}
+
+type AppEntry = Pick<AppSummary, 'id' | 'provides'> & { admin: { pages: unknown[] } }
+
+/**
+ * Where an installed app's sidebar entry goes: its own pages when it has any, otherwise the
+ * settings page of the first kind it plugs into (e.g. a storage provider opens Files → Storage).
+ */
+export function appEntryHref(app: AppEntry): string {
+  if (app.admin.pages.length > 0) return routes.apps.page(app.id)
+  const kind = (Object.keys(appsContent.kinds) as AppKind[]).find((k) => app.provides[k].length > 0)
+  return kind ? appsContent.kinds[kind].href : routes.apps.list()
 }
