@@ -7,12 +7,14 @@ export const businessGstContent = {
   loadFailed: 'Could not load your business details.',
   business: {
     heading: 'Your business',
-    help: 'The business on your PAN card. Every GST number below belongs to it.',
+    help: 'The legal owner of your GST numbers: the name and PAN they are registered under.',
     empty: 'Add your GST number below and we fill this in from it.',
-    legalName: 'Legal name',
-    legalNameHelp: 'Exactly as on your PAN card.',
-    tradeName: 'Shop name (optional)',
-    tradeNameHelp: 'If you trade under a different name.',
+    legalName: 'Legal name (as on your GST certificate)',
+    legalNameHelp:
+      'For a proprietorship this is the owner’s own name, as on their PAN, not the shop name. For a company or LLP it is the registered company name.',
+    tradeName: 'Trade name (optional)',
+    tradeNameHelp:
+      'Your shop or brand name if it is different, like Waimers. It is printed on invoices.',
     pan: 'PAN',
     panHelp: '10 characters, like ABCDE1234F.',
     panLocked: 'Your PAN cannot change once it has GST numbers.',
@@ -47,8 +49,9 @@ export const businessGstContent = {
     placeholder: '06ABCDE1234F1Z5',
     registeredIn: (state: string) => `Registered in ${state}`,
     business: 'Business',
-    legalName: 'Legal name on your PAN card',
-    legalNameHelp: 'Your first GST number creates your business with this name.',
+    legalName: 'Legal name (as on your GST certificate)',
+    legalNameHelp:
+      'Proprietorship: the owner’s name as on their PAN, not the shop name. You can add your shop name as the trade name under Your business.',
     composition: 'This GST number is under the composition scheme',
     prefix: 'Invoice prefix (optional)',
     prefixHelp:
@@ -77,7 +80,7 @@ export const businessGstContent = {
   businessDialog: {
     addTitle: 'Add another business',
     editTitle: 'Edit business',
-    body: 'Enter the details from that business’s PAN card.',
+    body: 'Enter the details from that business’s GST certificate and PAN.',
     cancel: 'Cancel',
     save: 'Save',
     saved: 'Business saved',
