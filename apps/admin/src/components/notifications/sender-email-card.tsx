@@ -18,6 +18,7 @@ import { Spinner } from '@commerce/ui/shadcn/spinner'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import { senderEmailContent as copy } from '@/data/sender-email'
+import { useSetupNext } from '@/hooks/use-setup-next'
 import { api } from '@/lib/api-client'
 import SenderDnsTable from './sender-dns-table'
 import SenderEmailForm from './sender-email-form'
@@ -50,6 +51,7 @@ const when = (iso: Date | string) =>
  */
 export default function SenderEmailCard() {
   // Hooks
+  const announceSetup = useSetupNext()
   const [data, setData] = useState<SenderEmailOverview | null>(null)
   const [editing, setEditing] = useState(false)
   const [busy, setBusy] = useState<'save' | 'check' | 'remove' | null>(null)
@@ -83,6 +85,7 @@ export default function SenderEmailCard() {
       setData(next)
       setEditing(false)
       toast.success(next.sender?.status === 'verified' ? copy.verifiedToast : copy.saved)
+      void announceSetup('notifications')
     } catch (err) {
       setError(errorText(err))
     } finally {

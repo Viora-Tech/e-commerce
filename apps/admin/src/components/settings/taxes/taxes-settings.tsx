@@ -6,6 +6,7 @@ import { useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
 import SaveBar from '@/components/layout/save-bar'
 import { taxesContent as copy } from '@/data/taxes'
+import { useSetupNext } from '@/hooks/use-setup-next'
 import { api } from '@/lib/api-client'
 import { useActiveSection } from '../section-tabs'
 import SettingsSection from '../settings-section'
@@ -50,6 +51,7 @@ function LoadingCards() {
  */
 export default function TaxesSettings({ refreshKey, gstTab, onSaveState }: TaxesSettingsProps) {
   // Hooks
+  const announceSetup = useSetupNext()
   const active = useActiveSection()
   const [view, setView] = useState<TaxesView | null>(null)
   const [form, setForm] = useState<TaxesFormState | null>(null)
@@ -96,6 +98,7 @@ export default function TaxesSettings({ refreshKey, gstTab, onSaveState }: Taxes
       setForm(formOf(next))
       setAttempted(false)
       toast.success(copy.saved)
+      void announceSetup('taxes')
     } catch (err) {
       toast.error(err instanceof Error ? err.message : copy.failed)
     } finally {
