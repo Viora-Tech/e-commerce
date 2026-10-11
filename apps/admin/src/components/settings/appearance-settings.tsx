@@ -10,8 +10,10 @@ import { toast } from 'sonner'
 import { appearanceContent } from '@/data/appearance'
 import { writeAccentCookie } from '@/lib/accent-cookie'
 import { api } from '@/lib/api-client'
+import type { ProductLayout } from '@/lib/product-layout'
 import AccentPicker from './accent-picker'
 import AccentPreview from './accent-preview'
+import ProductLayoutField from './product-layout-field'
 import SettingsCard from './settings-card'
 import SettingsPageHeader from './settings-page-header'
 import ThemeModeField from './theme-mode-field'
@@ -33,8 +35,13 @@ function sourceLine(loaded: Loaded): string {
   return copy.accent.source.default
 }
 
+type AppearanceSettingsProps = {
+  /** The member's product page layout, read from the cookie on the server. */
+  productLayout: ProductLayout
+}
+
 /** Account › Appearance (from the account menu): the member's admin accent, the owner's store default, and theme mode. */
-export default function AppearanceSettings() {
+export default function AppearanceSettings({ productLayout }: AppearanceSettingsProps) {
   // Hooks
   const router = useRouter()
   const [loaded, setLoaded] = useState<Loaded | null>(null)
@@ -146,6 +153,10 @@ export default function AppearanceSettings() {
       ) : null}
       <SettingsCard title={copy.mode.heading} description={copy.mode.body}>
         <ThemeModeField />
+      </SettingsCard>
+      <SettingsCard title={copy.productLayout.heading} description={copy.productLayout.body}>
+        <ProductLayoutField initial={productLayout} />
+        <p className="text-caption text-muted-foreground">{copy.productLayout.help}</p>
       </SettingsCard>
     </div>
   )

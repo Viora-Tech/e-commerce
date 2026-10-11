@@ -1,7 +1,24 @@
 import { accountContent } from '@/data/account'
-import { translation } from '@/lib/i18n'
+import { appearanceContent } from '@/data/appearance'
+import { translation, untranslated } from '@/lib/i18n'
 
 export default [
+  translation(appearanceContent, {
+    title: untranslated,
+    intro: untranslated,
+    accent: untranslated,
+    preview: untranslated,
+    store: untranslated,
+    mode: untranslated,
+    productLayout: {
+      heading: 'प्रोडक्ट पेज का लेआउट',
+      body: 'प्रोडक्ट बदलते समय उसके सेक्शन कैसे दिखें।',
+      label: 'लेआउट',
+      settings: 'सेटिंग',
+      tabs: 'टैब',
+      help: 'सेटिंग में सेक्शन बाईं ओर लिस्ट में दिखते हैं। टैब में वे ऊपर एक पंक्ति में दिखते हैं।',
+    },
+  }),
   translation(accountContent, {
     title: 'अकाउंट',
     intro: 'आपकी अपनी जानकारी और पसंद। ये सिर्फ़ आप पर लागू होती हैं, आपके स्टाफ़ पर नहीं।',

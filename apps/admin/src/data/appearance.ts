@@ -61,4 +61,12 @@ export const appearanceContent = {
     dark: 'Dark',
     system: 'System',
   },
+  productLayout: {
+    heading: 'Product page layout',
+    body: 'How a product shows its sections when you edit it.',
+    label: 'Layout',
+    settings: 'Settings',
+    tabs: 'Tabs',
+    help: 'Settings puts the sections in a list on the left. Tabs puts them in a row on top.',
+  },
 }

@@ -13,8 +13,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@commerce/ui/shadcn/alert-dialog'
-import { useRouter } from 'next/navigation'
-import { useEffect, useState } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
+import { type ReactNode, useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import DataCard from '@/components/layout/data-card'
 import ProoflyDetailPage from '@/components/layout/proofly-detail-page'
@@ -28,6 +28,7 @@ import { productBannerContent, productsListContent } from '@/data/products'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 import { validationIssuesOf } from '@/lib/api-errors'
+import type { ProductLayout } from '@/lib/product-layout'
 import { routes } from '@/lib/routes'
 import AiWriterButton from './ai-writer-button'
 import {
@@ -50,10 +51,10 @@ import ProductCollectionsCard from './product-collections-card'
 import ProductFormActions from './product-form-actions'
 import ProductImageCard from './product-image-card'
 import ProductMainCard from './product-main-card'
-import ProductMoreSection from './product-more-section'
 import ProductPageActions from './product-page-actions'
 import ProductPreorderSection from './product-preorder-section'
-import ProductSectionNav from './product-section-nav'
+import { type ProductTabId, tabsFor, tabsWithErrors } from './product-tab-list'
+import ProductTabs from './product-tabs'
 import SeoCard from './seo-card'
 import ShippingCard from './shipping-card'
 import StatusCard from './status-card'
@@ -67,23 +68,9 @@ type ProductFormProps = {
   storefrontOrigin: string
   /** Show "Write with AI": AI is configured, on for the store, and the member may edit products. */
   aiWriter?: boolean
+  /** The member's choice under Account › Appearance. */
+  layout?: ProductLayout
 }
-
-/** Jump-nav targets in page order; pricing and inventory move into the variants table once options exist. */
-const SINGLE_SECTIONS = [
-  'media',
-  'details',
-  'pricing',
-  'inventory',
-  'variants',
-  'shipping',
-  'seo',
-  'more',
-] as const
-const MATRIX_SECTIONS = ['media', 'details', 'variants', 'shipping', 'seo', 'more'] as const
-
-/** Jump-nav targets keep a little air above them when scrolled into view. */
-const SECTION = 'scroll-mt-6'
 
 function initialForm(product: LoadedProduct | null): ProductFormState {
   return product ? fromProduct(product) : emptyForm()
@@ -100,12 +87,14 @@ export default function ProductForm({
   facets,
   storefrontOrigin,
   aiWriter = false,
+  layout = 'tabs',
 }: ProductFormProps) {
   // Hooks
   const copy = useCopy(productFormContent)
   const listCopy = useCopy(productsListContent)
   const bannerCopy = useCopy(productBannerContent)
   const router = useRouter()
+  const searchParams = useSearchParams()
   const [form, setForm] = useState<ProductFormState>(() => initialForm(product))
   const [saved, setSaved] = useState(() => snapshot(initialForm(product)))
   const [busy, setBusy] = useState(false)
@@ -113,7 +102,6 @@ export default function ProductForm({
   const [serverError, setServerError] = useState<string | null>(null)
   const [attempted, setAttempted] = useState(false)
   const [confirmDelete, setConfirmDelete] = useState(false)
-  const [moreOpen, setMoreOpen] = useState(false)
   /* Bumped after each save so cards that load their own data (collections) refetch. */
   const [revision, setRevision] = useState(0)
 
@@ -142,13 +130,41 @@ export default function ProductForm({
   const patchPackage = (vp: Partial<VariantRow>) =>
     setForm((f) => ({ ...f, variants: f.variants.map((v) => ({ ...v, ...vp })) }))
 
+  const mainCard = (tab: 'details' | 'pricing' | 'inventory') =>
+    first ? (
+      <ProductMainCard
+        form={form}
+        variant={first}
+        tab={tab}
+        titleError={showErrors ? errors.title : undefined}
+        quantityChanged={quantityChanged}
+        onPatch={patch}
+        onVariant={(vp) => patchVariant(0, vp)}
+        onReason={(inventoryReason) => patch({ inventoryReason })}
+        detailsAction={aiWriter ? <AiWriterButton form={form} onApply={patch} /> : undefined}
+      />
+    ) : null
+
   // Event handlers
+  /* The tab lives in the URL (?tab=pricing) so links and Back work. pushState keeps it client-side:
+     Next syncs useSearchParams without re-running the server page and its fetches. */
+  const handleSelectTab = (id: string, replace = false) => {
+    const params = new URLSearchParams(window.location.search)
+    params.set('tab', id)
+    const url = `${window.location.pathname}?${params}`
+    if (replace) window.history.replaceState(null, '', url)
+    else window.history.pushState(null, '', url)
+  }
+
   const handleSave = async (status?: ProductStatus) => {
     setAttempted(true)
     const next = status ? { ...form, status } : form
     const found = formErrors(copy, next)
-    if (found.preorderDeposit) setMoreOpen(true)
-    if (Object.keys(found).length) return
+    if (Object.keys(found).length) {
+      const failing = tabsWithErrors(found, matrixOptions(next.options).length === 0)[0]
+      if (failing) handleSelectTab(failing, true)
+      return
+    }
     if (status) setForm(next)
     setBusy(true)
     setServerError(null)
@@ -187,8 +203,7 @@ export default function ProductForm({
   }
 
   const handleUpdateInventory = () => {
-    const target = document.getElementById('inventory') ?? document.getElementById('variants')
-    target?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    handleSelectTab(single ? 'inventory' : 'variants')
   }
 
   const handleDiscard = () => {
@@ -244,6 +259,87 @@ export default function ProductForm({
     (v, i) => v.quantity !== savedForm.variants[i]?.quantity,
   )
   const working = busy || uploading
+  const tabIds = tabsFor(single)
+  const requested = searchParams.get('tab')
+  const activeTab = tabIds.find((id) => id === requested) ?? tabIds[0] ?? 'media'
+  const failing = new Set<ProductTabId>(showErrors ? tabsWithErrors(errors, single) : [])
+  const tabs = tabIds.map((id) => ({
+    id,
+    label: copy.tabs.labels[id],
+    description: copy.tabs.descriptions[id],
+    error: failing.has(id),
+  }))
+  const panels: Partial<Record<ProductTabId, ReactNode>> = {
+    media: (
+      <ProductImageCard
+        items={form.media}
+        onChange={(update) => setForm((f) => ({ ...f, media: update(f.media) }))}
+        onUploading={setUploading}
+      />
+    ),
+    details: (
+      <>
+        {mainCard('details')}
+        {/* Extra fields stay in view, not inside "More" (#296: nobody found them there). */}
+        <MetafieldsCard ownerType="product" ownerId={product?.id ?? null} />
+      </>
+    ),
+    pricing: mainCard('pricing'),
+    inventory: mainCard('inventory'),
+    variants: (
+      <>
+        <VariantsCard
+          title={form.title}
+          options={form.options}
+          variants={form.variants}
+          media={form.media}
+          error={showErrors ? errors.variants : undefined}
+          onOptions={setOptions}
+          onVariant={patchVariant}
+        />
+        <VariantMetafieldsCard variants={savedVariants} />
+      </>
+    ),
+    shipping: (
+      <ShippingCard
+        variant={first}
+        singleVariant={single}
+        packageError={showErrors ? errors.package : undefined}
+        onChange={(vp) => patchVariant(0, vp)}
+        onPackage={patchPackage}
+      />
+    ),
+    seo: (
+      <SeoCard
+        title={form.title}
+        description={form.description}
+        seoTitle={form.seoTitle}
+        seoDescription={form.seoDescription}
+        handle={form.handle}
+        storefrontOrigin={storefrontOrigin}
+        onSeoTitle={(seoTitle) => patch({ seoTitle })}
+        onSeoDescription={(seoDescription) => patch({ seoDescription })}
+        onHandle={(handle) => patch({ handle })}
+      />
+    ),
+    more: (
+      <>
+        <DataCard title={copy.preorder.heading}>
+          <ProductPreorderSection
+            form={form}
+            depositError={showErrors ? errors.preorderDeposit : undefined}
+            onPatch={patch}
+          />
+        </DataCard>
+        <TemplateSelectCard
+          kind="product"
+          value={form.templateSuffix}
+          onChange={(templateSuffix) => patch({ templateSuffix })}
+        />
+        {product ? <StockHistoryCard productId={product.id} /> : null}
+      </>
+    ),
+  }
 
   return (
     <ProoflyDetailPage
@@ -303,10 +399,6 @@ export default function ProductForm({
               onSetStatus={() => void handleSave('active')}
             />
           ) : null}
-          <ProductSectionNav
-            sections={single ? SINGLE_SECTIONS : MATRIX_SECTIONS}
-            onJump={(id) => id === 'more' && setMoreOpen(true)}
-          />
           {serverError ? (
             <Alert variant="destructive">
               <CircleAlert />
@@ -317,77 +409,15 @@ export default function ProductForm({
         </>
       }
       main={
-        <>
-          <ProductMainCard
-            form={form}
-            variant={first}
-            singleVariant={single}
-            titleError={showErrors ? errors.title : undefined}
-            quantityChanged={quantityChanged}
-            onPatch={patch}
-            onVariant={(vp) => patchVariant(0, vp)}
-            onReason={(inventoryReason) => patch({ inventoryReason })}
-            detailsAction={aiWriter ? <AiWriterButton form={form} onApply={patch} /> : undefined}
-            media={
-              <ProductImageCard
-                items={form.media}
-                onChange={(update) => setForm((f) => ({ ...f, media: update(f.media) }))}
-                onUploading={setUploading}
-              />
-            }
-          />
-          <section id="variants" className={SECTION}>
-            <VariantsCard
-              title={form.title}
-              options={form.options}
-              variants={form.variants}
-              media={form.media}
-              error={showErrors ? errors.variants : undefined}
-              onOptions={setOptions}
-              onVariant={patchVariant}
-            />
-          </section>
-          <section id="shipping" className={SECTION}>
-            <ShippingCard
-              variant={first}
-              singleVariant={single}
-              packageError={showErrors ? errors.package : undefined}
-              onChange={(vp) => patchVariant(0, vp)}
-              onPackage={patchPackage}
-            />
-          </section>
-          <section id="seo" className={SECTION}>
-            <SeoCard
-              title={form.title}
-              description={form.description}
-              seoTitle={form.seoTitle}
-              seoDescription={form.seoDescription}
-              handle={form.handle}
-              storefrontOrigin={storefrontOrigin}
-              onSeoTitle={(seoTitle) => patch({ seoTitle })}
-              onSeoDescription={(seoDescription) => patch({ seoDescription })}
-              onHandle={(handle) => patch({ handle })}
-            />
-          </section>
-          {/* Extra fields stay in view, not inside "More" (#296: nobody found them there). */}
-          <MetafieldsCard ownerType="product" ownerId={product?.id ?? null} />
-          <VariantMetafieldsCard variants={savedVariants} />
-          <ProductMoreSection open={moreOpen} onOpenChange={setMoreOpen}>
-            <DataCard title={copy.preorder.heading}>
-              <ProductPreorderSection
-                form={form}
-                depositError={showErrors ? errors.preorderDeposit : undefined}
-                onPatch={patch}
-              />
-            </DataCard>
-            <TemplateSelectCard
-              kind="product"
-              value={form.templateSuffix}
-              onChange={(templateSuffix) => patch({ templateSuffix })}
-            />
-            {product ? <StockHistoryCard productId={product.id} /> : null}
-          </ProductMoreSection>
-        </>
+        <ProductTabs
+          label={copy.tabs.label}
+          errorLabel={copy.tabs.errorBadge}
+          layout={layout}
+          tabs={tabs}
+          active={activeTab}
+          onSelect={handleSelectTab}
+          panels={panels}
+        />
       }
       side={
         <>
