@@ -1,6 +1,7 @@
 'use client'
 
 import type { PurchaseCurrency } from '@commerce/core/inventory'
+import PhoneInput from '@commerce/ui/phone-input'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@commerce/ui/shadcn/card'
 import { Field, FieldDescription, FieldGroup, FieldLabel } from '@commerce/ui/shadcn/field'
@@ -208,11 +209,11 @@ export default function SupplierForm({ supplier }: SupplierFormProps) {
                     </Field>
                     <Field>
                       <FieldLabel htmlFor="supplier-phone">{copy.contact.phone}</FieldLabel>
-                      <Input
+                      <PhoneInput
                         id="supplier-phone"
-                        type="tel"
                         value={d.phone}
-                        onChange={(e) => patch({ phone: e.target.value })}
+                        onChange={(phone) => patch({ phone })}
+                        autoComplete="tel"
                       />
                     </Field>
                   </div>

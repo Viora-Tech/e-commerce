@@ -241,7 +241,7 @@ export const settingsContent = {
       email: 'Contact email',
       emailHelp: 'Shown on order emails. When customers reply, it comes here.',
       phone: 'Phone',
-      phoneHelp: 'For customers and couriers to call you. Include the country code, like +91.',
+      phoneHelp: 'For customers and couriers to call you. Pick the country, then type the number.',
     },
     address: {
       heading: 'Business address',

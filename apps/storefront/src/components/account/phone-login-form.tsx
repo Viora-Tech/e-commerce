@@ -1,5 +1,6 @@
 'use client'
 
+import PhoneInput from '@commerce/blocks/phone-input-lazy'
 import type { ReactNode } from 'react'
 import { useState, useTransition } from 'react'
 import { accountContent } from '@/data/account'
@@ -130,20 +131,20 @@ export default function PhoneLoginForm({
         <h1 className="h3">{copy.title}</h1>
         <p className="text-body text-muted">{copy.phoneIntro}</p>
       </div>
-      <label className="field">
-        <span className="field__label text-small">{copy.phone}</span>
-        <input
-          className="field__input"
-          type="tel"
-          name="phone"
-          inputMode="tel"
+      <div className="field">
+        <label htmlFor="login-phone" className="field__label text-small">
+          {copy.phone}
+        </label>
+        <PhoneInput
+          id="login-phone"
+          countries={['IN']}
           autoComplete="tel-national"
           placeholder={copy.phonePlaceholder}
           required
           value={phone}
-          onChange={(e) => setPhone(e.target.value)}
+          onChange={setPhone}
         />
-      </label>
+      </div>
       {methods.length > 1 ? (
         <fieldset className="flex flex-col gap-2">
           <legend className="field__label text-small">{copy.sendBy}</legend>

@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { isValidPhone, normalisePhone } from '../accounts/phone'
 import { GstinSchema } from '../tax/settings'
 
 /** Most gaming and electronics accessories sit at 18%; merchants can change it. */
@@ -32,7 +33,8 @@ export const StoreGeneralSchema = z.object({
   contactPhone: z
     .string()
     .trim()
-    .refine((v) => v === '' || /^\+?[0-9 -]{8,16}$/.test(v), 'Enter a valid phone number')
+    .refine((v) => v === '' || isValidPhone(v), 'Enter a valid phone number')
+    .transform((v) => (v === '' ? '' : (normalisePhone(v) ?? v)))
     .default(''),
   address: StoreAddressSchema.default(emptyStoreAddress),
   gstin: GstinSchema.default(''),

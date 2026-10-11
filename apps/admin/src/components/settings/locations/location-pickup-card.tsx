@@ -7,6 +7,7 @@ import { useState } from 'react'
 import { toast } from 'sonner'
 import TextField from '@/components/apps/gst-invoices/text-field'
 import ToggleRow from '@/components/apps/gst-invoices/toggle-row'
+import PhoneField from '@/components/fields/phone-field'
 import SettingsCard from '@/components/settings/settings-card'
 import { businessGstContent } from '@/data/business-gst'
 import { useCopy } from '@/hooks/use-copy'
@@ -87,14 +88,12 @@ export default function LocationPickupCard({ location, canManage }: LocationPick
             help={copy.contactNameHelp}
             maxLength={80}
           />
-          <TextField
+          <PhoneField
             id="pickup-phone"
             label={copy.phone}
             value={phone}
             onChange={setPhone}
             help={copy.phoneHelp}
-            inputMode="tel"
-            maxLength={20}
           />
         </div>
       ) : null}

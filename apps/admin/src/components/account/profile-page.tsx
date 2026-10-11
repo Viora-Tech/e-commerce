@@ -10,13 +10,13 @@ import { toast } from 'sonner'
 import SaveBar from '@/components/layout/save-bar'
 import SettingsCard from '@/components/settings/settings-card'
 import SettingsPageHeader from '@/components/settings/settings-page-header'
+import SettingsPhoneRow from '@/components/settings/settings-phone-row'
 import SettingsRow from '@/components/settings/settings-row'
 import SettingsTextRow from '@/components/settings/settings-text-row'
 import { accountContent } from '@/data/account'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 import { authClient } from '@/lib/auth-client'
-import { phoneForDisplay } from '@/lib/phone-display'
 import AvatarField from './avatar-field'
 import DeleteAccountCard from './delete-account-card'
 
@@ -26,7 +26,7 @@ type Errors = Partial<Record<keyof Form, string>>
 
 const formOf = (p: Profile): Form => ({
   name: p.name,
-  phone: p.phone ? phoneForDisplay(p.phone) : '',
+  phone: p.phone ?? '',
 })
 
 /** The schema's first message per field, for the rows under each box. */
@@ -189,16 +189,13 @@ export default function ProfilePage() {
                 {profile.email}
               </p>
             </SettingsRow>
-            <SettingsTextRow
+            <SettingsPhoneRow
               id="profile-phone"
-              type="tel"
-              inputMode="tel"
               label={copy.details.phone}
               description={copy.details.phoneHelp}
               value={form.phone}
               onChange={(phone) => setForm({ ...form, phone })}
               error={errors.phone}
-              autoComplete="tel"
             />
           </SettingsCard>
           <DeleteAccountCard />

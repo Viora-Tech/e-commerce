@@ -1,9 +1,11 @@
 'use client'
 
+import PhoneInput from '@commerce/blocks/phone-input-lazy'
 import type { SignedInCustomer } from '@commerce/core'
 import CheckoutField from '@/components/checkout/checkout-field'
 import { accountContent } from '@/data/account'
 import { checkoutContent as content } from '@/data/checkout'
+import { CK_INPUT, CK_INPUT_HEIGHT } from '@/lib/checkout-classes'
 import { type CheckoutFieldErrors, fieldId } from '@/lib/checkout-validation'
 
 type ContactKey = 'email' | 'phone'
@@ -16,11 +18,17 @@ type CheckoutContactFieldsProps = {
   /** Settings → Checkout: email can be left empty. */
   emailOptional: boolean
   onField: (key: ContactKey) => (e: React.ChangeEvent<HTMLInputElement>) => void
+  /** The phone picker hands over the number itself (E.164), not an input event. */
+  onPhone: (value: string) => void
   /** Leaving a field: show its check, and save the contact so a left basket can be recovered. */
   onLeave: (key: ContactKey) => void
 }
 
 const f = content.fields
+
+/** The locked checkout's box on both halves of the phone field; the picker only changes the corners. */
+const PHONE_INPUT = `${CK_INPUT} ${CK_INPUT_HEIGHT} rounded-s-none!`
+const PHONE_TRIGGER = `${CK_INPUT} ${CK_INPUT_HEIGHT} flex! w-auto! gap-1.5 rounded-e-none! border-e-0!`
 
 /** Email and mobile number. A signed-in shopper's email is theirs and not edited here. */
 export default function CheckoutContactFields({
@@ -29,6 +37,7 @@ export default function CheckoutContactFields({
   customer,
   emailOptional,
   onField,
+  onPhone,
   onLeave,
 }: CheckoutContactFieldsProps) {
   // Render logic
@@ -58,18 +67,27 @@ export default function CheckoutContactFields({
       <CheckoutField
         id={fieldId('phone')}
         label={f.phone}
-        type="tel"
-        inputMode="tel"
-        required
-        autoComplete="tel-national"
-        prefix={f.phonePrefix}
-        placeholder={f.phonePlaceholder}
-        maxLength={16}
-        value={values.phone}
-        onChange={onField('phone')}
-        onBlur={() => onLeave('phone')}
         error={errors.phone}
         hint={f.phoneHint}
+        control={
+          <PhoneInput
+            id={fieldId('phone')}
+            countries={['IN']}
+            required
+            autoComplete="tel-national"
+            placeholder={f.phonePlaceholder}
+            value={values.phone}
+            onChange={onPhone}
+            onBlur={() => onLeave('phone')}
+            aria-invalid={errors.phone ? true : undefined}
+            aria-describedby={
+              errors.phone ? `${fieldId('phone')}-error` : `${fieldId('phone')}-hint`
+            }
+            className="rounded-ck"
+            inputClassName={PHONE_INPUT}
+            triggerClassName={PHONE_TRIGGER}
+          />
+        }
       />
     </div>
   )

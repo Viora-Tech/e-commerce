@@ -8,6 +8,7 @@ import {
   setMarketingConsent,
   updateAddress,
 } from '@commerce/core'
+import { lenientPhone } from '@commerce/core/phone'
 import { loadPincodeDirectory } from '@commerce/shipping/pincode-directory'
 import { ORPCError } from '@orpc/server'
 import { z } from 'zod'
@@ -178,7 +179,7 @@ export const customersRouter = {
       z.object({
         id: z.uuid(),
         name: z.string().trim().max(200).nullable().optional(),
-        phone: z.string().trim().max(30).nullable().optional(),
+        phone: lenientPhone(30).nullable().optional(),
         tags: z.array(z.string().trim().min(1).max(40)).max(50).optional(),
         note: z.string().trim().max(2000).nullable().optional(),
         acceptsMarketing: z.boolean().optional(),

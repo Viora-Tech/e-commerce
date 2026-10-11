@@ -1,5 +1,6 @@
 'use client'
 
+import PhoneInput from '@commerce/ui/phone-input'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Checkbox } from '@commerce/ui/shadcn/checkbox'
 import {
@@ -113,13 +114,11 @@ export default function CustomerAddressDialog({
             </Field>
             <Field data-invalid={Boolean(errors.phone)}>
               <FieldLabel htmlFor="customer-address-phone">{d.phone}</FieldLabel>
-              <Input
+              <PhoneInput
                 id="customer-address-phone"
-                type="tel"
-                inputMode="tel"
-                autoComplete="tel"
                 value={draft.phone}
-                onChange={(e) => setDraft({ ...draft, phone: e.target.value })}
+                onChange={(phone) => setDraft({ ...draft, phone })}
+                autoComplete="tel"
               />
               {errors.phone ? <FieldError>{errors.phone}</FieldError> : null}
             </Field>

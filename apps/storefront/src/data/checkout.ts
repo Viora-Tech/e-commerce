@@ -216,7 +216,6 @@ export const checkoutContent = {
     name: 'Full name',
     email: 'Email',
     phone: 'Mobile number',
-    phonePrefix: '+91',
     emailPlaceholder: 'you@example.com',
     phonePlaceholder: '98765 43210',
     line1: 'Address',

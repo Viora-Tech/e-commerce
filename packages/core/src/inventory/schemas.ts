@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { lenientPhone } from '../accounts/phone'
 import {
   INBOUND_SHIPMENT_STATUSES,
   PURCHASE_CHARGE_KINDS,
@@ -134,7 +135,7 @@ export const SupplierInputSchema = z.object({
     .default('IN'),
   currency: PurchaseCurrencySchema.default('INR'),
   email: z.string().trim().email().optional().or(z.literal('')),
-  phone: optionalText(20),
+  phone: lenientPhone(20).optional(),
   address: optionalText(500),
   paymentTerms: optionalText(200),
   notes: optionalText(2000),

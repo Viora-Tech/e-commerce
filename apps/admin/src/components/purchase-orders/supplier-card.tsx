@@ -1,5 +1,6 @@
 'use client'
 
+import PhoneInput from '@commerce/ui/phone-input'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@commerce/ui/shadcn/card'
 import { Field, FieldGroup, FieldLabel } from '@commerce/ui/shadcn/field'
@@ -92,12 +93,12 @@ export default function SupplierCard({
             </Field>
             <Field>
               <FieldLabel htmlFor="po-phone">{copy.phone}</FieldLabel>
-              <Input
+              <PhoneInput
                 id="po-phone"
-                type="tel"
                 value={phone}
+                onChange={(supplierPhone) => onChange({ supplierPhone })}
                 disabled={disabled}
-                onChange={(e) => onChange({ supplierPhone: e.target.value })}
+                autoComplete="tel"
               />
             </Field>
           </div>
