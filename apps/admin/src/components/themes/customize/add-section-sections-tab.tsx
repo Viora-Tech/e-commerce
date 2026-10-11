@@ -22,6 +22,8 @@ type SectionsTabProps = {
   onHover: (type: string | null) => void
   labelOf: (type: string) => string
   onAdd: (type: string) => void
+  /** Another group in the same list (the imported theme's) has matches, so an empty library is not an empty search. */
+  othersMatch?: boolean
 }
 
 /** Library categories that are blocks to build with rather than whole sections. */
@@ -62,6 +64,7 @@ export default function SectionsTab({
   onHover,
   labelOf,
   onAdd,
+  othersMatch,
 }: SectionsTabProps) {
   // Early returns
   const needle = query.trim().toLowerCase()
@@ -71,6 +74,7 @@ export default function SectionsTab({
     .map((c) => ({ ...c, types: c.types.filter((t) => matches(t, labelOf(t), needle)) }))
     .filter((c) => c.types.length > 0)
   if (categories.length === 0) {
+    if (othersMatch) return null
     return (
       <div className="flex flex-col items-center gap-2 px-4 py-10 text-center">
         <span className="flex size-8 items-center justify-center rounded-lg bg-muted text-muted-foreground">

@@ -7,6 +7,12 @@ export default [
     button: 'Shopify थीम इंपोर्ट करें',
     badge: 'इंपोर्ट की गई',
     reportLink: 'इंपोर्ट रिपोर्ट',
+    addPanel: {
+      title: 'Shopify से इंपोर्ट किए गए',
+      badge: 'Shopify',
+      cardLabel: (name) => `${name}, आपकी Shopify थीम का सेक्शन`,
+      added: (name) => `${name} जुड़ गया`,
+    },
     dialog: {
       title: 'अपनी Shopify थीम इंपोर्ट करें',
       body: 'आपकी थीम यहाँ एक नई थीम बनकर आती है। यह वैसी ही दिखती है, और कार्ट, चेकआउट, सर्च और अकाउंट हमारे वाले चलते हैं। आपकी लाइव थीम नहीं बदलती।',

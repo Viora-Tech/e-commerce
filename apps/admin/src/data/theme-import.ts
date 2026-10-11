@@ -6,6 +6,13 @@ export const themeImportContent = {
   button: 'Import Shopify theme',
   badge: 'Imported',
   reportLink: 'Import report',
+  /** The Customize Add panel's group of the imported theme's own sections. */
+  addPanel: {
+    title: 'Imported from Shopify',
+    badge: 'Shopify',
+    cardLabel: (name: string) => `${name}, a section from your Shopify theme`,
+    added: (name: string) => `${name} added`,
+  },
   dialog: {
     title: 'Import your Shopify theme',
     body: 'Your theme comes over as a new theme here. It looks the same, and it runs on our cart, checkout, search and accounts. Your live theme does not change.',
