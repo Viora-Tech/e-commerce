@@ -163,6 +163,66 @@ other theme font downloads only when a theme uses it.
 There is no chat widget today. When one is added, load it the same way (`lazyOnload`, or on
 first interaction) and never in the document head.
 
+## Imported themes: weight and streaming
+
+An imported Shopify theme's page is mostly the theme's own Liquid markup (a Zero Drift home page
+is about 360 kB of it). Three things keep that from costing more than it must.
+
+### The markup is sent once
+
+A server component's props are serialised into the RSC payload, which Next inlines in the page
+for hydration. Theme markup passed as a prop was therefore in the page twice: as the DOM, and
+again, escaped, in the payload. Now `LiquidHtml` (`components/theme/liquid-html.tsx`) parks the
+markup in a per-process slot (`lib/liquid-slots.ts`) and renders the client component
+`LiquidSlot` with only the slot id; the HTML render of `LiquidSlot`, in the same process, takes
+the markup back out and writes it into the page. In the browser, `LiquidSlot` renders an element
+with `dangerouslySetInnerHTML` whose content React never reads during hydration, so the server's
+markup stays exactly as it is and the payload carries no copy.
+
+- **Requests with no HTML render** (a client navigation, a prefetch, a router refresh, a server
+  action) carry the markup inline, because the browser has nothing to keep. Next hides its `RSC`
+  header from `headers()` and from the proxy, so `flightOnlyRequest` (`lib/flight-request.ts`)
+  tells them apart by `Next-Action` and `Sec-Fetch-Dest` (the router uses `fetch`, so `empty`).
+- **Updates**: each slot also carries a digest of its markup without the request's nonce. A later
+  render replaces the element's markup only when the digest changed (a cart count after an
+  action), never for a new nonce, so the theme's scripts keep what they bound.
+- **After a hydration error**, React rebuilds the element on the client; `LiquidSlot` then reads
+  the markup from the server's element, which is still in the document at that moment.
+- A slot nobody takes (an aborted render) is dropped after a minute.
+
+### The first sections first, the rest streamed
+
+`renderTemplate` splits an imported theme's page (`lib/liquid-split.ts`): the first
+`STOREFRONT_EAGER_SECTIONS` sections (default 3) are rendered before the page starts streaming;
+the rest are rendered after them. When that takes longer than 25 ms (a cache miss), they stream in
+**in the same response**, behind one Suspense boundary (`components/theme/deferred-liquid.tsx`),
+and the shopper sees the top of the page while the rest is still rendering. When the render cache
+already holds them they come back at once and are drawn in place: streaming would gain nothing
+and would only make React move them into the page afterwards. Nothing is fetched on scroll, so nothing is hidden from
+crawlers, and crawlers (Next's user-agent check) get every section in place, in order, with no
+streaming. The header and footer groups and theme previews are never split.
+
+Theme scripts wait for the streamed sections: `LiquidBoot` boots the theme only once the page is
+parsed and React has put every streamed part in place (no `template[id^="B:"]` left and React's
+reveal queue empty; React batches reveals for up to about 300 ms, so `DOMContentLoaded` alone
+is not enough).
+
+### Below the fold waits for the shopper
+
+Sections from position `STOREFRONT_EAGER_SECTIONS` on are rewritten once, before they are cached
+(`lib/liquid-fold.ts`):
+
+| What | Change |
+| --- | --- |
+| `<img>`, `<iframe>` | `loading="lazy"`; `loading="eager"` and `fetchpriority="high"` removed |
+| `<video>` | `preload="none"`; `autoplay` becomes `data-theme-autoplay`, played when near |
+| the section's parked scripts | `data-theme-near`: run when the section comes within a screen of the viewport |
+
+The first sections are left as the theme wrote them, so the theme decides its own hero image
+priority. The shim (`lib/liquid-shim.ts`) runs the near scripts in document order per section
+through an `IntersectionObserver` (`rootMargin: 100%`); a section with no box (hidden, a popup)
+starts at once.
+
 ## Caching
 
 Store pages render per request (the host, the cart cookie and the CSP nonce differ), but almost
@@ -238,6 +298,8 @@ reloads usually gets the warmed page. During an import nothing is warmed until t
 
 - `STOREFRONT_CACHE_MB` (default 48): the cache's memory budget, least recently used entries
   dropped first. Keep it well under the container's memory limit. `0` turns the cache off.
+- `STOREFRONT_EAGER_SECTIONS` (default 3): how many of an imported theme's sections are sent first
+  and left as the theme wrote them (see "Imported themes: weight and streaming" above).
 - `STOREFRONT_EDGE_TTL` (default 30 seconds): see "Shared caches" below. `0` keeps every page
   private.
 

@@ -45,4 +45,13 @@ describe('the shim’s boot', () => {
     // The regular expressions inside the shim survive the template string (escaped once).
     expect(shim).toContain("/this\\.media\\s*=\\s*'all'/")
   })
+
+  it('holds below-the-fold scripts and autoplay until their section nears the viewport', () => {
+    const shim = liquidShim({ askConsent: false })
+    expect(shim).toContain("hasAttribute('data-theme-near')")
+    expect(shim).toContain('video[data-theme-autoplay]')
+    expect(shim).toContain('IntersectionObserver')
+    // Still one valid script.
+    expect(() => new Function(shim)).not.toThrow()
+  })
 })

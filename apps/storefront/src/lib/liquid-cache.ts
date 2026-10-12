@@ -46,6 +46,15 @@ export function digest(value: unknown): string {
   return createHash('sha1').update(JSON.stringify(value)).digest('base64url')
 }
 
+/**
+ * A digest of rendered markup as it would be for any request: the request's nonce taken out.
+ * Two renders of a section that differ only in their nonce have the same digest.
+ */
+export function markupDigest(html: string, nonce: string): string {
+  const plain = nonce ? html.replaceAll(nonce, '') : html
+  return createHash('sha1').update(plain).digest('base64url')
+}
+
 /** One section: the scope plus a digest of everything the section was placed with. */
 export function sectionCacheKey(scope: LiquidRenderScope, section: unknown): string {
   return `liquid-section|${scopeKey(scope)}|${digest(section)}`

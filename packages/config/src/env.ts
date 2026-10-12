@@ -122,6 +122,12 @@ const shape = z.object({
    * in seconds (`s-maxage`); unset is 30. 0 keeps every page private.
    */
   STOREFRONT_EDGE_TTL: z.coerce.number().int().min(0).max(86_400).optional(),
+  /**
+   * How many sections of an imported theme's page are sent first and drawn as the theme wrote
+   * them; the rest stream in behind them in the same response, their images lazy and their
+   * scripts started near the viewport. Unset is 3.
+   */
+  STOREFRONT_EAGER_SECTIONS: z.coerce.number().int().min(1).max(50).optional(),
   /** Better Auth signing secret. Required by the admin app only. */
   AUTH_SECRET: z.string().min(32).optional(),
   /** Public URL of the admin app, used as Better Auth's baseURL. */
