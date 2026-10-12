@@ -21,6 +21,10 @@ export function normaliseMobile(raw: string): string | null {
 
 const text = (max: number) => z.string().trim().min(1, 'Required').max(max, 'Too long')
 
+/** The tag on a saved address (Home, Office, Other); the database checks the same list. */
+export const ADDRESS_LABELS = ['home', 'office', 'other'] as const
+export type AddressLabel = (typeof ADDRESS_LABELS)[number]
+
 export const AddressInputSchema = z.object({
   name: text(120),
   line1: text(200),
@@ -42,6 +46,8 @@ export const AddressInputSchema = z.object({
     if (!m) ctx.addIssue({ code: 'custom', message: 'Enter a ten digit mobile number' })
     return m ?? ''
   }),
+  /** Left out: an edit keeps the address's tag; null clears it. */
+  label: z.enum(ADDRESS_LABELS).nullable().optional(),
   isDefault: z.boolean().optional(),
 })
 

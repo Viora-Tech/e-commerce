@@ -15,10 +15,12 @@ const draft: CheckoutDraft = {
     gstin: '',
     businessName: '',
     note: '',
+    label: 'home',
   },
   savedId: 'new',
   business: false,
   rateId: 'rate_express',
+  guest: true,
 }
 
 describe('checkout draft', () => {

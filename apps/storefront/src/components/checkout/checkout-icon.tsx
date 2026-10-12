@@ -15,6 +15,10 @@ export type CheckoutIconName =
   | 'gift'
   | 'clock'
   | 'mail'
+  | 'edit'
+  | 'trash'
+  | 'plus'
+  | 'user'
   | 'spinner'
 
 type CheckoutIconProps = {
@@ -88,6 +92,17 @@ const PATHS: Record<CheckoutIconName, ReactNode> = {
     <>
       <rect x="3.5" y="5.5" width="17" height="13" rx="2" />
       <path d="M4 7l8 6 8-6" />
+    </>
+  ),
+  edit: (
+    <path d="M14.5 5.5l4 4M4 20l1-4.5L15.5 5a1.4 1.4 0 0 1 2 0l1.5 1.5a1.4 1.4 0 0 1 0 2L8.5 19z" />
+  ),
+  trash: <path d="M4.5 7h15M9.5 7V4.5h5V7M6.5 7l1 12.5h9l1-12.5M10 10.5v6M14 10.5v6" />,
+  plus: <path d="M12 5v14M5 12h14" />,
+  user: (
+    <>
+      <circle cx="12" cy="8.5" r="3.5" />
+      <path d="M5 19.5c1.2-3.2 3.8-5 7-5s5.8 1.8 7 5" />
     </>
   ),
   spinner: <path d="M12 3.5a8.5 8.5 0 1 1-8.5 8.5" />,

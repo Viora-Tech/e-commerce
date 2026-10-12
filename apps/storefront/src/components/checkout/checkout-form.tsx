@@ -132,7 +132,16 @@ export default function CheckoutForm(props: CheckoutFormProps) {
           )}
         </CheckoutStepPanel>
         <CheckoutPayFooter
-          error={ck.error ?? (ck.toFix > 0 ? content.validation.fixFields(ck.toFix) : null)}
+          error={
+            ck.error ??
+            (ck.needsContact
+              ? ck.accountRequired
+                ? content.otp.needSignInRequired
+                : content.otp.needSignIn
+              : ck.toFix > 0
+                ? content.validation.fixFields(ck.toFix)
+                : null)
+          }
           shortfall={shortfall}
           policies={paying ? (ck.policies ?? []) : []}
           trust={paying && look.branding.trustBadges ? trustMethodNames(totals.offered) : null}
