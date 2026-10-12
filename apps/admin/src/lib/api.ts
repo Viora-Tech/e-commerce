@@ -1,5 +1,5 @@
 import 'server-only'
-import { appRouter } from '@commerce/api'
+import { appRouter, createRequestMemo, remember } from '@commerce/api'
 import { loadEnv } from '@commerce/config'
 import { createRedisRateLimitStore } from '@commerce/core'
 import {
@@ -16,7 +16,8 @@ import {
 } from '@commerce/queue'
 import { call } from '@orpc/server'
 import { headers } from 'next/headers'
-import { auth } from './auth'
+import { cache } from 'react'
+import { auth, getSession } from './auth'
 import { db } from './db'
 import { reportError } from './sentry-report'
 
@@ -42,9 +43,17 @@ export function apiHost() {
   }
 }
 
-/** Server-side calls into the router with the current request's session. */
-export async function serverContext() {
-  return { ...apiHost(), headers: await headers() }
-}
+/**
+ * Server-side calls into the router with the current request's session. One context per
+ * server render (React `cache`), so the layout's and the page's calls share one session and
+ * membership lookup through its `memo` instead of each repeating them. Outside a render (route
+ * handlers, server actions) `cache` does not memoise and every call gets a fresh context.
+ */
+export const serverContext = cache(async () => {
+  const memo = createRequestMemo()
+  // The same lookup as `getSession()`, which the layout has already made for this render.
+  void remember(memo, 'session', getSession)
+  return { ...apiHost(), headers: await headers(), memo }
+})
 
 export { appRouter, call }

@@ -9,6 +9,7 @@ export * from './purchasing-schema'
 export {
   type HostRoute,
   isStoreSlugTaken,
+  organizationMembership,
   resolveHost,
   resolveStore,
   resolveStoreForOrganization,

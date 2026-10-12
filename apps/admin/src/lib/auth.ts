@@ -9,6 +9,7 @@ import {
   recordMemberSignIn,
 } from '@commerce/core'
 import { headers } from 'next/headers'
+import { cache } from 'react'
 import { db } from './db'
 import { mayPrintCodes, rememberDevOtp } from './dev-otp'
 
@@ -74,6 +75,5 @@ export function auth(): MerchantAuth {
   return g.__merchantAuth
 }
 
-export async function getSession() {
-  return auth().api.getSession({ headers: await headers() })
-}
+/** The signed-in session, read once per server render (the layout and the page both ask). */
+export const getSession = cache(async () => auth().api.getSession({ headers: await headers() }))

@@ -1,13 +1,13 @@
 import { readdirSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { describe, expect, it } from 'vitest'
+import { beforeAll, describe, expect, it } from 'vitest'
 import { hindiCopy } from '@/data/hi'
 import { hindiPageNames } from '@/data/hi/navigation'
 import { PAGE_TITLES_FOR_TESTS } from '@/data/layout'
 import { NAV_GROUPS, SETTINGS_NAV } from '@/data/navigation'
 import { onboardingContent } from '@/data/onboarding'
 import { SETTINGS_HOME, SETTINGS_SECTIONS } from '@/data/settings'
-import { localize } from '@/lib/copy'
+import { addTranslations, localize } from '@/lib/copy'
 import { formatters } from '@/lib/format'
 import {
   LOCALE_COOKIE,
@@ -70,7 +70,15 @@ describe('mergeCopy: per-key fallback to English', () => {
   })
 })
 
+describe('localize before the Hindi overlays load', () => {
+  it('answers in English, so no page ships data/hi to English members', () => {
+    expect(localize(onboardingContent, 'hi')).toBe(onboardingContent)
+  })
+})
+
 describe('localize', () => {
+  beforeAll(() => addTranslations(hindiCopy))
+
   it('returns the English export itself in English', () => {
     expect(localize(onboardingContent, 'en')).toBe(onboardingContent)
   })

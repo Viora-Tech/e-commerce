@@ -8,6 +8,7 @@ import {
   getTheme,
   listCustomSections,
   listTemplates,
+  liveThemeId,
   loadLoopCatalog,
   loadLoopValues,
   loadSourceCatalog,
@@ -67,6 +68,12 @@ export const templatesRouter = {
   list: can(permissions.ONLINE_STORE_READ)
     .input(z.object({ themeId: z.string().uuid() }))
     .handler(({ context, input }) => listTemplates(context.tx, input.themeId)),
+
+  /** The live theme's templates (a product's or collection's template picker), in one call. */
+  live: can(permissions.ONLINE_STORE_READ).handler(async ({ context }) => {
+    const themeId = await liveThemeId(context.tx)
+    return themeId ? listTemplates(context.tx, themeId) : []
+  }),
 
   get: can(permissions.ONLINE_STORE_READ)
     .input(TemplateRef)

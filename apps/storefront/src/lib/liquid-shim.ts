@@ -20,6 +20,9 @@
  *   runs them in document order, each external file once, so no theme script edits markup
  *   React is still hydrating. Inline `onload` handlers (blocked by our CSP) on the common
  *   "print stylesheet, then all" pattern are replayed here too.
+ * - Sections below the fold (`lib/liquid-fold.ts`): their parked scripts (`data-theme-near`)
+ *   run once the rest have, when the section comes within a screen of the viewport, and an
+ *   autoplaying video (`data-theme-autoplay`) starts then.
  *
  * Inline, before any theme script, with the request's CSP nonce.
  */
@@ -138,11 +141,63 @@ const SHIM = `(function () {
       if (link.sheet) promote(); else link.addEventListener('load', promote, { once: true });
     });
   }
+  function runInOrder(nodes, chain) {
+    return nodes.reduce(function (c, node) {
+      return c.then(function () { return runParked(node); });
+    }, chain || Promise.resolve());
+  }
+  function sectionOf(node) {
+    return node.closest('.shopify-section') || node.parentElement;
+  }
+  function whenNear(scripts, videos) {
+    var waiting = new Map();
+    scripts.forEach(function (node) {
+      var box = sectionOf(node);
+      if (!box) return;
+      if (!waiting.has(box)) waiting.set(box, { scripts: [], videos: [] });
+      waiting.get(box).scripts.push(node);
+    });
+    videos.forEach(function (video) {
+      var box = sectionOf(video) || video;
+      if (!waiting.has(box)) waiting.set(box, { scripts: [], videos: [] });
+      waiting.get(box).videos.push(video);
+    });
+    if (!waiting.size) return Promise.resolve();
+    var chain = Promise.resolve();
+    function start(box) {
+      var due = waiting.get(box);
+      if (!due) return;
+      waiting.delete(box);
+      chain = runInOrder(due.scripts, chain);
+      due.videos.forEach(function (video) {
+        video.autoplay = true;
+        var played = video.play();
+        if (played && played.catch) played.catch(function () {});
+      });
+    }
+    if (!('IntersectionObserver' in window)) {
+      Array.from(waiting.keys()).forEach(start);
+      return chain;
+    }
+    var observer = new IntersectionObserver(function (entries) {
+      entries.forEach(function (entry) {
+        if (!entry.isIntersecting) return;
+        observer.unobserve(entry.target);
+        start(entry.target);
+      });
+    }, { rootMargin: '100% 0px' });
+    // A section with no box of its own (hidden, display: contents) is never seen: start it now.
+    Array.from(waiting.keys()).forEach(function (box) {
+      if (box.getClientRects().length) observer.observe(box); else start(box);
+    });
+    return chain;
+  }
   window.__commerceBootTheme = function () {
     promoteSheets();
     var parked = Array.prototype.slice.call(document.querySelectorAll('script[type="text/x-theme-deferred"]'));
-    return parked.reduce(function (chain, node) {
-      return chain.then(function () { return runParked(node); });
-    }, Promise.resolve());
+    var now = parked.filter(function (node) { return !node.hasAttribute('data-theme-near'); });
+    var near = parked.filter(function (node) { return node.hasAttribute('data-theme-near'); });
+    var videos = Array.prototype.slice.call(document.querySelectorAll('video[data-theme-autoplay]'));
+    return runInOrder(now).then(function () { return whenNear(near, videos); });
   };
 })();`

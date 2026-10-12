@@ -30,10 +30,27 @@ The root layout reads the cookie on the server, so the first paint is already in
 language: no flash, nothing for hydration to disagree with. There is no database column; the
 choice is per browser, like the theme mode.
 
+### Hindi loads only for Hindi members
+
+The Hindi overlays are about 200 kB gzip, so they are not part of any page's JavaScript.
+`lib/copy.ts` starts with no translations; `loadHindi()` (`lib/hindi.ts`) imports `data/hi` as
+its own chunk and registers it, once:
+
+- **Server:** `getLocale()` awaits `loadHindi()` when the cookie says `hi`, so everything that
+  localizes with that locale (`getCopy`, `localize`, the root layout) answers in Hindi.
+- **Browser:** `LocaleProvider` (root layout) suspends on `loadHindi()` when the locale is `hi`
+  and the chunk is not loaded yet; nothing below it renders English first. English members never
+  fetch the chunk.
+
+So never import `@/data/hi` (the registry) from a component or a shared module: that would put
+every overlay back into every page. Tests that need Hindi call
+`addTranslations(hindiCopy)` from `lib/copy.ts` first (`lib/i18n.test.ts`). `data/hi/navigation.ts`
+(page names, about 3 kB) is the one overlay imported directly, by `lib/page-names.ts`.
+
 | Piece | File |
 | --- | --- |
 | Locales, cookie, `Translation<T>` type, `mergeCopy`, `untranslated` | `lib/i18n.ts` (pure) |
-| Registry of Hindi files | `data/hi/index.ts` |
+| Registry of Hindi files | `data/hi/index.ts` (loaded on demand by `lib/hindi.ts`) |
 | `localize(en, locale)` (cached per export) | `lib/copy.ts` |
 | `getLocale()`, `getCopy(en)` for server components | `lib/copy-server.ts` |
 | `useLocale()`, `useCopy(en)`, `useFormat()` for client components | `hooks/use-copy.ts` |

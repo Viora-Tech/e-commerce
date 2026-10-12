@@ -10,9 +10,10 @@ import {
   upsertMember,
 } from '@commerce/core'
 import type { StoreTx } from '@commerce/db'
-import { resolveStoreForOrganization, withStore } from '@commerce/db'
+import { organizationMembership, withStore } from '@commerce/db'
 import { ORPCError } from '@orpc/server'
 import { protectedProcedure, type SessionContext } from './base'
+import { remember } from './request-memo'
 
 export type StoreScope = {
   storeId: string
@@ -121,32 +122,24 @@ export function isNoStoreError(error: unknown): boolean {
   return error instanceof ORPCError && error.data?.reason === NO_STORE.reason
 }
 
-/** Better Auth refuses `getFullOrganization` (403 not a member, 400 no such organization). */
-function isOrganizationRefusal(error: unknown): boolean {
-  const status = (error as { statusCode?: unknown } | null)?.statusCode
-  return status === 400 || status === 403
-}
-
 /**
  * The caller's store: requires an active organization the user belongs to and resolves it
- * to a store. Shared by `can` and `canDetached`.
+ * to a store. Shared by `can` and `canDetached`. Once per request: a page's parallel store
+ * calls share one lookup (`request-memo.ts`).
  */
 async function findMembership(context: SessionContext) {
   const organizationId = context.session.activeOrganizationId
   if (!organizationId) throw noStore('PRECONDITION_FAILED', 'Pick a store first')
-
-  const org = await context.auth.api
-    .getFullOrganization({ headers: context.headers, query: { organizationId } })
-    .catch((error: unknown) => {
-      if (isOrganizationRefusal(error)) throw noStore('FORBIDDEN', 'Not a member of this store')
-      throw error
-    })
-  const membership = org?.members.find((m) => m.userId === context.session.user.id)
-  if (!membership) throw noStore('FORBIDDEN', 'Not a member of this store')
-
-  const storeId = await resolveStoreForOrganization(context.db, organizationId)
-  if (!storeId) throw noStore('NOT_FOUND', 'No store for this organization')
-  return { organizationId, storeId, role: membership.role, userId: context.session.user.id }
+  const userId = context.session.user.id
+  return remember(context.memo, `membership:${organizationId}:${userId}`, async () => {
+    // The member row and the store id in one query, straight from the database on every
+    // request (Better Auth's getFullOrganization read the session again, the organization, its
+    // invitations, members and their users: seven round trips for the same answer).
+    const found = await organizationMembership(context.db, organizationId, userId)
+    if (!found) throw noStore('FORBIDDEN', 'Not a member of this store')
+    if (!found.storeId) throw noStore('NOT_FOUND', 'No store for this organization')
+    return { organizationId, storeId: found.storeId, role: found.role, userId }
+  })
 }
 
 /**
@@ -154,11 +147,17 @@ async function findMembership(context: SessionContext) {
  * one of them is enough (the AI assistant: each of its tools checks its own permission).
  */
 async function scopeFor(
+  context: SessionContext,
   tx: StoreTx,
   member: Awaited<ReturnType<typeof findMembership>>,
   required: Permission | readonly Permission[] | undefined,
 ): Promise<StoreScope> {
-  const access = await resolveAccess(tx, member.storeId, member.userId, member.role)
+  // Read from the database once per request (the first call's transaction; the page's other
+  // calls wait on that read), never carried across requests: a revoked grant still applies
+  // from the next request on.
+  const access = await remember(context.memo, `access:${member.storeId}:${member.userId}`, () =>
+    resolveAccess(tx, member.storeId, member.userId, member.role),
+  )
   const holds = (permission: Permission) =>
     access.isOwner || access.permissions.includes(permission)
   const wanted = required === undefined ? [] : typeof required === 'string' ? [required] : required
@@ -183,13 +182,13 @@ function report(context: SessionContext, storeId: string, error: unknown): never
  * loads what that member may do, and runs the handler inside `withStore` so
  * every query is tenant-scoped. Permissions are read from the database on each
  * request rather than carried in the session, so revoking one takes effect on
- * the next call.
+ * the next request (a page's parallel calls share one read through `context.memo`).
  */
 function storeProcedureWith(required?: Permission | readonly Permission[]) {
   return protectedProcedure.use(async ({ context, next }) => {
     const member = await findMembership(context)
     return withStore(context.db, member.storeId, async (tx: StoreTx) => {
-      const scope = await scopeFor(tx, member, required)
+      const scope = await scopeFor(context, tx, member, required)
       try {
         return await next({ context: { scope, tx } })
       } catch (error) {
@@ -239,7 +238,7 @@ function detachedWith(permission: Permission | readonly Permission[] | undefined
   return protectedProcedure.use(async ({ context, next }) => {
     const member = await findMembership(context)
     const scope = await withStore(context.db, member.storeId, (tx: StoreTx) =>
-      scopeFor(tx, member, permission),
+      scopeFor(context, tx, member, permission),
     )
     try {
       return await next({ context: { scope } })

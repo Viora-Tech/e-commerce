@@ -1,5 +1,13 @@
 export type { ApiContext, DailyVisitors, LiveVisitors, VisitorSource } from './context'
-export { base, isNoStoreError, protectedProcedure, storeProcedure } from './procedures'
+export {
+  base,
+  createRequestMemo,
+  isNoStoreError,
+  protectedProcedure,
+  type RequestMemo,
+  remember,
+  storeProcedure,
+} from './procedures'
 export { type AppRouter, appRouter } from './routers/_app'
 export type {
   AnalyticsKpi,

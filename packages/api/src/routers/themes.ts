@@ -9,6 +9,7 @@ import {
   importedThemeIds,
   listThemes,
   listThemeVersions,
+  liveThemeLogoUrl,
   permissions,
   publishTheme,
   renameTheme,
@@ -185,6 +186,9 @@ export const themesRouter = {
   versions: versionsRouter,
   customSections: customSectionsRouter,
   import: importRouter,
+
+  /** The live theme's logo for the admin sidebar (every page load): one small read. */
+  logo: can(permissions.ONLINE_STORE_READ).handler(({ context }) => liveThemeLogoUrl(context.tx)),
 
   list: can(permissions.ONLINE_STORE_READ).handler(async ({ context }) => {
     const { storeId } = context.scope

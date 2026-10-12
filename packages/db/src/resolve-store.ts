@@ -37,6 +37,25 @@ export async function resolveStoreForOrganization(
   return row?.id ?? null
 }
 
+/**
+ * A member's role in an organization and that organization's store id, in one round trip: the
+ * admin API's membership check before every store call. Null when the user is not a member of
+ * the organization; `storeId` is null when the organization has no store.
+ */
+export async function organizationMembership(
+  db: Db,
+  organizationId: string,
+  userId: string,
+): Promise<{ role: string; storeId: string | null } | null> {
+  const [row] = await db.execute<{ role: string; store_id: string | null }>(
+    sql`select m.role, resolve_store_for_organization(${organizationId}) as store_id
+        from member m
+        where m.organization_id = ${organizationId} and m.user_id = ${userId}
+        limit 1`,
+  )
+  return row ? { role: row.role, storeId: row.store_id } : null
+}
+
 /** Store ids with parcels still moving, for the worker's tracking job. SECURITY DEFINER backed. */
 export async function storesWithOpenShipments(db: Db): Promise<string[]> {
   const rows = await db.execute<{ id: string }>(sql`select stores_with_open_shipments() as id`)

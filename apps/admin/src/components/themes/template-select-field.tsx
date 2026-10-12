@@ -43,12 +43,8 @@ export default function TemplateSelectField({
 
   useEffect(() => {
     let active = true
-    api.themes
-      .list()
-      .then((themes) => {
-        const live = themes.find((t) => t.role === 'main')
-        return live ? api.themes.templates.list({ themeId: live.id }) : []
-      })
+    api.themes.templates
+      .live()
       .then((rows) => {
         if (!active) return
         setSuffixes(rows.filter((r) => r.template === kind && r.suffix).map((r) => r.suffix))

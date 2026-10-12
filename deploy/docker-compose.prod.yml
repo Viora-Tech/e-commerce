@@ -45,6 +45,8 @@ x-app-env: &app-env
   # visitors without cookies (seconds, blank = 30, 0 = private). See developer docs, performance.
   STOREFRONT_CACHE_MB: ${STOREFRONT_CACHE_MB:-}
   STOREFRONT_EDGE_TTL: ${STOREFRONT_EDGE_TTL:-}
+  # Sections of an imported theme's page sent first (blank = 3); the rest stream in behind them.
+  STOREFRONT_EAGER_SECTIONS: ${STOREFRONT_EAGER_SECTIONS:-}
   MERCHANT_SIGNUP_MODE: ${MERCHANT_SIGNUP_MODE:-invite}
   # Merchant "Continue with Google" on the admin login page; both blank hides the button.
   MERCHANT_GOOGLE_CLIENT_ID: ${MERCHANT_GOOGLE_CLIENT_ID:-}
