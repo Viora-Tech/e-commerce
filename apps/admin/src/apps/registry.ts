@@ -34,6 +34,7 @@ import ConnectPage from '@/components/apps/shopify-import/connect-page'
 import CsvPage from '@/components/apps/shopify-import/csv-page'
 import ImportsPage from '@/components/apps/shopify-import/imports-page'
 import RunPage from '@/components/apps/shopify-import/run-page'
+import ShopifySettingsPage from '@/components/apps/shopify-import/settings-page'
 import UmamiSettingsPage from '@/components/apps/umami/settings-page'
 
 /** What a page of an app receives: the dynamic segments of its path, e.g. `{ id }`. */
@@ -149,6 +150,7 @@ export const ADMIN_APPS: Record<string, AdminApp> = {
       '': ImportsPage,
       csv: CsvPage,
       connect: ConnectPage,
+      settings: ShopifySettingsPage,
       'runs/[id]': RunPage,
     },
   },

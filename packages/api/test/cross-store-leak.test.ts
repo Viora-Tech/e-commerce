@@ -75,6 +75,8 @@ const SKIP: Record<string, string> = {
   'shopifyImport.createApiRun': 'Shopify API',
   'shopifyImport.preflight': 'Shopify API',
   'shopifyImport.status': 'Shopify API',
+  'shopifyImport.settingsPreview': 'Shopify API',
+  'shopifyImport.importSettings': 'Shopify API',
   'ai.writeProduct': 'AI model provider (a dev .env key would reach the real gateway)',
   'ai.assistant': 'AI model provider (a dev .env key would reach the real gateway)',
   'reviews.writeReply': 'AI model provider (a dev .env key would reach the real gateway)',

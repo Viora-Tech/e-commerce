@@ -114,13 +114,34 @@ So a card cannot keep its old code here. What the importer does instead:
 Running the import again moves each card's balance to match Shopify, unless the card has already
 been spent in this store; then its balance here is kept.
 
+## Store settings
+
+**Apps › Shopify importer › Store settings** brings your store's setup over, not just its
+catalogue. Press **Check Shopify** to see, part by part, exactly what would change; tick the
+parts you want and press **Import**. Nothing changes before that, and running it again is safe:
+anything already here shows as matching.
+
+| Part | What comes over | What you set up by hand |
+| --- | --- | --- |
+| Store details | Store name, contact email and phone, business address; the default location gets the address if it has none | Currency, time zone and weight unit are compared and noted, never changed |
+| Tax and GST | Whether prices include tax; your GST number if an app saved it on your Shopify store | A GST number already here is never replaced (shown as *Kept yours*). Shopify does not share its own GST setting with apps |
+| Locations | Each location's name, address and PIN code, matched by name. Your first location takes the name of Shopify's first shipping location | New locations hold no stock and do not sell online until you turn that on. App-run locations (fulfilment services) are skipped |
+| Shipping | Zones and rates from your general shipping profile: flat, by order value, by weight, free over an amount | Carrier-calculated rates, rates using value and weight at once, zones outside India, product-specific profiles and in-store pickup |
+| Packages | Nothing: Shopify does not share saved packages with apps | Add your box sizes in **Settings › Shipping** |
+| Policies | Refund, privacy, terms of service, shipping and contact policies, with scripts and styling removed | Pictures inside a policy, legal notice, terms of sale and subscription policies |
+| Extra fields | Definitions on products, variants, collections, customers and orders whose type exists here | Types with no match (money, rating, JSON…); a field that already exists here as another type keeps yours |
+
 ## Shopify scopes to give the app
 
 In the Shopify Dev Dashboard, give your app these read scopes:
 
 `read_products`, `read_inventory`, `read_customers`, `read_orders`, `read_all_orders`,
 `read_content`, `read_online_store_navigation`, `read_files`, `read_metaobject_definitions`,
-`read_metaobjects`, `read_discounts`, `read_gift_cards`.
+`read_metaobjects`, `read_discounts`, `read_gift_cards`, `read_shipping`, `read_legal_policies`.
+
+The last two are for **Store settings** (shipping rates and policies). An app connected before
+they were added keeps working: add them in the Dev Dashboard, release a new version, then press
+**Reconnect** on the part that asks for them.
 
 If Shopify refuses one (for example gift cards on some plans), the import still brings over
 everything else and the problems list says which scope to add.

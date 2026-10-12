@@ -201,6 +201,8 @@ const hi = {
       read_metaobjects: 'एंट्री पढ़ना',
       read_discounts: 'डिस्काउंट पढ़ना',
       read_gift_cards: 'गिफ़्ट कार्ड पढ़ना',
+      read_shipping: 'शिपिंग ज़ोन और रेट पढ़ना',
+      read_legal_policies: 'स्टोर पॉलिसी पढ़ना',
     },
     chooseHeading: 'क्या इंपोर्ट करना है',
     chooseHelp: 'प्रोडक्ट पहले आते हैं ताकि कलेक्शन, ऑर्डर, डिस्काउंट और एक्स्ट्रा फ़ील्ड उनसे जुड़ सकें।',

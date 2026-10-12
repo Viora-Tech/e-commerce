@@ -15,14 +15,17 @@ import {
   getRun,
   IMPORT_RESOURCES,
   ImportError,
+  importStoreSettings,
   issueGroups,
   listIssues,
   listRuns,
   preflightChecks,
+  previewStoreSettings,
   type RunRow,
   remainingStatus,
   requestStop,
   runJobKey,
+  SETTINGS_PARTS,
   SHOPIFY_IMPORT_ID,
   ShopifyError,
   ShopifyOAuthError,
@@ -330,5 +333,32 @@ export const shopifyImportRouter = {
     .handler(async ({ context, input }) => {
       await requireInstalled(context)
       return listIssues(context.tx, input)
+    }),
+
+  /**
+   * Store settings: what each part (store details, tax, locations, shipping, packages,
+   * policies, extra field definitions) would change here. Reads Shopify, writes nothing.
+   */
+  settingsPreview: can(permissions.APPS_MANAGE).handler(async ({ context }) => {
+    await requireInstalled(context)
+    return previewStoreSettings(context.tx, context.scope.storeId, settingsSecret()).catch(asOrpc)
+  }),
+
+  /**
+   * Import the chosen store settings parts. Shopify is read again; each part saves on its own
+   * and reports created, unchanged, conflicts and what to set up by hand. It changes store
+   * settings, so it needs settings.manage. Safe to repeat: a second run changes nothing.
+   */
+  importSettings: can(permissions.SETTINGS_MANAGE)
+    .use(heavy('import'))
+    .input(z.object({ parts: z.array(z.enum(SETTINGS_PARTS)).min(1) }))
+    .handler(async ({ context, input }) => {
+      await requireInstalled(context)
+      return importStoreSettings(
+        context.tx,
+        context.scope.storeId,
+        settingsSecret(),
+        input.parts,
+      ).catch(asOrpc)
     }),
 }

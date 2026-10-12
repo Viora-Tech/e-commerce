@@ -18,13 +18,14 @@ const METAFIELD_DEFINITIONS_QUERY = `query MetafieldDefinitions($ownerType: Meta
   }
 }`
 
-type GMetafieldDefinition = Omit<GFieldDefinition, 'required'> & {
+export type GMetafieldDefinition = Omit<GFieldDefinition, 'required'> & {
   id: string
   namespace: string
   metafieldsCount: number
 }
 
-async function definitionsOf(client: ShopifyClient, ownerType: string) {
+/** Every metafield definition of one owner type (`PRODUCT`, `CUSTOMER`…), page by page. */
+export async function definitionsOf(client: ShopifyClient, ownerType: string) {
   const out: GMetafieldDefinition[] = []
   for await (const nodes of client.paginate<GMetafieldDefinition>(
     METAFIELD_DEFINITIONS_QUERY,
