@@ -4,13 +4,11 @@ import type { Tracking } from '@commerce/core'
 import { CheckIcon, CircleCheck, Clock, Copy, PackageOpen, Truck, X } from '@commerce/ui/icons'
 import { cn } from '@commerce/ui/lib/utils'
 import { Button } from '@commerce/ui/shadcn/button'
-import Link from 'next/link'
 import type { ReactNode } from 'react'
 import { toast } from 'sonner'
 import { orderNextStepContent } from '@/data/order-next-step'
 import { orderDetailContent } from '@/data/orders'
 import { useCopy, useFormat } from '@/hooks/use-copy'
-import { routes } from '@/lib/routes'
 import { methodLabel, type OrderDetail, unfulfilledLines } from './order-detail-types'
 import type { NextStepKind } from './order-next-step-kind'
 import OrderTransitSteps from './order-transit-steps'
@@ -20,6 +18,9 @@ type OrderNextStepProps = {
   kind: NextStepKind
   busy: boolean
   onCollect: () => void
+  /** Opens the Create shipment flow (pick the courier, book, print the label). */
+  onShip: () => void
+  /** Packs items by hand, without a courier booking. */
   onFulfil: () => void
   onDelivered: () => void
   /** Present while a transfer is waiting to be matched; sends the customer a nudge. */
@@ -54,6 +55,7 @@ export default function OrderNextStep({
   kind,
   busy,
   onCollect,
+  onShip,
   onFulfil,
   onDelivered,
   onSendReminder,
@@ -132,17 +134,13 @@ export default function OrderNextStep({
     icon = <Truck aria-hidden />
     actions = (
       <>
-        <Button
-          variant="outline"
-          className={PLAIN}
-          render={<Link href={routes.orders.shipments()} />}
-          nativeButton={false}
-        >
-          {copy.ship.compare}
-        </Button>
-        <Button onClick={onFulfil} disabled={busy}>
+        <Button variant="outline" className={PLAIN} onClick={onFulfil} disabled={busy}>
           <PackageOpen aria-hidden />
           {copy.ship.action}
+        </Button>
+        <Button onClick={onShip} disabled={busy}>
+          <Truck aria-hidden />
+          {copy.ship.create}
         </Button>
       </>
     )

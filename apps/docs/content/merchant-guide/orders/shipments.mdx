@@ -60,37 +60,58 @@ mailer, 25 × 20 × 5 cm, 80 g", and **Make main box** the one you use most. The
 fills in the size when booking. The parcel weight is the sum of your products' weights when
 they have one, otherwise the box weight.
 
-### Pick orders in To book
+### Open Create shipment
 
-Paid orders waiting on a label show up in **To book**, with who they go to, the parcel
-weight (from your products' weights) and the courier. Tick the ones you want.
+Every ship button opens the same **Create shipment** window: **Ship now** on a row in **To
+book**, **Book selected** for several ticked orders, **Create shipment** on the order page (the
+next-step card or the **Shipment** card), and **⋯ → Book by order number**.
 
-### Book selected
+### Package
 
-Select **Book selected**. When more than one courier can take an order you see them side by
-side, with **Store default**, **Cheapest**, **Fastest** and **Recommended** picks; with one
-courier you just confirm. Then **Book** them.
+Check what goes in the parcel and where the courier picks it up. When an order ships from two
+warehouses you book each **Parcel** on its own; **Pick up from** starts on that parcel's
+warehouse (when courier pickup is on for it under **Settings → Locations**). The **Box**, size
+and **Weight** come from your products and your main box; change them if you packed
+differently. Choose **Prepaid** or **Cash on delivery** and, for cash on delivery, the
+**Amount to collect**.
+
+### Courier
+
+Every connected courier is listed with its price for this parcel, the delivery date and whether
+it offers cash on delivery there. **Recommended** marks the cheapest courier that can take it
+(the fastest when no courier gives a price), and **Cheapest** and **Fastest** are marked too.
+Pick the one you want. A courier that doesn't deliver to the PIN code, doesn't offer cash on
+delivery there, or didn't answer says so on its own row; the others still work. A courier
+without a price API (Delhivery today) shows **Rate on booking**. **Ship it yourself** is always
+there for your own courier or local delivery: type the AWB and the courier name.
 
 <Screenshot
-  name="Compare couriers"
-  caption="To book → Book selected dialog for 3 selected orders, Delhivery, Shiprocket and RapidShyp rates side by side with the Cheapest badge on one and the Book 3 shipments button at the bottom."
+  name="Create shipment, Courier step"
+  caption="Create shipment for #1042, Courier step: Shiprocket ₹62 with Recommended and Cheapest badges, Delhivery Rate on booking with Fastest, RapidShyp greyed out with Doesn't deliver to this PIN code, and Ship it yourself at the bottom."
 />
 
-### Print labels
+### Review and book
 
-Select **Print labels** when the booking is done, or tick parcels in **Booked** and select
-**Print labels** there.
+Check the summary and select **Book shipment**. You get the **AWB**, **Print label** and
+**Download label**, and the order page shows the new status straight away.
 
-### Schedule pickup
+### Ask the courier to collect
 
-Select **Pickups** in the header, tick the booked parcels, pick a **Pickup date** and a start
-time (**From**, 24-hour, e.g. `14:00`). The courier gets the request; the pickup shows under
-**Recent pickups**.
+Still in the same window, pick a **Pickup date** and a start time (**From**, 24-hour, e.g.
+`14:00`) and select **Schedule pickup**. Each courier is asked for its own parcels. You can
+also do this later from **Pickups** in the header.
 
 </Steps>
 
-There's also **Book by order number** in the header's **⋯** menu if you'd rather type order
-numbers than tick them. Use it for cash on delivery orders, which **To book** doesn't list.
+### Book many orders at once
+
+Tick orders in **To book** and select **Book selected** (or paste numbers in **⋯ → Book by
+order number**, for cash on delivery orders **To book** doesn't list). Choose one box for all or
+keep each order's own weight, then how couriers are picked: **One courier for all** (with its
+total for the batch), **Cheapest for each order** or **Fastest for each order**. The table shows
+what each order gets before you **Book**; the result lists every order as booked (with its AWB)
+or not (with the reason), with **Print all labels** and one pickup request. Orders that ship in
+several parcels are left out of a batch: book them from the order page.
 
 ## Pickups and manifests
 
@@ -159,9 +180,10 @@ Your courier wallet balance and recharge link are covered in [Couriers](/merchan
 
 <FaqItem question="Can I use Delhivery and Shiprocket together?">
 
-Yes. Install both and compare them on every booking. **Settings → Shipping → Which courier
-ships** decides which one is pre-selected: **Cheapest price**, **Fastest delivery**, **Always the
-same courier** or **The state it goes to**.
+Yes. Install both and you compare them on every booking: **Create shipment** lists each one
+with its price and delivery date and you pick. **Settings → Shipping → Which courier ships**
+is the rule a batch books with when you don't pick per order: **Cheapest price**, **Fastest
+delivery**, **Always the same courier** or **The state it goes to**.
 
 </FaqItem>
 
@@ -182,8 +204,9 @@ and shown as **Waybill** in the Shipments list. See the [Glossary](/merchant-gui
 
 <FaqItem question="Can I ship without a courier account?">
 
-Yes. Open the order, select **Fulfil items**, and type the courier name, tracking number and
-tracking link yourself. Tracking won't update automatically for these.
+Yes. Open the order, select **Create shipment**, and on the **Courier** step pick **Ship it
+yourself** and type the AWB and courier name. (**Fulfil items** still packs part of an order by
+hand.) Tracking won't update automatically for these.
 
 </FaqItem>
 

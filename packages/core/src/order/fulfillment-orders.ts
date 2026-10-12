@@ -297,11 +297,13 @@ export type PackedUnits = { fulfillmentOrderId: string; orderLineId: string; qua
  * that still holds it unpacked, and leaves stock at that parcel's location. The caller moves
  * `order_line.fulfilled_quantity` and has already checked the quantities against it. Units no
  * parcel holds (a parcel row lost or edited by hand) still leave stock where the variant sells.
+ * `onlyParcel` packs from that one parcel (a courier booking for that parcel alone).
  */
 export async function packFulfillmentOrderLines(
   ctx: StoreContext,
   orderId: string,
   picks: readonly PackPick[],
+  onlyParcel?: string | undefined,
 ): Promise<PackedUnits[]> {
   await ensureFulfillmentOrders(ctx, orderId)
   const rows = await lockParcelLines(ctx, orderId)
@@ -311,6 +313,7 @@ export async function packFulfillmentOrderLines(
     for (const row of rows) {
       if (remaining <= 0) break
       if (row.orderLineId !== pick.orderLineId || row.status === 'cancelled') continue
+      if (onlyParcel && row.fulfillmentOrderId !== onlyParcel) continue
       const take = Math.min(remaining, row.quantity - row.fulfilledQuantity)
       if (take <= 0) continue
       await ctx.tx

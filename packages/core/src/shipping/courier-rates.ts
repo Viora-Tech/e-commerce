@@ -1,10 +1,16 @@
-import type { RateQuery, ShippingProvider } from '@commerce/shipping'
+import {
+  computeDeliveryEstimate,
+  type DispatchPolicy,
+  describeCourierFailure,
+  type RateQuery,
+  type ShippingProvider,
+} from '@commerce/shipping'
 
 /**
- * Multi-courier rate comparison and booking-rule selection for the Shipments
- * workspace (Orders → Shipments). Pure functions over whatever couriers the
- * store connected - no database, no clock - so the workspace UI, the bulk
- * booking service and the tests all run the same code.
+ * Multi-courier rate comparison and booking-rule selection for the Create
+ * shipment flow (order page, Orders → Shipments, bulk booking). Pure functions
+ * over whatever couriers the store connected - no database, no clock - so the
+ * flow, the bulk booking service and the tests all run the same code.
  *
  * One row per connected `ShippingProvider` (Delhivery, Shiprocket, ...), not
  * per sub-courier inside an aggregator: Shiprocket books through whichever of
@@ -13,25 +19,40 @@ import type { RateQuery, ShippingProvider } from '@commerce/shipping'
  * quotes across many carriers internally. A courier without a live price
  * quote (Delhivery: no confirmed rate API, see packages/shipping-delhivery)
  * still gets a row - transit time from serviceability, price left null and
- * shown as "priced by your shipping rates" rather than guessed at.
+ * shown as "rate on booking" rather than guessed at.
  */
+
+/**
+ * Why a courier can't take this parcel, when it can't. `not_serviceable`: it said no to the
+ * PIN code. `no_cod`: it serves the PIN but not cash on delivery, and this parcel is COD.
+ * `unreachable`: neither its rate nor its serviceability call answered.
+ */
+export type CourierProblem = 'not_serviceable' | 'no_cod' | 'unreachable'
 
 export type CourierRateRow = {
   providerId: string
   providerLabel: string
-  /** Null when this courier has no live price quote for this route. */
+  /** Null when this courier has no live price quote for this route ("rate on booking"). */
   pricePaise: number | null
   minTransitDays: number | null
   maxTransitDays: number | null
-  /** Null when neither a rate quote nor serviceability answered. */
+  /** Null when serviceability did not answer. */
   codAvailable: boolean | null
+  /** Null when this courier can take the parcel. A row with a problem is never recommended. */
+  problem: CourierProblem | null
+  /** The courier's own reason, or the app's wording for a failure. Never shown to shoppers. */
+  problemDetail: string | null
+  /** Latest expected delivery date, "YYYY-MM-DD", once `datedCourierRows` has run. */
+  deliveryBy: string | null
+  /** True when `deliveryBy` comes from the store's usual transit days, not the courier. */
+  etaFromSettings: boolean
   badges: Array<'cheapest' | 'fastest' | 'recommended'>
 }
 
 /**
- * Ask every connected courier for its price and transit time on one route.
- * One courier's failure (timeout, auth, a route it doesn't serve) never
- * blanks the rest of the table - it just gets a row with nulls.
+ * Ask every connected courier for its price, transit time and COD support on one route.
+ * One courier's failure (timeout, auth, a route it doesn't serve) never blanks the rest of
+ * the table - it just gets a row that says why.
  */
 export async function compareCourierRates(
   providers: ShippingProvider[],
@@ -52,63 +73,92 @@ async function quoteOneCourier(
     minTransitDays: null,
     maxTransitDays: null,
     codAvailable: null,
+    problem: null,
+    problemDetail: null,
+    deliveryBy: null,
+    etaFromSettings: false,
     badges: [],
   }
-
-  if (provider.quoteRate) {
-    try {
-      const quote = await provider.quoteRate(query)
-      if (quote) {
-        return {
-          ...base,
-          pricePaise: quote.pricePaise,
-          minTransitDays: quote.minTransitDays,
-          maxTransitDays: quote.maxTransitDays,
-          /* A price-quoting courier that answered has served this route; COD support is asked
-             for separately below since RateQuote does not carry it. */
-          codAvailable: null,
-        }
-      }
-    } catch {
-      // Falls through to the serviceability-only row below.
-    }
-  }
-
-  try {
-    const s = await provider.checkServiceability({
+  /* Both questions at once: the rate call carries the price, serviceability carries COD
+     support and the "no" for a PIN code the courier does not reach. */
+  const [quoted, served] = await Promise.allSettled([
+    provider.quoteRate ? provider.quoteRate(query) : Promise.resolve(null),
+    provider.checkServiceability({
       originPincode: query.originPincode,
       destinationPincode: query.destinationPincode,
       weightGrams: query.weightGrams,
-    })
-    if (!s.serviceable) return base
-    return {
-      ...base,
-      minTransitDays: s.minTransitDays,
-      maxTransitDays: s.maxTransitDays,
-      codAvailable: s.codAvailable,
-    }
-  } catch {
-    return base
+    }),
+  ])
+  const quote = quoted.status === 'fulfilled' ? quoted.value : null
+  const service = served.status === 'fulfilled' ? served.value : null
+
+  if (!quote && !service) {
+    const failure = served.status === 'rejected' ? served.reason : null
+    return { ...base, problem: 'unreachable', problemDetail: describeCourierFailure(failure) }
   }
+  if (service && !service.serviceable) {
+    return { ...base, problem: 'not_serviceable', problemDetail: service.reason }
+  }
+  const row: CourierRateRow = {
+    ...base,
+    pricePaise: quote?.pricePaise ?? null,
+    minTransitDays: quote?.minTransitDays ?? service?.minTransitDays ?? null,
+    maxTransitDays: quote?.maxTransitDays ?? service?.maxTransitDays ?? null,
+    codAvailable: service ? service.codAvailable : null,
+  }
+  if (query.paymentMode === 'cod' && row.codAvailable === false) {
+    return { ...row, problem: 'no_cod' }
+  }
+  return row
 }
 
+/** Cheapest and fastest among the couriers that can take the parcel; recommended is the
+ *  cheapest priced one, else the fastest, else the first courier that can take it. */
 function assignBadges(rows: CourierRateRow[]): CourierRateRow[] {
-  const priced = rows.filter((r) => r.pricePaise !== null)
+  const bookable = rows.filter((r) => r.problem === null)
+  const priced = bookable.filter((r) => r.pricePaise !== null)
   const cheapest = priced.length
     ? priced.reduce((a, b) => ((b.pricePaise as number) < (a.pricePaise as number) ? b : a))
     : null
-  const timed = rows.filter((r) => r.minTransitDays !== null)
+  const timed = bookable.filter((r) => r.minTransitDays !== null)
   const fastest = timed.length
     ? timed.reduce((a, b) => ((b.minTransitDays as number) < (a.minTransitDays as number) ? b : a))
     : null
-  /* Recommended: the cheapest priced courier, or the fastest when nobody quoted a price. */
-  const recommended = cheapest ?? fastest
+  const recommended = cheapest ?? fastest ?? bookable[0] ?? null
   return rows.map((r) => {
     const badges: CourierRateRow['badges'] = []
     if (cheapest === r) badges.push('cheapest')
     if (fastest === r) badges.push('fastest')
     if (recommended === r) badges.push('recommended')
     return { ...r, badges }
+  })
+}
+
+/**
+ * Turn each bookable row's transit days into a delivery date with the store's dispatch
+ * calendar (cutoff, working days, holidays). A courier that gave no transit time gets the
+ * store's usual one, flagged `etaFromSettings` so the flow can say it is an estimate.
+ */
+export function datedCourierRows(
+  rows: CourierRateRow[],
+  policy: DispatchPolicy & { defaultMinTransitDays: number; defaultMaxTransitDays: number },
+  now: Date,
+): CourierRateRow[] {
+  return rows.map((r) => {
+    if (r.problem) return r
+    const fromSettings = r.minTransitDays === null || r.maxTransitDays === null
+    try {
+      const estimate = computeDeliveryEstimate({
+        now,
+        minTransitDays: r.minTransitDays ?? policy.defaultMinTransitDays,
+        maxTransitDays: r.maxTransitDays ?? policy.defaultMaxTransitDays,
+        policy,
+      })
+      return { ...r, deliveryBy: estimate.latestDate, etaFromSettings: fromSettings }
+    } catch {
+      // A calendar with no working days cannot produce a date; the row stays undated.
+      return r
+    }
   })
 }
 

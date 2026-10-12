@@ -27,7 +27,7 @@ import { useCopy, useFormat } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 import { routes } from '@/lib/routes'
 import { parseRowsPerPage } from '@/lib/rows-per-page'
-import BookDialog from './book-dialog'
+import CreateShipmentDialog from './create-shipment/create-shipment-dialog'
 import {
   rowFromOrder,
   rowFromShipment,
@@ -143,6 +143,11 @@ function ShipmentsContent() {
     setSheet(null)
     setReloadKey((k) => k + 1)
   }
+  /* Book by order number found these orders: the same Create shipment flow takes over. */
+  const handleShipFound = (orderIds: string[]) => {
+    setSheet(null)
+    setBooking(orderIds)
+  }
 
   // Render logic
   const toBookCourier =
@@ -247,13 +252,27 @@ function ShipmentsContent() {
             getId={(r) => r.id}
             href={(r) => routes.orders.detail(r.orderId)}
             rowActions={(r) => (
-              <RowMenu
-                items={[
-                  { label: copy.menu.viewOrder, href: routes.orders.detail(r.orderId) },
-                  ...(r.labelUrl ? [{ label: copy.menu.label, href: r.labelUrl }] : []),
-                  ...(r.trackingUrl ? [{ label: copy.menu.track, href: r.trackingUrl }] : []),
-                ]}
-              />
+              <span className="flex items-center gap-1">
+                {tab === 'toBook' ? (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      setBooking([r.orderId])
+                    }}
+                  >
+                    {copy.shipNow}
+                  </Button>
+                ) : null}
+                <RowMenu
+                  items={[
+                    { label: copy.menu.viewOrder, href: routes.orders.detail(r.orderId) },
+                    ...(r.labelUrl ? [{ label: copy.menu.label, href: r.labelUrl }] : []),
+                    ...(r.trackingUrl ? [{ label: copy.menu.track, href: r.trackingUrl }] : []),
+                  ]}
+                />
+              </span>
             )}
             loading={loading}
             query={query}
@@ -293,8 +312,12 @@ function ShipmentsContent() {
           />
         </>
       )}
-      <BookDialog orderIds={booking} onClose={() => setBooking([])} onBooked={handleBooked} />
-      <ShipmentSheets open={sheet} onClose={handleSheetClose} onBooked={handleBooked} />
+      <CreateShipmentDialog
+        orderIds={booking}
+        onClose={() => setBooking([])}
+        onBooked={handleBooked}
+      />
+      <ShipmentSheets open={sheet} onClose={handleSheetClose} onShip={handleShipFound} />
     </OrdersListFrame>
   )
 }

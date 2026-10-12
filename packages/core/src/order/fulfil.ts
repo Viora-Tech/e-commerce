@@ -1,4 +1,4 @@
-import { order, orderLine, shipment } from '@commerce/db'
+import { fulfillmentOrderLine, order, orderLine, shipment } from '@commerce/db'
 import { and, eq, sql } from 'drizzle-orm'
 import type { StoreContext } from '../context'
 import { BalanceDue, CommerceError } from '../errors'
@@ -113,6 +113,49 @@ export async function fulfilRemainingLines(ctx: StoreContext, orderId: string): 
     }
   }
   await packFulfillmentOrderLines(ctx, orderId, picks)
+  await recomputeOrderStatuses(ctx, orderId)
+}
+
+/**
+ * Mark every unpacked unit of one parcel as packed and take it out of stock at that parcel's
+ * location: a courier booking for that parcel alone, when the order ships in several. The
+ * order's other parcels are left as they are. Running it again moves nothing.
+ */
+export async function fulfilParcelLines(
+  ctx: StoreContext,
+  orderId: string,
+  fulfillmentOrderId: string,
+): Promise<void> {
+  const { o, lines } = await lockOrder(ctx, orderId)
+  if (!o || UNFULFILLABLE.has(o.status)) return
+  assertNoBalanceDue(ctx, orderId, o)
+  const units = await ctx.tx
+    .select({
+      orderLineId: fulfillmentOrderLine.orderLineId,
+      quantity: fulfillmentOrderLine.quantity,
+      fulfilledQuantity: fulfillmentOrderLine.fulfilledQuantity,
+    })
+    .from(fulfillmentOrderLine)
+    .where(eq(fulfillmentOrderLine.fulfillmentOrderId, fulfillmentOrderId))
+  const byId = new Map(lines.map((l) => [l.id, l]))
+  const picks: PackPick[] = []
+  for (const unit of units) {
+    const line = byId.get(unit.orderLineId)
+    if (!line) continue
+    const take = Math.min(
+      unit.quantity - unit.fulfilledQuantity,
+      line.quantity - line.fulfilledQuantity,
+    )
+    if (take <= 0) continue
+    await ctx.tx
+      .update(orderLine)
+      .set({ fulfilledQuantity: sql`${orderLine.fulfilledQuantity} + ${take}` })
+      .where(eq(orderLine.id, line.id))
+    if (!line.giftCard) {
+      picks.push({ orderLineId: line.id, variantId: line.variantId, quantity: take })
+    }
+  }
+  await packFulfillmentOrderLines(ctx, orderId, picks, fulfillmentOrderId)
   await recomputeOrderStatuses(ctx, orderId)
 }
 

@@ -1,6 +1,5 @@
 import {
   bulkCreateShipments,
-  type CourierRateRow,
   chooseCourier,
   compareCourierRates,
   createShipmentForOrder,
@@ -310,46 +309,6 @@ export async function listReadyToShip(
     })),
     total: countRow?.total ?? 0,
   }
-}
-
-/**
- * Rate comparison for a batch of orders (the bulk-book panel's preview table
- * and the per-order "compare couriers" view): every connected courier's price
- * and transit time to each order's own address. One courier's failure never
- * blanks another order's row - see `compareCourierRates`.
- */
-export async function compareRatesForOrders(
-  tx: StoreTx,
-  storeId: string,
-  registry: ShippingRegistry,
-  secret: string,
-  orderIds: string[],
-  weightGrams?: number | undefined,
-): Promise<
-  Array<{
-    orderId: string
-    orderNumber: number
-    stateCode: string | null
-    options: CourierRateRow[]
-  }>
-> {
-  const settings = await loadShippingSettings(tx, storeId)
-  const { providers } = resolveShippingProviders(registry, settings, secret)
-  if (providers.length === 0) return []
-  const contexts = await loadOrderShippingContexts(tx, orderIds)
-  return Promise.all(
-    contexts.map(async (o) => {
-      const query: RateQuery = {
-        originPincode: settings.policy.originPincode,
-        destinationPincode: o.pincode,
-        weightGrams: weightGrams ?? ASSUMED_WEIGHT_GRAMS,
-        declaredValuePaise: o.totalPaise,
-        paymentMode: o.paymentMethod === 'cod' ? 'cod' : 'prepaid',
-      }
-      const options = await compareCourierRates(providers, query)
-      return { orderId: o.orderId, orderNumber: o.orderNumber, stateCode: o.stateCode, options }
-    }),
-  )
 }
 
 export async function bulkBookShipments(

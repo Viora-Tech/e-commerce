@@ -97,10 +97,13 @@ export async function shipFromFor(
     taxOrigin: OrderTaxOrigin | null
     /** The parcel's own location; wins over the order's tax origin. */
     locationId?: string | null | undefined
+    /** The merchant picked Settings › Shipping's address in the Create shipment flow. */
+    storeAddress?: boolean | undefined
     settings: ShippingSettings
     storeName: string
   },
 ): Promise<ShipFrom> {
+  if (input.storeAddress) return storeWide(input.settings, input.storeName)
   const id = input.locationId ?? input.taxOrigin?.locationId ?? null
   const [loc] = await tx
     .select()

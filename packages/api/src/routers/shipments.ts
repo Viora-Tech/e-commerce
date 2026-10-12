@@ -3,6 +3,7 @@ import { permissions } from '@commerce/core'
 import { z } from 'zod'
 import { BULK_MAX, can, heavy, PAGE_SIZE_MAX, SEARCH_MAX } from '../procedures'
 import { storeRegistries } from '../services/apps.service'
+import { prepareShipments, quoteShipments } from '../services/create-shipment.service'
 import {
   actOnNdr,
   createManifestForStore,
@@ -18,13 +19,18 @@ import {
 } from '../services/shipments-operations.service'
 import {
   bulkBookShipments,
-  compareRatesForOrders,
   listReadyToShip,
   listShipments,
   shipmentCounts,
 } from '../services/shipments-workspace.service'
 
 const ndrAction = z.enum(['reattempt', 'change_address', 'rto'])
+
+const dimensionsCm = z.object({
+  length: z.number().min(1),
+  width: z.number().min(1),
+  height: z.number().min(1),
+})
 
 /**
  * The shared Shipments workspace (Orders → Shipments): every shipment across
@@ -70,13 +76,7 @@ export const shipmentsRouter = {
       z.object({
         orderIds: z.array(z.uuid()).min(1).max(BULK_MAX),
         weightGrams: z.number().int().min(1).optional(),
-        dimensionsCm: z
-          .object({
-            length: z.number().min(1),
-            width: z.number().min(1),
-            height: z.number().min(1),
-          })
-          .optional(),
+        dimensionsCm: dimensionsCm.optional(),
         insured: z.boolean().optional(),
         /** orderId -> providerId. Orders left out book with the store's default courier rule. */
         courierOverrides: z.record(z.uuid(), z.string().min(1)).optional(),
@@ -87,24 +87,51 @@ export const shipmentsRouter = {
       return bulkBookShipments(context.tx, context.scope.storeId, shipping, settingsSecret(), input)
     }),
 
-  /** The bulk-book panel's rate comparison table: every connected courier's price and ETA
-   *  to each order's own address, for showing Cheapest / Fastest / Recommended before booking. */
-  compareRates: can(permissions.ORDERS_READ)
-    .input(
-      z.object({
-        orderIds: z.array(z.uuid()).min(1).max(100),
-        weightGrams: z.number().int().min(1).optional(),
-      }),
-    )
+  /** Create shipment, step 1: each order's parcels (items, weight, box, pickup place, COD)
+   *  and the store's couriers, boxes and pickup places. Reads only; no courier is called. */
+  prepare: can(permissions.ORDERS_READ)
+    .input(z.object({ orderIds: z.array(z.uuid()).min(1).max(BULK_MAX) }))
     .handler(async ({ context, input }) => {
       const { shipping } = await storeRegistries(context.tx, context.scope.storeId)
-      return compareRatesForOrders(
+      return prepareShipments(
         context.tx,
         context.scope.storeId,
         shipping,
         settingsSecret(),
         input.orderIds,
-        input.weightGrams,
+      )
+    }),
+
+  /** Create shipment, step 2: every connected courier's price, delivery date and COD support
+   *  per parcel, with Cheapest / Fastest / Recommended. One courier's failure is its own row. */
+  quote: can(permissions.ORDERS_READ)
+    .use(heavy('bulk'))
+    .input(
+      z.object({
+        parcels: z
+          .array(
+            z.object({
+              orderId: z.uuid(),
+              fulfillmentOrderId: z.uuid().nullish(),
+              pickupLocationId: z.uuid().nullish(),
+              weightGrams: z.number().int().min(1).optional(),
+              dimensionsCm: dimensionsCm.optional(),
+              paymentMode: z.enum(['cod', 'prepaid']).optional(),
+              declaredValuePaise: z.number().int().min(0).optional(),
+            }),
+          )
+          .min(1)
+          .max(BULK_MAX),
+      }),
+    )
+    .handler(async ({ context, input }) => {
+      const { shipping } = await storeRegistries(context.tx, context.scope.storeId)
+      return quoteShipments(
+        context.tx,
+        context.scope.storeId,
+        shipping,
+        settingsSecret(),
+        input.parcels,
       )
     }),
 

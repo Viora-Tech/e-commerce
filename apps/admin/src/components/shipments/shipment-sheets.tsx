@@ -18,8 +18,8 @@ export type SheetKind = 'pickups' | 'ndr' | 'byNumber'
 type ShipmentSheetsProps = {
   open: SheetKind | null
   onClose: () => void
-  /** A booking from "Book by order number", so the page refreshes its counts. */
-  onBooked: () => void
+  /** "Book by order number" found these orders: open the Create shipment flow for them. */
+  onShip: (orderIds: string[]) => void
 }
 
 /**
@@ -27,7 +27,7 @@ type ShipmentSheetsProps = {
  * in the header), deliveries the courier could not make ("2 need attention" in the summary
  * line) and booking by order number (the header's ⋯ menu).
  */
-export default function ShipmentSheets({ open, onClose, onBooked }: ShipmentSheetsProps) {
+export default function ShipmentSheets({ open, onClose, onShip }: ShipmentSheetsProps) {
   // Hooks
   const copy = useCopy(shipmentsContent)
 
@@ -45,7 +45,7 @@ export default function ShipmentSheets({ open, onClose, onBooked }: ShipmentShee
         <div className="flex-1 overflow-y-auto px-4 pb-4">
           {open === 'ndr' ? <NdrTab /> : null}
           {open === 'pickups' ? <PickupsTab /> : null}
-          {open === 'byNumber' ? <BookShipmentsPanel onBooked={onBooked} /> : null}
+          {open === 'byNumber' ? <BookShipmentsPanel onShip={onShip} /> : null}
         </div>
       </SheetContent>
     </Sheet>
