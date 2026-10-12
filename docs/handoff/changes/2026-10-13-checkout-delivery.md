@@ -11,8 +11,7 @@ migration**. Third of three stacked checkout branches.
   (green on the picked card). When the options do not all arrive together, the first to arrive
   is marked **Fastest** (bolt icon when it costs extra). Free shipping (no rates set up) is one
   card with its own arrival date.
-- The Payment step's recap and the order summary use the same line ("Express · ₹149 · Arrives
-  tomorrow, Sun, 11 Oct").
+- The Payment step's recap uses the same line ("Express · ₹149 · Arrives tomorrow, Sun, 11 Oct").
 
 ## Where the dates come from (`apps/storefront/src/lib/rate-dates.ts`)
 
