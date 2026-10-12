@@ -150,6 +150,47 @@ export const checkoutContent = {
   /** Step numbers read out with the heading, e.g. "Step 2 of 4". */
   step: (n: number, of: number) => `Step ${n} of ${of}`,
   stepDone: 'Complete',
+  /** The stepped checkout: Address → Shipping → Payment, contact at the top of Address. */
+  steps: {
+    label: { address: 'Address', shipping: 'Shipping', payment: 'Payment' },
+    /** Gift cards are emailed: the first step only asks for contact and billing details. */
+    detailsLabel: 'Details',
+    progress: 'Checkout steps',
+    heading: {
+      address: 'Where should we deliver?',
+      shipping: 'How would you like it delivered?',
+      payment: 'How would you like to pay?',
+    },
+    detailsHeading: 'Your details',
+    intro: {
+      address: 'Your contact details first, then the delivery address.',
+      details: 'Your gift card arrives by email. We need your contact and billing details.',
+      shipping: (place: string) => `Options and dates for ${place}.`,
+      shippingNoPlace: 'Pick how your order travels.',
+      payment: 'All payments are encrypted. Pick the way that is easiest for you.',
+    },
+    contactHeading: 'Contact',
+    addressHeading: 'Delivery address',
+    /** The primary button on a step that is not the last: named after the next step. */
+    continueTo: { shipping: 'Continue to shipping', payment: 'Continue to payment' },
+    back: 'Back',
+    goTo: (label: string) => `Go back to ${label}`,
+  },
+  /** The finished steps above the current one, each with a way back to it. */
+  recap: {
+    heading: 'Your details so far',
+    contact: 'Contact',
+    shipTo: 'Ship to',
+    billTo: 'Billing',
+    delivery: 'Delivery',
+    change: 'Change',
+    changeContact: 'Change contact details',
+    changeAddress: 'Change address',
+    changeDelivery: 'Change delivery method',
+  },
+  secure: 'Secure checkout',
+  secureShort: 'Secure',
+  itemCount: (n: number) => (n === 1 ? '1 item' : `${n} items`),
   /** The main gateway's option when the merchant chose which online methods to offer. */
   payOnline: 'Pay online',
   onlineMethodNames: {

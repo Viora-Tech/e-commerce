@@ -91,6 +91,8 @@
   /* Focus rings as real properties: arbitrary box-shadow values cannot read @theme inline names. */
   --ck-ring: color-mix(in oklab, var(--ck-accent) 24%, transparent);
   --ck-danger-ring: color-mix(in oklab, var(--ck-danger) 14%, transparent);
+  /* The stepped checkout's summary card: a hairline lift in light mode, flat in dark. */
+  --ck-card-shadow: 0 1px 2px rgb(0 0 0 / 0.04), 0 12px 32px -16px rgb(0 0 0 / 0.1);
   color-scheme: light;
 }
 
@@ -105,6 +107,7 @@
   --ck-success: #4cc488;
   --ck-summary: color-mix(in oklab, var(--ck-summary-light) 8%, #0b0b0d);
   --ck-summary-ink: #ededee;
+  --ck-card-shadow: none;
   color-scheme: dark;
 }
 
@@ -125,6 +128,7 @@ body:has(.ck) {
     --ck-success: #4cc488;
     --ck-summary: color-mix(in oklab, var(--ck-summary-light) 8%, #0b0b0d);
     --ck-summary-ink: #ededee;
+    --ck-card-shadow: none;
     color-scheme: dark;
   }
 }

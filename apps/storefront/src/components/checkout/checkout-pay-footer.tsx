@@ -1,35 +1,31 @@
 import type { PolicyLink } from '@commerce/core/policies'
+import type { ReactNode } from 'react'
 import CheckoutAgreement from '@/components/checkout/checkout-agreement'
 import CheckoutIcon from '@/components/checkout/checkout-icon'
-import PayButton from '@/components/checkout/pay-button'
 import TrustLine from '@/components/checkout/trust-line'
 
 type CheckoutPayFooterProps = {
-  /** Why the server refused the order, or what to fix before paying. */
+  /** Why the server refused the order, or what to fix before going on. */
   error: string | null
   /** Settings → Checkout's minimum order, when the cart is short of it. */
   shortfall: string | null
-  payLabel: string
-  pending: boolean
-  updating: boolean
-  disabled: boolean
+  /** Back and the step's main button (`CheckoutStepNav`). */
+  nav: ReactNode
+  /** Published policies, on the paying step only (empty elsewhere). */
   policies: PolicyLink[]
-  /** The trust line's ways to pay; null when the merchant turned the line off. */
+  /** The trust line's ways to pay; null when the merchant turned it off or before paying. */
   trust: string[] | null
 }
 
 /**
- * The end of the form: what stops the order (if anything), the Pay button, the fine print.
- * A fragment, so the Pay button is a direct child of the form and can stick to the bottom
- * of a phone screen for the whole length of the form.
+ * The end of every step: what stops the order (if anything), Back and the main button, and
+ * on the paying step the fine print. A fragment, so the buttons are a direct child of the
+ * form and can stick to the bottom of a phone screen for the whole length of it.
  */
 export default function CheckoutPayFooter({
   error,
   shortfall,
-  payLabel,
-  pending,
-  updating,
-  disabled,
+  nav,
   policies,
   trust,
 }: CheckoutPayFooterProps) {
@@ -40,7 +36,8 @@ export default function CheckoutPayFooter({
           {shortfall}
         </p>
       ) : null}
-      <div aria-live="assertive">
+      {/* Out of the flow while empty (no gap), still in the accessibility tree so it announces. */}
+      <div aria-live="assertive" className="empty:absolute">
         {error ? (
           <p
             id="checkout-error"
@@ -51,7 +48,7 @@ export default function CheckoutPayFooter({
           </p>
         ) : null}
       </div>
-      <PayButton label={payLabel} pending={pending} updating={updating} disabled={disabled} />
+      {nav}
       <CheckoutAgreement policies={policies} />
       {trust ? <TrustLine methods={trust} /> : null}
     </>
