@@ -24,12 +24,14 @@ import type { StoreTx } from '@commerce/db'
 import type { ComponentConfig } from '@puckeditor/core'
 import { resolveAllData } from '@puckeditor/core'
 import { headers } from 'next/headers'
-import { Fragment } from 'react'
+import { Fragment, Suspense } from 'react'
 import RecentlyViewed from '@/components/product/recently-viewed'
+import DeferredLiquid from '@/components/theme/deferred-liquid'
 import LiquidHtml from '@/components/theme/liquid-html'
 import { listCardProducts } from './catalog'
 import { collectionCards, listCollections } from './collections'
 import { digest } from './liquid-cache'
+import { liquidSplit, STREAM_GRACE_MS, settlesWithin } from './liquid-split'
 import { renderLiquidSections } from './liquid-theme'
 import { attachImageMedia } from './media-lookup'
 import { subscribeAction } from './newsletter-actions'
@@ -188,10 +190,29 @@ export async function renderTemplate(
   const visible = await attachImageMedia(storeId, bound, preview)
   const config = await blocksConfig(storeId, read)
   // An imported Shopify theme: its sections come from the render cache or the Liquid engine
-  // now; the LiquidSection renderer below only places the HTML.
+  // now; the LiquidSection renderer below only places the HTML. Past the split, the rest are
+  // rendered after the first ones and stream in (`DeferredLiquid`).
+  const split = await liquidSplit(key, preview)
   const liquidHtml = themeId
-    ? await renderLiquidSections(storeId, themeId, key, visible.content)
+    ? await renderLiquidSections(storeId, themeId, key, visible.content, {
+        ...split,
+        end: split.streamFrom,
+      })
     : null
+  const laterHtml =
+    themeId && liquidHtml && visible.content.length > split.streamFrom
+      ? renderLiquidSections(storeId, themeId, key, visible.content, {
+          ...split,
+          start: split.streamFrom,
+        })
+      : null
+  // Awaited by the streamed sections; never an unhandled rejection if none of them renders.
+  laterHtml?.catch(() => undefined)
+  // Sections the render cache already holds come back at once: streaming them would gain
+  // nothing, so they are drawn in place. Only a slow render (a cache miss) streams.
+  const inPlace = laterHtml !== null && (await settlesWithin(laterHtml, STREAM_GRACE_MS))
+  if (inPlace) for (const [id, html] of (await laterHtml) ?? []) liquidHtml?.set(id, html)
+  const streamed = inPlace ? null : laterHtml
   const metadata: SectionMetadata = {
     renderers: {
       // Any template can show the shopper's history; routes add their own sections.
@@ -203,8 +224,10 @@ export async function renderTemplate(
         />
       ),
       LiquidSection: (settings) => {
-        const section = liquidHtml?.get(String(settings.id))
-        return section ? <LiquidHtml {...section} /> : null
+        const id = String(settings.id)
+        const section = liquidHtml?.get(id)
+        if (section) return <LiquidHtml {...section} />
+        return streamed ? <DeferredLiquid sections={streamed} id={id} /> : null
       },
       ...options.renderers,
     },
@@ -233,25 +256,32 @@ export async function renderTemplate(
   // load theirs eagerly at high priority when told so, everything else stays lazy.
   const group = key === 'header' || key === 'footer'
 
+  const sections = resolved.content.map((item, index) => {
+    // Slots (Group, Columns, Tabs … and anything nested in them) are drawn here on
+    // the server too: renderBlock fills each slot prop with its children. The first
+    // top-level section is flagged above the fold so its image loads with priority.
+    const aboveFold = index === 0 && !group ? { _aboveFold: true } : {}
+    const section = renderBlock(
+      { ...item, props: { ...item.props, ...aboveFold } },
+      components,
+      puck,
+    )
+    if (!section) return null
+    return (
+      <Fragment key={item.props.id}>
+        {reveals && index > 0 ? <Reveal>{section}</Reveal> : section}
+      </Fragment>
+    )
+  })
+  // Past the split, one boundary: its sections arrive later in the same response.
+  const streamFrom = streamed ? split.streamFrom : sections.length
+
   return (
     <>
-      {resolved.content.map((item, index) => {
-        // Slots (Group, Columns, Tabs … and anything nested in them) are drawn here on
-        // the server too: renderBlock fills each slot prop with its children. The first
-        // top-level section is flagged above the fold so its image loads with priority.
-        const aboveFold = index === 0 && !group ? { _aboveFold: true } : {}
-        const section = renderBlock(
-          { ...item, props: { ...item.props, ...aboveFold } },
-          components,
-          puck,
-        )
-        if (!section) return null
-        return (
-          <Fragment key={item.props.id}>
-            {reveals && index > 0 ? <Reveal>{section}</Reveal> : section}
-          </Fragment>
-        )
-      })}
+      {sections.slice(0, streamFrom)}
+      {streamFrom < sections.length ? (
+        <Suspense fallback={null}>{sections.slice(streamFrom)}</Suspense>
+      ) : null}
     </>
   )
 }

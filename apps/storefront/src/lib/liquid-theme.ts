@@ -43,6 +43,7 @@ import {
 } from './liquid-cache'
 import { cachedLiquidData } from './liquid-data-cache'
 import { deferThemeScripts } from './liquid-defer'
+import { belowTheFold } from './liquid-fold'
 import { cartIsEmpty, requestCart } from './request-cart'
 import { requestOrigin } from './seo'
 import { CACHE_TTL_MS, cachedForStore, peekForStore, rememberForStore } from './store-cache'
@@ -257,33 +258,53 @@ function cacheScope(
   }
 }
 
+/** Which of a template's sections one call renders, and where the fold is. */
+export type LiquidPart = {
+  /** Top-level positions in the template's content this call renders: `start` up to `end`. */
+  start: number
+  end: number
+  /** Sections at this position or later are below the fold (`liquid-fold.ts`). */
+  fold: number
+}
+
+/** Every section, none below the fold (header and footer groups, theme previews). */
+export const WHOLE_TEMPLATE: LiquidPart = { start: 0, end: Infinity, fold: Infinity }
+
 /**
- * Every `LiquidSection` in a template, keyed by Puck id: from the cache, or rendered now (all
- * the missing ones in one transaction). Null when `themeId` is not an imported theme.
+ * The `LiquidSection`s of a template within `part`, keyed by Puck id: from the cache, or
+ * rendered now (all the missing ones in one transaction). Null when `themeId` is not an
+ * imported theme.
  */
 export async function renderLiquidSections(
   storeId: string,
   themeId: string,
   key: string,
   content: { type: string; props: Record<string, unknown> }[],
+  part: LiquidPart = WHOLE_TEMPLATE,
 ): Promise<Map<string, LiquidSectionHtml> | null> {
   const theme = await importedTheme(storeId, themeId)
   if (!theme) return null
-  const liquidItems = content.filter((item) => item.type === 'LiquidSection')
-  if (liquidItems.length === 0) return new Map()
+  // Placement counts every Liquid section of the template (`section.index`), drawn or not.
+  const liquidItems = content
+    .flatMap((item, position) => (item.type === 'LiquidSection' ? [{ item, position }] : []))
+    .map((entry, index) => ({ ...entry, index }))
+  const inPart = liquidItems.filter(({ position }) => position >= part.start && position < part.end)
+  if (inPart.length === 0) return new Map()
   const scope = await requestScope(storeId)
   const cacheKey = cacheScope(scope, themeId, theme.bundle)
   const location = LOCATION[key] ?? 'template'
-  const placed = liquidItems.map((item, index) => {
+  const placed = inPart.map(({ item, position, index }) => {
     const type = typeof item.props.sectionType === 'string' ? item.props.sectionType : ''
     const schema = theme.bundle.sections.get(type)?.schema ?? null
     const section = liquidPlacement(item.props, schema, location, index)
+    const belowFold = position >= part.fold
     return {
       id: String(item.props.id),
       type,
       section,
+      belowFold,
       wrapper: sectionWrapper(theme.bundle, section),
-      key: cacheKey ? sectionCacheKey(cacheKey, section) : null,
+      key: cacheKey ? sectionCacheKey(cacheKey, { section, belowFold }) : null,
     }
   })
 
@@ -313,7 +334,8 @@ export async function renderLiquidSections(
       // The theme's own `<script>` tags carry the nonce (written at parse time,
       // `nonceThemeScripts` in core); a script that came in with data never does. Its deferred
       // and module scripts wait for React (`./liquid-defer.ts`).
-      done.push({ p, html: deferThemeScripts(html), trace })
+      const parked = deferThemeScripts(html)
+      done.push({ p, html: p.belowFold ? belowTheFold(parked) : parked, trace })
     }
     return done
   })
