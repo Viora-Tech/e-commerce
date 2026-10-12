@@ -1,13 +1,12 @@
 import { loadEnv } from '@commerce/config'
-import { headers } from 'next/headers'
 import { redirect } from 'next/navigation'
 import type { ReactNode } from 'react'
 import AdminFrame from '@/components/admin-frame'
 import AccentStyle from '@/components/layout/accent-style'
-import { appRouter, call, serverContext } from '@/lib/api'
 import { appEntryHref } from '@/lib/apps-gallery'
-import { auth, getSession } from '@/lib/auth'
+import { getSession } from '@/lib/auth'
 import { routes } from '@/lib/routes'
+import { listApps, listStores, liveLogoUrl } from '@/lib/shell-data'
 import { storefrontOrigin } from '@/lib/storefront-origin'
 import SelectStore from './select-store/select-store'
 
@@ -15,29 +14,29 @@ export default async function AdminLayout({ children }: { children: ReactNode })
   const session = await getSession()
   if (!session) redirect(routes.login())
 
-  const orgs = await auth().api.listOrganizations({ headers: await headers() })
+  const activeId =
+    (session.session as { activeOrganizationId?: string | null }).activeOrganizationId ?? null
+  // Everything else needs only the session, so it is read at once rather than one after
+  // another. Store calls for a stale active id answer "no store" on their own and are dropped
+  // below unless that store is one of the member's.
+  const [orgs, apps, logo, storefrontUrl] = await Promise.all([
+    listStores(),
+    activeId ? listApps().catch(() => []) : [],
+    activeId ? liveLogoUrl() : null,
+    storefrontOrigin(),
+  ])
   // No store at all yet: send them to create one, which shows the invite-only
   // screen instead of the wizard when they are not allowed to sign up.
   if (orgs.length === 0) redirect(routes.onboarding())
-  const activeId =
-    (session.session as { activeOrganizationId?: string | null }).activeOrganizationId ?? null
   const active = orgs.find((o) => o.id === activeId) ?? null
   // Every installed app gets a sidebar entry under Apps (its pages, or its settings page).
-  const apps = active
-    ? await call(appRouter.apps.list, undefined, { context: await serverContext() }).catch(() => [])
+  const appLinks = active
+    ? apps
+        .filter((a) => a.installed && a.id !== 'core')
+        .map((a) => ({ id: a.id, name: a.name, icon: a.admin.icon, href: appEntryHref(a) }))
     : []
-  const appLinks = apps
-    .filter((a) => a.installed && a.id !== 'core')
-    .map((a) => ({ id: a.id, name: a.name, icon: a.admin.icon, href: appEntryHref(a) }))
-
   // The sidebar's brand mark reuses the storefront theme's logo when the store has set one.
-  const themes = active
-    ? await call(appRouter.themes.list, undefined, { context: await serverContext() }).catch(
-        () => [],
-      )
-    : []
-  const liveTheme = themes.find((t) => t.role === 'main')
-  const logoUrl = liveTheme?.settings.brand.logo?.url ?? null
+  const logoUrl = active ? logo : null
   const storeOptions = orgs.map((o) => ({ id: o.id, name: o.name, slug: o.slug }))
 
   return (
@@ -51,7 +50,7 @@ export default async function AdminLayout({ children }: { children: ReactNode })
         }}
         stores={storeOptions}
         activeStoreId={active?.id ?? null}
-        storefrontUrl={await storefrontOrigin()}
+        storefrontUrl={storefrontUrl}
         apps={appLinks}
         logoUrl={logoUrl}
         // Test server only. A report is filed against a store, so none before one is picked.

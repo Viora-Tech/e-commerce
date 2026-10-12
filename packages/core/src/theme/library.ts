@@ -116,6 +116,24 @@ export async function getTheme(tx: StoreTx, id: string): Promise<ThemeRecord | n
 }
 
 /**
+ * The live theme's logo URL, or null: the admin sidebar's brand mark on every page load. Reads
+ * one JSON path of the live row instead of every theme's whole settings document.
+ */
+export async function liveThemeLogoUrl(tx: StoreTx): Promise<string | null> {
+  const [row] = await tx
+    .select({ url: sql<string | null>`${theme.settings} #>> '{brand,logo,url}'` })
+    .from(theme)
+    .where(eq(theme.role, 'main'))
+  return row?.url ?? null
+}
+
+/** The live theme's id, or null before the store has one. */
+export async function liveThemeId(tx: StoreTx): Promise<string | null> {
+  const [row] = await tx.select({ id: theme.id }).from(theme).where(eq(theme.role, 'main'))
+  return row?.id ?? null
+}
+
+/**
  * The live theme's settings for rendering. Read only: a store that predates the
  * theme table falls back to its legacy `store.theme` document, then the default.
  */

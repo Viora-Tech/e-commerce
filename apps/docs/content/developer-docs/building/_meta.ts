@@ -14,6 +14,7 @@ export default {
   'media-pipeline': 'Image pipeline',
   'live-globe': 'Live view globe',
   performance: 'Storefront performance',
+  'admin-performance': 'Admin performance',
   'customer-privacy': 'Customer privacy and accounts',
   'shopper-login': 'Shopper login options',
   'custom-domains': 'Custom domains',

@@ -10,6 +10,7 @@ import SettingsRow from '@/components/settings/settings-row'
 import { accountContent } from '@/data/account'
 import { useCopy, useRegion } from '@/hooks/use-copy'
 import { localize } from '@/lib/copy'
+import { loadHindi } from '@/lib/hindi'
 import type { Locale } from '@/lib/i18n'
 import { CLOCKS, type Region, regionCookie, WEEK_STARTS } from '@/lib/region'
 
@@ -33,9 +34,12 @@ export default function LanguageRegionPage() {
   }
 
   // Event handlers
-  // The toast speaks the new language: the page itself switches when the refresh lands.
-  const handleLanguage = (next: Locale) =>
+  // The toast speaks the new language (Hindi's copy loads on demand): the page itself switches
+  // when the refresh lands.
+  const handleLanguage = async (next: Locale) => {
+    if (next === 'hi') await loadHindi()
     toast.success(localize(accountContent, next).language.saved)
+  }
 
   const handleClock = (values: string[]) => {
     const clock = CLOCKS.find((c) => c === values[0])
