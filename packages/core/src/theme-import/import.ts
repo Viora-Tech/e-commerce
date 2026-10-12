@@ -42,11 +42,13 @@ import { buildReport, collectHandles, missingHandles, type Wanted } from './impo
 import { type ImportReport, isMainSection } from './report'
 import {
   extractSchema,
+  MAX_BLOCK_DEPTH,
   parseJsonTemplate,
   parseThemeJson,
   type ShopifyJsonTemplate,
   type ShopifySectionSchema,
   type ShopifySetting,
+  type ShopifyTemplateBlock,
 } from './schema'
 import { shopifyUrlToPath } from './settings-values'
 
@@ -135,6 +137,35 @@ function ourMainSection(key: TemplateKey): TemplateSection | null {
 }
 
 /**
+ * A section's (or block's) blocks in order, nested ones included: a product-tabs section's
+ * tabs hold the theme blocks shown inside each tab.
+ */
+function templateBlocks(
+  parent: Pick<ShopifyTemplateBlock, 'blocks' | 'block_order'>,
+  schema: ShopifySectionSchema | null,
+  hosted: Hosted,
+  depth: number,
+): LiquidBlockItem[] {
+  if (depth >= MAX_BLOCK_DEPTH) return []
+  const order = parent.block_order ?? Object.keys(parent.blocks ?? {})
+  return order.flatMap((id) => {
+    const b = parent.blocks?.[id]
+    if (!b) return []
+    const blockSchema = schema?.blocks?.find((x) => x.type === b.type)
+    const nested = templateBlocks(b, schema, hosted, depth + 1)
+    return [
+      {
+        id,
+        type: b.type,
+        ...(b.disabled ? { disabled: true } : {}),
+        settings: storedSettings(blockSchema?.settings, b.settings, hosted),
+        ...(nested.length ? { blocks: nested } : {}),
+      },
+    ]
+  })
+}
+
+/**
  * One JSON template (or group) as our template data. In a resource template (product,
  * collection, page) the theme's first main section becomes ours and any further one is
  * dropped (ours covers it); every other section stays the theme's own. A product or
@@ -159,20 +190,7 @@ function toTemplateData(
     }
     if (!schemas.has(s.type)) return []
     const schema = schemas.get(s.type) ?? null
-    const order = s.block_order ?? Object.keys(s.blocks ?? {})
-    const blocks: LiquidBlockItem[] = order.flatMap((id) => {
-      const b = s.blocks?.[id]
-      if (!b) return []
-      const blockSchema = schema?.blocks?.find((x) => x.type === b.type)
-      return [
-        {
-          id,
-          type: b.type,
-          ...(b.disabled ? { disabled: true } : {}),
-          settings: storedSettings(blockSchema?.settings, b.settings, hosted),
-        },
-      ]
-    })
+    const blocks = templateBlocks(s, schema, hosted, 0)
     return [
       {
         type: LIQUID_SECTION,

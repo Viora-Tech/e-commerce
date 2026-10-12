@@ -1,6 +1,6 @@
 /** SOURCE OF TRUTH: imported sections as Puck data and editor fields — WHAT: how a Shopify section (settings, blocks) is stored in a theme template as a `LiquidSection` (prop keys, block items), how it reads back for the Liquid engine, and the editor fields generated from its `{% schema %}` / WHY: the importer writes this shape, the storefront and the canvas render from it, and Customize edits it; all three must agree. Browser safe */
 import type { ShopifySectionSchema, ShopifySetting } from './schema'
-import { isValueSetting } from './schema'
+import { isValueSetting, MAX_BLOCK_DEPTH } from './schema'
 
 /** The Puck component every imported section is stored as. */
 export const LIQUID_SECTION = 'LiquidSection'
@@ -28,6 +28,8 @@ export type LiquidBlockItem = {
   type: string
   disabled?: boolean | undefined
   settings: Record<string, unknown>
+  /** Nested theme blocks (a tab's contents), what `{% content_for 'blocks' %}` lists inside this block. */
+  blocks?: LiquidBlockItem[] | undefined
 }
 
 /** A `LiquidSection`'s props. Theme settings sit at the top level beside these. */
@@ -63,18 +65,24 @@ export function settingsToProps(settings: Record<string, unknown>): Record<strin
 
 /** Blocks out of props, defensively (saved data is data). */
 export function blocksFromProps(props: Record<string, unknown>): LiquidBlockItem[] {
-  const raw = props.blocks
-  if (!Array.isArray(raw)) return []
+  return blockItems(props.blocks, 0)
+}
+
+/** One level of saved blocks and, below it, their nested blocks (at most `MAX_BLOCK_DEPTH` deep). */
+function blockItems(raw: unknown, depth: number): LiquidBlockItem[] {
+  if (!Array.isArray(raw) || depth >= MAX_BLOCK_DEPTH) return []
   return raw.flatMap((b, i) => {
     if (!b || typeof b !== 'object') return []
     const item = b as Partial<LiquidBlockItem>
     if (typeof item.type !== 'string') return []
+    const nested = blockItems(item.blocks, depth + 1)
     return [
       {
         id: typeof item.id === 'string' && item.id ? item.id : `block_${i}`,
         type: item.type,
         disabled: item.disabled === true,
         settings: item.settings && typeof item.settings === 'object' ? item.settings : {},
+        ...(nested.length ? { blocks: nested } : {}),
       },
     ]
   })

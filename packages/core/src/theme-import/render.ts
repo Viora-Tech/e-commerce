@@ -1,20 +1,20 @@
 /** SOURCE OF TRUTH: rendering an imported Shopify theme — WHAT: the section, theme-block and layout renders the storefront and the editor canvas call (synchronous passes over the request's data cache), Shopify's section wrappers and the layout split around `<main>` / WHY: every imported section, on every page and in Customize, renders through this one path */
 import { parsed, type ThemeBundle } from './bundle'
 import type { FontDrop } from './drops'
-import { type EngineRuntime, renderBounded } from './engine'
+import { BLOCK_SCOPE, type EngineRuntime, renderBounded } from './engine'
 import { escapeAttr } from './filters'
-import type { LiquidPageContext, LiquidSectionInput } from './page-context'
+import type { LiquidBlockInput, LiquidPageContext, LiquidSectionInput } from './page-context'
 import type { ShopifySectionSchema } from './schema'
 import { liquidSettings } from './settings-values'
 
-/** Liquid-ready blocks: settings typed by the block schema, disabled ones left out. */
+/** Liquid-ready blocks: settings typed by the block schema, disabled ones left out, nested ones kept. */
 function sectionBlocks(
   ctx: LiquidPageContext,
   schema: ShopifySectionSchema | null,
-  section: LiquidSectionInput,
+  blocks: LiquidBlockInput[],
 ): Record<string, unknown>[] {
   const themeSettings = ctx.bundle.settings
-  const shown = section.blocks.filter((b) => !b.disabled && !b.type.startsWith('@app'))
+  const shown = blocks.filter((b) => !b.disabled && !b.type.startsWith('@app'))
   return shown.map((b) => {
     const local = schema?.blocks?.find((s) => s.type === b.type)
     const themeBlock = ctx.bundle.blocks.get(b.type)?.schema
@@ -24,7 +24,7 @@ function sectionBlocks(
       type: b.type,
       settings: liquidSettings(blockSchema, b.settings, ctx.cache, themeSettings),
       shopify_attributes: `data-block-id="${escapeAttr(b.id)}"`,
-      blocks: [],
+      blocks: sectionBlocks(ctx, schema, b.blocks ?? []),
     }
   })
 }
@@ -38,7 +38,7 @@ function sectionObject(ctx: LiquidPageContext, section: LiquidSectionInput) {
     index0: section.index,
     location: section.location,
     settings: liquidSettings(schema?.settings, section.settings, ctx.cache, ctx.bundle.settings),
-    blocks: sectionBlocks(ctx, schema, section),
+    blocks: sectionBlocks(ctx, schema, section.blocks),
   }
 }
 
@@ -139,12 +139,14 @@ function withHooks(ctx: LiquidPageContext): EngineRuntime {
       )
       return `<${wrapper.tag} id="${wrapper.id}" class="${wrapper.className}">${html}</${wrapper.tag}>`
     },
-    renderThemeBlock: (block, section, liquidCtx) => {
+    renderThemeBlock: (block, section, liquidCtx, depth) => {
       const b = block as { type?: string }
       const def = b.type ? ctx.bundle.blocks.get(b.type) : undefined
       if (!def || !b.type) return ''
       const tpl = parsed(ctx.entry, `blocks/${b.type}.liquid`, def.source)
-      return renderBounded(ctx.entry.engine, ctx.budget, tpl, { block, section }, liquidCtx.globals)
+      // The block's own scope: its `content_for 'blocks'` lists its children, one level deeper.
+      const scope = { block, section, [BLOCK_SCOPE.parent]: block, [BLOCK_SCOPE.depth]: depth }
+      return renderBounded(ctx.entry.engine, ctx.budget, tpl, scope, liquidCtx.globals)
     },
   }
 }
