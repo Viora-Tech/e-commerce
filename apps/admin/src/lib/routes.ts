@@ -131,6 +131,7 @@ export const routes = {
     pageContent: (pageId: string) => `/online-store/pages/${id(pageId)}/content`,
     blog: () => '/online-store/blog',
     preferences: () => '/online-store/preferences',
+    seo: () => '/online-store/seo',
   },
 
   apps: {

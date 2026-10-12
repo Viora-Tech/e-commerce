@@ -7,10 +7,10 @@ import { useCopy } from '@/hooks/use-copy'
 import { routes } from '@/lib/routes'
 
 type OnlineStoreTabsProps = {
-  active: 'themes' | 'preferences'
+  active: 'themes' | 'preferences' | 'seo'
 }
 
-/** The Themes | Preferences switch under the page title (Figma "Online store / Themes"). */
+/** The Themes | Preferences | SEO switch under the page title (Figma "Online store / Themes"). */
 export default function OnlineStoreTabs({ active }: OnlineStoreTabsProps) {
   // Hooks
   const tabs = useCopy(themesContent.tabs)
@@ -19,6 +19,7 @@ export default function OnlineStoreTabs({ active }: OnlineStoreTabsProps) {
   const items = [
     { id: 'themes', label: tabs.themes, href: routes.onlineStore.themes() },
     { id: 'preferences', label: tabs.preferences, href: routes.onlineStore.preferences() },
+    { id: 'seo', label: tabs.seo, href: routes.onlineStore.seo() },
   ] as const
 
   return (

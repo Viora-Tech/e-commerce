@@ -44,6 +44,7 @@ export const hindiPageNames: Record<string, { title: string; body?: string }> = 
   '/online-store/themes': { title: 'थीम' },
   '/online-store/pages': { title: 'पेज' },
   '/online-store/preferences': { title: 'प्राथमिकताएं' },
+  '/online-store/seo': { title: 'SEO' },
   '/apps': { title: 'ऐप्स' },
   '/settings': {
     title: 'Settings',
