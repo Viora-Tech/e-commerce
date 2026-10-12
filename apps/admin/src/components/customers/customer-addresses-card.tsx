@@ -86,6 +86,7 @@ export default function CustomerAddressesCard({ customer, onChanged }: CustomerA
               stateCode: snapshot.stateCode,
               pincode: snapshot.pincode,
               phone: snapshot.phone ?? '',
+              label: null,
               isDefault: true,
             },
           ]
