@@ -25,6 +25,8 @@ export type RecapInput = {
   digitalOnly: boolean
   /** The picked rate; null when shipping is free for the whole order. */
   rate: CheckoutRate | null
+  /** Free shipping's arrival line ("Arrives Tue, 14 Oct"), when there is no rate to carry one. */
+  arrives?: string | null
 }
 
 /** "+91 98765 43210" from the stored "+919876543210"; anything else as typed. */
@@ -39,15 +41,22 @@ const join = (parts: string[], sep: string): string =>
     .filter(Boolean)
     .join(sep)
 
-function deliveryValue(rate: CheckoutRate | null): string {
-  if (!rate) return content.delivery.free
+function deliveryValue(rate: CheckoutRate | null, arrives: string | null): string {
+  if (!rate) return join([content.delivery.free, arrives ?? ''], ' · ')
   const price = rate.pricePaise === 0 ? content.shippingFree : formatPaise(rate.pricePaise)
-  const dates = rate.dateRange ? content.rateDelivery(rate.dateRange) : ''
+  const dates = rate.arrives ?? (rate.dateRange ? content.rateDelivery(rate.dateRange) : '')
   return join([rate.name || content.delivery.standard, price, dates], ' · ')
 }
 
 /** The rows for every step before the current one. */
-export function recapRows({ step, steps, form, digitalOnly, rate }: RecapInput): RecapRow[] {
+export function recapRows({
+  step,
+  steps,
+  form,
+  digitalOnly,
+  rate,
+  arrives = null,
+}: RecapInput): RecapRow[] {
   const at = steps.indexOf(step)
   const rows: RecapRow[] = []
   if (at > steps.indexOf('address')) {
@@ -68,7 +77,7 @@ export function recapRows({ step, steps, form, digitalOnly, rate }: RecapInput):
   if (shipping !== -1 && at > shipping) {
     rows.push({
       label: content.recap.delivery,
-      value: deliveryValue(rate),
+      value: deliveryValue(rate, arrives),
       step: 'shipping',
       changeLabel: content.recap.changeDelivery,
     })

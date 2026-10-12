@@ -24,7 +24,6 @@ import {
   sharedRedis,
 } from '@commerce/queue'
 import {
-  computeDeliveryEstimate,
   describeCourierFailure,
   estimateDelivery,
   formatDeliveryRange,
@@ -32,6 +31,7 @@ import {
 } from '@commerce/shipping'
 import { eq } from 'drizzle-orm'
 import { itemTitle, parcelFrom, type ShopperParcel } from './parcels'
+import { arrivalLabel, fastestRate, type RateWindow, rateWindow } from './rate-dates'
 
 const env = () => loadEnv(process.env)
 
@@ -121,6 +121,10 @@ export type CheckoutRate = {
   dateRange: string | null
   /** Replaces the store's COD fee when the shopper pays on delivery; null keeps the store's. */
   codSurchargePaise: number | null
+  /** "Arrives tomorrow, Sat 11 Oct": the option card's date line (`lib/rate-dates.ts`). */
+  arrives: string | null
+  /** The option that arrives first, when the options do not all arrive together. */
+  fastest: boolean
 }
 
 export type CheckoutShipping = {
@@ -132,27 +136,52 @@ export type CheckoutShipping = {
   rates: { kind: 'free' } | { kind: 'none' } | { kind: 'rates'; options: CheckoutRate[] }
   /** "Ships in 2 parcels": filled only when the order would split across warehouses. */
   parcels: ShopperParcel[]
+  /** The courier's (or the store's default) arrival for this PIN code, for free shipping. */
+  arrives: string | null
 }
 
-/** A rate's own delivery promise, or the courier's when the rate sets none. */
-function rateRange(
-  option: ShippingRateOption,
+/** The options as cards: each with its window (`rateWindow`), its date line and the fastest flag. */
+function datedRates(
+  options: ShippingRateOption[],
   settings: ShippingSettings,
   delivery: DeliveryEstimate,
-): string | null {
-  const fallback = delivery.ok && delivery.serviceable ? delivery.dateRange : null
-  if (option.minTransitDays === null || option.maxTransitDays === null) return fallback
-  try {
-    const e = computeDeliveryEstimate({
-      now: new Date(),
-      minTransitDays: option.minTransitDays,
-      maxTransitDays: option.maxTransitDays,
-      policy: toShippingPolicy(settings),
-    })
-    return formatDeliveryRange(e.earliestDate, e.latestDate)
-  } catch {
-    return fallback
+  now: Date,
+): CheckoutRate[] {
+  const policy = toShippingPolicy(settings)
+  const cheapest = Math.min(...options.map((o) => o.pricePaise))
+  const dated = options.map((o, i) => ({
+    o,
+    window: rateWindow({
+      rate: o,
+      // The first of the cheapest options is the courier's standard service.
+      standard:
+        o.pricePaise === cheapest && options.findIndex((x) => x.pricePaise === cheapest) === i,
+      delivery,
+      policy,
+      now,
+    }),
+  }))
+  const fastest = fastestRate(dated)
+  return dated.map(({ o, window }) => ({
+    id: o.rateId,
+    name: o.name,
+    pricePaise: o.pricePaise,
+    dateRange: window ? formatDeliveryRange(window.earliest, window.latest) : null,
+    codSurchargePaise: o.codSurchargePaise,
+    arrives: window ? arrivalLabel(window, now, policy.timeZone) : null,
+    fastest: fastest?.o === o,
+  }))
+}
+
+/** The delivery estimate's own arrival line (free shipping has no options to date). */
+function deliveryArrives(delivery: DeliveryEstimate, settings: ShippingSettings, now: Date) {
+  if (!delivery.ok || !delivery.serviceable) return null
+  const window: RateWindow = {
+    earliest: delivery.earliestDate,
+    latest: delivery.latestDate,
+    source: delivery.fallback ? 'policy' : 'courier',
   }
+  return arrivalLabel(window, now, toShippingPolicy(settings).timeZone)
 }
 
 /**
@@ -167,27 +196,22 @@ export async function checkoutShipping(
 ): Promise<CheckoutShipping> {
   const delivery = await estimateForPincode(tx, storeId, to.pincode)
   if (!delivery.ok || !delivery.serviceable) {
-    return { delivery, rates: { kind: 'none' }, parcels: [] }
+    return { delivery, rates: { kind: 'none' }, parcels: [], arrives: null }
   }
   const split = await checkoutParcels(tx, storeId, cartId, to)
   const parcels = split.length > 1 ? split : []
   const quote = await quoteCartShipping({ storeId, tx }, cartId, to)
-  if (quote.kind === 'not_configured') return { delivery, rates: { kind: 'free' }, parcels }
-  if (quote.kind === 'no_rates') return { delivery, rates: { kind: 'none' }, parcels }
   const settings = await loadShippingSettings(tx, storeId)
+  const now = new Date()
+  const arrives = deliveryArrives(delivery, settings, now)
+  if (quote.kind === 'not_configured')
+    return { delivery, rates: { kind: 'free' }, parcels, arrives }
+  if (quote.kind === 'no_rates') return { delivery, rates: { kind: 'none' }, parcels, arrives }
   return {
     delivery,
     parcels,
-    rates: {
-      kind: 'rates',
-      options: quote.options.map((o) => ({
-        id: o.rateId,
-        name: o.name,
-        pricePaise: o.pricePaise,
-        dateRange: rateRange(o, settings, delivery),
-        codSurchargePaise: o.codSurchargePaise,
-      })),
-    },
+    arrives,
+    rates: { kind: 'rates', options: datedRates(quote.options, settings, delivery, now) },
   }
 }
 

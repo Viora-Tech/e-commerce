@@ -19,6 +19,7 @@ export type CheckoutIconName =
   | 'trash'
   | 'plus'
   | 'user'
+  | 'bolt'
   | 'spinner'
 
 type CheckoutIconProps = {
@@ -105,6 +106,7 @@ const PATHS: Record<CheckoutIconName, ReactNode> = {
       <path d="M5 19.5c1.2-3.2 3.8-5 7-5s5.8 1.8 7 5" />
     </>
   ),
+  bolt: <path d="M13 3.5L5.5 13.5H12l-1 7 7.5-10H12z" />,
   spinner: <path d="M12 3.5a8.5 8.5 0 1 1-8.5 8.5" />,
 }
 

@@ -107,6 +107,7 @@ export default function CheckoutForm(props: CheckoutFormProps) {
             form: ck.form,
             digitalOnly,
             rate: rate ?? null,
+            arrives: shipping?.arrives ?? null,
           })}
           onChange={ck.handleGoto}
         />
