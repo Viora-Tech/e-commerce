@@ -54,6 +54,38 @@ Bring it down with `docker compose --profile observability down` (add `-v` to dr
 - **Environment/release**: every event carries `environment` (`SENTRY_ENVIRONMENT`, or
   `NODE_ENV`) and `release` (`SENTRY_RELEASE`) when set.
 
+## Browser errors
+
+The admin and storefront also report errors thrown in the browser, to the same GlitchTip project
+as their server side, and only when `SENTRY_DSN` is set.
+
+- **Runtime DSN.** The image is built once and env is set at deploy, so the DSN is not baked in
+  with `NEXT_PUBLIC_*`. The root layout (admin `app/layout.tsx`, storefront
+  `app/-s/[storeId]/layout.tsx`) renders `<meta name="sentry-browser">` with the DSN,
+  environment and release only (`browserSentryMeta`); `instrumentation-client.ts` reads it and
+  starts the SDK. No tag, no SDK. A DSN is public by design. A meta tag runs no script, so the
+  nonce CSP is untouched; the CSP has no `connect-src`, so reports to the GlitchTip host are
+  allowed (if one is ever added, it must list the DSN's origin).
+- **Errors only.** `browserSentryOptions` (`packages/observability/src/browser-sentry-options.ts`):
+  no tracing (`tracesSampleRate: 0`), replay, sessions, client reports or default PII.
+  `beforeSend` drops noise (browser extensions, `ResizeObserver loop`, aborted or failed fetches
+  such as Safari's `Load failed`, `Script error.`, errors thrown by scripts on another origin),
+  sends each bug once per page load (30 events at most), removes query strings and hashes from
+  every URL, then runs `scrubPii`.
+- **Small.** Each app builds a bare `BrowserClient` with only the integrations an error needs
+  (`src/lib/browser-errors.ts`) instead of `Sentry.init`. The storefront loads that chunk after
+  the page has loaded and gone idle (about 25 KB gzipped, only when a DSN is set); errors thrown
+  before then are held (`queueEarlyBrowserErrors`) and sent once it starts. The admin loads it
+  up front, with breadcrumbs, and also reports what its route error boundary catches (errors
+  with a server digest are skipped: the server already reported them).
+- **"Report a bug"** in the admin keeps its own in-tab buffer (`lib/client-errors.ts`),
+  independent of GlitchTip.
+
+To try it: set `SENTRY_DSN`, restart the app, open a page, run
+`setTimeout(() => { throw new Error('browser test') })` in the devtools console (a plain
+`throw` typed in the console is not reported by browsers), and the event appears in the app's
+GlitchTip project with the page URL's query string removed.
+
 ## PII scrubbing
 
 Every event passes through `scrubPii` (`packages/observability/src/scrub-pii.ts`) in

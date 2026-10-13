@@ -1,3 +1,5 @@
+import { loadEnv } from '@commerce/config'
+import { browserSentryMeta } from '@commerce/observability'
 import type { Metadata } from 'next'
 import { Bricolage_Grotesque, DM_Sans, Geist_Mono } from 'next/font/google'
 import { headers } from 'next/headers'
@@ -48,6 +50,9 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
   const copy = localize(layoutContent, locale)
   // The script CSP's nonce for this request (`proxy.ts`): next-themes' no-flash script needs it.
   const nonce = (await headers()).get(NONCE_HEADER) ?? undefined
+  // The DSN, environment and release for browser error reporting, read per request (the image
+  // is built once, env is set at deploy); `instrumentation-client.ts` reads it back.
+  const sentry = browserSentryMeta(loadEnv(process.env))
 
   return (
     <html
@@ -62,6 +67,8 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
         className="min-h-svh bg-sidebar font-sans text-body text-foreground antialiased"
         suppressHydrationWarning
       >
+        {/* React hoists this into <head>. */}
+        {sentry ? <meta name={sentry.name} content={sentry.content} /> : null}
         <a
           href="#main"
           className="sr-only focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-50 focus:rounded-lg focus:bg-card focus:px-4 focus:py-2 focus:text-sm focus:font-medium focus:text-foreground focus:shadow-card focus:outline-none focus:ring-2 focus:ring-ring"
