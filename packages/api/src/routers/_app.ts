@@ -1,5 +1,6 @@
 import { protectedProcedure } from '../procedures'
 import { accountRouter } from './account'
+import { activityRouter } from './activity'
 import { aiRouter } from './ai'
 import { analyticsRouter } from './analytics'
 import { appearanceRouter } from './appearance'
@@ -51,6 +52,7 @@ import { themesRouter } from './themes'
 import { umamiRouter } from './umami'
 
 export const appRouter = {
+  activity: activityRouter,
   me: protectedProcedure.handler(({ context }) => context.session),
   account: accountRouter,
   store: storeRouter,

@@ -1,15 +1,15 @@
 'use client'
 
-import { AiIcon, Bell, ExternalLink, Search } from '@commerce/ui/icons'
+import { AiIcon, ExternalLink, Search } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Kbd } from '@commerce/ui/shadcn/kbd'
-import { Popover, PopoverContent, PopoverTrigger } from '@commerce/ui/shadcn/popover'
 import { SidebarTrigger } from '@commerce/ui/shadcn/sidebar'
 import { navigationContent } from '@/data/navigation'
 import { useCopy } from '@/hooks/use-copy'
 import { openAssistant } from '@/lib/assistant-events'
 import { openPalette } from '@/lib/palette-events'
 import MemberAvatar from '../account/member-avatar'
+import ActivityBell from './activity-bell'
 import ThemeToggle from './theme-toggle'
 import UserMenu from './user-menu'
 
@@ -69,15 +69,7 @@ export default function TopBar({ user, storefrontUrl, bugReports, scrolled = fal
           {copy.viewStore}
           <ExternalLink aria-hidden />
         </Button>
-        <Popover>
-          <PopoverTrigger aria-label={copy.notifications.label} className={ICON_BUTTON}>
-            <Bell className="size-[1.125rem]" strokeWidth={1.6} />
-          </PopoverTrigger>
-          <PopoverContent align="end" className="w-72">
-            <p className="text-body-strong">{copy.notifications.label}</p>
-            <p className="mt-1 text-body text-muted-foreground">{copy.notifications.empty}</p>
-          </PopoverContent>
-        </Popover>
+        <ActivityBell memberKey={user.email} className={ICON_BUTTON} />
         <ThemeToggle />
         <UserMenu
           user={user}
