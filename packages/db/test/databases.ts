@@ -23,7 +23,7 @@ import { runMigrations } from '../src/migrate'
 export async function prepareTestDatabases(workers: number): Promise<void> {
   const ownerUrl = process.env.DATABASE_URL_OWNER
   if (!ownerUrl) throw new Error('DATABASE_URL_OWNER missing; is .env.test loaded?')
-  await runMigrations(ownerUrl)
+  await migrateRetryingRoleRace(ownerUrl)
 
   const template = databaseName(ownerUrl)
   const copies = Array.from({ length: Math.max(1, workers) }, (_, i) =>
@@ -69,4 +69,23 @@ function adminConnection(ownerUrl: string): postgres.Sql {
   const url = new URL(ownerUrl)
   url.pathname = '/postgres'
   return postgres(url.toString(), { max: 1, onnotice: () => {} })
+}
+
+/**
+ * Migrations that change a role (`ALTER ROLE app SET …`, 0114) touch one catalog row shared by
+ * every database. Packages set up their test databases in parallel, so two can run that
+ * statement at once and Postgres fails one with "tuple concurrently updated". The migration
+ * ran in a transaction and rolled back, so running it again is safe. Production migrates once.
+ */
+async function migrateRetryingRoleRace(ownerUrl: string, attempts = 4): Promise<void> {
+  for (let i = 1; ; i++) {
+    try {
+      await runMigrations(ownerUrl)
+      return
+    } catch (err) {
+      const text = `${err instanceof Error ? err.message : ''} ${String((err as { cause?: unknown })?.cause ?? '')}`
+      if (i >= attempts || !text.includes('tuple concurrently updated')) throw err
+      await new Promise((resolve) => setTimeout(resolve, 250 * i + Math.random() * 250))
+    }
+  }
 }

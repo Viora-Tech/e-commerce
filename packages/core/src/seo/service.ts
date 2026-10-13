@@ -26,7 +26,7 @@ import {
 import { normalizeStorePath, seoBodyLinks } from './links'
 
 /** More than this many items and the report checks the first ones (by title) only. */
-export const SEO_REPORT_MAX_ITEMS = 5_000
+const SEO_REPORT_MAX_ITEMS = 5_000
 
 const blank = (column: typeof media.alt | typeof variant.barcode) =>
   sql`coalesce(trim(${column}), '') = ''`
