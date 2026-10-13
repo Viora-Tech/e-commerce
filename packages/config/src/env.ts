@@ -360,6 +360,33 @@ export function loadPlatformEmailEnv(source: Record<string, string | undefined>)
   return result.data
 }
 
+const backupSchema = shape.pick({
+  DATABASE_URL_OWNER: true,
+  NODE_ENV: true,
+  BACKUP_ENCRYPTION_KEY: true,
+  BACKUP_R2_ACCOUNT_ID: true,
+  BACKUP_R2_ACCESS_KEY_ID: true,
+  BACKUP_R2_SECRET_ACCESS_KEY: true,
+  BACKUP_R2_BUCKET: true,
+  BACKUP_LOCAL_DIR: true,
+})
+
+export type BackupEnv = z.infer<typeof backupSchema>
+
+/**
+ * Only what `scripts/backup-db.ts` and `scripts/restore-db.ts` read: the backup job runs as its
+ * own small app and should not need the app's other secrets (SETTINGS_SECRET, REDIS_URL…) just
+ * to pass the full schema. Blank values count as unset, as in `loadEnv`. Key names only in errors.
+ */
+export function loadBackupEnv(source: Record<string, string | undefined>): BackupEnv {
+  const result = backupSchema.safeParse(withoutBlanks(source))
+  if (!result.success) {
+    const keys = result.error.issues.map((i) => i.path.join('.')).join(', ')
+    throw new Error(`Invalid environment: ${keys}`)
+  }
+  return result.data
+}
+
 const aiSchema = z.object({ ...aiShape, NODE_ENV: z.string().optional() })
 
 export type AiEnv = z.infer<typeof aiSchema>

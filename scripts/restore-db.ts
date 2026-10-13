@@ -17,7 +17,7 @@ import { createInterface } from 'node:readline/promises'
 import { gunzipSync } from 'node:zlib'
 import { GetObjectCommand, ListObjectsV2Command, S3Client } from '@aws-sdk/client-s3'
 import { decryptBackup, isEncryptedBackup, parseBackupKey } from '@commerce/backup'
-import { loadEnv } from '@commerce/config'
+import { loadBackupEnv } from '@commerce/config'
 import { r2Endpoint } from '@commerce/storage-r2'
 
 function parseArgs(argv: string[]) {
@@ -55,7 +55,7 @@ async function confirm(message: string): Promise<void> {
 }
 
 async function main() {
-  const env = loadEnv(process.env)
+  const env = loadBackupEnv(process.env)
   const args = parseArgs(process.argv.slice(2))
 
   const accountId = env.BACKUP_R2_ACCOUNT_ID
