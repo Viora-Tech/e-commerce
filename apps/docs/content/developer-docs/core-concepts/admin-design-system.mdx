@@ -57,22 +57,20 @@ only go down.
 
 Values come from the Figma "Vextro" variable collection (Proofly light / dark).
 
-- **Dark layers.** Shell `#0B0C0E` (`--sidebar`) < content panel `#101114` (`--background`, edge
-  `--panel-border` white 6%) < card `#16171B` (gradient `--card-top` `#18191D` to `--card-bottom`
-  `#16171B`) < raised / popover `#1C1D22`. Small cool-tinted steps, never flat black. Inputs use
-  `--input-surface` (`#121316` dark, a step below the card; white light). Text is off-white:
-  `--foreground` `#E6E7EA`, headings `--ink-strong` `#F5F6F8`, `--muted-foreground` `#9AA0AB`,
-  `--muted-foreground-soft` `#858B95`; all clear WCAG AA on panel, card and popover.
-- **Dark lines.** One white-alpha scale on every layer: rows `--line-list` 5%, `--line` and
-  `--hairline` 6%, card edge `--border-soft` 7%, `--border` 9%, `--input` 10%, `--border-strong` 15%.
-- **Card recipe.** The `surface-card` utility (gradient, hairline, `--shadow-card`) is used by
-  `Card`, stat tiles, table cards and page states. Light is `0 1px 2px` + `0 4px 12px` at 6% / 4%;
-  dark is the hairline, a white 4% top highlight and a 1px contact shadow (no deep black spread).
-  Never on floating layers.
-- **Dark key.** The primary key is a deep well of the accent with pale ink (default `#2F416B` to
-  `#243459`, `#45598A` rim, `#E2EBFF` ink, a soft 22% glow), the twin of light's pale key with deep
-  ink. `darkKey()` in `@commerce/core/admin-accent` derives it for any picked accent, and the
-  stylesheet's `.dark` values are its output for the default blue (a test keeps them in sync).
+- **Dark layers (neutral, after CodeHelp's web app, 2026-10-14).** Page `#0F0F0F` (`--background`),
+  sidebar `#131213`, cards `#09090B` (a step deeper than the page), raised / popover `#18181B`.
+  No colour tint. Inputs sit on `--input-surface` `#0F0F0F`. Text: `--foreground` `#FCFCFC`,
+  `--ink-strong` `#FFFFFF`, `--muted-foreground` `#A1A1AA`, `--muted-foreground-soft` `#8B8B94`.
+- **Dark lines.** Solid zinc: `--border` and `--input` `#27272A`, `--border-strong` `#3F3F46`,
+  `--border-soft` `#232326`, `--line` and `--hairline` `#1F1F22`, rows `--line-list` `#1C1C1F`.
+- **Card recipe.** The `surface-card` utility (`Card`, stat tiles, table cards, page states). Light is
+  `0 1px 2px` + `0 4px 12px` at 6% / 4%; dark is a flat card with a 1px `--border` ring (hover:
+  `--border-strong`). Never on floating layers.
+- **Dark key.** White with dark ink for every accent (`#FAFAFA` to `#F4F4F5`, `#18181B` ink), no glow.
+  Active nav pills and soft fills (`--accent`, `--sidebar-accent`, `--glass-active`) are neutral
+  `#27272A` with `#FAFAFA` ink. `darkKey()` in `@commerce/core/admin-accent` returns the key, and the
+  stylesheet's `.dark` values are its output (a test keeps them in sync). The picked accent shows in
+  links, focus rings, charts and text selection.
 - **Dark status tones.** Lifted hues on low-alpha fills: success `#5CC68C`, warning `#F0B65A`,
   danger `#F0756F`, info `#8FB0F7` at 10 to 12%. Solid fills (`bg-destructive`, `bg-success`)
   carry dark ink (`--*-foreground`), never white on a light tone.
