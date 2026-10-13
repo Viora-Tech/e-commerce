@@ -1,6 +1,7 @@
 import type { TranslationPair } from '@/lib/i18n'
 import abandonedDetail from './abandoned-detail'
 import account from './account'
+import activity from './activity'
 import ai from './ai'
 import analytics from './analytics'
 import apps from './apps'
@@ -69,6 +70,7 @@ import umami from './umami'
  * export: an array of `translation(...)` pairs) and spread it in below.
  */
 export const hindiCopy: readonly TranslationPair[] = [
+  ...activity,
   ...account,
   ...apps,
   ...abandonedDetail,

@@ -220,7 +220,6 @@ export const navigationContent = {
   },
   toggleTheme: 'Toggle theme',
   openMenu: 'Open menu',
-  notifications: { label: 'Notifications', empty: 'Nothing to catch up on.' },
 } as const
 
 /** A section is active for its own path and everything nested under it; home only for itself. */

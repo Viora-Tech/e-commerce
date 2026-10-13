@@ -179,6 +179,5 @@ export default [
     },
     toggleTheme: 'थीम बदलें',
     openMenu: 'मेन्यू खोलें',
-    notifications: { label: 'नोटिफ़िकेशन', empty: 'अभी देखने को कुछ नया नहीं है।' },
   }),
 ]
