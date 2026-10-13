@@ -280,6 +280,7 @@ export const checkoutContent = {
   rateDelivery: (range: string) => `Delivery by ${range}`,
   total: 'Total',
   taxes: 'Inclusive of all taxes',
+  taxesIncluded: (gst: string) => `Includes ${gst} GST`,
   /** Deposit pre-orders: what is charged now and what is left for later. */
   dueToday: 'Due today',
   dueLater: 'Pre-order balance, due later',
