@@ -37,7 +37,7 @@ export default [
       empty: 'ठीक करने को कुछ नहीं। जांची गई हर चीज़ अच्छी है।',
       filters: { all: 'सभी', high: 'ज़्यादा असर', medium: 'मध्यम', low: 'कम' },
       severity: { high: 'ज़्यादा', medium: 'मध्यम', low: 'कम' },
-      resource: { product: 'प्रोडक्ट', collection: 'कलेक्शन', page: 'पेज' },
+      resource: { product: 'प्रोडक्ट', collection: 'कलेक्शन', page: 'पेज', menu: 'मेन्यू' },
       edit: 'बदलें',
       more: (n: number) => `${n} और दिखाएं`,
     },
@@ -59,6 +59,15 @@ export default [
       shopping_gtin_missing: () => 'Google Shopping के लिए किसी वेरिएंट पर बारकोड (GTIN) नहीं है।',
       handle_bad: (d: string | null) =>
         `वेब पता “${d}” छोटा, lowercase और hyphen से जुड़े शब्दों में होना चाहिए।`,
+      link_broken: (d: string | null) =>
+        `${d} का लिंक कहीं नहीं जाता: वह पेज अब नहीं है। लिंक ठीक करें या redirect जोड़ें।`,
+      link_old_store: (d: string | null) =>
+        `लिंक अब भी आपके पुराने Shopify स्टोर (${d}) पर जाता है; वह स्टोर बंद होने पर टूट जाएगा।`,
+      collection_empty: () => 'इस कलेक्शन में कोई लाइव प्रोडक्ट नहीं; शॉपर और Google को खाली पेज मिलता है।',
+      collection_image_missing: () => 'सर्च नतीजों और सोशल शेयर के लिए कलेक्शन इमेज नहीं है।',
+      category_missing: () => 'प्रोडक्ट कैटेगरी नहीं है; Google Shopping इससे प्रोडक्ट को सही जगह रखता है।',
+      page_thin: (d: string | null) =>
+        `पेज में ${d} शब्द हैं; थोड़ा और लिखने से सर्च और AI जवाबों में मदद मिलती है।`,
     },
   }),
 ]

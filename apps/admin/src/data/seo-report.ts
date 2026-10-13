@@ -34,7 +34,7 @@ export const seoReportContent = {
     empty: 'Nothing to fix. Everything checked looks good.',
     filters: { all: 'All', high: 'High impact', medium: 'Medium', low: 'Low' },
     severity: { high: 'High', medium: 'Medium', low: 'Low' },
-    resource: { product: 'Product', collection: 'Collection', page: 'Page' },
+    resource: { product: 'Product', collection: 'Collection', page: 'Page', menu: 'Menu' },
     edit: 'Edit',
     more: (n: number) => `Show ${n} more`,
   },
@@ -58,5 +58,15 @@ export const seoReportContent = {
     shopping_gtin_missing: () => 'No barcode (GTIN) on any variant for Google Shopping.',
     handle_bad: (d: string | null) =>
       `Web address “${d}” should be short, lowercase words joined by hyphens.`,
+    link_broken: (d: string | null) =>
+      `Link to ${d} goes nowhere: that page no longer exists. Fix the link or add a redirect.`,
+    link_old_store: (d: string | null) =>
+      `Link still points at your old Shopify store (${d}); it breaks when that store closes.`,
+    collection_empty: () =>
+      'No live products in this collection; shoppers and Google find an empty page.',
+    collection_image_missing: () => 'No collection image for search results and social shares.',
+    category_missing: () => 'No product category; Google Shopping uses it to place the product.',
+    page_thin: (d: string | null) =>
+      `Page has ${d} words; a little more helps search and AI answers.`,
   },
 }
