@@ -302,7 +302,7 @@ export const gatewayGuides: Record<'razorpay' | 'cashfree', GatewayGuide> = {
       },
       {
         title: 'Turn on payment updates',
-        body: 'In Account & Settings → Webhooks, press Add New Webhook. Paste the address and secret below, tick payment.captured, payment.failed and refund.processed, and save.',
+        body: 'In Account & Settings → Webhooks, press Add New Webhook. Paste the address and secret below, tick payment.captured, payment.failed, refund.processed and refund.failed, and save.',
       },
     ],
     fields: {

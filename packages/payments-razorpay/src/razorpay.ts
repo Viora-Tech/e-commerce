@@ -436,6 +436,18 @@ export class RazorpayProvider implements PaymentProvider {
           raw: body,
         }
       }
+      case 'refund.failed': {
+        const r = body.payload?.refund?.entity
+        if (!r) break
+        return {
+          type: 'refund.failed',
+          providerRef: pay?.order_id ?? '',
+          providerRefundId: r.id,
+          reason: 'Razorpay could not complete the refund',
+          orderId,
+          raw: body,
+        }
+      }
     }
     return { type: 'ignored', eventName: body.event ?? 'unknown', raw: body }
   }

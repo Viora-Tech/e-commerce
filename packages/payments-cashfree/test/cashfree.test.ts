@@ -494,6 +494,34 @@ describe('parseWebhook', () => {
     expect(r.ok && r.event.type).toBe('ignored')
   })
 
+  it('reports a cancelled refund as failed, so it stops counting as refunded', () => {
+    const body = JSON.stringify({
+      type: 'REFUND_STATUS_WEBHOOK',
+      data: {
+        refund: {
+          cf_refund_id: 43,
+          refund_id: 'rf_2',
+          order_id: 'o7_1',
+          refund_amount: 100,
+          refund_status: 'CANCELLED',
+        },
+      },
+    })
+    const p = new CashfreeProvider(config)
+    const r = p.parseWebhook({
+      rawBody: body,
+      headers: {
+        'x-webhook-signature': sign(ts, body),
+        'x-webhook-timestamp': ts,
+      },
+    })
+    expect(r.ok && r.event).toMatchObject({
+      type: 'refund.failed',
+      providerRef: 'o7_1',
+      providerRefundId: '43',
+    })
+  })
+
   it('rejects a bad signature', () => {
     const p = new CashfreeProvider(config)
     const r = p.parseWebhook({
