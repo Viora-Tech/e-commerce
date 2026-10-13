@@ -48,11 +48,11 @@ const settingsData = {
   },
 }
 
-async function pageContext(designMode = false) {
+async function pageContext(designMode = false, extra: Record<string, string> = {}) {
   const bundle = buildThemeBundle({
     themeId: 'theme-1',
     version: 'v1',
-    textFiles: textFiles(fixtureThemeZip()),
+    textFiles: textFiles(fixtureThemeZip({ extra })),
     assetChecksums: new Map([['section-hero.css', 'abc123']]),
     settings: settingsData,
   })
@@ -271,6 +271,46 @@ describe('rendering a section', () => {
     )
     expect(data.calls.filter((c) => c === 'product:mouse')).toHaveLength(1)
   })
+
+  it("renders a tab's own nested blocks inside it, never the section's again (product tabs)", async () => {
+    const { bundle, ctx } = await pageContext(false, {
+      'sections/tabs.liquid':
+        '<div class="tabs">{% content_for "blocks" %}</div>{% schema %}{"name":"Tabs","blocks":[{"type":"@theme"}]}{% endschema %}',
+      'blocks/_tab.liquid':
+        '<section data-tab="{{ block.settings.label }}">{% content_for "blocks" %}</section>{% schema %}{"name":"Tab","settings":[{"type":"text","id":"label","label":"Label"}],"blocks":[{"type":"@theme"}]}{% endschema %}',
+      'blocks/text.liquid':
+        '<p>{{ block.settings.text }}</p>{% schema %}{"name":"Text","settings":[{"type":"text","id":"text","label":"Text"}]}{% endschema %}',
+      'blocks/loop.liquid':
+        '<i>{% content_for "block", type: "loop", id: "self" %}</i>{% schema %}{"name":"Loop"}{% endschema %}',
+    })
+    const props = {
+      id: 'LiquidSection-tabs',
+      sectionType: 'tabs',
+      sectionKey: 'tabs',
+      blocks: [
+        {
+          id: 't1',
+          type: '_tab',
+          settings: { label: 'Details' },
+          blocks: [{ id: 'x', type: 'text', settings: { text: 'Cotton' } }],
+        },
+        {
+          id: 't2',
+          type: '_tab',
+          settings: { label: 'Care' },
+          blocks: [{ id: 'y', type: 'text', settings: { text: 'Hand wash' } }],
+        },
+        { id: 'l', type: 'loop', settings: {} },
+      ],
+    }
+    const section = liquidPlacement(props, bundle.sections.get('tabs')?.schema, 'template', 0)
+    const html = await renderLiquidSection(ctx, section)
+    expect(html).toContain('<section data-tab="Details"><p>Cotton</p></section>')
+    expect(html).toContain('<section data-tab="Care"><p>Hand wash</p></section>')
+    expect(html.match(/data-tab=/g)).toHaveLength(2)
+    // A block that places itself stops at Shopify's nesting limit instead of overflowing the stack.
+    expect(html.match(/<i>/g)).toHaveLength(8)
+  })
 })
 
 describe('setting values', () => {
@@ -389,6 +429,17 @@ describe('ids and fields', () => {
     expect(settingsFromProps({ heading: 'x', other: 1 }, schema)).toEqual({ heading: 'x' })
     expect(blocksFromProps({ blocks: [{ type: 'slide' }, 'junk'] })).toEqual([
       { id: 'block_0', type: 'slide', disabled: false, settings: {} },
+    ])
+    expect(
+      blocksFromProps({ blocks: [{ id: 't', type: '_tab', blocks: [{ id: 'x', type: 'text' }] }] }),
+    ).toEqual([
+      {
+        id: 't',
+        type: '_tab',
+        disabled: false,
+        settings: {},
+        blocks: [{ id: 'x', type: 'text', disabled: false, settings: {} }],
+      },
     ])
   })
 
