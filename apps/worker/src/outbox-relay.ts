@@ -9,6 +9,7 @@ import {
 } from '@commerce/core'
 import { getRegistries } from '@commerce/core/registries'
 import { type Db, storesWithUndispatchedOutboxEvents } from '@commerce/db'
+import { logger } from '@commerce/observability/logging'
 import {
   type IORedis,
   OUTBOX_RELAY_QUEUE,
@@ -56,7 +57,7 @@ export function createOutboxRelay(
     inventoryRestock: opts.inventoryRestock,
     domainRoutes: opts.domainRoutes,
     salesStoreId: loadEnv(process.env).PLATFORM_SALES_STORE_ID,
-    log: (message) => console.log(`[outbox] ${message}`),
+    log: (message) => logger.info(message, { area: 'outbox' }),
   }
   const queue = new Queue<OutboxRelayJob>(OUTBOX_RELAY_QUEUE, { connection })
   const worker = new Worker<OutboxRelayJob>(
@@ -73,10 +74,10 @@ export function createOutboxRelay(
           dispatched += r.dispatched
           failed += r.failed
         } catch (err) {
-          console.warn(`[outbox] store ${storeId} failed:`, err)
+          logger.warn('outbox relay failed', { storeId, error: err })
         }
       }
-      if (dispatched || failed) console.log(`[outbox] dispatched=${dispatched} failed=${failed}`)
+      if (dispatched || failed) logger.info('outbox relayed', { dispatched, failed })
       return { stores: storeIds.length, dispatched, failed }
     },
     { connection },

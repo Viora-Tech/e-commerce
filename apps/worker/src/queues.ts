@@ -6,8 +6,8 @@ export function createHeartbeat(connection: IORedis) {
   const queue = new Queue(HEARTBEAT_QUEUE, { connection })
   const worker = new Worker(
     HEARTBEAT_QUEUE,
-    async (job) => {
-      console.log(`[heartbeat] job ${job.id} at ${new Date().toISOString()}`)
+    async () => {
+      // Nothing to do: the job's wide event (`logWorkerJobs`) is the heartbeat.
     },
     { connection },
   )

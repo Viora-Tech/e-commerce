@@ -259,6 +259,15 @@ const shape = z.object({
   SENTRY_ENVIRONMENT: z.string().min(1).optional(),
   /** Release tag on every event, e.g. a git SHA. Unset means Sentry leaves it out. */
   SENTRY_RELEASE: z.string().min(1).optional(),
+  /**
+   * Structured logs (evlog): the full OTLP/HTTP logs URL, e.g. OpenObserve's
+   * `https://<host>/api/default/v1/logs`. Unset: logs go to stdout only. docs/ops/logging.md.
+   */
+  OTEL_EXPORTER_OTLP_LOGS_ENDPOINT: optionalOrBlank(z.url({ protocol: /^https?$/ })),
+  /** Headers for that endpoint, OTel style: `Authorization=Basic%20<base64>` (comma-separated, URL-encoded). */
+  OTEL_EXPORTER_OTLP_HEADERS: optionalOrBlank(z.string().min(1)),
+  /** Percent (0–100) of ordinary successful requests and jobs kept. Errors and slow ones are always kept. Default 20 in production, 100 elsewhere. */
+  LOG_SAMPLE_RATE: optionalOrBlank(z.coerce.number().min(0).max(100)),
   /** Cloudflare R2 credentials the backup script uploads to. Independent of a store's own R2 app config. */
   BACKUP_R2_ACCOUNT_ID: z.string().min(1).optional(),
   BACKUP_R2_ACCESS_KEY_ID: z.string().min(1).optional(),

@@ -13,6 +13,7 @@ import { headers } from 'next/headers'
 import { type NextRequest, NextResponse } from 'next/server'
 import { accountsOrigin } from '@/lib/accounts-host'
 import { currentCustomer } from '@/lib/customer-session'
+import { withEvlog } from '@/lib/request-log'
 import {
   cookieSecure,
   LOGIN_BROWSER_COOKIE,
@@ -31,7 +32,7 @@ const isSocial = (p: string): p is SocialProvider =>
  * to come back to and a hash of a random value kept in this browser's cookie, so the
  * hand-off can only complete in the browser that started it.
  */
-export async function GET(request: NextRequest, { params }: Params) {
+export const GET = withEvlog(async (request: NextRequest, { params }: Params) => {
   const { storeId, provider } = await params
   // The proxy set x-store-id from the hostname; the route param must agree.
   if ((await headers()).get('x-store-id') !== storeId) {
@@ -72,4 +73,4 @@ export async function GET(request: NextRequest, { params }: Params) {
     maxAge: START_TTL_MS / 1000,
   })
   return response
-}
+})

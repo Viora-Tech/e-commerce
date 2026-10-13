@@ -220,6 +220,7 @@
         "@sentry/bun": "^11.0.0",
         "bullmq": "^5.81.5",
         "drizzle-orm": "^0.45.2",
+        "evlog": "^2.30.1",
         "hono": "^4.13.8",
         "ioredis": "^5.10.1",
         "sharp": "^0.35.4",
@@ -286,6 +287,7 @@
       "devDependencies": {
         "@types/node": "^22.20.4",
         "dotenv": "^18.0.1",
+        "evlog": "^2.30.1",
         "fflate": "^0.8.3",
         "typescript": "~5.9.3",
         "vitest": "^4.1.11",
@@ -298,6 +300,7 @@
         "@better-auth/passkey": "1.7.6",
         "@commerce/config": "workspace:*",
         "@commerce/db": "workspace:*",
+        "@commerce/observability": "workspace:*",
         "better-auth": "1.7.6",
         "drizzle-orm": "^0.45.2",
       },
@@ -373,6 +376,7 @@
         "@commerce/money": "workspace:*",
         "@commerce/notifications": "workspace:*",
         "@commerce/notifications-ses": "workspace:*",
+        "@commerce/observability": "workspace:*",
         "@commerce/payments": "workspace:*",
         "@commerce/plugins": "workspace:*",
         "@commerce/shipping": "workspace:*",
@@ -542,6 +546,9 @@
     "packages/observability": {
       "name": "@commerce/observability",
       "version": "0.0.0",
+      "dependencies": {
+        "evlog": "^2.30.1",
+      },
       "devDependencies": {
         "@commerce/config": "workspace:*",
         "@types/node": "^22.20.4",
@@ -794,6 +801,7 @@
       "dependencies": {
         "@commerce/core": "workspace:*",
         "@commerce/dates": "workspace:*",
+        "@commerce/observability": "workspace:*",
         "bullmq": "^5.81.5",
         "ioredis": "^5.10.1",
       },
@@ -826,6 +834,7 @@
       "name": "@commerce/shipping",
       "version": "0.0.0",
       "dependencies": {
+        "@commerce/observability": "workspace:*",
         "@commerce/payments": "workspace:*",
       },
       "devDependencies": {
@@ -840,6 +849,7 @@
       "version": "0.0.0",
       "dependencies": {
         "@commerce/blocks": "workspace:*",
+        "@commerce/observability": "workspace:*",
         "@commerce/plugins": "workspace:*",
         "@commerce/shipping": "workspace:*",
       },
@@ -882,6 +892,7 @@
       "version": "0.0.0",
       "dependencies": {
         "@commerce/blocks": "workspace:*",
+        "@commerce/observability": "workspace:*",
         "@commerce/plugins": "workspace:*",
         "@commerce/shipping": "workspace:*",
       },
@@ -2749,6 +2760,8 @@
     "eventsource": ["eventsource@3.0.7", "", { "dependencies": { "eventsource-parser": "^3.0.1" } }, "sha512-CRT1WTyuQoD771GW56XEZFQ/ZoSfWid1alKGDYMmkt2yl8UXrVR4pspqWNEcqKvVIzg6PAltWjxcSSPrboA4iA=="],
 
     "eventsource-parser": ["eventsource-parser@3.1.1", "", {}, "sha512-EKN1vKAMcZ8MlYMpaNuxN6R9yakzH6uajHcHVTqWJzvu5pWw9DyhbP35HH8MVBQ+dZjAfDxk+A8NiR9KWaXiyQ=="],
+
+    "evlog": ["evlog@2.31.0", "", { "peerDependencies": { "@nestjs/common": ">=11.2.7", "@nuxt/kit": "^4.4.2", "@orpc/server": ">=1.15.4", "@tanstack/start-client-core": "^1.170.34", "ai": ">=6.0.168 <8.0.0", "elysia": ">=1.4.30", "eve": ">=0.30.0", "express": ">=5.2.1", "fastify": ">=5.12.5", "h3": "^1.15.11", "hono": ">=4.13.12", "next": ">=16.3.8", "nitro": "^3.0.260311-beta", "nitropack": "^2.13.4", "ofetch": "^1.5.1", "react": ">=19.3.0", "react-router": ">=7.18.4", "vite": "^7.0.0 || ^8.0.0" }, "optionalPeers": ["@nestjs/common", "@nuxt/kit", "@orpc/server", "@tanstack/start-client-core", "ai", "elysia", "eve", "express", "fastify", "h3", "hono", "next", "nitro", "nitropack", "ofetch", "react", "react-router", "vite"], "bin": { "evlog": "./bin/evlog.mjs" } }, "sha512-YG1LmtbbRcLs6wEfUawsCzvoHFYv/hjLj2eu3abqMc5ufKWQN2ebIDMlsfLj6Biyr5wPMV7CG9e9Dyig5Ocv2g=="],
 
     "execa": ["execa@9.6.1", "", { "dependencies": { "@sindresorhus/merge-streams": "^4.0.0", "cross-spawn": "^7.0.6", "figures": "^6.1.0", "get-stream": "^9.0.0", "human-signals": "^8.0.1", "is-plain-obj": "^4.1.0", "is-stream": "^4.0.1", "npm-run-path": "^6.0.0", "pretty-ms": "^9.2.0", "signal-exit": "^4.1.0", "strip-final-newline": "^4.0.0", "yoctocolors": "^2.1.1" } }, "sha512-9Be3ZoN4LmYR90tUoVu2te2BsbzHfhJyfEiAVfz7N5/zv+jduIfLrV2xdQXOHbaD6KgpGdO9PRPM1Y4Q9QkPkA=="],
 

@@ -86,6 +86,7 @@
     "@commerce/money": "workspace:*",
     "@commerce/notifications": "workspace:*",
     "@commerce/notifications-ses": "workspace:*",
+    "@commerce/observability": "workspace:*",
     "@commerce/payments": "workspace:*",
     "@commerce/plugins": "workspace:*",
     "@commerce/shipping": "workspace:*",

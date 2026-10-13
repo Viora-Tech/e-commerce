@@ -88,7 +88,10 @@ export function shipmentWebhooks(db: Db, settingsSecret: string, rateLimitStore:
     if (!outcome.ok) {
       return rejectWebhook(c, 'shipment-webhook', where, outcome.reason ?? 'rejected')
     }
-    console.log(`[shipment-webhook] ${providerId} applied ${outcome.applied.length} notice(s)`)
+    c.var.log?.set({
+      storeId,
+      webhook: { provider: providerId, applied: outcome.applied.length },
+    })
     return c.json(outcome)
   })
   return app

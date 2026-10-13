@@ -6,6 +6,7 @@ import {
 } from '@commerce/core'
 import { registriesForStore } from '@commerce/core/registries'
 import { type Db, store, storesWithOpenShipments, withStore } from '@commerce/db'
+import { logger } from '@commerce/observability/logging'
 import { type IORedis, Queue, SHIPPING_TRACK_QUEUE, Worker } from '@commerce/queue'
 import { eq } from 'drizzle-orm'
 
@@ -56,10 +57,19 @@ export function createShippingTracker(
             )
             updated += 1
             if (r.becameDelivered) {
-              console.log(`[shipping] ${row.waybill} delivered (order ${row.orderId})`)
+              logger.info('shipment delivered', {
+                storeId,
+                orderId: row.orderId,
+                waybill: row.waybill,
+              })
             }
           } catch (err) {
-            console.warn(`[shipping] track ${row.provider}/${row.waybill} failed:`, err)
+            logger.warn('shipment tracking failed', {
+              storeId,
+              provider: row.provider,
+              waybill: row.waybill,
+              error: err,
+            })
           }
         }
       }

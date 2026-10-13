@@ -20,8 +20,8 @@ export function createPurchaseDocumentWorker(connection: IORedis, db: Db) {
       QUEUE_LIMITS.purchaseDocuments,
       async (job) => {
         const { storeId, documentId } = job.data
+        // The job's wide event records the read with its storeId and documentId.
         await readPurchaseDocument({ db, storeId, documentId })
-        console.log(`[purchase-documents] store=${storeId} document=${documentId} read`)
       },
     ),
     // A long scanned Bill of Entry can take a minute or two to read.

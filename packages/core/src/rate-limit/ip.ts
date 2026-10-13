@@ -14,6 +14,8 @@
  * Never trust this for anything beyond rate limiting.
  */
 
+import { logger } from '@commerce/observability/logging'
+
 export type TrustedProxy = 'cloudflare' | 'none'
 
 export type ClientIpOptions = {
@@ -55,8 +57,9 @@ let warned = false
 function warnSharedBucketOnce(): void {
   if (warned) return
   warned = true
-  console.warn(
-    '[rate-limit] TRUSTED_PROXY is none and this request has no peer address: per-IP limits ' +
-      'share one bucket. Set TRUSTED_PROXY=cloudflare behind a Cloudflare-locked origin.',
+  logger.warn(
+    'TRUSTED_PROXY is none and this request has no peer address: per-IP limits share one ' +
+      'bucket. Set TRUSTED_PROXY=cloudflare behind a Cloudflare-locked origin.',
+    { area: 'rate-limit' },
   )
 }

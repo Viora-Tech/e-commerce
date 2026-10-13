@@ -96,6 +96,10 @@ x-app-env: &app-env
   # Release-tag Sentry events with the image's commit sha when IMAGE_TAG is pinned; override
   # with SENTRY_RELEASE, or leave both unset.
   SENTRY_RELEASE: ${SENTRY_RELEASE:-${IMAGE_TAG:-}}
+  # Structured logs: JSON on stdout always; also shipped over OTLP/HTTP when the endpoint is set.
+  OTEL_EXPORTER_OTLP_LOGS_ENDPOINT: ${OTEL_EXPORTER_OTLP_LOGS_ENDPOINT:-}
+  OTEL_EXPORTER_OTLP_HEADERS: ${OTEL_EXPORTER_OTLP_HEADERS:-}
+  LOG_SAMPLE_RATE: ${LOG_SAMPLE_RATE:-}
   # "Report a bug" button: test server only, off unless set. On needs GITHUB_ISSUES_TOKEN
   # (fine-grained, only Issues: write on GITHUB_ISSUES_REPO) or the apps refuse to start.
   BUG_REPORTS_ENABLED: ${BUG_REPORTS_ENABLED:-false}

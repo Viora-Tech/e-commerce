@@ -7,6 +7,7 @@ import { auth } from '@/lib/auth'
 import { db } from '@/lib/db'
 import { rateLimited } from '@/lib/rate-limit'
 import { readCappedBody } from '@/lib/read-capped-body'
+import { withEvlog } from '@/lib/request-log'
 
 /** Per organisation: generous enough for a bulk media import, tight enough to stop a runaway script. */
 const UPLOAD_RULE = { limit: 60, windowMs: 5 * 60_000 }
@@ -21,7 +22,7 @@ const UPLOAD_RULE = { limit: 60, windowMs: 5 * 60_000 }
  * never Next's static `public/` serving. R2 and other connections never
  * touch this route.
  */
-export async function PUT(request: Request) {
+export const PUT = withEvlog(async (request: Request) => {
   const session = await auth().api.getSession({ headers: request.headers })
   const organizationId = (session?.session as { activeOrganizationId?: string | null } | undefined)
     ?.activeOrganizationId
@@ -48,4 +49,4 @@ export async function PUT(request: Request) {
   await mkdir(dirname(path), { recursive: true })
   await writeFile(path, body.bytes)
   return new Response(null, { status: 204 })
-}
+})

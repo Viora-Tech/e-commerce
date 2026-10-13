@@ -17,6 +17,7 @@ import {
   themeImportFor,
 } from '@commerce/core'
 import type { StoreTx } from '@commerce/db'
+import { logger } from '@commerce/observability/logging'
 import { reviewsLiquidSource } from '@commerce/plugin-reviews/server'
 import { storeRegistries } from './apps.service'
 import { storageProviderFor } from './media.service'
@@ -51,7 +52,7 @@ export async function importThemeZip(
     if (err instanceof ThemeLibraryError) throw err
     // Never a bare 500: the merchant gets plain words, and the request's transaction
     // rolls back so no half-made theme stays behind.
-    console.error('theme import failed', { storeId, file: input.file.name, err })
+    logger.error('theme import failed', { storeId, file: input.file.name, error: err })
     throw new ThemeImportError(
       'THEME_IMPORT_INVALID',
       'We could not import this theme, and nothing was added. Try again; if it keeps failing, contact support with the file name.',

@@ -30,6 +30,7 @@
  * environment: each store ships on its own account.
  */
 
+import { logger } from '@commerce/observability/logging'
 import {
   COURIER_TIMEOUT_MS,
   CourierError,
@@ -562,7 +563,7 @@ export class DelhiveryProvider implements ShippingProvider {
     // from a stray one, so every webhook is refused until one is set (the
     // Connect page marks it required for automatic tracking).
     if (!this.config.webhookSecret) {
-      console.error('[delhivery] webhook received with no webhookSecret configured; refusing')
+      logger.error('webhook refused: no webhookSecret configured', { provider: 'delhivery' })
       throw new CourierError('auth', this.id, 'Delhivery webhook secret is not configured.')
     }
     const got = request.headers['x-webhook-token'] ?? request.headers.authorization ?? ''

@@ -9,6 +9,7 @@ import {
 } from '@commerce/core'
 import type { StoreTx } from '@commerce/db'
 import { store } from '@commerce/db'
+import { logger } from '@commerce/observability/logging'
 import type { StorageProvider, StorageRegistry } from '@commerce/storage'
 import { eq } from 'drizzle-orm'
 
@@ -107,7 +108,7 @@ async function verifyWithUploads(
   if (!creds.ok) return creds
   const origin = new URL(loadEnv(process.env).ADMIN_URL).origin
   const uploads = await checkBrowserUploads(provider, origin).catch((err) => {
-    console.error('[storage] browser upload check failed', { err })
+    logger.error('storage browser upload check failed', { error: err })
     return { ok: true as const } // never block on the check itself; the credential test passed
   })
   return uploads.ok ? creds : uploads
@@ -144,7 +145,7 @@ export async function testStorageConnection(
   } catch (err) {
     // Never echo the raw error: it can name internal hosts, ports and addresses (security
     // audit 2026-09-28 branch, ported 2026-10-06). The server log keeps it.
-    console.error('[storage] connection test failed', { providerId, err })
+    logger.error('storage connection test failed', { providerId, error: err })
     return { ok: false, message: `Could not test the ${factory.label} connection.` }
   }
 }

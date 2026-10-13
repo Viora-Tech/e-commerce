@@ -8,6 +8,7 @@ import {
   getPlatformEmail,
   recordMemberSignIn,
 } from '@commerce/core'
+import { logger } from '@commerce/observability/logging'
 import { headers } from 'next/headers'
 import { cache } from 'react'
 import { db } from './db'
@@ -44,9 +45,9 @@ export function auth(): MerchantAuth {
           return
         }
         if (!mayPrintCodes()) {
-          console.error(
-            '[otp] no platform email account (SENDER_EMAIL_PROVIDER=ses); code not sent',
-          )
+          logger.error('sign-in code not sent: no platform email account', {
+            senderEmailProvider: 'ses',
+          })
           throw new Error('Could not send the sign-in code. Try again in a minute.')
         }
         console.log(`[otp] ${type} code for ${email}: ${otp}`)

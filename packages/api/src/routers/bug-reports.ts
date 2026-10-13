@@ -5,6 +5,7 @@ import {
   rateLimitKey,
   retryAfterSeconds,
 } from '@commerce/core'
+import { logger } from '@commerce/observability/logging'
 import { ORPCError } from '@orpc/server'
 import { z } from 'zod'
 import { storeProcedureDetached } from '../procedures'
@@ -110,7 +111,11 @@ export const bugReportsRouter = {
       if (err instanceof GithubIssueError) {
         // The status helps whoever reads the server log; the member gets a plain sentence that
         // says what to fix (a bad token never succeeds on retry).
-        console.error(`[bug report] ${err.message} (repo ${env.GITHUB_ISSUES_REPO})`)
+        logger.error('bug report not filed', {
+          repo: env.GITHUB_ISSUES_REPO,
+          status: err.status,
+          error: err,
+        })
         throw new ORPCError('BAD_GATEWAY', {
           message: githubIssueProblem(err.status, env.GITHUB_ISSUES_REPO),
         })

@@ -8,6 +8,7 @@ import {
 } from '@commerce/core'
 import { registriesForStore } from '@commerce/core/registries'
 import { type Db, type StoreTx, storesWithMarketingWork, withStore } from '@commerce/db'
+import { logger } from '@commerce/observability/logging'
 import {
   ABANDONED_SWEEP_QUEUE,
   fairProcessor,
@@ -92,7 +93,7 @@ export function createMarketingWorker(connection: IORedis, db: Db, opts: Opts) {
           )
           steps += r.processed
         } catch (err) {
-          console.warn(`[marketing] tick for store ${storeId} failed:`, err)
+          logger.warn('marketing tick failed', { storeId, error: err })
         }
       }
       return { stores: storeIds.length, queued, enrolled, steps }
@@ -114,7 +115,7 @@ export function createMarketingWorker(connection: IORedis, db: Db, opts: Opts) {
         failed += r.failed
         if (r.done) break
       }
-      console.log(`[marketing] campaign ${campaignId}: ${sent} sent, ${failed} failed`)
+      // The job's wide event carries these counts as `result`, with storeId and campaignId.
       return { sent, failed }
     }),
     { connection, concurrency: QUEUE_LIMITS.marketingSend.concurrency },

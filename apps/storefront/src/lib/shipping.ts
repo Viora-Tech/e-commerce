@@ -16,6 +16,7 @@ import {
 import { registriesForStore } from '@commerce/core/registries'
 import type { StoreTx } from '@commerce/db'
 import { store } from '@commerce/db'
+import { logger } from '@commerce/observability/logging'
 import {
   cacheGet,
   cacheSet,
@@ -88,7 +89,11 @@ export async function estimateForPincode(
     } catch (err) {
       // Passing no provider below marks the estimate as a fallback without a second call.
       reachable = false
-      console.warn(`[shipping] ${provider.id} lookup failed: ${describeCourierFailure(err)}`)
+      logger.warn('courier serviceability lookup failed', {
+        storeId,
+        provider: provider.id,
+        reason: describeCourierFailure(err),
+      })
     }
   }
   return estimateDelivery({

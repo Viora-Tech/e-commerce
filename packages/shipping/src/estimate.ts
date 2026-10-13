@@ -11,6 +11,7 @@
  * the customer got. Returns plain objects; who is asking decides the transport.
  */
 
+import { logger } from '@commerce/observability/logging'
 import { CourierError } from './courier-error'
 import {
   computeDeliveryEstimate,
@@ -96,9 +97,10 @@ export async function estimateDelivery(input: {
       })
     } catch (error) {
       fallback = true
-      console.warn(
-        `[shipping] ${input.provider.id} lookup failed: ${describeCourierFailure(error)}`,
-      )
+      logger.warn('courier serviceability lookup failed', {
+        provider: input.provider.id,
+        reason: describeCourierFailure(error),
+      })
     }
   }
   if (!input.provider) fallback = true

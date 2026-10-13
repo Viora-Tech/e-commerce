@@ -7,6 +7,7 @@ import {
 } from '@commerce/core/media-pipeline'
 import { registriesForStore } from '@commerce/core/registries'
 import { type Db, media, withStore } from '@commerce/db'
+import { logger } from '@commerce/observability/logging'
 import {
   fairProcessor,
   type IORedis,
@@ -130,7 +131,11 @@ export function createMediaProcessWorker(
         await markMediaFailed(tx, job.data.mediaId, message)
       })
     } catch (markErr) {
-      console.error(`[media] could not mark ${job.data.mediaId} failed`, markErr)
+      logger.error('could not mark media failed', {
+        storeId: job.data.storeId,
+        mediaId: job.data.mediaId,
+        error: markErr,
+      })
     }
   })
 

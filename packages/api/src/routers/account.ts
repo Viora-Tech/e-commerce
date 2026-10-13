@@ -16,6 +16,7 @@ import {
   retryAfterSeconds,
   saveMemberAlertPrefs,
 } from '@commerce/core'
+import { logger } from '@commerce/observability/logging'
 import { ORPCError } from '@orpc/server'
 import { z } from 'zod'
 import type { ApiContext } from '../context'
@@ -259,7 +260,10 @@ export const accountRouter = {
         context.platformEmail ?? getPlatformEmail(),
       ).catch(() => 'refused' as const)
       if (notice !== 'sent') {
-        console.warn(`[account] email-changed notice to the old address: ${notice}`)
+        logger.warn('email-changed notice not sent', {
+          userId: context.session.user.id,
+          result: notice,
+        })
       }
       return { email: newEmail }
     }),

@@ -6,6 +6,8 @@
  * mirroring `NotificationQueue`/`AppEventQueue` in `../plugins/events.ts`.
  */
 
+import { logger } from '@commerce/observability/logging'
+
 export type MediaProcessJob = {
   storeId: string
   mediaId: string
@@ -59,6 +61,10 @@ export async function enqueueMediaProcess(
   try {
     await addMediaProcessJob(queue, job)
   } catch (err) {
-    console.error(`[media] could not enqueue processing for ${job.mediaId}`, err)
+    logger.error('could not enqueue media processing', {
+      storeId: job.storeId,
+      mediaId: job.mediaId,
+      error: err,
+    })
   }
 }

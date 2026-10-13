@@ -21,6 +21,7 @@ import {
   themeImportFor,
 } from '@commerce/core'
 import type { StoreTx } from '@commerce/db'
+import { logger } from '@commerce/observability/logging'
 import { reviewsLiquidSource } from '@commerce/plugin-reviews/server'
 import { headers } from 'next/headers'
 import { cache } from 'react'
@@ -328,7 +329,7 @@ export async function renderLiquidSections(
       const trace = live.start()
       const html = await renderLiquidSection(live.ctx, p.section, (err) => {
         trace.failed = true
-        console.error(`[liquid] ${p.type} failed to render`, err)
+        logger.error('liquid section failed to render', { storeId, section: p.type, error: err })
       })
       if (live.ctx.cache.missing) trace.failed = true
       // The theme's own `<script>` tags carry the nonce (written at parse time,
@@ -392,7 +393,7 @@ export async function liquidLayoutFor(
     const trace = live.start()
     const parts = await renderLiquidLayout(live.ctx, (err) => {
       trace.failed = true
-      console.error('[liquid] layout failed', err)
+      logger.error('liquid layout failed to render', { storeId, error: err })
     })
     if (live.ctx.cache.missing) trace.failed = true
     const layout: LiquidLayout = {

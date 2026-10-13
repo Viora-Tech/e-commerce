@@ -11,6 +11,7 @@ import {
   pdfFilename,
 } from '@commerce/plugin-gst-invoices/server'
 import { db } from '@/lib/db'
+import { withEvlog } from '@/lib/request-log'
 
 /* Local development storage lives under the admin app; point this process at
    the same folder so it can read the PDFs the worker wrote. */
@@ -25,7 +26,7 @@ const notFound = () => new Response('Not found', { status: 404 })
  * store, document and expiry, so it cannot be guessed from an order number
  * and stops working after 30 days. Invoices are never served by public URL.
  */
-export async function GET(req: Request, { params }: Params) {
+export const GET = withEvlog(async (req: Request, { params }: Params) => {
   const { storeId, id } = await params
   const url = new URL(req.url)
   const env = loadEnv(process.env)
@@ -62,4 +63,4 @@ export async function GET(req: Request, { params }: Params) {
       'x-robots-tag': 'noindex',
     },
   })
-}
+})

@@ -1,6 +1,7 @@
 import { storefrontOriginFor, storeNotificationChannels } from '@commerce/core'
 import { registriesForStore } from '@commerce/core/registries'
 import { type Db, product, variant, withStore } from '@commerce/db'
+import { logger } from '@commerce/observability/logging'
 import {
   availableStockFor,
   BACK_IN_STOCK_QUEUE,
@@ -87,7 +88,7 @@ export function createBackInStockWorker(connection: IORedis, db: Db, opts: BackI
               },
             },
           }),
-          log: (message) => console.log(`[back-in-stock] ${message}`),
+          log: (message) => logger.info(message, { area: 'back-in-stock', storeId }),
         },
         storeId,
         variantId,
