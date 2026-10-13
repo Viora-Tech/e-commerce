@@ -10,6 +10,7 @@ export default [
     empty: 'अभी देखने को कुछ नया नहीं है।',
     failed: 'गतिविधि लोड नहीं हो पाई।',
     attention: {
+      refundsFailed: (n: number) => `${n} रिफ़ंड गेटवे पर फ़ेल हुए: शॉपर को पैसे वापस नहीं मिले`,
       refundsNeeded: (n: number) => `${n} पेमेंट रिफ़ंड करने हैं (दो बार या कैंसल के बाद पेमेंट हुआ)`,
       outOfStock: (n: number) => `${n} आइटम स्टॉक में नहीं`,
       lowStock: (n: number) => `${n} आइटम का स्टॉक कम`,

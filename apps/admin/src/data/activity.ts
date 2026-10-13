@@ -7,6 +7,10 @@ export const activityContent = {
   empty: 'Nothing to catch up on.',
   failed: 'Could not load activity.',
   attention: {
+    refundsFailed: (n: number) =>
+      n === 1
+        ? '1 refund failed at the gateway: the shopper did not get the money back'
+        : `${n} refunds failed at the gateway: the shoppers did not get the money back`,
     refundsNeeded: (n: number) =>
       n === 1
         ? '1 payment to refund (paid twice or after cancelling)'

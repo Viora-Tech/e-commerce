@@ -16,6 +16,7 @@ The bell was a placeholder ("Nothing to catch up on"). It now shows two sections
 - `activity.feed` uses `canAny([orders.read, inventory.read, content.read])`, then shows each part only with its own
   permission.
 - Refreshed every minute while the tab is visible.
+- Also counts refunds that failed at the gateway in the last 30 days (status `failed`, set by the fix in #482): the shopper did not get the money back.
 - **The dot:** red means new events since this member last opened the bell. "Seen" is kept per member in this browser's
   localStorage, a convenience only. Amber means only attention items.
 

@@ -5,6 +5,7 @@ import {
   order,
   payment,
   product,
+  refund,
   returnRequest,
   type StoreTx,
   store,
@@ -20,6 +21,8 @@ export const ACTIVITY_DAYS = 7
 export const ACTIVITY_MAX = 25
 
 export type ActivityAttention = {
+  /** Refunds the gateway accepted and then failed (last 30 days): the shopper has no money back. */
+  refundsFailed: number
   refundsNeeded: number
   outOfStock: number
   lowStock: number
@@ -122,7 +125,22 @@ async function stockCounts(tx: StoreTx, storeId: string) {
   return { outOfStock: row?.out ?? 0, lowStock: row?.low ?? 0 }
 }
 
-async function countOf(tx: StoreTx, table: 'refunds' | 'returns' | 'media'): Promise<number> {
+async function countOf(
+  tx: StoreTx,
+  table: 'failedRefunds' | 'refunds' | 'returns' | 'media',
+): Promise<number> {
+  if (table === 'failedRefunds') {
+    const [failed] = await tx
+      .select({ n: sql<number>`count(*)::int` })
+      .from(refund)
+      .where(
+        and(
+          eq(refund.status, 'failed'),
+          gte(refund.createdAt, new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)),
+        ),
+      )
+    return failed?.n ?? 0
+  }
   const [row] =
     table === 'refunds'
       ? await tx
@@ -154,6 +172,7 @@ export async function loadActivityFeed(
   const stock = can(permissions.INVENTORY_READ)
   const files = can(permissions.CONTENT_READ)
   const attention: ActivityAttention = {
+    refundsFailed: orders ? await countOf(tx, 'failedRefunds') : 0,
     refundsNeeded: orders ? await countOf(tx, 'refunds') : 0,
     returnsRequested: orders ? await countOf(tx, 'returns') : 0,
     mediaFailed: files ? await countOf(tx, 'media') : 0,

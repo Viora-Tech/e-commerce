@@ -22,6 +22,7 @@ type ActivityBellProps = {
 const POLL_MS = 60_000
 
 const ATTENTION_LINK: Record<keyof ActivityAttention, () => string> = {
+  refundsFailed: () => routes.orders.list(),
   refundsNeeded: () => routes.orders.list(),
   outOfStock: () => routes.stock.inventory(),
   lowStock: () => routes.stock.inventory(),
@@ -30,6 +31,7 @@ const ATTENTION_LINK: Record<keyof ActivityAttention, () => string> = {
 }
 
 const ATTENTION_ORDER: readonly (keyof ActivityAttention)[] = [
+  'refundsFailed',
   'refundsNeeded',
   'returnsRequested',
   'outOfStock',
