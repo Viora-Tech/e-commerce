@@ -4,6 +4,8 @@ import {
   ASSISTANT_MAX_MESSAGE,
   ASSISTANT_PAGES,
   BULK_WRITE_FIELDS,
+  SEO_KEYWORD_LENGTH_MAX,
+  SEO_KEYWORDS_MAX,
   WRITER_LANGUAGES,
   WRITER_TONES,
   WRITING_QUALITIES,
@@ -34,7 +36,28 @@ import {
 } from '../services/ai/assistant/service'
 import { startBulkWrite } from '../services/ai/bulk.service'
 import { writeProduct } from '../services/ai/product-writer'
+import { suggestKeywords } from '../services/ai/seo-keywords'
 import { aiSettingsView, aiStatus, saveAiSettings } from '../services/ai/settings.service'
+
+const SeoKeywords = z
+  .array(z.string().trim().min(1).max(SEO_KEYWORD_LENGTH_MAX))
+  .max(SEO_KEYWORDS_MAX)
+  .default([])
+
+const SuggestKeywordsInput = z.object({
+  /** The saved product, for the Search Console queries of its page; null while it is new. */
+  productId: z.uuid().nullable().default(null),
+  title: z.string().trim().min(1).max(255),
+  productType: z.string().trim().max(255).default(''),
+  vendor: z.string().trim().max(255).default(''),
+  categoryId: z.string().trim().max(40).nullable().default(null),
+  /** The description as plain text. */
+  description: z.string().trim().max(5000).default(''),
+  minPricePaise: z.number().int().min(0).nullable().default(null),
+  maxPricePaise: z.number().int().min(0).nullable().default(null),
+  /** Keywords the product has now, so the suggestions build on them. */
+  current: SeoKeywords,
+})
 
 const WriteProductInput = z.object({
   title: z.string().trim().min(1).max(255),
@@ -45,6 +68,8 @@ const WriteProductInput = z.object({
   /** The current description as plain text, so the writer improves on it rather than starting over. */
   existingDescription: z.string().trim().max(5000).default(''),
   existingTags: z.array(z.string().trim().max(60)).max(50).default([]),
+  /** The product's search keywords, primary first: they steer the search title and description. */
+  keywords: SeoKeywords,
   /** The product's media in gallery order; the first few photos are sent. */
   mediaIds: z.array(z.uuid()).max(20).default([]),
   tone: z.enum(WRITER_TONES).default('friendly'),
@@ -125,6 +150,11 @@ export const aiRouter = {
   writeProduct: canDetached(permissions.PRODUCTS_WRITE)
     .input(WriteProductInput)
     .handler(({ context, input, signal }) => writeProduct(context, input, signal)),
+
+  /** "Suggest keywords" on the product page's Search keywords card. Suggests only: nothing is saved. */
+  suggestKeywords: canDetached(permissions.PRODUCTS_WRITE)
+    .input(SuggestKeywordsInput)
+    .handler(({ context, input, signal }) => suggestKeywords(context, input, signal)),
 
   /**
    * The AI bar on every admin page: a streamed answer (oRPC event iterator). Open to a member

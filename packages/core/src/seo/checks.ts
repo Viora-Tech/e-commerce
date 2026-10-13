@@ -1,4 +1,4 @@
-/** SOURCE OF TRUTH: the SEO report's rules — WHAT: the checks run over each live product, collection, page and menu (search title and description length, duplicates, image alt text, thin text, Google Shopping data, handles, empty collections, broken internal links and links to the old Shopify store) and the 0–100 score they add up to / WHY: one place decides what "good SEO" means for the report, the score and the "Fix with AI" list, so they never disagree. Pure: no database */
+/** SOURCE OF TRUTH: the SEO report's rules — WHAT: the checks run over each live product, collection, page and menu (search title and description length, duplicates, image alt text, thin text, chosen search keywords, Google Shopping data, handles, empty collections, broken internal links and links to the old Shopify store) and the 0–100 score they add up to / WHY: one place decides what "good SEO" means for the report, the score and the "Fix with AI" list, so they never disagree. Pure: no database */
 
 import { linkTarget, pathExists } from './links'
 
@@ -39,11 +39,12 @@ export type SeoIssueKind =
   | 'collection_image_missing'
   | 'category_missing'
   | 'page_thin'
+  | 'keyword_missing'
 
 /** Each kind's weight: how much one occurrence costs the score, and which AI field fixes it. */
 const SEO_RULES: Record<
   SeoIssueKind,
-  { severity: SeoSeverity; fixWithAi: 'seo' | 'altText' | 'description' | null }
+  { severity: SeoSeverity; fixWithAi: 'seo' | 'altText' | 'description' | 'keywords' | null }
 > = {
   title_missing: { severity: 'high', fixWithAi: 'seo' },
   description_missing: { severity: 'high', fixWithAi: 'seo' },
@@ -65,6 +66,7 @@ const SEO_RULES: Record<
   collection_image_missing: { severity: 'low', fixWithAi: null },
   category_missing: { severity: 'low', fixWithAi: null },
   page_thin: { severity: 'low', fixWithAi: null },
+  keyword_missing: { severity: 'low', fixWithAi: 'keywords' },
 }
 
 const SEVERITY_POINTS: Record<SeoSeverity, number> = { high: 10, medium: 4, low: 1 }
@@ -85,6 +87,8 @@ export type SeoItem = {
   vendor?: string | null | undefined
   hasBarcode?: boolean | undefined
   hasCategory?: boolean | undefined
+  /** How many search keywords the merchant chose; left out, the keyword check is skipped. */
+  keywordCount?: number | undefined
   /** Collections only. */
   productCount?: number | undefined
   hasImage?: boolean | undefined
@@ -119,7 +123,7 @@ export type SeoReport = {
   checked: Record<SeoResource, number>
   issues: SeoIssue[]
   /** Products whose issues "Fix with AI" can write, by field. */
-  fixable: { seo: string[]; altText: string[]; description: string[] }
+  fixable: { seo: string[]; altText: string[]; description: string[]; keywords: string[] }
 }
 
 const HANDLE = /^[a-z0-9]+(?:-[a-z0-9]+)*$/
@@ -177,6 +181,7 @@ function itemIssues(item: SeoItem): SeoIssue[] {
     if (!item.vendor?.trim()) add('shopping_brand_missing')
     if (!item.hasBarcode) add('shopping_gtin_missing')
     if (item.hasCategory === false) add('category_missing')
+    if (item.keywordCount === 0) add('keyword_missing')
   }
   if (item.resource === 'collection') {
     if (item.productCount === 0) add('collection_empty')
@@ -277,6 +282,7 @@ export function seoReport(items: readonly SeoItem[], links: SeoLinkContext = NO_
     seo: new Set<string>(),
     altText: new Set<string>(),
     description: new Set<string>(),
+    keywords: new Set<string>(),
   }
   for (const issue of issues) {
     const field = SEO_RULES[issue.kind].fixWithAi
@@ -295,6 +301,7 @@ export function seoReport(items: readonly SeoItem[], links: SeoLinkContext = NO_
       seo: [...fixable.seo],
       altText: [...fixable.altText],
       description: [...fixable.description],
+      keywords: [...fixable.keywords],
     },
   }
 }

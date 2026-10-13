@@ -1,12 +1,13 @@
 'use client'
 
-import type { ProductCopy } from '@commerce/ai/client'
+import { containsKeyword, type ProductCopy } from '@commerce/ai/client'
 import { type RichTextValue, richTextToPlainText } from '@commerce/richtext'
 import { cn } from '@commerce/ui/lib/utils'
 import { Badge } from '@commerce/ui/shadcn/badge'
 import { Checkbox } from '@commerce/ui/shadcn/checkbox'
 import type { ReactNode } from 'react'
 import { aiContent } from '@/data/ai'
+import { seoKeywordsContent } from '@/data/seo-keywords'
 import { useCopy } from '@/hooks/use-copy'
 import { type ApplyPicks, newTags } from '@/lib/ai-product-copy'
 
@@ -19,16 +20,32 @@ type AiWriterPreviewProps = {
     seoDescription: string
     tags: string[]
   }
+  /** The product's primary search keyword, to say whether the search text uses it. */
+  primaryKeyword: string | null
   onPicks: (picks: ApplyPicks) => void
 }
 
 /** Now vs suggested for each part, each with its own "use this" tick. */
-export default function AiWriterPreview({ copy, picks, current, onPicks }: AiWriterPreviewProps) {
+export default function AiWriterPreview({
+  copy,
+  picks,
+  current,
+  primaryKeyword,
+  onPicks,
+}: AiWriterPreviewProps) {
   // Hooks
   const text = useCopy(aiContent)
+  const keywordCopy = useCopy(seoKeywordsContent.writer)
 
   // Helpers
   const toggle = (key: keyof ApplyPicks) => (on: boolean) => onPicks({ ...picks, [key]: on })
+  /* Whether a suggested search field uses the primary keyword; nothing without one. */
+  const keywordHint = (value: string) => {
+    if (!primaryKeyword) return undefined
+    return containsKeyword(value, primaryKeyword)
+      ? keywordCopy.using(primaryKeyword)
+      : keywordCopy.missing(primaryKeyword)
+  }
 
   // Render logic
   const currentDescription = richTextToPlainText(current.description).trim()
@@ -85,6 +102,7 @@ export default function AiWriterPreview({ copy, picks, current, onPicks }: AiWri
       <PickRow
         id="seo-title"
         label={text.writer.fields.seoTitle}
+        hint={keywordHint(copy.seoTitle)}
         checked={picks.seoTitle}
         onChange={toggle('seoTitle')}
         now={current.seoTitle}
@@ -97,6 +115,7 @@ export default function AiWriterPreview({ copy, picks, current, onPicks }: AiWri
       <PickRow
         id="seo-description"
         label={text.writer.fields.seoDescription}
+        hint={keywordHint(copy.seoDescription)}
         checked={picks.seoDescription}
         onChange={toggle('seoDescription')}
         now={current.seoDescription}

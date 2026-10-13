@@ -1,3 +1,4 @@
+import { SEO_KEYWORD_LENGTH_MAX, SEO_KEYWORDS_MAX } from '@commerce/ai/client'
 import { z } from 'zod'
 
 export const ProductStatusSchema = z.enum(['draft', 'active', 'archived'])
@@ -62,6 +63,11 @@ export const ProductFieldsSchema = z
     tags: z.array(z.string().trim().min(1).max(50)).max(100).optional(),
     seoTitle: z.string().trim().max(70).nullable().optional(),
     seoDescription: z.string().trim().max(320).nullable().optional(),
+    /** Search keywords, primary first; left out means unchanged. They steer Write with AI only. */
+    seoKeywords: z
+      .array(z.string().trim().min(1).max(SEO_KEYWORD_LENGTH_MAX))
+      .max(SEO_KEYWORDS_MAX)
+      .optional(),
     /** Alternate product template (`product.<suffix>`); blank or null is the default. */
     templateSuffix: z
       .string()

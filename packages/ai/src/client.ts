@@ -1,7 +1,7 @@
 /**
  * Client-safe surface of the AI engine: feature names, model tiers, plans and quotas, the
- * assistant's limits and page context, the product writer's schema and choices. No SDK, no
- * environment, safe in `'use client'` components.
+ * assistant's limits and page context, the product writer's schema and choices, the SEO
+ * keyword schema and list helpers. No SDK, no environment, safe in `'use client'` components.
  */
 export {
   ASSISTANT_LIMITS,
@@ -49,6 +49,8 @@ export {
   BULK_WRITE_FIELDS,
   BULK_WRITE_MAX,
   type BulkWriteField,
+  bulkCallsPerProduct,
+  writesCopy,
 } from './product-writer/bulk'
 export {
   appendSpecs,
@@ -82,3 +84,20 @@ export {
   type SupplierInvoice,
   SupplierInvoiceSchema,
 } from './purchase-documents/schema'
+export {
+  addKeyword,
+  clampKeywords,
+  containsKeyword,
+  KEYWORD_INTENTS,
+  type KeywordIntent,
+  keywordList,
+  makePrimary,
+  mergeKeywords,
+  normaliseKeyword,
+  parseSuggestedKeywords,
+  SEO_KEYWORD_LENGTH_MAX,
+  SEO_KEYWORDS_MAX,
+  type SeoKeywordsOutput,
+  SeoKeywordsSchema,
+  type SuggestedKeyword,
+} from './seo-keywords/schema'

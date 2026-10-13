@@ -15,6 +15,7 @@ export function productRow(fields: ProductFields) {
     tags: dedupe(fields.tags ?? []),
     seoTitle: fields.seoTitle || null,
     seoDescription: fields.seoDescription || null,
+    ...(fields.seoKeywords === undefined ? {} : { seoKeywords: dedupe(fields.seoKeywords) }),
     ...(fields.templateSuffix === undefined
       ? {}
       : { templateSuffix: fields.templateSuffix || null }),

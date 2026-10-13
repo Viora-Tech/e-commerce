@@ -24,6 +24,7 @@ export const seoReportContent = {
     seo: (n: number) => `Write search titles and descriptions (${n})`,
     altText: (n: number) => `Write photo alt text (${n})`,
     description: (n: number) => `Write fuller product descriptions (${n})`,
+    keywords: (n: number) => `Suggest search keywords (${n})`,
     capped: (max: number) => `Up to ${max} products per run. Run it again for the rest.`,
     off: 'Turn on Write with AI in Settings → AI to fix these automatically.',
     nothing: 'Nothing for AI to write right now.',
@@ -68,5 +69,7 @@ export const seoReportContent = {
     category_missing: () => 'No product category; Google Shopping uses it to place the product.',
     page_thin: (d: string | null) =>
       `Page has ${d} words; a little more helps search and AI answers.`,
+    keyword_missing: () =>
+      'No search keywords chosen. Write with AI writes better search text around them.',
   },
 }
