@@ -46,6 +46,7 @@
     "./sender-email": "./src/sender-email/client.ts",
     "./metaobjects": "./src/metaobjects/client.ts",
     "./redirects": "./src/redirects/paths.ts",
+    "./search-console": "./src/search-console/insights.ts",
     "./marketing": "./src/marketing/client.ts",
     "./admin-accent": "./src/admin-accent/accent.ts",
     "./shipping-rates": "./src/shipping/rates.ts",

@@ -71,5 +71,9 @@ export const seoReportContent = {
       `Page has ${d} words; a little more helps search and AI answers.`,
     keyword_missing: () =>
       'No search keywords chosen. Write with AI writes better search text around them.',
+    low_ctr: (d: string | null) =>
+      `Shown ${d} times on Google, few clicks: improve its search title and description.`,
+    almost_page_one: (d: string | null) =>
+      `At position ${d} on Google, just off page 1: a sharper search title and description and a little more text can move it up.`,
   },
 }

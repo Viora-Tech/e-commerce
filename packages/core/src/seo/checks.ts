@@ -1,5 +1,6 @@
-/** SOURCE OF TRUTH: the SEO report's rules — WHAT: the checks run over each live product, collection, page and menu (search title and description length, duplicates, image alt text, thin text, chosen search keywords, Google Shopping data, handles, empty collections, broken internal links and links to the old Shopify store) and the 0–100 score they add up to / WHY: one place decides what "good SEO" means for the report, the score and the "Fix with AI" list, so they never disagree. Pure: no database */
+/** SOURCE OF TRUTH: the SEO report's rules — WHAT: the checks run over each live product, collection, page and menu (search title and description length, duplicates, image alt text, thin text, chosen search keywords, Google Shopping data, handles, empty collections, broken internal links and links to the old Shopify store, and, with Google Search Console connected, few clicks for many views and almost on page 1) and the 0–100 score they add up to / WHY: one place decides what "good SEO" means for the report, the score and the "Fix with AI" list, so they never disagree. Pure: no database */
 
+import { isAlmostPageOne, isLowCtr, type SearchStats } from '../search-console/insights'
 import { linkTarget, pathExists } from './links'
 
 /** What Google shows before cutting a title or description off (characters, roughly). */
@@ -40,6 +41,8 @@ export type SeoIssueKind =
   | 'category_missing'
   | 'page_thin'
   | 'keyword_missing'
+  | 'low_ctr'
+  | 'almost_page_one'
 
 /** Each kind's weight: how much one occurrence costs the score, and which AI field fixes it. */
 const SEO_RULES: Record<
@@ -67,7 +70,13 @@ const SEO_RULES: Record<
   category_missing: { severity: 'low', fixWithAi: null },
   page_thin: { severity: 'low', fixWithAi: null },
   keyword_missing: { severity: 'low', fixWithAi: 'keywords' },
+  // From Google Search Console: chances, not faults, so they never lower the score.
+  low_ctr: { severity: 'medium', fixWithAi: 'seo' },
+  almost_page_one: { severity: 'low', fixWithAi: 'seo' },
 }
+
+/** Issue kinds that come from Google's numbers and are left out of the score. */
+const UNSCORED: ReadonlySet<SeoIssueKind> = new Set(['low_ctr', 'almost_page_one'])
 
 const SEVERITY_POINTS: Record<SeoSeverity, number> = { high: 10, medium: 4, low: 1 }
 
@@ -94,6 +103,8 @@ export type SeoItem = {
   hasImage?: boolean | undefined
   /** Link URLs inside the item's text, as stored. */
   links?: readonly string[] | undefined
+  /** Its last 28 days on Google, when the Search Console app is connected. */
+  search?: SearchStats | undefined
 }
 
 /** One menu entry that points at a path inside the store. */
@@ -191,6 +202,14 @@ function itemIssues(item: SeoItem): SeoIssue[] {
     const words = wordCount(item.bodyText)
     if (words < SEO_LIMITS.thinPageWords) add('page_thin', String(words))
   }
+  if (item.search) {
+    // Detail: how often Google showed it, or its average position (one decimal).
+    if (isAlmostPageOne(item.search)) {
+      add('almost_page_one', item.search.position.toFixed(1))
+    } else if (isLowCtr(item.search)) {
+      add('low_ctr', String(item.search.impressions))
+    }
+  }
   return out
 }
 
@@ -274,7 +293,10 @@ export function seoReport(items: readonly SeoItem[], links: SeoLinkContext = NO_
       SEVERITY_ORDER[a.severity] - SEVERITY_ORDER[b.severity] || a.title.localeCompare(b.title),
   )
 
-  const lost = issues.reduce((sum, issue) => sum + SEVERITY_POINTS[issue.severity], 0)
+  const lost = issues.reduce(
+    (sum, issue) => (UNSCORED.has(issue.kind) ? sum : sum + SEVERITY_POINTS[issue.severity]),
+    0,
+  )
   const worst = Math.max(1, items.length) * SEVERITY_POINTS.high
   const score = items.length === 0 ? 100 : Math.max(0, Math.round(100 - (lost / worst) * 100))
 

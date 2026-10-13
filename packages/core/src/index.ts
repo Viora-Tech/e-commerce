@@ -215,6 +215,8 @@ export * from './returns/policy'
 export * from './returns/resolve'
 export * from './returns/rto'
 export * from './returns/service'
+export * from './search-console/insights'
+export * from './search-console/service'
 export * from './secret-rotation'
 export {
   decryptSecret,

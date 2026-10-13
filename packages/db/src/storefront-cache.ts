@@ -133,6 +133,7 @@ export const STOREFRONT_CACHE_EXEMPT: Record<string, string> = {
   role: ADMIN,
   role_permission: ADMIN,
   saved_report: ADMIN,
+  search_console_row: ADMIN,
   sender_email: ADMIN,
   shipment: SHOPPER,
   shipment_manifest: ADMIN,

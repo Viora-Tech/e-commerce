@@ -89,6 +89,38 @@ describe('seoReport', () => {
   })
 })
 
+describe('Google Search Console signals', () => {
+  const stats = (impressions: number, clicks: number, position: number) => ({
+    impressions,
+    clicks,
+    position,
+    ctr: impressions ? clicks / impressions : 0,
+  })
+
+  it('flags a page just off page 1 that Google shows often', () => {
+    expect(kinds(product({ search: stats(400, 4, 12.3) }))).toContain('almost_page_one')
+    expect(seoReport([product({ search: stats(400, 4, 12.3) })]).issues[0]?.detail).toBe('12.3')
+    expect(kinds(product({ search: stats(40, 0, 12) }))).not.toContain('almost_page_one')
+    expect(kinds(product({ search: stats(400, 4, 25) }))).not.toContain('almost_page_one')
+  })
+
+  it('flags many views near the top with few clicks', () => {
+    expect(kinds(product({ search: stats(2000, 5, 3) }))).toContain('low_ctr')
+    expect(kinds(product({ search: stats(2000, 300, 3) }))).not.toContain('low_ctr')
+    expect(kinds(product({ search: stats(100, 0, 3) }))).not.toContain('low_ctr')
+  })
+
+  it('never lowers the score, and offers Write with AI for the search title', () => {
+    const report = seoReport([product({ search: stats(2000, 5, 3) })])
+    expect(report.score).toBe(100)
+    expect(report.fixable.seo).toEqual(['p1'])
+  })
+
+  it('adds nothing without search numbers', () => {
+    expect(kinds(product())).toEqual([])
+  })
+})
+
 describe('seoBodyText', () => {
   it('reads Lexical JSON and legacy strings', () => {
     const lexical = { root: { children: [{ children: [{ text: 'Hello' }, { text: 'world' }] }] } }

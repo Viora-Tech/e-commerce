@@ -31,6 +31,7 @@ import { BALANCE_EVERY_MS, createPreorderBalanceJob } from './preorder-balance'
 import { createPurchaseDocumentWorker } from './purchase-documents'
 import { createConnection, createHeartbeat } from './queues'
 import { createReviewRequestSweep, REVIEW_REQUESTS_EVERY_MS } from './reviews'
+import { createSearchConsoleSweep, SEARCH_CONSOLE_EVERY_MS } from './search-console'
 import { createSenderEmailPoller, SENDER_CHECK_EVERY_MS } from './sender-email'
 import { shipmentWebhooks } from './shipments-webhook'
 import { createShippingTracker, TRACK_EVERY_MS } from './shipping'
@@ -116,6 +117,7 @@ const memberDailySummary = createMemberDailySummary(redis, db, {
   settingsSecret: env.SETTINGS_SECRET,
   adminUrl: env.ADMIN_URL,
 })
+const searchConsole = createSearchConsoleSweep(redis, db)
 const outboxRelay = createOutboxRelay(redis, db, {
   notifications,
   appEvents,
@@ -146,6 +148,7 @@ reportWorkerFailures(purchaseDocuments.worker, 'purchase-documents', reportError
 reportWorkerFailures(importSnapshots.worker, 'import-snapshot-cleanup', reportError)
 reportWorkerFailures(reviewRequests.worker, 'review-requests', reportError)
 reportWorkerFailures(memberDailySummary.worker, 'member-daily-summary', reportError)
+reportWorkerFailures(searchConsole.worker, 'search-console-sweep', reportError)
 
 await queue.upsertJobScheduler('heartbeat-every-minute', { every: 60_000 }, { name: 'tick' })
 await tracker.queue.upsertJobScheduler(
@@ -216,6 +219,11 @@ await memberDailySummary.queue.upsertJobScheduler(
   { every: DAILY_SUMMARY_EVERY_MS },
   { name: 'sweep' },
 )
+await searchConsole.queue.upsertJobScheduler(
+  'search-console-sweep',
+  { every: SEARCH_CONSOLE_EVERY_MS },
+  { name: 'sweep' },
+)
 
 const rateLimitStore = createRedisRateLimitStore(redis)
 
@@ -279,6 +287,9 @@ const shutdown = async () => {
   await reviewRequests.queue.close()
   await memberDailySummary.worker.close()
   await memberDailySummary.queue.close()
+  await searchConsole.worker.close()
+  await searchConsole.queue.close()
+  await searchConsole.appJobs.close()
   await queue.close()
   await notifications.close()
   redis.disconnect()

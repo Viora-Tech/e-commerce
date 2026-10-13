@@ -40,6 +40,7 @@ import { inboundShipmentsRouter, purchaseChargesRouter, suppliersRouter } from '
 import { redirectsRouter } from './redirects'
 import { returnsRouter } from './returns'
 import { reviewsRouter } from './reviews'
+import { searchConsoleRouter } from './search-console'
 import { seoRouter } from './seo'
 import { shipmentsRouter } from './shipments'
 import { shippingRouter } from './shipping'
@@ -101,6 +102,7 @@ export const appRouter = {
   forms: formsRouter,
   reviews: reviewsRouter,
   umami: umamiRouter,
+  searchConsole: searchConsoleRouter,
   dashboard: dashboardRouter,
   analytics: analyticsRouter,
   ai: aiRouter,
