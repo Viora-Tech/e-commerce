@@ -1,3 +1,8 @@
+import {
+  BROWSER_SENTRY_META,
+  queueEarlyBrowserErrors,
+  readBrowserSentryConfig,
+} from '@commerce/observability'
 import { config } from 'zod'
 
 /**
@@ -7,3 +12,27 @@ import { config } from 'zod'
  * unchanged.
  */
 config({ jitless: true })
+
+/* Browser errors go to GlitchTip only when the store layout rendered a DSN (`browserSentryMeta`).
+   The SDK is its own chunk, fetched once the page has loaded and gone idle, so it never competes
+   with the shopper's first paint; errors thrown before then are held and sent when it starts. */
+const early = queueEarlyBrowserErrors(window)
+
+function whenIdleAfterLoad(run: () => void) {
+  const idle = () =>
+    'requestIdleCallback' in window
+      ? requestIdleCallback(run, { timeout: 5000 })
+      : setTimeout(run, 1000)
+  if (document.readyState === 'complete') idle()
+  else window.addEventListener('load', idle, { once: true })
+}
+
+whenIdleAfterLoad(() => {
+  const meta = document.querySelector<HTMLMetaElement>(`meta[name="${BROWSER_SENTRY_META}"]`)
+  const sentry = readBrowserSentryConfig(meta?.content)
+  if (!sentry) return early.stop()
+  import('@/lib/browser-errors')
+    .then(({ startBrowserErrors }) => startBrowserErrors(sentry, early))
+    // The chunk failed to load (offline, a deploy replaced it): the page works without it.
+    .catch(() => early.stop())
+})

@@ -27,6 +27,13 @@ describe('storefront script CSP', () => {
     expect(csp.value).not.toContain('unsafe-eval')
   })
 
+  it('leaves fetches unrestricted, so browser error reports reach GlitchTip', () => {
+    for (const dev of [false, true]) {
+      const csp = scriptCsp({ nonce: 'abc', dev, frameAncestors: "frame-ancestors 'self'" })
+      expect(csp.value).not.toMatch(/connect-src|default-src/)
+    }
+  })
+
   it('only reports in development, with eval for React dev tooling', () => {
     const csp = scriptCsp({ nonce: 'abc', dev: true, frameAncestors: "frame-ancestors 'self'" })
     expect(csp.name).toBe('Content-Security-Policy-Report-Only')

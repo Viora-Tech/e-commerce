@@ -25,6 +25,7 @@ import {
   toNavLinks,
 } from '@commerce/core'
 import { navigationMenu, store } from '@commerce/db'
+import { browserSentryMeta } from '@commerce/observability'
 import { eq } from 'drizzle-orm'
 import type { Metadata, Viewport } from 'next'
 import { cookies, headers } from 'next/headers'
@@ -167,7 +168,12 @@ export default async function StoreLayout({ children, params }: Props) {
   const prefs = parsePreferences(current.preferences)
   const privacy = parseCustomerPrivacySettings(current.preferences)
   const officer = grievanceOfficerOf(current.preferences)
-  const adminOrigin = new URL(loadEnv(process.env).ADMIN_URL).origin
+  const env = loadEnv(process.env)
+  const adminOrigin = new URL(env.ADMIN_URL).origin
+  // The DSN, environment and release for browser error reporting, read per request (the image
+  // is built once, env is set at deploy); `instrumentation-client.ts` reads it back.
+  const sentry = browserSentryMeta(env)
+  const sentryMeta = sentry ? <meta name={sentry.name} content={sentry.content} /> : null
   // The script CSP's nonce for this request (`proxy.ts`); the tracking tags carry it.
   const nonce = (await headers()).get(NONCE_HEADER) ?? undefined
 
@@ -289,6 +295,7 @@ export default async function StoreLayout({ children, params }: Props) {
     return (
       <html lang="en" {...reactAttrs(liquid.htmlAttrs)} suppressHydrationWarning>
         <head>
+          {sentryMeta}
           {liquid.fontsHref ? <link rel="stylesheet" href={liquid.fontsHref} /> : null}
           {theme.brand.favicon ? <link rel="icon" href={theme.brand.favicon.url} /> : null}
         </head>
@@ -320,6 +327,7 @@ export default async function StoreLayout({ children, params }: Props) {
       {...themeRootAttrs(theme)}
     >
       <head>
+        {sentryMeta}
         {/* biome-ignore lint/security/noDangerouslySetInnerHtml: CSS is built only from ThemeSchema-validated hex colours, numbers and enums; no free-form user string reaches it. */}
         <style dangerouslySetInnerHTML={{ __html: themeToCss(theme) }} />
         {theme.brand.favicon ? <link rel="icon" href={theme.brand.favicon.url} /> : null}

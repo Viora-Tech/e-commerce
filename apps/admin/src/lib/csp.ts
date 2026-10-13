@@ -9,6 +9,10 @@
  * that understands nonces and `strict-dynamic` ignores both. Development adds
  * `'unsafe-eval'` (React's dev error stacks) and only reports, so the dev overlay and HMR
  * keep working; production enforces. `frame-ancestors 'self'` repeats `next.config.ts`.
+ *
+ * There is no `connect-src` (nor `default-src`), so fetches go anywhere: browser error reports
+ * to the GlitchTip host (`browserSentryMeta`, docs/ops/error-tracking.md) need no allowance.
+ * Adding `connect-src` later means listing that host (the SENTRY_DSN origin) in it.
  */
 
 export const NONCE_HEADER = 'x-nonce'

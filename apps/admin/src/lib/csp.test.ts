@@ -23,6 +23,12 @@ describe('admin script CSP', () => {
     expect(csp.value).toContain(ADMIN_FRAME_ANCESTORS)
   })
 
+  it('leaves fetches unrestricted, so browser error reports reach GlitchTip', () => {
+    for (const dev of [false, true]) {
+      expect(scriptCsp({ nonce: 'abc', dev }).value).not.toMatch(/connect-src|default-src/)
+    }
+  })
+
   it('only reports in development', () => {
     const csp = scriptCsp({ nonce: 'abc', dev: true })
     expect(csp.name).toBe('Content-Security-Policy-Report-Only')
