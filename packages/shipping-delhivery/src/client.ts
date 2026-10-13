@@ -17,6 +17,7 @@ export const DELHIVERY_STAGING_URL = 'https://staging-express.delhivery.com'
  *  left off rather than guessed at. */
 export const DELHIVERY_CAPABILITIES: ShippingCapability[] = [
   'serviceability',
+  'rates',
   'create_shipment',
   'label',
   'pickup',
