@@ -62,6 +62,7 @@ export const shopifyImportPlugin = definePlugin({
       { path: '', title: 'Imports', navLabel: 'Imports', icon: 'Download' },
       { path: 'csv', title: 'Upload CSV files', navLabel: 'CSV files', icon: 'Upload' },
       { path: 'connect', title: 'Connect Shopify', navLabel: 'Connect store', icon: 'Store' },
+      { path: 'settings', title: 'Store settings', navLabel: 'Store settings', icon: 'Settings' },
       { path: 'runs/[id]', title: 'Import' },
     ],
   },
