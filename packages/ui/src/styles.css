@@ -456,64 +456,65 @@
 }
 
 /*
- * Dark: the same layers as light, lifted in small cool-tinted steps (shell #0b0c0e < panel
- * #101114 < card #16171b < raised #1c1d22), never flat black and never grey-on-grey. Elevation
- * is a hairline plus a faint top highlight; black shadows only under floating layers. Text is
- * off-white (#e6e7ea body, #f5f6f8 titles), never pure white. Lines are white at one alpha
- * scale (0.05 rows .. 0.15 strong) so they read the same on every layer. The key button is a
- * deep well of the accent with pale ink, the twin of light's pale key with deep ink
- * (@commerce/core/admin-accent `darkKey`). Status tones are lifted for the dark canvas, on
- * low-alpha fills, with dark ink on any solid fill. Contrast: body and muted text clear WCAG AA
- * on card, popover and panel.
+ * Dark: neutral "zinc" layers after CodeHelp's web app (owner, 2026-10-14). No colour tint:
+ * page #0f0f0f, sidebar #131213, cards a step deeper #09090b, popovers and raised #18181b.
+ * Borders are solid zinc (#27272a; strong #3f3f46), text near-white #fcfcfc with #a1a1aa for
+ * secondary. The key button is white with dark ink for every accent (@commerce/core/admin-accent
+ * `darkKey`); active pills and soft fills are neutral #27272a. The merchant's accent shows only in
+ * links, focus rings, charts and selection. Status tones are lifted for the dark canvas.
  */
 .dark {
-  --shadow-kit-3: inset 0 1px 0 var(--highlight-06), 0 0 0 1px var(--border), 0 8px 24px -6px rgb(0 0 0 / 0.5);
-  --shadow-kit-6: inset 0 1px 0 var(--highlight-06), 0 0 0 1px var(--border), 0 24px 56px -12px rgb(0 0 0 / 0.65);
-  /* Card/Soft, dark: hairline, a faint top highlight and a 1px contact shadow. No deep spread. */
-  --shadow-card: inset 0 0 0 1px var(--border-soft), inset 0 1px 0 var(--card-highlight), 0 1px 2px 0 var(--card-edge);
-  --shadow-card-hover: inset 0 0 0 1px var(--border), inset 0 1px 0 var(--card-highlight), 0 1px 2px 0 var(--card-edge), 0 12px 28px -14px var(--card-shadow);
-  --shadow-glass: inset 0 1px 0 var(--glass-highlight), 0 0 0 1px var(--glass-border), 0 16px 40px -12px rgb(0 0 0 / 0.6);
-  --shadow-lift: 0 1px 1px 0 rgb(0 0 0 / 0.35);
-  --shadow-toggle: 0 1px 2px 0 rgb(0 0 0 / 0.4);
-  --highlight-06: rgb(255 255 255 / 0.06);
-  --card-highlight: rgb(255 255 255 / 0.04);
-  --card-edge: rgb(0 0 0 / 0.3);
-  --card-shadow: rgb(0 0 0 / 0.55);
-  --card-top: #18191d;
-  --card-bottom: #16171b;
+  /*
+   * Neutral "zinc" dark after CodeHelp's web app (owner, 2026-10-14: "its dark mode is way better
+   * and exceptionally good for the eyes"): no colour tint on surfaces, solid zinc borders, near-white
+   * text, white key buttons with dark ink. The merchant's accent stays for links, focus and charts.
+   */
+  --shadow-kit-3: 0 0 0 1px var(--border), 0 8px 24px -8px rgb(0 0 0 / 0.6);
+  --shadow-kit-6: 0 0 0 1px var(--border), 0 24px 56px -12px rgb(0 0 0 / 0.7);
+  --shadow-card: inset 0 0 0 1px var(--border);
+  --shadow-card-hover: inset 0 0 0 1px var(--border-strong);
+  --shadow-glass: 0 0 0 1px var(--glass-border), 0 16px 40px -12px rgb(0 0 0 / 0.7);
+  --shadow-lift: 0 1px 1px 0 rgb(0 0 0 / 0.4);
+  --shadow-toggle: 0 1px 2px 0 rgb(0 0 0 / 0.5);
+  --highlight-06: rgb(255 255 255 / 0.04);
+  --card-highlight: transparent;
+  --card-edge: transparent;
+  --card-shadow: rgb(0 0 0 / 0.6);
+  --card-top: #09090b;
+  --card-bottom: #09090b;
 
-  /* Layers */
-  --background: #101114;
-  --panel-border: rgb(255 255 255 / 0.06);
-  --foreground: #e6e7ea;
-  --card-foreground: #e6e7ea;
-  --ink-strong: #f5f6f8;
-  --brand-secondary: #1e2638;
-  --brand-secondary-foreground: #dce6ff;
-  --helper: #9aa0ab;
-  --card: #16171b;
-  --popover: #1c1d22;
-  --popover-foreground: #e6e7ea;
-  --raised: #1c1d22;
-  --input-surface: #121316;
-  --brand-wash: rgb(127 162 245 / 0.07);
-  --brand-wash-end: rgb(127 162 245 / 0.02);
-  --brand-border: rgb(127 162 245 / 0.28);
-  --brand-select: rgb(127 162 245 / 0.08);
-  --chip-neutral-text: #b4b9c2;
-  --media: #dfe1e6;
-  --media-tile: #dfe1e6;
-  --scrollbar-thumb: rgb(255 255 255 / 0.16);
-  --avatar: var(--primary-tint);
-  --avatar-foreground: var(--accent-foreground);
+  /* Layers: page #0f0f0f, cards a step deeper, popovers and raised a step lighter. */
+  --background: #0f0f0f;
+  --panel-border: #27272a;
+  --foreground: #fcfcfc;
+  --card-foreground: #fcfcfc;
+  --ink-strong: #ffffff;
+  --brand-secondary: #18181b;
+  --brand-secondary-foreground: #fafafa;
+  --helper: #a1a1aa;
+  --card: #09090b;
+  --popover: #18181b;
+  --popover-foreground: #fcfcfc;
+  --raised: #18181b;
+  --input-surface: #0f0f0f;
+  --brand-wash: rgb(255 255 255 / 0.03);
+  --brand-wash-end: rgb(255 255 255 / 0);
+  --brand-border: #3f3f46;
+  --brand-select: rgb(255 255 255 / 0.06);
+  --chip-neutral-text: #d4d4d8;
+  --media: #e4e4e7;
+  --media-tile: #e4e4e7;
+  --scrollbar-thumb: #3f3f46;
+  --avatar: #27272a;
+  --avatar-foreground: #fafafa;
 
-  --glass-bar: rgb(16 17 20 / 0.74);
-  --glass-popover: rgb(28 29 34 / 0.9);
-  --glass-border: rgb(255 255 255 / 0.08);
-  --glass-highlight: rgb(255 255 255 / 0.07);
-  --glass-scrim: rgb(4 5 7 / 0.6);
-  --glass-active: rgb(127 162 245 / 0.14);
-  --glass-active-ink: #e2ebff;
+  --glass-bar: rgb(15 15 15 / 0.82);
+  --glass-popover: rgb(24 24 27 / 0.94);
+  --glass-border: #27272a;
+  --glass-highlight: transparent;
+  --glass-scrim: rgb(0 0 0 / 0.65);
+  --glass-active: #27272a;
+  --glass-active-ink: #fafafa;
 
   --primary: #7fa2f5;
   --primary-foreground: #0e1430;
@@ -521,62 +522,62 @@
   --primary-tint: #1f283d;
   --link: #9db8f7;
   --link-soft: rgb(127 162 245 / 0.12);
-  --secondary: #1c1d22;
-  --secondary-foreground: #e6e7ea;
-  --muted: #1c1d22;
-  --muted-foreground: #9aa0ab;
-  --muted-foreground-soft: #858b95;
-  --accent: rgb(127 162 245 / 0.12);
-  --accent-foreground: #c3d3fa;
-  --chip-neutral: #23252b;
+  --secondary: #1f1f1f;
+  --secondary-foreground: #fafafa;
+  --muted: #27272a;
+  --muted-foreground: #a1a1aa;
+  --muted-foreground-soft: #8b8b94;
+  --accent: #27272a;
+  --accent-foreground: #fafafa;
+  --chip-neutral: #27272a;
 
-  --destructive: #f0756f;
+  --destructive: #f87171;
   --destructive-foreground: #1f0a0a;
-  --danger: #f0756f;
-  --danger-soft: rgb(240 117 111 / 0.12);
-  --success: #5cc68c;
-  --success-foreground: #04210f;
-  --success-soft: rgb(92 198 140 / 0.11);
-  --warning: #f0b65a;
+  --danger: #f87171;
+  --danger-soft: rgb(248 113 113 / 0.12);
+  --success: #4ade80;
+  --success-foreground: #052e16;
+  --success-soft: rgb(74 222 128 / 0.11);
+  --warning: #fbbf24;
   --warning-foreground: #1f1400;
-  --warning-soft: rgb(240 182 90 / 0.1);
-  --info: #8fb0f7;
+  --warning-soft: rgb(251 191 36 / 0.11);
+  --info: #93b4f8;
   --info-foreground: #0b1530;
-  --info-soft: rgb(143 176 247 / 0.12);
+  --info-soft: rgb(147 180 248 / 0.12);
 
-  --border: rgb(255 255 255 / 0.09);
-  --hairline: rgb(255 255 255 / 0.06);
-  --border-strong: rgb(255 255 255 / 0.15);
-  --border-soft: rgb(255 255 255 / 0.07);
-  --line: rgb(255 255 255 / 0.06);
-  --line-list: rgb(255 255 255 / 0.05);
-  --input: rgb(255 255 255 / 0.1);
+  --border: #27272a;
+  --hairline: #1f1f22;
+  --border-strong: #3f3f46;
+  --border-soft: #232326;
+  --line: #1f1f22;
+  --line-list: #1c1c1f;
+  --input: #27272a;
 
-  /* Key: darkKey('#7fa2f5'). */
-  --key-top: #2f416b;
-  --key-bottom: #243459;
-  --key-border: #45598a;
-  --key-edge: rgb(0 0 0 / 0.3);
-  --key-glow: rgb(127 162 245 / 0.22);
-  --key-ink: #e2ebff;
-  --key-highlight: rgb(255 255 255 / 0.14);
-  --key-neutral-top: #1f2025;
-  --key-neutral-bottom: #1a1b20;
-  --key-neutral-hover: #26272d;
-  --key-neutral-edge: rgb(0 0 0 / 0.35);
+  /* Key: darkKey(). White with dark ink for every accent, as on CodeHelp. */
+  --key-top: #fafafa;
+  --key-bottom: #f4f4f5;
+  --key-border: #ffffff;
+  --key-edge: rgb(0 0 0 / 0.4);
+  --key-glow: transparent;
+  --key-ink: #18181b;
+  --key-highlight: rgb(255 255 255 / 0.6);
+  --key-neutral-top: #18181b;
+  --key-neutral-bottom: #18181b;
+  --key-neutral-hover: #27272a;
+  --key-neutral-edge: rgb(0 0 0 / 0.4);
   --key-neutral-shadow: rgb(0 0 0 / 0.5);
-  --key-neutral-highlight: rgb(255 255 255 / 0.07);
+  --key-neutral-highlight: transparent;
 
   --chart-1: #7fa2f5;
   --chart-2: #5277c9;
   --chart-3: #34497f;
-  --chart-4: #737985;
-  --chart-5: #3d4049;
+  --chart-4: #71717a;
+  --chart-5: #3f3f46;
 
-  --sidebar: #0b0c0e;
-  --sidebar-foreground: #e6e7ea;
-  --sidebar-accent: rgb(127 162 245 / 0.12);
-  --sidebar-accent-foreground: #c3d3fa;
+  --sidebar: #131213;
+  --sidebar-foreground: #f4f4f5;
+  --sidebar-accent: #27272a;
+  --sidebar-accent-foreground: #fafafa;
 }
 
 /* Dark selection follows the accent; light keeps the system highlight. */

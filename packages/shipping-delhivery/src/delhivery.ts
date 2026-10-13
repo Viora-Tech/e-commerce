@@ -44,6 +44,8 @@ import {
   type NdrActionInput,
   type NdrActionResult,
   type ProviderField,
+  type RateQuery,
+  type RateQuote,
   type ReturnPickupInput,
   type SchedulePickupInput,
   type SchedulePickupResult,
@@ -103,12 +105,20 @@ type ServiceabilityResponse = { delivery_codes?: Array<{ postal_code?: PostalCod
 
 type TatResponse = { success?: boolean; data?: { tat?: number } }
 
+/** Invoice charges: an array with one row; `total_amount` is rupees including tax. */
+type ChargesResponse =
+  | Array<{ total_amount?: number | string }>
+  | { total_amount?: number | string }
+
+/** Delhivery's answer when `pickup_location` names no warehouse on the account. */
+const NO_WAREHOUSE = /ClientWarehouse matching query does not exist/i
+
 type WaybillResponse = string | { waybill?: string; response?: string }
 
 type CreateResponse = {
   success?: boolean
   rmk?: string
-  error?: string
+  error?: string | boolean
   packages?: Array<{ waybill?: string; status?: string; error?: string; remarks?: string[] }>
 }
 
@@ -284,6 +294,32 @@ export class DelhiveryProvider implements ShippingProvider {
     }
   }
 
+  /**
+   * Delhivery's own price for the parcel (Invoice charges API: chargeable weight, both PIN
+   * codes, Surface or Express, prepaid or COD), with its transit days. Null when Delhivery
+   * gives no usable number; the rate table then shows the courier without a price.
+   */
+  async quoteRate(query: RateQuery): Promise<RateQuote | null> {
+    const cod = query.paymentMode === 'cod'
+    const q = new URLSearchParams({
+      md: this.config.mode ?? 'S',
+      ss: 'Delivered',
+      o_pin: query.originPincode,
+      d_pin: query.destinationPincode,
+      cgm: String(Math.max(1, Math.round(query.weightGrams))),
+      pt: cod ? 'COD' : 'Pre-paid',
+      cod: cod ? (query.declaredValuePaise / 100).toFixed(2) : '0',
+    })
+    const [data, days] = await Promise.all([
+      this.getJson<ChargesResponse>(`/api/kinko/v1/invoice/charges/.json?${q}`),
+      this.transitDays(query.originPincode, query.destinationPincode),
+    ])
+    const row = Array.isArray(data) ? data[0] : data
+    const rupees = Number(row?.total_amount)
+    if (!Number.isFinite(rupees) || rupees <= 0) return null
+    return { pricePaise: Math.round(rupees * 100), minTransitDays: days, maxTransitDays: days }
+  }
+
   async reserveWaybill(): Promise<string> {
     const data = await this.getJson<WaybillResponse>('/waybill/api/bulk/json/?count=1')
     const waybill = typeof data === 'string' ? data : (data?.waybill ?? data?.response ?? '')
@@ -345,12 +381,21 @@ export class DelhiveryProvider implements ShippingProvider {
       (packages.length > 0 && packages.every((p) => !p.error && p.status !== 'Error'))
     if (!ok) {
       const detail = [
-        ...packages.map((p) => p.error ?? p.remarks?.join(' ')).filter(Boolean),
+        ...packages.map((p) => p.error ?? p.remarks?.join(' ')),
         result.rmk,
         result.error,
       ]
-        .filter(Boolean)
+        // `error` is sometimes the boolean `true`; only text explains anything.
+        .filter((d): d is string => typeof d === 'string' && d.trim() !== '')
         .join(' | ')
+      if (NO_WAREHOUSE.test(detail)) {
+        const name = payload.pickup_location.name
+        throw new CourierError(
+          'rejected',
+          this.id,
+          `Delhivery has no pickup location named "${name}". Open Delhivery → Settings → Pickup locations, copy the name exactly (Test mode uses Delhivery's staging account, which has its own pickup locations), then paste it in Apps → Delhivery → Connect → Pickup location name, or in Settings → Locations → courier pickup.`,
+        )
+      }
       throw new CourierError(
         'rejected',
         this.id,

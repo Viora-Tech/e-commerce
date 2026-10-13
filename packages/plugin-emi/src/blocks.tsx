@@ -1,4 +1,4 @@
-import { EmiOffersBlock, type EmiOffersContext } from '@commerce/blocks'
+import { EmiOffersBlock, type EmiOffersContext, formatPaise } from '@commerce/blocks'
 import type { AppBlockDefinition } from '@commerce/plugins'
 import { emiOffersCopy as copy } from './copy'
 import { EMI_PAY_LATER_ID } from './offer'
@@ -7,7 +7,9 @@ function render(props: { puck?: { metadata?: Record<string, unknown> } }) {
   const context = (
     props.puck?.metadata?.appBlockContext as { emiOffers?: EmiOffersContext | null } | undefined
   )?.emiOffers
-  return <EmiOffersBlock context={context} copy={copy} />
+  // Rendered on the server: hand the client block the finished line, not the copy function.
+  const label = context ? copy.label(formatPaise(context.monthlyPaise)) : ''
+  return <EmiOffersBlock context={context} copy={{ label, detail: copy.detail }} />
 }
 
 /**

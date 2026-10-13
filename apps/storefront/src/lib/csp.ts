@@ -12,6 +12,10 @@
  *
  * `frame-ancestors` repeats `next.config.ts` exactly (self plus the admin, which frames the
  * storefront in the theme editor), so the rule is the same whichever header a browser gets.
+ *
+ * There is no `connect-src` (nor `default-src`), so fetches go anywhere: browser error reports
+ * to the GlitchTip host (`browserSentryMeta`, docs/ops/error-tracking.md) need no allowance.
+ * Adding `connect-src` later means listing that host (the SENTRY_DSN origin) in it.
  */
 
 export const NONCE_HEADER = 'x-nonce'

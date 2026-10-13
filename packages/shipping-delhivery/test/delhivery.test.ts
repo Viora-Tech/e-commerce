@@ -250,6 +250,76 @@ describe('DelhiveryProvider', () => {
   })
 })
 
+describe('DelhiveryProvider rates', () => {
+  const query = {
+    originPincode: '131028',
+    destinationPincode: '560001',
+    weightGrams: 750,
+    declaredValuePaise: 249900,
+    paymentMode: 'prepaid' as const,
+  }
+
+  it("quotes Delhivery's invoice charge in paise with its transit days", async () => {
+    const f = fakeFetch({
+      '/api/kinko/v1/invoice/charges/.json': () => json([{ total_amount: 86.73 }]),
+      '/api/dc/expected_tat': () => json({ success: true, data: { tat: 4 } }),
+    })
+    const p = new DelhiveryProvider({ ...config, fetchImpl: f.impl })
+    expect(await p.quoteRate(query)).toEqual({
+      pricePaise: 8673,
+      minTransitDays: 4,
+      maxTransitDays: 4,
+    })
+    const charges = f.calls.find((c) => c.url.pathname.includes('invoice/charges'))?.url
+    expect(charges?.searchParams.get('md')).toBe('S')
+    expect(charges?.searchParams.get('ss')).toBe('Delivered')
+    expect(charges?.searchParams.get('cgm')).toBe('750')
+    expect(charges?.searchParams.get('pt')).toBe('Pre-paid')
+    expect(charges?.searchParams.get('o_pin')).toBe('131028')
+    expect(charges?.searchParams.get('d_pin')).toBe('560001')
+  })
+
+  it('asks for the COD amount on a COD parcel', async () => {
+    const f = fakeFetch({
+      '/api/kinko/v1/invoice/charges/.json': () => json([{ total_amount: '120' }]),
+      '/api/dc/expected_tat': () => json({ success: false }),
+    })
+    const p = new DelhiveryProvider({ ...config, fetchImpl: f.impl })
+    const r = await p.quoteRate({ ...query, paymentMode: 'cod' })
+    expect(r).toEqual({ pricePaise: 12000, minTransitDays: null, maxTransitDays: null })
+    const charges = f.calls.find((c) => c.url.pathname.includes('invoice/charges'))?.url
+    expect(charges?.searchParams.get('pt')).toBe('COD')
+    expect(charges?.searchParams.get('cod')).toBe('2499.00')
+  })
+
+  it('returns null when Delhivery gives no usable price', async () => {
+    const f = fakeFetch({
+      '/api/kinko/v1/invoice/charges/.json': () => json([]),
+      '/api/dc/expected_tat': () => json({ success: true, data: { tat: 2 } }),
+    })
+    const p = new DelhiveryProvider({ ...config, fetchImpl: f.impl })
+    expect(await p.quoteRate(query)).toBeNull()
+  })
+
+  it('explains an unknown pickup location in plain words, without a stray "true"', async () => {
+    const f = fakeFetch({
+      '/waybill/api/bulk/json/': () => json('WB1'),
+      '/api/cmu/create.json': () =>
+        json({
+          success: false,
+          error: true,
+          rmk: 'ClientWarehouse matching query does not exist.',
+          packages: [],
+        }),
+    })
+    const p = new DelhiveryProvider({ ...config, fetchImpl: f.impl })
+    const err = await p.createShipment(sampleShipment).catch((e: unknown) => e)
+    expect(err).toBeInstanceOf(CourierError)
+    expect((err as Error).message).toContain('no pickup location named "Waimers Sonipat"')
+    expect((err as Error).message).not.toContain('| true')
+  })
+})
+
 describe('DelhiveryProvider pickup, NDR and webhook', () => {
   it('schedules a pickup and returns the provider pickup id', async () => {
     const f = fakeFetch({ '/fm/request/new/': () => json({ pickup_id: 4455 }) })

@@ -1,30 +1,46 @@
 /** Copy for the activity bell in the top bar. */
 export const activityContent = {
-  label: 'Activity',
+  label: 'Notifications',
   unread: (n: number) => `${n} new`,
+  markAllRead: 'Mark all as read',
   attentionHeading: 'Needs your attention',
   recentHeading: 'Last 7 days',
-  empty: 'Nothing to catch up on.',
-  failed: 'Could not load activity.',
+  footer: 'Orders, refunds, returns and stock from the last 7 days.',
+  empty: {
+    title: 'You are all caught up',
+    body: 'New orders, refunds, returns and stock alerts show up here.',
+  },
+  failed: 'Could not load notifications. Trying again in a minute.',
   attention: {
-    refundsFailed: (n: number) =>
-      n === 1
-        ? '1 refund failed at the gateway: the shopper did not get the money back'
-        : `${n} refunds failed at the gateway: the shoppers did not get the money back`,
-    refundsNeeded: (n: number) =>
-      n === 1
-        ? '1 payment to refund (paid twice or after cancelling)'
-        : `${n} payments to refund (paid twice or after cancelling)`,
-    outOfStock: (n: number) => (n === 1 ? '1 item out of stock' : `${n} items out of stock`),
-    lowStock: (n: number) => (n === 1 ? '1 item running low' : `${n} items running low`),
-    returnsRequested: (n: number) =>
-      n === 1 ? '1 return request to review' : `${n} return requests to review`,
-    mediaFailed: (n: number) =>
-      n === 1 ? '1 photo could not be processed' : `${n} photos could not be processed`,
+    refundsFailed: {
+      title: (n: number) => (n === 1 ? '1 refund failed' : `${n} refunds failed`),
+      detail: 'The gateway refused it, so the shopper has not got the money back.',
+    },
+    refundsNeeded: {
+      title: (n: number) => (n === 1 ? '1 payment to refund' : `${n} payments to refund`),
+      detail: 'Paid twice, or paid after the order was cancelled.',
+    },
+    returnsRequested: {
+      title: (n: number) => (n === 1 ? '1 return to review' : `${n} returns to review`),
+      detail: 'Approve or decline so the shopper knows what happens next.',
+    },
+    outOfStock: {
+      title: (n: number) => (n === 1 ? '1 item out of stock' : `${n} items out of stock`),
+      detail: 'Shoppers cannot buy these until you restock.',
+    },
+    lowStock: {
+      title: (n: number) => (n === 1 ? '1 item running low' : `${n} items running low`),
+      detail: 'Restock soon to keep them on sale.',
+    },
+    mediaFailed: {
+      title: (n: number) =>
+        n === 1 ? '1 photo could not be processed' : `${n} photos could not be processed`,
+      detail: 'Open Files to retry or replace them.',
+    },
   },
   event: {
-    order: (number: number, total: string) => `New order #${number} · ${total}`,
-    refund_needed: (number: number, amount: string) => `Refund ${amount} on order #${number}`,
+    order: (number: number) => `New order #${number}`,
+    refund_needed: (number: number) => `Refund due on order #${number}`,
     return: (number: number) => `Return R-${number} requested`,
   },
 }
