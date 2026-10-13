@@ -1,4 +1,6 @@
-/** SOURCE OF TRUTH: the SEO report's rules — WHAT: the checks run over each live product, collection and page (search title and description length, duplicates, image alt text, thin descriptions, Google Shopping data, handles) and the 0–100 score they add up to / WHY: one place decides what "good SEO" means for the report, the score and the "Fix with AI" list, so they never disagree. Pure: no database */
+/** SOURCE OF TRUTH: the SEO report's rules — WHAT: the checks run over each live product, collection, page and menu (search title and description length, duplicates, image alt text, thin text, Google Shopping data, handles, empty collections, broken internal links and links to the old Shopify store) and the 0–100 score they add up to / WHY: one place decides what "good SEO" means for the report, the score and the "Fix with AI" list, so they never disagree. Pure: no database */
+
+import { linkTarget, pathExists } from './links'
 
 /** What Google shows before cutting a title or description off (characters, roughly). */
 export const SEO_LIMITS = {
@@ -8,10 +10,12 @@ export const SEO_LIMITS = {
   descriptionMin: 70,
   /** Below this many words a product page gives search engines (and AI search) little to go on. */
   thinWords: 50,
+  /** A page is thin under this many words. */
+  thinPageWords: 80,
   handleMax: 70,
 } as const
 
-export type SeoResource = 'product' | 'collection' | 'page'
+export type SeoResource = 'product' | 'collection' | 'page' | 'menu'
 export type SeoSeverity = 'high' | 'medium' | 'low'
 
 export type SeoIssueKind =
@@ -29,6 +33,12 @@ export type SeoIssueKind =
   | 'shopping_brand_missing'
   | 'shopping_gtin_missing'
   | 'handle_bad'
+  | 'link_broken'
+  | 'link_old_store'
+  | 'collection_empty'
+  | 'collection_image_missing'
+  | 'category_missing'
+  | 'page_thin'
 
 /** Each kind's weight: how much one occurrence costs the score, and which AI field fixes it. */
 export const SEO_RULES: Record<
@@ -49,6 +59,12 @@ export const SEO_RULES: Record<
   shopping_brand_missing: { severity: 'low', fixWithAi: null },
   shopping_gtin_missing: { severity: 'low', fixWithAi: null },
   handle_bad: { severity: 'low', fixWithAi: null },
+  link_broken: { severity: 'medium', fixWithAi: null },
+  link_old_store: { severity: 'medium', fixWithAi: null },
+  collection_empty: { severity: 'medium', fixWithAi: null },
+  collection_image_missing: { severity: 'low', fixWithAi: null },
+  category_missing: { severity: 'low', fixWithAi: null },
+  page_thin: { severity: 'low', fixWithAi: null },
 }
 
 const SEVERITY_POINTS: Record<SeoSeverity, number> = { high: 10, medium: 4, low: 1 }
@@ -68,7 +84,25 @@ export type SeoItem = {
   imagesWithoutAlt?: number | undefined
   vendor?: string | null | undefined
   hasBarcode?: boolean | undefined
+  hasCategory?: boolean | undefined
+  /** Collections only. */
+  productCount?: number | undefined
+  hasImage?: boolean | undefined
+  /** Link URLs inside the item's text, as stored. */
+  links?: readonly string[] | undefined
 }
+
+/** One menu entry that points at a path inside the store. */
+export type SeoMenuLink = { menuId: string; menuTitle: string; itemTitle: string; url: string }
+
+/** What the link checks compare against: paths that exist (or redirect) and the store's hosts. */
+export type SeoLinkContext = {
+  knownPaths: ReadonlySet<string>
+  storeHosts: ReadonlySet<string>
+  menus: readonly SeoMenuLink[]
+}
+
+const NO_LINKS: SeoLinkContext = { knownPaths: new Set(), storeHosts: new Set(), menus: [] }
 
 export type SeoIssue = {
   kind: SeoIssueKind
@@ -142,6 +176,48 @@ export function itemIssues(item: SeoItem): SeoIssue[] {
     if (words < SEO_LIMITS.thinWords) add('content_thin', String(words))
     if (!item.vendor?.trim()) add('shopping_brand_missing')
     if (!item.hasBarcode) add('shopping_gtin_missing')
+    if (item.hasCategory === false) add('category_missing')
+  }
+  if (item.resource === 'collection') {
+    if (item.productCount === 0) add('collection_empty')
+    if (item.hasImage === false) add('collection_image_missing')
+  }
+  if (item.resource === 'page') {
+    const words = wordCount(item.bodyText)
+    if (words < SEO_LIMITS.thinPageWords) add('page_thin', String(words))
+  }
+  return out
+}
+
+/** Broken internal links and links to the old Shopify store, in item text and in menus. */
+function linkIssues(items: readonly SeoItem[], ctx: SeoLinkContext): SeoIssue[] {
+  const out: SeoIssue[] = []
+  const check = (
+    url: string,
+    at: Pick<SeoIssue, 'resource' | 'id' | 'title'>,
+    label: (detail: string) => string,
+  ) => {
+    const target = linkTarget(url, ctx.storeHosts)
+    if (target.kind === 'old_store') {
+      out.push({ kind: 'link_old_store', severity: 'medium', ...at, detail: label(target.url) })
+    } else if (target.kind === 'internal' && !pathExists(target.path, ctx.knownPaths)) {
+      out.push({ kind: 'link_broken', severity: 'medium', ...at, detail: label(target.path) })
+    }
+  }
+  for (const item of items) {
+    const seen = new Set<string>()
+    for (const url of item.links ?? []) {
+      if (seen.has(url)) continue
+      seen.add(url)
+      check(url, { resource: item.resource, id: item.id, title: item.title }, (d) => d)
+    }
+  }
+  for (const m of ctx.menus) {
+    check(
+      m.url,
+      { resource: 'menu', id: m.menuId, title: m.menuTitle },
+      (d) => `${m.itemTitle} → ${d}`,
+    )
   }
   return out
 }
@@ -179,8 +255,8 @@ const SEVERITY_ORDER: Record<SeoSeverity, number> = { high: 0, medium: 1, low: 2
  * items were checked, so a big catalogue with a few gaps still scores well and a small one with
  * the same gaps does not.
  */
-export function seoReport(items: readonly SeoItem[]): SeoReport {
-  const issues = items.flatMap(itemIssues)
+export function seoReport(items: readonly SeoItem[], links: SeoLinkContext = NO_LINKS): SeoReport {
+  const issues = [...items.flatMap(itemIssues), ...linkIssues(items, links)]
   for (const resource of ['product', 'collection', 'page'] as const) {
     const ofKind = items.filter((i) => i.resource === resource)
     issues.push(...duplicates(ofKind, effectiveTitle, 'title_duplicate'))
@@ -212,6 +288,7 @@ export function seoReport(items: readonly SeoItem[]): SeoReport {
       product: items.filter((i) => i.resource === 'product').length,
       collection: items.filter((i) => i.resource === 'collection').length,
       page: items.filter((i) => i.resource === 'page').length,
+      menu: new Set(links.menus.map((m) => m.menuId)).size,
     },
     issues,
     fixable: {

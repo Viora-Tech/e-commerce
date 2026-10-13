@@ -26,6 +26,7 @@ const SEVERITY_TONE = { high: 'danger', medium: 'attention', low: 'neutral' } as
 function editHref(issue: SeoIssue): string {
   if (issue.resource === 'product') return routes.products.detail(issue.id)
   if (issue.resource === 'collection') return routes.products.collection(issue.id)
+  if (issue.resource === 'menu') return routes.content.menu(issue.id)
   return routes.onlineStore.page(issue.id)
 }
 
