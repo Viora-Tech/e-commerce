@@ -9,6 +9,7 @@ export default defineConfig({
     './src/marketing-schema.ts',
     './src/privacy-schema.ts',
     './src/purchasing-schema.ts',
+    './src/search-console-schema.ts',
     './src/shopper-login-schema.ts',
     './src/store-data-schema.ts',
     './src/theme-schema.ts',

@@ -1,4 +1,4 @@
-/** SOURCE OF TRUTH: loading the SEO report — WHAT: reads every live product (with its photo and barcode counts), active collection (with its product count), published page and menu of the store, plus the paths that exist or redirect and the store's domains, and runs the checks in `checks.ts` over them / WHY: the report page and "Fix with AI" read one result, inside RLS */
+/** SOURCE OF TRUTH: loading the SEO report — WHAT: reads every live product (with its photo and barcode counts), active collection (with its product count), published page and menu of the store, plus the paths that exist or redirect, the store's domains and (Search Console app connected) each page's Google numbers, and runs the checks in `checks.ts` over them / WHY: the report page and "Fix with AI" read one result, inside RLS */
 import {
   collection,
   collectionProduct,
@@ -15,6 +15,7 @@ import {
 } from '@commerce/db'
 import { and, eq, isNotNull, sql } from 'drizzle-orm'
 import { notSystemTest } from '../catalog/system-test'
+import { searchStatsByPath } from '../search-console/service'
 import {
   type SeoItem,
   type SeoLinkContext,
@@ -210,12 +211,30 @@ async function linkContext(tx: StoreTx): Promise<SeoLinkContext> {
   return { knownPaths, storeHosts, menus }
 }
 
-/** The store's SEO report over everything shoppers (and search engines) can see. */
-export async function loadSeoReport(tx: StoreTx): Promise<SeoReport> {
+const SEARCH_PREFIX: Record<SeoItem['resource'], string> = {
+  product: '/products/',
+  collection: '/collections/',
+  page: '/pages/',
+  menu: '',
+}
+
+/**
+ * The store's SEO report over everything shoppers (and search engines) can see. With
+ * `storeId` and the Google Search Console app connected, each item also carries its Google
+ * numbers, which add the "few clicks" and "almost page 1" issues; without, nothing changes.
+ */
+export async function loadSeoReport(tx: StoreTx, storeId?: string): Promise<SeoReport> {
   const items = [
     ...(await productItems(tx)),
     ...(await collectionItems(tx)),
     ...(await pageItems(tx)),
   ]
-  return seoReport(items, await linkContext(tx))
+  const search = storeId ? await searchStatsByPath(tx, storeId) : null
+  const withSearch = search
+    ? items.map((item) => ({
+        ...item,
+        search: search.get(`${SEARCH_PREFIX[item.resource]}${item.handle.toLowerCase()}`),
+      }))
+    : items
+  return seoReport(withSearch, await linkContext(tx))
 }

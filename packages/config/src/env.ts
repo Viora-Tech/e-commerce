@@ -219,6 +219,14 @@ const shape = z.object({
    */
   MERCHANT_GOOGLE_CLIENT_ID: optionalOrBlank(z.string().min(1)),
   MERCHANT_GOOGLE_CLIENT_SECRET: optionalOrBlank(z.string().min(1)),
+  /**
+   * The Google Search Console app's OAuth web client (scope `webmasters`). Both blank: the app
+   * uses the MERCHANT_GOOGLE_* client instead; set these to keep Search Console in its own
+   * Google Cloud project (its own consent screen and verification). The authorised redirect
+   * URI is `<ADMIN_URL>/api/apps/google-search-console/oauth/callback`.
+   */
+  GSC_GOOGLE_CLIENT_ID: optionalOrBlank(z.string().min(1)),
+  GSC_GOOGLE_CLIENT_SECRET: optionalOrBlank(z.string().min(1)),
   /** `<slug>.<PLATFORM_STORE_DOMAIN>` becomes a new store's primary domain. */
   PLATFORM_STORE_DOMAIN: z.string().min(1).default('waimers.store'),
   /**

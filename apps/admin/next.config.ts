@@ -89,6 +89,7 @@ const config: NextConfig = {
     '@commerce/plugin-gst-invoices',
     '@commerce/plugin-forms',
     '@commerce/plugin-reviews',
+    '@commerce/plugin-search-console',
     '@commerce/plugin-umami',
     '@commerce/plugin-shopify-import',
   ],

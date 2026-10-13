@@ -1,0 +1,187 @@
+/** Copy for the Google Search Console app's pages and the product page's "Google search" card. Plain words. */
+export const searchConsoleContent = {
+  failed: 'Something went wrong. Try again.',
+  loadFailed: {
+    title: 'Could not load your Google numbers',
+    body: 'Reload the page in a minute.',
+  },
+  period: 'Last 28 days, compared with the 28 days before',
+  synced: (when: string) => `Updated ${when}. Google’s numbers trail by about 3 days.`,
+  refresh: 'Refresh now',
+  refreshed: 'Fresh numbers from Google',
+  refreshWait: (when: string) => `You can refresh again ${when}.`,
+  states: {
+    notConnected: {
+      title: 'Connect Google Search Console',
+      body: 'See which Google searches show your store, which pages people click, and what to fix to get more clicks.',
+      action: 'Open settings',
+    },
+    unavailable: {
+      title: 'Not available yet',
+      body: 'Google Search Console is not set up on this platform yet. Ask your platform admin.',
+    },
+    noProperty: {
+      title: 'Pick your website in Search Console',
+      body: 'Your Google account is connected. Choose which Search Console property is this store.',
+      action: 'Pick a property',
+    },
+    pending: {
+      title: 'Getting your numbers from Google',
+      body: 'This takes a moment after you pick a property. Press Refresh now, or come back in a few minutes.',
+    },
+    reconnect: 'Google no longer accepts this connection. Connect again in Settings.',
+  },
+  columns: {
+    search: 'Search',
+    page: 'Page',
+    clicks: 'Clicks',
+    views: 'Views',
+    ctr: 'Click rate',
+    position: 'Position',
+    change: 'Change',
+    before: 'Before',
+    now: 'Now',
+    lost: 'Clicks lost',
+    topSearch: 'Top search',
+  },
+  resources: {
+    product: 'Product',
+    collection: 'Collection',
+    page: 'Page',
+  },
+  open: 'Open on Google’s result',
+  edit: 'Edit',
+  overview: {
+    title: 'Overview',
+    summary: 'How your store does on Google search.',
+    kpis: {
+      clicks: 'Clicks',
+      views: 'Views on Google',
+      ctr: 'Click rate',
+      position: 'Average position',
+      vsBefore: 'vs the 28 days before',
+      positionNote: 'Lower is better; 1 is the top result.',
+    },
+    topSearches: 'Top searches',
+    topPages: 'Top pages',
+    devices: 'Devices',
+    countries: 'Countries',
+    empty: 'No clicks yet.',
+    deviceNames: { MOBILE: 'Phone', DESKTOP: 'Computer', TABLET: 'Tablet' } as Record<
+      string,
+      string
+    >,
+  },
+  searches: {
+    title: 'Top searches',
+    summary: 'What people typed on Google before they saw your store, most clicks first.',
+    empty: 'Google has not shown your store for any search yet.',
+  },
+  pages: {
+    title: 'Top pages',
+    summary: 'Your pages on Google, most clicks first.',
+    empty: 'Google has not shown any of your pages yet.',
+  },
+  almostPageOne: {
+    title: 'Almost page 1',
+    summary: (min: number, from: number, to: number) =>
+      `Pages Google shows at position ${from} to ${to}, just off the first page, seen at least ${min} times. A sharper search title and description and a little more text can move them up.`,
+    empty: 'No pages just off page 1 right now.',
+    fix: 'Improve',
+  },
+  losing: {
+    title: 'Losing traffic',
+    summary:
+      'Pages and searches with fewer Google clicks than in the 28 days before, biggest drop first.',
+    pages: 'Pages',
+    searches: 'Searches',
+    emptyPages: 'No page lost clicks. Nice.',
+    emptySearches: 'No search lost clicks.',
+  },
+  sitemaps: {
+    title: 'Sitemaps',
+    summary:
+      'Your sitemap lists every live product, collection and page, so Google finds them faster.',
+    ours: 'Your store’s sitemap',
+    submit: 'Submit to Google',
+    resubmit: 'Submit again',
+    submitted: 'Sent to Google. It reads it within a day or two.',
+    listTitle: 'Sitemaps Google knows',
+    empty: 'Google has no sitemap for this property yet. Submit yours above.',
+    pending: 'Waiting for Google',
+    read: (when: string) => `Read ${when}`,
+    notRead: 'Not read yet',
+    sent: (when: string) => `Sent ${when}`,
+    pagesFound: (n: string) => `${n} pages found`,
+    problems: (errors: number, warnings: number) =>
+      `${errors} error${errors === 1 ? '' : 's'}, ${warnings} warning${warnings === 1 ? '' : 's'}`,
+    ok: 'No problems',
+    loadFailed: 'Could not read your sitemaps from Google.',
+  },
+  settings: {
+    title: 'Settings',
+    summary: 'Connect your Google account and choose which Search Console property is this store.',
+    connection: {
+      title: 'Google account',
+      description:
+        'Sign in with the Google account that has your store in Search Console. We only read your search numbers and send your sitemap; we never change anything else.',
+      connectedAs: (email: string) => `Connected as ${email}`,
+      connectedNoEmail: 'Connected',
+      notConnected: 'Not connected yet.',
+      connect: 'Connect Google Search Console',
+      reconnect: 'Connect again',
+      disconnect: 'Disconnect',
+      disconnected: 'Disconnected from Google',
+      confirm: {
+        title: 'Disconnect Google Search Console?',
+        body: 'Your Google numbers are removed from this store. Search Console itself keeps them; connect again any time.',
+        cancel: 'Cancel',
+        action: 'Disconnect',
+      },
+      unavailable:
+        'Google Search Console is not set up on this platform yet, so you cannot connect it here.',
+      back: {
+        connected: 'Google account connected. Now pick your property.',
+        cancelled: 'Connection cancelled.',
+        failed: 'Google did not connect. Try again and allow Search Console access.',
+      },
+    },
+    property: {
+      title: 'Search Console property',
+      description:
+        'The website in Search Console that is this store. A domain property (sc-domain:) counts every version of your address.',
+      none: 'This Google account has no Search Console properties. Add your store’s domain in Search Console first, then come back.',
+      noMatch: (host: string) =>
+        `None of these is ${host}. Add it in Search Console (search.google.com/search-console) and verify it, then come back.`,
+      suggested: 'Matches your store',
+      unverified: 'Not verified',
+      save: 'Use this property',
+      saved: 'Property saved. Your numbers are on the way.',
+      current: 'In use',
+      needsConnection: 'Connect your Google account first.',
+    },
+    sync: {
+      title: 'Updates',
+      description: 'Your numbers update by themselves once a day.',
+      never: 'Not updated yet.',
+      lastError: (message: string) => `Last update failed: ${message}`,
+    },
+  },
+  product: {
+    title: 'Google search',
+    period: 'Last 28 days',
+    clicks: 'Clicks',
+    views: 'Views',
+    ctr: 'Click rate',
+    position: 'Position',
+    queries: 'Searches that found it',
+    noQueries: 'No searches yet.',
+    queryLine: (clicks: string, views: string) => `${clicks} clicks · ${views} views`,
+    notShown: 'Google has not shown this product in the last 28 days.',
+    connect: 'Connect Google Search Console to see how this product does on Google.',
+    connectLink: 'Connect',
+    almostPageOne:
+      'Almost on page 1 of Google: a sharper search title and description could move it up.',
+    lowCtr: 'Shown often on Google but few people click: improve its search title and description.',
+  },
+}

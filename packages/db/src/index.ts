@@ -22,6 +22,7 @@ export {
   storesWithOpenShipments,
   storesWithPendingDomains,
   storesWithPendingManualOrders,
+  storesWithSearchConsoleDue,
   storesWithSenderEmailChecks,
   storesWithStaleImportSnapshots,
   storesWithUndispatchedOutboxEvents,
@@ -29,6 +30,7 @@ export {
   storesWithUnpaidOnlineOrders,
 } from './resolve-store'
 export * from './schema'
+export * from './search-console-schema'
 export * from './shopper-login-schema'
 export * from './stock'
 export * from './store-data-schema'

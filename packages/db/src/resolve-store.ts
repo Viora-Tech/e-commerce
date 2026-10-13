@@ -160,6 +160,16 @@ export async function storesWithCertificateChecks(db: Db): Promise<string[]> {
   return rows.map((r) => r.id)
 }
 
+/**
+ * Store ids with the Google Search Console app installed and connected to a property, whose
+ * last sync attempt is over 20 hours old (or never ran), for the worker's daily sync.
+ * SECURITY DEFINER backed.
+ */
+export async function storesWithSearchConsoleDue(db: Db): Promise<string[]> {
+  const rows = await db.execute<{ id: string }>(sql`select stores_with_search_console_due() as id`)
+  return rows.map((r) => r.id)
+}
+
 /** Store ids with review requests or reminders to send (Reviews app), for the worker. SECURITY DEFINER backed. */
 export async function storesWithDueReviewRequests(db: Db): Promise<string[]> {
   const rows = await db.execute<{ id: string }>(sql`select stores_with_due_review_requests() as id`)

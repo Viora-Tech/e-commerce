@@ -55,6 +55,7 @@ import ProductPageActions from './product-page-actions'
 import ProductPreorderSection from './product-preorder-section'
 import { type ProductTabId, tabsFor, tabsWithErrors } from './product-tab-list'
 import ProductTabs from './product-tabs'
+import SearchConsoleCard from './search-console-card'
 import SeoCard from './seo-card'
 import SeoKeywordsCard from './seo-keywords-card'
 import ShippingCard from './shipping-card'
@@ -329,6 +330,7 @@ export default function ProductForm({
           aiOn={aiWriter}
           onChange={(seoKeywords) => patch({ seoKeywords })}
         />
+        {product ? <SearchConsoleCard productId={product.id} /> : null}
       </>
     ),
     more: (
