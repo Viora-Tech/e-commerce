@@ -798,6 +798,9 @@ export const address = pgTable('address', {
  * A shopper's saved address book (storefront account). Separate from `address`,
  * which holds immutable order snapshots. At most one default per customer.
  */
+/** The tag a shopper puts on a saved address; the same list as `ADDRESS_LABELS` in core. */
+const CUSTOMER_ADDRESS_LABELS = ['home', 'office', 'other'] as const
+
 export const customerAddress = pgTable(
   'customer_address',
   {
@@ -814,6 +817,8 @@ export const customerAddress = pgTable(
     pincode: text('pincode').notNull(),
     country: text('country').notNull().default('IN'),
     phone: text('phone').notNull(),
+    /** Home, Office or Other on the checkout's address cards; null when the shopper never said. */
+    label: text('label', { enum: CUSTOMER_ADDRESS_LABELS }),
     isDefault: boolean('is_default').notNull().default(false),
     createdAt: createdAt(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
@@ -821,6 +826,7 @@ export const customerAddress = pgTable(
   (t) => [
     index('customer_address_customer').on(t.customerId),
     uniqueIndex('customer_address_one_default').on(t.customerId).where(sql`is_default`),
+    check('customer_address_label_check', sql`${t.label} in (${oneOf(CUSTOMER_ADDRESS_LABELS)})`),
   ],
 )
 

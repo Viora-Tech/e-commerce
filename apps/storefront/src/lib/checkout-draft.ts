@@ -15,6 +15,8 @@ export type CheckoutDraft = {
   business: boolean
   /** The shipping rate picked; kept only while the new quote still offers it. */
   rateId: string | null
+  /** The shopper chose to check out as a guest rather than sign in with a code. */
+  guest: boolean
 }
 
 const KEY = 'checkout-draft'
@@ -35,6 +37,7 @@ const FORM_KEYS = [
   'gstin',
   'businessName',
   'note',
+  'label',
 ] as const satisfies readonly (keyof CheckoutFormState)[]
 
 const isField = (v: unknown): v is string => typeof v === 'string' && v.length <= MAX_FIELD
@@ -56,7 +59,13 @@ export function parseDraft(raw: string | null, cartId: string): CheckoutDraft | 
   if (!isField(d.savedId) || typeof d.business !== 'boolean') return null
   if (d.rateId !== null && !isField(d.rateId)) return null
   const form = Object.fromEntries(FORM_KEYS.map((k) => [k, f[k]])) as CheckoutFormState
-  return { form, savedId: d.savedId, business: d.business, rateId: d.rateId }
+  return {
+    form,
+    savedId: d.savedId,
+    business: d.business,
+    rateId: d.rateId,
+    guest: d.guest === true,
+  }
 }
 
 export const serialiseDraft = (cartId: string, draft: CheckoutDraft): string =>

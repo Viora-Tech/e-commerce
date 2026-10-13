@@ -1,7 +1,7 @@
 import { type CustomerAddress, customer, customerAddress, type StoreTx } from '@commerce/db'
 import { and, asc, desc, eq, ne } from 'drizzle-orm'
 import type { StoreContext } from '../context'
-import { AddressInputSchema, fieldErrors, type ParsedAddress } from './schemas'
+import { AddressInputSchema, type AddressLabel, fieldErrors, type ParsedAddress } from './schemas'
 
 export type SavedAddress = {
   id: string
@@ -12,6 +12,8 @@ export type SavedAddress = {
   stateCode: string
   pincode: string
   phone: string
+  /** Home, Office or Other; null when the shopper never tagged it. */
+  label: AddressLabel | null
   isDefault: boolean
 }
 
@@ -26,6 +28,7 @@ const columns = {
   stateCode: customerAddress.stateCode,
   pincode: customerAddress.pincode,
   phone: customerAddress.phone,
+  label: customerAddress.label,
   isDefault: customerAddress.isDefault,
 }
 
@@ -133,6 +136,8 @@ function toRow(a: ParsedAddress) {
     stateCode: a.stateCode,
     pincode: a.pincode,
     phone: a.phone,
+    // An edit that does not mention the tag keeps it (the account form has no tag field).
+    ...(a.label === undefined ? {} : { label: a.label }),
   }
 }
 

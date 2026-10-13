@@ -7,7 +7,7 @@ import { describe, expect, it, vi } from 'vitest'
 let search = ''
 vi.mock('next/navigation', () => ({
   usePathname: () => '/checkout',
-  useRouter: () => ({}),
+  useRouter: () => ({ refresh: vi.fn() }),
   useSearchParams: () => new URLSearchParams(search),
 }))
 vi.mock('@/lib/cart-actions', () => ({ captureContactAction: vi.fn(), checkoutAction: vi.fn() }))
@@ -18,6 +18,17 @@ vi.mock('@/lib/discount-actions', () => ({
 }))
 vi.mock('@/lib/gift-card-actions', () => ({ checkGiftCardAction: vi.fn() }))
 vi.mock('@/lib/pincode-actions', () => ({ lookupPincodeAction: vi.fn() }))
+vi.mock('@/lib/account-actions', () => ({
+  requestCodeAction: vi.fn(),
+  verifyCodeAction: vi.fn(),
+  saveAddressAction: vi.fn(),
+  deleteAddressAction: vi.fn(),
+}))
+vi.mock('@/lib/privacy-actions', () => ({
+  requestPhoneCodeAction: vi.fn(),
+  verifyPhoneCodeAction: vi.fn(),
+}))
+vi.mock('@/lib/login-actions', () => ({}))
 
 const { default: CheckoutForm } = await import('./checkout-form')
 
@@ -75,7 +86,22 @@ const address = {
   city: 'Jaipur',
   stateCode: 'RJ',
   pincode: '302001',
+  label: 'home',
+  isDefault: true,
 } as SavedAddress
+const office = {
+  ...address,
+  id: 'adr_2',
+  line1: 'Plot 22, Sitapura Industrial Area',
+  pincode: '302022',
+  label: 'office',
+  isDefault: false,
+} as SavedAddress
+const signIn = {
+  methods: ['whatsapp', 'sms', 'email'],
+  checkout: 'guest',
+  options: null,
+} as const
 
 const render = (at: string, extra: object = {}) => {
   search = at
@@ -90,13 +116,47 @@ describe('CheckoutForm', () => {
     expect(html.match(/<form/g)).toHaveLength(1)
   })
 
-  it('opens on Address with contact first and express UPI at the top', () => {
+  it('opens on Address with a phone code first for a guest', () => {
     expect(html).toContain('Where should we deliver?')
     expect(html).toContain('aria-current="step"')
-    expect(html.indexOf('Pay with UPI')).toBeLessThan(html.indexOf('checkout-contact-title'))
-    expect(html.indexOf('checkout-email')).toBeLessThan(html.indexOf('checkout-pincode'))
+    expect(html).toContain('id="checkout-send-code"')
+    expect(html).toContain('Send code')
+    expect(html).toContain('Check out as guest')
     expect(html).toContain('Continue to shipping')
+    // The address and express pay wait until the shopper is known.
+    expect(html).not.toContain('checkout-pincode')
+    expect(html).not.toContain('Pay with UPI')
     expect(html).not.toContain('value="cod"')
+  })
+
+  it('offers the store methods, and no guest way when an account is required', () => {
+    const guest = render('', { signIn })
+    expect(guest).toContain('WhatsApp')
+    expect(guest).toContain('Use your email instead')
+    const required = render('', { signIn: { ...signIn, checkout: 'account_required' } })
+    expect(required).not.toContain('Check out as guest')
+    expect(required).toContain('This shop needs an account to check out.')
+  })
+
+  it('shows a signed-in shopper their saved addresses as tagged cards', () => {
+    const page = render('', { customer, addresses: [address, office], signIn })
+    expect(page).toContain('Signed in as asha@example.com')
+    expect(page).toContain('Home')
+    expect(page).toContain('Office')
+    expect(page.match(/name="saved-address"/g)).toHaveLength(2)
+    expect(page).toContain('Edit the address for Asha Verma')
+    expect(page).toContain('Delete the address for Asha Verma')
+    expect(page).toContain('Add new address')
+    expect(page).toContain('Pay with UPI')
+    expect(page).not.toContain('id="checkout-send-code"')
+    // The picked card's details are the form's; the PIN-first form is not open.
+    expect(page).not.toContain('for="checkout-pincode"')
+  })
+
+  it('opens the PIN-first form for a signed-in shopper with no saved address', () => {
+    const page = render('', { customer, addresses: [], signIn })
+    expect(page.indexOf('for="checkout-pincode"')).toBeLessThan(page.indexOf('for="checkout-name"'))
+    expect(page).toContain('Save this address as')
   })
 
   it('keeps a guest who asks for a later step on Address', () => {
@@ -122,10 +182,12 @@ describe('CheckoutForm', () => {
   })
 
   it('labels every field and leaves validation to the inline checks', () => {
-    expect(html).toMatch(/novalidate/i)
+    const page = render('', { customer: { ...customer, email: null }, addresses: [] })
+    expect(page).toMatch(/novalidate/i)
     for (const id of ['checkout-email', 'checkout-phone', 'checkout-pincode', 'checkout-name']) {
-      expect(html).toContain(`for="${id}"`)
+      expect(page).toContain(`for="${id}"`)
     }
+    expect(page.match(/<form/g)).toHaveLength(1)
   })
 
   it('carries the branding as --ck-* properties, not the theme', () => {

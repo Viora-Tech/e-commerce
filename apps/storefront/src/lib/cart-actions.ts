@@ -117,6 +117,8 @@ export type CheckoutForm = {
   businessName?: string
   /** Order note, when the store turned notes on. */
   note?: string
+  /** Home, Office or Other: the tag a signed-in shopper's new address is saved with. */
+  label?: string
 }
 
 export type CheckoutResult = { error: string } | undefined
