@@ -43,7 +43,7 @@ export const SeoKeywordsSchema = z.object({
 export type SeoKeywordsOutput = z.infer<typeof SeoKeywordsSchema>
 
 /** One suggestion as the admin shows it. `seen` marks a query that already brought visitors. */
-export const SuggestedKeywordSchema = z.object({
+const SuggestedKeywordSchema = z.object({
   keyword: z.string(),
   intent: z.enum(KEYWORD_INTENTS),
   primary: z.boolean(),
