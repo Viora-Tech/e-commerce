@@ -2,8 +2,8 @@ import { describe, expect, it } from 'vitest'
 import { BULK_BACKLOG, mediaProcessLimits, profileFor } from './media-limits'
 
 describe('mediaProcessLimits', () => {
-  it('defaults to 3 at once and 3 per store', () => {
-    expect(mediaProcessLimits({})).toEqual({ concurrency: 3, perStore: 3 })
+  it('defaults to 3 at once and 2 per store, so one store never fills every slot', () => {
+    expect(mediaProcessLimits({})).toEqual({ concurrency: 3, perStore: 2 })
   })
 
   it('takes both from the env', () => {
