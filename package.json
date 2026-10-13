@@ -35,7 +35,8 @@
     "platform:invite": "bun scripts/platform-invite.ts",
     "backfill-phone-encryption": "bun scripts/backfill-phone-encryption.ts",
     "infra:up": "docker compose up -d --wait",
-    "infra:down": "docker compose down"
+    "infra:down": "docker compose down",
+    "code-map": "bun scripts/code-map.ts"
   },
   "devDependencies": {
     "@biomejs/biome": "2.5.14",
