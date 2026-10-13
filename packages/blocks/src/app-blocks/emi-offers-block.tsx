@@ -27,7 +27,11 @@ export type EmiOffersContext = {
 }
 
 export type EmiOffersCopy = {
-  label: (monthly: string) => string
+  /**
+   * The line, from the monthly figure. A server component must pass the finished string
+   * instead: functions cannot cross into this client component.
+   */
+  label: string | ((monthly: string) => string)
   detail: string
 }
 
@@ -109,7 +113,7 @@ export default function EmiOffersBlock({ context, copy }: EmiOffersBlockProps) {
     <div className="emi-offers">
       {widgetShown ? null : (
         <p className="emi-offers__line text-small">
-          {copy.label(monthly)}
+          {typeof copy.label === 'string' ? copy.label : copy.label(monthly)}
           <span className="emi-offers__detail text-caption">{copy.detail}</span>
         </p>
       )}
