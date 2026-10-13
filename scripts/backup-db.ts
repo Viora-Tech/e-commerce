@@ -30,7 +30,7 @@ import {
   parseBackupKey,
   selectKeysToDelete,
 } from '@commerce/backup'
-import { loadEnv } from '@commerce/config'
+import { type BackupEnv, loadBackupEnv } from '@commerce/config'
 import { localStorageDir } from '@commerce/core'
 import { r2Endpoint } from '@commerce/storage-r2'
 
@@ -43,7 +43,7 @@ type BackupTarget = {
   describe(): string
 }
 
-function r2Target(env: ReturnType<typeof loadEnv>): BackupTarget {
+function r2Target(env: BackupEnv): BackupTarget {
   const missing = (
     [
       'BACKUP_R2_ACCOUNT_ID',
@@ -113,7 +113,7 @@ function localTarget(dir: string): BackupTarget {
   }
 }
 
-function buildTarget(env: ReturnType<typeof loadEnv>): BackupTarget {
+function buildTarget(env: BackupEnv): BackupTarget {
   if (env.BACKUP_LOCAL_DIR) return localTarget(env.BACKUP_LOCAL_DIR)
   return r2Target(env)
 }
@@ -156,7 +156,7 @@ async function tarUploadsDir(dir: string): Promise<Buffer | null> {
  * without it (a backup is as sensitive as the database it dumps); dev without a key
  * warns once and writes the archive unencrypted, so a fresh local checkout still works.
  */
-function maybeEncrypt(archive: Buffer, env: ReturnType<typeof loadEnv>, label: string): Buffer {
+function maybeEncrypt(archive: Buffer, env: BackupEnv, label: string): Buffer {
   if (env.BACKUP_ENCRYPTION_KEY) return encryptBackup(archive, env.BACKUP_ENCRYPTION_KEY)
   if (process.env.NODE_ENV === 'production') {
     throw new Error(
@@ -170,7 +170,7 @@ function maybeEncrypt(archive: Buffer, env: ReturnType<typeof loadEnv>, label: s
 }
 
 async function main() {
-  const env = loadEnv(process.env)
+  const env = loadBackupEnv(process.env)
   const target = buildTarget(env)
 
   console.log('backup-db: dumping database…')
