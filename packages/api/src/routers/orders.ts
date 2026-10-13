@@ -288,20 +288,42 @@ export const ordersRouter = {
       }
     }),
 
-  /** Book the parcel with the store's courier; the order becomes fulfilled and the shopper is told. */
+  /** Book the parcel with the courier picked in the Create shipment flow (the store's first
+   *  courier when none is named); the parcel's items are packed and the shopper is told. */
   createShipment: can(permissions.ORDERS_FULFIL)
-    .input(z.object({ orderId: z.uuid() }))
+    .input(
+      z.object({
+        orderId: z.uuid(),
+        providerId: z.string().min(1).optional(),
+        fulfillmentOrderId: z.uuid().optional(),
+        /** A location id, or null for Settings › Shipping's address; omitted picks for you. */
+        pickupLocationId: z.uuid().nullish(),
+        weightGrams: z.number().int().min(1).optional(),
+        dimensionsCm: z
+          .object({
+            length: z.number().min(1),
+            width: z.number().min(1),
+            height: z.number().min(1),
+          })
+          .optional(),
+        paymentMode: z.enum(['cod', 'prepaid']).optional(),
+        codAmountPaise: z.number().int().min(0).optional(),
+        insured: z.boolean().optional(),
+      }),
+    )
     .handler(async ({ context, input }) => {
       await assertNotImported(context.tx, { orderId: input.orderId })
       const { shipping } = await storeRegistries(context.tx, context.scope.storeId)
       // Booking packs what is left; the recompute writes order.fulfilled only
       // if this is what completed the packing.
+      const { orderId, ...choice } = input
       return bookShipment(
         context.tx,
         context.scope.storeId,
         shipping,
         settingsSecret(),
-        input.orderId,
+        orderId,
+        choice,
       )
     }),
 

@@ -1,5 +1,6 @@
 import {
   applyTracking,
+  type CreateShipmentOptions,
   cancelShipment,
   createShipmentForOrder,
   decryptShippingSettings,
@@ -188,23 +189,28 @@ const courierToRpc = (err: unknown): never => {
   throw err
 }
 
+/** Book one order (or one of its parcels) with the courier the merchant picked; without a
+ *  pick, the store's first courier, as before the Create shipment flow. */
 export async function bookShipment(
   tx: StoreTx,
   storeId: string,
   registry: ShippingRegistry,
   secret: string,
   orderId: string,
+  choice: CreateShipmentOptions & { providerId?: string | undefined } = {},
 ) {
-  const provider = primaryShippingProvider(
-    registry,
-    await loadShippingSettings(tx, storeId),
-    secret,
-  )
+  const { providerId, ...options } = choice
+  const settings = await loadShippingSettings(tx, storeId)
+  const provider = providerId
+    ? shippingProviderById(registry, settings, secret, providerId)
+    : primaryShippingProvider(registry, settings, secret)
   if (!provider)
     throw new ORPCError('PRECONDITION_FAILED', {
-      message: 'Enable a courier in Settings › Shipping first.',
+      message: providerId
+        ? `Courier ${providerId} is no longer connected. Pick another one.`
+        : 'Enable a courier in Settings › Shipping first.',
     })
-  return createShipmentForOrder({ storeId, tx }, provider, orderId).catch(courierToRpc)
+  return createShipmentForOrder({ storeId, tx }, provider, orderId, options).catch(courierToRpc)
 }
 
 export async function refreshShipmentTracking(

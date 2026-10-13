@@ -16,6 +16,7 @@ import common from './common'
 import content from './content'
 import contentBlog from './content-blog'
 import contentFiles from './content-files'
+import createShipment from './create-shipment'
 import customers from './customers'
 import customizeMedia from './customize-media'
 import dates from './dates'
@@ -79,6 +80,7 @@ export const hindiCopy: readonly TranslationPair[] = [
   ...content,
   ...contentBlog,
   ...contentFiles,
+  ...createShipment,
   ...customers,
   ...customizeMedia,
   ...dates,

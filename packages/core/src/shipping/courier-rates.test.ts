@@ -7,7 +7,12 @@ import type {
   ShippingProvider,
 } from '@commerce/shipping'
 import { describe, expect, it } from 'vitest'
-import { chooseCourier, compareCourierRates } from './courier-rates'
+import {
+  type CourierRateRow,
+  chooseCourier,
+  compareCourierRates,
+  datedCourierRows,
+} from './courier-rates'
 
 const query: RateQuery = {
   originPincode: '131028',
@@ -121,28 +126,159 @@ describe('compareCourierRates', () => {
   })
 })
 
+describe('compareCourierRates problems', () => {
+  it('marks a courier that never answered as unreachable, with the app wording', async () => {
+    const base = fakeProvider('rapidshyp', 'RapidShyp')
+    const down: ShippingProvider = {
+      ...base,
+      async quoteRate() {
+        throw new Error('socket hang up')
+      },
+      async checkServiceability() {
+        throw new Error('socket hang up')
+      },
+    }
+    const [row] = await compareCourierRates([down], query)
+    expect(row).toMatchObject({ problem: 'unreachable', problemDetail: 'socket hang up' })
+    expect(row?.badges).toEqual([])
+  })
+
+  it('a PIN code the courier does not reach is a problem row with its reason', async () => {
+    const p = fakeProvider('delhivery', 'Delhivery', {
+      quote: { pricePaise: 4000, minTransitDays: 2, maxTransitDays: 3 },
+      serviceability: { serviceable: false, reason: 'Pincode not serviceable' },
+    })
+    const [row] = await compareCourierRates([p], query)
+    expect(row).toMatchObject({
+      problem: 'not_serviceable',
+      problemDetail: 'Pincode not serviceable',
+      pricePaise: null,
+      badges: [],
+    })
+  })
+
+  it('a COD parcel never recommends a courier without COD there, even if cheapest', async () => {
+    const cheapNoCod = fakeProvider('a', 'A', {
+      quote: { pricePaise: 3000, minTransitDays: 2, maxTransitDays: 2 },
+      serviceability: { codAvailable: false },
+    })
+    const dearCod = fakeProvider('b', 'B', {
+      quote: { pricePaise: 5000, minTransitDays: 4, maxTransitDays: 5 },
+      serviceability: { codAvailable: true },
+    })
+    const rows = await compareCourierRates([cheapNoCod, dearCod], {
+      ...query,
+      paymentMode: 'cod',
+    })
+    expect(rows.find((r) => r.providerId === 'a')).toMatchObject({ problem: 'no_cod', badges: [] })
+    expect(rows.find((r) => r.providerId === 'b')?.badges).toEqual([
+      'cheapest',
+      'fastest',
+      'recommended',
+    ])
+  })
+
+  it('the same courier without COD is fine for a prepaid parcel', async () => {
+    const p = fakeProvider('a', 'A', {
+      quote: { pricePaise: 3000, minTransitDays: 2, maxTransitDays: 2 },
+      serviceability: { codAvailable: false },
+    })
+    const [row] = await compareCourierRates([p], query)
+    expect(row).toMatchObject({ problem: null, codAvailable: false })
+    expect(row?.badges).toContain('recommended')
+  })
+
+  it('a courier with no rate call still gets a bookable row, priced on booking', async () => {
+    const base = fakeProvider('delhivery', 'Delhivery', {
+      serviceability: { minTransitDays: 3, maxTransitDays: 4, codAvailable: true },
+    })
+    const { quoteRate: _unused, ...noRates } = base
+    const [row] = await compareCourierRates([noRates], query)
+    expect(row).toMatchObject({ pricePaise: null, problem: null, minTransitDays: 3 })
+    expect(row?.badges).toContain('recommended')
+  })
+
+  it('recommends the only courier that can take the parcel when nobody quotes or times', async () => {
+    const a = fakeProvider('a', 'A', { serviceability: { serviceable: false } })
+    const b = fakeProvider('b', 'B')
+    const rows = await compareCourierRates([a, b], query)
+    expect(rows.find((r) => r.providerId === 'b')?.badges).toEqual(['recommended'])
+  })
+})
+
+describe('datedCourierRows', () => {
+  const policy = {
+    cutoff: '14:00',
+    timeZone: 'Asia/Kolkata',
+    workingDays: [1, 2, 3, 4, 5, 6],
+    deliveryDays: [1, 2, 3, 4, 5, 6, 7],
+    holidays: [],
+    defaultMinTransitDays: 3,
+    defaultMaxTransitDays: 6,
+  }
+  // Tuesday 13 Oct 2026, 10:00 IST: dispatches today.
+  const now = new Date('2026-10-13T04:30:00Z')
+  const row = (over: Partial<CourierRateRow>): CourierRateRow => ({
+    providerId: 'x',
+    providerLabel: 'X',
+    pricePaise: null,
+    minTransitDays: null,
+    maxTransitDays: null,
+    codAvailable: null,
+    problem: null,
+    problemDetail: null,
+    deliveryBy: null,
+    etaFromSettings: false,
+    badges: [],
+    ...over,
+  })
+
+  it('dates a courier from its own transit days', () => {
+    const [r] = datedCourierRows([row({ minTransitDays: 2, maxTransitDays: 3 })], policy, now)
+    expect(r).toMatchObject({ deliveryBy: '2026-10-16', etaFromSettings: false })
+  })
+
+  it("falls back to the store's usual transit days and says so", () => {
+    const [r] = datedCourierRows([row({})], policy, now)
+    expect(r).toMatchObject({ deliveryBy: '2026-10-19', etaFromSettings: true })
+  })
+
+  it('leaves a courier that cannot take the parcel undated', () => {
+    const [r] = datedCourierRows([row({ problem: 'not_serviceable' })], policy, now)
+    expect(r?.deliveryBy).toBeNull()
+  })
+})
+
 describe('chooseCourier', () => {
   const shiprocket = fakeProvider('shiprocket', 'Shiprocket')
   const delhivery = fakeProvider('delhivery', 'Delhivery')
   const providers = [delhivery, shiprocket]
-  const rows = [
+  const unbadged = {
+    problem: null,
+    problemDetail: null,
+    deliveryBy: null,
+    etaFromSettings: false,
+  } as const
+  const rows: CourierRateRow[] = [
     {
+      ...unbadged,
       providerId: 'delhivery',
       providerLabel: 'Delhivery',
       pricePaise: null,
       minTransitDays: 2,
       maxTransitDays: 2,
       codAvailable: true,
-      badges: ['fastest' as const],
+      badges: ['fastest'],
     },
     {
+      ...unbadged,
       providerId: 'shiprocket',
       providerLabel: 'Shiprocket',
       pricePaise: 6000,
       minTransitDays: 3,
       maxTransitDays: 3,
       codAvailable: null,
-      badges: ['cheapest' as const, 'recommended' as const],
+      badges: ['cheapest', 'recommended'],
     },
   ]
 

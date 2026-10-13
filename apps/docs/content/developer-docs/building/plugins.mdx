@@ -150,7 +150,10 @@ export class FedexProvider implements ShippingProvider {
   async verifyCredentials() { /* one cheap authenticated call */ }
   // Optional. Checkout prices shipping from the merchant's zones and rates
   // (Settings → Shipping → Shipping rates, `@commerce/core/shipping-rates`), so a
-  // courier that only answers serviceability (Delhivery) leaves this out.
+  // courier that only answers serviceability (Delhivery) leaves this out. The admin's
+  // Create shipment flow (`shipments.quote` → `compareCourierRates`) asks it and
+  // serviceability at once: without it the courier is still listed, as "Rate on booking";
+  // a throw or a `serviceable: false` becomes that courier's own row, never the others'.
   async quoteRate(q) { /* { pricePaise, minTransitDays, maxTransitDays } or null */ }
 }
 

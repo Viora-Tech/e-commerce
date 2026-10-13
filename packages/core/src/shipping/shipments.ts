@@ -1,8 +1,17 @@
-import { address, fulfillmentOrder, order, orderLine, shipment, store, variant } from '@commerce/db'
+import {
+  address,
+  fulfillmentOrder,
+  fulfillmentOrderLine,
+  order,
+  orderLine,
+  shipment,
+  store,
+  variant,
+} from '@commerce/db'
 import { ASSUMED_WEIGHT_GRAMS, type ShippingProvider, type Tracking } from '@commerce/shipping'
-import { eq, inArray } from 'drizzle-orm'
+import { and, eq, inArray, ne } from 'drizzle-orm'
 import type { StoreContext } from '../context'
-import { fulfilRemainingLines } from '../order/fulfil'
+import { fulfilParcelLines, fulfilRemainingLines } from '../order/fulfil'
 import { ensureFulfillmentOrders, soleFulfillmentOrder } from '../order/fulfillment-orders'
 import { recomputeOrderStatuses } from '../order/recompute'
 import { insertOutboxEvent } from '../outbox/write'
@@ -41,6 +50,53 @@ export type CreateShipmentOptions = {
   dimensionsCm?: { length: number; width: number; height: number } | undefined
   /** Explicit merchant choice; defaults from the store's "insure above ₹X" policy when omitted. */
   insured?: boolean | undefined
+  /**
+   * Book just this parcel (fulfilment order) of the order: its unpacked units, leaving from its
+   * location. Omitted, the whole order goes in one consignment, as before.
+   */
+  fulfillmentOrderId?: string | undefined
+  /**
+   * Where the courier collects it, picked in the Create shipment flow: a location id, or null
+   * for Settings › Shipping's address. Omitted, the parcel's location decides (`shipFromFor`).
+   */
+  pickupLocationId?: string | null | undefined
+  /** Cash on delivery or prepaid; defaults from the order's payment method. */
+  paymentMode?: 'cod' | 'prepaid' | undefined
+  /** What the courier collects at the door; defaults to the parcel's (or order's) value. */
+  codAmountPaise?: number | undefined
+}
+
+/** One parcel of an order and the units it still has to send, by order line. */
+async function loadParcel(ctx: StoreContext, orderId: string, fulfillmentOrderId: string) {
+  const [parcel] = await ctx.tx
+    .select({
+      id: fulfillmentOrder.id,
+      locationId: fulfillmentOrder.locationId,
+      totalPaise: fulfillmentOrder.totalPaise,
+    })
+    .from(fulfillmentOrder)
+    .where(
+      and(
+        eq(fulfillmentOrder.id, fulfillmentOrderId),
+        eq(fulfillmentOrder.orderId, orderId),
+        ne(fulfillmentOrder.status, 'cancelled'),
+      ),
+    )
+  if (!parcel) throw new Error('This parcel is not part of the order, or it was cancelled.')
+  const units = await ctx.tx
+    .select({
+      orderLineId: fulfillmentOrderLine.orderLineId,
+      quantity: fulfillmentOrderLine.quantity,
+      fulfilledQuantity: fulfillmentOrderLine.fulfilledQuantity,
+    })
+    .from(fulfillmentOrderLine)
+    .where(eq(fulfillmentOrderLine.fulfillmentOrderId, parcel.id))
+  const unpacked = new Map<string, number>()
+  for (const u of units) {
+    const left = u.quantity - u.fulfilledQuantity
+    if (left > 0) unpacked.set(u.orderLineId, (unpacked.get(u.orderLineId) ?? 0) + left)
+  }
+  return { ...parcel, unpacked }
 }
 
 export async function createShipmentForOrder(
@@ -52,9 +108,14 @@ export async function createShipmentForOrder(
   const [o] = await ctx.tx.select().from(order).where(eq(order.id, orderId))
   if (!o) throw new Error('order not found')
   if (!o.shippingAddressId) throw new Error('order has no shipping address')
-  // A live booking is reused; a cancelled label or a parcel that came back (RTO) gets a new one.
+  /* A live booking is reused (for the parcel, when one was named); a cancelled label or a
+     parcel that came back (RTO) gets a new one. */
+  const parcelOnly = options.fulfillmentOrderId
   const existing = (await ctx.tx.select().from(shipment).where(eq(shipment.orderId, orderId))).find(
-    (s) => s.status !== 'cancelled' && s.status !== 'rto',
+    (s) =>
+      s.status !== 'cancelled' &&
+      s.status !== 'rto' &&
+      (!parcelOnly || s.fulfillmentOrderId === parcelOnly),
   )
   if (existing) return existing
 
@@ -62,8 +123,9 @@ export async function createShipmentForOrder(
   if (!to) throw new Error('shipping address not found')
   const [s] = await ctx.tx.select().from(store).where(eq(store.id, ctx.storeId))
   const settings = parseShippingSettings(s?.shipping)
-  const lines = await ctx.tx
+  const orderLines = await ctx.tx
     .select({
+      id: orderLine.id,
       title: orderLine.title,
       variantTitle: orderLine.variantTitle,
       quantity: orderLine.quantity,
@@ -78,18 +140,31 @@ export async function createShipmentForOrder(
     .leftJoin(variant, eq(variant.id, orderLine.variantId))
     .where(eq(orderLine.orderId, orderId))
   /* The parcel's location (the order's, when it ships whole) when it has courier pickup on,
-     else Settings › Shipping. */
+     else Settings › Shipping - unless the merchant picked where it leaves from. */
   await ensureFulfillmentOrders(ctx, o.id)
-  const parcelId = await soleFulfillmentOrder(ctx, o.id)
-  const [parcel] = parcelId
-    ? await ctx.tx
-        .select({ locationId: fulfillmentOrder.locationId })
-        .from(fulfillmentOrder)
-        .where(eq(fulfillmentOrder.id, parcelId))
-    : []
+  const named = parcelOnly ? await loadParcel(ctx, o.id, parcelOnly) : null
+  const sole = await soleFulfillmentOrder(ctx, o.id)
+  const parcelId = named?.id ?? sole
+  const [parcel] = named
+    ? [named]
+    : parcelId
+      ? await ctx.tx
+          .select({ locationId: fulfillmentOrder.locationId })
+          .from(fulfillmentOrder)
+          .where(eq(fulfillmentOrder.id, parcelId))
+      : []
+  // A named parcel carries only its own unpacked units; the whole order carries every line.
+  const lines = named
+    ? orderLines.flatMap((l) => {
+        const quantity = named.unpacked.get(l.id) ?? 0
+        return quantity > 0 ? [{ ...l, quantity }] : []
+      })
+    : orderLines
+  if (named && lines.length === 0) throw new Error('This parcel has nothing left to ship.')
   const shipFrom = await shipFromFor(ctx.tx, {
     taxOrigin: o.taxOrigin,
-    locationId: parcel?.locationId,
+    locationId: options.pickupLocationId ?? parcel?.locationId,
+    storeAddress: options.pickupLocationId === null,
     settings,
     storeName: s?.name ?? '',
   })
@@ -111,8 +186,15 @@ export async function createShipmentForOrder(
       resolveParcelWeightGrams(lines, boxWeightGrams),
       options.dimensionsCm ? null : parcelPackage,
     )
+  // A parcel that is the whole order is worth the order; one of several, its own share.
+  const valuePaise =
+    named && named.id !== sole
+      ? (named.totalPaise ?? lines.reduce((sum, l) => sum + l.unitPricePaise * l.quantity, 0))
+      : o.totalPaise
+  const paymentMode = options.paymentMode ?? (o.paymentMethod === 'cod' ? 'cod' : 'prepaid')
+  const codAmountPaise = paymentMode === 'cod' ? (options.codAmountPaise ?? valuePaise) : 0
   const threshold = settings.policy.insuranceThresholdPaise
-  const insured = options.insured ?? (threshold > 0 && o.totalPaise >= threshold)
+  const insured = options.insured ?? (threshold > 0 && valuePaise >= threshold)
 
   const result = await provider.createShipment({
     orderId: o.id,
@@ -136,13 +218,13 @@ export async function createShipmentForOrder(
       quantity: l.quantity,
       unitPricePaise: l.unitPricePaise,
     })),
-    paymentMode: o.paymentMethod === 'cod' ? 'cod' : 'prepaid',
-    codAmountPaise: o.paymentMethod === 'cod' ? o.totalPaise : 0,
-    valuePaise: o.totalPaise,
+    paymentMode,
+    codAmountPaise,
+    valuePaise,
     weightGrams,
   })
 
-  // The whole order goes in this consignment: it carries the order's parcel when it has one.
+  // The consignment carries its parcel: the named one, or the order's only one.
   const [row] = await ctx.tx
     .insert(shipment)
     .values({
@@ -158,15 +240,16 @@ export async function createShipmentForOrder(
       widthCm: parcelPackage?.widthCm ?? null,
       heightCm: parcelPackage?.heightCm ?? null,
       insured,
-      declaredValuePaise: o.totalPaise,
+      declaredValuePaise: valuePaise,
       // What the courier charges, when its booking said; the merchant can type it otherwise.
       courierChargePaise: result.chargePaise ?? null,
     })
     .returning()
   if (!row) throw new Error('could not record shipment')
-  // The label exists, so the parcel ships: every line is packed and leaves
-  // stock, and the recompute (inside) derives the fulfilment status.
-  await fulfilRemainingLines(ctx, o.id)
+  // The label exists, so the parcel ships: its lines (every line, for the whole order) are
+  // packed and leave stock, and the recompute (inside) derives the fulfilment status.
+  if (named) await fulfilParcelLines(ctx, o.id, named.id)
+  else await fulfilRemainingLines(ctx, o.id)
   await recomputeOrderStatuses(ctx, o.id)
   return row
 }

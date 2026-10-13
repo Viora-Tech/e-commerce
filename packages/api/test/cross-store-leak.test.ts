@@ -52,7 +52,7 @@ const SKIP: Record<string, string> = {
   'orders.cancelShipment': 'courier API',
   'returns.arrangePickup': 'courier API',
   'shipments.bulkBook': 'courier API',
-  'shipments.compareRates': 'courier API',
+  'shipments.quote': 'courier API',
   'shipments.schedulePickup': 'courier API',
   'shipments.createManifest': 'courier API',
   'shipments.ndrAction': 'courier API',
