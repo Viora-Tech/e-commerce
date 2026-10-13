@@ -15,8 +15,10 @@ const rate = {
   id: 'r1',
   name: 'Express',
   pricePaise: 14_900,
-  dateRange: 'Sat 11 Oct',
+  dateRange: 'Sat, 11 Oct',
   codSurchargePaise: null,
+  arrives: 'Arrives tomorrow, Sat, 11 Oct',
+  fastest: true,
 }
 const base: RecapInput = { step: 'address', steps: stepsFor(false), form, digitalOnly: false, rate }
 
@@ -37,10 +39,14 @@ describe('recapRows', () => {
     const rows = recapRows({ ...base, step: 'payment' })
     expect(rows.at(-1)).toMatchObject({
       label: 'Delivery',
-      value: 'Express · ₹149 · Delivery by Sat 11 Oct',
+      value: 'Express · ₹149 · Arrives tomorrow, Sat, 11 Oct',
       step: 'shipping',
     })
     expect(recapRows({ ...base, step: 'payment', rate: null }).at(-1)?.value).toBe('Free delivery')
+    expect(
+      recapRows({ ...base, step: 'payment', rate: null, arrives: 'Arrives Tue, 14 Oct' }).at(-1)
+        ?.value,
+    ).toBe('Free delivery · Arrives Tue, 14 Oct')
   })
 
   it('bills instead of shipping for gift cards, with no delivery row', () => {

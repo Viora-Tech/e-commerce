@@ -357,6 +357,12 @@ export const checkoutContent = {
     pending: 'Enter your PIN code to see delivery options.',
     free: 'Free delivery',
     standard: 'Standard delivery',
+    /** Each option's arrival, counted from today in the store's time zone. */
+    arrives: (when: string) => `Arrives ${when}`,
+    arrivesToday: 'Arrives today',
+    arrivesTomorrow: (date: string) => `Arrives tomorrow, ${date}`,
+    /** On the option that arrives first, when the options do not all arrive together. */
+    fastest: 'Fastest',
     digital: 'Delivered by email',
   },
   /** When one order ships from more than one warehouse. */
