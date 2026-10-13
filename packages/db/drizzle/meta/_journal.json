@@ -792,6 +792,13 @@
       "when": 1791845202610,
       "tag": "0117_customer_address_label",
       "breakpoints": true
+    },
+    {
+      "idx": 113,
+      "version": "7",
+      "when": 1791881241309,
+      "tag": "0118_seo_keywords",
+      "breakpoints": true
     }
   ]
 }

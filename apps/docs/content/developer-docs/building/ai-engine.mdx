@@ -124,6 +124,14 @@ itself runs only from the merchant's Approve, outside the model (see [AI assista
   order's customer first name (`orderDetails`, for reply drafts), and the answer says so.
   Customer notes go through with phone numbers and emails hidden.
 - **Bulk Write with AI**: the same as Write with AI, per product, from the worker.
+- **Suggest keywords** (`ai.suggestKeywords`, and the `keywords` field of a bulk run): the
+  product's title, brand, type, category breadcrumb, description, price range, its current
+  `product.seo_keywords` and, when a source is registered with `setSearchQueriesSource`
+  (`packages/core/src/seo/search-queries.ts`, the Search Console connection), up to 20 queries
+  that brought visitors to `/products/<handle>`. Runs under the `productWriter` switch (bulk:
+  `bulkWriter`). The chosen keywords (primary first) then go to Write with AI, which puts the
+  primary one in the search title and once in the search description. The storefront never
+  prints them (no `meta keywords`: search engines ignore it).
 
 ## Add an AI feature (one slice)
 

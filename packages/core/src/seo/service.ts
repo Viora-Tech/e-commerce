@@ -62,6 +62,7 @@ async function productItems(tx: StoreTx): Promise<SeoItem[]> {
       description: product.description,
       vendor: product.vendor,
       categoryId: product.categoryId,
+      keywordCount: sql<number>`cardinality(${product.seoKeywords})`,
       photos: photos.total,
       noAlt: photos.noAlt,
       withBarcode: barcodes.withBarcode,
@@ -85,6 +86,7 @@ async function productItems(tx: StoreTx): Promise<SeoItem[]> {
     vendor: r.vendor,
     hasBarcode: (r.withBarcode ?? 0) > 0,
     hasCategory: Boolean(r.categoryId),
+    keywordCount: r.keywordCount,
     links: seoBodyLinks(r.description),
   }))
 }

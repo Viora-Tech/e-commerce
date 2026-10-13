@@ -274,6 +274,7 @@ export async function duplicateProduct(tx: StoreTx, storeId: string, id: string)
     tags: source.tags,
     seoTitle: source.seoTitle,
     seoDescription: source.seoDescription,
+    seoKeywords: source.seoKeywords,
     status: 'draft',
     inventoryReason: 'correction',
     options,

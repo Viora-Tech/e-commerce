@@ -53,6 +53,8 @@ export type ProductFormState = {
   tags: string[]
   seoTitle: string
   seoDescription: string
+  /** Search keywords, primary first; they steer Write with AI, the storefront never shows them. */
+  seoKeywords: string[]
   /** Alternate product template; blank is the default. */
   templateSuffix: string
   handle: string
@@ -120,6 +122,7 @@ export function emptyForm(): ProductFormState {
     tags: [],
     seoTitle: '',
     seoDescription: '',
+    seoKeywords: [],
     templateSuffix: '',
     handle: '',
     taxIncluded: true,
@@ -154,6 +157,7 @@ export function fromProduct(p: LoadedProduct): ProductFormState {
     tags: p.tags,
     seoTitle: p.seoTitle ?? '',
     seoDescription: p.seoDescription ?? '',
+    seoKeywords: p.seoKeywords,
     templateSuffix: p.templateSuffix ?? '',
     handle: p.handle,
     taxIncluded: p.taxIncluded,
@@ -337,6 +341,7 @@ export function toWrite(form: ProductFormState): ProductWrite {
     tags: form.tags,
     seoTitle: form.seoTitle.trim() || null,
     seoDescription: form.seoDescription.trim() || null,
+    seoKeywords: form.seoKeywords,
     templateSuffix: form.templateSuffix || null,
     status: form.status,
     taxIncluded: form.taxIncluded,

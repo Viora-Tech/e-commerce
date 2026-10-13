@@ -42,3 +42,8 @@ export {
   reviewReplyContent,
   reviewReplyInstructions,
 } from './review-reply'
+export {
+  type SeoKeywordsInput,
+  seoKeywordsContent,
+  seoKeywordsInstructions,
+} from './seo-keywords/prompt'

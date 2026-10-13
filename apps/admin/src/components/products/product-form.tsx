@@ -56,6 +56,7 @@ import ProductPreorderSection from './product-preorder-section'
 import { type ProductTabId, tabsFor, tabsWithErrors } from './product-tab-list'
 import ProductTabs from './product-tabs'
 import SeoCard from './seo-card'
+import SeoKeywordsCard from './seo-keywords-card'
 import ShippingCard from './shipping-card'
 import StatusCard from './status-card'
 import StockHistoryCard from './stock-history-card'
@@ -310,17 +311,25 @@ export default function ProductForm({
       />
     ),
     seo: (
-      <SeoCard
-        title={form.title}
-        description={form.description}
-        seoTitle={form.seoTitle}
-        seoDescription={form.seoDescription}
-        handle={form.handle}
-        storefrontOrigin={storefrontOrigin}
-        onSeoTitle={(seoTitle) => patch({ seoTitle })}
-        onSeoDescription={(seoDescription) => patch({ seoDescription })}
-        onHandle={(handle) => patch({ handle })}
-      />
+      <>
+        <SeoCard
+          title={form.title}
+          description={form.description}
+          seoTitle={form.seoTitle}
+          seoDescription={form.seoDescription}
+          handle={form.handle}
+          storefrontOrigin={storefrontOrigin}
+          onSeoTitle={(seoTitle) => patch({ seoTitle })}
+          onSeoDescription={(seoDescription) => patch({ seoDescription })}
+          onHandle={(handle) => patch({ handle })}
+        />
+        <SeoKeywordsCard
+          productId={product?.id ?? null}
+          form={form}
+          aiOn={aiWriter}
+          onChange={(seoKeywords) => patch({ seoKeywords })}
+        />
+      </>
     ),
     more: (
       <>

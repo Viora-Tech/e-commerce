@@ -53,6 +53,16 @@ describe('item checks', () => {
     const page: SeoItem = { ...product(), resource: 'page', vendor: null, hasBarcode: false }
     expect(kinds(page)).not.toContain('shopping_gtin_missing')
   })
+
+  it('flags a product with no search keywords chosen, as low impact AI can fix', () => {
+    const report = seoReport([product({ keywordCount: 0 })])
+    expect(report.issues).toEqual([
+      expect.objectContaining({ kind: 'keyword_missing', severity: 'low' }),
+    ])
+    expect(report.fixable.keywords).toEqual(['p1'])
+    expect(kinds(product({ keywordCount: 3 }))).not.toContain('keyword_missing')
+    expect(kinds(product())).not.toContain('keyword_missing')
+  })
 })
 
 describe('seoReport', () => {

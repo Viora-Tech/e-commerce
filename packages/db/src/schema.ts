@@ -99,6 +99,11 @@ export const product = pgTable(
     tags: text('tags').array().notNull().default([]),
     seoTitle: text('seo_title'),
     seoDescription: text('seo_description'),
+    /**
+     * Search keywords the merchant chose (Search keywords card), primary first. They only steer
+     * "Write with AI" for the search title and description; the storefront never prints them.
+     */
+    seoKeywords: text('seo_keywords').array().notNull().default([]),
     status: text('status', { enum: ['draft', 'active', 'archived'] })
       .notNull()
       .default('draft'),

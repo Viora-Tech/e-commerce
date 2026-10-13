@@ -18,7 +18,7 @@ type SeoFixCardProps = {
   onFix: (field: SeoFixField) => void
 }
 
-const FIELDS: readonly SeoFixField[] = ['seo', 'altText', 'description']
+const FIELDS: readonly SeoFixField[] = ['seo', 'altText', 'description', 'keywords']
 
 /** "Fix with AI": one button per kind of gap the report found, each starting a bulk AI run. */
 export default function SeoFixCard({ fixable, aiOn, max, onFix }: SeoFixCardProps) {

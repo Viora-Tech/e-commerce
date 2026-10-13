@@ -1,6 +1,11 @@
 'use client'
 
-import type { BulkWriteField, WriterLanguage, WriterTone } from '@commerce/ai/client'
+import {
+  type BulkWriteField,
+  bulkCallsPerProduct,
+  type WriterLanguage,
+  type WriterTone,
+} from '@commerce/ai/client'
 import { AiIcon } from '@commerce/ui/icons'
 import { Progress } from '@commerce/ui/shadcn/progress'
 import {
@@ -190,7 +195,9 @@ export default function BulkWriteSheet({
                 onLanguage={setLanguage}
                 onTone={setTone}
               />
-              <p className="text-caption text-muted-foreground">{copy.bulk.cost(count)}</p>
+              <p className="text-caption text-muted-foreground">
+                {copy.bulk.cost(count, bulkCallsPerProduct(fields))}
+              </p>
             </>
           )}
         </div>

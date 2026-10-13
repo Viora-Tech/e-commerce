@@ -158,13 +158,18 @@ export const assistantContent = {
       seo: 'Search title and description',
       tags: 'Tags (added to yours)',
       altText: 'Photo alt text',
+      keywords: 'Suggest search keywords (added to yours)',
     } as Record<string, string>,
     languageLabel: 'Language',
     toneLabel: 'Tone',
     start: 'Start writing',
     starting: 'Starting…',
-    cost: (n: number) =>
-      n === 1 ? 'Uses 1 AI request.' : `Uses ${n} AI requests, one per product.`,
+    cost: (n: number, perProduct: number) =>
+      n * perProduct === 1
+        ? 'Uses 1 AI request.'
+        : perProduct === 1
+          ? `Uses ${n} AI requests, one per product.`
+          : `Uses ${n * perProduct} AI requests, ${perProduct} per product (keywords, then the writing).`,
     progress: (done: number, total: number) => `${done} of ${total} written`,
     background: 'It keeps going if you close this. Come back to review.',
     cancelRun: 'Stop',

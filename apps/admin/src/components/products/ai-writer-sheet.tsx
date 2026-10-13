@@ -18,6 +18,7 @@ import { useState } from 'react'
 import { toast } from 'sonner'
 import KitButton from '@/components/kit/kit-button'
 import { aiContent } from '@/data/ai'
+import { seoKeywordsContent } from '@/data/seo-keywords'
 import { useCopy, useLocale } from '@/hooks/use-copy'
 import { type ApplyPicks, type CopyPatch, patchFromCopy } from '@/lib/ai-product-copy'
 import { api } from '@/lib/api-client'
@@ -55,6 +56,7 @@ function isImage(contentType: string | null): boolean {
 export default function AiWriterSheet({ open, onOpenChange, form, onApply }: AiWriterSheetProps) {
   // Hooks
   const copy = useCopy(aiContent)
+  const keywordCopy = useCopy(seoKeywordsContent.writer)
   const locale = useLocale()
   const [tone, setTone] = useState<WriterTone>('friendly')
   const [language, setLanguage] = useState<WriterLanguage>(locale === 'hi' ? 'hi' : 'en')
@@ -78,6 +80,7 @@ export default function AiWriterSheet({ open, onOpenChange, form, onApply }: AiW
         notes,
         existingDescription: richTextToPlainText(form.description).slice(0, 5000),
         existingTags: form.tags.slice(0, 50),
+        keywords: form.seoKeywords,
         mediaIds: form.media.filter((m) => isImage(m.contentType)).map((m) => m.id),
         tone,
         language,
@@ -110,6 +113,7 @@ export default function AiWriterSheet({ open, onOpenChange, form, onApply }: AiW
   // Render logic
   const photoCount = form.media.filter((m) => isImage(m.contentType)).length
   const needsTitle = form.title.trim().length === 0
+  const primaryKeyword = form.seoKeywords[0] ?? null
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -146,6 +150,9 @@ export default function AiWriterSheet({ open, onOpenChange, form, onApply }: AiW
               </KitButton>
             </div>
           )}
+          <p className="text-caption text-muted-foreground">
+            {primaryKeyword ? keywordCopy.steering(primaryKeyword) : keywordCopy.none}
+          </p>
           {needsTitle ? (
             <p className="text-body text-warning-foreground dark:text-warning">
               {copy.writer.needTitle}
@@ -179,6 +186,7 @@ export default function AiWriterSheet({ open, onOpenChange, form, onApply }: AiW
                   seoDescription: form.seoDescription,
                   tags: form.tags,
                 }}
+                primaryKeyword={primaryKeyword}
                 onPicks={setPicks}
               />
             </div>
