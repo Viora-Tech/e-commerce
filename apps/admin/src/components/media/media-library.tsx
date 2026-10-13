@@ -11,14 +11,17 @@ import { toast } from 'sonner'
 import PillTabs from '@/components/layout/pill-tabs'
 import ProoflyListPage from '@/components/layout/proofly-list-page'
 import ResourceTablePagination from '@/components/table/resource-table/pagination'
+import { imageEditorContent } from '@/data/image-editor'
 import { mediaContent } from '@/data/media'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { isEditableImage } from '@/lib/image-edit'
 import { routes } from '@/lib/routes'
 import AltTextDialog from './alt-text-dialog'
 import BackgroundWorkNotice from './background-work-notice'
 import DeleteMediaDialog from './delete-media-dialog'
 import { FILE_TABS, type FileTab, fileKind, fileName, formatBytes } from './file-meta'
+import ImageEditorDialog from './image-editor-dialog'
 import MediaDropzone from './media-dropzone'
 import MediaTile from './media-tile'
 import { useUploadQueue } from './use-upload-queue'
@@ -64,6 +67,7 @@ function fetchMedia(page: number, perPage: number, query: string, type: FileTab 
 function MediaLibraryContent({ initial }: { initial: MediaLibraryInitial }) {
   // Hooks
   const { library: copy } = useCopy(mediaContent)
+  const { title: editImageLabel } = useCopy(imageEditorContent)
   const fileInput = useRef<HTMLInputElement>(null)
   const [{ page, perPage, query, type }, setQ] = useQueryStates(
     {
@@ -79,6 +83,7 @@ function MediaLibraryContent({ initial }: { initial: MediaLibraryInitial }) {
   const [counts, setCounts] = useState(initial.counts)
   const [usedBytes, setUsedBytes] = useState(initial.usedBytes)
   const [editing, setEditing] = useState<Item | null>(null)
+  const [retouching, setRetouching] = useState<Item | null>(null)
   const [deleting, setDeleting] = useState<Item | null>(null)
   const [draft, setDraft] = useState(initial.query)
   const queue = useUploadQueue(() => {
@@ -119,6 +124,18 @@ function MediaLibraryContent({ initial }: { initial: MediaLibraryInitial }) {
   const handlePicked = () => {
     handleFiles(Array.from(fileInput.current?.files ?? []))
     if (fileInput.current) fileInput.current.value = ''
+  }
+  /** An edited copy lands at the top of the first page, like any new upload. */
+  const handleRetouched = () => {
+    setQ({ page: 1 })
+    fetchMedia(1, perPage, query, type).then((r) => {
+      setItems(r.items)
+      setTotal(r.total)
+    })
+    fetchCounts().then((r) => {
+      setCounts(r.counts)
+      setUsedBytes(r.usedBytes)
+    })
   }
   const handleAltSaved = (id: string, alt: string | null) =>
     setItems((list) => list.map((i) => (i.id === id ? { ...i, alt } : i)))
@@ -226,6 +243,9 @@ function MediaLibraryContent({ initial }: { initial: MediaLibraryInitial }) {
                   .join(' · ')}
                 actions={[
                   { label: mediaContent.tile.editAlt, onSelect: () => setEditing(item) },
+                  ...(isEditableImage(item.contentType)
+                    ? [{ label: editImageLabel, onSelect: () => setRetouching(item) }]
+                    : []),
                   {
                     label: mediaContent.tile.delete,
                     onSelect: () => setDeleting(item),
@@ -256,6 +276,13 @@ function MediaLibraryContent({ initial }: { initial: MediaLibraryInitial }) {
         item={editing}
         onClose={() => setEditing(null)}
         onSaved={handleAltSaved}
+      />
+      <ImageEditorDialog
+        key={retouching?.id ?? 'none'}
+        item={retouching}
+        mode="copy"
+        onClose={() => setRetouching(null)}
+        onSaved={handleRetouched}
       />
       <DeleteMediaDialog
         item={deleting}
