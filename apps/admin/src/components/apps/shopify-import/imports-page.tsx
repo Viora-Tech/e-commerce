@@ -83,7 +83,7 @@ export default function ImportsPage() {
   // Hooks
   const all = useCopy(shopifyImportContent)
   const fmt = useFormat()
-  const settings = useCopy(shopifyImportSettingsContent).card
+  const { card: settings } = useCopy(shopifyImportSettingsContent)
   const [page, setPage] = useState(1)
   const [perPage, setPerPage] = useState<number>(siteConfig.ui.rowsPerPage.default)
   const [data, setData] = useState<{ items: RunListItem[]; total: number } | null>(null)
