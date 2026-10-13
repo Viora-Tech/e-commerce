@@ -1,12 +1,13 @@
 'use client'
 
-import { RefreshCw, X } from '@commerce/ui/icons'
+import { Pencil, RefreshCw, X } from '@commerce/ui/icons'
 import { cn } from '@commerce/ui/lib/utils'
 import { Button } from '@commerce/ui/shadcn/button'
 import { DragHandle, ROW_STATE_CLASS } from '@commerce/ui/sortable'
 import { useSortable } from '@dnd-kit/sortable'
 import { AnimatePresence, motion } from 'motion/react'
 import type { MediaTileItem } from '@/components/media/media-tile'
+import { imageEditorContent } from '@/data/image-editor'
 import { productFormContent } from '@/data/product-form'
 import { useCopy } from '@/hooks/use-copy'
 import { IMAGE_ENTER_MS, IMAGE_GLIDE_SPRING } from '@/hooks/use-image-dnd'
@@ -17,6 +18,8 @@ type ProductImageTileProps = {
   main: boolean
   reduced: boolean
   onEdit: () => void
+  /** Opens the image editor (crop, rotate, adjust); left out for videos. */
+  onEditImage?: (() => void) | undefined
   onRemove: () => void
   onReplace: () => void
 }
@@ -49,11 +52,13 @@ export default function ProductImageTile({
   main,
   reduced,
   onEdit,
+  onEditImage,
   onRemove,
   onReplace,
 }: ProductImageTileProps) {
   // Hooks
   const { media: copy } = useCopy(productFormContent)
+  const { open: editImage } = useCopy(imageEditorContent)
   const { attributes, listeners, setNodeRef, setActivatorNodeRef, isDragging } = useSortable({
     id: item.id,
   })
@@ -101,6 +106,16 @@ export default function ProductImageTile({
         {...listeners}
         className="absolute top-1.5 left-1.5 size-7 border border-border bg-card/95 shadow-card transition-opacity duration-150 focus-visible:opacity-100 motion-reduce:transition-none pointer-fine:opacity-0 pointer-fine:group-hover/tile:opacity-100"
       />
+      {onEditImage ? (
+        <button
+          type="button"
+          onClick={onEditImage}
+          aria-label={editImage(name)}
+          className="absolute top-1.5 right-10 flex size-7 items-center justify-center rounded-md border border-border bg-card/95 text-muted-foreground shadow-card transition-[color,opacity] duration-150 hover:text-foreground focus-visible:opacity-100 focus-visible:outline-2 focus-visible:outline-ring motion-reduce:transition-none pointer-fine:opacity-0 pointer-fine:group-hover/tile:opacity-100"
+        >
+          <Pencil className="size-3.5" aria-hidden="true" />
+        </button>
+      ) : null}
       <button
         type="button"
         onClick={onRemove}

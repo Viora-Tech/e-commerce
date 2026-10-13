@@ -25,6 +25,7 @@ import domains from './domains'
 import growth from './growth'
 import gstInvoices from './gst-invoices'
 import home from './home'
+import imageEditor from './image-editor'
 import inventory from './inventory'
 import layout from './layout'
 import login from './login'
@@ -92,6 +93,7 @@ export const hindiCopy: readonly TranslationPair[] = [
   ...growth,
   ...gstInvoices,
   ...home,
+  ...imageEditor,
   ...layout,
   ...marketingAutomations,
   ...marketingCampaigns,

@@ -1,0 +1,38 @@
+/** Copy for the image editor (crop, rotate, flip and adjust a photo, then save it). */
+export const imageEditorContent = {
+  title: 'Edit image',
+  description: 'Crop, straighten and brighten the photo. Saving replaces it with the edited copy.',
+  open: (name: string) => `Edit image ${name}`,
+  loading: 'Loading photo…',
+  loadFailed:
+    'This photo could not be opened for editing. If it is on your own storage (R2 or S3), allow GET in its CORS rule.',
+  shape: {
+    label: 'Shape',
+    free: 'Free',
+    square: 'Square 1:1',
+    portrait: 'Portrait 4:5',
+    tall: 'Tall 3:4',
+    wide: 'Banner 16:9',
+  },
+  zoom: 'Zoom',
+  rotateLeft: 'Rotate left',
+  rotateRight: 'Rotate right',
+  flipX: 'Flip sideways',
+  flipY: 'Flip upside down',
+  adjust: {
+    heading: 'Adjust',
+    brightness: 'Brightness',
+    contrast: 'Contrast',
+    saturation: 'Colour',
+    warmth: 'Warmth',
+    sharpen: 'Sharpen',
+  },
+  auto: 'Auto enhance',
+  reset: 'Reset',
+  cancel: 'Cancel',
+  save: 'Save image',
+  saving: 'Saving…',
+  saved: 'Image updated. Save the product to keep it.',
+  savedCopy: 'Edited copy added to your files. The original is unchanged.',
+  failed: 'Could not save the edited image. Try again.',
+}
