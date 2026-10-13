@@ -1,5 +1,6 @@
+/** SOURCE OF TRUTH: tests for the SEO report's rules (checks.ts) — WHAT: each check, the score, duplicates, ranking and rich text reading / WHY: the report, the score and Fix with AI share these rules */
 import { describe, expect, it } from 'vitest'
-import { itemIssues, type SeoItem, seoBodyText, seoReport } from './checks'
+import { type SeoItem, seoBodyText, seoReport } from './checks'
 
 const words = (n: number) => Array.from({ length: n }, (_, i) => `word${i}`).join(' ')
 
@@ -20,9 +21,10 @@ function product(overrides: Partial<SeoItem> = {}): SeoItem {
   }
 }
 
-const kinds = (item: SeoItem) => itemIssues(item).map((i) => i.kind)
+/** One item's issue kinds, through the public report (duplicates need two items, so none here). */
+const kinds = (item: SeoItem) => seoReport([item]).issues.map((i) => i.kind)
 
-describe('itemIssues', () => {
+describe('item checks', () => {
   it('passes a complete product', () => {
     expect(kinds(product())).toEqual([])
   })

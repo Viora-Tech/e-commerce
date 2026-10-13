@@ -16,9 +16,9 @@ import { notSystemTest } from '../catalog/system-test'
 import { type Permission, permissions } from '../permissions/statement'
 
 /** How far back "just happened" goes. */
-export const ACTIVITY_DAYS = 7
+const ACTIVITY_DAYS = 7
 /** Most recent events the bell lists. */
-export const ACTIVITY_MAX = 25
+const ACTIVITY_MAX = 25
 
 export type ActivityAttention = {
   /** Refunds the gateway accepted and then failed (last 30 days): the shopper has no money back. */

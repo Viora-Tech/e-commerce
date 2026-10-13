@@ -3,7 +3,7 @@
 import { linkTarget, pathExists } from './links'
 
 /** What Google shows before cutting a title or description off (characters, roughly). */
-export const SEO_LIMITS = {
+const SEO_LIMITS = {
   titleMax: 60,
   titleMin: 15,
   descriptionMax: 160,
@@ -41,7 +41,7 @@ export type SeoIssueKind =
   | 'page_thin'
 
 /** Each kind's weight: how much one occurrence costs the score, and which AI field fixes it. */
-export const SEO_RULES: Record<
+const SEO_RULES: Record<
   SeoIssueKind,
   { severity: SeoSeverity; fixWithAi: 'seo' | 'altText' | 'description' | null }
 > = {
@@ -125,12 +125,12 @@ export type SeoReport = {
 const HANDLE = /^[a-z0-9]+(?:-[a-z0-9]+)*$/
 
 /** What a search engine shows as the title: the SEO title, else the item's own title. */
-export function effectiveTitle(item: Pick<SeoItem, 'seoTitle' | 'title'>): string {
+function effectiveTitle(item: Pick<SeoItem, 'seoTitle' | 'title'>): string {
   return (item.seoTitle?.trim() || item.title.trim()).replace(/\s+/g, ' ')
 }
 
 /** What it shows as the description: the SEO description, else the start of the body text. */
-export function effectiveDescription(item: Pick<SeoItem, 'seoDescription' | 'bodyText'>): string {
+function effectiveDescription(item: Pick<SeoItem, 'seoDescription' | 'bodyText'>): string {
   return (item.seoDescription?.trim() || item.bodyText.trim()).replace(/\s+/g, ' ')
 }
 
@@ -139,7 +139,7 @@ function wordCount(text: string): number {
 }
 
 /** The issues of one item on its own (duplicates need the whole set: see `seoReport`). */
-export function itemIssues(item: SeoItem): SeoIssue[] {
+function itemIssues(item: SeoItem): SeoIssue[] {
   const out: SeoIssue[] = []
   const add = (kind: SeoIssueKind, detail: string | null = null) =>
     out.push({

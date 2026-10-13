@@ -1,3 +1,4 @@
+/** SOURCE OF TRUTH: tests for the SEO link checks (links.ts) — WHAT: link extraction, path normalising, internal vs old-store vs other, which paths are checked, and link issues in text and menus / WHY: a wrong answer here flags good links or misses broken ones */
 import { describe, expect, it } from 'vitest'
 import { seoReport } from './checks'
 import { linkTarget, normalizeStorePath, pathExists, seoBodyLinks } from './links'

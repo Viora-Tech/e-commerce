@@ -16,6 +16,7 @@ const GROWTH_MARGIN = 50
 const SPLIT = 'several concerns in one module — split by concern when it next changes'
 
 const ALLOWLIST: Record<string, { lines: number; reason: string }> = {
+  'apps/storefront/src/lib/liquid-theme.ts': { lines: 509, reason: SPLIT },
   'packages/api/src/routers/gst-invoices.ts': { lines: 510, reason: SPLIT },
   'packages/api/src/routers/store.ts': { lines: 524, reason: SPLIT },
   'packages/api/src/services/analytics-reports.ts': { lines: 554, reason: SPLIT },
@@ -33,10 +34,6 @@ const ALLOWLIST: Record<string, { lines: number; reason: string }> = {
     reason: 'the Drizzle schema; split into per-area schema files (like marketing-schema.ts)',
   },
   'packages/invoices/src/document.ts': { lines: 508, reason: SPLIT },
-  'packages/payments-cashfree/src/cashfree.ts': {
-    lines: 565,
-    reason: 'one gateway adapter implementing the whole provider contract',
-  },
   'packages/payments-decentro/src/decentro.ts': {
     lines: 504,
     reason: 'one gateway adapter implementing the whole provider contract',
