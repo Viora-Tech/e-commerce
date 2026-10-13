@@ -25,6 +25,8 @@ type CheckoutSummaryProps = {
   adjustmentLabel: string
   shipping: ShippingRow | null
   totalPaise: number
+  /** GST inside the total, once the server has worked it out; null shows "Inclusive of all taxes". */
+  gstPaise?: number | null | undefined
   cardRows: (AppliedGiftCard & { amountPaise: number })[]
   duePaise: number
   /** A deposit pre-order's balance, charged later; 0 when nothing is deferred. */
@@ -59,6 +61,7 @@ export default function CheckoutSummary({
   adjustmentLabel,
   shipping,
   totalPaise,
+  gstPaise,
   cardRows,
   duePaise,
   laterPaise,
@@ -139,7 +142,9 @@ export default function CheckoutSummary({
                 <span className="flex flex-col gap-0.5">
                   {content.total}
                   <span className="text-[0.75rem] font-normal text-ck-summary-muted">
-                    {content.taxes}
+                    {gstPaise && gstPaise > 0 && !updating
+                      ? content.taxesIncluded(formatPaise(gstPaise))
+                      : content.taxes}
                   </span>
                 </span>
               }

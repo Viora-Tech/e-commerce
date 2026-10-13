@@ -17,6 +17,7 @@ import { shippingRow, trustMethodNames } from '@/lib/checkout-preview'
 import { recapRows } from '@/lib/checkout-recap'
 import type { CheckoutStep } from '@/lib/checkout-steps'
 import { type CheckoutFormInput, useCheckoutForm } from '@/lib/use-checkout-form'
+import { useCheckoutGst } from '@/lib/use-checkout-gst'
 import { stepHeadingId } from '@/lib/use-checkout-step'
 
 type CheckoutFormProps = CheckoutFormInput
@@ -40,6 +41,11 @@ function stepIntro(step: CheckoutStep, digitalOnly: boolean, place: string | nul
 export default function CheckoutForm(props: CheckoutFormProps) {
   // Hooks
   const ck = useCheckoutForm(props)
+  const gstPaise = useCheckoutGst({
+    totalPaise: ck.totals.totalPaise,
+    reductionPaise: (ck.discount?.amountPaise ?? 0) + Math.max(0, -ck.totals.adjustmentPaise),
+    stateCode: ck.form.stateCode || null,
+  })
 
   // Render logic
   const { totals, deposit, look, step, shipping, rate } = ck
@@ -82,6 +88,7 @@ export default function CheckoutForm(props: CheckoutFormProps) {
             }
             shipping={shippingRow(digitalOnly, shipping, rate)}
             totalPaise={totals.totalPaise}
+            gstPaise={gstPaise}
             cardRows={totals.cardRows}
             duePaise={totals.duePaise}
             laterPaise={deposit.laterPaise}
