@@ -230,46 +230,45 @@ export function designVars(t: AccentTokens, mode: 'light' | 'dark'): Record<stri
       '--link': ink,
     }
   }
+  // Dark is neutral (CodeHelp's look): white keys, grey active pills and soft fills for every
+  // accent; the accent shows in links, focus rings, charts and selection only.
   const key = darkKey(p)
-  const soft = alpha(12)
-  const ink = tint(55, 'white')
   return {
-    ...shared,
+    '--brand-wash': 'rgb(255 255 255 / 0.03)',
+    '--brand-wash-end': 'rgb(255 255 255 / 0)',
+    '--brand-border': '#3f3f46',
     '--key-top': key.top,
     '--key-bottom': key.bottom,
     '--key-border': key.border,
-    '--key-glow': alpha(22),
+    '--key-glow': 'transparent',
     '--key-ink': key.ink,
-    '--brand-select': alpha(8),
-    '--accent': soft,
-    '--accent-foreground': ink,
-    '--sidebar-accent': soft,
-    '--sidebar-accent-foreground': ink,
-    '--link': ink,
-    '--glass-active': alpha(14),
-    '--glass-active-ink': key.ink,
+    '--brand-select': 'rgb(255 255 255 / 0.06)',
+    '--accent': NEUTRAL_DARK.pill,
+    '--accent-foreground': NEUTRAL_DARK.pillInk,
+    '--sidebar-accent': NEUTRAL_DARK.pill,
+    '--sidebar-accent-foreground': NEUTRAL_DARK.pillInk,
+    '--link': tint(55, 'white'),
+    '--glass-active': NEUTRAL_DARK.pill,
+    '--glass-active-ink': NEUTRAL_DARK.pillInk,
   }
 }
 
+/** Dark mode's neutral pills (active nav, soft fills), the stylesheet's `.dark` `--accent`. */
+const NEUTRAL_DARK = { pill: '#27272a', pillInk: '#fafafa' } as const
+
 /**
- * The dark key button, from the (already lifted) dark primary: a deep, low-chroma well of the
- * accent's hue with pale ink, the dark twin of light's pale key with deep ink. A saturated fill
- * with white text and a strong glow reads as plastic on a dark canvas. The stylesheet's `.dark`
- * key values are this function's output for the default blue.
+ * The dark key button: white with dark ink for every accent, as on CodeHelp's web app (owner,
+ * 2026-10-14). A coloured fill on a near-black canvas competes with the content; a white key is
+ * calm and the clearest call to action. `primary` is kept so callers stay accent-aware should a
+ * tinted key return. The stylesheet's `.dark` key values are this function's output.
  */
-export function darkKey(primary: string): {
+export function darkKey(_primary: string): {
   top: string
   bottom: string
   border: string
   ink: string
 } {
-  const { c, h } = hexToOklch(primary)
-  return {
-    top: oklchToHex({ l: 0.38, c: Math.min(c * 0.6, 0.09), h }),
-    bottom: oklchToHex({ l: 0.33, c: Math.min(c * 0.55, 0.08), h }),
-    border: oklchToHex({ l: 0.47, c: Math.min(c * 0.65, 0.1), h }),
-    ink: oklchToHex({ l: 0.94, c: Math.min(c * 0.3, 0.035), h }),
-  }
+  return { top: '#fafafa', bottom: '#f4f4f5', border: '#ffffff', ink: '#18181b' }
 }
 
 const declarations = (vars: Record<string, string>) =>

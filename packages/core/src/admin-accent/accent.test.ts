@@ -106,23 +106,23 @@ describe('darkKey', () => {
   it('matches the stylesheet .dark key for the default blue', () => {
     // packages/ui/src/styles.css, `.dark` --key-top / --key-bottom / --key-border / --key-ink.
     expect(darkKey(KIT_PALETTE.dark.primary)).toEqual({
-      top: '#2f416b',
-      bottom: '#243459',
-      border: '#45598a',
-      ink: '#e2ebff',
+      top: '#fafafa',
+      bottom: '#f4f4f5',
+      border: '#ffffff',
+      ink: '#18181b',
     })
   })
 
-  it('is a deep well of the accent with pale ink that reaches AA on every preset', () => {
+  it('is a white key with dark ink that reaches AA on every preset', () => {
     for (const p of ACCENT_PRESETS) {
       const key = darkKey(deriveAccentPalette(p.hex).dark.primary)
-      expect(hexToOklch(key.top).l).toBeLessThan(0.4)
+      expect(hexToOklch(key.top).l).toBeGreaterThan(0.95)
       expect(contrastRatio(key.ink, key.top)).toBeGreaterThanOrEqual(4.5)
       expect(contrastRatio(key.ink, key.bottom)).toBeGreaterThanOrEqual(4.5)
     }
   })
 
-  it('drives the dark key in an override instead of a white-on-saturated fill', () => {
+  it('drives the dark key in an override: white with dark ink, never a saturated fill', () => {
     const css = accentCss('#e11d48')
     const dark = css.slice(css.indexOf(':root.dark{'))
     const key = darkKey(deriveAccentPalette('#e11d48').dark.primary)
