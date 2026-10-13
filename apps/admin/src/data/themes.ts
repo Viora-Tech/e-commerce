@@ -6,7 +6,7 @@ export const themesContent = {
   save: 'Save',
   saved: 'Theme saved',
   failed: 'Could not save the theme',
-  tabs: { label: 'Online store', themes: 'Themes', preferences: 'Preferences' },
+  tabs: { label: 'Online store', themes: 'Themes', preferences: 'Preferences', seo: 'SEO' },
   library: {
     subtitle: 'The look of your storefront. One theme is live; keep others ready to publish.',
     current: 'Current theme',

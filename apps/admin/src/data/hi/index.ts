@@ -44,6 +44,7 @@ import purchaseDocuments from './purchase-documents'
 import purchasing from './purchasing'
 import reviews from './reviews'
 import selectProducts from './select-products'
+import seoReport from './seo-report'
 import settings from './settings'
 import shipping from './shipping'
 import shippingRates from './shipping-rates'
@@ -127,5 +128,6 @@ export const hindiCopy: readonly TranslationPair[] = [
   ...table,
   ...themeImport,
   ...themes,
+  ...seoReport,
   ...umami,
 ]

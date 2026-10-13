@@ -153,6 +153,7 @@ export const NAV_GROUPS: NavGroup[] = [
         children: [
           { href: routes.onlineStore.themes(), label: 'Themes' },
           { href: routes.onlineStore.preferences(), label: 'Preferences' },
+          { href: routes.onlineStore.seo(), label: 'SEO' },
         ],
       },
     ],

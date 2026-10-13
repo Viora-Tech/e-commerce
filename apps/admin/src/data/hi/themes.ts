@@ -7,6 +7,7 @@ export default [
     label: 'ऑनलाइन स्टोर',
     themes: 'थीम',
     preferences: 'प्राथमिकताएं',
+    seo: 'SEO',
   }),
   translation(themesContent.library, {
     subtitle: 'आपके स्टोर का लुक। एक थीम लाइव रहती है; बाकी पब्लिश के लिए तैयार रखें।',

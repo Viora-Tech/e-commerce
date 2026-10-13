@@ -30,6 +30,8 @@ type BulkWriteSheetProps = {
   productIds: string[] | null
   jobId: string | null
   onApplied: () => void
+  /** What to write when the sheet opens (the SEO report preselects what it found missing). */
+  initialFields?: BulkWriteField[] | undefined
 }
 
 const POLL_MS = 1_500
@@ -46,11 +48,14 @@ export default function BulkWriteSheet({
   productIds,
   jobId,
   onApplied,
+  initialFields,
 }: BulkWriteSheetProps) {
   // Hooks
   const copy = useCopy(assistantContent)
   const locale = useLocale()
-  const [fields, setFields] = useState<BulkWriteField[]>(['description', 'seo', 'tags'])
+  const [fields, setFields] = useState<BulkWriteField[]>(
+    initialFields ?? ['description', 'seo', 'tags'],
+  )
   const [language, setLanguage] = useState<WriterLanguage>(locale === 'hi' ? 'hi' : 'en')
   const [tone, setTone] = useState<WriterTone>('friendly')
   const [job, setJob] = useState<Job | null>(null)

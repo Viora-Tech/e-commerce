@@ -39,6 +39,7 @@ import { inboundShipmentsRouter, purchaseChargesRouter, suppliersRouter } from '
 import { redirectsRouter } from './redirects'
 import { returnsRouter } from './returns'
 import { reviewsRouter } from './reviews'
+import { seoRouter } from './seo'
 import { shipmentsRouter } from './shipments'
 import { shippingRouter } from './shipping'
 import { shopifyImportRouter } from './shopify-import'
@@ -71,6 +72,7 @@ export const appRouter = {
   metaobjects: metaobjectsRouter,
   navigation: navigationRouter,
   redirects: redirectsRouter,
+  seo: seoRouter,
   orders: ordersRouter,
   returns: returnsRouter,
   shipments: shipmentsRouter,
