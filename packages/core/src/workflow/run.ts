@@ -1,3 +1,5 @@
+import { logger } from '@commerce/observability/logging'
+
 export interface WorkflowStep<S> {
   name: string
   run(state: S): Promise<Partial<S>>
@@ -7,7 +9,7 @@ export interface WorkflowStep<S> {
 export type WorkflowLog = { error(message: string, err: unknown): void }
 
 const defaultLog: WorkflowLog = {
-  error: (message, err) => console.error(message, err),
+  error: (message, err) => logger.error(message, { error: err }),
 }
 
 /**

@@ -74,9 +74,15 @@ export function paymentWebhooks(db: Db, settingsSecret: string, rateLimitStore: 
     })
 
     if (!outcome.ok) return rejectWebhook(c, 'webhook', { providerId, storeId }, outcome.reason)
-    console.log(
-      `[webhook] ${providerId} ${outcome.eventId} applied=${outcome.applied} duplicate=${outcome.duplicate}`,
-    )
+    c.var.log?.set({
+      storeId,
+      webhook: {
+        provider: providerId,
+        eventId: outcome.eventId,
+        applied: outcome.applied,
+        duplicate: outcome.duplicate,
+      },
+    })
     // Some gateways (Decentro) keep retrying unless the reply carries their acknowledgement.
     const { ack, ...result } = outcome
     return c.json({ ...result, ...ack })

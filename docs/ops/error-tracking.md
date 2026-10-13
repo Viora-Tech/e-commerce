@@ -6,6 +6,9 @@ Sentry's own SaaS. GlitchTip is MIT-licensed and speaks the same event protocol 
 use, so nothing SaaS-specific (source-map upload, Sentry's own release/CI integration) is wired
 up; only the DSN and `beforeSend` scrubbing matter here.
 
+Structured logs (one wide event per request, procedure call and job, shipped to OpenObserve)
+are separate: see [logging.md](logging.md).
+
 ## It is off by default
 
 Nothing is captured anywhere until `SENTRY_DSN` is set. Each app's `Sentry.init` (or, in the

@@ -1,4 +1,12 @@
+import type { WideLogger } from '@commerce/observability/logging'
 import type { Context } from 'hono'
+
+declare module 'hono' {
+  interface ContextVariableMap {
+    /** The request's wide event, set by the `evlog` middleware in index.ts. Absent in tests. */
+    log?: WideLogger
+  }
+}
 
 /**
  * One answer for every rejected payment or courier webhook, whatever the reason: unknown or
@@ -24,7 +32,11 @@ export function rejectWebhook(
   where: { providerId: string; storeId: string },
   reason: string,
 ) {
-  console.warn(`[${label}] ${where.providerId}/${where.storeId} rejected: ${reason}`)
+  // On the request's wide event (status 400, so always kept), never in the reply.
+  c.var.log?.warn('webhook rejected', {
+    storeId: where.storeId,
+    webhook: { kind: label, provider: where.providerId, reason },
+  })
   return c.json(WEBHOOK_REJECTED_BODY, WEBHOOK_REJECTED_STATUS)
 }
 

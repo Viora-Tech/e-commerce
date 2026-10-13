@@ -14,6 +14,7 @@ import {
 } from '@commerce/core'
 import { registriesForStore } from '@commerce/core/registries'
 import { type Db, withStore } from '@commerce/db'
+import { logger } from '@commerce/observability/logging'
 import { getContactMessage, messageText } from '@commerce/plugin-forms/server'
 import {
   loadReviewsSettings,
@@ -22,6 +23,21 @@ import {
 } from '@commerce/plugin-reviews/server'
 import { fairProcessor, type IORedis, QUEUE_LIMITS, Worker } from '@commerce/queue'
 import { appEmailExtras } from './app-events'
+
+/** One line per delivery attempt: template, channel and outcome, never the recipient. */
+function delivery(
+  template: string,
+  fields: {
+    storeId: string
+    orderId?: string | undefined
+    channel: string
+    ok: boolean
+    error?: string | undefined
+  },
+): void {
+  if (fields.ok) logger.info('notification sent', { template, ...fields })
+  else logger.warn('notification failed', { template, ...fields })
+}
 
 /**
  * Consumes {storeId, orderId, template} jobs. A job succeeds only when every
@@ -71,9 +87,7 @@ export function createNotificationWorker(
           ),
         )
         for (const r of sent) {
-          console.log(
-            `[notification] newsletter_confirm ${r.channel}→${r.to} ${r.ok ? 'sent' : `failed: ${r.error}`}`,
-          )
+          delivery('newsletter_confirm', { storeId, channel: r.channel, ok: r.ok, error: r.error })
         }
         const bad = sent.filter((r) => !r.ok)
         if (bad.length > 0) throw new Error(bad.map((r) => `${r.channel}: ${r.error}`).join('; '))
@@ -179,12 +193,18 @@ export function createNotificationWorker(
         )
           .then((sent) => {
             for (const r of sent) {
-              console.log(
-                `[member alert] staff_new_order order=${orderId} ${r.channel}→${r.to} ${r.ok ? 'sent' : `failed: ${r.error}`}`,
-              )
+              delivery('staff_new_order', {
+                storeId,
+                orderId,
+                channel: r.channel,
+                ok: r.ok,
+                error: r.error,
+              })
             }
           })
-          .catch((err: unknown) => console.warn('[member alert] new order failed:', err))
+          .catch((err: unknown) =>
+            logger.warn('new order member alert failed', { storeId, orderId, error: err }),
+          )
       }
       const event = appEventForTemplate(template)
       // Queued before delivery: a channel failure retries this job, and the app
@@ -202,9 +222,7 @@ export function createNotificationWorker(
           }),
         )
         for (const d of cards.deliveries) {
-          console.log(
-            `[gift-card] order=${orderId} ${d.channel}→${d.to} ${d.ok ? 'sent' : `failed: ${d.error}`}`,
-          )
+          delivery('gift_card', { storeId, orderId, channel: d.channel, ok: d.ok, error: d.error })
         }
         // A failed gift card email never blocks the order emails; the merchant can resend
         // it from the gift card page, and the next payment_received retry tries again.
@@ -226,9 +244,7 @@ export function createNotificationWorker(
       )
       const failed = results.filter((r) => !r.ok)
       for (const r of results) {
-        console.log(
-          `[notification] ${template} order=${orderId} ${r.channel}→${r.to} ${r.ok ? 'sent' : `failed: ${r.error}`}`,
-        )
+        delivery(template, { storeId, orderId, channel: r.channel, ok: r.ok, error: r.error })
       }
       if (failed.length > 0) {
         throw new Error(failed.map((r) => `${r.channel}: ${r.error}`).join('; '))

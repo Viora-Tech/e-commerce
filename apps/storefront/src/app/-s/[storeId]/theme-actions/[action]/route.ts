@@ -4,6 +4,7 @@ import { addLineAction, cartCountAction } from '@/lib/cart-actions'
 import { submitContact } from '@/lib/contact-actions'
 import { renderRecommendations, renderStaticLiquidSection } from '@/lib/liquid-theme'
 import { subscribeAction } from '@/lib/newsletter-actions'
+import { withEvlog } from '@/lib/request-log'
 import { inStore } from '@/lib/store-context'
 
 type Params = { params: Promise<{ storeId: string; action: string }> }
@@ -53,7 +54,7 @@ async function cartLines(req: Request): Promise<{ id: string; quantity: number }
   return typeof id === 'string' && id ? [{ id, quantity: Number(form?.get('quantity')) || 1 }] : []
 }
 
-export async function POST(req: Request, { params }: Params) {
+export const POST = withEvlog(async (req: Request, { params }: Params) => {
   const { storeId, action } = await params
   if (action === 'cart-add') {
     const lines = await cartLines(req)
@@ -93,9 +94,9 @@ export async function POST(req: Request, { params }: Params) {
   // Localization is India only.
   if (action === 'localization') return backTo(req, null)
   return notFound()
-}
+})
 
-export async function GET(req: Request, { params }: Params) {
+export const GET = withEvlog(async (req: Request, { params }: Params) => {
   const { storeId, action } = await params
   if (action === 'cart') return Response.json(await cartCountAction())
   if (action === 'recommendations') {
@@ -123,4 +124,4 @@ export async function GET(req: Request, { params }: Params) {
       : new Response(html, { headers: { 'content-type': 'text/html; charset=utf-8' } })
   }
   return notFound()
-}
+})

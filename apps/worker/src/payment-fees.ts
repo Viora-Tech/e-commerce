@@ -8,6 +8,7 @@ import {
 } from '@commerce/core'
 import { registriesForStore } from '@commerce/core/registries'
 import { type Db, store, storesWithUnknownPaymentFees, withStore } from '@commerce/db'
+import { logger } from '@commerce/observability/logging'
 import { type IORedis, PAYMENT_FEES_QUEUE, Queue, Worker } from '@commerce/queue'
 import { eq } from 'drizzle-orm'
 
@@ -57,7 +58,7 @@ export async function syncAllStoreFees(db: Db, settingsSecret: string, opts: Fee
       totals.pending += r.pending
       totals.failed += r.failed
     } catch (err) {
-      console.warn(`[fees] store ${storeId} failed:`, err instanceof Error ? err.message : err)
+      logger.warn('payment fee sync failed', { storeId, error: err })
     }
   }
   return { stores: storeIds.length, ...totals }
@@ -78,11 +79,7 @@ export function createPaymentFeeSync(
     PAYMENT_FEES_QUEUE,
     async () => {
       const r = await syncAllStoreFees(db, opts.settingsSecret, { limit: PER_STORE_LIMIT })
-      if (r.checked) {
-        console.log(
-          `[fees] stores=${r.stores} checked=${r.checked} recorded=${r.recorded} pending=${r.pending} failed=${r.failed}`,
-        )
-      }
+      if (r.checked) logger.info('payment fees synced', { ...r })
       return r
     },
     { connection },

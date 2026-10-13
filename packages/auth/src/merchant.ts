@@ -2,6 +2,7 @@ import { AsyncLocalStorage } from 'node:async_hooks'
 import { passkey } from '@better-auth/passkey'
 import { siteConfig } from '@commerce/config/site'
 import type { Db } from '@commerce/db'
+import { logger } from '@commerce/observability/logging'
 import { betterAuth } from 'better-auth'
 import { drizzleAdapter } from 'better-auth/adapters/drizzle'
 import { emailOTP, organization } from 'better-auth/plugins'
@@ -209,7 +210,9 @@ export function createMerchantAuth(opts: MerchantAuthOptions) {
                 headers: ctx?.headers ?? ctx?.request?.headers,
                 trustLocation: opts.trustedProxy === 'cloudflare',
               })
-              .catch((err: unknown) => console.error('[sign-in log]', err))
+              .catch((err: unknown) =>
+                logger.error('sign-in record failed', { userId: session.userId, error: err }),
+              )
           },
         },
       },

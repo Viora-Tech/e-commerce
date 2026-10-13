@@ -1,6 +1,7 @@
 import 'server-only'
 import { loadEnv } from '@commerce/config'
 import { enqueueNotification, type NotificationJob } from '@commerce/core'
+import { logger } from '@commerce/observability/logging'
 import { notificationQueue } from '@commerce/queue'
 
 /**
@@ -11,6 +12,11 @@ export async function notify(job: NotificationJob): Promise<void> {
   try {
     await enqueueNotification(notificationQueue(loadEnv(process.env).REDIS_URL), job)
   } catch (err) {
-    console.error(`[notify] could not enqueue ${job.template} for ${job.orderId}`, err)
+    logger.error('could not enqueue a notification', {
+      storeId: job.storeId,
+      orderId: job.orderId,
+      template: job.template,
+      error: err,
+    })
   }
 }

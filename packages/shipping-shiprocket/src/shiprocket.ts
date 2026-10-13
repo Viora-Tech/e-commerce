@@ -41,6 +41,7 @@
  * secret (nothing is persisted from it here).
  */
 
+import { logger } from '@commerce/observability/logging'
 import {
   COURIER_TIMEOUT_MS,
   CourierError,
@@ -610,7 +611,7 @@ export class ShiprocketProvider implements ShippingProvider {
     // from a stray one, so every webhook is refused until one is set (the
     // Connect page marks it required for automatic tracking).
     if (!this.config.webhookSecret) {
-      console.error('[shiprocket] webhook received with no webhookSecret configured; refusing')
+      logger.error('webhook refused: no webhookSecret configured', { provider: 'shiprocket' })
       throw new CourierError('auth', this.id, 'Shiprocket webhook secret is not configured.')
     }
     const got = request.headers['x-webhook-token'] ?? request.headers.authorization ?? ''

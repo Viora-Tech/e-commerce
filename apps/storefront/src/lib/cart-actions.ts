@@ -31,6 +31,7 @@ import {
 } from '@commerce/core'
 import { type ParcelDeliveryEstimate, payment } from '@commerce/db'
 import { formatMoney } from '@commerce/money'
+import { logger } from '@commerce/observability/logging'
 import type { ClientConfirmation } from '@commerce/payments'
 import { and, desc, eq, ne } from 'drizzle-orm'
 import { revalidatePath } from 'next/cache'
@@ -265,12 +266,16 @@ export async function checkoutAction(submitted: CheckoutForm): Promise<CheckoutR
   if (me) {
     // Convenience only: never let the address book block an order that is already placed.
     await inStore(storeId, (tx) => rememberCheckoutAddress({ storeId, tx }, me.id, form)).catch(
-      (err) => console.error('[checkout] could not save address', err),
+      (err) => logger.error('could not save the checkout address', { storeId, error: err }),
     )
   }
   // Marketing: end the sequences this order converts and start the order automations.
   await inStore(storeId, (tx) => onOrderPlaced(tx, storeId, result.orderId)).catch((err) =>
-    console.error('[checkout] could not update marketing automations', err),
+    logger.error('could not update marketing automations', {
+      storeId,
+      orderId: result.orderId,
+      error: err,
+    }),
   )
   // order_placed (and payment_received when paid at checkout: gift cards,
   // capture-at-creation gateways) were already written to the outbox in the

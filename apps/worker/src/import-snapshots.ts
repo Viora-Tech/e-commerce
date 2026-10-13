@@ -1,5 +1,6 @@
 import { dispatchAppJob } from '@commerce/core'
 import { type Db, storesWithStaleImportSnapshots } from '@commerce/db'
+import { logger } from '@commerce/observability/logging'
 import {
   SHOPIFY_IMPORT_ID,
   SNAPSHOT_CLEANUP_JOB,
@@ -41,7 +42,7 @@ export function createImportSnapshotCleanup(
           })
           if (ran) cleaned += 1
         } catch (err) {
-          console.warn(`[import-snapshots] store ${storeId} failed:`, err)
+          logger.warn('import snapshot cleanup failed', { storeId, error: err })
         }
       }
       return { stores: storeIds.length, cleaned }

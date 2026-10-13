@@ -20,6 +20,7 @@ import {
   type StoreExportJob,
   type StoreExportQueue,
 } from '@commerce/core'
+import { logger } from '@commerce/observability/logging'
 import { Queue } from 'bullmq'
 import IORedis from 'ioredis'
 import type { QueueLimits } from './fair'
@@ -151,7 +152,7 @@ export async function nudgeOutboxRelay(
       { jobId: `nudge:${storeId}:${bucket}`, removeOnComplete: true, removeOnFail: true },
     )
   } catch (err) {
-    console.error(`[outbox] could not nudge relay for store ${storeId}`, err)
+    logger.error('could not nudge the outbox relay', { storeId, error: err })
   }
 }
 

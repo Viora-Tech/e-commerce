@@ -11,6 +11,7 @@ import {
 } from '@commerce/core'
 import { type NextRequest, NextResponse } from 'next/server'
 import { accountsContent } from '@/data/accounts-domain'
+import { withEvlog } from '@/lib/request-log'
 import {
   isDev,
   OAUTH_COOKIE,
@@ -27,7 +28,7 @@ type Params = { params: Promise<{ provider: string }> }
  * that store's live domains), then send the shopper to the provider with a fresh state
  * and PKCE verifier kept in a cookie on this domain.
  */
-export async function GET(request: NextRequest, { params }: Params) {
+export const GET = withEvlog(async (request: NextRequest, { params }: Params) => {
   const { provider } = await params
   const secret = settingsSecret()
   const req = request.nextUrl.searchParams.get('req') ?? ''
@@ -71,4 +72,4 @@ export async function GET(request: NextRequest, { params }: Params) {
     maxAge: START_TTL_MS / 1000,
   })
   return response
-}
+})

@@ -1,9 +1,10 @@
 import { ORPCError, os } from '@orpc/server'
 import type { ApiContext } from '../context'
+import { procedureLog } from './logging'
 import { remember } from './request-memo'
 
-/** Public procedure. No session required. */
-export const base = os.$context<ApiContext>()
+/** Public procedure. No session required. Every call logs one wide event (`procedureLog`). */
+export const base = os.$context<ApiContext>().use(procedureLog)
 
 type SessionUser = { id: string; email: string; name: string }
 type Session = {
@@ -22,6 +23,7 @@ export const protectedProcedure = base.use(async ({ context, next }) => {
     context.auth.api.getSession({ headers: context.headers }),
   )
   if (!s) throw new ORPCError('UNAUTHORIZED', { message: 'Sign in required' })
+  context.log.set({ userId: s.user.id })
   const session: Session = {
     user: { id: s.user.id, email: s.user.email, name: s.user.name },
     activeOrganizationId:

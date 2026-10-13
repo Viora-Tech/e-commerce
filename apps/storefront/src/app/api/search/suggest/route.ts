@@ -2,6 +2,7 @@ import { suggestProducts } from '@commerce/core'
 import { listCardProducts } from '@/lib/catalog'
 import { lockedOut } from '@/lib/lock-gate'
 import { clientIp, rateLimited, retryAfterSeconds } from '@/lib/rate-limit'
+import { withEvlog } from '@/lib/request-log'
 import { inStore } from '@/lib/store-context'
 import {
   ACCESS_COOKIE,
@@ -19,7 +20,7 @@ const SUGGEST_IP_RULE = { limit: 60, windowMs: 60_000 }
  * Predictive search for the header: a handful of products as the shopper types.
  * The store is the proxy's `x-store-id`; results are short-lived cacheable JSON.
  */
-export async function GET(request: Request) {
+export const GET = withEvlog(async (request: Request) => {
   const storeId = request.headers.get('x-store-id')
   if (!storeId) return new Response(null, { status: 404 })
   const ip = clientIp(request.headers)
@@ -63,4 +64,4 @@ export async function GET(request: Request) {
   return Response.json(body, {
     headers: { 'cache-control': 'public, max-age=30, stale-while-revalidate=60' },
   })
-}
+})

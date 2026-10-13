@@ -10,6 +10,7 @@ import { sharedRedis } from '@commerce/queue'
 import { toNextJsHandler } from 'better-auth/next-js'
 import { auth } from '@/lib/auth'
 import { isBlockedAuthPath } from '@/lib/auth-paths'
+import { withEvlog } from '@/lib/request-log'
 
 /**
  * Built on the first request, not at import: `next build` imports every route to read its config,
@@ -19,12 +20,12 @@ let handlers: ReturnType<typeof toNextJsHandler> | undefined
 const authHandlers = () => (handlers ??= toNextJsHandler(auth()))
 const authPost = (request: Request) => authHandlers().POST(request)
 
-export async function GET(request: Request): Promise<Response> {
+export const GET = withEvlog(async (request: Request): Promise<Response> => {
   if (isBlockedAuthPath(new URL(request.url).pathname)) {
     return Response.json({ error: 'Not found' }, { status: 404 })
   }
   return authHandlers().GET(request)
-}
+})
 
 /** Better Auth's email-OTP plugin route; per email and per IP, generous but not open. */
 const OTP_SEND_PATH = '/email-otp/send-verification-otp'
@@ -57,7 +58,7 @@ function tooManyRequests(retryAfter: number) {
  * a state row, without touching Better Auth itself. Every other admin auth route
  * (session, organization, sign-out, ...) passes straight through.
  */
-export async function POST(request: Request): Promise<Response> {
+export const POST = withEvlog(async (request: Request): Promise<Response> => {
   const path = new URL(request.url).pathname
   // Organizations are made only by `onboarding.create`, which checks the signup gate and
   // makes the store with them; Better Auth's own endpoint would let anyone signed in make
@@ -96,4 +97,4 @@ export async function POST(request: Request): Promise<Response> {
     if (!byEmail.ok) return tooManyRequests(retryAfterSeconds(byEmail))
   }
   return authPost(request)
-}
+})

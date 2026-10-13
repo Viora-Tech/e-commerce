@@ -2,6 +2,7 @@ import 'server-only'
 import { loadEnv } from '@commerce/config'
 import { listenStorefrontCache, nextScheduledChange } from '@commerce/core'
 import type { StoreTx } from '@commerce/db'
+import { logger } from '@commerce/observability/logging'
 import { cache } from 'react'
 import { SOFT_DELAY_MS, StoreVersions } from './cache-versions'
 import { scheduleWarm, WARM_QUIET_MS } from './cache-warm'
@@ -76,7 +77,7 @@ function settleBoundary(s: Shared, storeId: string, stamp: string): void {
   s.boundaries.add(key)
   inStore(storeId, (tx) => nextScheduledChange(tx))
     .then((at) => s.versions.setBoundary(storeId, stamp, at ? at.getTime() : null))
-    .catch((err) => console.error('[store-cache] scheduled change lookup failed', err))
+    .catch((err) => logger.error('scheduled change lookup failed', { storeId, error: err }))
     .finally(() => s.boundaries.delete(key))
 }
 

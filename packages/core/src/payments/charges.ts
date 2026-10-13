@@ -8,7 +8,9 @@
  * WHERE: payments/webhook.ts on capture and `payment.charges`; the worker's fee sync and its
  *        90-day backfill command (apps/worker/src/payment-fees.ts).
  */
+
 import { type Db, payment, type StoreTx, withStore } from '@commerce/db'
+import { logger } from '@commerce/observability/logging'
 import type { PaymentCharges, PaymentProvider } from '@commerce/payments'
 import { and, desc, eq, gt, inArray, isNotNull, isNull, lt, or } from 'drizzle-orm'
 import { PaymentMethodDetailSchema } from '../order/profit'
@@ -146,9 +148,12 @@ export async function syncPaymentFees(
       })
     } catch (err) {
       result.failed += 1
-      console.warn(
-        `[fees] ${storeId}/${row.id} ${row.provider}: ${err instanceof Error ? err.message : 'failed'}`,
-      )
+      logger.warn('payment fee lookup failed', {
+        storeId,
+        paymentId: row.id,
+        provider: row.provider,
+        error: err,
+      })
     }
     await withStore(db, storeId, (tx) =>
       recordPaymentCharges(

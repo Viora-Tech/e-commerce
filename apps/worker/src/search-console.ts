@@ -5,6 +5,7 @@ import {
   storesDueSearchConsoleSync,
 } from '@commerce/core'
 import type { Db } from '@commerce/db'
+import { logger } from '@commerce/observability/logging'
 import {
   createAppJobQueue,
   type IORedis,
@@ -40,10 +41,10 @@ export function createSearchConsoleSweep(connection: IORedis, db: Db) {
           )
           queued += 1
         } catch (err) {
-          console.warn(`[search-console] store ${storeId} not queued:`, err)
+          logger.warn('search console sync not queued', { storeId, error: err })
         }
       }
-      if (queued) console.log(`[search-console] queued=${queued}`)
+      if (queued) logger.info('search console syncs queued', { queued })
       return { stores: storeIds.length, queued }
     },
     { connection },

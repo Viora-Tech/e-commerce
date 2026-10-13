@@ -187,8 +187,10 @@ function report(context: SessionContext, storeId: string, error: unknown): never
 function storeProcedureWith(required?: Permission | readonly Permission[]) {
   return protectedProcedure.use(async ({ context, next }) => {
     const member = await findMembership(context)
+    context.log.set({ storeId: member.storeId })
     return withStore(context.db, member.storeId, async (tx: StoreTx) => {
       const scope = await scopeFor(context, tx, member, required)
+      context.log.set({ role: scope.roleSlug })
       try {
         return await next({ context: { scope, tx } })
       } catch (error) {
@@ -237,9 +239,11 @@ export const storeProcedureDetached = detachedWith(undefined)
 function detachedWith(permission: Permission | readonly Permission[] | undefined) {
   return protectedProcedure.use(async ({ context, next }) => {
     const member = await findMembership(context)
+    context.log.set({ storeId: member.storeId })
     const scope = await withStore(context.db, member.storeId, (tx: StoreTx) =>
       scopeFor(context, tx, member, permission),
     )
+    context.log.set({ role: scope.roleSlug })
     try {
       return await next({ context: { scope } })
     } catch (error) {
