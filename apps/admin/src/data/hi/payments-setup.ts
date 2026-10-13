@@ -274,7 +274,7 @@ export default [
         },
         {
           title: 'पेमेंट अपडेट चालू करें',
-          body: 'Account & Settings → Webhooks में Add New Webhook दबाएं। नीचे दिया पता और secret पेस्ट करें, payment.captured, payment.failed और refund.processed चुनें, और सेव करें।',
+          body: 'Account & Settings → Webhooks में Add New Webhook दबाएं। नीचे दिया पता और secret पेस्ट करें, payment.captured, payment.failed, refund.processed और refund.failed चुनें, और सेव करें।',
         },
       ],
       fields: {

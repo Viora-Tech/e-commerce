@@ -135,6 +135,8 @@ const CASHFREE_ORDER_FAILED_STATUSES = new Set(['EXPIRED', 'TERMINATED', 'TERMIN
  * SUCCESS is captured; PENDING and NOT_ATTEMPTED are still open.
  */
 const CASHFREE_PAYMENT_FAILED_STATUSES = new Set(['FAILED', 'USER_DROPPED', 'VOID', 'CANCELLED'])
+/** A refund Cashfree accepted and then dropped: the money did not go back. */
+const CASHFREE_REFUND_FAILED_STATUSES = new Set(['CANCELLED', 'FAILED'])
 
 /**
  * Cashfree documents `x-idempotency-key` as a UUID. Our key (`<orderId>:<attempt>`)
@@ -538,6 +540,16 @@ export class CashfreeProvider implements PaymentProvider {
       }
       case 'REFUND_STATUS_WEBHOOK': {
         const refund = body.data?.refund
+        if (refund && CASHFREE_REFUND_FAILED_STATUSES.has(refund.refund_status)) {
+          return {
+            type: 'refund.failed',
+            providerRef: refund.order_id,
+            providerRefundId: String(refund.cf_refund_id),
+            reason: `Cashfree refund ${refund.refund_status.toLowerCase()}`,
+            orderId: null,
+            raw: body,
+          }
+        }
         if (refund?.refund_status !== 'SUCCESS') break
         return {
           type: 'refund.processed',

@@ -1,7 +1,8 @@
-import { paymentEvent } from '@commerce/db'
+import { paymentEvent, refund } from '@commerce/db'
 import type { PaymentProvider } from '@commerce/payments'
-import { and, eq } from 'drizzle-orm'
+import { and, eq, ne } from 'drizzle-orm'
 import type { StoreContext } from '../context'
+import { recomputeOrderStatuses } from '../order/recompute'
 import { recordPaymentCharges } from './charges'
 import {
   applyPaymentStatus,
@@ -124,12 +125,16 @@ export async function handlePaymentWebhook(
           providerPaymentId: e.providerPaymentId,
         })) !== null
     } else if (e.type === 'refund.processed') {
+      await settleRefund(ctx, e.providerRefundId, 'processed')
       applied =
         (await applyPaymentStatus(ctx, {
           providerRef: e.providerRef,
           status: 'refunded',
           providerPaymentId: null,
         })) !== null
+    } else if (e.type === 'refund.failed') {
+      // The gateway's reason stays on the stored payment_event; the refund keeps the merchant's own.
+      applied = await settleRefund(ctx, e.providerRefundId, 'failed')
     }
     await ctx.tx
       .update(paymentEvent)
@@ -143,4 +148,26 @@ export async function handlePaymentWebhook(
     throw err
   }
   return { ok: true, eventId: parsed.eventId, applied, duplicate: false, capturedOrderId }
+}
+
+/**
+ * Record what the gateway finally did with a refund we asked for. A failed one stops counting
+ * as refunded (recompute reads refunds that are not `failed`), so the order and its return no
+ * longer say the money went back when it did not. True when a refund row changed.
+ */
+async function settleRefund(
+  ctx: StoreContext,
+  providerRefundId: string,
+  status: 'processed' | 'failed',
+): Promise<boolean> {
+  if (!providerRefundId) return false
+  const changed = await ctx.tx
+    .update(refund)
+    .set({ status })
+    .where(and(eq(refund.providerRefundId, providerRefundId), ne(refund.status, status)))
+    .returning({ orderId: refund.orderId })
+  for (const orderId of new Set(changed.map((r) => r.orderId))) {
+    await recomputeOrderStatuses(ctx, orderId)
+  }
+  return changed.length > 0
 }
