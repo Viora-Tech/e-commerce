@@ -114,10 +114,9 @@ export default async function TodoCards({ needsYou }: TodoCardsProps) {
           {rows.map((row) => (
             <li
               key={row.key}
-              className="flex flex-col items-start gap-3.5 rounded-xl surface-card p-5"
+              className="flex h-full flex-col items-start gap-3.5 rounded-xl surface-card p-5"
             >
-              {/* Figma 226:537: 40px square tile, 12px corners, soft brand fill. */}
-              <span className="flex size-10 items-center justify-center rounded-[0.75rem] bg-primary-soft text-primary [&_svg]:size-5">
+              <span className="flex size-10 items-center justify-center rounded-lg border border-border text-muted-foreground [&_svg]:size-5">
                 <row.icon aria-hidden="true" />
               </span>
               <div className="flex min-w-0 flex-col gap-1">
@@ -126,7 +125,13 @@ export default async function TodoCards({ needsYou }: TodoCardsProps) {
                   {row.help}
                 </p>
               </div>
-              <Button variant="outline" nativeButton={false} render={<Link href={row.href} />}>
+              <Button
+                variant="outline"
+                size="sm"
+                nativeButton={false}
+                render={<Link href={row.href} />}
+                className="mt-auto"
+              >
                 {row.cta}
               </Button>
             </li>

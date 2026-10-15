@@ -1,31 +1,31 @@
 'use client'
 
 import type { DashboardChartsData, DashboardSummary } from '@commerce/api'
-import { ArrowDown, ArrowUp } from '@commerce/ui/icons'
+import { ArrowRight, Pencil } from '@commerce/ui/icons'
 import { cn } from '@commerce/ui/lib/utils'
-import {
-  type ChartConfig,
-  ChartContainer,
-  ChartTooltip,
-  ChartTooltipContent,
-} from '@commerce/ui/shadcn/chart'
+import { Button } from '@commerce/ui/shadcn/button'
+import Link from 'next/link'
 import { useState } from 'react'
-import { Area, AreaChart, Line, XAxis } from 'recharts'
-import PillTabs from '@/components/layout/pill-tabs'
 import { homePageContent } from '@/data/home'
 import { useCopy, useFormat } from '@/hooks/use-copy'
-import type { Formatters } from '@/lib/format'
+import { routes } from '@/lib/routes'
+import SalesHeroChart, { type SalesChartPoint } from './sales-hero-chart'
+import SalesMetricTiles from './sales-metric-tiles'
 
 type SalesHeroProps = {
   today: DashboardSummary['today']
   yesterdayHourly: number[]
   /** The 30-day daily series; the last entry is today. Every range is cut from it. */
   charts: DashboardChartsData
+  /** Visitors on the store right now (the beacon's last-30-minutes count). */
+  liveNow: number
+  /** Visitors per minute, oldest first, for the visitors sparkline. */
+  livePerMinute: number[]
 }
 
 type Range = 'today' | '7' | '30'
 
-type Point = { label: string; value: number | null; before: number | null }
+type Metric = 'sales' | 'orders'
 
 const HOURS = 24
 const SHORT_DATE_OPTIONS = { day: 'numeric', month: 'short' } as const
@@ -48,7 +48,7 @@ function cumulative(values: number[]): number[] {
 }
 
 /** Today's and yesterday's orders hour by hour; today stops at the current hour. */
-function hourlyPoints(today: number[], yesterday: number[]): Point[] {
+function hourlyPoints(today: number[], yesterday: number[]): SalesChartPoint[] {
   const now = cumulative(today)
   const before = cumulative(yesterday)
   return Array.from({ length: HOURS }, (_, h) => ({
@@ -58,66 +58,102 @@ function hourlyPoints(today: number[], yesterday: number[]): Point[] {
   }))
 }
 
-/** Daily sales for the last `days` days, with the `days` before them dashed behind. */
-function dailyPoints(charts: DashboardChartsData, days: number, fmt: Formatters): Point[] {
-  const all = charts.salesPaise
-  const labels = charts.days.slice(-days)
-  const previous = charts.previousSalesPaise
-  return labels.map((day, i) => {
-    const index = all.length - days + i
-    const before = index - days >= 0 ? all[index - days] : previous?.[all.length + index - days]
+/** Daily values for the last `days` days, with the matching earlier stretch dashed behind. */
+function dailyPoints(
+  values: number[],
+  previous: number[],
+  days: number,
+  labels: string[],
+): SalesChartPoint[] {
+  return labels.map((label, i) => {
+    const index = values.length - days + i
     return {
-      label: fmt.pattern(new Date(`${day}T00:00:00+05:30`), SHORT_DATE_OPTIONS),
-      value: all[index] ?? 0,
-      before: before ?? null,
+      label,
+      value: values[index] ?? 0,
+      before: previous[i] ?? null,
     }
   })
 }
 
 /**
- * The sales hero: today's takings as the big number, how that compares with yesterday, and
- * an area chart. The Today / 7 days / 30 days switch cuts the one 30-day series Home already
- * loaded, so switching never refetches. Visit counts are not recorded per day, so the line
- * under the number carries orders only.
+ * The sales hero: filter pills, the live count and Customize, one tile per metric with its
+ * own sparkline and delta, and the area chart (Today solid, before dashed). The Today /
+ * 7 days / 30 days switch cuts the one 30-day series Home already loaded, so switching
+ * never refetches. Visit counts are not recorded per day, so the visitors tile shows the
+ * live count instead of a daily total.
  */
-export default function SalesHero({ today, yesterdayHourly, charts }: SalesHeroProps) {
+export default function SalesHero({
+  today,
+  yesterdayHourly,
+  charts,
+  liveNow,
+  livePerMinute,
+}: SalesHeroProps) {
   // Hooks
   const content = useCopy(homePageContent)
   const fmt = useFormat()
   const [range, setRange] = useState<Range>('today')
+  const [metric, setMetric] = useState<Metric>('sales')
+
+  // Helpers
+  const formatValue = (v: number) => (metric === 'sales' ? fmt.money(v) : fmt.compact(v))
+  const formatTooltip = (v: number) =>
+    range === 'today' ? String(v) : metric === 'sales' ? fmt.money(v) : fmt.compact(v)
+
+  // Event handlers
+  const handleRange = (next: Range) => {
+    setRange(next)
+  }
+
+  const handleMetric = (next: Metric) => {
+    setMetric(next)
+  }
 
   // Render logic
   const copy = content.sales
   const all = charts.salesPaise
+  const ordersAll = charts.orders
   const days = range === '7' ? 7 : 30
-  let value = today.salesPaise
-  let orders = today.ordersCount
-  let change: number | null = percentChange(today.salesPaise, all[all.length - 2] ?? 0)
-  let comparedTo = copy.vsYesterday
-  let points = hourlyPoints(today.hourly, yesterdayHourly)
-  let title = copy.title
-  if (range !== 'today') {
-    const current = all.slice(-days)
-    const previous = days === 7 ? all.slice(-14, -7) : (charts.previousSalesPaise ?? [])
-    value = sum(current)
-    orders = sum(charts.orders.slice(-days))
-    change = percentChange(value, sum(previous))
-    comparedTo = copy.vsPrevious(days)
-    points = dailyPoints(charts, days, fmt)
-    title = copy.titleDays(days)
-  }
-  const hasData = points.some((p) => (p.value ?? 0) > 0 || (p.before ?? 0) > 0)
-  const up = (change ?? 0) >= 0
-  const config = {
-    value: {
-      label: range === 'today' ? copy.series.today : copy.series.sales,
-      color: 'var(--primary)',
-    },
-    before: {
-      label: range === 'today' ? copy.series.yesterday : copy.series.before,
-      color: 'var(--muted-foreground)',
-    },
-  } satisfies ChartConfig
+  const comparedTo = range === 'today' ? copy.vsYesterday : copy.vsPrevious(days)
+
+  const salesValue = range === 'today' ? today.salesPaise : sum(all.slice(-days))
+  const salesPrevious = range === '7' ? all.slice(-14, -7) : (charts.previousSalesPaise ?? [])
+  const salesBefore = range === 'today' ? (all[all.length - 2] ?? 0) : sum(salesPrevious)
+  const salesChange = percentChange(salesValue, salesBefore)
+
+  const ordersValue = range === 'today' ? today.ordersCount : sum(ordersAll.slice(-days))
+  const ordersBefore =
+    range === 'today' ? sum(yesterdayHourly) : sum(range === '7' ? ordersAll.slice(-14, -7) : [])
+  const ordersChange = range === '30' ? null : percentChange(ordersValue, ordersBefore)
+
+  const labels =
+    range === 'today'
+      ? []
+      : charts.days
+          .slice(-days)
+          .map((day) => fmt.pattern(new Date(`${day}T00:00:00+05:30`), SHORT_DATE_OPTIONS))
+  const points =
+    range === 'today'
+      ? hourlyPoints(today.hourly, yesterdayHourly)
+      : metric === 'sales'
+        ? dailyPoints(all, salesPrevious, days, labels)
+        : dailyPoints(ordersAll, range === '7' ? ordersAll.slice(-14, -7) : [], days, labels)
+
+  const valueLabel =
+    metric === 'sales'
+      ? range === 'today'
+        ? copy.series.today
+        : copy.series.sales
+      : copy.ordersTitle
+  const beforeLabel =
+    range === 'today'
+      ? copy.series.yesterday
+      : metric === 'sales'
+        ? copy.series.before
+        : copy.vsPrevious(days)
+  const valueText = formatValue(metric === 'sales' ? salesValue : ordersValue)
+  const beforeText = formatValue(metric === 'sales' ? salesBefore : ordersBefore)
+
   const tabs = [
     { value: 'today' as Range, label: copy.today },
     { value: '7' as Range, label: copy.days7 },
@@ -125,92 +161,102 @@ export default function SalesHero({ today, yesterdayHourly, charts }: SalesHeroP
   ]
 
   return (
-    <section className="grid grid-cols-1 gap-6 rounded-xl surface-card p-[1.875rem] md:grid-cols-[minmax(0,1fr)_minmax(0,1.3fr)] md:items-center">
-      <div className="flex flex-col items-start gap-1.5">
-        <p className="text-[0.8125rem] leading-[1.1875rem] font-medium text-muted-foreground">
-          {title}
-        </p>
-        <p className="font-[family-name:var(--font-display)] text-[3.5rem] leading-[3.75rem] font-extrabold tracking-[-0.1rem] text-ink-strong tabular-nums">
-          {fmt.money(value)}
-        </p>
-        <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[0.8125rem] leading-[1.1875rem] text-muted-foreground">
-          {change !== null ? (
+    <section className="flex flex-col gap-5 rounded-xl surface-card p-5 md:p-6">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex flex-wrap items-center gap-2" role="tablist" aria-label={copy.title}>
+          {tabs.map((tab) => {
+            const active = tab.value === range
+            return (
+              <button
+                key={tab.value}
+                type="button"
+                role="tab"
+                aria-selected={active}
+                onClick={() => handleRange(tab.value)}
+                className={cn(
+                  'inline-flex h-8 items-center gap-1.5 rounded-full border border-border px-3 text-body font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+                  active
+                    ? 'bg-secondary text-ink-strong'
+                    : 'text-muted-foreground hover:text-foreground',
+                )}
+              >
+                {tab.label}
+              </button>
+            )
+          })}
+          <span className="inline-flex h-8 items-center text-body text-muted-foreground">
+            {comparedTo}
+          </span>
+          <span className="inline-flex h-8 items-center text-body text-muted-foreground">
+            {copy.channels}
+          </span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <span className="inline-flex items-center gap-1.5 pr-1 text-body text-muted-foreground">
+            <span className="size-2 rounded-full bg-success" aria-hidden="true" />
+            {copy.liveNow(liveNow)}
+          </span>
+          <Button
+            variant="ghost"
+            size="sm"
+            nativeButton={false}
+            render={<Link href={routes.analytics.home()} />}
+          >
+            <Pencil className="size-3.5" aria-hidden="true" />
+            {copy.customize}
+          </Button>
+        </div>
+      </div>
+      <SalesMetricTiles
+        salesDisplay={fmt.money(salesValue)}
+        salesSpark={range === 'today' ? cumulative(today.hourly) : all.slice(-days)}
+        salesChange={salesChange}
+        ordersDisplay={fmt.compact(ordersValue)}
+        ordersSpark={range === 'today' ? cumulative(today.hourly) : ordersAll.slice(-days)}
+        ordersChange={ordersChange}
+        visitorsDisplay={fmt.compact(liveNow)}
+        visitorsSpark={livePerMinute}
+        comparedTo={comparedTo}
+        totalSales={copy.totalSales}
+        ordersTitle={copy.ordersTitle}
+        visitorsTitle={copy.visitorsTitle}
+        visitorsNow={copy.visitorsNow}
+        metric={metric}
+        onSelect={handleMetric}
+      />
+      <div className="min-w-0">
+        <SalesHeroChart
+          points={points}
+          valueLabel={valueLabel}
+          beforeLabel={beforeLabel}
+          emptyText={copy.empty}
+          formatTooltip={formatTooltip}
+          formatTick={(v) => fmt.compact(v)}
+        />
+      </div>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <p className="flex flex-wrap items-center gap-x-4 gap-y-1 text-body text-muted-foreground">
+          <span className="inline-flex items-center gap-2">
+            <span className="h-0.5 w-4 rounded-full bg-primary" aria-hidden="true" />
+            {valueLabel}
+            <strong className="font-semibold text-ink-strong tabular-nums">{valueText}</strong>
+          </span>
+          <span className="inline-flex items-center gap-2">
             <span
-              className={cn(
-                'inline-flex items-center gap-1 rounded-[0.5rem] px-2 py-[0.1875rem] text-xs font-semibold',
-                up ? 'bg-success-soft text-success' : 'bg-danger-soft text-danger',
-              )}
-            >
-              {up ? (
-                <ArrowUp className="size-3" aria-hidden="true" />
-              ) : (
-                <ArrowDown className="size-3" aria-hidden="true" />
-              )}
-              {Math.abs(change)}%
-            </span>
-          ) : null}
-          {change !== null ? <span>{comparedTo}</span> : null}
-          <span>
-            {change !== null ? '· ' : ''}
-            {copy.orders(orders)}
+              className="h-0 w-4 border-t-2 border-dashed border-muted-foreground"
+              aria-hidden="true"
+            />
+            {beforeLabel}
+            <strong className="font-semibold text-ink-strong tabular-nums">{beforeText}</strong>
           </span>
         </p>
-        <PillTabs variant="segmented" tabs={tabs} value={range} onChange={setRange} />
-      </div>
-      <div className="min-w-0">
-        {hasData ? (
-          <ChartContainer config={config} className="aspect-auto h-40 w-full">
-            <AreaChart data={points} margin={{ left: 0, right: 0, top: 8, bottom: 0 }}>
-              <defs>
-                <linearGradient id="home-hero-fill" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="var(--primary)" stopOpacity={0.18} />
-                  <stop offset="100%" stopColor="var(--primary)" stopOpacity={0} />
-                </linearGradient>
-              </defs>
-              <XAxis dataKey="label" hide />
-              <ChartTooltip
-                cursor={{ stroke: 'var(--primary)', strokeDasharray: '4 4' }}
-                content={
-                  <ChartTooltipContent
-                    formatter={(v, name) => (
-                      <span className="flex w-full items-center justify-between gap-3">
-                        <span className="text-muted-foreground">
-                          {config[name as keyof typeof config]?.label}
-                        </span>
-                        <span className="font-bold tabular-nums">
-                          {range === 'today' ? String(v) : fmt.money(Number(v))}
-                        </span>
-                      </span>
-                    )}
-                  />
-                }
-              />
-              <Line
-                dataKey="before"
-                type="monotone"
-                stroke="var(--muted-foreground)"
-                strokeDasharray="4 4"
-                strokeWidth={1.5}
-                dot={false}
-                isAnimationActive={false}
-              />
-              <Area
-                dataKey="value"
-                type="monotone"
-                stroke="var(--primary)"
-                strokeWidth={2}
-                fill="url(#home-hero-fill)"
-                isAnimationActive={false}
-                connectNulls={false}
-              />
-            </AreaChart>
-          </ChartContainer>
-        ) : (
-          <p className="text-body text-muted-foreground">{copy.empty}</p>
-        )}
-        {hasData && range === 'today' ? (
-          <p className="mt-1 text-caption font-normal text-muted-foreground">{copy.hourlyNote}</p>
-        ) : null}
+        <Link
+          href={routes.analytics.reports()}
+          className="inline-flex items-center gap-1 text-body font-medium text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        >
+          {copy.viewReport}
+          <ArrowRight className="size-3.5" aria-hidden="true" />
+        </Link>
       </div>
     </section>
   )

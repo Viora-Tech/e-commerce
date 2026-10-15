@@ -32,7 +32,7 @@ export default async function HomeGreeting({
 
   return (
     <div className="flex flex-col gap-1">
-      <h1 className="text-balance text-page-title text-ink-strong">
+      <h1 className="text-left text-[1.75rem] leading-[2.25rem] font-medium tracking-tight text-ink-strong">
         {titleFor(greetingFor(hour), name)}
       </h1>
       <p className="text-body text-muted-foreground">

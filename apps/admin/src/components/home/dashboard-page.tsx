@@ -57,8 +57,14 @@ export default function DashboardPage({
       <AskAiCard enabled={assistant} />
       {signals ? <FinishSetup productCount={summary.report.products} signals={signals} /> : null}
       <TodoCards needsYou={summary.needsYou} />
-      <SalesHero today={summary.today} yesterdayHourly={summary.yesterday.hourly} charts={charts} />
-      <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)]">
+      <SalesHero
+        today={summary.today}
+        yesterdayHourly={summary.yesterday.hourly}
+        charts={charts}
+        liveNow={summary.liveVisitors.last30}
+        livePerMinute={summary.liveVisitors.perMinute}
+      />
+      <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
         <LatestOrders orders={summary.recentOrders} />
         <LiveNow initial={summary} />
       </div>
