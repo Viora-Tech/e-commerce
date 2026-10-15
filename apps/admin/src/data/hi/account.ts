@@ -224,6 +224,7 @@ export default [
       thisDevice: 'यह डिवाइस',
       signedIn: (when) => `साइन इन: ${when}`,
       lastActive: (when) => `आखिरी बार: ${when}`,
+      activeNow: 'अभी सक्रिय',
       signOut: 'साइन आउट',
       signOutOthers: 'बाकी सब जगह से साइन आउट',
       onlyThis: 'सिर्फ़ यही डिवाइस साइन इन है।',

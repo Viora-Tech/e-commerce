@@ -112,34 +112,30 @@ export default function SessionsPage() {
             <Skeleton className="h-12 w-full" />
           </div>
         ) : (
-          <ul className="flex flex-col">
+          <ul className="flex flex-col gap-4">
             {sessions.map((s) => {
               const Icon = KIND_ICON[s.device.kind]
+              const place = devicePlace(s, content)
+              const meta = [
+                place,
+                // devicePlace already falls back to the IP when the city is unknown.
+                s.ipMasked && !place.includes(s.ipMasked) ? content.device.ip(s.ipMasked) : null,
+                copy.signedIn(fmt.when(s.signedInAt)),
+                s.current ? copy.activeNow : copy.lastActive(fmt.when(s.lastActiveAt)),
+              ].filter(Boolean)
               return (
-                <li
-                  key={s.id}
-                  className="flex flex-col gap-3 border-b border-hairline py-4 first:pt-0 last:border-b-0 last:pb-0 sm:flex-row sm:items-center"
-                >
+                <li key={s.id} className="flex flex-col gap-3 sm:flex-row sm:items-center">
                   <div className="flex min-w-0 flex-1 items-center gap-3">
-                    <span
-                      aria-hidden="true"
-                      className="flex size-10 shrink-0 items-center justify-center rounded-[0.625rem] border border-hairline bg-muted text-muted-foreground"
-                    >
-                      <Icon className="size-5" />
-                    </span>
+                    <Icon aria-hidden="true" className="size-6 shrink-0 text-ink-strong" />
                     <div className="flex min-w-0 flex-col gap-0.5">
                       <div className="flex min-w-0 flex-wrap items-center gap-2">
-                        <span className="truncate text-body font-semibold text-ink-strong">
+                        <span className="truncate text-body font-medium text-ink-strong">
                           {deviceName(s.device, content)}
                         </span>
                         {s.current ? <StatusChip>{copy.thisDevice}</StatusChip> : null}
                       </div>
                       <span className="truncate text-caption text-muted-foreground">
-                        {devicePlace(s, content)}
-                        {' · '}
-                        {s.current
-                          ? copy.signedIn(fmt.when(s.signedInAt))
-                          : copy.lastActive(fmt.when(s.lastActiveAt))}
+                        {meta.join(' · ')}
                       </span>
                     </div>
                   </div>
@@ -158,11 +154,11 @@ export default function SessionsPage() {
             })}
           </ul>
         )}
+        <p className="mt-4 text-caption text-muted-foreground">
+          {others === 0 && sessions ? `${copy.onlyThis} ` : ''}
+          {copy.note}
+        </p>
       </SettingsCard>
-      <p className="px-1 text-caption text-muted-foreground">
-        {others === 0 && sessions ? `${copy.onlyThis} ` : ''}
-        {copy.note}
-      </p>
       <ConfirmDialog
         open={target !== null}
         title={copy.signOutDialog.title(target ? deviceName(target.device, content) : '')}

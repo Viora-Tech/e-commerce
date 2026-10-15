@@ -253,6 +253,7 @@ export const accountContent = {
     thisDevice: 'This device',
     signedIn: (when: string) => `Signed in ${when}`,
     lastActive: (when: string) => `Active ${when}`,
+    activeNow: 'Active now',
     signOut: 'Sign out',
     signOutOthers: 'Sign out everywhere else',
     onlyThis: 'This is the only device signed in.',
