@@ -1,7 +1,7 @@
 'use client'
 
 import { IMAGE_MAX_UPLOAD_BYTES } from '@commerce/storage/keys'
-import { ImagePlus, Trash2 } from '@commerce/ui/icons'
+import { Trash2, Upload } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { type ChangeEvent, useRef, useState } from 'react'
 import { toast } from 'sonner'
@@ -21,7 +21,7 @@ type AvatarFieldProps = {
 
 const ACCEPT = 'image/jpeg,image/png,image/webp'
 
-/** Big avatar with Upload / Change and Remove; picking a photo opens the square crop first. */
+/** One photo row: 40px avatar, the two-line explainer, and the upload button on the right. */
 export default function AvatarField({ name, email, image, onUpload, onRemove }: AvatarFieldProps) {
   // Hooks
   const {
@@ -73,28 +73,34 @@ export default function AvatarField({ name, email, image, onUpload, onRemove }: 
   }
 
   return (
-    <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
+    <div className="flex items-center gap-4">
       <MemberAvatar
         name={name}
         email={email}
         image={image}
-        className="size-20"
-        fallbackClassName="bg-avatar text-[1.5rem] text-avatar-foreground"
+        className="size-10 shrink-0"
+        fallbackClassName="bg-avatar text-sm text-avatar-foreground"
       />
-      <div className="flex flex-col gap-2">
-        <div className="flex flex-wrap gap-2">
-          <Button variant="outline" onClick={() => inputRef.current?.click()} disabled={busy}>
-            <ImagePlus aria-hidden="true" />
-            {image ? copy.change : copy.upload}
-          </Button>
-          {image ? (
-            <Button variant="ghost" onClick={handleRemove} disabled={busy}>
-              <Trash2 aria-hidden="true" />
-              {copy.remove}
-            </Button>
-          ) : null}
-        </div>
+      <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+        <p className="text-body font-medium text-ink-strong">{copy.body}</p>
         <p className="text-caption text-muted-foreground">{copy.hint}</p>
+      </div>
+      <div className="flex shrink-0 items-center gap-2">
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => inputRef.current?.click()}
+          disabled={busy}
+        >
+          <Upload aria-hidden="true" />
+          {image ? copy.change : copy.upload}
+        </Button>
+        {image ? (
+          <Button variant="ghost" size="sm" onClick={handleRemove} disabled={busy}>
+            <Trash2 aria-hidden="true" />
+            {copy.remove}
+          </Button>
+        ) : null}
       </div>
       <input
         ref={inputRef}

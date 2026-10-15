@@ -88,7 +88,7 @@ export const accountContent = {
       name: 'Full name',
       nameHelp: 'As your team knows you.',
       email: 'Email',
-      emailHelp: 'You sign in with this email.',
+      emailHelp: 'You sign in with this email. Change it in Sign-in & security.',
       phone: 'Mobile number',
       phoneHelp: 'For your own WhatsApp alerts. Indian numbers need no +91.',
     },
