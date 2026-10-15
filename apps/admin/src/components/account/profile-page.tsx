@@ -1,8 +1,17 @@
 'use client'
 
 import { MemberProfileInputSchema } from '@commerce/core/member-account'
+import PhoneInput from '@commerce/ui/phone-input'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Card } from '@commerce/ui/shadcn/card'
+import {
+  Field,
+  FieldDescription,
+  FieldError,
+  FieldGroup,
+  FieldLabel,
+} from '@commerce/ui/shadcn/field'
+import { Input } from '@commerce/ui/shadcn/input'
 import { Skeleton } from '@commerce/ui/shadcn/skeleton'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
@@ -10,9 +19,6 @@ import { toast } from 'sonner'
 import SaveBar from '@/components/layout/save-bar'
 import SettingsCard from '@/components/settings/settings-card'
 import SettingsPageHeader from '@/components/settings/settings-page-header'
-import SettingsPhoneRow from '@/components/settings/settings-phone-row'
-import SettingsRow from '@/components/settings/settings-row'
-import SettingsTextRow from '@/components/settings/settings-text-row'
 import { accountContent } from '@/data/account'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
@@ -113,7 +119,7 @@ export default function ProfilePage() {
   // Early returns
   if (failed) {
     return (
-      <div className="flex flex-col gap-4">
+      <div className="flex flex-col gap-6">
         <SettingsPageHeader title={copy.title} subtitle={copy.intro} hideBack />
         <Card gap={3} inset={6} className="items-start">
           <p className="text-body text-muted-foreground">{copy.loadFailed}</p>
@@ -132,7 +138,7 @@ export default function ProfilePage() {
   const errors = form && attempted ? validate(form) : {}
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-6">
       <SaveBar
         open={dirty}
         message={copy.unsaved}
@@ -165,7 +171,7 @@ export default function ProfilePage() {
         </>
       ) : (
         <>
-          <SettingsCard id="photo" title={copy.photo.heading} description={copy.photo.body}>
+          <SettingsCard id="photo" title={copy.photo.heading}>
             <AvatarField
               name={form.name || profile.name}
               email={profile.email}
@@ -175,28 +181,50 @@ export default function ProfilePage() {
             />
           </SettingsCard>
           <SettingsCard id="details" title={copy.details.heading} description={copy.details.body}>
-            <SettingsTextRow
-              id="profile-name"
-              label={copy.details.name}
-              description={copy.details.nameHelp}
-              value={form.name}
-              onChange={(name) => setForm({ ...form, name })}
-              error={errors.name}
-              autoComplete="name"
-            />
-            <SettingsRow label={copy.details.email} description={copy.details.emailHelp}>
-              <p className="flex h-10 items-center truncate text-body text-ink-strong">
-                {profile.email}
-              </p>
-            </SettingsRow>
-            <SettingsPhoneRow
-              id="profile-phone"
-              label={copy.details.phone}
-              description={copy.details.phoneHelp}
-              value={form.phone}
-              onChange={(phone) => setForm({ ...form, phone })}
-              error={errors.phone}
-            />
+            <FieldGroup>
+              <Field data-invalid={errors.name ? true : undefined}>
+                <FieldLabel htmlFor="profile-name" className="text-body">
+                  {copy.details.name}
+                </FieldLabel>
+                <Input
+                  size="lg"
+                  id="profile-name"
+                  value={form.name}
+                  onChange={(e) => setForm({ ...form, name: e.target.value })}
+                  aria-invalid={errors.name ? true : undefined}
+                  autoComplete="name"
+                />
+                {errors.name ? (
+                  <FieldError>{errors.name}</FieldError>
+                ) : (
+                  <FieldDescription>{copy.details.nameHelp}</FieldDescription>
+                )}
+              </Field>
+              <Field>
+                <FieldLabel htmlFor="profile-email" className="text-body">
+                  {copy.details.email}
+                </FieldLabel>
+                <Input size="lg" id="profile-email" value={profile.email} disabled />
+                <FieldDescription>{copy.details.emailHelp}</FieldDescription>
+              </Field>
+              <Field data-invalid={errors.phone ? true : undefined}>
+                <FieldLabel htmlFor="profile-phone" className="text-body">
+                  {copy.details.phone}
+                </FieldLabel>
+                <PhoneInput
+                  id="profile-phone"
+                  value={form.phone}
+                  onChange={(phone) => setForm({ ...form, phone })}
+                  aria-invalid={errors.phone ? true : undefined}
+                  autoComplete="tel"
+                />
+                {errors.phone ? (
+                  <FieldError>{errors.phone}</FieldError>
+                ) : (
+                  <FieldDescription>{copy.details.phoneHelp}</FieldDescription>
+                )}
+              </Field>
+            </FieldGroup>
           </SettingsCard>
           <DeleteAccountCard />
         </>

@@ -32,19 +32,14 @@ export default function DeleteAccountCard() {
   const owned = deletion?.ownedStores ?? []
 
   return (
-    <SettingsCard
-      id="delete-account"
-      title={copy.heading}
-      description={copy.body}
-      className="border border-destructive/30"
-    >
+    <SettingsCard id="delete-account" title={copy.heading} description={copy.body}>
       <div className="flex flex-col items-start gap-3">
         {owned.length > 0 ? (
-          <p className="text-body text-muted-foreground">{copy.blocked(owned.join(', '))}</p>
+          <p className="text-caption text-muted-foreground">{copy.blocked(owned.join(', '))}</p>
         ) : null}
         <Button
-          variant="outline"
-          className="border-destructive/40 text-destructive hover:bg-destructive/10"
+          variant="destructive"
+          size="sm"
           onClick={() => setOpen(true)}
           disabled={!deletion || owned.length > 0}
         >
