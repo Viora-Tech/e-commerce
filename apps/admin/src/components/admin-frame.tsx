@@ -98,23 +98,27 @@ export default function AdminFrame({
         />
         {/* The content panel (Figma "SidebarInset"): radius 12 with depth/card, inset 8px from
             the right and bottom window edges. */}
-        <main
-          ref={mainRef}
-          id="main"
-          data-scrolled={scrolled || undefined}
-          className="group/main no-scrollbar min-h-0 flex-1 overflow-y-auto bg-background md:mr-2 md:mb-2 md:rounded-lg md:shadow-card"
-        >
-          {ownHeading ? null : (
-            <div className="sticky top-0 z-10 border-panel-border border-b bg-background px-4 py-5 transition-shadow duration-200 group-data-[scrolled]/main:shadow-[0_6px_16px_-10px_var(--shadow-14)] md:px-6">
-              <h1 className="text-page-title text-ink-strong">{title}</h1>
-            </div>
-          )}
-          {/* The page-enter fade lives once, in the (admin) template.tsx, not here. */}
-          {children}
-        </main>
+        {/* The content panel and, when open, the AI panel docked on its right (Shopify-style
+            sidebar rather than a drawer over the page). */}
+        <div className="flex min-h-0 flex-1">
+          <main
+            ref={mainRef}
+            id="main"
+            data-scrolled={scrolled || undefined}
+            className="group/main no-scrollbar min-h-0 min-w-0 flex-1 overflow-y-auto bg-background md:rounded-tl-lg md:border-panel-border md:border-t md:border-l"
+          >
+            {ownHeading ? null : (
+              <div className="sticky top-0 z-10 border-panel-border border-b bg-background px-4 py-5 transition-shadow duration-200 group-data-[scrolled]/main:shadow-[0_6px_16px_-10px_var(--shadow-14)] md:px-6">
+                <h1 className="text-page-title text-ink-strong">{title}</h1>
+              </div>
+            )}
+            {/* The page-enter fade lives once, in the (admin) template.tsx, not here. */}
+            {children}
+          </main>
+          <AssistantHost storeId={activeStoreId} />
+        </div>
         <Toaster duration={siteConfig.ui.toastMs.default} />
         <PaletteHost />
-        <AssistantHost storeId={activeStoreId} />
         {bugReports ? <BugReportHost /> : null}
       </SidebarInset>
     </SidebarProvider>

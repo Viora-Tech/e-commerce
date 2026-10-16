@@ -197,6 +197,9 @@ export const navigationContent = {
   search: {
     placeholder: 'Search orders, products or customers',
     field: `Search or ask ${siteConfig.brand.name} AI…`,
+    /** The top bar hint: this part stays, the examples after it take turns. */
+    lead: 'Search or ask AI',
+    examples: ['“orders to ship”', '“best sellers this week”', '“low stock”', '“today’s sales”'],
     shortcut: '⌘K',
     askAi: 'Ask AI',
     empty: 'Nothing matches',

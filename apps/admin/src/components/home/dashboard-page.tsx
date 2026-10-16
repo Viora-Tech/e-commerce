@@ -45,10 +45,10 @@ export default function DashboardPage({
   abandoned,
 }: DashboardPageProps) {
   return (
-    <PageBody width="frame" className="gap-10 md:pt-9">
-      {/* The greeting and the Ask AI box keep the centred Figma column (68rem, owner 2026-10-17);
-          everything below fills the panel. */}
-      <div className="mx-auto flex w-full max-w-[68rem] flex-col gap-10">
+    <PageBody width="frame" className="mx-auto max-w-[68rem] gap-10 md:pt-9">
+      {/* Owner 2026-10-17: Home keeps its 68rem column; the greeting and the Ask AI box sit in a
+          narrower 48rem column centred above the rest. */}
+      <div className="mx-auto flex w-full max-w-[48rem] flex-col gap-10">
         <HomeEnter index={0}>
           <HomeGreeting
             firstName={firstName}

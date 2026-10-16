@@ -157,6 +157,8 @@ export default [
       field: `खोजें या ${siteConfig.brand.name} AI से पूछें…`,
       shortcut: '⌘K',
       askAi: 'AI से पूछें',
+      lead: 'खोजें या AI से पूछें',
+      examples: ['“भेजने वाले ऑर्डर”', '“इस हफ़्ते सबसे ज़्यादा बिका”', '“कम स्टॉक”', '“आज की बिक्री”'],
       empty: 'कुछ नहीं मिला',
       orders: 'ऑर्डर',
       products: 'प्रोडक्ट',
