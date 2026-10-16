@@ -1,13 +1,6 @@
 'use client'
 
-import {
-  AppWindow,
-  ChevronDown,
-  ExternalLink,
-  MoreVertical,
-  SquarePlus,
-  Users,
-} from '@commerce/ui/icons'
+import { AppWindow, ExternalLink, MoreVertical, SquarePlus, Users } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import {
   DropdownMenu,
@@ -26,6 +19,7 @@ import StatusChip from '@/components/layout/status-chip'
 import OrderChip from '@/components/orders/order-chip'
 import OrderFilters from '@/components/orders/order-filters'
 import { orderStage } from '@/components/orders/order-stage'
+import OrdersBulkActions from '@/components/orders/orders-bulk-actions'
 import OrdersListFrame from '@/components/orders/orders-list-frame'
 import OrdersTiles, { type OrderTilesData } from '@/components/orders/orders-tiles'
 import RowMenu from '@/components/orders/row-menu'
@@ -35,7 +29,6 @@ import ResourceTable, { type ResourceColumnSpec } from '@/components/table/resou
 import ViewSelect from '@/components/table/view-select'
 import {
   ORDER_LIST_FILTERS,
-  ORDER_MARKS,
   type OrderListFilter,
   type OrderMark,
   ordersContent,
@@ -452,19 +445,7 @@ function OrdersContent({ initial }: { initial: OrdersInitial }) {
           })
         }
         bulkActions={(ids, clear) => (
-          <DropdownMenu>
-            <DropdownMenuTrigger render={<Button variant="outline" size="sm" />}>
-              {copy.bulk.markAs}
-              <ChevronDown />
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="start">
-              {ORDER_MARKS.map((s) => (
-                <DropdownMenuItem key={s} onClick={() => handleBulkSetStatus(ids, s, clear)}>
-                  {copy.marks[s]}
-                </DropdownMenuItem>
-              ))}
-            </DropdownMenuContent>
-          </DropdownMenu>
+          <OrdersBulkActions ids={ids} onMark={(i, m) => handleBulkSetStatus(i, m, clear)} />
         )}
         empty={searching ? copy.noResults : copy.empty}
       />

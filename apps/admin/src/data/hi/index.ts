@@ -38,6 +38,7 @@ import notifications from './notifications'
 import onboarding from './onboarding'
 import orderCards from './order-cards'
 import orders from './orders'
+import ordersBulkEdit from './orders-bulk-edit'
 import payments from './payments'
 import paymentsSetup from './payments-setup'
 import products from './products'
@@ -110,6 +111,7 @@ export const hindiCopy: readonly TranslationPair[] = [
   ...shopifyImportRun,
   ...shopifyImportSettings,
   ...orders,
+  ...ordersBulkEdit,
   ...payments,
   ...paymentsSetup,
   ...collections,

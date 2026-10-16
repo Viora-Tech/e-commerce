@@ -171,6 +171,7 @@ export const ordersContent = {
   moreLines: (n: number) => `+${n} more`,
   bulk: {
     markAs: 'Mark as',
+    bulkEdit: 'Bulk edit',
     updated: (n: number, status: string) => `${n} marked ${status.toLowerCase()}`,
     failed: 'Could not update orders',
   },

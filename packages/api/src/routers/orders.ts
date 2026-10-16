@@ -44,6 +44,7 @@ import {
   orderBalance,
   orderNeighbours,
 } from '../services/order-fulfil.service'
+import { orderSheet } from '../services/order-sheet.service'
 import {
   bookShipment,
   cancelStoreShipment,
@@ -444,6 +445,11 @@ export const ordersRouter = {
         author: context.session.user.email,
       }),
     ),
+
+  /** Rows for the Orders bulk-edit spreadsheet, in the order the ids were given. */
+  sheet: can(permissions.ORDERS_READ)
+    .input(z.object({ ids: z.array(z.uuid()).min(1).max(5000) }))
+    .handler(({ context, input }) => orderSheet(context.tx, input.ids)),
 
   setTags: can(permissions.ORDERS_WRITE)
     .input(z.object({ id: z.uuid(), tags: z.array(z.string().trim().min(1).max(40)).max(20) }))
