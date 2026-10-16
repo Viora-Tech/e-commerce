@@ -4,6 +4,8 @@ export const tableContent = {
   number: 'No.',
   filter: 'Filter',
   sort: 'Sort',
+  sortBy: 'Sort by',
+  clearSort: 'Clear sort',
   more: 'More',
   clearFilters: 'Clear all',
   addFilter: 'Add filter',

@@ -1,6 +1,15 @@
 'use client'
 
-import { ArrowUpDown, Columns, Plus, Search, SlidersHorizontal, X } from '@commerce/ui/icons'
+import {
+  ArrowDown,
+  ArrowUp,
+  ArrowUpDown,
+  Columns,
+  Plus,
+  Search,
+  SlidersHorizontal,
+  X,
+} from '@commerce/ui/icons'
 import { cn } from '@commerce/ui/lib/utils'
 import {
   DropdownMenu,
@@ -9,6 +18,8 @@ import {
   DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuLabel,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@commerce/ui/shadcn/dropdown-menu'
@@ -73,6 +84,8 @@ export default function ResourceTableToolbar<T extends RowData>({
   const hideable = table.getAllColumns().filter((c) => c.getCanHide())
   const sortable = table.getAllColumns().filter((c) => c.getCanSort())
   const hasApplied = applied.length > 0 || query.length > 0
+  const sortedBy = sortable.find((c) => c.getIsSorted())
+  const direction = sortedBy?.getIsSorted() || 'asc'
 
   return (
     <div className="flex flex-col border-border border-b">
@@ -116,25 +129,57 @@ export default function ResourceTableToolbar<T extends RowData>({
           <div className="ml-auto flex items-center gap-1">
             {sortable.length > 0 ? (
               <DropdownMenu>
+                {/* While a sort applies the icon stays lit, so the list says it is sorted. */}
                 <DropdownMenuTrigger
-                  render={<ToolbarButton aria-label={tableCopy.sort} className="size-8" />}
+                  render={
+                    <ToolbarButton
+                      aria-label={tableCopy.sort}
+                      className={cn('size-8', sortedBy && 'bg-muted text-foreground')}
+                    />
+                  }
                   nativeButton
                 >
                   <ArrowUpDown />
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-48">
+                {/* Shopify-style: the column it sorts by is ticked, then the direction. */}
+                <DropdownMenuContent align="end" className="w-52">
                   <DropdownMenuGroup>
-                    <DropdownMenuLabel>{tableCopy.sort}</DropdownMenuLabel>
-                  </DropdownMenuGroup>
-                  <DropdownMenuSeparator />
-                  {sortable.map((column) => (
-                    <DropdownMenuItem
-                      key={column.id}
-                      onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
+                    <DropdownMenuLabel>{tableCopy.sortBy}</DropdownMenuLabel>
+                    <DropdownMenuRadioGroup
+                      value={sortedBy?.id ?? ''}
+                      onValueChange={(id) =>
+                        sortable.find((c) => c.id === id)?.toggleSorting(direction === 'desc')
+                      }
                     >
-                      {columnTitles[column.id] ?? column.id}
-                    </DropdownMenuItem>
-                  ))}
+                      {sortable.map((column) => (
+                        <DropdownMenuRadioItem key={column.id} value={column.id}>
+                          {columnTitles[column.id] ?? column.id}
+                        </DropdownMenuRadioItem>
+                      ))}
+                    </DropdownMenuRadioGroup>
+                  </DropdownMenuGroup>
+                  {sortedBy ? (
+                    <>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuRadioGroup
+                        value={direction}
+                        onValueChange={(d) => sortedBy.toggleSorting(d === 'desc')}
+                      >
+                        <DropdownMenuRadioItem value="asc">
+                          <ArrowUp aria-hidden="true" />
+                          {tableCopy.sortAsc}
+                        </DropdownMenuRadioItem>
+                        <DropdownMenuRadioItem value="desc">
+                          <ArrowDown aria-hidden="true" />
+                          {tableCopy.sortDesc}
+                        </DropdownMenuRadioItem>
+                      </DropdownMenuRadioGroup>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem onClick={() => table.resetSorting()}>
+                        {tableCopy.clearSort}
+                      </DropdownMenuItem>
+                    </>
+                  ) : null}
                 </DropdownMenuContent>
               </DropdownMenu>
             ) : null}

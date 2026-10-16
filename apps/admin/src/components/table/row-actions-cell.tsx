@@ -1,21 +1,21 @@
 'use client'
 
-import { ArrowRight } from '@commerce/ui/icons'
 import Link from 'next/link'
 import type { ReactNode } from 'react'
 import { tableContent } from '@/data/table'
 import { useCopy } from '@/hooks/use-copy'
 
 type RowActionsCellProps = {
-  /** Draws the "open" arrow that goes to the row's page. */
+  /** The row's page: the row itself opens it, so the link shows only to keyboard focus. */
   href?: string | undefined
   /** The ⋯ menu (or any row-end controls). */
   children?: ReactNode
 }
 
 /**
- * The 64px row actions column (Figma "Table · Row"): open arrow and the ⋯ menu, quiet at 40%
- * and full strength when the row is hovered or a control inside has focus. The row needs the
+ * The row actions column (Figma "Table · Row"): the ⋯ menu, quiet at 40% and full strength
+ * when the row is hovered or a control inside has focus. There is no open arrow (owner): the
+ * whole row opens the page, and an "Open" link appears only when tabbed to. The row needs the
  * `group/row` class (ResourceTable's rows have it). Touch screens always show them in full.
  */
 export default function RowActionsCell({ href, children }: RowActionsCellProps) {
@@ -29,9 +29,9 @@ export default function RowActionsCell({ href, children }: RowActionsCellProps) 
           href={href}
           aria-label={copy.open}
           onClick={(e) => e.stopPropagation()}
-          className="flex size-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          className="sr-only rounded-md px-2 py-1 text-xs font-medium text-foreground focus-visible:not-sr-only focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         >
-          <ArrowRight className="size-4" aria-hidden />
+          {copy.open}
         </Link>
       ) : null}
       {children}

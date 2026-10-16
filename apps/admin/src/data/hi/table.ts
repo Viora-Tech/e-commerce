@@ -7,6 +7,8 @@ export default [
     number: 'नं.',
     filter: 'फ़िल्टर',
     sort: 'क्रम',
+    sortBy: 'इससे क्रम लगाएं',
+    clearSort: 'क्रम हटाएं',
     more: 'और',
     clearFilters: 'सब हटाएं',
     addFilter: 'फ़िल्टर जोड़ें',

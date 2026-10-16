@@ -76,9 +76,9 @@ function fetchOrders(q: Query, perPage: number, f: OrderFiltersValue) {
   })
 }
 
-/* Figma "Table / Cell · Avatar": a 24px muted initials disc, the order number 14/20 medium and
-   the customer's name 12/16 muted beneath. */
-function OrderCell({ item }: { item: Item }) {
+/* Figma "Table / Cell · Avatar": a 24px muted initials disc, the customer's name 14/20 medium
+   and their email 12/16 muted beneath (owner: a Customer column of its own). */
+function CustomerCell({ item }: { item: Item }) {
   // Hooks
   const copy = useCopy(ordersContent)
 
@@ -92,10 +92,10 @@ function OrderCell({ item }: { item: Item }) {
         className="size-6 bg-muted font-medium text-foreground"
       />
       <span className="min-w-0">
-        <span className="line-clamp-1 text-body font-medium text-ink-strong tabular-nums">
-          #{item.number}
-        </span>
-        <span className="line-clamp-1 text-xs text-muted-foreground">{who}</span>
+        <span className="line-clamp-1 text-body font-medium text-ink-strong">{who}</span>
+        {item.customerName && item.email ? (
+          <span className="line-clamp-1 text-xs text-muted-foreground">{item.email}</span>
+        ) : null}
       </span>
     </span>
   )
@@ -141,13 +141,22 @@ function orderColumns(copy: typeof ordersContent, fmt: Formatters): ResourceColu
       title: copy.columns.order,
       sortValue: (o) => o.number,
       hideable: false,
-      className: 'w-[17%] whitespace-normal',
-      render: (o) => <OrderCell item={o} />,
+      className: 'w-[9%]',
+      render: (o) => (
+        <span className="text-body font-medium text-ink-strong tabular-nums">#{o.number}</span>
+      ),
+    },
+    {
+      id: 'customer',
+      title: copy.columns.customer,
+      sortValue: (o) => (o.customerName ?? o.email ?? '').toLowerCase(),
+      className: 'w-[20%] whitespace-normal',
+      render: (o) => <CustomerCell item={o} />,
     },
     {
       id: 'product',
       title: copy.columns.product,
-      className: 'w-[30%] whitespace-normal',
+      className: 'w-[24%] whitespace-normal',
       render: (o) => <ProductCell item={o} />,
     },
     {

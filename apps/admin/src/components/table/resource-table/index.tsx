@@ -118,8 +118,8 @@ const ICON_CELL_WIDTH = {
   3: 'w-33 p-0 last:pr-0 md:last:pr-0',
 } as const
 
-/* The 64px row actions column: open arrow and the ⋯ menu. */
-const ACTIONS_WIDTH = 'w-16 p-0 last:pr-2 md:last:pr-2'
+/* The row actions column: the ⋯ menu (no open arrow; the row opens the page). */
+const ACTIONS_WIDTH = 'w-11 p-0 last:pr-2 md:last:pr-2'
 
 const ALIGN: Record<CellAlign, string> = {
   start: 'text-left',
