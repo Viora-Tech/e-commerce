@@ -290,6 +290,8 @@ export const orderDetailContent = {
   },
   payment: {
     heading: 'Payment',
+    /** The gateway transactions card (the money side is the Payment card above it). */
+    transactions: 'Transactions',
     method: {
       cod: 'Cash on delivery',
       manual: 'UPI to your own ID — you confirm it',
@@ -398,6 +400,7 @@ export const orderDetailContent = {
     state: 'State',
     pincode: 'PIN code',
     copyAll: 'Copy all',
+    copyAllCourier: 'Copy all for courier',
     call: 'Call',
     whatsapp: 'WhatsApp',
     copyAllHint:

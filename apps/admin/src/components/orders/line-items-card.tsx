@@ -56,52 +56,41 @@ export default function LineItemsCard({ order, payment, unfulfilledShown }: Line
           <OrderLinesTable rows={waiting} />
         </DataCard>
       ) : null}
-      <DataCard title={copy.items.summary}>
-        {/* Saleor's bottom row: what the order costs on the left, what was paid on the right. */}
-        <div className="grid gap-4 md:grid-cols-2">
-          <SummaryBox rows={charges} />
-          <SummaryBox rows={settled} heading={copy.items.paymentSummary} pill={payment} />
-        </div>
+      {/* Figma "Orders / Order detail" › Payment: the payment pill in the header, what the order
+          costs (subtotal, discount, shipping, the GST split), a rule, then what was settled. */}
+      <DataCard title={copy.payment.heading} icon={<OrderChip kind="payment" value={payment} />}>
+        <SummaryRows rows={charges} />
+        {settled.length > 0 ? (
+          <div className="-mx-5 mt-3 border-border border-t px-5 pt-3">
+            <SummaryRows rows={settled} />
+          </div>
+        ) : null}
       </DataCard>
     </>
   )
 }
 
-type SummaryBoxProps = {
+type SummaryRowsProps = {
   rows: TotalRow[]
-  heading?: string
-  pill?: StatusValue<'payment'>
 }
 
-function SummaryBox({ rows, heading, pill }: SummaryBoxProps) {
+/** Figma payment rows: 13px label left, the figure right; the total semibold, notes muted. */
+function SummaryRows({ rows }: SummaryRowsProps) {
   return (
-    <div
-      className={cn(
-        'flex flex-col gap-3',
-        heading && 'rounded-xl border border-hairline bg-muted/50 p-4',
-      )}
-    >
-      {heading ? (
-        <div className="flex items-center justify-between gap-3">
-          <p className="text-body font-medium text-ink-strong">{heading}</p>
-          {pill ? <OrderChip kind="payment" value={pill} /> : null}
+    <dl className="flex flex-col gap-2.5 text-[0.8125rem] leading-[1.1875rem]">
+      {rows.map((r) => (
+        <div
+          key={r.label}
+          className={cn(
+            'flex justify-between gap-4',
+            r.strong ? 'text-body font-semibold text-ink-strong' : 'text-foreground',
+            r.muted && 'text-muted-foreground',
+          )}
+        >
+          <dt>{r.label}</dt>
+          <dd className="tabular-nums">{r.value}</dd>
         </div>
-      ) : null}
-      <dl className="flex flex-col gap-2 text-body">
-        {rows.map((r) => (
-          <div
-            key={r.label}
-            className={cn(
-              'flex justify-between gap-4',
-              r.strong && 'font-semibold text-ink-strong',
-              r.muted && 'text-muted-foreground',
-            )}
-          >
-            <dt>{r.label}</dt>
-            <dd className="tabular-nums">{r.value}</dd>
-          </div>
-        ))}
-      </dl>
-    </div>
+      ))}
+    </dl>
   )
 }

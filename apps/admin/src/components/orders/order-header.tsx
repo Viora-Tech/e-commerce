@@ -3,7 +3,8 @@
 import { ChevronLeftIcon, ShoppingBag } from '@commerce/ui/icons'
 import Link from 'next/link'
 import { type ReactNode, useEffect, useState } from 'react'
-import { orderDetailContent } from '@/data/orders'
+import StatusChip from '@/components/layout/status-chip'
+import { orderDetailContent, ordersContent } from '@/data/orders'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 import { routes } from '@/lib/routes'
@@ -25,6 +26,7 @@ type OrderHeaderProps = {
 export default function OrderHeader({ order, actions }: OrderHeaderProps) {
   // Hooks
   const copy = useCopy(orderDetailContent)
+  const listCopy = useCopy(ordersContent)
   const fmt = useFormat()
   const [neighbours, setNeighbours] = useState<Neighbours | null>(null)
 
@@ -41,6 +43,9 @@ export default function OrderHeader({ order, actions }: OrderHeaderProps) {
   // Render logic
   /* Open is the everyday state; only a closed order earns its own lifecycle chip. */
   const closed = order.status !== 'open'
+  /* Figma: a paid order nobody has shipped yet reads "To ship" (blue), as in the list. */
+  const toShip =
+    !closed && order.fulfillmentStatus === 'unfulfilled' && order.paymentStatus === 'paid'
 
   return (
     <div className="flex flex-col gap-4 print:hidden">
@@ -55,7 +60,7 @@ export default function OrderHeader({ order, actions }: OrderHeaderProps) {
         <div className="flex min-w-0 items-start gap-4">
           <span
             aria-hidden="true"
-            className="flex size-12 shrink-0 items-center justify-center rounded-xl border border-hairline bg-primary-soft text-primary [&_svg]:size-6"
+            className="flex size-10 shrink-0 items-center justify-center rounded-lg border border-border bg-muted text-foreground shadow-input [&_svg]:size-5"
           >
             <ShoppingBag />
           </span>
@@ -67,7 +72,11 @@ export default function OrderHeader({ order, actions }: OrderHeaderProps) {
               <div className="flex flex-wrap items-center gap-1.5">
                 {closed ? <OrderChip kind="order" value={order.status} /> : null}
                 <OrderChip kind="orderPayment" value={order.paymentStatus} />
-                <OrderChip kind="fulfilment" value={order.fulfillmentStatus} />
+                {toShip ? (
+                  <StatusChip tone="info">{listCopy.toShip}</StatusChip>
+                ) : (
+                  <OrderChip kind="fulfilment" value={order.fulfillmentStatus} />
+                )}
               </div>
             </div>
             <p className="text-body text-muted-foreground">

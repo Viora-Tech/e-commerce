@@ -1,4 +1,3 @@
-import { PackageOpen } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import DataCard from '@/components/layout/data-card'
 import StatusChip from '@/components/layout/status-chip'
@@ -30,8 +29,7 @@ export default function UnfulfilledCard({ order, onFulfil }: UnfulfilledCardProp
       title={copy.unfulfilled.heading}
       icon={<StatusChip tone="attention">{copy.unfulfilled.itemsCount(count)}</StatusChip>}
       action={
-        <Button variant="outline" size="sm" onClick={onFulfil}>
-          <PackageOpen aria-hidden="true" />
+        <Button variant="ghost" size="sm" onClick={onFulfil}>
           {copy.actions.fulfilItems}
         </Button>
       }

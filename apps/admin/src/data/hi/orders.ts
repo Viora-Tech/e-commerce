@@ -270,6 +270,8 @@ export default [
     },
     payment: {
       heading: 'पेमेंट',
+      /** The gateway transactions card (the money side is the Payment card above it). */
+      transactions: 'लेन-देन',
       method: {
         cod: 'कैश ऑन डिलीवरी (COD)',
         manual: 'आपकी अपनी UPI ID पर, आप कन्फ़र्म करते हैं',
@@ -376,6 +378,7 @@ export default [
       state: 'राज्य',
       pincode: 'पिन कोड',
       copyAll: 'सब कॉपी करें',
+      copyAllCourier: 'कूरियर के लिए सब कॉपी करें',
       call: 'कॉल करें',
       whatsapp: 'WhatsApp',
       copyAllHint: 'नाम, फ़ोन, पता, शहर, राज्य और पिन कोड, हर एक अलग लाइन में, कूरियर ऐप के लिए तैयार',

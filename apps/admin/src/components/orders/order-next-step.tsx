@@ -28,13 +28,15 @@ type OrderNextStepProps = {
 }
 
 /* Blue while there is work to do, green once delivered, grey when closed. */
+/* Figma "Order · Next step": an open step is the raised glass card (glass/raised, radius 16);
+   done is the success tint, cancelled a quiet muted card. */
 const TONE: Record<NextStepKind, string> = {
-  upi: 'border-primary/25 bg-primary-soft',
-  collect: 'border-primary/25 bg-primary-soft',
-  ship: 'border-primary/25 bg-primary-soft',
-  transit: 'border-primary/25 bg-primary-soft',
-  done: 'border-success/40 bg-success-soft',
-  cancelled: 'border-hairline bg-muted/60',
+  upi: 'border-transparent surface-glass',
+  collect: 'border-transparent surface-glass',
+  ship: 'border-transparent surface-glass',
+  transit: 'border-transparent surface-glass',
+  done: 'border-success-border bg-success-soft',
+  cancelled: 'border-border bg-muted/60',
 }
 
 const EYEBROW_TONE: Record<NextStepKind, string> = {
@@ -46,7 +48,7 @@ const EYEBROW_TONE: Record<NextStepKind, string> = {
   cancelled: 'text-muted-foreground',
 }
 
-const PLAIN = 'bg-card hover:bg-card/80'
+const PLAIN = ''
 const SHORT_DATE = { day: 'numeric', month: 'short' } as const
 
 /** The order's next step (Figma "Order · Next step"): one card, driven by where the order really is. */
@@ -215,13 +217,13 @@ export default function OrderNextStep({
   return (
     <section
       aria-label={eyebrow}
-      className={cn('flex flex-col gap-4 rounded-xl border p-4 print:hidden', TONE[kind])}
+      className={cn('flex flex-col gap-4 rounded-xl border p-4 md:px-5 print:hidden', TONE[kind])}
     >
       <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-3">
         <div className="flex min-w-0 items-start gap-3">
           <span
             className={cn(
-              'flex size-10 shrink-0 items-center justify-center rounded-lg border border-hairline bg-card [&_svg]:size-5',
+              'flex size-10 shrink-0 items-center justify-center rounded-lg border border-primary/20 bg-primary-soft shadow-input [&_svg]:size-5',
               kind === 'done' ? 'border-transparent bg-success text-white' : 'text-primary',
               kind === 'cancelled' && 'text-muted-foreground',
             )}
@@ -229,9 +231,18 @@ export default function OrderNextStep({
             {icon}
           </span>
           <div className="flex min-w-0 flex-col gap-0.5">
-            <span className={cn('text-caption font-medium', EYEBROW_TONE[kind])}>{eyebrow}</span>
-            <h2 className="text-card-title text-ink-strong">{title}</h2>
-            <p className="text-body text-muted-foreground">{body}</p>
+            <span
+              className={cn(
+                'font-mono text-[0.6875rem] leading-4 font-medium tracking-[0.06em] uppercase',
+                EYEBROW_TONE[kind],
+              )}
+            >
+              {eyebrow}
+            </span>
+            <h2 className="text-xl leading-7 font-semibold tracking-[-0.01em] text-ink-strong">
+              {title}
+            </h2>
+            <p className="text-[0.8125rem] leading-[1.1875rem] text-muted-foreground">{body}</p>
           </div>
         </div>
         <div className="flex flex-wrap items-center gap-2">{actions}</div>
