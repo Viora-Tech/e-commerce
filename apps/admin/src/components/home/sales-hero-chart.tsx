@@ -66,7 +66,7 @@ export default function SalesHeroChart({
         animate={{ opacity: 1, filter: 'blur(0px)' }}
         transition={swap}
       >
-        <ChartContainer config={config} className="aspect-auto h-52 w-full">
+        <ChartContainer config={config} className="aspect-auto h-55 w-full">
           <AreaChart data={points} margin={{ left: 0, right: 0, top: 8, bottom: 0 }}>
             <defs>
               <linearGradient id="home-hero-fill" x1="0" y1="0" x2="0" y2="1">
@@ -79,14 +79,14 @@ export default function SalesHeroChart({
               dataKey="label"
               tickLine={false}
               axisLine={{ stroke: 'var(--border)' }}
-              tick={{ fill: 'var(--muted-foreground)', fontSize: 12 }}
+              tick={{ fill: 'var(--muted-foreground)', fontSize: 11 }}
               minTickGap={48}
             />
             <YAxis
               width={44}
               tickLine={false}
               axisLine={false}
-              tick={{ fill: 'var(--muted-foreground)', fontSize: 12 }}
+              tick={{ fill: 'var(--muted-foreground)', fontSize: 11 }}
               tickFormatter={formatTick}
             />
             <ChartTooltip

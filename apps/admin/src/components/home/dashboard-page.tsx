@@ -79,7 +79,7 @@ export default function DashboardPage({
         />
       </HomeEnter>
       <HomeEnter index={5}>
-        <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
+        <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,640fr)_minmax(0,424fr)]">
           <LatestOrders orders={summary.recentOrders} />
           <LiveNow initial={summary} />
         </div>

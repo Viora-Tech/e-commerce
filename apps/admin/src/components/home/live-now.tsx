@@ -78,7 +78,7 @@ export default function LiveNow({ initial }: LiveNowProps) {
       <SectionHead
         title={
           <span className="flex items-center gap-2">
-            <span className="relative flex size-2" aria-hidden="true">
+            <span className="relative flex size-4 items-center justify-center" aria-hidden="true">
               {!reducedMotion && tabVisible ? (
                 <motion.span
                   animate={{ scale: [1, 2.4], opacity: [0.7, 0] }}
@@ -87,20 +87,20 @@ export default function LiveNow({ initial }: LiveNowProps) {
                     repeat: Infinity,
                     ease: 'easeOut',
                   }}
-                  className="absolute inline-flex size-full rounded-full bg-success"
+                  className="absolute inline-flex size-2 rounded-full bg-foreground"
                 />
               ) : null}
-              <span className="relative inline-flex size-2 rounded-full bg-success" />
+              <span className="relative inline-flex size-2 rounded-full bg-foreground ring-4 ring-foreground/15" />
             </span>
             {copy.title}
           </span>
         }
       />
-      <div className="flex flex-1 flex-col overflow-hidden rounded-xl surface-card">
-        <div className="flex flex-col gap-0.5 p-6">
+      <div className="flex flex-1 flex-col overflow-hidden rounded-lg surface-card">
+        <div className="flex flex-col gap-0.5 px-6 pt-6">
           <RollingNumber
             value={fmt.compact(visitors)}
-            className="font-[family-name:var(--font-display)] text-[2.5rem] leading-[2.875rem] font-extrabold tracking-[-0.0625rem] text-ink-strong tabular-nums"
+            className="font-[family-name:var(--font-display)] text-[2.5rem] leading-[2.875rem] font-semibold tracking-[-0.0625rem] text-ink-strong tabular-nums"
           />
           <p className="text-[0.8125rem] leading-[1.1875rem] text-muted-foreground">
             {copy.visitors(visitors)}
@@ -122,7 +122,7 @@ export default function LiveNow({ initial }: LiveNowProps) {
           ) : null}
         </div>
         {webglOk ? (
-          <div className="relative mt-auto h-[14rem] overflow-hidden">
+          <div className="relative mt-auto h-[11.375rem] overflow-hidden">
             <div className="h-full w-full">
               <LiveGlobeCanvas
                 markers={markers}

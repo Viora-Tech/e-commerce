@@ -57,14 +57,11 @@ export default async function FinishSetup({ productCount, signals }: FinishSetup
           <li key={step.key}>
             <Link
               href={step.href}
-              className={cn(
-                'flex h-full items-center gap-3.5 rounded-xl border border-transparent p-[1.125rem] surface-card transition-shadow duration-150 ease-out hover:shadow-card-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
-                step.done ? 'opacity-55' : 'border-border shadow-lift',
-              )}
+              className="flex h-full min-h-[4.9375rem] items-start gap-3.5 rounded-lg p-4 surface-card transition-shadow duration-150 ease-out hover:shadow-card-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
               <span
                 className={cn(
-                  'flex size-[1.625rem] shrink-0 items-center justify-center rounded-full text-caption',
+                  'flex size-[1.625rem] shrink-0 items-center justify-center rounded-full text-xs font-medium',
                   // Figma 224:591 "Tick done": the key material (gradient, rim, lip, glow).
                   step.done ? 'key-primary' : 'border border-border text-muted-foreground',
                 )}
@@ -82,7 +79,10 @@ export default async function FinishSetup({ productCount, signals }: FinishSetup
               {step.done ? null : (
                 <span
                   aria-hidden="true"
-                  className={cn(buttonVariants({ variant: 'default', size: 'sm' }), 'shrink-0')}
+                  className={cn(
+                    buttonVariants({ variant: 'default', size: 'sm' }),
+                    'shrink-0 self-center',
+                  )}
                 >
                   {c.openCta}
                   <ArrowRight className="size-3.5" aria-hidden="true" />
