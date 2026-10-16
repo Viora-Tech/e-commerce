@@ -150,7 +150,7 @@ export default async function TodoCards({ needsYou }: TodoCardsProps) {
                 variant="outline"
                 nativeButton={false}
                 render={<Link href={row.href} />}
-                className="mt-auto"
+                className="mt-auto self-end"
               >
                 {row.cta}
               </Button>
