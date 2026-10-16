@@ -11,6 +11,7 @@ import {
 import { Button } from '@commerce/ui/shadcn/button'
 import Link from 'next/link'
 import IconBadge from '@/components/layout/icon-badge'
+import StatusChip from '@/components/layout/status-chip'
 import { homeContent, homePageContent } from '@/data/home'
 import { getCopy } from '@/lib/copy-server'
 import SectionHead from './section-head'
@@ -26,6 +27,20 @@ type Row = {
   help: string
   cta: string
   href: string
+  /** A warning chip under the help line ("Waiting 3 days"). */
+  badge?: string | undefined
+}
+
+const DAY_MS = 86_400_000
+
+/** "Waiting 3 days" once the oldest order to ship has waited a full day. */
+function waitingBadge(
+  oldestAt: Date | string | null,
+  waiting: (days: number) => string,
+): string | undefined {
+  if (!oldestAt) return undefined
+  const days = Math.floor((Date.now() - new Date(oldestAt).getTime()) / DAY_MS)
+  return days >= 1 ? waiting(days) : undefined
 }
 
 /** Live rows only: a zero-count queue has nothing to act on. */
@@ -42,6 +57,7 @@ function buildRows(
       help: c.ordersToShip.help,
       cta: c.ordersToShip.cta,
       href: needsYou.ordersToShip.href,
+      badge: waitingBadge(needsYou.ordersToShip.oldestAt, c.ordersToShip.waiting),
     })
   }
   if (needsYou.upiToVerify.count > 0) {
@@ -114,7 +130,7 @@ export default async function TodoCards({ needsYou }: TodoCardsProps) {
           {rows.map((row) => (
             <li
               key={row.key}
-              className="flex h-full flex-col items-start gap-3.5 rounded-lg p-5 surface-card transition-[transform,box-shadow] duration-150 ease-out hover:-translate-y-0.5 hover:shadow-card-hover active:scale-[0.97] motion-reduce:transition-shadow motion-reduce:hover:translate-y-0 motion-reduce:active:scale-100"
+              className="flex h-full flex-col items-start gap-3.5 rounded-lg p-5 surface-card card-lift"
             >
               <span className="flex size-10 items-center justify-center rounded-lg bg-muted text-foreground shadow-input [&_svg]:size-5">
                 <row.icon aria-hidden="true" />
@@ -124,6 +140,11 @@ export default async function TodoCards({ needsYou }: TodoCardsProps) {
                 <p className="text-[0.8125rem] leading-[1.1875rem] text-muted-foreground">
                   {row.help}
                 </p>
+                {row.badge ? (
+                  <StatusChip tone="attention" className="mt-1 w-fit">
+                    {row.badge}
+                  </StatusChip>
+                ) : null}
               </div>
               <Button
                 variant="outline"

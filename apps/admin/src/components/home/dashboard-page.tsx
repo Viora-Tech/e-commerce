@@ -45,10 +45,10 @@ export default function DashboardPage({
   abandoned,
 }: DashboardPageProps) {
   return (
-    <PageBody width="frame" className="gap-10 md:pt-9">
-      {/* The greeting and the Ask AI box keep the centred Figma column (68rem, owner 2026-10-17);
-          everything below fills the panel. */}
-      <div className="mx-auto flex w-full max-w-[68rem] flex-col gap-10">
+    <PageBody width="frame" className="mx-auto max-w-[68rem] gap-10 md:pt-9">
+      {/* Owner 2026-10-17: Home keeps its 68rem column; the greeting and the Ask AI box sit in a
+          narrower 48rem column centred above the rest. */}
+      <div className="mx-auto flex w-full max-w-[48rem] flex-col gap-10">
         <HomeEnter index={0}>
           <HomeGreeting
             firstName={firstName}
@@ -65,15 +65,8 @@ export default function DashboardPage({
           <AskAiCard enabled={assistant} />
         </HomeEnter>
       </div>
-      {signals ? (
-        <HomeEnter index={2}>
-          <FinishSetup productCount={summary.report.products} signals={signals} />
-        </HomeEnter>
-      ) : null}
-      <HomeEnter index={3}>
-        <TodoCards needsYou={summary.needsYou} />
-      </HomeEnter>
-      <HomeEnter index={4}>
+      {/* Owner 2026-10-17: the sales analytics come second, right under the greeting and Ask AI. */}
+      <HomeEnter index={2}>
         <SalesHero
           today={summary.today}
           yesterdayHourly={summary.yesterday.hourly}
@@ -82,6 +75,14 @@ export default function DashboardPage({
           liveNow={summary.liveVisitors.last30}
           livePerMinute={summary.liveVisitors.perMinute}
         />
+      </HomeEnter>
+      {signals ? (
+        <HomeEnter index={3}>
+          <FinishSetup productCount={summary.report.products} signals={signals} />
+        </HomeEnter>
+      ) : null}
+      <HomeEnter index={4}>
+        <TodoCards needsYou={summary.needsYou} />
       </HomeEnter>
       <HomeEnter index={5}>
         <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,640fr)_minmax(0,424fr)]">

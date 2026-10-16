@@ -44,6 +44,9 @@ export const MOTION_MS = {
   rotateEvery: 2600,
   rotateFirst: 4000,
   askRotateEvery: 4000,
+  /** The top bar's search example: a calm change every 4.5s, a slow roll (owner: was too fast). */
+  searchRotateEvery: 4500,
+  searchRoll: 600,
 } as const
 
 /** Pressed cards shrink here; entering cards start here (docs/conventions.md, "Motion"). */

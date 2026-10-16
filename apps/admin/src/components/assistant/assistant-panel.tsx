@@ -24,9 +24,9 @@ type AssistantPanelProps = {
 }
 
 /**
- * The open AI bar: a floating panel at the bottom centre on desktop, a full-height sheet on
- * phones. Opens and closes with no animation (⌘J is pressed many times a day). The thread
- * keeps itself scrolled to the newest answer while it streams.
+ * The open assistant: on desktop a right sidebar docked beside the content panel (Shopify
+ * Sidekick style; the page narrows instead of being covered), on phones a full-height sheet.
+ * The thread keeps itself scrolled to the newest answer while it streams.
  */
 export default function AssistantPanel({
   page,
@@ -58,9 +58,10 @@ export default function AssistantPanel({
       role="dialog"
       aria-modal="false"
       aria-label={copy.panel.title}
-      /* Figma "TB · Ask AI panel": a full-height panel on the right (440px, 8px from the
-         window edges, radius 16), sliding in from the right; a bottom sheet on phones. */
-      className="fixed inset-x-0 top-[max(0.75rem,env(safe-area-inset-top))] bottom-0 z-40 flex animate-in flex-col overflow-hidden rounded-t-2xl border border-border bg-popover shadow-dialog duration-300 ease-drawer fade-in slide-in-from-bottom-6 motion-reduce:animate-none md:inset-x-auto md:top-2 md:right-2 md:bottom-2 md:w-[min(27.5rem,calc(100vw-1rem))] md:rounded-2xl md:slide-in-from-right-8 md:slide-in-from-bottom-0"
+      /* Owner 2026-10-17: a right sidebar, not a drawer: 440px, the full window height beside the
+         top bar and the page, split off by a hairline. The host animates its width open and
+         closed so the page narrows smoothly. Phones keep the bottom sheet. */
+      className="fixed inset-x-0 top-[max(0.75rem,env(safe-area-inset-top))] bottom-0 z-40 flex animate-in flex-col overflow-hidden rounded-t-2xl border border-border bg-popover shadow-dialog duration-400 ease-drawer fade-in slide-in-from-bottom-6 motion-reduce:animate-none md:static md:z-auto md:h-svh md:w-[27.5rem] md:animate-none md:rounded-none md:border-0 md:border-panel-border md:border-l md:bg-background md:shadow-none"
     >
       <header className="flex shrink-0 items-center gap-2.5 border-border border-b py-3.5 pr-3.5 pl-4.5">
         {/* The AI orb (Figma): a glowing disc in the AI colour. */}

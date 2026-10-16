@@ -23,6 +23,8 @@ export type NavItem = {
   href: string
   label: string
   icon: LucideIcon
+  /** Extra classes on the icon (Discounts' tag leans a little, owner 2026-10-17). */
+  iconClassName?: string
   /** Hidden when the member does not hold this. The server still guards each page. */
   permission?: Permission
   /** Sub-pages shown beneath the item while its section is active. */
@@ -137,6 +139,7 @@ export const NAV_GROUPS: NavGroup[] = [
         href: routes.discounts.list(),
         label: 'Discounts',
         icon: BadgePercent,
+        iconClassName: 'rotate-30',
         permission: permissions.DISCOUNTS_READ,
       },
     ],
@@ -197,6 +200,9 @@ export const navigationContent = {
   search: {
     placeholder: 'Search orders, products or customers',
     field: `Search or ask ${siteConfig.brand.name} AI…`,
+    /** The top bar hint: this part stays, the examples after it take turns. */
+    lead: 'Search or ask AI',
+    examples: ['orders to ship', 'best sellers this week', 'low stock', 'today’s sales'],
     shortcut: '⌘K',
     askAi: 'Ask AI',
     empty: 'Nothing matches',

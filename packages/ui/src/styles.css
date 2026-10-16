@@ -706,6 +706,34 @@
 }
 
 /*
+ * A clickable card's hover (owner, 2026-10-17: one hover for every Home card): it rises 2px into
+ * the raised shadow over 250ms on the ease-out curve and settles back slightly on press. Only on
+ * devices that hover; under reduced motion only the shadow changes.
+ */
+@utility card-lift {
+  transition-property: transform, box-shadow;
+  transition-duration: 250ms;
+  transition-timing-function: var(--ease-out);
+  @media (hover: hover) {
+    &:hover {
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-card-hover);
+    }
+  }
+  &:active {
+    transform: translateY(0) scale(0.99);
+    transition-duration: 120ms;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    transition-property: box-shadow;
+    &:hover,
+    &:active {
+      transform: none;
+    }
+  }
+}
+
+/*
  * Glass hero (Figma effect glass/card): one per page. A top-left white bevel, a bottom-right dark
  * bevel, a soft inner glow, then the card ring and soft lift. Pair with the blob/streak/frost
  * layers (apps/admin home hero-glass.tsx); the card itself stays the card colour underneath.
@@ -1068,4 +1096,12 @@
   --text-kit-chip--line-height: 0.875rem;
   --text-kit-chip--font-weight: 500;
   --text-kit-chip--letter-spacing: -0.02em;
+}
+
+/* Crisp icons: 24-grid stroke glyphs (Hugeicons and definePath) keep their stroke in screen
+   pixels at any size instead of scaling it to a fraction of a pixel (lib/icon.tsx). */
+@layer base {
+  svg[viewBox='0 0 24 24'][stroke-width] :is(path, circle, rect, line, polyline, polygon, ellipse) {
+    vector-effect: non-scaling-stroke;
+  }
 }

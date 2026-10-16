@@ -110,6 +110,8 @@ export const GO_TO_ROUTES: Record<string, string> = {
   o: routes.orders.list(),
   p: routes.products.list(),
   c: routes.customers.list(),
+  a: routes.account.home(),
+  ',': routes.settings.home(),
 }
 
 export const shortcutsContent = {
@@ -133,6 +135,8 @@ export const shortcutsContent = {
         { keys: ['G', 'O'], label: 'Orders' },
         { keys: ['G', 'P'], label: 'Products' },
         { keys: ['G', 'C'], label: 'Customers' },
+        { keys: ['G', 'A'], label: 'Account' },
+        { keys: ['G', ','], label: 'Settings' },
       ],
     },
     {

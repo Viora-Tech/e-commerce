@@ -57,7 +57,11 @@ export default async function FinishSetup({ productCount, signals }: FinishSetup
           <li key={step.key}>
             <Link
               href={step.href}
-              className="flex h-full min-h-[4.9375rem] items-start gap-3.5 rounded-lg p-4 surface-card transition-shadow duration-150 ease-out hover:shadow-card-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              className={cn(
+                'flex h-full min-h-[4.9375rem] items-start gap-3.5 rounded-lg p-4 surface-card card-lift focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+                /* Figma "Home · Polished": finished steps sit back, the next one is outlined. */
+                step.done ? 'opacity-55 hover:opacity-100' : 'items-center ring-1 ring-foreground',
+              )}
             >
               <span
                 className={cn(

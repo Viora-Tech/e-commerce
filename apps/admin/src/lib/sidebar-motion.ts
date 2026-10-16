@@ -4,7 +4,7 @@
  * shortcut and `prefers-reduced-motion`. Labels fade out first and back in a beat after the
  * rail has widened; icons never change position relative to the rail's left edge.
  */
-export const SIDEBAR_DURATION = 'duration-(--sidebar-ms) ease-out'
+export const SIDEBAR_DURATION = 'duration-(--sidebar-ms) ease-drawer'
 
 /** Text beside an icon: stays on one line, fades instead of vanishing. */
 export const SIDEBAR_LABEL =

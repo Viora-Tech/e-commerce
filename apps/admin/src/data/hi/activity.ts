@@ -8,6 +8,11 @@ export default [
     markAllRead: 'सब पढ़ा हुआ मार्क करें',
     attentionHeading: 'आपका ध्यान चाहिए',
     recentHeading: 'पिछले 7 दिन',
+    tabs: { all: 'सभी', orders: 'ऑर्डर', payments: 'पेमेंट', stock: 'स्टॉक' },
+    todayHeading: 'आज',
+    earlierHeading: 'पहले',
+    settings: 'सूचना सेटिंग',
+    emptyTab: 'अभी यहां कुछ नहीं है।',
     footer: 'पिछले 7 दिनों के ऑर्डर, रिफ़ंड, रिटर्न और स्टॉक।',
     empty: {
       title: 'सब देख लिया',

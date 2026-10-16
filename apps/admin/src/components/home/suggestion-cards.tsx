@@ -47,6 +47,16 @@ const ICONS: Record<Suggestion['icon'], IconComponent> = {
   sale: BadgePercent,
 }
 
+/* Figma "Home · Polished": the picture tile is tinted by what the suggestion is about. */
+const TONES: Record<Suggestion['icon'], string> = {
+  stock: 'border-info-border bg-info-soft text-info',
+  cart: 'border-warning-border bg-warning-soft text-warning',
+  whatsapp: 'border-success-border bg-success-soft text-success',
+  star: 'border-warning-border bg-warning-soft text-warning',
+  ai: 'border-violet-border bg-violet-soft text-violet',
+  sale: 'border-danger-border bg-danger-soft text-danger',
+}
+
 const STORAGE_KEY = 'home-suggestions-dismissed'
 
 /** The ids this browser has dismissed; empty when storage is blocked or holds junk. */
@@ -126,9 +136,11 @@ export default function SuggestionCards({
                 layout
                 transition={reduced ? instant : layout}
                 exit={{ scale: ENTER_SCALE, opacity: 0, transition: leave }}
-                className="relative flex items-start gap-4 rounded-lg surface-card p-3.5"
+                className="group/suggestion relative flex items-start gap-4 rounded-lg surface-card p-3.5 transition-shadow duration-250 ease-out hover:shadow-card-hover"
               >
-                <div className="flex size-24 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-muted text-foreground shadow-input">
+                <div
+                  className={`flex size-24 shrink-0 items-center justify-center overflow-hidden rounded-lg border shadow-input [&_svg]:size-7 ${s.imageUrl ? 'bg-muted' : TONES[s.icon]} transition-transform duration-250 ease-out group-hover/suggestion:scale-[1.03] motion-reduce:transition-none motion-reduce:group-hover/suggestion:scale-100`}
+                >
                   {s.imageUrl ? (
                     <>
                       {/* biome-ignore lint/performance/noImgElement: product photo from the store's own storage. */}

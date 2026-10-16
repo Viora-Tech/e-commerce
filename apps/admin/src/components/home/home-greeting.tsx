@@ -56,7 +56,14 @@ export default async function HomeGreeting({
           {fmt.pattern(now, DATE_OPTIONS)}
         </span>
         <span className="inline-flex h-6 items-center gap-1.5 rounded-full border border-border px-2.5 text-caption font-medium whitespace-nowrap text-muted-foreground">
-          <span className="size-1.5 rounded-full bg-foreground" aria-hidden="true" />
+          <span
+            className={
+              liveNow > 0
+                ? 'size-1.5 rounded-full bg-live'
+                : 'size-1.5 rounded-full bg-muted-foreground'
+            }
+            aria-hidden="true"
+          />
           {page.sales.liveNow(liveNow)}
         </span>
       </div>

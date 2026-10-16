@@ -18,9 +18,13 @@ export type IconProps = Omit<SVGProps<SVGSVGElement>, 'strokeWidth'> & {
 
 export type IconComponent = ReturnType<typeof defineIcon>
 
-/** The Figma kit's icon stroke (Hugeicons Stroke Rounded at 1.5). */
-const STROKE = 1.5
-const HEAVY_STROKE = 2
+/**
+ * Icon strokes are drawn in screen pixels (`vector-effect: non-scaling-stroke`, styles.css), so a
+ * 16px icon no longer shrinks Hugeicons' 1.5 grid stroke to a 1px line between pixels, which
+ * read as blurry edges (owner, 2026-10-17). 1.25px keeps the Figma kit's light weight.
+ */
+const STROKE = 1.25
+const HEAVY_STROKE = 1.75
 
 function strokeFor(weight: IconWeight, strokeWidth: number | string | undefined): number {
   if (strokeWidth !== undefined) return Number(strokeWidth)

@@ -11,6 +11,7 @@ import { openPalette } from '@/lib/palette-events'
 import MemberAvatar from '../account/member-avatar'
 import ActivityBell from './activity-bell'
 import ThemeToggle from './theme-toggle'
+import TopBarSearchText from './top-bar-search-text'
 import TopBarTip from './top-bar-tip'
 import UserMenu from './user-menu'
 
@@ -76,9 +77,7 @@ export default function TopBar({
           className="flex h-9 w-full max-w-80 min-w-0 items-center gap-2 rounded-sm border border-input bg-input-surface pr-1.5 pl-3 text-left shadow-input transition-colors duration-150 ease-out hover:border-ring focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         >
           <Search className="size-4 shrink-0 text-muted-foreground" />
-          <span className="min-w-0 flex-1 truncate text-body text-muted-foreground">
-            {copy.search.field}
-          </span>
+          <TopBarSearchText lead={copy.search.lead} examples={copy.search.examples} />
           <Kbd className="hidden sm:inline-flex">{copy.search.shortcut}</Kbd>
         </button>
       </TopBarTip>

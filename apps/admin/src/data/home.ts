@@ -76,6 +76,10 @@ export const homePageContent = {
     visitorsNow: 'live now',
     viewReport: 'View sales report',
     vsYesterday: 'vs yesterday',
+    noCompare: 'No comparison',
+    emptyVisitors: 'Visitor numbers will show here once shoppers start visiting your store.',
+    compareLabel: 'Compare with',
+    noHourly: 'Visitors are counted by the day. Pick 7 or 30 days to see this chart.',
     vsPrevious: (n: number) => `vs the ${n} days before`,
     orders: (n: number) => (n === 1 ? '1 order' : `${n} orders`),
     hourlyNote: 'Orders by hour, today against yesterday',
@@ -158,6 +162,7 @@ export const homeContent = {
         label: (n: number) => (n === 1 ? 'Ship 1 order' : `Ship ${n} orders`),
         help: 'Paid, packed and waiting on a courier.',
         cta: 'Ship orders',
+        waiting: (days: number) => (days === 1 ? 'Waiting 1 day' : `Waiting ${days} days`),
       },
       upiToVerify: {
         label: (n: number) => (n === 1 ? 'Check 1 UPI payment' : `Check ${n} UPI payments`),

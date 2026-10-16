@@ -1,6 +1,7 @@
 'use client'
 
 import { pageContextFor } from '@commerce/ai/client'
+import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
 import { usePathname } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { useAssistant } from '@/hooks/use-assistant'
@@ -11,8 +12,12 @@ import {
   OPEN_ASSISTANT_EVENT,
   type OpenAssistantDetail,
 } from '@/lib/assistant-events'
+import { instant } from '@/lib/motion'
 import AssistantLauncher from './assistant-launcher'
 import AssistantPanel from './assistant-panel'
+
+/** Opening and closing: 420ms on the drawer curve (owner: slower and smooth). */
+const DRAWER = { duration: 0.42, ease: [0.32, 0.72, 0, 1] as const }
 
 type AssistantHostProps = {
   /** The active store, so each store keeps its own conversation in this tab. */
@@ -33,6 +38,7 @@ export default function AssistantHost({ storeId }: AssistantHostProps) {
   const [enabled, setEnabled] = useState(false)
   const [open, setOpen] = useState(false)
   const [pending, setPending] = useState<string | null>(null)
+  const reduced = useReducedMotion()
 
   useEffect(() => {
     if (!storeId) return
@@ -86,18 +92,34 @@ export default function AssistantHost({ storeId }: AssistantHostProps) {
   // Render logic
   const page = pageContextFor(pathname).page
 
-  return open ? (
-    <AssistantPanel
-      page={page}
-      turns={assistant.turns}
-      busy={assistant.busy}
-      onSend={handleSend}
-      onStop={assistant.stop}
-      onClear={assistant.clear}
-      onClose={() => setOpen(false)}
-      onAction={assistant.replaceAction}
-    />
-  ) : (
-    <AssistantLauncher onOpen={() => setOpen(true)} />
+  /* Desktop: the panel's column grows from 0 to 440px (and back) on the drawer curve, so the
+     page beside it narrows smoothly; on phones the wrapper is `contents` and the sheet slides. */
+  return (
+    <>
+      <AnimatePresence initial={false}>
+        {open ? (
+          <motion.div
+            key="assistant"
+            initial={{ width: 0 }}
+            animate={{ width: '27.5rem' }}
+            exit={{ width: 0 }}
+            transition={reduced ? instant : DRAWER}
+            className="shrink-0 overflow-hidden max-md:contents"
+          >
+            <AssistantPanel
+              page={page}
+              turns={assistant.turns}
+              busy={assistant.busy}
+              onSend={handleSend}
+              onStop={assistant.stop}
+              onClear={assistant.clear}
+              onClose={() => setOpen(false)}
+              onAction={assistant.replaceAction}
+            />
+          </motion.div>
+        ) : null}
+      </AnimatePresence>
+      {open ? null : <AssistantLauncher onOpen={() => setOpen(true)} />}
+    </>
   )
 }

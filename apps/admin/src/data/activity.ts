@@ -5,6 +5,12 @@ export const activityContent = {
   markAllRead: 'Mark all as read',
   attentionHeading: 'Needs your attention',
   recentHeading: 'Last 7 days',
+  /** Figma "TB · Notifications": filter tabs, day groups and the settings link. */
+  tabs: { all: 'All', orders: 'Orders', payments: 'Payments', stock: 'Stock' },
+  todayHeading: 'Today',
+  earlierHeading: 'Earlier',
+  settings: 'Notification settings',
+  emptyTab: 'Nothing here right now.',
   footer: 'Orders, refunds, returns and stock from the last 7 days.',
   empty: {
     title: 'You are all caught up',
