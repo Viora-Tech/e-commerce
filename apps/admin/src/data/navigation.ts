@@ -192,17 +192,13 @@ export const navigationContent = {
   settingsGroup: 'Settings',
   expandSection: (label: string) => `Show ${label} pages`,
   collapseSection: (label: string) => `Hide ${label} pages`,
+  /** The Orders row's count pill. */
+  countHint: (n: number) => `${n} waiting to ship`,
   search: {
     placeholder: 'Search orders, products or customers',
     field: `Search or ask ${siteConfig.brand.name} AI…`,
     shortcut: '⌘K',
     askAi: 'Ask AI',
-    /** The top bar's search hint rolls through these while it sits idle. */
-    rotate: [
-      'Search orders, products, customers…',
-      'Ask AI: what sold best this week?',
-      'Try “orders waiting to ship”',
-    ],
     empty: 'Nothing matches',
     orders: 'Orders',
     products: 'Products',

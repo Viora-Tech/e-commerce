@@ -29,6 +29,8 @@ type AdminFrameProps = {
   logoUrl: string | null
   /** The test server's "Report a bug" button and menu item (`BUG_REPORTS_ENABLED`). */
   bugReports: boolean
+  /** Count pills on sidebar rows, by the row's href (Orders: orders waiting to ship). */
+  navCounts: Record<string, number>
 }
 
 const SIDEBAR_WIDTH = '16rem'
@@ -46,6 +48,7 @@ export default function AdminFrame({
   apps,
   logoUrl,
   bugReports,
+  navCounts,
 }: AdminFrameProps) {
   // Hooks
   const layoutCopy = useCopy(layoutContent)
@@ -81,6 +84,7 @@ export default function AdminFrame({
         user={user}
         storefrontUrl={storefrontUrl}
         bugReports={bugReports}
+        navCounts={navCounts}
       />
       <SidebarInset className="min-h-0 overflow-hidden bg-sidebar">
         {/* Search, Ask AI, notifications, theme and account sit on the shell colour above the

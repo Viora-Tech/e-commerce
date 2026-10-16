@@ -133,14 +133,14 @@ describe('templates', () => {
   it('staff_invite names the store, platform, inviter and role, with an accept button', async () => {
     const data = sampleTemplateDataByTemplate.staff_invite
     const e = await renderEmail('staff_invite', data)
-    expect(e.subject).toBe("You're invited to manage Waimers on Sellverse")
+    expect(e.subject).toBe("You're invited to manage Waimers on Koomerce")
     expect(e.text).toContain('owner@waimers.example invited you to help run Waimers as Staff.')
-    expect(e.text).toContain('https://admin.sellverse.app/accept-invitation/sample')
+    expect(e.text).toContain('https://admin.koomerce.app/accept-invitation/sample')
     expect(e.text).toContain('expires in 2 days')
     expect(e.text).not.toContain('Items:')
     expect(e.html).toContain('Team invitation')
     expect(e.html).toContain('Accept invitation')
-    expect(e.html).toContain('href="https://admin.sellverse.app/accept-invitation/sample"')
+    expect(e.html).toContain('href="https://admin.koomerce.app/accept-invitation/sample"')
     expect(e.html).not.toContain('Maboroshi')
   })
 
@@ -148,7 +148,7 @@ describe('templates', () => {
     const e = await renderEmail('staff_invite', {
       ...sampleTemplateDataByTemplate.staff_invite,
       storeName: '<i>Shop</i>',
-      staffInvite: { inviterEmail: 'a@b.example', platformName: 'Sellverse' },
+      staffInvite: { inviterEmail: 'a@b.example', platformName: 'Koomerce' },
     })
     expect(e.text).toContain('a@b.example invited you to help run <i>Shop</i>. Accept')
     expect(e.html).not.toContain('<i>Shop</i>')

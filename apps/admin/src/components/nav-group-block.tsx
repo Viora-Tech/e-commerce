@@ -11,13 +11,15 @@ type NavGroupBlockProps = {
   label?: string | undefined
   items: NavItem[]
   pathname: string
+  /** Count pills by the row's href. */
+  counts?: Record<string, number> | undefined
 }
 
 /**
  * One named group of rail entries (Workspace, Sales channels, Apps, Settings); each item
  * expands in place to its sub-pages.
  */
-export default function NavGroupBlock({ label, items, pathname }: NavGroupBlockProps) {
+export default function NavGroupBlock({ label, items, pathname, counts = {} }: NavGroupBlockProps) {
   // Hooks
   const { loading, hasPermission } = usePermissions()
 
@@ -54,7 +56,12 @@ export default function NavGroupBlock({ label, items, pathname }: NavGroupBlockP
       ) : null}
       <ul className="flex flex-col gap-1">
         {visible.map((item) => (
-          <NavSection key={item.href} item={item} pathname={pathname} />
+          <NavSection
+            key={item.href}
+            item={item}
+            pathname={pathname}
+            count={counts[item.href] ?? 0}
+          />
         ))}
       </ul>
     </nav>
