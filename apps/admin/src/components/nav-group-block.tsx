@@ -35,7 +35,7 @@ export default function NavGroupBlock({ label, items, pathname }: NavGroupBlockP
   if (visible.length === 0) return null
 
   /* Figma "Group label": 36px tall (14px above the 12px label, 6px below), 8px in from the rows;
-     rows sit 2px apart (4px on the collapsed rail, where the label folds away). */
+     rows sit 4px apart (owner asked for more air than Figma's 2px). */
   return (
     <nav
       aria-label={label}
@@ -52,7 +52,7 @@ export default function NavGroupBlock({ label, items, pathname }: NavGroupBlockP
           {label}
         </p>
       ) : null}
-      <ul className="flex flex-col gap-0.5 group-data-[collapsible=icon]:gap-1">
+      <ul className="flex flex-col gap-1">
         {visible.map((item) => (
           <NavSection key={item.href} item={item} pathname={pathname} />
         ))}
