@@ -25,6 +25,9 @@ export const tableContent = {
   selected: (n: number, singular: string, plural: string) =>
     `${n} ${n === 1 ? singular : plural} selected`,
   clearSelection: 'Clear',
+  /** The selection bar's offer once the whole page is ticked. */
+  selectAllMatching: (n: string, plural: string) => `Select all ${n} ${plural}`,
+  allSelected: (n: string, plural: string) => `All ${n} ${plural} selected`,
   removeFilter: (label: string) => `Remove ${label}`,
   showing: (from: number, to: number, total: number) => `Showing ${from}–${to} of ${total}`,
   rowsPerPage: 'Rows per page',

@@ -26,6 +26,7 @@ import {
   addOrderNote,
   getOrder,
   importedSource,
+  listOrderIds,
   listOrders,
   ORDER_VIEWS,
   orderStats,
@@ -86,6 +87,20 @@ export const ordersRouter = {
       }),
     )
     .handler(({ context, input }) => listOrders(context.tx, input)),
+
+  /** Every order id the list's filters match (the table's "Select all N orders"), up to 5,000. */
+  ids: can(permissions.ORDERS_READ)
+    .input(
+      z.object({
+        search: z.string().trim().max(SEARCH_MAX).optional(),
+        view: z.enum(ORDER_VIEWS).optional(),
+        paymentStatus: z.array(z.enum(ORDER_PAYMENT_STATUSES)).max(10).optional(),
+        fulfillmentStatus: z.array(z.enum(ORDER_FULFILLMENT_STATUSES)).max(10).optional(),
+        placedFrom: z.iso.datetime().optional(),
+        paymentMethod: z.enum(['cod', 'prepaid']).optional(),
+      }),
+    )
+    .handler(({ context, input }) => listOrderIds(context.tx, input)),
 
   stats: can(permissions.ORDERS_READ).handler(({ context }) => orderStats(context.tx)),
 

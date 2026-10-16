@@ -71,7 +71,7 @@ export default function ResourceTablePagination({
         {onPerPageChange ? (
           <div className="hidden items-center gap-2 sm:flex">
             <span>{tableCopy.rowsPerPage}</span>
-            {/* Figma "Rows": an outline sm button, chevron then the number; the menu lists the
+            {/* Figma "Rows": an outline sm button, the number then its chevron (owner); the menu lists the
                 choices and closes on pick. */}
             <DropdownMenu>
               <DropdownMenuTrigger
@@ -84,8 +84,8 @@ export default function ResourceTablePagination({
                   />
                 }
               >
-                <ChevronDownIcon aria-hidden="true" />
                 {perPage}
+                <ChevronDownIcon aria-hidden="true" />
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="min-w-20">
                 <DropdownMenuRadioGroup

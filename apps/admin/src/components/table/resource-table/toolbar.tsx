@@ -1,28 +1,7 @@
 'use client'
 
-import {
-  ArrowDown,
-  ArrowUp,
-  ArrowUpDown,
-  Columns,
-  Plus,
-  Search,
-  SlidersHorizontal,
-  X,
-} from '@commerce/ui/icons'
+import { Plus, Search, SlidersHorizontal, X } from '@commerce/ui/icons'
 import { cn } from '@commerce/ui/lib/utils'
-import {
-  DropdownMenu,
-  DropdownMenuCheckboxItem,
-  DropdownMenuContent,
-  DropdownMenuGroup,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuRadioGroup,
-  DropdownMenuRadioItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@commerce/ui/shadcn/dropdown-menu'
 import { Popover, PopoverContent, PopoverTrigger } from '@commerce/ui/shadcn/popover'
 import type { ReactTable, RowData } from '@tanstack/react-table'
 import { type ComponentProps, type ReactNode, useState } from 'react'

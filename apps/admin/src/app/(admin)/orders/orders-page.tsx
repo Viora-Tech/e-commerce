@@ -8,7 +8,6 @@ import {
   SquarePlus,
   Users,
 } from '@commerce/ui/icons'
-import { cn } from '@commerce/ui/lib/utils'
 import { Button } from '@commerce/ui/shadcn/button'
 import {
   DropdownMenu,
@@ -58,6 +57,9 @@ import {
 import { usePrimaryAction } from '@/lib/primary-action'
 import { routes } from '@/lib/routes'
 import { parseRowsPerPage } from '@/lib/rows-per-page'
+
+/** How many orders a bulk action updates at once. */
+const BULK_BATCH = 10
 
 type ListResult = Awaited<ReturnType<typeof api.orders.list>>
 type Item = ListResult['items'][number]
@@ -319,7 +321,12 @@ function OrdersContent({ initial }: { initial: OrdersInitial }) {
   const setFilters = (patch: Partial<OrderFiltersValue>) => setQ({ ...patch, page: 1 })
   const handleBulkSetStatus = async (ids: string[], mark: OrderMark, clear: () => void) => {
     try {
-      await Promise.all(ids.map((id) => api.orders.setStatus({ id, status: mark })))
+      /* "Select all" can hand over thousands of ids: ten requests at a time, never all at once. */
+      for (let i = 0; i < ids.length; i += BULK_BATCH) {
+        await Promise.all(
+          ids.slice(i, i + BULK_BATCH).map((id) => api.orders.setStatus({ id, status: mark })),
+        )
+      }
       toast.success(copy.bulk.updated(ids.length, copy.marks[mark]))
       clear()
       const r = await fetchOrders({ page, query, status }, parseRowsPerPage(rawPerPage), {
@@ -437,6 +444,13 @@ function OrdersContent({ initial }: { initial: OrdersInitial }) {
         total={total}
         onPageChange={(page) => setQ({ page })}
         onPerPageChange={(n) => setQ({ perPage: n, page: 1 })}
+        loadAllIds={() =>
+          api.orders.ids({
+            search: query || undefined,
+            ...orderListFilter(status),
+            ...orderFilterInput(filters),
+          })
+        }
         bulkActions={(ids, clear) => (
           <DropdownMenu>
             <DropdownMenuTrigger render={<Button variant="outline" size="sm" />}>

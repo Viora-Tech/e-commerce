@@ -26,6 +26,8 @@ export default [
     selectRow: 'लाइन चुनें',
     selected: (n, singular, plural) => `${n} ${n === 1 ? singular : plural} चुने गए`,
     clearSelection: 'हटाएं',
+    selectAllMatching: (n, plural) => `सभी ${n} ${plural} चुनें`,
+    allSelected: (n, plural) => `सभी ${n} ${plural} चुने गए`,
     removeFilter: (label) => `${label} हटाएं`,
     showing: (from, to, total) => `${total} में से ${from}–${to} दिख रहे हैं`,
     rowsPerPage: 'हर पेज पर लाइनें',
