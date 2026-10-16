@@ -2265,6 +2265,8 @@ export const storeMember = pgTable(
     invitedBy: text('invited_by'),
     /** This member's own admin accent (#rrggbb); null falls back to the store's `admin_accent`. */
     adminAccent: text('admin_accent'),
+    /** Which metric sits in each Home analytics tile (`@commerce/core/home-metrics`); null = defaults. */
+    homeTiles: jsonb('home_tiles'),
     /**
      * This member's own alerts for this store (Account → Notifications): which events reach
      * them by email or WhatsApp, the daily summary's hour and the day it last went. Null means

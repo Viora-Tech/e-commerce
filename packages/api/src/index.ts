@@ -41,6 +41,11 @@ export type {
   OutcomeRow,
 } from './services/growth-outcomes.service'
 export type {
+  HomeAnalytics,
+  HomeCompare,
+  HomeMetricFigures,
+} from './services/home-analytics.service'
+export type {
   CampaignRow,
   ChannelRow,
   MarketingKpi,

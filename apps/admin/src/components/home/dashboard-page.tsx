@@ -1,7 +1,9 @@
-import type { DashboardChartsData, DashboardSummary } from '@commerce/api'
+import type { DashboardChartsData, DashboardSummary, HomeAnalytics } from '@commerce/api'
+import type { HomeMetric } from '@commerce/core/home-metrics'
 import PageBody from '@/components/layout/page-body'
 import BackgroundWorkNotice from '@/components/media/background-work-notice'
 import LocalStorageWarning from '@/components/media/local-storage-warning'
+import type { HomeRange } from '@/lib/home-range'
 import AskAiCard from './ask-ai-card'
 import ChartsPanel from './charts/charts-panel'
 import PaymentStatusDonuts from './charts/payment-status-donuts'
@@ -22,6 +24,8 @@ import TodoCards from './todo-cards'
 type DashboardPageProps = {
   summary: DashboardSummary
   charts: DashboardChartsData
+  /** The analytics card's opening range (Today), its numbers and this member's tiles. */
+  analytics: { range: HomeRange; analytics: HomeAnalytics; tiles: HomeMetric[] }
   firstName: string
   /** Show "Ask AI" (opens the AI bar): the assistant is on for this store and member. */
   assistant?: boolean
@@ -39,6 +43,7 @@ type DashboardPageProps = {
 export default function DashboardPage({
   summary,
   charts,
+  analytics,
   firstName,
   assistant = false,
   signals,
@@ -67,14 +72,7 @@ export default function DashboardPage({
       </div>
       {/* Owner 2026-10-17: the sales analytics come second, right under the greeting and Ask AI. */}
       <HomeEnter index={2}>
-        <SalesHero
-          today={summary.today}
-          yesterdayHourly={summary.yesterday.hourly}
-          yesterdayVisitors={summary.yesterday.visitors}
-          charts={charts}
-          liveNow={summary.liveVisitors.last30}
-          livePerMinute={summary.liveVisitors.perMinute}
-        />
+        <SalesHero initial={analytics} liveNow={summary.liveVisitors.last30} />
       </HomeEnter>
       {signals ? (
         <HomeEnter index={3}>
