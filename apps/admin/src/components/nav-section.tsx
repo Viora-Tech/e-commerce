@@ -38,7 +38,10 @@ const ROW = `group/row relative isolate flex h-8 w-full min-w-0 items-center gap
 const ROW_ACTIVE = 'font-medium hover:bg-transparent'
 const ROW_OPEN = 'font-medium'
 const CHILD = `relative isolate flex h-8 w-full min-w-0 items-center rounded-[0.375rem] px-2.5 text-body text-muted-foreground transition-colors hover:bg-sidebar-accent/60 hover:text-sidebar-foreground ${FOCUS}`
-const CHILD_ACTIVE = 'text-sidebar-foreground hover:bg-transparent'
+/* Figma "Sidebar sub item" active: the accent fill and medium label; the "|" rail beside it
+   brightens for that row (owner: the marker sits on the rail, not inside the pill). */
+const CHILD_ACTIVE =
+  'font-medium text-sidebar-foreground hover:bg-transparent before:absolute before:inset-y-1 before:-left-2 before:w-0.5 before:rounded-full before:bg-sidebar-foreground'
 
 /** One rail entry: the section link, a chevron toggle when it has sub-pages, and the guided child list. */
 export default function NavSection({ item, pathname, count = 0 }: NavSectionProps) {
@@ -146,7 +149,7 @@ export default function NavSection({ item, pathname, count = 0 }: NavSectionProp
             animate={{ height: 'auto', opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
             transition={reveal}
-            className="mt-1 ml-6 flex flex-col overflow-hidden border-l border-border pl-1.5 group-data-[collapsible=icon]:hidden"
+            className="relative mt-1 ml-6 flex flex-col overflow-hidden pl-2 before:absolute before:inset-y-0 before:left-0 before:w-px before:bg-border group-data-[collapsible=icon]:hidden"
           >
             {children.map((child) => {
               const active = child.href === activeHref
@@ -161,7 +164,7 @@ export default function NavSection({ item, pathname, count = 0 }: NavSectionProp
                       <motion.span
                         layoutId="nav-child-active-pill"
                         transition={slide}
-                        className="absolute inset-0 -z-10 rounded-[0.375rem] bg-sidebar-accent before:absolute before:inset-y-1.5 before:left-0 before:w-0.75 before:rounded-full before:bg-sidebar-foreground"
+                        className="absolute inset-0 -z-10 rounded-[0.375rem] bg-sidebar-accent"
                         aria-hidden
                       />
                     ) : null}

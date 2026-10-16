@@ -3,6 +3,14 @@
 import { siteConfig } from '@commerce/config/site'
 import { ChevronDownIcon, ChevronLeftIcon, ChevronRightIcon } from '@commerce/ui/icons'
 import { cn } from '@commerce/ui/lib/utils'
+import { Button } from '@commerce/ui/shadcn/button'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+  DropdownMenuTrigger,
+} from '@commerce/ui/shadcn/dropdown-menu'
 import { tableContent } from '@/data/table'
 import { useCopy } from '@/hooks/use-copy'
 
@@ -61,27 +69,43 @@ export default function ResourceTablePagination({
       <span className="tabular-nums">{tableCopy.showing(from, to, total)}</span>
       <div className="flex items-center gap-4">
         {onPerPageChange ? (
-          <label className="hidden items-center gap-2 sm:flex">
+          <div className="hidden items-center gap-2 sm:flex">
             <span>{tableCopy.rowsPerPage}</span>
-            {/* Figma "Rows": an outline sm button-like select with its own chevron. */}
-            <span className="relative inline-flex">
-              <select
-                value={perPage}
-                onChange={(e) => onPerPageChange(Number(e.target.value))}
-                className="key-neutral h-8 cursor-pointer appearance-none rounded-sm pr-8 pl-3 text-body font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            {/* Figma "Rows": an outline sm button, chevron then the number; the menu lists the
+                choices and closes on pick. */}
+            <DropdownMenu>
+              <DropdownMenuTrigger
+                render={
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="gap-1.5 px-3 tabular-nums"
+                    aria-label={tableCopy.rowsPerPage}
+                  />
+                }
               >
-                {siteConfig.ui.rowsPerPage.options.map((n) => (
-                  <option key={n} value={n}>
-                    {n}
-                  </option>
-                ))}
-              </select>
-              <ChevronDownIcon
-                aria-hidden="true"
-                className="pointer-events-none absolute top-1/2 right-2.5 size-3.5 -translate-y-1/2 text-muted-foreground"
-              />
-            </span>
-          </label>
+                <ChevronDownIcon aria-hidden="true" />
+                {perPage}
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="min-w-20">
+                <DropdownMenuRadioGroup
+                  value={String(perPage)}
+                  onValueChange={(v) => onPerPageChange(Number(v))}
+                >
+                  {siteConfig.ui.rowsPerPage.options.map((n) => (
+                    <DropdownMenuRadioItem
+                      key={n}
+                      value={String(n)}
+                      closeOnClick
+                      className="tabular-nums"
+                    >
+                      {n}
+                    </DropdownMenuRadioItem>
+                  ))}
+                </DropdownMenuRadioGroup>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
         ) : null}
         <div className="flex items-center gap-1">
           <button
