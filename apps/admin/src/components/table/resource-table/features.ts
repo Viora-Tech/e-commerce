@@ -1,4 +1,5 @@
 import {
+  columnOrderingFeature,
   columnVisibilityFeature,
   createSortedRowModel,
   rowSelectionFeature,
@@ -13,9 +14,10 @@ import {
 /**
  * TanStack v9 registers features explicitly; unused ones are tree-shaken.
  * Filtering and paging are server-side (the API takes page/perPage/search),
- * so only sorting, selection and column visibility run in the browser.
+ * so only sorting, selection, column visibility and column order run in the browser.
  */
 export const resourceTableFeatures = tableFeatures({
+  columnOrderingFeature,
   columnVisibilityFeature,
   rowSelectionFeature,
   rowSortingFeature,

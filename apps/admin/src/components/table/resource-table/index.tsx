@@ -13,6 +13,7 @@ import {
   TableRow,
 } from '@commerce/ui/shadcn/table'
 import {
+  type ColumnOrderState,
   type ColumnVisibilityState,
   createColumnHelper,
   type RowData,
@@ -90,9 +91,18 @@ export type ResourceTableProps<T extends RowData> = {
   rowIconCells?: { count: 1 | 2 | 3; render: (item: T) => ReactNode }
   /** Kept for older call sites; every table now uses the one Saleor-style density. */
   size?: 'compact' | 'frame'
+  /** The order the server sends, shown ticked in the sort menu (Orders: Date, newest first). */
+  defaultSort?: { id: string; desc: boolean } | undefined
+  /** Columns that start hidden; the columns menu can show them. */
+  defaultHidden?: string[] | undefined
 }
 
 const SKELETON_ROWS = 6
+
+/** The page's default-hidden columns as TanStack visibility (`false` = hidden). */
+function hiddenColumns(ids: string[] | undefined): ColumnVisibilityState {
+  return Object.fromEntries((ids ?? []).map((id) => [id, false]))
+}
 
 /** The table's row selection: the page's own (`selection`) when given, else kept here. */
 function useRowSelection(
@@ -185,8 +195,11 @@ export default function ResourceTable<T extends RowData>(props: ResourceTablePro
   // Hooks
   const tableCopy = useCopy(tableContent)
   const router = useRouter()
-  const [sorting, setSorting] = useState<SortingState>([])
-  const [columnVisibility, setColumnVisibility] = useState<ColumnVisibilityState>({})
+  const [sorting, setSorting] = useState<SortingState>(props.defaultSort ? [props.defaultSort] : [])
+  const [columnVisibility, setColumnVisibility] = useState<ColumnVisibilityState>(() =>
+    hiddenColumns(props.defaultHidden),
+  )
+  const [columnOrder, setColumnOrder] = useState<ColumnOrderState>([])
   const [rowSelection, setRowSelection] = useRowSelection(props.selection)
   const table = useTable({
     features: resourceTableFeatures,
@@ -196,15 +209,23 @@ export default function ResourceTable<T extends RowData>(props: ResourceTablePro
     enableRowSelection: props.selectable ?? true,
     onSortingChange: setSorting,
     onColumnVisibilityChange: setColumnVisibility,
+    onColumnOrderChange: setColumnOrder,
     onRowSelectionChange: setRowSelection,
-    state: { sorting, columnVisibility, rowSelection },
+    state: { sorting, columnVisibility, columnOrder, rowSelection },
   })
 
   // Helpers
   const clearSelection = () => setRowSelection({})
+  const resetColumns = () => {
+    setColumnVisibility(hiddenColumns(props.defaultHidden))
+    setColumnOrder([])
+  }
 
   // Render logic
   const columnTitles = Object.fromEntries(props.columns.map((c) => [c.id, c.title]))
+  const sortLabels = Object.fromEntries(
+    props.columns.flatMap((c) => (c.sortLabels ? [[c.id, c.sortLabels]] : [])),
+  )
   const selectedIds = Object.keys(rowSelection).filter((id) => rowSelection[id])
   const rows = table.getRowModel().rows
   const visibleCount = table.getVisibleLeafColumns().length
@@ -224,6 +245,9 @@ export default function ResourceTable<T extends RowData>(props: ResourceTablePro
         applied={props.applied}
         onClearAll={props.onClearAll}
         columnTitles={columnTitles}
+        sortLabels={sortLabels}
+        columnOrder={columnOrder}
+        onResetColumns={resetColumns}
       />
       <div className="no-scrollbar overflow-x-auto">
         <Table className="w-full min-w-[40rem] table-fixed border-separate border-spacing-0">

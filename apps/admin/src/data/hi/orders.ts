@@ -60,6 +60,8 @@ export default [
     resource: { singular: 'ऑर्डर', plural: 'ऑर्डर' },
     viewLabel: 'ऑर्डर व्यू',
     toShip: 'भेजना है',
+    sortNewest: 'नए पहले',
+    sortOldest: 'पुराने पहले',
     customView: 'कस्टम',
     filters: {
       heading: 'फ़िल्टर',

@@ -3,6 +3,7 @@
  * call sites still import everything from `@commerce/ui/icons`.
  */
 import {
+  AppWindowIcon,
   CircleIcon,
   ArrowShrink02Icon as CornersIn,
   ArrowExpand01Icon as CornersOut,
@@ -55,3 +56,6 @@ export const Circle = defineIcon(CircleIcon, 'Circle')
 export const Flag = defineIcon(Flag02Icon, 'Flag')
 export const Highlighter = defineIcon(HighlighterIcon, 'Highlighter')
 export const Sparkle = defineIcon(SparklesIcon, 'Sparkle')
+
+/** A window: "Open order" in a row menu (Figma Orders row menu). */
+export const AppWindow = defineIcon(AppWindowIcon, 'AppWindow')

@@ -33,9 +33,20 @@ export default function RowMenu({ items }: RowMenuProps) {
       >
         <MoreVertical className="size-4" aria-hidden />
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-48">
+      <DropdownMenuContent align="end" className="w-56">
         {items.map((it) => (
-          <DropdownMenuItem key={it.href} render={<Link href={it.href} />}>
+          <DropdownMenuItem
+            key={`${it.href}${it.newTab ? ':tab' : ''}`}
+            render={
+              it.newTab ? (
+                // biome-ignore lint/a11y/useAnchorContent: the menu item renders the label inside.
+                <a href={it.href} target="_blank" rel="noreferrer" />
+              ) : (
+                <Link href={it.href} />
+              )
+            }
+          >
+            {it.icon ? <it.icon className="size-4 text-muted-foreground" aria-hidden /> : null}
             {it.label}
           </DropdownMenuItem>
         ))}

@@ -1,6 +1,13 @@
 'use client'
 
-import { ChevronDown, MoreVertical, SquarePlus } from '@commerce/ui/icons'
+import {
+  AppWindow,
+  ChevronDown,
+  ExternalLink,
+  MoreVertical,
+  SquarePlus,
+  Users,
+} from '@commerce/ui/icons'
 import { cn } from '@commerce/ui/lib/utils'
 import { Button } from '@commerce/ui/shadcn/button'
 import {
@@ -23,6 +30,7 @@ import { orderStage } from '@/components/orders/order-stage'
 import OrdersListFrame from '@/components/orders/orders-list-frame'
 import OrdersTiles, { type OrderTilesData } from '@/components/orders/orders-tiles'
 import RowMenu from '@/components/orders/row-menu'
+import ProductThumb from '@/components/products/product-thumb'
 import InlineState from '@/components/states/inline-state'
 import ResourceTable, { type ResourceColumnSpec } from '@/components/table/resource-table'
 import ViewSelect from '@/components/table/view-select'
@@ -111,17 +119,8 @@ function ProductCell({ item }: { item: Item }) {
   const extra = item.lineCount - 1
   return (
     <span className="flex items-center gap-3 text-left">
-      <span
-        className={cn(
-          'flex size-8 shrink-0 items-center justify-center overflow-hidden rounded-[0.375rem] border border-border',
-          item.firstLineImage ? 'bg-media' : 'bg-muted',
-        )}
-      >
-        {item.firstLineImage ? (
-          // biome-ignore lint/performance/noImgElement: remote store media, sized by the frame.
-          <img src={item.firstLineImage} alt="" className="size-7 object-contain" />
-        ) : null}
-      </span>
+      {/* No picture, or one that fails to load, shows the image icon (Figma Thumb cell). */}
+      <ProductThumb url={item.firstLineImage} className="rounded-[0.375rem]" />
       <span className="min-w-0">
         <span className="line-clamp-1 text-[0.8125rem] leading-[1.1875rem] text-foreground">
           {item.firstLineTitle ?? copy.guest}
@@ -163,6 +162,7 @@ function orderColumns(copy: typeof ordersContent, fmt: Formatters): ResourceColu
       id: 'date',
       title: copy.columns.date,
       sortValue: (o) => new Date(o.placedAt).getTime(),
+      sortLabels: { desc: copy.sortNewest, asc: copy.sortOldest },
       render: (o) => (
         <span className="text-[0.8125rem] text-muted-foreground tabular-nums">
           {fmt.when(o.placedAt)}
@@ -182,6 +182,13 @@ function orderColumns(copy: typeof ordersContent, fmt: Formatters): ResourceColu
       sortValue: (o) => o.paymentStatus,
       align: 'center',
       render: (o) => <OrderChip kind="orderPayment" value={o.paymentStatus} />,
+    },
+    {
+      id: 'fulfilment',
+      title: copy.columns.fulfilment,
+      sortValue: (o) => o.fulfillmentStatus,
+      align: 'center',
+      render: (o) => <OrderChip kind="fulfilment" value={o.fulfillmentStatus} />,
     },
     {
       id: 'status',
@@ -369,12 +376,19 @@ function OrdersContent({ initial }: { initial: OrdersInitial }) {
         rowActions={(o) => (
           <RowMenu
             items={[
-              { label: copy.row.open, href: routes.orders.detail(o.id) },
+              { label: copy.row.open, href: routes.orders.detail(o.id), icon: AppWindow },
+              {
+                label: copy.row.openNewTab,
+                href: routes.orders.detail(o.id),
+                icon: ExternalLink,
+                newTab: true,
+              },
               ...(o.email
                 ? [
                     {
                       label: copy.row.sameCustomer,
                       href: `${routes.orders.list()}?query=${encodeURIComponent(o.email)}`,
+                      icon: Users,
                     },
                   ]
                 : []),
@@ -382,6 +396,8 @@ function OrdersContent({ initial }: { initial: OrdersInitial }) {
           />
         )}
         loading={loading}
+        defaultSort={{ id: 'date', desc: true }}
+        defaultHidden={['fulfilment']}
         query={query}
         onQueryChange={(query) => setQ({ query, page: 1 })}
         onClearAll={() => setQ({ query: '', status: null, ...NO_FILTERS, page: 1 })}

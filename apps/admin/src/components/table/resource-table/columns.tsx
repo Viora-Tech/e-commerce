@@ -34,6 +34,8 @@ export type ResourceColumnSpec<T extends RowData> = {
   title: string
   /** Value used for sorting; omit to make the column unsortable. */
   sortValue?: (item: T) => SortValue | undefined
+  /** The sort menu's direction words ("Newest first" / "Oldest first"); else Descending/Ascending. */
+  sortLabels?: { desc: string; asc: string } | undefined
   /** Frame 5:2591 centres every column; product-style cells pass `start`. */
   align?: CellAlign
   /** `false` keeps the column out of the "View" toggle. */
