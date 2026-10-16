@@ -1,7 +1,6 @@
 'use client'
 
 import { cn } from '@commerce/ui/lib/utils'
-import { Button } from '@commerce/ui/shadcn/button'
 import { Card } from '@commerce/ui/shadcn/card'
 import { Skeleton } from '@commerce/ui/shadcn/skeleton'
 import {
@@ -25,7 +24,6 @@ import {
 import { useRouter } from 'next/navigation'
 import { type ReactNode, useState } from 'react'
 import EmptyState from '@/components/layout/empty-state'
-import FloatingBar from '@/components/layout/floating-bar'
 import RowActionsCell from '@/components/table/row-actions-cell'
 import { tableContent } from '@/data/table'
 import { useCopy } from '@/hooks/use-copy'
@@ -38,6 +36,7 @@ import {
 } from './columns'
 import { type ResourceTableFeatures, resourceTableFeatures } from './features'
 import ResourceTablePagination from './pagination'
+import SelectionBar from './selection-bar'
 import ResourceTableToolbar, { type AppliedFilter, type FilterPanel } from './toolbar'
 
 export type { AppliedFilter, ResourceColumnSpec }
@@ -78,6 +77,11 @@ export type ResourceTableProps<T extends RowData> = {
   selection?: { ids: string[]; onChange: (ids: string[]) => void }
   /** Rendered in the selection bar; call `clear` after a bulk action. */
   bulkActions?: (selectedIds: string[], clear: () => void) => ReactNode
+  /**
+   * Every id the current search and filters match, for the selection bar's "Select all N"
+   * (Shopify-style). Without it, selection stays on the visible page.
+   */
+  loadAllIds?: (() => Promise<string[]>) | undefined
   empty?: { heading: string; body?: string; action?: ReactNode }
   /**
    * Per-row actions, drawn in a trailing cell. The cell's own controls must stop
@@ -201,6 +205,7 @@ export default function ResourceTable<T extends RowData>(props: ResourceTablePro
   )
   const [columnOrder, setColumnOrder] = useState<ColumnOrderState>([])
   const [rowSelection, setRowSelection] = useRowSelection(props.selection)
+  const [selectingAll, setSelectingAll] = useState(false)
   const table = useTable({
     features: resourceTableFeatures,
     data: props.items,
@@ -216,6 +221,16 @@ export default function ResourceTable<T extends RowData>(props: ResourceTablePro
 
   // Helpers
   const clearSelection = () => setRowSelection({})
+  const selectAllMatching = async () => {
+    if (!props.loadAllIds) return
+    setSelectingAll(true)
+    try {
+      const ids = await props.loadAllIds()
+      setRowSelection(Object.fromEntries(ids.map((id) => [id, true])))
+    } finally {
+      setSelectingAll(false)
+    }
+  }
   const resetColumns = () => {
     setColumnVisibility(hiddenColumns(props.defaultHidden))
     setColumnOrder([])
@@ -230,6 +245,8 @@ export default function ResourceTable<T extends RowData>(props: ResourceTablePro
   const rows = table.getRowModel().rows
   const visibleCount = table.getVisibleLeafColumns().length
   const isEmpty = !props.loading && props.items.length === 0
+  /* While rows are ticked the header row turns into the selection bar (beside the checkbox). */
+  const selecting = selectedIds.length > 0 && Boolean(props.bulkActions)
 
   return (
     <Card gap="none" inset="y-none" className="overflow-hidden">
@@ -254,7 +271,7 @@ export default function ResourceTable<T extends RowData>(props: ResourceTablePro
           <TableHeader className="[&_tr]:border-0">
             {table.getHeaderGroups().map((hg) => (
               <TableRow key={hg.id} className="hover:bg-transparent">
-                {hg.headers.map((header) => {
+                {(selecting ? hg.headers.slice(0, 1) : hg.headers).map((header) => {
                   const meta = header.column.columnDef.meta as CellMeta | undefined
                   return (
                     <TableHead
@@ -265,6 +282,21 @@ export default function ResourceTable<T extends RowData>(props: ResourceTablePro
                     </TableHead>
                   )
                 })}
+                {selecting ? (
+                  <TableHead colSpan={visibleCount - 1} className={cn(HEAD, 'pr-3')}>
+                    <SelectionBar
+                      count={selectedIds.length}
+                      total={props.total}
+                      pageFull={table.getIsAllPageRowsSelected()}
+                      plural={props.resourceName.plural}
+                      singular={props.resourceName.singular}
+                      onSelectAll={props.loadAllIds ? selectAllMatching : undefined}
+                      selectingAll={selectingAll}
+                      actions={props.bulkActions?.(selectedIds, clearSelection)}
+                      onClear={clearSelection}
+                    />
+                  </TableHead>
+                ) : null}
               </TableRow>
             ))}
           </TableHeader>
@@ -327,19 +359,6 @@ export default function ResourceTable<T extends RowData>(props: ResourceTablePro
         onPageChange={props.onPageChange}
         onPerPageChange={props.onPerPageChange}
       />
-      <FloatingBar open={selectedIds.length > 0 && Boolean(props.bulkActions)}>
-        <span className="text-caption font-medium whitespace-nowrap text-foreground">
-          {tableCopy.selected(
-            selectedIds.length,
-            props.resourceName.singular,
-            props.resourceName.plural,
-          )}
-        </span>
-        {props.bulkActions?.(selectedIds, clearSelection)}
-        <Button variant="ghost" size="sm" className="rounded-full" onClick={clearSelection}>
-          {tableCopy.clearSelection}
-        </Button>
-      </FloatingBar>
     </Card>
   )
 }

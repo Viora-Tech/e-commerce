@@ -147,13 +147,20 @@ function ColumnHeader<T extends RowData>({ column, title, align }: ColumnHeaderP
             <Button
               variant="ghost"
               size="sm"
-              className="-mx-1 h-6 gap-1 px-1 font-[number:inherit] text-[length:inherit] text-inherit leading-[inherit] hover:bg-muted hover:text-foreground data-open:bg-muted"
+              className="group/head -mx-1 h-6 gap-1 px-1 font-[number:inherit] text-[length:inherit] text-inherit leading-[inherit] hover:bg-muted hover:text-foreground data-open:bg-muted"
             />
           }
         >
           {title}
+          {/* The sorted column carries its direction after the name (↑ / ↓); the rest show the
+              sort hint only on hover, so the one that sorts the list stands out. */}
           <Icon
-            className={cn('size-3.5 text-muted-foreground-soft', sorted && 'text-foreground')}
+            className={cn(
+              'size-3.5',
+              sorted
+                ? 'text-foreground'
+                : 'text-muted-foreground-soft opacity-0 transition-opacity group-hover/head:opacity-100 group-data-open/head:opacity-100',
+            )}
           />
         </DropdownMenuTrigger>
         <DropdownMenuContent align={align === 'end' ? 'end' : 'start'}>

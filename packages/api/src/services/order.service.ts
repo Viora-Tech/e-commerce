@@ -104,22 +104,35 @@ export function orderNumberFromSearch(search: string): number | null {
   return match ? Number(match[1]) : null
 }
 
-export async function listOrders(
-  tx: StoreTx,
-  input: {
-    page: number
-    perPage: number
-    search?: string | undefined
-    view?: OrderView | undefined
-    status?: OrderStatus | undefined
-    paymentStatus?: OrderPaymentStatus[] | undefined
-    fulfillmentStatus?: OrderFulfillmentStatus[] | undefined
-    placedFrom?: string | undefined
-    paymentMethod?: 'cod' | 'prepaid' | undefined
-  },
-) {
+/** The Orders list's filters (search, view and the filter panel), shared by the list and its ids. */
+type OrderListFilters = {
+  search?: string | undefined
+  view?: OrderView | undefined
+  status?: OrderStatus | undefined
+  paymentStatus?: OrderPaymentStatus[] | undefined
+  fulfillmentStatus?: OrderFulfillmentStatus[] | undefined
+  placedFrom?: string | undefined
+  paymentMethod?: 'cod' | 'prepaid' | undefined
+}
+
+/** The most ids "Select all" takes at once; bulk actions above this would need a background job. */
+export const SELECT_ALL_MAX = 5000
+
+/** Every order id the list's filters match, newest first (the table's "Select all N orders"). */
+export async function listOrderIds(tx: StoreTx, input: OrderListFilters): Promise<string[]> {
+  const rows = await tx
+    .select({ id: order.id })
+    .from(order)
+    .leftJoin(customer, eq(customer.id, order.customerId))
+    .where(orderListWhere(input))
+    .orderBy(desc(order.placedAt))
+    .limit(SELECT_ALL_MAX)
+  return rows.map((r) => r.id)
+}
+
+function orderListWhere(input: OrderListFilters) {
   const byNumber = input.search ? orderNumberFromSearch(input.search) : null
-  const where = and(
+  return and(
     notDraft,
     input.view ? viewFilter(input.view) : undefined,
     input.search
@@ -142,6 +155,23 @@ export async function listOrders(
         ? ne(order.paymentMethod, 'cod')
         : undefined,
   )
+}
+
+export async function listOrders(
+  tx: StoreTx,
+  input: {
+    page: number
+    perPage: number
+    search?: string | undefined
+    view?: OrderView | undefined
+    status?: OrderStatus | undefined
+    paymentStatus?: OrderPaymentStatus[] | undefined
+    fulfillmentStatus?: OrderFulfillmentStatus[] | undefined
+    placedFrom?: string | undefined
+    paymentMethod?: 'cod' | 'prepaid' | undefined
+  },
+) {
+  const where = orderListWhere(input)
   const base = tx
     .select({
       id: order.id,
