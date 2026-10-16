@@ -21,6 +21,8 @@ type BulkEditGridProps = {
   base: Map<string, GridRow>
   errors: CellErrors
   locations: SheetLocation[]
+  /** Column keys switched off in the Columns menu. */
+  hidden: Set<string>
   onRowsChange: (rows: GridRow[]) => void
 }
 
@@ -36,6 +38,7 @@ export default function BulkEditGrid({
   base,
   errors,
   locations,
+  hidden,
   onRowsChange,
 }: BulkEditGridProps) {
   // Hooks
@@ -117,8 +120,8 @@ export default function BulkEditGrid({
   }
 
   // Render logic
-  const keys = columnKeys(locations)
-  const columns = buildColumns(copy, locations, base, errors)
+  const keys = columnKeys(locations, hidden)
+  const columns = buildColumns(copy, locations, base, errors, hidden)
 
   return (
     <div

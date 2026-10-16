@@ -4,7 +4,7 @@
  * the transaction is `bulk-edit.ts`.
  */
 import { z } from 'zod'
-import { ProductStatusSchema } from './schemas'
+import { HandleSchema, ProductStatusSchema } from './schemas'
 
 /** Most variant rows one bulk-edit save may carry. */
 export const BULK_EDIT_MAX = 500
@@ -19,6 +19,19 @@ export const BulkEditProductPatchSchema = z
     vendor: z.string().trim().max(100).nullable(),
     productType: z.string().trim().max(100).nullable(),
     tags: z.array(z.string().trim().min(1).max(50)).max(100),
+    /** URL handle; changing it leaves a redirect from the old one, as the product form does. */
+    handle: HandleSchema,
+    seoTitle: z.string().trim().max(70).nullable(),
+    seoDescription: z.string().trim().max(320).nullable(),
+    featured: z.boolean(),
+    taxIncluded: z.boolean(),
+    /** Alternate product template (`product.<suffix>`); null is the default. */
+    templateSuffix: z
+      .string()
+      .regex(/^[a-z0-9-]{0,40}$/)
+      .nullable(),
+    /** The manual collections the product sits in; automatic ones follow their rules. */
+    collectionIds: z.array(z.uuid()).max(100),
   })
   .partial()
 
@@ -34,6 +47,19 @@ export const BulkEditVariantPatchSchema = z
     hsCode: z.string().trim().max(20).nullable(),
     /** Null uses the store's GST rate. */
     gstRatePercent: z.number().int().min(0).max(40).nullable(),
+    /** false = always purchasable regardless of stock. */
+    trackInventory: z.boolean(),
+    /** ISO 3166-1 alpha-2, for customs. */
+    countryOfOrigin: z
+      .string()
+      .trim()
+      .regex(/^[A-Za-z]{2}$/)
+      .nullable(),
+    packageLengthCm: z.number().int().min(1).max(200).nullable(),
+    packageWidthCm: z.number().int().min(1).max(200).nullable(),
+    packageHeightCm: z.number().int().min(1).max(200).nullable(),
+    /** Only ever sent by undo: a custom box replaces the named box, and undo puts it back. */
+    boxPresetId: z.string().trim().max(60).nullable(),
   })
   .partial()
 
