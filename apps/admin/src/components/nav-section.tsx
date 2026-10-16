@@ -2,6 +2,8 @@
 
 import { ChevronRight } from '@commerce/ui/icons'
 import { cn } from '@commerce/ui/lib/utils'
+import { useSidebar } from '@commerce/ui/shadcn/sidebar'
+import { Tooltip, TooltipContent, TooltipTrigger } from '@commerce/ui/shadcn/tooltip'
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
 import Link from 'next/link'
 import { useState } from 'react'
@@ -36,6 +38,7 @@ const CHILD_ACTIVE = 'text-sidebar-foreground hover:bg-transparent'
 export default function NavSection({ item, pathname }: NavSectionProps) {
   // Hooks
   const reduced = useReducedMotion()
+  const { state: sidebarState, isMobile } = useSidebar()
   const [override, setOverride] = useState<OpenOverride | null>(null)
 
   // Event handlers
@@ -55,31 +58,52 @@ export default function NavSection({ item, pathname }: NavSectionProps) {
     : navigationContent.expandSection(item.label)
   const slide = reduced ? instant : pill
   const reveal = reduced ? instant : base
+  /* The collapsed rail shows icons only, so each one names itself in a tooltip (Figma rail). */
+  const railTip = sidebarState === 'collapsed' && !isMobile
+  const link = (
+    <Link
+      href={item.href}
+      aria-current={linkActive ? 'page' : undefined}
+      className={cn(
+        ROW,
+        linkActive && ROW_ACTIVE,
+        open && !linkActive && ROW_OPEN,
+        children.length > 0 && 'pr-9',
+      )}
+    >
+      {linkActive ? (
+        <motion.span
+          layoutId="nav-active-pill"
+          transition={slide}
+          className="absolute inset-0 -z-10 rounded-[0.375rem] bg-sidebar-accent before:absolute before:inset-y-1.5 before:left-0 before:w-0.75 before:rounded-full before:bg-sidebar-foreground"
+          aria-hidden
+        />
+      ) : sectionActive ? (
+        /* Collapsed rail: the sub-pages are hidden, so the section's own icon carries the
+             highlight while one of its children is the current page (Figma collapsed rail). */
+        <span
+          className="absolute inset-0 -z-10 hidden rounded-[0.375rem] bg-sidebar-accent group-data-[collapsible=icon]:block"
+          aria-hidden
+        />
+      ) : null}
+      <item.icon />
+      <span className={cn('min-w-0 flex-1 truncate', SIDEBAR_LABEL)}>{item.label}</span>
+    </Link>
+  )
 
   return (
     <li className="flex flex-col">
       <div className="relative">
-        <Link
-          href={item.href}
-          aria-current={linkActive ? 'page' : undefined}
-          className={cn(
-            ROW,
-            linkActive && ROW_ACTIVE,
-            open && !linkActive && ROW_OPEN,
-            children.length > 0 && 'pr-9',
-          )}
-        >
-          {linkActive ? (
-            <motion.span
-              layoutId="nav-active-pill"
-              transition={slide}
-              className="absolute inset-0 -z-10 rounded-[0.375rem] bg-sidebar-accent"
-              aria-hidden
-            />
-          ) : null}
-          <item.icon />
-          <span className={cn('min-w-0 flex-1 truncate', SIDEBAR_LABEL)}>{item.label}</span>
-        </Link>
+        {railTip ? (
+          <Tooltip>
+            <TooltipTrigger render={link} />
+            <TooltipContent side="right" sideOffset={8}>
+              {item.label}
+            </TooltipContent>
+          </Tooltip>
+        ) : (
+          link
+        )}
         {children.length > 0 ? (
           <button
             type="button"
@@ -124,7 +148,7 @@ export default function NavSection({ item, pathname }: NavSectionProps) {
                       <motion.span
                         layoutId="nav-child-active-pill"
                         transition={slide}
-                        className="absolute inset-0 -z-10 rounded-[0.375rem] bg-sidebar-accent"
+                        className="absolute inset-0 -z-10 rounded-[0.375rem] bg-sidebar-accent before:absolute before:inset-y-1.5 before:left-0 before:w-0.75 before:rounded-full before:bg-sidebar-foreground"
                         aria-hidden
                       />
                     ) : null}
