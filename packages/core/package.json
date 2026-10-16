@@ -49,6 +49,7 @@
     "./search-console": "./src/search-console/insights.ts",
     "./marketing": "./src/marketing/client.ts",
     "./admin-accent": "./src/admin-accent/accent.ts",
+    "./home-metrics": "./src/home-metrics/metrics.ts",
     "./shipping-rates": "./src/shipping/rates.ts",
     "./parcel": "./src/shipping/parcel.ts",
     "./shipment-tabs": "./src/shipping/tabs.ts",

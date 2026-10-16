@@ -5,6 +5,7 @@ import { homeContent } from '@/data/home'
 import { appRouter, call, serverContext } from '@/lib/api'
 import { getSession } from '@/lib/auth'
 import { getCopy } from '@/lib/copy-server'
+import { rangeFor } from '@/lib/home-range'
 import { listApps } from '@/lib/shell-data'
 import { orNoStore } from '@/lib/store-guard'
 
@@ -16,6 +17,7 @@ export default async function Home() {
   // The page's reads start alongside the guard rather than after it; without a store they all
   // fail the same way, so that outcome is dropped and the guard sends the member to the picker.
   const memberP = call(appRouter.staff.me, {}, { context }).catch(orNoStore(null))
+  const opening = rangeFor('today')
   const readsP = Promise.all([
     call(appRouter.dashboard.summary, undefined, { context }),
     call(appRouter.dashboard.charts, { range: 30 }, { context }),
@@ -26,18 +28,25 @@ export default async function Home() {
     // those suggestions just hide. The apps list is the one the layout already read.
     listApps().catch(() => null),
     call(appRouter.orders.abandonedStats, undefined, { context }).catch(() => null),
+    call(
+      appRouter.dashboard.analytics,
+      { from: opening.from, to: opening.to, compare: 'previous' },
+      { context },
+    ),
+    call(appRouter.dashboard.tiles, undefined, { context }),
   ])
   if (!(await memberP)) {
     readsP.catch(() => {})
     redirect('/select-store')
   }
-  const [summary, charts, session, ai, apps, abandoned] = await readsP
+  const [summary, charts, session, ai, apps, abandoned, analytics, tiles] = await readsP
   const { fallbackName } = (await getCopy(homeContent)).briefing
   const firstName = (session?.user.name ?? fallbackName).trim().split(/\s+/)[0] ?? fallbackName
   return (
     <DashboardPage
       summary={summary}
       charts={charts}
+      analytics={{ range: opening, analytics, tiles }}
       firstName={firstName}
       assistant={ai?.assistant ?? false}
       signals={apps ? homeSignals(apps) : null}
