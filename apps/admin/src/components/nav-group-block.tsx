@@ -34,12 +34,17 @@ export default function NavGroupBlock({ label, items, pathname }: NavGroupBlockP
         }))
   if (visible.length === 0) return null
 
+  /* Figma "Group label": 36px tall (14px above the 12px label, 6px below), 8px in from the rows;
+     rows sit 4px apart (owner asked for more air than Figma's 2px). */
   return (
-    <nav aria-label={label}>
+    <nav
+      aria-label={label}
+      className={`flex flex-col gap-0.5 px-2.5 transition-[padding] group-data-[collapsible=icon]:px-2 ${SIDEBAR_DURATION}`}
+    >
       {label ? (
         <p
           className={cn(
-            'mb-1 px-6 text-caption font-normal text-muted-foreground-soft group-data-[collapsible=icon]:mb-[-1.125rem]',
+            'px-2 pt-3.5 pb-1.5 text-xs font-medium text-muted-foreground group-data-[collapsible=icon]:-mb-5',
             SIDEBAR_LABEL,
             'transition-[opacity,margin]',
           )}
@@ -47,9 +52,7 @@ export default function NavGroupBlock({ label, items, pathname }: NavGroupBlockP
           {label}
         </p>
       ) : null}
-      <ul
-        className={`flex flex-col gap-1 px-4 transition-[padding] group-data-[collapsible=icon]:px-2 ${SIDEBAR_DURATION}`}
-      >
+      <ul className="flex flex-col gap-1">
         {visible.map((item) => (
           <NavSection key={item.href} item={item} pathname={pathname} />
         ))}

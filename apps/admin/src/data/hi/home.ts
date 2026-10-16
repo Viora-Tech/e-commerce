@@ -68,6 +68,8 @@ export default [
       totalSales: 'कुल बिक्री',
       ordersTitle: 'ऑर्डर',
       visitorsTitle: 'विज़िटर',
+      conversionTitle: 'कन्वर्ज़न दर',
+      points: 'अंक',
       visitorsNow: 'अभी लाइव',
       viewReport: 'बिक्री रिपोर्ट देखें',
       vsYesterday: 'कल के मुकाबले',

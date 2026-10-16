@@ -43,11 +43,13 @@ export default function MoreNumbers({ children, salesPreview, ordersPreview }: M
         type="button"
         aria-expanded={open}
         onClick={handleToggle}
-        className="flex cursor-pointer items-center justify-between gap-3 rounded-xl px-1 py-1 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        className="flex cursor-pointer items-center justify-between gap-3 rounded-lg p-1 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
       >
         <span className="flex min-w-0 flex-col">
-          <span className="text-card-title text-ink-strong">{c.title}</span>
-          <span className="text-caption font-normal text-muted-foreground">{c.subtitle}</span>
+          <span className="text-base leading-5 font-semibold text-ink-strong">{c.title}</span>
+          <span className="text-[0.8125rem] leading-[1.1875rem] text-muted-foreground">
+            {c.subtitle}
+          </span>
         </span>
         <span className="hidden min-w-0 flex-1 items-center justify-end gap-5 px-2 md:flex">
           <MiniSparkline values={salesPreview} label={c.previewSales} />

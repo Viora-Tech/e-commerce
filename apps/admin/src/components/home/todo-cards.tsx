@@ -102,7 +102,7 @@ export default async function TodoCards({ needsYou }: TodoCardsProps) {
     <section className="flex flex-col gap-3.5">
       <SectionHead title={page.title} aside={rows.length > 0 ? page.count(rows.length) : null} />
       {rows.length === 0 ? (
-        <div className="flex items-center gap-3 rounded-xl surface-card p-4">
+        <div className="flex items-center gap-3 rounded-lg surface-card p-4">
           <IconBadge icon={CircleCheckIcon} tone="success" />
           <div>
             <p className="text-body-strong text-ink-strong">{c.allClearHeading}</p>
@@ -114,20 +114,19 @@ export default async function TodoCards({ needsYou }: TodoCardsProps) {
           {rows.map((row) => (
             <li
               key={row.key}
-              className="flex h-full flex-col items-start gap-3.5 rounded-xl p-5 surface-card transition-[transform,box-shadow] duration-150 ease-out hover:-translate-y-0.5 hover:shadow-card-hover active:scale-[0.97] motion-reduce:transition-shadow motion-reduce:hover:translate-y-0 motion-reduce:active:scale-100"
+              className="flex h-full flex-col items-start gap-3.5 rounded-lg p-5 surface-card transition-[transform,box-shadow] duration-150 ease-out hover:-translate-y-0.5 hover:shadow-card-hover active:scale-[0.97] motion-reduce:transition-shadow motion-reduce:hover:translate-y-0 motion-reduce:active:scale-100"
             >
-              <span className="flex size-10 items-center justify-center rounded-lg border border-border text-muted-foreground [&_svg]:size-5">
+              <span className="flex size-10 items-center justify-center rounded-lg bg-muted text-foreground shadow-input [&_svg]:size-5">
                 <row.icon aria-hidden="true" />
               </span>
               <div className="flex min-w-0 flex-col gap-1">
-                <p className="text-card-title text-ink-strong">{row.label}</p>
+                <p className="text-base leading-5 font-semibold text-ink-strong">{row.label}</p>
                 <p className="text-[0.8125rem] leading-[1.1875rem] text-muted-foreground">
                   {row.help}
                 </p>
               </div>
               <Button
                 variant="outline"
-                size="sm"
                 nativeButton={false}
                 render={<Link href={row.href} />}
                 className="mt-auto"

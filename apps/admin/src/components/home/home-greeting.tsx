@@ -42,7 +42,7 @@ export default async function HomeGreeting({
   return (
     <div className="flex flex-wrap items-start justify-between gap-3">
       <div className="flex min-w-0 flex-col gap-1">
-        <h1 className="text-left text-[1.75rem] leading-[2.25rem] font-medium tracking-tight text-ink-strong">
+        <h1 className="text-left text-page-title text-ink-strong">
           {titleFor(greetingFor(hour), name)}
         </h1>
         <GreetingLine
@@ -56,7 +56,7 @@ export default async function HomeGreeting({
           {fmt.pattern(now, DATE_OPTIONS)}
         </span>
         <span className="inline-flex h-6 items-center gap-1.5 rounded-full border border-border px-2.5 text-caption font-medium whitespace-nowrap text-muted-foreground">
-          <span className="size-1.5 rounded-full bg-success" aria-hidden="true" />
+          <span className="size-1.5 rounded-full bg-foreground" aria-hidden="true" />
           {page.sales.liveNow(liveNow)}
         </span>
       </div>

@@ -226,6 +226,20 @@ export const navigationContent = {
   },
   toggleTheme: 'Toggle theme',
   openMenu: 'Open menu',
+  /** Top-bar tooltips (Figma "TB · Hover states"). */
+  tips: {
+    search: (shortcut: string) => `Search · ${shortcut}`,
+    askAi: (mod: string) => `Ask Koomerce AI · ${mod}J`,
+    viewStore: (domain: string) => `Open store · ${domain} ↗`,
+    theme: (name: string) => `Theme · ${name}`,
+  },
+  /** The top bar's theme menu (Figma "TB · Theme menu"). */
+  theme: {
+    light: 'Light',
+    dark: 'Dark',
+    system: 'System',
+    systemHint: 'Follows your device',
+  },
 } as const
 
 /** A section is active for its own path and everything nested under it; home only for itself. */

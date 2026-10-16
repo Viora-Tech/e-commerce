@@ -16,4 +16,4 @@ export const SIDEBAR_CONTROL =
 
 /** Pointer-transparent block that fades and gives its height back (domain pill, usage card). */
 export const SIDEBAR_BLOCK =
-  'overflow-hidden transition-[opacity,height,margin,visibility] duration-150 delay-75 ease-out group-data-[collapsible=icon]:invisible group-data-[collapsible=icon]:-mt-2.5 group-data-[collapsible=icon]:h-0 group-data-[collapsible=icon]:opacity-0 group-data-[collapsible=icon]:delay-0 group-data-[collapsible=icon]:duration-100 in-data-[sidebar-instant]:transition-none motion-reduce:transition-none'
+  'overflow-hidden transition-[opacity,height,margin,visibility] duration-150 delay-75 ease-out group-data-[collapsible=icon]:invisible group-data-[collapsible=icon]:-mt-0.5 group-data-[collapsible=icon]:h-0 group-data-[collapsible=icon]:opacity-0 group-data-[collapsible=icon]:delay-0 group-data-[collapsible=icon]:duration-100 in-data-[sidebar-instant]:transition-none motion-reduce:transition-none'

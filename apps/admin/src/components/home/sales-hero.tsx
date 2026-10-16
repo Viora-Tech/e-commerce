@@ -1,20 +1,29 @@
 'use client'
 
 import type { DashboardChartsData, DashboardSummary } from '@commerce/api'
-import { ArrowRight, Pencil } from '@commerce/ui/icons'
-import { cn } from '@commerce/ui/lib/utils'
+import { ArrowLeftRight, ArrowRight, ChevronDown, Clock, Pencil, Store } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+  DropdownMenuTrigger,
+} from '@commerce/ui/shadcn/dropdown-menu'
 import Link from 'next/link'
 import { useState } from 'react'
 import { homePageContent } from '@/data/home'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { routes } from '@/lib/routes'
+import HeroGlass from './hero-glass'
 import SalesHeroChart, { type SalesChartPoint } from './sales-hero-chart'
 import SalesMetricTiles from './sales-metric-tiles'
 
 type SalesHeroProps = {
   today: DashboardSummary['today']
   yesterdayHourly: number[]
+  /** Storefront visitors yesterday (IST), the Today comparison for Visitors and Conversion. */
+  yesterdayVisitors: number
   /** The 30-day daily series; the last entry is today. Every range is cut from it. */
   charts: DashboardChartsData
   /** Visitors on the store right now (the beacon's last-30-minutes count). */
@@ -30,9 +39,19 @@ type Metric = 'sales' | 'orders'
 const HOURS = 24
 const SHORT_DATE_OPTIONS = { day: 'numeric', month: 'short' } as const
 
+/** Figma "Analytics · Filter button" (580:694): 32px pill, 14px lead icon, 13/20 medium. */
+const PILL =
+  'inline-flex h-8 items-center gap-1.5 rounded-full border border-glass-border bg-background/60 pr-2 pl-2.5 text-[0.8125rem] leading-5 font-medium whitespace-nowrap text-foreground shadow-lift [&_svg]:size-3.5 [&_svg]:shrink-0'
+
 const sum = (values: number[]) => values.reduce((n, v) => n + v, 0)
 
 /** Percent change from `previous` to `current`, rounded; null when there is nothing to compare. */
+/** Orders per visitor as a percentage with one decimal; 0 when nobody visited. */
+function conversionPercent(orders: number, visitors: number): number {
+  if (visitors <= 0) return 0
+  return Math.round(Math.min(orders / visitors, 1) * 1000) / 10
+}
+
 function percentChange(current: number, previous: number): number | null {
   if (previous <= 0) return null
   return Math.round(((current - previous) / previous) * 100)
@@ -79,12 +98,13 @@ function dailyPoints(
  * The sales hero: filter pills, the live count and Customize, one tile per metric with its
  * own sparkline and delta, and the area chart (Today solid, before dashed). The Today /
  * 7 days / 30 days switch cuts the one 30-day series Home already loaded, so switching
- * never refetches. Visit counts are not recorded per day, so the visitors tile shows the
- * live count instead of a daily total.
+ * never refetches. Visitors come from the beacon's daily counts; Conversion rate is orders per
+ * visitor for the same window, its change in percentage points.
  */
 export default function SalesHero({
   today,
   yesterdayHourly,
+  yesterdayVisitors,
   charts,
   liveNow,
   livePerMinute,
@@ -101,8 +121,8 @@ export default function SalesHero({
     range === 'today' ? String(v) : metric === 'sales' ? fmt.money(v) : fmt.compact(v)
 
   // Event handlers
-  const handleRange = (next: Range) => {
-    setRange(next)
+  const handleRange = (next: unknown) => {
+    if (next === 'today' || next === '7' || next === '30') setRange(next)
   }
 
   const handleMetric = (next: Metric) => {
@@ -125,6 +145,24 @@ export default function SalesHero({
   const ordersBefore =
     range === 'today' ? sum(yesterdayHourly) : sum(range === '7' ? ordersAll.slice(-14, -7) : [])
   const ordersChange = range === '30' ? null : percentChange(ordersValue, ordersBefore)
+
+  const visitorsAll = charts.visitors
+  const visitorsValue = range === 'today' ? today.visitors : sum(visitorsAll.slice(-days))
+  const visitorsBefore =
+    range === 'today'
+      ? yesterdayVisitors
+      : sum(range === '7' ? visitorsAll.slice(-14, -7) : charts.previousVisitors)
+  const visitorsChange = percentChange(visitorsValue, visitorsBefore)
+  const conversion = conversionPercent(ordersValue, visitorsValue)
+  const conversionBefore = conversionPercent(ordersBefore, visitorsBefore)
+  const conversionChange =
+    range === '30' || visitorsBefore <= 0
+      ? null
+      : Math.round((conversion - conversionBefore) * 10) / 10
+  const conversionSpark =
+    range === 'today'
+      ? []
+      : ordersAll.slice(-days).map((n, i) => conversionPercent(n, visitorsAll.slice(-days)[i] ?? 0))
 
   const labels =
     range === 'today'
@@ -161,70 +199,78 @@ export default function SalesHero({
   ]
 
   return (
-    <section className="flex flex-col gap-5 rounded-xl surface-card p-5 md:p-6">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex flex-wrap items-center gap-2" role="tablist" aria-label={copy.title}>
-          {tabs.map((tab) => {
-            const active = tab.value === range
-            return (
-              <button
-                key={tab.value}
-                type="button"
-                role="tab"
-                aria-selected={active}
-                onClick={() => handleRange(tab.value)}
-                className={cn(
-                  'inline-flex h-8 items-center gap-1.5 rounded-full border border-border px-3 text-body font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
-                  active
-                    ? 'bg-secondary text-ink-strong'
-                    : 'text-muted-foreground hover:text-foreground',
-                )}
-              >
-                {tab.label}
-              </button>
-            )
-          })}
-          <span className="inline-flex h-8 items-center text-body text-muted-foreground">
-            {comparedTo}
-          </span>
-          <span className="inline-flex h-8 items-center text-body text-muted-foreground">
-            {copy.channels}
-          </span>
-        </div>
-        <div className="flex items-center gap-1.5">
-          <span className="inline-flex items-center gap-1.5 pr-1 text-body text-muted-foreground">
-            <span className="size-2 rounded-full bg-success" aria-hidden="true" />
-            {copy.liveNow(liveNow)}
-          </span>
-          <Button
-            variant="ghost"
-            size="sm"
-            nativeButton={false}
-            render={<Link href={routes.analytics.home()} />}
+    <section className="relative isolate flex flex-col overflow-hidden rounded-xl surface-glass">
+      <HeroGlass />
+      <div className="flex flex-wrap items-center gap-2 pt-4 pr-4 pb-2 pl-5">
+        <DropdownMenu>
+          <DropdownMenuTrigger
+            aria-label={copy.title}
+            className={`${PILL} cursor-pointer transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring data-[popup-open]:bg-muted`}
           >
-            <Pencil className="size-3.5" aria-hidden="true" />
-            {copy.customize}
-          </Button>
-        </div>
+            <Clock aria-hidden="true" />
+            {tabs.find((tab) => tab.value === range)?.label}
+            <ChevronDown className="text-muted-foreground" aria-hidden="true" />
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="start" className="min-w-36">
+            <DropdownMenuRadioGroup value={range} onValueChange={handleRange}>
+              {tabs.map((tab) => (
+                <DropdownMenuRadioItem key={tab.value} value={tab.value} closeOnClick>
+                  {tab.label}
+                </DropdownMenuRadioItem>
+              ))}
+            </DropdownMenuRadioGroup>
+          </DropdownMenuContent>
+        </DropdownMenu>
+        <span className={PILL}>
+          <ArrowLeftRight aria-hidden="true" />
+          {comparedTo}
+        </span>
+        <span className={PILL}>
+          <Store aria-hidden="true" />
+          {copy.channels}
+        </span>
+        <span className="flex-1" aria-hidden="true" />
+        <span className="inline-flex items-center gap-2 pr-2 text-[0.8125rem] leading-5 font-medium text-foreground">
+          <span className="flex size-3.5 items-center justify-center" aria-hidden="true">
+            <span className="size-2 rounded-full bg-foreground ring-3 ring-foreground/15" />
+          </span>
+          {copy.liveNow(liveNow)}
+        </span>
+        <Button
+          variant="ghost"
+          size="sm"
+          nativeButton={false}
+          render={<Link href={routes.analytics.home()} />}
+        >
+          <Pencil className="size-4" aria-hidden="true" />
+          {copy.customize}
+        </Button>
       </div>
-      <SalesMetricTiles
-        salesDisplay={fmt.money(salesValue)}
-        salesSpark={range === 'today' ? cumulative(today.hourly) : all.slice(-days)}
-        salesChange={salesChange}
-        ordersDisplay={fmt.compact(ordersValue)}
-        ordersSpark={range === 'today' ? cumulative(today.hourly) : ordersAll.slice(-days)}
-        ordersChange={ordersChange}
-        visitorsDisplay={fmt.compact(liveNow)}
-        visitorsSpark={livePerMinute}
-        comparedTo={comparedTo}
-        totalSales={copy.totalSales}
-        ordersTitle={copy.ordersTitle}
-        visitorsTitle={copy.visitorsTitle}
-        visitorsNow={copy.visitorsNow}
-        metric={metric}
-        onSelect={handleMetric}
-      />
-      <div className="min-w-0">
+      <div className="px-3 py-1">
+        <SalesMetricTiles
+          salesDisplay={fmt.money(salesValue)}
+          salesSpark={range === 'today' ? cumulative(today.hourly) : all.slice(-days)}
+          salesChange={salesChange}
+          ordersDisplay={fmt.compact(ordersValue)}
+          ordersSpark={range === 'today' ? cumulative(today.hourly) : ordersAll.slice(-days)}
+          ordersChange={ordersChange}
+          visitorsDisplay={fmt.compact(visitorsValue)}
+          visitorsSpark={range === 'today' ? livePerMinute : visitorsAll.slice(-days)}
+          visitorsChange={visitorsChange}
+          conversionDisplay={`${fmt.number(conversion)}%`}
+          conversionSpark={conversionSpark}
+          conversionChange={conversionChange}
+          conversionTitle={copy.conversionTitle}
+          points={copy.points}
+          comparedTo={comparedTo}
+          totalSales={copy.totalSales}
+          ordersTitle={copy.ordersTitle}
+          visitorsTitle={copy.visitorsTitle}
+          metric={metric}
+          onSelect={handleMetric}
+        />
+      </div>
+      <div className="min-w-0 px-5 pt-3">
         <SalesHeroChart
           points={points}
           valueLabel={valueLabel}
@@ -235,16 +281,16 @@ export default function SalesHero({
           formatTick={(v) => fmt.compact(v)}
         />
       </div>
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <p className="flex flex-wrap items-center gap-x-4 gap-y-1 text-body text-muted-foreground">
+      <div className="flex flex-wrap items-center justify-between gap-3 px-5 pt-3 pb-4">
+        <p className="flex flex-wrap items-center gap-x-5 gap-y-1 text-[0.8125rem] leading-5 text-muted-foreground">
           <span className="inline-flex items-center gap-2">
-            <span className="h-0.5 w-4 rounded-full bg-primary" aria-hidden="true" />
+            <span className="h-0.5 w-3.5 rounded-full bg-primary" aria-hidden="true" />
             {valueLabel}
             <strong className="font-semibold text-ink-strong tabular-nums">{valueText}</strong>
           </span>
           <span className="inline-flex items-center gap-2">
             <span
-              className="h-0 w-4 border-t-2 border-dashed border-muted-foreground"
+              className="h-0 w-3.5 border-t-2 border-dashed border-muted-foreground"
               aria-hidden="true"
             />
             {beforeLabel}
@@ -253,7 +299,7 @@ export default function SalesHero({
         </p>
         <Link
           href={routes.analytics.reports()}
-          className="inline-flex items-center gap-1 text-body font-medium text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          className="inline-flex items-center gap-1 text-[0.8125rem] leading-5 font-medium text-foreground transition-colors hover:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         >
           {copy.viewReport}
           <ArrowRight className="size-3.5" aria-hidden="true" />

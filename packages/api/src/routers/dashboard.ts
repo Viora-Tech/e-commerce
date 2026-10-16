@@ -26,6 +26,10 @@ export const dashboardRouter = {
   charts: can(permissions.ANALYTICS_READ)
     .input(z.object({ range: z.union([z.literal(7), z.literal(30), z.literal(90)]).default(30) }))
     .handler(({ context, input }) =>
-      dashboardCharts(context.tx, { storeId: context.scope.storeId, range: input.range }),
+      dashboardCharts(context.tx, {
+        storeId: context.scope.storeId,
+        range: input.range,
+        visitors: context.visitors,
+      }),
     ),
 }

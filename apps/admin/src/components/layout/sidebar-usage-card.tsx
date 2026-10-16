@@ -1,5 +1,6 @@
 'use client'
 
+import { ChevronUpIcon } from '@commerce/ui/icons'
 import Link from 'next/link'
 import { navigationContent } from '@/data/navigation'
 import { useCopy, useFormat } from '@/hooks/use-copy'
@@ -22,27 +23,29 @@ export default function SidebarUsageCard({ usage }: SidebarUsageCardProps) {
   const percent = usage.limit > 0 ? Math.min(100, Math.round((usage.used / usage.limit) * 100)) : 0
 
   return (
-    <div className={`flex flex-col gap-2 ${SIDEBAR_BLOCK}`}>
-      <div className="flex flex-col gap-2 rounded-lg border border-hairline surface-card p-3">
-        <p className="text-caption font-medium text-foreground">{copy.usage.title}</p>
+    <div className={`flex flex-col gap-0.5 ${SIDEBAR_BLOCK}`}>
+      {/* Figma "Usage card": depth/card, radius 10, 12px inset, an 8px bar on the primary. */}
+      <div className="flex flex-col gap-2 rounded-md surface-card p-3">
+        <p className="text-[0.8125rem] leading-5 font-medium text-foreground">{copy.usage.title}</p>
         <div
           role="progressbar"
           aria-label={copy.usage.title}
           aria-valuemin={0}
           aria-valuemax={usage.limit}
           aria-valuenow={usage.used}
-          className="h-1.5 overflow-hidden rounded-full bg-muted"
+          className="h-2 overflow-hidden rounded-full bg-primary/20"
         >
           <div className="h-full rounded-full bg-primary" style={{ width: `${percent}%` }} />
         </div>
-        <p className="text-caption text-muted-foreground tabular-nums">
+        <p className="text-xs text-muted-foreground tabular-nums">
           {copy.usage.of(format.number(usage.used), format.number(usage.limit))}
         </p>
       </div>
       <Link
         href={routes.settings.home()}
-        className="rounded-md px-1 text-caption text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        className="flex h-7 items-center gap-1.5 rounded-sm pt-2 pb-1 pl-2 text-xs text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
       >
+        <ChevronUpIcon className="size-3.5 shrink-0" aria-hidden />
         {copy.usage.moreRoom(usage.planName)}
       </Link>
     </div>

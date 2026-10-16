@@ -154,6 +154,28 @@
 /* Feel native on a phone (docs/conventions.md, "Motion"). Tailwind's preflight already drops
    the grey tap flash (every control has its own :active state); this drops the double-tap
    wait on controls so a tap answers at once. */
+/* Tailwind v4 leaves buttons on the default arrow; everything clickable shows the pointer.
+   Disabled controls keep the arrow. */
+@layer base {
+  :where(
+      button,
+      [role="button"],
+      [role="tab"],
+      [role="menuitem"],
+      [role="menuitemradio"],
+      [role="menuitemcheckbox"],
+      [role="option"],
+      [role="switch"],
+      [role="checkbox"],
+      [role="radio"],
+      summary,
+      select,
+      label[for]
+    ):not(:disabled, [aria-disabled="true"], [data-disabled]) {
+    cursor: pointer;
+  }
+}
+
 @layer base {
   :where(button, a, label, summary, [role="button"], [role="tab"], [role="menuitem"], [role="option"]) {
     touch-action: manipulation;
@@ -241,6 +263,9 @@
   --color-glass-scrim: var(--glass-scrim);
   --color-glass-active: var(--glass-active);
   --color-glass-active-ink: var(--glass-active-ink);
+  --color-glass-blob: var(--glass-blob);
+  --color-glass-streak: var(--glass-streak);
+  --color-glass-fill: var(--glass-fill);
   --color-media: var(--media);
   --color-media-tile: var(--media-tile);
   --color-avatar: var(--avatar);
@@ -415,6 +440,13 @@
   --glass-scrim: rgb(10 10 10 / 0.18);
   --glass-active: #f5f5f5;
   --glass-active-ink: #0a0a0a;
+  /* Glass hero (Figma glass/*): soft light blobs and a streak behind a frosted fill. */
+  --glass-blob: #e4e4e7;
+  --glass-streak: #ffffff;
+  --glass-fill: rgb(255 255 255 / 0.55);
+  --glass-bevel-light: #ffffff;
+  --glass-bevel-dark: rgb(0 0 0 / 0.06);
+  --glass-lum: rgb(255 255 255 / 0.6);
 
   /* Action is the primary. */
   --action: var(--primary);
@@ -479,6 +511,7 @@
   --key-border: #171717;
   --key-edge: var(--btn-bottom);
   --key-glow: var(--glow-primary);
+  --key-sheen: rgb(255 255 255 / 0.14);
   --key-ink: #fafafa;
   --key-highlight: var(--btn-top);
   --key-neutral-top: #ffffff;
@@ -560,6 +593,12 @@
   --glass-scrim: rgb(0 0 0 / 0.45);
   --glass-active: #262626;
   --glass-active-ink: #fafafa;
+  --glass-blob: rgb(255 255 255 / 0.22);
+  --glass-streak: rgb(255 255 255 / 0.1);
+  --glass-fill: rgb(26 26 26 / 0.5);
+  --glass-bevel-light: rgb(255 255 255 / 0.18);
+  --glass-bevel-dark: rgb(0 0 0 / 0.55);
+  --glass-lum: rgb(255 255 255 / 0.05);
 
   --primary: #e5e5e5;
   --primary-foreground: #171717;
@@ -610,10 +649,17 @@
   --input: rgb(255 255 255 / 0.15);
   --ring: #737373;
 
-  --key-top: #fafafa;
-  --key-bottom: #e5e5e5;
-  --key-border: #e5e5e5;
+  /* Dark primary button: white glass (owner, 2026-10-16: keep it white, add a glass feel).
+     A slightly translucent white top-to-bottom, a bright top sheen, a light rim and a soft
+     white glow; key-primary frosts what sits behind it. */
+  --key-top: rgb(255 255 255 / 0.96);
+  --key-bottom: rgb(229 229 229 / 0.82);
+  --key-border: rgb(255 255 255 / 0.55);
   --key-ink: #171717;
+  --key-highlight: rgb(255 255 255 / 0.95);
+  --key-edge: rgb(0 0 0 / 0.18);
+  --key-glow: rgb(255 255 255 / 0.18);
+  --key-sheen: rgb(255 255 255 / 0.7);
   --key-neutral-top: #1c1c1c;
   --key-neutral-bottom: #171717;
   --key-neutral-hover: #222222;
@@ -648,6 +694,22 @@
   background-color: var(--card);
   background-image: var(--card-surface);
   box-shadow: var(--shadow-card);
+}
+
+/*
+ * Glass hero (Figma effect glass/card): one per page. A top-left white bevel, a bottom-right dark
+ * bevel, a soft inner glow, then the card ring and soft lift. Pair with the blob/streak/frost
+ * layers (apps/admin home hero-glass.tsx); the card itself stays the card colour underneath.
+ */
+@utility surface-glass {
+  background-color: var(--card);
+  box-shadow:
+    inset 1px 1px 0 var(--glass-bevel-light),
+    inset -1px -1px 0 var(--glass-bevel-dark),
+    inset 0 0 40px 0 var(--glass-lum),
+    0 0 0 1px var(--depth-ring),
+    0 2px 4px 0 var(--depth-contact),
+    0 18px 44px -12px var(--depth-ambient);
 }
 
 /* Next-step and info banners: card surface, brand border, a left-to-right brand wash. Never solid. */
@@ -738,8 +800,14 @@
 @utility key-primary {
   /* Figma depth/button-primary: 1px top highlight, 1px bottom edge, contact + soft glow. */
   border: 1px solid var(--key-border);
-  background-image: linear-gradient(to bottom, var(--key-top), var(--key-bottom));
+  /* A diagonal sheen over the top-to-bottom fill: the glass highlight. */
+  background-image:
+    linear-gradient(135deg, var(--key-sheen) 0%, transparent 55%),
+    linear-gradient(to bottom, var(--key-top), var(--key-bottom));
   color: var(--key-ink);
+  /* Glass: the translucent fill frosts whatever sits behind it. */
+  -webkit-backdrop-filter: blur(12px) saturate(1.4);
+  backdrop-filter: blur(12px) saturate(1.4);
   box-shadow:
     inset 0 1px 0 var(--key-highlight),
     inset 0 -1px 0 var(--key-edge),

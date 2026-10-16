@@ -99,7 +99,7 @@ export default function AskAiCard({
         onSubmit={handleSubmit}
         onMouseEnter={handlePause}
         onMouseLeave={handleResume}
-        className="flex h-[3.75rem] items-center gap-3 rounded-xl border border-primary/30 surface-card pr-2.5 pl-[1.1875rem] transition-[border-color,box-shadow] duration-200 ease-out focus-within:border-primary/50 focus-within:ring-2 focus-within:ring-primary/20 motion-reduce:transition-none"
+        className="flex h-15 items-center gap-3 rounded-lg bg-card pr-2.5 pl-5 shadow-ai transition-shadow duration-200 ease-out focus-within:ring-2 focus-within:ring-primary/20 motion-reduce:transition-none"
       >
         <AiIcon className="size-5 shrink-0 text-primary" aria-hidden="true" />
         <span className="relative min-w-0 flex-1 self-stretch">
@@ -110,12 +110,12 @@ export default function AskAiCard({
             onBlur={handleResume}
             placeholder={showHint ? '' : (placeholder ?? copy.ask.placeholder)}
             aria-label={label ?? copy.ask.label}
-            className="h-full w-full bg-transparent text-[0.9375rem] text-foreground outline-none placeholder:text-muted-foreground"
+            className="h-full w-full bg-transparent text-[0.9375rem] leading-5 text-foreground outline-none placeholder:text-muted-foreground"
           />
           {showHint ? (
             <span
               aria-hidden="true"
-              className="pointer-events-none absolute inset-0 flex items-center overflow-hidden text-[0.9375rem] text-muted-foreground"
+              className="pointer-events-none absolute inset-0 flex items-center overflow-hidden text-[0.9375rem] leading-5 text-muted-foreground"
             >
               <AnimatePresence mode="wait">
                 <motion.span
@@ -133,9 +133,7 @@ export default function AskAiCard({
           ) : null}
         </span>
         <Kbd className="hidden shrink-0 sm:inline-flex">{copy.ask.shortcut}</Kbd>
-        <Button type="submit" variant="secondary" size="sm">
-          {copy.ask.button}
-        </Button>
+        <Button type="submit">{copy.ask.button}</Button>
       </form>
       <ul className="flex flex-wrap items-center gap-2">
         {chipsLabel ? (
@@ -146,7 +144,7 @@ export default function AskAiCard({
             <button
               type="button"
               onClick={() => handleAsk(chip)}
-              className="h-[2.0625rem] rounded-full border border-border bg-card px-3.5 text-[0.8125rem] text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              className="h-[2.0625rem] rounded-full border border-border bg-background px-3.5 text-[0.8125rem] leading-[1.1875rem] text-muted-foreground shadow-lift transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
               {chip}
             </button>

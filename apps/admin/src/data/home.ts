@@ -71,6 +71,8 @@ export const homePageContent = {
     totalSales: 'Total sales',
     ordersTitle: 'Orders',
     visitorsTitle: 'Visitors',
+    conversionTitle: 'Conversion rate',
+    points: 'pts',
     visitorsNow: 'live now',
     viewReport: 'View sales report',
     vsYesterday: 'vs yesterday',
