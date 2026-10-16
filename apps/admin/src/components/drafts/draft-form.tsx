@@ -1,6 +1,6 @@
 'use client'
 
-import { FileEdit } from '@commerce/ui/icons'
+import { ChevronLeftIcon, FileEdit } from '@commerce/ui/icons'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -14,6 +14,7 @@ import {
 import { Button } from '@commerce/ui/shadcn/button'
 import { Card } from '@commerce/ui/shadcn/card'
 import { Textarea } from '@commerce/ui/shadcn/textarea'
+import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { toast } from 'sonner'
@@ -23,7 +24,6 @@ import DraftCustomerCard from '@/components/drafts/draft-customer-card'
 import {
   type DraftFormState,
   draftToForm,
-  draftTotals,
   emptyDraft,
   formToDraft,
 } from '@/components/drafts/draft-form-state'
@@ -33,21 +33,31 @@ import PageBody from '@/components/layout/page-body'
 import PageColumns from '@/components/layout/page-columns'
 import PageHeader from '@/components/layout/page-header'
 import SaveBar from '@/components/layout/save-bar'
-import { draftEditorContent as copy, draftsContent } from '@/data/drafts'
-import { useFormat } from '@/hooks/use-copy'
+import StatusChip from '@/components/layout/status-chip'
+import { draftEditorContent, draftsContent } from '@/data/drafts'
+import { useCopy, useFormat } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 import { routes } from '@/lib/routes'
 
 type Draft = NonNullable<Awaited<ReturnType<typeof api.orders.getDraft>>>
 
-type DraftFormProps = { draft: Draft | null }
+type DraftFormProps = { draft: Draft | null; invoiceSent?: boolean }
+
+/** The GST already inside a saved draft's prices, when it recorded a rate. */
+function draftTax(draft: Draft | null) {
+  const rate = (draft?.taxBreakdown as { ratePercent?: unknown } | null)?.ratePercent
+  if (!draft || draft.taxPaise <= 0 || typeof rate !== 'number') return null
+  return { ratePercent: rate, taxPaise: draft.taxPaise }
+}
 
 const message = (err: unknown, fallback: string) =>
   err instanceof Error && err.message ? err.message : fallback
 
-export default function DraftForm({ draft }: DraftFormProps) {
+export default function DraftForm({ draft, invoiceSent = false }: DraftFormProps) {
   // Hooks
   const router = useRouter()
+  const copy = useCopy(draftEditorContent)
+  const list = useCopy(draftsContent)
   const fmt = useFormat()
   const [id, setId] = useState<string | null>(draft?.id ?? null)
   const [number, setNumber] = useState<number | null>(draft?.number ?? null)
@@ -56,6 +66,7 @@ export default function DraftForm({ draft }: DraftFormProps) {
   const [busy, setBusy] = useState(false)
   const [confirmDelete, setConfirmDelete] = useState(false)
   const [resetKey, setResetKey] = useState(0)
+  const [sent, setSent] = useState(invoiceSent)
 
   // Helpers
   const patch = (next: Partial<DraftFormState>) => setForm((f) => ({ ...f, ...next }))
@@ -93,6 +104,7 @@ export default function DraftForm({ draft }: DraftFormProps) {
     setBusy(true)
     try {
       const r = await api.orders.sendInvoice({ id })
+      setSent(true)
       toast.success(copy.actions.invoiceSent(r.sentTo))
     } catch (err) {
       toast.error(message(err, copy.actions.invoiceFailed))
@@ -129,7 +141,13 @@ export default function DraftForm({ draft }: DraftFormProps) {
 
   // Render logic
   const dirty = JSON.stringify(form) !== JSON.stringify(saved)
-  const subtitle = [form.customerName || form.email, fmt.money(draftTotals(form).totalPaise)]
+  const itemCount = form.lines.reduce((sum, l) => sum + l.quantity, 0)
+  const who = form.customerName || form.email
+  const subtitle = [
+    who ? copy.subtitle.for(who) : null,
+    itemCount > 0 ? copy.subtitle.items(itemCount) : null,
+    draft ? copy.subtitle.created(fmt.date(draft.placedAt)) : null,
+  ]
     .filter(Boolean)
     .join(' · ')
 
@@ -147,34 +165,42 @@ export default function DraftForm({ draft }: DraftFormProps) {
         }}
         saving={busy}
       />
-      <PageHeader
-        title={number ? copy.editTitle(number) : copy.newTitle}
-        icon={<FileEdit aria-hidden="true" />}
-        subtitle={subtitle}
-        actions={
-          <>
-            <Button
-              variant="key-neutral"
-              disabled={!id || dirty || busy}
-              onClick={handleSendInvoice}
-            >
-              {copy.actions.sendInvoice}
-            </Button>
-            <Button disabled={!id || dirty || busy} onClick={handleConvert}>
-              {copy.actions.convert}
-            </Button>
-          </>
-        }
-        breadcrumbs={[
-          { label: draftsContent.title, href: routes.orders.drafts() },
-          { label: number ? copy.editTitle(number) : copy.newTitle },
-        ]}
-      />
+      <div className="flex flex-col gap-3">
+        <Link
+          href={routes.orders.drafts()}
+          className="flex w-fit items-center gap-1 text-body text-muted-foreground hover:text-foreground"
+        >
+          <ChevronLeftIcon className="size-4" />
+          {list.title}
+        </Link>
+        <PageHeader
+          title={number ? copy.editTitle(number) : copy.newTitle}
+          icon={<FileEdit aria-hidden="true" />}
+          subtitle={subtitle}
+          actions={
+            <>
+              <Button variant="outline" disabled={!id || dirty || busy} onClick={handleSendInvoice}>
+                {copy.actions.sendInvoice}
+              </Button>
+              <Button disabled={!id || dirty || busy} onClick={handleConvert}>
+                {copy.actions.convert}
+              </Button>
+            </>
+          }
+          badges={
+            number ? (
+              <StatusChip tone={sent ? 'attention' : 'info'}>
+                {sent ? list.status.invoiceSent : list.status.open}
+              </StatusChip>
+            ) : null
+          }
+        />
+      </div>
       <PageColumns
         main={
           <>
             <DraftProductsCard lines={form.lines} onChange={(lines) => patch({ lines })} />
-            <DraftTotalsCard key={resetKey} form={form} onChange={patch} />
+            <DraftTotalsCard key={resetKey} form={form} tax={draftTax(draft)} onChange={patch} />
             <Card gap={3} inset={5}>
               <p className="text-card-title text-ink-strong">{copy.note.heading}</p>
               <Textarea

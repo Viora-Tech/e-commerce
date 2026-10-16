@@ -11,8 +11,9 @@ import {
   SelectValue,
 } from '@commerce/ui/shadcn/select'
 import type { DraftFormState } from '@/components/drafts/draft-form-state'
-import { draftEditorContent as copy } from '@/data/drafts'
+import { draftEditorContent } from '@/data/drafts'
 import { INDIAN_STATES } from '@/data/india'
+import { useCopy } from '@/hooks/use-copy'
 
 type DraftAddressCardProps = {
   address: DraftFormState['address']
@@ -22,6 +23,9 @@ type DraftAddressCardProps = {
 const stateItems = INDIAN_STATES.map((s) => ({ value: s.code, label: s.name }))
 
 export default function DraftAddressCard({ address, onChange }: DraftAddressCardProps) {
+  // Hooks
+  const copy = useCopy(draftEditorContent)
+
   // Helpers
   const set = (key: keyof DraftFormState['address']) => (value: string) =>
     onChange({ ...address, [key]: value })
@@ -54,7 +58,7 @@ export default function DraftAddressCard({ address, onChange }: DraftAddressCard
           onChange={(e) => set('line2')(e.target.value)}
         />
       </Field>
-      <div className="grid gap-4 sm:grid-cols-3">
+      <div className="grid gap-4 sm:grid-cols-2">
         <Field>
           <FieldLabel htmlFor="draft-addr-city">{copy.address.city}</FieldLabel>
           <Input
@@ -82,16 +86,16 @@ export default function DraftAddressCard({ address, onChange }: DraftAddressCard
             </SelectContent>
           </Select>
         </Field>
-        <Field>
-          <FieldLabel htmlFor="draft-addr-pincode">{copy.address.pincode}</FieldLabel>
-          <Input
-            id="draft-addr-pincode"
-            inputMode="numeric"
-            value={address.pincode}
-            onChange={(e) => set('pincode')(e.target.value.replace(/\D/g, '').slice(0, 6))}
-          />
-        </Field>
       </div>
+      <Field>
+        <FieldLabel htmlFor="draft-addr-pincode">{copy.address.pincode}</FieldLabel>
+        <Input
+          id="draft-addr-pincode"
+          inputMode="numeric"
+          value={address.pincode}
+          onChange={(e) => set('pincode')(e.target.value.replace(/\D/g, '').slice(0, 6))}
+        />
+      </Field>
       <Field>
         <FieldLabel htmlFor="draft-addr-phone">{copy.address.phone}</FieldLabel>
         <Input

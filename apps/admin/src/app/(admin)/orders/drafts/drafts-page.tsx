@@ -1,6 +1,6 @@
 'use client'
 
-import { Plus } from '@commerce/ui/icons'
+import { AppWindow, SquarePlus } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Kbd } from '@commerce/ui/shadcn/kbd'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@commerce/ui/shadcn/tooltip'
@@ -8,12 +8,12 @@ import Link from 'next/link'
 import { parseAsInteger, parseAsString, parseAsStringLiteral, useQueryStates } from 'nuqs'
 import { Suspense, useEffect, useRef, useState } from 'react'
 import CustomerAvatar from '@/components/customers/customer-avatar'
-import PillTabs from '@/components/layout/pill-tabs'
 import StatTile from '@/components/layout/stat-tile'
 import StatusChip from '@/components/layout/status-chip'
 import OrdersListFrame from '@/components/orders/orders-list-frame'
 import RowMenu from '@/components/orders/row-menu'
 import ResourceTable, { type ResourceColumnSpec } from '@/components/table/resource-table'
+import ViewSelect from '@/components/table/view-select'
 import { DRAFT_LIST_FILTERS, type DraftListFilter, draftsContent } from '@/data/drafts'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
@@ -50,12 +50,21 @@ function draftColumns(copy: typeof draftsContent, fmt: Formatters): ResourceColu
       render: (d) =>
         d.customerName || d.email ? (
           <span className="flex min-w-0 items-center gap-3">
-            <CustomerAvatar name={d.customerName} email={d.email} />
-            <span className="truncate">{d.customerName ?? d.email}</span>
+            <CustomerAvatar
+              name={d.customerName}
+              email={d.email}
+              className="size-6 bg-muted font-medium text-foreground"
+            />
+            <span className="truncate text-body text-ink-strong">{d.customerName ?? d.email}</span>
           </span>
         ) : (
           <span className="flex items-center gap-3 text-muted-foreground">
-            <span className="size-8 shrink-0 rounded-full border border-dashed border-border-strong" />
+            <span
+              aria-hidden="true"
+              className="flex size-6 shrink-0 items-center justify-center rounded-full bg-muted text-muted-foreground"
+            >
+              –
+            </span>
             {copy.guest}
           </span>
         ),
@@ -77,6 +86,7 @@ function draftColumns(copy: typeof draftsContent, fmt: Formatters): ResourceColu
       id: 'created',
       title: copy.columns.created,
       sortValue: (d) => new Date(d.createdAt).getTime(),
+      sortLabels: { desc: copy.sortNewest, asc: copy.sortOldest },
       render: (d) => <span className="tabular-nums">{fmt.when(d.createdAt)}</span>,
     },
     {
@@ -153,7 +163,7 @@ function DraftsContent({ initial }: { initial: DraftsInitial }) {
           <TooltipTrigger
             render={
               <Button render={<Link href={routes.orders.newDraft()} />} nativeButton={false}>
-                <Plus />
+                <SquarePlus strokeWidth={1.6} />
                 {copy.create}
               </Button>
             }
@@ -193,18 +203,22 @@ function DraftsContent({ initial }: { initial: DraftsInitial }) {
         getId={(d) => d.id}
         href={(d) => routes.orders.draft(d.id)}
         rowActions={(d) => (
-          <RowMenu items={[{ label: copy.openDraft, href: routes.orders.draft(d.id) }]} />
+          <RowMenu
+            items={[{ label: copy.openDraft, href: routes.orders.draft(d.id), icon: AppWindow }]}
+          />
         )}
         loading={loading}
+        defaultSort={{ id: 'created', desc: true }}
         query={query}
         onQueryChange={(query) => setQ({ query, page: 1 })}
         onClearAll={() => setQ({ query: '', status: null, page: 1 })}
-        tabs={
-          <PillTabs<DraftListFilter | null>
-            variant="segmented"
+        views={
+          <ViewSelect<DraftListFilter | null>
+            label={copy.viewLabel}
             value={status}
             onChange={(s) => setQ({ status: s, page: 1 })}
-            tabs={[
+            formatCount={fmt.number}
+            options={[
               { value: null, label: copy.tabs.all, count: tiles.total },
               { value: 'open', label: copy.tabs.open, count: tiles.open },
               { value: 'invoice_sent', label: copy.tabs.invoice_sent, count: tiles.invoiced },

@@ -7,7 +7,8 @@ import { Field, FieldLabel } from '@commerce/ui/shadcn/field'
 import { Input } from '@commerce/ui/shadcn/input'
 import { useEffect, useState } from 'react'
 import type { DraftFormState } from '@/components/drafts/draft-form-state'
-import { draftEditorContent as copy } from '@/data/drafts'
+import { draftEditorContent } from '@/data/drafts'
+import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 
 type DraftCustomerCardProps = {
@@ -21,6 +22,7 @@ const SEARCH_DEBOUNCE_MS = 250
 
 export default function DraftCustomerCard({ form, onChange }: DraftCustomerCardProps) {
   // Hooks
+  const copy = useCopy(draftEditorContent)
   const [search, setSearch] = useState('')
   const [results, setResults] = useState<Customer[]>([])
 
