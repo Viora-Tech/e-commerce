@@ -99,9 +99,9 @@ export default function AskAiCard({
         onSubmit={handleSubmit}
         onMouseEnter={handlePause}
         onMouseLeave={handleResume}
-        className="flex h-15 items-center gap-3 rounded-lg bg-card pr-2.5 pl-5 shadow-ai transition-shadow duration-200 ease-out focus-within:ring-2 focus-within:ring-primary/20 motion-reduce:transition-none"
+        className="flex h-15 items-center gap-3 rounded-lg border border-ai/25 bg-card pr-2.5 pl-5 shadow-ai transition-shadow duration-200 ease-out focus-within:ring-2 focus-within:ring-ai/30 motion-reduce:transition-none"
       >
-        <AiIcon className="size-5 shrink-0 text-primary" aria-hidden="true" />
+        <AiIcon className="size-5 shrink-0 text-ai" aria-hidden="true" />
         <span className="relative min-w-0 flex-1 self-stretch">
           <input
             value={question}

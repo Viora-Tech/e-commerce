@@ -58,18 +58,24 @@ export default function AssistantPanel({
       role="dialog"
       aria-modal="false"
       aria-label={copy.panel.title}
-      className="fixed inset-x-0 top-[max(0.75rem,env(safe-area-inset-top))] bottom-0 z-40 flex flex-col overflow-hidden rounded-t-2xl border border-border bg-popover shadow-[0_24px_64px_-12px_hsl(211_42%_16%/0.28),0_4px_12px_-4px_hsl(211_42%_16%/0.12)] md:inset-x-auto md:top-auto md:bottom-5 md:left-1/2 md:ml-[calc(var(--sidebar-width,0rem)/2)] md:max-h-[min(46rem,calc(100svh-6rem))] md:min-h-[26rem] md:w-[min(42rem,calc(100vw-var(--sidebar-width,0rem)-4rem))] md:-translate-x-1/2 md:rounded-2xl"
+      /* Figma "TB · Ask AI panel": a full-height panel on the right (440px, 8px from the
+         window edges, radius 16), sliding in from the right; a bottom sheet on phones. */
+      className="fixed inset-x-0 top-[max(0.75rem,env(safe-area-inset-top))] bottom-0 z-40 flex animate-in flex-col overflow-hidden rounded-t-2xl border border-border bg-popover shadow-dialog duration-300 ease-drawer fade-in slide-in-from-bottom-6 motion-reduce:animate-none md:inset-x-auto md:top-2 md:right-2 md:bottom-2 md:w-[min(27.5rem,calc(100vw-1rem))] md:rounded-2xl md:slide-in-from-right-8 md:slide-in-from-bottom-0"
     >
-      <header className="flex shrink-0 items-center gap-2.5 border-border border-b px-4 py-3">
-        <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-primary/10">
-          <AiIcon className="size-4 text-primary" aria-hidden="true" />
+      <header className="flex shrink-0 items-center gap-2.5 border-border border-b py-3.5 pr-3.5 pl-4.5">
+        {/* The AI orb (Figma): a glowing disc in the AI colour. */}
+        <span
+          className="flex size-6 shrink-0 items-center justify-center rounded-full bg-ai/15 text-ai shadow-ai-orb"
+          aria-hidden="true"
+        >
+          <AiIcon className="size-3.5" />
         </span>
-        <div className="flex min-w-0 flex-1 items-baseline gap-2">
-          <h2 className="truncate text-body font-semibold text-ink-strong">{copy.panel.title}</h2>
-          <span className="truncate text-caption text-muted-foreground">
-            {copy.panel.on(where)}
-          </span>
-        </div>
+        <h2 className="min-w-0 flex-1 truncate text-[0.9375rem] leading-5 font-semibold text-ink-strong">
+          {copy.panel.title}
+        </h2>
+        <span className="shrink-0 rounded-full bg-muted px-2.5 py-0.5 text-xs font-medium text-muted-foreground">
+          {copy.panel.on(where)}
+        </span>
         {turns.length > 0 ? (
           <button
             type="button"
