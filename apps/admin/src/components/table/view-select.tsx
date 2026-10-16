@@ -1,13 +1,16 @@
 'use client'
 
-import { ChevronsUpDown } from '@commerce/ui/icons'
+import { CheckIcon, ChevronsUpDown } from '@commerce/ui/icons'
 import {
   DropdownMenu,
   DropdownMenuContent,
-  DropdownMenuRadioGroup,
-  DropdownMenuRadioItem,
+  DropdownMenuGroup,
+  DropdownMenuItem,
+  DropdownMenuLabel,
   DropdownMenuTrigger,
 } from '@commerce/ui/shadcn/dropdown-menu'
+import { tableContent } from '@/data/table'
+import { useCopy } from '@/hooks/use-copy'
 
 export type ViewOption<V extends string | null> = { value: V; label: string; count?: number }
 
@@ -22,9 +25,6 @@ type ViewSelectProps<V extends string | null> = {
   /** Filters are applied: the trigger reads "Custom" with the result count, no view is ticked. */
   custom?: { label: string; count: number } | undefined
 }
-
-/** No view is ticked while filters make a custom one. */
-const CUSTOM = '__custom'
 
 /** The radio value for a view; `null` (the "all" view) travels as an empty string. */
 function keyOf(value: string | null): string {
@@ -43,11 +43,8 @@ export default function ViewSelect<V extends string | null>({
   formatCount,
   custom,
 }: ViewSelectProps<V>) {
-  // Event handlers
-  const handleChange = (next: unknown) => {
-    const picked = options.find((o) => keyOf(o.value) === next)
-    if (picked) onChange(picked.value)
-  }
+  // Hooks
+  const tableCopy = useCopy(tableContent)
 
   // Render logic
   const found = options.find((o) => o.value === value) ?? options[0]
@@ -67,23 +64,28 @@ export default function ViewSelect<V extends string | null>({
         ) : null}
         <ChevronsUpDown className="size-3.5 text-muted-foreground" aria-hidden="true" />
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="start" className="min-w-56">
-        <DropdownMenuRadioGroup
-          value={custom ? CUSTOM : keyOf(found?.value ?? null)}
-          onValueChange={handleChange}
-        >
-          {/* Shopify-style: picking a view applies it and closes the menu. */}
-          {options.map((o) => (
-            <DropdownMenuRadioItem key={keyOf(o.value)} value={keyOf(o.value)} closeOnClick>
-              <span className="flex-1">{o.label}</span>
-              {o.count !== undefined ? (
-                <span className="ml-4 text-xs text-muted-foreground tabular-nums">
-                  {formatCount(o.count)}
+      {/* Figma "State · Views dropdown open": a "Views" heading, the tick on the left and the
+          count on the right of each view. */}
+      <DropdownMenuContent align="start" className="min-w-60">
+        <DropdownMenuGroup>
+          <DropdownMenuLabel>{tableCopy.views}</DropdownMenuLabel>
+          {options.map((o) => {
+            const on = !custom && keyOf(o.value) === keyOf(found?.value ?? null)
+            return (
+              <DropdownMenuItem key={keyOf(o.value)} onClick={() => onChange(o.value)}>
+                <span className="flex size-4 shrink-0 items-center justify-center">
+                  {on ? <CheckIcon className="size-4" aria-hidden="true" /> : null}
                 </span>
-              ) : null}
-            </DropdownMenuRadioItem>
-          ))}
-        </DropdownMenuRadioGroup>
+                <span className={on ? 'flex-1 font-medium' : 'flex-1'}>{o.label}</span>
+                {o.count !== undefined ? (
+                  <span className="ml-4 text-xs text-muted-foreground tabular-nums">
+                    {formatCount(o.count)}
+                  </span>
+                ) : null}
+              </DropdownMenuItem>
+            )
+          })}
+        </DropdownMenuGroup>
       </DropdownMenuContent>
     </DropdownMenu>
   )

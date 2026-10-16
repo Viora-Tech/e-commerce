@@ -139,7 +139,6 @@ export const NAV_GROUPS: NavGroup[] = [
         href: routes.discounts.list(),
         label: 'Discounts',
         icon: BadgePercent,
-        iconClassName: 'rotate-30',
         permission: permissions.DISCOUNTS_READ,
       },
     ],

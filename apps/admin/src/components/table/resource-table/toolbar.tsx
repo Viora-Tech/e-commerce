@@ -28,7 +28,9 @@ import type { ReactTable, RowData } from '@tanstack/react-table'
 import { type ComponentProps, type ReactNode, useState } from 'react'
 import { tableContent } from '@/data/table'
 import { useCopy } from '@/hooks/use-copy'
+import ColumnsMenu from './columns-menu'
 import type { ResourceTableFeatures } from './features'
+import SortMenu from './sort-menu'
 
 export type AppliedFilter = {
   key: string
@@ -56,6 +58,12 @@ type ToolbarProps<T extends RowData> = {
   onClearAll?: () => void
   /** Human-readable column titles for the columns menu, by column id. */
   columnTitles: Record<string, string>
+  /** Direction words per column for the sort menu. */
+  sortLabels: Record<string, { desc: string; asc: string }>
+  /** The columns' order as the member arranged it (empty = as defined). */
+  columnOrder: string[]
+  /** The columns menu's Reset: the page's default columns and order. */
+  onResetColumns: () => void
 }
 
 /* Figma "Table / Toolbar": the top row of the table card. View select, a divider, a borderless
@@ -75,6 +83,9 @@ export default function ResourceTableToolbar<T extends RowData>({
   applied = [],
   onClearAll,
   columnTitles,
+  sortLabels,
+  columnOrder,
+  onResetColumns,
 }: ToolbarProps<T>) {
   // Hooks
   const tableCopy = useCopy(tableContent)
@@ -82,10 +93,7 @@ export default function ResourceTableToolbar<T extends RowData>({
 
   // Render logic
   const hideable = table.getAllColumns().filter((c) => c.getCanHide())
-  const sortable = table.getAllColumns().filter((c) => c.getCanSort())
   const hasApplied = applied.length > 0 || query.length > 0
-  const sortedBy = sortable.find((c) => c.getIsSorted())
-  const direction = sortedBy?.getIsSorted() || 'asc'
 
   return (
     <div className="flex flex-col border-border border-b">
@@ -127,86 +135,20 @@ export default function ResourceTableToolbar<T extends RowData>({
             </Popover>
           ) : null}
           <div className="ml-auto flex items-center gap-1">
-            {sortable.length > 0 ? (
-              <DropdownMenu>
-                {/* While a sort applies the icon stays lit, so the list says it is sorted. */}
-                <DropdownMenuTrigger
-                  render={
-                    <ToolbarButton
-                      aria-label={tableCopy.sort}
-                      className={cn('size-8', sortedBy && 'bg-muted text-foreground')}
-                    />
-                  }
-                  nativeButton
-                >
-                  <ArrowUpDown />
-                </DropdownMenuTrigger>
-                {/* Shopify-style: the column it sorts by is ticked, then the direction. */}
-                <DropdownMenuContent align="end" className="w-52">
-                  <DropdownMenuGroup>
-                    <DropdownMenuLabel>{tableCopy.sortBy}</DropdownMenuLabel>
-                    <DropdownMenuRadioGroup
-                      value={sortedBy?.id ?? ''}
-                      onValueChange={(id) =>
-                        sortable.find((c) => c.id === id)?.toggleSorting(direction === 'desc')
-                      }
-                    >
-                      {sortable.map((column) => (
-                        <DropdownMenuRadioItem key={column.id} value={column.id}>
-                          {columnTitles[column.id] ?? column.id}
-                        </DropdownMenuRadioItem>
-                      ))}
-                    </DropdownMenuRadioGroup>
-                  </DropdownMenuGroup>
-                  {sortedBy ? (
-                    <>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuRadioGroup
-                        value={direction}
-                        onValueChange={(d) => sortedBy.toggleSorting(d === 'desc')}
-                      >
-                        <DropdownMenuRadioItem value="asc">
-                          <ArrowUp aria-hidden="true" />
-                          {tableCopy.sortAsc}
-                        </DropdownMenuRadioItem>
-                        <DropdownMenuRadioItem value="desc">
-                          <ArrowDown aria-hidden="true" />
-                          {tableCopy.sortDesc}
-                        </DropdownMenuRadioItem>
-                      </DropdownMenuRadioGroup>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem onClick={() => table.resetSorting()}>
-                        {tableCopy.clearSort}
-                      </DropdownMenuItem>
-                    </>
-                  ) : null}
-                </DropdownMenuContent>
-              </DropdownMenu>
-            ) : null}
+            <SortMenu
+              table={table}
+              columnTitles={columnTitles}
+              sortLabels={sortLabels}
+              trigger={CONTROL}
+            />
             {hideable.length > 0 ? (
-              <DropdownMenu>
-                <DropdownMenuTrigger
-                  render={<ToolbarButton aria-label={tableCopy.toggleColumns} className="size-8" />}
-                  nativeButton
-                >
-                  <Columns />
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-44">
-                  <DropdownMenuGroup>
-                    <DropdownMenuLabel>{tableCopy.toggleColumns}</DropdownMenuLabel>
-                  </DropdownMenuGroup>
-                  <DropdownMenuSeparator />
-                  {hideable.map((column) => (
-                    <DropdownMenuCheckboxItem
-                      key={column.id}
-                      checked={column.getIsVisible()}
-                      onCheckedChange={(value) => column.toggleVisibility(!!value)}
-                    >
-                      {columnTitles[column.id] ?? column.id}
-                    </DropdownMenuCheckboxItem>
-                  ))}
-                </DropdownMenuContent>
-              </DropdownMenu>
+              <ColumnsMenu
+                table={table}
+                columnTitles={columnTitles}
+                columnOrder={columnOrder}
+                onReset={onResetColumns}
+                trigger={CONTROL}
+              />
             ) : null}
           </div>
         </div>

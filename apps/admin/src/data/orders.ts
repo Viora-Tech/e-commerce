@@ -80,6 +80,9 @@ export const ordersContent = {
   viewLabel: 'Order view',
   /** Status column for a paid order nobody has shipped yet (Figma: blue "To ship"). */
   toShip: 'To ship',
+  /** The sort menu's direction labels for the Date column (Figma "State · Sort open"). */
+  sortNewest: 'Newest first',
+  sortOldest: 'Oldest first',
   /** The View select while filters are applied (Figma "Custom"). */
   customView: 'Custom',
   /** The filter panel and its chips (Figma "Orders · Filter", "Applied filters"). */

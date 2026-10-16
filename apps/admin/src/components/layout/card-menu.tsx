@@ -1,4 +1,4 @@
-import { MoreVertical } from '@commerce/ui/icons'
+import { type IconComponent, MoreVertical } from '@commerce/ui/icons'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -8,7 +8,14 @@ import {
 import Link from 'next/link'
 import { layoutContent } from '@/data/layout'
 
-export type MenuLink = { label: string; href: string }
+export type MenuLink = {
+  label: string
+  href: string
+  /** A 16px lead icon (Figma row menu). */
+  icon?: IconComponent | undefined
+  /** Opens in a new browser tab. */
+  newTab?: boolean | undefined
+}
 
 type CardMenuProps = { items: readonly MenuLink[]; label?: string }
 
