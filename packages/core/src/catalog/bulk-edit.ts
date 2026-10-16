@@ -5,9 +5,18 @@
  * Stock goes through `setStock`, so every change is logged in the inventory ledger.
  */
 import type { StoreTx } from '@commerce/db'
-import { inventoryLevel, location, product, variant } from '@commerce/db'
-import { and, eq, inArray, isNull, notInArray } from 'drizzle-orm'
+import {
+  collection,
+  collectionProduct,
+  inventoryLevel,
+  location,
+  newId,
+  product,
+  variant,
+} from '@commerce/db'
+import { and, eq, inArray, isNull, notInArray, or } from 'drizzle-orm'
 import { setStock } from '../inventory/levels'
+import { onHandleChange } from '../redirects/handle-change'
 import {
   type BulkEditError,
   type BulkEditResult,
@@ -18,7 +27,21 @@ import {
 type ProductCells = NonNullable<BulkEditRow['product']>
 type VariantCells = NonNullable<BulkEditRow['variant']>
 
-const PRODUCT_KEYS = ['title', 'status', 'vendor', 'productType', 'tags'] as const
+const PRODUCT_KEYS = [
+  'title',
+  'status',
+  'vendor',
+  'productType',
+  'tags',
+  'handle',
+  'seoTitle',
+  'seoDescription',
+  'featured',
+  'taxIncluded',
+  'templateSuffix',
+] as const
+/** Cells every variant row of one product must agree on. */
+const PRODUCT_AGREE_KEYS = [...PRODUCT_KEYS, 'collectionIds'] as const
 const VARIANT_KEYS = [
   'pricePaise',
   'mrpPaise',
@@ -28,7 +51,14 @@ const VARIANT_KEYS = [
   'weightGrams',
   'hsCode',
   'gstRatePercent',
+  'trackInventory',
+  'countryOfOrigin',
+  'packageLengthCm',
+  'packageWidthCm',
+  'packageHeightCm',
+  'boxPresetId',
 ] as const
+const PACKAGE_KEYS = ['packageLengthCm', 'packageWidthCm', 'packageHeightCm'] as const
 
 /** An emptied text cell means "no value", not an empty string. */
 const blankToNull = (v: string | null | undefined) =>
@@ -38,6 +68,10 @@ function normaliseProduct(p: ProductCells): ProductCells {
   const out: ProductCells = { ...p }
   if ('vendor' in p) out.vendor = blankToNull(p.vendor)
   if ('productType' in p) out.productType = blankToNull(p.productType)
+  if ('seoTitle' in p) out.seoTitle = blankToNull(p.seoTitle)
+  if ('seoDescription' in p) out.seoDescription = blankToNull(p.seoDescription)
+  if ('templateSuffix' in p) out.templateSuffix = blankToNull(p.templateSuffix)
+  if (p.collectionIds) out.collectionIds = [...new Set(p.collectionIds)].sort()
   if (p.tags) out.tags = [...new Set(p.tags.map((t) => t.trim()).filter(Boolean))]
   return out
 }
@@ -47,6 +81,8 @@ function normaliseVariant(v: VariantCells): VariantCells {
   if ('sku' in v) out.sku = blankToNull(v.sku)
   if ('barcode' in v) out.barcode = blankToNull(v.barcode)
   if ('hsCode' in v) out.hsCode = blankToNull(v.hsCode)
+  if ('countryOfOrigin' in v)
+    out.countryOfOrigin = blankToNull(v.countryOfOrigin)?.toUpperCase() ?? null
   return out
 }
 
@@ -91,6 +127,18 @@ export async function bulkEdit(
       weightGrams: variant.weightGrams,
       hsCode: variant.hsCode,
       gstRatePercent: variant.gstRatePercent,
+      trackInventory: variant.trackInventory,
+      countryOfOrigin: variant.countryOfOrigin,
+      packageLengthCm: variant.packageLengthCm,
+      packageWidthCm: variant.packageWidthCm,
+      packageHeightCm: variant.packageHeightCm,
+      boxPresetId: variant.boxPresetId,
+      handle: product.handle,
+      seoTitle: product.seoTitle,
+      seoDescription: product.seoDescription,
+      featured: product.featured,
+      taxIncluded: product.taxIncluded,
+      templateSuffix: product.templateSuffix,
       title: product.title,
       status: product.status,
       vendor: product.vendor,
@@ -121,7 +169,7 @@ export async function bulkEdit(
       productPatch.set(cur.productId, { patch: r.product, variantId: r.variantId })
       continue
     }
-    for (const key of PRODUCT_KEYS) {
+    for (const key of PRODUCT_AGREE_KEYS) {
       if (key in r.product && key in seen.patch && !same(r.product[key], seen.patch[key])) {
         fail(r.variantId, key, 'Differs from another row of the same product')
       } else if (key in r.product && !(key in seen.patch)) {
@@ -143,6 +191,17 @@ export async function bulkEdit(
     }
     const hs = r.variant && 'hsCode' in r.variant ? r.variant.hsCode : undefined
     if (hs && !HS_CODE_PATTERN.test(hs)) fail(r.variantId, 'hsCode', 'HSN must be 4 to 8 digits')
+    const dims = PACKAGE_KEYS.map((k) =>
+      r.variant && k in r.variant ? (r.variant[k] ?? null) : (cur[k] ?? null),
+    )
+    if (r.variant && PACKAGE_KEYS.some((k) => k in (r.variant ?? {}))) {
+      if (dims.some((d) => d === null) && dims.some((d) => d !== null)) {
+        fail(r.variantId, 'packageLengthCm', 'Set length, width and height together')
+      } else if (dims.every((d) => d !== null) && !('boxPresetId' in r.variant)) {
+        /* A custom box replaces the named one. */
+        r.variant = { ...r.variant, boxPresetId: null }
+      }
+    }
     const patched = r.variant && 'sku' in r.variant
     const sku = patched ? r.variant?.sku : cur.sku
     if (patched && sku) patchedSku.set(r.variantId, sku)
@@ -170,6 +229,81 @@ export async function bulkEdit(
       const owner = t.sku ? byLower.get(t.sku.toLowerCase()) : undefined
       if (owner) fail(owner, 'sku', `SKU ${t.sku} is already on another variant`)
     }
+  }
+
+  /* A handle is unique in the store: among the sheet's products and against all the others. */
+  const finalHandle = new Map<string, string>()
+  for (const cur of current.values()) finalHandle.set(cur.productId, cur.handle)
+  for (const [productId, { patch }] of productPatch) {
+    if (patch.handle) finalHandle.set(productId, patch.handle)
+  }
+  const handleOwners = new Map<string, string[]>()
+  for (const [productId, handle] of finalHandle)
+    handleOwners.set(handle, [...(handleOwners.get(handle) ?? []), productId])
+  const sheetProductIds = [...finalHandle.keys()]
+  const patchedHandles = [...productPatch.values()].flatMap((p) =>
+    p.patch.handle ? [p.patch.handle] : [],
+  )
+  const takenHandles = patchedHandles.length
+    ? new Set(
+        (
+          await tx
+            .select({ handle: product.handle })
+            .from(product)
+            .where(
+              and(inArray(product.handle, patchedHandles), notInArray(product.id, sheetProductIds)),
+            )
+        ).map((p) => p.handle),
+      )
+    : new Set<string>()
+  for (const [productId, { patch, variantId }] of productPatch) {
+    if (!patch.handle) continue
+    if ((handleOwners.get(patch.handle)?.length ?? 0) > 1) {
+      fail(variantId, 'handle', `The handle ${patch.handle} is used twice in this sheet`)
+    } else if (takenHandles.has(patch.handle) && finalHandle.get(productId) === patch.handle) {
+      fail(variantId, 'handle', `The handle ${patch.handle} is already on another product`)
+    }
+  }
+
+  /* Collections named in a cell must be this store's manual ones; load what each product is in now. */
+  const wantedCollections = [
+    ...new Set([...productPatch.values()].flatMap((p) => p.patch.collectionIds ?? [])),
+  ]
+  const manualCollections = wantedCollections.length
+    ? new Set(
+        (
+          await tx
+            .select({ id: collection.id })
+            .from(collection)
+            .where(and(inArray(collection.id, wantedCollections), eq(collection.kind, 'manual')))
+        ).map((c) => c.id),
+      )
+    : new Set<string>()
+  for (const { patch, variantId } of productPatch.values()) {
+    if (patch.collectionIds?.some((c) => !manualCollections.has(c))) {
+      fail(variantId, 'collectionIds', 'Unknown or automatic collection')
+    }
+  }
+  const patchedCollectionProducts = [...productPatch]
+    .filter(([, p]) => p.patch.collectionIds)
+    .map(([productId]) => productId)
+  const memberships = new Map<string, string[]>()
+  if (patchedCollectionProducts.length && errors.length === 0) {
+    const links = await tx
+      .select({
+        productId: collectionProduct.productId,
+        collectionId: collectionProduct.collectionId,
+      })
+      .from(collectionProduct)
+      .innerJoin(collection, eq(collection.id, collectionProduct.collectionId))
+      .where(
+        and(
+          inArray(collectionProduct.productId, patchedCollectionProducts),
+          eq(collection.kind, 'manual'),
+        ),
+      )
+    for (const l of links)
+      memberships.set(l.productId, [...(memberships.get(l.productId) ?? []), l.collectionId])
   }
 
   /* Locations named in a stock cell must be this store's. */
@@ -212,19 +346,45 @@ export async function bulkEdit(
   let updatedVariants = 0
   let stockChanges = 0
 
+  const removals: ReturnType<typeof and>[] = []
+  const additions: (typeof collectionProduct.$inferInsert)[] = []
   for (const [productId, { patch, variantId }] of productPatch) {
     const cur = current.get(variantId)
     if (!cur) continue
-    const keys = changedKeys(PRODUCT_KEYS, patch, cur)
-    if (keys.length === 0) continue
-    const set = Object.fromEntries(keys.map((k) => [k, patch[k]]))
-    await tx
-      .update(product)
-      .set({ ...set, updatedAt: new Date() })
-      .where(eq(product.id, productId))
+    const keys = changedKeys(PRODUCT_KEYS, patch, cur) as (typeof PRODUCT_KEYS)[number][]
+    const before = [...(memberships.get(productId) ?? [])].sort()
+    const collectionsChanged =
+      patch.collectionIds !== undefined && !same(patch.collectionIds, before)
+    if (keys.length === 0 && !collectionsChanged) continue
+    if (keys.length > 0) {
+      const set = Object.fromEntries(keys.map((k) => [k, patch[k]]))
+      await tx
+        .update(product)
+        .set({ ...set, updatedAt: new Date() })
+        .where(eq(product.id, productId))
+      if (patch.handle && keys.includes('handle')) {
+        await onHandleChange(tx, storeId, 'product', cur.handle, patch.handle)
+      }
+    }
     updatedProducts += 1
-    undoRow(variantId).product = Object.fromEntries(keys.map((k) => [k, cur[k]])) as ProductCells
+    const undoProduct = Object.fromEntries(keys.map((k) => [k, cur[k]])) as ProductCells
+    if (collectionsChanged && patch.collectionIds) {
+      const wanted = new Set(patch.collectionIds)
+      const removed = before.filter((c) => !wanted.has(c))
+      const added = patch.collectionIds.filter((c) => !before.includes(c))
+      for (const c of removed) {
+        removals.push(
+          and(eq(collectionProduct.productId, productId), eq(collectionProduct.collectionId, c)),
+        )
+      }
+      for (const c of added)
+        additions.push({ id: newId(), storeId, collectionId: c, productId, position: 0 })
+      undoProduct.collectionIds = before
+    }
+    undoRow(variantId).product = undoProduct
   }
+  if (removals.length) await tx.delete(collectionProduct).where(or(...removals))
+  if (additions.length) await tx.insert(collectionProduct).values(additions)
 
   for (const r of normalised) {
     const cur = current.get(r.variantId)

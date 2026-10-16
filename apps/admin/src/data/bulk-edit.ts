@@ -4,7 +4,7 @@ export const bulkEditContent = {
   back: 'Products',
   summary: (products: number, variants: number) =>
     `${products} ${products === 1 ? 'product' : 'products'} · ${variants} ${variants === 1 ? 'variant' : 'variants'}`,
-  hint: 'Click a cell and type. Paste from a spreadsheet, drag the corner to fill down, or press Ctrl+D to copy the cell above.',
+  hint: 'Click a cell and type. Collections are comma-separated names; Yes/No cells open a list. Paste from a spreadsheet, drag the corner to fill down, or press Ctrl+D to copy the cell above.',
   truncated: (max: number) =>
     `Only the first ${max} variants are shown. Select fewer products to edit the rest.`,
   save: 'Save',
@@ -27,9 +27,28 @@ export const bulkEditContent = {
     weight: 'Weight (g)',
     hsCode: 'HSN',
     gst: 'GST %',
+    handle: 'URL handle',
+    description: 'Description (read-only)',
+    collections: 'Collections',
+    seoTitle: 'SEO title',
+    seoDescription: 'SEO description',
+    featured: 'Featured',
+    taxIncluded: 'Price includes tax',
+    templateSuffix: 'Template',
+    trackInventory: 'Track stock',
+    countryOfOrigin: 'Origin',
+    packageLength: 'Length (cm)',
+    packageWidth: 'Width (cm)',
+    packageHeight: 'Height (cm)',
     stock: (location: string) => `Stock · ${location}`,
   },
   statuses: { draft: 'Draft', active: 'Active', archived: 'Archived' },
+  yesNo: { yes: 'Yes', no: 'No' },
+  columnsMenu: {
+    label: 'Columns',
+    groups: { product: 'Product', variant: 'Variant' },
+    stock: 'Stock by location',
+  },
   errors: {
     heading: (n: number) =>
       `${n} ${n === 1 ? 'cell needs' : 'cells need'} fixing before you can save`,
