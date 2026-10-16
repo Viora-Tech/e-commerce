@@ -736,40 +736,55 @@
  * bottom lip and a soft glow; pressed sits flat and inset. Not for anything small.
  */
 @utility key-primary {
+  /* Figma depth/button-primary: 1px top highlight, 1px bottom edge, contact + soft glow. */
   border: 1px solid var(--key-border);
   background-image: linear-gradient(to bottom, var(--key-top), var(--key-bottom));
   color: var(--key-ink);
   box-shadow:
     inset 0 1px 0 var(--key-highlight),
-    inset 0 -3px 0 var(--key-edge),
-    0 6px 16px -6px var(--key-glow);
+    inset 0 -1px 0 var(--key-edge),
+    0 1px 2px 0 var(--depth-contact),
+    0 4px 12px -4px var(--key-glow);
   &:hover:not(:disabled, [aria-disabled="true"]) {
     box-shadow:
       inset 0 1px 0 var(--key-highlight),
-      inset 0 -3px 0 var(--key-edge),
-      0 10px 22px -6px var(--key-glow);
+      inset 0 -1px 0 var(--key-edge),
+      0 1px 2px 0 var(--depth-contact),
+      0 8px 20px -6px var(--key-glow);
   }
   &:active:not(:disabled, [aria-disabled="true"]) {
     background-image: linear-gradient(to bottom, var(--key-bottom), var(--key-bottom));
-    box-shadow: inset 0 2px 4px var(--key-edge);
+    box-shadow: inset 0 1px 2px var(--key-edge);
   }
 }
 
 @utility key-neutral {
+  /* Figma depth/button-outline: card fill, hairline, top highlight, soft contact. */
   border: 1px solid var(--border);
   background-image: linear-gradient(to bottom, var(--key-neutral-top), var(--key-neutral-bottom));
   color: var(--foreground);
   box-shadow:
     inset 0 1px 0 var(--key-neutral-highlight),
-    inset 0 -3px 0 var(--key-neutral-edge),
-    0 1px 2px var(--key-neutral-edge),
-    0 12px 28px -14px var(--key-neutral-shadow);
+    inset 0 -1px 0 var(--key-neutral-edge),
+    0 1px 2px 0 var(--key-neutral-shadow);
   &:hover:not(:disabled, [aria-disabled="true"]) {
     background-image: linear-gradient(to bottom, var(--key-neutral-hover), var(--key-neutral-top));
   }
   &:active:not(:disabled, [aria-disabled="true"]) {
     background-image: linear-gradient(to bottom, var(--muted), var(--muted));
-    box-shadow: inset 0 2px 4px var(--key-neutral-edge);
+    box-shadow: inset 0 1px 2px var(--key-neutral-edge);
+  }
+}
+
+/* Destructive buttons: the same material in the destructive colour (Figma depth/button-destructive). */
+@utility key-destructive {
+  box-shadow:
+    inset 0 1px 0 var(--btn-top),
+    inset 0 -1px 0 var(--btn-bottom),
+    0 1px 2px 0 var(--depth-contact),
+    0 4px 12px -4px var(--glow-destructive);
+  &:active:not(:disabled, [aria-disabled="true"]) {
+    box-shadow: inset 0 1px 2px var(--btn-bottom);
   }
 }
 

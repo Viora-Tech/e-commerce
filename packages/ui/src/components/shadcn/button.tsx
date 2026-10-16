@@ -13,15 +13,15 @@ const buttonVariants = cva(
         /* key-neutral: important header actions that are not the primary. */
         'key-neutral': 'key-neutral font-semibold',
         /* plain-outline: everything else that needs a rim. */
-        outline:
-          'border-border bg-transparent text-foreground hover:bg-muted aria-expanded:bg-muted aria-expanded:text-foreground active:bg-muted',
+        /* plain-outline: everything else that needs a rim. Figma depth/button-outline. */
+        outline: 'key-neutral aria-expanded:bg-muted aria-expanded:text-foreground',
         secondary:
           'bg-secondary text-secondary-foreground hover:bg-[color-mix(in_oklch,var(--secondary),var(--foreground)_5%)] aria-expanded:bg-secondary aria-expanded:text-secondary-foreground',
         /* plain-ghost: no rim until hovered. */
         ghost:
           'hover:bg-muted hover:text-foreground aria-expanded:bg-muted aria-expanded:text-foreground active:bg-muted',
         destructive:
-          'bg-destructive text-destructive-foreground font-semibold hover:bg-destructive/90 focus-visible:border-destructive/40 focus-visible:ring-destructive/20 dark:focus-visible:ring-destructive/40',
+          'key-destructive bg-destructive text-destructive-foreground font-semibold hover:bg-destructive/90 focus-visible:border-destructive/40 focus-visible:ring-destructive/20 dark:focus-visible:ring-destructive/40',
         link: 'text-primary underline-offset-4 hover:underline',
       },
       size: {
