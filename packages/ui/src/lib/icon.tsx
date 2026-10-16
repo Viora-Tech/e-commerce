@@ -1,10 +1,16 @@
-import type { IconWeight, Icon as PhosphorIcon } from '@phosphor-icons/react'
+import { HugeiconsIcon, type IconSvgElement } from '@hugeicons/react'
 import { forwardRef, type SVGProps } from 'react'
+
+/**
+ * The old glyph-weight names, kept so call sites (`weight="fill"` on the active sidebar item,
+ * `'duotone'` defaults) keep compiling. Hugeicons Stroke Rounded has one style, so a weight
+ * only changes the stroke: `bold` and `fill` draw a heavier line, everything else the default.
+ */
+export type IconWeight = 'thin' | 'light' | 'regular' | 'bold' | 'fill' | 'duotone'
 
 export type IconProps = Omit<SVGProps<SVGSVGElement>, 'strokeWidth'> & {
   size?: number | string
-  /** Kept for call-site compatibility with the old stroke-icon API; Phosphor has no stroke
-   * width, so this is accepted and ignored. Use `weight` instead. */
+  /** Stroke width on the 24 grid; defaults to 1.5 (the Figma kit's Hugeicons stroke). */
   strokeWidth?: number | string
   /** Overrides the glyph's default weight (e.g. `fill` for the active sidebar item). */
   weight?: IconWeight
@@ -12,18 +18,33 @@ export type IconProps = Omit<SVGProps<SVGSVGElement>, 'strokeWidth'> & {
 
 export type IconComponent = ReturnType<typeof defineIcon>
 
+/** The Figma kit's icon stroke (Hugeicons Stroke Rounded at 1.5). */
+const STROKE = 1.5
+const HEAVY_STROKE = 2
+
+function strokeFor(weight: IconWeight, strokeWidth: number | string | undefined): number {
+  if (strokeWidth !== undefined) return Number(strokeWidth)
+  return weight === 'bold' || weight === 'fill' ? HEAVY_STROKE : STROKE
+}
+
 /**
- * Phosphor icon as a drop-in component: `<Icon className="size-5" />` sizes via CSS.
- * `weight` fixes the glyph's default style (regular by default, duotone for nav/section
- * icons), overridable per call site (e.g. `fill` for the active sidebar item).
+ * Hugeicons glyph (free Stroke Rounded set, MIT) as a drop-in component: `<Icon className="size-5" />`
+ * sizes via CSS. `weight` is accepted for compatibility and only thickens the stroke.
  */
-export function defineIcon(Glyph: PhosphorIcon, name: string, weight: IconWeight = 'regular') {
+export function defineIcon(Glyph: IconSvgElement, name: string, weight: IconWeight = 'regular') {
   const Icon = forwardRef<SVGSVGElement, IconProps>(function Icon(
-    { size = 20, strokeWidth: _strokeWidth, weight: weightOverride, ...rest },
+    { size = 20, strokeWidth, weight: weightOverride, ...rest },
     ref,
   ) {
     return (
-      <Glyph ref={ref} size={size} weight={weightOverride ?? weight} aria-hidden="true" {...rest} />
+      <HugeiconsIcon
+        ref={ref}
+        icon={Glyph}
+        size={size}
+        strokeWidth={strokeFor(weightOverride ?? weight, strokeWidth)}
+        aria-hidden="true"
+        {...rest}
+      />
     )
   })
   Icon.displayName = name
@@ -31,12 +52,12 @@ export function defineIcon(Glyph: PhosphorIcon, name: string, weight: IconWeight
 }
 
 /**
- * Custom 24-grid stroke glyph for the handful of kit icons Phosphor has no close match for.
+ * Custom 24-grid stroke glyph for the handful of kit icons the icon set has no close match for.
  * Same props and sizing contract as `defineIcon`; `paths` are SVG path data.
  */
 export function definePath(paths: readonly string[], name: string, options?: { fill?: string }) {
   const Icon = forwardRef<SVGSVGElement, IconProps>(function Icon(
-    { size = 20, strokeWidth = 1.6, ...rest },
+    { size = 20, strokeWidth = STROKE, weight: _weight, ...rest },
     ref,
   ) {
     return (

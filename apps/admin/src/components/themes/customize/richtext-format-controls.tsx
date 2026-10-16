@@ -80,7 +80,7 @@ const CONTROLS: Control[] = [
 const copy = customizeContent.toolbar.formatting
 
 /**
- * The text menus' formatting buttons in Phosphor glyphs (the editor's icon set), in place of
+ * The text menus' formatting buttons in Hugeicons glyphs (the editor's icon set), in place of
  * Puck's built-in ones: Puck's `RichTextMenu.Control` with our icon, and only the commands the
  * field's editor actually has (a field without lists shows no list buttons).
  */

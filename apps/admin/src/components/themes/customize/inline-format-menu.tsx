@@ -18,7 +18,7 @@ const copy = customizeContent.toolbar
  * The rich-text menu on the canvas (`renderInlineMenu` on every richtext field, see
  * `customize-config.tsx`): bold, italic and underline, a link control and clear formatting
  * (Figma "Builder / Block toolbar", State=Text editing, 500:5981); with `set="full"` also the
- * right panel's menu (`field-format-menu.tsx`). The buttons are ours in Phosphor glyphs
+ * right panel's menu (`field-format-menu.tsx`). The buttons are ours in Hugeicons glyphs
  * (`RichtextFormatControls`), not Puck's built-in ones. The link
  * form lives inside the menu (`data-puck-rte-menu`), so typing in it keeps the text selected
  * and the menu open. Links take the same targets the link picker accepts (`normalisePastedUrl`).

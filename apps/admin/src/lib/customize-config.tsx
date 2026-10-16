@@ -75,7 +75,7 @@ function withHiding(component: ComponentConfig): ComponentConfig {
 
 /**
  * Every richtext field, nested ones included, gets our menus: the canvas one (B/I/U plus a link
- * control) and the right panel's, both in Phosphor glyphs instead of Puck's built-in icons. Done here rather than in `@commerce/blocks` so the storefront never loads it.
+ * control) and the right panel's, both in Hugeicons glyphs instead of Puck's built-in icons. Done here rather than in `@commerce/blocks` so the storefront never loads it.
  */
 function withInlineMenu(fields: unknown): unknown {
   if (!fields || typeof fields !== 'object') return fields
