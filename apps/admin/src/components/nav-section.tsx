@@ -75,7 +75,7 @@ export default function NavSection({ item, pathname }: NavSectionProps) {
         <motion.span
           layoutId="nav-active-pill"
           transition={slide}
-          className="absolute inset-0 -z-10 rounded-[0.375rem] bg-sidebar-accent before:absolute before:inset-y-1.5 before:left-0 before:w-0.75 before:rounded-full before:bg-primary"
+          className="absolute inset-0 -z-10 rounded-[0.375rem] bg-sidebar-accent before:absolute before:inset-y-1.5 before:left-0 before:w-0.75 before:rounded-full before:bg-sidebar-foreground"
           aria-hidden
         />
       ) : sectionActive ? (
@@ -148,7 +148,7 @@ export default function NavSection({ item, pathname }: NavSectionProps) {
                       <motion.span
                         layoutId="nav-child-active-pill"
                         transition={slide}
-                        className="absolute inset-0 -z-10 rounded-[0.375rem] bg-sidebar-accent before:absolute before:inset-y-1.5 before:left-0 before:w-0.75 before:rounded-full before:bg-primary"
+                        className="absolute inset-0 -z-10 rounded-[0.375rem] bg-sidebar-accent before:absolute before:inset-y-1.5 before:left-0 before:w-0.75 before:rounded-full before:bg-sidebar-foreground"
                         aria-hidden
                       />
                     ) : null}

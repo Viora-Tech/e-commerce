@@ -369,9 +369,9 @@
   --btn-bottom: rgb(0 0 0 / 0.4);
   --glow-primary: rgb(23 23 23 / 0.28);
   --glow-destructive: rgb(231 0 11 / 0.3);
-  --ai-glow: rgb(124 58 237 / 0.16);
-  /* The AI colour (blue-violet): the assistant's orb, AI box edge and AI glows. */
-  --ai: #7c3aed;
+  --ai-glow: rgb(23 23 23 / 0.1);
+  /* The AI colour: the assistant's orb and its glow. Neutral, as in Figma (owner, 2026-10-16). */
+  --ai: #171717;
 
   /* Older elevation names, kept for components that still use them. */
   --shadow-04: rgb(0 0 0 / 0.04);
@@ -447,7 +447,7 @@
   --glass-active: #f5f5f5;
   --glass-active-ink: #0a0a0a;
   /* Glass hero (Figma glass/*): soft light blobs and a streak behind a frosted fill. */
-  --glass-blob: #e4defe;
+  --glass-blob: #e4e4e7;
   --glass-streak: #ffffff;
   --glass-fill: rgb(255 255 255 / 0.55);
   --glass-bevel-light: #ffffff;
@@ -458,13 +458,13 @@
   --action: var(--primary);
   --action-foreground: var(--primary-foreground);
 
-  --primary: #4f46e5;
-  --primary-foreground: #ffffff;
-  --primary-hover: #4338ca;
-  --primary-soft: #eef2ff; /* selected rows, active nav, soft accent fills */
-  --primary-tint: #e0e7ff;
-  --link: #4f46e5;
-  --link-soft: #eef2ff;
+  --primary: #171717;
+  --primary-foreground: #fafafa;
+  --primary-hover: #2e2e2e;
+  --primary-soft: #f5f5f5; /* selected rows, active nav, soft accent fills */
+  --primary-tint: #f5f5f5;
+  --link: #1d4ed8;
+  --link-soft: #eff6ff;
   --secondary: #f5f5f5;
   --secondary-foreground: #171717;
   --muted: #f5f5f5;
@@ -509,17 +509,17 @@
   --line: #f0f0f0; /* table row dividers */
   --line-list: #f0f0f0;
   --input: #e5e5e5;
-  --ring: rgb(99 102 241 / 0.6);
+  --ring: #a1a1a1;
 
   /* Key material: the primary button (depth/button-primary) and the outline button. */
-  --key-top: #6366f1;
-  --key-bottom: #4f46e5;
-  --key-border: #4338ca;
-  --key-edge: rgb(30 27 75 / 0.35);
-  --key-glow: rgb(79 70 229 / 0.4);
-  --key-sheen: rgb(255 255 255 / 0.28);
-  --key-ink: #ffffff;
-  --key-highlight: rgb(255 255 255 / 0.3);
+  --key-top: #2e2e2e;
+  --key-bottom: #171717;
+  --key-border: #171717;
+  --key-edge: var(--btn-bottom);
+  --key-glow: var(--glow-primary);
+  --key-sheen: rgb(255 255 255 / 0.14);
+  --key-ink: #fafafa;
+  --key-highlight: var(--btn-top);
   --key-neutral-top: #ffffff;
   --key-neutral-bottom: #fafafa;
   --key-neutral-hover: #ffffff;
@@ -528,12 +528,12 @@
   --key-neutral-highlight: var(--depth-highlight);
 
   /* Charts: monochrome line and compare, then neutral steps (Figma chart/*). */
-  --chart-1: #4f46e5;
+  --chart-1: #0a0a0a;
   --chart-2: #a1a1a1;
   --chart-3: rgb(23 23 23 / 0.55);
   --chart-4: rgb(23 23 23 / 0.25);
   --chart-5: #e5e5e5;
-  --chart-area-top: rgb(99 102 241 / 0.22);
+  --chart-area-top: rgb(10 10 10 / 0.1);
 
   /* Sidebar and top bar: the shell. */
   --sidebar: #fafafa;
@@ -563,8 +563,8 @@
   --btn-bottom: rgb(0 0 0 / 0.18);
   --glow-primary: rgb(255 255 255 / 0.16);
   --glow-destructive: rgb(255 100 103 / 0.3);
-  --ai-glow: rgb(139 92 246 / 0.22);
-  --ai: #a78bfa;
+  --ai-glow: rgb(255 255 255 / 0.07);
+  --ai: #fafafa;
   --shadow-kit-3: 0 0 0 1px var(--depth-ring), 0 10px 24px -6px rgb(0 0 0 / 0.6);
   --shadow-kit-6: 0 0 0 1px var(--depth-ring), 0 24px 56px -12px rgb(0 0 0 / 0.7);
 
@@ -600,20 +600,20 @@
   --glass-scrim: rgb(0 0 0 / 0.45);
   --glass-active: #262626;
   --glass-active-ink: #fafafa;
-  --glass-blob: rgb(139 124 255 / 0.3);
+  --glass-blob: rgb(255 255 255 / 0.22);
   --glass-streak: rgb(255 255 255 / 0.1);
   --glass-fill: rgb(26 26 26 / 0.5);
   --glass-bevel-light: rgb(255 255 255 / 0.18);
   --glass-bevel-dark: rgb(0 0 0 / 0.55);
   --glass-lum: rgb(255 255 255 / 0.05);
 
-  --primary: #818cf8;
-  --primary-foreground: #0b0b1a;
-  --primary-hover: #a5b4fc;
-  --primary-soft: rgb(129 140 248 / 0.14);
-  --primary-tint: #1e1b4b;
-  --link: #a5b4fc;
-  --link-soft: rgb(129 140 248 / 0.14);
+  --primary: #e5e5e5;
+  --primary-foreground: #171717;
+  --primary-hover: #d0d0d0;
+  --primary-soft: rgb(255 255 255 / 0.06);
+  --primary-tint: #262626;
+  --link: #60a5fa;
+  --link-soft: rgb(59 130 246 / 0.14);
   --secondary: #262626;
   --secondary-foreground: #fafafa;
   --muted: #262626;
@@ -654,29 +654,29 @@
   --line: rgb(255 255 255 / 0.06);
   --line-list: rgb(255 255 255 / 0.05);
   --input: rgb(255 255 255 / 0.15);
-  --ring: rgb(129 140 248 / 0.6);
+  --ring: #737373;
 
   /* Dark primary button: white glass (owner, 2026-10-16: keep it white, add a glass feel).
      A slightly translucent white top-to-bottom, a bright top sheen, a light rim and a soft
      white glow; key-primary frosts what sits behind it. */
-  --key-top: rgb(99 102 241 / 0.94);
-  --key-bottom: rgb(79 70 229 / 0.9);
-  --key-border: rgb(165 180 252 / 0.35);
-  --key-ink: #ffffff;
-  --key-highlight: rgb(255 255 255 / 0.3);
-  --key-edge: rgb(0 0 0 / 0.3);
-  --key-glow: rgb(99 102 241 / 0.5);
-  --key-sheen: rgb(255 255 255 / 0.22);
+  --key-top: rgb(255 255 255 / 0.96);
+  --key-bottom: rgb(229 229 229 / 0.82);
+  --key-border: rgb(255 255 255 / 0.55);
+  --key-ink: #171717;
+  --key-highlight: rgb(255 255 255 / 0.95);
+  --key-edge: rgb(0 0 0 / 0.18);
+  --key-glow: rgb(255 255 255 / 0.18);
+  --key-sheen: rgb(255 255 255 / 0.7);
   --key-neutral-top: #1c1c1c;
   --key-neutral-bottom: #171717;
   --key-neutral-hover: #222222;
 
-  --chart-1: #a5b4fc;
+  --chart-1: #fafafa;
   --chart-2: #737373;
   --chart-3: rgb(229 229 229 / 0.45);
   --chart-4: rgb(229 229 229 / 0.2);
   --chart-5: #404040;
-  --chart-area-top: rgb(129 140 248 / 0.28);
+  --chart-area-top: rgb(255 255 255 / 0.1);
 
   --sidebar: #171717;
   --sidebar-foreground: #fafafa;
