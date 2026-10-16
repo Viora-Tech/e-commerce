@@ -116,7 +116,7 @@ export default function PreviewFrame({ children, document }: PreviewFrameProps) 
     const admin = getComputedStyle(window.document.documentElement)
     const accent = admin.getPropertyValue('--primary').trim()
     const accentSoft = admin.getPropertyValue('--primary-soft').trim()
-    // The admin's DM Sans (next/font's family names), for the chrome drawn in here.
+    // The admin's Plus Jakarta Sans (next/font's family names), for the chrome drawn in here.
     const font = admin.getPropertyValue('--font-primary').trim()
     const root = document.documentElement
     if (accent) root.style.setProperty('--admin-accent', accent)

@@ -16,7 +16,7 @@ type ProoflyPageHeaderProps = {
   tile?: ReactNode
 }
 
-/** Page header from the Proofly frames: back link, Bricolage title, summary line, actions. */
+/** Page header from the Proofly frames: back link, display title, summary line, actions. */
 export default function ProoflyPageHeader({
   title,
   summary,

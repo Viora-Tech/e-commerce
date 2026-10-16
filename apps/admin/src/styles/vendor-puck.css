@@ -27,7 +27,7 @@
  * accent pick (--primary) apply automatically — no separate dark block needed.
  */
 :root {
-  /* Type: DM Sans, the admin's face (`--font-primary`, next/font in app/layout.tsx), named
+  /* Type: Plus Jakarta Sans, the admin's face (`--font-primary`, next/font in app/layout.tsx), named
    * directly rather than through `--font-sans`, which Tailwind inlines (`@theme inline`) and may
    * not emit as a variable; an unresolved variable here would leave Puck's own Inter stack. */
   --puck-font-family: var(--font-primary), ui-sans-serif, system-ui, sans-serif;
@@ -106,7 +106,7 @@
 }
 
 /* Editor chrome drawn inside the canvas iframe (the block toolbar and its menus, Puck's
- * overlay): the admin's DM Sans, never the storefront theme's font the frame's body uses.
+ * overlay): the admin's Plus Jakarta Sans, never the storefront theme's font the frame's body uses.
  * preview-frame.tsx copies `--font-primary` onto the frame's root. */
 [data-puck-overlay],
 [data-editor-chrome] {
