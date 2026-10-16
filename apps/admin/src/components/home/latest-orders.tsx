@@ -82,7 +82,7 @@ export default async function LatestOrders({ orders }: LatestOrdersProps) {
               return (
                 <li
                   key={order.id}
-                  className="group flex items-center gap-3.5 px-5 py-3.5 transition-colors duration-150 first:rounded-t-lg last:rounded-b-lg hover:bg-row-hover"
+                  className="group flex items-center gap-3.5 px-5 py-3.5 transition-colors duration-300 ease-out first:rounded-t-lg last:rounded-b-lg hover:bg-row-hover"
                 >
                   <Link
                     href={detail}
@@ -105,7 +105,7 @@ export default async function LatestOrders({ orders }: LatestOrdersProps) {
                   </Link>
                   {/* A fixed slot so every chip sits centred on the same line, whatever its length. */}
                   <span className="relative flex w-28 shrink-0 justify-center">
-                    <span className="transition-opacity duration-150 group-focus-within:opacity-0 group-hover:opacity-0">
+                    <span className="transition-opacity duration-300 ease-out group-focus-within:opacity-0 group-hover:opacity-0">
                       <span
                         className={`inline-flex items-center gap-1 rounded-[0.375rem] border px-2 py-0.5 text-xs font-medium whitespace-nowrap ${TONE[chip.tone]}`}
                       >
@@ -115,7 +115,7 @@ export default async function LatestOrders({ orders }: LatestOrdersProps) {
                     </span>
                     {/* Figma "Home · Polished" row actions (hover): two small buttons take the chip's
                         place on the row itself, no panel behind them. */}
-                    <span className="pointer-events-none absolute inset-0 flex items-center justify-center gap-1.5 opacity-0 transition-opacity duration-150 group-focus-within:pointer-events-auto group-focus-within:opacity-100 group-hover:pointer-events-auto group-hover:opacity-100">
+                    <span className="pointer-events-none absolute inset-0 flex items-center justify-center gap-1.5 opacity-0 transition-opacity duration-300 ease-out group-focus-within:pointer-events-auto group-focus-within:opacity-100 group-hover:pointer-events-auto group-hover:opacity-100">
                       {canShip(order) ? (
                         <Link
                           href={detail}
