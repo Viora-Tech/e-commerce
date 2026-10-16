@@ -245,6 +245,21 @@
   --color-media-tile: var(--media-tile);
   --color-avatar: var(--avatar);
   --color-avatar-foreground: var(--avatar-foreground);
+  --color-row-hover: var(--row-hover);
+  --color-primary-hover: var(--primary-hover);
+  --color-danger-border: var(--danger-border);
+  --color-success-border: var(--success-border);
+  --color-warning-border: var(--warning-border);
+  --color-info-border: var(--info-border);
+  --color-violet: var(--violet);
+  --color-violet-soft: var(--violet-soft);
+  --color-violet-border: var(--violet-border);
+  --color-neutral: var(--neutral);
+  --color-neutral-soft: var(--neutral-soft);
+  --color-neutral-border: var(--neutral-border);
+  --color-live: var(--live);
+  --color-ai-glow: var(--ai-glow);
+  --color-chart-area-top: var(--chart-area-top);
 
   --color-chart-1: var(--chart-1);
   --color-chart-2: var(--chart-2);
@@ -269,6 +284,9 @@
   --shadow-card: var(--shadow-card);
   --shadow-glass: var(--shadow-glass);
   --shadow-card-hover: var(--shadow-card-hover);
+  --shadow-raised: var(--shadow-raised);
+  --shadow-ai: var(--shadow-ai);
+  --shadow-input: var(--shadow-input);
   --shadow-kit-1: var(--shadow-kit-1);
   --shadow-kit-3: var(--shadow-kit-3);
   --shadow-kit-6: var(--shadow-kit-6);
@@ -303,281 +321,315 @@
 }
 
 /*
- * Proofly look (Figma file YmMNC5JOimqg61sI0eFI5a, Foundations page; variable collection
- * "Vextro", modes "Proofly light" / "Proofly dark"). Names match the Figma code syntax.
- *
- * One blue (--primary) with opacity tints only. Layers, light: shell (--sidebar, top bar) <
- * panel (--background) < card < raised. Dark is layered the same way, never flat black.
- * "Key" material (gradient, top highlight, bottom lip, soft glow) is for the one primary
- * action per screen and main header actions only; everything small is plain and flat.
- * Components reference only these semantic names, never a raw colour. The member's own accent
- * pick (@commerce/core/admin-accent) still overrides --primary* at runtime.
+ * Koomerce look (Figma file YmMNC5JOimqg61sI0eFI5a, variable collection "shadcn neutral",
+ * modes Light / Dark; effect styles depth/*). The shadcn new-york neutral theme plus a depth
+ * layer: a 1px ring, a contact shadow, a soft ambient spread and a top highlight on cards and
+ * buttons. Names match the existing semantic tokens so every component picks the look up
+ * without code changes. Components reference only these names, never a raw colour. The
+ * member's own accent pick (@commerce/core/admin-accent) still overrides --primary* at runtime.
  */
 :root {
   --radius: 0.75rem; /* 12px cards; controls radius-md (10px), chips radius-sm (8px), panel radius-xl (16px) */
 
-  /* Elevation (Figma Elevation/1-3 and Card/Soft). */
+  /* Depth (Figma depth/*). */
+  --depth-ring: rgb(0 0 0 / 0.06);
+  --depth-contact: rgb(0 0 0 / 0.06);
+  --depth-ambient: rgb(0 0 0 / 0.08);
+  --depth-highlight: rgb(255 255 255 / 0.9);
+  --depth-inset: rgb(0 0 0 / 0.04);
+  --depth-glow-top: rgb(255 255 255 / 0);
+  --btn-top: rgb(255 255 255 / 0.18);
+  --btn-bottom: rgb(0 0 0 / 0.4);
+  --glow-primary: rgb(23 23 23 / 0.28);
+  --glow-destructive: rgb(231 0 11 / 0.3);
+  --ai-glow: rgb(23 23 23 / 0.1);
+
+  /* Older elevation names, kept for components that still use them. */
   --shadow-04: rgb(0 0 0 / 0.04);
   --shadow-06: rgb(0 0 0 / 0.06);
   --shadow-08: rgb(0 0 0 / 0.08);
-  --shadow-12: rgb(0 0 0 / 0.12);
-  --shadow-14: rgb(0 0 0 / 0.14);
-  --highlight-06: rgb(255 255 255 / 0.6);
-  --card-highlight: rgb(255 255 255 / 0.9);
-  --card-edge: rgb(17 19 24 / 0.06);
-  --card-shadow: rgb(17 19 24 / 0.06);
-  --card-surface: linear-gradient(to bottom, var(--card-top), var(--card-bottom));
-  --card-top: #ffffff;
-  --card-bottom: #ffffff;
+  --shadow-12: rgb(0 0 0 / 0.1);
+  --shadow-14: rgb(0 0 0 / 0.1);
+  --highlight-06: var(--depth-highlight);
+  --card-highlight: var(--depth-highlight);
+  --card-edge: var(--depth-ring);
+  --card-shadow: var(--depth-ambient);
+  --card-top: var(--card);
+  --card-bottom: var(--card);
+  --card-surface: linear-gradient(to bottom, var(--depth-glow-top), transparent 60%);
+
+  /* depth/card, depth/raised, depth/ai-glow, depth/input, shadcn/shadow-lg. */
+  --shadow-card:
+    inset 0 1px 0 var(--depth-highlight), 0 0 0 1px var(--depth-ring), 0 1px 2px 0 var(--depth-contact),
+    0 8px 24px -8px var(--depth-ambient);
+  --shadow-card-hover:
+    inset 0 1px 0 var(--depth-highlight), 0 0 0 1px var(--depth-ring), 0 2px 4px 0 var(--depth-contact),
+    0 16px 40px -12px var(--depth-ambient);
+  --shadow-raised: var(--shadow-card-hover);
+  --shadow-ai: var(--shadow-card-hover), 0 0 64px 8px var(--ai-glow);
+  --shadow-input: inset 0 1px 2px 0 var(--depth-inset);
   --shadow-kit-1: 0 0 0 1px var(--border);
-  --shadow-kit-3: inset 0 1px 0 var(--highlight-06), 0 4px 12px 0 var(--shadow-08), 0 12px 32px 0 var(--shadow-08);
-  --shadow-kit-6: inset 0 1px 0 var(--highlight-06), 0 8px 24px 0 var(--shadow-12), 0 24px 48px 0 var(--shadow-14);
-  /* Card/Soft. Light: a hairline, a 1px lift and a soft spread. Dark keeps the deeper recipe. */
-  --shadow-card: inset 0 0 0 1px var(--border-soft), inset 0 1px 0 var(--card-highlight), 0 1px 2px 0 var(--shadow-06), 0 4px 12px 0 var(--shadow-04);
-  --shadow-card-hover: inset 0 0 0 1px var(--border-soft), inset 0 1px 0 var(--card-highlight), 0 1px 2px 0 var(--shadow-06), 0 10px 24px -10px var(--shadow-14);
-  --shadow-glass: inset 0 1px 0 var(--glass-highlight), 0 4px 12px 0 var(--shadow-08), 0 12px 32px 0 var(--shadow-08);
+  --shadow-kit-3:
+    0 0 0 1px var(--depth-ring), 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+  --shadow-kit-6:
+    0 0 0 1px var(--depth-ring), 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+  --shadow-glass: inset 0 1px 0 var(--glass-highlight), 0 0 0 1px var(--depth-ring), 0 1px 3px 0 var(--depth-contact);
   --shadow-rail: 1px 0 0 0 var(--border);
-  --shadow-lift: 0 1px 1px 0 var(--shadow-08);
-  --shadow-toggle: 0 1px 2px 0 var(--shadow-14);
+  --shadow-lift: 0 1px 2px 0 var(--depth-contact);
+  --shadow-toggle: 0 0 0 1px var(--depth-ring), 0 1px 3px 0 var(--depth-contact);
   --shadow-popover: var(--shadow-kit-3);
   --shadow-dialog: var(--shadow-kit-6);
   --shadow-bar: 0 1px 0 0 var(--border);
 
   /* Surfaces */
-  --background: #f7f8fa; /* the content panel */
-  --foreground: #111318;
-  --ink-strong: #111318; /* page titles, primary cell text, figures */
-  --brand-secondary: #111318;
-  --brand-secondary-foreground: #ffffff;
-  --helper: #5e6470;
+  --background: #ffffff; /* the content panel */
+  --foreground: #0a0a0a;
+  --ink-strong: #0a0a0a; /* page titles, primary cell text, figures */
+  --brand-secondary: #171717;
+  --brand-secondary-foreground: #fafafa;
+  --helper: #737373;
   --card: #ffffff;
   --card-foreground: var(--foreground);
   --popover: #ffffff;
   --popover-foreground: var(--foreground);
   --raised: #ffffff; /* menus, floating bars, anything lifted above a card */
-  --panel-border: #e6e8ec; /* the content panel's 1px edge */
+  --panel-border: #e5e5e5; /* the content panel's 1px edge */
   --input-surface: #ffffff; /* input and select fill */
-  --brand-wash: rgb(63 114 220 / 0.1); /* next-step and info banners, left to right */
-  --brand-wash-end: rgb(63 114 220 / 0.1);
-  --brand-border: rgb(63 114 220 / 0.3);
-  --brand-select: #eaf1fd; /* selected option fill */
-  --chip-neutral-text: #5e6470;
+  --row-hover: #fafafa;
+  --brand-wash: rgb(10 10 10 / 0.03); /* next-step and info banners, left to right */
+  --brand-wash-end: rgb(10 10 10 / 0);
+  --brand-border: #d4d4d4;
+  --brand-select: #f5f5f5; /* selected option fill */
+  --chip-neutral-text: #525252;
   --media: #ffffff; /* behind product pictures: catalogue photos are made for a light ground */
-  --media-tile: rgb(241 242 244 / 0.4);
+  --media-tile: rgb(245 245 245 / 0.6);
   --scrollbar-thumb: rgb(190 190 190 / 0.91);
-  --avatar: var(--ink-strong); /* initials disc when a member has no photo */
-  --avatar-foreground: var(--background);
+  --avatar: #171717; /* initials disc when a member has no photo */
+  --avatar-foreground: #fafafa;
 
   /* Glass: floating layers only (top bar once scrolled, menus, floating bars, toasts, scrims). */
   --glass-bar: rgb(255 255 255 / 0.72);
-  --glass-popover: rgb(255 255 255 / 0.84);
-  --glass-border: rgb(255 255 255 / 0.5);
-  --glass-highlight: rgb(255 255 255 / 0.8);
-  --glass-scrim: rgb(13 15 26 / 0.28);
-  --glass-active: rgb(63 114 220 / 0.12);
-  --glass-active-ink: #2f62cf;
+  --glass-popover: rgb(255 255 255 / 0.85);
+  --glass-border: rgb(255 255 255 / 0.85);
+  --glass-highlight: rgb(255 255 255 / 0.9);
+  --glass-scrim: rgb(10 10 10 / 0.18);
+  --glass-active: #f5f5f5;
+  --glass-active-ink: #0a0a0a;
 
-  /* Action is the one blue. */
+  /* Action is the primary. */
   --action: var(--primary);
   --action-foreground: var(--primary-foreground);
 
-  --primary: #3f72dc;
-  --primary-foreground: #ffffff;
-  --primary-soft: #eaf1fd; /* selected rows, active nav, soft accent fills */
-  --primary-tint: #eaf1fd;
-  --link: #2f62cf;
-  --link-soft: #eaf1fd;
-  --secondary: #f1f2f4;
-  --secondary-foreground: #111318;
-  --muted: #f1f2f4;
-  --muted-foreground: #5e6470;
-  --muted-foreground-soft: #8a909b;
-  --accent: #eaf1fd;
-  --accent-foreground: #2f62cf;
-  --chip-neutral: #eef0f3; /* done / neutral status chips */
+  --primary: #171717;
+  --primary-foreground: #fafafa;
+  --primary-hover: #2e2e2e;
+  --primary-soft: #f5f5f5; /* selected rows, active nav, soft accent fills */
+  --primary-tint: #f5f5f5;
+  --link: #1d4ed8;
+  --link-soft: #eff6ff;
+  --secondary: #f5f5f5;
+  --secondary-foreground: #171717;
+  --muted: #f5f5f5;
+  --muted-foreground: #737373;
+  --muted-foreground-soft: #a1a1a1;
+  --accent: #f5f5f5;
+  --accent-foreground: #171717;
+  --chip-neutral: #f5f5f5; /* done / neutral status chips */
 
-  /* Status: soft tint beside each solid. Chips are coloured only when action is needed. */
-  --destructive: #e5484d;
+  /* Status: fg, soft fill and border per tone (Figma status/*). */
+  --destructive: #e7000b;
   --destructive-foreground: #ffffff;
-  --danger: #ce2c31;
+  --danger: #b91c1c;
   --danger-foreground: var(--destructive-foreground);
-  --danger-soft: #feebec;
-  --success: #2a7e3b;
+  --danger-soft: #fef2f2;
+  --danger-border: #fecaca;
+  --success: #047857;
   --success-foreground: #ffffff;
-  --success-soft: #e9f6e9;
-  --warning: #ab6400;
-  --warning-foreground: #4f3422;
-  --warning-soft: #fff7c2;
-  --info: #0d74ce;
+  --success-soft: #ecfdf5;
+  --success-border: #a7f3d0;
+  --warning: #b45309;
+  --warning-foreground: #451a03;
+  --warning-soft: #fffbeb;
+  --warning-border: #fde68a;
+  --info: #1d4ed8;
   --info-foreground: #ffffff;
-  --info-soft: #e6f4fe;
+  --info-soft: #eff6ff;
+  --info-border: #bfdbfe;
+  --violet: #6d28d9;
+  --violet-soft: #f5f3ff;
+  --violet-border: #ddd6fe;
+  --neutral: #525252;
+  --neutral-soft: #f5f5f5;
+  --neutral-border: #e5e5e5;
+  --live: #22c55e; /* live dots and pulses */
 
   /* Lines and focus */
-  --border: #e3e6eb;
-  --hairline: #e6e8ec;
-  --border-strong: #d5d8de;
-  --border-soft: #e3e6eb;
-  --line: #eef0f3; /* table row dividers */
-  --line-list: #eef0f3;
-  --input: #e6e8ec;
-  --ring: var(--primary);
+  --border: #e5e5e5;
+  --hairline: #ebebeb;
+  --border-strong: #d4d4d4;
+  --border-soft: #ebebeb;
+  --line: #f0f0f0; /* table row dividers */
+  --line-list: #f0f0f0;
+  --input: #e5e5e5;
+  --ring: #a1a1a1;
 
-  /* Key material: primary (blue) and neutral. */
-  --key-top: #eaf2ff;
-  --key-bottom: #d5e5ff;
-  --key-border: #b9cff6;
-  --key-edge: rgb(70 120 215 / 0.32);
-  --key-glow: rgb(63 114 220 / 0.38);
-  --key-ink: #2f62cf;
-  --key-highlight: rgb(255 255 255 / 0.9);
+  /* Key material: the primary button (depth/button-primary) and the outline button. */
+  --key-top: #2e2e2e;
+  --key-bottom: #171717;
+  --key-border: #171717;
+  --key-edge: var(--btn-bottom);
+  --key-glow: var(--glow-primary);
+  --key-ink: #fafafa;
+  --key-highlight: var(--btn-top);
   --key-neutral-top: #ffffff;
-  --key-neutral-bottom: #f4f5f7;
-  --key-neutral-hover: var(--card);
-  --key-neutral-edge: rgb(17 19 24 / 0.06);
-  --key-neutral-shadow: rgb(17 19 24 / 0.28);
-  --key-neutral-highlight: rgb(255 255 255 / 0.9);
+  --key-neutral-bottom: #fafafa;
+  --key-neutral-hover: #ffffff;
+  --key-neutral-edge: var(--depth-inset);
+  --key-neutral-shadow: var(--depth-contact);
+  --key-neutral-highlight: var(--depth-highlight);
 
-  /* Charts: the one blue first, then calm neutrals and the status hues */
-  --chart-1: #3f72dc;
-  --chart-2: #8fb0f0;
-  --chart-3: #b9cff6;
-  --chart-4: #8a909b;
-  --chart-5: #d5d8de;
+  /* Charts: monochrome line and compare, then neutral steps (Figma chart/*). */
+  --chart-1: #0a0a0a;
+  --chart-2: #a1a1a1;
+  --chart-3: rgb(23 23 23 / 0.55);
+  --chart-4: rgb(23 23 23 / 0.25);
+  --chart-5: #e5e5e5;
+  --chart-area-top: rgb(10 10 10 / 0.1);
 
-  /* Sidebar and top bar: the shell. The active row is a soft blue fill. */
-  --sidebar: #ffffff;
-  --sidebar-foreground: #111318;
+  /* Sidebar and top bar: the shell. */
+  --sidebar: #fafafa;
+  --sidebar-foreground: #0a0a0a;
   --sidebar-primary: var(--primary);
   --sidebar-primary-foreground: var(--primary-foreground);
-  --sidebar-accent: #eaf1fd;
-  --sidebar-accent-foreground: #2f62cf;
-  --sidebar-border: var(--border);
+  --sidebar-accent: #f5f5f5;
+  --sidebar-accent-foreground: #171717;
+  --sidebar-border: #e5e5e5;
   --sidebar-ring: var(--ring);
 }
 
 /*
- * Dark: neutral "zinc" layers after CodeHelp's web app (owner, 2026-10-14). No colour tint:
- * page #0f0f0f, sidebar #131213, cards a step deeper #09090b, popovers and raised #18181b.
- * Borders are solid zinc (#27272a; strong #3f3f46), text near-white #fcfcfc with #a1a1aa for
- * secondary. The key button is white with dark ink for every accent (@commerce/core/admin-accent
- * `darkKey`); active pills and soft fills are neutral #27272a. The merchant's accent shows only in
- * links, focus rings, charts and selection. Status tones are lifted for the dark canvas.
+ * Dark (Figma "shadcn neutral" Dark): neutral layers with no colour tint. Page #0a0a0a, shell
+ * and cards one step up (#171717), soft fills #262626, borders white at 10%. Depth is real in
+ * dark too: a white 8% ring, black contact and ambient shadows and a faint top highlight, so
+ * cards lift off the page instead of melting into it.
  */
 .dark {
-  /*
-   * Neutral "zinc" dark after CodeHelp's web app (owner, 2026-10-14: "its dark mode is way better
-   * and exceptionally good for the eyes"): no colour tint on surfaces, solid zinc borders, near-white
-   * text, white key buttons with dark ink. The merchant's accent stays for links, focus and charts.
-   */
-  --shadow-kit-3: 0 0 0 1px var(--border), 0 8px 24px -8px rgb(0 0 0 / 0.6);
-  --shadow-kit-6: 0 0 0 1px var(--border), 0 24px 56px -12px rgb(0 0 0 / 0.7);
-  --shadow-card: inset 0 0 0 1px var(--border);
-  --shadow-card-hover: inset 0 0 0 1px var(--border-strong);
-  --shadow-glass: 0 0 0 1px var(--glass-border), 0 16px 40px -12px rgb(0 0 0 / 0.7);
-  --shadow-lift: 0 1px 1px 0 rgb(0 0 0 / 0.4);
-  --shadow-toggle: 0 1px 2px 0 rgb(0 0 0 / 0.5);
-  --highlight-06: rgb(255 255 255 / 0.04);
-  --card-highlight: transparent;
-  --card-edge: transparent;
-  --card-shadow: rgb(0 0 0 / 0.6);
-  --card-top: #09090b;
-  --card-bottom: #09090b;
+  --depth-ring: rgb(255 255 255 / 0.08);
+  --depth-contact: rgb(0 0 0 / 0.6);
+  --depth-ambient: rgb(0 0 0 / 0.7);
+  --depth-highlight: rgb(255 255 255 / 0.12);
+  --depth-inset: rgb(0 0 0 / 0.35);
+  --depth-glow-top: rgb(255 255 255 / 0.035);
+  --btn-top: rgb(255 255 255 / 0.6);
+  --btn-bottom: rgb(0 0 0 / 0.18);
+  --glow-primary: rgb(255 255 255 / 0.16);
+  --glow-destructive: rgb(255 100 103 / 0.3);
+  --ai-glow: rgb(255 255 255 / 0.07);
+  --shadow-kit-3: 0 0 0 1px var(--depth-ring), 0 10px 24px -6px rgb(0 0 0 / 0.6);
+  --shadow-kit-6: 0 0 0 1px var(--depth-ring), 0 24px 56px -12px rgb(0 0 0 / 0.7);
 
-  /* Layers: page #0f0f0f, cards a step deeper, popovers and raised a step lighter. */
-  --background: #0f0f0f;
-  --panel-border: #27272a;
-  --foreground: #fcfcfc;
-  --card-foreground: #fcfcfc;
+  --background: #0a0a0a;
+  --panel-border: rgb(255 255 255 / 0.1);
+  --foreground: #fafafa;
+  --card-foreground: #fafafa;
   --ink-strong: #ffffff;
-  --brand-secondary: #18181b;
+  --brand-secondary: #262626;
   --brand-secondary-foreground: #fafafa;
-  --helper: #a1a1aa;
-  --card: #09090b;
-  --popover: #18181b;
-  --popover-foreground: #fcfcfc;
-  --raised: #18181b;
-  --input-surface: #0f0f0f;
+  --helper: #a1a1a1;
+  --card: #171717;
+  --popover: #171717;
+  --popover-foreground: #fafafa;
+  --raised: #171717;
+  --input-surface: #141414;
+  --row-hover: #181818;
   --brand-wash: rgb(255 255 255 / 0.03);
   --brand-wash-end: rgb(255 255 255 / 0);
-  --brand-border: #3f3f46;
+  --brand-border: rgb(255 255 255 / 0.15);
   --brand-select: rgb(255 255 255 / 0.06);
-  --chip-neutral-text: #d4d4d8;
-  --media: #e4e4e7;
-  --media-tile: #e4e4e7;
-  --scrollbar-thumb: #3f3f46;
-  --avatar: #27272a;
+  --chip-neutral-text: #a3a3a3;
+  --media: #e5e5e5;
+  --media-tile: #e5e5e5;
+  --scrollbar-thumb: #404040;
+  --avatar: #262626;
   --avatar-foreground: #fafafa;
 
-  --glass-bar: rgb(15 15 15 / 0.82);
-  --glass-popover: rgb(24 24 27 / 0.94);
-  --glass-border: #27272a;
-  --glass-highlight: transparent;
-  --glass-scrim: rgb(0 0 0 / 0.65);
-  --glass-active: #27272a;
+  --glass-bar: rgb(23 23 23 / 0.68);
+  --glass-popover: rgb(23 23 23 / 0.85);
+  --glass-border: rgb(255 255 255 / 0.1);
+  --glass-highlight: rgb(255 255 255 / 0.05);
+  --glass-scrim: rgb(0 0 0 / 0.45);
+  --glass-active: #262626;
   --glass-active-ink: #fafafa;
 
-  --primary: #7fa2f5;
-  --primary-foreground: #0e1430;
-  --primary-soft: rgb(127 162 245 / 0.12);
-  --primary-tint: #1f283d;
-  --link: #9db8f7;
-  --link-soft: rgb(127 162 245 / 0.12);
-  --secondary: #1f1f1f;
+  --primary: #e5e5e5;
+  --primary-foreground: #171717;
+  --primary-hover: #d0d0d0;
+  --primary-soft: rgb(255 255 255 / 0.06);
+  --primary-tint: #262626;
+  --link: #60a5fa;
+  --link-soft: rgb(59 130 246 / 0.14);
+  --secondary: #262626;
   --secondary-foreground: #fafafa;
-  --muted: #27272a;
-  --muted-foreground: #a1a1aa;
-  --muted-foreground-soft: #8b8b94;
-  --accent: #27272a;
+  --muted: #262626;
+  --muted-foreground: #a1a1a1;
+  --muted-foreground-soft: #8a8a8a;
+  --accent: #262626;
   --accent-foreground: #fafafa;
-  --chip-neutral: #27272a;
+  --chip-neutral: rgb(255 255 255 / 0.06);
 
-  --destructive: #f87171;
-  --destructive-foreground: #1f0a0a;
+  --destructive: #ff6467;
+  --destructive-foreground: #ffffff;
   --danger: #f87171;
-  --danger-soft: rgb(248 113 113 / 0.12);
+  --danger-soft: rgb(239 68 68 / 0.12);
+  --danger-border: rgb(239 68 68 / 0.28);
   --success: #4ade80;
   --success-foreground: #052e16;
-  --success-soft: rgb(74 222 128 / 0.11);
+  --success-soft: rgb(34 197 94 / 0.12);
+  --success-border: rgb(34 197 94 / 0.28);
   --warning: #fbbf24;
   --warning-foreground: #1f1400;
-  --warning-soft: rgb(251 191 36 / 0.11);
-  --info: #93b4f8;
+  --warning-soft: rgb(245 158 11 / 0.12);
+  --warning-border: rgb(245 158 11 / 0.28);
+  --info: #60a5fa;
   --info-foreground: #0b1530;
-  --info-soft: rgb(147 180 248 / 0.12);
+  --info-soft: rgb(59 130 246 / 0.14);
+  --info-border: rgb(59 130 246 / 0.3);
+  --violet: #a78bfa;
+  --violet-soft: rgb(139 92 246 / 0.14);
+  --violet-border: rgb(139 92 246 / 0.3);
+  --neutral: #a3a3a3;
+  --neutral-soft: rgb(255 255 255 / 0.06);
+  --neutral-border: rgb(255 255 255 / 0.12);
 
-  --border: #27272a;
-  --hairline: #1f1f22;
-  --border-strong: #3f3f46;
-  --border-soft: #232326;
-  --line: #1f1f22;
-  --line-list: #1c1c1f;
-  --input: #27272a;
+  --border: rgb(255 255 255 / 0.1);
+  --hairline: rgb(255 255 255 / 0.07);
+  --border-strong: rgb(255 255 255 / 0.15);
+  --border-soft: rgb(255 255 255 / 0.07);
+  --line: rgb(255 255 255 / 0.06);
+  --line-list: rgb(255 255 255 / 0.05);
+  --input: rgb(255 255 255 / 0.15);
+  --ring: #737373;
 
-  /* Key: darkKey(). White with dark ink for every accent, as on CodeHelp. */
   --key-top: #fafafa;
-  --key-bottom: #f4f4f5;
-  --key-border: #ffffff;
-  --key-edge: rgb(0 0 0 / 0.4);
-  --key-glow: transparent;
-  --key-ink: #18181b;
-  --key-highlight: rgb(255 255 255 / 0.6);
-  --key-neutral-top: #18181b;
-  --key-neutral-bottom: #18181b;
-  --key-neutral-hover: #27272a;
-  --key-neutral-edge: rgb(0 0 0 / 0.4);
-  --key-neutral-shadow: rgb(0 0 0 / 0.5);
-  --key-neutral-highlight: transparent;
+  --key-bottom: #e5e5e5;
+  --key-border: #e5e5e5;
+  --key-ink: #171717;
+  --key-neutral-top: #1c1c1c;
+  --key-neutral-bottom: #171717;
+  --key-neutral-hover: #222222;
 
-  --chart-1: #7fa2f5;
-  --chart-2: #5277c9;
-  --chart-3: #34497f;
-  --chart-4: #71717a;
-  --chart-5: #3f3f46;
+  --chart-1: #fafafa;
+  --chart-2: #737373;
+  --chart-3: rgb(229 229 229 / 0.45);
+  --chart-4: rgb(229 229 229 / 0.2);
+  --chart-5: #404040;
+  --chart-area-top: rgb(255 255 255 / 0.1);
 
-  --sidebar: #131213;
-  --sidebar-foreground: #f4f4f5;
-  --sidebar-accent: #27272a;
+  --sidebar: #171717;
+  --sidebar-foreground: #fafafa;
+  --sidebar-accent: #262626;
   --sidebar-accent-foreground: #fafafa;
+  --sidebar-border: rgb(255 255 255 / 0.1);
 }
 
 /* Dark selection follows the accent; light keeps the system highlight. */

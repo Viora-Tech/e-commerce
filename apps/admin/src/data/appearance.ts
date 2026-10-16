@@ -7,6 +7,7 @@ export const appearanceContent = {
     body: 'Buttons, active tabs, table headers, charts and focus rings use this colour.',
     presetsLabel: 'Preset colours',
     presets: {
+      neutral: 'Neutral',
       'proofly-blue': 'Proofly blue',
       'ocean-green': 'Ocean Green',
       blue: 'Blue',
@@ -27,7 +28,7 @@ export const appearanceContent = {
     },
     save: 'Save for me',
     reset: 'Reset to default',
-    resetHelp: 'Reset follows the store default the owner picked, or Ocean Green.',
+    resetHelp: 'Reset follows the store default the owner picked, or Neutral.',
     saved: 'Accent colour saved',
     resetDone: 'Accent colour reset',
     failed: 'Could not save the accent colour',
@@ -52,7 +53,7 @@ export const appearanceContent = {
     apply: 'Use this colour as the store default',
     reset: 'Reset store default',
     saved: 'Store default saved',
-    resetDone: 'Store default reset to Ocean Green',
+    resetDone: 'Store default reset to Neutral',
   },
   mode: {
     heading: 'Theme',

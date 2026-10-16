@@ -10,11 +10,14 @@
 import { AA_TEXT, contrastRatio } from '../theme/vars'
 
 /**
- * Proofly blue, the stylesheet's own `--primary` (packages/ui/src/styles.css, the "Proofly look"
- * chosen 2026-10-09). Choosing it means "no override". It used to be the Figma kit's Ocean Green;
- * after the stylesheet moved to blue, picking green fell through to the blue default.
+ * Neutral, the stylesheet's own `--primary` (packages/ui/src/styles.css, the Koomerce look from
+ * the Figma "shadcn neutral" theme, 2026-10-16). Choosing it means "no override". Proofly blue,
+ * the previous default, is now an ordinary preset that overrides.
  */
-export const DEFAULT_ACCENT = '#3f72dc'
+export const DEFAULT_ACCENT = '#171717'
+
+/** Proofly blue, the default from 2026-10-09 until the Koomerce look. */
+export const PROOFLY_BLUE = '#3f72dc'
 
 /** Ocean Green, the earlier Figma kit primary: now an ordinary preset that overrides. */
 export const OCEAN_GREEN = '#4ea674'
@@ -23,7 +26,8 @@ export type AccentPreset = { id: string; hex: string }
 
 /** Swatches on Settings › Appearance, default first. */
 export const ACCENT_PRESETS: AccentPreset[] = [
-  { id: 'proofly-blue', hex: DEFAULT_ACCENT },
+  { id: 'neutral', hex: DEFAULT_ACCENT },
+  { id: 'proofly-blue', hex: PROOFLY_BLUE },
   { id: 'ocean-green', hex: OCEAN_GREEN },
   { id: 'blue', hex: '#2563eb' },
   { id: 'indigo', hex: '#4f46e5' },
@@ -141,21 +145,21 @@ export type AccentTokens = {
 export type AccentPalette = { light: AccentTokens; dark: AccentTokens }
 
 /**
- * The default (Proofly blue) exactly as the stylesheet sets it (`packages/ui/src/styles.css`), so the
+ * The default (neutral) exactly as the stylesheet sets it (`packages/ui/src/styles.css`), so the
  * preview of the default matches the real admin rather than a derived palette.
  */
 export const KIT_PALETTE: AccentPalette = {
   light: {
     primary: DEFAULT_ACCENT,
-    primaryForeground: '#ffffff',
-    primarySoft: '#eaf1fd',
-    primaryTint: '#eaf1fd',
+    primaryForeground: '#fafafa',
+    primarySoft: '#f5f5f5',
+    primaryTint: '#f5f5f5',
   },
   dark: {
-    primary: '#7fa2f5',
-    primaryForeground: '#0e1430',
-    primarySoft: 'rgb(127 162 245 / 0.12)',
-    primaryTint: '#1f283d',
+    primary: '#e5e5e5',
+    primaryForeground: '#171717',
+    primarySoft: 'rgb(255 255 255 / 0.06)',
+    primaryTint: '#262626',
   },
 }
 
