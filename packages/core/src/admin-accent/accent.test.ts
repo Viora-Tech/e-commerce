@@ -31,7 +31,8 @@ describe('normaliseAccent', () => {
   })
 
   it('treats the default as no override', () => {
-    expect(accentOverride('#3F72DC')).toBeNull()
+    expect(accentOverride('#171717')).toBeNull()
+    expect(accentOverride('#3F72DC')).toBe('#3f72dc')
     expect(accentOverride('#4EA674')).toBe('#4ea674')
     expect(accentOverride('#2563eb')).toBe('#2563eb')
     expect(accentOverride('nope')).toBeNull()
