@@ -28,7 +28,7 @@ export const appearanceContent = {
     },
     save: 'Save for me',
     reset: 'Reset to default',
-    resetHelp: 'Reset follows the store default the owner picked, or Indigo.',
+    resetHelp: 'Reset follows the store default the owner picked, or Neutral.',
     saved: 'Accent colour saved',
     resetDone: 'Accent colour reset',
     failed: 'Could not save the accent colour',
@@ -53,7 +53,7 @@ export const appearanceContent = {
     apply: 'Use this colour as the store default',
     reset: 'Reset store default',
     saved: 'Store default saved',
-    resetDone: 'Store default reset to Indigo',
+    resetDone: 'Store default reset to Neutral',
   },
   mode: {
     heading: 'Theme',
