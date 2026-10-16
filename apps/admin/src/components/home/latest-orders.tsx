@@ -1,5 +1,4 @@
 import type { DashboardSummary } from '@commerce/api'
-import { buttonVariants } from '@commerce/ui/shadcn/button'
 import Link from 'next/link'
 import RelativeTime from '@/components/layout/relative-time'
 import { homePageContent } from '@/data/home'
@@ -83,7 +82,7 @@ export default async function LatestOrders({ orders }: LatestOrdersProps) {
               return (
                 <li
                   key={order.id}
-                  className="group flex items-center gap-3.5 px-5 py-3.5 transition-colors first:rounded-t-lg last:rounded-b-lg hover:bg-muted/50"
+                  className="group flex items-center gap-3.5 px-5 py-3.5 transition-colors duration-150 first:rounded-t-lg last:rounded-b-lg hover:bg-row-hover"
                 >
                   <Link
                     href={detail}
@@ -114,18 +113,20 @@ export default async function LatestOrders({ orders }: LatestOrdersProps) {
                         {chip.label}
                       </span>
                     </span>
-                    <span className="absolute inset-y-[-0.375rem] -right-5 -left-5 hidden items-center justify-center gap-1.5 rounded-md bg-card/95 group-focus-within:flex group-hover:flex">
+                    {/* Figma "Home · Polished" row actions (hover): two small buttons take the chip's
+                        place on the row itself, no panel behind them. */}
+                    <span className="pointer-events-none absolute inset-0 flex items-center justify-center gap-1.5 opacity-0 transition-opacity duration-150 group-focus-within:pointer-events-auto group-focus-within:opacity-100 group-hover:pointer-events-auto group-hover:opacity-100">
                       {canShip(order) ? (
                         <Link
                           href={detail}
-                          className={buttonVariants({ variant: 'default', size: 'sm' })}
+                          className="rounded-[0.4375rem] bg-primary px-2.5 py-1.25 text-xs font-medium text-primary-foreground transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                         >
                           {c.ship}
                         </Link>
                       ) : null}
                       <Link
                         href={detail}
-                        className={buttonVariants({ variant: 'outline', size: 'sm' })}
+                        className="rounded-[0.4375rem] border border-border px-2.5 py-1.25 text-xs font-medium text-foreground transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                       >
                         {c.view}
                       </Link>
