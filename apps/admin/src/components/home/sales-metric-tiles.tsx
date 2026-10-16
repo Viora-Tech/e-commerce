@@ -6,6 +6,7 @@ import { motion, useReducedMotion } from 'motion/react'
 import { useId } from 'react'
 import CountUp from '@/components/layout/count-up'
 import { instant, pill } from '@/lib/motion'
+import type { Metric } from './sales-hero-series'
 
 /** Figma "Analytics · Metric tab" (580:739): 13/20 medium label with a dotted underline. */
 const LABEL =
@@ -14,56 +15,32 @@ const LABEL =
 const VALUE =
   'text-2xl leading-[1.8125rem] font-semibold tracking-[-0.03rem] whitespace-nowrap text-ink-strong tabular-nums'
 
+export type MetricTileData = {
+  metric: Metric
+  label: string
+  display: string
+  spark: number[]
+  /** Percent (or points) change; null hides the change line (nothing to compare, or off). */
+  change: number | null
+  /** Suffix after the change: "%" or " pts". */
+  unit: string
+}
+
 type SalesMetricTilesProps = {
-  salesDisplay: string
-  salesSpark: number[]
-  salesChange: number | null
-  ordersDisplay: string
-  ordersSpark: number[]
-  ordersChange: number | null
-  visitorsDisplay: string
-  visitorsSpark: number[]
-  visitorsChange: number | null
-  conversionDisplay: string
-  conversionSpark: number[]
-  /** Change in percentage points, one decimal. */
-  conversionChange: number | null
+  tiles: MetricTileData[]
   comparedTo: string
-  totalSales: string
-  ordersTitle: string
-  visitorsTitle: string
-  conversionTitle: string
-  /** Unit for the conversion change ("pts"). */
-  points: string
-  metric: 'sales' | 'orders'
-  onSelect: (metric: 'sales' | 'orders') => void
+  metric: Metric
+  onSelect: (metric: Metric) => void
 }
 
 /**
- * The hero's metric tiles (Figma 583:1865): Total sales and Orders are selectable (the chart
- * follows the pick; the selected tile is raised); Visitors and Conversion rate are read-only
- * tiles with their own sparkline and change line. Figures count up;
- * only the picked tile's sparkline is full colour; the highlight slides between tiles.
+ * The hero's metric tiles (Figma 583:1865): every tile is selectable and the chart follows the
+ * pick; the selected tile is raised and the highlight slides between tiles. Figures count up;
+ * only the picked tile's sparkline is full colour.
  */
 export default function SalesMetricTiles({
-  salesDisplay,
-  salesSpark,
-  salesChange,
-  ordersDisplay,
-  ordersSpark,
-  ordersChange,
-  visitorsDisplay,
-  visitorsSpark,
-  visitorsChange,
-  conversionDisplay,
-  conversionSpark,
-  conversionChange,
+  tiles,
   comparedTo,
-  totalSales,
-  ordersTitle,
-  visitorsTitle,
-  conversionTitle,
-  points,
   metric,
   onSelect,
 }: SalesMetricTilesProps) {
@@ -71,67 +48,28 @@ export default function SalesMetricTiles({
   const reduced = useReducedMotion()
   const group = useId()
 
-  // Event handlers
-  const handleSales = () => {
-    onSelect('sales')
-  }
-
-  const handleOrders = () => {
-    onSelect('orders')
-  }
-
   // Render logic
   const slide = reduced ? instant : pill
 
   return (
     <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-4">
-      <MetricTile
-        label={totalSales}
-        display={salesDisplay}
-        spark={salesSpark}
-        change={salesChange}
-        comparedTo={comparedTo}
-        selected={metric === 'sales'}
-        markerId={`${group}-marker`}
-        slide={slide}
-        onSelect={handleSales}
-      />
-      <MetricTile
-        label={ordersTitle}
-        display={ordersDisplay}
-        spark={ordersSpark}
-        change={ordersChange}
-        comparedTo={comparedTo}
-        selected={metric === 'orders'}
-        markerId={`${group}-marker`}
-        slide={slide}
-        onSelect={handleOrders}
-      />
-      <StaticTile
-        label={visitorsTitle}
-        display={visitorsDisplay}
-        spark={visitorsSpark}
-        change={visitorsChange}
-        unit="%"
-        comparedTo={comparedTo}
-      />
-      <StaticTile
-        label={conversionTitle}
-        display={conversionDisplay}
-        spark={conversionSpark}
-        change={conversionChange}
-        unit={` ${points}`}
-        comparedTo={comparedTo}
-      />
+      {tiles.map((tile) => (
+        <MetricTile
+          key={tile.metric}
+          tile={tile}
+          comparedTo={comparedTo}
+          selected={metric === tile.metric}
+          markerId={`${group}-marker`}
+          slide={slide}
+          onSelect={() => onSelect(tile.metric)}
+        />
+      ))}
     </div>
   )
 }
 
 type MetricTileProps = {
-  label: string
-  display: string
-  spark: number[]
-  change: number | null
+  tile: MetricTileData
   comparedTo: string
   selected: boolean
   markerId: string
@@ -139,25 +77,15 @@ type MetricTileProps = {
   onSelect: () => void
 }
 
-function MetricTile({
-  label,
-  display,
-  spark,
-  change,
-  comparedTo,
-  selected,
-  markerId,
-  slide,
-  onSelect,
-}: MetricTileProps) {
+function MetricTile({ tile, comparedTo, selected, markerId, slide, onSelect }: MetricTileProps) {
   return (
     <button
       type="button"
       aria-pressed={selected}
       onClick={onSelect}
       className={cn(
-        'relative isolate flex flex-col gap-1 rounded-lg border px-4 py-3 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
-        selected ? 'border-border' : 'border-transparent hover:border-border',
+        'relative isolate flex flex-col gap-1 rounded-lg border px-4 py-3 text-left transition-[border-color,background-color] duration-200 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+        selected ? 'border-border' : 'border-transparent hover:border-border hover:bg-card/40',
       )}
     >
       {selected ? (
@@ -168,40 +96,15 @@ function MetricTile({
           aria-hidden
         />
       ) : null}
-      <span className={cn(LABEL, selected && 'text-foreground')}>{label}</span>
+      <span className={cn(LABEL, selected && 'text-foreground')}>{tile.label}</span>
       <span className="flex items-center gap-2.5">
         <span className={VALUE}>
-          <CountUp value={display} />
+          <CountUp value={tile.display} />
         </span>
-        <Sparkline values={spark} dim={!selected} />
+        <Sparkline values={tile.spark} dim={!selected} />
       </span>
-      <MetricDelta change={change} comparedTo={comparedTo} />
+      <MetricDelta change={tile.change} comparedTo={comparedTo} unit={tile.unit} />
     </button>
-  )
-}
-
-type StaticTileProps = {
-  label: string
-  display: string
-  spark: number[]
-  change: number | null
-  unit: string
-  comparedTo: string
-}
-
-/** A read-only tile (Visitors, Conversion rate): same look as an unselected metric tile. */
-function StaticTile({ label, display, spark, change, unit, comparedTo }: StaticTileProps) {
-  return (
-    <div className="flex flex-col gap-1 rounded-lg border border-transparent px-4 py-3">
-      <span className={LABEL}>{label}</span>
-      <span className="flex items-center gap-2.5">
-        <span className={VALUE}>
-          <CountUp value={display} />
-        </span>
-        <Sparkline values={spark} dim />
-      </span>
-      <MetricDelta change={change} comparedTo={comparedTo} unit={unit} />
-    </div>
   )
 }
 

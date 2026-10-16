@@ -65,15 +65,8 @@ export default function DashboardPage({
           <AskAiCard enabled={assistant} />
         </HomeEnter>
       </div>
-      {signals ? (
-        <HomeEnter index={2}>
-          <FinishSetup productCount={summary.report.products} signals={signals} />
-        </HomeEnter>
-      ) : null}
-      <HomeEnter index={3}>
-        <TodoCards needsYou={summary.needsYou} />
-      </HomeEnter>
-      <HomeEnter index={4}>
+      {/* Owner 2026-10-17: the sales analytics come second, right under the greeting and Ask AI. */}
+      <HomeEnter index={2}>
         <SalesHero
           today={summary.today}
           yesterdayHourly={summary.yesterday.hourly}
@@ -82,6 +75,14 @@ export default function DashboardPage({
           liveNow={summary.liveVisitors.last30}
           livePerMinute={summary.liveVisitors.perMinute}
         />
+      </HomeEnter>
+      {signals ? (
+        <HomeEnter index={3}>
+          <FinishSetup productCount={summary.report.products} signals={signals} />
+        </HomeEnter>
+      ) : null}
+      <HomeEnter index={4}>
+        <TodoCards needsYou={summary.needsYou} />
       </HomeEnter>
       <HomeEnter index={5}>
         <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,640fr)_minmax(0,424fr)]">

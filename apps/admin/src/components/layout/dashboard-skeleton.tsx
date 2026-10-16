@@ -14,6 +14,7 @@ export default function DashboardSkeleton() {
         </div>
         <Skeleton className={`h-[3.75rem] w-full ${STILL}`} />
       </div>
+      <Skeleton className={`h-[26rem] w-full ${STILL}`} />
       <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
         {Array.from({ length: 3 }, (_, i) => (
           <Skeleton key={i.toString()} className={`h-[5.5rem] w-full ${STILL}`} />
@@ -24,7 +25,6 @@ export default function DashboardSkeleton() {
           <Skeleton key={i.toString()} className={`h-40 w-full ${STILL}`} />
         ))}
       </div>
-      <Skeleton className={`h-[26rem] w-full ${STILL}`} />
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
         <Skeleton className={`h-72 w-full ${STILL}`} />
         <Skeleton className={`h-72 w-full ${STILL}`} />

@@ -114,7 +114,7 @@ export default async function TodoCards({ needsYou }: TodoCardsProps) {
           {rows.map((row) => (
             <li
               key={row.key}
-              className="flex h-full flex-col items-start gap-3.5 rounded-lg p-5 surface-card transition-[transform,box-shadow] duration-150 ease-out hover:-translate-y-0.5 hover:shadow-card-hover active:scale-[0.97] motion-reduce:transition-shadow motion-reduce:hover:translate-y-0 motion-reduce:active:scale-100"
+              className="flex h-full flex-col items-start gap-3.5 rounded-lg p-5 surface-card card-lift"
             >
               <span className="flex size-10 items-center justify-center rounded-lg bg-muted text-foreground shadow-input [&_svg]:size-5">
                 <row.icon aria-hidden="true" />

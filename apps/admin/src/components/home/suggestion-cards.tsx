@@ -126,9 +126,9 @@ export default function SuggestionCards({
                 layout
                 transition={reduced ? instant : layout}
                 exit={{ scale: ENTER_SCALE, opacity: 0, transition: leave }}
-                className="relative flex items-start gap-4 rounded-lg surface-card p-3.5"
+                className="group/suggestion relative flex items-start gap-4 rounded-lg surface-card p-3.5 transition-shadow duration-250 ease-out hover:shadow-card-hover"
               >
-                <div className="flex size-24 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-muted text-foreground shadow-input">
+                <div className="flex size-24 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-muted text-foreground shadow-input transition-transform duration-250 ease-out group-hover/suggestion:scale-[1.03] motion-reduce:transition-none motion-reduce:group-hover/suggestion:scale-100">
                   {s.imageUrl ? (
                     <>
                       {/* biome-ignore lint/performance/noImgElement: product photo from the store's own storage. */}
