@@ -33,10 +33,12 @@ export const homePageContent = {
     placeholder: 'Ask anything about your store…',
     button: 'Ask',
     label: 'Ask the AI assistant',
+    shortcut: '⌘K',
   },
   setup: {
     title: 'Finish setting up',
     progress: (done: number, total: number) => `${done} of ${total} done`,
+    openCta: 'Set up',
     products: {
       title: 'Add your products',
       done: (n: number) => (n === 1 ? '1 product in your store' : `${n} products in your store`),
@@ -82,6 +84,8 @@ export const homePageContent = {
     title: 'Latest orders',
     viewAll: 'View all',
     empty: 'New orders will show up here the moment they come in.',
+    ship: 'Ship',
+    view: 'View',
     toShip: 'To ship',
     shipped: 'Shipped',
     delivered: 'Delivered',
@@ -100,6 +104,8 @@ export const homePageContent = {
     title: 'Suggested for you',
     note: 'Based on your store',
     dismiss: 'Hide this suggestion',
+    hidden: 'Suggestion hidden',
+    undo: 'Undo',
     restockTitle: 'Restock your best seller',
     restockBody: (title: string, units: number, left: number) =>
       `${title} sold ${units} this week and only ${left} ${left === 1 ? 'is' : 'are'} left.`,
@@ -124,6 +130,9 @@ export const homePageContent = {
   more: {
     title: 'More numbers',
     subtitle: 'Sales over time, products and payments',
+    previewSales: 'Sales',
+    previewProducts: 'Top products',
+    previewPayments: 'Payments',
   },
 }
 

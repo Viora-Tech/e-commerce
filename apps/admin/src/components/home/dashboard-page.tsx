@@ -7,6 +7,7 @@ import ChartsPanel from './charts/charts-panel'
 import PaymentStatusDonuts from './charts/payment-status-donuts'
 import SalesByStateChart from './charts/sales-by-state-chart'
 import FinishSetup from './finish-setup'
+import HomeEnter from './home-enter'
 import HomeGreeting from './home-greeting'
 import type { HomeSignals } from './home-signals'
 import InsightsList from './insights-list'
@@ -45,43 +46,65 @@ export default function DashboardPage({
 }: DashboardPageProps) {
   return (
     <PageBody width="frame" className="max-w-[68rem] gap-10 md:mx-auto md:pt-9">
-      <HomeGreeting
-        firstName={firstName}
-        ordersToday={summary.today.ordersCount}
-        salesTodayPaise={summary.today.salesPaise}
-        toShip={summary.today.toShipCount}
-        now={new Date()}
-      />
+      <HomeEnter index={0}>
+        <HomeGreeting
+          firstName={firstName}
+          ordersToday={summary.today.ordersCount}
+          salesTodayPaise={summary.today.salesPaise}
+          toShip={summary.today.toShipCount}
+          liveNow={summary.liveVisitors.last30}
+          now={new Date()}
+        />
+      </HomeEnter>
       <LocalStorageWarning />
       <BackgroundWorkNotice />
-      <AskAiCard enabled={assistant} />
-      {signals ? <FinishSetup productCount={summary.report.products} signals={signals} /> : null}
-      <TodoCards needsYou={summary.needsYou} />
-      <SalesHero
-        today={summary.today}
-        yesterdayHourly={summary.yesterday.hourly}
-        charts={charts}
-        liveNow={summary.liveVisitors.last30}
-        livePerMinute={summary.liveVisitors.perMinute}
-      />
-      <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
-        <LatestOrders orders={summary.recentOrders} />
-        <LiveNow initial={summary} />
-      </div>
-      <Suggestions summary={summary} signals={signals} abandoned={abandoned} />
-      <MoreNumbers>
-        <InsightsList
-          insight={summary.insight}
-          needsYou={summary.needsYou}
-          streakDays={summary.month.streakDays}
+      <HomeEnter index={1}>
+        <AskAiCard enabled={assistant} />
+      </HomeEnter>
+      {signals ? (
+        <HomeEnter index={2}>
+          <FinishSetup productCount={summary.report.products} signals={signals} />
+        </HomeEnter>
+      ) : null}
+      <HomeEnter index={3}>
+        <TodoCards needsYou={summary.needsYou} />
+      </HomeEnter>
+      <HomeEnter index={4}>
+        <SalesHero
+          today={summary.today}
+          yesterdayHourly={summary.yesterday.hourly}
+          charts={charts}
+          liveNow={summary.liveVisitors.last30}
+          livePerMinute={summary.liveVisitors.perMinute}
         />
-        <ChartsPanel initialRange={30} initial={charts} />
-        <div className="grid grid-cols-1 items-stretch gap-6 xl:grid-cols-[minmax(0,739fr)_minmax(0,361fr)]">
-          <PaymentStatusDonuts paymentMix={summary.paymentMix} statusMix={summary.statusMix} />
-          <SalesByStateChart salesByState={summary.salesByState} />
+      </HomeEnter>
+      <HomeEnter index={5}>
+        <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
+          <LatestOrders orders={summary.recentOrders} />
+          <LiveNow initial={summary} />
         </div>
-        <SalesGoalRing month={summary.month} />
-      </MoreNumbers>
+      </HomeEnter>
+      <HomeEnter index={6}>
+        <Suggestions summary={summary} signals={signals} abandoned={abandoned} />
+      </HomeEnter>
+      <HomeEnter index={7}>
+        <MoreNumbers
+          salesPreview={charts.salesPaise.slice(-30)}
+          ordersPreview={charts.orders.slice(-30)}
+        >
+          <InsightsList
+            insight={summary.insight}
+            needsYou={summary.needsYou}
+            streakDays={summary.month.streakDays}
+          />
+          <ChartsPanel initialRange={30} initial={charts} />
+          <div className="grid grid-cols-1 items-stretch gap-6 xl:grid-cols-[minmax(0,739fr)_minmax(0,361fr)]">
+            <PaymentStatusDonuts paymentMix={summary.paymentMix} statusMix={summary.statusMix} />
+            <SalesByStateChart salesByState={summary.salesByState} />
+          </div>
+          <SalesGoalRing month={summary.month} />
+        </MoreNumbers>
+      </HomeEnter>
     </PageBody>
   )
 }
