@@ -145,6 +145,24 @@ export default function LiveGlobeCanvas({
     }
     rafId = requestAnimationFrame(tick)
 
+    // Motion spec 09: pause the auto-rotate/reveal/pulse loop while the tab is hidden so
+    // no animation time passes there; on return shift the time bases forward by the gap.
+    let hiddenAt: number | null = null
+    const handleVisibility = () => {
+      if (document.visibilityState === 'hidden') {
+        hiddenAt = performance.now()
+        cancelAnimationFrame(rafId)
+        rafId = 0
+      } else if (hiddenAt !== null) {
+        const gap = performance.now() - hiddenAt
+        hiddenAt = null
+        s.startedAt += gap
+        revealStartedAt += gap
+        if (!rafId) rafId = requestAnimationFrame(tick)
+      }
+    }
+    document.addEventListener('visibilitychange', handleVisibility)
+
     const detach = attachControls(canvas, s, reducedMotion)
     const handleResize = () => {
       globe.update({ width: canvas.clientWidth * 2, height: canvas.clientHeight * 2 })
@@ -155,6 +173,7 @@ export default function LiveGlobeCanvas({
       cancelAnimationFrame(rafId)
       globe.destroy()
       detach()
+      document.removeEventListener('visibilitychange', handleVisibility)
       window.removeEventListener('resize', handleResize)
     }
     // Re-run on theme/focus changes; markers/arcs update through the refs above so drag state

@@ -230,6 +230,7 @@ export default function SalesHero({
           valueLabel={valueLabel}
           beforeLabel={beforeLabel}
           emptyText={copy.empty}
+          swapKey={`${range}-${metric}`}
           formatTooltip={formatTooltip}
           formatTick={(v) => fmt.compact(v)}
         />

@@ -1,4 +1,5 @@
 import type { DashboardSummary } from '@commerce/api'
+import { buttonVariants } from '@commerce/ui/shadcn/button'
 import Link from 'next/link'
 import RelativeTime from '@/components/layout/relative-time'
 import StatusChip from '@/components/layout/status-chip'
@@ -35,6 +36,15 @@ function chipFor(
   return { label: c.done, tone: 'neutral' }
 }
 
+/** Paid and still packed: the order page (with its fulfil flow) is the next step. */
+function canShip(order: Order): boolean {
+  return (
+    order.status !== 'cancelled' &&
+    order.paymentStatus === 'paid' &&
+    order.fulfillmentStatus === 'unfulfilled'
+  )
+}
+
 /** The five newest orders: who, when, a soft status chip and the amount. */
 export default async function LatestOrders({ orders }: LatestOrdersProps) {
   // Render logic
@@ -60,11 +70,15 @@ export default async function LatestOrders({ orders }: LatestOrdersProps) {
             {rows.map((order) => {
               const name = order.customerName ?? order.email ?? `#${order.number}`
               const chip = chipFor(order, c)
+              const detail = routes.orders.detail(order.id)
               return (
-                <li key={order.id}>
+                <li
+                  key={order.id}
+                  className="group flex items-center gap-3.5 px-5 py-3.5 transition-colors first:rounded-t-xl last:rounded-b-xl hover:bg-muted/50"
+                >
                   <Link
-                    href={routes.orders.detail(order.id)}
-                    className="flex items-center gap-3.5 px-5 py-3.5 transition-colors first:rounded-t-xl last:rounded-b-xl hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    href={detail}
+                    className="flex min-w-0 flex-1 items-center gap-3.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                   >
                     <span
                       className="flex size-9 shrink-0 items-center justify-center rounded-full bg-muted text-caption font-semibold text-muted-foreground"
@@ -80,13 +94,35 @@ export default async function LatestOrders({ orders }: LatestOrdersProps) {
                         #{order.number} · <RelativeTime value={order.placedAt} />
                       </span>
                     </span>
-                    {/* A fixed slot so every chip sits centred on the same line, whatever its length. */}
-                    <span className="flex w-28 shrink-0 justify-center">
+                  </Link>
+                  {/* A fixed slot so every chip sits centred on the same line, whatever its length. */}
+                  <span className="relative flex w-28 shrink-0 justify-center">
+                    <span className="transition-opacity duration-150 group-focus-within:opacity-0 group-hover:opacity-0">
                       <StatusChip tone={chip.tone}>{chip.label}</StatusChip>
                     </span>
-                    <span className="w-[5.625rem] shrink-0 text-right text-body font-semibold text-ink-strong tabular-nums">
-                      {fmt.money(order.totalPaise)}
+                    <span className="absolute inset-y-[-0.375rem] -right-5 -left-5 hidden items-center justify-center gap-1.5 rounded-md bg-card/95 group-focus-within:flex group-hover:flex">
+                      {canShip(order) ? (
+                        <Link
+                          href={detail}
+                          className={buttonVariants({ variant: 'default', size: 'sm' })}
+                        >
+                          {c.ship}
+                        </Link>
+                      ) : null}
+                      <Link
+                        href={detail}
+                        className={buttonVariants({ variant: 'outline', size: 'sm' })}
+                      >
+                        {c.view}
+                      </Link>
                     </span>
+                  </span>
+                  <Link
+                    href={detail}
+                    aria-label={name}
+                    className="w-[5.625rem] shrink-0 text-right text-body font-semibold text-ink-strong tabular-nums focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  >
+                    {fmt.money(order.totalPaise)}
                   </Link>
                 </li>
               )

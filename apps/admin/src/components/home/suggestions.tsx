@@ -101,6 +101,8 @@ export default async function Suggestions({ summary, signals, abandoned }: Sugge
       title={c.title}
       note={c.note}
       dismissLabel={c.dismiss}
+      hiddenMessage={c.hidden}
+      undoLabel={c.undo}
     />
   )
 }

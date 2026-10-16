@@ -197,6 +197,12 @@ export const navigationContent = {
     field: `Search or ask ${siteConfig.brand.name} AI…`,
     shortcut: '⌘K',
     askAi: 'Ask AI',
+    /** The top bar's search hint rolls through these while it sits idle. */
+    rotate: [
+      'Search orders, products, customers…',
+      'Ask AI: what sold best this week?',
+      'Try “orders waiting to ship”',
+    ],
     empty: 'Nothing matches',
     orders: 'Orders',
     products: 'Products',

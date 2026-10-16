@@ -30,10 +30,12 @@ export default [
       placeholder: 'अपने स्टोर के बारे में कुछ भी पूछें…',
       button: 'पूछें',
       label: 'AI असिस्टेंट से पूछें',
+      shortcut: '⌘K',
     },
     setup: {
       title: 'सेटअप पूरा करें',
       progress: (done, total) => `${total} में से ${done} पूरे`,
+      openCta: 'सेटअप करें',
       products: {
         title: 'अपने प्रोडक्ट जोड़ें',
         done: (n) => `आपके स्टोर में ${n} प्रोडक्ट हैं`,
@@ -79,6 +81,8 @@ export default [
       title: 'ताज़ा ऑर्डर',
       viewAll: 'सब देखें',
       empty: 'नया ऑर्डर आते ही यहां दिखेगा।',
+      ship: 'भेजें',
+      view: 'देखें',
       toShip: 'भेजना बाकी',
       shipped: 'भेज दिया',
       delivered: 'पहुंच गया',
@@ -97,6 +101,8 @@ export default [
       title: 'आपके लिए सुझाव',
       note: 'आपके स्टोर के आधार पर',
       dismiss: 'यह सुझाव छिपाएं',
+      hidden: 'सुझाव छिपा दिया गया',
+      undo: 'वापस करें',
       restockTitle: 'अपना सबसे ज़्यादा बिकने वाला प्रोडक्ट भरें',
       restockBody: (title, units, left) => `${title} इस हफ़्ते ${units} बिका और सिर्फ़ ${left} बचे हैं।`,
       restockCta: 'स्टॉक भरें',
@@ -120,6 +126,9 @@ export default [
     more: {
       title: 'और आंकड़े',
       subtitle: 'समय के साथ बिक्री, प्रोडक्ट और पेमेंट',
+      previewSales: 'बिक्री',
+      previewProducts: 'टॉप प्रोडक्ट',
+      previewPayments: 'पेमेंट',
     },
   }),
   translation(homeContent, {
