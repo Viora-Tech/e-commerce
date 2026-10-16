@@ -53,6 +53,8 @@ const aiShape = {
   AI_MODEL: optionalOrBlank(z.string().min(3)),
   /** Overrides the stronger model used for long writing when a store picks "Best" quality. Unset: the default in `MODEL_TIERS`. */
   AI_MODEL_STRONG: optionalOrBlank(z.string().min(3)),
+  /** Tool-calling rounds the assistant may take before it must answer (1-20). Unset: the feature default (6). */
+  AI_MAX_STEPS: optionalOrBlank(z.coerce.number().int().min(1).max(20)),
   /** Store slugs on the unlimited AI plan, comma-separated (the platform's own stores, e.g. `waimers`). */
   AI_UNLIMITED_STORES: commaList,
 }
