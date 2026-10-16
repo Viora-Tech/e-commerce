@@ -3,21 +3,17 @@
  * Named exports keep the identifiers call sites already use; `icons` groups
  * them by meaning for new code. Add here, never import a glyph pack directly.
  */
+
+import * as Huge from '@hugeicons/core-free-icons'
 import {
   Sofa01Icon as Armchair,
   RefreshIcon as ArrowClockwise,
-  ArrowTurnBackwardIcon as ArrowCounterClockwise,
-  ArrowDown01Icon as ArrowDown,
   ArrowLeft02Icon as ArrowLeft,
   ArrowRight02Icon as ArrowRight,
   LinkSquare02Icon as ArrowSquareOut,
   ArrowDataTransferHorizontalIcon as ArrowsLeftRight,
   ArrowUp02Icon as ArrowUp,
-  ArrowTurnBackwardIcon as ArrowUUpLeft,
-  ArrowTurnForwardIcon as ArrowUUpRight,
-  ShoppingBasket01Icon as Basket,
   Notification01Icon as BellSimple,
-  Notification03Icon as BellSimpleRinging,
   CodeIcon as BracketsCurly,
   Bug01Icon as Bug,
   ArrowDown01Icon as CaretDown,
@@ -25,17 +21,11 @@ import {
   ArrowRight01Icon as CaretRight,
   ArrowUp01Icon as CaretUp,
   UnfoldMoreIcon as CaretUpDown,
-  ChartColumnIcon as ChartBar,
-  ChartLineData02Icon as ChartLineUp,
-  Comment01Icon as ChatCircleText,
   Tick02Icon as Check,
   CheckmarkCircle02Icon as CheckCircle,
-  ClipboardIcon as ClipboardText,
-  LayoutTwoColumnIcon as Columns,
   Copy01Icon as Copy,
   CreditCardIcon as CreditCard,
   CubeIcon as Cube,
-  Database01Icon as Database,
   SmartPhone01Icon as DeviceMobile,
   Tablet01Icon as DeviceTablet,
   DragDropVerticalIcon as DotsSix,
@@ -79,24 +69,15 @@ import {
   Heading01Icon as EdTextH,
   AlertCircleIcon as EdWarningCircle,
   ViewIcon as Eye,
-  ViewOffSlashIcon as EyeClosed,
-  Facebook02Icon as FacebookLogo,
-  File02Icon as FileText,
   FireIcon as Fire,
-  FlowIcon as FlowArrow,
-  FolderOpenIcon as FolderOpen,
   FilterIcon as Funnel,
-  Settings02Icon as Gear,
   GiftIcon as Gift,
   Globe02Icon as GlobeSimple,
   GoogleIcon as GoogleLogo,
-  GridTableIcon as Hash,
   Home01Icon as House,
   Image01Icon as Image,
-  Image01Icon as ImageSquare,
   InformationCircleIcon as Info,
   InstagramIcon as InstagramLogo,
-  DashboardSquare01Icon as Layout,
   Link01Icon as LinkSimple,
   LeftToRightListBulletIcon as ListBullets,
   Search01Icon as MagnifyingGlass,
@@ -106,18 +87,11 @@ import {
   MinusSignIcon as Minus,
   Moon02Icon as Moon,
   News01Icon as Newspaper,
-  NoteEditIcon as NotePencil,
   PackageIcon as Package,
   SentIcon as PaperPlaneTilt,
-  ParagraphIcon as Paragraph,
-  PencilEdit02Icon as PencilSimpleLine,
   Bookmark02Icon as PhBookmarkSimple,
   Clock01Icon as PhClock,
   Compass01Icon as PhCompass,
-  CookieIcon as PhCookie,
-  DiamondIcon as PhDiamond,
-  Globe02Icon as PhGlobe,
-  FavouriteIcon as PhHandHeart,
   HeadphonesIcon as PhHeadphones,
   Image02Icon as PhImages,
   LockIcon as PhLock,
@@ -128,28 +102,17 @@ import {
   ShoppingCart01Icon as PhShoppingCart,
   StarIcon as PhStar,
   StarHalfIcon as PhStarHalf,
-  PlusSignIcon as Plus,
   PrinterIcon as Printer,
   PuzzleIcon as PuzzlePiece,
   QrCodeIcon as QrCode,
-  RadioButtonIcon as Radio,
   Invoice01Icon as Receipt,
-  LayoutTwoRowIcon as Rows,
   DiscountTag01Icon as SealPercent,
-  Shield02Icon as ShieldCheck,
-  ShoppingBag02Icon as ShoppingBagOpen,
-  Logout02Icon as SignOut,
   SparklesIcon as Sparkle,
   Loading03Icon as SpinnerGap,
-  DashboardSquare02Icon as SquaresFour,
   Store01Icon as Storefront,
   Sun03Icon as Sun,
-  ColorsIcon as Swatches,
   Target02Icon as Target,
   ComputerTerminal01Icon as TerminalWindow,
-  TextAlignLeftIcon as TextAlignLeft,
-  TextFontIcon as TextT,
-  ToggleOffIcon as ToggleLeft,
   TranslateIcon as Translate,
   Delete02Icon as Trash,
   InboxIcon as Tray,
@@ -164,12 +127,9 @@ import {
   Video01Icon as Video,
   Alert02Icon as Warning,
   AlertCircleIcon as WarningCircle,
-  AlertDiamondIcon as WarningDiamond,
-  AlertSquareIcon as WarningOctagon,
   WhatsappIcon as WhatsappLogo,
   WifiOff01Icon as WifiSlash,
   Cancel01Icon as X,
-  CancelCircleIcon as XCircle,
   YoutubeIcon as YoutubeLogo,
 } from '@hugeicons/core-free-icons'
 import { defineIcon, definePath, type IconComponent } from './lib/icon'
@@ -186,32 +146,32 @@ export const Package_ = defineIcon(Package, 'Package', 'duotone')
 export { Package_ as Package }
 export const Users_ = defineIcon(Users, 'Users', 'duotone')
 export { Users_ as Users }
-export const FolderOpen_ = defineIcon(FolderOpen, 'FolderOpen', 'duotone') // kit nav: product media
+export const FolderOpen_ = defineIcon(Huge.Folder01Icon, 'FolderOpen', 'duotone') // kit nav: product media
 export { FolderOpen_ as FolderOpen }
-export const BarChart3 = defineIcon(ChartBar, 'BarChart3', 'duotone')
+export const BarChart3 = defineIcon(Huge.Analytics01Icon, 'BarChart3', 'duotone')
 export const Megaphone_ = defineIcon(Megaphone, 'Megaphone', 'duotone')
 export { Megaphone_ as Megaphone }
 export const BadgePercent = defineIcon(SealPercent, 'BadgePercent', 'duotone') // kit nav: coupon code
 export const Store = defineIcon(Storefront, 'Store', 'duotone')
-export const Blocks = defineIcon(SquaresFour, 'Blocks', 'duotone') // kit nav: categories glyph
+export const Blocks = defineIcon(Huge.DashboardSquare01Icon, 'Blocks', 'duotone') // kit nav: categories glyph
 export const Puzzle = defineIcon(PuzzlePiece, 'Puzzle', 'duotone')
-export const Settings = defineIcon(Gear, 'Settings', 'duotone') // kit nav: control authority
-export const LayoutGrid = defineIcon(SquaresFour, 'LayoutGrid', 'duotone')
+export const Settings = defineIcon(Huge.Settings01Icon, 'Settings', 'duotone') // kit nav: control authority
+export const LayoutGrid = defineIcon(Huge.GridViewIcon, 'LayoutGrid', 'duotone')
 export const Boxes = defineIcon(Cube, 'Boxes', 'duotone')
 export const Gift_ = defineIcon(Gift, 'Gift', 'duotone')
 export { Gift_ as Gift }
 export const Globe = defineIcon(GlobeSimple, 'Globe', 'duotone')
 export const Newspaper_ = defineIcon(Newspaper, 'Newspaper', 'duotone')
 export { Newspaper_ as Newspaper }
-export const FileText_ = defineIcon(FileText, 'FileText', 'duotone')
+export const FileText_ = defineIcon(Huge.File01Icon, 'FileText', 'duotone')
 export { FileText_ as FileText }
-export const FileEdit = defineIcon(NotePencil, 'FileEdit', 'duotone')
-export const FileBarChart = defineIcon(ChartBar, 'FileBarChart', 'duotone')
-export const ClipboardList = defineIcon(ClipboardText, 'ClipboardList', 'duotone')
+export const FileEdit = defineIcon(Huge.FileEditIcon, 'FileEdit', 'duotone')
+export const FileBarChart = defineIcon(Huge.Analytics02Icon, 'FileBarChart', 'duotone')
+export const ClipboardList = defineIcon(Huge.Task01Icon, 'ClipboardList', 'duotone')
 export const ListTree = defineIcon(TreeStructure, 'ListTree', 'duotone')
 export const Braces = defineIcon(BracketsCurly, 'Braces', 'duotone')
-export const Workflow = defineIcon(FlowArrow, 'Workflow', 'duotone')
-export const Radio_ = defineIcon(Radio, 'Radio', 'duotone')
+export const Workflow = defineIcon(Huge.WorkflowSquare01Icon, 'Workflow', 'duotone')
+export const Radio_ = defineIcon(Huge.Radio01Icon, 'Radio', 'duotone')
 export { Radio_ as Radio }
 export const Palette = defineIcon(PhPalette, 'Palette', 'duotone')
 export const Monitor = defineIcon(PhMonitor, 'Monitor', 'duotone')
@@ -221,21 +181,21 @@ export const Images = defineIcon(PhImages, 'Images', 'duotone')
 export const UserCog = defineIcon(UserGear, 'UserCog', 'duotone')
 export const UserRound = defineIcon(User, 'UserRound', 'duotone')
 /* Settings → Customer privacy and Settings → Customer accounts. */
-export const ShieldCheck_ = defineIcon(ShieldCheck, 'ShieldCheck', 'duotone')
+export const ShieldCheck_ = defineIcon(Huge.SecurityCheckIcon, 'ShieldCheck', 'duotone')
 export { ShieldCheck_ as ShieldCheck }
 export const UserCircle_ = defineIcon(UserCircle, 'UserCircle', 'duotone')
 export { UserCircle_ as UserCircle }
 export const CreditCard_ = defineIcon(CreditCard, 'CreditCard', 'duotone')
 export { CreditCard_ as CreditCard }
 export const Inbox = defineIcon(Tray, 'Inbox', 'duotone')
-export const MessageSquare = defineIcon(ChatCircleText, 'MessageSquare', 'duotone')
+export const MessageSquare = defineIcon(Huge.Message01Icon, 'MessageSquare', 'duotone')
 export const Send = defineIcon(PaperPlaneTilt, 'Send', 'duotone')
-export const TrendingUp = defineIcon(ChartLineUp, 'TrendingUp', 'duotone')
+export const TrendingUp = defineIcon(Huge.ChartUpIcon, 'TrendingUp', 'duotone')
 
 /* Brand marks for the Growth "sales by source" table: recognisable logos, no other use of the mark. */
 export const InstagramLogo_ = defineIcon(InstagramLogo, 'InstagramLogo', 'duotone')
 export { InstagramLogo_ as InstagramLogo }
-export const FacebookLogo_ = defineIcon(FacebookLogo, 'FacebookLogo', 'duotone')
+export const FacebookLogo_ = defineIcon(Huge.Facebook01Icon, 'FacebookLogo', 'duotone')
 export { FacebookLogo_ as FacebookLogo }
 export const YoutubeLogo_ = defineIcon(YoutubeLogo, 'YoutubeLogo', 'duotone')
 export { YoutubeLogo_ as YoutubeLogo }
@@ -251,32 +211,32 @@ export const AiIcon = defineIcon(Sparkle, 'AiIcon', 'duotone')
 
 /* Onboarding picture cards ("What do you sell?", "Do you already sell somewhere?"). */
 export const Clothing = defineIcon(TShirt, 'Clothing', 'duotone')
-export const Beauty = defineIcon(Sparkle, 'Beauty', 'duotone')
-export const Jewellery = defineIcon(PhDiamond, 'Jewellery', 'duotone')
+export const Beauty = defineIcon(Huge.PerfumeIcon, 'Beauty', 'duotone')
+export const Jewellery = defineIcon(Huge.Diamond01Icon, 'Jewellery', 'duotone')
 export const HomeDecor = defineIcon(Armchair, 'HomeDecor', 'duotone')
 export const Electronics = defineIcon(PhHeadphones, 'Electronics', 'duotone')
-export const FoodDrink = defineIcon(PhCookie, 'FoodDrink', 'duotone')
-export const Handmade = defineIcon(PhHandHeart, 'Handmade', 'duotone')
+export const FoodDrink = defineIcon(Huge.CoffeeIcon, 'FoodDrink', 'duotone')
+export const Handmade = defineIcon(Huge.PaintBrush01Icon, 'Handmade', 'duotone')
 export const SomethingElse = defineIcon(DotsThreeOutline, 'SomethingElse', 'duotone')
-export const Website = defineIcon(PhGlobe, 'Website', 'duotone')
-export const Marketplace = defineIcon(Basket, 'Marketplace', 'duotone')
-export const NewShop = defineIcon(ShoppingBagOpen, 'NewShop', 'duotone')
+export const Website = defineIcon(Huge.BrowserIcon, 'Website', 'duotone')
+export const Marketplace = defineIcon(Huge.MarketAnalysisIcon, 'Marketplace', 'duotone')
+export const NewShop = defineIcon(Huge.StoreAdd01Icon, 'NewShop', 'duotone')
 
 /* Chrome: regular weight, 16px inline / 18px nav-header sizing set at call sites. */
 export const Search = defineIcon(MagnifyingGlass, 'Search')
 /** Theme editor: "Connect dynamic source" next to a setting, Shopify's database glyph. */
-export const DynamicSource = defineIcon(Database, 'DynamicSource')
+export const DynamicSource = defineIcon(Huge.DatabaseIcon, 'DynamicSource')
 export const SearchIcon = Search
 export const SearchX = defineIcon(MagnifyingGlassMinus, 'SearchX')
 export const Bell = defineIcon(BellSimple, 'Bell')
-export const BellDot = defineIcon(BellSimpleRinging, 'BellDot')
+export const BellDot = defineIcon(Huge.NotificationSquareIcon, 'BellDot')
 export const Sun_ = defineIcon(Sun, 'Sun')
 export { Sun_ as Sun }
 export const SunIcon = Sun_
 export const Moon_ = defineIcon(Moon, 'Moon')
 export { Moon_ as Moon }
 export const MoonIcon = Moon_
-export const LogOut = defineIcon(SignOut, 'LogOut') // kit user card
+export const LogOut = defineIcon(Huge.Logout01Icon, 'LogOut') // kit user card
 /* Page states: offline, no access, not found; and the language switch. */
 export const WifiOff = defineIcon(WifiSlash, 'WifiOff')
 export const Lock = defineIcon(PhLock, 'Lock')
@@ -306,17 +266,17 @@ export const LinkIcon = defineIcon(LinkSimple, 'LinkIcon')
 export const ChevronsUpDown = defineIcon(CaretUpDown, 'ChevronsUpDown')
 export const ArrowUp_ = defineIcon(ArrowUp, 'ArrowUp')
 export { ArrowUp_ as ArrowUp }
-export const ArrowDown_ = defineIcon(ArrowDown, 'ArrowDown')
+export const ArrowDown_ = defineIcon(Huge.ArrowDown02Icon, 'ArrowDown')
 export { ArrowDown_ as ArrowDown }
 export const ArrowLeft_ = defineIcon(ArrowLeft, 'ArrowLeft')
 export { ArrowLeft_ as ArrowLeft }
 export const ArrowRight_ = defineIcon(ArrowRight, 'ArrowRight')
 export { ArrowRight_ as ArrowRight }
-export const ArrowUpDown = defineIcon(ArrowsLeftRight, 'ArrowUpDown')
+export const ArrowUpDown = defineIcon(Huge.ArrowDataTransferVerticalIcon, 'ArrowUpDown')
 export const ArrowLeftRight = defineIcon(ArrowsLeftRight, 'ArrowLeftRight')
 
 /* Actions */
-export const Plus_ = defineIcon(Plus, 'Plus')
+export const Plus_ = defineIcon(Huge.Add01Icon, 'Plus')
 export { Plus_ as Plus }
 export const SquarePlus = Plus_
 export const Minus_ = defineIcon(Minus, 'Minus')
@@ -326,44 +286,44 @@ export const MoreHorizontalIcon = MoreHorizontal
 export const MoreVertical = defineIcon(DotsThreeVertical, 'MoreVertical')
 export const Filter = defineIcon(Funnel, 'Filter')
 export const SlidersHorizontal = Filter
-export const Columns_ = defineIcon(Columns, 'Columns')
+export const Columns_ = defineIcon(Huge.LayoutThreeColumnIcon, 'Columns')
 export { Columns_ as Columns }
 export const SquareTerminal = defineIcon(TerminalWindow, 'SquareTerminal')
-export const Pencil = defineIcon(PencilSimpleLine, 'Pencil')
+export const Pencil = defineIcon(Huge.PencilEdit01Icon, 'Pencil')
 export const Trash2 = defineIcon(Trash, 'Trash2')
-export const ImagePlus = defineIcon(ImageSquare, 'ImagePlus')
+export const ImagePlus = defineIcon(Huge.ImageAdd01Icon, 'ImagePlus')
 export const ImageIcon = defineIcon(Image, 'ImageIcon')
 /* Field-type glyphs for Customize's right panel (Puck fieldTypes overrides). */
-export const FieldText = defineIcon(TextT, 'FieldText')
-export const FieldTextarea = defineIcon(Paragraph, 'FieldTextarea')
-export const FieldNumber = defineIcon(Hash, 'FieldNumber')
-export const FieldToggle = defineIcon(ToggleLeft, 'FieldToggle')
+export const FieldText = defineIcon(Huge.TextIcon, 'FieldText')
+export const FieldTextarea = defineIcon(Huge.TextAlignLeftIcon, 'FieldTextarea')
+export const FieldNumber = defineIcon(Huge.HashtagIcon, 'FieldNumber')
+export const FieldToggle = defineIcon(Huge.ToggleOnIcon, 'FieldToggle')
 export const FieldList = defineIcon(ListBullets, 'FieldList')
-export const FieldSwatch = defineIcon(Swatches, 'FieldSwatch')
-export const FieldRichText = defineIcon(TextAlignLeft, 'FieldRichText')
-export const FieldGroup = defineIcon(SquaresFour, 'FieldGroup')
+export const FieldSwatch = defineIcon(Huge.ColorPickerIcon, 'FieldSwatch')
+export const FieldRichText = defineIcon(Huge.TextBoldIcon, 'FieldRichText')
+export const FieldGroup = defineIcon(Huge.LayersIcon, 'FieldGroup')
 export const Video_ = defineIcon(Video, 'Video')
 export { Video_ as Video }
 export const Upload_ = defineIcon(Upload, 'Upload')
 export { Upload_ as Upload }
 export const Download = defineIcon(DownloadSimple, 'Download')
 export const RefreshCw = defineIcon(ArrowClockwise, 'RefreshCw')
-export const Save = defineIcon(DownloadSimple, 'Save') // kit "save-01" on Save to draft
-export const RotateCcw = defineIcon(ArrowCounterClockwise, 'RotateCcw')
+export const Save = defineIcon(Huge.FloppyDiskIcon, 'Save') // kit "save-01" on Save to draft
+export const RotateCcw = defineIcon(Huge.RotateLeft01Icon, 'RotateCcw')
 export const Printer_ = defineIcon(Printer, 'Printer')
 export { Printer_ as Printer }
 /** Theme editor: "Save as my section". */
 export const Bookmark = defineIcon(PhBookmarkSimple, 'Bookmark')
 export const Copy_ = defineIcon(Copy, 'Copy')
 export { Copy_ as Copy }
-export const EyeOff = defineIcon(EyeClosed, 'EyeOff')
+export const EyeOff = defineIcon(Huge.ViewOffIcon, 'EyeOff')
 export const Eye_ = defineIcon(Eye, 'Eye')
 export { Eye_ as Eye }
-export const Undo = defineIcon(ArrowUUpLeft, 'Undo')
-export const Redo = defineIcon(ArrowUUpRight, 'Redo')
-export const PanelTop = defineIcon(Layout, 'PanelTop')
-export const PanelBottom = defineIcon(Rows, 'PanelBottom')
-export const ListView = defineIcon(Rows, 'ListView')
+export const Undo = defineIcon(Huge.Undo02Icon, 'Undo')
+export const Redo = defineIcon(Huge.Redo02Icon, 'Redo')
+export const PanelTop = defineIcon(Huge.LayoutTopIcon, 'PanelTop')
+export const PanelBottom = defineIcon(Huge.LayoutBottomIcon, 'PanelBottom')
+export const ListView = defineIcon(Huge.ListViewIcon, 'ListView')
 export const X_ = defineIcon(X, 'X')
 export { X_ as X }
 export const XIcon = X_
@@ -377,16 +337,16 @@ export const CircleCheckIcon = CircleCheck
 export const CircleAlert = defineIcon(WarningCircle, 'CircleAlert')
 export const InfoIcon = defineIcon(Info, 'InfoIcon')
 export const TriangleAlert = defineIcon(Warning, 'TriangleAlert')
-export const TriangleAlertIcon = defineIcon(WarningDiamond, 'TriangleAlertIcon')
-export const OctagonXIcon = defineIcon(WarningOctagon, 'OctagonXIcon')
+export const TriangleAlertIcon = defineIcon(Huge.Alert02Icon, 'TriangleAlertIcon')
+export const OctagonXIcon = defineIcon(Huge.CancelCircleIcon, 'OctagonXIcon')
 export const Truck_ = defineIcon(Truck, 'Truck')
 export { Truck_ as Truck }
-export const PackageCheck = defineIcon(CheckCircle, 'PackageCheck')
-export const PackageOpen = defineIcon(Package, 'PackageOpen')
-export const PackageX = defineIcon(XCircle, 'PackageX')
+export const PackageCheck = defineIcon(Huge.PackageDeliveredIcon, 'PackageCheck')
+export const PackageOpen = defineIcon(Huge.PackageOpenIcon, 'PackageOpen')
+export const PackageX = defineIcon(Huge.PackageRemoveIcon, 'PackageX')
 export const Clock = defineIcon(PhClock, 'Clock')
-export const DeliveryDelay = defineIcon(Warning, 'DeliveryDelay') // kit status: Pending
-export const CancelCircle = defineIcon(WarningOctagon, 'CancelCircle') // kit status: Cancelled
+export const DeliveryDelay = defineIcon(Huge.DeliveryDelay01Icon, 'DeliveryDelay') // kit status: Pending
+export const CancelCircle = defineIcon(Huge.CancelCircleIcon, 'CancelCircle') // kit status: Cancelled
 export const QrCodeIcon = defineIcon(QrCode, 'QrCodeIcon')
 export const ReceiptIcon = defineIcon(Receipt, 'ReceiptIcon')
 export const TargetIcon = defineIcon(Target, 'TargetIcon')
