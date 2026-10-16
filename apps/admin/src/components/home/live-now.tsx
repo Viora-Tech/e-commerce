@@ -122,7 +122,7 @@ export default function LiveNow({ initial }: LiveNowProps) {
           ) : null}
         </div>
         {webglOk ? (
-          <div className="relative mt-auto h-[11.375rem] overflow-hidden">
+          <div className="relative mt-auto h-[14rem] overflow-hidden">
             <div className="h-full w-full">
               <LiveGlobeCanvas
                 markers={markers}
