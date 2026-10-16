@@ -59,3 +59,4 @@ export {
   SOURCE_KEYS,
   SOURCE_LABELS,
 } from './services/marketing-overview.service'
+export type { OrderSheetRow } from './services/order-sheet.service'

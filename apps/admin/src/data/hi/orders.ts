@@ -144,6 +144,7 @@ export default [
     moreLines: (n) => `+${n} और`,
     bulk: {
       markAs: 'मार्क करें',
+      bulkEdit: 'एक साथ बदलें',
       updated: (n, status) => `${n} ऑर्डर "${status}" मार्क किए गए`,
       failed: 'ऑर्डर अपडेट नहीं हो पाए',
     },

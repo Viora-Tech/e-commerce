@@ -28,6 +28,7 @@ export const routes = {
   orders: {
     list: () => '/orders',
     detail: (orderId: string) => `/orders/${id(orderId)}`,
+    bulkEdit: () => '/orders/bulk-edit',
     drafts: () => '/orders/drafts',
     newDraft: () => '/orders/drafts/new',
     draft: (draftId: string) => `/orders/drafts/${id(draftId)}`,
