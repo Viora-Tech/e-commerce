@@ -72,7 +72,7 @@ export default function AdminFrame({
 
   return (
     <SidebarProvider
-      className="h-svh overflow-hidden [--sidebar-ms:220ms] in-data-[sidebar-instant]:[--sidebar-ms:0ms] motion-reduce:[--sidebar-ms:0ms] [&_[data-slot=sidebar-container]]:duration-(--sidebar-ms) [&_[data-slot=sidebar-container]]:ease-out [&_[data-slot=sidebar-gap]]:duration-(--sidebar-ms) [&_[data-slot=sidebar-gap]]:ease-out"
+      className="h-svh overflow-hidden [--sidebar-ms:320ms] in-data-[sidebar-instant]:[--sidebar-ms:0ms] motion-reduce:[--sidebar-ms:0ms] [&_[data-slot=sidebar-container]]:duration-(--sidebar-ms) [&_[data-slot=sidebar-container]]:ease-drawer [&_[data-slot=sidebar-gap]]:duration-(--sidebar-ms) [&_[data-slot=sidebar-gap]]:ease-drawer"
       style={{ '--sidebar-width': SIDEBAR_WIDTH } as CSSProperties}
     >
       <SidebarShortcutGuard />
@@ -86,7 +86,7 @@ export default function AdminFrame({
         bugReports={bugReports}
         navCounts={navCounts}
       />
-      <SidebarInset className="min-h-0 overflow-hidden bg-sidebar">
+      <SidebarInset className="min-h-0 min-w-0 overflow-hidden bg-sidebar">
         {/* Search, Ask AI, notifications, theme and account sit on the shell colour above the
             panel, so the panel below reads as the page itself. */}
         <TopBar
@@ -96,31 +96,29 @@ export default function AdminFrame({
           storeName={stores.find((s) => s.id === activeStoreId)?.name ?? null}
           scrolled={scrolled}
         />
-        {/* The content panel (Figma "SidebarInset"): radius 12 with depth/card, inset 8px from
-            the right and bottom window edges. */}
-        {/* The content panel and, when open, the AI panel docked on its right (Shopify-style
-            sidebar rather than a drawer over the page). */}
-        <div className="flex min-h-0 flex-1">
-          <main
-            ref={mainRef}
-            id="main"
-            data-scrolled={scrolled || undefined}
-            className="group/main no-scrollbar min-h-0 min-w-0 flex-1 overflow-y-auto bg-background md:rounded-tl-lg md:border-panel-border md:border-t md:border-l"
-          >
-            {ownHeading ? null : (
-              <div className="sticky top-0 z-10 border-panel-border border-b bg-background px-4 py-5 transition-shadow duration-200 group-data-[scrolled]/main:shadow-[0_6px_16px_-10px_var(--shadow-14)] md:px-6">
-                <h1 className="text-page-title text-ink-strong">{title}</h1>
-              </div>
-            )}
-            {/* The page-enter fade lives once, in the (admin) template.tsx, not here. */}
-            {children}
-          </main>
-          <AssistantHost storeId={activeStoreId} />
-        </div>
+        {/* The content panel (shadcn SidebarInset): runs to the right and bottom window edges
+            with no margin; rounded on the top-left, top-right and bottom-left corners (owner,
+            2026-10-17), a hairline where it meets the top bar and the sidebar. */}
+        <main
+          ref={mainRef}
+          id="main"
+          data-scrolled={scrolled || undefined}
+          className="group/main no-scrollbar min-h-0 min-w-0 flex-1 overflow-y-auto bg-background md:rounded-tl-lg md:rounded-tr-lg md:rounded-bl-lg md:border-panel-border md:border-t md:border-l"
+        >
+          {ownHeading ? null : (
+            <div className="sticky top-0 z-10 border-panel-border border-b bg-background px-4 py-5 transition-shadow duration-200 group-data-[scrolled]/main:shadow-[0_6px_16px_-10px_var(--shadow-14)] md:px-6">
+              <h1 className="text-page-title text-ink-strong">{title}</h1>
+            </div>
+          )}
+          {/* The page-enter fade lives once, in the (admin) template.tsx, not here. */}
+          {children}
+        </main>
         <Toaster duration={siteConfig.ui.toastMs.default} />
         <PaletteHost />
         {bugReports ? <BugReportHost /> : null}
       </SidebarInset>
+      {/* The AI panel docks to the right of everything, top bar included, full window height. */}
+      <AssistantHost storeId={activeStoreId} />
     </SidebarProvider>
   )
 }

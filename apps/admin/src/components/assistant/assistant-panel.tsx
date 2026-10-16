@@ -58,10 +58,10 @@ export default function AssistantPanel({
       role="dialog"
       aria-modal="false"
       aria-label={copy.panel.title}
-      /* Owner 2026-10-17: a right sidebar, not a drawer. 440px on the shell colour under the
-         top bar, split from the page by a hairline; it slides in from the right. Phones keep the
-         bottom sheet. */
-      className="fixed inset-x-0 top-[max(0.75rem,env(safe-area-inset-top))] bottom-0 z-40 flex animate-in flex-col overflow-hidden rounded-t-2xl border border-border bg-popover shadow-dialog duration-300 ease-drawer fade-in slide-in-from-bottom-6 motion-reduce:animate-none md:static md:z-auto md:w-[27.5rem] md:shrink-0 md:rounded-none md:border-0 md:border-panel-border md:border-t md:border-l md:bg-sidebar md:shadow-none md:slide-in-from-right-8 md:slide-in-from-bottom-0"
+      /* Owner 2026-10-17: a right sidebar, not a drawer: 440px, the full window height beside the
+         top bar and the page, split off by a hairline. The host animates its width open and
+         closed so the page narrows smoothly. Phones keep the bottom sheet. */
+      className="fixed inset-x-0 top-[max(0.75rem,env(safe-area-inset-top))] bottom-0 z-40 flex animate-in flex-col overflow-hidden rounded-t-2xl border border-border bg-popover shadow-dialog duration-400 ease-drawer fade-in slide-in-from-bottom-6 motion-reduce:animate-none md:static md:z-auto md:h-svh md:w-[27.5rem] md:animate-none md:rounded-none md:border-0 md:border-panel-border md:border-l md:bg-background md:shadow-none"
     >
       <header className="flex shrink-0 items-center gap-2.5 border-border border-b py-3.5 pr-3.5 pl-4.5">
         {/* The AI orb (Figma): a glowing disc in the AI colour. */}

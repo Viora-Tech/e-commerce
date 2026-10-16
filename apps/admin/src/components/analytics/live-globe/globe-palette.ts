@@ -15,7 +15,8 @@ export type GlobePalette = {
   borderDot: Rgb01
 }
 
-/** The Home globe's deep navy (Figma 227:549): the brand blue at about a third. */
+/** The Home globe's deep tone in dark mode (Figma 227:549): the primary at about a third. In
+ * light mode the neutral primary is near-black, so the globe uses the muted ink instead. */
 function deep(c: Rgb01): Rgb01 {
   return c.map((v) => v * 0.38) as Rgb01
 }
@@ -56,10 +57,10 @@ export function readPalette(dark: boolean, look?: GlobeLookColors, brand = false
   const [base, ocean, accent]: [Rgb01, Rgb01, Rgb01] =
     theme === 'accent'
       ? [
-          brand
+          brand && dark
             ? deep(readCssColorVar('--primary', fallbackPrimary))
             : readCssColorVar('--muted-foreground', fallbackBase),
-          brand
+          brand && dark
             ? deep(readCssColorVar('--primary', fallbackPrimary))
             : readCssColorVar('--muted-foreground', fallbackBase),
           readCssColorVar('--primary', fallbackPrimary),
