@@ -79,6 +79,10 @@ export const ordersRouter = {
         status: z.enum(['open', 'completed', 'cancelled']).optional(),
         paymentStatus: z.array(z.enum(ORDER_PAYMENT_STATUSES)).max(10).optional(),
         fulfillmentStatus: z.array(z.enum(ORDER_FULFILLMENT_STATUSES)).max(10).optional(),
+        /** Placed at or after this moment (the filter panel's Date). */
+        placedFrom: z.iso.datetime().optional(),
+        /** Cash on delivery, or anything paid up front. */
+        paymentMethod: z.enum(['cod', 'prepaid']).optional(),
       }),
     )
     .handler(({ context, input }) => listOrders(context.tx, input)),

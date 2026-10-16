@@ -37,7 +37,7 @@ import {
 } from './columns'
 import { type ResourceTableFeatures, resourceTableFeatures } from './features'
 import ResourceTablePagination from './pagination'
-import ResourceTableToolbar, { type AppliedFilter } from './toolbar'
+import ResourceTableToolbar, { type AppliedFilter, type FilterPanel } from './toolbar'
 
 export type { AppliedFilter, ResourceColumnSpec }
 
@@ -58,7 +58,9 @@ export type ResourceTableProps<T extends RowData> = {
   /** The "View" dropdown (Figma Table / View select): a status picker drawn first in the toolbar. */
   views?: ReactNode
   /** Filter controls rendered as a popover from the filter icon button. */
-  filters?: ReactNode
+  filters?: FilterPanel
+  /** Size and padding of the filter popover (default: 16rem, padded). */
+  filtersClassName?: string | undefined
   applied?: AppliedFilter[]
   onClearAll?: () => void
   page: number
@@ -218,6 +220,7 @@ export default function ResourceTable<T extends RowData>(props: ResourceTablePro
         tabs={props.tabs}
         views={props.views}
         filters={props.filters}
+        filtersClassName={props.filtersClassName}
         applied={props.applied}
         onClearAll={props.onClearAll}
         columnTitles={columnTitles}
