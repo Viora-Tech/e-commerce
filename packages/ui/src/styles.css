@@ -489,6 +489,7 @@
   --key-border: #171717;
   --key-edge: var(--btn-bottom);
   --key-glow: var(--glow-primary);
+  --key-sheen: rgb(255 255 255 / 0.14);
   --key-ink: #fafafa;
   --key-highlight: var(--btn-top);
   --key-neutral-top: #ffffff;
@@ -626,15 +627,17 @@
   --input: rgb(255 255 255 / 0.15);
   --ring: #737373;
 
-  /* Dark primary button: raised glass, dark grey with white ink (owner, 2026-10-16: no white
-     buttons, add a glass feel). Translucent fill over the page, blurred by key-primary. */
-  --key-top: rgb(255 255 255 / 0.14);
-  --key-bottom: rgb(255 255 255 / 0.07);
-  --key-border: rgb(255 255 255 / 0.14);
-  --key-ink: #fafafa;
-  --key-highlight: rgb(255 255 255 / 0.12);
-  --key-edge: rgb(0 0 0 / 0.4);
-  --key-glow: rgb(0 0 0 / 0.5);
+  /* Dark primary button: white glass (owner, 2026-10-16: keep it white, add a glass feel).
+     A slightly translucent white top-to-bottom, a bright top sheen, a light rim and a soft
+     white glow; key-primary frosts what sits behind it. */
+  --key-top: rgb(255 255 255 / 0.96);
+  --key-bottom: rgb(229 229 229 / 0.82);
+  --key-border: rgb(255 255 255 / 0.55);
+  --key-ink: #171717;
+  --key-highlight: rgb(255 255 255 / 0.95);
+  --key-edge: rgb(0 0 0 / 0.18);
+  --key-glow: rgb(255 255 255 / 0.18);
+  --key-sheen: rgb(255 255 255 / 0.7);
   --key-neutral-top: #1c1c1c;
   --key-neutral-bottom: #171717;
   --key-neutral-hover: #222222;
@@ -775,9 +778,12 @@
 @utility key-primary {
   /* Figma depth/button-primary: 1px top highlight, 1px bottom edge, contact + soft glow. */
   border: 1px solid var(--key-border);
-  background-image: linear-gradient(to bottom, var(--key-top), var(--key-bottom));
+  /* A diagonal sheen over the top-to-bottom fill: the glass highlight. */
+  background-image:
+    linear-gradient(135deg, var(--key-sheen) 0%, transparent 55%),
+    linear-gradient(to bottom, var(--key-top), var(--key-bottom));
   color: var(--key-ink);
-  /* Glass: the translucent dark fill frosts what sits behind it (opaque in light, so no-op). */
+  /* Glass: the translucent fill frosts whatever sits behind it. */
   -webkit-backdrop-filter: blur(12px) saturate(1.4);
   backdrop-filter: blur(12px) saturate(1.4);
   box-shadow:
