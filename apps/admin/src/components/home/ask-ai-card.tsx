@@ -74,7 +74,9 @@ export default function AskAiCard({
           aria-label={label ?? copy.ask.label}
           className="min-w-0 flex-1 bg-transparent text-[0.9375rem] text-foreground outline-none placeholder:text-muted-foreground"
         />
-        <Button type="submit">{copy.ask.button}</Button>
+        <Button type="submit" variant="secondary" size="sm">
+          {copy.ask.button}
+        </Button>
       </form>
       <ul className="flex flex-wrap items-center gap-2">
         {chipsLabel ? (

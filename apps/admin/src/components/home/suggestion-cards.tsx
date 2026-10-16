@@ -99,8 +99,8 @@ export default function SuggestionCards({
         {visible.map((s) => {
           const Icon = ICONS[s.icon]
           return (
-            <li key={s.id} className="group relative flex gap-4 rounded-xl surface-card p-3.5">
-              <div className="flex size-24 shrink-0 items-center justify-center overflow-hidden rounded-[0.75rem] bg-linear-to-b from-muted to-secondary text-primary">
+            <li key={s.id} className="relative flex gap-4 rounded-xl surface-card p-3.5">
+              <div className="flex size-[4.5rem] shrink-0 items-center justify-center overflow-hidden rounded-[0.75rem] bg-muted text-muted-foreground">
                 {s.imageUrl ? (
                   <>
                     {/* biome-ignore lint/performance/noImgElement: product photo from the store's own storage. */}
@@ -111,10 +111,10 @@ export default function SuggestionCards({
                 )}
               </div>
               <div className="flex min-w-0 flex-1 flex-col items-start gap-1 pr-5">
-                <p className="text-[0.9375rem] leading-[1.375rem] font-semibold text-ink-strong">
+                <p className="text-[0.9375rem] leading-[1.375rem] font-medium text-ink-strong">
                   {s.title}
                 </p>
-                <p className="text-[0.8125rem] leading-[1.1875rem] text-muted-foreground">
+                <p className="line-clamp-2 text-[0.8125rem] leading-[1.1875rem] text-muted-foreground">
                   {s.body}
                 </p>
                 <Link
@@ -130,7 +130,7 @@ export default function SuggestionCards({
                 onClick={() => handleDismiss(s.id)}
                 aria-label={dismissLabel}
                 title={dismissLabel}
-                className="absolute top-3 right-3 flex size-6 items-center justify-center rounded-md text-muted-foreground opacity-0 transition-opacity hover:bg-muted hover:text-foreground focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring group-hover:opacity-100"
+                className="absolute top-3 right-3 flex size-6 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
                 <X className="size-3.5" aria-hidden="true" />
               </button>
