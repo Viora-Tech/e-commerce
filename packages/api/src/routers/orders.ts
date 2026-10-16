@@ -30,6 +30,7 @@ import {
   ORDER_VIEWS,
   orderStats,
   orderTiles,
+  readyToShipCount,
   refundOrderPayment,
   setOrderStatus,
   setOrderTags,
@@ -85,6 +86,8 @@ export const ordersRouter = {
   stats: can(permissions.ORDERS_READ).handler(({ context }) => orderStats(context.tx)),
 
   tiles: can(permissions.ORDERS_READ).handler(({ context }) => orderTiles(context.tx)),
+
+  toShipCount: can(permissions.ORDERS_READ).handler(({ context }) => readyToShipCount(context.tx)),
 
   get: can(permissions.ORDERS_READ)
     .input(z.object({ id: z.uuid() }))

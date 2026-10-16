@@ -14,10 +14,16 @@ import {
   type NavItem,
   navigationContent,
 } from '@/data/navigation'
+import { useCopy } from '@/hooks/use-copy'
 import { base, instant, pill } from '@/lib/motion'
 import { SIDEBAR_CONTROL, SIDEBAR_LABEL } from '@/lib/sidebar-motion'
 
-type NavSectionProps = { item: NavItem; pathname: string }
+type NavSectionProps = {
+  item: NavItem
+  pathname: string
+  /** The count pill (Figma "Sidebar menu button" › Count); hidden at 0. */
+  count?: number | undefined
+}
 
 /** A manual open/closed choice only holds for the route it was made on. */
 type OpenOverride = { pathname: string; open: boolean }
@@ -35,8 +41,9 @@ const CHILD = `relative isolate flex h-8 w-full min-w-0 items-center rounded-[0.
 const CHILD_ACTIVE = 'text-sidebar-foreground hover:bg-transparent'
 
 /** One rail entry: the section link, a chevron toggle when it has sub-pages, and the guided child list. */
-export default function NavSection({ item, pathname }: NavSectionProps) {
+export default function NavSection({ item, pathname, count = 0 }: NavSectionProps) {
   // Hooks
+  const copy = useCopy(navigationContent)
   const reduced = useReducedMotion()
   const { state: sidebarState, isMobile } = useSidebar()
   const [override, setOverride] = useState<OpenOverride | null>(null)
@@ -53,9 +60,7 @@ export default function NavSection({ item, pathname }: NavSectionProps) {
   const activeHref = activeChildHref(pathname, children)
   const open =
     children.length > 0 && (override?.pathname === pathname ? override.open : sectionActive)
-  const toggleLabel = open
-    ? navigationContent.collapseSection(item.label)
-    : navigationContent.expandSection(item.label)
+  const toggleLabel = open ? copy.collapseSection(item.label) : copy.expandSection(item.label)
   const slide = reduced ? instant : pill
   const reveal = reduced ? instant : base
   /* The collapsed rail shows icons only, so each one names itself in a tooltip (Figma rail). */
@@ -88,6 +93,14 @@ export default function NavSection({ item, pathname }: NavSectionProps) {
       ) : null}
       <item.icon />
       <span className={cn('min-w-0 flex-1 truncate', SIDEBAR_LABEL)}>{item.label}</span>
+      {count > 0 ? (
+        <span
+          title={copy.countHint(count)}
+          className="flex h-4.5 min-w-5 shrink-0 items-center justify-center rounded-full bg-badge-count px-1.5 text-[0.6875rem] leading-3.5 font-semibold text-foreground tabular-nums group-data-[collapsible=icon]:hidden"
+        >
+          {count > 99 ? '99+' : count}
+        </span>
+      ) : null}
     </Link>
   )
 

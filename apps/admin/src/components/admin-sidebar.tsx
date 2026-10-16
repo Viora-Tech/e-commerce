@@ -56,6 +56,8 @@ type AdminSidebarProps = {
   bugReports: boolean
   /** Orders this month against the plan. Hidden until billing supplies it. */
   usage?: SidebarUsage | undefined
+  /** Count pills on rows, by the row's href (Orders: orders waiting to ship). */
+  navCounts?: Record<string, number> | undefined
 }
 
 /** How many installed apps the sidebar lists before "View all apps". */
@@ -113,6 +115,7 @@ export default function AdminSidebar({
   storefrontUrl,
   bugReports,
   usage,
+  navCounts = {},
 }: AdminSidebarProps) {
   // Hooks
   const copy = useCopy(navigationContent)
@@ -230,6 +233,7 @@ export default function AdminSidebar({
                 : localizeNavItems(group.items, locale)
             }
             pathname={pathname}
+            counts={navCounts}
           />
         ))}
         <NavGroupBlock

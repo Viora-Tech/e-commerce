@@ -151,16 +151,12 @@ export default [
     settingsGroup: 'सेटिंग',
     expandSection: (label) => `${label} के पेज दिखाएं`,
     collapseSection: (label) => `${label} के पेज छिपाएं`,
+    countHint: (n) => `${n} भेजने बाकी`,
     search: {
       placeholder: 'ऑर्डर, प्रोडक्ट या ग्राहक खोजें',
       field: `खोजें या ${siteConfig.brand.name} AI से पूछें…`,
       shortcut: '⌘K',
       askAi: 'AI से पूछें',
-      rotate: [
-        'ऑर्डर, प्रोडक्ट, ग्राहक खोजें…',
-        'AI से पूछें: इस हफ़्ते सबसे ज़्यादा क्या बिका?',
-        'आज़माएं “भेजने बाकी ऑर्डर”',
-      ],
       empty: 'कुछ नहीं मिला',
       orders: 'ऑर्डर',
       products: 'प्रोडक्ट',

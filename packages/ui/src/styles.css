@@ -283,6 +283,7 @@
   --color-neutral-soft: var(--neutral-soft);
   --color-neutral-border: var(--neutral-border);
   --color-live: var(--live);
+  --color-badge-count: var(--badge-count);
   --color-ai-glow: var(--ai-glow);
   --color-ai: var(--ai);
   --color-chart-area-top: var(--chart-area-top);
@@ -500,6 +501,7 @@
   --neutral-soft: #f5f5f5;
   --neutral-border: #e5e5e5;
   --live: #22c55e; /* live dots and pulses */
+  --badge-count: rgb(115 115 115 / 0.3); /* sidebar count pills (Figma badge-count) */
 
   /* Lines and focus */
   --border: #e5e5e5;

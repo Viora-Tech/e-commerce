@@ -60,24 +60,24 @@ export type SiteConfig = {
 
 export const siteConfig: SiteConfig = {
   brand: {
-    name: 'Sellverse',
+    name: 'Koomerce',
     tagline: 'Run your store in plain words.',
-    domain: 'sellverse.app',
+    domain: 'koomerce.app',
     logo: { mark: '/brand/mark.svg', full: '/brand/logo.svg', favicon: '/favicon.ico' },
   },
   contact: {
-    supportEmail: 'support@sellverse.app',
+    supportEmail: 'support@koomerce.app',
     whatsappNumber: '910000000000',
     whatsappGreeting: 'Hi, I need help with my store.',
     phone: '+91 00000 00000',
   },
   urls: {
-    site: 'https://sellverse.app',
-    docs: 'https://docs.sellverse.app',
-    terms: 'https://sellverse.app/terms',
-    privacy: 'https://sellverse.app/privacy',
-    refunds: 'https://sellverse.app/refunds',
-    status: 'https://status.sellverse.app',
+    site: 'https://koomerce.app',
+    docs: 'https://docs.koomerce.app',
+    terms: 'https://koomerce.app/terms',
+    privacy: 'https://koomerce.app/privacy',
+    refunds: 'https://koomerce.app/refunds',
+    status: 'https://status.koomerce.app',
   },
   locale: {
     currency: 'INR',
@@ -98,11 +98,11 @@ export const siteConfig: SiteConfig = {
     scale: { name: 'Scale', ordersPerMonth: 10000 },
   },
   social: {
-    x: 'https://x.com/sellverse',
-    instagram: 'https://instagram.com/sellverse',
-    youtube: 'https://youtube.com/@sellverse',
-    linkedin: 'https://linkedin.com/company/sellverse',
-    github: 'https://github.com/sellverse',
+    x: 'https://x.com/koomerce',
+    instagram: 'https://instagram.com/koomerce',
+    youtube: 'https://youtube.com/@koomerce',
+    linkedin: 'https://linkedin.com/company/koomerce',
+    github: 'https://github.com/koomerce',
   },
 }
 

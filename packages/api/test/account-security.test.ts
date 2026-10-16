@@ -55,7 +55,7 @@ function ctx(headers: Headers): ApiContext {
     platformEmail: {
       transport: {
         fromEmail: 'no-reply@example.com',
-        fromName: 'Sellverse',
+        fromName: 'Koomerce',
         channel: () => channel,
       },
     },

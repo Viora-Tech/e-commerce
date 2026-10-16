@@ -186,6 +186,23 @@ export type OrderTiles = {
   salesWeek: { paise: number; previousPaise: number }
 }
 
+/** Open orders nobody has shipped yet that are paid, or cash on delivery: "Ready to ship". */
+const readyToShipWhere = () =>
+  and(
+    eq(order.status, 'open'),
+    inArray(order.fulfillmentStatus, [...UNFULFILLED_STATUSES]),
+    or(
+      notInArray(order.paymentStatus, [...UNPAID_PAYMENT_STATUSES]),
+      eq(order.paymentMethod, 'cod'),
+    ),
+  )
+
+/** How many orders wait to ship: the count pill on the sidebar's Orders row (Figma). */
+export async function readyToShipCount(tx: StoreTx): Promise<number> {
+  const [row] = await tx.select({ n: count() }).from(order).where(readyToShipWhere())
+  return row?.n ?? 0
+}
+
 /** The four stat cards above the Orders list (Figma "Orders / List"). */
 export async function orderTiles(tx: StoreTx, now = new Date()): Promise<OrderTiles> {
   const todayStart = startOfDay(now)
@@ -205,19 +222,7 @@ export async function orderTiles(tx: StoreTx, now = new Date()): Promise<OrderTi
       .where(
         and(live, gte(order.placedAt, yesterdayStart), lte(order.placedAt, sameTimeYesterday)),
       ),
-    tx
-      .select({ n: count() })
-      .from(order)
-      .where(
-        and(
-          eq(order.status, 'open'),
-          inArray(order.fulfillmentStatus, [...UNFULFILLED_STATUSES]),
-          or(
-            notInArray(order.paymentStatus, [...UNPAID_PAYMENT_STATUSES]),
-            eq(order.paymentMethod, 'cod'),
-          ),
-        ),
-      ),
+    tx.select({ n: count() }).from(order).where(readyToShipWhere()),
     tx.select({ n: count() }).from(order).where(viewFilter('pending_upi')),
     tx
       .select({ totalPaise: order.totalPaise, placedAt: order.placedAt })

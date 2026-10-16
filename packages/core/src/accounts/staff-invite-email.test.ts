@@ -18,7 +18,7 @@ function fakePlatform(result: { ok: boolean }) {
   const platform: PlatformCodeSender = {
     transport: {
       fromEmail: 'no-reply@vioratech.in',
-      fromName: 'Sellverse',
+      fromName: 'Koomerce',
       channel: () => channel,
     },
   }
@@ -46,7 +46,7 @@ describe('deliverPlatformStaffInvite', () => {
     expect(m?.data.staffInvite).toEqual({
       inviterEmail: 'owner@example.com',
       roleLabel: 'Staff',
-      platformName: 'Sellverse',
+      platformName: 'Koomerce',
     })
   })
 
