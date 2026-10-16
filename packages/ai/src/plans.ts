@@ -15,9 +15,11 @@ export const DEFAULT_AI_PLAN: AiPlan = 'starter'
 export type AiQuota = { calls: number | null; tokens: number | null }
 
 /**
- * Sized from the default model (Claude Haiku 4.5 at $1 in / $5 out per million tokens): a
- * product write is ~5k tokens (~₹0.8), a store question ~8k (~₹0.9). Starter's ceiling is
- * about ₹130 of model cost a month; tokens cap the rare long call, calls cap everything else.
+ * Sized when the default model was Claude Haiku 4.5 ($1 in / $5 out per million tokens): a
+ * product write ~5k tokens (~₹0.8), a store question ~8k (~₹0.9), Starter's ceiling about ₹130
+ * of model cost a month. The default is now Haiku 5.5 at a tenth of that ($0.10 / $0.50), so
+ * the same quotas cost about ₹13; the limits are kept as they are until pricing is decided.
+ * Tokens cap the rare long call, calls cap everything else.
  */
 export const PLAN_QUOTAS: Record<AiPlan, AiQuota> = {
   free: { calls: 30, tokens: 150_000 },
