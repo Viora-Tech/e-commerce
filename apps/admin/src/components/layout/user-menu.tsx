@@ -1,6 +1,6 @@
 'use client'
 
-import { BugIcon, LogOut, Settings } from '@commerce/ui/icons'
+import { BugIcon, LogOut, Settings, Store } from '@commerce/ui/icons'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -20,6 +20,8 @@ import { useCopy } from '@/hooks/use-copy'
 import { authClient } from '@/lib/auth-client'
 import { openBugReport } from '@/lib/bug-report-events'
 import { routes } from '@/lib/routes'
+import MemberAvatar from '../account/member-avatar'
+import TopBarTip from './top-bar-tip'
 
 type UserMenuProps = {
   user: { name: string; email: string; image?: string | null }
@@ -31,6 +33,12 @@ type UserMenuProps = {
   triggerLabel: string
   align?: 'start' | 'end'
   side?: 'top' | 'bottom' | 'right'
+  /** `topbar` (Figma "TB · Account menu"): avatar in the header and a "Switch store" row. */
+  variant?: 'sidebar' | 'topbar'
+  /** The active store's name, for the "Switch store" row (top bar only). */
+  storeName?: string | null
+  /** Tooltip on the trigger (top bar). */
+  tip?: string
 }
 
 /**
@@ -46,6 +54,9 @@ export default function UserMenu({
   triggerLabel,
   align = 'end',
   side = 'bottom',
+  variant = 'sidebar',
+  storeName = null,
+  tip,
 }: UserMenuProps) {
   // Hooks
   const copy = useCopy(navigationContent)
@@ -61,16 +72,34 @@ export default function UserMenu({
   }
 
   // Render logic
+  const topbar = variant === 'topbar'
+  const triggerButton = (
+    <DropdownMenuTrigger aria-label={triggerLabel} className={triggerClassName}>
+      {trigger}
+    </DropdownMenuTrigger>
+  )
+
   return (
     <DropdownMenu>
-      <DropdownMenuTrigger aria-label={triggerLabel} className={triggerClassName}>
-        {trigger}
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align={align} side={side} className="w-60">
+      {tip ? <TopBarTip label={tip}>{triggerButton}</TopBarTip> : triggerButton}
+      <DropdownMenuContent align={align} side={side} className={topbar ? 'w-65' : 'w-60'}>
         <DropdownMenuGroup>
-          <DropdownMenuLabel className="grid leading-tight">
-            <span className="truncate font-semibold">{user.name}</span>
-            <span className="truncate text-xs font-normal text-muted-foreground">{user.email}</span>
+          <DropdownMenuLabel className="flex items-center gap-2.5 leading-tight">
+            {topbar ? (
+              <MemberAvatar
+                name={user.name}
+                email={user.email}
+                image={user.image ?? null}
+                className="size-8 shrink-0"
+                fallbackClassName="bg-primary text-xs text-primary-foreground"
+              />
+            ) : null}
+            <span className="grid min-w-0">
+              <span className="truncate font-semibold text-foreground">{user.name}</span>
+              <span className="truncate text-xs font-normal text-muted-foreground">
+                {user.email}
+              </span>
+            </span>
           </DropdownMenuLabel>
         </DropdownMenuGroup>
         <DropdownMenuSeparator />
@@ -88,6 +117,18 @@ export default function UserMenu({
           </DropdownMenuItem>
         </DropdownMenuGroup>
         <DropdownMenuSeparator />
+        {topbar && storeName ? (
+          <>
+            <DropdownMenuItem render={<Link href={routes.account.stores()} />}>
+              <Store className="size-4" />
+              <span className="grid min-w-0 leading-tight">
+                <span className="truncate">{storeName}</span>
+                <span className="truncate text-xs text-muted-foreground">{copy.switchStore}</span>
+              </span>
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+          </>
+        ) : null}
         {bugReports ? (
           <DropdownMenuItem onClick={openBugReport}>
             <BugIcon className="size-4" />

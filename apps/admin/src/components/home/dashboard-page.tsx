@@ -73,6 +73,7 @@ export default function DashboardPage({
         <SalesHero
           today={summary.today}
           yesterdayHourly={summary.yesterday.hourly}
+          yesterdayVisitors={summary.yesterday.visitors}
           charts={charts}
           liveNow={summary.liveVisitors.last30}
           livePerMinute={summary.liveVisitors.perMinute}

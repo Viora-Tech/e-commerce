@@ -89,14 +89,16 @@ export default function AdminFrame({
           user={user}
           storefrontUrl={storefrontUrl}
           bugReports={bugReports}
+          storeName={stores.find((s) => s.id === activeStoreId)?.name ?? null}
           scrolled={scrolled}
         />
-        {/* The content panel: radius 16 with a hairline, inset from the window edges. */}
+        {/* The content panel (Figma "SidebarInset"): radius 12 with depth/card, inset 8px from
+            the right and bottom window edges. */}
         <main
           ref={mainRef}
           id="main"
           data-scrolled={scrolled || undefined}
-          className="group/main no-scrollbar min-h-0 flex-1 overflow-y-auto border-panel-border bg-background md:mr-2 md:mb-2 md:rounded-xl md:border"
+          className="group/main no-scrollbar min-h-0 flex-1 overflow-y-auto bg-background md:mr-2 md:mb-2 md:rounded-lg md:shadow-card"
         >
           {ownHeading ? null : (
             <div className="sticky top-0 z-10 border-panel-border border-b bg-background px-4 py-5 transition-shadow duration-200 group-data-[scrolled]/main:shadow-[0_6px_16px_-10px_var(--shadow-14)] md:px-6">

@@ -15,12 +15,15 @@ import { useState } from 'react'
 import { homePageContent } from '@/data/home'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { routes } from '@/lib/routes'
+import HeroGlass from './hero-glass'
 import SalesHeroChart, { type SalesChartPoint } from './sales-hero-chart'
 import SalesMetricTiles from './sales-metric-tiles'
 
 type SalesHeroProps = {
   today: DashboardSummary['today']
   yesterdayHourly: number[]
+  /** Storefront visitors yesterday (IST), the Today comparison for Visitors and Conversion. */
+  yesterdayVisitors: number
   /** The 30-day daily series; the last entry is today. Every range is cut from it. */
   charts: DashboardChartsData
   /** Visitors on the store right now (the beacon's last-30-minutes count). */
@@ -43,6 +46,12 @@ const PILL =
 const sum = (values: number[]) => values.reduce((n, v) => n + v, 0)
 
 /** Percent change from `previous` to `current`, rounded; null when there is nothing to compare. */
+/** Orders per visitor as a percentage with one decimal; 0 when nobody visited. */
+function conversionPercent(orders: number, visitors: number): number {
+  if (visitors <= 0) return 0
+  return Math.round(Math.min(orders / visitors, 1) * 1000) / 10
+}
+
 function percentChange(current: number, previous: number): number | null {
   if (previous <= 0) return null
   return Math.round(((current - previous) / previous) * 100)
@@ -89,12 +98,13 @@ function dailyPoints(
  * The sales hero: filter pills, the live count and Customize, one tile per metric with its
  * own sparkline and delta, and the area chart (Today solid, before dashed). The Today /
  * 7 days / 30 days switch cuts the one 30-day series Home already loaded, so switching
- * never refetches. Visit counts are not recorded per day, so the visitors tile shows the
- * live count instead of a daily total.
+ * never refetches. Visitors come from the beacon's daily counts; Conversion rate is orders per
+ * visitor for the same window, its change in percentage points.
  */
 export default function SalesHero({
   today,
   yesterdayHourly,
+  yesterdayVisitors,
   charts,
   liveNow,
   livePerMinute,
@@ -136,6 +146,24 @@ export default function SalesHero({
     range === 'today' ? sum(yesterdayHourly) : sum(range === '7' ? ordersAll.slice(-14, -7) : [])
   const ordersChange = range === '30' ? null : percentChange(ordersValue, ordersBefore)
 
+  const visitorsAll = charts.visitors
+  const visitorsValue = range === 'today' ? today.visitors : sum(visitorsAll.slice(-days))
+  const visitorsBefore =
+    range === 'today'
+      ? yesterdayVisitors
+      : sum(range === '7' ? visitorsAll.slice(-14, -7) : charts.previousVisitors)
+  const visitorsChange = percentChange(visitorsValue, visitorsBefore)
+  const conversion = conversionPercent(ordersValue, visitorsValue)
+  const conversionBefore = conversionPercent(ordersBefore, visitorsBefore)
+  const conversionChange =
+    range === '30' || visitorsBefore <= 0
+      ? null
+      : Math.round((conversion - conversionBefore) * 10) / 10
+  const conversionSpark =
+    range === 'today'
+      ? []
+      : ordersAll.slice(-days).map((n, i) => conversionPercent(n, visitorsAll.slice(-days)[i] ?? 0))
+
   const labels =
     range === 'today'
       ? []
@@ -171,7 +199,8 @@ export default function SalesHero({
   ]
 
   return (
-    <section className="flex flex-col overflow-hidden rounded-xl surface-card">
+    <section className="relative isolate flex flex-col overflow-hidden rounded-xl surface-glass">
+      <HeroGlass />
       <div className="flex flex-wrap items-center gap-2 pt-4 pr-4 pb-2 pl-5">
         <DropdownMenu>
           <DropdownMenuTrigger
@@ -225,13 +254,18 @@ export default function SalesHero({
           ordersDisplay={fmt.compact(ordersValue)}
           ordersSpark={range === 'today' ? cumulative(today.hourly) : ordersAll.slice(-days)}
           ordersChange={ordersChange}
-          visitorsDisplay={fmt.compact(liveNow)}
-          visitorsSpark={livePerMinute}
+          visitorsDisplay={fmt.compact(visitorsValue)}
+          visitorsSpark={range === 'today' ? livePerMinute : visitorsAll.slice(-days)}
+          visitorsChange={visitorsChange}
+          conversionDisplay={`${fmt.number(conversion)}%`}
+          conversionSpark={conversionSpark}
+          conversionChange={conversionChange}
+          conversionTitle={copy.conversionTitle}
+          points={copy.points}
           comparedTo={comparedTo}
           totalSales={copy.totalSales}
           ordersTitle={copy.ordersTitle}
           visitorsTitle={copy.visitorsTitle}
-          visitorsNow={copy.visitorsNow}
           metric={metric}
           onSelect={handleMetric}
         />

@@ -23,19 +23,26 @@ type SalesMetricTilesProps = {
   ordersChange: number | null
   visitorsDisplay: string
   visitorsSpark: number[]
+  visitorsChange: number | null
+  conversionDisplay: string
+  conversionSpark: number[]
+  /** Change in percentage points, one decimal. */
+  conversionChange: number | null
   comparedTo: string
   totalSales: string
   ordersTitle: string
   visitorsTitle: string
-  visitorsNow: string
+  conversionTitle: string
+  /** Unit for the conversion change ("pts"). */
+  points: string
   metric: 'sales' | 'orders'
   onSelect: (metric: 'sales' | 'orders') => void
 }
 
 /**
- * The hero's metric tiles: Total sales and Orders are selectable (the chart follows the
- * pick; the selected tile is raised), Visitors shows the live count with its own sparkline.
- * Conversion has no daily data source, so it stays out until one exists. Figures count up;
+ * The hero's metric tiles (Figma 583:1865): Total sales and Orders are selectable (the chart
+ * follows the pick; the selected tile is raised); Visitors and Conversion rate are read-only
+ * tiles with their own sparkline and change line. Figures count up;
  * only the picked tile's sparkline is full colour; the highlight slides between tiles.
  */
 export default function SalesMetricTiles({
@@ -47,11 +54,16 @@ export default function SalesMetricTiles({
   ordersChange,
   visitorsDisplay,
   visitorsSpark,
+  visitorsChange,
+  conversionDisplay,
+  conversionSpark,
+  conversionChange,
   comparedTo,
   totalSales,
   ordersTitle,
   visitorsTitle,
-  visitorsNow,
+  conversionTitle,
+  points,
   metric,
   onSelect,
 }: SalesMetricTilesProps) {
@@ -72,7 +84,7 @@ export default function SalesMetricTiles({
   const slide = reduced ? instant : pill
 
   return (
-    <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+    <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-4">
       <MetricTile
         label={totalSales}
         display={salesDisplay}
@@ -95,16 +107,22 @@ export default function SalesMetricTiles({
         slide={slide}
         onSelect={handleOrders}
       />
-      <div className="flex flex-col gap-1 rounded-lg border border-transparent px-4 py-3">
-        <span className={LABEL}>{visitorsTitle}</span>
-        <span className="flex items-center gap-2.5">
-          <span className={VALUE}>
-            <CountUp value={visitorsDisplay} />
-          </span>
-          <Sparkline values={visitorsSpark} dim={false} />
-        </span>
-        <span className="text-xs text-muted-foreground">{visitorsNow}</span>
-      </div>
+      <StaticTile
+        label={visitorsTitle}
+        display={visitorsDisplay}
+        spark={visitorsSpark}
+        change={visitorsChange}
+        unit="%"
+        comparedTo={comparedTo}
+      />
+      <StaticTile
+        label={conversionTitle}
+        display={conversionDisplay}
+        spark={conversionSpark}
+        change={conversionChange}
+        unit={` ${points}`}
+        comparedTo={comparedTo}
+      />
     </div>
   )
 }
@@ -162,12 +180,39 @@ function MetricTile({
   )
 }
 
-type MetricDeltaProps = {
+type StaticTileProps = {
+  label: string
+  display: string
+  spark: number[]
   change: number | null
+  unit: string
   comparedTo: string
 }
 
-function MetricDelta({ change, comparedTo }: MetricDeltaProps) {
+/** A read-only tile (Visitors, Conversion rate): same look as an unselected metric tile. */
+function StaticTile({ label, display, spark, change, unit, comparedTo }: StaticTileProps) {
+  return (
+    <div className="flex flex-col gap-1 rounded-lg border border-transparent px-4 py-3">
+      <span className={LABEL}>{label}</span>
+      <span className="flex items-center gap-2.5">
+        <span className={VALUE}>
+          <CountUp value={display} />
+        </span>
+        <Sparkline values={spark} dim />
+      </span>
+      <MetricDelta change={change} comparedTo={comparedTo} unit={unit} />
+    </div>
+  )
+}
+
+type MetricDeltaProps = {
+  change: number | null
+  comparedTo: string
+  /** Suffix after the number: "%" for relative change, " pts" for conversion points. */
+  unit?: string
+}
+
+function MetricDelta({ change, comparedTo, unit = '%' }: MetricDeltaProps) {
   if (change === null) return null
   const up = change >= 0
   return (
@@ -183,7 +228,8 @@ function MetricDelta({ change, comparedTo }: MetricDeltaProps) {
         ) : (
           <ArrowDown className="size-3" aria-hidden="true" />
         )}
-        {Math.abs(change)}%
+        {Math.abs(change)}
+        {unit}
       </span>
       {comparedTo}
     </span>

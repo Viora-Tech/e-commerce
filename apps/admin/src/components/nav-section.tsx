@@ -23,14 +23,14 @@ type OpenOverride = { pathname: string; open: boolean }
 const FOCUS =
   'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-sidebar'
 
-/* Proofly rail: 36px rows, icon left and chevron right; children are indented under the label.
-   The active row is a soft blue fill (a shared layout element, so it slides) with a blue icon. */
-const ROW = `group/row relative isolate flex h-8 w-full min-w-0 items-center gap-2.5 overflow-hidden rounded-[0.5rem] px-[0.4375rem] text-nav text-sidebar-foreground transition-colors hover:bg-muted [&_svg]:size-[1.125rem] [&_svg]:shrink-0 [&_svg]:text-muted-foreground ${FOCUS}`
-const ROW_ACTIVE =
-  'text-sidebar-accent-foreground hover:bg-transparent hover:text-sidebar-accent-foreground [&_svg]:text-sidebar-accent-foreground'
-const ROW_OPEN = 'font-medium text-ink-strong'
-const CHILD = `relative isolate flex h-8 w-full min-w-0 items-center rounded-[0.5rem] px-2.5 text-nav text-muted-foreground transition-colors hover:bg-muted hover:text-foreground ${FOCUS}`
-const CHILD_ACTIVE = 'text-sidebar-accent-foreground hover:bg-transparent'
+/* Figma "shadcn/Sidebar menu button": 32px rows, 8px sides, 8px gap, radius 6, a 16px icon in
+   the sidebar ink and a muted chevron on the right. The active row is the sidebar-accent fill
+   (a shared layout element, so it slides) with a medium-weight label. */
+const ROW = `group/row relative isolate flex h-8 w-full min-w-0 items-center gap-2 overflow-hidden rounded-[0.375rem] px-2 text-body text-sidebar-foreground transition-colors hover:bg-sidebar-accent/60 [&_svg]:size-4 [&_svg]:shrink-0 [&_svg]:text-sidebar-foreground ${FOCUS}`
+const ROW_ACTIVE = 'font-medium hover:bg-transparent'
+const ROW_OPEN = 'font-medium'
+const CHILD = `relative isolate flex h-8 w-full min-w-0 items-center rounded-[0.375rem] px-2.5 text-body text-muted-foreground transition-colors hover:bg-sidebar-accent/60 hover:text-sidebar-foreground ${FOCUS}`
+const CHILD_ACTIVE = 'text-sidebar-foreground hover:bg-transparent'
 
 /** One rail entry: the section link, a chevron toggle when it has sub-pages, and the guided child list. */
 export default function NavSection({ item, pathname }: NavSectionProps) {
@@ -73,11 +73,11 @@ export default function NavSection({ item, pathname }: NavSectionProps) {
             <motion.span
               layoutId="nav-active-pill"
               transition={slide}
-              className="absolute inset-0 -z-10 rounded-[0.5rem] bg-sidebar-accent"
+              className="absolute inset-0 -z-10 rounded-[0.375rem] bg-sidebar-accent"
               aria-hidden
             />
           ) : null}
-          <item.icon weight={linkActive ? 'fill' : undefined} />
+          <item.icon />
           <span className={cn('min-w-0 flex-1 truncate', SIDEBAR_LABEL)}>{item.label}</span>
         </Link>
         {children.length > 0 ? (
@@ -87,9 +87,8 @@ export default function NavSection({ item, pathname }: NavSectionProps) {
             aria-label={toggleLabel}
             onClick={handleToggle}
             className={cn(
-              'absolute top-1/2 right-1.5 flex size-6 -translate-y-1/2 items-center justify-center rounded text-muted-foreground hover:text-foreground',
+              'absolute top-1/2 right-1 flex size-6 -translate-y-1/2 items-center justify-center rounded-[0.375rem] text-muted-foreground hover:text-sidebar-foreground',
               SIDEBAR_CONTROL,
-              linkActive && '[&_svg]:text-muted-foreground',
               FOCUS,
             )}
           >
@@ -125,7 +124,7 @@ export default function NavSection({ item, pathname }: NavSectionProps) {
                       <motion.span
                         layoutId="nav-child-active-pill"
                         transition={slide}
-                        className="absolute inset-0 -z-10 rounded-md bg-sidebar-accent"
+                        className="absolute inset-0 -z-10 rounded-[0.375rem] bg-sidebar-accent"
                         aria-hidden
                       />
                     ) : null}
