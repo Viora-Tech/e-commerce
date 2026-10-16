@@ -55,6 +55,8 @@ export type ResourceTableProps<T extends RowData> = {
   onQueryChange: (q: string) => void
   /** Status tabs, rendered left of the toolbar as in frame 5:2561. */
   tabs?: ReactNode
+  /** The "View" dropdown (Figma Table / View select): a status picker drawn first in the toolbar. */
+  views?: ReactNode
   /** Filter controls rendered as a popover from the filter icon button. */
   filters?: ReactNode
   applied?: AppliedFilter[]
@@ -125,9 +127,11 @@ const ALIGN: Record<CellAlign, string> = {
 
 /* Proofly table (Figma "Table · Header / Row"): 40px header with small muted labels, 48px rows on
    thin dividers, cells inset to the page gutter. */
+/* Figma "Table / Cell": header 40px, 12/16 regular muted; rows 60px; 12px sides; rows split by
+   the border colour. */
 const HEAD =
-  'h-[3.25rem] bg-muted px-4 py-0 text-[0.8125rem] leading-[1.1875rem] font-medium text-muted-foreground first:pl-4 last:pr-4'
-const CELL = 'h-[3.25rem] border-t border-line px-4 py-1.5 text-body first:pl-4 last:pr-4'
+  'h-10 bg-transparent px-3 py-0 text-xs font-normal text-muted-foreground first:pl-3 last:pr-3'
+const CELL = 'h-15 border-t border-border px-3 py-1.5 text-body first:pl-3 last:pr-3'
 
 /**
  * The one table: a hairline card holding the filter bar, the grid and the pager.
@@ -205,114 +209,110 @@ export default function ResourceTable<T extends RowData>(props: ResourceTablePro
   const isEmpty = !props.loading && props.items.length === 0
 
   return (
-    <div className="flex flex-col gap-4">
+    <Card gap="none" inset="y-none" className="overflow-hidden">
       <ResourceTableToolbar
         table={table}
         plural={props.resourceName.plural}
         query={props.query}
         onQueryChange={props.onQueryChange}
         tabs={props.tabs}
+        views={props.views}
         filters={props.filters}
         applied={props.applied}
         onClearAll={props.onClearAll}
         columnTitles={columnTitles}
       />
-      <Card gap="none" inset="y-none" className="overflow-hidden">
-        <div className="no-scrollbar overflow-x-auto">
-          <Table className="w-full min-w-[40rem] table-fixed border-separate border-spacing-0">
-            <TableHeader className="[&_tr]:border-0">
-              {table.getHeaderGroups().map((hg) => (
-                <TableRow key={hg.id} className="hover:bg-transparent">
-                  {hg.headers.map((header) => {
-                    const meta = header.column.columnDef.meta as CellMeta | undefined
-                    return (
-                      <TableHead
-                        key={header.id}
-                        className={cn(HEAD, ALIGN[meta?.align ?? 'start'], meta?.className)}
-                      >
-                        {header.isPlaceholder ? null : <table.FlexRender header={header} />}
-                      </TableHead>
-                    )
-                  })}
-                </TableRow>
-              ))}
-            </TableHeader>
-            <TableBody>
-              {props.loading
-                ? Array.from({ length: SKELETON_ROWS }, (_, i) => (
-                    <TableRow key={`skeleton-${i.toString()}`} className="hover:bg-transparent">
-                      {Array.from({ length: visibleCount }, (_, j) => (
-                        <TableCell
-                          key={`skeleton-${i.toString()}-${j.toString()}`}
-                          className={CELL}
-                        >
-                          <Skeleton className={cn('h-3.5', j === 0 ? 'w-4' : 'w-full max-w-32')} />
-                        </TableCell>
-                      ))}
+      <div className="no-scrollbar overflow-x-auto">
+        <Table className="w-full min-w-[40rem] table-fixed border-separate border-spacing-0">
+          <TableHeader className="[&_tr]:border-0">
+            {table.getHeaderGroups().map((hg) => (
+              <TableRow key={hg.id} className="hover:bg-transparent">
+                {hg.headers.map((header) => {
+                  const meta = header.column.columnDef.meta as CellMeta | undefined
+                  return (
+                    <TableHead
+                      key={header.id}
+                      className={cn(HEAD, ALIGN[meta?.align ?? 'start'], meta?.className)}
+                    >
+                      {header.isPlaceholder ? null : <table.FlexRender header={header} />}
+                    </TableHead>
+                  )
+                })}
+              </TableRow>
+            ))}
+          </TableHeader>
+          <TableBody>
+            {props.loading
+              ? Array.from({ length: SKELETON_ROWS }, (_, i) => (
+                  <TableRow key={`skeleton-${i.toString()}`} className="hover:bg-transparent">
+                    {Array.from({ length: visibleCount }, (_, j) => (
+                      <TableCell key={`skeleton-${i.toString()}-${j.toString()}`} className={CELL}>
+                        <Skeleton className={cn('h-3.5', j === 0 ? 'w-4' : 'w-full max-w-32')} />
+                      </TableCell>
+                    ))}
+                  </TableRow>
+                ))
+              : rows.map((row) => {
+                  const target = props.href?.(row.original)
+                  return (
+                    <TableRow
+                      key={row.id}
+                      data-state={row.getIsSelected() ? 'selected' : undefined}
+                      className={cn(
+                        'group/row border-0 tabular-nums transition-colors duration-150 hover:bg-row-hover data-[state=selected]:bg-primary-soft motion-reduce:transition-none',
+                        target && 'cursor-pointer',
+                      )}
+                      onClick={target ? () => router.push(target) : undefined}
+                    >
+                      {row.getVisibleCells().map((cell) => {
+                        const meta = cell.column.columnDef.meta as CellMeta | undefined
+                        return (
+                          <TableCell
+                            key={cell.id}
+                            className={cn(
+                              CELL,
+                              'text-foreground',
+                              ALIGN[meta?.align ?? 'start'],
+                              meta?.className,
+                            )}
+                          >
+                            <table.FlexRender cell={cell} />
+                          </TableCell>
+                        )
+                      })}
                     </TableRow>
-                  ))
-                : rows.map((row) => {
-                    const target = props.href?.(row.original)
-                    return (
-                      <TableRow
-                        key={row.id}
-                        data-state={row.getIsSelected() ? 'selected' : undefined}
-                        className={cn(
-                          'group/row border-0 tabular-nums transition-colors duration-150 hover:bg-muted/50 data-[state=selected]:bg-primary-soft motion-reduce:transition-none',
-                          target && 'cursor-pointer',
-                        )}
-                        onClick={target ? () => router.push(target) : undefined}
-                      >
-                        {row.getVisibleCells().map((cell) => {
-                          const meta = cell.column.columnDef.meta as CellMeta | undefined
-                          return (
-                            <TableCell
-                              key={cell.id}
-                              className={cn(
-                                CELL,
-                                'text-foreground',
-                                ALIGN[meta?.align ?? 'start'],
-                                meta?.className,
-                              )}
-                            >
-                              <table.FlexRender cell={cell} />
-                            </TableCell>
-                          )
-                        })}
-                      </TableRow>
-                    )
-                  })}
-            </TableBody>
-          </Table>
-          {isEmpty ? (
-            <EmptyState
-              heading={props.empty?.heading ?? tableCopy.emptyHeading(props.resourceName.plural)}
-              body={props.empty?.body ?? tableCopy.emptyBody}
-              action={props.empty?.action}
-            />
-          ) : null}
-        </div>
-        <ResourceTablePagination
-          page={props.page}
-          perPage={props.perPage}
-          total={props.total}
-          onPageChange={props.onPageChange}
-          onPerPageChange={props.onPerPageChange}
-        />
-        <FloatingBar open={selectedIds.length > 0 && Boolean(props.bulkActions)}>
-          <span className="text-caption font-medium whitespace-nowrap text-foreground">
-            {tableCopy.selected(
-              selectedIds.length,
-              props.resourceName.singular,
-              props.resourceName.plural,
-            )}
-          </span>
-          {props.bulkActions?.(selectedIds, clearSelection)}
-          <Button variant="ghost" size="sm" className="rounded-full" onClick={clearSelection}>
-            {tableCopy.clearSelection}
-          </Button>
-        </FloatingBar>
-      </Card>
-    </div>
+                  )
+                })}
+          </TableBody>
+        </Table>
+        {isEmpty ? (
+          <EmptyState
+            heading={props.empty?.heading ?? tableCopy.emptyHeading(props.resourceName.plural)}
+            body={props.empty?.body ?? tableCopy.emptyBody}
+            action={props.empty?.action}
+          />
+        ) : null}
+      </div>
+      <ResourceTablePagination
+        page={props.page}
+        perPage={props.perPage}
+        total={props.total}
+        onPageChange={props.onPageChange}
+        onPerPageChange={props.onPerPageChange}
+      />
+      <FloatingBar open={selectedIds.length > 0 && Boolean(props.bulkActions)}>
+        <span className="text-caption font-medium whitespace-nowrap text-foreground">
+          {tableCopy.selected(
+            selectedIds.length,
+            props.resourceName.singular,
+            props.resourceName.plural,
+          )}
+        </span>
+        {props.bulkActions?.(selectedIds, clearSelection)}
+        <Button variant="ghost" size="sm" className="rounded-full" onClick={clearSelection}>
+          {tableCopy.clearSelection}
+        </Button>
+      </FloatingBar>
+    </Card>
   )
 }

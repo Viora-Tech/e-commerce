@@ -27,6 +27,8 @@ type ToolbarProps<T extends RowData> = {
   query: string
   onQueryChange: (q: string) => void
   tabs?: ReactNode
+  /** The "View" dropdown (Figma Table / View select), drawn first with a divider after it. */
+  views?: ReactNode
   /** Filter controls (selects, date pickers) shown in the filter popover. */
   filters?: ReactNode
   applied?: AppliedFilter[]
@@ -35,10 +37,10 @@ type ToolbarProps<T extends RowData> = {
   columnTitles: Record<string, string>
 }
 
-/* Filter bar after the Saleor Dashboard list filters (BSD-3): 32px controls on hairlines,
-   6px radius, search first, then Filters with its count, then sort and columns. */
+/* Figma "Table / Toolbar": the top row of the table card. View select, a divider, a borderless
+   search that fills the row, then 32px ghost icon buttons (filter, sort, columns). */
 const CONTROL =
-  'inline-flex h-[2.375rem] shrink-0 items-center justify-center gap-1.5 rounded-[0.625rem] border border-border bg-card text-body font-medium text-foreground transition-colors hover:border-border-strong hover:bg-muted/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring data-[popup-open]:bg-muted [&_svg]:size-4 [&_svg]:shrink-0'
+  'inline-flex h-8 shrink-0 items-center justify-center gap-1.5 rounded-sm text-body font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring data-[popup-open]:bg-muted data-[popup-open]:text-foreground [&_svg]:size-4 [&_svg]:shrink-0'
 
 export default function ResourceTableToolbar<T extends RowData>({
   table,
@@ -46,6 +48,7 @@ export default function ResourceTableToolbar<T extends RowData>({
   query,
   onQueryChange,
   tabs,
+  views,
   filters,
   applied = [],
   onClearAll,
@@ -60,28 +63,33 @@ export default function ResourceTableToolbar<T extends RowData>({
   const hasApplied = applied.length > 0 || query.length > 0
 
   return (
-    <div className="flex flex-col gap-3">
-      <div className="flex flex-wrap items-center gap-3">
-        {tabs ? <div className="no-scrollbar min-w-0 overflow-x-auto">{tabs}</div> : null}
-        <div className="flex w-full flex-wrap items-center gap-3 sm:ml-auto sm:w-auto">
-          <label className="flex h-[2.375rem] w-full min-w-0 items-center gap-2 rounded-[0.625rem] border border-border bg-input-surface px-3 transition-colors focus-within:border-ring focus-within:ring-3 focus-within:ring-ring/25 hover:border-border-strong sm:w-[16.25rem]">
-            <Search className="size-4 shrink-0 text-muted-foreground" strokeWidth={1.6} />
+    <div className="flex flex-col border-border border-b">
+      <div className="flex flex-wrap items-center gap-2 py-2 pr-2 pl-1.5">
+        {views ? (
+          <>
+            {views}
+            <span aria-hidden="true" className="h-5 w-px shrink-0 bg-border" />
+          </>
+        ) : null}
+        {tabs ? <div className="no-scrollbar min-w-0 overflow-x-auto pl-0.5">{tabs}</div> : null}
+        <div className="flex min-w-0 flex-1 items-center gap-2">
+          <label className="flex h-8 min-w-0 flex-1 items-center gap-2 rounded-sm px-2 transition-colors focus-within:bg-muted/50">
+            <Search className="size-4 shrink-0 text-muted-foreground" />
             <input
               value={query}
               onChange={(e) => onQueryChange(e.target.value)}
               placeholder={tableCopy.search(plural)}
               aria-label={tableCopy.search(plural)}
-              className="min-w-0 flex-1 bg-transparent text-body text-foreground outline-none placeholder:text-muted-foreground"
+              className="min-w-0 flex-1 bg-transparent text-[0.8125rem] leading-[1.1875rem] text-foreground outline-none placeholder:text-muted-foreground"
             />
           </label>
           {filters ? (
             <Popover>
               <PopoverTrigger
-                render={<ToolbarButton className="px-2.5" aria-label={tableCopy.filter} />}
+                render={<ToolbarButton className="min-w-8 px-2" aria-label={tableCopy.filter} />}
                 nativeButton
               >
-                <SlidersHorizontal strokeWidth={1.6} />
-                {tableCopy.filter}
+                <SlidersHorizontal />
                 {applied.length > 0 ? (
                   <span className="flex h-4 min-w-4 items-center justify-center rounded-sm bg-foreground px-1 text-[0.6875rem] font-semibold text-background tabular-nums">
                     {applied.length}
@@ -93,14 +101,14 @@ export default function ResourceTableToolbar<T extends RowData>({
               </PopoverContent>
             </Popover>
           ) : null}
-          <div className="ml-auto flex items-center gap-2">
+          <div className="ml-auto flex items-center gap-1">
             {sortable.length > 0 ? (
               <DropdownMenu>
                 <DropdownMenuTrigger
-                  render={<ToolbarButton aria-label={tableCopy.sort} className="size-[2.375rem]" />}
+                  render={<ToolbarButton aria-label={tableCopy.sort} className="size-8" />}
                   nativeButton
                 >
-                  <ArrowUpDown strokeWidth={1.6} />
+                  <ArrowUpDown />
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-48">
                   <DropdownMenuGroup>
@@ -121,15 +129,10 @@ export default function ResourceTableToolbar<T extends RowData>({
             {hideable.length > 0 ? (
               <DropdownMenu>
                 <DropdownMenuTrigger
-                  render={
-                    <ToolbarButton
-                      aria-label={tableCopy.toggleColumns}
-                      className="size-[2.375rem]"
-                    />
-                  }
+                  render={<ToolbarButton aria-label={tableCopy.toggleColumns} className="size-8" />}
                   nativeButton
                 >
-                  <Columns strokeWidth={1.6} />
+                  <Columns />
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-44">
                   <DropdownMenuGroup>
@@ -152,7 +155,7 @@ export default function ResourceTableToolbar<T extends RowData>({
         </div>
       </div>
       {hasApplied && onClearAll ? (
-        <div className="flex flex-wrap items-center gap-1.5">
+        <div className="flex flex-wrap items-center gap-1.5 px-3 pb-2.5">
           {applied.map((f) => (
             <span
               key={f.key}

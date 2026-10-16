@@ -166,16 +166,19 @@ function DraftsContent({ initial }: { initial: DraftsInitial }) {
       tiles={
         <>
           <StatTile
+            variant="strip"
             label={copy.tiles.open.label}
             value={fmt.number(tiles.open)}
             note={copy.tiles.open.note}
           />
           <StatTile
+            variant="strip"
             label={copy.tiles.invoiced.label}
             value={fmt.number(tiles.invoiced)}
             note={copy.tiles.invoiced.note}
           />
           <StatTile
+            variant="strip"
             label={copy.tiles.value.label}
             value={fmt.money(tiles.valuePaise)}
             note={copy.tiles.value.note(tiles.total)}

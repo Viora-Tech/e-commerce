@@ -67,7 +67,7 @@ export const STATUS = {
     draft: entry(ordersContent.status.draft, 'neutral'),
     open: entry(ordersContent.status.open, 'accent', DeliveryDelay),
     completed: entry(ordersContent.status.completed, 'success', CircleCheck),
-    cancelled: entry(ordersContent.status.cancelled, 'error', CancelCircle),
+    cancelled: entry(ordersContent.status.cancelled, 'neutral', CancelCircle),
   } satisfies Record<OrderLifecycleStatus, StatusEntry>,
   /**
    * The order's derived payment status: list column and detail header pill.
@@ -79,8 +79,8 @@ export const STATUS = {
     authorized: entry(ordersContent.paymentStatus.authorized, 'pending'),
     partially_paid: entry(ordersContent.paymentStatus.partially_paid, 'pending'),
     paid: entry(ordersContent.paymentStatus.paid, 'success'),
-    partially_refunded: entry(ordersContent.paymentStatus.partially_refunded, 'info'),
-    refunded: entry(ordersContent.paymentStatus.refunded, 'info'),
+    partially_refunded: entry(ordersContent.paymentStatus.partially_refunded, 'neutral'),
+    refunded: entry(ordersContent.paymentStatus.refunded, 'neutral'),
     refund_needed: entry(ordersContent.paymentStatus.refund_needed, 'error'),
   } satisfies Record<OrderPaymentStatus, StatusEntry>,
   /** One payment attempt (payment card rows, the summary box). */
@@ -104,10 +104,14 @@ export const STATUS = {
       PackageOpen,
     ),
     fulfilled: entry(ordersContent.fulfillmentStatus.fulfilled, 'success', PackageCheck),
-    shipped: entry(ordersContent.fulfillmentStatus.shipped, 'info', Truck),
-    partially_delivered: entry(ordersContent.fulfillmentStatus.partially_delivered, 'info', Truck),
+    shipped: entry(ordersContent.fulfillmentStatus.shipped, 'accent', Truck),
+    partially_delivered: entry(
+      ordersContent.fulfillmentStatus.partially_delivered,
+      'accent',
+      Truck,
+    ),
     delivered: entry(ordersContent.fulfillmentStatus.delivered, 'success', PackageCheck),
-    returned: entry(ordersContent.fulfillmentStatus.returned, 'error', CancelCircle),
+    returned: entry(ordersContent.fulfillmentStatus.returned, 'neutral', CancelCircle),
   } satisfies Record<OrderFulfillmentStatus, StatusEntry>,
   refund: {
     pending: entry(orderDetailContent.payment.refundStatus.pending ?? 'Pending', 'pending'),

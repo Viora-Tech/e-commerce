@@ -25,7 +25,8 @@ export default function OrdersListFrame({
     <PageBody className="max-w-[80.5rem] gap-6 md:py-8">
       <PageHeader title={title} subtitle={summary} actions={actions} />
       {tiles ? (
-        <div className="grid grid-cols-2 gap-4 lg:grid-flow-col lg:grid-cols-none lg:auto-cols-fr">
+        /* Figma "Stat strip": one card, the stats side by side with dividers between. */
+        <div className="grid grid-cols-2 overflow-hidden rounded-lg surface-card lg:grid-flow-col lg:grid-cols-none lg:auto-cols-fr">
           {tiles}
         </div>
       ) : null}

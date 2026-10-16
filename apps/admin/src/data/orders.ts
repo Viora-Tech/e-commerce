@@ -70,6 +70,10 @@ export const ordersContent = {
   menu: { drafts: 'Draft orders', abandoned: 'Abandoned checkouts', returns: 'Returns' },
   export: 'Export',
   resource: { singular: 'order', plural: 'orders' },
+  /** The table's View select (Figma "Table / View select"). */
+  viewLabel: 'Order view',
+  /** Status column for a paid order nobody has shipped yet (Figma: blue "To ship"). */
+  toShip: 'To ship',
   tabs: {
     all: 'All orders',
     unpaid: 'Unpaid',

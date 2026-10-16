@@ -32,12 +32,14 @@ export default function OrdersTiles({ tiles, status, onSelect }: OrdersTilesProp
   return (
     <>
       <StatTile
+        variant="strip"
         label={copy.tiles.newToday.label}
         value={fmt.number(tiles.newToday.value)}
         trend={percent(tiles.newToday.value, tiles.newToday.previous)}
         trendNote={copy.tiles.newToday.trendNote}
       />
       <StatTile
+        variant="strip"
         label={copy.tiles.ready.label}
         value={fmt.number(tiles.readyToShip)}
         note={copy.tiles.ready.note}
@@ -45,6 +47,7 @@ export default function OrdersTiles({ tiles, status, onSelect }: OrdersTilesProp
         active={status === 'unfulfilled'}
       />
       <StatTile
+        variant="strip"
         label={copy.tiles.pendingUpi.label}
         value={fmt.number(tiles.pendingUpi)}
         note={copy.tiles.pendingUpi.note}
@@ -52,6 +55,7 @@ export default function OrdersTiles({ tiles, status, onSelect }: OrdersTilesProp
         active={status === PENDING_UPI}
       />
       <StatTile
+        variant="strip"
         label={copy.tiles.sales.label}
         value={fmt.money(tiles.salesWeek.paise)}
         trend={percent(tiles.salesWeek.paise, tiles.salesWeek.previousPaise)}

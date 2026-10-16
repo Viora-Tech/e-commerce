@@ -58,6 +58,8 @@ export default [
     menu: { drafts: 'ड्राफ़्ट ऑर्डर', abandoned: 'अधूरे चेकआउट', returns: 'रिटर्न' },
     export: 'एक्सपोर्ट',
     resource: { singular: 'ऑर्डर', plural: 'ऑर्डर' },
+    viewLabel: 'ऑर्डर व्यू',
+    toShip: 'भेजना है',
     tabs: {
       all: 'सभी ऑर्डर',
       unpaid: 'पेमेंट बाकी',
