@@ -2,6 +2,7 @@
 
 import { siteConfig } from '@commerce/config/site'
 import { ChevronDownIcon, ChevronLeftIcon, ChevronRightIcon } from '@commerce/ui/icons'
+import { cn } from '@commerce/ui/lib/utils'
 import { tableContent } from '@/data/table'
 import { useCopy } from '@/hooks/use-copy'
 
@@ -14,10 +15,27 @@ type PaginationProps = {
   onPerPageChange?: ((perPage: number) => void) | undefined
 }
 
-/* Table footer (Figma "Table · Footer"): "Showing x-y of n" on the left; rows per page, page x of
-   y and two arrow buttons on the right. */
-const ARROW =
-  'flex size-[1.875rem] items-center justify-center rounded-[0.5rem] border border-border bg-card text-foreground transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-40 [&_svg]:size-4'
+type PageSlot = number | 'gap-start' | 'gap-end'
+
+/* Figma "Table / Footer" + "Pagination": the summary on the left; rows per page, then Previous,
+   numbered 36px pages (the current one outlined), an ellipsis and Next on the right. */
+const STEP =
+  'flex h-9 items-center gap-1 rounded-sm px-2.5 text-body font-medium text-foreground transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-40 [&_svg]:size-4'
+const PAGE =
+  'flex size-9 items-center justify-center rounded-sm text-body font-medium text-foreground tabular-nums transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring'
+
+/** The page numbers to show: first, last, and the current one with a neighbour each side. */
+function pageSlots(page: number, totalPages: number): PageSlot[] {
+  const keep = new Set([1, totalPages, page - 1, page, page + 1])
+  const pages = [...keep].filter((p) => p >= 1 && p <= totalPages).sort((a, b) => a - b)
+  const slots: PageSlot[] = []
+  pages.forEach((p, i) => {
+    const prev = pages[i - 1]
+    if (prev !== undefined && p - prev > 1) slots.push(i === 1 ? 'gap-start' : 'gap-end')
+    slots.push(p)
+  })
+  return slots
+}
 
 export default function ResourceTablePagination({
   page,
@@ -33,23 +51,24 @@ export default function ResourceTablePagination({
   const totalPages = Math.max(1, Math.ceil(total / perPage))
   const from = total === 0 ? 0 : (page - 1) * perPage + 1
   const to = Math.min(total, page * perPage)
+  const slots = pageSlots(page, totalPages)
 
   return (
     <nav
       aria-label="Pagination"
-      className="flex min-h-[3.25rem] items-center justify-between gap-3 border-t border-line px-5 py-2.5 text-[0.8125rem] leading-[1.1875rem] text-muted-foreground"
+      className="flex min-h-14 flex-wrap items-center justify-between gap-3 border-border border-t px-4 py-2.5 text-[0.8125rem] leading-[1.1875rem] text-muted-foreground"
     >
       <span className="tabular-nums">{tableCopy.showing(from, to, total)}</span>
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-4">
         {onPerPageChange ? (
           <label className="hidden items-center gap-2 sm:flex">
             <span>{tableCopy.rowsPerPage}</span>
-            {/* Figma Rows select (260:1620): a small field with its own chevron, not the OS arrow. */}
+            {/* Figma "Rows": an outline sm button-like select with its own chevron. */}
             <span className="relative inline-flex">
               <select
                 value={perPage}
                 onChange={(e) => onPerPageChange(Number(e.target.value))}
-                className="h-[1.875rem] cursor-pointer appearance-none rounded-[0.5rem] border border-input bg-input-surface pr-7 pl-2.5 text-[0.8125rem] font-medium text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                className="key-neutral h-8 cursor-pointer appearance-none rounded-sm pr-8 pl-3 text-body font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
                 {siteConfig.ui.rowsPerPage.options.map((n) => (
                   <option key={n} value={n}>
@@ -59,29 +78,51 @@ export default function ResourceTablePagination({
               </select>
               <ChevronDownIcon
                 aria-hidden="true"
-                className="pointer-events-none absolute top-1/2 right-2 size-3.5 -translate-y-1/2 text-muted-foreground"
+                className="pointer-events-none absolute top-1/2 right-2.5 size-3.5 -translate-y-1/2 text-muted-foreground"
               />
             </span>
           </label>
         ) : null}
-        <span className="hidden tabular-nums sm:inline">{tableCopy.pageOf(page, totalPages)}</span>
-        <div className="flex items-center gap-1.5">
+        <div className="flex items-center gap-1">
           <button
             type="button"
-            className={ARROW}
+            className={STEP}
             disabled={page <= 1}
             onClick={() => onPageChange(page - 1)}
             aria-label={tableCopy.previous}
           >
             <ChevronLeftIcon />
+            <span className="hidden sm:inline">{tableCopy.previousLabel}</span>
           </button>
+          {slots.map((slot) =>
+            typeof slot === 'number' ? (
+              <button
+                key={slot}
+                type="button"
+                aria-current={slot === page ? 'page' : undefined}
+                onClick={() => onPageChange(slot)}
+                className={cn(PAGE, slot === page && 'key-neutral hover:bg-transparent')}
+              >
+                {slot}
+              </button>
+            ) : (
+              <span
+                key={slot}
+                aria-hidden="true"
+                className="hidden size-9 items-center justify-center text-muted-foreground sm:flex"
+              >
+                …
+              </span>
+            ),
+          )}
           <button
             type="button"
-            className={ARROW}
+            className={STEP}
             disabled={page >= totalPages}
             onClick={() => onPageChange(page + 1)}
             aria-label={tableCopy.next}
           >
+            <span className="hidden sm:inline">{tableCopy.nextLabel}</span>
             <ChevronRightIcon />
           </button>
         </div>

@@ -30,6 +30,7 @@ export default function AbandonedTiles({ stats, status, onSelect }: AbandonedTil
   return (
     <>
       <StatTile
+        variant="strip"
         label={copy.tiles.carts}
         note={copy.tiles.period}
         value={fmt.number(stats.carts)}
@@ -37,6 +38,7 @@ export default function AbandonedTiles({ stats, status, onSelect }: AbandonedTil
         active={status === null}
       />
       <StatTile
+        variant="strip"
         label={copy.tiles.recovered}
         note={copy.tiles.recoveryRate(formatPercent(stats.recoveryRate))}
         value={fmt.number(stats.recovered)}
@@ -44,11 +46,13 @@ export default function AbandonedTiles({ stats, status, onSelect }: AbandonedTil
         active={status === 'recovered'}
       />
       <StatTile
+        variant="strip"
         label={copy.tiles.value}
         note={copy.tiles.period}
         value={fmt.money(stats.valuePaise)}
       />
       <StatTile
+        variant="strip"
         label={copy.tiles.reminders}
         note={copy.tiles.period}
         value={fmt.number(stats.remindersSent)}

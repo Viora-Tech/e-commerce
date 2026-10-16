@@ -58,6 +58,8 @@ export default [
     menu: { drafts: 'ड्राफ़्ट ऑर्डर', abandoned: 'अधूरे चेकआउट', returns: 'रिटर्न' },
     export: 'एक्सपोर्ट',
     resource: { singular: 'ऑर्डर', plural: 'ऑर्डर' },
+    viewLabel: 'ऑर्डर व्यू',
+    toShip: 'भेजना है',
     tabs: {
       all: 'सभी ऑर्डर',
       unpaid: 'पेमेंट बाकी',
@@ -268,6 +270,8 @@ export default [
     },
     payment: {
       heading: 'पेमेंट',
+      /** The gateway transactions card (the money side is the Payment card above it). */
+      transactions: 'लेन-देन',
       method: {
         cod: 'कैश ऑन डिलीवरी (COD)',
         manual: 'आपकी अपनी UPI ID पर, आप कन्फ़र्म करते हैं',
@@ -374,6 +378,7 @@ export default [
       state: 'राज्य',
       pincode: 'पिन कोड',
       copyAll: 'सब कॉपी करें',
+      copyAllCourier: 'कूरियर के लिए सब कॉपी करें',
       call: 'कॉल करें',
       whatsapp: 'WhatsApp',
       copyAllHint: 'नाम, फ़ोन, पता, शहर, राज्य और पिन कोड, हर एक अलग लाइन में, कूरियर ऐप के लिए तैयार',

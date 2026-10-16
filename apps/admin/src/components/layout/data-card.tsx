@@ -49,7 +49,7 @@ export default function DataCard({
   return (
     <Card
       className={cn(
-        'relative h-full gap-0 rounded-2xl p-5 in-data-[layout=sections]:h-auto in-data-[layout=sections]:rounded-none in-data-[layout=sections]:px-4 in-data-[layout=sections]:py-6 md:in-data-[layout=sections]:px-6',
+        'relative h-full gap-0 rounded-lg p-5 in-data-[layout=sections]:h-auto in-data-[layout=sections]:rounded-none in-data-[layout=sections]:px-4 in-data-[layout=sections]:py-6 md:in-data-[layout=sections]:px-6',
         tone === 'muted' && 'bg-background bg-none',
         detailsHref && 'pb-16',
         className,

@@ -70,6 +70,10 @@ export const ordersContent = {
   menu: { drafts: 'Draft orders', abandoned: 'Abandoned checkouts', returns: 'Returns' },
   export: 'Export',
   resource: { singular: 'order', plural: 'orders' },
+  /** The table's View select (Figma "Table / View select"). */
+  viewLabel: 'Order view',
+  /** Status column for a paid order nobody has shipped yet (Figma: blue "To ship"). */
+  toShip: 'To ship',
   tabs: {
     all: 'All orders',
     unpaid: 'Unpaid',
@@ -286,6 +290,8 @@ export const orderDetailContent = {
   },
   payment: {
     heading: 'Payment',
+    /** The gateway transactions card (the money side is the Payment card above it). */
+    transactions: 'Transactions',
     method: {
       cod: 'Cash on delivery',
       manual: 'UPI to your own ID — you confirm it',
@@ -394,6 +400,7 @@ export const orderDetailContent = {
     state: 'State',
     pincode: 'PIN code',
     copyAll: 'Copy all',
+    copyAllCourier: 'Copy all for courier',
     call: 'Call',
     whatsapp: 'WhatsApp',
     copyAllHint:

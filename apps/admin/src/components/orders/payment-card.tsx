@@ -68,7 +68,7 @@ export default function PaymentCard({
 
   return (
     <DataCard
-      title={copy.payment.heading}
+      title={copy.payment.transactions}
       action={
         onCollect ? (
           <Button variant="outline" size="sm" onClick={onCollect}>

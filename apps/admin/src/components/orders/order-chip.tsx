@@ -13,16 +13,17 @@ type OrderChipProps<K extends StatusKind> = {
   className?: string
 }
 
-/* Colour only where someone has to act: waiting is amber, a problem red, in transit blue.
-   Done and quiet states (paid, fulfilled, completed, cancelled) stay a grey chip with a border. */
-const TONE: Record<StatusTone, 'neutral' | 'attention' | 'info' | 'danger'> = {
-  success: 'neutral',
-  pending: 'attention',
-  error: 'danger',
-  info: 'info',
-  accent: 'neutral',
-  neutral: 'neutral',
-}
+/* Figma order badges: good news green (paid, delivered), waiting amber, to ship blue, shipped
+   violet, a problem red; finished quiet states (cancelled, returned, refunded) grey. */
+const TONE: Record<StatusTone, 'neutral' | 'attention' | 'info' | 'danger' | 'success' | 'violet'> =
+  {
+    success: 'success',
+    pending: 'attention',
+    error: 'danger',
+    info: 'info',
+    accent: 'violet',
+    neutral: 'neutral',
+  }
 
 /** A status as the Proofly chip: the one place order, payment and fulfilment states get their tone. */
 export default function OrderChip<K extends StatusKind>({

@@ -1,15 +1,15 @@
 'use client'
 
-import { Copy, WhatsappLogo } from '@commerce/ui/icons'
+import { Copy, Pencil, WhatsappLogo } from '@commerce/ui/icons'
 import { cn } from '@commerce/ui/lib/utils'
 import { Button } from '@commerce/ui/shadcn/button'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { toast } from 'sonner'
+import CustomerAvatar from '@/components/customers/customer-avatar'
 import CopyButton from '@/components/fields/copy-button'
 import DataCard from '@/components/layout/data-card'
-import StatusChip from '@/components/layout/status-chip'
 import { INDIAN_STATES } from '@/data/india'
 import { orderDetailContent } from '@/data/orders'
 import { useCopy } from '@/hooks/use-copy'
@@ -88,108 +88,76 @@ export default function CustomerCard({ order }: CustomerCardProps) {
   ]
     .filter((v): v is string => Boolean(v))
     .join('\n')
-  const link =
-    'text-[0.8125rem] font-medium text-primary hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring'
   const profileHref = order.customer ? `/customers/${order.customer.id}` : null
   const readOnly = Boolean(order.importedFrom)
 
   return (
     <DataCard
-      title={copy.customer.heading2}
+      title={c.heading}
       action={
-        <div className="flex items-center gap-3">
-          {order.email ? (
-            <Link
-              href={`${routes.orders.list()}?query=${encodeURIComponent(order.email)}`}
-              className={link}
-            >
-              {c.viewOrders}
-            </Link>
-          ) : null}
-          {profileHref ? (
-            <Link href={profileHref} className={link}>
-              {c.viewProfile}
-            </Link>
-          ) : null}
-        </div>
+        readOnly ? null : (
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            title={c.editHint}
+            onClick={() => setEditing(true)}
+          >
+            <Pencil />
+            {c.edit}
+          </Button>
+        )
       }
     >
-      <div className="flex flex-col gap-5 text-body">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <StatusChip>
-            {order.customer
-              ? order.customerOrderNumber > 0
-                ? c.orderCount(order.customerOrderNumber)
-                : null
-              : c.guest}
-          </StatusChip>
-          <div className="flex items-center gap-2">
-            {allText ? (
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                title={c.copyAllHint}
-                onClick={handleCopyAll}
+      {/* Figma "Orders / Order detail" › Customer: who, then the fields one per line (label over
+          value, a copy button each), Copy all for courier, and Call / WhatsApp at the bottom. */}
+      <div className="flex flex-col gap-4 text-body">
+        <div className="flex items-center gap-2.5">
+          <CustomerAvatar
+            name={name || null}
+            email={order.email}
+            className="size-8 bg-muted font-medium text-foreground"
+          />
+          <div className="flex min-w-0 flex-col">
+            {profileHref ? (
+              <Link
+                href={profileHref}
+                className="truncate font-medium text-ink-strong hover:underline"
               >
-                <Copy />
-                {c.copyAll}
-              </Button>
-            ) : null}
-            {readOnly ? null : (
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                title={c.editHint}
-                onClick={() => setEditing(true)}
-              >
-                {c.edit}
-              </Button>
+                {name || order.email}
+              </Link>
+            ) : (
+              <span className="truncate font-medium text-ink-strong">{name || order.email}</span>
+            )}
+            {order.customer ? (
+              order.customerOrderNumber > 0 && order.email ? (
+                <Link
+                  href={`${routes.orders.list()}?query=${encodeURIComponent(order.email)}`}
+                  className="w-fit text-xs text-muted-foreground hover:text-foreground hover:underline"
+                >
+                  {c.orderCount(order.customerOrderNumber)}
+                </Link>
+              ) : null
+            ) : (
+              <span className="text-xs text-muted-foreground">{c.guest}</span>
             )}
           </div>
         </div>
 
-        {phone ? (
-          <div className="flex flex-wrap items-center gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              render={<a href={whatsappHref(phone)} target="_blank" rel="noreferrer" />}
-              nativeButton={false}
-            >
-              <WhatsappLogo />
-              {c.whatsapp}
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              render={<a href={`tel:${phone}`} />}
-              nativeButton={false}
-            >
-              {c.call}
-            </Button>
-          </div>
-        ) : null}
         <DetailRows heading={c.contact} rows={contact} />
         {a ? (
           <DetailRows heading={c.address} rows={place} />
         ) : (
           <div className="flex flex-col gap-1">
-            <p className="text-caption font-medium text-muted-foreground">{c.address}</p>
+            <p className="text-xs font-medium text-muted-foreground">{c.address}</p>
             <p className="text-muted-foreground">{c.noAddress}</p>
           </div>
         )}
-        {a ? (
-          <div className="flex flex-col gap-1">
-            <p className="text-caption font-medium text-muted-foreground">{c.billing}</p>
-            <p className="text-muted-foreground">{c.billingSame}</p>
-          </div>
-        ) : null}
+        {a ? <p className="text-xs text-muted-foreground">{c.billingSame}</p> : null}
 
         {order.buyerGstin ? (
           <div className="flex flex-col gap-1">
-            <p className="text-caption font-medium text-muted-foreground">{c.business}</p>
+            <p className="text-xs font-medium text-muted-foreground">{c.business}</p>
             {order.buyerBusinessName ? <p>{order.buyerBusinessName}</p> : null}
             <div className="flex items-center gap-1">
               <span className="font-mono">{order.buyerGstin}</span>
@@ -199,8 +167,39 @@ export default function CustomerCard({ order }: CustomerCardProps) {
         ) : null}
         {order.customerNote ? (
           <div className="flex flex-col gap-1">
-            <p className="text-caption font-medium text-muted-foreground">{c.note}</p>
+            <p className="text-xs font-medium text-muted-foreground">{c.note}</p>
             <p className="whitespace-pre-line">{order.customerNote}</p>
+          </div>
+        ) : null}
+
+        {allText ? (
+          <div className="flex flex-col gap-1.5">
+            <Button type="button" variant="outline" className="w-full" onClick={handleCopyAll}>
+              <Copy />
+              {c.copyAllCourier}
+            </Button>
+            <p className="text-xs text-muted-foreground">{c.copyAllHint}</p>
+          </div>
+        ) : null}
+        {phone ? (
+          <div className="grid grid-cols-2 gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              render={<a href={`tel:${phone}`} />}
+              nativeButton={false}
+            >
+              {c.call}
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              render={<a href={whatsappHref(phone)} target="_blank" rel="noreferrer" />}
+              nativeButton={false}
+            >
+              <WhatsappLogo />
+              {c.whatsapp}
+            </Button>
           </div>
         ) : null}
       </div>
@@ -219,34 +218,40 @@ export default function CustomerCard({ order }: CustomerCardProps) {
 
 type DetailRowsProps = { heading: string; rows: Row[] }
 
-/** A labelled list of fields; an empty field shows a dash and has nothing to copy. */
+/** Figma field rows: the label 12px muted over the value, a copy button on the right; an empty
+    field shows a dash and has nothing to copy. */
 function DetailRows({ heading, rows }: DetailRowsProps) {
   return (
     <div className="flex flex-col gap-1">
-      <p className="text-caption font-medium text-muted-foreground">{heading}</p>
-      <dl className="flex flex-col">
+      <p className="text-xs font-medium text-muted-foreground">{heading}</p>
+      <dl className="-mx-2 flex flex-col">
         {rows.map((r) => (
-          <div key={r.key} className="flex min-h-[2.125rem] items-center gap-3">
-            <dt className="w-24 shrink-0 text-[0.8125rem] text-muted-foreground">{r.label}</dt>
-            <dd
-              className={cn(
-                'min-w-0 font-medium text-ink-strong',
-                r.key === 'email' ? 'truncate' : 'break-words',
-              )}
-              title={r.key === 'email' ? (r.value ?? undefined) : undefined}
-            >
-              {r.value ? (
-                r.href ? (
-                  <a href={r.href} className="hover:text-primary">
-                    {r.value}
-                  </a>
+          <div
+            key={r.key}
+            className="group/field flex items-center gap-2 rounded-md px-2 py-1.5 transition-colors hover:bg-row-hover"
+          >
+            <div className="flex min-w-0 flex-1 flex-col">
+              <dt className="text-xs text-muted-foreground">{r.label}</dt>
+              <dd
+                className={cn(
+                  'min-w-0 text-[0.8125rem] text-ink-strong',
+                  r.key === 'email' ? 'truncate' : 'break-words',
+                )}
+                title={r.key === 'email' ? (r.value ?? undefined) : undefined}
+              >
+                {r.value ? (
+                  r.href ? (
+                    <a href={r.href} className="hover:underline">
+                      {r.value}
+                    </a>
+                  ) : (
+                    r.value
+                  )
                 ) : (
-                  r.value
-                )
-              ) : (
-                <span className="text-muted-foreground">-</span>
-              )}
-            </dd>
+                  <span className="text-muted-foreground">-</span>
+                )}
+              </dd>
+            </div>
             {r.value ? <CopyButton value={r.value} what={r.label} visible /> : null}
           </div>
         ))}

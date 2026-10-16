@@ -16,7 +16,7 @@ import { parseAsInteger, parseAsString, parseAsStringLiteral, useQueryStates } f
 import { Suspense, useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
 import CustomerAvatar from '@/components/customers/customer-avatar'
-import PillTabs from '@/components/layout/pill-tabs'
+import StatusChip from '@/components/layout/status-chip'
 import OrderChip from '@/components/orders/order-chip'
 import { orderStage } from '@/components/orders/order-stage'
 import OrdersListFrame from '@/components/orders/orders-list-frame'
@@ -24,6 +24,7 @@ import OrdersTiles, { type OrderTilesData } from '@/components/orders/orders-til
 import RowMenu from '@/components/orders/row-menu'
 import InlineState from '@/components/states/inline-state'
 import ResourceTable, { type ResourceColumnSpec } from '@/components/table/resource-table'
+import ViewSelect from '@/components/table/view-select'
 import {
   ORDER_LIST_FILTERS,
   ORDER_MARKS,
@@ -65,7 +66,8 @@ function fetchOrders(q: Query, perPage: number) {
   })
 }
 
-/* Avatar + order number, the customer's name muted beneath: one column instead of two. */
+/* Figma "Table / Cell · Avatar": a 24px muted initials disc, the order number 14/20 medium and
+   the customer's name 12/16 muted beneath. */
 function OrderCell({ item }: { item: Item }) {
   // Hooks
   const copy = useCopy(ordersContent)
@@ -74,18 +76,23 @@ function OrderCell({ item }: { item: Item }) {
   const who = item.customerName ?? item.email ?? copy.guest
   return (
     <span className="flex items-center gap-3 text-left">
-      <CustomerAvatar name={item.customerName} email={item.email} />
+      <CustomerAvatar
+        name={item.customerName}
+        email={item.email}
+        className="size-6 bg-muted font-medium text-foreground"
+      />
       <span className="min-w-0">
-        <span className="line-clamp-1 font-medium text-ink-strong tabular-nums">
+        <span className="line-clamp-1 text-body font-medium text-ink-strong tabular-nums">
           #{item.number}
         </span>
-        <span className="line-clamp-1 text-caption text-muted-foreground">{who}</span>
+        <span className="line-clamp-1 text-xs text-muted-foreground">{who}</span>
       </span>
     </span>
   )
 }
 
-/* 32px thumb on a hairline, the first line title and a muted "+n more" under it. */
+/* Figma "Table / Cell · Thumb": a 32px radius-6 muted thumb on a border, the first line title
+   13/19 and a muted 12/16 "+n more" under it. */
 function ProductCell({ item }: { item: Item }) {
   // Hooks
   const copy = useCopy(ordersContent)
@@ -96,8 +103,8 @@ function ProductCell({ item }: { item: Item }) {
     <span className="flex items-center gap-3 text-left">
       <span
         className={cn(
-          'flex size-8 shrink-0 items-center justify-center overflow-hidden rounded-md border border-hairline',
-          item.firstLineImage ? 'bg-media' : 'bg-card',
+          'flex size-8 shrink-0 items-center justify-center overflow-hidden rounded-[0.375rem] border border-border',
+          item.firstLineImage ? 'bg-media' : 'bg-muted',
         )}
       >
         {item.firstLineImage ? (
@@ -106,13 +113,11 @@ function ProductCell({ item }: { item: Item }) {
         ) : null}
       </span>
       <span className="min-w-0">
-        <span className="line-clamp-1 text-body text-foreground">
+        <span className="line-clamp-1 text-[0.8125rem] leading-[1.1875rem] text-foreground">
           {item.firstLineTitle ?? copy.guest}
         </span>
         {extra > 0 ? (
-          <span className="block text-caption font-normal text-muted-foreground">
-            {copy.moreLines(extra)}
-          </span>
+          <span className="block text-xs text-muted-foreground">{copy.moreLines(extra)}</span>
         ) : null}
       </span>
     </span>
@@ -139,7 +144,11 @@ function orderColumns(copy: typeof ordersContent, fmt: Formatters): ResourceColu
       id: 'date',
       title: copy.columns.date,
       sortValue: (o) => new Date(o.placedAt).getTime(),
-      render: (o) => <span className="tabular-nums">{fmt.when(o.placedAt)}</span>,
+      render: (o) => (
+        <span className="text-[0.8125rem] text-muted-foreground tabular-nums">
+          {fmt.when(o.placedAt)}
+        </span>
+      ),
     },
     {
       id: 'total',
@@ -161,6 +170,12 @@ function orderColumns(copy: typeof ordersContent, fmt: Formatters): ResourceColu
       sortValue: (o) => `${o.status}:${o.fulfillmentStatus}`,
       align: 'center',
       render: (o) => {
+        if (
+          o.status === 'open' &&
+          o.fulfillmentStatus === 'unfulfilled' &&
+          o.paymentStatus === 'paid'
+        )
+          return <StatusChip tone="info">{copy.toShip}</StatusChip>
         const stage = orderStage(o)
         return <OrderChip kind={stage.kind} value={stage.value} />
       },
@@ -328,12 +343,13 @@ function OrdersContent({ initial }: { initial: OrdersInitial }) {
         query={query}
         onQueryChange={(query) => setQ({ query, page: 1 })}
         onClearAll={() => setQ({ query: '', status: null, page: 1 })}
-        tabs={
-          <PillTabs<OrderListFilter | null>
-            variant="segmented"
+        views={
+          <ViewSelect<OrderListFilter | null>
+            label={copy.viewLabel}
             value={status}
             onChange={(s) => setQ({ status: s, page: 1 })}
-            tabs={[
+            formatCount={fmt.number}
+            options={[
               { value: null, label: copy.tabs.all, count: initial.counts.all },
               ...ORDER_LIST_FILTERS.map((s) => {
                 const count = tabCounts[s]

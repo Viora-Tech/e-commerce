@@ -3,7 +3,7 @@
 import {
   ChevronLeftIcon,
   ChevronRightIcon,
-  MoreHorizontal,
+  MoreVertical,
   Printer,
   RotateCcw,
   Send,
@@ -110,19 +110,40 @@ export default function OrderActions({
   const cancellable = !readOnly && status === 'open' && fulfillmentStatus !== 'delivered'
   const refundable = !readOnly && canRefund
 
-  /* After the Saleor Dashboard order header (BSD-3): small square icon buttons, one menu for
-     everything secondary; the main action lives in the Next step card. */
+  /* Figma "Orders / Order detail" header: previous / next order arrows, Print and "More actions"
+     (outline); the main action lives in the Next step card. */
   return (
     <div className="flex items-center gap-2 print:hidden">
-      <Button variant="key-neutral" title={copy.actions.print} onClick={() => window.print()}>
+      <div className="flex items-center">
+        <Button
+          variant="ghost"
+          size="icon-sm"
+          aria-label={copy.previous}
+          disabled={!previousId}
+          nativeButton={!previousId}
+          render={previousId ? <Link href={`/orders/${previousId}`} /> : undefined}
+        >
+          <ChevronLeftIcon aria-hidden="true" />
+        </Button>
+        <Button
+          variant="ghost"
+          size="icon-sm"
+          aria-label={copy.next}
+          disabled={!nextId}
+          nativeButton={!nextId}
+          render={nextId ? <Link href={`/orders/${nextId}`} /> : undefined}
+        >
+          <ChevronRightIcon aria-hidden="true" />
+        </Button>
+      </div>
+      <Button variant="outline" title={copy.actions.print} onClick={() => window.print()}>
         <Printer aria-hidden="true" />
         {copy.actions.printShort}
       </Button>
       <DropdownMenu>
-        <DropdownMenuTrigger
-          render={<Button variant="key-neutral" size="icon" aria-label={copy.actions.more} />}
-        >
-          <MoreHorizontal aria-hidden="true" />
+        <DropdownMenuTrigger render={<Button variant="outline" />}>
+          <MoreVertical aria-hidden="true" />
+          {copy.actions.more}
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="min-w-48">
           {menuMove ? (
@@ -140,22 +161,9 @@ export default function OrderActions({
               <Send aria-hidden="true" /> {copy.payment.preorder.request}
             </DropdownMenuItem>
           ) : null}
-          {menuMove || refundable || onRequestBalance ? <DropdownMenuSeparator /> : null}
-          <DropdownMenuItem
-            disabled={!previousId}
-            render={previousId ? <Link href={`/orders/${previousId}`} /> : undefined}
-          >
-            <ChevronLeftIcon aria-hidden="true" /> {copy.previous}
-          </DropdownMenuItem>
-          <DropdownMenuItem
-            disabled={!nextId}
-            render={nextId ? <Link href={`/orders/${nextId}`} /> : undefined}
-          >
-            <ChevronRightIcon aria-hidden="true" /> {copy.next}
-          </DropdownMenuItem>
           {cancellable ? (
             <>
-              <DropdownMenuSeparator />
+              {menuMove || refundable || onRequestBalance ? <DropdownMenuSeparator /> : null}
               <DropdownMenuItem variant="destructive" onClick={() => setConfirmCancel(true)}>
                 {copy.actions.cancel}
               </DropdownMenuItem>
