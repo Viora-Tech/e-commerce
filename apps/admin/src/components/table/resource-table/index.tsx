@@ -1,6 +1,7 @@
 'use client'
 
 import { cn } from '@commerce/ui/lib/utils'
+import { Button } from '@commerce/ui/shadcn/button'
 import { Card } from '@commerce/ui/shadcn/card'
 import { Skeleton } from '@commerce/ui/shadcn/skeleton'
 import {
@@ -24,6 +25,7 @@ import {
 import { useRouter } from 'next/navigation'
 import { type ReactNode, useState } from 'react'
 import EmptyState from '@/components/layout/empty-state'
+import FloatingBar from '@/components/layout/floating-bar'
 import RowActionsCell from '@/components/table/row-actions-cell'
 import { tableContent } from '@/data/table'
 import { useCopy } from '@/hooks/use-copy'
@@ -359,6 +361,21 @@ export default function ResourceTable<T extends RowData>(props: ResourceTablePro
         onPageChange={props.onPageChange}
         onPerPageChange={props.onPerPageChange}
       />
+      {/* The floating bar at the bottom keeps the bulk actions in reach while scrolling a long
+          list; the header row carries the same choice where the eye already is. */}
+      <FloatingBar open={selecting}>
+        <span className="text-caption font-medium whitespace-nowrap text-foreground tabular-nums">
+          {tableCopy.selected(
+            selectedIds.length,
+            props.resourceName.singular,
+            props.resourceName.plural,
+          )}
+        </span>
+        {props.bulkActions?.(selectedIds, clearSelection)}
+        <Button variant="ghost" size="sm" className="rounded-full" onClick={clearSelection}>
+          {tableCopy.clearSelection}
+        </Button>
+      </FloatingBar>
     </Card>
   )
 }
