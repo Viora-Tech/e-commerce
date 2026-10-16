@@ -16,6 +16,7 @@ import {
 import { cn } from '@commerce/ui/lib/utils'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Popover, PopoverContent, PopoverTrigger } from '@commerce/ui/shadcn/popover'
+import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import { activityContent } from '@/data/activity'
 import { useCopy, useFormat } from '@/hooks/use-copy'
@@ -33,6 +34,36 @@ type ActivityBellProps = {
 }
 
 type Tone = 'success' | 'warning' | 'info' | 'danger' | 'neutral'
+
+/** Figma "TB · Notifications" tabs; every line belongs to one (media failures only to All). */
+type Tab = 'all' | 'orders' | 'payments' | 'stock'
+
+const TABS: readonly Tab[] = ['all', 'orders', 'payments', 'stock']
+
+const ATTENTION_TAB: Record<keyof ActivityAttention, Tab> = {
+  refundsFailed: 'payments',
+  refundsNeeded: 'payments',
+  returnsRequested: 'orders',
+  outOfStock: 'stock',
+  lowStock: 'stock',
+  mediaFailed: 'all',
+}
+
+const EVENT_TAB: Record<ActivityEvent['kind'], Tab> = {
+  order: 'orders',
+  refund_needed: 'payments',
+  return: 'orders',
+}
+
+/** A line shows under the picked tab, and always under All. */
+function inTab(picked: Tab, line: Tab): boolean {
+  return picked === 'all' || line === picked
+}
+
+/** True when an ISO time falls on today's date in this browser. */
+function isToday(at: string): boolean {
+  return new Date(at).toDateString() === new Date().toDateString()
+}
 
 const POLL_MS = 60_000
 
@@ -101,6 +132,7 @@ export default function ActivityBell({ memberKey, className }: ActivityBellProps
   const [failed, setFailed] = useState(false)
   const [seen, setSeen] = useState('')
   const [open, setOpen] = useState(false)
+  const [tab, setTab] = useState<Tab>('all')
 
   useEffect(() => {
     setSeen(readSeen(seenKey(memberKey)))
@@ -149,9 +181,16 @@ export default function ActivityBell({ memberKey, className }: ActivityBellProps
 
   // Render logic
   const unread = feed ? feed.events.filter((e) => e.at > seen).length : 0
-  const attention = feed ? ATTENTION_ORDER.filter((k) => feed.attention[k] > 0) : []
-  const empty = feed !== null && attention.length === 0 && feed.events.length === 0
-  const urgent = attention.some((k) => ATTENTION[k].tone === 'danger')
+  const allAttention = feed ? ATTENTION_ORDER.filter((k) => feed.attention[k] > 0) : []
+  const empty = feed !== null && allAttention.length === 0 && feed.events.length === 0
+  const urgent = allAttention.some((k) => ATTENTION[k].tone === 'danger')
+  const attention = allAttention.filter((k) => inTab(tab, ATTENTION_TAB[k]))
+  const events = feed ? feed.events.filter((e) => inTab(tab, EVENT_TAB[e.kind])) : []
+  const dayGroups = [
+    { key: 'today', heading: copy.todayHeading, rows: events.filter((e) => isToday(e.at)) },
+    { key: 'earlier', heading: copy.earlierHeading, rows: events.filter((e) => !isToday(e.at)) },
+  ].filter((g) => g.rows.length > 0)
+  const tabEmpty = feed !== null && !empty && attention.length === 0 && events.length === 0
 
   return (
     <Popover open={open} onOpenChange={handleOpenChange}>
@@ -178,20 +217,42 @@ export default function ActivityBell({ memberKey, className }: ActivityBellProps
         ) : null}
       </PopoverTrigger>
       <PopoverContent align="end" sideOffset={8} className="flex w-[24rem] flex-col gap-0 p-0">
-        <header className="flex items-center justify-between gap-3 border-b border-border px-4 py-3">
-          <span className="flex items-center gap-2">
+        <header className="flex flex-col gap-2.5 border-b border-border px-4 pt-3 pb-3">
+          <span className="flex items-center justify-between gap-3">
             <span className="text-body-strong text-foreground">{copy.label}</span>
-            {unread > 0 ? (
-              <span className="rounded-full bg-primary-soft px-2 py-0.5 text-caption font-medium text-primary tabular-nums">
-                {copy.unread(unread)}
-              </span>
-            ) : null}
-          </span>
-          {unread > 0 ? (
-            <Button variant="ghost" size="sm" onClick={markAllRead}>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="-mr-2 text-muted-foreground"
+              disabled={unread === 0}
+              onClick={markAllRead}
+            >
               {copy.markAllRead}
             </Button>
-          ) : null}
+          </span>
+          {/* Figma "TB · Notifications": All · n, Orders, Payments, Stock. */}
+          <span role="tablist" aria-label={copy.label} className="flex flex-wrap gap-1.5">
+            {TABS.map((t) => (
+              <button
+                key={t}
+                type="button"
+                role="tab"
+                aria-selected={tab === t}
+                onClick={() => setTab(t)}
+                className={cn(
+                  'h-7 rounded-full border px-3 text-caption font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+                  tab === t
+                    ? 'border-transparent bg-muted text-foreground'
+                    : 'border-border text-muted-foreground hover:text-foreground',
+                )}
+              >
+                {copy.tabs[t]}
+                {t === 'all' && unread > 0 ? (
+                  <span className="tabular-nums"> · {unread}</span>
+                ) : null}
+              </button>
+            ))}
+          </span>
         </header>
 
         <div className="flex max-h-[30rem] flex-col gap-3 overflow-y-auto p-2">
@@ -240,12 +301,16 @@ export default function ActivityBell({ memberKey, className }: ActivityBellProps
             </section>
           ) : null}
 
-          {feed && feed.events.length > 0 ? (
-            <section className="flex flex-col">
-              <h3 className="px-3 pt-1 pb-1.5 text-caption font-medium text-muted-foreground">
-                {copy.recentHeading}
+          {tabEmpty ? (
+            <p className="px-3 py-8 text-center text-body text-muted-foreground">{copy.emptyTab}</p>
+          ) : null}
+
+          {dayGroups.map((group) => (
+            <section key={group.key} className="flex flex-col">
+              <h3 className="px-3 pt-1 pb-1.5 text-eyebrow text-muted-foreground">
+                {group.heading}
               </h3>
-              {feed.events.map((e) => (
+              {group.rows.map((e) => (
                 <ActivityRow
                   key={`${e.kind}:${e.id}`}
                   href={eventHref(e)}
@@ -259,14 +324,18 @@ export default function ActivityBell({ memberKey, className }: ActivityBellProps
                 />
               ))}
             </section>
-          ) : null}
+          ))}
         </div>
 
-        {feed && !empty ? (
-          <footer className="border-t border-border px-4 py-2.5 text-caption text-muted-foreground">
-            {copy.footer}
-          </footer>
-        ) : null}
+        <footer className="flex items-center justify-between gap-3 border-t border-border px-4 py-2.5 text-caption text-muted-foreground">
+          <Link
+            href={routes.account.notifications()}
+            onClick={handleNavigate}
+            className="font-medium whitespace-nowrap text-foreground hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            {copy.settings}
+          </Link>
+        </footer>
       </PopoverContent>
     </Popover>
   )
