@@ -154,6 +154,28 @@
 /* Feel native on a phone (docs/conventions.md, "Motion"). Tailwind's preflight already drops
    the grey tap flash (every control has its own :active state); this drops the double-tap
    wait on controls so a tap answers at once. */
+/* Tailwind v4 leaves buttons on the default arrow; everything clickable shows the pointer.
+   Disabled controls keep the arrow. */
+@layer base {
+  :where(
+      button,
+      [role="button"],
+      [role="tab"],
+      [role="menuitem"],
+      [role="menuitemradio"],
+      [role="menuitemcheckbox"],
+      [role="option"],
+      [role="switch"],
+      [role="checkbox"],
+      [role="radio"],
+      summary,
+      select,
+      label[for]
+    ):not(:disabled, [aria-disabled="true"], [data-disabled]) {
+    cursor: pointer;
+  }
+}
+
 @layer base {
   :where(button, a, label, summary, [role="button"], [role="tab"], [role="menuitem"], [role="option"]) {
     touch-action: manipulation;
