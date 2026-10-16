@@ -268,12 +268,31 @@ export default function ResourceTable<T extends RowData>(props: ResourceTablePro
         columnOrder={columnOrder}
         onResetColumns={resetColumns}
       />
-      <div className="no-scrollbar overflow-x-auto">
+      <div className="no-scrollbar relative overflow-x-auto">
+        {/* While rows are ticked the selection bar lies over the header row, right of the
+            checkbox; the header cells stay underneath so the columns keep their widths. */}
+        {selecting ? (
+          <div className="absolute top-0 right-0 left-10 z-10 flex h-10 items-center bg-card pr-3">
+            <div className="min-w-0 flex-1">
+              <SelectionBar
+                count={selectedIds.length}
+                total={props.total}
+                pageFull={table.getIsAllPageRowsSelected()}
+                plural={props.resourceName.plural}
+                singular={props.resourceName.singular}
+                onSelectAll={props.loadAllIds ? selectAllMatching : undefined}
+                selectingAll={selectingAll}
+                actions={props.bulkActions?.(selectedIds, clearSelection)}
+                onClear={clearSelection}
+              />
+            </div>
+          </div>
+        ) : null}
         <Table className="w-full min-w-[40rem] table-fixed border-separate border-spacing-0">
           <TableHeader className="[&_tr]:border-0">
             {table.getHeaderGroups().map((hg) => (
               <TableRow key={hg.id} className="hover:bg-transparent">
-                {(selecting ? hg.headers.slice(0, 1) : hg.headers).map((header) => {
+                {hg.headers.map((header) => {
                   const meta = header.column.columnDef.meta as CellMeta | undefined
                   return (
                     <TableHead
@@ -284,21 +303,6 @@ export default function ResourceTable<T extends RowData>(props: ResourceTablePro
                     </TableHead>
                   )
                 })}
-                {selecting ? (
-                  <TableHead colSpan={visibleCount - 1} className={cn(HEAD, 'pr-3')}>
-                    <SelectionBar
-                      count={selectedIds.length}
-                      total={props.total}
-                      pageFull={table.getIsAllPageRowsSelected()}
-                      plural={props.resourceName.plural}
-                      singular={props.resourceName.singular}
-                      onSelectAll={props.loadAllIds ? selectAllMatching : undefined}
-                      selectingAll={selectingAll}
-                      actions={props.bulkActions?.(selectedIds, clearSelection)}
-                      onClear={clearSelection}
-                    />
-                  </TableHead>
-                ) : null}
               </TableRow>
             ))}
           </TableHeader>
