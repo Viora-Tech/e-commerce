@@ -66,7 +66,7 @@ export default function TopBar({
     >
       <SidebarTrigger
         aria-label={copy.togglePanel}
-        className="size-9 rounded-sm text-muted-foreground hover:text-foreground"
+        className="size-9 rounded-sm text-muted-foreground hover:text-foreground [&_svg]:size-4.5!"
       />
       <TopBarTip label={copy.tips.search(copy.search.shortcut)}>
         <button
