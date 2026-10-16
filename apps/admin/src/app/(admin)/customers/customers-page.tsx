@@ -184,7 +184,7 @@ function CustomersContent({ initial }: { initial: CustomersInitial }) {
         ].join(' · ')
 
   return (
-    <PageBody width="frame" className="max-w-[80.5rem] gap-6 md:mx-auto">
+    <PageBody width="frame" className="gap-6">
       <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-3">
         <div className="flex min-w-0 flex-col gap-1">
           <h1 className="text-page-title text-ink-strong">{copy.heading}</h1>
