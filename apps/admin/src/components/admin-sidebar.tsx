@@ -12,6 +12,8 @@ import {
   DropdownMenuTrigger,
 } from '@commerce/ui/shadcn/dropdown-menu'
 import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader } from '@commerce/ui/shadcn/sidebar'
+import { Spinner } from '@commerce/ui/shadcn/spinner'
+import { Tooltip, TooltipContent, TooltipTrigger } from '@commerce/ui/shadcn/tooltip'
 import Image from 'next/image'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
@@ -196,7 +198,8 @@ export default function AdminSidebar({
                 disabled={switchingId !== null || s.id === activeStoreId}
                 onSelect={() => handleSwitchStore(s.id)}
               >
-                <Store className="size-4" />
+                {/* Figma "State · Switching store": the picked store spins until Home reloads. */}
+                {switchingId === s.id ? <Spinner /> : <Store className="size-4" />}
                 {s.name}
               </DropdownMenuItem>
             ))}
@@ -206,20 +209,30 @@ export default function AdminSidebar({
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
-        <a
-          href={storefrontUrl}
-          target="_blank"
-          rel="noreferrer"
-          aria-label={copy.openStoreAddress(domain)}
-          className={cn(
-            'key-neutral flex h-8 items-center gap-2 rounded-sm pr-2 pl-2.5 text-[0.8125rem] leading-5 font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
-            SIDEBAR_BLOCK,
-          )}
-        >
-          <Globe className="size-3.5 shrink-0 text-muted-foreground" />
-          <span className="min-w-0 flex-1 truncate">{domain}</span>
-          <ExternalLink className="size-3.5 shrink-0 text-muted-foreground" />
-        </a>
+        {/* Figma "State · Domain pill hover": a link to the live store, named in a tooltip. */}
+        <Tooltip>
+          <TooltipTrigger
+            render={
+              <a
+                href={storefrontUrl}
+                target="_blank"
+                rel="noreferrer"
+                aria-label={copy.openStoreAddress(domain)}
+                className={cn(
+                  'key-neutral flex h-8 items-center gap-2 rounded-sm pr-2 pl-2.5 text-[0.8125rem] leading-5 font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+                  SIDEBAR_BLOCK,
+                )}
+              />
+            }
+          >
+            <Globe className="size-3.5 shrink-0 text-muted-foreground" />
+            <span className="min-w-0 flex-1 truncate">{domain}</span>
+            <ExternalLink className="size-3.5 shrink-0 text-muted-foreground" />
+          </TooltipTrigger>
+          <TooltipContent side="right" sideOffset={8}>
+            {copy.openStoreAddress(domain)}
+          </TooltipContent>
+        </Tooltip>
       </SidebarHeader>
 
       <SidebarContent className="no-scrollbar gap-0.5 pt-0.5">

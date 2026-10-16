@@ -162,6 +162,7 @@ export const homeContent = {
         label: (n: number) => (n === 1 ? 'Ship 1 order' : `Ship ${n} orders`),
         help: 'Paid, packed and waiting on a courier.',
         cta: 'Ship orders',
+        waiting: (days: number) => (days === 1 ? 'Waiting 1 day' : `Waiting ${days} days`),
       },
       upiToVerify: {
         label: (n: number) => (n === 1 ? 'Check 1 UPI payment' : `Check ${n} UPI payments`),

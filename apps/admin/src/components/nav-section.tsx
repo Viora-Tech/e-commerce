@@ -2,6 +2,15 @@
 
 import { ChevronRight } from '@commerce/ui/icons'
 import { cn } from '@commerce/ui/lib/utils'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@commerce/ui/shadcn/dropdown-menu'
 import { useSidebar } from '@commerce/ui/shadcn/sidebar'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@commerce/ui/shadcn/tooltip'
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
@@ -92,7 +101,7 @@ export default function NavSection({ item, pathname, count = 0 }: NavSectionProp
              accent fill (the collapsed rail shows only this icon, so it carries it there too). */
         <span className="absolute inset-0 -z-10 rounded-[0.375rem] bg-sidebar-accent" aria-hidden />
       ) : null}
-      <item.icon />
+      <item.icon className={item.iconClassName} />
       <span className={cn('min-w-0 flex-1 truncate', SIDEBAR_LABEL)}>{item.label}</span>
       {count > 0 ? (
         <span
@@ -108,7 +117,30 @@ export default function NavSection({ item, pathname, count = 0 }: NavSectionProp
   return (
     <li className="flex flex-col">
       <div className="relative">
-        {railTip ? (
+        {railTip && children.length > 0 ? (
+          /* Figma "State · Collapsed flyout": on the icon rail, hovering or clicking a section
+             with sub-pages opens a flyout of its pages, so they stay one click away. */
+          <DropdownMenu>
+            <DropdownMenuTrigger openOnHover delay={80} nativeButton={false} render={link} />
+            <DropdownMenuContent side="right" align="start" sideOffset={8} className="min-w-48">
+              <DropdownMenuGroup>
+                <DropdownMenuLabel className="text-xs font-medium text-muted-foreground">
+                  {item.label}
+                </DropdownMenuLabel>
+              </DropdownMenuGroup>
+              <DropdownMenuSeparator />
+              {children.map((child) => (
+                <DropdownMenuItem
+                  key={child.href}
+                  render={<Link href={child.href} />}
+                  className={cn(child.href === activeHref && 'font-medium text-foreground')}
+                >
+                  {child.label}
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        ) : railTip ? (
           <Tooltip>
             <TooltipTrigger render={link} />
             <TooltipContent side="right" sideOffset={8}>
@@ -119,24 +151,32 @@ export default function NavSection({ item, pathname, count = 0 }: NavSectionProp
           link
         )}
         {children.length > 0 ? (
-          <button
-            type="button"
-            aria-expanded={open}
-            aria-label={toggleLabel}
-            onClick={handleToggle}
-            className={cn(
-              'absolute top-1/2 right-1 flex size-6 -translate-y-1/2 items-center justify-center rounded-[0.375rem] text-muted-foreground hover:text-sidebar-foreground',
-              SIDEBAR_CONTROL,
-              FOCUS,
-            )}
-          >
-            <ChevronRight
-              className={cn(
-                'size-4 transition-transform duration-200 ease-out motion-reduce:transition-none',
-                open && 'rotate-90',
-              )}
-            />
-          </button>
+          /* Figma "State · Row hover": the chevron names what it does ("Show Products pages"). */
+          <Tooltip>
+            <TooltipTrigger
+              render={
+                <button
+                  type="button"
+                  aria-expanded={open}
+                  aria-label={toggleLabel}
+                  onClick={handleToggle}
+                  className={cn(
+                    'absolute top-1/2 right-1 flex size-6 -translate-y-1/2 items-center justify-center rounded-[0.375rem] text-muted-foreground hover:text-sidebar-foreground',
+                    SIDEBAR_CONTROL,
+                    FOCUS,
+                  )}
+                />
+              }
+            >
+              <ChevronRight
+                className={cn(
+                  'size-4 transition-transform duration-200 ease-out motion-reduce:transition-none',
+                  open && 'rotate-90',
+                )}
+              />
+            </TooltipTrigger>
+            <TooltipContent side="top">{toggleLabel}</TooltipContent>
+          </Tooltip>
         ) : null}
       </div>
       <AnimatePresence initial={false}>
