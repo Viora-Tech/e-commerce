@@ -1,7 +1,7 @@
 import { loadEnv } from '@commerce/config'
 import { browserSentryMeta } from '@commerce/observability'
 import type { Metadata } from 'next'
-import { Bricolage_Grotesque, DM_Sans, Geist_Mono } from 'next/font/google'
+import { Geist_Mono, Noto_Sans_Devanagari, Plus_Jakarta_Sans } from 'next/font/google'
 import { headers } from 'next/headers'
 import { ThemeProvider } from 'next-themes'
 import { NuqsAdapter } from 'nuqs/adapters/next/app'
@@ -16,22 +16,23 @@ import { NONCE_HEADER } from '@/lib/csp'
 
 export const metadata: Metadata = { title: 'Admin' }
 
-/* Fonts match Proofly: variable DM Sans / Bricolage Grotesque (every weight, no static list)
-   and Geist Mono for numbers and code. */
-/* DM Sans (SIL OFL 1.1): every UI string. */
-const sans = DM_Sans({
+/* Fonts match the Koomerce Figma kit: variable Plus Jakarta Sans for everything (titles and big
+   numbers too), a Devanagari partner for Hindi, and Geist Mono for eyebrows, keys and code. */
+/* Plus Jakarta Sans (SIL OFL 1.1): every UI string. */
+const sans = Plus_Jakarta_Sans({
   subsets: ['latin'],
   variable: '--font-primary',
   display: 'swap',
   fallback: ['system-ui', 'sans-serif'],
 })
 
-/* Bricolage Grotesque (SIL OFL 1.1): page titles and big numbers only. */
-const display = Bricolage_Grotesque({
-  subsets: ['latin'],
-  variable: '--font-display-face',
+/* Noto Sans Devanagari (SIL OFL 1.1): Hindi glyphs, which Plus Jakarta Sans doesn't have. Its
+   unicode-range keeps it off the wire for English pages, so it isn't preloaded. */
+const devanagari = Noto_Sans_Devanagari({
+  subsets: ['devanagari'],
+  variable: '--font-devanagari',
   display: 'swap',
-  fallback: ['system-ui', 'sans-serif'],
+  preload: false,
 })
 
 /* Geist Mono (SIL OFL 1.1): code, ids and tabular numbers. */
@@ -57,7 +58,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
   return (
     <html
       lang={locale}
-      className={`${sans.variable} ${display.variable} ${mono.variable}`}
+      className={`${sans.variable} ${devanagari.variable} ${mono.variable}`}
       suppressHydrationWarning
     >
       {/* Extensions such as Grammarly write attributes onto <body> before React hydrates

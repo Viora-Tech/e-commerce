@@ -173,10 +173,10 @@
 
 @theme inline {
   --font-sans:
-    var(--font-primary), ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji",
+    var(--font-primary), var(--font-devanagari), ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji",
     "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
-  /* Bricolage Grotesque: page titles and big numbers only. */
-  --font-display: var(--font-display-face), var(--font-primary), ui-sans-serif, system-ui, sans-serif;
+  /* Titles and big numbers use the same face as the UI (Plus Jakarta Sans), heavier and tighter. */
+  --font-display: var(--font-primary), var(--font-devanagari), ui-sans-serif, system-ui, sans-serif;
   --font-mono: var(--font-mono-code), ui-monospace, SFMono-Regular, Menlo, monospace;
 
   --color-background: var(--background);
@@ -776,7 +776,9 @@
 /* Tiny uppercase tracked meta label for field/section headings (customer, product, order,
    settings, discounts detail pages), after the reference site's field labels. */
 @utility text-eyebrow {
-  font-size: 0.75rem;
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  line-height: 1rem;
   font-weight: 500;
   text-transform: uppercase;
   letter-spacing: 0.06em;
@@ -800,7 +802,7 @@
     @apply bg-background text-foreground;
     font-feature-settings: "rlig" 1, "calt" 1;
   }
-  /* Bricolage Grotesque: page titles and big numbers only; DM Sans everywhere else. */
+  /* Page titles and big numbers: the display stack (same face, kept as a hook for one change). */
   .text-page-title,
   .text-stat,
   .text-kit-stat,
@@ -836,18 +838,20 @@
 @theme {
   /* Saleor Dashboard scale: large, regular-weight headings (1.75rem page title, 1.25rem section
      title), 0.8125rem body and cells, 0.75rem captions and table heads, 0.8125rem/500 nav. Rem only. */
-  --text-page-title: 2rem;
-  --text-page-title--line-height: 2.5rem;
-  --text-page-title--font-weight: 700;
+  /* Koomerce/H1: 28/36 semibold. */
+  --text-page-title: 1.75rem;
+  --text-page-title--line-height: 2.25rem;
+  --text-page-title--font-weight: 600;
   --text-page-title--letter-spacing: -0.02em;
 
   --text-card-title: 1rem;
   --text-card-title--line-height: 1.5rem;
   --text-card-title--font-weight: 600;
 
-  --text-stat: 1.75rem;
-  --text-stat--line-height: 2.125rem;
-  --text-stat--font-weight: 700;
+  /* Koomerce/Number XL: 30/36 semibold. */
+  --text-stat: 1.875rem;
+  --text-stat--line-height: 2.25rem;
+  --text-stat--font-weight: 600;
   --text-stat--letter-spacing: -0.02em;
 
   --text-stat-sm: 1rem;
