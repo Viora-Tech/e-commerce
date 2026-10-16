@@ -7,7 +7,7 @@ type FieldFormatMenuProps = Parameters<NonNullable<RichtextField['renderMenu']>>
 
 /**
  * The rich-text menu above a text field in the right panel (`renderMenu`): the canvas menu's
- * buttons plus lists, quote, rule and headings where the field allows them, all in Phosphor
+ * buttons plus lists, quote, rule and headings where the field allows them, all in Hugeicons
  * glyphs instead of Puck's built-in icons.
  */
 export default function FieldFormatMenu(props: FieldFormatMenuProps) {

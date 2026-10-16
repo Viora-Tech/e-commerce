@@ -50,7 +50,7 @@ const ITEMS: { panel: RailPanel; icon: typeof Plus }[] = [
 export const EDITOR_HELP_URL = `${siteConfig.urls.docs}/merchant-guide/online-store/website-builder`
 
 /*
- * The admin sidebar's icon standard (nav-section.tsx): Phosphor duotone at 18px in the muted
+ * The admin sidebar's icon standard (nav-section.tsx): Hugeicons at 18px in the muted
  * colour, the open one filled in the accent on its soft tile. One glyph size on a 40px target.
  */
 const ITEM = cn(
