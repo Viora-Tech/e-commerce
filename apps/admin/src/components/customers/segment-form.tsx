@@ -70,7 +70,7 @@ export default function SegmentForm({ id, initialName, initialRules }: SegmentFo
   const dirty = JSON.stringify({ initialName: name, initialRules: rules }) !== saved
 
   return (
-    <PageBody width="frame" className="max-w-[80.5rem] gap-6 md:mx-auto">
+    <PageBody width="frame" className="gap-6">
       <SaveBar
         open={dirty}
         message={builder.conditions}

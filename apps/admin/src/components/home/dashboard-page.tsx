@@ -45,7 +45,7 @@ export default function DashboardPage({
   abandoned,
 }: DashboardPageProps) {
   return (
-    <PageBody width="frame" className="max-w-[68rem] gap-10 md:mx-auto md:pt-9">
+    <PageBody width="frame" className="gap-10 md:pt-9">
       <HomeEnter index={0}>
         <HomeGreeting
           firstName={firstName}

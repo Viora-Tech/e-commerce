@@ -6,7 +6,7 @@ const STILL = 'motion-reduce:animate-none'
 /** Home's loading shape: one block per real section, at that section's height. */
 export default function DashboardSkeleton() {
   return (
-    <PageBody width="frame" className="max-w-[68rem] gap-10 md:mx-auto md:pt-9" aria-hidden="true">
+    <PageBody width="frame" className="gap-10 md:pt-9" aria-hidden="true">
       <div className="flex flex-col gap-1">
         <Skeleton className={`h-9 w-64 ${STILL}`} />
         <Skeleton className={`h-5 w-96 max-w-full ${STILL}`} />
