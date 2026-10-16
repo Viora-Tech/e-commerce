@@ -19,7 +19,12 @@ type ViewSelectProps<V extends string | null> = {
   label: string
   /** Formats a count (locale digits and separators). */
   formatCount: (n: number) => string
+  /** Filters are applied: the trigger reads "Custom" with the result count, no view is ticked. */
+  custom?: { label: string; count: number } | undefined
 }
+
+/** No view is ticked while filters make a custom one. */
+const CUSTOM = '__custom'
 
 /** The radio value for a view; `null` (the "all" view) travels as an empty string. */
 function keyOf(value: string | null): string {
@@ -36,6 +41,7 @@ export default function ViewSelect<V extends string | null>({
   onChange,
   label,
   formatCount,
+  custom,
 }: ViewSelectProps<V>) {
   // Event handlers
   const handleChange = (next: unknown) => {
@@ -44,7 +50,8 @@ export default function ViewSelect<V extends string | null>({
   }
 
   // Render logic
-  const current = options.find((o) => o.value === value) ?? options[0]
+  const found = options.find((o) => o.value === value) ?? options[0]
+  const current = custom ? { value: null, label: custom.label, count: custom.count } : found
 
   return (
     <DropdownMenu>
@@ -61,9 +68,13 @@ export default function ViewSelect<V extends string | null>({
         <ChevronsUpDown className="size-3.5 text-muted-foreground" aria-hidden="true" />
       </DropdownMenuTrigger>
       <DropdownMenuContent align="start" className="min-w-56">
-        <DropdownMenuRadioGroup value={keyOf(current?.value ?? null)} onValueChange={handleChange}>
+        <DropdownMenuRadioGroup
+          value={custom ? CUSTOM : keyOf(found?.value ?? null)}
+          onValueChange={handleChange}
+        >
+          {/* Shopify-style: picking a view applies it and closes the menu. */}
           {options.map((o) => (
-            <DropdownMenuRadioItem key={keyOf(o.value)} value={keyOf(o.value)}>
+            <DropdownMenuRadioItem key={keyOf(o.value)} value={keyOf(o.value)} closeOnClick>
               <span className="flex-1">{o.label}</span>
               {o.count !== undefined ? (
                 <span className="ml-4 text-xs text-muted-foreground tabular-nums">

@@ -133,7 +133,7 @@ export default function AppsList() {
   const builtCount = all.filter((a) => a.kind === 'builtin').length
 
   return (
-    <PageBody className="max-w-[80.5rem] gap-8">
+    <PageBody className="gap-8">
       <PageHeader
         title={copy.title}
         subtitle={apps === null ? copy.intro : summary}

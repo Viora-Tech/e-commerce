@@ -9,7 +9,7 @@ export default function AccountLayout({ children }: AccountLayoutProps) {
   return (
     <PageBody className="md:flex-row md:items-start md:gap-6">
       <AccountNav />
-      <div className="mx-auto flex w-full min-w-0 max-w-4xl flex-1 flex-col gap-4">{children}</div>
+      <div className="flex w-full min-w-0 flex-1 flex-col gap-4">{children}</div>
     </PageBody>
   )
 }

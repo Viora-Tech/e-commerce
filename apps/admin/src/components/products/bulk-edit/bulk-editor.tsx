@@ -138,7 +138,7 @@ export default function BulkEditor({ sheet, productIds }: BulkEditorProps) {
   const products = new Set(rows.map((r) => r.productId)).size
   const shown = attempted || serverErrors.size > 0 ? [...errors] : []
   return (
-    <div className="mx-auto flex w-full max-w-[110rem] flex-col gap-6 px-4 py-6 md:px-8 md:py-8">
+    <div className="flex w-full flex-col gap-6 px-4 py-6 md:px-8 md:py-8">
       <ProoflyPageHeader
         title={copy.title}
         summary={copy.summary(products, rows.length)}

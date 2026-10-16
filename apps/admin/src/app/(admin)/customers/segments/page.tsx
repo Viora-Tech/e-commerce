@@ -23,7 +23,7 @@ export default async function Page() {
   if (segments === undefined) redirect(routes.selectStore())
 
   return (
-    <PageBody width="frame" className="max-w-[80.5rem] gap-6 md:mx-auto">
+    <PageBody width="frame" className="gap-6">
       <div className="flex flex-col gap-3">
         <CustomersBackLink href={routes.customers.list()} label={copy.back} />
         <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-3">

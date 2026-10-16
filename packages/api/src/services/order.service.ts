@@ -114,6 +114,8 @@ export async function listOrders(
     status?: OrderStatus | undefined
     paymentStatus?: OrderPaymentStatus[] | undefined
     fulfillmentStatus?: OrderFulfillmentStatus[] | undefined
+    placedFrom?: string | undefined
+    paymentMethod?: 'cod' | 'prepaid' | undefined
   },
 ) {
   const byNumber = input.search ? orderNumberFromSearch(input.search) : null
@@ -132,6 +134,13 @@ export async function listOrders(
     input.fulfillmentStatus?.length
       ? inArray(order.fulfillmentStatus, input.fulfillmentStatus)
       : undefined,
+    input.placedFrom ? gte(order.placedAt, new Date(input.placedFrom)) : undefined,
+    /* An order with no recorded method (imported history) is neither. */
+    input.paymentMethod === 'cod'
+      ? eq(order.paymentMethod, 'cod')
+      : input.paymentMethod === 'prepaid'
+        ? ne(order.paymentMethod, 'cod')
+        : undefined,
   )
   const base = tx
     .select({

@@ -108,7 +108,7 @@ export default function AnalyticsOverviewPage({
   const kpis = data.kpis.filter((kpi) => kpi.id !== 'orders')
 
   return (
-    <div className="mx-auto flex w-full max-w-[81.5rem] flex-col gap-6 px-4 py-6 md:px-8 md:py-8">
+    <div className="flex w-full flex-col gap-6 px-4 py-6 md:px-8 md:py-8">
       <ProoflyPageHeader
         title={copy.title}
         summary={copy.intro}

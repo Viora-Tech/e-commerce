@@ -1,11 +1,16 @@
 /** Copy shared by every ResourceTable in the admin. */
 export const tableContent = {
-  search: (plural: string) => `Search ${plural}`,
+  search: (plural: string) => `Search and filter ${plural}`,
   number: 'No.',
   filter: 'Filter',
   sort: 'Sort',
+  sortBy: 'Sort by',
+  clearSort: 'Clear sort',
   more: 'More',
-  clearFilters: 'Clear',
+  clearFilters: 'Clear all',
+  addFilter: 'Add filter',
+  /** An applied-filter chip: "Payment is" before the bold value. */
+  filterIs: (field: string) => `${field} is`,
   view: 'View',
   toggleColumns: 'Toggle columns',
   sortAsc: 'Sort ascending',

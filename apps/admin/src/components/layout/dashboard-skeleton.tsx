@@ -6,12 +6,14 @@ const STILL = 'motion-reduce:animate-none'
 /** Home's loading shape: one block per real section, at that section's height. */
 export default function DashboardSkeleton() {
   return (
-    <PageBody width="frame" className="max-w-[68rem] gap-10 md:mx-auto md:pt-9" aria-hidden="true">
-      <div className="flex flex-col gap-1">
-        <Skeleton className={`h-9 w-64 ${STILL}`} />
-        <Skeleton className={`h-5 w-96 max-w-full ${STILL}`} />
+    <PageBody width="frame" className="gap-10 md:pt-9" aria-hidden="true">
+      <div className="mx-auto flex w-full max-w-[68rem] flex-col gap-10">
+        <div className="flex flex-col gap-1">
+          <Skeleton className={`h-9 w-64 ${STILL}`} />
+          <Skeleton className={`h-5 w-96 max-w-full ${STILL}`} />
+        </div>
+        <Skeleton className={`h-[3.75rem] w-full ${STILL}`} />
       </div>
-      <Skeleton className={`h-[3.75rem] w-full ${STILL}`} />
       <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
         {Array.from({ length: 3 }, (_, i) => (
           <Skeleton key={i.toString()} className={`h-[5.5rem] w-full ${STILL}`} />

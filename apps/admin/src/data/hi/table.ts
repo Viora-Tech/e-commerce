@@ -3,12 +3,16 @@ import { translation } from '@/lib/i18n'
 
 export default [
   translation(tableContent, {
-    search: (plural) => `${plural} खोजें`,
+    search: (plural) => `${plural} खोजें और फ़िल्टर करें`,
     number: 'नं.',
     filter: 'फ़िल्टर',
     sort: 'क्रम',
+    sortBy: 'इससे क्रम लगाएं',
+    clearSort: 'क्रम हटाएं',
     more: 'और',
-    clearFilters: 'हटाएं',
+    clearFilters: 'सब हटाएं',
+    addFilter: 'फ़िल्टर जोड़ें',
+    filterIs: (field) => `${field}:`,
     view: 'देखें',
     toggleColumns: 'कॉलम दिखाएं/छिपाएं',
     sortAsc: 'छोटे से बड़ा',

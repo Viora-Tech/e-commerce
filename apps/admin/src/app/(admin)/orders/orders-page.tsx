@@ -18,6 +18,7 @@ import { toast } from 'sonner'
 import CustomerAvatar from '@/components/customers/customer-avatar'
 import StatusChip from '@/components/layout/status-chip'
 import OrderChip from '@/components/orders/order-chip'
+import OrderFilters from '@/components/orders/order-filters'
 import { orderStage } from '@/components/orders/order-stage'
 import OrdersListFrame from '@/components/orders/orders-list-frame'
 import OrdersTiles, { type OrderTilesData } from '@/components/orders/orders-tiles'
@@ -38,6 +39,14 @@ import { api } from '@/lib/api-client'
 import type { Formatters } from '@/lib/format'
 import { type ListQuery, sameListQuery } from '@/lib/list-query'
 import { orderListFilter } from '@/lib/order-filter'
+import {
+  appliedOrderFilters,
+  FILTER_PARAMS,
+  hasOrderFilters,
+  NO_FILTERS,
+  type OrderFilters as OrderFiltersValue,
+  orderFilterInput,
+} from '@/lib/order-list-filters'
 import { usePrimaryAction } from '@/lib/primary-action'
 import { routes } from '@/lib/routes'
 import { parseRowsPerPage } from '@/lib/rows-per-page'
@@ -57,18 +66,19 @@ export type OrdersInitial = {
 
 type Query = ListQuery<OrderListFilter>
 
-function fetchOrders(q: Query, perPage: number) {
+function fetchOrders(q: Query, perPage: number, f: OrderFiltersValue) {
   return api.orders.list({
     page: q.page,
     perPage,
     search: q.query || undefined,
     ...orderListFilter(q.status),
+    ...orderFilterInput(f),
   })
 }
 
-/* Figma "Table / Cell · Avatar": a 24px muted initials disc, the order number 14/20 medium and
-   the customer's name 12/16 muted beneath. */
-function OrderCell({ item }: { item: Item }) {
+/* Figma "Table / Cell · Avatar": a 24px muted initials disc, the customer's name 14/20 medium
+   and their email 12/16 muted beneath (owner: a Customer column of its own). */
+function CustomerCell({ item }: { item: Item }) {
   // Hooks
   const copy = useCopy(ordersContent)
 
@@ -82,10 +92,10 @@ function OrderCell({ item }: { item: Item }) {
         className="size-6 bg-muted font-medium text-foreground"
       />
       <span className="min-w-0">
-        <span className="line-clamp-1 text-body font-medium text-ink-strong tabular-nums">
-          #{item.number}
-        </span>
-        <span className="line-clamp-1 text-xs text-muted-foreground">{who}</span>
+        <span className="line-clamp-1 text-body font-medium text-ink-strong">{who}</span>
+        {item.customerName && item.email ? (
+          <span className="line-clamp-1 text-xs text-muted-foreground">{item.email}</span>
+        ) : null}
       </span>
     </span>
   )
@@ -131,13 +141,22 @@ function orderColumns(copy: typeof ordersContent, fmt: Formatters): ResourceColu
       title: copy.columns.order,
       sortValue: (o) => o.number,
       hideable: false,
-      className: 'w-[17%] whitespace-normal',
-      render: (o) => <OrderCell item={o} />,
+      className: 'w-[9%]',
+      render: (o) => (
+        <span className="text-body font-medium text-ink-strong tabular-nums">#{o.number}</span>
+      ),
+    },
+    {
+      id: 'customer',
+      title: copy.columns.customer,
+      sortValue: (o) => (o.customerName ?? o.email ?? '').toLowerCase(),
+      className: 'w-[20%] whitespace-normal',
+      render: (o) => <CustomerCell item={o} />,
     },
     {
       id: 'product',
       title: copy.columns.product,
-      className: 'w-[30%] whitespace-normal',
+      className: 'w-[24%] whitespace-normal',
       render: (o) => <ProductCell item={o} />,
     },
     {
@@ -229,15 +248,17 @@ function OrdersContent({ initial }: { initial: OrdersInitial }) {
   const copy = useCopy(ordersContent)
   const fmt = useFormat()
   usePrimaryAction(routes.orders.drafts())
-  const [{ page, query, status, perPage: rawPerPage }, setQ] = useQueryStates(
-    {
-      query: parseAsString.withDefault(''),
-      page: parseAsInteger.withDefault(1),
-      status: parseAsStringLiteral(ORDER_LIST_FILTERS),
-      perPage: parseAsInteger.withDefault(initial.perPage),
-    },
-    { shallow: true },
-  )
+  const [{ page, query, status, perPage: rawPerPage, payment, fulfilment, date, method }, setQ] =
+    useQueryStates(
+      {
+        query: parseAsString.withDefault(''),
+        page: parseAsInteger.withDefault(1),
+        status: parseAsStringLiteral(ORDER_LIST_FILTERS),
+        perPage: parseAsInteger.withDefault(initial.perPage),
+        ...FILTER_PARAMS,
+      },
+      { shallow: true },
+    )
 
   const [items, setItems] = useState<Item[]>(initial.result.items)
   const [total, setTotal] = useState(initial.result.total)
@@ -252,16 +273,18 @@ function OrdersContent({ initial }: { initial: OrdersInitial }) {
     // tab) the list is fetched again, so it never keeps another tab's rows.
     const firstRun = !hydrated.current
     hydrated.current = true
+    const f: OrderFiltersValue = { payment, fulfilment, date, method }
     if (
       firstRun &&
       perPage === initial.perPage &&
+      !hasOrderFilters(f) &&
       sameListQuery({ page, query, status }, initial.query)
     )
       return
     let cancelled = false
     setLoading(true)
     setFailed(false)
-    fetchOrders({ page, query, status }, perPage)
+    fetchOrders({ page, query, status }, perPage, f)
       .then((r) => {
         if (cancelled) return
         setItems(r.items)
@@ -272,15 +295,32 @@ function OrdersContent({ initial }: { initial: OrdersInitial }) {
     return () => {
       cancelled = true
     }
-  }, [page, query, status, rawPerPage, initial.query, initial.perPage])
+  }, [
+    page,
+    query,
+    status,
+    rawPerPage,
+    payment,
+    fulfilment,
+    date,
+    method,
+    initial.query,
+    initial.perPage,
+  ])
 
   // Event handlers
+  const setFilters = (patch: Partial<OrderFiltersValue>) => setQ({ ...patch, page: 1 })
   const handleBulkSetStatus = async (ids: string[], mark: OrderMark, clear: () => void) => {
     try {
       await Promise.all(ids.map((id) => api.orders.setStatus({ id, status: mark })))
       toast.success(copy.bulk.updated(ids.length, copy.marks[mark]))
       clear()
-      const r = await fetchOrders({ page, query, status }, parseRowsPerPage(rawPerPage))
+      const r = await fetchOrders({ page, query, status }, parseRowsPerPage(rawPerPage), {
+        payment,
+        fulfilment,
+        date,
+        method,
+      })
       setItems(r.items)
       setTotal(r.total)
     } catch {
@@ -291,7 +331,9 @@ function OrdersContent({ initial }: { initial: OrdersInitial }) {
   // Render logic
   const perPage = parseRowsPerPage(rawPerPage)
   const columns = orderColumns(copy, fmt)
-  const searching = query.length > 0 || status !== null
+  const filters: OrderFiltersValue = { payment, fulfilment, date, method }
+  const filtered = hasOrderFilters(filters)
+  const searching = query.length > 0 || status !== null || filtered
   const tabCounts: Partial<Record<OrderListFilter, number>> = {
     unpaid: initial.counts.unpaid,
     unfulfilled: initial.counts.unfulfilled,
@@ -342,13 +384,25 @@ function OrdersContent({ initial }: { initial: OrdersInitial }) {
         loading={loading}
         query={query}
         onQueryChange={(query) => setQ({ query, page: 1 })}
-        onClearAll={() => setQ({ query: '', status: null, page: 1 })}
+        onClearAll={() => setQ({ query: '', status: null, ...NO_FILTERS, page: 1 })}
+        filters={(close) => (
+          <OrderFilters
+            value={filters}
+            onChange={setFilters}
+            onClear={() => setFilters(NO_FILTERS)}
+            total={total}
+            onDone={close}
+          />
+        )}
+        filtersClassName="w-72 p-0"
+        applied={appliedOrderFilters(filters, copy.filters, setFilters)}
         views={
           <ViewSelect<OrderListFilter | null>
             label={copy.viewLabel}
             value={status}
-            onChange={(s) => setQ({ status: s, page: 1 })}
+            onChange={(s) => setQ({ status: s, ...NO_FILTERS, page: 1 })}
             formatCount={fmt.number}
+            custom={filtered ? { label: copy.customView, count: total } : undefined}
             options={[
               { value: null, label: copy.tabs.all, count: initial.counts.all },
               ...ORDER_LIST_FILTERS.map((s) => {

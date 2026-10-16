@@ -5,6 +5,12 @@ import type {
   OrderPaymentStatus,
   OrderStatus,
 } from '@commerce/core/order-status'
+import type {
+  DateFilter,
+  FulfilmentFilter,
+  MethodFilter,
+  PaymentFilter,
+} from '@/lib/order-list-filters'
 
 /** The order moves live in core (`ORDER_MARKS`); re-exported for the admin's order screens. */
 export { ORDER_MARKS, type OrderMark } from '@commerce/core/order-status'
@@ -74,6 +80,41 @@ export const ordersContent = {
   viewLabel: 'Order view',
   /** Status column for a paid order nobody has shipped yet (Figma: blue "To ship"). */
   toShip: 'To ship',
+  /** The View select while filters are applied (Figma "Custom"). */
+  customView: 'Custom',
+  /** The filter panel and its chips (Figma "Orders · Filter", "Applied filters"). */
+  filters: {
+    heading: 'Filters',
+    clearAll: 'Clear all',
+    payment: 'Payment',
+    fulfilment: 'Fulfilment',
+    date: 'Date',
+    anyDate: 'Any date',
+    method: 'Payment method',
+    show: (n: number) => `Show ${n} ${n === 1 ? 'order' : 'orders'}`,
+    paymentOptions: {
+      paid: 'Paid',
+      unpaid: 'Unpaid',
+      partially_refunded: 'Partially refunded',
+      refund_needed: 'Refund needed',
+    } satisfies Record<PaymentFilter, string>,
+    fulfilmentOptions: {
+      unfulfilled: 'Unfulfilled',
+      shipped: 'Shipped',
+      delivered: 'Delivered',
+      returned: 'Returned',
+    } satisfies Record<FulfilmentFilter, string>,
+    dateOptions: {
+      today: 'Today',
+      '7d': 'Last 7 days',
+      '30d': 'Last 30 days',
+      '90d': 'Last 90 days',
+    } satisfies Record<DateFilter, string>,
+    methodOptions: { cod: 'Cash on delivery', prepaid: 'Prepaid' } satisfies Record<
+      MethodFilter,
+      string
+    >,
+  },
   tabs: {
     all: 'All orders',
     unpaid: 'Unpaid',

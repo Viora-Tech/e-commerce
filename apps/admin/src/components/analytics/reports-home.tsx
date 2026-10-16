@@ -74,7 +74,7 @@ export default function ReportsHome({ reports, saved: initialSaved, assistant }:
 
   // Render logic
   return (
-    <div className="mx-auto flex w-full max-w-[81.5rem] flex-col gap-8 px-4 py-6 md:px-8 md:py-8">
+    <div className="flex w-full flex-col gap-8 px-4 py-6 md:px-8 md:py-8">
       <div className="flex flex-col gap-6">
         <ProoflyPageHeader title={c.title} summary={c.home.intro} />
         <AskAiCard

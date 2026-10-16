@@ -22,7 +22,7 @@ export default function OrdersListFrame({
   children,
 }: OrdersListFrameProps) {
   return (
-    <PageBody className="max-w-[80.5rem] gap-6 md:py-8">
+    <PageBody className="gap-6 md:py-8">
       <PageHeader title={title} subtitle={summary} actions={actions} />
       {tiles ? (
         /* Figma "Stat strip": one card, the stats side by side with dividers between. */

@@ -134,7 +134,7 @@ export default function DraftForm({ draft }: DraftFormProps) {
     .join(' · ')
 
   return (
-    <PageBody className="max-w-[78rem] gap-6 md:py-8">
+    <PageBody className="gap-6 md:py-8">
       <SaveBar
         open={dirty}
         message={copy.unsaved}

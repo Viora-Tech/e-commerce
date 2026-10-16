@@ -37,8 +37,12 @@ const FOCUS =
 const ROW = `group/row relative isolate flex h-8 w-full min-w-0 items-center gap-2 overflow-hidden rounded-[0.375rem] px-2 text-body text-sidebar-foreground transition-colors hover:bg-sidebar-accent/60 [&_svg]:size-4 [&_svg]:shrink-0 [&_svg]:text-sidebar-foreground ${FOCUS}`
 const ROW_ACTIVE = 'font-medium hover:bg-transparent'
 const ROW_OPEN = 'font-medium'
-const CHILD = `relative isolate flex h-8 w-full min-w-0 items-center rounded-[0.375rem] px-2.5 text-body text-muted-foreground transition-colors hover:bg-sidebar-accent/60 hover:text-sidebar-foreground ${FOCUS}`
-const CHILD_ACTIVE = 'text-sidebar-foreground hover:bg-transparent'
+/* Figma "Sidebar sub item": 28px rows, 8px sides, radius 6, 14px muted text. */
+const CHILD = `relative isolate flex h-7 w-full min-w-0 items-center rounded-[0.375rem] px-2 text-body text-muted-foreground transition-colors hover:bg-sidebar-accent/60 hover:text-sidebar-foreground ${FOCUS}`
+/* Figma "Sidebar sub item" active: the accent fill and medium label; the "|" rail beside it
+   brightens for that row (owner: the marker sits on the rail, not inside the pill). */
+const CHILD_ACTIVE =
+  'font-medium text-sidebar-foreground hover:bg-transparent before:absolute before:inset-y-1 before:-left-2.5 before:w-0.5 before:rounded-full before:bg-sidebar-foreground'
 
 /** One rail entry: the section link, a chevron toggle when it has sub-pages, and the guided child list. */
 export default function NavSection({ item, pathname, count = 0 }: NavSectionProps) {
@@ -84,12 +88,9 @@ export default function NavSection({ item, pathname, count = 0 }: NavSectionProp
           aria-hidden
         />
       ) : sectionActive ? (
-        /* Collapsed rail: the sub-pages are hidden, so the section's own icon carries the
-             highlight while one of its children is the current page (Figma collapsed rail). */
-        <span
-          className="absolute inset-0 -z-10 hidden rounded-[0.375rem] bg-sidebar-accent group-data-[collapsible=icon]:block"
-          aria-hidden
-        />
+        /* Figma "Route=Orders": while one of its sub-pages is open the section row keeps the
+             accent fill (the collapsed rail shows only this icon, so it carries it there too). */
+        <span className="absolute inset-0 -z-10 rounded-[0.375rem] bg-sidebar-accent" aria-hidden />
       ) : null}
       <item.icon />
       <span className={cn('min-w-0 flex-1 truncate', SIDEBAR_LABEL)}>{item.label}</span>
@@ -146,7 +147,7 @@ export default function NavSection({ item, pathname, count = 0 }: NavSectionProp
             animate={{ height: 'auto', opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
             transition={reveal}
-            className="mt-1 ml-6 flex flex-col overflow-hidden border-l border-border pl-1.5 group-data-[collapsible=icon]:hidden"
+            className="relative mt-1 ml-4 flex flex-col gap-0.5 overflow-hidden pl-2.5 before:absolute before:inset-y-0 before:left-0 before:w-px before:bg-border group-data-[collapsible=icon]:hidden"
           >
             {children.map((child) => {
               const active = child.href === activeHref
@@ -161,7 +162,7 @@ export default function NavSection({ item, pathname, count = 0 }: NavSectionProp
                       <motion.span
                         layoutId="nav-child-active-pill"
                         transition={slide}
-                        className="absolute inset-0 -z-10 rounded-[0.375rem] bg-sidebar-accent before:absolute before:inset-y-1.5 before:left-0 before:w-0.75 before:rounded-full before:bg-sidebar-foreground"
+                        className="absolute inset-0 -z-10 rounded-[0.375rem] bg-sidebar-accent"
                         aria-hidden
                       />
                     ) : null}

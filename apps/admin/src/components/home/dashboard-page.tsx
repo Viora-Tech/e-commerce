@@ -45,22 +45,26 @@ export default function DashboardPage({
   abandoned,
 }: DashboardPageProps) {
   return (
-    <PageBody width="frame" className="max-w-[68rem] gap-10 md:mx-auto md:pt-9">
-      <HomeEnter index={0}>
-        <HomeGreeting
-          firstName={firstName}
-          ordersToday={summary.today.ordersCount}
-          salesTodayPaise={summary.today.salesPaise}
-          toShip={summary.today.toShipCount}
-          liveNow={summary.liveVisitors.last30}
-          now={new Date()}
-        />
-      </HomeEnter>
-      <LocalStorageWarning />
-      <BackgroundWorkNotice />
-      <HomeEnter index={1}>
-        <AskAiCard enabled={assistant} />
-      </HomeEnter>
+    <PageBody width="frame" className="gap-10 md:pt-9">
+      {/* The greeting and the Ask AI box keep the centred Figma column (68rem, owner 2026-10-17);
+          everything below fills the panel. */}
+      <div className="mx-auto flex w-full max-w-[68rem] flex-col gap-10">
+        <HomeEnter index={0}>
+          <HomeGreeting
+            firstName={firstName}
+            ordersToday={summary.today.ordersCount}
+            salesTodayPaise={summary.today.salesPaise}
+            toShip={summary.today.toShipCount}
+            liveNow={summary.liveVisitors.last30}
+            now={new Date()}
+          />
+        </HomeEnter>
+        <LocalStorageWarning />
+        <BackgroundWorkNotice />
+        <HomeEnter index={1}>
+          <AskAiCard enabled={assistant} />
+        </HomeEnter>
+      </div>
       {signals ? (
         <HomeEnter index={2}>
           <FinishSetup productCount={summary.report.products} signals={signals} />
