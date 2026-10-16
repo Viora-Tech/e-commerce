@@ -132,7 +132,7 @@ import {
   Cancel01Icon as X,
   YoutubeIcon as YoutubeLogo,
 } from '@hugeicons/core-free-icons'
-import { defineIcon, definePath, type IconComponent } from './lib/icon'
+import { defineIcon, type IconComponent } from './lib/icon'
 
 export type { IconComponent, IconProps } from './lib/icon'
 /** Legacy alias for call sites typed against Lucide. */
@@ -245,11 +245,8 @@ export const Language = defineIcon(Translate, 'Language')
 /** "Report a bug" (test server only): the account menu item and the floating button. */
 export const BugIcon = defineIcon(Bug, 'BugIcon')
 /* Top bar panel toggle (Figma 223:414): a rounded box with a bar on the left. */
-const PANEL_PATHS = [
-  'M4.5 5.5h15a1 1 0 0 1 1 1v11a1 1 0 0 1-1 1h-15a1 1 0 0 1-1-1v-11a1 1 0 0 1 1-1z',
-  'M9.5 5.5v13',
-]
-export const PanelLeftIcon = definePath(PANEL_PATHS, 'PanelLeftIcon')
+/** The top bar's sidebar toggle: Figma "Icon/PanelLeft" (568:591) is Hugeicons sidebar-left. */
+export const PanelLeftIcon = defineIcon(Huge.SidebarLeftIcon, 'PanelLeftIcon')
 export const ExternalLink = defineIcon(ArrowSquareOut, 'ExternalLink') // kit Your Shop
 
 /* Arrows and chevrons */
