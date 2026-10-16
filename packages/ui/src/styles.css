@@ -1069,3 +1069,11 @@
   --text-kit-chip--font-weight: 500;
   --text-kit-chip--letter-spacing: -0.02em;
 }
+
+/* Crisp icons: 24-grid stroke glyphs (Hugeicons and definePath) keep their stroke in screen
+   pixels at any size instead of scaling it to a fraction of a pixel (lib/icon.tsx). */
+@layer base {
+  svg[viewBox='0 0 24 24'][stroke-width] :is(path, circle, rect, line, polyline, polygon, ellipse) {
+    vector-effect: non-scaling-stroke;
+  }
+}

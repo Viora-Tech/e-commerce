@@ -1,8 +1,9 @@
 'use client'
 
-import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
+import { useReducedMotion } from 'motion/react'
 import { useEffect, useRef, useState } from 'react'
-import { EASE_OUT, MOTION_MS } from '@/lib/motion'
+import { MOTION_MS } from '@/lib/motion'
+import RollingText from './rolling-text'
 
 type TopBarSearchTextProps = {
   /** The fixed start of the hint ("Search or ask AI"). */
@@ -49,7 +50,6 @@ export default function TopBarSearchText({ lead, examples }: TopBarSearchTextPro
 
   // Render logic
   const example = examples[at % Math.max(1, examples.length)] ?? ''
-  const roll = { duration: MOTION_MS.searchRoll / 1000, ease: EASE_OUT }
 
   return (
     <span
@@ -57,20 +57,7 @@ export default function TopBarSearchText({ lead, examples }: TopBarSearchTextPro
       className="flex min-w-0 flex-1 items-center gap-1 text-left text-body text-muted-foreground"
     >
       <span className="shrink-0">{lead}</span>
-      <span className="grid min-w-0 flex-1 overflow-hidden text-foreground/70">
-        <AnimatePresence mode="popLayout" initial={false}>
-          <motion.span
-            key={example}
-            initial={reduced ? false : { y: 14, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            exit={reduced ? { opacity: 0 } : { y: -14, opacity: 0 }}
-            transition={roll}
-            className="truncate [grid-area:1/1]"
-          >
-            {example}
-          </motion.span>
-        </AnimatePresence>
-      </span>
+      <RollingText text={example} className="flex-1 text-foreground/70" />
     </span>
   )
 }

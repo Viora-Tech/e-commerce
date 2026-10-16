@@ -3,14 +3,15 @@
 import { AiIcon } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Kbd } from '@commerce/ui/shadcn/kbd'
-import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
+import { useReducedMotion } from 'motion/react'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
+import RollingText from '@/components/layout/rolling-text'
 import { assistantContent } from '@/data/assistant'
 import { homePageContent } from '@/data/home'
 import { useCopy } from '@/hooks/use-copy'
 import { openAssistant } from '@/lib/assistant-events'
-import { enter, instant, MOTION_MS } from '@/lib/motion'
+import { MOTION_MS } from '@/lib/motion'
 import { routes } from '@/lib/routes'
 
 type AskAiCardProps = {
@@ -51,17 +52,9 @@ export default function AskAiCard({
 
   useEffect(() => {
     if (reduced || paused) return
-    let every: ReturnType<typeof setInterval> | null = null
-    const first = setTimeout(() => {
-      setHint((h) => h + 1)
-      every = setInterval(() => {
-        setHint((h) => h + 1)
-      }, MOTION_MS.askRotateEvery)
-    }, MOTION_MS.rotateFirst)
-    return () => {
-      clearTimeout(first)
-      if (every) clearInterval(every)
-    }
+    /* Same pace and roll as the top bar search (owner: both move the same way). */
+    const every = setInterval(() => setHint((h) => h + 1), MOTION_MS.searchRotateEvery)
+    return () => clearInterval(every)
   }, [reduced, paused])
 
   // Event handlers
@@ -91,7 +84,6 @@ export default function AskAiCard({
   const chips = pageChips ?? (assistant.chips.home ?? []).slice(0, 3)
   const cycling = !reduced && chips.length > 0
   const showHint = cycling && question === '' && !paused
-  const fade = reduced ? instant : enter
 
   return (
     <div className="flex flex-col gap-3">
@@ -117,18 +109,7 @@ export default function AskAiCard({
               aria-hidden="true"
               className="pointer-events-none absolute inset-0 flex items-center overflow-hidden text-[0.9375rem] leading-5 text-muted-foreground"
             >
-              <AnimatePresence mode="wait">
-                <motion.span
-                  key={hint}
-                  initial={{ opacity: 0, y: 6 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0 }}
-                  transition={fade}
-                  className="truncate"
-                >
-                  {chips[hint % chips.length]}
-                </motion.span>
-              </AnimatePresence>
+              <RollingText text={chips[hint % chips.length] ?? ''} className="w-full" />
             </span>
           ) : null}
         </span>
