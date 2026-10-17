@@ -8,6 +8,7 @@ export default [
   }),
   translation(dialogContent, {
     cancel: 'रद्द करें',
+    close: 'बंद करें',
   }),
   translation(contactContent, {
     call: 'कॉल करें',

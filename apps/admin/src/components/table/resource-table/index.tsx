@@ -1,5 +1,6 @@
 'use client'
 
+import { SearchX } from '@commerce/ui/icons'
 import { cn } from '@commerce/ui/lib/utils'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Card } from '@commerce/ui/shadcn/card'
@@ -234,6 +235,10 @@ export default function ResourceTable<T extends RowData>(props: ResourceTablePro
       setSelectingAll(false)
     }
   }
+  const handleClearNarrowing = () => {
+    props.onClearAll?.()
+    if (props.query) props.onQueryChange('')
+  }
   const resetColumns = () => {
     setColumnVisibility(hiddenColumns(props.defaultHidden))
     setColumnOrder([])
@@ -253,6 +258,8 @@ export default function ResourceTable<T extends RowData>(props: ResourceTablePro
   const rows = table.getRowModel().rows
   const visibleCount = table.getVisibleLeafColumns().length
   const isEmpty = !props.loading && props.items.length === 0
+  /** A search or a filter is narrowing the list (so empty means "no results", not "none yet"). */
+  const narrowed = props.query.length > 0 || (props.applied?.length ?? 0) > 0
   /* While rows are ticked the header row turns into the selection bar (beside the checkbox). */
   const selecting = selectedIds.length > 0 && Boolean(props.bulkActions)
 
@@ -357,7 +364,19 @@ export default function ResourceTable<T extends RowData>(props: ResourceTablePro
                 })}
           </TableBody>
         </Table>
-        {isEmpty ? (
+        {isEmpty && narrowed ? (
+          // Figma "Feedback state · No results": the search or filters found nothing.
+          <EmptyState
+            icon={SearchX}
+            heading={tableCopy.noResults}
+            body={tableCopy.noResultsBody}
+            action={
+              <Button variant="outline" size="sm" onClick={handleClearNarrowing}>
+                {tableCopy.clearSearchAndFilters}
+              </Button>
+            }
+          />
+        ) : isEmpty ? (
           <EmptyState
             heading={props.empty?.heading ?? tableCopy.emptyHeading(props.resourceName.plural)}
             body={props.empty?.body ?? tableCopy.emptyBody}

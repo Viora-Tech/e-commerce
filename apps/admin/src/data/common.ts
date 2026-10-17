@@ -7,6 +7,7 @@ export const copyButtonContent = {
 /** Cancel label the global ConfirmDialog and FormDialog fall back to. */
 export const dialogContent = {
   cancel: 'Cancel',
+  close: 'Close',
 } as const
 
 /** The Call / WhatsApp buttons under any customer's contact details. */

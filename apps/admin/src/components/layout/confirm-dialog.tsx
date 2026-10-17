@@ -1,5 +1,6 @@
 'use client'
 
+import { X } from '@commerce/ui/icons'
 import {
   AlertDialog,
   AlertDialogCancel,
@@ -80,8 +81,20 @@ export default function ConfirmDialog({
   return (
     <AlertDialog open={open} onOpenChange={handleOpenChange}>
       <AlertDialogContent
+        className="data-[size=default]:sm:max-w-md"
         onClick={stopPropagation ? (event) => event.stopPropagation() : undefined}
       >
+        {/* Figma confirm dialogs (e.g. 638:5415) close from the corner too. */}
+        <Button
+          variant="ghost"
+          size="icon-sm"
+          className="absolute top-2 right-2 text-muted-foreground"
+          onClick={() => handleOpenChange(false)}
+          disabled={working}
+          aria-label={shared.close}
+        >
+          <X aria-hidden />
+        </Button>
         <AlertDialogHeader>
           <AlertDialogTitle>{title}</AlertDialogTitle>
           {body ? <AlertDialogDescription>{body}</AlertDialogDescription> : null}
