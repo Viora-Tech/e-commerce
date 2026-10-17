@@ -280,10 +280,10 @@ export const STATUS = {
   /** Badges on the customer detail header. */
   /** Badges on the customer detail header and the list's status column (5:3148). */
   customer: {
-    returning: entry(customerDetailContent.badges.returning, 'info'),
-    vip: entry(customerDetailContent.badges.vip, 'pending'),
+    returning: entry(customerDetailContent.badges.returning, 'neutral'),
+    vip: entry(customerDetailContent.badges.vip, 'info'),
     active: entry('Active', 'success'),
-    inactive: entry('Inactive', 'error'),
+    inactive: entry('Inactive', 'neutral'),
   },
   /** Marketing campaigns. */
   campaign: {

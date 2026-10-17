@@ -96,7 +96,7 @@ export default function CustomerHeader({ customer, onEdit }: CustomerHeaderProps
           <>
             {customer.email ? (
               <Button
-                variant="key-neutral"
+                variant="outline"
                 render={<a href={`mailto:${customer.email}`} />}
                 nativeButton={false}
               >
@@ -106,8 +106,7 @@ export default function CustomerHeader({ customer, onEdit }: CustomerHeaderProps
             ) : null}
             <ActionMenu
               label={copy.actions.more}
-              variant="outline"
-              size="md"
+              trigger="button"
               items={[
                 { label: copy.actions.edit, icon: Pencil, onSelect: onEdit },
                 {

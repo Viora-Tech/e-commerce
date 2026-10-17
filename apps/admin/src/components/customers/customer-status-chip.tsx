@@ -6,10 +6,12 @@ import { useCopy } from '@/hooks/use-copy'
 
 type CustomerStatusChipProps = { activity: CustomerActivity }
 
-/** VIP is the one blue chip (worth a thank-you); active and inactive are quiet grey. */
+const TONE = { vip: 'info', active: 'success', inactive: 'neutral' } as const
+
+/** Figma Customers list (613:146276): VIP blue, active green, inactive grey. */
 export default function CustomerStatusChip({ activity }: CustomerStatusChipProps) {
   // Hooks
   const copy = useCopy(customersContent).statuses
 
-  return <StatusChip tone={activity === 'vip' ? 'info' : 'neutral'}>{copy[activity]}</StatusChip>
+  return <StatusChip tone={TONE[activity]}>{copy[activity]}</StatusChip>
 }

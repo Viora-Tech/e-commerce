@@ -1,6 +1,6 @@
 'use client'
 
-import { ChevronDown } from '@commerce/ui/icons'
+import { ChevronDown, Download, Users } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import {
   DropdownMenu,
@@ -200,13 +200,11 @@ function CustomersContent({ initial }: { initial: CustomersInitial }) {
               </Button>
             ) : null}
             <Button variant="outline" onClick={handleExportAll}>
+              <Download strokeWidth={1.6} />
               {copy.exportAll}
             </Button>
-            <Button
-              variant="key-neutral"
-              render={<Link href={routes.customers.segments()} />}
-              nativeButton={false}
-            >
+            <Button render={<Link href={routes.customers.segments()} />} nativeButton={false}>
+              <Users strokeWidth={1.6} />
               {copy.segmentsLink}
             </Button>
           </>
