@@ -5,7 +5,7 @@ import {
   SHIPMENT_TABS,
   type ShipmentTab,
 } from '@commerce/core/shipment-tabs'
-import { Plus, Printer, Truck } from '@commerce/ui/icons'
+import { AppWindow, Plus, Printer, Truck } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Card } from '@commerce/ui/shadcn/card'
 import Link from 'next/link'
@@ -13,10 +13,11 @@ import { parseAsInteger, parseAsString, parseAsStringLiteral, useQueryStates } f
 import { Suspense, useEffect, useState } from 'react'
 import ActionMenu from '@/components/layout/action-menu'
 import EmptyState from '@/components/layout/empty-state'
-import PillTabs from '@/components/layout/pill-tabs'
+import StatusChip from '@/components/layout/status-chip'
 import OrdersListFrame from '@/components/orders/orders-list-frame'
 import ResourceTable from '@/components/table/resource-table'
 import RowMenu from '@/components/table/row-menu'
+import ViewSelect from '@/components/table/view-select'
 import { shipmentsContent } from '@/data/shipments'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
@@ -167,26 +168,21 @@ function ShipmentsContent() {
   return (
     <OrdersListFrame
       title={copy.title}
-      summary={
-        <>
-          {summaryText}
-          {c && c.needsAttention > 0 && !noCourier ? (
-            <>
-              {' · '}
-              <button
-                type="button"
-                onClick={() => setSheet('ndr')}
-                className="font-medium text-danger underline-offset-2 hover:underline"
-              >
-                {copy.summary.needsAttention(c.needsAttention)}
-              </button>
-            </>
-          ) : null}
-        </>
-      }
+      summary={summaryText}
       actions={
         noCourier ? null : (
           <>
+            {c && c.needsAttention > 0 ? (
+              <button
+                type="button"
+                onClick={() => setSheet('ndr')}
+                className="rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              >
+                <StatusChip tone="danger">
+                  {copy.summary.needsAttention(c.needsAttention)}
+                </StatusChip>
+              </button>
+            ) : null}
             <ActionMenu
               label={copy.more}
               variant="outline"
@@ -254,9 +250,17 @@ function ShipmentsContent() {
                 ) : null}
                 <RowMenu
                   items={[
-                    { label: copy.menu.viewOrder, href: routes.orders.detail(r.orderId) },
-                    ...(r.labelUrl ? [{ label: copy.menu.label, href: r.labelUrl }] : []),
-                    ...(r.trackingUrl ? [{ label: copy.menu.track, href: r.trackingUrl }] : []),
+                    {
+                      label: copy.menu.viewOrder,
+                      href: routes.orders.detail(r.orderId),
+                      icon: AppWindow,
+                    },
+                    ...(r.labelUrl
+                      ? [{ label: copy.menu.label, href: r.labelUrl, icon: Printer, newTab: true }]
+                      : []),
+                    ...(r.trackingUrl
+                      ? [{ label: copy.menu.track, href: r.trackingUrl, icon: Truck, newTab: true }]
+                      : []),
                   ]}
                 />
               </span>
@@ -264,12 +268,13 @@ function ShipmentsContent() {
             loading={loading}
             query={query}
             onQueryChange={(q) => setQ({ query: q, page: 1 })}
-            tabs={
-              <PillTabs<ShipmentTab>
-                variant="segmented"
+            views={
+              <ViewSelect<ShipmentTab>
+                label={copy.viewLabel}
                 value={tab}
                 onChange={handleTab}
-                tabs={SHIPMENT_TABS.map((t) => ({
+                formatCount={fmt.number}
+                options={SHIPMENT_TABS.map((t) => ({
                   value: t,
                   label: copy.tabs[t],
                   ...(c ? { count: c[t] } : {}),

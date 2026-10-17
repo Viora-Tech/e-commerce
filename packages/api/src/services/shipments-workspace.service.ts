@@ -143,6 +143,7 @@ export async function listShipments(tx: StoreTx, input: ShipmentListFilter) {
       email: order.email,
       shipToName: sql<string | null>`coalesce(${address.name}, ${customer.name})`,
       city: address.city,
+      stateCode: address.stateCode,
       pincode: address.pincode,
       weightGrams: shipment.weightGrams,
       provider: shipment.provider,
@@ -220,6 +221,7 @@ export type ReadyToShipRow = {
   customerName: string | null
   email: string | null
   city: string
+  stateCode: string
   pincode: string
   itemsCount: number
   totalPaise: number
@@ -266,6 +268,7 @@ export async function listReadyToShip(
       totalPaise: order.totalPaise,
       customerName: sql<string | null>`coalesce(${address.name}, ${customer.name})`,
       city: address.city,
+      stateCode: address.stateCode,
       pincode: address.pincode,
     })
     .from(order)

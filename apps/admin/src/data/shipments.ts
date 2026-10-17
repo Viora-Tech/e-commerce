@@ -16,6 +16,7 @@ export const shipmentsContent = {
     needsAttention: (n: number) => `${n} need${n === 1 ? 's' : ''} attention`,
     noCourier: 'Connect a courier to start booking',
   },
+  viewLabel: 'Shipment view',
   tabs: {
     toBook: 'To book',
     booked: 'Booked',
