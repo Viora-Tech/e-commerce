@@ -15,6 +15,7 @@ import {
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import DataCard from '@/components/layout/data-card'
+import TableEmptyRow from '@/components/table/table-empty-row'
 import { shipmentsContent } from '@/data/shipments'
 import { api } from '@/lib/api-client'
 
@@ -173,13 +174,7 @@ export default function PickupsTab() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {pickups.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={6} className="py-10 text-center text-muted-foreground">
-                  {copy.empty}
-                </TableCell>
-              </TableRow>
-            ) : null}
+            {pickups.length === 0 ? <TableEmptyRow colSpan={6} message={copy.empty} /> : null}
             {pickups.map((p) => (
               <TableRow key={p.id}>
                 <TableCell>{p.scheduledFor}</TableCell>
@@ -206,11 +201,7 @@ export default function PickupsTab() {
         <Table>
           <TableBody>
             {manifests.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={2} className="py-10 text-center text-muted-foreground">
-                  {copy.manifestsEmpty}
-                </TableCell>
-              </TableRow>
+              <TableEmptyRow colSpan={2} message={copy.manifestsEmpty} />
             ) : null}
             {manifests.map((m) => (
               <TableRow key={m.id}>

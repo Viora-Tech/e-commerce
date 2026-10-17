@@ -7,6 +7,7 @@ import { useState } from 'react'
 import { toast } from 'sonner'
 import KitIconButton from '@/components/kit/kit-icon-button'
 import ConfirmDialog from '@/components/layout/confirm-dialog'
+import EmptyState from '@/components/layout/empty-state'
 import StatusChip from '@/components/layout/status-chip'
 import { chargesContent, warningText } from '@/data/purchasing'
 import { useCopy, useFormat } from '@/hooks/use-copy'
@@ -89,13 +90,19 @@ export default function ChargesCard({
         ) : null}
       </CardHeader>
       {!owner ? (
-        <p className="border-line border-t px-5 py-8 text-center text-body text-muted-foreground">
-          {copy.saveFirst}
-        </p>
+        <EmptyState
+          variant="plain"
+          size="md"
+          className="border-line border-t px-5"
+          body={copy.saveFirst}
+        />
       ) : shown.length === 0 ? (
-        <p className="border-line border-t px-5 py-8 text-center text-body text-muted-foreground">
-          {copy.empty}
-        </p>
+        <EmptyState
+          variant="plain"
+          size="md"
+          className="border-line border-t px-5"
+          body={copy.empty}
+        />
       ) : (
         <ul className="flex flex-col border-line border-t">
           {shown.map((c) => (

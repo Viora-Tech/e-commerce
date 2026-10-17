@@ -9,7 +9,7 @@ import { parseAsInteger, parseAsString, parseAsStringLiteral, useQueryStates } f
 import { Suspense, useEffect, useRef, useState } from 'react'
 import CustomerAvatar from '@/components/customers/customer-avatar'
 import PillTabs from '@/components/layout/pill-tabs'
-import StatTile from '@/components/layout/stat-tile'
+import StatStrip from '@/components/layout/stat-strip'
 import StatusChip from '@/components/layout/status-chip'
 import OrdersListFrame from '@/components/orders/orders-list-frame'
 import ResourceTable, { type ResourceColumnSpec } from '@/components/table/resource-table'
@@ -164,26 +164,29 @@ function DraftsContent({ initial }: { initial: DraftsInitial }) {
         </Tooltip>
       }
       tiles={
-        <>
-          <StatTile
-            variant="strip"
-            label={copy.tiles.open.label}
-            value={fmt.number(tiles.open)}
-            note={copy.tiles.open.note}
-          />
-          <StatTile
-            variant="strip"
-            label={copy.tiles.invoiced.label}
-            value={fmt.number(tiles.invoiced)}
-            note={copy.tiles.invoiced.note}
-          />
-          <StatTile
-            variant="strip"
-            label={copy.tiles.value.label}
-            value={fmt.money(tiles.valuePaise)}
-            note={copy.tiles.value.note(tiles.total)}
-          />
-        </>
+        <StatStrip
+          variant="strip"
+          tiles={[
+            {
+              id: 'open',
+              label: copy.tiles.open.label,
+              value: fmt.number(tiles.open),
+              note: copy.tiles.open.note,
+            },
+            {
+              id: 'invoiced',
+              label: copy.tiles.invoiced.label,
+              value: fmt.number(tiles.invoiced),
+              note: copy.tiles.invoiced.note,
+            },
+            {
+              id: 'value',
+              label: copy.tiles.value.label,
+              value: fmt.money(tiles.valuePaise),
+              note: copy.tiles.value.note(tiles.total),
+            },
+          ]}
+        />
       }
     >
       <ResourceTable

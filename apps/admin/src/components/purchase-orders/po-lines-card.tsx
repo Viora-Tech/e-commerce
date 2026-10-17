@@ -9,6 +9,7 @@ import { variantLabel } from '@/components/inventory/variant-picker'
 import KitIconButton from '@/components/kit/kit-icon-button'
 import KitThumb from '@/components/kit/kit-thumb'
 import DataCard from '@/components/layout/data-card'
+import EmptyState from '@/components/layout/empty-state'
 import SelectProductsDialog, {
   type PickedProducts,
 } from '@/components/products/select-products-dialog'
@@ -87,9 +88,12 @@ export default function PoLinesCard({
       }
     >
       {lines.length === 0 ? (
-        <p className="border-line border-t px-5 py-10 text-center text-body text-muted-foreground">
-          {copy.empty}
-        </p>
+        <EmptyState
+          variant="plain"
+          size="lg"
+          className="border-line border-t px-5"
+          body={copy.empty}
+        />
       ) : (
         <ul className="flex flex-col">
           <li

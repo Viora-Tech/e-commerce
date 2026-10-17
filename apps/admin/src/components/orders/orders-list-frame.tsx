@@ -8,7 +8,7 @@ type OrdersListFrameProps = {
   summary?: ReactNode
   /** Header buttons: small plain ones first, the one key button last. */
   actions?: ReactNode
-  /** The row of stat cards between the header and the table card. */
+  /** A `StatStrip` between the header and the table card. */
   tiles?: ReactNode
   children: ReactNode
 }
@@ -24,12 +24,7 @@ export default function OrdersListFrame({
   return (
     <PageBody className="gap-6 md:py-8">
       <PageHeader title={title} subtitle={summary} actions={actions} />
-      {tiles ? (
-        /* Figma "Stat strip": one card, the stats side by side with dividers between. */
-        <div className="grid grid-cols-2 overflow-hidden rounded-lg surface-card lg:grid-flow-col lg:grid-cols-none lg:auto-cols-fr">
-          {tiles}
-        </div>
-      ) : null}
+      {tiles}
       {children}
     </PageBody>
   )

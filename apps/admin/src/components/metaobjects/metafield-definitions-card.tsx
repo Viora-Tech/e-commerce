@@ -16,6 +16,7 @@ import { Skeleton } from '@commerce/ui/shadcn/skeleton'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import ConfirmDialog from '@/components/layout/confirm-dialog'
+import EmptyState from '@/components/layout/empty-state'
 import { customDataContent, fieldTypeContent } from '@/data/metaobjects'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
@@ -84,9 +85,7 @@ export default function MetafieldDefinitionsCard({
         {definitions === null ? (
           <Skeleton className="h-16 w-full" />
         ) : rows.length === 0 ? (
-          <p className="rounded-md border border-dashed border-line px-4 py-8 text-center text-body text-muted-foreground">
-            {copy.metafields.empty(owner)}
-          </p>
+          <EmptyState variant="dashed" size="md" body={copy.metafields.empty(owner)} />
         ) : (
           <ul className="flex flex-col divide-y divide-line rounded-md border border-line">
             {rows.map((d) => (

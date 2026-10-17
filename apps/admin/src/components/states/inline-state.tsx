@@ -1,9 +1,9 @@
 'use client'
 
 import { CircleAlert, Inbox, WifiOff } from '@commerce/ui/icons'
-import { cn } from '@commerce/ui/lib/utils'
 import { Button } from '@commerce/ui/shadcn/button'
 import type { ReactNode } from 'react'
+import EmptyState from '@/components/layout/empty-state'
 import { statesContent } from '@/data/states'
 import { useCopy } from '@/hooks/use-copy'
 
@@ -34,35 +34,25 @@ export default function InlineState({
   const copy = useCopy(statesContent)
 
   // Render logic
-  const Icon = ICON[kind]
   const words = copy[kind]
   const retry = kind === 'empty' ? null : copy[kind].retry
 
   return (
-    <div
-      role={kind === 'error' ? 'alert' : undefined}
-      className={cn(
-        'flex items-center gap-3 rounded-lg bg-muted/60 px-4 py-3 text-body',
-        className,
-      )}
-    >
-      <Icon
-        className={cn(
-          'size-5 shrink-0',
-          kind === 'error' ? 'text-danger' : 'text-muted-foreground',
-        )}
-        aria-hidden
-      />
-      <div className="min-w-0 flex-1">
-        <p className="font-medium text-foreground">{heading ?? words.heading}</p>
-        <p className="text-caption text-muted-foreground">{body ?? words.body}</p>
-      </div>
-      {action ??
+    <EmptyState
+      variant="inline"
+      icon={ICON[kind]}
+      tone={kind === 'error' ? 'danger' : 'neutral'}
+      heading={heading ?? words.heading}
+      body={body ?? words.body}
+      className={className}
+      action={
+        action ??
         (onRetry && retry ? (
           <Button variant="outline" size="sm" onClick={onRetry}>
             {retry}
           </Button>
-        ) : null)}
-    </div>
+        ) : null)
+      }
+    />
   )
 }

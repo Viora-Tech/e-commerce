@@ -1,6 +1,6 @@
 'use client'
 
-import StatTile from '@/components/layout/stat-tile'
+import StatStrip from '@/components/layout/stat-strip'
 import { type DiscountLifecycle, discountsContent } from '@/data/discounts'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import type { api } from '@/lib/api-client'
@@ -22,26 +22,25 @@ export default function DiscountTiles({ stats, status, onSelect }: DiscountTiles
 
   // Render logic
   return (
-    <>
-      <StatTile
-        label={tiles.active}
-        value={fmt.number(stats.active)}
-        active={status === 'active'}
-        onSelect={() => onSelect(status === 'active' ? null : 'active')}
-      />
-      <StatTile
-        label={tiles.scheduled}
-        value={fmt.number(stats.scheduled)}
-        active={status === 'scheduled'}
-        onSelect={() => onSelect(status === 'scheduled' ? null : 'scheduled')}
-      />
-      <StatTile
-        label={tiles.expired}
-        value={fmt.number(stats.expired)}
-        active={status === 'expired'}
-        onSelect={() => onSelect(status === 'expired' ? null : 'expired')}
-      />
-      <StatTile label={tiles.usedThisMonth} value={fmt.number(stats.usedThisMonth)} />
-    </>
+    <StatStrip
+      active={status}
+      onChange={onSelect}
+      tiles={[
+        { id: 'active', label: tiles.active, value: fmt.number(stats.active), filter: 'active' },
+        {
+          id: 'scheduled',
+          label: tiles.scheduled,
+          value: fmt.number(stats.scheduled),
+          filter: 'scheduled',
+        },
+        {
+          id: 'expired',
+          label: tiles.expired,
+          value: fmt.number(stats.expired),
+          filter: 'expired',
+        },
+        { id: 'used', label: tiles.usedThisMonth, value: fmt.number(stats.usedThisMonth) },
+      ]}
+    />
   )
 }

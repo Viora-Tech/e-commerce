@@ -2,7 +2,7 @@
 
 import { percentChange, type SearchStats } from '@commerce/core/search-console'
 import VisitorListCard, { type VisitorListRow } from '@/components/analytics/visitor-list-card'
-import StatTile from '@/components/layout/stat-tile'
+import StatStrip from '@/components/layout/stat-strip'
 import { searchConsoleContent } from '@/data/search-console'
 import { useCopy, useFormat, useLocale } from '@/hooks/use-copy'
 import { formatRate } from '@/lib/analytics-range'
@@ -88,34 +88,40 @@ export default function OverviewPage() {
         const total = now.clicks
         return (
           <>
-            <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-              <StatTile
-                label={o.kpis.clicks}
-                value={fmt.number(now.clicks)}
-                trend={percentChange(now.clicks, before.clicks)}
-                trendNote={o.kpis.vsBefore}
-              />
-              <StatTile
-                label={o.kpis.views}
-                value={fmt.number(now.impressions)}
-                trend={percentChange(now.impressions, before.impressions)}
-                trendNote={o.kpis.vsBefore}
-              />
-              <StatTile
-                label={o.kpis.ctr}
-                value={formatRate(now.ctr)}
-                trend={percentChange(now.ctr, before.ctr)}
-                trendNote={o.kpis.vsBefore}
-              />
-              <StatTile
-                label={o.kpis.position}
-                value={now.position.toFixed(1)}
-                trend={percentChange(now.position, before.position)}
-                trendNote={o.kpis.vsBefore}
-                note={o.kpis.positionNote}
-                invert
-              />
-            </div>
+            <StatStrip
+              tiles={[
+                {
+                  id: 'clicks',
+                  label: o.kpis.clicks,
+                  value: fmt.number(now.clicks),
+                  trend: percentChange(now.clicks, before.clicks),
+                  trendNote: o.kpis.vsBefore,
+                },
+                {
+                  id: 'views',
+                  label: o.kpis.views,
+                  value: fmt.number(now.impressions),
+                  trend: percentChange(now.impressions, before.impressions),
+                  trendNote: o.kpis.vsBefore,
+                },
+                {
+                  id: 'ctr',
+                  label: o.kpis.ctr,
+                  value: formatRate(now.ctr),
+                  trend: percentChange(now.ctr, before.ctr),
+                  trendNote: o.kpis.vsBefore,
+                },
+                {
+                  id: 'position',
+                  label: o.kpis.position,
+                  value: now.position.toFixed(1),
+                  trend: percentChange(now.position, before.position),
+                  trendNote: o.kpis.vsBefore,
+                  note: o.kpis.positionNote,
+                  invert: true,
+                },
+              ]}
+            />
             <div className="grid gap-4 lg:grid-cols-2">
               <VisitorListCard
                 title={o.topSearches}

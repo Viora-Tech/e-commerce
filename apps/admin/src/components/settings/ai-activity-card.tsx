@@ -7,6 +7,7 @@ import { Spinner } from '@commerce/ui/shadcn/spinner'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import KitButton from '@/components/kit/kit-button'
+import EmptyState from '@/components/layout/empty-state'
 import StatusChip from '@/components/layout/status-chip'
 import { assistantContent } from '@/data/assistant'
 import { useCopy, useFormat } from '@/hooks/use-copy'
@@ -76,9 +77,7 @@ export default function AiActivityCard() {
         ) : items === null ? (
           <Skeleton className="h-32 w-full rounded-xl" />
         ) : items.length === 0 ? (
-          <p className="rounded-xl border border-border border-dashed px-4 py-6 text-center text-body text-muted-foreground">
-            {copy.activity.empty}
-          </p>
+          <EmptyState variant="dashed" size="sm" body={copy.activity.empty} />
         ) : (
           <div className="flex flex-col gap-3">
             <ul className="flex flex-col divide-y divide-border rounded-xl border border-border">

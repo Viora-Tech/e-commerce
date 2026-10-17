@@ -23,6 +23,7 @@ import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import DataCard from '@/components/layout/data-card'
 import RelativeTime from '@/components/layout/relative-time'
+import TableEmptyRow from '@/components/table/table-empty-row'
 import { shipmentsContent } from '@/data/shipments'
 import { api } from '@/lib/api-client'
 
@@ -98,13 +99,7 @@ export default function NdrTab() {
           </TableRow>
         </TableHeader>
         <TableBody>
-          {rows.length === 0 ? (
-            <TableRow>
-              <TableCell colSpan={5} className="py-10 text-center text-muted-foreground">
-                {copy.empty}
-              </TableCell>
-            </TableRow>
-          ) : null}
+          {rows.length === 0 ? <TableEmptyRow colSpan={5} message={copy.empty} /> : null}
           {rows.map((r) => (
             <TableRow key={r.id}>
               <TableCell>

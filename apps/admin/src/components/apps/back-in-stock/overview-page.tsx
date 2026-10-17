@@ -13,6 +13,7 @@ import { useEffect, useState } from 'react'
 import { CELL, HEAD } from '@/components/apps/gst-invoices/table-classes'
 import PageHeader from '@/components/layout/page-header'
 import SettingsCard from '@/components/settings/settings-card'
+import TableEmptyRow from '@/components/table/table-empty-row'
 import { backInStockContent } from '@/data/back-in-stock'
 import { api } from '@/lib/api-client'
 
@@ -79,13 +80,7 @@ export default function OverviewPage() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {top.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={2} className="py-10 text-center text-muted-foreground">
-                  {copy.demandEmpty}
-                </TableCell>
-              </TableRow>
-            ) : null}
+            {top.length === 0 ? <TableEmptyRow colSpan={2} message={copy.demandEmpty} /> : null}
             {top.map((t) => (
               <TableRow key={t.variantId}>
                 <TableCell className={`${CELL} font-medium`}>{t.label}</TableCell>

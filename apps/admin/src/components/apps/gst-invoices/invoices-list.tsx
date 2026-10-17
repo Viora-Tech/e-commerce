@@ -20,6 +20,7 @@ import CopyButton from '@/components/fields/copy-button'
 import PageHeader from '@/components/layout/page-header'
 import RelativeTime from '@/components/layout/relative-time'
 import OrderChip from '@/components/orders/order-chip'
+import TableEmptyRow from '@/components/table/table-empty-row'
 import { gstInvoicesContent } from '@/data/gst-invoices'
 import { api } from '@/lib/api-client'
 import { formatPaise } from '@/lib/money'
@@ -254,13 +255,7 @@ export default function InvoicesList() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {rows.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={9} className="py-10 text-center text-muted-foreground">
-                  {copy.empty}
-                </TableCell>
-              </TableRow>
-            ) : null}
+            {rows.length === 0 ? <TableEmptyRow colSpan={9} message={copy.empty} /> : null}
             {rows.map((r) => (
               <TableRow key={r.id}>
                 <TableCell className={CELL}>

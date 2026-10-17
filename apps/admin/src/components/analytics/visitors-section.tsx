@@ -9,7 +9,7 @@ import { useEffect, useState } from 'react'
 import ChartCard from '@/components/layout/chart-card'
 import EmptyState from '@/components/layout/empty-state'
 import SectionHead from '@/components/layout/section-head'
-import StatTile from '@/components/layout/stat-tile'
+import StatStrip from '@/components/layout/stat-strip'
 import { analyticsContent } from '@/data/analytics'
 import { umamiContent } from '@/data/umami'
 import { useCopy, useLocale } from '@/hooks/use-copy'
@@ -185,18 +185,16 @@ export default function VisitorsSection({ range }: VisitorsSectionProps) {
           </Button>
         }
       />
-      <div className="grid grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-5">
-        {report.kpis.map((kpi) => (
-          <StatTile
-            key={kpi.id}
-            label={copy.kpis[kpi.id]}
-            value={formatKpi(copy, kpi)}
-            trend={trendOf(kpi)}
-            trendNote={analytics.compare}
-            invert={kpi.id === 'bounceRate'}
-          />
-        ))}
-      </div>
+      <StatStrip
+        tiles={report.kpis.map((kpi) => ({
+          id: kpi.id,
+          label: copy.kpis[kpi.id],
+          value: formatKpi(copy, kpi),
+          trend: trendOf(kpi),
+          trendNote: analytics.compare,
+          invert: kpi.id === 'bounceRate',
+        }))}
+      />
       <ChartCard
         title={copy.trend.title}
         subtitle={copy.trend.subtitle(

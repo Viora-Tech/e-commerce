@@ -15,6 +15,7 @@ import {
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
+import EmptyState from '@/components/layout/empty-state'
 import PageHeader from '@/components/layout/page-header'
 import SectionTabs from '@/components/settings/section-tabs'
 import SettingsSection from '@/components/settings/settings-section'
@@ -134,9 +135,7 @@ export default function CustomDataSettings() {
             </CardHeader>
             <CardContent>
               {data && data.metaobjects.length === 0 ? (
-                <p className="rounded-md border border-dashed border-line px-4 py-8 text-center text-body text-muted-foreground">
-                  {copy.metaobjects.empty}
-                </p>
+                <EmptyState variant="dashed" size="md" body={copy.metaobjects.empty} />
               ) : (
                 <ul className="flex flex-col divide-y divide-line rounded-md border border-line">
                   {(data?.metaobjects ?? []).map((d) => (

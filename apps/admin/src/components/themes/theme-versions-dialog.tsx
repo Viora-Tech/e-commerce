@@ -12,6 +12,7 @@ import {
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import ConfirmDialog from '@/components/layout/confirm-dialog'
+import EmptyState from '@/components/layout/empty-state'
 import StatusChip from '@/components/layout/status-chip'
 import { themesContent } from '@/data/themes'
 import { useCopy } from '@/hooks/use-copy'
@@ -93,9 +94,7 @@ export default function ThemeVersionsDialog({
             <p className="text-body text-muted-foreground">{copy.loading}</p>
           ) : null}
           {batches && batches.length === 0 ? (
-            <p className="rounded-lg border border-dashed border-border px-4 py-6 text-center text-body text-muted-foreground">
-              {copy.empty}
-            </p>
+            <EmptyState variant="dashed" size="sm" body={copy.empty} />
           ) : null}
           {batches && batches.length > 0 ? (
             <ul className="-mx-1 flex max-h-[26rem] flex-col divide-y divide-border overflow-y-auto px-1">

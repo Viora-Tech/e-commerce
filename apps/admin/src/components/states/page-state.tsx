@@ -4,7 +4,7 @@ import { CircleAlert, Compass, Inbox, Lock, Plus, WifiOff } from '@commerce/ui/i
 import { Button } from '@commerce/ui/shadcn/button'
 import Link from 'next/link'
 import type { ReactNode } from 'react'
-import IconBadge from '@/components/layout/icon-badge'
+import EmptyState from '@/components/layout/empty-state'
 import { statesContent } from '@/data/states'
 import { useCopy } from '@/hooks/use-copy'
 import { routes } from '@/lib/routes'
@@ -76,25 +76,26 @@ export default function PageState({
     ) : null
 
   return (
-    <div
-      role={kind === 'error' ? 'alert' : undefined}
-      className="flex flex-col items-center gap-3 rounded-xl surface-card px-6 py-12 text-center"
-    >
-      <IconBadge icon={ICON[kind]} tone={kind === 'error' ? 'danger' : 'neutral'} size="md" />
-      <h2 className="text-card-title text-ink-strong">{heading ?? words.heading}</h2>
-      <p className="max-w-md text-body text-muted-foreground">{body ?? words.body}</p>
-      <div className="mt-1 flex items-center gap-2">
-        {action ?? defaultAction}
-        {kind === 'error' && supportHref ? (
-          <Button
-            variant="ghost"
-            render={<a href={supportHref} target="_blank" rel="noreferrer" />}
-            nativeButton={false}
-          >
-            {copy.error.support}
-          </Button>
-        ) : null}
-      </div>
-    </div>
+    <EmptyState
+      variant="page"
+      icon={ICON[kind]}
+      tone={kind === 'error' ? 'danger' : 'neutral'}
+      heading={heading ?? words.heading}
+      body={body ?? words.body}
+      action={
+        <>
+          {action ?? defaultAction}
+          {kind === 'error' && supportHref ? (
+            <Button
+              variant="ghost"
+              render={<a href={supportHref} target="_blank" rel="noreferrer" />}
+              nativeButton={false}
+            >
+              {copy.error.support}
+            </Button>
+          ) : null}
+        </>
+      }
+    />
   )
 }

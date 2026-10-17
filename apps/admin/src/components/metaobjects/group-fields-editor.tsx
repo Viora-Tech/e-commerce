@@ -14,6 +14,7 @@ import { FieldDescription } from '@commerce/ui/shadcn/field'
 import { Input } from '@commerce/ui/shadcn/input'
 import { Label } from '@commerce/ui/shadcn/label'
 import { type ReactNode, useId, useState } from 'react'
+import EmptyState from '@/components/layout/empty-state'
 import { fieldDialogContent } from '@/data/metaobjects'
 import { useCopy } from '@/hooks/use-copy'
 import FieldTypeSelect from './field-type-select'
@@ -102,9 +103,7 @@ export default function GroupFieldsEditor({
         <FieldDescription>{copy.rows.help}</FieldDescription>
       </div>
       {subfields.length === 0 ? (
-        <p className="rounded-md border border-dashed border-line px-4 py-4 text-center text-body text-muted-foreground">
-          {copy.rows.empty}
-        </p>
+        <EmptyState variant="dashed" size="sm" body={copy.rows.empty} />
       ) : (
         <ul className="flex flex-col gap-2">
           {subfields.map((sub, i) => (

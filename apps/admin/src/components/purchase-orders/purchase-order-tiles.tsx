@@ -1,5 +1,5 @@
 import { formatNumber } from '@commerce/money'
-import StatTile from '@/components/inventory/stat-tile'
+import StatStrip from '@/components/layout/stat-strip'
 import { purchaseOrdersContent } from '@/data/inventory'
 import { useCopy } from '@/hooks/use-copy'
 import type { api } from '@/lib/api-client'
@@ -15,19 +15,33 @@ export default function PurchaseOrderTiles({ counts }: PurchaseOrderTilesProps) 
 
   // Render logic
   return (
-    <>
-      <StatTile title={copy.draft} value={formatNumber(counts.draft)} caption={copy.draftCaption} />
-      <StatTile title={copy.open} value={formatNumber(counts.open)} caption={copy.openCaption} />
-      <StatTile
-        title={copy.incoming}
-        value={formatNumber(counts.incomingUnits)}
-        caption={copy.incomingCaption}
-      />
-      <StatTile
-        title={copy.received}
-        value={formatNumber(counts.received)}
-        caption={copy.receivedCaption}
-      />
-    </>
+    <StatStrip
+      tiles={[
+        {
+          id: 'draft',
+          label: copy.draft,
+          value: formatNumber(counts.draft),
+          trendNote: copy.draftCaption,
+        },
+        {
+          id: 'open',
+          label: copy.open,
+          value: formatNumber(counts.open),
+          trendNote: copy.openCaption,
+        },
+        {
+          id: 'incoming',
+          label: copy.incoming,
+          value: formatNumber(counts.incomingUnits),
+          trendNote: copy.incomingCaption,
+        },
+        {
+          id: 'received',
+          label: copy.received,
+          value: formatNumber(counts.received),
+          trendNote: copy.receivedCaption,
+        },
+      ]}
+    />
   )
 }

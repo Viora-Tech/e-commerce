@@ -9,6 +9,7 @@ import { Skeleton } from '@commerce/ui/shadcn/skeleton'
 import { Tabs, TabsList, TabsTrigger } from '@commerce/ui/shadcn/tabs'
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
+import EmptyState from '@/components/layout/empty-state'
 import PageHeader from '@/components/layout/page-header'
 import StatusChip from '@/components/layout/status-chip'
 import DataRequestStatusBadge from '@/components/privacy/data-request-status-badge'
@@ -84,8 +85,8 @@ export default function DataRequestQueue() {
         <Skeleton className="h-48 w-full rounded-2xl" />
       ) : rows.length === 0 ? (
         <Card>
-          <CardContent className="py-10 text-center text-body text-muted-foreground">
-            {copy.empty[tab]}
+          <CardContent>
+            <EmptyState variant="plain" size="lg" body={copy.empty[tab]} />
           </CardContent>
         </Card>
       ) : (

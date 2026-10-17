@@ -9,6 +9,7 @@ import { parseAsInteger, parseAsString, parseAsStringLiteral, useQueryStates } f
 import { type FormEvent, Suspense, useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
 import ConfirmDialog from '@/components/layout/confirm-dialog'
+import EmptyState from '@/components/layout/empty-state'
 import PillTabs from '@/components/layout/pill-tabs'
 import ProoflyListPage from '@/components/layout/proofly-list-page'
 import ResourceTablePagination from '@/components/table/resource-table/pagination'
@@ -266,7 +267,7 @@ function MediaLibraryContent({ initial }: { initial: MediaLibraryInitial }) {
             ))}
           </ul>
           {items.length === 0 && queue.pending.length === 0 ? (
-            <p className="py-10 text-center text-body text-muted-foreground">{copy.noMatch}</p>
+            <EmptyState variant="plain" size="lg" body={copy.noMatch} />
           ) : null}
           {total > 0 ? (
             <div className="overflow-hidden rounded-2xl border surface-card">

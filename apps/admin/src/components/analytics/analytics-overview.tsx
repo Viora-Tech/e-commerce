@@ -16,7 +16,7 @@ import { formatPaise, formatPaiseCompact } from '@/lib/money'
 import { routes } from '@/lib/routes'
 import BreakdownCard, { type BreakdownRow } from './breakdown-card'
 import FunnelCard from './funnel-card'
-import KpiTile from './kpi-tile'
+import KpiStrip from './kpi-strip'
 import RangePicker from './range-picker'
 import TopProductsCard from './top-products-card'
 import VisitorsSection from './visitors-section'
@@ -123,14 +123,7 @@ export default function AnalyticsOverviewPage({
       />
       {/* Figma 306:16434: KPIs in one row, the sales chart full width, then funnel + top
           products side by side; the state and payment breakdowns follow. */}
-      <div
-        className="grid grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-5"
-        aria-busy={loading || undefined}
-      >
-        {kpis.map((kpi) => (
-          <KpiTile key={kpi.id} kpi={kpi} />
-        ))}
-      </div>
+      <KpiStrip kpis={kpis} loading={loading} />
       <ChartCard
         title={copy.salesOverTime.title}
         subtitle={copy.salesOverTime.subtitle(

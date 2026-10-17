@@ -6,6 +6,7 @@ import { Badge } from '@commerce/ui/shadcn/badge'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@commerce/ui/shadcn/card'
 import { useState } from 'react'
+import EmptyState from '@/components/layout/empty-state'
 import { definitionFormContent, fieldTypeContent } from '@/data/metaobjects'
 import { useCopy } from '@/hooks/use-copy'
 import FieldDialog from './field-dialog'
@@ -56,9 +57,7 @@ export default function DefinitionFieldsCard({
       </CardHeader>
       <CardContent className="flex flex-col gap-3">
         {fields.length === 0 ? (
-          <p className="rounded-md border border-dashed border-line px-4 py-6 text-center text-body text-muted-foreground">
-            {copy.empty}
-          </p>
+          <EmptyState variant="dashed" size="sm" body={copy.empty} />
         ) : (
           <ul className="flex flex-col divide-y divide-line rounded-md border border-line">
             {fields.map((f, i) => (

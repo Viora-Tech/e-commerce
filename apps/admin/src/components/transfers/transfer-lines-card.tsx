@@ -7,6 +7,7 @@ import VariantPicker, { type VariantHit, variantLabel } from '@/components/inven
 import KitIconButton from '@/components/kit/kit-icon-button'
 import KitThumb from '@/components/kit/kit-thumb'
 import DataCard from '@/components/layout/data-card'
+import EmptyState from '@/components/layout/empty-state'
 import { transferFormContent } from '@/data/inventory'
 
 export type TransferLine = {
@@ -70,9 +71,12 @@ export default function TransferLinesCard({
         </div>
       )}
       {lines.length === 0 ? (
-        <p className="border-line border-t px-5 py-10 text-center text-body text-muted-foreground">
-          {copy.empty}
-        </p>
+        <EmptyState
+          variant="plain"
+          size="lg"
+          className="border-line border-t px-5"
+          body={copy.empty}
+        />
       ) : (
         <ul className="flex flex-col border-line border-t">
           {lines.map((line, i) => (

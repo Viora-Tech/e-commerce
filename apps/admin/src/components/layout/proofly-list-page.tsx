@@ -10,7 +10,7 @@ type ProoflyListPageProps = {
   actions?: ReactNode
   /** Pickers between the header and the tiles (a location, a reason). */
   controls?: ReactNode
-  /** Stat tiles row (`StatTile`s); they may act as filters. */
+  /** A `StatStrip`; its tiles may act as filters. */
   stats?: ReactNode
   children: ReactNode
 }
@@ -30,11 +30,7 @@ export default function ProoflyListPage({
     <div className="flex w-full flex-col gap-6 px-4 py-6 md:px-8 md:py-8">
       <PageHeader title={title} summary={summary} back={back} actions={actions} />
       {controls}
-      {stats ? (
-        <div className="grid grid-cols-2 gap-4 lg:grid-flow-col lg:grid-cols-none lg:auto-cols-fr">
-          {stats}
-        </div>
-      ) : null}
+      {stats}
       {children}
     </div>
   )

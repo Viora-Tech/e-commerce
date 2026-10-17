@@ -10,7 +10,7 @@ import RangePicker from '@/components/analytics/range-picker'
 import ChartCard from '@/components/layout/chart-card'
 import PageHeader from '@/components/layout/page-header'
 import SectionHead from '@/components/layout/section-head'
-import StatTile from '@/components/layout/stat-tile'
+import StatStrip from '@/components/layout/stat-strip'
 import { growthOverviewContent } from '@/data/growth'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { formatDay, type RangeState, rangeQuery, sameRange } from '@/lib/analytics-range'
@@ -107,36 +107,39 @@ export default function GrowthOverviewPage({ initialRange, initial }: GrowthOver
           </div>
         }
       />
-      <div
-        className="grid grid-cols-2 gap-4 lg:grid-flow-col lg:grid-cols-none lg:auto-cols-fr"
-        aria-busy={loading || undefined}
-      >
-        <StatTile
-          label={copy.outcomes.tiles.earned}
-          value={fmt.money(o.earnedPaise)}
-          trend={earnedTrend}
-          trendNote={copy.outcomes.vsPrevious}
-          active
-        />
-        <StatTile
-          label={copy.outcomes.tiles.messages}
-          value={fmt.number(o.messages.email + o.messages.whatsapp)}
-          note={copy.outcomes.messagesNote(
-            fmt.number(o.messages.whatsapp),
-            fmt.number(o.messages.email),
-          )}
-        />
-        <StatTile
-          label={copy.outcomes.tiles.automationOrders}
-          value={fmt.number(o.automationOrders)}
-          note={copy.outcomes.automationNote}
-        />
-        <StatTile
-          label={copy.outcomes.tiles.subscribers}
-          value={fmt.number(o.subscribers.total)}
-          note={copy.outcomes.subscribersNote(fmt.number(o.subscribers.newThisWeek))}
-        />
-      </div>
+      <StatStrip
+        loading={loading}
+        tiles={[
+          {
+            id: 'earned',
+            label: copy.outcomes.tiles.earned,
+            value: fmt.money(o.earnedPaise),
+            trend: earnedTrend,
+            trendNote: copy.outcomes.vsPrevious,
+          },
+          {
+            id: 'messages',
+            label: copy.outcomes.tiles.messages,
+            value: fmt.number(o.messages.email + o.messages.whatsapp),
+            note: copy.outcomes.messagesNote(
+              fmt.number(o.messages.whatsapp),
+              fmt.number(o.messages.email),
+            ),
+          },
+          {
+            id: 'automationOrders',
+            label: copy.outcomes.tiles.automationOrders,
+            value: fmt.number(o.automationOrders),
+            note: copy.outcomes.automationNote,
+          },
+          {
+            id: 'subscribers',
+            label: copy.outcomes.tiles.subscribers,
+            value: fmt.number(o.subscribers.total),
+            note: copy.outcomes.subscribersNote(fmt.number(o.subscribers.newThisWeek)),
+          },
+        ]}
+      />
       <OutcomesCard outcomes={o} />
       <ChartCard
         title={copy.salesOverTime.title}

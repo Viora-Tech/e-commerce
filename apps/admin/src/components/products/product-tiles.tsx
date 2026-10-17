@@ -1,7 +1,7 @@
 'use client'
 
 import type { ProductStatus } from '@commerce/core/catalog'
-import StatTile from '@/components/layout/stat-tile'
+import StatStrip from '@/components/layout/stat-strip'
 import type { StockFilter } from '@/data/products'
 import { productsListContent } from '@/data/products'
 import { useCopy, useFormat } from '@/hooks/use-copy'
@@ -20,35 +20,23 @@ export default function ProductTiles({ stats, stock, status, onSelect }: Product
   const { tiles } = useCopy(productsListContent)
   const fmt = useFormat()
 
-  // Render logic
-  const none = stock === null && status === null
+  // Event handlers
+  const handleChange = (filter: StockFilter | ProductStatus | null) => {
+    if (filter === null) onSelect({})
+    else if (filter === 'low' || filter === 'out' || filter === 'in') onSelect({ stock: filter })
+    else onSelect({ status: filter })
+  }
 
   return (
-    <>
-      <StatTile
-        label={tiles.total}
-        value={fmt.number(stats.total)}
-        active={none}
-        onSelect={() => onSelect({})}
-      />
-      <StatTile
-        label={tiles.low}
-        value={fmt.number(stats.lowStock)}
-        active={stock === 'low'}
-        onSelect={() => onSelect(stock === 'low' ? {} : { stock: 'low' })}
-      />
-      <StatTile
-        label={tiles.out}
-        value={fmt.number(stats.outOfStock)}
-        active={stock === 'out'}
-        onSelect={() => onSelect(stock === 'out' ? {} : { stock: 'out' })}
-      />
-      <StatTile
-        label={tiles.draft}
-        value={fmt.number(stats.draft)}
-        active={status === 'draft'}
-        onSelect={() => onSelect(status === 'draft' ? {} : { status: 'draft' })}
-      />
-    </>
+    <StatStrip
+      active={stock ?? status}
+      onChange={handleChange}
+      tiles={[
+        { id: 'total', label: tiles.total, value: fmt.number(stats.total), filter: null },
+        { id: 'low', label: tiles.low, value: fmt.number(stats.lowStock), filter: 'low' },
+        { id: 'out', label: tiles.out, value: fmt.number(stats.outOfStock), filter: 'out' },
+        { id: 'draft', label: tiles.draft, value: fmt.number(stats.draft), filter: 'draft' },
+      ]}
+    />
   )
 }

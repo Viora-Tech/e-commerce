@@ -3,6 +3,7 @@
 import { variantLabel } from '@/components/inventory/variant-picker'
 import KitThumb from '@/components/kit/kit-thumb'
 import DataCard from '@/components/layout/data-card'
+import EmptyState from '@/components/layout/empty-state'
 import TotalsList, { type TotalsLine } from '@/components/layout/totals-list'
 import { landedCostContent } from '@/data/purchasing'
 import { useCopy, useFormat } from '@/hooks/use-copy'
@@ -47,9 +48,12 @@ export default function LandedCostCard({ costs, purchaseOrderId }: LandedCostCar
   return (
     <DataCard title={copy.heading} subtitle={copy.summary} flush>
       {lines.length === 0 ? (
-        <p className="border-line border-t px-5 py-10 text-center text-body text-muted-foreground">
-          {copy.empty}
-        </p>
+        <EmptyState
+          variant="plain"
+          size="lg"
+          className="border-line border-t px-5"
+          body={copy.empty}
+        />
       ) : (
         <div className="overflow-x-auto">
           <ul className="flex min-w-[40rem] flex-col">

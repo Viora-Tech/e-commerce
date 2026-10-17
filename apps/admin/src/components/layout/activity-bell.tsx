@@ -18,6 +18,7 @@ import { Button } from '@commerce/ui/shadcn/button'
 import { Popover, PopoverContent, PopoverTrigger } from '@commerce/ui/shadcn/popover'
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
+import EmptyState from '@/components/layout/empty-state'
 import { activityContent } from '@/data/activity'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
@@ -257,7 +258,7 @@ export default function ActivityBell({ memberKey, className }: ActivityBellProps
 
         <div className="flex max-h-[30rem] flex-col gap-3 overflow-y-auto p-2">
           {failed && !feed ? (
-            <p className="px-3 py-6 text-center text-body text-muted-foreground">{copy.failed}</p>
+            <EmptyState variant="plain" size="sm" className="px-3" body={copy.failed} />
           ) : null}
 
           {feed === null && !failed
@@ -302,7 +303,7 @@ export default function ActivityBell({ memberKey, className }: ActivityBellProps
           ) : null}
 
           {tabEmpty ? (
-            <p className="px-3 py-8 text-center text-body text-muted-foreground">{copy.emptyTab}</p>
+            <EmptyState variant="plain" size="md" className="px-3" body={copy.emptyTab} />
           ) : null}
 
           {dayGroups.map((group) => (

@@ -4,6 +4,7 @@ import { HOME_METRICS, type HomeMetric } from '@commerce/core/home-metrics'
 import { CheckIcon, Search, X } from '@commerce/ui/icons'
 import { cn } from '@commerce/ui/lib/utils'
 import { useState } from 'react'
+import EmptyState from '@/components/layout/empty-state'
 import { homePageContent } from '@/data/home'
 import { useCopy } from '@/hooks/use-copy'
 import { METRIC_META } from './metric-meta'
@@ -55,7 +56,7 @@ export default function MetricPicker({ current, onPick, onClose }: MetricPickerP
         />
       </label>
       {shown.length === 0 ? (
-        <p className="px-1 py-4 text-center text-body text-muted-foreground">{copy.noMetric}</p>
+        <EmptyState variant="plain" size="sm" className="px-1" body={copy.noMetric} />
       ) : (
         <ul className="grid grid-cols-1 gap-0.5 sm:grid-cols-2">
           {shown.map((m) => {
