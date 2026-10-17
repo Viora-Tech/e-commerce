@@ -46,6 +46,8 @@ type CustomizeTopBarProps = {
   device: PreviewDevice
   /** The storefront preview link for this theme. */
   previewHref: string
+  /** This theme's Edit code page, in the ⋯ menu (Figma 699:93894). */
+  codeHref: string
   /** Template and resource pickers. */
   pickers: ReactNode
   /** An AI gateway is set up: the green "AI connected" chip shows. */
@@ -84,6 +86,7 @@ export default function CustomizeTopBar({
   canPublish,
   device,
   previewHref,
+  codeHref,
   pickers,
   aiConnected,
   user,
@@ -212,6 +215,7 @@ export default function CustomizeTopBar({
             }
           />
           <DropdownMenuContent align="end">
+            <DropdownMenuItem render={<Link href={codeHref} />}>{copy.editCode}</DropdownMenuItem>
             <DropdownMenuItem disabled={!dirty || saving} onClick={onDiscard}>
               {copy.discard}
             </DropdownMenuItem>

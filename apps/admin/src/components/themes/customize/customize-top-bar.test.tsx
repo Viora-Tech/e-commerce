@@ -29,6 +29,7 @@ function setup(props: Partial<ComponentProps<typeof CustomizeTopBar>>) {
       canPublish
       device="desktop"
       previewHref="/preview"
+      codeHref="/code"
       pickers={null}
       aiConnected={false}
       user={{ name: 'Owner', email: 'owner@example.com' }}

@@ -71,7 +71,12 @@ export default function CurrentThemeCard({ theme, origin, busy, onAction }: Curr
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <ThemeActionsMenu actions={ACTIONS} disabled={busy} onAction={onAction} />
+          <ThemeActionsMenu
+            actions={ACTIONS}
+            codeHref={routes.onlineStore.themeCode(theme.id)}
+            disabled={busy}
+            onAction={onAction}
+          />
           <Button
             variant="outline"
             nativeButton={false}

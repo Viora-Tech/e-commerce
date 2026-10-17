@@ -16,6 +16,7 @@ export const themesContent = {
     unsavedHelp:
       'Edits in Customize that are not saved yet. Open Customize to save or discard them.',
     customize: 'Customize',
+    editCode: 'Edit code',
     preview: 'Preview',
     publish: 'Publish',
     rename: 'Rename',

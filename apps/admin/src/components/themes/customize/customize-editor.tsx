@@ -31,6 +31,7 @@ import {
   ThemePreviewContext,
 } from '@/lib/customize-theme-context'
 import { DynamicSourceContext, scopeFor } from '@/lib/dynamic-sources'
+import { routes } from '@/lib/routes'
 import { useCustomizePreview } from '@/lib/use-customize-preview'
 import { useLiquidTheme } from '@/lib/use-liquid-theme'
 import { partsOf, useTemplateDrafts } from '@/lib/use-template-drafts'
@@ -357,6 +358,7 @@ export default function CustomizeEditor({
       canPublish={canPublish}
       device={device}
       previewHref={previewUrl(origin, record.previewToken)}
+      codeHref={routes.onlineStore.themeCode(record.id)}
       aiConnected={ai.connected}
       user={user}
       onDevice={setDevice}

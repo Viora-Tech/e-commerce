@@ -10,6 +10,8 @@ type ThemeActionsMenuProps = {
   actions: readonly ThemeAction[]
   /** Customize as the menu's first item (Figma "menu open"), for cards whose button is off-screen. */
   customizeHref?: string
+  /** Edit code, after Customize (Figma 699:93894: Themes › ⋯ › Edit code). */
+  codeHref?: string
   /** The live theme card's kebab is a key button beside Customize (Figma); rows keep the rim. */
   variant?: 'default' | 'outline' | 'plain'
   disabled?: boolean
@@ -20,6 +22,7 @@ type ThemeActionsMenuProps = {
 export default function ThemeActionsMenu({
   actions,
   customizeHref,
+  codeHref,
   variant = 'outline',
   disabled,
   onAction,
@@ -40,6 +43,7 @@ export default function ThemeActionsMenu({
       disabled={disabled}
       items={[
         { label: labels.customize, href: customizeHref, hidden: !customizeHref },
+        { label: labels.editCode, href: codeHref, hidden: !codeHref },
         ...safe.map((a) => ({ label: labels[a], onSelect: () => onAction(a) })),
         {
           label: labels.delete,

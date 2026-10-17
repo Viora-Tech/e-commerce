@@ -94,6 +94,7 @@ export default function ThemeLibraryRow({
           actions={ACTIONS}
           variant="plain"
           customizeHref={routes.onlineStore.themeEditor(theme.id)}
+          codeHref={routes.onlineStore.themeCode(theme.id)}
           disabled={busy}
           onAction={onAction}
         />
