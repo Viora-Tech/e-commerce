@@ -1,5 +1,6 @@
 import { loadEnv } from '@commerce/config'
 import { nextPlanUp } from '@commerce/core/billing'
+import { headers } from 'next/headers'
 import { redirect } from 'next/navigation'
 import type { ReactNode } from 'react'
 import AdminFrame from '@/components/admin-frame'
@@ -7,7 +8,7 @@ import AccentStyle from '@/components/layout/accent-style'
 import { billingContent } from '@/data/billing'
 import { appEntryHref } from '@/lib/apps-gallery'
 import { getSession } from '@/lib/auth'
-import { routes } from '@/lib/routes'
+import { routes, safeNext } from '@/lib/routes'
 import {
   listApps,
   listStores,
@@ -15,12 +16,17 @@ import {
   ordersToShipCount,
   planUsageSummary,
 } from '@/lib/shell-data'
+import { REQUEST_PATH_HEADER } from '@/lib/csp'
 import { storefrontOrigin } from '@/lib/storefront-origin'
 import SelectStore from './select-store/select-store'
 
 export default async function AdminLayout({ children }: { children: ReactNode }) {
   const session = await getSession()
-  if (!session) redirect(routes.login())
+  if (!session) {
+    // Back to the page that was asked for after signing in (an App Store "Install" link).
+    const asked = safeNext((await headers()).get(REQUEST_PATH_HEADER) ?? undefined)
+    redirect(routes.login(asked && asked !== routes.home() ? asked : undefined))
+  }
 
   const activeId =
     (session.session as { activeOrganizationId?: string | null }).activeOrganizationId ?? null

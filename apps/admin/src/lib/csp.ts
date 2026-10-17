@@ -63,3 +63,6 @@ export function forwardNonce(headers: Headers, nonce: string, csp: CspHeader): v
   headers.set(NONCE_HEADER, nonce)
   headers.set(csp.name, csp.value)
 }
+
+/** Set by the proxy: the path and query the browser asked for (`/apps/install?app=reviews`). */
+export const REQUEST_PATH_HEADER = 'x-request-path'
