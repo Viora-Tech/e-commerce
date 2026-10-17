@@ -344,6 +344,15 @@ export const transferFormContent = {
   newTitle: 'Create transfer',
   title: (n: number) => `Transfer #T${n}`,
   back: 'Transfers',
+  subtitle: 'Move stock from one location to another.',
+  summary: {
+    heading: 'Transfer',
+    status: 'Status',
+    newDraft: 'New draft',
+    units: 'Units',
+    from: 'Origin',
+    to: 'Destination',
+  },
   route: {
     heading: 'Route',
     from: 'Origin',

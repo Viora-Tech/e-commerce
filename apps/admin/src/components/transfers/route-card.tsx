@@ -1,6 +1,7 @@
 'use client'
 
-import { Field, FieldError, FieldGroup, FieldLabel } from '@commerce/ui/shadcn/field'
+import { ArrowRight } from '@commerce/ui/icons'
+import { Field, FieldError, FieldLabel } from '@commerce/ui/shadcn/field'
 import LocationSelect, { type StoreLocation } from '@/components/inventory/location-select'
 import DataCard from '@/components/layout/data-card'
 import { transferFormContent } from '@/data/inventory'
@@ -28,7 +29,7 @@ export default function RouteCard({
 
   return (
     <DataCard title={copy.heading}>
-      <FieldGroup>
+      <div className="grid gap-4 sm:grid-cols-[1fr_auto_1fr] sm:items-start">
         <Field>
           <FieldLabel htmlFor="transfer-from">{copy.from}</FieldLabel>
           <LocationSelect
@@ -40,6 +41,10 @@ export default function RouteCard({
             className="w-full"
           />
         </Field>
+        <ArrowRight
+          className="hidden size-4 text-muted-foreground sm:mt-9 sm:block"
+          aria-hidden="true"
+        />
         <Field data-invalid={same || undefined}>
           <FieldLabel htmlFor="transfer-to">{copy.to}</FieldLabel>
           <LocationSelect
@@ -52,7 +57,7 @@ export default function RouteCard({
           />
           {same ? <FieldError>{copy.same}</FieldError> : null}
         </Field>
-      </FieldGroup>
+      </div>
     </DataCard>
   )
 }

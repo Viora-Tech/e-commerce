@@ -2,7 +2,7 @@
 
 import { siteConfig } from '@commerce/config/site'
 import { permissions } from '@commerce/core/permissions'
-import { Plus, SquarePlus } from '@commerce/ui/icons'
+import { Plus } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Kbd } from '@commerce/ui/shadcn/kbd'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@commerce/ui/shadcn/tooltip'
@@ -93,7 +93,7 @@ function TransfersContent({ initial }: { initial: TransfersInitial }) {
       <TooltipTrigger
         render={
           <Button render={<Link href={NEW_HREF} />} nativeButton={false}>
-            <SquarePlus strokeWidth={1.6} />
+            <Plus strokeWidth={1.6} />
             {copy.create}
           </Button>
         }

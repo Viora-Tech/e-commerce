@@ -183,7 +183,7 @@ export const STATUS = {
   } satisfies Record<InboundShipmentStatus, StatusEntry>,
   transfer: {
     draft: entry(transfersContent.status.draft, 'neutral'),
-    in_transit: entry(transfersContent.status.in_transit, 'pending'),
+    in_transit: entry(transfersContent.status.in_transit, 'accent'),
     received: entry(transfersContent.status.received, 'success'),
   } satisfies Record<TransferStatus, StatusEntry>,
   stock: {

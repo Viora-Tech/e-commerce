@@ -1,5 +1,6 @@
 'use client'
 
+import { ArrowLeftRight } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
@@ -7,14 +8,17 @@ import { toast } from 'sonner'
 import type { StoreLocation } from '@/components/inventory/location-select'
 import NotesCard from '@/components/inventory/notes-card'
 import ConfirmDialog from '@/components/layout/confirm-dialog'
+import NoticeBar from '@/components/layout/notice-bar'
 import PageColumns from '@/components/layout/page-columns'
 import PageHeader from '@/components/layout/page-header'
 import ProoflyPageBody from '@/components/layout/proofly-page-body'
-import { transferFormContent, transfersContent } from '@/data/inventory'
+import OrderChip from '@/components/orders/order-chip'
+import { transferFormContent } from '@/data/inventory'
 import { api } from '@/lib/api-client'
 import { routes } from '@/lib/routes'
 import RouteCard from './route-card'
 import TransferLinesCard, { type TransferLine } from './transfer-lines-card'
+import TransferSummaryCard from './transfer-summary-card'
 
 export type LoadedTransfer = NonNullable<Awaited<ReturnType<typeof api.transfers.get>>>
 
@@ -139,7 +143,9 @@ export default function TransferForm({ transfer, locations }: TransferFormProps)
     <ProoflyPageBody>
       <PageHeader
         title={transfer ? copy.title(transfer.number) : copy.newTitle}
-        summary={status ? transfersContent.status[status] : undefined}
+        summary={transfer ? undefined : copy.subtitle}
+        lead={{ kind: 'icon', node: <ArrowLeftRight aria-hidden="true" /> }}
+        badges={status ? <OrderChip kind="transfer" value={status} /> : null}
         back={{ label: copy.back, href: LIST }}
         actions={
           draft ? (
@@ -163,21 +169,9 @@ export default function TransferForm({ transfer, locations }: TransferFormProps)
           ) : null
         }
       />
-      {draft ? null : (
-        <p className="rounded-lg bg-primary-soft px-4 py-3 text-body text-ink-strong">
-          {copy.locked}
-        </p>
-      )}
+      {draft ? null : <NoticeBar>{copy.locked}</NoticeBar>}
       <PageColumns
         main={
-          <TransferLinesCard
-            lines={form.lines}
-            fromLocationId={form.fromLocationId}
-            locked={!draft}
-            onChange={(lines) => patch({ lines })}
-          />
-        }
-        side={
           <>
             <RouteCard
               locations={locations}
@@ -185,6 +179,12 @@ export default function TransferForm({ transfer, locations }: TransferFormProps)
               toLocationId={form.toLocationId}
               disabled={!draft}
               onChange={patch}
+            />
+            <TransferLinesCard
+              lines={form.lines}
+              fromLocationId={form.fromLocationId}
+              locked={!draft}
+              onChange={(lines) => patch({ lines })}
             />
             <NotesCard
               id="transfer-note"
@@ -195,6 +195,15 @@ export default function TransferForm({ transfer, locations }: TransferFormProps)
               onChange={(note) => patch({ note })}
             />
           </>
+        }
+        side={
+          <TransferSummaryCard
+            status={status}
+            lines={form.lines}
+            locations={locations}
+            fromLocationId={form.fromLocationId}
+            toLocationId={form.toLocationId}
+          />
         }
       />
       <ConfirmDialog
