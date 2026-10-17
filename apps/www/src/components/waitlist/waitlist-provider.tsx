@@ -1,7 +1,7 @@
 'use client'
 
 import { type ReactNode, useState } from 'react'
-import { WaitlistContext } from './waitlist-context'
+import { WaitlistContext, type WaitlistPrefill } from './waitlist-context'
 import WaitlistModal from './waitlist-modal'
 
 type WaitlistProviderProps = { children: ReactNode }
@@ -9,12 +9,12 @@ type WaitlistProviderProps = { children: ReactNode }
 export default function WaitlistProvider({ children }: WaitlistProviderProps) {
   // Hooks
   const [open, setOpen] = useState(false)
-  const [email, setEmail] = useState('')
+  const [prefill, setPrefill] = useState<WaitlistPrefill>({})
   const [session, setSession] = useState(0)
 
   // Event handlers
-  const openWaitlist = (prefill?: string) => {
-    setEmail(prefill ?? '')
+  const openWaitlist = (start?: WaitlistPrefill | string) => {
+    setPrefill(typeof start === 'string' ? { email: start } : (start ?? {}))
     setSession((n) => n + 1)
     setOpen(true)
   }
@@ -22,7 +22,13 @@ export default function WaitlistProvider({ children }: WaitlistProviderProps) {
   return (
     <WaitlistContext.Provider value={{ openWaitlist }}>
       {children}
-      <WaitlistModal key={session} open={open} onOpenChange={setOpen} initialEmail={email} />
+      <WaitlistModal
+        key={session}
+        open={open}
+        onOpenChange={setOpen}
+        initialEmail={prefill.email ?? ''}
+        initialSell={prefill.sell ?? ''}
+      />
     </WaitlistContext.Provider>
   )
 }

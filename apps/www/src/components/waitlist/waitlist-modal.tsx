@@ -11,9 +11,15 @@ type WaitlistModalProps = {
   open: boolean
   onOpenChange: (open: boolean) => void
   initialEmail: string
+  initialSell: string
 }
 
-export default function WaitlistModal({ open, onOpenChange, initialEmail }: WaitlistModalProps) {
+export default function WaitlistModal({
+  open,
+  onOpenChange,
+  initialEmail,
+  initialSell,
+}: WaitlistModalProps) {
   // Hooks
   const router = useRouter()
   const [joined, setJoined] = useState(false)
@@ -41,7 +47,11 @@ export default function WaitlistModal({ open, onOpenChange, initialEmail }: Wait
             <DialogDescription className="mt-1 mb-5 text-muted-foreground">
               {copy.intro}
             </DialogDescription>
-            <WaitlistForm initialEmail={initialEmail} onJoined={() => setJoined(true)} />
+            <WaitlistForm
+              initialEmail={initialEmail}
+              initialSell={initialSell}
+              onJoined={() => setJoined(true)}
+            />
           </>
         )}
       </DialogContent>

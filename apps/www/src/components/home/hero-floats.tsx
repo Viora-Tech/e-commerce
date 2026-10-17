@@ -5,7 +5,8 @@ import CountUp from '../common/count-up'
 
 const { floats } = homeContent.hero
 
-const FLOAT_CLASS = 'glass-panel absolute rounded-2xl p-4 text-left'
+const FLOAT_CLASS =
+  'glass-panel absolute rounded-2xl p-4 text-left [translate:calc(var(--px,0)*0.9rem)_calc(var(--py,0)*0.5rem)] transition-[translate,opacity] duration-500 ease-(--ease-out) motion-reduce:transition-none'
 
 /** Three glass cards floating over the globe: decorative proof of what the product does. */
 export default function HeroFloats() {
@@ -29,7 +30,7 @@ export default function HeroFloats() {
         </div>
       </div>
       <div
-        className={`${FLOAT_CLASS} bottom-24 left-4 w-64 sm:w-72 animate-float [animation-delay:-2s] lg:top-[35rem] lg:right-5 lg:bottom-auto lg:left-auto`}
+        className={`${FLOAT_CLASS} bottom-24 left-4 w-64 sm:w-72 animate-float group-data-[demo=true]/hero:opacity-0 [animation-delay:-2s] lg:top-[35rem] lg:right-5 lg:bottom-auto lg:left-auto`}
       >
         <p className="flex items-center gap-2 text-eyebrow text-success">
           <span className="size-1.5 rounded-full bg-success" />
@@ -39,7 +40,7 @@ export default function HeroFloats() {
         <p className="mt-2 text-sm text-muted-foreground">{floats.order.meta}</p>
       </div>
       <div
-        className={`${FLOAT_CLASS} top-[48.75rem] -right-3 animate-float [animation-delay:-4s] hidden w-64 lg:block`}
+        className={`${FLOAT_CLASS} top-[48.75rem] -right-3 animate-float group-data-[demo=true]/hero:opacity-0 [animation-delay:-4s] hidden w-64 lg:block`}
       >
         <p className="flex items-center gap-2 text-sm font-medium text-foreground">
           <CircleCheck className="size-4 text-success" />

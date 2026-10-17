@@ -10,7 +10,7 @@ import { ctaClass } from '@/lib/cta'
 import { joinWaitlist } from '@/lib/waitlist-action'
 import ChoiceChip from '../common/choice-chip'
 
-type WaitlistFormProps = { initialEmail: string; onJoined: () => void }
+type WaitlistFormProps = { initialEmail: string; initialSell: string; onJoined: () => void }
 
 type FieldProps = {
   id: string
@@ -60,11 +60,11 @@ function Field({
   )
 }
 
-export default function WaitlistForm({ initialEmail, onJoined }: WaitlistFormProps) {
+export default function WaitlistForm({ initialEmail, initialSell, onJoined }: WaitlistFormProps) {
   // Hooks
   const [state, formAction, pending] = useActionState(joinWaitlist, WAITLIST_INITIAL)
   const [email, setEmail] = useState(initialEmail)
-  const [sell, setSell] = useState('')
+  const [sell, setSell] = useState(initialSell)
   const [channels, setChannels] = useState<string[]>([])
 
   useEffect(() => {

@@ -2,16 +2,21 @@ import Link from 'next/link'
 import { homeContent } from '@/data/home'
 import { waitlistContent } from '@/data/waitlist'
 import AmbientLight from '../common/ambient-light'
-import GlobeView from '../globe/globe-view'
-import HeroEmailCapture from '../waitlist/hero-email-capture'
 import HeroBackdrop from './hero-backdrop'
+import HeroGlobe from './hero-demo/hero-globe'
+import HeroPrompt from './hero-demo/hero-prompt'
+import HeroStage from './hero-demo/hero-stage'
 import HeroFloats from './hero-floats'
 
 const copy = homeContent.hero
 
+/**
+ * The hero. The pill, headline and subline are plain server HTML so they paint at once; the prompt,
+ * the globe and the "build your store" sequence hang off `HeroStage` and load after.
+ */
 export default function Hero() {
   return (
-    <section className="relative isolate -mt-[4.5rem] min-h-[50.625rem] overflow-hidden pt-32 md:h-[62.5rem] md:pt-[9.375rem]">
+    <HeroStage className="group/hero relative isolate -mt-[4.5rem] min-h-[72rem] overflow-hidden pt-32 md:h-[62.5rem] md:min-h-0 md:pt-[9.375rem]">
       <HeroBackdrop />
       <AmbientLight className="-top-40 -left-40 h-72 w-96" />
       <AmbientLight className="-top-40 -right-40 h-72 w-96" />
@@ -32,7 +37,7 @@ export default function Hero() {
           {copy.subline}
         </p>
         <div className="flex w-full flex-col items-center gap-3">
-          <HeroEmailCapture />
+          <HeroPrompt />
           <p className="flex items-center gap-4 text-xs text-muted-foreground">
             <span>{waitlistContent.hero.below}</span>
             <Link href={copy.tourLinkHref} className="link-slide text-foreground">
@@ -46,17 +51,13 @@ export default function Hero() {
           aria-hidden
           className="absolute top-[7.5rem] left-1/2 size-[44rem] -translate-x-1/2 rounded-full border-[1.125rem] border-white opacity-[0.18] blur-[1.25rem] md:top-[2.1rem] md:size-[69.8rem]"
         />
-        <GlobeView
-          pins
-          priority
-          className="pointer-events-auto absolute bottom-0 left-1/2 -translate-x-1/2"
-        />
+        <HeroGlobe />
         <div
           aria-hidden
           className="pointer-events-none absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-background to-transparent"
         />
       </div>
       <HeroFloats />
-    </section>
+    </HeroStage>
   )
 }

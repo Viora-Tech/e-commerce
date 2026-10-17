@@ -4,14 +4,17 @@ import { isWebglSupported } from '@commerce/ui/globe/support'
 import { cn } from '@commerce/ui/lib/utils'
 import dynamic from 'next/dynamic'
 import Image from 'next/image'
-import { useEffect, useState } from 'react'
+import { type MutableRefObject, useEffect, useState } from 'react'
 import { globeContent } from '@/data/demo-orders'
+import type { GlobeApi } from './globe-api'
 
 type GlobeViewProps = {
   /** Demo order pins and chips (hero only). */
   pins?: boolean
   className?: string
   priority?: boolean
+  /** Receives the globe's controls once it is running (the hero's build sequence uses them). */
+  apiRef?: MutableRefObject<GlobeApi | null>
 }
 
 // The WebGL globe loads on the client only, after the page is interactive.
@@ -21,7 +24,12 @@ const InteractiveGlobe = dynamic(() => import('./interactive-globe'), { ssr: fal
  * The marketing globe at the Figma size: the static raster paints first (and stays when WebGL is
  * missing), then the interactive WebGL globe fades in over it once it has drawn a frame.
  */
-export default function GlobeView({ pins = false, className, priority = false }: GlobeViewProps) {
+export default function GlobeView({
+  pins = false,
+  className,
+  priority = false,
+  apiRef,
+}: GlobeViewProps) {
   // Hooks
   const [supported, setSupported] = useState(false)
   const [ready, setReady] = useState(false)
@@ -47,7 +55,7 @@ export default function GlobeView({ pins = false, className, priority = false }:
             ready ? 'opacity-100' : 'opacity-0',
           )}
         >
-          <InteractiveGlobe pins={pins} onReady={() => setReady(true)} />
+          <InteractiveGlobe pins={pins} apiRef={apiRef} onReady={() => setReady(true)} />
         </div>
       ) : null}
     </div>
