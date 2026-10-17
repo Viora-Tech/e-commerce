@@ -322,4 +322,12 @@ export default [
     publish: 'पब्लिश करें',
     saveAndPublish: 'सेव करके पब्लिश करें',
   }),
+  translation(customizeContent.addBlock, {
+    search: 'ब्लॉक खोजें',
+    groups: { text: 'टेक्स्ट', media: 'मीडिया', layout: 'लेआउट' },
+    labels: { VideoPlayer: 'वीडियो', ProductCard: 'प्रोडक्ट कार्ड', CustomHtml: 'एम्बेड' },
+    empty: 'कोई ब्लॉक नहीं मिला',
+    after: (parent: string, block: string) => `${parent} के अंदर, ${block} के बाद जाएगा`,
+    first: (parent: string) => `${parent} के अंदर, सबसे ऊपर जाएगा`,
+  }),
 ]

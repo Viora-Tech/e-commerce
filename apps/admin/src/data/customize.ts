@@ -353,6 +353,18 @@ export const customizeContent = {
     saved: (name: string) => `${name} saved to My sections`,
     failed: 'Could not save the section',
   },
+  /** "Add block" inside a section (Figma 696:87552). */
+  addBlock: {
+    search: 'Search blocks',
+    groups: { text: 'Text', media: 'Media', layout: 'Layout' },
+    labels: { VideoPlayer: 'Video', ProductCard: 'Product card', CustomHtml: 'Embed' } as Record<
+      string,
+      string
+    >,
+    empty: 'No blocks match',
+    after: (parent: string, block: string) => `Goes inside ${parent}, after ${block}`,
+    first: (parent: string) => `Goes inside ${parent}, at the start`,
+  },
   /** The toast after a section is removed (Figma 697:2969). */
   removed: {
     title: (name: string) => `${name} removed`,
