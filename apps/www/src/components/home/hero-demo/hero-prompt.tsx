@@ -4,7 +4,6 @@ import { ArrowRight } from '@commerce/ui/icons'
 import { useEffect, useEffectEvent, useRef, useState } from 'react'
 import { demoStoreContent as copy, DEMO_EXAMPLES } from '@/data/demo-store'
 import { ctaClass } from '@/lib/cta'
-import Magnetic from '../../common/magnetic'
 import { useHeroDemo } from './hero-demo-context'
 
 const IDLE_BEFORE_AUTO_MS = 2000
@@ -122,13 +121,11 @@ export default function HeroPrompt() {
           </span>
         ) : null}
       </div>
-      <Magnetic>
-        <button type="submit" className={ctaClass('lg')}>
-          <span className="max-sm:hidden">{copy.build}</span>
-          <span className="sm:hidden">{copy.buildShort}</span>
-          <ArrowRight aria-hidden />
-        </button>
-      </Magnetic>
+      <button type="submit" className={ctaClass('lg')}>
+        <span className="max-sm:hidden">{copy.build}</span>
+        <span className="sm:hidden">{copy.buildShort}</span>
+        <ArrowRight aria-hidden />
+      </button>
     </form>
   )
 }

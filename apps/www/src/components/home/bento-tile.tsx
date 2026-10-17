@@ -28,7 +28,6 @@ export default function BentoTile({
       as="article"
       step={step}
       spotlight
-      tilt={2}
       className={cn(
         'surface-card group relative flex gap-6 overflow-hidden rounded-3xl p-7',
         layout === 'stack' ? 'flex-col' : 'flex-col md:flex-row md:items-stretch',

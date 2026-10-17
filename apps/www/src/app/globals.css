@@ -14,9 +14,38 @@
 @source "../../../../packages/ui/src/**/*.{ts,tsx}";
 
 @theme inline {
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
   --color-cta: #ff6a13;
   --color-cta-light: #ff8a3d;
   --color-cta-foreground: #ffffff;
+  /* Hero-only colour: the brand gradient and the demo store's product tones. */
+  --color-brand-saffron: #ff7a1a;
+  --color-brand-magenta: #f0368c;
+  --color-brand-blue: #3b6cff;
+  --color-demo-gold-1: #f4d58d;
+  --color-demo-gold-2: #b8862b;
+  --color-demo-silver-1: #e3e6ec;
+  --color-demo-silver-2: #8f98a8;
+  --color-demo-ruby-1: #e0566f;
+  --color-demo-ruby-2: #8c1f3a;
+  --color-demo-indigo-1: #6c78e6;
+  --color-demo-indigo-2: #2b3a8f;
+  --color-demo-saffron-1: #ffb65c;
+  --color-demo-saffron-2: #e4691c;
+  --color-demo-rose-1: #f7a8c4;
+  --color-demo-rose-2: #c23a76;
+  --color-demo-sky-1: #8ec5ff;
+  --color-demo-sky-2: #3b6cff;
+  --color-demo-teal-1: #5fd0c0;
+  --color-demo-teal-2: #1e7f77;
+  --color-demo-green-1: #8cc784;
+  --color-demo-green-2: #2f6b3a;
+  --color-demo-tea-1: #d9a066;
+  --color-demo-tea-2: #7a4a22;
+  --color-demo-sand-1: #ebd8b8;
+  --color-demo-sand-2: #b59468;
+  --color-demo-clay-1: #d98a5e;
+  --color-demo-clay-2: #8e4a2a;
 
   --container-page: 79rem;
   --container-prose: 45rem;
@@ -173,12 +202,11 @@
 /* Scroll reveal: fade and rise once (opacity and translate only), children staggered. */
 @utility reveal {
   opacity: 0;
-  translate: 0 1.25rem;
+  translate: 0 0.75rem;
   transition:
-    opacity 700ms var(--ease-out),
-    translate 700ms var(--ease-out),
-    transform 300ms var(--ease-out);
-  transition-delay: var(--reveal-delay, 0ms), var(--reveal-delay, 0ms), 0ms;
+    opacity 600ms var(--ease-out),
+    translate 600ms var(--ease-out);
+  transition-delay: var(--reveal-delay, 0ms);
   &[data-revealed="true"] {
     opacity: 1;
     translate: 0 0;
@@ -244,7 +272,7 @@
     background: linear-gradient(
       105deg,
       transparent 35%,
-      rgb(255 255 255 / 0.35) 50%,
+      rgb(255 255 255 / 0.14) 50%,
       transparent 65%
     );
     translate: -120% 0;
@@ -252,32 +280,12 @@
   }
   &:hover::after {
     translate: 120% 0;
-    transition: translate 700ms var(--ease-out);
+    transition: translate 1100ms var(--ease-out);
   }
   @media (prefers-reduced-motion: reduce) {
     &::after {
       display: none;
     }
-  }
-}
-
-/* Icon wiggle on hover of the card (or the icon's own group). */
-@keyframes wiggle {
-  0%,
-  100% {
-    rotate: 0deg;
-  }
-  25% {
-    rotate: -8deg;
-  }
-  60% {
-    rotate: 6deg;
-  }
-}
-@utility animate-wiggle {
-  animation: wiggle 500ms var(--ease-out);
-  @media (prefers-reduced-motion: reduce) {
-    animation: none;
   }
 }
 
@@ -328,10 +336,10 @@
 }
 @keyframes type-in {
   from {
-    width: 0;
+    clip-path: inset(0 100% 0 0);
   }
   to {
-    width: 19ch;
+    clip-path: inset(0 0 0 0);
   }
 }
 @utility animate-type-in {
@@ -378,4 +386,26 @@
     --border: #cccccc;
     --input-surface: #ffffff;
   }
+}
+
+/* Hero depth: a soft blueprint grid that fades out toward the edges. */
+@utility blueprint-grid {
+  background-image:
+    linear-gradient(rgb(255 255 255 / 0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgb(255 255 255 / 0.05) 1px, transparent 1px);
+  background-size: 3rem 3rem;
+  mask-image: radial-gradient(ellipse 65% 55% at 50% 38%, #000 15%, transparent 75%);
+}
+
+/* Very slow drift for the outlined hero fragments (transform only). */
+@keyframes drift {
+  from {
+    transform: translateY(0);
+  }
+  to {
+    transform: translateY(-0.625rem);
+  }
+}
+@utility animate-drift {
+  animation: drift 14s ease-in-out infinite alternate;
 }

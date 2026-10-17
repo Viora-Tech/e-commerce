@@ -55,7 +55,7 @@ export default function FeatureExplorer() {
                   aria-pressed={isSelected}
                   onClick={() => setSelectedKey(module.key)}
                   className={cn(
-                    'surface-card spotlight group card-lift flex h-full w-full flex-col items-start gap-3 rounded-2xl p-5 text-left outline-none focus-visible:ring-3 focus-visible:ring-ring/50',
+                    'surface-card spotlight group flex h-full w-full flex-col items-start gap-3 rounded-2xl p-5 text-left outline-none focus-visible:ring-3 focus-visible:ring-ring/50',
                     isSelected && 'ring-1 ring-foreground',
                   )}
                 >

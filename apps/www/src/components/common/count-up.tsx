@@ -1,6 +1,7 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef } from 'react'
+import { prefersReducedMotion } from '@/lib/gsap'
 
 type CountUpProps = {
   value: number
@@ -9,47 +10,63 @@ type CountUpProps = {
   durationMs?: number
 }
 
-/** Counts from zero to `value` once the number scrolls into view; static with reduced motion. */
+function format(amount: number, currency: boolean): string {
+  const text = amount.toLocaleString('en-IN')
+  return currency ? `₹${text}` : text
+}
+
+/**
+ * Counts to `value` once the number scrolls into view, and tweens again when `value` changes. The
+ * digits are written straight to the text node from a rAF loop: no React state per frame. With reduced
+ * motion the number just shows.
+ */
 export default function CountUp({ value, currency = false, durationMs = 1200 }: CountUpProps) {
   // Hooks
   const ref = useRef<HTMLSpanElement>(null)
-  const [shown, setShown] = useState(value)
-  const [started, setStarted] = useState(false)
-  const fromRef = useRef(0)
+  const shown = useRef(0)
+  const visible = useRef(false)
+  const frame = useRef(0)
 
   useEffect(() => {
-    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
     const element = ref.current
     if (!element) return
-    const observer = new IntersectionObserver(([entry]) => {
-      if (entry?.isIntersecting) {
-        setStarted(true)
-        observer.disconnect()
+    if (prefersReducedMotion()) {
+      shown.current = value
+      element.textContent = format(value, currency)
+      return
+    }
+    const run = () => {
+      cancelAnimationFrame(frame.current)
+      const from = shown.current
+      const begin = performance.now()
+      const tick = (now: number) => {
+        const t = Math.min(1, (now - begin) / durationMs)
+        shown.current = Math.round(from + (value - from) * (1 - (1 - t) ** 3))
+        element.textContent = format(shown.current, currency)
+        if (t < 1) frame.current = requestAnimationFrame(tick)
       }
+      frame.current = requestAnimationFrame(tick)
+    }
+    if (visible.current) {
+      run()
+      return () => cancelAnimationFrame(frame.current)
+    }
+    const observer = new IntersectionObserver(([entry]) => {
+      if (!entry?.isIntersecting) return
+      visible.current = true
+      observer.disconnect()
+      run()
     })
     observer.observe(element)
-    return () => observer.disconnect()
-  }, [])
-
-  useEffect(() => {
-    if (!started) return
-    const begin = performance.now()
-    const from = fromRef.current
-    let frame = 0
-    const tick = (now: number) => {
-      const t = Math.min(1, (now - begin) / durationMs)
-      const next = Math.round(from + (value - from) * (1 - (1 - t) ** 3))
-      fromRef.current = next
-      setShown(next)
-      if (t < 1) frame = requestAnimationFrame(tick)
+    return () => {
+      observer.disconnect()
+      cancelAnimationFrame(frame.current)
     }
-    frame = requestAnimationFrame(tick)
-    return () => cancelAnimationFrame(frame)
-  }, [started, value, durationMs])
+  }, [value, currency, durationMs])
 
   return (
     <span ref={ref} className="tabular-nums">
-      {currency ? `₹${shown.toLocaleString('en-IN')}` : shown.toLocaleString('en-IN')}
+      {format(value, currency)}
     </span>
   )
 }

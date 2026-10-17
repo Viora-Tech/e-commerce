@@ -10,6 +10,9 @@ export type DemoProduct = { name: string; price: number }
 export type DemoStore = {
   name: string
   tagline: string
+  /** Gradient classes for the three product tiles and the hero tile (colour is allowed in the hero). */
+  tones: [string, string, string]
+  heroTone: string
   products: [DemoProduct, DemoProduct, DemoProduct]
   city: string
   firstPrice: number
@@ -19,6 +22,8 @@ type Category = {
   keywords: readonly string[]
   noun: string
   tagline: string
+  tones: [string, string, string]
+  heroTone: string
   products: [DemoProduct, DemoProduct, DemoProduct]
 }
 
@@ -27,6 +32,12 @@ const CATEGORIES: readonly Category[] = [
     keywords: ['jewel', 'jewell', 'earring', 'jhumka', 'necklace', 'ring', 'bangle'],
     noun: 'Jewels',
     tagline: 'Handmade, one piece at a time',
+    tones: [
+      'from-demo-gold-1 to-demo-gold-2',
+      'from-demo-silver-1 to-demo-silver-2',
+      'from-demo-ruby-1 to-demo-ruby-2',
+    ],
+    heroTone: 'from-demo-gold-1 via-demo-gold-2 to-demo-ruby-2',
     products: [
       { name: 'Kundan Jhumkas', price: 1299 },
       { name: 'Silver Anklet', price: 899 },
@@ -37,6 +48,12 @@ const CATEGORIES: readonly Category[] = [
     keywords: ['kurta', 'saree', 'sari', 'cloth', 'dress', 'fashion', 'shirt', 'lehenga', 'wear'],
     noun: 'Weaves',
     tagline: 'Everyday wear, made with care',
+    tones: [
+      'from-demo-indigo-1 to-demo-indigo-2',
+      'from-demo-saffron-1 to-demo-saffron-2',
+      'from-demo-rose-1 to-demo-rose-2',
+    ],
+    heroTone: 'from-demo-indigo-2 via-demo-indigo-1 to-demo-saffron-1',
     products: [
       { name: 'Cotton Kurta', price: 1299 },
       { name: 'Block-print Dupatta', price: 799 },
@@ -47,6 +64,12 @@ const CATEGORIES: readonly Category[] = [
     keywords: ['phone', 'cover', 'case', 'gadget', 'charger', 'earbud', 'electronic', 'cable'],
     noun: 'Cases',
     tagline: 'Cases and gear that last',
+    tones: [
+      'from-demo-sky-1 to-demo-sky-2',
+      'from-demo-rose-1 to-demo-rose-2',
+      'from-demo-teal-1 to-demo-teal-2',
+    ],
+    heroTone: 'from-demo-sky-2 via-demo-indigo-1 to-demo-rose-2',
     products: [
       { name: 'Marble Phone Case', price: 499 },
       { name: 'Clear Armor Case', price: 699 },
@@ -57,6 +80,12 @@ const CATEGORIES: readonly Category[] = [
     keywords: ['tea', 'chai', 'coffee', 'spice', 'snack', 'food', 'organic', 'honey', 'pickle'],
     noun: 'Leaf & Co',
     tagline: 'Small-batch and fresh',
+    tones: [
+      'from-demo-green-1 to-demo-green-2',
+      'from-demo-tea-1 to-demo-tea-2',
+      'from-demo-sand-1 to-demo-sand-2',
+    ],
+    heroTone: 'from-demo-green-2 via-demo-green-1 to-demo-sand-1',
     products: [
       { name: 'Darjeeling First Flush', price: 899 },
       { name: 'Masala Chai Blend', price: 349 },
@@ -67,6 +96,12 @@ const CATEGORIES: readonly Category[] = [
     keywords: ['candle', 'decor', 'home', 'lamp', 'pot', 'plant', 'furniture', 'art'],
     noun: 'Home',
     tagline: 'Things that make a house a home',
+    tones: [
+      'from-demo-clay-1 to-demo-clay-2',
+      'from-demo-sand-1 to-demo-sand-2',
+      'from-demo-green-1 to-demo-green-2',
+    ],
+    heroTone: 'from-demo-clay-2 via-demo-clay-1 to-demo-sand-1',
     products: [
       { name: 'Soy Wax Candle', price: 599 },
       { name: 'Terracotta Planter', price: 449 },
@@ -119,6 +154,8 @@ export function buildDemoStore(raw: string): DemoStore {
     return {
       name: `${lead} ${category.noun}`,
       tagline: category.tagline,
+      tones: category.tones,
+      heroTone: category.heroTone,
       products: category.products,
       city: city ?? 'Jaipur',
       firstPrice: category.products[0].price,
@@ -132,6 +169,12 @@ export function buildDemoStore(raw: string): DemoStore {
   return {
     name: `${label} Co.`,
     tagline: 'Made for the way India shops',
+    tones: [
+      'from-demo-indigo-1 to-demo-indigo-2',
+      'from-demo-rose-1 to-demo-rose-2',
+      'from-demo-saffron-1 to-demo-saffron-2',
+    ],
+    heroTone: 'from-demo-indigo-2 via-demo-rose-2 to-demo-saffron-2',
     products: [
       { name: `${label} Classic`, price: 499 },
       { name: `${label} Signature`, price: 899 },
@@ -156,4 +199,25 @@ export const demoStoreContent = {
   shipped: 'Shipped via Delhivery',
   demoNote: 'Demo store, made up for illustration',
   storeAlt: 'A demo storefront built from your answer',
+}
+
+/** Copy for the outlined fragments drifting behind the hero. Decorative. */
+export const heroFragmentsContent = {
+  price: '₹1,299',
+  invoice: 'GST invoice',
+  courier: 'Delhivery',
+  bars: [
+    { id: 'b1', width: 'w-0.5' },
+    { id: 'b2', width: 'w-px' },
+    { id: 'b3', width: 'w-1' },
+    { id: 'b4', width: 'w-px' },
+    { id: 'b5', width: 'w-0.5' },
+    { id: 'b6', width: 'w-1' },
+    { id: 'b7', width: 'w-px' },
+    { id: 'b8', width: 'w-0.5' },
+    { id: 'b9', width: 'w-px' },
+    { id: 'b10', width: 'w-1' },
+    { id: 'b11', width: 'w-0.5' },
+    { id: 'b12', width: 'w-px' },
+  ],
 }

@@ -11,7 +11,7 @@ const DRAW_MS = 900
 
 /**
  * The square icon tile used on cards. When it scrolls into view the icon's strokes draw in, and
- * when the parent card (any `.group`) is hovered the icon wiggles. Reduced motion shows it as is.
+ * Reduced motion shows it as is.
  */
 export default function IconBadge({ children, className }: IconBadgeProps) {
   // Hooks
@@ -55,7 +55,7 @@ export default function IconBadge({ children, className }: IconBadgeProps) {
         className,
       )}
     >
-      <span className="group-hover:animate-wiggle grid place-items-center">{children}</span>
+      {children}
     </span>
   )
 }

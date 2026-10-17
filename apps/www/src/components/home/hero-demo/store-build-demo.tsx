@@ -46,11 +46,38 @@ export default function StoreBuildDemo() {
       const cta = wrapper.querySelector('[data-cta]')
       const ticks = wrapper.querySelectorAll('[data-tick]')
       gsap.set([card, blocks, notices, cta, ticks], { clearProps: 'all' })
-      gsap.set(card, { opacity: 0, scale: 0.94, y: 24 })
-      gsap.set(blocks, { opacity: 0, y: 14, filter: 'blur(4px)' })
-      gsap.set(notices, { opacity: 0, x: 48 })
+      gsap.set(card, { opacity: 0, scale: 0.97, y: 12 })
+      gsap.set(blocks, { opacity: 0, y: 10, filter: 'blur(4px)' })
+      gsap.set(notices, { opacity: 0, x: 24 })
       gsap.set(ticks, { scale: 0 })
       gsap.set(cta, { opacity: 0, y: 12 })
+
+      // Blueprint pass: a thin outline of the card and each block is drawn first, then the content
+      // fills in. The rectangles are measured from the real layout so they match exactly.
+      const outline = wrapper.querySelector<SVGSVGElement>('[data-outline]')
+      const outlineRects: SVGRectElement[] = []
+      if (outline && card) {
+        outline.replaceChildren()
+        const cardBox = card.getBoundingClientRect()
+        const draw = (box: DOMRect, radius: number) => {
+          const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect')
+          rect.setAttribute('x', String(box.left - cardBox.left))
+          rect.setAttribute('y', String(box.top - cardBox.top))
+          rect.setAttribute('width', String(box.width))
+          rect.setAttribute('height', String(box.height))
+          rect.setAttribute('rx', String(radius))
+          rect.setAttribute('pathLength', '1')
+          rect.setAttribute('fill', 'none')
+          rect.setAttribute('stroke', 'rgba(255,255,255,0.55)')
+          rect.setAttribute('stroke-width', '1')
+          rect.setAttribute('stroke-dasharray', '1')
+          rect.setAttribute('stroke-dashoffset', '1')
+          outline.appendChild(rect)
+          outlineRects.push(rect)
+        }
+        draw(cardBox, 16)
+        for (const block of blocks) draw(block.getBoundingClientRect(), 10)
+      }
 
       globeApiRef.current?.focusIndia()
       const emitArcs = () => {
@@ -75,6 +102,7 @@ export default function StoreBuildDemo() {
       const timeline = gsap.timeline({
         onComplete: () => {
           gsap.set([card, blocks, notices, cta, ticks], { clearProps: 'all' })
+          outline?.replaceChildren()
           setArcs(null)
           finish()
           releaseTimer = setTimeout(() => globeApiRef.current?.release(), RELEASE_AFTER_MS)
@@ -83,24 +111,30 @@ export default function StoreBuildDemo() {
       timelineRef.current = timeline
       timeline
         .call(emitArcs, [], 1.1)
-        .to(card, { opacity: 1, scale: 1, y: 0, duration: 0.6, ease: 'expo.out' }, 1.7)
+        .to(
+          outlineRects,
+          { strokeDashoffset: 0, duration: 0.7, ease: 'power2.inOut', stagger: 0.07 },
+          1.3,
+        )
+        .to(card, { opacity: 1, scale: 1, y: 0, duration: 0.5, ease: 'power3.out' }, 2.0)
         .to(
           blocks,
           {
             opacity: 1,
             y: 0,
             filter: 'blur(0px)',
-            duration: 0.5,
+            duration: 0.45,
             ease: 'power3.out',
-            stagger: 0.16,
+            stagger: 0.12,
           },
-          1.9,
+          2.1,
         )
-        .to(notices[0] ?? null, { opacity: 1, x: 0, duration: 0.6, ease: 'back.out(1.4)' }, 3.4)
-        .to(notices[1] ?? null, { opacity: 1, x: 0, duration: 0.6, ease: 'back.out(1.4)' }, 3.8)
-        .to(ticks, { scale: 1, duration: 0.4, ease: 'back.out(3)' }, 4.2)
-        .to(notices[2] ?? null, { opacity: 1, x: 0, duration: 0.6, ease: 'back.out(1.4)' }, 4.3)
-        .to(cta, { opacity: 1, y: 0, duration: 0.5, ease: 'power3.out' }, 4.8)
+        .to(outlineRects, { opacity: 0, duration: 0.6, stagger: 0.04 }, 2.6)
+        .to(notices[0] ?? null, { opacity: 1, x: 0, duration: 0.55, ease: 'power3.out' }, 3.5)
+        .to(notices[1] ?? null, { opacity: 1, x: 0, duration: 0.55, ease: 'power3.out' }, 3.9)
+        .to(ticks, { scale: 1, duration: 0.4, ease: 'back.out(3)' }, 4.3)
+        .to(notices[2] ?? null, { opacity: 1, x: 0, duration: 0.55, ease: 'power3.out' }, 4.4)
+        .to(cta, { opacity: 1, y: 0, duration: 0.5, ease: 'power3.out' }, 4.9)
     })
     return () => {
       cancelled = true
@@ -126,6 +160,10 @@ export default function StoreBuildDemo() {
         data-armed={phase === 'running' && !reducedMotion}
         className="group/demo absolute top-[34rem] left-1/2 z-20 w-[16.5rem] [translate:-50%_0] xl:top-[9rem] xl:right-[max(2rem,calc(50%-39.5rem))] xl:left-auto xl:[translate:0_0]"
       >
+        <div
+          aria-hidden
+          className="pointer-events-none absolute -inset-16 -z-10 bg-radial from-brand-saffron/35 via-brand-magenta/20 to-transparent to-70%"
+        />
         {phase === 'running' && !reducedMotion ? (
           <button
             type="button"

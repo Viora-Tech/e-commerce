@@ -27,6 +27,7 @@ float a=clamp(i*.15+g*.5,0.,1.);
 gl_FragColor=vec4(vec3(a),a);}`
 
 const FRAME_MS = 1000 / 30
+const SCROLL_PAUSE_MS = 140
 
 /**
  * Hero backdrop: subtle grain and a slow monochrome aurora in a raw WebGL fragment shader.
@@ -74,11 +75,16 @@ export default function HeroShader({ onReady }: HeroShaderProps) {
 
     const reduced = prefersReducedMotion()
     // Quarter-ish resolution on phones; the aurora is smooth so nothing is lost.
-    const scale = isCoarsePointer() ? 0.4 : 0.6
+    const scale = isCoarsePointer() ? 0.3 : 0.45
     let visible = true
     let rafId = 0
     let last = 0
     let reported = false
+    let lastScroll = 0
+    const onScroll = () => {
+      lastScroll = performance.now()
+    }
+    window.addEventListener('scroll', onScroll, { passive: true })
 
     const draw = (seconds: number) => {
       const width = Math.max(2, Math.round(canvas.clientWidth * scale))
@@ -100,7 +106,9 @@ export default function HeroShader({ onReady }: HeroShaderProps) {
     }
     const tick = (now: number) => {
       rafId = requestAnimationFrame(tick)
+      // Skip frames while the page is scrolling: the backdrop is slow and soft, nobody reads it then.
       if (!visible || document.visibilityState !== 'visible' || now - last < FRAME_MS) return
+      if (now - lastScroll < SCROLL_PAUSE_MS) return
       last = now
       draw(now / 1000)
     }
@@ -113,6 +121,7 @@ export default function HeroShader({ onReady }: HeroShaderProps) {
     observer.observe(canvas)
     return () => {
       cancelAnimationFrame(rafId)
+      window.removeEventListener('scroll', onScroll)
       observer.disconnect()
       // Not loseContext(): a remounted effect (React strict mode) reuses this canvas's context.
       gl.deleteProgram(program)

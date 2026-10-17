@@ -29,7 +29,6 @@ export default function SellAnything() {
               <Reveal
                 as="li"
                 spotlight
-                tilt={4}
                 step={index}
                 key={card.title}
                 className="surface-card group flex flex-col gap-3 rounded-3xl p-6"

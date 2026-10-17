@@ -51,10 +51,10 @@ export default function TourStage({ item }: TourStageProps) {
         done.to(
           previousRef.current,
           {
-            scale: 0.88,
-            y: -40,
-            rotationX: 8,
-            filter: 'blur(10px)',
+            scale: 0.96,
+            y: -12,
+            rotationX: 3,
+            filter: 'blur(8px)',
             opacity: 0,
             duration: 0.6,
             ease: 'power3.in',
@@ -66,8 +66,8 @@ export default function TourStage({ item }: TourStageProps) {
       if (currentRef.current) {
         done.fromTo(
           currentRef.current,
-          { y: 90, scale: 0.94, opacity: 0, filter: 'blur(8px)' },
-          { y: 0, scale: 1, opacity: 1, filter: 'blur(0px)', duration: 0.8, ease: 'expo.out' },
+          { y: 16, scale: 0.97, opacity: 0, filter: 'blur(6px)' },
+          { y: 0, scale: 1, opacity: 1, filter: 'blur(0px)', duration: 0.8, ease: 'power4.out' },
           0.12,
         )
       }
@@ -76,11 +76,11 @@ export default function TourStage({ item }: TourStageProps) {
         const side = index % 2 === 0 ? -1 : 1
         done.fromTo(
           chip,
-          { x: side * 260, opacity: 0, scale: 0.6 },
+          { x: side * 90, opacity: 0, scale: 0.85 },
           { x: 0, opacity: 1, scale: 1, duration: 0.9, ease: 'power3.out' },
           at,
         )
-        done.fromTo(chip, { y: 140 }, { y: 0, duration: 0.9, ease: 'back.out(1.6)' }, at)
+        done.fromTo(chip, { y: 48 }, { y: 0, duration: 0.9, ease: 'power3.out' }, at)
       })
     })
     return () => {
@@ -97,14 +97,20 @@ export default function TourStage({ item }: TourStageProps) {
     loadGsap().then(({ gsap }) => {
       if (cancelled) return
       gsap.set(stage, { transformPerspective: 1200 })
-      const rotateX = gsap.quickTo(stage, 'rotationX', { duration: 0.7, ease: 'power3.out' })
-      const rotateY = gsap.quickTo(stage, 'rotationY', { duration: 0.7, ease: 'power3.out' })
+      const rotateX = gsap.quickTo(stage, 'rotationX', {
+        duration: 1.1,
+        ease: 'elastic.out(1, 0.8)',
+      })
+      const rotateY = gsap.quickTo(stage, 'rotationY', {
+        duration: 1.1,
+        ease: 'elastic.out(1, 0.8)',
+      })
       const move = (event: PointerEvent) => {
         const box = stage.getBoundingClientRect()
         const px = (event.clientX - box.left) / box.width - 0.5
         const py = (event.clientY - box.top) / box.height - 0.5
-        rotateX(-py * 7)
-        rotateY(px * 9)
+        rotateX(-py * 3.5)
+        rotateY(px * 4.5)
       }
       const leave = () => {
         rotateX(0)
@@ -131,7 +137,7 @@ export default function TourStage({ item }: TourStageProps) {
       aria-labelledby={`tour-tab-${item.key}`}
       className="relative mx-auto w-full max-w-190"
     >
-      <div ref={stageRef} className="relative will-change-transform">
+      <div ref={stageRef} className="relative">
         <div ref={currentRef} className="relative">
           <TourScreen item={item} />
         </div>

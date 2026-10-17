@@ -7,6 +7,7 @@ import HeroGlobe from './hero-demo/hero-globe'
 import HeroPrompt from './hero-demo/hero-prompt'
 import HeroStage from './hero-demo/hero-stage'
 import HeroFloats from './hero-floats'
+import HeroOutlineFragments from './hero-outline-fragments'
 
 const copy = homeContent.hero
 
@@ -18,6 +19,8 @@ export default function Hero() {
   return (
     <HeroStage className="group/hero relative isolate -mt-[4.5rem] min-h-[72rem] overflow-hidden pt-32 md:h-[62.5rem] md:min-h-0 md:pt-[9.375rem]">
       <HeroBackdrop />
+      <div aria-hidden className="blueprint-grid pointer-events-none absolute inset-0" />
+      <HeroOutlineFragments />
       <AmbientLight className="-top-40 -left-40 h-72 w-96" />
       <AmbientLight className="-top-40 -right-40 h-72 w-96" />
       <AmbientLight className="top-[37.5rem] -right-20 h-[22.5rem] w-[32.5rem]" />

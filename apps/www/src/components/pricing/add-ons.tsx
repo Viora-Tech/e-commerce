@@ -30,7 +30,6 @@ export default function AddOns() {
             <Reveal
               as="li"
               spotlight
-              tilt={3}
               step={index}
               key={item.title}
               className="surface-card group flex flex-col gap-4 rounded-3xl p-6"

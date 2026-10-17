@@ -35,7 +35,9 @@ export default function GlobeView({
   const [ready, setReady] = useState(false)
 
   useEffect(() => {
-    setSupported(isWebglSupported())
+    // Give the page a moment to settle before the WebGL globe starts.
+    const timer = setTimeout(() => setSupported(isWebglSupported()), 500)
+    return () => clearTimeout(timer)
   }, [])
 
   return (

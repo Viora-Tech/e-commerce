@@ -74,7 +74,7 @@ export default function PaymentPanel({ step }: PaymentPanelProps) {
       <div className="flex flex-col gap-3">
         <p className="text-xs text-muted-foreground">{copy.card.label}</p>
         <div className="flex items-center justify-between gap-3 rounded-xl border border-border-strong bg-card px-4 py-3">
-          <span className="animate-type-in block w-[19ch] overflow-hidden font-mono text-base whitespace-nowrap text-foreground">
+          <span className="animate-type-in block font-mono text-base whitespace-nowrap text-foreground">
             {copy.card.number}
           </span>
         </div>

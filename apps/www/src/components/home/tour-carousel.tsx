@@ -109,8 +109,8 @@ export default function TourCarousel({ items, running }: TourCarouselProps) {
             aria-current={index === active}
             onClick={() => goTo(index)}
             className={cn(
-              'h-1.5 rounded-full bg-border-strong outline-none transition-[width,background-color] duration-300 ease-(--ease-out) focus-visible:ring-3 focus-visible:ring-ring/50',
-              index === active ? 'w-6 bg-foreground' : 'w-1.5',
+              'size-1.5 rounded-full outline-none transition-colors duration-300 ease-(--ease-out) focus-visible:ring-3 focus-visible:ring-ring/50',
+              index === active ? 'bg-foreground' : 'bg-border-strong',
             )}
           />
         ))}

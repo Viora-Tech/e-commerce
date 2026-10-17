@@ -16,9 +16,9 @@ import ShopifyMock from './shopify-mock'
 const copy = homeContent.shopify
 
 /**
- * Scroll-scrubbed theme import (desktop, motion allowed): the section pins, a theme.zip drops in,
- * unpacks into its folders, and the storefront on the right assembles block by block as you
- * scroll. On phones and with reduced motion it is the plain before/after pair.
+ * Theme import: when the section scrolls into view, a theme.zip drops in, unpacks into its folders,
+ * and the storefront on the right assembles block by block, once, by itself (nothing pins or
+ * scrubs). With reduced motion it is the plain before/after pair.
  */
 export default function ShopifyImport() {
   // Hooks
@@ -28,68 +28,47 @@ export default function ShopifyImport() {
     const section = sectionRef.current
     if (!section || prefersReducedMotion()) return
     let cancelled = false
-    let revert = () => {}
+    let cleanup = () => {}
     loadGsap().then(({ gsap, ScrollTrigger }) => {
       if (cancelled) return
-      const query = gsap.matchMedia()
-      query.add('(min-width: 1024px) and (min-height: 760px)', () => {
-        const zip = section.querySelector('[data-zip]')
-        const files = section.querySelectorAll('[data-file]')
-        const blocks = section.querySelectorAll('[data-after] [data-assemble]')
-        gsap.set(blocks, { opacity: 0, y: 28, scale: 0.97, filter: 'blur(6px)' })
-        const timeline = gsap.timeline({
-          defaults: { ease: 'power2.out' },
-          scrollTrigger: {
-            trigger: section,
-            start: 'top top',
-            end: '+=130%',
-            pin: true,
-            scrub: 0.6,
-            anticipatePin: 1,
+      const zip = section.querySelector('[data-zip]')
+      const files = section.querySelectorAll('[data-file]')
+      const blocks = section.querySelectorAll('[data-after] [data-assemble]')
+      gsap.set(blocks, { opacity: 0, y: 12, filter: 'blur(4px)' })
+      const timeline = gsap.timeline({ paused: true, defaults: { ease: 'power3.out' } })
+      timeline
+        .fromTo(zip, { y: -16, opacity: 0 }, { y: 0, opacity: 1, duration: 0.6 }, 0)
+        .to(zip, { opacity: 0, duration: 0.3 }, 1.1)
+        .fromTo(
+          files,
+          { opacity: 0, scale: 0.8, y: 0 },
+          {
+            opacity: 1,
+            scale: 1,
+            y: (index: number) => [-26, 0, 26][index] ?? 0,
+            stagger: 0.12,
+            duration: 0.5,
           },
-        })
-        timeline
-          .fromTo(
-            zip,
-            { y: -180, opacity: 0, scale: 0.9 },
-            { y: 0, opacity: 1, scale: 1, duration: 0.2 },
-            0,
-          )
-          .to(zip, { scale: 1.1, duration: 0.06 }, 0.22)
-          .to(zip, { opacity: 0, scale: 0.6, duration: 0.1 }, 0.28)
-          .fromTo(
-            files,
-            { opacity: 0, scale: 0.5, y: 0 },
-            {
-              opacity: 1,
-              scale: 1,
-              y: (index: number) => [-26, 0, 26][index] ?? 0,
-              stagger: 0.04,
-              duration: 0.14,
-            },
-            0.28,
-          )
-          .to(files, { opacity: 0, x: 40, stagger: 0.04, duration: 0.14 }, 0.46)
-          .to(
-            blocks,
-            { opacity: 1, y: 0, scale: 1, filter: 'blur(0px)', stagger: 0.07, duration: 0.14 },
-            0.4,
-          )
-        timeline.to({}, { duration: 0.12 })
-        return () => {
-          timeline.scrollTrigger?.kill()
-          timeline.kill()
-          gsap.set([zip, files, blocks], { clearProps: 'all' })
-        }
+          1.0,
+        )
+        .to(files, { opacity: 0, duration: 0.4, stagger: 0.1 }, 2.0)
+        .to(blocks, { opacity: 1, y: 0, filter: 'blur(0px)', stagger: 0.2, duration: 0.6 }, 1.8)
+      // Plays once by itself when the section comes into view, like the tour. No pin, no scrub.
+      const trigger = ScrollTrigger.create({
+        trigger: section,
+        start: 'top 65%',
+        once: true,
+        onEnter: () => timeline.play(),
       })
-      revert = () => {
-        query.revert()
-        ScrollTrigger.refresh()
+      cleanup = () => {
+        trigger.kill()
+        timeline.kill()
+        gsap.set([zip, files, blocks], { clearProps: 'all' })
       }
     })
     return () => {
       cancelled = true
-      revert()
+      cleanup()
     }
   }, [])
 

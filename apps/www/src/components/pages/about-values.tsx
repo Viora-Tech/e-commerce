@@ -24,7 +24,6 @@ export default function AboutValues() {
             <Reveal
               as="li"
               spotlight
-              tilt={3}
               step={index % 2}
               key={item.title}
               className="surface-card group flex min-h-56 flex-col justify-end gap-3 rounded-3xl p-7"

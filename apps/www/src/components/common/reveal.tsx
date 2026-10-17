@@ -10,10 +10,8 @@ type RevealProps = {
   step?: number
   as?: ElementType
   className?: string
-  /** A soft grey light and border glow that follow the cursor over the card. */
+  /** A soft grey light and border glow that follow the cursor over the card (a brighten, no movement). */
   spotlight?: boolean
-  /** A gentle 3D tilt toward the cursor (max degrees). */
-  tilt?: number
 }
 
 const DELAY = [
@@ -27,9 +25,8 @@ const DELAY = [
 ]
 
 /**
- * Fades and rises in once when it scrolls into view (opacity and translate only). With
- * `spotlight` and `tilt` it also reacts to the cursor, the shared card behaviour for the bento,
- * pricing, feature and value cards.
+ * Fades and rises in once when it scrolls into view (opacity and a short translate only). With
+ * `spotlight` the card also brightens a soft light under the cursor; nothing moves on hover.
  */
 export default function Reveal({
   children,
@@ -37,7 +34,6 @@ export default function Reveal({
   as: Tag = 'div',
   className,
   spotlight = false,
-  tilt = 0,
 }: RevealProps) {
   // Hooks
   const ref = useRef<HTMLElement>(null)
@@ -61,47 +57,30 @@ export default function Reveal({
 
   useEffect(() => {
     const element = ref.current
-    if (!element || (!spotlight && !tilt) || isCoarsePointer() || prefersReducedMotion()) return
+    if (!element || !spotlight || isCoarsePointer() || prefersReducedMotion()) return
     let frame = 0
     const move = (event: PointerEvent) => {
       const box = element.getBoundingClientRect()
-      const px = (event.clientX - box.left) / box.width
-      const py = (event.clientY - box.top) / box.height
+      const px = ((event.clientX - box.left) / box.width) * 100
+      const py = ((event.clientY - box.top) / box.height) * 100
       cancelAnimationFrame(frame)
       frame = requestAnimationFrame(() => {
-        if (spotlight) {
-          element.style.setProperty('--mx', `${px * 100}%`)
-          element.style.setProperty('--my', `${py * 100}%`)
-        }
-        if (tilt) {
-          element.style.transform = `perspective(60rem) rotateX(${(0.5 - py) * tilt}deg) rotateY(${(px - 0.5) * tilt}deg)`
-        }
+        element.style.setProperty('--mx', `${px}%`)
+        element.style.setProperty('--my', `${py}%`)
       })
     }
-    const leave = () => {
-      cancelAnimationFrame(frame)
-      if (tilt) element.style.transform = ''
-    }
     element.addEventListener('pointermove', move)
-    element.addEventListener('pointerleave', leave)
     return () => {
       cancelAnimationFrame(frame)
       element.removeEventListener('pointermove', move)
-      element.removeEventListener('pointerleave', leave)
     }
-  }, [spotlight, tilt])
+  }, [spotlight])
 
   return (
     <Tag
       ref={ref}
       data-revealed={revealed}
-      className={cn(
-        'reveal',
-        DELAY[Math.min(step, 6)],
-        spotlight && 'spotlight',
-        tilt > 0 && 'transition-transform duration-300 ease-(--ease-out) will-change-transform',
-        className,
-      )}
+      className={cn('reveal', DELAY[Math.min(step, 6)], spotlight && 'spotlight', className)}
     >
       {children}
     </Tag>

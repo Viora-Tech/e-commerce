@@ -11,7 +11,7 @@ export default function TiltCard({ children, className }: TiltCardProps) {
   return (
     <div
       className={cn(
-        '[transform:perspective(70rem)_rotateY(calc(var(--px,0)*7deg))_rotateX(calc(var(--py,0)*-5deg))] transition-transform duration-300 ease-(--ease-out) will-change-transform motion-reduce:transform-none',
+        '[transform:perspective(70rem)_rotateY(calc(var(--px,0)*3.5deg))_rotateX(calc(var(--py,0)*-2.5deg))] transition-transform duration-300 ease-(--ease-out) motion-reduce:transform-none',
         className,
       )}
     >

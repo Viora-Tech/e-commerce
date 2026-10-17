@@ -6,7 +6,6 @@ import TiltCard from '../../common/tilt-card'
 type StorefrontCardProps = { store: DemoStore }
 
 const BLOCK = 'group-data-[armed=true]/demo:opacity-0'
-const TILE = 'bg-gradient-to-br from-muted to-secondary'
 
 /**
  * The made-up storefront the hero builds from what was typed: header, hero tile, three products and
@@ -17,7 +16,15 @@ export default function StorefrontCard({ store }: StorefrontCardProps) {
   return (
     <>
       <TiltCard>
-        <div data-card className={`glass-panel flex flex-col gap-3 rounded-2xl p-3 ${BLOCK}`}>
+        <div
+          data-card
+          className={`glass-panel relative flex flex-col gap-3 rounded-2xl p-3 ${BLOCK}`}
+        >
+          <svg
+            data-outline
+            aria-hidden
+            className="pointer-events-none absolute inset-0 z-10 size-full overflow-visible"
+          />
           <div data-block className={`flex items-center justify-between px-1 ${BLOCK}`}>
             <span className="flex items-center gap-2 text-sm font-semibold text-foreground">
               <span className="grid size-6 place-items-center rounded-md bg-foreground text-xs font-bold text-background">
@@ -33,17 +40,20 @@ export default function StorefrontCard({ store }: StorefrontCardProps) {
           </div>
           <div
             data-block
-            className={`flex aspect-[16/8] flex-col justify-end gap-1 rounded-xl p-3 ${TILE} ${BLOCK}`}
+            className={`flex aspect-[16/8] flex-col justify-end gap-1 rounded-xl bg-gradient-to-br p-3 ${store.heroTone} ${BLOCK}`}
           >
-            <span className="w-fit rounded-full bg-background/60 px-2 py-0.5 text-[0.625rem] font-medium text-foreground">
+            <span className="w-fit rounded-full bg-background/70 px-2 py-0.5 text-[0.625rem] font-medium text-foreground">
               {copy.heroTile}
             </span>
-            <span className="text-sm font-semibold text-foreground">{store.tagline}</span>
+            <span className="text-sm font-semibold text-white">{store.tagline}</span>
           </div>
           <ul className="grid grid-cols-3 gap-2">
-            {store.products.map((product) => (
+            {store.products.map((product, index) => (
               <li key={product.name} data-block className={`flex flex-col gap-1 ${BLOCK}`}>
-                <span aria-hidden className={`aspect-square rounded-lg ${TILE}`} />
+                <span
+                  aria-hidden
+                  className={`aspect-square rounded-lg bg-gradient-to-br ${store.tones[index]}`}
+                />
                 <span className="truncate text-[0.6875rem] font-medium text-foreground">
                   {product.name}
                 </span>

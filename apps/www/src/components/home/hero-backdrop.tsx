@@ -14,12 +14,22 @@ export default function HeroBackdrop() {
   const [ready, setReady] = useState(false)
 
   useEffect(() => {
-    const start = () => setMounted(true)
+    // The aurora is the last thing to arrive, well after the globe, so page load stays light.
+    const start = () => setTimeout(() => setMounted(true), 1200)
     if ('requestIdleCallback' in window) {
-      const id = window.requestIdleCallback(start, { timeout: 1500 })
-      return () => window.cancelIdleCallback(id)
+      let timer: ReturnType<typeof setTimeout> | undefined
+      const id = window.requestIdleCallback(
+        () => {
+          timer = start()
+        },
+        { timeout: 1500 },
+      )
+      return () => {
+        window.cancelIdleCallback(id)
+        clearTimeout(timer)
+      }
     }
-    const id = setTimeout(start, 600)
+    const id = start()
     return () => clearTimeout(id)
   }, [])
 

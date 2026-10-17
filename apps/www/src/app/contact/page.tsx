@@ -38,10 +38,7 @@ export default function ContactPage() {
           {copy.channels.map((channel) => {
             const Icon = ICONS[channel.key as keyof typeof ICONS]
             return (
-              <li
-                key={channel.key}
-                className="surface-card card-lift flex flex-col gap-3 rounded-3xl p-6"
-              >
+              <li key={channel.key} className="surface-card flex flex-col gap-3 rounded-3xl p-6">
                 <span className="grid size-10 place-items-center rounded-xl border border-border bg-muted">
                   <Icon aria-hidden className="size-5" />
                 </span>
@@ -68,7 +65,7 @@ export default function ContactPage() {
             <li key={link.label}>
               <a
                 href={link.href}
-                className="surface-card card-lift flex items-center justify-between gap-4 rounded-xl px-5 py-4 text-sm font-medium text-foreground"
+                className="surface-card flex items-center justify-between gap-4 rounded-xl px-5 py-4 text-sm font-medium text-foreground"
               >
                 {link.label}
                 <ArrowRight aria-hidden className="size-4 text-muted-foreground" />

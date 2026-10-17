@@ -63,7 +63,6 @@ export default function SecurityPage() {
               <Reveal
                 as="li"
                 spotlight
-                tilt={3}
                 step={index % 3}
                 key={item.key}
                 className="surface-card group flex flex-col gap-3 rounded-3xl p-6"

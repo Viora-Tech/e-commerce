@@ -26,7 +26,7 @@ export function prefersReducedMotion(): boolean {
   return window.matchMedia('(prefers-reduced-motion: reduce)').matches
 }
 
-/** True on touch-first devices, where hover effects (spotlight, tilt, magnet) are skipped. */
+/** True on touch-first devices, where hover effects (spotlight, cursor light, parallax) are skipped. */
 export function isCoarsePointer(): boolean {
   return window.matchMedia('(hover: none), (pointer: coarse)').matches
 }

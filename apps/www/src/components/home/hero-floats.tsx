@@ -6,7 +6,7 @@ import CountUp from '../common/count-up'
 const { floats } = homeContent.hero
 
 const FLOAT_CLASS =
-  'glass-panel absolute rounded-2xl p-4 text-left [translate:calc(var(--px,0)*0.9rem)_calc(var(--py,0)*0.5rem)] transition-[translate,opacity] duration-500 ease-(--ease-out) motion-reduce:transition-none'
+  'glass-panel absolute rounded-2xl p-4 text-left [translate:calc(var(--px,0)*0.45rem)_calc(var(--py,0)*0.25rem)] transition-[translate,opacity] duration-500 ease-(--ease-out) motion-reduce:transition-none'
 
 /** Three glass cards floating over the globe: decorative proof of what the product does. */
 export default function HeroFloats() {

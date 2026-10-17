@@ -1,34 +1,40 @@
 'use client'
 
 import { AiIcon } from '@commerce/ui/icons'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { mockAdminContent } from '@/data/mock-admin'
 
 const copy = mockAdminContent.ai
-const TYPE_MS = 16
+const TYPE_MS = 24
 
 /** A mock "Ask AI" box: pick or type a question and a canned answer types out. */
 export default function MockAiBox() {
   // Hooks
   const [question, setQuestion] = useState('')
   const [answer, setAnswer] = useState('')
-  const [typed, setTyped] = useState(0)
+  const textRef = useRef<HTMLSpanElement>(null)
+  const cursorRef = useRef<HTMLSpanElement>(null)
 
+  // The answer types out by writing the text node directly: no React state per character.
   useEffect(() => {
-    if (!answer) return
+    const text = textRef.current
+    const cursor = cursorRef.current
+    if (!answer || !text || !cursor) return
     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-      setTyped(answer.length)
+      text.textContent = answer
+      cursor.hidden = true
       return
     }
-    setTyped(0)
+    let count = 0
+    cursor.hidden = false
+    text.textContent = ''
     const timer = setInterval(() => {
-      setTyped((count) => {
-        if (count >= answer.length) {
-          clearInterval(timer)
-          return count
-        }
-        return count + 1
-      })
+      count += 1
+      text.textContent = answer.slice(0, count)
+      if (count >= answer.length) {
+        cursor.hidden = true
+        clearInterval(timer)
+      }
     }, TYPE_MS)
     return () => clearInterval(timer)
   }, [answer])
@@ -63,13 +69,12 @@ export default function MockAiBox() {
           aria-live="polite"
           className="min-h-12 rounded-lg bg-muted/60 p-2.5 text-xs text-foreground"
         >
-          {answer.slice(0, typed)}
-          {typed < answer.length ? (
-            <span
-              aria-hidden
-              className="ml-0.5 inline-block h-3 w-px animate-pulse bg-foreground"
-            />
-          ) : null}
+          <span ref={textRef} />
+          <span
+            ref={cursorRef}
+            aria-hidden
+            className="ml-0.5 inline-block h-3 w-px animate-pulse bg-foreground"
+          />
         </p>
       ) : (
         <p className="text-[0.6875rem] text-muted-foreground">{copy.hint}</p>
