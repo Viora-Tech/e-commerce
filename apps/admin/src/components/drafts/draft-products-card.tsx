@@ -7,7 +7,7 @@ import { useEffect, useState } from 'react'
 import type { DraftLine } from '@/components/drafts/draft-form-state'
 import DraftMoneyInput from '@/components/drafts/draft-money-input'
 import DataCard from '@/components/layout/data-card'
-import ProductThumb from '@/components/products/product-thumb'
+import LineItemRow from '@/components/layout/line-item-row'
 import { draftEditorContent as copy } from '@/data/drafts'
 import { api } from '@/lib/api-client'
 import { formatPaise } from '@/lib/money'
@@ -124,40 +124,41 @@ export default function DraftProductsCard({ lines, onChange }: DraftProductsCard
         ) : (
           <ul className="flex flex-col divide-y divide-line">
             {lines.map((l) => (
-              <li key={l.variantId} className="flex items-center gap-3 py-3 first:pt-0">
-                <ProductThumb url={l.imageUrl ?? null} className="size-10" />
-                <span className="min-w-0 flex-1">
-                  <span className="block truncate font-medium text-ink-strong">{lineTitle(l)}</span>
-                  {l.sku ? (
-                    <span className="block text-caption text-muted-foreground">{l.sku}</span>
-                  ) : null}
-                </span>
-                <Input
-                  aria-label={copy.products.quantity}
-                  type="number"
-                  min={1}
-                  value={l.quantity}
-                  onChange={(e) => handleQuantity(l.variantId, e.target.value)}
-                  className="w-20 text-right tabular-nums"
-                />
-                <DraftMoneyInput
-                  aria-label={copy.products.price}
-                  valuePaise={l.unitPricePaise}
-                  onChangePaise={(paise) => handlePrice(l.variantId, paise)}
-                  className="w-28 text-right tabular-nums"
-                />
-                <span className="w-24 shrink-0 text-right text-body tabular-nums">
-                  {formatPaise(l.quantity * l.unitPricePaise)}
-                </span>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  aria-label={copy.products.remove}
-                  onClick={() => handleRemove(l.variantId)}
-                >
-                  <X />
-                </Button>
-              </li>
+              <LineItemRow
+                key={l.variantId}
+                imageUrl={l.imageUrl ?? null}
+                title={lineTitle(l)}
+                subtitle={l.sku}
+                controls={
+                  <>
+                    <Input
+                      aria-label={copy.products.quantity}
+                      type="number"
+                      min={1}
+                      value={l.quantity}
+                      onChange={(e) => handleQuantity(l.variantId, e.target.value)}
+                      className="w-20 text-right tabular-nums"
+                    />
+                    <DraftMoneyInput
+                      aria-label={copy.products.price}
+                      valuePaise={l.unitPricePaise}
+                      onChangePaise={(paise) => handlePrice(l.variantId, paise)}
+                      className="w-28 text-right tabular-nums"
+                    />
+                  </>
+                }
+                amount={formatPaise(l.quantity * l.unitPricePaise)}
+                aside={
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    aria-label={copy.products.remove}
+                    onClick={() => handleRemove(l.variantId)}
+                  >
+                    <X />
+                  </Button>
+                }
+              />
             ))}
           </ul>
         )}

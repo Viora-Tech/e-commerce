@@ -10,14 +10,12 @@ import {
 import { Bar, BarChart, Cell, XAxis, YAxis } from 'recharts'
 import DataCard from '@/components/layout/data-card'
 import { homeContent } from '@/data/home'
-import { INDIAN_STATES } from '@/data/india'
+import { INDIAN_STATES, stateName } from '@/data/india'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 
 type SalesByStateChartProps = {
   salesByState: DashboardSummary['salesByState']
 }
-
-const stateName = (code: string): string => INDIAN_STATES.find((s) => s.code === code)?.name ?? code
 
 const config = { revenuePaise: { label: 'Revenue', color: 'var(--chart-3)' } } satisfies ChartConfig
 

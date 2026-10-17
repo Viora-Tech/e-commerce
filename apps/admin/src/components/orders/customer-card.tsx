@@ -10,7 +10,7 @@ import CustomerAvatar from '@/components/customers/customer-avatar'
 import CopyButton from '@/components/fields/copy-button'
 import DataCard from '@/components/layout/data-card'
 import KeyValueList, { type KeyValueRow } from '@/components/layout/key-value-list'
-import { INDIAN_STATES } from '@/data/india'
+import { INDIAN_STATES, stateName } from '@/data/india'
 import { orderDetailContent } from '@/data/orders'
 import { useCopy } from '@/hooks/use-copy'
 import { routes } from '@/lib/routes'
@@ -26,8 +26,6 @@ function whatsappHref(phone: string): string {
   const digits = phone.replace(/[^0-9]/g, '')
   return `https://wa.me/${digits.length === 10 ? `91${digits}` : digits}`
 }
-
-const stateName = (code: string) => INDIAN_STATES.find((s) => s.code === code)?.name ?? code
 
 /**
  * Who ordered and where it goes, one field per line with its own copy button,

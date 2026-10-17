@@ -13,7 +13,7 @@ import SettingsTable from '@/components/settings/settings-table'
 import SettingsTableCell from '@/components/settings/settings-table-cell'
 import SettingsTableRow from '@/components/settings/settings-table-row'
 import RowActionsCell from '@/components/table/row-actions-cell'
-import { INDIAN_STATES } from '@/data/india'
+import { INDIAN_STATES, stateName } from '@/data/india'
 import { shippingRatesContent } from '@/data/shipping-rates'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { usePermissions } from '@/hooks/use-permissions'
@@ -22,8 +22,6 @@ import { routes } from '@/lib/routes'
 import { describePrice, fromRate, type LoadedZone } from './form-state'
 
 type ListCopy = (typeof shippingRatesContent)['list']
-
-const stateName = (code: string): string => INDIAN_STATES.find((s) => s.code === code)?.name ?? code
 
 /** "Karnataka, Kerala · 2 PIN code rules", or "All of India". */
 function coverage(copy: ListCopy, zone: LoadedZone): string {

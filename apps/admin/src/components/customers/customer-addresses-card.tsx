@@ -9,7 +9,7 @@ import ConfirmDialog from '@/components/layout/confirm-dialog'
 import DataCard from '@/components/layout/data-card'
 import StatusChip from '@/components/layout/status-chip'
 import { customerAddressesContent } from '@/data/customers'
-import { INDIAN_STATES } from '@/data/india'
+import { INDIAN_STATES, stateName } from '@/data/india'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 import CustomerAddressDialog from './customer-address-dialog'
@@ -19,8 +19,6 @@ type CustomerAddressesCardProps = {
   customer: CustomerDetail
   onChanged: () => void
 }
-
-const stateName = (code: string) => INDIAN_STATES.find((s) => s.code === code)?.name ?? code
 
 function lines(a: CustomerAddressRow): string[] {
   return [

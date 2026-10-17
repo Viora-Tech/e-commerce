@@ -1,6 +1,6 @@
 import { cn } from '@commerce/ui/lib/utils'
 import { type Column, renderTextEditor } from 'react-data-grid'
-import { INDIAN_STATES } from '@/data/india'
+import { INDIAN_STATES, stateName } from '@/data/india'
 import type { ordersBulkEditContent } from '@/data/orders-bulk-edit'
 import type { Formatters } from '@/lib/format'
 import {
@@ -32,8 +32,6 @@ const WIDTHS: Record<string, number> = {
 }
 
 const SELECTS = new Set(['stateCode', 'mark'])
-
-const stateName = (code: string) => INDIAN_STATES.find((s) => s.code === code)?.name ?? code
 
 /**
  * The grid's columns in sheet order: order number (frozen), placed, then the editable cells.

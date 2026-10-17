@@ -12,7 +12,7 @@ import {
 } from '@commerce/ui/shadcn/select'
 import { useRef, useState, useTransition } from 'react'
 import { addressFormContent as copy } from '@/data/customers'
-import { INDIAN_STATES } from '@/data/india'
+import { INDIAN_STATES, stateName } from '@/data/india'
 import { api } from '@/lib/api-client'
 
 export type AddressValue = {
@@ -41,8 +41,6 @@ type AddressFieldsProps = {
 }
 
 const stateItems = INDIAN_STATES.map((s) => ({ value: s.code, label: s.name }))
-const stateName = (code: string) => INDIAN_STATES.find((s) => s.code === code)?.name ?? code
-
 /**
  * Address lines, PIN code, city and state. A full PIN code fills city and
  * state from the same directory checkout's "PIN code first" uses; both stay

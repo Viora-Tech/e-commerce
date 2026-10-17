@@ -1,14 +1,13 @@
 'use client'
 
 import { Bell, CreditCard, MessageSquare, RotateCcw, ShoppingBag, Truck } from '@commerce/ui/icons'
-import { cn } from '@commerce/ui/lib/utils'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Textarea } from '@commerce/ui/shadcn/textarea'
 import { type FormEvent, useState } from 'react'
 import { toast } from 'sonner'
 import DataCard from '@/components/layout/data-card'
-import RelativeTime from '@/components/layout/relative-time'
 import ScrollSection from '@/components/layout/scroll-section'
+import Timeline from '@/components/layout/timeline'
 import { orderDetailContent } from '@/data/orders'
 import { shipmentPanelContent } from '@/data/shipping'
 import { useCopy, useFormat } from '@/hooks/use-copy'
@@ -57,6 +56,19 @@ export default function TimelineCard({ order, onChanged }: TimelineCardProps) {
 
   // Render logic
   const days = groupByDay(buildEntries(order, copy, shipping, fmt), fmt)
+  const groups = days.map((day) => ({
+    key: day.key,
+    label: day.label,
+    items: day.entries.map((e) => ({
+      id: e.id,
+      title: e.title,
+      detail: e.detail,
+      at: e.at,
+      icon: ICON[e.kind],
+      tone: e.tone === 'destructive' ? ('danger' as const) : ('neutral' as const),
+      preserveLines: e.kind === 'note',
+    })),
+  }))
 
   return (
     <DataCard title={copy.timeline.heading} className="print:hidden">
@@ -80,43 +92,7 @@ export default function TimelineCard({ order, onChanged }: TimelineCardProps) {
         maxHeight="min(32rem, 65vh)"
         className="mt-4 [--detail-header-height:0rem]"
       >
-        <div className="flex flex-col gap-5">
-          {days.map((day) => (
-            <section key={day.key}>
-              <p className="sticky top-[var(--detail-header-height,0rem)] z-1 -mx-5 bg-card px-5 py-1 text-caption text-muted-foreground">
-                {day.label}
-              </p>
-              <ol className="relative mt-2 flex flex-col gap-4 border-l border-border pl-6">
-                {day.entries.map((e) => {
-                  const Icon = ICON[e.kind]
-                  return (
-                    <li key={e.id} className="relative">
-                      <span
-                        className={cn(
-                          'absolute -left-8 top-0 flex size-6 items-center justify-center rounded-full border border-border bg-card',
-                          e.tone === 'destructive' ? 'text-destructive' : 'text-muted-foreground',
-                        )}
-                        aria-hidden="true"
-                      >
-                        <Icon className="size-3.5" />
-                      </span>
-                      <p
-                        className={cn(
-                          'text-body',
-                          e.kind === 'note' ? 'whitespace-pre-wrap' : 'font-medium',
-                        )}
-                      >
-                        {e.title}
-                      </p>
-                      <RelativeTime value={e.at} className="text-caption font-normal" />
-                      {e.detail ? <p className="text-caption font-normal">{e.detail}</p> : null}
-                    </li>
-                  )
-                })}
-              </ol>
-            </section>
-          ))}
-        </div>
+        <Timeline groups={groups} />
       </ScrollSection>
     </DataCard>
   )

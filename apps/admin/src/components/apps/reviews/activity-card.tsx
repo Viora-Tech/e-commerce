@@ -1,5 +1,5 @@
 import DataCard from '@/components/layout/data-card'
-import RelativeTime from '@/components/layout/relative-time'
+import Timeline from '@/components/layout/timeline'
 import { reviewsContent } from '@/data/reviews'
 import { useCopy } from '@/hooks/use-copy'
 import type { api } from '@/lib/api-client'
@@ -21,15 +21,14 @@ export default function ActivityCard({ activity }: ActivityCardProps) {
 
   return (
     <DataCard title={copy.title}>
-      <ol className="flex flex-col gap-3">
-        {activity.map((a) => (
-          <li key={`${a.kind}-${String(a.at)}`} className="flex items-center gap-3 text-body">
-            <span className="size-1.5 shrink-0 rounded-full bg-muted-foreground" aria-hidden />
-            <span className="min-w-0 flex-1">{labelOf(copy, a)}</span>
-            <RelativeTime value={a.at} className="shrink-0 text-caption text-muted-foreground" />
-          </li>
-        ))}
-      </ol>
+      <Timeline
+        variant="compact"
+        items={activity.map((a) => ({
+          id: `${a.kind}-${String(a.at)}`,
+          title: labelOf(copy, a),
+          at: a.at,
+        }))}
+      />
     </DataCard>
   )
 }

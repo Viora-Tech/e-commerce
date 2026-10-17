@@ -1,6 +1,6 @@
 import DataCard from '@/components/layout/data-card'
+import LineItemRow from '@/components/layout/line-item-row'
 import TotalsList from '@/components/layout/totals-list'
-import ProductThumb from '@/components/products/product-thumb'
 import { abandonedDetailContent } from '@/data/abandoned-detail'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import type { AbandonedCheckout } from './abandoned-detail-types'
@@ -24,25 +24,16 @@ export default function AbandonedCartCard({ checkout }: AbandonedCartCardProps) 
         ) : (
           <ul className="flex flex-col divide-y divide-hairline">
             {checkout.lines.map((line) => (
-              <li key={line.id} className="flex items-center gap-3 py-3 first:pt-0 last:pb-0">
-                <ProductThumb url={line.image} alt={line.productTitle} className="size-10" />
-                <span className="min-w-0 flex-1">
-                  <span className="block truncate text-body-strong text-foreground">
-                    {line.productTitle}
-                  </span>
-                  {line.variantTitle && line.variantTitle !== 'Default' ? (
-                    <span className="block truncate text-caption text-muted-foreground">
-                      {line.variantTitle}
-                    </span>
-                  ) : null}
-                </span>
-                <span className="text-caption text-muted-foreground tabular-nums">
-                  {copy.quantity(line.quantity)}
-                </span>
-                <span className="w-24 text-end font-medium tabular-nums">
-                  {fmt.money(line.totalPaise)}
-                </span>
-              </li>
+              <LineItemRow
+                key={line.id}
+                imageUrl={line.image}
+                title={line.productTitle}
+                subtitle={
+                  line.variantTitle && line.variantTitle !== 'Default' ? line.variantTitle : null
+                }
+                quantity={copy.quantity(line.quantity)}
+                amount={fmt.money(line.totalPaise)}
+              />
             ))}
           </ul>
         )}

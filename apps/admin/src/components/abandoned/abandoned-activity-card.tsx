@@ -1,4 +1,6 @@
-import { Card, CardContent, CardHeader, CardTitle } from '@commerce/ui/shadcn/card'
+import { CircleCheck, Clock, Send, ShoppingCart } from '@commerce/ui/icons'
+import DataCard from '@/components/layout/data-card'
+import Timeline from '@/components/layout/timeline'
 import { abandonedDetailContent } from '@/data/abandoned-detail'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import type { AbandonedCheckout } from './abandoned-detail-types'
@@ -16,29 +18,31 @@ export default function AbandonedActivityCard({ checkout }: AbandonedActivityCar
   const copy = content.activity
   const touched = new Date(checkout.updatedAt).getTime()
   const entries = [
-    ...(checkout.recovered ? [{ label: copy.recovered, at: checkout.updatedAt }] : []),
-    ...(checkout.recoverySentAt ? [{ label: copy.reminded, at: checkout.recoverySentAt }] : []),
-    ...(touched - new Date(checkout.createdAt).getTime() > 60_000 && !checkout.recovered
-      ? [{ label: copy.lastActive, at: checkout.updatedAt }]
+    ...(checkout.recovered
+      ? [
+          {
+            id: 'recovered',
+            title: copy.recovered,
+            at: checkout.updatedAt,
+            icon: CircleCheck,
+            tone: 'success' as const,
+          },
+        ]
       : []),
-    { label: copy.started, at: checkout.createdAt },
-  ].sort((a, b) => new Date(b.at).getTime() - new Date(a.at).getTime())
+    ...(checkout.recoverySentAt
+      ? [{ id: 'reminded', title: copy.reminded, at: checkout.recoverySentAt, icon: Send }]
+      : []),
+    ...(touched - new Date(checkout.createdAt).getTime() > 60_000 && !checkout.recovered
+      ? [{ id: 'active', title: copy.lastActive, at: checkout.updatedAt, icon: Clock }]
+      : []),
+    { id: 'started', title: copy.started, at: checkout.createdAt, icon: ShoppingCart },
+  ]
+    .sort((a, b) => new Date(b.at).getTime() - new Date(a.at).getTime())
+    .map((e) => ({ ...e, time: fmt.when(e.at) }))
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>{copy.heading}</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <ul className="flex flex-col divide-y divide-hairline text-body">
-          {entries.map((e) => (
-            <li key={e.label} className="flex justify-between gap-4 py-2 first:pt-0 last:pb-0">
-              <span className="text-foreground">{e.label}</span>
-              <span className="text-muted-foreground tabular-nums">{fmt.when(e.at)}</span>
-            </li>
-          ))}
-        </ul>
-      </CardContent>
-    </Card>
+    <DataCard title={copy.heading}>
+      <Timeline items={entries} />
+    </DataCard>
   )
 }
