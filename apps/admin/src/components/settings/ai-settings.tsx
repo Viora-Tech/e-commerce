@@ -38,6 +38,13 @@ function share(used: number, limit: number | null): number {
   return limit === null || limit <= 0 ? 0 : Math.min(100, (used / limit) * 100)
 }
 
+/** At or past this share of the monthly limit the count turns amber (Figma "Near the monthly limit"). */
+const NEAR_LIMIT = 90
+
+function countTone(used: number, limit: number | null): string {
+  return share(used, limit) >= NEAR_LIMIT ? 'text-warning' : 'text-muted-foreground'
+}
+
 /**
  * Settings → AI: this month's AI use against the plan, the feature switches and writing quality,
  * what data is sent, and the Activity log of every change the AI made (with Undo).
@@ -148,7 +155,9 @@ export default function AiSettings() {
             <div className="flex flex-col gap-1.5">
               <div className="flex flex-wrap items-center justify-between gap-2 text-body">
                 <span className="text-ink-strong">{copy.settings.usage.requests}</span>
-                <span className="text-muted-foreground tabular-nums">
+                <span
+                  className={`tabular-nums ${countTone(usage.total.calls, loaded.quota.calls)}`}
+                >
                   {meter(usage.total.calls, loaded.quota.calls)}
                 </span>
               </div>
@@ -159,7 +168,7 @@ export default function AiSettings() {
             <div className="flex flex-col gap-1.5">
               <div className="flex flex-wrap items-center justify-between gap-2 text-body">
                 <span className="text-ink-strong">{copy.settings.usage.words}</span>
-                <span className="text-muted-foreground tabular-nums">
+                <span className={`tabular-nums ${countTone(tokens, loaded.quota.tokens)}`}>
                   {meter(tokens, loaded.quota.tokens)}
                 </span>
               </div>
