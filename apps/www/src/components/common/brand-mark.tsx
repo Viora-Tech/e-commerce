@@ -1,4 +1,4 @@
-import { KoomerceMark } from '@commerce/ui/brand'
+import KoomerceMark from '@commerce/ui/brand'
 import Link from 'next/link'
 import { siteContent } from '@/data/site'
 
