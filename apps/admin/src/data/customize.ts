@@ -130,6 +130,39 @@ export const customizeContent = {
       checkout: 'Checkout branding',
     },
     newTab: 'Opens in a new tab',
+    intro: 'Apply to every page and block. Changing one restyles the whole store.',
+    preset: 'Preset',
+    scheme: 'Scheme',
+    schemes: { light: 'Light', dark: 'Dark' },
+    presetApplied: (name: string) =>
+      `${name} preset applied. Your own colours and fonts were replaced.`,
+    undo: 'Undo',
+    back: 'Theme settings',
+    open: (name: string) => `Open ${name}`,
+    help: {
+      colours: 'Brand, accent, background, text and buttons, for light and dark pages.',
+      typography: 'The fonts and sizes every heading and paragraph uses.',
+      buttons: 'How every button on the store looks.',
+      layout: 'How wide pages are and how much room sits between sections.',
+      cards: 'Used in every product grid, carousel and search result.',
+      brand: 'Your logo in the header and the icon in the browser tab.',
+    },
+    summary: {
+      colours: 'Brand, accent, background, text, buttons',
+      typography: (heading: string, body: string, size: string) =>
+        `${heading} / ${body} · size ${size}`,
+      buttons: (style: string, corners: string) => `${style} · ${corners} corners`,
+      layout: (width: number, spacing: string) =>
+        `Page width ${width} · section spacing ${spacing}`,
+      cards: (ratio: string, extras: string[]) => [ratio, ...extras].join(' · '),
+      vendor: 'vendor',
+      saleBadge: 'sale badge',
+      hoverImage: 'second image',
+      brand: (logo: string | null, favicon: string | null) =>
+        [logo ?? 'No logo yet', favicon].filter(Boolean).join(' · '),
+      checkout: 'Opens Settings › Checkout',
+      cornersCustom: 'Custom',
+    },
   },
   pageSettings: {
     title: 'Page title',

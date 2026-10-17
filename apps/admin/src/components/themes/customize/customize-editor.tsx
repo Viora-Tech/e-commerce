@@ -379,7 +379,7 @@ export default function CustomizeEditor({
       <ImportedThemeSettings themeId={record.id} />
     </>
   ) : (
-    <ThemePanel theme={settings} mode={mode} onChange={setSettings} />
+    <ThemePanel theme={settings} mode={mode} onChange={setSettings} onMode={setModePick} />
   )
   const previewResource = preview.kind
     ? {
