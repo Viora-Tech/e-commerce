@@ -65,6 +65,9 @@ export const productsListContent = {
     vendor: 'Vendor',
     price: 'Price',
   },
+  /** The sort menu (Figma "State · Sort open", 626:148698). */
+  sortTitles: { product: 'Product title', type: 'Product type' },
+  sortAlpha: { desc: 'Z to A', asc: 'A to Z', first: 'asc' as const },
   inventory: (available: number, variants: number) =>
     `${available} in stock for ${variants} variant${variants === 1 ? '' : 's'}`,
   inStock: (available: number) => `${available} in stock`,
@@ -83,6 +86,8 @@ export const productsListContent = {
     delete: 'Delete',
     tagPrompt: 'Tag to add',
     tagPlaceholder: 'summer',
+    tagHelp: (n: number) =>
+      `Added to the ${n} selected product${n === 1 ? '' : 's'}. Their other tags stay.`,
     apply: 'Apply',
     cancel: 'Cancel',
     updated: (n: number) => `${n} product${n === 1 ? '' : 's'} updated`,

@@ -35,7 +35,7 @@ export type ResourceColumnSpec<T extends RowData> = {
   /** Value used for sorting; omit to make the column unsortable. */
   sortValue?: (item: T) => SortValue | undefined
   /** The sort menu's direction words ("Newest first" / "Oldest first"); else Descending/Ascending. */
-  sortLabels?: { desc: string; asc: string } | undefined
+  sortLabels?: { desc: string; asc: string; first?: 'asc' | 'desc' | undefined } | undefined
   /** The column's name in the sort menu when it differs from the header ("Order number"). */
   sortTitle?: string | undefined
   /** Where it sits in the sort menu, lowest first; columns without one follow, in column order. */

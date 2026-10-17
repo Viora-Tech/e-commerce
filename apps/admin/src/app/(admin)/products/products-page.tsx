@@ -402,6 +402,7 @@ function ProductsContent({ initial }: { initial: ProductsInitial }) {
         open={tagging !== null}
         onOpenChange={(open) => !open && setTagging(null)}
         onApply={handleApplyTag}
+        count={tagging?.ids.length ?? 0}
       />
       <ConfirmDialog
         open={deleting !== null}

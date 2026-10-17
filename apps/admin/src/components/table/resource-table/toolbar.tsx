@@ -41,7 +41,7 @@ type ToolbarProps<T extends RowData> = {
   sortTitles: Record<string, string>
   sortOrder: string[]
   /** Direction words per column for the sort menu. */
-  sortLabels: Record<string, { desc: string; asc: string }>
+  sortLabels: Record<string, { desc: string; asc: string; first?: 'asc' | 'desc' | undefined }>
   /** The columns' order as the member arranged it (empty = as defined). */
   columnOrder: string[]
   /** The columns menu's Reset: the page's default columns and order. */

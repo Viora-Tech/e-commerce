@@ -23,7 +23,7 @@ type SortMenuProps<T extends RowData> = {
   /** Column ids in the order the menu lists them. */
   sortOrder: string[]
   /** Direction words per column ("Newest first" / "Oldest first" for a date). */
-  sortLabels: Record<string, { desc: string; asc: string }>
+  sortLabels: Record<string, { desc: string; asc: string; first?: 'asc' | 'desc' | undefined }>
   /** The toolbar's 32px icon-button trigger. */
   trigger: ComponentProps<'button'>['className']
 }
@@ -56,7 +56,8 @@ export default function SortMenu<T extends RowData>({
     .sort((a, b) => rank(a.id) - rank(b.id))
   const sortedBy = sortable.find((c) => c.getIsSorted())
   const direction = sortedBy?.getIsSorted() || 'desc'
-  const words = (sortedBy && sortLabels[sortedBy.id]) || {
+  const words: { desc: string; asc: string; first?: 'asc' | 'desc' | undefined } = (sortedBy &&
+    sortLabels[sortedBy.id]) || {
     desc: tableCopy.sortDesc,
     asc: tableCopy.sortAsc,
   }
@@ -80,7 +81,11 @@ export default function SortMenu<T extends RowData>({
               <DropdownMenuItem
                 key={column.id}
                 closeOnClick={false}
-                onClick={() => column.toggleSorting(direction === 'desc')}
+                onClick={() =>
+                  column.toggleSorting(
+                    sortedBy ? direction === 'desc' : sortLabels[column.id]?.first !== 'asc',
+                  )
+                }
               >
                 <span
                   aria-hidden="true"
@@ -97,22 +102,24 @@ export default function SortMenu<T extends RowData>({
           })}
         </DropdownMenuGroup>
         <DropdownMenuSeparator />
-        {(['desc', 'asc'] as const).map((d) => {
-          const on = sortedBy !== undefined && direction === d
-          const Arrow = d === 'desc' ? ArrowDown : ArrowUp
-          return (
-            <DropdownMenuItem
-              key={d}
-              disabled={!sortedBy}
-              onClick={() => sortedBy?.toggleSorting(d === 'desc')}
-              className={cn(on ? 'bg-muted/60 text-foreground' : 'text-muted-foreground')}
-            >
-              <Arrow className="size-4" aria-hidden="true" />
-              <span className="flex-1">{words[d]}</span>
-              {on ? <CheckIcon className="size-4" aria-hidden="true" /> : null}
-            </DropdownMenuItem>
-          )
-        })}
+        {(words.first === 'asc' ? (['asc', 'desc'] as const) : (['desc', 'asc'] as const)).map(
+          (d) => {
+            const on = sortedBy !== undefined && direction === d
+            const Arrow = d === 'desc' ? ArrowDown : ArrowUp
+            return (
+              <DropdownMenuItem
+                key={d}
+                disabled={!sortedBy}
+                onClick={() => sortedBy?.toggleSorting(d === 'desc')}
+                className={cn(on ? 'bg-muted/60 text-foreground' : 'text-muted-foreground')}
+              >
+                <Arrow className="size-4" aria-hidden="true" />
+                <span className="flex-1">{words[d]}</span>
+                {on ? <CheckIcon className="size-4" aria-hidden="true" /> : null}
+              </DropdownMenuItem>
+            )
+          },
+        )}
       </DropdownMenuContent>
     </DropdownMenu>
   )
