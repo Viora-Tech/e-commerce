@@ -41,7 +41,7 @@ function linkColumns(
       className: 'w-[26%] whitespace-normal',
       render: (l) => (
         <span className="flex flex-col text-left">
-          <span className="line-clamp-1 font-medium text-ink-strong">{l.name}</span>
+          <span className="line-clamp-1 text-ink-strong">{l.name}</span>
           <span className="text-caption text-muted-foreground">{`${host}${shortLinkPath(l.slug)}`}</span>
         </span>
       ),
@@ -74,13 +74,13 @@ function linkColumns(
       title: copy.columns.revenue,
       align: 'end',
       sortValue: (l) => l.revenuePaise,
-      render: (l) => <span className="font-medium tabular-nums">{fmt.money(l.revenuePaise)}</span>,
+      render: (l) => <span className="tabular-nums">{fmt.money(l.revenuePaise)}</span>,
     },
     {
       id: 'created',
       title: copy.columns.created,
       sortValue: (l) => new Date(l.createdAt).getTime(),
-      render: (l) => <span className="tabular-nums">{fmt.day(l.createdAt)}</span>,
+      render: (l) => <span className="text-muted-foreground tabular-nums">{fmt.day(l.createdAt)}</span>,
     },
   ]
 }

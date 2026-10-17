@@ -1,11 +1,13 @@
 'use client'
 
-import { CircleAlert } from '@commerce/ui/icons'
+import { CircleAlert, Pencil } from '@commerce/ui/icons'
 import { Alert, AlertDescription, AlertTitle } from '@commerce/ui/shadcn/alert'
 import { Button } from '@commerce/ui/shadcn/button'
 import { useState } from 'react'
 import { toast } from 'sonner'
+import NoticeBar from '@/components/layout/notice-bar'
 import PageHeader from '@/components/layout/page-header'
+import StatusChip from '@/components/layout/status-chip'
 import { bulkEditContent } from '@/data/bulk-edit'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
@@ -152,11 +154,12 @@ export default function BulkEditor({ sheet, productIds }: BulkEditorProps) {
         title={copy.title}
         summary={copy.summary(products, rows.length)}
         back={{ label: copy.back, href: routes.products.list() }}
+        lead={{ kind: 'icon', node: <Pencil aria-hidden="true" /> }}
+        badges={
+          changed > 0 ? <StatusChip tone="attention">{copy.unsaved(changed)}</StatusChip> : null
+        }
         actions={
           <>
-            <span className="text-caption text-muted-foreground">
-              {changed > 0 ? copy.unsaved(changed) : copy.noChanges}
-            </span>
             <BulkColumnsMenu
               hidden={hidden}
               hasStock={sheet.locations.length > 0}
@@ -171,7 +174,7 @@ export default function BulkEditor({ sheet, productIds }: BulkEditorProps) {
           </>
         }
       />
-      <p className="text-caption text-muted-foreground">{copy.hint}</p>
+      <NoticeBar>{copy.hint}</NoticeBar>
       {sheet.truncated ? (
         <Alert>
           <CircleAlert />
