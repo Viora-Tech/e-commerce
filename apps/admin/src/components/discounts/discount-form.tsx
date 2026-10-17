@@ -202,11 +202,11 @@ export default function DiscountForm({ discount }: DiscountFormProps) {
               )
             }
           />
-          {serverError ? (
+          {serverError || Object.keys(errors).length > 0 ? (
             <Alert variant="destructive">
               <CircleAlert />
               <AlertTitle>{copy.toasts.failed}</AlertTitle>
-              <AlertDescription>{serverError}</AlertDescription>
+              <AlertDescription>{serverError ?? copy.toasts.fixHighlighted}</AlertDescription>
             </Alert>
           ) : null}
         </>

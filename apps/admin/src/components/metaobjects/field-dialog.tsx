@@ -182,6 +182,7 @@ export default function FieldDialog({
             <FieldLabel htmlFor="field-description">{copy.description}</FieldLabel>
             <Input
               id="field-description"
+              placeholder={copy.descriptionPlaceholder}
               size="lg"
               value={draft.description}
               maxLength={300}

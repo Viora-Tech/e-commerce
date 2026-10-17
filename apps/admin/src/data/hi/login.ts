@@ -37,6 +37,9 @@ export default [
     google: {
       button: 'Google से जारी रखें',
       or: 'या अपने ईमेल से',
+      signingIn: 'Google से साइन इन हो रहा है…',
+      signingInBody: 'Google वाली विंडो में पूरा करें। यह पेज अपने आप आगे बढ़ेगा।',
+      cancel: 'रद्द करें',
       failed: 'Google से साइन इन नहीं हो सका। फिर से कोशिश करें, या ईमेल वाले कोड से साइन इन करें।',
       errors: {
         access_denied: 'Google से साइन इन रद्द हो गया।',

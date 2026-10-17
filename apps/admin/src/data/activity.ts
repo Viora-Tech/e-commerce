@@ -2,7 +2,7 @@
 export const activityContent = {
   label: 'Notifications',
   unread: (n: number) => `${n} new`,
-  markAllRead: 'Mark all as read',
+  markAllRead: 'Mark all read',
   attentionHeading: 'Needs your attention',
   recentHeading: 'Last 7 days',
   /** Figma "TB · Notifications": filter tabs, day groups and the settings link. */

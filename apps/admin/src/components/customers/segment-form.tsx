@@ -82,6 +82,7 @@ export default function SegmentForm({ id, initialName, initialRules }: SegmentFo
       />
       <PageHeader
         title={id ? name || builder.editHeading : builder.newHeading}
+        subtitle={id ? undefined : builder.newIntro}
         back={{ label: builder.back, href: routes.customers.segments() }}
         actions={id ? <DeleteSegmentButton id={id} /> : null}
         save={{ dirty: true, saving, onSave: handleSave, label: builder.save }}

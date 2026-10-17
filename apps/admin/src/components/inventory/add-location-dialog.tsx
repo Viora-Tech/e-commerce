@@ -28,9 +28,9 @@ type Draft = { name: string; line1: string; city: string; stateCode: string; pin
 const EMPTY: Draft = { name: '', line1: '', city: '', stateCode: '', pincode: '' }
 
 const FIELDS = [
-  { key: 'line1', label: copy.line1, span: true },
-  { key: 'city', label: copy.city, span: false },
-  { key: 'pincode', label: copy.pincode, span: false },
+  { key: 'line1', label: copy.line1, span: true, placeholder: copy.line1Placeholder },
+  { key: 'city', label: copy.city, span: false, placeholder: undefined },
+  { key: 'pincode', label: copy.pincode, span: false, placeholder: undefined },
 ] as const
 
 /** The state decides which GST number the location can bill under, so it is picked, not typed. */
@@ -103,6 +103,7 @@ export default function AddLocationDialog({
             <Input
               id={`location-${f.key}`}
               value={draft[f.key]}
+              placeholder={f.placeholder}
               inputMode={f.key === 'pincode' ? 'numeric' : undefined}
               onChange={(e) => setDraft({ ...draft, [f.key]: e.target.value })}
             />

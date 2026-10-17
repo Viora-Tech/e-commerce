@@ -135,6 +135,7 @@ export const locationsContent = {
   name: 'Name',
   namePlaceholder: 'Bengaluru warehouse',
   line1: 'Address',
+  line1Placeholder: 'Building, street, area',
   city: 'City',
   stateCode: 'State',
   statePlaceholder: 'Pick a state',

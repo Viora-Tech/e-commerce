@@ -58,6 +58,13 @@ export const themeImportContent = {
     workingTitle: 'Importing your theme',
     workingSubtitle: 'This takes about a minute. Stay on this page.',
     progress: 'Import progress',
+    steps: [
+      'Read the theme files',
+      'Copied pictures into Files',
+      'Matching sections to our features',
+      'Cart, checkout, search and accounts',
+      'Building your report',
+    ],
     failedSubtitle: 'We could not read this file',
     failedTitle: 'This import did not finish',
     chooseAnother: 'Choose another file',

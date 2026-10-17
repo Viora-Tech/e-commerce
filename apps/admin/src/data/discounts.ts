@@ -77,6 +77,7 @@ export const discountFormContent = {
     deleted: 'Discount deleted',
     disabled: 'Discount disabled: it has been used on orders, so it was kept for history',
     failed: 'Save failed',
+    fixHighlighted: 'Fix the highlighted fields and try again.',
     paused: 'Discount paused: shoppers cannot use it until you resume it',
     resumed: 'Discount resumed',
     duplicated: 'Discount duplicated: the copy is paused until you resume it',

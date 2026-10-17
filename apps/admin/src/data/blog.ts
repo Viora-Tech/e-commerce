@@ -127,9 +127,9 @@ export const articleFormContent = {
 } as const
 
 const commentPolicy: Record<CommentPolicy, string> = {
-  disabled: 'Comments are disabled',
-  moderated: 'Comments are allowed, pending moderation',
-  open: 'Comments are allowed, published automatically',
+  disabled: 'Off',
+  moderated: 'On, after you approve',
+  open: 'On, published right away',
 }
 
 export const blogsManageContent = {

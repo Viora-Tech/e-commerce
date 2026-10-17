@@ -1,5 +1,6 @@
 'use client'
 
+import { Loader2Icon } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { useState } from 'react'
 import { loginContent } from '@/data/login'
@@ -49,6 +50,24 @@ export default function GoogleSignIn({ errorCode }: GoogleSignInProps) {
     }
   }
 
+  // Early returns
+  // Figma "Signing you in with Google": the page waits while the browser leaves for Google.
+  if (busy) {
+    return (
+      <div className="flex flex-col items-center gap-3 rounded-xl surface-card p-6 text-center">
+        {/* biome-ignore lint/performance/noImgElement: Google's own mark, unaltered (sign-in branding guidelines) */}
+        <img src="/brand/google-g.svg" alt="" aria-hidden="true" className="size-6" />
+        <Loader2Icon className="size-4 animate-spin text-muted-foreground" aria-hidden="true" />
+        <p className="text-card-title text-ink-strong">{copy.signingIn}</p>
+        <p className="text-caption text-muted-foreground">{copy.signingInBody}</p>
+        <Button type="button" variant="ghost" onClick={() => setBusy(false)}>
+          {copy.cancel}
+        </Button>
+      </div>
+    )
+  }
+
+  // Render logic
   return (
     <div className="flex flex-col gap-3">
       <Button

@@ -15,6 +15,7 @@ import { themeImportContent } from '@/data/theme-import'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 import { routes } from '@/lib/routes'
+import ImportSteps from './import-steps'
 
 /** Same ceiling the API enforces (`themes.import.shopify`). */
 const MAX_BYTES = 50 * 1024 * 1024
@@ -89,6 +90,7 @@ export default function ImportThemeScreen() {
           >
             <div className="h-full w-2/5 animate-pulse rounded-full bg-primary" />
           </div>
+          <ImportSteps />
           <p className="text-body text-muted-foreground">{copy.importing}</p>
         </div>
       </ProoflyPageBody>

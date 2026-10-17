@@ -94,8 +94,8 @@ export const productFormContent = {
       overview: 'Photos, title, description and custom fields',
       price: 'Price, cost, SKU and how many you have. Add options to sell sizes or colours.',
       variants: 'Options like size and colour, each with its own price and stock',
-      shipping: 'Weight and package size, used for shipping rates',
-      seo: 'How this product looks on Google, and its web address',
+      shipping: 'Weight, package and tax codes, used for courier rates and GST invoices',
+      seo: 'How this product looks on Google, its web address and keywords',
       more: 'Pre-order and launch, theme template and stock history',
     },
   },
@@ -169,6 +169,7 @@ export const productFormContent = {
     costHelp: 'Shoppers never see this.',
     margin: (pct: string, profit: string) => `Margin ${pct}, profit ${profit}`,
     taxable: 'Charge tax on this product',
+    taxableHelp: 'GST is added or extracted on the order.',
     taxIncluded: 'Tax included',
     taxIncludedYes: 'Yes',
     taxIncludedNo: 'No',
@@ -230,6 +231,12 @@ export const productFormContent = {
     maxOptions: 'Up to 3 options',
     count: (n: number) => `${n} variant${n === 1 ? '' : 's'}`,
     columns: { variant: 'Variant', price: 'Price', mrp: 'MRP', sku: 'SKU', available: 'Available' },
+    footer: {
+      stockAcross: (units: number, n: number) =>
+        `${units} in stock across ${n} variant${n === 1 ? '' : 's'}`,
+      marginOn: (pct: string, profit: string, title: string) =>
+        `Margin ${pct}, profit ${profit} on ${title}`,
+    },
     tooMany: (n: number) =>
       `${n} variants. Large matrices are slow to edit; consider fewer values.`,
     autoFillSku: 'Suggest SKUs',
@@ -335,6 +342,8 @@ export const productFormContent = {
     image: 'Image',
     chooseImage: 'Choose image',
     noImage: 'No image',
+    pickHelp: 'Pick one of the product photos for this variant.',
+    useImage: 'Use this image',
     selectAll: 'Select all variants',
     selectOne: (title: string) => `Select ${title}`,
   },

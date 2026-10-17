@@ -14,7 +14,8 @@ import {
 } from '@commerce/ui/shadcn/table'
 import MoneyInput from '@/components/fields/money-input'
 import { productFormContent } from '@/data/product-form'
-import { useCopy } from '@/hooks/use-copy'
+import { useCopy, useFormat } from '@/hooks/use-copy'
+import { bestMargin } from '@/lib/variant-margin'
 import type { MediaItem, VariantRow } from './form-state'
 import VariantImagePicker from './variant-image-picker'
 
@@ -43,9 +44,10 @@ export default function VariantMatrix({
 }: VariantMatrixProps) {
   // Hooks
   const {
-    variants: { columns: copy },
+    variants: { columns: copy, footer },
     variantBulk: bulkCopy,
   } = useCopy(productFormContent)
+  const fmt = useFormat()
 
   // Event handlers
   const handleToggleAll = (checked: boolean) => {
@@ -58,6 +60,8 @@ export default function VariantMatrix({
 
   // Render logic
   const allSelected = variants.length > 0 && selected.length === variants.length
+  const units = variants.reduce((sum, v) => sum + (Number(v.quantity) || 0), 0)
+  const best = bestMargin(variants)
 
   return (
     <div className="overflow-x-auto">
@@ -136,6 +140,18 @@ export default function VariantMatrix({
           })}
         </TableBody>
       </Table>
+      <div className="flex flex-wrap items-center justify-between gap-2 px-5 py-3 text-caption text-muted-foreground">
+        <span>{footer.stockAcross(units, variants.length)}</span>
+        {best ? (
+          <span>
+            {footer.marginOn(
+              `${best.profit.pct}%`,
+              fmt.money(best.profit.profitPaise),
+              variantTitle(best.variant.optionValues),
+            )}
+          </span>
+        ) : null}
+      </div>
     </div>
   )
 }
