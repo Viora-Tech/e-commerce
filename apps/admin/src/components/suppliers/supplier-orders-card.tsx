@@ -1,7 +1,7 @@
 'use client'
 
-import { Card, CardContent, CardHeader, CardTitle } from '@commerce/ui/shadcn/card'
 import Link from 'next/link'
+import DataCard from '@/components/layout/data-card'
 import StatusLabel from '@/components/status/status-label'
 import { supplierFormContent } from '@/data/purchasing'
 import { useCopy } from '@/hooks/use-copy'
@@ -19,29 +19,24 @@ export default function SupplierOrdersCard({ orders }: SupplierOrdersCardProps) 
 
   // Render logic
   return (
-    <Card size="form">
-      <CardHeader>
-        <CardTitle>{copy.heading}</CardTitle>
-      </CardHeader>
-      <CardContent>
-        {orders.length === 0 ? (
-          <p className="text-body text-muted-foreground">{copy.empty}</p>
-        ) : (
-          <ul className="flex flex-col gap-2">
-            {orders.map((o) => (
-              <li key={o.id} className="flex items-center justify-between gap-3">
-                <Link
-                  href={routes.stock.purchaseOrder(o.id)}
-                  className="text-body-strong hover:underline"
-                >
-                  {copy.number(o.number)}
-                </Link>
-                <StatusLabel kind="purchaseOrder" value={o.status} />
-              </li>
-            ))}
-          </ul>
-        )}
-      </CardContent>
-    </Card>
+    <DataCard title={copy.heading}>
+      {orders.length === 0 ? (
+        <p className="text-body text-muted-foreground">{copy.empty}</p>
+      ) : (
+        <ul className="flex flex-col gap-2">
+          {orders.map((o) => (
+            <li key={o.id} className="flex items-center justify-between gap-3">
+              <Link
+                href={routes.stock.purchaseOrder(o.id)}
+                className="text-body-strong hover:underline"
+              >
+                {copy.number(o.number)}
+              </Link>
+              <StatusLabel kind="purchaseOrder" value={o.status} />
+            </li>
+          ))}
+        </ul>
+      )}
+    </DataCard>
   )
 }

@@ -9,12 +9,12 @@ import {
 import { CircleAlert, ShieldCheck } from '@commerce/ui/icons'
 import { Alert, AlertDescription, AlertTitle } from '@commerce/ui/shadcn/alert'
 import { Badge } from '@commerce/ui/shadcn/badge'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@commerce/ui/shadcn/card'
 import { Progress } from '@commerce/ui/shadcn/progress'
 import { RadioGroup, RadioGroupItem } from '@commerce/ui/shadcn/radio-group'
 import { Skeleton } from '@commerce/ui/shadcn/skeleton'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
+import DataCard from '@/components/layout/data-card'
 import PageHeader from '@/components/layout/page-header'
 import SaveBar from '@/components/layout/save-bar'
 import { aiContent } from '@/data/ai'
@@ -131,48 +131,44 @@ export default function AiSettings() {
               <AlertDescription>{copy.settings.off.body}</AlertDescription>
             </Alert>
           )}
-          <Card size="form">
-            <CardHeader>
-              <CardTitle className="flex flex-wrap items-center gap-2">
+          <DataCard
+            title={
+              <>
                 {copy.settings.usage.heading}
                 <Badge variant="neutral">
                   {copy.settings.usage.plan}: {copy.settings.usage.plans[loaded.plan]}
                 </Badge>
-              </CardTitle>
-              <CardDescription>
-                {copy.settings.usage.help(
-                  fmt.pattern(nextMonthStart(usage.month), { day: 'numeric', month: 'long' }),
-                )}
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="flex flex-col gap-5">
-              <div className="flex flex-col gap-1.5">
-                <div className="flex flex-wrap items-center justify-between gap-2 text-body">
-                  <span className="text-ink-strong">{copy.settings.usage.requests}</span>
-                  <span className="text-muted-foreground tabular-nums">
-                    {meter(usage.total.calls, loaded.quota.calls)}
-                  </span>
-                </div>
-                {loaded.quota.calls === null ? null : (
-                  <Progress value={share(usage.total.calls, loaded.quota.calls)} />
-                )}
+              </>
+            }
+            subtitle={copy.settings.usage.help(
+              fmt.pattern(nextMonthStart(usage.month), { day: 'numeric', month: 'long' }),
+            )}
+            bodyClassName="flex flex-col gap-5"
+          >
+            <div className="flex flex-col gap-1.5">
+              <div className="flex flex-wrap items-center justify-between gap-2 text-body">
+                <span className="text-ink-strong">{copy.settings.usage.requests}</span>
+                <span className="text-muted-foreground tabular-nums">
+                  {meter(usage.total.calls, loaded.quota.calls)}
+                </span>
               </div>
-              <div className="flex flex-col gap-1.5">
-                <div className="flex flex-wrap items-center justify-between gap-2 text-body">
-                  <span className="text-ink-strong">{copy.settings.usage.words}</span>
-                  <span className="text-muted-foreground tabular-nums">
-                    {meter(tokens, loaded.quota.tokens)}
-                  </span>
-                </div>
-                {loaded.quota.tokens === null ? null : (
-                  <Progress value={share(tokens, loaded.quota.tokens)} />
-                )}
-                <p className="text-caption text-muted-foreground">
-                  {copy.settings.usage.wordsHelp}
-                </p>
+              {loaded.quota.calls === null ? null : (
+                <Progress value={share(usage.total.calls, loaded.quota.calls)} />
+              )}
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <div className="flex flex-wrap items-center justify-between gap-2 text-body">
+                <span className="text-ink-strong">{copy.settings.usage.words}</span>
+                <span className="text-muted-foreground tabular-nums">
+                  {meter(tokens, loaded.quota.tokens)}
+                </span>
               </div>
-            </CardContent>
-          </Card>
+              {loaded.quota.tokens === null ? null : (
+                <Progress value={share(tokens, loaded.quota.tokens)} />
+              )}
+              <p className="text-caption text-muted-foreground">{copy.settings.usage.wordsHelp}</p>
+            </div>
+          </DataCard>
           <SettingsCard
             title={copy.settings.features.heading}
             description={copy.settings.features.help}
@@ -209,26 +205,26 @@ export default function AiSettings() {
               </RadioGroup>
             </SettingsRow>
           </SettingsCard>
-          <Card size="form">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
+          <DataCard
+            title={
+              <>
                 <ShieldCheck className="size-5 text-primary" aria-hidden="true" />
                 {copy.settings.privacy.heading}
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="flex flex-col gap-3">
-              <ul className="flex list-disc flex-col gap-1.5 pl-5 text-body text-ink-strong">
-                {copy.settings.privacy.lines.map((line) => (
-                  <li key={line}>{line}</li>
-                ))}
-              </ul>
-              {loaded.configured ? (
-                <p className="text-caption text-muted-foreground">
-                  {copy.settings.privacy.model(loaded.models.fast, loaded.models.strong)}
-                </p>
-              ) : null}
-            </CardContent>
-          </Card>
+              </>
+            }
+            bodyClassName="flex flex-col gap-3"
+          >
+            <ul className="flex list-disc flex-col gap-1.5 pl-5 text-body text-ink-strong">
+              {copy.settings.privacy.lines.map((line) => (
+                <li key={line}>{line}</li>
+              ))}
+            </ul>
+            {loaded.configured ? (
+              <p className="text-caption text-muted-foreground">
+                {copy.settings.privacy.model(loaded.models.fast, loaded.models.strong)}
+              </p>
+            ) : null}
+          </DataCard>
           <AiActivityCard />
         </>
       )}

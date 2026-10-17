@@ -1,10 +1,10 @@
 'use client'
 
 import type { RichTextValue } from '@commerce/richtext'
-import { Card, CardContent, CardHeader, CardTitle } from '@commerce/ui/shadcn/card'
 import { Field, FieldGroup, FieldLabel } from '@commerce/ui/shadcn/field'
 import { Input } from '@commerce/ui/shadcn/input'
 import RichTextField from '@/components/fields/rich-text-field'
+import DataCard from '@/components/layout/data-card'
 import { collectionDetailContent, collectionFormContent } from '@/data/collections'
 import { useCopy } from '@/hooks/use-copy'
 
@@ -26,29 +26,24 @@ export default function CollectionTitleCard({
 
   // Render logic
   return (
-    <Card size="form">
-      <CardHeader>
-        <CardTitle>{detail.titleCard}</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <FieldGroup>
-          <Field>
-            <FieldLabel htmlFor="collection-title">{copy.title}</FieldLabel>
-            <Input
-              id="collection-title"
-              value={title}
-              placeholder={copy.titlePlaceholder}
-              onChange={(e) => onChange({ title: e.target.value })}
-            />
-          </Field>
-          <RichTextField
-            label={copy.description}
-            value={description as RichTextValue | null}
-            onChange={(value) => onChange({ description: value })}
-            minHeight={140}
+    <DataCard title={detail.titleCard}>
+      <FieldGroup>
+        <Field>
+          <FieldLabel htmlFor="collection-title">{copy.title}</FieldLabel>
+          <Input
+            id="collection-title"
+            value={title}
+            placeholder={copy.titlePlaceholder}
+            onChange={(e) => onChange({ title: e.target.value })}
           />
-        </FieldGroup>
-      </CardContent>
-    </Card>
+        </Field>
+        <RichTextField
+          label={copy.description}
+          value={description as RichTextValue | null}
+          onChange={(value) => onChange({ description: value })}
+          minHeight={140}
+        />
+      </FieldGroup>
+    </DataCard>
   )
 }

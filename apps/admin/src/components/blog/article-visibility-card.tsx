@@ -1,10 +1,10 @@
 'use client'
 
 import type { ArticleStatus } from '@commerce/core/blog'
-import { Card, CardContent, CardHeader, CardTitle } from '@commerce/ui/shadcn/card'
 import { Field, FieldDescription, FieldLabel } from '@commerce/ui/shadcn/field'
 import { Input } from '@commerce/ui/shadcn/input'
 import { RadioGroup, RadioGroupItem } from '@commerce/ui/shadcn/radio-group'
+import DataCard from '@/components/layout/data-card'
 import { articleFormContent } from '@/data/blog'
 import { useCopy } from '@/hooks/use-copy'
 import { formatDateTime } from '@/lib/format-date'
@@ -42,36 +42,31 @@ export default function ArticleVisibilityCard({
         : copy.draftHelp
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>{copy.heading}</CardTitle>
-      </CardHeader>
-      <CardContent className="flex flex-col gap-4">
-        <RadioGroup value={status} onValueChange={(v) => handleStatus(String(v) as ArticleStatus)}>
-          {OPTIONS.map((option) => (
-            <Field key={option} orientation="horizontal">
-              <RadioGroupItem id={`article-visibility-${option}`} value={option} />
-              <FieldLabel htmlFor={`article-visibility-${option}`} className="font-normal">
-                {copy[option]}
-              </FieldLabel>
-            </Field>
-          ))}
-        </RadioGroup>
-        {status === 'scheduled' ? (
-          <Field>
-            <FieldLabel htmlFor="article-published-at">{copy.when}</FieldLabel>
-            <Input
-              id="article-published-at"
-              size="lg"
-              type="datetime-local"
-              value={publishedAt}
-              onChange={(e) => onChange({ publishedAt: e.target.value })}
-            />
-            <FieldDescription>{copy.tz}</FieldDescription>
+    <DataCard title={copy.heading} bodyClassName="flex flex-col gap-4">
+      <RadioGroup value={status} onValueChange={(v) => handleStatus(String(v) as ArticleStatus)}>
+        {OPTIONS.map((option) => (
+          <Field key={option} orientation="horizontal">
+            <RadioGroupItem id={`article-visibility-${option}`} value={option} />
+            <FieldLabel htmlFor={`article-visibility-${option}`} className="font-normal">
+              {copy[option]}
+            </FieldLabel>
           </Field>
-        ) : null}
-        <p className="text-body text-muted-foreground">{help}</p>
-      </CardContent>
-    </Card>
+        ))}
+      </RadioGroup>
+      {status === 'scheduled' ? (
+        <Field>
+          <FieldLabel htmlFor="article-published-at">{copy.when}</FieldLabel>
+          <Input
+            id="article-published-at"
+            size="lg"
+            type="datetime-local"
+            value={publishedAt}
+            onChange={(e) => onChange({ publishedAt: e.target.value })}
+          />
+          <FieldDescription>{copy.tz}</FieldDescription>
+        </Field>
+      ) : null}
+      <p className="text-body text-muted-foreground">{help}</p>
+    </DataCard>
   )
 }

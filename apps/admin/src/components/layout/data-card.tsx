@@ -7,7 +7,8 @@ import CountBadge from './count-badge'
 import DetailsLink from './details-link'
 
 type DataCardProps = {
-  title: string
+  /** Usually text; a chip or icon can sit inline beside it. */
+  title: ReactNode
   /** Small grey line above the title (a fulfilment group's origin, date and tracking). */
   meta?: ReactNode
   /** A small glyph after the title (the status icon of a fulfilment group). */
@@ -23,7 +24,10 @@ type DataCardProps = {
   /** Outlined "Details" pill pinned to the bottom-right corner. */
   detailsHref?: string
   children: ReactNode
+  id?: string
   className?: string
+  /** Classes for the body wrapper (a flex column of fields, a grid of tiles). */
+  bodyClassName?: string
   /** Let tables and lists run edge to edge (they carry their own cell inset). */
   flush?: boolean
   /** `muted`: the light grey grouped sub-section (fulfilment groups). */
@@ -50,12 +54,15 @@ export default function DataCard({
   menu,
   detailsHref,
   children,
+  id,
   className,
+  bodyClassName,
   flush,
   tone = 'default',
 }: DataCardProps) {
   return (
     <Card
+      id={id}
       className={cn(
         'relative h-full gap-0 rounded-lg p-5 in-data-[layout=sections]:h-auto in-data-[layout=sections]:rounded-none in-data-[layout=sections]:px-4 in-data-[layout=sections]:py-6 md:in-data-[layout=sections]:px-6',
         tone === 'muted' && 'bg-background bg-none',
@@ -69,7 +76,7 @@ export default function DataCard({
             <div className="text-caption font-normal text-muted-foreground">{meta}</div>
           ) : null}
           <div className="flex items-center gap-2">
-            <h2 className="text-card-title text-ink-strong">{title}</h2>
+            <h2 className="flex items-center gap-2 text-card-title text-ink-strong">{title}</h2>
             {icon ? (
               <span className="flex text-muted-foreground [&_svg]:size-4">{icon}</span>
             ) : null}
@@ -89,6 +96,7 @@ export default function DataCard({
       <div
         className={cn(
           'mt-4',
+          bodyClassName,
           flush && '-mx-5 in-data-[layout=sections]:-mx-4 md:in-data-[layout=sections]:-mx-6',
         )}
       >

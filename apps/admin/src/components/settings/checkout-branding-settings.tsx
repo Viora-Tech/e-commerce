@@ -7,10 +7,10 @@ import {
 } from '@commerce/core/checkout-settings'
 import { THEME_FONTS } from '@commerce/core/theme'
 import { Monitor, Smartphone } from '@commerce/ui/icons'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@commerce/ui/shadcn/card'
 import { FieldGroup } from '@commerce/ui/shadcn/field'
 import { ToggleGroup, ToggleGroupItem } from '@commerce/ui/shadcn/toggle-group'
 import { useState } from 'react'
+import DataCard from '@/components/layout/data-card'
 import CheckoutBrandingPreview, {
   type PreviewDevice,
 } from '@/components/settings/checkout-branding-preview'
@@ -187,12 +187,10 @@ export default function CheckoutBrandingSettings({
         </SettingsCard>
       </div>
 
-      <Card className="xl:sticky xl:top-20">
-        <CardHeader className="flex flex-row items-start justify-between gap-3">
-          <div className="flex flex-col gap-1">
-            <CardTitle>{copy.preview.heading}</CardTitle>
-            <CardDescription>{copy.preview.description}</CardDescription>
-          </div>
+      <DataCard
+        title={copy.preview.heading}
+        subtitle={copy.preview.description}
+        action={
           <ToggleGroup value={[device]} onValueChange={handleDevice} variant="outline" spacing={0}>
             <ToggleGroupItem
               value="desktop"
@@ -209,11 +207,11 @@ export default function CheckoutBrandingSettings({
               <Smartphone aria-hidden />
             </ToggleGroupItem>
           </ToggleGroup>
-        </CardHeader>
-        <CardContent>
-          <CheckoutBrandingPreview branding={branding} device={device} storeName={storeName} />
-        </CardContent>
-      </Card>
+        }
+        className="xl:sticky xl:top-20"
+      >
+        <CheckoutBrandingPreview branding={branding} device={device} storeName={storeName} />
+      </DataCard>
     </div>
   )
 }

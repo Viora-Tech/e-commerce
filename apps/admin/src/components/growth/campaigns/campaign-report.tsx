@@ -4,10 +4,11 @@ import { parseEmailBlocks } from '@commerce/core/marketing'
 import { formatNumber } from '@commerce/money'
 import { Copy } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
-import { Card, CardContent, CardHeader, CardTitle } from '@commerce/ui/shadcn/card'
+import { Card } from '@commerce/ui/shadcn/card'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
+import DataCard from '@/components/layout/data-card'
 import PageHeader from '@/components/layout/page-header'
 import OrderChip from '@/components/orders/order-chip'
 import { campaignsContent, campaignReportContent as copy } from '@/data/marketing-campaigns'
@@ -139,17 +140,10 @@ export default function CampaignReport({
         {problems.join(' ')} {copy.attribution} {email ? '' : copy.whatsappOpens}
       </p>
       <div className="grid grid-cols-1 items-start gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)]">
-        <Card>
-          <CardHeader>
-            <CardTitle>{copy.audience}</CardTitle>
-          </CardHeader>
-          <CardContent className="text-body">
-            {campaign.segmentName ?? campaignsContent.allSubscribers}
-            <span className="ml-2 text-muted-foreground">
-              {campaignsContent.kind[campaign.kind]}
-            </span>
-          </CardContent>
-        </Card>
+        <DataCard title={copy.audience} bodyClassName="text-body">
+          {campaign.segmentName ?? campaignsContent.allSubscribers}
+          <span className="ml-2 text-muted-foreground">{campaignsContent.kind[campaign.kind]}</span>
+        </DataCard>
         {email ? (
           <EmailPreview
             storeName={storeName}

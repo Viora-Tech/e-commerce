@@ -3,7 +3,6 @@
 import type { PurchaseCurrency } from '@commerce/core/inventory'
 import PhoneInput from '@commerce/ui/phone-input'
 import { Button } from '@commerce/ui/shadcn/button'
-import { Card, CardContent, CardHeader, CardTitle } from '@commerce/ui/shadcn/card'
 import { Field, FieldDescription, FieldGroup, FieldLabel } from '@commerce/ui/shadcn/field'
 import { Input } from '@commerce/ui/shadcn/input'
 import { Textarea } from '@commerce/ui/shadcn/textarea'
@@ -12,6 +11,7 @@ import { useState } from 'react'
 import { toast } from 'sonner'
 import CurrencySelect from '@/components/landed-cost/currency-select'
 import ConfirmDialog from '@/components/layout/confirm-dialog'
+import DataCard from '@/components/layout/data-card'
 import PageColumns from '@/components/layout/page-columns'
 import PageHeader from '@/components/layout/page-header'
 import ProoflyPageBody from '@/components/layout/proofly-page-body'
@@ -142,122 +142,107 @@ export default function SupplierForm({ supplier }: SupplierFormProps) {
       <PageColumns
         main={
           <>
-            <Card size="form">
-              <CardHeader>
-                <CardTitle>{copy.details.heading}</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <FieldGroup>
+            <DataCard title={copy.details.heading}>
+              <FieldGroup>
+                <Field>
+                  <FieldLabel htmlFor="supplier-name">{copy.details.name}</FieldLabel>
+                  <Input
+                    id="supplier-name"
+                    size="lg"
+                    value={d.name}
+                    onChange={(e) => patch({ name: e.target.value })}
+                  />
+                </Field>
+                <div className="grid gap-4 sm:grid-cols-3">
                   <Field>
-                    <FieldLabel htmlFor="supplier-name">{copy.details.name}</FieldLabel>
+                    <FieldLabel htmlFor="supplier-country">{copy.details.country}</FieldLabel>
                     <Input
-                      id="supplier-name"
-                      size="lg"
-                      value={d.name}
-                      onChange={(e) => patch({ name: e.target.value })}
+                      id="supplier-country"
+                      value={d.country}
+                      maxLength={2}
+                      onChange={(e) => patch({ country: e.target.value.toUpperCase() })}
                     />
+                    <FieldDescription>{copy.details.countryHint}</FieldDescription>
                   </Field>
-                  <div className="grid gap-4 sm:grid-cols-3">
-                    <Field>
-                      <FieldLabel htmlFor="supplier-country">{copy.details.country}</FieldLabel>
-                      <Input
-                        id="supplier-country"
-                        value={d.country}
-                        maxLength={2}
-                        onChange={(e) => patch({ country: e.target.value.toUpperCase() })}
-                      />
-                      <FieldDescription>{copy.details.countryHint}</FieldDescription>
-                    </Field>
-                    <Field>
-                      <FieldLabel htmlFor="supplier-currency">{copy.details.currency}</FieldLabel>
-                      <CurrencySelect
-                        id="supplier-currency"
-                        value={d.currency}
-                        className="w-full"
-                        onChange={(currency) => patch({ currency })}
-                      />
-                    </Field>
-                    <Field>
-                      <FieldLabel htmlFor="supplier-gstin">{copy.details.gstin}</FieldLabel>
-                      <Input
-                        id="supplier-gstin"
-                        value={d.gstin}
-                        maxLength={15}
-                        onChange={(e) => patch({ gstin: e.target.value.toUpperCase() })}
-                      />
-                      <FieldDescription>{copy.details.gstinHint}</FieldDescription>
-                    </Field>
-                  </div>
-                </FieldGroup>
-              </CardContent>
-            </Card>
-            <Card size="form">
-              <CardHeader>
-                <CardTitle>{copy.contact.heading}</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <FieldGroup>
-                  <div className="grid gap-4 sm:grid-cols-2">
-                    <Field>
-                      <FieldLabel htmlFor="supplier-email">{copy.contact.email}</FieldLabel>
-                      <Input
-                        id="supplier-email"
-                        type="email"
-                        value={d.email}
-                        onChange={(e) => patch({ email: e.target.value })}
-                      />
-                    </Field>
-                    <Field>
-                      <FieldLabel htmlFor="supplier-phone">{copy.contact.phone}</FieldLabel>
-                      <PhoneInput
-                        id="supplier-phone"
-                        value={d.phone}
-                        onChange={(phone) => patch({ phone })}
-                        autoComplete="tel"
-                      />
-                    </Field>
-                  </div>
                   <Field>
-                    <FieldLabel htmlFor="supplier-address">{copy.contact.address}</FieldLabel>
-                    <Textarea
-                      id="supplier-address"
-                      value={d.address}
-                      onChange={(e) => patch({ address: e.target.value })}
+                    <FieldLabel htmlFor="supplier-currency">{copy.details.currency}</FieldLabel>
+                    <CurrencySelect
+                      id="supplier-currency"
+                      value={d.currency}
+                      className="w-full"
+                      onChange={(currency) => patch({ currency })}
                     />
                   </Field>
-                </FieldGroup>
-              </CardContent>
-            </Card>
+                  <Field>
+                    <FieldLabel htmlFor="supplier-gstin">{copy.details.gstin}</FieldLabel>
+                    <Input
+                      id="supplier-gstin"
+                      value={d.gstin}
+                      maxLength={15}
+                      onChange={(e) => patch({ gstin: e.target.value.toUpperCase() })}
+                    />
+                    <FieldDescription>{copy.details.gstinHint}</FieldDescription>
+                  </Field>
+                </div>
+              </FieldGroup>
+            </DataCard>
+            <DataCard title={copy.contact.heading}>
+              <FieldGroup>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <Field>
+                    <FieldLabel htmlFor="supplier-email">{copy.contact.email}</FieldLabel>
+                    <Input
+                      id="supplier-email"
+                      type="email"
+                      value={d.email}
+                      onChange={(e) => patch({ email: e.target.value })}
+                    />
+                  </Field>
+                  <Field>
+                    <FieldLabel htmlFor="supplier-phone">{copy.contact.phone}</FieldLabel>
+                    <PhoneInput
+                      id="supplier-phone"
+                      value={d.phone}
+                      onChange={(phone) => patch({ phone })}
+                      autoComplete="tel"
+                    />
+                  </Field>
+                </div>
+                <Field>
+                  <FieldLabel htmlFor="supplier-address">{copy.contact.address}</FieldLabel>
+                  <Textarea
+                    id="supplier-address"
+                    value={d.address}
+                    onChange={(e) => patch({ address: e.target.value })}
+                  />
+                </Field>
+              </FieldGroup>
+            </DataCard>
           </>
         }
         side={
           <>
-            <Card size="form">
-              <CardHeader>
-                <CardTitle>{copy.terms.heading}</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <FieldGroup>
-                  <Field>
-                    <FieldLabel htmlFor="supplier-terms">{copy.terms.paymentTerms}</FieldLabel>
-                    <Input
-                      id="supplier-terms"
-                      value={d.paymentTerms}
-                      placeholder={copy.terms.paymentTermsPlaceholder}
-                      onChange={(e) => patch({ paymentTerms: e.target.value })}
-                    />
-                  </Field>
-                  <Field>
-                    <FieldLabel htmlFor="supplier-notes">{copy.terms.notes}</FieldLabel>
-                    <Textarea
-                      id="supplier-notes"
-                      value={d.notes}
-                      onChange={(e) => patch({ notes: e.target.value })}
-                    />
-                  </Field>
-                </FieldGroup>
-              </CardContent>
-            </Card>
+            <DataCard title={copy.terms.heading}>
+              <FieldGroup>
+                <Field>
+                  <FieldLabel htmlFor="supplier-terms">{copy.terms.paymentTerms}</FieldLabel>
+                  <Input
+                    id="supplier-terms"
+                    value={d.paymentTerms}
+                    placeholder={copy.terms.paymentTermsPlaceholder}
+                    onChange={(e) => patch({ paymentTerms: e.target.value })}
+                  />
+                </Field>
+                <Field>
+                  <FieldLabel htmlFor="supplier-notes">{copy.terms.notes}</FieldLabel>
+                  <Textarea
+                    id="supplier-notes"
+                    value={d.notes}
+                    onChange={(e) => patch({ notes: e.target.value })}
+                  />
+                </Field>
+              </FieldGroup>
+            </DataCard>
             {supplier ? <SupplierOrdersCard orders={supplier.orders} /> : null}
           </>
         }

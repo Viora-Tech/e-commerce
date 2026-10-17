@@ -1,12 +1,13 @@
 'use client'
 
 import type { SegmentRules } from '@commerce/core/segments'
-import { Card, CardContent, CardHeader, CardTitle } from '@commerce/ui/shadcn/card'
+import { Card, CardContent } from '@commerce/ui/shadcn/card'
 import { Field, FieldLabel } from '@commerce/ui/shadcn/field'
 import { Input } from '@commerce/ui/shadcn/input'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
+import DataCard from '@/components/layout/data-card'
 import PageBody from '@/components/layout/page-body'
 import PageHeader from '@/components/layout/page-header'
 import SaveBar from '@/components/layout/save-bar'
@@ -101,14 +102,9 @@ export default function SegmentForm({ id, initialName, initialRules }: SegmentFo
               </Field>
             </CardContent>
           </Card>
-          <Card size="form" className="rounded-xl">
-            <CardHeader>
-              <CardTitle>{builder.conditions}</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <ConditionBuilder rules={rules} onChange={setRules} />
-            </CardContent>
-          </Card>
+          <DataCard title={builder.conditions} className="rounded-xl">
+            <ConditionBuilder rules={rules} onChange={setRules} />
+          </DataCard>
         </div>
         <SegmentPreview rules={rules} />
       </div>

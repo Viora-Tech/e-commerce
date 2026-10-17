@@ -13,14 +13,6 @@ import { AiIcon, CircleAlert, StarIcon, XIcon } from '@commerce/ui/icons'
 import { cn } from '@commerce/ui/lib/utils'
 import { Alert, AlertDescription } from '@commerce/ui/shadcn/alert'
 import { Badge } from '@commerce/ui/shadcn/badge'
-import {
-  Card,
-  CardAction,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@commerce/ui/shadcn/card'
 import { Field, FieldDescription, FieldLabel } from '@commerce/ui/shadcn/field'
 import { Input } from '@commerce/ui/shadcn/input'
 import { Skeleton } from '@commerce/ui/shadcn/skeleton'
@@ -28,6 +20,8 @@ import { Spinner } from '@commerce/ui/shadcn/spinner'
 import { type KeyboardEvent, useState } from 'react'
 import { toast } from 'sonner'
 import KitButton from '@/components/kit/kit-button'
+import DataCard from '@/components/layout/data-card'
+
 import { rupees } from '@/data/products'
 import { seoKeywordsContent } from '@/data/seo-keywords'
 import { useCopy } from '@/hooks/use-copy'
@@ -119,102 +113,100 @@ export default function SeoKeywordsCard({ productId, form, aiOn, onChange }: Seo
   const needsTitle = form.title.trim().length === 0
 
   return (
-    <Card size="form">
-      <CardHeader>
-        <CardTitle>{copy.heading}</CardTitle>
-        <CardDescription>{copy.intro}</CardDescription>
-        {aiOn ? (
-          <CardAction>
-            <KitButton
-              variant="chip"
-              onClick={() => void handleSuggest()}
-              disabled={busy || needsTitle}
-              title={needsTitle ? copy.needTitle : undefined}
+    <DataCard
+      title={copy.heading}
+      subtitle={copy.intro}
+      action={
+        aiOn ? (
+          <KitButton
+            variant="chip"
+            onClick={() => void handleSuggest()}
+            disabled={busy || needsTitle}
+            title={needsTitle ? copy.needTitle : undefined}
+          >
+            {busy ? <Spinner /> : <AiIcon className="text-primary" aria-hidden="true" />}
+            {suggestions ? copy.suggestAgain : copy.suggest}
+          </KitButton>
+        ) : null
+      }
+      bodyClassName="flex flex-col gap-4"
+    >
+      {error ? (
+        <Alert variant="destructive">
+          <CircleAlert />
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      ) : null}
+      {busy ? (
+        <div className="flex flex-col gap-2" aria-live="polite">
+          <p className="text-body text-muted-foreground">{copy.suggesting}</p>
+          <Skeleton className="h-24 w-full rounded-xl" />
+        </div>
+      ) : suggestions ? (
+        <SeoKeywordSuggestions
+          suggestions={suggestions.keywords}
+          searchQueries={suggestions.searchQueries}
+          current={keywords}
+          onUse={handleUse}
+          onDismiss={() => setSuggestions(null)}
+        />
+      ) : null}
+      {keywords.length ? (
+        <ul className="flex flex-col gap-1.5">
+          {keywords.map((keyword, i) => (
+            <li
+              key={keyword}
+              className={cn(
+                'flex min-w-0 items-center gap-2 rounded-lg border px-3 py-2',
+                i === 0 ? 'border-primary/40 bg-primary/5' : 'border-border bg-card',
+              )}
             >
-              {busy ? <Spinner /> : <AiIcon className="text-primary" aria-hidden="true" />}
-              {suggestions ? copy.suggestAgain : copy.suggest}
-            </KitButton>
-          </CardAction>
-        ) : null}
-      </CardHeader>
-      <CardContent className="flex flex-col gap-4">
-        {error ? (
-          <Alert variant="destructive">
-            <CircleAlert />
-            <AlertDescription>{error}</AlertDescription>
-          </Alert>
-        ) : null}
-        {busy ? (
-          <div className="flex flex-col gap-2" aria-live="polite">
-            <p className="text-body text-muted-foreground">{copy.suggesting}</p>
-            <Skeleton className="h-24 w-full rounded-xl" />
-          </div>
-        ) : suggestions ? (
-          <SeoKeywordSuggestions
-            suggestions={suggestions.keywords}
-            searchQueries={suggestions.searchQueries}
-            current={keywords}
-            onUse={handleUse}
-            onDismiss={() => setSuggestions(null)}
-          />
-        ) : null}
-        {keywords.length ? (
-          <ul className="flex flex-col gap-1.5">
-            {keywords.map((keyword, i) => (
-              <li
-                key={keyword}
-                className={cn(
-                  'flex min-w-0 items-center gap-2 rounded-lg border px-3 py-2',
-                  i === 0 ? 'border-primary/40 bg-primary/5' : 'border-border bg-card',
-                )}
+              <button
+                type="button"
+                onClick={() => onChange(makePrimary(keywords, keyword))}
+                disabled={i === 0}
+                title={i === 0 ? copy.primaryHint : copy.makePrimary}
+                className="flex size-6 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-primary disabled:text-primary"
               >
-                <button
-                  type="button"
-                  onClick={() => onChange(makePrimary(keywords, keyword))}
-                  disabled={i === 0}
-                  title={i === 0 ? copy.primaryHint : copy.makePrimary}
-                  className="flex size-6 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-primary disabled:text-primary"
-                >
-                  <StarIcon weight={i === 0 ? 'fill' : 'regular'} className="size-4" />
-                  <span className="sr-only">{i === 0 ? copy.primary : copy.makePrimary}</span>
-                </button>
-                <span className="min-w-0 flex-1 truncate text-body text-foreground">{keyword}</span>
-                {i === 0 ? <Badge variant="info">{copy.primary}</Badge> : null}
-                <button
-                  type="button"
-                  onClick={() => onChange(keywords.filter((k) => k !== keyword))}
-                  className="flex size-6 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-                >
-                  <XIcon className="size-4" />
-                  <span className="sr-only">{copy.remove(keyword)}</span>
-                </button>
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <p className="text-body text-muted-foreground">{aiOn ? copy.empty : copy.emptyNoAi}</p>
-        )}
-        <Field>
-          <FieldLabel htmlFor="seo-keyword-add">{copy.addLabel}</FieldLabel>
-          <div className="flex gap-2">
-            <Input
-              size="lg"
-              id="seo-keyword-add"
-              value={draft}
-              onChange={(e) => setDraft(e.target.value)}
-              onKeyDown={handleDraftKey}
-              placeholder={copy.addPlaceholder}
-              maxLength={SEO_KEYWORD_LENGTH_MAX}
-              disabled={full}
-              autoComplete="off"
-            />
-            <KitButton variant="secondary" onClick={handleAdd} disabled={full || !draft.trim()}>
-              {copy.add}
-            </KitButton>
-          </div>
-          {full ? <FieldDescription>{copy.full(SEO_KEYWORDS_MAX)}</FieldDescription> : null}
-        </Field>
-      </CardContent>
-    </Card>
+                <StarIcon weight={i === 0 ? 'fill' : 'regular'} className="size-4" />
+                <span className="sr-only">{i === 0 ? copy.primary : copy.makePrimary}</span>
+              </button>
+              <span className="min-w-0 flex-1 truncate text-body text-foreground">{keyword}</span>
+              {i === 0 ? <Badge variant="info">{copy.primary}</Badge> : null}
+              <button
+                type="button"
+                onClick={() => onChange(keywords.filter((k) => k !== keyword))}
+                className="flex size-6 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+              >
+                <XIcon className="size-4" />
+                <span className="sr-only">{copy.remove(keyword)}</span>
+              </button>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p className="text-body text-muted-foreground">{aiOn ? copy.empty : copy.emptyNoAi}</p>
+      )}
+      <Field>
+        <FieldLabel htmlFor="seo-keyword-add">{copy.addLabel}</FieldLabel>
+        <div className="flex gap-2">
+          <Input
+            size="lg"
+            id="seo-keyword-add"
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+            onKeyDown={handleDraftKey}
+            placeholder={copy.addPlaceholder}
+            maxLength={SEO_KEYWORD_LENGTH_MAX}
+            disabled={full}
+            autoComplete="off"
+          />
+          <KitButton variant="secondary" onClick={handleAdd} disabled={full || !draft.trim()}>
+            {copy.add}
+          </KitButton>
+        </div>
+        {full ? <FieldDescription>{copy.full(SEO_KEYWORDS_MAX)}</FieldDescription> : null}
+      </Field>
+    </DataCard>
   )
 }

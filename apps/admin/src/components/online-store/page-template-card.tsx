@@ -1,7 +1,6 @@
 'use client'
 
 import { Button } from '@commerce/ui/shadcn/button'
-import { Card, CardContent, CardHeader, CardTitle } from '@commerce/ui/shadcn/card'
 import { Field, FieldDescription } from '@commerce/ui/shadcn/field'
 import {
   Select,
@@ -11,6 +10,7 @@ import {
   SelectValue,
 } from '@commerce/ui/shadcn/select'
 import Link from 'next/link'
+import DataCard from '@/components/layout/data-card'
 import { onlineStoreContent } from '@/data/online-store'
 import { useCopy } from '@/hooks/use-copy'
 
@@ -49,31 +49,26 @@ export default function PageTemplateCard({
   ]
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>{copy.heading}</CardTitle>
-      </CardHeader>
-      <CardContent className="flex flex-col gap-4">
-        <Field>
-          <Select items={items} value={value || DEFAULT} onValueChange={handleChange}>
-            <SelectTrigger className="w-full" aria-label={copy.heading}>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {items.map((i) => (
-                <SelectItem key={i.value} value={i.value}>
-                  {i.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <FieldDescription>{copy.help}</FieldDescription>
-        </Field>
-        <Button variant="outline" nativeButton={false} render={<Link href={contentHref} />}>
-          {copy.editContent}
-        </Button>
-        <p className="text-caption text-muted-foreground">{copy.editHelp}</p>
-      </CardContent>
-    </Card>
+    <DataCard title={copy.heading} bodyClassName="flex flex-col gap-4">
+      <Field>
+        <Select items={items} value={value || DEFAULT} onValueChange={handleChange}>
+          <SelectTrigger className="w-full" aria-label={copy.heading}>
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {items.map((i) => (
+              <SelectItem key={i.value} value={i.value}>
+                {i.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <FieldDescription>{copy.help}</FieldDescription>
+      </Field>
+      <Button variant="outline" nativeButton={false} render={<Link href={contentHref} />}>
+        {copy.editContent}
+      </Button>
+      <p className="text-caption text-muted-foreground">{copy.editHelp}</p>
+    </DataCard>
   )
 }

@@ -1,11 +1,11 @@
 'use client'
 
 import { Button } from '@commerce/ui/shadcn/button'
-import { Card, CardContent, CardHeader, CardTitle } from '@commerce/ui/shadcn/card'
 import { Field, FieldLabel } from '@commerce/ui/shadcn/field'
 import { Input } from '@commerce/ui/shadcn/input'
 import { Textarea } from '@commerce/ui/shadcn/textarea'
 import { useState } from 'react'
+import DataCard from '@/components/layout/data-card'
 import { collectionDetailContent, collectionFormContent } from '@/data/collections'
 import { useCopy } from '@/hooks/use-copy'
 
@@ -39,49 +39,49 @@ export default function CollectionSeoCard({
   const address = [host, 'collections', handle].filter(Boolean).join(' › ')
 
   return (
-    <Card size="form">
-      <CardHeader className="grid-cols-[1fr_auto] items-center">
-        <CardTitle>{detail.heading}</CardTitle>
+    <DataCard
+      title={detail.heading}
+      action={
         <Button variant="ghost" size="sm" onClick={() => setEditing((v) => !v)}>
           {editing ? detail.done : detail.edit}
         </Button>
-      </CardHeader>
-      <CardContent className="flex flex-col gap-4">
-        <div className="flex flex-col gap-1 rounded-lg bg-muted/60 p-3">
-          <span className="truncate text-caption text-muted-foreground">{address}</span>
-          {shownTitle || seoDescription ? (
-            <>
-              <span className="truncate text-body font-medium text-link">{shownTitle}</span>
-              <span className="line-clamp-3 text-caption text-muted-foreground">
-                {seoDescription}
-              </span>
-            </>
-          ) : (
-            <span className="text-caption text-muted-foreground">{detail.fallback}</span>
-          )}
-        </div>
-        {editing ? (
+      }
+      bodyClassName="flex flex-col gap-4"
+    >
+      <div className="flex flex-col gap-1 rounded-lg bg-muted/60 p-3">
+        <span className="truncate text-caption text-muted-foreground">{address}</span>
+        {shownTitle || seoDescription ? (
           <>
-            <Field>
-              <FieldLabel htmlFor="collection-seo-title">{copy.title}</FieldLabel>
-              <Input
-                id="collection-seo-title"
-                value={seoTitle}
-                onChange={(e) => onChange({ seoTitle: e.target.value })}
-              />
-            </Field>
-            <Field>
-              <FieldLabel htmlFor="collection-seo-description">{copy.description}</FieldLabel>
-              <Textarea
-                id="collection-seo-description"
-                rows={3}
-                value={seoDescription}
-                onChange={(e) => onChange({ seoDescription: e.target.value })}
-              />
-            </Field>
+            <span className="truncate text-body font-medium text-link">{shownTitle}</span>
+            <span className="line-clamp-3 text-caption text-muted-foreground">
+              {seoDescription}
+            </span>
           </>
-        ) : null}
-      </CardContent>
-    </Card>
+        ) : (
+          <span className="text-caption text-muted-foreground">{detail.fallback}</span>
+        )}
+      </div>
+      {editing ? (
+        <>
+          <Field>
+            <FieldLabel htmlFor="collection-seo-title">{copy.title}</FieldLabel>
+            <Input
+              id="collection-seo-title"
+              value={seoTitle}
+              onChange={(e) => onChange({ seoTitle: e.target.value })}
+            />
+          </Field>
+          <Field>
+            <FieldLabel htmlFor="collection-seo-description">{copy.description}</FieldLabel>
+            <Textarea
+              id="collection-seo-description"
+              rows={3}
+              value={seoDescription}
+              onChange={(e) => onChange({ seoDescription: e.target.value })}
+            />
+          </Field>
+        </>
+      ) : null}
+    </DataCard>
   )
 }

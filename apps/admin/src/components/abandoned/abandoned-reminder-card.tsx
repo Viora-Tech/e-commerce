@@ -1,4 +1,4 @@
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@commerce/ui/shadcn/card'
+import DataCard from '@/components/layout/data-card'
 import StatusChip from '@/components/layout/status-chip'
 import { abandonedDetailContent } from '@/data/abandoned-detail'
 import { useCopy, useFormat } from '@/hooks/use-copy'
@@ -23,17 +23,11 @@ export default function AbandonedReminderCard({ checkout }: AbandonedReminderCar
   const note = checkout.recovered ? copy.recoveredNote : checkout.email ? null : copy.noEmail
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>{copy.heading}</CardTitle>
-        <CardDescription>{copy.sub}</CardDescription>
-      </CardHeader>
-      <CardContent className="flex flex-col gap-3">
-        <StatusChip tone={chip.tone} className="w-fit">
-          {chip.label}
-        </StatusChip>
-        {note ? <p className="text-caption text-muted-foreground">{note}</p> : null}
-      </CardContent>
-    </Card>
+    <DataCard title={copy.heading} subtitle={copy.sub} bodyClassName="flex flex-col gap-3">
+      <StatusChip tone={chip.tone} className="w-fit">
+        {chip.label}
+      </StatusChip>
+      {note ? <p className="text-caption text-muted-foreground">{note}</p> : null}
+    </DataCard>
   )
 }

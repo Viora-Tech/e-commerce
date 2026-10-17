@@ -2,11 +2,11 @@
 
 import { Pencil, Plus, Trash2 } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
-import { Card, CardDescription, CardHeader, CardTitle } from '@commerce/ui/shadcn/card'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import KitIconButton from '@/components/kit/kit-icon-button'
 import ConfirmDialog from '@/components/layout/confirm-dialog'
+import DataCard from '@/components/layout/data-card'
 import EmptyState from '@/components/layout/empty-state'
 import StatusChip from '@/components/layout/status-chip'
 import { chargesContent, warningText } from '@/data/purchasing'
@@ -76,19 +76,19 @@ export default function ChargesCard({
   )
 
   return (
-    <Card size="form" gap="none" inset="y-none">
-      <CardHeader className="grid-cols-[1fr_auto] items-center py-5">
-        <span className="flex flex-col gap-1">
-          <CardTitle>{forShipment ? copy.shipmentHeading : copy.heading}</CardTitle>
-          <CardDescription>{copy.summary}</CardDescription>
-        </span>
-        {owner && editable ? (
+    <DataCard
+      title={forShipment ? copy.shipmentHeading : copy.heading}
+      subtitle={copy.summary}
+      action={
+        owner && editable ? (
           <Button variant="outline" onClick={() => setEditing({ charge: null })}>
             <Plus aria-hidden="true" />
             {copy.add}
           </Button>
-        ) : null}
-      </CardHeader>
+        ) : null
+      }
+      flush
+    >
       {!owner ? (
         <EmptyState
           variant="plain"
@@ -191,6 +191,6 @@ export default function ChargesCard({
         cancelLabel={copy.confirmRemove.cancel}
         onConfirm={handleRemove}
       />
-    </Card>
+    </DataCard>
   )
 }

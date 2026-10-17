@@ -4,18 +4,11 @@ import type { MetafieldOwnerType } from '@commerce/core/metaobjects'
 import { Pencil, Plus, Trash2 } from '@commerce/ui/icons'
 import { Badge } from '@commerce/ui/shadcn/badge'
 import { Button } from '@commerce/ui/shadcn/button'
-import {
-  Card,
-  CardAction,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@commerce/ui/shadcn/card'
 import { Skeleton } from '@commerce/ui/shadcn/skeleton'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import ConfirmDialog from '@/components/layout/confirm-dialog'
+import DataCard from '@/components/layout/data-card'
 import EmptyState from '@/components/layout/empty-state'
 import { customDataContent, fieldTypeContent } from '@/data/metaobjects'
 import { useCopy } from '@/hooks/use-copy'
@@ -68,68 +61,65 @@ export default function MetafieldDefinitionsCard({
   const rows = definitions ?? []
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>{copy.metafields.heading(owner)}</CardTitle>
-        <CardDescription>{copy.metafields.body(owner)}</CardDescription>
-        {canManage ? (
-          <CardAction>
-            <Button variant="outline" onClick={() => setEditing('new')}>
-              <Plus />
-              {copy.metafields.add}
-            </Button>
-          </CardAction>
-        ) : null}
-      </CardHeader>
-      <CardContent>
-        {definitions === null ? (
-          <Skeleton className="h-16 w-full" />
-        ) : rows.length === 0 ? (
-          <EmptyState variant="dashed" size="md" body={copy.metafields.empty(owner)} />
-        ) : (
-          <ul className="flex flex-col divide-y divide-line rounded-md border border-line">
-            {rows.map((d) => (
-              <li key={d.id} className="flex items-center gap-3 px-3 py-2.5">
-                <div className="flex min-w-0 flex-1 flex-col">
-                  <span className="flex flex-wrap items-center gap-2">
-                    <span className="truncate text-body-strong">{d.name}</span>
-                    {d.storefrontAccess ? null : (
-                      <Badge variant="neutral">{copy.metafields.hidden}</Badge>
-                    )}
-                  </span>
-                  <span className="truncate text-caption text-muted-foreground">
-                    <span className="font-mono">
-                      {d.namespace}.{d.key}
-                    </span>{' '}
-                    · {d.list ? copy.metafields.listOf(types[d.type].label) : types[d.type].label} ·{' '}
-                    {copy.metafields.values(d.values)}
-                  </span>
-                </div>
-                {canManage ? (
-                  <>
-                    <Button
-                      variant="ghost"
-                      size="icon-sm"
-                      aria-label={copy.metafields.edit}
-                      onClick={() => setEditing(d)}
-                    >
-                      <Pencil />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon-sm"
-                      aria-label={copy.metafields.delete}
-                      onClick={() => setRemoving(d)}
-                    >
-                      <Trash2 />
-                    </Button>
-                  </>
-                ) : null}
-              </li>
-            ))}
-          </ul>
-        )}
-      </CardContent>
+    <DataCard
+      title={copy.metafields.heading(owner)}
+      subtitle={copy.metafields.body(owner)}
+      action={
+        canManage ? (
+          <Button variant="outline" onClick={() => setEditing('new')}>
+            <Plus />
+            {copy.metafields.add}
+          </Button>
+        ) : null
+      }
+    >
+      {definitions === null ? (
+        <Skeleton className="h-16 w-full" />
+      ) : rows.length === 0 ? (
+        <EmptyState variant="dashed" size="md" body={copy.metafields.empty(owner)} />
+      ) : (
+        <ul className="flex flex-col divide-y divide-line rounded-md border border-line">
+          {rows.map((d) => (
+            <li key={d.id} className="flex items-center gap-3 px-3 py-2.5">
+              <div className="flex min-w-0 flex-1 flex-col">
+                <span className="flex flex-wrap items-center gap-2">
+                  <span className="truncate text-body-strong">{d.name}</span>
+                  {d.storefrontAccess ? null : (
+                    <Badge variant="neutral">{copy.metafields.hidden}</Badge>
+                  )}
+                </span>
+                <span className="truncate text-caption text-muted-foreground">
+                  <span className="font-mono">
+                    {d.namespace}.{d.key}
+                  </span>{' '}
+                  · {d.list ? copy.metafields.listOf(types[d.type].label) : types[d.type].label} ·{' '}
+                  {copy.metafields.values(d.values)}
+                </span>
+              </div>
+              {canManage ? (
+                <>
+                  <Button
+                    variant="ghost"
+                    size="icon-sm"
+                    aria-label={copy.metafields.edit}
+                    onClick={() => setEditing(d)}
+                  >
+                    <Pencil />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon-sm"
+                    aria-label={copy.metafields.delete}
+                    onClick={() => setRemoving(d)}
+                  >
+                    <Trash2 />
+                  </Button>
+                </>
+              ) : null}
+            </li>
+          ))}
+        </ul>
+      )}
       <MetafieldDefinitionDialog
         open={editing !== null}
         ownerType={ownerType}
@@ -148,6 +138,6 @@ export default function MetafieldDefinitionsCard({
         busy={busy}
         onConfirm={() => void handleDelete()}
       />
-    </Card>
+    </DataCard>
   )
 }
