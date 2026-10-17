@@ -4,7 +4,7 @@
  *        dialog list them (Figma 381:8563, 392:10617), and the editor-level keys this module
  *        itself recognises: save, add section, the shortcuts dialog and the three devices.
  * WHY:   One list, so the panel, the dialog and the handlers can't drift apart. Selection keys
- *        (duplicate, copy, paste, move, remove, deselect) live in `customize-hotkeys.tsx`,
+ *        (duplicate, copy, paste, hide, move, remove, deselect) live in `customize-hotkeys.tsx`,
  *        undo/redo are Puck's, full view is `full-view-exit.tsx`.
  */
 
@@ -16,6 +16,7 @@ export type ShortcutId =
   | 'duplicate'
   | 'copy'
   | 'paste'
+  | 'hide'
   | 'move'
   | 'remove'
   | 'deselect'
@@ -32,6 +33,7 @@ export const SHORTCUTS: { id: ShortcutId; keys: (mod: string) => string }[] = [
   { id: 'duplicate', keys: (mod) => `${mod} D` },
   { id: 'copy', keys: (mod) => `${mod} C` },
   { id: 'paste', keys: (mod) => `${mod} V` },
+  { id: 'hide', keys: (mod) => `${mod} ⇧ H` },
   { id: 'move', keys: () => 'Alt ↑ ↓' },
   { id: 'remove', keys: () => 'Delete' },
   { id: 'deselect', keys: () => 'Esc' },

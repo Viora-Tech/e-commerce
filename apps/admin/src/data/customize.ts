@@ -77,6 +77,7 @@ export const customizeContent = {
       duplicate: 'Duplicate selected',
       copy: 'Copy selected',
       paste: 'Paste',
+      hide: 'Hide or show selected',
       move: 'Move up or down',
       remove: 'Remove selected',
       deselect: 'Deselect',
