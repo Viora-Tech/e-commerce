@@ -1,5 +1,6 @@
 'use client'
 
+import { Eye, Palette } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import Link from 'next/link'
 import StatusChip from '@/components/layout/status-chip'
@@ -56,12 +57,10 @@ export default function CurrentThemeCard({
           <h2 className="min-w-0 truncate font-display text-[1.375rem] leading-7 font-bold tracking-[-0.019em] text-ink-strong">
             {theme.name}
           </h2>
-          <StatusChip className="h-5 px-2 font-semibold">{copy.live}</StatusChip>
-          {theme.imported ? (
-            <StatusChip className="h-5 px-2 font-semibold">{importCopy.badge}</StatusChip>
-          ) : null}
+          <StatusChip tone="success">{copy.live}</StatusChip>
+          {theme.imported ? <StatusChip>{importCopy.badge}</StatusChip> : null}
           {theme.hasDraft ? (
-            <StatusChip tone="attention" className="h-5 px-2 font-semibold">
+            <StatusChip tone="attention">
               <span title={copy.unsavedHelp}>{copy.unsaved}</span>
             </StatusChip>
           ) : null}
@@ -74,6 +73,13 @@ export default function CurrentThemeCard({
           {count > 0 ? copy.sections(count) : copy.sectionsFallback}
         </p>
         <div className="flex flex-wrap items-center gap-2.5">
+          <ThemeActionsMenu
+            actions={ACTIONS}
+            variant="outline"
+            customizeHref={routes.onlineStore.themeEditor(theme.id)}
+            disabled={busy}
+            onAction={onAction}
+          />
           <Button
             variant="outline"
             nativeButton={false}
@@ -81,21 +87,16 @@ export default function CurrentThemeCard({
               <a href={previewUrl(origin, theme.previewToken)} target="_blank" rel="noreferrer" />
             }
           >
+            <Eye aria-hidden="true" />
             {copy.preview}
           </Button>
           <Button
             nativeButton={false}
             render={<Link href={routes.onlineStore.themeEditor(theme.id)} />}
           >
+            <Palette aria-hidden="true" />
             {copy.customize}
           </Button>
-          <ThemeActionsMenu
-            actions={ACTIONS}
-            variant="default"
-            customizeHref={routes.onlineStore.themeEditor(theme.id)}
-            disabled={busy}
-            onAction={onAction}
-          />
           {theme.imported ? (
             <Link
               href={routes.onlineStore.themeImport(theme.id)}
