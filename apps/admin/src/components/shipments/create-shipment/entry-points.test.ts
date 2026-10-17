@@ -46,7 +46,9 @@ describe('Create shipment entry points', () => {
     const view = read('components/orders/order-view.tsx')
     expect(view).toContain('routes.orders.ship(order.id)')
     const workspace = read('components/shipments/shipments-workspace.tsx')
-    expect(workspace).toContain('routes.orders.ship(')
+    // From Shipments the page lives under /orders/shipments so the sidebar keeps Shipments lit.
+    expect(workspace).toContain('routes.orders.shipment(')
+    expect(read('components/shipments/shipment-order.tsx')).toContain('<CreateShipmentPage')
     expect(workspace).toMatch(
       /import CreateShipmentDialog from '[^']*create-shipment\/create-shipment-dialog'/,
     )

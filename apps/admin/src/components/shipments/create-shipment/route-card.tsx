@@ -21,6 +21,8 @@ type RouteCardProps = {
   /** True once at least one courier can take the parcel to this PIN code. */
   serviceable: boolean
   onPickupChange: (locationId: string | null) => void
+  /** Opens the order's address dialog in place, so the merchant stays on this page. */
+  onEditCustomer: () => void
 }
 
 type Place = {
@@ -93,6 +95,7 @@ export default function RouteCard({
   order,
   serviceable,
   onPickupChange,
+  onEditCustomer,
 }: RouteCardProps) {
   // Hooks
   const copy = useCopy(createShipmentContent.page)
@@ -139,12 +142,7 @@ export default function RouteCard({
           place={to}
           chip={serviceable ? <StatusChip tone="success">{copy.pinServiceable}</StatusChip> : null}
           actions={
-            <Button
-              variant="outline"
-              size="sm"
-              nativeButton={false}
-              render={<Link href={routes.orders.detail(order.orderId)} />}
-            >
+            <Button variant="outline" size="sm" onClick={onEditCustomer}>
               <Pencil aria-hidden="true" />
               {copy.edit}
             </Button>

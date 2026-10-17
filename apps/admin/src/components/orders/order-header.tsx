@@ -17,13 +17,15 @@ type OrderHeaderProps = {
   order: OrderDetail
   /** The header actions, given the previous and next orders once they load. */
   actions: (neighbours: Neighbours | null) => ReactNode
+  /** Where Back goes; the orders list unless the order was opened from somewhere else. */
+  back?: { label: string; href: string } | undefined
 }
 
 /**
  * The order page header (Figma "Orders / Order detail"): a back link, the order glyph, "Order #n"
  * with its status chips, a plain-words line under it, and Print and the ⋯ menu on the right.
  */
-export default function OrderHeader({ order, actions }: OrderHeaderProps) {
+export default function OrderHeader({ order, actions, back }: OrderHeaderProps) {
   // Hooks
   const copy = useCopy(orderDetailContent)
   const listCopy = useCopy(ordersContent)
@@ -52,7 +54,7 @@ export default function OrderHeader({ order, actions }: OrderHeaderProps) {
       <PageHeader
         title={copy.title(order.number)}
         size="sm"
-        back={{ label: copy.back, href: routes.orders.list() }}
+        back={back ?? { label: copy.back, href: routes.orders.list() }}
         lead={{ kind: 'tile', node: <ShoppingBag /> }}
         badges={
           <>

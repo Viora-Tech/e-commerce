@@ -29,8 +29,9 @@ export const routes = {
     list: () => '/orders',
     detail: (orderId: string) => `/orders/${id(orderId)}`,
     ship: (orderId: string) => `/orders/${id(orderId)}/ship`,
-    /** The order page scrolled to its shipment card (there is no separate shipment page). */
-    shipment: (orderId: string) => `/orders/${id(orderId)}#order-shipment`,
+    /** An order opened from Shipments: Create shipment until it is booked, then the order page
+     *  at its shipment card. Under /orders/shipments so the sidebar keeps Shipments lit. */
+    shipment: (orderId: string) => `/orders/shipments/${id(orderId)}`,
     bulkEdit: () => '/orders/bulk-edit',
     drafts: () => '/orders/drafts',
     newDraft: () => '/orders/drafts/new',

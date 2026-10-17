@@ -44,9 +44,11 @@ type OrderViewProps = {
   order: OrderDetail
   /** Installed apps that add a card to this page, by plugin id. */
   appCards?: string[]
+  /** Back link override, e.g. to Shipments when the order was opened from there. */
+  back?: { label: string; href: string }
 }
 
-export default function OrderView({ order, appCards = [] }: OrderViewProps) {
+export default function OrderView({ order, appCards = [], back }: OrderViewProps) {
   // Hooks
   const copy = useCopy(orderDetailContent)
   const listCopy = useCopy(ordersContent)
@@ -174,6 +176,7 @@ export default function OrderView({ order, appCards = [] }: OrderViewProps) {
       header={
         <OrderHeader
           order={order}
+          back={back}
           actions={(n) => (
             <OrderActions
               status={order.status}

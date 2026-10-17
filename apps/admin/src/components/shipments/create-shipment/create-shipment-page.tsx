@@ -10,7 +10,9 @@ import CountBadge from '@/components/layout/count-badge'
 import DataCard from '@/components/layout/data-card'
 import PageHeader from '@/components/layout/page-header'
 import ProoflyDetailPage from '@/components/layout/proofly-detail-page'
+import EditOrderContactDialog from '@/components/orders/edit-order-contact-dialog'
 import OrderChip from '@/components/orders/order-chip'
+import type { OrderDetail } from '@/components/orders/order-detail-types'
 import {
   EMPTY_TRACKING,
   type TrackingDraft,
@@ -40,7 +42,11 @@ import { useShipQuote } from './use-ship-quote'
 
 type Wallets = Awaited<ReturnType<typeof api.shipments.wallets>>
 
-type CreateShipmentPageProps = { orderId: string }
+type CreateShipmentPageProps = {
+  orderId: string
+  /** Back link override; the order page unless opened from Shipments. */
+  back?: { label: string; href: string }
+}
 
 const SHORT_DATE = { weekday: 'short', day: 'numeric', month: 'short' } as const
 
@@ -49,7 +55,7 @@ const SHORT_DATE = { weekday: 'short', day: 'numeric', month: 'short' } as const
  * courier on the left with live rates as the package changes; the summary and Book on the
  * right; once booked, the label and the pickup request take the summary's place.
  */
-export default function CreateShipmentPage({ orderId }: CreateShipmentPageProps) {
+export default function CreateShipmentPage({ orderId, back }: CreateShipmentPageProps) {
   // Hooks
   const content = useCopy(createShipmentContent)
   const fmt = useFormat()
@@ -64,6 +70,9 @@ export default function CreateShipmentPage({ orderId }: CreateShipmentPageProps)
   const [tracking, setTracking] = useState<TrackingDraft>(EMPTY_TRACKING)
   const [busy, setBusy] = useState(false)
   const [booked, setBooked] = useState<BookedShipment | null>(null)
+  /* The full order, loaded when the merchant edits the delivery address from this page. */
+  const [editing, setEditing] = useState<OrderDetail | null>(null)
+  const [revision, setRevision] = useState(0)
   useEffect(() => {
     let live = true
     api.shipments
@@ -73,7 +82,8 @@ export default function CreateShipmentPage({ orderId }: CreateShipmentPageProps)
         setDraft(d)
         const first = d.orders[0]?.parcels[0]
         const o = d.orders[0]
-        if (o && first) {
+        /* After an address edit only the draft refreshes; the package the merchant typed stays. */
+        if (o && first && revision === 0) {
           setParcelId(first.id)
           setForm(packageFor(o, first, d))
         }
@@ -82,7 +92,7 @@ export default function CreateShipmentPage({ orderId }: CreateShipmentPageProps)
     return () => {
       live = false
     }
-  }, [orderId])
+  }, [orderId, revision])
 
   useEffect(() => {
     api.shipments
@@ -101,6 +111,19 @@ export default function CreateShipmentPage({ orderId }: CreateShipmentPageProps)
   }
   const handlePickupPlace = (pickupLocationId: string | null) =>
     form && setForm({ ...form, pickupLocationId })
+  const handleEditCustomer = async () => {
+    try {
+      const full = await api.orders.get({ id: orderId })
+      if (full) setEditing(full)
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : String(err))
+    }
+  }
+  const handleCustomerSaved = () => {
+    setEditing(null)
+    setRevision((n) => n + 1)
+    recheck()
+  }
   const handleShipYourself = () => {
     setPick(MANUAL)
     document.getElementById('choose-courier')?.scrollIntoView({ behavior: 'smooth' })
@@ -187,7 +210,9 @@ export default function CreateShipmentPage({ orderId }: CreateShipmentPageProps)
             content.package.itemCount(units),
             paymentLine ?? '',
           )}
-          back={{ label: page.back(order.orderNumber), href: routes.orders.detail(orderId) }}
+          back={
+            back ?? { label: page.back(order.orderNumber), href: routes.orders.detail(orderId) }
+          }
           lead={{ kind: 'icon', node: <Truck aria-hidden="true" /> }}
           size="sm"
           badges={
@@ -214,7 +239,16 @@ export default function CreateShipmentPage({ orderId }: CreateShipmentPageProps)
             order={order}
             serviceable={serviceable}
             onPickupChange={handlePickupPlace}
+            onEditCustomer={() => void handleEditCustomer()}
           />
+          {editing ? (
+            <EditOrderContactDialog
+              order={editing}
+              open
+              onClose={() => setEditing(null)}
+              onSaved={handleCustomerSaved}
+            />
+          ) : null}
           <DataCard
             title={
               <span className="flex items-center gap-2">

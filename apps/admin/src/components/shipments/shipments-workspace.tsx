@@ -144,7 +144,7 @@ function ShipmentsContent() {
   /* Book by order number found these orders: the same Create shipment flow takes over. */
   const handleShipFound = (orderIds: string[]) => {
     setSheet(null)
-    if (orderIds.length === 1 && orderIds[0]) router.push(routes.orders.ship(orderIds[0]))
+    if (orderIds.length === 1 && orderIds[0]) router.push(routes.orders.shipment(orderIds[0]))
     else setBooking(orderIds)
   }
 
@@ -236,9 +236,7 @@ function ShipmentsContent() {
             columns={shipmentColumns(copy, fmt, courierName, toBookCourier)}
             items={rows}
             getId={(r) => r.id}
-            href={(r) =>
-              tab === 'toBook' ? routes.orders.ship(r.orderId) : routes.orders.shipment(r.orderId)
-            }
+            href={(r) => routes.orders.shipment(r.orderId)}
             rowActions={(r) => (
               <span className="flex items-center gap-1">
                 {tab === 'toBook' ? (
@@ -247,7 +245,7 @@ function ShipmentsContent() {
                     variant="outline"
                     onClick={(e) => {
                       e.stopPropagation()
-                      router.push(routes.orders.ship(r.orderId))
+                      router.push(routes.orders.shipment(r.orderId))
                     }}
                   >
                     {copy.shipNow}
