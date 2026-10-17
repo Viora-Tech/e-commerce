@@ -236,7 +236,9 @@ function ShipmentsContent() {
             columns={shipmentColumns(copy, fmt, courierName, toBookCourier)}
             items={rows}
             getId={(r) => r.id}
-            href={(r) => routes.orders.detail(r.orderId)}
+            href={(r) =>
+              tab === 'toBook' ? routes.orders.ship(r.orderId) : routes.orders.shipment(r.orderId)
+            }
             rowActions={(r) => (
               <span className="flex items-center gap-1">
                 {tab === 'toBook' ? (

@@ -32,10 +32,34 @@ export default function ProductTiles({ stats, stock, status, onSelect }: Product
       active={stock ?? status}
       onChange={handleChange}
       tiles={[
-        { id: 'total', label: tiles.total, value: fmt.number(stats.total), filter: null },
-        { id: 'low', label: tiles.low, value: fmt.number(stats.lowStock), filter: 'low' },
-        { id: 'out', label: tiles.out, value: fmt.number(stats.outOfStock), filter: 'out' },
-        { id: 'draft', label: tiles.draft, value: fmt.number(stats.draft), filter: 'draft' },
+        {
+          id: 'total',
+          label: tiles.total,
+          value: fmt.number(stats.total),
+          note: tiles.totalNote,
+          filter: null,
+        },
+        {
+          id: 'low',
+          label: tiles.low,
+          value: fmt.number(stats.lowStock),
+          note: tiles.lowNote,
+          filter: 'low',
+        },
+        {
+          id: 'out',
+          label: tiles.out,
+          value: fmt.number(stats.outOfStock),
+          note: tiles.outNote,
+          filter: 'out',
+        },
+        {
+          id: 'draft',
+          label: tiles.draft,
+          value: fmt.number(stats.draft),
+          note: tiles.draftNote,
+          filter: 'draft',
+        },
       ]}
     />
   )

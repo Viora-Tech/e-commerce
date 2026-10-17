@@ -2,7 +2,7 @@
 
 import { siteConfig } from '@commerce/config/site'
 import type { ProductStatus } from '@commerce/core/catalog'
-import { Download, Plus, SquarePlus, Upload } from '@commerce/ui/icons'
+import { Download, Plus, Upload } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Kbd } from '@commerce/ui/shadcn/kbd'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@commerce/ui/shadcn/tooltip'
@@ -283,7 +283,7 @@ function ProductsContent({ initial }: { initial: ProductsInitial }) {
             <TooltipTrigger
               render={
                 <Button render={<Link href={routes.products.new()} />} nativeButton={false}>
-                  <SquarePlus strokeWidth={1.6} />
+                  <Plus strokeWidth={1.6} />
                   {copy.add}
                 </Button>
               }

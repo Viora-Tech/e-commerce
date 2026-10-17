@@ -224,14 +224,16 @@ export default function OrderView({ order, appCards = [] }: OrderViewProps) {
             busy={busy}
           />
           {readOnly ? null : (
-            <ShipmentPanel
-              orderStatus={order.status === 'open' ? order.fulfillmentStatus : order.status}
-              shipment={order.shipment}
-              busy={busy}
-              onBook={handleShip}
-              onRefresh={handleRefreshTracking}
-              onCancel={handleCancelShipment}
-            />
+            <div id="order-shipment" className="scroll-mt-6">
+              <ShipmentPanel
+                orderStatus={order.status === 'open' ? order.fulfillmentStatus : order.status}
+                shipment={order.shipment}
+                busy={busy}
+                onBook={handleShip}
+                onRefresh={handleRefreshTracking}
+                onCancel={handleCancelShipment}
+              />
+            </div>
           )}
           <div id="order-returns" className="scroll-mt-6">
             <OrderReturnsCard orderId={order.id} readOnly={readOnly} onChanged={refresh} />
