@@ -155,8 +155,10 @@ export async function storesWithPendingDomains(db: Db): Promise<string[]> {
 }
 
 /** Store ids with a domain whose certificate needs checking or retrying, for the worker. SECURITY DEFINER backed. */
-export async function storesWithCertificateChecks(db: Db): Promise<string[]> {
-  const rows = await db.execute<{ id: string }>(sql`select stores_with_certificate_checks() as id`)
+export async function storesWithCertificateChecks(db: Db, now = new Date()): Promise<string[]> {
+  const rows = await db.execute<{ id: string }>(
+    sql`select stores_with_certificate_checks(${now.toISOString()}::timestamptz) as id`,
+  )
   return rows.map((r) => r.id)
 }
 

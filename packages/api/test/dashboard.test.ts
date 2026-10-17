@@ -339,10 +339,11 @@ describe('dashboard.summary', () => {
       ordersCount: 0,
       salesPaise: 0,
       toShipCount: 0,
+      visitors: 0,
       hourly: Array.from({ length: 24 }, () => 0),
     })
     expect(s.needsYou).toEqual({
-      ordersToShip: { count: 0, href: '/orders?status=unfulfilled' },
+      ordersToShip: { count: 0, href: '/orders?status=unfulfilled', oldestAt: null },
       upiToVerify: { count: 0, href: '/orders?status=pending_upi' },
       gstQueued: null,
       lowStock: { count: 0, href: '/stock/inventory' },
