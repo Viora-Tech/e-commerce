@@ -22,11 +22,11 @@ export default function ReturnItemsCard({ detail: r }: ReturnItemsCardProps) {
             title={l.title}
             subtitle={[
               l.variantTitle !== 'Default' ? l.variantTitle : null,
-              copy.quantity(l.returnQuantity),
               l.restockedQuantity > 0 ? copy.restocked(l.restockedQuantity) : null,
             ]
               .filter(Boolean)
               .join(' · ')}
+            quantity={copy.quantity(l.returnQuantity)}
             amount={formatPaise(l.returnQuantity * l.unitPricePaise)}
           />
         ))}

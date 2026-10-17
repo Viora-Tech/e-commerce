@@ -141,10 +141,11 @@ export const STATUS = {
   /** A customer return or an RTO task: amber when it waits on the merchant. */
   return: {
     requested: entry(returnsContent.status.requested, 'pending'),
-    approved: entry(returnsContent.status.approved, 'accent'),
-    rejected: entry(returnsContent.status.rejected, 'error'),
-    in_transit: entry(returnsContent.status.in_transit, 'info', Truck),
-    received: entry(returnsContent.status.received, 'pending', PackageOpen),
+    // Figma Returns: approved blue, on the way back and arrived violet, declined grey.
+    approved: entry(returnsContent.status.approved, 'info'),
+    rejected: entry(returnsContent.status.rejected, 'neutral'),
+    in_transit: entry(returnsContent.status.in_transit, 'accent', Truck),
+    received: entry(returnsContent.status.received, 'accent', PackageOpen),
     resolved: entry(returnsContent.status.resolved, 'success', CircleCheck),
     cancelled: entry(returnsContent.status.cancelled, 'neutral'),
   },
