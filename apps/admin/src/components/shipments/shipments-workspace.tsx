@@ -141,11 +141,15 @@ function ShipmentsContent() {
     setSheet(null)
     setReloadKey((k) => k + 1)
   }
+  /* One order opens the Create shipment page; several open the shared bulk dialog. */
+  const handleBook = (orderIds: string[]) => {
+    if (orderIds.length === 1 && orderIds[0]) router.push(routes.orders.shipment(orderIds[0]))
+    else if (orderIds.length > 1) setBooking(orderIds)
+  }
   /* Book by order number found these orders: the same Create shipment flow takes over. */
   const handleShipFound = (orderIds: string[]) => {
     setSheet(null)
-    if (orderIds.length === 1 && orderIds[0]) router.push(routes.orders.shipment(orderIds[0]))
-    else setBooking(orderIds)
+    handleBook(orderIds)
   }
 
   // Render logic
@@ -203,7 +207,7 @@ function ShipmentsContent() {
               {copy.courierSettings}
             </Button>
             <Button
-              onClick={() => setBooking(selected)}
+              onClick={() => handleBook(selected)}
               disabled={!canBook}
               title={canBook ? undefined : copy.bookSelectedHint}
             >
@@ -292,7 +296,7 @@ function ShipmentsContent() {
             selection={{ ids: selected, onChange: setSelected }}
             bulkActions={(ids) =>
               tab === 'toBook' ? (
-                <Button size="sm" onClick={() => setBooking(ids)}>
+                <Button size="sm" onClick={() => handleBook(ids)}>
                   <Truck aria-hidden />
                   {copy.bookSelected}
                 </Button>
