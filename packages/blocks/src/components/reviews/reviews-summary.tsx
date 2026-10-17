@@ -39,7 +39,7 @@ export default function ReviewsSummary({ summary }: ReviewsSummaryProps) {
               <span aria-hidden="true">{copy.starsRow(n)}</span>
               <span className="h-2 overflow-hidden rounded-full bg-line" aria-hidden="true">
                 <span
-                  className="block h-full rounded-full bg-brand"
+                  className="block h-full rounded-full bg-ink"
                   style={{ width: `${(count / top) * 100}%` }}
                 />
               </span>

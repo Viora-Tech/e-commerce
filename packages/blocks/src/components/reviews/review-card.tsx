@@ -39,7 +39,7 @@ export default function ReviewCard({ review, storeName, showPhotos }: ReviewCard
   const initial = review.name.trim().charAt(0).toUpperCase()
 
   return (
-    <article className="flex flex-col gap-3 rounded-[var(--radius-m)] border border-line bg-surface p-5">
+    <article className="flex flex-col gap-3 border-t border-line pt-6">
       <header className="flex flex-wrap items-center gap-x-3 gap-y-1">
         <span
           className="flex size-9 shrink-0 items-center justify-center rounded-full bg-bg text-sm font-semibold text-ink"
@@ -49,7 +49,7 @@ export default function ReviewCard({ review, storeName, showPhotos }: ReviewCard
         </span>
         <span className="font-medium text-ink">{review.name}</span>
         {review.verified ? (
-          <span className="rounded-sm bg-success/10 px-2 py-0.5 text-xs font-medium text-success">
+          <span className="rounded-sm bg-surface px-2 py-0.5 text-xs font-medium text-ink">
             {copy.verified}
           </span>
         ) : null}

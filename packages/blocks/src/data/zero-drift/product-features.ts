@@ -10,7 +10,13 @@ export const productFeaturesContent = {
     heading: 'Heading',
     text: 'Text',
     layout: 'Image side',
+    sectionHeading: 'Heading',
+    style: 'Look',
   },
+  styles: [
+    { label: 'Cards (icon, title, text)', value: 'cards' },
+    { label: 'Image beside text', value: 'rows' },
+  ],
   layouts: [
     { label: 'Alternate', value: 'auto' },
     { label: 'Image left', value: 'image-left' },

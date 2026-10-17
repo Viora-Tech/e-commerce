@@ -57,3 +57,10 @@
     padding-block: var(--space-10);
   }
 }
+
+/* Figma Section / Product reviews (706:5259): the section title in the H1 style. */
+.section-product-reviews__heading {
+  font-size: calc(2rem * var(--font-heading-scale, 1));
+  line-height: 1.1;
+  letter-spacing: -0.015em;
+}

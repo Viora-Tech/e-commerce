@@ -6,6 +6,9 @@ import Picture from '../../picture'
 import RichCopy from '../../rich-copy'
 
 type ProductFeaturesProps = {
+  heading?: ReactNode
+  /** Figma's card row (icon, title, text) or the theme's image-beside-text rows. */
+  style?: 'cards' | 'rows' | undefined
   features: {
     image: { url: string; alt: string; focal?: FocalPoint | undefined }
     heading: ReactNode
@@ -22,9 +25,14 @@ const sideOf = (layout: string, index: number) =>
       ? 'image-left'
       : 'image-right'
 
-export default function ProductFeatures({ features }: ProductFeaturesProps) {
+export default function ProductFeatures({
+  heading,
+  style = 'rows',
+  features,
+}: ProductFeaturesProps) {
   return (
-    <div className="section-product-features">
+    <div className={`section-product-features section-product-features--${style}`}>
+      {heading ? <h2 className="product-features__heading">{heading}</h2> : null}
       {features.map((feature, i) => (
         <div
           // biome-ignore lint/suspicious/noArrayIndexKey: features have no id and are reordered only in the editor.
