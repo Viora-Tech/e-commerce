@@ -78,7 +78,13 @@ export type ModernProps = {
     items: { question: string; answer: string }[]
     multiOpen: boolean
   }
-  CtaBanner: Frame & { heading: string; text: string; button: Link; secondaryButton: Link }
+  CtaBanner: Frame & {
+    kicker: string
+    heading: string
+    text: string
+    button: Link
+    secondaryButton: Link
+  }
   Gallery: Frame & {
     heading: string
     layout: 'grid' | 'masonry' | 'carousel'
@@ -353,14 +359,16 @@ export function modernSections(): ModernConfig {
     ),
 
     CtaBanner: framed<ModernProps['CtaBanner']>(
-      'CTA banner with glow',
+      'CTA banner',
       {
+        kicker: inlineText('Eyebrow'),
         heading,
         text: inlineRichtext('Text'),
         button: inlineLinkField('Primary button'),
         secondaryButton: inlineLinkField('Secondary button'),
       },
       {
+        kicker: copy.ctaBanner.kicker,
         heading: copy.ctaBanner.heading,
         text: copy.ctaBanner.text,
         button: { label: copy.ctaBanner.button, href: '/collections/all' },
@@ -368,6 +376,7 @@ export function modernSections(): ModernConfig {
       },
       (p) => (
         <CtaBanner
+          kicker={p.kicker}
           heading={p.heading}
           text={p.text}
           button={p.button}

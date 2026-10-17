@@ -1,9 +1,12 @@
 'use client'
 
 // Pattern after shadcnblocks' FAQ accordion (our own implementation). See THIRD_PARTY_NOTICES.md.
+// Laid out as Figma Section / FAQ (708:120331): a centred title over one column of questions
+// between hairlines, each with a plus that turns to a minus when open.
 import { type ReactNode, useEffect, useRef, useState } from 'react'
 import { loadMotion } from '../../lazy-motion'
 import { useReducedMotion } from '../../use-reduced-motion'
+import Icon from '../icon'
 import RichCopy from '../rich-copy'
 
 /** Copy is a string in storage, a React node while edited on the canvas. */
@@ -65,12 +68,12 @@ export default function FaqAccordion({
   if (items.length === 0) return null
 
   return (
-    <div className="page-width grid grid-cols-1 gap-[2rem] md:grid-cols-[1fr_2fr]">
-      <div>
-        {heading ? <h2 className="h2 text-[var(--color-ink)]">{heading}</h2> : null}
-        <RichCopy value={intro} className="text-body mt-[0.75rem] text-[var(--color-muted)]" />
+    <div className="faq-accordion page-width">
+      <div className="faq-accordion__head">
+        {heading ? <h2 className="section-title">{heading}</h2> : null}
+        <RichCopy value={intro} className="faq-accordion__intro" />
       </div>
-      <div className="divide-y divide-[var(--color-line)] border-y border-[var(--color-line)]">
+      <div className="faq-accordion__list">
         {items.map((item, i) => {
           const isOpen = editing || openIds.has(i)
           const panelId = `faq-panel-${i}`
@@ -84,15 +87,11 @@ export default function FaqAccordion({
                 aria-expanded={isOpen}
                 aria-controls={panelId}
                 onClick={() => handleToggle(i)}
-                className="flex w-full items-center justify-between gap-[1rem] py-[1rem] text-left"
+                className="faq-accordion__question"
               >
-                <span className="h5 text-[var(--color-ink)]">{item.question}</span>
-                <span
-                  aria-hidden
-                  className="shrink-0 text-[var(--color-muted)] transition-transform duration-200"
-                  style={{ transform: isOpen ? 'rotate(45deg)' : 'rotate(0deg)' }}
-                >
-                  +
+                <span>{item.question}</span>
+                <span aria-hidden className="faq-accordion__icon">
+                  <Icon name={isOpen ? 'minus' : 'plus'} size={16} />
                 </span>
               </button>
               {isOpen || closingIds.has(i) ? (
@@ -173,7 +172,7 @@ function FaqPanel({ id, labelledBy, open, answer, onExited }: FaqPanelProps) {
   return (
     // biome-ignore lint/a11y/useSemanticElements: the same div + role the Motion version rendered; a <section> would pick up the theme's section styles.
     <div id={id} role="region" aria-labelledby={labelledBy} ref={ref} className="overflow-hidden">
-      <RichCopy value={answer} className="text-body pb-[1rem] text-[var(--color-muted)]" />
+      <RichCopy value={answer} className="faq-accordion__answer" />
     </div>
   )
 }

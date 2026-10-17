@@ -559,3 +559,101 @@
   border-radius: var(--radius-card, var(--radius-m));
   background-color: var(--color-surface);
 }
+
+/* ---- Figma Section / CTA banner (708:120101) -------------------------- */
+/* A rounded brand card, the copy left and the buttons right on wide screens. */
+.cta-banner__card {
+  padding: var(--space-6) var(--space-5);
+  border-radius: var(--radius-card, var(--radius-m));
+  background-color: var(--color-brand);
+  color: var(--color-on-brand, #ffffff);
+}
+
+.cta-banner__copy {
+  --color-ink: var(--color-on-brand, #ffffff);
+  --color-muted: color-mix(in srgb, var(--color-on-brand, #ffffff) 82%, transparent);
+
+  max-width: none;
+}
+
+.cta-banner__copy .btn--primary {
+  --btn-bg: var(--color-dark-band);
+  --btn-text: var(--color-on-dark-band);
+}
+
+.cta-banner__copy .btn--secondary {
+  border-color: transparent;
+}
+
+@media screen and (min-width: 990px) {
+  .cta-banner__card {
+    padding: var(--space-7) var(--space-7);
+  }
+
+  .cta-banner__copy {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    column-gap: var(--space-6);
+  }
+}
+
+/* ---- Figma Section / FAQ (708:120331) ---------------------------------- */
+.faq-accordion__head {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-3);
+  margin-bottom: var(--space-7);
+  text-align: center;
+}
+
+.faq-accordion__intro {
+  max-width: 40rem;
+  color: var(--color-muted);
+}
+
+.faq-accordion__intro p,
+.faq-accordion__answer p {
+  margin: 0;
+}
+
+.faq-accordion__list {
+  max-width: 43.75rem;
+  margin-inline: auto;
+  border-bottom: 1px solid var(--color-line);
+}
+
+.faq-accordion__list > div {
+  border-top: 1px solid var(--color-line);
+}
+
+.faq-accordion__question {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  width: 100%;
+  padding-block: var(--space-4);
+  border: 0;
+  background: none;
+  color: var(--color-ink);
+  font: inherit;
+  font-size: var(--font-body-size, 16px);
+  font-weight: 500;
+  text-align: start;
+  cursor: pointer;
+}
+
+.faq-accordion__icon {
+  display: inline-flex;
+  flex: none;
+  color: var(--color-muted);
+}
+
+.faq-accordion__answer {
+  padding-bottom: var(--space-4);
+  color: var(--color-muted);
+  font-size: 14px;
+  line-height: 1.55;
+}

@@ -437,3 +437,55 @@ html:not(.has-cursor-fill) .newsletter__submit:hover {
     width: 100%;
   }
 }
+
+/* ------------------------------------------------------------------ */
+/* Figma Section / Newsletter (708:120010)                              */
+/* ------------------------------------------------------------------ */
+/* A surface card on the card radius: eyebrow, a 32px bold heading, the line,
+   then a plain field and a separate button rather than one pill. */
+.newsletter__card {
+  border-radius: var(--radius-card, var(--radius-m));
+}
+
+.newsletter__heading {
+  font-size: calc(2rem * var(--font-heading-scale, 1));
+  font-weight: 700;
+  line-height: 1.15;
+  letter-spacing: -0.01em;
+  text-transform: none;
+}
+
+.newsletter__eyebrow {
+  font-family: var(--font-body);
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+}
+
+.newsletter__field {
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: none;
+}
+
+.newsletter__field:focus-within {
+  box-shadow: none;
+}
+
+.newsletter__input {
+  height: 48px;
+  padding-inline: 14px;
+  border: 1px solid var(--nl-field-border);
+  border-radius: var(--radius-input, var(--radius-m));
+  background-color: var(--nl-field-bg);
+}
+
+.newsletter__input:focus {
+  border-color: var(--nl-ink);
+}
+
+.newsletter__submit {
+  height: 48px;
+  border-radius: var(--radius-button, var(--radius-m));
+}

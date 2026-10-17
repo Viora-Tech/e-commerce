@@ -77,6 +77,7 @@ export const modernSectionsContent = {
     ],
   },
   ctaBanner: {
+    kicker: 'Limited time',
     heading: 'Ready to upgrade your setup?',
     text: 'Join thousands of players who made the switch.',
     button: 'Shop now',
