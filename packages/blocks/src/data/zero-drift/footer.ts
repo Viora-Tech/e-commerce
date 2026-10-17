@@ -21,7 +21,7 @@ export const footerContent = {
       icon: 'delivery',
       title: 'Where is my order?',
       text: 'Track it in one tap',
-      link: '/pages/tracking',
+      link: '/track-order',
     },
   ],
   paymentIcons: [
