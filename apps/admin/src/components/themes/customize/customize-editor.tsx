@@ -1,8 +1,8 @@
 'use client'
 
-import { type TemplateKind, THEME_FONT_IDS, THEME_FONTS } from '@commerce/core/theme'
+import type { TemplateKind } from '@commerce/core/theme'
 import { liquidPlacement } from '@commerce/core/theme-import'
-import { type Data, Puck, type PuckAction } from '@puckeditor/core'
+import { type Data, Puck } from '@puckeditor/core'
 import '@/styles/vendor-puck.css'
 import '@/styles/vendor-blocks.css'
 import '@/styles/vendor-editor.css'
@@ -12,7 +12,6 @@ import { customizeContent } from '@/data/customize'
 import { themesContent } from '@/data/themes'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
-import { prefersReducedMotion, scrollToSection } from '@/lib/customize-canvas-motion'
 import { createCustomizeConfig } from '@/lib/customize-config'
 import {
   type CustomizeDoc,
@@ -21,9 +20,9 @@ import {
   HEADER_ZONE,
   normalizeDoc,
 } from '@/lib/customize-doc'
+import { FONT_SAMPLES, isSourceError, revealInserted } from '@/lib/customize-editor'
 import { CUSTOMIZE_OVERRIDES } from '@/lib/customize-overrides'
 import { previewMetadata } from '@/lib/customize-preview'
-import { zoneItems } from '@/lib/customize-slots'
 import {
   ImportedThemeContext,
   LiquidHeadContext,
@@ -77,11 +76,6 @@ type Loaded = { ref: TemplateRef; doc: CustomizeDoc; nonce: number }
 
 const copy = customizeContent.bar
 
-/** Curated Google Fonts for picker samples and the preview (the storefront self-hosts them). */
-const FONT_SAMPLES = `https://fonts.googleapis.com/css2?${THEME_FONT_IDS.map(
-  (id) => `family=${THEME_FONTS[id].google}`,
-).join('&')}&display=swap`
-
 const sameRef = (a: TemplateRef, b: TemplateRef) => a.key === b.key && a.suffix === b.suffix
 
 /** How long the first page may take before the loading screen says it could not be reached. */
@@ -90,24 +84,6 @@ const LOAD_TIMEOUT_MS = 20_000
 /** The canvas shows the default home page at desktop width: what the Themes page pictures. */
 const isDesktopHome = (loaded: Loaded | null, device: PreviewDevice) =>
   loaded?.ref.key === 'home' && loaded.ref.suffix === '' && device === 'desktop'
-
-/** Save's only refusal is a connected setting whose source is gone; its message names it. */
-const isSourceError = (err: unknown): err is Error =>
-  err instanceof Error && (err as { code?: unknown }).code === 'BAD_REQUEST'
-
-/**
- * Every way a section gets added — a click in the Add panel, the Sections
- * tree's "Add section" popover, or a card dragged onto the canvas — ends in
- * one Puck `insert` action, so this is the one place that brings the new
- * section into view. (Selection is already handled: a click selects it
- * itself, and Puck selects a dropped one.)
- */
-function revealInserted(action: PuckAction, next: { data: Data }): void {
-  if (action.type !== 'insert') return
-  const doc = next.data as unknown as CustomizeDoc
-  const id = action.id ?? zoneItems(doc, action.destinationZone)[action.destinationIndex]?.props.id
-  if (id) scrollToSection(id, prefersReducedMotion())
-}
 
 /**
  * Online Store › Themes › Customize. Puck is the engine: one document per template
