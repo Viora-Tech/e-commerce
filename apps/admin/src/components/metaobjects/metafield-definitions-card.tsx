@@ -7,6 +7,7 @@ import { Button } from '@commerce/ui/shadcn/button'
 import { Skeleton } from '@commerce/ui/shadcn/skeleton'
 import { useState } from 'react'
 import { toast } from 'sonner'
+import ActionMenu from '@/components/layout/action-menu'
 import ConfirmDialog from '@/components/layout/confirm-dialog'
 import DataCard from '@/components/layout/data-card'
 import EmptyState from '@/components/layout/empty-state'
@@ -80,7 +81,7 @@ export default function MetafieldDefinitionsCard({
       ) : (
         <ul className="flex flex-col divide-y divide-line rounded-md border border-line">
           {rows.map((d) => (
-            <li key={d.id} className="flex items-center gap-3 px-3 py-2.5">
+            <li key={d.id} className="flex items-center gap-4 px-3 py-2.5">
               <div className="flex min-w-0 flex-1 flex-col">
                 <span className="flex flex-wrap items-center gap-2">
                   <span className="truncate text-body-strong">{d.name}</span>
@@ -88,33 +89,31 @@ export default function MetafieldDefinitionsCard({
                     <Badge variant="neutral">{copy.metafields.hidden}</Badge>
                   )}
                 </span>
-                <span className="truncate text-caption text-muted-foreground">
-                  <span className="font-mono">
-                    {d.namespace}.{d.key}
-                  </span>{' '}
-                  · {d.list ? copy.metafields.listOf(types[d.type].label) : types[d.type].label} ·{' '}
-                  {copy.metafields.values(d.values)}
+                <span className="truncate font-mono text-caption text-muted-foreground">
+                  {d.namespace}.{d.key}
                 </span>
               </div>
+              <span className="hidden w-32 shrink-0 truncate text-body text-foreground sm:block">
+                {d.list ? copy.metafields.listOf(types[d.type].label) : types[d.type].label}
+              </span>
+              <span className="hidden w-24 shrink-0 text-body text-foreground tabular-nums sm:block">
+                {copy.metafields.values(d.values)}
+              </span>
               {canManage ? (
-                <>
-                  <Button
-                    variant="ghost"
-                    size="icon-sm"
-                    aria-label={copy.metafields.edit}
-                    onClick={() => setEditing(d)}
-                  >
-                    <Pencil />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon-sm"
-                    aria-label={copy.metafields.delete}
-                    onClick={() => setRemoving(d)}
-                  >
-                    <Trash2 />
-                  </Button>
-                </>
+                <ActionMenu
+                  label={copy.metafields.actions(d.name)}
+                  trigger="kebab-vertical"
+                  size="md"
+                  items={[
+                    { label: copy.metafields.edit, icon: Pencil, onSelect: () => setEditing(d) },
+                    {
+                      label: copy.metafields.delete,
+                      icon: Trash2,
+                      destructive: true,
+                      onSelect: () => setRemoving(d),
+                    },
+                  ]}
+                />
               ) : null}
             </li>
           ))}

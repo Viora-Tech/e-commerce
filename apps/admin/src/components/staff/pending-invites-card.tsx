@@ -1,5 +1,6 @@
 'use client'
 
+import { Copy, OctagonXIcon, Send } from '@commerce/ui/icons'
 import { cn } from '@commerce/ui/lib/utils'
 import { Button } from '@commerce/ui/shadcn/button'
 import { useState } from 'react'
@@ -151,22 +152,26 @@ export default function PendingInvitesCard({
                       ) : null}
                       <ActionMenu
                         label={copy.actions.menu}
+                        trigger="kebab-vertical"
                         variant="ghost"
                         size="md"
                         disabled={busy}
                         items={[
                           {
                             label: copy.actions.copy,
+                            icon: Copy,
                             hidden: invite.expired,
                             onSelect: () => handleCopy(invite),
                           },
                           {
                             label: copy.actions.resend,
+                            icon: Send,
                             hidden: invite.expired,
                             onSelect: () => handleResend(invite),
                           },
                           {
                             label: copy.actions.cancel,
+                            icon: OctagonXIcon,
                             destructive: true,
                             onSelect: () => setCancelling(invite),
                           },

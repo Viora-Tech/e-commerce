@@ -397,6 +397,7 @@ export default [
       hidden: 'स्टोर पर छिपा',
       edit: 'बदलें',
       delete: 'हटाएं',
+      actions: (name) => `${name} के विकल्प`,
     },
     dialog: {
       addTitle: (owner) => `${owner} का एक्स्ट्रा फ़ील्ड जोड़ें`,

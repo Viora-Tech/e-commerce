@@ -1,6 +1,7 @@
 'use client'
 
 import type { GstRegistrationView } from '@commerce/core'
+import { CircleCheck, OctagonXIcon } from '@commerce/ui/icons'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { toast } from 'sonner'
@@ -79,8 +80,18 @@ export default function RegistrationRow({
           size="md"
           disabled={busy}
           items={[
-            { label: copy.makeDefault, hidden: r.isDefault, onSelect: handleMakeDefault },
-            { label: copy.cancel, destructive: true, onSelect: () => setConfirmCancel(true) },
+            {
+              label: copy.makeDefault,
+              icon: CircleCheck,
+              hidden: r.isDefault,
+              onSelect: handleMakeDefault,
+            },
+            {
+              label: copy.cancel,
+              icon: OctagonXIcon,
+              destructive: true,
+              onSelect: () => setConfirmCancel(true),
+            },
           ]}
         />
       ) : null}

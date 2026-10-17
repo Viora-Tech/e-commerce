@@ -425,6 +425,7 @@ export const customDataContent = {
     hidden: 'Hidden from storefront',
     edit: 'Edit',
     delete: 'Delete',
+    actions: (name: string) => `Actions for ${name}`,
   },
   dialog: {
     addTitle: (owner: string) => `Add ${owner.toLowerCase()} extra field`,
