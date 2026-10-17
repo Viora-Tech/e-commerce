@@ -10,8 +10,8 @@ import {
 } from '@commerce/ui/icons'
 import { buttonVariants } from '@commerce/ui/shadcn/button'
 import type { Metadata } from 'next'
-import Image from 'next/image'
 import Link from 'next/link'
+import GlobeBackdrop from '@/components/common/globe-backdrop'
 import PageContainer from '@/components/common/page-container'
 import SiteShell from '@/components/layout/site-shell'
 
@@ -84,22 +84,12 @@ export default function NotFound() {
             Back to home
           </Link>
         </PageContainer>
-        <div
-          aria-hidden
-          className="pointer-events-none relative mt-16 h-60 overflow-hidden md:h-[28rem]"
-        >
-          <Image
-            src="/images/globe.png"
-            alt=""
-            width={1056}
-            height={480}
-            className="absolute bottom-0 left-1/2 w-[130%] max-w-none -translate-x-1/2 md:w-[66rem]"
-          />
-          <p className="glass-popover absolute top-8 left-1/2 ml-16 inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-xs text-foreground md:top-12">
+        <GlobeBackdrop className="mt-16">
+          <p className="glass-panel pointer-events-none absolute top-8 left-1/2 ml-16 inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-xs text-foreground md:top-12">
             <MapPinLineIcon className="size-3.5" />
             Page not found · somewhere near here
           </p>
-        </div>
+        </GlobeBackdrop>
       </section>
     </SiteShell>
   )

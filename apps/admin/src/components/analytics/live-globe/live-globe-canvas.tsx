@@ -1,8 +1,5 @@
 'use client'
 
-import { cn } from '@commerce/ui/lib/utils'
-import createGlobe, { type Globe } from 'cobe'
-import { useEffect, useRef } from 'react'
 import {
   attachControls,
   clampZoom,
@@ -11,10 +8,13 @@ import {
   positionOverlay,
   stepMotion,
   ZOOM_BUTTON_STEP,
-} from './globe-controls'
+} from '@commerce/ui/globe/controls'
+import { locationToAngles, projectToView } from '@commerce/ui/globe/projection'
+import { cn } from '@commerce/ui/lib/utils'
+import createGlobe, { type Globe } from 'cobe'
+import { useEffect, useRef } from 'react'
 import GlobeOverlay from './globe-overlay'
 import { readPalette } from './globe-palette'
-import { locationToAngles, projectToView } from './projection'
 import type { GlobeCanvasProps } from './types'
 
 export type { GlobeArc, GlobeMarker } from './types'

@@ -1,8 +1,8 @@
-import Image from 'next/image'
 import Link from 'next/link'
 import { homeContent } from '@/data/home'
 import { waitlistContent } from '@/data/waitlist'
 import AmbientLight from '../common/ambient-light'
+import GlobeView from '../globe/globe-view'
 import HeroEmailCapture from '../waitlist/hero-email-capture'
 import HeroFloats from './hero-floats'
 
@@ -39,17 +39,20 @@ export default function Hero() {
           </p>
         </div>
       </div>
-      <div aria-hidden className="pointer-events-none absolute inset-x-0 bottom-0 h-[30rem]">
-        <div className="absolute top-[7.5rem] left-1/2 size-[44rem] -translate-x-1/2 rounded-full border-[1.125rem] border-white opacity-[0.18] blur-[1.25rem] md:top-[2.1rem] md:size-[69.8rem]" />
-        <Image
-          src="/images/globe.png"
-          alt={copy.globeAlt}
-          width={1056}
-          height={480}
-          priority
-          className="absolute bottom-0 left-1/2 w-[130%] max-w-none -translate-x-1/2 md:w-[66rem]"
+      <div className="pointer-events-none absolute inset-x-0 bottom-0 h-[30rem]">
+        <div
+          aria-hidden
+          className="absolute top-[7.5rem] left-1/2 size-[44rem] -translate-x-1/2 rounded-full border-[1.125rem] border-white opacity-[0.18] blur-[1.25rem] md:top-[2.1rem] md:size-[69.8rem]"
         />
-        <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-background to-transparent" />
+        <GlobeView
+          pins
+          priority
+          className="pointer-events-auto absolute bottom-0 left-1/2 -translate-x-1/2"
+        />
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-background to-transparent"
+        />
       </div>
       <HeroFloats />
     </section>

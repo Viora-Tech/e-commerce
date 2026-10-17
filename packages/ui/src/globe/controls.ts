@@ -115,6 +115,9 @@ export function stepMotion(
   s.zoom = reducedMotion ? s.zoomTarget : s.zoom + (s.zoomTarget - s.zoom) * ZOOM_EASE
 }
 
+/** `wheelZoom: 'ctrl'` leaves a plain wheel to the page; the default zooms on any wheel. */
+export type ControlOptions = { wheelZoom?: 'always' | 'ctrl' }
+
 /**
  * Wires drag (spin and tilt), touch pinch and wheel zoom to the canvas; returns the cleanup.
  * Touch keeps vertical swipes for page scroll (`pan-y`), and the wheel listener only prevents
@@ -124,6 +127,7 @@ export function attachControls(
   canvas: HTMLCanvasElement,
   s: GlobeMotion,
   reducedMotion: boolean,
+  options: ControlOptions = {},
 ): () => void {
   const onPointerDown = (e: PointerEvent) => {
     s.dragging = true
@@ -174,6 +178,9 @@ export function attachControls(
     if (s.touches.size < 2) s.pinchStartDistance = 0
   }
   const onWheel = (e: WheelEvent) => {
+    // Embedded in a scrolling page: zoom only on pinch (trackpads send ctrl+wheel) or ctrl+wheel,
+    // and let a plain wheel scroll the page.
+    if (options.wheelZoom === 'ctrl' && !e.ctrlKey) return
     e.preventDefault()
     s.zoomTarget = clampZoom(s.zoomTarget - e.deltaY * ZOOM_WHEEL_SENSITIVITY, s.zoomMax)
   }

@@ -1,7 +1,5 @@
 'use client'
 
-import { cn } from '@commerce/ui/lib/utils'
-import { useEffect, useRef } from 'react'
 import {
   attachControls,
   clampZoom,
@@ -10,22 +8,34 @@ import {
   positionOverlay,
   stepMotion,
   ZOOM_BUTTON_STEP,
-} from './globe-controls'
+} from '@commerce/ui/globe/controls'
+import { DASH_PERIOD_CSS_PX } from '@commerce/ui/globe/webgl/border-dash'
+import {
+  type BorderPoint,
+  buildBorderStrokePoints,
+  decodeBorderPoints,
+} from '@commerce/ui/globe/webgl/border-points'
+import { dotRadiusPx as dotRadius, pickDotRows } from '@commerce/ui/globe/webgl/dot-layout'
+import {
+  anglesFor,
+  createGlobeRenderer,
+  rotate,
+  rotation,
+  toVector,
+} from '@commerce/ui/globe/webgl/globe-renderer'
+import {
+  buildArcPoints,
+  buildMarkerPoints,
+  markerVector,
+} from '@commerce/ui/globe/webgl/overlay-points'
+import { subsolarPoint } from '@commerce/ui/globe/webgl/sun-position'
+import { cn } from '@commerce/ui/lib/utils'
+import { useEffect, useRef } from 'react'
 import GlobeOverlay from './globe-overlay'
 import { readPalette } from './globe-palette'
 import { defaultGlobeSettings, saveLastZoom } from './globe-settings'
 import GlobeSettingsPanel from './globe-settings-panel'
 import type { GlobeCanvasProps } from './types'
-import { DASH_PERIOD_CSS_PX } from './webgl/border-dash'
-import {
-  type BorderPoint,
-  buildBorderStrokePoints,
-  decodeBorderPoints,
-} from './webgl/border-points'
-import { dotRadiusPx as dotRadius, pickDotRows } from './webgl/dot-layout'
-import { anglesFor, createGlobeRenderer, rotate, rotation, toVector } from './webgl/globe-renderer'
-import { buildArcPoints, buildMarkerPoints, markerVector } from './webgl/overlay-points'
-import { subsolarPoint } from './webgl/sun-position'
 
 const PULSE_MS = 1800
 const REVEAL_MS = 900
