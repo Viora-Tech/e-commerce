@@ -250,6 +250,7 @@ export default [
     fields: untranslated,
     ops: untranslated,
     marketingValues: untranslated,
+    orJoin: ' या ',
     valuePlaceholder: untranslated,
   }),
 ]

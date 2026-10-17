@@ -339,6 +339,8 @@ export const segmentsContent = {
     contains: 'includes',
   } as Record<string, string>,
   marketingValues: { true: 'Subscribed', false: 'Not subscribed' } as Record<string, string>,
+  /** Joins conditions when any one of them is enough. */
+  orJoin: ' or ',
   valuePlaceholder: {
     spend: '5000',
     orders: '2',
