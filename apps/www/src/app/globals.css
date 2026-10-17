@@ -1,0 +1,119 @@
+/*
+ * Marketing site styles. Everything visual is Tailwind: the dark tokens come from @commerce/ui
+ * styles.css (the Figma "shadcn neutral" Dark mode; the root layout sets class="dark"), and the
+ * few site-only values live in the @theme block below. The page is black, white and grey; the
+ * orange --color-cta is used only for primary CTA buttons, the "Most popular" plan and the
+ * feature-tour progress line.
+ */
+@layer theme, base, components, utilities;
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+@import "@commerce/ui/styles.css";
+
+@source "../../../../packages/ui/src/**/*.{ts,tsx}";
+
+@theme inline {
+  --color-cta: #ff6a13;
+  --color-cta-light: #ff8a3d;
+  --color-cta-foreground: #ffffff;
+
+  --container-page: 75rem;
+  --container-prose: 45rem;
+
+  /* Landing type scale (Figma Koomerce/*). Titles run heavy and tight. */
+  --text-hero: 5rem;
+  --text-hero--line-height: 1.02;
+  --text-hero--letter-spacing: -0.045em;
+  --text-display: 3.75rem;
+  --text-display--line-height: 1.05;
+  --text-display--letter-spacing: -0.04em;
+  --text-section: 2.75rem;
+  --text-section--line-height: 1.1;
+  --text-section--letter-spacing: -0.035em;
+  --text-subsection: 2rem;
+  --text-subsection--line-height: 1.15;
+  --text-subsection--letter-spacing: -0.03em;
+  --text-lead: 1.1875rem;
+  --text-lead--line-height: 1.6;
+  --text-micro: 0.6875rem;
+  --text-micro--line-height: 1rem;
+}
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+    scroll-padding-top: 7rem;
+    background-color: var(--background);
+  }
+  @media (prefers-reduced-motion: reduce) {
+    html {
+      scroll-behavior: auto;
+    }
+  }
+  body {
+    background-color: var(--background);
+    color: var(--foreground);
+  }
+}
+
+/* Feature-tour progress line: fills top to bottom over the tour interval. */
+@keyframes tour-fill {
+  from {
+    transform: scaleY(0);
+  }
+  to {
+    transform: scaleY(1);
+  }
+}
+@keyframes tour-fill-x {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+
+@utility animate-tour-fill {
+  transform-origin: top;
+  animation: tour-fill var(--tour-ms, 6000ms) linear forwards;
+  &[data-paused="true"] {
+    animation-play-state: paused;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+    transform: scaleY(1);
+  }
+}
+@utility animate-tour-fill-x {
+  transform-origin: left;
+  animation: tour-fill-x var(--tour-ms, 6000ms) linear forwards;
+  &[data-paused="true"] {
+    animation-play-state: paused;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+    transform: scaleX(1);
+  }
+}
+
+/* Chips and stage items that swap with the tour: fade, blur and scale in. */
+@keyframes tour-in {
+  from {
+    opacity: 0;
+    filter: blur(4px);
+    scale: 0.98;
+  }
+  to {
+    opacity: 1;
+    filter: blur(0);
+    scale: 1;
+  }
+}
+@utility animate-tour-in {
+  animation: tour-in 400ms var(--ease-out) both;
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+  }
+}
