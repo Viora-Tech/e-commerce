@@ -96,21 +96,23 @@ export default function StatTile({
       >
         {value}
       </span>
-      {trend ? (
+      {typeof trend === 'number' ? (
         <span
           className={cn(
             'inline-flex items-center gap-1 font-medium',
             strip ? 'text-xs' : 'text-caption',
-            strip
-              ? good
-                ? 'text-foreground'
-                : 'text-danger'
-              : good
-                ? 'text-success'
-                : 'text-danger',
+            trend === 0
+              ? 'text-muted-foreground'
+              : strip
+                ? good
+                  ? 'text-foreground'
+                  : 'text-danger'
+                : good
+                  ? 'text-success'
+                  : 'text-danger',
           )}
         >
-          {up ? (
+          {trend === 0 ? null : up ? (
             <ArrowUp className="size-3" aria-hidden />
           ) : (
             <ArrowDown className="size-3" aria-hidden />
@@ -120,7 +122,8 @@ export default function StatTile({
             <span className="font-normal text-muted-foreground">{trendNote}</span>
           ) : null}
         </span>
-      ) : note || trendNote ? (
+      ) : note || (trendNote && trend === undefined) ? (
+        /* A trend of null means there is nothing to compare against: no lone "vs last week". */
         <span className={cn('text-muted-foreground', strip ? 'text-xs' : 'text-caption')}>
           {note ?? trendNote}
         </span>
