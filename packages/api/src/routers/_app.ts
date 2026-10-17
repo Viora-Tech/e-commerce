@@ -6,6 +6,7 @@ import { analyticsRouter } from './analytics'
 import { appearanceRouter } from './appearance'
 import { appsRouter } from './apps'
 import { backInStockRouter } from './back-in-stock'
+import { billingRouter } from './billing'
 import { blogRouter } from './blog'
 import { bugReportsRouter } from './bug-reports'
 import { businessGstRouter } from './business-gst'
@@ -72,6 +73,7 @@ export const appRouter = {
   purchaseCharges: purchaseChargesRouter,
   purchaseDocuments: purchaseDocumentsRouter,
   pages: pagesRouter,
+  billing: billingRouter,
   blog: blogRouter,
   metaobjects: metaobjectsRouter,
   navigation: navigationRouter,
