@@ -49,6 +49,7 @@ import { themeFontVariables } from '@/lib/fonts'
 import { liquidShim } from '@/lib/liquid-shim'
 import { liquidLayoutFor, reactAttrs } from '@/lib/liquid-theme'
 import { mediaByUrl } from '@/lib/media-lookup'
+import { subscribeAction } from '@/lib/newsletter-actions'
 import { requestCart } from '@/lib/request-cart'
 import { heightForWidth } from '@/lib/section-images'
 import { requestOrigin } from '@/lib/seo'
@@ -264,6 +265,7 @@ export default async function StoreLayout({ children, params }: Props) {
               {...footerSettings(s)}
               storeName={current.name}
               columns={footerColumns}
+              newsletterAction={subscribeAction}
               policies={policies.map((p) => ({ label: p.title, href: p.href }))}
               // Reopens the cookie banner, so a choice can be changed any time.
               cookieSettings={{ label: privacyContent.cookieSettings, href: COOKIE_SETTINGS_HASH }}

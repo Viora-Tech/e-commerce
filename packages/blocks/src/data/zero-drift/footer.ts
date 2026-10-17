@@ -1,7 +1,7 @@
 /** Default copy, field labels and fixed UI strings for the footer (Zero Drift `footer`). */
 export const footerContent = {
   label: 'Footer',
-  aboutHeading: 'About us',
+  aboutHeading: '',
   tagline:
     '<p>We bring in the mice, pads and keyboards the pros use, with a GST invoice and Indian warranty. Stuck choosing? Message us on WhatsApp.</p>',
   helpCards: [
@@ -26,10 +26,18 @@ export const footerContent = {
   ],
   paymentIcons: [
     { method: 'upi' },
+    { method: 'rupay' },
     { method: 'visa' },
     { method: 'mastercard' },
-    { method: 'rupay' },
+    { method: 'cod' },
   ],
+  newsletterHeading: 'Get drops first',
+  newsletterButton: 'Join',
+  newsletterPlaceholder: 'you@email.com',
+  newsletterLabel: 'Email address',
+  newsletterDone: 'Check your inbox to confirm.',
+  newsletterFailed: 'That did not go through. Try again.',
+  rights: 'All rights reserved.',
   helpCardFallback: 'Help card',
   socialFallback: 'Social link',
   paymentFallback: 'Payment method',
@@ -58,6 +66,7 @@ export const footerContent = {
     { label: 'RuPay', value: 'rupay' },
     { label: 'American Express', value: 'amex' },
     { label: 'Net banking', value: 'netbanking' },
+    { label: 'COD', value: 'cod' },
   ],
   showHide: [
     { label: 'Show', value: true },
@@ -81,5 +90,8 @@ export const footerContent = {
     paymentIcons: 'Payment methods shown',
     paymentMethod: 'Method',
     showPolicies: 'Policy links',
+    showNewsletter: 'Newsletter sign-up',
+    newsletterHeading: 'Newsletter heading',
+    newsletterButton: 'Newsletter button',
   },
 } as const
