@@ -64,7 +64,6 @@ export default function WaitlistForm({ initialEmail, onJoined }: WaitlistFormPro
   // Hooks
   const [state, formAction, pending] = useActionState(joinWaitlist, WAITLIST_INITIAL)
   const [email, setEmail] = useState(initialEmail)
-  const [phone, setPhone] = useState('')
   const [sell, setSell] = useState('')
   const [channels, setChannels] = useState<string[]>([])
 
@@ -107,17 +106,6 @@ export default function WaitlistForm({ initialEmail, onJoined }: WaitlistFormPro
         value={email}
         onChange={setEmail}
         error={state.errors.email}
-      />
-      <Field
-        id="phone"
-        label={copy.phone.label}
-        type="tel"
-        autoComplete="tel"
-        inputMode="tel"
-        placeholder={copy.phone.placeholder}
-        value={phone}
-        onChange={setPhone}
-        error={state.errors.phone}
       />
       <Field
         id="sell"

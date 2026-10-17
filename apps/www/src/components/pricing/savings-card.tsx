@@ -1,6 +1,7 @@
 import { siteConfig } from '@commerce/config/site'
 import { pricingContent } from '@/data/pricing'
 import { formatCount, formatInr, PLATFORM_FEE_RATE } from '@/lib/pricing-math'
+import CountUp from '../common/count-up'
 
 type SavingsCardProps = { orders: number; aov: number }
 
@@ -13,10 +14,10 @@ export default function SavingsCard({ orders, aov }: SavingsCardProps) {
   const fee = Math.round(sales * PLATFORM_FEE_RATE)
 
   return (
-    <div className="surface-glass flex flex-col gap-5 rounded-3xl p-6 md:p-8">
+    <div className="glass-panel flex flex-col gap-5 rounded-3xl p-6 md:p-8">
       <p className="text-eyebrow">{copy.keepLabel}</p>
       <p className="text-4xl font-semibold text-foreground tabular-nums md:text-5xl">
-        ≈ {formatInr(fee)} / month
+        ≈ <CountUp value={fee} currency /> / month
       </p>
       <p className="text-sm text-muted-foreground">
         On ≈ {formatInr(sales)} in sales ({formatCount(orders)} orders × {formatInr(aov)}), a ~2%

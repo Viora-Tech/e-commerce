@@ -1,5 +1,6 @@
 import { cn } from '@commerce/ui/lib/utils'
 import type { ReactNode } from 'react'
+import Reveal from '../common/reveal'
 
 type BentoTileProps = {
   children: ReactNode
@@ -9,6 +10,7 @@ type BentoTileProps = {
   className?: string
   /** Where the copy block sits relative to the art: below it, or beside it. */
   layout?: 'stack' | 'side'
+  step?: number
 }
 
 /** One card of the "Built for how India buys" grid: art on top, copy underneath. */
@@ -19,9 +21,12 @@ export default function BentoTile({
   body,
   className,
   layout = 'stack',
+  step = 0,
 }: BentoTileProps) {
   return (
-    <article
+    <Reveal
+      as="article"
+      step={step}
       className={cn(
         'surface-card relative flex gap-6 overflow-hidden rounded-3xl p-7',
         layout === 'stack' ? 'flex-col' : 'flex-col md:flex-row md:items-stretch',
@@ -41,6 +46,6 @@ export default function BentoTile({
         <h3 className="text-xl font-semibold text-foreground">{title}</h3>
         <p className="text-sm text-muted-foreground">{body}</p>
       </div>
-    </article>
+    </Reveal>
   )
 }

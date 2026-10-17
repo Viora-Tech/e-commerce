@@ -11,7 +11,7 @@ export default function ShopifyMock({ variant, className }: ShopifyMockProps) {
 
   return (
     <div className={cn('flex flex-col items-center gap-4', className)}>
-      <div className="surface-glass w-full overflow-hidden rounded-2xl bg-card">
+      <div className="glass-panel w-full overflow-hidden rounded-2xl bg-card">
         <div className="flex h-9 items-center gap-1.5 bg-muted/60 px-3">
           <span aria-hidden className="size-2 rounded-full bg-muted-foreground/40" />
           <span aria-hidden className="size-2 rounded-full bg-muted-foreground/40" />

@@ -1,25 +1,26 @@
-import { whatsappHelpUrl } from '@commerce/config/site'
-import { WhatsappLogo_ as WhatsappLogo } from '@commerce/ui/icons'
+import { siteConfig } from '@commerce/config/site'
+import { Inbox } from '@commerce/ui/icons'
 import { cn } from '@commerce/ui/lib/utils'
 import { buttonVariants } from '@commerce/ui/shadcn/button'
 import JoinWaitlistButton from '../waitlist/join-waitlist-button'
 import PageContainer from './page-container'
+import Reveal from './reveal'
 
 type CtaBandProps = {
   title: string
   body?: string
-  /** Adds the "Talk on WhatsApp" secondary action (the home page's closing card). */
-  whatsappLabel?: string
+  /** Adds the "Email us" secondary action (the home page's closing card). */
+  emailLabel?: string
   /** Compact left-aligned band used at the foot of inner pages. */
   inline?: boolean
 }
 
-export default function CtaBand({ title, body, whatsappLabel, inline = false }: CtaBandProps) {
+export default function CtaBand({ title, body, emailLabel, inline = false }: CtaBandProps) {
   return (
     <PageContainer as="section" className="py-10 md:py-16">
-      <div
+      <Reveal
         className={cn(
-          'surface-glass relative overflow-hidden rounded-[2rem] border border-foreground/80 px-6 py-12 md:px-16 md:py-20',
+          'glass-panel relative overflow-hidden rounded-[2rem] border border-foreground/80 px-6 py-12 md:px-16 md:py-20',
           inline
             ? 'flex flex-col gap-6 md:flex-row md:items-center md:justify-between md:py-12'
             : 'flex flex-col items-center gap-6 text-center',
@@ -38,21 +39,21 @@ export default function CtaBand({ title, body, whatsappLabel, inline = false }: 
         </div>
         <div className={cn('flex flex-col gap-3 sm:flex-row', inline ? 'sm:shrink-0' : null)}>
           <JoinWaitlistButton size="lg" arrow />
-          {whatsappLabel ? (
+          {emailLabel ? (
             <a
-              href={whatsappHelpUrl()}
+              href={`mailto:${siteConfig.contact.supportEmail}`}
               className={buttonVariants({
                 variant: 'outline',
                 size: 'lg',
                 className: 'rounded-full',
               })}
             >
-              <WhatsappLogo aria-hidden />
-              {whatsappLabel}
+              <Inbox aria-hidden />
+              {emailLabel}
             </a>
           ) : null}
         </div>
-      </div>
+      </Reveal>
     </PageContainer>
   )
 }

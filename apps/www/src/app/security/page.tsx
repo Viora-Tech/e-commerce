@@ -10,6 +10,7 @@ import {
 import { buttonVariants } from '@commerce/ui/shadcn/button'
 import type { ComponentType } from 'react'
 import PageContainer from '@/components/common/page-container'
+import Reveal from '@/components/common/reveal'
 import SectionHeading from '@/components/common/section-heading'
 import SiteShell from '@/components/layout/site-shell'
 import SecurityDiagram from '@/components/pages/security-diagram'
@@ -55,22 +56,27 @@ export default function SecurityPage() {
       <PageContainer as="section" className="flex flex-col items-center gap-12 py-16 md:py-24">
         <SectionHeading eyebrow={copy.pillars.eyebrow} title={copy.pillars.title} />
         <ul className="grid w-full gap-4 md:grid-cols-2 lg:grid-cols-3 lg:gap-6">
-          {copy.pillars.items.map((item) => {
+          {copy.pillars.items.map((item, index) => {
             const Icon = PILLAR_ICONS[item.key] ?? Boxes
             return (
-              <li key={item.key} className="surface-card flex flex-col gap-3 rounded-3xl p-6">
+              <Reveal
+                as="li"
+                step={index % 3}
+                key={item.key}
+                className="surface-card card-lift flex flex-col gap-3 rounded-3xl p-6"
+              >
                 <span className="mb-3 grid size-10 place-items-center rounded-xl border border-border bg-muted">
                   <Icon aria-hidden className="size-5" />
                 </span>
                 <h3 className="text-lg font-semibold text-foreground">{item.title}</h3>
                 <p className="text-sm text-muted-foreground">{item.body}</p>
-              </li>
+              </Reveal>
             )
           })}
         </ul>
       </PageContainer>
       <PageContainer as="section" className="pb-24">
-        <div className="surface-glass flex flex-col gap-5 rounded-3xl p-7 md:flex-row md:items-center md:justify-between md:p-8">
+        <div className="glass-panel flex flex-col gap-5 rounded-3xl p-7 md:flex-row md:items-center md:justify-between md:p-8">
           <div>
             <h2 className="text-xl font-semibold text-foreground">{copy.report.title}</h2>
             <p className="mt-1 text-sm text-muted-foreground">{copy.report.body}</p>

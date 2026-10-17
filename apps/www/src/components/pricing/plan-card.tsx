@@ -1,6 +1,7 @@
 import { CheckIcon } from '@commerce/ui/icons'
 import { cn } from '@commerce/ui/lib/utils'
 import { pricingContent as copy, type Plan } from '@/data/pricing'
+import Reveal from '../common/reveal'
 import JoinWaitlistButton from '../waitlist/join-waitlist-button'
 
 type PlanCardProps = {
@@ -9,17 +10,20 @@ type PlanCardProps = {
   badge?: string
   /** "100 orders a month" on the home page; "Up to 100 orders a month" on the pricing page. */
   upTo?: boolean
+  step?: number
 }
 
-export default function PlanCard({ plan, badge, upTo = false }: PlanCardProps) {
+export default function PlanCard({ plan, badge, upTo = false, step = 0 }: PlanCardProps) {
   // Render logic
   const label = badge ?? (plan.popular ? copy.mostPopular : null)
   const orders = `${upTo ? `${copy.upTo} ` : ''}${plan.ordersPerMonth.toLocaleString('en-IN')} ${copy.ordersAMonth}`
 
   return (
-    <article
+    <Reveal
+      as="article"
+      step={step}
       className={cn(
-        'surface-card flex flex-col gap-6 rounded-3xl p-7',
+        'surface-card card-lift flex flex-col gap-6 rounded-3xl p-7',
         plan.popular && 'border border-cta',
       )}
     >
@@ -56,6 +60,6 @@ export default function PlanCard({ plan, badge, upTo = false }: PlanCardProps) {
         ))}
       </ul>
       <JoinWaitlistButton variant={plan.popular ? 'cta' : 'outline'} size="lg" className="w-full" />
-    </article>
+    </Reveal>
   )
 }

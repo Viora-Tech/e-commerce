@@ -12,11 +12,6 @@ export const waitlistContent = {
     placeholder: 'you@yourstore.in',
     invalid: 'Enter a valid email address',
   },
-  phone: {
-    label: 'Phone number',
-    placeholder: 'e.g. 98765 43210',
-    invalid: 'Enter a valid phone number',
-  },
   sell: {
     label: 'What do you sell?',
     placeholder: 'e.g. Handmade cotton sarees',
@@ -48,15 +43,15 @@ export const waitlistContent = {
         body: 'We look at what you sell so we can set you up right.',
       },
       { title: 'You get an invite email', body: 'Your sign-up link arrives in your inbox.' },
-      { title: 'Create your store', body: 'Your email and phone are already filled in.' },
+      { title: 'Create your store', body: 'Your email is already filled in.' },
     ],
     shareLabel: 'Know someone who sells? Share your link',
     copy: 'Copy link',
     copied: 'Link copied',
     done: 'Done',
-    shareOnWhatsApp: 'Share on WhatsApp',
+    shareByEmail: 'Share by email',
     backHome: 'Back to home',
-    whatsappShare: `Run your store in plain words with ${brand}:`,
+    shareSubject: `Run your store in plain words with ${brand}`,
   },
   hero: {
     placeholder: 'you@yourstore.in',
@@ -71,7 +66,7 @@ export type WaitlistStatus = 'idle' | 'success' | 'invalid' | 'duplicate' | 'err
 
 export type WaitlistState = {
   status: WaitlistStatus
-  errors: { email?: string; phone?: string; sell?: string }
+  errors: { email?: string; sell?: string }
 }
 
 export const WAITLIST_INITIAL: WaitlistState = { status: 'idle', errors: {} }

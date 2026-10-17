@@ -17,8 +17,8 @@ export default function HomePricing() {
       <PageContainer className="flex flex-col items-center gap-12 md:gap-16">
         <SectionHeading eyebrow={copy.eyebrow} title={copy.title} subtitle={copy.subtitle} />
         <div className="grid w-full gap-6 lg:grid-cols-3">
-          {PLANS.map((plan) => (
-            <PlanCard key={plan.key} plan={plan} />
+          {PLANS.map((plan, index) => (
+            <PlanCard key={plan.key} plan={plan} step={index} />
           ))}
         </div>
         <Link href="/pricing" className={buttonVariants({ variant: 'outline', size: 'lg' })}>

@@ -100,14 +100,6 @@ export default function ContactForm() {
           error={state.errors.email}
         />
         <TextField
-          id="phone"
-          label={copy.phone.label}
-          placeholder={copy.phone.placeholder}
-          type="tel"
-          autoComplete="tel"
-          error={undefined}
-        />
-        <TextField
           id="store"
           label={copy.store.label}
           placeholder={copy.store.placeholder}

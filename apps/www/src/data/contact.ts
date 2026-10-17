@@ -9,17 +9,17 @@ export const contactContent = {
     'Moving from Shopify, choosing a plan or stuck on a setting — a real person on our team replies.',
   channels: [
     {
-      key: 'whatsapp',
-      title: 'WhatsApp',
-      // PLACEHOLDER: the number comes from siteConfig until the owner sets a real one.
-      body: `${siteConfig.contact.phone} [placeholder]. Fastest during support hours.`,
-      cta: 'Chat on WhatsApp →',
-    },
-    {
       key: 'email',
       title: 'Email',
       body: `${siteConfig.contact.supportEmail} — we answer every email.`,
       cta: 'Write to us →',
+    },
+    {
+      key: 'sales',
+      title: 'Sales and partnerships',
+      // PLACEHOLDER: the sales mailbox is not final.
+      body: 'Choosing a plan or working together? [Sales mailbox placeholder]',
+      cta: 'Email sales →',
     },
     {
       key: 'call',
@@ -35,7 +35,6 @@ export const contactContent = {
     topics: ['Sales', 'Support', 'Partnerships', 'Press'],
     name: { label: 'Your name', placeholder: 'Riya Sharma' },
     email: { label: 'Email', placeholder: 'you@yourstore.in' },
-    phone: { label: 'Phone (optional)', placeholder: 'e.g. 98765 43210' },
     store: { label: 'Your store link (optional)', placeholder: 'yourstore.in' },
     message: { label: 'Message', placeholder: 'Tell us about your store and what you need.' },
     consent: 'You can contact me about this request.',

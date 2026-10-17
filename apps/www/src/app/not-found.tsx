@@ -44,7 +44,7 @@ export default function NotFound() {
           </p>
           <a
             href={siteConfig.urls.docs}
-            className="surface-glass flex h-11 w-full max-w-md items-center gap-3 rounded-full px-4 text-sm text-muted-foreground"
+            className="glass-panel flex h-11 w-full max-w-md items-center gap-3 rounded-full px-4 text-sm text-muted-foreground"
           >
             <Search aria-hidden className="size-4" />
             Search pages and docs

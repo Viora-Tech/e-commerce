@@ -48,7 +48,7 @@ function DiagramNode({ nodeKey, title, body, highlighted = false }: DiagramNodeP
 
 export default function SecurityDiagram() {
   return (
-    <figure className="surface-glass flex flex-col gap-8 rounded-3xl p-6 md:p-8">
+    <figure className="glass-panel flex flex-col gap-8 rounded-3xl p-6 md:p-8">
       <figcaption className="flex flex-col justify-between gap-1 md:flex-row md:items-baseline">
         <span className="text-base font-semibold text-foreground">{copy.title}</span>
         <span className="text-xs text-muted-foreground">{copy.source}</span>

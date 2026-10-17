@@ -1,5 +1,6 @@
 import { cn } from '@commerce/ui/lib/utils'
 import Eyebrow from './eyebrow'
+import Reveal from './reveal'
 
 type SectionHeadingProps = {
   eyebrow?: string
@@ -28,7 +29,7 @@ export default function SectionHeading({
   className,
 }: SectionHeadingProps) {
   return (
-    <div
+    <Reveal
       className={cn(
         'flex flex-col gap-4',
         align === 'center' ? 'items-center text-center' : 'items-start text-left',
@@ -42,6 +43,6 @@ export default function SectionHeading({
       {subtitle ? (
         <p className="max-w-3xl text-lead text-pretty text-muted-foreground">{subtitle}</p>
       ) : null}
-    </div>
+    </Reveal>
   )
 }

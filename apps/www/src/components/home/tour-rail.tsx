@@ -57,7 +57,7 @@ export default function TourRail({ items, active, paused, onSelect, onFinished }
             key={item.key}
             className={cn(
               'relative overflow-hidden rounded-2xl transition-colors duration-(--duration-popover) ease-out',
-              selected && 'surface-glass',
+              selected && 'glass-panel',
             )}
           >
             <button

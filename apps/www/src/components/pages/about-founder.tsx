@@ -5,7 +5,7 @@ import PageContainer from '../common/page-container'
 export default function AboutFounder() {
   return (
     <PageContainer as="section" className="py-10">
-      <figure className="surface-glass grid gap-8 rounded-3xl p-6 md:grid-cols-[18rem_1fr] md:gap-12 md:p-10">
+      <figure className="glass-panel grid gap-8 rounded-3xl p-6 md:grid-cols-[18rem_1fr] md:gap-12 md:p-10">
         <div className="flex aspect-[4/5] flex-col items-center justify-center gap-2 rounded-2xl border border-dashed border-border-strong bg-muted/40 text-sm text-muted-foreground">
           <UserRound aria-hidden className="size-8" />
           {copy.founder.photo}

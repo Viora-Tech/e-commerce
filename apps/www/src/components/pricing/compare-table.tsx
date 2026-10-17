@@ -40,17 +40,17 @@ export default function CompareTable() {
         subtitle={copy.subtitle}
         size="subsection"
       />
-      <div className="w-full overflow-x-auto">
-        <table className="w-full min-w-[40rem] border-separate border-spacing-0 text-left text-sm">
+      <div className="w-full">
+        <table className="w-full table-fixed border-separate border-spacing-0 text-left text-sm">
           <caption className="sr-only">{copy.title}</caption>
           <thead>
             <tr className="sticky top-22 z-10">
               <th
                 scope="col"
-                className="glass-bar rounded-l-2xl px-5 py-4 font-normal text-muted-foreground"
+                className="glass-bar rounded-l-2xl px-2 py-3 md:px-5 md:py-4 font-normal text-muted-foreground"
               >
                 <span className="mr-2">{copy.plan}</span>
-                <span className="rounded-md bg-muted px-2 py-0.5 text-xs font-medium text-foreground">
+                <span className="hidden rounded-md bg-muted px-2 py-0.5 text-xs font-medium text-foreground md:inline">
                   {copy.sticky}
                 </span>
               </th>
@@ -58,9 +58,9 @@ export default function CompareTable() {
                 <th
                   key={plan.key}
                   scope="col"
-                  className={`glass-bar px-5 py-4 text-center font-medium text-foreground ${index === PLANS.length - 1 ? 'rounded-r-2xl' : ''}`}
+                  className={`glass-bar px-2 py-3 md:px-5 md:py-4 text-center font-medium text-foreground ${index === PLANS.length - 1 ? 'rounded-r-2xl' : ''}`}
                 >
-                  <span className="mr-3">{plan.name}</span>
+                  <span className="block md:mr-3 md:inline">{plan.name}</span>
                   <JoinWaitlistButton variant="outline" className="h-8 px-3 text-sm">
                     {pricingContent.joinShort}
                   </JoinWaitlistButton>
@@ -72,7 +72,7 @@ export default function CompareTable() {
             {copy.groups.map((group) => (
               <Fragment key={group.title}>
                 <tr>
-                  <th colSpan={4} scope="colgroup" className="px-5 pt-8 pb-2 text-left">
+                  <th colSpan={4} scope="colgroup" className="px-2 pt-8 md:px-5 pb-2 text-left">
                     <span className="text-eyebrow">{group.title}</span>
                   </th>
                 </tr>
@@ -80,14 +80,14 @@ export default function CompareTable() {
                   <tr key={row.label}>
                     <th
                       scope="row"
-                      className="border-t border-border px-5 py-4 font-normal text-foreground"
+                      className="border-t border-border px-2 py-3 md:px-5 md:py-4 font-normal text-foreground"
                     >
                       {row.label}
                     </th>
                     {row.values.map((value, index) => (
                       <td
                         key={PLANS[index]?.key ?? index}
-                        className="border-t border-border px-5 py-4 text-center"
+                        className="border-t border-border px-2 py-3 md:px-5 md:py-4 text-center"
                       >
                         <Cell value={value} />
                       </td>

@@ -32,7 +32,7 @@ export default function HomePage() {
       <CtaBand
         title={homeContent.cta.title}
         body={homeContent.cta.body}
-        whatsappLabel={homeContent.cta.whatsapp}
+        emailLabel={homeContent.cta.email}
       />
     </SiteShell>
   )

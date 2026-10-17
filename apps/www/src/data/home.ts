@@ -46,7 +46,7 @@ export const homeContent = {
         title: 'Order #1043 · Bengaluru',
         meta: 'Kabir Singh · ₹3,999 · 2 items',
       },
-      upi: { title: 'Paid by UPI', meta: '₹4,499 · confirmed automatically' },
+      upi: { title: 'Paid by UPI', amount: 4499, meta: ' · confirmed automatically' },
     },
   },
   tour: {
@@ -330,6 +330,6 @@ export const homeContent = {
   cta: {
     title: 'Run your store in plain words.',
     body: 'Join the waitlist and we’ll set up your store with you.',
-    whatsapp: 'Talk on WhatsApp',
+    email: 'Email us',
   },
 }

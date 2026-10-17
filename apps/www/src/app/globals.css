@@ -18,7 +18,7 @@
   --color-cta-light: #ff8a3d;
   --color-cta-foreground: #ffffff;
 
-  --container-page: 75rem;
+  --container-page: 79rem;
   --container-prose: 45rem;
 
   /* Landing type scale (Figma Koomerce/*). Titles run heavy and tight. */
@@ -115,6 +115,77 @@
   animation: tour-in 400ms var(--ease-out) both;
   @media (prefers-reduced-motion: reduce) {
     animation: none;
+  }
+}
+
+/* Figma glass/card: translucent grey fill, bevels, hairline ring, soft lift, background blur. */
+@utility glass-panel {
+  background-color: rgb(26 26 26 / 0.5);
+  box-shadow:
+    inset 1px 1px 0 rgb(255 255 255 / 0.18),
+    inset -1px -1px 0 rgb(0 0 0 / 0.55),
+    inset 0 0 40px 0 rgb(255 255 255 / 0.05),
+    0 0 0 1px rgb(255 255 255 / 0.08),
+    0 2px 4px 0 rgb(0 0 0 / 0.6),
+    0 18px 44px -12px rgb(0 0 0 / 0.7);
+  -webkit-backdrop-filter: blur(24px);
+  backdrop-filter: blur(24px);
+  @media (prefers-reduced-transparency: reduce) {
+    background-color: var(--card);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+}
+
+/* Gentle float for chips and cards over the hero and tour. */
+@keyframes float-y {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-0.375rem);
+  }
+}
+@utility animate-float {
+  animation: float-y 6s ease-in-out infinite;
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+  }
+}
+
+/* Link underline slides in from the left. */
+@utility link-slide {
+  background-image: linear-gradient(currentColor, currentColor);
+  background-repeat: no-repeat;
+  background-position: 0 100%;
+  background-size: 0% 1px;
+  transition: background-size 250ms var(--ease-out);
+  &:hover,
+  &:focus-visible {
+    background-size: 100% 1px;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+  }
+}
+
+/* Scroll reveal: fade and rise once, children staggered with --reveal-delay classes. */
+@utility reveal {
+  opacity: 0;
+  transform: translateY(1.25rem);
+  transition:
+    opacity 600ms var(--ease-out),
+    transform 600ms var(--ease-out);
+  transition-delay: var(--reveal-delay, 0ms);
+  &[data-revealed="true"] {
+    opacity: 1;
+    transform: none;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    opacity: 1;
+    transform: none;
+    transition: none;
   }
 }
 

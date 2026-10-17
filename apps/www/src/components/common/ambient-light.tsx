@@ -8,7 +8,7 @@ export default function AmbientLight({ className }: AmbientLightProps) {
     <div
       aria-hidden
       className={cn(
-        'pointer-events-none absolute rounded-full bg-foreground/5 blur-3xl',
+        'pointer-events-none absolute rounded-full bg-white/[0.07] blur-[4.375rem]',
         className,
       )}
     />

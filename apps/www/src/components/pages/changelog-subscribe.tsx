@@ -18,7 +18,7 @@ export default function ChangelogSubscribe() {
       <form
         action={formAction}
         noValidate
-        className="surface-glass flex w-full max-w-md items-center gap-2 rounded-full p-1 pl-4"
+        className="glass-panel flex w-full max-w-md items-center gap-2 rounded-full p-1 pl-4"
       >
         <label htmlFor="changelog-email" className="sr-only">
           {copy.label}

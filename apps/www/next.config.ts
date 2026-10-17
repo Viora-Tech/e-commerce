@@ -7,6 +7,8 @@ const monorepoRoot = fileURLToPath(new URL('../..', import.meta.url))
 
 const config: NextConfig = {
   reactCompiler: true,
+  // Lets a one-off `next build` run beside a live dev server without touching its .next folder.
+  distDir: process.env.NEXT_DIST_DIR ?? '.next',
   output: 'standalone',
   outputFileTracingRoot: monorepoRoot,
   transpilePackages: ['@commerce/config', '@commerce/ui'],

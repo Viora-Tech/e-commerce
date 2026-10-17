@@ -28,7 +28,7 @@ export default function WaitlistModal({ open, onOpenChange, initialEmail }: Wait
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent
-        showCloseButton={false}
+        showCloseButton
         className="max-h-[92svh] gap-0 overflow-y-auto p-6 max-md:top-auto max-md:bottom-0 max-md:left-0 max-md:max-w-none max-md:translate-x-0 max-md:translate-y-0 max-md:rounded-b-none md:max-w-md"
       >
         {joined ? (

@@ -1,5 +1,5 @@
-import { siteConfig, whatsappHelpUrl } from '@commerce/config/site'
-import { CheckIcon, WhatsappLogo_ as WhatsappLogo } from '@commerce/ui/icons'
+import { siteConfig } from '@commerce/config/site'
+import { CheckIcon, Inbox } from '@commerce/ui/icons'
 import { buttonVariants } from '@commerce/ui/shadcn/button'
 import type { Metadata } from 'next'
 import Link from 'next/link'
@@ -44,13 +44,11 @@ export default function WaitlistThanksPage() {
           </div>
           <div className="flex flex-wrap justify-center gap-3">
             <a
-              href={whatsappHelpUrl(
-                `${copy.success.whatsappShare} https://${siteConfig.brand.domain}`,
-              )}
+              href={`mailto:?subject=${encodeURIComponent(copy.success.shareSubject)}&body=${encodeURIComponent(`https://${siteConfig.brand.domain}`)}`}
               className={buttonVariants({ variant: 'outline', size: 'lg' })}
             >
-              <WhatsappLogo aria-hidden />
-              {copy.success.shareOnWhatsApp}
+              <Inbox aria-hidden />
+              {copy.success.shareByEmail}
             </a>
             <Link href="/" className={buttonVariants({ variant: 'ghost', size: 'lg' })}>
               {copy.success.backHome}

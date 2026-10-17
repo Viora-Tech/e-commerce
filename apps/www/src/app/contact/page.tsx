@@ -1,10 +1,5 @@
-import { siteConfig, whatsappHelpUrl } from '@commerce/config/site'
-import {
-  ArrowRight_ as ArrowRight,
-  Clock,
-  Inbox,
-  WhatsappLogo_ as WhatsappLogo,
-} from '@commerce/ui/icons'
+import { siteConfig } from '@commerce/config/site'
+import { ArrowRight_ as ArrowRight, Clock, Inbox, Users_ as Users } from '@commerce/ui/icons'
 import PageContainer from '@/components/common/page-container'
 import SectionHeading from '@/components/common/section-heading'
 import SiteShell from '@/components/layout/site-shell'
@@ -15,16 +10,16 @@ import { pageMetadata } from '@/lib/metadata'
 export const metadata = pageMetadata({
   title: 'Contact',
   description:
-    'Talk to a human: WhatsApp, email or a 20-minute call about moving your store or picking a plan.',
+    'Talk to a human: email or a 20-minute call about moving your store or picking a plan.',
   path: '/contact',
 })
 
-const ICONS = { whatsapp: WhatsappLogo, email: Inbox, call: Clock }
+const ICONS = { email: Inbox, sales: Users, call: Clock }
 
 // PLACEHOLDER: the booking link is not decided yet; the card points at email until it is.
 const HREFS = {
-  whatsapp: whatsappHelpUrl(),
   email: `mailto:${siteConfig.contact.supportEmail}`,
+  sales: `mailto:${siteConfig.contact.supportEmail}`,
   call: `mailto:${siteConfig.contact.supportEmail}`,
 }
 

@@ -47,10 +47,11 @@ export default function PricingExplorer() {
       </PageContainer>
       <PageContainer className="mt-12 md:mt-16">
         <div className="grid gap-6 lg:grid-cols-3">
-          {PLANS.map((plan) => (
+          {PLANS.map((plan, index) => (
             <PlanCard
               key={plan.key}
               plan={plan}
+              step={index}
               upTo
               badge={
                 plan.key === recommended.key

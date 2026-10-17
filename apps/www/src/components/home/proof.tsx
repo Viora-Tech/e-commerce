@@ -1,6 +1,7 @@
 import { homeContent } from '@/data/home'
 import AmbientLight from '../common/ambient-light'
 import PageContainer from '../common/page-container'
+import Reveal from '../common/reveal'
 
 const copy = homeContent.proof
 
@@ -11,7 +12,10 @@ export default function Proof() {
       <AmbientLight className="top-1/4 left-1/2 h-64 w-[56rem] max-w-full -translate-x-1/2" />
       <PageContainer className="flex flex-col items-center gap-8">
         <p className="text-eyebrow">{copy.eyebrow}</p>
-        <figure className="surface-glass flex w-full max-w-4xl flex-col items-center gap-8 rounded-3xl px-6 py-10 text-center md:px-12 md:py-12">
+        <Reveal
+          as="figure"
+          className="glass-panel flex w-full max-w-4xl flex-col items-center gap-8 rounded-3xl px-6 py-10 text-center md:px-12 md:py-12"
+        >
           <blockquote className="text-2xl font-medium text-balance text-foreground md:text-3xl">
             {copy.quote}
           </blockquote>
@@ -22,7 +26,7 @@ export default function Proof() {
               <span className="block text-xs text-muted-foreground">{copy.meta}</span>
             </span>
           </figcaption>
-        </figure>
+        </Reveal>
       </PageContainer>
     </section>
   )

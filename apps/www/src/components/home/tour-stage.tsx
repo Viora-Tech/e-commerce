@@ -2,12 +2,13 @@ import { CircleCheck } from '@commerce/ui/icons'
 import Image from 'next/image'
 import type { TourItem } from '@/data/home'
 import WindowFrame from '../common/window-frame'
+import MockAdmin from './mock-admin'
 import ShopifyMock from './shopify-mock'
 
 type TourStageProps = { item: TourItem }
 
 const CHIP_CLASS =
-  'surface-glass glass-popover absolute flex items-center gap-3 rounded-full py-1.5 pr-5 pl-1.5 text-sm font-medium text-foreground animate-tour-in [animation-delay:80ms]'
+  'glass-panel absolute flex items-center gap-3 rounded-full py-1.5 pr-5 pl-1.5 text-sm font-medium text-foreground animate-float'
 
 export default function TourStage({ item }: TourStageProps) {
   const { screen } = item
@@ -20,7 +21,9 @@ export default function TourStage({ item }: TourStageProps) {
       className="relative mx-auto w-full max-w-190"
     >
       <div className="animate-tour-in relative">
-        {screen.kind === 'image' && !screen.framed ? (
+        {item.key === 'ai' ? (
+          <MockAdmin />
+        ) : screen.kind === 'image' && !screen.framed ? (
           <Image
             src={screen.src}
             alt={screen.alt}

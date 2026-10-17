@@ -2,6 +2,7 @@ import { AiIcon, CircleCheck, FieldText, Globe, Store } from '@commerce/ui/icons
 import type { ComponentType } from 'react'
 import { aboutContent as copy } from '@/data/about'
 import PageContainer from '../common/page-container'
+import Reveal from '../common/reveal'
 import SectionHeading from '../common/section-heading'
 
 const VALUE_ICONS: Record<string, ComponentType<{ className?: string }>> = {
@@ -16,19 +17,21 @@ export default function AboutValues() {
     <PageContainer as="section" className="flex flex-col items-center gap-12 py-20 md:py-28">
       <SectionHeading eyebrow={copy.values.eyebrow} title={copy.values.title} />
       <ul className="grid w-full gap-4 sm:grid-cols-2 lg:gap-6">
-        {copy.values.items.map((item) => {
+        {copy.values.items.map((item, index) => {
           const Icon = VALUE_ICONS[item.icon] ?? AiIcon
           return (
-            <li
+            <Reveal
+              as="li"
+              step={index % 2}
               key={item.title}
-              className="surface-card flex min-h-56 flex-col justify-end gap-3 rounded-3xl p-7"
+              className="surface-card card-lift flex min-h-56 flex-col justify-end gap-3 rounded-3xl p-7"
             >
               <span className="mb-auto grid size-11 place-items-center rounded-xl border border-border bg-muted">
                 <Icon aria-hidden className="size-5" />
               </span>
               <h3 className="text-2xl font-semibold text-foreground">{item.title}</h3>
               <p className="text-sm text-muted-foreground">{item.body}</p>
-            </li>
+            </Reveal>
           )
         })}
       </ul>

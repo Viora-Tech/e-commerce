@@ -21,7 +21,7 @@ export default function HeroEmailCapture() {
   return (
     <form
       onSubmit={handleSubmit}
-      className="surface-glass flex w-full max-w-120 items-center gap-2 rounded-full p-1 pl-4"
+      className="glass-panel flex w-full max-w-120 items-center gap-2 rounded-full p-1 pl-4"
     >
       <Inbox aria-hidden className="size-4 shrink-0 text-muted-foreground" />
       <label htmlFor="hero-email" className="sr-only">

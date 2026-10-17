@@ -20,6 +20,8 @@ export default function ProductTour() {
   // Hooks
   const [active, setActive] = useState(0)
   const [paused, setPaused] = useState(false)
+  // Once someone uses the stage (clicks, types), the tour stops auto-advancing for good.
+  const [engaged, setEngaged] = useState(false)
 
   // Event handlers
   const handleSelect = (index: number) => setActive(index)
@@ -45,18 +47,18 @@ export default function ProductTour() {
           <TourChips
             items={tour.items}
             active={active}
-            paused={paused}
+            paused={paused || engaged}
             onSelect={handleSelect}
             onFinished={handleFinished}
           />
           <TourRail
             items={tour.items}
             active={active}
-            paused={paused}
+            paused={paused || engaged}
             onSelect={handleSelect}
             onFinished={handleFinished}
           />
-          <div className="min-w-0 flex-1">
+          <div className="min-w-0 flex-1" onPointerDown={() => setEngaged(true)}>
             <TourStage key={item.key} item={item} />
           </div>
         </fieldset>

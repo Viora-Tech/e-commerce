@@ -18,7 +18,7 @@ export default function BillingToggle({ value, onChange }: BillingToggleProps) {
   return (
     <fieldset
       aria-label={copy.billingLabel}
-      className="surface-glass m-0 inline-flex min-w-0 rounded-full border-0 p-1"
+      className="glass-panel m-0 inline-flex min-w-0 rounded-full border-0 p-1"
     >
       {options.map((option) => {
         const selected = value === option.key

@@ -10,7 +10,11 @@ export default function HomeFaq() {
     <section className="py-20 md:py-32">
       <PageContainer className="flex flex-col items-center gap-10 md:gap-14">
         <SectionHeading eyebrow={copy.eyebrow} title={copy.title} />
-        <FaqList items={copy.items} defaultOpen={0} className="max-w-3xl border-t border-border" />
+        <FaqList
+          items={copy.items}
+          defaultOpen={0}
+          className="max-w-[50rem] border-t border-border"
+        />
       </PageContainer>
     </section>
   )
