@@ -13,6 +13,7 @@
     "./lib/utils": "./src/lib/utils.ts",
     "./styles.css": "./src/styles.css",
     "./icons": "./src/icons.tsx",
+    "./brand": "./src/brand/koomerce-mark.tsx",
     "./lib/icon": "./src/lib/icon.tsx",
     "./sortable": "./src/components/sortable/index.ts",
     "./sortable/tree": "./src/components/sortable/tree.ts"
