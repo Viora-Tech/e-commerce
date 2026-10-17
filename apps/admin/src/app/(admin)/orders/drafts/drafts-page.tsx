@@ -175,7 +175,6 @@ function DraftsContent({ initial }: { initial: DraftsInitial }) {
       }
       stats={
         <StatStrip
-          variant="strip"
           tiles={[
             {
               id: 'open',

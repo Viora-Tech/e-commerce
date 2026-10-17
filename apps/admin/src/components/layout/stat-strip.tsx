@@ -21,8 +21,6 @@ export type StatStripTile<T extends string> = {
 }
 
 type StatStripProps<T extends string> = {
-  /** `strip`: one card with dividers (Figma "Stat strip"); `card`: separate stat cards. */
-  variant?: 'card' | 'strip'
   tiles: StatStripTile<T>[]
   /** The filter now showing; the tile that matches it lights up, `null` is "all". */
   active?: T | null
@@ -33,12 +31,15 @@ type StatStripProps<T extends string> = {
   columns?: 3
 }
 
-const LAYOUT = 'grid grid-cols-2 lg:grid-flow-col lg:grid-cols-none lg:auto-cols-fr'
-const THREE = 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3'
+const LAYOUT = 'grid-cols-2 lg:grid-flow-col lg:grid-cols-none lg:auto-cols-fr'
+const THREE = 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3'
 
-/** A row of stat tiles that owns the grid and the press-again-to-clear filter toggle. */
+/**
+ * Figma "Stat strip": the one stat row every list and overview page opens with. One card, the
+ * cells joined by hairlines (a 1px gap over the border colour, so wrapped rows on a phone keep
+ * their lines too), owning the press-again-to-clear filter toggle.
+ */
 export default function StatStrip<T extends string>({
-  variant = 'card',
   tiles,
   active = null,
   onChange,
@@ -50,13 +51,11 @@ export default function StatStrip<T extends string>({
     onChange?.(filter !== null && active === filter ? null : filter)
 
   // Render logic
-  const strip = variant === 'strip'
-
   return (
     <div
       className={cn(
+        'grid gap-px overflow-hidden rounded-lg border border-border bg-border shadow-[var(--shadow-card)]',
         columns === 3 ? THREE : LAYOUT,
-        strip ? 'overflow-hidden rounded-lg surface-card' : 'gap-4',
       )}
       aria-busy={loading || undefined}
     >
@@ -66,7 +65,7 @@ export default function StatStrip<T extends string>({
         return (
           <StatTile
             key={tile.id}
-            variant={variant}
+            className="bg-card bg-[image:var(--card-surface)]"
             label={tile.label}
             value={tile.value}
             trend={tile.trend}

@@ -16,8 +16,6 @@ type StatTileProps = {
   /** Makes the tile a filter button; `active` marks the current one. */
   onSelect?: () => void
   active?: boolean
-  /** `strip`: one cell of a Figma "Stat strip" (no card of its own; the strip draws it). */
-  variant?: 'card' | 'strip'
   /** Points for a small trend line at the right of the tile (Figma Analytics KPI card). */
   spark?: number[] | undefined
   className?: string
@@ -49,16 +47,12 @@ function Spark({ points }: { points: number[] }) {
   )
 }
 
-const BASE =
-  'flex flex-col gap-1 rounded-lg surface-card p-4 text-left transition-[box-shadow,background-color] duration-150 ease-out'
-/* Figma "Stat strip" cell: 16px inset, 6px gaps, 13px label, 28/34 semibold figure, a divider
-   on the left of every cell after the first. */
-const STRIP =
-  'flex min-w-0 flex-col gap-1.5 border-border p-4 text-left transition-colors duration-150 ease-out [&:not(:first-child)]:border-l'
-const PRESSABLE =
-  'cursor-pointer hover:shadow-card-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring'
+/* Figma "Stat strip" cell: 16px inset, 6px gaps, 13px label, 28/34 semibold figure. The strip
+   (StatStrip) draws the card and the hairlines between cells. */
+const CELL =
+  'flex min-w-0 flex-col gap-1.5 bg-transparent p-4 text-left transition-colors duration-150 ease-out'
 
-/** Stat card (Figma "Stat card"): default, hover, and active when it filters the list below. */
+/** One cell of the stat strip: default, hover, and active when it filters the list below. */
 export default function StatTile({
   label,
   value,
@@ -68,48 +62,23 @@ export default function StatTile({
   note,
   onSelect,
   active = false,
-  variant = 'card',
   spark,
   className,
 }: StatTileProps) {
   // Render logic
-  const strip = variant === 'strip'
   const up = (trend ?? 0) > 0
   const good = invert ? !up : up
   const figures = (
     <>
-      <span
-        className={
-          strip
-            ? 'text-[0.8125rem] leading-[1.1875rem] text-muted-foreground'
-            : 'text-caption text-muted-foreground'
-        }
-      >
-        {label}
-      </span>
-      <span
-        className={
-          strip
-            ? 'text-[1.75rem] leading-[2.125rem] font-semibold tracking-[-0.02em] text-ink-strong tabular-nums'
-            : 'text-stat text-ink-strong tabular-nums'
-        }
-      >
+      <span className="text-[0.8125rem] leading-[1.1875rem] text-muted-foreground">{label}</span>
+      <span className="text-[1.75rem] leading-[2.125rem] font-semibold tracking-[-0.02em] text-ink-strong tabular-nums">
         {value}
       </span>
       {typeof trend === 'number' ? (
         <span
           className={cn(
-            'inline-flex items-center gap-1 font-medium',
-            strip ? 'text-xs' : 'text-caption',
-            trend === 0
-              ? 'text-muted-foreground'
-              : strip
-                ? good
-                  ? 'text-foreground'
-                  : 'text-danger'
-                : good
-                  ? 'text-success'
-                  : 'text-danger',
+            'inline-flex items-center gap-1 text-xs font-medium',
+            trend === 0 ? 'text-muted-foreground' : good ? 'text-foreground' : 'text-danger',
           )}
         >
           {trend === 0 ? null : up ? (
@@ -124,9 +93,7 @@ export default function StatTile({
         </span>
       ) : note || (trendNote && trend === undefined) ? (
         /* A trend of null means there is nothing to compare against: no lone "vs last week". */
-        <span className={cn('text-muted-foreground', strip ? 'text-xs' : 'text-caption')}>
-          {note ?? trendNote}
-        </span>
+        <span className="text-xs text-muted-foreground">{note ?? trendNote}</span>
       ) : null}
     </>
   )
@@ -140,7 +107,7 @@ export default function StatTile({
       figures
     )
 
-  if (!onSelect) return <div className={cn(strip ? STRIP : BASE, className)}>{body}</div>
+  if (!onSelect) return <div className={cn(CELL, className)}>{body}</div>
 
   return (
     <button
@@ -148,14 +115,9 @@ export default function StatTile({
       onClick={onSelect}
       aria-pressed={active}
       className={cn(
-        strip ? STRIP : BASE,
-        strip
-          ? 'cursor-pointer hover:bg-row-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset'
-          : PRESSABLE,
-        active &&
-          (strip
-            ? 'bg-primary-soft hover:bg-primary-soft'
-            : 'bg-brand-select bg-none shadow-[inset_0_0_0_1px_var(--primary)]'),
+        CELL,
+        'cursor-pointer hover:bg-row-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset',
+        active && 'bg-primary-soft hover:bg-primary-soft',
         className,
       )}
     >

@@ -27,7 +27,6 @@ export default function AbandonedTiles({ stats, status, onSelect }: AbandonedTil
   // Render logic
   return (
     <StatStrip
-      variant="strip"
       active={status}
       onChange={onSelect}
       tiles={[

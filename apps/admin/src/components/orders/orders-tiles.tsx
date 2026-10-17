@@ -24,7 +24,6 @@ export default function OrdersTiles({ tiles, status, onSelect }: OrdersTilesProp
   // Render logic
   return (
     <StatStrip
-      variant="strip"
       active={status}
       onChange={onSelect}
       tiles={[

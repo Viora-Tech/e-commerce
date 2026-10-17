@@ -117,7 +117,6 @@ export default function GrowthOverviewPage({ initialRange, initial }: GrowthOver
         </span>
       </div>
       <StatStrip
-        variant="strip"
         loading={loading}
         tiles={[
           {
