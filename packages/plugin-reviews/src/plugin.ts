@@ -36,7 +36,7 @@ export const reviewsPlugin = definePlugin({
   hooks: {
     // Plans the review request emails; the worker's sweep sends them when they are due.
     'order.delivered': async (ctx, payload) => {
-      await ctx.inStore(async (tx) =>
+      const planned = await ctx.inStore(async (tx) =>
         scheduleReviewRequests(
           tx,
           ctx.storeId,
@@ -44,6 +44,7 @@ export const reviewsPlugin = definePlugin({
           await loadReviewsSettings(tx, ctx.storeId),
         ),
       )
+      if (planned > 0) ctx.reportActivity?.('Planned a review request for a delivered order')
     },
   },
   jobs: {

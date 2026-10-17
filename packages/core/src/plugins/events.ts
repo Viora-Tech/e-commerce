@@ -3,6 +3,7 @@ import type { TemplateId } from '@commerce/notifications'
 import type { AppEvent, AppHookContext, LoadedPlugins } from '@commerce/plugins'
 import type { StorageProvider } from '@commerce/storage'
 import { eq } from 'drizzle-orm'
+import { recordAppActivity, recordAppError } from '../apps/installation'
 import { parseAppsSettings } from '../apps/settings'
 import { storefrontOriginFor } from '../domains/origin'
 import { addMediaProcessJob, type MediaProcessQueue } from '../media/queue'
@@ -175,10 +176,51 @@ export async function dispatchAppEvent(
   const log = deps.log ?? (() => {})
   const ctx = await storeAppContext(deps, job.storeId, job.event)
   for (const { pluginId, hook } of hooks) {
-    await hook(ctx, { storeId: job.storeId, orderId: job.orderId, refundId: job.refundId })
+    let said: string | null = null
+    const reportActivity = (summary: string) => {
+      said = summary
+    }
+    await hook(
+      { ...ctx, reportActivity },
+      { storeId: job.storeId, orderId: job.orderId, refundId: job.refundId },
+    )
     log(`[${job.event}] ${pluginId} order=${job.orderId}`)
+    await noteActivity(deps, job.storeId, pluginId, said)
   }
   return { ran: hooks.map((h) => h.pluginId) }
+}
+
+/**
+ * Record a finished hook or job as the app's last activity. Bookkeeping only: a failure here is
+ * logged and never fails (or retries) the work that already succeeded.
+ */
+async function noteActivity(
+  deps: DispatchDeps,
+  storeId: string,
+  pluginId: string,
+  summary: string | null,
+): Promise<void> {
+  try {
+    await withStore(deps.db, storeId, (tx) =>
+      recordAppActivity(tx, storeId, pluginId, summary, { clearError: true }),
+    )
+  } catch (err) {
+    deps.log?.(`[${pluginId}] could not record activity: ${String(err)}`)
+  }
+}
+
+/**
+ * An app's hook failed for good (every retry threw): show it as the app's problem on the
+ * Installed apps list. Only for per-app jobs; a legacy all-apps job names no one app.
+ */
+export async function recordAppEventFailure(
+  deps: Pick<DispatchDeps, 'db'>,
+  job: AppEventJob,
+  reason: string,
+): Promise<void> {
+  const pluginId = job.pluginId
+  if (!pluginId) return
+  await withStore(deps.db, job.storeId, (tx) => recordAppError(tx, job.storeId, pluginId, reason))
 }
 
 /** BullMQ queue for jobs apps queue for themselves (PDF renders, email batches). */
@@ -231,7 +273,18 @@ export async function dispatchAppJob(
   const installed = await installedApps(deps.db, job.storeId)
   const run = deps.plugins.jobFor(job.pluginId, job.name, installed)
   if (!run) return { ran: false }
-  await run(await storeAppContext(deps, job.storeId, `${job.pluginId}:${job.name}`), job.data)
+  let said: string | null = null
+  const ctx = await storeAppContext(deps, job.storeId, `${job.pluginId}:${job.name}`)
+  await run(
+    {
+      ...ctx,
+      reportActivity: (summary) => {
+        said = summary
+      },
+    },
+    job.data,
+  )
+  await noteActivity(deps, job.storeId, job.pluginId, said)
   return { ran: true }
 }
 
@@ -246,6 +299,11 @@ export async function dispatchAppJobFailure(
   reason: string,
 ): Promise<{ ran: boolean }> {
   const installed = await installedApps(deps.db, job.storeId)
+  if (installed.includes(job.pluginId)) {
+    await withStore(deps.db, job.storeId, (tx) =>
+      recordAppError(tx, job.storeId, job.pluginId, reason),
+    ).catch((err) => deps.log?.(`[${job.pluginId}] could not record failure: ${String(err)}`))
+  }
   const onFailed = deps.plugins.jobFailedFor(job.pluginId, job.name, installed)
   if (!onFailed) return { ran: false }
   await onFailed(

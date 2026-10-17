@@ -70,6 +70,7 @@ export const searchConsolePlugin = definePlugin({
         app: searchConsoleOAuthApp(process.env),
       })
       if (result.state === 'failed') ctx.log(`sync failed: ${result.message}`)
+      if (result.state === 'synced') ctx.reportActivity?.('Updated your Google search numbers')
     },
   },
   admin: {

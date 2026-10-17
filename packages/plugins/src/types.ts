@@ -87,6 +87,12 @@ export type AppHookContext = {
    * scripts).
    */
   processMedia?: ((mediaId: string, opts?: { bulk?: boolean }) => Promise<void>) | undefined
+  /**
+   * Say what this run did, in a few words ("Issued invoice INV-2041"), for the Installed apps
+   * list's "Last activity". Kept only when the hook or job finishes without throwing; the last
+   * call wins. Absent where nothing records it (tests, scripts).
+   */
+  reportActivity?: ((summary: string) => void) | undefined
 }
 
 export type AppHook = (ctx: AppHookContext, payload: AppEventPayload) => Promise<void>

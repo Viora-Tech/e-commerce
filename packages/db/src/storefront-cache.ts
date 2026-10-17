@@ -69,6 +69,7 @@ const LOG = 'history or usage log; the current value lives in another table'
 /** Every other table with a `store_id`: writes here never change a cached page. */
 export const STOREFRONT_CACHE_EXEMPT: Record<string, string> = {
   address: SHOPPER,
+  app_installation: ADMIN,
   ai_action: ADMIN,
   ai_job: ADMIN,
   ai_job_item: ADMIN,
