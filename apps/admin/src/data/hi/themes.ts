@@ -84,6 +84,8 @@ export default [
     redo: 'आगे',
     save: 'सेव करें',
     saved: 'सेव हो गया',
+    savedDraft: 'आपका ड्राफ़्ट सेव हो गया। विज़िटर को दिखाना हो तब पब्लिश करें।',
+    savedLive: 'विज़िटर को बदलाव अभी दिख रहे हैं।',
     saveFailed: 'आपके बदलाव सेव नहीं हो सके',
     unsaved: 'बिना सेव किए बदलाव',
     upToDate: 'सारे बदलाव सेव हैं',
@@ -301,5 +303,23 @@ export default [
       basic: 'बेसिक: रोज़ के बदलाव',
       advanced: 'एडवांस्ड: लेआउट, स्पेसिंग और स्टाइल',
     },
+  }),
+  translation(customizeContent.removed, {
+    title: (name: string) => `${name} हटा दिया गया`,
+    body: 'Undo करने पर यह वहीं वापस आ जाएगा।',
+    undo: 'Undo',
+  }),
+  translation(customizeContent.publishDialog, {
+    title: (name: string) => `${name} पब्लिश करें?`,
+    body: (live: string, domain: string) =>
+      `यह ${domain} पर ${live} की जगह लेगा। विज़िटर को तुरंत दिखेगा।`,
+    bodyNoLive: (domain: string) => `यह ${domain} पर लाइव होगा। विज़िटर को तुरंत दिखेगा।`,
+    liveNow: 'अभी लाइव',
+    after: 'पब्लिश के बाद',
+    saveFirst: 'पब्लिश करने से पहले आपके बदलाव सेव करने होंगे। हम पहले उन्हें सेव कर देंगे।',
+    goBack: 'आप कभी भी वर्शन हिस्ट्री से वापस जा सकते हैं।',
+    cancel: 'रद्द करें',
+    publish: 'पब्लिश करें',
+    saveAndPublish: 'सेव करके पब्लिश करें',
   }),
 ]

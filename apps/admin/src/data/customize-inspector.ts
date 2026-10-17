@@ -29,6 +29,8 @@ export const inspectorContent = {
     redo: 'Redo',
     save: 'Save',
     saved: 'Saved',
+    savedDraft: 'Your draft is saved. Publish when you want visitors to see it.',
+    savedLive: 'Visitors see the changes now.',
     saveFailed: 'Could not save your changes',
     unsaved: 'Unsaved changes',
     upToDate: 'All changes saved',

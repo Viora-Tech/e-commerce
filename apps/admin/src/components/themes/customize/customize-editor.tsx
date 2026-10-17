@@ -49,7 +49,9 @@ import ImportedThemeSettings from './imported-theme-settings'
 import LiquidCanvasSection from './liquid-canvas-section'
 import PagesPanel from './pages-panel'
 import PanelTitle from './panel-title'
+import PublishThemeDialog from './publish-theme-dialog'
 import ResourcePicker from './resource-picker'
+import SectionRemovedToast from './section-removed-toast'
 import TemplatePicker, { type TemplateRef, templateLabel } from './template-picker'
 import ThemePanel from './theme-panel'
 
@@ -67,6 +69,8 @@ type CustomizeEditorProps = {
   user: { name: string; email: string }
   /** AI is set up (the "AI connected" chip) and the assistant is on for this member (AI tab). */
   ai: { connected: boolean; assistant: boolean }
+  /** The store's live theme, named in the publish confirmation; null when there is none. */
+  liveName: string | null
 }
 
 type Loaded = { ref: TemplateRef; doc: CustomizeDoc; nonce: number }
@@ -121,6 +125,7 @@ export default function CustomizeEditor({
   store,
   user,
   ai,
+  liveName,
 }: CustomizeEditorProps) {
   // Hooks
   const [record, setRecord] = useState(theme)
@@ -133,6 +138,7 @@ export default function CustomizeEditor({
   const [templatesDirty, setTemplatesDirty] = useState(false)
   const [saving, setSaving] = useState(false)
   const [publishing, setPublishing] = useState(false)
+  const [confirmPublish, setConfirmPublish] = useState(false)
   const [creating, setCreating] = useState<'closed' | 'open' | 'busy'>('closed')
   const [creatingKind, setCreatingKind] = useState<AlternateKind | null>(null)
   const [device, setDevice] = useState<PreviewDevice>('desktop')
@@ -245,7 +251,9 @@ export default function CustomizeEditor({
         setSettings(next.settings)
       }
       setTemplatesDirty(false)
-      toast.success(copy.saved)
+      toast.success(copy.saved, {
+        description: record.role === 'main' ? copy.savedLive : copy.savedDraft,
+      })
       if (isDesktopHome(loaded, device)) thumbnail.refresh()
       return true
     } catch (err) {
@@ -364,7 +372,7 @@ export default function CustomizeEditor({
       onDevice={setDevice}
       onDiscard={handleDiscard}
       onSave={handleSave}
-      onPublish={handlePublish}
+      onPublish={() => setConfirmPublish(true)}
       pickers={
         <>
           <TemplatePicker
@@ -427,6 +435,7 @@ export default function CustomizeEditor({
                 <PreviewModeContext.Provider value={mode}>
                   <DynamicSourceContext.Provider value={sourceScope}>
                     <CustomizeHotkeys />
+                    <SectionRemovedToast />
                     <CustomizeLayout
                       topBar={topBar}
                       settings={settingsPanel}
@@ -468,6 +477,15 @@ export default function CustomizeEditor({
           onRetry={() => setAttempt((n) => n + 1)}
         />
       )}
+      <PublishThemeDialog
+        open={confirmPublish}
+        name={record.name}
+        liveName={liveName}
+        domain={store.domain}
+        dirty={templatesDirty || settingsDirty}
+        onOpenChange={setConfirmPublish}
+        onConfirm={handlePublish}
+      />
       {creating === 'closed' ? null : (
         <CreateTemplateDialog
           current={ref}

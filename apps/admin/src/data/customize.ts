@@ -353,6 +353,26 @@ export const customizeContent = {
     saved: (name: string) => `${name} saved to My sections`,
     failed: 'Could not save the section',
   },
+  /** The toast after a section is removed (Figma 697:2969). */
+  removed: {
+    title: (name: string) => `${name} removed`,
+    body: 'Undo puts it back where it was.',
+    undo: 'Undo',
+  },
+  /** Publish confirmation (Figma 697:3994). */
+  publishDialog: {
+    title: (name: string) => `Publish ${name}?`,
+    body: (live: string, domain: string) =>
+      `It replaces ${live} on ${domain}. Visitors see it right away.`,
+    bodyNoLive: (domain: string) => `It goes live on ${domain}. Visitors see it right away.`,
+    liveNow: 'Live now',
+    after: 'After publishing',
+    saveFirst: 'Save your changes before publishing. We save them first.',
+    goBack: 'You can go back from Version history at any time.',
+    cancel: 'Cancel',
+    publish: 'Publish',
+    saveAndPublish: 'Save and publish',
+  },
   clipboard: {
     copied: (name: string) => `${name} copied`,
     pasted: (name: string) => `${name} pasted`,

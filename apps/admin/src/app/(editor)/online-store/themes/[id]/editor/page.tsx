@@ -58,6 +58,7 @@ export default async function Page({ params, searchParams }: Props) {
       }}
       user={{ name: session.user.name, email: session.user.email }}
       ai={{ connected: aiStatus?.configured === true, assistant: aiStatus?.assistant === true }}
+      liveName={themes.find((t) => t.role === 'main' && t.id !== theme.id)?.name ?? null}
       installedApps={apps.filter((a) => a.installed).map((a) => a.id)}
       initial={{
         template: isKind(query.template) ? query.template : 'home',
