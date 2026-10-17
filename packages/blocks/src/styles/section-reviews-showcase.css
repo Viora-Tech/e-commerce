@@ -492,3 +492,37 @@
 .rs-browser__progress span.is-paused {
   animation-play-state: paused;
 }
+
+/* Figma Section / Reviews showcase (707:122160): the eyebrow, cards on the surface with the card radius. */
+.reviews-showcase__eyebrow {
+  color: var(--color-muted);
+  font-family: var(--font-body);
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.3;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+
+
+.rs-card {
+  border-radius: var(--radius-card, var(--radius-m));
+  background-color: var(--color-surface);
+}
+
+.rs-card__verified {
+  padding: 1px var(--space-2);
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-button, var(--radius-m));
+  color: var(--color-muted);
+  font-size: 12px;
+  font-weight: 500;
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+.rs-card__product {
+  border-radius: var(--radius-m);
+  background-color: color-mix(in srgb, var(--color-ink) 6%, transparent);
+}

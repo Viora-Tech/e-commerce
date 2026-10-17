@@ -1877,3 +1877,25 @@ html {
     --motion-card-press-scale: 1;
   }
 }
+
+/* ------------------------------------------------------------------ */
+/* Section title (Figma Store/H1)                                       */
+/* ------------------------------------------------------------------ */
+/* The heading every Figma section opens with: 40px bold (32px on phones), tight,
+   in ink. Sections that draw their own heading block use SectionHeading, which
+   shares these values. */
+.section-title {
+  margin: 0;
+  color: var(--color-ink);
+  font-family: var(--font-heading);
+  font-size: calc(2rem * var(--font-heading-scale, 1));
+  font-weight: 700;
+  line-height: 1.1;
+  letter-spacing: -0.015em;
+}
+
+@media screen and (min-width: 990px) {
+  .section-title {
+    font-size: calc(2.5rem * var(--font-heading-scale, 1));
+  }
+}

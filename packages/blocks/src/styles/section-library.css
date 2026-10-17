@@ -529,3 +529,33 @@
     font-size: calc(3rem * var(--font-heading-scale, 1));
   }
 }
+
+/* Figma Section / Logo strip (707:118744): a small centred eyebrow over the names or marks, muted. */
+.logo-list__heading {
+  color: var(--color-muted);
+  font-family: var(--font-body);
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.3;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  text-align: center;
+}
+
+.logo-list__item {
+  color: var(--color-muted);
+  opacity: 0.85;
+}
+
+/* Figma Section / Video (707:123067): the centred title over the player, which sits on
+   the card radius. */
+.video-section__heading {
+  margin-bottom: var(--space-7);
+  text-align: center;
+}
+
+.video-section__frame {
+  overflow: hidden;
+  border-radius: var(--radius-card, var(--radius-m));
+  background-color: var(--color-surface);
+}

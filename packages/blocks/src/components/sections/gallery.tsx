@@ -29,7 +29,7 @@ const LAYOUT_CLASS: Record<GalleryProps['layout'], string> = {
 export default function Gallery({ heading, layout, images }: GalleryProps) {
   return (
     <div className="page-width">
-      {heading ? <h2 className="h2 text-[var(--color-ink)]">{heading}</h2> : null}
+      {heading ? <h2 className="section-title">{heading}</h2> : null}
       <div className={`mt-[1.5rem] ${LAYOUT_CLASS[layout]}`}>
         {images.map((item, i) => {
           const figure = (
