@@ -22,7 +22,12 @@ export default function DeleteSegmentButton({ id }: DeleteSegmentButtonProps) {
 
   // Event handlers
   const handleDelete = async () => {
-    await api.customers.deleteSegment({ id })
+    try {
+      await api.customers.deleteSegment({ id })
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : content.builder.deleteFailed)
+      throw err
+    }
     toast.success(content.builder.deleted)
     router.push(routes.customers.segments())
   }

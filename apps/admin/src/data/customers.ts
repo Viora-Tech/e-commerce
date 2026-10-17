@@ -314,6 +314,7 @@ export const segmentsContent = {
     saved: 'Segment saved',
     failed: 'Could not save the segment',
     deleted: 'Segment deleted',
+    deleteFailed: 'Could not delete the segment',
     delete: 'Delete segment',
     deleteHeading: 'Delete this segment?',
     deleteBody: 'The saved filter goes away. Customers are not affected.',
