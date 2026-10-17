@@ -82,7 +82,7 @@ export class ThemeArchiveProblem extends CommerceError {
 const extensionOf = (path: string): string => path.split('.').pop()?.toLowerCase() ?? ''
 
 /** The content type for a theme file, or null for a type a theme never has. */
-function themeContentType(path: string): { type: string; text: boolean } | null {
+export function themeContentType(path: string): { type: string; text: boolean } | null {
   const ext = extensionOf(path)
   if (TEXT_TYPES[ext]) return { type: TEXT_TYPES[ext], text: true }
   if (BINARY_TYPES[ext]) return { type: BINARY_TYPES[ext], text: false }

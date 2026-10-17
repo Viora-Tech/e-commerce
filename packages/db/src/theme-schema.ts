@@ -163,6 +163,35 @@ export const themeFile = pgTable(
 )
 
 /**
+ * Saved versions of a theme file edited in Edit code: the body after each save, and the body
+ * as imported (`import`), taken the first time the file is saved so the original is never lost.
+ * Edit code compares any of them with the open file and restores one into the editor. The
+ * newest 30 per file are kept.
+ */
+export const themeFileVersion = pgTable(
+  'theme_file_version',
+  {
+    id: id(),
+    storeId: storeId(),
+    themeId: uuid('theme_id')
+      .notNull()
+      .references(() => theme.id, { onDelete: 'cascade' }),
+    path: text('path').notNull(),
+    body: text('body').notNull(),
+    /** `import` (the file as it came in), `create` (added in Edit code) or `save`. */
+    reason: text('reason').notNull(),
+    /** The member's name (or email) who saved; null for the import copy. */
+    createdBy: text('created_by'),
+    createdAt: createdAt(),
+  },
+  (t) => [
+    check('theme_file_version_reason', sql`${t.reason} in ('import','create','save')`),
+    index('theme_file_version_file').on(t.themeId, t.path, t.createdAt),
+    index('theme_file_version_store').on(t.storeId),
+  ],
+)
+
+/**
  * One row per imported theme: where it came from, the theme's own settings
  * (`config/settings_data.json`, current preset) and the import report the merchant reads.
  * A theme with a row here renders through the Liquid engine.

@@ -189,6 +189,32 @@ export async function commitTemplateDrafts(tx: StoreTx, themeId: string): Promis
   return rows.length
 }
 
+/**
+ * Save for one template (Edit code): its draft becomes its saved sections; the theme's other
+ * drafts stay drafts. Same source check as `commitTemplateDrafts`. Returns whether it changed.
+ */
+export async function commitTemplateDraft(
+  tx: StoreTx,
+  input: { themeId: string; template: TemplateKey; suffix: string },
+): Promise<boolean> {
+  const row = await findRow(tx, input.themeId, input.template, input.suffix)
+  const data = row ? parseTemplateData(row.draft) : null
+  if (!row || !data) return false
+  try {
+    await assertTemplateBindings(tx, [{ template: row.template, data }])
+  } catch (err) {
+    if (err instanceof InvalidBindings) {
+      throw new ThemeLibraryError('THEME_SOURCE_INVALID', err.problems.join('. '))
+    }
+    throw err
+  }
+  await tx
+    .update(themeTemplate)
+    .set({ sections: sql`${themeTemplate.draft}`, draft: null, updatedAt: new Date() })
+    .where(eq(themeTemplate.id, row.id))
+  return true
+}
+
 /** Themes with Customize edits not saved yet (the library's "Unsaved changes" chip). */
 export async function themesWithDrafts(tx: StoreTx): Promise<Set<string>> {
   const rows = await tx

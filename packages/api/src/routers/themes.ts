@@ -40,6 +40,7 @@ import {
   THUMBNAIL_DATA_URL_MAX,
   uploadThumbnail,
 } from '../services/theme-thumbnail.service'
+import { themeCodeRouter } from './theme-code'
 import { IdInput, libraryErrors, savedBy } from './theme-helpers'
 import { customSectionsRouter, templatesRouter } from './theme-templates'
 
@@ -186,6 +187,7 @@ export const themesRouter = {
   versions: versionsRouter,
   customSections: customSectionsRouter,
   import: importRouter,
+  code: themeCodeRouter,
 
   /** The live theme's logo for the admin sidebar (every page load): one small read. */
   logo: can(permissions.ONLINE_STORE_READ).handler(({ context }) => liveThemeLogoUrl(context.tx)),

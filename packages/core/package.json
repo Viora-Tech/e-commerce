@@ -33,6 +33,7 @@
     "./theme": "./src/theme/client.ts",
     "./theme-preview": "./src/theme/preview-messages.ts",
     "./theme-import": "./src/theme-import/client.ts",
+    "./theme-code": "./src/theme-code/client.ts",
     "./preferences": "./src/online-store/preferences.ts",
     "./consent": "./src/online-store/consent.ts",
     "./blog": "./src/blog/client.ts",

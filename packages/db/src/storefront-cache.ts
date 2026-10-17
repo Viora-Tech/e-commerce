@@ -149,6 +149,7 @@ export const STOREFRONT_CACHE_EXEMPT: Record<string, string> = {
   store_invitation: ADMIN,
   store_member: ADMIN,
   supplier: ADMIN,
+  theme_file_version: LOG,
   transfer: ADMIN,
   transfer_line: ADMIN,
 }

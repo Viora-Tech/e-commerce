@@ -275,6 +275,7 @@ const NAME_HINTS: [RegExp, string][] = [
 /** Id fields whose table is set by the procedure, not by the field name alone. */
 const PROCEDURE_KEY_TABLE: Record<string, string> = {
   'purchaseOrders.receive.lineId': 'purchase_order_line',
+  'themes.code.version.versionId': 'theme_file_version',
 }
 
 const KEY_ALIAS: Record<string, string> = {
