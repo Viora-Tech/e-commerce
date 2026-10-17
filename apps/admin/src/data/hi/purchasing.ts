@@ -131,6 +131,14 @@ export default [
     newTitle: 'आने वाली खेप बनाएँ',
     title: (n: number) => `आने वाली खेप #IS${n}`,
     back: 'आने वाली खेप',
+    billOfEntry: (no: string) => `बिल ऑफ़ एंट्री ${no}`,
+    glance: {
+      heading: 'एक नज़र में',
+      orders: 'परचेज़ ऑर्डर',
+      units: 'आने वाले यूनिट',
+      charges: 'लागत में चार्ज',
+      landed: 'कुल लैंडेड लागत',
+    },
     details: {
       heading: 'खेप',
       reference: 'आपका रेफ़रेंस',

@@ -176,8 +176,8 @@ export const STATUS = {
     cancelled: entry(purchaseOrdersContent.status.cancelled, 'error'),
   } satisfies Record<PurchaseOrderStatus, StatusEntry>,
   inboundShipment: {
-    in_transit: entry(inboundShipmentsContent.status.in_transit, 'pending'),
-    at_port: entry(inboundShipmentsContent.status.at_port, 'accent'),
+    in_transit: entry(inboundShipmentsContent.status.in_transit, 'accent'),
+    at_port: entry(inboundShipmentsContent.status.at_port, 'pending'),
     cleared: entry(inboundShipmentsContent.status.cleared, 'info'),
     delivered: entry(inboundShipmentsContent.status.delivered, 'success'),
   } satisfies Record<InboundShipmentStatus, StatusEntry>,
