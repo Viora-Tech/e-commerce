@@ -59,6 +59,8 @@ export const createShipmentContent = {
     heading: 'Choose a courier',
     help: 'Live prices and delivery dates for this parcel. Pick the one you want.',
     checking: 'Asking your couriers…',
+    needsWeight: 'Add the parcel weight above to see courier prices.',
+    quoteFailed: 'Could not get prices from your couriers.',
     noCourier: 'No courier is connected yet. Ship it yourself below, or connect one in Apps.',
     connect: 'Connect a courier',
     recommended: 'Recommended',

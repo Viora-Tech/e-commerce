@@ -23,6 +23,10 @@ type CourierStepProps = {
   tracking: TrackingDraft
   onTrackingChange: (next: TrackingDraft) => void
   onRetry: () => void
+  /** The package has no usable weight yet, so the couriers have not been asked. */
+  needsPackage?: boolean
+  /** Asking the couriers failed; show why with a retry rather than a spinner. */
+  failed?: boolean
   /** Inside a card that already shows the heading and help (the full-page flow). */
   inCard?: boolean
 }
@@ -37,6 +41,8 @@ export default function CourierStep({
   tracking,
   onTrackingChange,
   onRetry,
+  needsPackage = false,
+  failed = false,
   inCard = false,
 }: CourierStepProps) {
   // Hooks
@@ -74,10 +80,22 @@ export default function CourierStep({
 
       <div className="flex flex-col gap-2">
         {hasCouriers && !quote ? (
-          <p className="flex items-center gap-2 py-6 text-body text-muted-foreground">
-            <Spinner />
-            {copy.courier.checking}
-          </p>
+          needsPackage ? (
+            <p className="py-6 text-body text-muted-foreground">{copy.courier.needsWeight}</p>
+          ) : failed ? (
+            <p className="flex items-center gap-3 py-6 text-body text-muted-foreground">
+              {copy.courier.quoteFailed}
+              <Button size="sm" variant="outline" onClick={onRetry}>
+                <RefreshCw aria-hidden />
+                {copy.courier.retry}
+              </Button>
+            </p>
+          ) : (
+            <p className="flex items-center gap-2 py-6 text-body text-muted-foreground">
+              <Spinner />
+              {copy.courier.checking}
+            </p>
+          )
         ) : null}
         {groups.length > 0 ? (
           <div className="flex flex-wrap items-center gap-2">

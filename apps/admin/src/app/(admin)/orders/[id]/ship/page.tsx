@@ -1,4 +1,8 @@
+import type { Metadata } from 'next'
 import CreateShipmentPage from '@/components/shipments/create-shipment/create-shipment-page'
+
+import { createShipmentContent } from '@/data/create-shipment'
+export const metadata: Metadata = { title: createShipmentContent.page.title }
 
 type Params = { params: Promise<{ id: string }> }
 

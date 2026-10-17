@@ -318,7 +318,7 @@ export const ordersRouter = {
       z.object({
         orderId: z.uuid(),
         providerId: z.string().min(1).optional(),
-        fulfillmentOrderId: z.uuid().optional(),
+        fulfillmentOrderId: z.guid().optional(),
         /** A location id, or null for Settings › Shipping's address; omitted picks for you. */
         pickupLocationId: z.uuid().nullish(),
         weightGrams: z.number().int().min(1).optional(),

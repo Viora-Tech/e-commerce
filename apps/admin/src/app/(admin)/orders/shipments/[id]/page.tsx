@@ -1,8 +1,11 @@
+import type { Metadata } from 'next'
 import { notFound, redirect } from 'next/navigation'
 import ShipmentOrder from '@/components/shipments/shipment-order'
+import { createShipmentContent } from '@/data/create-shipment'
 import { appRouter, call, serverContext } from '@/lib/api'
 import { listApps } from '@/lib/shell-data'
 import { orNoStore } from '@/lib/store-guard'
+export const metadata: Metadata = { title: createShipmentContent.page.title }
 
 type Params = { params: Promise<{ id: string }> }
 

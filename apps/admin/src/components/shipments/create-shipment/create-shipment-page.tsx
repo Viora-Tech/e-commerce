@@ -64,7 +64,14 @@ export default function CreateShipmentPage({ orderId, back }: CreateShipmentPage
   const [failed, setFailed] = useState(false)
   const [parcelId, setParcelId] = useState<string | null>(null)
   const [form, setForm] = useState<PackageForm | null>(null)
-  const { quote, pick, setPick, recheck } = useShipQuote(draft, parcelId, form)
+  const {
+    quote,
+    pick,
+    setPick,
+    recheck,
+    needsPackage,
+    failed: quoteFailed,
+  } = useShipQuote(draft, parcelId, form)
   const [pickup, setPickup] = useState(() => startingPickupPlan())
   const [wallets, setWallets] = useState<Wallets>([])
   const [tracking, setTracking] = useState<TrackingDraft>(EMPTY_TRACKING)
@@ -290,6 +297,8 @@ export default function CreateShipmentPage({ orderId, back }: CreateShipmentPage
               tracking={tracking}
               onTrackingChange={setTracking}
               onRetry={recheck}
+              needsPackage={needsPackage}
+              failed={quoteFailed}
             />
           </DataCard>
           {manual ? null : <PickupCard plan={pickup} onChange={setPickup} canPickup={canPickup} />}

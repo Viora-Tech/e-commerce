@@ -112,7 +112,7 @@ export const shipmentsRouter = {
           .array(
             z.object({
               orderId: z.uuid(),
-              fulfillmentOrderId: z.uuid().nullish(),
+              fulfillmentOrderId: z.guid().nullish(),
               pickupLocationId: z.uuid().nullish(),
               weightGrams: z.number().int().min(1).optional(),
               dimensionsCm: dimensionsCm.optional(),
