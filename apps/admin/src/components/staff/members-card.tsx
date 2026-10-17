@@ -1,13 +1,4 @@
 'use client'
-
-import { MoreHorizontal } from '@commerce/ui/icons'
-import { Button } from '@commerce/ui/shadcn/button'
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@commerce/ui/shadcn/dropdown-menu'
 import {
   Select,
   SelectContent,
@@ -17,6 +8,7 @@ import {
 } from '@commerce/ui/shadcn/select'
 import { toast } from 'sonner'
 import MemberAvatar from '@/components/account/member-avatar'
+import ActionMenu from '@/components/layout/action-menu'
 import RelativeTime from '@/components/layout/relative-time'
 import SettingsTable from '@/components/settings/settings-table'
 import SettingsTableCell from '@/components/settings/settings-table-cell'
@@ -156,20 +148,18 @@ export default function MembersCard({
               <SettingsTableCell className="w-16 p-0 last:pr-2 md:last:pr-2">
                 {locked ? null : (
                   <RowActionsCell>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger
-                        render={
-                          <Button variant="ghost" size="icon" aria-label={copy.members.remove} />
-                        }
-                      >
-                        <MoreHorizontal />
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem variant="destructive" onClick={() => onRemove(m)}>
-                          {copy.members.remove}
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
+                    <ActionMenu
+                      label={copy.members.remove}
+                      variant="ghost"
+                      size="md"
+                      items={[
+                        {
+                          label: copy.members.remove,
+                          destructive: true,
+                          onSelect: () => onRemove(m),
+                        },
+                      ]}
+                    />
                   </RowActionsCell>
                 )}
               </SettingsTableCell>

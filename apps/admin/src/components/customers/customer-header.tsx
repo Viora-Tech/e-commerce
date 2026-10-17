@@ -1,6 +1,6 @@
 'use client'
 
-import { MoreHorizontal, Pencil, Send, Trash2 } from '@commerce/ui/icons'
+import { Pencil, Send, Trash2 } from '@commerce/ui/icons'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -12,16 +12,10 @@ import {
   AlertDialogTitle,
 } from '@commerce/ui/shadcn/alert-dialog'
 import { Button } from '@commerce/ui/shadcn/button'
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@commerce/ui/shadcn/dropdown-menu'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { toast } from 'sonner'
+import ActionMenu from '@/components/layout/action-menu'
 import StatusChip from '@/components/layout/status-chip'
 import { customerDetailContent, customersContent, VIP_SPEND_PAISE } from '@/data/customers'
 import { datesContent } from '@/data/dates'
@@ -117,24 +111,20 @@ export default function CustomerHeader({ customer, onEdit }: CustomerHeaderProps
               {copy.actions.email}
             </Button>
           ) : null}
-          <DropdownMenu>
-            <DropdownMenuTrigger
-              render={<Button variant="outline" size="icon" aria-label={copy.actions.more} />}
-            >
-              <MoreHorizontal />
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-48">
-              <DropdownMenuItem onClick={onEdit}>
-                <Pencil />
-                {copy.actions.edit}
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem variant="destructive" onClick={() => setConfirming(true)}>
-                <Trash2 />
-                {copy.actions.delete}
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+          <ActionMenu
+            label={copy.actions.more}
+            variant="outline"
+            size="md"
+            items={[
+              { label: copy.actions.edit, icon: Pencil, onSelect: onEdit },
+              {
+                label: copy.actions.delete,
+                icon: Trash2,
+                destructive: true,
+                onSelect: () => setConfirming(true),
+              },
+            ]}
+          />
         </div>
       </div>
       <AlertDialog open={confirming} onOpenChange={setConfirming}>

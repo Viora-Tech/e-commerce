@@ -1,17 +1,12 @@
 'use client'
 
 import { describeUserAgent } from '@commerce/core/member-account'
-import { MoreHorizontal, Plus } from '@commerce/ui/icons'
+import { Plus } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@commerce/ui/shadcn/dropdown-menu'
 import { Skeleton } from '@commerce/ui/shadcn/skeleton'
 import { useEffect, useState, useSyncExternalStore } from 'react'
 import { toast } from 'sonner'
+import ActionMenu from '@/components/layout/action-menu'
 import StatusChip from '@/components/layout/status-chip'
 import SettingsCard from '@/components/settings/settings-card'
 import { accountContent } from '@/data/account'
@@ -125,21 +120,17 @@ export default function PasskeysCard() {
                     {copy.added(fmt.date(p.createdAt))}
                   </span>
                 </div>
-                <DropdownMenu>
-                  <DropdownMenuTrigger
-                    render={<Button variant="ghost" size="icon-sm" aria-label={labelOf(p)} />}
-                  >
-                    <MoreHorizontal />
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    <DropdownMenuItem onClick={() => setNaming({ mode: 'rename', passkey: p })}>
-                      {copy.rename}
-                    </DropdownMenuItem>
-                    <DropdownMenuItem variant="destructive" onClick={() => setRemoving(p)}>
-                      {copy.remove}
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
+                <ActionMenu
+                  label={labelOf(p)}
+                  variant="ghost"
+                  items={[
+                    {
+                      label: copy.rename,
+                      onSelect: () => setNaming({ mode: 'rename', passkey: p }),
+                    },
+                    { label: copy.remove, destructive: true, onSelect: () => setRemoving(p) },
+                  ]}
+                />
               </li>
             ))}
           </ul>

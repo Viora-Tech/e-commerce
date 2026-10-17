@@ -7,8 +7,9 @@ import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
 import { type ReactNode, useState } from 'react'
 import { Area, AreaChart, CartesianGrid, XAxis, YAxis } from 'recharts'
 import PillTabs from '@/components/layout/pill-tabs'
+import { layoutContent } from '@/data/layout'
 import { base, instant } from '@/lib/motion'
-import CardMenu, { type MenuLink } from './card-menu'
+import ActionMenu, { type ActionItem } from './action-menu'
 import { type ChartPoint, chartConfig } from './chart-config'
 
 type PeriodOption = { id: string; label: string; data: ChartPoint[] }
@@ -27,7 +28,7 @@ type ChartCardProps = {
   seriesLabel?: string
   formatValue: (n: number) => string
   /** Links behind the header kebab. */
-  menu?: readonly MenuLink[]
+  menu?: readonly ActionItem[]
   className?: string
 }
 
@@ -73,7 +74,7 @@ export default function ChartCard({
               onChange={setPeriodId}
             />
           ) : null}
-          {menu ? <CardMenu items={menu} /> : null}
+          {menu ? <ActionMenu label={layoutContent.moreActions} size="sm" items={menu} /> : null}
         </div>
       </div>
       {tabs ? <div className="mt-5 px-1">{tabs}</div> : null}

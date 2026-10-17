@@ -1,6 +1,5 @@
 'use client'
 
-import { MoreVertical } from '@commerce/ui/icons'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -11,16 +10,10 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@commerce/ui/shadcn/alert-dialog'
-import { Button } from '@commerce/ui/shadcn/button'
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@commerce/ui/shadcn/dropdown-menu'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { toast } from 'sonner'
+import ActionMenu from '@/components/layout/action-menu'
 import { appsContent } from '@/data/apps'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
@@ -50,20 +43,13 @@ export default function AppUninstallButton({ appId, name }: AppUninstallButtonPr
 
   return (
     <>
-      <DropdownMenu>
-        <DropdownMenuTrigger
-          render={
-            <Button variant="outline" size="icon" aria-label={copy.gallery.kebabLabel(name)} />
-          }
-        >
-          <MoreVertical aria-hidden="true" />
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="w-44">
-          <DropdownMenuItem variant="destructive" onClick={() => setAsking(true)}>
-            {copy.uninstall}
-          </DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
+      <ActionMenu
+        label={copy.gallery.kebabLabel(name)}
+        trigger="kebab-vertical"
+        variant="outline"
+        size="md"
+        items={[{ label: copy.uninstall, destructive: true, onSelect: () => setAsking(true) }]}
+      />
       <AlertDialog open={asking} onOpenChange={setAsking}>
         <AlertDialogContent>
           <AlertDialogHeader>

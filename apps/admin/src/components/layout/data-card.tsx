@@ -1,7 +1,8 @@
 import { cn } from '@commerce/ui/lib/utils'
 import { Card } from '@commerce/ui/shadcn/card'
 import type { ReactNode } from 'react'
-import CardMenu, { type MenuLink } from './card-menu'
+import { layoutContent } from '@/data/layout'
+import ActionMenu, { type ActionItem } from './action-menu'
 import DetailsLink from './details-link'
 
 type DataCardProps = {
@@ -13,7 +14,7 @@ type DataCardProps = {
   /** Right side of the header row: buttons, links, tabs. */
   action?: ReactNode
   /** Links behind the kebab; omitted means no kebab. */
-  menu?: readonly MenuLink[]
+  menu?: readonly ActionItem[]
   /** Outlined "Details" pill pinned to the bottom-right corner. */
   detailsHref?: string
   children: ReactNode
@@ -70,7 +71,7 @@ export default function DataCard({
         {action || menu ? (
           <div className="flex shrink-0 items-center gap-2">
             {action}
-            {menu ? <CardMenu items={menu} /> : null}
+            {menu ? <ActionMenu label={layoutContent.moreActions} size="sm" items={menu} /> : null}
           </div>
         ) : null}
       </div>

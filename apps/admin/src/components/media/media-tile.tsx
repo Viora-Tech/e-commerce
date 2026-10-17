@@ -1,17 +1,11 @@
 'use client'
 
-import { MoreHorizontal, Video } from '@commerce/ui/icons'
+import { Video } from '@commerce/ui/icons'
 import { cn } from '@commerce/ui/lib/utils'
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@commerce/ui/shadcn/dropdown-menu'
 import { ROW_STATE_CLASS } from '@commerce/ui/sortable'
 import { motion } from 'motion/react'
 import type { Ref } from 'react'
+import ActionMenu from '@/components/layout/action-menu'
 import { mediaContent } from '@/data/media'
 import { useCopy } from '@/hooks/use-copy'
 import { IMAGE_GLIDE_SPRING } from '@/hooks/use-image-dnd'
@@ -108,32 +102,20 @@ export default function MediaTile({
             {copy.video}
           </span>
         ) : null}
-        <DropdownMenu>
-          <DropdownMenuTrigger
-            aria-label={copy.menu}
-            className="absolute top-2 right-2 flex size-7 items-center justify-center rounded-md bg-card/90 text-foreground opacity-0 shadow-card transition-opacity group-hover:opacity-100 focus-visible:opacity-100 data-popup-open:opacity-100"
-          >
-            <MoreHorizontal className="size-4" aria-hidden />
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            {primary.map((a) => (
-              <DropdownMenuItem key={a.label} onClick={a.onSelect} disabled={a.disabled}>
-                {a.label}
-              </DropdownMenuItem>
-            ))}
-            {destructive.length ? <DropdownMenuSeparator /> : null}
-            {destructive.map((a) => (
-              <DropdownMenuItem
-                key={a.label}
-                variant="destructive"
-                onClick={a.onSelect}
-                disabled={a.disabled}
-              >
-                {a.label}
-              </DropdownMenuItem>
-            ))}
-          </DropdownMenuContent>
-        </DropdownMenu>
+        <ActionMenu
+          label={copy.menu}
+          variant="bare"
+          triggerClassName="absolute top-2 right-2 size-7 rounded-md bg-card/90 text-foreground opacity-0 shadow-card transition-opacity group-hover:opacity-100 focus-visible:opacity-100 data-popup-open:opacity-100"
+          items={[
+            ...primary.map((a) => ({ label: a.label, onSelect: a.onSelect, disabled: a.disabled })),
+            ...destructive.map((a) => ({
+              label: a.label,
+              onSelect: a.onSelect,
+              disabled: a.disabled,
+              destructive: true,
+            })),
+          ]}
+        />
       </div>
       {caption ? (
         <span

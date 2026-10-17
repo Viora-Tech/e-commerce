@@ -1,13 +1,7 @@
 'use client'
 
-import { AppWindow, ExternalLink, MoreVertical, SquarePlus, Users } from '@commerce/ui/icons'
+import { AppWindow, ExternalLink, SquarePlus, Users } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@commerce/ui/shadcn/dropdown-menu'
 import { Kbd } from '@commerce/ui/shadcn/kbd'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@commerce/ui/shadcn/tooltip'
 import Link from 'next/link'
@@ -15,13 +9,13 @@ import { parseAsInteger, parseAsString, parseAsStringLiteral, useQueryStates } f
 import { Suspense, useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
 import CustomerAvatar from '@/components/customers/customer-avatar'
+import ActionMenu from '@/components/layout/action-menu'
 import StatusChip from '@/components/layout/status-chip'
 import OrderChip from '@/components/orders/order-chip'
 import { orderStage } from '@/components/orders/order-stage'
 import OrdersBulkActions from '@/components/orders/orders-bulk-actions'
 import OrdersListFrame from '@/components/orders/orders-list-frame'
 import OrdersTiles, { type OrderTilesData } from '@/components/orders/orders-tiles'
-import RowMenu from '@/components/orders/row-menu'
 import ProductThumb from '@/components/products/product-thumb'
 import InlineState from '@/components/states/inline-state'
 import {
@@ -31,6 +25,7 @@ import {
   FilterPanel,
 } from '@/components/table/filter-panel'
 import ResourceTable, { type ResourceColumnSpec } from '@/components/table/resource-table'
+import RowMenu from '@/components/table/row-menu'
 import ViewSelect from '@/components/table/view-select'
 import { filterPanelContent } from '@/data/filter-panel'
 import {
@@ -217,23 +212,16 @@ function HeaderActions() {
 
   return (
     <div className="flex items-center gap-2">
-      <DropdownMenu>
-        <DropdownMenuTrigger render={<Button variant="key-neutral" className="pr-2" />}>
-          <MoreVertical className="size-4" />
-          {copy.moreActions}
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end">
-          <DropdownMenuItem render={<Link href={routes.orders.drafts()} />}>
-            {copy.menu.drafts}
-          </DropdownMenuItem>
-          <DropdownMenuItem render={<Link href={routes.orders.abandonedCheckouts()} />}>
-            {copy.menu.abandoned}
-          </DropdownMenuItem>
-          <DropdownMenuItem render={<Link href={routes.orders.returns()} />}>
-            {copy.menu.returns}
-          </DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
+      <ActionMenu
+        label={copy.moreActions}
+        trigger="button"
+        variant="key-neutral"
+        items={[
+          { label: copy.menu.drafts, href: routes.orders.drafts() },
+          { label: copy.menu.abandoned, href: routes.orders.abandonedCheckouts() },
+          { label: copy.menu.returns, href: routes.orders.returns() },
+        ]}
+      />
       <Tooltip>
         <TooltipTrigger
           render={

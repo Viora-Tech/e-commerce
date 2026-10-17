@@ -1,6 +1,5 @@
 'use client'
 
-import { MoreHorizontal } from '@commerce/ui/icons'
 import { cn } from '@commerce/ui/lib/utils'
 import {
   AlertDialog,
@@ -13,14 +12,9 @@ import {
   AlertDialogTitle,
 } from '@commerce/ui/shadcn/alert-dialog'
 import { Button } from '@commerce/ui/shadcn/button'
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@commerce/ui/shadcn/dropdown-menu'
 import { useState } from 'react'
 import { toast } from 'sonner'
+import ActionMenu from '@/components/layout/action-menu'
 import RelativeTime from '@/components/layout/relative-time'
 import StatusChip from '@/components/layout/status-chip'
 import SettingsTable from '@/components/settings/settings-table'
@@ -164,38 +158,29 @@ export default function PendingInvitesCard({
                           {copy.actions.resendShort}
                         </Button>
                       ) : null}
-                      <DropdownMenu>
-                        <DropdownMenuTrigger
-                          render={
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              disabled={busy}
-                              aria-label={copy.actions.menu}
-                            />
-                          }
-                        >
-                          <MoreHorizontal />
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          {invite.expired ? null : (
-                            <>
-                              <DropdownMenuItem onClick={() => handleCopy(invite)}>
-                                {copy.actions.copy}
-                              </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => handleResend(invite)}>
-                                {copy.actions.resend}
-                              </DropdownMenuItem>
-                            </>
-                          )}
-                          <DropdownMenuItem
-                            variant="destructive"
-                            onClick={() => setCancelling(invite)}
-                          >
-                            {copy.actions.cancel}
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
+                      <ActionMenu
+                        label={copy.actions.menu}
+                        variant="ghost"
+                        size="md"
+                        disabled={busy}
+                        items={[
+                          {
+                            label: copy.actions.copy,
+                            hidden: invite.expired,
+                            onSelect: () => handleCopy(invite),
+                          },
+                          {
+                            label: copy.actions.resend,
+                            hidden: invite.expired,
+                            onSelect: () => handleResend(invite),
+                          },
+                          {
+                            label: copy.actions.cancel,
+                            destructive: true,
+                            onSelect: () => setCancelling(invite),
+                          },
+                        ]}
+                      />
                     </RowActionsCell>
                   ) : null}
                 </SettingsTableCell>

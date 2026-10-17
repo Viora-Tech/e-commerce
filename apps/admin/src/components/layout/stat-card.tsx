@@ -2,7 +2,7 @@ import { cn } from '@commerce/ui/lib/utils'
 import { Card } from '@commerce/ui/shadcn/card'
 import type { ReactNode } from 'react'
 import { layoutContent } from '@/data/layout'
-import CardMenu, { type MenuLink } from './card-menu'
+import ActionMenu, { type ActionItem } from './action-menu'
 import CountUp from './count-up'
 import DeltaChip from './delta-chip'
 import DetailsLink from './details-link'
@@ -23,7 +23,7 @@ type StatCardProps = {
   detailsHref?: string
   detailsLabel?: string
   /** Links behind the kebab; defaults to the Details destination. */
-  menu?: MenuLink[]
+  menu?: ActionItem[]
   /** Replaces the number block (the Pending & cancelled tile, 5:1528). */
   children?: ReactNode
   /** `sm`: the list-page KPI tile (Saleor KPI card): 12px muted title, 20px/600 figure with the delta, period last. */
@@ -61,7 +61,9 @@ export default function StatCard({
       <Card className={cn('gap-0 p-4', className)}>
         <div className="flex h-5 items-center gap-0.5">
           <p className="min-w-0 flex-1 truncate text-caption text-muted-foreground">{title}</p>
-          {items.length > 0 ? <CardMenu items={items} /> : null}
+          {items.length > 0 ? (
+            <ActionMenu label={layoutContent.moreActions} size="sm" items={items} />
+          ) : null}
         </div>
         <div className="mt-2 flex items-baseline gap-2">
           <p className="text-stat text-ink-strong tabular-nums">
@@ -78,7 +80,9 @@ export default function StatCard({
     <Card className={cn('relative h-[13.875rem] gap-0 p-5', className)}>
       <div className="flex h-[1.625rem] items-center justify-between">
         <p className="text-kit-title text-foreground">{title}</p>
-        {items.length > 0 ? <CardMenu items={items} /> : null}
+        {items.length > 0 ? (
+          <ActionMenu label={layoutContent.moreActions} size="sm" items={items} />
+        ) : null}
       </div>
       <p className="mt-2 text-kit-body text-muted-foreground">{period}</p>
       {children ?? (

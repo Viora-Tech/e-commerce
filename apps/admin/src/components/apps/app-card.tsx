@@ -1,15 +1,10 @@
 'use client'
 
 import { siteConfig } from '@commerce/config/site'
-import { CheckIcon, MoreVertical, Plus } from '@commerce/ui/icons'
+import { CheckIcon, Plus } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@commerce/ui/shadcn/dropdown-menu'
 import Link from 'next/link'
+import ActionMenu from '@/components/layout/action-menu'
 import StatusChip from '@/components/layout/status-chip'
 import { type AppKind, appsContent } from '@/data/apps'
 import { useCopy } from '@/hooks/use-copy'
@@ -129,19 +124,15 @@ export default function AppCard({ app, variant, busy, onInstall, onUninstall }: 
                 {attention ? copy.needsSetup : openLabel}
               </Button>
             ) : null}
-            <DropdownMenu>
-              <DropdownMenuTrigger
-                aria-label={copy.gallery.kebabLabel(app.name)}
-                className="ml-auto flex size-8 shrink-0 items-center justify-center rounded-[0.625rem] text-muted-foreground hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-              >
-                <MoreVertical className="size-4" aria-hidden="true" />
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-44">
-                <DropdownMenuItem variant="destructive" onClick={() => onUninstall(app)}>
-                  {copy.uninstall}
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+            <ActionMenu
+              label={copy.gallery.kebabLabel(app.name)}
+              trigger="kebab-vertical"
+              size="md"
+              triggerClassName="ml-auto"
+              items={[
+                { label: copy.uninstall, destructive: true, onSelect: () => onUninstall(app) },
+              ]}
+            />
           </>
         ) : (
           <Button variant="outline" loading={busy} onClick={() => onInstall(app)}>

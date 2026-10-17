@@ -1,13 +1,6 @@
 'use client'
 
-import {
-  ChevronLeftIcon,
-  ChevronRightIcon,
-  MoreVertical,
-  Printer,
-  RotateCcw,
-  Send,
-} from '@commerce/ui/icons'
+import { ChevronLeftIcon, ChevronRightIcon, Printer, RotateCcw, Send } from '@commerce/ui/icons'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -19,15 +12,9 @@ import {
   AlertDialogTitle,
 } from '@commerce/ui/shadcn/alert-dialog'
 import { Button } from '@commerce/ui/shadcn/button'
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@commerce/ui/shadcn/dropdown-menu'
 import Link from 'next/link'
 import { useState } from 'react'
+import ActionMenu from '@/components/layout/action-menu'
 import {
   type OrderFulfillmentStatus,
   type OrderMark,
@@ -140,37 +127,38 @@ export default function OrderActions({
         <Printer aria-hidden="true" />
         {copy.actions.printShort}
       </Button>
-      <DropdownMenu>
-        <DropdownMenuTrigger render={<Button variant="outline" />}>
-          <MoreVertical aria-hidden="true" />
-          {copy.actions.more}
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="min-w-48">
-          {menuMove ? (
-            <DropdownMenuItem onClick={() => onMove(menuMove.to)} disabled={busy}>
-              {menuMove.label}
-            </DropdownMenuItem>
-          ) : null}
-          {refundable ? (
-            <DropdownMenuItem onClick={onRefund} disabled={busy}>
-              <RotateCcw aria-hidden="true" /> {copy.actions.refund}
-            </DropdownMenuItem>
-          ) : null}
-          {onRequestBalance && !readOnly ? (
-            <DropdownMenuItem onClick={onRequestBalance} disabled={busy}>
-              <Send aria-hidden="true" /> {copy.payment.preorder.request}
-            </DropdownMenuItem>
-          ) : null}
-          {cancellable ? (
-            <>
-              {menuMove || refundable || onRequestBalance ? <DropdownMenuSeparator /> : null}
-              <DropdownMenuItem variant="destructive" onClick={() => setConfirmCancel(true)}>
-                {copy.actions.cancel}
-              </DropdownMenuItem>
-            </>
-          ) : null}
-        </DropdownMenuContent>
-      </DropdownMenu>
+      <ActionMenu
+        label={copy.actions.more}
+        trigger="button"
+        items={[
+          {
+            label: menuMove?.label ?? '',
+            hidden: !menuMove,
+            disabled: busy,
+            onSelect: () => menuMove && onMove(menuMove.to),
+          },
+          {
+            label: copy.actions.refund,
+            icon: RotateCcw,
+            hidden: !refundable,
+            disabled: busy,
+            onSelect: onRefund,
+          },
+          {
+            label: copy.payment.preorder.request,
+            icon: Send,
+            hidden: !onRequestBalance || readOnly,
+            disabled: busy,
+            onSelect: onRequestBalance,
+          },
+          {
+            label: copy.actions.cancel,
+            destructive: true,
+            hidden: !cancellable,
+            onSelect: () => setConfirmCancel(true),
+          },
+        ]}
+      />
 
       <AlertDialog open={confirmCancel} onOpenChange={setConfirmCancel}>
         <AlertDialogContent>

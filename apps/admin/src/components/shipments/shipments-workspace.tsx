@@ -5,23 +5,18 @@ import {
   SHIPMENT_TABS,
   type ShipmentTab,
 } from '@commerce/core/shipment-tabs'
-import { MoreHorizontal, Plus, Printer, Truck } from '@commerce/ui/icons'
+import { Plus, Printer, Truck } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Card } from '@commerce/ui/shadcn/card'
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@commerce/ui/shadcn/dropdown-menu'
 import Link from 'next/link'
 import { parseAsInteger, parseAsString, parseAsStringLiteral, useQueryStates } from 'nuqs'
 import { Suspense, useEffect, useState } from 'react'
+import ActionMenu from '@/components/layout/action-menu'
 import EmptyState from '@/components/layout/empty-state'
 import PillTabs from '@/components/layout/pill-tabs'
 import OrdersListFrame from '@/components/orders/orders-list-frame'
-import RowMenu from '@/components/orders/row-menu'
 import ResourceTable from '@/components/table/resource-table'
+import RowMenu from '@/components/table/row-menu'
 import { shipmentsContent } from '@/data/shipments'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
@@ -192,20 +187,12 @@ function ShipmentsContent() {
       actions={
         noCourier ? null : (
           <>
-            <DropdownMenu>
-              <DropdownMenuTrigger
-                render={
-                  <Button variant="outline" size="icon" aria-label={copy.more} title={copy.more}>
-                    <MoreHorizontal aria-hidden />
-                  </Button>
-                }
-              />
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={() => setSheet('byNumber')}>
-                  {copy.byNumberSheet.title}
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+            <ActionMenu
+              label={copy.more}
+              variant="outline"
+              size="md"
+              items={[{ label: copy.byNumberSheet.title, onSelect: () => setSheet('byNumber') }]}
+            />
             <Button variant="outline" onClick={() => setSheet('pickups')}>
               {copy.pickupsButton}
             </Button>

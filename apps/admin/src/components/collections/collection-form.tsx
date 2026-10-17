@@ -1,17 +1,12 @@
 'use client'
 
 import { emptyCollectionRules } from '@commerce/core/collections'
-import { Eye, MoreVertical } from '@commerce/ui/icons'
+import { Eye } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@commerce/ui/shadcn/dropdown-menu'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
+import ActionMenu from '@/components/layout/action-menu'
 import ProoflyDetailPage from '@/components/layout/proofly-detail-page'
 import ProoflyPageHeader from '@/components/layout/proofly-page-header'
 import SaveBar from '@/components/layout/save-bar'
@@ -165,23 +160,19 @@ export default function CollectionForm({ collection, storefrontOrigin }: Collect
             </Button>
           ) : null}
           {collection ? (
-            <DropdownMenu>
-              <DropdownMenuTrigger
-                render={
-                  <Button variant="outline" size="icon" aria-label={detail.more}>
-                    <MoreVertical aria-hidden />
-                  </Button>
-                }
-              />
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem
-                  className="text-danger focus:text-danger"
-                  onClick={() => setConfirmDelete(true)}
-                >
-                  {copy.delete.action}
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+            <ActionMenu
+              label={detail.more}
+              trigger="kebab-vertical"
+              variant="outline"
+              size="md"
+              items={[
+                {
+                  label: copy.delete.action,
+                  destructive: true,
+                  onSelect: () => setConfirmDelete(true),
+                },
+              ]}
+            />
           ) : null}
           <Button onClick={handleSave} loading={busy} disabled={Boolean(collection) && !dirty}>
             {copy.save}
