@@ -10,7 +10,7 @@ import {
 import { restrictToParentElement, restrictToVerticalAxis } from '@dnd-kit/modifiers'
 import { arrayMove, SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { useReducedMotion } from 'motion/react'
-import { type ReactNode, useState } from 'react'
+import { type ReactNode, useId, useState } from 'react'
 import DragHandle from './drag-handle'
 import SortableListItem from './sortable-list-item'
 import SortableOverlay from './sortable-overlay'
@@ -48,6 +48,8 @@ export default function SortableList<T extends { id: string }>({
   // Hooks
   const prefersReducedMotion = useReducedMotion()
   const sensors = useDndSensors()
+  /* A stable id keeps dnd-kit's aria-describedby the same on the server and the client. */
+  const dndId = useId()
   const [activeId, setActiveId] = useState<string | null>(null)
 
   // Helpers
@@ -85,6 +87,7 @@ export default function SortableList<T extends { id: string }>({
 
   return (
     <DndContext
+      id={dndId}
       sensors={sensors}
       collisionDetection={closestCenter}
       modifiers={MODIFIERS}

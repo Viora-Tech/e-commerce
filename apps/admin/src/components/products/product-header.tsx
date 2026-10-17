@@ -3,6 +3,7 @@
 import { Copy, Eye, Package, Plus, Trash2 } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import ActionMenu from '@/components/layout/action-menu'
+import FallbackImage from '@/components/layout/fallback-image'
 import PageHeader from '@/components/layout/page-header'
 import OrderChip from '@/components/orders/order-chip'
 import { productFormContent } from '@/data/product-form'
@@ -53,13 +54,12 @@ export default function ProductHeader({
       back={{ label: copy.backLabel, href: routes.products.list() }}
       lead={{
         kind: 'tile',
-        node: form.media[0] ? (
-          <>
-            {/* biome-ignore lint/performance/noImgElement: the product's own photo from store storage. */}
-            <img src={form.media[0].url} alt="" className="size-full bg-card object-cover" />
-          </>
-        ) : (
-          <Package aria-hidden="true" />
+        node: (
+          <FallbackImage
+            src={form.media[0]?.url}
+            fallback={<Package aria-hidden="true" />}
+            className="size-full bg-card object-cover"
+          />
         ),
       }}
       badges={product ? <OrderChip kind="product" value={form.status} /> : null}

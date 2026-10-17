@@ -8,6 +8,7 @@ import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import ActionMenu from '@/components/layout/action-menu'
 import ConfirmDialog from '@/components/layout/confirm-dialog'
+import FallbackImage from '@/components/layout/fallback-image'
 import PageHeader from '@/components/layout/page-header'
 import ProoflyDetailPage from '@/components/layout/proofly-detail-page'
 import SaveBar from '@/components/layout/save-bar'
@@ -135,13 +136,12 @@ export default function CollectionForm({ collection, storefrontOrigin }: Collect
       back={{ label: detail.back, href: routes.products.collections() }}
       lead={{
         kind: 'tile',
-        node: form.imageUrl ? (
-          <>
-            {/* biome-ignore lint/performance/noImgElement: the collection's own image from store storage. */}
-            <img src={form.imageUrl} alt="" className="size-full bg-card object-cover" />
-          </>
-        ) : (
-          <Folder aria-hidden="true" />
+        node: (
+          <FallbackImage
+            src={form.imageUrl}
+            fallback={<Folder aria-hidden="true" />}
+            className="size-full bg-card object-cover"
+          />
         ),
       }}
       badges={
