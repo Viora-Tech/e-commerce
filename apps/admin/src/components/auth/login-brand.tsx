@@ -1,5 +1,5 @@
 import { siteConfig } from '@commerce/config/site'
-import { KoomerceMark } from '@commerce/ui/brand'
+import KoomerceMark from '@commerce/ui/brand'
 
 export default function LoginBrand() {
   return (

@@ -2,7 +2,7 @@
 
 import { siteConfig } from '@commerce/config/site'
 import { permissions } from '@commerce/core/permissions'
-import { Download, Plus } from '@commerce/ui/icons'
+import { Clock, Download, Plus } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import Link from 'next/link'
 import { parseAsInteger, parseAsString, parseAsStringLiteral, useQueryStates } from 'nuqs'
@@ -296,9 +296,28 @@ function InventoryContent({ initial }: { initial: InventoryInitial }) {
     >
       <ResourceTable
         resourceName={copy.resource}
-        columns={inventoryColumns({ copy, canEdit, onCommit: commitRow, onHistory: setHistory })}
+        columns={inventoryColumns({
+          copy,
+          canEdit,
+          lowAt: stats.lowThreshold,
+          onCommit: commitRow,
+        })}
         items={rows}
         getId={(r) => r.variantId}
+        rowActions={(r) => (
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            aria-label={copy.cell.history}
+            title={copy.cell.history}
+            onClick={(e) => {
+              e.stopPropagation()
+              setHistory(r)
+            }}
+          >
+            <Clock aria-hidden="true" />
+          </Button>
+        )}
         loading={loading}
         query={q.query}
         onQueryChange={(query) => setQ({ query, page: 1 })}

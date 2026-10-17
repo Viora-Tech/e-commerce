@@ -1,5 +1,6 @@
 'use client'
 
+import StatusChip from '@/components/layout/status-chip'
 import { inventoryContent, type ManualReasonValue } from '@/data/inventory'
 import { useCopy } from '@/hooks/use-copy'
 import LocationSelect, { type StoreLocation } from './location-select'
@@ -26,19 +27,24 @@ export default function InventoryStrip({
   const copy = useCopy(inventoryContent)
 
   // Render logic
+  const online = locations.find((l) => l.id === locationId)?.fulfilsOnlineOrders ?? false
+
   return (
-    <div className="flex flex-wrap items-end gap-4">
+    <div className="flex flex-wrap items-end justify-between gap-4">
       <div className="flex flex-col gap-1.5">
         <label htmlFor="inventory-location" className="text-caption text-muted-foreground">
           {copy.location}
         </label>
-        <LocationSelect
-          id="inventory-location"
-          locations={locations}
-          value={locationId}
-          onChange={onLocationChange}
-          className="min-w-44 bg-card"
-        />
+        <div className="flex items-center gap-4">
+          <LocationSelect
+            id="inventory-location"
+            locations={locations}
+            value={locationId}
+            onChange={onLocationChange}
+            className="w-75 max-w-full bg-card"
+          />
+          {online ? <StatusChip tone="info">{copy.defaultBadge}</StatusChip> : null}
+        </div>
       </div>
       {reason ? (
         <div className="flex flex-col gap-1.5">
@@ -49,7 +55,7 @@ export default function InventoryStrip({
             id="inventory-reason"
             value={reason}
             onChange={onReasonChange}
-            className="min-w-44 bg-card"
+            className="w-50 bg-card"
           />
         </div>
       ) : null}

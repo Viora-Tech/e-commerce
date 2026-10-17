@@ -22,25 +22,25 @@ export default function InventoryTiles({ stats }: InventoryTilesProps) {
           id: 'skus',
           label: copy.skus,
           value: formatNumber(stats.skus),
-          trendNote: copy.skusCaption,
+          note: copy.skusCaption,
         },
         {
           id: 'out',
           label: copy.out,
           value: formatNumber(stats.outOfStock),
-          trendNote: copy.outCaption,
+          note: copy.outCaption,
         },
         {
           id: 'low',
           label: copy.low,
           value: formatNumber(stats.lowStock),
-          trendNote: copy.lowCaption(stats.lowThreshold),
+          note: copy.lowCaption(stats.lowThreshold),
         },
         {
           id: 'value',
           label: copy.value,
           value: formatPaise(stats.valuePaise),
-          trendNote: copy.valueCaption,
+          note: copy.valueCaption,
         },
       ]}
     />
