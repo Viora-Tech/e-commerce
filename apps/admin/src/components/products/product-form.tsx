@@ -1,22 +1,20 @@
 'use client'
 
 import type { ProductStatus } from '@commerce/core/catalog'
-import { CircleAlert, Package } from '@commerce/ui/icons'
+import { CircleAlert } from '@commerce/ui/icons'
 import { Alert, AlertDescription, AlertTitle } from '@commerce/ui/shadcn/alert'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { type ReactNode, useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import ConfirmDialog from '@/components/layout/confirm-dialog'
 import DataCard from '@/components/layout/data-card'
-import PageHeader from '@/components/layout/page-header'
+import PageChecklist from '@/components/layout/page-checklist'
 import ProoflyDetailPage from '@/components/layout/proofly-detail-page'
 import SaveBar from '@/components/layout/save-bar'
-import StatusChip from '@/components/layout/status-chip'
 import MetafieldsCard from '@/components/metaobjects/metafields-card'
 import TemplateSelectCard from '@/components/themes/template-select-card'
 import { productFormContent } from '@/data/product-form'
-import { productBannerContent, productsListContent } from '@/data/products'
-import { useCopy } from '@/hooks/use-copy'
+import { useCopy, useFormat } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 import { validationIssuesOf } from '@/lib/api-errors'
 import type { ProductLayout } from '@/lib/product-layout'
@@ -38,13 +36,14 @@ import {
 } from './form-state'
 import ProductBanner from './product-banner'
 import ProductCategoriesCard from './product-categories-card'
+import { productChecklist } from './product-checklist'
 import ProductCollectionsCard from './product-collections-card'
-import ProductFormActions from './product-form-actions'
+import ProductHeader from './product-header'
 import ProductImageCard from './product-image-card'
 import ProductMainCard from './product-main-card'
 import ProductPageActions from './product-page-actions'
 import ProductPreorderSection from './product-preorder-section'
-import { type ProductTabId, tabsFor, tabsWithErrors } from './product-tab-list'
+import { type ProductTabId, tabFromParam, tabsFor, tabsWithErrors } from './product-tab-list'
 import ProductTabs from './product-tabs'
 import SearchConsoleCard from './search-console-card'
 import SeoCard from './seo-card'
@@ -84,8 +83,7 @@ export default function ProductForm({
 }: ProductFormProps) {
   // Hooks
   const copy = useCopy(productFormContent)
-  const listCopy = useCopy(productsListContent)
-  const bannerCopy = useCopy(productBannerContent)
+  const fmt = useFormat()
   const router = useRouter()
   const searchParams = useSearchParams()
   const [form, setForm] = useState<ProductFormState>(() => initialForm(product))
@@ -196,7 +194,7 @@ export default function ProductForm({
   }
 
   const handleUpdateInventory = () => {
-    handleSelectTab(single ? 'inventory' : 'variants')
+    handleSelectTab(single ? 'price' : 'variants')
   }
 
   const handleDiscard = () => {
@@ -253,46 +251,58 @@ export default function ProductForm({
   )
   const working = busy || uploading
   const tabIds = tabsFor(single)
-  const requested = searchParams.get('tab')
-  const activeTab = tabIds.find((id) => id === requested) ?? tabIds[0] ?? 'media'
+  const activeTab = tabFromParam(searchParams.get('tab'), single)
   const failing = new Set<ProductTabId>(showErrors ? tabsWithErrors(errors, single) : [])
+  const checklist = productChecklist(copy, fmt, form, errors, single)
+  const toFix = checklist.filter((item) => item.state === 'warn').length
   const tabs = tabIds.map((id) => ({
     id,
     label: copy.tabs.labels[id],
     description: copy.tabs.descriptions[id],
     error: failing.has(id),
+    count:
+      id === 'overview' && form.media.length > 0
+        ? fmt.number(form.media.length)
+        : id === 'variants'
+          ? fmt.number(form.variants.length)
+          : undefined,
+    warn: checklist.find((item) => item.id === id)?.state === 'warn',
   }))
-  const panels: Partial<Record<ProductTabId, ReactNode>> = {
-    media: (
-      <ProductImageCard
-        items={form.media}
-        onChange={(update) => setForm((f) => ({ ...f, media: update(f.media) }))}
-        onUploading={setUploading}
+  const variantsCard = (
+    <>
+      <VariantsCard
+        title={form.title}
+        options={form.options}
+        variants={form.variants}
+        media={form.media}
+        error={showErrors ? errors.variants : undefined}
+        onOptions={setOptions}
+        onVariant={patchVariant}
       />
-    ),
-    details: (
+      <VariantMetafieldsCard variants={savedVariants} />
+    </>
+  )
+  const panels: Partial<Record<ProductTabId, ReactNode>> = {
+    overview: (
       <>
+        <ProductImageCard
+          items={form.media}
+          onChange={(update) => setForm((f) => ({ ...f, media: update(f.media) }))}
+          onUploading={setUploading}
+        />
         {mainCard('details')}
         {/* Extra fields stay in view, not inside "More" (#296: nobody found them there). */}
         <MetafieldsCard ownerType="product" ownerId={product?.id ?? null} />
       </>
     ),
-    pricing: mainCard('pricing'),
-    inventory: mainCard('inventory'),
-    variants: (
+    price: (
       <>
-        <VariantsCard
-          title={form.title}
-          options={form.options}
-          variants={form.variants}
-          media={form.media}
-          error={showErrors ? errors.variants : undefined}
-          onOptions={setOptions}
-          onVariant={patchVariant}
-        />
-        <VariantMetafieldsCard variants={savedVariants} />
+        {mainCard('pricing')}
+        {mainCard('inventory')}
+        {variantsCard}
       </>
     ),
+    variants: variantsCard,
     shipping: (
       <ShippingCard
         variant={first}
@@ -356,44 +366,14 @@ export default function ProductForm({
             onDiscard={handleDiscard}
             saving={busy}
           />
-          <PageHeader
-            title={product ? product.title : copy.newTitle}
-            back={{ label: copy.backLabel, href: routes.products.list() }}
-            lead={{
-              kind: 'tile',
-              node: form.media[0] ? (
-                <>
-                  {/* biome-ignore lint/performance/noImgElement: the product's own photo from store storage. */}
-                  <img src={form.media[0].url} alt="" className="size-full bg-card object-cover" />
-                </>
-              ) : (
-                <Package aria-hidden="true" />
-              ),
-            }}
-            badges={
-              product ? (
-                <StatusChip tone={form.status === 'draft' ? 'info' : 'neutral'}>
-                  {listCopy.status[form.status]}
-                </StatusChip>
-              ) : null
-            }
-            summary={
-              product
-                ? bannerCopy.summary(
-                    bannerCopy.state[form.status],
-                    form.productType || null,
-                    form.vendor || null,
-                  )
-                : undefined
-            }
-            actions={
-              <ProductPageActions
-                busy={working}
-                live={Boolean(product) && form.status === 'active'}
-                onPublish={() => void handleSave('active')}
-                onSaveDraft={() => void handleSave('draft')}
-              />
-            }
+          <ProductHeader
+            product={product}
+            form={form}
+            single={single}
+            busy={working}
+            storefrontOrigin={storefrontOrigin}
+            onDuplicate={handleDuplicate}
+            onDelete={() => setConfirmDelete(true)}
           />
           {product ? (
             <ProductBanner
@@ -424,6 +404,13 @@ export default function ProductForm({
       }
       side={
         <>
+          <PageChecklist
+            heading={copy.checklist.heading}
+            summary={copy.checklist.toFix(toFix)}
+            items={checklist}
+            active={activeTab}
+            onSelect={(id) => handleSelectTab(id)}
+          />
           <StatusCard
             status={form.status}
             vendor={form.vendor}
@@ -442,15 +429,14 @@ export default function ProductForm({
             onTags={(tags) => patch({ tags })}
           />
           <ProductCollectionsCard productId={product?.id ?? null} revision={revision} />
-          {product ? (
-            <ProductFormActions
-              product={product}
+          <div className="flex flex-wrap justify-end gap-2">
+            <ProductPageActions
               busy={working}
-              storefrontOrigin={storefrontOrigin}
-              onDuplicate={handleDuplicate}
-              onDelete={() => setConfirmDelete(true)}
+              live={Boolean(product) && form.status === 'active'}
+              onPublish={() => void handleSave('active')}
+              onSaveDraft={() => void handleSave('draft')}
             />
-          ) : null}
+          </div>
         </>
       }
     >

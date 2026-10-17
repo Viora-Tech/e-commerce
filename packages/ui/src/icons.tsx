@@ -331,6 +331,7 @@ export const Loader2Icon = defineIcon(SpinnerGap, 'Loader2Icon')
 /* Status */
 export const CircleCheck = defineIcon(CheckCircle, 'CircleCheck')
 export const CircleCheckIcon = CircleCheck
+export const CircleDashed = defineIcon(Huge.CircleDashedIcon, 'CircleDashed')
 export const CircleAlert = defineIcon(WarningCircle, 'CircleAlert')
 export const InfoIcon = defineIcon(Info, 'InfoIcon')
 export const TriangleAlert = defineIcon(Warning, 'TriangleAlert')

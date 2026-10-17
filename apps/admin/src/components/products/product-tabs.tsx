@@ -2,6 +2,7 @@
 
 import { cn } from '@commerce/ui/lib/utils'
 import type { KeyboardEvent, ReactNode } from 'react'
+import CountBadge from '@/components/layout/count-badge'
 import type { ProductLayout } from '@/lib/product-layout'
 
 export type ProductTabItem = {
@@ -10,6 +11,10 @@ export type ProductTabItem = {
   /** One line saying what the tab covers, shown above its cards. */
   description: string
   error: boolean
+  /** How many photos or variants the tab holds, shown beside its label. */
+  count?: string | undefined
+  /** Something to look at but not a blocker (no HS code): an amber dot. */
+  warn?: boolean | undefined
 }
 
 type ProductTabsProps = {
@@ -26,12 +31,11 @@ type ProductTabsProps = {
 const FOCUS =
   'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2'
 
-/* "tabs" look: the segmented strip the page used to carry in its header. */
-const STRIP =
-  'no-scrollbar inline-flex w-fit max-w-full gap-0.5 self-start overflow-x-auto rounded-[0.6875rem] bg-muted p-[0.1875rem]'
+/* "tabs" look: Figma's underline strip (631:7713), a 2px ink rule under the open tab. */
+const STRIP = 'no-scrollbar flex max-w-full gap-6 overflow-x-auto border-b border-border'
 const STRIP_TAB =
-  'h-[1.875rem] rounded-[0.5rem] border border-transparent px-3 text-body font-medium text-muted-foreground hover:text-foreground'
-const STRIP_TAB_ACTIVE = 'border-border bg-card font-semibold text-ink-strong shadow-lift'
+  'relative -mb-px h-11 border-b-2 border-transparent px-1 text-body text-muted-foreground hover:text-foreground'
+const STRIP_TAB_ACTIVE = 'border-foreground font-medium text-ink-strong'
 
 /* "settings" look: the Settings rail and the app pages' AppNav; a scrolling row on phones. */
 const RAIL =
@@ -112,6 +116,16 @@ export default function ProductTabs({
               )}
             >
               <span className="min-w-0 truncate">{t.label}</span>
+              {t.count ? (
+                <CountBadge
+                  n={t.count}
+                  tone={selected && !rail ? 'inverse' : 'muted'}
+                  className={selected && !rail ? 'h-4.5 rounded-full px-1.5' : 'py-0'}
+                />
+              ) : null}
+              {t.warn && !t.error ? (
+                <span aria-hidden className="size-1.5 shrink-0 rounded-full bg-warning" />
+              ) : null}
               {t.error ? (
                 <>
                   <span aria-hidden className="size-1.5 shrink-0 rounded-full bg-destructive" />
