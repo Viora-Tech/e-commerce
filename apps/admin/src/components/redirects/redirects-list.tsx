@@ -6,6 +6,7 @@ import { Button } from '@commerce/ui/shadcn/button'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import { saveFile } from '@/components/apps/gst-invoices/save-file'
+import ConfirmDialog from '@/components/layout/confirm-dialog'
 import PageHeader from '@/components/layout/page-header'
 import ProoflyDetailPage from '@/components/layout/proofly-detail-page'
 import ResourceTable, { type ResourceColumnSpec } from '@/components/table/resource-table'
@@ -13,7 +14,6 @@ import { type RedirectListItem, redirectsContent } from '@/data/redirects'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 import { routes } from '@/lib/routes'
-import DeleteRedirectsDialog from './delete-redirects-dialog'
 import ImportRedirectsDialog from './import-redirects-dialog'
 import RedirectActions from './redirect-actions'
 import RedirectDialog from './redirect-dialog'
@@ -78,6 +78,19 @@ export default function RedirectsList({ initial }: RedirectsListProps) {
   }
 
   const handleChanged = () => setVersion((v) => v + 1)
+
+  const handleRemove = async () => {
+    if (!removing) return
+    try {
+      const n = await api.redirects.delete({ ids: removing.ids })
+      toast.success(copy.actions.deleted(n))
+      removing.clear()
+      handleChanged()
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : copy.actions.deleteFailed)
+      throw err
+    }
+  }
 
   const handleExport = async () => {
     setExporting(true)
@@ -208,13 +221,15 @@ export default function RedirectsList({ initial }: RedirectsListProps) {
         <ImportRedirectsDialog onClose={() => setImporting(false)} onImported={handleChanged} />
       ) : null}
       {removing ? (
-        <DeleteRedirectsDialog
-          ids={removing.ids}
-          onClose={() => setRemoving(null)}
-          onDeleted={() => {
-            removing.clear()
-            handleChanged()
-          }}
+        <ConfirmDialog
+          open
+          onOpenChange={(open) => !open && setRemoving(null)}
+          title={copy.actions.confirmTitle(removing.ids.length)}
+          body={copy.actions.confirmBody}
+          confirmLabel={copy.actions.delete}
+          cancelLabel={copy.actions.cancel}
+          stopPropagation
+          onConfirm={handleRemove}
         />
       ) : null}
     </ProoflyDetailPage>

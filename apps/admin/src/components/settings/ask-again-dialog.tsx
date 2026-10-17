@@ -1,15 +1,6 @@
 'use client'
 
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@commerce/ui/shadcn/alert-dialog'
+import ConfirmDialog from '@/components/layout/confirm-dialog'
 import { customerPrivacyContent, dataRequestDetailContent } from '@/data/customer-privacy'
 
 type AskAgainDialogProps = {
@@ -30,19 +21,16 @@ export default function AskAgainDialog({
 }: AskAgainDialogProps) {
   // Render logic
   return (
-    <AlertDialog open={open} onOpenChange={onOpenChange}>
-      <AlertDialogContent>
-        <AlertDialogHeader>
-          <AlertDialogTitle>{copy.askAgainConfirmTitle}</AlertDialogTitle>
-          <AlertDialogDescription>{copy.askAgainConfirmBody}</AlertDialogDescription>
-        </AlertDialogHeader>
-        <AlertDialogFooter>
-          <AlertDialogCancel>{dataRequestDetailContent.cancel}</AlertDialogCancel>
-          <AlertDialogAction onClick={onConfirm} disabled={busy}>
-            {copy.askAgainConfirm}
-          </AlertDialogAction>
-        </AlertDialogFooter>
-      </AlertDialogContent>
-    </AlertDialog>
+    <ConfirmDialog
+      open={open}
+      onOpenChange={onOpenChange}
+      title={copy.askAgainConfirmTitle}
+      body={copy.askAgainConfirmBody}
+      confirmLabel={copy.askAgainConfirm}
+      cancelLabel={dataRequestDetailContent.cancel}
+      tone="default"
+      busy={busy}
+      onConfirm={onConfirm}
+    />
   )
 }

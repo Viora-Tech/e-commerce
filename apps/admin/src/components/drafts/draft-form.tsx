@@ -1,16 +1,6 @@
 'use client'
 
 import { FileEdit } from '@commerce/ui/icons'
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@commerce/ui/shadcn/alert-dialog'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Card } from '@commerce/ui/shadcn/card'
 import { Textarea } from '@commerce/ui/shadcn/textarea'
@@ -29,6 +19,7 @@ import {
 } from '@/components/drafts/draft-form-state'
 import DraftProductsCard from '@/components/drafts/draft-products-card'
 import DraftTotalsCard from '@/components/drafts/draft-totals-card'
+import ConfirmDialog from '@/components/layout/confirm-dialog'
 import PageBody from '@/components/layout/page-body'
 import PageColumns from '@/components/layout/page-columns'
 import PageHeader from '@/components/layout/page-header'
@@ -124,6 +115,7 @@ export default function DraftForm({ draft }: DraftFormProps) {
     } catch (err) {
       toast.error(message(err, copy.actions.deleteFailed))
       setBusy(false)
+      throw err
     }
   }
 
@@ -197,18 +189,16 @@ export default function DraftForm({ draft }: DraftFormProps) {
           </>
         }
       />
-      <AlertDialog open={confirmDelete} onOpenChange={setConfirmDelete}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>{copy.actions.deleteTitle}</AlertDialogTitle>
-            <AlertDialogDescription>{copy.actions.deleteBody}</AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>{copy.actions.cancel}</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDelete}>{copy.actions.delete}</AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <ConfirmDialog
+        open={confirmDelete}
+        onOpenChange={setConfirmDelete}
+        title={copy.actions.deleteTitle}
+        body={copy.actions.deleteBody}
+        confirmLabel={copy.actions.delete}
+        cancelLabel={copy.actions.cancel}
+        tone="default"
+        onConfirm={handleDelete}
+      />
     </PageBody>
   )
 }

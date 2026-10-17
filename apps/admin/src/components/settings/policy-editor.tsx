@@ -11,9 +11,9 @@ import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import RichTextField from '@/components/fields/rich-text-field'
+import ConfirmDialog from '@/components/layout/confirm-dialog'
 import PageHeader from '@/components/layout/page-header'
 import SaveBar from '@/components/layout/save-bar'
-import ConfirmDelete from '@/components/metaobjects/confirm-delete'
 import SettingsCard from '@/components/settings/settings-card'
 import SettingsTextRow from '@/components/settings/settings-text-row'
 import SettingsToggleRow from '@/components/settings/settings-toggle-row'
@@ -232,14 +232,14 @@ export default function PolicyEditor({
           </SettingsCard>
         </>
       )}
-      <ConfirmDelete
+      <ConfirmDialog
         open={confirming}
-        busy={filling}
+        onOpenChange={setConfirming}
         title={copy.confirmTitle}
         body={copy.confirmBody}
-        confirm={copy.confirm}
-        cancel={copy.cancel}
-        onOpenChange={setConfirming}
+        confirmLabel={copy.confirm}
+        cancelLabel={copy.cancel}
+        busy={filling}
         onConfirm={() => void fillTemplate()}
       />
     </div>

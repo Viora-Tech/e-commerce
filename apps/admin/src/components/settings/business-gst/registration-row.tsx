@@ -1,21 +1,12 @@
 'use client'
 
 import type { GstRegistrationView } from '@commerce/core'
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@commerce/ui/shadcn/alert-dialog'
 import { Badge } from '@commerce/ui/shadcn/badge'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import ActionMenu from '@/components/layout/action-menu'
+import ConfirmDialog from '@/components/layout/confirm-dialog'
 import { businessGstContent } from '@/data/business-gst'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
@@ -93,20 +84,15 @@ export default function RegistrationRow({
           ]}
         />
       ) : null}
-      <AlertDialog open={confirmCancel} onOpenChange={setConfirmCancel}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>{copy.cancelTitle}</AlertDialogTitle>
-            <AlertDialogDescription>{copy.cancelBody}</AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>{copy.keep}</AlertDialogCancel>
-            <AlertDialogAction variant="destructive" onClick={handleCancel}>
-              {copy.confirmCancel}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <ConfirmDialog
+        open={confirmCancel}
+        onOpenChange={setConfirmCancel}
+        title={copy.cancelTitle}
+        body={copy.cancelBody}
+        confirmLabel={copy.confirmCancel}
+        cancelLabel={copy.keep}
+        onConfirm={handleCancel}
+      />
     </li>
   )
 }

@@ -1,16 +1,6 @@
 'use client'
 
 import { ExternalLink } from '@commerce/ui/icons'
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@commerce/ui/shadcn/alert-dialog'
 import { Button } from '@commerce/ui/shadcn/button'
 import {
   Dialog,
@@ -21,6 +11,7 @@ import {
 } from '@commerce/ui/shadcn/dialog'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
+import ConfirmDialog from '@/components/layout/confirm-dialog'
 import StatusChip from '@/components/layout/status-chip'
 import { themesContent } from '@/data/themes'
 import { useCopy } from '@/hooks/use-copy'
@@ -150,20 +141,17 @@ export default function ThemeVersionsDialog({
           ) : null}
         </DialogContent>
       </Dialog>
-      <AlertDialog open={confirming !== null} onOpenChange={(open) => !open && setConfirming(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>{copy.confirmTitle}</AlertDialogTitle>
-            <AlertDialogDescription>{copy.confirmBody}</AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>{copy.cancel}</AlertDialogCancel>
-            <AlertDialogAction disabled={busy} onClick={handleRestore}>
-              {busy ? copy.restoring : copy.restore}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <ConfirmDialog
+        open={confirming !== null}
+        onOpenChange={(open) => !open && setConfirming(null)}
+        title={copy.confirmTitle}
+        body={copy.confirmBody}
+        confirmLabel={busy ? copy.restoring : copy.restore}
+        cancelLabel={copy.cancel}
+        tone="default"
+        busy={busy}
+        onConfirm={handleRestore}
+      />
     </>
   )
 }

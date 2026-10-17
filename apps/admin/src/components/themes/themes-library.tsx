@@ -6,6 +6,7 @@ import { Button } from '@commerce/ui/shadcn/button'
 import Link from 'next/link'
 import { useState } from 'react'
 import { toast } from 'sonner'
+import ConfirmDialog from '@/components/layout/confirm-dialog'
 import PageHeader from '@/components/layout/page-header'
 import ProoflyPageBody from '@/components/layout/proofly-page-body'
 import { themeImportContent } from '@/data/theme-import'
@@ -15,7 +16,6 @@ import { api } from '@/lib/api-client'
 import { routes } from '@/lib/routes'
 import AddThemeDialog from './add-theme-dialog'
 import CurrentThemeCard from './current-theme-card'
-import DeleteThemeDialog from './delete-theme-dialog'
 import OnlineStoreTabs from './online-store-tabs'
 import RenameThemeDialog from './rename-theme-dialog'
 import type { ThemeAction } from './theme-actions-menu'
@@ -57,6 +57,8 @@ function download(theme: ThemeItem): void {
  * Online Store › Themes (Figma "Online store / Themes", 309:19887): the live theme up top, the
  * theme library below, Shopify style.
  */
+const deleteCopy = themesContent.deleteDialog
+
 export default function ThemesLibrary({
   initial,
   origin,
@@ -128,6 +130,10 @@ export default function ThemesLibrary({
       setDeleting(null)
       toast.success(copy.deleted)
     })
+
+  const handleConfirmDelete = () => {
+    if (deleting) void handleDelete(deleting.id)
+  }
 
   const handleAction = (theme: ThemeItem, action: ThemeAction) => {
     if (action === 'rename') setRenaming(theme)
@@ -239,10 +245,14 @@ export default function ThemesLibrary({
           onRestored={handleRestored}
         />
       ) : null}
-      <DeleteThemeDialog
-        theme={deleting}
-        onCancel={() => setDeleting(null)}
-        onConfirm={handleDelete}
+      <ConfirmDialog
+        open={deleting !== null}
+        onOpenChange={(open) => !open && setDeleting(null)}
+        title={deleteCopy.title(deleting?.name ?? '')}
+        body={deleteCopy.body}
+        confirmLabel={deleteCopy.confirm}
+        cancelLabel={deleteCopy.cancel}
+        onConfirm={handleConfirmDelete}
       />
     </ProoflyPageBody>
   )

@@ -10,8 +10,8 @@ import { Textarea } from '@commerce/ui/shadcn/textarea'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { toast } from 'sonner'
-import ConfirmActionDialog from '@/components/inventory/confirm-action-dialog'
 import CurrencySelect from '@/components/landed-cost/currency-select'
+import ConfirmDialog from '@/components/layout/confirm-dialog'
 import PageColumns from '@/components/layout/page-columns'
 import PageHeader from '@/components/layout/page-header'
 import ProoflyPageBody from '@/components/layout/proofly-page-body'
@@ -262,11 +262,13 @@ export default function SupplierForm({ supplier }: SupplierFormProps) {
           </>
         }
       />
-      <ConfirmActionDialog
+      <ConfirmDialog
         open={deleting}
         onOpenChange={setDeleting}
-        copy={copy.confirmDelete}
-        destructive
+        title={copy.confirmDelete.title}
+        body={copy.confirmDelete.body}
+        confirmLabel={copy.confirmDelete.confirm}
+        cancelLabel={copy.confirmDelete.cancel}
         onConfirm={handleDelete}
       />
     </ProoflyPageBody>

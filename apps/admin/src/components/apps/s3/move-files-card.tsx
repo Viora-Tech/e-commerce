@@ -1,22 +1,13 @@
 'use client'
 
 import { CircleAlert, CircleCheck } from '@commerce/ui/icons'
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@commerce/ui/shadcn/alert-dialog'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@commerce/ui/shadcn/card'
 import { Progress } from '@commerce/ui/shadcn/progress'
 import { Spinner } from '@commerce/ui/shadcn/spinner'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
+import ConfirmDialog from '@/components/layout/confirm-dialog'
 import { appsContent } from '@/data/apps'
 import { api } from '@/lib/api-client'
 
@@ -140,18 +131,16 @@ export default function MoveFilesCard({ targetProviderId, targetLabel }: MoveFil
         </div>
       </CardContent>
 
-      <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>{copy.confirmTitle(targetLabel)}</AlertDialogTitle>
-            <AlertDialogDescription>{copy.confirmBody}</AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>{copy.cancel}</AlertDialogCancel>
-            <AlertDialogAction onClick={handleConfirm}>{copy.confirm}</AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <ConfirmDialog
+        open={confirmOpen}
+        onOpenChange={setConfirmOpen}
+        title={copy.confirmTitle(targetLabel)}
+        body={copy.confirmBody}
+        confirmLabel={copy.confirm}
+        cancelLabel={copy.cancel}
+        tone="default"
+        onConfirm={handleConfirm}
+      />
     </Card>
   )
 }

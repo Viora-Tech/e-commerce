@@ -1,19 +1,10 @@
 'use client'
 
 import { Send, Trash2, WhatsappLogo } from '@commerce/ui/icons'
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@commerce/ui/shadcn/alert-dialog'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import ActionMenu from '@/components/layout/action-menu'
+import ConfirmDialog from '@/components/layout/confirm-dialog'
 import { customersContent } from '@/data/customers'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
@@ -88,20 +79,17 @@ export default function CustomerRowActions({
           },
         ]}
       />
-      <AlertDialog open={confirming} onOpenChange={setConfirming}>
-        <AlertDialogContent onClick={(event) => event.stopPropagation()}>
-          <AlertDialogHeader>
-            <AlertDialogTitle>{copy.deleteHeading}</AlertDialogTitle>
-            <AlertDialogDescription>{copy.deleteBody}</AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel disabled={busy}>{copy.cancel}</AlertDialogCancel>
-            <AlertDialogAction variant="destructive" disabled={busy} onClick={handleDelete}>
-              {copy.confirm}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <ConfirmDialog
+        open={confirming}
+        onOpenChange={setConfirming}
+        title={copy.deleteHeading}
+        body={copy.deleteBody}
+        confirmLabel={copy.confirm}
+        cancelLabel={copy.cancel}
+        busy={busy}
+        stopPropagation
+        onConfirm={handleDelete}
+      />
     </span>
   )
 }

@@ -5,8 +5,8 @@ import { Button } from '@commerce/ui/shadcn/button'
 import { Card, CardDescription, CardHeader, CardTitle } from '@commerce/ui/shadcn/card'
 import { useState } from 'react'
 import { toast } from 'sonner'
-import ConfirmActionDialog from '@/components/inventory/confirm-action-dialog'
 import KitIconButton from '@/components/kit/kit-icon-button'
+import ConfirmDialog from '@/components/layout/confirm-dialog'
 import StatusChip from '@/components/layout/status-chip'
 import { chargesContent, warningText } from '@/data/purchasing'
 import { useCopy, useFormat } from '@/hooks/use-copy'
@@ -175,11 +175,13 @@ export default function ChargesCard({
           onSaved={onChanged}
         />
       ) : null}
-      <ConfirmActionDialog
+      <ConfirmDialog
         open={removing !== null}
         onOpenChange={(open) => !open && setRemoving(null)}
-        copy={copy.confirmRemove}
-        destructive
+        title={copy.confirmRemove.title}
+        body={copy.confirmRemove.body}
+        confirmLabel={copy.confirmRemove.confirm}
+        cancelLabel={copy.confirmRemove.cancel}
         onConfirm={handleRemove}
       />
     </Card>

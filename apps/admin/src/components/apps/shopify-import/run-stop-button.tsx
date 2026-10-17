@@ -1,19 +1,10 @@
 'use client'
 
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@commerce/ui/shadcn/alert-dialog'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Spinner } from '@commerce/ui/shadcn/spinner'
 import { useState } from 'react'
 import { toast } from 'sonner'
+import ConfirmDialog from '@/components/layout/confirm-dialog'
 import { shopifyImportContent } from '@/data/shopify-import'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
@@ -41,10 +32,10 @@ export default function RunStopButton({ run, onStopped }: RunStopButtonProps) {
     try {
       const result = await api.shopifyImport.stop({ id: run.id })
       toast.success(result.status === 'cancelled' ? copy.stop.done : copy.stop.asked)
-      setOpen(false)
       onStopped()
     } catch (err) {
       toast.error(err instanceof Error ? err.message : copy.stop.failed)
+      throw err
     } finally {
       setBusy(false)
     }
@@ -68,21 +59,15 @@ export default function RunStopButton({ run, onStopped }: RunStopButtonProps) {
         {busy || asked ? <Spinner /> : null}
         {copy.stop.button}
       </Button>
-      <AlertDialog open={open} onOpenChange={setOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>{copy.stop.title}</AlertDialogTitle>
-            <AlertDialogDescription>{copy.stop.body}</AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>{copy.stop.keep}</AlertDialogCancel>
-            <AlertDialogAction variant="destructive" onClick={handleStop} disabled={busy}>
-              {busy ? <Spinner /> : null}
-              {copy.stop.confirm}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <ConfirmDialog
+        open={open}
+        onOpenChange={setOpen}
+        title={copy.stop.title}
+        body={copy.stop.body}
+        confirmLabel={copy.stop.confirm}
+        cancelLabel={copy.stop.keep}
+        onConfirm={handleStop}
+      />
     </>
   )
 }

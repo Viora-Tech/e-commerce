@@ -1,20 +1,11 @@
 'use client'
 
 import { ChevronLeftIcon, ChevronRightIcon, Printer, RotateCcw, Send } from '@commerce/ui/icons'
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@commerce/ui/shadcn/alert-dialog'
 import { Button } from '@commerce/ui/shadcn/button'
 import Link from 'next/link'
 import { useState } from 'react'
 import ActionMenu from '@/components/layout/action-menu'
+import ConfirmDialog from '@/components/layout/confirm-dialog'
 import {
   type OrderFulfillmentStatus,
   type OrderMark,
@@ -160,27 +151,15 @@ export default function OrderActions({
         ]}
       />
 
-      <AlertDialog open={confirmCancel} onOpenChange={setConfirmCancel}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>{copy.cancelDialog.title}</AlertDialogTitle>
-            <AlertDialogDescription>{copy.cancelDialog.body}</AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>{copy.cancelDialog.keep}</AlertDialogCancel>
-            <AlertDialogAction
-              variant="destructive"
-              tone="destructive"
-              onClick={() => {
-                setConfirmCancel(false)
-                onMove('cancelled')
-              }}
-            >
-              {copy.cancelDialog.confirm}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <ConfirmDialog
+        open={confirmCancel}
+        onOpenChange={setConfirmCancel}
+        title={copy.cancelDialog.title}
+        body={copy.cancelDialog.body}
+        confirmLabel={copy.cancelDialog.confirm}
+        cancelLabel={copy.cancelDialog.keep}
+        onConfirm={() => onMove('cancelled')}
+      />
     </div>
   )
 }

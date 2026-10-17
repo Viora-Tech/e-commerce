@@ -6,6 +6,7 @@ import { Card } from '@commerce/ui/shadcn/card'
 import { Skeleton } from '@commerce/ui/shadcn/skeleton'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
+import ConfirmDialog from '@/components/layout/confirm-dialog'
 import PageHeader from '@/components/layout/page-header'
 import StatusChip from '@/components/layout/status-chip'
 import SettingsCard from '@/components/settings/settings-card'
@@ -13,7 +14,6 @@ import { accountContent } from '@/data/account'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 import { deviceName, devicePlace } from '@/lib/device-label'
-import ConfirmDialog from './confirm-dialog'
 
 type MemberSession = Awaited<ReturnType<typeof api.account.sessions>>[number]
 

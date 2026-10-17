@@ -1,19 +1,11 @@
 'use client'
 
-import { Button } from '@commerce/ui/shadcn/button'
-import {
-  Dialog,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@commerce/ui/shadcn/dialog'
 import { Field, FieldGroup, FieldLabel } from '@commerce/ui/shadcn/field'
 import { Input } from '@commerce/ui/shadcn/input'
-import { Spinner } from '@commerce/ui/shadcn/spinner'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { toast } from 'sonner'
+import FormDialog from '@/components/layout/form-dialog'
 import { type MenuListItem, menusContent } from '@/data/menus'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
@@ -60,34 +52,30 @@ export default function RenameMenuDialog({ menu, onClose }: RenameMenuDialogProp
   const canSave = !busy && title.trim().length > 0
 
   return (
-    <Dialog open onOpenChange={(open) => !open && onClose()}>
-      <DialogContent onClick={(event) => event.stopPropagation()}>
-        <DialogHeader>
-          <DialogTitle>{copy.title}</DialogTitle>
-        </DialogHeader>
-        <FieldGroup>
-          <Field>
-            <FieldLabel htmlFor={`menu-title-${menu.id}`}>{copy.label}</FieldLabel>
-            <Input
-              id={`menu-title-${menu.id}`}
-              size="lg"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              autoComplete="off"
-              autoFocus
-            />
-          </Field>
-        </FieldGroup>
-        <DialogFooter>
-          <Button type="button" variant="outline" disabled={busy} onClick={onClose}>
-            {copy.cancel}
-          </Button>
-          <Button type="button" disabled={!canSave} onClick={handleRename}>
-            {busy ? <Spinner /> : null}
-            {busy ? copy.saving : copy.confirm}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+    <FormDialog
+      open
+      onOpenChange={(open) => !open && onClose()}
+      title={copy.title}
+      submitLabel={busy ? copy.saving : copy.confirm}
+      cancelLabel={copy.cancel}
+      busy={busy}
+      submitDisabled={!canSave}
+      onSubmit={handleRename}
+      stopPropagation
+    >
+      <FieldGroup>
+        <Field>
+          <FieldLabel htmlFor={`menu-title-${menu.id}`}>{copy.label}</FieldLabel>
+          <Input
+            id={`menu-title-${menu.id}`}
+            size="lg"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            autoComplete="off"
+            autoFocus
+          />
+        </Field>
+      </FieldGroup>
+    </FormDialog>
   )
 }

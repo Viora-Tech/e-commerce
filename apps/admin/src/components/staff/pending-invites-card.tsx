@@ -1,20 +1,11 @@
 'use client'
 
 import { cn } from '@commerce/ui/lib/utils'
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@commerce/ui/shadcn/alert-dialog'
 import { Button } from '@commerce/ui/shadcn/button'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import ActionMenu from '@/components/layout/action-menu'
+import ConfirmDialog from '@/components/layout/confirm-dialog'
 import RelativeTime from '@/components/layout/relative-time'
 import StatusChip from '@/components/layout/status-chip'
 import SettingsTable from '@/components/settings/settings-table'
@@ -190,22 +181,16 @@ export default function PendingInvitesCard({
         )}
       </SettingsTable>
 
-      <AlertDialog open={cancelling !== null} onOpenChange={() => setCancelling(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>{copy.confirmCancel.title}</AlertDialogTitle>
-            <AlertDialogDescription>
-              {copy.confirmCancel.body(cancelling?.email ?? '')}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>{copy.confirmCancel.keep}</AlertDialogCancel>
-            <AlertDialogAction onClick={handleCancel}>
-              {copy.confirmCancel.confirm}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <ConfirmDialog
+        open={cancelling !== null}
+        onOpenChange={() => setCancelling(null)}
+        title={copy.confirmCancel.title}
+        body={copy.confirmCancel.body(cancelling?.email ?? '')}
+        confirmLabel={copy.confirmCancel.confirm}
+        cancelLabel={copy.confirmCancel.keep}
+        tone="default"
+        onConfirm={handleCancel}
+      />
     </>
   )
 }

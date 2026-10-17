@@ -4,11 +4,11 @@ import { Button } from '@commerce/ui/shadcn/button'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { toast } from 'sonner'
-import ConfirmActionDialog from '@/components/inventory/confirm-action-dialog'
 import NotesCard from '@/components/inventory/notes-card'
 import ChargesCard from '@/components/landed-cost/charges-card'
 import LandedCostCard from '@/components/landed-cost/landed-cost-card'
 import type { CostPreview } from '@/components/landed-cost/types'
+import ConfirmDialog from '@/components/layout/confirm-dialog'
 import PageColumns from '@/components/layout/page-columns'
 import PageHeader from '@/components/layout/page-header'
 import ProoflyPageBody from '@/components/layout/proofly-page-body'
@@ -169,11 +169,13 @@ export default function ShipmentForm({ shipment, costs, aiReading }: ShipmentFor
           />
         }
       />
-      <ConfirmActionDialog
+      <ConfirmDialog
         open={deleting}
         onOpenChange={setDeleting}
-        copy={copy.confirmDelete}
-        destructive
+        title={copy.confirmDelete.title}
+        body={copy.confirmDelete.body}
+        confirmLabel={copy.confirmDelete.confirm}
+        cancelLabel={copy.confirmDelete.cancel}
         onConfirm={handleDelete}
       />
     </ProoflyPageBody>

@@ -29,6 +29,7 @@ import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import { blockId } from '@/components/growth/campaigns/form-state'
 import type { TemplatesResult } from '@/components/growth/campaigns/whatsapp-template-card'
+import ConfirmDialog from '@/components/layout/confirm-dialog'
 import PageHeader from '@/components/layout/page-header'
 import SaveBar from '@/components/layout/save-bar'
 import { automationEditorContent as copy } from '@/data/marketing-automations'
@@ -40,7 +41,6 @@ import AutomationFlow from './automation-flow'
 import AutomationRunsCard from './automation-runs-card'
 import AutomationStepCard from './automation-step-card'
 import AutomationTriggerCard from './automation-trigger-card'
-import DeleteAutomationDialog from './delete-automation-dialog'
 
 type Loaded = NonNullable<Awaited<ReturnType<typeof api.marketing.automations.get>>>
 
@@ -294,11 +294,15 @@ export default function AutomationEditor({
         </div>
       </div>
       <AutomationRunsCard runs={automation.runs} stepCount={form.steps.length} />
-      <DeleteAutomationDialog
+      <ConfirmDialog
         open={confirmDelete}
         onOpenChange={setConfirmDelete}
+        title={copy.delete.title}
+        body={copy.delete.body}
+        confirmLabel={copy.delete.confirm}
+        cancelLabel={copy.delete.cancel}
         busy={busy}
-        onConfirm={handleDelete}
+        onConfirm={() => void handleDelete()}
       />
     </div>
   )

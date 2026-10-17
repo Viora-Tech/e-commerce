@@ -4,21 +4,12 @@ import { siteConfig } from '@commerce/config/site'
 import { CircleAlert, Search } from '@commerce/ui/icons'
 import { cn } from '@commerce/ui/lib/utils'
 import { Alert, AlertDescription, AlertTitle } from '@commerce/ui/shadcn/alert'
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@commerce/ui/shadcn/alert-dialog'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Input } from '@commerce/ui/shadcn/input'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
+import ConfirmDialog from '@/components/layout/confirm-dialog'
 import PageBody from '@/components/layout/page-body'
 import PageHeader from '@/components/layout/page-header'
 import InlineState from '@/components/states/inline-state'
@@ -314,25 +305,16 @@ export default function AppsList() {
         onCancel={() => setPendingInstall(null)}
       />
 
-      <AlertDialog
+      <ConfirmDialog
         open={pendingUninstall !== null}
         onOpenChange={(open) => !open && setPendingUninstall(null)}
-      >
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>
-              {copy.confirmUninstall.title(pendingUninstall?.name ?? '')}
-            </AlertDialogTitle>
-            <AlertDialogDescription>{copy.confirmUninstall.body}</AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>{copy.confirmUninstall.cancel}</AlertDialogCancel>
-            <AlertDialogAction onClick={handleConfirmUninstall}>
-              {copy.confirmUninstall.confirm}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+        title={copy.confirmUninstall.title(pendingUninstall?.name ?? '')}
+        body={copy.confirmUninstall.body}
+        confirmLabel={copy.confirmUninstall.confirm}
+        cancelLabel={copy.confirmUninstall.cancel}
+        tone="default"
+        onConfirm={handleConfirmUninstall}
+      />
     </PageBody>
   )
 }

@@ -1,22 +1,13 @@
 'use client'
 
 import { Plus, Trash2 } from '@commerce/ui/icons'
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@commerce/ui/shadcn/alert-dialog'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Card, CardAction, CardContent, CardHeader, CardTitle } from '@commerce/ui/shadcn/card'
 import { Field, FieldDescription, FieldError, FieldLabel } from '@commerce/ui/shadcn/field'
 import { useState } from 'react'
 import SuggestInput from '@/components/fields/suggest-input'
 import TagInput from '@/components/fields/tag-input'
+import ConfirmDialog from '@/components/layout/confirm-dialog'
 import StatusChip from '@/components/layout/status-chip'
 import { productFormContent } from '@/data/product-form'
 import { useCopy } from '@/hooks/use-copy'
@@ -221,26 +212,15 @@ export default function VariantsCard({
           onVariant={onVariant}
         />
       ) : null}
-      <AlertDialog open={pending !== null} onOpenChange={(open) => !open && setPending(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>{copy.confirmRemoveTitle}</AlertDialogTitle>
-            <AlertDialogDescription>
-              {copy.confirmRemoveBody(pendingDropped.length, stockOf(pendingDropped))}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>{copy.confirmRemoveCancel}</AlertDialogCancel>
-            <AlertDialogAction
-              variant="destructive"
-              tone="destructive"
-              onClick={handleConfirmRemove}
-            >
-              {copy.confirmRemoveConfirm}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <ConfirmDialog
+        open={pending !== null}
+        onOpenChange={(open) => !open && setPending(null)}
+        title={copy.confirmRemoveTitle}
+        body={copy.confirmRemoveBody(pendingDropped.length, stockOf(pendingDropped))}
+        confirmLabel={copy.confirmRemoveConfirm}
+        cancelLabel={copy.confirmRemoveCancel}
+        onConfirm={handleConfirmRemove}
+      />
     </Card>
   )
 }

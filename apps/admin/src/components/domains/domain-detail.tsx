@@ -3,22 +3,13 @@
 import type { DomainView } from '@commerce/core'
 import { permissions } from '@commerce/core/permissions'
 import { ExternalLink } from '@commerce/ui/icons'
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@commerce/ui/shadcn/alert-dialog'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Label } from '@commerce/ui/shadcn/label'
 import { Switch } from '@commerce/ui/shadcn/switch'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
+import ConfirmDialog from '@/components/layout/confirm-dialog'
 import PageHeader from '@/components/layout/page-header'
 import SettingsCard from '@/components/settings/settings-card'
 import { domainsContent } from '@/data/domains'
@@ -230,20 +221,15 @@ export default function DomainDetail({ initial, primaryHostname }: DomainDetailP
         </div>
       ) : null}
 
-      <AlertDialog open={confirmRemove} onOpenChange={setConfirmRemove}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>{copy.removeTitle(domain.hostname)}</AlertDialogTitle>
-            <AlertDialogDescription>{copy.removeBody}</AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>{copy.removeCancel}</AlertDialogCancel>
-            <AlertDialogAction variant="destructive" onClick={handleRemove}>
-              {copy.removeConfirm}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <ConfirmDialog
+        open={confirmRemove}
+        onOpenChange={setConfirmRemove}
+        title={copy.removeTitle(domain.hostname)}
+        body={copy.removeBody}
+        confirmLabel={copy.removeConfirm}
+        cancelLabel={copy.removeCancel}
+        onConfirm={handleRemove}
+      />
     </div>
   )
 }

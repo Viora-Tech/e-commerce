@@ -1,18 +1,7 @@
 'use client'
 
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@commerce/ui/shadcn/alert-dialog'
-import { Spinner } from '@commerce/ui/shadcn/spinner'
-import { useState } from 'react'
 import { toast } from 'sonner'
+import ConfirmDialog from '@/components/layout/confirm-dialog'
 import { reviewsContent } from '@/data/reviews'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
@@ -33,38 +22,29 @@ export default function DeleteReviewsDialog({
 }: DeleteReviewsDialogProps) {
   // Hooks
   const { list: copy } = useCopy(reviewsContent)
-  const [busy, setBusy] = useState(false)
 
   // Event handlers
   const handleDelete = async () => {
-    setBusy(true)
     try {
       const { deleted } = await api.reviews.delete({ ids })
       toast.success(copy.bulk.deleted(deleted))
-      onOpenChange(false)
       onDeleted()
     } catch (err) {
       toast.error(err instanceof Error ? err.message : copy.failed)
-    } finally {
-      setBusy(false)
+      throw err
     }
   }
 
+  // Render logic
   return (
-    <AlertDialog open={open} onOpenChange={onOpenChange}>
-      <AlertDialogContent>
-        <AlertDialogHeader>
-          <AlertDialogTitle>{copy.deleteTitle(ids.length)}</AlertDialogTitle>
-          <AlertDialogDescription>{copy.deleteBody}</AlertDialogDescription>
-        </AlertDialogHeader>
-        <AlertDialogFooter>
-          <AlertDialogCancel>{copy.cancel}</AlertDialogCancel>
-          <AlertDialogAction variant="destructive" onClick={handleDelete} disabled={busy}>
-            {busy ? <Spinner /> : null}
-            {copy.bulk.delete}
-          </AlertDialogAction>
-        </AlertDialogFooter>
-      </AlertDialogContent>
-    </AlertDialog>
+    <ConfirmDialog
+      open={open}
+      onOpenChange={onOpenChange}
+      title={copy.deleteTitle(ids.length)}
+      body={copy.deleteBody}
+      confirmLabel={copy.bulk.delete}
+      cancelLabel={copy.cancel}
+      onConfirm={handleDelete}
+    />
   )
 }

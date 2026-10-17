@@ -6,6 +6,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { toast } from 'sonner'
+import ConfirmDialog from '@/components/layout/confirm-dialog'
 import PageHeader from '@/components/layout/page-header'
 import ProoflyDetailPage from '@/components/layout/proofly-detail-page'
 import SaveBar from '@/components/layout/save-bar'
@@ -13,7 +14,6 @@ import { definitionFormContent } from '@/data/metaobjects'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 import { routes } from '@/lib/routes'
-import ConfirmDelete from './confirm-delete'
 import DefinitionDetailsCard from './definition-details-card'
 import DefinitionFieldsCard from './definition-fields-card'
 import DefinitionSettingsCard from './definition-settings-card'
@@ -174,15 +174,15 @@ export default function DefinitionForm({ definition, targets }: DefinitionFormPr
         onDiscard={() => setForm(JSON.parse(saved) as DefinitionFormState)}
         saving={busy}
       />
-      <ConfirmDelete
+      <ConfirmDialog
         open={confirmDelete}
-        busy={busy}
+        onOpenChange={setConfirmDelete}
         title={copy.delete.title(definition?.name ?? '')}
         body={copy.delete.body(definition?.entries ?? 0)}
-        confirm={copy.delete.confirm}
-        cancel={copy.delete.cancel}
-        onOpenChange={setConfirmDelete}
-        onConfirm={handleDelete}
+        confirmLabel={copy.delete.confirm}
+        cancelLabel={copy.delete.cancel}
+        busy={busy}
+        onConfirm={() => void handleDelete()}
       />
     </ProoflyDetailPage>
   )

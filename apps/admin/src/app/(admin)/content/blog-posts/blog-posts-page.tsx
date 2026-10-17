@@ -11,7 +11,7 @@ import { Suspense, useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import ArticleBulkActions from '@/components/blog/article-bulk-actions'
 import { articleColumns } from '@/components/blog/article-columns'
-import ConfirmDeleteArticles from '@/components/blog/confirm-delete-articles'
+import ConfirmDialog from '@/components/layout/confirm-dialog'
 import PillTabs from '@/components/layout/pill-tabs'
 import ProoflyListPage from '@/components/layout/proofly-list-page'
 import {
@@ -263,11 +263,14 @@ function BlogPostsContent({ initial }: { initial: BlogPostsInitial }) {
         }}
       />
 
-      <ConfirmDeleteArticles
-        count={deleting?.ids.length ?? 0}
+      <ConfirmDialog
         open={deleting !== null}
-        busy={busy}
         onOpenChange={(open) => !open && setDeleting(null)}
+        title={copy.bulk.confirmDelete.title(deleting?.ids.length ?? 0)}
+        body={copy.bulk.confirmDelete.body}
+        confirmLabel={copy.bulk.confirmDelete.confirm}
+        cancelLabel={copy.bulk.confirmDelete.cancel}
+        busy={busy}
         onConfirm={handleConfirmDelete}
       />
     </ProoflyListPage>

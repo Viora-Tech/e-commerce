@@ -8,6 +8,7 @@ import Link from 'next/link'
 import { parseAsInteger, parseAsString, parseAsStringLiteral, useQueryStates } from 'nuqs'
 import { type FormEvent, Suspense, useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
+import ConfirmDialog from '@/components/layout/confirm-dialog'
 import PillTabs from '@/components/layout/pill-tabs'
 import ProoflyListPage from '@/components/layout/proofly-list-page'
 import ResourceTablePagination from '@/components/table/resource-table/pagination'
@@ -19,7 +20,6 @@ import { isEditableImage } from '@/lib/image-edit'
 import { routes } from '@/lib/routes'
 import AltTextDialog from './alt-text-dialog'
 import BackgroundWorkNotice from './background-work-notice'
-import DeleteMediaDialog from './delete-media-dialog'
 import { FILE_TABS, type FileTab, fileKind, fileName, formatBytes } from './file-meta'
 import ImageEditorDialog from './image-editor-dialog'
 import MediaDropzone from './media-dropzone'
@@ -147,6 +147,16 @@ function MediaLibraryContent({ initial }: { initial: MediaLibraryInitial }) {
       setUsedBytes(r.usedBytes)
     })
     toast.success(mediaContent.toasts.deleted)
+  }
+  const handleDelete = async () => {
+    if (!deleting) return
+    try {
+      await api.media.delete({ id: deleting.id })
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : mediaContent.errors.generic)
+      throw err
+    }
+    handleDeleted(deleting.id)
   }
 
   // Render logic
@@ -284,11 +294,17 @@ function MediaLibraryContent({ initial }: { initial: MediaLibraryInitial }) {
         onClose={() => setRetouching(null)}
         onSaved={handleRetouched}
       />
-      <DeleteMediaDialog
-        item={deleting}
-        onClose={() => setDeleting(null)}
-        onDeleted={handleDeleted}
-      />
+      {deleting ? (
+        <ConfirmDialog
+          open
+          onOpenChange={(open) => !open && setDeleting(null)}
+          title={copy.deleteTitle}
+          body={copy.deleteBody(deleting.usedBy)}
+          confirmLabel={copy.deleteConfirm}
+          cancelLabel={copy.cancel}
+          onConfirm={handleDelete}
+        />
+      ) : null}
     </ProoflyListPage>
   )
 }

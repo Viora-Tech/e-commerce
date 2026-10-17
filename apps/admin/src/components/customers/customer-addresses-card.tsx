@@ -1,20 +1,11 @@
 'use client'
 
 import { Trash2 } from '@commerce/ui/icons'
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@commerce/ui/shadcn/alert-dialog'
 import { Button } from '@commerce/ui/shadcn/button'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import CopyButton from '@/components/fields/copy-button'
+import ConfirmDialog from '@/components/layout/confirm-dialog'
 import DataCard from '@/components/layout/data-card'
 import StatusChip from '@/components/layout/status-chip'
 import { customerAddressesContent } from '@/data/customers'
@@ -155,20 +146,16 @@ export default function CustomerAddressesCard({ customer, onChanged }: CustomerA
         />
       ) : null}
 
-      <AlertDialog open={deleting !== null} onOpenChange={(open) => !open && setDeleting(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>{copy.confirm.title}</AlertDialogTitle>
-            <AlertDialogDescription>{copy.confirm.body}</AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>{copy.confirm.cancel}</AlertDialogCancel>
-            <AlertDialogAction variant="destructive" disabled={busy} onClick={handleDelete}>
-              {copy.confirm.confirm}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <ConfirmDialog
+        open={deleting !== null}
+        onOpenChange={(open) => !open && setDeleting(null)}
+        title={copy.confirm.title}
+        body={copy.confirm.body}
+        confirmLabel={copy.confirm.confirm}
+        cancelLabel={copy.confirm.cancel}
+        busy={busy}
+        onConfirm={handleDelete}
+      />
     </DataCard>
   )
 }

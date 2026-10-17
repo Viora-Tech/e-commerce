@@ -15,10 +15,10 @@ import {
 import { Skeleton } from '@commerce/ui/shadcn/skeleton'
 import { useState } from 'react'
 import { toast } from 'sonner'
+import ConfirmDialog from '@/components/layout/confirm-dialog'
 import { customDataContent, fieldTypeContent } from '@/data/metaobjects'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
-import ConfirmDelete from './confirm-delete'
 import MetafieldDefinitionDialog, {
   type MetafieldDefinitionRow,
 } from './metafield-definition-dialog'
@@ -139,15 +139,15 @@ export default function MetafieldDefinitionsCard({
         onClose={() => setEditing(null)}
         onSaved={onChanged}
       />
-      <ConfirmDelete
+      <ConfirmDialog
         open={removing !== null}
-        busy={busy}
+        onOpenChange={(open) => !open && setRemoving(null)}
         title={copy.remove.title(removing?.name ?? '')}
         body={copy.remove.body(removing?.values ?? 0)}
-        confirm={copy.remove.confirm}
-        cancel={copy.remove.cancel}
-        onOpenChange={(open) => !open && setRemoving(null)}
-        onConfirm={handleDelete}
+        confirmLabel={copy.remove.confirm}
+        cancelLabel={copy.remove.cancel}
+        busy={busy}
+        onConfirm={() => void handleDelete()}
       />
     </Card>
   )

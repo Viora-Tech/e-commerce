@@ -5,6 +5,7 @@ import { Button } from '@commerce/ui/shadcn/button'
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
+import ConfirmDialog from '@/components/layout/confirm-dialog'
 import EmptyState from '@/components/layout/empty-state'
 import PageHeader from '@/components/layout/page-header'
 import ProoflyDetailPage from '@/components/layout/proofly-detail-page'
@@ -14,7 +15,6 @@ import { entryListContent } from '@/data/metaobjects'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 import { routes } from '@/lib/routes'
-import ConfirmDelete from './confirm-delete'
 import { entriesPath, type LoadedDefinition } from './form-state'
 
 type EntriesResult = Awaited<ReturnType<typeof api.metaobjects.entries>>
@@ -220,15 +220,15 @@ export default function EntriesPage({ definition, initial, initialPerPage }: Ent
         )
       }
     >
-      <ConfirmDelete
+      <ConfirmDialog
         open={deleting !== null}
-        busy={busy}
+        onOpenChange={(open) => !open && setDeleting(null)}
         title={copy.bulk.confirmTitle(deleting?.ids.length ?? 0)}
         body={copy.bulk.confirmBody}
-        confirm={copy.bulk.confirm}
-        cancel={copy.bulk.cancel}
-        onOpenChange={(open) => !open && setDeleting(null)}
-        onConfirm={handleConfirmDelete}
+        confirmLabel={copy.bulk.confirm}
+        cancelLabel={copy.bulk.cancel}
+        busy={busy}
+        onConfirm={() => void handleConfirmDelete()}
       />
     </ProoflyDetailPage>
   )

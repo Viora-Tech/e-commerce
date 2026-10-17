@@ -7,6 +7,7 @@ import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import ActionMenu from '@/components/layout/action-menu'
+import ConfirmDialog from '@/components/layout/confirm-dialog'
 import PageHeader from '@/components/layout/page-header'
 import ProoflyDetailPage from '@/components/layout/proofly-detail-page'
 import SaveBar from '@/components/layout/save-bar'
@@ -24,7 +25,6 @@ import CollectionSeoCard from './collection-seo-card'
 import CollectionTitleCard from './collection-title-card'
 import CollectionTypeCard from './collection-type-card'
 import CollectionVisibilityCard from './collection-visibility-card'
-import DeleteCollectionDialog from './delete-collection-dialog'
 import {
   type CollectionFormState,
   emptyCollectionForm,
@@ -241,10 +241,14 @@ export default function CollectionForm({ collection, storefrontOrigin }: Collect
         onDiscard={handleDiscard}
         saving={busy}
       />
-      <DeleteCollectionDialog
+      <ConfirmDialog
         open={confirmDelete}
-        onCancel={() => setConfirmDelete(false)}
-        onConfirm={handleDelete}
+        onOpenChange={setConfirmDelete}
+        title={copy.delete.heading}
+        body={copy.delete.body}
+        confirmLabel={copy.delete.confirm}
+        cancelLabel={copy.delete.cancel}
+        onConfirm={() => void handleDelete()}
       />
     </ProoflyDetailPage>
   )

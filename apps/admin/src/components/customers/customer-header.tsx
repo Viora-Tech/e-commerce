@@ -1,21 +1,12 @@
 'use client'
 
 import { Pencil, Send, Trash2 } from '@commerce/ui/icons'
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@commerce/ui/shadcn/alert-dialog'
 import { Button } from '@commerce/ui/shadcn/button'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import ActionMenu from '@/components/layout/action-menu'
+import ConfirmDialog from '@/components/layout/confirm-dialog'
 import PageHeader from '@/components/layout/page-header'
 import StatusChip from '@/components/layout/status-chip'
 import { customerDetailContent, customersContent, VIP_SPEND_PAISE } from '@/data/customers'
@@ -130,20 +121,16 @@ export default function CustomerHeader({ customer, onEdit }: CustomerHeaderProps
           </>
         }
       />
-      <AlertDialog open={confirming} onOpenChange={setConfirming}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>{copy.actions.deleteHeading}</AlertDialogTitle>
-            <AlertDialogDescription>{copy.actions.deleteBody}</AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>{copy.actions.cancel}</AlertDialogCancel>
-            <AlertDialogAction variant="destructive" disabled={busy} onClick={handleDelete}>
-              {copy.actions.confirm}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <ConfirmDialog
+        open={confirming}
+        onOpenChange={setConfirming}
+        title={copy.actions.deleteHeading}
+        body={copy.actions.deleteBody}
+        confirmLabel={copy.actions.confirm}
+        cancelLabel={copy.actions.cancel}
+        busy={busy}
+        onConfirm={handleDelete}
+      />
     </>
   )
 }

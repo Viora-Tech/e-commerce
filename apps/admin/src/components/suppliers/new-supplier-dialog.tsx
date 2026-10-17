@@ -2,20 +2,12 @@
 
 import type { PurchaseCurrency } from '@commerce/core/inventory'
 import PhoneInput from '@commerce/ui/phone-input'
-import { Button } from '@commerce/ui/shadcn/button'
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@commerce/ui/shadcn/dialog'
 import { Field, FieldGroup, FieldLabel } from '@commerce/ui/shadcn/field'
 import { Input } from '@commerce/ui/shadcn/input'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import CurrencySelect from '@/components/landed-cost/currency-select'
+import FormDialog from '@/components/layout/form-dialog'
 import { supplierFormContent, supplierPickerContent } from '@/data/purchasing'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
@@ -85,67 +77,63 @@ export default function NewSupplierDialog({
 
   // Render logic
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle>{copy.newTitle}</DialogTitle>
-          <DialogDescription>{copy.newBody}</DialogDescription>
-        </DialogHeader>
-        <FieldGroup>
+    <FormDialog
+      open={open}
+      onOpenChange={onOpenChange}
+      title={copy.newTitle}
+      description={copy.newBody}
+      submitLabel={busy ? copy.creating : copy.create}
+      cancelLabel={copy.cancel}
+      busy={busy}
+      onSubmit={handleCreate}
+      size="md"
+    >
+      <FieldGroup>
+        <Field>
+          <FieldLabel htmlFor="new-supplier-name">{fields.details.name}</FieldLabel>
+          <Input id="new-supplier-name" value={name} onChange={(e) => setName(e.target.value)} />
+        </Field>
+        <div className="grid gap-4 sm:grid-cols-2">
           <Field>
-            <FieldLabel htmlFor="new-supplier-name">{fields.details.name}</FieldLabel>
-            <Input id="new-supplier-name" value={name} onChange={(e) => setName(e.target.value)} />
+            <FieldLabel htmlFor="new-supplier-country">{fields.details.country}</FieldLabel>
+            <Input
+              id="new-supplier-country"
+              value={country}
+              maxLength={2}
+              onChange={(e) => setCountry(e.target.value.toUpperCase())}
+            />
           </Field>
-          <div className="grid gap-4 sm:grid-cols-2">
-            <Field>
-              <FieldLabel htmlFor="new-supplier-country">{fields.details.country}</FieldLabel>
-              <Input
-                id="new-supplier-country"
-                value={country}
-                maxLength={2}
-                onChange={(e) => setCountry(e.target.value.toUpperCase())}
-              />
-            </Field>
-            <Field>
-              <FieldLabel htmlFor="new-supplier-currency">{fields.details.currency}</FieldLabel>
-              <CurrencySelect
-                id="new-supplier-currency"
-                value={currency}
-                onChange={setCurrency}
-                className="w-full"
-              />
-            </Field>
-          </div>
-          <div className="grid gap-4 sm:grid-cols-2">
-            <Field>
-              <FieldLabel htmlFor="new-supplier-email">{fields.contact.email}</FieldLabel>
-              <Input
-                id="new-supplier-email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-              />
-            </Field>
-            <Field>
-              <FieldLabel htmlFor="new-supplier-phone">{fields.contact.phone}</FieldLabel>
-              <PhoneInput
-                id="new-supplier-phone"
-                value={phone}
-                onChange={setPhone}
-                autoComplete="tel"
-              />
-            </Field>
-          </div>
-        </FieldGroup>
-        <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
-            {copy.cancel}
-          </Button>
-          <Button onClick={handleCreate} disabled={busy}>
-            {busy ? copy.creating : copy.create}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+          <Field>
+            <FieldLabel htmlFor="new-supplier-currency">{fields.details.currency}</FieldLabel>
+            <CurrencySelect
+              id="new-supplier-currency"
+              value={currency}
+              onChange={setCurrency}
+              className="w-full"
+            />
+          </Field>
+        </div>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Field>
+            <FieldLabel htmlFor="new-supplier-email">{fields.contact.email}</FieldLabel>
+            <Input
+              id="new-supplier-email"
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+            />
+          </Field>
+          <Field>
+            <FieldLabel htmlFor="new-supplier-phone">{fields.contact.phone}</FieldLabel>
+            <PhoneInput
+              id="new-supplier-phone"
+              value={phone}
+              onChange={setPhone}
+              autoComplete="tel"
+            />
+          </Field>
+        </div>
+      </FieldGroup>
+    </FormDialog>
   )
 }

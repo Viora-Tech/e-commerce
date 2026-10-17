@@ -5,12 +5,13 @@ import { Button } from '@commerce/ui/shadcn/button'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { toast } from 'sonner'
+import ConfirmDialog from '@/components/layout/confirm-dialog'
 import PageHeader from '@/components/layout/page-header'
 import ProoflyDetailPage from '@/components/layout/proofly-detail-page'
 import SaveBar from '@/components/layout/save-bar'
 import MetafieldsCard from '@/components/metaobjects/metafields-card'
 import TemplateSelectCard from '@/components/themes/template-select-card'
-import { articleFormContent } from '@/data/blog'
+import { articleFormContent, blogListContent } from '@/data/blog'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 import { routes } from '@/lib/routes'
@@ -19,7 +20,6 @@ import ArticleMainCard from './article-main-card'
 import ArticleOrganisationCard from './article-organisation-card'
 import ArticleSeoCard from './article-seo-card'
 import ArticleVisibilityCard from './article-visibility-card'
-import ConfirmDeleteArticles from './confirm-delete-articles'
 import {
   type ArticleFormState,
   type BlogOption,
@@ -56,6 +56,9 @@ export default function ArticleForm({
 }: ArticleFormProps) {
   // Hooks
   const copy = useCopy(articleFormContent)
+  const {
+    bulk: { confirmDelete: deleteCopy },
+  } = useCopy(blogListContent)
   const router = useRouter()
   const [form, setForm] = useState<ArticleFormState>(() =>
     initialForm(article, initialBlogs, defaultAuthor),
@@ -206,12 +209,15 @@ export default function ArticleForm({
         onDiscard={handleDiscard}
         saving={busy}
       />
-      <ConfirmDeleteArticles
-        count={1}
+      <ConfirmDialog
         open={confirmDelete}
-        busy={busy}
         onOpenChange={setConfirmDelete}
-        onConfirm={handleDelete}
+        title={deleteCopy.title(1)}
+        body={deleteCopy.body}
+        confirmLabel={deleteCopy.confirm}
+        cancelLabel={deleteCopy.cancel}
+        busy={busy}
+        onConfirm={() => void handleDelete()}
       />
     </ProoflyDetailPage>
   )

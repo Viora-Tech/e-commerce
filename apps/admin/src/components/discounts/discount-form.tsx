@@ -3,20 +3,11 @@
 import { permissions } from '@commerce/core/permissions'
 import { CircleAlert, Copy, Trash2 } from '@commerce/ui/icons'
 import { Alert, AlertDescription, AlertTitle } from '@commerce/ui/shadcn/alert'
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@commerce/ui/shadcn/alert-dialog'
 import { Button } from '@commerce/ui/shadcn/button'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { toast } from 'sonner'
+import ConfirmDialog from '@/components/layout/confirm-dialog'
 import PageHeader from '@/components/layout/page-header'
 import ProoflyDetailPage from '@/components/layout/proofly-detail-page'
 import SaveBar from '@/components/layout/save-bar'
@@ -254,39 +245,25 @@ export default function DiscountForm({ discount }: DiscountFormProps) {
         onDiscard={handleDiscard}
         saving={busy}
       />
-      <AlertDialog open={confirmPause} onOpenChange={setConfirmPause}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>{copy.pause.title(discount?.title ?? '')}</AlertDialogTitle>
-            <AlertDialogDescription>{copy.pause.body}</AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel disabled={busy}>{copy.pause.cancel}</AlertDialogCancel>
-            <AlertDialogAction onClick={() => handleStatus('disabled')} disabled={busy}>
-              {copy.pause.confirm}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-      <AlertDialog open={confirmDelete} onOpenChange={setConfirmDelete}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>{copy.delete.title(discount?.title ?? '')}</AlertDialogTitle>
-            <AlertDialogDescription>{copy.delete.body}</AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel disabled={busy}>{copy.delete.cancel}</AlertDialogCancel>
-            <AlertDialogAction
-              variant="destructive"
-              tone="destructive"
-              onClick={handleRemove}
-              disabled={busy}
-            >
-              {copy.delete.confirm}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <ConfirmDialog
+        open={confirmPause}
+        onOpenChange={setConfirmPause}
+        title={copy.pause.title(discount?.title ?? '')}
+        body={copy.pause.body}
+        confirmLabel={copy.pause.confirm}
+        cancelLabel={copy.pause.cancel}
+        tone="default"
+        onConfirm={() => handleStatus('disabled')}
+      />
+      <ConfirmDialog
+        open={confirmDelete}
+        onOpenChange={setConfirmDelete}
+        title={copy.delete.title(discount?.title ?? '')}
+        body={copy.delete.body}
+        confirmLabel={copy.delete.confirm}
+        cancelLabel={copy.delete.cancel}
+        onConfirm={handleRemove}
+      />
     </ProoflyDetailPage>
   )
 }

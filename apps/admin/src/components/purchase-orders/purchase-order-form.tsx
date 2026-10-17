@@ -9,12 +9,12 @@ import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import { saveFile } from '@/components/apps/gst-invoices/save-file'
-import ConfirmActionDialog from '@/components/inventory/confirm-action-dialog'
 import type { StoreLocation } from '@/components/inventory/location-select'
 import NotesCard from '@/components/inventory/notes-card'
 import ChargesCard from '@/components/landed-cost/charges-card'
 import LandedCostCard from '@/components/landed-cost/landed-cost-card'
 import type { CostPreview } from '@/components/landed-cost/types'
+import ConfirmDialog from '@/components/layout/confirm-dialog'
 import PageColumns from '@/components/layout/page-columns'
 import PageHeader from '@/components/layout/page-header'
 import ProoflyPageBody from '@/components/layout/proofly-page-body'
@@ -335,24 +335,32 @@ export default function PurchaseOrderForm({
           onSend={handleEmail}
         />
       ) : null}
-      <ConfirmActionDialog
+      <ConfirmDialog
         open={dialog === 'close'}
         onOpenChange={(open) => setDialog(open ? 'close' : null)}
-        copy={copy.confirmClose}
+        title={copy.confirmClose.title}
+        body={copy.confirmClose.body}
+        confirmLabel={copy.confirmClose.confirm}
+        cancelLabel={copy.confirmClose.cancel}
+        tone="default"
         onConfirm={handleClose}
       />
-      <ConfirmActionDialog
+      <ConfirmDialog
         open={dialog === 'cancel'}
         onOpenChange={(open) => setDialog(open ? 'cancel' : null)}
-        copy={copy.confirmCancel}
-        destructive
+        title={copy.confirmCancel.title}
+        body={copy.confirmCancel.body}
+        confirmLabel={copy.confirmCancel.confirm}
+        cancelLabel={copy.confirmCancel.cancel}
         onConfirm={handleCancel}
       />
-      <ConfirmActionDialog
+      <ConfirmDialog
         open={dialog === 'delete'}
         onOpenChange={(open) => setDialog(open ? 'delete' : null)}
-        copy={copy.confirmDelete}
-        destructive
+        title={copy.confirmDelete.title}
+        body={copy.confirmDelete.body}
+        confirmLabel={copy.confirmDelete.confirm}
+        cancelLabel={copy.confirmDelete.cancel}
         onConfirm={handleDelete}
       />
     </ProoflyPageBody>

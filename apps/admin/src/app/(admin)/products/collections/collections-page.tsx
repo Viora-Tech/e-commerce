@@ -9,12 +9,12 @@ import { Suspense, useState } from 'react'
 import { toast } from 'sonner'
 import { collectionListColumns } from '@/components/collections/collection-list-columns'
 import CollectionTiles, { type CollectionTab } from '@/components/collections/collection-tiles'
-import DeleteCollectionDialog from '@/components/collections/delete-collection-dialog'
+import ConfirmDialog from '@/components/layout/confirm-dialog'
 import PillTabs from '@/components/layout/pill-tabs'
 import ProoflyListPage from '@/components/layout/proofly-list-page'
 import ResourceTable from '@/components/table/resource-table'
 import RowMenu from '@/components/table/row-menu'
-import { collectionsListContent } from '@/data/collections'
+import { collectionFormContent, collectionsListContent } from '@/data/collections'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 import { usePrimaryAction } from '@/lib/primary-action'
@@ -37,6 +37,7 @@ function inTab(row: Row, tab: CollectionTab | null): boolean {
 function CollectionsContent({ initial }: { initial: CollectionsInitial }) {
   // Hooks
   const copy = useCopy(collectionsListContent)
+  const { delete: deleteCopy } = useCopy(collectionFormContent)
   const fmt = useFormat()
   usePrimaryAction(routes.products.newCollection())
   const [q, setQ] = useQueryStates(
@@ -148,10 +149,14 @@ function CollectionsContent({ initial }: { initial: CollectionsInitial }) {
             : { heading: copy.list.empty.heading, body: copy.list.empty.body }
         }
       />
-      <DeleteCollectionDialog
+      <ConfirmDialog
         open={deleting !== null}
-        onCancel={() => setDeleting(null)}
-        onConfirm={handleConfirmDelete}
+        onOpenChange={(open) => !open && setDeleting(null)}
+        title={deleteCopy.heading}
+        body={deleteCopy.body}
+        confirmLabel={deleteCopy.confirm}
+        cancelLabel={deleteCopy.cancel}
+        onConfirm={() => void handleConfirmDelete()}
       />
     </ProoflyListPage>
   )

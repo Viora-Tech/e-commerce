@@ -6,6 +6,7 @@ import { Button } from '@commerce/ui/shadcn/button'
 import { Card } from '@commerce/ui/shadcn/card'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
+import ConfirmDialog from '@/components/layout/confirm-dialog'
 import EmptyState from '@/components/layout/empty-state'
 import PageHeader from '@/components/layout/page-header'
 import ResourceTable, { type ResourceColumnSpec } from '@/components/table/resource-table'
@@ -15,7 +16,6 @@ import { useCopy, useFormat } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 import type { Formatters } from '@/lib/format'
 import { routes } from '@/lib/routes'
-import DeleteLinkDialog from './delete-link-dialog'
 import LinkDialog from './link-dialog'
 
 type ListResult = Awaited<ReturnType<typeof api.shortLinks.list>>
@@ -213,9 +213,13 @@ export default function LinksPage({ storefrontOrigin }: LinksPageProps) {
         />
       ) : null}
       {deleting ? (
-        <DeleteLinkDialog
-          name={deleting.name}
-          onCancel={() => setDeleting(null)}
+        <ConfirmDialog
+          open
+          onOpenChange={(open) => !open && setDeleting(null)}
+          title={copy.deleteDialog.title(deleting.name)}
+          body={copy.deleteDialog.body}
+          confirmLabel={copy.deleteDialog.confirm}
+          cancelLabel={copy.deleteDialog.cancel}
           onConfirm={handleDelete}
         />
       ) : null}

@@ -1,19 +1,10 @@
 'use client'
 
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@commerce/ui/shadcn/alert-dialog'
 import { Button } from '@commerce/ui/shadcn/button'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
+import ConfirmDialog from '@/components/layout/confirm-dialog'
 import PageHeader from '@/components/layout/page-header'
 import SettingsCard from '@/components/settings/settings-card'
 import { searchConsoleContent } from '@/data/search-console'
@@ -154,20 +145,16 @@ export default function SettingsPage() {
           <p className="text-body text-destructive">{s.lastError(view.lastError)}</p>
         ) : null}
       </SettingsCard>
-      <AlertDialog open={confirming} onOpenChange={setConfirming}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>{c.confirm.title}</AlertDialogTitle>
-            <AlertDialogDescription>{c.confirm.body}</AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>{c.confirm.cancel}</AlertDialogCancel>
-            <AlertDialogAction onClick={() => void handleDisconnect()}>
-              {c.confirm.action}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <ConfirmDialog
+        open={confirming}
+        onOpenChange={setConfirming}
+        title={c.confirm.title}
+        body={c.confirm.body}
+        confirmLabel={c.confirm.action}
+        cancelLabel={c.confirm.cancel}
+        tone="default"
+        onConfirm={handleDisconnect}
+      />
     </div>
   )
 }

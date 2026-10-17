@@ -8,9 +8,9 @@ import {
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@commerce/ui/shadcn/card'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
-import ConfirmActionDialog from '@/components/inventory/confirm-action-dialog'
 import OptionSelect from '@/components/landed-cost/option-select'
 import type { ChargeOwner } from '@/components/landed-cost/types'
+import ConfirmDialog from '@/components/layout/confirm-dialog'
 import { PURCHASE_DOCUMENT_KINDS, purchaseDocumentsContent } from '@/data/purchase-documents'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
@@ -175,11 +175,13 @@ export default function DocumentsCard({ owner, aiReading, onApplied }: Documents
           onReset={refresh}
         />
       ) : null}
-      <ConfirmActionDialog
+      <ConfirmDialog
         open={removing !== null}
         onOpenChange={(open) => !open && setRemoving(null)}
-        copy={copy.confirmRemove}
-        destructive
+        title={copy.confirmRemove.title}
+        body={copy.confirmRemove.body}
+        confirmLabel={copy.confirmRemove.confirm}
+        cancelLabel={copy.confirmRemove.cancel}
         onConfirm={handleRemove}
       />
     </Card>

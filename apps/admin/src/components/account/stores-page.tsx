@@ -7,6 +7,7 @@ import { Skeleton } from '@commerce/ui/shadcn/skeleton'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
+import ConfirmDialog from '@/components/layout/confirm-dialog'
 import PageHeader from '@/components/layout/page-header'
 import StatusChip from '@/components/layout/status-chip'
 import SettingsCard from '@/components/settings/settings-card'
@@ -15,7 +16,6 @@ import { useCopy, useFormat } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 import { authClient } from '@/lib/auth-client'
 import { routes } from '@/lib/routes'
-import ConfirmDialog from './confirm-dialog'
 
 type MemberStore = Awaited<ReturnType<typeof api.account.stores>>[number]
 

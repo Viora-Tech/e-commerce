@@ -8,13 +8,13 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
+import ConfirmDialog from '@/components/layout/confirm-dialog'
 import PageHeader from '@/components/layout/page-header'
 import SaveBar from '@/components/layout/save-bar'
 import { campaignEditorContent as copy } from '@/data/marketing-campaigns'
 import { api } from '@/lib/api-client'
 import { routes } from '@/lib/routes'
 import CampaignSettingsCard from './campaign-settings-card'
-import DeleteCampaignDialog from './delete-campaign-dialog'
 import EmailContentCard from './email-content-card'
 import EmailPreview from './email-preview'
 import {
@@ -269,11 +269,15 @@ export default function CampaignEditor({
         error={error}
         onConfirm={handleSend}
       />
-      <DeleteCampaignDialog
+      <ConfirmDialog
         open={dialog === 'delete'}
         onOpenChange={(o) => setDialog(o ? 'delete' : null)}
+        title={copy.delete.title}
+        body={copy.delete.body}
+        confirmLabel={copy.delete.confirm}
+        cancelLabel={copy.delete.cancel}
         busy={busy}
-        onConfirm={handleDelete}
+        onConfirm={() => void handleDelete()}
       />
     </div>
   )

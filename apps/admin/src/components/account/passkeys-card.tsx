@@ -7,12 +7,12 @@ import { Skeleton } from '@commerce/ui/shadcn/skeleton'
 import { useEffect, useState, useSyncExternalStore } from 'react'
 import { toast } from 'sonner'
 import ActionMenu from '@/components/layout/action-menu'
+import ConfirmDialog from '@/components/layout/confirm-dialog'
 import StatusChip from '@/components/layout/status-chip'
 import SettingsCard from '@/components/settings/settings-card'
 import { accountContent } from '@/data/account'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { authClient, authErrorCode } from '@/lib/auth-client'
-import ConfirmDialog from './confirm-dialog'
 import PasskeyNameDialog from './passkey-name-dialog'
 
 type Passkey = { id: string; name?: string | null; createdAt: Date | string; backedUp: boolean }

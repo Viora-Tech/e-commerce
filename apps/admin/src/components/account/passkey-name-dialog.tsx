@@ -1,16 +1,9 @@
 'use client'
 
-import { Button } from '@commerce/ui/shadcn/button'
-import {
-  Dialog,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@commerce/ui/shadcn/dialog'
 import { Field, FieldLabel } from '@commerce/ui/shadcn/field'
 import { Input } from '@commerce/ui/shadcn/input'
-import { type FormEvent, useEffect, useState } from 'react'
+import { useEffect, useState } from 'react'
+import FormDialog from '@/components/layout/form-dialog'
 import { accountContent } from '@/data/account'
 import { useCopy } from '@/hooks/use-copy'
 
@@ -46,47 +39,41 @@ export default function PasskeyNameDialog({
   }, [title, initialName])
 
   // Event handlers
-  const handleSubmit = (e: FormEvent) => {
-    e.preventDefault()
+  const handleSubmit = () => {
     const trimmed = name.trim()
     if (trimmed) onSubmit(trimmed.slice(0, NAME_MAX))
   }
 
   const handleOpenChange = (open: boolean) => {
-    if (!open && !busy) onCancel()
+    if (!open) onCancel()
   }
 
   return (
-    <Dialog open={title !== null} onOpenChange={handleOpenChange}>
-      <DialogContent className="sm:max-w-md">
-        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-          <DialogHeader>
-            <DialogTitle>{title}</DialogTitle>
-          </DialogHeader>
-          <Field>
-            <FieldLabel htmlFor="passkey-name">{copy.nameLabel}</FieldLabel>
-            <Input
-              id="passkey-name"
-              size="lg"
-              value={name}
-              maxLength={NAME_MAX}
-              onChange={(e) => setName(e.target.value)}
-              placeholder={copy.namePlaceholder}
-              autoComplete="off"
-              disabled={busy}
-              autoFocus
-            />
-          </Field>
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={onCancel} disabled={busy}>
-              {copy.cancel}
-            </Button>
-            <Button type="submit" loading={busy} disabled={!name.trim()}>
-              {submitLabel}
-            </Button>
-          </DialogFooter>
-        </form>
-      </DialogContent>
-    </Dialog>
+    <FormDialog
+      open={title !== null}
+      onOpenChange={handleOpenChange}
+      title={title ?? ''}
+      submitLabel={submitLabel}
+      cancelLabel={copy.cancel}
+      busy={busy}
+      submitDisabled={!name.trim()}
+      onSubmit={handleSubmit}
+      size="md"
+    >
+      <Field>
+        <FieldLabel htmlFor="passkey-name">{copy.nameLabel}</FieldLabel>
+        <Input
+          id="passkey-name"
+          size="lg"
+          value={name}
+          maxLength={NAME_MAX}
+          onChange={(e) => setName(e.target.value)}
+          placeholder={copy.namePlaceholder}
+          autoComplete="off"
+          disabled={busy}
+          autoFocus
+        />
+      </Field>
+    </FormDialog>
   )
 }

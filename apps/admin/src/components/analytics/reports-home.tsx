@@ -2,21 +2,12 @@
 
 import type { ReportCategory, ReportDefinition } from '@commerce/api'
 import { ChevronRightIcon } from '@commerce/ui/icons'
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@commerce/ui/shadcn/alert-dialog'
 import { Card } from '@commerce/ui/shadcn/card'
 import Link from 'next/link'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import AskAiCard from '@/components/home/ask-ai-card'
+import ConfirmDialog from '@/components/layout/confirm-dialog'
 import PageHeader from '@/components/layout/page-header'
 import { analyticsContent } from '@/data/analytics'
 import { useCopy } from '@/hooks/use-copy'
@@ -160,22 +151,15 @@ export default function ReportsHome({ reports, saved: initialSaved, assistant }:
           onConfirm={handleRename}
         />
       ) : null}
-      {deleting ? (
-        <AlertDialog open onOpenChange={(open) => !open && setDeleting(null)}>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>{c.remove.title(deleting.name)}</AlertDialogTitle>
-              <AlertDialogDescription>{c.remove.body}</AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel>{c.remove.cancel}</AlertDialogCancel>
-              <AlertDialogAction variant="destructive" onClick={handleDelete}>
-                {c.remove.confirm}
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
-      ) : null}
+      <ConfirmDialog
+        open={deleting !== null}
+        onOpenChange={(open) => !open && setDeleting(null)}
+        title={c.remove.title(deleting?.name ?? '')}
+        body={c.remove.body}
+        confirmLabel={c.remove.confirm}
+        cancelLabel={c.remove.cancel}
+        onConfirm={handleDelete}
+      />
     </div>
   )
 }

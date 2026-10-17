@@ -1,16 +1,8 @@
 'use client'
 
-import { Button } from '@commerce/ui/shadcn/button'
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@commerce/ui/shadcn/dialog'
 import { useState } from 'react'
 import { toast } from 'sonner'
+import FormDialog from '@/components/layout/form-dialog'
 import { returnDetailContent } from '@/data/returns'
 import { api } from '@/lib/api-client'
 import ChoiceList from './choice-list'
@@ -76,25 +68,17 @@ export default function PickupDialog({ detail, mode, onClose, onDone }: PickupDi
   ]
 
   return (
-    <Dialog open={mode !== null} onOpenChange={(open) => (!open ? onClose() : undefined)}>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>{mode === 'approve' ? copy.title : copy.arrangeTitle}</DialogTitle>
-          <DialogDescription>
-            {copy.body}
-            {detail.pickupCouriers.length === 0 ? ` ${copy.noCourier}` : ''}
-          </DialogDescription>
-        </DialogHeader>
-        <ChoiceList name="pickup" choices={choices} value={value} onChange={setValue} />
-        <DialogFooter>
-          <Button type="button" variant="outline" onClick={onClose} disabled={busy}>
-            {returnDetailContent.cancel}
-          </Button>
-          <Button type="button" onClick={handleConfirm} disabled={busy}>
-            {mode === 'approve' ? copy.confirm : copy.arrangeConfirm}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+    <FormDialog
+      open={mode !== null}
+      onOpenChange={(open) => (!open ? onClose() : undefined)}
+      title={mode === 'approve' ? copy.title : copy.arrangeTitle}
+      description={`${copy.body}${detail.pickupCouriers.length === 0 ? ` ${copy.noCourier}` : ''}`}
+      submitLabel={mode === 'approve' ? copy.confirm : copy.arrangeConfirm}
+      cancelLabel={returnDetailContent.cancel}
+      busy={busy}
+      onSubmit={handleConfirm}
+    >
+      <ChoiceList name="pickup" choices={choices} value={value} onChange={setValue} />
+    </FormDialog>
   )
 }
