@@ -24,7 +24,13 @@ export const sectionsContent = {
       { title: 'Easy returns', text: 'Seven day returns on unused products.' },
     ],
   },
-  collectionList: { heading: 'Shop by collection', empty: 'Pick collections in the editor.' },
+  collectionList: {
+    kicker: 'Collections',
+    heading: 'Shop by collection',
+    viewAll: 'View all',
+    empty: 'Pick collections in the editor.',
+    count: (n: number) => (n === 1 ? '1 product' : `${n} products`),
+  },
   testimonials: {
     heading: 'Loved by players',
     items: [

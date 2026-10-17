@@ -727,3 +727,27 @@
 :root:not([data-card-sale-badge="on"]) .product-card__badge--sale {
   display: none;
 }
+
+/* ------------------------------------------------------------------ */
+/* Figma Store / Product card (692:81508)                               */
+/* ------------------------------------------------------------------ */
+/* The photo panel, the name in the body size, rating and price 6px apart; the
+   badge a small rounded tag in the top-left corner. */
+.product-card__link {
+  gap: var(--space-3);
+}
+
+.product-card__info {
+  gap: 6px;
+}
+
+.product-card__title {
+  font-size: var(--font-body-size, 16px);
+  line-height: 1.5;
+  min-height: calc(2 * 1.5em);
+}
+
+.product-card__badge {
+  top: var(--space-3);
+  left: var(--space-3);
+}

@@ -12,6 +12,7 @@ export type IconName =
   | 'heart-filled'
   | 'arrow'
   | 'arrow-down'
+  | 'arrow-right'
   | 'chevron-down'
   | 'close'
   | 'menu'
@@ -74,6 +75,10 @@ const paths: Record<IconName, { viewBox: string; body: string }> = {
   'heart-filled': {
     viewBox: '0 0 25.9071 22.7376',
     body: '<path d="M2.88778 12.7679L12.2689 21.5804C12.5933 21.8852 12.7555 22.0376 12.9536 22.0376C13.1516 22.0376 13.3138 21.8852 13.6382 21.5804L23.0193 12.7679C25.6276 10.3177 25.9443 6.28574 23.7506 3.45836L23.3382 2.92673C20.7139 -0.455622 15.4464 0.111625 13.6024 3.97514C13.342 4.52088 12.5651 4.52088 12.3047 3.97514C10.4607 0.111625 5.19318 -0.455621 2.56895 2.92673L2.15647 3.45836C-0.0371829 6.28574 0.279549 10.3177 2.88778 12.7679Z" fill="currentColor"/>',
+  },
+  'arrow-right': {
+    viewBox: '0 0 16 16',
+    body: '<path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round"/>',
   },
   arrow: {
     viewBox: '0 0 12.6649 23.3084',

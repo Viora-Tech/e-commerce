@@ -275,3 +275,67 @@
 }
 
 /* Email signup: section-newsletter.css (the Zero Drift newsletter card). */
+
+/* ---- Figma Section / Collection list (705:113696) -------------------- */
+/* Square tiles in a four-up row, then the name (16px medium), the product
+   count and an arrow; the overlay look sets that row over the image's foot. */
+.collection-list__grid {
+  gap: var(--space-5);
+}
+
+@media screen and (min-width: 990px) {
+  .collection-list__grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+.collection-list__card {
+  position: relative;
+  gap: var(--space-3);
+}
+
+.collection-list__media {
+  border-radius: var(--radius-card, var(--radius-m));
+  background-color: var(--color-card-media, var(--color-surface));
+}
+
+.collection-list__info {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.collection-list__text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.collection-list__title {
+  color: var(--color-ink);
+  font-size: var(--font-body-size, 16px);
+  font-weight: 500;
+  line-height: 1.5;
+}
+
+.collection-list__count {
+  color: var(--color-muted);
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.4;
+}
+
+.collection-list--overlay .collection-list__info {
+  position: absolute;
+  inset: auto 0 0;
+  padding: var(--space-5);
+  background: linear-gradient(to top, rgb(0 0 0 / 60%), transparent);
+  border-radius: 0 0 var(--radius-card, var(--radius-m)) var(--radius-card, var(--radius-m));
+  color: #ffffff;
+}
+
+.collection-list--overlay .collection-list__title,
+.collection-list--overlay .collection-list__count {
+  color: inherit;
+}

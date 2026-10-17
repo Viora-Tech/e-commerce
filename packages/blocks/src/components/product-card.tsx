@@ -2,7 +2,7 @@ import type { CardProduct } from '../types'
 import Picture from './picture'
 import Price from './price'
 
-const saleLabel = (percent: number) => `${percent}% off`
+const saleLabel = (percent: number) => `−${percent}%`
 
 /** Whole-percent saving against MRP, or null when the product is not discounted. */
 function salePercent(pricePaise: number, mrpPaise: number | null): number | null {

@@ -1,5 +1,7 @@
 /** Copy and fixed UI strings for Promo bento (sections/promo-bento.liquid). */
 export const promoBentoContent = {
+  /** The link line at the foot of a linked tile. */
+  cta: 'Shop now',
   label: 'Promo bento',
   heading: '',
   subheading: '',

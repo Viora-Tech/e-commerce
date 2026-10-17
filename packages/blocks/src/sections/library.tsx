@@ -55,7 +55,9 @@ export type LibraryProps = {
     columns: { title: string; text: string; image: Image }[]
   }
   CollectionList: Frame & {
+    kicker: string
     heading: string
+    style: 'below' | 'overlay'
     handles: { handle: string }[]
     resolved?: CardCollection[]
   }
@@ -191,7 +193,16 @@ export function librarySections(loaders: Loaders): LibraryConfig {
     CollectionList: framed<LibraryProps['CollectionList']>(
       'Collection list',
       {
+        kicker: inlineText('Eyebrow'),
         heading,
+        style: {
+          type: 'radio',
+          label: 'Title',
+          options: [
+            { label: 'Below the image', value: 'below' },
+            { label: 'Over the image', value: 'overlay' },
+          ],
+        },
         handles: {
           type: 'array',
           label: 'Collections',
@@ -199,10 +210,17 @@ export function librarySections(loaders: Loaders): LibraryConfig {
           arrayFields: { handle: { type: 'text', label: 'Collection handle' } },
         },
       },
-      { heading: copy.collectionList.heading, handles: [] },
+      {
+        kicker: copy.collectionList.kicker,
+        heading: copy.collectionList.heading,
+        style: 'below',
+        handles: [],
+      },
       (p) => (
         <CollectionList
+          kicker={p.kicker}
           heading={p.heading}
+          style={p.style}
           collections={p.resolved ?? []}
           empty={copy.collectionList.empty}
         />

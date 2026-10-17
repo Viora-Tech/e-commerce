@@ -1,6 +1,7 @@
 import type { CSSProperties, ReactNode } from 'react'
 import { focalStyle } from '../../focal-point'
 import type { Image, Link } from '../../sections/framed'
+import { safeHref } from '../../slot-types'
 import HeroCopy from '../hero-copy'
 import Picture from '../picture'
 
@@ -56,7 +57,8 @@ export default function ImageBanner({
           eyebrow={eyebrow}
           heading={heading}
           text={text}
-          primary={button}
+          // A blocked or blank link still goes somewhere useful: the whole catalogue.
+          primary={{ ...button, href: safeHref(button.href) ?? '/collections/all' }}
           secondary={secondaryButton}
           className={align === 'left' ? undefined : `hero-copy--${align}`}
         />
