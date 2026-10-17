@@ -1,5 +1,6 @@
 'use client'
 
+import { Gift } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { useState } from 'react'
 import { toast } from 'sonner'
@@ -72,6 +73,7 @@ export default function GiftCardDetail({ initial }: GiftCardDetailProps) {
       <PageHeader
         title={title}
         back={{ label: copy.breadcrumb, href: routes.products.giftCards() }}
+        lead={{ kind: 'icon', node: <Gift aria-hidden="true" /> }}
         badges={<OrderChip kind="giftCard" value={card.state} />}
         actions={
           <>

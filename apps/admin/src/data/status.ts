@@ -158,9 +158,9 @@ export const STATUS = {
   } satisfies Record<DiscountLifecycle, StatusEntry>,
   giftCard: {
     active: entry(giftCardsContent.state.active, 'success'),
-    disabled: entry(giftCardsContent.state.disabled, 'error'),
-    expired: entry(giftCardsContent.state.expired, 'neutral'),
-    empty: entry(giftCardsContent.state.empty, 'info'),
+    disabled: entry(giftCardsContent.state.disabled, 'neutral'),
+    expired: entry(giftCardsContent.state.expired, 'pending'),
+    empty: entry(giftCardsContent.state.empty, 'neutral'),
   } satisfies Record<GiftCardStateFilter, StatusEntry>,
   product: {
     active: entry(productsListContent.status.active, 'success'),
