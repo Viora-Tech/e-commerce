@@ -42,7 +42,6 @@ export default [
         { value: 'low', label: 'स्टॉक कम है' },
         { value: 'out', label: 'स्टॉक खत्म' },
       ],
-      clear: 'हटाएं',
     },
     status: { active: 'चालू', draft: 'ड्राफ़्ट', archived: 'आर्काइव' },
     columns: {

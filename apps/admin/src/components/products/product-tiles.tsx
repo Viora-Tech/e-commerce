@@ -2,9 +2,9 @@
 
 import type { ProductStatus } from '@commerce/core/catalog'
 import StatTile from '@/components/layout/stat-tile'
+import type { StockFilter } from '@/data/products'
 import { productsListContent } from '@/data/products'
 import { useCopy, useFormat } from '@/hooks/use-copy'
-import type { StockFilter } from './product-filters'
 
 type ProductTilesProps = {
   stats: { total: number; draft: number; lowStock: number; outOfStock: number }

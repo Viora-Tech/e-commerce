@@ -1,6 +1,6 @@
 import type { OrderFulfillmentStatus, OrderPaymentStatus } from '@commerce/core/order-status'
 import { parseAsArrayOf, parseAsStringLiteral } from 'nuqs'
-import type { AppliedFilter } from '@/components/table/resource-table/toolbar'
+import type { FilterGroup } from '@/components/table/filter-panel'
 import type { ordersContent } from '@/data/orders'
 
 /** The Orders filter panel (Figma "Orders · Filter"): what a merchant ticks, by group. */
@@ -66,53 +66,55 @@ export function orderFilterInput(f: OrderFilters, now = new Date()) {
   }
 }
 
-/** One chip per filter group (Figma "Applied filters"): "Payment is Unpaid, Paid". */
-export function appliedOrderFilters(
+/** Keeps the keys of `all` that were ticked, in `all`'s order, so a tick never reorders the URL. */
+function pick<K extends string>(all: readonly K[], ticked: string[]): K[] {
+  return all.filter((k) => ticked.includes(k))
+}
+
+function options<K extends string>(keys: readonly K[], labels: Record<K, string>) {
+  return keys.map((k) => ({ value: k, label: labels[k] }))
+}
+
+/** The panel's groups (Figma "Orders · Filter"); the chips and Clear all come from the same list. */
+export function orderFilterGroups(
   f: OrderFilters,
   copy: (typeof ordersContent)['filters'],
   onChange: (patch: Partial<OrderFilters>) => void,
-): AppliedFilter[] {
+): FilterGroup[] {
   return [
-    ...(f.payment.length
-      ? [
-          {
-            key: 'payment',
-            field: copy.payment,
-            label: f.payment.map((p) => copy.paymentOptions[p]).join(', '),
-            onRemove: () => onChange({ payment: [] }),
-          },
-        ]
-      : []),
-    ...(f.fulfilment.length
-      ? [
-          {
-            key: 'fulfilment',
-            field: copy.fulfilment,
-            label: f.fulfilment.map((s) => copy.fulfilmentOptions[s]).join(', '),
-            onRemove: () => onChange({ fulfilment: [] }),
-          },
-        ]
-      : []),
-    ...(f.date
-      ? [
-          {
-            key: 'date',
-            field: copy.date,
-            label: copy.dateOptions[f.date],
-            onRemove: () => onChange({ date: null }),
-          },
-        ]
-      : []),
-    ...(f.method.length
-      ? [
-          {
-            key: 'method',
-            field: copy.method,
-            label: f.method.map((m) => copy.methodOptions[m]).join(', '),
-            onRemove: () => onChange({ method: [] }),
-          },
-        ]
-      : []),
+    {
+      key: 'payment',
+      label: copy.payment,
+      type: 'checks',
+      options: options(PAYMENT_FILTERS, copy.paymentOptions),
+      value: f.payment,
+      onChange: (next) => onChange({ payment: pick(PAYMENT_FILTERS, next) }),
+    },
+    {
+      key: 'fulfilment',
+      label: copy.fulfilment,
+      type: 'checks',
+      options: options(FULFILMENT_FILTERS, copy.fulfilmentOptions),
+      value: f.fulfilment,
+      onChange: (next) => onChange({ fulfilment: pick(FULFILMENT_FILTERS, next) }),
+    },
+    {
+      key: 'date',
+      label: copy.date,
+      type: 'select',
+      options: options(DATE_FILTERS, copy.dateOptions),
+      value: f.date,
+      onChange: (next) => onChange({ date: DATE_FILTERS.find((d) => d === next) ?? null }),
+      anyLabel: copy.anyDate,
+    },
+    {
+      key: 'method',
+      label: copy.method,
+      type: 'checks',
+      options: options(METHOD_FILTERS, copy.methodOptions),
+      value: f.method,
+      onChange: (next) => onChange({ method: pick(METHOD_FILTERS, next) }),
+    },
   ]
 }
 

@@ -69,7 +69,6 @@ export const inventoryContent = {
     vendor: 'Vendor',
     productType: 'Product type',
     any: 'Any',
-    clear: 'Clear filters',
     stockOptions: [
       { value: 'in', label: 'In stock' },
       { value: 'low', label: 'Low stock' },

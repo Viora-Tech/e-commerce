@@ -36,7 +36,6 @@ export default [
       vendor: 'सप्लायर',
       productType: 'प्रोडक्ट का प्रकार',
       any: 'कोई भी',
-      clear: 'फ़िल्टर हटाएँ',
       stockOptions: [
         { value: 'in', label: 'स्टॉक में' },
         { value: 'low', label: 'कम स्टॉक' },

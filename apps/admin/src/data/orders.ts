@@ -87,8 +87,6 @@ export const ordersContent = {
   customView: 'Custom',
   /** The filter panel and its chips (Figma "Orders · Filter", "Applied filters"). */
   filters: {
-    heading: 'Filters',
-    clearAll: 'Clear all',
     payment: 'Payment',
     fulfilment: 'Fulfilment',
     date: 'Date',

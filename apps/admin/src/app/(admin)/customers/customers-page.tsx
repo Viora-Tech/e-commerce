@@ -13,18 +13,21 @@ import { parseAsInteger, parseAsString, parseAsStringLiteral, useQueryStates } f
 import { Suspense, useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
 import { type CustomerRow, customerColumns } from '@/components/customers/customer-columns'
-import CustomerFilters, {
-  type CustomerFilterState,
-  EMPTY_CUSTOMER_FILTERS,
-} from '@/components/customers/customer-filters'
 import CustomerRowActions from '@/components/customers/customer-row-actions'
 import CustomerTiles, { type CustomerStats } from '@/components/customers/customer-tiles'
 import TagCustomersDialog from '@/components/customers/tag-customers-dialog'
 import PageBody from '@/components/layout/page-body'
 import PillTabs from '@/components/layout/pill-tabs'
 import PageState from '@/components/states/page-state'
-import ResourceTable, { type AppliedFilter } from '@/components/table/resource-table'
+import {
+  appliedFromGroups,
+  clearGroups,
+  FILTER_PANEL_CLASS,
+  FilterPanel,
+} from '@/components/table/filter-panel'
+import ResourceTable from '@/components/table/resource-table'
 import { CUSTOMER_SEGMENTS, type CustomerSegment, customersContent } from '@/data/customers'
+import { filterPanelContent } from '@/data/filter-panel'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 import { downloadCsv, toCsv } from '@/lib/csv'
@@ -32,8 +35,10 @@ import { type ListQuery, sameListQuery } from '@/lib/list-query'
 import { formatPaise } from '@/lib/money'
 import { routes } from '@/lib/routes'
 import {
-  appliedCustomerFilters,
+  type CustomerFilterState,
+  customerFilterGroups,
   customerFilterInput,
+  EMPTY_CUSTOMER_FILTERS,
   hasCustomerFilters,
   segmentRulesFromFilters,
 } from './customer-filter-state'
@@ -78,6 +83,7 @@ function bulkMailto(rows: CustomerRow[]): string | null {
 function CustomersContent({ initial }: { initial: CustomersInitial }) {
   // Hooks
   const copy = useCopy(customersContent)
+  const panelCopy = useCopy(filterPanelContent)
   const [{ page, perPage, query, status }, setQ] = useQueryStates(
     {
       query: parseAsString.withDefault(''),
@@ -137,10 +143,6 @@ function CustomersContent({ initial }: { initial: CustomersInitial }) {
     setQ({ page: 1 })
   }
 
-  const clearFilter = (key: keyof CustomerFilterState) => {
-    patchFilters({ [key]: '' } as Partial<CustomerFilterState>)
-  }
-
   // Event handlers
   const handleClearAll = () => {
     setFilters(EMPTY_CUSTOMER_FILTERS)
@@ -169,7 +171,8 @@ function CustomersContent({ initial }: { initial: CustomersInitial }) {
 
   // Render logic
   const columns = customerColumns(copy)
-  const applied = appliedCustomerFilters(filters, clearFilter) satisfies AppliedFilter[]
+  const groups = customerFilterGroups(filters, initial.tags, patchFilters)
+  const applied = appliedFromGroups(groups, panelCopy)
   const filtered = applied.length > 0 || query.length > 0
   const segmentHref = `${routes.customers.newSegment()}?rules=${encodeURIComponent(
     JSON.stringify(segmentRulesFromFilters(filters, status)),
@@ -240,7 +243,14 @@ function CustomersContent({ initial }: { initial: CustomersInitial }) {
           query={query}
           onQueryChange={(q) => setQ({ query: q, page: 1 })}
           onClearAll={handleClearAll}
-          filters={<CustomerFilters value={filters} tags={initial.tags} onChange={patchFilters} />}
+          filters={(close) => (
+            <FilterPanel
+              groups={groups}
+              onClear={() => clearGroups(groups)}
+              footer={{ label: panelCopy.show(total), onDone: close }}
+            />
+          )}
+          filtersClassName={FILTER_PANEL_CLASS}
           applied={applied}
           tabs={
             <PillTabs

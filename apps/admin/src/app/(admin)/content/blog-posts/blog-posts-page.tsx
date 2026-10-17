@@ -11,12 +11,19 @@ import { Suspense, useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import ArticleBulkActions from '@/components/blog/article-bulk-actions'
 import { articleColumns } from '@/components/blog/article-columns'
-import ArticleFilters from '@/components/blog/article-filters'
 import ConfirmDeleteArticles from '@/components/blog/confirm-delete-articles'
 import PillTabs from '@/components/layout/pill-tabs'
 import ProoflyListPage from '@/components/layout/proofly-list-page'
-import ResourceTable, { type AppliedFilter } from '@/components/table/resource-table'
+import {
+  appliedFromGroups,
+  clearGroups,
+  FILTER_PANEL_CLASS,
+  type FilterGroup,
+  FilterPanel,
+} from '@/components/table/filter-panel'
+import ResourceTable from '@/components/table/resource-table'
 import { ARTICLE_TABS, type ArticleTab, blogListContent } from '@/data/blog'
+import { filterPanelContent } from '@/data/filter-panel'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 import { type ListQuery, sameListQuery } from '@/lib/list-query'
@@ -62,6 +69,7 @@ function listInput(q: Query) {
 function BlogPostsContent({ initial }: { initial: BlogPostsInitial }) {
   // Hooks
   const copy = useCopy(blogListContent)
+  const panelCopy = useCopy(filterPanelContent)
   const fmt = useFormat()
   usePrimaryAction(routes.content.newBlogPost())
   const [q, setQ] = useQueryStates(
@@ -138,19 +146,26 @@ function BlogPostsContent({ initial }: { initial: BlogPostsInitial }) {
 
   // Render logic
   const blogOptions = initial.blogs.map((b) => ({ value: b.id, label: b.title }))
-  const blogLabel = blogOptions.find((b) => b.value === q.blog)?.label ?? q.blog
-  const applied = [
-    q.blog && {
+  const groups: FilterGroup[] = [
+    {
       key: 'blog',
-      label: `${copy.filters.blog}: ${blogLabel}`,
-      onRemove: () => setQ({ blog: null, page: 1 }),
+      label: copy.filters.blog,
+      type: 'select',
+      options: blogOptions,
+      value: q.blog,
+      onChange: (blog) => setQ({ blog, page: 1 }),
+      anyLabel: copy.filters.any,
     },
-    q.tag && {
+    {
       key: 'tag',
-      label: `${copy.filters.tag}: ${q.tag}`,
-      onRemove: () => setQ({ tag: null, page: 1 }),
+      label: copy.filters.tag,
+      type: 'select',
+      options: initial.tags.map((t) => ({ value: t, label: t })),
+      value: q.tag,
+      onChange: (tag) => setQ({ tag, page: 1 }),
+      anyLabel: copy.filters.any,
     },
-  ].filter(Boolean) as AppliedFilter[]
+  ]
 
   return (
     <ProoflyListPage
@@ -191,16 +206,15 @@ function BlogPostsContent({ initial }: { initial: BlogPostsInitial }) {
         query={q.query}
         onQueryChange={(query) => setQ({ query, page: 1 })}
         onClearAll={() => setQ({ query: '', status: null, blog: null, tag: null, page: 1 })}
-        filters={
-          <ArticleFilters
-            values={{ blog: q.blog, tag: q.tag }}
-            blogs={blogOptions}
-            tags={initial.tags}
-            onChange={(patch) => setQ({ ...patch, page: 1 })}
-            onClear={() => setQ({ blog: null, tag: null, page: 1 })}
+        filters={(close) => (
+          <FilterPanel
+            groups={groups}
+            onClear={() => clearGroups(groups)}
+            footer={{ label: panelCopy.show(result.total), onDone: close }}
           />
-        }
-        applied={applied}
+        )}
+        filtersClassName={FILTER_PANEL_CLASS}
+        applied={appliedFromGroups(groups, panelCopy)}
         tabs={
           <PillTabs
             variant="segmented"

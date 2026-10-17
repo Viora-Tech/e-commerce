@@ -64,8 +64,6 @@ export default [
     sortOldest: 'पुराने पहले',
     customView: 'कस्टम',
     filters: {
-      heading: 'फ़िल्टर',
-      clearAll: 'सब हटाएं',
       payment: 'पेमेंट',
       fulfilment: 'डिलीवरी',
       date: 'तारीख',

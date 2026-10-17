@@ -72,6 +72,7 @@ export default [
       heading: 'ग्राहक फ़िल्टर करें',
       state: 'राज्य',
       anyState: 'कोई भी राज्य',
+      spend: 'ख़र्च',
       minSpend: 'कम से कम ख़र्च',
       maxSpend: 'ज़्यादा से ज़्यादा ख़र्च',
       orders: 'कम से कम ऑर्डर',
@@ -81,14 +82,6 @@ export default [
       marketingNo: 'सब्सक्राइब नहीं',
       tag: 'टैग',
       anyTag: 'कोई भी टैग',
-      applied: {
-        state: (code: string) => `राज्य ${code}`,
-        minSpend: (amount: string) => `${amount} या ज़्यादा ख़र्च`,
-        maxSpend: (amount: string) => `${amount} तक ख़र्च`,
-        orders: (n: number) => `${n} या ज़्यादा ऑर्डर`,
-        marketing: (yes: boolean) => (yes ? 'सब्सक्राइब किए हुए' : 'सब्सक्राइब नहीं'),
-        tag: (tag: string) => `टैग ${tag}`,
-      },
     },
     bulk: {
       addTag: 'टैग जोड़ें',

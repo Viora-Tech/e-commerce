@@ -23,6 +23,7 @@ import customizeMedia from './customize-media'
 import dates from './dates'
 import discounts from './discounts'
 import domains from './domains'
+import filterPanel from './filter-panel'
 import growth from './growth'
 import gstInvoices from './gst-invoices'
 import home from './home'
@@ -95,6 +96,7 @@ export const hindiCopy: readonly TranslationPair[] = [
   ...domains,
   ...analytics,
   ...discounts,
+  ...filterPanel,
   ...growth,
   ...gstInvoices,
   ...home,

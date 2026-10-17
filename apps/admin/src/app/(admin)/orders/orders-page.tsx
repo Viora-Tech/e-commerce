@@ -17,7 +17,6 @@ import { toast } from 'sonner'
 import CustomerAvatar from '@/components/customers/customer-avatar'
 import StatusChip from '@/components/layout/status-chip'
 import OrderChip from '@/components/orders/order-chip'
-import OrderFilters from '@/components/orders/order-filters'
 import { orderStage } from '@/components/orders/order-stage'
 import OrdersBulkActions from '@/components/orders/orders-bulk-actions'
 import OrdersListFrame from '@/components/orders/orders-list-frame'
@@ -25,8 +24,15 @@ import OrdersTiles, { type OrderTilesData } from '@/components/orders/orders-til
 import RowMenu from '@/components/orders/row-menu'
 import ProductThumb from '@/components/products/product-thumb'
 import InlineState from '@/components/states/inline-state'
+import {
+  appliedFromGroups,
+  clearGroups,
+  FILTER_PANEL_CLASS,
+  FilterPanel,
+} from '@/components/table/filter-panel'
 import ResourceTable, { type ResourceColumnSpec } from '@/components/table/resource-table'
 import ViewSelect from '@/components/table/view-select'
+import { filterPanelContent } from '@/data/filter-panel'
 import {
   ORDER_LIST_FILTERS,
   type OrderListFilter,
@@ -40,11 +46,11 @@ import type { Formatters } from '@/lib/format'
 import { type ListQuery, sameListQuery } from '@/lib/list-query'
 import { orderListFilter } from '@/lib/order-filter'
 import {
-  appliedOrderFilters,
   FILTER_PARAMS,
   hasOrderFilters,
   NO_FILTERS,
   type OrderFilters as OrderFiltersValue,
+  orderFilterGroups,
   orderFilterInput,
 } from '@/lib/order-list-filters'
 import { usePrimaryAction } from '@/lib/primary-action'
@@ -248,6 +254,7 @@ function HeaderActions() {
 function OrdersContent({ initial }: { initial: OrdersInitial }) {
   // Hooks
   const copy = useCopy(ordersContent)
+  const panelCopy = useCopy(filterPanelContent)
   const fmt = useFormat()
   usePrimaryAction(routes.orders.drafts())
   const [{ page, query, status, perPage: rawPerPage, payment, fulfilment, date, method }, setQ] =
@@ -340,6 +347,7 @@ function OrdersContent({ initial }: { initial: OrdersInitial }) {
   const columns = orderColumns(copy, fmt)
   const filters: OrderFiltersValue = { payment, fulfilment, date, method }
   const filtered = hasOrderFilters(filters)
+  const groups = orderFilterGroups(filters, copy.filters, setFilters)
   const searching = query.length > 0 || status !== null || filtered
   const tabCounts: Partial<Record<OrderListFilter, number>> = {
     unpaid: initial.counts.unpaid,
@@ -402,16 +410,14 @@ function OrdersContent({ initial }: { initial: OrdersInitial }) {
         onQueryChange={(query) => setQ({ query, page: 1 })}
         onClearAll={() => setQ({ query: '', status: null, ...NO_FILTERS, page: 1 })}
         filters={(close) => (
-          <OrderFilters
-            value={filters}
-            onChange={setFilters}
-            onClear={() => setFilters(NO_FILTERS)}
-            total={total}
-            onDone={close}
+          <FilterPanel
+            groups={groups}
+            onClear={() => clearGroups(groups)}
+            footer={{ label: copy.filters.show(total), onDone: close }}
           />
         )}
-        filtersClassName="w-72 p-0"
-        applied={appliedOrderFilters(filters, copy.filters, setFilters)}
+        filtersClassName={FILTER_PANEL_CLASS}
+        applied={appliedFromGroups(groups, panelCopy)}
         views={
           <ViewSelect<OrderListFilter | null>
             label={copy.viewLabel}

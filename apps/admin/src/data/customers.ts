@@ -92,6 +92,7 @@ export const customersContent = {
     heading: 'Filter customers',
     state: 'State',
     anyState: 'Any state',
+    spend: 'Spend',
     minSpend: 'Spent at least',
     maxSpend: 'Spent at most',
     orders: 'Minimum orders',
@@ -101,14 +102,6 @@ export const customersContent = {
     marketingNo: 'Not subscribed',
     tag: 'Tag',
     anyTag: 'Any tag',
-    applied: {
-      state: (code: string) => `State ${code}`,
-      minSpend: (amount: string) => `Spent ${amount} or more`,
-      maxSpend: (amount: string) => `Spent up to ${amount}`,
-      orders: (n: number) => `${n} orders or more`,
-      marketing: (yes: boolean) => (yes ? 'Subscribed' : 'Not subscribed'),
-      tag: (tag: string) => `Tag ${tag}`,
-    },
   },
   bulk: {
     addTag: 'Add tag',

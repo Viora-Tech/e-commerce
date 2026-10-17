@@ -33,7 +33,7 @@ export const blogListContent = {
   tabs: { all: 'All', published: 'Published', scheduled: 'Scheduled', draft: 'Drafts' },
   status,
   scheduledFor: (when: string) => `Scheduled ${when}`,
-  filters: { blog: 'Blog', tag: 'Tag', any: 'Any', clear: 'Clear filters' },
+  filters: { blog: 'Blog', tag: 'Tag', any: 'Any' },
   bulk: {
     publish: 'Publish',
     unpublish: 'Unpublish',

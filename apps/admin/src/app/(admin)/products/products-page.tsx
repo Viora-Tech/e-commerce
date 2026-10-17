@@ -21,11 +21,19 @@ import { downloadProductCsv } from '@/components/products/export-products'
 import ImportDialog from '@/components/products/import-dialog'
 import ProductBulkActions from '@/components/products/product-bulk-actions'
 import { productColumns } from '@/components/products/product-columns'
-import ProductFilters, { type StockFilter } from '@/components/products/product-filters'
 import ProductTiles from '@/components/products/product-tiles'
-import ResourceTable, { type AppliedFilter } from '@/components/table/resource-table'
+import {
+  appliedFromGroups,
+  clearGroups,
+  FILTER_PANEL_CLASS,
+  type FilterGroup,
+  FilterPanel,
+  facetOptions,
+} from '@/components/table/filter-panel'
+import ResourceTable from '@/components/table/resource-table'
 import RowMenu from '@/components/table/row-menu'
-import { PRODUCT_STATUSES, productsListContent } from '@/data/products'
+import { filterPanelContent } from '@/data/filter-panel'
+import { PRODUCT_STATUSES, productsListContent, type StockFilter } from '@/data/products'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 import { type ListQuery, sameListQuery } from '@/lib/list-query'
@@ -80,6 +88,7 @@ function hasFilters(q: Query) {
 function ProductsContent({ initial }: { initial: ProductsInitial }) {
   // Hooks
   const copy = useCopy(productsListContent)
+  const panelCopy = useCopy(filterPanelContent)
   const fmt = useFormat()
   usePrimaryAction(routes.products.new())
   const router = useRouter()
@@ -199,29 +208,44 @@ function ProductsContent({ initial }: { initial: ProductsInitial }) {
     draft: stats.draft,
     archived: Math.max(0, stats.total - stats.active - stats.draft),
   }
-  const stockLabel = copy.filters.stockOptions.find((o) => o.value === q.stock)?.label ?? q.stock
-  const applied = [
-    q.vendor && {
+  const groups: FilterGroup[] = [
+    {
       key: 'vendor',
-      label: `${copy.filters.vendor}: ${q.vendor}`,
-      onRemove: () => setQ({ vendor: null, page: 1 }),
+      label: copy.filters.vendor,
+      type: 'select',
+      options: facetOptions(initial.facets.vendors),
+      value: q.vendor,
+      onChange: (vendor) => setQ({ vendor, page: 1 }),
+      anyLabel: copy.filters.any,
     },
-    q.productType && {
+    {
       key: 'type',
-      label: `${copy.filters.productType}: ${q.productType}`,
-      onRemove: () => setQ({ productType: null, page: 1 }),
+      label: copy.filters.productType,
+      type: 'select',
+      options: facetOptions(initial.facets.productTypes),
+      value: q.productType,
+      onChange: (productType) => setQ({ productType, page: 1 }),
+      anyLabel: copy.filters.any,
     },
-    q.tag && {
+    {
       key: 'tag',
-      label: `${copy.filters.tag}: ${q.tag}`,
-      onRemove: () => setQ({ tag: null, page: 1 }),
+      label: copy.filters.tag,
+      type: 'select',
+      options: facetOptions(initial.facets.tags),
+      value: q.tag,
+      onChange: (tag) => setQ({ tag, page: 1 }),
+      anyLabel: copy.filters.any,
     },
-    q.stock && {
+    {
       key: 'stock',
-      label: `${copy.filters.stock}: ${stockLabel}`,
-      onRemove: () => setQ({ stock: null, page: 1 }),
+      label: copy.filters.stock,
+      type: 'select',
+      options: copy.filters.stockOptions,
+      value: q.stock,
+      onChange: (next) => setQ({ stock: STOCK_FILTERS.find((s) => s === next) ?? null, page: 1 }),
+      anyLabel: copy.filters.any,
     },
-  ].filter(Boolean) as AppliedFilter[]
+  ]
 
   return (
     <ProoflyListPage
@@ -308,17 +332,15 @@ function ProductsContent({ initial }: { initial: ProductsInitial }) {
             page: 1,
           })
         }
-        filters={
-          <ProductFilters
-            values={{ vendor: q.vendor, productType: q.productType, tag: q.tag, stock: q.stock }}
-            facets={initial.facets}
-            onChange={(patch) => setQ({ ...patch, page: 1 })}
-            onClear={() =>
-              setQ({ vendor: null, productType: null, tag: null, stock: null, page: 1 })
-            }
+        filters={(close) => (
+          <FilterPanel
+            groups={groups}
+            onClear={() => clearGroups(groups)}
+            footer={{ label: panelCopy.show(total), onDone: close }}
           />
-        }
-        applied={applied}
+        )}
+        filtersClassName={FILTER_PANEL_CLASS}
+        applied={appliedFromGroups(groups, panelCopy)}
         tabs={
           <PillTabs
             variant="segmented"
