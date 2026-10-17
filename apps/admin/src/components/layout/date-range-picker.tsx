@@ -18,6 +18,7 @@ import {
   type RangePreset,
   rangeFor,
 } from '@/lib/home-range'
+import BigSaleDays from './big-sale-days'
 
 type DateRangePickerProps = {
   range: HomeRange
@@ -137,6 +138,9 @@ export default function DateRangePicker({
                   <span className="text-xs text-muted-foreground">{copy.festiveHint}</span>
                 ) : null}
               </button>
+              {preset === 'festive' ? (
+                <BigSaleDays onPick={(day) => setDraft({ preset: 'custom', from: day, to: day })} />
+              ) : null}
             </li>
           ))}
         </ul>

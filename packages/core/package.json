@@ -48,6 +48,7 @@
     "./metaobjects": "./src/metaobjects/client.ts",
     "./redirects": "./src/redirects/paths.ts",
     "./search-console": "./src/search-console/insights.ts",
+    "./analytics-query": "./src/analytics-query/index.ts",
     "./marketing": "./src/marketing/client.ts",
     "./admin-accent": "./src/admin-accent/accent.ts",
     "./home-metrics": "./src/home-metrics/metrics.ts",

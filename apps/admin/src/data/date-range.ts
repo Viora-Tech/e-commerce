@@ -14,6 +14,14 @@ export const dateRangeContent = {
     custom: 'Custom range',
   },
   festiveHint: 'Sep–Nov',
+  bigSale: {
+    label: 'Big sale days',
+    loading: 'Finding your best days…',
+    empty: 'No orders in the last year yet.',
+    failed: 'Could not load your best days.',
+    line: (sales: string, orders: number) =>
+      `${sales} · ${orders} ${orders === 1 ? 'order' : 'orders'}`,
+  },
   rangeLabel: 'Date range',
   from: 'From',
   to: 'To',

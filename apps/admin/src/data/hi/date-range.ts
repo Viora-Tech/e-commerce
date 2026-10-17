@@ -17,6 +17,13 @@ export default [
       custom: 'अपनी तारीखें',
     },
     festiveHint: 'सित–नव',
+    bigSale: {
+      label: 'सबसे बड़ी बिक्री के दिन',
+      loading: 'आपके सबसे अच्छे दिन ढूँढ रहे हैं…',
+      empty: 'पिछले साल में अभी कोई ऑर्डर नहीं।',
+      failed: 'आपके सबसे अच्छे दिन लोड नहीं हुए।',
+      line: (sales, orders) => `${sales} · ${orders} ऑर्डर`,
+    },
     rangeLabel: 'तारीखें',
     from: 'से',
     to: 'तक',

@@ -1,12 +1,13 @@
 'use client'
 
 import type { ReportCategory, ReportDefinition } from '@commerce/api'
-import { ChevronRightIcon } from '@commerce/ui/icons'
+import { ChevronRightIcon, ListTree } from '@commerce/ui/icons'
 import { Card } from '@commerce/ui/shadcn/card'
 import Link from 'next/link'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import AskAiCard from '@/components/home/ask-ai-card'
+import KitButton from '@/components/kit/kit-button'
 import ConfirmDialog from '@/components/layout/confirm-dialog'
 import PageHeader from '@/components/layout/page-header'
 import SectionHead from '@/components/layout/section-head'
@@ -34,7 +35,7 @@ const CATEGORIES = Object.keys(analyticsContent.reports.categories) as ReportCat
  */
 export default function ReportsHome({ reports, saved: initialSaved, assistant }: ReportsHomeProps) {
   // Hooks
-  const { reports: c } = useCopy(analyticsContent)
+  const { reports: c, query: queryCopy } = useCopy(analyticsContent)
   const [saved, setSaved] = useState(initialSaved)
   const [renaming, setRenaming] = useState<Saved | null>(null)
   const [deleting, setDeleting] = useState<Saved | null>(null)
@@ -68,7 +69,16 @@ export default function ReportsHome({ reports, saved: initialSaved, assistant }:
   return (
     <div className="flex w-full flex-col gap-8 px-4 py-6 md:px-8 md:py-8">
       <div className="flex flex-col gap-6">
-        <PageHeader title={c.title} summary={c.home.intro} />
+        <PageHeader
+          title={c.title}
+          summary={c.home.intro}
+          actions={
+            <KitButton variant="secondary" href={routes.analytics.query()}>
+              <ListTree />
+              {queryCopy.open}
+            </KitButton>
+          }
+        />
         <AskAiCard
           enabled={assistant}
           placeholder={c.home.askPlaceholder}

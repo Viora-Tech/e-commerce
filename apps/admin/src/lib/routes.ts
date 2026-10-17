@@ -107,6 +107,7 @@ export const routes = {
     live: () => '/analytics/live',
     reports: () => '/analytics/reports',
     report: (slug: string) => `/analytics/reports/${id(slug)}`,
+    query: () => '/analytics/reports/query',
   },
 
   growth: {
