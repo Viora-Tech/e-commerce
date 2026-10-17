@@ -19,11 +19,24 @@ export const createShipmentContent = {
     itemCount: (n: number) => `${n} ${n === 1 ? 'item' : 'items'}`,
     pickup: 'Pick up from',
     pickupHelp: 'Where the courier collects the parcel.',
+    /** The "Change" dialog (Figma 623:18048). */
+    pickupDialogHelp: 'Where the courier collects the parcel. Couriers price from this address.',
+    pickupDefault: (name: string) => `${name} · Default`,
+    pickupAdd: 'Add a pickup location (Settings › Locations)',
+    pickupCancel: 'Cancel',
+    pickupUse: 'Use this address',
     storeAddress: (name: string) => `${name || 'Your return address'} (Settings › Shipping)`,
     place: (name: string, city: string | null, pincode: string) =>
       [name, city, pincode].filter(Boolean).join(', '),
     box: 'Box',
     customBox: 'Custom size',
+    /** The box dropdown (Figma 618:17577). */
+    yourBoxes: 'Your boxes (Settings › Shipping)',
+    customBoxItem: 'Custom size for this parcel',
+    productBoxHint: 'Size from product',
+    boxSize: (l: number, w: number, h: number) => `${l} × ${w} × ${h} cm`,
+    boxChosen: (name: string, l: number, w: number, h: number, grams: number) =>
+      `${name} · ${l} × ${w} × ${h} cm · ${grams} g`,
     productBox: "Products' own box",
     boxLabel: (name: string, l: number, w: number, h: number) => `${name} · ${l} × ${w} × ${h} cm`,
     weight: 'Weight (grams)',

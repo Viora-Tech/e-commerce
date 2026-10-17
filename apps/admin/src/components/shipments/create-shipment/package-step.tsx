@@ -9,6 +9,7 @@ import ChoiceCard from '@/components/layout/choice-card'
 import PillTabs from '@/components/layout/pill-tabs'
 import { createShipmentContent } from '@/data/create-shipment'
 import { useCopy, useFormat } from '@/hooks/use-copy'
+import BoxSelect from './box-select'
 import {
   CUSTOM_BOX,
   type DraftOrder,
@@ -115,11 +116,11 @@ export default function PackageStep({
         <p className="text-body text-muted-foreground">
           {parcel.lines.map((l) => copy.lineItem(l.title, l.quantity)).join(' · ')}
         </p>
-        <ChoiceField
+        <BoxSelect
           id="ship-box"
-          label={copy.box}
+          boxes={draft.boxes}
+          hasProductBox={Boolean(parcel.dimensionsCm)}
           value={form.boxId}
-          options={boxOptions}
           onChange={handleBox}
         />
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
