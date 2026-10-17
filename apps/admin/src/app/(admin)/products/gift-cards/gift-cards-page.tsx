@@ -2,7 +2,7 @@
 
 import { siteConfig } from '@commerce/config/site'
 import { maskedGiftCardCode } from '@commerce/core/gift-cards'
-import { Gift, SquarePlus } from '@commerce/ui/icons'
+import { Gift, Plus } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Card } from '@commerce/ui/shadcn/card'
 import { Kbd } from '@commerce/ui/shadcn/kbd'
@@ -203,7 +203,7 @@ function GiftCardsContent({ initial }: { initial: GiftCardsInitial }) {
               render={<Link href={routes.products.newGiftCard()} />}
               nativeButton={false}
             >
-              <SquarePlus strokeWidth={1.6} />
+              <Plus strokeWidth={1.6} />
               {copy.create}
             </Button>
           }

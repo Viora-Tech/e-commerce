@@ -1,7 +1,7 @@
 'use client'
 
 import { siteConfig } from '@commerce/config/site'
-import { Plus, SquarePlus } from '@commerce/ui/icons'
+import { Plus } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Kbd } from '@commerce/ui/shadcn/kbd'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@commerce/ui/shadcn/tooltip'
@@ -97,7 +97,7 @@ function DiscountsContent({ initial }: { initial: DiscountsInitial }) {
           <TooltipTrigger
             render={
               <Button render={<Link href={routes.discounts.new()} />} nativeButton={false}>
-                <SquarePlus strokeWidth={1.6} />
+                <Plus strokeWidth={1.6} />
                 {copy.create}
               </Button>
             }

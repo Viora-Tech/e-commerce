@@ -1,7 +1,7 @@
 'use client'
 
 import { siteConfig } from '@commerce/config/site'
-import { Braces, Plus, SquarePlus } from '@commerce/ui/icons'
+import { Braces, Plus } from '@commerce/ui/icons'
 import { Badge } from '@commerce/ui/shadcn/badge'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Kbd } from '@commerce/ui/shadcn/kbd'
@@ -35,7 +35,7 @@ const columnsFor = (
     render: (d) => (
       <span className="flex flex-col text-left">
         <span className="flex items-center gap-2">
-          <span className="font-medium text-ink-strong">{d.name}</span>
+          <span className="text-ink-strong">{d.name}</span>
           {d.storefrontAccess ? null : <Badge variant="neutral">{copy.hidden}</Badge>}
         </span>
         <span className="text-caption text-muted-foreground">{d.type}</span>
@@ -100,7 +100,7 @@ export default function DefinitionsPage({ definitions }: DefinitionsPageProps) {
             render={<Link href={routes.content.newBlankContentType()} />}
             nativeButton={false}
           >
-            <SquarePlus strokeWidth={1.6} />
+            <Plus strokeWidth={1.6} />
             {copy.add}
           </Button>
         }
@@ -118,7 +118,7 @@ export default function DefinitionsPage({ definitions }: DefinitionsPageProps) {
       actions={
         <>
           <Button
-            variant="key-neutral"
+            variant="outline"
             render={<Link href={routes.content.newContentType()} />}
             nativeButton={false}
           >

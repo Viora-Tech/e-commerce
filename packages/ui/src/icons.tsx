@@ -333,6 +333,7 @@ export const CircleCheck = defineIcon(CheckCircle, 'CircleCheck')
 export const CircleCheckIcon = CircleCheck
 export const CircleDashed = defineIcon(Huge.CircleDashedIcon, 'CircleDashed')
 export const Folder = defineIcon(Huge.Folder01Icon, 'Folder')
+export const Database = defineIcon(Huge.DatabaseIcon, 'Database')
 export const CircleAlert = defineIcon(WarningCircle, 'CircleAlert')
 export const InfoIcon = defineIcon(Info, 'InfoIcon')
 export const TriangleAlert = defineIcon(Warning, 'TriangleAlert')

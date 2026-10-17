@@ -1,7 +1,7 @@
 'use client'
 
 import { siteConfig } from '@commerce/config/site'
-import { Search, Settings, Upload } from '@commerce/ui/icons'
+import { Database, Search, Upload } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Input } from '@commerce/ui/shadcn/input'
 import Link from 'next/link'
@@ -10,9 +10,9 @@ import { type FormEvent, Suspense, useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
 import ConfirmDialog from '@/components/layout/confirm-dialog'
 import EmptyState from '@/components/layout/empty-state'
-import PillTabs from '@/components/layout/pill-tabs'
 import ProoflyListPage from '@/components/layout/proofly-list-page'
 import ResourceTablePagination from '@/components/table/resource-table/pagination'
+import ViewSelect from '@/components/table/view-select'
 import { imageEditorContent } from '@/data/image-editor'
 import { mediaContent } from '@/data/media'
 import { useCopy } from '@/hooks/use-copy'
@@ -170,11 +170,11 @@ function MediaLibraryContent({ initial }: { initial: MediaLibraryInitial }) {
       actions={
         <>
           <Button
-            variant="key-neutral"
+            variant="outline"
             nativeButton={false}
             render={<Link href={routes.content.storage()} />}
           >
-            <Settings aria-hidden="true" />
+            <Database aria-hidden="true" />
             {copy.storage}
           </Button>
           <Button type="button" onClick={() => fileInput.current?.click()}>
@@ -204,31 +204,32 @@ function MediaLibraryContent({ initial }: { initial: MediaLibraryInitial }) {
           </div>
         </div>
       ) : (
-        <>
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <PillTabs
-              variant="segmented"
+        <div className="overflow-hidden rounded-2xl border surface-card">
+          {/* Figma Files (647:1251): the table toolbar, the grid and the pager in one card. */}
+          <div className="flex flex-wrap items-center gap-3 border-b border-line px-4 py-2">
+            <ViewSelect
               value={type}
               onChange={(next) => setQ({ type: next, page: 1 })}
-              tabs={[
+              options={[
                 { value: null, label: copy.tabs.all, count: counts.all },
                 { value: 'image', label: copy.tabs.image, count: counts.image },
                 { value: 'video', label: copy.tabs.video, count: counts.video },
                 { value: 'document', label: copy.tabs.document, count: counts.document },
               ]}
             />
-            <form onSubmit={handleSearch} className="relative w-full max-w-xs">
-              <Search className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground" />
+            <span aria-hidden="true" className="h-5 w-px bg-line" />
+            <form onSubmit={handleSearch} className="relative min-w-0 flex-1">
+              <Search className="pointer-events-none absolute top-1/2 left-0.5 size-4 -translate-y-1/2 text-muted-foreground" />
               <Input
                 value={draft}
                 onChange={(e) => setDraft(e.target.value)}
                 placeholder={copy.search}
-                className="pl-8"
+                className="border-0 bg-transparent pl-7 shadow-none focus-visible:ring-0 dark:bg-transparent"
                 aria-label={copy.search}
               />
             </form>
           </div>
-          <ul className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
+          <ul className="grid grid-cols-2 gap-4 p-4 sm:grid-cols-3 lg:grid-cols-5">
             {queue.pending.map((p) => (
               <li
                 key={p.key}
@@ -249,7 +250,10 @@ function MediaLibraryContent({ initial }: { initial: MediaLibraryInitial }) {
                 item={item}
                 wide
                 caption={item.key ? fileName(item.key) : undefined}
-                meta={[fileKind(item.contentType), item.size ? formatBytes(item.size) : '']
+                meta={[
+                  item.size ? formatBytes(item.size) : fileKind(item.contentType),
+                  copy.used(item.usedBy),
+                ]
                   .filter(Boolean)
                   .join(' · ')}
                 actions={[
@@ -270,26 +274,24 @@ function MediaLibraryContent({ initial }: { initial: MediaLibraryInitial }) {
             <EmptyState variant="plain" size="lg" body={copy.noMatch} />
           ) : null}
           {total > 0 ? (
-            <div className="overflow-hidden rounded-2xl border surface-card">
-              <ResourceTablePagination
-                page={page}
-                perPage={perPage}
-                total={total}
-                onPageChange={(p) => setQ({ page: p })}
-                onPerPageChange={(n) => setQ({ perPage: n, page: 1 })}
-              />
-            </div>
+            <ResourceTablePagination
+              page={page}
+              perPage={perPage}
+              total={total}
+              onPageChange={(p) => setQ({ page: p })}
+              onPerPageChange={(n) => setQ({ perPage: n, page: 1 })}
+            />
           ) : null}
-        </>
+        </div>
       )}
       <AltTextDialog
-        key={editing?.id ?? 'none'}
+        key={`alt-${editing?.id ?? 'none'}`}
         item={editing}
         onClose={() => setEditing(null)}
         onSaved={handleAltSaved}
       />
       <ImageEditorDialog
-        key={retouching?.id ?? 'none'}
+        key={`edit-${retouching?.id ?? 'none'}`}
         item={retouching}
         mode="copy"
         onClose={() => setRetouching(null)}

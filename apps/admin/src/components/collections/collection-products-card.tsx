@@ -107,7 +107,7 @@ export default function CollectionProductsCard({
       flush
       action={
         manual ? (
-          <Button variant="key-neutral" size="sm" onClick={() => setAdding(true)}>
+          <Button variant="ghost" size="sm" onClick={() => setAdding(true)}>
             <Plus aria-hidden />
             {copy.add}
           </Button>

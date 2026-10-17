@@ -1,6 +1,6 @@
 'use client'
 
-import { Braces, Pencil, SquarePlus, Trash2 } from '@commerce/ui/icons'
+import { Braces, Pencil, Plus, Trash2 } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
@@ -44,7 +44,7 @@ const columnsFor = (
     className: 'w-96 px-3 whitespace-normal',
     render: (e) => (
       <span className="flex min-w-0 flex-col text-left">
-        <span className="line-clamp-2 font-medium text-ink-strong">{e.displayName}</span>
+        <span className="line-clamp-2 text-ink-strong">{e.displayName}</span>
         <span className="truncate text-caption text-muted-foreground">{e.handle}</span>
       </span>
     ),
@@ -54,7 +54,11 @@ const columnsFor = (
     title: copy.columns.status,
     sortValue: (e) => e.status,
     align: 'center',
-    render: (e) => <StatusChip>{copy.status[e.status]}</StatusChip>,
+    render: (e) => (
+      <StatusChip tone={e.status === 'active' ? 'success' : 'neutral'}>
+        {copy.status[e.status]}
+      </StatusChip>
+    ),
   },
   {
     id: 'updated',
@@ -141,7 +145,7 @@ export default function EntriesPage({ definition, initial, initialPerPage }: Ent
           actions={
             <>
               <Button
-                variant="key-neutral"
+                variant="outline"
                 render={<Link href={routes.content.contentTypeDefinition(definition.type)} />}
                 nativeButton={false}
               >
@@ -150,7 +154,7 @@ export default function EntriesPage({ definition, initial, initialPerPage }: Ent
               </Button>
               {hasFields && definition.entries > 0 ? (
                 <Button render={<Link href={addHref} />} nativeButton={false}>
-                  <SquarePlus strokeWidth={1.6} />
+                  <Plus strokeWidth={1.6} />
                   {copy.add}
                 </Button>
               ) : null}
@@ -183,7 +187,7 @@ export default function EntriesPage({ definition, initial, initialPerPage }: Ent
               body={copy.empty.body}
               action={
                 <Button render={<Link href={addHref} />} nativeButton={false}>
-                  <SquarePlus strokeWidth={1.6} />
+                  <Plus strokeWidth={1.6} />
                   {copy.add}
                 </Button>
               }

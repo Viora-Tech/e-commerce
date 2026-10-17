@@ -1,6 +1,6 @@
 'use client'
 
-import { Pencil, SquarePlus, Trash2 } from '@commerce/ui/icons'
+import { Pencil, Plus, Trash2 } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Card, CardContent } from '@commerce/ui/shadcn/card'
 import { useState } from 'react'
@@ -64,7 +64,7 @@ export default function BlogsManager({ initial }: BlogsManagerProps) {
           back={{ label: copy.back, href: routes.content.blogPosts() }}
           actions={
             <Button onClick={() => handleOpen(null)}>
-              <SquarePlus strokeWidth={1.6} />
+              <Plus strokeWidth={1.6} />
               {copy.add}
             </Button>
           }

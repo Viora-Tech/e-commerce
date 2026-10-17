@@ -84,7 +84,7 @@ export default function NewContentType() {
           back={{ label: copy.back, href: routes.content.contentTypes() }}
           actions={
             <Button
-              variant="key-neutral"
+              variant="outline"
               nativeButton={false}
               render={<Link href={routes.content.newBlankContentType()} />}
             >

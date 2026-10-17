@@ -174,7 +174,7 @@ function BlogPostsContent({ initial }: { initial: BlogPostsInitial }) {
       actions={
         <>
           <Button
-            variant="key-neutral"
+            variant="outline"
             nativeButton={false}
             render={<Link href={routes.content.blogs()} />}
           >
