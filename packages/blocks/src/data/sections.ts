@@ -12,12 +12,15 @@ export const sectionsContent = {
     secondary: 'See all',
   },
   imageWithText: {
+    kicker: 'Our story',
     heading: 'Made in small batches',
     text: 'Every pad is tempered, etched and checked by hand before it ships.',
     button: 'Our story',
   },
   multicolumn: {
+    kicker: 'Why us',
     heading: 'Why players switch',
+    learnMore: 'Learn more',
     columns: [
       { title: 'Tempered glass', text: 'Smooth glide that stays consistent for years.' },
       { title: 'Fast shipping', text: 'Dispatched within 24 hours from Bengaluru.' },
@@ -32,6 +35,7 @@ export const sectionsContent = {
     count: (n: number) => (n === 1 ? '1 product' : `${n} products`),
   },
   testimonials: {
+    kicker: 'Reviews',
     heading: 'Loved by players',
     items: [
       {

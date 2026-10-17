@@ -16,6 +16,8 @@ type HeroCopyProps = {
   secondary?: HeroLink | undefined
   /** `h1` for a page's first section, `h2` further down. */
   as?: 'h1' | 'h2'
+  /** `display` for heroes; `section` (32px heading, 16px text, 48px buttons) inside a page. */
+  size?: 'display' | 'section' | undefined
   className?: string | undefined
 }
 
@@ -31,6 +33,7 @@ export default function HeroCopy({
   primary,
   secondary,
   as: Heading = 'h1',
+  size = 'display',
   className,
 }: HeroCopyProps) {
   // Render logic
@@ -40,7 +43,7 @@ export default function HeroCopy({
   ].filter((b) => b.link?.label)
 
   return (
-    <div className={className ? `hero-copy ${className}` : 'hero-copy'}>
+    <div className={`hero-copy hero-copy--${size}${className ? ` ${className}` : ''}`}>
       <div className="hero-copy__heading-block">
         {eyebrow ? <p className="hero-copy__eyebrow">{eyebrow}</p> : null}
         {heading ? <Heading className="hero-copy__heading">{heading}</Heading> : null}

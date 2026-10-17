@@ -312,3 +312,26 @@
   --color-ink: #ffffff;
   --color-muted: rgb(255 255 255 / 80%);
 }
+
+/* ---- Hero copy, section size --------------------------------------- */
+/* The same block inside a page (image with text): a 32px heading, 16px text and
+   48px buttons. */
+.hero-copy--section {
+  gap: var(--space-5);
+}
+
+.hero-copy--section .hero-copy__heading {
+  font-size: calc(2rem * var(--font-heading-scale, 1));
+  line-height: 1.15;
+  letter-spacing: -0.01em;
+}
+
+.hero-copy--section .hero-copy__text {
+  font-size: var(--font-body-size, 16px);
+}
+
+.hero-copy--section .hero-copy__button {
+  height: 48px;
+  padding-inline: var(--space-5);
+  font-size: 14px;
+}

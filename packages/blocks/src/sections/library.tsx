@@ -45,14 +45,16 @@ export type LibraryProps = {
   }
   ImageWithText: Frame & {
     image: Image
+    kicker: string
     heading: string
     text: string
     button: Link
     imageFirst: boolean
   }
   Multicolumn: Frame & {
+    kicker: string
     heading: string
-    columns: { title: string; text: string; image: Image }[]
+    columns: { title: string; text: string; image: Image; link?: Link | undefined }[]
   }
   CollectionList: Frame & {
     kicker: string
@@ -63,6 +65,7 @@ export type LibraryProps = {
   }
   FeaturedProduct: FeaturedProductProps
   Testimonials: Frame & {
+    kicker: string
     heading: string
     items: { quote: string; author: string; role: string }[]
   }
@@ -146,6 +149,7 @@ export function librarySections(loaders: Loaders): LibraryConfig {
       'Image with text',
       {
         image: imageField(),
+        kicker: inlineText('Eyebrow'),
         heading,
         text: inlineRichtext('Text'),
         button: inlineLinkField(),
@@ -160,6 +164,7 @@ export function librarySections(loaders: Loaders): LibraryConfig {
       },
       {
         image: noImage,
+        kicker: copy.imageWithText.kicker,
         heading: copy.imageWithText.heading,
         text: copy.imageWithText.text,
         button: { label: copy.imageWithText.button, href: '/pages/about' },
@@ -171,6 +176,7 @@ export function librarySections(loaders: Loaders): LibraryConfig {
     Multicolumn: framed<LibraryProps['Multicolumn']>(
       'Multicolumn',
       {
+        kicker: inlineText('Eyebrow'),
         heading,
         columns: {
           type: 'array',
@@ -179,15 +185,17 @@ export function librarySections(loaders: Loaders): LibraryConfig {
           arrayFields: {
             title: inlineText('Title'),
             text: inlineRichtext('Text'),
-            image: imageField(),
+            image: imageField('Icon or image'),
+            link: inlineLinkField('Link'),
           },
         },
       },
       {
+        kicker: copy.multicolumn.kicker,
         heading: copy.multicolumn.heading,
         columns: copy.multicolumn.columns.map((c) => ({ ...c, image: noImage })),
       },
-      (p) => <Multicolumn heading={p.heading} columns={p.columns} />,
+      (p) => <Multicolumn kicker={p.kicker} heading={p.heading} columns={p.columns} />,
     ),
 
     CollectionList: framed<LibraryProps['CollectionList']>(
@@ -245,6 +253,7 @@ export function librarySections(loaders: Loaders): LibraryConfig {
     Testimonials: framed<LibraryProps['Testimonials']>(
       'Testimonials',
       {
+        kicker: inlineText('Eyebrow'),
         heading,
         items: {
           type: 'array',
@@ -258,10 +267,11 @@ export function librarySections(loaders: Loaders): LibraryConfig {
         },
       },
       {
+        kicker: copy.testimonials.kicker,
         heading: copy.testimonials.heading,
         items: copy.testimonials.items.map((t) => ({ ...t })),
       },
-      (p) => <Testimonials heading={p.heading} items={p.items} />,
+      (p) => <Testimonials kicker={p.kicker} heading={p.heading} items={p.items} />,
     ),
 
     LogoList: framed<LibraryProps['LogoList']>(
