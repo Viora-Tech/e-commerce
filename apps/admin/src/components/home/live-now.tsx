@@ -6,13 +6,13 @@ import { useTheme } from 'next-themes'
 import { useEffect, useState } from 'react'
 import { buildGlobeData } from '@/components/analytics/live-globe/build-globe-data'
 import LiveGlobeCanvas from '@/components/analytics/live-globe/live-globe-canvas'
+import SectionHead from '@/components/layout/section-head'
 import { homePageContent } from '@/data/home'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { useLiveGlobeData } from '@/hooks/use-live-globe-data'
 import { MOTION_MS } from '@/lib/motion'
 import { isWebglSupported } from '@/lib/webgl'
 import RollingNumber from './rolling-number'
-import SectionHead from './section-head'
 
 type LiveNowProps = {
   initial: DashboardSummary

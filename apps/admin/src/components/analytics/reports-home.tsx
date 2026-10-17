@@ -9,6 +9,7 @@ import { toast } from 'sonner'
 import AskAiCard from '@/components/home/ask-ai-card'
 import ConfirmDialog from '@/components/layout/confirm-dialog'
 import PageHeader from '@/components/layout/page-header'
+import SectionHead from '@/components/layout/section-head'
 import { analyticsContent } from '@/data/analytics'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
@@ -78,10 +79,7 @@ export default function ReportsHome({ reports, saved: initialSaved, assistant }:
         />
       </div>
       <section className="flex flex-col gap-3">
-        <div className="flex flex-col gap-1">
-          <h2 className="text-card-title text-ink-strong">{c.saved.title}</h2>
-          <p className="text-caption text-muted-foreground">{c.saved.subtitle}</p>
-        </div>
+        <SectionHead title={c.saved.title} intro={c.saved.subtitle} />
         {saved.length === 0 ? (
           <p className="rounded-xl border border-border border-dashed px-5 py-6 text-body text-muted-foreground">
             {c.saved.empty}
@@ -100,10 +98,7 @@ export default function ReportsHome({ reports, saved: initialSaved, assistant }:
         )}
       </section>
       <section className="flex flex-col gap-5">
-        <div className="flex flex-col gap-1">
-          <h2 className="text-card-title text-ink-strong">{c.templates.title}</h2>
-          <p className="text-caption text-muted-foreground">{c.templates.subtitle}</p>
-        </div>
+        <SectionHead title={c.templates.title} intro={c.templates.subtitle} />
         {CATEGORIES.map((category) => {
           const items = reports.filter((r) => r.category === category)
           if (items.length === 0) return null

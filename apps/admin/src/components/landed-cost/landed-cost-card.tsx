@@ -1,8 +1,9 @@
 'use client'
 
-import { Card, CardDescription, CardHeader, CardTitle } from '@commerce/ui/shadcn/card'
 import { variantLabel } from '@/components/inventory/variant-picker'
 import KitThumb from '@/components/kit/kit-thumb'
+import DataCard from '@/components/layout/data-card'
+import TotalsList, { type TotalsLine } from '@/components/layout/totals-list'
 import { landedCostContent } from '@/data/purchasing'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import type { CostPreview } from './types'
@@ -32,18 +33,19 @@ export default function LandedCostCard({ costs, purchaseOrderId }: LandedCostCar
   const showOrder = !purchaseOrderId
   const goods = sumOf(lines, (l) => l.goodsPaise)
   const charges = sumOf(lines, (l) => l.chargesPaise)
-  const totals = [
-    { label: copy.totals.goods, value: goods },
-    { label: copy.totals.charges, value: charges },
-    { label: copy.totals.recoverable, value: sumOf(lines, (l) => l.recoverablePaise), quiet: true },
+  const totals: TotalsLine[] = [
+    { label: copy.totals.goods, value: fmt.money(goods) },
+    { label: copy.totals.charges, value: fmt.money(charges) },
+    {
+      label: copy.totals.recoverable,
+      value: fmt.money(sumOf(lines, (l) => l.recoverablePaise)),
+      quiet: true,
+    },
+    { label: copy.totals.landed, value: fmt.money(goods + charges), strong: true },
   ]
 
   return (
-    <Card size="form" gap="none" inset="y-none">
-      <CardHeader className="py-5">
-        <CardTitle>{copy.heading}</CardTitle>
-        <CardDescription>{copy.summary}</CardDescription>
-      </CardHeader>
+    <DataCard title={copy.heading} subtitle={copy.summary} flush>
       {lines.length === 0 ? (
         <p className="border-line border-t px-5 py-10 text-center text-body text-muted-foreground">
           {copy.empty}
@@ -89,21 +91,7 @@ export default function LandedCostCard({ costs, purchaseOrderId }: LandedCostCar
           </ul>
         </div>
       )}
-      <dl className="flex flex-col gap-2 border-line border-t px-5 py-4 text-body">
-        {totals.map((t) => (
-          <div
-            key={t.label}
-            className={`flex justify-between gap-3 ${t.quiet ? 'text-muted-foreground' : ''}`}
-          >
-            <dt>{t.label}</dt>
-            <dd className="tabular-nums">{fmt.money(t.value)}</dd>
-          </div>
-        ))}
-        <div className="flex justify-between gap-3 border-line border-t pt-2 text-body-strong">
-          <dt>{copy.totals.landed}</dt>
-          <dd className="tabular-nums">{fmt.money(goods + charges)}</dd>
-        </div>
-      </dl>
-    </Card>
+      <TotalsList lines={totals} className="border-line border-t px-5 py-4" />
+    </DataCard>
   )
 }

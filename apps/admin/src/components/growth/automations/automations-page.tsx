@@ -10,6 +10,7 @@ import { useState } from 'react'
 import { toast } from 'sonner'
 import PillTabs from '@/components/layout/pill-tabs'
 import ProoflyListPage from '@/components/layout/proofly-list-page'
+import SectionHead from '@/components/layout/section-head'
 import ResourceTable from '@/components/table/resource-table'
 import RowMenu from '@/components/table/row-menu'
 import { automationsContent } from '@/data/marketing-automations'
@@ -130,10 +131,7 @@ export default function AutomationsPage({ automations }: AutomationsPageProps) {
         />
       ) : null}
       <section id="automation-templates" className="flex scroll-mt-6 flex-col gap-3">
-        <div>
-          <h2 className="text-card-title text-ink-strong">{copy.templatesTitle}</h2>
-          <p className="text-caption text-muted-foreground">{copy.templatesIntro}</p>
-        </div>
+        <SectionHead title={copy.templatesTitle} intro={copy.templatesIntro} />
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
           {AUTOMATION_TEMPLATES.map((t) => (
             <Card key={t.id} gap={4} inset={4} className="justify-between">

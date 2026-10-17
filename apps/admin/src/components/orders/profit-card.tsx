@@ -8,6 +8,7 @@ import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import DataCard from '@/components/layout/data-card'
+import TotalsList, { type TotalsLine } from '@/components/layout/totals-list'
 import { profitCardContent } from '@/data/order-cards'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
@@ -93,47 +94,38 @@ export default function ProfitCard({ orderId, shipment }: ProfitCardProps) {
   const feeSource = profit.feeSource
   const notes = NOTE_ORDER.filter((k) => profit.flags[k])
   const loss = profit.profitPaise < 0
+  const lines: TotalsLine[] = [
+    ...rows
+      .filter(([, , , show]) => show)
+      .map(([label, paise, cost]) => ({
+        label,
+        value: cost && paise > 0 ? `−${fmt.money(paise)}` : fmt.money(paise),
+        detail:
+          label === copy.fees && feeSource ? (
+            <span title={copy.feeSourceHelp[feeSource]}>· {copy.feeSource[feeSource]}</span>
+          ) : undefined,
+      })),
+    {
+      label: copy.profit,
+      value: loss ? `−${fmt.money(-profit.profitPaise)}` : fmt.money(profit.profitPaise),
+      strong: true,
+      negative: loss,
+    },
+  ]
 
   return (
     <DataCard title={copy.title}>
-      <dl className="flex flex-col gap-1.5 text-body">
-        {rows
-          .filter(([, , , show]) => show)
-          .map(([label, paise, cost]) => (
-            <div key={label} className="flex justify-between gap-3">
-              <dt className="text-muted-foreground">
-                {label}
-                {label === copy.fees && feeSource ? (
-                  <span
-                    className="ml-1.5 text-caption text-muted-foreground"
-                    title={copy.feeSourceHelp[feeSource]}
-                  >
-                    · {copy.feeSource[feeSource]}
-                  </span>
-                ) : null}
-              </dt>
-              <dd className="tabular-nums">
-                {cost && paise > 0 ? `−${fmt.money(paise)}` : fmt.money(paise)}
-              </dd>
-            </div>
-          ))}
-        <div className="mt-1 flex justify-between gap-3 border-t border-hairline pt-2 font-semibold">
-          <dt className="text-ink-strong">{copy.profit}</dt>
-          <dd className={loss ? 'tabular-nums text-danger' : 'tabular-nums text-ink-strong'}>
-            {loss ? `−${fmt.money(-profit.profitPaise)}` : fmt.money(profit.profitPaise)}
-          </dd>
-        </div>
-        {profit.marginBps !== null ? (
-          <p className="text-right text-caption text-muted-foreground">
-            {copy.margin(
-              formatPercent(profit.marginBps / 10_000, {
-                locale: fmt.intl,
-                maximumFractionDigits: 1,
-              }),
-            )}
-          </p>
-        ) : null}
-      </dl>
+      <TotalsList lines={lines} />
+      {profit.marginBps !== null ? (
+        <p className="mt-2 text-right text-caption text-muted-foreground">
+          {copy.margin(
+            formatPercent(profit.marginBps / 10_000, {
+              locale: fmt.intl,
+              maximumFractionDigits: 1,
+            }),
+          )}
+        </p>
+      ) : null}
       {notes.length > 0 ? (
         <ul className="mt-3 flex flex-col gap-1 text-caption text-muted-foreground">
           {notes.map((k) => (

@@ -5,6 +5,7 @@ import { cn } from '@commerce/ui/lib/utils'
 import { Popover, PopoverContent, PopoverTrigger } from '@commerce/ui/shadcn/popover'
 import type { ReactTable, RowData } from '@tanstack/react-table'
 import { type ComponentProps, type ReactNode, useState } from 'react'
+import CountBadge from '@/components/layout/count-badge'
 import { tableContent } from '@/data/table'
 import { useCopy } from '@/hooks/use-copy'
 import ColumnsMenu from './columns-menu'
@@ -102,11 +103,7 @@ export default function ResourceTableToolbar<T extends RowData>({
                 nativeButton
               >
                 <SlidersHorizontal />
-                {applied.length > 0 ? (
-                  <span className="flex h-4 min-w-4 items-center justify-center rounded-sm bg-foreground px-1 text-[0.6875rem] font-semibold text-background tabular-nums">
-                    {applied.length}
-                  </span>
-                ) : null}
+                {applied.length > 0 ? <CountBadge n={applied.length} tone="inverse" /> : null}
               </PopoverTrigger>
               <PopoverContent align="end" className={filtersClassName ?? 'w-64'}>
                 {typeof filters === 'function' ? filters(() => setFiltersOpen(false)) : filters}

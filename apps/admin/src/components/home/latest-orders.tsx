@@ -1,12 +1,12 @@
 import type { DashboardSummary } from '@commerce/api'
 import Link from 'next/link'
 import RelativeTime from '@/components/layout/relative-time'
+import SectionHead from '@/components/layout/section-head'
 import { homePageContent } from '@/data/home'
 import { getCopy, getLocale } from '@/lib/copy-server'
 import { formatters } from '@/lib/format'
 import { initials } from '@/lib/initials'
 import { routes } from '@/lib/routes'
-import SectionHead from './section-head'
 
 type LatestOrdersProps = {
   orders: DashboardSummary['recentOrders']

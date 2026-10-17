@@ -11,10 +11,10 @@ import {
 import { Button } from '@commerce/ui/shadcn/button'
 import Link from 'next/link'
 import IconBadge from '@/components/layout/icon-badge'
+import SectionHead from '@/components/layout/section-head'
 import StatusChip from '@/components/layout/status-chip'
 import { homeContent, homePageContent } from '@/data/home'
 import { getCopy } from '@/lib/copy-server'
-import SectionHead from './section-head'
 
 type TodoCardsProps = {
   needsYou: DashboardSummary['needsYou']

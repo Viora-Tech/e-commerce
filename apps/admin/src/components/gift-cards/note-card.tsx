@@ -1,10 +1,10 @@
 'use client'
 
 import { Button } from '@commerce/ui/shadcn/button'
-import { Card } from '@commerce/ui/shadcn/card'
 import { Textarea } from '@commerce/ui/shadcn/textarea'
 import { useState } from 'react'
 import { toast } from 'sonner'
+import DataCard from '@/components/layout/data-card'
 import { giftCardDetailContent } from '@/data/gift-cards'
 import { api } from '@/lib/api-client'
 
@@ -39,19 +39,20 @@ export default function NoteCard({ card, onChanged }: NoteCardProps) {
   const dirty = value.trim() !== (card.note ?? '')
 
   return (
-    <Card gap={3} inset={5}>
-      <p className="text-card-title text-foreground">{copy.heading}</p>
-      <Textarea
-        rows={3}
-        value={value}
-        placeholder={copy.placeholder}
-        onChange={(e) => setValue(e.target.value)}
-      />
-      {dirty ? (
-        <Button size="sm" className="self-end" onClick={handleSave} disabled={busy}>
-          {copy.save}
-        </Button>
-      ) : null}
-    </Card>
+    <DataCard title={copy.heading}>
+      <div className="flex flex-col gap-3">
+        <Textarea
+          rows={3}
+          value={value}
+          placeholder={copy.placeholder}
+          onChange={(e) => setValue(e.target.value)}
+        />
+        {dirty ? (
+          <Button size="sm" className="self-end" onClick={handleSave} disabled={busy}>
+            {copy.save}
+          </Button>
+        ) : null}
+      </div>
+    </DataCard>
   )
 }

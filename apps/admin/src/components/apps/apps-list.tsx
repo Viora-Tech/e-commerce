@@ -12,6 +12,7 @@ import { toast } from 'sonner'
 import ConfirmDialog from '@/components/layout/confirm-dialog'
 import PageBody from '@/components/layout/page-body'
 import PageHeader from '@/components/layout/page-header'
+import SectionHead from '@/components/layout/section-head'
 import InlineState from '@/components/states/inline-state'
 import { appsContent } from '@/data/apps'
 import { useCopy } from '@/hooks/use-copy'
@@ -31,15 +32,6 @@ const GRID = 'grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3'
 
 function describeError(err: unknown, fallback: string) {
   return err instanceof Error && err.message ? err.message : fallback
-}
-
-function SectionHead({ title, intro }: { title: string; intro: string }) {
-  return (
-    <div className="flex flex-col">
-      <h2 className="text-card-title text-ink-strong">{title}</h2>
-      <p className="text-body text-muted-foreground">{intro}</p>
-    </div>
-  )
 }
 
 /** Apps home (Figma "Apps / Apps home"): featured banner, Installed, then the App Store. */

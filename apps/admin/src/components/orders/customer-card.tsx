@@ -1,7 +1,6 @@
 'use client'
 
 import { Copy, Pencil, WhatsappLogo } from '@commerce/ui/icons'
-import { cn } from '@commerce/ui/lib/utils'
 import { Button } from '@commerce/ui/shadcn/button'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
@@ -10,6 +9,7 @@ import { toast } from 'sonner'
 import CustomerAvatar from '@/components/customers/customer-avatar'
 import CopyButton from '@/components/fields/copy-button'
 import DataCard from '@/components/layout/data-card'
+import KeyValueList, { type KeyValueRow } from '@/components/layout/key-value-list'
 import { INDIAN_STATES } from '@/data/india'
 import { orderDetailContent } from '@/data/orders'
 import { useCopy } from '@/hooks/use-copy'
@@ -20,8 +20,6 @@ import type { OrderDetail } from './order-detail-types'
 type CustomerCardProps = {
   order: OrderDetail
 }
-
-type Row = { key: string; label: string; value: string; href?: string | undefined }
 
 /** wa.me wants digits only, with the country code: a bare 10-digit number is Indian. */
 function whatsappHref(phone: string): string {
@@ -57,23 +55,23 @@ export default function CustomerCard({ order }: CustomerCardProps) {
   const a = order.shippingAddress
   const name = a?.name || order.customer?.name || ''
   const phone = order.phone || a?.phone || ''
-  const contact: Row[] = [
-    { key: 'name', label: c.name, value: name },
+  const contact: KeyValueRow[] = [
+    { label: c.name, value: name, copy: true },
     {
-      key: 'email',
       label: c.email,
       value: order.email ?? '',
       href: order.email ? `mailto:${order.email}` : undefined,
+      copy: true,
     },
-    { key: 'phone', label: c.phone, value: phone, href: phone ? `tel:${phone}` : undefined },
+    { label: c.phone, value: phone, href: phone ? `tel:${phone}` : undefined, copy: true },
   ]
-  const place: Row[] = a
+  const place: KeyValueRow[] = a
     ? [
-        { key: 'line1', label: c.line1, value: a.line1 },
-        ...(a.line2 ? [{ key: 'line2', label: c.line2, value: a.line2 }] : []),
-        { key: 'city', label: c.city, value: a.city },
-        { key: 'state', label: c.state, value: stateName(a.stateCode) },
-        { key: 'pincode', label: c.pincode, value: a.pincode },
+        { label: c.line1, value: a.line1, copy: true },
+        { label: c.line2, value: a.line2, copy: true, hidden: !a.line2 },
+        { label: c.city, value: a.city, copy: true },
+        { label: c.state, value: stateName(a.stateCode), copy: true },
+        { label: c.pincode, value: a.pincode, copy: true },
       ]
     : []
   // Courier-app order: name, phone, address, city, state, PIN code.
@@ -144,9 +142,15 @@ export default function CustomerCard({ order }: CustomerCardProps) {
           </div>
         </div>
 
-        <DetailRows heading={c.contact} rows={contact} />
+        <div className="flex flex-col gap-1">
+          <p className="text-xs font-medium text-muted-foreground">{c.contact}</p>
+          <KeyValueList rows={contact} />
+        </div>
         {a ? (
-          <DetailRows heading={c.address} rows={place} />
+          <div className="flex flex-col gap-1">
+            <p className="text-xs font-medium text-muted-foreground">{c.address}</p>
+            <KeyValueList rows={place} />
+          </div>
         ) : (
           <div className="flex flex-col gap-1">
             <p className="text-xs font-medium text-muted-foreground">{c.address}</p>
@@ -213,49 +217,5 @@ export default function CustomerCard({ order }: CustomerCardProps) {
         />
       ) : null}
     </DataCard>
-  )
-}
-
-type DetailRowsProps = { heading: string; rows: Row[] }
-
-/** Figma field rows: the label 12px muted over the value, a copy button on the right; an empty
-    field shows a dash and has nothing to copy. */
-function DetailRows({ heading, rows }: DetailRowsProps) {
-  return (
-    <div className="flex flex-col gap-1">
-      <p className="text-xs font-medium text-muted-foreground">{heading}</p>
-      <dl className="-mx-2 flex flex-col">
-        {rows.map((r) => (
-          <div
-            key={r.key}
-            className="group/field flex items-center gap-2 rounded-md px-2 py-1.5 transition-colors hover:bg-row-hover"
-          >
-            <div className="flex min-w-0 flex-1 flex-col">
-              <dt className="text-xs text-muted-foreground">{r.label}</dt>
-              <dd
-                className={cn(
-                  'min-w-0 text-[0.8125rem] text-ink-strong',
-                  r.key === 'email' ? 'truncate' : 'break-words',
-                )}
-                title={r.key === 'email' ? (r.value ?? undefined) : undefined}
-              >
-                {r.value ? (
-                  r.href ? (
-                    <a href={r.href} className="hover:underline">
-                      {r.value}
-                    </a>
-                  ) : (
-                    r.value
-                  )
-                ) : (
-                  <span className="text-muted-foreground">-</span>
-                )}
-              </dd>
-            </div>
-            {r.value ? <CopyButton value={r.value} what={r.label} visible /> : null}
-          </div>
-        ))}
-      </dl>
-    </div>
   )
 }

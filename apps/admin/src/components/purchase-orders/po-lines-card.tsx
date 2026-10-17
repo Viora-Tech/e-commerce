@@ -3,12 +3,12 @@
 import { type PurchaseCurrency, parseAmountMinor } from '@commerce/core/inventory'
 import { Plus, Trash2 } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
-import { Card, CardHeader, CardTitle } from '@commerce/ui/shadcn/card'
 import { Input } from '@commerce/ui/shadcn/input'
 import { useState } from 'react'
 import { variantLabel } from '@/components/inventory/variant-picker'
 import KitIconButton from '@/components/kit/kit-icon-button'
 import KitThumb from '@/components/kit/kit-thumb'
+import DataCard from '@/components/layout/data-card'
 import SelectProductsDialog, {
   type PickedProducts,
 } from '@/components/products/select-products-dialog'
@@ -73,21 +73,19 @@ export default function PoLinesCard({
 
   // Render logic
   return (
-    <Card size="form" gap="none" inset="y-none">
-      <CardHeader className="grid-cols-[1fr_auto] items-center py-5">
-        <CardTitle className="flex items-center gap-2">
-          {copy.heading}
-          <span className="rounded-full bg-muted px-2 py-0.5 text-caption font-medium text-muted-foreground tabular-nums">
-            {lines.length}
-          </span>
-        </CardTitle>
-        {locked ? null : (
+    <DataCard
+      title={copy.heading}
+      count={lines.length}
+      flush
+      action={
+        locked ? null : (
           <Button variant="outline" size="sm" onClick={() => setPicking(true)}>
             <Plus aria-hidden="true" />
             {copy.add}
           </Button>
-        )}
-      </CardHeader>
+        )
+      }
+    >
       {lines.length === 0 ? (
         <p className="border-line border-t px-5 py-10 text-center text-body text-muted-foreground">
           {copy.empty}
@@ -169,6 +167,6 @@ export default function PoLinesCard({
       {locked ? null : (
         <SelectProductsDialog open={picking} onOpenChange={setPicking} onConfirm={handlePick} />
       )}
-    </Card>
+    </DataCard>
   )
 }

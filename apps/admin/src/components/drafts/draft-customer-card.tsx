@@ -2,11 +2,11 @@
 
 import { Search } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
-import { Card } from '@commerce/ui/shadcn/card'
 import { Field, FieldLabel } from '@commerce/ui/shadcn/field'
 import { Input } from '@commerce/ui/shadcn/input'
 import { useEffect, useState } from 'react'
 import type { DraftFormState } from '@/components/drafts/draft-form-state'
+import DataCard from '@/components/layout/data-card'
 import { draftEditorContent as copy } from '@/data/drafts'
 import { api } from '@/lib/api-client'
 
@@ -60,68 +60,71 @@ export default function DraftCustomerCard({ form, onChange }: DraftCustomerCardP
 
   // Render logic
   return (
-    <Card gap={4} inset={5}>
-      <div className="flex items-center justify-between gap-3">
-        <p className="text-card-title text-ink-strong">{copy.customer.heading}</p>
-        {form.customerId ? (
+    <DataCard
+      title={copy.customer.heading}
+      action={
+        form.customerId ? (
           <Button variant="ghost" size="sm" onClick={handleClear}>
             {copy.customer.clear}
           </Button>
-        ) : null}
-      </div>
-      {form.customerId ? null : (
-        <div className="relative">
-          <Search className="-translate-y-1/2 absolute top-1/2 left-3 size-4 text-muted-foreground" />
+        ) : null
+      }
+    >
+      <div className="flex flex-col gap-4">
+        {form.customerId ? null : (
+          <div className="relative">
+            <Search className="-translate-y-1/2 absolute top-1/2 left-3 size-4 text-muted-foreground" />
+            <Input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder={copy.customer.search}
+              className="pl-9"
+            />
+            {results.length > 0 ? (
+              <ul className="absolute z-20 mt-1 w-full overflow-hidden rounded-lg border border-border bg-card p-1 shadow-popover">
+                {results.map((c) => (
+                  <li key={c.id}>
+                    <button
+                      type="button"
+                      onClick={() => handlePick(c)}
+                      className="flex w-full flex-col items-start rounded-md px-2 py-2 text-left hover:bg-muted"
+                    >
+                      <span className="text-body text-foreground">{c.name ?? c.email}</span>
+                      <span className="text-caption text-muted-foreground">{c.email}</span>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            ) : null}
+          </div>
+        )}
+        <Field>
+          <FieldLabel htmlFor="draft-customer-name">{copy.customer.name}</FieldLabel>
           <Input
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder={copy.customer.search}
-            className="pl-9"
+            id="draft-customer-name"
+            value={form.customerName}
+            onChange={(e) => onChange({ customerName: e.target.value })}
           />
-          {results.length > 0 ? (
-            <ul className="absolute z-20 mt-1 w-full overflow-hidden rounded-lg border border-border bg-card p-1 shadow-popover">
-              {results.map((c) => (
-                <li key={c.id}>
-                  <button
-                    type="button"
-                    onClick={() => handlePick(c)}
-                    className="flex w-full flex-col items-start rounded-md px-2 py-2 text-left hover:bg-muted"
-                  >
-                    <span className="text-body text-foreground">{c.name ?? c.email}</span>
-                    <span className="text-caption text-muted-foreground">{c.email}</span>
-                  </button>
-                </li>
-              ))}
-            </ul>
-          ) : null}
-        </div>
-      )}
-      <Field>
-        <FieldLabel htmlFor="draft-customer-name">{copy.customer.name}</FieldLabel>
-        <Input
-          id="draft-customer-name"
-          value={form.customerName}
-          onChange={(e) => onChange({ customerName: e.target.value })}
-        />
-      </Field>
-      <Field>
-        <FieldLabel htmlFor="draft-email">{copy.customer.email}</FieldLabel>
-        <Input
-          id="draft-email"
-          type="email"
-          value={form.email}
-          onChange={(e) => onChange({ email: e.target.value })}
-        />
-        <p className="text-caption text-muted-foreground">{copy.customer.help}</p>
-      </Field>
-      <Field>
-        <FieldLabel htmlFor="draft-phone">{copy.customer.phone}</FieldLabel>
-        <Input
-          id="draft-phone"
-          value={form.phone}
-          onChange={(e) => onChange({ phone: e.target.value })}
-        />
-      </Field>
-    </Card>
+        </Field>
+        <Field>
+          <FieldLabel htmlFor="draft-email">{copy.customer.email}</FieldLabel>
+          <Input
+            id="draft-email"
+            type="email"
+            value={form.email}
+            onChange={(e) => onChange({ email: e.target.value })}
+          />
+          <p className="text-caption text-muted-foreground">{copy.customer.help}</p>
+        </Field>
+        <Field>
+          <FieldLabel htmlFor="draft-phone">{copy.customer.phone}</FieldLabel>
+          <Input
+            id="draft-phone"
+            value={form.phone}
+            onChange={(e) => onChange({ phone: e.target.value })}
+          />
+        </Field>
+      </div>
+    </DataCard>
   )
 }

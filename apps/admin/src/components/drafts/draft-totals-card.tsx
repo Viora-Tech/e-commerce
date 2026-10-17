@@ -1,12 +1,13 @@
 'use client'
 
 import { parseRupees } from '@commerce/money'
-import { Card } from '@commerce/ui/shadcn/card'
 import { Input } from '@commerce/ui/shadcn/input'
 import { useState } from 'react'
 import type { DraftFormState } from '@/components/drafts/draft-form-state'
 import { draftTotals } from '@/components/drafts/draft-form-state'
 import MoneyInput from '@/components/fields/money-input'
+import DataCard from '@/components/layout/data-card'
+import TotalsList, { type TotalsLine } from '@/components/layout/totals-list'
 import { draftEditorContent } from '@/data/drafts'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 
@@ -37,48 +38,42 @@ export default function DraftTotalsCard({ form, onChange }: DraftTotalsCardProps
 
   // Render logic
   const { subtotalPaise, totalPaise } = draftTotals(form)
+  const lines: TotalsLine[] = [
+    { label: copy.totals.subtotal, value: fmt.money(subtotalPaise) },
+    {
+      label: <label htmlFor="draft-discount">{copy.totals.discount}</label>,
+      value: (
+        <div className="w-36">
+          <MoneyInput id="draft-discount" value={discount} onChange={handleDiscount} />
+        </div>
+      ),
+    },
+    {
+      label: <label htmlFor="draft-discount-label">{copy.totals.discountLabel}</label>,
+      value: (
+        <div className="w-36">
+          <Input
+            id="draft-discount-label"
+            value={form.discountLabel}
+            onChange={(e) => onChange({ discountLabel: e.target.value })}
+          />
+        </div>
+      ),
+    },
+    {
+      label: <label htmlFor="draft-shipping">{copy.totals.shipping}</label>,
+      value: (
+        <div className="w-36">
+          <MoneyInput id="draft-shipping" value={shipping} onChange={handleShipping} />
+        </div>
+      ),
+    },
+    { label: copy.totals.total, value: fmt.money(totalPaise), strong: true },
+  ]
 
   return (
-    <Card gap={4} inset={5}>
-      <p className="text-card-title text-ink-strong">{copy.totals.heading}</p>
-      <dl className="flex flex-col gap-3 text-body">
-        <div className="flex items-center justify-between">
-          <dt className="text-muted-foreground">{copy.totals.subtotal}</dt>
-          <dd className="tabular-nums">{fmt.money(subtotalPaise)}</dd>
-        </div>
-        <div className="flex items-center justify-between gap-4">
-          <dt className="text-muted-foreground">
-            <label htmlFor="draft-discount">{copy.totals.discount}</label>
-          </dt>
-          <dd className="w-36">
-            <MoneyInput id="draft-discount" value={discount} onChange={handleDiscount} />
-          </dd>
-        </div>
-        <div className="flex items-center justify-between gap-4">
-          <dt className="text-muted-foreground">
-            <label htmlFor="draft-discount-label">{copy.totals.discountLabel}</label>
-          </dt>
-          <dd className="w-36">
-            <Input
-              id="draft-discount-label"
-              value={form.discountLabel}
-              onChange={(e) => onChange({ discountLabel: e.target.value })}
-            />
-          </dd>
-        </div>
-        <div className="flex items-center justify-between gap-4">
-          <dt className="text-muted-foreground">
-            <label htmlFor="draft-shipping">{copy.totals.shipping}</label>
-          </dt>
-          <dd className="w-36">
-            <MoneyInput id="draft-shipping" value={shipping} onChange={handleShipping} />
-          </dd>
-        </div>
-        <div className="flex items-center justify-between border-line border-t pt-3 font-semibold text-ink-strong">
-          <dt>{copy.totals.total}</dt>
-          <dd className="tabular-nums">{fmt.money(totalPaise)}</dd>
-        </div>
-      </dl>
-    </Card>
+    <DataCard title={copy.totals.heading}>
+      <TotalsList lines={lines} />
+    </DataCard>
   )
 }

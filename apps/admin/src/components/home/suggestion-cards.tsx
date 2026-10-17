@@ -15,8 +15,8 @@ import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
+import SectionHead from '@/components/layout/section-head'
 import { EASE_OUT, ENTER_SCALE, instant, layout, MOTION_MS } from '@/lib/motion'
-import SectionHead from './section-head'
 
 export type Suggestion = {
   id: string

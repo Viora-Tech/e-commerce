@@ -2,8 +2,8 @@
 
 import type { GrowthOutcomes, OutcomeKind } from '@commerce/api'
 import { BadgePercent, LinkIcon, Send, Workflow } from '@commerce/ui/icons'
-import { Card } from '@commerce/ui/shadcn/card'
 import Link from 'next/link'
+import DataCard from '@/components/layout/data-card'
 import { growthOverviewContent } from '@/data/growth'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 
@@ -29,13 +29,7 @@ export default function OutcomesCard({ outcomes }: OutcomesCardProps) {
   const total = outcomes.earnedPaise
 
   return (
-    <Card gap={4} inset={5}>
-      <div className="flex flex-col gap-1">
-        <h2 className="text-card-title text-ink-strong">{copy.title}</h2>
-        <p className="text-caption text-muted-foreground">
-          {copy.subtitle(fmt.number(outcomes.earnedOrders))}
-        </p>
-      </div>
+    <DataCard title={copy.title} subtitle={copy.subtitle(fmt.number(outcomes.earnedOrders))}>
       <ul className="flex flex-col">
         {outcomes.rows.map((row) => {
           const Icon = ICON[row.kind]
@@ -84,6 +78,6 @@ export default function OutcomesCard({ outcomes }: OutcomesCardProps) {
           )
         })}
       </ul>
-    </Card>
+    </DataCard>
   )
 }

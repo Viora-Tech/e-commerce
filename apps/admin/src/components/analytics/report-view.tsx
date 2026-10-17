@@ -6,6 +6,7 @@ import { Button } from '@commerce/ui/shadcn/button'
 import { Card } from '@commerce/ui/shadcn/card'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
+import DataCard from '@/components/layout/data-card'
 import PageHeader from '@/components/layout/page-header'
 import PillTabs from '@/components/layout/pill-tabs'
 import StatusChip from '@/components/layout/status-chip'
@@ -159,12 +160,9 @@ export default function ReportView({ report, initialRange, initial }: ReportView
           onConfirm={handleSave}
         />
       ) : null}
-      <Card gap="none" inset={5}>
-        <p className="text-card-title text-ink-strong">{c.details}</p>
-        <div className="mt-5">
-          <ReportTable report={report} data={data} />
-        </div>
-      </Card>
+      <DataCard title={c.details}>
+        <ReportTable report={report} data={data} />
+      </DataCard>
     </div>
   )
 }

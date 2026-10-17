@@ -2,11 +2,11 @@ import { ArrowRight } from '@commerce/ui/icons'
 import { cn } from '@commerce/ui/lib/utils'
 import { buttonVariants } from '@commerce/ui/shadcn/button'
 import Link from 'next/link'
+import SectionHead from '@/components/layout/section-head'
 import { homePageContent } from '@/data/home'
 import { getCopy } from '@/lib/copy-server'
 import { routes } from '@/lib/routes'
 import type { HomeSignals } from './home-signals'
-import SectionHead from './section-head'
 import SetupTick from './setup-tick'
 
 type FinishSetupProps = {

@@ -4,8 +4,10 @@ import { siteConfig } from '@commerce/config/site'
 import { CheckIcon, ExternalLink } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { useRouter } from 'next/navigation'
-import { type ReactNode, useState } from 'react'
+import { useState } from 'react'
 import { toast } from 'sonner'
+import DataCard from '@/components/layout/data-card'
+import KeyValueList from '@/components/layout/key-value-list'
 import PageHeader from '@/components/layout/page-header'
 import StatusChip from '@/components/layout/status-chip'
 import { appsContent } from '@/data/apps'
@@ -18,15 +20,6 @@ import AppLogo from './app-logo'
 import InstallDialog from './install-dialog'
 
 type AppListingProps = { app: AppSummary }
-
-function Card({ title, children }: { title: string; children: ReactNode }) {
-  return (
-    <section className="flex flex-col gap-3.5 rounded-2xl border border-border surface-card p-6">
-      <h2 className="text-card-title text-ink-strong">{title}</h2>
-      {children}
-    </section>
-  )
-}
 
 /** An app's listing (Figma "Apps / App listing"): what it does, what it can access, details, install. */
 export default function AppListing({ app }: AppListingProps) {
@@ -85,12 +78,12 @@ export default function AppListing({ app }: AppListingProps) {
       <div className="grid gap-6 lg:grid-cols-[1fr_23.5rem]">
         <div className="flex flex-col gap-6">
           {app.description ? (
-            <Card title={copy.listing.whatItDoes}>
+            <DataCard title={copy.listing.whatItDoes}>
               <p className="text-body text-muted-foreground">{app.description}</p>
-            </Card>
+            </DataCard>
           ) : null}
           {app.credits.length > 0 ? (
-            <Card title={copy.listing.builtOn}>
+            <DataCard title={copy.listing.builtOn}>
               <ul className="flex flex-col gap-2">
                 {app.credits.map((c) => (
                   <li key={c.url}>
@@ -106,36 +99,31 @@ export default function AppListing({ app }: AppListingProps) {
                   </li>
                 ))}
               </ul>
-            </Card>
+            </DataCard>
           ) : null}
         </div>
         <div className="flex flex-col gap-6">
-          <Card title={copy.listing.access}>
-            <ul className="flex flex-col gap-3">
-              {lines.map((line) => (
-                <li key={line} className="flex items-start gap-2 text-body text-muted-foreground">
-                  <CheckIcon
-                    className="mt-0.5 size-4 shrink-0 text-foreground"
-                    aria-hidden="true"
-                  />
-                  {line}
-                </li>
-              ))}
-            </ul>
-            <p className="rounded-[0.625rem] bg-muted px-3 py-2.5 text-body text-muted-foreground">
-              {copy.permissions.nothingElse} {copy.listing.trust}
-            </p>
-          </Card>
-          <Card title={copy.listing.details}>
-            <dl className="flex flex-col gap-3">
-              {details.map((d) => (
-                <div key={d.label} className="flex items-center justify-between gap-4 text-body">
-                  <dt className="text-muted-foreground">{d.label}</dt>
-                  <dd className="text-right text-foreground">{d.value}</dd>
-                </div>
-              ))}
-            </dl>
-          </Card>
+          <DataCard title={copy.listing.access}>
+            <div className="flex flex-col gap-3.5">
+              <ul className="flex flex-col gap-3">
+                {lines.map((line) => (
+                  <li key={line} className="flex items-start gap-2 text-body text-muted-foreground">
+                    <CheckIcon
+                      className="mt-0.5 size-4 shrink-0 text-foreground"
+                      aria-hidden="true"
+                    />
+                    {line}
+                  </li>
+                ))}
+              </ul>
+              <p className="rounded-[0.625rem] bg-muted px-3 py-2.5 text-body text-muted-foreground">
+                {copy.permissions.nothingElse} {copy.listing.trust}
+              </p>
+            </div>
+          </DataCard>
+          <DataCard title={copy.listing.details}>
+            <KeyValueList rows={details} variant="grid" />
+          </DataCard>
         </div>
       </div>
       <InstallDialog

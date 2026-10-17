@@ -3,6 +3,7 @@ import { Card } from '@commerce/ui/shadcn/card'
 import type { ReactNode } from 'react'
 import { layoutContent } from '@/data/layout'
 import ActionMenu, { type ActionItem } from './action-menu'
+import CountBadge from './count-badge'
 import DetailsLink from './details-link'
 
 type DataCardProps = {
@@ -11,6 +12,10 @@ type DataCardProps = {
   meta?: ReactNode
   /** A small glyph after the title (the status icon of a fulfilment group). */
   icon?: ReactNode
+  /** How many rows the card holds: a grey pill after the title. */
+  count?: number
+  /** One grey line under the title. */
+  subtitle?: ReactNode
   /** Right side of the header row: buttons, links, tabs. */
   action?: ReactNode
   /** Links behind the kebab; omitted means no kebab. */
@@ -39,6 +44,8 @@ export default function DataCard({
   title,
   meta,
   icon,
+  count,
+  subtitle,
   action,
   menu,
   detailsHref,
@@ -66,7 +73,11 @@ export default function DataCard({
             {icon ? (
               <span className="flex text-muted-foreground [&_svg]:size-4">{icon}</span>
             ) : null}
+            {count === undefined ? null : <CountBadge n={count} />}
           </div>
+          {subtitle ? (
+            <p className="text-caption font-normal text-muted-foreground">{subtitle}</p>
+          ) : null}
         </div>
         {action || menu ? (
           <div className="flex shrink-0 items-center gap-2">

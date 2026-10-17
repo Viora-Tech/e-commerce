@@ -9,6 +9,7 @@ import { useEffect, useState } from 'react'
 import RangePicker from '@/components/analytics/range-picker'
 import ChartCard from '@/components/layout/chart-card'
 import PageHeader from '@/components/layout/page-header'
+import SectionHead from '@/components/layout/section-head'
 import StatTile from '@/components/layout/stat-tile'
 import { growthOverviewContent } from '@/data/growth'
 import { useCopy, useFormat } from '@/hooks/use-copy'
@@ -157,7 +158,7 @@ export default function GrowthOverviewPage({ initialRange, initial }: GrowthOver
         <TopCampaignsCard rows={data.campaigns} />
       </div>
       <section className="flex flex-col gap-3">
-        <h2 className="text-card-title text-ink-strong">{copy.shortcuts.title}</h2>
+        <SectionHead title={copy.shortcuts.title} />
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {SHORTCUTS.map((s) => (
             <Link key={s.href} href={s.href} className="group">

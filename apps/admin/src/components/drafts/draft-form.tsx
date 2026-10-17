@@ -2,7 +2,6 @@
 
 import { FileEdit } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
-import { Card } from '@commerce/ui/shadcn/card'
 import { Textarea } from '@commerce/ui/shadcn/textarea'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
@@ -20,6 +19,7 @@ import {
 import DraftProductsCard from '@/components/drafts/draft-products-card'
 import DraftTotalsCard from '@/components/drafts/draft-totals-card'
 import ConfirmDialog from '@/components/layout/confirm-dialog'
+import DataCard from '@/components/layout/data-card'
 import PageBody from '@/components/layout/page-body'
 import PageColumns from '@/components/layout/page-columns'
 import PageHeader from '@/components/layout/page-header'
@@ -164,15 +164,16 @@ export default function DraftForm({ draft }: DraftFormProps) {
           <>
             <DraftProductsCard lines={form.lines} onChange={(lines) => patch({ lines })} />
             <DraftTotalsCard key={resetKey} form={form} onChange={patch} />
-            <Card gap={3} inset={5}>
-              <p className="text-card-title text-ink-strong">{copy.note.heading}</p>
-              <Textarea
-                value={form.note}
-                onChange={(e) => patch({ note: e.target.value })}
-                placeholder={copy.note.placeholder}
-                rows={3}
-              />
-            </Card>
+            <DataCard title={copy.note.heading}>
+              <div className="flex flex-col gap-3">
+                <Textarea
+                  value={form.note}
+                  onChange={(e) => patch({ note: e.target.value })}
+                  placeholder={copy.note.placeholder}
+                  rows={3}
+                />
+              </div>
+            </DataCard>
           </>
         }
         side={

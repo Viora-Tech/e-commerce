@@ -8,8 +8,6 @@ export type TotalRow = {
   value: string
   strong?: boolean
   muted?: boolean
-  /** Sits under the total, separated by a rule: what was paid and what is left. */
-  settlement?: boolean
 }
 
 type TaxBreakdown = {
@@ -93,14 +91,12 @@ export function totalRows(
   rows.push({
     label: copy.items.paidByCustomer,
     value: fmt.money(balance.capturedPaise),
-    settlement: true,
   })
   if (balance.refundedPaise > 0) {
     rows.push({
       label: copy.items.refunded,
       value: `−${fmt.money(balance.refundedPaise)}`,
       muted: true,
-      settlement: true,
     })
   }
   if (balance.balancePaise !== 0) {
@@ -108,7 +104,6 @@ export function totalRows(
       label: balance.balancePaise > 0 ? copy.items.balanceOwed : copy.items.balance,
       value: fmt.money(Math.abs(balance.balancePaise)),
       strong: true,
-      settlement: true,
     })
   }
 
