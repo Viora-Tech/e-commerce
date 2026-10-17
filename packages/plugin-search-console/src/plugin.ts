@@ -2,6 +2,7 @@ import { SEARCH_CONSOLE_APP_ID, SEARCH_CONSOLE_SYNC_JOB } from '@commerce/core/s
 import { definePlugin } from '@commerce/plugins'
 import { searchConsoleOAuthApp } from './google'
 import { syncSearchConsole } from './server'
+import { parseSearchConsoleSettings } from './settings'
 
 /**
  * Google Search Console: the store's Google search numbers (clicks, views, click rate,
@@ -21,6 +22,35 @@ export const searchConsolePlugin = definePlugin({
   company: 'Google',
   description:
     'See how shoppers find you on Google: the searches, your top pages, pages almost on page 1, pages losing clicks, and your sitemap.',
+  access: {
+    resources: [
+      {
+        resource: 'store-pages',
+        level: 'read',
+        why: 'Your store’s address and pages, to match Google’s numbers',
+      },
+      { resource: 'products', level: 'read', why: 'Shows each product page’s Google searches' },
+    ],
+    summary: 'search numbers',
+    shares: [
+      {
+        when: 'When you connect and on each sync',
+        what: 'Your store’s web address and sitemap address, to read its Search Console property',
+      },
+    ],
+  },
+  // Connected once Google access is saved and a property chosen; a failed sync is the problem.
+  setupState: (raw) => {
+    const s = parseSearchConsoleSettings(raw)
+    return {
+      connected: s.refreshToken !== '' && s.property !== '',
+      problem: s.reconnect
+        ? 'Google access expired. Connect again.'
+        : s.refreshToken !== '' && s.lastError
+          ? s.lastError
+          : null,
+    }
+  },
   provides: {},
   credits: [
     {

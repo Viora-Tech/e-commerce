@@ -23,6 +23,19 @@ export const shopifyImportPlugin = definePlugin({
   category: 'migration',
   description:
     'Bring products, collections, customers, orders, pages, blog posts, menus, redirects, files, content types, extra fields, discounts and gift card balances over from Shopify.',
+  access: {
+    resources: [
+      { resource: 'products', level: 'write', why: 'Adds products, variants and their images' },
+      { resource: 'collections', level: 'write', why: 'Adds collections' },
+      { resource: 'customers', level: 'write', why: 'Adds customers and their addresses' },
+      { resource: 'orders', level: 'write', why: 'Adds past orders, read-only' },
+      { resource: 'content', level: 'write', why: 'Adds pages, blog posts, menus and redirects' },
+      { resource: 'files', level: 'write', why: 'Copies your Shopify files' },
+      { resource: 'discounts', level: 'write', why: 'Adds discount codes' },
+      { resource: 'gift-cards', level: 'write', why: 'Adds gift card balances' },
+    ],
+    summary: 'one-time import',
+  },
   provides: {},
   jobs: {
     run: async (ctx, data) => {

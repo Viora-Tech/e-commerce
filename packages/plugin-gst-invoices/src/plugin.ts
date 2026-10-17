@@ -171,6 +171,28 @@ export const gstInvoicesPlugin = definePlugin({
       note: 'Invoice templates and the live preview editor',
     },
   ],
+  access: {
+    resources: [
+      { resource: 'orders', level: 'read', why: 'Paid and shipped orders, to bill them' },
+      {
+        resource: 'customers',
+        level: 'read',
+        why: 'Billing name, address and GSTIN on the invoice',
+      },
+      { resource: 'refunds', level: 'read', why: 'Refunds, to issue credit notes' },
+      {
+        resource: 'invoices',
+        level: 'read-write',
+        why: 'Issues invoices, credit notes, slips and vouchers',
+      },
+      {
+        resource: 'order-events',
+        level: 'read',
+        why: 'Reacts when an order is paid, shipped or refunded',
+      },
+    ],
+    summary: 'makes invoices',
+  },
   provides: {},
   hooks: {
     'order.paid': (ctx, p) => onOrderEvent(ctx, p.orderId, 'paid'),

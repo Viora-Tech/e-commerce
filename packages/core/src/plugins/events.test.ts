@@ -34,6 +34,7 @@ describe('dispatchAppEvent', () => {
       name: 'A',
       version: '0.0.1',
       kind: 'builtin',
+      access: { resources: [] },
       provides: {},
       hooks: {
         'order.paid': async () => {
@@ -47,6 +48,7 @@ describe('dispatchAppEvent', () => {
       name: 'B',
       version: '0.0.1',
       kind: 'builtin',
+      access: { resources: [] },
       provides: {},
       hooks: {
         'order.paid': async () => {

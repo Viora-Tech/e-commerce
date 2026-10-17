@@ -10,6 +10,18 @@ export const decentroPlugin = definePlugin({
   category: 'payments',
   company: 'Decentro',
   description: 'UPI payments by QR code or UPI link, confirmed automatically, with refunds to UPI.',
+  access: {
+    resources: [
+      { resource: 'orders', level: 'read', why: 'Order number and total, to open the payment' },
+      { resource: 'payments', level: 'read-write', why: 'Takes payments and confirms them' },
+      { resource: 'refunds', level: 'read-write', why: 'Sends refunds back to the shopper' },
+    ],
+    summary: 'takes payments',
+    shares: [
+      { when: 'Sent per payment', what: 'Order reference and amount' },
+      { when: 'Sent per refund', what: 'Payment reference and refund amount' },
+    ],
+  },
   provides: { payments: [decentroFactory] },
   admin: {
     icon: 'CreditCard',

@@ -10,6 +10,19 @@ export const sesPlugin = definePlugin({
   category: 'messages',
   company: 'Amazon Web Services',
   description: 'Order emails through Amazon SES.',
+  access: {
+    resources: [
+      { resource: 'customers', level: 'read', why: 'Email address, to send order emails' },
+      { resource: 'orders', level: 'read', why: 'Items, totals and address shown in the email' },
+    ],
+    summary: 'sends emails',
+    shares: [
+      {
+        when: 'Sent per email',
+        what: 'The shopper’s email address and the email itself (order items, totals, address)',
+      },
+    ],
+  },
   provides: { notifications: [sesFactory] },
   admin: {
     icon: 'Inbox',

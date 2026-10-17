@@ -214,6 +214,65 @@ export type AppCredit = {
   note?: string | undefined
 }
 
+/**
+ * The store data an app can touch, shown on its permission step and in the
+ * Installed apps "Can access" column. The admin names each one in the
+ * merchant's language; add a value here and a label there together.
+ */
+export type AppResource =
+  | 'orders'
+  | 'order-events'
+  | 'customers'
+  | 'products'
+  | 'inventory'
+  | 'shipments'
+  | 'payments'
+  | 'refunds'
+  | 'invoices'
+  | 'reviews'
+  | 'collections'
+  | 'discounts'
+  | 'gift-cards'
+  | 'store-pages'
+  | 'content'
+  | 'files'
+  | 'store-settings'
+  | 'visits'
+
+/** `read`: looks only. `write`: creates or changes, never reads back. `read-write`: both. */
+export type AppAccessLevel = 'read' | 'write' | 'read-write'
+
+/** One resource an app reads or changes, and why, in a plain line ("Reads new orders to book pickups"). */
+export type AppResourceAccess = {
+  resource: AppResource
+  level: AppAccessLevel
+  why: string
+}
+
+/** Data the app sends to its outside service, e.g. `{ when: 'Sent per shipment', what: 'Ship-to address, phone…' }`. */
+export type AppDataShare = { when: string; what: string }
+
+/**
+ * What an app declares it can see and do, so the merchant can judge it before
+ * installing and review it after. Derived from what the app's code actually
+ * does: never declare more than the code touches, never leave out what it does.
+ */
+export type AppAccess = {
+  resources: AppResourceAccess[]
+  /** A few words after the access level in the Installed list, e.g. `makes invoices`. */
+  summary?: string | undefined
+  /** Data that leaves the platform for the app's outside service. Empty for apps that keep everything here. */
+  shares?: AppDataShare[] | undefined
+}
+
+/** What the Installed apps list shows for an app besides "installed": derived from the app's own saved settings. */
+export type AppSetupState = {
+  /** The app has what it needs to work (an account connected, a property chosen). */
+  connected: boolean
+  /** A recorded failure the merchant must fix, in words; null when none. */
+  problem: string | null
+}
+
 export type PluginManifest = {
   /** Stable lowercase id, e.g. `razorpay`, `delhivery`, `fedex`. Unique per deployment. */
   id: string
@@ -241,6 +300,14 @@ export type PluginManifest = {
   emailAttachments?: EmailAttachments | undefined
   /** Theme editor app blocks this app contributes (Add panel → Apps tab). */
   storefront?: PluginStorefront | undefined
+  /** What the app can see and do in the store; required so no app installs without saying. */
+  access: AppAccess
+  /**
+   * For an app that keeps its connection in its own settings (`store.apps.settings[id]`) rather
+   * than a provider: whether it is connected and any recorded problem. Apps with providers are
+   * judged by the store's enabled providers instead.
+   */
+  setupState?: ((settings: unknown) => AppSetupState) | undefined
 }
 
 /** commerce.config.ts shape. The core plugin is always loaded and never listed here. */
@@ -265,4 +332,9 @@ export type PluginSummary = {
   productFields: ProductField[]
   admin: { icon: string | null; pages: AppPage[]; orderDetailCard: boolean }
   credits: AppCredit[]
+  access: {
+    resources: AppResourceAccess[]
+    summary: string | null
+    shares: AppDataShare[]
+  }
 }

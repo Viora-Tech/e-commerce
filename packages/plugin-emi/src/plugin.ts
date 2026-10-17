@@ -18,6 +18,23 @@ export const emiPlugin = definePlugin({
   category: 'marketing',
   description:
     'Show "or ₹X/month" on product pages so shoppers see they can pay in parts with EMI or pay later.',
+  access: {
+    resources: [
+      { resource: 'products', level: 'read', why: 'Prices, to show the monthly amount' },
+      {
+        resource: 'store-settings',
+        level: 'read',
+        why: 'Your public Razorpay key id, for its widget',
+      },
+    ],
+    summary: 'shows EMI prices',
+    shares: [
+      {
+        when: 'On product pages, with Razorpay chosen',
+        what: 'The product price and your public Razorpay key id, to Razorpay’s widget',
+      },
+    ],
+  },
   provides: {},
   storefront: { blocks: emiBlocks },
   admin: {
