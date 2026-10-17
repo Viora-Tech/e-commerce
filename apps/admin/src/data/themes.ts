@@ -9,13 +9,9 @@ export const themesContent = {
   tabs: { label: 'Online store', themes: 'Themes', preferences: 'Preferences', seo: 'SEO' },
   library: {
     subtitle: 'The look of your storefront. One theme is live; keep others ready to publish.',
-    current: 'Current theme',
     live: 'Live',
     lastSaved: (when: string) => `Last saved ${when.charAt(0).toLowerCase()}${when.slice(1)}`,
     savedBy: (saved: string, who: string) => `${saved} by ${who}`,
-    sections: (count: number) =>
-      `${count} sections ready to use. Customize it, or preview how shoppers see it.`,
-    sectionsFallback: 'Customize it, or preview how shoppers see it.',
     unsaved: 'Unsaved changes',
     unsavedHelp:
       'Edits in Customize that are not saved yet. Open Customize to save or discard them.',
@@ -38,6 +34,12 @@ export const themesContent = {
     duplicateCurrent: 'Duplicate current theme',
     addFromPreset: 'Add from preset',
     add: 'Add theme',
+    uploadZip: 'Upload Shopify theme zip',
+    preset: 'Preset',
+    importHeading: 'Moving from Shopify? Bring your theme with you',
+    importBody:
+      'Upload the theme zip Shopify emails you. It keeps its look and runs on our cart, checkout (UPI, COD, GST) and accounts. Your live theme does not change.',
+    importAction: 'Upload theme zip',
     published: (name: string) => `${name} is now live`,
     duplicated: (name: string) => `Added ${name}`,
     renamed: 'Theme renamed',

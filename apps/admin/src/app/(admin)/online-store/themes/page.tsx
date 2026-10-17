@@ -1,4 +1,3 @@
-import { SECTION_CATEGORIES } from '@commerce/blocks/puck'
 import { permissions } from '@commerce/core'
 import { Palette } from '@commerce/ui/icons'
 import type { Metadata } from 'next'
@@ -9,16 +8,6 @@ import { appRouter, call, serverContext } from '@/lib/api'
 import { storefrontOrigin } from '@/lib/storefront-origin'
 
 export const metadata: Metadata = { title: 'Themes' }
-
-/** Build-your-own containers and elements are not sections; every other category is. */
-const NOT_SECTIONS = new Set(['layout', 'elements'])
-
-/** How many sections the Add panel offers our own themes ("114 sections ready to use"). */
-const SECTION_COUNT = new Set(
-  Object.entries(SECTION_CATEGORIES).flatMap(([id, c]) =>
-    NOT_SECTIONS.has(id) ? [] : [...c.components],
-  ),
-).size
 
 export default async function Page() {
   const context = await serverContext()
@@ -31,11 +20,6 @@ export default async function Page() {
   const canPublish =
     me?.isOwner === true || (me?.permissions ?? []).includes(permissions.ONLINE_STORE_PUBLISH)
   return (
-    <ThemesLibrary
-      initial={themes}
-      origin={await storefrontOrigin()}
-      canPublish={canPublish}
-      sectionCount={SECTION_COUNT}
-    />
+    <ThemesLibrary initial={themes} origin={await storefrontOrigin()} canPublish={canPublish} />
   )
 }

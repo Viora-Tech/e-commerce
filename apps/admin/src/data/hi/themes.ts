@@ -11,13 +11,9 @@ export default [
   }),
   translation(themesContent.library, {
     subtitle: 'आपके स्टोर का लुक। एक थीम लाइव रहती है; बाकी पब्लिश के लिए तैयार रखें।',
-    current: 'मौजूदा थीम',
     live: 'लाइव',
     lastSaved: (when: string) => `आख़िरी बार सेव: ${when}`,
     savedBy: (saved: string, who: string) => `${saved} · ${who} ने`,
-    sections: (count: number) =>
-      `${count} सेक्शन इस्तेमाल के लिए तैयार। इसे कस्टमाइज़ करें, या देखें कि ग्राहकों को कैसी दिखती है।`,
-    sectionsFallback: 'इसे कस्टमाइज़ करें, या देखें कि ग्राहकों को कैसी दिखती है।',
     unsaved: 'बिना सेव किए बदलाव',
     unsavedHelp: 'कस्टमाइज़ में किए बदलाव अभी सेव नहीं हुए। सेव या रद्द करने के लिए कस्टमाइज़ खोलें।',
     customize: 'कस्टमाइज़ करें',
@@ -39,6 +35,12 @@ export default [
     duplicateCurrent: 'मौजूदा थीम की कॉपी बनाएँ',
     addFromPreset: 'प्रीसेट से जोड़ें',
     add: 'थीम जोड़ें',
+    uploadZip: 'Shopify थीम की zip अपलोड करें',
+    preset: 'प्रीसेट',
+    importHeading: 'Shopify से आ रहे हैं? अपनी थीम साथ लाएँ',
+    importBody:
+      'Shopify जो थीम zip ईमेल करता है, उसे अपलोड करें। लुक वही रहता है और यह हमारे कार्ट, चेकआउट (UPI, COD, GST) और अकाउंट पर चलती है। आपकी लाइव थीम नहीं बदलती।',
+    importAction: 'थीम zip अपलोड करें',
     published: (name: string) => `${name} अब लाइव है`,
     duplicated: (name: string) => `${name} जोड़ी गई`,
     renamed: 'थीम का नाम बदल गया',

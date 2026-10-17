@@ -11,7 +11,7 @@ type ThemeActionsMenuProps = {
   /** Customize as the menu's first item (Figma "menu open"), for cards whose button is off-screen. */
   customizeHref?: string
   /** The live theme card's kebab is a key button beside Customize (Figma); rows keep the rim. */
-  variant?: 'default' | 'outline'
+  variant?: 'default' | 'outline' | 'plain'
   disabled?: boolean
   onAction: (action: ThemeAction) => void
 }
