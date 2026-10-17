@@ -10,8 +10,8 @@ import ChargesCard from '@/components/landed-cost/charges-card'
 import LandedCostCard from '@/components/landed-cost/landed-cost-card'
 import type { CostPreview } from '@/components/landed-cost/types'
 import PageColumns from '@/components/layout/page-columns'
+import PageHeader from '@/components/layout/page-header'
 import ProoflyPageBody from '@/components/layout/proofly-page-body'
-import ProoflyPageHeader from '@/components/layout/proofly-page-header'
 import SaveBar from '@/components/layout/save-bar'
 import DocumentsCard from '@/components/purchase-documents/documents-card'
 import { inboundShipmentFormContent, inboundShipmentsContent } from '@/data/purchasing'
@@ -112,7 +112,7 @@ export default function ShipmentForm({ shipment, costs, aiReading }: ShipmentFor
         onDiscard={() => setD(JSON.parse(saved) as ShipmentDraft)}
         saving={busy}
       />
-      <ProoflyPageHeader
+      <PageHeader
         title={shipment ? copy.title(shipment.number) : copy.newTitle}
         summary={shipment ? listCopy.status[shipment.status] : undefined}
         back={{ label: copy.back, href: LIST }}

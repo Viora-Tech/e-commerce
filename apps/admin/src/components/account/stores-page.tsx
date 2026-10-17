@@ -7,9 +7,9 @@ import { Skeleton } from '@commerce/ui/shadcn/skeleton'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
+import PageHeader from '@/components/layout/page-header'
 import StatusChip from '@/components/layout/status-chip'
 import SettingsCard from '@/components/settings/settings-card'
-import SettingsPageHeader from '@/components/settings/settings-page-header'
 import { accountContent } from '@/data/account'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
@@ -94,7 +94,7 @@ export default function StoresPage() {
   if (failed) {
     return (
       <div className="flex flex-col gap-4">
-        <SettingsPageHeader title={copy.title} hideBack />
+        <PageHeader title={copy.title} />
         <Card gap={3} inset={6} className="items-start">
           <p className="text-body text-muted-foreground">{copy.loadFailed}</p>
           <Button variant="outline" onClick={handleRetry}>
@@ -107,11 +107,7 @@ export default function StoresPage() {
 
   return (
     <div className="flex flex-col gap-4">
-      <SettingsPageHeader
-        title={copy.title}
-        subtitle={stores ? copy.intro(stores.length) : undefined}
-        hideBack
-      />
+      <PageHeader title={copy.title} subtitle={stores ? copy.intro(stores.length) : undefined} />
       <SettingsCard title={copy.heading} description={copy.body}>
         {stores === null ? (
           <div className="flex flex-col gap-4">

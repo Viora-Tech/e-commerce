@@ -6,8 +6,8 @@ import { Button } from '@commerce/ui/shadcn/button'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import { saveFile } from '@/components/apps/gst-invoices/save-file'
+import PageHeader from '@/components/layout/page-header'
 import ProoflyDetailPage from '@/components/layout/proofly-detail-page'
-import ProoflyPageHeader from '@/components/layout/proofly-page-header'
 import ResourceTable, { type ResourceColumnSpec } from '@/components/table/resource-table'
 import { type RedirectListItem, redirectsContent } from '@/data/redirects'
 import { useCopy, useFormat } from '@/hooks/use-copy'
@@ -131,7 +131,7 @@ export default function RedirectsList({ initial }: RedirectsListProps) {
   return (
     <ProoflyDetailPage
       header={
-        <ProoflyPageHeader
+        <PageHeader
           title={copy.title}
           summary={copy.summary(data.total)}
           back={{ label: copy.back, href: routes.content.menus() }}

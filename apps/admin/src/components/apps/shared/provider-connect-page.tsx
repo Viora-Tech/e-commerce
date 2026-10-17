@@ -11,7 +11,7 @@
  */
 
 import { siteConfig } from '@commerce/config/site'
-import { ArrowLeft, CircleAlert, CircleCheck, ExternalLink } from '@commerce/ui/icons'
+import { CircleAlert, CircleCheck, ExternalLink } from '@commerce/ui/icons'
 import { Alert, AlertDescription, AlertTitle } from '@commerce/ui/shadcn/alert'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Card, CardContent } from '@commerce/ui/shadcn/card'
@@ -21,6 +21,7 @@ import Link from 'next/link'
 import { type ReactNode, useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import AppLogo from '@/components/apps/app-logo'
+import PageHeader from '@/components/layout/page-header'
 import SaveBar from '@/components/layout/save-bar'
 import type { ProviderDef } from '@/components/settings/provider-settings-form'
 import { appsContent } from '@/data/apps'
@@ -229,28 +230,22 @@ export default function ProviderConnectPage<R extends TestOutcome>({
         onDiscard={handleDiscard}
         saving={busy}
       />
-      <Link
-        href={routes.apps.page(providerId)}
-        className="flex w-fit items-center gap-1.5 text-body text-muted-foreground hover:text-foreground"
-      >
-        <ArrowLeft className="size-4" aria-hidden="true" />
-        {apps.title}
-      </Link>
-      <div className="flex flex-wrap items-center gap-4">
-        <AppLogo id={providerId} icon={null} size={48} />
-        <div className="flex min-w-[min(100%,16rem)] flex-1 flex-col">
-          <h1 className="text-page-title text-ink-strong">{copy.title}</h1>
-          <p className="text-caption text-muted-foreground">{copy.intro}</p>
-        </div>
-        <Button
-          variant="ghost"
-          nativeButton={false}
-          render={<a href={siteConfig.urls.docs} target="_blank" rel="noreferrer" />}
-        >
-          {apps.viewGuide}
-          <ExternalLink aria-hidden="true" className="size-3.5" />
-        </Button>
-      </div>
+      <PageHeader
+        title={copy.title}
+        subtitle={copy.intro}
+        back={{ label: apps.title, href: routes.apps.page(providerId) }}
+        lead={{ kind: 'logo', node: <AppLogo id={providerId} icon={null} size={48} /> }}
+        actions={
+          <Button
+            variant="ghost"
+            nativeButton={false}
+            render={<a href={siteConfig.urls.docs} target="_blank" rel="noreferrer" />}
+          >
+            {apps.viewGuide}
+            <ExternalLink aria-hidden="true" className="size-3.5" />
+          </Button>
+        }
+      />
       {error ? (
         <Alert variant="destructive">
           <CircleAlert />

@@ -93,10 +93,10 @@ export const layoutContent = {
   details: 'Details',
   noChange: 'No change',
   moreActions: 'More actions',
+  save: 'Save',
   filter: 'Filter',
   skipToContent: 'Skip to content',
   breadcrumb: 'Breadcrumb',
-  backTo: (label: string) => `Back to ${label}`,
   notFound: {
     heading: 'Page not found',
     body: 'The link may be out of date, or the item was removed.',

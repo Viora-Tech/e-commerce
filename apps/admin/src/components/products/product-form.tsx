@@ -17,8 +17,8 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { type ReactNode, useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import DataCard from '@/components/layout/data-card'
+import PageHeader from '@/components/layout/page-header'
 import ProoflyDetailPage from '@/components/layout/proofly-detail-page'
-import ProoflyPageHeader from '@/components/layout/proofly-page-header'
 import SaveBar from '@/components/layout/save-bar'
 import StatusChip from '@/components/layout/status-chip'
 import MetafieldsCard from '@/components/metaobjects/metafields-card'
@@ -365,19 +365,20 @@ export default function ProductForm({
             onDiscard={handleDiscard}
             saving={busy}
           />
-          <ProoflyPageHeader
+          <PageHeader
             title={product ? product.title : copy.newTitle}
             back={{ label: copy.backLabel, href: routes.products.list() }}
-            tile={
-              form.media[0] ? (
+            lead={{
+              kind: 'tile',
+              node: form.media[0] ? (
                 <>
                   {/* biome-ignore lint/performance/noImgElement: the product's own photo from store storage. */}
                   <img src={form.media[0].url} alt="" className="size-full bg-card object-cover" />
                 </>
               ) : (
                 <Package aria-hidden="true" />
-              )
-            }
+              ),
+            }}
             badges={
               product ? (
                 <StatusChip tone={form.status === 'draft' ? 'info' : 'neutral'}>

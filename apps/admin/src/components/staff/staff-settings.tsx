@@ -14,14 +14,15 @@ import {
 import { Button } from '@commerce/ui/shadcn/button'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
+import PageHeader from '@/components/layout/page-header'
 import SectionTabs from '@/components/settings/section-tabs'
-import SettingsPageHeader from '@/components/settings/settings-page-header'
 import SettingsSection from '@/components/settings/settings-section'
 import InviteDialog from '@/components/staff/invite-dialog'
 import MembersCard, { type StaffMemberRow } from '@/components/staff/members-card'
 import PendingInvitesCard, { type PendingInviteRow } from '@/components/staff/pending-invites-card'
 import RoleSheet from '@/components/staff/role-sheet'
 import RolesCard, { type RoleRow } from '@/components/staff/roles-card'
+import { SETTINGS_BACK } from '@/data/settings'
 import { staffContent } from '@/data/staff'
 import { useCopy } from '@/hooks/use-copy'
 import { refreshPermissions, usePermissions } from '@/hooks/use-permissions'
@@ -135,7 +136,7 @@ export default function StaffSettings() {
 
   return (
     <div className="flex flex-col gap-4">
-      <SettingsPageHeader title={copy.title} subtitle={copy.intro} />
+      <PageHeader title={copy.title} subtitle={copy.intro} back={SETTINGS_BACK} />
       <SectionTabs tabs={tabs}>
         <SettingsSection id={copy.tabs.members.id} className="flex flex-col gap-4">
           {canInvite ? (

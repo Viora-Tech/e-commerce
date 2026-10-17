@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react'
 
 type ProoflyDetailPageProps = {
-  /** `ProoflyPageHeader`, plus any banner that belongs above the columns. */
+  /** `PageHeader`, plus any banner that belongs above the columns. */
   header: ReactNode
   main: ReactNode
   side?: ReactNode

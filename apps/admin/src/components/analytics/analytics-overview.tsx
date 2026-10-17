@@ -4,7 +4,7 @@ import type { AnalyticsOverview } from '@commerce/api'
 import { Button } from '@commerce/ui/shadcn/button'
 import { useEffect, useState } from 'react'
 import ChartCard from '@/components/layout/chart-card'
-import ProoflyPageHeader from '@/components/layout/proofly-page-header'
+import PageHeader from '@/components/layout/page-header'
 import { methodLabel } from '@/components/orders/order-detail-types'
 import { analyticsContent } from '@/data/analytics'
 import { INDIAN_STATES } from '@/data/india'
@@ -109,7 +109,7 @@ export default function AnalyticsOverviewPage({
 
   return (
     <div className="flex w-full flex-col gap-6 px-4 py-6 md:px-8 md:py-8">
-      <ProoflyPageHeader
+      <PageHeader
         title={copy.title}
         summary={copy.intro}
         actions={

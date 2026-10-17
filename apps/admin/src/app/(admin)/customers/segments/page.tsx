@@ -3,9 +3,9 @@ import { Button } from '@commerce/ui/shadcn/button'
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
-import CustomersBackLink from '@/components/customers/customers-back-link'
 import SegmentsList from '@/components/customers/segments-list'
 import PageBody from '@/components/layout/page-body'
+import PageHeader from '@/components/layout/page-header'
 import { segmentsContent } from '@/data/customers'
 import { appRouter, call, serverContext } from '@/lib/api'
 import { getCopy } from '@/lib/copy-server'
@@ -24,19 +24,17 @@ export default async function Page() {
 
   return (
     <PageBody width="frame" className="gap-6">
-      <div className="flex flex-col gap-3">
-        <CustomersBackLink href={routes.customers.list()} label={copy.back} />
-        <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-3">
-          <div className="flex min-w-0 flex-col gap-1">
-            <h1 className="text-page-title text-ink-strong">{copy.title}</h1>
-            <p className="text-body text-muted-foreground">{copy.summary(segments.length)}</p>
-          </div>
+      <PageHeader
+        title={copy.title}
+        summary={copy.summary(segments.length)}
+        back={{ label: copy.back, href: routes.customers.list() }}
+        actions={
           <Button render={<Link href={routes.customers.newSegment()} />} nativeButton={false}>
             <Plus />
             {copy.create}
           </Button>
-        </div>
-      </div>
+        }
+      />
       <SegmentsList segments={segments} />
     </PageBody>
   )

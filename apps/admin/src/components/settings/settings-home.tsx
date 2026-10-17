@@ -1,11 +1,11 @@
 import { ChevronRight } from '@commerce/ui/icons'
 import Link from 'next/link'
+import PageHeader from '@/components/layout/page-header'
 import { SETTINGS_GROUPS, settingsHomeContent } from '@/data/settings'
 import { localize } from '@/lib/copy'
 import { getLocale } from '@/lib/copy-server'
 import { pageBody, pageName } from '@/lib/page-names'
 import { routes } from '@/lib/routes'
-import SettingsPageHeader from './settings-page-header'
 import SetupChecklistCard from './setup-checklist-card'
 
 const LINK = 'text-foreground underline underline-offset-2 hover:text-ink-strong'
@@ -19,7 +19,7 @@ export default async function SettingsHome() {
 
   return (
     <div className="flex flex-col gap-6">
-      <SettingsPageHeader title={copy.title} subtitle={copy.intro} hideBack />
+      <PageHeader title={copy.title} subtitle={copy.intro} />
       <SetupChecklistCard />
       <h2 className="sr-only">{copy.all.heading}</h2>
       <ul className="grid gap-3 md:grid-cols-2">

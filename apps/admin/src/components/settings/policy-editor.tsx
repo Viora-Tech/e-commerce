@@ -11,10 +11,10 @@ import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import RichTextField from '@/components/fields/rich-text-field'
+import PageHeader from '@/components/layout/page-header'
 import SaveBar from '@/components/layout/save-bar'
 import ConfirmDelete from '@/components/metaobjects/confirm-delete'
 import SettingsCard from '@/components/settings/settings-card'
-import SettingsPageHeader from '@/components/settings/settings-page-header'
 import SettingsTextRow from '@/components/settings/settings-text-row'
 import SettingsToggleRow from '@/components/settings/settings-toggle-row'
 import { policyEditorContent as copy, policiesContent } from '@/data/policies'
@@ -154,7 +154,7 @@ export default function PolicyEditor({
         onDiscard={handleDiscard}
         saving={busy}
       />
-      <SettingsPageHeader
+      <PageHeader
         title={policiesContent.names[type]}
         subtitle={
           policy?.updatedAt

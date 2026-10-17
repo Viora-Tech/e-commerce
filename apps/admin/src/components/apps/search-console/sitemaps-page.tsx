@@ -10,7 +10,7 @@ import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import DataCard from '@/components/layout/data-card'
 import EmptyState from '@/components/layout/empty-state'
-import ProoflyPageHeader from '@/components/layout/proofly-page-header'
+import PageHeader from '@/components/layout/page-header'
 import StatusChip from '@/components/layout/status-chip'
 import { searchConsoleContent } from '@/data/search-console'
 import { useCopy, useFormat } from '@/hooks/use-copy'
@@ -100,7 +100,7 @@ export default function SitemapsPage() {
 
   return (
     <div className="flex flex-col gap-5">
-      <ProoflyPageHeader title={copy.sitemaps.title} summary={copy.sitemaps.summary} />
+      <PageHeader title={copy.sitemaps.title} summary={copy.sitemaps.summary} />
       <DataCard title={copy.sitemaps.ours}>
         <div className="flex flex-wrap items-center justify-between gap-3">
           <a

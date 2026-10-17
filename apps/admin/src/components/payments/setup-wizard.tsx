@@ -7,9 +7,10 @@ import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { toast } from 'sonner'
+import PageHeader from '@/components/layout/page-header'
 import SettingsCard from '@/components/settings/settings-card'
-import SettingsPageHeader from '@/components/settings/settings-page-header'
 import { gatewayGuides, paymentsSetupContent } from '@/data/payments-setup'
+import { SETTINGS_BACK } from '@/data/settings'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 import { base, instant } from '@/lib/motion'
@@ -150,7 +151,7 @@ export default function SetupWizard({ setup, onReload, onDone }: SetupWizardProp
 
   return (
     <div className="flex w-full flex-col gap-5 py-2">
-      <SettingsPageHeader
+      <PageHeader
         title={setupCopy.title}
         subtitle={copy.progress(index + 1, STEPS.length)}
         actions={
@@ -160,6 +161,7 @@ export default function SetupWizard({ setup, onReload, onDone }: SetupWizardProp
             </Button>
           )
         }
+        back={SETTINGS_BACK}
       />
       <div
         role="progressbar"

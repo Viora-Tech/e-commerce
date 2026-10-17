@@ -370,3 +370,6 @@ export const settingsHomeContent = {
     storageLink: 'Content › Files › Storage',
   },
 } as const
+
+/** The "‹ Settings" link every settings page shows above its title. */
+export const SETTINGS_BACK = { href: SETTINGS_HOME.href, label: settingsContent.nav.back }

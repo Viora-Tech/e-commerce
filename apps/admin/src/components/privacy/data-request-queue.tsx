@@ -60,14 +60,14 @@ export default function DataRequestQueue() {
       <PageHeader
         title={copy.title}
         subtitle={copy.subtitle}
-        icon={<ShieldCheck aria-hidden="true" />}
-        breadcrumbs={[{ label: copy.back, href: '/settings/privacy' }, { label: copy.title }]}
+        back={{ label: copy.back, href: '/settings/privacy' }}
         actions={
           <Button onClick={() => setLogging(true)}>
             <Plus aria-hidden="true" />
             {copy.log}
           </Button>
         }
+        lead={{ kind: 'icon', node: <ShieldCheck aria-hidden="true" /> }}
       />
       <Tabs value={tab} onValueChange={(v) => isTab(v) && setTab(v)}>
         <TabsList>

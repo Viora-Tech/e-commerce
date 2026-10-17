@@ -30,7 +30,7 @@ type DataCardProps = {
 
 /**
  * The titled section every page is built from, after the Saleor Dashboard card (BSD-3).
- * On its own it is a white card on a hairline; inside `DetailLayout` or a list page
+ * On its own it is a white card on a hairline; inside `ProoflyDetailPage` or a list page
  * (`[data-layout=sections]`) it is a flat, edge-to-edge section with a hairline under it.
  * Header: optional grey meta line, the 1.25rem regular title with an optional glyph,
  * actions on the right; body 16px below.

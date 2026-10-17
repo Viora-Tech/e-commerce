@@ -1,7 +1,6 @@
 'use client'
 
 import type { SegmentRules } from '@commerce/core/segments'
-import { Button } from '@commerce/ui/shadcn/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@commerce/ui/shadcn/card'
 import { Field, FieldLabel } from '@commerce/ui/shadcn/field'
 import { Input } from '@commerce/ui/shadcn/input'
@@ -9,13 +8,13 @@ import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import PageBody from '@/components/layout/page-body'
+import PageHeader from '@/components/layout/page-header'
 import SaveBar from '@/components/layout/save-bar'
 import ConditionBuilder from '@/components/rules/condition-builder'
 import { segmentsContent } from '@/data/customers'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 import { routes } from '@/lib/routes'
-import CustomersBackLink from './customers-back-link'
 import DeleteSegmentButton from './delete-segment-button'
 import SegmentPreview from './segment-preview'
 
@@ -80,20 +79,12 @@ export default function SegmentForm({ id, initialName, initialRules }: SegmentFo
         onDiscard={handleDiscard}
         saving={saving}
       />
-      <div className="flex flex-col gap-3">
-        <CustomersBackLink href={routes.customers.segments()} label={builder.back} />
-        <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-3">
-          <h1 className="min-w-0 truncate text-page-title text-ink-strong">
-            {id ? name || builder.editHeading : builder.newHeading}
-          </h1>
-          <div className="flex items-center gap-2">
-            {id ? <DeleteSegmentButton id={id} /> : null}
-            <Button onClick={handleSave} loading={saving}>
-              {builder.save}
-            </Button>
-          </div>
-        </div>
-      </div>
+      <PageHeader
+        title={id ? name || builder.editHeading : builder.newHeading}
+        back={{ label: builder.back, href: routes.customers.segments() }}
+        actions={id ? <DeleteSegmentButton id={id} /> : null}
+        save={{ dirty: true, saving, onSave: handleSave, label: builder.save }}
+      />
       <div className="grid grid-cols-1 items-start gap-5 xl:grid-cols-[minmax(0,1fr)_22rem]">
         <div className="flex flex-col gap-5">
           <Card size="form" className="rounded-xl">

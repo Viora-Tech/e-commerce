@@ -149,7 +149,6 @@ export default function DraftForm({ draft }: DraftFormProps) {
       />
       <PageHeader
         title={number ? copy.editTitle(number) : copy.newTitle}
-        icon={<FileEdit aria-hidden="true" />}
         subtitle={subtitle}
         actions={
           <>
@@ -165,10 +164,8 @@ export default function DraftForm({ draft }: DraftFormProps) {
             </Button>
           </>
         }
-        breadcrumbs={[
-          { label: draftsContent.title, href: routes.orders.drafts() },
-          { label: number ? copy.editTitle(number) : copy.newTitle },
-        ]}
+        back={{ label: draftsContent.title, href: routes.orders.drafts() }}
+        lead={{ kind: 'icon', node: <FileEdit aria-hidden="true" /> }}
       />
       <PageColumns
         main={

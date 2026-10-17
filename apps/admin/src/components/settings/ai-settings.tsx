@@ -15,14 +15,14 @@ import { RadioGroup, RadioGroupItem } from '@commerce/ui/shadcn/radio-group'
 import { Skeleton } from '@commerce/ui/shadcn/skeleton'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
+import PageHeader from '@/components/layout/page-header'
 import SaveBar from '@/components/layout/save-bar'
 import { aiContent } from '@/data/ai'
-import { settingsContent } from '@/data/settings'
+import { SETTINGS_BACK, settingsContent } from '@/data/settings'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 import AiActivityCard from './ai-activity-card'
 import SettingsCard from './settings-card'
-import SettingsPageHeader from './settings-page-header'
 import SettingsRow from './settings-row'
 import SettingsToggleRow from './settings-toggle-row'
 
@@ -114,13 +114,11 @@ export default function AiSettings() {
         }}
         saving={busy}
       />
-      <SettingsPageHeader
+      <PageHeader
         title={copy.settings.title}
         subtitle={copy.settings.subtitle}
-        onSave={handleSave}
-        dirty={dirty}
-        saving={busy}
-        saveLabel={copy.settings.save}
+        back={SETTINGS_BACK}
+        save={{ dirty, saving: busy, onSave: handleSave, label: copy.settings.save }}
       />
       {!loaded || !features || !usage ? (
         <Skeleton className="h-96 w-full rounded-2xl" />

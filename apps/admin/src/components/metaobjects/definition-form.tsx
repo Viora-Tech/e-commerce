@@ -6,8 +6,8 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { toast } from 'sonner'
+import PageHeader from '@/components/layout/page-header'
 import ProoflyDetailPage from '@/components/layout/proofly-detail-page'
-import ProoflyPageHeader from '@/components/layout/proofly-page-header'
 import SaveBar from '@/components/layout/save-bar'
 import { definitionFormContent } from '@/data/metaobjects'
 import { useCopy } from '@/hooks/use-copy'
@@ -112,7 +112,7 @@ export default function DefinitionForm({ definition, targets }: DefinitionFormPr
   return (
     <ProoflyDetailPage
       header={
-        <ProoflyPageHeader
+        <PageHeader
           title={title}
           back={{ label: copy.back, href: routes.content.contentTypes() }}
           actions={

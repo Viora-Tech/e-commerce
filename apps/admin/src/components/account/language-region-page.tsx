@@ -3,9 +3,9 @@
 import { ToggleGroup, ToggleGroupItem } from '@commerce/ui/shadcn/toggle-group'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
+import PageHeader from '@/components/layout/page-header'
 import LanguageField from '@/components/settings/language-field'
 import SettingsCard from '@/components/settings/settings-card'
-import SettingsPageHeader from '@/components/settings/settings-page-header'
 import SettingsRow from '@/components/settings/settings-row'
 import { accountContent } from '@/data/account'
 import { useCopy, useRegion } from '@/hooks/use-copy'
@@ -53,7 +53,7 @@ export default function LanguageRegionPage() {
 
   return (
     <div className="flex flex-col gap-4">
-      <SettingsPageHeader title={copy.language.title} subtitle={copy.language.intro} hideBack />
+      <PageHeader title={copy.language.title} subtitle={copy.language.intro} />
       <SettingsCard
         title={copy.language.heading}
         description={copy.language.body}

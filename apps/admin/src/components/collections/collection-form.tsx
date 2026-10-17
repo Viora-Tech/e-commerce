@@ -7,8 +7,8 @@ import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import ActionMenu from '@/components/layout/action-menu'
+import PageHeader from '@/components/layout/page-header'
 import ProoflyDetailPage from '@/components/layout/proofly-detail-page'
-import ProoflyPageHeader from '@/components/layout/proofly-page-header'
 import SaveBar from '@/components/layout/save-bar'
 import StatusChip from '@/components/layout/status-chip'
 import MetafieldsCard from '@/components/metaobjects/metafields-card'
@@ -130,7 +130,7 @@ export default function CollectionForm({ collection, storefrontOrigin }: Collect
   const count = form.kind === 'automatic' && matches !== null ? matches : form.products.length
   const updated = collection?.updatedAt ? fmt.day(collection.updatedAt) : null
   const header = (
-    <ProoflyPageHeader
+    <PageHeader
       title={form.title || (collection ? collection.title : detail.newTitle)}
       back={{ label: detail.back, href: routes.products.collections() }}
       badges={

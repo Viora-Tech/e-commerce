@@ -8,7 +8,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
-import ProoflyPageHeader from '@/components/layout/proofly-page-header'
+import PageHeader from '@/components/layout/page-header'
 import SaveBar from '@/components/layout/save-bar'
 import { campaignEditorContent as copy } from '@/data/marketing-campaigns'
 import { api } from '@/lib/api-client'
@@ -171,7 +171,7 @@ export default function CampaignEditor({
         onDiscard={() => setForm(JSON.parse(saved) as CampaignForm)}
         saving={busy}
       />
-      <ProoflyPageHeader
+      <PageHeader
         title={title}
         back={{ label: copy.breadcrumb, href: routes.growth.campaigns() }}
         actions={

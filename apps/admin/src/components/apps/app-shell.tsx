@@ -1,9 +1,10 @@
-import { ArrowLeft, CircleAlert, Settings } from '@commerce/ui/icons'
+import { CircleAlert, Settings } from '@commerce/ui/icons'
 import { Alert, AlertDescription, AlertTitle } from '@commerce/ui/shadcn/alert'
 import { Button } from '@commerce/ui/shadcn/button'
 import Link from 'next/link'
 import type { ReactNode } from 'react'
 import PageBody from '@/components/layout/page-body'
+import PageHeader from '@/components/layout/page-header'
 import StatusChip from '@/components/layout/status-chip'
 import { appsContent } from '@/data/apps'
 import { getCopy } from '@/lib/copy-server'
@@ -83,42 +84,38 @@ export default async function AppShell({
   return (
     <PageBody>
       <div className="flex flex-col gap-4">
-        <Link
-          href={routes.apps.list()}
-          className="flex w-fit items-center gap-1 text-body text-muted-foreground hover:text-foreground"
-        >
-          <ArrowLeft className="size-3.5" aria-hidden="true" />
-          {copy.title}
-        </Link>
-        <div className="flex flex-wrap items-start gap-x-4 gap-y-3">
-          <AppLogo id={appId} icon={icon} size={72} />
-          <div className="flex min-w-[min(100%,16rem)] flex-1 flex-col gap-1">
-            <div className="flex flex-wrap items-center gap-3">
-              <h1 className="text-page-title text-ink-strong">{name}</h1>
-              <StatusChip tone={setupHref ? 'attention' : 'success'} className="h-5 text-xs">
-                {setupHref ? copy.needsSetup : copy.active}
-              </StatusChip>
+        <PageHeader
+          title={name}
+          back={{ label: copy.title, href: routes.apps.list() }}
+          lead={{ kind: 'logo', node: <AppLogo id={appId} icon={icon} size={72} /> }}
+          badges={
+            <StatusChip tone={setupHref ? 'attention' : 'success'} className="h-5 text-xs">
+              {setupHref ? copy.needsSetup : copy.active}
+            </StatusChip>
+          }
+          subtitle={
+            <div className="flex flex-col gap-1">
+              {description ? <p>{description}</p> : null}
+              <CreditLine credits={credits} copy={copy} />
             </div>
-            {description ? (
-              <p className="text-caption text-muted-foreground">{description}</p>
-            ) : null}
-            <CreditLine credits={credits} copy={copy} />
-          </div>
-          <div className="flex items-center gap-2">
-            {hasSettings ? (
-              <Button
-                variant="outline"
-                nativeButton={false}
-                render={<Link href={hrefFor(appId, 'settings')} />}
-              >
-                <Settings />
-                {copy.settings}
-              </Button>
-            ) : null}
-            {headerAction}
-            <AppUninstallButton appId={appId} name={name} />
-          </div>
-        </div>
+          }
+          actions={
+            <>
+              {hasSettings ? (
+                <Button
+                  variant="outline"
+                  nativeButton={false}
+                  render={<Link href={hrefFor(appId, 'settings')} />}
+                >
+                  <Settings />
+                  {copy.settings}
+                </Button>
+              ) : null}
+              {headerAction}
+              <AppUninstallButton appId={appId} name={name} />
+            </>
+          }
+        />
         {setupHref ? (
           <Alert>
             <CircleAlert />

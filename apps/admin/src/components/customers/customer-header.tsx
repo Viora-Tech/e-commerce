@@ -16,6 +16,7 @@ import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import ActionMenu from '@/components/layout/action-menu'
+import PageHeader from '@/components/layout/page-header'
 import StatusChip from '@/components/layout/status-chip'
 import { customerDetailContent, customersContent, VIP_SPEND_PAISE } from '@/data/customers'
 import { datesContent } from '@/data/dates'
@@ -26,7 +27,6 @@ import { routes } from '@/lib/routes'
 import CustomerAvatar from './customer-avatar'
 import type { CustomerDetail } from './customer-detail-types'
 import { day } from './customer-detail-types'
-import CustomersBackLink from './customers-back-link'
 
 type CustomerHeaderProps = {
   customer: CustomerDetail
@@ -76,57 +76,60 @@ export default function CustomerHeader({ customer, onEdit }: CustomerHeaderProps
   const subtitle = city ? copy.withCity(since, city) : since
 
   return (
-    <div className="flex flex-col gap-3">
-      <CustomersBackLink href={routes.customers.list()} label={copy.back} />
-      <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-3">
-        <div className="flex min-w-0 items-start gap-3">
-          <CustomerAvatar
-            name={customer.name}
-            email={customer.email}
-            className="size-10 text-body"
-          />
-          <div className="flex min-w-0 flex-col gap-1">
-            <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1">
-              <h1 className="truncate text-page-title text-ink-strong">{title}</h1>
-              <div className="flex items-center gap-1.5">
-                {orderCount === 0 ? (
-                  <StatusChip tone="info">{copy.badges.new}</StatusChip>
-                ) : orderCount > 1 ? (
-                  <StatusChip>{copy.badges.returning}</StatusChip>
-                ) : null}
-                {vip ? <StatusChip tone="info">{copy.badges.vip}</StatusChip> : null}
-              </div>
-            </div>
-            <p className="text-body text-muted-foreground">{subtitle}</p>
-          </div>
-        </div>
-        <div className="flex items-center gap-2">
-          {customer.email ? (
-            <Button
-              variant="key-neutral"
-              render={<a href={`mailto:${customer.email}`} />}
-              nativeButton={false}
-            >
-              <Send />
-              {copy.actions.email}
-            </Button>
-          ) : null}
-          <ActionMenu
-            label={copy.actions.more}
-            variant="outline"
-            size="md"
-            items={[
-              { label: copy.actions.edit, icon: Pencil, onSelect: onEdit },
-              {
-                label: copy.actions.delete,
-                icon: Trash2,
-                destructive: true,
-                onSelect: () => setConfirming(true),
-              },
-            ]}
-          />
-        </div>
-      </div>
+    <>
+      <PageHeader
+        title={title}
+        summary={subtitle}
+        back={{ label: copy.back, href: routes.customers.list() }}
+        lead={{
+          kind: 'avatar',
+          node: (
+            <CustomerAvatar
+              name={customer.name}
+              email={customer.email}
+              className="size-10 text-body"
+            />
+          ),
+        }}
+        badges={
+          <>
+            {orderCount === 0 ? (
+              <StatusChip tone="info">{copy.badges.new}</StatusChip>
+            ) : orderCount > 1 ? (
+              <StatusChip>{copy.badges.returning}</StatusChip>
+            ) : null}
+            {vip ? <StatusChip tone="info">{copy.badges.vip}</StatusChip> : null}
+          </>
+        }
+        actions={
+          <>
+            {customer.email ? (
+              <Button
+                variant="key-neutral"
+                render={<a href={`mailto:${customer.email}`} />}
+                nativeButton={false}
+              >
+                <Send />
+                {copy.actions.email}
+              </Button>
+            ) : null}
+            <ActionMenu
+              label={copy.actions.more}
+              variant="outline"
+              size="md"
+              items={[
+                { label: copy.actions.edit, icon: Pencil, onSelect: onEdit },
+                {
+                  label: copy.actions.delete,
+                  icon: Trash2,
+                  destructive: true,
+                  onSelect: () => setConfirming(true),
+                },
+              ]}
+            />
+          </>
+        }
+      />
       <AlertDialog open={confirming} onOpenChange={setConfirming}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -141,6 +144,6 @@ export default function CustomerHeader({ customer, onEdit }: CustomerHeaderProps
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </div>
+    </>
   )
 }

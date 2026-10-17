@@ -8,8 +8,8 @@ import { FieldGroup } from '@commerce/ui/shadcn/field'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { toast } from 'sonner'
+import PageHeader from '@/components/layout/page-header'
 import ProoflyDetailPage from '@/components/layout/proofly-detail-page'
-import ProoflyPageHeader from '@/components/layout/proofly-page-header'
 import SaveBar from '@/components/layout/save-bar'
 import { entryFormContent, entryListContent } from '@/data/metaobjects'
 import { useCopy } from '@/hooks/use-copy'
@@ -132,7 +132,7 @@ export default function EntryForm({ definition, entry, title }: EntryFormProps) 
   return (
     <ProoflyDetailPage
       header={
-        <ProoflyPageHeader
+        <PageHeader
           title={title ?? copy.newTitle(definition.name)}
           back={{ label: definition.name, href: entriesPath(definition.type) }}
           actions={

@@ -7,7 +7,7 @@ import { Card } from '@commerce/ui/shadcn/card'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import EmptyState from '@/components/layout/empty-state'
-import ProoflyPageHeader from '@/components/layout/proofly-page-header'
+import PageHeader from '@/components/layout/page-header'
 import ResourceTable, { type ResourceColumnSpec } from '@/components/table/resource-table'
 import RowMenu from '@/components/table/row-menu'
 import { growthLinksContent, growthOverviewContent } from '@/data/growth'
@@ -153,7 +153,7 @@ export default function LinksPage({ storefrontOrigin }: LinksPageProps) {
 
   return (
     <div className="flex w-full flex-col gap-6 px-4 py-6 md:px-8 md:py-8">
-      <ProoflyPageHeader
+      <PageHeader
         title={copy.title}
         summary={
           totals === null

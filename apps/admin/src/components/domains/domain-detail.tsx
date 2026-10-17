@@ -19,8 +19,8 @@ import { Switch } from '@commerce/ui/shadcn/switch'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
+import PageHeader from '@/components/layout/page-header'
 import SettingsCard from '@/components/settings/settings-card'
-import SettingsPageHeader from '@/components/settings/settings-page-header'
 import { domainsContent } from '@/data/domains'
 import { usePermissions } from '@/hooks/use-permissions'
 import { api } from '@/lib/api-client'
@@ -134,7 +134,7 @@ export default function DomainDetail({ initial, primaryHostname }: DomainDetailP
 
   return (
     <div className="flex flex-col gap-4">
-      <SettingsPageHeader
+      <PageHeader
         title={domain.hostname}
         back={{ label: copy.back, href: routes.settings.domains() }}
         actions={

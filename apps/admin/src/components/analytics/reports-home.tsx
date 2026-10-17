@@ -17,7 +17,7 @@ import Link from 'next/link'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import AskAiCard from '@/components/home/ask-ai-card'
-import ProoflyPageHeader from '@/components/layout/proofly-page-header'
+import PageHeader from '@/components/layout/page-header'
 import { analyticsContent } from '@/data/analytics'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
@@ -76,7 +76,7 @@ export default function ReportsHome({ reports, saved: initialSaved, assistant }:
   return (
     <div className="flex w-full flex-col gap-8 px-4 py-6 md:px-8 md:py-8">
       <div className="flex flex-col gap-6">
-        <ProoflyPageHeader title={c.title} summary={c.home.intro} />
+        <PageHeader title={c.title} summary={c.home.intro} />
         <AskAiCard
           enabled={assistant}
           placeholder={c.home.askPlaceholder}

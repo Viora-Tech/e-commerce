@@ -13,8 +13,8 @@ import { toast } from 'sonner'
 import ConfirmActionDialog from '@/components/inventory/confirm-action-dialog'
 import CurrencySelect from '@/components/landed-cost/currency-select'
 import PageColumns from '@/components/layout/page-columns'
+import PageHeader from '@/components/layout/page-header'
 import ProoflyPageBody from '@/components/layout/proofly-page-body'
-import ProoflyPageHeader from '@/components/layout/proofly-page-header'
 import SaveBar from '@/components/layout/save-bar'
 import { supplierFormContent } from '@/data/purchasing'
 import { useCopy } from '@/hooks/use-copy'
@@ -123,7 +123,7 @@ export default function SupplierForm({ supplier }: SupplierFormProps) {
         onDiscard={() => setD(JSON.parse(saved) as Draft)}
         saving={busy}
       />
-      <ProoflyPageHeader
+      <PageHeader
         title={supplier ? supplier.name : copy.newTitle}
         back={{ label: copy.back, href: LIST }}
         actions={

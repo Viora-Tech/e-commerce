@@ -6,7 +6,7 @@ import { Alert, AlertDescription, AlertTitle } from '@commerce/ui/shadcn/alert'
 import { Button } from '@commerce/ui/shadcn/button'
 import { useState } from 'react'
 import { toast } from 'sonner'
-import ProoflyPageHeader from '@/components/layout/proofly-page-header'
+import PageHeader from '@/components/layout/page-header'
 import { ordersBulkEditContent } from '@/data/orders-bulk-edit'
 import { useCopy } from '@/hooks/use-copy'
 import { routes } from '@/lib/routes'
@@ -99,7 +99,7 @@ export default function OrdersBulkEditor({ sheet }: OrdersBulkEditorProps) {
   const shown = attempted ? [...validation] : []
   return (
     <div className="flex w-full flex-col gap-6 px-4 py-6 md:px-8 md:py-8">
-      <ProoflyPageHeader
+      <PageHeader
         title={copy.title}
         summary={copy.summary(rows.length)}
         back={{ label: copy.back, href: routes.orders.list() }}

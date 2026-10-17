@@ -1,8 +1,8 @@
 'use client'
 
-import { ChevronLeftIcon, ShoppingBag } from '@commerce/ui/icons'
-import Link from 'next/link'
+import { ShoppingBag } from '@commerce/ui/icons'
 import { type ReactNode, useEffect, useState } from 'react'
+import PageHeader from '@/components/layout/page-header'
 import StatusChip from '@/components/layout/status-chip'
 import { orderDetailContent, ordersContent } from '@/data/orders'
 import { useCopy, useFormat } from '@/hooks/use-copy'
@@ -48,52 +48,36 @@ export default function OrderHeader({ order, actions }: OrderHeaderProps) {
     !closed && order.fulfillmentStatus === 'unfulfilled' && order.paymentStatus === 'paid'
 
   return (
-    <div className="flex flex-col gap-4 print:hidden">
-      <Link
-        href={routes.orders.list()}
-        className="flex w-fit items-center gap-1 text-body text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-      >
-        <ChevronLeftIcon className="size-4" aria-hidden />
-        {copy.back}
-      </Link>
-      <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-3">
-        <div className="flex min-w-0 items-start gap-4">
-          <span
-            aria-hidden="true"
-            className="flex size-10 shrink-0 items-center justify-center rounded-lg border border-border bg-muted text-foreground shadow-input [&_svg]:size-5"
-          >
-            <ShoppingBag />
-          </span>
-          <div className="flex min-w-0 flex-col gap-1">
-            <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1">
-              <h1 className="truncate text-page-title text-ink-strong">
-                {copy.title(order.number)}
-              </h1>
-              <div className="flex flex-wrap items-center gap-1.5">
-                {closed ? <OrderChip kind="order" value={order.status} /> : null}
-                <OrderChip kind="orderPayment" value={order.paymentStatus} />
-                {toShip ? (
-                  <StatusChip tone="info">{listCopy.toShip}</StatusChip>
-                ) : (
-                  <OrderChip kind="fulfilment" value={order.fulfillmentStatus} />
-                )}
-              </div>
-            </div>
-            <p className="text-body text-muted-foreground">
-              <span title={fmt.dateTime(order.placedAt)}>
-                {copy.placed(fmt.ago(order.placedAt))}
-              </span>
-              {order.paymentMethod ? (
-                <>
-                  {' · '}
-                  {copy.paidVia}: {methodLabel(order.paymentMethod, copy)}
-                </>
-              ) : null}
-            </p>
-          </div>
-        </div>
-        {actions(neighbours)}
-      </div>
+    <div className="print:hidden">
+      <PageHeader
+        title={copy.title(order.number)}
+        size="sm"
+        back={{ label: copy.back, href: routes.orders.list() }}
+        lead={{ kind: 'tile', node: <ShoppingBag /> }}
+        badges={
+          <>
+            {closed ? <OrderChip kind="order" value={order.status} /> : null}
+            <OrderChip kind="orderPayment" value={order.paymentStatus} />
+            {toShip ? (
+              <StatusChip tone="info">{listCopy.toShip}</StatusChip>
+            ) : (
+              <OrderChip kind="fulfilment" value={order.fulfillmentStatus} />
+            )}
+          </>
+        }
+        summary={
+          <>
+            <span title={fmt.dateTime(order.placedAt)}>{copy.placed(fmt.ago(order.placedAt))}</span>
+            {order.paymentMethod ? (
+              <>
+                {' · '}
+                {copy.paidVia}: {methodLabel(order.paymentMethod, copy)}
+              </>
+            ) : null}
+          </>
+        }
+        actions={actions(neighbours)}
+      />
     </div>
   )
 }

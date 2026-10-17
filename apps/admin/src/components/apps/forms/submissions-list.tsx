@@ -2,7 +2,7 @@
 
 import { siteConfig } from '@commerce/config/site'
 import { useEffect, useState } from 'react'
-import ProoflyPageHeader from '@/components/layout/proofly-page-header'
+import PageHeader from '@/components/layout/page-header'
 import RelativeTime from '@/components/layout/relative-time'
 import ResourceTable, { type ResourceColumnSpec } from '@/components/table/resource-table'
 import { formsContent } from '@/data/forms'
@@ -87,7 +87,7 @@ export default function SubmissionsList() {
 
   return (
     <div className="flex flex-col gap-5">
-      <ProoflyPageHeader title={copy.title} summary={copy.subtitle} />
+      <PageHeader title={copy.title} summary={copy.subtitle} />
       <ResourceTable
         resourceName={copy.resource}
         columns={columns}

@@ -80,10 +80,10 @@ export default function RunPage({ params }: AppPageProps) {
     )
 
   // Early returns
-  const crumbs = [{ label: copy.back, href: base }]
+  const back = { label: copy.back, href: base }
   if (run === undefined) return <Skeleton className="h-64 w-full" />
   if (run === null) {
-    return <PageHeader title={copy.notFound} breadcrumbs={crumbs} />
+    return <PageHeader title={copy.notFound} back={back} />
   }
 
   // Render logic
@@ -103,11 +103,7 @@ export default function RunPage({ params }: AppPageProps) {
 
   return (
     <div className="flex flex-col gap-4">
-      <PageHeader
-        title={copy.title(run.dryRun)}
-        subtitle={copy.from(source)}
-        breadcrumbs={crumbs}
-      />
+      <PageHeader title={copy.title(run.dryRun)} subtitle={copy.from(source)} back={back} />
       <BackgroundWorkNotice />
       <RunHeaderCard
         run={run}

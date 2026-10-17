@@ -6,16 +6,17 @@ import { Skeleton } from '@commerce/ui/shadcn/skeleton'
 import Link from 'next/link'
 import { type ReactNode, useEffect, useState } from 'react'
 import { toast } from 'sonner'
+import PageHeader from '@/components/layout/page-header'
 import SaveBar from '@/components/layout/save-bar'
 import HelpFooter from '@/components/payments/help-footer'
 import BoxPresetsFields from '@/components/settings/box-presets-fields'
 import CourierRuleFields from '@/components/settings/courier-rule-fields'
 import HealthLine from '@/components/settings/health-line'
-import SettingsPageHeader from '@/components/settings/settings-page-header'
 import ShippingPolicyFields from '@/components/settings/shipping-policy-fields'
 import ShippingTryPin from '@/components/settings/shipping-try-pin'
 import WhatsThisHelp from '@/components/settings/whats-this-help'
 import ShippingZonesCard from '@/components/shipping-zones/shipping-zones-card'
+import { SETTINGS_BACK } from '@/data/settings'
 import { shippingSettingsContent } from '@/data/shipping'
 import { useCopy } from '@/hooks/use-copy'
 import { useSetupNext } from '@/hooks/use-setup-next'
@@ -116,12 +117,8 @@ export default function ShippingPage() {
         onDiscard={handleDiscard}
         saving={busy}
       />
-      <SettingsPageHeader
+      <PageHeader
         title={copy.title}
-        onSave={handleSave}
-        dirty={dirty}
-        saving={busy}
-        saveLabel={copy.save}
         subtitle={
           <span className="flex flex-wrap items-center gap-x-3 gap-y-1">
             {copy.intro}
@@ -132,6 +129,8 @@ export default function ShippingPage() {
             />
           </span>
         }
+        back={SETTINGS_BACK}
+        save={{ dirty, saving: busy, onSave: handleSave, label: copy.save }}
       />
 
       <HealthLine

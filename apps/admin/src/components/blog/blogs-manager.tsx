@@ -15,8 +15,8 @@ import { Button } from '@commerce/ui/shadcn/button'
 import { Card, CardContent } from '@commerce/ui/shadcn/card'
 import { useState } from 'react'
 import { toast } from 'sonner'
+import PageHeader from '@/components/layout/page-header'
 import ProoflyDetailPage from '@/components/layout/proofly-detail-page'
-import ProoflyPageHeader from '@/components/layout/proofly-page-header'
 import { blogsManageContent } from '@/data/blog'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
@@ -68,7 +68,7 @@ export default function BlogsManager({ initial }: BlogsManagerProps) {
   return (
     <ProoflyDetailPage
       header={
-        <ProoflyPageHeader
+        <PageHeader
           title={copy.heading}
           back={{ label: copy.back, href: routes.content.blogPosts() }}
           actions={

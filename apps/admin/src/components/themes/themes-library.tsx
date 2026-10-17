@@ -6,8 +6,8 @@ import { Button } from '@commerce/ui/shadcn/button'
 import Link from 'next/link'
 import { useState } from 'react'
 import { toast } from 'sonner'
+import PageHeader from '@/components/layout/page-header'
 import ProoflyPageBody from '@/components/layout/proofly-page-body'
-import ProoflyPageHeader from '@/components/layout/proofly-page-header'
 import { themeImportContent } from '@/data/theme-import'
 import { themesContent } from '@/data/themes'
 import { useCopy } from '@/hooks/use-copy'
@@ -148,7 +148,7 @@ export default function ThemesLibrary({
 
   return (
     <ProoflyPageBody>
-      <ProoflyPageHeader
+      <PageHeader
         title={title}
         summary={copy.subtitle}
         actions={

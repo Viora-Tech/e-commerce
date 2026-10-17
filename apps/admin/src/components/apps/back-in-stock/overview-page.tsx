@@ -11,7 +11,7 @@ import {
 } from '@commerce/ui/shadcn/table'
 import { useEffect, useState } from 'react'
 import { CELL, HEAD } from '@/components/apps/gst-invoices/table-classes'
-import ProoflyPageHeader from '@/components/layout/proofly-page-header'
+import PageHeader from '@/components/layout/page-header'
 import SettingsCard from '@/components/settings/settings-card'
 import { backInStockContent } from '@/data/back-in-stock'
 import { api } from '@/lib/api-client'
@@ -62,7 +62,7 @@ export default function OverviewPage() {
 
   return (
     <div className="flex flex-col gap-5">
-      <ProoflyPageHeader title={copy.title} summary={copy.subtitle} />
+      <PageHeader title={copy.title} summary={copy.subtitle} />
       <SettingsCard title={copy.title} bodyClassName="gap-5">
         {usageRow(copy.emailUsage, data.usage.email)}
         {usageRow(copy.whatsappUsage, data.usage.whatsapp)}

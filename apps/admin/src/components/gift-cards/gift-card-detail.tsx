@@ -4,8 +4,8 @@ import { Button } from '@commerce/ui/shadcn/button'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import PageColumns from '@/components/layout/page-columns'
+import PageHeader from '@/components/layout/page-header'
 import ProoflyPageBody from '@/components/layout/proofly-page-body'
-import ProoflyPageHeader from '@/components/layout/proofly-page-header'
 import StatusLabel from '@/components/status/status-label'
 import { giftCardDetailContent as copy } from '@/data/gift-cards'
 import { api } from '@/lib/api-client'
@@ -69,7 +69,7 @@ export default function GiftCardDetail({ initial }: GiftCardDetailProps) {
 
   return (
     <ProoflyPageBody>
-      <ProoflyPageHeader
+      <PageHeader
         title={title}
         back={{ label: copy.breadcrumb, href: routes.products.giftCards() }}
         badges={<StatusLabel kind="giftCard" value={card.state} variant="pill" />}

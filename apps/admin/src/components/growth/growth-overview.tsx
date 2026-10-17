@@ -8,7 +8,7 @@ import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import RangePicker from '@/components/analytics/range-picker'
 import ChartCard from '@/components/layout/chart-card'
-import ProoflyPageHeader from '@/components/layout/proofly-page-header'
+import PageHeader from '@/components/layout/page-header'
 import StatTile from '@/components/layout/stat-tile'
 import { growthOverviewContent } from '@/data/growth'
 import { useCopy, useFormat } from '@/hooks/use-copy'
@@ -83,7 +83,7 @@ export default function GrowthOverviewPage({ initialRange, initial }: GrowthOver
 
   return (
     <div className="flex w-full flex-col gap-6 px-4 py-6 md:px-8 md:py-8">
-      <ProoflyPageHeader
+      <PageHeader
         title={copy.title}
         summary={copy.outcomes.summary(
           fmt.money(o.earnedPaise),

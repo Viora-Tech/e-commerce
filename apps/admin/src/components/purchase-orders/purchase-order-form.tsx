@@ -16,8 +16,8 @@ import ChargesCard from '@/components/landed-cost/charges-card'
 import LandedCostCard from '@/components/landed-cost/landed-cost-card'
 import type { CostPreview } from '@/components/landed-cost/types'
 import PageColumns from '@/components/layout/page-columns'
+import PageHeader from '@/components/layout/page-header'
 import ProoflyPageBody from '@/components/layout/proofly-page-body'
-import ProoflyPageHeader from '@/components/layout/proofly-page-header'
 import SaveBar from '@/components/layout/save-bar'
 import DocumentsCard from '@/components/purchase-documents/documents-card'
 import type { PickedSupplier } from '@/components/suppliers/new-supplier-dialog'
@@ -223,7 +223,7 @@ export default function PurchaseOrderForm({
         onDiscard={handleDiscard}
         saving={busy}
       />
-      <ProoflyPageHeader
+      <PageHeader
         title={po ? copy.title(po.number) : copy.newTitle}
         summary={status ? statusLabels[status] : undefined}
         back={{ label: copy.back, href: LIST }}

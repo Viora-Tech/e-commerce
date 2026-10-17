@@ -1,12 +1,12 @@
 'use client'
 
 import { siteConfig } from '@commerce/config/site'
-import { ArrowLeft, CheckIcon, ExternalLink } from '@commerce/ui/icons'
+import { CheckIcon, ExternalLink } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
-import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { type ReactNode, useState } from 'react'
 import { toast } from 'sonner'
+import PageHeader from '@/components/layout/page-header'
 import StatusChip from '@/components/layout/status-chip'
 import { appsContent } from '@/data/apps'
 import { useCopy } from '@/hooks/use-copy'
@@ -74,27 +74,14 @@ export default function AppListing({ app }: AppListingProps) {
 
   return (
     <>
-      <Link
-        href={routes.apps.list()}
-        className="flex w-fit items-center gap-1.5 text-body text-muted-foreground hover:text-foreground"
-      >
-        <ArrowLeft className="size-4" aria-hidden="true" />
-        {copy.listing.back}
-      </Link>
-      <div className="flex flex-wrap items-center gap-5 rounded-2xl border border-border surface-card p-6">
-        <AppLogo id={app.id} icon={app.admin.icon} size={72} />
-        <div className="flex min-w-[min(100%,16rem)] flex-1 flex-col gap-1">
-          <h1 className="text-page-title text-ink-strong">{app.name}</h1>
-          <p className="text-body text-muted-foreground">
-            {byline}
-            {category ? ` · ${category}` : ''}
-          </p>
-          <div className="flex gap-2 pt-1">
-            <StatusChip className="h-5 text-xs">{copy.version(app.version)}</StatusChip>
-          </div>
-        </div>
-        <Button onClick={() => setAsking(true)}>{copy.install}</Button>
-      </div>
+      <PageHeader
+        title={app.name}
+        summary={`${byline}${category ? ` · ${category}` : ''}`}
+        back={{ label: copy.listing.back, href: routes.apps.list() }}
+        lead={{ kind: 'logo', node: <AppLogo id={app.id} icon={app.admin.icon} size={72} /> }}
+        badges={<StatusChip className="h-5 text-xs">{copy.version(app.version)}</StatusChip>}
+        actions={<Button onClick={() => setAsking(true)}>{copy.install}</Button>}
+      />
       <div className="grid gap-6 lg:grid-cols-[1fr_23.5rem]">
         <div className="flex flex-col gap-6">
           {app.description ? (

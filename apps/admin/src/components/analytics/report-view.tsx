@@ -6,8 +6,8 @@ import { Button } from '@commerce/ui/shadcn/button'
 import { Card } from '@commerce/ui/shadcn/card'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
+import PageHeader from '@/components/layout/page-header'
 import PillTabs from '@/components/layout/pill-tabs'
-import ProoflyPageHeader from '@/components/layout/proofly-page-header'
 import StatusChip from '@/components/layout/status-chip'
 import { analyticsContent } from '@/data/analytics'
 import { type RangeState, rangeQuery, sameRange } from '@/lib/analytics-range'
@@ -108,7 +108,7 @@ export default function ReportView({ report, initialRange, initial }: ReportView
 
   return (
     <div className="flex w-full flex-col gap-6 px-4 py-6 md:px-8 md:py-8">
-      <ProoflyPageHeader
+      <PageHeader
         title={report.title}
         summary={report.description}
         back={{ label: c.back, href: routes.analytics.reports() }}

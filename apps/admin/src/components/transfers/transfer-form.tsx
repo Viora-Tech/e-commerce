@@ -8,8 +8,8 @@ import ConfirmActionDialog from '@/components/inventory/confirm-action-dialog'
 import type { StoreLocation } from '@/components/inventory/location-select'
 import NotesCard from '@/components/inventory/notes-card'
 import PageColumns from '@/components/layout/page-columns'
+import PageHeader from '@/components/layout/page-header'
 import ProoflyPageBody from '@/components/layout/proofly-page-body'
-import ProoflyPageHeader from '@/components/layout/proofly-page-header'
 import { transferFormContent, transfersContent } from '@/data/inventory'
 import { api } from '@/lib/api-client'
 import { routes } from '@/lib/routes'
@@ -137,7 +137,7 @@ export default function TransferForm({ transfer, locations }: TransferFormProps)
 
   return (
     <ProoflyPageBody>
-      <ProoflyPageHeader
+      <PageHeader
         title={transfer ? copy.title(transfer.number) : copy.newTitle}
         summary={status ? transfersContent.status[status] : undefined}
         back={{ label: copy.back, href: LIST }}

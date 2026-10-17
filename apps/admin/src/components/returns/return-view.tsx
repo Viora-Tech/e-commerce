@@ -47,9 +47,7 @@ export default function ReturnView({ detail: r }: ReturnViewProps) {
       header={
         <PageHeader
           title={title}
-          icon={<Undo aria-hidden="true" />}
-          tone={headerTone(r)}
-          breadcrumbs={[{ label: copy.back, href: routes.orders.returns() }, { label: r.label }]}
+          back={{ label: copy.back, href: routes.orders.returns() }}
           badges={<OrderChip kind="return" value={r.status} label={statusLabel} />}
           subtitle={
             <span className="flex items-center gap-1">
@@ -59,6 +57,7 @@ export default function ReturnView({ detail: r }: ReturnViewProps) {
                 : copy.askedOn(formatWhen(r.requestedAt))}
             </span>
           }
+          lead={{ kind: 'icon', node: <Undo aria-hidden="true" />, tone: headerTone(r) }}
         />
       }
       main={

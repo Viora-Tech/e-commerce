@@ -17,8 +17,8 @@ import { Button } from '@commerce/ui/shadcn/button'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { toast } from 'sonner'
+import PageHeader from '@/components/layout/page-header'
 import ProoflyDetailPage from '@/components/layout/proofly-detail-page'
-import ProoflyPageHeader from '@/components/layout/proofly-page-header'
 import SaveBar from '@/components/layout/save-bar'
 import StatusChip from '@/components/layout/status-chip'
 import { discountFormContent, discountsContent } from '@/data/discounts'
@@ -169,7 +169,7 @@ export default function DiscountForm({ discount }: DiscountFormProps) {
     <ProoflyDetailPage
       header={
         <>
-          <ProoflyPageHeader
+          <PageHeader
             title={title}
             summary={summary}
             back={{ label: list.title, href: routes.discounts.list() }}

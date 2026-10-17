@@ -9,9 +9,10 @@ import Link from 'next/link'
 import { type ReactNode, useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import EmptyState from '@/components/layout/empty-state'
+import PageHeader from '@/components/layout/page-header'
 import SaveBar from '@/components/layout/save-bar'
-import SettingsPageHeader from '@/components/settings/settings-page-header'
 import { providerSettingsContent as copy } from '@/data/provider-settings'
+import { SETTINGS_BACK } from '@/data/settings'
 import ProviderCard, { type ProviderDef } from './provider-card'
 import SectionTabs, { type SectionTab } from './section-tabs'
 import SettingsSection from './settings-section'
@@ -170,15 +171,12 @@ export default function ProviderSettingsForm<Extra extends object>({
         onDiscard={handleDiscard}
         saving={busy}
       />
-      <SettingsPageHeader
+      <PageHeader
         title={title}
         subtitle={intro}
         actions={headerActions}
-        onSave={handleSave}
-        dirty={dirty}
-        saving={busy}
-        saveLabel={copy.save}
-        back={back?.href ? { label: back.label, href: back.href } : undefined}
+        back={back?.href ? { label: back.label, href: back.href } : SETTINGS_BACK}
+        save={{ dirty, saving: busy, onSave: handleSave, label: copy.save }}
       />
       {error ? (
         <Alert variant="destructive">

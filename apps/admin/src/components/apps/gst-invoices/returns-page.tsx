@@ -13,7 +13,7 @@ import {
 } from '@commerce/ui/shadcn/table'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
-import ProoflyPageHeader from '@/components/layout/proofly-page-header'
+import PageHeader from '@/components/layout/page-header'
 import StatusChip from '@/components/layout/status-chip'
 import { gstInvoicesContent } from '@/data/gst-invoices'
 import { api } from '@/lib/api-client'
@@ -100,7 +100,7 @@ export default function ReturnsPage() {
 
   return (
     <div className="flex flex-col gap-4">
-      <ProoflyPageHeader
+      <PageHeader
         title={copy.title}
         summary={copy.subtitle}
         actions={<GstNumberPicker value={gst} onChange={setGst} />}

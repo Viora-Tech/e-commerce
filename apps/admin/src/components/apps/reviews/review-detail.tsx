@@ -96,10 +96,7 @@ export default function ReviewDetail({ params }: AppPageProps) {
     <div className="flex flex-col gap-5">
       <PageHeader
         title={copy.title(r.reviewerName)}
-        breadcrumbs={[
-          { label: copy.back, href: routes.apps.page('reviews') },
-          { label: r.reviewerName },
-        ]}
+        back={{ label: copy.back, href: routes.apps.page('reviews') }}
         badges={<StatusLabel kind="review" value={r.status} variant="pill" />}
         actions={
           <>

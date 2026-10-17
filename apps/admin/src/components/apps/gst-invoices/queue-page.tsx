@@ -15,7 +15,7 @@ import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import SetupChecklist from '@/components/apps/setup-checklist'
-import ProoflyPageHeader from '@/components/layout/proofly-page-header'
+import PageHeader from '@/components/layout/page-header'
 import RelativeTime from '@/components/layout/relative-time'
 import { gstInvoicesContent } from '@/data/gst-invoices'
 import { api } from '@/lib/api-client'
@@ -139,7 +139,7 @@ export default function QueuePage() {
 
   return (
     <div className="flex flex-col gap-4">
-      <ProoflyPageHeader
+      <PageHeader
         title={copy.title}
         summary={copy.subtitle}
         actions={<GstNumberPicker value={gst} onChange={handleGst} allowAll />}

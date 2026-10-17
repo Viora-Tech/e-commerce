@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@commerce/ui/shadcn/ca
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
-import ProoflyPageHeader from '@/components/layout/proofly-page-header'
+import PageHeader from '@/components/layout/page-header'
 import StatusLabel from '@/components/status/status-label'
 import { campaignsContent, campaignReportContent as copy } from '@/data/marketing-campaigns'
 import { api } from '@/lib/api-client'
@@ -100,7 +100,7 @@ export default function CampaignReport({
 
   return (
     <div className="flex w-full flex-col gap-6 px-4 py-6 md:px-8 md:py-8">
-      <ProoflyPageHeader
+      <PageHeader
         title={campaign.name}
         summary={headline(campaign)}
         back={{ label: copy.breadcrumb, href: routes.growth.campaigns() }}

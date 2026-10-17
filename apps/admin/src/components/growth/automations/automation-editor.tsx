@@ -29,7 +29,7 @@ import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import { blockId } from '@/components/growth/campaigns/form-state'
 import type { TemplatesResult } from '@/components/growth/campaigns/whatsapp-template-card'
-import ProoflyPageHeader from '@/components/layout/proofly-page-header'
+import PageHeader from '@/components/layout/page-header'
 import SaveBar from '@/components/layout/save-bar'
 import { automationEditorContent as copy } from '@/data/marketing-automations'
 import { campaignReportContent } from '@/data/marketing-campaigns'
@@ -188,7 +188,7 @@ export default function AutomationEditor({
         onDiscard={() => setForm(JSON.parse(saved) as Form)}
         saving={busy}
       />
-      <ProoflyPageHeader
+      <PageHeader
         title={form.name}
         back={{ label: copy.breadcrumb, href: routes.growth.automations() }}
         actions={

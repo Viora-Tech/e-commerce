@@ -7,6 +7,7 @@ import { Skeleton } from '@commerce/ui/shadcn/skeleton'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
+import PageHeader from '@/components/layout/page-header'
 import { appearanceContent } from '@/data/appearance'
 import { writeAccentCookie } from '@/lib/accent-cookie'
 import { api } from '@/lib/api-client'
@@ -15,7 +16,6 @@ import AccentPicker from './accent-picker'
 import AccentPreview from './accent-preview'
 import ProductLayoutField from './product-layout-field'
 import SettingsCard from './settings-card'
-import SettingsPageHeader from './settings-page-header'
 import ThemeModeField from './theme-mode-field'
 
 type Loaded = Awaited<ReturnType<typeof api.appearance.get>>
@@ -88,7 +88,7 @@ export default function AppearanceSettings({ productLayout }: AppearanceSettings
   if (!loaded) {
     return (
       <div className="flex flex-col gap-4">
-        <SettingsPageHeader title={copy.title} subtitle={copy.intro} hideBack />
+        <PageHeader title={copy.title} subtitle={copy.intro} />
         <Card gap={4} inset={6}>
           <Skeleton className="h-5 w-40" />
           <Skeleton className="h-9 w-full" />
@@ -104,7 +104,7 @@ export default function AppearanceSettings({ productLayout }: AppearanceSettings
 
   return (
     <div className="flex flex-col gap-4">
-      <SettingsPageHeader title={copy.title} subtitle={copy.intro} hideBack />
+      <PageHeader title={copy.title} subtitle={copy.intro} />
       <SettingsCard title={copy.accent.heading} description={copy.accent.body}>
         <div className="grid gap-6 md:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)]">
           <div className="flex flex-col gap-3">

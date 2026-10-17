@@ -5,11 +5,16 @@ import { Card, CardContent } from '@commerce/ui/shadcn/card'
 import { Skeleton } from '@commerce/ui/shadcn/skeleton'
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
-import { gatewayCatalogue, gatewayGuides, paymentsSetupContent } from '@/data/payments-setup'
+import BackLink from '@/components/layout/back-link'
+import {
+  gatewayCatalogue,
+  gatewayGuides,
+  PAYMENTS_PAGE_HREF,
+  paymentsSetupContent,
+} from '@/data/payments-setup'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 import { routes } from '@/lib/routes'
-import BackToPayments from './back-to-payments'
 import MainGatewayCard from './main-gateway-card'
 import type { GatewayId, PaymentsSetup } from './types'
 
@@ -50,7 +55,7 @@ export default function GatewayOverviewPage({ providerId }: GatewayOverviewPageP
 
   return (
     <div className="flex flex-col gap-4">
-      <BackToPayments />
+      <BackLink href={PAYMENTS_PAGE_HREF} label={copy.backToPayments} />
       {isMain ? (
         <MainGatewayCard
           primary={setup.primary}

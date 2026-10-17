@@ -14,7 +14,7 @@ import { Button } from '@commerce/ui/shadcn/button'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
-import ProoflyPageHeader from '@/components/layout/proofly-page-header'
+import PageHeader from '@/components/layout/page-header'
 import SettingsCard from '@/components/settings/settings-card'
 import { searchConsoleContent } from '@/data/search-console'
 import { useCopy, useFormat } from '@/hooks/use-copy'
@@ -102,7 +102,7 @@ export default function SettingsPage() {
 
   return (
     <div className="flex flex-col gap-5">
-      <ProoflyPageHeader title={copy.settings.title} summary={copy.settings.summary} />
+      <PageHeader title={copy.settings.title} summary={copy.settings.summary} />
       <SettingsCard title={c.title} description={c.description}>
         <p className="text-body text-foreground">{status}</p>
         {view.reconnect ? (

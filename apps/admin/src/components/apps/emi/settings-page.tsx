@@ -9,7 +9,7 @@ import { Switch } from '@commerce/ui/shadcn/switch'
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
-import ProoflyPageHeader from '@/components/layout/proofly-page-header'
+import PageHeader from '@/components/layout/page-header'
 import SettingsCard from '@/components/settings/settings-card'
 import SettingsRow from '@/components/settings/settings-row'
 import { emiContent as copy } from '@/data/emi'
@@ -100,7 +100,7 @@ export default function SettingsPage() {
 
   return (
     <div className="flex flex-col gap-5">
-      <ProoflyPageHeader
+      <PageHeader
         title={copy.title}
         summary={copy.subtitle}
         actions={

@@ -6,8 +6,8 @@ import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import EmptyState from '@/components/layout/empty-state'
+import PageHeader from '@/components/layout/page-header'
 import ProoflyDetailPage from '@/components/layout/proofly-detail-page'
-import ProoflyPageHeader from '@/components/layout/proofly-page-header'
 import StatusChip from '@/components/layout/status-chip'
 import ResourceTable, { type ResourceColumnSpec } from '@/components/table/resource-table'
 import { entryListContent } from '@/data/metaobjects'
@@ -134,7 +134,7 @@ export default function EntriesPage({ definition, initial, initialPerPage }: Ent
   return (
     <ProoflyDetailPage
       header={
-        <ProoflyPageHeader
+        <PageHeader
           title={definition.name}
           summary={definition.description ?? copy.summary(definition.entries)}
           back={{ label: copy.back, href: routes.content.contentTypes() }}

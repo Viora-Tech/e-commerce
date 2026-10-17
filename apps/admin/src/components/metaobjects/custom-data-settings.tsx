@@ -15,10 +15,11 @@ import {
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
+import PageHeader from '@/components/layout/page-header'
 import SectionTabs from '@/components/settings/section-tabs'
-import SettingsPageHeader from '@/components/settings/settings-page-header'
 import SettingsSection from '@/components/settings/settings-section'
 import { customDataContent } from '@/data/metaobjects'
+import { SETTINGS_BACK } from '@/data/settings'
 import { useCopy } from '@/hooks/use-copy'
 import { usePermissions } from '@/hooks/use-permissions'
 import { api } from '@/lib/api-client'
@@ -94,7 +95,7 @@ export default function CustomDataSettings() {
 
   return (
     <div className="flex flex-col gap-4">
-      <SettingsPageHeader title={copy.title} subtitle={copy.intro} />
+      <PageHeader title={copy.title} subtitle={copy.intro} back={SETTINGS_BACK} />
       <SectionTabs tabs={tabs}>
         {OWNER_TABS.map(({ owner, tab }) => (
           <SettingsSection key={owner} id={copy.tabs[tab].id} className="flex flex-col gap-4">

@@ -13,8 +13,8 @@ import { useState } from 'react'
 import { toast } from 'sonner'
 import MoneyInput from '@/components/fields/money-input'
 import PageColumns from '@/components/layout/page-columns'
+import PageHeader from '@/components/layout/page-header'
 import ProoflyPageBody from '@/components/layout/proofly-page-body'
-import ProoflyPageHeader from '@/components/layout/proofly-page-header'
 import { giftCardIssueContent as copy, GIFT_CARD_PRESETS } from '@/data/gift-cards'
 import { useFormat } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
@@ -83,7 +83,7 @@ export default function IssueGiftCardForm({ today }: IssueGiftCardFormProps) {
 
   return (
     <ProoflyPageBody>
-      <ProoflyPageHeader
+      <PageHeader
         title={copy.heading}
         back={{ label: copy.breadcrumb, href: routes.products.giftCards() }}
         actions={

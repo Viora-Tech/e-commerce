@@ -20,8 +20,8 @@ import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import ChoiceCard from '@/components/layout/choice-card'
+import PageHeader from '@/components/layout/page-header'
 import ProoflyDetailPage from '@/components/layout/proofly-detail-page'
-import ProoflyPageHeader from '@/components/layout/proofly-page-header'
 import { fieldTypeContent, newContentTypeContent, presetContent } from '@/data/metaobjects'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
@@ -78,7 +78,7 @@ export default function NewContentType() {
   return (
     <ProoflyDetailPage
       header={
-        <ProoflyPageHeader
+        <PageHeader
           title={copy.title}
           summary={copy.summary}
           back={{ label: copy.back, href: routes.content.contentTypes() }}

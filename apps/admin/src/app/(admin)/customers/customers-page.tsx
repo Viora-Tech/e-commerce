@@ -17,6 +17,7 @@ import CustomerRowActions from '@/components/customers/customer-row-actions'
 import CustomerTiles, { type CustomerStats } from '@/components/customers/customer-tiles'
 import TagCustomersDialog from '@/components/customers/tag-customers-dialog'
 import PageBody from '@/components/layout/page-body'
+import PageHeader from '@/components/layout/page-header'
 import PillTabs from '@/components/layout/pill-tabs'
 import PageState from '@/components/states/page-state'
 import {
@@ -188,29 +189,29 @@ function CustomersContent({ initial }: { initial: CustomersInitial }) {
 
   return (
     <PageBody width="frame" className="gap-6">
-      <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-3">
-        <div className="flex min-w-0 flex-col gap-1">
-          <h1 className="text-page-title text-ink-strong">{copy.heading}</h1>
-          <p className="text-body text-muted-foreground">{summary}</p>
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
-          {applied.length > 0 ? (
-            <Button variant="outline" render={<Link href={segmentHref} />} nativeButton={false}>
-              {copy.saveSegment}
+      <PageHeader
+        title={copy.heading}
+        summary={summary}
+        actions={
+          <>
+            {applied.length > 0 ? (
+              <Button variant="outline" render={<Link href={segmentHref} />} nativeButton={false}>
+                {copy.saveSegment}
+              </Button>
+            ) : null}
+            <Button variant="outline" onClick={handleExportAll}>
+              {copy.exportAll}
             </Button>
-          ) : null}
-          <Button variant="outline" onClick={handleExportAll}>
-            {copy.exportAll}
-          </Button>
-          <Button
-            variant="key-neutral"
-            render={<Link href={routes.customers.segments()} />}
-            nativeButton={false}
-          >
-            {copy.segmentsLink}
-          </Button>
-        </div>
-      </div>
+            <Button
+              variant="key-neutral"
+              render={<Link href={routes.customers.segments()} />}
+              nativeButton={false}
+            >
+              {copy.segmentsLink}
+            </Button>
+          </>
+        }
+      />
       <CustomerTiles
         stats={initial.stats}
         active={status}

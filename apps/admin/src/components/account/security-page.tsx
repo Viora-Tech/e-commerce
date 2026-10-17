@@ -5,9 +5,9 @@ import { Card } from '@commerce/ui/shadcn/card'
 import { Skeleton } from '@commerce/ui/shadcn/skeleton'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
+import PageHeader from '@/components/layout/page-header'
 import StatusChip from '@/components/layout/status-chip'
 import SettingsCard from '@/components/settings/settings-card'
-import SettingsPageHeader from '@/components/settings/settings-page-header'
 import SettingsRow from '@/components/settings/settings-row'
 import { accountContent } from '@/data/account'
 import { useCopy, useFormat } from '@/hooks/use-copy'
@@ -61,7 +61,7 @@ export default function SecurityPage() {
   if (failed) {
     return (
       <div className="flex flex-col gap-4">
-        <SettingsPageHeader title={copy.title} hideBack />
+        <PageHeader title={copy.title} />
         <Card gap={3} inset={6} className="items-start">
           <p className="text-body text-muted-foreground">{copy.loadFailed}</p>
           <Button variant="outline" onClick={handleRetry}>
@@ -74,7 +74,7 @@ export default function SecurityPage() {
 
   return (
     <div className="flex flex-col gap-4">
-      <SettingsPageHeader title={copy.title} subtitle={copy.intro} hideBack />
+      <PageHeader title={copy.title} subtitle={copy.intro} />
       <SettingsCard id="email" title={copy.email.heading} description={copy.email.body}>
         <SettingsRow label={copy.email.label}>
           <div className="flex flex-wrap items-center justify-between gap-3">

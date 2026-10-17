@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react'
-import ProoflyPageHeader from './proofly-page-header'
+import PageHeader from '@/components/layout/page-header'
 
 type ProoflyListPageProps = {
   title: string
@@ -28,7 +28,7 @@ export default function ProoflyListPage({
   // Render logic
   return (
     <div className="flex w-full flex-col gap-6 px-4 py-6 md:px-8 md:py-8">
-      <ProoflyPageHeader title={title} summary={summary} back={back} actions={actions} />
+      <PageHeader title={title} summary={summary} back={back} actions={actions} />
       {controls}
       {stats ? (
         <div className="grid grid-cols-2 gap-4 lg:grid-flow-col lg:grid-cols-none lg:auto-cols-fr">

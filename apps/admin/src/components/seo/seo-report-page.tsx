@@ -3,8 +3,8 @@
 import type { SeoReport } from '@commerce/core'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
+import PageHeader from '@/components/layout/page-header'
 import BulkWriteSheet from '@/components/products/bulk-write/bulk-write-sheet'
-import SettingsPageHeader from '@/components/settings/settings-page-header'
 import OnlineStoreTabs from '@/components/themes/online-store-tabs'
 import { seoReportContent } from '@/data/seo-report'
 import { themesContent } from '@/data/themes'
@@ -42,7 +42,7 @@ export default function SeoReportPage({ report, aiBulk }: SeoReportPageProps) {
 
   return (
     <>
-      <SettingsPageHeader
+      <PageHeader
         title={copy.title}
         subtitle={copy.subtitle}
         back={{ href: routes.onlineStore.home(), label: tabs.label }}

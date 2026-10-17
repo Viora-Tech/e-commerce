@@ -10,7 +10,7 @@ import Link from 'next/link'
 import { type ReactNode, useState } from 'react'
 import { toast } from 'sonner'
 import EmptyState from '@/components/layout/empty-state'
-import ProoflyPageHeader from '@/components/layout/proofly-page-header'
+import PageHeader from '@/components/layout/page-header'
 import { searchConsoleContent } from '@/data/search-console'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { type SearchConsoleReady, useSearchConsoleReport } from '@/hooks/use-search-console-report'
@@ -113,7 +113,7 @@ export default function ReportFrame({ title, summary, children }: ReportFramePro
 
   return (
     <div className="flex flex-col gap-5">
-      <ProoflyPageHeader
+      <PageHeader
         title={title}
         summary={summary}
         actions={

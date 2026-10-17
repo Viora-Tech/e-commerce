@@ -9,9 +9,9 @@ import { Button } from '@commerce/ui/shadcn/button'
 import Link from 'next/link'
 import { useState } from 'react'
 import { toast } from 'sonner'
+import PageHeader from '@/components/layout/page-header'
 import SaveBar from '@/components/layout/save-bar'
 import SettingsCard from '@/components/settings/settings-card'
-import SettingsPageHeader from '@/components/settings/settings-page-header'
 import SettingsToggleRow from '@/components/settings/settings-toggle-row'
 import OnlineStoreTabs from '@/components/themes/online-store-tabs'
 import { preferencesContent as copy } from '@/data/preferences'
@@ -86,14 +86,11 @@ export default function PreferencesForm({ initial }: PreferencesFormProps) {
         onDiscard={handleDiscard}
         saving={busy}
       />
-      <SettingsPageHeader
+      <PageHeader
         title={copy.title}
         subtitle={copy.subtitle}
         back={{ href: routes.onlineStore.home(), label: tabs.label }}
-        onSave={handleSave}
-        dirty={dirty}
-        saving={busy}
-        saveLabel={copy.save}
+        save={{ dirty, saving: busy, onSave: handleSave, label: copy.save }}
       />
       <OnlineStoreTabs active="preferences" />
 

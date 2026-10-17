@@ -6,7 +6,7 @@ import { Card } from '@commerce/ui/shadcn/card'
 import { useEffect, useState } from 'react'
 import CountUp from '@/components/layout/count-up'
 import MiniBars from '@/components/layout/mini-bars'
-import ProoflyPageHeader from '@/components/layout/proofly-page-header'
+import PageHeader from '@/components/layout/page-header'
 import { analyticsContent } from '@/data/analytics'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
@@ -53,7 +53,7 @@ export default function LiveView({ initial, globe }: LiveViewProps) {
       <LiveGlobeHero
         initial={globe}
         header={
-          <ProoflyPageHeader
+          <PageHeader
             title={c.title}
             summary={c.people(data.visitors.last30)}
             back={{ label: analyticsContent.title, href: routes.analytics.home() }}

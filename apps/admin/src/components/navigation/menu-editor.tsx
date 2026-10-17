@@ -9,8 +9,8 @@ import { appendNode, findNode, removeNode, replaceNode } from '@commerce/ui/sort
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { toast } from 'sonner'
+import PageHeader from '@/components/layout/page-header'
 import ProoflyDetailPage from '@/components/layout/proofly-detail-page'
-import ProoflyPageHeader from '@/components/layout/proofly-page-header'
 import SaveBar from '@/components/layout/save-bar'
 import { type MenuItem, menusContent } from '@/data/menus'
 import { useCopy } from '@/hooks/use-copy'
@@ -115,7 +115,7 @@ export default function MenuEditor({ menu, placements }: MenuEditorProps) {
   return (
     <ProoflyDetailPage
       header={
-        <ProoflyPageHeader
+        <PageHeader
           title={draft.title.trim() || menu.title}
           summary={copy.editor.summary(countLinks(draft.items), where)}
           back={{ label: copy.editor.back, href: routes.content.menus() }}

@@ -2,11 +2,11 @@
 
 import type { BusinessGstView } from '@commerce/core'
 import { useState } from 'react'
-import { settingsContent } from '@/data/settings'
+import PageHeader from '@/components/layout/page-header'
+import { SETTINGS_BACK, settingsContent } from '@/data/settings'
 import { useCopy } from '@/hooks/use-copy'
 import BusinessGstSettings from '../business-gst/business-gst-settings'
 import SectionTabs from '../section-tabs'
-import SettingsPageHeader from '../settings-page-header'
 import SettingsSection from '../settings-section'
 import TaxesSettings, { type TaxesSaveState } from './taxes-settings'
 
@@ -41,12 +41,15 @@ export default function TaxesGstPage({ view }: TaxesGstPageProps) {
 
   return (
     <div className="flex flex-col gap-4">
-      <SettingsPageHeader
+      <PageHeader
         title={copy.taxesPage.title}
         subtitle={copy.taxesPage.intro}
-        onSave={saveState?.save}
-        dirty={saveState?.dirty ?? false}
-        saving={saveState?.busy ?? false}
+        back={SETTINGS_BACK}
+        save={
+          saveState
+            ? { dirty: saveState.dirty, saving: saveState.busy, onSave: saveState.save }
+            : undefined
+        }
       />
       <SectionTabs tabs={copy.sections.taxes} hashTabs={HASH_TABS}>
         <SettingsSection id={GST_TAB} className="flex flex-col gap-4">

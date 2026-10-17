@@ -16,9 +16,9 @@ import { Skeleton } from '@commerce/ui/shadcn/skeleton'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
+import PageHeader from '@/components/layout/page-header'
 import SaveBar from '@/components/layout/save-bar'
 import SettingsCard from '@/components/settings/settings-card'
-import SettingsPageHeader from '@/components/settings/settings-page-header'
 import { accountContent } from '@/data/account'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
@@ -120,7 +120,7 @@ export default function ProfilePage() {
   if (failed) {
     return (
       <div className="flex flex-col gap-6">
-        <SettingsPageHeader title={copy.title} subtitle={copy.intro} hideBack />
+        <PageHeader title={copy.title} subtitle={copy.intro} />
         <Card gap={3} inset={6} className="items-start">
           <p className="text-body text-muted-foreground">{copy.loadFailed}</p>
           <Button variant="outline" onClick={handleRetry}>
@@ -148,14 +148,10 @@ export default function ProfilePage() {
         onDiscard={handleDiscard}
         saving={saving}
       />
-      <SettingsPageHeader
+      <PageHeader
         title={copy.title}
         subtitle={copy.intro}
-        hideBack
-        onSave={handleSave}
-        dirty={dirty}
-        saving={saving}
-        saveLabel={copy.save}
+        save={{ dirty, saving, onSave: handleSave, label: copy.save }}
       />
       {!profile || !form ? (
         <>

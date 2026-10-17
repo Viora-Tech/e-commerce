@@ -357,3 +357,6 @@ export const methodSortLabels: SortableListLabels = {
   dropped: (title, position, total) => `${title} dropped at position ${position} of ${total}`,
   cancelled: (title) => `Move of ${title} cancelled`,
 }
+
+/** `view=page` opens the full Payments page even for a shop that hasn't finished the guide. */
+export const PAYMENTS_PAGE_HREF = '/settings/payments?view=page'

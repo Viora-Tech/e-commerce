@@ -7,7 +7,7 @@ import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import type { AppPageProps } from '@/apps/registry'
 import CopyButton from '@/components/fields/copy-button'
-import ProoflyPageHeader from '@/components/layout/proofly-page-header'
+import PageHeader from '@/components/layout/page-header'
 import SettingsCard from '@/components/settings/settings-card'
 import StatusLabelChip from '@/components/status/status-label-chip'
 import { gstInvoicesContent } from '@/data/gst-invoices'
@@ -110,7 +110,7 @@ export default function InvoiceDetail({ params }: AppPageProps) {
 
   return (
     <div className="flex flex-col gap-4">
-      <ProoflyPageHeader
+      <PageHeader
         title={`${kinds[doc.kind]} ${doc.number ?? ''}`.trim()}
         back={{ label: copy.back, href: routes.apps.page('gst-invoices', 'invoices') }}
         badges={<StatusLabelChip kind="gstDoc" value={doc.status} />}

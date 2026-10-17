@@ -129,7 +129,11 @@ export default function ConnectPage() {
         onDiscard={handleDiscard}
         saving={busy}
       />
-      <PageHeader title={copy.title} subtitle={copy.intro} icon={<Upload aria-hidden="true" />} />
+      <PageHeader
+        title={copy.title}
+        subtitle={copy.intro}
+        lead={{ kind: 'icon', node: <Upload aria-hidden="true" /> }}
+      />
       {error ? (
         <Alert variant="destructive">
           <CircleAlert />
