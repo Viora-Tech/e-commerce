@@ -65,6 +65,21 @@ export default [
       invoiceEmailHelp: 'आपके स्टोर का संपर्क ईमेल (Settings → स्टोर की जानकारी)।',
       notReady: `प्लान का ऑनलाइन पेमेंट अभी चालू नहीं है। प्लान बदलने के लिए ${siteConfig.brand.name} से संपर्क करें।`,
     },
+    apps: {
+      heading: 'पेड ऐप',
+      help: 'आपके प्लान के ऊपर खरीदे गए ऐप। हर एक हर महीने रिन्यू होता है।',
+      paidUntil: (date) => `${date} तक भरा हुआ`,
+      endsOn: (date) => `${date} को बंद होगा`,
+      due: (amount) => `${amount} बाकी`,
+      pay: 'भरें',
+      stop: 'रिन्यू रोकें',
+      stopTitle: (name) => `${name} का रिन्यू रोकना है?`,
+      stopBody: (name, date) =>
+        `${name} ${date} तक चलता रहेगा, फिर बंद हो जाएगा। आप इसे कभी भी फिर खरीद सकते हैं।`,
+      keep: 'रहने दें',
+      stopped: (name) => `${name} उसका भरा हुआ महीना खत्म होने पर बंद हो जाएगा`,
+      failed: 'यह बदल नहीं पाया। फिर कोशिश करें।',
+    },
     bills: {
       heading: 'इनवॉइस',
       number: 'इनवॉइस',

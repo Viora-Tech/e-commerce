@@ -1,6 +1,19 @@
 /** Copy for the install flow (Figma "Connect step 1 — account", "2 — permissions", "3 — done"). */
 export const appInstallContent = {
   steps: { connect: 'Connect account', permissions: 'Permissions', done: 'Done' },
+  /** A paid app the store's plan does not include. */
+  buy: {
+    title: (name: string) => `Buy ${name}`,
+    intro: (name: string, plan: string) =>
+      `${name} is included in ${plan} and up. On your plan it is a monthly add-on; it installs as soon as the payment goes through.`,
+    price: (price: string) => `${price} / month + 18% GST`,
+    renew:
+      'Renews monthly. Stop any time in Plan & billing; it keeps working until the paid month ends.',
+    plans: 'See plans',
+    pay: (price: string) => `Buy for ${price} / month`,
+    cancel: 'Cancel',
+    failed: 'Could not start the payment. Try again.',
+  },
   close: 'Close',
   connect: {
     title: (name: string) => `Connect ${name}`,

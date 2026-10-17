@@ -78,6 +78,7 @@ export const STOREFRONT_CACHE_EXEMPT: Record<string, string> = {
   api_auth_code: ADMIN,
   api_grant: ADMIN,
   app_installation: ADMIN,
+  app_purchase: ADMIN,
   back_in_stock_signup: SHOPPER,
   back_in_stock_usage: LOG,
   cart: SHOPPER,

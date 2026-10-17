@@ -9,6 +9,7 @@ const app = (id: string, patch: Partial<AppSummary> = {}): AppSummary => ({
   version: '1.0.0',
   description: null,
   builtIn: false,
+  billing: { state: 'free' },
   installed: false,
   connected: false,
   category: null,

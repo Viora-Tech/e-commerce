@@ -17,14 +17,15 @@ import { SETTINGS_BACK } from '@/data/settings'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 import { daysUntil } from '@/lib/billing'
+import AppsCard, { type BoughtApp } from './apps-card'
 import BillsCard from './bills-card'
 import ComparePlansDialog from './compare-plans-dialog'
 import CurrentPlanCard from './current-plan-card'
 
-type BillingPageProps = { view: PlanView }
+type BillingPageProps = { view: PlanView; apps: BoughtApp[] }
 
 /** Figma "Settings · Plan & billing" (707:119179): plan and usage, payment, invoices, downgrade. */
-export default function BillingPage({ view }: BillingPageProps) {
+export default function BillingPage({ view, apps }: BillingPageProps) {
   // Hooks
   const copy = useCopy(billingContent)
   const format = useFormat()
@@ -129,6 +130,7 @@ export default function BillingPage({ view }: BillingPageProps) {
           {view.billingReady ? copy.payment.autopay : copy.payment.notReady}
         </p>
       </DataCard>
+      <AppsCard apps={apps} />
       <BillsCard bills={view.bills} />
       {lower && view.status === 'active' && view.periodEnd && !view.nextPlan ? (
         <DataCard

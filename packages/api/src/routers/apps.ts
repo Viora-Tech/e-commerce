@@ -1,9 +1,11 @@
 import {
+  accessForApp,
   checkRateLimit,
   createMemoryRateLimitStore,
   permissions,
   rateLimitKey,
   retryAfterSeconds,
+  storeAppAccess,
 } from '@commerce/core'
 import { getRegistries } from '@commerce/core/registries'
 import { ORPCError } from '@orpc/server'
@@ -45,9 +47,12 @@ export const appsRouter = {
    * Every plugin this deployment ships, flagged with whether this store installed it, its
    * status (Connected, Needs setup, Error) and its history for the Installed apps list.
    */
-  list: can(permissions.SETTINGS_READ).handler(({ context }) =>
-    storeAppSummaries(context.tx, context.scope.storeId),
-  ),
+  list: can(permissions.SETTINGS_READ).handler(async ({ context }) => {
+    const apps = await storeAppSummaries(context.tx, context.scope.storeId)
+    // Paid apps: free, included in the plan, bought, or to buy (`@commerce/core/billing`).
+    const pricing = await storeAppAccess(context.tx, context.scope.storeId)
+    return apps.map((a) => ({ ...a, billing: pricing[a.id] ?? ({ state: 'free' } as const) }))
+  }),
 
   /**
    * Install, optionally saving the account typed in the install flow's first step in the same
@@ -58,6 +63,14 @@ export const appsRouter = {
     .handler(async ({ context, input }) => {
       requirePlugin(input.id)
       const { storeId, userId } = context.scope
+      // A paid app the plan does not include must be bought first (Plan & billing pays for it).
+      const access = await accessForApp(context.tx, storeId, input.id)
+      if (access.state === 'buy') {
+        throw new ORPCError('FORBIDDEN', {
+          message: 'This app is not in your plan. Buy it, or move to a plan that includes it.',
+          data: { reason: 'app_not_in_plan', ...access },
+        })
+      }
       const apps = await installStoreApp(context.tx, storeId, input.id, userId)
       if (input.connect) {
         await saveAppConnection(

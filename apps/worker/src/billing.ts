@@ -1,4 +1,4 @@
-import { resolveBillingEnv, runBillingSweep } from '@commerce/core'
+import { resolveBillingEnv, runAppRenewals, runBillingSweep } from '@commerce/core'
 import type { Db } from '@commerce/db'
 import { logger } from '@commerce/observability/logging'
 import { BILLING_SWEEP_QUEUE, type IORedis, Queue, Worker } from '@commerce/queue'
@@ -24,7 +24,10 @@ export function createBillingSweep(
       const env = await resolveBillingEnv(db, opts)
       const r = await runBillingSweep(db, env)
       if (r.billed || r.due || r.paused) logger.info('plans swept', { area: 'billing', ...r })
-      return r
+      // Bought apps renew on the same clock.
+      const apps = await runAppRenewals(db, env)
+      if (apps.billed || apps.lapsed) logger.info('apps swept', { area: 'billing', ...apps })
+      return { ...r, apps }
     },
     { connection, concurrency: 1 },
   )

@@ -5,6 +5,18 @@ export default [
   translation(appInstallContent, {
     steps: { connect: 'अकाउंट जोड़ें', permissions: 'अनुमतियाँ', done: 'हो गया' },
     close: 'बंद करें',
+    buy: {
+      title: (name: string) => `${name} खरीदें`,
+      intro: (name: string, plan: string) =>
+        `${name} ${plan} और ऊपर के प्लान में शामिल है। आपके प्लान पर यह हर महीने का ऐड-ऑन है; पेमेंट होते ही यह इंस्टॉल हो जाता है।`,
+      price: (price: string) => `${price} / महीना + 18% GST`,
+      renew:
+        'हर महीने रिन्यू होता है। Plan & billing में कभी भी रोकें; भरा हुआ महीना खत्म होने तक यह चलता रहेगा।',
+      plans: 'प्लान देखें',
+      pay: (price: string) => `${price} / महीना में खरीदें`,
+      cancel: 'रद्द करें',
+      failed: 'पेमेंट शुरू नहीं हो पाया। फिर कोशिश करें।',
+    },
     connect: {
       title: (name: string) => `${name} जोड़ें`,
       intro: (name: string) =>

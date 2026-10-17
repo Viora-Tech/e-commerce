@@ -37,12 +37,33 @@ The worker's hourly `{billing}-sweep` (`runBillingSweep`, `stores_with_plan_due`
 
 It is off while `PLATFORM_SALES_STORE_ID` is unset.
 
+## Paid apps
+
+`APP_PRICING` (`@commerce/core/billing`) lists each paid first-party app, the plan that includes
+it, and its monthly price. Apps not listed are free.
+
+`storeAppAccess` gives each app one of four states: `free`, `included`, `bought` (until a date) or
+`buy`.
+- `apps.list` attaches it as `billing`, for the App Store cards and the install flow.
+- `apps.install` refuses a `buy` app with `FORBIDDEN` and `data.reason = 'app_not_in_plan'`.
+
+A purchase is an `app_purchase` row (migration `0132`) whose bill is a sales-store order with SKU
+`app-<pluginId>-month`, placed by the same `placeSalesOrder` as plan bills.
+- **Paid:** `order.paid` → `markAppBillPaid` makes the month active and installs the app.
+- **Renewals:** the same hourly sweep bills 3 days ahead (`runAppRenewals`,
+  `stores_with_app_renewals`). An unpaid renewal keeps the app for `GRACE_DAYS`, then lapses.
+- **Stop renewing:** marks the purchase `cancelled`. Access lasts until `periodEnd`.
+
+Moving to a smaller plan doesn't uninstall anything: apps already installed keep working.
+
 ## Setting up the sales store
 
 - Create products with SKUs `plan-starter|growth|pro-month|year`: active, untracked inventory,
   GST-inclusive prices from `PLANS`.
+- For paid apps, one product per app with SKU `app-<pluginId>-month` (`reviews`, `back-in-stock`,
+  `forms`, `emi-pay-later`, `google-search-console`), priced from `APP_PRICING`.
 - Enable one payment gateway on the sales store.
-- Run migrations `0121`–`0123`.
+- Run migrations `0121`–`0132`.
 
 Not built yet:
 - email pay-link reminders;

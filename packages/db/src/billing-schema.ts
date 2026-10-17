@@ -91,3 +91,37 @@ export const planPayment = pgTable(
     check('plan_payment_status', sql`${t.status} in ('due','paid','cancelled')`),
   ],
 )
+
+/**
+ * `due`: billed, waiting for payment. `active`: paid through `periodEnd`, renewing monthly.
+ * `cancelled`: the owner stopped it (the app keeps working until `periodEnd`), or the bill was
+ * cancelled before it was paid.
+ */
+export const APP_PURCHASE_STATUSES = ['due', 'active', 'cancelled'] as const
+export type AppPurchaseStatus = (typeof APP_PURCHASE_STATUSES)[number]
+
+/**
+ * A paid app bought on a plan that does not include it (Starter, Growth): one row per month
+ * billed, each an order on the sales store like a plan bill.
+ */
+export const appPurchase = pgTable(
+  'app_purchase',
+  {
+    id: id(),
+    storeId: storeId(),
+    pluginId: text('plugin_id').notNull(),
+    status: text('status').$type<AppPurchaseStatus>().notNull().default('due'),
+    salesOrderId: uuid('sales_order_id').notNull(),
+    salesOrderNumber: integer('sales_order_number').notNull(),
+    amountPaise: integer('amount_paise').notNull(),
+    periodStart: timestamp('period_start', { withTimezone: true }).notNull(),
+    periodEnd: timestamp('period_end', { withTimezone: true }).notNull(),
+    paidAt: timestamp('paid_at', { withTimezone: true }),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    index('app_purchase_store').on(t.storeId, t.pluginId, t.createdAt),
+    uniqueIndex('app_purchase_order').on(t.salesOrderId),
+    check('app_purchase_status', sql`${t.status} in ('due','active','cancelled')`),
+  ],
+)

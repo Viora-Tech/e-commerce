@@ -1,6 +1,7 @@
 import { type Db, outboxEvent, withStore } from '@commerce/db'
 import type { LoadedPlugins } from '@commerce/plugins'
 import { and, asc, eq, isNull } from 'drizzle-orm'
+import { cancelAppBill, markAppBillPaid } from '../billing/app-service'
 import { cancelPlanBill, markPlanBillPaid } from '../billing/service'
 import { type DomainRouteQueue, ROUTE_JOB_ATTEMPTS, ROUTE_JOB_BACKOFF_MS } from '../domains/routes'
 import { enqueueNotification, type NotificationQueue } from '../notifications/enqueue'
@@ -104,6 +105,9 @@ async function dispatchRow(deps: OutboxRelayDeps, row: Row): Promise<void> {
     // A renewal or plan change bought from Settings → Plan & billing moves that store onto the plan.
     const billed = await markPlanBillPaid(deps.db, payload.orderId as string)
     if (billed) deps.log?.(`plan order ${payload.orderId}: plan active for store ${billed.storeId}`)
+    // A paid app bought in the App Store: its month starts and the app is installed.
+    const app = await markAppBillPaid(deps.db, payload.orderId as string)
+    if (app) deps.log?.(`app order ${payload.orderId}: ${app.pluginId} on for store ${app.storeId}`)
   }
   if (
     (type === 'refund.created' || type === 'order.cancelled') &&
@@ -112,6 +116,7 @@ async function dispatchRow(deps: OutboxRelayDeps, row: Row): Promise<void> {
     payload.orderId
   ) {
     await cancelPlanBill(deps.db, payload.orderId)
+    await cancelAppBill(deps.db, payload.orderId)
     const r = await revokePlanInvitesForOrder(deps.db, {
       storeId: row.storeId,
       orderId: payload.orderId,

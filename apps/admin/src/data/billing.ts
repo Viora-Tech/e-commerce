@@ -69,6 +69,21 @@ export const billingContent = {
     invoiceEmailHelp: 'Your store’s contact email (Settings → Store details).',
     notReady: `Paying for plans online is not switched on yet. Contact ${siteConfig.brand.name} to change plans.`,
   },
+  apps: {
+    heading: 'Paid apps',
+    help: 'Apps bought on top of your plan. Each renews monthly.',
+    paidUntil: (date: string) => `Paid until ${date}`,
+    endsOn: (date: string) => `Stops on ${date}`,
+    due: (amount: string) => `${amount} due`,
+    pay: 'Pay',
+    stop: 'Stop renewing',
+    stopTitle: (name: string) => `Stop renewing ${name}?`,
+    stopBody: (name: string, date: string) =>
+      `${name} keeps working until ${date}, then turns off. You can buy it again any time.`,
+    keep: 'Keep it',
+    stopped: (name: string) => `${name} will stop at the end of its paid month`,
+    failed: 'Could not change this. Try again.',
+  },
   bills: {
     heading: 'Invoices',
     number: 'Invoice',

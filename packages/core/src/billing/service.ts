@@ -162,13 +162,13 @@ export async function loadPlanView(
   }
 }
 
-/** The plan's variant on the sales store, found by SKU (`plan-growth-month`). */
-async function planVariant(tx: StoreTx, plan: PlanId, interval: BillingInterval) {
+/** A plan's or app's variant on the sales store, found by SKU (`plan-growth-month`). */
+async function variantBySku(tx: StoreTx, sku: string) {
   const [v] = await tx
     .select({ id: variant.id, pricePaise: variant.pricePaise })
     .from(variant)
     .innerJoin(product, eq(product.id, variant.productId))
-    .where(and(eq(variant.sku, planSku(plan, interval)), eq(product.status, 'active')))
+    .where(and(eq(variant.sku, sku), eq(product.status, 'active')))
     .limit(1)
   return v ?? null
 }
@@ -184,16 +184,16 @@ async function salesGateway(tx: StoreTx, salesStoreId: string): Promise<string |
 }
 
 /**
- * Creates the order that pays for one period of `plan` on the sales store (a draft turned into
- * an open order with a payment attempt waiting), and records it as this store's due bill.
- * Any earlier unpaid bill is cancelled first, so a store never owes two at once.
+ * One bill as an order on the sales store: the variant with `sku`, a draft for the buying
+ * store's name and email, converted to an open order with a payment attempt waiting. Plan
+ * bills and app bills both go through here.
  */
-export async function createPlanBill(
+export async function placeSalesOrder(
   db: Db,
-  storeId: string,
-  input: { plan: PlanId; interval: BillingInterval; periodStart: Date },
   env: BillingEnv,
-): Promise<PlanBill> {
+  storeId: string,
+  input: { sku: string; note: (buyer: string) => string },
+): Promise<{ id: string; number: number; totalPaise: number }> {
   const salesStoreId = env.salesStoreId
   if (!salesStoreId) throw new BillingNotReady('no_sales_store')
   const buyer = await withStore(db, storeId, async (tx) => {
@@ -203,10 +203,8 @@ export async function createPlanBill(
       .where(eq(store.id, storeId))
     return s
   })
-  const periodEnd = addInterval(input.periodStart, input.interval)
-
-  const sale = await withStore(db, salesStoreId, async (tx) => {
-    const v = await planVariant(tx, input.plan, input.interval)
+  return withStore(db, salesStoreId, async (tx) => {
+    const v = await variantBySku(tx, input.sku)
     if (!v) throw new BillingNotReady('no_plan_product')
     const gateway = await salesGateway(tx, salesStoreId)
     if (!gateway) throw new BillingNotReady('no_gateway')
@@ -217,17 +215,35 @@ export async function createPlanBill(
       lines: [{ variantId: v.id, quantity: 1 }],
       discountPaise: 0,
       shippingPaise: 0,
-      note: `Koomerce ${input.plan} (${input.interval}) for ${buyer?.name ?? storeId}, store ${storeId}`,
+      note: input.note(buyer?.name ?? storeId),
     })
     const placed = await convertDraft(ctx, draft.id, { paymentMethod: gateway })
-    if (!placed) throw new Error(`plan order ${draft.id} could not be placed`)
+    if (!placed) throw new Error(`sales order ${draft.id} could not be placed`)
     const [o] = await tx
       .select({ id: order.id, number: order.number, totalPaise: order.totalPaise })
       .from(order)
       .where(eq(order.id, draft.id))
-    if (!o) throw new Error(`plan order ${draft.id} missing`)
+    if (!o) throw new Error(`sales order ${draft.id} missing`)
     await createPaymentAttempt(ctx, { orderId: o.id, provider: gateway, amountPaise: o.totalPaise })
     return o
+  })
+}
+
+/**
+ * Creates the order that pays for one period of `plan` on the sales store (a draft turned into
+ * an open order with a payment attempt waiting), and records it as this store's due bill.
+ * Any earlier unpaid bill is cancelled first, so a store never owes two at once.
+ */
+export async function createPlanBill(
+  db: Db,
+  storeId: string,
+  input: { plan: PlanId; interval: BillingInterval; periodStart: Date },
+  env: BillingEnv,
+): Promise<PlanBill> {
+  const periodEnd = addInterval(input.periodStart, input.interval)
+  const sale = await placeSalesOrder(db, env, storeId, {
+    sku: planSku(input.plan, input.interval),
+    note: (buyer) => `Koomerce ${input.plan} (${input.interval}) for ${buyer}, store ${storeId}`,
   })
 
   const bill = await withStore(db, storeId, async (tx) => {
