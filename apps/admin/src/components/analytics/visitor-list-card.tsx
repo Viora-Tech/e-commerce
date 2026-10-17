@@ -1,4 +1,5 @@
 import { Card } from '@commerce/ui/shadcn/card'
+import type { ReactNode } from 'react'
 import KitProgress from '@/components/kit/kit-progress'
 import { formatRate } from '@/lib/analytics-range'
 import { formatCompact } from '@/lib/money'
@@ -9,14 +10,19 @@ type VisitorListCardProps = {
   title: string
   rows: VisitorListRow[]
   empty: string
+  /** Right of the title, e.g. a "See all" link. */
+  action?: ReactNode
 }
 
 /** A ranked visitor list from Umami (top pages, referrers, countries…): count and share bar. */
-export default function VisitorListCard({ title, rows, empty }: VisitorListCardProps) {
+export default function VisitorListCard({ title, rows, empty, action }: VisitorListCardProps) {
   // Render logic
   return (
     <Card gap="none" inset={5}>
-      <p className="text-kit-title text-foreground">{title}</p>
+      <div className="flex items-center justify-between gap-3">
+        <p className="text-kit-title text-foreground">{title}</p>
+        {action}
+      </div>
       {rows.length === 0 ? (
         <p className="mt-5 text-kit-body text-muted-foreground">{empty}</p>
       ) : (
