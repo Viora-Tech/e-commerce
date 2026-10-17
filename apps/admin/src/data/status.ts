@@ -152,9 +152,9 @@ export const STATUS = {
   },
   discount: {
     active: entry(discountsContent.lifecycle.active, 'success'),
-    scheduled: entry(discountsContent.lifecycle.scheduled, 'accent'),
+    scheduled: entry(discountsContent.lifecycle.scheduled, 'info'),
     expired: entry(discountsContent.lifecycle.expired, 'neutral'),
-    disabled: entry(discountsContent.lifecycle.disabled, 'error'),
+    disabled: entry(discountsContent.lifecycle.disabled, 'neutral'),
   } satisfies Record<DiscountLifecycle, StatusEntry>,
   giftCard: {
     active: entry(giftCardsContent.state.active, 'success'),

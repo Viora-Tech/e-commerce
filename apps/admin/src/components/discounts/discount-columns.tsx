@@ -40,7 +40,7 @@ export function discountColumns(copy: Copy, fmt: Formatters): ResourceColumnSpec
       className: 'w-72 px-3 whitespace-normal',
       render: (d) => (
         <span className="flex flex-col text-left">
-          <span className="text-body-strong">{d.title}</span>
+          <span className="text-ink-strong">{d.title}</span>
           <span className="text-caption text-muted-foreground">
             {d.code ? <span className="uppercase">{d.code}</span> : copy.kind.automatic}
           </span>

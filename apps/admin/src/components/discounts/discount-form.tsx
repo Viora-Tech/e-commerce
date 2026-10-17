@@ -1,7 +1,7 @@
 'use client'
 
 import { permissions } from '@commerce/core/permissions'
-import { CircleAlert, Copy, Trash2 } from '@commerce/ui/icons'
+import { BadgePercent, CircleAlert, Copy, Trash2 } from '@commerce/ui/icons'
 import { Alert, AlertDescription, AlertTitle } from '@commerce/ui/shadcn/alert'
 import { Button } from '@commerce/ui/shadcn/button'
 import { useRouter } from 'next/navigation'
@@ -164,6 +164,7 @@ export default function DiscountForm({ discount }: DiscountFormProps) {
             title={title}
             summary={summary}
             back={{ label: list.title, href: routes.discounts.list() }}
+            lead={{ kind: 'icon', node: <BadgePercent aria-hidden="true" /> }}
             badges={
               discount && form.status === 'disabled' ? (
                 <StatusChip>{list.lifecycle.disabled}</StatusChip>
