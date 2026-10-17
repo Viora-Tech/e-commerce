@@ -28,7 +28,10 @@ export const StoreGeneralSchema = z.object({
   contactEmail: z
     .string()
     .trim()
-    .refine((v) => v === '' || z.string().email().safeParse(v).success, 'Enter a valid email')
+    .refine(
+      (v) => v === '' || z.string().email().safeParse(v).success,
+      'Enter an email like name@example.com',
+    )
     .default(''),
   contactPhone: z
     .string()
