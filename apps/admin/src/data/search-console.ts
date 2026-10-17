@@ -64,6 +64,7 @@ export const searchConsoleContent = {
     },
     topSearches: 'Top searches',
     topPages: 'Top pages',
+    seeAll: 'See all',
     devices: 'Devices',
     countries: 'Countries',
     empty: 'No clicks yet.',

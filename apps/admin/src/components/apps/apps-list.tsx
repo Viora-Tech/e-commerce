@@ -4,7 +4,6 @@ import { siteConfig } from '@commerce/config/site'
 import { CircleAlert, Search } from '@commerce/ui/icons'
 import { cn } from '@commerce/ui/lib/utils'
 import { Alert, AlertDescription, AlertTitle } from '@commerce/ui/shadcn/alert'
-import { Button } from '@commerce/ui/shadcn/button'
 import { Input } from '@commerce/ui/shadcn/input'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
@@ -12,18 +11,19 @@ import { toast } from 'sonner'
 import ConfirmDialog from '@/components/layout/confirm-dialog'
 import PageBody from '@/components/layout/page-body'
 import PageHeader from '@/components/layout/page-header'
-import SectionHead from '@/components/layout/section-head'
 import InlineState from '@/components/states/inline-state'
 import { appsContent } from '@/data/apps'
+import { installedAppsContent } from '@/data/installed-apps'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 import { categoriesOf, groupApps, matchesQuery } from '@/lib/apps-gallery'
 import { recommendedApps } from '@/lib/apps-recommended'
-import AppCard, { type AppSummary, needsSetup } from './app-card'
+import { routes } from '@/lib/routes'
+import AppCard, { type AppSummary } from './app-card'
 import AppsHero from './apps-hero'
 import AppsLoading from './apps-loading'
 import AppsRecommended from './apps-recommended'
-import InstallDialog from './install-dialog'
+import InstallFlow from './install/install-flow'
 
 const HERO_LIMIT = 4
 type StatusFilter = 'all' | 'installed' | 'notInstalled'
@@ -34,15 +34,20 @@ function describeError(err: unknown, fallback: string) {
   return err instanceof Error && err.message ? err.message : fallback
 }
 
-/** Apps home (Figma "Apps / Apps home"): featured banner, Installed, then the App Store. */
+/**
+ * The admin's App Store (Figma "Apps / Apps home" without its Installed strip, which is now the
+ * Installed apps page): featured banner, recommendations, then every app by category. Install
+ * opens the install flow.
+ */
 export default function AppsList() {
   // Hooks
   const copy = useCopy(appsContent)
+  const installedCopy = useCopy(installedAppsContent)
   const router = useRouter()
   const [apps, setApps] = useState<AppSummary[] | null>(null)
   const [busyId, setBusyId] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
-  const [pendingInstall, setPendingInstall] = useState<AppSummary | null>(null)
+  const [installing, setInstalling] = useState<string | null>(null)
   const [pendingUninstall, setPendingUninstall] = useState<AppSummary | null>(null)
   const [query, setQuery] = useState('')
   const [category, setCategory] = useState<string | null>(null)
@@ -61,39 +66,39 @@ export default function AppsList() {
       .catch(() => setStoreName(null))
   }, [])
 
+  // Helpers
+  // The sidebar's app links come from the server layout; re-render it so the app shows up
+  // (or goes) under Apps without a manual reload.
+  const reload = async () => {
+    setApps(await api.apps.list())
+    router.refresh()
+  }
+
   // Event handlers
-  const handleToggle = async (app: AppSummary, install: boolean) => {
+  const handleInstall = (app: AppSummary) => setInstalling(app.id)
+
+  const handleUninstall = async () => {
+    const app = pendingUninstall
+    if (!app) return
     setBusyId(app.id)
     setError(null)
     try {
-      if (install) await api.apps.install({ id: app.id })
-      else await api.apps.uninstall({ id: app.id })
-      setApps(await api.apps.list())
-      // The sidebar's app links come from the server layout; re-render it so the app shows up
-      // (or goes) under Apps without a manual reload.
-      router.refresh()
-      toast.success(install ? copy.installedToast(app.name) : copy.uninstalledToast(app.name))
+      await api.apps.uninstall({ id: app.id })
+      await reload()
+      toast.success(copy.uninstalledToast(app.name))
     } catch (err) {
       toast.error(describeError(err, copy.actionFailed))
     } finally {
       setBusyId(null)
-      setPendingInstall(null)
+      setPendingUninstall(null)
     }
-  }
-
-  const handleConfirmUninstall = () => {
-    const app = pendingUninstall
-    setPendingUninstall(null)
-    if (app) void handleToggle(app, false)
   }
 
   // Render logic
   const { builtin, connections } = groupApps(apps ?? [])
   const all = [...builtin, ...connections]
-  const installed = all.filter((a) => a.installed)
   const available = all.filter((a) => !a.installed)
   const recommended = recommendedApps(all)
-  const setupCount = installed.filter(needsSetup).length
   const store = all.filter(
     (a) =>
       matchesQuery(a, query) &&
@@ -101,10 +106,6 @@ export default function AppsList() {
       (category === null || a.category === category) &&
       (!builtOnly || a.kind === 'builtin'),
   )
-  const summary = [
-    installed.length > 0 ? copy.summary.installed(installed.length) : copy.summary.none,
-    ...(setupCount > 0 ? [copy.summary.needsSetup(setupCount)] : []),
-  ].join(' · ')
   const categoryRows = [
     { value: null, label: copy.store.all, count: all.length },
     ...categoriesOf(all).map((value) => ({
@@ -118,16 +119,9 @@ export default function AppsList() {
   return (
     <PageBody className="gap-8">
       <PageHeader
-        title={copy.title}
-        subtitle={apps === null ? copy.intro : summary}
-        actions={
-          available.length > 0 ? (
-            <Button nativeButton={false} render={<a href="#app-store" />}>
-              <Search aria-hidden="true" />
-              {copy.browseStore}
-            </Button>
-          ) : null
-        }
+        title={copy.sections.store.title}
+        subtitle={copy.sections.store.intro(siteConfig.brand.name)}
+        back={{ label: installedCopy.title, href: routes.apps.list() }}
       />
       {error ? (
         <Alert variant="destructive">
@@ -148,7 +142,7 @@ export default function AppsList() {
           <AppsHero
             apps={available.slice(0, HERO_LIMIT)}
             busyId={busyId}
-            onInstall={setPendingInstall}
+            onInstall={handleInstall}
           />
 
           {storeName ? (
@@ -156,42 +150,11 @@ export default function AppsList() {
               apps={recommended}
               storeName={storeName}
               busyId={busyId}
-              onInstall={setPendingInstall}
+              onInstall={handleInstall}
             />
           ) : null}
 
-          <section className="flex flex-col gap-3.5">
-            <SectionHead
-              title={copy.sections.installed.title}
-              intro={copy.sections.installed.intro}
-            />
-            {installed.length === 0 ? (
-              <InlineState
-                kind="empty"
-                heading={copy.store.noneInstalledHeading}
-                body={copy.store.noneInstalledBody}
-              />
-            ) : (
-              <div className={GRID}>
-                {installed.map((app) => (
-                  <AppCard
-                    key={app.id}
-                    app={app}
-                    variant="installed"
-                    busy={busyId === app.id}
-                    onInstall={setPendingInstall}
-                    onUninstall={setPendingUninstall}
-                  />
-                ))}
-              </div>
-            )}
-          </section>
-
           <section id="app-store" className="flex scroll-mt-6 flex-col gap-3.5">
-            <SectionHead
-              title={copy.sections.store.title}
-              intro={copy.sections.store.intro(siteConfig.brand.name)}
-            />
             <div className="flex flex-col gap-6 lg:flex-row">
               <nav
                 aria-label={copy.store.categories}
@@ -276,7 +239,7 @@ export default function AppsList() {
                         app={app}
                         variant="store"
                         busy={busyId === app.id}
-                        onInstall={setPendingInstall}
+                        onInstall={handleInstall}
                         onUninstall={setPendingUninstall}
                       />
                     ))}
@@ -290,11 +253,11 @@ export default function AppsList() {
 
       <p className="text-caption text-muted-foreground-soft">{copy.docs}</p>
 
-      <InstallDialog
-        app={pendingInstall}
-        busy={pendingInstall !== null && busyId === pendingInstall.id}
-        onConfirm={(app) => void handleToggle(app, true)}
-        onCancel={() => setPendingInstall(null)}
+      <InstallFlow
+        appId={installing}
+        apps={apps}
+        onClose={() => setInstalling(null)}
+        onInstalled={() => void reload()}
       />
 
       <ConfirmDialog
@@ -305,7 +268,7 @@ export default function AppsList() {
         confirmLabel={copy.confirmUninstall.confirm}
         cancelLabel={copy.confirmUninstall.cancel}
         tone="default"
-        onConfirm={handleConfirmUninstall}
+        onConfirm={handleUninstall}
       />
     </PageBody>
   )

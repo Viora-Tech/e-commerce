@@ -33,6 +33,13 @@ export function definePlugin(input: DefinePluginInput): PluginManifest {
   if (input.kind !== 'builtin' && input.kind !== 'connection') {
     throw new Error(`plugin "${input.id}" needs kind: 'builtin' or 'connection'`)
   }
+  const seenResources = new Set<string>()
+  for (const r of input.access.resources) {
+    if (seenResources.has(r.resource)) {
+      throw new Error(`plugin "${input.id}" declares access to "${r.resource}" twice`)
+    }
+    seenResources.add(r.resource)
+  }
   const seenBlockTypes = new Set<string>()
   for (const block of input.storefront?.blocks ?? []) {
     if (!block.type.startsWith(`${input.id}/`)) {
@@ -62,6 +69,8 @@ export function definePlugin(input: DefinePluginInput): PluginManifest {
     jobFailed: input.jobFailed,
     emailAttachments: input.emailAttachments,
     storefront: input.storefront,
+    access: input.access,
+    setupState: input.setupState,
     provides: {
       payments: input.provides.payments ?? [],
       shipping: input.provides.shipping ?? [],

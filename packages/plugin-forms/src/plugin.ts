@@ -16,6 +16,16 @@ export const formsPlugin = definePlugin({
   category: 'marketing',
   description:
     'Make the contact and advice forms of your theme work: every message is saved here and emailed to you.',
+  access: {
+    resources: [
+      {
+        resource: 'customers',
+        level: 'write',
+        why: 'Saves the messages shoppers send from your theme’s forms',
+      },
+    ],
+    summary: 'saves messages',
+  },
   provides: {},
   admin: {
     icon: 'Inbox',

@@ -3,6 +3,7 @@
 import { SHIPROCKET_CAPABILITIES } from '@commerce/shipping-shiprocket/client'
 import { Truck } from '@commerce/ui/icons'
 import CourierShipmentsLink from '@/components/apps/shared/courier-shipments-link'
+import CourierWebhookCard from '@/components/apps/shared/courier-webhook-card'
 import ProviderOverviewPage, {
   type OverviewList,
 } from '@/components/apps/shared/provider-overview-page'
@@ -31,6 +32,14 @@ export default function OverviewPage() {
       copy={copy}
       connectedBody={connectedBody}
       lists={lists}
+      footer={
+        <CourierWebhookCard
+          providerId="shiprocket"
+          title={copy.webhookUrlLabel}
+          where={copy.webhookWhere}
+          help={copy.webhookUrlHelp}
+        />
+      }
     />
   )
 }

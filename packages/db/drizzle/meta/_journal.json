@@ -838,12 +838,19 @@
     {
       "idx": 119,
       "version": "7",
+      "when": 1792272356651,
+      "tag": "0124_app_installation",
+      "breakpoints": true
+    },
+    {
+      "idx": 120,
+      "version": "7",
       "when": 1792274226420,
       "tag": "0130_api_access",
       "breakpoints": true
     },
     {
-      "idx": 120,
+      "idx": 121,
       "version": "7",
       "when": 1792275727206,
       "tag": "0131_channel_connections",

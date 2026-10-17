@@ -87,6 +87,8 @@ export type ResourceTableProps<T extends RowData> = {
    */
   loadAllIds?: (() => Promise<string[]>) | undefined
   empty?: { heading: string; body?: string; action?: ReactNode }
+  /** Replaces the generic "No results" when a search or filter finds nothing. */
+  noResults?: { heading: string; body?: string; action?: ReactNode } | undefined
   /**
    * Per-row actions, drawn in a trailing cell. The cell's own controls must stop
    * propagation: a table with `href` navigates from a click anywhere in the row.
@@ -368,12 +370,14 @@ export default function ResourceTable<T extends RowData>(props: ResourceTablePro
           // Figma "Feedback state · No results": the search or filters found nothing.
           <EmptyState
             icon={SearchX}
-            heading={tableCopy.noResults}
-            body={tableCopy.noResultsBody}
+            heading={props.noResults?.heading ?? tableCopy.noResults}
+            body={props.noResults?.body ?? tableCopy.noResultsBody}
             action={
-              <Button variant="outline" size="sm" onClick={handleClearNarrowing}>
-                {tableCopy.clearSearchAndFilters}
-              </Button>
+              props.noResults?.action ?? (
+                <Button variant="outline" size="sm" onClick={handleClearNarrowing}>
+                  {tableCopy.clearSearchAndFilters}
+                </Button>
+              )
             }
           />
         ) : isEmpty ? (

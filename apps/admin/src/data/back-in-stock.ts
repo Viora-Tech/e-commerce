@@ -6,6 +6,7 @@ export const backInStockContent = {
     emailUsage: 'Email alerts',
     whatsappUsage: 'WhatsApp alerts',
     unlimited: 'Unlimited (no quota)',
+    whatsappVia: 'Sent through your WhatsApp channel',
     ofQuota: (sent: number, quota: number) =>
       `${sent.toLocaleString()} of ${quota.toLocaleString()}`,
     paused: 'Paused: this month’s free quota is used up. Sends resume next month.',

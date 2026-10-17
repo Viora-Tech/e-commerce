@@ -13,6 +13,15 @@ const base: Omit<AppSummary, 'id' | 'name' | 'kind' | 'category' | 'company'> = 
   hooks: [],
   productFields: [],
   credits: [],
+  access: { resources: [], summary: null, shares: [] },
+  status: null,
+  problem: null,
+  installedAt: null,
+  installedBy: null,
+  lastActivity: null,
+  lastActivityAt: null,
+  connectsIn: null,
+  canDisconnect: false,
 }
 
 const app = (

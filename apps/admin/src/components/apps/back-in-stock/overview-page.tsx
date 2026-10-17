@@ -12,7 +12,6 @@ import {
 import { useEffect, useState } from 'react'
 import { CELL, HEAD } from '@/components/apps/gst-invoices/table-classes'
 import PageHeader from '@/components/layout/page-header'
-import SettingsCard from '@/components/settings/settings-card'
 import TableEmptyRow from '@/components/table/table-empty-row'
 import { backInStockContent } from '@/data/back-in-stock'
 import { api } from '@/lib/api-client'
@@ -21,21 +20,25 @@ type Overview = Awaited<ReturnType<typeof api.backInStock.overview>>
 
 const copy = backInStockContent.overview
 
-function usageRow(label: string, usage: { sent: number; quota: number; unlimited: boolean }) {
+/** Figma "Back in stock · Overview": one card per channel, the count large, a bar while there is a quota. */
+function usageCard(
+  label: string,
+  usage: { sent: number; quota: number; unlimited: boolean },
+  note: string | null,
+) {
   const pct =
     usage.unlimited || usage.quota <= 0 ? 0 : Math.min(100, (usage.sent / usage.quota) * 100)
   return (
-    <div className="flex flex-col gap-1.5">
-      <div className="flex items-center justify-between text-body">
-        <span>{label}</span>
-        <span className="text-muted-foreground">
-          {usage.unlimited ? copy.unlimited : copy.ofQuota(usage.sent, usage.quota)}
-        </span>
-      </div>
+    <div className="flex flex-col gap-2 rounded-xl surface-card px-5 py-4">
+      <span className="text-caption text-muted-foreground">{label}</span>
+      <span className="text-xl font-semibold text-ink-strong tabular-nums">
+        {usage.unlimited ? copy.unlimited : copy.ofQuota(usage.sent, usage.quota)}
+      </span>
       {usage.unlimited ? null : <Progress value={pct} />}
       {!usage.unlimited && usage.sent >= usage.quota && usage.quota > 0 ? (
         <p className="text-caption text-destructive">{copy.paused}</p>
       ) : null}
+      {note ? <p className="text-caption text-muted-foreground">{note}</p> : null}
     </div>
   )
 }
@@ -64,10 +67,10 @@ export default function OverviewPage() {
   return (
     <div className="flex flex-col gap-5">
       <PageHeader title={copy.title} summary={copy.subtitle} />
-      <SettingsCard title={copy.title} bodyClassName="gap-5">
-        {usageRow(copy.emailUsage, data.usage.email)}
-        {usageRow(copy.whatsappUsage, data.usage.whatsapp)}
-      </SettingsCard>
+      <div className="grid gap-4 md:grid-cols-2">
+        {usageCard(copy.emailUsage, data.usage.email, null)}
+        {usageCard(copy.whatsappUsage, data.usage.whatsapp, copy.whatsappVia)}
+      </div>
       <div className="overflow-hidden rounded-xl surface-card">
         <h2 className="px-6 pt-5 pb-3 text-body font-semibold text-ink-strong">
           {copy.demandTitle}

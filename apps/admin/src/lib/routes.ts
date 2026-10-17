@@ -167,6 +167,10 @@ export const routes = {
 
   apps: {
     list: () => '/apps',
+    /** Every app this deployment offers, to install (the admin's App Store). */
+    store: () => '/apps/store',
+    /** The install flow for one app, also the entry point for an outside app store. */
+    install: (pluginId: string) => `/apps/install?app=${encodeURIComponent(pluginId)}`,
     /** An installed app's own screen: `/apps/<pluginId>/<...path>`. */
     page: (pluginId: string, ...path: string[]) =>
       ['/apps', id(pluginId), ...path.map(id)].join('/'),

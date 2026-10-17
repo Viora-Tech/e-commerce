@@ -1,5 +1,6 @@
 'use client'
 
+import { LayoutGrid, Trash2 } from '@commerce/ui/icons'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { toast } from 'sonner'
@@ -12,7 +13,7 @@ import { routes } from '@/lib/routes'
 
 type AppUninstallButtonProps = { appId: string; name: string }
 
-/** The installed app's "more" menu: Uninstall, with the same confirmation as the Apps list. */
+/** The installed app's "more" menu (Figma "App more menu"): back to every installed app, and Uninstall with the list's confirmation. */
 export default function AppUninstallButton({ appId, name }: AppUninstallButtonProps) {
   // Hooks
   const copy = useCopy(appsContent)
@@ -39,7 +40,15 @@ export default function AppUninstallButton({ appId, name }: AppUninstallButtonPr
         trigger="kebab-vertical"
         variant="outline"
         size="md"
-        items={[{ label: copy.uninstall, destructive: true, onSelect: () => setAsking(true) }]}
+        items={[
+          { label: copy.allInstalled, icon: LayoutGrid, href: routes.apps.list() },
+          {
+            label: copy.uninstall,
+            icon: Trash2,
+            destructive: true,
+            onSelect: () => setAsking(true),
+          },
+        ]}
       />
       <ConfirmDialog
         open={asking}

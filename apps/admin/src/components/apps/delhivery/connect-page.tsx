@@ -4,6 +4,7 @@ import { DELHIVERY_STAGING_URL } from '@commerce/shipping-delhivery/client'
 import { Truck } from '@commerce/ui/icons'
 import ConnectFields, { type ConnectFieldSpec } from '@/components/apps/shared/connect-fields'
 import type { ModeSwitch } from '@/components/apps/shared/connect-mode-switch'
+import CourierConnectAside from '@/components/apps/shared/courier-connect-aside'
 import CourierConnectGuide from '@/components/apps/shared/courier-connect-guide'
 import ProviderConnectPage, {
   type ConnectContext,
@@ -36,7 +37,7 @@ const fieldSpecs: ConnectFieldSpec[] = [
   { key: 'apiToken', type: 'password', ...copy.fields.apiToken },
   { key: 'clientName', ...copy.fields.clientName },
   { key: 'pickupLocationName', ...copy.fields.pickupLocationName },
-  { key: 'originPincode', inputMode: 'numeric', ...copy.fields.originPincode },
+  { key: 'originPincode', inputMode: 'numeric', pincode: true, ...copy.fields.originPincode },
 ]
 
 /** Test points the base URL at Delhivery's staging server; Live clears it. */
@@ -84,6 +85,15 @@ const renderExtras = ({ values, setField, advancedOpen, onAdvancedOpenChange }: 
   />
 )
 
+const renderAside = (ctx: Ctx) => (
+  <CourierConnectAside
+    providerId={PROVIDER_ID}
+    ctx={ctx}
+    pickupKey="pickupLocationName"
+    mode={mode}
+  />
+)
+
 /** `/apps/delhivery/connect`: a 3-step guide, a Test/Live switch, a read-only "Test connection"
  *  check, and the rarely-touched fields under Advanced. */
 export default function ConnectPage() {
@@ -100,6 +110,7 @@ export default function ConnectPage() {
       guide={renderGuide}
       fields={renderFields}
       extras={renderExtras}
+      aside={renderAside}
     />
   )
 }

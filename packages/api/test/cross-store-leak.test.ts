@@ -57,6 +57,7 @@ const SKIP: Record<string, string> = {
   'shipments.createManifest': 'courier API',
   'shipments.ndrAction': 'courier API',
   'shipments.refreshWallet': 'courier API',
+  'apps.testConnection': 'courier and payment gateway API',
   'payments.connect': 'payment gateway API',
   'payments.testConnection': 'payment gateway API',
   'payments.testOrderLink': 'payment gateway API',

@@ -1,13 +1,22 @@
 'use client'
 
-import { percentChange, type SearchStats } from '@commerce/core/search-console'
+import {
+  percentChange,
+  SEARCH_CONSOLE_APP_ID,
+  type SearchStats,
+} from '@commerce/core/search-console'
+import Link from 'next/link'
 import VisitorListCard, { type VisitorListRow } from '@/components/analytics/visitor-list-card'
+import DataCard from '@/components/layout/data-card'
 import StatStrip from '@/components/layout/stat-strip'
 import { searchConsoleContent } from '@/data/search-console'
 import { useCopy, useFormat, useLocale } from '@/hooks/use-copy'
 import { formatRate } from '@/lib/analytics-range'
 import { INTL_LOCALE } from '@/lib/i18n'
+import { routes } from '@/lib/routes'
 import ReportFrame from './report-frame'
+import SearchPageLabel from './search-page-label'
+import SearchStatsTable from './search-stats-table'
 
 /** Rows in each short list. */
 const TOP = 5
@@ -58,6 +67,18 @@ const ALPHA2: Record<string, string> = {
   tha: 'TH',
 }
 
+/** "See all" beside a short list, opening the app's full report. */
+function seeAll(label: string, path: string) {
+  return (
+    <Link
+      href={routes.apps.page(SEARCH_CONSOLE_APP_ID, path)}
+      className="text-body font-medium text-foreground underline-offset-4 hover:underline"
+    >
+      {label}
+    </Link>
+  )
+}
+
 function countryName(regions: Intl.DisplayNames, alpha3: string): string {
   // Google sends ISO 3166 alpha-3 (`ind`); DisplayNames wants alpha-2, so show the code when unsure.
   const alpha2 = ALPHA2[alpha3.toLowerCase()]
@@ -69,7 +90,7 @@ function countryName(regions: Intl.DisplayNames, alpha3: string): string {
   }
 }
 
-/** The app's first page: totals against the 28 days before, top searches and pages, devices, countries. */
+/** The app's first page: totals against the 28 days before, top searches, pages almost on page 1, top pages, devices, countries. */
 export default function OverviewPage() {
   // Hooks
   const copy = useCopy(searchConsoleContent)
@@ -126,14 +147,33 @@ export default function OverviewPage() {
               <VisitorListCard
                 title={o.topSearches}
                 empty={o.empty}
+                action={seeAll(o.seeAll, 'searches')}
                 rows={toRows(
                   report.queries.map((q) => ({ key: q.key, label: q.key, stats: q.current })),
                   total,
                 )}
               />
+              {/* Figma "Google Search Console · Overview": pages just off page 1, beside Top searches. */}
+              <DataCard
+                title={copy.almostPageOne.title}
+                action={seeAll(o.seeAll, 'almost-page-one')}
+                flush
+              >
+                <SearchStatsTable
+                  first={copy.columns.page}
+                  empty={copy.almostPageOne.empty}
+                  withChange={false}
+                  rows={report.almostPageOne.slice(0, TOP).map((p) => ({
+                    key: p.key,
+                    label: <SearchPageLabel path={p.key} url={p.url} item={p.item} />,
+                    stats: p.current,
+                  }))}
+                />
+              </DataCard>
               <VisitorListCard
                 title={o.topPages}
                 empty={o.empty}
+                action={seeAll(o.seeAll, 'pages')}
                 rows={toRows(
                   report.pages.map((p) => ({
                     key: p.key,

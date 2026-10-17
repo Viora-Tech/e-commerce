@@ -1,8 +1,8 @@
 import type { Metadata } from 'next'
-import AppsList from '@/components/apps/apps-list'
+import InstalledApps from '@/components/apps/installed/installed-apps'
 
-export const metadata: Metadata = { title: 'Apps' }
+export const metadata: Metadata = { title: 'Installed apps' }
 
 export default function Page() {
-  return <AppsList />
+  return <InstalledApps />
 }

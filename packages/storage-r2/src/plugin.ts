@@ -11,5 +11,18 @@ export const r2Plugin = definePlugin({
   company: 'Cloudflare',
   description:
     'Product images and files on your own R2 bucket, uploaded straight from the browser.',
+  access: {
+    resources: [
+      {
+        resource: 'files',
+        level: 'read-write',
+        why: 'Stores product images and the files you upload',
+      },
+    ],
+    summary: 'stores files',
+    shares: [
+      { when: 'Every upload', what: 'The file itself: product images, documents and theme files' },
+    ],
+  },
   provides: { storage: [r2Factory] },
 })

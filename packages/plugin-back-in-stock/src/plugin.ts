@@ -17,6 +17,18 @@ export const backInStockPlugin = definePlugin({
   category: 'marketing',
   description:
     'Let shoppers ask to be notified when a sold-out variant is back, then message everyone waiting the moment it restocks.',
+  access: {
+    resources: [
+      { resource: 'products', level: 'read', why: 'Sold-out variants, to offer the signup' },
+      { resource: 'inventory', level: 'read', why: 'Stock levels, to know when a variant is back' },
+      {
+        resource: 'customers',
+        level: 'read-write',
+        why: 'Emails of shoppers who asked to be told',
+      },
+    ],
+    summary: 'sends emails',
+  },
   provides: {},
   storefront: { blocks: backInStockBlocks },
   admin: {

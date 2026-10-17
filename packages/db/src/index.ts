@@ -1,5 +1,6 @@
 export * from './ai-schema'
 export * from './api-access-schema'
+export * from './app-schema'
 export * as authSchema from './auth-schema'
 export * from './billing-schema'
 export * from './channel-schema'

@@ -37,6 +37,7 @@ const core = definePlugin({
   name: 'Core',
   version: '1.0.0',
   kind: 'builtin',
+  access: { resources: [] },
   provides: {
     payments: [payment('cod')],
     shipping: [courier('demo')],
@@ -49,6 +50,7 @@ const razorpay = definePlugin({
   version: '1.2.0',
   kind: 'connection',
   description: 'Cards, UPI, netbanking',
+  access: { resources: [] },
   provides: { payments: [payment('razorpay')] },
 })
 const fedex = definePlugin({
@@ -56,13 +58,21 @@ const fedex = definePlugin({
   name: 'FedEx',
   version: '0.1.0',
   kind: 'connection',
+  access: { resources: [] },
   provides: { shipping: [courier('fedex')] },
 })
 
 describe('definePlugin', () => {
   it('rejects ids that are not lowercase slugs', () => {
     expect(() =>
-      definePlugin({ id: 'Razor Pay', name: 'x', version: '1', kind: 'builtin', provides: {} }),
+      definePlugin({
+        id: 'Razor Pay',
+        name: 'x',
+        version: '1',
+        kind: 'builtin',
+        access: { resources: [] },
+        provides: {},
+      }),
     ).toThrow(/lowercase/)
   })
 
@@ -88,6 +98,7 @@ describe('loadPlugins', () => {
       name: 'Razorpay fork',
       version: '2',
       kind: 'connection',
+      access: { resources: [] },
       provides: {},
     })
     expect(() => loadPlugins([core, razorpay, again])).toThrow(
@@ -101,6 +112,7 @@ describe('loadPlugins', () => {
       name: 'Other',
       version: '1',
       kind: 'connection',
+      access: { resources: [] },
       provides: { shipping: [courier('fedex')] },
     })
     expect(() => loadPlugins([core, fedex, clash])).toThrow(
@@ -123,9 +135,50 @@ describe('loadPlugins', () => {
       id: 'razorpay',
       builtIn: false,
       description: 'Cards, UPI, netbanking',
+      access: { resources: [] },
       provides: { payments: [{ id: 'razorpay', label: 'razorpay pay' }], shipping: [] },
     })
     expect(JSON.parse(JSON.stringify(r))).toEqual(r)
+  })
+
+  it('summaries carry the declared access, with empty shares when an app sends nothing out', () => {
+    const courierApp = definePlugin({
+      id: 'courier-app',
+      name: 'Courier',
+      version: '1.0.0',
+      kind: 'connection',
+      access: {
+        resources: [{ resource: 'shipments', level: 'read-write', why: 'Books parcels' }],
+        summary: 'books parcels',
+        shares: [{ when: 'Sent per shipment', what: 'Ship-to address' }],
+      },
+      provides: {},
+    })
+    const [c, x] = loadPlugins([core, courierApp]).summaries()
+    expect(c?.access).toEqual({ resources: [], summary: null, shares: [] })
+    expect(x?.access).toEqual({
+      resources: [{ resource: 'shipments', level: 'read-write', why: 'Books parcels' }],
+      summary: 'books parcels',
+      shares: [{ when: 'Sent per shipment', what: 'Ship-to address' }],
+    })
+  })
+
+  it('rejects a plugin that declares the same resource twice', () => {
+    expect(() =>
+      definePlugin({
+        id: 'twice',
+        name: 'Twice',
+        version: '1.0.0',
+        kind: 'builtin',
+        access: {
+          resources: [
+            { resource: 'orders', level: 'read', why: 'a' },
+            { resource: 'orders', level: 'write', why: 'b' },
+          ],
+        },
+        provides: {},
+      }),
+    ).toThrow(/declares access to "orders" twice/)
   })
 
   it('summaries carry app credits, and none when an app lists none', () => {
@@ -135,6 +188,7 @@ describe('loadPlugins', () => {
       version: '1.0.0',
       kind: 'builtin',
       credits: [{ name: 'invoicely', url: 'https://github.com/x/y', license: 'MIT' }],
+      access: { resources: [] },
       provides: {},
     })
     const [c, r, x] = loadPlugins([core, razorpay, credited]).summaries()
@@ -169,6 +223,7 @@ describe('loadPlugins', () => {
       version: '1',
       kind: 'builtin',
       category: 'invoicing',
+      access: { resources: [] },
       provides: {},
       hooks: { 'order.paid': async (_ctx, p) => void calls.push(`paid:${p.orderId}`) },
       jobs: { render: async () => void calls.push('render') },
