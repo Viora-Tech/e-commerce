@@ -169,7 +169,7 @@ export const STATUS = {
   } satisfies Record<ProductStatus, StatusEntry>,
   purchaseOrder: {
     draft: entry(purchaseOrdersContent.status.draft, 'neutral'),
-    ordered: entry(purchaseOrdersContent.status.ordered, 'accent'),
+    ordered: entry(purchaseOrdersContent.status.ordered, 'info'),
     partially_received: entry(purchaseOrdersContent.status.partially_received, 'pending'),
     received: entry(purchaseOrdersContent.status.received, 'success'),
     closed: entry(purchaseOrdersContent.status.closed, 'neutral'),

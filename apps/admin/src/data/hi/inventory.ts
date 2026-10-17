@@ -99,6 +99,7 @@ export default [
     summary: 'आपने सप्लायर से क्या मँगाया और क्या पहुँचा',
     resource: { singular: 'परचेज़ ऑर्डर', plural: 'परचेज़ ऑर्डर' },
     create: 'परचेज़ ऑर्डर बनाएँ',
+    billsIn: (currency: string) => `${currency} में बिल`,
     status: {
       draft: 'ड्राफ़्ट',
       ordered: 'ऑर्डर किया',
@@ -138,6 +139,8 @@ export default [
   translation(purchaseOrderFormContent, {
     newTitle: 'परचेज़ ऑर्डर बनाएँ',
     title: (n: number) => `परचेज़ ऑर्डर #PO${n}`,
+    orderedOn: (day: string) => `${day} को ऑर्डर किया`,
+    unitsReceived: (of: string) => `${of} यूनिट पहुँचे`,
     back: 'परचेज़ ऑर्डर',
     supplier: {
       heading: 'सप्लायर',

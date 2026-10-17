@@ -1,7 +1,7 @@
 'use client'
 
 import { siteConfig } from '@commerce/config/site'
-import { Plus, SquarePlus } from '@commerce/ui/icons'
+import { Plus } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Kbd } from '@commerce/ui/shadcn/kbd'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@commerce/ui/shadcn/tooltip'
@@ -20,7 +20,7 @@ import {
   type PurchaseOrderStatus,
   purchaseOrdersContent,
 } from '@/data/inventory'
-import { useCopy } from '@/hooks/use-copy'
+import { useCopy, useFormat } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 import { type ListQuery, sameListQuery } from '@/lib/list-query'
 import { usePrimaryAction } from '@/lib/primary-action'
@@ -45,6 +45,7 @@ function allCount(c: PurchaseOrderCounts): number {
 function PurchaseOrdersContent({ initial }: { initial: PurchaseOrdersInitial }) {
   // Hooks
   const copy = useCopy(purchaseOrdersContent)
+  const fmt = useFormat()
   usePrimaryAction(NEW_HREF)
   const [q, setQ] = useQueryStates(
     {
@@ -97,7 +98,7 @@ function PurchaseOrdersContent({ initial }: { initial: PurchaseOrdersInitial }) 
           <TooltipTrigger
             render={
               <Button render={<Link href={NEW_HREF} />} nativeButton={false}>
-                <SquarePlus strokeWidth={1.6} />
+                <Plus strokeWidth={1.6} />
                 {copy.create}
               </Button>
             }
@@ -111,7 +112,7 @@ function PurchaseOrdersContent({ initial }: { initial: PurchaseOrdersInitial }) 
     >
       <ResourceTable
         resourceName={copy.resource}
-        columns={purchaseOrderColumns(copy)}
+        columns={purchaseOrderColumns(copy, fmt)}
         items={rows}
         getId={(r) => r.id}
         href={(r) => routes.stock.purchaseOrder(r.id)}

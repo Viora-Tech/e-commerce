@@ -183,6 +183,7 @@ export const purchaseOrdersContent = {
   },
   number: (n: number) => `#PO${n}`,
   receivedOf: (received: number, units: number) => `${received} of ${units}`,
+  billsIn: (currency: string) => `Bills in ${currency}`,
   none: 'None',
   empty: {
     heading: 'No purchase orders',
@@ -193,6 +194,8 @@ export const purchaseOrdersContent = {
 export const purchaseOrderFormContent = {
   newTitle: 'Create purchase order',
   title: (n: number) => `Purchase order #PO${n}`,
+  orderedOn: (day: string) => `ordered ${day}`,
+  unitsReceived: (of: string) => `${of} units received`,
   back: 'Purchase orders',
   supplier: {
     heading: 'Supplier',

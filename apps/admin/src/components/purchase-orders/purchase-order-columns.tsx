@@ -1,8 +1,8 @@
-import RelativeTime from '@/components/layout/relative-time'
-import StatusLabel from '@/components/status/status-label'
+import OrderChip from '@/components/orders/order-chip'
 import type { ResourceColumnSpec } from '@/components/table/resource-table'
 import type { purchaseOrdersContent } from '@/data/inventory'
 import type { api } from '@/lib/api-client'
+import type { Formatters } from '@/lib/format'
 import { formatPaise } from '@/lib/money'
 
 export type PurchaseOrderRow = Awaited<ReturnType<typeof api.purchaseOrders.list>>['rows'][number]
@@ -10,6 +10,7 @@ export type PurchaseOrderRow = Awaited<ReturnType<typeof api.purchaseOrders.list
 /** Columns of the purchase order list. */
 export const purchaseOrderColumns = (
   copy: typeof purchaseOrdersContent,
+  fmt: Formatters,
 ): ResourceColumnSpec<PurchaseOrderRow>[] => [
   {
     id: 'number',
@@ -24,20 +25,25 @@ export const purchaseOrderColumns = (
     sortValue: (r) => r.supplierName,
     align: 'start',
     className: 'w-56 px-3',
-    render: (r) => <span className="truncate">{r.supplierName}</span>,
+    render: (r) => (
+      <span className="flex min-w-0 flex-col">
+        <span className="truncate text-body text-ink-strong">{r.supplierName}</span>
+        <span className="text-caption text-muted-foreground">{copy.billsIn(r.currency)}</span>
+      </span>
+    ),
   },
   {
     id: 'destination',
     title: copy.columns.destination,
     sortValue: (r) => r.locationName,
-    render: (r) => r.locationName,
+    className: 'max-w-48',
+    render: (r) => <span className="block truncate text-muted-foreground">{r.locationName}</span>,
   },
   {
     id: 'status',
-    align: 'center',
     title: copy.columns.status,
     sortValue: (r) => r.status,
-    render: (r) => <StatusLabel kind="purchaseOrder" value={r.status} />,
+    render: (r) => <OrderChip kind="purchaseOrder" value={r.status} />,
   },
   {
     id: 'received',
@@ -61,7 +67,9 @@ export const purchaseOrderColumns = (
     sortValue: (r) => (r.expectedAt ? new Date(r.expectedAt) : null),
     render: (r) =>
       r.expectedAt ? (
-        <RelativeTime value={r.expectedAt} />
+        <span title={fmt.dateTime(r.expectedAt)}>
+          {fmt.pattern(r.expectedAt, { day: 'numeric', month: 'short' })}
+        </span>
       ) : (
         <span className="text-muted-foreground-soft">{copy.none}</span>
       ),
