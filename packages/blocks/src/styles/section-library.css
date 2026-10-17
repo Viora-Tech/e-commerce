@@ -941,3 +941,144 @@
     min-height: 0;
   }
 }
+
+/* ---- Figma Section / Product launch (704:117556) ------------------------ */
+.product-launch {
+  position: relative;
+  isolation: isolate;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-6);
+  padding-block: var(--space-9);
+  text-align: center;
+}
+
+.product-launch__glow {
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+  z-index: -1;
+  width: min(48rem, 100%);
+  height: 26rem;
+  border-radius: 50%;
+  background: radial-gradient(
+    closest-side,
+    color-mix(in srgb, var(--color-brand) 30%, transparent),
+    transparent
+  );
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+
+.product-launch__badge {
+  padding: 3px var(--space-2);
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-button, var(--radius-m));
+  color: var(--color-ink);
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.product-launch__head {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  max-width: 47.5rem;
+}
+
+.product-launch__heading {
+  margin: 0;
+  font-size: calc(2.5rem * var(--font-heading-scale, 1));
+  line-height: 1.05;
+  letter-spacing: -0.02em;
+}
+
+.product-launch__text {
+  margin: 0;
+  color: var(--color-muted);
+  font-size: 18px;
+  line-height: 1.55;
+}
+
+.product-launch__tiles {
+  display: flex;
+  gap: var(--space-4);
+}
+
+.product-launch__tiles[hidden] {
+  display: none;
+}
+
+.product-launch__tile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-1);
+  min-width: 5.5rem;
+  padding: 20px var(--space-5);
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-card, var(--radius-m));
+  background-color: var(--color-surface);
+}
+
+.product-launch__value {
+  color: var(--color-ink);
+  font-family: var(--font-heading);
+  font-size: calc(2.25rem * var(--font-heading-scale, 1));
+  font-weight: 700;
+  line-height: 1.05;
+  font-variant-numeric: tabular-nums;
+}
+
+.product-launch__unit {
+  color: var(--color-muted);
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.product-launch__form {
+  display: flex;
+  gap: var(--space-2);
+  width: min(30rem, 100%);
+}
+
+.product-launch__input {
+  flex: 1 1 auto;
+  min-width: 0;
+  height: 48px;
+  padding-inline: 14px;
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-input, var(--radius-m));
+  background-color: var(--color-bg);
+  color: var(--color-ink);
+  font: inherit;
+}
+
+.product-launch__form .btn,
+.product-launch__shop {
+  height: 48px;
+}
+
+.product-launch__done,
+.product-launch__error {
+  margin: 0;
+  color: var(--color-muted);
+  font-size: 14px;
+}
+
+.product-launch__error {
+  color: var(--color-danger);
+}
+
+@media screen and (min-width: 990px) {
+  .product-launch__heading {
+    font-size: calc(3.5rem * var(--font-heading-scale, 1));
+  }
+
+  .product-launch__value {
+    font-size: calc(3.5rem * var(--font-heading-scale, 1));
+  }
+}

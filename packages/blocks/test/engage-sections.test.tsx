@@ -5,7 +5,12 @@ import StoreLocator from '../src/components/sections/store-locator'
 import { createBlocksConfig, SECTION_CATEGORIES } from '../src/puck-config'
 import type { EngageProps } from '../src/sections/engage'
 
-const KEYS: (keyof EngageProps)[] = ['SaleCountdown', 'OffersStrip', 'StoreLocator']
+const KEYS: (keyof EngageProps)[] = [
+  'ProductLaunch',
+  'SaleCountdown',
+  'OffersStrip',
+  'StoreLocator',
+]
 const minimalPuck = { metadata: {} }
 
 describe('engage sections (Figma NEW: sale countdown, offers, store locator)', () => {

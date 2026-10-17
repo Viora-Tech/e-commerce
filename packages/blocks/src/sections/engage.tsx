@@ -1,5 +1,6 @@
 import type { ComponentConfig } from '@puckeditor/core'
 import OffersStrip from '../components/sections/offers-strip'
+import ProductLaunch from '../components/sections/product-launch'
 import SaleCountdown from '../components/sections/sale-countdown'
 import StoreLocator from '../components/sections/store-locator'
 import { modernSectionsContent as copy } from '../data/modern-sections'
@@ -9,6 +10,15 @@ import { inlineText } from './inline-fields'
 const heading = inlineText('Heading')
 
 export type EngageProps = {
+  ProductLaunch: Frame & {
+    badge: string
+    heading: string
+    text: string
+    launchAt: string
+    notifyButton: string
+    liveHeading: string
+    liveButton: Link
+  }
   SaleCountdown: Frame & {
     badge: string
     heading: string
@@ -35,6 +45,30 @@ export type EngageProps = {
  */
 export function engageSections(): Record<keyof EngageProps, ComponentConfig> {
   return {
+    ProductLaunch: framed<EngageProps['ProductLaunch']>(
+      'Product launch',
+      {
+        badge: inlineText('Tag'),
+        heading,
+        text: inlineText('Text'),
+        launchAt: { type: 'text', label: 'Launch time (e.g. 2026-11-05T19:00+05:30)' },
+        notifyButton: inlineText('Notify button'),
+        liveHeading: inlineText('Heading once live'),
+        liveButton: inlineLinkField('Button once live'),
+      },
+      {
+        badge: copy.productLaunch.badge,
+        heading: copy.productLaunch.heading,
+        text: copy.productLaunch.text,
+        launchAt: '',
+        notifyButton: copy.productLaunch.notifyButton,
+        liveHeading: copy.productLaunch.liveHeading,
+        liveButton: { label: copy.productLaunch.liveButton, href: '/collections/all' },
+      },
+      // The storefront's sign-up arrives as section metadata, as for the newsletter.
+      (p, meta) => <ProductLaunch {...p} action={meta.newsletterAction} />,
+    ),
+
     SaleCountdown: framed<EngageProps['SaleCountdown']>(
       'Sale countdown',
       {

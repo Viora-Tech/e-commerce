@@ -173,6 +173,7 @@ export const SECTION_CATEGORIES = {
       'VideoHero',
       'CtaBanner',
       'SaleCountdown',
+      'ProductLaunch',
       'OffersStrip',
       // The starter kit (`./sections/kit.tsx`).
       'GridHero',
