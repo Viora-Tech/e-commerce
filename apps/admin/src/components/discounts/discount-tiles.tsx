@@ -26,20 +26,33 @@ export default function DiscountTiles({ stats, status, onSelect }: DiscountTiles
       active={status}
       onChange={onSelect}
       tiles={[
-        { id: 'active', label: tiles.active, value: fmt.number(stats.active), filter: 'active' },
+        {
+          id: 'active',
+          label: tiles.active,
+          value: fmt.number(stats.active),
+          note: tiles.now,
+          filter: 'active',
+        },
         {
           id: 'scheduled',
           label: tiles.scheduled,
           value: fmt.number(stats.scheduled),
+          note: tiles.now,
           filter: 'scheduled',
         },
         {
           id: 'expired',
           label: tiles.expired,
           value: fmt.number(stats.expired),
+          note: tiles.now,
           filter: 'expired',
         },
-        { id: 'used', label: tiles.usedThisMonth, value: fmt.number(stats.usedThisMonth) },
+        {
+          id: 'used',
+          label: tiles.usedThisMonth,
+          value: fmt.number(stats.usedThisMonth),
+          note: tiles.month,
+        },
       ]}
     />
   )

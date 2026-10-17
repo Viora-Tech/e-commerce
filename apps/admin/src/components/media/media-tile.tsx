@@ -1,11 +1,12 @@
 'use client'
 
-import { Video } from '@commerce/ui/icons'
+import { ImageIcon, Video } from '@commerce/ui/icons'
 import { cn } from '@commerce/ui/lib/utils'
 import { ROW_STATE_CLASS } from '@commerce/ui/sortable'
 import { motion } from 'motion/react'
 import type { Ref } from 'react'
 import ActionMenu from '@/components/layout/action-menu'
+import FallbackImage from '@/components/layout/fallback-image'
 import { mediaContent } from '@/data/media'
 import { useCopy } from '@/hooks/use-copy'
 import { IMAGE_GLIDE_SPRING } from '@/hooks/use-image-dnd'
@@ -88,8 +89,16 @@ export default function MediaTile({
         {video ? (
           <video src={item.url} muted playsInline className="size-full object-cover" />
         ) : (
-          // biome-ignore lint/performance/noImgElement: thumbnails from arbitrary storage hosts.
-          <img src={item.url} alt={item.alt ?? ''} className="size-full object-cover" />
+          <FallbackImage
+            src={item.url}
+            alt={item.alt ?? ''}
+            className="size-full object-cover"
+            fallback={
+              <span className="flex size-full items-center justify-center text-muted-foreground">
+                <ImageIcon className="size-6" aria-hidden />
+              </span>
+            }
+          />
         )}
         {cover ? (
           <span className="absolute top-2 left-2 rounded-md bg-card/90 px-2 py-0.5 text-caption text-foreground shadow-card">
