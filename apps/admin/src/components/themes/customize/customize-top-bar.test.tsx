@@ -18,7 +18,13 @@ vi.mock('@/components/layout/user-menu', () => ({ default: () => null }))
 vi.mock('./zoom-menu', () => ({ default: () => null }))
 
 function setup(props: Partial<ComponentProps<typeof CustomizeTopBar>>) {
-  const handlers = { onSave: vi.fn(), onPublish: vi.fn(), onDiscard: vi.fn(), onDevice: vi.fn() }
+  const handlers = {
+    onSave: vi.fn(),
+    onPublish: vi.fn(),
+    onDiscard: vi.fn(),
+    onDevice: vi.fn(),
+    onVersions: vi.fn(),
+  }
   render(
     <CustomizeTopBar
       name="Copy of Waimers"

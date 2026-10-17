@@ -44,6 +44,7 @@ import CustomizeHotkeys from './customize-hotkeys'
 import CustomizeLayout from './customize-layout'
 import CustomizeTopBar from './customize-top-bar'
 import EditorLoading from './editor-loading'
+import EditorVersionsPanel from './editor-versions-panel'
 import ImportedThemeSettings from './imported-theme-settings'
 import LiquidCanvasSection from './liquid-canvas-section'
 import PagesPanel from './pages-panel'
@@ -115,6 +116,7 @@ export default function CustomizeEditor({
   const [saving, setSaving] = useState(false)
   const [publishing, setPublishing] = useState(false)
   const [confirmPublish, setConfirmPublish] = useState(false)
+  const [versionsOpen, setVersionsOpen] = useState(false)
   const [creating, setCreating] = useState<'closed' | 'open' | 'busy'>('closed')
   const [creatingKind, setCreatingKind] = useState<AlternateKind | null>(null)
   const [device, setDevice] = useState<PreviewDevice>('desktop')
@@ -251,6 +253,12 @@ export default function CustomizeEditor({
     toast.success(copy.discarded)
   }
 
+  /** A version became the drafts (Version history): load the page again from them. */
+  const handleRestored = () => {
+    setSwitching(true)
+    setNonce((n) => n + 1)
+  }
+
   /** Makes this theme the live one, saving unsaved changes first. */
   const handlePublish = async () => {
     if ((templatesDirty || settingsDirty) && !(await handleSave())) return
@@ -349,6 +357,7 @@ export default function CustomizeEditor({
       onDiscard={handleDiscard}
       onSave={handleSave}
       onPublish={() => setConfirmPublish(true)}
+      onVersions={() => setVersionsOpen(true)}
       pickers={
         <>
           <TemplatePicker
@@ -453,6 +462,14 @@ export default function CustomizeEditor({
           onRetry={() => setAttempt((n) => n + 1)}
         />
       )}
+      <EditorVersionsPanel
+        open={versionsOpen}
+        theme={record}
+        origin={origin}
+        me={user.name || user.email}
+        onOpenChange={setVersionsOpen}
+        onRestored={handleRestored}
+      />
       <PublishThemeDialog
         open={confirmPublish}
         name={record.name}

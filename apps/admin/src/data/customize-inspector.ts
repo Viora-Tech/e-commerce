@@ -39,6 +39,7 @@ export const inspectorContent = {
     discarded: 'Changes discarded',
     more: 'More actions',
     editCode: 'Edit code',
+    versions: 'Version history',
     aiConnected: 'AI connected',
     account: 'Your account',
   },

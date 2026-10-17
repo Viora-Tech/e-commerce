@@ -387,6 +387,26 @@ export const customizeContent = {
     saved: (name: string) => `${name} saved to My sections`,
     failed: 'Could not save the section',
   },
+  /** Version history beside the canvas (Figma 697:4526). */
+  versions: {
+    title: 'Version history',
+    body: (name: string) =>
+      `Each time ${name} went live: when it was published, and each save of the live theme. The newest 20 of each page are kept.`,
+    now: 'Now',
+    current: 'Current draft',
+    live: 'Live',
+    published: 'Published',
+    saved: 'Saved',
+    preview: 'Preview',
+    previewHelp: 'Opens this version of the store in a new tab',
+    restore: 'Restore',
+    restored: 'Restored as your draft. Nothing goes live until you publish.',
+    restoreFailed: 'Could not restore that version',
+    loading: 'Loading versions',
+    failed: 'Could not load versions',
+    empty: 'No versions yet. One is kept the next time this theme goes live.',
+    close: 'Close version history',
+  },
   /** "Add block" inside a section (Figma 696:87552). */
   addBlock: {
     search: 'Search blocks',

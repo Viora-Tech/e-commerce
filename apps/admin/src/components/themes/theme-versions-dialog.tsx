@@ -18,7 +18,7 @@ import { themesContent } from '@/data/themes'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 import { formatWhen } from '@/lib/format-date'
-import { previewUrl, type ThemeItem } from './theme-types'
+import { type ThemeItem, versionPreviewUrl } from './theme-types'
 
 type ThemeVersionsDialogProps = {
   /** The theme whose history is open. Mount per theme (`key`). */
@@ -30,10 +30,6 @@ type ThemeVersionsDialogProps = {
 }
 
 type Batch = Awaited<ReturnType<typeof api.themes.versions.list>>[number]
-
-/** The theme's preview link opened on one version, for the page the merchant lands on. */
-const versionUrl = (origin: string, token: string, batchId: string) =>
-  `${previewUrl(origin, token)}&theme-version=${encodeURIComponent(batchId)}`
 
 /**
  * Version history from the theme's ⋯ menu: every time it went live (published, or saved while
@@ -121,7 +117,7 @@ export default function ThemeVersionsDialog({
                       nativeButton={false}
                       render={
                         <a
-                          href={versionUrl(origin, theme.previewToken, b.batchId)}
+                          href={versionPreviewUrl(origin, theme.previewToken, b.batchId)}
                           target="_blank"
                           rel="noreferrer"
                         />

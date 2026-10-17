@@ -58,6 +58,8 @@ type CustomizeTopBarProps = {
   onDiscard: () => void
   onSave: () => void
   onPublish: () => void
+  /** Opens Version history beside the canvas (Figma 697:4526). */
+  onVersions: () => void
 }
 
 const DEVICES = [
@@ -94,6 +96,7 @@ export default function CustomizeTopBar({
   onDiscard,
   onSave,
   onPublish,
+  onVersions,
 }: CustomizeTopBarProps) {
   // Hooks
   const copy = useCopy(customizeContent.bar)
@@ -215,6 +218,7 @@ export default function CustomizeTopBar({
             }
           />
           <DropdownMenuContent align="end">
+            <DropdownMenuItem onClick={onVersions}>{copy.versions}</DropdownMenuItem>
             <DropdownMenuItem render={<Link href={codeHref} />}>{copy.editCode}</DropdownMenuItem>
             <DropdownMenuItem disabled={!dirty || saving} onClick={onDiscard}>
               {copy.discard}
