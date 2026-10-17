@@ -5,4 +5,6 @@ export const productCardContent = {
   added: 'Added to cart',
   failed: 'Try again',
   soldOut: 'Sold out',
+  save: (title: string) => `Save ${title} to your wishlist`,
+  unsave: (title: string) => `Remove ${title} from your wishlist`,
 } as const

@@ -2,6 +2,7 @@ import type { CardProduct } from '../types'
 import Picture from './picture'
 import Price from './price'
 import ProductCardQuickAdd from './product-card-quick-add'
+import ProductCardWishlist from './product-card-wishlist'
 
 const saleLabel = (percent: number) => `−${percent}%`
 
@@ -78,6 +79,7 @@ export default function ProductCard({
           </div>
         </div>
       </a>
+      <ProductCardWishlist handle={product.handle} title={product.title} />
       {quickAdd ? (
         <ProductCardQuickAdd
           handle={product.handle}

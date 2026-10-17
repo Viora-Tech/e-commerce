@@ -758,3 +758,34 @@
   margin-top: var(--space-3);
   padding-inline: var(--space-4);
 }
+
+/* Figma Store / Product card "Wishlist": a round button on the photo's top-right corner. */
+.product-card {
+  position: relative;
+}
+
+.product-card__wishlist {
+  position: absolute;
+  top: var(--space-3);
+  right: var(--space-3);
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background-color: var(--color-bg);
+  color: var(--color-ink);
+  cursor: pointer;
+  transition: scale var(--duration-press, 120ms) ease-out;
+}
+
+.product-card__wishlist:active {
+  scale: 0.94;
+}
+
+.product-card__wishlist[aria-pressed="true"] {
+  color: var(--color-sale, var(--color-brand));
+}
