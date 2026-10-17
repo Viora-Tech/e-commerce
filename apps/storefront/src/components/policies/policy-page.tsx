@@ -9,7 +9,7 @@ export default function PolicyPage({ title, body, updatedAt }: PolicyPageProps) 
   const value = parseRichText(body)
   return (
     <article className="page-width mx-auto max-w-3xl py-12">
-      <h1 className="h2 mb-2">{title}</h1>
+      <h1 className="section-title mb-2">{title}</h1>
       <p className="mb-8 text-small text-muted">{copy.updated(updatedAt)}</p>
       <RichTextRenderer data={value} className="rte" />
     </article>

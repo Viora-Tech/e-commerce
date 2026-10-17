@@ -29,7 +29,7 @@ export default function PasswordForm() {
           placeholder={copy.password}
           className="field__input min-w-0 flex-1"
         />
-        <button type="submit" className="btn btn--primary" disabled={pending}>
+        <button type="submit" className="btn btn--secondary" disabled={pending}>
           {copy.submit}
         </button>
       </div>
