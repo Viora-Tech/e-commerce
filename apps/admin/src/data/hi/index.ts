@@ -66,6 +66,7 @@ import states from './states'
 import storageWarning from './storage-warning'
 import storeData from './store-data'
 import table from './table'
+import themeCode from './theme-code'
 import themeImport from './theme-import'
 import themes from './themes'
 import umami from './umami'
@@ -140,6 +141,7 @@ export const hindiCopy: readonly TranslationPair[] = [
   ...storeData,
   ...storageWarning,
   ...table,
+  ...themeCode,
   ...themeImport,
   ...themes,
   ...searchConsole,

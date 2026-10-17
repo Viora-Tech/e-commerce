@@ -72,6 +72,8 @@ export type CodeFile = CodeFileEntry & { body: string }
 
 export type CodeFileVersion = {
   id: string
+  /** Native templates: the theme version this belongs to ("Restore whole theme"). */
+  batchId: string | null
   reason: 'import' | 'create' | 'save' | 'publish'
   createdBy: string | null
   createdAt: Date
@@ -413,13 +415,18 @@ export async function listCodeFileVersions(
       .from(themeFileVersion)
       .where(and(eq(themeFileVersion.themeId, themeId), eq(themeFileVersion.path, path)))
       .orderBy(desc(themeFileVersion.createdAt))
-    return rows.map((r) => ({ ...r, reason: r.reason as CodeFileVersion['reason'] }))
+    return rows.map((r) => ({
+      ...r,
+      batchId: null,
+      reason: r.reason as CodeFileVersion['reason'],
+    }))
   }
   const key = parseNativeTemplatePath(path)
   if (!key) return []
   const rows = await tx
     .select({
       id: themeVersion.id,
+      batchId: themeVersion.batchId,
       reason: themeVersion.reason,
       createdBy: themeVersion.createdBy,
       createdAt: themeVersion.createdAt,

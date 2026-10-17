@@ -129,6 +129,8 @@ export const routes = {
     home: () => '/online-store',
     themes: () => '/online-store/themes',
     themeEditor: (themeId: string) => `/online-store/themes/${id(themeId)}/editor`,
+    /** Edit code: the theme's files (an imported theme's Liquid, a native theme's JSON). */
+    themeCode: (themeId: string) => `/online-store/themes/${id(themeId)}/code`,
     themeImportNew: () => '/online-store/themes/import',
     themeImport: (themeId: string) => `/online-store/themes/${id(themeId)}/import`,
     pages: () => '/online-store/pages',
