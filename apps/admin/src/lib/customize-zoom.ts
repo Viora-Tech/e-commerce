@@ -1,7 +1,7 @@
 /**
  * SOURCE OF TRUTH KEYWORDS: canvas zoom, DEVICE_PX, ZOOM_STEPS, fitZoom, CanvasZoomContext
  * WHAT:  The Customize canvas's design widths and zoom: the page is laid out at the device's
- *        real width (1440 / 768 / 390 px) and scaled to Fit, or to a fixed 25–200 %.
+ *        real width (1440 / 834 / 390 px, Figma 696:89327) and scaled to Fit, or to a fixed 25–200 %.
  * WHY:   A desktop preview squeezed into the space between the panels showed the tablet layout;
  *        drawing it at 1440 px and scaling keeps what the merchant sees true to the store.
  * WHERE: `customize-layout.tsx` scales the frame, `customize-top-bar.tsx` shows "1440 PX / 60 %",
@@ -13,7 +13,7 @@ import { createContext, useContext } from 'react'
 import type { PreviewDevice } from '@/components/themes/theme-preview'
 
 /** The width each preview device is laid out at, in CSS pixels. */
-export const DEVICE_PX: Record<PreviewDevice, number> = { desktop: 1440, tablet: 768, mobile: 390 }
+export const DEVICE_PX: Record<PreviewDevice, number> = { desktop: 1440, tablet: 834, mobile: 390 }
 
 /** The fixed zoom levels, smallest first. */
 export const ZOOM_STEPS = [0.25, 0.5, 0.75, 1, 1.25, 1.5, 2] as const
