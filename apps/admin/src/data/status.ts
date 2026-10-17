@@ -288,7 +288,7 @@ export const STATUS = {
   /** Marketing campaigns. */
   campaign: {
     draft: entry(campaignsContent.status.draft, 'neutral'),
-    scheduled: entry(campaignsContent.status.scheduled, 'accent'),
+    scheduled: entry(campaignsContent.status.scheduled, 'info'),
     sending: entry(campaignsContent.status.sending, 'pending'),
     sent: entry(campaignsContent.status.sent, 'success'),
     cancelled: entry(campaignsContent.status.cancelled, 'error'),
