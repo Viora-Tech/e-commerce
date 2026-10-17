@@ -1,15 +1,16 @@
 'use client'
 
+import { AppWindow, Send } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { parseAsInteger, parseAsString, parseAsStringLiteral, useQueryStates } from 'nuqs'
 import { Suspense, useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
 import AbandonedTiles, { type AbandonedStats } from '@/components/abandoned/abandoned-tiles'
-import PillTabs from '@/components/layout/pill-tabs'
 import StatusChip from '@/components/layout/status-chip'
 import OrdersListFrame from '@/components/orders/orders-list-frame'
 import ResourceTable, { type ResourceColumnSpec } from '@/components/table/resource-table'
 import RowMenu from '@/components/table/row-menu'
+import ViewSelect from '@/components/table/view-select'
 import { ABANDONED_LIST_FILTERS, type AbandonedListFilter, abandonedContent } from '@/data/drafts'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
@@ -28,6 +29,9 @@ export type AbandonedInitial = {
   /** Whole-window (30 day) counts for the tabs; `stats` is the 7 day figures for the tiles. */
   counts: AbandonedStats
 }
+
+/** Figma: amber while still open, grey once a reminder went out, green once recovered. */
+const STATUS_TONE = { open: 'attention', sent: 'neutral', recovered: 'success' } as const
 
 const statusOf = (c: Item) => (c.recovered ? 'recovered' : c.recoverySentAt ? 'sent' : 'open')
 
@@ -177,9 +181,7 @@ function AbandonedContent({ initial }: { initial: AbandonedInitial }) {
       title: copy.columns.status,
       align: 'center',
       render: (c) => (
-        <StatusChip tone={statusOf(c) === 'open' ? 'attention' : 'neutral'}>
-          {copy.status[statusOf(c)]}
-        </StatusChip>
+        <StatusChip tone={STATUS_TONE[statusOf(c)]}>{copy.status[statusOf(c)]}</StatusChip>
       ),
     },
   ]
@@ -215,22 +217,23 @@ function AbandonedContent({ initial }: { initial: AbandonedInitial }) {
         rowActions={(c) => (
           <RowMenu
             items={[
-              { label: copy.view, href: routes.orders.abandonedCheckout(c.id) },
+              { label: copy.view, href: routes.orders.abandonedCheckout(c.id), icon: AppWindow },
               ...(c.recovered || !c.email
                 ? []
-                : [{ label: copy.send, onSelect: () => handleSend(c.id) }]),
+                : [{ label: copy.send, onSelect: () => handleSend(c.id), icon: Send }]),
             ]}
           />
         )}
         query={query}
         onQueryChange={(query) => setQ({ query, page: 1 })}
         onClearAll={() => setQ({ query: '', status: null, page: 1 })}
-        tabs={
-          <PillTabs<AbandonedListFilter | null>
-            variant="segmented"
+        views={
+          <ViewSelect<AbandonedListFilter | null>
+            label={copy.viewLabel}
             value={status}
             onChange={(s) => setQ({ status: s, page: 1 })}
-            tabs={[
+            formatCount={fmt.number}
+            options={[
               { value: null, label: copy.tabs.all, count: initial.counts.carts },
               {
                 value: 'not_recovered',

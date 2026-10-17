@@ -1,7 +1,7 @@
 'use client'
 
 import { permissions } from '@commerce/core/permissions'
-import { Copy } from '@commerce/ui/icons'
+import { Copy, ShoppingCart } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
@@ -70,10 +70,12 @@ export default function AbandonedDetail({ checkout }: AbandonedDetailProps) {
           title={copy.heading(refOf(checkout.id))}
           summary={copy.summary(
             who,
-            fmt.when(checkout.updatedAt),
+            fmt.ago(checkout.updatedAt),
             fmt.money(checkout.subtotalPaise),
           )}
           back={{ label: copy.back.label, href: routes.orders.abandonedCheckouts() }}
+          lead={{ kind: 'icon', node: <ShoppingCart aria-hidden="true" /> }}
+          size="sm"
           actions={
             <>
               {checkout.recoveryUrl ? (

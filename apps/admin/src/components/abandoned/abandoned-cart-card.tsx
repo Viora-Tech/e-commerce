@@ -1,3 +1,4 @@
+import CountBadge from '@/components/layout/count-badge'
 import DataCard from '@/components/layout/data-card'
 import LineItemRow from '@/components/layout/line-item-row'
 import TotalsList from '@/components/layout/totals-list'
@@ -17,7 +18,14 @@ export default function AbandonedCartCard({ checkout }: AbandonedCartCardProps) 
   // Render logic
   const copy = content.cart
   return (
-    <DataCard title={copy.heading} subtitle={copy.items(checkout.itemCount)}>
+    <DataCard
+      title={
+        <>
+          {copy.heading}
+          <CountBadge n={copy.items(checkout.itemCount)} tone="outline" />
+        </>
+      }
+    >
       <div className="flex flex-col gap-4">
         {checkout.lines.length === 0 ? (
           <p className="text-body text-muted-foreground">{copy.empty}</p>

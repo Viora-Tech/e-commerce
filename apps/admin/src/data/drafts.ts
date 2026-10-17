@@ -131,6 +131,7 @@ export type AbandonedListFilter = (typeof ABANDONED_LIST_FILTERS)[number]
 export const abandonedContent = {
   title: 'Abandoned checkouts',
   heading: 'Abandoned checkouts',
+  viewLabel: 'Checkout view',
   intro: 'Baskets where a shopper left their contact but did not pay.',
   summary: (carts: number, recovered: number, valuePaise: string) =>
     `${carts} ${carts === 1 ? 'cart' : 'carts'} left this week · ${recovered} recovered · ${valuePaise} still waiting`,

@@ -28,7 +28,7 @@ type TimelineProps = {
    */
   variant?: 'rail' | 'steps' | 'compact'
   items?: TimelineItem[]
-  /** Items grouped under sticky day labels (rail only). */
+  /** Items grouped under sticky day labels ("Today", "Yesterday"). */
   groups?: TimelineGroup[]
   className?: string
 }
@@ -107,7 +107,10 @@ function StepEntry({ item }: EntryProps) {
 function CompactEntry({ item }: EntryProps) {
   return (
     <li className="flex items-center gap-3 text-body">
-      <span className="size-1.5 shrink-0 rounded-full bg-muted-foreground" aria-hidden="true" />
+      <span
+        className="relative z-1 size-1.5 shrink-0 rounded-full bg-muted-foreground"
+        aria-hidden="true"
+      />
       <span className="min-w-0 flex-1">{item.title}</span>
       <When item={item} className="shrink-0 text-caption text-muted-foreground tabular-nums" />
     </li>
@@ -124,6 +127,28 @@ function Rail({ items }: { items: TimelineItem[] }) {
   )
 }
 
+/* Compact dots are joined by a hairline, Figma "Activity". */
+const COMPACT_LIST =
+  'relative flex flex-col gap-3 before:absolute before:top-2 before:bottom-2 before:left-[0.1875rem] before:w-px before:bg-border'
+
+function Entries({
+  variant,
+  items,
+}: {
+  variant: 'rail' | 'steps' | 'compact'
+  items: TimelineItem[]
+}) {
+  if (variant === 'rail') return <Rail items={items} />
+  const Entry = variant === 'steps' ? StepEntry : CompactEntry
+  return (
+    <ol className={variant === 'compact' ? COMPACT_LIST : 'flex flex-col gap-3'}>
+      {items.map((item) => (
+        <Entry key={item.id} item={item} />
+      ))}
+    </ol>
+  )
+}
+
 /** The one timeline: order history, activity feeds and step-by-step progress. */
 export default function Timeline({
   variant = 'rail',
@@ -132,7 +157,7 @@ export default function Timeline({
   className,
 }: TimelineProps) {
   // Early returns
-  if (variant === 'rail' && groups) {
+  if (groups) {
     return (
       <div className={cn('flex flex-col gap-5', className)}>
         {groups.map((g) => (
@@ -141,29 +166,17 @@ export default function Timeline({
               {g.label}
             </p>
             <div className="mt-2">
-              <Rail items={g.items} />
+              <Entries variant={variant} items={g.items} />
             </div>
           </section>
         ))}
       </div>
     )
   }
-  if (variant === 'rail') {
-    return (
-      <div className={className}>
-        <Rail items={items} />
-      </div>
-    )
-  }
-
-  // Render logic
-  const Entry = variant === 'steps' ? StepEntry : CompactEntry
 
   return (
-    <ol className={cn('flex flex-col gap-3', className)}>
-      {items.map((item) => (
-        <Entry key={item.id} item={item} />
-      ))}
-    </ol>
+    <div className={className}>
+      <Entries variant={variant} items={items} />
+    </div>
   )
 }
