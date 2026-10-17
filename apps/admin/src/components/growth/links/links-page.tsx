@@ -80,7 +80,9 @@ function linkColumns(
       id: 'created',
       title: copy.columns.created,
       sortValue: (l) => new Date(l.createdAt).getTime(),
-      render: (l) => <span className="text-muted-foreground tabular-nums">{fmt.day(l.createdAt)}</span>,
+      render: (l) => (
+        <span className="text-muted-foreground tabular-nums">{fmt.day(l.createdAt)}</span>
+      ),
     },
   ]
 }

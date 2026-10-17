@@ -17,7 +17,7 @@ import ProoflyPageBody from '@/components/layout/proofly-page-body'
 import SaveBar from '@/components/layout/save-bar'
 import OrderChip from '@/components/orders/order-chip'
 import DocumentsCard from '@/components/purchase-documents/documents-card'
-import { inboundShipmentFormContent, inboundShipmentsContent } from '@/data/purchasing'
+import { inboundShipmentFormContent } from '@/data/purchasing'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 import { routes } from '@/lib/routes'
@@ -56,7 +56,6 @@ const LIST = routes.stock.inboundShipments()
 export default function ShipmentForm({ shipment, costs, aiReading }: ShipmentFormProps) {
   // Hooks
   const copy = useCopy(inboundShipmentFormContent)
-  const listCopy = useCopy(inboundShipmentsContent)
   const router = useRouter()
   const [d, setD] = useState<ShipmentDraft>(() => draftFrom(shipment))
   const [saved, setSaved] = useState(() => JSON.stringify(draftFrom(shipment)))

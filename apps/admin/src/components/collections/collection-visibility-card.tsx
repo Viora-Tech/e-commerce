@@ -4,7 +4,6 @@ import type { CollectionStatus } from '@commerce/core/collections'
 import { Switch } from '@commerce/ui/shadcn/switch'
 import { useId } from 'react'
 import DataCard from '@/components/layout/data-card'
-import StatusChip from '@/components/layout/status-chip'
 import { collectionDetailContent } from '@/data/collections'
 import { useCopy } from '@/hooks/use-copy'
 
@@ -26,14 +25,7 @@ export default function CollectionVisibilityCard({
   const on = status === 'active'
 
   return (
-    <DataCard
-      title={copy.heading}
-      action={
-        <StatusChip tone={on ? 'neutral' : 'attention'}>
-          {on ? copy.chipOn : copy.chipOff}
-        </StatusChip>
-      }
-    >
+    <DataCard title={copy.heading}>
       <div className="flex items-center justify-between gap-3">
         <div className="flex flex-col">
           <label htmlFor={id} className="text-body font-medium text-foreground">
