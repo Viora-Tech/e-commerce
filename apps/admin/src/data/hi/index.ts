@@ -16,6 +16,7 @@ import checkoutSettings from './checkout-settings'
 import collections from './collections'
 import commandPalette from './command-palette'
 import common from './common'
+import connectAside from './connect-aside'
 import content from './content'
 import contentBlog from './content-blog'
 import contentFiles from './content-files'
@@ -94,6 +95,7 @@ export const hindiCopy: readonly TranslationPair[] = [
   ...businessGst,
   ...checkoutSettings,
   ...common,
+  ...connectAside,
   ...content,
   ...contentBlog,
   ...contentFiles,

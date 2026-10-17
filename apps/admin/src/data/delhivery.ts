@@ -85,6 +85,7 @@ export const delhiveryAppContent = {
     capabilitiesHeading: 'What this app can do',
     capabilities: {
       serviceability: 'Check if a PIN code is deliverable, with an estimated delivery date',
+      rates: 'Quote the courier charge for a parcel before you book',
       create_shipment: 'Book a shipment and get a waybill',
       label: 'Print the shipping label',
       pickup: 'Schedule a pickup with your local hub',
@@ -92,11 +93,13 @@ export const delhiveryAppContent = {
       webhook: 'Get near-instant tracking updates if you turn on the webhook',
       cancel: 'Cancel a shipment before it is picked up',
       ndr: 'Reattempt delivery, change the address, or send a parcel back (RTO) from the NDR queue',
+      reverse_pickup: 'Book a courier pickup for a customer return',
       manifest: 'Not available from Delhivery yet: we print a label sheet from what you booked',
       wallet:
         'Not available from Delhivery yet: enter your balance by hand to get low-balance alerts',
     } as Record<string, string>,
     webhookUrlLabel: 'Tracking webhook URL',
+    webhookWhere: 'Paste into Delhivery One → API → Webhooks',
     webhookUrlHelp:
       'Paste this into Delhivery One → API → Webhooks, along with the same shared secret you set on the connect page, so scans reach this app within minutes instead of waiting for the next poll.',
     copied: 'Copied',

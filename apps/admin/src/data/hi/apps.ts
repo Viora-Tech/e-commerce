@@ -58,10 +58,18 @@ export default [
     connectedBody: 'आपका अकाउंट काम कर रहा है और सेव हो गया है।',
     openApp: 'ऐप खोलें',
     setupBanner: {
+      eyebrow: 'सेटअप चाहिए',
       title: 'इस ऐप का सेटअप पूरा करें',
       body: 'यह इंस्टॉल है पर अभी जुड़ा नहीं है, इसलिए अपना काम नहीं कर पाएगा।',
       action: 'अभी जोड़ें',
     },
+    errorBanner: {
+      eyebrow: 'समस्या',
+      title: 'इस ऐप पर ध्यान देने की ज़रूरत है',
+      action: 'ठीक करें',
+    },
+    statusError: 'गड़बड़ी',
+    allInstalled: 'सभी इंस्टॉल किए ऐप्स',
     listing: {
       back: 'ऐप स्टोर',
       whatItDoes: 'यह क्या करता है',
