@@ -34,6 +34,8 @@ export default [
   translation(supplierFormContent, {
     newTitle: 'सप्लायर जोड़ें',
     back: 'सप्लायर',
+    billsIn: (currency: string) => `${currency} में बिल`,
+    orderCount: (n: number) => `${n} परचेज़ ऑर्डर`,
     details: {
       heading: 'सप्लायर',
       name: 'नाम',

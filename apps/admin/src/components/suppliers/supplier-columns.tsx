@@ -17,7 +17,14 @@ export const supplierColumns = (
     hideable: false,
     align: 'start',
     className: 'w-64 px-3',
-    render: (r) => <span className="truncate text-body-strong">{r.name}</span>,
+    render: (r) => (
+      <span className="flex min-w-0 flex-col">
+        <span className="truncate text-body text-ink-strong">{r.name}</span>
+        {r.address ? (
+          <span className="truncate text-caption text-muted-foreground">{r.address}</span>
+        ) : null}
+      </span>
+    ),
   },
   {
     id: 'country',

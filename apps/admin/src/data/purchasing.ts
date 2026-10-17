@@ -37,6 +37,8 @@ export const suppliersContent = {
 export const supplierFormContent = {
   newTitle: 'Add supplier',
   back: 'Suppliers',
+  billsIn: (currency: string) => `bills in ${currency}`,
+  orderCount: (n: number) => `${n} purchase ${n === 1 ? 'order' : 'orders'}`,
   details: {
     heading: 'Supplier',
     name: 'Name',

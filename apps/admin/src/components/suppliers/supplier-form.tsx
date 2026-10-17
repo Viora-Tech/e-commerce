@@ -1,6 +1,7 @@
 'use client'
 
 import type { PurchaseCurrency } from '@commerce/core/inventory'
+import { Store, Trash2 } from '@commerce/ui/icons'
 import PhoneInput from '@commerce/ui/phone-input'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Field, FieldDescription, FieldGroup, FieldLabel } from '@commerce/ui/shadcn/field'
@@ -126,10 +127,28 @@ export default function SupplierForm({ supplier }: SupplierFormProps) {
       <PageHeader
         title={supplier ? supplier.name : copy.newTitle}
         back={{ label: copy.back, href: LIST }}
+        lead={{ kind: 'icon', node: <Store aria-hidden="true" /> }}
+        summary={
+          supplier
+            ? [
+                supplier.address,
+                copy.billsIn(supplier.currency),
+                copy.orderCount(supplier.orders.length),
+              ]
+                .filter(Boolean)
+                .join(' · ')
+            : undefined
+        }
         actions={
           <>
             {supplier ? (
-              <Button variant="outline" onClick={() => setDeleting(true)} disabled={busy}>
+              <Button
+                variant="ghost"
+                className="text-destructive hover:text-destructive"
+                onClick={() => setDeleting(true)}
+                disabled={busy}
+              >
+                <Trash2 aria-hidden="true" />
                 {copy.delete}
               </Button>
             ) : null}
