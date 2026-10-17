@@ -5,6 +5,7 @@ const PAGES = [
   { path: '/', priority: 1 },
   { path: '/features', priority: 0.9 },
   { path: '/pricing', priority: 0.9 },
+  { path: '/apps', priority: 0.8 },
   { path: '/changelog', priority: 0.7 },
   { path: '/about', priority: 0.6 },
   { path: '/contact', priority: 0.6 },

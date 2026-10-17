@@ -9,6 +9,7 @@ export const siteContent = {
   navLinks: [
     { label: 'Features', href: '/features' },
     { label: 'Pricing', href: '/pricing' },
+    { label: 'Apps', href: '/apps' },
     { label: 'Docs', href: docs },
   ],
   signIn: { label: 'Sign in', href: `https://${siteConfig.brand.domain}/sign-in` },
@@ -21,6 +22,7 @@ export const siteContent = {
       links: [
         { label: 'Features', href: '/features' },
         { label: 'Pricing', href: '/pricing' },
+        { label: 'App Store', href: '/apps' },
         { label: 'Changelog', href: '/changelog' },
       ],
     },
