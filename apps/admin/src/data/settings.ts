@@ -176,9 +176,9 @@ export const SETTINGS_GROUPS: SettingsGroup[] = [
         icon: Braces,
       },
       {
-        // Your own light/dark and accent; the page lives under your account, linked here too
-        // so nobody hunts for it.
-        href: routes.account.appearance(),
+        // Your own light/dark and accent, plus the owner's store default accent. The account
+        // menu opens the same page under Account.
+        href: routes.settings.appearance(),
         title: 'Appearance',
         body: 'Light or dark mode and your accent colour, just for you.',
         icon: Palette,
@@ -362,9 +362,8 @@ export const settingsHomeContent = {
     heading: 'All settings',
   },
   elsewhere: {
-    personal: 'Your language and how the admin looks are yours, not the store’s:',
+    personal: 'Your profile, sign-in and language are yours, not the store’s:',
     account: 'Account',
-    appearance: 'Appearance',
     personalWhere: '(also in the menu under your initials, top right).',
     storage: 'Where uploads are stored:',
     storageLink: 'Content › Files › Storage',

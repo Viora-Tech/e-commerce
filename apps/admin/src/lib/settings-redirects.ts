@@ -18,7 +18,6 @@ export const SETTINGS_REDIRECTS: SettingsRedirect[] = [
   { source: '/settings/customer-privacy/:path*', destination: '/settings/privacy/:path*' },
   // Personal preferences left store settings for the account menu.
   { source: '/settings/account', destination: '/account' },
-  { source: '/settings/appearance', destination: '/account/appearance' },
   // Where uploads are stored sits with the files themselves, under Content → Files.
   { source: '/settings/files', destination: '/content/files/storage' },
 ]

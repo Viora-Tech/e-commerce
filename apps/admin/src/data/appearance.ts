@@ -1,4 +1,4 @@
-/** Copy for Account › Appearance (the account menu, top right). */
+/** Copy for Settings › Appearance (also opened from the account menu, top right). */
 export const appearanceContent = {
   title: 'Appearance',
   intro: 'How the admin looks to you. Your store and what shoppers see stay the same.',
@@ -40,11 +40,8 @@ export const appearanceContent = {
     pillActive: 'All',
     pillIdle: 'Unfulfilled',
     pillOther: 'Paid',
-    tableHead: ['Order', 'Customer', 'Total'],
-    tableRow: ['#1042', 'Aarav Mehta', '₹2,499'],
-    chart: 'Sales this week',
-    focus: 'Focused field',
     switchLabel: 'Track stock',
+    switchHelp: 'Focused field and switch use the accent too.',
   },
   store: {
     heading: 'Store default',

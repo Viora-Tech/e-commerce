@@ -51,10 +51,6 @@ export default async function SettingsHome() {
           {copy.elsewhere.personal}{' '}
           <Link href={routes.account.home()} className={LINK}>
             {copy.elsewhere.account}
-          </Link>
-          {' · '}
-          <Link href={routes.account.appearance()} className={LINK}>
-            {copy.elsewhere.appearance}
           </Link>{' '}
           {copy.elsewhere.personalWhere}
         </p>

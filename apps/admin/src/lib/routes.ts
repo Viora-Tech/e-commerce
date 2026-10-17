@@ -183,6 +183,7 @@ export const routes = {
     returns: () => '/settings/returns',
     staff: () => '/settings/staff',
     ai: () => '/settings/ai',
+    appearance: () => '/settings/appearance',
   },
 
   dev: {

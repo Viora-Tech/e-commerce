@@ -277,13 +277,13 @@ export const SETTINGS_SEARCH_INDEX: SettingsSearchEntry[] = [
       'quota',
     ],
   },
-  // Your own preferences: the account menu, top right
   {
     title: 'Appearance',
-    where: 'Account menu',
-    href: routes.account.appearance(),
+    where: 'Team & advanced',
+    href: routes.settings.appearance(),
     keywords: ['dark mode', 'light mode', 'theme', 'colour', 'color', 'accent'],
   },
+  // Your own preferences: the account menu, top right
   {
     title: 'Profile',
     where: 'Account menu › Account',

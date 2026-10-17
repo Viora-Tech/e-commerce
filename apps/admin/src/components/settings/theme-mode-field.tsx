@@ -1,9 +1,9 @@
 'use client'
 
 import { Monitor, Moon, Sun } from '@commerce/ui/icons'
-import { ToggleGroup, ToggleGroupItem } from '@commerce/ui/shadcn/toggle-group'
 import { useTheme } from 'next-themes'
 import { useSyncExternalStore } from 'react'
+import ChoiceCard from '@/components/layout/choice-card'
 import { appearanceContent } from '@/data/appearance'
 
 const copy = appearanceContent.mode
@@ -15,7 +15,7 @@ const MODES = [
 
 const noSubscription = () => () => {}
 
-/** Light, dark or follow the system; next-themes keeps it in this browser's storage. */
+/** Light, dark or follow the system as three option tiles; next-themes keeps it in this browser's storage. */
 export default function ThemeModeField() {
   // Hooks
   const { theme, setTheme } = useTheme()
@@ -28,22 +28,24 @@ export default function ThemeModeField() {
   )
 
   // Render logic
-  const value = hydrated && theme ? [theme] : []
+  const value = hydrated ? theme : undefined
 
   return (
-    <ToggleGroup
-      aria-label={copy.label}
-      value={value}
-      onValueChange={(v) => v[0] && setTheme(v[0])}
-      variant="outline"
-      spacing={0}
-    >
-      {MODES.map((m) => (
-        <ToggleGroupItem key={m.id} value={m.id} className="gap-1.5 px-3">
-          <m.icon />
-          {m.label}
-        </ToggleGroupItem>
-      ))}
-    </ToggleGroup>
+    <fieldset>
+      <legend className="mb-4 text-caption font-medium text-foreground">{copy.label}</legend>
+      <div className="grid gap-3 sm:grid-cols-3">
+        {MODES.map((m) => (
+          <ChoiceCard
+            key={m.id}
+            icon={m.icon}
+            label={m.label}
+            selected={value === m.id}
+            onSelect={() => setTheme(m.id)}
+            layout="row"
+            showCheck
+          />
+        ))}
+      </div>
+    </fieldset>
   )
 }
