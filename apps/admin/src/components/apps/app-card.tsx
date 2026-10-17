@@ -32,7 +32,26 @@ export type AppSummary = {
   admin: { icon: string | null; pages: { path: string; navLabel?: string | undefined }[] }
   /** Open-source projects the app is built on, credited on the card. */
   credits: { name: string; url: string; license: string; note?: string | undefined }[]
+  /** What the app declares it can see and do, and what it sends to its outside service. */
+  access: {
+    resources: { resource: string; level: AccessLevel; why: string }[]
+    summary: string | null
+    shares: { when: string; what: string }[]
+  }
+  /** Null when not installed. */
+  status: 'connected' | 'needsSetup' | 'error' | null
+  /** The recorded failure behind `error`, in words. */
+  problem: string | null
+  installedAt: string | null
+  installedBy: string | null
+  lastActivity: string | null
+  lastActivityAt: string | null
+  /** `flow`: the install flow connects the account first. `page`: it connects on its own page. */
+  connectsIn: 'flow' | 'page' | null
+  canDisconnect: boolean
 }
+
+export type AccessLevel = 'read' | 'write' | 'read-write'
 
 type AppCardProps = {
   app: AppSummary

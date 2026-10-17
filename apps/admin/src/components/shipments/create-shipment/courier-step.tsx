@@ -166,7 +166,7 @@ export default function CourierStep({
           variant="outline"
           className="w-fit"
           nativeButton={false}
-          render={<Link href={routes.apps.list()} />}
+          render={<Link href={routes.apps.store()} />}
         >
           <Plus aria-hidden />
           {copy.courier.connect}

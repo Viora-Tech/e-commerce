@@ -124,7 +124,7 @@ export default function VisitorsSection({ range }: VisitorsSectionProps) {
   if (view.state !== 'ready') {
     const empty =
       view.state === 'not-installed'
-        ? { ...copy.empty.notInstalled, href: routes.apps.list() }
+        ? { ...copy.empty.notInstalled, href: routes.apps.install('umami') }
         : view.state === 'not-connected'
           ? { ...copy.empty.notConnected, href: routes.apps.page('umami') }
           : {

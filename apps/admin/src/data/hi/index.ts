@@ -4,6 +4,7 @@ import account from './account'
 import activity from './activity'
 import ai from './ai'
 import analytics from './analytics'
+import appInstall from './app-install'
 import apps from './apps'
 import assistant from './assistant'
 import backgroundWork from './background-work'
@@ -31,6 +32,7 @@ import growth from './growth'
 import gstInvoices from './gst-invoices'
 import home from './home'
 import imageEditor from './image-editor'
+import installedApps from './installed-apps'
 import inventory from './inventory'
 import layout from './layout'
 import login from './login'
@@ -80,6 +82,7 @@ import umami from './umami'
 export const hindiCopy: readonly TranslationPair[] = [
   ...activity,
   ...account,
+  ...appInstall,
   ...apps,
   ...abandonedDetail,
   ...ai,
@@ -108,6 +111,7 @@ export const hindiCopy: readonly TranslationPair[] = [
   ...gstInvoices,
   ...home,
   ...imageEditor,
+  ...installedApps,
   ...layout,
   ...marketingAutomations,
   ...marketingCampaigns,
