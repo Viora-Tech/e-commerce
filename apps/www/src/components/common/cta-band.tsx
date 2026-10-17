@@ -7,7 +7,7 @@ import PageContainer from './page-container'
 
 type CtaBandProps = {
   title: string
-  body: string
+  body?: string
   /** Adds the "Talk on WhatsApp" secondary action (the home page's closing card). */
   whatsappLabel?: string
   /** Compact left-aligned band used at the foot of inner pages. */
@@ -34,7 +34,7 @@ export default function CtaBand({ title, body, whatsappLabel, inline = false }: 
           >
             {title}
           </h2>
-          <p className="text-sm text-muted-foreground">{body}</p>
+          {body ? <p className="text-sm text-muted-foreground">{body}</p> : null}
         </div>
         <div className={cn('flex flex-col gap-3 sm:flex-row', inline ? 'sm:shrink-0' : null)}>
           <JoinWaitlistButton size="lg" arrow />

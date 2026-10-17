@@ -75,7 +75,15 @@ export const pricingContent = {
     calculator: {
       title: 'Find your plan',
       orders: 'Orders a month',
-      ordersTicks: [50, 100, 500, 1000, 5000, 10000],
+      // Positions along the log-scale slider track, as static classes so Tailwind can see them.
+      ordersTicks: [
+        { value: 50, at: 'left-0' },
+        { value: 100, at: 'left-[13.1%]' },
+        { value: 500, at: 'left-[43.5%]' },
+        { value: 1000, at: 'left-[56.5%]' },
+        { value: 5000, at: 'left-[86.9%]' },
+        { value: 10000, at: 'left-full' },
+      ],
       aov: 'Average order value',
       recommended: 'Recommended for you:',
       keepLabel: 'What you keep',

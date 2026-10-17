@@ -117,3 +117,16 @@
     animation: none;
   }
 }
+
+/* Print: legal pages print as one black-on-white column (nav, footer and contents are hidden). */
+@media print {
+  :root.dark {
+    --background: #ffffff;
+    --foreground: #000000;
+    --card: #ffffff;
+    --muted: #f2f2f2;
+    --muted-foreground: #333333;
+    --border: #cccccc;
+    --input-surface: #ffffff;
+  }
+}

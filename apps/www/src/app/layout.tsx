@@ -44,7 +44,7 @@ export default function RootLayout({ children }: RootLayoutProps) {
       className={`dark ${sans.variable} ${devanagari.variable} ${mono.variable}`}
       suppressHydrationWarning
     >
-      <body className="min-h-svh bg-background font-sans text-body text-foreground antialiased print:bg-white print:text-black">
+      <body className="min-h-svh overflow-x-clip bg-background font-sans text-body text-foreground antialiased print:bg-white print:text-black">
         <a
           href="#main"
           className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-50 focus:rounded-md focus:bg-foreground focus:px-3 focus:py-2 focus:text-background"
