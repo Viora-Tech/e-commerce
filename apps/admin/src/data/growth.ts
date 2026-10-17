@@ -129,6 +129,10 @@ export const growthOverviewContent = {
     /** {source} is filled in with the friendly source label. */
     title: 'Your best source this period is {source}',
     body: 'It brought in the most sales of anything other than direct traffic.',
+    eyebrow: 'Best source',
+    sales: 'Sales',
+    orders: 'Orders',
+    conversion: 'Conversion',
   },
   sources: {
     title: 'Sales by source',

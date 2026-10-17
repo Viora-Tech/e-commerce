@@ -82,6 +82,8 @@ export default function GrowthOverviewPage({ initialRange, initial }: GrowthOver
   const dayPoints = data.salesOverTime.day.map((p) => ({ ...p, label: formatDay(p.label) }))
   const weekPoints = data.salesOverTime.week.map((p) => ({ ...p, label: formatDay(p.label) }))
 
+  const bestRow = data.sources.find((r) => r.source === data.bestSource) ?? null
+
   return (
     <div className="flex w-full flex-col gap-6 px-4 py-6 md:px-8 md:py-8">
       <PageHeader
@@ -150,7 +152,7 @@ export default function GrowthOverviewPage({ initialRange, initial }: GrowthOver
       />
       <div className="grid grid-cols-1 items-stretch gap-6 xl:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)]">
         <OutcomesCard outcomes={o} />
-        {data.bestSource ? <BestSourceCallout source={data.bestSource} /> : null}
+        {bestRow ? <BestSourceCallout source={bestRow} /> : null}
       </div>
       <ChartCard
         title={copy.salesOverTime.title}
