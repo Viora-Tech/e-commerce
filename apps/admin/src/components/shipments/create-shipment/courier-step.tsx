@@ -5,10 +5,12 @@ import { cn } from '@commerce/ui/lib/utils'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Spinner } from '@commerce/ui/shadcn/spinner'
 import Link from 'next/link'
+import { useState } from 'react'
 import TrackingFields, { type TrackingDraft } from '@/components/orders/tracking-fields'
 import { createShipmentContent } from '@/data/create-shipment'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { routes } from '@/lib/routes'
+import { courierGroup, groupCounts } from './courier-groups'
 import CourierOption from './courier-option'
 import { MANUAL, type ParcelQuote } from './flow-state'
 
@@ -40,10 +42,14 @@ export default function CourierStep({
   // Hooks
   const copy = useCopy(createShipmentContent)
   const fmt = useFormat()
+  const [filter, setFilter] = useState<string | null>(null)
 
   // Render logic
   const manual = pick === MANUAL
   const anyProblem = quote?.options.some((o) => o.problem === 'unreachable') ?? false
+  const groups = quote ? groupCounts(quote.options) : []
+  const shown =
+    quote?.options.filter((o) => filter === null || courierGroup(o.providerLabel) === filter) ?? []
   const kg = quote ? fmt.number(Math.round(quote.chargedWeightGrams / 10) / 100) : null
 
   return (
@@ -58,7 +64,7 @@ export default function CourierStep({
             </p>
           </div>
         )}
-        {anyProblem ? (
+        {anyProblem && !inCard ? (
           <Button size="sm" variant="outline" onClick={onRetry}>
             <RefreshCw aria-hidden />
             {copy.courier.retry}
@@ -73,7 +79,38 @@ export default function CourierStep({
             {copy.courier.checking}
           </p>
         ) : null}
-        {quote?.options.map((row) => (
+        {groups.length > 0 ? (
+          <div className="flex flex-wrap items-center gap-2">
+            {[{ group: null, count: quote?.options.length ?? 0 }, ...groups].map((g) => (
+              <button
+                key={g.group ?? 'all'}
+                type="button"
+                aria-pressed={filter === g.group}
+                onClick={() => setFilter(g.group)}
+                className={cn(
+                  'motion-press flex h-8 items-center gap-1.5 rounded-full border px-3 text-body',
+                  filter === g.group
+                    ? 'border-foreground bg-foreground text-background'
+                    : 'border-border text-muted-foreground hover:text-foreground',
+                )}
+              >
+                {g.group ?? copy.courier.filterAll}
+                <span className="tabular-nums opacity-70">{g.count}</span>
+              </button>
+            ))}
+            <Button
+              size="sm"
+              variant="ghost"
+              className="ml-auto"
+              nativeButton={false}
+              render={<Link href={routes.settings.shipping()} />}
+            >
+              <Plus aria-hidden />
+              {copy.courier.manage}
+            </Button>
+          </div>
+        ) : null}
+        {shown.map((row) => (
           <CourierOption
             key={row.providerId}
             row={row}

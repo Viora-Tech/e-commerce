@@ -17,6 +17,8 @@ export type BookedShipment = {
   manual: boolean
   /** The courier takes pickup requests from here. */
   canPickup: boolean
+  /** The pickup was already asked for at booking, so there is nothing left to schedule. */
+  pickupRequested?: boolean
 }
 
 type DoneStepProps = { booked: BookedShipment }
@@ -25,6 +27,7 @@ type DoneStepProps = { booked: BookedShipment }
 export default function DoneStep({ booked }: DoneStepProps) {
   // Hooks
   const copy = useCopy(createShipmentContent.done)
+  const pickupCopy = useCopy(createShipmentContent.pickup)
 
   // Render logic
   const label = booked.labelUrl
@@ -85,7 +88,10 @@ export default function DoneStep({ booked }: DoneStepProps) {
         <p className="text-caption text-muted-foreground">{copy.noLabel}</p>
       ) : null}
 
-      {booked.canPickup && booked.shipmentId ? (
+      {booked.pickupRequested ? (
+        <p className="text-body text-muted-foreground">{pickupCopy.scheduled}</p>
+      ) : null}
+      {booked.canPickup && booked.shipmentId && !booked.pickupRequested ? (
         <PickupForm shipmentIds={[booked.shipmentId]} />
       ) : null}
     </div>

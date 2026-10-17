@@ -1,11 +1,14 @@
 'use client'
 
+import { CreditCard, InfoIcon, QrCodeIcon } from '@commerce/ui/icons'
+import { Alert, AlertDescription } from '@commerce/ui/shadcn/alert'
 import { Field, FieldDescription, FieldLabel } from '@commerce/ui/shadcn/field'
 import { Input } from '@commerce/ui/shadcn/input'
 import ChoiceField from '@/components/apps/gst-invoices/choice-field'
+import ChoiceCard from '@/components/layout/choice-card'
 import PillTabs from '@/components/layout/pill-tabs'
 import { createShipmentContent } from '@/data/create-shipment'
-import { useCopy } from '@/hooks/use-copy'
+import { useCopy, useFormat } from '@/hooks/use-copy'
 import {
   CUSTOM_BOX,
   type DraftOrder,
@@ -13,6 +16,7 @@ import {
   type PackageForm,
   PRODUCT_BOX,
   type ShipmentDraft,
+  STORE_ADDRESS,
   withBox,
 } from './flow-state'
 
@@ -23,10 +27,12 @@ type PackageStepProps = {
   form: PackageForm
   onChange: (form: PackageForm) => void
   onParcelChange: (parcelId: string) => void
+  /** The full-page card: items as one muted line, size in one row, choice cards for payment;
+   *  the pickup place lives on the route card. */
+  inCard?: boolean
+  /** What the couriers bill, once a quote has come back (the info line in the card). */
+  chargedGrams?: number | undefined
 }
-
-/** Select's value for Settings › Shipping's address, which has no location id. */
-const STORE_ADDRESS = 'store'
 
 /** Step 1: which parcel, where it is collected from, the box and weight, and how it is paid. */
 export default function PackageStep({
@@ -36,9 +42,12 @@ export default function PackageStep({
   form,
   onChange,
   onParcelChange,
+  inCard = false,
+  chargedGrams,
 }: PackageStepProps) {
   // Hooks
   const copy = useCopy(createShipmentContent.package)
+  const fmt = useFormat()
 
   // Helpers
   const set = (patch: Partial<PackageForm>) => onChange({ ...form, ...patch })
@@ -67,23 +76,117 @@ export default function PackageStep({
     { value: CUSTOM_BOX, label: copy.customBox },
   ]
 
+  const parcelPicker =
+    order.parcels.length > 1 ? (
+      <div className="flex flex-col gap-2">
+        <p className="text-body font-medium text-ink-strong">{copy.parcel}</p>
+        <PillTabs<string>
+          variant="segmented"
+          value={parcel.id ?? ''}
+          onChange={onParcelChange}
+          tabs={order.parcels.map((p) => ({
+            value: p.id ?? '',
+            label: copy.parcelName(p.position, p.locationName),
+          }))}
+        />
+        <p className="text-caption text-muted-foreground">{copy.parcelHelp}</p>
+      </div>
+    ) : null
+  const codField =
+    form.paymentMode === 'cod' ? (
+      <Field>
+        <FieldLabel htmlFor="ship-cod">{copy.codAmount}</FieldLabel>
+        <Input
+          id="ship-cod"
+          size="lg"
+          inputMode="decimal"
+          value={form.codAmount}
+          onChange={(e) => set({ codAmount: e.target.value })}
+        />
+        <FieldDescription>{copy.codHelp}</FieldDescription>
+      </Field>
+    ) : null
+
+  if (inCard) {
+    const kg = chargedGrams ? fmt.number(Math.round(chargedGrams / 10) / 100) : null
+    return (
+      <div className="flex flex-col gap-5">
+        {parcelPicker}
+        <p className="text-body text-muted-foreground">
+          {parcel.lines.map((l) => copy.lineItem(l.title, l.quantity)).join(' · ')}
+        </p>
+        <ChoiceField
+          id="ship-box"
+          label={copy.box}
+          value={form.boxId}
+          options={boxOptions}
+          onChange={handleBox}
+        />
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          <Field>
+            <FieldLabel htmlFor="ship-weight">{copy.weight}</FieldLabel>
+            <Input
+              id="ship-weight"
+              size="lg"
+              type="number"
+              inputMode="numeric"
+              min={1}
+              value={form.weightGrams}
+              onChange={(e) => set({ weightGrams: e.target.value })}
+            />
+          </Field>
+          {(['length', 'width', 'height'] as const).map((key) => (
+            <Field key={key}>
+              <FieldLabel htmlFor={`ship-${key}`}>{copy[key]}</FieldLabel>
+              <Input
+                id={`ship-${key}`}
+                size="lg"
+                type="number"
+                inputMode="decimal"
+                min={1}
+                value={form[key]}
+                onChange={(e) => handleSize(key, e.target.value)}
+              />
+            </Field>
+          ))}
+        </div>
+        {kg ? (
+          <Alert className="border-info-border bg-info-soft text-info">
+            <InfoIcon aria-hidden="true" />
+            <AlertDescription className="text-info">{copy.charged(kg)}</AlertDescription>
+          </Alert>
+        ) : null}
+        <div className="flex flex-col gap-2">
+          <p className="text-body text-muted-foreground">{copy.payment}</p>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <ChoiceCard
+              layout="row"
+              showCheck
+              icon={CreditCard}
+              label={copy.prepaid}
+              description={copy.prepaidHelp}
+              selected={form.paymentMode === 'prepaid'}
+              onSelect={() => set({ paymentMode: 'prepaid' })}
+            />
+            <ChoiceCard
+              layout="row"
+              showCheck
+              icon={QrCodeIcon}
+              label={copy.cod}
+              description={copy.codChoiceHelp}
+              selected={form.paymentMode === 'cod'}
+              onSelect={() => set({ paymentMode: 'cod' })}
+            />
+          </div>
+        </div>
+        {codField}
+      </div>
+    )
+  }
+
   return (
     <div className="flex flex-col gap-5">
-      {order.parcels.length > 1 ? (
-        <div className="flex flex-col gap-2">
-          <p className="text-body font-medium text-ink-strong">{copy.parcel}</p>
-          <PillTabs<string>
-            variant="segmented"
-            value={parcel.id ?? ''}
-            onChange={onParcelChange}
-            tabs={order.parcels.map((p) => ({
-              value: p.id ?? '',
-              label: copy.parcelName(p.position, p.locationName),
-            }))}
-          />
-          <p className="text-caption text-muted-foreground">{copy.parcelHelp}</p>
-        </div>
-      ) : null}
+      {parcelPicker}
 
       <section className="flex flex-col gap-2 rounded-lg border border-hairline bg-muted/40 p-3">
         <div className="flex items-baseline justify-between gap-3">
@@ -160,19 +263,7 @@ export default function PackageStep({
           ]}
         />
       </div>
-      {form.paymentMode === 'cod' ? (
-        <Field>
-          <FieldLabel htmlFor="ship-cod">{copy.codAmount}</FieldLabel>
-          <Input
-            id="ship-cod"
-            size="lg"
-            inputMode="decimal"
-            value={form.codAmount}
-            onChange={(e) => set({ codAmount: e.target.value })}
-          />
-          <FieldDescription>{copy.codHelp}</FieldDescription>
-        </Field>
-      ) : null}
+      {codField}
     </div>
   )
 }

@@ -1,11 +1,11 @@
 'use client'
 
 import type { CourierRateRow } from '@commerce/core'
-import { TriangleAlert } from '@commerce/ui/icons'
 import { cn } from '@commerce/ui/lib/utils'
-import { Badge } from '@commerce/ui/shadcn/badge'
+import StatusChip from '@/components/layout/status-chip'
 import { createShipmentContent } from '@/data/create-shipment'
 import { useCopy, useFormat } from '@/hooks/use-copy'
+import { courierInitials } from './courier-groups'
 
 type CourierOptionProps = {
   row: CourierRateRow
@@ -15,8 +15,9 @@ type CourierOptionProps = {
 
 const SHORT_DATE = { weekday: 'short', day: 'numeric', month: 'short' } as const
 
-/** One courier in step 2: price (or "rate on booking"), delivery date, COD, and its badges.
- *  A courier that can't take the parcel shows why and can't be picked; the others still can. */
+/** One courier in step 2: logo tile, name with its badges, delivery line and price (or "rate
+ *  on booking"). A courier that can't take the parcel is dimmed, says why in red and can't be
+ *  picked; the others still can. */
 export default function CourierOption({ row, selected, onSelect }: CourierOptionProps) {
   // Hooks
   const copy = useCopy(createShipmentContent.courier)
@@ -38,38 +39,43 @@ export default function CourierOption({ row, selected, onSelect }: CourierOption
       disabled={blocked}
       onClick={onSelect}
       className={cn(
-        'motion-press flex w-full items-start gap-3 rounded-lg border p-3 text-left',
-        selected ? 'border-primary bg-primary-soft ring-1 ring-primary' : 'border-hairline bg-card',
-        blocked ? 'cursor-not-allowed bg-muted/40' : 'hover:border-border-strong',
+        'motion-press flex w-full items-center gap-3 rounded-lg border bg-card p-3 text-left',
+        selected ? 'border-primary ring-1 ring-primary' : 'border-hairline',
+        blocked ? 'cursor-not-allowed opacity-60' : 'hover:border-border-strong',
       )}
     >
       <span
         aria-hidden
         className={cn(
-          'mt-0.5 flex size-4 shrink-0 items-center justify-center rounded-full border',
+          'flex size-4 shrink-0 items-center justify-center rounded-full border',
           selected ? 'border-primary bg-primary' : 'border-input',
         )}
       >
         {selected ? <span className="size-1.5 rounded-full bg-primary-foreground" /> : null}
       </span>
-      <span className="flex min-w-0 flex-1 flex-col gap-1">
+      <span
+        aria-hidden
+        className="flex size-10 shrink-0 items-center justify-center rounded-md border border-border bg-muted text-caption font-semibold text-ink-strong"
+      >
+        {courierInitials(row.providerLabel)}
+      </span>
+      <span className="flex min-w-0 flex-1 flex-col gap-0.5">
         <span className="flex flex-wrap items-center gap-1.5">
           <span className="font-medium text-ink-strong">{row.providerLabel}</span>
           {row.badges.includes('recommended') ? (
-            <Badge variant="success">{copy.recommended}</Badge>
+            <StatusChip tone="info">{copy.recommended}</StatusChip>
           ) : null}
           {row.badges.includes('cheapest') ? (
-            <Badge variant="outline">{copy.cheapest}</Badge>
+            <StatusChip tone="success">{copy.cheapest}</StatusChip>
           ) : null}
-          {row.badges.includes('fastest') ? <Badge variant="outline">{copy.fastest}</Badge> : null}
+          {row.badges.includes('fastest') ? (
+            <StatusChip tone="violet">{copy.fastest}</StatusChip>
+          ) : null}
         </span>
         {blocked ? (
-          <span className="flex items-start gap-1.5 text-caption text-danger">
-            <TriangleAlert aria-hidden className="mt-0.5 size-3.5 shrink-0" />
-            <span>
-              {copy.problem[row.problem ?? 'unreachable']}
-              {row.problemDetail && row.problem !== 'no_cod' ? ` (${row.problemDetail})` : ''}
-            </span>
+          <span className="text-caption text-danger">
+            {copy.problem[row.problem ?? 'unreachable']}
+            {row.problemDetail && row.problem !== 'no_cod' ? ` (${row.problemDetail})` : ''}
           </span>
         ) : (
           <span className="text-caption text-muted-foreground">
@@ -79,13 +85,16 @@ export default function CourierOption({ row, selected, onSelect }: CourierOption
         )}
       </span>
       {blocked ? null : (
-        <span className="shrink-0 text-right">
+        <span className="flex shrink-0 flex-col items-end">
           {row.pricePaise === null ? (
             <span className="text-caption text-muted-foreground">{copy.rateOnBooking}</span>
           ) : (
-            <span className="font-semibold tabular-nums text-ink-strong">
-              {fmt.money(row.pricePaise)}
-            </span>
+            <>
+              <span className="text-lg font-semibold tabular-nums text-ink-strong">
+                {fmt.money(row.pricePaise)}
+              </span>
+              <span className="text-caption text-muted-foreground">{copy.inclGst}</span>
+            </>
           )}
         </span>
       )}

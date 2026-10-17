@@ -1,7 +1,7 @@
-import type { IconComponent } from '@commerce/ui/icons'
+import { CircleCheck, type IconComponent } from '@commerce/ui/icons'
 
 type ChoiceCardProps = {
-  icon: IconComponent
+  icon?: IconComponent
   label: string
   /** A short line under the label, for picture cards that need a hint. */
   description?: string | undefined
@@ -10,6 +10,8 @@ type ChoiceCardProps = {
   /** `tile`: icon above the label, for picture grids. `row`: icon beside it, for lists. */
   layout: 'tile' | 'row'
   disabled?: boolean
+  /** Shows a check at the right edge of the chosen card (`row` layout). */
+  showCheck?: boolean
 }
 
 const BASE =
@@ -27,6 +29,7 @@ export default function ChoiceCard({
   onSelect,
   layout,
   disabled,
+  showCheck = false,
 }: ChoiceCardProps) {
   // Render logic
   const state = selected
@@ -45,13 +48,20 @@ export default function ChoiceCard({
       disabled={disabled}
       className={`${BASE} ${shape} ${state}`}
     >
-      <Icon className={`size-6 shrink-0 ${selected ? 'text-primary' : 'text-muted-foreground'}`} />
-      <span className="flex flex-col gap-0.5">
+      {Icon ? (
+        <Icon
+          className={`size-6 shrink-0 ${selected ? 'text-primary' : 'text-muted-foreground'}`}
+        />
+      ) : null}
+      <span className={`flex flex-col gap-0.5 ${showCheck ? 'min-w-0 flex-1' : ''}`}>
         <span className="font-medium">{label}</span>
         {description ? (
           <span className="text-caption text-muted-foreground">{description}</span>
         ) : null}
       </span>
+      {showCheck && selected ? (
+        <CircleCheck aria-hidden="true" className="size-5 shrink-0 text-primary" />
+      ) : null}
     </button>
   )
 }

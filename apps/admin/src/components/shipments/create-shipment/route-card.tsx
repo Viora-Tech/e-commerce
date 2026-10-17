@@ -1,17 +1,26 @@
 'use client'
 
+import { Pencil } from '@commerce/ui/icons'
+import { Button } from '@commerce/ui/shadcn/button'
+import Link from 'next/link'
+import { type ReactNode, useState } from 'react'
 import AddressLines from '@/components/layout/address-lines'
-import DataCard from '@/components/layout/data-card'
-import LabeledGroup from '@/components/layout/labeled-group'
+import StatusChip from '@/components/layout/status-chip'
 import { createShipmentContent } from '@/data/create-shipment'
 import { useCopy } from '@/hooks/use-copy'
+import { routes } from '@/lib/routes'
+import ChangePickupDialog from './change-pickup-dialog'
 import type { DraftOrder, ShipmentDraft } from './flow-state'
 
 type PickupPlace = ShipmentDraft['pickupPlaces'][number]
 
 type RouteCardProps = {
   from: PickupPlace | undefined
+  places: ShipmentDraft['pickupPlaces']
   order: DraftOrder
+  /** True once at least one courier can take the parcel to this PIN code. */
+  serviceable: boolean
+  onPickupChange: (locationId: string | null) => void
 }
 
 type Place = {
@@ -24,14 +33,16 @@ type Place = {
   phone: string | null
 }
 
-/** "Gurugram 122001" for the route line. */
-function cityLine(p: Place): string {
-  return [p.city, p.pincode].filter(Boolean).join(' ')
+type SideProps = {
+  label: string
+  place: Place | null
+  chip: ReactNode
+  actions: ReactNode
 }
 
 function Address({ place }: { place: Place }) {
   return (
-    <div className="flex flex-col gap-1">
+    <div className="flex flex-col gap-2">
       <p className="text-body font-medium text-ink-strong">{place.name}</p>
       <AddressLines
         className="text-muted-foreground"
@@ -48,30 +59,105 @@ function Address({ place }: { place: Place }) {
   )
 }
 
-/** Figma Create shipment, top card: where the parcel leaves from and where it goes. */
-export default function RouteCard({ from, order }: RouteCardProps) {
+function Side({ label, place, chip, actions }: SideProps) {
+  return (
+    <div className="flex flex-col gap-3 p-4">
+      <div className="flex min-h-5.5 items-center justify-between gap-2">
+        <p className="flex items-center gap-2 font-mono text-xs tracking-wide text-muted-foreground uppercase">
+          <span aria-hidden="true" className="size-1.5 rounded-full border border-current" />
+          {label}
+        </p>
+        {chip}
+      </div>
+      {place ? <Address place={place} /> : <p className="text-muted-foreground">—</p>}
+      <div className="flex items-center gap-1">{actions}</div>
+    </div>
+  )
+}
+
+/** The "Gurugram 122001" under a city on the route bar. */
+function Endpoint({ place, align }: { place: Place | null; align: 'start' | 'end' }) {
+  return (
+    <div className={align === 'end' ? 'text-right' : 'text-left'}>
+      <p className="text-body font-medium text-ink-strong">{place?.city ?? '—'}</p>
+      <p className="text-caption text-muted-foreground">{place?.pincode}</p>
+    </div>
+  )
+}
+
+/** Figma Create shipment, top card: where the parcel leaves from and where it goes. The route
+ *  bar has no distance or zone chip: the quote does not return either. */
+export default function RouteCard({
+  from,
+  places,
+  order,
+  serviceable,
+  onPickupChange,
+}: RouteCardProps) {
   // Hooks
   const copy = useCopy(createShipmentContent.page)
+  const [changing, setChanging] = useState(false)
 
   // Render logic
   const to: Place = { ...order, name: order.customerName }
   const origin: Place | null = from ? { ...from } : null
+  const isDefault = from !== undefined && from.id === null
 
   return (
-    <DataCard title={copy.route}>
-      <div className="flex items-center gap-3 rounded-md border border-border px-3 py-2 text-body">
-        <span className="font-medium text-ink-strong">{origin ? cityLine(origin) : '—'}</span>
+    <section className="overflow-hidden rounded-xl border border-border bg-card">
+      <div className="flex items-center gap-4 border-b border-border px-4 py-3">
+        <Endpoint place={origin} align="start" />
         <span aria-hidden="true" className="h-px flex-1 border-t border-dashed border-border" />
-        <span className="font-medium text-ink-strong">{cityLine(to)}</span>
+        <Endpoint place={to} align="end" />
       </div>
-      <div className="mt-4 grid gap-5 sm:grid-cols-2">
-        <LabeledGroup label={copy.shipFrom}>
-          {origin ? <Address place={origin} /> : <p className="text-muted-foreground">—</p>}
-        </LabeledGroup>
-        <LabeledGroup label={copy.shipTo}>
-          <Address place={to} />
-        </LabeledGroup>
+      <div className="grid sm:grid-cols-2 sm:divide-x sm:divide-border">
+        <Side
+          label={copy.shipFrom}
+          place={origin}
+          chip={isDefault ? <StatusChip variant="outline">{copy.defaultPickup}</StatusChip> : null}
+          actions={
+            <>
+              {isDefault ? (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  nativeButton={false}
+                  render={<Link href={routes.settings.shipping()} />}
+                >
+                  <Pencil aria-hidden="true" />
+                  {copy.edit}
+                </Button>
+              ) : null}
+              <Button variant="ghost" size="sm" onClick={() => setChanging(true)}>
+                {copy.change}
+              </Button>
+            </>
+          }
+        />
+        <Side
+          label={copy.shipTo}
+          place={to}
+          chip={serviceable ? <StatusChip tone="success">{copy.pinServiceable}</StatusChip> : null}
+          actions={
+            <Button
+              variant="outline"
+              size="sm"
+              nativeButton={false}
+              render={<Link href={routes.orders.detail(order.orderId)} />}
+            >
+              <Pencil aria-hidden="true" />
+              {copy.edit}
+            </Button>
+          }
+        />
       </div>
-    </DataCard>
+      <ChangePickupDialog
+        open={changing}
+        onOpenChange={setChanging}
+        places={places}
+        value={from?.id ?? null}
+        onChange={onPickupChange}
+      />
+    </section>
   )
 }

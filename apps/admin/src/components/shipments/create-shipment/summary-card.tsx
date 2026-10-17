@@ -17,6 +17,12 @@ type SummaryCardProps = {
   pkg: ParsedPackage | null
   /** The picked courier's rate, or null for "ship it yourself" / nothing picked yet. */
   courier: CourierRateRow | null
+  /** What the couriers bill, once a quote is back. */
+  chargedGrams: number | undefined
+  /** "Thu 16 Oct, 14:00" when a pickup will be requested after booking. */
+  pickupLine: string | null
+  /** "Paid from your Delhivery wallet · ₹2,340 left" when that wallet's balance is known. */
+  walletNote: string | null
   manual: boolean
   canBook: boolean
   busy: boolean
@@ -32,6 +38,9 @@ export default function SummaryCard({
   route,
   pkg,
   courier,
+  chargedGrams,
+  pickupLine,
+  walletNote,
   manual,
   canBook,
   busy,
@@ -49,6 +58,12 @@ export default function SummaryCard({
     : pkg.paymentMode === 'cod'
       ? review.codCollect(fmt.money(pkg.codAmountPaise ?? 0))
       : review.prepaid
+  const kg = chargedGrams ? `${fmt.number(Math.round(chargedGrams / 10) / 100)} kg` : null
+  const weight = !pkg
+    ? '—'
+    : kg
+      ? page.weightValue(review.grams(pkg.weightGrams), kg)
+      : review.grams(pkg.weightGrams)
   const charge =
     courier?.pricePaise != null
       ? fmt.money(courier.pricePaise)
@@ -66,7 +81,7 @@ export default function SummaryCard({
             value: `#${order.orderNumber} · ${content.package.itemCount(units)}`,
           },
           { label: page.route, value: route },
-          { label: page.chargedWeight, value: pkg ? review.grams(pkg.weightGrams) : '—' },
+          { label: page.chargedWeight, value: weight },
           { label: review.payment, value: payment },
           {
             label: review.courier,
@@ -77,6 +92,7 @@ export default function SummaryCard({
             value: courier?.deliveryBy ? fmt.pattern(courier.deliveryBy, SHORT_DATE) : '—',
             hidden: manual,
           },
+          { label: page.pickupRow, value: pickupLine, hidden: manual || pickupLine === null },
         ]}
       />
       <div className="mt-4 flex flex-col gap-3">
@@ -90,7 +106,7 @@ export default function SummaryCard({
           {busy ? review.booking : manual ? review.saveManual : review.book}
         </Button>
         <p className="text-center text-caption text-muted-foreground">
-          {manual ? page.manualNote : page.walletNote}
+          {manual ? page.manualNote : (walletNote ?? page.walletNote)}
         </p>
       </div>
     </DataCard>

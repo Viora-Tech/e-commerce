@@ -1,13 +1,13 @@
 'use client'
 
-import { PackageOpen, Truck } from '@commerce/ui/icons'
+import { PackageOpen, RefreshCw, Truck } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Spinner } from '@commerce/ui/shadcn/spinner'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
+import CountBadge from '@/components/layout/count-badge'
 import DataCard from '@/components/layout/data-card'
-import EmptyState from '@/components/layout/empty-state'
 import PageHeader from '@/components/layout/page-header'
 import ProoflyDetailPage from '@/components/layout/proofly-detail-page'
 import OrderChip from '@/components/orders/order-chip'
@@ -17,29 +17,32 @@ import {
   trackingPayload,
 } from '@/components/orders/tracking-fields'
 import { createShipmentContent } from '@/data/create-shipment'
-import { useCopy } from '@/hooks/use-copy'
+import { useCopy, useFormat } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 import { routes } from '@/lib/routes'
+import { bookShipment } from './book-shipment'
 import CourierStep from './courier-step'
 import DoneStep, { type BookedShipment } from './done-step'
 import {
   MANUAL,
   type PackageForm,
-  type ParcelQuote,
   packageFor,
   parsePackage,
-  quoteRequest,
   type ShipmentDraft,
-  startingPick,
 } from './flow-state'
 import PackageStep from './package-step'
+import PickupCard from './pickup-card'
+import { pickupReady, startingPickupPlan } from './pickup-plan'
 import RouteCard from './route-card'
+import ShipPageUnavailable from './ship-page-unavailable'
 import SummaryCard from './summary-card'
+import { useShipQuote } from './use-ship-quote'
+
+type Wallets = Awaited<ReturnType<typeof api.shipments.wallets>>
 
 type CreateShipmentPageProps = { orderId: string }
 
-/** Wait this long after the last package edit before asking the couriers again. */
-const QUOTE_DEBOUNCE_MS = 600
+const SHORT_DATE = { weekday: 'short', day: 'numeric', month: 'short' } as const
 
 /**
  * Figma "Orders · Create shipment" (616:16737): one page for one order. Route, package and
@@ -49,17 +52,18 @@ const QUOTE_DEBOUNCE_MS = 600
 export default function CreateShipmentPage({ orderId }: CreateShipmentPageProps) {
   // Hooks
   const content = useCopy(createShipmentContent)
+  const fmt = useFormat()
   const router = useRouter()
   const [draft, setDraft] = useState<ShipmentDraft | null>(null)
   const [failed, setFailed] = useState(false)
   const [parcelId, setParcelId] = useState<string | null>(null)
   const [form, setForm] = useState<PackageForm | null>(null)
-  const [quote, setQuote] = useState<ParcelQuote | null>(null)
-  const [pick, setPick] = useState(MANUAL)
+  const { quote, pick, setPick, recheck } = useShipQuote(draft, parcelId, form)
+  const [pickup, setPickup] = useState(() => startingPickupPlan())
+  const [wallets, setWallets] = useState<Wallets>([])
   const [tracking, setTracking] = useState<TrackingDraft>(EMPTY_TRACKING)
   const [busy, setBusy] = useState(false)
   const [booked, setBooked] = useState<BookedShipment | null>(null)
-  const [retry, setRetry] = useState(0)
   useEffect(() => {
     let live = true
     api.shipments
@@ -80,33 +84,12 @@ export default function CreateShipmentPage({ orderId }: CreateShipmentPageProps)
     }
   }, [orderId])
 
-  // Live rates: ask again a moment after the package stops changing.
   useEffect(() => {
-    const o = draft?.orders[0]
-    const p = o?.parcels.find((x) => x.id === parcelId) ?? o?.parcels[0]
-    const pkg = form ? parsePackage(form) : null
-    if (!draft || !o || !p || !form || !pkg || draft.couriers.length === 0 || retry < 0) return
-    let live = true
-    setQuote(null)
-    const timer = setTimeout(() => {
-      api.shipments
-        .quote({ parcels: [quoteRequest(o, p, form, pkg)] })
-        .then(([answer]) => {
-          if (!live) return
-          setQuote(answer ?? null)
-          setPick((current) =>
-            current !== MANUAL && answer?.options.some((r) => r.providerId === current)
-              ? current
-              : startingPick(answer?.options ?? []),
-          )
-        })
-        .catch((err) => live && toast.error(err instanceof Error ? err.message : String(err)))
-    }, QUOTE_DEBOUNCE_MS)
-    return () => {
-      live = false
-      clearTimeout(timer)
-    }
-  }, [draft, parcelId, form, retry])
+    api.shipments
+      .wallets()
+      .then(setWallets)
+      .catch(() => setWallets([]))
+  }, [])
 
   // Event handlers
   const handleParcel = (id: string) => {
@@ -116,6 +99,8 @@ export default function CreateShipmentPage({ orderId }: CreateShipmentPageProps)
     setParcelId(next.id)
     setForm(packageFor(o, next, draft))
   }
+  const handlePickupPlace = (pickupLocationId: string | null) =>
+    form && setForm({ ...form, pickupLocationId })
   const handleShipYourself = () => {
     setPick(MANUAL)
     document.getElementById('choose-courier')?.scrollIntoView({ behavior: 'smooth' })
@@ -129,42 +114,20 @@ export default function CreateShipmentPage({ orderId }: CreateShipmentPageProps)
     }
     setBusy(true)
     try {
-      if (pick === MANUAL) {
-        const r = await api.orders.fulfil({
-          orderId: order.orderId,
-          lines: parcel.lines.map((l) => ({ lineId: l.id, quantity: l.quantity })),
-          ...typed,
-        })
-        setBooked({
-          shipmentId: r.shipmentId,
-          courier: typed.courier ?? '',
-          waybill: typed.trackingNumber ?? '',
-          labelUrl: null,
-          trackingUrl: typed.trackingUrl ?? null,
-          manual: true,
-          canPickup: false,
-        })
-      } else {
-        const s = await api.orders.createShipment({
-          orderId: order.orderId,
-          providerId: pick,
-          fulfillmentOrderId: parcel.id ?? undefined,
-          pickupLocationId: form.pickupLocationId,
-          weightGrams: parsed.weightGrams,
-          dimensionsCm: parsed.dimensionsCm,
-          paymentMode: parsed.paymentMode,
-          codAmountPaise: parsed.codAmountPaise,
-        })
-        setBooked({
-          shipmentId: s.id,
-          courier: chosen?.providerLabel ?? s.provider,
-          waybill: s.waybill,
-          labelUrl: s.labelUrl,
-          trackingUrl: s.trackingUrl,
-          manual: false,
+      setBooked(
+        await bookShipment({
+          order,
+          parcel,
+          form,
+          parsed,
+          pick,
+          typed,
+          courierLabel: chosen?.providerLabel,
           canPickup: draft?.couriers.find((c) => c.id === pick)?.hasPickup ?? false,
-        })
-      }
+          pickup,
+          pickupFailed: content.pickup.notSupported,
+        }),
+      )
       router.refresh()
     } catch (err) {
       toast.error(err instanceof Error ? err.message : String(err))
@@ -177,26 +140,7 @@ export default function CreateShipmentPage({ orderId }: CreateShipmentPageProps)
   const order = draft?.orders[0]
   const parcel = order?.parcels.find((p) => p.id === parcelId) ?? order?.parcels[0]
   if (failed || (draft && (!order || order.blocked || !parcel || !form))) {
-    return (
-      <ProoflyDetailPage
-        header={
-          <PageHeader
-            title={content.page.title}
-            back={{ label: content.page.backToOrder, href: routes.orders.detail(orderId) }}
-          />
-        }
-        main={
-          <DataCard title={content.page.title}>
-            <EmptyState
-              variant="plain"
-              body={
-                order?.blocked ? content.bulkPackage.blocked[order.blocked] : content.page.notFound
-              }
-            />
-          </DataCard>
-        }
-      />
-    )
+    return <ShipPageUnavailable orderId={orderId} blocked={order?.blocked ?? null} />
   }
   if (!draft || !order || !parcel || !form) {
     return (
@@ -215,7 +159,21 @@ export default function CreateShipmentPage({ orderId }: CreateShipmentPageProps)
   const units = parcel.lines.reduce((n, l) => n + l.quantity, 0)
   const manual = pick === MANUAL
   const route = page.routeValue(place?.city ?? place?.name ?? '—', order.city ?? '—')
-  const canBook = parsed !== null && (manual || (chosen !== null && !chosen.problem))
+  const canPickup = draft.couriers.find((c) => c.id === pick)?.hasPickup ?? false
+  const pickupOn = !manual && pickup.ask && canPickup
+  const canBook =
+    parsed !== null &&
+    (manual || (chosen !== null && !chosen.problem)) &&
+    (!pickupOn || pickupReady(pickup))
+  const serviceable = quote?.options.some((o) => o.problem === null) ?? false
+  const wallet = manual ? null : wallets.find((w) => w.provider === pick)
+  const walletNote =
+    wallet && (wallet.supportsLiveBalance || wallet.fetchedAt)
+      ? page.walletLeft(wallet.providerLabel, fmt.money(wallet.balancePaise))
+      : null
+  const pickupLine = pickupOn
+    ? page.pickupValue(fmt.pattern(pickup.date, SHORT_DATE), pickup.timeFrom)
+    : null
   const paymentLine = order.paymentMode === 'cod' ? page.cod : null
 
   return (
@@ -250,8 +208,21 @@ export default function CreateShipmentPage({ orderId }: CreateShipmentPageProps)
       }
       main={
         <>
-          <RouteCard from={place} order={order} />
-          <DataCard title={page.package}>
+          <RouteCard
+            from={place}
+            places={draft.pickupPlaces}
+            order={order}
+            serviceable={serviceable}
+            onPickupChange={handlePickupPlace}
+          />
+          <DataCard
+            title={
+              <span className="flex items-center gap-2">
+                {page.package}
+                <CountBadge n={content.package.itemCount(units)} tone="outline" />
+              </span>
+            }
+          >
             <PackageStep
               draft={draft}
               order={order}
@@ -259,12 +230,22 @@ export default function CreateShipmentPage({ orderId }: CreateShipmentPageProps)
               form={form}
               onChange={setForm}
               onParcelChange={handleParcel}
+              inCard
+              chargedGrams={quote?.chargedWeightGrams}
             />
           </DataCard>
           <DataCard
             id="choose-courier"
             title={content.courier.heading}
             subtitle={draft.couriers.length > 0 ? content.courier.help : content.courier.noCourier}
+            action={
+              draft.couriers.length > 0 ? (
+                <Button variant="ghost" size="sm" onClick={recheck}>
+                  <RefreshCw aria-hidden="true" />
+                  {content.courier.retry}
+                </Button>
+              ) : null
+            }
           >
             <CourierStep
               inCard
@@ -274,9 +255,10 @@ export default function CreateShipmentPage({ orderId }: CreateShipmentPageProps)
               onPick={setPick}
               tracking={tracking}
               onTrackingChange={setTracking}
-              onRetry={() => setRetry((n) => n + 1)}
+              onRetry={recheck}
             />
           </DataCard>
+          {manual ? null : <PickupCard plan={pickup} onChange={setPickup} canPickup={canPickup} />}
         </>
       }
       side={
@@ -291,6 +273,9 @@ export default function CreateShipmentPage({ orderId }: CreateShipmentPageProps)
             route={route}
             pkg={parsed}
             courier={manual ? null : chosen}
+            chargedGrams={quote?.chargedWeightGrams}
+            pickupLine={pickupLine}
+            walletNote={walletNote}
             manual={manual}
             canBook={canBook}
             busy={busy}

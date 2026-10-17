@@ -19,6 +19,8 @@ export const MANUAL = 'manual'
 /** Step 1's box choices besides the store's named boxes. */
 export const CUSTOM_BOX = 'custom'
 export const PRODUCT_BOX = 'product'
+/** Pickup select's value for Settings › Shipping's address, which has no location id. */
+export const STORE_ADDRESS = 'store'
 
 export type PackageForm = {
   parcelId: string | null
