@@ -11,6 +11,8 @@ export const addSectionContent = {
     add: 'Add',
     picture: (label: string) => `${label} with its default settings`,
     title: 'Add section',
+    limit: (max: number) =>
+      `This page has ${max} sections, the most one page can hold. Remove or hide one to add another.`,
     styles: {
       title: (label: string) => `${label}: choose a style`,
       hint: 'Every setting stays editable after you add it.',

@@ -1,7 +1,14 @@
 'use client'
 
 import { presetProps, presetsFor } from '@commerce/blocks/section-presets'
-import type { CustomSection, SectionGroup, TemplateSection } from '@commerce/core/theme'
+import {
+  type CustomSection,
+  isSectionHidden,
+  MAX_VISIBLE_SECTIONS,
+  type SectionGroup,
+  type TemplateSection,
+} from '@commerce/core/theme'
+import { TriangleAlert } from '@commerce/ui/icons'
 import { cn } from '@commerce/ui/lib/utils'
 import { Input } from '@commerce/ui/shadcn/input'
 import { Drawer } from '@puckeditor/core'
@@ -11,6 +18,7 @@ import { customizeContent } from '@/data/customize'
 import { themeImportContent } from '@/data/theme-import'
 import { useCopy } from '@/hooks/use-copy'
 import { CHROME_FOCUS } from '@/lib/customize-chrome'
+import { type CustomizeDoc, MAIN_ZONE, zoneSections } from '@/lib/customize-doc'
 import { insertActions } from '@/lib/customize-insert'
 import { useCustomizePuck } from '@/lib/customize-puck'
 import { insertCopyActions } from '@/lib/customize-slots'
@@ -75,6 +83,7 @@ export default function AddSectionBrowser({
   const [closed, setClosed] = useState<ReadonlySet<string>>(() => new Set())
   const dispatch = useCustomizePuck((s) => s.dispatch)
   const components = useCustomizePuck((s) => s.config.components)
+  const data = useCustomizePuck((s) => s.appState.data as unknown as CustomizeDoc)
   const importedTheme = useImportedTheme()
   const importedCopy = useCopy(themeImportContent.addPanel)
 
@@ -165,6 +174,10 @@ export default function AddSectionBrowser({
     importedTheme && kind === 'sections' && !group
       ? importedSections(importedTheme).filter((s) => matchesImported(s, needle))
       : []
+  // A full page takes no more sections until one is removed or hidden (Figma 698:92403).
+  const shown =
+    zone === MAIN_ZONE ? zoneSections(data, MAIN_ZONE).filter((s) => !isSectionHidden(s)).length : 0
+  const full = shown >= MAX_VISIBLE_SECTIONS
   const listClass = fill
     ? 'min-h-0 flex-1 overflow-y-auto overscroll-contain pb-4 [&>div]:gap-4'
     : 'max-h-96 overflow-y-auto overscroll-contain [&>div]:gap-4'
@@ -176,6 +189,15 @@ export default function AddSectionBrowser({
       onMouseLeave={() => setHovered(null)}
     >
       <KindSwitch value={kind} onChange={setKind} />
+      {full ? (
+        <p
+          role="status"
+          className="flex gap-2 rounded-lg border border-warning-border bg-warning-soft p-2.5 text-xs leading-[1.0625rem] text-warning"
+        >
+          <TriangleAlert aria-hidden className="mt-px size-3.5 shrink-0" />
+          {copy.limit(MAX_VISIBLE_SECTIONS)}
+        </p>
+      ) : null}
       {/* Figma 369:4908: a plain field, no magnifier. */}
       <Input
         type="search"
@@ -187,7 +209,11 @@ export default function AddSectionBrowser({
       />
       {/* The scroller sits outside Puck's Drawer: the Drawer is a plain flex column with no
           height of its own, so a list inside it never got a height to scroll within. */}
-      <div className={listClass}>
+      <div
+        className={cn(listClass, full && 'opacity-50')}
+        inert={full}
+        aria-disabled={full || undefined}
+      >
         <Drawer>
           {imported.length > 0 ? (
             <AddSectionGroup
