@@ -146,6 +146,7 @@ export async function listCollectionProducts(
   const ids = rows.map((r) => r.id)
   const variants = await tx
     .select({
+      id: variant.id,
       productId: variant.productId,
       pricePaise: variant.pricePaise,
       mrpPaise: variant.mrpPaise,
@@ -184,6 +185,8 @@ export async function listCollectionProducts(
       pricePaise: cheapest?.pricePaise ?? 0,
       mrpPaise: cheapest?.mrpPaise ?? null,
       available: vs.reduce((n, v) => n + availableFor(v), 0),
+      // Quick add needs no choice only when there is one variant to add.
+      quickAddVariantId: vs.length === 1 ? (vs[0]?.id ?? null) : null,
       images: images
         .filter((i) => i.productId === p.id)
         .map((i) => ({

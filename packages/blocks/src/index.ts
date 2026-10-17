@@ -52,4 +52,5 @@ export {
 } from './sections/zero-drift/cookie-banner'
 export { footerSettings } from './sections/zero-drift/footer'
 export { headerSettings } from './sections/zero-drift/header'
+export { type StoreActions, StoreActionsProvider } from './store-actions'
 export * from './types'

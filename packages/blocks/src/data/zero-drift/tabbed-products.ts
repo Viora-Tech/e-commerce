@@ -22,6 +22,7 @@ export const tabbedProductsContent = {
     center: 'Center',
     showTabCounts: 'Show product counts on the tabs',
     headingFollowsTab: 'Heading rolls to the chosen tab',
+    showQuickAdd: 'Quick add button on each card',
     columns: 'Columns',
     rows: 'Rows',
     tabs: 'Tabs',

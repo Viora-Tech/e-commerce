@@ -23,6 +23,8 @@ type TabbedProductsProps = {
   align?: 'left' | 'center' | undefined
   showCounts?: boolean | undefined
   headingFollowsTab?: boolean | undefined
+  /** Each card's Quick add button. */
+  quickAdd?: boolean | undefined
 }
 
 type Indicator = { left: number; top: number; width: number; height: number }
@@ -48,6 +50,7 @@ export default function TabbedProducts({
   align = 'center',
   showCounts = false,
   headingFollowsTab = true,
+  quickAdd = false,
 }: TabbedProductsProps) {
   // Hooks
   const reduce = useReducedMotion()
@@ -170,7 +173,12 @@ export default function TabbedProducts({
                 style={{ '--columns': columns } as React.CSSProperties}
               >
                 {t.products.map((p, n) => (
-                  <ProductCard key={p.id} product={p} lazy={i > 0 || n >= EAGER_CARDS} />
+                  <ProductCard
+                    key={p.id}
+                    product={p}
+                    lazy={i > 0 || n >= EAGER_CARDS}
+                    quickAdd={quickAdd}
+                  />
                 ))}
               </div>
               {t.products.length === 0 ? (

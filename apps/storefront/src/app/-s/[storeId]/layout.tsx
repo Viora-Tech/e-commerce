@@ -5,6 +5,7 @@ import {
   footerSettings,
   Header,
   headerSettings,
+  StoreActionsProvider,
   searchShortcuts,
 } from '@commerce/blocks'
 import { loadEnv } from '@commerce/config'
@@ -41,6 +42,7 @@ import ThemePreviewBridge from '@/components/theme/theme-preview-bridge'
 import { policyPageContent } from '@/data/policies'
 import { privacyContent } from '@/data/privacy'
 import { searchContent } from '@/data/search'
+import { addLineAction } from '@/lib/cart-actions'
 import { liquidLayoutForPath } from '@/lib/checkout-path'
 import { listCollections } from '@/lib/collections'
 import { COOKIE_SETTINGS_HASH } from '@/lib/cookie-settings'
@@ -337,7 +339,9 @@ export default async function StoreLayout({ children, params }: Props) {
       <body>
         {previewName && !preview?.inFrame ? <PreviewBar themeName={previewName} /> : null}
         <StoreChrome>{header}</StoreChrome>
-        <main id="MainContent">{children}</main>
+        <main id="MainContent">
+          <StoreActionsProvider addToCart={addLineAction}>{children}</StoreActionsProvider>
+        </main>
         <StoreChrome>
           <CursorFill />
         </StoreChrome>

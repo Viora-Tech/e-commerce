@@ -1,6 +1,7 @@
 import type { CardProduct } from '../types'
 import Picture from './picture'
 import Price from './price'
+import ProductCardQuickAdd from './product-card-quick-add'
 
 const saleLabel = (percent: number) => `−${percent}%`
 
@@ -16,9 +17,12 @@ function salePercent(pricePaise: number, mrpPaise: number | null): number | null
 export default function ProductCard({
   product,
   lazy = true,
+  quickAdd = false,
 }: {
   product: CardProduct
   lazy?: boolean
+  /** Figma's "Show quick add": a full-width button under the price. */
+  quickAdd?: boolean | undefined
 }) {
   const [primary, hover] = product.images
   const soldOut = product.available <= 0
@@ -74,6 +78,13 @@ export default function ProductCard({
           </div>
         </div>
       </a>
+      {quickAdd ? (
+        <ProductCardQuickAdd
+          handle={product.handle}
+          variantId={product.quickAddVariantId}
+          soldOut={soldOut}
+        />
+      ) : null}
     </div>
   )
 }

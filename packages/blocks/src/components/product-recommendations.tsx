@@ -29,7 +29,7 @@ export default function ProductRecommendations({
         {heading ? <SectionHeading kicker={kicker} heading={heading} /> : null}
         <div className="related-products__grid">
           {products.map((p) => (
-            <ProductCard key={p.id} product={p} />
+            <ProductCard key={p.id} product={p} quickAdd />
           ))}
         </div>
       </div>

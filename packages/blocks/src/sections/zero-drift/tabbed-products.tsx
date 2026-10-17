@@ -24,6 +24,7 @@ export type ProductGridProps = Frame & {
   headingAlignment: 'left' | 'center'
   showTabCounts: boolean
   headingFollowsTab: boolean
+  showQuickAdd: boolean
   columns: number
   rows: number
   tabs: ProductGridTab[]
@@ -43,6 +44,7 @@ const defaults: Omit<ProductGridProps, keyof Frame> = {
   headingAlignment: 'center',
   showTabCounts: false,
   headingFollowsTab: true,
+  showQuickAdd: false,
   columns: 4,
   rows: 2,
   tabs: [{ label: copy.allTab, collection: '' }],
@@ -76,6 +78,7 @@ export function tabbedProductsSection(loaders: ZeroDriftLoaders): ComponentConfi
       },
       showTabCounts: { type: 'radio', label: f.showTabCounts, options: yesNo },
       headingFollowsTab: { type: 'radio', label: f.headingFollowsTab, options: yesNo },
+      showQuickAdd: { type: 'radio', label: f.showQuickAdd, options: yesNo },
       columns: { type: 'number', label: f.columns, min: 2, max: 5 },
       rows: { type: 'number', label: f.rows, min: 1, max: 4 },
     },
@@ -87,6 +90,7 @@ export function tabbedProductsSection(loaders: ZeroDriftLoaders): ComponentConfi
         align={p.headingAlignment}
         showCounts={p.showTabCounts}
         headingFollowsTab={p.headingFollowsTab}
+        quickAdd={p.showQuickAdd}
         tabs={p.resolved ?? []}
       />
     ),
