@@ -1,0 +1,88 @@
+---
+title: MCP & API
+description: Let Claude, ChatGPT, Cursor or VS Code work with your store, make access tokens for scripts, choose what AI clients may do, and see everything they did.
+---
+
+# MCP & API
+
+**Settings → MCP & API** lets AI tools work with your store. You can ask Claude about yesterday's
+orders, or let Cursor read your products while it builds a theme. Each tool signs in with your
+own account, so it can never do more than your role allows. Every change it suggests waits for
+your approval.
+
+The page has three tabs: **Overview**, **Clients & tokens** and **Activity log**.
+
+## Connect an AI tool
+
+1. Open **Settings → MCP & API**.
+2. Under **Connect a client**, pick **Claude**, **ChatGPT**, **Cursor** or **VS Code**.
+3. Follow the 3 steps:
+   - **Copy the server URL.** Every store has its own address.
+   - **Add it in the tool.**
+     - **Claude:** Settings → Connectors → Add custom connector.
+     - **ChatGPT:** Settings → Apps & Connectors → Advanced settings → Developer mode → Create.
+     - **Cursor and VS Code:** click **Add to Cursor** or **Add to VS Code**.
+   - **Sign in.** The tool opens a sign-in page. Sign in with your account, then choose what the
+     tool can use: products, orders, customers, inventory, discounts, content and analytics, each
+     as **Read** or **Read & write**. Click **Allow**.
+
+The tool now shows as **Connected**. If you belong to more than one store, connect each store
+separately; each one has its own address.
+
+## What AI clients can do
+
+Three switches on the Overview tab apply to every connected tool. Click **Save** after changing
+them.
+
+| Switch | On | Off |
+|---|---|---|
+| **Allow AI clients to make changes** | Tools can suggest edits to products, discounts and content | Tools can only read |
+| **Changes need approval** (recommended) | Every change waits in AI approvals until you approve it | Changes happen as soon as the tool asks |
+| **Let clients read customer details** | Tools can see names, phone numbers and addresses | Off by default; orders still show the city |
+
+### Approving a change
+
+When a tool suggests a change, the Activity log shows a row like "Claude proposed: …, waiting
+approval".
+
+1. Click **Open approval** on that row.
+2. You see the same preview the AI bar shows: what changes, before and after.
+3. Click **Approve**, **Edit** or **Cancel**.
+
+Waiting changes also appear in **Settings → AI → Activity** with a **Review** button. Only the
+person who connected the tool can approve its changes.
+
+## Access tokens (for scripts)
+
+Tokens are for scripts and servers, such as a script that syncs stock from your warehouse
+software. People should connect a client instead, so their own staff permissions apply.
+
+1. Go to **Clients & tokens** and click **Create token**.
+2. Give it a name, tick only the areas it needs, and pick when it expires: 30 days, 90 days,
+   1 year or never.
+3. Click **Create token**. Copy the token **now**: it is shown only once. Keep it in your
+   server's secret settings, never in code.
+
+A token acts as you, limited to the areas you ticked. Unlike AI clients, a token's changes
+happen at once and do not wait for approval. A token can never change settings, staff, billing
+or money (no refunds or cancellations).
+
+## Revoke a client or token
+
+On **Clients & tokens**, open the **⋮** menu on a row and click **Revoke**. It stops working
+right away. Changes already waiting in AI approvals stay there.
+
+Revoke anything you don't recognise, and anything belonging to someone who left your team.
+
+## Activity log
+
+The **Activity log** tab shows everything clients and tokens did in the last 90 days, newest
+first, grouped by day:
+
+- **Reads:** a tool read your data, such as "Claude read sales".
+- **Changes:** something changed.
+- **Waiting approval:** a suggested change you haven't approved yet.
+- **Blocked:** a switch or a token's areas stopped something.
+
+Each tool and token can make up to 120 requests a minute, so one tool can't slow your store.
+Click **Export CSV** to download the whole log.

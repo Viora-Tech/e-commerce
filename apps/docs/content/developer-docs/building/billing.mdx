@@ -1,0 +1,53 @@
+---
+title: Plans and billing
+description: How store plans, trials, bills and renewals work, using orders on the platform's own sales store as invoices.
+---
+
+# Plans and billing
+
+A store's plan lives in `store_plan` (one row per store). Its bills live in `plan_payment`
+(migration `0123`). Prices, limits and the trial are in `@commerce/core/billing` (`PLANS`,
+`TRIAL_DAYS = 14`, `RENEW_AHEAD_DAYS = 3`, `GRACE_DAYS = 7`). The decisions behind them are in
+`memory-bank/pricing.md`.
+
+## Bills are orders
+
+Each bill is an order on the platform's **sales store** (`PLATFORM_SALES_STORE_ID`), so the
+existing checkout, payment gateways, thank-you page and GST-invoice app do the work:
+
+1. `createPlanBill` finds the plan product variant by SKU `plan-<plan>-<interval>` (for example
+   `plan-growth-month`).
+2. It then creates a draft, converts it, and creates a payment attempt with the sales store's
+   first enabled gateway.
+3. The bill's URL is the signed thank-you page on the sales storefront, which shows **Pay now**
+   for an unstarted attempt.
+4. When the order is paid, the outbox relay (`order.paid` on the sales store) calls
+   `markPlanBillPaid`. That makes the plan `active`, starts the period at max(start, paid time),
+   and sets `ai_settings.plan`. A refund or cancel calls `cancelPlanBill`.
+
+## States
+
+`trialing` → `active` (paid) → `due` (renewal unpaid past the end) → `paused` (after the grace
+days). A downgrade on an active plan sets `next_plan` and takes effect at the period end.
+
+The worker's hourly `{billing}-sweep` (`runBillingSweep`, `stores_with_plan_due`):
+- bills 3 days ahead;
+- marks plans due;
+- pauses them after grace.
+
+It is off while `PLATFORM_SALES_STORE_ID` is unset.
+
+## Setting up the sales store
+
+- Create products with SKUs `plan-starter|growth|pro-month|year`: active, untracked inventory,
+  GST-inclusive prices from `PLANS`.
+- Enable one payment gateway on the sales store.
+- Run migrations `0121`–`0123`.
+
+Not built yet:
+- email pay-link reminders;
+- the buyer's GSTIN on plan invoices;
+- token-metered AI credits;
+- UPI AutoPay.
+
+**Paused** shows a banner only and blocks nothing.
