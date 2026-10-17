@@ -18,6 +18,7 @@ import { type ReviewsShowcaseProps, reviewsShowcaseSection } from './zero-drift/
 import { type ShipsTodayProps, shipsTodaySection } from './zero-drift/ships-today'
 import { type SignupPopupProps, signupPopupSection } from './zero-drift/signup-popup'
 import { type SocialWallProps, socialWallSection } from './zero-drift/social-wall'
+import { type WhatsappChatProps, whatsappChatSection } from './zero-drift/whatsapp-chat'
 
 /**
  * SOURCE OF TRUTH KEYWORDS: zeroDriftSections, ZeroDriftProps, ZERO_DRIFT_SECTIONS, Zero Drift theme port
@@ -49,6 +50,7 @@ export type ZeroDriftProps = {
   ImageComparison: ImageComparisonProps
   MobileDock: MobileDockProps
   SignupPopup: SignupPopupProps
+  WhatsappChat: WhatsappChatProps
 }
 
 const BUILDERS: { [K in keyof ZeroDriftProps]: (loaders: ZeroDriftLoaders) => ComponentConfig } = {
@@ -70,6 +72,7 @@ const BUILDERS: { [K in keyof ZeroDriftProps]: (loaders: ZeroDriftLoaders) => Co
   ImageComparison: imageComparisonSection,
   MobileDock: mobileDockSection,
   SignupPopup: signupPopupSection,
+  WhatsappChat: whatsappChatSection,
 }
 
 /** Every Zero Drift section key, in the theme home page's order. */
