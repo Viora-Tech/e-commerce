@@ -32,6 +32,7 @@ export const inspectorContent = {
     savedDraft: 'Your draft is saved. Publish when you want visitors to see it.',
     savedLive: 'Visitors see the changes now.',
     saveFailed: 'Could not save your changes',
+    retry: 'Try again',
     unsaved: 'Unsaved changes',
     upToDate: 'All changes saved',
     draftFailed: 'Could not keep your draft. Check your connection.',

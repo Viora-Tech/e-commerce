@@ -236,7 +236,9 @@ export default function CustomizeEditor({
       return true
     } catch (err) {
       // A connected setting whose source is gone names itself (see dynamic sources).
-      toast.error(isSourceError(err) ? err.message : copy.saveFailed)
+      toast.error(isSourceError(err) ? err.message : copy.saveFailed, {
+        action: { label: copy.retry, onClick: () => void handleSave() },
+      })
       return false
     } finally {
       setSaving(false)
