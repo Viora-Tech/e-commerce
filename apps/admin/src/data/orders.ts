@@ -92,6 +92,8 @@ export const ordersContent = {
     date: 'Date',
     anyDate: 'Any date',
     method: 'Payment method',
+    courier: 'Courier',
+    anyCourier: 'Any courier',
     show: (n: number) => `Show ${n} ${n === 1 ? 'order' : 'orders'}`,
     paymentOptions: {
       paid: 'Paid',

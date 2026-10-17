@@ -69,6 +69,8 @@ export default [
       date: 'तारीख',
       anyDate: 'कोई भी तारीख',
       method: 'पेमेंट का तरीका',
+      courier: 'कूरियर',
+      anyCourier: 'कोई भी कूरियर',
       show: (n) => `${n} ऑर्डर दिखाएं`,
       paymentOptions: {
         paid: 'पेमेंट हो गया',

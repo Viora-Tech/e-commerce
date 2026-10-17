@@ -29,6 +29,7 @@ import {
   listOrderIds,
   listOrders,
   ORDER_VIEWS,
+  orderCouriers,
   orderStats,
   orderTiles,
   readyToShipCount,
@@ -85,6 +86,8 @@ export const ordersRouter = {
         placedFrom: z.iso.datetime().optional(),
         /** Cash on delivery, or anything paid up front. */
         paymentMethod: z.enum(['cod', 'prepaid']).optional(),
+        /** Sent with this courier (the filter panel's Courier). */
+        courier: z.string().trim().min(1).max(60).optional(),
       }),
     )
     .handler(({ context, input }) => listOrders(context.tx, input)),
@@ -99,9 +102,13 @@ export const ordersRouter = {
         fulfillmentStatus: z.array(z.enum(ORDER_FULFILLMENT_STATUSES)).max(10).optional(),
         placedFrom: z.iso.datetime().optional(),
         paymentMethod: z.enum(['cod', 'prepaid']).optional(),
+        courier: z.string().trim().min(1).max(60).optional(),
       }),
     )
     .handler(({ context, input }) => listOrderIds(context.tx, input)),
+
+  /** The couriers the store's orders went with (the filter panel's Courier select). */
+  couriers: can(permissions.ORDERS_READ).handler(({ context }) => orderCouriers(context.tx)),
 
   stats: can(permissions.ORDERS_READ).handler(({ context }) => orderStats(context.tx)),
 

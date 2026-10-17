@@ -27,6 +27,7 @@ import {
   paymentEvent,
   productMedia,
   refund,
+  shipment,
   store,
   variant,
 } from '@commerce/db'
@@ -113,6 +114,8 @@ type OrderListFilters = {
   fulfillmentStatus?: OrderFulfillmentStatus[] | undefined
   placedFrom?: string | undefined
   paymentMethod?: 'cod' | 'prepaid' | undefined
+  /** Has a consignment with this courier (`shipment.provider`). */
+  courier?: string | undefined
 }
 
 /** The most ids "Select all" takes at once; bulk actions above this would need a background job. */
@@ -154,7 +157,19 @@ function orderListWhere(input: OrderListFilters) {
       : input.paymentMethod === 'prepaid'
         ? ne(order.paymentMethod, 'cod')
         : undefined,
+    input.courier
+      ? sql`exists (select 1 from ${shipment} s where s.order_id = ${order.id} and s.provider = ${input.courier})`
+      : undefined,
   )
+}
+
+/** The couriers this store's orders went with, for the filter panel's Courier select. */
+export async function orderCouriers(tx: StoreTx): Promise<string[]> {
+  const rows = await tx
+    .selectDistinct({ provider: shipment.provider })
+    .from(shipment)
+    .orderBy(shipment.provider)
+  return rows.map((r) => r.provider)
 }
 
 export async function listOrders(
@@ -169,6 +184,7 @@ export async function listOrders(
     fulfillmentStatus?: OrderFulfillmentStatus[] | undefined
     placedFrom?: string | undefined
     paymentMethod?: 'cod' | 'prepaid' | undefined
+    courier?: string | undefined
   },
 ) {
   const where = orderListWhere(input)

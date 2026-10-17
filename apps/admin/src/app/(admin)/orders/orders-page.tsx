@@ -281,24 +281,32 @@ function OrdersContent({ initial }: { initial: OrdersInitial }) {
   const panelCopy = useCopy(filterPanelContent)
   const fmt = useFormat()
   usePrimaryAction(routes.orders.drafts())
-  const [{ page, query, status, perPage: rawPerPage, payment, fulfilment, date, method }, setQ] =
-    useQueryStates(
-      {
-        query: parseAsString.withDefault(''),
-        page: parseAsInteger.withDefault(1),
-        status: parseAsStringLiteral(ORDER_LIST_FILTERS),
-        perPage: parseAsInteger.withDefault(initial.perPage),
-        ...FILTER_PARAMS,
-      },
-      { shallow: true },
-    )
+  const [
+    { page, query, status, perPage: rawPerPage, payment, fulfilment, date, method, courier },
+    setQ,
+  ] = useQueryStates(
+    {
+      query: parseAsString.withDefault(''),
+      page: parseAsInteger.withDefault(1),
+      status: parseAsStringLiteral(ORDER_LIST_FILTERS),
+      perPage: parseAsInteger.withDefault(initial.perPage),
+      ...FILTER_PARAMS,
+    },
+    { shallow: true },
+  )
 
   const [items, setItems] = useState<Item[]>(initial.result.items)
   const [total, setTotal] = useState(initial.result.total)
   const [loading, setLoading] = useState(false)
   const [failed, setFailed] = useState(false)
+  const [couriers, setCouriers] = useState<string[]>([])
 
   const hydrated = useRef(false)
+
+  // The Courier filter lists only couriers the store's orders actually went with.
+  useEffect(() => {
+    api.orders.couriers().then(setCouriers, () => undefined)
+  }, [])
 
   useEffect(() => {
     const perPage = parseRowsPerPage(rawPerPage)
@@ -306,7 +314,7 @@ function OrdersContent({ initial }: { initial: OrdersInitial }) {
     // tab) the list is fetched again, so it never keeps another tab's rows.
     const firstRun = !hydrated.current
     hydrated.current = true
-    const f: OrderFiltersValue = { payment, fulfilment, date, method }
+    const f: OrderFiltersValue = { payment, fulfilment, date, method, courier }
     if (
       firstRun &&
       perPage === initial.perPage &&
@@ -337,6 +345,7 @@ function OrdersContent({ initial }: { initial: OrdersInitial }) {
     fulfilment,
     date,
     method,
+    courier,
     initial.query,
     initial.perPage,
   ])
@@ -358,6 +367,7 @@ function OrdersContent({ initial }: { initial: OrdersInitial }) {
         fulfilment,
         date,
         method,
+        courier,
       })
       setItems(r.items)
       setTotal(r.total)
@@ -369,9 +379,9 @@ function OrdersContent({ initial }: { initial: OrdersInitial }) {
   // Render logic
   const perPage = parseRowsPerPage(rawPerPage)
   const columns = orderColumns(copy, fmt)
-  const filters: OrderFiltersValue = { payment, fulfilment, date, method }
+  const filters: OrderFiltersValue = { payment, fulfilment, date, method, courier }
   const filtered = hasOrderFilters(filters)
-  const groups = orderFilterGroups(filters, copy.filters, setFilters)
+  const groups = orderFilterGroups(filters, copy.filters, setFilters, couriers)
   const searching = query.length > 0 || status !== null || filtered
   const tabCounts: Partial<Record<OrderListFilter, number>> = {
     unpaid: initial.counts.unpaid,

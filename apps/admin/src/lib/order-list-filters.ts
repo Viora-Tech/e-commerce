@@ -1,5 +1,5 @@
 import type { OrderFulfillmentStatus, OrderPaymentStatus } from '@commerce/core/order-status'
-import { parseAsArrayOf, parseAsStringLiteral } from 'nuqs'
+import { parseAsArrayOf, parseAsString, parseAsStringLiteral } from 'nuqs'
 import type { FilterGroup } from '@/components/table/filter-panel'
 import type { ordersContent } from '@/data/orders'
 
@@ -20,6 +20,8 @@ export type OrderFilters = {
   fulfilment: FulfilmentFilter[]
   date: DateFilter | null
   method: MethodFilter[]
+  /** A courier id (`delhivery`) the order was sent with; null for any. */
+  courier: string | null
 }
 
 /* One ticked box can stand for several stored statuses ("Unpaid" includes authorised and part paid). */
@@ -51,7 +53,13 @@ function placedFrom(date: DateFilter, now: Date): string {
 
 /** True when any group has something ticked. */
 export function hasOrderFilters(f: OrderFilters): boolean {
-  return f.payment.length > 0 || f.fulfilment.length > 0 || f.date !== null || f.method.length > 0
+  return (
+    f.payment.length > 0 ||
+    f.fulfilment.length > 0 ||
+    f.date !== null ||
+    f.method.length > 0 ||
+    f.courier !== null
+  )
 }
 
 /** The ticked boxes as `orders.list` input; both payment methods ticked means no method filter. */
@@ -63,8 +71,13 @@ export function orderFilterInput(f: OrderFilters, now = new Date()) {
       : {}),
     ...(f.date ? { placedFrom: placedFrom(f.date, now) } : {}),
     ...(f.method.length === 1 && f.method[0] ? { paymentMethod: f.method[0] } : {}),
+    ...(f.courier ? { courier: f.courier } : {}),
   }
 }
+
+/** A courier id as the panel names it: `delhivery` → `Delhivery`, `blue_dart` → `Blue dart`. */
+export const courierName = (id: string) =>
+  id.replace(/[_-]+/g, ' ').replace(/^\w/, (c) => c.toUpperCase())
 
 /** Keeps the keys of `all` that were ticked, in `all`'s order, so a tick never reorders the URL. */
 function pick<K extends string>(all: readonly K[], ticked: string[]): K[] {
@@ -80,6 +93,8 @@ export function orderFilterGroups(
   f: OrderFilters,
   copy: (typeof ordersContent)['filters'],
   onChange: (patch: Partial<OrderFilters>) => void,
+  /** The couriers the store's orders went with; the Courier select shows only with some. */
+  couriers: readonly string[] = [],
 ): FilterGroup[] {
   return [
     {
@@ -115,10 +130,29 @@ export function orderFilterGroups(
       value: f.method,
       onChange: (next) => onChange({ method: pick(METHOD_FILTERS, next) }),
     },
+    ...(couriers.length
+      ? [
+          {
+            key: 'courier',
+            label: copy.courier,
+            type: 'select' as const,
+            options: couriers.map((c) => ({ value: c, label: courierName(c) })),
+            value: f.courier,
+            onChange: (next: string | null) => onChange({ courier: next }),
+            anyLabel: copy.anyCourier,
+          },
+        ]
+      : []),
   ]
 }
 
-export const NO_FILTERS: OrderFilters = { payment: [], fulfilment: [], date: null, method: [] }
+export const NO_FILTERS: OrderFilters = {
+  payment: [],
+  fulfilment: [],
+  date: null,
+  method: [],
+  courier: null,
+}
 
 /* Module scope, so the empty defaults keep one identity and the list effect runs once per change. */
 export const FILTER_PARAMS = {
@@ -126,4 +160,5 @@ export const FILTER_PARAMS = {
   fulfilment: parseAsArrayOf(parseAsStringLiteral(FULFILMENT_FILTERS)).withDefault([]),
   date: parseAsStringLiteral(DATE_FILTERS),
   method: parseAsArrayOf(parseAsStringLiteral(METHOD_FILTERS)).withDefault([]),
+  courier: parseAsString,
 }
