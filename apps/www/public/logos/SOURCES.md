@@ -14,3 +14,23 @@ their owners and are used only to say which services the platform works with. Re
 Not found officially (shown as a plain text mark instead): **RuPay**, **BHIM**, the bank names in the checkout demo (SBI, HDFC, ICICI, Axis, Kotak) and the Amazon Pay / MobiKwik wallet names (no reachable official files), **Delhivery** (delhivery.com serves only a
 script-rendered page; no downloadable vector was reachable) and **UPI** (npci.org.in was unreachable
 from the build machine). Add the official files from each brand kit and list them here.
+
+## Waimers (the owner's own brand)
+
+Product photos and the logo in `public/brand/waimers/` come from the owner's own store, https://waimers.in
+(the owner confirmed it is their brand). Product images were read from the store's public catalogue
+(`https://waimers.in/products.json`) and resized to about 600 px WebP; logos are the PNGs the theme serves.
+
+| File | Source |
+| --- | --- |
+| logo-on-dark.png | https://waimers.in/cdn/shop/files/waimers-logo-dark.png?v=1790680111 |
+| logo-on-light.png | https://waimers.in/cdn/shop/files/waimers-logo.png?v=1790680109 |
+| a9-mouse.webp | ATK A9 Wireless Mouse, https://cdn.shopify.com/s/files/1/0676/0824/8486/files/20260818-142053-Photoroom.png |
+| veil-glasspad.webp | AbyssGaming Veil Glasspad, https://cdn.shopify.com/s/files/1/0676/0824/8486/files/Z1-BackgroundC.png |
+| dot-skates.webp | TALONGAMES Dot Skates, https://cdn.shopify.com/s/files/1/0676/0824/8486/files/4mmKumo.webp |
+| knight-mousepad.webp | ATK Knight Limited Edition MousePad, https://cdn.shopify.com/s/files/1/0676/0824/8486/files/1500_aa3239a7-5eac-4e85-a260-ffba77ea68c9-Photoroom.png |
+| hyzen-wrist-rest.webp | Lofree Hyzen67 Prism Wrist Rest, https://cdn.shopify.com/s/files/1/0676/0824/8486/files/DSCF7537.webp |
+| griptape.webp | UnclePanda AntiSlip GripTape, https://cdn.shopify.com/s/files/1/0676/0824/8486/files/51320b8d82cbc85107bd59acb2c2936d.jpg |
+
+The brands named on the products (ATK, AbyssGaming, TALONGAMES, Lofree, UnclePanda) belong to their owners;
+Waimers sells them. Prices are the ones shown on waimers.in when this was written.

@@ -1,15 +1,20 @@
 import { DEMO_ORDERS } from './demo-orders'
 
 /**
- * DEMO DATA for the hero "build your store" sequence. Everything here is made up to show what a
- * store looks like: the names, prices and the order are not real. Simple templates per category,
- * with a generic fallback built from whatever the visitor typed.
+ * DEMO DATA for the hero "build your store" sequence. The default store is Waimers (the owner's own
+ * brand, waimers.in) with three of its real products and prices; the order, shopper and city are
+ * made up. Other typed categories use simple templates with a generic fallback.
  */
 export type DemoProduct = { name: string; price: number }
 
 export type DemoStore = {
   name: string
   tagline: string
+  /** Real brand assets (Waimers); the generic templates use gradients only. */
+  logo?: string
+  heroImage?: string
+  images?: [string, string, string]
+  note: string
   /** Gradient classes for the three product tiles and the hero tile (colour is allowed in the hero). */
   tones: [string, string, string]
   heroTone: string
@@ -111,11 +116,41 @@ const CATEGORIES: readonly Category[] = [
 ]
 
 export const DEMO_EXAMPLES = [
-  'handmade jewellery from Jaipur',
+  'gaming mice and desk mats',
   'kurtas',
   'phone covers',
   'organic tea',
 ] as const
+
+/** Waimers: real products and prices from waimers.in; photos in public/brand/waimers. */
+const WAIMERS_STORE: DemoStore = {
+  name: 'Waimers',
+  tagline: 'Gaming mice and desk gear',
+  logo: '/brand/waimers/logo-on-dark.png',
+  heroImage: '/brand/waimers/veil-glasspad.webp',
+  images: [
+    '/brand/waimers/a9-mouse.webp',
+    '/brand/waimers/veil-glasspad.webp',
+    '/brand/waimers/dot-skates.webp',
+  ],
+  note: 'Demo built from Waimers products',
+  tones: [
+    'from-demo-indigo-1 to-demo-indigo-2',
+    'from-demo-sky-1 to-demo-sky-2',
+    'from-demo-teal-1 to-demo-teal-2',
+  ],
+  heroTone: 'from-demo-indigo-2 via-demo-indigo-1 to-demo-sky-2',
+  products: [
+    { name: 'ATK A9 Wireless Mouse', price: 2999 },
+    { name: 'AbyssGaming Veil Glasspad', price: 7499 },
+    { name: 'TALONGAMES Dot Skates', price: 749 },
+  ],
+  city: 'Mumbai',
+  firstPrice: 2999,
+}
+
+const GAMING =
+  /\b(gaming|mouse|mice|desk|mats?|mousepads?|glasspads?|keyboards?|keycaps?|headsets?|esports|setup)\b/
 
 const STOP_WORDS = new Set([
   'handmade',
@@ -147,6 +182,7 @@ export function buildDemoStore(raw: string): DemoStore {
   const text = raw.trim()
   const lower = text.toLowerCase()
   const city = findCity(text)
+  if (!text || GAMING.test(lower)) return WAIMERS_STORE
   const category = CATEGORIES.find((item) => item.keywords.some((word) => lower.includes(word)))
   if (category) {
     const lead =
@@ -158,6 +194,7 @@ export function buildDemoStore(raw: string): DemoStore {
       heroTone: category.heroTone,
       products: category.products,
       city: city ?? 'Jaipur',
+      note: demoStoreContent.demoNote,
       firstPrice: category.products[0].price,
     }
   }
@@ -181,6 +218,7 @@ export function buildDemoStore(raw: string): DemoStore {
       { name: `${label} Deluxe`, price: 1299 },
     ],
     city: city ?? 'Jaipur',
+    note: demoStoreContent.demoNote,
     firstPrice: 499,
   }
 }
@@ -203,7 +241,7 @@ export const demoStoreContent = {
 
 /** Copy for the outlined fragments drifting behind the hero. Decorative. */
 export const heroFragmentsContent = {
-  price: '₹1,299',
+  price: '₹2,999',
   invoice: 'GST invoice',
   courier: 'Delhivery',
   bars: [

@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import { buildDemoStore, demoStoreContent as copy } from '@/data/demo-store'
+import { buildDemoStore, demoStoreContent as copy, DEMO_EXAMPLES } from '@/data/demo-store'
 import { ctaClass } from '@/lib/cta'
 import { loadGsap, prefersReducedMotion } from '@/lib/gsap'
 import { useWaitlist } from '../../waitlist/waitlist-context'
@@ -149,7 +149,7 @@ export default function StoreBuildDemo() {
   }, [skipId])
 
   // Render logic
-  const store = buildDemoStore(text || 'handmade jewellery from Jaipur')
+  const store = buildDemoStore(text || DEMO_EXAMPLES[0])
   if (runId === 0 && !reducedMotion) return null
 
   return (
@@ -185,7 +185,7 @@ export default function StoreBuildDemo() {
           >
             {copy.startStore} →
           </button>
-          <p className="text-[0.6875rem] text-muted-foreground">{copy.demoNote}</p>
+          <p className="text-[0.6875rem] text-muted-foreground">{store.note}</p>
         </div>
       </div>
     </>

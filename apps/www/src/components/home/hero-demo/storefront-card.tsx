@@ -1,4 +1,5 @@
 import { CircleCheck, ReceiptIcon, Truck_ as Truck } from '@commerce/ui/icons'
+import Image from 'next/image'
 import { demoStoreContent as copy, type DemoStore } from '@/data/demo-store'
 import { formatInr } from '@/lib/pricing-math'
 import TiltCard from '../../common/tilt-card'
@@ -26,12 +27,22 @@ export default function StorefrontCard({ store }: StorefrontCardProps) {
             className="pointer-events-none absolute inset-0 z-10 size-full overflow-visible"
           />
           <div data-block className={`flex items-center justify-between px-1 ${BLOCK}`}>
-            <span className="flex items-center gap-2 text-sm font-semibold text-foreground">
-              <span className="grid size-6 place-items-center rounded-md bg-foreground text-xs font-bold text-background">
-                {store.name.charAt(0)}
+            {store.logo ? (
+              <Image
+                src={store.logo}
+                alt={store.name}
+                width={96}
+                height={25}
+                className="h-5 w-auto"
+              />
+            ) : (
+              <span className="flex items-center gap-2 text-sm font-semibold text-foreground">
+                <span className="grid size-6 place-items-center rounded-md bg-foreground text-xs font-bold text-background">
+                  {store.name.charAt(0)}
+                </span>
+                {store.name}
               </span>
-              {store.name}
-            </span>
+            )}
             <span aria-hidden className="flex gap-1">
               <span className="size-1 rounded-full bg-muted-foreground" />
               <span className="size-1 rounded-full bg-muted-foreground" />
@@ -40,8 +51,23 @@ export default function StorefrontCard({ store }: StorefrontCardProps) {
           </div>
           <div
             data-block
-            className={`flex aspect-[16/8] flex-col justify-end gap-1 rounded-xl bg-gradient-to-br p-3 ${store.heroTone} ${BLOCK}`}
+            className={`relative isolate flex aspect-[16/8] flex-col justify-end gap-1 overflow-hidden rounded-xl bg-gradient-to-br p-3 ${store.heroTone} ${BLOCK}`}
           >
+            {store.heroImage ? (
+              <>
+                <Image
+                  src={store.heroImage}
+                  alt=""
+                  fill
+                  sizes="16rem"
+                  className="-z-10 object-cover opacity-90"
+                />
+                <span
+                  aria-hidden
+                  className="absolute inset-0 -z-10 bg-gradient-to-t from-black/70 via-black/10 to-transparent"
+                />
+              </>
+            ) : null}
             <span className="w-fit rounded-full bg-background/70 px-2 py-0.5 text-[0.625rem] font-medium text-foreground">
               {copy.heroTile}
             </span>
@@ -52,8 +78,18 @@ export default function StorefrontCard({ store }: StorefrontCardProps) {
               <li key={product.name} data-block className={`flex flex-col gap-1 ${BLOCK}`}>
                 <span
                   aria-hidden
-                  className={`aspect-square rounded-lg bg-gradient-to-br ${store.tones[index]}`}
-                />
+                  className={`relative aspect-square overflow-hidden rounded-lg bg-gradient-to-br ${store.tones[index]}`}
+                >
+                  {store.images?.[index] ? (
+                    <Image
+                      src={store.images[index]}
+                      alt=""
+                      fill
+                      sizes="6rem"
+                      className="object-contain p-1"
+                    />
+                  ) : null}
+                </span>
                 <span className="truncate text-[0.6875rem] font-medium text-foreground">
                   {product.name}
                 </span>

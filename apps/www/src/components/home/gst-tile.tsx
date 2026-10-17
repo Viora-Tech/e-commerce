@@ -32,6 +32,7 @@ export default function GstTile() {
             <span className="text-xs text-muted-foreground">{invoice.number}</span>
           </div>
           <p className="text-xs text-muted-foreground">{invoice.gstin}</p>
+          <p className="text-xs text-foreground">{invoice.item}</p>
           <hr className="border-border" />
           <p className="text-eyebrow">{invoice.inState}</p>
           <AmountRow label={invoice.taxable} amount={invoice.taxableAmount} />

@@ -1,3 +1,4 @@
+import Image from 'next/image'
 import { homeContent } from '@/data/home'
 import AmbientLight from '../common/ambient-light'
 import PageContainer from '../common/page-container'
@@ -20,7 +21,13 @@ export default function Proof() {
             {copy.quote}
           </blockquote>
           <figcaption className="flex items-center gap-3 text-left">
-            <span aria-hidden className="size-9 rounded-full bg-muted ring-1 ring-border" />
+            <Image
+              src="/brand/waimers/logo-on-dark.png"
+              alt=""
+              width={96}
+              height={25}
+              className="h-6 w-auto"
+            />
             <span>
               <span className="block text-sm font-medium text-foreground">{copy.name}</span>
               <span className="block text-xs text-muted-foreground">{copy.meta}</span>

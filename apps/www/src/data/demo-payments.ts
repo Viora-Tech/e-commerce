@@ -33,7 +33,7 @@ export const PAYMENT_METHODS: readonly PaymentMethod[] = [
 export const paymentDemoContent = {
   heading: 'How would you like to pay?',
   tablist: 'Payment method',
-  amount: '₹1,299',
+  amount: '₹2,999',
   stepMs: 850,
   /** A method stays on screen at least this long before the tile moves to the next one. */
   minDwellMs: 3000,
@@ -66,11 +66,11 @@ export const paymentDemoContent = {
   },
   cod: {
     title: 'Cash on delivery',
-    body: 'Pay ₹1,299 when your order arrives.',
-    message: 'Please confirm your cash on delivery order #1043 for ₹1,299.',
+    body: 'Pay ₹2,999 when your order arrives.',
+    message: 'Please confirm your cash on delivery order #1043 for ₹2,999.',
     confirm: 'Confirm order',
     cancel: 'Cancel',
   },
-  paid: { title: '₹1,299 paid', body: 'Confirmed automatically' },
+  paid: { title: '₹2,999 paid', body: 'Confirmed automatically' },
   confirmed: { title: 'Order confirmed', body: 'Confirmed on WhatsApp' },
 }
