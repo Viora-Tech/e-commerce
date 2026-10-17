@@ -32,6 +32,8 @@ export const productFormContent = {
   basics: 'Basic details',
   backLabel: 'Products',
   preview: 'Preview',
+  /** More actions (Figma 628:126366): the live product page, for active products. */
+  viewOnStore: 'View on store',
   saveBar: { message: 'Unsaved changes', save: 'Save', discard: 'Discard' },
   toasts: {
     saved: 'Product saved',

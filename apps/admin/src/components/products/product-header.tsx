@@ -1,6 +1,6 @@
 'use client'
 
-import { Copy, Eye, Package, Plus, Trash2 } from '@commerce/ui/icons'
+import { Copy, ExternalLink, Eye, Package, Plus, Trash2 } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import ActionMenu from '@/components/layout/action-menu'
 import FallbackImage from '@/components/layout/fallback-image'
@@ -87,6 +87,13 @@ export default function ProductHeader({
               disabled={busy}
               items={[
                 { label: copy.duplicate.action, icon: Copy, onSelect: onDuplicate },
+                {
+                  label: copy.viewOnStore,
+                  icon: ExternalLink,
+                  href: `${storefrontOrigin}/products/${product.handle}`,
+                  newTab: true,
+                  hidden: form.status !== 'active',
+                },
                 { label: copy.addAnother, icon: Plus, href: routes.products.new() },
                 { label: copy.delete.action, icon: Trash2, destructive: true, onSelect: onDelete },
               ]}

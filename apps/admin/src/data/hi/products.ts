@@ -138,6 +138,7 @@ export default [
     basics: 'बुनियादी जानकारी',
     backLabel: 'प्रोडक्ट',
     preview: 'प्रीव्यू',
+    viewOnStore: 'स्टोर पर देखें',
     saveBar: { message: 'बदलाव सेव नहीं हुए', save: 'सेव करें', discard: 'रद्द करें' },
     toasts: {
       saved: 'प्रोडक्ट सेव हो गया',
