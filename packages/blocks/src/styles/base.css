@@ -1899,3 +1899,96 @@ html {
     font-size: calc(2.5rem * var(--font-heading-scale, 1));
   }
 }
+
+/* ------------------------------------------------------------------ */
+/* Figma Store / Empty state (693:80908) and the 404 page (706:118039)  */
+/* ------------------------------------------------------------------ */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-2);
+  padding-block: var(--space-9);
+  text-align: center;
+}
+
+.empty-state__icon {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  margin-bottom: var(--space-2);
+  border-radius: 50%;
+  background-color: var(--color-surface);
+  color: var(--color-ink);
+}
+
+.empty-state__title {
+  margin: 0;
+  color: var(--color-ink);
+  font-family: var(--font-heading);
+  font-size: var(--font-body-size, 16px);
+  font-weight: 700;
+}
+
+.empty-state__body {
+  margin: 0;
+  color: var(--color-muted);
+  font-size: 14px;
+}
+
+.empty-state__action {
+  height: 40px;
+  margin-top: var(--space-3);
+  padding-inline: var(--space-4);
+}
+
+.not-found {
+  padding-block: var(--space-9);
+  text-align: center;
+}
+
+.not-found__code {
+  margin: 0;
+  color: var(--color-muted);
+  font-family: var(--font-heading);
+  font-size: 48px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.not-found .empty-state {
+  padding-block: var(--space-3) 0;
+}
+
+.not-found__title {
+  font-size: calc(2.5rem * var(--font-heading-scale, 1));
+  letter-spacing: -0.015em;
+}
+
+.not-found__search {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  width: min(22rem, 100%);
+  height: 40px;
+  margin-top: var(--space-3);
+  padding-inline: var(--space-3);
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-input, var(--radius-m));
+  color: var(--color-muted);
+}
+
+.not-found__search input {
+  flex: 1 1 auto;
+  min-width: 0;
+  border: 0;
+  background: none;
+  color: var(--color-ink);
+  font: inherit;
+  font-size: 14px;
+}
+
+.not-found__search input:focus {
+  outline: none;
+}

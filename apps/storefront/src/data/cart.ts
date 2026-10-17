@@ -1,6 +1,12 @@
 /** Copy for the cart page and the discount code field shared with checkout. */
 export const cartContent = {
   title: 'Your cart',
+  itemCount: (n: number) => `${n} ${n === 1 ? 'item' : 'items'}`,
+  remove: 'Remove',
+  preorder: 'Pre-order',
+  continueShopping: 'Continue shopping',
+  paymentMethods: 'Ways to pay',
+  payments: ['UPI', 'Cards', 'Cash on delivery', 'EMI'],
   summary: 'Summary',
   subtotal: 'Subtotal',
   shipping: 'Shipping',
