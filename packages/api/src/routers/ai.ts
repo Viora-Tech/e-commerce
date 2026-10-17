@@ -30,6 +30,7 @@ import { ACTION_PERMISSIONS, ASSISTANT_PERMISSIONS } from '../services/ai/assist
 import {
   approveAction,
   cancelAction,
+  getAction,
   listActivity,
   reviseAction,
   undoAction,
@@ -201,6 +202,15 @@ export const aiRouter = {
     .handler(async ({ context, input }) =>
       undoAction(await actionEnv(context), context.scope, input.id),
     ),
+
+  /** One AI action with its card, for "Open approval" from the MCP & API activity log. */
+  action: canAny(ACTION_PERMISSIONS)
+    .input(ActionId)
+    .handler(async ({ context, input }) => {
+      const view = await getAction({ storeId: context.scope.storeId, tx: context.tx }, input.id)
+      if (!view) throw new ORPCError('NOT_FOUND', { message: 'That AI action was not found.' })
+      return view
+    }),
 
   /** Settings → AI → Activity: every AI action in the store, newest first. */
   activity: can(permissions.SETTINGS_READ)

@@ -6,13 +6,15 @@ import {
   type MemberAccess,
   memberAccess,
   type Permission,
+  recordApiActivity,
+  recordApiRead,
   seedSystemRoles,
   upsertMember,
 } from '@commerce/core'
 import type { StoreTx } from '@commerce/db'
 import { organizationMembership, withStore } from '@commerce/db'
 import { ORPCError } from '@orpc/server'
-import { protectedProcedure, type SessionContext } from './base'
+import { memberProcedure, type SessionContext } from './base'
 import { remember } from './request-memo'
 
 export type StoreScope = {
@@ -158,9 +160,16 @@ async function scopeFor(
   const access = await remember(context.memo, `access:${member.storeId}:${member.userId}`, () =>
     resolveAccess(tx, member.storeId, member.userId, member.role),
   )
+  // An access token is its member capped to the token's areas, and never reaches a procedure
+  // that names no permission (those check things only a person signed in should do).
+  const token = context.apiPrincipal
   const holds = (permission: Permission) =>
-    access.isOwner || access.permissions.includes(permission)
+    (access.isOwner || access.permissions.includes(permission)) &&
+    (!token || token.permissions.includes(permission))
   const wanted = required === undefined ? [] : typeof required === 'string' ? [required] : required
+  if (token && !wanted.length) {
+    throw new ORPCError('FORBIDDEN', { message: 'Access tokens cannot use this' })
+  }
   if (wanted.length && !wanted.some(holds)) {
     const first = wanted[0] as Permission
     throw new ORPCError('FORBIDDEN', {
@@ -185,19 +194,48 @@ function report(context: SessionContext, storeId: string, error: unknown): never
  * the next request (a page's parallel calls share one read through `context.memo`).
  */
 function storeProcedureWith(required?: Permission | readonly Permission[]) {
-  return protectedProcedure.use(async ({ context, next }) => {
+  return memberProcedure.use(async ({ context, next, path }) => {
     const member = await findMembership(context)
     context.log.set({ storeId: member.storeId })
     return withStore(context.db, member.storeId, async (tx: StoreTx) => {
       const scope = await scopeFor(context, tx, member, required)
       context.log.set({ role: scope.roleSlug })
       try {
-        return await next({ context: { scope, tx } })
+        const result = await next({ context: { scope, tx } })
+        await logTokenCall(context, tx, member.storeId, path, required)
+        return result
       } catch (error) {
         return report(context, member.storeId, error)
       }
     })
   })
+}
+
+/**
+ * Settings → MCP & API → Activity: a call made with an access token. Changes are logged one by
+ * one; repeated reads of the same procedure fold into one row per ten minutes.
+ */
+async function logTokenCall(
+  context: SessionContext,
+  tx: StoreTx,
+  storeId: string,
+  path: readonly string[],
+  required: Permission | readonly Permission[] | undefined,
+) {
+  const token = context.apiPrincipal
+  if (!token) return
+  const wanted = required === undefined ? [] : typeof required === 'string' ? [required] : required
+  const procedure = path.join('.')
+  const reads = wanted.every((perm) => perm.endsWith('.read'))
+  const entry = { grantId: token.grantId, tool: procedure, detail: `API · ${procedure}` }
+  if (reads)
+    await recordApiRead(tx, storeId, { ...entry, summary: `${token.name} read ${path[0]}` })
+  else
+    await recordApiActivity(tx, storeId, {
+      ...entry,
+      kind: 'change',
+      summary: `${token.name} changed ${path[0]}`,
+    })
 }
 
 /** Store-scoped procedure with no permission of its own. */
@@ -237,7 +275,7 @@ export function canDetached(permission: Permission | readonly Permission[]) {
 export const storeProcedureDetached = detachedWith(undefined)
 
 function detachedWith(permission: Permission | readonly Permission[] | undefined) {
-  return protectedProcedure.use(async ({ context, next }) => {
+  return memberProcedure.use(async ({ context, next, path }) => {
     const member = await findMembership(context)
     context.log.set({ storeId: member.storeId })
     const scope = await withStore(context.db, member.storeId, (tx: StoreTx) =>
@@ -245,7 +283,12 @@ function detachedWith(permission: Permission | readonly Permission[] | undefined
     )
     context.log.set({ role: scope.roleSlug })
     try {
-      return await next({ context: { scope } })
+      const result = await next({ context: { scope } })
+      if (context.apiPrincipal)
+        await withStore(context.db, member.storeId, (tx: StoreTx) =>
+          logTokenCall(context, tx, member.storeId, path, permission),
+        )
+      return result
     } catch (error) {
       return report(context, member.storeId, error)
     }

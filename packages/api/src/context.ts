@@ -1,8 +1,10 @@
 import type { MerchantAuth } from '@commerce/auth'
 import type {
   AiBulkQueue,
+  ApiPrincipal,
   AppEventQueue,
   AppJobQueue,
+  ChannelSyncQueue,
   MediaProcessQueue,
   NotificationQueue,
   PlatformCodeSender,
@@ -33,6 +35,8 @@ export type ApiContext = {
   aiBulk?: AiBulkQueue | undefined
   /** AI reads of uploaded purchase documents, done by the worker. Absent in tests: the read happens in the request. */
   purchaseDocuments?: PurchaseDocumentQueue | undefined
+  /** Sales-channel catalog syncs (after Connect, "Sync now"). Absent in tests: nothing is queued. */
+  channelSync?: ChannelSyncQueue | undefined
   /** Live storefront visitors from Dragonfly; absent in tests, the dashboard then shows zeros. */
   visitors?: VisitorSource
   /** Reports an unexpected procedure error (never an intentional ORPCError) to Sentry. No-op in tests. */
@@ -44,6 +48,10 @@ export type ApiContext = {
   /** One request's session and membership answers, shared by every call in it. Absent (tests,
    *  scripts): each call looks them up itself. Never reuse one across requests. */
   memo?: RequestMemo | undefined
+  /** Set only by the bearer-token routes (`/api/v1`): the access token's member and what the
+   *  token allows. Store procedures then run as that member, capped by the token's areas;
+   *  account and other session-only procedures refuse it (`procedures/base.ts`). */
+  apiPrincipal?: ApiPrincipal | undefined
   /** `fetch` for GitHub's issues API ("Report a bug"). Absent: the global fetch. Tests pass a fake so they never reach GitHub. */
   githubFetch?: typeof fetch | undefined
 }

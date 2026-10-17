@@ -3,6 +3,7 @@ import { accountRouter } from './account'
 import { activityRouter } from './activity'
 import { aiRouter } from './ai'
 import { analyticsRouter } from './analytics'
+import { apiAccessRouter } from './api-access'
 import { appearanceRouter } from './appearance'
 import { appsRouter } from './apps'
 import { backInStockRouter } from './back-in-stock'
@@ -73,6 +74,7 @@ export const appRouter = {
   purchaseCharges: purchaseChargesRouter,
   purchaseDocuments: purchaseDocumentsRouter,
   pages: pagesRouter,
+  apiAccess: apiAccessRouter,
   billing: billingRouter,
   blog: blogRouter,
   metaobjects: metaobjectsRouter,

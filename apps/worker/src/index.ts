@@ -9,9 +9,11 @@ import { sql } from 'drizzle-orm'
 import { evlog } from 'evlog/hono'
 import { Hono } from 'hono'
 import { createAiBulkWriteWorker } from './ai-bulk-write'
+import { API_ACTIVITY_PRUNE_EVERY_MS, createApiActivityPrune } from './api-activity'
 import { createAppEventWorker, createAppJobWorker } from './app-events'
 import { createBackInStockWorker } from './back-in-stock'
 import { BILLING_EVERY_MS, createBillingSweep } from './billing'
+import { CHANNEL_SYNC_EVERY_MS, createChannelSync } from './channel-sync'
 import {
   CERTIFICATE_EVERY_MS,
   createCertificateSweep,
@@ -127,6 +129,12 @@ const billing = createBillingSweep(redis, db, {
   settingsSecret: env.SETTINGS_SECRET,
   storefrontUrl: env.STOREFRONT_URL,
 })
+const apiActivityPrune = createApiActivityPrune(redis, db)
+const channelSync = createChannelSync(redis, db, {
+  settingsSecret: env.SETTINGS_SECRET,
+  adminUrl: env.ADMIN_URL,
+  storefrontUrl: env.STOREFRONT_URL,
+})
 const outboxRelay = createOutboxRelay(redis, db, {
   notifications,
   appEvents,
@@ -161,6 +169,8 @@ const watched = [
   [memberDailySummary.worker, 'member-daily-summary'],
   [searchConsole.worker, 'search-console-sweep'],
   [billing.worker, 'billing-sweep'],
+  [apiActivityPrune.worker, 'api-activity-prune'],
+  [channelSync.worker, 'channel-sync'],
 ] as const
 for (const [w, queueName] of watched) {
   reportWorkerFailures(w, queueName, reportError)
@@ -246,6 +256,16 @@ await billing.queue.upsertJobScheduler(
   { every: BILLING_EVERY_MS },
   { name: 'sweep' },
 )
+await apiActivityPrune.queue.upsertJobScheduler(
+  'api-activity-prune',
+  { every: API_ACTIVITY_PRUNE_EVERY_MS },
+  { name: 'prune' },
+)
+await channelSync.queue.upsertJobScheduler(
+  'channel-sync-sweep',
+  { every: CHANNEL_SYNC_EVERY_MS },
+  { name: 'sweep', data: { sweep: true } },
+)
 
 const rateLimitStore = createRedisRateLimitStore(redis)
 
@@ -316,6 +336,10 @@ const shutdown = async () => {
   await searchConsole.appJobs.close()
   await billing.worker.close()
   await billing.queue.close()
+  await apiActivityPrune.worker.close()
+  await apiActivityPrune.queue.close()
+  await channelSync.worker.close()
+  await channelSync.queue.close()
   await queue.close()
   await notifications.close()
   redis.disconnect()
