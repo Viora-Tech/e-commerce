@@ -30,7 +30,7 @@ export default function GoogleLinkCard({ linkedAt }: GoogleLinkCardProps) {
         <img src="/brand/google-g.svg" alt="" aria-hidden="true" className="size-5 shrink-0" />
         {linkedAt ? (
           <div className="flex min-w-0 flex-wrap items-center gap-2">
-            <StatusChip>{copy.linked}</StatusChip>
+            <StatusChip tone="success">{copy.linked}</StatusChip>
             <span className="text-caption text-muted-foreground">
               {copy.linkedOn(fmt.date(linkedAt))}
             </span>

@@ -128,7 +128,9 @@ export default function CustomizeTopBar({
           {dirty ? (
             <StatusChip tone="attention">{copy.unsaved}</StatusChip>
           ) : (
-            <StatusChip>{live ? editor.live : editor.draft}</StatusChip>
+            <StatusChip tone={live ? 'success' : 'neutral'}>
+              {live ? editor.live : editor.draft}
+            </StatusChip>
           )}
         </div>
       </div>
