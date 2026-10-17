@@ -1,17 +1,33 @@
-import { permissions } from '@commerce/core'
+import {
+  checkRateLimit,
+  createMemoryRateLimitStore,
+  permissions,
+  rateLimitKey,
+  retryAfterSeconds,
+} from '@commerce/core'
 import { getRegistries } from '@commerce/core/registries'
-import type { PluginSummary } from '@commerce/plugins'
 import { ORPCError } from '@orpc/server'
 import { z } from 'zod'
 import { can } from '../procedures'
 import {
-  getConnectedProviderIds,
-  getStoreApps,
-  installStoreApp,
-  uninstallStoreApp,
-} from '../services/apps.service'
+  connectFormFor,
+  saveAppConnection,
+  testAppConnection,
+} from '../services/app-connect.service'
+import { disconnectStoreApp, installStoreApp, uninstallStoreApp } from '../services/apps.service'
+import { storeAppSummaries } from '../services/installed-apps.service'
+import { TEST_CONNECTION_RULE } from '../services/shipping.service'
 
 const pluginId = z.object({ id: z.string().min(1).max(64) })
+
+/** The account typed in the install flow's "Connect account" step. */
+const ConnectInput = z.object({
+  providerId: z.string().min(1).max(64),
+  fields: z.record(z.string().max(64), z.string().max(4000)),
+})
+
+/** See `store.testDelhiveryConnection`: a store can't hammer a courier or gateway with guessed keys. */
+const fallbackRateLimit = createMemoryRateLimitStore()
 
 function requirePlugin(id: string) {
   const p = getRegistries().plugins.find((x) => x.id === id)
@@ -22,45 +38,35 @@ function requirePlugin(id: string) {
   return p
 }
 
-/** Every provider id a plugin contributes, across every kind. */
-function providerIdsOf(p: PluginSummary): string[] {
-  return [
-    ...p.provides.payments,
-    ...p.provides.shipping,
-    ...p.provides.notifications,
-    ...p.provides.storage,
-  ].map((x) => x.id)
-}
-
 export const appsRouter = {
   /**
-   * Every plugin this deployment ships, flagged with whether this store
-   * installed it and, for a Connection, whether the merchant has actually
-   * saved working credentials for one of its providers.
+   * Every plugin this deployment ships, flagged with whether this store installed it, its
+   * status (Connected, Needs setup, Error) and its history for the Installed apps list.
    */
-  list: can(permissions.SETTINGS_READ).handler(async ({ context }) => {
-    const apps = await getStoreApps(context.tx, context.scope.storeId)
-    const connectedIds = await getConnectedProviderIds(context.tx, context.scope.storeId)
-    return getRegistries()
-      .summaries()
-      .map((p) => {
-        // A connection with saved working credentials counts as installed even if this
-        // store saved them before "Apps → Install" existed, or connected directly from
-        // Settings — otherwise the gallery shows "Install" on a gateway/courier that is
-        // actively processing orders (e.g. Razorpay, Delhivery), which reads as broken.
-        const hasCredentials =
-          p.kind === 'connection' && providerIdsOf(p).some((id) => connectedIds.has(id))
-        const installed = p.builtIn || apps.installed.includes(p.id) || hasCredentials
-        const connected = p.kind === 'connection' ? hasCredentials : installed
-        return { ...p, installed, connected }
-      })
-  }),
+  list: can(permissions.SETTINGS_READ).handler(({ context }) =>
+    storeAppSummaries(context.tx, context.scope.storeId),
+  ),
 
+  /**
+   * Install, optionally saving the account typed in the install flow's first step in the same
+   * transaction, so an app is never left half connected.
+   */
   install: can(permissions.APPS_MANAGE)
-    .input(pluginId)
-    .handler(({ context, input }) => {
+    .input(pluginId.extend({ connect: ConnectInput.optional() }))
+    .handler(async ({ context, input }) => {
       requirePlugin(input.id)
-      return installStoreApp(context.tx, context.scope.storeId, input.id)
+      const { storeId, userId } = context.scope
+      const apps = await installStoreApp(context.tx, storeId, input.id, userId)
+      if (input.connect) {
+        await saveAppConnection(
+          context.tx,
+          storeId,
+          input.id,
+          input.connect.providerId,
+          input.connect.fields,
+        )
+      }
+      return apps
     }),
 
   uninstall: can(permissions.APPS_MANAGE)
@@ -68,5 +74,53 @@ export const appsRouter = {
     .handler(({ context, input }) => {
       requirePlugin(input.id)
       return uninstallStoreApp(context.tx, context.scope.storeId, input.id)
+    }),
+
+  /** Bulk uninstall from the Installed apps list: all or none. */
+  uninstallMany: can(permissions.APPS_MANAGE)
+    .input(z.object({ ids: z.array(z.string().min(1).max(64)).min(1).max(50) }))
+    .handler(async ({ context, input }) => {
+      const ids = [...new Set(input.ids)]
+      for (const id of ids) requirePlugin(id)
+      for (const id of ids) await uninstallStoreApp(context.tx, context.scope.storeId, id)
+      return { removed: ids.length }
+    }),
+
+  /** Sign the app's account out: its providers switch off, the app stays installed (Needs setup). */
+  disconnect: can(permissions.APPS_MANAGE)
+    .input(pluginId)
+    .handler(async ({ context, input }) => {
+      requirePlugin(input.id)
+      await disconnectStoreApp(context.tx, context.scope.storeId, input.id)
+      return { ok: true }
+    }),
+
+  /** The fields of the install flow's "Connect account" step, or null when the app connects on its own page. */
+  connectForm: can(permissions.APPS_MANAGE)
+    .input(pluginId)
+    .handler(({ input }) => connectFormFor(requirePlugin(input.id))),
+
+  /** Read-only check of the account typed in the install flow. Rate limited per store. */
+  testConnection: can(permissions.APPS_MANAGE)
+    .input(pluginId.extend(ConnectInput.shape))
+    .handler(async ({ context, input }) => {
+      requirePlugin(input.id)
+      const limit = await checkRateLimit(
+        context.rateLimit ?? fallbackRateLimit,
+        rateLimitKey('apps-test-connection', context.scope.storeId),
+        TEST_CONNECTION_RULE,
+      )
+      if (!limit.ok) {
+        throw new ORPCError('TOO_MANY_REQUESTS', {
+          message: `Too many attempts. Try again in about ${Math.ceil(retryAfterSeconds(limit) / 60)} minute(s).`,
+        })
+      }
+      return testAppConnection(
+        context.tx,
+        context.scope.storeId,
+        input.id,
+        input.providerId,
+        input.fields,
+      )
     }),
 }

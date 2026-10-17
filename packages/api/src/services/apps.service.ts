@@ -6,6 +6,8 @@ import {
   parsePaymentSettings,
   parseShippingSettings,
   parseStorageSettings,
+  recordAppInstall,
+  removeAppInstall,
   uninstallApp,
 } from '@commerce/core'
 import { getRegistries, registriesForStore } from '@commerce/core/registries'
@@ -40,10 +42,32 @@ export async function getConnectedProviderIds(tx: StoreTx, storeId: string): Pro
 export const storeRegistries = (tx: StoreTx, storeId: string): Promise<Registries> =>
   registriesForStore(tx, storeId)
 
-export async function installStoreApp(tx: StoreTx, storeId: string, pluginId: string) {
+export async function installStoreApp(
+  tx: StoreTx,
+  storeId: string,
+  pluginId: string,
+  userId: string | null = null,
+) {
   const next = installApp(await getStoreApps(tx, storeId), pluginId)
   await tx.update(store).set({ apps: next }).where(eq(store.id, storeId))
+  await recordAppInstall(tx, storeId, pluginId, userId)
   return next
+}
+
+/** The store's settings blobs with one app's providers taken out of every `enabled` list. */
+function withoutProviders(s: typeof store.$inferSelect, pluginId: string) {
+  const ids = getRegistries().providerIds(pluginId)
+  const drop = (enabled: string[], gone: string[]) => enabled.filter((id) => !gone.includes(id))
+  const payments = parsePaymentSettings(s.payments)
+  const shipping = parseShippingSettings(s.shipping)
+  const notifications = parseNotificationSettings(s.notifications)
+  const storage = parseStorageSettings(s.storage)
+  return {
+    payments: { ...payments, enabled: drop(payments.enabled, ids.payments) },
+    shipping: { ...shipping, enabled: drop(shipping.enabled, ids.shipping) },
+    notifications: { ...notifications, enabled: drop(notifications.enabled, ids.notifications) },
+    storage: { ...storage, enabled: drop(storage.enabled, ids.storage) },
+  }
 }
 
 /**
@@ -54,22 +78,28 @@ export async function installStoreApp(tx: StoreTx, storeId: string, pluginId: st
 export async function uninstallStoreApp(tx: StoreTx, storeId: string, pluginId: string) {
   const [s] = await tx.select().from(store).where(eq(store.id, storeId))
   if (!s) return null
-  const ids = getRegistries().providerIds(pluginId)
-  const drop = (enabled: string[], gone: string[]) => enabled.filter((id) => !gone.includes(id))
-  const payments = parsePaymentSettings(s.payments)
-  const shipping = parseShippingSettings(s.shipping)
-  const notifications = parseNotificationSettings(s.notifications)
-  const storage = parseStorageSettings(s.storage)
   const apps = uninstallApp(parseAppsSettings(s.apps), pluginId)
   await tx
     .update(store)
-    .set({
-      apps,
-      payments: { ...payments, enabled: drop(payments.enabled, ids.payments) },
-      shipping: { ...shipping, enabled: drop(shipping.enabled, ids.shipping) },
-      notifications: { ...notifications, enabled: drop(notifications.enabled, ids.notifications) },
-      storage: { ...storage, enabled: drop(storage.enabled, ids.storage) },
-    })
+    .set({ apps, ...withoutProviders(s, pluginId) })
     .where(eq(store.id, storeId))
+  await removeAppInstall(tx, storeId, pluginId)
   return apps
+}
+
+/**
+ * "Disconnect": switch the app's providers off so nothing routes to its account any more. The
+ * app stays installed (Needs setup) and its saved credentials stay, like an uninstall, so
+ * connecting again picks up where the merchant left off.
+ */
+export async function disconnectStoreApp(tx: StoreTx, storeId: string, pluginId: string) {
+  const [s] = await tx.select().from(store).where(eq(store.id, storeId))
+  if (!s) return
+  // An app counted as installed only through its saved account (connected from Settings before
+  // Apps existed) is put on the install list, so disconnecting never makes it vanish.
+  const apps = installApp(parseAppsSettings(s.apps), pluginId)
+  await tx
+    .update(store)
+    .set({ apps, ...withoutProviders(s, pluginId) })
+    .where(eq(store.id, storeId))
 }
