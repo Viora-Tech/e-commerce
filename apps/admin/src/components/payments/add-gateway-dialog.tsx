@@ -1,7 +1,6 @@
 'use client'
 
 import { Search } from '@commerce/ui/icons'
-import { Badge } from '@commerce/ui/shadcn/badge'
 import { Button } from '@commerce/ui/shadcn/button'
 import {
   Dialog,
@@ -14,6 +13,7 @@ import { Input } from '@commerce/ui/shadcn/input'
 import { Spinner } from '@commerce/ui/shadcn/spinner'
 import { ToggleGroup, ToggleGroupItem } from '@commerce/ui/shadcn/toggle-group'
 import { useState } from 'react'
+import StatusChip from '@/components/layout/status-chip'
 import {
   gatewayCatalogue,
   type MethodId,
@@ -122,14 +122,14 @@ export default function AddGatewayDialog({
                     <p className="text-caption text-muted-foreground">{g.blurb}</p>
                   </div>
                   {app?.connected ? (
-                    <Badge variant="success">{copy.connected}</Badge>
+                    <StatusChip tone="success">{copy.connected}</StatusChip>
                   ) : canConnect ? (
                     <Button size="sm" onClick={() => handleConnect(g.id)} disabled={busy !== null}>
                       {busy === g.id ? <Spinner /> : null}
                       {busy === g.id ? copy.installing : copy.connect}
                     </Button>
                   ) : (
-                    <Badge variant="neutral">{copy.comingSoon}</Badge>
+                    <StatusChip tone="neutral">{copy.comingSoon}</StatusChip>
                   )}
                 </div>
                 <p className="text-caption text-muted-foreground">

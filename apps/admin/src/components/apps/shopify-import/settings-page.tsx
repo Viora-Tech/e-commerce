@@ -22,22 +22,22 @@ import { api } from '@/lib/api-client'
 import SettingsPartCard from './settings-part-card'
 
 type Plan = Awaited<ReturnType<typeof api.shopifyImport.settingsPreview>>
-type Variant = 'success' | 'info' | 'neutral' | 'warning' | 'destructive'
+type Variant = 'success' | 'info' | 'neutral' | 'attention' | 'danger'
 
 const base = shopifyImportContent.base
 
 const PLAN_VARIANT: Record<SettingsPartState, Variant> = {
   ready: 'info',
   same: 'neutral',
-  access: 'warning',
-  failed: 'destructive',
+  access: 'attention',
+  failed: 'danger',
 }
 
 const RESULT_VARIANT: Record<SettingsResultState, Variant> = {
   done: 'success',
   same: 'neutral',
-  access: 'warning',
-  failed: 'destructive',
+  access: 'attention',
+  failed: 'danger',
   skipped: 'neutral',
 }
 

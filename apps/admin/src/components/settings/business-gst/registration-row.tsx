@@ -1,12 +1,12 @@
 'use client'
 
 import type { GstRegistrationView } from '@commerce/core'
-import { Badge } from '@commerce/ui/shadcn/badge'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import ActionMenu from '@/components/layout/action-menu'
 import ConfirmDialog from '@/components/layout/confirm-dialog'
+import StatusChip from '@/components/layout/status-chip'
 import { businessGstContent } from '@/data/business-gst'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
@@ -61,11 +61,11 @@ export default function RegistrationRow({
       <div className="flex min-w-0 flex-1 flex-col gap-0.5">
         <span className="flex flex-wrap items-center gap-2 text-body-strong text-ink-strong">
           {r.stateName}
-          {r.isDefault ? <Badge variant="success">{copy.default}</Badge> : null}
+          {r.isDefault ? <StatusChip tone="success">{copy.default}</StatusChip> : null}
           {r.registrationType === 'composition' ? (
-            <Badge variant="neutral">{copy.composition}</Badge>
+            <StatusChip tone="neutral">{copy.composition}</StatusChip>
           ) : null}
-          {r.active ? null : <Badge variant="neutral">{copy.cancelled}</Badge>}
+          {r.active ? null : <StatusChip tone="neutral">{copy.cancelled}</StatusChip>}
         </span>
         <span className="font-mono text-body text-muted-foreground">{r.gstin}</span>
         {owner ? (

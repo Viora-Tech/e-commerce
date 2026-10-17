@@ -1,6 +1,5 @@
 'use client'
 
-import { Badge } from '@commerce/ui/shadcn/badge'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Card, CardContent } from '@commerce/ui/shadcn/card'
 import { Skeleton } from '@commerce/ui/shadcn/skeleton'
@@ -8,6 +7,7 @@ import { Spinner } from '@commerce/ui/shadcn/spinner'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import ConfirmDialog from '@/components/layout/confirm-dialog'
+import StatusChip from '@/components/layout/status-chip'
 import { senderEmailContent as copy } from '@/data/sender-email'
 import { useSetupNext } from '@/hooks/use-setup-next'
 import { api } from '@/lib/api-client'
@@ -20,7 +20,7 @@ import type { SenderEmailOverview } from './types'
 /** Re-read the saved status this often while waiting; the worker does the SES checks. */
 const POLL_MS = 30_000
 
-const TONE = { pending: 'warning', verified: 'success', failed: 'destructive' } as const
+const TONE = { pending: 'attention', verified: 'success', failed: 'danger' } as const
 
 /** The server's refusal code (`data.reason`) in plain words. */
 function errorText(err: unknown): string {
@@ -161,7 +161,7 @@ export default function SenderEmailCard() {
                 <p className="font-mono text-body font-medium break-all text-foreground">
                   {sender.email}
                 </p>
-                <Badge variant={TONE[sender.status]}>{copy.status[sender.status]}</Badge>
+                <StatusChip tone={TONE[sender.status]}>{copy.status[sender.status]}</StatusChip>
               </div>
               <p className="text-caption text-muted-foreground">{copy.statusHelp[sender.status]}</p>
               {reason ? <p className="text-caption text-destructive">{reason}</p> : null}

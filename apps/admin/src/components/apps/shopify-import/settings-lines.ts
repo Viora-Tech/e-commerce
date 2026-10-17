@@ -11,14 +11,14 @@ type Copy = typeof shopifyImportSettingsContent
 /** Badge colour per action. */
 export const ACTION_VARIANT: Record<
   SettingsAction,
-  'success' | 'info' | 'neutral' | 'warning' | 'destructive'
+  'success' | 'info' | 'neutral' | 'attention' | 'danger'
 > = {
   create: 'success',
   update: 'info',
   same: 'neutral',
-  conflict: 'destructive',
-  manual: 'warning',
-  warn: 'warning',
+  conflict: 'danger',
+  manual: 'attention',
+  warn: 'attention',
 }
 
 /** One rate in plain words: "Standard: ₹49 for orders under ₹499". Bounds show as Shopify set them. */

@@ -14,6 +14,7 @@ import {
   TableRow,
 } from '@commerce/ui/shadcn/table'
 import DataCard from '@/components/layout/data-card'
+import StatusChip from '@/components/layout/status-chip'
 import { reviewsContent } from '@/data/reviews'
 import { useCopy } from '@/hooks/use-copy'
 import type { api } from '@/lib/api-client'
@@ -32,10 +33,10 @@ type ImportPreviewProps = {
 }
 
 const RESULT_TONE = {
-  sku: 'bg-success-soft text-success',
-  handle: 'bg-success-soft text-success',
-  none: 'bg-warning-soft text-warning-foreground dark:text-warning',
-  imported: 'bg-muted text-muted-foreground',
+  sku: 'success',
+  handle: 'success',
+  none: 'attention',
+  imported: 'neutral',
 } as const
 
 const COUNT_TONE = {
@@ -104,14 +105,7 @@ export default function ImportPreview({
                   <TableCell className="max-w-[16rem] truncate">{r.title}</TableCell>
                   <TableCell className="max-w-[10rem] truncate">{r.reviewer}</TableCell>
                   <TableCell>
-                    <span
-                      className={cn(
-                        'inline-flex h-6 items-center rounded-md px-2 text-caption font-medium whitespace-nowrap',
-                        RESULT_TONE[r.result],
-                      )}
-                    >
-                      {copy.result[r.result]}
-                    </span>
+                    <StatusChip tone={RESULT_TONE[r.result]}>{copy.result[r.result]}</StatusChip>
                   </TableCell>
                 </TableRow>
               ))}

@@ -1,8 +1,8 @@
 'use client'
 
 import { Download } from '@commerce/ui/icons'
-import { Badge } from '@commerce/ui/shadcn/badge'
 import { Button } from '@commerce/ui/shadcn/button'
+import StatusChip from '@/components/layout/status-chip'
 import { storeDataContent } from '@/data/store-data'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import type { api } from '@/lib/api-client'
@@ -16,7 +16,7 @@ type StoreExportListProps = {
   onDownload: (id: string) => void
 }
 
-type BadgeVariant = 'neutral' | 'info' | 'success' | 'destructive'
+type BadgeVariant = 'neutral' | 'info' | 'success' | 'danger'
 
 /** Ready-but-expired reads as its own state; the API marks it not downloadable. */
 function stateOf(row: ExportRow): keyof typeof storeDataContent.export.status {
@@ -28,7 +28,7 @@ const VARIANT: Record<keyof typeof storeDataContent.export.status, BadgeVariant>
   queued: 'neutral',
   running: 'info',
   ready: 'success',
-  failed: 'destructive',
+  failed: 'danger',
   expired: 'neutral',
 }
 
@@ -79,7 +79,7 @@ export default function StoreExportList({
                 <p className="truncate text-caption text-muted-foreground">{detail}</p>
               ) : null}
             </div>
-            <Badge variant={VARIANT[state]}>{copy.status[state]}</Badge>
+            <StatusChip tone={VARIANT[state]}>{copy.status[state]}</StatusChip>
             {row.downloadable ? (
               <Button
                 variant="outline"

@@ -3,7 +3,6 @@
 import type { DataRequestListItem } from '@commerce/core'
 import { daysUntilDue, requestUrgency } from '@commerce/core/privacy'
 import { Plus, ShieldCheck } from '@commerce/ui/icons'
-import { Badge } from '@commerce/ui/shadcn/badge'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Card, CardContent } from '@commerce/ui/shadcn/card'
 import { Skeleton } from '@commerce/ui/shadcn/skeleton'
@@ -11,6 +10,7 @@ import { Tabs, TabsList, TabsTrigger } from '@commerce/ui/shadcn/tabs'
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import PageHeader from '@/components/layout/page-header'
+import StatusChip from '@/components/layout/status-chip'
 import DataRequestStatusBadge from '@/components/privacy/data-request-status-badge'
 import LogRequestDialog from '@/components/privacy/log-request-dialog'
 import {
@@ -24,8 +24,8 @@ import { api } from '@/lib/api-client'
 type Tab = 'open' | 'closed' | 'all'
 
 const URGENCY_VARIANT = {
-  overdue: 'destructive',
-  due_soon: 'warning',
+  overdue: 'danger',
+  due_soon: 'attention',
   on_track: 'neutral',
   closed: 'neutral',
 } as const
@@ -117,9 +117,9 @@ export default function DataRequestQueue() {
                       <div className="flex shrink-0 items-center gap-2">
                         <DataRequestStatusBadge status={r.status} />
                         {urgency === 'closed' ? null : (
-                          <Badge variant={URGENCY_VARIANT[urgency]}>
+                          <StatusChip tone={URGENCY_VARIANT[urgency]}>
                             {URGENCY_LABEL[urgency](daysUntilDue(dueAt, now))}
-                          </Badge>
+                          </StatusChip>
                         )}
                       </div>
                     </Link>

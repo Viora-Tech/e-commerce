@@ -1,10 +1,10 @@
 'use client'
 
 import { CircleCheck, Plus } from '@commerce/ui/icons'
-import { Badge } from '@commerce/ui/shadcn/badge'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Card, CardContent } from '@commerce/ui/shadcn/card'
 import Link from 'next/link'
+import StatusChip from '@/components/layout/status-chip'
 import { gatewayCatalogue, paymentsSetupContent } from '@/data/payments-setup'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { routes } from '@/lib/routes'
@@ -63,9 +63,9 @@ export default function MainGatewayCard({
             <div className="flex flex-wrap items-center gap-2">
               <p className="text-body font-semibold text-foreground">{primary.label}</p>
               {primary.mode ? (
-                <Badge variant={primary.mode === 'live' ? 'success' : 'warning'}>
+                <StatusChip tone={primary.mode === 'live' ? 'success' : 'attention'}>
                   {primary.mode === 'live' ? copy.live : copy.test}
-                </Badge>
+                </StatusChip>
               ) : null}
               {healthy ? (
                 <span className="flex items-center gap-1 text-caption font-medium text-success">

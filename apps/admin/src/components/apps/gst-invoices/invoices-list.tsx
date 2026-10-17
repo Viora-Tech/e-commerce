@@ -19,7 +19,7 @@ import { toast } from 'sonner'
 import CopyButton from '@/components/fields/copy-button'
 import PageHeader from '@/components/layout/page-header'
 import RelativeTime from '@/components/layout/relative-time'
-import StatusLabelChip from '@/components/status/status-label-chip'
+import OrderChip from '@/components/orders/order-chip'
 import { gstInvoicesContent } from '@/data/gst-invoices'
 import { api } from '@/lib/api-client'
 import { formatPaise } from '@/lib/money'
@@ -299,7 +299,7 @@ export default function InvoicesList() {
                   <RelativeTime value={r.invoiceDate ?? r.issuedAt} />
                 </TableCell>
                 <TableCell className={`${CELL} text-center`}>
-                  <StatusLabelChip kind="gstDoc" value={r.status} />
+                  <OrderChip kind="gstDoc" value={r.status} />
                 </TableCell>
                 <TableCell className={`${CELL} text-right tabular-nums`}>
                   {formatPaise(r.taxPaise)}

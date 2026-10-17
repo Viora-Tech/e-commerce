@@ -1,12 +1,12 @@
 import type { DataRequestStatus } from '@commerce/core/privacy'
-import { Badge } from '@commerce/ui/shadcn/badge'
+import StatusChip from '@/components/layout/status-chip'
 import { STATUS_LABEL } from '@/data/customer-privacy'
 
 type DataRequestStatusBadgeProps = { status: DataRequestStatus }
 
 const VARIANT = {
   open: 'info',
-  in_progress: 'warning',
+  in_progress: 'attention',
   completed: 'success',
   rejected: 'neutral',
 } as const
@@ -14,5 +14,5 @@ const VARIANT = {
 /** A data request's status as a pill. */
 export default function DataRequestStatusBadge({ status }: DataRequestStatusBadgeProps) {
   // Render logic
-  return <Badge variant={VARIANT[status]}>{STATUS_LABEL[status]}</Badge>
+  return <StatusChip tone={VARIANT[status]}>{STATUS_LABEL[status]}</StatusChip>
 }

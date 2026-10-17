@@ -9,7 +9,7 @@ import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import PageHeader from '@/components/layout/page-header'
-import StatusLabel from '@/components/status/status-label'
+import OrderChip from '@/components/orders/order-chip'
 import { campaignsContent, campaignReportContent as copy } from '@/data/marketing-campaigns'
 import { api } from '@/lib/api-client'
 import { formatDateTime } from '@/lib/format-date'
@@ -106,7 +106,7 @@ export default function CampaignReport({
         back={{ label: copy.breadcrumb, href: routes.growth.campaigns() }}
         actions={
           <div className="flex items-center gap-2">
-            <StatusLabel kind="campaign" value={campaign.status} variant="pill" />
+            <OrderChip kind="campaign" value={campaign.status} />
             {campaign.status === 'scheduled' || campaign.status === 'sending' ? (
               <Button variant="outline" onClick={handleCancel} disabled={busy}>
                 {campaign.status === 'scheduled' ? copy.unschedule : copy.stop}

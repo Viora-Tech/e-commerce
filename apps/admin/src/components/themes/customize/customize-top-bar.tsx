@@ -160,10 +160,9 @@ export default function CustomizeTopBar({
         <ZoomMenu />
         <FullViewButton className={ICON_BUTTON} />
         {aiConnected ? (
-          <span className="hidden shrink-0 items-center gap-1.5 rounded-full bg-success-soft px-2.5 py-[0.3125rem] text-xs leading-[1.0625rem] font-medium text-foreground xl:flex">
-            <span aria-hidden className="size-[0.4375rem] rounded-full bg-success" />
+          <StatusChip tone="success" className="hidden shrink-0 xl:inline-flex">
             {copy.aiConnected}
-          </span>
+          </StatusChip>
         ) : null}
         <button
           type="button"

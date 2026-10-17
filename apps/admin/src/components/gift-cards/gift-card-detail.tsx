@@ -6,7 +6,7 @@ import { toast } from 'sonner'
 import PageColumns from '@/components/layout/page-columns'
 import PageHeader from '@/components/layout/page-header'
 import ProoflyPageBody from '@/components/layout/proofly-page-body'
-import StatusLabel from '@/components/status/status-label'
+import OrderChip from '@/components/orders/order-chip'
 import { giftCardDetailContent as copy } from '@/data/gift-cards'
 import { api } from '@/lib/api-client'
 import { routes } from '@/lib/routes'
@@ -72,7 +72,7 @@ export default function GiftCardDetail({ initial }: GiftCardDetailProps) {
       <PageHeader
         title={title}
         back={{ label: copy.breadcrumb, href: routes.products.giftCards() }}
-        badges={<StatusLabel kind="giftCard" value={card.state} variant="pill" />}
+        badges={<OrderChip kind="giftCard" value={card.state} />}
         actions={
           <>
             {canResend ? (

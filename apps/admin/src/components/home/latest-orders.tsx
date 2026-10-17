@@ -2,6 +2,8 @@ import type { DashboardSummary } from '@commerce/api'
 import Link from 'next/link'
 import RelativeTime from '@/components/layout/relative-time'
 import SectionHead from '@/components/layout/section-head'
+import StatusChip from '@/components/layout/status-chip'
+import type { ChipTone } from '@/components/status/tone'
 import { homePageContent } from '@/data/home'
 import { getCopy, getLocale } from '@/lib/copy-server'
 import { formatters } from '@/lib/format'
@@ -13,26 +15,15 @@ type LatestOrdersProps = {
 }
 
 type Order = LatestOrdersProps['orders'][number]
-type Tone = 'neutral' | 'attention' | 'info' | 'violet' | 'success' | 'danger'
 
 const ROWS = 5
 const SHIPPED = new Set(['shipped', 'fulfilled', 'partially_fulfilled', 'partially_delivered'])
-
-/** Figma Badge (536:484): soft tint, hairline in the same hue, a dot, 12/16 medium. */
-const TONE: Record<Tone, string> = {
-  neutral: 'border-neutral-border bg-neutral-soft text-muted-foreground',
-  attention: 'border-warning-border bg-warning-soft text-warning',
-  info: 'border-info-border bg-info-soft text-info',
-  violet: 'border-violet-border bg-violet-soft text-violet',
-  success: 'border-success-border bg-success-soft text-success',
-  danger: 'border-danger-border bg-danger-soft text-danger',
-}
 
 /** The status badge, one hue per state as in the Figma list (cancelled and other ends stay grey). */
 function chipFor(
   order: Order,
   c: (typeof homePageContent)['latest'],
-): { label: string; tone: Tone } {
+): { label: string; tone: ChipTone } {
   if (order.status === 'cancelled') return { label: c.cancelled, tone: 'neutral' }
   if (order.paymentStatus === 'refund_needed') return { label: c.refund, tone: 'danger' }
   if (order.fulfillmentStatus === 'delivered') return { label: c.delivered, tone: 'success' }
@@ -106,12 +97,7 @@ export default async function LatestOrders({ orders }: LatestOrdersProps) {
                   {/* A fixed slot so every chip sits centred on the same line, whatever its length. */}
                   <span className="relative flex w-28 shrink-0 justify-center">
                     <span className="transition-opacity duration-300 ease-out group-focus-within:opacity-0 group-hover:opacity-0">
-                      <span
-                        className={`inline-flex items-center gap-1 rounded-[0.375rem] border px-2 py-0.5 text-xs font-medium whitespace-nowrap ${TONE[chip.tone]}`}
-                      >
-                        <span className="size-1.5 rounded-full bg-current" aria-hidden="true" />
-                        {chip.label}
-                      </span>
+                      <StatusChip tone={chip.tone}>{chip.label}</StatusChip>
                     </span>
                     {/* Figma "Home · Polished" row actions (hover): two small buttons take the chip's
                         place on the row itself, no panel behind them. */}

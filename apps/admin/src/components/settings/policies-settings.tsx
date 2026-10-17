@@ -12,6 +12,7 @@ import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import PageHeader from '@/components/layout/page-header'
 import SaveBar from '@/components/layout/save-bar'
+import StatusChip from '@/components/layout/status-chip'
 import { policiesContent as copy } from '@/data/policies'
 import { SETTINGS_BACK, settingsContent } from '@/data/settings'
 import { useSetupNext } from '@/hooks/use-setup-next'
@@ -168,14 +169,14 @@ export default function PoliciesSettings() {
 function PolicyRow({ policy }: PolicyRowProps) {
   const created = policy.pageId !== null
   const status = !created ? 'missing' : policy.published ? 'published' : 'draft'
-  const variant = status === 'published' ? 'success' : status === 'draft' ? 'neutral' : 'warning'
+  const variant = status === 'published' ? 'success' : status === 'draft' ? 'neutral' : 'attention'
   const href = `/settings/policies/${policy.type}${created ? '' : '?template=1'}`
   return (
     <li className="flex flex-col gap-2 py-3 first:pt-0 last:pb-0 sm:flex-row sm:items-center sm:justify-between">
       <div className="flex min-w-0 flex-col gap-0.5">
         <div className="flex flex-wrap items-center gap-2">
           <span className="text-body-strong">{copy.names[policy.type]}</span>
-          <Badge variant={variant}>{copy.list.status[status]}</Badge>
+          <StatusChip tone={variant}>{copy.list.status[status]}</StatusChip>
           {REQUIRED_POLICY_TYPES.includes(policy.type) && status !== 'published' ? (
             <Badge variant="outline">{copy.list.required}</Badge>
           ) : null}

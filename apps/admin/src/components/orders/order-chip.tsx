@@ -1,7 +1,8 @@
 'use client'
 
 import StatusChip from '@/components/layout/status-chip'
-import { type StatusKind, type StatusTone, type StatusValue, statusEntry } from '@/data/status'
+import { toneFor } from '@/components/status/tone'
+import { type StatusKind, type StatusValue, statusEntry } from '@/data/status'
 import { useLocale } from '@/hooks/use-copy'
 import { localizeStatusLabel } from '@/lib/status-labels'
 
@@ -12,18 +13,6 @@ type OrderChipProps<K extends StatusKind> = {
   label?: string | undefined
   className?: string
 }
-
-/* Figma order badges: good news green (paid, delivered), waiting amber, to ship blue, shipped
-   violet, a problem red; finished quiet states (cancelled, returned, refunded) grey. */
-const TONE: Record<StatusTone, 'neutral' | 'attention' | 'info' | 'danger' | 'success' | 'violet'> =
-  {
-    success: 'success',
-    pending: 'attention',
-    error: 'danger',
-    info: 'info',
-    accent: 'violet',
-    neutral: 'neutral',
-  }
 
 /** A status as the Proofly chip: the one place order, payment and fulfilment states get their tone. */
 export default function OrderChip<K extends StatusKind>({
@@ -39,7 +28,7 @@ export default function OrderChip<K extends StatusKind>({
   const entry = statusEntry(kind, value)
 
   return (
-    <StatusChip tone={TONE[entry.tone]} className={className}>
+    <StatusChip tone={toneFor(entry.tone)} className={className}>
       {label ?? localizeStatusLabel(entry.label, locale)}
     </StatusChip>
   )

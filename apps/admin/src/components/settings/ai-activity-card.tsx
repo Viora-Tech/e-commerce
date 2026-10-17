@@ -1,23 +1,23 @@
 'use client'
 
 import { AiIcon, RotateCcw } from '@commerce/ui/icons'
-import { Badge } from '@commerce/ui/shadcn/badge'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@commerce/ui/shadcn/card'
 import { Skeleton } from '@commerce/ui/shadcn/skeleton'
 import { Spinner } from '@commerce/ui/shadcn/spinner'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import KitButton from '@/components/kit/kit-button'
+import StatusChip from '@/components/layout/status-chip'
 import { assistantContent } from '@/data/assistant'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 
 type Item = Awaited<ReturnType<typeof api.ai.activity>>['items'][number]
 
-const BADGE: Record<string, 'warning' | 'success' | 'destructive' | 'neutral'> = {
-  proposed: 'warning',
+const BADGE: Record<string, 'attention' | 'success' | 'danger' | 'neutral'> = {
+  proposed: 'attention',
   executed: 'success',
-  failed: 'destructive',
+  failed: 'danger',
   cancelled: 'neutral',
   expired: 'neutral',
   undone: 'neutral',
@@ -105,9 +105,9 @@ export default function AiActivityCard() {
                     ) : null}
                   </div>
                   <div className="flex shrink-0 items-center gap-2">
-                    <Badge variant={BADGE[item.status] ?? 'neutral'}>
+                    <StatusChip tone={BADGE[item.status] ?? 'neutral'}>
                       {copy.card.status[item.status] ?? item.status}
-                    </Badge>
+                    </StatusChip>
                     {item.canUndo ? (
                       <KitButton
                         variant="pill"

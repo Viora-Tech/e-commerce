@@ -2,10 +2,10 @@
 
 import { SEO_KEYWORDS_MAX, type SuggestedKeyword } from '@commerce/ai/client'
 import { StarIcon } from '@commerce/ui/icons'
-import { Badge } from '@commerce/ui/shadcn/badge'
 import { Checkbox } from '@commerce/ui/shadcn/checkbox'
 import { useState } from 'react'
 import KitButton from '@/components/kit/kit-button'
+import StatusChip from '@/components/layout/status-chip'
 import { seoKeywordsContent } from '@/data/seo-keywords'
 import { useCopy } from '@/hooks/use-copy'
 
@@ -86,8 +86,10 @@ export default function SeoKeywordSuggestions({
                     <span className="sr-only">{copy.primary}</span>
                   </>
                 ) : null}
-                {s.seen ? <Badge variant="warning">{copy.suggestions.seen}</Badge> : null}
-                <Badge variant={INTENT_BADGE[s.intent]}>{copy.suggestions.intents[s.intent]}</Badge>
+                {s.seen ? <StatusChip tone="attention">{copy.suggestions.seen}</StatusChip> : null}
+                <StatusChip tone={INTENT_BADGE[s.intent]}>
+                  {copy.suggestions.intents[s.intent]}
+                </StatusChip>
               </label>
             </li>
           )

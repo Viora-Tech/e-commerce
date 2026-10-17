@@ -8,8 +8,8 @@ import { toast } from 'sonner'
 import type { AppPageProps } from '@/apps/registry'
 import CopyButton from '@/components/fields/copy-button'
 import PageHeader from '@/components/layout/page-header'
+import OrderChip from '@/components/orders/order-chip'
 import SettingsCard from '@/components/settings/settings-card'
-import StatusLabelChip from '@/components/status/status-label-chip'
 import { gstInvoicesContent } from '@/data/gst-invoices'
 import { api } from '@/lib/api-client'
 import { formatDay } from '@/lib/format-date'
@@ -113,7 +113,7 @@ export default function InvoiceDetail({ params }: AppPageProps) {
       <PageHeader
         title={`${kinds[doc.kind]} ${doc.number ?? ''}`.trim()}
         back={{ label: copy.back, href: routes.apps.page('gst-invoices', 'invoices') }}
-        badges={<StatusLabelChip kind="gstDoc" value={doc.status} />}
+        badges={<OrderChip kind="gstDoc" value={doc.status} />}
         summary={
           doc.number ? (
             <span className="group/row flex items-center gap-1">

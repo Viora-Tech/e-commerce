@@ -2,6 +2,7 @@
 
 import { cn } from '@commerce/ui/lib/utils'
 import { useDeferredValue, useState } from 'react'
+import CountBadge from '@/components/layout/count-badge'
 import { customizeContent } from '@/data/customize'
 import { useCopy } from '@/hooks/use-copy'
 import { auditTemplate } from '@/lib/customize-audit'
@@ -63,11 +64,7 @@ export default function SectionsPanel({ onOpenTheme, templateLabel }: SectionsPa
               )}
             >
               {copy.tabs[id]}
-              {id === 'audit' && count > 0 ? (
-                <span className="flex h-4 min-w-4 items-center justify-center rounded-full bg-warning-soft px-1 text-[0.625rem] font-semibold text-warning-foreground tabular-nums">
-                  {count}
-                </span>
-              ) : null}
+              {id === 'audit' && count > 0 ? <CountBadge n={count} /> : null}
             </button>
           ))}
         </div>

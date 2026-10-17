@@ -5,6 +5,7 @@ import { StarIcon } from '@commerce/ui/icons'
 import { Badge } from '@commerce/ui/shadcn/badge'
 import { Checkbox } from '@commerce/ui/shadcn/checkbox'
 import { Spinner } from '@commerce/ui/shadcn/spinner'
+import StatusChip from '@/components/layout/status-chip'
 import { assistantContent } from '@/data/assistant'
 import { seoKeywordsContent } from '@/data/seo-keywords'
 import { useCopy } from '@/hooks/use-copy'
@@ -18,10 +19,10 @@ type BulkWriteReviewProps = {
   onSelected: (ids: string[]) => void
 }
 
-const BADGE: Record<string, 'success' | 'destructive' | 'neutral' | 'info'> = {
+const BADGE: Record<string, 'success' | 'danger' | 'neutral' | 'info'> = {
   ready: 'info',
   applied: 'success',
-  failed: 'destructive',
+  failed: 'danger',
 }
 
 /** Each product in a run: its status and, once written, the suggestion to tick or untick. */
@@ -62,9 +63,9 @@ export default function BulkWriteReview({ job, selected, onSelected }: BulkWrite
               <span className="min-w-0 flex-1 truncate text-body font-medium text-ink-strong">
                 {item.title}
               </span>
-              <Badge variant={BADGE[item.status] ?? 'neutral'}>
+              <StatusChip tone={BADGE[item.status] ?? 'neutral'}>
                 {copy.bulk.status[item.status] ?? item.status}
-              </Badge>
+              </StatusChip>
             </div>
             {item.status === 'failed' ? (
               <p className="text-caption text-destructive">{item.error ?? copy.bulk.failedItem}</p>

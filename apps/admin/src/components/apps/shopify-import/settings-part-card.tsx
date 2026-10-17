@@ -5,12 +5,12 @@ import type {
   SettingsItem,
   SettingsPart,
 } from '@commerce/plugin-shopify-import/client'
-import { Badge } from '@commerce/ui/shadcn/badge'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Card, CardContent, CardHeader } from '@commerce/ui/shadcn/card'
 import { Checkbox } from '@commerce/ui/shadcn/checkbox'
 import Link from 'next/link'
 import { useState } from 'react'
+import StatusChip from '@/components/layout/status-chip'
 import { shopifyImportContent } from '@/data/shopify-import'
 import { shopifyImportSettingsContent } from '@/data/shopify-import-settings'
 import { useCopy } from '@/hooks/use-copy'
@@ -19,7 +19,7 @@ import SettingsItemRow from './settings-item-row'
 type SettingsPartCardProps = {
   part: SettingsPart
   items: SettingsItem[]
-  status: { label: string; variant: 'success' | 'info' | 'neutral' | 'warning' | 'destructive' }
+  status: { label: string; variant: 'success' | 'info' | 'neutral' | 'attention' | 'danger' }
   missingScopes?: ScopeHandle[] | undefined
   error?: string | undefined
   /** The plan: a tick box to choose the part. Left out on the report. */
@@ -89,9 +89,9 @@ export default function SettingsPartCard({
             {summary ? <span className="text-caption text-ink-strong">{summary}</span> : null}
           </span>
         </label>
-        <Badge variant={status.variant} className="shrink-0">
+        <StatusChip tone={status.variant} className="shrink-0">
           {status.label}
-        </Badge>
+        </StatusChip>
       </CardHeader>
       <CardContent className="flex flex-col gap-3">
         {missingScopes?.length ? (

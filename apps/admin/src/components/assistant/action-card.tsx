@@ -13,12 +13,12 @@ import {
   TrendingUp,
   TriangleAlert,
 } from '@commerce/ui/icons'
-import { Badge } from '@commerce/ui/shadcn/badge'
 import { Spinner } from '@commerce/ui/shadcn/spinner'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import KitButton from '@/components/kit/kit-button'
+import StatusChip from '@/components/layout/status-chip'
 import { assistantContent } from '@/data/assistant'
 import type { ActionView } from '@/hooks/use-assistant'
 import { useCopy } from '@/hooks/use-copy'
@@ -39,10 +39,10 @@ const TOOL_ICONS: Record<string, typeof AiIcon> = {
   proposeOrderNote: MessageSquare,
 }
 
-const BADGE: Record<string, 'warning' | 'success' | 'destructive' | 'neutral'> = {
-  proposed: 'warning',
+const BADGE: Record<string, 'attention' | 'success' | 'danger' | 'neutral'> = {
+  proposed: 'attention',
   executed: 'success',
-  failed: 'destructive',
+  failed: 'danger',
   cancelled: 'neutral',
   expired: 'neutral',
   undone: 'neutral',
@@ -107,9 +107,9 @@ export default function ActionCard({ action, onChange }: ActionCardProps) {
             </p>
           ) : null}
         </div>
-        <Badge variant={BADGE[action.status] ?? 'neutral'}>
+        <StatusChip tone={BADGE[action.status] ?? 'neutral'}>
           {copy.card.status[action.status] ?? action.status}
-        </Badge>
+        </StatusChip>
       </header>
 
       {action.flagged && open ? (
