@@ -132,6 +132,11 @@ export default function NotificationsPage() {
 
   const handleClosePreview = () => setPreviewing(null)
 
+  const handlePreviewTest = () => {
+    const m = data?.messages.find((row) => row.id === previewing)
+    if (m) void handleTest(m)
+  }
+
   // Early returns
   if (!data) {
     return (
@@ -242,7 +247,12 @@ export default function NotificationsPage() {
       {DEV ? <AdvancedSection devLog={data.devLog} onChanged={reload} /> : null}
       <HelpFooter />
 
-      <PreviewDialog messageId={previewing} onClose={handleClosePreview} />
+      <PreviewDialog
+        messageId={previewing}
+        onClose={handleClosePreview}
+        onTest={handlePreviewTest}
+        testing={previewing !== null && testing === previewing}
+      />
     </div>
   )
 }
