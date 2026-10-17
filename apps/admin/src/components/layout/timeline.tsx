@@ -61,7 +61,7 @@ function RailEntry({ item }: EntryProps) {
     <li className="relative">
       <span
         className={cn(
-          'absolute -left-8 top-0 flex size-6 items-center justify-center rounded-full border border-border bg-card',
+          'absolute -left-9 top-0 flex size-6 items-center justify-center rounded-full border border-border bg-card',
           MARKER_TONE[item.tone ?? 'neutral'],
         )}
         aria-hidden="true"
@@ -119,7 +119,7 @@ function CompactEntry({ item }: EntryProps) {
 
 function Rail({ items }: { items: TimelineItem[] }) {
   return (
-    <ol className="relative flex flex-col gap-4 border-l border-border pl-6">
+    <ol className="relative ml-3 flex flex-col gap-4 border-l border-border pl-6">
       {items.map((item) => (
         <RailEntry key={item.id} item={item} />
       ))}
@@ -162,7 +162,7 @@ export default function Timeline({
       <div className={cn('flex flex-col gap-5', className)}>
         {groups.map((g) => (
           <section key={g.key}>
-            <p className="sticky top-[var(--detail-header-height,0rem)] z-1 -mx-5 bg-card px-5 py-1 text-caption text-muted-foreground">
+            <p className="sticky top-[var(--detail-header-height,0rem)] z-1 bg-card py-1 text-caption text-muted-foreground">
               {g.label}
             </p>
             <div className="mt-2">
