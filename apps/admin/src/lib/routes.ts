@@ -187,6 +187,7 @@ export const routes = {
     staff: () => '/settings/staff',
     ai: () => '/settings/ai',
     appearance: () => '/settings/appearance',
+    billing: () => '/settings/billing',
   },
 
   dev: {

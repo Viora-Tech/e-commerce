@@ -13,6 +13,7 @@ import AssistantHost from './assistant/assistant-host'
 import BugReportHost from './bug-report/bug-report-host'
 import PaletteHost from './layout/palette-host'
 import SidebarShortcutGuard from './layout/sidebar-shortcut-guard'
+import type { SidebarUsage } from './layout/sidebar-usage-card'
 import TopBar from './layout/top-bar'
 
 type StoreOption = { id: string; name: string; slug: string }
@@ -31,6 +32,8 @@ type AdminFrameProps = {
   bugReports: boolean
   /** Count pills on sidebar rows, by the row's href (Orders: orders waiting to ship). */
   navCounts: Record<string, number>
+  /** "Orders this month · 142 of 200" above the user row; left out when unknown. */
+  usage?: SidebarUsage | undefined
 }
 
 const SIDEBAR_WIDTH = '16rem'
@@ -49,6 +52,7 @@ export default function AdminFrame({
   logoUrl,
   bugReports,
   navCounts,
+  usage,
 }: AdminFrameProps) {
   // Hooks
   const layoutCopy = useCopy(layoutContent)
@@ -85,6 +89,7 @@ export default function AdminFrame({
         storefrontUrl={storefrontUrl}
         bugReports={bugReports}
         navCounts={navCounts}
+        usage={usage}
       />
       <SidebarInset className="min-h-0 min-w-0 overflow-hidden bg-sidebar">
         {/* Search, Ask AI, notifications, theme and account sit on the shell colour above the

@@ -62,6 +62,10 @@ export const hindiPageNames: Record<string, { title: string; body?: string }> = 
     title: 'लोकेशन और गोदाम',
     body: 'आपका स्टॉक कहाँ रखा है, और हर जगह किस GST नंबर से बिल बनता है।',
   },
+  '/settings/billing': {
+    title: 'प्लान और बिलिंग',
+    body: 'आपका प्लान, इस महीने स्टोर ने कितना इस्तेमाल किया, और आपके इनवॉइस।',
+  },
   '/settings/payments': {
     title: 'पेमेंट',
     body: 'ग्राहक आपको कैसे पेमेंट करें: UPI, कार्ड, कैश ऑन डिलीवरी (COD) और हर तरीके की फ़ीस।',

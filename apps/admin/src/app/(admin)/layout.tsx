@@ -1,12 +1,20 @@
 import { loadEnv } from '@commerce/config'
+import { nextPlanUp } from '@commerce/core/billing'
 import { redirect } from 'next/navigation'
 import type { ReactNode } from 'react'
 import AdminFrame from '@/components/admin-frame'
 import AccentStyle from '@/components/layout/accent-style'
+import { billingContent } from '@/data/billing'
 import { appEntryHref } from '@/lib/apps-gallery'
 import { getSession } from '@/lib/auth'
 import { routes } from '@/lib/routes'
-import { listApps, listStores, liveLogoUrl, ordersToShipCount } from '@/lib/shell-data'
+import {
+  listApps,
+  listStores,
+  liveLogoUrl,
+  ordersToShipCount,
+  planUsageSummary,
+} from '@/lib/shell-data'
 import { storefrontOrigin } from '@/lib/storefront-origin'
 import SelectStore from './select-store/select-store'
 
@@ -19,12 +27,13 @@ export default async function AdminLayout({ children }: { children: ReactNode })
   // Everything else needs only the session, so it is read at once rather than one after
   // another. Store calls for a stale active id answer "no store" on their own and are dropped
   // below unless that store is one of the member's.
-  const [orgs, apps, logo, storefrontUrl, toShip] = await Promise.all([
+  const [orgs, apps, logo, storefrontUrl, toShip, plan] = await Promise.all([
     listStores(),
     activeId ? listApps().catch(() => []) : [],
     activeId ? liveLogoUrl() : null,
     storefrontOrigin(),
     activeId ? ordersToShipCount() : null,
+    activeId ? planUsageSummary() : null,
   ])
   // No store at all yet: send them to create one, which shows the invite-only
   // screen instead of the wizard when they are not allowed to sign up.
@@ -55,6 +64,16 @@ export default async function AdminLayout({ children }: { children: ReactNode })
         apps={appLinks}
         logoUrl={logoUrl}
         navCounts={active && toShip ? { [routes.orders.list()]: toShip } : {}}
+        usage={
+          active && plan
+            ? {
+                used: plan.used,
+                limit: plan.limit,
+                // "More room on Growth plan": the next plan up (Pro has no bigger plan).
+                planName: billingContent.plans[nextPlanUp(plan.plan) ?? plan.plan].name,
+              }
+            : undefined
+        }
         // Test server only. A report is filed against a store, so none before one is picked.
         bugReports={loadEnv(process.env).BUG_REPORTS_ENABLED && active !== null}
       >

@@ -72,6 +72,12 @@ export const SETTINGS_GROUPS: SettingsGroup[] = [
         body: 'Where you keep stock, and which GST number each place bills under.',
         icon: MapPinLineIcon,
       },
+      {
+        href: routes.settings.billing(),
+        title: 'Plan & billing',
+        body: 'Your plan, what your store used this month, and your invoices.',
+        icon: CreditCard,
+      },
     ],
   },
   {
