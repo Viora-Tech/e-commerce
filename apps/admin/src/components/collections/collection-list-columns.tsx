@@ -1,4 +1,4 @@
-import StatusChip from '@/components/layout/status-chip'
+import OrderChip from '@/components/orders/order-chip'
 import ProductThumb from '@/components/products/product-thumb'
 import type { ResourceColumnSpec } from '@/components/table/resource-table'
 import type { collectionsListContent } from '@/data/collections'
@@ -22,11 +22,16 @@ export function collectionListColumns(
       sortValue: (c) => c.title,
       hideable: false,
       align: 'start',
-      className: 'w-[34%] whitespace-normal',
+      className: 'w-[40%] whitespace-normal',
       render: (c) => (
         <span className="flex min-w-0 items-center gap-3 text-left">
           <ProductThumb url={c.imageUrl} />
-          <span className="line-clamp-2 text-body font-semibold text-ink-strong">{c.title}</span>
+          <span className="flex min-w-0 flex-col">
+            <span className="line-clamp-1 text-body text-ink-strong">{c.title}</span>
+            <span className="line-clamp-1 text-caption text-muted-foreground">
+              {c.kind === 'automatic' ? ruleSummary(c.rules, copy, fmt.money) : copy.kind.manual}
+            </span>
+          </span>
         </span>
       ),
     },
@@ -41,28 +46,15 @@ export function collectionListColumns(
       id: 'type',
       title: copy.columns.type,
       sortValue: (c) => c.kind,
-      className: 'w-[26%] whitespace-normal',
-      render: (c) => (
-        <span className="flex min-w-0 flex-col items-start gap-0.5">
-          <StatusChip className="h-5 px-2">{copy.kind[c.kind]}</StatusChip>
-          {c.kind === 'automatic' ? (
-            <span className="line-clamp-1 text-caption text-muted-foreground">
-              {ruleSummary(c.rules, copy, fmt.money)}
-            </span>
-          ) : null}
-        </span>
-      ),
+      align: 'center',
+      render: (c) => <OrderChip kind="collectionType" value={c.kind} />,
     },
     {
       id: 'visibility',
       title: copy.columns.visibility,
       sortValue: (c) => c.status,
       align: 'center',
-      render: (c) => (
-        <StatusChip tone={c.status === 'draft' ? 'attention' : 'neutral'}>
-          {copy.visibility[c.status]}
-        </StatusChip>
-      ),
+      render: (c) => <OrderChip kind="collectionVisibility" value={c.status} />,
     },
     {
       id: 'updated',

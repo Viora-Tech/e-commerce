@@ -26,26 +26,32 @@ export default function CollectionTiles({ stats, tab, onSelect }: CollectionTile
       active={tab}
       onChange={onSelect}
       tiles={[
-        { id: 'all', label: copy.tiles.all, value: fmt.number(stats.total), filter: null },
+        {
+          id: 'all',
+          label: copy.tiles.all,
+          value: fmt.number(stats.total),
+          note: copy.tiles.allNote,
+          filter: null,
+        },
         {
           id: 'automatic',
           label: copy.tiles.automatic,
           value: fmt.number(stats.automatic),
-          trendNote: copy.tiles.automaticNote,
+          note: copy.tiles.automaticNote,
           filter: 'automatic',
         },
         {
           id: 'manual',
           label: copy.tiles.manual,
           value: fmt.number(stats.manual),
-          trendNote: copy.tiles.manualNote,
+          note: copy.tiles.manualNote,
           filter: 'manual',
         },
         {
           id: 'empty',
           label: copy.tiles.empty,
           value: fmt.number(stats.empty),
-          trendNote: copy.tiles.emptyNote,
+          note: copy.tiles.emptyNote,
           filter: 'empty',
         },
       ]}

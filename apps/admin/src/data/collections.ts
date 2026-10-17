@@ -12,6 +12,7 @@ export const collectionsListContent = {
   list: {
     tiles: {
       all: 'All collections',
+      allNote: 'All time',
       automatic: 'Automatic',
       automaticNote: 'Rule based',
       manual: 'Manual',

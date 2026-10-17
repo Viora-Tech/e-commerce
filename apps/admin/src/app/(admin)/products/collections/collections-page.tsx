@@ -1,7 +1,7 @@
 'use client'
 
 import { siteConfig } from '@commerce/config/site'
-import { LayoutGrid, SquarePlus } from '@commerce/ui/icons'
+import { LayoutGrid, Plus } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import Link from 'next/link'
 import { parseAsInteger, parseAsString, parseAsStringLiteral, useQueryStates } from 'nuqs'
@@ -85,7 +85,7 @@ function CollectionsContent({ initial }: { initial: CollectionsInitial }) {
       summary={copy.summary(stats.total, stats.automatic, stats.empty)}
       actions={
         <Button render={<Link href={routes.products.newCollection()} />} nativeButton={false}>
-          <SquarePlus strokeWidth={1.6} />
+          <Plus strokeWidth={1.6} />
           {copy.newCollection}
         </Button>
       }

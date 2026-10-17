@@ -16,6 +16,7 @@ import {
 import { appsContent } from '@/data/apps'
 import { backInStockContent } from '@/data/back-in-stock'
 import { blogListContent } from '@/data/blog'
+import { collectionsListContent } from '@/data/collections'
 import { customerDetailContent } from '@/data/customers'
 import { type DiscountLifecycle, discountsContent } from '@/data/discounts'
 import { abandonedContent, draftsContent } from '@/data/drafts'
@@ -193,6 +194,15 @@ export const STATUS = {
     sent: entry(customerDetailContent.timeline.status.sent ?? 'Sent', 'success'),
     queued: entry(customerDetailContent.timeline.status.queued ?? 'Queued', 'pending'),
     failed: entry(customerDetailContent.timeline.status.failed ?? 'Failed', 'error'),
+  },
+  collectionType: {
+    manual: entry(collectionsListContent.list.kind.manual, 'neutral'),
+    automatic: entry(collectionsListContent.list.kind.automatic, 'info'),
+  },
+  /** Whether shoppers can browse a collection. */
+  collectionVisibility: {
+    active: entry(collectionsListContent.list.visibility.active, 'success'),
+    draft: entry(collectionsListContent.list.visibility.draft, 'neutral'),
   },
   page: {
     published: entry(onlineStoreContent.pages.status.published, 'success'),
