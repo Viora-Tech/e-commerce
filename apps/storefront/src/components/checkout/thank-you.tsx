@@ -89,6 +89,9 @@ export default function ThankYouTemplate({
     !o.checkoutPaidAt &&
     (pay?.status === 'failed' || pay?.status === 'cancelled')
   const session = (pay?.checkoutSession ?? null) as CheckoutSession | null
+  // An attempt made for a pay link (a plan bill, an invoice) that nobody has started yet.
+  const notStarted =
+    o.status === 'open' && !o.checkoutPaidAt && pay?.status === 'created' && session === null
   const manual = awaiting && session?.kind === 'manual' ? session.instructions : null
   const qr = awaiting && session?.kind === 'upi_qr' ? session.qr : null
   // What the shopper still pays after gift cards: the amount COD, transfer and gateway lines quote.
@@ -132,12 +135,16 @@ export default function ThankYouTemplate({
           <UpiQrPayment orderNumber={o.number} viewToken={viewToken} qr={qr} amountLabel={due} />
         ) : null}
         {balance}
-        {failed || (awaiting && session?.kind === 'client') ? (
+        {failed || notStarted || (awaiting && session?.kind === 'client') ? (
           <div className="flex flex-col gap-3">
-            {failed ? (
+            {failed || notStarted ? (
               <form action={retryPaymentAction.bind(null, o.number, viewToken)}>
                 <button type="submit" className={CK_BUTTON_PRIMARY}>
-                  {session?.kind === 'upi_qr' ? content.newQr : content.retryPayment}
+                  {notStarted
+                    ? content.payNow
+                    : session?.kind === 'upi_qr'
+                      ? content.newQr
+                      : content.retryPayment}
                 </button>
               </form>
             ) : null}
