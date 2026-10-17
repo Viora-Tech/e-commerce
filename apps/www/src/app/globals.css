@@ -313,6 +313,46 @@
   }
 }
 
+/* Payment demo: each step slides up and fades in; the card number types out. */
+@keyframes panel-in {
+  from {
+    opacity: 0;
+    translate: 0 0.75rem;
+  }
+}
+@utility animate-panel-in {
+  animation: panel-in 450ms var(--ease-out) both;
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+  }
+}
+@keyframes type-in {
+  from {
+    width: 0;
+  }
+  to {
+    width: 19ch;
+  }
+}
+@utility animate-type-in {
+  animation: type-in 1.2s steps(19) both;
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+  }
+}
+@keyframes pop-in {
+  from {
+    opacity: 0;
+    scale: 0.5;
+  }
+}
+@utility animate-pop-in {
+  animation: pop-in 400ms var(--ease-out) both;
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+  }
+}
+
 /* Route change: the new page fades up. */
 @keyframes page-in {
   from {

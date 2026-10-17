@@ -15,6 +15,10 @@ export type BrandKey =
   | 'phonepe'
   | 'paytm'
   | 'googlepay'
+  | 'visa'
+  | 'mastercard'
+  | 'rupay'
+  | 'bhim'
 
 export type Brand = {
   name: string
@@ -44,4 +48,8 @@ export const BRANDS: Record<BrandKey, Brand> = {
   phonepe: { name: 'PhonePe', file: '/logos/phonepe.svg', ratio: 1, height: 'h-6' },
   paytm: { name: 'Paytm', file: '/logos/paytm.svg', ratio: 1, height: 'h-6' },
   googlepay: { name: 'Google Pay', file: '/logos/googlepay.svg', ratio: 1, height: 'h-6' },
+  visa: { name: 'Visa', file: '/logos/visa.svg', ratio: 2.4, height: 'h-4' },
+  mastercard: { name: 'Mastercard', file: '/logos/mastercard.svg', ratio: 1, height: 'h-6' },
+  rupay: { name: 'RuPay', ratio: 2, height: 'h-5' },
+  bhim: { name: 'BHIM', ratio: 2, height: 'h-5' },
 }

@@ -186,9 +186,6 @@ export const homeContent = {
       eyebrow: 'Payments',
       title: 'UPI-first checkout',
       body: 'UPI on top, then cards, EMI, netbanking and cash on delivery — in a checkout themes can’t break.',
-      alt: 'The checkout with UPI selected and a QR code',
-      confirmed: 'Payment confirmed · ₹2,499',
-      methods: ['UPI', 'Cards', 'EMI', 'COD'],
     },
     gst: {
       eyebrow: 'Taxes',
@@ -252,14 +249,14 @@ export const homeContent = {
       hindi: { title: '4 आइटम का स्टॉक कम', body: 'जल्दी रीस्टॉक करें ताकि ये बिकते रहें।' },
       toggle: ['EN', 'हि'],
     },
-    cod: {
-      eyebrow: 'Cash on delivery',
-      title: 'COD that doesn’t hurt',
-      body: 'Confirm cash-on-delivery orders on WhatsApp before you ship.',
-      message: 'Please confirm your cash on delivery order #1043 for ₹1,299.',
-      confirm: 'Confirm order',
-      cancel: 'Cancel',
-      confirmed: 'Confirmed on WhatsApp',
+    recovery: {
+      eyebrow: 'Recovery',
+      title: 'Win back abandoned carts on WhatsApp',
+      body: 'A friendly reminder with the cart and a nudge, sent automatically to shoppers who said yes.',
+      when: 'Sent 30 minutes after checkout',
+      message: 'You left 2 items in your cart. Complete your order and FIRST900 is applied.',
+      cta: 'Complete order',
+      delivered: 'Delivered',
     },
     gateways: {
       eyebrow: 'Payment gateways',

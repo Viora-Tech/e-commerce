@@ -2,7 +2,7 @@ import { homeContent } from '@/data/home'
 import AmbientLight from '../common/ambient-light'
 import PageContainer from '../common/page-container'
 import SectionHeading from '../common/section-heading'
-import CodTile from './cod-tile'
+import CartRecoveryTile from './cart-recovery-tile'
 import CouriersTile from './couriers-tile'
 import GatewaysTile from './gateways-tile'
 import GstTile from './gst-tile'
@@ -23,7 +23,7 @@ export default function IndiaBento() {
           <GstTile />
           <CouriersTile />
           <HindiTile />
-          <CodTile />
+          <CartRecoveryTile />
           <GatewaysTile />
         </div>
       </PageContainer>
