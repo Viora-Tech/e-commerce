@@ -1,6 +1,7 @@
 import { Truck_ as Truck } from '@commerce/ui/icons'
 import { cn } from '@commerce/ui/lib/utils'
 import { homeContent } from '@/data/home'
+import BrandLogo from '../common/brand-logo'
 import BentoTile from './bento-tile'
 
 const copy = homeContent.india.couriers
@@ -23,7 +24,7 @@ export default function CouriersTile() {
           <li
             key={option.code}
             className={cn(
-              'flex items-center gap-4 rounded-xl border bg-background px-4 py-3',
+              'group/logo flex items-center gap-4 rounded-xl border bg-background px-4 py-3',
               option.selected ? 'border-foreground' : 'border-border',
             )}
           >
@@ -34,8 +35,8 @@ export default function CouriersTile() {
                 option.selected ? 'border-foreground bg-foreground' : 'border-border-strong',
               )}
             />
-            <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-muted text-xs font-medium text-foreground">
-              {option.code}
+            <span className="flex w-28 shrink-0 justify-start">
+              <BrandLogo brand={option.brand} className="-ml-2" />
             </span>
             <span className="min-w-0 flex-1">
               <span className="block truncate text-sm font-medium text-foreground">

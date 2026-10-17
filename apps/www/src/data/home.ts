@@ -1,4 +1,5 @@
 import { siteConfig } from '@commerce/config/site'
+import type { BrandKey } from './logos'
 
 const brand = siteConfig.brand.name
 const docs = siteConfig.urls.docs
@@ -218,6 +219,7 @@ export const homeContent = {
       options: [
         {
           code: 'DL',
+          brand: 'delhivery' as const,
           name: 'Delhivery · Surface',
           eta: 'Delivery by Sat, 18 Oct · COD',
           price: '₹96',
@@ -225,6 +227,7 @@ export const homeContent = {
         },
         {
           code: 'SR',
+          brand: 'shiprocket' as const,
           name: 'Shiprocket · Air',
           eta: 'Delivery by Fri, 17 Oct · COD',
           price: '₹118',
@@ -232,6 +235,7 @@ export const homeContent = {
         },
         {
           code: 'RS',
+          brand: 'rapidshyp' as const,
           name: 'RapidShyp · Surface',
           eta: 'Delivery by Sun, 19 Oct',
           price: '₹89',
@@ -262,26 +266,28 @@ export const homeContent = {
       title: 'Razorpay, Cashfree or Decentro',
       body: 'Take UPI, cards and netbanking without sending shoppers away.',
       items: [
-        { initial: 'R', name: 'Razorpay', status: 'Connected', connected: true },
-        { initial: 'C', name: 'Cashfree', status: 'Available', connected: false },
-        { initial: 'D', name: 'Decentro', status: 'Available', connected: false },
+        { brand: 'razorpay' as const, name: 'Razorpay', status: 'Connected', connected: true },
+        { brand: 'cashfree' as const, name: 'Cashfree', status: 'Available', connected: false },
+        { brand: 'decentro' as const, name: 'Decentro', status: 'Available', connected: false },
       ],
     },
   },
   integrations: {
     eyebrow: 'Works with the tools you already use',
-    // Plain text marks only: no brand artwork.
     items: [
-      'Razorpay',
-      'Cashfree',
-      'Decentro',
-      'UPI',
-      'Delhivery',
-      'Shiprocket',
-      'RapidShyp',
-      'WhatsApp',
-      'Shopify',
-    ],
+      'razorpay',
+      'cashfree',
+      'decentro',
+      'upi',
+      'phonepe',
+      'googlepay',
+      'paytm',
+      'delhivery',
+      'shiprocket',
+      'rapidshyp',
+      'whatsapp',
+      'shopify',
+    ] satisfies readonly BrandKey[],
   },
   shopify: {
     eyebrow: 'Bring your Shopify theme',

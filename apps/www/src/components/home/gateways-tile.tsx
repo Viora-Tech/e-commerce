@@ -1,5 +1,6 @@
 import { cn } from '@commerce/ui/lib/utils'
 import { homeContent } from '@/data/home'
+import BrandLogo from '../common/brand-logo'
 import BentoTile from './bento-tile'
 
 const copy = homeContent.india.gateways
@@ -16,21 +17,16 @@ export default function GatewaysTile() {
         {copy.items.map((gateway) => (
           <li
             key={gateway.name}
-            className="flex items-center gap-3 rounded-xl border border-border bg-background px-3 py-3 pr-5"
+            className="group/logo flex flex-col gap-1 rounded-xl border border-border bg-background px-3 py-3 pr-5"
           >
-            <span className="grid size-10 place-items-center rounded-lg bg-muted text-sm font-semibold text-foreground">
-              {gateway.initial}
-            </span>
-            <span>
-              <span className="block text-sm font-medium text-foreground">{gateway.name}</span>
-              <span
-                className={cn(
-                  'block text-xs',
-                  gateway.connected ? 'text-success' : 'text-muted-foreground',
-                )}
-              >
-                {gateway.status}
-              </span>
+            <BrandLogo brand={gateway.brand} className="-ml-2" />
+            <span
+              className={cn(
+                'text-xs',
+                gateway.connected ? 'text-success' : 'text-muted-foreground',
+              )}
+            >
+              {gateway.status}
             </span>
           </li>
         ))}
