@@ -1,4 +1,5 @@
 export * from './ai-schema'
+export * from './app-schema'
 export * as authSchema from './auth-schema'
 export * from './billing-schema'
 export { createDb, type Db } from './client'

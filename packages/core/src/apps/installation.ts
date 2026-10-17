@@ -1,3 +1,4 @@
+/** SOURCE OF TRUTH: app install history — WHAT: when and by whom each app was installed, its last activity and last failure (app_installation) / WHY: the Installed apps list and permissions sheet show them */
 import { appInstallation, order, type StoreTx } from '@commerce/db'
 import { CORE_PLUGIN_ID, type LoadedPlugins } from '@commerce/plugins'
 import { and, eq, sql } from 'drizzle-orm'
@@ -83,14 +84,6 @@ export async function recordAppError(
       target: [appInstallation.storeId, appInstallation.pluginId],
       set: { lastError: text, lastErrorAt: now },
     })
-}
-
-/** Clear a recorded failure, e.g. after the app's connection test passes again. */
-export async function clearAppError(tx: StoreTx, storeId: string, pluginId: string) {
-  await tx
-    .update(appInstallation)
-    .set({ lastError: null, lastErrorAt: null })
-    .where(and(eq(appInstallation.storeId, storeId), eq(appInstallation.pluginId, pluginId)))
 }
 
 export type AppInstallationRow = typeof appInstallation.$inferSelect

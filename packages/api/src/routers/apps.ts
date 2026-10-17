@@ -8,7 +8,7 @@ import {
 import { getRegistries } from '@commerce/core/registries'
 import { ORPCError } from '@orpc/server'
 import { z } from 'zod'
-import { can } from '../procedures'
+import { BULK_MAX, can } from '../procedures'
 import {
   connectFormFor,
   saveAppConnection,
@@ -18,7 +18,9 @@ import { disconnectStoreApp, installStoreApp, uninstallStoreApp } from '../servi
 import { storeAppSummaries } from '../services/installed-apps.service'
 import { TEST_CONNECTION_RULE } from '../services/shipping.service'
 
-const pluginId = z.object({ id: z.string().min(1).max(64) })
+/** A plugin id as commerce.config.ts spells it. */
+const PluginId = z.string().min(1).max(64)
+const pluginId = z.object({ id: PluginId })
 
 /** The account typed in the install flow's "Connect account" step. */
 const ConnectInput = z.object({
@@ -78,7 +80,7 @@ export const appsRouter = {
 
   /** Bulk uninstall from the Installed apps list: all or none. */
   uninstallMany: can(permissions.APPS_MANAGE)
-    .input(z.object({ ids: z.array(z.string().min(1).max(64)).min(1).max(50) }))
+    .input(z.object({ ids: z.array(PluginId).min(1).max(BULK_MAX) }))
     .handler(async ({ context, input }) => {
       const ids = [...new Set(input.ids)]
       for (const id of ids) requirePlugin(id)
