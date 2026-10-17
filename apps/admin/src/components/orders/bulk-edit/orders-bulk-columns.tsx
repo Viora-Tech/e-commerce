@@ -1,6 +1,6 @@
 import { cn } from '@commerce/ui/lib/utils'
 import { type Column, renderTextEditor } from 'react-data-grid'
-import { INDIAN_STATES, stateName } from '@/data/india'
+import { stateName } from '@/data/india'
 import type { ordersBulkEditContent } from '@/data/orders-bulk-edit'
 import type { Formatters } from '@/lib/format'
 import {

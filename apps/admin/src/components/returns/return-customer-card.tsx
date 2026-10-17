@@ -1,5 +1,7 @@
 import Link from 'next/link'
+import AddressLines from '@/components/layout/address-lines'
 import DataCard from '@/components/layout/data-card'
+import LabeledGroup from '@/components/layout/labeled-group'
 import { returnDetailContent as copy, returnsContent } from '@/data/returns'
 import { formatPaise } from '@/lib/money'
 import type { ReturnDetail } from './return-types'
@@ -38,15 +40,9 @@ export default function ReturnCustomerCard({ detail: r }: ReturnCustomerCardProp
           {o.phone ? <span className="text-muted-foreground">{o.phone}</span> : null}
         </div>
         {a ? (
-          <div className="mt-4 flex flex-col gap-0.5 text-body">
-            <span className="text-caption text-muted-foreground">{copy.shipTo}</span>
-            <span>{a.name}</span>
-            <span>{[a.line1, a.line2].filter(Boolean).join(', ')}</span>
-            <span>
-              {a.city}, {a.stateCode} {a.pincode}
-            </span>
-            <span>{a.phone}</span>
-          </div>
+          <LabeledGroup label={copy.shipTo} className="mt-4">
+            <AddressLines address={a} />
+          </LabeledGroup>
         ) : null}
       </DataCard>
       {r.pickupMethod ? (

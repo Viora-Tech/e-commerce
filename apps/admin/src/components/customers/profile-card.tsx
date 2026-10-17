@@ -1,12 +1,12 @@
 'use client'
 
-import { Phone, WhatsappLogo } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
+import ContactActions from '@/components/layout/contact-actions'
 import DataCard from '@/components/layout/data-card'
 import KeyValueList from '@/components/layout/key-value-list'
 import { customerDetailContent } from '@/data/customers'
 import { useCopy, useLocale } from '@/hooks/use-copy'
-import { telUrl, whatsappUrl } from '@/lib/customer-contact'
+import { telUrl } from '@/lib/customer-contact'
 import type { CustomerDetail } from './customer-detail-types'
 import { day } from './customer-detail-types'
 
@@ -23,7 +23,6 @@ export default function ProfileCard({ customer, onEdit }: ProfileCardProps) {
 
   // Render logic
   const c = copy.profile
-  const chat = whatsappUrl(customer.phone)
   const call = telUrl(customer.phone)
 
   return (
@@ -56,27 +55,7 @@ export default function ProfileCard({ customer, onEdit }: ProfileCardProps) {
           { label: c.created, value: day(customer.createdAt, locale), copy: true },
         ]}
       />
-      {chat || call ? (
-        <div className="mt-3 flex flex-wrap gap-2">
-          {chat ? (
-            <Button
-              variant="outline"
-              size="sm"
-              render={<a href={chat} target="_blank" rel="noreferrer" />}
-              nativeButton={false}
-            >
-              <WhatsappLogo />
-              {copy.actions.whatsapp}
-            </Button>
-          ) : null}
-          {call ? (
-            <Button variant="outline" size="sm" render={<a href={call} />} nativeButton={false}>
-              <Phone />
-              {copy.actions.call}
-            </Button>
-          ) : null}
-        </div>
-      ) : null}
+      <ContactActions phone={customer.phone} className="mt-3" />
     </DataCard>
   )
 }

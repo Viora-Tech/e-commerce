@@ -1,6 +1,6 @@
 'use client'
 
-import { Copy, Pencil, WhatsappLogo } from '@commerce/ui/icons'
+import { Copy, Pencil } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
@@ -8,9 +8,11 @@ import { useState } from 'react'
 import { toast } from 'sonner'
 import CustomerAvatar from '@/components/customers/customer-avatar'
 import CopyButton from '@/components/fields/copy-button'
+import ContactActions from '@/components/layout/contact-actions'
 import DataCard from '@/components/layout/data-card'
 import KeyValueList, { type KeyValueRow } from '@/components/layout/key-value-list'
-import { INDIAN_STATES, stateName } from '@/data/india'
+import LabeledGroup from '@/components/layout/labeled-group'
+import { stateName } from '@/data/india'
 import { orderDetailContent } from '@/data/orders'
 import { useCopy } from '@/hooks/use-copy'
 import { routes } from '@/lib/routes'
@@ -19,12 +21,6 @@ import type { OrderDetail } from './order-detail-types'
 
 type CustomerCardProps = {
   order: OrderDetail
-}
-
-/** wa.me wants digits only, with the country code: a bare 10-digit number is Indian. */
-function whatsappHref(phone: string): string {
-  const digits = phone.replace(/[^0-9]/g, '')
-  return `https://wa.me/${digits.length === 10 ? `91${digits}` : digits}`
 }
 
 /**
@@ -140,38 +136,31 @@ export default function CustomerCard({ order }: CustomerCardProps) {
           </div>
         </div>
 
-        <div className="flex flex-col gap-1">
-          <p className="text-xs font-medium text-muted-foreground">{c.contact}</p>
+        <LabeledGroup label={c.contact}>
           <KeyValueList rows={contact} />
-        </div>
-        {a ? (
-          <div className="flex flex-col gap-1">
-            <p className="text-xs font-medium text-muted-foreground">{c.address}</p>
+        </LabeledGroup>
+        <LabeledGroup label={c.address}>
+          {a ? (
             <KeyValueList rows={place} />
-          </div>
-        ) : (
-          <div className="flex flex-col gap-1">
-            <p className="text-xs font-medium text-muted-foreground">{c.address}</p>
+          ) : (
             <p className="text-muted-foreground">{c.noAddress}</p>
-          </div>
-        )}
+          )}
+        </LabeledGroup>
         {a ? <p className="text-xs text-muted-foreground">{c.billingSame}</p> : null}
 
         {order.buyerGstin ? (
-          <div className="flex flex-col gap-1">
-            <p className="text-xs font-medium text-muted-foreground">{c.business}</p>
+          <LabeledGroup label={c.business}>
             {order.buyerBusinessName ? <p>{order.buyerBusinessName}</p> : null}
             <div className="flex items-center gap-1">
               <span className="font-mono">{order.buyerGstin}</span>
               <CopyButton value={order.buyerGstin} what={c.gstin} visible />
             </div>
-          </div>
+          </LabeledGroup>
         ) : null}
         {order.customerNote ? (
-          <div className="flex flex-col gap-1">
-            <p className="text-xs font-medium text-muted-foreground">{c.note}</p>
+          <LabeledGroup label={c.note}>
             <p className="whitespace-pre-line">{order.customerNote}</p>
-          </div>
+          </LabeledGroup>
         ) : null}
 
         {allText ? (
@@ -183,27 +172,7 @@ export default function CustomerCard({ order }: CustomerCardProps) {
             <p className="text-xs text-muted-foreground">{c.copyAllHint}</p>
           </div>
         ) : null}
-        {phone ? (
-          <div className="grid grid-cols-2 gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              render={<a href={`tel:${phone}`} />}
-              nativeButton={false}
-            >
-              {c.call}
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              render={<a href={whatsappHref(phone)} target="_blank" rel="noreferrer" />}
-              nativeButton={false}
-            >
-              <WhatsappLogo />
-              {c.whatsapp}
-            </Button>
-          </div>
-        ) : null}
+        <ContactActions phone={phone} layout="grid" />
       </div>
 
       {editing ? (

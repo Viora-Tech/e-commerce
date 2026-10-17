@@ -1,4 +1,4 @@
-import { copyButtonContent, dialogContent } from '@/data/common'
+import { contactContent, copyButtonContent, dialogContent } from '@/data/common'
 import { translation } from '@/lib/i18n'
 
 export default [
@@ -8,5 +8,9 @@ export default [
   }),
   translation(dialogContent, {
     cancel: 'रद्द करें',
+  }),
+  translation(contactContent, {
+    call: 'कॉल करें',
+    whatsapp: 'WhatsApp',
   }),
 ]

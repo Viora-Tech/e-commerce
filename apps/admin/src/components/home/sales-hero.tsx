@@ -15,6 +15,7 @@ import {
 import Link from 'next/link'
 import { useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
+import DateRangePicker from '@/components/layout/date-range-picker'
 import { homePageContent } from '@/data/home'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
@@ -22,7 +23,6 @@ import type { HomeRange, RangeCompare } from '@/lib/home-range'
 import { routes } from '@/lib/routes'
 import ChannelMenu, { type Channel } from './analytics/channel-menu'
 import { formatMetric, METRIC_META, metricChange, shapeHourly } from './analytics/metric-meta'
-import RangePicker from './analytics/range-picker'
 import HeroGlass from './hero-glass'
 import SalesHeroChart, { type SalesChartPoint } from './sales-hero-chart'
 import SalesMetricTiles from './sales-metric-tiles'
@@ -147,7 +147,12 @@ export default function SalesHero({ initial, liveNow }: SalesHeroProps) {
     >
       <HeroGlass />
       <div className="flex flex-wrap items-center gap-2 pt-4 pr-4 pb-2 pl-5">
-        <RangePicker range={range} compare={compare} onApply={handleApply} className={MENU_PILL} />
+        <DateRangePicker
+          range={range}
+          compare={compare}
+          onApply={handleApply}
+          className={MENU_PILL}
+        />
         <DropdownMenu>
           <DropdownMenuTrigger aria-label={copy.compareLabel} className={MENU_PILL}>
             <ArrowLeftRight aria-hidden="true" />

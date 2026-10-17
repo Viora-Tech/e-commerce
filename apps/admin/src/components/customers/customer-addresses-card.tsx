@@ -9,8 +9,8 @@ import ConfirmDialog from '@/components/layout/confirm-dialog'
 import DataCard from '@/components/layout/data-card'
 import StatusChip from '@/components/layout/status-chip'
 import { customerAddressesContent } from '@/data/customers'
-import { INDIAN_STATES, stateName } from '@/data/india'
 import { useCopy } from '@/hooks/use-copy'
+import { addressLines } from '@/lib/address'
 import { api } from '@/lib/api-client'
 import CustomerAddressDialog from './customer-address-dialog'
 import type { CustomerAddressRow, CustomerDetail } from './customer-detail-types'
@@ -18,17 +18,6 @@ import type { CustomerAddressRow, CustomerDetail } from './customer-detail-types
 type CustomerAddressesCardProps = {
   customer: CustomerDetail
   onChanged: () => void
-}
-
-function lines(a: CustomerAddressRow): string[] {
-  return [
-    a.name,
-    a.line1,
-    a.line2,
-    a.city,
-    `${stateName(a.stateCode)} ${a.pincode}`,
-    a.phone,
-  ].filter((l): l is string => Boolean(l))
 }
 
 /**
@@ -99,13 +88,13 @@ export default function CustomerAddressesCard({ customer, onChanged }: CustomerA
             <li key={a.id ?? 'snapshot'} className="flex flex-col gap-2 py-3 first:pt-0 last:pb-0">
               <div className="flex items-start justify-between gap-2">
                 <address className="min-w-0 text-body not-italic">
-                  {lines(a).map((l) => (
+                  {addressLines(a).map((l) => (
                     <p key={l} className="break-words">
                       {l}
                     </p>
                   ))}
                 </address>
-                <CopyButton value={lines(a).join('\n')} what={copy.heading} visible />
+                <CopyButton value={addressLines(a).join('\n')} what={copy.heading} visible />
               </div>
               <div className="flex flex-wrap items-center gap-2">
                 {a.id === null ? (

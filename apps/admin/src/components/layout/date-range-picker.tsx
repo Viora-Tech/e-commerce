@@ -8,7 +8,7 @@ import { NativeSelect, NativeSelectOption } from '@commerce/ui/shadcn/native-sel
 import { Popover, PopoverContent, PopoverTrigger } from '@commerce/ui/shadcn/popover'
 import { Switch } from '@commerce/ui/shadcn/switch'
 import { useId, useState } from 'react'
-import { homePageContent } from '@/data/home'
+import { dateRangeContent } from '@/data/date-range'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import {
   type HomeRange,
@@ -19,13 +19,19 @@ import {
   rangeFor,
 } from '@/lib/home-range'
 
-type RangePickerProps = {
+type DateRangePickerProps = {
   range: HomeRange
-  compare: RangeCompare
+  /** Leave out to hide the "Compare to" row (pages that don't chart a comparison). */
+  compare?: RangeCompare
   onApply: (range: HomeRange, compare: RangeCompare) => void
-  /** The pill's classes (the card's filter-pill look). */
-  className: string
+  /** Which presets to list (default: all of them, Figma order). */
+  presets?: readonly RangePreset[]
+  /** The trigger's classes; defaults to an outline sm button. */
+  className?: string
 }
+
+const TRIGGER =
+  'inline-flex h-8 items-center gap-1.5 rounded-md border border-input bg-card px-3 text-body font-medium transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring [&_svg]:size-4'
 
 /* Presets in Figma order, with a divider before each group. */
 const GROUP_STARTS: readonly RangePreset[] = ['thisQuarter', 'diwali', 'custom']
@@ -53,9 +59,15 @@ function toIso(d: Date): string {
  * Festive season, Custom range), two months of calendar on the right, then "Compare to" with
  * the previous period or the same dates last year. Nothing changes until Apply.
  */
-export default function RangePicker({ range, compare, onApply, className }: RangePickerProps) {
+export default function DateRangePicker({
+  range,
+  compare,
+  onApply,
+  presets = RANGE_PRESETS,
+  className,
+}: DateRangePickerProps) {
   // Hooks
-  const content = useCopy(homePageContent)
+  const copy = useCopy(dateRangeContent)
   const fmt = useFormat()
   const switchId = useId()
   const [open, setOpen] = useState(false)
@@ -86,12 +98,11 @@ export default function RangePicker({ range, compare, onApply, className }: Rang
   }
 
   const handleApply = () => {
-    onApply(draft, comparing ? against : 'none')
+    onApply(draft, compare !== undefined && comparing ? against : 'none')
     setOpen(false)
   }
 
   // Render logic
-  const copy = content.sales
   const label =
     range.preset === 'custom'
       ? `${fmt.pattern(toDate(range.from), SHORT)} – ${fmt.pattern(toDate(range.to), SHORT)}`
@@ -100,7 +111,7 @@ export default function RangePicker({ range, compare, onApply, className }: Rang
 
   return (
     <Popover open={open} onOpenChange={handleOpenChange}>
-      <PopoverTrigger aria-label={copy.rangeLabel} className={className}>
+      <PopoverTrigger aria-label={copy.rangeLabel} className={className ?? TRIGGER}>
         <Clock aria-hidden="true" />
         {label}
         <ChevronDown className="text-muted-foreground" aria-hidden="true" />
@@ -111,7 +122,7 @@ export default function RangePicker({ range, compare, onApply, className }: Rang
         className="flex w-auto max-w-[calc(100vw-2rem)] flex-row items-stretch gap-0 overflow-hidden p-0"
       >
         <ul className="hidden w-52 shrink-0 flex-col gap-0.5 border-border border-r p-1.5 sm:flex">
-          {RANGE_PRESETS.map((preset) => (
+          {presets.map((preset) => (
             <li key={preset} className={cn(GROUP_STARTS.includes(preset) && 'mt-1.5')}>
               <button
                 type="button"
@@ -153,22 +164,26 @@ export default function RangePicker({ range, compare, onApply, className }: Rang
             className="p-0"
           />
           <div className="flex flex-wrap items-center gap-2 border-border border-t pt-3">
-            <span className="flex items-center gap-2 text-body">
-              <Switch id={switchId} checked={comparing} onCheckedChange={setComparing} />
-              <label htmlFor={switchId}>{copy.compareTo}</label>
-            </span>
-            <NativeSelect
-              size="sm"
-              aria-label={copy.compareTo}
-              value={against}
-              disabled={!comparing}
-              onChange={(e) => setAgainst(e.target.value === 'year' ? 'year' : 'previous')}
-            >
-              <NativeSelectOption value="previous">
-                {copy.compareOptions.previous}
-              </NativeSelectOption>
-              <NativeSelectOption value="year">{copy.compareOptions.year}</NativeSelectOption>
-            </NativeSelect>
+            {compare !== undefined ? (
+              <>
+                <span className="flex items-center gap-2 text-body">
+                  <Switch id={switchId} checked={comparing} onCheckedChange={setComparing} />
+                  <label htmlFor={switchId}>{copy.compareTo}</label>
+                </span>
+                <NativeSelect
+                  size="sm"
+                  aria-label={copy.compareTo}
+                  value={against}
+                  disabled={!comparing}
+                  onChange={(e) => setAgainst(e.target.value === 'year' ? 'year' : 'previous')}
+                >
+                  <NativeSelectOption value="previous">
+                    {copy.compareOptions.previous}
+                  </NativeSelectOption>
+                  <NativeSelectOption value="year">{copy.compareOptions.year}</NativeSelectOption>
+                </NativeSelect>
+              </>
+            ) : null}
             <span className="flex-1" />
             <Button variant="ghost" size="sm" onClick={() => setOpen(false)}>
               {copy.cancel}

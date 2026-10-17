@@ -8,3 +8,9 @@ export const copyButtonContent = {
 export const dialogContent = {
   cancel: 'Cancel',
 } as const
+
+/** The Call / WhatsApp buttons under any customer's contact details. */
+export const contactContent = {
+  call: 'Call',
+  whatsapp: 'WhatsApp',
+} as const

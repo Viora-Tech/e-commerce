@@ -10,7 +10,7 @@ import {
 import { Bar, BarChart, Cell, XAxis, YAxis } from 'recharts'
 import DataCard from '@/components/layout/data-card'
 import { homeContent } from '@/data/home'
-import { INDIAN_STATES, stateName } from '@/data/india'
+import { stateName } from '@/data/india'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 
 type SalesByStateChartProps = {

@@ -20,6 +20,7 @@ import contentFiles from './content-files'
 import createShipment from './create-shipment'
 import customers from './customers'
 import customizeMedia from './customize-media'
+import dateRange from './date-range'
 import dates from './dates'
 import discounts from './discounts'
 import domains from './domains'
@@ -96,6 +97,7 @@ export const hindiCopy: readonly TranslationPair[] = [
   ...domains,
   ...analytics,
   ...discounts,
+  ...dateRange,
   ...filterPanel,
   ...growth,
   ...gstInvoices,
