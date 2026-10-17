@@ -159,6 +159,15 @@ export const accountContent = {
     trackOnSite: 'Track with courier',
     noTracking: 'We will share tracking details as soon as your order ships.',
     noEvents: 'The courier has not reported any scans yet.',
+    /** Figma "Track — cancelled" and "Track — delivery failed / returning". */
+    notices: {
+      cancelled: 'This order was cancelled',
+      cancelledBody:
+        'If you paid online, the refund goes back the way you paid within 5–7 working days.',
+      failed: 'Delivery failed',
+      failedBody:
+        'The courier could not deliver it, so the parcel is on its way back to us. Message us to send it again.',
+    },
     parcels: {
       title: (count: number) => `Ships in ${count} parcels`,
       note: 'Your order comes from more than one warehouse, so it arrives in separate parcels, each with its own invoice.',

@@ -19,6 +19,7 @@ export const cartContent = {
   },
   total: 'Total',
   taxes: 'Inclusive of all taxes.',
+  taxesAtCheckout: 'Taxes included. Shipping and COD fee calculated at checkout.',
   checkout: 'Check out',
   empty: {
     heading: 'Your cart is empty',

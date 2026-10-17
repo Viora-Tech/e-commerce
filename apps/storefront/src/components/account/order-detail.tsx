@@ -94,6 +94,17 @@ export default function OrderDetail({
           {copy.reorderNone}
         </p>
       ) : null}
+      {o.status === 'cancelled' ? (
+        <div className="rounded-xl border border-line px-4 py-3" role="note">
+          <p className="text-body font-medium text-ink">{copy.notices.cancelled}</p>
+          <p className="text-small text-muted">{copy.notices.cancelledBody}</p>
+        </div>
+      ) : o.shipment === 'rto' ? (
+        <div className="rounded-xl border border-danger px-4 py-3 text-danger" role="alert">
+          <p className="text-body font-medium">{copy.notices.failed}</p>
+          <p className="text-small">{copy.notices.failedBody}</p>
+        </div>
+      ) : null}
 
       <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_22rem]">
         <div className="flex flex-col gap-6">
