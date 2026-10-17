@@ -25,23 +25,25 @@ export default function GstTile() {
       body={copy.body}
       className="min-h-[34rem] lg:min-h-[39rem]"
     >
-      <div className="flex flex-col gap-3 rounded-2xl border border-border bg-background p-5">
-        <div className="flex items-center justify-between text-sm">
-          <span className="font-medium text-foreground">{invoice.title}</span>
-          <span className="text-xs text-muted-foreground">{invoice.number}</span>
+      <div className="overflow-hidden rounded-2xl border border-border bg-background">
+        <div className="group-hover:animate-print flex flex-col gap-3 bg-background p-5">
+          <div className="flex items-center justify-between text-sm">
+            <span className="font-medium text-foreground">{invoice.title}</span>
+            <span className="text-xs text-muted-foreground">{invoice.number}</span>
+          </div>
+          <p className="text-xs text-muted-foreground">{invoice.gstin}</p>
+          <hr className="border-border" />
+          <p className="text-eyebrow">{invoice.inState}</p>
+          <AmountRow label={invoice.taxable} amount={invoice.taxableAmount} />
+          <AmountRow label={invoice.cgst.label} amount={invoice.cgst.amount} />
+          <AmountRow label={invoice.sgst.label} amount={invoice.sgst.amount} />
+          <hr className="border-border" />
+          <p className="text-eyebrow">{invoice.outState}</p>
+          <AmountRow label={invoice.taxable} amount={invoice.taxableAmount} />
+          <AmountRow label={invoice.igst.label} amount={invoice.igst.amount} />
+          <hr className="border-border" />
+          <AmountRow label={invoice.total} amount={invoice.totalAmount} strong />
         </div>
-        <p className="text-xs text-muted-foreground">{invoice.gstin}</p>
-        <hr className="border-border" />
-        <p className="text-eyebrow">{invoice.inState}</p>
-        <AmountRow label={invoice.taxable} amount={invoice.taxableAmount} />
-        <AmountRow label={invoice.cgst.label} amount={invoice.cgst.amount} />
-        <AmountRow label={invoice.sgst.label} amount={invoice.sgst.amount} />
-        <hr className="border-border" />
-        <p className="text-eyebrow">{invoice.outState}</p>
-        <AmountRow label={invoice.taxable} amount={invoice.taxableAmount} />
-        <AmountRow label={invoice.igst.label} amount={invoice.igst.amount} />
-        <hr className="border-border" />
-        <AmountRow label={invoice.total} amount={invoice.totalAmount} strong />
       </div>
       <p className="mt-4 inline-flex w-fit items-center gap-2 rounded-md bg-muted px-2 py-1 text-xs text-foreground">
         <span aria-hidden className="size-1.5 rounded-full bg-muted-foreground" />

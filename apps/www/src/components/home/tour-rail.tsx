@@ -10,13 +10,18 @@ import {
   Workflow,
 } from '@commerce/ui/icons'
 import { cn } from '@commerce/ui/lib/utils'
-import type { ComponentType, KeyboardEvent } from 'react'
+import type { ComponentType, KeyboardEvent, RefObject } from 'react'
 import { homeContent, type TourItem } from '@/data/home'
+import IconBadge from '../common/icon-badge'
+import LineReveal from '../common/line-reveal'
 
 type TourRailProps = {
   items: readonly TourItem[]
   active: number
   paused: boolean
+  /** Scroll-driven mode: the progress line follows `progressRef` (set by the scroll hook), not a timer. */
+  pinned: boolean
+  progressRef: RefObject<HTMLSpanElement | null>
   onSelect: (index: number) => void
   /** The active item's progress line finished: advance. */
   onFinished: () => void
@@ -31,7 +36,15 @@ const ICONS: Record<string, ComponentType<{ className?: string }>> = {
   shipping: Truck,
 }
 
-export default function TourRail({ items, active, paused, onSelect, onFinished }: TourRailProps) {
+export default function TourRail({
+  items,
+  active,
+  paused,
+  pinned,
+  progressRef,
+  onSelect,
+  onFinished,
+}: TourRailProps) {
   // Event handlers
   const handleKeyDown = (event: KeyboardEvent<HTMLButtonElement>) => {
     if (event.key !== 'ArrowDown' && event.key !== 'ArrowUp') return
@@ -56,7 +69,7 @@ export default function TourRail({ items, active, paused, onSelect, onFinished }
           <div
             key={item.key}
             className={cn(
-              'relative overflow-hidden rounded-2xl transition-colors duration-(--duration-popover) ease-out',
+              'group relative overflow-hidden rounded-2xl transition-colors duration-(--duration-popover) ease-out',
               selected && 'glass-panel',
             )}
           >
@@ -71,9 +84,9 @@ export default function TourRail({ items, active, paused, onSelect, onFinished }
               onKeyDown={handleKeyDown}
               className="flex w-full items-start gap-4 p-4 text-left outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
             >
-              <span className="grid size-10 shrink-0 place-items-center rounded-xl border border-border bg-muted text-foreground">
-                <Icon className="size-5" />
-              </span>
+              <IconBadge className="shrink-0">
+                <Icon aria-hidden className="size-5" />
+              </IconBadge>
               <span className="flex flex-col gap-1.5">
                 <span
                   className={cn(
@@ -84,7 +97,13 @@ export default function TourRail({ items, active, paused, onSelect, onFinished }
                   {item.title}
                 </span>
                 {selected ? (
-                  <span className="text-sm text-muted-foreground">{item.description}</span>
+                  <LineReveal
+                    key={item.key}
+                    as="span"
+                    className="block text-sm text-muted-foreground"
+                  >
+                    {item.description}
+                  </LineReveal>
                 ) : null}
               </span>
             </button>
@@ -98,12 +117,20 @@ export default function TourRail({ items, active, paused, onSelect, onFinished }
                   <ArrowRight aria-hidden className="size-3.5" />
                 </a>
                 <span aria-hidden className="absolute inset-y-0 left-0 w-0.5 bg-border">
-                  <span
-                    key={active}
-                    data-paused={paused}
-                    onAnimationEnd={onFinished}
-                    className="animate-tour-fill block size-full bg-cta"
-                  />
+                  {pinned ? (
+                    <span
+                      key={active}
+                      ref={progressRef}
+                      className="block size-full origin-top bg-cta"
+                    />
+                  ) : (
+                    <span
+                      key={active}
+                      data-paused={paused}
+                      onAnimationEnd={onFinished}
+                      className="animate-tour-fill block size-full bg-cta"
+                    />
+                  )}
                 </span>
               </>
             ) : null}

@@ -3,6 +3,7 @@ import Hero from '@/components/home/hero'
 import HomeFaq from '@/components/home/home-faq'
 import HomePricing from '@/components/home/home-pricing'
 import IndiaBento from '@/components/home/india-bento'
+import IntegrationsMarquee from '@/components/home/integrations-marquee'
 import ProductTour from '@/components/home/product-tour'
 import Proof from '@/components/home/proof'
 import SellAnything from '@/components/home/sell-anything'
@@ -25,6 +26,7 @@ export default function HomePage() {
       <ProductTour />
       <SellAnything />
       <IndiaBento />
+      <IntegrationsMarquee />
       <ShopifyImport />
       <Proof />
       <HomePricing />

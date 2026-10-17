@@ -3,6 +3,7 @@ import type { Metadata, Viewport } from 'next'
 import { Geist_Mono, Noto_Sans_Devanagari, Plus_Jakarta_Sans } from 'next/font/google'
 import type { ReactNode } from 'react'
 import './globals.css'
+import CursorLight from '@/components/common/cursor-light'
 import ConsentProvider from '@/components/consent/consent-provider'
 import WaitlistProvider from '@/components/waitlist/waitlist-provider'
 
@@ -51,6 +52,7 @@ export default function RootLayout({ children }: RootLayoutProps) {
         >
           Skip to content
         </a>
+        <CursorLight />
         <WaitlistProvider>
           <ConsentProvider>{children}</ConsentProvider>
         </WaitlistProvider>

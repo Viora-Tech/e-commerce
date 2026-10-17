@@ -4,6 +4,7 @@ import { cn } from '@commerce/ui/lib/utils'
 import { Fragment, useState } from 'react'
 import { featuresContent as copy, type FeatureModule } from '@/data/features'
 import ChoiceChip from '../common/choice-chip'
+import IconBadge from '../common/icon-badge'
 import PageContainer from '../common/page-container'
 import FeatureDetail from './feature-detail'
 import { FEATURE_ICONS } from './feature-icons'
@@ -54,14 +55,14 @@ export default function FeatureExplorer() {
                   aria-pressed={isSelected}
                   onClick={() => setSelectedKey(module.key)}
                   className={cn(
-                    'surface-card card-lift flex h-full w-full flex-col items-start gap-3 rounded-2xl p-5 text-left outline-none focus-visible:ring-3 focus-visible:ring-ring/50',
+                    'surface-card spotlight group card-lift flex h-full w-full flex-col items-start gap-3 rounded-2xl p-5 text-left outline-none focus-visible:ring-3 focus-visible:ring-ring/50',
                     isSelected && 'ring-1 ring-foreground',
                   )}
                 >
                   {Icon ? (
-                    <span className="grid size-9 place-items-center rounded-lg border border-border bg-muted">
+                    <IconBadge className="size-9">
                       <Icon aria-hidden className="size-4" />
-                    </span>
+                    </IconBadge>
                   ) : null}
                   <span className="text-lg font-semibold text-foreground">{module.title}</span>
                   <span className="text-sm text-muted-foreground">{module.summary}</span>

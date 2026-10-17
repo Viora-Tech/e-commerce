@@ -1,3 +1,4 @@
+import { Truck_ as Truck } from '@commerce/ui/icons'
 import { cn } from '@commerce/ui/lib/utils'
 import { homeContent } from '@/data/home'
 import BentoTile from './bento-tile'
@@ -49,6 +50,13 @@ export default function CouriersTile() {
           </li>
         ))}
       </ul>
+      <div aria-hidden className="mt-4 flex items-center gap-3 text-xs text-muted-foreground">
+        <span>{copy.route}</span>
+        <span className="relative h-6 flex-1 [container-type:inline-size]">
+          <span className="absolute inset-x-0 top-1/2 border-t border-dashed border-border-strong" />
+          <Truck className="absolute top-0 left-0 size-6 rounded-md bg-card p-1 text-foreground transition-transform duration-[1400ms] ease-(--ease-in-out) group-hover:translate-x-[calc(100cqw-1.5rem)] motion-reduce:transition-none" />
+        </span>
+      </div>
     </BentoTile>
   )
 }

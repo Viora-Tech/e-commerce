@@ -1,6 +1,7 @@
 import { cn } from '@commerce/ui/lib/utils'
 import Eyebrow from './eyebrow'
 import Reveal from './reveal'
+import SplitReveal from './split-text'
 
 type SectionHeadingProps = {
   eyebrow?: string
@@ -29,20 +30,29 @@ export default function SectionHeading({
   className,
 }: SectionHeadingProps) {
   return (
-    <Reveal
+    <div
       className={cn(
         'flex flex-col gap-4',
         align === 'center' ? 'items-center text-center' : 'items-start text-left',
         className,
       )}
     >
-      {eyebrow ? <Eyebrow>{eyebrow}</Eyebrow> : null}
-      <Tag className={cn('font-semibold text-balance text-foreground', SIZE_CLASS[size])}>
-        {title}
-      </Tag>
-      {subtitle ? (
-        <p className="max-w-3xl text-lead text-pretty text-muted-foreground">{subtitle}</p>
+      {eyebrow ? (
+        <Reveal>
+          <Eyebrow>{eyebrow}</Eyebrow>
+        </Reveal>
       ) : null}
-    </Reveal>
+      <SplitReveal
+        as={Tag}
+        className={cn('font-semibold text-balance text-foreground', SIZE_CLASS[size])}
+      >
+        {title}
+      </SplitReveal>
+      {subtitle ? (
+        <Reveal step={2}>
+          <p className="max-w-3xl text-lead text-pretty text-muted-foreground">{subtitle}</p>
+        </Reveal>
+      ) : null}
+    </div>
   )
 }

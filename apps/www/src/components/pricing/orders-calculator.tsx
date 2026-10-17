@@ -43,6 +43,7 @@ export default function OrdersCalculator({
         </div>
         <Slider
           aria-labelledby="orders-label"
+          className="**:data-[slot=slider-thumb]:transition-[scale] **:data-[slot=slider-thumb]:duration-300 **:data-[slot=slider-thumb]:ease-[cubic-bezier(0.34,1.56,0.64,1)] **:data-[slot=slider-thumb]:active:scale-[1.6]"
           min={0}
           max={SLIDER_STEPS}
           step={1}

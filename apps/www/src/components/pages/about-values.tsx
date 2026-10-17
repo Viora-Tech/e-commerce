@@ -1,6 +1,7 @@
 import { AiIcon, CircleCheck, FieldText, Globe, Store } from '@commerce/ui/icons'
 import type { ComponentType } from 'react'
 import { aboutContent as copy } from '@/data/about'
+import IconBadge from '../common/icon-badge'
 import PageContainer from '../common/page-container'
 import Reveal from '../common/reveal'
 import SectionHeading from '../common/section-heading'
@@ -22,13 +23,15 @@ export default function AboutValues() {
           return (
             <Reveal
               as="li"
+              spotlight
+              tilt={3}
               step={index % 2}
               key={item.title}
-              className="surface-card card-lift flex min-h-56 flex-col justify-end gap-3 rounded-3xl p-7"
+              className="surface-card group flex min-h-56 flex-col justify-end gap-3 rounded-3xl p-7"
             >
-              <span className="mb-auto grid size-11 place-items-center rounded-xl border border-border bg-muted">
+              <IconBadge className="mb-auto size-11">
                 <Icon aria-hidden className="size-5" />
-              </span>
+              </IconBadge>
               <h3 className="text-2xl font-semibold text-foreground">{item.title}</h3>
               <p className="text-sm text-muted-foreground">{item.body}</p>
             </Reveal>

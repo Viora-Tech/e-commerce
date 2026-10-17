@@ -16,7 +16,7 @@ export default function CodTile() {
         <div className="flex max-w-[18.75rem] flex-col gap-3 rounded-xl bg-muted p-3.5 text-sm text-foreground">
           <p>{copy.message}</p>
           <div className="flex gap-2">
-            <span className="rounded-md border border-border bg-background px-2.5 py-1 text-xs font-medium">
+            <span className="rounded-md border border-border bg-background px-2.5 py-1 text-xs font-medium transition-colors duration-300 group-hover:border-success group-hover:text-success">
               {copy.confirm}
             </span>
             <span className="rounded-md border border-border bg-background px-2.5 py-1 text-xs font-medium">
@@ -24,7 +24,7 @@ export default function CodTile() {
             </span>
           </div>
         </div>
-        <p className="inline-flex w-fit items-center gap-2 rounded-md border border-border px-2 py-1 text-xs text-success">
+        <p className="inline-flex w-fit translate-y-1 items-center gap-2 rounded-md border border-border px-2 py-1 text-xs text-success opacity-0 transition-[opacity,translate] delay-200 duration-500 ease-(--ease-out) group-hover:translate-y-0 group-hover:opacity-100 motion-reduce:opacity-100 motion-reduce:transition-none">
           <WhatsappLogo aria-hidden className="size-3.5" />
           {copy.confirmed}
         </p>

@@ -5,6 +5,7 @@ import { buttonVariants } from '@commerce/ui/shadcn/button'
 import type { ReactNode } from 'react'
 import { siteContent } from '@/data/site'
 import { ctaClass } from '@/lib/cta'
+import Magnetic from '../common/magnetic'
 import { useWaitlist } from './waitlist-context'
 
 type JoinWaitlistButtonProps = {
@@ -33,10 +34,12 @@ export default function JoinWaitlistButton({
       ? ctaClass(size, className)
       : buttonVariants({ variant: 'outline', size: 'lg', className })
 
-  return (
+  const button = (
     <button type="button" className={classes} onClick={() => openWaitlist()}>
       {children ?? siteContent.joinWaitlist}
       {arrow ? <ArrowRight aria-hidden /> : null}
     </button>
   )
+
+  return variant === 'cta' && size !== 'sm' ? <Magnetic>{button}</Magnetic> : button
 }

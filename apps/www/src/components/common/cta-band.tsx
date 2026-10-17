@@ -5,6 +5,7 @@ import { buttonVariants } from '@commerce/ui/shadcn/button'
 import JoinWaitlistButton from '../waitlist/join-waitlist-button'
 import PageContainer from './page-container'
 import Reveal from './reveal'
+import SplitReveal from './split-text'
 
 type CtaBandProps = {
   title: string
@@ -27,14 +28,16 @@ export default function CtaBand({ title, body, emailLabel, inline = false }: Cta
         )}
       >
         <div className={cn('flex flex-col gap-3', inline ? 'items-start' : 'items-center')}>
-          <h2
+          <SplitReveal
+            as="h2"
+            scrub={!inline}
             className={cn(
               'font-semibold text-balance text-foreground',
               inline ? 'text-3xl md:text-subsection' : 'text-4xl md:text-display',
             )}
           >
             {title}
-          </h2>
+          </SplitReveal>
           {body ? <p className="text-sm text-muted-foreground">{body}</p> : null}
         </div>
         <div className={cn('flex flex-col gap-3 sm:flex-row', inline ? 'sm:shrink-0' : null)}>

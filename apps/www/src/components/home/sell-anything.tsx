@@ -2,6 +2,7 @@ import { Clock, Download, Package_ as Package, RefreshCw } from '@commerce/ui/ic
 import type { ComponentType } from 'react'
 import { homeContent } from '@/data/home'
 import AmbientLight from '../common/ambient-light'
+import IconBadge from '../common/icon-badge'
 import PageContainer from '../common/page-container'
 import Reveal from '../common/reveal'
 import SectionHeading from '../common/section-heading'
@@ -27,13 +28,15 @@ export default function SellAnything() {
             return (
               <Reveal
                 as="li"
+                spotlight
+                tilt={4}
                 step={index}
                 key={card.title}
-                className="surface-card card-lift flex flex-col gap-3 rounded-3xl p-6"
+                className="surface-card group flex flex-col gap-3 rounded-3xl p-6"
               >
-                <span className="mb-3 grid size-10 place-items-center rounded-xl border border-border bg-muted text-foreground">
+                <IconBadge className="mb-3">
                   <Icon aria-hidden className="size-5" />
-                </span>
+                </IconBadge>
                 <h3 className="text-lg font-semibold text-foreground">{card.title}</h3>
                 <p className="text-sm text-muted-foreground">{card.body}</p>
               </Reveal>

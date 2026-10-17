@@ -9,6 +9,7 @@ import {
 } from '@commerce/ui/icons'
 import { buttonVariants } from '@commerce/ui/shadcn/button'
 import type { ComponentType } from 'react'
+import IconBadge from '@/components/common/icon-badge'
 import PageContainer from '@/components/common/page-container'
 import Reveal from '@/components/common/reveal'
 import SectionHeading from '@/components/common/section-heading'
@@ -61,13 +62,15 @@ export default function SecurityPage() {
             return (
               <Reveal
                 as="li"
+                spotlight
+                tilt={3}
                 step={index % 3}
                 key={item.key}
-                className="surface-card card-lift flex flex-col gap-3 rounded-3xl p-6"
+                className="surface-card group flex flex-col gap-3 rounded-3xl p-6"
               >
-                <span className="mb-3 grid size-10 place-items-center rounded-xl border border-border bg-muted">
+                <IconBadge className="mb-3">
                   <Icon aria-hidden className="size-5" />
-                </span>
+                </IconBadge>
                 <h3 className="text-lg font-semibold text-foreground">{item.title}</h3>
                 <p className="text-sm text-muted-foreground">{item.body}</p>
               </Reveal>

@@ -1,3 +1,4 @@
+import { CircleCheck } from '@commerce/ui/icons'
 import Image from 'next/image'
 import { homeContent } from '@/data/home'
 import BentoTile from './bento-tile'
@@ -24,6 +25,13 @@ export default function PaymentsTile() {
           aria-hidden
           className="absolute inset-x-0 bottom-0 h-1/3 bg-gradient-to-t from-card to-transparent"
         />
+        <p
+          aria-hidden
+          className="glass-panel absolute inset-x-0 bottom-5 mx-auto flex w-fit translate-y-3 items-center gap-2 rounded-full px-4 py-2 text-sm font-medium text-foreground opacity-0 transition-[opacity,translate] duration-500 ease-(--ease-out) group-hover:translate-y-0 group-hover:opacity-100 motion-reduce:transition-none"
+        >
+          <CircleCheck className="size-4 text-success" />
+          {copy.confirmed}
+        </p>
       </div>
       <ul className="mt-5 flex gap-2">
         {copy.methods.map((method) => (

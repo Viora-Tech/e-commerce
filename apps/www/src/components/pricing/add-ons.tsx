@@ -6,6 +6,7 @@ import {
 } from '@commerce/ui/icons'
 import type { ComponentType } from 'react'
 import { pricingContent } from '@/data/pricing'
+import IconBadge from '../common/icon-badge'
 import PageContainer from '../common/page-container'
 import Reveal from '../common/reveal'
 import SectionHeading from '../common/section-heading'
@@ -28,13 +29,15 @@ export default function AddOns() {
           return (
             <Reveal
               as="li"
+              spotlight
+              tilt={3}
               step={index}
               key={item.title}
-              className="surface-card card-lift flex flex-col gap-4 rounded-3xl p-6"
+              className="surface-card group flex flex-col gap-4 rounded-3xl p-6"
             >
-              <span className="grid size-10 place-items-center rounded-xl border border-border bg-muted">
+              <IconBadge className="mb-0">
                 <Icon aria-hidden className="size-5" />
-              </span>
+              </IconBadge>
               <div>
                 <h3 className="text-lg font-semibold text-foreground">{item.title}</h3>
                 <p className="mt-1 text-sm text-muted-foreground">{item.body}</p>

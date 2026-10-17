@@ -26,13 +26,13 @@
   --text-hero--line-height: 1.02;
   --text-hero--letter-spacing: -0.045em;
   --text-display: 3.75rem;
-  --text-display--line-height: 1.05;
+  --text-display--line-height: 1.12;
   --text-display--letter-spacing: -0.04em;
   --text-section: 2.75rem;
-  --text-section--line-height: 1.1;
+  --text-section--line-height: 1.16;
   --text-section--letter-spacing: -0.035em;
   --text-subsection: 2rem;
-  --text-subsection--line-height: 1.15;
+  --text-subsection--line-height: 1.22;
   --text-subsection--letter-spacing: -0.03em;
   --text-lead: 1.1875rem;
   --text-lead--line-height: 1.6;
@@ -170,22 +170,160 @@
   }
 }
 
-/* Scroll reveal: fade and rise once, children staggered with --reveal-delay classes. */
+/* Scroll reveal: fade and rise once (opacity and translate only), children staggered. */
 @utility reveal {
   opacity: 0;
-  transform: translateY(1.25rem);
+  translate: 0 1.25rem;
   transition:
-    opacity 600ms var(--ease-out),
-    transform 600ms var(--ease-out);
-  transition-delay: var(--reveal-delay, 0ms);
+    opacity 700ms var(--ease-out),
+    translate 700ms var(--ease-out),
+    transform 300ms var(--ease-out);
+  transition-delay: var(--reveal-delay, 0ms), var(--reveal-delay, 0ms), 0ms;
   &[data-revealed="true"] {
     opacity: 1;
-    transform: none;
+    translate: 0 0;
   }
   @media (prefers-reduced-motion: reduce) {
     opacity: 1;
-    transform: none;
+    translate: none;
     transition: none;
+  }
+}
+
+/* Cursor spotlight: a soft grey-white light and border glow that follow the pointer (--mx, --my). */
+@utility spotlight {
+  position: relative;
+  isolation: isolate;
+  &::before,
+  &::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 300ms var(--ease-out);
+  }
+  &::before {
+    z-index: -1;
+    background: radial-gradient(
+      22rem circle at var(--mx, 50%) var(--my, 50%),
+      rgb(255 255 255 / 0.07),
+      transparent 65%
+    );
+  }
+  &::after {
+    padding: 1px;
+    background: radial-gradient(
+      14rem circle at var(--mx, 50%) var(--my, 50%),
+      rgb(255 255 255 / 0.55),
+      transparent 70%
+    );
+    -webkit-mask:
+      linear-gradient(#000 0 0) content-box,
+      linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+    mask:
+      linear-gradient(#000 0 0) content-box exclude,
+      linear-gradient(#000 0 0);
+  }
+  &:hover::before,
+  &:hover::after {
+    opacity: 1;
+  }
+}
+
+/* A light sheen that sweeps across primary buttons on hover. */
+@utility sheen {
+  position: relative;
+  overflow: hidden;
+  &::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+      105deg,
+      transparent 35%,
+      rgb(255 255 255 / 0.35) 50%,
+      transparent 65%
+    );
+    translate: -120% 0;
+    pointer-events: none;
+  }
+  &:hover::after {
+    translate: 120% 0;
+    transition: translate 700ms var(--ease-out);
+  }
+  @media (prefers-reduced-motion: reduce) {
+    &::after {
+      display: none;
+    }
+  }
+}
+
+/* Icon wiggle on hover of the card (or the icon's own group). */
+@keyframes wiggle {
+  0%,
+  100% {
+    rotate: 0deg;
+  }
+  25% {
+    rotate: -8deg;
+  }
+  60% {
+    rotate: 6deg;
+  }
+}
+@utility animate-wiggle {
+  animation: wiggle 500ms var(--ease-out);
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+  }
+}
+
+/* Integrations marquee. */
+@keyframes marquee {
+  to {
+    translate: -50% 0;
+  }
+}
+@utility animate-marquee {
+  animation: marquee 38s linear infinite;
+  &:hover {
+    animation-play-state: paused;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+  }
+}
+
+/* Bento illustrations that play once on card hover. */
+@keyframes invoice-print {
+  from {
+    translate: 0 -100%;
+  }
+  to {
+    translate: 0 0;
+  }
+}
+@utility animate-print {
+  animation: invoice-print 900ms var(--ease-out);
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+  }
+}
+
+/* Route change: the new page fades up. */
+@keyframes page-in {
+  from {
+    opacity: 0;
+    translate: 0 0.5rem;
+  }
+}
+@utility animate-page-in {
+  animation: page-in 400ms var(--ease-out);
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
   }
 }
 

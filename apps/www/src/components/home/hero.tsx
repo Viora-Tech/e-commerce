@@ -4,6 +4,7 @@ import { waitlistContent } from '@/data/waitlist'
 import AmbientLight from '../common/ambient-light'
 import GlobeView from '../globe/globe-view'
 import HeroEmailCapture from '../waitlist/hero-email-capture'
+import HeroBackdrop from './hero-backdrop'
 import HeroFloats from './hero-floats'
 
 const copy = homeContent.hero
@@ -11,6 +12,7 @@ const copy = homeContent.hero
 export default function Hero() {
   return (
     <section className="relative isolate -mt-[4.5rem] min-h-[50.625rem] overflow-hidden pt-32 md:h-[62.5rem] md:pt-[9.375rem]">
+      <HeroBackdrop />
       <AmbientLight className="-top-40 -left-40 h-72 w-96" />
       <AmbientLight className="-top-40 -right-40 h-72 w-96" />
       <AmbientLight className="top-[37.5rem] -right-20 h-[22.5rem] w-[32.5rem]" />

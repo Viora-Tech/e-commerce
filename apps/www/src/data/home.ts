@@ -186,6 +186,7 @@ export const homeContent = {
       title: 'UPI-first checkout',
       body: 'UPI on top, then cards, EMI, netbanking and cash on delivery — in a checkout themes can’t break.',
       alt: 'The checkout with UPI selected and a QR code',
+      confirmed: 'Payment confirmed · ₹2,499',
       methods: ['UPI', 'Cards', 'EMI', 'COD'],
     },
     gst: {
@@ -213,6 +214,7 @@ export const homeContent = {
       title: 'Ship with Delhivery, Shiprocket and RapidShyp',
       body: 'Compare rates and book a pickup from the order.',
       badge: 'PIN 560038 serviceable',
+      route: 'Pickup to delivery',
       options: [
         {
           code: 'DL',
@@ -244,6 +246,7 @@ export const homeContent = {
       body: 'Switch any time. Same store, same data.',
       english: { title: '4 items low on stock', body: 'Restock soon so they keep selling.' },
       hindi: { title: '4 आइटम का स्टॉक कम', body: 'जल्दी रीस्टॉक करें ताकि ये बिकते रहें।' },
+      toggle: ['EN', 'हि'],
     },
     cod: {
       eyebrow: 'Cash on delivery',
@@ -265,12 +268,28 @@ export const homeContent = {
       ],
     },
   },
+  integrations: {
+    eyebrow: 'Works with the tools you already use',
+    // Plain text marks only: no brand artwork.
+    items: [
+      'Razorpay',
+      'Cashfree',
+      'Decentro',
+      'UPI',
+      'Delhivery',
+      'Shiprocket',
+      'RapidShyp',
+      'WhatsApp',
+      'Shopify',
+    ],
+  },
   shopify: {
     eyebrow: 'Bring your Shopify theme',
     title: 'Upload your theme. Keep your look.',
     subtitle:
       'Upload the theme zip Shopify emails you. We copy the look exactly and run every function on our own cart, checkout, GST and couriers — and tell you in plain words what changed.',
     zip: 'theme.zip',
+    files: ['sections/', 'templates/', 'assets/'],
     before: { caption: 'On Shopify', url: 'waimers.myshopify.com' },
     after: { caption: `On ${brand} — same look`, url: `waimers.${siteConfig.brand.domain}` },
     store: {

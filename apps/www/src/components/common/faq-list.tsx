@@ -29,7 +29,9 @@ export default function FaqList({ items, defaultOpen, className }: FaqListProps)
             />
           </AccordionTrigger>
           <AccordionContent className="pb-6 text-base text-pretty text-muted-foreground">
-            {item.answer}
+            <span className="block translate-y-2 opacity-0 transition-[opacity,translate] delay-100 duration-500 ease-(--ease-out) in-data-open:translate-y-0 in-data-open:opacity-100 motion-reduce:translate-y-0 motion-reduce:opacity-100">
+              {item.answer}
+            </span>
           </AccordionContent>
         </AccordionItem>
       ))}

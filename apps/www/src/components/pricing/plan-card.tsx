@@ -22,8 +22,10 @@ export default function PlanCard({ plan, badge, upTo = false, step = 0 }: PlanCa
     <Reveal
       as="article"
       step={step}
+      spotlight
+      tilt={3}
       className={cn(
-        'surface-card card-lift flex flex-col gap-6 rounded-3xl p-7',
+        'surface-card group flex flex-col gap-6 rounded-3xl p-7',
         plan.popular && 'border border-cta',
       )}
     >
