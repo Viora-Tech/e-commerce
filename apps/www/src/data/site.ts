@@ -4,7 +4,6 @@ const docs = siteConfig.urls.docs
 
 export const siteContent = {
   brand: siteConfig.brand.name,
-  mark: siteConfig.brand.name.charAt(0),
   tagline: siteConfig.brand.tagline,
   supportEmail: siteConfig.contact.supportEmail,
   navLinks: [
