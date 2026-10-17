@@ -16,7 +16,6 @@ import { api } from '@/lib/api-client'
 import { routes } from '@/lib/routes'
 import AddThemeDialog from './add-theme-dialog'
 import CurrentThemeCard from './current-theme-card'
-import OnlineStoreTabs from './online-store-tabs'
 import RenameThemeDialog from './rename-theme-dialog'
 import type { ThemeAction } from './theme-actions-menu'
 import ThemeLibraryRow from './theme-library-row'
@@ -174,7 +173,6 @@ export default function ThemesLibrary({
           </>
         }
       />
-      <OnlineStoreTabs active="themes" />
       {live ? (
         <CurrentThemeCard
           theme={live}

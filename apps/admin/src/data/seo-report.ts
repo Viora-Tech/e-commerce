@@ -17,6 +17,11 @@ export const seoReportContent = {
       `Checked ${products} live products, ${collections} collections and ${pages} published pages.`,
     counts: (high: number, medium: number, low: number) =>
       `${high} high impact · ${medium} medium · ${low} low`,
+    high: (n: number) => `${n} high impact`,
+    medium: (n: number) => `${n} medium`,
+    low: (n: number) => `${n} low`,
+    issues: (n: number) => (n === 1 ? 'issue' : 'issues'),
+    resources: { product: 'Products', collection: 'Collections', page: 'Pages', menu: 'Menus' },
   },
   fix: {
     heading: 'Fix with AI',

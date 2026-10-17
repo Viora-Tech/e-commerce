@@ -20,6 +20,11 @@ export default [
         `${products} लाइव प्रोडक्ट, ${collections} कलेक्शन और ${pages} पब्लिश पेज जांचे गए।`,
       counts: (high: number, medium: number, low: number) =>
         `${high} ज़्यादा असर · ${medium} मध्यम · ${low} कम`,
+      high: (n: number) => `${n} ज़्यादा असर`,
+      medium: (n: number) => `${n} मध्यम`,
+      low: (n: number) => `${n} कम`,
+      issues: () => 'समस्याएँ',
+      resources: { product: 'प्रोडक्ट', collection: 'कलेक्शन', page: 'पेज', menu: 'मेन्यू' },
     },
     fix: {
       heading: 'AI से ठीक करें',

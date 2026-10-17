@@ -3,13 +3,11 @@
 import type { SeoReport } from '@commerce/core'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
+import PageBody from '@/components/layout/page-body'
 import PageHeader from '@/components/layout/page-header'
 import BulkWriteSheet from '@/components/products/bulk-write/bulk-write-sheet'
-import OnlineStoreTabs from '@/components/themes/online-store-tabs'
 import { seoReportContent } from '@/data/seo-report'
-import { themesContent } from '@/data/themes'
 import { useCopy } from '@/hooks/use-copy'
-import { routes } from '@/lib/routes'
 import SeoFixCard, { type SeoFixField } from './seo-fix-card'
 import SeoIssuesCard from './seo-issues-card'
 import SeoScoreCard from './seo-score-card'
@@ -27,7 +25,6 @@ export default function SeoReportPage({ report, aiBulk }: SeoReportPageProps) {
   // Hooks
   const router = useRouter()
   const copy = useCopy(seoReportContent)
-  const tabs = useCopy(themesContent.tabs)
   const [writing, setWriting] = useState<SeoFixField | null>(null)
 
   // Event handlers
@@ -41,13 +38,8 @@ export default function SeoReportPage({ report, aiBulk }: SeoReportPageProps) {
   const productIds = writing ? report.fixable[writing].slice(0, AI_RUN_MAX) : null
 
   return (
-    <>
-      <PageHeader
-        title={copy.title}
-        subtitle={copy.subtitle}
-        back={{ href: routes.onlineStore.home(), label: tabs.label }}
-      />
-      <OnlineStoreTabs active="seo" />
+    <PageBody className="gap-6 md:py-8">
+      <PageHeader title={copy.title} subtitle={copy.subtitle} />
       <div className="grid gap-4 md:grid-cols-2">
         <SeoScoreCard report={report} />
         <SeoFixCard
@@ -69,6 +61,6 @@ export default function SeoReportPage({ report, aiBulk }: SeoReportPageProps) {
           onApplied={() => router.refresh()}
         />
       ) : null}
-    </>
+    </PageBody>
   )
 }

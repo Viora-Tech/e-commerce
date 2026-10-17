@@ -1,7 +1,7 @@
 import { describeDiscountValue } from '@commerce/core/discounts'
 import OrderChip from '@/components/orders/order-chip'
 import type { ResourceColumnSpec } from '@/components/table/resource-table'
-import type { DiscountLifecycle, discountsContent } from '@/data/discounts'
+import type { discountsContent } from '@/data/discounts'
 import type { api } from '@/lib/api-client'
 import type { Formatters } from '@/lib/format'
 

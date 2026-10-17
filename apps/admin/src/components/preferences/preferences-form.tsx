@@ -13,7 +13,6 @@ import PageHeader from '@/components/layout/page-header'
 import SaveBar from '@/components/layout/save-bar'
 import SettingsCard from '@/components/settings/settings-card'
 import SettingsToggleRow from '@/components/settings/settings-toggle-row'
-import OnlineStoreTabs from '@/components/themes/online-store-tabs'
 import { preferencesContent as copy } from '@/data/preferences'
 import { themesContent } from '@/data/themes'
 import { useCopy } from '@/hooks/use-copy'
@@ -92,7 +91,6 @@ export default function PreferencesForm({ initial }: PreferencesFormProps) {
         back={{ href: routes.onlineStore.home(), label: tabs.label }}
         save={{ dirty, saving: busy, onSave: handleSave, label: copy.save }}
       />
-      <OnlineStoreTabs active="preferences" />
 
       <SettingsCard title={copy.seo.heading} description={copy.seo.body}>
         <TextSetting
