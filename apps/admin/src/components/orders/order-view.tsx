@@ -9,6 +9,7 @@ import { type OrderMark, orderDetailContent, ordersContent } from '@/data/orders
 import { shipmentPanelContent } from '@/data/shipping'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { orderChannel } from '@/lib/order-channel'
 import { routes } from '@/lib/routes'
 import CollectPaymentDialog from './collect-payment-dialog'
 import CustomerCard from './customer-card'
@@ -35,6 +36,7 @@ import ParcelsCard from './parcels-card'
 import PaymentCard from './payment-card'
 import ProfitCard from './profit-card'
 import RefundDialog from './refund-dialog'
+import SalesChannelCard from './sales-channel-card'
 import ShipmentPanel from './shipment-panel'
 import TagsCard from './tags-card'
 import TimelineCard from './timeline-card'
@@ -137,6 +139,7 @@ export default function OrderView({ order, appCards = [], back }: OrderViewProps
     )
 
   // Render logic
+  const soldThrough = orderChannel(order.attribution)
   const payment = primaryPayment(order.payments)
   const pay = paymentStatus(payment, order.refunds)
   const remaining = refunding
@@ -249,6 +252,13 @@ export default function OrderView({ order, appCards = [], back }: OrderViewProps
       }
       side={
         <>
+          {soldThrough ? (
+            <SalesChannelCard
+              channel={soldThrough}
+              cameFrom={order.attribution?.referrer ?? order.attribution?.source ?? null}
+              campaign={order.attribution?.campaign ?? null}
+            />
+          ) : null}
           <CustomerCard order={order} />
           {readOnly ? null : (
             <ProfitCard

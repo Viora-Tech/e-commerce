@@ -5,8 +5,10 @@ import { type ReactNode, useEffect, useState } from 'react'
 import PageHeader from '@/components/layout/page-header'
 import StatusChip from '@/components/layout/status-chip'
 import { orderDetailContent, ordersContent } from '@/data/orders'
+import { salesChannelsContent } from '@/data/sales-channels'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { orderChannel } from '@/lib/order-channel'
 import { routes } from '@/lib/routes'
 import OrderChip from './order-chip'
 import { methodLabel, type OrderDetail } from './order-detail-types'
@@ -43,6 +45,7 @@ export default function OrderHeader({ order, actions, back }: OrderHeaderProps) 
   }, [order.id])
 
   // Render logic
+  const soldThrough = orderChannel(order.attribution)
   /* Open is the everyday state; only a closed order earns its own lifecycle chip. */
   const closed = order.status !== 'open'
   /* Figma: a paid order nobody has shipped yet reads "To ship" (blue), as in the list. */
@@ -65,6 +68,11 @@ export default function OrderHeader({ order, actions, back }: OrderHeaderProps) 
             ) : (
               <OrderChip kind="fulfilment" value={order.fulfillmentStatus} />
             )}
+            {soldThrough ? (
+              <StatusChip tone="neutral" variant="outline">
+                {salesChannelsContent.orderCard.via(soldThrough.name)}
+              </StatusChip>
+            ) : null}
           </>
         }
         summary={

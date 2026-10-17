@@ -1,9 +1,15 @@
 'use client'
 
-import type { AiAgent, ChannelState } from '@commerce/core/sales-channels'
+import {
+  type AiAgent,
+  type ChannelState,
+  isLive,
+  needsReconnect,
+} from '@commerce/core/sales-channels'
 import KitButton from '@/components/kit/kit-button'
 import { salesChannelsContent } from '@/data/sales-channels'
 import { useCopy, useFormat } from '@/hooks/use-copy'
+import { channelAction, chipStatus } from '@/lib/channel-status'
 import ChannelLogo from './channel-logo'
 import ChannelStatusChip from './channel-status-chip'
 
@@ -29,12 +35,13 @@ export default function AgentCard({
   const format = useFormat()
 
   // Render logic
-  const requested = state.status === 'requested'
+  const action = channelAction(state)
+  const visible = isLive(state) ? (state.sync.sent ?? state.sync.total) : null
   return (
     <article className="flex flex-col gap-4 rounded-lg border border-border bg-card bg-[image:var(--card-surface)] p-4 shadow-[var(--shadow-card)]">
       <div className="flex items-start justify-between gap-2">
         <ChannelLogo channel={agent} />
-        <ChannelStatusChip status={requested ? 'requested' : 'not_connected'} />
+        <ChannelStatusChip status={chipStatus(state)} />
       </div>
       <div className="flex flex-1 flex-col gap-1">
         <h3 className="text-[0.9375rem] font-semibold text-ink-strong">{info.name}</h3>
@@ -43,8 +50,10 @@ export default function AgentCard({
       <dl className="grid grid-cols-2 gap-2 text-caption">
         <div>
           <dt className="text-muted-foreground">{copy.productsVisible}</dt>
-          {/* Nothing is visible to an agent before it is approved. */}
-          <dd className="font-medium text-foreground tabular-nums">{copy.none}</dd>
+          {/* Nothing is visible to an agent before it is approved, or while access is lost. */}
+          <dd className="font-medium text-foreground tabular-nums">
+            {visible != null && !needsReconnect(state) ? format.number(visible) : copy.none}
+          </dd>
         </div>
         <div>
           <dt className="text-muted-foreground">{copy.orders30}</dt>
@@ -53,13 +62,13 @@ export default function AgentCard({
           </dd>
         </div>
       </dl>
-      {requested ? (
+      {action === 'view_request' || action === 'manage' ? (
         <KitButton variant="secondary" className="w-full" onClick={onViewRequest}>
-          {copy.viewRequest}
+          {action === 'manage' ? copy.manage : copy.viewRequest}
         </KitButton>
       ) : (
         <KitButton className="w-full" onClick={onConnect}>
-          {copy.connect}
+          {action === 'reconnect' ? copy.reconnect : copy.connect}
         </KitButton>
       )}
     </article>

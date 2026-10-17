@@ -73,18 +73,59 @@ export function channelOfAttribution(
 export const AGENT_SHARES = ['catalog', 'prices', 'policies', 'orders', 'marketing'] as const
 export type AgentShare = (typeof AGENT_SHARES)[number]
 
+/**
+ * Where a channel's connection stands. `requested`: Connect is done and the platform (Meta,
+ * Google, OpenAI) has not approved it yet, so nothing is shared. After approval the
+ * integration moves it through `first_sync` → `connected`, with `syncing` while it sends,
+ * `error` when a sync fails, `expired` when the platform's access lapsed, `disconnected` when
+ * the merchant or the platform ended it, and `paused` when listings were paused on purpose.
+ */
+export const CHANNEL_STATUSES = [
+  'not_connected',
+  'requested',
+  'first_sync',
+  'connected',
+  'syncing',
+  'error',
+  'expired',
+  'disconnected',
+  'paused',
+] as const
+export type ChannelConnection = (typeof CHANNEL_STATUSES)[number]
+
+/** The last sync, as the integration reports it; every field is optional until one ran. */
+const ChannelSyncSchema = z.object({
+  /** Products sent so far in the current or last sync, and how many it is sending. */
+  sent: z.number().int().min(0).nullable().catch(null),
+  total: z.number().int().min(0).nullable().catch(null),
+  startedAt: z.string().nullable().catch(null),
+  /** When it last tried (a failed sync still counts). */
+  lastTriedAt: z.string().nullable().catch(null),
+  /** When access lapsed or the connection ended, for "Access was removed on 13 Oct". */
+  endedAt: z.string().nullable().catch(null),
+  /** The platform's own words for a failure, when it gave any. */
+  message: z.string().max(300).nullable().catch(null),
+})
+export type ChannelSync = z.infer<typeof ChannelSyncSchema>
+
+const EMPTY_SYNC: ChannelSync = {
+  sent: null,
+  total: null,
+  startedAt: null,
+  lastTriedAt: null,
+  endedAt: null,
+  message: null,
+}
+
 const ChannelStateSchema = z.object({
-  /**
-   * `requested`: the merchant finished Connect and the platform (or Meta, Google, OpenAI) has
-   * not approved it yet. Only an approved connection can sync, so nothing is shared before.
-   */
-  status: z.enum(['not_connected', 'requested']).catch('not_connected'),
+  status: z.enum(CHANNEL_STATUSES).catch('not_connected'),
   requestedAt: z.string().nullable().catch(null),
   shares: z.array(z.enum(AGENT_SHARES)).catch([]),
   /** The account picked in Connect (an Instagram handle, a WhatsApp number). */
   account: z.string().max(120).nullable().catch(null),
   /** Social channels: every active product, or only collections picked after approval. */
   catalog: z.enum(['all', 'collections']).catch('all'),
+  sync: ChannelSyncSchema.catch(EMPTY_SYNC),
 })
 export type ChannelState = z.infer<typeof ChannelStateSchema>
 
@@ -94,7 +135,16 @@ export const NOT_CONNECTED: ChannelState = {
   shares: [],
   account: null,
   catalog: 'all',
+  sync: EMPTY_SYNC,
 }
+
+/** The connection needs the merchant: a failed sync, lapsed access or an ended connection. */
+export const needsReconnect = (s: ChannelState): boolean =>
+  s.status === 'error' || s.status === 'expired' || s.status === 'disconnected'
+
+/** Approved and live in some form, so the channel can show products and take orders. */
+export const isLive = (s: ChannelState): boolean =>
+  s.status !== 'not_connected' && s.status !== 'requested'
 
 /** Figma "Agent controls": what agents may show, at what price, and how shoppers pay. */
 export const AgentControlsSchema = z.object({

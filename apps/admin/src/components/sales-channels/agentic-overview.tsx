@@ -1,7 +1,13 @@
 'use client'
 
 import type { AgenticOverview } from '@commerce/core'
-import { AI_AGENTS, type AiAgent, type ChannelState } from '@commerce/core/sales-channels'
+import {
+  AI_AGENTS,
+  type AiAgent,
+  type ChannelState,
+  isLive,
+  needsReconnect,
+} from '@commerce/core/sales-channels'
 import { AgenticSales, PlugConnect, SlidersHorizontal } from '@commerce/ui/icons'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
@@ -16,6 +22,7 @@ import { useCopy, useFormat } from '@/hooks/use-copy'
 import { routes } from '@/lib/routes'
 import { percent } from '@/lib/stats'
 import AgentCard from './agent-card'
+import ChannelBar from './channel-bar'
 import ChannelOrdersCard from './channel-orders-card'
 import ConnectAgentDialog from './connect-agent-dialog'
 import RequestDialog from './request-dialog'
@@ -40,6 +47,12 @@ export default function AgenticOverviewPage({ data }: AgenticOverviewPageProps) 
   >
   const requested = data.agents.filter((a) => a.state.status === 'requested')
   const viewed = viewing ? states[viewing] : null
+  // The bar speaks for the agent that most needs a look: lost access, then a running sync.
+  const featured =
+    data.agents.find((a) => needsReconnect(a.state)) ??
+    data.agents.find((a) => a.state.status === 'syncing' || a.state.status === 'first_sync') ??
+    data.agents.find((a) => isLive(a.state))
+  const anyActive = data.agents.some((a) => a.state.status !== 'not_connected')
   const { totals, products, readiness } = data
 
   return (
@@ -60,7 +73,14 @@ export default function AgenticOverviewPage({ data }: AgenticOverviewPageProps) 
           </>
         }
       />
-      {requested.length > 0 ? (
+      {featured ? (
+        <ChannelBar
+          state={featured.state}
+          name={shared.agents[featured.agent].name}
+          onReconnect={() => setConnecting({ agent: featured.agent })}
+          onWithdraw={() => setViewing(featured.agent)}
+        />
+      ) : requested.length > 0 ? (
         <SyncStatusBar
           tone="pending"
           title={shared.bar.requested(requested.map((a) => shared.agents[a.agent].name).join(', '))}
@@ -97,7 +117,7 @@ export default function AgenticOverviewPage({ data }: AgenticOverviewPageProps) 
           },
         ]}
       />
-      {requested.length === 0 ? (
+      {!anyActive ? (
         <EmptyState
           variant="section"
           className="rounded-lg border border-border bg-card bg-[image:var(--card-surface)] shadow-[var(--shadow-card)]"
@@ -121,7 +141,11 @@ export default function AgenticOverviewPage({ data }: AgenticOverviewPageProps) 
               state={states[agent]}
               orders={data.agents.find((a) => a.agent === agent)?.orders ?? 0}
               onConnect={() => setConnecting({ agent })}
-              onViewRequest={() => setViewing(agent)}
+              onViewRequest={() =>
+                isLive(states[agent])
+                  ? router.push(routes.salesChannels.agenticControls())
+                  : setViewing(agent)
+              }
             />
           ))}
         </div>

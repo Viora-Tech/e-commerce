@@ -1,7 +1,13 @@
 'use client'
 
 import type { SocialOverview } from '@commerce/core'
-import type { ReadinessIssue, ReadinessRule, SocialChannel } from '@commerce/core/sales-channels'
+import {
+  isLive,
+  needsReconnect,
+  type ReadinessIssue,
+  type ReadinessRule,
+  type SocialChannel,
+} from '@commerce/core/sales-channels'
 import { PlugConnect } from '@commerce/ui/icons'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
@@ -15,15 +21,16 @@ import PageHeader from '@/components/layout/page-header'
 import StatStrip from '@/components/layout/stat-strip'
 import { salesChannelsContent } from '@/data/sales-channels'
 import { useCopy, useFormat } from '@/hooks/use-copy'
+import { chipStatus } from '@/lib/channel-status'
 import { routes } from '@/lib/routes'
 import { percent } from '@/lib/stats'
+import ChannelBar from './channel-bar'
 import ChannelLogo from './channel-logo'
 import ChannelOrdersCard from './channel-orders-card'
 import ChannelStatusChip from './channel-status-chip'
 import ConnectSocialDialog from './connect-social-dialog'
 import IssueRow from './issue-row'
 import RequestDialog from './request-dialog'
-import SyncStatusBar from './sync-status-bar'
 
 type SocialChannelPageProps = {
   data: SocialOverview
@@ -74,13 +81,15 @@ export default function SocialChannelPage({ data, issues }: SocialChannelPagePro
           kind: 'logo',
           node: <ChannelLogo channel={channel} size="lg" className="border-0 shadow-none" />,
         }}
-        badges={<ChannelStatusChip status={requested ? 'requested' : 'not_connected'} />}
+        badges={<ChannelStatusChip status={chipStatus(state)} />}
         actions={
           requested ? (
             <KitButton variant="secondary" onClick={() => setViewing(true)}>
               {shared.card.viewRequest}
             </KitButton>
-          ) : (
+          ) : needsReconnect(state) ? (
+            <KitButton onClick={() => setConnecting(true)}>{shared.bar.reconnect}</KitButton>
+          ) : isLive(state) ? null : (
             <KitButton onClick={() => setConnecting(true)}>
               <PlugConnect />
               {copy.connectCta(name)}
@@ -88,17 +97,21 @@ export default function SocialChannelPage({ data, issues }: SocialChannelPagePro
           )
         }
       />
-      <SyncStatusBar
-        tone={requested ? 'pending' : 'idle'}
-        title={requested ? shared.bar.requested(name) : shared.bar.notConnected}
-        detail={shared.bar.notConnectedBody}
+      <ChannelBar
+        state={state}
+        name={name}
+        onReconnect={() => setConnecting(true)}
+        onWithdraw={() => setViewing(true)}
       />
       <StatStrip
         tiles={[
           {
             id: 'live',
             label: copy.stats.live,
-            value: shared.card.none,
+            value:
+              isLive(state) && state.sync.sent != null
+                ? format.number(state.sync.sent)
+                : shared.card.none,
             note: copy.stats.liveNote(data.activeProducts),
           },
           {

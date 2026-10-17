@@ -1,5 +1,18 @@
 /** Copy for Sales channels → Agentic sales and Social media. */
 export const salesChannelsContent = {
+  /** The order page's "Sold through ChatGPT" card and "via ChatGPT" chip. */
+  orderCard: {
+    title: (name: string) => `Sold through ${name}`,
+    via: (name: string) => `via ${name}`,
+    agentic: 'Agentic sales',
+    social: 'Social media',
+    channel: 'Channel',
+    checkout: 'Checkout',
+    onStore: 'On your store',
+    cameFrom: 'Came from',
+    campaign: 'Campaign',
+    unknown: 'Not recorded',
+  },
   unavailable: {
     heading: 'Sales channels unavailable',
     body: 'You need access to the online store to see sales channels.',
@@ -75,6 +88,22 @@ export const salesChannelsContent = {
     expired: 'Access expired',
     disconnected: 'Disconnected',
     firstSync: 'First sync in progress',
+    firstSyncBody: (name: string) =>
+      `Sending your catalog to ${name} for the first time. This can take a few minutes.`,
+    sharing: (name: string) => `Sharing your catalog with ${name}…`,
+    sentOf: (sent: number, total: number) =>
+      `${sent.toLocaleString('en-IN')} of ${total.toLocaleString('en-IN')} products sent`,
+    syncedBody: 'Products, prices and stock are up to date.',
+    errorBody: (name: string) =>
+      `${name} could not take the latest changes. Reconnect to start sharing again.`,
+    expiredBody: (name: string, date: string) =>
+      `Access was removed on ${date}. Your products are hidden in ${name} until you reconnect.`,
+    disconnectedBody: (name: string, date: string) =>
+      `${name} was disconnected on ${date}. Nothing is shared until you reconnect.`,
+    pausedBody: (name: string) =>
+      `Your products are hidden in ${name}. Orders already placed are not affected.`,
+    started: (when: string) => `Started ${when}`,
+    lastTried: (when: string) => `Last tried ${when}`,
     paused: 'Listings paused',
     syncNow: 'Sync now',
     reconnect: 'Reconnect',
@@ -85,6 +114,7 @@ export const salesChannelsContent = {
     orders30: 'Orders · 30 days',
     connect: 'Connect',
     viewRequest: 'View request',
+    reconnect: 'Reconnect',
     manage: 'Manage',
     none: '—',
   },

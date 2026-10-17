@@ -273,6 +273,7 @@ export async function requestChannel(
   const req = ConnectRequestSchema.parse(input)
   const settings = await loadSettings(ctx)
   const state: ChannelState = {
+    ...NOT_CONNECTED,
     status: 'requested',
     requestedAt: now.toISOString(),
     shares: req.shares,
