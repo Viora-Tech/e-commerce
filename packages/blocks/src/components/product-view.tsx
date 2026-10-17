@@ -11,6 +11,7 @@ import {
   whatsappHref,
 } from '../sections/main-product-settings'
 import type { ProductDetail } from '../types'
+import Breadcrumbs from './breadcrumbs'
 import Price from './price'
 import ProductAccordions from './product-accordions'
 import ProductAssurance from './product-assurance'
@@ -112,6 +113,12 @@ export default function ProductView({
 
   return (
     <section className="section-product page-width">
+      <Breadcrumbs
+        items={[
+          ...(product.productType ? [{ label: product.productType }] : []),
+          { label: product.title },
+        ]}
+      />
       <div
         className={`product-layout${s.galleryLayout === 'stacked' ? ' product-layout--stacked' : ''}`}
       >
@@ -127,8 +134,10 @@ export default function ProductView({
         </div>
 
         <div className="product-layout__info">
-          {s.showVendor && product.vendor ? <p className="text-caption">{product.vendor}</p> : null}
-          <h1 className="product-info__title h2">
+          {s.showVendor && product.vendor ? (
+            <p className="product-info__vendor">{product.vendor}</p>
+          ) : null}
+          <h1 className="product-info__title">
             {product.title}
             {product.preorder?.enabled ? (
               <span className="product-info__preorder-badge">{copy.ui.preorderBadge}</span>
@@ -137,8 +146,8 @@ export default function ProductView({
           {s.showRating ? <ProductRating value={s.ratingValue} count={s.ratingCount} /> : null}
           {variant ? (
             <div className="product-info__price product-info__price--large">
-              <Price pricePaise={variant.pricePaise} mrpPaise={variant.mrpPaise} />
-              <p className="text-caption">{copy.ui.inclusiveOfTaxes}</p>
+              <Price pricePaise={variant.pricePaise} mrpPaise={variant.mrpPaise} percentBadge />
+              <p className="product-info__tax-note">{copy.ui.inclusiveOfTaxes}</p>
               {UnderPrice ? <UnderPrice pricePaise={variant.pricePaise} /> : null}
             </div>
           ) : null}

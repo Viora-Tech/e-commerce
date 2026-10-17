@@ -5,9 +5,12 @@ import { formatPaise } from '../money'
 export default function Price({
   pricePaise,
   mrpPaise,
+  percentBadge = false,
 }: {
   pricePaise: number
   mrpPaise: number | null
+  /** The product page's "−17%" tag after the saving. */
+  percentBadge?: boolean | undefined
 }) {
   const onSale = mrpPaise != null && mrpPaise > pricePaise
   return (
@@ -19,6 +22,11 @@ export default function Price({
             <s>{formatPaise(mrpPaise)}</s>
           </span>
           <span className="price__save">Save {formatPaise(mrpPaise - pricePaise)}</span>
+          {percentBadge ? (
+            <span className="badge badge--sale price__badge">
+              {`−${Math.round((1 - pricePaise / mrpPaise) * 100)}%`}
+            </span>
+          ) : null}
         </>
       ) : null}
     </div>

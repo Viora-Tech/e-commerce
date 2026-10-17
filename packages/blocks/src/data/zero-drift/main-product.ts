@@ -133,6 +133,7 @@ export const mainProductContent = {
     preorderBadge: 'Pre-order',
     preorderLabel: 'Pre-order',
     addToCart: 'Add to cart',
+    buyNow: 'Buy it now',
     added: 'Added',
     soldOut: 'Sold out',
     viewCart: 'View cart',
