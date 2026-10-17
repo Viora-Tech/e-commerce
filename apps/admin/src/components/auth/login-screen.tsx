@@ -7,9 +7,11 @@ import LanguageField from '@/components/settings/language-field'
 type LoginScreenProps = {
   google: boolean
   googleError: string | null
+  /** Where to go after signing in (an OAuth consent page); the admin home when null. */
+  next: string | null
 }
 
-export default function LoginScreen({ google, googleError }: LoginScreenProps) {
+export default function LoginScreen({ google, googleError, next }: LoginScreenProps) {
   return (
     <main className="grid min-h-svh grid-cols-1 bg-background lg:grid-cols-2 lg:p-3">
       <LoginPanelCompact />
@@ -19,7 +21,7 @@ export default function LoginScreen({ google, googleError }: LoginScreenProps) {
           <LanguageField />
         </header>
         <div className="flex flex-1 items-center justify-center py-10">
-          <LoginForm google={google} googleError={googleError} />
+          <LoginForm google={google} googleError={googleError} next={next} />
         </div>
       </div>
       <LoginPanel />

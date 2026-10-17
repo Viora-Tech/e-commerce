@@ -7,9 +7,24 @@
 
 const id = (value: string): string => encodeURIComponent(value)
 
+/**
+ * A `?next=` worth following: a path on this admin only (`/oauth/authorize?…`), never another
+ * site (`//evil.com`, a backslash, `https://…`). Anything else is null.
+ */
+export function safeNext(value: string | string[] | undefined): string | null {
+  if (typeof value !== 'string') return null
+  // Browsers drop tabs and newlines and read `\` as `/`, so `/\t/evil.com` is `//evil.com`.
+  const unsafe = [...value].some((c) => c === '\\' || c.charCodeAt(0) < 32)
+  if (!value.startsWith('/') || value.startsWith('//') || unsafe) return null
+  return value
+}
+
 export const routes = {
   home: () => '/',
-  login: () => '/login',
+  /** `next`: where to go after signing in (an OAuth consent page); see `safeNext`. */
+  login: (next?: string) => (next ? `/login?next=${id(next)}` : '/login'),
+  /** The consent page an MCP client opens to sign in ("Allow Claude to use Waimers?"). */
+  oauthAuthorize: () => '/oauth/authorize',
   onboarding: () => '/onboarding',
   selectStore: () => '/select-store',
   acceptInvitation: (invitationId: string) => `/accept-invitation/${id(invitationId)}`,
@@ -188,6 +203,8 @@ export const routes = {
     ai: () => '/settings/ai',
     appearance: () => '/settings/appearance',
     billing: () => '/settings/billing',
+    /** Settings → MCP & API; `tab` opens Clients & tokens or the Activity log. */
+    mcp: (tab?: 'clients' | 'activity') => (tab ? `/settings/mcp?tab=${tab}` : '/settings/mcp'),
   },
 
   dev: {

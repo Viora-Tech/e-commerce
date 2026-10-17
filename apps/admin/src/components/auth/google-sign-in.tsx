@@ -11,6 +11,8 @@ import { routes } from '@/lib/routes'
 type GoogleSignInProps = {
   /** Better Auth's `?error=` code when Google sign-in came back refused. */
   errorCode: string | null
+  /** Where to go after signing in; the admin home when null. */
+  next: string | null
 }
 
 type GoogleCopy = (typeof loginContent)['google']
@@ -28,7 +30,7 @@ function errorMessage(copy: GoogleCopy, code: string | null): string | null {
  * admin has a Google client (MERCHANT_GOOGLE_*). Google sends the browser back to the home
  * page, which takes a member with no store to onboarding, as after an email code.
  */
-export default function GoogleSignIn({ errorCode }: GoogleSignInProps) {
+export default function GoogleSignIn({ errorCode, next }: GoogleSignInProps) {
   // Hooks
   const { google: copy } = useCopy(loginContent)
   const [busy, setBusy] = useState(false)
@@ -41,7 +43,7 @@ export default function GoogleSignIn({ errorCode }: GoogleSignInProps) {
     // On success the browser is already on its way to Google.
     const res = await authClient.signIn.social({
       provider: 'google',
-      callbackURL: routes.home(),
+      callbackURL: next ?? routes.home(),
       errorCallbackURL: routes.login(),
     })
     if (res.error) {

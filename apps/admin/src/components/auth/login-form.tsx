@@ -19,6 +19,8 @@ type LoginFormProps = {
   google: boolean
   /** `?error=` from a refused Google sign-in. */
   googleError: string | null
+  /** Where to go after signing in; the admin home when null. */
+  next: string | null
 }
 
 type Step = 'email' | 'otp'
@@ -30,7 +32,7 @@ function clock(seconds: number): string {
   return `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')}`
 }
 
-export default function LoginForm({ google, googleError }: LoginFormProps) {
+export default function LoginForm({ google, googleError, next }: LoginFormProps) {
   // Hooks
   const copy = useCopy(loginContent)
   const router = useRouter()
@@ -80,7 +82,7 @@ export default function LoginForm({ google, googleError }: LoginFormProps) {
     const res = await authClient.signIn.emailOtp({ email, otp })
     setBusy(false)
     if (res.error) return setError(res.error.message ?? copy.wrongCode)
-    router.push(routes.home())
+    router.push(next ?? routes.home())
     router.refresh()
   }
 
@@ -158,7 +160,7 @@ export default function LoginForm({ google, googleError }: LoginFormProps) {
         <h1 className="text-page-title text-ink-strong">{head.title}</h1>
         <p className="text-body text-helper">{body}</p>
       </div>
-      {google ? <GoogleSignIn errorCode={googleError} /> : null}
+      {google ? <GoogleSignIn errorCode={googleError} next={next} /> : null}
       <form onSubmit={handleSendCode} className="flex flex-col gap-4">
         <Field data-invalid={error ? true : undefined}>
           <FieldLabel htmlFor="login-email">{copy.email}</FieldLabel>
@@ -180,7 +182,7 @@ export default function LoginForm({ google, googleError }: LoginFormProps) {
           {busy ? copy.sending : head.submit}
         </Button>
       </form>
-      {mode === 'sign-in' ? <PasskeySignIn /> : null}
+      {mode === 'sign-in' ? <PasskeySignIn next={next} /> : null}
       <p className="text-body text-helper">
         {mode === 'sign-in' ? copy.newHere(brand) : copy.signUp.haveAccount}{' '}
         <button

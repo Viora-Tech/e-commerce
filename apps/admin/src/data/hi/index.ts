@@ -36,6 +36,7 @@ import layout from './layout'
 import login from './login'
 import marketingAutomations from './marketing-automations'
 import marketingCampaigns from './marketing-campaigns'
+import mcp from './mcp'
 import metaobjects from './metaobjects'
 import navigation from './navigation'
 import notifications from './notifications'
@@ -86,6 +87,7 @@ export const hindiCopy: readonly TranslationPair[] = [
   ...assistant,
   ...backgroundWork,
   ...billing,
+  ...mcp,
   ...bugReport,
   ...bulkEdit,
   ...businessGst,

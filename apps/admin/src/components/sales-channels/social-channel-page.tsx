@@ -9,8 +9,9 @@ import {
   type SocialChannel,
 } from '@commerce/core/sales-channels'
 import { PlugConnect } from '@commerce/ui/icons'
-import { useRouter } from 'next/navigation'
-import { useState } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
+import { useEffect, useState } from 'react'
+import { toast } from 'sonner'
 import KitButton from '@/components/kit/kit-button'
 import ChartCard from '@/components/layout/chart-card'
 import DataCard from '@/components/layout/data-card'
@@ -30,10 +31,11 @@ import ChannelOrdersCard from './channel-orders-card'
 import ChannelStatusChip from './channel-status-chip'
 import ConnectSocialDialog from './connect-social-dialog'
 import IssueRow from './issue-row'
+import ManageChannelDialog from './manage-channel-dialog'
 import RequestDialog from './request-dialog'
 
 type SocialChannelPageProps = {
-  data: SocialOverview
+  data: SocialOverview & { connectNow: boolean }
   issues: ReadinessIssue[]
 }
 
@@ -63,6 +65,20 @@ export default function SocialChannelPage({ data, issues }: SocialChannelPagePro
   const format = useFormat()
   const [connecting, setConnecting] = useState(false)
   const [viewing, setViewing] = useState(false)
+  const [managing, setManaging] = useState(false)
+  const live = useCopy(salesChannelsContent.live)
+  const params = useSearchParams()
+
+  // Back from Facebook or Google: say how it went once, then drop the flag from the address.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: runs once per `?connect=` value
+  useEffect(() => {
+    const returned = params.get('connect')
+    if (!returned) return
+    if (returned === 'connected') toast.success(live.returned.connected(info.name))
+    else if (returned === 'failed') toast.error(live.returned.failed(info.name))
+    else toast(live.returned.cancelled)
+    router.replace(window.location.pathname)
+  }, [params])
 
   // Render logic
   const { channel, state, totals } = data
@@ -89,7 +105,11 @@ export default function SocialChannelPage({ data, issues }: SocialChannelPagePro
             </KitButton>
           ) : needsReconnect(state) ? (
             <KitButton onClick={() => setConnecting(true)}>{shared.bar.reconnect}</KitButton>
-          ) : isLive(state) ? null : (
+          ) : isLive(state) && state.status !== 'disconnected' ? (
+            <KitButton variant="secondary" onClick={() => setManaging(true)}>
+              {live.manage}
+            </KitButton>
+          ) : (
             <KitButton onClick={() => setConnecting(true)}>
               <PlugConnect />
               {copy.connectCta(name)}
@@ -237,6 +257,7 @@ export default function SocialChannelPage({ data, issues }: SocialChannelPagePro
           onOpenChange={setConnecting}
           channel={channel}
           activeProducts={data.activeProducts}
+          connectNow={data.connectNow}
           onRequested={() => router.refresh()}
         />
       ) : null}
@@ -250,6 +271,13 @@ export default function SocialChannelPage({ data, issues }: SocialChannelPagePro
           onWithdrawn={() => router.refresh()}
         />
       ) : null}
+      <ManageChannelDialog
+        open={managing}
+        onOpenChange={setManaging}
+        channel={channel}
+        name={name}
+        state={state}
+      />
     </PageBody>
   )
 }

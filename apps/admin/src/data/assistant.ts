@@ -212,9 +212,14 @@ export const assistantContent = {
     empty: 'No AI changes yet. Ask the AI bar to do something, and approve it.',
     by: (who: string) => `by ${who}`,
     undo: 'Undo',
+    review: 'Review',
     undone: 'Undone',
     more: 'Show more',
     failed: 'Could not load activity.',
-    sources: { assistant: 'AI assistant', bulkWriter: 'Write with AI' } as Record<string, string>,
+    sources: {
+      assistant: 'AI assistant',
+      bulkWriter: 'Write with AI',
+      mcp: 'AI client (MCP)',
+    } as Record<string, string>,
   },
 } as const
