@@ -657,3 +657,287 @@
   font-size: 14px;
   line-height: 1.55;
 }
+
+/* ---- Figma Section / Sale countdown (708:120169) ------------------------ */
+.sale-countdown__card {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-5);
+  padding: var(--space-6) var(--space-5);
+  border: 1px solid var(--color-sale, var(--color-brand));
+  border-radius: var(--radius-card, var(--radius-m));
+  background-color: var(--color-surface);
+}
+
+.sale-countdown__copy {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-3);
+}
+
+.sale-countdown__heading {
+  margin: 0;
+  font-size: calc(2rem * var(--font-heading-scale, 1));
+  line-height: 1.1;
+  letter-spacing: -0.015em;
+}
+
+.sale-countdown__code-line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  margin: 0;
+  color: var(--color-muted);
+  font-size: 14px;
+}
+
+.sale-countdown__code {
+  padding: 2px var(--space-2);
+  border: 1px dashed var(--color-line);
+  border-radius: var(--radius-m);
+  color: var(--color-ink);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+}
+
+.sale-countdown__side {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-4);
+}
+
+.sale-countdown__tiles {
+  display: flex;
+  gap: var(--space-2);
+}
+
+.sale-countdown__tiles[hidden] {
+  display: none;
+}
+
+.sale-countdown__tile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 64px;
+  padding: var(--space-3) var(--space-2);
+  border-radius: var(--radius-m);
+  background-color: var(--color-bg);
+}
+
+.sale-countdown__value {
+  color: var(--color-ink);
+  font-family: var(--font-heading);
+  font-size: 28px;
+  font-weight: 700;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+}
+
+.sale-countdown__unit {
+  color: var(--color-muted);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.sale-countdown__button {
+  height: 48px;
+}
+
+/* ---- Figma Section / EMI & offers strip (706:118585) -------------------- */
+.offers-strip__heading {
+  margin: 0 0 var(--space-4);
+  color: var(--color-ink);
+  font-size: var(--font-body-size, 16px);
+  font-weight: 500;
+}
+
+.offers-strip__list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(14rem, 100%), 1fr));
+  gap: var(--space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.offers-strip__card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-4);
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-card, var(--radius-m));
+}
+
+.offers-strip__title {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin: 0;
+  color: var(--color-ink);
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.offers-strip__text {
+  margin: 0;
+  color: var(--color-muted);
+  font-size: 12px;
+}
+
+.offers-strip__link {
+  margin-top: var(--space-1);
+  color: var(--color-ink);
+  font-size: 13px;
+  font-weight: 500;
+  text-decoration: none;
+}
+
+/* ---- Figma Section / Store locator (708:120661) ------------------------- */
+.store-locator__body {
+  display: grid;
+  gap: var(--space-5);
+}
+
+.store-locator__list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.store-locator__store {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-4);
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-card, var(--radius-m));
+}
+
+.store-locator__store[data-active] {
+  border-color: var(--color-ink);
+}
+
+.store-locator__pick {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: start;
+  cursor: pointer;
+}
+
+.store-locator__name {
+  color: var(--color-ink);
+  font-size: var(--font-body-size, 16px);
+  font-weight: 500;
+}
+
+.store-locator__address {
+  color: var(--color-muted);
+  font-size: 13px;
+  white-space: pre-line;
+}
+
+.store-locator__meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-4);
+  margin: 0;
+  font-size: 12px;
+}
+
+.store-locator__hours {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--color-muted);
+}
+
+.store-locator__dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background-color: var(--color-success);
+}
+
+.store-locator__directions {
+  color: var(--color-ink);
+  font-weight: 500;
+  text-decoration: none;
+}
+
+.store-locator__map {
+  position: relative;
+  min-height: 18rem;
+  overflow: hidden;
+  border-radius: var(--radius-card, var(--radius-m));
+  background-color: var(--color-surface);
+}
+
+.store-locator__frame {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
+}
+
+.store-locator__show {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  border: 0;
+  background: none;
+  color: var(--color-ink);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.store-locator__pin {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background-color: var(--color-ink);
+  color: var(--color-bg);
+}
+
+.store-locator__map-note {
+  color: var(--color-muted);
+  font-size: 12px;
+  font-weight: 400;
+}
+
+@media screen and (min-width: 990px) {
+  .store-locator__body {
+    grid-template-columns: 22rem minmax(0, 1fr);
+  }
+
+  .store-locator__map {
+    min-height: 0;
+  }
+}

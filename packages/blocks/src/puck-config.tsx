@@ -14,6 +14,7 @@ import {
 } from './section-settings'
 import { type CustomProps, customSections, ELEMENT_BLOCKS, LAYOUT_BLOCKS } from './sections/custom'
 import { type DynamicSection, dynamicSections, type SectionSettings } from './sections/dynamic'
+import { type EngageProps, engageSections } from './sections/engage'
 import { type HeroProps, heroBlock } from './sections/hero-block'
 import { inlineRichtextLong, inlineText, type RichtextExtensions } from './sections/inline-fields'
 import { type KitProps, kitSections } from './sections/kit'
@@ -58,6 +59,7 @@ export {
   type SectionRenderer,
   type SectionSettings,
 } from './sections/dynamic'
+export type { EngageProps } from './sections/engage'
 export type { KitProps } from './sections/kit'
 export type { CollectionLoader, LibraryProps, SingleProductLoader } from './sections/library'
 export type { ModernProps } from './sections/modern'
@@ -147,6 +149,7 @@ export type BlockProps = {
   ZeroDriftProps &
   ZeroDriftProductProps &
   ModernProps &
+  EngageProps &
   KitProps &
   CustomProps &
   Record<DynamicSection | 'LiquidSection', SectionSettings>
@@ -169,6 +172,8 @@ export const SECTION_CATEGORIES = {
       'SplitHero',
       'VideoHero',
       'CtaBanner',
+      'SaleCountdown',
+      'OffersStrip',
       // The starter kit (`./sections/kit.tsx`).
       'GridHero',
       'RotatingHero',
@@ -219,7 +224,10 @@ export const SECTION_CATEGORIES = {
     ],
   },
   media: { title: 'Media', components: ['Video', 'Gallery', 'LogoCloud', 'Lookbook'] },
-  more: { title: 'More', components: ['BlogPosts', 'Newsletter', 'NewsletterBand'] },
+  more: {
+    title: 'More',
+    components: ['BlogPosts', 'Newsletter', 'NewsletterBand', 'StoreLocator'],
+  },
   // Build your own: containers whose content is slots, and the elements that go in them.
   layout: { title: 'Layout', components: LAYOUT_BLOCKS },
   elements: { title: 'Elements', components: ELEMENT_BLOCKS },
@@ -310,6 +318,7 @@ export function createBlocksConfig(
         loadArticles: options.loadArticles,
       }) as unknown as Pick<Config<BlockProps>['components'], keyof ZeroDriftProps>),
       ...(modernSections() as unknown as Pick<Config<BlockProps>['components'], keyof ModernProps>),
+      ...(engageSections() as unknown as Pick<Config<BlockProps>['components'], keyof EngageProps>),
       ...(kitSections() as unknown as Pick<Config<BlockProps>['components'], keyof KitProps>),
       ...(customSections({
         loadProduct: options.loadProduct,
