@@ -24,6 +24,11 @@ export const preferencesContent = {
     count: (n: number, max: number) => `${n} of ${max} characters`,
     preview: 'Search result preview',
   },
+  share: {
+    heading: 'Share preview',
+    body: 'How the link looks on WhatsApp.',
+    noDescription: 'Add a meta description so search results say what you sell.',
+  },
   social: {
     heading: 'Social sharing image',
     body: 'Shown when your store link is shared on WhatsApp, Instagram, X or Facebook. 1200 by 628 works best.',
