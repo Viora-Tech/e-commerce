@@ -1,6 +1,7 @@
 /** Default copy for the "modern" section batch (`../sections/modern.tsx`). Plain words, works for any merchant. */
 export const modernSectionsContent = {
   spotlightHero: {
+    eyebrow: 'Pro series',
     heading: 'Gear that keeps up with you',
     text: 'Built for long sessions and fast reflexes — precision gear, tested by players.',
     primary: 'Shop the range',
@@ -11,11 +12,15 @@ export const modernSectionsContent = {
     heading: 'Precision, out of the box',
     text: 'Every piece is tuned and checked by hand before it ships to you.',
     button: 'Shop now',
+    secondary: 'Learn more',
+    trust: ['COD available', '7-day returns', '1-year warranty'],
   },
   videoHero: {
+    eyebrow: 'Now showing',
     heading: 'See it in motion',
     text: 'Smooth, consistent, built to last through every match.',
     button: 'Watch the range',
+    secondary: 'Learn more',
   },
   bentoGrid: {
     heading: 'Why players switch',

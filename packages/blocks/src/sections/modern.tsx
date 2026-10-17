@@ -26,12 +26,21 @@ const heading = inlineText('Heading')
 const noLink: Link = { label: '', href: '' }
 
 export type ModernProps = {
-  SpotlightHero: Frame & { heading: string; text: string; primary: Link; secondary: Link }
+  SpotlightHero: Frame & {
+    eyebrow: string
+    heading: string
+    text: string
+    primary: Link
+    secondary: Link
+    image: Image
+  }
   SplitHero: Frame & {
     eyebrow: string
     heading: string
     text: string
     button: Link
+    secondaryButton: Link
+    trust: { text: string }[]
     image: Image
     imageFirst: boolean
   }
@@ -39,9 +48,12 @@ export type ModernProps = {
     videoUrl: string
     poster: Image
     overlayOpacity: number
+    eyebrow: string
     heading: string
     text: string
     button: Link
+    secondaryButton: Link
+    align: 'left' | 'center'
   }
   BentoGrid: Frame & {
     heading: string
@@ -87,23 +99,29 @@ export function modernSections(): ModernConfig {
     SpotlightHero: framed<ModernProps['SpotlightHero']>(
       'Spotlight hero',
       {
+        eyebrow: inlineText('Eyebrow'),
         heading,
         text: inlineRichtext('Text'),
         primary: inlineLinkField('Primary button'),
         secondary: inlineLinkField('Secondary button'),
+        image: imageField('Product image'),
       },
       {
+        eyebrow: copy.spotlightHero.eyebrow,
         heading: copy.spotlightHero.heading,
         text: copy.spotlightHero.text,
         primary: { label: copy.spotlightHero.primary, href: '/collections/all' },
         secondary: { label: copy.spotlightHero.secondary, href: '/pages/about' },
+        image: noImage,
       },
       (p) => (
         <SpotlightHero
+          eyebrow={p.eyebrow}
           heading={p.heading}
           text={p.text}
           primary={p.primary}
           secondary={p.secondary}
+          image={p.image}
         />
       ),
     ),
@@ -115,6 +133,14 @@ export function modernSections(): ModernConfig {
         heading,
         text: inlineRichtext('Text'),
         button: inlineLinkField(),
+        secondaryButton: inlineLinkField('Secondary button'),
+        trust: {
+          type: 'array',
+          label: 'Trust line',
+          max: 4,
+          getItemSummary: (t: { text?: string }) => t.text || 'Item',
+          arrayFields: { text: inlineText('Text') },
+        },
         image: imageField(),
         imageFirst: {
           type: 'radio',
@@ -130,6 +156,8 @@ export function modernSections(): ModernConfig {
         heading: copy.splitHero.heading,
         text: copy.splitHero.text,
         button: { label: copy.splitHero.button, href: '/collections/all' },
+        secondaryButton: { label: copy.splitHero.secondary, href: '/pages/about' },
+        trust: copy.splitHero.trust.map((text) => ({ text })),
         image: noImage,
         imageFirst: false,
       },
@@ -142,26 +170,42 @@ export function modernSections(): ModernConfig {
         videoUrl: { type: 'text', label: 'Video URL (mp4)' },
         poster: imageField('Poster image'),
         overlayOpacity: { type: 'number', label: 'Overlay opacity (%)', min: 0, max: 90 },
+        eyebrow: inlineText('Eyebrow'),
         heading,
         text: inlineRichtext('Text'),
         button: inlineLinkField(),
+        secondaryButton: inlineLinkField('Secondary button'),
+        align: {
+          type: 'radio',
+          label: 'Text position',
+          options: [
+            { label: 'Left', value: 'left' },
+            { label: 'Center', value: 'center' },
+          ],
+        },
       },
       {
         videoUrl: '',
         poster: noImage,
         overlayOpacity: 40,
+        eyebrow: copy.videoHero.eyebrow,
         heading: copy.videoHero.heading,
         text: copy.videoHero.text,
         button: { label: copy.videoHero.button, href: '/collections/all' },
+        secondaryButton: { label: copy.videoHero.secondary, href: '/pages/about' },
+        align: 'left',
       },
       (p) => (
         <VideoHero
           videoUrl={p.videoUrl}
           poster={p.poster}
           overlayOpacity={p.overlayOpacity}
+          eyebrow={p.eyebrow}
           heading={p.heading}
           text={p.text}
           button={p.button}
+          secondaryButton={p.secondaryButton}
+          align={p.align}
         />
       ),
     ),

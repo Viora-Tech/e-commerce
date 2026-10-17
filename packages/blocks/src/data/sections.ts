@@ -1,9 +1,15 @@
 /** Default copy the section library starts a new section with, and the strings it shows. */
 export const sectionsContent = {
+  videoHero: {
+    play: 'Play video',
+    pause: 'Pause video',
+  },
   imageBanner: {
+    eyebrow: 'New season',
     heading: 'Built for the grind',
     text: 'Glass pads, skates and grips tuned by players.',
     button: 'Shop the range',
+    secondary: 'See all',
   },
   imageWithText: {
     heading: 'Made in small batches',

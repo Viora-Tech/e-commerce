@@ -34,11 +34,13 @@ export type LibraryProps = {
   AnnouncementBar: AnnouncementBarProps
   ImageBanner: Frame & {
     image: Image
+    eyebrow: string
     heading: string
     text: string
     button: Link
+    secondaryButton: Link
     height: 'small' | 'medium' | 'large'
-    align: 'left' | 'center'
+    align: 'left' | 'center' | 'right'
     overlay: number
   }
   ImageWithText: Frame & {
@@ -85,9 +87,11 @@ export function librarySections(loaders: Loaders): LibraryConfig {
       'Image banner',
       {
         image: imageField(),
+        eyebrow: inlineText('Eyebrow'),
         heading,
         text: inlineRichtext('Text'),
         button: inlineLinkField(),
+        secondaryButton: inlineLinkField('Secondary button'),
         height: {
           type: 'select',
           label: 'Height',
@@ -103,17 +107,20 @@ export function librarySections(loaders: Loaders): LibraryConfig {
           options: [
             { label: 'Left', value: 'left' },
             { label: 'Center', value: 'center' },
+            { label: 'Right', value: 'right' },
           ],
         },
         overlay: { type: 'number', label: 'Overlay opacity (%)', min: 0, max: 90 },
       },
       {
         image: noImage,
+        eyebrow: copy.imageBanner.eyebrow,
         heading: copy.imageBanner.heading,
         text: copy.imageBanner.text,
         button: { label: copy.imageBanner.button, href: '/collections/all' },
+        secondaryButton: { label: copy.imageBanner.secondary, href: '/collections/all' },
         height: 'medium',
-        align: 'center',
+        align: 'left',
         overlay: 30,
       },
       (p) => <ImageBanner {...p} />,
@@ -121,11 +128,13 @@ export function librarySections(loaders: Loaders): LibraryConfig {
         defaultProps: {
           settings: defaultSectionSettings({ padTop: 0, padBottom: 0 }),
           image: noImage,
+          eyebrow: copy.imageBanner.eyebrow,
           heading: copy.imageBanner.heading,
           text: copy.imageBanner.text,
           button: { label: copy.imageBanner.button, href: '/collections/all' },
+          secondaryButton: { label: copy.imageBanner.secondary, href: '/collections/all' },
           height: 'medium',
-          align: 'center',
+          align: 'left',
           overlay: 30,
         },
       },

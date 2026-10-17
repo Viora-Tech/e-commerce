@@ -33,6 +33,7 @@ export type IconName =
   | 'discord'
   | 'youtube'
   | 'play'
+  | 'pause'
   | 'question'
   | 'facebook'
   | 'telegram'
@@ -164,7 +165,11 @@ const paths: Record<IconName, { viewBox: string; body: string }> = {
   },
   play: {
     viewBox: '0 0 24 24',
-    body: '<path d="M8 5.14v13.72a1 1 0 0 0 1.54.84l10.5-6.86a1 1 0 0 0 0-1.68L9.54 4.3A1 1 0 0 0 8 5.14Z"/>',
+    body: '<path d="M8 5.14v13.72a1 1 0 0 0 1.54.84l10.5-6.86a1 1 0 0 0 0-1.68L9.54 4.3A1 1 0 0 0 8 5.14Z" fill="currentColor"/>',
+  },
+  pause: {
+    viewBox: '0 0 24 24',
+    body: '<rect x="6.5" y="5" width="3.5" height="14" rx="1" fill="currentColor"/><rect x="14" y="5" width="3.5" height="14" rx="1" fill="currentColor"/>',
   },
   question: {
     viewBox: '0 0 24 24',

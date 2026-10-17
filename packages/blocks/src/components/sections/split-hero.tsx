@@ -2,11 +2,10 @@
 
 import type { ReactNode } from 'react'
 import { focalStyle } from '../../focal-point'
-import { linkTarget } from '../../link'
 import type { Image, Link } from '../../sections/framed'
-import { safeHref } from '../../slot-types'
+import HeroCopy from '../hero-copy'
+import Icon from '../icon'
 import Picture from '../picture'
-import RichCopy from '../rich-copy'
 
 /** Copy is a string in storage, a React node while edited on the canvas. */
 type SplitHeroProps = {
@@ -14,63 +13,69 @@ type SplitHeroProps = {
   heading: ReactNode
   text: ReactNode
   button: Link
+  /** The outline button beside the main one; hidden without a label. */
+  secondaryButton?: Link | undefined
+  /** Short reassurances under the buttons, each after a check mark. */
+  trust?: { text: ReactNode }[] | undefined
   image: Image
   imageFirst: boolean
   /** Set by the storefront on a template's first section: this image is likely the LCP. */
   _aboveFold?: boolean | undefined
 }
 
-const PLACEHOLDER_GRADIENT =
-  'linear-gradient(135deg,color-mix(in_oklab,var(--color-brand)_25%,transparent),color-mix(in_oklab,var(--color-accent)_20%,transparent))'
-
+/**
+ * Figma Section / Split hero (704:113444): eyebrow, a display heading, the text, a solid and
+ * an outline button and a trust line on one side; the photo on a surface panel on the other.
+ */
 export default function SplitHero({
   eyebrow,
   heading,
   text,
   button,
+  secondaryButton,
+  trust = [],
   image,
   imageFirst,
   _aboveFold,
 }: SplitHeroProps) {
+  // Render logic
+  const items = trust.filter((t) => t.text)
+
   return (
-    <div className="page-width grid grid-cols-1 items-center gap-[2rem] md:grid-cols-2 md:gap-[3rem]">
-      <div className={imageFirst ? 'order-2 md:order-2' : 'order-2 md:order-1'}>
-        {eyebrow ? (
-          <p className="text-caption mb-[0.75rem] uppercase tracking-[0.08em] text-[var(--color-muted)]">
-            {eyebrow}
-          </p>
-        ) : null}
-        {heading ? <h1 className="h1 text-[var(--color-ink)]">{heading}</h1> : null}
-        <RichCopy value={text} className="text-body mt-[1rem] text-[var(--color-muted)]" />
-        {button?.label ? (
-          <a
-            className="btn btn--primary mt-[1.5rem] inline-flex"
-            href={safeHref(button.href) ?? '#'}
-            {...linkTarget(button)}
-          >
-            {button.label}
-          </a>
+    <div className={`split-hero page-width${imageFirst ? ' split-hero--media-left' : ''}`}>
+      <div className="split-hero__content">
+        <HeroCopy
+          eyebrow={eyebrow}
+          heading={heading}
+          text={text}
+          primary={button}
+          secondary={secondaryButton}
+        />
+        {items.length > 0 ? (
+          <ul className="split-hero__trust">
+            {items.map((t, i) => (
+              // biome-ignore lint/suspicious/noArrayIndexKey: items have no id; the editor reorders by position.
+              <li key={i} className="split-hero__trust-item">
+                <Icon name="check" size={16} />
+                <span>{t.text}</span>
+              </li>
+            ))}
+          </ul>
         ) : null}
       </div>
-      <div className={imageFirst ? 'order-1 md:order-1' : 'order-1 md:order-2'}>
+      <div className="split-hero__media">
         {image?.url ? (
           <Picture
             image={image}
             alt={image.alt}
-            className="aspect-[4/5] w-full rounded-[var(--radius-card)] object-cover"
+            className="split-hero__image"
             style={focalStyle(image.focal)}
             fill
-            sizes="(min-width: 768px) 50vw, 100vw"
+            sizes="(min-width: 990px) 620px, 100vw"
             loading={_aboveFold ? 'eager' : 'lazy'}
             fetchPriority={_aboveFold ? 'high' : undefined}
           />
-        ) : (
-          <div
-            aria-hidden
-            className="aspect-[4/5] w-full rounded-[var(--radius-card)]"
-            style={{ backgroundImage: PLACEHOLDER_GRADIENT }}
-          />
-        )}
+        ) : null}
       </div>
     </div>
   )

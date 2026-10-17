@@ -1588,3 +1588,82 @@ html.has-cursor-fill
     height: 2.75rem;
   }
 }
+
+/* ------------------------------------------------------------------ */
+/* Figma storefront slideshow hero (Section / Slideshow hero, 704:117660) */
+/* ------------------------------------------------------------------ */
+/* The slide's copy in the hero-copy type (eyebrow, display heading, 18px
+   text, 56px buttons); the arrows and dots together in one row at the
+   bottom-left of the slide instead of on its sides. */
+.hero-carousel__meta {
+  font-family: var(--font-body);
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.3;
+  letter-spacing: 0.08em;
+}
+
+.hero-carousel__heading {
+  font-size: calc(clamp(2.5rem, 4vw, 3.5rem) * var(--hero-heading-scale, 1));
+  font-weight: 700;
+  line-height: 1.05;
+  letter-spacing: -0.02em;
+  text-transform: none;
+}
+
+.hero-carousel__subheading {
+  font-size: 18px;
+  line-height: 1.55;
+}
+
+.hero-carousel__ctas .btn {
+  height: 56px;
+  padding-inline: 28px;
+  font-size: var(--font-body-size, 16px);
+}
+
+.hero-carousel__control {
+  top: auto;
+  bottom: var(--space-7);
+  transform: none;
+  width: 40px;
+  height: 40px;
+  border: 1px solid var(--color-line);
+  background-color: var(--color-bg);
+  color: var(--color-ink);
+}
+
+.hero-carousel__control svg {
+  width: 20px;
+  height: 20px;
+}
+
+.hero-carousel__control--prev {
+  left: var(--page-margin);
+}
+
+.hero-carousel__control--next {
+  right: auto;
+  left: calc(var(--page-margin) + 56px);
+}
+
+.hero-carousel__dots {
+  bottom: calc(var(--space-7) + 16px);
+  left: calc(var(--page-margin) + 112px);
+  transform: none;
+}
+
+.hero-carousel__dot {
+  width: 8px;
+  height: 8px;
+  background-color: color-mix(in srgb, var(--color-ink) 20%, transparent);
+}
+
+.hero-carousel__dot.is-active {
+  width: 24px;
+  background-color: var(--color-ink);
+}
+
+.hero-carousel:not(:has(.hero-carousel__control)) .hero-carousel__dots {
+  left: var(--page-margin);
+}
