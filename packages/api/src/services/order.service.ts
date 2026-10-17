@@ -185,6 +185,9 @@ export async function listOrders(
       email: order.email,
       customerName: customer.name,
       placedAt: order.placedAt,
+      /* The Channel and Tags columns (Figma "State · Columns open"): where the visit came from. */
+      channel: sql<string | null>`${order.attribution}->>'channel'`,
+      tags: order.tags,
       /* Frame 5:2353 shows the first product with its picture; the rest is a count. */
       firstLineTitle: sql<string | null>`(
         select ol.title from ${orderLine} ol where ol.order_id = ${order.id}

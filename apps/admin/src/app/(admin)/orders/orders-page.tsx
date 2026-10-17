@@ -1,5 +1,6 @@
 'use client'
 
+import type { OverviewChannel } from '@commerce/api'
 import { AppWindow, ExternalLink, SquarePlus, Users } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Kbd } from '@commerce/ui/shadcn/kbd'
@@ -28,6 +29,7 @@ import ResourceTable, { type ResourceColumnSpec } from '@/components/table/resou
 import RowMenu from '@/components/table/row-menu'
 import ViewSelect from '@/components/table/view-select'
 import { filterPanelContent } from '@/data/filter-panel'
+import { CHANNEL_LABELS } from '@/data/growth'
 import {
   ORDER_LIST_FILTERS,
   type OrderListFilter,
@@ -135,6 +137,8 @@ function orderColumns(copy: typeof ordersContent, fmt: Formatters): ResourceColu
       id: 'number',
       title: copy.columns.order,
       sortValue: (o) => o.number,
+      sortTitle: copy.sortTitles.order,
+      sortRank: 1,
       hideable: false,
       className: 'w-[9%]',
       render: (o) => (
@@ -145,6 +149,8 @@ function orderColumns(copy: typeof ordersContent, fmt: Formatters): ResourceColu
       id: 'customer',
       title: copy.columns.customer,
       sortValue: (o) => (o.customerName ?? o.email ?? '').toLowerCase(),
+      sortTitle: copy.sortTitles.customer,
+      sortRank: 3,
       className: 'w-[20%] whitespace-normal',
       render: (o) => <CustomerCell item={o} />,
     },
@@ -159,6 +165,7 @@ function orderColumns(copy: typeof ordersContent, fmt: Formatters): ResourceColu
       title: copy.columns.date,
       sortValue: (o) => new Date(o.placedAt).getTime(),
       sortLabels: { desc: copy.sortNewest, asc: copy.sortOldest },
+      sortRank: 0,
       render: (o) => (
         <span className="text-[0.8125rem] text-muted-foreground tabular-nums">
           {fmt.when(o.placedAt)}
@@ -169,6 +176,7 @@ function orderColumns(copy: typeof ordersContent, fmt: Formatters): ResourceColu
       id: 'total',
       title: copy.columns.total,
       sortValue: (o) => o.totalPaise,
+      sortRank: 2,
       align: 'end',
       render: (o) => <span className="font-medium tabular-nums">{fmt.money(o.totalPaise)}</span>,
     },
@@ -176,6 +184,8 @@ function orderColumns(copy: typeof ordersContent, fmt: Formatters): ResourceColu
       id: 'payment',
       title: copy.columns.payment,
       sortValue: (o) => o.paymentStatus,
+      sortTitle: copy.sortTitles.payment,
+      sortRank: 4,
       align: 'center',
       render: (o) => <OrderChip kind="orderPayment" value={o.paymentStatus} />,
     },
@@ -183,13 +193,14 @@ function orderColumns(copy: typeof ordersContent, fmt: Formatters): ResourceColu
       id: 'fulfilment',
       title: copy.columns.fulfilment,
       sortValue: (o) => o.fulfillmentStatus,
+      sortTitle: copy.sortTitles.fulfilment,
+      sortRank: 5,
       align: 'center',
       render: (o) => <OrderChip kind="fulfilment" value={o.fulfillmentStatus} />,
     },
     {
       id: 'status',
       title: copy.columns.status,
-      sortValue: (o) => `${o.status}:${o.fulfillmentStatus}`,
       align: 'center',
       render: (o) => {
         if (
@@ -201,6 +212,31 @@ function orderColumns(copy: typeof ordersContent, fmt: Formatters): ResourceColu
         const stage = orderStage(o)
         return <OrderChip kind={stage.kind} value={stage.value} />
       },
+    },
+    {
+      id: 'channel',
+      title: copy.columns.channel,
+      render: (o) => (
+        <span className="text-[0.8125rem] text-muted-foreground">
+          {CHANNEL_LABELS[o.channel as OverviewChannel] ?? CHANNEL_LABELS.untracked}
+        </span>
+      ),
+    },
+    {
+      id: 'tags',
+      title: copy.columns.tags,
+      className: 'whitespace-normal',
+      render: (o) =>
+        o.tags.length ? (
+          <span className="flex flex-wrap gap-1">
+            {o.tags.slice(0, 2).map((t) => (
+              <StatusChip key={t}>{t}</StatusChip>
+            ))}
+            {o.tags.length > 2 ? (
+              <span className="text-xs text-muted-foreground">+{o.tags.length - 2}</span>
+            ) : null}
+          </span>
+        ) : null,
     },
   ]
 }
@@ -393,7 +429,7 @@ function OrdersContent({ initial }: { initial: OrdersInitial }) {
         )}
         loading={loading}
         defaultSort={{ id: 'date', desc: true }}
-        defaultHidden={['fulfilment']}
+        defaultHidden={['fulfilment', 'channel', 'tags']}
         query={query}
         onQueryChange={(query) => setQ({ query, page: 1 })}
         onClearAll={() => setQ({ query: '', status: null, ...NO_FILTERS, page: 1 })}

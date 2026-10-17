@@ -37,6 +37,9 @@ type ToolbarProps<T extends RowData> = {
   onClearAll?: () => void
   /** Human-readable column titles for the columns menu, by column id. */
   columnTitles: Record<string, string>
+  /** The sort menu's names per column, and its order (Figma "State · Sort open"). */
+  sortTitles: Record<string, string>
+  sortOrder: string[]
   /** Direction words per column for the sort menu. */
   sortLabels: Record<string, { desc: string; asc: string }>
   /** The columns' order as the member arranged it (empty = as defined). */
@@ -61,6 +64,8 @@ export default function ResourceTableToolbar<T extends RowData>({
   applied = [],
   onClearAll,
   columnTitles,
+  sortTitles,
+  sortOrder,
   sortLabels,
   columnOrder,
   onResetColumns,
@@ -110,7 +115,8 @@ export default function ResourceTableToolbar<T extends RowData>({
           <div className="ml-auto flex items-center gap-1">
             <SortMenu
               table={table}
-              columnTitles={columnTitles}
+              columnTitles={sortTitles}
+              sortOrder={sortOrder}
               sortLabels={sortLabels}
               trigger={CONTROL}
             />

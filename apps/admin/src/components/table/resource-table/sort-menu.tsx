@@ -20,6 +20,8 @@ import type { ResourceTableFeatures } from './features'
 type SortMenuProps<T extends RowData> = {
   table: ReactTable<ResourceTableFeatures, T>
   columnTitles: Record<string, string>
+  /** Column ids in the order the menu lists them. */
+  sortOrder: string[]
   /** Direction words per column ("Newest first" / "Oldest first" for a date). */
   sortLabels: Record<string, { desc: string; asc: string }>
   /** The toolbar's 32px icon-button trigger. */
@@ -34,14 +36,24 @@ type SortMenuProps<T extends RowData> = {
 export default function SortMenu<T extends RowData>({
   table,
   columnTitles,
+  sortOrder,
   sortLabels,
   trigger,
 }: SortMenuProps<T>) {
   // Hooks
   const tableCopy = useCopy(tableContent)
 
+  // Helpers
+  const rank = (id: string) => {
+    const at = sortOrder.indexOf(id)
+    return at === -1 ? sortOrder.length : at
+  }
+
   // Render logic
-  const sortable = table.getAllColumns().filter((c) => c.getCanSort())
+  const sortable = table
+    .getAllColumns()
+    .filter((c) => c.getCanSort())
+    .sort((a, b) => rank(a.id) - rank(b.id))
   const sortedBy = sortable.find((c) => c.getIsSorted())
   const direction = sortedBy?.getIsSorted() || 'desc'
   const words = (sortedBy && sortLabels[sortedBy.id]) || {

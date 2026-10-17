@@ -165,6 +165,15 @@ export const ordersContent = {
     payment: 'Payment',
     fulfilment: 'Fulfilment',
     status: 'Status',
+    channel: 'Channel',
+    tags: 'Tags',
+  },
+  /** The sort menu's names where they differ from the header (Figma "State · Sort open"). */
+  sortTitles: {
+    order: 'Order number',
+    customer: 'Customer name',
+    payment: 'Payment status',
+    fulfilment: 'Fulfilment status',
   },
   moreLines: (n: number) => `+${n} more`,
   bulk: {

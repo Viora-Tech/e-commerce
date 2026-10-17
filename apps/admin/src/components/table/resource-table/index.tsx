@@ -241,6 +241,11 @@ export default function ResourceTable<T extends RowData>(props: ResourceTablePro
 
   // Render logic
   const columnTitles = Object.fromEntries(props.columns.map((c) => [c.id, c.title]))
+  const sortTitles = Object.fromEntries(props.columns.map((c) => [c.id, c.sortTitle ?? c.title]))
+  const sortOrder = props.columns
+    .map((c, i) => ({ id: c.id, rank: c.sortRank ?? props.columns.length + i }))
+    .sort((a, b) => a.rank - b.rank)
+    .map((c) => c.id)
   const sortLabels = Object.fromEntries(
     props.columns.flatMap((c) => (c.sortLabels ? [[c.id, c.sortLabels]] : [])),
   )
@@ -264,6 +269,8 @@ export default function ResourceTable<T extends RowData>(props: ResourceTablePro
         applied={props.applied}
         onClearAll={props.onClearAll}
         columnTitles={columnTitles}
+        sortTitles={sortTitles}
+        sortOrder={sortOrder}
         sortLabels={sortLabels}
         columnOrder={columnOrder}
         onResetColumns={resetColumns}

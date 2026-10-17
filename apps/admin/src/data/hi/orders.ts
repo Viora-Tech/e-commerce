@@ -138,6 +138,14 @@ export default [
       payment: 'पेमेंट',
       fulfilment: 'भेजने की स्थिति',
       status: 'स्थिति',
+      channel: 'चैनल',
+      tags: 'टैग',
+    },
+    sortTitles: {
+      order: 'ऑर्डर नंबर',
+      customer: 'ग्राहक का नाम',
+      payment: 'पेमेंट की स्थिति',
+      fulfilment: 'भेजने की स्थिति',
     },
     moreLines: (n) => `+${n} और`,
     bulk: {

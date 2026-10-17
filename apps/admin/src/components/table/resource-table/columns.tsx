@@ -36,6 +36,10 @@ export type ResourceColumnSpec<T extends RowData> = {
   sortValue?: (item: T) => SortValue | undefined
   /** The sort menu's direction words ("Newest first" / "Oldest first"); else Descending/Ascending. */
   sortLabels?: { desc: string; asc: string } | undefined
+  /** The column's name in the sort menu when it differs from the header ("Order number"). */
+  sortTitle?: string | undefined
+  /** Where it sits in the sort menu, lowest first; columns without one follow, in column order. */
+  sortRank?: number | undefined
   /** Frame 5:2591 centres every column; product-style cells pass `start`. */
   align?: CellAlign
   /** `false` keeps the column out of the "View" toggle. */
