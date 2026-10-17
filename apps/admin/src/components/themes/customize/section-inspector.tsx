@@ -17,6 +17,7 @@ import { InspectorTabContext } from '@/lib/customize-inspector-tab'
 import { useCustomizePuck } from '@/lib/customize-puck'
 import { sectionHandle } from '@/lib/customize-section-kinds'
 import { locateBlock } from '@/lib/customize-slots'
+import ImportedSectionNote from './imported-section-note'
 import InspectorBreadcrumb from './inspector-breadcrumb'
 import InspectorEmpty from './inspector-empty'
 import SectionIcon from './section-icon'
@@ -70,6 +71,11 @@ export default function SectionInspector() {
       isSectionSettingsField(field as never, name) || isElementStyleField(field as never, name),
   )
   const active: Tab = hasAdvanced ? tab : 'basic'
+  // An imported Shopify section names its file in the theme (`props.sectionType`).
+  const liquidType =
+    selected.type === 'LiquidSection' && typeof selected.props.sectionType === 'string'
+      ? selected.props.sectionType
+      : null
 
   return (
     <motion.section
@@ -97,6 +103,7 @@ export default function SectionInspector() {
           </Button>
         )}
       </header>
+      {liquidType ? <ImportedSectionNote sectionType={liquidType} place="top" /> : null}
       {hasAdvanced ? (
         <>
           <div
@@ -142,6 +149,7 @@ export default function SectionInspector() {
           <p className="text-[0.8125rem] text-muted-foreground">{copy.emptyFields}</p>
         </div>
       )}
+      {liquidType ? <ImportedSectionNote sectionType={liquidType} place="bottom" /> : null}
     </motion.section>
   )
 }

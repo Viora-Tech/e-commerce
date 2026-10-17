@@ -13,6 +13,12 @@ export const themeImportContent = {
     cardLabel: (name: string) => `${name}, a section from your Shopify theme`,
     added: (name: string) => `${name} added`,
   },
+  /** The inspector of an imported section (Figma 698:92941). */
+  inspector: {
+    title: 'Imported from Shopify · Liquid',
+    body: 'Its settings come from the section’s schema. Layout and blocks can only change in code.',
+    openCode: 'Open in Edit code',
+  },
   dialog: {
     title: 'Import your Shopify theme',
     body: 'Your theme comes over as a new theme here. It looks the same, and it runs on our cart, checkout, search and accounts. Your live theme does not change.',
