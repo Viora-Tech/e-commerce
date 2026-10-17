@@ -98,3 +98,185 @@
   padding-block: 3rem;
   text-align: center;
 }
+
+/* ------------------------------------------------------------------ */
+/* Figma Pages · Collection (704:109926)                                */
+/* ------------------------------------------------------------------ */
+/* Breadcrumb, a 40px title, the description with the product count at the
+   row's end; a 13rem filter column headed "Filters / Clear all"; the chips and
+   the sort on one toolbar; three cards across; numbered pages. */
+.section-collection .breadcrumbs {
+  margin-top: var(--space-5);
+}
+
+.collection__header {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: end;
+  column-gap: var(--space-5);
+  row-gap: var(--space-2);
+  margin-bottom: var(--space-6);
+}
+
+.collection__header > * {
+  grid-column: 1;
+}
+
+.collection__title {
+  margin: 0;
+  font-size: calc(2rem * var(--font-heading-scale, 1));
+  line-height: 1.1;
+  letter-spacing: -0.015em;
+  text-transform: none;
+}
+
+.collection__description {
+  color: var(--color-muted);
+}
+
+.collection__count {
+  grid-column: 2;
+  grid-row: -2;
+  margin: 0;
+  color: var(--color-muted);
+  font-size: 14px;
+  white-space: nowrap;
+}
+
+.browse--filters {
+  display: grid;
+  gap: var(--space-7);
+}
+
+.browse__filters {
+  display: none;
+}
+
+.browse__filters-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: var(--space-3);
+  border-bottom: 1px solid var(--color-line);
+}
+
+.browse__filters-title {
+  margin: 0;
+  font-family: var(--font-heading);
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.browse__clear {
+  color: var(--color-muted);
+  font-size: 14px;
+  text-decoration: none;
+}
+
+.browse__clear:hover {
+  color: var(--color-ink);
+}
+
+.browse__chips {
+  display: flex;
+  flex: 1 1 auto;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.browse__chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 4px var(--space-3);
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-button, var(--radius-m));
+  background-color: var(--color-surface);
+  color: var(--color-ink);
+  font-size: 14px;
+  text-decoration: none;
+}
+
+.browse__chip:hover {
+  border-color: var(--color-ink);
+}
+
+@media (min-width: 990px) {
+  .browse--filters {
+    grid-template-columns: 13.5rem minmax(0, 1fr);
+  }
+
+  .browse__filters {
+    display: block;
+  }
+
+  .browse--filters .collection__grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+.collection__grid {
+  gap: var(--space-7) var(--space-5);
+}
+
+/* Figma Store / Pagination (692:81545): square page buttons, the current one filled. */
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  margin-top: var(--space-7);
+}
+
+.pagination__pages {
+  display: flex;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.pagination__page,
+.pagination__step,
+.pagination__gap {
+  display: inline-grid;
+  place-items: center;
+  min-width: 36px;
+  height: 36px;
+  padding-inline: var(--space-2);
+  border-radius: var(--radius-m);
+  color: var(--color-ink);
+  font-size: 14px;
+  font-weight: 500;
+  text-decoration: none;
+}
+
+.pagination__step {
+  border: 1px solid var(--color-line);
+}
+
+.pagination__step svg {
+  transform: rotate(90deg);
+}
+
+.pagination__step--next svg {
+  transform: rotate(-90deg);
+}
+
+.pagination__page:hover,
+.pagination__step:hover {
+  background-color: var(--color-surface);
+}
+
+.pagination__page[aria-current="page"] {
+  background-color: var(--color-ink);
+  color: var(--color-bg);
+}
+
+.pagination__gap {
+  color: var(--color-muted);
+}

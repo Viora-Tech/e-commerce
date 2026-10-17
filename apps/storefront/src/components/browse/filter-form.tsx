@@ -70,7 +70,7 @@ export default function FilterForm({
     values.map((v) => (
       <label
         key={`${key}-${v.value}`}
-        className="flex cursor-pointer items-center gap-3 py-1 text-body"
+        className="flex cursor-pointer items-center gap-3 py-1 text-small text-ink"
       >
         <input
           type="checkbox"
@@ -195,7 +195,7 @@ export default function FilterForm({
           open={g.open || g.key === 'availability'}
           className="group border-b border-line py-4"
         >
-          <summary className="flex cursor-pointer list-none items-center justify-between text-body font-semibold [&::-webkit-details-marker]:hidden">
+          <summary className="flex cursor-pointer list-none items-center justify-between text-body font-medium text-ink [&::-webkit-details-marker]:hidden">
             {g.title}
             <span aria-hidden="true" className="transition-transform group-open:rotate-180">
               <Icon name="chevron-down" size={16} />

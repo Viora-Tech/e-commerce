@@ -1,9 +1,9 @@
-import type { CardProduct } from '@commerce/blocks'
+import { Breadcrumbs, type CardProduct } from '@commerce/blocks'
 import type { BrowseResult } from '@commerce/core'
 import type { BrowseFilters, BrowseSort } from '@commerce/core/browse'
 import { parseRichText, RichTextRenderer } from '@commerce/richtext'
 import BrowseResults from '@/components/browse/browse-results'
-import { COLLECTION_SORTS } from '@/data/browse'
+import { browseContent, COLLECTION_SORTS } from '@/data/browse'
 import { COLLECTION_PER_PAGE } from '@/data/collections'
 import type { CollectionDetail } from '@/lib/collections'
 import { collectionGraph, jsonLd } from '@/lib/seo'
@@ -59,8 +59,14 @@ export default function MainCollection({
         // biome-ignore lint/security/noDangerouslySetInnerHtml: JSON-LD from our own data; jsonLd() escapes it.
         dangerouslySetInnerHTML={jsonLd(schema)}
       />
+      <Breadcrumbs
+        items={[
+          { label: browseContent.collections, href: '/collections' },
+          { label: collection.title },
+        ]}
+      />
       <header className="collection__header">
-        <h1 className="collection__title h2">{collection.title}</h1>
+        <h1 className="collection__title">{collection.title}</h1>
         {settings.showImage === true && collection.imageUrl ? (
           // biome-ignore lint/performance/noImgElement: collection images come from the store's media host, as in the blocks package.
           <img
@@ -75,6 +81,7 @@ export default function MainCollection({
             className="collection__description rte"
           />
         ) : null}
+        <p className="collection__count">{browseContent.productCount(result.total)}</p>
       </header>
 
       <BrowseResults
@@ -90,6 +97,7 @@ export default function MainCollection({
         perPage={COLLECTION_PER_PAGE}
         showFilters={settings.showFilters !== false}
         showSort={settings.showSort !== false}
+        showCount={false}
       />
     </section>
   )

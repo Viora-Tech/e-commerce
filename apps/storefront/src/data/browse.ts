@@ -4,6 +4,7 @@ import type { BrowseSort } from '@commerce/core/browse'
 export const browseContent = {
   filterAndSort: 'Filter and sort',
   filters: 'Filters',
+  collections: 'Collections',
   apply: 'Apply',
   clearAll: 'Clear all',
   close: 'Close',
