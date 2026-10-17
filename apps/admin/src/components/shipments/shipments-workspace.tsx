@@ -9,6 +9,7 @@ import { AppWindow, Plus, Printer, Truck } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Card } from '@commerce/ui/shadcn/card'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { parseAsInteger, parseAsString, parseAsStringLiteral, useQueryStates } from 'nuqs'
 import { Suspense, useEffect, useState } from 'react'
 import ActionMenu from '@/components/layout/action-menu'
@@ -59,6 +60,7 @@ async function fetchWallets(): Promise<Wallets> {
 function ShipmentsContent() {
   // Hooks
   const copy = useCopy(shipmentsContent)
+  const router = useRouter()
   const fmt = useFormat()
   const [{ tab, query, page, perPage: rawPerPage }, setQ] = useQueryStates(
     {
@@ -142,7 +144,8 @@ function ShipmentsContent() {
   /* Book by order number found these orders: the same Create shipment flow takes over. */
   const handleShipFound = (orderIds: string[]) => {
     setSheet(null)
-    setBooking(orderIds)
+    if (orderIds.length === 1 && orderIds[0]) router.push(routes.orders.ship(orderIds[0]))
+    else setBooking(orderIds)
   }
 
   // Render logic
@@ -242,7 +245,7 @@ function ShipmentsContent() {
                     variant="outline"
                     onClick={(e) => {
                       e.stopPropagation()
-                      setBooking([r.orderId])
+                      router.push(routes.orders.ship(r.orderId))
                     }}
                   >
                     {copy.shipNow}

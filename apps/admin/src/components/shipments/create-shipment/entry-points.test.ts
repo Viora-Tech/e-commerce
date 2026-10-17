@@ -42,16 +42,17 @@ describe('Create shipment entry points', () => {
     expect(outside).toEqual([])
   })
 
-  it.each(['components/orders/order-view.tsx', 'components/shipments/shipments-workspace.tsx'])(
-    '%s opens the shared Create shipment dialog',
-    (file) => {
-      const text = read(file)
-      expect(text).toMatch(
-        /import CreateShipmentDialog from '[^']*create-shipment\/create-shipment-dialog'/,
-      )
-      expect(text).toContain('<CreateShipmentDialog')
-    },
-  )
+  it('one order opens the Create shipment page; several open the shared bulk dialog', () => {
+    const view = read('components/orders/order-view.tsx')
+    expect(view).toContain('routes.orders.ship(order.id)')
+    const workspace = read('components/shipments/shipments-workspace.tsx')
+    expect(workspace).toContain('routes.orders.ship(')
+    expect(workspace).toMatch(
+      /import CreateShipmentDialog from '[^']*create-shipment\/create-shipment-dialog'/,
+    )
+    expect(workspace).toContain('<CreateShipmentDialog')
+    expect(read('app/(admin)/orders/[id]/ship/page.tsx')).toContain('<CreateShipmentPage')
+  })
 
   it('the order page sends Create shipment (next step and shipment card) to the flow', () => {
     const view = read('components/orders/order-view.tsx')

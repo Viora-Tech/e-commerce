@@ -125,6 +125,28 @@ export const createShipmentContent = {
     printAll: 'Print all labels',
     booked: (awb: string) => `Booked, AWB ${awb}`,
   },
+  /** The full-page Create shipment (Figma "Orders · Create shipment"), for one order. */
+  page: {
+    title: 'Create shipment',
+    back: (orderNumber: number) => `Order #${orderNumber}`,
+    subtitle: (orderNumber: number, who: string, items: string, payment: string) =>
+      [`Order #${orderNumber}`, who, items, payment].filter(Boolean).join(' · '),
+    paidBy: (method: string) => `Paid by ${method}`,
+    cod: 'Cash on delivery',
+    shipFrom: 'Ship from',
+    shipTo: 'Ship to',
+    package: 'Package',
+    summary: 'Summary',
+    route: 'Route',
+    routeValue: (from: string, to: string) => `${from} → ${to}`,
+    chargedWeight: 'Weight',
+    courierCharge: 'Courier charge',
+    chooseFirst: 'Pick a courier to see the charge.',
+    walletNote: 'Paid from your courier wallet. The label is ready to print right after booking.',
+    manualNote: 'Marks the order as shipped with your tracking number.',
+    notFound: 'This order could not be loaded.',
+    backToOrder: 'Back to the order',
+  },
   pickup: {
     heading: 'Ask the courier to collect',
     help: 'Pick a day and a start time. Skip this if you drop parcels off yourself.',

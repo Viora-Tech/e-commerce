@@ -35,6 +35,11 @@ export type PickupPlace = {
   name: string
   city: string | null
   pincode: string
+  /** The rest of the address, for the Create shipment route card. */
+  line1: string | null
+  line2: string | null
+  stateCode: string | null
+  phone: string | null
 }
 
 export type DraftParcel = {
@@ -60,6 +65,13 @@ export type DraftOrder = {
   customerName: string | null
   city: string | null
   pincode: string | null
+  /** The rest of the ship-to address, for the Create shipment route card. */
+  line1: string | null
+  line2: string | null
+  stateCode: string | null
+  phone: string | null
+  paymentStatus: string
+  fulfillmentStatus: string
   paymentMode: 'cod' | 'prepaid'
   totalPaise: number
   /** Why this order can't be booked here, if it can't. */
@@ -111,6 +123,10 @@ export async function prepareShipments(
       name: location.name,
       city: location.city,
       pincode: location.pincode,
+      line1: location.line1,
+      line2: location.line2,
+      stateCode: location.stateCode,
+      phone: location.phone,
     })
     .from(location)
     .where(isNotNull(location.courierPickup))
@@ -121,6 +137,10 @@ export async function prepareShipments(
       name: settings.policy.warehouse.name || storeName,
       city: settings.policy.warehouse.city || null,
       pincode: settings.policy.originPincode,
+      line1: settings.policy.warehouse.line1 || null,
+      line2: settings.policy.warehouse.line2 || null,
+      stateCode: settings.policy.warehouse.state || null,
+      phone: settings.policy.warehouse.phone || null,
     },
     ...places.flatMap((p) => (p.pincode ? [{ ...p, pincode: p.pincode }] : [])),
   ]
@@ -140,6 +160,12 @@ export async function prepareShipments(
             customerName: sql<string | null>`coalesce(${address.name}, ${customer.name})`,
             city: address.city,
             pincode: address.pincode,
+            line1: address.line1,
+            line2: address.line2,
+            stateCode: address.stateCode,
+            phone: address.phone,
+            paymentStatus: order.paymentStatus,
+            fulfillmentStatus: order.fulfillmentStatus,
           })
           .from(order)
           .leftJoin(address, eq(address.id, order.shippingAddressId))
@@ -253,6 +279,12 @@ export async function prepareShipments(
       customerName: o.customerName,
       city: o.city,
       pincode: o.pincode,
+      line1: o.line1,
+      line2: o.line2,
+      stateCode: o.stateCode,
+      phone: o.phone,
+      paymentStatus: o.paymentStatus,
+      fulfillmentStatus: o.fulfillmentStatus,
       paymentMode: o.paymentMethod === 'cod' ? 'cod' : 'prepaid',
       totalPaise: o.totalPaise,
       blocked: CLOSED_STATUSES.has(o.status)

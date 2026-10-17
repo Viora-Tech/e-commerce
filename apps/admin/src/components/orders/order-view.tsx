@@ -5,11 +5,11 @@ import { useState } from 'react'
 import { toast } from 'sonner'
 import { ADMIN_APPS } from '@/apps/registry'
 import MetafieldsCard from '@/components/metaobjects/metafields-card'
-import CreateShipmentDialog from '@/components/shipments/create-shipment/create-shipment-dialog'
 import { type OrderMark, orderDetailContent, ordersContent } from '@/data/orders'
 import { shipmentPanelContent } from '@/data/shipping'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { routes } from '@/lib/routes'
 import CollectPaymentDialog from './collect-payment-dialog'
 import CustomerCard from './customer-card'
 import FulfilDialog from './fulfil-dialog'
@@ -56,8 +56,6 @@ export default function OrderView({ order, appCards = [] }: OrderViewProps) {
   const [refunding, setRefunding] = useState<OrderPayment | null>(null)
   const [fulfilling, setFulfilling] = useState(false)
   const [collecting, setCollecting] = useState(false)
-  /* The Create shipment flow is open for this order while this holds its id. */
-  const [shipping, setShipping] = useState<string[]>([])
 
   // Helpers
   const refresh = () => router.refresh()
@@ -122,7 +120,7 @@ export default function OrderView({ order, appCards = [] }: OrderViewProps) {
     }
   }
 
-  const handleShip = () => setShipping([order.id])
+  const handleShip = () => router.push(routes.orders.ship(order.id))
   const handleRefreshTracking = () =>
     shipmentId &&
     handleCourier(
@@ -279,11 +277,6 @@ export default function OrderView({ order, appCards = [] }: OrderViewProps) {
         order={fulfilling ? order : null}
         onClose={() => setFulfilling(false)}
         onDone={closeAndRefresh(() => setFulfilling(false))}
-      />
-      <CreateShipmentDialog
-        orderIds={shipping}
-        onClose={() => setShipping([])}
-        onBooked={refresh}
       />
       <CollectPaymentDialog
         order={collecting ? order : null}

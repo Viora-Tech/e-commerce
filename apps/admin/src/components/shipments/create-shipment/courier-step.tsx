@@ -21,6 +21,8 @@ type CourierStepProps = {
   tracking: TrackingDraft
   onTrackingChange: (next: TrackingDraft) => void
   onRetry: () => void
+  /** Inside a card that already shows the heading and help (the full-page flow). */
+  inCard?: boolean
 }
 
 /** Step 2: every connected courier with its live rate, delivery date and COD, plus "Ship it
@@ -33,6 +35,7 @@ export default function CourierStep({
   tracking,
   onTrackingChange,
   onRetry,
+  inCard = false,
 }: CourierStepProps) {
   // Hooks
   const copy = useCopy(createShipmentContent)
@@ -46,13 +49,15 @@ export default function CourierStep({
   return (
     <div className="flex flex-col gap-3">
       <div className="flex flex-wrap items-start justify-between gap-2">
-        <div className="flex flex-col gap-0.5">
-          <p className="text-body font-medium text-ink-strong">{copy.courier.heading}</p>
-          <p className="text-caption text-muted-foreground">
-            {hasCouriers ? copy.courier.help : copy.courier.noCourier}
-            {kg && hasCouriers ? ` ${copy.package.charged(kg)}` : ''}
-          </p>
-        </div>
+        {inCard ? null : (
+          <div className="flex flex-col gap-0.5">
+            <p className="text-body font-medium text-ink-strong">{copy.courier.heading}</p>
+            <p className="text-caption text-muted-foreground">
+              {hasCouriers ? copy.courier.help : copy.courier.noCourier}
+              {kg && hasCouriers ? ` ${copy.package.charged(kg)}` : ''}
+            </p>
+          </div>
+        )}
         {anyProblem ? (
           <Button size="sm" variant="outline" onClick={onRetry}>
             <RefreshCw aria-hidden />
