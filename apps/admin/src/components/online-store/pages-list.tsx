@@ -1,7 +1,7 @@
 'use client'
 
 import { siteConfig } from '@commerce/config/site'
-import { SquarePlus } from '@commerce/ui/icons'
+import { Plus } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { parseAsInteger, parseAsString, parseAsStringLiteral, useQueryStates } from 'nuqs'
 import { Suspense, useEffect, useState } from 'react'
@@ -71,7 +71,7 @@ function PagesContent() {
       hideable: false,
       render: (p) => (
         <span className="flex min-w-0 flex-col">
-          <span className="truncate font-medium text-ink-strong">{p.title}</span>
+          <span className="truncate text-ink-strong">{p.title}</span>
           <span className="truncate text-caption text-muted-foreground">{pageUrl(p.handle)}</span>
         </span>
       ),
@@ -86,23 +86,23 @@ function PagesContent() {
       id: 'visibility',
       title: copy.columns.visibility,
       sortValue: (p) => (p.publishedAt ? 1 : 0),
-      align: 'center',
       render: (p) => (
-        <StatusChip>{p.publishedAt ? copy.visibility.live : copy.visibility.hidden}</StatusChip>
+        <StatusChip tone={p.publishedAt ? 'success' : 'neutral'}>
+          {p.publishedAt ? copy.visibility.live : copy.visibility.hidden}
+        </StatusChip>
       ),
     },
     {
       id: 'updated',
       title: copy.columns.updated,
       sortValue: (p) => new Date(p.updatedAt),
-      align: 'end',
-      render: (p) => <span className="text-muted-foreground">{fmt.when(p.updatedAt)}</span>,
+      render: (p) => <span title={fmt.dateTime(p.updatedAt)}>{fmt.when(p.updatedAt)}</span>,
     },
   ]
 
   const addButton = (
     <Button type="button" onClick={() => setCreating(true)}>
-      <SquarePlus strokeWidth={1.6} />
+      <Plus strokeWidth={1.6} />
       {copy.add}
     </Button>
   )

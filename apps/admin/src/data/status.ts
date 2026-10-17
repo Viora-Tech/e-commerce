@@ -212,7 +212,7 @@ export const STATUS = {
   /** Blog posts: a scheduled post that is due reads as published. */
   article: {
     published: entry(blogListContent.status.published, 'success'),
-    scheduled: entry(blogListContent.status.scheduled, 'accent'),
+    scheduled: entry(blogListContent.status.scheduled, 'info'),
     draft: entry(blogListContent.status.draft, 'neutral'),
   },
   app: {

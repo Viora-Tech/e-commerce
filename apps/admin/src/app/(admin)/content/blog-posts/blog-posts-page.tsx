@@ -1,7 +1,7 @@
 'use client'
 
 import { siteConfig } from '@commerce/config/site'
-import { SquarePlus } from '@commerce/ui/icons'
+import { Pencil } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Kbd } from '@commerce/ui/shadcn/kbd'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@commerce/ui/shadcn/tooltip'
@@ -184,7 +184,7 @@ function BlogPostsContent({ initial }: { initial: BlogPostsInitial }) {
             <TooltipTrigger
               render={
                 <Button nativeButton={false} render={<Link href={routes.content.newBlogPost()} />}>
-                  <SquarePlus strokeWidth={1.6} />
+                  <Pencil strokeWidth={1.6} />
                   {copy.add}
                 </Button>
               }
@@ -255,7 +255,7 @@ function BlogPostsContent({ initial }: { initial: BlogPostsInitial }) {
           body: copy.empty.body,
           action: (
             <Button nativeButton={false} render={<Link href={routes.content.newBlogPost()} />}>
-              <SquarePlus strokeWidth={1.6} />
+              <Pencil strokeWidth={1.6} />
               {copy.add}
             </Button>
           ),
