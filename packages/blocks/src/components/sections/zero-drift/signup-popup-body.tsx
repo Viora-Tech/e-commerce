@@ -22,6 +22,8 @@ type SignupPopupBodyProps = {
   action?: NewsletterAction | undefined
   /** Called once the action accepted the address. */
   onDone: () => void
+  /** The dialog looks' "No thanks" under the form; closes the popup. */
+  onDismiss?: (() => void) | undefined
 }
 
 const idle: NewsletterState = { status: 'idle' }
@@ -55,6 +57,7 @@ export default function SignupPopupBody({
   feed,
   action,
   onDone,
+  onDismiss,
 }: SignupPopupBodyProps) {
   // Hooks
   const [state, submit, pending] = useActionState(action ?? noop, idle)
@@ -165,6 +168,11 @@ export default function SignupPopupBody({
             </button>
           </div>
           {finePrint ? <p className="signup-popup__fine">{finePrint}</p> : null}
+          {onDismiss ? (
+            <button type="button" className="signup-popup__dismiss" onClick={onDismiss}>
+              {copy.dismiss}
+            </button>
+          ) : null}
         </form>
       )}
     </div>

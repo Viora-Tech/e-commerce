@@ -1,6 +1,9 @@
 'use client'
 
-// Port of sections/signup-popup.liquid (+ assets/signup-popup.js): three looks off one card.
+// Port of sections/signup-popup.liquid (+ assets/signup-popup.js) and the Figma dialog
+// (Section / Sign-up popup, 704:109918): five looks off one card.
+//   split   centred dialog, the photo beside the form; dims the page
+//   simple  centred dialog, the form alone; dims the page
 //   corner  slides up bottom-right, no overlay, the page stays usable
 //   figure  centred card, a product rises out of it; dims the page
 //   feed    neon-edged card listing drops, then the signup
@@ -64,6 +67,9 @@ const CLOSE_MS = 450
 /** Re-check while the consent banner is waiting for an answer. */
 const CONSENT_RETRY_MS = 4000
 const LOCK_CLASS = 'signup-popup-lock'
+
+/** The centred looks dim the page, hold focus and stop it scrolling. */
+const isModal = (style: PopupStyle) => style === 'figure' || style === 'split' || style === 'simple'
 
 export default function SignupPopup({
   sectionId,
@@ -130,8 +136,8 @@ export default function SignupPopup({
       if (e.key === 'Escape') setPhase('closing')
     }
     document.addEventListener('keydown', onKey)
-    if (style !== 'figure') return () => document.removeEventListener('keydown', onKey)
-    // The figure look is a modal: the page stops scrolling and the field takes the caret.
+    if (!isModal(style)) return () => document.removeEventListener('keydown', onKey)
+    // The dialog looks are modal: the page stops scrolling and the field takes the caret.
     const root = document.documentElement
     root.classList.add(LOCK_CLASS)
     const focus = window.setTimeout(() => {
@@ -172,14 +178,14 @@ export default function SignupPopup({
       {editing && !floating ? (
         <p className="signup-popup__editor-note">{copy.editorNote(copy.triggerNotes[trigger])}</p>
       ) : null}
-      {style === 'figure' && !editing ? (
+      {isModal(style) && !editing ? (
         <div className="signup-popup__scrim" onClick={handleClose} aria-hidden="true" />
       ) : null}
       <div
         ref={card}
         className="signup-popup__card"
         role="dialog"
-        aria-modal={style === 'figure' && !editing ? true : undefined}
+        aria-modal={isModal(style) && !editing ? true : undefined}
         aria-labelledby={headingId}
         tabIndex={-1}
       >
@@ -191,9 +197,11 @@ export default function SignupPopup({
         >
           <Icon name="close" size={16} />
         </button>
-        {style === 'corner' && image?.url ? (
+        {(style === 'corner' && image?.url) || style === 'split' ? (
           <div className="signup-popup__media">
-            <Picture image={image} alt="" fill sizes="22.5rem" loading="lazy" />
+            {image?.url ? (
+              <Picture image={image} alt="" fill sizes="22.5rem" loading="lazy" />
+            ) : null}
           </div>
         ) : null}
         {style === 'figure' ? <div className="signup-popup__ring" aria-hidden="true" /> : null}
@@ -222,6 +230,7 @@ export default function SignupPopup({
           feed={feed}
           action={action}
           onDone={handleDone}
+          onDismiss={style === 'split' || style === 'simple' ? handleClose : undefined}
         />
       </div>
     </div>

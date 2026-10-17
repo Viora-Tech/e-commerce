@@ -96,3 +96,35 @@
     text-align: center;
   }
 }
+
+/* Figma storefront dock (Section / Mobile dock, 704:109692): 22px glyphs over 12px
+   medium labels, 4px apart; the current page in ink, the rest muted. */
+@media screen and (max-width: 749px) {
+  .mobile-dock__list {
+    padding-inline: var(--space-4);
+  }
+
+  .mobile-dock__link {
+    gap: var(--space-1);
+  }
+
+  .mobile-dock__label {
+    font-size: 12px;
+    font-weight: 500;
+    line-height: 1.4;
+  }
+
+  .mobile-dock__link[aria-current="page"] {
+    color: var(--color-ink);
+  }
+
+  .mobile-dock__cart-count {
+    padding: 1px 6px;
+    height: auto;
+    min-width: 0;
+    color: var(--color-on-brand, #fff);
+    font-size: 12px;
+    font-weight: 500;
+    line-height: 1.4;
+  }
+}

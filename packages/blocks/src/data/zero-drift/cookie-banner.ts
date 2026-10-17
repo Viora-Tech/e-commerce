@@ -2,12 +2,13 @@
 export const cookieBannerContent = {
   label: 'Cookie banner',
   regionLabel: 'Cookie consent',
+  heading: 'We use cookies',
   message:
     '<p>We use cookies to run the store, remember what is in your cart and understand how the site is used. You choose what else we may use them for.</p>',
   policyLabel: 'Read our privacy policy',
   acceptLabel: 'Accept all',
-  declineLabel: 'Decline',
-  preferencesLabel: 'Choose cookies',
+  declineLabel: 'Reject all',
+  preferencesLabel: 'Preferences',
   save: 'Save choices',
   categories: {
     necessary: { label: 'Necessary', body: 'Cart, checkout and security. Always on.' },
