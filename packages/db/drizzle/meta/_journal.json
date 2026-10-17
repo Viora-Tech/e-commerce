@@ -834,6 +834,20 @@
       "when": 1792271366385,
       "tag": "0123_store_plan",
       "breakpoints": true
+    },
+    {
+      "idx": 119,
+      "version": "7",
+      "when": 1792274226420,
+      "tag": "0130_api_access",
+      "breakpoints": true
+    },
+    {
+      "idx": 120,
+      "version": "7",
+      "when": 1792275727206,
+      "tag": "0131_channel_connections",
+      "breakpoints": true
     }
   ]
 }

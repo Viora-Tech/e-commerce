@@ -5,7 +5,9 @@ export default defineConfig({
   schema: [
     './src/schema.ts',
     './src/ai-schema.ts',
+    './src/api-access-schema.ts',
     './src/billing-schema.ts',
+    './src/channel-schema.ts',
     './src/auth-schema.ts',
     './src/marketing-schema.ts',
     './src/privacy-schema.ts',

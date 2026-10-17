@@ -1,6 +1,8 @@
 export * from './ai-schema'
+export * from './api-access-schema'
 export * as authSchema from './auth-schema'
 export * from './billing-schema'
+export * from './channel-schema'
 export { createDb, type Db } from './client'
 export { seedWaimersShipping } from './default-shipping'
 export { isUniqueViolation } from './errors'
@@ -8,18 +10,24 @@ export * from './marketing-schema'
 export * from './privacy-schema'
 export * from './purchasing-schema'
 export {
+  apiAuthCodeStore,
+  apiGrantForAccess,
+  apiGrantForRefresh,
   type HostRoute,
   isStoreSlugTaken,
   organizationMembership,
   resolveHost,
   resolveStore,
   resolveStoreForOrganization,
+  storeIdForSlug,
   storesWithAbandonedCarts,
   storesWithBalanceDue,
   storesWithCertificateChecks,
+  storesWithChannelConnections,
   storesWithDueReviewRequests,
   storesWithMarketingWork,
   storesWithMemberDailySummaries,
+  storesWithOldApiActivity,
   storesWithOpenShipments,
   storesWithPendingDomains,
   storesWithPendingManualOrders,

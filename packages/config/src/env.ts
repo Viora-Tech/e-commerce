@@ -229,6 +229,21 @@ const shape = z.object({
    */
   GSC_GOOGLE_CLIENT_ID: optionalOrBlank(z.string().min(1)),
   GSC_GOOGLE_CLIENT_SECRET: optionalOrBlank(z.string().min(1)),
+  /**
+   * Sales channels → Google: the Google Merchant Center connection's OAuth web client (scope
+   * `content`). Both blank: the MERCHANT_GOOGLE_* client is used. The authorised redirect URI is
+   * `<ADMIN_URL>/api/channels/google/callback`.
+   */
+  GMC_GOOGLE_CLIENT_ID: optionalOrBlank(z.string().min(1)),
+  GMC_GOOGLE_CLIENT_SECRET: optionalOrBlank(z.string().min(1)),
+  /**
+   * Sales channels → Facebook, Instagram and WhatsApp: the platform's Meta app (Facebook Login
+   * for Business, with catalog_management and business_management approved in App Review).
+   * Either blank keeps "Connect" as a request instead. The valid OAuth redirect URI is
+   * `<ADMIN_URL>/api/channels/meta/callback`.
+   */
+  META_APP_ID: optionalOrBlank(z.string().min(1)),
+  META_APP_SECRET: optionalOrBlank(z.string().min(1)),
   /** `<slug>.<PLATFORM_STORE_DOMAIN>` becomes a new store's primary domain. */
   PLATFORM_STORE_DOMAIN: z.string().min(1).default('waimers.store'),
   /**
