@@ -827,6 +827,13 @@
       "when": 1792270667150,
       "tag": "0122_certificate_checks_clock",
       "breakpoints": true
+    },
+    {
+      "idx": 118,
+      "version": "7",
+      "when": 1792271366385,
+      "tag": "0123_store_plan",
+      "breakpoints": true
     }
   ]
 }
