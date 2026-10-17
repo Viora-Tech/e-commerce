@@ -152,18 +152,19 @@ export const checkoutContent = {
   stepDone: 'Complete',
   /** The stepped checkout: Address → Shipping → Payment, contact at the top of Address. */
   steps: {
-    label: { address: 'Address', shipping: 'Shipping', payment: 'Payment' },
+    label: { contact: 'Contact', address: 'Address', shipping: 'Delivery', payment: 'Payment' },
     /** Gift cards are emailed: the first step only asks for contact and billing details. */
     detailsLabel: 'Details',
     progress: 'Checkout steps',
     heading: {
+      contact: 'Sign in or create your account',
       address: 'Where should we deliver?',
       shipping: 'How would you like it delivered?',
       payment: 'How would you like to pay?',
     },
     detailsHeading: 'Your details',
     intro: {
-      address: 'Your contact details first, then the delivery address.',
+      address: 'Where your order goes, and who to call about it.',
       details: 'Your gift card arrives by email. We need your contact and billing details.',
       shipping: (place: string) => `Options and dates for ${place}.`,
       shippingNoPlace: 'Pick how your order travels.',
@@ -172,7 +173,11 @@ export const checkoutContent = {
     contactHeading: 'Contact',
     addressHeading: 'Delivery address',
     /** The primary button on a step that is not the last: named after the next step. */
-    continueTo: { shipping: 'Continue to shipping', payment: 'Continue to payment' },
+    continueTo: {
+      address: 'Continue',
+      shipping: 'Continue to delivery',
+      payment: 'Continue to payment',
+    },
     back: 'Back',
     goTo: (label: string) => `Go back to ${label}`,
   },
@@ -294,6 +299,11 @@ export const checkoutContent = {
   pay: (amount: string) => `Pay ${amount}`,
   placeOrderAmount: (amount: string) => `Place order · ${amount}`,
   processing: 'Processing…',
+  help: { label: 'Need help? WhatsApp us', short: 'Help' },
+  assurance: {
+    title: 'Secure payment',
+    body: 'Encrypted by the payment provider. We never see your card or UPI PIN.',
+  },
   trust: {
     secure: 'Secure checkout',
     encrypted:

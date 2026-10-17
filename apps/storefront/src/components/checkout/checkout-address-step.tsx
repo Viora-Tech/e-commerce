@@ -1,7 +1,6 @@
 'use client'
 
 import CheckoutAddressBook from '@/components/checkout/checkout-address-book'
-import CheckoutContact from '@/components/checkout/checkout-contact'
 import ExpressPay from '@/components/checkout/express-pay'
 import { checkoutContent as content } from '@/data/checkout'
 import { CK_HEADING } from '@/lib/checkout-classes'
@@ -12,9 +11,8 @@ type CheckoutAddressStepProps = { ck: CheckoutFormModel }
 const SUBHEADING = `${CK_HEADING} text-[1rem]!`
 
 /**
- * Step one: express UPI at the top (once the shopper is known), then contact (a code to the
- * mobile number first), then where the order goes. The address appears once contact is
- * settled: signed in, or a guest where Settings → Customer accounts allows one.
+ * Figma Checkout / Address (488:5579): express UPI at the top (the shopper is known by now),
+ * then where the order goes, from the address book or new.
  */
 export default function CheckoutAddressStep({ ck }: CheckoutAddressStepProps) {
   // Render logic
@@ -33,13 +31,6 @@ export default function CheckoutAddressStep({ ck }: CheckoutAddressStepProps) {
           onPay={ck.handleExpress}
         />
       ) : null}
-
-      <section aria-labelledby="checkout-contact-title" className="flex flex-col gap-4">
-        <h3 id="checkout-contact-title" className={SUBHEADING}>
-          {content.steps.contactHeading}
-        </h3>
-        <CheckoutContact ck={ck} />
-      </section>
 
       {contactReady ? (
         <section aria-labelledby="checkout-address-title" className="flex flex-col gap-4">

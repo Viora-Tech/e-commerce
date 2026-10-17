@@ -59,13 +59,15 @@ export function recapRows({
 }: RecapInput): RecapRow[] {
   const at = steps.indexOf(step)
   const rows: RecapRow[] = []
-  if (at > steps.indexOf('address')) {
+  if (at > steps.indexOf('contact')) {
     rows.push({
       label: content.recap.contact,
       value: join([form.email, displayPhone(form.phone)], ' · '),
-      step: 'address',
+      step: 'contact',
       changeLabel: content.recap.changeContact,
     })
+  }
+  if (at > steps.indexOf('address')) {
     rows.push({
       label: digitalOnly ? content.recap.billTo : content.recap.shipTo,
       value: join([form.name, form.line1, form.line2, join([form.city, form.pincode], ' ')], ', '),

@@ -20,17 +20,20 @@ const rate = {
   arrives: 'Arrives tomorrow, Sat, 11 Oct',
   fastest: true,
 }
-const base: RecapInput = { step: 'address', steps: stepsFor(false), form, digitalOnly: false, rate }
+const base: RecapInput = { step: 'contact', steps: stepsFor(false), form, digitalOnly: false, rate }
 
 describe('recapRows', () => {
   it('shows nothing on the first step', () => {
     expect(recapRows(base)).toEqual([])
   })
 
-  it('recaps contact and address on shipping', () => {
+  it('recaps contact on address, then contact and address on shipping', () => {
+    expect(recapRows({ ...base, step: 'address' }).map((r) => [r.label, r.step])).toEqual([
+      ['Contact', 'contact'],
+    ])
     const rows = recapRows({ ...base, step: 'shipping' })
     expect(rows.map((r) => [r.label, r.value, r.step])).toEqual([
-      ['Contact', 'asha@example.com · +91 98765 43210', 'address'],
+      ['Contact', 'asha@example.com · +91 98765 43210', 'contact'],
       ['Ship to', 'Asha Verma, 14 Rajpath Colony, Jaipur 302001', 'address'],
     ])
   })

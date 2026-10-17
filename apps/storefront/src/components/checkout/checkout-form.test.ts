@@ -59,6 +59,7 @@ const look: CheckoutLook = {
   branding: defaultCheckoutSettings.branding,
   storeName: 'Waimers',
   logoUrl: null,
+  contactPhone: null,
 }
 
 const props = {
@@ -116,13 +117,13 @@ describe('CheckoutForm', () => {
     expect(html.match(/<form/g)).toHaveLength(1)
   })
 
-  it('opens on Address with a phone code first for a guest', () => {
-    expect(html).toContain('Where should we deliver?')
+  it('opens on Contact with a phone code first for a guest', () => {
+    expect(html).toContain('Sign in or create your account')
     expect(html).toContain('aria-current="step"')
     expect(html).toContain('id="checkout-send-code"')
     expect(html).toContain('Send code')
     expect(html).toContain('Check out as guest')
-    expect(html).toContain('Continue to shipping')
+    expect(html).toContain('Continue')
     // The address and express pay wait until the shopper is known.
     expect(html).not.toContain('checkout-pincode')
     expect(html).not.toContain('Pay with UPI')
@@ -138,9 +139,10 @@ describe('CheckoutForm', () => {
     expect(required).toContain('This shop needs an account to check out.')
   })
 
-  it('shows a signed-in shopper their saved addresses as tagged cards', () => {
+  it('takes a signed-in shopper straight to Address, their saved addresses as tagged cards', () => {
     const page = render('', { customer, addresses: [address, office], signIn })
-    expect(page).toContain('Signed in as asha@example.com')
+    expect(page).toContain('Where should we deliver?')
+    expect(page).toContain('Change contact details')
     expect(page).toContain('Home')
     expect(page).toContain('Office')
     expect(page.match(/name="saved-address"/g)).toHaveLength(2)
@@ -159,8 +161,14 @@ describe('CheckoutForm', () => {
     expect(page).toContain('Save this address as')
   })
 
-  it('keeps a guest who asks for a later step on Address', () => {
-    expect(render('?step=payment')).toContain('Where should we deliver?')
+  it('keeps a guest who asks for a later step on Contact', () => {
+    expect(render('?step=payment')).toContain('Sign in or create your account')
+  })
+
+  it('shows a signed-in shopper their details on Contact when they go back to it', () => {
+    expect(render('?step=contact', { customer, addresses: [address], signIn })).toContain(
+      'Signed in as asha@example.com',
+    )
   })
 
   it('pays the exact amount on the payment step, UPI first, with the recap above', () => {
@@ -182,12 +190,13 @@ describe('CheckoutForm', () => {
   })
 
   it('labels every field and leaves validation to the inline checks', () => {
-    const page = render('', { customer: { ...customer, email: null }, addresses: [] })
-    expect(page).toMatch(/novalidate/i)
-    for (const id of ['checkout-email', 'checkout-phone', 'checkout-pincode', 'checkout-name']) {
-      expect(page).toContain(`for="${id}"`)
-    }
-    expect(page.match(/<form/g)).toHaveLength(1)
+    const shopper = { customer: { ...customer, email: null }, addresses: [] }
+    const contact = render('?step=contact', shopper)
+    const address = render('?step=address', { customer, addresses: [] })
+    expect(contact).toMatch(/novalidate/i)
+    for (const id of ['checkout-email', 'checkout-phone']) expect(contact).toContain(`for="${id}"`)
+    for (const id of ['checkout-pincode', 'checkout-name']) expect(address).toContain(`for="${id}"`)
+    expect(address.match(/<form/g)).toHaveLength(1)
   })
 
   it('carries the branding as --ck-* properties, not the theme', () => {

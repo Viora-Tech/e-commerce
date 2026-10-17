@@ -21,6 +21,7 @@ export type CheckoutIconName =
   | 'user'
   | 'bolt'
   | 'spinner'
+  | 'chat'
 
 type CheckoutIconProps = {
   name: CheckoutIconName
@@ -38,6 +39,7 @@ const PATHS: Record<CheckoutIconName, ReactNode> = {
     </>
   ),
   check: <path d="M5 12.5l4.5 4.5L19 7.5" />,
+  chat: <path d="M4 12a8 8 0 1 1 3.1 6.3L4 19.5l1.1-3.3A7.9 7.9 0 0 1 4 12Z" />,
   alert: (
     <>
       <circle cx="12" cy="12" r="8.5" />

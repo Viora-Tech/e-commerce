@@ -3,6 +3,7 @@ import {
   type CheckoutStep,
   canContinue,
   canVisit,
+  entryStep,
   parseStep,
   resolveStep,
   type StepGates,
@@ -14,29 +15,32 @@ import {
 
 const steps = stepsFor(false)
 const digital = stepsFor(true)
-const open: StepGates = { address: 'ok', shipping: 'ok' }
-const noAddress: StepGates = { address: 'blocked', shipping: 'pending' }
-const quoting: StepGates = { address: 'ok', shipping: 'pending' }
-const noRate: StepGates = { address: 'ok', shipping: 'blocked' }
+const open: StepGates = { contact: 'ok', address: 'ok', shipping: 'ok' }
+const noContact: StepGates = { contact: 'blocked', address: 'blocked', shipping: 'pending' }
+const noAddress: StepGates = { contact: 'ok', address: 'blocked', shipping: 'pending' }
+const quoting: StepGates = { contact: 'ok', address: 'ok', shipping: 'pending' }
+const noRate: StepGates = { contact: 'ok', address: 'ok', shipping: 'blocked' }
 
 describe('stepsFor', () => {
-  it('runs Address → Shipping → Payment, and skips shipping for gift cards', () => {
-    expect(steps).toEqual(['address', 'shipping', 'payment'])
-    expect(digital).toEqual(['address', 'payment'])
+  it('runs Contact → Address → Shipping → Payment, and skips shipping for gift cards', () => {
+    expect(steps).toEqual(['contact', 'address', 'shipping', 'payment'])
+    expect(digital).toEqual(['contact', 'address', 'payment'])
   })
 })
 
 describe('parseStep', () => {
   it('reads a known step and falls back to the first', () => {
     expect(parseStep('payment', steps)).toBe('payment')
-    expect(parseStep(null, steps)).toBe('address')
-    expect(parseStep('pay', steps)).toBe('address')
-    expect(parseStep('shipping', digital)).toBe('address')
+    expect(parseStep(null, steps)).toBe('contact')
+    expect(parseStep('pay', steps)).toBe('contact')
+    expect(parseStep('shipping', digital)).toBe('contact')
   })
 })
 
 describe('resolveStep', () => {
   it('sends a shopper back to the first blocked gate', () => {
+    expect(resolveStep('payment', noContact, steps)).toBe('contact')
+    expect(resolveStep('address', noContact, steps)).toBe('contact')
     expect(resolveStep('payment', noAddress, steps)).toBe('address')
     expect(resolveStep('payment', noRate, steps)).toBe('shipping')
     expect(resolveStep('shipping', noRate, steps)).toBe('shipping')
@@ -52,11 +56,18 @@ describe('resolveStep', () => {
   })
 
   it('ignores the shipping gate when there is no shipping step', () => {
-    expect(resolveStep('payment', { address: 'ok', shipping: 'blocked' }, digital)).toBe('payment')
+    expect(
+      resolveStep('payment', { contact: 'ok', address: 'ok', shipping: 'blocked' }, digital),
+    ).toBe('payment')
   })
 })
 
 describe('transition', () => {
+  it('waits on Contact until the shopper is signed in or a guest', () => {
+    expect(transition('contact', { type: 'next' }, noContact, steps).moved).toBe(false)
+    expect(transition('contact', { type: 'next' }, open, steps).step).toBe('address')
+  })
+
   it('continues only through an open gate', () => {
     expect(transition('address', { type: 'next' }, open, steps)).toEqual({
       step: 'shipping',
@@ -72,7 +83,8 @@ describe('transition', () => {
       step: 'payment',
       moved: false,
     })
-    expect(transition('address', { type: 'back' }, open, steps).moved).toBe(false)
+    expect(transition('contact', { type: 'back' }, open, steps).moved).toBe(false)
+    expect(transition('address', { type: 'back' }, open, steps).step).toBe('contact')
     expect(transition('payment', { type: 'back' }, open, steps).step).toBe('shipping')
     expect(transition('payment', { type: 'back' }, open, digital).step).toBe('address')
   })
@@ -105,6 +117,7 @@ describe('stepStatus', () => {
   it('marks steps behind as done', () => {
     expect(steps.map((s) => stepStatus(s, 'shipping', steps))).toEqual([
       'done',
+      'done',
       'current',
       'upcoming',
     ])
@@ -113,14 +126,21 @@ describe('stepStatus', () => {
 
 describe('stepSearch', () => {
   it('writes the step and keeps other parameters', () => {
-    expect(stepSearch('shipping', steps, '')).toBe('?step=shipping')
-    expect(stepSearch('payment', steps, '?utm_source=mail&step=shipping')).toBe(
+    expect(stepSearch('shipping', '')).toBe('?step=shipping')
+    expect(stepSearch('payment', '?utm_source=mail&step=shipping')).toBe(
       '?utm_source=mail&step=payment',
     )
   })
 
-  it('drops the parameter on the first step', () => {
-    expect(stepSearch('address', steps, '?step=payment')).toBe('')
-    expect(stepSearch('address', steps, '?step=payment&ref=x')).toBe('?ref=x')
+  it('names Contact too, so going back to it on purpose stays there', () => {
+    expect(stepSearch('contact', '?step=payment&ref=x')).toBe('?step=contact&ref=x')
+  })
+})
+
+describe('entryStep', () => {
+  it('opens on Contact until the shopper is known, then on Address', () => {
+    expect(entryStep(noContact, steps)).toBe('contact')
+    expect(entryStep(open, steps)).toBe('address')
+    expect(entryStep(noAddress, digital)).toBe('address')
   })
 })

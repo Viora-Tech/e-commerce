@@ -77,6 +77,10 @@ export const SAVE_ADDRESS_ID = 'checkout-address-save'
 
 /** What an address book entry needs before Save writes it. */
 const ADDRESS_KEYS = ['pincode', 'name', 'line1', 'city', 'stateCode', 'phone'] as const
+/** The fields the Contact step shows; every other field is the Address step's. */
+const CONTACT_KEYS: readonly CheckoutFieldKey[] = ['email', 'phone']
+const stepOfField = (key: CheckoutFieldKey): CheckoutStep =>
+  CONTACT_KEYS.includes(key) ? 'contact' : 'address'
 
 /**
  * Everything the stepped checkout knows and does, so `CheckoutForm` and its step panels
@@ -188,6 +192,7 @@ export function useCheckoutForm(input: CheckoutFormInput) {
   })
   const { digitalOnly, offered, payment, coveredByCards, payNowPaise } = totals
   const gates: StepGates = {
+    contact: contactReady && !wrongFields.some((k) => CONTACT_KEYS.includes(k)) ? 'ok' : 'blocked',
     address: contactReady && wrongFields.length === 0 && editingId === null ? 'ok' : 'blocked',
     shipping: gate,
   }
@@ -197,7 +202,7 @@ export function useCheckoutForm(input: CheckoutFormInput) {
   // Pay found a field to fix on an earlier step: focus it once that step is on screen.
   useEffect(() => {
     const key = focusNext.current
-    if (step !== 'address' || !key) return
+    if (!key || stepOfField(key) !== step) return
     focusNext.current = null
     document.getElementById(fieldId(key))?.focus()
   }, [step])
@@ -225,10 +230,12 @@ export function useCheckoutForm(input: CheckoutFormInput) {
           ? SAVE_ADDRESS_ID
           : null
     if (!target) return
-    if (step === 'address') document.getElementById(target)?.focus()
-    else if (first) {
-      focusNext.current = first
-      go({ type: 'goto', step: 'address' })
+    // Signing in and the contact fields live on the Contact step; every other fix on Address.
+    const home: CheckoutStep = first ? stepOfField(first) : signInFirst ? 'contact' : 'address'
+    if (step === home) document.getElementById(target)?.focus()
+    else {
+      if (first) focusNext.current = first
+      go({ type: 'goto', step: home })
     }
   }
   /** Place the order with this way to pay, or point at the first field that needs fixing. */
@@ -347,12 +354,17 @@ export function useCheckoutForm(input: CheckoutFormInput) {
   const handleLabel = (label: string) => setForm((prev) => ({ ...prev, label }))
   const handlePayment = (id: string) => setForm((prev) => ({ ...prev, payment: id }))
   const handlePhone = (phone: string) => setForm((prev) => ({ ...prev, phone }))
-  /** Continue on the address step shows every check first; later steps wait at their gate. */
+  /** Continue on the contact and address steps shows every check first; later steps wait at their gate. */
   const handleContinue = () => {
     // Not signed in yet: Continue (and Enter) press the contact step's Send code / Verify.
     const send = document.getElementById(SEND_CODE_ID)
-    if (step === 'address' && !contactReady && send instanceof HTMLButtonElement) {
-      if (!send.disabled) send.click()
+    if (step === 'contact' && !contactReady) {
+      if (send instanceof HTMLButtonElement && !send.disabled) send.click()
+      else showFirstWrong()
+      return
+    }
+    if (step === 'contact' && gates.contact !== 'ok') {
+      showFirstWrong()
       return
     }
     if (step === 'address' && gates.address !== 'ok') {
@@ -430,9 +442,12 @@ export function useCheckoutForm(input: CheckoutFormInput) {
     addressError,
     giftCards,
     shownErrors,
-    toFix: attempted && step === 'address' && contactReady ? wrongFields.length : 0,
+    toFix:
+      attempted && contactReady && (step === 'contact' || step === 'address')
+        ? wrongFields.filter((k) => stepOfField(k) === step).length
+        : 0,
     /** Continue was pressed before the contact step was settled. */
-    needsContact: attempted && step === 'address' && !contactReady,
+    needsContact: attempted && step === 'contact' && !contactReady,
     totals,
     payNow,
     payLabel,

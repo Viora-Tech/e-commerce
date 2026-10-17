@@ -1,12 +1,12 @@
 /*
- * The stepped checkout's state machine: Address → Shipping → Payment (contact sits at the
- * top of Address). Pure, so it is tested on its own. The step lives in the URL (`?step=`),
+ * The stepped checkout's state machine, as Figma Checkout: Contact → Address → Delivery
+ * (shipping) → Payment. Pure, so it is tested on its own. The step lives in the URL (`?step=`),
  * so the browser's back and forward buttons move between steps and a reload stays put; the
  * gates decide how far a shopper may go. Nothing here is trusted: `checkoutAction` and
  * `placeOrder` re-check every field, rate and amount on the server.
  */
 
-export const CHECKOUT_STEPS = ['address', 'shipping', 'payment'] as const
+export const CHECKOUT_STEPS = ['contact', 'address', 'shipping', 'payment'] as const
 export type CheckoutStep = (typeof CHECKOUT_STEPS)[number]
 
 /** The query parameter that holds the step. */
@@ -20,13 +20,13 @@ export const STEP_PARAM = 'step'
 export type GateState = 'ok' | 'pending' | 'blocked'
 
 /** One gate per step that has work to finish; payment ends the flow and has none. */
-export type StepGates = { address: GateState; shipping: GateState }
+export type StepGates = { contact: GateState; address: GateState; shipping: GateState }
 
 export type StepEvent = { type: 'next' } | { type: 'back' } | { type: 'goto'; step: CheckoutStep }
 
 export type StepStatus = 'done' | 'current' | 'upcoming'
 
-const DIGITAL_STEPS: readonly CheckoutStep[] = ['address', 'payment']
+const DIGITAL_STEPS: readonly CheckoutStep[] = ['contact', 'address', 'payment']
 
 /** Gift-card-only baskets are emailed: no shipping step. One array each, so effects can depend on it. */
 export const stepsFor = (digitalOnly: boolean): readonly CheckoutStep[] =>
@@ -34,6 +34,14 @@ export const stepsFor = (digitalOnly: boolean): readonly CheckoutStep[] =>
 
 const isStep = (raw: string, steps: readonly CheckoutStep[]): raw is CheckoutStep =>
   (steps as readonly string[]).includes(raw)
+
+/**
+ * Where the plain `/checkout` link opens: Contact for a shopper who still has to sign in,
+ * Address for one who is already known (signed in, or a guest the store allows).
+ */
+export function entryStep(gates: StepGates, steps: readonly CheckoutStep[]): CheckoutStep {
+  return gates.contact === 'ok' && steps[1] ? steps[1] : (steps[0] as CheckoutStep)
+}
 
 /** The step a URL asks for; anything unknown (or missing) is the first step. */
 export function parseStep(raw: string | null | undefined, steps: readonly CheckoutStep[]) {
@@ -112,17 +120,12 @@ export function stepStatus(
 }
 
 /**
- * The URL for a step, keeping any other query parameters. The first step drops the
- * parameter so the plain `/checkout` link stays the entry point.
+ * The URL for a step, keeping any other query parameters. Every step names itself, so going
+ * back to Contact on purpose stays there; the plain `/checkout` link is the entry (`entryStep`).
  */
-export function stepSearch(
-  step: CheckoutStep,
-  steps: readonly CheckoutStep[],
-  search: string,
-): string {
+export function stepSearch(step: CheckoutStep, search: string): string {
   const params = new URLSearchParams(search)
-  if (step === steps[0]) params.delete(STEP_PARAM)
-  else params.set(STEP_PARAM, step)
+  params.set(STEP_PARAM, step)
   const query = params.toString()
   return query ? `?${query}` : ''
 }

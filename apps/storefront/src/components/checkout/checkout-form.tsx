@@ -2,6 +2,7 @@
 
 import { formatPaise } from '@commerce/blocks'
 import CheckoutAddressStep from '@/components/checkout/checkout-address-step'
+import CheckoutContactStep from '@/components/checkout/checkout-contact-step'
 import CheckoutPayFooter from '@/components/checkout/checkout-pay-footer'
 import CheckoutPaymentStep from '@/components/checkout/checkout-payment-step'
 import CheckoutProgress from '@/components/checkout/checkout-progress'
@@ -24,15 +25,16 @@ type CheckoutFormProps = CheckoutFormInput
 
 const copy = content.steps
 
-/** The intro under a step's heading. */
-function stepIntro(step: CheckoutStep, digitalOnly: boolean, place: string | null): string {
+/** The intro under a step's heading; Contact's sign-in block says it in its own words. */
+function stepIntro(step: CheckoutStep, digitalOnly: boolean, place: string | null): string | null {
+  if (step === 'contact') return null
   if (step === 'payment') return copy.intro.payment
   if (step === 'shipping') return place ? copy.intro.shipping(place) : copy.intro.shippingNoPlace
   return digitalOnly ? copy.intro.details : copy.intro.address
 }
 
 /**
- * The locked checkout in three steps: Address (contact first) → Shipping → Payment, with
+ * The locked checkout in four steps (Figma Checkout): Contact → Address → Delivery → Payment, with
  * the order summary beside every step (a fold-out bar on a phone). The step lives in the
  * URL, so back, forward and reload behave; each step's gate decides how far the shopper may
  * go. One form for the whole checkout (#224); the logic is `useCheckoutForm`, and the
@@ -60,7 +62,9 @@ export default function CheckoutForm(props: CheckoutFormProps) {
   const place = ck.form.pincode ? [ck.form.pincode, ck.form.city].filter(Boolean).join(', ') : null
   const title = step === 'address' && digitalOnly ? copy.detailsHeading : copy.heading[step]
   const primaryLabel =
-    next === 'shipping' || next === 'payment' ? copy.continueTo[next] : ck.payLabel
+    next === 'address' || next === 'shipping' || next === 'payment'
+      ? copy.continueTo[next]
+      : ck.payLabel
   // Pay and Continue on Shipping wait for the courier's quote (the price is part of the total).
   const quoting = (paying || step === 'shipping') && ck.gates.shipping === 'pending'
   const shortfall =
@@ -123,7 +127,9 @@ export default function CheckoutForm(props: CheckoutFormProps) {
           title={title}
           intro={stepIntro(step, digitalOnly, place)}
         >
-          {step === 'address' ? (
+          {step === 'contact' ? (
+            <CheckoutContactStep ck={ck} />
+          ) : step === 'address' ? (
             <CheckoutAddressStep ck={ck} />
           ) : step === 'shipping' ? (
             <DeliveryMethod

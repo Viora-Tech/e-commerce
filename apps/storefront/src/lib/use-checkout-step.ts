@@ -2,6 +2,7 @@ import { useSearchParams } from 'next/navigation'
 import { useEffect, useRef } from 'react'
 import {
   type CheckoutStep,
+  entryStep,
   parseStep,
   resolveStep,
   STEP_PARAM,
@@ -14,8 +15,8 @@ import {
 /** The heading each step panel draws; focus lands on it when the step changes. */
 export const stepHeadingId = (step: CheckoutStep): string => `checkout-step-${step}`
 
-const urlFor = (step: CheckoutStep, steps: readonly CheckoutStep[]): string =>
-  `${window.location.pathname}${stepSearch(step, steps, window.location.search)}`
+const urlFor = (step: CheckoutStep): string =>
+  `${window.location.pathname}${stepSearch(step, window.location.search)}`
 
 /**
  * The step on screen, kept in the URL. Moving pushes a history entry, so the browser's back
@@ -30,13 +31,14 @@ export function useCheckoutStep(
   settled: boolean,
 ) {
   const params = useSearchParams()
-  const wanted = parseStep(params.get(STEP_PARAM), steps)
+  const raw = params.get(STEP_PARAM)
+  const wanted = raw ? parseStep(raw, steps) : entryStep(gates, steps)
   const step = resolveStep(wanted, gates, steps)
   const shown = useRef<CheckoutStep | null>(null)
 
   useEffect(() => {
-    if (settled && step !== wanted) window.history.replaceState(null, '', urlFor(step, steps))
-  }, [settled, step, wanted, steps])
+    if (settled && step !== wanted) window.history.replaceState(null, '', urlFor(step))
+  }, [settled, step, wanted])
 
   // A new step starts at the top, with focus on its heading so a screen reader announces it.
   useEffect(() => {
@@ -51,7 +53,7 @@ export function useCheckoutStep(
   /** Apply an event; returns whether the step moved (a closed gate keeps it). */
   const go = (event: StepEvent): boolean => {
     const next = transition(step, event, gates, steps)
-    if (next.moved) window.history.pushState(null, '', urlFor(next.step, steps))
+    if (next.moved) window.history.pushState(null, '', urlFor(next.step))
     return next.moved
   }
 
