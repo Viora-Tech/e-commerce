@@ -202,7 +202,7 @@ export default function CostsSettings() {
             )}
           </SettingsCard>
           {view.codOn ? (
-            <SettingsCard title={copy.cod.heading} description={copy.cod.help}>
+            <SettingsCard id="cod-fee" title={copy.cod.heading} description={copy.cod.help}>
               <FeeRateRow
                 id="fee-cod"
                 label={copy.cod.label}
