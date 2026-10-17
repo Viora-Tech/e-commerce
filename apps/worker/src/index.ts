@@ -11,6 +11,7 @@ import { Hono } from 'hono'
 import { createAiBulkWriteWorker } from './ai-bulk-write'
 import { createAppEventWorker, createAppJobWorker } from './app-events'
 import { createBackInStockWorker } from './back-in-stock'
+import { BILLING_EVERY_MS, createBillingSweep } from './billing'
 import {
   CERTIFICATE_EVERY_MS,
   createCertificateSweep,
@@ -121,6 +122,11 @@ const memberDailySummary = createMemberDailySummary(redis, db, {
   adminUrl: env.ADMIN_URL,
 })
 const searchConsole = createSearchConsoleSweep(redis, db)
+const billing = createBillingSweep(redis, db, {
+  salesStoreId: env.PLATFORM_SALES_STORE_ID,
+  settingsSecret: env.SETTINGS_SECRET,
+  storefrontUrl: env.STOREFRONT_URL,
+})
 const outboxRelay = createOutboxRelay(redis, db, {
   notifications,
   appEvents,
@@ -154,6 +160,7 @@ const watched = [
   [reviewRequests.worker, 'review-requests'],
   [memberDailySummary.worker, 'member-daily-summary'],
   [searchConsole.worker, 'search-console-sweep'],
+  [billing.worker, 'billing-sweep'],
 ] as const
 for (const [w, queueName] of watched) {
   reportWorkerFailures(w, queueName, reportError)
@@ -234,6 +241,11 @@ await searchConsole.queue.upsertJobScheduler(
   { every: SEARCH_CONSOLE_EVERY_MS },
   { name: 'sweep' },
 )
+await billing.queue.upsertJobScheduler(
+  'billing-sweep',
+  { every: BILLING_EVERY_MS },
+  { name: 'sweep' },
+)
 
 const rateLimitStore = createRedisRateLimitStore(redis)
 
@@ -302,6 +314,8 @@ const shutdown = async () => {
   await searchConsole.worker.close()
   await searchConsole.queue.close()
   await searchConsole.appJobs.close()
+  await billing.worker.close()
+  await billing.queue.close()
   await queue.close()
   await notifications.close()
   redis.disconnect()

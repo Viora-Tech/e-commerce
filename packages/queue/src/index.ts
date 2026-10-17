@@ -60,6 +60,8 @@ export const REVIEW_REQUESTS_QUEUE = '{reviews}-requests'
 export const MEMBER_DAILY_SUMMARY_QUEUE = '{members}-daily-summary'
 /** Repeat job that queues each connected store's daily Google Search Console sync. */
 export const SEARCH_CONSOLE_SWEEP_QUEUE = '{search-console}-sweep'
+/** Hourly: plan renewals billed ahead, unpaid plans marked due, then paused after grace. */
+export const BILLING_SWEEP_QUEUE = '{billing}-sweep'
 
 /**
  * Worker concurrency and the per-store cap for every queue that carries store jobs (see
