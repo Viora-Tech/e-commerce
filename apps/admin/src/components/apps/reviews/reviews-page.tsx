@@ -8,7 +8,6 @@ import { parseAsInteger, parseAsString, parseAsStringLiteral, useQueryStates } f
 import { Suspense, useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import PageHeader from '@/components/layout/page-header'
-import PillTabs from '@/components/layout/pill-tabs'
 import {
   appliedFromGroups,
   clearGroups,
@@ -17,6 +16,7 @@ import {
   FilterPanel,
 } from '@/components/table/filter-panel'
 import ResourceTable from '@/components/table/resource-table'
+import ViewSelect from '@/components/table/view-select'
 import { filterPanelContent } from '@/data/filter-panel'
 import { reviewsContent } from '@/data/reviews'
 import { useCopy } from '@/hooks/use-copy'
@@ -201,12 +201,11 @@ function ReviewsList() {
         onClearAll={() =>
           setQ({ query: '', status: null, rating: null, product: null, photos: null, page: 1 })
         }
-        tabs={
-          <PillTabs
-            variant="segmented"
+        views={
+          <ViewSelect
             value={q.status}
             onChange={(status) => setQ({ status, page: 1 })}
-            tabs={[
+            options={[
               { value: null, label: copy.list.tabs.all, count: stats.all },
               ...STATUSES.map((s) => ({ value: s, label: copy.list.tabs[s], count: stats[s] })),
             ]}

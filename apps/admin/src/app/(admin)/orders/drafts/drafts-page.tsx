@@ -8,9 +8,9 @@ import Link from 'next/link'
 import { parseAsInteger, parseAsString, parseAsStringLiteral, useQueryStates } from 'nuqs'
 import { Suspense, useEffect, useRef, useState } from 'react'
 import CustomerAvatar from '@/components/customers/customer-avatar'
+import ProoflyListPage from '@/components/layout/proofly-list-page'
 import StatStrip from '@/components/layout/stat-strip'
 import StatusChip from '@/components/layout/status-chip'
-import OrdersListFrame from '@/components/orders/orders-list-frame'
 import ResourceTable, { type ResourceColumnSpec } from '@/components/table/resource-table'
 import RowMenu from '@/components/table/row-menu'
 import ViewSelect from '@/components/table/view-select'
@@ -155,7 +155,7 @@ function DraftsContent({ initial }: { initial: DraftsInitial }) {
   const tiles = initial.tiles
 
   return (
-    <OrdersListFrame
+    <ProoflyListPage
       title={copy.heading}
       summary={copy.intro}
       actions={
@@ -173,7 +173,7 @@ function DraftsContent({ initial }: { initial: DraftsInitial }) {
           </TooltipContent>
         </Tooltip>
       }
-      tiles={
+      stats={
         <StatStrip
           variant="strip"
           tiles={[
@@ -235,7 +235,7 @@ function DraftsContent({ initial }: { initial: DraftsInitial }) {
         onPerPageChange={(n) => setQ({ perPage: n, page: 1 })}
         empty={query ? { heading: copy.noResults } : { heading: copy.empty, body: copy.intro }}
       />
-    </OrdersListFrame>
+    </ProoflyListPage>
   )
 }
 

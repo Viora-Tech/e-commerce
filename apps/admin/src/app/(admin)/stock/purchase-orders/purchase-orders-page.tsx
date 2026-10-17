@@ -8,13 +8,13 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@commerce/ui/shadcn/too
 import Link from 'next/link'
 import { parseAsInteger, parseAsString, parseAsStringLiteral, useQueryStates } from 'nuqs'
 import { Suspense, useEffect, useRef, useState } from 'react'
-import PillTabs from '@/components/layout/pill-tabs'
 import ProoflyListPage from '@/components/layout/proofly-list-page'
 import { purchaseOrderColumns } from '@/components/purchase-orders/purchase-order-columns'
 import PurchaseOrderTiles, {
   type PurchaseOrderCounts,
 } from '@/components/purchase-orders/purchase-order-tiles'
 import ResourceTable from '@/components/table/resource-table'
+import ViewSelect from '@/components/table/view-select'
 import {
   PURCHASE_ORDER_STATUSES,
   type PurchaseOrderStatus,
@@ -120,12 +120,11 @@ function PurchaseOrdersContent({ initial }: { initial: PurchaseOrdersInitial }) 
         query={q.query}
         onQueryChange={(query) => setQ({ query, page: 1 })}
         onClearAll={() => setQ({ query: '', status: null, page: 1 })}
-        tabs={
-          <PillTabs
-            variant="segmented"
+        views={
+          <ViewSelect
             value={q.status}
             onChange={(status) => setQ({ status, page: 1 })}
-            tabs={[
+            options={[
               { value: null, label: copy.tabs.all, count: allCount(initial.counts) },
               ...PURCHASE_ORDER_STATUSES.map((s) => ({ value: s, label: copy.status[s] })),
             ]}

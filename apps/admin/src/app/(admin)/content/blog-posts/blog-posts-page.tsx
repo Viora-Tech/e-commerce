@@ -12,7 +12,6 @@ import { toast } from 'sonner'
 import ArticleBulkActions from '@/components/blog/article-bulk-actions'
 import { articleColumns } from '@/components/blog/article-columns'
 import ConfirmDialog from '@/components/layout/confirm-dialog'
-import PillTabs from '@/components/layout/pill-tabs'
 import ProoflyListPage from '@/components/layout/proofly-list-page'
 import {
   appliedFromGroups,
@@ -22,6 +21,7 @@ import {
   FilterPanel,
 } from '@/components/table/filter-panel'
 import ResourceTable from '@/components/table/resource-table'
+import ViewSelect from '@/components/table/view-select'
 import { ARTICLE_TABS, type ArticleTab, blogListContent } from '@/data/blog'
 import { filterPanelContent } from '@/data/filter-panel'
 import { useCopy, useFormat } from '@/hooks/use-copy'
@@ -215,12 +215,11 @@ function BlogPostsContent({ initial }: { initial: BlogPostsInitial }) {
         )}
         filtersClassName={FILTER_PANEL_CLASS}
         applied={appliedFromGroups(groups, panelCopy)}
-        tabs={
-          <PillTabs
-            variant="segmented"
+        views={
+          <ViewSelect
             value={q.status}
             onChange={(status) => setQ({ status, page: 1 })}
-            tabs={[
+            options={[
               { value: null, label: copy.tabs.all, count: counts.all },
               ...ARTICLE_TABS.map((s) => ({ value: s, label: copy.tabs[s], count: counts[s] })),
             ]}

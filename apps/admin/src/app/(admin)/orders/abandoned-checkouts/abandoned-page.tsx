@@ -6,8 +6,8 @@ import { parseAsInteger, parseAsString, parseAsStringLiteral, useQueryStates } f
 import { Suspense, useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
 import AbandonedTiles, { type AbandonedStats } from '@/components/abandoned/abandoned-tiles'
+import ProoflyListPage from '@/components/layout/proofly-list-page'
 import StatusChip from '@/components/layout/status-chip'
-import OrdersListFrame from '@/components/orders/orders-list-frame'
 import ResourceTable, { type ResourceColumnSpec } from '@/components/table/resource-table'
 import RowMenu from '@/components/table/row-menu'
 import ViewSelect from '@/components/table/view-select'
@@ -187,7 +187,7 @@ function AbandonedContent({ initial }: { initial: AbandonedInitial }) {
   ]
 
   return (
-    <OrdersListFrame
+    <ProoflyListPage
       title={copy.heading}
       summary={copy.summary(
         initial.stats.carts,
@@ -199,7 +199,7 @@ function AbandonedContent({ initial }: { initial: AbandonedInitial }) {
           {copy.sendReminders}
         </Button>
       }
-      tiles={
+      stats={
         <AbandonedTiles
           stats={initial.stats}
           status={status}
@@ -256,7 +256,7 @@ function AbandonedContent({ initial }: { initial: AbandonedInitial }) {
         onPerPageChange={(n) => setQ({ perPage: n, page: 1 })}
         empty={{ heading: copy.empty, body: copy.intro }}
       />
-    </OrdersListFrame>
+    </ProoflyListPage>
   )
 }
 

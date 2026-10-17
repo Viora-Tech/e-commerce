@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react'
+import PageBody from '@/components/layout/page-body'
 import PageHeader from '@/components/layout/page-header'
 
 type ProoflyListPageProps = {
@@ -15,7 +16,7 @@ type ProoflyListPageProps = {
   children: ReactNode
 }
 
-/** The list-page shell of the Proofly frames: header, optional stat tiles, then the table card. */
+/** The one list-page shell (Orders, Products, Customers…): header, optional stat tiles, then the table card. */
 export default function ProoflyListPage({
   title,
   summary,
@@ -27,11 +28,11 @@ export default function ProoflyListPage({
 }: ProoflyListPageProps) {
   // Render logic
   return (
-    <div className="flex w-full flex-col gap-6 px-4 py-6 md:px-8 md:py-8">
+    <PageBody className="gap-6 md:py-8">
       <PageHeader title={title} summary={summary} back={back} actions={actions} />
       {controls}
       {stats}
       {children}
-    </div>
+    </PageBody>
   )
 }

@@ -7,9 +7,9 @@ import Link from 'next/link'
 import { parseAsInteger, parseAsString, parseAsStringLiteral, useQueryStates } from 'nuqs'
 import { Suspense, useEffect, useRef, useState } from 'react'
 import { inboundShipmentColumns } from '@/components/inbound-shipments/shipment-columns'
-import PillTabs from '@/components/layout/pill-tabs'
 import ProoflyListPage from '@/components/layout/proofly-list-page'
 import ResourceTable from '@/components/table/resource-table'
+import ViewSelect from '@/components/table/view-select'
 import {
   INBOUND_SHIPMENT_STATUSES,
   type InboundShipmentStatus,
@@ -94,12 +94,11 @@ function InboundShipmentsContent({ initial }: { initial: InboundShipmentsInitial
         query={state.query}
         onQueryChange={(query) => setState({ query, page: 1 })}
         onClearAll={() => setState({ query: '', status: null, page: 1 })}
-        tabs={
-          <PillTabs
-            variant="segmented"
+        views={
+          <ViewSelect
             value={state.status}
             onChange={(status) => setState({ status, page: 1 })}
-            tabs={[
+            options={[
               { value: null, label: copy.tabs.all, count: initial.allCount },
               ...INBOUND_SHIPMENT_STATUSES.map((s) => ({ value: s, label: copy.status[s] })),
             ]}

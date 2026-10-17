@@ -10,11 +10,11 @@ import { Suspense, useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
 import CustomerAvatar from '@/components/customers/customer-avatar'
 import ActionMenu from '@/components/layout/action-menu'
+import ProoflyListPage from '@/components/layout/proofly-list-page'
 import StatusChip from '@/components/layout/status-chip'
 import OrderChip from '@/components/orders/order-chip'
 import { orderStage } from '@/components/orders/order-stage'
 import OrdersBulkActions from '@/components/orders/orders-bulk-actions'
-import OrdersListFrame from '@/components/orders/orders-list-frame'
 import OrdersTiles, { type OrderTilesData } from '@/components/orders/orders-tiles'
 import ProductThumb from '@/components/products/product-thumb'
 import InlineState from '@/components/states/inline-state'
@@ -344,7 +344,7 @@ function OrdersContent({ initial }: { initial: OrdersInitial }) {
   }
 
   return (
-    <OrdersListFrame
+    <ProoflyListPage
       title={copy.title}
       summary={copy.summary(
         initial.counts.all,
@@ -352,7 +352,7 @@ function OrdersContent({ initial }: { initial: OrdersInitial }) {
         initial.counts.pendingUpi,
       )}
       actions={<HeaderActions />}
-      tiles={
+      stats={
         <OrdersTiles
           tiles={initial.tiles}
           status={status}
@@ -443,7 +443,7 @@ function OrdersContent({ initial }: { initial: OrdersInitial }) {
         )}
         empty={searching ? copy.noResults : copy.empty}
       />
-    </OrdersListFrame>
+    </ProoflyListPage>
   )
 }
 

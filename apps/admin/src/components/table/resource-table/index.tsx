@@ -55,9 +55,10 @@ export type ResourceTableProps<T extends RowData> = {
   loading?: boolean
   query: string
   onQueryChange: (q: string) => void
-  /** Status tabs, rendered left of the toolbar as in frame 5:2561. */
-  tabs?: ReactNode
-  /** The "View" dropdown (Figma Table / View select): a status picker drawn first in the toolbar. */
+  /**
+   * The one way to switch a list's views (Figma Table / View select): pass a `ViewSelect`.
+   * There are no pill tabs on tables, so every list looks the same.
+   */
   views?: ReactNode
   /** Filter controls rendered as a popover from the filter icon button. */
   filters?: FilterPanel
@@ -257,7 +258,6 @@ export default function ResourceTable<T extends RowData>(props: ResourceTablePro
         plural={props.resourceName.plural}
         query={props.query}
         onQueryChange={props.onQueryChange}
-        tabs={props.tabs}
         views={props.views}
         filters={props.filters}
         filtersClassName={props.filtersClassName}

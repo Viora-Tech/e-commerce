@@ -21,7 +21,6 @@ import {
 import InventoryStrip from '@/components/inventory/inventory-strip'
 import InventoryTiles, { type InventoryStats } from '@/components/inventory/inventory-tiles'
 import type { StoreLocation } from '@/components/inventory/location-select'
-import PillTabs from '@/components/layout/pill-tabs'
 import ProoflyListPage from '@/components/layout/proofly-list-page'
 import {
   appliedFromGroups,
@@ -32,6 +31,7 @@ import {
   facetOptions,
 } from '@/components/table/filter-panel'
 import ResourceTable from '@/components/table/resource-table'
+import ViewSelect from '@/components/table/view-select'
 import { filterPanelContent } from '@/data/filter-panel'
 import {
   inventoryContent,
@@ -314,12 +314,11 @@ function InventoryContent({ initial }: { initial: InventoryInitial }) {
         )}
         filtersClassName={FILTER_PANEL_CLASS}
         applied={applied}
-        tabs={
-          <PillTabs
-            variant="segmented"
+        views={
+          <ViewSelect
             value={q.stock === 'out' || q.stock === 'low' ? q.stock : null}
             onChange={(stock) => setQ({ stock, page: 1 })}
-            tabs={[
+            options={[
               { value: null, label: copy.tabs.all, count: stats.skus },
               { value: 'out', label: copy.tabs.out, count: stats.outOfStock },
               { value: 'low', label: copy.tabs.low, count: stats.lowStock },

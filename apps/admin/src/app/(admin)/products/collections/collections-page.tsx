@@ -10,10 +10,10 @@ import { toast } from 'sonner'
 import { collectionListColumns } from '@/components/collections/collection-list-columns'
 import CollectionTiles, { type CollectionTab } from '@/components/collections/collection-tiles'
 import ConfirmDialog from '@/components/layout/confirm-dialog'
-import PillTabs from '@/components/layout/pill-tabs'
 import ProoflyListPage from '@/components/layout/proofly-list-page'
 import ResourceTable from '@/components/table/resource-table'
 import RowMenu from '@/components/table/row-menu'
+import ViewSelect from '@/components/table/view-select'
 import { collectionFormContent, collectionsListContent } from '@/data/collections'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
@@ -113,12 +113,11 @@ function CollectionsContent({ initial }: { initial: CollectionsInitial }) {
         query={q.query}
         onQueryChange={(query) => setQ({ query, page: 1 })}
         onClearAll={() => setQ({ query: '', tab: null, page: 1 })}
-        tabs={
-          <PillTabs
-            variant="segmented"
+        views={
+          <ViewSelect
             value={q.tab}
             onChange={(tab) => setQ({ tab, page: 1 })}
-            tabs={[
+            options={[
               { value: null, label: copy.list.tabs.all, count: stats.total },
               { value: 'automatic', label: copy.list.tabs.automatic, count: stats.automatic },
               { value: 'manual', label: copy.list.tabs.manual, count: stats.manual },

@@ -12,7 +12,6 @@ import { parseAsInteger, parseAsString, parseAsStringLiteral, useQueryStates } f
 import { Suspense, useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
 import ConfirmDialog from '@/components/layout/confirm-dialog'
-import PillTabs from '@/components/layout/pill-tabs'
 import ProoflyListPage from '@/components/layout/proofly-list-page'
 import BulkTagDialog from '@/components/products/bulk-tag-dialog'
 import BulkWriteBanner from '@/components/products/bulk-write/bulk-write-banner'
@@ -32,6 +31,7 @@ import {
 } from '@/components/table/filter-panel'
 import ResourceTable from '@/components/table/resource-table'
 import RowMenu from '@/components/table/row-menu'
+import ViewSelect from '@/components/table/view-select'
 import { filterPanelContent } from '@/data/filter-panel'
 import { PRODUCT_STATUSES, productsListContent, type StockFilter } from '@/data/products'
 import { useCopy, useFormat } from '@/hooks/use-copy'
@@ -341,12 +341,11 @@ function ProductsContent({ initial }: { initial: ProductsInitial }) {
         )}
         filtersClassName={FILTER_PANEL_CLASS}
         applied={appliedFromGroups(groups, panelCopy)}
-        tabs={
-          <PillTabs
-            variant="segmented"
+        views={
+          <ViewSelect
             value={q.status}
             onChange={(status) => setQ({ status, page: 1 })}
-            tabs={[
+            options={[
               { value: null, label: copy.tabs.all, count: stats.total },
               ...PRODUCT_STATUSES.map((s) => ({
                 value: s,

@@ -15,11 +15,11 @@ import GiftCardProductsCard from '@/components/gift-cards/gift-card-products-car
 import GiftCardSettingsCard from '@/components/gift-cards/gift-card-settings-card'
 import GiftCardTiles from '@/components/gift-cards/gift-card-tiles'
 import EmptyState from '@/components/layout/empty-state'
-import PillTabs from '@/components/layout/pill-tabs'
 import ProoflyListPage from '@/components/layout/proofly-list-page'
 import RelativeTime from '@/components/layout/relative-time'
 import StatusLabel from '@/components/status/status-label'
 import ResourceTable, { type ResourceColumnSpec } from '@/components/table/resource-table'
+import ViewSelect from '@/components/table/view-select'
 import { GIFT_CARD_STATES, type GiftCardStateFilter, giftCardsContent } from '@/data/gift-cards'
 import { api } from '@/lib/api-client'
 import { type ListQuery, sameListQuery } from '@/lib/list-query'
@@ -137,11 +137,10 @@ type TabsProps = {
 
 function StateTabs({ value, allCount, onChange }: TabsProps) {
   return (
-    <PillTabs
-      variant="segmented"
+    <ViewSelect<GiftCardStateFilter | null>
       value={value}
       onChange={onChange}
-      tabs={[
+      options={[
         { value: null, label: copy.tabs.all, count: allCount },
         ...GIFT_CARD_STATES.map((s) => ({ value: s, label: copy.tabs[s] })),
       ]}
@@ -251,7 +250,7 @@ function GiftCardsContent({ initial }: { initial: GiftCardsInitial }) {
           query={query}
           onQueryChange={(query) => setQ({ query, page: 1 })}
           onClearAll={() => setQ({ query: '', status: null, page: 1 })}
-          tabs={
+          views={
             <StateTabs
               value={status}
               allCount={initial.allCount}

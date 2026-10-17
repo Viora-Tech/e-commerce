@@ -8,11 +8,11 @@ import { Card } from '@commerce/ui/shadcn/card'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { toast } from 'sonner'
-import PillTabs from '@/components/layout/pill-tabs'
 import ProoflyListPage from '@/components/layout/proofly-list-page'
 import SectionHead from '@/components/layout/section-head'
 import ResourceTable from '@/components/table/resource-table'
 import RowMenu from '@/components/table/row-menu'
+import ViewSelect from '@/components/table/view-select'
 import { automationsContent } from '@/data/marketing-automations'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
@@ -99,15 +99,14 @@ export default function AutomationsPage({ automations }: AutomationsPageProps) {
             setTab(null)
             setPage(1)
           }}
-          tabs={
-            <PillTabs
-              variant="segmented"
+          views={
+            <ViewSelect
               value={tab}
               onChange={(next) => {
                 setTab(next)
                 setPage(1)
               }}
-              tabs={[
+              options={[
                 { value: null, label: copy.tabs.all, count: automations.length },
                 { value: 'active' as const, label: copy.tabs.active, count: running },
                 {

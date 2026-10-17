@@ -14,8 +14,8 @@ import { parseAsInteger, parseAsString, parseAsStringLiteral, useQueryStates } f
 import { Suspense, useEffect, useState } from 'react'
 import ActionMenu from '@/components/layout/action-menu'
 import EmptyState from '@/components/layout/empty-state'
+import ProoflyListPage from '@/components/layout/proofly-list-page'
 import StatusChip from '@/components/layout/status-chip'
-import OrdersListFrame from '@/components/orders/orders-list-frame'
 import ResourceTable from '@/components/table/resource-table'
 import RowMenu from '@/components/table/row-menu'
 import ViewSelect from '@/components/table/view-select'
@@ -169,7 +169,7 @@ function ShipmentsContent() {
   const canBook = tab === 'toBook' && selected.length > 0
 
   return (
-    <OrdersListFrame
+    <ProoflyListPage
       title={copy.title}
       summary={summaryText}
       actions={
@@ -313,7 +313,7 @@ function ShipmentsContent() {
         onBooked={handleBooked}
       />
       <ShipmentSheets open={sheet} onClose={handleSheetClose} onShip={handleShipFound} />
-    </OrdersListFrame>
+    </ProoflyListPage>
   )
 }
 

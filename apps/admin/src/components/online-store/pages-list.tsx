@@ -5,11 +5,11 @@ import { SquarePlus } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { parseAsInteger, parseAsString, parseAsStringLiteral, useQueryStates } from 'nuqs'
 import { Suspense, useEffect, useState } from 'react'
-import PillTabs from '@/components/layout/pill-tabs'
 import ProoflyListPage from '@/components/layout/proofly-list-page'
 import StatusChip from '@/components/layout/status-chip'
 import ResourceTable, { type ResourceColumnSpec } from '@/components/table/resource-table'
 import RowMenu from '@/components/table/row-menu'
+import ViewSelect from '@/components/table/view-select'
 import { pagesListContent } from '@/data/content'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
@@ -126,12 +126,11 @@ function PagesContent() {
         query={q.query}
         onQueryChange={(query) => setQ({ query, page: 1 })}
         onClearAll={() => setQ({ query: '', tab: null, page: 1 })}
-        tabs={
-          <PillTabs
-            variant="segmented"
+        views={
+          <ViewSelect
             value={q.tab}
             onChange={(tab) => setQ({ tab, page: 1 })}
-            tabs={[
+            options={[
               { value: null, label: copy.tabs.all, count: items.length },
               { value: 'live', label: copy.tabs.live, count: live },
               { value: 'hidden', label: copy.tabs.hidden, count: hidden },

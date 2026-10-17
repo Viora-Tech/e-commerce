@@ -18,7 +18,6 @@ import CustomerTiles, { type CustomerStats } from '@/components/customers/custom
 import TagCustomersDialog from '@/components/customers/tag-customers-dialog'
 import PageBody from '@/components/layout/page-body'
 import PageHeader from '@/components/layout/page-header'
-import PillTabs from '@/components/layout/pill-tabs'
 import PageState from '@/components/states/page-state'
 import {
   appliedFromGroups,
@@ -27,6 +26,7 @@ import {
   FilterPanel,
 } from '@/components/table/filter-panel'
 import ResourceTable from '@/components/table/resource-table'
+import ViewSelect from '@/components/table/view-select'
 import { CUSTOMER_SEGMENTS, type CustomerSegment, customersContent } from '@/data/customers'
 import { filterPanelContent } from '@/data/filter-panel'
 import { useCopy } from '@/hooks/use-copy'
@@ -253,12 +253,11 @@ function CustomersContent({ initial }: { initial: CustomersInitial }) {
           )}
           filtersClassName={FILTER_PANEL_CLASS}
           applied={applied}
-          tabs={
-            <PillTabs
-              variant="segmented"
+          views={
+            <ViewSelect
               value={status}
               onChange={(s) => setQ({ status: s, page: 1 })}
-              tabs={[
+              options={[
                 { value: null, label: copy.tabs.all, count: initial.allCount },
                 ...CUSTOMER_SEGMENTS.map((s) => ({ value: s, label: copy.tabs[s] })),
               ]}

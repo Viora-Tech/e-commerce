@@ -28,7 +28,6 @@ type ToolbarProps<T extends RowData> = {
   plural: string
   query: string
   onQueryChange: (q: string) => void
-  tabs?: ReactNode
   /** The "View" dropdown (Figma Table / View select), drawn first with a divider after it. */
   views?: ReactNode
   /** Filter controls (selects, date pickers) shown in the filter popover. */
@@ -56,7 +55,6 @@ export default function ResourceTableToolbar<T extends RowData>({
   plural,
   query,
   onQueryChange,
-  tabs,
   views,
   filters,
   filtersClassName,
@@ -84,7 +82,6 @@ export default function ResourceTableToolbar<T extends RowData>({
             <span aria-hidden="true" className="h-5 w-px shrink-0 bg-border" />
           </>
         ) : null}
-        {tabs ? <div className="no-scrollbar min-w-0 overflow-x-auto pl-0.5">{tabs}</div> : null}
         <div className="flex min-w-0 flex-1 items-center gap-2">
           <label className="flex h-8 min-w-0 flex-1 items-center gap-2 rounded-sm px-2 transition-colors focus-within:bg-muted/50">
             <Search className="size-4 shrink-0 text-muted-foreground" />

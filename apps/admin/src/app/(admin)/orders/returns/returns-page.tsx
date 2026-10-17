@@ -6,8 +6,8 @@ import { Button } from '@commerce/ui/shadcn/button'
 import Link from 'next/link'
 import { parseAsInteger, parseAsString, parseAsStringLiteral, useQueryStates } from 'nuqs'
 import { Suspense, useEffect, useRef, useState } from 'react'
+import ProoflyListPage from '@/components/layout/proofly-list-page'
 import OrderChip from '@/components/orders/order-chip'
-import OrdersListFrame from '@/components/orders/orders-list-frame'
 import ResourceTable, { type ResourceColumnSpec } from '@/components/table/resource-table'
 import RowMenu from '@/components/table/row-menu'
 import ViewSelect from '@/components/table/view-select'
@@ -178,7 +178,7 @@ function ReturnsContent({ initial }: { initial: ReturnsInitial }) {
   }
 
   return (
-    <OrdersListFrame
+    <ProoflyListPage
       title={copy.title}
       summary={c.requested > 0 ? copy.needDecision(c.requested) : copy.subtitle}
       actions={
@@ -231,7 +231,7 @@ function ReturnsContent({ initial }: { initial: ReturnsInitial }) {
         onPerPageChange={(n) => setQ({ perPage: n, page: 1 })}
         empty={{ heading: copy.empty, body: copy.subtitle }}
       />
-    </OrdersListFrame>
+    </ProoflyListPage>
   )
 }
 
