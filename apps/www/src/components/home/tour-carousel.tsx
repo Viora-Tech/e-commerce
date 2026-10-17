@@ -3,12 +3,14 @@
 import { ArrowRight_ as ArrowRight } from '@commerce/ui/icons'
 import { cn } from '@commerce/ui/lib/utils'
 import Image from 'next/image'
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { homeContent, type TourItem } from '@/data/home'
 import WindowFrame from '../common/window-frame'
 import ShopifyMock from './shopify-mock'
 
-type TourCarouselProps = { items: readonly TourItem[] }
+type TourCarouselProps = { items: readonly TourItem[]; running: boolean }
+
+const ADVANCE_MS = 6000
 
 function CardScreen({ item }: { item: TourItem }) {
   const { screen } = item
@@ -30,10 +32,33 @@ function CardScreen({ item }: { item: TourItem }) {
 }
 
 /** Phone layout: no pin, just a swipeable row of feature cards (scroll-snap) with dots. */
-export default function TourCarousel({ items }: TourCarouselProps) {
+export default function TourCarousel({ items, running }: TourCarouselProps) {
   // Hooks
   const scrollerRef = useRef<HTMLUListElement>(null)
   const [active, setActive] = useState(0)
+  const [touched, setTouched] = useState(false)
+
+  useEffect(() => {
+    const scroller = scrollerRef.current
+    if (!running || touched || !scroller) return
+    const timer = setInterval(() => {
+      const first = scroller.firstElementChild as HTMLElement | null
+      if (!first) return
+      const step = first.offsetWidth + 16
+      const index = Math.round(scroller.scrollLeft / step)
+      const next = (index + 1) % items.length
+      scroller.scrollTo({ left: next * step, behavior: 'smooth' })
+    }, ADVANCE_MS)
+    return () => clearInterval(timer)
+  }, [running, touched, items.length])
+
+  const goTo = (index: number) => {
+    const scroller = scrollerRef.current
+    const first = scroller?.firstElementChild as HTMLElement | null
+    if (!scroller || !first) return
+    setTouched(true)
+    scroller.scrollTo({ left: index * (first.offsetWidth + 16), behavior: 'smooth' })
+  }
 
   // Event handlers
   const handleScroll = () => {
@@ -49,6 +74,7 @@ export default function TourCarousel({ items }: TourCarouselProps) {
       <ul
         ref={scrollerRef}
         onScroll={handleScroll}
+        onPointerDown={() => setTouched(true)}
         aria-label={homeContent.tour.tablistLabel}
         className="no-scrollbar -mx-4 flex snap-x snap-mandatory gap-4 overflow-x-auto px-4 pb-2"
       >
@@ -74,12 +100,16 @@ export default function TourCarousel({ items }: TourCarouselProps) {
           </li>
         ))}
       </ul>
-      <div aria-hidden className="flex justify-center gap-1.5">
+      <div className="flex justify-center gap-1.5">
         {items.map((item, index) => (
-          <span
+          <button
             key={item.key}
+            type="button"
+            aria-label={item.title}
+            aria-current={index === active}
+            onClick={() => goTo(index)}
             className={cn(
-              'h-1.5 rounded-full bg-border-strong transition-[width,background-color] duration-300 ease-(--ease-out)',
+              'h-1.5 rounded-full bg-border-strong outline-none transition-[width,background-color] duration-300 ease-(--ease-out) focus-visible:ring-3 focus-visible:ring-ring/50',
               index === active ? 'w-6 bg-foreground' : 'w-1.5',
             )}
           />
