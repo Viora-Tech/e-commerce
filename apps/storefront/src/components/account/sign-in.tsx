@@ -73,7 +73,7 @@ export default function SignIn({
   const keep = offerRemember ? remember : true
 
   return (
-    <div className="mx-auto flex w-full max-w-[26rem] flex-col gap-6 rounded-2xl border border-line p-6 md:p-8">
+    <div className="mx-auto flex w-full max-w-[26rem] flex-col gap-6 rounded-[var(--radius-card)] bg-surface p-6 md:p-8">
       {error ? (
         <p className="text-small text-danger" role="alert">
           {copy.providerErrors[error]}

@@ -94,7 +94,7 @@ export default function AddressForm({ address, defaultChecked, onDone }: Address
   return (
     <form
       onSubmit={handleSubmit}
-      className="flex flex-col gap-4 rounded-2xl border border-line p-6"
+      className="flex flex-col gap-4 rounded-[var(--radius-card)] bg-surface p-6"
     >
       <h3 className="h4">{address ? copy.formEdit : copy.formAdd}</h3>
       <div className="grid gap-4 md:grid-cols-2">

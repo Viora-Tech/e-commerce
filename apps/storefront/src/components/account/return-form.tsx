@@ -56,7 +56,7 @@ export default function ReturnForm({ orderNumber, closesLabel, lines, reasons }:
   }
 
   // Render logic
-  const card = 'flex flex-col gap-4 rounded-2xl border border-line p-5 sm:p-6'
+  const card = 'flex flex-col gap-4 rounded-[var(--radius-card)] bg-surface p-5 sm:p-6'
 
   return (
     <form onSubmit={handleSubmit} className="flex max-w-[40rem] flex-col gap-6">

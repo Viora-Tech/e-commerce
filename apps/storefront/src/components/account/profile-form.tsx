@@ -45,7 +45,7 @@ export default function ProfileForm({ customer }: ProfileFormProps) {
   return (
     <form
       onSubmit={handleSubmit}
-      className="flex max-w-[36rem] flex-col gap-5 rounded-2xl border border-line p-6"
+      className="flex max-w-[36rem] flex-col gap-5 rounded-[var(--radius-card)] bg-surface p-6"
     >
       <h2 className="h3">{copy.title}</h2>
       <div className="field">

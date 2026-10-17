@@ -55,7 +55,7 @@ export default function OrderDetail({
   const gst = o.gst
   // Parcels from different states put both CGST + SGST and IGST on one order.
   const gstRows = gst ? gstRowsToShow(gst) : null
-  const card = 'flex flex-col gap-4 rounded-2xl border border-line p-6'
+  const card = 'flex flex-col gap-4 rounded-[var(--radius-card)] bg-surface p-5'
   const row = 'flex justify-between gap-4 text-body'
 
   return (

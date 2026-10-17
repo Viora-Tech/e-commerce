@@ -1992,3 +1992,94 @@ html {
 .not-found__search input:focus {
   outline: none;
 }
+
+/* ------------------------------------------------------------------ */
+/* Figma Pages · Account (705:114056, 705:114449)                       */
+/* ------------------------------------------------------------------ */
+/* A 13rem sidebar beside the page: "Account", the shopper, then the section
+   rows (the current one on the surface) and Sign out. Pages open with a 32px
+   title; their cards sit on the surface with the card radius. */
+.account-layout {
+  display: grid;
+  gap: var(--space-6);
+}
+
+.account-nav {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.account-nav__title {
+  margin: 0;
+  color: var(--color-ink);
+  font-family: var(--font-heading);
+  font-size: 20px;
+  font-weight: 700;
+}
+
+.account-nav__who {
+  margin: 0;
+  overflow: hidden;
+  color: var(--color-muted);
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.account-nav__links {
+  display: flex;
+  gap: var(--space-1);
+  overflow-x: auto;
+}
+
+.account-nav__link {
+  display: block;
+  flex: none;
+  width: 100%;
+  padding: var(--space-2) var(--space-3);
+  border: 0;
+  border-radius: var(--radius-m);
+  background: none;
+  color: var(--color-muted);
+  font: inherit;
+  font-size: 14px;
+  text-align: start;
+  text-decoration: none;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.account-nav__link:hover {
+  color: var(--color-ink);
+}
+
+.account-nav__link[aria-current="page"] {
+  background-color: var(--color-surface);
+  color: var(--color-ink);
+  font-weight: 500;
+}
+
+.account-page__title,
+.account-layout__main h2.h3:first-child {
+  margin: 0 0 var(--space-5);
+  color: var(--color-ink);
+  font-family: var(--font-heading);
+  font-size: calc(2rem * var(--font-heading-scale, 1));
+  font-weight: 700;
+  line-height: 1.15;
+  letter-spacing: -0.01em;
+}
+
+@media (min-width: 990px) {
+  .account-layout {
+    grid-template-columns: 13rem minmax(0, 1fr);
+    gap: var(--space-8);
+    align-items: start;
+  }
+
+  .account-nav__links {
+    flex-direction: column;
+    overflow: visible;
+  }
+}

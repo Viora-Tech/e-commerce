@@ -14,7 +14,7 @@ export default function OrderParcels({ parcels }: OrderParcelsProps) {
 
   return (
     <section
-      className="flex flex-col gap-4 rounded-2xl border border-line p-6"
+      className="flex flex-col gap-4 rounded-[var(--radius-card)] bg-surface p-6"
       aria-labelledby="order-parcels"
     >
       <header className="flex flex-col gap-1">

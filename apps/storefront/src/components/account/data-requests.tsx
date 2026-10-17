@@ -41,7 +41,7 @@ export default function DataRequests({ requests, timeZone }: DataRequestsProps) 
 
   return (
     <div className="flex flex-col gap-8">
-      <section className="flex flex-col gap-3 rounded-2xl border border-line p-6">
+      <section className="flex flex-col gap-3 rounded-[var(--radius-card)] bg-surface p-6">
         <h2 className="h3">{copy.copy.heading}</h2>
         <p className="text-body text-muted">{copy.copy.body}</p>
         <div>
@@ -63,7 +63,7 @@ export default function DataRequests({ requests, timeZone }: DataRequestsProps) 
       {requests.length > 0 ? (
         <section className="flex flex-col gap-3">
           <h2 className="h4">{copy.requests.heading}</h2>
-          <ul className="flex flex-col divide-y divide-line rounded-2xl border border-line">
+          <ul className="flex flex-col divide-y divide-line rounded-[var(--radius-card)] bg-surface">
             {requests.map((r) => (
               <li
                 key={r.id}
