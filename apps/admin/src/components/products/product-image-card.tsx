@@ -254,13 +254,13 @@ export default function ProductImageCard({ items, onChange, onUploading }: Produ
         }}
       />
       <AltTextDialog
-        key={editing?.id ?? 'none'}
+        key={`alt-${editing?.id ?? 'none'}`}
         item={editing}
         onClose={() => setEditing(null)}
         onSaved={handleAltSaved}
       />
       <ImageEditorDialog
-        key={retouching?.id ?? 'none'}
+        key={`edit-${retouching?.id ?? 'none'}`}
         item={retouching}
         onClose={() => setRetouching(null)}
         onSaved={handleRetouched}
