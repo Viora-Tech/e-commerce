@@ -40,6 +40,7 @@ import { inboundShipmentsRouter, purchaseChargesRouter, suppliersRouter } from '
 import { redirectsRouter } from './redirects'
 import { returnsRouter } from './returns'
 import { reviewsRouter } from './reviews'
+import { salesChannelsRouter } from './sales-channels'
 import { searchConsoleRouter } from './search-console'
 import { seoRouter } from './seo'
 import { shipmentsRouter } from './shipments'
@@ -75,6 +76,7 @@ export const appRouter = {
   metaobjects: metaobjectsRouter,
   navigation: navigationRouter,
   redirects: redirectsRouter,
+  salesChannels: salesChannelsRouter,
   seo: seoRouter,
   orders: ordersRouter,
   returns: returnsRouter,

@@ -206,6 +206,14 @@ export { Phone_ as Phone }
 export const WhatsappLogo_ = defineIcon(WhatsappLogo, 'WhatsappLogo', 'duotone')
 export { WhatsappLogo_ as WhatsappLogo }
 
+/* Sales channels: AI agents that sell the catalog, and the nav glyphs for the two sections. */
+export const ChatGptLogo = defineIcon(Huge.ChatGptIcon, 'ChatGptLogo', 'duotone')
+export const PerplexityLogo = defineIcon(Huge.PerplexityAiIcon, 'PerplexityLogo', 'duotone')
+export const CopilotLogo = defineIcon(Huge.CopilotIcon, 'CopilotLogo', 'duotone')
+export const AgenticSales = defineIcon(Huge.AiBrain01Icon, 'AgenticSales', 'duotone')
+export const SocialMedia = defineIcon(Huge.Share08Icon, 'SocialMedia', 'duotone')
+export const PlugConnect = defineIcon(Huge.Plug01Icon, 'PlugConnect', 'duotone')
+
 /* AI features: Settings → AI, "Write with AI", "Ask your store". */
 export const AiIcon = defineIcon(Sparkle, 'AiIcon', 'duotone')
 

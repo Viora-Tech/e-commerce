@@ -133,6 +133,10 @@ export const hindiPageNames: Record<string, { title: string; body?: string }> = 
 export const hindiNavGroups: Record<string, string> = {
   Workspace: 'वर्कस्पेस',
   'Sales channels': 'सेल्स चैनल',
+  'Agentic sales': 'AI एजेंट से बिक्री',
+  'Catalog readiness': 'कैटलॉग की तैयारी',
+  Controls: 'कंट्रोल',
+  'Social media': 'सोशल मीडिया',
   Apps: 'ऐप्स',
   Settings: 'सेटिंग',
 }

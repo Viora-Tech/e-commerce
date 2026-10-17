@@ -2,6 +2,7 @@ import { siteConfig } from '@commerce/config/site'
 import { type Permission, permissions } from '@commerce/core/permissions'
 import type { LucideIcon } from '@commerce/ui/icons'
 import {
+  AgenticSales,
   BadgePercent,
   BarChart3,
   Blocks,
@@ -11,6 +12,7 @@ import {
   Package,
   Settings,
   ShoppingBag,
+  SocialMedia,
   Store,
   TrendingUp,
   Users,
@@ -156,6 +158,28 @@ export const NAV_GROUPS: NavGroup[] = [
           { href: routes.onlineStore.themes(), label: 'Themes' },
           { href: routes.onlineStore.preferences(), label: 'Preferences' },
           { href: routes.onlineStore.seo(), label: 'SEO' },
+        ],
+      },
+      {
+        href: routes.salesChannels.agentic(),
+        label: 'Agentic sales',
+        icon: AgenticSales,
+        permission: permissions.ONLINE_STORE_READ,
+        children: [
+          { href: routes.salesChannels.agenticReadiness(), label: 'Catalog readiness' },
+          { href: routes.salesChannels.agenticControls(), label: 'Controls' },
+        ],
+      },
+      {
+        href: routes.salesChannels.social(),
+        label: 'Social media',
+        icon: SocialMedia,
+        permission: permissions.ONLINE_STORE_READ,
+        children: [
+          { href: routes.salesChannels.socialChannel('instagram'), label: 'Instagram' },
+          { href: routes.salesChannels.socialChannel('facebook'), label: 'Facebook' },
+          { href: routes.salesChannels.socialChannel('whatsapp'), label: 'WhatsApp' },
+          { href: routes.salesChannels.socialChannel('google'), label: 'Google' },
         ],
       },
     ],

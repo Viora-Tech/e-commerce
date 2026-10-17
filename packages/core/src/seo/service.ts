@@ -32,7 +32,8 @@ const SEO_REPORT_MAX_ITEMS = 5_000
 const blank = (column: typeof media.alt | typeof variant.barcode) =>
   sql`coalesce(trim(${column}), '') = ''`
 
-async function productItems(tx: StoreTx): Promise<SeoItem[]> {
+/** Every live product with its photo and barcode counts (also read by Catalog readiness). */
+export async function loadSeoProductItems(tx: StoreTx): Promise<SeoItem[]> {
   const photos = tx
     .select({
       productId: productMedia.productId,
@@ -225,7 +226,7 @@ const SEARCH_PREFIX: Record<SeoItem['resource'], string> = {
  */
 export async function loadSeoReport(tx: StoreTx, storeId?: string): Promise<SeoReport> {
   const items = [
-    ...(await productItems(tx)),
+    ...(await loadSeoProductItems(tx)),
     ...(await collectionItems(tx)),
     ...(await pageItems(tx)),
   ]

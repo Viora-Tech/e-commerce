@@ -139,6 +139,14 @@ export const routes = {
     seo: () => '/online-store/seo',
   },
 
+  salesChannels: {
+    agentic: () => '/sales-channels/agentic',
+    agenticReadiness: () => '/sales-channels/agentic/readiness',
+    agenticControls: () => '/sales-channels/agentic/controls',
+    social: () => '/sales-channels/social',
+    socialChannel: (channel: string) => `/sales-channels/social/${id(channel)}`,
+  },
+
   apps: {
     list: () => '/apps',
     /** An installed app's own screen: `/apps/<pluginId>/<...path>`. */

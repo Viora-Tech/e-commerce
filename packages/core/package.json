@@ -61,6 +61,7 @@
     "./returns": "./src/returns/policy.ts",
     "./return-reasons": "./src/returns/reasons.ts",
     "./policies": "./src/policies/client.ts",
+    "./sales-channels": "./src/sales-channels/client.ts",
     "./checkout-settings": "./src/checkout/settings.ts",
     "./privacy": "./src/privacy/client.ts",
     "./customer-accounts": "./src/customer-accounts/client.ts",
