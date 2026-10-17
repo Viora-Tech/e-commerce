@@ -24,6 +24,7 @@ export default function KpiStrip({ kpis, loading }: KpiStripProps) {
   // Render logic
   return (
     <StatStrip
+      columns={3}
       loading={loading}
       tiles={kpis.map((kpi) => ({
         id: kpi.id,
@@ -31,6 +32,7 @@ export default function KpiStrip({ kpis, loading }: KpiStripProps) {
         value: formatValue(kpi),
         trend: kpi.delta === null ? null : Math.round(kpi.delta * 1000) / 10,
         trendNote: copy.compare,
+        spark: kpi.series,
       }))}
     />
   )

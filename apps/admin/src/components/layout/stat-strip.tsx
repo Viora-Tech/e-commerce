@@ -14,6 +14,8 @@ export type StatStripTile<T extends string> = {
   note?: string
   /** A rise is bad news (cancellations): the colours flip. */
   invert?: boolean
+  /** A small trend line beside the figure. */
+  spark?: number[] | undefined
   /** Makes the tile a filter: pressing it picks this value, `null` is the "all" tile. */
   filter?: T | null
 }
@@ -27,9 +29,12 @@ type StatStripProps<T extends string> = {
   /** Called with the picked filter, or `null` when the active tile is pressed again. */
   onChange?: (filter: T | null) => void
   loading?: boolean
+  /** `3`: a fixed three-column grid (Analytics KPIs, two rows of three). Default: one row. */
+  columns?: 3
 }
 
 const LAYOUT = 'grid grid-cols-2 lg:grid-flow-col lg:grid-cols-none lg:auto-cols-fr'
+const THREE = 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3'
 
 /** A row of stat tiles that owns the grid and the press-again-to-clear filter toggle. */
 export default function StatStrip<T extends string>({
@@ -38,6 +43,7 @@ export default function StatStrip<T extends string>({
   active = null,
   onChange,
   loading,
+  columns,
 }: StatStripProps<T>) {
   // Event handlers
   const handlePick = (filter: T | null) =>
@@ -48,7 +54,10 @@ export default function StatStrip<T extends string>({
 
   return (
     <div
-      className={cn(LAYOUT, strip ? 'overflow-hidden rounded-lg surface-card' : 'gap-4')}
+      className={cn(
+        columns === 3 ? THREE : LAYOUT,
+        strip ? 'overflow-hidden rounded-lg surface-card' : 'gap-4',
+      )}
       aria-busy={loading || undefined}
     >
       {tiles.map((tile) => {
@@ -64,6 +73,7 @@ export default function StatStrip<T extends string>({
             trendNote={tile.trendNote}
             note={tile.note}
             invert={tile.invert}
+            spark={tile.spark}
             active={pickable && active === filter}
             onSelect={pickable ? () => handlePick(filter) : undefined}
           />

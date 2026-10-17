@@ -1,6 +1,7 @@
 'use client'
 
 import type { AnalyticsOverview } from '@commerce/api'
+import { Download } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { useEffect, useState } from 'react'
 import ChartCard from '@/components/layout/chart-card'
@@ -104,8 +105,6 @@ export default function AnalyticsOverviewPage({
     (top, p) => (p.value > (top?.value ?? 0) ? p : top),
     null,
   )
-  // Figma shows five tiles; the order count is already the last step of the funnel below.
-  const kpis = data.kpis.filter((kpi) => kpi.id !== 'orders')
 
   return (
     <div className="flex w-full flex-col gap-6 px-4 py-6 md:px-8 md:py-8">
@@ -113,17 +112,22 @@ export default function AnalyticsOverviewPage({
         title={copy.title}
         summary={copy.intro}
         actions={
-          <>
-            <RangePicker value={range} onChange={handleRange} />
-            <Button variant="key-neutral" onClick={handleExport}>
-              {copy.salesOverTime.export}
-            </Button>
-          </>
+          <Button variant="outline" onClick={handleExport}>
+            <Download aria-hidden="true" />
+            {copy.salesOverTime.export}
+          </Button>
         }
       />
+      {/* Figma 658:65755: the range pills sit on their own row under the title. */}
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+        <RangePicker value={range} onChange={handleRange} />
+        <span className="text-caption text-muted-foreground">
+          {`${formatDay(data.range.from)} – ${formatDay(data.range.to)} · ${copy.compare}`}
+        </span>
+      </div>
       {/* Figma 306:16434: KPIs in one row, the sales chart full width, then funnel + top
           products side by side; the state and payment breakdowns follow. */}
-      <KpiStrip kpis={kpis} loading={loading} />
+      <KpiStrip kpis={data.kpis} loading={loading} />
       <ChartCard
         title={copy.salesOverTime.title}
         subtitle={copy.salesOverTime.subtitle(

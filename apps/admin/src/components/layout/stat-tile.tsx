@@ -18,7 +18,35 @@ type StatTileProps = {
   active?: boolean
   /** `strip`: one cell of a Figma "Stat strip" (no card of its own; the strip draws it). */
   variant?: 'card' | 'strip'
+  /** Points for a small trend line at the right of the tile (Figma Analytics KPI card). */
+  spark?: number[] | undefined
   className?: string
+}
+
+/** A 56×24 polyline over the points, scaled to their own min and max. */
+function Spark({ points }: { points: number[] }) {
+  const min = Math.min(...points)
+  const span = Math.max(...points) - min || 1
+  const step = 56 / Math.max(points.length - 1, 1)
+  const d = points.map(
+    (p, i) => `${(i * step).toFixed(1)},${(22 - ((p - min) / span) * 20).toFixed(1)}`,
+  )
+  return (
+    <svg
+      viewBox="0 0 56 24"
+      aria-hidden="true"
+      className="h-6 w-14 shrink-0 self-center text-muted-foreground"
+    >
+      <polyline
+        points={d.join(' ')}
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  )
 }
 
 const BASE =
@@ -41,13 +69,14 @@ export default function StatTile({
   onSelect,
   active = false,
   variant = 'card',
+  spark,
   className,
 }: StatTileProps) {
   // Render logic
   const strip = variant === 'strip'
   const up = (trend ?? 0) > 0
   const good = invert ? !up : up
-  const body = (
+  const figures = (
     <>
       <span
         className={
@@ -98,6 +127,15 @@ export default function StatTile({
       ) : null}
     </>
   )
+  const body =
+    spark && spark.length > 1 ? (
+      <span className="flex items-center gap-3">
+        <span className="flex min-w-0 flex-1 flex-col gap-1">{figures}</span>
+        <Spark points={spark} />
+      </span>
+    ) : (
+      figures
+    )
 
   if (!onSelect) return <div className={cn(strip ? STRIP : BASE, className)}>{body}</div>
 
