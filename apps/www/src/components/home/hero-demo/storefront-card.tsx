@@ -51,7 +51,7 @@ export default function StorefrontCard({ store }: StorefrontCardProps) {
           </div>
           <div
             data-block
-            className={`relative isolate flex aspect-[16/8] flex-col justify-end gap-1 overflow-hidden rounded-xl bg-gradient-to-br p-3 ${store.heroTone} ${BLOCK}`}
+            className={`relative isolate flex aspect-[16/8] flex-col justify-end gap-1 overflow-hidden rounded-xl bg-muted p-3 ${BLOCK}`}
           >
             {store.heroImage ? (
               <>
@@ -71,14 +71,22 @@ export default function StorefrontCard({ store }: StorefrontCardProps) {
             <span className="w-fit rounded-full bg-background/70 px-2 py-0.5 text-[0.625rem] font-medium text-foreground">
               {copy.heroTile}
             </span>
-            <span className="text-sm font-semibold text-white">{store.tagline}</span>
+            <span
+              className={
+                store.heroImage
+                  ? 'text-sm font-semibold text-white'
+                  : 'text-sm font-semibold text-foreground'
+              }
+            >
+              {store.tagline}
+            </span>
           </div>
           <ul className="grid grid-cols-3 gap-2">
             {store.products.map((product, index) => (
               <li key={product.name} data-block className={`flex flex-col gap-1 ${BLOCK}`}>
                 <span
                   aria-hidden
-                  className={`relative aspect-square overflow-hidden rounded-lg bg-gradient-to-br ${store.tones[index]}`}
+                  className={`relative aspect-square overflow-hidden rounded-lg bg-muted`}
                 >
                   {store.images?.[index] ? (
                     <Image

@@ -160,10 +160,6 @@ export default function StoreBuildDemo() {
         data-armed={phase === 'running' && !reducedMotion}
         className="group/demo absolute top-[34rem] left-1/2 z-20 w-[16.5rem] [translate:-50%_0] xl:top-[9rem] xl:right-[max(2rem,calc(50%-39.5rem))] xl:left-auto xl:[translate:0_0]"
       >
-        <div
-          aria-hidden
-          className="pointer-events-none absolute -inset-16 -z-10 bg-radial from-brand-saffron/35 via-brand-magenta/20 to-transparent to-70%"
-        />
         {phase === 'running' && !reducedMotion ? (
           <button
             type="button"
