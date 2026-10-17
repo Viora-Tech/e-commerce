@@ -13,5 +13,12 @@ export default async function Page({ params }: Props) {
   const context = await serverContext()
   const draft = await call(appRouter.orders.getDraft, { id }, { context })
   if (!draft) notFound()
-  return <DraftForm draft={draft} />
+  // The draft record has no invoice history; the list's row for it does.
+  const row = await call(
+    appRouter.orders.listDrafts,
+    { page: 1, perPage: 10, search: String(draft.number) },
+    { context },
+  )
+  const invoiceSent = row.items.some((d) => d.id === id && d.invoiceSentAt !== null)
+  return <DraftForm draft={draft} invoiceSent={invoiceSent} />
 }
