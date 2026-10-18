@@ -23,7 +23,7 @@ export const config = {
   // serves stored files under its own `default-src 'none'; sandbox` policy.
   matcher: [
     {
-      source: '/((?!api/|uploads/|_next/static|_next/image|favicon.ico).*)',
+      source: '/((?!api/|uploads/|_next/static|_next/image|favicon.ico|robots.txt).*)',
       missing: [
         { type: 'header', key: 'next-router-prefetch' },
         { type: 'header', key: 'purpose', value: 'prefetch' },

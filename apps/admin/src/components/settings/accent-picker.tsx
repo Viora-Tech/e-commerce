@@ -6,6 +6,7 @@ import { cn } from '@commerce/ui/lib/utils'
 import { Input } from '@commerce/ui/shadcn/input'
 import { useId, useState } from 'react'
 import { appearanceContent } from '@/data/appearance'
+import AccentWheel from './accent-wheel'
 
 type AccentPickerProps = {
   /** `#rrggbb`. */
@@ -17,7 +18,7 @@ type AccentPickerProps = {
 
 const copy = appearanceContent.accent
 
-/** Named preset swatches plus a custom colour typed as a hex code. */
+/** Named preset swatches, a colour wheel, and a custom colour typed as a hex code. */
 export default function AccentPicker({ value, onChange, help }: AccentPickerProps) {
   // Hooks
   const id = useId()
@@ -92,31 +93,40 @@ export default function AccentPicker({ value, onChange, help }: AccentPickerProp
           })}
         </div>
       </fieldset>
-      <div className="flex flex-col gap-1.5">
-        <label htmlFor={id} className="text-caption font-medium text-foreground">
-          {copy.custom}
-        </label>
-        <Input
-          id={id}
-          value={draft ?? value}
-          onChange={(e) => handleText(e.target.value)}
-          onBlur={handleBlur}
-          aria-invalid={invalid || undefined}
-          aria-describedby={`${id}-help`}
-          spellCheck={false}
-          autoComplete="off"
-          maxLength={7}
-          className="h-9"
+      <div className="flex flex-wrap items-start gap-6">
+        <AccentWheel
+          value={value}
+          onChange={(hex) => {
+            onChange(hex)
+            setDraft(null)
+          }}
         />
-        {invalid ? (
-          <p id={`${id}-help`} className="text-caption text-destructive">
-            {copy.hexInvalid}
-          </p>
-        ) : help ? (
-          <p id={`${id}-help`} className="text-caption text-muted-foreground">
-            {help}
-          </p>
-        ) : null}
+        <div className="flex min-w-48 flex-1 flex-col gap-1.5">
+          <label htmlFor={id} className="text-caption font-medium text-foreground">
+            {copy.custom}
+          </label>
+          <Input
+            id={id}
+            value={draft ?? value}
+            onChange={(e) => handleText(e.target.value)}
+            onBlur={handleBlur}
+            aria-invalid={invalid || undefined}
+            aria-describedby={`${id}-help`}
+            spellCheck={false}
+            autoComplete="off"
+            maxLength={7}
+            className="h-9"
+          />
+          {invalid ? (
+            <p id={`${id}-help`} className="text-caption text-destructive">
+              {copy.hexInvalid}
+            </p>
+          ) : help ? (
+            <p id={`${id}-help`} className="text-caption text-muted-foreground">
+              {help}
+            </p>
+          ) : null}
+        </div>
       </div>
     </div>
   )

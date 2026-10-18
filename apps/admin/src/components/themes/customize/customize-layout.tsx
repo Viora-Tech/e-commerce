@@ -139,7 +139,7 @@ export default function CustomizeLayout({
   const title = titles[panel]
   const content: Record<RailPanel, ReactNode> = {
     add: <AddSectionPanel />,
-    ai: <AiPanel storeId={store.id} enabled={aiEnabled} />,
+    ai: <AiPanel storeId={store.id} enabled={aiEnabled} page={templateLabel} />,
     pages,
     sections: <SectionsPanel onOpenTheme={() => setPanel('theme')} templateLabel={templateLabel} />,
     media: <MediaPanel />,

@@ -1,6 +1,7 @@
 import type { ComponentConfig, Fields } from '@puckeditor/core'
 import type { ReactNode } from 'react'
 import EditorOverlay from '../components/editor-overlay'
+import SectionCustomCss from '../components/section-custom-css'
 import type { NewsletterAction } from '../components/sections/newsletter'
 import { sectionsContent } from '../data/sections'
 import {
@@ -177,6 +178,7 @@ function framedFlow(section: ReactNode, settings: SectionSettingsValue): ReactNo
       {...frame}
       className={`section-frame${scheme}${frame.className ? ` ${frame.className}` : ''}`}
     >
+      <SectionCustomCss css={settings.advanced.customCss} />
       {section}
     </div>
   )

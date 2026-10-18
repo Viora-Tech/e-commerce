@@ -71,6 +71,7 @@ const config: NextConfig = {
           // matches the CSP's 'self' below (DENY would be stricter and wrong).
           { key: 'X-Frame-Options', value: 'SAMEORIGIN' },
           { key: 'Content-Security-Policy', value: ADMIN_FRAME_ANCESTORS },
+          { key: 'X-Robots-Tag', value: 'noindex, nofollow' },
         ],
       },
     ]

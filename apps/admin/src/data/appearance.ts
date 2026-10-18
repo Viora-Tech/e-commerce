@@ -19,6 +19,8 @@ export const appearanceContent = {
       slate: 'Slate',
     } as Record<string, string>,
     custom: 'Custom colour',
+    wheel: 'Pick a colour on the wheel',
+    brightness: 'Brightness',
     customPicker: 'Pick a custom colour',
     hexInvalid: 'Enter a hex code like #2563eb',
     source: {

@@ -31,7 +31,10 @@ export default function ProductCard({
   const sale = salePercent(product.pricePaise, product.mrpPaise)
 
   return (
-    <div className="product-card" data-has-hover={hover ? '' : undefined}>
+    <div
+      className={`product-card${quickAdd ? ' product-card--quick-add' : ''}`}
+      data-has-hover={hover ? '' : undefined}
+    >
       <a href={`/products/${product.handle}`} className="product-card__link">
         <div className="product-card__media">
           {soldOut ? (
@@ -72,6 +75,17 @@ export default function ProductCard({
         <div className="product-card__info">
           {product.vendor ? <p className="product-card__vendor">{product.vendor}</p> : null}
           <h3 className="product-card__title">{product.title}</h3>
+          {product.rating && product.rating.count > 0 ? (
+            <p className="product-card__rating">
+              <span className="visually-hidden">
+                {`Rated ${product.rating.average.toFixed(1)} out of 5 from ${product.rating.count} reviews`}
+              </span>
+              <span aria-hidden>
+                ★ {product.rating.average.toFixed(1)}{' '}
+                <span className="product-card__rating-count">({product.rating.count})</span>
+              </span>
+            </p>
+          ) : null}
           <div
             className={`product-card__price${soldOut ? ' product-card__price--unavailable' : ''}`}
           >
@@ -80,13 +94,12 @@ export default function ProductCard({
         </div>
       </a>
       <ProductCardWishlist handle={product.handle} title={product.title} />
-      {quickAdd ? (
-        <ProductCardQuickAdd
-          handle={product.handle}
-          variantId={product.quickAddVariantId}
-          soldOut={soldOut}
-        />
-      ) : null}
+      {/* Always rendered: the section's own switch or Theme settings → Product cards shows it. */}
+      <ProductCardQuickAdd
+        handle={product.handle}
+        variantId={product.quickAddVariantId}
+        soldOut={soldOut}
+      />
     </div>
   )
 }

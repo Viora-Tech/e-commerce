@@ -191,6 +191,38 @@ export const themesContent = {
     saleBadge: 'Show sale badge',
     hoverImage: 'Second image on hover',
     radius: 'Corner radius',
+    style: 'Card style',
+    styles: { standard: 'Standard', minimal: 'Minimal' },
+    rating: 'Show rating',
+    ratingHelp: 'Stars from the Reviews app, on products that have reviews.',
+    quickAdd: 'Show quick add',
+    wishlist: 'Show wishlist',
+  },
+  cart: {
+    type: 'Cart opens as',
+    types: { drawer: 'Drawer', page: 'Cart page' },
+    typeHelp: 'A drawer slides in from the side, so shoppers stay on the page.',
+    freeShippingBar: 'Free shipping bar',
+    freeShippingHelp:
+      'Shows "Add ₹X more for free shipping" when a shipping rate is free above an amount.',
+  },
+  css: {
+    label: 'Custom CSS',
+    placeholder: '.product-card__title { letter-spacing: 0.02em; }',
+    limit: (used: number, max: number) =>
+      `${used.toLocaleString('en-IN')} of ${max.toLocaleString('en-IN')} characters`,
+  },
+  social: {
+    placeholder: 'https://',
+    invalid: 'Enter a full link, starting with https://',
+    platforms: {
+      instagram: 'Instagram',
+      whatsapp: 'WhatsApp',
+      youtube: 'YouTube',
+      facebook: 'Facebook',
+      twitter: 'X (Twitter)',
+      discord: 'Discord',
+    },
   },
   layout: {
     pageWidth: 'Page width',

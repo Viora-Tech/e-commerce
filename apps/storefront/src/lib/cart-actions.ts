@@ -47,7 +47,7 @@ import { nudgeOutbox } from './outbox'
 import { storePaymentProviders } from './payments'
 import { clientIp, rateLimited } from './rate-limit'
 import { requestStoreId } from './request-store'
-import { checkoutParcels, estimateForPincode } from './shipping'
+import { cartShippingHint, checkoutParcels, estimateForPincode } from './shipping'
 import { storeSignIn } from './sign-in-methods'
 import { inStore } from './store-context'
 
@@ -88,6 +88,32 @@ export async function cartCountAction() {
   const cart = cartId ? await inStore(storeId, (tx) => getCart({ storeId, tx }, cartId)) : null
   const open = cart?.status === 'open' ? cart : null
   return { item_count: open?.itemCount ?? 0, total_price: open?.subtotalPaise ?? 0, items: [] }
+}
+
+/** The cart drawer's contents (Theme settings → Cart → Drawer): lines, subtotal, free shipping. */
+export async function cartDrawerAction() {
+  const storeId = await requestStoreId()
+  const cartId = await readCartId()
+  return inStore(storeId, async (tx) => {
+    const cart = cartId ? await getCart({ storeId, tx }, cartId) : null
+    const open = cart?.status === 'open' ? cart : null
+    const hint = await cartShippingHint(tx)
+    return {
+      lines: (open?.lines ?? []).map((l) => ({
+        id: l.id,
+        handle: l.productHandle,
+        title: l.productTitle,
+        variantTitle: l.variantTitle === 'Default' ? null : l.variantTitle,
+        quantity: l.quantity,
+        linePaise: l.linePaise,
+        imageUrl: l.imageUrl,
+        available: l.available,
+      })),
+      itemCount: open?.itemCount ?? 0,
+      subtotalPaise: open?.subtotalPaise ?? 0,
+      freeAbovePaise: hint.freeAbovePaise,
+    }
+  })
 }
 
 export async function setQuantityAction(lineId: string, quantity: number) {

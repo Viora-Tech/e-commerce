@@ -47,6 +47,7 @@ export default function ThemeCodeEditor({ theme, origin, me, initialFile }: Them
   const [picked, setPicked] = useState<PickedVersion | null>(null)
   const [addOpen, setAddOpen] = useState(false)
   const [leaving, setLeaving] = useState(false)
+  const [confirming, setConfirming] = useState<'publish' | 'discard' | null>(null)
 
   useEffect(() => {
     if (!code.list || tabs.length) return
@@ -198,6 +199,10 @@ export default function ThemeCodeEditor({ theme, origin, me, initialFile }: Them
         canSave={!!active && dirtyPaths.has(active) && !activeProblems.length}
         versionsOpen={versionsOpen}
         previewHref={previewUrl(origin, theme.previewToken)}
+        drafts={code.list?.drafts ?? 0}
+        publishing={code.publishing}
+        onPublish={() => setConfirming('publish')}
+        onDiscard={() => setConfirming('discard')}
         onBack={handleBack}
         onUndo={() => active && code.undo(active)}
         onVersions={() => setVersionsOpen((v) => !v)}
@@ -266,6 +271,32 @@ export default function ThemeCodeEditor({ theme, origin, me, initialFile }: Them
         confirmLabel={copy.leave.confirm}
         cancelLabel={copy.leave.cancel}
         onConfirm={() => router.push(routes.onlineStore.themes())}
+      />
+      <ConfirmDialog
+        open={confirming !== null}
+        onOpenChange={(open) => !open && setConfirming(null)}
+        title={
+          confirming === 'discard'
+            ? copy.drafts.discardDialog.title
+            : copy.drafts.publishDialog.title
+        }
+        body={
+          confirming === 'discard'
+            ? copy.drafts.discardDialog.body
+            : copy.drafts.publishDialog.body(code.list?.drafts ?? 0)
+        }
+        confirmLabel={
+          confirming === 'discard'
+            ? copy.drafts.discardDialog.confirm
+            : copy.drafts.publishDialog.confirm
+        }
+        cancelLabel={
+          confirming === 'discard'
+            ? copy.drafts.discardDialog.cancel
+            : copy.drafts.publishDialog.cancel
+        }
+        tone={confirming === 'discard' ? 'destructive' : 'default'}
+        onConfirm={() => void (confirming === 'discard' ? code.discard() : code.publish())}
       />
     </div>
   )

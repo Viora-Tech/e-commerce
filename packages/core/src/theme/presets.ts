@@ -74,7 +74,13 @@ export const THEME_PRESETS: Record<ThemePresetId, Preset> = {
     shape: { buttonRadius: 4, cardRadius: 4, inputRadius: 4, borderWidth: 1 },
     layout: { pageWidth: 1280, sectionSpacing: 1.1 },
     buttons: { style: 'solid', colour: 'text', uppercase: false },
-    cards: { imageRatio: 'portrait', showVendor: true, showSaleBadge: true, hoverImage: true },
+    cards: {
+      ...defaultTheme.cards,
+      imageRatio: 'portrait',
+      showVendor: true,
+      showSaleBadge: true,
+      hoverImage: true,
+    },
     roundedSections: false,
   },
   bold: {
@@ -110,7 +116,13 @@ export const THEME_PRESETS: Record<ThemePresetId, Preset> = {
     shape: { buttonRadius: 0, cardRadius: 0, inputRadius: 0, borderWidth: 2 },
     layout: { pageWidth: 1440, sectionSpacing: 0.9 },
     buttons: { style: 'solid', colour: 'brand', uppercase: true },
-    cards: { imageRatio: 'square', showVendor: true, showSaleBadge: true, hoverImage: true },
+    cards: {
+      ...defaultTheme.cards,
+      imageRatio: 'square',
+      showVendor: true,
+      showSaleBadge: true,
+      hoverImage: true,
+    },
     roundedSections: false,
   },
   soft: {
@@ -146,7 +158,13 @@ export const THEME_PRESETS: Record<ThemePresetId, Preset> = {
     shape: { buttonRadius: 24, cardRadius: 16, inputRadius: 12, borderWidth: 1 },
     layout: { pageWidth: 1360, sectionSpacing: 1.2 },
     buttons: { style: 'solid', colour: 'brand', uppercase: false },
-    cards: { imageRatio: 'portrait', showVendor: false, showSaleBadge: true, hoverImage: true },
+    cards: {
+      ...defaultTheme.cards,
+      imageRatio: 'portrait',
+      showVendor: false,
+      showSaleBadge: true,
+      hoverImage: true,
+    },
     roundedSections: true,
   },
 }

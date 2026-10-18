@@ -44,9 +44,11 @@ export { default as ThemeToggle } from './components/theme-toggle'
 export { type MenuCollection, type SearchShortcut, searchShortcuts } from './header-menu'
 export { formatPaise } from './money'
 export {
+  cleanCustomCss,
   defaultSectionSettings,
   migrateSectionSettings,
   type SectionSettingsValue,
+  scopedCustomCss,
   sectionVisibilityClassName,
   shouldAnimateEntrance,
 } from './section-settings'
@@ -57,6 +59,6 @@ export {
 } from './sections/zero-drift/cookie-banner'
 export { footerSettings } from './sections/zero-drift/footer'
 export { headerSettings } from './sections/zero-drift/header'
-export type { StoreActions } from './store-actions'
+export { announceCartAdded, CART_ADDED_EVENT, type StoreActions } from './store-actions'
 export * from './types'
 export { removeFromWishlist, toggleWishlist, useWishlist } from './wishlist'

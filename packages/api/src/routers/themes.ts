@@ -25,7 +25,8 @@ import {
 } from '@commerce/core'
 import { ORPCError } from '@orpc/server'
 import { z } from 'zod'
-import { can, heavy } from '../procedures'
+import { can, canDetached, heavy } from '../procedures'
+import { proposeSection } from '../services/ai/section-writer'
 import { storeRegistries } from '../services/apps.service'
 import { storageProviderFor } from '../services/media.service'
 import {
@@ -188,6 +189,16 @@ export const themesRouter = {
   customSections: customSectionsRouter,
   import: importRouter,
   code: themeCodeRouter,
+
+  /** "Build with AI": one library section with its words filled in. A proposal only. */
+  proposeSection: canDetached(permissions.ONLINE_STORE_WRITE)
+    .input(
+      z.object({
+        request: z.string().trim().min(3).max(600),
+        page: z.string().trim().min(1).max(60),
+      }),
+    )
+    .handler(({ context, input, signal }) => proposeSection(context, input, signal)),
 
   /** The live theme's logo for the admin sidebar (every page load): one small read. */
   logo: can(permissions.ONLINE_STORE_READ).handler(({ context }) => liveThemeLogoUrl(context.tx)),

@@ -9,6 +9,7 @@ import {
   type LiquidSectionInput,
   liquidPlacement,
   loadThemeBundle,
+  loadThemeDraftBundle,
   mainThemeId,
   ProductDrop,
   peekThemeBundle,
@@ -146,7 +147,14 @@ async function importedTheme(
     }),
   )
   if (!info) return null
+  // Previewing this theme (Edit code → Preview) shows its unpublished saves.
+  const preview = readPreview(storeId, (await headers()).get('x-theme-preview'))
+  const draft =
+    preview?.themeId === themeId
+      ? await within(storeId, tx, (t) => loadThemeDraftBundle(t, themeId))
+      : null
   const bundle =
+    draft ??
     peekThemeBundle(themeId, info.version) ??
     (await within(storeId, tx, (t) => loadThemeBundle(t, themeId)))
   return bundle ? { bundle, shopifyHost: info.shopifyHost } : null

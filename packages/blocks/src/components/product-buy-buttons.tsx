@@ -5,6 +5,7 @@ import { type ComponentType, useState, useTransition } from 'react'
 import { mainProductContent as copy } from '../data/zero-drift/main-product'
 import { formatPaise } from '../money'
 import { safeHref } from '../slot-types'
+import { announceCartAdded } from '../store-actions'
 import type { ProductDetail } from '../types'
 import { useReducedMotion } from '../use-reduced-motion'
 import Icon from './icon'
@@ -53,6 +54,7 @@ export default function ProductBuyButtons({
     if (!variant || !onAddToCart) return
     startTransition(async () => {
       await onAddToCart(variant.id, quantity)
+      announceCartAdded()
       setAdded(true)
       setTimeout(() => setAdded(false), 2000)
     })

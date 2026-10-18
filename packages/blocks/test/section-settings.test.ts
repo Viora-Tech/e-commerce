@@ -18,6 +18,7 @@ describe('defaultSectionSettings', () => {
       showOnDesktop: true,
       entranceAnimation: 'none',
       anchorId: '',
+      customCss: '',
     })
   })
 
@@ -81,6 +82,7 @@ describe('sectionVisibilityClassName — hidden-on-mobile/desktop classes', () =
         showOnDesktop: true,
         entranceAnimation: 'none',
         anchorId: '',
+        customCss: '',
       }),
     ).toBe('')
   })
@@ -92,6 +94,7 @@ describe('sectionVisibilityClassName — hidden-on-mobile/desktop classes', () =
         showOnDesktop: true,
         entranceAnimation: 'none',
         anchorId: '',
+        customCss: '',
       }),
     ).toBe('max-md:hidden')
   })
@@ -103,6 +106,7 @@ describe('sectionVisibilityClassName — hidden-on-mobile/desktop classes', () =
         showOnDesktop: false,
         entranceAnimation: 'none',
         anchorId: '',
+        customCss: '',
       }),
     ).toBe('md:hidden')
   })
