@@ -9,6 +9,7 @@ import { waitlistContent as copy, WAITLIST_INITIAL } from '@/data/waitlist'
 import { ctaClass } from '@/lib/cta'
 import { joinWaitlist } from '@/lib/waitlist-action'
 import ChoiceChip from '../common/choice-chip'
+import Turnstile from '../common/turnstile'
 
 type WaitlistFormProps = { initialEmail: string; initialSell: string; onJoined: () => void }
 
@@ -134,6 +135,7 @@ export default function WaitlistForm({ initialEmail, initialSell, onJoined }: Wa
           <input key={option} type="hidden" name="channels" value={option} />
         ))}
       </fieldset>
+      <Turnstile action="waitlist" />
       <button type="submit" disabled={pending} className={ctaClass('lg', 'w-full')}>
         {pending ? copy.sending : copy.submit}
         {pending ? null : <ArrowRight aria-hidden />}

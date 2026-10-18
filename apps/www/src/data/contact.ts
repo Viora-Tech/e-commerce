@@ -27,6 +27,7 @@ export const contactContent = {
     submit: 'Send message',
     sending: 'Sending…',
     success: 'Thanks. Your message is in; a real person will reply.',
+    error: 'Your message did not go through. Try again in a moment, or email support@koomerce.app.',
     invalid: {
       name: 'Enter your name',
       email: 'Enter a valid email address',

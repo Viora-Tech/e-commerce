@@ -24,6 +24,7 @@ export const changelogContent = {
     note: 'One email when something ships. No spam.',
     done: 'You are subscribed. We will email you when something ships.',
     invalid: 'Enter a valid email address',
+    error: 'That did not go through. Try again in a moment.',
   },
   filterLabel: 'Filter by tag',
   filters: ['All', 'New', 'Improved', 'Fixed'] as const,

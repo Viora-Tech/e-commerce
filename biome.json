@@ -11,6 +11,7 @@
       "!**/.next",
       "!apps/www/out",
       "!**/.wrangler",
+      "!**/worker-configuration.d.ts",
       "!apps/docs/public/_pagefind",
       "!apps/www/public",
       "!packages/blocks/src/styles",
