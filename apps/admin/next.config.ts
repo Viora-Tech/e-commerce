@@ -102,6 +102,8 @@ const config: NextConfig = {
     dangerouslyAllowLocalIP: process.env.NODE_ENV !== 'production',
     remotePatterns: [
       { protocol: 'https', hostname: 'cdn.shopify.com' },
+      // The platform's media bucket (R2 `koomerce-media`), fixed so a build needs no env for it.
+      { protocol: 'https', hostname: 'cdn.koomerce.app' },
       ...(process.env.R2_PUBLIC_BASE_URL
         ? [
             {
