@@ -5,7 +5,7 @@ import { GUIDES } from '@/data/guides'
 import { SOLUTIONS } from '@/data/solutions'
 
 /** When the static pages last changed meaningfully; move it when their content does. */
-const PAGES_UPDATED = '2026-10-19'
+const PAGES_UPDATED = '2026-10-18'
 
 const PAGES = [
   { path: '/', priority: 1 },

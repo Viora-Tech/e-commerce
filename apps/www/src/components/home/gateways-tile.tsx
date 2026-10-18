@@ -7,12 +7,7 @@ const copy = homeContent.india.gateways
 
 export default function GatewaysTile() {
   return (
-    <BentoTile
-      eyebrow={copy.eyebrow}
-      title={copy.title}
-      body={copy.body}
-      className="min-h-[18.75rem] lg:col-span-2"
-    >
+    <BentoTile eyebrow={copy.eyebrow} title={copy.title} body={copy.body} className="lg:col-span-2">
       <ul className="flex flex-wrap gap-3">
         {copy.items.map((gateway) => (
           <li

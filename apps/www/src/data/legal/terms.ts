@@ -24,13 +24,15 @@ export const termsDoc: LegalDoc = {
       title: 'Your account',
       plain: ['Keep your password safe.', 'Tell us fast if something looks wrong.'],
       body: [
-        'Keep your sign-in details safe and tell us at [Support email] if you suspect misuse. You are responsible for activity on your account.',
+        `Keep your sign-in details safe and tell us at ${siteConfig.contact.supportEmail} if you suspect misuse. You are responsible for activity on your account.`,
       ],
     },
     {
       title: 'Plans and billing',
       plain: ['Billed in advance, in rupees.', 'GST is added on the invoice.'],
-      body: ['Paid plans are billed [Monthly or yearly] in advance in INR, plus applicable GST.'],
+      body: [
+        'Paid plans are billed monthly or yearly, as you choose, in advance in INR, plus applicable GST.',
+      ],
     },
     {
       title: 'Your content',

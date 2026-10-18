@@ -18,11 +18,13 @@ export default function IndiaBento() {
       <AmbientLight className="right-0 bottom-0 h-96 w-[44rem]" />
       <PageContainer className="flex flex-col items-center gap-12 md:gap-16">
         <SectionHeading eyebrow={copy.eyebrow} title={copy.title} subtitle={copy.subtitle} />
-        <div className="grid w-full gap-6 lg:grid-cols-3">
+        {/* Order and spans keep every row full: 1 column on phones, 2 on tablets
+            (wide · pair · wide · pair) and 3 on desktop (2+1, 1+2, 1+2). */}
+        <div className="grid w-full gap-4 md:grid-cols-2 md:gap-6 lg:grid-cols-3">
           <PaymentsTile />
           <GstTile />
-          <CouriersTile />
           <HindiTile />
+          <CouriersTile />
           <CartRecoveryTile />
           <GatewaysTile />
         </div>

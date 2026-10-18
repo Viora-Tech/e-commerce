@@ -3,7 +3,7 @@ import { siteConfig } from '@commerce/config/site'
 const docs = siteConfig.urls.docs
 
 export const contactContent = {
-  status: 'We’re online · 10 am – 7 pm IST',
+  status: 'Support by email',
   title: 'Talk to a human.',
   subtitle:
     'Moving from Shopify, choosing a plan or stuck on a setting — a real person on our team replies.',
@@ -14,23 +14,9 @@ export const contactContent = {
       body: `${siteConfig.contact.supportEmail} — we answer every email.`,
       cta: 'Write to us →',
     },
-    {
-      key: 'sales',
-      title: 'Sales and partnerships',
-      // PLACEHOLDER: the sales mailbox is not final.
-      body: 'Choosing a plan or working together? [Sales mailbox placeholder]',
-      cta: 'Email sales →',
-    },
-    {
-      key: 'call',
-      title: 'Book a call',
-      body: '20-minute call about moving your store or picking a plan. [Placeholder booking link]',
-      cta: 'Pick a time →',
-    },
   ],
   form: {
     title: 'Send us a message',
-    reply: 'We reply within [N] working hours. [Placeholder]',
     topicLabel: 'What’s it about?',
     topics: ['Sales', 'Support', 'Partnerships', 'Press'],
     name: { label: 'Your name', placeholder: 'Riya Sharma' },
