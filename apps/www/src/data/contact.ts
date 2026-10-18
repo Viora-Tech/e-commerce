@@ -3,7 +3,7 @@ import { siteConfig } from '@commerce/config/site'
 const docs = siteConfig.urls.docs
 
 export const contactContent = {
-  status: 'We’re online · 10 am – 7 pm IST',
+  status: 'Support by email',
   title: 'Talk to a human.',
   subtitle:
     'Moving from Shopify, choosing a plan or stuck on a setting — a real person on our team replies.',

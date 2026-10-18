@@ -27,7 +27,6 @@ export default function ContactPage() {
     <SiteShell>
       <PageContainer as="section" className="flex flex-col items-center gap-6 pt-20 pb-12 md:pt-28">
         <p className="glass-popover inline-flex h-7 items-center gap-2 rounded-full px-3 text-xs text-foreground">
-          <span aria-hidden className="size-1.5 rounded-full bg-success" />
           {copy.status}
         </p>
         <SectionHeading as="h1" size="display" title={copy.title} subtitle={copy.subtitle} />

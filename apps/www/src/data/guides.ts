@@ -32,8 +32,8 @@ export const GUIDES: readonly Guide[] = [
     slug: 'move-from-shopify-to-koomerce',
     title: 'How to move your store from Shopify, step by step',
     description: `What comes over from Shopify, how to keep your theme, and the order to do it in so your store never goes dark.`,
-    published: '2026-10-19',
-    updated: '2026-10-19',
+    published: '2026-10-18',
+    updated: '2026-10-18',
     readMinutes: 6,
     sections: [
       {
@@ -78,8 +78,8 @@ export const GUIDES: readonly Guide[] = [
     title: 'GST invoices for online sellers in India: a plain guide',
     description:
       'CGST, SGST and IGST, what a tax invoice must show, B2B invoices with the buyer’s GSTIN, credit notes and GSTR-1, explained for people who sell online.',
-    published: '2026-10-19',
-    updated: '2026-10-19',
+    published: '2026-10-18',
+    updated: '2026-10-18',
     readMinutes: 7,
     sections: [
       {
@@ -131,8 +131,8 @@ export const GUIDES: readonly Guide[] = [
     title: 'Why your checkout should put UPI first',
     description:
       'How Indian shoppers pay, why the order of payment options matters, and how to cut cash on delivery returns without turning COD off.',
-    published: '2026-10-19',
-    updated: '2026-10-19',
+    published: '2026-10-18',
+    updated: '2026-10-18',
     readMinutes: 4,
     sections: [
       {
