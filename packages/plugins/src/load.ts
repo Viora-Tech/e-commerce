@@ -137,6 +137,11 @@ export function loadPlugins(plugins: PluginManifest[]): LoadedPlugins {
         hooks: Object.keys(p.hooks ?? {}) as AppEvent[],
         productFields: p.productFields ?? [],
         credits: (p.credits ?? []).map((c) => ({ ...c })),
+        access: {
+          resources: p.access.resources.map((r) => ({ ...r })),
+          summary: p.access.summary ?? null,
+          shares: (p.access.shares ?? []).map((s) => ({ ...s })),
+        },
         admin: {
           icon: p.admin?.icon ?? null,
           pages: (p.admin?.pages ?? []).map((page) => ({ ...page })),

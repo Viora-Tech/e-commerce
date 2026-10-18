@@ -37,7 +37,7 @@ type Outcome = {
 export type ActionView = {
   id: string
   tool: string
-  source: 'assistant' | 'bulkWriter'
+  source: 'assistant' | 'bulkWriter' | 'mcp'
   status: AiActionStatus
   summary: string
   preview: ActionPreview
@@ -94,7 +94,7 @@ export async function proposeAction(
   env: ActionEnv,
   tool: string,
   raw: unknown,
-  opts: { flagged: boolean },
+  opts: { flagged: boolean; source?: 'assistant' | 'mcp' },
 ): Promise<ActionView> {
   const definition = ACTIONS[tool]
   if (!definition) throw new ProposalProblem(`There is no ${tool} action.`)
@@ -105,6 +105,7 @@ export async function proposeAction(
     .values({
       storeId: env.storeId,
       userId: env.userId,
+      source: opts.source ?? 'assistant',
       tool,
       summary: proposal.summary,
       input: { raw: parsed, resolved: proposal.resolved } satisfies Stored,
@@ -295,6 +296,12 @@ export async function undoAction(
     if (err instanceof ProposalProblem) throw new ORPCError('CONFLICT', { message: err.message })
     throw err
   }
+}
+
+/** One action, for "Open approval" (Settings → MCP & API → Activity). Null when it is gone. */
+export async function getAction(ctx: StoreContext, id: string): Promise<ActionView | null> {
+  const [row] = await ctx.tx.select().from(aiAction).where(eq(aiAction.id, id))
+  return row ? viewOf(row) : null
 }
 
 export type ActivityPage = { items: ActionView[]; hasMore: boolean }

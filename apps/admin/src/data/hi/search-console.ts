@@ -67,6 +67,7 @@ export default [
       },
       topSearches: 'सबसे ज़्यादा सर्च',
       topPages: 'सबसे ज़्यादा देखे गए पेज',
+      seeAll: 'सब देखें',
       devices: 'डिवाइस',
       countries: 'देश',
       empty: 'अभी कोई क्लिक नहीं।',

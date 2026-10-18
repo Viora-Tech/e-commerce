@@ -13,21 +13,25 @@ import { useAssistant } from '@/hooks/use-assistant'
 import { useCopy, useLocale } from '@/hooks/use-copy'
 import { routes } from '@/lib/routes'
 import PanelTitle from './panel-title'
+import SectionProposer from './section-proposer'
 
 type AiPanelProps = {
   /** The active store, so this conversation is the one the admin's AI bar keeps for it. */
   storeId: string | null
   /** AI is set up, on for the store, and this member may use the assistant. */
   enabled: boolean
+  /** The template being edited ("Home page"), for "Build a section". */
+  page: string
 }
 
 /**
  * The rail's AI tab (Figma 385:4119 "AI · idle"): "Build with AI" with New chat, the admin's AI
  * assistant (the same conversation as its ⌘J bar) inside the editor, with suggestions about the
  * page being edited and the prompt box at the foot. It answers and runs its usual tools
- * with approval; it does not edit the canvas itself. Without AI it says where to turn it on.
+ * with approval. "Build a section" above it proposes one library section, which goes on the
+ * canvas only when the merchant adds it. Without AI it says where to turn it on.
  */
-export default function AiPanel({ storeId, enabled }: AiPanelProps) {
+export default function AiPanel({ storeId, enabled, page }: AiPanelProps) {
   // Hooks
   const copy = useCopy(customizeContent.ai)
   const rail = useCopy(customizeContent.rail)
@@ -97,6 +101,7 @@ export default function AiPanel({ storeId, enabled }: AiPanelProps) {
       <div ref={scroller} className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 pb-4">
         {assistant.turns.length === 0 ? (
           <div className="flex flex-col gap-4">
+            <SectionProposer page={page} />
             <p className="text-sm leading-5 text-muted-foreground">{copy.title}</p>
             <ul className="flex flex-col gap-4">
               {copy.chips.map((chip) => (

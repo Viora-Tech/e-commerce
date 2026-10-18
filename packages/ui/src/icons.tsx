@@ -210,6 +210,9 @@ export { WhatsappLogo_ as WhatsappLogo }
 export const ChatGptLogo = defineIcon(Huge.ChatGptIcon, 'ChatGptLogo', 'duotone')
 export const PerplexityLogo = defineIcon(Huge.PerplexityAiIcon, 'PerplexityLogo', 'duotone')
 export const CopilotLogo = defineIcon(Huge.CopilotIcon, 'CopilotLogo', 'duotone')
+/* AI clients on Settings → MCP & API. */
+export const ClaudeLogo = defineIcon(Huge.ClaudeIcon, 'ClaudeLogo', 'duotone')
+export const VsCodeLogo = defineIcon(Huge.VisualStudioCodeIcon, 'VsCodeLogo', 'duotone')
 export const AgenticSales = defineIcon(Huge.AiBrain01Icon, 'AgenticSales', 'duotone')
 export const SocialMedia = defineIcon(Huge.Share08Icon, 'SocialMedia', 'duotone')
 export const PlugConnect = defineIcon(Huge.Plug01Icon, 'PlugConnect', 'duotone')

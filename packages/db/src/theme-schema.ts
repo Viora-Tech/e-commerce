@@ -148,6 +148,8 @@ export const themeFile = pgTable(
     /** Path inside the theme, e.g. `sections/hero.liquid` or `assets/base.css`. */
     path: text('path').notNull(),
     body: text('body').notNull(),
+    /** Edit code's unpublished save (imported themes): the store keeps `body` until Publish. */
+    draftBody: text('draft_body'),
     encoding: text('encoding').notNull().default('utf8'),
     contentType: text('content_type').notNull(),
     size: integer('size').notNull(),

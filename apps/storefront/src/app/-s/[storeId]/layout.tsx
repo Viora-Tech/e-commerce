@@ -1,5 +1,6 @@
 import {
   CursorFill,
+  cleanCustomCss,
   cookieBannerSettings,
   Footer,
   footerSettings,
@@ -32,6 +33,7 @@ import type { Metadata, Viewport } from 'next'
 import { cookies, headers } from 'next/headers'
 import { notFound } from 'next/navigation'
 import type { ReactNode } from 'react'
+import CartDrawer from '@/components/cart/cart-drawer'
 import StoreChrome from '@/components/checkout/store-chrome'
 import ConsentManager from '@/components/privacy/consent-manager'
 import PredictiveSearch from '@/components/search/predictive-search'
@@ -262,26 +264,38 @@ export default async function StoreLayout({ children, params }: Props) {
           themedConsent = types.has('CookieBanner') || types.has('LiquidSection:cookie-banner')
         },
         renderers: {
-          Footer: (s) => (
-            <Footer
-              {...footerSettings(s)}
-              storeName={current.name}
-              columns={footerColumns}
-              newsletterAction={subscribeAction}
-              policies={policies.map((p) => ({ label: p.title, href: p.href }))}
-              // Reopens the cookie banner, so a choice can be changed any time.
-              cookieSettings={{ label: privacyContent.cookieSettings, href: COOKIE_SETTINGS_HASH }}
-              grievance={officer ? policyPageContent.grievance(officer) : null}
-              themeToggle={
-                theme.darkMode.enabled && theme.darkMode.togglePosition === 'footer' ? mode : null
-              }
-              logo={
-                theme.brand.logo
-                  ? { url: theme.brand.logo.url, width: theme.brand.logoWidth, height: logoHeight }
-                  : null
-              }
-            />
-          ),
+          Footer: (s) => {
+            const settings = footerSettings(s)
+            return (
+              <Footer
+                {...settings}
+                // The section's own links win; with none, Theme settings → Social media fills in.
+                socials={settings.socials.length ? settings.socials : theme.social.links}
+                storeName={current.name}
+                columns={footerColumns}
+                newsletterAction={subscribeAction}
+                policies={policies.map((p) => ({ label: p.title, href: p.href }))}
+                // Reopens the cookie banner, so a choice can be changed any time.
+                cookieSettings={{
+                  label: privacyContent.cookieSettings,
+                  href: COOKIE_SETTINGS_HASH,
+                }}
+                grievance={officer ? policyPageContent.grievance(officer) : null}
+                themeToggle={
+                  theme.darkMode.enabled && theme.darkMode.togglePosition === 'footer' ? mode : null
+                }
+                logo={
+                  theme.brand.logo
+                    ? {
+                        url: theme.brand.logo.url,
+                        width: theme.brand.logoWidth,
+                        height: logoHeight,
+                      }
+                    : null
+                }
+              />
+            )
+          },
           CookieBanner: (s) => {
             // A second CookieBanner section (it is single in Customize, but saved data is data)
             // must not ask twice.
@@ -334,6 +348,10 @@ export default async function StoreLayout({ children, params }: Props) {
         {sentryMeta}
         {/* biome-ignore lint/security/noDangerouslySetInnerHtml: CSS is built only from ThemeSchema-validated hex colours, numbers and enums; no free-form user string reaches it. */}
         <style dangerouslySetInnerHTML={{ __html: themeToCss(theme) }} />
+        {theme.customCss.trim() ? (
+          // biome-ignore lint/security/noDangerouslySetInnerHtml: cleanCustomCss strips anything that could close the style tag or open HTML
+          <style dangerouslySetInnerHTML={{ __html: cleanCustomCss(theme.customCss) }} />
+        ) : null}
         {theme.brand.favicon ? <link rel="icon" href={theme.brand.favicon.url} /> : null}
       </head>
       <body>
@@ -342,6 +360,9 @@ export default async function StoreLayout({ children, params }: Props) {
         <main id="MainContent">
           <StoreActionsProvider addToCart={addLineAction}>{children}</StoreActionsProvider>
         </main>
+        {theme.cart.type === 'drawer' ? (
+          <CartDrawer freeShippingBar={theme.cart.freeShippingBar} />
+        ) : null}
         <StoreChrome>
           <CursorFill />
         </StoreChrome>

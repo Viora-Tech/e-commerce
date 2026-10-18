@@ -25,6 +25,7 @@ import AgentCard from './agent-card'
 import ChannelBar from './channel-bar'
 import ChannelOrdersCard from './channel-orders-card'
 import ConnectAgentDialog from './connect-agent-dialog'
+import ManageChannelDialog from './manage-channel-dialog'
 import RequestDialog from './request-dialog'
 import SyncStatusBar from './sync-status-bar'
 
@@ -39,6 +40,7 @@ export default function AgenticOverviewPage({ data }: AgenticOverviewPageProps) 
   const format = useFormat()
   const [connecting, setConnecting] = useState<{ agent: AiAgent | null } | null>(null)
   const [viewing, setViewing] = useState<AiAgent | null>(null)
+  const [managing, setManaging] = useState(false)
 
   // Render logic
   const states = Object.fromEntries(data.agents.map((a) => [a.agent, a.state])) as Record<
@@ -142,9 +144,11 @@ export default function AgenticOverviewPage({ data }: AgenticOverviewPageProps) 
               orders={data.agents.find((a) => a.agent === agent)?.orders ?? 0}
               onConnect={() => setConnecting({ agent })}
               onViewRequest={() =>
-                isLive(states[agent])
-                  ? router.push(routes.salesChannels.agenticControls())
-                  : setViewing(agent)
+                agent === 'chatgpt' && isLive(states[agent])
+                  ? setManaging(true)
+                  : isLive(states[agent])
+                    ? router.push(routes.salesChannels.agenticControls())
+                    : setViewing(agent)
               }
             />
           ))}
@@ -180,6 +184,13 @@ export default function AgenticOverviewPage({ data }: AgenticOverviewPageProps) 
           onWithdrawn={() => router.refresh()}
         />
       ) : null}
+      <ManageChannelDialog
+        open={managing}
+        onOpenChange={setManaging}
+        channel="chatgpt"
+        name={shared.agents.chatgpt.name}
+        state={states.chatgpt}
+      />
     </PageBody>
   )
 }

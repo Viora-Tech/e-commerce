@@ -43,7 +43,7 @@ export default async function FinishSetup({ productCount, signals }: FinishSetup
       title: c.shipping.title,
       body: signals.shipping ? c.shipping.done(signals.shipping) : c.shipping.todo,
       done: signals.shipping !== null,
-      href: routes.apps.list(),
+      href: routes.apps.store(),
     },
   ]
   // Always shown (Figma 224:584); finished steps stay, ticked.

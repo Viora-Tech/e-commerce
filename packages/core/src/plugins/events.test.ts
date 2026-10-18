@@ -1,9 +1,15 @@
-import { createDb, store, storeDomain } from '@commerce/db'
+import { appInstallation, createDb, store, storeDomain } from '@commerce/db'
 import { resetDb } from '@commerce/db/test'
 import { definePlugin, loadPlugins } from '@commerce/plugins'
 import { afterAll, beforeEach, describe, expect, it } from 'vitest'
 import { corePlugin } from './core-plugin'
-import { dispatchAppEvent, storeAppContext } from './events'
+import {
+  dispatchAppEvent,
+  dispatchAppJob,
+  dispatchAppJobFailure,
+  recordAppEventFailure,
+  storeAppContext,
+} from './events'
 
 const owner = createDb(process.env.DATABASE_URL_OWNER as string)
 const app = createDb(process.env.DATABASE_URL as string)
@@ -34,6 +40,7 @@ describe('dispatchAppEvent', () => {
       name: 'A',
       version: '0.0.1',
       kind: 'builtin',
+      access: { resources: [] },
       provides: {},
       hooks: {
         'order.paid': async () => {
@@ -47,6 +54,7 @@ describe('dispatchAppEvent', () => {
       name: 'B',
       version: '0.0.1',
       kind: 'builtin',
+      access: { resources: [] },
       provides: {},
       hooks: {
         'order.paid': async () => {
@@ -98,6 +106,67 @@ describe('dispatchAppEvent', () => {
     ).rejects.toThrow('app A is down')
     expect(ranA).toEqual(['ran', 'ran'])
     expect(ranB).toEqual(['ran'])
+  })
+})
+
+describe('app activity on the Installed apps list', () => {
+  const reporting = definePlugin({
+    id: 'reporter',
+    name: 'Reporter',
+    version: '0.0.1',
+    kind: 'builtin',
+    access: { resources: [] },
+    provides: {},
+    hooks: {
+      'order.paid': async (ctx) => {
+        ctx.reportActivity?.('Issued invoice INV-7')
+      },
+    },
+    jobs: { quiet: async () => {} },
+  })
+  const deps = () => ({
+    db: app,
+    plugins: loadPlugins([corePlugin, reporting]),
+    storage: async () => {
+      throw new Error('unused')
+    },
+    settingsSecret: 's',
+    storefrontUrl: null,
+  })
+  const rowOf = async () => (await owner.select().from(appInstallation))[0]
+
+  it('a hook that reports what it did becomes the last activity', async () => {
+    const storeId = await seedStore('activity-hook', ['reporter'])
+    await dispatchAppEvent(deps(), {
+      storeId,
+      event: 'order.paid',
+      orderId: 'o',
+      pluginId: 'reporter',
+    })
+    expect(await rowOf()).toMatchObject({
+      pluginId: 'reporter',
+      lastActivity: 'Issued invoice INV-7',
+    })
+  })
+
+  it('a job failing for good is recorded, and the next good run clears it', async () => {
+    const storeId = await seedStore('activity-job', ['reporter'])
+    const job = { storeId, pluginId: 'reporter', name: 'quiet', data: null }
+    await dispatchAppJobFailure(deps(), job, 'out of memory')
+    expect(await rowOf()).toMatchObject({ lastError: 'out of memory' })
+    await dispatchAppJob(deps(), job)
+    expect(await rowOf()).toMatchObject({ lastError: null, lastActivity: null })
+    expect((await rowOf())?.lastActivityAt).toBeInstanceOf(Date)
+  })
+
+  it('a hook that threw on every retry is recorded against that app only', async () => {
+    const storeId = await seedStore('activity-event-failure', ['reporter'])
+    await recordAppEventFailure(
+      deps(),
+      { storeId, event: 'order.paid', orderId: 'o', pluginId: 'reporter' },
+      'timeout',
+    )
+    expect(await rowOf()).toMatchObject({ pluginId: 'reporter', lastError: 'timeout' })
   })
 })
 

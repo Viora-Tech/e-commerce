@@ -42,7 +42,7 @@ export default function SidebarUsageCard({ usage }: SidebarUsageCardProps) {
         </p>
       </div>
       <Link
-        href={routes.settings.home()}
+        href={routes.settings.billing()}
         className="flex h-7 items-center gap-1.5 rounded-sm pt-2 pb-1 pl-2 text-xs text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
       >
         <ChevronUpIcon className="size-3.5 shrink-0" aria-hidden />

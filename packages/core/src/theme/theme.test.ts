@@ -117,6 +117,11 @@ describe('themeToCssVars', () => {
       'data-card-sale-badge': 'off',
       'data-card-hover': 'on',
       'data-card-ratio': 'square',
+      'data-card-style': 'standard',
+      'data-card-rating': 'on',
+      'data-card-quick-add': 'off',
+      'data-card-wishlist': 'on',
+      'data-cart': 'page',
     })
   })
 })

@@ -14,7 +14,8 @@ import { localize } from '@/lib/copy'
 import { getLocale, getRegion } from '@/lib/copy-server'
 import { NONCE_HEADER } from '@/lib/csp'
 
-export const metadata: Metadata = { title: 'Admin' }
+// The admin is private: search engines never list it (robots.ts and the X-Robots-Tag header agree).
+export const metadata: Metadata = { title: 'Admin', robots: { index: false, follow: false } }
 
 /* Fonts match the Koomerce Figma kit: variable Plus Jakarta Sans for everything (titles and big
    numbers too), a Devanagari partner for Hindi, and Geist Mono for eyebrows, keys and code. */

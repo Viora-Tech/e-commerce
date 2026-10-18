@@ -3,6 +3,7 @@ import {
   type Alignment,
   type ContentWidth,
   type CornerRadius,
+  customCssClass,
   migrateSectionSettings,
   type SectionSettingsValue,
   type Shadow,
@@ -10,6 +11,7 @@ import {
   sectionPaddingStyle,
   sectionVisibilityClassName,
 } from '../section-settings'
+import SectionCustomCss from './section-custom-css'
 import SectionReveal from './section-reveal'
 
 type SectionFrameProps = {
@@ -94,6 +96,7 @@ export default function SectionFrame({
     style.border ? 'border border-border' : undefined,
     hasBackgroundImage ? 'overflow-hidden' : undefined,
     sectionVisibilityClassName(advanced),
+    customCssClass(advanced.customCss),
     className,
   )
   const outerStyle: CSSProperties = {
@@ -117,6 +120,7 @@ export default function SectionFrame({
       id={advanced.anchorId || undefined}
       data-content-width={layout.contentWidth}
     >
+      <SectionCustomCss css={advanced.customCss} />
       {hasBackgroundImage ? (
         <>
           <img

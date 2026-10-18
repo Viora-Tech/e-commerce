@@ -64,6 +64,27 @@ export const customizeContent = {
     offTitle: 'AI is not set up for this store',
     offBody: 'Turn on the AI assistant in Settings → AI to ask it about this page.',
     offAction: 'Open AI settings',
+    builder: {
+      title: 'Build a section',
+      help: 'Describe it. AI picks a section from the library and writes its words.',
+      label: 'Describe the section',
+      placeholder: 'For example: three reasons to buy our handmade candles',
+      propose: 'Build section',
+      proposing: 'Building…',
+      add: 'Add to page',
+      again: 'Try again',
+      dismiss: 'Dismiss',
+      after: 'Add your own images and links once it is on the page.',
+      added: (name: string) => `${name} added. Save the page to keep it.`,
+      failed: 'Could not build a section this time',
+      credits: 'Uses AI credits',
+      types: {
+        ImageBanner: 'Image banner',
+        ImageWithText: 'Image with text',
+        Multicolumn: 'Multicolumn',
+        Faq: 'FAQ',
+      },
+    },
   },
   help: {
     shortcuts: 'Keyboard shortcuts',
@@ -127,6 +148,9 @@ export const customizeContent = {
       brand: 'Logo & favicon',
       layout: 'Layout',
       cards: 'Product cards',
+      cart: 'Cart',
+      social: 'Social media',
+      css: 'Custom CSS',
       checkout: 'Checkout branding',
     },
     newTab: 'Opens in a new tab',
@@ -145,6 +169,10 @@ export const customizeContent = {
       buttons: 'How every button on the store looks.',
       layout: 'How wide pages are and how much room sits between sections.',
       cards: 'Used in every product grid, carousel and search result.',
+      cart: 'What the bag in the header opens, and the free shipping bar.',
+      social:
+        'Your profiles. The footer and announcement bar show them unless a section has its own.',
+      css: 'Your own CSS, added after the theme’s on every page. A section can also have its own (Section settings → Advanced).',
       brand: 'Your logo in the header and the icon in the browser tab.',
     },
     summary: {
@@ -158,6 +186,17 @@ export const customizeContent = {
       vendor: 'vendor',
       saleBadge: 'sale badge',
       hoverImage: 'second image',
+      quickAdd: 'quick add',
+      rating: 'rating',
+      wishlist: 'wishlist',
+      minimal: 'Minimal',
+      standard: 'Standard',
+      cart: (type: 'drawer' | 'page', bar: boolean) =>
+        [type === 'drawer' ? 'Drawer' : 'Cart page', bar ? 'free shipping bar' : null]
+          .filter(Boolean)
+          .join(' · '),
+      social: (names: string[]) => (names.length ? names.join(', ') : 'None added yet'),
+      css: (lines: number) => (lines ? `${lines} ${lines === 1 ? 'line' : 'lines'}` : 'None'),
       brand: (logo: string | null, favicon: string | null) =>
         [logo ?? 'No logo yet', favicon].filter(Boolean).join(' · '),
       checkout: 'Opens Settings › Checkout',

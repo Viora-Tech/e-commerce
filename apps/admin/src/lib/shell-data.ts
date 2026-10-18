@@ -31,3 +31,8 @@ export const ordersToShipCount = cache(async () =>
 export const liveLogoUrl = cache(async () =>
   call(appRouter.themes.logo, undefined, { context: await serverContext() }).catch(() => null),
 )
+
+/** The sidebar's "Orders this month · 142 of 200"; null when the member cannot read settings. */
+export const planUsageSummary = cache(async () =>
+  call(appRouter.billing.usage, undefined, { context: await serverContext() }).catch(() => null),
+)

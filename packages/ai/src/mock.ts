@@ -19,6 +19,7 @@ import {
   type DocumentShape,
 } from './purchase-documents/schema'
 import { REVIEW_REPLY_MARKER } from './review-reply'
+import { SECTION_WRITER_MARKER } from './section-writer'
 import { SEO_KEYWORDS_MARKER } from './seo-keywords/prompt'
 
 const USAGE = {
@@ -129,6 +130,29 @@ function generated(prompt: Prompt): string {
     return JSON.stringify({
       reply:
         'Thank you for taking the time to write this. We are glad it works well for you, and we hope you enjoy it for a long time.',
+    })
+  }
+  if (system.includes(SECTION_WRITER_MARKER)) {
+    return JSON.stringify({
+      summary: 'Questions shoppers often ask before they order, answered in one place.',
+      section: {
+        type: 'Faq',
+        heading: 'Questions, answered',
+        items: [
+          {
+            question: 'How long does delivery take?',
+            answer: 'Most orders reach you in a few working days.',
+          },
+          {
+            question: 'Can I return an item?',
+            answer: 'Yes. See our returns page for how it works.',
+          },
+          {
+            question: 'Do you offer cash on delivery?',
+            answer: 'You can see every way to pay at checkout.',
+          },
+        ],
+      },
     })
   }
   return productCopy(prompt)

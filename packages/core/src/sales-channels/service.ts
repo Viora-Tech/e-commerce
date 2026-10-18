@@ -53,6 +53,21 @@ async function saveSettings(ctx: StoreContext, next: SalesChannelsSettings): Pro
     .where(eq(store.id, ctx.storeId))
 }
 
+/** The saved sales-channel settings, for the connect and sync code (`connect.ts`, `sync.ts`). */
+export const loadSalesChannelSettings = loadSettings
+
+/**
+ * Replaces the state of the channels named in `patch`, leaving the rest and the agent controls
+ * as they are. One read and one write inside the caller's transaction.
+ */
+export async function patchChannelStates(
+  ctx: StoreContext,
+  patch: Partial<Record<SalesChannelId, ChannelState>>,
+): Promise<void> {
+  const settings = await loadSettings(ctx)
+  await saveSettings(ctx, { ...settings, channels: { ...settings.channels, ...patch } })
+}
+
 /** The readiness report over every live product and the published policies. */
 export async function loadCatalogReadiness(ctx: StoreContext): Promise<CatalogReadiness> {
   const [items, policies] = await Promise.all([loadSeoProductItems(ctx.tx), listPolicies(ctx)])

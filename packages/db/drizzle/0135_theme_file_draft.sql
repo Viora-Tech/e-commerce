@@ -1,0 +1,1 @@
+ALTER TABLE "theme_file" ADD COLUMN "draft_body" text;

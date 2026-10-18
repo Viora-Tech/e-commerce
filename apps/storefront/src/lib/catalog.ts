@@ -18,6 +18,7 @@ import {
   variant,
   variantOptionValue,
 } from '@commerce/db'
+import { review } from '@commerce/plugin-reviews/schema'
 import type { RichTextValue } from '@commerce/richtext'
 import { and, asc, eq, inArray, isNull, sql } from 'drizzle-orm'
 
@@ -31,6 +32,24 @@ function availableFor(v: {
 }): number {
   if (!v.trackInventory) return 999
   return Math.max(0, (v.onHand ?? 0) - (v.reserved ?? 0))
+}
+
+/** Average stars and count of published reviews per product (Reviews app), for the cards. */
+export async function cardRatings(
+  tx: StoreTx,
+  ids: string[],
+): Promise<Map<string, { average: number; count: number }>> {
+  if (!ids.length) return new Map()
+  const rows = await tx
+    .select({
+      productId: review.productId,
+      average: sql<number>`avg(${review.rating})::float`,
+      count: sql<number>`count(*)::int`,
+    })
+    .from(review)
+    .where(and(inArray(review.productId, ids), eq(review.status, 'published')))
+    .groupBy(review.productId)
+  return new Map(rows.map((r) => [r.productId, { average: r.average, count: r.count }]))
 }
 
 /** Products for cards: first two images, lowest price, summed availability. */
@@ -85,6 +104,7 @@ export async function listCardProducts(
     .innerJoin(media, eq(media.id, productMedia.mediaId))
     .where(and(inArray(productMedia.productId, ids), sql`${productMedia.position} < 2`))
     .orderBy(asc(productMedia.position))
+  const ratings = await cardRatings(tx, ids)
 
   return products.map((p) => {
     const vs = variants.filter((v) => v.productId === p.id)
@@ -103,6 +123,7 @@ export async function listCardProducts(
       available: vs.reduce((n, v) => n + availableFor(v), 0),
       // Quick add needs no choice only when there is one variant to add.
       quickAddVariantId: vs.length === 1 ? (vs[0]?.id ?? null) : null,
+      rating: ratings.get(p.id) ?? null,
       images: images
         .filter((i) => i.productId === p.id)
         .map((i) => ({

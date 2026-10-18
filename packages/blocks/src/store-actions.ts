@@ -13,6 +13,16 @@ export type StoreActions = {
 
 export const StoreActionsContext = createContext<StoreActions>({})
 
+/**
+ * Fired on `window` after anything adds to the cart (a card's Quick add, the product page), so
+ * the storefront's cart drawer can open with the new line (Theme settings → Cart → Drawer).
+ */
+export const CART_ADDED_EVENT = 'commerce:cart-added'
+
+export function announceCartAdded(): void {
+  if (typeof window !== 'undefined') window.dispatchEvent(new Event(CART_ADDED_EVENT))
+}
+
 /** The storefront's actions, or none in the editor. */
 export function useStoreActions(): StoreActions {
   return use(StoreActionsContext)

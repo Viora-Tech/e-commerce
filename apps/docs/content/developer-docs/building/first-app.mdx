@@ -253,6 +253,12 @@ export const packingNotePlugin = definePlugin({
   kind: 'builtin',
   category: 'operations',
   description: 'Adds your packing instructions to every paid order, and a "Packed with care" block.',
+  access: {
+    resources: [
+      { resource: 'order-events', level: 'read', why: 'Reacts when an order is paid' },
+      { resource: 'orders', level: 'read-write', why: 'Adds your packing note to paid orders' },
+    ],
+  },
   provides: {},
   hooks: { 'order.paid': onOrderPaid },
   admin: {

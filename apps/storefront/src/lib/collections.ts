@@ -13,6 +13,7 @@ import {
 } from '@commerce/db'
 import type { RichTextValue } from '@commerce/richtext'
 import { and, asc, desc, eq, inArray, isNull, sql } from 'drizzle-orm'
+import { cardRatings } from './catalog'
 
 export type CollectionDetail = {
   id: string
@@ -169,6 +170,7 @@ export async function listCollectionProducts(
     .innerJoin(media, eq(media.id, productMedia.mediaId))
     .where(and(inArray(productMedia.productId, ids), sql`${productMedia.position} < 2`))
     .orderBy(asc(productMedia.position))
+  const ratings = await cardRatings(tx, ids)
 
   const items = rows.map((p) => {
     const vs = variants.filter((v) => v.productId === p.id)
@@ -187,6 +189,7 @@ export async function listCollectionProducts(
       available: vs.reduce((n, v) => n + availableFor(v), 0),
       // Quick add needs no choice only when there is one variant to add.
       quickAddVariantId: vs.length === 1 ? (vs[0]?.id ?? null) : null,
+      rating: ratings.get(p.id) ?? null,
       images: images
         .filter((i) => i.productId === p.id)
         .map((i) => ({

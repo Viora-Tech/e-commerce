@@ -75,6 +75,10 @@ export type ConnectContext<R extends TestOutcome> = {
   onOpen: () => void
   advancedOpen: boolean
   onAdvancedOpenChange: (open: boolean) => void
+  /** Run "Test connection" on the values on screen. */
+  runTest: () => void
+  /** When the last test passed in this visit; null before one has. */
+  checkedAt: Date | null
 }
 
 type ProviderConnectPageProps<R extends TestOutcome> = {
@@ -99,6 +103,8 @@ type ProviderConnectPageProps<R extends TestOutcome> = {
   guide: (ctx: ConnectContext<R>) => ReactNode
   fields: (ctx: ConnectContext<R>) => ReactNode
   extras: (ctx: ConnectContext<R>) => ReactNode
+  /** Side cards beside the guide and form (Figma "Delhivery · Connect"): the connection, what it links, help. */
+  aside?: ((ctx: ConnectContext<R>) => ReactNode) | undefined
 }
 
 const alwaysTestable = () => true
@@ -118,6 +124,7 @@ export default function ProviderConnectPage<R extends TestOutcome>({
   guide,
   fields,
   extras,
+  aside,
 }: ProviderConnectPageProps<R>) {
   // Hooks
   const apps = useCopy(appsContent)
@@ -131,6 +138,7 @@ export default function ProviderConnectPage<R extends TestOutcome>({
   const [advancedOpen, setAdvancedOpen] = useState(false)
   const [testState, setTestState] = useState<TestState>({ status: 'idle' })
   const [lastPassed, setLastPassed] = useState<R | null>(null)
+  const [checkedAt, setCheckedAt] = useState<Date | null>(null)
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: load once per mount, like every settings page
   useEffect(() => {
@@ -163,6 +171,7 @@ export default function ProviderConnectPage<R extends TestOutcome>({
         setTestState({ status: 'ok', message: result.message })
         setTestedFlag(providerId, true)
         setLastPassed(result)
+        setCheckedAt(new Date())
       } else {
         setTestState({ status: 'error', message: result.message })
       }
@@ -217,6 +226,8 @@ export default function ProviderConnectPage<R extends TestOutcome>({
     onOpen: handleOpen,
     advancedOpen,
     onAdvancedOpenChange: setAdvancedOpen,
+    runTest: () => void handleTest(),
+    checkedAt,
   }
 
   return (
@@ -261,10 +272,17 @@ export default function ProviderConnectPage<R extends TestOutcome>({
           <Skeleton className="h-10 w-full" />
         </Card>
       ) : (
-        <div className="grid gap-6 lg:grid-cols-[minmax(0,22rem)_minmax(0,1fr)]">
-          {guide(ctx)}
+        <div
+          className={
+            aside
+              ? 'grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,20rem)]'
+              : 'grid gap-6 lg:grid-cols-[minmax(0,22rem)_minmax(0,1fr)]'
+          }
+        >
+          {aside ? null : guide(ctx)}
 
           <div className="flex flex-col gap-6">
+            {aside ? guide(ctx) : null}
             {connected ? (
               <Alert>
                 <CircleCheck />
@@ -309,10 +327,11 @@ export default function ProviderConnectPage<R extends TestOutcome>({
                         : testState.message}
                     </p>
                   ) : testState.status === 'error' ? (
-                    <p className="flex items-center gap-1.5 text-body font-medium text-destructive">
-                      <CircleAlert aria-hidden="true" className="size-4" />
-                      {testState.message}
-                    </p>
+                    // Figma "Test connection failed": the reason in a red box under the button.
+                    <Alert variant="destructive">
+                      <CircleAlert />
+                      <AlertDescription>{testState.message}</AlertDescription>
+                    </Alert>
                   ) : null}
                   <p className="text-caption text-muted-foreground">{copy.testHint}</p>
                 </div>
@@ -321,6 +340,7 @@ export default function ProviderConnectPage<R extends TestOutcome>({
               </CardContent>
             </Card>
           </div>
+          {aside ? aside(ctx) : null}
         </div>
       )}
     </div>

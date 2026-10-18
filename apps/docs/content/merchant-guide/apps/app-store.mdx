@@ -16,6 +16,21 @@ couriers, payment gateways and more. Each one is a plugin you can turn on or off
 - Adding a "Notify me when it's back" button with **Back in stock**.
 - Showing "or ₹X/month" under product prices with **EMI & pay later**.
 
+## Installed apps and the App Store
+
+**Apps** in the sidebar opens **Installed apps**: only the apps your store has. Each row shows:
+- its status: **Connected**, **Needs setup** or **Error**;
+- what it **can access** (for example "Orders · read");
+- when it was installed and by whom, and its last activity.
+
+Use the status pills and the search box to find one. The **⋮** menu on a row opens the app,
+shows its permissions or uninstalls it. Tick several rows to uninstall them together.
+
+**Error** means the app's last background work failed, or its outside account (for example Google
+Search Console access) needs attention. The banner on the app's own page says what to do.
+
+Click **Browse App Store** to see every app you can add (`Apps → App Store`).
+
 ## How it works
 
 Installing an app switches on what it brings, for your store only. Depending on the app, that
@@ -34,7 +49,7 @@ flowchart TD
 
 ## Recommended for your store
 
-At the top of **Apps** a strip called **Recommended for** *your store's name* suggests up to three
+At the top of the **App Store** a strip called **Recommended for** *your store's name* suggests up to three
 apps you have not installed yet, each with a short reason. It looks at what is missing: with no
 courier connected it suggests Delhivery (then Shiprocket or RapidShyp); with no reviews it suggests
 Reviews; then WhatsApp, GST invoices, Back in stock and a payment gateway. A gap counts as
@@ -44,7 +59,7 @@ actually lack, and goes away when nothing is missing. Select an app to see what 
 
 ## Built-in apps vs connections
 
-The Apps page has two sections:
+The App Store has two sections:
 
 - **Built-in apps**: "Made by us. Turn one on and start using it — no account to set up."
 - **Connections**: link your store to another company's account. They show **by \<company\>**
@@ -134,21 +149,26 @@ as it came from Shopify, and it is optimised the next time the platform reproces
 
 <Steps>
 
-### Open Apps
+### Open the App Store
 
-Select **Apps** in the sidebar. Use the **All** / **Installed** filter and the category chips
-(Invoicing, Payments, Shipping, Messages, Storage and so on) to find one.
+Select **Apps** in the sidebar, then **Browse App Store**. Use the category chips (Invoicing,
+Payments, Shipping, Messages, Storage and so on) to find one.
 
 ### Install
 
-Select **Install** on the app's card. Built-in apps are ready straight away.
+Select **Install** on the app's card. A short flow opens:
 
-### Set it up
+1. **Connect account**, for couriers and other connections: enter the company's account details
+   and **Test connection**. Built-in apps skip this step.
+2. **Permissions**: what the app can read or change in your store, and what it shares with the
+   outside company. Read it, then **Install**.
+3. **Done**: the app is on, with a link to open it.
 
-For a connection, the card shows **Set up in Payments** (or Shipping, Notifications). Enter the
-company's account details there, or on the app's own **Connect** page for Delhivery,
-Shiprocket, Amazon SES email and WhatsApp, then **Test connection** where offered. The card switches from **Not connected** to
-**Connected**.
+Razorpay and Cashfree are still set up in **Settings → Payments**.
+
+**Paid apps.** If your plan doesn't include an app, its card shows the monthly price, and Install
+opens a **Buy** step first. Paying installs it. See
+[Plan & billing](/merchant-guide/settings/plan-and-billing#paid-apps).
 
 ### Open it
 
@@ -159,7 +179,8 @@ the app's name in the sidebar.
 
 ## Uninstalling
 
-Select **Uninstall**, then confirm with **Uninstall** (or **Keep** to back out). Uninstalling
+In **Installed apps**, open the row's **⋮** menu and select **Uninstall** (or tick several
+rows and uninstall them together), then confirm with **Uninstall** (or **Keep** to back out). Uninstalling
 switches the app's features off for your store, but saved credentials are kept until you remove
 them from Settings, so reinstalling restores your setup. Blocks the app added to your pages
 stay in place but show nothing until you reinstall.
@@ -207,7 +228,8 @@ Built-in apps come with the platform. Connections use your own account with that
 <FaqItem question="Can I get an app for a gateway or courier that isn't listed?">
 
 A developer can build one as a plugin (see [Build your first app](/developer-docs/building/first-app)).
-A public app store for apps from other developers is coming soon.
+A public app store on our website, listing every app with an Install button that opens the
+install flow in your admin, is coming soon.
 
 </FaqItem>
 

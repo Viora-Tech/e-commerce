@@ -41,9 +41,12 @@ export {
   type AiUsageTotals,
   aiMonth,
   checkQuota,
+  creditMillisFor,
   DEFAULT_AI_PLAN,
   PLAN_QUOTAS,
   parseAiPlan,
+  RUPEES_PER_CREDIT,
+  TIER_PRICES_INR,
 } from './plans'
 export {
   BULK_WRITE_FIELDS,

@@ -157,7 +157,7 @@ describe('accentCss', () => {
     const css = accentCss('#e11d48', '#preview')
     expect(css.startsWith('#preview{--primary:#e11d48')).toBe(true)
     expect(css).toContain('.dark #preview{')
-    expect(accentCss(DEFAULT_ACCENT, '#preview')).toContain('--primary-soft:#eaf1fd')
+    expect(accentCss(DEFAULT_ACCENT, '#preview')).toContain('--primary-soft:#f5f5f5')
     expect(accentCss('nope', '#preview')).toBe('')
   })
 })

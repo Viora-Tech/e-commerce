@@ -9,6 +9,7 @@ import KitButton from '@/components/kit/kit-button'
 import DataCard from '@/components/layout/data-card'
 import EmptyState from '@/components/layout/empty-state'
 import StatusChip from '@/components/layout/status-chip'
+import ApprovalDialog from '@/components/mcp/approval-dialog'
 import { assistantContent } from '@/data/assistant'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
@@ -37,6 +38,7 @@ export default function AiActivityCard() {
   const [page, setPage] = useState(1)
   const [failed, setFailed] = useState(false)
   const [undoing, setUndoing] = useState<string | null>(null)
+  const [reviewing, setReviewing] = useState<string | null>(null)
 
   useEffect(() => {
     api.ai
@@ -107,6 +109,11 @@ export default function AiActivityCard() {
                   <StatusChip tone={BADGE[item.status] ?? 'neutral'}>
                     {copy.card.status[item.status] ?? item.status}
                   </StatusChip>
+                  {item.status === 'proposed' ? (
+                    <KitButton variant="pill" onClick={() => setReviewing(item.id)}>
+                      {copy.activity.review}
+                    </KitButton>
+                  ) : null}
                   {item.canUndo ? (
                     <KitButton
                       variant="pill"
@@ -132,6 +139,11 @@ export default function AiActivityCard() {
           ) : null}
         </div>
       )}
+      <ApprovalDialog
+        actionId={reviewing}
+        onClose={() => setReviewing(null)}
+        onChange={() => setPage(1)}
+      />
     </DataCard>
   )
 }

@@ -17,6 +17,6 @@ export const providerSettingsContent = {
     heading: 'Nothing installed yet',
     body: 'Install an app to add providers here.',
     action: 'Open Apps',
-    href: '/apps',
+    href: '/apps/store',
   },
 } as const

@@ -789,3 +789,37 @@
 .product-card__wishlist[aria-pressed="true"] {
   color: var(--color-sale, var(--color-brand));
 }
+
+/* Theme settings → Product cards (data attributes from themeRootAttrs). */
+.product-card__rating {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  margin: 0;
+  font-size: 0.8125rem;
+  color: var(--color-ink);
+}
+.product-card__rating > span[aria-hidden] {
+  color: var(--color-rating, #f5a524);
+}
+.product-card__rating-count {
+  color: var(--color-ink-muted, currentColor);
+}
+:root[data-card-rating="off"] .product-card__rating {
+  display: none;
+}
+:root:not([data-card-quick-add="on"]) .product-card:not(.product-card--quick-add) .product-card__quick-add {
+  display: none;
+}
+:root[data-card-wishlist="off"] .product-card__wishlist {
+  display: none;
+}
+:root[data-card-style="minimal"] .product-card__media {
+  border: 0;
+  box-shadow: none;
+  background: transparent;
+}
+:root[data-card-style="minimal"] .product-card__info {
+  padding-inline: 0;
+  gap: 0.125rem;
+}

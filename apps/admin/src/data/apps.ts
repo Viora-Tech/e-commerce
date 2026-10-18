@@ -52,6 +52,11 @@ export const appsContent = {
     noneInstalledHeading: 'Nothing installed yet',
     noneInstalledBody: 'Pick an app from the App Store below. It is ready in a few clicks.',
     installedBadge: 'Installed',
+    /** Paid apps (Plan & billing): on a plan that does not include the app. */
+    pricePerMonth: (price: string) => `${price} / month`,
+    includedFrom: (plan: string) => `Included in ${plan} and up`,
+    includedInPlan: 'Included in your plan',
+    boughtUntil: (date: string) => `Paid until ${date}`,
     statusFilters: { all: 'All', installed: 'Installed', notInstalled: 'Not installed' },
   },
   viewGuide: 'View setup guide',
@@ -59,10 +64,20 @@ export const appsContent = {
   connectedBody: 'Your account works and is saved.',
   openApp: 'Open app',
   setupBanner: {
+    eyebrow: 'Needs setup',
     title: 'Finish setting this app up',
     body: 'It is installed but not connected yet, so it cannot do its job.',
     action: 'Connect now',
   },
+  /** An installed app with a recorded failure (its sync, a hook or a job keeps failing). */
+  errorBanner: {
+    eyebrow: 'Problem',
+    title: 'This app needs your attention',
+    action: 'Fix it',
+  },
+  statusError: 'Error',
+  /** The installed app's ⋯ menu: back to the Installed apps list. */
+  allInstalled: 'All installed apps',
   listing: {
     back: 'App Store',
     whatItDoes: 'What it does',

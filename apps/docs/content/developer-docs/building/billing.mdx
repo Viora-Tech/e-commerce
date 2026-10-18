@@ -1,0 +1,105 @@
+---
+title: Plans and billing
+description: How store plans, trials, bills and renewals work, using orders on the platform's own sales store as invoices.
+---
+
+# Plans and billing
+
+A store's plan lives in `store_plan` (one row per store). Its bills live in `plan_payment`
+(migration `0123`). Prices, limits and the trial are in `@commerce/core/billing` (`PLANS`,
+`TRIAL_DAYS = 14`, `RENEW_AHEAD_DAYS = 3`, `GRACE_DAYS = 7`). The decisions behind them are in
+`memory-bank/pricing.md`.
+
+## Bills are orders
+
+Each bill is an order on the platform's **sales store** (`PLATFORM_SALES_STORE_ID`), so the
+existing checkout, payment gateways, thank-you page and GST-invoice app do the work:
+
+1. `createPlanBill` finds the plan product variant by SKU `plan-<plan>-<interval>` (for example
+   `plan-growth-month`).
+2. It then creates a draft, converts it, and creates a payment attempt with the sales store's
+   first enabled gateway.
+3. The bill's URL is the signed thank-you page on the sales storefront, which shows **Pay now**
+   for an unstarted attempt.
+4. When the order is paid, the outbox relay (`order.paid` on the sales store) calls
+   `markPlanBillPaid`. That makes the plan `active`, starts the period at max(start, paid time),
+   and sets `ai_settings.plan`. A refund or cancel calls `cancelPlanBill`.
+
+## States
+
+`trialing` → `active` (paid) → `due` (renewal unpaid past the end) → `paused` (after the grace
+days). A downgrade on an active plan sets `next_plan` and takes effect at the period end.
+
+The worker's hourly `{billing}-sweep` (`runBillingSweep`, `stores_with_plan_due`):
+- bills 3 days ahead;
+- marks plans due;
+- pauses them after grace.
+
+It is off while `PLATFORM_SALES_STORE_ID` is unset.
+
+## Paid apps
+
+`APP_PRICING` (`@commerce/core/billing`) lists each paid first-party app, the plan that includes
+it, and its monthly price. Apps not listed are free.
+
+`storeAppAccess` gives each app one of four states: `free`, `included`, `bought` (until a date) or
+`buy`.
+- `apps.list` attaches it as `billing`, for the App Store cards and the install flow.
+- `apps.install` refuses a `buy` app with `FORBIDDEN` and `data.reason = 'app_not_in_plan'`.
+
+A purchase is an `app_purchase` row (migration `0132`) whose bill is a sales-store order with SKU
+`app-<pluginId>-month`, placed by the same `placeSalesOrder` as plan bills.
+- **Paid:** `order.paid` → `markAppBillPaid` makes the month active and installs the app.
+- **Renewals:** the same hourly sweep bills 3 days ahead (`runAppRenewals`,
+  `stores_with_app_renewals`). An unpaid renewal keeps the app for `GRACE_DAYS`, then lapses.
+- **Stop renewing:** marks the purchase `cancelled`. Access lasts until `periodEnd`.
+
+Moving to a smaller plan doesn't uninstall anything: apps already installed keep working.
+
+## AI credits
+
+Every AI call is metered in credits: 1 credit is ₹0.10 of model cost. `creditMillisFor(tier,
+in, out)` in `@commerce/ai` prices tokens with `TIER_PRICES_INR`, and `recordAiUsage` adds
+them to `ai_usage.credit_millis`. `checkQuota` refuses a call once the month's credits reach
+`PLAN_QUOTAS[plan].credits` plus the store's bought credits (`ai_settings.extra_credit_millis`).
+Whatever a call spends past the allowance comes out of the bought credits (`spendExtraCredits`).
+
+A top-up (`AI_CREDIT_PACK`: 1,000 credits for ₹199, SKU `ai-credits-1000`) is an
+`ai_credit_topup` row (migration `0133`). On `order.paid`, `markAiTopupPaid` adds the credits.
+
+Update `TIER_PRICES_INR` whenever the model or its price changes.
+
+## Bill emails and GSTIN
+
+- The billing sweep emails the store's contact email (platform template `plan_bill`, `sendPlanBillEmail`) when it bills a plan or app renewal, and once when a plan goes overdue.
+- Plan, app and credit orders carry the buying store's GSTIN (`buyer_gstin`, validated) and name, so the GST invoice is a B2B one.
+
+## Setting up the sales store
+
+- Create products with SKUs `plan-starter|growth|pro-month|year`: active, untracked inventory,
+  GST-inclusive prices from `PLANS`.
+- For paid apps, one product per app with SKU `app-<pluginId>-month` (`reviews`, `back-in-stock`,
+  `forms`, `emi-pay-later`, `google-search-console`), priced from `APP_PRICING`.
+- AI credits: a product with SKU `ai-credits-1000` at ₹199 + GST.
+- Enable one payment gateway on the sales store.
+- Run migrations `0121`–`0134`.
+
+## UPI AutoPay
+
+Set `PLATFORM_RAZORPAY_KEY_ID`, `_KEY_SECRET` and `_WEBHOOK_SECRET` (the platform's own Razorpay
+account, with Subscriptions enabled) to turn it on. The webhook is
+`<ADMIN_URL>/api/billing/autopay-webhook`, for `subscription.*` events.
+
+- `startAutopay` creates a Razorpay plan (the plan price + GST) and a subscription, and stores an
+  `autopay_mandate` row (migration `0134`). The owner approves the UPI mandate on the
+  subscription's `short_url`.
+- `subscription.charged` → `handleAutopayWebhook` bills the period (`createPlanBill`), then
+  captures that sales order's payment with `applyPaymentStatus`. `order.paid` then runs the
+  same path as a pay-link bill: plan active, GST invoice issued. A repeated webhook for the same
+  payment changes nothing (`last_payment_id`).
+- While a mandate is `active`, the sweep sends no pay-link renewals. A halted, cancelled or
+  turned-off mandate goes back to pay links.
+
+Not live-tested yet: it needs a Razorpay account with Subscriptions enabled.
+
+**Paused** shows a banner only and blocks nothing.

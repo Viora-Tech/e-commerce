@@ -94,7 +94,12 @@ export async function readPurchaseDocument(opts: ReadDocumentOptions): Promise<v
       abortSignal: opts.signal,
     })
     await withStore(opts.db, opts.storeId, async (tx) => {
-      await recordAiUsage(ctx(tx), { month: admission.month, feature: 'documentReader', ...usage })
+      await recordAiUsage(ctx(tx), {
+        month: admission.month,
+        feature: 'documentReader',
+        tier: admission.tier,
+        ...usage,
+      })
       await tx
         .update(purchaseDocument)
         .set({

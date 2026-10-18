@@ -8,6 +8,9 @@ export const THEME_GROUPS = [
   'buttons',
   'layout',
   'cards',
+  'cart',
+  'social',
+  'css',
   'brand',
 ] as const
 
@@ -23,12 +26,30 @@ type SummaryCopy = {
     vendor: string
     saleBadge: string
     hoverImage: string
+    quickAdd: string
+    rating: string
+    wishlist: string
+    minimal: string
+    standard: string
+    cart: (type: 'drawer' | 'page', bar: boolean) => string
+    social: (names: string[]) => string
+    css: (lines: number) => string
     brand: (logo: string | null, favicon: string | null) => string
   }
   sizes: Record<'s' | 'm' | 'l', string>
   corners: Record<'square' | 'soft' | 'round', string>
   styles: Record<'solid' | 'outline', string>
 }
+
+const SOCIAL_NAMES: Record<string, string> = {
+  instagram: 'Instagram',
+  whatsapp: 'WhatsApp',
+  youtube: 'YouTube',
+  facebook: 'Facebook',
+  twitter: 'X',
+  discord: 'Discord',
+}
+const socialName = (p: string) => SOCIAL_NAMES[p] ?? p
 
 /** `.../waimers-logo.svg?v=2` → `waimers-logo.svg`. */
 const fileName = (url: string | undefined | null) =>
@@ -67,13 +88,21 @@ export function themeGroupSummary(
       return s.layout(theme.layout.pageWidth, copy.sizes[spacingSize(theme.layout.sectionSpacing)])
     case 'cards':
       return s.cards(
-        ratioLabel(theme.cards.imageRatio),
+        `${theme.cards.style === 'minimal' ? s.minimal : s.standard} · ${ratioLabel(theme.cards.imageRatio).toLowerCase()}`,
         [
+          theme.cards.showQuickAdd ? s.quickAdd : null,
+          theme.cards.showRating ? s.rating : null,
           theme.cards.showVendor ? s.vendor : null,
           theme.cards.showSaleBadge ? s.saleBadge : null,
           theme.cards.hoverImage ? s.hoverImage : null,
         ].filter((x): x is string => x !== null),
       )
+    case 'cart':
+      return s.cart(theme.cart.type, theme.cart.freeShippingBar)
+    case 'social':
+      return s.social(theme.social.links.map((l) => socialName(l.platform)))
+    case 'css':
+      return s.css(theme.customCss.trim() ? theme.customCss.trim().split('\n').length : 0)
     case 'brand':
       return s.brand(fileName(theme.brand.logo?.url), fileName(theme.brand.favicon?.url))
   }

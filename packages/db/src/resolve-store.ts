@@ -202,3 +202,55 @@ export async function storesWithUnknownPaymentFees(db: Db): Promise<string[]> {
   )
   return rows.map((r) => r.id)
 }
+
+/** The store and grant an access token belongs to, before any store context exists. Null when no live grant has it. */
+export async function apiGrantForAccess(
+  db: Db,
+  hash: string,
+): Promise<{ storeId: string; grantId: string } | null> {
+  const [row] = await db.execute<{ store_id: string; grant_id: string }>(
+    sql`select store_id, grant_id from api_grant_for_access(${hash})`,
+  )
+  return row ? { storeId: row.store_id, grantId: row.grant_id } : null
+}
+
+/** The same for an OAuth refresh token. */
+export async function apiGrantForRefresh(
+  db: Db,
+  hash: string,
+): Promise<{ storeId: string; grantId: string } | null> {
+  const [row] = await db.execute<{ store_id: string; grant_id: string }>(
+    sql`select store_id, grant_id from api_grant_for_refresh(${hash})`,
+  )
+  return row ? { storeId: row.store_id, grantId: row.grant_id } : null
+}
+
+/** The store a one-time OAuth sign-in code was issued for. */
+export async function apiAuthCodeStore(db: Db, hash: string): Promise<string | null> {
+  const [row] = await db.execute<{ id: string | null }>(
+    sql`select api_auth_code_store(${hash}) as id`,
+  )
+  return row?.id ?? null
+}
+
+/** The store a slug names (the MCP address), before any store context exists. */
+export async function storeIdForSlug(db: Db, slug: string): Promise<string | null> {
+  const [row] = await db.execute<{ id: string | null }>(
+    sql`select store_id_for_slug(${slug.toLowerCase()}) as id`,
+  )
+  return row?.id ?? null
+}
+
+/** Stores whose MCP & API activity log has rows past the 90 days it keeps. */
+export async function storesWithOldApiActivity(db: Db, now = new Date()): Promise<string[]> {
+  const rows = await db.execute<{ id: string }>(
+    sql`select stores_with_old_api_activity(${now.toISOString()}::timestamptz) as id`,
+  )
+  return rows.map((r) => r.id)
+}
+
+/** Stores with a Meta, Google or OpenAI channel connection, for the catalog sync sweep. */
+export async function storesWithChannelConnections(db: Db): Promise<string[]> {
+  const rows = await db.execute<{ id: string }>(sql`select stores_with_channel_connections() as id`)
+  return rows.map((r) => r.id)
+}

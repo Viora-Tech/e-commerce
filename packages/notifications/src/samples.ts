@@ -253,6 +253,22 @@ export const sampleTemplateDataByTemplate: Record<TemplateId, TemplateData> = {
       platformName: siteConfig.brand.name,
     },
   },
+  plan_bill: {
+    ...base,
+    orderNumber: undefined,
+    lines: [],
+    taxBreakdown: undefined,
+    totalLabel: '',
+    storeAddress: undefined,
+    actionUrl: `https://${siteConfig.brand.domain}/orders/thank-you/sample`,
+    planBill: {
+      kind: 'renewal',
+      what: 'Growth plan (monthly)',
+      amountLabel: '₹1,768.82',
+      dueLabel: '25 Oct 2026',
+      platformName: siteConfig.brand.name,
+    },
+  },
   staff_new_order: {
     ...base,
     actionUrl: `https://admin.${siteConfig.brand.domain}/orders/sample`,

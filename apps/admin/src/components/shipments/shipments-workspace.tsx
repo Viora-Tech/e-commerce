@@ -225,7 +225,7 @@ function ShipmentsContent() {
             heading={copy.noCourier.heading}
             body={copy.noCourier.body}
             action={
-              <Button nativeButton={false} render={<Link href={routes.apps.list()} />}>
+              <Button nativeButton={false} render={<Link href={routes.apps.store()} />}>
                 <Plus aria-hidden />
                 {copy.noCourier.browse}
               </Button>

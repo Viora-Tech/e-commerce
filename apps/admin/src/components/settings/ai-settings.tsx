@@ -6,9 +6,11 @@ import {
   WRITING_QUALITIES,
   type WritingQuality,
 } from '@commerce/ai/client'
+import { AI_CREDIT_PACK } from '@commerce/core/billing'
 import { CircleAlert, ShieldCheck } from '@commerce/ui/icons'
 import { Alert, AlertDescription, AlertTitle } from '@commerce/ui/shadcn/alert'
 import { Badge } from '@commerce/ui/shadcn/badge'
+import { Button } from '@commerce/ui/shadcn/button'
 import { Progress } from '@commerce/ui/shadcn/progress'
 import { RadioGroup, RadioGroupItem } from '@commerce/ui/shadcn/radio-group'
 import { Skeleton } from '@commerce/ui/shadcn/skeleton'
@@ -59,6 +61,7 @@ export default function AiSettings() {
   const [quality, setQuality] = useState<WritingQuality>('standard')
   const [failed, setFailed] = useState(false)
   const [busy, setBusy] = useState(false)
+  const [buying, setBuying] = useState(false)
 
   useEffect(() => {
     api.ai
@@ -94,6 +97,19 @@ export default function AiSettings() {
     }
   }
 
+  const handleBuyCredits = async () => {
+    setBuying(true)
+    try {
+      const bill = await api.billing.buyCredits()
+      if (bill.url) window.location.assign(bill.url)
+      else toast.error(copy.settings.usage.buyFailed)
+    } catch (err) {
+      toast.error(err instanceof Error && err.message ? err.message : copy.settings.usage.buyFailed)
+    } finally {
+      setBuying(false)
+    }
+  }
+
   // Early returns
   if (failed) return <p className="text-body text-muted-foreground">{copy.settings.loadFailed}</p>
 
@@ -104,7 +120,7 @@ export default function AiSettings() {
     (JSON.stringify(features) !== JSON.stringify(loaded.features) ||
       quality !== loaded.writingQuality)
   const usage = loaded?.usage
-  const tokens = usage ? usage.total.inputTokens + usage.total.outputTokens : 0
+  const credits = usage ? Math.ceil(usage.total.credits) : 0
 
   return (
     <div className="flex flex-col gap-4">
@@ -154,29 +170,29 @@ export default function AiSettings() {
           >
             <div className="flex flex-col gap-1.5">
               <div className="flex flex-wrap items-center justify-between gap-2 text-body">
-                <span className="text-ink-strong">{copy.settings.usage.requests}</span>
-                <span
-                  className={`tabular-nums ${countTone(usage.total.calls, loaded.quota.calls)}`}
-                >
-                  {meter(usage.total.calls, loaded.quota.calls)}
+                <span className="text-ink-strong">{copy.settings.usage.credits}</span>
+                <span className={`tabular-nums ${countTone(credits, loaded.quota.credits)}`}>
+                  {meter(credits, loaded.quota.credits)}
                 </span>
               </div>
-              {loaded.quota.calls === null ? null : (
-                <Progress value={share(usage.total.calls, loaded.quota.calls)} />
-              )}
+              <Progress value={share(credits, loaded.quota.credits)} />
+              <p className="text-caption text-muted-foreground">
+                {copy.settings.usage.creditsHelp}
+              </p>
+              {loaded.extraCredits > 0 ? (
+                <p className="text-caption text-foreground">
+                  {copy.settings.usage.extra(fmt.number(Math.floor(loaded.extraCredits)))}
+                </p>
+              ) : null}
             </div>
-            <div className="flex flex-col gap-1.5">
-              <div className="flex flex-wrap items-center justify-between gap-2 text-body">
-                <span className="text-ink-strong">{copy.settings.usage.words}</span>
-                <span className={`tabular-nums ${countTone(tokens, loaded.quota.tokens)}`}>
-                  {meter(tokens, loaded.quota.tokens)}
-                </span>
-              </div>
-              {loaded.quota.tokens === null ? null : (
-                <Progress value={share(tokens, loaded.quota.tokens)} />
-              )}
-              <p className="text-caption text-muted-foreground">{copy.settings.usage.wordsHelp}</p>
-            </div>
+            <Button
+              variant="outline"
+              className="self-start"
+              loading={buying}
+              onClick={handleBuyCredits}
+            >
+              {copy.settings.usage.buy(fmt.money(AI_CREDIT_PACK.pricePaise))}
+            </Button>
           </DataCard>
           <SettingsCard
             title={copy.settings.features.heading}

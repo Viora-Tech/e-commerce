@@ -17,6 +17,8 @@ type ConnectSocialDialogProps = {
   onOpenChange: (open: boolean) => void
   channel: SocialChannel
   activeProducts: number
+  /** Meta or Google is set up: the last step signs in there instead of asking. */
+  connectNow: boolean
   onRequested: () => void
 }
 
@@ -26,12 +28,14 @@ export default function ConnectSocialDialog({
   onOpenChange,
   channel,
   activeProducts,
+  connectNow,
   onRequested,
 }: ConnectSocialDialogProps) {
   // Hooks
   const copy = useCopy(salesChannelsContent.socialConnect)
   const shared = useCopy(salesChannelsContent.connect)
   const info = useCopy(salesChannelsContent.social[channel])
+  const live = useCopy(salesChannelsContent.live)
   const [at, setAt] = useState(0)
   const [account, setAccount] = useState('')
   const [all, setAll] = useState(true)
@@ -39,19 +43,21 @@ export default function ConnectSocialDialog({
 
   // Event handlers
   const handleNext = async () => {
-    if (at < 2) {
+    if (at < last) {
       setAt(at + 1)
       return
     }
     setBusy(true)
     try {
-      await api.salesChannels.connect({
+      const r = await api.salesChannels.connect({
         channel,
         shares: ['catalog', 'prices'],
         account: account.trim() || null,
         catalog: all ? 'all' : 'collections',
       })
-      toast.success(shared.requested(info.name))
+      // Off to Facebook or Google to sign in; they send the merchant back to this page.
+      if (r.kind === 'redirect') return window.location.assign(r.url)
+      toast.success(r.kind === 'connected' ? live.joined(info.name) : shared.requested(info.name))
       onRequested()
       onOpenChange(false)
     } catch {
@@ -62,21 +68,28 @@ export default function ConnectSocialDialog({
   }
 
   // Render logic
+  const provider = channel === 'google' ? 'google' : 'meta'
+  // Signing in to the platform names the account, so that step is only for requests.
+  const steps = connectNow
+    ? [copy.steps.catalog, copy.steps.review]
+    : [copy.steps.account, copy.steps.catalog, copy.steps.review]
+  const last = steps.length - 1
+  const step = connectNow ? at + 1 : at
   return (
     <ConnectSteps
       open={open}
       onOpenChange={onOpenChange}
       title={copy.title(info.name)}
       intro={info.blurb}
-      steps={[copy.steps.account, copy.steps.catalog, copy.steps.review]}
+      steps={steps}
       at={at}
       onBack={() => setAt(at - 1)}
       onNext={handleNext}
-      submitLabel={copy.submit(info.name)}
+      submitLabel={connectNow ? live.continueWith[provider] : copy.submit(info.name)}
       busy={busy}
-      nextDisabled={at === 0 && channel !== 'google' && account.trim() === ''}
+      nextDisabled={step === 0 && channel !== 'google' && account.trim() === ''}
     >
-      {at === 0 ? (
+      {step === 0 ? (
         <div className="flex flex-col gap-1.5">
           <Label htmlFor="channel-account">{copy.account[channel]}</Label>
           <Input
@@ -89,7 +102,7 @@ export default function ConnectSocialDialog({
           <p className="text-caption text-muted-foreground">{copy.accountHint[channel]}</p>
         </div>
       ) : null}
-      {at === 1 ? (
+      {step === 1 ? (
         <fieldset className="flex flex-col gap-2">
           <legend className="mb-2 text-caption font-medium text-muted-foreground uppercase">
             {copy.catalogLabel(info.name)}
@@ -112,10 +125,14 @@ export default function ConnectSocialDialog({
           />
         </fieldset>
       ) : null}
-      {at === 2 ? (
+      {step === 2 ? (
         <p className="flex gap-2 rounded-md border border-border bg-muted/50 p-3 text-caption text-muted-foreground">
           <InfoIcon className="mt-0.5 size-4 shrink-0" />
-          {copy.review(info.name, info.partner)}
+          {connectNow
+            ? provider === 'google'
+              ? live.oauthNote.google
+              : live.oauthNote.meta(info.name)
+            : copy.review(info.name, info.partner)}
         </p>
       ) : null}
     </ConnectSteps>

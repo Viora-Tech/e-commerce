@@ -1,5 +1,6 @@
 import type { ComponentConfig, Fields } from '@puckeditor/core'
 import HeroCarousel from '../components/hero-carousel'
+import SectionCustomCss from '../components/section-custom-css'
 import { heroCarouselContent as copy } from '../data/zero-drift/hero-carousel'
 import {
   bleedFrameProps,
@@ -171,38 +172,42 @@ export function heroBlock(loaders: HeroLoaders = {}): ComponentConfig<HeroProps>
     }),
     render: (props) => {
       const p = { ...props, ...legacySettings(props) }
+      const settings = migrateSectionSettings(p, HERO_SETTINGS)
       return (
-        <HeroCarousel
-          frameProps={bleedFrameProps(migrateSectionSettings(p, HERO_SETTINGS))}
-          slides={(p.slides ?? []).map((s, i) => ({
-            ...s,
-            mediaSide: s.splitMediaPosition,
-            scheme: s.colorScheme,
-            showChip: s.showProductChip,
-            product: p.resolved?.[i] ?? null,
-          }))}
-          autoplaySeconds={p.autoplay ? p.autoplayInterval : 0}
-          heightVh={p.slideHeight}
-          heightMobileVh={p.slideHeightMobile}
-          heightMode={p.heightMode}
-          frame={p.frame}
-          pin={p.pin}
-          showArrows={p.showArrows}
-          showDots={p.showDots}
-          dotProgress={p.dotProgress}
-          headingScale={p.headingScale}
-          showCounter={p.showSlideCounter}
-          scrimOpacity={p.scrimOpacity}
-          scrimTint={p.scrimTint}
-          grain={p.grain}
-          zoom={p.enableZoom}
-          entrance={p.enableEntrance}
-          wordEntrance={p.wordEntrance}
-          parallax={p.parallax}
-          scrollCue={p.showScrollCue}
-          scrollCueText={p.scrollCueText}
-          lowStockThreshold={p.lowStockThreshold}
-        />
+        <>
+          <SectionCustomCss css={settings.advanced.customCss} />
+          <HeroCarousel
+            frameProps={bleedFrameProps(settings)}
+            slides={(p.slides ?? []).map((s, i) => ({
+              ...s,
+              mediaSide: s.splitMediaPosition,
+              scheme: s.colorScheme,
+              showChip: s.showProductChip,
+              product: p.resolved?.[i] ?? null,
+            }))}
+            autoplaySeconds={p.autoplay ? p.autoplayInterval : 0}
+            heightVh={p.slideHeight}
+            heightMobileVh={p.slideHeightMobile}
+            heightMode={p.heightMode}
+            frame={p.frame}
+            pin={p.pin}
+            showArrows={p.showArrows}
+            showDots={p.showDots}
+            dotProgress={p.dotProgress}
+            headingScale={p.headingScale}
+            showCounter={p.showSlideCounter}
+            scrimOpacity={p.scrimOpacity}
+            scrimTint={p.scrimTint}
+            grain={p.grain}
+            zoom={p.enableZoom}
+            entrance={p.enableEntrance}
+            wordEntrance={p.wordEntrance}
+            parallax={p.parallax}
+            scrollCue={p.showScrollCue}
+            scrollCueText={p.scrollCueText}
+            lowStockThreshold={p.lowStockThreshold}
+          />
+        </>
       )
     },
   }

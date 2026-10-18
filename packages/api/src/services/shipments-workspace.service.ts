@@ -20,7 +20,7 @@ import {
 } from '@commerce/shipping'
 import { ORPCError } from '@orpc/server'
 import { and, count, desc, eq, gte, ilike, inArray, or, sql } from 'drizzle-orm'
-import { loadShippingSettings } from './shipping.service'
+import { loadShippingSettings, noteShipmentBooked } from './shipping.service'
 
 export const courierToRpc = (err: unknown): never => {
   if (err instanceof CourierError) {
@@ -387,6 +387,7 @@ export async function bulkBookShipments(
           insured: input.insured,
         },
       )
+      await noteShipmentBooked(tx, storeId, row.provider, o.orderId)
       results.push({
         orderId: o.orderId,
         ok: true,

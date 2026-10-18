@@ -10,6 +10,7 @@ import {
   Home,
   MapPinLineIcon,
   Palette,
+  PlugConnect,
   ReceiptIcon,
   ShieldCheck,
   ShoppingCart,
@@ -71,6 +72,12 @@ export const SETTINGS_GROUPS: SettingsGroup[] = [
         title: 'Locations & warehouses',
         body: 'Where you keep stock, and which GST number each place bills under.',
         icon: MapPinLineIcon,
+      },
+      {
+        href: routes.settings.billing(),
+        title: 'Plan & billing',
+        body: 'Your plan, what your store used this month, and your invoices.',
+        icon: CreditCard,
       },
     ],
   },
@@ -168,6 +175,12 @@ export const SETTINGS_GROUPS: SettingsGroup[] = [
         title: 'AI',
         body: 'Write with AI and Ask your store: what you used this month, and turning them on.',
         icon: AiIcon,
+      },
+      {
+        href: routes.settings.mcp(),
+        title: 'MCP & API',
+        body: 'AI tools like Claude, ChatGPT and Cursor, access tokens for scripts, and what they did.',
+        icon: PlugConnect,
       },
       {
         href: routes.settings.customData(),

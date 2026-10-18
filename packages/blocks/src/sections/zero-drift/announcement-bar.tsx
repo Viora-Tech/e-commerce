@@ -1,4 +1,5 @@
 import type { ComponentConfig, Fields } from '@puckeditor/core'
+import SectionCustomCss from '../../components/section-custom-css'
 import AnnouncementBar from '../../components/sections/announcement-bar'
 import { announcementBarContent as copy } from '../../data/zero-drift/announcement-bar'
 import {
@@ -105,9 +106,11 @@ export function announcementBarSection(): ComponentConfig {
     render: (p) => {
       const legacy = legacyAnnouncement(p)
       // The bar's own `scheme` is its colour; only spacing, visibility and anchor come from here.
-      const frame = bleedFrameProps(migrateSectionSettings({ settings: p.settings }, BAR_SETTINGS))
+      const settings = migrateSectionSettings({ settings: p.settings }, BAR_SETTINGS)
+      const frame = bleedFrameProps(settings)
       return (
         <div {...frame} className={`section-frame${frame.className ? ` ${frame.className}` : ''}`}>
+          <SectionCustomCss css={settings.advanced.customCss} />
           <AnnouncementBar
             announcements={legacy ? [legacy] : (p.announcements ?? [])}
             displayMode={legacy || p.displayMode === 'rotate' ? 'rotate' : 'marquee'}

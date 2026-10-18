@@ -2,6 +2,40 @@ import type { Fields } from '@puckeditor/core'
 import type { CSSProperties } from 'react'
 import { safeColour } from './element-style'
 
+/** Longest custom CSS one section keeps. */
+export const CUSTOM_CSS_MAX = 5000
+
+/** Applies to this section only; rules are written as if inside it, e.g. `h2 { … }`. */
+const CUSTOM_CSS_FIELD = { type: 'textarea', label: 'Custom CSS' }
+
+/**
+ * The merchant's CSS made safe to put in a `<style>`: nothing that could close the tag or open
+ * HTML, and no `@import` (a remote stylesheet the store's CSP would not allow anyway).
+ */
+export function cleanCustomCss(css: string): string {
+  return css
+    .slice(0, CUSTOM_CSS_MAX)
+    .replace(/<\/?\s*style/gi, '')
+    .replace(/</g, '')
+    .replace(/@import[^;]*;?/gi, '')
+    .trim()
+}
+
+/** A stable class for one section's custom CSS (same CSS, same class); undefined when there is none. */
+export function customCssClass(css: string): string | undefined {
+  const clean = cleanCustomCss(css)
+  if (!clean) return undefined
+  let h = 2166136261
+  for (let i = 0; i < clean.length; i++) h = Math.imul(h ^ clean.charCodeAt(i), 16777619)
+  return `section-css-${(h >>> 0).toString(36)}`
+}
+
+/** `.section-css-x { <css> }`: the section's rules nested under its class; null when empty. */
+export function scopedCustomCss(css: string): string | null {
+  const cls = customCssClass(css)
+  return cls ? `.${cls}{${cleanCustomCss(css)}}` : null
+}
+
 /** Layout / spacing / style / advanced settings every section can carry. */
 export type ContentWidth = 'narrow' | 'normal' | 'wide' | 'full'
 export type Alignment = 'left' | 'center' | 'right'
@@ -28,6 +62,8 @@ export type SectionSettingsValue = {
     showOnDesktop: boolean
     entranceAnimation: EntranceAnimation
     anchorId: string
+    /** The merchant's own CSS for this section, scoped to it (`.section-css-<hash> { … }`). */
+    customCss: string
   }
 }
 
@@ -82,6 +118,7 @@ export function defaultSectionSettings(
       showOnDesktop: true,
       entranceAnimation: 'none',
       anchorId: '',
+      customCss: '',
     },
   }
 }
@@ -165,6 +202,10 @@ function mergeSettings(
           : base.advanced.showOnDesktop,
       entranceAnimation: s.advanced?.entranceAnimation ?? base.advanced.entranceAnimation,
       anchorId: anchorOr(s.advanced?.anchorId, ''),
+      customCss:
+        typeof s.advanced?.customCss === 'string'
+          ? s.advanced.customCss.slice(0, CUSTOM_CSS_MAX)
+          : '',
     },
   }
 }
@@ -282,6 +323,7 @@ export function sectionSettingsField(
             showOnMobile: YES_NO('Show on mobile'),
             showOnDesktop: YES_NO('Show on desktop'),
             anchorId: { type: 'text', label: 'Anchor ID' },
+            customCss: CUSTOM_CSS_FIELD,
           },
         },
       },
@@ -380,6 +422,7 @@ export function sectionSettingsField(
             ],
           },
           anchorId: { type: 'text', label: 'Anchor ID' },
+          customCss: CUSTOM_CSS_FIELD,
         },
       },
     },
@@ -431,7 +474,12 @@ export function bleedFrameProps(settings: SectionSettingsValue): {
   'data-content-width': ContentWidth
 } {
   return {
-    className: sectionVisibilityClassName(settings.advanced),
+    className: [
+      sectionVisibilityClassName(settings.advanced),
+      customCssClass(settings.advanced.customCss),
+    ]
+      .filter(Boolean)
+      .join(' '),
     style: sectionPaddingStyle(settings.spacing),
     id: settings.advanced.anchorId || undefined,
     'data-content-width': 'full',
@@ -453,7 +501,8 @@ export function isNeutralFlow(settings: SectionSettingsValue): boolean {
     settings.style.colorScheme === 'scheme-1' &&
     advanced.showOnMobile &&
     advanced.showOnDesktop &&
-    !advanced.anchorId
+    !advanced.anchorId &&
+    !advanced.customCss.trim()
   )
 }
 

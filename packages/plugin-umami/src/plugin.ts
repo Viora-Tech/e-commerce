@@ -1,5 +1,5 @@
 import { definePlugin } from '@commerce/plugins'
-import { UMAMI_ID } from './settings'
+import { parseUmamiSettings, UMAMI_ID } from './settings'
 
 /**
  * Umami visitor analytics. The storefront loads the store's Umami tracker (cookieless; by
@@ -17,6 +17,22 @@ export const umamiPlugin = definePlugin({
   company: 'Umami',
   description:
     'See who visits your store: visitors, top pages, where they came from, campaigns, devices and countries. Cookieless.',
+  access: {
+    resources: [
+      { resource: 'visits', level: 'read', why: 'Visitors, page views and where they came from' },
+    ],
+    summary: 'counts visits',
+    shares: [
+      {
+        when: 'Every page view on your store',
+        what: 'Page address, referrer, device, browser and country; no cookies',
+      },
+    ],
+  },
+  setupState: (raw) => {
+    const s = parseUmamiSettings(raw)
+    return { connected: s.url !== '' && s.websiteId !== '', problem: null }
+  },
   provides: {},
   credits: [
     {

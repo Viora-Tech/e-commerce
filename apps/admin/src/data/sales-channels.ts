@@ -208,6 +208,52 @@ export const salesChannelsContent = {
       `We set up the ${partner} connection with you. Nothing syncs until ${name} is approved; we email you then.`,
     submit: (name: string) => `Connect ${name}`,
   },
+  /** A connected channel: Manage, Sync now, Pause, Disconnect, and the platform sign-in. */
+  live: {
+    manage: 'Manage',
+    title: (name: string) => `${name} connection`,
+    account: 'Account',
+    lastSync: 'Last sync',
+    never: 'Not yet',
+    items: 'Products sent',
+    syncNow: 'Sync now',
+    syncQueued: 'Sync started. It takes a minute or two.',
+    pause: 'Pause listings',
+    resume: 'Resume listings',
+    paused: (name: string) => `${name} paused. Nothing new is sent until you resume.`,
+    resumed: (name: string) => `${name} resumed. A sync has started.`,
+    disconnect: 'Disconnect',
+    disconnectTitle: (name: string) => `Disconnect ${name}?`,
+    disconnectBody: (name: string) =>
+      `${name} stops getting your products. What it already has stays there until you remove it on ${name}.`,
+    disconnected: (name: string) => `${name} disconnected`,
+    failed: 'Something went wrong. Try again.',
+    continueWith: { meta: 'Continue with Facebook', google: 'Continue with Google' },
+    oauthNote: {
+      meta: (name: string) =>
+        `You sign in to Facebook and allow access to your business. We make a catalog for your store that ${name} reads, and keep it in sync.`,
+      google:
+        'You sign in to Google and allow access to Merchant Center. Your products go there and stay in sync.',
+    },
+    returned: {
+      connected: (name: string) => `${name} connected. The first sync has started.`,
+      failed: (name: string) => `Could not connect ${name}. Try again.`,
+      cancelled: 'Connect was cancelled.',
+    },
+    joined: (name: string) =>
+      `${name} connected with the account you already linked. The first sync has started.`,
+    openai: {
+      add: 'Add OpenAI feed details',
+      approvedHint: 'Approved by OpenAI? Add the feed address and key they sent you.',
+      title: 'Connect your ChatGPT feed',
+      intro:
+        'After OpenAI approves your store they send a feed address and a key. Paste them here and your products start syncing to ChatGPT.',
+      endpoint: 'Feed address',
+      key: 'Feed key',
+      save: 'Save and sync',
+      saved: 'ChatGPT feed saved. The first sync has started.',
+    },
+  },
   readiness: {
     title: 'Catalog readiness',
     subtitle: 'How well AI agents can read, match and recommend your products.',

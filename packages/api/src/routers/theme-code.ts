@@ -1,10 +1,12 @@
 import {
   createCodeFile,
+  discardCodeDrafts,
   listCodeFiles,
   listCodeFileVersions,
   NEW_FILE_KINDS,
   type NewFileKind,
   permissions,
+  publishCodeDrafts,
   readCodeFile,
   readCodeFileVersion,
   saveCodeFile,
@@ -22,7 +24,8 @@ const NEW_KINDS = Object.keys(NEW_FILE_KINDS) as [NewFileKind, ...NewFileKind[]]
 
 /**
  * Edit code: an imported theme's own files, a native theme's templates and settings as JSON.
- * Saves are checked again here (`saveCodeFile`), so a broken file never reaches the store.
+ * Saves are checked again here (`saveCodeFile`), so a broken file never reaches the store. An
+ * imported theme's saves are drafts until `publish` puts them all live together.
  */
 export const themeCodeRouter = {
   files: can(permissions.ONLINE_STORE_READ)
@@ -42,6 +45,18 @@ export const themeCodeRouter = {
         saveCodeFile(context.tx, context.scope.storeId, { ...input, by: savedBy(context) }),
       ),
     ),
+
+  publish: can(permissions.ONLINE_STORE_WRITE)
+    .input(z.object({ themeId: z.string().uuid() }))
+    .handler(({ context, input }) =>
+      libraryErrors(() =>
+        publishCodeDrafts(context.tx, context.scope.storeId, { ...input, by: savedBy(context) }),
+      ),
+    ),
+
+  discard: can(permissions.ONLINE_STORE_WRITE)
+    .input(z.object({ themeId: z.string().uuid(), path: z.string().min(1).max(300).optional() }))
+    .handler(({ context, input }) => libraryErrors(() => discardCodeDrafts(context.tx, input))),
 
   create: can(permissions.ONLINE_STORE_WRITE)
     .input(

@@ -217,6 +217,13 @@ export const fedexPlugin = definePlugin({
   category: 'shipping',
   company: 'FedEx',
   description: 'Rates, labels and tracking on your FedEx account.',
+  access: {
+    resources: [
+      { resource: 'shipments', level: 'read-write', why: 'Creates shipments, prints labels, tracks parcels' },
+      { resource: 'customers', level: 'read', why: 'Name, phone and address, for the parcel only' },
+    ],
+    shares: [{ when: 'Sent per shipment', what: 'Ship-to name, address and phone, parcel weight and size' }],
+  },
   provides: { shipping: [fedexFactory] },
 })
 ```
@@ -258,6 +265,26 @@ credits: [
     note: 'Invoice templates and the live preview editor' },
 ],
 ```
+
+### `access`, required on every manifest
+
+Before a merchant installs an app they see what it can reach, and after it is installed the
+Installed apps list ("Can access") and its permissions sheet show the same thing. Declare it
+honestly from what the code does, never more and never less:
+
+- **`resources`**: each store resource the app touches (`orders`, `order-events`, `customers`,
+  `products`, `inventory`, `shipments`, `payments`, `refunds`, `invoices`, `reviews`,
+  `collections`, `discounts`, `gift-cards`, `store-pages`, `content`, `files`, `store-settings`,
+  `visits`), its `level` (`read`, `write` or `read-write`) and a plain `why` line. A resource may
+  appear once.
+- **`summary`** (optional): a few words shown after the level, e.g. `makes invoices`.
+- **`shares`** (optional): what leaves the platform for the outside service, as
+  `{ when, what }` rows (`Sent per shipment` → `Ship-to address, phone…`). Leave it out when
+  nothing is sent anywhere.
+
+An app that keeps its own connection in `store.apps.settings[id]` instead of a provider (Search
+Console, Umami) also sets `setupState(settings)`, returning `{ connected, problem }`, so the
+Installed list can show Connected, Needs setup or Error.
 
 ### Storage providers
 

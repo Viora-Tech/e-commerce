@@ -827,6 +827,62 @@
       "when": 1792270667150,
       "tag": "0122_certificate_checks_clock",
       "breakpoints": true
+    },
+    {
+      "idx": 118,
+      "version": "7",
+      "when": 1792271366385,
+      "tag": "0123_store_plan",
+      "breakpoints": true
+    },
+    {
+      "idx": 119,
+      "version": "7",
+      "when": 1792272356651,
+      "tag": "0124_app_installation",
+      "breakpoints": true
+    },
+    {
+      "idx": 120,
+      "version": "7",
+      "when": 1792274226420,
+      "tag": "0130_api_access",
+      "breakpoints": true
+    },
+    {
+      "idx": 121,
+      "version": "7",
+      "when": 1792275727206,
+      "tag": "0131_channel_connections",
+      "breakpoints": true
+    },
+    {
+      "idx": 122,
+      "version": "7",
+      "when": 1792280450066,
+      "tag": "0132_app_purchase",
+      "breakpoints": true
+    },
+    {
+      "idx": 123,
+      "version": "7",
+      "when": 1792281391592,
+      "tag": "0133_ai_credits",
+      "breakpoints": true
+    },
+    {
+      "idx": 124,
+      "version": "7",
+      "when": 1792281762202,
+      "tag": "0134_autopay",
+      "breakpoints": true
+    },
+    {
+      "idx": 125,
+      "version": "7",
+      "when": 1792285082598,
+      "tag": "0135_theme_file_draft",
+      "breakpoints": true
     }
   ]
 }

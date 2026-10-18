@@ -1,8 +1,9 @@
-import { CircleAlert, Settings } from '@commerce/ui/icons'
-import { Alert, AlertDescription, AlertTitle } from '@commerce/ui/shadcn/alert'
+import { siteConfig } from '@commerce/config/site'
+import { CircleAlert, Settings, TriangleAlert } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import Link from 'next/link'
 import type { ReactNode } from 'react'
+import NextStepBanner from '@/components/layout/next-step-banner'
 import PageBody from '@/components/layout/page-body'
 import PageHeader from '@/components/layout/page-header'
 import StatusChip from '@/components/layout/status-chip'
@@ -25,8 +26,12 @@ type AppShellProps = {
   active: string
   /** Whether one of the app's own pages is a `settings` page, for the header shortcut. */
   hasSettings: boolean
-  /** A connection that is installed but has no working credentials yet; links to where to fix it. */
-  setupHref?: string | undefined
+  /** Connected, Needs setup or Error, as the Installed apps list reads it. */
+  status: 'connected' | 'needsSetup' | 'error' | null
+  /** The recorded failure behind `error`, in words. */
+  problem: string | null
+  /** Where to fix a Needs setup or Error app: its Connect page, its settings. */
+  fixHref?: string | undefined
   /** The app's own header button, shown beside the more menu. */
   headerAction?: ReactNode
   children: ReactNode
@@ -73,13 +78,18 @@ export default async function AppShell({
   tabs,
   active,
   hasSettings,
-  setupHref,
+  status,
+  problem,
+  fixHref,
   headerAction,
   children,
 }: AppShellProps) {
   // Render logic
   const copy = await getCopy(appsContent)
   const section = active.split('/')[0] ?? ''
+  const tone = status === 'error' ? 'danger' : status === 'needsSetup' ? 'attention' : 'success'
+  const statusLabel =
+    status === 'error' ? copy.statusError : status === 'needsSetup' ? copy.needsSetup : copy.active
 
   return (
     <PageBody>
@@ -89,8 +99,8 @@ export default async function AppShell({
           back={{ label: copy.title, href: routes.apps.list() }}
           lead={{ kind: 'logo', node: <AppLogo id={appId} icon={icon} size={72} /> }}
           badges={
-            <StatusChip tone={setupHref ? 'attention' : 'success'} className="h-5 text-xs">
-              {setupHref ? copy.needsSetup : copy.active}
+            <StatusChip tone={tone} className="h-5 text-xs">
+              {statusLabel}
             </StatusChip>
           }
           subtitle={
@@ -116,17 +126,31 @@ export default async function AppShell({
             </>
           }
         />
-        {setupHref ? (
-          <Alert>
-            <CircleAlert />
-            <AlertTitle>{copy.setupBanner.title}</AlertTitle>
-            <AlertDescription>
-              {copy.setupBanner.body}{' '}
-              <Link href={setupHref} className="font-medium underline">
-                {copy.setupBanner.action}
-              </Link>
-            </AlertDescription>
-          </Alert>
+        {status === 'needsSetup' || status === 'error' ? (
+          // Figma "WhatsApp · Needs setup": the raised card with what is wrong and the way out.
+          <NextStepBanner
+            tone="attention"
+            eyebrow={status === 'error' ? copy.errorBanner.eyebrow : copy.setupBanner.eyebrow}
+            title={status === 'error' ? copy.errorBanner.title : copy.setupBanner.title}
+            body={status === 'error' ? problem : copy.setupBanner.body}
+            icon={status === 'error' ? <CircleAlert /> : <TriangleAlert />}
+            actions={
+              <>
+                <Button
+                  variant="outline"
+                  nativeButton={false}
+                  render={<a href={siteConfig.urls.docs} target="_blank" rel="noreferrer" />}
+                >
+                  {copy.viewGuide}
+                </Button>
+                {fixHref ? (
+                  <Button nativeButton={false} render={<Link href={fixHref} />}>
+                    {status === 'error' ? copy.errorBanner.action : copy.setupBanner.action}
+                  </Button>
+                ) : null}
+              </>
+            }
+          />
         ) : null}
       </div>
       <div className="flex flex-col gap-5 md:flex-row md:items-start md:gap-8">

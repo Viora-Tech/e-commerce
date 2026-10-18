@@ -196,10 +196,11 @@ export default [
       empty: 'अभी तक AI से कोई बदलाव नहीं। AI बार से कुछ करवाएं और मंज़ूर करें।',
       by: (who) => `${who} ने`,
       undo: 'Undo',
+      review: 'देखें',
       undone: 'वापस लिया',
       more: 'और दिखाएं',
       failed: 'Activity लोड नहीं हो पाई।',
-      sources: { assistant: 'AI असिस्टेंट', bulkWriter: 'AI से लिखें' },
+      sources: { assistant: 'AI असिस्टेंट', bulkWriter: 'AI से लिखें', mcp: 'AI क्लाइंट (MCP)' },
     },
   }),
 ]

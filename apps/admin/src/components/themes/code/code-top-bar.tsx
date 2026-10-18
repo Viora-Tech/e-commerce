@@ -20,10 +20,15 @@ type CodeTopBarProps = {
   canSave: boolean
   versionsOpen: boolean
   previewHref: string
+  /** Imported themes: files saved but not published yet. */
+  drafts: number
+  publishing: boolean
   onBack: () => void
   onUndo: () => void
   onVersions: () => void
   onSave: () => void
+  onPublish: () => void
+  onDiscard: () => void
 }
 
 const ICON_BUTTON =
@@ -44,10 +49,14 @@ export default function CodeTopBar({
   canSave,
   versionsOpen,
   previewHref,
+  drafts,
+  publishing,
   onBack,
   onUndo,
   onVersions,
   onSave,
+  onPublish,
+  onDiscard,
 }: CodeTopBarProps) {
   // Hooks
   const copy = useCopy(themeCodeContent)
@@ -120,10 +129,32 @@ export default function CodeTopBar({
           <Eye aria-hidden />
           {copy.preview}
         </Button>
-        <Button onClick={onSave} disabled={!canSave || saving}>
+        <Button
+          variant={drafts ? 'outline' : 'default'}
+          onClick={onSave}
+          disabled={!canSave || saving}
+        >
           {saving ? <Spinner /> : null}
           {copy.save}
         </Button>
+        {drafts ? (
+          <>
+            <span
+              className="hidden items-center gap-1.5 text-body text-warning xl:flex"
+              title={copy.drafts.help}
+            >
+              <span aria-hidden className="size-1.5 rounded-full bg-warning" />
+              {copy.drafts.count(drafts)}
+            </span>
+            <Button variant="ghost" onClick={onDiscard} disabled={publishing}>
+              {copy.drafts.discard}
+            </Button>
+            <Button onClick={onPublish} disabled={publishing} title={copy.drafts.help}>
+              {publishing ? <Spinner /> : null}
+              {publishing ? copy.drafts.publishing : copy.drafts.publish}
+            </Button>
+          </>
+        ) : null}
       </div>
     </header>
   )

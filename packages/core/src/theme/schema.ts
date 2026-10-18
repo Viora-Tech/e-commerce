@@ -38,11 +38,27 @@ const DEFAULT_SHAPE = { buttonRadius: 8, cardRadius: 8, inputRadius: 8, borderWi
 const DEFAULT_LAYOUT = { pageWidth: 1440, sectionSpacing: 1 }
 const DEFAULT_BUTTONS = { style: 'solid', colour: 'text', uppercase: true } as const
 const DEFAULT_CARDS = {
+  style: 'standard',
   imageRatio: 'square',
   showVendor: false,
   showSaleBadge: false,
   hoverImage: true,
+  showRating: true,
+  showQuickAdd: false,
+  showWishlist: true,
 } as const
+const DEFAULT_CART = { type: 'page', freeShippingBar: true } as const
+
+/** The networks Theme settings → Social media lists, in its order. */
+export const SOCIAL_PLATFORMS = [
+  'instagram',
+  'whatsapp',
+  'youtube',
+  'facebook',
+  'twitter',
+  'discord',
+] as const
+export type SocialPlatform = (typeof SOCIAL_PLATFORMS)[number]
 const DEFAULT_BRAND = { logo: null, logoWidth: 140, favicon: null }
 
 /** One colour scheme, same roles as Zero Drift's color_scheme_group. */
@@ -113,12 +129,40 @@ export const ThemeSchema = z.object({
     .default(DEFAULT_BUTTONS),
   cards: z
     .object({
+      /** `minimal` drops the card frame and tightens the text under the image. */
+      style: z.enum(['standard', 'minimal']).default('standard'),
       imageRatio: z.enum(['square', 'portrait', 'landscape', 'natural']),
       showVendor: z.boolean(),
       showSaleBadge: z.boolean(),
       hoverImage: z.boolean(),
+      /** Stars and review count from the Reviews app, when a product has reviews. */
+      showRating: z.boolean().default(true),
+      /** Quick add on every card (a section can still turn it on for itself). */
+      showQuickAdd: z.boolean().default(false),
+      showWishlist: z.boolean().default(true),
     })
     .default(DEFAULT_CARDS),
+  /** Theme settings → Cart: the drawer or the cart page, and what it shows. */
+  cart: z
+    .object({
+      type: z.enum(['drawer', 'page']),
+      /** "Add ₹X more for free shipping", when a shipping rate is free above an amount. */
+      freeShippingBar: z.boolean(),
+    })
+    .default(DEFAULT_CART),
+  /** Theme settings → Social media: the store's profiles, used wherever a section shows socials. */
+  social: z
+    .object({
+      links: z
+        .array(
+          z.object({
+            platform: z.enum(SOCIAL_PLATFORMS),
+            url: z.string().trim().url().max(300),
+          }),
+        )
+        .max(SOCIAL_PLATFORMS.length),
+    })
+    .default(() => ({ links: [] })),
   brand: z
     .object({
       logo: MediaRefSchema.nullable(),
@@ -126,6 +170,8 @@ export const ThemeSchema = z.object({
       favicon: MediaRefSchema.nullable(),
     })
     .default(DEFAULT_BRAND),
+  /** Theme settings → Custom CSS: the merchant's own rules, after the theme's (native themes). */
+  customCss: z.string().max(20_000).default(''),
   /** The preset this theme started from; "Reset to preset" re-applies it. */
   preset: z.enum(THEME_PRESET_IDS).default('waimers'),
 })
@@ -212,6 +258,9 @@ export const defaultTheme: Theme = {
   layout: DEFAULT_LAYOUT,
   buttons: DEFAULT_BUTTONS,
   cards: DEFAULT_CARDS,
+  cart: DEFAULT_CART,
+  social: { links: [] },
+  customCss: '',
   brand: DEFAULT_BRAND,
   preset: 'waimers',
 }

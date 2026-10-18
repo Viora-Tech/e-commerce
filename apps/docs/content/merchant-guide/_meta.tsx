@@ -9,6 +9,7 @@ import {
   Receipt,
   Rocket,
   SealPercent,
+  ShareNetwork,
   ShoppingBag,
   Storefront,
   TrendUp,
@@ -32,6 +33,9 @@ export default {
   growth: { title: <NavTitle icon={<TrendUp weight="light" />}>Growth</NavTitle> },
   discounts: { title: <NavTitle icon={<SealPercent weight="light" />}>Discounts</NavTitle> },
   'online-store': { title: <NavTitle icon={<Storefront weight="light" />}>Online store</NavTitle> },
+  'sales-channels': {
+    title: <NavTitle icon={<ShareNetwork weight="light" />}>Sales channels</NavTitle>,
+  },
   apps: { title: <NavTitle icon={<PuzzlePiece weight="light" />}>Apps</NavTitle> },
   'money-and-gst': { title: <NavTitle icon={<Receipt weight="light" />}>Money & GST</NavTitle> },
   settings: { title: <NavTitle icon={<GearSix weight="light" />}>Settings</NavTitle> },

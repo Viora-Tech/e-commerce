@@ -53,6 +53,8 @@ export const aiSettings = pgTable(
       .$type<'standard' | 'best'>()
       .notNull()
       .default('standard'),
+    /** Bought AI credits still left, in thousandths of a credit; used after the month's allowance. */
+    extraCreditMillis: integer('extra_credit_millis').notNull().default(0),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [
@@ -76,6 +78,8 @@ export const aiUsage = pgTable(
     calls: integer('calls').notNull().default(0),
     inputTokens: integer('input_tokens').notNull().default(0),
     outputTokens: integer('output_tokens').notNull().default(0),
+    /** AI credits the tokens cost, in thousandths of a credit (`creditMillisFor`). */
+    creditMillis: integer('credit_millis').notNull().default(0),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [uniqueIndex('ai_usage_store_month_feature').on(t.storeId, t.month, t.feature)],
@@ -100,8 +104,12 @@ export const aiAction = pgTable(
       .references(() => store.id),
     /** The member whose message led to the proposal; only they can approve it. */
     userId: text('user_id').notNull(),
-    /** `assistant` (the AI bar) or `bulkWriter` (applying a bulk AI run). */
-    source: text('source').$type<'assistant' | 'bulkWriter'>().notNull().default('assistant'),
+    /** `assistant` (the AI bar), `bulkWriter` (applying a bulk AI run) or `mcp` (an AI client
+     *  connected in Settings → MCP & API). */
+    source: text('source')
+      .$type<'assistant' | 'bulkWriter' | 'mcp'>()
+      .notNull()
+      .default('assistant'),
     /** The assistant tool, e.g. `proposeDiscount`. */
     tool: text('tool').notNull(),
     status: text('status').$type<AiActionStatus>().notNull().default('proposed'),
@@ -132,7 +140,7 @@ export const aiAction = pgTable(
       'ai_action_status_check',
       sql`${t.status} in ('proposed', 'executed', 'failed', 'cancelled', 'expired', 'undone')`,
     ),
-    check('ai_action_source_check', sql`${t.source} in ('assistant', 'bulkWriter')`),
+    check('ai_action_source_check', sql`${t.source} in ('assistant', 'bulkWriter', 'mcp')`),
   ],
 )
 

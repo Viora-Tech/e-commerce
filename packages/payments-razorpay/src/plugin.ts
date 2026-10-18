@@ -12,6 +12,22 @@ export const razorpayPlugin = definePlugin({
   company: 'Razorpay',
   description:
     'Cards, UPI, netbanking, wallets and EMI through Razorpay Checkout, plus UPI QR payments confirmed automatically.',
+  access: {
+    resources: [
+      { resource: 'orders', level: 'read', why: 'Order number and total, to open the payment' },
+      { resource: 'payments', level: 'read-write', why: 'Takes payments and confirms them' },
+      { resource: 'refunds', level: 'read-write', why: 'Sends refunds back to the shopper' },
+      { resource: 'customers', level: 'read', why: 'Name, email and phone, filled in at checkout' },
+    ],
+    summary: 'takes payments',
+    shares: [
+      {
+        when: 'Sent per payment',
+        what: 'Order number and amount, and the shopper’s name, email and phone',
+      },
+      { when: 'Sent per refund', what: 'Payment reference and refund amount' },
+    ],
+  },
   provides: { payments: [razorpayFactory, razorpayUpiFactory] },
   admin: {
     icon: 'CreditCard',

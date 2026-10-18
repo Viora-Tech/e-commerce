@@ -18,11 +18,25 @@ export const reviewsPlugin = definePlugin({
   category: 'marketing',
   description:
     'Collect product reviews with photos, approve or hide them, reply, ask buyers by email after delivery and bring your Judge.me reviews over.',
+  access: {
+    resources: [
+      { resource: 'products', level: 'read', why: 'Shows reviews on each product page' },
+      { resource: 'orders', level: 'read', why: 'Delivered orders, to ask buyers for a review' },
+      { resource: 'customers', level: 'read', why: 'Buyer’s name and email, for review requests' },
+      {
+        resource: 'reviews',
+        level: 'read-write',
+        why: 'Saves, approves, hides and answers reviews',
+      },
+      { resource: 'order-events', level: 'read', why: 'Reacts when an order is delivered' },
+    ],
+    summary: 'collects reviews',
+  },
   provides: {},
   hooks: {
     // Plans the review request emails; the worker's sweep sends them when they are due.
     'order.delivered': async (ctx, payload) => {
-      await ctx.inStore(async (tx) =>
+      const planned = await ctx.inStore(async (tx) =>
         scheduleReviewRequests(
           tx,
           ctx.storeId,
@@ -30,6 +44,7 @@ export const reviewsPlugin = definePlugin({
           await loadReviewsSettings(tx, ctx.storeId),
         ),
       )
+      if (planned > 0) ctx.reportActivity?.('Planned a review request for a delivered order')
     },
   },
   jobs: {

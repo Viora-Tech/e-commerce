@@ -25,6 +25,7 @@ export function useCodeBuffers(themeId: string) {
   const [buffers, setBuffers] = useState<Record<string, CodeBuffer>>({})
   const [failed, setFailed] = useState<ReadonlySet<string>>(new Set())
   const [saving, setSaving] = useState(false)
+  const [publishing, setPublishing] = useState(false)
 
   const loadList = async () => {
     setListFailed(false)
@@ -96,18 +97,47 @@ export function useCodeBuffers(themeId: string) {
     if (!b) return false
     setSaving(true)
     try {
-      await api.themes.code.save({ themeId, path, body: b.text })
+      const { draft } = await api.themes.code.save({ themeId, path, body: b.text })
       setBuffers((prev) => {
         const now = prev[path]
         return now ? { ...prev, [path]: { ...now, saved: b.text } } : prev
       })
-      toast.success(copy.savedToast(codeFileName(path)))
+      toast.success(
+        draft ? copy.draftSavedToast(codeFileName(path)) : copy.savedToast(codeFileName(path)),
+      )
+      // An imported theme's save is a draft: the list's "not published" count moves.
+      if (list?.kind === 'imported') void loadList()
       return true
     } catch (err) {
       toast.error(err instanceof Error ? err.message : copy.saveFailed)
       return false
     } finally {
       setSaving(false)
+    }
+  }
+
+  /** Imported themes: puts every unpublished save live together. */
+  const publish = async () => {
+    setPublishing(true)
+    try {
+      const { published } = await api.themes.code.publish({ themeId })
+      toast.success(copy.drafts.published(published))
+      await loadList()
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : copy.drafts.publishFailed)
+    } finally {
+      setPublishing(false)
+    }
+  }
+
+  /** Imported themes: drops every unpublished save; open files are read again. */
+  const discard = async () => {
+    try {
+      await api.themes.code.discard({ themeId })
+      toast.success(copy.drafts.discarded)
+      await reloadOpen()
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : copy.drafts.discardFailed)
     }
   }
 
@@ -123,12 +153,15 @@ export function useCodeBuffers(themeId: string) {
     buffers,
     failed,
     saving,
+    publishing,
     loadList,
     open,
     edit,
     undo,
     close,
     save,
+    publish,
+    discard,
     reloadOpen,
   }
 }

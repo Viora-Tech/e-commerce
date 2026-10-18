@@ -139,7 +139,7 @@ export default function ShippingPage() {
         help={couriers.length > 0 ? null : copy.health.noCourierHelp}
         action={
           couriers.length > 0 ? null : (
-            <Button nativeButton={false} render={<Link href={routes.apps.list()} />}>
+            <Button nativeButton={false} render={<Link href={routes.apps.store()} />}>
               {copy.health.connect}
             </Button>
           )

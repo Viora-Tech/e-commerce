@@ -59,10 +59,14 @@ export type CodeFileEntry = {
   /** False for files Edit code shows but does not save (see `readOnlyReason`). */
   editable: boolean
   readOnlyReason: 'binary' | 'import-source' | null
+  /** Imported themes: saved in Edit code but not published yet (the store shows the old file). */
+  draft: boolean
 }
 
 export type CodeFileList = {
   kind: CodeThemeKind
+  /** Imported themes: how many files have unpublished saves. */
+  drafts: number
   files: CodeFileEntry[]
   /** Native themes: each library section type in use, with the files that use it. */
   libraryUse: Record<string, string[]>
@@ -79,7 +83,7 @@ export type CodeFileVersion = {
   createdAt: Date
 }
 
-export type CodeSaveResult = { path: string; savedAt: Date }
+export type CodeSaveResult = { path: string; savedAt: Date; draft: boolean }
 
 const invalid = (message: string) => new ThemeLibraryError('THEME_CODE_INVALID', message)
 
@@ -113,12 +117,18 @@ export async function listCodeFiles(tx: StoreTx, themeId: string): Promise<CodeF
   const kind = await themeKind(tx, themeId)
   if (kind === 'imported') {
     const rows = await tx
-      .select({ path: themeFile.path, size: themeFile.size, encoding: themeFile.encoding })
+      .select({
+        path: themeFile.path,
+        size: themeFile.size,
+        encoding: themeFile.encoding,
+        draft: sql<boolean>`${themeFile.draftBody} is not null`,
+      })
       .from(themeFile)
       .where(eq(themeFile.themeId, themeId))
       .orderBy(themeFile.path)
     return {
       kind,
+      drafts: rows.filter((r) => r.draft).length,
       libraryUse: {},
       files: rows.map((r) => {
         const binary = r.encoding !== 'utf8'
@@ -129,6 +139,7 @@ export async function listCodeFiles(tx: StoreTx, themeId: string): Promise<CodeF
           binary,
           editable: readOnlyReason === null,
           readOnlyReason,
+          draft: r.draft,
         }
       }),
     }
@@ -149,6 +160,7 @@ export async function listCodeFiles(tx: StoreTx, themeId: string): Promise<CodeF
       binary: false,
       editable: true,
       readOnlyReason: null,
+      draft: false,
     })
   }
   const found = await getTheme(tx, themeId)
@@ -158,11 +170,12 @@ export async function listCodeFiles(tx: StoreTx, themeId: string): Promise<CodeF
     binary: false,
     editable: true,
     readOnlyReason: null,
+    draft: false,
   })
-  return { kind, files, libraryUse }
+  return { kind, drafts: 0, files, libraryUse }
 }
 
-/** One file's text, as Edit code opens it. A native template opens with its unsaved draft. */
+/** One file's text, as Edit code opens it: with its unpublished save (imported) or draft (native). */
 export async function readCodeFile(tx: StoreTx, themeId: string, path: string): Promise<CodeFile> {
   const kind = await themeKind(tx, themeId)
   if (kind === 'imported') {
@@ -173,13 +186,15 @@ export async function readCodeFile(tx: StoreTx, themeId: string, path: string): 
     if (!row) throw new ThemeLibraryError('THEME_NOT_FOUND', `No file ${path}`)
     const binary = row.encoding !== 'utf8'
     const readOnlyReason = binary ? 'binary' : IMPORT_ONLY.test(path) ? 'import-source' : null
+    const body = row.draftBody ?? row.body
     return {
       path,
-      size: row.size,
+      size: binary ? row.size : byteLength(body),
       binary,
       editable: readOnlyReason === null,
       readOnlyReason,
-      body: binary ? '' : row.body,
+      draft: row.draftBody !== null,
+      body: binary ? '' : body,
     }
   }
   if (path === NATIVE_SETTINGS_PATH) {
@@ -191,6 +206,7 @@ export async function readCodeFile(tx: StoreTx, themeId: string, path: string): 
       binary: false,
       editable: true,
       readOnlyReason: null,
+      draft: false,
       body,
     }
   }
@@ -198,7 +214,15 @@ export async function readCodeFile(tx: StoreTx, themeId: string, path: string): 
   if (!key) throw new ThemeLibraryError('THEME_NOT_FOUND', `No file ${path}`)
   const loaded = await loadTemplate(tx, themeId, key.template, key.suffix, { withDraft: true })
   const body = prettyJson(loaded.data)
-  return { path, size: byteLength(body), binary: false, editable: true, readOnlyReason: null, body }
+  return {
+    path,
+    size: byteLength(body),
+    binary: false,
+    editable: true,
+    readOnlyReason: null,
+    draft: false,
+    body,
+  }
 }
 
 /**
@@ -231,12 +255,14 @@ async function trimVersions(tx: StoreTx, themeId: string, path: string) {
     )`)
 }
 
-/** Saves an imported theme's file: the original is kept as its `import` version the first time. */
+/**
+ * Saves an imported theme's file as a draft: the store keeps showing the published file until
+ * Publish (`publishCodeDrafts`). Saving the published text again drops the draft.
+ */
 async function saveImportedFile(
   tx: StoreTx,
-  storeId: string,
-  input: { themeId: string; path: string; body: string; by?: string | undefined },
-): Promise<Date> {
+  input: { themeId: string; path: string; body: string },
+): Promise<{ savedAt: Date; draft: boolean }> {
   const [row] = await tx
     .select()
     .from(themeFile)
@@ -245,43 +271,94 @@ async function saveImportedFile(
   if (row.encoding !== 'utf8' || IMPORT_ONLY.test(input.path)) {
     throw invalid('This file cannot be changed in Edit code')
   }
-  if (row.body === input.body) return row.createdAt
-  const [earlier] = await tx
-    .select({ id: themeFileVersion.id })
-    .from(themeFileVersion)
-    .where(and(eq(themeFileVersion.themeId, input.themeId), eq(themeFileVersion.path, input.path)))
-    .limit(1)
-  if (!earlier) {
+  const draft = row.body === input.body ? null : input.body
+  if (row.draftBody !== draft) {
+    await tx.update(themeFile).set({ draftBody: draft }).where(eq(themeFile.id, row.id))
+  }
+  return { savedAt: new Date(), draft: draft !== null }
+}
+
+/**
+ * Publishes every unpublished save of an imported theme at once, so files that depend on each
+ * other go live together. The original is kept as each file's `import` version the first time;
+ * each published file gets a `save` version. Returns how many files went live.
+ */
+export async function publishCodeDrafts(
+  tx: StoreTx,
+  storeId: string,
+  input: { themeId: string; by?: string | undefined },
+): Promise<{ published: number }> {
+  if ((await themeKind(tx, input.themeId)) !== 'imported') return { published: 0 }
+  const rows = await tx
+    .select()
+    .from(themeFile)
+    .where(and(eq(themeFile.themeId, input.themeId), sql`${themeFile.draftBody} is not null`))
+  if (!rows.length) return { published: 0 }
+  // Each draft was checked when it was saved; check again, so a broken file never goes live.
+  for (const row of rows) {
+    const [problem] = codeProblems(row.path, row.draftBody ?? '')
+    if (problem) throw invalid(`${row.path}, line ${problem.line}: ${problem.message}`)
+  }
+  const now = new Date()
+  for (const row of rows) {
+    const body = row.draftBody ?? row.body
+    const [earlier] = await tx
+      .select({ id: themeFileVersion.id })
+      .from(themeFileVersion)
+      .where(and(eq(themeFileVersion.themeId, input.themeId), eq(themeFileVersion.path, row.path)))
+      .limit(1)
+    if (!earlier) {
+      await tx.insert(themeFileVersion).values({
+        id: newId(),
+        storeId,
+        themeId: input.themeId,
+        path: row.path,
+        body: row.body,
+        reason: 'import',
+        createdBy: null,
+        createdAt: row.createdAt,
+      })
+    }
+    await tx
+      .update(themeFile)
+      .set({ body, draftBody: null, size: byteLength(body), checksum: checksumOf(body) })
+      .where(eq(themeFile.id, row.id))
     await tx.insert(themeFileVersion).values({
       id: newId(),
       storeId,
       themeId: input.themeId,
-      path: input.path,
-      body: row.body,
-      reason: 'import',
-      createdBy: null,
-      createdAt: row.createdAt,
+      path: row.path,
+      body,
+      reason: 'save',
+      createdBy: input.by ?? null,
+      createdAt: now,
     })
+    await trimVersions(tx, input.themeId, row.path)
   }
-  const now = new Date()
-  await tx
-    .update(themeFile)
-    .set({ body: input.body, size: byteLength(input.body), checksum: checksumOf(input.body) })
-    .where(eq(themeFile.id, row.id))
-  await tx.insert(themeFileVersion).values({
-    id: newId(),
-    storeId,
-    themeId: input.themeId,
-    path: input.path,
-    body: input.body,
-    reason: 'save',
-    createdBy: input.by ?? null,
-    createdAt: now,
-  })
   // The renderer caches a theme's files per import record version: move it on.
   await tx.update(themeImport).set({ updatedAt: now }).where(eq(themeImport.themeId, input.themeId))
-  await trimVersions(tx, input.themeId, input.path)
-  return now
+  await touchTheme(tx, input.themeId, input.by)
+  return { published: rows.length }
+}
+
+/** Drops an imported theme's unpublished saves: every file, or just `path`. */
+export async function discardCodeDrafts(
+  tx: StoreTx,
+  input: { themeId: string; path?: string | undefined },
+): Promise<{ discarded: number }> {
+  if ((await themeKind(tx, input.themeId)) !== 'imported') return { discarded: 0 }
+  const rows = await tx
+    .update(themeFile)
+    .set({ draftBody: null })
+    .where(
+      and(
+        eq(themeFile.themeId, input.themeId),
+        sql`${themeFile.draftBody} is not null`,
+        input.path ? eq(themeFile.path, input.path) : undefined,
+      ),
+    )
+    .returning({ id: themeFile.id })
+  return { discarded: rows.length }
 }
 
 /** Saves a native template from its JSON: becomes its saved sections, like Save in the editor. */
@@ -319,7 +396,7 @@ export async function saveCodeFile(
     throw invalid(`Line ${problem.line}, column ${problem.column}: ${problem.message}`)
   }
   if (kind === 'imported') {
-    return { path: input.path, savedAt: await saveImportedFile(tx, storeId, input) }
+    return { path: input.path, ...(await saveImportedFile(tx, input)) }
   }
   if (input.path === NATIVE_SETTINGS_PATH) {
     const parsed = ThemeSchema.safeParse(JSON.parse(input.body))
@@ -328,9 +405,9 @@ export async function saveCodeFile(
       throw invalid(`${issue?.path.join('.') || 'settings'}: ${issue?.message ?? 'not valid'}`)
     }
     await updateThemeSettings(tx, input.themeId, parsed.data, input.by)
-    return { path: input.path, savedAt: new Date() }
+    return { path: input.path, savedAt: new Date(), draft: false }
   }
-  return { path: input.path, savedAt: await saveNativeTemplate(tx, storeId, input) }
+  return { path: input.path, savedAt: await saveNativeTemplate(tx, storeId, input), draft: false }
 }
 
 /** Adds a file ("Add a new file"); returns its path. A native theme adds alternate templates. */

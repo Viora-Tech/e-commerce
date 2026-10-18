@@ -1,0 +1,261 @@
+import { siteConfig } from '@commerce/config/site'
+import { mcpContent } from '@/data/mcp'
+import { translation } from '@/lib/i18n'
+
+const brand = siteConfig.brand.name
+
+export default [
+  translation(mcpContent, {
+    title: 'MCP और API',
+    tabs: { overview: 'ओवरव्यू', clients: 'क्लाइंट और टोकन', activity: 'गतिविधि' },
+    subtitles: {
+      overview: (store) =>
+        `Claude, ChatGPT और Cursor जैसे AI टूल को ${store} के साथ काम करने दें। वे आपके ${brand} अकाउंट से साइन इन करते हैं, और हर बदलाव आपकी मंज़ूरी का इंतज़ार करता है।`,
+      clients: (store) =>
+        `MCP या API से ${store} तक कौन पहुँच सकता है और क्या कर सकता है। जिसे आप नहीं पहचानते, उसे हटा दें।`,
+      activity: (store) =>
+        `पिछले 90 दिनों में AI क्लाइंट और टोकन ने ${store} में जो किया। बदलाव अपनी मंज़ूरी से जुड़े हैं।`,
+    },
+    save: 'सेव करें',
+    saved: 'सेव हो गया',
+    saveFailed: 'सेव नहीं हुआ। फिर कोशिश करें।',
+    server: {
+      heading: 'MCP सर्वर',
+      help: (store) =>
+        `AI टूल को यह पता दें। वह ${brand} अकाउंट से साइन इन करता है और सिर्फ़ ${store} देखता है।`,
+      url: 'सर्वर URL',
+      copy: 'सर्वर URL कॉपी करें',
+      copied: 'कॉपी हो गया',
+      status: 'स्थिति',
+      lastRequest: (ago) => `आख़िरी रिक्वेस्ट ${ago}`,
+      noRequests: 'अभी कोई रिक्वेस्ट नहीं',
+      online: (n) => `ऑनलाइन · ${n} क्लाइंट`,
+      waiting: 'क्लाइंट का इंतज़ार',
+      signIn: 'साइन-इन',
+      signInHelp: `क्लाइंट ${brand} का साइन-इन पेज खोलते हैं; कोई पासवर्ड शेयर नहीं होता`,
+      signInValue: 'OAuth',
+      limits: 'लिमिट',
+      limitsHelp: 'हर क्लाइंट की अलग, ताकि एक टूल आपका स्टोर धीमा न करे',
+      limitsValue: (n) => `${n} रिक्वेस्ट / मिनट`,
+    },
+    connect: {
+      heading: 'क्लाइंट जोड़ें',
+      help: '3 स्टेप की गाइड देखने के लिए अपना टूल चुनें।',
+      connected: 'जुड़ा है',
+      connect: 'जोड़ें',
+    },
+    clients: {
+      claude: {
+        name: 'Claude',
+        by: 'Anthropic का',
+        blurb: 'Claude से स्टोर के बारे में पूछें और बदलाव तैयार करें।',
+        steps: [
+          { title: 'सर्वर URL कॉपी करें', body: '' },
+          {
+            title: 'Claude में कस्टम कनेक्टर जोड़ें',
+            body: 'Settings → Connectors → Add custom connector। URL पेस्ट करें और कोई नाम दें, जैसे आपके स्टोर का।',
+          },
+          {
+            title: `${brand} से साइन इन करें`,
+            body: 'चुनें कि Claude क्या कर सकता है। बदलाव फिर भी यहाँ मंज़ूरी का इंतज़ार करते हैं।',
+          },
+        ],
+        open: 'Claude खोलें',
+      },
+      chatgpt: {
+        name: 'ChatGPT',
+        by: 'OpenAI का',
+        blurb: 'ChatGPT की बातचीत में अपने स्टोर का डेटा इस्तेमाल करें।',
+        steps: [
+          { title: 'सर्वर URL कॉपी करें', body: '' },
+          {
+            title: 'ChatGPT में कनेक्टर बनाएँ',
+            body: 'Settings → Apps & Connectors → Advanced settings → Developer mode, फिर Create। URL पेस्ट करें।',
+          },
+          {
+            title: `${brand} से साइन इन करें`,
+            body: 'चुनें कि ChatGPT क्या कर सकता है। बदलाव फिर भी यहाँ मंज़ूरी का इंतज़ार करते हैं।',
+          },
+        ],
+        open: 'ChatGPT खोलें',
+      },
+      cursor: {
+        name: 'Cursor',
+        by: 'Anysphere का',
+        blurb: 'लाइव डेटा के साथ स्टोर टूल और थीम कोड बनाएँ।',
+        steps: [
+          { title: 'सर्वर URL कॉपी करें', body: '' },
+          {
+            title: 'इसे Cursor में जोड़ें',
+            body: 'नीचे "Cursor में जोड़ें" दबाएँ, या Cursor Settings → MCP → Add new MCP server में URL पेस्ट करें।',
+          },
+          {
+            title: `${brand} से साइन इन करें`,
+            body: 'पहली बार सर्वर इस्तेमाल करते समय Cursor साइन-इन पेज खोलता है।',
+          },
+        ],
+        open: 'Cursor में जोड़ें',
+      },
+      vscode: {
+        name: 'VS Code',
+        by: 'Microsoft का',
+        blurb: 'अपने स्टोर के साथ Copilot एजेंट मोड इस्तेमाल करें।',
+        steps: [
+          { title: 'सर्वर URL कॉपी करें', body: '' },
+          {
+            title: 'इसे VS Code में जोड़ें',
+            body: 'नीचे "VS Code में जोड़ें" दबाएँ, या "MCP: Add Server" → HTTP चलाकर URL पेस्ट करें।',
+          },
+          {
+            title: `${brand} से साइन इन करें`,
+            body: 'पहली बार Copilot सर्वर इस्तेमाल करे तो VS Code साइन इन करने को कहता है।',
+          },
+        ],
+        open: 'VS Code में जोड़ें',
+      },
+    },
+    guide: {
+      title: (client) => `${client} जोड़ें`,
+      intro: (client) =>
+        `लगभग 2 मिनट। ${client} आपके ${brand} अकाउंट से साइन इन करता है, इसलिए आपकी स्टाफ़ अनुमतियाँ लागू होती हैं।`,
+      others: 'ChatGPT, Cursor, Claude और VS Code एक ही URL इस्तेमाल करते हैं। हर एक की अपनी गाइड है।',
+      close: 'बंद करें',
+    },
+    switches: {
+      heading: 'AI क्लाइंट क्या कर सकते हैं',
+      allowChanges: 'AI क्लाइंट को बदलाव करने दें',
+      allowChangesHelp:
+        'बंद होने पर क्लाइंट सिर्फ़ पढ़ सकते हैं। चालू करें ताकि वे प्रोडक्ट, डिस्काउंट और कंटेंट में बदलाव सुझा सकें।',
+      requireApproval: `बदलावों को ${brand} में मंज़ूरी चाहिए`,
+      requireApprovalHelp:
+        'हर बदलाव AI मंज़ूरियों में तब तक रुका रहता है जब तक आप या कोई स्टाफ़ उसे मंज़ूर न करे। सुझाया गया।',
+      readCustomers: 'क्लाइंट को ग्राहकों की जानकारी पढ़ने दें',
+      readCustomersHelp: 'नाम, फ़ोन नंबर और पते। डिफ़ॉल्ट रूप से बंद; ऑर्डर में शहर फिर भी दिखता है।',
+    },
+    table: {
+      clientsHeading: 'जुड़े हुए क्लाइंट',
+      client: 'क्लाइंट',
+      connectedBy: 'किसने जोड़ा',
+      canDo: 'क्या कर सकता है',
+      lastUsed: 'आख़िरी इस्तेमाल',
+      viaOAuth: 'MCP · OAuth',
+      memberLine: (role, date) => `${role} · ${date}`,
+      removedMember: 'अब टीम में नहीं',
+      never: 'अभी नहीं',
+      from: (ip) => `${ip} से`,
+      stopped: 'काम करना बंद',
+      actions: (name) => `${name} के विकल्प`,
+      revoke: 'हटाएँ',
+      tokensHeading: 'एक्सेस टोकन',
+      createToken: 'टोकन बनाएँ',
+      name: 'नाम',
+      scopes: 'दायरा',
+      expires: 'समाप्ति',
+      expiresNever: 'कभी नहीं',
+      expired: (date) => `${date} को समाप्त`,
+      tokensNote: 'टोकन स्क्रिप्ट और सर्वर के लिए हैं। लोग क्लाइंट जोड़ें, ताकि उनकी अपनी स्टाफ़ अनुमतियाँ लागू हों।',
+      noTokens: 'अभी कोई एक्सेस टोकन नहीं',
+      noTokensBody: 'किसी स्क्रिप्ट या सर्वर के लिए बनाएँ जिसे आपका स्टोर पढ़ना या अपडेट करना हो।',
+    },
+    canDo: {
+      readAll: 'सब कुछ पढ़ सकता है',
+      read: (areas) => `${areas} पढ़ सकता है`,
+      readWrite: 'पढ़ना और लिखना',
+      readOnly: 'सिर्फ़ पढ़ना',
+      propose: (areas) => `${areas} में बदलाव सुझा सकता है`,
+      needsApproval: 'मंज़ूरी चाहिए',
+    },
+    areas: {
+      products: 'प्रोडक्ट',
+      orders: 'ऑर्डर',
+      customers: 'ग्राहक',
+      inventory: 'इन्वेंटरी',
+      discounts: 'डिस्काउंट',
+      content: 'कंटेंट',
+      analytics: 'एनालिटिक्स',
+    },
+    access: { read: 'पढ़ना', write: 'लिखना' },
+    empty: {
+      title: 'कोई क्लाइंट नहीं जुड़ा',
+      body: (store) =>
+        `अपने AI टूल से ${store} पर काम करने के लिए Claude, ChatGPT, Cursor या VS Code जोड़ें।`,
+      action: 'क्लाइंट जोड़ें',
+    },
+    create: {
+      title: 'एक्सेस टोकन बनाएँ',
+      intro: 'किसी स्क्रिप्ट या सर्वर के लिए। उसे सिर्फ़ उतना दें जितना ज़रूरी है।',
+      name: 'नाम',
+      namePlaceholder: 'Inventory sync script',
+      canAccess: 'क्या एक्सेस कर सकता है',
+      expires: 'समाप्ति',
+      expiry: { 30: '30 दिन में', 90: '90 दिन में', 365: '1 साल में', never: 'कभी नहीं' },
+      note: 'AI क्लाइंट के लिखने पर "मंज़ूरी चाहिए" लागू होता है; टोकन तुरंत काम करते हैं।',
+      cancel: 'रद्द करें',
+      create: 'टोकन बनाएँ',
+      creating: 'बन रहा है…',
+      pickArea: 'कम से कम एक हिस्सा चुनें।',
+      failed: 'टोकन नहीं बना। फिर कोशिश करें।',
+    },
+    shown: {
+      title: 'अपना टोकन अभी कॉपी करें',
+      intro: 'यह आपको दोबारा नहीं दिखेगा। इसे अपने सर्वर की सीक्रेट सेटिंग में रखें, कोड में कभी नहीं।',
+      once: 'एक ही बार दिखेगा',
+      label: 'एक्सेस टोकन',
+      copy: 'टोकन कॉपी करें',
+      copied: 'कॉपी हो गया',
+      name: 'नाम',
+      canAccess: 'क्या एक्सेस कर सकता है',
+      expires: 'समाप्ति',
+      done: 'हो गया',
+    },
+    revoke: {
+      title: (name) => `${name} हटाना है?`,
+      client: (name, store, member) =>
+        `${name} की ${store} तक पहुँच तुरंत बंद हो जाएगी। ${member} इसे बाद में फिर जोड़ सकते हैं। AI मंज़ूरियों में रुके बदलाव वहीं रहेंगे।`,
+      token: (name) =>
+        `"${name}" इस्तेमाल करने वाली हर चीज़ तुरंत बंद हो जाएगी। यह वापस नहीं होगा; ज़रूरत हो तो नया टोकन बनाएँ।`,
+      keep: 'रहने दें',
+      confirm: 'हटाएँ',
+      done: (name) => `${name} हटा दिया गया`,
+      failed: 'हटाया नहीं जा सका। फिर कोशिश करें।',
+    },
+    activity: {
+      heading: 'गतिविधि',
+      export: 'CSV डाउनलोड करें',
+      exportFailed: 'डाउनलोड नहीं हुआ। फिर कोशिश करें।',
+      filters: {
+        all: 'सब',
+        read: 'पढ़ना',
+        change: 'बदलाव',
+        approval: 'मंज़ूरी बाकी',
+        blocked: 'रोके गए',
+      },
+      today: 'आज',
+      yesterday: 'कल',
+      openApproval: 'मंज़ूरी खोलें',
+      loadOlder: 'पुरानी गतिविधि देखें',
+      loading: 'लोड हो रहा है…',
+      empty: 'अभी कुछ नहीं',
+      emptyBody: 'जब कोई क्लाइंट या टोकन कुछ पढ़ेगा या बदलेगा, वह यहाँ दिखेगा।',
+      loadFailed: 'गतिविधि लोड नहीं हुई। फिर कोशिश करें।',
+    },
+    consent: {
+      title: (client, store) => `${client} को ${store} इस्तेमाल करने दें?`,
+      intro: (client, member) =>
+        `${client} आपकी (${member}) तरह काम करेगा और आपकी भूमिका से ज़्यादा कभी नहीं करेगा।`,
+      signedInAs: (email) => `${email} से साइन इन`,
+      canAccess: (client) => `${client} क्या कर सकता है`,
+      approvalNote: `बदलाव ${brand} में मंज़ूरी का इंतज़ार करते हैं, जब तक आपके स्टोर ने मंज़ूरी बंद न की हो।`,
+      allow: 'अनुमति दें',
+      deny: 'मना करें',
+      working: 'एक पल…',
+      failed: 'कुछ गड़बड़ हुई। अपने AI टूल से फिर से जोड़ना शुरू करें।',
+      pickArea: 'कम से कम एक हिस्सा चुनें।',
+      invalid: 'यह साइन-इन लिंक सही नहीं है',
+      invalidBody: 'अपने AI टूल से फिर से जोड़ना शुरू करें।',
+      noStore: 'आप इस स्टोर के सदस्य नहीं हैं',
+      noStoreBody: 'स्टोर से जुड़े अकाउंट से साइन इन करें, या उसके मालिक से इनवाइट माँगें।',
+      returning: (client) => `${client} पर लौट रहे हैं…`,
+    },
+  }),
+]

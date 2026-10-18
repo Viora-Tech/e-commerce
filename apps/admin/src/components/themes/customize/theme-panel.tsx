@@ -2,6 +2,7 @@
 
 import { applyThemePreset, type Theme } from '@commerce/core/theme'
 import {
+  Braces,
   ChevronLeftIcon,
   ChevronRight,
   CreditCard,
@@ -14,6 +15,8 @@ import {
   LayoutGrid,
   Package,
   Palette,
+  ShoppingCart,
+  SocialMedia,
 } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { useState } from 'react'
@@ -25,7 +28,10 @@ import { routes } from '@/lib/routes'
 import { THEME_GROUPS, type ThemeGroup, themeGroupSummary } from '@/lib/theme-panel-summary'
 import BrandSettings from '../brand-settings'
 import CardSettings from '../card-settings'
+import CartSettings from '../cart-settings'
+import CustomCssSettings from '../custom-css-settings'
 import LayoutSettings from '../layout-settings'
+import SocialSettings from '../social-settings'
 import ThemePresets from '../theme-presets'
 import PanelTitle from './panel-title'
 import SettingsSegmented from './settings-segmented'
@@ -48,6 +54,9 @@ const ICONS: Record<ThemeGroup, IconComponent> = {
   buttons: FieldToggle,
   layout: LayoutGrid,
   cards: Package,
+  cart: ShoppingCart,
+  social: SocialMedia,
+  css: Braces,
   brand: Globe,
 }
 
@@ -126,6 +135,12 @@ export default function ThemePanel({ theme, mode, onChange, onMode }: ThemePanel
             <LayoutSettings theme={theme} onChange={onChange} />
           ) : group === 'cards' ? (
             <CardSettings theme={theme} onChange={onChange} />
+          ) : group === 'cart' ? (
+            <CartSettings theme={theme} onChange={onChange} />
+          ) : group === 'social' ? (
+            <SocialSettings theme={theme} onChange={onChange} />
+          ) : group === 'css' ? (
+            <CustomCssSettings theme={theme} onChange={onChange} />
           ) : (
             <BrandSettings theme={theme} onChange={onChange} />
           )}

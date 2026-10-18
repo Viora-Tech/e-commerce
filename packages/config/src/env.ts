@@ -229,6 +229,21 @@ const shape = z.object({
    */
   GSC_GOOGLE_CLIENT_ID: optionalOrBlank(z.string().min(1)),
   GSC_GOOGLE_CLIENT_SECRET: optionalOrBlank(z.string().min(1)),
+  /**
+   * Sales channels → Google: the Google Merchant Center connection's OAuth web client (scope
+   * `content`). Both blank: the MERCHANT_GOOGLE_* client is used. The authorised redirect URI is
+   * `<ADMIN_URL>/api/channels/google/callback`.
+   */
+  GMC_GOOGLE_CLIENT_ID: optionalOrBlank(z.string().min(1)),
+  GMC_GOOGLE_CLIENT_SECRET: optionalOrBlank(z.string().min(1)),
+  /**
+   * Sales channels → Facebook, Instagram and WhatsApp: the platform's Meta app (Facebook Login
+   * for Business, with catalog_management and business_management approved in App Review).
+   * Either blank keeps "Connect" as a request instead. The valid OAuth redirect URI is
+   * `<ADMIN_URL>/api/channels/meta/callback`.
+   */
+  META_APP_ID: optionalOrBlank(z.string().min(1)),
+  META_APP_SECRET: optionalOrBlank(z.string().min(1)),
   /** `<slug>.<PLATFORM_STORE_DOMAIN>` becomes a new store's primary domain. */
   PLATFORM_STORE_DOMAIN: z.string().min(1).default('waimers.store'),
   /**
@@ -255,6 +270,14 @@ const shape = z.object({
    * `platform-plan` gives the buyer's email a signup invite. Unset: nothing happens.
    */
   PLATFORM_SALES_STORE_ID: z.string().uuid().optional(),
+  /**
+   * UPI AutoPay for plans (Settings → Plan & billing): the platform's own Razorpay account with
+   * Subscriptions enabled. All three set turns AutoPay on. The webhook URL is
+   * `<ADMIN_URL>/api/billing/autopay-webhook` (events: subscription.*).
+   */
+  PLATFORM_RAZORPAY_KEY_ID: optionalOrBlank(z.string().min(1)),
+  PLATFORM_RAZORPAY_KEY_SECRET: optionalOrBlank(z.string().min(1)),
+  PLATFORM_RAZORPAY_WEBHOOK_SECRET: optionalOrBlank(z.string().min(1)),
   /** GlitchTip (or Sentry) DSN. Error tracking is entirely off, in every app, unless this is set. */
   SENTRY_DSN: z.string().url().optional(),
   /** Free-text environment tag on every event, e.g. production, staging. Defaults by NODE_ENV. */

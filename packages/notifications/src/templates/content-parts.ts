@@ -320,7 +320,31 @@ export const platformTemplates = {
     whatsapp: (d) =>
       `Your ${d.storeName} sign-in email was changed to ${d.emailChange?.newEmail ?? 'a new address'}.`,
   },
-} satisfies Record<'staff_invite' | 'email_change_code' | 'email_changed', TemplateCopy>
+  plan_bill: {
+    subject: (d) =>
+      d.planBill?.kind === 'overdue'
+        ? `Your ${d.planBill.platformName} bill for ${d.storeName} is overdue`
+        : `Your ${d.planBill?.platformName ?? siteConfig.brand.name} bill for ${d.storeName}: ${d.planBill?.amountLabel ?? ''}`,
+    heading: (d) =>
+      d.planBill?.kind === 'overdue' ? 'Your bill is overdue' : 'Your bill is ready',
+    intro: (d) => {
+      const b = d.planBill
+      if (!b) return ''
+      if (b.kind === 'overdue')
+        return `${b.amountLabel} for ${b.what} is still unpaid. Your paid time ended on ${b.dueLabel}; pay now to keep everything working.`
+      if (b.kind === 'renewal')
+        return `${b.what} renews on ${b.dueLabel}. Pay ${b.amountLabel} (including GST) by then to keep it running.`
+      return `${b.amountLabel} (including GST) for ${b.what}. It starts as soon as the payment goes through.`
+    },
+    outro: (d) =>
+      `${d.actionUrl ? `Pay here: ${d.actionUrl}. ` : ''}Pay with UPI, card or netbanking. Your GST invoice comes by email once it is paid. Questions? Write to ${siteConfig.contact.supportEmail}.`,
+    whatsapp: (d) =>
+      `${d.storeName}: ${d.planBill?.amountLabel ?? ''} due for ${d.planBill?.what ?? 'your plan'}.${d.actionUrl ? ` Pay: ${d.actionUrl}` : ''}`,
+  },
+} satisfies Record<
+  'staff_invite' | 'email_change_code' | 'email_changed' | 'plan_bill',
+  TemplateCopy
+>
 
 const poLabel = (d: TemplateData): string => d.purchaseOrder?.numberLabel ?? ''
 const poExpected = (d: TemplateData): string =>
