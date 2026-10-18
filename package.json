@@ -31,6 +31,7 @@
     "db:seed:shipping": "bun run --cwd packages/db seed:shipping",
     "db:seed:back-in-stock": "bun run --cwd packages/db seed:back-in-stock",
     "media:reprocess": "bun run --cwd apps/worker --env-file=../../.env src/media-reprocess.ts",
+    "media:rehost": "bun run --cwd apps/worker --env-file=../../.env src/media-rehost.ts",
     "rotate-secrets": "bun scripts/rotate-secrets.ts",
     "platform:invite": "bun scripts/platform-invite.ts",
     "backfill-phone-encryption": "bun scripts/backfill-phone-encryption.ts",
