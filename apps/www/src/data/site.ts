@@ -42,7 +42,6 @@ export const siteContent = {
       links: [
         { label: 'Guides', href: '/guides' },
         { label: 'Docs', href: docs },
-        { label: 'Status', href: siteConfig.urls.status },
         {
           label: 'Shopify import guide',
           href: `${docs}/merchant-guide/online-store/import-a-shopify-theme`,

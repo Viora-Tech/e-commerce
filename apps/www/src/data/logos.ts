@@ -32,7 +32,7 @@ export type Brand = {
 
 export const BRANDS: Record<BrandKey, Brand> = {
   razorpay: { name: 'Razorpay', file: '/logos/razorpay.svg', ratio: 1, height: 'h-6' },
-  cashfree: { name: 'Cashfree', file: '/logos/cashfree.svg', ratio: 122 / 32, height: 'h-5' },
+  cashfree: { name: 'Cashfree', file: '/logos/cashfree.svg', ratio: 148 / 25, height: 'h-4' },
   decentro: { name: 'Decentro', file: '/logos/decentro.svg', ratio: 2749.7 / 728, height: 'h-5' },
   upi: { name: 'UPI', ratio: 2, height: 'h-5' },
   delhivery: { name: 'Delhivery', ratio: 4, height: 'h-5' },

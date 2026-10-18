@@ -265,10 +265,29 @@ export const homeContent = {
       title: 'Razorpay, Cashfree or Decentro',
       body: 'Take UPI, cards and netbanking without sending shoppers away.',
       items: [
-        { brand: 'razorpay' as const, name: 'Razorpay', status: 'Connected', connected: true },
-        { brand: 'cashfree' as const, name: 'Cashfree', status: 'Available', connected: false },
-        { brand: 'decentro' as const, name: 'Decentro', status: 'Available', connected: false },
+        {
+          brand: 'razorpay' as const,
+          name: 'Razorpay',
+          methods: ['UPI', 'Cards', 'EMI', 'Netbanking'],
+          status: 'Connected',
+          connected: true,
+        },
+        {
+          brand: 'cashfree' as const,
+          name: 'Cashfree',
+          methods: ['UPI', 'Cards', 'Pay later', 'Netbanking'],
+          status: 'Available',
+          connected: false,
+        },
+        {
+          brand: 'decentro' as const,
+          name: 'Decentro',
+          methods: ['UPI', 'UPI QR'],
+          status: 'Available',
+          connected: false,
+        },
       ],
+      note: 'Switch gateways any time. Your checkout, orders and refunds stay the same.',
     },
   },
   integrations: {
