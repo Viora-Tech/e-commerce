@@ -310,10 +310,12 @@ export const homeContent = {
   },
   proof: {
     eyebrow: 'Built with and for Indian brands',
-    // PLACEHOLDER: replace with a real line from Waimers before launch.
-    quote: '“Placeholder quote — replace with a real line from Waimers before launch.”',
+    // A plain fact until Waimers gives a line we can quote; never write one for them.
+    live: 'Running live on',
     name: 'Waimers',
-    meta: 'Gaming mice and desk gear · waimers.in',
+    meta: 'Gaming mice and desk gear',
+    href: 'https://waimers.in',
+    domain: 'waimers.in',
   },
   pricing: {
     eyebrow: 'Pricing',

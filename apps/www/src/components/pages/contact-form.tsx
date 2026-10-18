@@ -65,10 +65,7 @@ export default function ContactForm() {
       noValidate
       className="surface-card mx-auto flex w-full max-w-4xl flex-col gap-6 rounded-3xl p-6 md:p-10"
     >
-      <div className="flex flex-col justify-between gap-2 md:flex-row md:items-baseline">
-        <h2 className="text-2xl font-semibold text-foreground">{copy.title}</h2>
-        <p className="text-sm text-muted-foreground">{copy.reply}</p>
-      </div>
+      <h2 className="text-2xl font-semibold text-foreground">{copy.title}</h2>
       <fieldset className="flex flex-col gap-3">
         <legend className="mb-3 text-sm text-muted-foreground">{copy.topicLabel}</legend>
         <div className="flex flex-wrap gap-2">

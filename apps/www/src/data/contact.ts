@@ -14,23 +14,9 @@ export const contactContent = {
       body: `${siteConfig.contact.supportEmail} — we answer every email.`,
       cta: 'Write to us →',
     },
-    {
-      key: 'sales',
-      title: 'Sales and partnerships',
-      // PLACEHOLDER: the sales mailbox is not final.
-      body: 'Choosing a plan or working together? [Sales mailbox placeholder]',
-      cta: 'Email sales →',
-    },
-    {
-      key: 'call',
-      title: 'Book a call',
-      body: '20-minute call about moving your store or picking a plan. [Placeholder booking link]',
-      cta: 'Pick a time →',
-    },
   ],
   form: {
     title: 'Send us a message',
-    reply: 'We reply within [N] working hours. [Placeholder]',
     topicLabel: 'What’s it about?',
     topics: ['Sales', 'Support', 'Partnerships', 'Press'],
     name: { label: 'Your name', placeholder: 'Riya Sharma' },

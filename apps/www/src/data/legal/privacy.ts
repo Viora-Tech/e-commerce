@@ -80,7 +80,7 @@ export const privacyDoc: LegalDoc = {
       title: 'Your rights',
       plain: ['See, fix or delete your data.', 'Name someone to act for you.'],
       body: [
-        'You can ask to access, correct, update or erase your personal data, nominate someone to act for you, and raise a grievance. Write to [Privacy email].',
+        `You can ask to access, correct, update or erase your personal data, nominate someone to act for you, and raise a grievance. Write to ${siteConfig.contact.supportEmail}.`,
       ],
     },
     {

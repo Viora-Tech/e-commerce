@@ -3,7 +3,6 @@ import GlobeBackdrop from '@/components/common/globe-backdrop'
 import PageContainer from '@/components/common/page-container'
 import SiteShell from '@/components/layout/site-shell'
 import AboutFirstStore from '@/components/pages/about-first-store'
-import AboutFounder from '@/components/pages/about-founder'
 import AboutMadeIn from '@/components/pages/about-made-in'
 import AboutStory from '@/components/pages/about-story'
 import AboutValues from '@/components/pages/about-values'
@@ -33,7 +32,6 @@ export default function AboutPage() {
         <GlobeBackdrop className="mt-10" />
       </section>
       <AboutStory />
-      <AboutFounder />
       <AboutValues />
       <AboutMadeIn />
       <AboutFirstStore />

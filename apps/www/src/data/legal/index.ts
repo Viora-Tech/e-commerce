@@ -1,3 +1,4 @@
+import { siteConfig } from '@commerce/config/site'
 import { acceptableUseDoc } from './acceptable-use'
 import { cookiesDoc } from './cookies'
 import { privacyDoc } from './privacy'
@@ -17,7 +18,6 @@ export const LEGAL_DOCS: readonly LegalDoc[] = [
 
 export const legalContent = {
   breadcrumbRoot: 'Legal',
-  lastUpdated: 'Last updated [Date]',
   minRead: 'min read',
   english: 'English',
   hindi: 'हिन्दी',
@@ -32,7 +32,7 @@ export const legalContent = {
   plainWords: 'In plain words',
   questions: {
     title: 'Questions about this policy?',
-    body: 'Write to [Legal email]. We reply within [N] business days.',
+    body: `Write to ${siteConfig.contact.supportEmail}.`,
     cta: 'Contact us',
   },
 }

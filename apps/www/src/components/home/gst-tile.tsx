@@ -19,12 +19,7 @@ function AmountRow({ label, amount, strong = false }: AmountRowProps) {
 
 export default function GstTile() {
   return (
-    <BentoTile
-      eyebrow={copy.eyebrow}
-      title={copy.title}
-      body={copy.body}
-      className="min-h-[34rem] lg:min-h-[39rem]"
-    >
+    <BentoTile eyebrow={copy.eyebrow} title={copy.title} body={copy.body}>
       <div className="overflow-hidden rounded-2xl border border-border bg-background">
         <div className="group-hover:animate-print flex flex-col gap-3 bg-background p-5">
           <div className="flex items-center justify-between text-sm">

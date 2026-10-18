@@ -5,12 +5,7 @@ const copy = homeContent.india.hindi
 
 export default function HindiTile() {
   return (
-    <BentoTile
-      eyebrow={copy.eyebrow}
-      title={copy.title}
-      body={copy.body}
-      className="min-h-[18.75rem]"
-    >
+    <BentoTile eyebrow={copy.eyebrow} title={copy.title} body={copy.body}>
       <div className="flex flex-col gap-3">
         <p
           aria-hidden

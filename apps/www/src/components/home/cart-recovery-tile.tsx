@@ -7,12 +7,7 @@ const copy = homeContent.india.recovery
 /** Abandoned-cart recovery on WhatsApp: the reminder lands, then the delivered ticks appear on hover. */
 export default function CartRecoveryTile() {
   return (
-    <BentoTile
-      eyebrow={copy.eyebrow}
-      title={copy.title}
-      body={copy.body}
-      className="min-h-[18.75rem]"
-    >
+    <BentoTile eyebrow={copy.eyebrow} title={copy.title} body={copy.body}>
       <div className="flex flex-col gap-3">
         <p className="inline-flex w-fit items-center gap-2 rounded-md border border-border px-2 py-1 text-xs text-muted-foreground">
           <WhatsappLogo aria-hidden className="size-3.5" />

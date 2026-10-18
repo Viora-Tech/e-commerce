@@ -1,5 +1,5 @@
 import { siteConfig } from '@commerce/config/site'
-import { ArrowRight_ as ArrowRight, Clock, Inbox, Users_ as Users } from '@commerce/ui/icons'
+import { ArrowRight_ as ArrowRight, Inbox } from '@commerce/ui/icons'
 import PageContainer from '@/components/common/page-container'
 import SectionHeading from '@/components/common/section-heading'
 import SiteShell from '@/components/layout/site-shell'
@@ -10,17 +10,16 @@ import { pageMetadata } from '@/lib/metadata'
 export const metadata = pageMetadata({
   title: 'Contact',
   description:
-    'Talk to a human: email or a 20-minute call about moving your store or picking a plan.',
+    'Talk to a human: email us about moving your store, picking a plan or a setting you are stuck on.',
   path: '/contact',
 })
 
-const ICONS = { email: Inbox, sales: Users, call: Clock }
+// Only channels that reach someone today. Sales and a booked call come back here once their
+// mailbox and booking link exist.
+const ICONS = { email: Inbox }
 
-// PLACEHOLDER: the booking link is not decided yet; the card points at email until it is.
 const HREFS = {
   email: `mailto:${siteConfig.contact.supportEmail}`,
-  sales: `mailto:${siteConfig.contact.supportEmail}`,
-  call: `mailto:${siteConfig.contact.supportEmail}`,
 }
 
 export default function ContactPage() {
@@ -34,11 +33,14 @@ export default function ContactPage() {
         <SectionHeading as="h1" size="display" title={copy.title} subtitle={copy.subtitle} />
       </PageContainer>
       <PageContainer as="section" className="pb-12">
-        <ul className="grid gap-4 md:grid-cols-3">
+        <ul className="mx-auto flex max-w-4xl flex-wrap justify-center gap-4">
           {copy.channels.map((channel) => {
             const Icon = ICONS[channel.key as keyof typeof ICONS]
             return (
-              <li key={channel.key} className="surface-card flex flex-col gap-3 rounded-3xl p-6">
+              <li
+                key={channel.key}
+                className="surface-card flex w-full flex-col gap-3 rounded-3xl p-6 md:max-w-sm md:flex-1"
+              >
                 <span className="grid size-10 place-items-center rounded-xl border border-border bg-muted">
                   <Icon aria-hidden className="size-5" />
                 </span>

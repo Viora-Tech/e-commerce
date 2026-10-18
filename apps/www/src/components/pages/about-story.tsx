@@ -8,7 +8,6 @@ export default function AboutStory() {
       <SectionHeading
         eyebrow={copy.story.eyebrow}
         title={copy.story.title}
-        subtitle={copy.story.note}
         align="left"
         className="lg:sticky lg:top-28 lg:self-start"
       />
@@ -17,14 +16,13 @@ export default function AboutStory() {
           <li key={item.title} className="relative flex gap-5 pb-10 last:pb-0">
             <span
               aria-hidden
-              className="absolute top-3 bottom-0 left-[0.3rem] w-px bg-border last:hidden"
+              className="absolute top-4 bottom-0 left-[0.3rem] w-px bg-border last:hidden"
             />
             <span
               aria-hidden
-              className="relative mt-1.5 size-2.5 shrink-0 rounded-full border-2 border-foreground bg-background"
+              className="relative mt-2.5 size-2.5 shrink-0 rounded-full border-2 border-foreground bg-background"
             />
             <div className="flex flex-col gap-1.5">
-              <p className="text-eyebrow">{item.when}</p>
               <h3 className="text-xl font-semibold text-foreground">{item.title}</h3>
               <p className="text-base text-muted-foreground">{item.body}</p>
             </div>
