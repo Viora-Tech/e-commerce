@@ -63,7 +63,12 @@ export async function admitAiCall(
   const facts = await aiStoreFacts(ctx.tx, ctx.storeId)
   const plan = effectiveAiPlan(facts.slug, settings.plan)
   const used = await aiUsageForMonth(ctx, month)
-  const quota = checkQuota(plan, used.total, settings.extraCredits)
+  // The platform's own stores (AI_UNLIMITED_STORES) are never limited; Pro shares their tier
+  // but has 15,000 credits a month.
+  const quota =
+    facts.slug && isUnlimitedStore(facts.slug)
+      ? ({ ok: true } as const)
+      : checkQuota(plan, used.total, settings.extraCredits)
   if (!quota.ok) return { ok: false, reason: 'quota', limit: quota.reason, month }
   const tier = tierFor(feature, settings.writingQuality)
   await recordAiUsage(ctx, { month, feature, calls: TIER_CALL_WEIGHT[tier] })

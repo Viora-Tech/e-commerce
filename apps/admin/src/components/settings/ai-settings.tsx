@@ -6,9 +6,9 @@ import {
   WRITING_QUALITIES,
   type WritingQuality,
 } from '@commerce/ai/client'
+import { AI_CREDIT_PACK } from '@commerce/core/billing'
 import { CircleAlert, ShieldCheck } from '@commerce/ui/icons'
 import { Alert, AlertDescription, AlertTitle } from '@commerce/ui/shadcn/alert'
-import { AI_CREDIT_PACK } from '@commerce/core/billing'
 import { Badge } from '@commerce/ui/shadcn/badge'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Progress } from '@commerce/ui/shadcn/progress'

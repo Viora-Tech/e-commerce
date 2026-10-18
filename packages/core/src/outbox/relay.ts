@@ -111,7 +111,8 @@ async function dispatchRow(deps: OutboxRelayDeps, row: Row): Promise<void> {
     if (app) deps.log?.(`app order ${payload.orderId}: ${app.pluginId} on for store ${app.storeId}`)
     // AI credits bought in Settings → AI.
     const topup = await markAiTopupPaid(deps.db, payload.orderId as string)
-    if (topup) deps.log?.(`credits order ${payload.orderId}: +${topup.credits} for ${topup.storeId}`)
+    if (topup)
+      deps.log?.(`credits order ${payload.orderId}: +${topup.credits} for ${topup.storeId}`)
   }
   if (
     (type === 'refund.created' || type === 'order.cancelled') &&

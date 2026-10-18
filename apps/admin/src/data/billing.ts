@@ -65,10 +65,13 @@ export const billingContent = {
     heading: 'Payment method',
     body: 'Each bill comes with a secure link. Pay it with UPI, a card or netbanking, and the plan starts as soon as it is paid.',
     autopay: 'UPI AutoPay is coming soon, so renewals pay themselves.',
-    autopayOff: 'Turn on UPI AutoPay and renewals pay themselves from your UPI app. You approve it once.',
-    autopayOn: 'UPI AutoPay is on. Each renewal is charged automatically and the invoice is emailed.',
+    autopayOff:
+      'Turn on UPI AutoPay and renewals pay themselves from your UPI app. You approve it once.',
+    autopayOn:
+      'UPI AutoPay is on. Each renewal is charged automatically and the invoice is emailed.',
     autopayPending: 'Approve the AutoPay mandate in your UPI app to finish turning it on.',
-    autopayHalted: 'AutoPay could not charge your last renewal. Pay the bill by link, or turn AutoPay on again.',
+    autopayHalted:
+      'AutoPay could not charge your last renewal. Pay the bill by link, or turn AutoPay on again.',
     autopayStart: 'Turn on UPI AutoPay',
     autopayApprove: 'Approve mandate',
     autopayStop: 'Turn off AutoPay',

@@ -8,6 +8,7 @@ import AccentStyle from '@/components/layout/accent-style'
 import { billingContent } from '@/data/billing'
 import { appEntryHref } from '@/lib/apps-gallery'
 import { getSession } from '@/lib/auth'
+import { REQUEST_PATH_HEADER } from '@/lib/csp'
 import { routes, safeNext } from '@/lib/routes'
 import {
   listApps,
@@ -16,7 +17,6 @@ import {
   ordersToShipCount,
   planUsageSummary,
 } from '@/lib/shell-data'
-import { REQUEST_PATH_HEADER } from '@/lib/csp'
 import { storefrontOrigin } from '@/lib/storefront-origin'
 import SelectStore from './select-store/select-store'
 

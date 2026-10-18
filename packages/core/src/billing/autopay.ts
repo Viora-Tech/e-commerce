@@ -195,9 +195,7 @@ export async function handleAutopayWebhook(
   const body = JSON.parse(raw) as WebhookBody
   const subId = body.payload?.subscription?.entity?.id
   if (!subId || !body.event) return 'ignored'
-  const rows = await db.execute<{ id: string | null }>(
-    sql`select autopay_store(${subId}) as id`,
-  )
+  const rows = await db.execute<{ id: string | null }>(sql`select autopay_store(${subId}) as id`)
   const storeId = rows[0]?.id
   if (!storeId) return 'ignored'
   const [mandate] = await withStore(db, storeId, (tx) =>

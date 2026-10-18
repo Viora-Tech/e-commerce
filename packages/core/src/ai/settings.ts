@@ -66,5 +66,10 @@ export async function saveAiFeatures(
       target: aiSettings.storeId,
       set: { features, writingQuality: quality, updatedAt: sql`now()` },
     })
-  return { plan: current.plan, features, writingQuality: quality }
+  return {
+    plan: current.plan,
+    features,
+    writingQuality: quality,
+    extraCredits: current.extraCredits,
+  }
 }

@@ -37,7 +37,10 @@ export async function sendPlanBillEmail(
   try {
     if (!input.url) return 'skipped'
     const [s] = await withStore(db, storeId, (tx) =>
-      tx.select({ name: store.name, email: store.contactEmail }).from(store).where(eq(store.id, storeId)),
+      tx
+        .select({ name: store.name, email: store.contactEmail })
+        .from(store)
+        .where(eq(store.id, storeId)),
     )
     if (!s?.email?.includes('@')) return 'skipped'
     const transport = (platform ?? getPlatformEmail()).transport

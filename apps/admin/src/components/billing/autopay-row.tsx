@@ -68,7 +68,9 @@ export default function AutopayRow({ autopay, billingReady }: AutopayRowProps) {
           <Button
             size="sm"
             nativeButton={false}
-            render={<a href={autopay.mandate.approveUrl} target="_blank" rel="noopener noreferrer" />}
+            render={
+              <a href={autopay.mandate.approveUrl} target="_blank" rel="noopener noreferrer" />
+            }
           >
             {copy.payment.autopayApprove}
           </Button>

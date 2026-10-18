@@ -3,22 +3,22 @@ import {
   AppNotForSale,
   AutopayError,
   autopayConfig,
-  cancelAutopay,
-  loadAutopay,
-  startAutopay,
-  buyAiCredits,
   BillingNotReady,
+  buyAiCredits,
   buyApp,
+  cancelAutopay,
   choosePlan,
   ensureStorePlan,
   keepCurrentPlan,
   listAppBills,
+  loadAutopay,
   loadPlanView,
   PLAN_IDS,
   PLANS,
   permissions,
   planUsage,
   resolveBillingEnv,
+  startAutopay,
   stopAppRenewal,
   storeAppAccess,
 } from '@commerce/core'
@@ -63,8 +63,7 @@ export const billingRouter = {
         cfg,
       )
     } catch (err) {
-      if (err instanceof AutopayError)
-        throw new ORPCError('BAD_GATEWAY', { message: err.message })
+      if (err instanceof AutopayError) throw new ORPCError('BAD_GATEWAY', { message: err.message })
       throw err
     }
   }),

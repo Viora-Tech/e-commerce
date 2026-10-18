@@ -62,4 +62,8 @@ export function appAccess(
 export const canUseApp = (a: AppAccess) => a.state !== 'buy'
 
 /** A top-up of AI credits (memory-bank/pricing.md): bought credits carry over until used. */
-export const AI_CREDIT_PACK = { credits: 1_000, pricePaise: 199_00, sku: 'ai-credits-1000' } as const
+export const AI_CREDIT_PACK = {
+  credits: 1_000,
+  pricePaise: 199_00,
+  sku: 'ai-credits-1000',
+} as const
