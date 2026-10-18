@@ -3,6 +3,7 @@ import { useState, useTransition } from 'react'
 import { isDigitalOnly } from '@/lib/checkout-preview'
 import type { GateState } from '@/lib/checkout-steps'
 import { cleanPincode } from '@/lib/checkout-validation'
+import { retryOnce } from '@/lib/retry-once'
 import type { CheckoutShipping } from '@/lib/shipping'
 import { checkoutShippingAction } from '@/lib/shipping-actions'
 
@@ -26,7 +27,7 @@ export function useCheckoutShipping(cart: CartView, onNoCod: () => void) {
     const pincode = cleanPincode(raw)
     if (isDigitalOnly(cart) || !isFullPincode(pincode)) return
     startCheck(async () => {
-      const next = await checkoutShippingAction({ pincode, stateCode })
+      const next = await retryOnce(() => checkoutShippingAction({ pincode, stateCode }))
       setShipping(next)
       setQuoted(true)
       // Keep the shopper's pick when it is still offered, else the cheapest.

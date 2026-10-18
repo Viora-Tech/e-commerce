@@ -57,6 +57,7 @@ async function main() {
         url: media.url,
         key: media.key,
         contentType: media.contentType,
+        variants: media.variants,
         source: importMapping.sourceId,
       })
       .from(media)
@@ -81,9 +82,34 @@ async function main() {
 
   let done = 0
   let failed = 0
+  let moved = 0
   for (const row of rows) {
-    if (!row.source || !row.key) continue
+    if (!row.key) continue
     const key = row.key
+    // The object is already in the current bucket (only the public URL changed, e.g.
+    // r2.dev to a custom domain): point the row at it, nothing to download.
+    const oldBase = baseOf(row.url, key)
+    if (oldBase && (await provider.head(key).catch(() => null))) {
+      const rebase = (url: string) =>
+        url.startsWith(oldBase) ? `${newBase}${url.slice(oldBase.length)}` : url
+      const variants = row.variants
+        ? Object.fromEntries(
+            Object.entries(row.variants).map(([width, v]) => [
+              width,
+              { avif: rebase(v.avif), webp: rebase(v.webp) },
+            ]),
+          )
+        : null
+      await withStore(db, storeId, (tx) =>
+        tx
+          .update(media)
+          .set({ url: rebase(row.url), variants, provider: provider.id })
+          .where(eq(media.id, row.id)),
+      )
+      moved += 1
+      continue
+    }
+    if (!row.source) continue
     try {
       const res = await safeFetch(row.source, { allowHttp: true, timeoutMs: 60_000 })
       if (!res.ok) throw new Error(`source answered ${res.status}`)
@@ -149,7 +175,9 @@ async function main() {
     }
   })
 
-  console.log(`[media:rehost] done=${done} failed=${failed} descriptions=${descriptions}`)
+  console.log(
+    `[media:rehost] done=${done} moved=${moved} failed=${failed} descriptions=${descriptions}`,
+  )
   await db.$client.end()
 }
 
