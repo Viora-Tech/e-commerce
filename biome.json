@@ -9,6 +9,8 @@
       "!**/.turbo",
       "!**/coverage",
       "!**/.next",
+      "!apps/www/out",
+      "!**/.wrangler",
       "!apps/docs/public/_pagefind",
       "!apps/www/public",
       "!packages/blocks/src/styles",

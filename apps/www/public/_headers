@@ -1,0 +1,14 @@
+/*
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin
+  X-Frame-Options: DENY
+
+# Share images are exported without an extension; say what they are.
+/opengraph-image
+  Content-Type: image/png
+/twitter-image
+  Content-Type: image/png
+/*/opengraph-image
+  Content-Type: image/png
+/*/twitter-image
+  Content-Type: image/png
