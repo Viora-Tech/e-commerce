@@ -44,6 +44,7 @@ export const hindiPageNames: Record<string, { title: string; body?: string }> = 
   '/online-store/themes': { title: 'थीम' },
   '/online-store/pages': { title: 'पेज' },
   '/online-store/preferences': { title: 'प्राथमिकताएं' },
+  '/online-store/seo': { title: 'SEO' },
   '/apps': { title: 'ऐप्स' },
   '/settings': {
     title: 'Settings',
@@ -60,6 +61,14 @@ export const hindiPageNames: Record<string, { title: string; body?: string }> = 
   '/settings/locations': {
     title: 'लोकेशन और गोदाम',
     body: 'आपका स्टॉक कहाँ रखा है, और हर जगह किस GST नंबर से बिल बनता है।',
+  },
+  '/settings/billing': {
+    title: 'प्लान और बिलिंग',
+    body: 'आपका प्लान, इस महीने स्टोर ने कितना इस्तेमाल किया, और आपके इनवॉइस।',
+  },
+  '/settings/mcp': {
+    title: 'MCP और API',
+    body: 'Claude, ChatGPT, Cursor जैसे AI टूल और स्क्रिप्ट के एक्सेस टोकन, और उन्होंने क्या किया।',
   },
   '/settings/payments': {
     title: 'पेमेंट',
@@ -114,6 +123,10 @@ export const hindiPageNames: Record<string, { title: string; body?: string }> = 
     body: 'प्रोडक्ट और कलेक्शन के एक्स्ट्रा फ़ील्ड, और आपके कंटेंट टाइप।',
   },
   '/settings/invoices': { title: 'इनवॉइस' },
+  '/settings/appearance': {
+    title: 'रंग-रूप',
+    body: 'लाइट या डार्क मोड और आपका एक्सेंट रंग, सिर्फ़ आपके लिए।',
+  },
   '/account': { title: 'अकाउंट' },
   '/account/security': { title: 'साइन-इन और सुरक्षा' },
   '/account/sessions': { title: 'सेशन' },
@@ -132,6 +145,10 @@ export const hindiPageNames: Record<string, { title: string; body?: string }> = 
 export const hindiNavGroups: Record<string, string> = {
   Workspace: 'वर्कस्पेस',
   'Sales channels': 'सेल्स चैनल',
+  'Agentic sales': 'AI एजेंट से बिक्री',
+  'Catalog readiness': 'कैटलॉग की तैयारी',
+  Controls: 'कंट्रोल',
+  'Social media': 'सोशल मीडिया',
   Apps: 'ऐप्स',
   Settings: 'सेटिंग',
 }
@@ -150,11 +167,14 @@ export default [
     settingsGroup: 'सेटिंग',
     expandSection: (label) => `${label} के पेज दिखाएं`,
     collapseSection: (label) => `${label} के पेज छिपाएं`,
+    countHint: (n) => `${n} भेजने बाकी`,
     search: {
       placeholder: 'ऑर्डर, प्रोडक्ट या ग्राहक खोजें',
       field: `खोजें या ${siteConfig.brand.name} AI से पूछें…`,
       shortcut: '⌘K',
       askAi: 'AI से पूछें',
+      lead: 'खोजें या AI से पूछें',
+      examples: ['भेजने वाले ऑर्डर', 'इस हफ़्ते सबसे ज़्यादा बिका', 'कम स्टॉक', 'आज की बिक्री'],
       empty: 'कुछ नहीं मिला',
       orders: 'ऑर्डर',
       products: 'प्रोडक्ट',
@@ -178,6 +198,17 @@ export default [
     },
     toggleTheme: 'थीम बदलें',
     openMenu: 'मेन्यू खोलें',
-    notifications: { label: 'नोटिफ़िकेशन', empty: 'अभी देखने को कुछ नया नहीं है।' },
+    tips: {
+      search: (shortcut: string) => `खोजें · ${shortcut}`,
+      askAi: (mod: string) => `Koomerce AI से पूछें · ${mod}J`,
+      viewStore: (domain: string) => `स्टोर खोलें · ${domain} ↗`,
+      theme: (name: string) => `थीम · ${name}`,
+    },
+    theme: {
+      light: 'लाइट',
+      dark: 'डार्क',
+      system: 'सिस्टम',
+      systemHint: 'आपके डिवाइस के अनुसार',
+    },
   }),
 ]

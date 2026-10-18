@@ -13,6 +13,7 @@ import {
   storesWithUnpaidOnlineOrders,
   withStore,
 } from '@commerce/db'
+import { logger } from '@commerce/observability/logging'
 import { type IORedis, Queue, UNPAID_EXPIRY_QUEUE, Worker } from '@commerce/queue'
 import { eq } from 'drizzle-orm'
 
@@ -64,14 +65,18 @@ export function createUnpaidOrderExpiry(
             if (r.result === 'cancelled') cancelled += 1
             if (r.result === 'paid') paid += 1
             if (r.result === 'skipped') {
-              console.warn(`[expiry] ${storeId}/${r.orderId} skipped: ${r.reason}`)
+              logger.warn('unpaid order expiry skipped', {
+                storeId,
+                orderId: r.orderId,
+                reason: r.reason,
+              })
             }
           }
         } catch (err) {
-          console.warn(`[expiry] store ${storeId} failed:`, err)
+          logger.warn('unpaid order expiry failed', { storeId, error: err })
         }
       }
-      if (cancelled || paid) console.log(`[expiry] cancelled=${cancelled} paid=${paid}`)
+      if (cancelled || paid) logger.info('unpaid orders expired', { cancelled, paid })
       const transfers = await followUpManualTransfers(db)
       return { stores: storeIds.length, cancelled, paid, ...transfers }
     },
@@ -89,14 +94,20 @@ async function followUpManualTransfers(db: Db) {
       for (const r of await runManualFollowUp(db, storeId)) {
         if (r.result === 'noticed') noticed += 1
         if (r.result === 'cancelled') transfersCancelled += 1
-        if (r.reason) console.warn(`[transfers] ${storeId}/${r.orderId} skipped: ${r.reason}`)
+        if (r.reason) {
+          logger.warn('manual transfer follow-up skipped', {
+            storeId,
+            orderId: r.orderId,
+            reason: r.reason,
+          })
+        }
       }
     } catch (err) {
-      console.warn(`[transfers] store ${storeId} failed:`, err)
+      logger.warn('manual transfer follow-up failed', { storeId, error: err })
     }
   }
   if (noticed || transfersCancelled) {
-    console.log(`[transfers] noticed=${noticed} cancelled=${transfersCancelled}`)
+    logger.info('manual transfers followed up', { noticed, cancelled: transfersCancelled })
   }
   return { noticed, transfersCancelled }
 }

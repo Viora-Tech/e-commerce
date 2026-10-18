@@ -10,15 +10,16 @@ import { Skeleton } from '@commerce/ui/shadcn/skeleton'
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
+import PageHeader from '@/components/layout/page-header'
 import SaveBar from '@/components/layout/save-bar'
+import StatusChip from '@/components/layout/status-chip'
 import { policiesContent as copy } from '@/data/policies'
-import { settingsContent } from '@/data/settings'
+import { SETTINGS_BACK, settingsContent } from '@/data/settings'
 import { useSetupNext } from '@/hooks/use-setup-next'
 import { api } from '@/lib/api-client'
 import { formatDate } from '@/lib/format-date'
 import { routes } from '@/lib/routes'
 import SettingsCard from './settings-card'
-import SettingsPageHeader from './settings-page-header'
 import SettingsTextRow from './settings-text-row'
 
 type PolicyRowProps = {
@@ -99,13 +100,11 @@ export default function PoliciesSettings() {
         onDiscard={handleDiscard}
         saving={busy}
       />
-      <SettingsPageHeader
+      <PageHeader
         title={copy.title}
         subtitle={copy.subtitle}
-        onSave={handleSave}
-        dirty={dirty}
-        saving={busy}
-        saveLabel={copy.save}
+        back={SETTINGS_BACK}
+        save={{ dirty, saving: busy, onSave: handleSave, label: copy.save }}
       />
       <Alert>
         <InfoIcon aria-hidden="true" />
@@ -170,14 +169,14 @@ export default function PoliciesSettings() {
 function PolicyRow({ policy }: PolicyRowProps) {
   const created = policy.pageId !== null
   const status = !created ? 'missing' : policy.published ? 'published' : 'draft'
-  const variant = status === 'published' ? 'success' : status === 'draft' ? 'neutral' : 'warning'
+  const variant = status === 'published' ? 'success' : status === 'draft' ? 'neutral' : 'attention'
   const href = `/settings/policies/${policy.type}${created ? '' : '?template=1'}`
   return (
     <li className="flex flex-col gap-2 py-3 first:pt-0 last:pb-0 sm:flex-row sm:items-center sm:justify-between">
       <div className="flex min-w-0 flex-col gap-0.5">
         <div className="flex flex-wrap items-center gap-2">
           <span className="text-body-strong">{copy.names[policy.type]}</span>
-          <Badge variant={variant}>{copy.list.status[status]}</Badge>
+          <StatusChip tone={variant}>{copy.list.status[status]}</StatusChip>
           {REQUIRED_POLICY_TYPES.includes(policy.type) && status !== 'published' ? (
             <Badge variant="outline">{copy.list.required}</Badge>
           ) : null}

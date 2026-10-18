@@ -31,6 +31,8 @@ export type SiteConfig = {
   }
   urls: {
     site: string
+    /** The merchant admin (sign in, sign up). */
+    admin: string
     docs: string
     terms: string
     privacy: string
@@ -53,31 +55,40 @@ export type SiteConfig = {
     rowsPerPage: { options: readonly [10, 25, 50, 100]; default: 10 }
     toastMs: { default: number; success: number; error: number }
   }
-  /** PLACEHOLDER limits per plan; billing owns the real numbers. */
-  plans: Record<'free' | 'growth' | 'scale', { name: string; ordersPerMonth: number }>
+  /**
+   * Plans as the landing site shows them, before GST. Mirrors `packages/core/src/billing/plans.ts`
+   * (memory-bank/pricing.md, decided 2026-10-18); change both together.
+   */
+  plans: Record<
+    'starter' | 'growth' | 'pro',
+    { name: string; ordersPerMonth: number; monthlyInr: number; yearlyInr: number }
+  >
+  /** Days of Growth every new store gets, no card asked. */
+  trialDays: number
   social: { x: string; instagram: string; youtube: string; linkedin: string; github: string }
 }
 
 export const siteConfig: SiteConfig = {
   brand: {
-    name: 'Sellverse',
+    name: 'Koomerce',
     tagline: 'Run your store in plain words.',
-    domain: 'sellverse.app',
+    domain: 'koomerce.app',
     logo: { mark: '/brand/mark.svg', full: '/brand/logo.svg', favicon: '/favicon.ico' },
   },
   contact: {
-    supportEmail: 'support@sellverse.app',
+    supportEmail: 'support@koomerce.app',
     whatsappNumber: '910000000000',
     whatsappGreeting: 'Hi, I need help with my store.',
     phone: '+91 00000 00000',
   },
   urls: {
-    site: 'https://sellverse.app',
-    docs: 'https://docs.sellverse.app',
-    terms: 'https://sellverse.app/terms',
-    privacy: 'https://sellverse.app/privacy',
-    refunds: 'https://sellverse.app/refunds',
-    status: 'https://status.sellverse.app',
+    site: 'https://koomerce.app',
+    admin: 'https://admin.koomerce.app',
+    docs: 'https://docs.koomerce.app',
+    terms: 'https://koomerce.app/terms',
+    privacy: 'https://koomerce.app/privacy',
+    refunds: 'https://koomerce.app/refunds',
+    status: 'https://status.koomerce.app',
   },
   locale: {
     currency: 'INR',
@@ -93,16 +104,17 @@ export const siteConfig: SiteConfig = {
     toastMs: { default: 4000, success: 3000, error: 6000 },
   },
   plans: {
-    free: { name: 'Free', ordersPerMonth: 100 },
-    growth: { name: 'Growth', ordersPerMonth: 1000 },
-    scale: { name: 'Scale', ordersPerMonth: 10000 },
+    starter: { name: 'Starter', ordersPerMonth: 50, monthlyInr: 499, yearlyInr: 4990 },
+    growth: { name: 'Growth', ordersPerMonth: 200, monthlyInr: 1499, yearlyInr: 14990 },
+    pro: { name: 'Pro', ordersPerMonth: 1000, monthlyInr: 4999, yearlyInr: 49990 },
   },
+  trialDays: 14,
   social: {
-    x: 'https://x.com/sellverse',
-    instagram: 'https://instagram.com/sellverse',
-    youtube: 'https://youtube.com/@sellverse',
-    linkedin: 'https://linkedin.com/company/sellverse',
-    github: 'https://github.com/sellverse',
+    x: 'https://x.com/koomerce',
+    instagram: 'https://instagram.com/koomerce',
+    youtube: 'https://youtube.com/@koomerce',
+    linkedin: 'https://linkedin.com/company/koomerce',
+    github: 'https://github.com/koomerce',
   },
 }
 

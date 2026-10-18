@@ -208,6 +208,7 @@ export default function MetafieldDefinitionDialog({
             <FieldLabel htmlFor="metafield-description">{copy.description}</FieldLabel>
             <Input
               id="metafield-description"
+              placeholder={copy.descriptionPlaceholder}
               size="lg"
               value={draft.description}
               maxLength={300}

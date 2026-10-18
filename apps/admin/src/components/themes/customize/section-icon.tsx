@@ -22,7 +22,7 @@ const TILE_SIZE = {
 
 /**
  * The glyph a section shows in the tree, the add menu and the inspector: one
- * Phosphor family at regular weight (`editorGlyphs`), optionally on a tile
+ * Hugeicons family (`editorGlyphs`), optionally on a tile
  * tinted by the section's kind.
  */
 export default function SectionIcon({ type, handle, className, tile }: SectionIconProps) {

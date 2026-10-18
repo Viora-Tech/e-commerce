@@ -17,11 +17,11 @@ export const orderNextStepContent = {
   ship: {
     title: (n: number) => `Pack and ship ${n} ${n === 1 ? 'item' : 'items'}`,
     cod: (amount: string) =>
-      `Cash on delivery: the courier collects ${amount} at the door. Fulfil the items to add the courier and tracking.`,
+      `Cash on delivery: the courier collects ${amount} at the door. Create a shipment to pick the courier and print the label.`,
     paid: (method: string) =>
-      `Paid by ${method}. Fulfil the items to add the courier and tracking.`,
+      `Paid by ${method}. Create a shipment to pick the courier and print the label.`,
     action: 'Fulfil items',
-    compare: 'Compare couriers',
+    create: 'Create shipment',
   },
   transit: {
     title: (name: string) => `On its way to ${name}`,

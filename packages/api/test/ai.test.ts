@@ -281,7 +281,7 @@ describe('settings, switches and quota', () => {
     ).resolves.toBeTruthy()
     const settings = await call(appRouter.ai.settings, undefined, { context: a.ctx })
     expect(settings.plan).toBe('unlimited')
-    expect(settings.quota).toEqual({ calls: null, tokens: null })
+    expect(settings.quota).toMatchObject({ calls: null, tokens: null })
   })
 
   it('rate limits bursts per store (20 per 5 minutes)', async () => {

@@ -1,27 +1,13 @@
 'use client'
 
 import type { GstRegistrationView } from '@commerce/core'
-import { MoreVertical } from '@commerce/ui/icons'
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@commerce/ui/shadcn/alert-dialog'
-import { Badge } from '@commerce/ui/shadcn/badge'
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@commerce/ui/shadcn/dropdown-menu'
+import { CircleCheck, OctagonXIcon } from '@commerce/ui/icons'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { toast } from 'sonner'
+import ActionMenu from '@/components/layout/action-menu'
+import ConfirmDialog from '@/components/layout/confirm-dialog'
+import StatusChip from '@/components/layout/status-chip'
 import { businessGstContent } from '@/data/business-gst'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
@@ -76,11 +62,11 @@ export default function RegistrationRow({
       <div className="flex min-w-0 flex-1 flex-col gap-0.5">
         <span className="flex flex-wrap items-center gap-2 text-body-strong text-ink-strong">
           {r.stateName}
-          {r.isDefault ? <Badge variant="success">{copy.default}</Badge> : null}
+          {r.isDefault ? <StatusChip tone="success">{copy.default}</StatusChip> : null}
           {r.registrationType === 'composition' ? (
-            <Badge variant="neutral">{copy.composition}</Badge>
+            <StatusChip tone="neutral">{copy.composition}</StatusChip>
           ) : null}
-          {r.active ? null : <Badge variant="neutral">{copy.cancelled}</Badge>}
+          {r.active ? null : <StatusChip tone="neutral">{copy.cancelled}</StatusChip>}
         </span>
         <span className="font-mono text-body text-muted-foreground">{r.gstin}</span>
         {owner ? (
@@ -88,38 +74,36 @@ export default function RegistrationRow({
         ) : null}
       </div>
       {actionable ? (
-        <DropdownMenu>
-          <DropdownMenuTrigger
-            aria-label={copy.actions}
-            disabled={busy}
-            className="flex size-9 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-          >
-            <MoreVertical className="size-4" aria-hidden="true" />
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-48">
-            {r.isDefault ? null : (
-              <DropdownMenuItem onClick={handleMakeDefault}>{copy.makeDefault}</DropdownMenuItem>
-            )}
-            <DropdownMenuItem variant="destructive" onClick={() => setConfirmCancel(true)}>
-              {copy.cancel}
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+        <ActionMenu
+          label={copy.actions}
+          trigger="kebab-vertical"
+          size="md"
+          disabled={busy}
+          items={[
+            {
+              label: copy.makeDefault,
+              icon: CircleCheck,
+              hidden: r.isDefault,
+              onSelect: handleMakeDefault,
+            },
+            {
+              label: copy.cancel,
+              icon: OctagonXIcon,
+              destructive: true,
+              onSelect: () => setConfirmCancel(true),
+            },
+          ]}
+        />
       ) : null}
-      <AlertDialog open={confirmCancel} onOpenChange={setConfirmCancel}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>{copy.cancelTitle}</AlertDialogTitle>
-            <AlertDialogDescription>{copy.cancelBody}</AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>{copy.keep}</AlertDialogCancel>
-            <AlertDialogAction variant="destructive" onClick={handleCancel}>
-              {copy.confirmCancel}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <ConfirmDialog
+        open={confirmCancel}
+        onOpenChange={setConfirmCancel}
+        title={copy.cancelTitle}
+        body={copy.cancelBody}
+        confirmLabel={copy.confirmCancel}
+        cancelLabel={copy.keep}
+        onConfirm={handleCancel}
+      />
     </li>
   )
 }

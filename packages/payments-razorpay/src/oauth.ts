@@ -31,6 +31,7 @@ export const RAZORPAY_WEBHOOK_EVENTS = [
   'payment.captured',
   'payment.failed',
   'refund.processed',
+  'refund.failed',
   'qr_code.credited',
   'qr_code.closed',
 ] as const

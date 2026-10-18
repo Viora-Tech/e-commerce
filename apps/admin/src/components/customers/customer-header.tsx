@@ -1,27 +1,13 @@
 'use client'
 
-import { MoreHorizontal, Pencil, Send, Trash2 } from '@commerce/ui/icons'
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@commerce/ui/shadcn/alert-dialog'
+import { Pencil, Send, Trash2 } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@commerce/ui/shadcn/dropdown-menu'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { toast } from 'sonner'
+import ActionMenu from '@/components/layout/action-menu'
+import ConfirmDialog from '@/components/layout/confirm-dialog'
+import PageHeader from '@/components/layout/page-header'
 import StatusChip from '@/components/layout/status-chip'
 import { customerDetailContent, customersContent, VIP_SPEND_PAISE } from '@/data/customers'
 import { datesContent } from '@/data/dates'
@@ -32,7 +18,6 @@ import { routes } from '@/lib/routes'
 import CustomerAvatar from './customer-avatar'
 import type { CustomerDetail } from './customer-detail-types'
 import { day } from './customer-detail-types'
-import CustomersBackLink from './customers-back-link'
 
 type CustomerHeaderProps = {
   customer: CustomerDetail
@@ -82,75 +67,69 @@ export default function CustomerHeader({ customer, onEdit }: CustomerHeaderProps
   const subtitle = city ? copy.withCity(since, city) : since
 
   return (
-    <div className="flex flex-col gap-3">
-      <CustomersBackLink href={routes.customers.list()} label={copy.back} />
-      <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-3">
-        <div className="flex min-w-0 items-start gap-3">
-          <CustomerAvatar
-            name={customer.name}
-            email={customer.email}
-            className="size-10 text-body"
-          />
-          <div className="flex min-w-0 flex-col gap-1">
-            <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1">
-              <h1 className="truncate text-page-title text-ink-strong">{title}</h1>
-              <div className="flex items-center gap-1.5">
-                {orderCount === 0 ? (
-                  <StatusChip tone="info">{copy.badges.new}</StatusChip>
-                ) : orderCount > 1 ? (
-                  <StatusChip>{copy.badges.returning}</StatusChip>
-                ) : null}
-                {vip ? <StatusChip tone="info">{copy.badges.vip}</StatusChip> : null}
-              </div>
-            </div>
-            <p className="text-body text-muted-foreground">{subtitle}</p>
-          </div>
-        </div>
-        <div className="flex items-center gap-2">
-          {customer.email ? (
-            <Button
-              variant="key-neutral"
-              render={<a href={`mailto:${customer.email}`} />}
-              nativeButton={false}
-            >
-              <Send />
-              {copy.actions.email}
-            </Button>
-          ) : null}
-          <DropdownMenu>
-            <DropdownMenuTrigger
-              render={<Button variant="outline" size="icon" aria-label={copy.actions.more} />}
-            >
-              <MoreHorizontal />
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-48">
-              <DropdownMenuItem onClick={onEdit}>
-                <Pencil />
-                {copy.actions.edit}
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem variant="destructive" onClick={() => setConfirming(true)}>
-                <Trash2 />
-                {copy.actions.delete}
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
-      </div>
-      <AlertDialog open={confirming} onOpenChange={setConfirming}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>{copy.actions.deleteHeading}</AlertDialogTitle>
-            <AlertDialogDescription>{copy.actions.deleteBody}</AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>{copy.actions.cancel}</AlertDialogCancel>
-            <AlertDialogAction variant="destructive" disabled={busy} onClick={handleDelete}>
-              {copy.actions.confirm}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-    </div>
+    <>
+      <PageHeader
+        title={title}
+        summary={subtitle}
+        back={{ label: copy.back, href: routes.customers.list() }}
+        lead={{
+          kind: 'avatar',
+          node: (
+            <CustomerAvatar
+              name={customer.name}
+              email={customer.email}
+              className="size-10 text-body"
+            />
+          ),
+        }}
+        badges={
+          <>
+            {orderCount === 0 ? (
+              <StatusChip tone="info">{copy.badges.new}</StatusChip>
+            ) : orderCount > 1 ? (
+              <StatusChip>{copy.badges.returning}</StatusChip>
+            ) : null}
+            {vip ? <StatusChip tone="info">{copy.badges.vip}</StatusChip> : null}
+          </>
+        }
+        actions={
+          <>
+            {customer.email ? (
+              <Button
+                variant="outline"
+                render={<a href={`mailto:${customer.email}`} />}
+                nativeButton={false}
+              >
+                <Send />
+                {copy.actions.email}
+              </Button>
+            ) : null}
+            <ActionMenu
+              label={copy.actions.more}
+              trigger="button"
+              items={[
+                { label: copy.actions.edit, icon: Pencil, onSelect: onEdit },
+                {
+                  label: copy.actions.delete,
+                  icon: Trash2,
+                  destructive: true,
+                  onSelect: () => setConfirming(true),
+                },
+              ]}
+            />
+          </>
+        }
+      />
+      <ConfirmDialog
+        open={confirming}
+        onOpenChange={setConfirming}
+        title={copy.actions.deleteHeading}
+        body={copy.actions.deleteBody}
+        confirmLabel={copy.actions.confirm}
+        cancelLabel={copy.actions.cancel}
+        busy={busy}
+        onConfirm={handleDelete}
+      />
+    </>
   )
 }

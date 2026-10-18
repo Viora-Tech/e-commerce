@@ -1,3 +1,4 @@
+import { Icon } from '@commerce/blocks'
 import type { Metadata } from 'next'
 import Image from 'next/image'
 import Link from 'next/link'
@@ -19,31 +20,32 @@ export default async function CollectionsIndex({ params }: Params) {
   return (
     <section className="section-collection page-width">
       <header className="collection__header">
-        <h1 className="collection__title h2">{copy.indexTitle}</h1>
-        <p className="collection__intro text-body">{copy.indexIntro}</p>
+        <h1 className="collection__title">{copy.indexTitle}</h1>
+        <p className="collection__description">{copy.indexIntro}</p>
       </header>
       {collections.length === 0 ? (
         <p className="text-body">{copy.emptyIndex}</p>
       ) : (
-        <div className="collection__index">
+        <ul className="collection-list__grid collection__index-grid">
           {collections.map((c) => (
-            <Link key={c.handle} href={`/collections/${c.handle}`} className="collection__tile">
-              {c.imageUrl ? (
-                <Image
-                  className="collection__tile-image"
-                  src={c.imageUrl}
-                  alt=""
-                  width={480}
-                  height={320}
-                />
-              ) : null}
-              <span className="collection__tile-title">{c.title}</span>
-              <span className="collection__tile-count text-caption">
-                {copy.productCount(c.productCount)}
-              </span>
-            </Link>
+            <li key={c.handle}>
+              <Link href={`/collections/${c.handle}`} className="collection-list__card">
+                <span className="collection-list__media">
+                  {c.imageUrl ? <Image src={c.imageUrl} alt="" width={480} height={480} /> : null}
+                </span>
+                <span className="collection-list__info">
+                  <span className="collection-list__text">
+                    <span className="collection-list__title">{c.title}</span>
+                    <span className="collection-list__count">
+                      {copy.productCount(c.productCount)}
+                    </span>
+                  </span>
+                  <Icon name="arrow-right" size={16} />
+                </span>
+              </Link>
+            </li>
           ))}
-        </div>
+        </ul>
       )}
     </section>
   )

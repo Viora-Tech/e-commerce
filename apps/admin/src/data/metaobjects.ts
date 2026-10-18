@@ -242,6 +242,7 @@ export const fieldDialogContent = {
   type: 'What goes in it',
   typePlaceholder: 'Pick a kind of value',
   description: 'Hint',
+  descriptionPlaceholder: 'Shown under the field while filling it in',
   list: 'Allow several values',
   listHelp: 'Keep a list in order, like several products or size rows.',
   required: 'Must fill',
@@ -425,6 +426,7 @@ export const customDataContent = {
     hidden: 'Hidden from storefront',
     edit: 'Edit',
     delete: 'Delete',
+    actions: (name: string) => `Actions for ${name}`,
   },
   dialog: {
     addTitle: (owner: string) => `Add ${owner.toLowerCase()} extra field`,
@@ -434,6 +436,7 @@ export const customDataContent = {
     namespaceKeyHelp: 'Your theme reads it as metafields.namespace.key. It is fixed once you save.',
     namespaceKey: 'Theme key',
     description: 'Hint',
+    descriptionPlaceholder: 'Shown under the field',
     storefront: 'Show on your store',
     storefrontHelp: 'Let your theme show this value.',
     privateNote:

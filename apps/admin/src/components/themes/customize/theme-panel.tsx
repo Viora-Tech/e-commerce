@@ -1,267 +1,246 @@
 'use client'
 
-import { applyThemePreset, schemeFor, type Theme } from '@commerce/core/theme'
-import { ExternalLink, RotateCcw } from '@commerce/ui/icons'
+import { applyThemePreset, type Theme } from '@commerce/core/theme'
+import {
+  Braces,
+  ChevronLeftIcon,
+  ChevronRight,
+  CreditCard,
+  ExternalLink,
+  FieldText,
+  FieldToggle,
+  Globe,
+  type IconComponent,
+  InfoIcon,
+  LayoutGrid,
+  Package,
+  Palette,
+  ShoppingCart,
+  SocialMedia,
+} from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
-import { Popover, PopoverContent, PopoverTrigger } from '@commerce/ui/shadcn/popover'
+import { useState } from 'react'
 import { customizeContent } from '@/data/customize'
 import { themesContent } from '@/data/themes'
 import { useCopy } from '@/hooks/use-copy'
 import { CHROME_FOCUS } from '@/lib/customize-chrome'
 import { routes } from '@/lib/routes'
-import {
-  CORNER_RADII,
-  type CornerStyle,
-  cornerStyleOf,
-  SIZE_SCALES,
-  type SizeScale,
-  sizeScaleOf,
-} from '@/lib/theme-quick-settings'
+import { THEME_GROUPS, type ThemeGroup, themeGroupSummary } from '@/lib/theme-panel-summary'
 import BrandSettings from '../brand-settings'
 import CardSettings from '../card-settings'
-import ColourSettings, { type ColourRole } from '../colour-settings'
-import FontPicker from '../font-picker'
+import CartSettings from '../cart-settings'
+import CustomCssSettings from '../custom-css-settings'
 import LayoutSettings from '../layout-settings'
-import RangeField from '../range-field'
-import SwitchField from '../switch-field'
+import SocialSettings from '../social-settings'
 import ThemePresets from '../theme-presets'
-import TypographySettings from '../typography-settings'
-import MoreSettings from './more-settings'
 import PanelTitle from './panel-title'
 import SettingsSegmented from './settings-segmented'
-import SwatchRow from './swatch-row'
-import ThemePanelSection from './theme-panel-section'
+import ThemeButtonsGroup from './theme-buttons-group'
+import ThemeColoursGroup from './theme-colours-group'
+import ThemeTypeGroup from './theme-type-group'
 
 type ThemePanelProps = {
   theme: Theme
   /** Which mode's colours the swatches edit; follows the canvas's light/dark switch. */
   mode: 'light' | 'dark'
   onChange: (next: Theme) => void
+  /** The Scheme switch; it also flips the canvas. Left out, the switch is not shown. */
+  onMode?: ((mode: 'light' | 'dark') => void) | undefined
 }
 
-/** The four page colours shown as swatches, in Figma's order; Buttons follows them. */
-const SWATCHES: { role: ColourRole; key: 'brand' | 'accent' | 'background' | 'text' }[] = [
-  { role: 'button', key: 'brand' },
-  { role: 'accent', key: 'accent' },
-  { role: 'background', key: 'background' },
-  { role: 'text', key: 'text' },
-]
+const ICONS: Record<ThemeGroup, IconComponent> = {
+  colours: Palette,
+  typography: FieldText,
+  buttons: FieldToggle,
+  layout: LayoutGrid,
+  cards: Package,
+  cart: ShoppingCart,
+  social: SocialMedia,
+  css: Braces,
+  brand: Globe,
+}
 
-/** The colours "All colours" lists: every page colour the swatches don't show. */
-const OTHER_ROLES: ColourRole[] = ['textMuted', 'line', 'surface', 'buttonText']
-
-const SIZES: SizeScale[] = ['s', 'm', 'l']
-const CORNERS: CornerStyle[] = ['square', 'soft', 'round']
-
-const rem = (px: number) => `${px / 16}rem`
+const ROW = `flex w-full items-center gap-3 rounded-lg px-2 py-2 text-left transition-colors hover:bg-muted/60 ${CHROME_FOCUS}`
+const ROW_TITLE = 'truncate text-[0.8125rem] leading-[1.1875rem] font-medium text-foreground'
+const ROW_SUMMARY = 'truncate text-xs leading-[1.0625rem] text-muted-foreground'
 
 /**
- * The editor's Theme settings panel (Figma 369:121884): the reset in its head; Colours as five
- * swatches (Brand, Accent, Background, Text, Buttons); Typography as two font dropdowns and a
- * size choice; Buttons as corners, filled or outline and a live sample; then closed rows for
- * Presets, Logo & favicon, Layout, Product cards and Checkout branding. Each group's exact
- * controls sit behind "All colours" / "More … settings", so nothing the theme does is lost.
+ * The editor's Theme settings panel (Figma 697:5119): the preset (four tiles and Reset to
+ * preset) and the scheme on top, then one row per group with what it is set to now; a row
+ * opens its group in place with a way back (Figma 697:5479). Picking a preset restyles the
+ * preview at once and offers Undo, which brings back the colours and fonts it replaced
+ * (Figma 697:6170).
  */
-export default function ThemePanel({ theme, mode, onChange }: ThemePanelProps) {
+export default function ThemePanel({ theme, mode, onChange, onMode }: ThemePanelProps) {
   // Hooks
   const copy = useCopy(customizeContent.themePanel)
   const panels = useCopy(customizeContent.panels)
+  const labels = useCopy(themesContent)
+  const [group, setGroup] = useState<ThemeGroup | null>(null)
+  /** The theme as it was before the last preset was picked, for Undo. */
+  const [beforePreset, setBeforePreset] = useState<Theme | null>(null)
 
   // Helpers
-  const setRole = (role: ColourRole, hex: string) => {
-    const id = schemeFor(theme, mode).id
-    onChange({
-      ...theme,
-      schemes: theme.schemes.map((s) => (s.id === id ? { ...s, [role]: hex } : s)),
-    })
-  }
-  const setButtons = (patch: Partial<Theme['buttons']>) =>
-    onChange({ ...theme, buttons: { ...theme.buttons, ...patch } })
-  const setRadius = (buttonRadius: number) =>
-    onChange({ ...theme, shape: { ...theme.shape, buttonRadius } })
+  const nameOf = (g: ThemeGroup) =>
+    g === 'colours'
+      ? copy.colours
+      : g === 'typography'
+        ? copy.typography
+        : g === 'buttons'
+          ? copy.buttons
+          : copy.rows[g]
 
   // Event handlers
-  const handleReset = () => onChange(applyThemePreset(theme, theme.preset))
+  const handlePreset = (next: Theme) => {
+    setBeforePreset(theme)
+    onChange(next)
+  }
+
+  const handleUndoPreset = () => {
+    if (beforePreset) onChange(beforePreset)
+    setBeforePreset(null)
+  }
+
+  const handleReset = () => {
+    setBeforePreset(null)
+    onChange(applyThemePreset(theme, theme.preset))
+  }
+
+  // Early returns
+  if (group) {
+    return (
+      <div className="flex min-h-0 flex-1 flex-col">
+        <div className="flex flex-col gap-1 px-4 pt-3 pb-4">
+          <button
+            type="button"
+            onClick={() => setGroup(null)}
+            className={`-ml-1 flex items-center gap-1 self-start rounded-md px-1 text-xs leading-[1.0625rem] text-muted-foreground hover:text-foreground ${CHROME_FOCUS}`}
+          >
+            <ChevronLeftIcon aria-hidden className="size-3.5" />
+            {copy.back}
+          </button>
+          <h2 className="text-base leading-[1.4375rem] font-semibold text-foreground">
+            {nameOf(group)}
+          </h2>
+          <p className="text-xs leading-[1.0625rem] text-muted-foreground">{copy.help[group]}</p>
+        </div>
+        <div className="flex flex-col gap-4 overflow-y-auto px-4 pb-4">
+          {group === 'colours' ? (
+            <ThemeColoursGroup theme={theme} mode={mode} onChange={onChange} />
+          ) : group === 'typography' ? (
+            <ThemeTypeGroup theme={theme} onChange={onChange} />
+          ) : group === 'buttons' ? (
+            <ThemeButtonsGroup theme={theme} mode={mode} onChange={onChange} />
+          ) : group === 'layout' ? (
+            <LayoutSettings theme={theme} onChange={onChange} />
+          ) : group === 'cards' ? (
+            <CardSettings theme={theme} onChange={onChange} />
+          ) : group === 'cart' ? (
+            <CartSettings theme={theme} onChange={onChange} />
+          ) : group === 'social' ? (
+            <SocialSettings theme={theme} onChange={onChange} />
+          ) : group === 'css' ? (
+            <CustomCssSettings theme={theme} onChange={onChange} />
+          ) : (
+            <BrandSettings theme={theme} onChange={onChange} />
+          )}
+        </div>
+      </div>
+    )
+  }
 
   // Render logic
-  const scheme = schemeFor(theme, mode)
   const pristine = JSON.stringify(applyThemePreset(theme, theme.preset)) === JSON.stringify(theme)
-  const brandButtons = theme.buttons.colour === 'brand'
-  const fill = brandButtons ? scheme.button : scheme.text
-  const ink = brandButtons ? scheme.buttonText : scheme.background
-  const radius = rem(theme.shape.buttonRadius)
-  const letterCase = { textTransform: theme.buttons.uppercase ? 'uppercase' : 'none' } as const
 
   return (
     <>
-      <PanelTitle
-        title={panels.theme}
-        action={
-          <Button
-            variant="ghost"
-            size="icon-xs"
-            onClick={handleReset}
-            disabled={pristine}
-            aria-label={copy.reset}
-            title={copy.resetHelp}
-            className="text-muted-foreground"
-          >
-            <RotateCcw aria-hidden className="size-3.5" />
-          </Button>
-        }
-      />
-      <div className="flex flex-col gap-4 px-4 pb-4">
-        <ThemePanelSection title={copy.colours} defaultOpen>
-          {SWATCHES.map(({ role, key }) => (
-            <SwatchRow
-              key={role}
-              label={copy.swatches[key]}
-              value={scheme[role]}
-              onChange={(hex) => setRole(role, hex)}
-            />
-          ))}
-          <Popover>
-            <PopoverTrigger
-              className={`flex items-center gap-2.5 rounded-lg text-left hover:bg-muted/60 ${CHROME_FOCUS}`}
+      <PanelTitle title={panels.theme} />
+      <div className="-mt-3 flex flex-col gap-4 px-4 pb-4">
+        <p className="text-xs leading-[1.0625rem] text-muted-foreground">{copy.intro}</p>
+        <div className="flex flex-col gap-2">
+          <div className="flex items-center justify-between gap-2">
+            <h3 className="text-xs leading-[1.0625rem] font-medium text-foreground">
+              {copy.preset}
+            </h3>
+            <Button
+              variant="ghost"
+              size="xs"
+              onClick={handleReset}
+              disabled={pristine}
+              title={copy.resetHelp}
+              className="text-muted-foreground"
             >
-              <span
-                aria-hidden
-                className="size-7 shrink-0 rounded-[0.5rem] border border-border"
-                style={{ backgroundColor: fill }}
-              />
-              <span className="min-w-0 flex-1 truncate text-[0.8125rem] leading-[1.1875rem] font-medium text-foreground">
-                {copy.swatches.buttons}
-              </span>
-              <span className="px-1.5 text-xs leading-[1.0625rem] text-muted-foreground uppercase tabular-nums">
-                {fill}
-              </span>
-            </PopoverTrigger>
-            <PopoverContent align="end" className="w-64">
-              <SettingsSegmented
-                label={copy.buttonColour}
-                value={theme.buttons.colour}
-                options={[
-                  { value: 'text' as const, label: copy.buttonColours.text },
-                  { value: 'brand' as const, label: copy.buttonColours.brand },
-                ]}
-                onChange={(colour) => setButtons({ colour })}
-              />
-            </PopoverContent>
-          </Popover>
-          <MoreSettings label={copy.allColours}>
-            <ColourSettings theme={theme} mode={mode} onChange={onChange} roles={OTHER_ROLES} />
-          </MoreSettings>
-        </ThemePanelSection>
-
-        <ThemePanelSection title={copy.typography} defaultOpen>
-          <FontPicker
-            compact
-            label={copy.headingFont}
-            kind="heading"
-            value={theme.fonts.heading}
-            onChange={(heading) => onChange({ ...theme, fonts: { ...theme.fonts, heading } })}
-          />
-          <FontPicker
-            compact
-            label={copy.bodyFont}
-            kind="body"
-            value={theme.fonts.body}
-            onChange={(body) => onChange({ ...theme, fonts: { ...theme.fonts, body } })}
-          />
-          <SettingsSegmented
-            label={copy.sizeScale}
-            value={sizeScaleOf(theme.fonts)}
-            options={SIZES.map((id) => ({ value: id, label: copy.sizes[id] }))}
-            onChange={(id) => onChange({ ...theme, fonts: { ...theme.fonts, ...SIZE_SCALES[id] } })}
-          />
-          <MoreSettings label={copy.moreType}>
-            <TypographySettings theme={theme} onChange={onChange} pickers={false} />
-          </MoreSettings>
-        </ThemePanelSection>
-
-        <ThemePanelSection title={copy.buttons} defaultOpen>
-          <SettingsSegmented
-            label={copy.cornerRadius}
-            value={cornerStyleOf(theme.shape.buttonRadius)}
-            options={CORNERS.map((id) => ({ value: id, label: copy.corners[id] }))}
-            onChange={(id) => setRadius(CORNER_RADII[id])}
-          />
-          <SettingsSegmented
-            label={copy.buttonStyle}
-            hideLabel
-            value={theme.buttons.style}
-            options={[
-              { value: 'solid' as const, label: copy.styles.solid },
-              { value: 'outline' as const, label: copy.styles.outline },
-            ]}
-            onChange={(style) => setButtons({ style })}
-          />
-          <div
-            aria-hidden
-            className="flex flex-wrap gap-2 rounded-lg border border-border p-3"
-            style={{ backgroundColor: scheme.background }}
-          >
-            <span
-              className="border px-4 py-2 text-[0.8125rem] leading-[1.1875rem] font-semibold"
-              style={{
-                backgroundColor: theme.buttons.style === 'outline' ? 'transparent' : fill,
-                color: theme.buttons.style === 'outline' ? fill : ink,
-                borderColor: fill,
-                borderRadius: radius,
-                ...letterCase,
-              }}
-            >
-              {copy.sample.primary}
-            </span>
-            <span
-              className="border px-4 py-2 text-[0.8125rem] leading-[1.1875rem] font-semibold"
-              style={{ color: fill, borderColor: fill, borderRadius: radius, ...letterCase }}
-            >
-              {copy.sample.secondary}
-            </span>
+              {copy.reset}
+            </Button>
           </div>
-          <MoreSettings label={copy.moreButtons}>
-            <SwitchField
-              label={themesContent.buttons.uppercase}
-              checked={theme.buttons.uppercase}
-              onChange={(uppercase) => setButtons({ uppercase })}
-            />
-            <RangeField
-              label={themesContent.buttons.radius}
-              value={theme.shape.buttonRadius}
-              min={0}
-              max={40}
-              step={1}
-              format={themesContent.units.px}
-              onChange={setRadius}
-            />
-          </MoreSettings>
-        </ThemePanelSection>
-
-        <ThemePanelSection title={copy.rows.presets}>
-          <ThemePresets theme={theme} onChange={onChange} bare />
-        </ThemePanelSection>
-        <ThemePanelSection title={copy.rows.brand}>
-          <BrandSettings theme={theme} onChange={onChange} />
-        </ThemePanelSection>
-        <ThemePanelSection title={copy.rows.layout}>
-          <LayoutSettings theme={theme} onChange={onChange} />
-        </ThemePanelSection>
-        <ThemePanelSection title={copy.rows.cards}>
-          <CardSettings theme={theme} onChange={onChange} />
-        </ThemePanelSection>
-        <a
-          href={routes.settings.checkout()}
-          target="_blank"
-          rel="noreferrer"
-          className={`flex min-h-8 items-center gap-2 border-b border-border pb-3 text-sm leading-5 font-semibold text-foreground hover:text-link ${CHROME_FOCUS}`}
-        >
-          <span className="min-w-0 flex-1 truncate">{copy.rows.checkout}</span>
-          <ExternalLink
-            aria-label={copy.newTab}
-            className="size-3.5 shrink-0 text-muted-foreground"
+          <ThemePresets theme={theme} onChange={handlePreset} compact />
+        </div>
+        {onMode && theme.darkMode.enabled ? (
+          <SettingsSegmented
+            label={copy.scheme}
+            value={mode}
+            options={[
+              { value: 'light' as const, label: copy.schemes.light },
+              { value: 'dark' as const, label: copy.schemes.dark },
+            ]}
+            onChange={onMode}
           />
-        </a>
+        ) : null}
+        {beforePreset ? (
+          <p
+            role="status"
+            className="flex gap-2 rounded-lg border border-info-border bg-info-soft p-3 text-xs leading-[1.0625rem] text-info"
+          >
+            <InfoIcon aria-hidden className="mt-px size-3.5 shrink-0" />
+            <span>
+              {copy.presetApplied(labels.presets.items[theme.preset].label)}{' '}
+              <button
+                type="button"
+                onClick={handleUndoPreset}
+                className={`font-semibold underline underline-offset-2 ${CHROME_FOCUS}`}
+              >
+                {copy.undo}
+              </button>
+            </span>
+          </p>
+        ) : null}
+        <ul className="-mx-2 flex flex-col border-t border-border pt-2">
+          {THEME_GROUPS.map((g) => {
+            const Icon = ICONS[g]
+            return (
+              <li key={g}>
+                <button
+                  type="button"
+                  onClick={() => setGroup(g)}
+                  aria-label={copy.open(nameOf(g))}
+                  className={ROW}
+                >
+                  <Icon aria-hidden className="size-4 shrink-0 text-muted-foreground" />
+                  <span className="flex min-w-0 flex-1 flex-col">
+                    <span className={ROW_TITLE}>{nameOf(g)}</span>
+                    <span className={ROW_SUMMARY}>
+                      {themeGroupSummary(g, theme, copy, (r) => labels.cards.ratios[r])}
+                    </span>
+                  </span>
+                  <ChevronRight aria-hidden className="size-3.5 shrink-0 text-muted-foreground" />
+                </button>
+              </li>
+            )
+          })}
+          <li>
+            <a href={routes.settings.checkout()} target="_blank" rel="noreferrer" className={ROW}>
+              <CreditCard aria-hidden className="size-4 shrink-0 text-muted-foreground" />
+              <span className="flex min-w-0 flex-1 flex-col">
+                <span className={ROW_TITLE}>{copy.rows.checkout}</span>
+                <span className={ROW_SUMMARY}>{copy.summary.checkout}</span>
+              </span>
+              <ExternalLink
+                aria-label={copy.newTab}
+                className="size-3.5 shrink-0 text-muted-foreground"
+              />
+            </a>
+          </li>
+        </ul>
       </div>
     </>
   )

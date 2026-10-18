@@ -14,6 +14,7 @@ export default defineConfig({
   test: {
     include: ['test/**/*.test.ts'],
     globalSetup: ['./test/global-setup.ts'],
+    setupFiles: ['./test/support/quiet-logs.ts'],
     // One database copy per worker (TEST_WORKERS, default 3): see parallelDbTests.
     ...parallelDbTests(),
     testTimeout: 20000,

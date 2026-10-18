@@ -1,8 +1,9 @@
 'use client'
 
-import { AiIcon, Search } from '@commerce/ui/icons'
+import { AiIcon, CircleAlert, Search } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Skeleton } from '@commerce/ui/shadcn/skeleton'
+import EmptyState from '@/components/layout/empty-state'
 import { paletteContent } from '@/data/command-palette'
 import { useCopy } from '@/hooks/use-copy'
 
@@ -36,13 +37,18 @@ export default function PaletteState(props: PaletteStateProps) {
   }
   if (props.kind === 'error') {
     return (
-      <div role="alert" className="flex flex-col items-center gap-3 px-6 py-10 text-center">
-        <p className="text-body-strong text-foreground">{copy.error.title}</p>
-        <p className="text-body text-muted-foreground">{copy.error.body}</p>
-        <Button size="sm" variant="key-neutral" onClick={props.onRetry}>
-          {copy.error.retry}
-        </Button>
-      </div>
+      <EmptyState
+        icon={CircleAlert}
+        tone="danger"
+        heading={copy.error.title}
+        body={copy.error.body}
+        className="py-10"
+        action={
+          <Button size="sm" variant="key-neutral" onClick={props.onRetry}>
+            {copy.error.retry}
+          </Button>
+        }
+      />
     )
   }
 
@@ -50,26 +56,26 @@ export default function PaletteState(props: PaletteStateProps) {
   const { query, onAskAi } = props
 
   return (
-    <div className="flex flex-col items-center gap-3 px-6 py-10 text-center">
-      <span
-        aria-hidden="true"
-        className="flex size-10 items-center justify-center rounded-full bg-muted text-muted-foreground"
-      >
-        <Search className="size-5" />
-      </span>
-      <p className="text-body-strong break-all text-foreground">{copy.noResults(query)}</p>
-      <p className="text-body text-muted-foreground">{copy.noResultsBody}</p>
-      {onAskAi ? (
-        <Button size="sm" onClick={onAskAi}>
-          <AiIcon aria-hidden />
-          {copy.askAi(query)}
-        </Button>
-      ) : null}
-      <ul className="mt-1 flex flex-col gap-1 text-caption text-muted-foreground">
-        {copy.tips.map((tip) => (
-          <li key={tip}>{tip}</li>
-        ))}
-      </ul>
-    </div>
+    <EmptyState
+      icon={Search}
+      heading={copy.noResults(query)}
+      body={copy.noResultsBody}
+      className="py-10"
+      action={
+        <div className="flex flex-col items-center gap-3">
+          {onAskAi ? (
+            <Button size="sm" onClick={onAskAi}>
+              <AiIcon aria-hidden />
+              {copy.askAi(query)}
+            </Button>
+          ) : null}
+          <ul className="flex flex-col gap-1 text-caption text-muted-foreground">
+            {copy.tips.map((tip) => (
+              <li key={tip}>{tip}</li>
+            ))}
+          </ul>
+        </div>
+      }
+    />
   )
 }

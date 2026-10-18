@@ -33,19 +33,11 @@ import type {
   PaymentProviderFactory,
   PaymentStatus,
   RefundContext,
-  WebhookEvent,
   WebhookVerification,
 } from '@commerce/payments'
 import { safeEqual } from '@commerce/payments'
-import {
-  type CfChargesDetails,
-  type CfOrderSettlement,
-  type CfPaidPayment,
-  type CfPaymentMethod,
-  chargesFromDetails,
-  chargesOfPayment,
-  methodOnly,
-} from './charges'
+import { type CfOrderSettlement, type CfPaidPayment, chargesOfPayment } from './charges'
+import { type CfWebhookBody, cashfreeEventId, normaliseCashfreeWebhook } from './webhook-events'
 
 export type CashfreeConfig = {
   appId: string
@@ -172,47 +164,6 @@ type CfRefundResponse = {
   refund_id: string
   refund_amount: number
   refund_status: string
-}
-
-type CfWebhookOrder = {
-  order_id: string
-  order_amount: number
-  order_currency: string
-  order_tags?: Record<string, string> | null
-}
-
-type CfWebhookPayment = {
-  cf_payment_id: string | number
-  payment_status: string
-  payment_amount: number
-  payment_currency?: string
-  payment_message?: string | null
-  payment_time?: string
-  payment_group?: string
-  payment_method?: CfPaymentMethod | null
-}
-
-type CfWebhookRefund = {
-  cf_refund_id: string | number
-  cf_payment_id?: string | number
-  refund_id: string
-  order_id: string
-  refund_amount: number
-  refund_status: string
-}
-
-type CfWebhookBody = {
-  data?: {
-    order?: CfWebhookOrder
-    payment?: CfWebhookPayment
-    refund?: CfWebhookRefund
-    charges_details?: CfChargesDetails
-    customer_details?: unknown
-    type?: string
-    event_time?: string
-  }
-  event_time?: string
-  type?: string
 }
 
 class CashfreeApiError extends Error {
@@ -476,80 +427,8 @@ export class CashfreeProvider implements PaymentProvider {
 
     // The documented sample nests type/event_time inside `data`; prefer the top-level copy.
     const type = body.type ?? body.data?.type ?? 'unknown'
-    const eventId = this.defaultEventId(type, body)
-    return { ok: true, eventId, event: this.normalise(type, body) }
-  }
-
-  private defaultEventId(type: string, body: CfWebhookBody): string {
-    const paymentId = body.data?.payment?.cf_payment_id
-    const refundId = body.data?.refund?.cf_refund_id
-    const id =
-      paymentId != null ? String(paymentId) : refundId != null ? String(refundId) : 'unknown'
-    return `${type}:${id}`
-  }
-
-  private normalise(type: string, body: CfWebhookBody): WebhookEvent {
-    switch (type) {
-      case 'PAYMENT_SUCCESS_WEBHOOK': {
-        const order = body.data?.order
-        const payment = body.data?.payment
-        if (!order || !payment) break
-        return {
-          type: 'payment.captured',
-          providerRef: order.order_id,
-          providerPaymentId: String(payment.cf_payment_id),
-          idempotencyKey: order.order_tags?.idempotencyKey ?? null,
-          amountPaise: Math.round(payment.payment_amount * 100),
-          orderId: order.order_tags?.orderId ?? null,
-          // The fee comes later, in PAYMENT_CHARGES_WEBHOOK or from the fee sync.
-          charges: methodOnly(payment),
-          raw: body,
-        }
-      }
-      // Sent once Cashfree has worked out its fee ("Success Payment TDR" in its dashboard).
-      case 'PAYMENT_CHARGES_WEBHOOK': {
-        const order = body.data?.order
-        const payment = body.data?.payment
-        const fee = chargesFromDetails(body.data?.charges_details)
-        if (!order || !payment || fee.feePaise === null) break
-        return {
-          type: 'payment.charges',
-          providerRef: order.order_id,
-          providerPaymentId: String(payment.cf_payment_id),
-          // Its payment_method may be empty; the success webhook already recorded the method.
-          charges: { ...fee, method: null },
-          orderId: order.order_tags?.orderId ?? null,
-          raw: body,
-        }
-      }
-      case 'PAYMENT_FAILED_WEBHOOK': {
-        const order = body.data?.order
-        const payment = body.data?.payment
-        if (!order || !payment) break
-        return {
-          type: 'payment.failed',
-          providerRef: order.order_id,
-          providerPaymentId: payment.cf_payment_id != null ? String(payment.cf_payment_id) : null,
-          idempotencyKey: order.order_tags?.idempotencyKey ?? null,
-          reason: payment.payment_message ?? 'failed',
-          orderId: order.order_tags?.orderId ?? null,
-          raw: body,
-        }
-      }
-      case 'REFUND_STATUS_WEBHOOK': {
-        const refund = body.data?.refund
-        if (refund?.refund_status !== 'SUCCESS') break
-        return {
-          type: 'refund.processed',
-          providerRef: refund.order_id,
-          providerRefundId: String(refund.cf_refund_id),
-          amountPaise: Math.round(refund.refund_amount * 100),
-          orderId: null,
-          raw: body,
-        }
-      }
-    }
-    return { type: 'ignored', eventName: type, raw: body }
+    const eventId = cashfreeEventId(type, body)
+    return { ok: true, eventId, event: normaliseCashfreeWebhook(type, body) }
   }
 
   /** Read-only probe for the Connect page: a random order id always 404s on valid keys. */

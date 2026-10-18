@@ -1,20 +1,21 @@
 'use client'
 
 import { type CampaignProblem, campaignProblems } from '@commerce/core/marketing'
-import { CircleAlert, Send, Trash2 } from '@commerce/ui/icons'
-import { Alert, AlertDescription } from '@commerce/ui/shadcn/alert'
+import { CircleAlert, CircleCheck, CircleDashed, Send, Trash2 } from '@commerce/ui/icons'
+import { Alert, AlertDescription, AlertTitle } from '@commerce/ui/shadcn/alert'
 import { Button } from '@commerce/ui/shadcn/button'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
-import ProoflyPageHeader from '@/components/layout/proofly-page-header'
+import ConfirmDialog from '@/components/layout/confirm-dialog'
+import DataCard from '@/components/layout/data-card'
+import PageHeader from '@/components/layout/page-header'
 import SaveBar from '@/components/layout/save-bar'
 import { campaignEditorContent as copy } from '@/data/marketing-campaigns'
 import { api } from '@/lib/api-client'
 import { routes } from '@/lib/routes'
 import CampaignSettingsCard from './campaign-settings-card'
-import DeleteCampaignDialog from './delete-campaign-dialog'
 import EmailContentCard from './email-content-card'
 import EmailPreview from './email-preview'
 import {
@@ -161,7 +162,7 @@ export default function CampaignEditor({
   const title = campaign ? form.name : form.kind === 'email' ? copy.newEmail : copy.newWhatsapp
 
   return (
-    <div className="mx-auto flex w-full max-w-[81.5rem] flex-col gap-6 px-4 py-6 md:px-8 md:py-8">
+    <div className="flex w-full flex-col gap-6 px-4 py-6 md:px-8 md:py-8">
       <SaveBar
         open={dirty}
         message={copy.saveBar.message}
@@ -171,7 +172,7 @@ export default function CampaignEditor({
         onDiscard={() => setForm(JSON.parse(saved) as CampaignForm)}
         saving={busy}
       />
-      <ProoflyPageHeader
+      <PageHeader
         title={title}
         back={{ label: copy.breadcrumb, href: routes.growth.campaigns() }}
         actions={
@@ -220,11 +221,17 @@ export default function CampaignEditor({
         </Alert>
       ) : null}
       {problems.length && (campaign || dirty) ? (
-        <ul className="flex flex-col gap-1 text-caption text-muted-foreground">
-          {problems.map((p) => (
-            <li key={p}>{copy.problems[p]}</li>
-          ))}
-        </ul>
+        <Alert>
+          <CircleAlert />
+          <AlertTitle>{copy.fixThese}</AlertTitle>
+          <AlertDescription>
+            <ul className="flex list-disc flex-col gap-0.5 pl-4">
+              {problems.map((p) => (
+                <li key={p}>{copy.problems[p]}</li>
+              ))}
+            </ul>
+          </AlertDescription>
+        </Alert>
       ) : null}
       <div className="grid grid-cols-1 items-start gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)]">
         <div className="flex min-w-0 flex-col gap-5">
@@ -248,11 +255,36 @@ export default function CampaignEditor({
             blocks={form.blocks}
           />
         ) : (
-          <WhatsappPreview
-            value={form.whatsapp}
-            body={chosen?.body ?? null}
-            storeName={storeName}
-          />
+          <div className="flex min-w-0 flex-col gap-5">
+            <WhatsappPreview
+              value={form.whatsapp}
+              body={chosen?.body ?? null}
+              storeName={storeName}
+            />
+            <DataCard title={copy.beforeSend.heading}>
+              <ul className="flex flex-col gap-2 text-body">
+                {[
+                  { ok: Boolean(chosen), label: copy.beforeSend.approved },
+                  {
+                    ok: !problems.includes('variables') && Boolean(chosen),
+                    label: copy.beforeSend.variables,
+                  },
+                  { ok: (reach ?? 0) > 0, label: copy.beforeSend.optedIn(reach ?? 0) },
+                ].map((c) => (
+                  <li key={c.label} className="flex items-center gap-2">
+                    {c.ok ? (
+                      <CircleCheck className="size-4 text-success" aria-hidden="true" />
+                    ) : (
+                      <CircleDashed className="size-4 text-muted-foreground" aria-hidden="true" />
+                    )}
+                    <span className={c.ok ? 'text-foreground' : 'text-muted-foreground'}>
+                      {c.label}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </DataCard>
+          </div>
         )}
       </div>
       <TestSendDialog
@@ -269,11 +301,15 @@ export default function CampaignEditor({
         error={error}
         onConfirm={handleSend}
       />
-      <DeleteCampaignDialog
+      <ConfirmDialog
         open={dialog === 'delete'}
         onOpenChange={(o) => setDialog(o ? 'delete' : null)}
+        title={copy.delete.title}
+        body={copy.delete.body}
+        confirmLabel={copy.delete.confirm}
+        cancelLabel={copy.delete.cancel}
         busy={busy}
-        onConfirm={handleDelete}
+        onConfirm={() => void handleDelete()}
       />
     </div>
   )

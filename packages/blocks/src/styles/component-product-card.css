@@ -727,3 +727,99 @@
 :root:not([data-card-sale-badge="on"]) .product-card__badge--sale {
   display: none;
 }
+
+/* ------------------------------------------------------------------ */
+/* Figma Store / Product card (692:81508)                               */
+/* ------------------------------------------------------------------ */
+/* The photo panel, the name in the body size, rating and price 6px apart; the
+   badge a small rounded tag in the top-left corner. */
+.product-card__link {
+  gap: var(--space-3);
+}
+
+.product-card__info {
+  gap: 6px;
+}
+
+.product-card__title {
+  font-size: var(--font-body-size, 16px);
+  line-height: 1.5;
+  min-height: calc(2 * 1.5em);
+}
+
+.product-card__badge {
+  top: var(--space-3);
+  left: var(--space-3);
+}
+
+.product-card__quick-add {
+  width: 100%;
+  height: 40px;
+  margin-top: var(--space-3);
+  padding-inline: var(--space-4);
+}
+
+/* Figma Store / Product card "Wishlist": a round button on the photo's top-right corner. */
+.product-card {
+  position: relative;
+}
+
+.product-card__wishlist {
+  position: absolute;
+  top: var(--space-3);
+  right: var(--space-3);
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background-color: var(--color-bg);
+  color: var(--color-ink);
+  cursor: pointer;
+  transition: scale var(--duration-press, 120ms) ease-out;
+}
+
+.product-card__wishlist:active {
+  scale: 0.94;
+}
+
+.product-card__wishlist[aria-pressed="true"] {
+  color: var(--color-sale, var(--color-brand));
+}
+
+/* Theme settings → Product cards (data attributes from themeRootAttrs). */
+.product-card__rating {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  margin: 0;
+  font-size: 0.8125rem;
+  color: var(--color-ink);
+}
+.product-card__rating > span[aria-hidden] {
+  color: var(--color-rating, #f5a524);
+}
+.product-card__rating-count {
+  color: var(--color-ink-muted, currentColor);
+}
+:root[data-card-rating="off"] .product-card__rating {
+  display: none;
+}
+:root:not([data-card-quick-add="on"]) .product-card:not(.product-card--quick-add) .product-card__quick-add {
+  display: none;
+}
+:root[data-card-wishlist="off"] .product-card__wishlist {
+  display: none;
+}
+:root[data-card-style="minimal"] .product-card__media {
+  border: 0;
+  box-shadow: none;
+  background: transparent;
+}
+:root[data-card-style="minimal"] .product-card__info {
+  padding-inline: 0;
+  gap: 0.125rem;
+}

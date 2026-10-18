@@ -1,7 +1,14 @@
+import { ExternalLink } from '@commerce/ui/icons'
+import { Button } from '@commerce/ui/shadcn/button'
 import Link from 'next/link'
 import DataCard from '@/components/layout/data-card'
+import KeyValueList from '@/components/layout/key-value-list'
+import LabeledGroup from '@/components/layout/labeled-group'
+import { stateName } from '@/data/india'
+import { orderDetailContent } from '@/data/orders'
 import { returnDetailContent as copy, returnsContent } from '@/data/returns'
 import { formatPaise } from '@/lib/money'
+import { routes } from '@/lib/routes'
 import type { ReturnDetail } from './return-types'
 
 type ReturnCustomerCardProps = { detail: ReturnDetail }
@@ -11,6 +18,8 @@ export default function ReturnCustomerCard({ detail: r }: ReturnCustomerCardProp
   // Render logic
   const o = r.order
   const a = o.address
+  const field = orderDetailContent.customer
+  const who = o.customerName ?? o.email ?? returnsContent.guest
   const courierLabel =
     r.pickupCouriers.find((c) => c.id === r.pickupProvider)?.label ?? r.pickupProvider ?? ''
 
@@ -19,9 +28,15 @@ export default function ReturnCustomerCard({ detail: r }: ReturnCustomerCardProp
       <DataCard
         title={copy.order}
         action={
-          <Link href={`/orders/${o.id}`} className="text-body text-link hover:underline">
+          <Button
+            variant="ghost"
+            size="sm"
+            nativeButton={false}
+            render={<Link href={routes.orders.detail(o.id)} />}
+          >
+            <ExternalLink aria-hidden="true" />
             {copy.openOrder}
-          </Link>
+          </Button>
         }
       >
         <p className="text-body text-foreground">{copy.forOrder(o.number)}</p>
@@ -29,24 +44,26 @@ export default function ReturnCustomerCard({ detail: r }: ReturnCustomerCardProp
           {copy.orderTotal(formatPaise(o.totalPaise))}
         </p>
       </DataCard>
-      <DataCard title={copy.customer}>
-        <div className="flex flex-col gap-1 text-body">
-          <span className="text-foreground">
-            {o.customerName ?? o.email ?? returnsContent.guest}
-          </span>
-          {o.email ? <span className="text-muted-foreground">{o.email}</span> : null}
-          {o.phone ? <span className="text-muted-foreground">{o.phone}</span> : null}
-        </div>
+      <DataCard title={copy.customer} bodyClassName="flex flex-col gap-4">
+        <KeyValueList
+          rows={[
+            { label: field.name, value: who, copy: true },
+            { label: field.email, value: o.email ?? '', copy: true, hidden: !o.email },
+            { label: field.phone, value: o.phone ?? '', copy: true, hidden: !o.phone },
+          ]}
+        />
         {a ? (
-          <div className="mt-4 flex flex-col gap-0.5 text-body">
-            <span className="text-caption text-muted-foreground">{copy.shipTo}</span>
-            <span>{a.name}</span>
-            <span>{[a.line1, a.line2].filter(Boolean).join(', ')}</span>
-            <span>
-              {a.city}, {a.stateCode} {a.pincode}
-            </span>
-            <span>{a.phone}</span>
-          </div>
+          <LabeledGroup label={copy.shipTo}>
+            <KeyValueList
+              rows={[
+                { label: field.line1, value: a.line1, copy: true },
+                { label: field.line2, value: a.line2 ?? '', copy: true, hidden: !a.line2 },
+                { label: field.city, value: a.city, copy: true },
+                { label: field.state, value: stateName(a.stateCode), copy: true },
+                { label: field.pincode, value: a.pincode, copy: true },
+              ]}
+            />
+          </LabeledGroup>
         ) : null}
       </DataCard>
       {r.pickupMethod ? (

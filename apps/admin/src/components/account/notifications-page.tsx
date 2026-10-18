@@ -16,10 +16,10 @@ import { Switch } from '@commerce/ui/shadcn/switch'
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
+import PageHeader from '@/components/layout/page-header'
 import SaveBar from '@/components/layout/save-bar'
 import StatusChip from '@/components/layout/status-chip'
 import SettingsCard from '@/components/settings/settings-card'
-import SettingsPageHeader from '@/components/settings/settings-page-header'
 import { accountContent } from '@/data/account'
 import { useCopy, useRegion } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
@@ -104,7 +104,7 @@ export default function NotificationsPage() {
   if (failed) {
     return (
       <div className="flex flex-col gap-4">
-        <SettingsPageHeader title={copy.title} hideBack />
+        <PageHeader title={copy.title} />
         <Card gap={3} inset={6} className="items-start">
           <p className="text-body text-muted-foreground">{copy.loadFailed}</p>
           <Button variant="outline" onClick={handleRetry}>
@@ -134,14 +134,10 @@ export default function NotificationsPage() {
         onDiscard={handleDiscard}
         saving={saving}
       />
-      <SettingsPageHeader
+      <PageHeader
         title={copy.title}
         subtitle={loaded ? copy.intro(loaded.storeName) : undefined}
-        hideBack
-        onSave={handleSave}
-        dirty={dirty}
-        saving={saving}
-        saveLabel={copy.save}
+        save={{ dirty, saving, onSave: handleSave, label: copy.save }}
       />
       <SettingsCard title={copy.heading} description={copy.body}>
         {!loaded || !form ? (

@@ -4,21 +4,16 @@ import { METAFIELD_OWNER_TYPES, type MetafieldOwnerType } from '@commerce/core/m
 import { permissions } from '@commerce/core/permissions'
 import { Plus } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
-import {
-  Card,
-  CardAction,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@commerce/ui/shadcn/card'
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
+import DataCard from '@/components/layout/data-card'
+import EmptyState from '@/components/layout/empty-state'
+import PageHeader from '@/components/layout/page-header'
 import SectionTabs from '@/components/settings/section-tabs'
-import SettingsPageHeader from '@/components/settings/settings-page-header'
 import SettingsSection from '@/components/settings/settings-section'
 import { customDataContent } from '@/data/metaobjects'
+import { SETTINGS_BACK } from '@/data/settings'
 import { useCopy } from '@/hooks/use-copy'
 import { usePermissions } from '@/hooks/use-permissions'
 import { api } from '@/lib/api-client'
@@ -94,7 +89,7 @@ export default function CustomDataSettings() {
 
   return (
     <div className="flex flex-col gap-4">
-      <SettingsPageHeader title={copy.title} subtitle={copy.intro} />
+      <PageHeader title={copy.title} subtitle={copy.intro} back={SETTINGS_BACK} />
       <SectionTabs tabs={tabs}>
         {OWNER_TABS.map(({ owner, tab }) => (
           <SettingsSection key={owner} id={copy.tabs[tab].id} className="flex flex-col gap-4">
@@ -116,50 +111,45 @@ export default function CustomDataSettings() {
           </SettingsSection>
         ))}
         <SettingsSection id={copy.tabs.metaobjects.id}>
-          <Card>
-            <CardHeader>
-              <CardTitle>{copy.metaobjects.heading}</CardTitle>
-              <CardDescription>{copy.metaobjects.body}</CardDescription>
-              <CardAction>
-                <Button
-                  variant="outline"
-                  render={<Link href={routes.content.newContentType()} />}
-                  nativeButton={false}
-                >
-                  <Plus />
-                  {copy.metaobjects.add}
-                </Button>
-              </CardAction>
-            </CardHeader>
-            <CardContent>
-              {data && data.metaobjects.length === 0 ? (
-                <p className="rounded-md border border-dashed border-line px-4 py-8 text-center text-body text-muted-foreground">
-                  {copy.metaobjects.empty}
-                </p>
-              ) : (
-                <ul className="flex flex-col divide-y divide-line rounded-md border border-line">
-                  {(data?.metaobjects ?? []).map((d) => (
-                    <li key={d.id}>
-                      <Link
-                        href={`${entriesPath(d.type)}/definition`}
-                        className="flex items-center gap-3 px-3 py-2.5 hover:bg-muted"
-                      >
-                        <span className="flex min-w-0 flex-1 flex-col">
-                          <span className="truncate text-body-strong">{d.name}</span>
-                          <span className="truncate font-mono text-caption text-muted-foreground">
-                            {d.type}
-                          </span>
+          <DataCard
+            title={copy.metaobjects.heading}
+            subtitle={copy.metaobjects.body}
+            action={
+              <Button
+                variant="outline"
+                render={<Link href={routes.content.newContentType()} />}
+                nativeButton={false}
+              >
+                <Plus />
+                {copy.metaobjects.add}
+              </Button>
+            }
+          >
+            {data && data.metaobjects.length === 0 ? (
+              <EmptyState variant="dashed" size="md" body={copy.metaobjects.empty} />
+            ) : (
+              <ul className="flex flex-col divide-y divide-line rounded-md border border-line">
+                {(data?.metaobjects ?? []).map((d) => (
+                  <li key={d.id}>
+                    <Link
+                      href={`${entriesPath(d.type)}/definition`}
+                      className="flex items-center gap-3 px-3 py-2.5 hover:bg-muted"
+                    >
+                      <span className="flex min-w-0 flex-1 flex-col">
+                        <span className="truncate text-body-strong">{d.name}</span>
+                        <span className="truncate font-mono text-caption text-muted-foreground">
+                          {d.type}
                         </span>
-                        <span className="text-caption text-muted-foreground">
-                          {copy.metaobjects.entries(d.entries)}
-                        </span>
-                      </Link>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </CardContent>
-          </Card>
+                      </span>
+                      <span className="text-caption text-muted-foreground">
+                        {copy.metaobjects.entries(d.entries)}
+                      </span>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </DataCard>
         </SettingsSection>
       </SectionTabs>
     </div>

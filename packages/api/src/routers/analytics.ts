@@ -1,7 +1,8 @@
 import { permissions } from '@commerce/core'
 import { z } from 'zod'
 import { can } from '../procedures'
-import { analyticsLive, analyticsOverview } from '../services/analytics.service'
+import { analyticsLive, analyticsOverview, bigSaleDays } from '../services/analytics.service'
+import { runCustomQuery } from '../services/analytics-query.service'
 import { analyticsReport } from '../services/analytics-report.service'
 import { REPORTS } from '../services/analytics-reports'
 import {
@@ -37,6 +38,14 @@ export const analyticsRouter = {
       visitors: context.visitors,
     }),
   ),
+
+  /** The store's biggest sales days in the last year, for the date picker's "Big sale days". */
+  bigSaleDays: can(permissions.ANALYTICS_READ).handler(({ context }) => bigSaleDays(context.tx)),
+
+  /** Runs a custom query (Figma "query editor"): parsed, then fixed SQL only, read-only. */
+  query: can(permissions.ANALYTICS_READ)
+    .input(z.object({ source: z.string().max(4000) }))
+    .handler(({ context, input }) => runCustomQuery(context.tx, input.source)),
 
   /** The report catalogue; static, so the page can render before any query runs. */
   reports: can(permissions.ANALYTICS_READ).handler(() => REPORTS),

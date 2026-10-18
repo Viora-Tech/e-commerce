@@ -51,6 +51,7 @@ async function onOrderEvent(ctx: AppHookContext, orderId: string, event: 'paid' 
       if (issued) {
         await renderAndStore(ctx, issued.id)
         ctx.log(`issued ${issued.number}`)
+        ctx.reportActivity?.(`Issued invoice ${issued.number}`)
       }
     } catch (err) {
       // A closed period or a missing B2C detail leaves the draft in the queue for review.
@@ -65,6 +66,7 @@ async function onOrderEvent(ctx: AppHookContext, orderId: string, event: 'paid' 
       if (rv?.created) {
         await renderAndStore(ctx, rv.row.id)
         ctx.log(`receipt voucher ${rv.row.number}`)
+        ctx.reportActivity?.(`Issued receipt voucher ${rv.row.number}`)
       }
     }
   }
@@ -86,6 +88,7 @@ async function onRefund(ctx: AppHookContext, orderId: string, refundId: string) 
       for (const note of notes) {
         if (note.created || note.row.pdfStatus !== 'ready') await renderAndStore(ctx, note.row.id)
         ctx.log(`credit note ${note.row.number} for refund ${refundId}`)
+        ctx.reportActivity?.(`Issued credit note ${note.row.number}`)
       }
       return
     }
@@ -111,6 +114,7 @@ async function onRefund(ctx: AppHookContext, orderId: string, refundId: string) 
     )
   }
   ctx.log(`refund voucher ${voucher.row.number} for refund ${refundId}`)
+  ctx.reportActivity?.(`Issued refund voucher ${voucher.row.number}`)
 }
 
 /** The PDFs an order email carries: issued documents only, per the "attach to email" switches. */
@@ -171,6 +175,28 @@ export const gstInvoicesPlugin = definePlugin({
       note: 'Invoice templates and the live preview editor',
     },
   ],
+  access: {
+    resources: [
+      { resource: 'orders', level: 'read', why: 'Paid and shipped orders, to bill them' },
+      {
+        resource: 'customers',
+        level: 'read',
+        why: 'Billing name, address and GSTIN on the invoice',
+      },
+      { resource: 'refunds', level: 'read', why: 'Refunds, to issue credit notes' },
+      {
+        resource: 'invoices',
+        level: 'read-write',
+        why: 'Issues invoices, credit notes, slips and vouchers',
+      },
+      {
+        resource: 'order-events',
+        level: 'read',
+        why: 'Reacts when an order is paid, shipped or refunded',
+      },
+    ],
+    summary: 'makes invoices',
+  },
   provides: {},
   hooks: {
     'order.paid': (ctx, p) => onOrderEvent(ctx, p.orderId, 'paid'),

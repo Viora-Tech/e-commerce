@@ -1,56 +1,27 @@
 'use client'
 
 import { siteConfig } from '@commerce/config/site'
-import { ArrowLeft, CheckIcon, ExternalLink } from '@commerce/ui/icons'
+import { CheckIcon, ExternalLink } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
-import { type ReactNode, useState } from 'react'
-import { toast } from 'sonner'
+import DataCard from '@/components/layout/data-card'
+import KeyValueList from '@/components/layout/key-value-list'
+import PageHeader from '@/components/layout/page-header'
 import StatusChip from '@/components/layout/status-chip'
 import { appsContent } from '@/data/apps'
 import { useCopy } from '@/hooks/use-copy'
-import { api } from '@/lib/api-client'
 import { permissionLines } from '@/lib/app-permissions'
 import { routes } from '@/lib/routes'
+import AppAccessList from './app-access-list'
 import type { AppSummary } from './app-card'
 import AppLogo from './app-logo'
-import InstallDialog from './install-dialog'
 
 type AppListingProps = { app: AppSummary }
-
-function Card({ title, children }: { title: string; children: ReactNode }) {
-  return (
-    <section className="flex flex-col gap-3.5 rounded-2xl border border-border surface-card p-6">
-      <h2 className="text-card-title text-ink-strong">{title}</h2>
-      {children}
-    </section>
-  )
-}
 
 /** An app's listing (Figma "Apps / App listing"): what it does, what it can access, details, install. */
 export default function AppListing({ app }: AppListingProps) {
   // Hooks
   const copy = useCopy(appsContent)
-  const router = useRouter()
-  const [asking, setAsking] = useState(false)
-  const [busy, setBusy] = useState(false)
-
-  // Event handlers
-  const handleInstall = async () => {
-    setBusy(true)
-    try {
-      await api.apps.install({ id: app.id })
-      toast.success(copy.installedToast(app.name))
-      setAsking(false)
-      // The server page now finds the app installed and renders its own screens.
-      router.refresh()
-    } catch (err) {
-      toast.error(err instanceof Error && err.message ? err.message : copy.actionFailed)
-    } finally {
-      setBusy(false)
-    }
-  }
 
   // Render logic
   const category = app.category
@@ -74,36 +45,27 @@ export default function AppListing({ app }: AppListingProps) {
 
   return (
     <>
-      <Link
-        href={routes.apps.list()}
-        className="flex w-fit items-center gap-1.5 text-body text-muted-foreground hover:text-foreground"
-      >
-        <ArrowLeft className="size-4" aria-hidden="true" />
-        {copy.listing.back}
-      </Link>
-      <div className="flex flex-wrap items-center gap-5 rounded-2xl border border-border surface-card p-6">
-        <AppLogo id={app.id} icon={app.admin.icon} size={72} />
-        <div className="flex min-w-[min(100%,16rem)] flex-1 flex-col gap-1">
-          <h1 className="text-page-title text-ink-strong">{app.name}</h1>
-          <p className="text-body text-muted-foreground">
-            {byline}
-            {category ? ` · ${category}` : ''}
-          </p>
-          <div className="flex gap-2 pt-1">
-            <StatusChip className="h-5 text-xs">{copy.version(app.version)}</StatusChip>
-          </div>
-        </div>
-        <Button onClick={() => setAsking(true)}>{copy.install}</Button>
-      </div>
+      <PageHeader
+        title={app.name}
+        summary={`${byline}${category ? ` · ${category}` : ''}`}
+        back={{ label: copy.listing.back, href: routes.apps.store() }}
+        lead={{ kind: 'logo', node: <AppLogo id={app.id} icon={app.admin.icon} size={72} /> }}
+        badges={<StatusChip className="h-5 text-xs">{copy.version(app.version)}</StatusChip>}
+        actions={
+          <Button nativeButton={false} render={<Link href={routes.apps.install(app.id)} />}>
+            {copy.install}
+          </Button>
+        }
+      />
       <div className="grid gap-6 lg:grid-cols-[1fr_23.5rem]">
         <div className="flex flex-col gap-6">
           {app.description ? (
-            <Card title={copy.listing.whatItDoes}>
+            <DataCard title={copy.listing.whatItDoes}>
               <p className="text-body text-muted-foreground">{app.description}</p>
-            </Card>
+            </DataCard>
           ) : null}
           {app.credits.length > 0 ? (
-            <Card title={copy.listing.builtOn}>
+            <DataCard title={copy.listing.builtOn}>
               <ul className="flex flex-col gap-2">
                 {app.credits.map((c) => (
                   <li key={c.url}>
@@ -119,44 +81,34 @@ export default function AppListing({ app }: AppListingProps) {
                   </li>
                 ))}
               </ul>
-            </Card>
+            </DataCard>
           ) : null}
         </div>
         <div className="flex flex-col gap-6">
-          <Card title={copy.listing.access}>
-            <ul className="flex flex-col gap-3">
-              {lines.map((line) => (
-                <li key={line} className="flex items-start gap-2 text-body text-muted-foreground">
-                  <CheckIcon
-                    className="mt-0.5 size-4 shrink-0 text-foreground"
-                    aria-hidden="true"
-                  />
-                  {line}
-                </li>
-              ))}
-            </ul>
-            <p className="rounded-[0.625rem] bg-muted px-3 py-2.5 text-body text-muted-foreground">
-              {copy.permissions.nothingElse} {copy.listing.trust}
-            </p>
-          </Card>
-          <Card title={copy.listing.details}>
-            <dl className="flex flex-col gap-3">
-              {details.map((d) => (
-                <div key={d.label} className="flex items-center justify-between gap-4 text-body">
-                  <dt className="text-muted-foreground">{d.label}</dt>
-                  <dd className="text-right text-foreground">{d.value}</dd>
-                </div>
-              ))}
-            </dl>
-          </Card>
+          <DataCard title={copy.listing.access}>
+            <div className="flex flex-col gap-3.5">
+              <ul className="flex flex-col gap-3">
+                {lines.map((line) => (
+                  <li key={line} className="flex items-start gap-2 text-body text-muted-foreground">
+                    <CheckIcon
+                      className="mt-0.5 size-4 shrink-0 text-foreground"
+                      aria-hidden="true"
+                    />
+                    {line}
+                  </li>
+                ))}
+              </ul>
+              {app.access.resources.length > 0 ? <AppAccessList app={app} /> : null}
+              <p className="rounded-[0.625rem] bg-muted px-3 py-2.5 text-body text-muted-foreground">
+                {copy.permissions.nothingElse} {copy.listing.trust}
+              </p>
+            </div>
+          </DataCard>
+          <DataCard title={copy.listing.details}>
+            <KeyValueList rows={details} variant="grid" />
+          </DataCard>
         </div>
       </div>
-      <InstallDialog
-        app={asking ? app : null}
-        busy={busy}
-        onConfirm={() => void handleInstall()}
-        onCancel={() => setAsking(false)}
-      />
     </>
   )
 }

@@ -30,6 +30,9 @@ export type FooterSettings = {
   showPaymentIcons: boolean
   paymentIcons: { method: PaymentMethod }[]
   showPolicies: boolean
+  showNewsletter: boolean
+  newsletterHeading: ReactNode
+  newsletterButton: ReactNode
 }
 
 const showHide = (label: string) => ({ type: 'radio', label, options: copy.showHide }) as const
@@ -45,6 +48,9 @@ const DEFAULTS: FooterSettings = {
   showPaymentIcons: true,
   paymentIcons: copy.paymentIcons.map((p) => ({ ...p })),
   showPolicies: true,
+  showNewsletter: true,
+  newsletterHeading: copy.newsletterHeading,
+  newsletterButton: copy.newsletterButton,
 }
 
 const FIELDS = {
@@ -89,6 +95,9 @@ const FIELDS = {
     },
   },
   showPolicies: showHide(copy.fields.showPolicies),
+  showNewsletter: showHide(copy.fields.showNewsletter),
+  newsletterHeading: inlineText(copy.fields.newsletterHeading),
+  newsletterButton: inlineText(copy.fields.newsletterButton),
 } as unknown as Fields
 
 export const footerDef = { label: copy.label, fields: FIELDS, defaultProps: DEFAULTS }
@@ -129,5 +138,8 @@ export function footerSettings(s: Record<string, unknown>): FooterSettings {
       .filter((m): m is PaymentMethod => typeof m === 'string' && PAYMENTS.has(m))
       .map((method) => ({ method })),
     showPolicies: flag(s.showPolicies, DEFAULTS.showPolicies),
+    showNewsletter: flag(s.showNewsletter, DEFAULTS.showNewsletter),
+    newsletterHeading: copyValue(s.newsletterHeading, DEFAULTS.newsletterHeading),
+    newsletterButton: copyValue(s.newsletterButton, DEFAULTS.newsletterButton),
   }
 }

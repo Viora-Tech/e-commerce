@@ -46,6 +46,7 @@ export const TEMPLATE_IDS: TemplateId[] = [
   'staff_invite',
   'email_change_code',
   'email_changed',
+  'plan_bill',
   'purchase_order',
 ]
 
@@ -57,6 +58,7 @@ export const PLATFORM_TEMPLATE_IDS: readonly TemplateId[] = [
   'staff_invite',
   'email_change_code',
   'email_changed',
+  'plan_bill',
 ]
 
 /** Human names for the dev preview list and the admin's document-template picker. */
@@ -99,6 +101,7 @@ export const TEMPLATE_NAMES: Record<TemplateId, string> = {
   staff_invite: 'Staff invitation (platform)',
   email_change_code: 'Change email: code (platform)',
   email_changed: 'Change email: notice to old address (platform)',
+  plan_bill: 'Plan or app bill (platform)',
   purchase_order: 'Purchase order (to supplier)',
 }
 
@@ -126,6 +129,8 @@ function eyebrowFor(template: TemplateId, d: TemplateData): string {
       return 'Gift card'
     case 'staff_invite':
       return 'Team invitation'
+    case 'plan_bill':
+      return 'Your bill'
     case 'staff_daily_summary':
       return 'Daily summary'
     case 'email_change_code':
@@ -184,6 +189,8 @@ function primaryActionFor(
       return d.actionUrl ? { label: 'Confirm my email', url: d.actionUrl } : undefined
     case 'staff_invite':
       return d.actionUrl ? { label: 'Accept invitation', url: d.actionUrl } : undefined
+    case 'plan_bill':
+      return d.actionUrl ? { label: 'Pay now', url: d.actionUrl } : undefined
     case 'staff_new_order':
       return d.actionUrl ? { label: 'Open the order', url: d.actionUrl } : undefined
     case 'staff_daily_summary':

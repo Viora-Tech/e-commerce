@@ -8,12 +8,12 @@ import { Skeleton } from '@commerce/ui/shadcn/skeleton'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import AppLogo from '@/components/apps/app-logo'
+import PageHeader from '@/components/layout/page-header'
 import { appsContent } from '@/data/apps'
-import { gatewayGuides, paymentsSetupContent } from '@/data/payments-setup'
+import { gatewayGuides, PAYMENTS_PAGE_HREF, paymentsSetupContent } from '@/data/payments-setup'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 import { routes } from '@/lib/routes'
-import BackToPayments from './back-to-payments'
 import GatewayConnectForm from './gateway-connect-form'
 import type { GatewayId, PaymentsSetup } from './types'
 
@@ -42,24 +42,22 @@ export default function GatewayConnectPage({ providerId }: GatewayConnectPagePro
 
   return (
     <div className="flex flex-col gap-4">
-      <BackToPayments />
-      <div className="flex flex-wrap items-center gap-4">
-        <AppLogo id={providerId} icon={null} size={48} />
-        <div className="flex min-w-[min(100%,16rem)] flex-1 flex-col">
-          <h1 className="text-page-title text-ink-strong">
-            {copy.wizard.connect.title(guide.name)}
-          </h1>
-          <p className="text-caption text-muted-foreground">{guide.intro}</p>
-        </div>
-        <Button
-          variant="ghost"
-          nativeButton={false}
-          render={<a href={siteConfig.urls.docs} target="_blank" rel="noreferrer" />}
-        >
-          {apps.viewGuide}
-          <ExternalLink aria-hidden="true" className="size-3.5" />
-        </Button>
-      </div>
+      <PageHeader
+        title={copy.wizard.connect.title(guide.name)}
+        subtitle={guide.intro}
+        back={{ label: copy.backToPayments, href: PAYMENTS_PAGE_HREF }}
+        lead={{ kind: 'logo', node: <AppLogo id={providerId} icon={null} size={48} /> }}
+        actions={
+          <Button
+            variant="ghost"
+            nativeButton={false}
+            render={<a href={siteConfig.urls.docs} target="_blank" rel="noreferrer" />}
+          >
+            {apps.viewGuide}
+            <ExternalLink aria-hidden="true" className="size-3.5" />
+          </Button>
+        }
+      />
       {setup ? (
         <GatewayConnectForm
           providerId={providerId}

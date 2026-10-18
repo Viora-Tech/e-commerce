@@ -1,5 +1,6 @@
 'use client'
 
+import { SearchX } from '@commerce/ui/icons'
 import { cn } from '@commerce/ui/lib/utils'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Card } from '@commerce/ui/shadcn/card'
@@ -13,6 +14,7 @@ import {
   TableRow,
 } from '@commerce/ui/shadcn/table'
 import {
+  type ColumnOrderState,
   type ColumnVisibilityState,
   createColumnHelper,
   type RowData,
@@ -37,7 +39,8 @@ import {
 } from './columns'
 import { type ResourceTableFeatures, resourceTableFeatures } from './features'
 import ResourceTablePagination from './pagination'
-import ResourceTableToolbar, { type AppliedFilter } from './toolbar'
+import SelectionBar from './selection-bar'
+import ResourceTableToolbar, { type AppliedFilter, type FilterPanel } from './toolbar'
 
 export type { AppliedFilter, ResourceColumnSpec }
 
@@ -53,10 +56,15 @@ export type ResourceTableProps<T extends RowData> = {
   loading?: boolean
   query: string
   onQueryChange: (q: string) => void
-  /** Status tabs, rendered left of the toolbar as in frame 5:2561. */
-  tabs?: ReactNode
+  /**
+   * The one way to switch a list's views (Figma Table / View select): pass a `ViewSelect`.
+   * There are no pill tabs on tables, so every list looks the same.
+   */
+  views?: ReactNode
   /** Filter controls rendered as a popover from the filter icon button. */
-  filters?: ReactNode
+  filters?: FilterPanel
+  /** Size and padding of the filter popover (default: 16rem, padded). */
+  filtersClassName?: string | undefined
   applied?: AppliedFilter[]
   onClearAll?: () => void
   page: number
@@ -73,7 +81,14 @@ export type ResourceTableProps<T extends RowData> = {
   selection?: { ids: string[]; onChange: (ids: string[]) => void }
   /** Rendered in the selection bar; call `clear` after a bulk action. */
   bulkActions?: (selectedIds: string[], clear: () => void) => ReactNode
+  /**
+   * Every id the current search and filters match, for the selection bar's "Select all N"
+   * (Shopify-style). Without it, selection stays on the visible page.
+   */
+  loadAllIds?: (() => Promise<string[]>) | undefined
   empty?: { heading: string; body?: string; action?: ReactNode }
+  /** Replaces the generic "No results" when a search or filter finds nothing. */
+  noResults?: { heading: string; body?: string; action?: ReactNode } | undefined
   /**
    * Per-row actions, drawn in a trailing cell. The cell's own controls must stop
    * propagation: a table with `href` navigates from a click anywhere in the row.
@@ -86,9 +101,18 @@ export type ResourceTableProps<T extends RowData> = {
   rowIconCells?: { count: 1 | 2 | 3; render: (item: T) => ReactNode }
   /** Kept for older call sites; every table now uses the one Saleor-style density. */
   size?: 'compact' | 'frame'
+  /** The order the server sends, shown ticked in the sort menu (Orders: Date, newest first). */
+  defaultSort?: { id: string; desc: boolean } | undefined
+  /** Columns that start hidden; the columns menu can show them. */
+  defaultHidden?: string[] | undefined
 }
 
 const SKELETON_ROWS = 6
+
+/** The page's default-hidden columns as TanStack visibility (`false` = hidden). */
+function hiddenColumns(ids: string[] | undefined): ColumnVisibilityState {
+  return Object.fromEntries((ids ?? []).map((id) => [id, false]))
+}
 
 /** The table's row selection: the page's own (`selection`) when given, else kept here. */
 function useRowSelection(
@@ -114,8 +138,8 @@ const ICON_CELL_WIDTH = {
   3: 'w-33 p-0 last:pr-0 md:last:pr-0',
 } as const
 
-/* The 64px row actions column: open arrow and the ⋯ menu. */
-const ACTIONS_WIDTH = 'w-16 p-0 last:pr-2 md:last:pr-2'
+/* The row actions column: the ⋯ menu (no open arrow; the row opens the page). */
+const ACTIONS_WIDTH = 'w-11 p-0 last:pr-2 md:last:pr-2'
 
 const ALIGN: Record<CellAlign, string> = {
   start: 'text-left',
@@ -125,9 +149,11 @@ const ALIGN: Record<CellAlign, string> = {
 
 /* Proofly table (Figma "Table · Header / Row"): 40px header with small muted labels, 48px rows on
    thin dividers, cells inset to the page gutter. */
+/* Figma "Table / Cell": header 40px, 12/16 regular muted; rows 60px; 12px sides; rows split by
+   the border colour. */
 const HEAD =
-  'h-[3.25rem] bg-muted px-4 py-0 text-[0.8125rem] leading-[1.1875rem] font-medium text-muted-foreground first:pl-4 last:pr-4'
-const CELL = 'h-[3.25rem] border-t border-line px-4 py-1.5 text-body first:pl-4 last:pr-4'
+  'h-10 bg-transparent px-3 py-0 text-xs font-normal text-muted-foreground first:pl-3 last:pr-3'
+const CELL = 'h-15 border-t border-border px-3 py-1.5 text-body first:pl-3 last:pr-3'
 
 /**
  * The one table: a hairline card holding the filter bar, the grid and the pager.
@@ -179,9 +205,13 @@ export default function ResourceTable<T extends RowData>(props: ResourceTablePro
   // Hooks
   const tableCopy = useCopy(tableContent)
   const router = useRouter()
-  const [sorting, setSorting] = useState<SortingState>([])
-  const [columnVisibility, setColumnVisibility] = useState<ColumnVisibilityState>({})
+  const [sorting, setSorting] = useState<SortingState>(props.defaultSort ? [props.defaultSort] : [])
+  const [columnVisibility, setColumnVisibility] = useState<ColumnVisibilityState>(() =>
+    hiddenColumns(props.defaultHidden),
+  )
+  const [columnOrder, setColumnOrder] = useState<ColumnOrderState>([])
   const [rowSelection, setRowSelection] = useRowSelection(props.selection)
+  const [selectingAll, setSelectingAll] = useState(false)
   const table = useTable({
     features: resourceTableFeatures,
     data: props.items,
@@ -190,129 +220,196 @@ export default function ResourceTable<T extends RowData>(props: ResourceTablePro
     enableRowSelection: props.selectable ?? true,
     onSortingChange: setSorting,
     onColumnVisibilityChange: setColumnVisibility,
+    onColumnOrderChange: setColumnOrder,
     onRowSelectionChange: setRowSelection,
-    state: { sorting, columnVisibility, rowSelection },
+    state: { sorting, columnVisibility, columnOrder, rowSelection },
   })
 
   // Helpers
   const clearSelection = () => setRowSelection({})
+  const selectAllMatching = async () => {
+    if (!props.loadAllIds) return
+    setSelectingAll(true)
+    try {
+      const ids = await props.loadAllIds()
+      setRowSelection(Object.fromEntries(ids.map((id) => [id, true])))
+    } finally {
+      setSelectingAll(false)
+    }
+  }
+  const handleClearNarrowing = () => {
+    props.onClearAll?.()
+    if (props.query) props.onQueryChange('')
+  }
+  const resetColumns = () => {
+    setColumnVisibility(hiddenColumns(props.defaultHidden))
+    setColumnOrder([])
+  }
 
   // Render logic
   const columnTitles = Object.fromEntries(props.columns.map((c) => [c.id, c.title]))
+  const sortTitles = Object.fromEntries(props.columns.map((c) => [c.id, c.sortTitle ?? c.title]))
+  const sortOrder = props.columns
+    .map((c, i) => ({ id: c.id, rank: c.sortRank ?? props.columns.length + i }))
+    .sort((a, b) => a.rank - b.rank)
+    .map((c) => c.id)
+  const sortLabels = Object.fromEntries(
+    props.columns.flatMap((c) => (c.sortLabels ? [[c.id, c.sortLabels]] : [])),
+  )
   const selectedIds = Object.keys(rowSelection).filter((id) => rowSelection[id])
   const rows = table.getRowModel().rows
   const visibleCount = table.getVisibleLeafColumns().length
   const isEmpty = !props.loading && props.items.length === 0
+  /** A search or a filter is narrowing the list (so empty means "no results", not "none yet"). */
+  const narrowed = props.query.length > 0 || (props.applied?.length ?? 0) > 0
+  /* While rows are ticked the header row turns into the selection bar (beside the checkbox). */
+  const selecting = selectedIds.length > 0 && Boolean(props.bulkActions)
 
   return (
-    <div className="flex flex-col gap-4">
+    <Card gap="none" inset="y-none" className="overflow-hidden">
       <ResourceTableToolbar
         table={table}
         plural={props.resourceName.plural}
         query={props.query}
         onQueryChange={props.onQueryChange}
-        tabs={props.tabs}
+        views={props.views}
         filters={props.filters}
+        filtersClassName={props.filtersClassName}
         applied={props.applied}
         onClearAll={props.onClearAll}
         columnTitles={columnTitles}
+        sortTitles={sortTitles}
+        sortOrder={sortOrder}
+        sortLabels={sortLabels}
+        columnOrder={columnOrder}
+        onResetColumns={resetColumns}
       />
-      <Card gap="none" inset="y-none" className="overflow-hidden">
-        <div className="no-scrollbar overflow-x-auto">
-          <Table className="w-full min-w-[40rem] table-fixed border-separate border-spacing-0">
-            <TableHeader className="[&_tr]:border-0">
-              {table.getHeaderGroups().map((hg) => (
-                <TableRow key={hg.id} className="hover:bg-transparent">
-                  {hg.headers.map((header) => {
-                    const meta = header.column.columnDef.meta as CellMeta | undefined
-                    return (
-                      <TableHead
-                        key={header.id}
-                        className={cn(HEAD, ALIGN[meta?.align ?? 'start'], meta?.className)}
-                      >
-                        {header.isPlaceholder ? null : <table.FlexRender header={header} />}
-                      </TableHead>
-                    )
-                  })}
-                </TableRow>
-              ))}
-            </TableHeader>
-            <TableBody>
-              {props.loading
-                ? Array.from({ length: SKELETON_ROWS }, (_, i) => (
-                    <TableRow key={`skeleton-${i.toString()}`} className="hover:bg-transparent">
-                      {Array.from({ length: visibleCount }, (_, j) => (
-                        <TableCell
-                          key={`skeleton-${i.toString()}-${j.toString()}`}
-                          className={CELL}
-                        >
-                          <Skeleton className={cn('h-3.5', j === 0 ? 'w-4' : 'w-full max-w-32')} />
-                        </TableCell>
-                      ))}
+      <div className="no-scrollbar relative overflow-x-auto">
+        {/* While rows are ticked the selection bar lies over the header row, right of the
+            checkbox; the header cells stay underneath so the columns keep their widths. */}
+        {selecting ? (
+          <div className="absolute top-0 right-0 left-10 z-10 flex h-10 items-center bg-card pr-3">
+            <div className="min-w-0 flex-1">
+              <SelectionBar
+                count={selectedIds.length}
+                total={props.total}
+                pageFull={table.getIsAllPageRowsSelected()}
+                plural={props.resourceName.plural}
+                singular={props.resourceName.singular}
+                onSelectAll={props.loadAllIds ? selectAllMatching : undefined}
+                selectingAll={selectingAll}
+                actions={props.bulkActions?.(selectedIds, clearSelection)}
+                onClear={clearSelection}
+              />
+            </div>
+          </div>
+        ) : null}
+        <Table className="w-full min-w-[40rem] table-fixed border-separate border-spacing-0">
+          <TableHeader className="[&_tr]:border-0">
+            {table.getHeaderGroups().map((hg) => (
+              <TableRow key={hg.id} className="hover:bg-transparent">
+                {hg.headers.map((header) => {
+                  const meta = header.column.columnDef.meta as CellMeta | undefined
+                  return (
+                    <TableHead
+                      key={header.id}
+                      className={cn(HEAD, ALIGN[meta?.align ?? 'start'], meta?.className)}
+                    >
+                      {header.isPlaceholder ? null : <table.FlexRender header={header} />}
+                    </TableHead>
+                  )
+                })}
+              </TableRow>
+            ))}
+          </TableHeader>
+          <TableBody>
+            {props.loading
+              ? Array.from({ length: SKELETON_ROWS }, (_, i) => (
+                  <TableRow key={`skeleton-${i.toString()}`} className="hover:bg-transparent">
+                    {Array.from({ length: visibleCount }, (_, j) => (
+                      <TableCell key={`skeleton-${i.toString()}-${j.toString()}`} className={CELL}>
+                        <Skeleton className={cn('h-3.5', j === 0 ? 'w-4' : 'w-full max-w-32')} />
+                      </TableCell>
+                    ))}
+                  </TableRow>
+                ))
+              : rows.map((row) => {
+                  const target = props.href?.(row.original)
+                  return (
+                    <TableRow
+                      key={row.id}
+                      data-state={row.getIsSelected() ? 'selected' : undefined}
+                      className={cn(
+                        'group/row border-0 tabular-nums transition-colors duration-150 hover:bg-row-hover data-[state=selected]:bg-primary-soft motion-reduce:transition-none',
+                        target && 'cursor-pointer',
+                      )}
+                      onClick={target ? () => router.push(target) : undefined}
+                    >
+                      {row.getVisibleCells().map((cell) => {
+                        const meta = cell.column.columnDef.meta as CellMeta | undefined
+                        return (
+                          <TableCell
+                            key={cell.id}
+                            className={cn(
+                              CELL,
+                              'text-foreground',
+                              ALIGN[meta?.align ?? 'start'],
+                              meta?.className,
+                            )}
+                          >
+                            <table.FlexRender cell={cell} />
+                          </TableCell>
+                        )
+                      })}
                     </TableRow>
-                  ))
-                : rows.map((row) => {
-                    const target = props.href?.(row.original)
-                    return (
-                      <TableRow
-                        key={row.id}
-                        data-state={row.getIsSelected() ? 'selected' : undefined}
-                        className={cn(
-                          'group/row border-0 tabular-nums transition-colors duration-150 hover:bg-muted/50 data-[state=selected]:bg-primary-soft motion-reduce:transition-none',
-                          target && 'cursor-pointer',
-                        )}
-                        onClick={target ? () => router.push(target) : undefined}
-                      >
-                        {row.getVisibleCells().map((cell) => {
-                          const meta = cell.column.columnDef.meta as CellMeta | undefined
-                          return (
-                            <TableCell
-                              key={cell.id}
-                              className={cn(
-                                CELL,
-                                'text-foreground',
-                                ALIGN[meta?.align ?? 'start'],
-                                meta?.className,
-                              )}
-                            >
-                              <table.FlexRender cell={cell} />
-                            </TableCell>
-                          )
-                        })}
-                      </TableRow>
-                    )
-                  })}
-            </TableBody>
-          </Table>
-          {isEmpty ? (
-            <EmptyState
-              heading={props.empty?.heading ?? tableCopy.emptyHeading(props.resourceName.plural)}
-              body={props.empty?.body ?? tableCopy.emptyBody}
-              action={props.empty?.action}
-            />
-          ) : null}
-        </div>
-        <ResourceTablePagination
-          page={props.page}
-          perPage={props.perPage}
-          total={props.total}
-          onPageChange={props.onPageChange}
-          onPerPageChange={props.onPerPageChange}
-        />
-        <FloatingBar open={selectedIds.length > 0 && Boolean(props.bulkActions)}>
-          <span className="text-caption font-medium whitespace-nowrap text-foreground">
-            {tableCopy.selected(
-              selectedIds.length,
-              props.resourceName.singular,
-              props.resourceName.plural,
-            )}
-          </span>
-          {props.bulkActions?.(selectedIds, clearSelection)}
-          <Button variant="ghost" size="sm" className="rounded-full" onClick={clearSelection}>
-            {tableCopy.clearSelection}
-          </Button>
-        </FloatingBar>
-      </Card>
-    </div>
+                  )
+                })}
+          </TableBody>
+        </Table>
+        {isEmpty && narrowed ? (
+          // Figma "Feedback state · No results": the search or filters found nothing.
+          <EmptyState
+            icon={SearchX}
+            heading={props.noResults?.heading ?? tableCopy.noResults}
+            body={props.noResults?.body ?? tableCopy.noResultsBody}
+            action={
+              props.noResults?.action ?? (
+                <Button variant="outline" size="sm" onClick={handleClearNarrowing}>
+                  {tableCopy.clearSearchAndFilters}
+                </Button>
+              )
+            }
+          />
+        ) : isEmpty ? (
+          <EmptyState
+            heading={props.empty?.heading ?? tableCopy.emptyHeading(props.resourceName.plural)}
+            body={props.empty?.body ?? tableCopy.emptyBody}
+            action={props.empty?.action}
+          />
+        ) : null}
+      </div>
+      <ResourceTablePagination
+        page={props.page}
+        perPage={props.perPage}
+        total={props.total}
+        onPageChange={props.onPageChange}
+        onPerPageChange={props.onPerPageChange}
+      />
+      {/* The floating bar at the bottom keeps the bulk actions in reach while scrolling a long
+          list; the header row carries the same choice where the eye already is. */}
+      <FloatingBar open={selecting}>
+        <span className="text-caption font-medium whitespace-nowrap text-foreground tabular-nums">
+          {tableCopy.selected(
+            selectedIds.length,
+            props.resourceName.singular,
+            props.resourceName.plural,
+          )}
+        </span>
+        {props.bulkActions?.(selectedIds, clearSelection)}
+        <Button variant="ghost" size="sm" className="rounded-full" onClick={clearSelection}>
+          {tableCopy.clearSelection}
+        </Button>
+      </FloatingBar>
+    </Card>
   )
 }

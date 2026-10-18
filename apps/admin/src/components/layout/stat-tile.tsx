@@ -16,15 +16,43 @@ type StatTileProps = {
   /** Makes the tile a filter button; `active` marks the current one. */
   onSelect?: () => void
   active?: boolean
+  /** Points for a small trend line at the right of the tile (Figma Analytics KPI card). */
+  spark?: number[] | undefined
   className?: string
 }
 
-const BASE =
-  'flex flex-col gap-1 rounded-lg surface-card p-4 text-left transition-[box-shadow,background-color] duration-150 ease-out'
-const PRESSABLE =
-  'cursor-pointer hover:shadow-card-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring'
+/** A 56×24 polyline over the points, scaled to their own min and max. */
+function Spark({ points }: { points: number[] }) {
+  const min = Math.min(...points)
+  const span = Math.max(...points) - min || 1
+  const step = 56 / Math.max(points.length - 1, 1)
+  const d = points.map(
+    (p, i) => `${(i * step).toFixed(1)},${(22 - ((p - min) / span) * 20).toFixed(1)}`,
+  )
+  return (
+    <svg
+      viewBox="0 0 56 24"
+      aria-hidden="true"
+      className="h-6 w-14 shrink-0 self-center text-muted-foreground"
+    >
+      <polyline
+        points={d.join(' ')}
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  )
+}
 
-/** Stat card (Figma "Stat card"): default, hover, and active when it filters the list below. */
+/* Figma "Stat strip" cell: 16px inset, 6px gaps, 13px label, 28/34 semibold figure. The strip
+   (StatStrip) draws the card and the hairlines between cells. */
+const CELL =
+  'flex min-w-0 flex-col gap-1.5 bg-transparent p-4 text-left transition-colors duration-150 ease-out'
+
+/** One cell of the stat strip: default, hover, and active when it filters the list below. */
 export default function StatTile({
   label,
   value,
@@ -34,23 +62,26 @@ export default function StatTile({
   note,
   onSelect,
   active = false,
+  spark,
   className,
 }: StatTileProps) {
   // Render logic
   const up = (trend ?? 0) > 0
   const good = invert ? !up : up
-  const body = (
+  const figures = (
     <>
-      <span className="text-caption text-muted-foreground">{label}</span>
-      <span className="text-stat text-ink-strong tabular-nums">{value}</span>
-      {trend ? (
+      <span className="text-[0.8125rem] leading-[1.1875rem] text-muted-foreground">{label}</span>
+      <span className="text-[1.75rem] leading-[2.125rem] font-semibold tracking-[-0.02em] text-ink-strong tabular-nums">
+        {value}
+      </span>
+      {typeof trend === 'number' ? (
         <span
           className={cn(
-            'inline-flex items-center gap-1 text-caption font-medium',
-            good ? 'text-success' : 'text-danger',
+            'inline-flex items-center gap-1 text-xs font-medium',
+            trend === 0 ? 'text-muted-foreground' : good ? 'text-foreground' : 'text-danger',
           )}
         >
-          {up ? (
+          {trend === 0 ? null : up ? (
             <ArrowUp className="size-3" aria-hidden />
           ) : (
             <ArrowDown className="size-3" aria-hidden />
@@ -60,13 +91,23 @@ export default function StatTile({
             <span className="font-normal text-muted-foreground">{trendNote}</span>
           ) : null}
         </span>
-      ) : note || trendNote ? (
-        <span className="text-caption text-muted-foreground">{note ?? trendNote}</span>
+      ) : note || (trendNote && trend === undefined) ? (
+        /* A trend of null means there is nothing to compare against: no lone "vs last week". */
+        <span className="text-xs text-muted-foreground">{note ?? trendNote}</span>
       ) : null}
     </>
   )
+  const body =
+    spark && spark.length > 1 ? (
+      <span className="flex items-center gap-3">
+        <span className="flex min-w-0 flex-1 flex-col gap-1">{figures}</span>
+        <Spark points={spark} />
+      </span>
+    ) : (
+      figures
+    )
 
-  if (!onSelect) return <div className={cn(BASE, className)}>{body}</div>
+  if (!onSelect) return <div className={cn(CELL, className)}>{body}</div>
 
   return (
     <button
@@ -74,9 +115,9 @@ export default function StatTile({
       onClick={onSelect}
       aria-pressed={active}
       className={cn(
-        BASE,
-        PRESSABLE,
-        active && 'bg-brand-select bg-none shadow-[inset_0_0_0_1px_var(--primary)]',
+        CELL,
+        'cursor-pointer hover:bg-row-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset',
+        active && 'bg-primary-soft hover:bg-primary-soft',
         className,
       )}
     >

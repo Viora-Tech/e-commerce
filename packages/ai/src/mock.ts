@@ -19,6 +19,8 @@ import {
   type DocumentShape,
 } from './purchase-documents/schema'
 import { REVIEW_REPLY_MARKER } from './review-reply'
+import { SECTION_WRITER_MARKER } from './section-writer'
+import { SEO_KEYWORDS_MARKER } from './seo-keywords/prompt'
 
 const USAGE = {
   inputTokens: { total: 1_200, noCache: 1_200, cacheRead: undefined, cacheWrite: undefined },
@@ -52,9 +54,25 @@ function photoCount(prompt: Prompt): number {
   return message.content.filter((part) => part.type === 'file').length
 }
 
+/** Canned keywords built from the product's title, the first one primary. */
+function seoKeywords(prompt: Prompt): string {
+  const title = titleFrom(lastUserText(prompt)).toLowerCase().split(' ').slice(0, 3).join(' ')
+  return JSON.stringify({
+    keywords: [
+      { keyword: `${title} price`, intent: 'buy', primary: true },
+      { keyword: `buy ${title} online`, intent: 'buy', primary: false },
+      { keyword: `best ${title} under 2000`, intent: 'compare', primary: false },
+      { keyword: `${title} for laptop`, intent: 'compare', primary: false },
+      { keyword: `${title} sasta`, intent: 'buy', primary: false },
+      { keyword: `how to clean ${title}`, intent: 'info', primary: false },
+    ],
+  })
+}
+
 function productCopy(prompt: Prompt): string {
   const text = lastUserText(prompt)
   const title = titleFrom(text)
+  const keyword = /Primary search keyword: "(.+)"/.exec(text)?.[1]
   const photos = photoCount(prompt)
   const hindi = systemText(prompt).includes('Hindi')
   const altTexts = Array.from({ length: photos }, (_, i) =>
@@ -87,8 +105,10 @@ function productCopy(prompt: Prompt): string {
       { label: 'Connection', value: 'USB-C' },
       { label: 'Compatibility', value: 'Windows, macOS' },
     ],
-    seoTitle: `${title} | Buy online in India`,
-    seoDescription: `Shop ${title}: a sturdy, comfortable build with plug and play USB-C setup. Made for everyday use and long sessions.`,
+    seoTitle: keyword ? `${title}, ${keyword}` : `${title} | Buy online in India`,
+    seoDescription: keyword
+      ? `Looking for ${keyword}? ${title} has a sturdy, comfortable build and plug and play USB-C setup.`
+      : `Shop ${title}: a sturdy, comfortable build with plug and play USB-C setup. Made for everyday use and long sessions.`,
     tags: ['gaming', 'desk setup', 'usb-c', 'accessories'],
     altTexts,
   })
@@ -105,10 +125,34 @@ function documentRead(system: string): string {
 function generated(prompt: Prompt): string {
   const system = systemText(prompt)
   if (system.includes(DOCUMENT_READ_MARKER)) return documentRead(system)
+  if (system.includes(SEO_KEYWORDS_MARKER)) return seoKeywords(prompt)
   if (system.includes(REVIEW_REPLY_MARKER)) {
     return JSON.stringify({
       reply:
         'Thank you for taking the time to write this. We are glad it works well for you, and we hope you enjoy it for a long time.',
+    })
+  }
+  if (system.includes(SECTION_WRITER_MARKER)) {
+    return JSON.stringify({
+      summary: 'Questions shoppers often ask before they order, answered in one place.',
+      section: {
+        type: 'Faq',
+        heading: 'Questions, answered',
+        items: [
+          {
+            question: 'How long does delivery take?',
+            answer: 'Most orders reach you in a few working days.',
+          },
+          {
+            question: 'Can I return an item?',
+            answer: 'Yes. See our returns page for how it works.',
+          },
+          {
+            question: 'Do you offer cash on delivery?',
+            answer: 'You can see every way to pay at checkout.',
+          },
+        ],
+      },
     })
   }
   return productCopy(prompt)

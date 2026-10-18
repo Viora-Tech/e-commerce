@@ -3,12 +3,17 @@ import { loadEnv } from '@commerce/config'
 import { createRedisRateLimitStore, dokployConfigFrom, platformRoots } from '@commerce/core'
 import { createDb } from '@commerce/db'
 import { reportWorkerFailures } from '@commerce/observability'
+import { flushLogs, initLogging, logger, logWorkerJobs } from '@commerce/observability/logging'
 import { createAppEventQueue, createNotificationQueue } from '@commerce/queue'
 import { sql } from 'drizzle-orm'
+import { evlog } from 'evlog/hono'
 import { Hono } from 'hono'
 import { createAiBulkWriteWorker } from './ai-bulk-write'
+import { API_ACTIVITY_PRUNE_EVERY_MS, createApiActivityPrune } from './api-activity'
 import { createAppEventWorker, createAppJobWorker } from './app-events'
 import { createBackInStockWorker } from './back-in-stock'
+import { BILLING_EVERY_MS, createBillingSweep } from './billing'
+import { CHANNEL_SYNC_EVERY_MS, createChannelSync } from './channel-sync'
 import {
   CERTIFICATE_EVERY_MS,
   createCertificateSweep,
@@ -31,6 +36,7 @@ import { BALANCE_EVERY_MS, createPreorderBalanceJob } from './preorder-balance'
 import { createPurchaseDocumentWorker } from './purchase-documents'
 import { createConnection, createHeartbeat } from './queues'
 import { createReviewRequestSweep, REVIEW_REQUESTS_EVERY_MS } from './reviews'
+import { createSearchConsoleSweep, SEARCH_CONSOLE_EVERY_MS } from './search-console'
 import { createSenderEmailPoller, SENDER_CHECK_EVERY_MS } from './sender-email'
 import { shipmentWebhooks } from './shipments-webhook'
 import { createShippingTracker, TRACK_EVERY_MS } from './shipping'
@@ -41,6 +47,7 @@ import { createStoreExportWorker } from './store-export'
 process.env.LOCAL_UPLOAD_ROOT ??= resolve(import.meta.dir, '../../admin')
 
 const env = loadEnv(process.env)
+initLogging('worker', env)
 initSentry(env)
 const db = createDb(env.DATABASE_URL)
 const redis = createConnection(env.REDIS_URL)
@@ -116,6 +123,18 @@ const memberDailySummary = createMemberDailySummary(redis, db, {
   settingsSecret: env.SETTINGS_SECRET,
   adminUrl: env.ADMIN_URL,
 })
+const searchConsole = createSearchConsoleSweep(redis, db)
+const billing = createBillingSweep(redis, db, {
+  salesStoreId: env.PLATFORM_SALES_STORE_ID,
+  settingsSecret: env.SETTINGS_SECRET,
+  storefrontUrl: env.STOREFRONT_URL,
+})
+const apiActivityPrune = createApiActivityPrune(redis, db)
+const channelSync = createChannelSync(redis, db, {
+  settingsSecret: env.SETTINGS_SECRET,
+  adminUrl: env.ADMIN_URL,
+  storefrontUrl: env.STOREFRONT_URL,
+})
 const outboxRelay = createOutboxRelay(redis, db, {
   notifications,
   appEvents,
@@ -123,29 +142,40 @@ const outboxRelay = createOutboxRelay(redis, db, {
   domainRoutes: domainRoutes.queue,
 })
 
-reportWorkerFailures(worker, 'heartbeat', reportError)
-reportWorkerFailures(notificationWorker, 'notifications', reportError)
-reportWorkerFailures(appEventWorker, 'app-events', reportError)
-reportWorkerFailures(appJobWorker, 'app-jobs', reportError)
-reportWorkerFailures(tracker.worker, 'shipping-tracker', reportError)
-reportWorkerFailures(unpaidExpiry.worker, 'unpaid-order-expiry', reportError)
-reportWorkerFailures(preorderBalance.worker, 'preorder-balance', reportError)
-reportWorkerFailures(paymentFees.worker, 'payment-fees', reportError)
-reportWorkerFailures(domains.worker, 'domain-verify', reportError)
-reportWorkerFailures(domainRoutes.worker, 'domain-route', reportError)
-reportWorkerFailures(certificates.worker, 'domain-certificate', reportError)
-reportWorkerFailures(senderEmails.worker, 'sender-email-verify', reportError)
-reportWorkerFailures(marketing.tick, 'marketing-tick', reportError)
-reportWorkerFailures(marketing.send, 'marketing-send', reportError)
-reportWorkerFailures(outboxRelay.worker, 'outbox-relay', reportError)
-reportWorkerFailures(backInStock.worker, 'back-in-stock', reportError)
-reportWorkerFailures(mediaProcess.worker, 'media-process', reportError)
-reportWorkerFailures(storeExport.worker, 'store-export', reportError)
-reportWorkerFailures(aiBulkWrite.worker, 'ai-bulk-write', reportError)
-reportWorkerFailures(purchaseDocuments.worker, 'purchase-documents', reportError)
-reportWorkerFailures(importSnapshots.worker, 'import-snapshot-cleanup', reportError)
-reportWorkerFailures(reviewRequests.worker, 'review-requests', reportError)
-reportWorkerFailures(memberDailySummary.worker, 'member-daily-summary', reportError)
+// Each worker reports its failures to Sentry and logs one wide event per job (docs/ops/logging.md).
+const watched = [
+  [worker, 'heartbeat'],
+  [notificationWorker, 'notifications'],
+  [appEventWorker, 'app-events'],
+  [appJobWorker, 'app-jobs'],
+  [tracker.worker, 'shipping-tracker'],
+  [unpaidExpiry.worker, 'unpaid-order-expiry'],
+  [preorderBalance.worker, 'preorder-balance'],
+  [paymentFees.worker, 'payment-fees'],
+  [domains.worker, 'domain-verify'],
+  [domainRoutes.worker, 'domain-route'],
+  [certificates.worker, 'domain-certificate'],
+  [senderEmails.worker, 'sender-email-verify'],
+  [marketing.tick, 'marketing-tick'],
+  [marketing.send, 'marketing-send'],
+  [outboxRelay.worker, 'outbox-relay'],
+  [backInStock.worker, 'back-in-stock'],
+  [mediaProcess.worker, 'media-process'],
+  [storeExport.worker, 'store-export'],
+  [aiBulkWrite.worker, 'ai-bulk-write'],
+  [purchaseDocuments.worker, 'purchase-documents'],
+  [importSnapshots.worker, 'import-snapshot-cleanup'],
+  [reviewRequests.worker, 'review-requests'],
+  [memberDailySummary.worker, 'member-daily-summary'],
+  [searchConsole.worker, 'search-console-sweep'],
+  [billing.worker, 'billing-sweep'],
+  [apiActivityPrune.worker, 'api-activity-prune'],
+  [channelSync.worker, 'channel-sync'],
+] as const
+for (const [w, queueName] of watched) {
+  reportWorkerFailures(w, queueName, reportError)
+  logWorkerJobs(w, queueName)
+}
 
 await queue.upsertJobScheduler('heartbeat-every-minute', { every: 60_000 }, { name: 'tick' })
 await tracker.queue.upsertJobScheduler(
@@ -216,10 +246,32 @@ await memberDailySummary.queue.upsertJobScheduler(
   { every: DAILY_SUMMARY_EVERY_MS },
   { name: 'sweep' },
 )
+await searchConsole.queue.upsertJobScheduler(
+  'search-console-sweep',
+  { every: SEARCH_CONSOLE_EVERY_MS },
+  { name: 'sweep' },
+)
+await billing.queue.upsertJobScheduler(
+  'billing-sweep',
+  { every: BILLING_EVERY_MS },
+  { name: 'sweep' },
+)
+await apiActivityPrune.queue.upsertJobScheduler(
+  'api-activity-prune',
+  { every: API_ACTIVITY_PRUNE_EVERY_MS },
+  { name: 'prune' },
+)
+await channelSync.queue.upsertJobScheduler(
+  'channel-sync-sweep',
+  { every: CHANNEL_SYNC_EVERY_MS },
+  { name: 'sweep', data: { sweep: true } },
+)
 
 const rateLimitStore = createRedisRateLimitStore(redis)
 
 const app = new Hono()
+// One wide event per webhook call; Docker's health probe is left out.
+app.use(evlog({ exclude: ['/health'] }))
 app.route('/', paymentWebhooks(db, env.SETTINGS_SECRET, rateLimitStore))
 app.route('/', shipmentWebhooks(db, env.SETTINGS_SECRET, rateLimitStore))
 
@@ -279,10 +331,20 @@ const shutdown = async () => {
   await reviewRequests.queue.close()
   await memberDailySummary.worker.close()
   await memberDailySummary.queue.close()
+  await searchConsole.worker.close()
+  await searchConsole.queue.close()
+  await searchConsole.appJobs.close()
+  await billing.worker.close()
+  await billing.queue.close()
+  await apiActivityPrune.worker.close()
+  await apiActivityPrune.queue.close()
+  await channelSync.worker.close()
+  await channelSync.queue.close()
   await queue.close()
   await notifications.close()
   redis.disconnect()
   await db.$client.end()
+  await flushLogs()
   process.exit(0)
 }
 process.on('SIGINT', shutdown)
@@ -297,14 +359,14 @@ process.on('SIGTERM', shutdown)
  * still ends.
  */
 process.on('uncaughtException', (err) => {
-  console.error('[worker] uncaught exception, kept running:', err)
+  logger.error('uncaught exception, kept running', { error: err })
   reportError(err, { where: 'uncaughtException' })
 })
 process.on('unhandledRejection', (reason) => {
-  console.error('[worker] unhandled rejection, kept running:', reason)
+  logger.error('unhandled rejection, kept running', { error: reason })
   reportError(reason, { where: 'unhandledRejection' })
 })
 
-console.log(`worker listening on :${env.WORKER_PORT}`)
+logger.info('worker listening', { port: env.WORKER_PORT })
 
 export default { port: env.WORKER_PORT, fetch: app.fetch }

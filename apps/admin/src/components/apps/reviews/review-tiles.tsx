@@ -1,5 +1,5 @@
 import { formatNumber } from '@commerce/money'
-import StatTile from '@/components/layout/stat-tile'
+import StatStrip from '@/components/layout/stat-strip'
 import { reviewsContent } from '@/data/reviews'
 import { useCopy } from '@/hooks/use-copy'
 
@@ -27,21 +27,24 @@ export default function ReviewTiles({ stats, status, onStatus }: ReviewTilesProp
   const t = copy.list.tiles
 
   return (
-    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-      <StatTile label={t.average} value={stats.average === null ? '0' : stats.average.toFixed(1)} />
-      <StatTile
-        label={t.published}
-        value={formatNumber(stats.published)}
-        active={status === 'published'}
-        onSelect={() => onStatus(status === 'published' ? null : 'published')}
-      />
-      <StatTile
-        label={t.waiting}
-        value={formatNumber(stats.pending)}
-        active={status === 'pending'}
-        onSelect={() => onStatus(status === 'pending' ? null : 'pending')}
-      />
-      <StatTile label={t.photos} value={formatNumber(stats.withPhotos)} />
-    </div>
+    <StatStrip<'pending' | 'published'>
+      active={status === 'hidden' ? null : status}
+      onChange={onStatus}
+      tiles={[
+        {
+          id: 'average',
+          label: t.average,
+          value: stats.average === null ? '0' : stats.average.toFixed(1),
+        },
+        {
+          id: 'published',
+          label: t.published,
+          value: formatNumber(stats.published),
+          filter: 'published',
+        },
+        { id: 'waiting', label: t.waiting, value: formatNumber(stats.pending), filter: 'pending' },
+        { id: 'photos', label: t.photos, value: formatNumber(stats.withPhotos) },
+      ]}
+    />
   )
 }

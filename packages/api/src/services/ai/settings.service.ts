@@ -77,6 +77,8 @@ export type AiSettingsView = {
   usage: AiMonthUsage
   features: AiFeatureToggles
   writingQuality: WritingQuality
+  /** Bought credits still left; used after the month's allowance (`quota.credits`). */
+  extraCredits: number
   /** The model id behind each tier: fast (chat, tools) and strong ("Best" writing). */
   models: Record<ModelTier, string>
 }
@@ -95,6 +97,7 @@ export async function aiSettingsView(ctx: StoreContext): Promise<AiSettingsView>
     usage,
     features: settings.features,
     writingQuality: settings.writingQuality,
+    extraCredits: settings.extraCredits,
     models: { fast: modelIdForTier('fast'), strong: modelIdForTier('strong') },
   }
 }

@@ -12,6 +12,8 @@ import {
   DropdownMenuTrigger,
 } from '@commerce/ui/shadcn/dropdown-menu'
 import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader } from '@commerce/ui/shadcn/sidebar'
+import { Spinner } from '@commerce/ui/shadcn/spinner'
+import { Tooltip, TooltipContent, TooltipTrigger } from '@commerce/ui/shadcn/tooltip'
 import Image from 'next/image'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
@@ -56,14 +58,20 @@ type AdminSidebarProps = {
   bugReports: boolean
   /** Orders this month against the plan. Hidden until billing supplies it. */
   usage?: SidebarUsage | undefined
+  /** Count pills on rows, by the row's href (Orders: orders waiting to ship). */
+  navCounts?: Record<string, number> | undefined
 }
 
 /** How many installed apps the sidebar lists before "View all apps". */
 const SIDEBAR_APPS = 5
 
+/* Figma "Store switcher" and "User": a 48px row, 32px tile or avatar, 10px gap, radius 8. */
 const ROW_TRIGGER =
-  'flex h-12 w-full min-w-0 items-center gap-2.5 overflow-hidden rounded-lg px-1.5 text-left transition-[background-color,padding] hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring group-data-[collapsible=icon]:px-0 ' +
+  'flex h-12 w-full min-w-0 items-center gap-2.5 overflow-hidden rounded-sm px-1.5 text-left transition-[background-color,padding] hover:bg-sidebar-accent/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring aria-expanded:bg-sidebar-accent/60 group-data-[collapsible=icon]:px-0 ' +
   SIDEBAR_DURATION
+
+/* Figma sidebar menus (store switcher, user menu): 240px glass, radius 8, 4px inset. */
+const SIDEBAR_MENU = 'w-60 rounded-sm p-1'
 
 /**
  * Installed apps hang under the Apps entry, like Drafts under Orders. Past a handful the list
@@ -109,6 +117,7 @@ export default function AdminSidebar({
   storefrontUrl,
   bugReports,
   usage,
+  navCounts = {},
 }: AdminSidebarProps) {
   // Hooks
   const copy = useCopy(navigationContent)
@@ -143,7 +152,7 @@ export default function AdminSidebar({
   return (
     <Sidebar collapsible="icon" className="group-data-[side=left]:border-r-0">
       <SidebarHeader
-        className={`gap-2.5 px-4 pt-4 pb-1 transition-[padding] group-data-[collapsible=icon]:items-center group-data-[collapsible=icon]:px-2 ${SIDEBAR_DURATION}`}
+        className={`gap-0.5 px-2.5 pt-3 pb-0 transition-[padding] group-data-[collapsible=icon]:items-center group-data-[collapsible=icon]:px-2 ${SIDEBAR_DURATION}`}
       >
         <DropdownMenu>
           <DropdownMenuTrigger aria-label={copy.switchStore} className={ROW_TRIGGER}>
@@ -151,7 +160,7 @@ export default function AdminSidebar({
             <span
               aria-hidden="true"
               className={cn(
-                'flex size-8 shrink-0 items-center justify-center overflow-hidden rounded-[0.5625rem]',
+                'flex size-8 shrink-0 items-center justify-center overflow-hidden rounded-sm',
                 logoUrl ? 'border border-hairline bg-card' : 'key-primary',
               )}
             >
@@ -164,26 +173,22 @@ export default function AdminSidebar({
                   className="size-full object-contain"
                 />
               ) : (
-                <Store className="size-5" weight="fill" />
+                <Store className="size-4" />
               )}
             </span>
-            <span className={cn('flex min-w-0 flex-1 flex-col leading-tight', SIDEBAR_LABEL)}>
-              <span className="truncate text-body-strong font-semibold text-ink-strong">
+            <span className={cn('flex min-w-0 flex-1 flex-col', SIDEBAR_LABEL)}>
+              <span className="truncate text-body font-semibold text-sidebar-foreground">
                 {storeName}
               </span>
-              {role ? (
-                <span className="truncate text-caption font-normal text-muted-foreground">
-                  {role}
-                </span>
-              ) : null}
+              {role ? <span className="truncate text-xs text-muted-foreground">{role}</span> : null}
             </span>
             <ChevronsUpDown
               className={cn('size-4 shrink-0 text-muted-foreground', SIDEBAR_CONTROL)}
             />
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="start" className="w-60 bg-popover">
+          <DropdownMenuContent align="start" className={SIDEBAR_MENU}>
             <DropdownMenuGroup>
-              <DropdownMenuLabel className="text-xs text-muted-foreground">
+              <DropdownMenuLabel className="text-xs font-medium text-muted-foreground">
                 {copy.stores}
               </DropdownMenuLabel>
             </DropdownMenuGroup>
@@ -193,7 +198,8 @@ export default function AdminSidebar({
                 disabled={switchingId !== null || s.id === activeStoreId}
                 onSelect={() => handleSwitchStore(s.id)}
               >
-                <Store className="size-4" />
+                {/* Figma "State · Switching store": the picked store spins until Home reloads. */}
+                {switchingId === s.id ? <Spinner /> : <Store className="size-4" />}
                 {s.name}
               </DropdownMenuItem>
             ))}
@@ -203,23 +209,33 @@ export default function AdminSidebar({
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
-        <a
-          href={storefrontUrl}
-          target="_blank"
-          rel="noreferrer"
-          aria-label={copy.openStoreAddress(domain)}
-          className={cn(
-            'flex h-8 items-center gap-2 rounded-[0.5rem] border border-border bg-muted px-2.5 text-body font-medium text-foreground hover:bg-chip-neutral focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
-            SIDEBAR_BLOCK,
-          )}
-        >
-          <Globe className="size-4 shrink-0 text-muted-foreground" />
-          <span className="min-w-0 flex-1 truncate">{domain}</span>
-          <ExternalLink className="size-3.5 shrink-0 text-muted-foreground" />
-        </a>
+        {/* Figma "State · Domain pill hover": a link to the live store, named in a tooltip. */}
+        <Tooltip>
+          <TooltipTrigger
+            render={
+              <a
+                href={storefrontUrl}
+                target="_blank"
+                rel="noreferrer"
+                aria-label={copy.openStoreAddress(domain)}
+                className={cn(
+                  'key-neutral flex h-8 items-center gap-2 rounded-sm pr-2 pl-2.5 text-[0.8125rem] leading-5 font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+                  SIDEBAR_BLOCK,
+                )}
+              />
+            }
+          >
+            <Globe className="size-3.5 shrink-0 text-muted-foreground" />
+            <span className="min-w-0 flex-1 truncate">{domain}</span>
+            <ExternalLink className="size-3.5 shrink-0 text-muted-foreground" />
+          </TooltipTrigger>
+          <TooltipContent side="right" sideOffset={8}>
+            {copy.openStoreAddress(domain)}
+          </TooltipContent>
+        </Tooltip>
       </SidebarHeader>
 
-      <SidebarContent className="no-scrollbar gap-3 pt-2">
+      <SidebarContent className="no-scrollbar gap-0.5 pt-0.5">
         {NAV_GROUPS.map((group) => (
           <NavGroupBlock
             key={group.label}
@@ -230,6 +246,7 @@ export default function AdminSidebar({
                 : localizeNavItems(group.items, locale)
             }
             pathname={pathname}
+            counts={navCounts}
           />
         ))}
         <NavGroupBlock
@@ -240,7 +257,7 @@ export default function AdminSidebar({
       </SidebarContent>
 
       <SidebarFooter
-        className={`gap-3 px-4 pt-2 pb-4 transition-[padding] group-data-[collapsible=icon]:px-2 ${SIDEBAR_DURATION}`}
+        className={`gap-0.5 px-2.5 pt-2 pb-3 transition-[padding] group-data-[collapsible=icon]:px-2 ${SIDEBAR_DURATION}`}
       >
         {usage ? <SidebarUsageCard usage={usage} /> : null}
         <UserMenu
@@ -248,8 +265,9 @@ export default function AdminSidebar({
           bugReports={bugReports}
           align="end"
           side="right"
+          variant="sidebar"
           triggerLabel={copy.account}
-          triggerClassName={ROW_TRIGGER}
+          triggerClassName={`${ROW_TRIGGER} pt-2 pb-1`}
           trigger={
             <>
               <MemberAvatar
@@ -257,15 +275,13 @@ export default function AdminSidebar({
                 email={user.email}
                 image={user.image}
                 className="size-8"
-                fallbackClassName="bg-avatar text-caption text-avatar-foreground"
+                fallbackClassName="bg-primary text-[0.8125rem] text-primary-foreground"
               />
-              <span className={cn('flex min-w-0 flex-1 flex-col leading-tight', SIDEBAR_LABEL)}>
-                <span className="truncate text-body-strong font-semibold text-ink-strong">
+              <span className={cn('flex min-w-0 flex-1 flex-col', SIDEBAR_LABEL)}>
+                <span className="truncate text-body font-medium text-sidebar-foreground">
                   {user.name}
                 </span>
-                <span className="truncate text-caption font-normal text-muted-foreground">
-                  {user.email}
-                </span>
+                <span className="truncate text-xs text-muted-foreground">{user.email}</span>
               </span>
               <ChevronsUpDown
                 className={cn('size-4 shrink-0 text-muted-foreground', SIDEBAR_CONTROL)}

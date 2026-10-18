@@ -1,6 +1,7 @@
 import StatusChip from '@/components/layout/status-chip'
 import OrderChip from '@/components/orders/order-chip'
 import type { ResourceColumnSpec } from '@/components/table/resource-table'
+import { stateName } from '@/data/india'
 import type { shipmentsContent } from '@/data/shipments'
 import type { api } from '@/lib/api-client'
 import type { Formatters } from '@/lib/format'
@@ -27,8 +28,11 @@ export type ShipmentRow = {
   trackingUrl: string | null
 }
 
-const placeOf = (city: string | null, pincode: string | null) =>
-  [city, pincode].filter(Boolean).join(' ')
+/** "Pune, Maharashtra 411045" (Figma Ship to). */
+function placeOf(city: string | null, stateCode: string | null, pincode: string | null): string {
+  const region = [stateName(stateCode), pincode].filter(Boolean).join(' ')
+  return [city, region].filter(Boolean).join(', ')
+}
 
 export const rowFromOrder = (r: ReadyRow): ShipmentRow => ({
   id: r.orderId,
@@ -36,7 +40,7 @@ export const rowFromOrder = (r: ReadyRow): ShipmentRow => ({
   orderNumber: r.orderNumber,
   placedAt: r.placedAt,
   shipTo: r.customerName ?? r.email,
-  place: placeOf(r.city, r.pincode),
+  place: placeOf(r.city, r.stateCode, r.pincode),
   provider: null,
   weightGrams: r.weightGrams,
   status: null,
@@ -51,7 +55,7 @@ export const rowFromShipment = (s: ShipmentItem): ShipmentRow => ({
   orderNumber: s.orderNumber,
   placedAt: s.placedAt,
   shipTo: s.shipToName ?? s.email,
-  place: placeOf(s.city, s.pincode),
+  place: placeOf(s.city, s.stateCode, s.pincode),
   provider: s.provider,
   weightGrams: s.weightGrams,
   status: s.status,
@@ -101,7 +105,12 @@ export function shipmentColumns(
       id: 'courier',
       title: copy.columns.courier,
       align: 'start',
-      render: (r) => (r.provider ? courierName(r.provider) : toBookCourier),
+      render: (r) =>
+        r.provider ? (
+          courierName(r.provider)
+        ) : (
+          <span className="text-muted-foreground">{toBookCourier}</span>
+        ),
     },
     {
       id: 'weight',

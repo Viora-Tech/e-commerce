@@ -1,10 +1,28 @@
 import type { SegmentRules } from '@commerce/core/segments'
-import type { CustomerFilterState } from '@/components/customers/customer-filters'
-import type { AppliedFilter } from '@/components/table/resource-table'
+import type { FilterGroup } from '@/components/table/filter-panel'
 import { type CustomerSegment, customersContent } from '@/data/customers'
+import { INDIAN_STATES } from '@/data/india'
 import { formatPaise } from '@/lib/money'
 
-const copy = customersContent.filters.applied
+const copy = customersContent.filters
+
+export type CustomerFilterState = {
+  stateCode: string
+  minSpend: string
+  maxSpend: string
+  minOrders: string
+  marketing: string
+  tag: string
+}
+
+export const EMPTY_CUSTOMER_FILTERS: CustomerFilterState = {
+  stateCode: '',
+  minSpend: '',
+  maxSpend: '',
+  minOrders: '',
+  marketing: '',
+  tag: '',
+}
 
 function paise(rupees: string): number | undefined {
   const n = Number.parseFloat(rupees)
@@ -32,52 +50,72 @@ export function customerFilterInput(f: CustomerFilterState) {
   }
 }
 
-/** Chips shown above the table, each able to clear its own filter. */
-export function appliedCustomerFilters(
+/** The panel's groups for the customer list; the chips and Clear all come from the same list. */
+export function customerFilterGroups(
   f: CustomerFilterState,
-  clear: (key: keyof CustomerFilterState) => void,
-): AppliedFilter[] {
-  const chips: AppliedFilter[] = []
-  if (f.stateCode) {
-    chips.push({ key: 'state', label: copy.state(f.stateCode), onRemove: () => clear('stateCode') })
-  }
-  if (f.minSpend) {
-    const amount = paise(f.minSpend)
-    if (amount !== undefined) {
-      chips.push({
-        key: 'minSpend',
-        label: copy.minSpend(formatPaise(amount)),
-        onRemove: () => clear('minSpend'),
-      })
-    }
-  }
-  if (f.maxSpend) {
-    const amount = paise(f.maxSpend)
-    if (amount !== undefined) {
-      chips.push({
-        key: 'maxSpend',
-        label: copy.maxSpend(formatPaise(amount)),
-        onRemove: () => clear('maxSpend'),
-      })
-    }
-  }
-  if (f.minOrders) {
-    const n = whole(f.minOrders)
-    if (n !== undefined) {
-      chips.push({ key: 'orders', label: copy.orders(n), onRemove: () => clear('minOrders') })
-    }
-  }
-  if (f.marketing) {
-    chips.push({
+  tags: string[],
+  onChange: (patch: Partial<CustomerFilterState>) => void,
+): FilterGroup[] {
+  return [
+    {
+      key: 'state',
+      label: copy.state,
+      type: 'select',
+      options: INDIAN_STATES.map((s) => ({ value: s.code, label: s.name })),
+      value: f.stateCode || null,
+      onChange: (next) => onChange({ stateCode: next ?? '' }),
+      anyLabel: copy.anyState,
+    },
+    {
+      key: 'spend',
+      label: copy.spend,
+      type: 'range',
+      input: 'money',
+      from: f.minSpend,
+      to: f.maxSpend,
+      fromLabel: copy.minSpend,
+      toLabel: copy.maxSpend,
+      format: (v) => formatPaise(paise(v) ?? 0),
+      onChange: ({ from, to }) =>
+        onChange({
+          ...(from === undefined ? {} : { minSpend: from }),
+          ...(to === undefined ? {} : { maxSpend: to }),
+        }),
+    },
+    {
+      key: 'orders',
+      label: copy.orders,
+      type: 'range',
+      input: 'number',
+      from: f.minOrders,
+      onChange: ({ from }) => onChange({ minOrders: from ?? '' }),
+    },
+    {
       key: 'marketing',
-      label: copy.marketing(f.marketing === 'yes'),
-      onRemove: () => clear('marketing'),
-    })
-  }
-  if (f.tag) {
-    chips.push({ key: 'tag', label: copy.tag(f.tag), onRemove: () => clear('tag') })
-  }
-  return chips
+      label: copy.marketing,
+      type: 'select',
+      options: [
+        { value: 'yes', label: copy.marketingYes },
+        { value: 'no', label: copy.marketingNo },
+      ],
+      value: f.marketing || null,
+      onChange: (next) => onChange({ marketing: next ?? '' }),
+      anyLabel: copy.marketingAny,
+    },
+    ...(tags.length > 0
+      ? [
+          {
+            key: 'tag',
+            label: copy.tag,
+            type: 'select' as const,
+            options: tags.map((t) => ({ value: t, label: t })),
+            value: f.tag || null,
+            onChange: (next: string | null) => onChange({ tag: next ?? '' }),
+            anyLabel: copy.anyTag,
+          },
+        ]
+      : []),
+  ]
 }
 
 /** Turns the current filter into segment rules, so "Save as segment" opens a filled builder. */

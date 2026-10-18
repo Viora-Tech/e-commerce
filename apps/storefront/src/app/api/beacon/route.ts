@@ -10,6 +10,7 @@ import {
   setCartAttribution,
 } from '@commerce/core'
 import { CONSENT_COOKIE } from '@commerce/core/preferences'
+import { logger } from '@commerce/observability/logging'
 import { recordVisit, sharedRedis } from '@commerce/queue'
 import { cookies, headers } from 'next/headers'
 import {
@@ -24,6 +25,7 @@ import {
 } from '@/lib/attribution-cookie'
 import { readCartId } from '@/lib/cart-cookie'
 import { analyticsAllowed } from '@/lib/consent-cookie'
+import { withEvlog } from '@/lib/request-log'
 import { inStore } from '@/lib/store-context'
 import { parseVisitorId, VISITOR_COOKIE, VISITOR_COOKIE_MAX_AGE } from '@/lib/visitor-cookie'
 
@@ -67,7 +69,7 @@ function sameTouch(a: Attribution, b: Attribution): boolean {
  * proxy derives `x-store-id` from the host and mints the visitor cookie, so
  * the body only supplies the page URL and document.referrer.
  */
-export async function POST(request: Request) {
+export const POST = withEvlog(async (request: Request) => {
   const h = await headers()
   const jar = await cookies()
   const storeId = h.get('x-store-id')
@@ -127,7 +129,7 @@ export async function POST(request: Request) {
     })
   } catch (err) {
     // A lost session row costs a report line, never the page view.
-    console.warn('[beacon] could not record the session', err)
+    logger.warn('could not record the marketing session', { storeId, error: err })
   }
   jar.set(ATTRIBUTION_COOKIE, encodeAttribution(picked), {
     httpOnly: true,
@@ -139,4 +141,4 @@ export async function POST(request: Request) {
   if (click) jar.delete(MARKETING_CLICK_COOKIE)
   if (linkId) jar.delete(LINK_CLICK_COOKIE)
   return new Response(null, { status: 204 })
-}
+})

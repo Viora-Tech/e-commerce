@@ -9,7 +9,11 @@
  * - the selected section's controls (carousel arrows and dots, tabs, accordions, toggles) work;
  * - a section moves only from the grip on its toolbar (`forwardSectionDrag`), never from a
  *   press on its content, so selecting text or pressing a control never drags it;
- * - links and forms never take the canvas away from the editor.
+ * - links and forms never take the canvas away from the editor;
+ * - a click that lands on something that is not a section (an imported theme's invisible
+ *   full-page layer: a cart-drawer backdrop, a page loader, a menu overlay) goes to the section
+ *   under the pointer instead, so such a layer can never make sections unselectable
+ *   (`sectionUnder`). The first time it happens, the console names the layer.
  *
  * Plain DOM logic with no JSX, so it sits outside the component-structure rule.
  */
@@ -51,6 +55,37 @@ export function selectedControlsCss(id: string | null): string {
   if (!id) return ''
   const scope = `[data-puck-entry][data-puck-preview-mode="edit"] [data-puck-component="${CSS.escape(id)}"]`
   return `${scope} :is(${CONTROLS}) { pointer-events: auto; cursor: pointer; }`
+}
+
+/** Clicks the canvas re-sends to the section under an overlay (`sectionUnder`). */
+const rerouted = new WeakSet<Event>()
+
+/** Layers already reported in the console, so a stuck overlay is named once, not per click. */
+const reported = new WeakSet<Element>()
+
+/** "div.drawer__overlay#CartDrawer-Overlay": enough to find the element in the theme's code. */
+function describe(el: Element): string {
+  const id = el.id ? `#${el.id}` : ''
+  const classes = [...el.classList]
+    .slice(0, 3)
+    .map((c) => `.${c}`)
+    .join('')
+  return `${el.tagName.toLowerCase()}${classes}${id}`
+}
+
+/**
+ * The section under the pointer when the click landed outside every section: the topmost
+ * element at that point that sits inside one. Null when the press really was outside them
+ * (the page's empty margin) or on Puck's own chrome.
+ */
+function sectionUnder(doc: Document, e: MouseEvent): Element | null {
+  const target = e.target as Element
+  if (target.closest('[data-puck-component]') || target.closest(OVERLAY_PORTAL)) return null
+  for (const el of doc.elementsFromPoint(e.clientX, e.clientY)) {
+    const section = el.closest('[data-puck-component]')
+    if (section) return section
+  }
+  return null
 }
 
 /** Pointer events the canvas sends on to a section on purpose (`forwardSectionDrag`). */
@@ -115,8 +150,34 @@ export function installCanvasInteraction(
     if (!mayDrag(e.target, selectedId())) e.stopPropagation()
   }
   // A link would load the address inside the canvas, and a form would post from the editor.
+  // A click caught by a theme's overlay is handed to the section beneath it.
   const handleClick = (e: MouseEvent) => {
-    if (e.target instanceof view.Element && e.target.closest('a[href]')) e.preventDefault()
+    if (!(e.target instanceof view.Element)) return
+    if (e.target.closest('a[href]')) e.preventDefault()
+    if (rerouted.has(e)) return
+    const section = sectionUnder(doc, e)
+    if (!section) return
+    if (!reported.has(e.target)) {
+      reported.add(e.target)
+      console.info(
+        `[customize] a click landed on ${describe(e.target)}, a layer outside every section; sent it to the section underneath`,
+      )
+    }
+    e.preventDefault()
+    e.stopPropagation()
+    const copy = new view.MouseEvent('click', {
+      bubbles: true,
+      cancelable: true,
+      composed: true,
+      clientX: e.clientX,
+      clientY: e.clientY,
+      screenX: e.screenX,
+      screenY: e.screenY,
+      button: e.button,
+      buttons: e.buttons,
+    })
+    rerouted.add(copy)
+    section.dispatchEvent(copy)
   }
   const handleSubmit = (e: SubmitEvent) => e.preventDefault()
   view.addEventListener('pointerdown', handlePointerDown, true)

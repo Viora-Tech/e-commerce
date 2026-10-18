@@ -52,10 +52,6 @@ const ALLOWLIST: AllowEntry[] = [
     site: 'packages/api/src/routers/redirects.ts: ids.max(250)',
     reason: 'redirect bulk delete matches the 250-row redirects page — fold into BULK_MAX with it',
   },
-  {
-    site: 'packages/api/src/routers/shipments.ts: orderIds.max(100)',
-    reason: 'bulk courier booking is capped lower: each order is a courier API call',
-  },
 ]
 
 describe('sweep: router-magic-limits', () => {

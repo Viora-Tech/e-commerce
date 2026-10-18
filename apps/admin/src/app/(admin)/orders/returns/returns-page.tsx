@@ -1,15 +1,16 @@
 'use client'
 
 import type { ReturnReason } from '@commerce/core/returns'
+import { AppWindow } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import Link from 'next/link'
 import { parseAsInteger, parseAsString, parseAsStringLiteral, useQueryStates } from 'nuqs'
 import { Suspense, useEffect, useRef, useState } from 'react'
-import PillTabs from '@/components/layout/pill-tabs'
+import ProoflyListPage from '@/components/layout/proofly-list-page'
 import OrderChip from '@/components/orders/order-chip'
-import OrdersListFrame from '@/components/orders/orders-list-frame'
-import RowMenu from '@/components/orders/row-menu'
 import ResourceTable, { type ResourceColumnSpec } from '@/components/table/resource-table'
+import RowMenu from '@/components/table/row-menu'
+import ViewSelect from '@/components/table/view-select'
 import { returnsContent } from '@/data/returns'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
@@ -177,7 +178,7 @@ function ReturnsContent({ initial }: { initial: ReturnsInitial }) {
   }
 
   return (
-    <OrdersListFrame
+    <ProoflyListPage
       title={copy.title}
       summary={c.requested > 0 ? copy.needDecision(c.requested) : copy.subtitle}
       actions={
@@ -197,18 +198,23 @@ function ReturnsContent({ initial }: { initial: ReturnsInitial }) {
         getId={(r) => r.id}
         href={(r) => routes.orders.returnDetail(r.id)}
         rowActions={(r) => (
-          <RowMenu items={[{ label: copy.openReturn, href: routes.orders.returnDetail(r.id) }]} />
+          <RowMenu
+            items={[
+              { label: copy.openReturn, href: routes.orders.returnDetail(r.id), icon: AppWindow },
+            ]}
+          />
         )}
         loading={loading}
         query={query}
         onQueryChange={(query) => setQ({ query, page: 1 })}
         onClearAll={() => setQ({ query: '', status: null, page: 1 })}
-        tabs={
-          <PillTabs<ReturnListFilter | null>
-            variant="segmented"
+        views={
+          <ViewSelect<ReturnListFilter | null>
+            label={copy.viewLabel}
             value={status}
             onChange={(s) => setQ({ status: s, page: 1 })}
-            tabs={[
+            formatCount={fmt.number}
+            options={[
               { value: null, label: copy.tabs.all, count: c.all },
               ...RETURN_LIST_FILTERS.map((s) => ({
                 value: s,
@@ -225,7 +231,7 @@ function ReturnsContent({ initial }: { initial: ReturnsInitial }) {
         onPerPageChange={(n) => setQ({ perPage: n, page: 1 })}
         empty={{ heading: copy.empty, body: copy.subtitle }}
       />
-    </OrdersListFrame>
+    </ProoflyListPage>
   )
 }
 

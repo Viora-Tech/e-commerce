@@ -4,7 +4,7 @@ import { MessageSquare, ShoppingBag } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { useState } from 'react'
 import DataCard from '@/components/layout/data-card'
-import RelativeTime from '@/components/layout/relative-time'
+import Timeline from '@/components/layout/timeline'
 import { CHANNEL_LABEL } from '@/data/customer-privacy'
 import { customerDetailContent } from '@/data/customers'
 import { useCopy } from '@/hooks/use-copy'
@@ -46,25 +46,14 @@ export default function CustomerActivityCard({ customer }: CustomerActivityCardP
         <p className="text-body text-muted-foreground">{copy.activity.empty}</p>
       ) : (
         <>
-          <ol className="flex flex-col gap-4">
-            {visible.map((e) => {
-              const Icon = e.kind === 'order' ? ShoppingBag : MessageSquare
-              return (
-                <li key={e.id} className="flex items-start gap-3">
-                  <span
-                    className="flex size-6 shrink-0 items-center justify-center rounded-md bg-chip-neutral text-muted-foreground [&_svg]:size-3.5"
-                    aria-hidden="true"
-                  >
-                    <Icon />
-                  </span>
-                  <div className="min-w-0">
-                    <p className="text-body text-foreground">{describe(e)}</p>
-                    <RelativeTime value={e.at} className="text-caption text-muted-foreground" />
-                  </div>
-                </li>
-              )
-            })}
-          </ol>
+          <Timeline
+            items={visible.map((e) => ({
+              id: e.id,
+              title: describe(e),
+              at: e.at,
+              icon: e.kind === 'order' ? ShoppingBag : MessageSquare,
+            }))}
+          />
           {events.length > SHOWN ? (
             <Button
               variant="ghost"

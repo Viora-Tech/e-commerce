@@ -6,13 +6,14 @@ import { Skeleton } from '@commerce/ui/shadcn/skeleton'
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
+import PageHeader from '@/components/layout/page-header'
 import HelpFooter from '@/components/payments/help-footer'
 import HealthLine from '@/components/settings/health-line'
-import SettingsPageHeader from '@/components/settings/settings-page-header'
 import SettingsTable from '@/components/settings/settings-table'
 import WhatsThisHelp from '@/components/settings/whats-this-help'
 import { type MessageGroupId, notificationsSettingsContent } from '@/data/notifications'
 import { senderEmailContent } from '@/data/sender-email'
+import { SETTINGS_BACK } from '@/data/settings'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 import AdvancedSection from './advanced-section'
@@ -131,6 +132,11 @@ export default function NotificationsPage() {
 
   const handleClosePreview = () => setPreviewing(null)
 
+  const handlePreviewTest = () => {
+    const m = data?.messages.find((row) => row.id === previewing)
+    if (m) void handleTest(m)
+  }
+
   // Early returns
   if (!data) {
     return (
@@ -152,7 +158,7 @@ export default function NotificationsPage() {
   const whatsappOn = data.channels.whatsapp.state === 'connected'
   return (
     <div className="flex flex-col gap-5">
-      <SettingsPageHeader
+      <PageHeader
         title={copy.title}
         subtitle={
           <span className="flex flex-wrap items-center gap-x-3 gap-y-1">
@@ -164,6 +170,7 @@ export default function NotificationsPage() {
             />
           </span>
         }
+        back={SETTINGS_BACK}
       />
 
       <HealthLine
@@ -240,7 +247,12 @@ export default function NotificationsPage() {
       {DEV ? <AdvancedSection devLog={data.devLog} onChanged={reload} /> : null}
       <HelpFooter />
 
-      <PreviewDialog messageId={previewing} onClose={handleClosePreview} />
+      <PreviewDialog
+        messageId={previewing}
+        onClose={handleClosePreview}
+        onTest={handlePreviewTest}
+        testing={previewing !== null && testing === previewing}
+      />
     </div>
   )
 }

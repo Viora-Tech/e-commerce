@@ -9,10 +9,12 @@ import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 import { authClient } from '@/lib/auth-client'
 import LocationStep, { type LocationValue } from './location-step'
+import OnboardingScreen from './onboarding-screen'
 import SellsOnStep from './sells-on-step'
 import SellsWhatStep from './sells-what-step'
 import StepProgress from './step-progress'
 import StoreNameStep, { type StoreNameValue } from './store-name-step'
+import StorePreviewPanel from './store-preview-panel'
 
 type OnboardingWizardProps = { platformDomain: string; defaultName: string }
 
@@ -67,35 +69,48 @@ export default function OnboardingWizard({ platformDomain, defaultName }: Onboar
   }
 
   return (
-    <Card size="form" className="w-full max-w-md">
-      <CardContent className="flex flex-col gap-5">
-        <StepProgress
-          step={step}
-          total={TOTAL_STEPS}
-          onBack={step > 0 ? handleBack : undefined}
-          disabled={submitting}
+    <OnboardingScreen
+      panel={
+        <StorePreviewPanel
+          name={store.name}
+          address={`${store.slug}.${platformDomain}`}
+          sells={sells}
+          country={location.country}
+          state={location.state}
+          sellsOn={sellsOn}
         />
-        {step === 0 ? (
-          <StoreNameStep
-            platformDomain={platformDomain}
-            value={store}
-            onChange={setStore}
-            onNext={handleNext}
+      }
+    >
+      <Card size="form" className="w-full max-w-md">
+        <CardContent className="flex flex-col gap-5">
+          <StepProgress
+            step={step}
+            total={TOTAL_STEPS}
+            onBack={step > 0 ? handleBack : undefined}
+            disabled={submitting}
           />
-        ) : step === 1 ? (
-          <SellsWhatStep value={sells} onChange={setSells} onNext={handleNext} />
-        ) : step === 2 ? (
-          <LocationStep value={location} onChange={setLocation} onNext={handleNext} />
-        ) : (
-          <SellsOnStep
-            value={sellsOn}
-            onChange={setSellsOn}
-            onSubmit={handleSubmit}
-            submitting={submitting}
-            error={error}
-          />
-        )}
-      </CardContent>
-    </Card>
+          {step === 0 ? (
+            <StoreNameStep
+              platformDomain={platformDomain}
+              value={store}
+              onChange={setStore}
+              onNext={handleNext}
+            />
+          ) : step === 1 ? (
+            <SellsWhatStep value={sells} onChange={setSells} onNext={handleNext} />
+          ) : step === 2 ? (
+            <LocationStep value={location} onChange={setLocation} onNext={handleNext} />
+          ) : (
+            <SellsOnStep
+              value={sellsOn}
+              onChange={setSellsOn}
+              onSubmit={handleSubmit}
+              submitting={submitting}
+              error={error}
+            />
+          )}
+        </CardContent>
+      </Card>
+    </OnboardingScreen>
   )
 }

@@ -1,22 +1,13 @@
 'use client'
 
 import { CircleAlert, CircleCheck } from '@commerce/ui/icons'
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@commerce/ui/shadcn/alert-dialog'
 import { Button } from '@commerce/ui/shadcn/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@commerce/ui/shadcn/card'
 import { Progress } from '@commerce/ui/shadcn/progress'
 import { Spinner } from '@commerce/ui/shadcn/spinner'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
+import ConfirmDialog from '@/components/layout/confirm-dialog'
+import DataCard from '@/components/layout/data-card'
 import { appsContent } from '@/data/apps'
 import { api } from '@/lib/api-client'
 
@@ -96,62 +87,57 @@ export default function MoveFilesCard({ targetProviderId, targetLabel }: MoveFil
         : 100
 
   return (
-    <Card size="form">
-      <CardHeader>
-        <CardTitle>{copy.action(targetLabel)}</CardTitle>
-        <CardDescription>{copy.confirmBody}</CardDescription>
-      </CardHeader>
-      <CardContent className="flex flex-col gap-3">
-        {relevant && migration ? (
-          <div className="flex flex-col gap-2">
-            <Progress value={pct} />
-            {migration.status === 'running' ? (
-              <p className="flex items-center gap-1.5 text-body text-muted-foreground">
-                <Spinner className="size-4" />
-                {migration.total > 0
-                  ? migration.failed > 0
-                    ? copy.progressWithFailed(migration.done, migration.total, migration.failed)
-                    : copy.progress(migration.done, migration.total)
-                  : copy.started}
-              </p>
-            ) : migration.status === 'done' ? (
-              <p className="flex items-center gap-1.5 text-body font-medium text-success">
-                <CircleCheck aria-hidden="true" className="size-4" />
-                {copy.done}
-              </p>
-            ) : (
-              <p className="flex items-center gap-1.5 text-body font-medium text-destructive">
-                <CircleAlert aria-hidden="true" className="size-4" />
-                {copy.failed}
-              </p>
-            )}
-          </div>
-        ) : null}
-        <div>
-          <Button
-            type="button"
-            variant="outline"
-            disabled={starting || running}
-            onClick={() => setConfirmOpen(true)}
-          >
-            {starting ? <Spinner /> : null}
-            {copy.action(targetLabel)}
-          </Button>
+    <DataCard
+      title={copy.action(targetLabel)}
+      subtitle={copy.confirmBody}
+      bodyClassName="flex flex-col gap-3"
+    >
+      {relevant && migration ? (
+        <div className="flex flex-col gap-2">
+          <Progress value={pct} />
+          {migration.status === 'running' ? (
+            <p className="flex items-center gap-1.5 text-body text-muted-foreground">
+              <Spinner className="size-4" />
+              {migration.total > 0
+                ? migration.failed > 0
+                  ? copy.progressWithFailed(migration.done, migration.total, migration.failed)
+                  : copy.progress(migration.done, migration.total)
+                : copy.started}
+            </p>
+          ) : migration.status === 'done' ? (
+            <p className="flex items-center gap-1.5 text-body font-medium text-success">
+              <CircleCheck aria-hidden="true" className="size-4" />
+              {copy.done}
+            </p>
+          ) : (
+            <p className="flex items-center gap-1.5 text-body font-medium text-destructive">
+              <CircleAlert aria-hidden="true" className="size-4" />
+              {copy.failed}
+            </p>
+          )}
         </div>
-      </CardContent>
-
-      <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>{copy.confirmTitle(targetLabel)}</AlertDialogTitle>
-            <AlertDialogDescription>{copy.confirmBody}</AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>{copy.cancel}</AlertDialogCancel>
-            <AlertDialogAction onClick={handleConfirm}>{copy.confirm}</AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-    </Card>
+      ) : null}
+      <div>
+        <Button
+          type="button"
+          variant="outline"
+          disabled={starting || running}
+          onClick={() => setConfirmOpen(true)}
+        >
+          {starting ? <Spinner /> : null}
+          {copy.action(targetLabel)}
+        </Button>
+      </div>
+      <ConfirmDialog
+        open={confirmOpen}
+        onOpenChange={setConfirmOpen}
+        title={copy.confirmTitle(targetLabel)}
+        body={copy.confirmBody}
+        confirmLabel={copy.confirm}
+        cancelLabel={copy.cancel}
+        tone="default"
+        onConfirm={handleConfirm}
+      />
+    </DataCard>
   )
 }

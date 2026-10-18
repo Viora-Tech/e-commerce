@@ -20,6 +20,17 @@ export const corePlugin = definePlugin({
   kind: 'builtin',
   description:
     'Cash on delivery, UPI or bank transfer, demo courier, development log channels and local file storage.',
+  access: {
+    resources: [
+      {
+        resource: 'payments',
+        level: 'read-write',
+        why: 'Cash on delivery and UPI or bank transfer',
+      },
+      { resource: 'shipments', level: 'read-write', why: 'The demo courier' },
+      { resource: 'files', level: 'read-write', why: 'Local file storage' },
+    ],
+  },
   provides: {
     payments: [codFactory, manualFactory],
     shipping: [fakeShippingFactory],

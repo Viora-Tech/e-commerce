@@ -6,9 +6,10 @@ import { Spinner } from '@commerce/ui/shadcn/spinner'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { toast } from 'sonner'
+import PageHeader from '@/components/layout/page-header'
 import SettingsCard from '@/components/settings/settings-card'
-import SettingsPageHeader from '@/components/settings/settings-page-header'
 import { paymentsSetupContent } from '@/data/payments-setup'
+import { SETTINGS_BACK } from '@/data/settings'
 import { useCopy } from '@/hooks/use-copy'
 import { useSetupNext } from '@/hooks/use-setup-next'
 import { api } from '@/lib/api-client'
@@ -97,7 +98,7 @@ export default function PaymentsOverview({ setup, onReload, onOpenGuide }: Payme
 
   return (
     <div className="flex flex-col gap-5">
-      <SettingsPageHeader
+      <PageHeader
         title={copy.title}
         subtitle={
           <span className="flex flex-wrap items-center gap-x-3 gap-y-1">
@@ -106,6 +107,7 @@ export default function PaymentsOverview({ setup, onReload, onOpenGuide }: Payme
           </span>
         }
         actions={actions}
+        back={SETTINGS_BACK}
       />
 
       <StatusBanner canTakePayments={setup.canTakePayments} canTakeOnline={setup.canTakeOnline} />

@@ -467,3 +467,78 @@ html:not(.has-cursor-fill) .tabbed-products__tab[aria-selected='true']:hover {
     background-position: -200% 0;
   }
 }
+
+/* ------------------------------------------------------------------ */
+/* Figma Section / Tabbed products and Product grid (704:122080,        */
+/* 704:121703): the tabs as Store / Tabs "Pills" - a surface track with  */
+/* the chosen tab raised on the page colour - and 24px gutters.         */
+/* ------------------------------------------------------------------ */
+.tabbed-products__tabs {
+  margin-bottom: var(--space-7);
+}
+
+.tabbed-products__tablist {
+  gap: 0;
+  padding: 4px;
+  border-radius: var(--radius-m);
+  background-color: var(--color-surface);
+}
+
+.tabbed-products__tab,
+html.has-cursor-fill .tabbed-products__tab:hover,
+html:not(.has-cursor-fill) .tabbed-products__tab:hover {
+  padding: 6px var(--space-4);
+  border: 0;
+  border-radius: calc(var(--radius-m) - 2px);
+  background-color: transparent;
+  color: var(--color-muted);
+  font-family: var(--font-body);
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.45;
+  letter-spacing: 0;
+  --tp-fill-color: transparent;
+}
+
+.tabbed-products__tab:hover {
+  color: var(--color-ink);
+}
+
+.tabbed-products__tab[aria-selected='true'],
+html.has-cursor-fill .tabbed-products__tab[aria-selected='true']:hover,
+html:not(.has-cursor-fill) .tabbed-products__tab[aria-selected='true']:hover {
+  background-color: var(--color-bg);
+  color: var(--color-ink);
+}
+
+.tabbed-products__indicator {
+  border-radius: calc(var(--radius-m) - 2px);
+  background-color: var(--color-bg);
+}
+
+.tabbed-products__tablist.has-indicator .tabbed-products__tab[aria-selected='true'],
+.tabbed-products__tablist.has-indicator .tabbed-products__tab[aria-selected='true']:hover {
+  color: var(--color-ink);
+}
+
+.tabbed-products__grid {
+  gap: var(--space-7) var(--space-5);
+}
+
+.tabbed-products__heading {
+  --tp-line: 1.1em;
+
+  margin-bottom: var(--space-6);
+  font-size: calc(2rem * var(--font-heading-scale, 1));
+  letter-spacing: -0.015em;
+}
+
+.tabbed-products__heading-item {
+  line-height: 1.1;
+}
+
+@media screen and (min-width: 990px) {
+  .tabbed-products__heading {
+    font-size: calc(2.5rem * var(--font-heading-scale, 1));
+  }
+}

@@ -1,7 +1,6 @@
-import { ArticleCard } from '@commerce/blocks'
+import { ArticleCard, Breadcrumbs } from '@commerce/blocks'
 import { getBlogByHandle, listVisibleArticles, toCardArticle } from '@commerce/core'
 import type { Metadata } from 'next'
-import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import BlogPagination from '@/components/blog/blog-pagination'
 import TagFilter from '@/components/blog/tag-filter'
@@ -74,18 +73,13 @@ export default async function BlogPage({ params, searchParams }: Params) {
   }
 
   const main = (
-    <section className="page-width flex flex-col gap-8 py-12">
+    <section className="blog-page page-width">
       {/* biome-ignore lint/security/noDangerouslySetInnerHtml: JSON-LD from our own data, `<` escaped. */}
       <script type="application/ld+json" dangerouslySetInnerHTML={jsonLd(schema)} />
-      <nav aria-label="Breadcrumb" className="text-caption text-muted">
-        <Link href="/" className="hover:text-ink">
-          {copy.home}
-        </Link>
-        <span aria-hidden> / </span>
-        <span className="text-ink">{blog.title}</span>
-      </nav>
-      <header className="flex flex-col gap-4">
-        <h1 className="text-ink">{blog.title}</h1>
+      <Breadcrumbs items={[{ label: blog.title }]} />
+      <header className="blog-page__header">
+        <h1 className="section-title">{blog.title}</h1>
+        {blog.seoDescription ? <p className="blog-page__intro">{blog.seoDescription}</p> : null}
         {posts.tags.length > 0 ? <TagFilter path={path} tags={posts.tags} active={tag} /> : null}
       </header>
 

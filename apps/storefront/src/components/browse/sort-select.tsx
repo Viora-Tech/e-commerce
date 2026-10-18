@@ -26,7 +26,7 @@ export default function SortSelect({ action, value, options, keep }: SortSelectP
 
   // Render logic
   return (
-    <form action={action} method="get" className="flex items-center gap-2">
+    <form action={action} method="get" className="ml-auto flex items-center gap-2">
       {keep.map(([k, v]) => (
         <input key={`${k}=${v}`} type="hidden" name={k} value={v} />
       ))}

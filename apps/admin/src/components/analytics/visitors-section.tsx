@@ -5,10 +5,11 @@ import { Button } from '@commerce/ui/shadcn/button'
 import { Card } from '@commerce/ui/shadcn/card'
 import { Skeleton } from '@commerce/ui/shadcn/skeleton'
 import Link from 'next/link'
-import { type ReactNode, useEffect, useState } from 'react'
+import { useEffect, useState } from 'react'
 import ChartCard from '@/components/layout/chart-card'
 import EmptyState from '@/components/layout/empty-state'
-import StatTile from '@/components/layout/stat-tile'
+import SectionHead from '@/components/layout/section-head'
+import StatStrip from '@/components/layout/stat-strip'
 import { analyticsContent } from '@/data/analytics'
 import { umamiContent } from '@/data/umami'
 import { useCopy, useLocale } from '@/hooks/use-copy'
@@ -110,7 +111,7 @@ export default function VisitorsSection({ range }: VisitorsSectionProps) {
 
   // Early returns
   const copy = umami.visitors
-  const heading = <SectionHeading title={copy.title} intro={copy.intro} />
+  const heading = <SectionHead title={copy.title} intro={copy.intro} />
   if (view === null) {
     return (
       <section aria-label={copy.title} aria-busy className="flex flex-col gap-4">
@@ -123,7 +124,7 @@ export default function VisitorsSection({ range }: VisitorsSectionProps) {
   if (view.state !== 'ready') {
     const empty =
       view.state === 'not-installed'
-        ? { ...copy.empty.notInstalled, href: routes.apps.list() }
+        ? { ...copy.empty.notInstalled, href: routes.apps.install('umami') }
         : view.state === 'not-connected'
           ? { ...copy.empty.notConnected, href: routes.apps.page('umami') }
           : {
@@ -170,7 +171,7 @@ export default function VisitorsSection({ range }: VisitorsSectionProps) {
 
   return (
     <section aria-label={copy.title} className="flex flex-col gap-4">
-      <SectionHeading
+      <SectionHead
         title={copy.title}
         intro={copy.intro}
         action={
@@ -184,18 +185,16 @@ export default function VisitorsSection({ range }: VisitorsSectionProps) {
           </Button>
         }
       />
-      <div className="grid grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-5">
-        {report.kpis.map((kpi) => (
-          <StatTile
-            key={kpi.id}
-            label={copy.kpis[kpi.id]}
-            value={formatKpi(copy, kpi)}
-            trend={trendOf(kpi)}
-            trendNote={analytics.compare}
-            invert={kpi.id === 'bounceRate'}
-          />
-        ))}
-      </div>
+      <StatStrip
+        tiles={report.kpis.map((kpi) => ({
+          id: kpi.id,
+          label: copy.kpis[kpi.id],
+          value: formatKpi(copy, kpi),
+          trend: trendOf(kpi),
+          trendNote: analytics.compare,
+          invert: kpi.id === 'bounceRate',
+        }))}
+      />
       <ChartCard
         title={copy.trend.title}
         subtitle={copy.trend.subtitle(
@@ -221,27 +220,5 @@ export default function VisitorsSection({ range }: VisitorsSectionProps) {
         ))}
       </div>
     </section>
-  )
-}
-
-/** "Visitors" with its one-line intro, and an action on the right. */
-function SectionHeading({
-  title,
-  intro,
-  action,
-}: {
-  title: string
-  intro: string
-  action?: ReactNode
-}) {
-  // Render logic
-  return (
-    <div className="flex flex-wrap items-end justify-between gap-3 pt-2">
-      <div className="flex flex-col gap-0.5">
-        <h2 className="text-card-title text-ink-strong">{title}</h2>
-        <p className="text-body text-muted-foreground">{intro}</p>
-      </div>
-      {action}
-    </div>
   )
 }

@@ -1,7 +1,7 @@
 'use client'
 
-import { Card, CardContent, CardHeader, CardTitle } from '@commerce/ui/shadcn/card'
 import { Textarea } from '@commerce/ui/shadcn/textarea'
+import DataCard from '@/components/layout/data-card'
 
 type NotesCardProps = {
   id: string
@@ -22,22 +22,15 @@ export default function NotesCard({
   onChange,
 }: NotesCardProps) {
   return (
-    <Card size="form">
-      <CardHeader>
-        <CardTitle>
-          <label htmlFor={id}>{heading}</label>
-        </CardTitle>
-      </CardHeader>
-      <CardContent>
-        <Textarea
-          id={id}
-          value={value}
-          rows={3}
-          placeholder={placeholder}
-          disabled={disabled}
-          onChange={(e) => onChange(e.target.value)}
-        />
-      </CardContent>
-    </Card>
+    <DataCard title={<label htmlFor={id}>{heading}</label>}>
+      <Textarea
+        id={id}
+        value={value}
+        rows={3}
+        placeholder={placeholder}
+        disabled={disabled}
+        onChange={(e) => onChange(e.target.value)}
+      />
+    </DataCard>
   )
 }

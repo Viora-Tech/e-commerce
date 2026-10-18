@@ -1,3 +1,4 @@
+import { withEvlog } from '@/lib/request-log'
 import { markReviewHelpful, submitReviewForm, uploadReviewPhoto } from '@/lib/review-actions'
 
 type Params = { params: Promise<{ storeId: string; action: string }> }
@@ -8,7 +9,7 @@ type Params = { params: Promise<{ storeId: string; action: string }> }
  * The store is the one the hostname resolved to (see `lib/review-actions.ts`), never the
  * path segment or the body. Answers are JSON.
  */
-export async function POST(req: Request, { params }: Params) {
+export const POST = withEvlog(async (req: Request, { params }: Params) => {
   const { action } = await params
   if (action === 'photo' || action === 'submit') {
     const form = await req.formData().catch(() => null)
@@ -22,4 +23,4 @@ export async function POST(req: Request, { params }: Params) {
     return Response.json(result, { status: result.ok ? 200 : 422 })
   }
   return new Response('Not found', { status: 404 })
-}
+})

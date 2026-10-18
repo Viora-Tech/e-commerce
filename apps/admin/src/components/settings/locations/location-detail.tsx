@@ -9,8 +9,8 @@ import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import ChoiceField from '@/components/apps/gst-invoices/choice-field'
+import PageHeader from '@/components/layout/page-header'
 import SettingsCard from '@/components/settings/settings-card'
-import SettingsPageHeader from '@/components/settings/settings-page-header'
 import { businessGstContent } from '@/data/business-gst'
 import { useCopy } from '@/hooks/use-copy'
 import { usePermissions } from '@/hooks/use-permissions'
@@ -79,7 +79,7 @@ export default function LocationDetail({ location, registrations }: LocationDeta
 
   return (
     <div className="flex flex-col gap-4">
-      <SettingsPageHeader
+      <PageHeader
         title={location.name}
         back={{ label: copy.back, href: routes.settings.locations() }}
       />

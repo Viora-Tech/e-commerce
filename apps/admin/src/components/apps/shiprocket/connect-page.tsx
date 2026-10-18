@@ -2,6 +2,7 @@
 
 import { Truck } from '@commerce/ui/icons'
 import ConnectFields, { type ConnectFieldSpec } from '@/components/apps/shared/connect-fields'
+import CourierConnectAside from '@/components/apps/shared/courier-connect-aside'
 import CourierConnectGuide from '@/components/apps/shared/courier-connect-guide'
 import ProviderConnectPage, {
   type ConnectContext,
@@ -33,7 +34,7 @@ const fieldSpecs: ConnectFieldSpec[] = [
   { key: 'email', type: 'email', ...copy.fields.email },
   { key: 'password', type: 'password', ...copy.fields.password },
   { key: 'pickupLocationName', ...copy.fields.pickupLocationName },
-  { key: 'originPincode', inputMode: 'numeric', ...copy.fields.originPincode },
+  { key: 'originPincode', inputMode: 'numeric', pincode: true, ...copy.fields.originPincode },
 ]
 
 const testConnection = (values: FieldValues) =>
@@ -72,6 +73,10 @@ const renderExtras = ({ values, setField, advancedOpen, onAdvancedOpenChange }: 
   />
 )
 
+const renderAside = (ctx: Ctx) => (
+  <CourierConnectAside providerId={PROVIDER_ID} ctx={ctx} pickupKey="pickupLocationName" />
+)
+
 /** `/apps/shiprocket/connect`: a 3-step guide, a read-only "Test connection" check, and the
  *  rarely-touched fields under Advanced. */
 export default function ConnectPage() {
@@ -87,6 +92,7 @@ export default function ConnectPage() {
       guide={renderGuide}
       fields={renderFields}
       extras={renderExtras}
+      aside={renderAside}
     />
   )
 }

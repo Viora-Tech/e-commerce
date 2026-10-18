@@ -1,8 +1,8 @@
 'use client'
 
-import { Card, CardContent, CardHeader, CardTitle } from '@commerce/ui/shadcn/card'
 import { Field, FieldLabel } from '@commerce/ui/shadcn/field'
 import { RadioGroup, RadioGroupItem } from '@commerce/ui/shadcn/radio-group'
+import DataCard from '@/components/layout/data-card'
 import { onlineStoreContent } from '@/data/online-store'
 import { useCopy } from '@/hooks/use-copy'
 
@@ -17,28 +17,23 @@ export default function PageVisibilityCard({ visible, onChange }: PageVisibility
 
   // Render logic
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>{copy.heading}</CardTitle>
-      </CardHeader>
-      <CardContent className="flex flex-col gap-4">
-        <RadioGroup
-          value={visible ? 'visible' : 'hidden'}
-          onValueChange={(v) => onChange(v === 'visible')}
-        >
-          {(['visible', 'hidden'] as const).map((option) => (
-            <Field key={option} orientation="horizontal">
-              <RadioGroupItem id={`page-visibility-${option}`} value={option} />
-              <FieldLabel htmlFor={`page-visibility-${option}`} className="font-normal">
-                {copy[option]}
-              </FieldLabel>
-            </Field>
-          ))}
-        </RadioGroup>
-        <p className="text-body text-muted-foreground">
-          {visible ? copy.visibleHelp : copy.hiddenHelp}
-        </p>
-      </CardContent>
-    </Card>
+    <DataCard title={copy.heading} bodyClassName="flex flex-col gap-4">
+      <RadioGroup
+        value={visible ? 'visible' : 'hidden'}
+        onValueChange={(v) => onChange(v === 'visible')}
+      >
+        {(['visible', 'hidden'] as const).map((option) => (
+          <Field key={option} orientation="horizontal">
+            <RadioGroupItem id={`page-visibility-${option}`} value={option} />
+            <FieldLabel htmlFor={`page-visibility-${option}`} className="font-normal">
+              {copy[option]}
+            </FieldLabel>
+          </Field>
+        ))}
+      </RadioGroup>
+      <p className="text-body text-muted-foreground">
+        {visible ? copy.visibleHelp : copy.hiddenHelp}
+      </p>
+    </DataCard>
   )
 }

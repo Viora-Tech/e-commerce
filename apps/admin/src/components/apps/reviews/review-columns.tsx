@@ -1,6 +1,7 @@
 import RelativeTime from '@/components/layout/relative-time'
+import StatusChip from '@/components/layout/status-chip'
+import OrderChip from '@/components/orders/order-chip'
 import ProductThumb from '@/components/products/product-thumb'
-import StatusLabel from '@/components/status/status-label'
 import type { ResourceColumnSpec } from '@/components/table/resource-table'
 import type { reviewsContent } from '@/data/reviews'
 import type { api } from '@/lib/api-client'
@@ -43,9 +44,9 @@ export function reviewColumns(copy: typeof reviewsContent): ResourceColumnSpec<R
           <span className="flex items-center gap-2">
             <span className="truncate text-body-strong">{r.title || c.noTitle}</span>
             {r.hasPhotos ? (
-              <span className="inline-flex h-5 shrink-0 items-center rounded-sm bg-info-soft px-1.5 text-caption text-info">
+              <StatusChip tone="info" className="shrink-0">
                 {c.photo}
-              </span>
+              </StatusChip>
             ) : null}
           </span>
           <span className="truncate text-caption text-muted-foreground">{r.body}</span>
@@ -81,7 +82,7 @@ export function reviewColumns(copy: typeof reviewsContent): ResourceColumnSpec<R
       title: c.columns.status,
       className: 'w-28',
       sortValue: (r) => r.status,
-      render: (r) => <StatusLabel kind="review" value={r.status} variant="pill" size="sm" />,
+      render: (r) => <OrderChip kind="review" value={r.status} />,
     },
   ]
 }

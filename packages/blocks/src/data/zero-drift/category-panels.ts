@@ -5,7 +5,7 @@ export const categoryPanelsContent = {
   heading: 'Pick your gear',
   /** Shown on a panel with no line of its own. `{count}` is the collection's product count. */
   countLine: '{count} products',
-  cta: 'Shop',
+  cta: 'Shop now',
   empty: 'Add a category to show it here.',
   newPanel: { collectionHandle: '', title: 'Category', text: '' },
   panels: [

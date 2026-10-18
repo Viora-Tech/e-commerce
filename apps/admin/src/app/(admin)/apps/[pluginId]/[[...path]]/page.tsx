@@ -43,12 +43,14 @@ export default async function AppPage({ params }: Params) {
       icon={app.admin.icon}
       description={app.description}
       credits={app.credits}
-      setupHref={
-        app.kind === 'connection' &&
-        !app.connected &&
+      status={app.status}
+      problem={app.problem}
+      fixHref={
         app.admin.pages.some((p) => p.path === 'connect')
           ? routes.apps.connect(app.id)
-          : undefined
+          : app.admin.pages.some((p) => p.path === 'settings')
+            ? routes.apps.settings(app.id)
+            : undefined
       }
       hasSettings={app.admin.pages.some((p) => p.path === 'settings')}
       tabs={tabs}

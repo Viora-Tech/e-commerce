@@ -1,10 +1,13 @@
 import { protectedProcedure } from '../procedures'
 import { accountRouter } from './account'
+import { activityRouter } from './activity'
 import { aiRouter } from './ai'
 import { analyticsRouter } from './analytics'
+import { apiAccessRouter } from './api-access'
 import { appearanceRouter } from './appearance'
 import { appsRouter } from './apps'
 import { backInStockRouter } from './back-in-stock'
+import { billingRouter } from './billing'
 import { blogRouter } from './blog'
 import { bugReportsRouter } from './bug-reports'
 import { businessGstRouter } from './business-gst'
@@ -39,6 +42,9 @@ import { inboundShipmentsRouter, purchaseChargesRouter, suppliersRouter } from '
 import { redirectsRouter } from './redirects'
 import { returnsRouter } from './returns'
 import { reviewsRouter } from './reviews'
+import { salesChannelsRouter } from './sales-channels'
+import { searchConsoleRouter } from './search-console'
+import { seoRouter } from './seo'
 import { shipmentsRouter } from './shipments'
 import { shippingRouter } from './shipping'
 import { shopifyImportRouter } from './shopify-import'
@@ -51,6 +57,7 @@ import { themesRouter } from './themes'
 import { umamiRouter } from './umami'
 
 export const appRouter = {
+  activity: activityRouter,
   me: protectedProcedure.handler(({ context }) => context.session),
   account: accountRouter,
   store: storeRouter,
@@ -67,10 +74,14 @@ export const appRouter = {
   purchaseCharges: purchaseChargesRouter,
   purchaseDocuments: purchaseDocumentsRouter,
   pages: pagesRouter,
+  apiAccess: apiAccessRouter,
+  billing: billingRouter,
   blog: blogRouter,
   metaobjects: metaobjectsRouter,
   navigation: navigationRouter,
   redirects: redirectsRouter,
+  salesChannels: salesChannelsRouter,
+  seo: seoRouter,
   orders: ordersRouter,
   returns: returnsRouter,
   shipments: shipmentsRouter,
@@ -97,6 +108,7 @@ export const appRouter = {
   forms: formsRouter,
   reviews: reviewsRouter,
   umami: umamiRouter,
+  searchConsole: searchConsoleRouter,
   dashboard: dashboardRouter,
   analytics: analyticsRouter,
   ai: aiRouter,

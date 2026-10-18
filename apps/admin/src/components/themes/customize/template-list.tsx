@@ -51,7 +51,7 @@ const LOOK =
 const ITEM =
   'min-h-[2.1875rem] rounded-lg px-2 text-[0.8125rem] data-[checked=true]:bg-primary-soft data-[checked=true]:font-medium data-[checked=true]:text-primary [&>svg:last-child]:hidden'
 
-/** Each kind's glyph, from the editor set (Phosphor regular). */
+/** Each kind's glyph, from the editor set (Hugeicons). */
 const KIND_ICONS: Record<TemplateKind, IconComponent> = {
   home: Home,
   product: editorGlyphs.package,

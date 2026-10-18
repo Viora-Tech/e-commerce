@@ -1,3 +1,4 @@
+import { siteConfig } from '@commerce/config/site'
 import type { Metadata } from 'next'
 import { Bricolage_Grotesque, DM_Sans, Geist_Mono } from 'next/font/google'
 import { Head, Search } from 'nextra/components'
@@ -16,6 +17,15 @@ export const metadata: Metadata = {
     template: `%s – ${brand.name} ${brand.suffix}`,
   },
   description: `Merchant guide and developer docs for ${brand.name}.`,
+  metadataBase: new URL(siteConfig.urls.docs),
+  alternates: { canonical: './' },
+  openGraph: {
+    siteName: `${brand.name} ${brand.suffix}`,
+    type: 'website',
+    locale: 'en_IN',
+    images: [{ url: `${siteConfig.urls.site}/opengraph-image`, width: 1200, height: 630 }],
+  },
+  twitter: { card: 'summary_large_image' },
 }
 
 /* DM Sans (SIL OFL 1.1) for text and Bricolage Grotesque (SIL OFL 1.1) for headings: the same

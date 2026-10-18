@@ -7,10 +7,10 @@ export default [
     details: 'पूरी जानकारी',
     noChange: 'कोई बदलाव नहीं',
     moreActions: 'और विकल्प',
+    save: 'सेव करें',
     filter: 'फ़िल्टर',
     skipToContent: 'सीधे कंटेंट पर जाएं',
     breadcrumb: 'ब्रेडक्रंब',
-    backTo: (label) => `${label} पर वापस`,
     notFound: {
       heading: 'पेज नहीं मिला',
       body: 'लिंक पुराना हो सकता है, या वह चीज़ हटा दी गई है।',

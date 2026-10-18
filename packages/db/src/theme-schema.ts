@@ -148,6 +148,8 @@ export const themeFile = pgTable(
     /** Path inside the theme, e.g. `sections/hero.liquid` or `assets/base.css`. */
     path: text('path').notNull(),
     body: text('body').notNull(),
+    /** Edit code's unpublished save (imported themes): the store keeps `body` until Publish. */
+    draftBody: text('draft_body'),
     encoding: text('encoding').notNull().default('utf8'),
     contentType: text('content_type').notNull(),
     size: integer('size').notNull(),
@@ -159,6 +161,35 @@ export const themeFile = pgTable(
     check('theme_file_encoding', sql`${t.encoding} in ('utf8','base64')`),
     uniqueIndex('theme_file_path').on(t.themeId, t.path),
     index('theme_file_store').on(t.storeId),
+  ],
+)
+
+/**
+ * Saved versions of a theme file edited in Edit code: the body after each save, and the body
+ * as imported (`import`), taken the first time the file is saved so the original is never lost.
+ * Edit code compares any of them with the open file and restores one into the editor. The
+ * newest 30 per file are kept.
+ */
+export const themeFileVersion = pgTable(
+  'theme_file_version',
+  {
+    id: id(),
+    storeId: storeId(),
+    themeId: uuid('theme_id')
+      .notNull()
+      .references(() => theme.id, { onDelete: 'cascade' }),
+    path: text('path').notNull(),
+    body: text('body').notNull(),
+    /** `import` (the file as it came in), `create` (added in Edit code) or `save`. */
+    reason: text('reason').notNull(),
+    /** The member's name (or email) who saved; null for the import copy. */
+    createdBy: text('created_by'),
+    createdAt: createdAt(),
+  },
+  (t) => [
+    check('theme_file_version_reason', sql`${t.reason} in ('import','create','save')`),
+    index('theme_file_version_file').on(t.themeId, t.path, t.createdAt),
+    index('theme_file_version_store').on(t.storeId),
   ],
 )
 

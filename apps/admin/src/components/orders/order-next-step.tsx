@@ -2,15 +2,13 @@
 
 import type { Tracking } from '@commerce/core'
 import { CheckIcon, CircleCheck, Clock, Copy, PackageOpen, Truck, X } from '@commerce/ui/icons'
-import { cn } from '@commerce/ui/lib/utils'
 import { Button } from '@commerce/ui/shadcn/button'
-import Link from 'next/link'
 import type { ReactNode } from 'react'
 import { toast } from 'sonner'
+import NextStepBanner, { type NextStepTone } from '@/components/layout/next-step-banner'
 import { orderNextStepContent } from '@/data/order-next-step'
 import { orderDetailContent } from '@/data/orders'
 import { useCopy, useFormat } from '@/hooks/use-copy'
-import { routes } from '@/lib/routes'
 import { methodLabel, type OrderDetail, unfulfilledLines } from './order-detail-types'
 import type { NextStepKind } from './order-next-step-kind'
 import OrderTransitSteps from './order-transit-steps'
@@ -20,32 +18,26 @@ type OrderNextStepProps = {
   kind: NextStepKind
   busy: boolean
   onCollect: () => void
+  /** Opens the Create shipment flow (pick the courier, book, print the label). */
+  onShip: () => void
+  /** Packs items by hand, without a courier booking. */
   onFulfil: () => void
   onDelivered: () => void
   /** Present while a transfer is waiting to be matched; sends the customer a nudge. */
   onSendReminder?: (() => void) | undefined
 }
 
-/* Blue while there is work to do, green once delivered, grey when closed. */
-const TONE: Record<NextStepKind, string> = {
-  upi: 'border-primary/25 bg-primary-soft',
-  collect: 'border-primary/25 bg-primary-soft',
-  ship: 'border-primary/25 bg-primary-soft',
-  transit: 'border-primary/25 bg-primary-soft',
-  done: 'border-success/40 bg-success-soft',
-  cancelled: 'border-hairline bg-muted/60',
+/* Work to do is the action banner; delivered is done, cancelled is closed. */
+const TONE: Record<NextStepKind, NextStepTone> = {
+  upi: 'action',
+  collect: 'action',
+  ship: 'action',
+  transit: 'action',
+  done: 'done',
+  cancelled: 'closed',
 }
 
-const EYEBROW_TONE: Record<NextStepKind, string> = {
-  upi: 'text-primary',
-  collect: 'text-primary',
-  ship: 'text-primary',
-  transit: 'text-primary',
-  done: 'text-success',
-  cancelled: 'text-muted-foreground',
-}
-
-const PLAIN = 'bg-card hover:bg-card/80'
+const PLAIN = ''
 const SHORT_DATE = { day: 'numeric', month: 'short' } as const
 
 /** The order's next step (Figma "Order · Next step"): one card, driven by where the order really is. */
@@ -54,6 +46,7 @@ export default function OrderNextStep({
   kind,
   busy,
   onCollect,
+  onShip,
   onFulfil,
   onDelivered,
   onSendReminder,
@@ -132,17 +125,13 @@ export default function OrderNextStep({
     icon = <Truck aria-hidden />
     actions = (
       <>
-        <Button
-          variant="outline"
-          className={PLAIN}
-          render={<Link href={routes.orders.shipments()} />}
-          nativeButton={false}
-        >
-          {copy.ship.compare}
-        </Button>
-        <Button onClick={onFulfil} disabled={busy}>
+        <Button variant="outline" className={PLAIN} onClick={onFulfil} disabled={busy}>
           <PackageOpen aria-hidden />
           {copy.ship.action}
+        </Button>
+        <Button onClick={onShip} disabled={busy}>
+          <Truck aria-hidden />
+          {copy.ship.create}
         </Button>
       </>
     )
@@ -215,30 +204,14 @@ export default function OrderNextStep({
   }
 
   return (
-    <section
-      aria-label={eyebrow}
-      className={cn('flex flex-col gap-4 rounded-xl border p-4 print:hidden', TONE[kind])}
-    >
-      <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-3">
-        <div className="flex min-w-0 items-start gap-3">
-          <span
-            className={cn(
-              'flex size-10 shrink-0 items-center justify-center rounded-lg border border-hairline bg-card [&_svg]:size-5',
-              kind === 'done' ? 'border-transparent bg-success text-white' : 'text-primary',
-              kind === 'cancelled' && 'text-muted-foreground',
-            )}
-          >
-            {icon}
-          </span>
-          <div className="flex min-w-0 flex-col gap-0.5">
-            <span className={cn('text-caption font-medium', EYEBROW_TONE[kind])}>{eyebrow}</span>
-            <h2 className="text-card-title text-ink-strong">{title}</h2>
-            <p className="text-body text-muted-foreground">{body}</p>
-          </div>
-        </div>
-        <div className="flex flex-wrap items-center gap-2">{actions}</div>
-      </div>
-      {extra}
-    </section>
+    <NextStepBanner
+      tone={TONE[kind]}
+      eyebrow={eyebrow}
+      title={title}
+      body={body}
+      icon={icon}
+      actions={actions}
+      extra={extra}
+    />
   )
 }

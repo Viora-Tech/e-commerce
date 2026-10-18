@@ -1,6 +1,5 @@
 'use client'
 
-import { Badge } from '@commerce/ui/shadcn/badge'
 import { Button } from '@commerce/ui/shadcn/button'
 import {
   Dialog,
@@ -13,6 +12,7 @@ import {
 import { Input } from '@commerce/ui/shadcn/input'
 import { type ChangeEvent, useState } from 'react'
 import { toast } from 'sonner'
+import StatusChip from '@/components/layout/status-chip'
 import { productsListContent } from '@/data/products'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
@@ -133,9 +133,9 @@ export default function ImportDialog({ open, onOpenChange, onImported }: ImportD
                   <ul className="flex flex-col gap-1">
                     {preview.sample.map((row) => (
                       <li key={row.handle} className="flex items-center gap-2 text-body">
-                        <Badge variant={row.exists ? 'neutral' : 'success'}>
+                        <StatusChip tone={row.exists ? 'neutral' : 'success'}>
                           {row.exists ? copy.exists : copy.isNew}
-                        </Badge>
+                        </StatusChip>
                         <span className="truncate">{row.title}</span>
                         <span className="text-muted-foreground">({row.variants})</span>
                       </li>

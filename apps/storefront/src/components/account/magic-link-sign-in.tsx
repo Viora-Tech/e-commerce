@@ -36,7 +36,7 @@ export default function MagicLinkSignIn({ token }: MagicLinkSignInProps) {
   const message = token ? error : copy.invalid
 
   return (
-    <div className="mx-auto flex w-full max-w-[26rem] flex-col gap-5 rounded-2xl border border-line p-6 md:p-8">
+    <div className="mx-auto flex w-full max-w-[26rem] flex-col gap-5 rounded-[var(--radius-card)] bg-surface p-6 md:p-8">
       <h1 className="h3">{copy.title}</h1>
       {message ? (
         <p className="text-body text-danger" role="alert">

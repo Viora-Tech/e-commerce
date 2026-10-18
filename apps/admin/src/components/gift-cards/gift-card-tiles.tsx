@@ -1,5 +1,5 @@
 import { formatNumber } from '@commerce/money'
-import StatTile from '@/components/layout/stat-tile'
+import StatStrip from '@/components/layout/stat-strip'
 import { giftCardsContent } from '@/data/gift-cards'
 import { formatPaise } from '@/lib/money'
 
@@ -20,18 +20,22 @@ export default function GiftCardTiles({
   const onSale = products.filter((p) => p.status === 'active').length
 
   return (
-    <>
-      <StatTile label={t.active} value={formatNumber(activeCount)} trendNote={t.now} />
-      <StatTile
-        label={t.outstanding}
-        value={formatPaise(outstandingPaise)}
-        trendNote={t.liability}
-      />
-      <StatTile
-        label={t.products}
-        value={formatNumber(products.length)}
-        trendNote={t.onSale(onSale)}
-      />
-    </>
+    <StatStrip
+      tiles={[
+        { id: 'active', label: t.active, value: formatNumber(activeCount), trendNote: t.now },
+        {
+          id: 'outstanding',
+          label: t.outstanding,
+          value: formatPaise(outstandingPaise),
+          trendNote: t.liability,
+        },
+        {
+          id: 'products',
+          label: t.products,
+          value: formatNumber(products.length),
+          trendNote: t.onSale(onSale),
+        },
+      ]}
+    />
   )
 }

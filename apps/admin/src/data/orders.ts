@@ -5,6 +5,12 @@ import type {
   OrderPaymentStatus,
   OrderStatus,
 } from '@commerce/core/order-status'
+import type {
+  DateFilter,
+  FulfilmentFilter,
+  MethodFilter,
+  PaymentFilter,
+} from '@/lib/order-list-filters'
 
 /** The order moves live in core (`ORDER_MARKS`); re-exported for the admin's order screens. */
 export { ORDER_MARKS, type OrderMark } from '@commerce/core/order-status'
@@ -70,6 +76,48 @@ export const ordersContent = {
   menu: { drafts: 'Draft orders', abandoned: 'Abandoned checkouts', returns: 'Returns' },
   export: 'Export',
   resource: { singular: 'order', plural: 'orders' },
+  /** The table's View select (Figma "Table / View select"). */
+  viewLabel: 'Order view',
+  /** Status column for a paid order nobody has shipped yet (Figma: blue "To ship"). */
+  toShip: 'To ship',
+  /** The sort menu's direction labels for the Date column (Figma "State · Sort open"). */
+  sortNewest: 'Newest first',
+  sortOldest: 'Oldest first',
+  /** The View select while filters are applied (Figma "Custom"). */
+  customView: 'Custom',
+  /** The filter panel and its chips (Figma "Orders · Filter", "Applied filters"). */
+  filters: {
+    payment: 'Payment',
+    fulfilment: 'Fulfilment',
+    date: 'Date',
+    anyDate: 'Any date',
+    method: 'Payment method',
+    courier: 'Courier',
+    anyCourier: 'Any courier',
+    show: (n: number) => `Show ${n} ${n === 1 ? 'order' : 'orders'}`,
+    paymentOptions: {
+      paid: 'Paid',
+      unpaid: 'Unpaid',
+      partially_refunded: 'Partially refunded',
+      refund_needed: 'Refund needed',
+    } satisfies Record<PaymentFilter, string>,
+    fulfilmentOptions: {
+      unfulfilled: 'Unfulfilled',
+      shipped: 'Shipped',
+      delivered: 'Delivered',
+      returned: 'Returned',
+    } satisfies Record<FulfilmentFilter, string>,
+    dateOptions: {
+      today: 'Today',
+      '7d': 'Last 7 days',
+      '30d': 'Last 30 days',
+      '90d': 'Last 90 days',
+    } satisfies Record<DateFilter, string>,
+    methodOptions: { cod: 'Cash on delivery', prepaid: 'Prepaid' } satisfies Record<
+      MethodFilter,
+      string
+    >,
+  },
   tabs: {
     all: 'All orders',
     unpaid: 'Unpaid',
@@ -119,10 +167,20 @@ export const ordersContent = {
     payment: 'Payment',
     fulfilment: 'Fulfilment',
     status: 'Status',
+    channel: 'Channel',
+    tags: 'Tags',
+  },
+  /** The sort menu's names where they differ from the header (Figma "State · Sort open"). */
+  sortTitles: {
+    order: 'Order number',
+    customer: 'Customer name',
+    payment: 'Payment status',
+    fulfilment: 'Fulfilment status',
   },
   moreLines: (n: number) => `+${n} more`,
   bulk: {
     markAs: 'Mark as',
+    bulkEdit: 'Bulk edit',
     updated: (n: number, status: string) => `${n} marked ${status.toLowerCase()}`,
     failed: 'Could not update orders',
   },
@@ -286,6 +344,8 @@ export const orderDetailContent = {
   },
   payment: {
     heading: 'Payment',
+    /** The gateway transactions card (the money side is the Payment card above it). */
+    transactions: 'Transactions',
     method: {
       cod: 'Cash on delivery',
       manual: 'UPI to your own ID — you confirm it',
@@ -394,6 +454,7 @@ export const orderDetailContent = {
     state: 'State',
     pincode: 'PIN code',
     copyAll: 'Copy all',
+    copyAllCourier: 'Copy all for courier',
     call: 'Call',
     whatsapp: 'WhatsApp',
     copyAllHint:

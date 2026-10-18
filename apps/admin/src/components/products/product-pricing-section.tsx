@@ -1,13 +1,15 @@
 'use client'
 
+import { TrendingUp } from '@commerce/ui/icons'
 import { Input } from '@commerce/ui/shadcn/input'
-import { RadioGroup, RadioGroupItem } from '@commerce/ui/shadcn/radio-group'
+import { Switch } from '@commerce/ui/shadcn/switch'
 import MoneyInput from '@/components/fields/money-input'
 import KitField from '@/components/kit/kit-field'
+import ChoiceCard from '@/components/layout/choice-card'
 import { productFormContent } from '@/data/product-form'
 import { rupees } from '@/data/products'
 import { useCopy, useFormat } from '@/hooks/use-copy'
-import type { VariantRow } from './form-state'
+import { margin, type VariantRow } from './form-state'
 
 type ProductPricingSectionProps = {
   variant: VariantRow
@@ -54,53 +56,85 @@ export default function ProductPricingSection({
     saving === null &&
     variant.mrp.trim() !== ''
 
+  const profit = margin(variant.price, variant.cost)
+
   return (
     <div className="flex flex-col gap-4">
-      <KitField label={copy.price} htmlFor="variant-price" required>
-        <MoneyInput
-          size="kit"
-          id="variant-price"
-          value={variant.price}
-          onChange={(price) => onVariant({ price })}
-          suffix={copy.currency}
-        />
-      </KitField>
-
-      <div className="flex flex-col gap-4 md:flex-row md:gap-4">
+      <div className="grid gap-4 md:grid-cols-2">
+        <KitField label={copy.price} htmlFor="variant-price" required>
+          <MoneyInput
+            size="kit"
+            id="variant-price"
+            value={variant.price}
+            onChange={(price) => onVariant({ price })}
+          />
+        </KitField>
         <KitField
-          label={copy.mrp}
+          label={`${copy.mrp} ${copy.mrpOptional}`}
           htmlFor="variant-mrp"
-          help={mrpBelow ? copy.mrpBelowPrice : undefined}
+          help={mrpBelow ? copy.mrpBelowPrice : saving ? copy.saving(fmt.money(saving)) : undefined}
         >
           <MoneyInput
             size="kit"
             id="variant-mrp"
             value={variant.mrp}
             onChange={(mrp) => onVariant({ mrp })}
-            suffix={saving ? copy.saving(fmt.money(saving)) : undefined}
           />
         </KitField>
+      </div>
 
-        <KitField label={copy.taxIncluded} help={copy.taxIncludedHelp}>
-          <RadioGroup
-            value={taxIncluded ? 'yes' : 'no'}
-            onValueChange={(value) => onTaxIncluded(value === 'yes')}
-            className="flex h-9 flex-col justify-center gap-1.5"
-          >
-            <div className="flex items-center gap-2">
-              <RadioGroupItem id="tax-included-yes" value="yes" />
-              <label htmlFor="tax-included-yes" className="text-body text-foreground">
-                {copy.taxIncludedYes}
-              </label>
-            </div>
-            <div className="flex items-center gap-2">
-              <RadioGroupItem id="tax-included-no" value="no" />
-              <label htmlFor="tax-included-no" className="text-body text-muted-foreground">
-                {copy.taxIncludedNo}
-              </label>
-            </div>
-          </RadioGroup>
+      <div className="grid gap-4 md:grid-cols-2">
+        <KitField label={copy.cost} htmlFor="variant-cost" help={copy.costHelp}>
+          <MoneyInput
+            size="kit"
+            id="variant-cost"
+            value={variant.cost}
+            onChange={(cost) => onVariant({ cost })}
+          />
         </KitField>
+      </div>
+
+      {profit ? (
+        <p className="flex items-center gap-2 rounded-md border border-success/30 bg-success-soft px-3 py-2 text-body text-success">
+          <TrendingUp className="size-4 shrink-0" aria-hidden="true" />
+          {copy.margin(`${profit.pct}%`, fmt.money(profit.profitPaise))}
+        </p>
+      ) : null}
+
+      <div className="flex flex-col gap-3 border-border border-t pt-4">
+        <div className="flex items-start justify-between gap-4">
+          <div className="flex flex-col gap-0.5">
+            <label htmlFor="variant-taxable" className="text-body text-foreground">
+              {copy.taxable}
+            </label>
+            <p className="text-caption text-muted-foreground">{copy.taxableHelp}</p>
+          </div>
+          <Switch
+            id="variant-taxable"
+            checked={variant.taxable}
+            onCheckedChange={(taxable) => onVariant({ taxable })}
+          />
+        </div>
+        {variant.taxable ? (
+          <KitField label={copy.taxIncluded} help={copy.taxIncludedHelp}>
+            <div className="grid gap-2 md:grid-cols-2">
+              <ChoiceCard
+                layout="row"
+                showCheck
+                label={copy.taxIncludedYes}
+                selected={taxIncluded}
+                onSelect={() => onTaxIncluded(true)}
+              />
+              <ChoiceCard
+                layout="row"
+                showCheck
+                label={copy.taxIncludedNo}
+                selected={!taxIncluded}
+                onSelect={() => onTaxIncluded(false)}
+              />
+            </div>
+          </KitField>
+        ) : null}
       </div>
 
       <KitField label={copy.expiration} help={copy.expirationHelp}>

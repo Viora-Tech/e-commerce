@@ -1,17 +1,12 @@
 'use client'
 
-import { MoreHorizontal, Video } from '@commerce/ui/icons'
+import { ImageIcon, Video } from '@commerce/ui/icons'
 import { cn } from '@commerce/ui/lib/utils'
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@commerce/ui/shadcn/dropdown-menu'
 import { ROW_STATE_CLASS } from '@commerce/ui/sortable'
 import { motion } from 'motion/react'
 import type { Ref } from 'react'
+import ActionMenu from '@/components/layout/action-menu'
+import FallbackImage from '@/components/layout/fallback-image'
 import { mediaContent } from '@/data/media'
 import { useCopy } from '@/hooks/use-copy'
 import { IMAGE_GLIDE_SPRING } from '@/hooks/use-image-dnd'
@@ -94,8 +89,16 @@ export default function MediaTile({
         {video ? (
           <video src={item.url} muted playsInline className="size-full object-cover" />
         ) : (
-          // biome-ignore lint/performance/noImgElement: thumbnails from arbitrary storage hosts.
-          <img src={item.url} alt={item.alt ?? ''} className="size-full object-cover" />
+          <FallbackImage
+            src={item.url}
+            alt={item.alt ?? ''}
+            className="size-full object-cover"
+            fallback={
+              <span className="flex size-full items-center justify-center text-muted-foreground">
+                <ImageIcon className="size-6" aria-hidden />
+              </span>
+            }
+          />
         )}
         {cover ? (
           <span className="absolute top-2 left-2 rounded-md bg-card/90 px-2 py-0.5 text-caption text-foreground shadow-card">
@@ -108,32 +111,20 @@ export default function MediaTile({
             {copy.video}
           </span>
         ) : null}
-        <DropdownMenu>
-          <DropdownMenuTrigger
-            aria-label={copy.menu}
-            className="absolute top-2 right-2 flex size-7 items-center justify-center rounded-md bg-card/90 text-foreground opacity-0 shadow-card transition-opacity group-hover:opacity-100 focus-visible:opacity-100 data-popup-open:opacity-100"
-          >
-            <MoreHorizontal className="size-4" aria-hidden />
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            {primary.map((a) => (
-              <DropdownMenuItem key={a.label} onClick={a.onSelect} disabled={a.disabled}>
-                {a.label}
-              </DropdownMenuItem>
-            ))}
-            {destructive.length ? <DropdownMenuSeparator /> : null}
-            {destructive.map((a) => (
-              <DropdownMenuItem
-                key={a.label}
-                variant="destructive"
-                onClick={a.onSelect}
-                disabled={a.disabled}
-              >
-                {a.label}
-              </DropdownMenuItem>
-            ))}
-          </DropdownMenuContent>
-        </DropdownMenu>
+        <ActionMenu
+          label={copy.menu}
+          variant="bare"
+          triggerClassName="absolute top-2 right-2 size-7 rounded-md bg-card/90 text-foreground opacity-0 shadow-card transition-opacity group-hover:opacity-100 focus-visible:opacity-100 data-popup-open:opacity-100"
+          items={[
+            ...primary.map((a) => ({ label: a.label, onSelect: a.onSelect, disabled: a.disabled })),
+            ...destructive.map((a) => ({
+              label: a.label,
+              onSelect: a.onSelect,
+              disabled: a.disabled,
+              destructive: true,
+            })),
+          ]}
+        />
       </div>
       {caption ? (
         <span

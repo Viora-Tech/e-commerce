@@ -3,22 +3,27 @@
  * call sites still import everything from `@commerce/ui/icons`.
  */
 import {
-  CornersIn,
-  CornersOut,
-  Keyboard,
-  ListBullets,
-  ListNumbers,
-  Minus,
-  Cursor as PhCursor,
-  Question,
-  Quotes,
-  SidebarSimple,
-  Stack,
-  TextB,
-  TextItalic,
-  TextStrikethrough,
-  TextUnderline,
-} from '@phosphor-icons/react/ssr'
+  AppWindowIcon,
+  CircleIcon,
+  ArrowShrink02Icon as CornersIn,
+  ArrowExpand01Icon as CornersOut,
+  Flag02Icon,
+  HighlighterIcon,
+  KeyboardIcon as Keyboard,
+  LeftToRightListBulletIcon as ListBullets,
+  LeftToRightListNumberIcon as ListNumbers,
+  MinusSignIcon as Minus,
+  Cursor01Icon as PhCursor,
+  HelpCircleIcon as Question,
+  QuoteDownIcon as Quotes,
+  SidebarLeftIcon as SidebarSimple,
+  SparklesIcon,
+  Layers01Icon as Stack,
+  TextBoldIcon as TextB,
+  TextItalicIcon as TextItalic,
+  TextStrikethroughIcon as TextStrikethrough,
+  TextUnderlineIcon as TextUnderline,
+} from '@hugeicons/core-free-icons'
 import { defineIcon } from './lib/icon'
 
 /** Layers of a page (the theme editor's Sections tab). */
@@ -45,3 +50,12 @@ export const SidebarToggleIcon = defineIcon(SidebarSimple, 'SidebarToggle')
 export const Cursor = defineIcon(PhCursor, 'Cursor')
 /** Keyboard shortcuts. */
 export const KeyboardIcon = defineIcon(Keyboard, 'KeyboardIcon')
+
+/* Glyphs a few call sites use under their plain names. */
+export const Circle = defineIcon(CircleIcon, 'Circle')
+export const Flag = defineIcon(Flag02Icon, 'Flag')
+export const Highlighter = defineIcon(HighlighterIcon, 'Highlighter')
+export const Sparkle = defineIcon(SparklesIcon, 'Sparkle')
+
+/** A window: "Open order" in a row menu (Figma Orders row menu). */
+export const AppWindow = defineIcon(AppWindowIcon, 'AppWindow')

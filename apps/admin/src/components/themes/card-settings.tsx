@@ -11,6 +11,11 @@ type CardSettingsProps = {
   onChange: (next: Theme) => void
 }
 
+const STYLES = (['standard', 'minimal'] as const).map((value) => ({
+  value,
+  label: copy.cards.styles[value],
+}))
+
 const RATIOS = (['square', 'portrait', 'landscape', 'natural'] as const).map((value) => ({
   value,
   label: copy.cards.ratios[value],
@@ -28,6 +33,12 @@ export default function CardSettings({ theme, onChange }: CardSettingsProps) {
   return (
     <>
       <ChoiceField
+        label={copy.cards.style}
+        value={cards.style}
+        options={STYLES}
+        onChange={(style) => setCards({ style })}
+      />
+      <ChoiceField
         label={copy.cards.ratio}
         value={cards.imageRatio}
         options={RATIOS}
@@ -42,6 +53,22 @@ export default function CardSettings({ theme, onChange }: CardSettingsProps) {
         label={copy.cards.saleBadge}
         checked={cards.showSaleBadge}
         onChange={(showSaleBadge) => setCards({ showSaleBadge })}
+      />
+      <SwitchField
+        label={copy.cards.rating}
+        help={copy.cards.ratingHelp}
+        checked={cards.showRating}
+        onChange={(showRating) => setCards({ showRating })}
+      />
+      <SwitchField
+        label={copy.cards.quickAdd}
+        checked={cards.showQuickAdd}
+        onChange={(showQuickAdd) => setCards({ showQuickAdd })}
+      />
+      <SwitchField
+        label={copy.cards.wishlist}
+        checked={cards.showWishlist}
+        onChange={(showWishlist) => setCards({ showWishlist })}
       />
       <SwitchField
         label={copy.cards.hoverImage}

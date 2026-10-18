@@ -1,0 +1,383 @@
+/*
+ * Marketing site styles. Everything visual is Tailwind: the dark tokens come from @commerce/ui
+ * styles.css (the Figma "shadcn neutral" Dark mode; the root layout sets class="dark"), and the
+ * few site-only values live in the @theme block below. The page is black, white and grey; the
+ * orange --color-cta is used only for primary CTA buttons, the "Most popular" plan and the
+ * feature-tour progress line.
+ */
+@layer theme, base, components, utilities;
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+@import "@commerce/ui/styles.css";
+
+@source "../../../../packages/ui/src/**/*.{ts,tsx}";
+
+@theme inline {
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --color-cta: #ff6a13;
+  --color-cta-light: #ff8a3d;
+  --color-cta-foreground: #ffffff;
+
+  --container-page: 79rem;
+  --container-prose: 45rem;
+
+  /* Landing type scale (Figma Koomerce/*). Titles run heavy and tight. */
+  --text-hero: 5rem;
+  --text-hero--line-height: 1.02;
+  --text-hero--letter-spacing: -0.045em;
+  --text-display: 3.75rem;
+  --text-display--line-height: 1.12;
+  --text-display--letter-spacing: -0.04em;
+  --text-section: 2.75rem;
+  --text-section--line-height: 1.16;
+  --text-section--letter-spacing: -0.035em;
+  --text-subsection: 2rem;
+  --text-subsection--line-height: 1.22;
+  --text-subsection--letter-spacing: -0.03em;
+  --text-lead: 1.1875rem;
+  --text-lead--line-height: 1.6;
+  --text-micro: 0.6875rem;
+  --text-micro--line-height: 1rem;
+}
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+    scroll-padding-top: 7rem;
+    background-color: var(--background);
+  }
+  @media (prefers-reduced-motion: reduce) {
+    html {
+      scroll-behavior: auto;
+    }
+  }
+  body {
+    background-color: var(--background);
+    color: var(--foreground);
+  }
+}
+
+/* Feature-tour progress line: fills top to bottom over the tour interval. */
+@keyframes tour-fill {
+  from {
+    transform: scaleY(0);
+  }
+  to {
+    transform: scaleY(1);
+  }
+}
+@keyframes tour-fill-x {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+
+@utility animate-tour-fill {
+  transform-origin: top;
+  animation: tour-fill var(--tour-ms, 6000ms) linear forwards;
+  &[data-paused="true"] {
+    animation-play-state: paused;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+    transform: scaleY(1);
+  }
+}
+@utility animate-tour-fill-x {
+  transform-origin: left;
+  animation: tour-fill-x var(--tour-ms, 6000ms) linear forwards;
+  &[data-paused="true"] {
+    animation-play-state: paused;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+    transform: scaleX(1);
+  }
+}
+
+/* Chips and stage items that swap with the tour: fade, blur and scale in. */
+@keyframes tour-in {
+  from {
+    opacity: 0;
+    filter: blur(4px);
+    scale: 0.98;
+  }
+  to {
+    opacity: 1;
+    filter: blur(0);
+    scale: 1;
+  }
+}
+@utility animate-tour-in {
+  animation: tour-in 400ms var(--ease-out) both;
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+  }
+}
+
+/* Figma glass/card: translucent grey fill, bevels, hairline ring, soft lift, background blur. */
+@utility glass-panel {
+  background-color: rgb(26 26 26 / 0.5);
+  box-shadow:
+    inset 1px 1px 0 rgb(255 255 255 / 0.18),
+    inset -1px -1px 0 rgb(0 0 0 / 0.55),
+    inset 0 0 40px 0 rgb(255 255 255 / 0.05),
+    0 0 0 1px rgb(255 255 255 / 0.08),
+    0 2px 4px 0 rgb(0 0 0 / 0.6),
+    0 18px 44px -12px rgb(0 0 0 / 0.7);
+  -webkit-backdrop-filter: blur(24px);
+  backdrop-filter: blur(24px);
+  @media (prefers-reduced-transparency: reduce) {
+    background-color: var(--card);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+}
+
+/* Gentle float for chips and cards over the hero and tour. */
+@keyframes float-y {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-0.375rem);
+  }
+}
+@utility animate-float {
+  animation: float-y 6s ease-in-out infinite;
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+  }
+}
+
+/* Link underline slides in from the left. */
+@utility link-slide {
+  background-image: linear-gradient(currentColor, currentColor);
+  background-repeat: no-repeat;
+  background-position: 0 100%;
+  background-size: 0% 1px;
+  transition: background-size 250ms var(--ease-out);
+  &:hover,
+  &:focus-visible {
+    background-size: 100% 1px;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+  }
+}
+
+/* Scroll reveal: fade and rise once (opacity and translate only), children staggered. */
+@utility reveal {
+  opacity: 0;
+  translate: 0 0.75rem;
+  transition:
+    opacity 600ms var(--ease-out),
+    translate 600ms var(--ease-out);
+  transition-delay: var(--reveal-delay, 0ms);
+  &[data-revealed="true"] {
+    opacity: 1;
+    translate: 0 0;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    opacity: 1;
+    translate: none;
+    transition: none;
+  }
+}
+
+/* Cursor spotlight: a soft grey-white light and border glow that follow the pointer (--mx, --my). */
+@utility spotlight {
+  position: relative;
+  isolation: isolate;
+  &::before,
+  &::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 300ms var(--ease-out);
+  }
+  &::before {
+    z-index: -1;
+    background: radial-gradient(
+      22rem circle at var(--mx, 50%) var(--my, 50%),
+      rgb(255 255 255 / 0.07),
+      transparent 65%
+    );
+  }
+  &::after {
+    padding: 1px;
+    background: radial-gradient(
+      14rem circle at var(--mx, 50%) var(--my, 50%),
+      rgb(255 255 255 / 0.55),
+      transparent 70%
+    );
+    -webkit-mask:
+      linear-gradient(#000 0 0) content-box,
+      linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+    mask:
+      linear-gradient(#000 0 0) content-box exclude,
+      linear-gradient(#000 0 0);
+  }
+  &:hover::before,
+  &:hover::after {
+    opacity: 1;
+  }
+}
+
+/* A light sheen that sweeps across primary buttons on hover. */
+@utility sheen {
+  position: relative;
+  overflow: hidden;
+  &::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+      105deg,
+      transparent 35%,
+      rgb(255 255 255 / 0.14) 50%,
+      transparent 65%
+    );
+    translate: -120% 0;
+    pointer-events: none;
+  }
+  &:hover::after {
+    translate: 120% 0;
+    transition: translate 1100ms var(--ease-out);
+  }
+  @media (prefers-reduced-motion: reduce) {
+    &::after {
+      display: none;
+    }
+  }
+}
+
+/* Integrations marquee. */
+@keyframes marquee {
+  to {
+    translate: -50% 0;
+  }
+}
+@utility animate-marquee {
+  animation: marquee 38s linear infinite;
+  &:hover {
+    animation-play-state: paused;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+  }
+}
+
+/* Bento illustrations that play once on card hover. */
+@keyframes invoice-print {
+  from {
+    translate: 0 -100%;
+  }
+  to {
+    translate: 0 0;
+  }
+}
+@utility animate-print {
+  animation: invoice-print 900ms var(--ease-out);
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+  }
+}
+
+/* Payment demo: each step slides up and fades in; the card number types out. */
+@keyframes panel-in {
+  from {
+    opacity: 0;
+    translate: 0 0.75rem;
+  }
+}
+@utility animate-panel-in {
+  animation: panel-in 450ms var(--ease-out) both;
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+  }
+}
+@keyframes type-in {
+  from {
+    clip-path: inset(0 100% 0 0);
+  }
+  to {
+    clip-path: inset(0 0 0 0);
+  }
+}
+@utility animate-type-in {
+  animation: type-in 1.2s steps(19) both;
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+  }
+}
+@keyframes pop-in {
+  from {
+    opacity: 0;
+    scale: 0.5;
+  }
+}
+@utility animate-pop-in {
+  animation: pop-in 400ms var(--ease-out) both;
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+  }
+}
+
+/* Route change: the new page fades up. */
+@keyframes page-in {
+  from {
+    opacity: 0;
+    translate: 0 0.5rem;
+  }
+}
+@utility animate-page-in {
+  animation: page-in 400ms var(--ease-out);
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+  }
+}
+
+/* Print: legal pages print as one black-on-white column (nav, footer and contents are hidden). */
+@media print {
+  :root.dark {
+    --background: #ffffff;
+    --foreground: #000000;
+    --card: #ffffff;
+    --muted: #f2f2f2;
+    --muted-foreground: #333333;
+    --border: #cccccc;
+    --input-surface: #ffffff;
+  }
+}
+
+/* Hero depth: a soft blueprint grid that fades out toward the edges. */
+@utility blueprint-grid {
+  background-image:
+    linear-gradient(rgb(255 255 255 / 0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgb(255 255 255 / 0.05) 1px, transparent 1px);
+  background-size: 3rem 3rem;
+  mask-image: radial-gradient(ellipse 65% 55% at 50% 38%, #000 15%, transparent 75%);
+}
+
+/* Very slow drift for the outlined hero fragments (transform only). */
+@keyframes drift {
+  from {
+    transform: translateY(0);
+  }
+  to {
+    transform: translateY(-0.625rem);
+  }
+}
+@utility animate-drift {
+  animation: drift 14s ease-in-out infinite alternate;
+}

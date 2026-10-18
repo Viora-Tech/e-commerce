@@ -1,0 +1,89 @@
+---
+title: MCP server and API tokens
+description: How the per-store MCP server, its OAuth 2.1 sign-in, access tokens, the /api/v1 token API and the activity log fit together.
+---
+
+# MCP server and API tokens
+
+Settings → MCP & API lets AI clients (Claude, ChatGPT, Cursor, VS Code) and scripts work with
+one store. Two kinds of **grant** exist, both stored in `api_grant` (store-scoped, RLS):
+
+| Kind | Made by | Secret | Lifetime |
+|---|---|---|---|
+| `oauth` | a client signing in on the consent page | `kmo_…` access token + `kmr_…` refresh token | access 1 h, refresh 30 d, both rotate on refresh |
+| `token` | Settings → Create token | `kmc_live_…` | 30 / 90 / 365 days or never |
+
+Every grant acts for **one member of one store**. On each call it is capped twice: by the
+member's role, read fresh from the database, and by the grant's areas (`products`, `orders`,
+`customers`, `inventory`, `discounts`, `content`, `analytics`, each `read` or `write`). Mapping
+areas to permissions: `permissionsForScopes` in `@commerce/core/api-access`. Write never
+includes refunds, cancels, deletes, settings, staff or billing.
+
+Secrets are stored only as SHA-256 hashes. Before a store is known, lookups go through SECURITY
+DEFINER functions (migration `0130`): `api_grant_for_access`, `api_grant_for_refresh`,
+`api_auth_code_store`, `store_id_for_slug`.
+
+## Endpoints (admin app)
+
+| Path | What |
+|---|---|
+| `POST /api/mcp/<store slug>` | MCP, Streamable HTTP, **stateless**: one JSON-RPC message or batch per POST, JSON reply. `GET`/`DELETE` → 405 |
+| `GET /.well-known/oauth-protected-resource/api/mcp/<slug>` | RFC 9728 resource metadata |
+| `GET /.well-known/oauth-authorization-server` | RFC 8414 metadata (issuer = `ADMIN_URL`) |
+| `POST /api/oauth/register` | RFC 7591 dynamic registration (20/h per IP). Redirect URIs: https, loopback http, or an app scheme |
+| `GET /oauth/authorize` | Consent page (signs the member in first via `/login?next=`) |
+| `POST /api/oauth/token` | `authorization_code` (PKCE S256 required) and `refresh_token` |
+| `POST /api/oauth/revoke` | RFC 7009 |
+| `POST /api/v1/<router>/<procedure>` | The admin's oRPC router for **access tokens** (cookies stripped) |
+
+A call without a bearer token gets `401` with
+`WWW-Authenticate: Bearer resource_metadata="…"`, which is how clients find the sign-in.
+
+Code: `packages/api/src/mcp/` (`server.ts`, `oauth.ts`, `tools.ts`),
+`packages/core/src/api-access/` (grants, codes, tokens, activity), and admin routes under
+`apps/admin/src/app/{api/mcp,api/oauth,api/v1,.well-known,oauth}`.
+
+## Tools
+
+`tools/list` returns the AI assistant's own tools (`services/ai/assistant`), filtered to the
+grant's permissions:
+- **Read tools** (`READ_TOOL_PERMISSION`), plus `customerDetails`, which answers only while
+  *Let clients read customer details* is on.
+- **Change tools** (`ACTIONS`), listed only while *Allow AI clients to make changes* is on. A
+  call runs `proposeAction` with `source: 'mcp'`. The proposal waits in AI approvals for the
+  member who connected the client. With *Changes need approval* off, `approveAction` runs at
+  once with the grant's permissions.
+
+Adding an assistant tool adds it to MCP too; nothing else to wire.
+
+## The token API
+
+`/api/v1` sets `context.apiPrincipal`. Then:
+- `protectedProcedure` (session-only: account, sign-in, store picking) **refuses** tokens.
+- `can` / `canAny` / `canDetached` run as the token's member. `scopeFor` intersects the role with
+  `principal.permissions`, and refuses procedures that name no permission.
+- Each successful call is logged (`logTokenCall`): changes one by one; reads folded to one row per
+  procedure per 10 minutes.
+
+Example:
+
+```bash
+curl -X POST https://admin.koomerce.app/api/v1/products/list \
+  -H "Authorization: Bearer kmc_live_…" -H "content-type: application/json" \
+  -d '{"json":{"page":1}}'
+```
+
+## Limits and retention
+
+- `API_RATE_LIMIT`: 120 requests/min per grant (Redis store), on both MCP and `/api/v1`.
+- `api_activity` keeps 90 days. The worker's daily `{api}-activity-prune` job deletes older rows
+  (`stores_with_old_api_activity`).
+
+## Tests
+
+`packages/api/test/mcp.test.ts` covers:
+- registration, PKCE and refresh rotation
+- the tool list and settings switches
+- approvals and blocked reads
+- token capping and session-only refusal
+- expiry, revoke and cross-store refusal

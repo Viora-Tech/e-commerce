@@ -14,7 +14,7 @@ export default function Video({ heading, url, poster, empty }: Props) {
   const embed = url ? embedUrl(url) : null
   return (
     <div className="video-section page-width">
-      {heading ? <h2 className="video-section__heading h2">{heading}</h2> : null}
+      {heading ? <h2 className="video-section__heading section-title">{heading}</h2> : null}
       <div className="video-section__frame">
         {!url ? <p className="text-caption">{empty}</p> : null}
         {embed ? (

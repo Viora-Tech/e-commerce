@@ -11,6 +11,7 @@ import {
   PENDING_LINK_TTL_MS,
   type PendingLink,
 } from '@/lib/login-errors'
+import { withEvlog } from '@/lib/request-log'
 import {
   cookieSecure,
   LOGIN_BROWSER_COOKIE,
@@ -30,7 +31,7 @@ const loginWith = (error: LoginError) => `/account/login?error=${error}`
  * store, for exactly this URL, unexpired, unused, and opened by the browser that started
  * the sign-in; then a session starts on this domain.
  */
-export async function GET(request: NextRequest, { params }: Params) {
+export const GET = withEvlog(async (request: NextRequest, { params }: Params) => {
   const { storeId } = await params
   if ((await headers()).get('x-store-id') !== storeId) {
     return new NextResponse('Not found', { status: 404 })
@@ -81,4 +82,4 @@ export async function GET(request: NextRequest, { params }: Params) {
   }
   await signInCustomer(storeId, result.customerId, result.remember)
   redirect(result.nextPath)
-}
+})

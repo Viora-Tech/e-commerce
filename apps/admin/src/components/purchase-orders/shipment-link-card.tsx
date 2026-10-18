@@ -1,7 +1,7 @@
 'use client'
 
-import { Card, CardContent, CardHeader, CardTitle } from '@commerce/ui/shadcn/card'
 import Link from 'next/link'
+import DataCard from '@/components/layout/data-card'
 import { poShipmentContent } from '@/data/purchasing'
 import { useCopy } from '@/hooks/use-copy'
 import { routes } from '@/lib/routes'
@@ -17,22 +17,17 @@ export default function ShipmentLinkCard({ shipment }: ShipmentLinkCardProps) {
 
   // Render logic
   return (
-    <Card size="form">
-      <CardHeader>
-        <CardTitle>{copy.heading}</CardTitle>
-      </CardHeader>
-      <CardContent className="text-body">
-        {shipment ? (
-          <Link
-            href={routes.stock.inboundShipment(shipment.id)}
-            className="text-body-strong hover:underline"
-          >
-            {copy.on(shipment.number, shipment.reference)}
-          </Link>
-        ) : (
-          <p className="text-muted-foreground">{copy.none}</p>
-        )}
-      </CardContent>
-    </Card>
+    <DataCard title={copy.heading} bodyClassName="text-body">
+      {shipment ? (
+        <Link
+          href={routes.stock.inboundShipment(shipment.id)}
+          className="text-body-strong hover:underline"
+        >
+          {copy.on(shipment.number, shipment.reference)}
+        </Link>
+      ) : (
+        <p className="text-muted-foreground">{copy.none}</p>
+      )}
+    </DataCard>
   )
 }

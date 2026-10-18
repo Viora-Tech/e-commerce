@@ -1,10 +1,12 @@
 import {
   CursorFill,
+  cleanCustomCss,
   cookieBannerSettings,
   Footer,
   footerSettings,
   Header,
   headerSettings,
+  StoreActionsProvider,
   searchShortcuts,
 } from '@commerce/blocks'
 import { loadEnv } from '@commerce/config'
@@ -25,11 +27,13 @@ import {
   toNavLinks,
 } from '@commerce/core'
 import { navigationMenu, store } from '@commerce/db'
+import { browserSentryMeta } from '@commerce/observability'
 import { eq } from 'drizzle-orm'
 import type { Metadata, Viewport } from 'next'
 import { cookies, headers } from 'next/headers'
 import { notFound } from 'next/navigation'
 import type { ReactNode } from 'react'
+import CartDrawer from '@/components/cart/cart-drawer'
 import StoreChrome from '@/components/checkout/store-chrome'
 import ConsentManager from '@/components/privacy/consent-manager'
 import PredictiveSearch from '@/components/search/predictive-search'
@@ -40,6 +44,7 @@ import ThemePreviewBridge from '@/components/theme/theme-preview-bridge'
 import { policyPageContent } from '@/data/policies'
 import { privacyContent } from '@/data/privacy'
 import { searchContent } from '@/data/search'
+import { addLineAction } from '@/lib/cart-actions'
 import { liquidLayoutForPath } from '@/lib/checkout-path'
 import { listCollections } from '@/lib/collections'
 import { COOKIE_SETTINGS_HASH } from '@/lib/cookie-settings'
@@ -48,6 +53,7 @@ import { themeFontVariables } from '@/lib/fonts'
 import { liquidShim } from '@/lib/liquid-shim'
 import { liquidLayoutFor, reactAttrs } from '@/lib/liquid-theme'
 import { mediaByUrl } from '@/lib/media-lookup'
+import { subscribeAction } from '@/lib/newsletter-actions'
 import { requestCart } from '@/lib/request-cart'
 import { heightForWidth } from '@/lib/section-images'
 import { requestOrigin } from '@/lib/seo'
@@ -167,7 +173,12 @@ export default async function StoreLayout({ children, params }: Props) {
   const prefs = parsePreferences(current.preferences)
   const privacy = parseCustomerPrivacySettings(current.preferences)
   const officer = grievanceOfficerOf(current.preferences)
-  const adminOrigin = new URL(loadEnv(process.env).ADMIN_URL).origin
+  const env = loadEnv(process.env)
+  const adminOrigin = new URL(env.ADMIN_URL).origin
+  // The DSN, environment and release for browser error reporting, read per request (the image
+  // is built once, env is set at deploy); `instrumentation-client.ts` reads it back.
+  const sentry = browserSentryMeta(env)
+  const sentryMeta = sentry ? <meta name={sentry.name} content={sentry.content} /> : null
   // The script CSP's nonce for this request (`proxy.ts`); the tracking tags carry it.
   const nonce = (await headers()).get(NONCE_HEADER) ?? undefined
 
@@ -253,25 +264,38 @@ export default async function StoreLayout({ children, params }: Props) {
           themedConsent = types.has('CookieBanner') || types.has('LiquidSection:cookie-banner')
         },
         renderers: {
-          Footer: (s) => (
-            <Footer
-              {...footerSettings(s)}
-              storeName={current.name}
-              columns={footerColumns}
-              policies={policies.map((p) => ({ label: p.title, href: p.href }))}
-              // Reopens the cookie banner, so a choice can be changed any time.
-              cookieSettings={{ label: privacyContent.cookieSettings, href: COOKIE_SETTINGS_HASH }}
-              grievance={officer ? policyPageContent.grievance(officer) : null}
-              themeToggle={
-                theme.darkMode.enabled && theme.darkMode.togglePosition === 'footer' ? mode : null
-              }
-              logo={
-                theme.brand.logo
-                  ? { url: theme.brand.logo.url, width: theme.brand.logoWidth, height: logoHeight }
-                  : null
-              }
-            />
-          ),
+          Footer: (s) => {
+            const settings = footerSettings(s)
+            return (
+              <Footer
+                {...settings}
+                // The section's own links win; with none, Theme settings → Social media fills in.
+                socials={settings.socials.length ? settings.socials : theme.social.links}
+                storeName={current.name}
+                columns={footerColumns}
+                newsletterAction={subscribeAction}
+                policies={policies.map((p) => ({ label: p.title, href: p.href }))}
+                // Reopens the cookie banner, so a choice can be changed any time.
+                cookieSettings={{
+                  label: privacyContent.cookieSettings,
+                  href: COOKIE_SETTINGS_HASH,
+                }}
+                grievance={officer ? policyPageContent.grievance(officer) : null}
+                themeToggle={
+                  theme.darkMode.enabled && theme.darkMode.togglePosition === 'footer' ? mode : null
+                }
+                logo={
+                  theme.brand.logo
+                    ? {
+                        url: theme.brand.logo.url,
+                        width: theme.brand.logoWidth,
+                        height: logoHeight,
+                      }
+                    : null
+                }
+              />
+            )
+          },
           CookieBanner: (s) => {
             // A second CookieBanner section (it is single in Customize, but saved data is data)
             // must not ask twice.
@@ -289,6 +313,7 @@ export default async function StoreLayout({ children, params }: Props) {
     return (
       <html lang="en" {...reactAttrs(liquid.htmlAttrs)} suppressHydrationWarning>
         <head>
+          {sentryMeta}
           {liquid.fontsHref ? <link rel="stylesheet" href={liquid.fontsHref} /> : null}
           {theme.brand.favicon ? <link rel="icon" href={theme.brand.favicon.url} /> : null}
         </head>
@@ -320,14 +345,24 @@ export default async function StoreLayout({ children, params }: Props) {
       {...themeRootAttrs(theme)}
     >
       <head>
+        {sentryMeta}
         {/* biome-ignore lint/security/noDangerouslySetInnerHtml: CSS is built only from ThemeSchema-validated hex colours, numbers and enums; no free-form user string reaches it. */}
         <style dangerouslySetInnerHTML={{ __html: themeToCss(theme) }} />
+        {theme.customCss.trim() ? (
+          // biome-ignore lint/security/noDangerouslySetInnerHtml: cleanCustomCss strips anything that could close the style tag or open HTML
+          <style dangerouslySetInnerHTML={{ __html: cleanCustomCss(theme.customCss) }} />
+        ) : null}
         {theme.brand.favicon ? <link rel="icon" href={theme.brand.favicon.url} /> : null}
       </head>
       <body>
         {previewName && !preview?.inFrame ? <PreviewBar themeName={previewName} /> : null}
         <StoreChrome>{header}</StoreChrome>
-        <main id="MainContent">{children}</main>
+        <main id="MainContent">
+          <StoreActionsProvider addToCart={addLineAction}>{children}</StoreActionsProvider>
+        </main>
+        {theme.cart.type === 'drawer' ? (
+          <CartDrawer freeShippingBar={theme.cart.freeShippingBar} />
+        ) : null}
         <StoreChrome>
           <CursorFill />
         </StoreChrome>

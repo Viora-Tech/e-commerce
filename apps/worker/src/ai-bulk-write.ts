@@ -20,8 +20,8 @@ export function createAiBulkWriteWorker(
     AI_BULK_QUEUE,
     fairProcessor(connection, AI_BULK_QUEUE, QUEUE_LIMITS.aiBulkWrite, async (job) => {
       const { storeId, jobId } = job.data
+      // The job's wide event (`logWorkerJobs`) records the finished run with its storeId and jobId.
       await runAiJob({ db, storeId, jobId, settingsSecret: opts.settingsSecret })
-      console.log(`[ai-bulk-write] store=${storeId} job=${jobId} finished`)
     }),
     // A run can take minutes; keep the lock alive well past one product's model call.
     { connection, concurrency: QUEUE_LIMITS.aiBulkWrite.concurrency, lockDuration: 120_000 },

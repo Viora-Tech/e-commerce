@@ -7,6 +7,7 @@ export type SentryOptions = {
   environment: string
   release: string | undefined
   tracesSampleRate: number
+  traceLifecycle: 'static'
   beforeSend: <T>(event: T) => T
   beforeSendTransaction: <T>(event: T) => T
 }
@@ -28,6 +29,9 @@ export function sentryOptions(
     environment: env.SENTRY_ENVIRONMENT ?? process.env.NODE_ENV ?? 'development',
     release: env.SENTRY_RELEASE,
     tracesSampleRate: 0.1,
+    // GlitchTip takes whole transactions, not streamed spans, and beforeSendTransaction
+    // (the PII scrub) only runs in the static lifecycle.
+    traceLifecycle: 'static',
     beforeSend: (event) => scrubPii(event),
     beforeSendTransaction: (event) => scrubPii(event),
   }

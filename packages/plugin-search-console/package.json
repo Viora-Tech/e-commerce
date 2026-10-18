@@ -1,0 +1,30 @@
+{
+  "name": "@commerce/plugin-search-console",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Google Search Console: the store's Google search numbers, pages almost on page 1, traffic drops and sitemaps, plus search signals for the product page and the SEO report.",
+  "exports": {
+    ".": "./src/plugin.ts",
+    "./settings": "./src/settings.ts",
+    "./google": "./src/google.ts",
+    "./server": "./src/server.ts"
+  },
+  "scripts": {
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@commerce/core": "workspace:*",
+    "@commerce/dates": "workspace:*",
+    "@commerce/db": "workspace:*",
+    "@commerce/plugins": "workspace:*",
+    "zod": "^4.6.5"
+  },
+  "devDependencies": {
+    "@commerce/config": "workspace:*",
+    "@types/node": "^22.20.4",
+    "typescript": "~5.9.3",
+    "vitest": "^4.1.11"
+  }
+}

@@ -1,8 +1,10 @@
 import type { CardProduct } from '../types'
 import Picture from './picture'
 import Price from './price'
+import ProductCardQuickAdd from './product-card-quick-add'
+import ProductCardWishlist from './product-card-wishlist'
 
-const saleLabel = (percent: number) => `${percent}% off`
+const saleLabel = (percent: number) => `−${percent}%`
 
 /** Whole-percent saving against MRP, or null when the product is not discounted. */
 function salePercent(pricePaise: number, mrpPaise: number | null): number | null {
@@ -16,9 +18,12 @@ function salePercent(pricePaise: number, mrpPaise: number | null): number | null
 export default function ProductCard({
   product,
   lazy = true,
+  quickAdd = false,
 }: {
   product: CardProduct
   lazy?: boolean
+  /** Figma's "Show quick add": a full-width button under the price. */
+  quickAdd?: boolean | undefined
 }) {
   const [primary, hover] = product.images
   const soldOut = product.available <= 0
@@ -26,7 +31,10 @@ export default function ProductCard({
   const sale = salePercent(product.pricePaise, product.mrpPaise)
 
   return (
-    <div className="product-card" data-has-hover={hover ? '' : undefined}>
+    <div
+      className={`product-card${quickAdd ? ' product-card--quick-add' : ''}`}
+      data-has-hover={hover ? '' : undefined}
+    >
       <a href={`/products/${product.handle}`} className="product-card__link">
         <div className="product-card__media">
           {soldOut ? (
@@ -67,6 +75,17 @@ export default function ProductCard({
         <div className="product-card__info">
           {product.vendor ? <p className="product-card__vendor">{product.vendor}</p> : null}
           <h3 className="product-card__title">{product.title}</h3>
+          {product.rating && product.rating.count > 0 ? (
+            <p className="product-card__rating">
+              <span className="visually-hidden">
+                {`Rated ${product.rating.average.toFixed(1)} out of 5 from ${product.rating.count} reviews`}
+              </span>
+              <span aria-hidden>
+                ★ {product.rating.average.toFixed(1)}{' '}
+                <span className="product-card__rating-count">({product.rating.count})</span>
+              </span>
+            </p>
+          ) : null}
           <div
             className={`product-card__price${soldOut ? ' product-card__price--unavailable' : ''}`}
           >
@@ -74,6 +93,13 @@ export default function ProductCard({
           </div>
         </div>
       </a>
+      <ProductCardWishlist handle={product.handle} title={product.title} />
+      {/* Always rendered: the section's own switch or Theme settings → Product cards shows it. */}
+      <ProductCardQuickAdd
+        handle={product.handle}
+        variantId={product.quickAddVariantId}
+        soldOut={soldOut}
+      />
     </div>
   )
 }

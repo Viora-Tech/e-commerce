@@ -1,4 +1,4 @@
-import { Card, CardContent, CardHeader, CardTitle } from '@commerce/ui/shadcn/card'
+import DataCard from '@/components/layout/data-card'
 import { mediaContent } from '@/data/media'
 import { getCopy } from '@/lib/copy-server'
 import { formatBytes } from './file-meta'
@@ -29,41 +29,36 @@ export default async function StorageUsage({ usage }: StorageUsageProps) {
 
   return (
     <>
-      <Card>
-        <CardHeader>
-          <CardTitle>{copy.heading}</CardTitle>
-        </CardHeader>
-        <CardContent className="flex flex-col gap-4">
-          <div
-            role="img"
-            aria-label={`${copy.bar}: ${copy.used(formatBytes(usage.totalBytes))}`}
-            className="flex h-2.5 overflow-hidden rounded-full bg-muted"
-          >
-            {KINDS.map(({ kind, bar }) => (
-              <div
-                key={kind}
-                className={bar}
-                style={{
-                  width: `${usage.totalBytes > 0 ? (usage[kind].bytes / usage.totalBytes) * 100 : 0}%`,
-                }}
-              />
-            ))}
-          </div>
-          <dl className="flex flex-wrap gap-x-8 gap-y-2">
-            {KINDS.map(({ kind, bar }) => (
-              <div key={kind} className="flex flex-col">
-                <dt className="flex items-center gap-1.5 text-caption text-muted-foreground">
-                  <span aria-hidden className={`size-2 rounded-full ${bar}`} />
-                  {copy.kinds[kind]}
-                </dt>
-                <dd className="text-body-strong text-foreground tabular-nums">
-                  {formatBytes(usage[kind].bytes)}
-                </dd>
-              </div>
-            ))}
-          </dl>
-        </CardContent>
-      </Card>
+      <DataCard title={copy.heading} bodyClassName="flex flex-col gap-4">
+        <div
+          role="img"
+          aria-label={`${copy.bar}: ${copy.used(formatBytes(usage.totalBytes))}`}
+          className="flex h-2.5 overflow-hidden rounded-full bg-muted"
+        >
+          {KINDS.map(({ kind, bar }) => (
+            <div
+              key={kind}
+              className={bar}
+              style={{
+                width: `${usage.totalBytes > 0 ? (usage[kind].bytes / usage.totalBytes) * 100 : 0}%`,
+              }}
+            />
+          ))}
+        </div>
+        <dl className="flex flex-wrap gap-x-8 gap-y-2">
+          {KINDS.map(({ kind, bar }) => (
+            <div key={kind} className="flex flex-col">
+              <dt className="flex items-center gap-1.5 text-caption text-muted-foreground">
+                <span aria-hidden className={`size-2 rounded-full ${bar}`} />
+                {copy.kinds[kind]}
+              </dt>
+              <dd className="text-body-strong text-foreground tabular-nums">
+                {formatBytes(usage[kind].bytes)}
+              </dd>
+            </div>
+          ))}
+        </dl>
+      </DataCard>
       <StorageLargestFiles files={usage.largest} />
     </>
   )

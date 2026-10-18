@@ -27,6 +27,7 @@ import {
   paymentEvent,
   productMedia,
   refund,
+  shipment,
   store,
   variant,
 } from '@commerce/db'
@@ -104,20 +105,37 @@ export function orderNumberFromSearch(search: string): number | null {
   return match ? Number(match[1]) : null
 }
 
-export async function listOrders(
-  tx: StoreTx,
-  input: {
-    page: number
-    perPage: number
-    search?: string | undefined
-    view?: OrderView | undefined
-    status?: OrderStatus | undefined
-    paymentStatus?: OrderPaymentStatus[] | undefined
-    fulfillmentStatus?: OrderFulfillmentStatus[] | undefined
-  },
-) {
+/** The Orders list's filters (search, view and the filter panel), shared by the list and its ids. */
+type OrderListFilters = {
+  search?: string | undefined
+  view?: OrderView | undefined
+  status?: OrderStatus | undefined
+  paymentStatus?: OrderPaymentStatus[] | undefined
+  fulfillmentStatus?: OrderFulfillmentStatus[] | undefined
+  placedFrom?: string | undefined
+  paymentMethod?: 'cod' | 'prepaid' | undefined
+  /** Has a consignment with this courier (`shipment.provider`). */
+  courier?: string | undefined
+}
+
+/** The most ids "Select all" takes at once; bulk actions above this would need a background job. */
+export const SELECT_ALL_MAX = 5000
+
+/** Every order id the list's filters match, newest first (the table's "Select all N orders"). */
+export async function listOrderIds(tx: StoreTx, input: OrderListFilters): Promise<string[]> {
+  const rows = await tx
+    .select({ id: order.id })
+    .from(order)
+    .leftJoin(customer, eq(customer.id, order.customerId))
+    .where(orderListWhere(input))
+    .orderBy(desc(order.placedAt))
+    .limit(SELECT_ALL_MAX)
+  return rows.map((r) => r.id)
+}
+
+function orderListWhere(input: OrderListFilters) {
   const byNumber = input.search ? orderNumberFromSearch(input.search) : null
-  const where = and(
+  return and(
     notDraft,
     input.view ? viewFilter(input.view) : undefined,
     input.search
@@ -132,7 +150,44 @@ export async function listOrders(
     input.fulfillmentStatus?.length
       ? inArray(order.fulfillmentStatus, input.fulfillmentStatus)
       : undefined,
+    input.placedFrom ? gte(order.placedAt, new Date(input.placedFrom)) : undefined,
+    /* An order with no recorded method (imported history) is neither. */
+    input.paymentMethod === 'cod'
+      ? eq(order.paymentMethod, 'cod')
+      : input.paymentMethod === 'prepaid'
+        ? ne(order.paymentMethod, 'cod')
+        : undefined,
+    input.courier
+      ? sql`exists (select 1 from ${shipment} s where s.order_id = ${order.id} and s.provider = ${input.courier})`
+      : undefined,
   )
+}
+
+/** The couriers this store's orders went with, for the filter panel's Courier select. */
+export async function orderCouriers(tx: StoreTx): Promise<string[]> {
+  const rows = await tx
+    .selectDistinct({ provider: shipment.provider })
+    .from(shipment)
+    .orderBy(shipment.provider)
+  return rows.map((r) => r.provider)
+}
+
+export async function listOrders(
+  tx: StoreTx,
+  input: {
+    page: number
+    perPage: number
+    search?: string | undefined
+    view?: OrderView | undefined
+    status?: OrderStatus | undefined
+    paymentStatus?: OrderPaymentStatus[] | undefined
+    fulfillmentStatus?: OrderFulfillmentStatus[] | undefined
+    placedFrom?: string | undefined
+    paymentMethod?: 'cod' | 'prepaid' | undefined
+    courier?: string | undefined
+  },
+) {
+  const where = orderListWhere(input)
   const base = tx
     .select({
       id: order.id,
@@ -146,6 +201,9 @@ export async function listOrders(
       email: order.email,
       customerName: customer.name,
       placedAt: order.placedAt,
+      /* The Channel and Tags columns (Figma "State · Columns open"): where the visit came from. */
+      channel: sql<string | null>`${order.attribution}->>'channel'`,
+      tags: order.tags,
       /* Frame 5:2353 shows the first product with its picture; the rest is a count. */
       firstLineTitle: sql<string | null>`(
         select ol.title from ${orderLine} ol where ol.order_id = ${order.id}
@@ -186,6 +244,23 @@ export type OrderTiles = {
   salesWeek: { paise: number; previousPaise: number }
 }
 
+/** Open orders nobody has shipped yet that are paid, or cash on delivery: "Ready to ship". */
+const readyToShipWhere = () =>
+  and(
+    eq(order.status, 'open'),
+    inArray(order.fulfillmentStatus, [...UNFULFILLED_STATUSES]),
+    or(
+      notInArray(order.paymentStatus, [...UNPAID_PAYMENT_STATUSES]),
+      eq(order.paymentMethod, 'cod'),
+    ),
+  )
+
+/** How many orders wait to ship: the count pill on the sidebar's Orders row (Figma). */
+export async function readyToShipCount(tx: StoreTx): Promise<number> {
+  const [row] = await tx.select({ n: count() }).from(order).where(readyToShipWhere())
+  return row?.n ?? 0
+}
+
 /** The four stat cards above the Orders list (Figma "Orders / List"). */
 export async function orderTiles(tx: StoreTx, now = new Date()): Promise<OrderTiles> {
   const todayStart = startOfDay(now)
@@ -205,19 +280,7 @@ export async function orderTiles(tx: StoreTx, now = new Date()): Promise<OrderTi
       .where(
         and(live, gte(order.placedAt, yesterdayStart), lte(order.placedAt, sameTimeYesterday)),
       ),
-    tx
-      .select({ n: count() })
-      .from(order)
-      .where(
-        and(
-          eq(order.status, 'open'),
-          inArray(order.fulfillmentStatus, [...UNFULFILLED_STATUSES]),
-          or(
-            notInArray(order.paymentStatus, [...UNPAID_PAYMENT_STATUSES]),
-            eq(order.paymentMethod, 'cod'),
-          ),
-        ),
-      ),
+    tx.select({ n: count() }).from(order).where(readyToShipWhere()),
     tx.select({ n: count() }).from(order).where(viewFilter('pending_upi')),
     tx
       .select({ totalPaise: order.totalPaise, placedAt: order.placedAt })

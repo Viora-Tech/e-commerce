@@ -20,7 +20,19 @@ export const listApps = cache(async () =>
   call(appRouter.apps.list, undefined, { context: await serverContext() }),
 )
 
+/** Orders waiting to ship, for the sidebar's Orders count; null without permission. */
+export const ordersToShipCount = cache(async () =>
+  call(appRouter.orders.toShipCount, undefined, { context: await serverContext() }).catch(
+    () => null,
+  ),
+)
+
 /** The live theme's logo for the sidebar's brand mark; null when unset or not readable. */
 export const liveLogoUrl = cache(async () =>
   call(appRouter.themes.logo, undefined, { context: await serverContext() }).catch(() => null),
+)
+
+/** The sidebar's "Orders this month · 142 of 200"; null when the member cannot read settings. */
+export const planUsageSummary = cache(async () =>
+  call(appRouter.billing.usage, undefined, { context: await serverContext() }).catch(() => null),
 )

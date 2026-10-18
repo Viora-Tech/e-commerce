@@ -8,7 +8,7 @@ import {
 } from '@commerce/core/collections'
 import { Plus, Search } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
-import { Card, CardContent, CardHeader, CardTitle } from '@commerce/ui/shadcn/card'
+
 import { Input } from '@commerce/ui/shadcn/input'
 import {
   Select,
@@ -19,6 +19,7 @@ import {
 } from '@commerce/ui/shadcn/select'
 import { SortableList } from '@commerce/ui/sortable'
 import { useState } from 'react'
+import DataCard from '@/components/layout/data-card'
 import SelectProductsDialog, {
   type PickedProducts,
 } from '@/components/products/select-products-dialog'
@@ -100,24 +101,22 @@ export default function CollectionProductsCard({
   const emptyBody = needle !== '' ? null : manual ? copy.emptyManualBody : copy.emptyAutomaticBody
 
   return (
-    <Card size="form" gap="none" inset="y-none">
-      <CardHeader className="grid-cols-[1fr_auto] items-center py-5">
-        <CardTitle className="flex items-center gap-2">
-          {copy.heading}
-          <span className="rounded-full bg-muted px-2 py-0.5 text-caption font-medium text-muted-foreground tabular-nums">
-            {products.length}
-          </span>
-        </CardTitle>
-        {manual ? (
-          <Button variant="key-neutral" size="sm" onClick={() => setAdding(true)}>
+    <DataCard
+      title={copy.heading}
+      count={products.length}
+      flush
+      action={
+        manual ? (
+          <Button variant="ghost" size="sm" onClick={() => setAdding(true)}>
             <Plus aria-hidden />
             {copy.add}
           </Button>
-        ) : null}
-      </CardHeader>
-      <CardContent className="flex flex-col gap-3 px-5 pb-4">
+        ) : null
+      }
+    >
+      <div className="flex flex-col gap-3 px-5 pb-4">
         <div className="flex flex-wrap items-center gap-2">
-          <div className="relative min-w-40 max-w-xs flex-1">
+          <div className="relative min-w-40 flex-1">
             <Search
               className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground"
               aria-hidden
@@ -133,14 +132,14 @@ export default function CollectionProductsCard({
               className="pl-8"
             />
           </div>
-          <div className="ml-auto flex items-center gap-2 text-body text-muted-foreground">
-            {copy.sort}
+          <div className="flex items-center">
             <Select
               items={sortItems}
               value={sortOrder}
               onValueChange={(next) => onSortChange(String(next) as CollectionSort)}
             >
-              <SelectTrigger aria-label={copy.sort} className="w-44">
+              <SelectTrigger aria-label={copy.sort} className="w-52">
+                <span className="text-muted-foreground">{copy.sort}:</span>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -153,9 +152,9 @@ export default function CollectionProductsCard({
             </Select>
           </div>
         </div>
-      </CardContent>
+      </div>
       <div
-        className={`${COLLECTION_PRODUCT_GRID} h-10 border-line border-y bg-muted/50 px-4 text-caption font-medium text-muted-foreground`}
+        className={`${COLLECTION_PRODUCT_GRID} h-10 border-line border-y px-4 text-caption text-muted-foreground`}
       >
         <span />
         <span>{copy.columns.product}</span>
@@ -216,6 +215,6 @@ export default function CollectionProductsCard({
           onConfirm={handleAdd}
         />
       ) : null}
-    </Card>
+    </DataCard>
   )
 }

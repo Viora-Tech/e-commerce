@@ -405,3 +405,30 @@ export async function analyticsLive(
     events,
   }
 }
+
+export type SaleDay = { day: string; revenuePaise: number; orders: number }
+
+/**
+ * The store's own biggest sales days in the last year, for the date picker's "Big sale days":
+ * real dates from its orders (IST days), not a fixed festival calendar.
+ */
+export async function bigSaleDays(tx: StoreTx, limit = 5): Promise<SaleDay[]> {
+  const day = sql<string>`to_char(${order.placedAt} at time zone 'Asia/Kolkata', 'YYYY-MM-DD')`
+  const rows = await tx
+    .select({
+      day,
+      revenue: sql<number>`coalesce(sum(${order.totalPaise}), 0)::bigint`,
+      orders: sql<number>`count(*)::int`,
+    })
+    .from(order)
+    .where(
+      and(
+        sql`${order.status} not in ('draft', 'cancelled')`,
+        gte(order.placedAt, sql`now() - interval '365 days'`),
+      ),
+    )
+    .groupBy(day)
+    .orderBy(desc(sql`2`))
+    .limit(limit)
+  return rows.map((r) => ({ day: r.day, revenuePaise: Number(r.revenue), orders: r.orders }))
+}

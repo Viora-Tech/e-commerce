@@ -99,6 +99,11 @@ export const product = pgTable(
     tags: text('tags').array().notNull().default([]),
     seoTitle: text('seo_title'),
     seoDescription: text('seo_description'),
+    /**
+     * Search keywords the merchant chose (Search keywords card), primary first. They only steer
+     * "Write with AI" for the search title and description; the storefront never prints them.
+     */
+    seoKeywords: text('seo_keywords').array().notNull().default([]),
     status: text('status', { enum: ['draft', 'active', 'archived'] })
       .notNull()
       .default('draft'),
@@ -798,6 +803,9 @@ export const address = pgTable('address', {
  * A shopper's saved address book (storefront account). Separate from `address`,
  * which holds immutable order snapshots. At most one default per customer.
  */
+/** The tag a shopper puts on a saved address; the same list as `ADDRESS_LABELS` in core. */
+const CUSTOMER_ADDRESS_LABELS = ['home', 'office', 'other'] as const
+
 export const customerAddress = pgTable(
   'customer_address',
   {
@@ -814,6 +822,8 @@ export const customerAddress = pgTable(
     pincode: text('pincode').notNull(),
     country: text('country').notNull().default('IN'),
     phone: text('phone').notNull(),
+    /** Home, Office or Other on the checkout's address cards; null when the shopper never said. */
+    label: text('label', { enum: CUSTOMER_ADDRESS_LABELS }),
     isDefault: boolean('is_default').notNull().default(false),
     createdAt: createdAt(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
@@ -821,6 +831,7 @@ export const customerAddress = pgTable(
   (t) => [
     index('customer_address_customer').on(t.customerId),
     uniqueIndex('customer_address_one_default').on(t.customerId).where(sql`is_default`),
+    check('customer_address_label_check', sql`${t.label} in (${oneOf(CUSTOMER_ADDRESS_LABELS)})`),
   ],
 )
 
@@ -2254,6 +2265,8 @@ export const storeMember = pgTable(
     invitedBy: text('invited_by'),
     /** This member's own admin accent (#rrggbb); null falls back to the store's `admin_accent`. */
     adminAccent: text('admin_accent'),
+    /** Which metric sits in each Home analytics tile (`@commerce/core/home-metrics`); null = defaults. */
+    homeTiles: jsonb('home_tiles'),
     /**
      * This member's own alerts for this store (Account → Notifications): which events reach
      * them by email or WhatsApp, the daily summary's hour and the day it last went. Null means

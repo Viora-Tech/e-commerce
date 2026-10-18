@@ -150,6 +150,97 @@ export const checkoutContent = {
   /** Step numbers read out with the heading, e.g. "Step 2 of 4". */
   step: (n: number, of: number) => `Step ${n} of ${of}`,
   stepDone: 'Complete',
+  /** The stepped checkout: Address → Shipping → Payment, contact at the top of Address. */
+  steps: {
+    label: { contact: 'Contact', address: 'Address', shipping: 'Delivery', payment: 'Payment' },
+    /** Gift cards are emailed: the first step only asks for contact and billing details. */
+    detailsLabel: 'Details',
+    progress: 'Checkout steps',
+    heading: {
+      contact: 'Sign in or create your account',
+      address: 'Where should we deliver?',
+      shipping: 'How would you like it delivered?',
+      payment: 'How would you like to pay?',
+    },
+    detailsHeading: 'Your details',
+    intro: {
+      address: 'Where your order goes, and who to call about it.',
+      details: 'Your gift card arrives by email. We need your contact and billing details.',
+      shipping: (place: string) => `Options and dates for ${place}.`,
+      shippingNoPlace: 'Pick how your order travels.',
+      payment: 'All payments are encrypted. Pick the way that is easiest for you.',
+    },
+    contactHeading: 'Contact',
+    addressHeading: 'Delivery address',
+    /** The primary button on a step that is not the last: named after the next step. */
+    continueTo: {
+      address: 'Continue',
+      shipping: 'Continue to delivery',
+      payment: 'Continue to payment',
+    },
+    back: 'Back',
+    goTo: (label: string) => `Go back to ${label}`,
+  },
+  /** The finished steps above the current one, each with a way back to it. */
+  recap: {
+    heading: 'Your details so far',
+    contact: 'Contact',
+    shipTo: 'Ship to',
+    billTo: 'Billing',
+    delivery: 'Delivery',
+    change: 'Change',
+    changeContact: 'Change contact details',
+    changeAddress: 'Change address',
+    changeDelivery: 'Change delivery method',
+  },
+  /**
+   * Contact at the top of Address: a code to the shopper's mobile first (the store's own
+   * sign-in: SMS or WhatsApp, email, Google, Apple, Truecaller, passkeys). Signing in also
+   * creates the account. Settings → Customer accounts decides whether a guest may skip it.
+   */
+  otp: {
+    intro: 'Enter your mobile number and we will send you a code. No password needed.',
+    introEmail: 'Enter your email and we will send you a code. No password needed.',
+    sendCode: 'Send code',
+    sending: 'Sending code…',
+    codeLabel: 'Six digit code',
+    sentTo: (to: string, by: string) => `We sent a code to ${to} by ${by}.`,
+    sentToEmail: (to: string) => `We sent a code to ${to}.`,
+    verify: 'Verify and continue',
+    verifying: 'Verifying…',
+    resend: 'Send a new code',
+    change: 'Change',
+    guest: 'Check out as guest',
+    signInInstead: 'Sign in with a code instead',
+    required: 'This shop needs an account to check out. Signing in creates one.',
+    optional: 'Signing in fills in your saved addresses. New here? It creates your account.',
+    needSignIn: 'Verify your mobile number, or check out as a guest, to continue.',
+    needSignInRequired: 'Verify your mobile number to continue.',
+  },
+  /** Signed-in shoppers' saved addresses as cards, and the PIN-first form for a new one. */
+  addressBook: {
+    legend: 'Saved addresses',
+    intro: 'Choose a saved address or add a new one.',
+    tags: { home: 'Home', office: 'Office', other: 'Other' },
+    tagLegend: 'Save this address as',
+    noTag: 'No tag',
+    add: 'Add new address',
+    newHeading: 'New address',
+    editHeading: 'Edit address',
+    edit: (name: string) => `Edit the address for ${name}`,
+    remove: (name: string) => `Delete the address for ${name}`,
+    confirmRemove: 'Delete this address?',
+    confirmYes: 'Delete',
+    confirmNo: 'Keep it',
+    save: 'Save address',
+    saving: 'Saving…',
+    cancel: 'Cancel',
+    saveFailed: 'We could not save that address. Check the fields and try again.',
+    deliversTo: (pincode: string) => `Delivers to ${pincode}`,
+  },
+  secure: 'Secure checkout',
+  secureShort: 'Secure',
+  itemCount: (n: number) => (n === 1 ? '1 item' : `${n} items`),
   /** The main gateway's option when the merchant chose which online methods to offer. */
   payOnline: 'Pay online',
   onlineMethodNames: {
@@ -194,6 +285,7 @@ export const checkoutContent = {
   rateDelivery: (range: string) => `Delivery by ${range}`,
   total: 'Total',
   taxes: 'Inclusive of all taxes',
+  taxesIncluded: (gst: string) => `Includes ${gst} GST`,
   /** Deposit pre-orders: what is charged now and what is left for later. */
   dueToday: 'Due today',
   dueLater: 'Pre-order balance, due later',
@@ -207,6 +299,11 @@ export const checkoutContent = {
   pay: (amount: string) => `Pay ${amount}`,
   placeOrderAmount: (amount: string) => `Place order · ${amount}`,
   processing: 'Processing…',
+  help: { label: 'Need help? WhatsApp us', short: 'Help' },
+  assurance: {
+    title: 'Secure payment',
+    body: 'Encrypted by the payment provider. We never see your card or UPI PIN.',
+  },
   trust: {
     secure: 'Secure checkout',
     encrypted:
@@ -271,6 +368,12 @@ export const checkoutContent = {
     pending: 'Enter your PIN code to see delivery options.',
     free: 'Free delivery',
     standard: 'Standard delivery',
+    /** Each option's arrival, counted from today in the store's time zone. */
+    arrives: (when: string) => `Arrives ${when}`,
+    arrivesToday: 'Arrives today',
+    arrivesTomorrow: (date: string) => `Arrives tomorrow, ${date}`,
+    /** On the option that arrives first, when the options do not all arrive together. */
+    fastest: 'Fastest',
     digital: 'Delivered by email',
   },
   /** When one order ships from more than one warehouse. */

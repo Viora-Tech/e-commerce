@@ -6,6 +6,7 @@ import {
   aiBulkQueue,
   appEventQueue,
   appJobQueue,
+  channelSyncQueue,
   dailyVisitors,
   liveVisitors,
   mediaProcessQueue,
@@ -33,6 +34,7 @@ export function apiHost() {
     storeExport: storeExportQueue(loadEnv(process.env).REDIS_URL),
     aiBulk: aiBulkQueue(loadEnv(process.env).REDIS_URL),
     purchaseDocuments: purchaseDocumentQueue(loadEnv(process.env).REDIS_URL),
+    channelSync: channelSyncQueue(loadEnv(process.env).REDIS_URL),
     visitors: {
       live: (storeId: string) => liveVisitors(sharedRedis(loadEnv(process.env).REDIS_URL), storeId),
       daily: (storeId: string, days: string[]) =>

@@ -1,22 +1,13 @@
 'use client'
 
-import { Pencil, SquarePlus, Trash2 } from '@commerce/ui/icons'
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@commerce/ui/shadcn/alert-dialog'
+import { Pencil, Plus, Trash2 } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Card, CardContent } from '@commerce/ui/shadcn/card'
 import { useState } from 'react'
 import { toast } from 'sonner'
+import ConfirmDialog from '@/components/layout/confirm-dialog'
+import PageHeader from '@/components/layout/page-header'
 import ProoflyDetailPage from '@/components/layout/proofly-detail-page'
-import ProoflyPageHeader from '@/components/layout/proofly-page-header'
 import { blogsManageContent } from '@/data/blog'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
@@ -68,12 +59,12 @@ export default function BlogsManager({ initial }: BlogsManagerProps) {
   return (
     <ProoflyDetailPage
       header={
-        <ProoflyPageHeader
+        <PageHeader
           title={copy.heading}
           back={{ label: copy.back, href: routes.content.blogPosts() }}
           actions={
             <Button onClick={() => handleOpen(null)}>
-              <SquarePlus strokeWidth={1.6} />
+              <Plus strokeWidth={1.6} />
               {copy.add}
             </Button>
           }
@@ -119,28 +110,19 @@ export default function BlogsManager({ initial }: BlogsManagerProps) {
         onOpenChange={setDialogOpen}
         onSaved={() => void refresh()}
       />
-      <AlertDialog open={deleting !== null} onOpenChange={(open) => !open && setDeleting(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>{copy.confirmDelete.title(deleting?.title ?? '')}</AlertDialogTitle>
-            <AlertDialogDescription>
-              {blocked
-                ? copy.confirmDelete.hasPosts(deleting?.articles ?? 0)
-                : copy.confirmDelete.body}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel disabled={busy}>{copy.confirmDelete.cancel}</AlertDialogCancel>
-            <AlertDialogAction
-              variant="destructive"
-              onClick={handleDelete}
-              disabled={busy || blocked}
-            >
-              {copy.confirmDelete.confirm}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <ConfirmDialog
+        open={deleting !== null}
+        onOpenChange={(open) => !open && setDeleting(null)}
+        title={copy.confirmDelete.title(deleting?.title ?? '')}
+        body={
+          blocked ? copy.confirmDelete.hasPosts(deleting?.articles ?? 0) : copy.confirmDelete.body
+        }
+        confirmLabel={copy.confirmDelete.confirm}
+        cancelLabel={copy.confirmDelete.cancel}
+        busy={busy}
+        confirmDisabled={blocked}
+        onConfirm={handleDelete}
+      />
     </ProoflyDetailPage>
   )
 }

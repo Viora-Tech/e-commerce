@@ -5,12 +5,14 @@ import {
   PURCHASE_DOCUMENT_MAX_BYTES,
   type PurchaseDocumentKind,
 } from '@commerce/core/inventory'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@commerce/ui/shadcn/card'
+import { CardContent } from '@commerce/ui/shadcn/card'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
-import ConfirmActionDialog from '@/components/inventory/confirm-action-dialog'
 import OptionSelect from '@/components/landed-cost/option-select'
 import type { ChargeOwner } from '@/components/landed-cost/types'
+import ConfirmDialog from '@/components/layout/confirm-dialog'
+import DataCard from '@/components/layout/data-card'
+import EmptyState from '@/components/layout/empty-state'
 import { PURCHASE_DOCUMENT_KINDS, purchaseDocumentsContent } from '@/data/purchase-documents'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
@@ -123,11 +125,7 @@ export default function DocumentsCard({ owner, aiReading, onApplied }: Documents
 
   // Render logic
   return (
-    <Card size="form" gap="none" inset="y-none">
-      <CardHeader className="py-5">
-        <CardTitle>{copy.heading}</CardTitle>
-        <CardDescription>{copy.summary}</CardDescription>
-      </CardHeader>
+    <DataCard title={copy.heading} subtitle={copy.summary} flush>
       {owner ? (
         <CardContent className="flex flex-col gap-3 pb-5 sm:flex-row sm:items-stretch">
           <div className="flex flex-col gap-1.5 sm:w-56">
@@ -146,13 +144,19 @@ export default function DocumentsCard({ owner, aiReading, onApplied }: Documents
         </CardContent>
       ) : null}
       {!owner ? (
-        <p className="border-line border-t px-5 py-8 text-center text-body text-muted-foreground">
-          {copy.saveFirst}
-        </p>
+        <EmptyState
+          variant="plain"
+          size="md"
+          className="border-line border-t px-5"
+          body={copy.saveFirst}
+        />
       ) : docs.length === 0 ? (
-        <p className="border-line border-t px-5 py-6 text-center text-body text-muted-foreground">
-          {copy.empty}
-        </p>
+        <EmptyState
+          variant="plain"
+          size="sm"
+          className="border-line border-t px-5"
+          body={copy.empty}
+        />
       ) : (
         <ul className="flex flex-col border-line border-t">
           {docs.map((d) => (
@@ -175,13 +179,15 @@ export default function DocumentsCard({ owner, aiReading, onApplied }: Documents
           onReset={refresh}
         />
       ) : null}
-      <ConfirmActionDialog
+      <ConfirmDialog
         open={removing !== null}
         onOpenChange={(open) => !open && setRemoving(null)}
-        copy={copy.confirmRemove}
-        destructive
+        title={copy.confirmRemove.title}
+        body={copy.confirmRemove.body}
+        confirmLabel={copy.confirmRemove.confirm}
+        cancelLabel={copy.confirmRemove.cancel}
         onConfirm={handleRemove}
       />
-    </Card>
+    </DataCard>
   )
 }

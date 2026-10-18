@@ -16,7 +16,7 @@ export default function ArticleNeighbours({ blogPath, previous, next }: ArticleN
       {previous ? (
         <Link
           href={`${blogPath}/${previous.handle}`}
-          className="flex flex-col gap-1 rounded-section border border-line p-4 transition-[border-color,scale] duration-(--duration-press) ease-out hover:border-ink active:scale-(--motion-card-press-scale)"
+          className="flex flex-col gap-1 text-sm text-ink hover:underline"
         >
           <span className="text-caption text-muted">{copy.olderPost}</span>
           <span className="text-ink">{previous.title}</span>
@@ -27,7 +27,7 @@ export default function ArticleNeighbours({ blogPath, previous, next }: ArticleN
       {next ? (
         <Link
           href={`${blogPath}/${next.handle}`}
-          className="flex flex-col gap-1 rounded-section border border-line p-4 text-right transition-[border-color,scale] duration-(--duration-press) ease-out hover:border-ink active:scale-(--motion-card-press-scale)"
+          className="flex flex-col gap-1 text-right text-sm text-ink hover:underline"
         >
           <span className="text-caption text-muted">{copy.newerPost}</span>
           <span className="text-ink">{next.title}</span>

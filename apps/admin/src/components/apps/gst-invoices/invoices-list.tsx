@@ -17,9 +17,10 @@ import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import CopyButton from '@/components/fields/copy-button'
-import ProoflyPageHeader from '@/components/layout/proofly-page-header'
+import PageHeader from '@/components/layout/page-header'
 import RelativeTime from '@/components/layout/relative-time'
-import StatusLabelChip from '@/components/status/status-label-chip'
+import OrderChip from '@/components/orders/order-chip'
+import TableEmptyRow from '@/components/table/table-empty-row'
 import { gstInvoicesContent } from '@/data/gst-invoices'
 import { api } from '@/lib/api-client'
 import { formatPaise } from '@/lib/money'
@@ -160,7 +161,7 @@ export default function InvoicesList() {
 
   return (
     <div className="flex flex-col gap-4">
-      <ProoflyPageHeader
+      <PageHeader
         title={copy.title}
         summary={copy.subtitle}
         actions={<GstNumberPicker value={gst} onChange={handleGst} allowAll />}
@@ -254,13 +255,7 @@ export default function InvoicesList() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {rows.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={9} className="py-10 text-center text-muted-foreground">
-                  {copy.empty}
-                </TableCell>
-              </TableRow>
-            ) : null}
+            {rows.length === 0 ? <TableEmptyRow colSpan={9} message={copy.empty} /> : null}
             {rows.map((r) => (
               <TableRow key={r.id}>
                 <TableCell className={CELL}>
@@ -299,7 +294,7 @@ export default function InvoicesList() {
                   <RelativeTime value={r.invoiceDate ?? r.issuedAt} />
                 </TableCell>
                 <TableCell className={`${CELL} text-center`}>
-                  <StatusLabelChip kind="gstDoc" value={r.status} />
+                  <OrderChip kind="gstDoc" value={r.status} />
                 </TableCell>
                 <TableCell className={`${CELL} text-right tabular-nums`}>
                   {formatPaise(r.taxPaise)}

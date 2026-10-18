@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@commerce/ui/shadcn/ca
 import { Spinner } from '@commerce/ui/shadcn/spinner'
 import { useState } from 'react'
 import { toast } from 'sonner'
+import StatusChip from '@/components/layout/status-chip'
 import { shopifyImportContent } from '@/data/shopify-import'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
@@ -56,9 +57,9 @@ export default function ScopesCard() {
               <span className="text-caption text-muted-foreground">{copy.scopesMissing}</span>
               <div className="flex flex-wrap gap-1.5">
                 {check.missing.map((handle) => (
-                  <Badge key={handle} variant="destructive">
+                  <StatusChip key={handle} tone="danger">
                     {scopeLabel(handle)}
-                  </Badge>
+                  </StatusChip>
                 ))}
               </div>
             </div>

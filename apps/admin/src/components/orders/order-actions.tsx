@@ -1,33 +1,11 @@
 'use client'
 
-import {
-  ChevronLeftIcon,
-  ChevronRightIcon,
-  MoreHorizontal,
-  Printer,
-  RotateCcw,
-  Send,
-} from '@commerce/ui/icons'
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@commerce/ui/shadcn/alert-dialog'
+import { ChevronLeftIcon, ChevronRightIcon, Printer, RotateCcw, Send } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@commerce/ui/shadcn/dropdown-menu'
 import Link from 'next/link'
 import { useState } from 'react'
+import ActionMenu from '@/components/layout/action-menu'
+import ConfirmDialog from '@/components/layout/confirm-dialog'
 import {
   type OrderFulfillmentStatus,
   type OrderMark,
@@ -110,81 +88,78 @@ export default function OrderActions({
   const cancellable = !readOnly && status === 'open' && fulfillmentStatus !== 'delivered'
   const refundable = !readOnly && canRefund
 
-  /* After the Saleor Dashboard order header (BSD-3): small square icon buttons, one menu for
-     everything secondary; the main action lives in the Next step card. */
+  /* Figma "Orders / Order detail" header: previous / next order arrows, Print and "More actions"
+     (outline); the main action lives in the Next step card. */
   return (
     <div className="flex items-center gap-2 print:hidden">
-      <Button variant="key-neutral" title={copy.actions.print} onClick={() => window.print()}>
+      <div className="flex items-center">
+        <Button
+          variant="ghost"
+          size="icon-sm"
+          aria-label={copy.previous}
+          disabled={!previousId}
+          nativeButton={!previousId}
+          render={previousId ? <Link href={`/orders/${previousId}`} /> : undefined}
+        >
+          <ChevronLeftIcon aria-hidden="true" />
+        </Button>
+        <Button
+          variant="ghost"
+          size="icon-sm"
+          aria-label={copy.next}
+          disabled={!nextId}
+          nativeButton={!nextId}
+          render={nextId ? <Link href={`/orders/${nextId}`} /> : undefined}
+        >
+          <ChevronRightIcon aria-hidden="true" />
+        </Button>
+      </div>
+      <Button variant="outline" title={copy.actions.print} onClick={() => window.print()}>
         <Printer aria-hidden="true" />
         {copy.actions.printShort}
       </Button>
-      <DropdownMenu>
-        <DropdownMenuTrigger
-          render={<Button variant="key-neutral" size="icon" aria-label={copy.actions.more} />}
-        >
-          <MoreHorizontal aria-hidden="true" />
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="min-w-48">
-          {menuMove ? (
-            <DropdownMenuItem onClick={() => onMove(menuMove.to)} disabled={busy}>
-              {menuMove.label}
-            </DropdownMenuItem>
-          ) : null}
-          {refundable ? (
-            <DropdownMenuItem onClick={onRefund} disabled={busy}>
-              <RotateCcw aria-hidden="true" /> {copy.actions.refund}
-            </DropdownMenuItem>
-          ) : null}
-          {onRequestBalance && !readOnly ? (
-            <DropdownMenuItem onClick={onRequestBalance} disabled={busy}>
-              <Send aria-hidden="true" /> {copy.payment.preorder.request}
-            </DropdownMenuItem>
-          ) : null}
-          {menuMove || refundable || onRequestBalance ? <DropdownMenuSeparator /> : null}
-          <DropdownMenuItem
-            disabled={!previousId}
-            render={previousId ? <Link href={`/orders/${previousId}`} /> : undefined}
-          >
-            <ChevronLeftIcon aria-hidden="true" /> {copy.previous}
-          </DropdownMenuItem>
-          <DropdownMenuItem
-            disabled={!nextId}
-            render={nextId ? <Link href={`/orders/${nextId}`} /> : undefined}
-          >
-            <ChevronRightIcon aria-hidden="true" /> {copy.next}
-          </DropdownMenuItem>
-          {cancellable ? (
-            <>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem variant="destructive" onClick={() => setConfirmCancel(true)}>
-                {copy.actions.cancel}
-              </DropdownMenuItem>
-            </>
-          ) : null}
-        </DropdownMenuContent>
-      </DropdownMenu>
+      <ActionMenu
+        label={copy.actions.more}
+        trigger="button"
+        items={[
+          {
+            label: menuMove?.label ?? '',
+            hidden: !menuMove,
+            disabled: busy,
+            onSelect: () => menuMove && onMove(menuMove.to),
+          },
+          {
+            label: copy.actions.refund,
+            icon: RotateCcw,
+            hidden: !refundable,
+            disabled: busy,
+            onSelect: onRefund,
+          },
+          {
+            label: copy.payment.preorder.request,
+            icon: Send,
+            hidden: !onRequestBalance || readOnly,
+            disabled: busy,
+            onSelect: onRequestBalance,
+          },
+          {
+            label: copy.actions.cancel,
+            destructive: true,
+            hidden: !cancellable,
+            onSelect: () => setConfirmCancel(true),
+          },
+        ]}
+      />
 
-      <AlertDialog open={confirmCancel} onOpenChange={setConfirmCancel}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>{copy.cancelDialog.title}</AlertDialogTitle>
-            <AlertDialogDescription>{copy.cancelDialog.body}</AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>{copy.cancelDialog.keep}</AlertDialogCancel>
-            <AlertDialogAction
-              variant="destructive"
-              tone="destructive"
-              onClick={() => {
-                setConfirmCancel(false)
-                onMove('cancelled')
-              }}
-            >
-              {copy.cancelDialog.confirm}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <ConfirmDialog
+        open={confirmCancel}
+        onOpenChange={setConfirmCancel}
+        title={copy.cancelDialog.title}
+        body={copy.cancelDialog.body}
+        confirmLabel={copy.cancelDialog.confirm}
+        cancelLabel={copy.cancelDialog.keep}
+        onConfirm={() => onMove('cancelled')}
+      />
     </div>
   )
 }

@@ -52,11 +52,12 @@ const SKIP: Record<string, string> = {
   'orders.cancelShipment': 'courier API',
   'returns.arrangePickup': 'courier API',
   'shipments.bulkBook': 'courier API',
-  'shipments.compareRates': 'courier API',
+  'shipments.quote': 'courier API',
   'shipments.schedulePickup': 'courier API',
   'shipments.createManifest': 'courier API',
   'shipments.ndrAction': 'courier API',
   'shipments.refreshWallet': 'courier API',
+  'apps.testConnection': 'courier and payment gateway API',
   'payments.connect': 'payment gateway API',
   'payments.testConnection': 'payment gateway API',
   'payments.testOrderLink': 'payment gateway API',
@@ -75,7 +76,18 @@ const SKIP: Record<string, string> = {
   'shopifyImport.createApiRun': 'Shopify API',
   'shopifyImport.preflight': 'Shopify API',
   'shopifyImport.status': 'Shopify API',
+  'shopifyImport.settingsPreview': 'Shopify API',
+  'shopifyImport.importSettings': 'Shopify API',
+  'searchConsole.connectStart': 'Google OAuth',
+  'searchConsole.connectComplete': 'Google OAuth',
+  'searchConsole.disconnect': 'revokes the token at Google',
+  'searchConsole.properties': 'Google Search Console API',
+  'searchConsole.chooseProperty': 'Google Search Console API',
+  'searchConsole.refresh': 'Google Search Console API',
+  'searchConsole.sitemaps': 'Google Search Console API',
+  'searchConsole.submitSitemap': 'Google Search Console API',
   'ai.writeProduct': 'AI model provider (a dev .env key would reach the real gateway)',
+  'ai.suggestKeywords': 'AI model provider (a dev .env key would reach the real gateway)',
   'ai.assistant': 'AI model provider (a dev .env key would reach the real gateway)',
   'reviews.writeReply': 'AI model provider (a dev .env key would reach the real gateway)',
   'ai.bulkWrite':
@@ -264,6 +276,7 @@ const NAME_HINTS: [RegExp, string][] = [
 /** Id fields whose table is set by the procedure, not by the field name alone. */
 const PROCEDURE_KEY_TABLE: Record<string, string> = {
   'purchaseOrders.receive.lineId': 'purchase_order_line',
+  'themes.code.version.versionId': 'theme_file_version',
 }
 
 const KEY_ALIAS: Record<string, string> = {

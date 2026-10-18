@@ -31,6 +31,7 @@ import {
 } from '@commerce/core'
 import { type ParcelDeliveryEstimate, payment } from '@commerce/db'
 import { formatMoney } from '@commerce/money'
+import { logger } from '@commerce/observability/logging'
 import type { ClientConfirmation } from '@commerce/payments'
 import { and, desc, eq, ne } from 'drizzle-orm'
 import { revalidatePath } from 'next/cache'
@@ -46,7 +47,7 @@ import { nudgeOutbox } from './outbox'
 import { storePaymentProviders } from './payments'
 import { clientIp, rateLimited } from './rate-limit'
 import { requestStoreId } from './request-store'
-import { checkoutParcels, estimateForPincode } from './shipping'
+import { cartShippingHint, checkoutParcels, estimateForPincode } from './shipping'
 import { storeSignIn } from './sign-in-methods'
 import { inStore } from './store-context'
 
@@ -89,6 +90,32 @@ export async function cartCountAction() {
   return { item_count: open?.itemCount ?? 0, total_price: open?.subtotalPaise ?? 0, items: [] }
 }
 
+/** The cart drawer's contents (Theme settings → Cart → Drawer): lines, subtotal, free shipping. */
+export async function cartDrawerAction() {
+  const storeId = await requestStoreId()
+  const cartId = await readCartId()
+  return inStore(storeId, async (tx) => {
+    const cart = cartId ? await getCart({ storeId, tx }, cartId) : null
+    const open = cart?.status === 'open' ? cart : null
+    const hint = await cartShippingHint(tx)
+    return {
+      lines: (open?.lines ?? []).map((l) => ({
+        id: l.id,
+        handle: l.productHandle,
+        title: l.productTitle,
+        variantTitle: l.variantTitle === 'Default' ? null : l.variantTitle,
+        quantity: l.quantity,
+        linePaise: l.linePaise,
+        imageUrl: l.imageUrl,
+        available: l.available,
+      })),
+      itemCount: open?.itemCount ?? 0,
+      subtotalPaise: open?.subtotalPaise ?? 0,
+      freeAbovePaise: hint.freeAbovePaise,
+    }
+  })
+}
+
 export async function setQuantityAction(lineId: string, quantity: number) {
   const storeId = await requestStoreId()
   const cartId = await readCartId()
@@ -117,6 +144,8 @@ export type CheckoutForm = {
   businessName?: string
   /** Order note, when the store turned notes on. */
   note?: string
+  /** Home, Office or Other: the tag a signed-in shopper's new address is saved with. */
+  label?: string
 }
 
 export type CheckoutResult = { error: string } | undefined
@@ -263,12 +292,16 @@ export async function checkoutAction(submitted: CheckoutForm): Promise<CheckoutR
   if (me) {
     // Convenience only: never let the address book block an order that is already placed.
     await inStore(storeId, (tx) => rememberCheckoutAddress({ storeId, tx }, me.id, form)).catch(
-      (err) => console.error('[checkout] could not save address', err),
+      (err) => logger.error('could not save the checkout address', { storeId, error: err }),
     )
   }
   // Marketing: end the sequences this order converts and start the order automations.
   await inStore(storeId, (tx) => onOrderPlaced(tx, storeId, result.orderId)).catch((err) =>
-    console.error('[checkout] could not update marketing automations', err),
+    logger.error('could not update marketing automations', {
+      storeId,
+      orderId: result.orderId,
+      error: err,
+    }),
   )
   // order_placed (and payment_received when paid at checkout: gift cards,
   // capture-at-creation gateways) were already written to the outbox in the

@@ -7,6 +7,7 @@ import { Skeleton } from '@commerce/ui/shadcn/skeleton'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
+import PageHeader from '@/components/layout/page-header'
 import { appearanceContent } from '@/data/appearance'
 import { writeAccentCookie } from '@/lib/accent-cookie'
 import { api } from '@/lib/api-client'
@@ -15,7 +16,6 @@ import AccentPicker from './accent-picker'
 import AccentPreview from './accent-preview'
 import ProductLayoutField from './product-layout-field'
 import SettingsCard from './settings-card'
-import SettingsPageHeader from './settings-page-header'
 import ThemeModeField from './theme-mode-field'
 
 type Loaded = Awaited<ReturnType<typeof api.appearance.get>>
@@ -36,11 +36,12 @@ function sourceLine(loaded: Loaded): string {
 }
 
 type AppearanceSettingsProps = {
-  /** The member's product page layout, read from the cookie on the server. */
-  productLayout: ProductLayout
+  /** The member's product page layout, read from the cookie on the server. Account › Appearance
+   *  passes it to show that card too; Settings › Appearance leaves it out. */
+  productLayout?: ProductLayout
 }
 
-/** Account › Appearance (from the account menu): the member's admin accent, the owner's store default, and theme mode. */
+/** Settings › Appearance and Account › Appearance: theme mode, the member's admin accent and the owner's store default. */
 export default function AppearanceSettings({ productLayout }: AppearanceSettingsProps) {
   // Hooks
   const router = useRouter()
@@ -87,8 +88,8 @@ export default function AppearanceSettings({ productLayout }: AppearanceSettings
   // Early returns
   if (!loaded) {
     return (
-      <div className="flex flex-col gap-4">
-        <SettingsPageHeader title={copy.title} subtitle={copy.intro} hideBack />
+      <div className="flex flex-col gap-6">
+        <PageHeader title={copy.title} subtitle={copy.intro} />
         <Card gap={4} inset={6}>
           <Skeleton className="h-5 w-40" />
           <Skeleton className="h-9 w-full" />
@@ -103,37 +104,40 @@ export default function AppearanceSettings({ productLayout }: AppearanceSettings
   const storeUnchanged = draft === (loaded.storeDefault ?? DEFAULT_ACCENT)
 
   return (
-    <div className="flex flex-col gap-4">
-      <SettingsPageHeader title={copy.title} subtitle={copy.intro} hideBack />
-      <SettingsCard title={copy.accent.heading} description={copy.accent.body}>
-        <div className="grid gap-6 md:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)]">
-          <div className="flex flex-col gap-3">
-            <AccentPicker value={draft} onChange={setDraft} />
-            <p className="text-caption text-muted-foreground">{sourceLine(loaded)}</p>
-          </div>
-          <AccentPreview accent={draft} />
-        </div>
-        <div className="mt-5 flex flex-wrap items-center gap-2 border-t border-hairline pt-5">
+    <div className="flex flex-col gap-6">
+      <PageHeader title={copy.title} subtitle={copy.intro} />
+      <SettingsCard title={copy.mode.heading} description={copy.mode.body}>
+        <ThemeModeField />
+      </SettingsCard>
+      <SettingsCard
+        title={copy.accent.heading}
+        description={copy.accent.body}
+        bodyClassName="gap-4"
+      >
+        <AccentPicker value={draft} onChange={setDraft} help={sourceLine(loaded)} />
+        <div className="flex flex-wrap items-center gap-2">
           <Button onClick={handleSave} disabled={busy || unchanged}>
             {copy.accent.save}
           </Button>
-          <Button variant="outline" onClick={handleReset} disabled={busy || !loaded.mine}>
+          <Button variant="ghost" onClick={handleReset} disabled={busy || !loaded.mine}>
             {copy.accent.reset}
           </Button>
-          <span className="text-caption text-muted-foreground">{copy.accent.resetHelp}</span>
         </div>
+        <p className="text-caption text-muted-foreground">{copy.accent.resetHelp}</p>
+      </SettingsCard>
+      <SettingsCard title={copy.preview.heading}>
+        <AccentPreview accent={draft} />
       </SettingsCard>
       {loaded.canSetStoreDefault ? (
-        <SettingsCard title={copy.store.heading} description={copy.store.body}>
-          <div className="flex items-center gap-2 text-body text-foreground">
-            <span
-              aria-hidden
-              className="size-4 rounded-full border border-border"
-              style={{ backgroundColor: loaded.storeDefault ?? DEFAULT_ACCENT }}
-            />
+        <SettingsCard
+          title={copy.store.heading}
+          description={copy.store.body}
+          bodyClassName="gap-4"
+        >
+          <p className="text-body text-foreground">
             {copy.store.current(colourName(loaded.storeDefault))}
-          </div>
-          <div className="mt-5 flex flex-wrap gap-2 border-t border-hairline pt-5">
+          </p>
+          <div className="flex flex-wrap items-center gap-2">
             <Button
               variant="outline"
               onClick={handleStoreDefault}
@@ -151,13 +155,12 @@ export default function AppearanceSettings({ productLayout }: AppearanceSettings
           </div>
         </SettingsCard>
       ) : null}
-      <SettingsCard title={copy.mode.heading} description={copy.mode.body}>
-        <ThemeModeField />
-      </SettingsCard>
-      <SettingsCard title={copy.productLayout.heading} description={copy.productLayout.body}>
-        <ProductLayoutField initial={productLayout} />
-        <p className="text-caption text-muted-foreground">{copy.productLayout.help}</p>
-      </SettingsCard>
+      {productLayout ? (
+        <SettingsCard title={copy.productLayout.heading} description={copy.productLayout.body}>
+          <ProductLayoutField initial={productLayout} />
+          <p className="text-caption text-muted-foreground">{copy.productLayout.help}</p>
+        </SettingsCard>
+      ) : null}
     </div>
   )
 }

@@ -197,7 +197,7 @@ export type SweepResult = {
  */
 export async function runCertificateSweep(deps: CertificateDeps): Promise<SweepResult> {
   const now = deps.now ?? new Date()
-  const storeIds = await storesWithCertificateChecks(deps.db)
+  const storeIds = await storesWithCertificateChecks(deps.db, now)
   const result: SweepResult = {
     stores: storeIds.length,
     checked: 0,

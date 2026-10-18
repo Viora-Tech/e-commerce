@@ -1,12 +1,13 @@
 'use client'
 
+import { Gift } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import PageColumns from '@/components/layout/page-columns'
+import PageHeader from '@/components/layout/page-header'
 import ProoflyPageBody from '@/components/layout/proofly-page-body'
-import ProoflyPageHeader from '@/components/layout/proofly-page-header'
-import StatusLabel from '@/components/status/status-label'
+import OrderChip from '@/components/orders/order-chip'
 import { giftCardDetailContent as copy } from '@/data/gift-cards'
 import { api } from '@/lib/api-client'
 import { routes } from '@/lib/routes'
@@ -69,10 +70,11 @@ export default function GiftCardDetail({ initial }: GiftCardDetailProps) {
 
   return (
     <ProoflyPageBody>
-      <ProoflyPageHeader
+      <PageHeader
         title={title}
         back={{ label: copy.breadcrumb, href: routes.products.giftCards() }}
-        badges={<StatusLabel kind="giftCard" value={card.state} variant="pill" />}
+        lead={{ kind: 'icon', node: <Gift aria-hidden="true" /> }}
+        badges={<OrderChip kind="giftCard" value={card.state} />}
         actions={
           <>
             {canResend ? (

@@ -15,6 +15,7 @@ const imported = themeImportContent.addPanel
 const dispatch = vi.fn()
 const puck = {
   dispatch,
+  appState: { data: { root: { props: {} }, content: [], zones: {} } },
   config: {
     components: { Hero: { label: 'Hero' }, RichText: { label: 'Rich text' } },
     categories: {},

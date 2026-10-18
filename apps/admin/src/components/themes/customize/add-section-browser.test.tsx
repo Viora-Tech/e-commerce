@@ -13,6 +13,7 @@ const copy = customizeContent.addSection
 const dispatch = vi.fn()
 const puck = {
   dispatch,
+  appState: { data: { root: { props: {} }, content: [] as unknown[], zones: {} } },
   config: {
     components: {
       Hero: { label: 'Hero', defaultProps: { slides: [{ heading: 'Hi', layout: 'full_bleed' }] } },
@@ -85,6 +86,7 @@ beforeEach(() => {
   dispatch.mockClear()
   toast.success.mockClear()
   saved.state = { status: 'ready', items: [] }
+  puck.appState.data.content = []
 })
 
 describe('AddSectionBrowser', () => {
@@ -201,5 +203,25 @@ describe('AddSectionBrowser', () => {
   it('shows the empty state when nothing is saved yet', () => {
     setup()
     expect(screen.getByText(customizeContent.mySections.empty)).toBeTruthy()
+  })
+
+  it('stops offering sections on a full page until one is removed or hidden (Figma 698:92403)', () => {
+    const section = (i: number, hidden = false) => ({
+      type: 'RichText',
+      props: { id: `s${i}`, ...(hidden ? { _hidden: true } : {}) },
+    })
+    puck.appState.data.content = [
+      ...Array.from({ length: 24 }, (_, i) => section(i)),
+      section(99, true),
+    ]
+    const { unmount } = render(
+      <AddSectionBrowser zone="root:default-zone" group={null} index={0} count={25} />,
+    )
+    expect(screen.queryByText(copy.limit(25))).toBeNull()
+    unmount()
+    puck.appState.data.content = Array.from({ length: 25 }, (_, i) => section(i))
+    setup()
+    expect(screen.getByText(copy.limit(25))).toBeTruthy()
+    expect(card('Rich text').closest('[inert]')).not.toBeNull()
   })
 })

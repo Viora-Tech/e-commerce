@@ -52,12 +52,6 @@ export default [
         yes: 'फ़ोटो वाले',
         no: 'बिना फ़ोटो',
         ratingValue: (n) => `${n} स्टार`,
-        clear: 'फ़िल्टर हटाएँ',
-      },
-      applied: {
-        rating: (n) => `${n} स्टार`,
-        product: (title) => `प्रोडक्ट: ${title}`,
-        photos: (yes) => (yes ? 'फ़ोटो वाले' : 'बिना फ़ोटो'),
       },
       bulk: {
         approve: 'मंज़ूर करें',

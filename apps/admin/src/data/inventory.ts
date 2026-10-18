@@ -69,7 +69,6 @@ export const inventoryContent = {
     vendor: 'Vendor',
     productType: 'Product type',
     any: 'Any',
-    clear: 'Clear filters',
     stockOptions: [
       { value: 'in', label: 'In stock' },
       { value: 'low', label: 'Low stock' },
@@ -136,6 +135,7 @@ export const locationsContent = {
   name: 'Name',
   namePlaceholder: 'Bengaluru warehouse',
   line1: 'Address',
+  line1Placeholder: 'Building, street, area',
   city: 'City',
   stateCode: 'State',
   statePlaceholder: 'Pick a state',
@@ -184,6 +184,7 @@ export const purchaseOrdersContent = {
   },
   number: (n: number) => `#PO${n}`,
   receivedOf: (received: number, units: number) => `${received} of ${units}`,
+  billsIn: (currency: string) => `Bills in ${currency}`,
   none: 'None',
   empty: {
     heading: 'No purchase orders',
@@ -194,6 +195,8 @@ export const purchaseOrdersContent = {
 export const purchaseOrderFormContent = {
   newTitle: 'Create purchase order',
   title: (n: number) => `Purchase order #PO${n}`,
+  orderedOn: (day: string) => `ordered ${day}`,
+  unitsReceived: (of: string) => `${of} units received`,
   back: 'Purchase orders',
   supplier: {
     heading: 'Supplier',
@@ -342,6 +345,15 @@ export const transferFormContent = {
   newTitle: 'Create transfer',
   title: (n: number) => `Transfer #T${n}`,
   back: 'Transfers',
+  subtitle: 'Move stock from one location to another.',
+  summary: {
+    heading: 'Transfer',
+    status: 'Status',
+    newDraft: 'New draft',
+    units: 'Units',
+    from: 'Origin',
+    to: 'Destination',
+  },
   route: {
     heading: 'Route',
     from: 'Origin',

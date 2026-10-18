@@ -1,16 +1,6 @@
 'use client'
 
 import { ExternalLink } from '@commerce/ui/icons'
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@commerce/ui/shadcn/alert-dialog'
 import { Button } from '@commerce/ui/shadcn/button'
 import {
   Dialog,
@@ -21,12 +11,14 @@ import {
 } from '@commerce/ui/shadcn/dialog'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
+import ConfirmDialog from '@/components/layout/confirm-dialog'
+import EmptyState from '@/components/layout/empty-state'
 import StatusChip from '@/components/layout/status-chip'
 import { themesContent } from '@/data/themes'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 import { formatWhen } from '@/lib/format-date'
-import { previewUrl, type ThemeItem } from './theme-types'
+import { type ThemeItem, versionPreviewUrl } from './theme-types'
 
 type ThemeVersionsDialogProps = {
   /** The theme whose history is open. Mount per theme (`key`). */
@@ -38,10 +30,6 @@ type ThemeVersionsDialogProps = {
 }
 
 type Batch = Awaited<ReturnType<typeof api.themes.versions.list>>[number]
-
-/** The theme's preview link opened on one version, for the page the merchant lands on. */
-const versionUrl = (origin: string, token: string, batchId: string) =>
-  `${previewUrl(origin, token)}&theme-version=${encodeURIComponent(batchId)}`
 
 /**
  * Version history from the theme's ⋯ menu: every time it went live (published, or saved while
@@ -102,9 +90,7 @@ export default function ThemeVersionsDialog({
             <p className="text-body text-muted-foreground">{copy.loading}</p>
           ) : null}
           {batches && batches.length === 0 ? (
-            <p className="rounded-lg border border-dashed border-border px-4 py-6 text-center text-body text-muted-foreground">
-              {copy.empty}
-            </p>
+            <EmptyState variant="dashed" size="sm" body={copy.empty} />
           ) : null}
           {batches && batches.length > 0 ? (
             <ul className="-mx-1 flex max-h-[26rem] flex-col divide-y divide-border overflow-y-auto px-1">
@@ -131,7 +117,7 @@ export default function ThemeVersionsDialog({
                       nativeButton={false}
                       render={
                         <a
-                          href={versionUrl(origin, theme.previewToken, b.batchId)}
+                          href={versionPreviewUrl(origin, theme.previewToken, b.batchId)}
                           target="_blank"
                           rel="noreferrer"
                         />
@@ -150,20 +136,17 @@ export default function ThemeVersionsDialog({
           ) : null}
         </DialogContent>
       </Dialog>
-      <AlertDialog open={confirming !== null} onOpenChange={(open) => !open && setConfirming(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>{copy.confirmTitle}</AlertDialogTitle>
-            <AlertDialogDescription>{copy.confirmBody}</AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>{copy.cancel}</AlertDialogCancel>
-            <AlertDialogAction disabled={busy} onClick={handleRestore}>
-              {busy ? copy.restoring : copy.restore}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <ConfirmDialog
+        open={confirming !== null}
+        onOpenChange={(open) => !open && setConfirming(null)}
+        title={copy.confirmTitle}
+        body={copy.confirmBody}
+        confirmLabel={busy ? copy.restoring : copy.restore}
+        cancelLabel={copy.cancel}
+        tone="default"
+        busy={busy}
+        onConfirm={handleRestore}
+      />
     </>
   )
 }

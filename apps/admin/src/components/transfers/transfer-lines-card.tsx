@@ -1,11 +1,13 @@
 'use client'
 
 import { Trash2 } from '@commerce/ui/icons'
-import { Card, CardContent, CardHeader, CardTitle } from '@commerce/ui/shadcn/card'
+
 import { Input } from '@commerce/ui/shadcn/input'
 import VariantPicker, { type VariantHit, variantLabel } from '@/components/inventory/variant-picker'
 import KitIconButton from '@/components/kit/kit-icon-button'
 import KitThumb from '@/components/kit/kit-thumb'
+import DataCard from '@/components/layout/data-card'
+import EmptyState from '@/components/layout/empty-state'
 import { transferFormContent } from '@/data/inventory'
 
 export type TransferLine = {
@@ -57,29 +59,24 @@ export default function TransferLinesCard({
 
   // Render logic
   return (
-    <Card size="form" gap="none" inset="y-none">
-      <CardHeader className="grid-cols-[1fr_auto] items-center py-5">
-        <CardTitle className="flex items-center gap-2">
-          {copy.heading}
-          <span className="rounded-full bg-muted px-2 py-0.5 text-caption font-medium text-muted-foreground tabular-nums">
-            {lines.length}
-          </span>
-        </CardTitle>
-      </CardHeader>
+    <DataCard title={copy.heading} count={lines.length} flush>
       {locked ? null : (
-        <CardContent className="pb-4">
+        <div className="px-5 pb-4">
           <VariantPicker
             placeholder={copy.search}
             locationId={fromLocationId || undefined}
             pickedIds={lines.map((l) => l.variantId)}
             onPick={handlePick}
           />
-        </CardContent>
+        </div>
       )}
       {lines.length === 0 ? (
-        <p className="border-line border-t px-5 py-10 text-center text-body text-muted-foreground">
-          {copy.empty}
-        </p>
+        <EmptyState
+          variant="plain"
+          size="lg"
+          className="border-line border-t px-5"
+          body={copy.empty}
+        />
       ) : (
         <ul className="flex flex-col border-line border-t">
           {lines.map((line, i) => (
@@ -117,6 +114,6 @@ export default function TransferLinesCard({
           ))}
         </ul>
       )}
-    </Card>
+    </DataCard>
   )
 }

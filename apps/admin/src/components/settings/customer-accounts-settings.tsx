@@ -13,6 +13,7 @@ import { Skeleton } from '@commerce/ui/shadcn/skeleton'
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
+import PageHeader from '@/components/layout/page-header'
 import SaveBar from '@/components/layout/save-bar'
 import ChoiceList from '@/components/returns/choice-list'
 import LoginAppSheet from '@/components/settings/login-app-sheet'
@@ -23,11 +24,10 @@ import {
   LOGIN_METHOD_COPY,
   PROVIDER_COPY,
 } from '@/data/customer-accounts'
-import { settingsContent } from '@/data/settings'
+import { SETTINGS_BACK, settingsContent } from '@/data/settings'
 import { api } from '@/lib/api-client'
 import { routes } from '@/lib/routes'
 import SettingsCard from './settings-card'
-import SettingsPageHeader from './settings-page-header'
 import SettingsToggleRow from './settings-toggle-row'
 
 type Loaded = {
@@ -116,13 +116,11 @@ export default function CustomerAccountsSettings() {
         onDiscard={() => saved && setForm(JSON.parse(saved) as Settings)}
         saving={busy}
       />
-      <SettingsPageHeader
+      <PageHeader
         title={copy.title}
         subtitle={copy.subtitle}
-        onSave={handleSave}
-        dirty={dirty && !none}
-        saving={busy}
-        saveLabel={copy.save}
+        back={SETTINGS_BACK}
+        save={{ dirty: dirty && !none, saving: busy, onSave: handleSave, label: copy.save }}
       />
       {!form || !loaded ? (
         <Skeleton className="h-96 w-full rounded-2xl" />

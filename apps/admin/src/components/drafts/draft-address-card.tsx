@@ -1,6 +1,5 @@
 'use client'
 
-import { Card } from '@commerce/ui/shadcn/card'
 import { Field, FieldLabel } from '@commerce/ui/shadcn/field'
 import { Input } from '@commerce/ui/shadcn/input'
 import {
@@ -11,8 +10,10 @@ import {
   SelectValue,
 } from '@commerce/ui/shadcn/select'
 import type { DraftFormState } from '@/components/drafts/draft-form-state'
-import { draftEditorContent as copy } from '@/data/drafts'
+import DataCard from '@/components/layout/data-card'
+import { draftEditorContent } from '@/data/drafts'
 import { INDIAN_STATES } from '@/data/india'
+import { useCopy } from '@/hooks/use-copy'
 
 type DraftAddressCardProps = {
   address: DraftFormState['address']
@@ -22,14 +23,16 @@ type DraftAddressCardProps = {
 const stateItems = INDIAN_STATES.map((s) => ({ value: s.code, label: s.name }))
 
 export default function DraftAddressCard({ address, onChange }: DraftAddressCardProps) {
+  // Hooks
+  const copy = useCopy(draftEditorContent)
+
   // Helpers
   const set = (key: keyof DraftFormState['address']) => (value: string) =>
     onChange({ ...address, [key]: value })
 
   // Render logic
   return (
-    <Card gap={4} inset={5}>
-      <p className="text-card-title text-ink-strong">{copy.address.heading}</p>
+    <DataCard title={copy.address.heading} bodyClassName="flex flex-col gap-4">
       <Field>
         <FieldLabel htmlFor="draft-addr-name">{copy.address.name}</FieldLabel>
         <Input
@@ -54,7 +57,7 @@ export default function DraftAddressCard({ address, onChange }: DraftAddressCard
           onChange={(e) => set('line2')(e.target.value)}
         />
       </Field>
-      <div className="grid gap-4 sm:grid-cols-3">
+      <div className="grid gap-4 sm:grid-cols-2">
         <Field>
           <FieldLabel htmlFor="draft-addr-city">{copy.address.city}</FieldLabel>
           <Input
@@ -82,16 +85,16 @@ export default function DraftAddressCard({ address, onChange }: DraftAddressCard
             </SelectContent>
           </Select>
         </Field>
-        <Field>
-          <FieldLabel htmlFor="draft-addr-pincode">{copy.address.pincode}</FieldLabel>
-          <Input
-            id="draft-addr-pincode"
-            inputMode="numeric"
-            value={address.pincode}
-            onChange={(e) => set('pincode')(e.target.value.replace(/\D/g, '').slice(0, 6))}
-          />
-        </Field>
       </div>
+      <Field>
+        <FieldLabel htmlFor="draft-addr-pincode">{copy.address.pincode}</FieldLabel>
+        <Input
+          id="draft-addr-pincode"
+          inputMode="numeric"
+          value={address.pincode}
+          onChange={(e) => set('pincode')(e.target.value.replace(/\D/g, '').slice(0, 6))}
+        />
+      </Field>
       <Field>
         <FieldLabel htmlFor="draft-addr-phone">{copy.address.phone}</FieldLabel>
         <Input
@@ -100,6 +103,6 @@ export default function DraftAddressCard({ address, onChange }: DraftAddressCard
           onChange={(e) => set('phone')(e.target.value)}
         />
       </Field>
-    </Card>
+    </DataCard>
   )
 }

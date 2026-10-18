@@ -1,35 +1,61 @@
 import { cn } from '@commerce/ui/lib/utils'
 import type { ReactNode } from 'react'
+import { CHIP_DOT, CHIP_OUTLINE, CHIP_SOFT, type ChipTone } from '@/components/status/tone'
 
 type StatusChipProps = {
   /**
-   * `neutral` is every finished or quiet state (grey with a hairline). The coloured tones are
-   * for states that need someone to act: attention (to ship), info (in progress), danger
-   * (failed), success (only when good news is itself the next step).
+   * `neutral` is every finished or quiet state. The coloured tones: success (good news: paid,
+   * delivered), attention (waiting on someone), info (to do or in progress), violet (on the
+   * way), danger (failed or owed).
    */
-  tone?: 'neutral' | 'attention' | 'info' | 'danger' | 'success'
+  tone?: ChipTone
+  /** `soft`: tinted fill and border (default). `outline`: border only. `dot`: no box, a dot and ink text. */
+  variant?: 'soft' | 'dot' | 'outline'
   children: ReactNode
   className?: string
 }
 
-const TONE = {
-  neutral: 'border-hairline bg-chip-neutral text-chip-neutral-text',
-  attention: 'border-transparent bg-warning-soft text-warning',
-  info: 'border-transparent bg-info-soft text-info',
-  danger: 'border-transparent bg-danger-soft text-danger',
-  success: 'border-transparent bg-success-soft text-success',
-} as const
+/** Status chip (Figma "Badge"): 22px, radius 6, dot + label, one tone per state. The one chip in the admin. */
+export default function StatusChip({
+  tone = 'neutral',
+  variant = 'soft',
+  children,
+  className,
+}: StatusChipProps) {
+  // Render logic
+  const dot = (
+    <span
+      aria-hidden="true"
+      className={cn(
+        'size-1.5 shrink-0 rounded-full',
+        variant === 'dot' ? CHIP_DOT[tone] : 'bg-current',
+      )}
+    />
+  )
 
-/** Status chip (Figma "Status chip"): coloured only when action is needed, else neutral grey. */
-export default function StatusChip({ tone = 'neutral', children, className }: StatusChipProps) {
+  if (variant === 'dot') {
+    return (
+      <span
+        className={cn(
+          'inline-flex h-5.5 items-center gap-1.5 text-xs font-medium whitespace-nowrap text-foreground',
+          className,
+        )}
+      >
+        {dot}
+        {children}
+      </span>
+    )
+  }
+
   return (
     <span
       className={cn(
-        'inline-flex h-6 items-center rounded-full border px-2.5 text-caption font-medium whitespace-nowrap',
-        TONE[tone],
+        'inline-flex h-5.5 items-center gap-1 rounded-[0.375rem] border px-2 text-xs font-medium whitespace-nowrap',
+        variant === 'outline' ? CHIP_OUTLINE[tone] : CHIP_SOFT[tone],
         className,
       )}
     >
+      {dot}
       {children}
     </span>
   )

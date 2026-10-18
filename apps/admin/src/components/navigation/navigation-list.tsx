@@ -2,7 +2,7 @@
 
 import { siteConfig } from '@commerce/config/site'
 import type { NavigationSettings } from '@commerce/core/navigation'
-import { SquarePlus } from '@commerce/ui/icons'
+import { ArrowLeftRight, Plus } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
@@ -97,16 +97,17 @@ export default function NavigationList({ initialMenus, initialSettings }: Naviga
     {
       id: 'status',
       title: copy.columns.status,
-      align: 'center',
       render: (m) => (
-        <StatusChip>{usedIn(m).length > 0 ? copy.status.active : copy.status.unused}</StatusChip>
+        <StatusChip tone={usedIn(m).length > 0 ? 'success' : 'neutral'}>
+          {usedIn(m).length > 0 ? copy.status.active : copy.status.unused}
+        </StatusChip>
       ),
     },
   ]
 
   const addButton = (
     <Button type="button" onClick={() => setCreating(true)}>
-      <SquarePlus strokeWidth={1.6} />
+      <Plus strokeWidth={1.6} />
       {copy.add}
     </Button>
   )
@@ -123,10 +124,11 @@ export default function NavigationList({ initialMenus, initialSettings }: Naviga
             </Button>
           ) : null}
           <Button
-            variant="key-neutral"
+            variant="outline"
             nativeButton={false}
             render={<Link href={routes.content.redirects()} />}
           >
+            <ArrowLeftRight aria-hidden="true" />
             {copy.redirects}
           </Button>
           {addButton}

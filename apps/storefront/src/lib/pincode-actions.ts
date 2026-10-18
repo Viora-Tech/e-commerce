@@ -2,6 +2,7 @@
 
 import 'server-only'
 
+import { logger } from '@commerce/observability/logging'
 import { loadPincodeDirectory } from '@commerce/shipping/pincode-directory'
 import { headers } from 'next/headers'
 import { clientIp, rateLimited } from './rate-limit'
@@ -23,7 +24,7 @@ export async function lookupPincodeAction(pincode: string): Promise<PincodePlace
     const place = (await loadPincodeDirectory())?.lookup(pincode) ?? null
     return place ? { city: place.district, stateCode: place.stateCode } : null
   } catch (err) {
-    console.error('[checkout] PIN code directory could not be read', err)
+    logger.error('PIN code directory could not be read', { error: err })
     return null
   }
 }

@@ -1,6 +1,6 @@
 import { formatSignedMoney } from '@commerce/money'
 import { cn } from '@commerce/ui/lib/utils'
-import { Card } from '@commerce/ui/shadcn/card'
+
 import {
   Table,
   TableBody,
@@ -10,6 +10,7 @@ import {
   TableRow,
 } from '@commerce/ui/shadcn/table'
 import Link from 'next/link'
+import DataCard from '@/components/layout/data-card'
 import ScrollSection from '@/components/layout/scroll-section'
 import { giftCardDetailContent } from '@/data/gift-cards'
 import { formatPattern } from '@/lib/format-date'
@@ -42,9 +43,8 @@ const WHEN = {
 /** Every balance movement, newest first, with the order it came from and who made it. */
 export default function HistoryCard({ transactions }: HistoryCardProps) {
   return (
-    <Card gap={4} inset={5}>
-      <p className="text-card-title text-foreground">{copy.heading}</p>
-      <div className="-mx-5">
+    <DataCard title={copy.heading} flush>
+      <div>
         <ScrollSection
           id="gift-card-history"
           label={copy.heading}
@@ -107,6 +107,6 @@ export default function HistoryCard({ transactions }: HistoryCardProps) {
           </Table>
         </ScrollSection>
       </div>
-    </Card>
+    </DataCard>
   )
 }

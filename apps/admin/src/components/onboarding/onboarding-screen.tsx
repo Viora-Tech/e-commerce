@@ -4,8 +4,17 @@ import LoginPanel from '@/components/auth/login-panel'
 import LoginPanelCompact from '@/components/auth/login-panel-compact'
 import LanguageField from '@/components/settings/language-field'
 
-/** /onboarding frame: the login's two-column look, the question card on the left, the brand panel on the right. */
-export default function OnboardingScreen({ children }: { children: ReactNode }) {
+/**
+ * /onboarding frame: the login's two-column look, the question card on the left and, on the
+ * right, `panel` (the wizard's live store preview) or the brand panel.
+ */
+export default function OnboardingScreen({
+  children,
+  panel,
+}: {
+  children: ReactNode
+  panel?: ReactNode
+}) {
   // Render logic
   return (
     <main className="grid min-h-svh grid-cols-1 bg-background lg:grid-cols-2 lg:p-3">
@@ -17,7 +26,7 @@ export default function OnboardingScreen({ children }: { children: ReactNode }) 
         </header>
         <div className="flex flex-1 items-center justify-center py-10">{children}</div>
       </div>
-      <LoginPanel />
+      {panel ?? <LoginPanel />}
     </main>
   )
 }

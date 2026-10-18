@@ -1,22 +1,19 @@
 'use client'
 
 import { emptyCollectionRules } from '@commerce/core/collections'
-import { Eye, MoreVertical } from '@commerce/ui/icons'
+import { Eye, Folder, Trash2 } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@commerce/ui/shadcn/dropdown-menu'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
+import ActionMenu from '@/components/layout/action-menu'
+import ConfirmDialog from '@/components/layout/confirm-dialog'
+import FallbackImage from '@/components/layout/fallback-image'
+import PageHeader from '@/components/layout/page-header'
 import ProoflyDetailPage from '@/components/layout/proofly-detail-page'
-import ProoflyPageHeader from '@/components/layout/proofly-page-header'
 import SaveBar from '@/components/layout/save-bar'
-import StatusChip from '@/components/layout/status-chip'
 import MetafieldsCard from '@/components/metaobjects/metafields-card'
+import OrderChip from '@/components/orders/order-chip'
 import TemplateSelectCard from '@/components/themes/template-select-card'
 import { collectionDetailContent, collectionFormContent } from '@/data/collections'
 import { useCopy, useFormat } from '@/hooks/use-copy'
@@ -29,7 +26,6 @@ import CollectionSeoCard from './collection-seo-card'
 import CollectionTitleCard from './collection-title-card'
 import CollectionTypeCard from './collection-type-card'
 import CollectionVisibilityCard from './collection-visibility-card'
-import DeleteCollectionDialog from './delete-collection-dialog'
 import {
   type CollectionFormState,
   emptyCollectionForm,
@@ -135,14 +131,25 @@ export default function CollectionForm({ collection, storefrontOrigin }: Collect
   const count = form.kind === 'automatic' && matches !== null ? matches : form.products.length
   const updated = collection?.updatedAt ? fmt.day(collection.updatedAt) : null
   const header = (
-    <ProoflyPageHeader
+    <PageHeader
       title={form.title || (collection ? collection.title : detail.newTitle)}
       back={{ label: detail.back, href: routes.products.collections() }}
+      lead={{
+        kind: 'tile',
+        node: (
+          <FallbackImage
+            src={form.imageUrl}
+            fallback={<Folder aria-hidden="true" />}
+            className="size-full bg-card object-cover"
+          />
+        ),
+      }}
       badges={
         collection ? (
-          <StatusChip tone={form.status === 'active' ? 'neutral' : 'attention'}>
-            {form.status === 'active' ? detail.visibility.chipOn : detail.visibility.chipOff}
-          </StatusChip>
+          <>
+            <OrderChip kind="collectionVisibility" value={form.status} />
+            <OrderChip kind="collectionType" value={form.kind} />
+          </>
         ) : null
       }
       summary={collection ? detail.summary(count, updated) : detail.newSummary}
@@ -150,7 +157,7 @@ export default function CollectionForm({ collection, storefrontOrigin }: Collect
         <>
           {collection ? (
             <Button
-              variant="key-neutral"
+              variant="outline"
               render={
                 <a
                   href={`${storefrontOrigin}/collections/${collection.handle}`}
@@ -165,27 +172,24 @@ export default function CollectionForm({ collection, storefrontOrigin }: Collect
             </Button>
           ) : null}
           {collection ? (
-            <DropdownMenu>
-              <DropdownMenuTrigger
-                render={
-                  <Button variant="outline" size="icon" aria-label={detail.more}>
-                    <MoreVertical aria-hidden />
-                  </Button>
-                }
-              />
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem
-                  className="text-danger focus:text-danger"
-                  onClick={() => setConfirmDelete(true)}
-                >
-                  {copy.delete.action}
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          ) : null}
-          <Button onClick={handleSave} loading={busy} disabled={Boolean(collection) && !dirty}>
-            {copy.save}
-          </Button>
+            <ActionMenu
+              label={detail.more}
+              trigger="button"
+              items={[
+                {
+                  label: copy.delete.action,
+                  icon: Trash2,
+                  destructive: true,
+                  onSelect: () => setConfirmDelete(true),
+                },
+              ]}
+            />
+          ) : (
+            /* A saved collection saves from the save bar (Figma 629:6409); a new one needs a button. */
+            <Button onClick={handleSave} loading={busy}>
+              {copy.save}
+            </Button>
+          )}
         </>
       }
     />
@@ -211,20 +215,6 @@ export default function CollectionForm({ collection, storefrontOrigin }: Collect
             onSortChange={(sortOrder) => patch({ sortOrder })}
             onProducts={(products) => patch({ products })}
           />
-          <MetafieldsCard ownerType="collection" ownerId={collection?.id ?? null} />
-        </>
-      }
-      side={
-        <>
-          <CollectionImageCard imageUrl={form.imageUrl} onChange={patch} />
-          <CollectionVisibilityCard status={form.status} onChange={(status) => patch({ status })} />
-          <CollectionTypeCard
-            kind={form.kind}
-            locked={collection !== null}
-            onChange={(kind) =>
-              patch({ kind, rules: kind === 'automatic' ? form.rules : emptyCollectionRules() })
-            }
-          />
           <CollectionSeoCard
             seoTitle={form.seoTitle}
             seoDescription={form.seoDescription}
@@ -233,6 +223,20 @@ export default function CollectionForm({ collection, storefrontOrigin }: Collect
             handle={collection?.handle ?? null}
             onChange={patch}
           />
+          <MetafieldsCard ownerType="collection" ownerId={collection?.id ?? null} />
+        </>
+      }
+      side={
+        <>
+          <CollectionVisibilityCard status={form.status} onChange={(status) => patch({ status })} />
+          <CollectionTypeCard
+            kind={form.kind}
+            locked={collection !== null}
+            onChange={(kind) =>
+              patch({ kind, rules: kind === 'automatic' ? form.rules : emptyCollectionRules() })
+            }
+          />
+          <CollectionImageCard imageUrl={form.imageUrl} onChange={patch} />
           <TemplateSelectCard
             kind="collection"
             value={form.templateSuffix}
@@ -250,10 +254,14 @@ export default function CollectionForm({ collection, storefrontOrigin }: Collect
         onDiscard={handleDiscard}
         saving={busy}
       />
-      <DeleteCollectionDialog
+      <ConfirmDialog
         open={confirmDelete}
-        onCancel={() => setConfirmDelete(false)}
-        onConfirm={handleDelete}
+        onOpenChange={setConfirmDelete}
+        title={copy.delete.heading}
+        body={copy.delete.body}
+        confirmLabel={copy.delete.confirm}
+        cancelLabel={copy.delete.cancel}
+        onConfirm={() => void handleDelete()}
       />
     </ProoflyDetailPage>
   )

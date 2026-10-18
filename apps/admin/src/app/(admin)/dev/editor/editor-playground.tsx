@@ -6,9 +6,10 @@ import {
   type RichTextValue,
   richTextToPlainText,
 } from '@commerce/richtext'
-import { Card, CardContent, CardHeader, CardTitle } from '@commerce/ui/shadcn/card'
+import { Card, CardContent } from '@commerce/ui/shadcn/card'
 import { useState } from 'react'
 import RichTextField from '@/components/fields/rich-text-field'
+import DataCard from '@/components/layout/data-card'
 import PageBody from '@/components/layout/page-body'
 import PageHeader from '@/components/layout/page-header'
 import { devEditorContent as copy } from '@/data/dev-editor'
@@ -38,37 +39,22 @@ export default function EditorPlayground() {
           />
         </CardContent>
       </Card>
-      <Card>
-        <CardHeader>
-          <CardTitle>{copy.previewHeading}</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="rich-text-block">
-            <RichTextRenderer data={value} className="rte" />
-          </div>
-        </CardContent>
-      </Card>
+      <DataCard title={copy.previewHeading}>
+        <div className="rich-text-block">
+          <RichTextRenderer data={value} className="rte" />
+        </div>
+      </DataCard>
       <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <CardTitle>{copy.plainHeading}</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <pre className="whitespace-pre-wrap text-caption text-foreground">
-              {richTextToPlainText(value)}
-            </pre>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader>
-            <CardTitle>{copy.jsonHeading}</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <pre className="max-h-96 overflow-auto whitespace-pre-wrap font-mono text-[0.6875rem] text-foreground">
-              {JSON.stringify(value, null, 2)}
-            </pre>
-          </CardContent>
-        </Card>
+        <DataCard title={copy.plainHeading}>
+          <pre className="whitespace-pre-wrap text-caption text-foreground">
+            {richTextToPlainText(value)}
+          </pre>
+        </DataCard>
+        <DataCard title={copy.jsonHeading}>
+          <pre className="max-h-96 overflow-auto whitespace-pre-wrap font-mono text-[0.6875rem] text-foreground">
+            {JSON.stringify(value, null, 2)}
+          </pre>
+        </DataCard>
       </div>
     </PageBody>
   )

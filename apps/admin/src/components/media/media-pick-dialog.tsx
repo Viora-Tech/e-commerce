@@ -5,6 +5,7 @@ import { Button } from '@commerce/ui/shadcn/button'
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
@@ -36,6 +37,10 @@ type MediaPickDialogProps = {
   open: boolean
   /** Defaults to "Select file"; callers still pass a task-specific title. */
   title?: string
+  /** A line under the title saying what the pick is for. */
+  description?: string
+  /** The confirm button's words; defaults to "Done". */
+  doneLabel?: string
   /** Shown when the library has no images yet. */
   empty?: string
   /** Multiple files can be selected, in pick order. Defaults to single-select. */
@@ -85,6 +90,8 @@ function fetchMediaPage(args: FetchArgs) {
 export default function MediaPickDialog({
   open,
   title,
+  description,
+  doneLabel,
   empty,
   multiple,
   items: fixedItems,
@@ -293,6 +300,11 @@ export default function MediaPickDialog({
       <DialogContent className="flex h-[min(90svh,48rem)] w-full flex-col gap-0 p-0 sm:max-w-[64rem]">
         <DialogHeader className="gap-3 border-b p-4">
           <DialogTitle className="text-base font-medium">{title ?? copy.title}</DialogTitle>
+          {description ? (
+            <DialogDescription className="text-caption text-muted-foreground">
+              {description}
+            </DialogDescription>
+          ) : null}
           <MediaPickToolbar
             restricted={restricted}
             query={query}
@@ -405,7 +417,7 @@ export default function MediaPickDialog({
               {copy.cancel}
             </Button>
             <Button type="button" disabled={doneDisabled} onClick={handleDone}>
-              {copy.done}
+              {doneLabel ?? copy.done}
             </Button>
           </div>
         </DialogFooter>

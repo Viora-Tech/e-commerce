@@ -20,7 +20,7 @@ export default function KitHeading({ heading, text, center = true, className }: 
     <div
       className={cx('flex flex-col gap-[0.75rem]', center && 'items-center text-center', className)}
     >
-      {heading ? <h2 className="h2 text-balance text-[var(--color-ink)]">{heading}</h2> : null}
+      {heading ? <h2 className="section-title text-balance">{heading}</h2> : null}
       <RichCopy value={text} className="text-body max-w-[40rem] text-[var(--color-muted)]" />
     </div>
   )

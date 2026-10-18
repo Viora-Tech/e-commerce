@@ -2,7 +2,6 @@ import { footerContent as copy } from '../data/zero-drift/footer'
 import type { PaymentMethod } from '../sections/zero-drift/footer'
 import type { ThemeMode } from '../types'
 import Icon from './icon'
-import PaymentIcon from './payment-icon'
 import ThemeToggle from './theme-toggle'
 
 type FooterBottomProps = {
@@ -17,8 +16,8 @@ type FooterBottomProps = {
 const paymentLabel = (method: PaymentMethod) =>
   copy.paymentOptions.find((o) => o.value === method)?.label ?? method
 
-// The footer's bottom bar (sections/footer.liquid): payment marks, policy links, the
-// grievance officer, the theme toggle, the copyright line and "Back to top".
+// The footer's bottom (Figma Section / Footer): the copyright line and the payment methods as
+// neutral chips, then the policy links, the grievance officer, the theme toggle and "Back to top".
 export default function FooterBottom({
   storeName,
   policies,
@@ -32,15 +31,20 @@ export default function FooterBottom({
 
   return (
     <div className="footer__bottom page-width">
-      {paymentIcons.length > 0 ? (
-        <ul className="footer__payment" aria-label={copy.paymentMethods}>
-          {paymentIcons.map((p) => (
-            <li key={p.method}>
-              <PaymentIcon method={p.method} label={paymentLabel(p.method)} />
-            </li>
-          ))}
-        </ul>
-      ) : null}
+      <div className="footer__bottom-row">
+        <p className="footer__copyright text-caption">
+          © {new Date().getFullYear()} {storeName}. {copy.rights}
+        </p>
+        {paymentIcons.length > 0 ? (
+          <ul className="footer__payment" aria-label={copy.paymentMethods}>
+            {paymentIcons.map((p) => (
+              <li key={p.method} className="footer__payment-chip">
+                {paymentLabel(p.method)}
+              </li>
+            ))}
+          </ul>
+        ) : null}
+      </div>
       {links.length > 0 ? (
         <ul className="footer__policies">
           {links.map((p) => (
@@ -60,9 +64,6 @@ export default function FooterBottom({
           className="footer__theme-toggle text-caption"
         />
       ) : null}
-      <p className="footer__copyright text-caption">
-        © {new Date().getFullYear()} {storeName}
-      </p>
       <a className="footer__top-link text-caption" href="#MainContent">
         {copy.backToTop}
         <span className="footer__top-icon" aria-hidden="true">

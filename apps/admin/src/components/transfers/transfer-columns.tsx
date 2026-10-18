@@ -1,6 +1,6 @@
 import { formatNumber } from '@commerce/money'
 import RelativeTime from '@/components/layout/relative-time'
-import StatusLabel from '@/components/status/status-label'
+import OrderChip from '@/components/orders/order-chip'
 import type { ResourceColumnSpec } from '@/components/table/resource-table'
 import { transfersContent as copy } from '@/data/inventory'
 import type { api } from '@/lib/api-client'
@@ -20,20 +20,20 @@ export const transferColumns: ResourceColumnSpec<TransferRow>[] = [
     id: 'from',
     title: copy.columns.from,
     sortValue: (r) => r.fromName,
-    render: (r) => r.fromName,
+    render: (r) => <span className="text-ink-strong">{r.fromName}</span>,
   },
   {
     id: 'to',
     title: copy.columns.to,
     sortValue: (r) => r.toName,
-    render: (r) => r.toName,
+    render: (r) => <span className="text-ink-strong">{r.toName}</span>,
   },
   {
     id: 'status',
     align: 'center',
     title: copy.columns.status,
     sortValue: (r) => r.status,
-    render: (r) => <StatusLabel kind="transfer" value={r.status} />,
+    render: (r) => <OrderChip kind="transfer" value={r.status} />,
   },
   {
     id: 'units',

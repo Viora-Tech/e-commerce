@@ -1,26 +1,12 @@
 'use client'
 
-import { MoreHorizontal } from '@commerce/ui/icons'
+import { Copy, OctagonXIcon, Send } from '@commerce/ui/icons'
 import { cn } from '@commerce/ui/lib/utils'
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@commerce/ui/shadcn/alert-dialog'
 import { Button } from '@commerce/ui/shadcn/button'
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@commerce/ui/shadcn/dropdown-menu'
 import { useState } from 'react'
 import { toast } from 'sonner'
+import ActionMenu from '@/components/layout/action-menu'
+import ConfirmDialog from '@/components/layout/confirm-dialog'
 import RelativeTime from '@/components/layout/relative-time'
 import StatusChip from '@/components/layout/status-chip'
 import SettingsTable from '@/components/settings/settings-table'
@@ -164,38 +150,33 @@ export default function PendingInvitesCard({
                           {copy.actions.resendShort}
                         </Button>
                       ) : null}
-                      <DropdownMenu>
-                        <DropdownMenuTrigger
-                          render={
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              disabled={busy}
-                              aria-label={copy.actions.menu}
-                            />
-                          }
-                        >
-                          <MoreHorizontal />
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          {invite.expired ? null : (
-                            <>
-                              <DropdownMenuItem onClick={() => handleCopy(invite)}>
-                                {copy.actions.copy}
-                              </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => handleResend(invite)}>
-                                {copy.actions.resend}
-                              </DropdownMenuItem>
-                            </>
-                          )}
-                          <DropdownMenuItem
-                            variant="destructive"
-                            onClick={() => setCancelling(invite)}
-                          >
-                            {copy.actions.cancel}
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
+                      <ActionMenu
+                        label={copy.actions.menu}
+                        trigger="kebab-vertical"
+                        variant="ghost"
+                        size="md"
+                        disabled={busy}
+                        items={[
+                          {
+                            label: copy.actions.copy,
+                            icon: Copy,
+                            hidden: invite.expired,
+                            onSelect: () => handleCopy(invite),
+                          },
+                          {
+                            label: copy.actions.resend,
+                            icon: Send,
+                            hidden: invite.expired,
+                            onSelect: () => handleResend(invite),
+                          },
+                          {
+                            label: copy.actions.cancel,
+                            icon: OctagonXIcon,
+                            destructive: true,
+                            onSelect: () => setCancelling(invite),
+                          },
+                        ]}
+                      />
                     </RowActionsCell>
                   ) : null}
                 </SettingsTableCell>
@@ -205,22 +186,16 @@ export default function PendingInvitesCard({
         )}
       </SettingsTable>
 
-      <AlertDialog open={cancelling !== null} onOpenChange={() => setCancelling(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>{copy.confirmCancel.title}</AlertDialogTitle>
-            <AlertDialogDescription>
-              {copy.confirmCancel.body(cancelling?.email ?? '')}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>{copy.confirmCancel.keep}</AlertDialogCancel>
-            <AlertDialogAction onClick={handleCancel}>
-              {copy.confirmCancel.confirm}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <ConfirmDialog
+        open={cancelling !== null}
+        onOpenChange={() => setCancelling(null)}
+        title={copy.confirmCancel.title}
+        body={copy.confirmCancel.body(cancelling?.email ?? '')}
+        confirmLabel={copy.confirmCancel.confirm}
+        cancelLabel={copy.confirmCancel.keep}
+        tone="default"
+        onConfirm={handleCancel}
+      />
     </>
   )
 }

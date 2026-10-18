@@ -17,7 +17,12 @@ const browserSupportsPasskeys = () => typeof window.PublicKeyCredential === 'fun
  * "or · Sign in with a passkey" under the email form, for members who added one in Account →
  * Sign-in & security. Hidden where the browser cannot use passkeys.
  */
-export default function PasskeySignIn() {
+type PasskeySignInProps = {
+  /** Where to go after signing in; the admin home when null. */
+  next: string | null
+}
+
+export default function PasskeySignIn({ next }: PasskeySignInProps) {
   // Hooks
   const { passkey: copy } = useCopy(loginContent)
   const router = useRouter()
@@ -36,7 +41,7 @@ export default function PasskeySignIn() {
       if (!authErrorCode(res.error).includes('CANCELLED')) setError(copy.failed)
       return
     }
-    router.push(routes.home())
+    router.push(next ?? routes.home())
     router.refresh()
   }
 

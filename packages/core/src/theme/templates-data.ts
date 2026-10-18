@@ -176,6 +176,12 @@ export function parseTemplateData(value: unknown): TemplateData | null {
 /** Hidden sections stay in the template (Shopify's eye toggle) but never render. */
 export const isSectionHidden = (s: TemplateSection): boolean => s.props._hidden === true
 
+/**
+ * Sections a page shows at most, to keep it fast (Figma 698:92403). Hidden sections do not
+ * count; the editor's Add panel stops offering sections at this many.
+ */
+export const MAX_VISIBLE_SECTIONS = 25
+
 /** `product.preorder`, or just `product` for the default. */
 export const templateName = (key: TemplateKey, suffix: string): string =>
   suffix ? `${key}.${suffix}` : key

@@ -2,15 +2,15 @@
 
 import { Trash2 } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
-import { Card, CardContent, CardHeader, CardTitle } from '@commerce/ui/shadcn/card'
 import { Field, FieldDescription, FieldLabel } from '@commerce/ui/shadcn/field'
 import { Input } from '@commerce/ui/shadcn/input'
 import { appendNode, findNode, removeNode, replaceNode } from '@commerce/ui/sortable/tree'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { toast } from 'sonner'
+import DataCard from '@/components/layout/data-card'
+import PageHeader from '@/components/layout/page-header'
 import ProoflyDetailPage from '@/components/layout/proofly-detail-page'
-import ProoflyPageHeader from '@/components/layout/proofly-page-header'
 import SaveBar from '@/components/layout/save-bar'
 import { type MenuItem, menusContent } from '@/data/menus'
 import { useCopy } from '@/hooks/use-copy'
@@ -115,7 +115,7 @@ export default function MenuEditor({ menu, placements }: MenuEditorProps) {
   return (
     <ProoflyDetailPage
       header={
-        <ProoflyPageHeader
+        <PageHeader
           title={draft.title.trim() || menu.title}
           summary={copy.editor.summary(countLinks(draft.items), where)}
           back={{ label: copy.editor.back, href: routes.content.menus() }}
@@ -151,40 +151,30 @@ export default function MenuEditor({ menu, placements }: MenuEditorProps) {
       }
       side={
         <>
-          <Card size="form">
-            <CardHeader>
-              <CardTitle>{copy.editor.previewHeading}</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="flex min-h-14 flex-wrap items-center gap-x-5 gap-y-1 rounded-lg bg-muted px-4 py-3 text-caption text-ink-strong">
-                {draft.items.length === 0 ? (
-                  <span className="text-muted-foreground">{copy.editor.previewEmpty}</span>
-                ) : (
-                  draft.items.map((item) => <span key={item.id}>{item.title}</span>)
-                )}
-              </div>
-            </CardContent>
-          </Card>
-          <Card size="form">
-            <CardHeader>
-              <CardTitle>{copy.editor.detailsHeading}</CardTitle>
-            </CardHeader>
-            <CardContent className="flex flex-col gap-4">
-              <Field>
-                <FieldLabel htmlFor="menu-title">{copy.create.titleLabel}</FieldLabel>
-                <Input
-                  id="menu-title"
-                  value={draft.title}
-                  onChange={(e) => setDraft((prev) => ({ ...prev, title: e.target.value }))}
-                />
-              </Field>
-              <Field>
-                <FieldLabel htmlFor="menu-handle">{copy.editor.handleLabel}</FieldLabel>
-                <Input id="menu-handle" value={menu.handle} readOnly />
-                <FieldDescription>{copy.editor.handleHelp}</FieldDescription>
-              </Field>
-            </CardContent>
-          </Card>
+          <DataCard title={copy.editor.previewHeading}>
+            <div className="flex min-h-14 flex-wrap items-center gap-x-5 gap-y-1 rounded-lg bg-muted px-4 py-3 text-caption text-ink-strong">
+              {draft.items.length === 0 ? (
+                <span className="text-muted-foreground">{copy.editor.previewEmpty}</span>
+              ) : (
+                draft.items.map((item) => <span key={item.id}>{item.title}</span>)
+              )}
+            </div>
+          </DataCard>
+          <DataCard title={copy.editor.detailsHeading} bodyClassName="flex flex-col gap-4">
+            <Field>
+              <FieldLabel htmlFor="menu-title">{copy.create.titleLabel}</FieldLabel>
+              <Input
+                id="menu-title"
+                value={draft.title}
+                onChange={(e) => setDraft((prev) => ({ ...prev, title: e.target.value }))}
+              />
+            </Field>
+            <Field>
+              <FieldLabel htmlFor="menu-handle">{copy.editor.handleLabel}</FieldLabel>
+              <Input id="menu-handle" value={menu.handle} readOnly />
+              <FieldDescription>{copy.editor.handleHelp}</FieldDescription>
+            </Field>
+          </DataCard>
         </>
       }
     >

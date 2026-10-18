@@ -1,27 +1,19 @@
 'use client'
 
 import { permissions } from '@commerce/core/permissions'
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@commerce/ui/shadcn/alert-dialog'
 import { Button } from '@commerce/ui/shadcn/button'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
+import ConfirmDialog from '@/components/layout/confirm-dialog'
+import PageHeader from '@/components/layout/page-header'
 import SectionTabs from '@/components/settings/section-tabs'
-import SettingsPageHeader from '@/components/settings/settings-page-header'
 import SettingsSection from '@/components/settings/settings-section'
 import InviteDialog from '@/components/staff/invite-dialog'
 import MembersCard, { type StaffMemberRow } from '@/components/staff/members-card'
 import PendingInvitesCard, { type PendingInviteRow } from '@/components/staff/pending-invites-card'
 import RoleSheet from '@/components/staff/role-sheet'
 import RolesCard, { type RoleRow } from '@/components/staff/roles-card'
+import { SETTINGS_BACK } from '@/data/settings'
 import { staffContent } from '@/data/staff'
 import { useCopy } from '@/hooks/use-copy'
 import { refreshPermissions, usePermissions } from '@/hooks/use-permissions'
@@ -135,7 +127,7 @@ export default function StaffSettings() {
 
   return (
     <div className="flex flex-col gap-4">
-      <SettingsPageHeader title={copy.title} subtitle={copy.intro} />
+      <PageHeader title={copy.title} subtitle={copy.intro} back={SETTINGS_BACK} />
       <SectionTabs tabs={tabs}>
         <SettingsSection id={copy.tabs.members.id} className="flex flex-col gap-4">
           {canInvite ? (
@@ -176,39 +168,29 @@ export default function StaffSettings() {
       />
       <RoleSheet open={sheetOpen} role={editing} onOpenChange={setSheetOpen} onSaved={reload} />
 
-      <AlertDialog open={pendingRemove !== null} onOpenChange={() => setPendingRemove(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>{copy.members.confirmRemove.title}</AlertDialogTitle>
-            <AlertDialogDescription>
-              {copy.members.confirmRemove.body(
-                pendingRemove?.name ?? pendingRemove?.email ?? 'This person',
-              )}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>{copy.members.confirmRemove.cancel}</AlertDialogCancel>
-            <AlertDialogAction onClick={handleRemove}>
-              {copy.members.confirmRemove.confirm}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <ConfirmDialog
+        open={pendingRemove !== null}
+        onOpenChange={() => setPendingRemove(null)}
+        title={copy.members.confirmRemove.title}
+        body={copy.members.confirmRemove.body(
+          pendingRemove?.name ?? pendingRemove?.email ?? 'This person',
+        )}
+        confirmLabel={copy.members.confirmRemove.confirm}
+        cancelLabel={copy.members.confirmRemove.cancel}
+        tone="default"
+        onConfirm={handleRemove}
+      />
 
-      <AlertDialog open={pendingDelete !== null} onOpenChange={() => setPendingDelete(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>{copy.roles.confirmDelete.title}</AlertDialogTitle>
-            <AlertDialogDescription>{copy.roles.confirmDelete.body}</AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>{copy.roles.confirmDelete.cancel}</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDeleteRole}>
-              {copy.roles.confirmDelete.confirm}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <ConfirmDialog
+        open={pendingDelete !== null}
+        onOpenChange={() => setPendingDelete(null)}
+        title={copy.roles.confirmDelete.title}
+        body={copy.roles.confirmDelete.body}
+        confirmLabel={copy.roles.confirmDelete.confirm}
+        cancelLabel={copy.roles.confirmDelete.cancel}
+        tone="default"
+        onConfirm={handleDeleteRole}
+      />
     </div>
   )
 }

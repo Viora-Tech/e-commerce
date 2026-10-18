@@ -8,10 +8,11 @@ import { Card } from '@commerce/ui/shadcn/card'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { toast } from 'sonner'
-import PillTabs from '@/components/layout/pill-tabs'
 import ProoflyListPage from '@/components/layout/proofly-list-page'
+import SectionHead from '@/components/layout/section-head'
 import ResourceTable from '@/components/table/resource-table'
 import RowMenu from '@/components/table/row-menu'
+import ViewSelect from '@/components/table/view-select'
 import { automationsContent } from '@/data/marketing-automations'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
@@ -98,15 +99,14 @@ export default function AutomationsPage({ automations }: AutomationsPageProps) {
             setTab(null)
             setPage(1)
           }}
-          tabs={
-            <PillTabs
-              variant="segmented"
+          views={
+            <ViewSelect
               value={tab}
               onChange={(next) => {
                 setTab(next)
                 setPage(1)
               }}
-              tabs={[
+              options={[
                 { value: null, label: copy.tabs.all, count: automations.length },
                 { value: 'active' as const, label: copy.tabs.active, count: running },
                 {
@@ -130,10 +130,7 @@ export default function AutomationsPage({ automations }: AutomationsPageProps) {
         />
       ) : null}
       <section id="automation-templates" className="flex scroll-mt-6 flex-col gap-3">
-        <div>
-          <h2 className="text-card-title text-ink-strong">{copy.templatesTitle}</h2>
-          <p className="text-caption text-muted-foreground">{copy.templatesIntro}</p>
-        </div>
+        <SectionHead title={copy.templatesTitle} intro={copy.templatesIntro} />
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
           {AUTOMATION_TEMPLATES.map((t) => (
             <Card key={t.id} gap={4} inset={4} className="justify-between">

@@ -150,7 +150,10 @@ export class FedexProvider implements ShippingProvider {
   async verifyCredentials() { /* one cheap authenticated call */ }
   // Optional. Checkout prices shipping from the merchant's zones and rates
   // (Settings → Shipping → Shipping rates, `@commerce/core/shipping-rates`), so a
-  // courier that only answers serviceability (Delhivery) leaves this out.
+  // courier that only answers serviceability (Delhivery) leaves this out. The admin's
+  // Create shipment flow (`shipments.quote` → `compareCourierRates`) asks it and
+  // serviceability at once: without it the courier is still listed, as "Rate on booking";
+  // a throw or a `serviceable: false` becomes that courier's own row, never the others'.
   async quoteRate(q) { /* { pricePaise, minTransitDays, maxTransitDays } or null */ }
 }
 
@@ -214,6 +217,13 @@ export const fedexPlugin = definePlugin({
   category: 'shipping',
   company: 'FedEx',
   description: 'Rates, labels and tracking on your FedEx account.',
+  access: {
+    resources: [
+      { resource: 'shipments', level: 'read-write', why: 'Creates shipments, prints labels, tracks parcels' },
+      { resource: 'customers', level: 'read', why: 'Name, phone and address, for the parcel only' },
+    ],
+    shares: [{ when: 'Sent per shipment', what: 'Ship-to name, address and phone, parcel weight and size' }],
+  },
   provides: { shipping: [fedexFactory] },
 })
 ```
@@ -255,6 +265,26 @@ credits: [
     note: 'Invoice templates and the live preview editor' },
 ],
 ```
+
+### `access`, required on every manifest
+
+Before a merchant installs an app they see what it can reach, and after it is installed the
+Installed apps list ("Can access") and its permissions sheet show the same thing. Declare it
+honestly from what the code does, never more and never less:
+
+- **`resources`**: each store resource the app touches (`orders`, `order-events`, `customers`,
+  `products`, `inventory`, `shipments`, `payments`, `refunds`, `invoices`, `reviews`,
+  `collections`, `discounts`, `gift-cards`, `store-pages`, `content`, `files`, `store-settings`,
+  `visits`), its `level` (`read`, `write` or `read-write`) and a plain `why` line. A resource may
+  appear once.
+- **`summary`** (optional): a few words shown after the level, e.g. `makes invoices`.
+- **`shares`** (optional): what leaves the platform for the outside service, as
+  `{ when, what }` rows (`Sent per shipment` → `Ship-to address, phone…`). Leave it out when
+  nothing is sent anywhere.
+
+An app that keeps its own connection in `store.apps.settings[id]` instead of a provider (Search
+Console, Umami) also sets `setupState(settings)`, returning `{ connected, problem }`, so the
+Installed list can show Connected, Needs setup or Error.
 
 ### Storage providers
 
@@ -474,6 +504,37 @@ kind and no table:
   drawable state (`not-installed`, `not-connected`, `error`, `ready`), never a thrown error.
   `./report` normalises Umami 3 and Umami 2 answers (`path` vs `url` metric names, flat figures
   vs `{ value, prev }`).
+
+`packages/plugin-search-console` (Google Search Console, id `google-search-console`) is the
+worked example of a per-store **OAuth** connection with a daily background pull:
+
+- **Connect**: `api.searchConsole.connectStart` returns Google's consent URL (scope `webmasters`,
+  `access_type=offline`, PKCE S256). The `state` is HMAC-signed with `SETTINGS_SECRET` and
+  carries the store id and a nonce; the PKCE verifier is derived from the nonce with the secret,
+  so nothing is stored between the redirect and the callback. Google returns to
+  `apps/admin/src/app/api/apps/google-search-console/oauth/callback`, which calls
+  `searchConsole.connectComplete` (`settings.manage`). The refresh token is kept as an
+  `encryptSecret` blob in `store.apps.settings['google-search-console']`; disconnect revokes it
+  at Google and deletes it. The OAuth client is `GSC_GOOGLE_CLIENT_ID`/`_SECRET`, or the merchant
+  sign-in client when those are blank.
+- **Google calls** (`./google`): plain `fetch` to the OAuth endpoints and the Search Console API
+  (`sites.list`, `searchAnalytics.query`, `sitemaps.list`, `sitemaps.submit`), 20 s timeouts,
+  `SearchConsoleError` (`GOOGLE_AUTH` = connect again, `GOOGLE_API` = Google's own words).
+- **Data**: core owns the table (`search_console_row`, migration 0119) and every query
+  (`packages/core/src/search-console/service.ts`), because the SEO report and the product page
+  read it too and core cannot import a plugin. `./server`'s `syncSearchConsole` reads the
+  settings in one transaction, asks Google outside any (the app role's idle-in-transaction
+  timeout), and replaces the rows in another, only if the connection did not change meanwhile.
+  The worker's hourly `{search-console}-sweep` queues the app's `sync` job for stores whose last
+  try is over 20 hours old (`stores_with_search_console_due()`); "Refresh now" runs the same
+  sync in the request, at most every 15 minutes.
+- **Shared rules** (`@commerce/core/search-console`, pure): URL → path (`/collections/x/products/y`
+  is the product), adding rows up (position weighted by impressions), "almost page 1"
+  (position 8–20, 100+ views) and "low click rate" thresholds. `searchStatsForProduct(tx,
+  storeId, productId)` feeds the product card; `loadSeoReport(tx, storeId)` adds `low_ctr` and
+  `almost_page_one` issues, which never lower the score. The same module registers the stored
+  per-page searches with `setSearchQueriesSource` (`seo/search-queries.ts`), so "Suggest
+  keywords" grounds its suggestions in real Google searches once the app is connected.
 
 ## 7. Storefront app blocks
 

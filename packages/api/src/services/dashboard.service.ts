@@ -40,6 +40,7 @@ import {
   sum,
 } from 'drizzle-orm'
 import type { LiveVisitors, VisitorSource } from '../context'
+import { istIsoDate } from './analytics-buckets'
 import type { OrderStatus } from './order.service'
 
 const DAY_MS = 86_400_000
@@ -172,10 +173,14 @@ export type DashboardSummary = {
     toShipCount: number
     /** Orders per hour so far today, IST, midnight first, one entry per hour up to and including now. */
     hourly: number[]
+    /** Storefront visitors (sessions) today, IST, from the beacon; 0 without a visitor source. */
+    visitors: number
   }
   /** Yesterday's full 24 hours, IST, same shape as `today.hourly`, for the briefing sparkline's comparison line. */
   yesterday: {
     hourly: number[]
+    /** Storefront visitors (sessions) yesterday, IST; 0 without a visitor source. */
+    visitors: number
   }
   /**
    * The "Needs you" inbox: one row per actionable queue, each with a count and
@@ -183,7 +188,8 @@ export type DashboardSummary = {
    * a zero) or the app it belongs to is not installed.
    */
   needsYou: {
-    ordersToShip: { count: number; href: string }
+    /** `oldestAt`: when the longest-waiting one was placed (Home's "Waiting 3 days"). */
+    ordersToShip: { count: number; href: string; oldestAt: Date | null }
     upiToVerify: { count: number; href: string }
     gstQueued: { count: number; href: string } | null
     lowStock: { count: number; href: string }
@@ -241,6 +247,10 @@ export type DashboardChartsData = {
   orders: number[]
   /** Same shape as `salesPaise`, for the range immediately before; `null` when there is no order history that far back. */
   previousSalesPaise: number[] | null
+  /** Storefront visitors (sessions) per day, same shape as `orders`; zeros without a visitor source. */
+  visitors: number[]
+  /** Visitors per day for the range immediately before, same shape. */
+  previousVisitors: number[]
   topProducts: {
     productId: string
     title: string
@@ -686,6 +696,13 @@ export async function dashboardSummary(
 
   /* Today, in IST: the briefing sentence and its "N need shipping" count. */
   const todayStart = startOfDay(now, 0)
+  /* Visitors today and yesterday (IST days), for the hero's Visitors and Conversion tiles. */
+  const visitorDays = [istIsoDate(startOfDay(now, 1)), istIsoDate(todayStart)]
+  const dailyVisitors =
+    opts.visitors?.daily && opts.storeId
+      ? await opts.visitors.daily(opts.storeId, visitorDays)
+      : { perDay: [0, 0], total: 0 }
+  const [visitorsYesterday = 0, visitorsToday = 0] = dailyVisitors.perDay
   const todayRows = live(recentRows).filter((r) => r.placedAt >= todayStart)
   const [toShipTodayRow] = await tx
     .select({ n: count() })
@@ -701,7 +718,7 @@ export async function dashboardSummary(
 
   /* Needs you: one count per queue, each with its deep link. */
   const [ordersToShipRow] = await tx
-    .select({ n: count() })
+    .select({ n: count(), oldestAt: sql<Date | null>`min(${order.placedAt})` })
     .from(order)
     .where(
       and(
@@ -909,10 +926,15 @@ export async function dashboardSummary(
       salesPaise: sumPaise(todayRows),
       toShipCount: toShipTodayRow?.n ?? 0,
       hourly: todayHourly,
+      visitors: visitorsToday,
     },
-    yesterday: { hourly: yesterdayHourly },
+    yesterday: { hourly: yesterdayHourly, visitors: visitorsYesterday },
     needsYou: {
-      ordersToShip: { count: ordersToShipRow?.n ?? 0, href: '/orders?status=unfulfilled' },
+      ordersToShip: {
+        count: ordersToShipRow?.n ?? 0,
+        href: '/orders?status=unfulfilled',
+        oldestAt: ordersToShipRow?.oldestAt ? new Date(ordersToShipRow.oldestAt) : null,
+      },
       upiToVerify: { count: upiToVerifyRow?.n ?? 0, href: '/orders?status=pending_upi' },
       gstQueued,
       lowStock: { count: lowStockCountRow?.n ?? 0, href: '/stock/inventory' },
@@ -945,7 +967,12 @@ export async function dashboardSummary(
  */
 export async function dashboardCharts(
   tx: StoreTx,
-  opts: { storeId?: string; now?: Date; range?: DashboardChartRange } = {},
+  opts: {
+    storeId?: string
+    now?: Date
+    range?: DashboardChartRange
+    visitors?: VisitorSource | undefined
+  } = {},
 ): Promise<DashboardChartsData> {
   const now = opts.now ?? new Date()
   const range = opts.range ?? 30
@@ -960,6 +987,15 @@ export async function dashboardCharts(
   const days = Array.from({ length: range }, (_, i) =>
     isoDate(new Date(from.getTime() + i * DAY_MS)),
   )
+  const previousDays = Array.from({ length: range }, (_, i) =>
+    isoDate(new Date(prevFrom.getTime() + i * DAY_MS)),
+  )
+  const visitorDaily =
+    opts.visitors?.daily && opts.storeId
+      ? await opts.visitors.daily(opts.storeId, [...previousDays, ...days])
+      : { perDay: zeros(range * 2), total: 0 }
+  const previousVisitors = visitorDaily.perDay.slice(0, range)
+  const visitors = visitorDaily.perDay.slice(range)
   const salesPaise = zeros(range)
   const orders = zeros(range)
   const previousSalesPaise = zeros(range)
@@ -1018,6 +1054,8 @@ export async function dashboardCharts(
     salesPaise,
     orders,
     previousSalesPaise: hasPrevious ? previousSalesPaise : null,
+    visitors,
+    previousVisitors,
     topProducts: topRows.map((r) => ({ ...r, imageUrl: firstImage.get(r.productId) ?? null })),
   }
 }

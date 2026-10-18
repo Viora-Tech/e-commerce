@@ -1,23 +1,16 @@
 'use client'
 
 import type { ReportCategory, ReportDefinition } from '@commerce/api'
-import { ChevronRightIcon } from '@commerce/ui/icons'
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@commerce/ui/shadcn/alert-dialog'
+import { ChevronRightIcon, ListTree } from '@commerce/ui/icons'
 import { Card } from '@commerce/ui/shadcn/card'
 import Link from 'next/link'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import AskAiCard from '@/components/home/ask-ai-card'
-import ProoflyPageHeader from '@/components/layout/proofly-page-header'
+import KitButton from '@/components/kit/kit-button'
+import ConfirmDialog from '@/components/layout/confirm-dialog'
+import PageHeader from '@/components/layout/page-header'
+import SectionHead from '@/components/layout/section-head'
 import { analyticsContent } from '@/data/analytics'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
@@ -42,7 +35,7 @@ const CATEGORIES = Object.keys(analyticsContent.reports.categories) as ReportCat
  */
 export default function ReportsHome({ reports, saved: initialSaved, assistant }: ReportsHomeProps) {
   // Hooks
-  const { reports: c } = useCopy(analyticsContent)
+  const { reports: c, query: queryCopy } = useCopy(analyticsContent)
   const [saved, setSaved] = useState(initialSaved)
   const [renaming, setRenaming] = useState<Saved | null>(null)
   const [deleting, setDeleting] = useState<Saved | null>(null)
@@ -74,9 +67,18 @@ export default function ReportsHome({ reports, saved: initialSaved, assistant }:
 
   // Render logic
   return (
-    <div className="mx-auto flex w-full max-w-[81.5rem] flex-col gap-8 px-4 py-6 md:px-8 md:py-8">
+    <div className="flex w-full flex-col gap-8 px-4 py-6 md:px-8 md:py-8">
       <div className="flex flex-col gap-6">
-        <ProoflyPageHeader title={c.title} summary={c.home.intro} />
+        <PageHeader
+          title={c.title}
+          summary={c.home.intro}
+          actions={
+            <KitButton variant="secondary" href={routes.analytics.query()}>
+              <ListTree />
+              {queryCopy.open}
+            </KitButton>
+          }
+        />
         <AskAiCard
           enabled={assistant}
           placeholder={c.home.askPlaceholder}
@@ -87,10 +89,7 @@ export default function ReportsHome({ reports, saved: initialSaved, assistant }:
         />
       </div>
       <section className="flex flex-col gap-3">
-        <div className="flex flex-col gap-1">
-          <h2 className="text-card-title text-ink-strong">{c.saved.title}</h2>
-          <p className="text-caption text-muted-foreground">{c.saved.subtitle}</p>
-        </div>
+        <SectionHead title={c.saved.title} intro={c.saved.subtitle} />
         {saved.length === 0 ? (
           <p className="rounded-xl border border-border border-dashed px-5 py-6 text-body text-muted-foreground">
             {c.saved.empty}
@@ -109,10 +108,7 @@ export default function ReportsHome({ reports, saved: initialSaved, assistant }:
         )}
       </section>
       <section className="flex flex-col gap-5">
-        <div className="flex flex-col gap-1">
-          <h2 className="text-card-title text-ink-strong">{c.templates.title}</h2>
-          <p className="text-caption text-muted-foreground">{c.templates.subtitle}</p>
-        </div>
+        <SectionHead title={c.templates.title} intro={c.templates.subtitle} />
         {CATEGORIES.map((category) => {
           const items = reports.filter((r) => r.category === category)
           if (items.length === 0) return null
@@ -160,22 +156,15 @@ export default function ReportsHome({ reports, saved: initialSaved, assistant }:
           onConfirm={handleRename}
         />
       ) : null}
-      {deleting ? (
-        <AlertDialog open onOpenChange={(open) => !open && setDeleting(null)}>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>{c.remove.title(deleting.name)}</AlertDialogTitle>
-              <AlertDialogDescription>{c.remove.body}</AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel>{c.remove.cancel}</AlertDialogCancel>
-              <AlertDialogAction variant="destructive" onClick={handleDelete}>
-                {c.remove.confirm}
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
-      ) : null}
+      <ConfirmDialog
+        open={deleting !== null}
+        onOpenChange={(open) => !open && setDeleting(null)}
+        title={c.remove.title(deleting?.name ?? '')}
+        body={c.remove.body}
+        confirmLabel={c.remove.confirm}
+        cancelLabel={c.remove.cancel}
+        onConfirm={handleDelete}
+      />
     </div>
   )
 }

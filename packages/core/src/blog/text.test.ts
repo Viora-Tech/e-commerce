@@ -37,11 +37,20 @@ describe('richTextToText', () => {
     expect(richTextToText('  plain words  ')).toBe('plain words')
     expect(richTextToText(null)).toBe('')
   })
+
+  it('reads an imported HTML body as words, one block a line', () => {
+    expect(
+      richTextToText(
+        '<h2>Start with your hand</h2>\n<p>Almost every mouse &amp; pad tracks&nbsp;well.</p>',
+      ),
+    ).toBe('Start with your hand\nAlmost every mouse & pad tracks well.')
+  })
 })
 
 describe('articleExcerpt', () => {
   it('prefers the merchant excerpt', () => {
     expect(articleExcerpt('  Hand written.  ', doc('Body text'))).toBe('Hand written.')
+    expect(articleExcerpt('<p>Hand <b>written</b>.</p>', doc('Body text'))).toBe('Hand written.')
   })
 
   it('falls back to the body, cut at a word boundary with an ellipsis', () => {

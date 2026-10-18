@@ -6,6 +6,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@commerce/ui/s
 import { Input } from '@commerce/ui/shadcn/input'
 import { Spinner } from '@commerce/ui/shadcn/spinner'
 import { useEffect, useState } from 'react'
+import EmptyState from '@/components/layout/empty-state'
 import { fieldInputContent } from '@/data/metaobjects'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
@@ -89,9 +90,12 @@ export default function ReferenceSearchDialog({
               <Spinner />
             </div>
           ) : options.length === 0 ? (
-            <p className="px-2 py-10 text-center text-body text-muted-foreground">
-              {kind === 'file' && !query ? copy.filesEmpty : copy.noResults}
-            </p>
+            <EmptyState
+              variant="plain"
+              size="lg"
+              className="px-2"
+              body={kind === 'file' && !query ? copy.filesEmpty : copy.noResults}
+            />
           ) : (
             <ul className="flex flex-col">
               {options.map((o) => {

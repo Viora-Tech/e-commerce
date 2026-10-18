@@ -1,24 +1,28 @@
 'use client'
 
 import { siteConfig } from '@commerce/config/site'
-import { Search, Settings, Upload } from '@commerce/ui/icons'
+import { Database, Search, Upload } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Input } from '@commerce/ui/shadcn/input'
 import Link from 'next/link'
 import { parseAsInteger, parseAsString, parseAsStringLiteral, useQueryStates } from 'nuqs'
 import { type FormEvent, Suspense, useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
-import PillTabs from '@/components/layout/pill-tabs'
+import ConfirmDialog from '@/components/layout/confirm-dialog'
+import EmptyState from '@/components/layout/empty-state'
 import ProoflyListPage from '@/components/layout/proofly-list-page'
 import ResourceTablePagination from '@/components/table/resource-table/pagination'
+import ViewSelect from '@/components/table/view-select'
+import { imageEditorContent } from '@/data/image-editor'
 import { mediaContent } from '@/data/media'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { isEditableImage } from '@/lib/image-edit'
 import { routes } from '@/lib/routes'
 import AltTextDialog from './alt-text-dialog'
 import BackgroundWorkNotice from './background-work-notice'
-import DeleteMediaDialog from './delete-media-dialog'
 import { FILE_TABS, type FileTab, fileKind, fileName, formatBytes } from './file-meta'
+import ImageEditorDialog from './image-editor-dialog'
 import MediaDropzone from './media-dropzone'
 import MediaTile from './media-tile'
 import { useUploadQueue } from './use-upload-queue'
@@ -64,6 +68,7 @@ function fetchMedia(page: number, perPage: number, query: string, type: FileTab 
 function MediaLibraryContent({ initial }: { initial: MediaLibraryInitial }) {
   // Hooks
   const { library: copy } = useCopy(mediaContent)
+  const { title: editImageLabel } = useCopy(imageEditorContent)
   const fileInput = useRef<HTMLInputElement>(null)
   const [{ page, perPage, query, type }, setQ] = useQueryStates(
     {
@@ -79,6 +84,7 @@ function MediaLibraryContent({ initial }: { initial: MediaLibraryInitial }) {
   const [counts, setCounts] = useState(initial.counts)
   const [usedBytes, setUsedBytes] = useState(initial.usedBytes)
   const [editing, setEditing] = useState<Item | null>(null)
+  const [retouching, setRetouching] = useState<Item | null>(null)
   const [deleting, setDeleting] = useState<Item | null>(null)
   const [draft, setDraft] = useState(initial.query)
   const queue = useUploadQueue(() => {
@@ -120,6 +126,18 @@ function MediaLibraryContent({ initial }: { initial: MediaLibraryInitial }) {
     handleFiles(Array.from(fileInput.current?.files ?? []))
     if (fileInput.current) fileInput.current.value = ''
   }
+  /** An edited copy lands at the top of the first page, like any new upload. */
+  const handleRetouched = () => {
+    setQ({ page: 1 })
+    fetchMedia(1, perPage, query, type).then((r) => {
+      setItems(r.items)
+      setTotal(r.total)
+    })
+    fetchCounts().then((r) => {
+      setCounts(r.counts)
+      setUsedBytes(r.usedBytes)
+    })
+  }
   const handleAltSaved = (id: string, alt: string | null) =>
     setItems((list) => list.map((i) => (i.id === id ? { ...i, alt } : i)))
   const handleDeleted = (id: string) => {
@@ -130,6 +148,16 @@ function MediaLibraryContent({ initial }: { initial: MediaLibraryInitial }) {
       setUsedBytes(r.usedBytes)
     })
     toast.success(mediaContent.toasts.deleted)
+  }
+  const handleDelete = async () => {
+    if (!deleting) return
+    try {
+      await api.media.delete({ id: deleting.id })
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : mediaContent.errors.generic)
+      throw err
+    }
+    handleDeleted(deleting.id)
   }
 
   // Render logic
@@ -142,11 +170,11 @@ function MediaLibraryContent({ initial }: { initial: MediaLibraryInitial }) {
       actions={
         <>
           <Button
-            variant="key-neutral"
+            variant="outline"
             nativeButton={false}
             render={<Link href={routes.content.storage()} />}
           >
-            <Settings aria-hidden="true" />
+            <Database aria-hidden="true" />
             {copy.storage}
           </Button>
           <Button type="button" onClick={() => fileInput.current?.click()}>
@@ -176,31 +204,32 @@ function MediaLibraryContent({ initial }: { initial: MediaLibraryInitial }) {
           </div>
         </div>
       ) : (
-        <>
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <PillTabs
-              variant="segmented"
+        <div className="overflow-hidden rounded-2xl border surface-card">
+          {/* Figma Files (647:1251): the table toolbar, the grid and the pager in one card. */}
+          <div className="flex flex-wrap items-center gap-3 border-b border-line px-4 py-2">
+            <ViewSelect
               value={type}
               onChange={(next) => setQ({ type: next, page: 1 })}
-              tabs={[
+              options={[
                 { value: null, label: copy.tabs.all, count: counts.all },
                 { value: 'image', label: copy.tabs.image, count: counts.image },
                 { value: 'video', label: copy.tabs.video, count: counts.video },
                 { value: 'document', label: copy.tabs.document, count: counts.document },
               ]}
             />
-            <form onSubmit={handleSearch} className="relative w-full max-w-xs">
-              <Search className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground" />
+            <span aria-hidden="true" className="h-5 w-px bg-line" />
+            <form onSubmit={handleSearch} className="relative min-w-0 flex-1">
+              <Search className="pointer-events-none absolute top-1/2 left-0.5 size-4 -translate-y-1/2 text-muted-foreground" />
               <Input
                 value={draft}
                 onChange={(e) => setDraft(e.target.value)}
                 placeholder={copy.search}
-                className="pl-8"
+                className="border-0 bg-transparent pl-7 shadow-none focus-visible:ring-0 dark:bg-transparent"
                 aria-label={copy.search}
               />
             </form>
           </div>
-          <ul className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
+          <ul className="grid grid-cols-2 gap-4 p-4 sm:grid-cols-3 lg:grid-cols-5">
             {queue.pending.map((p) => (
               <li
                 key={p.key}
@@ -221,11 +250,17 @@ function MediaLibraryContent({ initial }: { initial: MediaLibraryInitial }) {
                 item={item}
                 wide
                 caption={item.key ? fileName(item.key) : undefined}
-                meta={[fileKind(item.contentType), item.size ? formatBytes(item.size) : '']
+                meta={[
+                  item.size ? formatBytes(item.size) : fileKind(item.contentType),
+                  copy.used(item.usedBy),
+                ]
                   .filter(Boolean)
                   .join(' · ')}
                 actions={[
                   { label: mediaContent.tile.editAlt, onSelect: () => setEditing(item) },
+                  ...(isEditableImage(item.contentType)
+                    ? [{ label: editImageLabel, onSelect: () => setRetouching(item) }]
+                    : []),
                   {
                     label: mediaContent.tile.delete,
                     onSelect: () => setDeleting(item),
@@ -236,32 +271,43 @@ function MediaLibraryContent({ initial }: { initial: MediaLibraryInitial }) {
             ))}
           </ul>
           {items.length === 0 && queue.pending.length === 0 ? (
-            <p className="py-10 text-center text-body text-muted-foreground">{copy.noMatch}</p>
+            <EmptyState variant="plain" size="lg" body={copy.noMatch} />
           ) : null}
           {total > 0 ? (
-            <div className="overflow-hidden rounded-2xl border surface-card">
-              <ResourceTablePagination
-                page={page}
-                perPage={perPage}
-                total={total}
-                onPageChange={(p) => setQ({ page: p })}
-                onPerPageChange={(n) => setQ({ perPage: n, page: 1 })}
-              />
-            </div>
+            <ResourceTablePagination
+              page={page}
+              perPage={perPage}
+              total={total}
+              onPageChange={(p) => setQ({ page: p })}
+              onPerPageChange={(n) => setQ({ perPage: n, page: 1 })}
+            />
           ) : null}
-        </>
+        </div>
       )}
       <AltTextDialog
-        key={editing?.id ?? 'none'}
+        key={`alt-${editing?.id ?? 'none'}`}
         item={editing}
         onClose={() => setEditing(null)}
         onSaved={handleAltSaved}
       />
-      <DeleteMediaDialog
-        item={deleting}
-        onClose={() => setDeleting(null)}
-        onDeleted={handleDeleted}
+      <ImageEditorDialog
+        key={`edit-${retouching?.id ?? 'none'}`}
+        item={retouching}
+        mode="copy"
+        onClose={() => setRetouching(null)}
+        onSaved={handleRetouched}
       />
+      {deleting ? (
+        <ConfirmDialog
+          open
+          onOpenChange={(open) => !open && setDeleting(null)}
+          title={copy.deleteTitle}
+          body={copy.deleteBody(deleting.usedBy)}
+          confirmLabel={copy.deleteConfirm}
+          cancelLabel={copy.cancel}
+          onConfirm={handleDelete}
+        />
+      ) : null}
     </ProoflyListPage>
   )
 }

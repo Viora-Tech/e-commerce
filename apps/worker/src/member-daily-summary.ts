@@ -1,6 +1,7 @@
 import { sendDueDailySummaries } from '@commerce/core'
 import { registriesForStore } from '@commerce/core/registries'
 import { type Db, storesWithMemberDailySummaries, withStore } from '@commerce/db'
+import { logger } from '@commerce/observability/logging'
 import { type IORedis, MEMBER_DAILY_SUMMARY_QUEUE, Queue, Worker } from '@commerce/queue'
 
 /** Members pick a whole hour; checking every 10 minutes sends within 10 minutes of it. */
@@ -36,10 +37,10 @@ export function createMemberDailySummary(
             ),
           )
         } catch (err) {
-          console.warn(`[member daily summary] store ${storeId} failed:`, err)
+          logger.warn('member daily summary failed', { storeId, error: err })
         }
       }
-      if (sent) console.log('[member daily summary] sent', sent)
+      if (sent) logger.info('member daily summaries sent', { sent })
       return { stores: storeIds.length, sent }
     },
     { connection },

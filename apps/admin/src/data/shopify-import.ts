@@ -1,30 +1,18 @@
-import type {
-  AuthMode,
-  CsvResource,
-  ImportResource,
-  LeftBehindReason,
-  RunStatus,
-  ScopeHandle,
+import {
+  ALL_SCOPE_HANDLES,
+  type AuthMode,
+  type CsvResource,
+  type ImportResource,
+  type LeftBehindReason,
+  type RunStatus,
+  type ScopeHandle,
 } from '@commerce/plugin-shopify-import/client'
 
 const plural = (n: number, one: string, many: string) =>
   `${n.toLocaleString('en-IN')} ${n === 1 ? one : many}`
 
 /** Every read scope the import asks for, in the order the Dev Dashboard lists them. */
-export const SCOPES = [
-  'read_products',
-  'read_inventory',
-  'read_customers',
-  'read_orders',
-  'read_all_orders',
-  'read_content',
-  'read_online_store_navigation',
-  'read_files',
-  'read_metaobject_definitions',
-  'read_metaobjects',
-  'read_discounts',
-  'read_gift_cards',
-] as const
+export const SCOPES = ALL_SCOPE_HANDLES
 
 /** The scopes as one sentence, for the token steps. */
 export const SCOPE_LIST = `${SCOPES.slice(0, -1).join(', ')} and ${SCOPES[SCOPES.length - 1]}`
@@ -230,6 +218,8 @@ export const shopifyImportContent = {
       read_metaobjects: 'Read entries',
       read_discounts: 'Read discounts',
       read_gift_cards: 'Read gift cards',
+      read_shipping: 'Read shipping zones and rates',
+      read_legal_policies: 'Read store policies',
     } satisfies Record<ScopeHandle, string>,
     chooseHeading: 'What to import',
     chooseHelp:

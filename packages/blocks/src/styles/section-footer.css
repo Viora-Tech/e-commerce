@@ -696,3 +696,168 @@ html:not(.js) .footer__theme {
 .footer__bottom::before {
   top: -1px;
 }
+
+/* ------------------------------------------------------------------ */
+/* Figma storefront footer (Section / Footer, 704:109663)               */
+/* ------------------------------------------------------------------ */
+/* The page's surface band: the wordmark, tagline and plain social glyphs,
+   the menu columns in sentence case, the email sign-up, then a hairline
+   and the copyright beside the payment methods as neutral chips. */
+.footer {
+  --ft-surface: var(--color-surface);
+  padding-top: var(--space-9);
+}
+
+.footer__top {
+  padding-bottom: var(--space-7);
+}
+
+.footer__brand-name {
+  margin: 0;
+  font-family: var(--font-heading);
+  font-size: 24px;
+  font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: -0.005em;
+  text-transform: uppercase;
+}
+
+.footer__heading {
+  margin: 0 0 var(--space-3);
+  font-family: var(--font-body);
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.45;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.footer__text {
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.footer__menu-list {
+  gap: var(--space-3);
+}
+
+.footer__menu-link {
+  line-height: 1.5;
+}
+
+.footer__social {
+  gap: var(--space-3);
+  margin-top: 0;
+}
+
+.footer__social-link,
+html:not(.has-cursor-fill) .footer__social-link:hover,
+html.has-cursor-fill .footer__social-link:hover {
+  width: 20px;
+  height: 20px;
+  border: 0;
+  background: none;
+  color: var(--ft-ink);
+}
+
+.footer__social-link::before {
+  display: none;
+}
+
+.footer__social-link svg {
+  width: 20px;
+  height: 20px;
+}
+
+.footer__block--newsletter {
+  display: flex;
+  flex-direction: column;
+}
+
+.footer__newsletter-form {
+  display: flex;
+  gap: var(--space-2);
+}
+
+.footer__newsletter-input {
+  flex: 1 1 auto;
+  min-width: 0;
+  height: 48px;
+  padding-inline: 14px;
+  border: 1px solid var(--ft-line);
+  border-radius: var(--radius-m);
+  background-color: var(--color-bg);
+  color: var(--ft-ink);
+  font: inherit;
+  font-size: 16px;
+}
+
+.footer__newsletter-input::placeholder {
+  color: var(--ft-muted);
+}
+
+.footer__newsletter-submit {
+  flex: none;
+  height: 48px;
+  padding-inline: 20px;
+}
+
+.footer__newsletter-note {
+  margin: var(--space-2) 0 0;
+  color: var(--ft-muted);
+  font-size: 14px;
+}
+
+.footer__newsletter-note--error {
+  color: var(--color-danger);
+}
+
+.footer__bottom {
+  flex-direction: column;
+  align-items: stretch;
+  gap: var(--space-3);
+  padding-block: var(--space-7) var(--space-9);
+}
+
+.footer__bottom-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.footer__bottom > :not(.footer__bottom-row) {
+  align-self: flex-start;
+}
+
+.footer__copyright {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.4;
+}
+
+.footer__payment {
+  gap: 6px;
+}
+
+.footer__payment-chip {
+  padding: 4px 10px;
+  border: 1px solid var(--ft-line);
+  border-radius: var(--radius-pill);
+  color: var(--ft-muted);
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.4;
+}
+
+@media screen and (min-width: 750px) {
+  .footer__top {
+    gap: var(--space-7) var(--space-8);
+  }
+
+  .footer__block--newsletter {
+    grid-column: span 2;
+  }
+}

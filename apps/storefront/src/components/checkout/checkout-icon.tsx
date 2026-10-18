@@ -15,7 +15,13 @@ export type CheckoutIconName =
   | 'gift'
   | 'clock'
   | 'mail'
+  | 'edit'
+  | 'trash'
+  | 'plus'
+  | 'user'
+  | 'bolt'
   | 'spinner'
+  | 'chat'
 
 type CheckoutIconProps = {
   name: CheckoutIconName
@@ -33,6 +39,7 @@ const PATHS: Record<CheckoutIconName, ReactNode> = {
     </>
   ),
   check: <path d="M5 12.5l4.5 4.5L19 7.5" />,
+  chat: <path d="M4 12a8 8 0 1 1 3.1 6.3L4 19.5l1.1-3.3A7.9 7.9 0 0 1 4 12Z" />,
   alert: (
     <>
       <circle cx="12" cy="12" r="8.5" />
@@ -90,6 +97,18 @@ const PATHS: Record<CheckoutIconName, ReactNode> = {
       <path d="M4 7l8 6 8-6" />
     </>
   ),
+  edit: (
+    <path d="M14.5 5.5l4 4M4 20l1-4.5L15.5 5a1.4 1.4 0 0 1 2 0l1.5 1.5a1.4 1.4 0 0 1 0 2L8.5 19z" />
+  ),
+  trash: <path d="M4.5 7h15M9.5 7V4.5h5V7M6.5 7l1 12.5h9l1-12.5M10 10.5v6M14 10.5v6" />,
+  plus: <path d="M12 5v14M5 12h14" />,
+  user: (
+    <>
+      <circle cx="12" cy="8.5" r="3.5" />
+      <path d="M5 19.5c1.2-3.2 3.8-5 7-5s5.8 1.8 7 5" />
+    </>
+  ),
+  bolt: <path d="M13 3.5L5.5 13.5H12l-1 7 7.5-10H12z" />,
   spinner: <path d="M12 3.5a8.5 8.5 0 1 1-8.5 8.5" />,
 }
 

@@ -51,6 +51,9 @@ x-app-env: &app-env
   # Merchant "Continue with Google" on the admin login page; both blank hides the button.
   MERCHANT_GOOGLE_CLIENT_ID: ${MERCHANT_GOOGLE_CLIENT_ID:-}
   MERCHANT_GOOGLE_CLIENT_SECRET: ${MERCHANT_GOOGLE_CLIENT_SECRET:-}
+  # Google Search Console app; blank uses the MERCHANT_GOOGLE_* client.
+  GSC_GOOGLE_CLIENT_ID: ${GSC_GOOGLE_CLIENT_ID:-}
+  GSC_GOOGLE_CLIENT_SECRET: ${GSC_GOOGLE_CLIENT_SECRET:-}
   PLATFORM_SALES_STORE_ID: ${PLATFORM_SALES_STORE_ID:-}
   # Which proxy's client-IP header to believe for per-IP rate limits. `cloudflare` only when the
   # origin is firewalled to Cloudflare's IP ranges (see the deployment runbook); `none` ignores
@@ -93,6 +96,10 @@ x-app-env: &app-env
   # Release-tag Sentry events with the image's commit sha when IMAGE_TAG is pinned; override
   # with SENTRY_RELEASE, or leave both unset.
   SENTRY_RELEASE: ${SENTRY_RELEASE:-${IMAGE_TAG:-}}
+  # Structured logs: JSON on stdout always; also shipped over OTLP/HTTP when the endpoint is set.
+  OTEL_EXPORTER_OTLP_LOGS_ENDPOINT: ${OTEL_EXPORTER_OTLP_LOGS_ENDPOINT:-}
+  OTEL_EXPORTER_OTLP_HEADERS: ${OTEL_EXPORTER_OTLP_HEADERS:-}
+  LOG_SAMPLE_RATE: ${LOG_SAMPLE_RATE:-}
   # "Report a bug" button: test server only, off unless set. On needs GITHUB_ISSUES_TOKEN
   # (fine-grained, only Issues: write on GITHUB_ISSUES_REPO) or the apps refuse to start.
   BUG_REPORTS_ENABLED: ${BUG_REPORTS_ENABLED:-false}

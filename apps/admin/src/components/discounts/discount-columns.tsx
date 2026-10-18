@@ -1,7 +1,7 @@
 import { describeDiscountValue } from '@commerce/core/discounts'
-import StatusChip from '@/components/layout/status-chip'
+import OrderChip from '@/components/orders/order-chip'
 import type { ResourceColumnSpec } from '@/components/table/resource-table'
-import type { DiscountLifecycle, discountsContent } from '@/data/discounts'
+import type { discountsContent } from '@/data/discounts'
 import type { api } from '@/lib/api-client'
 import type { Formatters } from '@/lib/format'
 
@@ -12,13 +12,6 @@ type Copy = typeof discountsContent
 const SHORT_DAY = { day: 'numeric', month: 'short' } as const
 
 /** Only a discount waiting to start is worth a coloured chip; everything else is quiet. */
-const LIFECYCLE_TONE: Record<DiscountLifecycle, 'info' | 'neutral'> = {
-  active: 'neutral',
-  scheduled: 'info',
-  expired: 'neutral',
-  disabled: 'neutral',
-}
-
 function datesLabel(item: DiscountRow, copy: Copy, fmt: Formatters): string {
   const from = item.startsAt ? fmt.pattern(item.startsAt, SHORT_DAY) : null
   const to = item.endsAt ? fmt.pattern(item.endsAt, SHORT_DAY) : null
@@ -40,7 +33,7 @@ export function discountColumns(copy: Copy, fmt: Formatters): ResourceColumnSpec
       className: 'w-72 px-3 whitespace-normal',
       render: (d) => (
         <span className="flex flex-col text-left">
-          <span className="text-body-strong">{d.title}</span>
+          <span className="text-ink-strong">{d.title}</span>
           <span className="text-caption text-muted-foreground">
             {d.code ? <span className="uppercase">{d.code}</span> : copy.kind.automatic}
           </span>
@@ -66,9 +59,7 @@ export function discountColumns(copy: Copy, fmt: Formatters): ResourceColumnSpec
       id: 'status',
       title: copy.columns.status,
       align: 'center',
-      render: (d) => (
-        <StatusChip tone={LIFECYCLE_TONE[d.lifecycle]}>{copy.lifecycle[d.lifecycle]}</StatusChip>
-      ),
+      render: (d) => <OrderChip kind="discount" value={d.lifecycle} />,
     },
   ]
 }

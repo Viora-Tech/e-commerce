@@ -6,7 +6,7 @@ import { Button } from '@commerce/ui/shadcn/button'
 import CopyButton from '@/components/fields/copy-button'
 import DataCard from '@/components/layout/data-card'
 import RelativeTime from '@/components/layout/relative-time'
-import StatusLabel from '@/components/status/status-label'
+import OrderChip from '@/components/orders/order-chip'
 import { shipmentPanelContent } from '@/data/shipping'
 import { useCopy } from '@/hooks/use-copy'
 import type { OrderShipment } from './order-detail-types'
@@ -83,7 +83,7 @@ export default function ShipmentPanel({
       }
       action={
         <>
-          <StatusLabel kind="shipment" value={shipment.status} variant="pill" size="sm" />
+          <OrderChip kind="shipment" value={shipment.status} />
           {shipment.labelUrl ? (
             <Button
               variant="outline"

@@ -1,6 +1,6 @@
 import { returnTimeline } from '@commerce/core/returns'
-import { cn } from '@commerce/ui/lib/utils'
 import DataCard from '@/components/layout/data-card'
+import Timeline from '@/components/layout/timeline'
 import { returnDetailContent as copy } from '@/data/returns'
 import { formatWhen } from '@/lib/format-date'
 import type { ReturnDetail } from './return-types'
@@ -27,30 +27,15 @@ export default function ReturnTimelineCard({ detail: r }: ReturnTimelineCardProp
 
   return (
     <DataCard title={copy.timeline}>
-      <ol className="flex flex-col gap-3">
-        {steps.map((s) => (
-          <li key={s.key} className="flex items-start gap-3">
-            <span
-              aria-hidden="true"
-              className={cn(
-                'mt-1.5 size-2.5 shrink-0 rounded-full',
-                !s.done && 'border border-border-strong bg-card',
-                s.done && (s.key === 'rejected' ? 'bg-danger' : 'bg-success'),
-              )}
-            />
-            <span className="flex flex-col">
-              <span
-                className={cn('text-body', s.done ? 'text-foreground' : 'text-muted-foreground')}
-              >
-                {labels[s.key]}
-              </span>
-              <span className="text-caption text-muted-foreground">
-                {s.done && s.at ? formatWhen(s.at) : copy.pending}
-              </span>
-            </span>
-          </li>
-        ))}
-      </ol>
+      <Timeline
+        variant="steps"
+        items={steps.map((s) => ({
+          id: s.key,
+          title: labels[s.key],
+          time: s.done && s.at ? formatWhen(s.at) : copy.pending,
+          tone: !s.done ? 'pending' : s.key === 'rejected' ? 'danger' : 'success',
+        }))}
+      />
     </DataCard>
   )
 }

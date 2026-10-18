@@ -38,8 +38,6 @@ export const headerContent = {
   maxBrands: 10,
   /** A menu item whose title contains this lends its links to the "Shop by brand" pills. */
   brandMenuWord: 'brand',
-  /** The more menu (desktop): everything but search and the cart. */
-  more: 'Menu',
   account: 'Account',
   wishlist: 'Wishlist',
   wishlistHref: '/pages/wishlist',

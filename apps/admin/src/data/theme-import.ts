@@ -13,6 +13,12 @@ export const themeImportContent = {
     cardLabel: (name: string) => `${name}, a section from your Shopify theme`,
     added: (name: string) => `${name} added`,
   },
+  /** The inspector of an imported section (Figma 698:92941). */
+  inspector: {
+    title: 'Imported from Shopify · Liquid',
+    body: 'Its settings come from the section’s schema. Layout and blocks can only change in code.',
+    openCode: 'Open in Edit code',
+  },
   dialog: {
     title: 'Import your Shopify theme',
     body: 'Your theme comes over as a new theme here. It looks the same, and it runs on our cart, checkout, search and accounts. Your live theme does not change.',
@@ -52,6 +58,13 @@ export const themeImportContent = {
     workingTitle: 'Importing your theme',
     workingSubtitle: 'This takes about a minute. Stay on this page.',
     progress: 'Import progress',
+    steps: [
+      'Read the theme files',
+      'Copied pictures into Files',
+      'Matching sections to our features',
+      'Cart, checkout, search and accounts',
+      'Building your report',
+    ],
     failedSubtitle: 'We could not read this file',
     failedTitle: 'This import did not finish',
     chooseAnother: 'Choose another file',

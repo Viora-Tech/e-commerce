@@ -51,3 +51,25 @@
   -webkit-appearance: none;
   margin: 0;
 }
+
+/* Figma Store / Quantity (691:85126): a bordered field on the input radius, the same
+   height as the button beside it. */
+.quantity-input {
+  height: 56px;
+  border-radius: var(--radius-input, var(--radius-m));
+  background-color: var(--color-bg);
+}
+
+.quantity-input__button {
+  width: 40px;
+  color: var(--color-muted);
+}
+
+.quantity-input__button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.quantity-input__field {
+  width: 32px;
+}

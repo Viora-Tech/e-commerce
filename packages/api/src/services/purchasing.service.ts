@@ -32,6 +32,7 @@ export async function listSuppliers(tx: StoreTx, q: Page & { search?: string | u
       email: supplier.email,
       phone: supplier.phone,
       paymentTerms: supplier.paymentTerms,
+      address: supplier.address,
     })
     .from(supplier)
     .where(where)

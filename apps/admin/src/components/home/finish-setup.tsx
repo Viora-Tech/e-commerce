@@ -1,11 +1,13 @@
-import { CheckIcon } from '@commerce/ui/icons'
+import { ArrowRight } from '@commerce/ui/icons'
 import { cn } from '@commerce/ui/lib/utils'
+import { buttonVariants } from '@commerce/ui/shadcn/button'
 import Link from 'next/link'
+import SectionHead from '@/components/layout/section-head'
 import { homePageContent } from '@/data/home'
 import { getCopy } from '@/lib/copy-server'
 import { routes } from '@/lib/routes'
 import type { HomeSignals } from './home-signals'
-import SectionHead from './section-head'
+import SetupTick from './setup-tick'
 
 type FinishSetupProps = {
   productCount: number
@@ -41,7 +43,7 @@ export default async function FinishSetup({ productCount, signals }: FinishSetup
       title: c.shipping.title,
       body: signals.shipping ? c.shipping.done(signals.shipping) : c.shipping.todo,
       done: signals.shipping !== null,
-      href: routes.apps.list(),
+      href: routes.apps.store(),
     },
   ]
   // Always shown (Figma 224:584); finished steps stay, ticked.
@@ -55,18 +57,22 @@ export default async function FinishSetup({ productCount, signals }: FinishSetup
           <li key={step.key}>
             <Link
               href={step.href}
-              className="flex h-full items-start gap-3.5 rounded-xl surface-card p-[1.125rem] transition-shadow duration-150 ease-out hover:shadow-card-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              className={cn(
+                'flex h-full min-h-[4.9375rem] items-start gap-3.5 rounded-lg p-4 surface-card card-lift focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+                /* Figma "Home · Polished": finished steps sit back, the next one is outlined. */
+                step.done ? 'opacity-55 hover:opacity-100' : 'items-center ring-1 ring-foreground',
+              )}
             >
               <span
                 className={cn(
-                  'flex size-[1.625rem] shrink-0 items-center justify-center rounded-full text-caption',
+                  'flex size-[1.625rem] shrink-0 items-center justify-center rounded-full text-xs font-medium',
                   // Figma 224:591 "Tick done": the key material (gradient, rim, lip, glow).
                   step.done ? 'key-primary' : 'border border-border text-muted-foreground',
                 )}
               >
-                {step.done ? <CheckIcon className="size-3.5" aria-hidden="true" /> : i + 1}
+                {step.done ? <SetupTick /> : i + 1}
               </span>
-              <span className="min-w-0">
+              <span className="min-w-0 flex-1">
                 <span className="block truncate text-body font-semibold text-ink-strong">
                   {step.title}
                 </span>
@@ -74,6 +80,18 @@ export default async function FinishSetup({ productCount, signals }: FinishSetup
                   {step.body}
                 </span>
               </span>
+              {step.done ? null : (
+                <span
+                  aria-hidden="true"
+                  className={cn(
+                    buttonVariants({ variant: 'default', size: 'sm' }),
+                    'shrink-0 self-center',
+                  )}
+                >
+                  {c.openCta}
+                  <ArrowRight className="size-3.5" aria-hidden="true" />
+                </span>
+              )}
             </Link>
           </li>
         ))}

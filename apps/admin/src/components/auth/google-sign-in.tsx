@@ -1,5 +1,6 @@
 'use client'
 
+import { Loader2Icon } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { useState } from 'react'
 import { loginContent } from '@/data/login'
@@ -10,6 +11,8 @@ import { routes } from '@/lib/routes'
 type GoogleSignInProps = {
   /** Better Auth's `?error=` code when Google sign-in came back refused. */
   errorCode: string | null
+  /** Where to go after signing in; the admin home when null. */
+  next: string | null
 }
 
 type GoogleCopy = (typeof loginContent)['google']
@@ -27,7 +30,7 @@ function errorMessage(copy: GoogleCopy, code: string | null): string | null {
  * admin has a Google client (MERCHANT_GOOGLE_*). Google sends the browser back to the home
  * page, which takes a member with no store to onboarding, as after an email code.
  */
-export default function GoogleSignIn({ errorCode }: GoogleSignInProps) {
+export default function GoogleSignIn({ errorCode, next }: GoogleSignInProps) {
   // Hooks
   const { google: copy } = useCopy(loginContent)
   const [busy, setBusy] = useState(false)
@@ -40,7 +43,7 @@ export default function GoogleSignIn({ errorCode }: GoogleSignInProps) {
     // On success the browser is already on its way to Google.
     const res = await authClient.signIn.social({
       provider: 'google',
-      callbackURL: routes.home(),
+      callbackURL: next ?? routes.home(),
       errorCallbackURL: routes.login(),
     })
     if (res.error) {
@@ -49,6 +52,24 @@ export default function GoogleSignIn({ errorCode }: GoogleSignInProps) {
     }
   }
 
+  // Early returns
+  // Figma "Signing you in with Google": the page waits while the browser leaves for Google.
+  if (busy) {
+    return (
+      <div className="flex flex-col items-center gap-3 rounded-xl surface-card p-6 text-center">
+        {/* biome-ignore lint/performance/noImgElement: Google's own mark, unaltered (sign-in branding guidelines) */}
+        <img src="/brand/google-g.svg" alt="" aria-hidden="true" className="size-6" />
+        <Loader2Icon className="size-4 animate-spin text-muted-foreground" aria-hidden="true" />
+        <p className="text-card-title text-ink-strong">{copy.signingIn}</p>
+        <p className="text-caption text-muted-foreground">{copy.signingInBody}</p>
+        <Button type="button" variant="ghost" onClick={() => setBusy(false)}>
+          {copy.cancel}
+        </Button>
+      </div>
+    )
+  }
+
+  // Render logic
   return (
     <div className="flex flex-col gap-3">
       <Button

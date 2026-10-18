@@ -42,10 +42,7 @@ export default async function Page({ params }: Props) {
       <PageHeader
         title={copy.title}
         subtitle={copy.subtitle(theme.name, found.fileName)}
-        breadcrumbs={[
-          { label: copy.back, href: routes.onlineStore.themes() },
-          { label: theme.name },
-        ]}
+        back={{ label: copy.back, href: routes.onlineStore.themes() }}
         actions={
           <>
             <Button

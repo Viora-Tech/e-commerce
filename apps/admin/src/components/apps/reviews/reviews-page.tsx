@@ -8,9 +8,16 @@ import { parseAsInteger, parseAsString, parseAsStringLiteral, useQueryStates } f
 import { Suspense, useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import PageHeader from '@/components/layout/page-header'
-import PillTabs from '@/components/layout/pill-tabs'
-import type { AppliedFilter } from '@/components/table/resource-table'
+import {
+  appliedFromGroups,
+  clearGroups,
+  FILTER_PANEL_CLASS,
+  type FilterGroup,
+  FilterPanel,
+} from '@/components/table/filter-panel'
 import ResourceTable from '@/components/table/resource-table'
+import ViewSelect from '@/components/table/view-select'
+import { filterPanelContent } from '@/data/filter-panel'
 import { reviewsContent } from '@/data/reviews'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
@@ -18,7 +25,6 @@ import { routes } from '@/lib/routes'
 import AskReviewsButton from './ask-reviews-button'
 import DeleteReviewsDialog from './delete-reviews-dialog'
 import { reviewColumns } from './review-columns'
-import ReviewFilters, { type ReviewFilterValues } from './review-filters'
 import ReviewRowActions from './review-row-actions'
 import ReviewTiles from './review-tiles'
 
@@ -39,6 +45,7 @@ export default function ReviewsPage() {
 function ReviewsList() {
   // Hooks
   const copy = useCopy(reviewsContent)
+  const panelCopy = useCopy(filterPanelContent)
   const [q, setQ] = useQueryStates(
     {
       query: parseAsString.withDefault(''),
@@ -103,10 +110,6 @@ function ReviewsList() {
     }
   }
 
-  // Event handlers
-  const handleFilters = (patch: Partial<ReviewFilterValues>) => setQ({ ...patch, page: 1 })
-  const handleClearFilters = () => setQ({ rating: null, product: null, photos: null, page: 1 })
-
   // Render logic
   const stats = result?.stats ?? {
     all: 0,
@@ -116,36 +119,40 @@ function ReviewsList() {
     average: null,
     withPhotos: 0,
   }
-  const productTitle = products.find((p) => p.id === q.product)?.title ?? ''
-  const applied: AppliedFilter[] = [
-    ...(q.rating
-      ? [
-          {
-            key: 'rating',
-            label: copy.list.applied.rating(q.rating),
-            onRemove: () => setQ({ rating: null, page: 1 }),
-          },
-        ]
-      : []),
-    ...(q.product
-      ? [
-          {
-            key: 'product',
-            label: copy.list.applied.product(productTitle),
-            onRemove: () => setQ({ product: null, page: 1 }),
-          },
-        ]
-      : []),
-    ...(q.photos
-      ? [
-          {
-            key: 'photos',
-            label: copy.list.applied.photos(q.photos === 'yes'),
-            onRemove: () => setQ({ photos: null, page: 1 }),
-          },
-        ]
-      : []),
+  const f = copy.list.filters
+  const groups: FilterGroup[] = [
+    {
+      key: 'rating',
+      label: f.rating,
+      type: 'select',
+      options: [5, 4, 3, 2, 1].map((n) => ({ value: String(n), label: f.ratingValue(n) })),
+      value: q.rating ? String(q.rating) : null,
+      onChange: (next) => setQ({ rating: next ? Number(next) : null, page: 1 }),
+      anyLabel: f.any,
+    },
+    {
+      key: 'product',
+      label: f.product,
+      type: 'select',
+      options: products.map((p) => ({ value: p.id, label: p.title })),
+      value: q.product,
+      onChange: (product) => setQ({ product, page: 1 }),
+      anyLabel: f.any,
+    },
+    {
+      key: 'photos',
+      label: f.photos,
+      type: 'select',
+      options: [
+        { value: 'yes', label: f.yes },
+        { value: 'no', label: f.no },
+      ],
+      value: q.photos,
+      onChange: (next) => setQ({ photos: next === 'yes' || next === 'no' ? next : null, page: 1 }),
+      anyLabel: f.any,
+    },
   ]
+  const applied = appliedFromGroups(groups, panelCopy)
   const filtered = applied.length > 0 || q.query !== '' || q.status !== null
 
   return (
@@ -194,25 +201,24 @@ function ReviewsList() {
         onClearAll={() =>
           setQ({ query: '', status: null, rating: null, product: null, photos: null, page: 1 })
         }
-        tabs={
-          <PillTabs
-            variant="segmented"
+        views={
+          <ViewSelect
             value={q.status}
             onChange={(status) => setQ({ status, page: 1 })}
-            tabs={[
+            options={[
               { value: null, label: copy.list.tabs.all, count: stats.all },
               ...STATUSES.map((s) => ({ value: s, label: copy.list.tabs[s], count: stats[s] })),
             ]}
           />
         }
-        filters={
-          <ReviewFilters
-            values={{ rating: q.rating, product: q.product, photos: q.photos }}
-            products={products}
-            onChange={handleFilters}
-            onClear={handleClearFilters}
+        filters={(close) => (
+          <FilterPanel
+            groups={groups}
+            onClear={() => clearGroups(groups)}
+            footer={{ label: panelCopy.show(result?.total ?? 0), onDone: close }}
           />
-        }
+        )}
+        filtersClassName={FILTER_PANEL_CLASS}
         applied={applied}
         page={q.page}
         perPage={perPage}

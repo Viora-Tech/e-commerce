@@ -62,7 +62,7 @@ export default function NumberingCard({
             <Button
               variant="outline"
               size="sm"
-              render={<Link href={routes.apps.list()} />}
+              render={<Link href={routes.apps.install('gst-invoices')} />}
               nativeButton={false}
             >
               {copy.goToApps}

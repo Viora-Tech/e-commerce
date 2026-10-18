@@ -69,7 +69,7 @@ export default async function Suggestions({ summary, signals, abandoned }: Sugge
       title: c.reviewsTitle,
       body: c.reviewsBody,
       cta: c.reviewsCta,
-      href: routes.apps.list(),
+      href: routes.apps.install('reviews'),
       imageUrl: null,
     })
   }
@@ -101,6 +101,8 @@ export default async function Suggestions({ summary, signals, abandoned }: Sugge
       title={c.title}
       note={c.note}
       dismissLabel={c.dismiss}
+      hiddenMessage={c.hidden}
+      undoLabel={c.undo}
     />
   )
 }

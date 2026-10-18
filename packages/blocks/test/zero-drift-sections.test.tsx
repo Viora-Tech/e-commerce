@@ -16,6 +16,10 @@ const minimalPuck = { metadata: {} }
  * Sections that show only an empty state until their loader returns a product, post or
  * collection products (the test config's loaders return nothing), so no copy is drawn yet.
  */
+/** Sections that draw nothing on the store until the merchant fills a setting (a WhatsApp
+ *  button with no number). The canvas shows them with a note instead. */
+const EMPTY_UNTIL_SET = new Set<string>(['WhatsappChat'])
+
 const DATA_FIRST = new Set(['FeaturedCarousel', 'LatestDrop', 'DropReveal', 'NotesSeries'])
 
 const isInline = (f: FieldShape) =>
@@ -70,7 +74,7 @@ describe('Zero Drift theme sections', () => {
 
       it('renders its defaults on the server with no empty image sources', () => {
         const html = renderToStaticMarkup(render(defaults))
-        expect(html.length).toBeGreaterThan(0)
+        if (!EMPTY_UNTIL_SET.has(key)) expect(html.length).toBeGreaterThan(0)
         expect(html).not.toContain('src=""')
       })
 
@@ -81,6 +85,7 @@ describe('Zero Drift theme sections', () => {
       it('renders when Puck passes inline-edited copy as React nodes', () => {
         const props = asEditorProps(defaults, fields) as Record<string, unknown>
         const html = renderToStaticMarkup(render(props))
+        if (EMPTY_UNTIL_SET.has(key)) return
         if (DATA_FIRST.has(key)) expect(html.length).toBeGreaterThan(0)
         else expect(html).toContain('data-inline')
       })

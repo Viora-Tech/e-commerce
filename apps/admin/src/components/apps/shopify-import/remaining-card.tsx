@@ -6,14 +6,8 @@ import {
   type ImportStatus,
   type ResourceStatus,
 } from '@commerce/plugin-shopify-import/client'
-import { MoreHorizontal, Store } from '@commerce/ui/icons'
+import { Store } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@commerce/ui/shadcn/dropdown-menu'
 import { Skeleton } from '@commerce/ui/shadcn/skeleton'
 import { Spinner } from '@commerce/ui/shadcn/spinner'
 import {
@@ -28,6 +22,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
+import ActionMenu from '@/components/layout/action-menu'
 import DataCard from '@/components/layout/data-card'
 import EmptyState from '@/components/layout/empty-state'
 import StatusLabel from '@/components/status/status-label'
@@ -296,12 +291,18 @@ export default function RemainingCard({ connected }: RemainingCardProps) {
                   </TableCell>
                   <TableCell className="text-right">
                     {row.action ? (
-                      <RowMenu
-                        name={row.label}
-                        label={actionLabel(row)}
-                        busy={busy === row.key}
+                      <ActionMenu
+                        label={row.label}
+                        variant="ghost"
+                        loading={busy === row.key}
                         disabled={busy !== null}
-                        onSelect={() => handleStart(row.key, row.resources ?? [], row.action)}
+                        contentClassName="w-auto"
+                        items={[
+                          {
+                            label: actionLabel(row),
+                            onSelect: () => handleStart(row.key, row.resources ?? [], row.action),
+                          },
+                        ]}
                       />
                     ) : null}
                   </TableCell>
@@ -310,29 +311,5 @@ export default function RemainingCard({ connected }: RemainingCardProps) {
         </TableBody>
       </Table>
     </DataCard>
-  )
-}
-
-type RowMenuProps = {
-  name: string
-  label: string
-  busy: boolean
-  disabled: boolean
-  onSelect: () => void
-}
-
-/** The ⋯ menu at the end of a row: what that one line can start. */
-function RowMenu({ name, label, busy, disabled, onSelect }: RowMenuProps) {
-  return (
-    <DropdownMenu>
-      <DropdownMenuTrigger
-        render={<Button variant="ghost" size="icon-sm" aria-label={name} disabled={disabled} />}
-      >
-        {busy ? <Spinner /> : <MoreHorizontal />}
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-auto min-w-40">
-        <DropdownMenuItem onClick={onSelect}>{label}</DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
   )
 }

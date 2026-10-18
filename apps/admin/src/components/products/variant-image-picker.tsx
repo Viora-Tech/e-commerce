@@ -85,6 +85,8 @@ export default function VariantImagePicker({
       <MediaPickDialog
         open={picking}
         title={`${copy.image}: ${label}`}
+        description={copy.pickHelp}
+        doneLabel={copy.useImage}
         items={toPickerItems(media)}
         onClose={() => setPicking(false)}
         onPick={handlePick}

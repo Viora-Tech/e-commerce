@@ -210,6 +210,10 @@ export const ALL_SCOPE_HANDLES = [
   'read_metaobjects',
   'read_discounts',
   'read_gift_cards',
+  /** Store settings: shipping zones and rates. */
+  'read_shipping',
+  /** Store settings: refund, privacy, terms, shipping and contact policies. */
+  'read_legal_policies',
 ] as const
 export type ScopeHandle = (typeof ALL_SCOPE_HANDLES)[number]
 
@@ -351,3 +355,5 @@ export type ScopeCheck = {
   granted: ScopeHandle[]
   missing: ScopeHandle[]
 }
+
+export * from './settings-client'

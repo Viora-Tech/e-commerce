@@ -275,3 +275,810 @@
 }
 
 /* Email signup: section-newsletter.css (the Zero Drift newsletter card). */
+
+/* ---- Figma Section / Collection list (705:113696) -------------------- */
+/* Square tiles in a four-up row, then the name (16px medium), the product
+   count and an arrow; the overlay look sets that row over the image's foot. */
+.collection-list__grid {
+  gap: var(--space-5);
+}
+
+@media screen and (min-width: 990px) {
+  .collection-list__grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+.collection-list__card {
+  position: relative;
+  gap: var(--space-3);
+}
+
+.collection-list__media {
+  border-radius: var(--radius-card, var(--radius-m));
+  background-color: var(--color-card-media, var(--color-surface));
+}
+
+.collection-list__info {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.collection-list__text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.collection-list__title {
+  color: var(--color-ink);
+  font-size: var(--font-body-size, 16px);
+  font-weight: 500;
+  line-height: 1.5;
+}
+
+.collection-list__count {
+  color: var(--color-muted);
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.4;
+}
+
+.collection-list--overlay .collection-list__info {
+  position: absolute;
+  inset: auto 0 0;
+  padding: var(--space-5);
+  background: linear-gradient(to top, rgb(0 0 0 / 60%), transparent);
+  border-radius: 0 0 var(--radius-card, var(--radius-m)) var(--radius-card, var(--radius-m));
+  color: #ffffff;
+}
+
+.collection-list--overlay .collection-list__title,
+.collection-list--overlay .collection-list__count {
+  color: inherit;
+}
+
+/* ------------------------------------------------------------------ */
+/* Figma Sections · 5 · Story & trust                                   */
+/* ------------------------------------------------------------------ */
+
+/* Image with text (707:118517): the photo on a surface panel, the copy centred
+   vertically beside it, 64px apart. */
+.image-with-text {
+  gap: var(--space-6);
+}
+
+.image-with-text__media {
+  border-radius: var(--radius-card, var(--radius-m));
+  background-color: var(--color-surface);
+}
+
+@media screen and (min-width: 990px) {
+  .image-with-text {
+    gap: var(--space-9);
+  }
+}
+
+/* Multicolumn (707:118686): surface cards, a 32px icon tile, the title, a short
+   muted line and "Learn more". */
+.multicolumn__list {
+  gap: var(--space-5);
+}
+
+.multicolumn__item {
+  gap: var(--space-2);
+  padding: var(--space-5);
+  border-radius: var(--radius-card, var(--radius-m));
+  background-color: var(--color-surface);
+}
+
+.multicolumn__media {
+  position: relative;
+  display: block;
+  overflow: hidden;
+  width: 32px;
+  height: 32px;
+  margin-bottom: var(--space-3);
+  border-radius: var(--radius-m);
+  background-color: color-mix(in srgb, var(--color-ink) 8%, transparent);
+}
+
+.multicolumn__media .multicolumn__image {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.multicolumn__title {
+  margin: 0;
+  font-size: calc(1rem * var(--font-heading-scale, 1));
+  line-height: 1.4;
+}
+
+.multicolumn__text {
+  color: var(--color-muted);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.multicolumn__text p {
+  margin: 0;
+}
+
+.multicolumn__link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: var(--space-2);
+  color: var(--color-ink);
+  font-size: 14px;
+  font-weight: 500;
+  text-decoration: none;
+}
+
+/* Testimonials (707:119156), grid look: surface cards with the quote over an
+   initials avatar, the name and its detail. */
+.testimonials__list {
+  gap: var(--space-5);
+}
+
+.testimonials__card {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: var(--space-4);
+  padding: var(--space-5);
+  border: 0;
+  border-radius: var(--radius-card, var(--radius-m));
+  background-color: var(--color-surface);
+}
+
+.testimonials__quote {
+  margin: 0;
+  color: var(--color-ink);
+  font-size: var(--font-body-size, 16px);
+  line-height: 1.5;
+}
+
+.testimonials__author {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.testimonials__avatar {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background-color: var(--color-bg);
+  color: var(--color-ink);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.testimonials__who {
+  display: flex;
+  flex-direction: column;
+}
+
+.testimonials__name {
+  color: var(--color-ink);
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.testimonials__role {
+  color: var(--color-muted);
+  font-size: 12px;
+}
+
+/* Stats counter (707:118716): outlined cards, the figure in 48px bold, the label
+   small and muted under it. */
+.stats-counter__heading {
+  margin: 0 0 var(--space-7);
+  text-align: center;
+}
+
+.stats-counter__grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-5);
+}
+
+@media screen and (min-width: 750px) {
+  .stats-counter__grid {
+    grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
+  }
+}
+
+.stats-counter__card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  padding: var(--space-5) var(--space-6);
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-card, var(--radius-m));
+}
+
+.stats-counter__value {
+  color: var(--color-ink);
+  font-family: var(--font-heading);
+  font-size: calc(2.25rem * var(--font-heading-scale, 1));
+  font-weight: 700;
+  line-height: 1.05;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+}
+
+.stats-counter__label {
+  margin: 0;
+  color: var(--color-muted);
+  font-size: 12px;
+  font-weight: 500;
+}
+
+@media screen and (min-width: 990px) {
+  .stats-counter__value {
+    font-size: calc(3rem * var(--font-heading-scale, 1));
+  }
+}
+
+/* Figma Section / Logo strip (707:118744): a small centred eyebrow over the names or marks, muted. */
+.logo-list__heading {
+  color: var(--color-muted);
+  font-family: var(--font-body);
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.3;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  text-align: center;
+}
+
+.logo-list__item {
+  color: var(--color-muted);
+  opacity: 0.85;
+}
+
+/* Figma Section / Video (707:123067): the centred title over the player, which sits on
+   the card radius. */
+.video-section__heading {
+  margin-bottom: var(--space-7);
+  text-align: center;
+}
+
+.video-section__frame {
+  overflow: hidden;
+  border-radius: var(--radius-card, var(--radius-m));
+  background-color: var(--color-surface);
+}
+
+/* ---- Figma Section / CTA banner (708:120101) -------------------------- */
+/* A rounded brand card, the copy left and the buttons right on wide screens. */
+.cta-banner__card {
+  padding: var(--space-6) var(--space-5);
+  border-radius: var(--radius-card, var(--radius-m));
+  background-color: var(--color-brand);
+  color: var(--color-on-brand, #ffffff);
+}
+
+.cta-banner__copy {
+  --color-ink: var(--color-on-brand, #ffffff);
+  --color-muted: color-mix(in srgb, var(--color-on-brand, #ffffff) 82%, transparent);
+
+  max-width: none;
+}
+
+.cta-banner__copy .btn--primary {
+  --btn-bg: var(--color-dark-band);
+  --btn-text: var(--color-on-dark-band);
+}
+
+.cta-banner__copy .btn--secondary {
+  border-color: transparent;
+}
+
+@media screen and (min-width: 990px) {
+  .cta-banner__card {
+    padding: var(--space-7) var(--space-7);
+  }
+
+  .cta-banner__copy {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    column-gap: var(--space-6);
+  }
+}
+
+/* ---- Figma Section / FAQ (708:120331) ---------------------------------- */
+.faq-accordion__head {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-3);
+  margin-bottom: var(--space-7);
+  text-align: center;
+}
+
+.faq-accordion__intro {
+  max-width: 40rem;
+  color: var(--color-muted);
+}
+
+.faq-accordion__intro p,
+.faq-accordion__answer p {
+  margin: 0;
+}
+
+.faq-accordion__list {
+  max-width: 43.75rem;
+  margin-inline: auto;
+  border-bottom: 1px solid var(--color-line);
+}
+
+.faq-accordion__list > div {
+  border-top: 1px solid var(--color-line);
+}
+
+.faq-accordion__question {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  width: 100%;
+  padding-block: var(--space-4);
+  border: 0;
+  background: none;
+  color: var(--color-ink);
+  font: inherit;
+  font-size: var(--font-body-size, 16px);
+  font-weight: 500;
+  text-align: start;
+  cursor: pointer;
+}
+
+.faq-accordion__icon {
+  display: inline-flex;
+  flex: none;
+  color: var(--color-muted);
+}
+
+.faq-accordion__answer {
+  padding-bottom: var(--space-4);
+  color: var(--color-muted);
+  font-size: 14px;
+  line-height: 1.55;
+}
+
+/* ---- Figma Section / Sale countdown (708:120169) ------------------------ */
+.sale-countdown__card {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-5);
+  padding: var(--space-6) var(--space-5);
+  border: 1px solid var(--color-sale, var(--color-brand));
+  border-radius: var(--radius-card, var(--radius-m));
+  background-color: var(--color-surface);
+}
+
+.sale-countdown__copy {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-3);
+}
+
+.sale-countdown__heading {
+  margin: 0;
+  font-size: calc(2rem * var(--font-heading-scale, 1));
+  line-height: 1.1;
+  letter-spacing: -0.015em;
+}
+
+.sale-countdown__code-line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  margin: 0;
+  color: var(--color-muted);
+  font-size: 14px;
+}
+
+.sale-countdown__code {
+  padding: 2px var(--space-2);
+  border: 1px dashed var(--color-line);
+  border-radius: var(--radius-m);
+  color: var(--color-ink);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+}
+
+.sale-countdown__side {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-4);
+}
+
+.sale-countdown__tiles {
+  display: flex;
+  gap: var(--space-2);
+}
+
+.sale-countdown__tiles[hidden] {
+  display: none;
+}
+
+.sale-countdown__tile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 64px;
+  padding: var(--space-3) var(--space-2);
+  border-radius: var(--radius-m);
+  background-color: var(--color-bg);
+}
+
+.sale-countdown__value {
+  color: var(--color-ink);
+  font-family: var(--font-heading);
+  font-size: 28px;
+  font-weight: 700;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+}
+
+.sale-countdown__unit {
+  color: var(--color-muted);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.sale-countdown__button {
+  height: 48px;
+}
+
+/* ---- Figma Section / EMI & offers strip (706:118585) -------------------- */
+.offers-strip__heading {
+  margin: 0 0 var(--space-4);
+  color: var(--color-ink);
+  font-size: var(--font-body-size, 16px);
+  font-weight: 500;
+}
+
+.offers-strip__list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(14rem, 100%), 1fr));
+  gap: var(--space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.offers-strip__card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-4);
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-card, var(--radius-m));
+}
+
+.offers-strip__title {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin: 0;
+  color: var(--color-ink);
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.offers-strip__text {
+  margin: 0;
+  color: var(--color-muted);
+  font-size: 12px;
+}
+
+.offers-strip__link {
+  margin-top: var(--space-1);
+  color: var(--color-ink);
+  font-size: 13px;
+  font-weight: 500;
+  text-decoration: none;
+}
+
+/* ---- Figma Section / Store locator (708:120661) ------------------------- */
+.store-locator__body {
+  display: grid;
+  gap: var(--space-5);
+}
+
+.store-locator__list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.store-locator__store {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-4);
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-card, var(--radius-m));
+}
+
+.store-locator__store[data-active] {
+  border-color: var(--color-ink);
+}
+
+.store-locator__pick {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: start;
+  cursor: pointer;
+}
+
+.store-locator__name {
+  color: var(--color-ink);
+  font-size: var(--font-body-size, 16px);
+  font-weight: 500;
+}
+
+.store-locator__address {
+  color: var(--color-muted);
+  font-size: 13px;
+  white-space: pre-line;
+}
+
+.store-locator__meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-4);
+  margin: 0;
+  font-size: 12px;
+}
+
+.store-locator__hours {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--color-muted);
+}
+
+.store-locator__dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background-color: var(--color-success);
+}
+
+.store-locator__directions {
+  color: var(--color-ink);
+  font-weight: 500;
+  text-decoration: none;
+}
+
+.store-locator__map {
+  position: relative;
+  min-height: 18rem;
+  overflow: hidden;
+  border-radius: var(--radius-card, var(--radius-m));
+  background-color: var(--color-surface);
+}
+
+.store-locator__frame {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
+}
+
+.store-locator__show {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  border: 0;
+  background: none;
+  color: var(--color-ink);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.store-locator__pin {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background-color: var(--color-ink);
+  color: var(--color-bg);
+}
+
+.store-locator__map-note {
+  color: var(--color-muted);
+  font-size: 12px;
+  font-weight: 400;
+}
+
+@media screen and (min-width: 990px) {
+  .store-locator__body {
+    grid-template-columns: 22rem minmax(0, 1fr);
+  }
+
+  .store-locator__map {
+    min-height: 0;
+  }
+}
+
+/* ---- Figma Section / Product launch (704:117556) ------------------------ */
+.product-launch {
+  position: relative;
+  isolation: isolate;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-6);
+  padding-block: var(--space-9);
+  text-align: center;
+}
+
+.product-launch__glow {
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+  z-index: -1;
+  width: min(48rem, 100%);
+  height: 26rem;
+  border-radius: 50%;
+  background: radial-gradient(
+    closest-side,
+    color-mix(in srgb, var(--color-brand) 30%, transparent),
+    transparent
+  );
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+
+.product-launch__badge {
+  padding: 3px var(--space-2);
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-button, var(--radius-m));
+  color: var(--color-ink);
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.product-launch__head {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  max-width: 47.5rem;
+}
+
+.product-launch__heading {
+  margin: 0;
+  font-size: calc(2.5rem * var(--font-heading-scale, 1));
+  line-height: 1.05;
+  letter-spacing: -0.02em;
+}
+
+.product-launch__text {
+  margin: 0;
+  color: var(--color-muted);
+  font-size: 18px;
+  line-height: 1.55;
+}
+
+.product-launch__tiles {
+  display: flex;
+  gap: var(--space-4);
+}
+
+.product-launch__tiles[hidden] {
+  display: none;
+}
+
+.product-launch__tile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-1);
+  min-width: 5.5rem;
+  padding: 20px var(--space-5);
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-card, var(--radius-m));
+  background-color: var(--color-surface);
+}
+
+.product-launch__value {
+  color: var(--color-ink);
+  font-family: var(--font-heading);
+  font-size: calc(2.25rem * var(--font-heading-scale, 1));
+  font-weight: 700;
+  line-height: 1.05;
+  font-variant-numeric: tabular-nums;
+}
+
+.product-launch__unit {
+  color: var(--color-muted);
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.product-launch__form {
+  display: flex;
+  gap: var(--space-2);
+  width: min(30rem, 100%);
+}
+
+.product-launch__input {
+  flex: 1 1 auto;
+  min-width: 0;
+  height: 48px;
+  padding-inline: 14px;
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-input, var(--radius-m));
+  background-color: var(--color-bg);
+  color: var(--color-ink);
+  font: inherit;
+}
+
+.product-launch__form .btn,
+.product-launch__shop {
+  height: 48px;
+}
+
+.product-launch__done,
+.product-launch__error {
+  margin: 0;
+  color: var(--color-muted);
+  font-size: 14px;
+}
+
+.product-launch__error {
+  color: var(--color-danger);
+}
+
+@media screen and (min-width: 990px) {
+  .product-launch__heading {
+    font-size: calc(3.5rem * var(--font-heading-scale, 1));
+  }
+
+  .product-launch__value {
+    font-size: calc(3.5rem * var(--font-heading-scale, 1));
+  }
+}

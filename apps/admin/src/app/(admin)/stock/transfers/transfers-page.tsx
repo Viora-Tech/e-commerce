@@ -2,7 +2,7 @@
 
 import { siteConfig } from '@commerce/config/site'
 import { permissions } from '@commerce/core/permissions'
-import { Plus, SquarePlus } from '@commerce/ui/icons'
+import { Plus } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Kbd } from '@commerce/ui/shadcn/kbd'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@commerce/ui/shadcn/tooltip'
@@ -12,9 +12,9 @@ import { parseAsInteger, parseAsString, parseAsStringLiteral, useQueryStates } f
 import { Suspense, useEffect, useRef, useState } from 'react'
 import AddLocationDialog from '@/components/inventory/add-location-dialog'
 import type { StoreLocation } from '@/components/inventory/location-select'
-import PillTabs from '@/components/layout/pill-tabs'
 import ProoflyListPage from '@/components/layout/proofly-list-page'
 import ResourceTable from '@/components/table/resource-table'
+import ViewSelect from '@/components/table/view-select'
 import SingleLocation from '@/components/transfers/single-location'
 import { transferColumns } from '@/components/transfers/transfer-columns'
 import { TRANSFER_STATUSES, type TransferStatus, transfersContent } from '@/data/inventory'
@@ -93,7 +93,7 @@ function TransfersContent({ initial }: { initial: TransfersInitial }) {
       <TooltipTrigger
         render={
           <Button render={<Link href={NEW_HREF} />} nativeButton={false}>
-            <SquarePlus strokeWidth={1.6} />
+            <Plus strokeWidth={1.6} />
             {copy.create}
           </Button>
         }
@@ -124,12 +124,11 @@ function TransfersContent({ initial }: { initial: TransfersInitial }) {
           query={q.query}
           onQueryChange={(query) => setQ({ query, page: 1 })}
           onClearAll={() => setQ({ query: '', status: null, page: 1 })}
-          tabs={
-            <PillTabs
-              variant="segmented"
+          views={
+            <ViewSelect
               value={q.status}
               onChange={(status) => setQ({ status, page: 1 })}
-              tabs={[
+              options={[
                 { value: null, label: copy.tabs.all, count: initial.allCount },
                 ...TRANSFER_STATUSES.map((s) => ({ value: s, label: copy.status[s] })),
               ]}

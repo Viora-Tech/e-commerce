@@ -10,6 +10,7 @@ export const signupPopupContent = {
   successText: 'Use this code on your first order over ₹999:',
   discountCode: 'WELCOME100',
   close: 'Close',
+  dismiss: 'No thanks',
   copy: 'Copy',
   copied: 'Copied',
   emailLabel: 'Email',
@@ -25,6 +26,8 @@ export const signupPopupContent = {
     soon: 'after the delay, on any page',
   },
   styleOptions: [
+    { label: 'Split dialog (photo beside the form)', value: 'split' },
+    { label: 'Simple dialog (centred form)', value: 'simple' },
     { label: 'Corner card (slides in bottom-right)', value: 'corner' },
     { label: 'Figure pop-out (centred, product rises out)', value: 'figure' },
     { label: 'Drop feed (recent drops, then signup)', value: 'feed' },
@@ -40,7 +43,7 @@ export const signupPopupContent = {
   ],
   fields: {
     style: 'Style',
-    image: 'Photo (corner card)',
+    image: 'Photo (split dialog and corner card)',
     figureProduct: 'Figure from product (handle, figure pop-out)',
     feedProducts: 'Drops to list (drop feed, up to 3)',
     feedHandle: 'Product handle',

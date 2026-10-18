@@ -10,6 +10,7 @@ import {
   Home,
   MapPinLineIcon,
   Palette,
+  PlugConnect,
   ReceiptIcon,
   ShieldCheck,
   ShoppingCart,
@@ -71,6 +72,12 @@ export const SETTINGS_GROUPS: SettingsGroup[] = [
         title: 'Locations & warehouses',
         body: 'Where you keep stock, and which GST number each place bills under.',
         icon: MapPinLineIcon,
+      },
+      {
+        href: routes.settings.billing(),
+        title: 'Plan & billing',
+        body: 'Your plan, what your store used this month, and your invoices.',
+        icon: CreditCard,
       },
     ],
   },
@@ -170,15 +177,21 @@ export const SETTINGS_GROUPS: SettingsGroup[] = [
         icon: AiIcon,
       },
       {
+        href: routes.settings.mcp(),
+        title: 'MCP & API',
+        body: 'AI tools like Claude, ChatGPT and Cursor, access tokens for scripts, and what they did.',
+        icon: PlugConnect,
+      },
+      {
         href: routes.settings.customData(),
         title: 'Custom data',
         body: 'Extra fields on products and collections, and your content types.',
         icon: Braces,
       },
       {
-        // Your own light/dark and accent; the page lives under your account, linked here too
-        // so nobody hunts for it.
-        href: routes.account.appearance(),
+        // Your own light/dark and accent, plus the owner's store default accent. The account
+        // menu opens the same page under Account.
+        href: routes.settings.appearance(),
         title: 'Appearance',
         body: 'Light or dark mode and your accent colour, just for you.',
         icon: Palette,
@@ -362,11 +375,13 @@ export const settingsHomeContent = {
     heading: 'All settings',
   },
   elsewhere: {
-    personal: 'Your language and how the admin looks are yours, not the store’s:',
+    personal: 'Your profile, sign-in and language are yours, not the store’s:',
     account: 'Account',
-    appearance: 'Appearance',
     personalWhere: '(also in the menu under your initials, top right).',
     storage: 'Where uploads are stored:',
     storageLink: 'Content › Files › Storage',
   },
 } as const
+
+/** The "‹ Settings" link every settings page shows above its title. */
+export const SETTINGS_BACK = { href: SETTINGS_HOME.href, label: settingsContent.nav.back }

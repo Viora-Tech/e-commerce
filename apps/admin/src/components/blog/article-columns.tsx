@@ -1,5 +1,5 @@
 import { displayStatus } from '@commerce/core/blog'
-import StatusChip from '@/components/layout/status-chip'
+import OrderChip from '@/components/orders/order-chip'
 import ProductThumb from '@/components/products/product-thumb'
 import type { ResourceColumnSpec } from '@/components/table/resource-table'
 import type { blogListContent } from '@/data/blog'
@@ -25,9 +25,9 @@ export function articleColumns(
         <span className="flex items-center gap-3 text-left">
           <ProductThumb url={a.imageUrl} />
           <span className="flex min-w-0 flex-col">
-            <span className="line-clamp-2 font-medium text-ink-strong">{a.title}</span>
-            {a.author ? (
-              <span className="truncate text-caption text-muted-foreground">{a.author}</span>
+            <span className="line-clamp-1 text-ink-strong">{a.title}</span>
+            {a.excerpt ? (
+              <span className="line-clamp-1 text-caption text-muted-foreground">{a.excerpt}</span>
             ) : null}
           </span>
         </span>
@@ -43,19 +43,37 @@ export function articleColumns(
       id: 'status',
       title: copy.columns.status,
       sortValue: (a) => displayStatus(a.status, a.publishedAt),
-      align: 'center',
-      render: (a) => <StatusChip>{copy.status[displayStatus(a.status, a.publishedAt)]}</StatusChip>,
+      render: (a) => {
+        const status = displayStatus(a.status, a.publishedAt)
+        return (
+          <OrderChip
+            kind="article"
+            value={status}
+            label={
+              status === 'scheduled' && a.publishedAt
+                ? copy.scheduledFor(fmt.pattern(a.publishedAt, { day: 'numeric', month: 'short' }))
+                : copy.status[status]
+            }
+          />
+        )
+      },
+    },
+    {
+      id: 'author',
+      title: copy.columns.author,
+      sortValue: (a) => a.author,
+      render: (a) => a.author || <span className="text-muted-foreground">{copy.none}</span>,
     },
     {
       id: 'published',
       title: copy.columns.published,
       sortValue: (a) => (a.publishedAt ? new Date(a.publishedAt) : null),
-      align: 'end',
-      render: (a) => (
-        <span className="text-muted-foreground">
-          {a.publishedAt && a.status !== 'draft' ? fmt.when(a.publishedAt) : copy.none}
-        </span>
-      ),
+      render: (a) =>
+        a.publishedAt && displayStatus(a.status, a.publishedAt) === 'published' ? (
+          fmt.pattern(a.publishedAt, { day: 'numeric', month: 'short' })
+        ) : (
+          <span className="text-muted-foreground">{copy.none}</span>
+        ),
     },
   ]
 }

@@ -1,6 +1,5 @@
 'use client'
 
-import { Card, CardContent, CardHeader, CardTitle } from '@commerce/ui/shadcn/card'
 import { Checkbox } from '@commerce/ui/shadcn/checkbox'
 import { Field, FieldDescription, FieldGroup, FieldLabel } from '@commerce/ui/shadcn/field'
 import { Input } from '@commerce/ui/shadcn/input'
@@ -8,6 +7,7 @@ import { Separator } from '@commerce/ui/shadcn/separator'
 import { Switch } from '@commerce/ui/shadcn/switch'
 import { Textarea } from '@commerce/ui/shadcn/textarea'
 import type { ReactNode } from 'react'
+import DataCard from '@/components/layout/data-card'
 import StatusLabel from '@/components/status/status-label'
 import { providerSettingsContent as copy } from '@/data/provider-settings'
 
@@ -120,49 +120,51 @@ export default function ProviderCard({
   const switchId = `provider-${provider.id}-enabled`
 
   return (
-    <Card size="form">
-      <CardHeader className="flex flex-row items-center justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <CardTitle>{provider.label}</CardTitle>
+    <DataCard
+      title={
+        <>
+          {provider.label}
           <StatusLabel
             kind="provider"
             value={enabled ? 'enabled' : 'disabled'}
             size="sm"
             label={enabled ? copy.active : copy.off}
           />
-        </div>
+        </>
+      }
+      action={
         <label htmlFor={switchId} className="flex items-center gap-2 text-body">
           <span className="text-muted-foreground">{copy.enabled}</span>
           <Switch id={switchId} checked={enabled} onCheckedChange={onToggle} />
         </label>
-      </CardHeader>
-      <CardContent className="flex flex-col gap-5">
-        {description ? <div className="text-body text-muted-foreground">{description}</div> : null}
-        {provider.fields.length > 0 ? (
-          <FieldGroup>
-            {provider.fields.map((f) => (
-              <ProviderField
-                key={f.key}
-                providerId={provider.id}
-                field={f}
-                value={values[f.key] ?? ''}
-                onChange={(v) => onField(f.key, v)}
-              />
-            ))}
-          </FieldGroup>
-        ) : (
-          <p className="text-body text-muted-foreground">{noConfigText ?? copy.noConfig}</p>
-        )}
-        {hint && provider.fields.length > 0 ? (
-          <div className="text-caption leading-relaxed text-muted-foreground-soft">{hint}</div>
-        ) : null}
-        {enabled && extra ? (
-          <>
-            <Separator />
-            {extra}
-          </>
-        ) : null}
-      </CardContent>
-    </Card>
+      }
+      bodyClassName="flex flex-col gap-5"
+    >
+      {description ? <div className="text-body text-muted-foreground">{description}</div> : null}
+      {provider.fields.length > 0 ? (
+        <FieldGroup>
+          {provider.fields.map((f) => (
+            <ProviderField
+              key={f.key}
+              providerId={provider.id}
+              field={f}
+              value={values[f.key] ?? ''}
+              onChange={(v) => onField(f.key, v)}
+            />
+          ))}
+        </FieldGroup>
+      ) : (
+        <p className="text-body text-muted-foreground">{noConfigText ?? copy.noConfig}</p>
+      )}
+      {hint && provider.fields.length > 0 ? (
+        <div className="text-caption leading-relaxed text-muted-foreground-soft">{hint}</div>
+      ) : null}
+      {enabled && extra ? (
+        <>
+          <Separator />
+          {extra}
+        </>
+      ) : null}
+    </DataCard>
   )
 }

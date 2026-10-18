@@ -1,9 +1,9 @@
 import { formatNumber } from '@commerce/money'
+import StatStrip from '@/components/layout/stat-strip'
 import { inventoryContent } from '@/data/inventory'
 import { useCopy } from '@/hooks/use-copy'
 import type { api } from '@/lib/api-client'
 import { formatPaise } from '@/lib/money'
-import StatTile from './stat-tile'
 
 export type InventoryStats = Awaited<ReturnType<typeof api.inventory.stats>>
 
@@ -16,19 +16,33 @@ export default function InventoryTiles({ stats }: InventoryTilesProps) {
 
   // Render logic
   return (
-    <>
-      <StatTile title={copy.skus} value={formatNumber(stats.skus)} caption={copy.skusCaption} />
-      <StatTile title={copy.out} value={formatNumber(stats.outOfStock)} caption={copy.outCaption} />
-      <StatTile
-        title={copy.low}
-        value={formatNumber(stats.lowStock)}
-        caption={copy.lowCaption(stats.lowThreshold)}
-      />
-      <StatTile
-        title={copy.value}
-        value={formatPaise(stats.valuePaise)}
-        caption={copy.valueCaption}
-      />
-    </>
+    <StatStrip
+      tiles={[
+        {
+          id: 'skus',
+          label: copy.skus,
+          value: formatNumber(stats.skus),
+          note: copy.skusCaption,
+        },
+        {
+          id: 'out',
+          label: copy.out,
+          value: formatNumber(stats.outOfStock),
+          note: copy.outCaption,
+        },
+        {
+          id: 'low',
+          label: copy.low,
+          value: formatNumber(stats.lowStock),
+          note: copy.lowCaption(stats.lowThreshold),
+        },
+        {
+          id: 'value',
+          label: copy.value,
+          value: formatPaise(stats.valuePaise),
+          note: copy.valueCaption,
+        },
+      ]}
+    />
   )
 }

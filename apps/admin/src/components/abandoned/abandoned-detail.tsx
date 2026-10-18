@@ -1,13 +1,13 @@
 'use client'
 
 import { permissions } from '@commerce/core/permissions'
-import { Copy } from '@commerce/ui/icons'
+import { Copy, ShoppingCart } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { toast } from 'sonner'
+import PageHeader from '@/components/layout/page-header'
 import ProoflyDetailPage from '@/components/layout/proofly-detail-page'
-import ProoflyPageHeader from '@/components/layout/proofly-page-header'
 import { abandonedDetailContent } from '@/data/abandoned-detail'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { usePermissions } from '@/hooks/use-permissions'
@@ -66,14 +66,16 @@ export default function AbandonedDetail({ checkout }: AbandonedDetailProps) {
   return (
     <ProoflyDetailPage
       header={
-        <ProoflyPageHeader
+        <PageHeader
           title={copy.heading(refOf(checkout.id))}
           summary={copy.summary(
             who,
-            fmt.when(checkout.updatedAt),
+            fmt.ago(checkout.updatedAt),
             fmt.money(checkout.subtotalPaise),
           )}
           back={{ label: copy.back.label, href: routes.orders.abandonedCheckouts() }}
+          lead={{ kind: 'icon', node: <ShoppingCart aria-hidden="true" /> }}
+          size="sm"
           actions={
             <>
               {checkout.recoveryUrl ? (

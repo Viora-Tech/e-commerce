@@ -17,14 +17,14 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
+import PageHeader from '@/components/layout/page-header'
 import SaveBar from '@/components/layout/save-bar'
-import { settingsContent } from '@/data/settings'
+import { SETTINGS_BACK, settingsContent } from '@/data/settings'
 import { taxesContent } from '@/data/taxes'
 import { useSetupNext } from '@/hooks/use-setup-next'
 import { api } from '@/lib/api-client'
 import GeneralCompletion, { detailsDone } from './general-completion'
 import SettingsCard from './settings-card'
-import SettingsPageHeader from './settings-page-header'
 import SettingsPhoneRow from './settings-phone-row'
 import SettingsRow from './settings-row'
 import SettingsTextRow from './settings-text-row'
@@ -137,13 +137,11 @@ export default function GeneralSettings() {
         onDiscard={handleDiscard}
         saving={busy}
       />
-      <SettingsPageHeader
+      <PageHeader
         title={copy.title}
         subtitle={copy.intro}
-        onSave={handleSave}
-        dirty={dirty}
-        saving={busy}
-        saveLabel={copy.save}
+        back={SETTINGS_BACK}
+        save={{ dirty, saving: busy, onSave: handleSave, label: copy.save }}
       />
       {!form ? (
         <LoadingCards />

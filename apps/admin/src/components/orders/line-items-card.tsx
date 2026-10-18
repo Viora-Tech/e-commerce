@@ -1,13 +1,13 @@
 import { PackageCheck } from '@commerce/ui/icons'
-import { cn } from '@commerce/ui/lib/utils'
 import DataCard from '@/components/layout/data-card'
+import TotalsList, { type TotalsLine } from '@/components/layout/totals-list'
 import { orderDetailContent } from '@/data/orders'
 import type { StatusValue } from '@/data/status'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import OrderChip from './order-chip'
 import { type OrderDetail, packedQuantity, unfulfilledLines } from './order-detail-types'
 import OrderLinesTable from './order-lines-table'
-import { type TotalRow, totalRows } from './order-totals'
+import { totalRows } from './order-totals'
 
 type LineItemsCardProps = {
   order: OrderDetail
@@ -29,9 +29,12 @@ export default function LineItemsCard({ order, payment, unfulfilledShown }: Line
   const fmt = useFormat()
 
   // Render logic
-  const rows = totalRows(order, copy, fmt)
-  const charges = rows.filter((r) => !r.settlement)
-  const settled = rows.filter((r) => r.settlement)
+  const lines: TotalsLine[] = totalRows(order, copy, fmt).map((r) => ({
+    label: r.label,
+    value: r.value,
+    quiet: r.muted,
+    strong: r.strong,
+  }))
   const packed = order.lines
     .map((line) => ({ line, quantity: packedQuantity(order, line) }))
     .filter((l) => l.quantity > 0)
@@ -56,52 +59,11 @@ export default function LineItemsCard({ order, payment, unfulfilledShown }: Line
           <OrderLinesTable rows={waiting} />
         </DataCard>
       ) : null}
-      <DataCard title={copy.items.summary}>
-        {/* Saleor's bottom row: what the order costs on the left, what was paid on the right. */}
-        <div className="grid gap-4 md:grid-cols-2">
-          <SummaryBox rows={charges} />
-          <SummaryBox rows={settled} heading={copy.items.paymentSummary} pill={payment} />
-        </div>
+      {/* Figma "Orders / Order detail" › Payment: the payment pill in the header, what the order
+          costs (subtotal, discount, shipping, the GST split), a rule, then what was settled. */}
+      <DataCard title={copy.payment.heading} icon={<OrderChip kind="payment" value={payment} />}>
+        <TotalsList lines={lines} />
       </DataCard>
     </>
-  )
-}
-
-type SummaryBoxProps = {
-  rows: TotalRow[]
-  heading?: string
-  pill?: StatusValue<'payment'>
-}
-
-function SummaryBox({ rows, heading, pill }: SummaryBoxProps) {
-  return (
-    <div
-      className={cn(
-        'flex flex-col gap-3',
-        heading && 'rounded-xl border border-hairline bg-muted/50 p-4',
-      )}
-    >
-      {heading ? (
-        <div className="flex items-center justify-between gap-3">
-          <p className="text-body font-medium text-ink-strong">{heading}</p>
-          {pill ? <OrderChip kind="payment" value={pill} /> : null}
-        </div>
-      ) : null}
-      <dl className="flex flex-col gap-2 text-body">
-        {rows.map((r) => (
-          <div
-            key={r.label}
-            className={cn(
-              'flex justify-between gap-4',
-              r.strong && 'font-semibold text-ink-strong',
-              r.muted && 'text-muted-foreground',
-            )}
-          >
-            <dt>{r.label}</dt>
-            <dd className="tabular-nums">{r.value}</dd>
-          </div>
-        ))}
-      </dl>
-    </div>
   )
 }

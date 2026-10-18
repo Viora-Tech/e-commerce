@@ -1,5 +1,5 @@
 import { formatPercent } from '@commerce/money'
-import StatTile from '@/components/layout/stat-tile'
+import StatStrip from '@/components/layout/stat-strip'
 import { type AbandonedListFilter, abandonedContent as copy } from '@/data/drafts'
 import { useFormat } from '@/hooks/use-copy'
 
@@ -24,37 +24,40 @@ export default function AbandonedTiles({ stats, status, onSelect }: AbandonedTil
   // Hooks
   const fmt = useFormat()
 
-  // Event handlers
-  const handlePick = (next: AbandonedListFilter) => onSelect(status === next ? null : next)
-
+  // Render logic
   return (
-    <>
-      <StatTile
-        label={copy.tiles.carts}
-        note={copy.tiles.period}
-        value={fmt.number(stats.carts)}
-        onSelect={() => onSelect(null)}
-        active={status === null}
-      />
-      <StatTile
-        label={copy.tiles.recovered}
-        note={copy.tiles.recoveryRate(formatPercent(stats.recoveryRate))}
-        value={fmt.number(stats.recovered)}
-        onSelect={() => handlePick('recovered')}
-        active={status === 'recovered'}
-      />
-      <StatTile
-        label={copy.tiles.value}
-        note={copy.tiles.period}
-        value={fmt.money(stats.valuePaise)}
-      />
-      <StatTile
-        label={copy.tiles.reminders}
-        note={copy.tiles.period}
-        value={fmt.number(stats.remindersSent)}
-        onSelect={() => handlePick('reminder_sent')}
-        active={status === 'reminder_sent'}
-      />
-    </>
+    <StatStrip
+      active={status}
+      onChange={onSelect}
+      tiles={[
+        {
+          id: 'carts',
+          label: copy.tiles.carts,
+          note: copy.tiles.period,
+          value: fmt.number(stats.carts),
+          filter: null,
+        },
+        {
+          id: 'recovered',
+          label: copy.tiles.recovered,
+          note: copy.tiles.recoveryRate(formatPercent(stats.recoveryRate)),
+          value: fmt.number(stats.recovered),
+          filter: 'recovered',
+        },
+        {
+          id: 'value',
+          label: copy.tiles.value,
+          note: copy.tiles.period,
+          value: fmt.money(stats.valuePaise),
+        },
+        {
+          id: 'reminders',
+          label: copy.tiles.reminders,
+          note: copy.tiles.period,
+          value: fmt.number(stats.remindersSent),
+          filter: 'reminder_sent',
+        },
+      ]}
+    />
   )
 }

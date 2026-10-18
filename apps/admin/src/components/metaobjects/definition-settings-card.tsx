@@ -1,7 +1,6 @@
 'use client'
 
 import type { FieldDefinition } from '@commerce/core/metaobjects'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@commerce/ui/shadcn/card'
 import {
   Select,
   SelectContent,
@@ -9,6 +8,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@commerce/ui/shadcn/select'
+import DataCard from '@/components/layout/data-card'
 import { definitionFormContent } from '@/data/metaobjects'
 import { useCopy } from '@/hooks/use-copy'
 import ToggleField from './toggle-field'
@@ -46,46 +46,35 @@ export default function DefinitionSettingsCard({
 
   return (
     <>
-      <Card>
-        <CardHeader>
-          <CardTitle>{copy.display.heading}</CardTitle>
-          <CardDescription>{copy.display.body}</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Select
-            items={items}
-            value={value}
-            onValueChange={(v) =>
-              onChange({ displayNameKey: v === NONE || v === null ? null : String(v) })
-            }
-          >
-            <SelectTrigger className="w-full" aria-label={copy.display.heading}>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {Object.entries(items).map(([key, label]) => (
-                <SelectItem key={key} value={key}>
-                  {label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </CardContent>
-      </Card>
-      <Card>
-        <CardHeader>
-          <CardTitle>{copy.access.heading}</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <ToggleField
-            id="definition-storefront"
-            label={copy.access.storefront}
-            help={copy.access.storefrontHelp}
-            checked={storefrontAccess}
-            onChange={(v) => onChange({ storefrontAccess: v })}
-          />
-        </CardContent>
-      </Card>
+      <DataCard title={copy.display.heading} subtitle={copy.display.body}>
+        <Select
+          items={items}
+          value={value}
+          onValueChange={(v) =>
+            onChange({ displayNameKey: v === NONE || v === null ? null : String(v) })
+          }
+        >
+          <SelectTrigger className="w-full" aria-label={copy.display.heading}>
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {Object.entries(items).map(([key, label]) => (
+              <SelectItem key={key} value={key}>
+                {label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </DataCard>
+      <DataCard title={copy.access.heading}>
+        <ToggleField
+          id="definition-storefront"
+          label={copy.access.storefront}
+          help={copy.access.storefrontHelp}
+          checked={storefrontAccess}
+          onChange={(v) => onChange({ storefrontAccess: v })}
+        />
+      </DataCard>
     </>
   )
 }

@@ -4,6 +4,7 @@ import { promoBentoContent as copy } from '../../../data/zero-drift/promo-bento'
 import { type FocalPoint, focalStyle } from '../../../focal-point'
 import { linkTarget } from '../../../link'
 import { safeHref } from '../../../slot-types'
+import Icon from '../../icon'
 import Picture from '../../picture'
 
 export type PromoTileView = {
@@ -76,6 +77,11 @@ export default function PromoTile({ tile, reveal }: PromoTileProps) {
           {tile.eyebrow ? <span className="promo-tile__eyebrow">{tile.eyebrow}</span> : null}
           {tile.title ? <span className="promo-tile__title">{tile.title}</span> : null}
           {tile.subtitle ? <span className="promo-tile__subtitle">{tile.subtitle}</span> : null}
+          {href ? (
+            <span className="promo-tile__cta" aria-hidden="true">
+              {copy.cta} <Icon name="arrow-right" size={16} />
+            </span>
+          ) : null}
         </div>
       ) : null}
     </>

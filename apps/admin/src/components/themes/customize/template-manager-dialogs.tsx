@@ -1,8 +1,8 @@
 'use client'
 
+import ConfirmDialog from '@/components/layout/confirm-dialog'
 import { customizeContent } from '@/data/customize'
 import type { useTemplateManager } from '@/lib/use-template-manager'
-import DeleteTemplateDialog from './delete-template-dialog'
 import RenameTemplateDialog from './rename-template-dialog'
 import { usedLabel } from './template-list'
 
@@ -31,12 +31,17 @@ export default function TemplateManagerDialogs({ manager }: TemplateManagerDialo
   if (pending?.action !== 'delete') return null
 
   // Render logic
+  const deleteCopy = copy.deleteDialog
+  const used = usedLabel(manager, pending.kind, pending.suffix)
   return (
-    <DeleteTemplateDialog
-      name={copy.alternate(copy.names[pending.kind], pending.suffix)}
-      used={usedLabel(manager, pending.kind, pending.suffix)}
-      onCancel={() => manager.setPending(null)}
-      onConfirm={manager.remove}
+    <ConfirmDialog
+      open
+      onOpenChange={(open) => !open && manager.setPending(null)}
+      title={deleteCopy.title(copy.alternate(copy.names[pending.kind], pending.suffix))}
+      body={used ? `${deleteCopy.body} ${deleteCopy.fallback(used)}` : deleteCopy.body}
+      confirmLabel={deleteCopy.confirm}
+      cancelLabel={deleteCopy.cancel}
+      onConfirm={() => void manager.remove()}
     />
   )
 }

@@ -8,13 +8,13 @@ import { FieldGroup } from '@commerce/ui/shadcn/field'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { toast } from 'sonner'
+import ConfirmDialog from '@/components/layout/confirm-dialog'
+import PageHeader from '@/components/layout/page-header'
 import ProoflyDetailPage from '@/components/layout/proofly-detail-page'
-import ProoflyPageHeader from '@/components/layout/proofly-page-header'
 import SaveBar from '@/components/layout/save-bar'
 import { entryFormContent, entryListContent } from '@/data/metaobjects'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
-import ConfirmDelete from './confirm-delete'
 import EntrySideCards from './entry-side-cards'
 import FieldInput from './field-input'
 import {
@@ -132,7 +132,7 @@ export default function EntryForm({ definition, entry, title }: EntryFormProps) 
   return (
     <ProoflyDetailPage
       header={
-        <ProoflyPageHeader
+        <PageHeader
           title={title ?? copy.newTitle(definition.name)}
           back={{ label: definition.name, href: entriesPath(definition.type) }}
           actions={
@@ -191,15 +191,15 @@ export default function EntryForm({ definition, entry, title }: EntryFormProps) 
         }}
         saving={busy}
       />
-      <ConfirmDelete
+      <ConfirmDialog
         open={confirmDelete}
-        busy={busy}
+        onOpenChange={setConfirmDelete}
         title={listCopy.bulk.confirmTitle(1)}
         body={listCopy.bulk.confirmBody}
-        confirm={listCopy.bulk.confirm}
-        cancel={listCopy.bulk.cancel}
-        onOpenChange={setConfirmDelete}
-        onConfirm={handleDelete}
+        confirmLabel={listCopy.bulk.confirm}
+        cancelLabel={listCopy.bulk.cancel}
+        busy={busy}
+        onConfirm={() => void handleDelete()}
       />
     </ProoflyDetailPage>
   )

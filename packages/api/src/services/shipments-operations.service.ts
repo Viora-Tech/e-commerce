@@ -10,13 +10,27 @@ import {
   schedulePickup,
 } from '@commerce/core'
 import type { StoreTx } from '@commerce/db'
-import { order, shipment, shipmentManifest, shipmentPickup, store } from '@commerce/db'
+import {
+  fulfillmentOrder,
+  location,
+  order,
+  shipment,
+  shipmentManifest,
+  shipmentPickup,
+  store,
+} from '@commerce/db'
 import type { NdrAction } from '@commerce/shipping'
 import { ORPCError } from '@orpc/server'
 import { and, desc, eq, inArray } from 'drizzle-orm'
 import { courierToRpc, requireProvider, requireProviderById } from './shipments-workspace.service'
 import { loadShippingSettings } from './shipping.service'
 
+/**
+ * Ask each courier to collect its own parcels: the shipments are grouped by the courier that
+ * holds them and by the pickup location they leave from (the parcel's location name on the
+ * courier, else Settings › Shipping's warehouse), one pickup request per group. Parcels shipped
+ * by hand (a courier that is not connected) are left out.
+ */
 export async function schedulePickupForStore(
   tx: StoreTx,
   storeId: string,
@@ -24,12 +38,46 @@ export async function schedulePickupForStore(
   secret: string,
   input: { shipmentIds: string[]; date: string; timeFrom: string; timeTo?: string | undefined },
 ) {
-  const provider = await requireProvider(tx, storeId, registry, secret)
   const settings = await loadShippingSettings(tx, storeId)
-  return schedulePickup({ storeId, tx }, provider, {
-    ...input,
-    pickupLocationName: settings.policy.warehouse.name || 'Warehouse',
-  }).catch(courierToRpc)
+  const { providers } = resolveShippingProviders(registry, settings, secret)
+  const rows = await tx
+    .select({
+      id: shipment.id,
+      provider: shipment.provider,
+      pickup: location.courierPickup,
+    })
+    .from(shipment)
+    .leftJoin(fulfillmentOrder, eq(fulfillmentOrder.id, shipment.fulfillmentOrderId))
+    .leftJoin(location, eq(location.id, fulfillmentOrder.locationId))
+    .where(inArray(shipment.id, input.shipmentIds))
+  const fallbackName = settings.policy.warehouse.name || 'Warehouse'
+  const groups = new Map<string, { providerId: string; place: string; ids: string[] }>()
+  for (const row of rows) {
+    if (!providers.some((p) => p.id === row.provider)) continue
+    const place = row.pickup?.pickupName || fallbackName
+    const key = `${row.provider}|${place}`
+    const group = groups.get(key) ?? { providerId: row.provider, place, ids: [] }
+    group.ids.push(row.id)
+    groups.set(key, group)
+  }
+  if (groups.size === 0) {
+    throw new ORPCError('PRECONDITION_FAILED', {
+      message: 'None of these parcels is with a connected courier.',
+    })
+  }
+  const pickups = []
+  for (const group of groups.values()) {
+    const provider = providers.find((p) => p.id === group.providerId)
+    if (!provider) continue
+    pickups.push(
+      await schedulePickup({ storeId, tx }, provider, {
+        ...input,
+        shipmentIds: group.ids,
+        pickupLocationName: group.place,
+      }).catch(courierToRpc),
+    )
+  }
+  return pickups
 }
 
 export async function createManifestForStore(

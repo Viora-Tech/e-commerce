@@ -6,8 +6,9 @@ import { Button } from '@commerce/ui/shadcn/button'
 import { Card } from '@commerce/ui/shadcn/card'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
+import ConfirmDialog from '@/components/layout/confirm-dialog'
 import EmptyState from '@/components/layout/empty-state'
-import ProoflyPageHeader from '@/components/layout/proofly-page-header'
+import PageHeader from '@/components/layout/page-header'
 import ResourceTable, { type ResourceColumnSpec } from '@/components/table/resource-table'
 import RowMenu from '@/components/table/row-menu'
 import { growthLinksContent, growthOverviewContent } from '@/data/growth'
@@ -15,7 +16,6 @@ import { useCopy, useFormat } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 import type { Formatters } from '@/lib/format'
 import { routes } from '@/lib/routes'
-import DeleteLinkDialog from './delete-link-dialog'
 import LinkDialog from './link-dialog'
 
 type ListResult = Awaited<ReturnType<typeof api.shortLinks.list>>
@@ -41,7 +41,7 @@ function linkColumns(
       className: 'w-[26%] whitespace-normal',
       render: (l) => (
         <span className="flex flex-col text-left">
-          <span className="line-clamp-1 font-medium text-ink-strong">{l.name}</span>
+          <span className="line-clamp-1 text-ink-strong">{l.name}</span>
           <span className="text-caption text-muted-foreground">{`${host}${shortLinkPath(l.slug)}`}</span>
         </span>
       ),
@@ -74,13 +74,15 @@ function linkColumns(
       title: copy.columns.revenue,
       align: 'end',
       sortValue: (l) => l.revenuePaise,
-      render: (l) => <span className="font-medium tabular-nums">{fmt.money(l.revenuePaise)}</span>,
+      render: (l) => <span className="tabular-nums">{fmt.money(l.revenuePaise)}</span>,
     },
     {
       id: 'created',
       title: copy.columns.created,
       sortValue: (l) => new Date(l.createdAt).getTime(),
-      render: (l) => <span className="tabular-nums">{fmt.day(l.createdAt)}</span>,
+      render: (l) => (
+        <span className="text-muted-foreground tabular-nums">{fmt.day(l.createdAt)}</span>
+      ),
     },
   ]
 }
@@ -152,8 +154,8 @@ export default function LinksPage({ storefrontOrigin }: LinksPageProps) {
   )
 
   return (
-    <div className="mx-auto flex w-full max-w-[81.5rem] flex-col gap-6 px-4 py-6 md:px-8 md:py-8">
-      <ProoflyPageHeader
+    <div className="flex w-full flex-col gap-6 px-4 py-6 md:px-8 md:py-8">
+      <PageHeader
         title={copy.title}
         summary={
           totals === null
@@ -213,9 +215,13 @@ export default function LinksPage({ storefrontOrigin }: LinksPageProps) {
         />
       ) : null}
       {deleting ? (
-        <DeleteLinkDialog
-          name={deleting.name}
-          onCancel={() => setDeleting(null)}
+        <ConfirmDialog
+          open
+          onOpenChange={(open) => !open && setDeleting(null)}
+          title={copy.deleteDialog.title(deleting.name)}
+          body={copy.deleteDialog.body}
+          confirmLabel={copy.deleteDialog.confirm}
+          cancelLabel={copy.deleteDialog.cancel}
           onConfirm={handleDelete}
         />
       ) : null}

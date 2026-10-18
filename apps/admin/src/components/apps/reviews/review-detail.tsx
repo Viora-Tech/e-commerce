@@ -13,7 +13,7 @@ import type { AppPageProps } from '@/apps/registry'
 import EmptyState from '@/components/layout/empty-state'
 import PageColumns from '@/components/layout/page-columns'
 import PageHeader from '@/components/layout/page-header'
-import StatusLabel from '@/components/status/status-label'
+import OrderChip from '@/components/orders/order-chip'
 import { reviewsContent } from '@/data/reviews'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
@@ -96,11 +96,8 @@ export default function ReviewDetail({ params }: AppPageProps) {
     <div className="flex flex-col gap-5">
       <PageHeader
         title={copy.title(r.reviewerName)}
-        breadcrumbs={[
-          { label: copy.back, href: routes.apps.page('reviews') },
-          { label: r.reviewerName },
-        ]}
-        badges={<StatusLabel kind="review" value={r.status} variant="pill" />}
+        back={{ label: copy.back, href: routes.apps.page('reviews') }}
+        badges={<OrderChip kind="review" value={r.status} />}
         actions={
           <>
             {r.status !== 'hidden' ? (

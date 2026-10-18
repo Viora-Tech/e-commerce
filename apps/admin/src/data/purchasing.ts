@@ -37,6 +37,8 @@ export const suppliersContent = {
 export const supplierFormContent = {
   newTitle: 'Add supplier',
   back: 'Suppliers',
+  billsIn: (currency: string) => `bills in ${currency}`,
+  orderCount: (n: number) => `${n} purchase ${n === 1 ? 'order' : 'orders'}`,
   details: {
     heading: 'Supplier',
     name: 'Name',
@@ -140,6 +142,14 @@ export const inboundShipmentFormContent = {
   newTitle: 'Create inbound shipment',
   title: (n: number) => `Inbound shipment #IS${n}`,
   back: 'Inbound shipments',
+  billOfEntry: (no: string) => `Bill of Entry ${no}`,
+  glance: {
+    heading: 'At a glance',
+    orders: 'Purchase orders',
+    units: 'Units arriving',
+    charges: 'Charges in cost',
+    landed: 'Landed total',
+  },
   details: {
     heading: 'Shipment',
     reference: 'Your reference',

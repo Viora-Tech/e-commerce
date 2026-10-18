@@ -29,6 +29,7 @@
     "@commerce/plugin-emi": "workspace:*",
     "@commerce/plugin-forms": "workspace:*",
     "@commerce/plugin-reviews": "workspace:*",
+    "@commerce/plugin-search-console": "workspace:*",
     "@commerce/plugin-umami": "workspace:*",
     "@commerce/plugin-gst-invoices": "workspace:*",
     "@commerce/plugin-shopify-import": "workspace:*",
@@ -44,6 +45,7 @@
   "devDependencies": {
     "@types/node": "^22.20.4",
     "dotenv": "^18.0.1",
+    "evlog": "^2.30.1",
     "fflate": "^0.8.3",
     "typescript": "~5.9.3",
     "vitest": "^4.1.11"

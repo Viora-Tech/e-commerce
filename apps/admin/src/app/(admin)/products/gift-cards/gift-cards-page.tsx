@@ -2,7 +2,7 @@
 
 import { siteConfig } from '@commerce/config/site'
 import { maskedGiftCardCode } from '@commerce/core/gift-cards'
-import { Gift, SquarePlus } from '@commerce/ui/icons'
+import { Gift, Plus } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Card } from '@commerce/ui/shadcn/card'
 import { Kbd } from '@commerce/ui/shadcn/kbd'
@@ -15,11 +15,11 @@ import GiftCardProductsCard from '@/components/gift-cards/gift-card-products-car
 import GiftCardSettingsCard from '@/components/gift-cards/gift-card-settings-card'
 import GiftCardTiles from '@/components/gift-cards/gift-card-tiles'
 import EmptyState from '@/components/layout/empty-state'
-import PillTabs from '@/components/layout/pill-tabs'
 import ProoflyListPage from '@/components/layout/proofly-list-page'
 import RelativeTime from '@/components/layout/relative-time'
-import StatusLabel from '@/components/status/status-label'
+import OrderChip from '@/components/orders/order-chip'
 import ResourceTable, { type ResourceColumnSpec } from '@/components/table/resource-table'
+import ViewSelect from '@/components/table/view-select'
 import { GIFT_CARD_STATES, type GiftCardStateFilter, giftCardsContent } from '@/data/gift-cards'
 import { api } from '@/lib/api-client'
 import { type ListQuery, sameListQuery } from '@/lib/list-query'
@@ -125,7 +125,7 @@ const columns: ResourceColumnSpec<Item>[] = [
   {
     id: 'status',
     title: copy.columns.status,
-    render: (g) => <StatusLabel kind="giftCard" value={g.state} />,
+    render: (g) => <OrderChip kind="giftCard" value={g.state} />,
   },
 ]
 
@@ -137,11 +137,10 @@ type TabsProps = {
 
 function StateTabs({ value, allCount, onChange }: TabsProps) {
   return (
-    <PillTabs
-      variant="segmented"
+    <ViewSelect<GiftCardStateFilter | null>
       value={value}
       onChange={onChange}
-      tabs={[
+      options={[
         { value: null, label: copy.tabs.all, count: allCount },
         ...GIFT_CARD_STATES.map((s) => ({ value: s, label: copy.tabs[s] })),
       ]}
@@ -204,7 +203,7 @@ function GiftCardsContent({ initial }: { initial: GiftCardsInitial }) {
               render={<Link href={routes.products.newGiftCard()} />}
               nativeButton={false}
             >
-              <SquarePlus strokeWidth={1.6} />
+              <Plus strokeWidth={1.6} />
               {copy.create}
             </Button>
           }
@@ -251,7 +250,7 @@ function GiftCardsContent({ initial }: { initial: GiftCardsInitial }) {
           query={query}
           onQueryChange={(query) => setQ({ query, page: 1 })}
           onClearAll={() => setQ({ query: '', status: null, page: 1 })}
-          tabs={
+          views={
             <StateTabs
               value={status}
               allCount={initial.allCount}

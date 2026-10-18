@@ -1,4 +1,5 @@
 import {
+  address,
   customerSegment,
   type MarketingCampaignStatus,
   marketingCampaign,
@@ -8,7 +9,7 @@ import {
 } from '@commerce/db'
 import { and, asc, desc, eq, inArray, lte, sql } from 'drizzle-orm'
 import { campaignAudience } from './audience'
-import { type CampaignInput, campaignProblems } from './campaign-input'
+import { type CampaignInput, campaignProblems, utmName } from './campaign-input'
 import { applyMergeTags, type EmailBlock, parseEmailBlocks, renderMarketingEmail } from './email'
 import {
   firstName,
@@ -369,15 +370,41 @@ export async function sendCampaignBatch(
   return { sent, failed, done }
 }
 
-/** `Diwali Drop 2026` becomes `diwali-drop-2026` for utm_campaign. */
-export function utmName(name: string): string {
-  return (
-    name
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, '-')
-      .replace(/^-+|-+$/g, '')
-      .slice(0, 60) || 'campaign'
-  )
+export type CampaignOrder = {
+  id: string
+  number: number
+  /** The shipping name, else the order email; null when the order has neither. */
+  customer: string | null
+  totalPaise: number
+  placedAt: Date
+}
+
+/** The newest orders credited to one campaign, for "Orders from this campaign". */
+export async function campaignOrders(
+  tx: StoreTx,
+  campaignId: string,
+  limit = 5,
+): Promise<CampaignOrder[]> {
+  const rows = await tx
+    .select({
+      id: order.id,
+      number: order.number,
+      name: address.name,
+      email: order.email,
+      totalPaise: order.totalPaise,
+      placedAt: order.placedAt,
+    })
+    .from(order)
+    .leftJoin(address, eq(address.id, order.shippingAddressId))
+    .where(
+      and(
+        sql`${order.attribution} ->> 'campaignId' = ${campaignId}`,
+        sql`${order.status} not in ('draft', 'cancelled')`,
+      ),
+    )
+    .orderBy(desc(order.placedAt))
+    .limit(limit)
+  return rows.map(({ name, email, ...o }) => ({ ...o, customer: name ?? email }))
 }
 
 /** Delivery, engagement and attributed orders per campaign. */

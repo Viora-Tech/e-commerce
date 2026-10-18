@@ -14,6 +14,7 @@ import {
 import { registriesForStore } from '@commerce/core/registries'
 import type { StoreTx } from '@commerce/db'
 import { store } from '@commerce/db'
+import { logger } from '@commerce/observability/logging'
 import { eq } from 'drizzle-orm'
 
 export type CheckoutMethod = {
@@ -37,11 +38,17 @@ export async function storePaymentProviders(tx: StoreTx, storeId: string) {
   // Renew a gateway's OAuth token before it is used; a no-op unless one is due.
   const refreshed = await refreshPaymentCredentials({ storeId, tx }, payments, secret)
   for (const r of refreshed) {
-    if (!r.ok) console.warn(`[payments] ${r.providerId} token refresh failed: ${r.error}`)
+    if (!r.ok) {
+      logger.warn('payment token refresh failed', {
+        storeId,
+        provider: r.providerId,
+        reason: r.error,
+      })
+    }
   }
   const settings = await loadSettings(tx, storeId)
   const { providers, errors } = resolvePaymentProviders(payments, settings, secret)
-  if (errors.length) console.warn('[payments] misconfigured providers:', errors.join('; '))
+  if (errors.length) logger.warn('misconfigured payment providers', { storeId, errors })
   return providers
 }
 

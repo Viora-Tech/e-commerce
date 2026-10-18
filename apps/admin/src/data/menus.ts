@@ -112,7 +112,6 @@ export const menusContent = {
       `Delete “${name}”? The storefront stops showing it immediately. This cannot be undone.`,
     cancel: 'Cancel',
     confirm: 'Delete',
-    busy: 'Deleting…',
     done: 'Menu deleted',
     failed: 'Could not delete the menu',
   },

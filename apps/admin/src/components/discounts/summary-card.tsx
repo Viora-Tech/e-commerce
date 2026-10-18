@@ -1,5 +1,5 @@
 import { type DiscountInput, describeDiscountValue } from '@commerce/core/discounts'
-import { Card, CardContent, CardHeader, CardTitle } from '@commerce/ui/shadcn/card'
+import DataCard from '@/components/layout/data-card'
 import { discountFormContent } from '@/data/discounts'
 import { formatPattern } from '@/lib/format-date'
 import { formatPaise } from '@/lib/money'
@@ -59,40 +59,35 @@ export default function SummaryCard({ form, discount }: SummaryCardProps) {
   const valueText = describeValue(input)
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>{copy.heading}</CardTitle>
-      </CardHeader>
-      <CardContent className="flex flex-col gap-4">
+    <DataCard title={copy.heading} bodyClassName="flex flex-col gap-4">
+      <div>
+        <p className="text-body-strong">{title}</p>
+        <p className="font-mono text-caption uppercase tracking-wide">{code}</p>
+      </div>
+      <div>
+        <p className="text-caption">{copy.typeAndMethod}</p>
+        <p className="text-body">
+          {discountFormContent.method.kinds[form.kind].label}
+          {valueText ? `, ${valueText.toLowerCase()}` : ''}
+        </p>
+      </div>
+      <div>
+        <p className="text-caption">{copy.details}</p>
+        <ul className="list-disc pl-4 text-body">
+          {detailLines(form, discount).map((line) => (
+            <li key={line}>{line}</li>
+          ))}
+        </ul>
+      </div>
+      {discount ? (
         <div>
-          <p className="text-body-strong">{title}</p>
-          <p className="font-mono text-caption uppercase tracking-wide">{code}</p>
-        </div>
-        <div>
-          <p className="text-caption">{copy.typeAndMethod}</p>
+          <p className="text-caption">{copy.performance}</p>
           <p className="text-body">
-            {discountFormContent.method.kinds[form.kind].label}
-            {valueText ? `, ${valueText.toLowerCase()}` : ''}
+            {copy.orders(discount.usage.orders)},{' '}
+            {copy.amount(formatPaise(discount.usage.amountPaise))}
           </p>
         </div>
-        <div>
-          <p className="text-caption">{copy.details}</p>
-          <ul className="list-disc pl-4 text-body">
-            {detailLines(form, discount).map((line) => (
-              <li key={line}>{line}</li>
-            ))}
-          </ul>
-        </div>
-        {discount ? (
-          <div>
-            <p className="text-caption">{copy.performance}</p>
-            <p className="text-body">
-              {copy.orders(discount.usage.orders)},{' '}
-              {copy.amount(formatPaise(discount.usage.amountPaise))}
-            </p>
-          </div>
-        ) : null}
-      </CardContent>
-    </Card>
+      ) : null}
+    </DataCard>
   )
 }

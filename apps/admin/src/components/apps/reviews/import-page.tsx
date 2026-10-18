@@ -113,10 +113,7 @@ export default function ImportPage() {
       <PageHeader
         title={copy.title}
         subtitle={copy.subtitle}
-        breadcrumbs={[
-          { label: reviewsContent.detail.back, href: routes.apps.page('reviews') },
-          { label: copy.title },
-        ]}
+        back={{ label: reviewsContent.detail.back, href: routes.apps.page('reviews') }}
       />
       <PageColumns
         main={

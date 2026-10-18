@@ -26,10 +26,13 @@ import {
   addOrderNote,
   getOrder,
   importedSource,
+  listOrderIds,
   listOrders,
   ORDER_VIEWS,
+  orderCouriers,
   orderStats,
   orderTiles,
+  readyToShipCount,
   refundOrderPayment,
   setOrderStatus,
   setOrderTags,
@@ -42,6 +45,7 @@ import {
   orderBalance,
   orderNeighbours,
 } from '../services/order-fulfil.service'
+import { orderSheet } from '../services/order-sheet.service'
 import {
   bookShipment,
   cancelStoreShipment,
@@ -78,13 +82,39 @@ export const ordersRouter = {
         status: z.enum(['open', 'completed', 'cancelled']).optional(),
         paymentStatus: z.array(z.enum(ORDER_PAYMENT_STATUSES)).max(10).optional(),
         fulfillmentStatus: z.array(z.enum(ORDER_FULFILLMENT_STATUSES)).max(10).optional(),
+        /** Placed at or after this moment (the filter panel's Date). */
+        placedFrom: z.iso.datetime().optional(),
+        /** Cash on delivery, or anything paid up front. */
+        paymentMethod: z.enum(['cod', 'prepaid']).optional(),
+        /** Sent with this courier (the filter panel's Courier). */
+        courier: z.string().trim().min(1).max(60).optional(),
       }),
     )
     .handler(({ context, input }) => listOrders(context.tx, input)),
 
+  /** Every order id the list's filters match (the table's "Select all N orders"), up to 5,000. */
+  ids: can(permissions.ORDERS_READ)
+    .input(
+      z.object({
+        search: z.string().trim().max(SEARCH_MAX).optional(),
+        view: z.enum(ORDER_VIEWS).optional(),
+        paymentStatus: z.array(z.enum(ORDER_PAYMENT_STATUSES)).max(10).optional(),
+        fulfillmentStatus: z.array(z.enum(ORDER_FULFILLMENT_STATUSES)).max(10).optional(),
+        placedFrom: z.iso.datetime().optional(),
+        paymentMethod: z.enum(['cod', 'prepaid']).optional(),
+        courier: z.string().trim().min(1).max(60).optional(),
+      }),
+    )
+    .handler(({ context, input }) => listOrderIds(context.tx, input)),
+
+  /** The couriers the store's orders went with (the filter panel's Courier select). */
+  couriers: can(permissions.ORDERS_READ).handler(({ context }) => orderCouriers(context.tx)),
+
   stats: can(permissions.ORDERS_READ).handler(({ context }) => orderStats(context.tx)),
 
   tiles: can(permissions.ORDERS_READ).handler(({ context }) => orderTiles(context.tx)),
+
+  toShipCount: can(permissions.ORDERS_READ).handler(({ context }) => readyToShipCount(context.tx)),
 
   get: can(permissions.ORDERS_READ)
     .input(z.object({ id: z.uuid() }))
@@ -288,20 +318,42 @@ export const ordersRouter = {
       }
     }),
 
-  /** Book the parcel with the store's courier; the order becomes fulfilled and the shopper is told. */
+  /** Book the parcel with the courier picked in the Create shipment flow (the store's first
+   *  courier when none is named); the parcel's items are packed and the shopper is told. */
   createShipment: can(permissions.ORDERS_FULFIL)
-    .input(z.object({ orderId: z.uuid() }))
+    .input(
+      z.object({
+        orderId: z.uuid(),
+        providerId: z.string().min(1).optional(),
+        fulfillmentOrderId: z.guid().optional(),
+        /** A location id, or null for Settings › Shipping's address; omitted picks for you. */
+        pickupLocationId: z.uuid().nullish(),
+        weightGrams: z.number().int().min(1).optional(),
+        dimensionsCm: z
+          .object({
+            length: z.number().min(1),
+            width: z.number().min(1),
+            height: z.number().min(1),
+          })
+          .optional(),
+        paymentMode: z.enum(['cod', 'prepaid']).optional(),
+        codAmountPaise: z.number().int().min(0).optional(),
+        insured: z.boolean().optional(),
+      }),
+    )
     .handler(async ({ context, input }) => {
       await assertNotImported(context.tx, { orderId: input.orderId })
       const { shipping } = await storeRegistries(context.tx, context.scope.storeId)
       // Booking packs what is left; the recompute writes order.fulfilled only
       // if this is what completed the packing.
+      const { orderId, ...choice } = input
       return bookShipment(
         context.tx,
         context.scope.storeId,
         shipping,
         settingsSecret(),
-        input.orderId,
+        orderId,
+        choice,
       )
     }),
 
@@ -400,6 +452,11 @@ export const ordersRouter = {
         author: context.session.user.email,
       }),
     ),
+
+  /** Rows for the Orders bulk-edit spreadsheet, in the order the ids were given. */
+  sheet: can(permissions.ORDERS_READ)
+    .input(z.object({ ids: z.array(z.uuid()).min(1).max(5000) }))
+    .handler(({ context, input }) => orderSheet(context.tx, input.ids)),
 
   setTags: can(permissions.ORDERS_WRITE)
     .input(z.object({ id: z.uuid(), tags: z.array(z.string().trim().min(1).max(40)).max(20) }))

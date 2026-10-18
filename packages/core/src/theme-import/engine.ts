@@ -18,6 +18,7 @@ import {
 } from 'liquidjs'
 import { CommerceError } from '../errors'
 import { escapeAttr, type LiquidRuntime, registerShopifyFilters, stringifyLiquid } from './filters'
+import { MAX_BLOCK_DEPTH } from './schema'
 
 /** Where the forms a theme draws post to: our handlers, never Shopify's endpoints. */
 const THEME_ACTIONS = {
@@ -34,7 +35,9 @@ export type LiquidHooks = {
   /** `{% sections 'header-group' %}`: the layout leaves a marker the storefront fills. */
   renderGroup?: ((name: string) => string) | undefined
   /** `{% content_for 'blocks' %}` and `{% content_for 'block' %}`: theme blocks. */
-  renderThemeBlock?: ((block: unknown, section: unknown, ctx: Context) => string) | undefined
+  renderThemeBlock?:
+    | ((block: unknown, section: unknown, ctx: Context, depth: number) => string)
+    | undefined
   /** `?form_posted=<type>` on the request, so `form.posted_successfully?` is true after a post. */
   postedForm?: string | null | undefined
   /** False when the Forms app is not installed: `{% form 'contact' %}` shows a plain notice instead. */
@@ -280,6 +283,17 @@ class SectionsTag extends Tag {
   }
 }
 
+/**
+ * Scope keys a theme block's render carries: the block itself (whose `content_for 'blocks'`
+ * lists its own children) and how deep it sits.
+ */
+export const BLOCK_SCOPE = {
+  parent: 'commerce_parent_block',
+  depth: 'commerce_block_depth',
+} as const
+
+type BlockOwner = { blocks?: { id?: string; type?: string }[] } | null | undefined
+
 /** `{% content_for 'blocks' %}` (the section's theme blocks) and `{% content_for 'block', type: 'x', id: 'y' %}`. */
 class ContentForTag extends Tag {
   kind: ValueToken | undefined
@@ -294,22 +308,26 @@ class ContentForTag extends Tag {
     const render = runtime(ctx).renderThemeBlock
     if (!render) return
     const section = yield ctx._get(['section'])
+    // INVARIANT: inside a theme block the children are that block's own (a tab's contents),
+    // never the section's: the section's list holds the block itself and would loop forever.
+    const parent = (yield ctx._get([BLOCK_SCOPE.parent])) as BlockOwner
+    const depth = Number(yield ctx._get([BLOCK_SCOPE.depth])) || 0
+    if (depth >= MAX_BLOCK_DEPTH) return
+    const blocks = ((parent ?? section) as BlockOwner)?.blocks ?? []
     if (kind === 'blocks') {
-      const blocks = (section as { blocks?: unknown[] } | null)?.blocks ?? []
-      for (const block of blocks) emitter.write(render(block, section, ctx))
+      for (const block of blocks) emitter.write(render(block, section, ctx, depth + 1))
       return
     }
     if (kind === 'block') {
       const hash = (yield this.hash.render(ctx)) as Record<string, unknown>
       const id = stringifyLiquid(hash.id)
-      const blocks = (section as { blocks?: { id?: string; type?: string }[] } | null)?.blocks ?? []
       const found = blocks.find((b) => b.id === id) ?? {
         id,
         type: stringifyLiquid(hash.type),
         settings: {},
         shopify_attributes: '',
       }
-      emitter.write(render(found, section, ctx))
+      emitter.write(render(found, section, ctx, depth + 1))
     }
   }
 }

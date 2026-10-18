@@ -18,16 +18,17 @@ export default async function OnboardingPage() {
     ownsAStoreAlready: await userOwnsAStore(db(), session.user.id),
   })
 
+  if (decision.allowed) {
+    return (
+      <OnboardingWizard
+        platformDomain={env.PLATFORM_STORE_DOMAIN}
+        defaultName={session.user.name}
+      />
+    )
+  }
   return (
     <OnboardingScreen>
-      {decision.allowed ? (
-        <OnboardingWizard
-          platformDomain={env.PLATFORM_STORE_DOMAIN}
-          defaultName={session.user.name}
-        />
-      ) : (
-        <InviteOnlyCard defaultEmail={session.user.email} />
-      )}
+      <InviteOnlyCard defaultEmail={session.user.email} />
     </OnboardingScreen>
   )
 }

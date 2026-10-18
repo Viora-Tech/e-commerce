@@ -1,15 +1,16 @@
 'use client'
 
 import type { MarketingOverview } from '@commerce/api'
-import { BadgePercent, LinkIcon, Plus, Send, Workflow } from '@commerce/ui/icons'
+import { ArrowRight, BadgePercent, LinkIcon, Plus, Send, Workflow } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Card } from '@commerce/ui/shadcn/card'
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import RangePicker from '@/components/analytics/range-picker'
 import ChartCard from '@/components/layout/chart-card'
-import ProoflyPageHeader from '@/components/layout/proofly-page-header'
-import StatTile from '@/components/layout/stat-tile'
+import PageHeader from '@/components/layout/page-header'
+import SectionHead from '@/components/layout/section-head'
+import StatStrip from '@/components/layout/stat-strip'
 import { growthOverviewContent } from '@/data/growth'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { formatDay, type RangeState, rangeQuery, sameRange } from '@/lib/analytics-range'
@@ -81,22 +82,21 @@ export default function GrowthOverviewPage({ initialRange, initial }: GrowthOver
   const dayPoints = data.salesOverTime.day.map((p) => ({ ...p, label: formatDay(p.label) }))
   const weekPoints = data.salesOverTime.week.map((p) => ({ ...p, label: formatDay(p.label) }))
 
+  const bestRow = data.sources.find((r) => r.source === data.bestSource) ?? null
+
   return (
-    <div className="mx-auto flex w-full max-w-[81.5rem] flex-col gap-6 px-4 py-6 md:px-8 md:py-8">
-      <ProoflyPageHeader
+    <div className="flex w-full flex-col gap-6 px-4 py-6 md:px-8 md:py-8">
+      <PageHeader
         title={copy.title}
-        summary={copy.outcomes.summary(
-          fmt.money(o.earnedPaise),
-          copy.outcomes.periods[data.range.key] ?? copy.outcomes.periods.custom ?? '',
-        )}
+        summary={copy.intro}
         actions={
           <div className="flex items-center gap-2">
-            <RangePicker value={range} onChange={handleRange} />
             <Button
               variant="outline"
               render={<Link href={routes.growth.links()} />}
               nativeButton={false}
             >
+              <LinkIcon aria-hidden />
               {copy.links}
             </Button>
             <Button render={<Link href={routes.growth.newCampaign()} />} nativeButton={false}>
@@ -106,37 +106,53 @@ export default function GrowthOverviewPage({ initialRange, initial }: GrowthOver
           </div>
         }
       />
-      <div
-        className="grid grid-cols-2 gap-4 lg:grid-flow-col lg:grid-cols-none lg:auto-cols-fr"
-        aria-busy={loading || undefined}
-      >
-        <StatTile
-          label={copy.outcomes.tiles.earned}
-          value={fmt.money(o.earnedPaise)}
-          trend={earnedTrend}
-          trendNote={copy.outcomes.vsPrevious}
-          active
-        />
-        <StatTile
-          label={copy.outcomes.tiles.messages}
-          value={fmt.number(o.messages.email + o.messages.whatsapp)}
-          note={copy.outcomes.messagesNote(
-            fmt.number(o.messages.whatsapp),
-            fmt.number(o.messages.email),
+      {/* Figma 658:64823: the range on its own row, with what growth brought in beside it. */}
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+        <RangePicker value={range} onChange={handleRange} />
+        <span className="text-caption text-muted-foreground">
+          {copy.outcomes.summary(
+            fmt.money(o.earnedPaise),
+            copy.outcomes.periods[data.range.key] ?? copy.outcomes.periods.custom ?? '',
           )}
-        />
-        <StatTile
-          label={copy.outcomes.tiles.automationOrders}
-          value={fmt.number(o.automationOrders)}
-          note={copy.outcomes.automationNote}
-        />
-        <StatTile
-          label={copy.outcomes.tiles.subscribers}
-          value={fmt.number(o.subscribers.total)}
-          note={copy.outcomes.subscribersNote(fmt.number(o.subscribers.newThisWeek))}
-        />
+        </span>
       </div>
-      <OutcomesCard outcomes={o} />
+      <StatStrip
+        loading={loading}
+        tiles={[
+          {
+            id: 'earned',
+            label: copy.outcomes.tiles.earned,
+            value: fmt.money(o.earnedPaise),
+            trend: earnedTrend,
+            trendNote: copy.outcomes.vsPrevious,
+          },
+          {
+            id: 'messages',
+            label: copy.outcomes.tiles.messages,
+            value: fmt.number(o.messages.email + o.messages.whatsapp),
+            note: copy.outcomes.messagesNote(
+              fmt.number(o.messages.whatsapp),
+              fmt.number(o.messages.email),
+            ),
+          },
+          {
+            id: 'automationOrders',
+            label: copy.outcomes.tiles.automationOrders,
+            value: fmt.number(o.automationOrders),
+            note: copy.outcomes.automationNote,
+          },
+          {
+            id: 'subscribers',
+            label: copy.outcomes.tiles.subscribers,
+            value: fmt.number(o.subscribers.total),
+            note: copy.outcomes.subscribersNote(fmt.number(o.subscribers.newThisWeek)),
+          },
+        ]}
+      />
+      <div className="grid grid-cols-1 items-stretch gap-6 xl:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)]">
+        <OutcomesCard outcomes={o} />
+        {bestRow ? <BestSourceCallout source={bestRow} /> : null}
+      </div>
       <ChartCard
         title={copy.salesOverTime.title}
         periods={[
@@ -147,26 +163,24 @@ export default function GrowthOverviewPage({ initialRange, initial }: GrowthOver
         seriesLabel={copy.salesOverTime.series}
         formatValue={formatPaiseCompact}
       />
-      {data.bestSource ? <BestSourceCallout source={data.bestSource} /> : null}
-      <div className="grid grid-cols-1 items-start gap-5 xl:grid-cols-2">
-        <SourceOrChannelCard
-          sources={data.sources}
-          channels={data.channels}
-          campaigns={data.campaigns}
-        />
-        <TopCampaignsCard rows={data.campaigns} />
-      </div>
+      <SourceOrChannelCard
+        sources={data.sources}
+        channels={data.channels}
+        campaigns={data.campaigns}
+      />
+      <TopCampaignsCard rows={data.campaigns} />
       <section className="flex flex-col gap-3">
-        <h2 className="text-card-title text-ink-strong">{copy.shortcuts.title}</h2>
+        <SectionHead title={copy.shortcuts.title} />
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {SHORTCUTS.map((s) => (
             <Link key={s.href} href={s.href} className="group">
-              <Card
-                gap={3}
-                inset={4}
-                className="h-full flex-row items-start transition-colors group-hover:bg-muted/50"
-              >
-                <s.icon className="mt-0.5 size-5 shrink-0 text-muted-foreground" />
+              <Card gap={3} inset={4} className="h-full transition-colors group-hover:bg-muted/50">
+                <div className="flex items-center justify-between">
+                  <span className="flex size-8 items-center justify-center rounded-md border border-border">
+                    <s.icon className="size-4 text-muted-foreground" />
+                  </span>
+                  <ArrowRight className="size-4 text-muted-foreground" aria-hidden />
+                </div>
                 <div className="flex flex-col gap-1">
                   <p className="text-body-strong text-foreground">{s.title}</p>
                   <p className="text-caption text-muted-foreground">{s.body}</p>

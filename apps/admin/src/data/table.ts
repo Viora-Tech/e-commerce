@@ -1,11 +1,20 @@
 /** Copy shared by every ResourceTable in the admin. */
 export const tableContent = {
-  search: (plural: string) => `Search ${plural}`,
+  search: (plural: string) => `Search and filter ${plural}`,
   number: 'No.',
   filter: 'Filter',
   sort: 'Sort',
+  sortBy: 'Sort by',
+  columnsTitle: 'Columns',
+  reset: 'Reset',
+  views: 'Views',
+  saveView: 'Save as new view',
+  clearSort: 'Clear sort',
   more: 'More',
-  clearFilters: 'Clear',
+  clearFilters: 'Clear all',
+  addFilter: 'Add filter',
+  /** An applied-filter chip: "Payment is" before the bold value. */
+  filterIs: (field: string) => `${field} is`,
   view: 'View',
   toggleColumns: 'Toggle columns',
   sortAsc: 'Sort ascending',
@@ -16,6 +25,9 @@ export const tableContent = {
   selected: (n: number, singular: string, plural: string) =>
     `${n} ${n === 1 ? singular : plural} selected`,
   clearSelection: 'Clear',
+  /** The selection bar's offer once the whole page is ticked. */
+  selectAllMatching: (n: string, plural: string) => `Select all ${n} ${plural}`,
+  allSelected: (n: string, plural: string) => `All ${n} ${plural} selected`,
   removeFilter: (label: string) => `Remove ${label}`,
   showing: (from: number, to: number, total: number) => `Showing ${from}–${to} of ${total}`,
   rowsPerPage: 'Rows per page',
@@ -29,4 +41,7 @@ export const tableContent = {
   next: 'Next page',
   emptyHeading: (plural: string) => `No ${plural} yet`,
   emptyBody: 'Try a different search or clear the filters.',
+  /** Figma "Feedback state · No results": a search found nothing; one button clears it. */
+  noResultsBody: 'Nothing matches this search and these filters.',
+  clearSearchAndFilters: 'Clear filters',
 } as const

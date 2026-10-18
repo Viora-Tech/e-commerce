@@ -1,22 +1,13 @@
 'use client'
 
 import { Plus, Trash2 } from '@commerce/ui/icons'
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@commerce/ui/shadcn/alert-dialog'
 import { Button } from '@commerce/ui/shadcn/button'
-import { Card, CardAction, CardContent, CardHeader, CardTitle } from '@commerce/ui/shadcn/card'
 import { Field, FieldDescription, FieldError, FieldLabel } from '@commerce/ui/shadcn/field'
 import { useState } from 'react'
 import SuggestInput from '@/components/fields/suggest-input'
 import TagInput from '@/components/fields/tag-input'
+import ConfirmDialog from '@/components/layout/confirm-dialog'
+import DataCard from '@/components/layout/data-card'
 import StatusChip from '@/components/layout/status-chip'
 import { productFormContent } from '@/data/product-form'
 import { useCopy } from '@/hooks/use-copy'
@@ -124,15 +115,17 @@ export default function VariantsCard({
   const waiting = options.some((o) => !o.values.some((v) => v.trim()))
 
   return (
-    <Card size="form" className="pb-0">
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2.5">
+    <DataCard
+      title={
+        <>
           {copy.heading}
           {hasOptions ? (
             <StatusChip tone="neutral">{copy.count(variants.length)}</StatusChip>
           ) : null}
-        </CardTitle>
-        <CardAction className="flex items-center gap-2">
+        </>
+      }
+      action={
+        <>
           {hasMatrix ? (
             <Button
               type="button"
@@ -154,57 +147,58 @@ export default function VariantsCard({
             <Plus />
             {hasOptions ? copy.addAnother : copy.addOption}
           </Button>
-        </CardAction>
-      </CardHeader>
-      <CardContent className="flex flex-col gap-4 pb-(--card-spacing)">
-        {options.map((o, i) => (
-          <div
-            key={o.id ?? `new-${i}`}
-            className="grid gap-3 md:grid-cols-[1fr_2fr_auto] md:items-start"
+        </>
+      }
+      className="pb-0"
+      bodyClassName="flex flex-col gap-4 pb-(--card-spacing)"
+    >
+      {options.map((o, i) => (
+        <div
+          key={o.id ?? `new-${i}`}
+          className="grid gap-3 md:grid-cols-[1fr_2fr_auto] md:items-start"
+        >
+          <Field>
+            <FieldLabel htmlFor={`option-name-${i}`}>{copy.optionName}</FieldLabel>
+            <SuggestInput
+              id={`option-name-${i}`}
+              size="lg"
+              value={o.name}
+              suggestions={copy.optionNameSuggestions}
+              onChange={(name) => setOption(i, { name })}
+              placeholder={copy.optionNamePlaceholder}
+            />
+          </Field>
+          <Field>
+            <FieldLabel htmlFor={`option-values-${i}`}>{copy.optionValues}</FieldLabel>
+            <TagInput
+              id={`option-values-${i}`}
+              tags={o.values}
+              suggestions={valueSuggestions(copy, o.name)}
+              onChange={(values) => handleValues(i, values)}
+              placeholder={copy.optionValuesPlaceholder}
+            />
+            <FieldDescription>{copy.optionValuesHelp}</FieldDescription>
+          </Field>
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            className="text-muted-foreground hover:text-destructive md:mt-6"
+            onClick={() => handleRemoveOption(i)}
+            aria-label={copy.remove}
           >
-            <Field>
-              <FieldLabel htmlFor={`option-name-${i}`}>{copy.optionName}</FieldLabel>
-              <SuggestInput
-                id={`option-name-${i}`}
-                size="lg"
-                value={o.name}
-                suggestions={copy.optionNameSuggestions}
-                onChange={(name) => setOption(i, { name })}
-                placeholder={copy.optionNamePlaceholder}
-              />
-            </Field>
-            <Field>
-              <FieldLabel htmlFor={`option-values-${i}`}>{copy.optionValues}</FieldLabel>
-              <TagInput
-                id={`option-values-${i}`}
-                tags={o.values}
-                suggestions={valueSuggestions(copy, o.name)}
-                onChange={(values) => handleValues(i, values)}
-                placeholder={copy.optionValuesPlaceholder}
-              />
-              <FieldDescription>{copy.optionValuesHelp}</FieldDescription>
-            </Field>
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon"
-              className="text-muted-foreground hover:text-destructive md:mt-6"
-              onClick={() => handleRemoveOption(i)}
-              aria-label={copy.remove}
-            >
-              <Trash2 />
-            </Button>
-          </div>
-        ))}
-        {atMax ? <span className="text-xs text-muted-foreground">{copy.maxOptions}</span> : null}
-        {waiting && !error ? (
-          <p className="text-caption text-muted-foreground">{copy.needsValues}</p>
-        ) : null}
-        {error ? <FieldError>{error}</FieldError> : null}
-        {variants.length > 30 ? (
-          <p className="text-xs text-muted-foreground">{copy.tooMany(variants.length)}</p>
-        ) : null}
-      </CardContent>
+            <Trash2 />
+          </Button>
+        </div>
+      ))}
+      {atMax ? <span className="text-xs text-muted-foreground">{copy.maxOptions}</span> : null}
+      {waiting && !error ? (
+        <p className="text-caption text-muted-foreground">{copy.needsValues}</p>
+      ) : null}
+      {error ? <FieldError>{error}</FieldError> : null}
+      {variants.length > 30 ? (
+        <p className="text-xs text-muted-foreground">{copy.tooMany(variants.length)}</p>
+      ) : null}
       {hasMatrix && selected.length > 0 ? (
         <VariantBulkBar
           count={selected.length}
@@ -221,26 +215,15 @@ export default function VariantsCard({
           onVariant={onVariant}
         />
       ) : null}
-      <AlertDialog open={pending !== null} onOpenChange={(open) => !open && setPending(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>{copy.confirmRemoveTitle}</AlertDialogTitle>
-            <AlertDialogDescription>
-              {copy.confirmRemoveBody(pendingDropped.length, stockOf(pendingDropped))}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>{copy.confirmRemoveCancel}</AlertDialogCancel>
-            <AlertDialogAction
-              variant="destructive"
-              tone="destructive"
-              onClick={handleConfirmRemove}
-            >
-              {copy.confirmRemoveConfirm}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-    </Card>
+      <ConfirmDialog
+        open={pending !== null}
+        onOpenChange={(open) => !open && setPending(null)}
+        title={copy.confirmRemoveTitle}
+        body={copy.confirmRemoveBody(pendingDropped.length, stockOf(pendingDropped))}
+        confirmLabel={copy.confirmRemoveConfirm}
+        cancelLabel={copy.confirmRemoveCancel}
+        onConfirm={handleConfirmRemove}
+      />
+    </DataCard>
   )
 }

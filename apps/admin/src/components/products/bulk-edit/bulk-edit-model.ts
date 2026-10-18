@@ -1,5 +1,3 @@
-import { type BulkEditRow, HS_CODE_PATTERN } from '@commerce/core/catalog'
-
 /** What `products.bulkEditSheet` returns for one variant. */
 export type SheetRow = {
   variantId: string
@@ -9,6 +7,14 @@ export type SheetRow = {
   vendor: string | null
   productType: string | null
   tags: string[]
+  handle: string
+  descriptionText: string
+  seoTitle: string | null
+  seoDescription: string | null
+  featured: boolean
+  taxIncluded: boolean
+  templateSuffix: string | null
+  collectionIds: string[]
   variantTitle: string
   pricePaise: number
   mrpPaise: number | null
@@ -18,8 +24,16 @@ export type SheetRow = {
   weightGrams: number | null
   hsCode: string | null
   gstRatePercent: number | null
+  trackInventory: boolean
+  countryOfOrigin: string | null
+  packageLengthCm: number | null
+  packageWidthCm: number | null
+  packageHeightCm: number | null
   stock: Record<string, number>
 }
+
+/** A manual collection a product can be put in. */
+export type SheetCollection = { id: string; title: string }
 
 /** One grid row: every cell is the text the person sees and types, rupees not paise. */
 export type GridRow = FixedCells & { [stockCell: `stock:${string}`]: string }
@@ -33,6 +47,19 @@ type FixedCells = {
   vendor: string
   productType: string
   tags: string
+  handle: string
+  description: string
+  seoTitle: string
+  seoDescription: string
+  collections: string
+  featured: string
+  taxIncluded: string
+  templateSuffix: string
+  trackInventory: string
+  countryOfOrigin: string
+  packageLength: string
+  packageWidth: string
+  packageHeight: string
   price: string
   mrp: string
   cost: string
@@ -43,7 +70,20 @@ type FixedCells = {
   gst: string
 }
 
-export const PRODUCT_COLUMNS = ['title', 'status', 'vendor', 'productType', 'tags'] as const
+export const PRODUCT_COLUMNS = [
+  'title',
+  'status',
+  'handle',
+  'vendor',
+  'productType',
+  'collections',
+  'tags',
+  'seoTitle',
+  'seoDescription',
+  'featured',
+  'taxIncluded',
+  'templateSuffix',
+] as const
 export const VARIANT_COLUMNS = [
   'price',
   'mrp',
@@ -53,7 +93,14 @@ export const VARIANT_COLUMNS = [
   'weight',
   'hsCode',
   'gst',
+  'trackInventory',
+  'countryOfOrigin',
+  'packageLength',
+  'packageWidth',
+  'packageHeight',
 ] as const
+/** Yes/No cells, picked from a list. */
+export const BOOLEAN_COLUMNS = ['featured', 'taxIncluded', 'trackInventory'] as const
 export type ProductColumn = (typeof PRODUCT_COLUMNS)[number]
 export type VariantColumn = (typeof VARIANT_COLUMNS)[number]
 export const STATUSES = ['draft', 'active', 'archived'] as const
@@ -68,14 +115,24 @@ const SERVER_FIELD: Record<string, string> = {
   costPaise: 'cost',
   weightGrams: 'weight',
   gstRatePercent: 'gst',
+  collectionIds: 'collections',
+  packageLengthCm: 'packageLength',
+  packageWidthCm: 'packageWidth',
+  packageHeightCm: 'packageHeight',
 }
 export const gridColumnOf = (serverField: string) => SERVER_FIELD[serverField] ?? serverField
 
+const yesNo = (v: boolean) => (v ? 'yes' : 'no')
 const rupees = (paise: number | null) => (paise === null ? '' : String(paise / 100))
 const text = (v: string | null) => v ?? ''
 const num = (v: number | null) => (v === null ? '' : String(v))
 
-export function toGridRow(r: SheetRow, locationIds: string[]): GridRow {
+export function toGridRow(
+  r: SheetRow,
+  locationIds: string[],
+  collections: SheetCollection[] = [],
+): GridRow {
+  const titles = new Map(collections.map((c) => [c.id, c.title]))
   return {
     variantId: r.variantId,
     productId: r.productId,
@@ -85,6 +142,19 @@ export function toGridRow(r: SheetRow, locationIds: string[]): GridRow {
     vendor: text(r.vendor),
     productType: text(r.productType),
     tags: r.tags.join(', '),
+    handle: r.handle,
+    description: r.descriptionText,
+    seoTitle: text(r.seoTitle),
+    seoDescription: text(r.seoDescription),
+    collections: r.collectionIds.map((id) => titles.get(id) ?? id).join(', '),
+    featured: yesNo(r.featured),
+    taxIncluded: yesNo(r.taxIncluded),
+    templateSuffix: text(r.templateSuffix),
+    trackInventory: yesNo(r.trackInventory),
+    countryOfOrigin: text(r.countryOfOrigin),
+    packageLength: num(r.packageLengthCm),
+    packageWidth: num(r.packageWidthCm),
+    packageHeight: num(r.packageHeightCm),
     price: rupees(r.pricePaise),
     mrp: rupees(r.mrpPaise),
     cost: rupees(r.costPaise),
@@ -157,86 +227,12 @@ export type CellErrors = Map<string, string>
 /** `<variantId>|<column>` */
 export const errorKey = (variantId: string, column: string) => `${variantId}|${column}`
 
-/** The rules the server also enforces, so mistakes show before Save. */
-export function validateRows(rows: GridRow[], locationIds: string[]): CellErrors {
-  const errors: CellErrors = new Map()
-  const seenSku = new Map<string, string>()
-  for (const r of rows) {
-    const bad = (column: string, message: string) =>
-      errors.set(errorKey(r.variantId, column), message)
-    if (!r.title.trim()) bad('title', 'Title is required')
-    if (!(STATUSES as readonly string[]).includes(r.status))
-      bad('status', 'Pick draft, active or archived')
-    const price = parsePaise(r.price)
-    if (price === null || Number.isNaN(price)) bad('price', 'Enter a price')
-    const mrp = parsePaise(r.mrp)
-    if (Number.isNaN(mrp)) bad('mrp', 'Enter an amount')
-    else if (mrp !== null && price !== null && !Number.isNaN(price) && mrp < price) {
-      bad('mrp', 'Compare-at must not be below the price')
-    }
-    if (Number.isNaN(parsePaise(r.cost))) bad('cost', 'Enter an amount')
-    if (Number.isNaN(parseWhole(r.weight))) bad('weight', 'Whole grams')
-    if (r.hsCode.trim() && !HS_CODE_PATTERN.test(r.hsCode.trim()))
-      bad('hsCode', 'HSN is 4 to 8 digits')
-    const gst = parseWhole(r.gst)
-    if (Number.isNaN(gst) || (gst !== null && gst > 40)) bad('gst', 'A rate from 0 to 40')
-    const sku = r.sku.trim().toLowerCase()
-    if (sku) {
-      const first = seenSku.get(sku)
-      if (first) {
-        bad('sku', 'This SKU is used twice')
-        errors.set(errorKey(first, 'sku'), 'This SKU is used twice')
-      } else seenSku.set(sku, r.variantId)
-    }
-    for (const loc of locationIds) {
-      if (Number.isNaN(parseWhole(cellValue(r, `${STOCK_PREFIX}${loc}`))))
-        bad(`${STOCK_PREFIX}${loc}`, 'Whole number')
-    }
-  }
-  return errors
-}
-
-/**
- * Only the cells that changed, as the API's rows. An emptied optional cell sends null; a
- * required one that is empty is a validation error and never gets here.
- */
-export function toBulkRows(
-  rows: GridRow[],
-  base: Map<string, GridRow>,
-  locationIds: string[],
-): BulkEditRow[] {
-  const out: BulkEditRow[] = []
-  for (const r of rows) {
-    const b = base.get(r.variantId)
-    if (!b) continue
-    const changed = (k: string) => isDirty(r, b, k)
-    const row: BulkEditRow = { variantId: r.variantId }
-    const product: NonNullable<BulkEditRow['product']> = {}
-    if (changed('title')) product.title = r.title.trim()
-    if (changed('status')) product.status = r.status as (typeof STATUSES)[number]
-    if (changed('vendor')) product.vendor = r.vendor.trim() || null
-    if (changed('productType')) product.productType = r.productType.trim() || null
-    if (changed('tags')) product.tags = parseTags(r.tags)
-    const variant: NonNullable<BulkEditRow['variant']> = {}
-    if (changed('price')) variant.pricePaise = parsePaise(r.price) ?? 0
-    if (changed('mrp')) variant.mrpPaise = parsePaise(r.mrp)
-    if (changed('cost')) variant.costPaise = parsePaise(r.cost)
-    if (changed('sku')) variant.sku = r.sku.trim() || null
-    if (changed('barcode')) variant.barcode = r.barcode.trim() || null
-    if (changed('weight')) variant.weightGrams = parseWhole(r.weight)
-    if (changed('hsCode')) variant.hsCode = r.hsCode.trim() || null
-    if (changed('gst')) variant.gstRatePercent = parseWhole(r.gst)
-    const stock: Record<string, number> = {}
-    for (const loc of locationIds) {
-      if (changed(`${STOCK_PREFIX}${loc}`))
-        stock[loc] = parseWhole(cellValue(r, `${STOCK_PREFIX}${loc}`)) ?? 0
-    }
-    if (Object.keys(product).length) row.product = product
-    if (Object.keys(variant).length) row.variant = variant
-    if (Object.keys(stock).length) row.stock = stock
-    if (row.product || row.variant || row.stock) out.push(row)
-  }
-  return out
+/** Yes/No text from a pasted or typed value; anything else is left as typed, to be flagged. */
+export function parseYesNo(value: string): string {
+  const v = value.trim().toLowerCase()
+  if (['yes', 'y', 'true', '1'].includes(v)) return 'yes'
+  if (['no', 'n', 'false', '0'].includes(v)) return 'no'
+  return value.trim()
 }
 
 /**
@@ -258,10 +254,27 @@ export function applyPaste(
     let row = target
     line.split('\t').forEach((value, dx) => {
       const key = keys[start.colIdx + dx]
-      if (key && editable(key)) row = withCell(row, key, value.trim())
+      if (key && editable(key)) {
+        const isBool = (BOOLEAN_COLUMNS as readonly string[]).includes(key)
+        row = withCell(row, key, isBool ? parseYesNo(value) : value.trim())
+      }
     })
     next = next.map((r) => (r.variantId === row.variantId ? row : r))
     for (const key of PRODUCT_COLUMNS) next = syncProductCell(next, row, key)
   })
   return next
+}
+
+/** Collection names (comma-separated) to ids; names no manual collection has come back as `unknown`. */
+export function parseCollections(value: string, collections: SheetCollection[]) {
+  const byName = new Map(collections.map((c) => [c.title.trim().toLowerCase(), c.id]))
+  const ids: string[] = []
+  const unknown: string[] = []
+  for (const name of parseTags(value)) {
+    const id = byName.get(name.toLowerCase())
+    if (id) {
+      if (!ids.includes(id)) ids.push(id)
+    } else unknown.push(name)
+  }
+  return { ids, unknown }
 }

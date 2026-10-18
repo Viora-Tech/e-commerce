@@ -1,10 +1,9 @@
 'use client'
 
 import type { CollectionStatus } from '@commerce/core/collections'
-import { Card, CardContent, CardHeader, CardTitle } from '@commerce/ui/shadcn/card'
 import { Switch } from '@commerce/ui/shadcn/switch'
 import { useId } from 'react'
-import StatusChip from '@/components/layout/status-chip'
+import DataCard from '@/components/layout/data-card'
 import { collectionDetailContent } from '@/data/collections'
 import { useCopy } from '@/hooks/use-copy'
 
@@ -26,30 +25,22 @@ export default function CollectionVisibilityCard({
   const on = status === 'active'
 
   return (
-    <Card size="form">
-      <CardHeader className="grid-cols-[1fr_auto] items-center">
-        <CardTitle>{copy.heading}</CardTitle>
-        <StatusChip tone={on ? 'neutral' : 'attention'}>
-          {on ? copy.chipOn : copy.chipOff}
-        </StatusChip>
-      </CardHeader>
-      <CardContent>
-        <div className="flex items-center justify-between gap-3">
-          <div className="flex flex-col">
-            <label htmlFor={id} className="text-body font-medium text-foreground">
-              {copy.label}
-            </label>
-            <span className="text-caption text-muted-foreground">
-              {on ? copy.help : copy.helpOff}
-            </span>
-          </div>
-          <Switch
-            id={id}
-            checked={on}
-            onCheckedChange={(next) => onChange(next ? 'active' : 'draft')}
-          />
+    <DataCard title={copy.heading}>
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex flex-col">
+          <label htmlFor={id} className="text-body font-medium text-foreground">
+            {copy.label}
+          </label>
+          <span className="text-caption text-muted-foreground">
+            {on ? copy.help : copy.helpOff}
+          </span>
         </div>
-      </CardContent>
-    </Card>
+        <Switch
+          id={id}
+          checked={on}
+          onCheckedChange={(next) => onChange(next ? 'active' : 'draft')}
+        />
+      </div>
+    </DataCard>
   )
 }

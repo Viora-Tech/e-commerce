@@ -31,6 +31,7 @@ export const SEARCH_PER_PAGE = 24
 export const PREDICTIVE_DEBOUNCE_MS = 200
 
 export const notFoundContent = {
+  searchPlaceholder: 'Search products…',
   title: 'Page not found',
   body: 'The page you were looking for does not exist.',
   cta: 'Continue shopping',

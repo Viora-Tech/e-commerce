@@ -6,14 +6,14 @@ import { Card } from '@commerce/ui/shadcn/card'
 import { Skeleton } from '@commerce/ui/shadcn/skeleton'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
+import ConfirmDialog from '@/components/layout/confirm-dialog'
+import PageHeader from '@/components/layout/page-header'
 import StatusChip from '@/components/layout/status-chip'
 import SettingsCard from '@/components/settings/settings-card'
-import SettingsPageHeader from '@/components/settings/settings-page-header'
 import { accountContent } from '@/data/account'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 import { deviceName, devicePlace } from '@/lib/device-label'
-import ConfirmDialog from './confirm-dialog'
 
 type MemberSession = Awaited<ReturnType<typeof api.account.sessions>>[number]
 
@@ -77,7 +77,7 @@ export default function SessionsPage() {
   if (failed) {
     return (
       <div className="flex flex-col gap-4">
-        <SettingsPageHeader title={copy.title} hideBack />
+        <PageHeader title={copy.title} />
         <Card gap={3} inset={6} className="items-start">
           <p className="text-body text-muted-foreground">{copy.loadFailed}</p>
           <Button variant="outline" onClick={handleRetry}>
@@ -93,10 +93,9 @@ export default function SessionsPage() {
 
   return (
     <div className="flex flex-col gap-4">
-      <SettingsPageHeader
+      <PageHeader
         title={copy.title}
         subtitle={sessions ? copy.intro(sessions.length) : undefined}
-        hideBack
         actions={
           others > 0 ? (
             <Button variant="outline" onClick={() => setOthersOpen(true)}>

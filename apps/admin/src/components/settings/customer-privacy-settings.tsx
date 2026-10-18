@@ -9,14 +9,14 @@ import { Textarea } from '@commerce/ui/shadcn/textarea'
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
+import PageHeader from '@/components/layout/page-header'
 import SaveBar from '@/components/layout/save-bar'
 import AskAgainDialog from '@/components/settings/ask-again-dialog'
 import { customerPrivacyContent as copy } from '@/data/customer-privacy'
-import { settingsContent } from '@/data/settings'
+import { SETTINGS_BACK, settingsContent } from '@/data/settings'
 import { api } from '@/lib/api-client'
 import { routes } from '@/lib/routes'
 import SettingsCard from './settings-card'
-import SettingsPageHeader from './settings-page-header'
 import SettingsRow from './settings-row'
 
 type Overview = {
@@ -112,13 +112,11 @@ export default function CustomerPrivacySettings() {
         onDiscard={() => saved && setForm(JSON.parse(saved) as Form)}
         saving={busy}
       />
-      <SettingsPageHeader
+      <PageHeader
         title={copy.title}
         subtitle={copy.subtitle}
-        onSave={handleSave}
-        dirty={dirty}
-        saving={busy}
-        saveLabel={copy.save}
+        back={SETTINGS_BACK}
+        save={{ dirty, saving: busy, onSave: handleSave, label: copy.save }}
       />
       {!overview || !form ? (
         <Skeleton className="h-96 w-full rounded-2xl" />

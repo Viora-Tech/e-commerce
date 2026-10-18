@@ -121,7 +121,7 @@ export const SETTINGS_SEARCH_INDEX: SettingsSearchEntry[] = [
     keywords: ['upi', 'gpay', 'google pay', 'phonepe', 'paytm', 'bhim', 'qr', 'qr code'],
   },
   {
-    title: 'Cash on delivery (COD)',
+    title: 'Turn cash on delivery on or off',
     where: 'Selling › Payments',
     href: '/settings/payments',
     keywords: ['cod', 'cash', 'cash on delivery', 'pay on delivery'],
@@ -277,13 +277,13 @@ export const SETTINGS_SEARCH_INDEX: SettingsSearchEntry[] = [
       'quota',
     ],
   },
-  // Your own preferences: the account menu, top right
   {
     title: 'Appearance',
-    where: 'Account menu',
-    href: routes.account.appearance(),
+    where: 'Team & advanced',
+    href: routes.settings.appearance(),
     keywords: ['dark mode', 'light mode', 'theme', 'colour', 'color', 'accent'],
   },
+  // Your own preferences: the account menu, top right
   {
     title: 'Profile',
     where: 'Account menu › Account',
@@ -389,6 +389,18 @@ export const SETTINGS_SEARCH_INDEX: SettingsSearchEntry[] = [
     where: 'Selling › Checkout',
     href: '/settings/checkout#cod',
     keywords: ['cod', 'cash on delivery', 'cod limit', 'block pincode', 'cod fee', 'whatsapp'],
+  },
+  {
+    title: 'Cash on delivery fee',
+    where: 'Taxes & GST › Costs for profit',
+    href: `${routes.settings.costs()}#cod-fee`,
+    keywords: ['cod', 'cash on delivery', 'cod fee', 'cod charges', 'courier cod fee'],
+  },
+  {
+    title: 'PIN codes without cash on delivery',
+    where: 'Selling › Checkout',
+    href: `${routes.settings.checkout()}#cod`,
+    keywords: ['cash on delivery', 'block pincode', 'cod pincode', 'pincode', 'pin code'],
   },
   {
     title: 'Business buyers at checkout',

@@ -95,6 +95,43 @@ export async function loadThemeBundle(tx: StoreTx, themeId: string): Promise<The
 }
 
 /**
+ * The bundle with Edit code's unpublished saves in place of the live files, for a theme preview;
+ * null when the theme has none (the preview then shows the live bundle). Never cached: drafts
+ * change with every save, and a preview is not cached anyway.
+ */
+export async function loadThemeDraftBundle(
+  tx: StoreTx,
+  themeId: string,
+): Promise<ThemeBundle | null> {
+  const record = await themeImportFor(tx, themeId)
+  if (!record) return null
+  const files = await tx
+    .select({
+      path: themeFile.path,
+      body: themeFile.body,
+      draftBody: themeFile.draftBody,
+      encoding: themeFile.encoding,
+      checksum: themeFile.checksum,
+    })
+    .from(themeFile)
+    .where(eq(themeFile.themeId, themeId))
+  if (!files.some((f) => f.draftBody !== null)) return null
+  const textFiles = new Map<string, string>()
+  const assetChecksums = new Map<string, string>()
+  for (const f of files) {
+    if (f.encoding === 'utf8') textFiles.set(f.path, f.draftBody ?? f.body)
+    if (f.path.startsWith('assets/')) assetChecksums.set(f.path.slice('assets/'.length), f.checksum)
+  }
+  return buildThemeBundle({
+    themeId,
+    version: `${record.updatedAt.toISOString()}|draft`,
+    textFiles,
+    assetChecksums,
+    settings: record.settings,
+  })
+}
+
+/**
  * The bundle already built for this theme version, or null, without a query: for a caller that
  * knows the version (the storefront caches it per store version and skips `loadThemeBundle`'s
  * import-record read on every render).

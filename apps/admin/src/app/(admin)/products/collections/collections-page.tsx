@@ -1,7 +1,7 @@
 'use client'
 
 import { siteConfig } from '@commerce/config/site'
-import { LayoutGrid, SquarePlus } from '@commerce/ui/icons'
+import { LayoutGrid, Plus } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import Link from 'next/link'
 import { parseAsInteger, parseAsString, parseAsStringLiteral, useQueryStates } from 'nuqs'
@@ -9,12 +9,12 @@ import { Suspense, useState } from 'react'
 import { toast } from 'sonner'
 import { collectionListColumns } from '@/components/collections/collection-list-columns'
 import CollectionTiles, { type CollectionTab } from '@/components/collections/collection-tiles'
-import DeleteCollectionDialog from '@/components/collections/delete-collection-dialog'
-import PillTabs from '@/components/layout/pill-tabs'
+import ConfirmDialog from '@/components/layout/confirm-dialog'
 import ProoflyListPage from '@/components/layout/proofly-list-page'
 import ResourceTable from '@/components/table/resource-table'
 import RowMenu from '@/components/table/row-menu'
-import { collectionsListContent } from '@/data/collections'
+import ViewSelect from '@/components/table/view-select'
+import { collectionFormContent, collectionsListContent } from '@/data/collections'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 import { usePrimaryAction } from '@/lib/primary-action'
@@ -37,6 +37,7 @@ function inTab(row: Row, tab: CollectionTab | null): boolean {
 function CollectionsContent({ initial }: { initial: CollectionsInitial }) {
   // Hooks
   const copy = useCopy(collectionsListContent)
+  const { delete: deleteCopy } = useCopy(collectionFormContent)
   const fmt = useFormat()
   usePrimaryAction(routes.products.newCollection())
   const [q, setQ] = useQueryStates(
@@ -84,7 +85,7 @@ function CollectionsContent({ initial }: { initial: CollectionsInitial }) {
       summary={copy.summary(stats.total, stats.automatic, stats.empty)}
       actions={
         <Button render={<Link href={routes.products.newCollection()} />} nativeButton={false}>
-          <SquarePlus strokeWidth={1.6} />
+          <Plus strokeWidth={1.6} />
           {copy.newCollection}
         </Button>
       }
@@ -112,12 +113,11 @@ function CollectionsContent({ initial }: { initial: CollectionsInitial }) {
         query={q.query}
         onQueryChange={(query) => setQ({ query, page: 1 })}
         onClearAll={() => setQ({ query: '', tab: null, page: 1 })}
-        tabs={
-          <PillTabs
-            variant="segmented"
+        views={
+          <ViewSelect
             value={q.tab}
             onChange={(tab) => setQ({ tab, page: 1 })}
-            tabs={[
+            options={[
               { value: null, label: copy.list.tabs.all, count: stats.total },
               { value: 'automatic', label: copy.list.tabs.automatic, count: stats.automatic },
               { value: 'manual', label: copy.list.tabs.manual, count: stats.manual },
@@ -148,10 +148,14 @@ function CollectionsContent({ initial }: { initial: CollectionsInitial }) {
             : { heading: copy.list.empty.heading, body: copy.list.empty.body }
         }
       />
-      <DeleteCollectionDialog
+      <ConfirmDialog
         open={deleting !== null}
-        onCancel={() => setDeleting(null)}
-        onConfirm={handleConfirmDelete}
+        onOpenChange={(open) => !open && setDeleting(null)}
+        title={deleteCopy.heading}
+        body={deleteCopy.body}
+        confirmLabel={deleteCopy.confirm}
+        cancelLabel={deleteCopy.cancel}
+        onConfirm={() => void handleConfirmDelete()}
       />
     </ProoflyListPage>
   )

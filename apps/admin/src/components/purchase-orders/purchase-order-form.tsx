@@ -5,20 +5,23 @@ import {
   type PurchaseCurrency,
   remainingOf,
 } from '@commerce/core/inventory'
+import { Package } from '@commerce/ui/icons'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import { saveFile } from '@/components/apps/gst-invoices/save-file'
-import ConfirmActionDialog from '@/components/inventory/confirm-action-dialog'
 import type { StoreLocation } from '@/components/inventory/location-select'
 import NotesCard from '@/components/inventory/notes-card'
 import ChargesCard from '@/components/landed-cost/charges-card'
 import LandedCostCard from '@/components/landed-cost/landed-cost-card'
 import type { CostPreview } from '@/components/landed-cost/types'
+import ConfirmDialog from '@/components/layout/confirm-dialog'
+import NoticeBar from '@/components/layout/notice-bar'
 import PageColumns from '@/components/layout/page-columns'
+import PageHeader from '@/components/layout/page-header'
 import ProoflyPageBody from '@/components/layout/proofly-page-body'
-import ProoflyPageHeader from '@/components/layout/proofly-page-header'
 import SaveBar from '@/components/layout/save-bar'
+import OrderChip from '@/components/orders/order-chip'
 import DocumentsCard from '@/components/purchase-documents/documents-card'
 import type { PickedSupplier } from '@/components/suppliers/new-supplier-dialog'
 import {
@@ -27,7 +30,7 @@ import {
   purchaseOrdersContent,
 } from '@/data/inventory'
 import { poCurrencyContent } from '@/data/purchasing'
-import { useCopy } from '@/hooks/use-copy'
+import { useCopy, useFormat } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 import { routes } from '@/lib/routes'
 import CostSummaryCard from './cost-summary-card'
@@ -83,7 +86,8 @@ export default function PurchaseOrderForm({
   // Hooks
   const router = useRouter()
   const copy = useCopy(purchaseOrderFormContent)
-  const { status: statusLabels } = useCopy(purchaseOrdersContent)
+  const listCopy = useCopy(purchaseOrdersContent)
+  const fmt = useFormat()
   const currencyCopy = useCopy(poCurrencyContent)
   const [form, setForm] = useState<PoForm>(() => initialForm(po, locations))
   const [saved, setSaved] = useState(() => JSON.stringify(initialForm(po, locations)))
@@ -211,6 +215,19 @@ export default function PurchaseOrderForm({
   const dirty = JSON.stringify(form) !== saved
   const nothingArrived = (po?.lines ?? []).every((l) => l.received + l.rejected === 0)
   const outstanding = (po?.lines ?? []).some((l) => remainingOf(l) > 0)
+  const units = (po?.lines ?? []).reduce((n, l) => n + l.quantity, 0)
+  const received = (po?.lines ?? []).reduce((n, l) => n + l.received, 0)
+  const summary = po
+    ? [
+        po.supplierName,
+        po.orderedAt
+          ? copy.orderedOn(fmt.pattern(po.orderedAt, { day: 'numeric', month: 'short' }))
+          : null,
+        units > 0 ? copy.unitsReceived(listCopy.receivedOf(received, units)) : null,
+      ]
+        .filter(Boolean)
+        .join(' · ')
+    : undefined
 
   return (
     <ProoflyPageBody>
@@ -223,9 +240,11 @@ export default function PurchaseOrderForm({
         onDiscard={handleDiscard}
         saving={busy}
       />
-      <ProoflyPageHeader
+      <PageHeader
         title={po ? copy.title(po.number) : copy.newTitle}
-        summary={status ? statusLabels[status] : undefined}
+        summary={summary}
+        lead={{ kind: 'icon', node: <Package aria-hidden="true" /> }}
+        badges={status ? <OrderChip kind="purchaseOrder" value={status} /> : null}
         back={{ label: copy.back, href: LIST }}
         actions={
           <PoActions
@@ -247,9 +266,7 @@ export default function PurchaseOrderForm({
         }
       />
       {finished || !draft ? (
-        <p className="rounded-lg bg-primary-soft px-4 py-3 text-body text-ink-strong">
-          {finished ? copy.locked : copy.headerOnly}
-        </p>
+        <NoticeBar>{finished ? copy.locked : copy.headerOnly}</NoticeBar>
       ) : null}
       <PageColumns
         main={
@@ -335,24 +352,32 @@ export default function PurchaseOrderForm({
           onSend={handleEmail}
         />
       ) : null}
-      <ConfirmActionDialog
+      <ConfirmDialog
         open={dialog === 'close'}
         onOpenChange={(open) => setDialog(open ? 'close' : null)}
-        copy={copy.confirmClose}
+        title={copy.confirmClose.title}
+        body={copy.confirmClose.body}
+        confirmLabel={copy.confirmClose.confirm}
+        cancelLabel={copy.confirmClose.cancel}
+        tone="default"
         onConfirm={handleClose}
       />
-      <ConfirmActionDialog
+      <ConfirmDialog
         open={dialog === 'cancel'}
         onOpenChange={(open) => setDialog(open ? 'cancel' : null)}
-        copy={copy.confirmCancel}
-        destructive
+        title={copy.confirmCancel.title}
+        body={copy.confirmCancel.body}
+        confirmLabel={copy.confirmCancel.confirm}
+        cancelLabel={copy.confirmCancel.cancel}
         onConfirm={handleCancel}
       />
-      <ConfirmActionDialog
+      <ConfirmDialog
         open={dialog === 'delete'}
         onOpenChange={(open) => setDialog(open ? 'delete' : null)}
-        copy={copy.confirmDelete}
-        destructive
+        title={copy.confirmDelete.title}
+        body={copy.confirmDelete.body}
+        confirmLabel={copy.confirmDelete.confirm}
+        cancelLabel={copy.confirmDelete.cancel}
         onConfirm={handleDelete}
       />
     </ProoflyPageBody>

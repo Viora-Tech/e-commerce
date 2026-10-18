@@ -38,3 +38,14 @@ export function campaignProblems(c: {
   if (filled < want) out.push('variables')
   return out
 }
+
+/** `Diwali Drop 2026` becomes `diwali-drop-2026` for utm_campaign. */
+export function utmName(name: string): string {
+  return (
+    name
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '')
+      .slice(0, 60) || 'campaign'
+  )
+}

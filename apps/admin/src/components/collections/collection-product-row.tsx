@@ -1,10 +1,10 @@
 'use client'
 
-import { ArrowRight } from '@commerce/ui/icons'
+import { X } from '@commerce/ui/icons'
+import Link from 'next/link'
 import type { ReactNode } from 'react'
-import StatusChip from '@/components/layout/status-chip'
+import OrderChip from '@/components/orders/order-chip'
 import ProductThumb from '@/components/products/product-thumb'
-import RowMenu from '@/components/table/row-menu'
 import { collectionDetailContent } from '@/data/collections'
 import { productsListContent } from '@/data/products'
 import { useCopy, useFormat } from '@/hooks/use-copy'
@@ -21,7 +21,7 @@ type CollectionProductRowProps = {
 
 /** Shared grid of the products table, so the header and every row line up. */
 export const COLLECTION_PRODUCT_GRID =
-  'grid grid-cols-[1.5rem_minmax(0,1fr)_6rem_6.5rem_8rem_4.5rem] items-center gap-3'
+  'grid grid-cols-[1.5rem_minmax(0,1fr)_6.5rem_7rem_8rem_2rem] items-center gap-3'
 
 /** One product row of a collection: grip, thumbnail and title, status, stock, price, open and menu. */
 export default function CollectionProductRow({
@@ -47,29 +47,31 @@ export default function CollectionProductRow({
       <span className="flex justify-center">{handle}</span>
       <span className="flex min-w-0 items-center gap-3">
         <ProductThumb url={product.imageUrl} />
-        <span className="line-clamp-2 text-body text-ink-strong">{product.title}</span>
+        <Link
+          href={routes.products.detail(product.id)}
+          className="line-clamp-2 text-body text-ink-strong hover:underline"
+        >
+          {product.title}
+        </Link>
       </span>
       <span className="flex justify-center">
-        <StatusChip tone={product.status === 'draft' ? 'info' : 'neutral'}>
-          {list.status[product.status]}
-        </StatusChip>
+        <OrderChip kind="product" value={product.status} />
       </span>
       <span className={product.available > 0 ? 'text-body' : 'text-body text-danger'}>
         {product.available > 0 ? copy.inStock(product.available) : copy.outOfStock}
       </span>
-      <span className="text-right text-body font-medium tabular-nums">{price}</span>
-      <span className="flex items-center justify-end gap-0.5 opacity-40 transition-opacity duration-150 group-hover/row:opacity-100 focus-within:opacity-100 [@media(hover:none)]:opacity-100">
-        <a
-          href={routes.products.detail(product.id)}
-          target="_blank"
-          rel="noreferrer"
-          aria-label={copy.open}
-          className="flex size-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-        >
-          <ArrowRight className="size-4" aria-hidden />
-        </a>
+      <span className="text-right text-body tabular-nums">{price}</span>
+      <span className="flex justify-end">
         {onRemove ? (
-          <RowMenu items={[{ label: copy.remove, destructive: true, onSelect: onRemove }]} />
+          <button
+            type="button"
+            aria-label={copy.remove}
+            title={copy.remove}
+            onClick={onRemove}
+            className="flex size-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            <X className="size-4" aria-hidden />
+          </button>
         ) : null}
       </span>
     </div>

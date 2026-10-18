@@ -10,6 +10,9 @@ export const draftsContent = {
   intro:
     'Orders you build for a customer. They stay hidden from your storefront until you convert them.',
   tabs: { all: 'All drafts', open: 'Open', invoice_sent: 'Invoice sent' },
+  viewLabel: 'Draft view',
+  sortNewest: 'Newest first',
+  sortOldest: 'Oldest first',
   create: 'Create draft order',
   summary: (total: number, invoiced: number) =>
     [
@@ -44,6 +47,11 @@ export const draftsContent = {
 export const draftEditorContent = {
   newTitle: 'Create draft order',
   editTitle: (n: number) => `Draft #${n}`,
+  subtitle: {
+    for: (name: string) => `For ${name}`,
+    items: (n: number) => (n === 1 ? '1 item' : `${n} items`),
+    created: (date: string) => `created ${date}`,
+  },
   save: 'Save draft',
   saved: 'Draft saved',
   saveFailed: 'Could not save the draft',
@@ -82,6 +90,8 @@ export const draftEditorContent = {
   totals: {
     heading: 'Payment',
     subtotal: 'Subtotal',
+    items: (n: number) => (n === 1 ? '1 item' : `${n} items`),
+    gstIncluded: (rate: number) => `GST ${rate}% · included in the prices above`,
     discount: 'Discount',
     discountLabel: 'Discount label',
     shipping: 'Shipping',
@@ -121,6 +131,7 @@ export type AbandonedListFilter = (typeof ABANDONED_LIST_FILTERS)[number]
 export const abandonedContent = {
   title: 'Abandoned checkouts',
   heading: 'Abandoned checkouts',
+  viewLabel: 'Checkout view',
   intro: 'Baskets where a shopper left their contact but did not pay.',
   summary: (carts: number, recovered: number, valuePaise: string) =>
     `${carts} ${carts === 1 ? 'cart' : 'carts'} left this week · ${recovered} recovered · ${valuePaise} still waiting`,

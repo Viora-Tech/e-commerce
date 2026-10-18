@@ -15,8 +15,9 @@ import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import SetupChecklist from '@/components/apps/setup-checklist'
-import ProoflyPageHeader from '@/components/layout/proofly-page-header'
+import PageHeader from '@/components/layout/page-header'
 import RelativeTime from '@/components/layout/relative-time'
+import TableEmptyRow from '@/components/table/table-empty-row'
 import { gstInvoicesContent } from '@/data/gst-invoices'
 import { api } from '@/lib/api-client'
 import { formatPaise } from '@/lib/money'
@@ -139,7 +140,7 @@ export default function QueuePage() {
 
   return (
     <div className="flex flex-col gap-4">
-      <ProoflyPageHeader
+      <PageHeader
         title={copy.title}
         summary={copy.subtitle}
         actions={<GstNumberPicker value={gst} onChange={handleGst} allowAll />}
@@ -222,13 +223,7 @@ export default function QueuePage() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {rows && list.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={6} className="py-10 text-center text-muted-foreground">
-                  {copy.empty}
-                </TableCell>
-              </TableRow>
-            ) : null}
+            {rows && list.length === 0 ? <TableEmptyRow colSpan={6} message={copy.empty} /> : null}
             {list.map((r) => (
               <TableRow key={r.id}>
                 <TableCell className={CELL}>

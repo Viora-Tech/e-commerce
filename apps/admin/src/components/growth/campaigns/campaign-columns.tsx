@@ -1,5 +1,5 @@
 import RelativeTime from '@/components/layout/relative-time'
-import StatusLabelChip from '@/components/status/status-label-chip'
+import OrderChip from '@/components/orders/order-chip'
 import type { ResourceColumnSpec } from '@/components/table/resource-table'
 import { campaignReportContent, type campaignsContent } from '@/data/marketing-campaigns'
 import type { api } from '@/lib/api-client'
@@ -69,7 +69,7 @@ export function campaignColumns(copy: Copy, fmt: Formatters): ResourceColumnSpec
       id: 'status',
       title: copy.columns.status,
       align: 'center',
-      render: (c) => <StatusLabelChip kind="campaign" value={c.status} />,
+      render: (c) => <OrderChip kind="campaign" value={c.status} />,
     },
     {
       id: 'date',

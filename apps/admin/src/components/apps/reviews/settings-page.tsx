@@ -67,10 +67,7 @@ export default function SettingsPage() {
       <PageHeader
         title={copy.settings.title}
         subtitle={copy.settings.subtitle}
-        breadcrumbs={[
-          { label: copy.detail.back, href: routes.apps.page('reviews') },
-          { label: copy.settings.title },
-        ]}
+        back={{ label: copy.detail.back, href: routes.apps.page('reviews') }}
         actions={
           <Button onClick={handleSave} disabled={busy || !dirty}>
             {busy ? <Spinner /> : null}

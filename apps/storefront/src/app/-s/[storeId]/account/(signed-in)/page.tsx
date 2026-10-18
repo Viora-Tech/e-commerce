@@ -17,5 +17,10 @@ export default async function OrdersPage({ params }: OrdersPageProps) {
     orders: await listCustomerOrders({ storeId, tx }, me.id),
     timeZone: await storeTimeZone(tx, storeId),
   }))
-  return <OrderList orders={orders} timeZone={timeZone} />
+  return (
+    <>
+      <h1 className="account-page__title">{accountContent.orders.title}</h1>
+      <OrderList orders={orders} timeZone={timeZone} />
+    </>
+  )
 }

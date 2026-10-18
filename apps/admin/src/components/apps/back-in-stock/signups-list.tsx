@@ -2,9 +2,9 @@
 
 import { siteConfig } from '@commerce/config/site'
 import { useEffect, useState } from 'react'
-import ProoflyPageHeader from '@/components/layout/proofly-page-header'
+import PageHeader from '@/components/layout/page-header'
 import RelativeTime from '@/components/layout/relative-time'
-import StatusLabelChip from '@/components/status/status-label-chip'
+import OrderChip from '@/components/orders/order-chip'
 import ResourceTable, { type ResourceColumnSpec } from '@/components/table/resource-table'
 import { backInStockContent } from '@/data/back-in-stock'
 import { api } from '@/lib/api-client'
@@ -33,7 +33,7 @@ const columns: ResourceColumnSpec<Row>[] = [
     id: 'status',
     title: copy.columns.status,
     sortValue: (r) => r.status,
-    render: (r) => <StatusLabelChip kind="bisSignup" value={r.status} />,
+    render: (r) => <OrderChip kind="bisSignup" value={r.status} />,
   },
   {
     id: 'created',
@@ -83,7 +83,7 @@ export default function SignupsList() {
 
   return (
     <div className="flex flex-col gap-5">
-      <ProoflyPageHeader title={copy.title} summary={copy.subtitle} />
+      <PageHeader title={copy.title} summary={copy.subtitle} />
       <ResourceTable
         resourceName={copy.resource}
         columns={columns}

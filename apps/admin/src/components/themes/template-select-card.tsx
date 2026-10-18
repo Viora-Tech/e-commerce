@@ -1,7 +1,7 @@
 'use client'
 
 import type { AlternateKind } from '@commerce/core/theme'
-import { Card, CardContent, CardHeader, CardTitle } from '@commerce/ui/shadcn/card'
+import DataCard from '@/components/layout/data-card'
 import { customizeContent } from '@/data/customize'
 import { useCopy } from '@/hooks/use-copy'
 import TemplateSelectField from './template-select-field'
@@ -19,13 +19,8 @@ export default function TemplateSelectCard({ kind, value, onChange }: TemplateSe
 
   // Render logic
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>{copy.heading}</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <TemplateSelectField kind={kind} value={value} onChange={onChange} />
-      </CardContent>
-    </Card>
+    <DataCard title={copy.heading}>
+      <TemplateSelectField kind={kind} value={value} onChange={onChange} />
+    </DataCard>
   )
 }

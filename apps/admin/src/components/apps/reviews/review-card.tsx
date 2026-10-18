@@ -1,5 +1,6 @@
 import DataCard from '@/components/layout/data-card'
 import RelativeTime from '@/components/layout/relative-time'
+import StatusChip from '@/components/layout/status-chip'
 import { reviewsContent } from '@/data/reviews'
 import { useCopy } from '@/hooks/use-copy'
 import type { api } from '@/lib/api-client'
@@ -49,9 +50,7 @@ export default function ReviewCard({ detail }: ReviewCardProps) {
         ) : null}
         <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-caption text-muted-foreground">
           {r.verifiedBuyer ? (
-            <span className="inline-flex h-5 items-center rounded-sm bg-success-soft px-1.5 font-medium text-success">
-              {copy.verified}
-            </span>
+            <StatusChip tone="success">{copy.verified}</StatusChip>
           ) : (
             <span>{copy.notVerified}</span>
           )}

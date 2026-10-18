@@ -9,6 +9,7 @@ import {
   type LiquidSectionInput,
   liquidPlacement,
   loadThemeBundle,
+  loadThemeDraftBundle,
   mainThemeId,
   ProductDrop,
   peekThemeBundle,
@@ -21,6 +22,7 @@ import {
   themeImportFor,
 } from '@commerce/core'
 import type { StoreTx } from '@commerce/db'
+import { logger } from '@commerce/observability/logging'
 import { reviewsLiquidSource } from '@commerce/plugin-reviews/server'
 import { headers } from 'next/headers'
 import { cache } from 'react'
@@ -145,7 +147,14 @@ async function importedTheme(
     }),
   )
   if (!info) return null
+  // Previewing this theme (Edit code → Preview) shows its unpublished saves.
+  const preview = readPreview(storeId, (await headers()).get('x-theme-preview'))
+  const draft =
+    preview?.themeId === themeId
+      ? await within(storeId, tx, (t) => loadThemeDraftBundle(t, themeId))
+      : null
   const bundle =
+    draft ??
     peekThemeBundle(themeId, info.version) ??
     (await within(storeId, tx, (t) => loadThemeBundle(t, themeId)))
   return bundle ? { bundle, shopifyHost: info.shopifyHost } : null
@@ -328,7 +337,7 @@ export async function renderLiquidSections(
       const trace = live.start()
       const html = await renderLiquidSection(live.ctx, p.section, (err) => {
         trace.failed = true
-        console.error(`[liquid] ${p.type} failed to render`, err)
+        logger.error('liquid section failed to render', { storeId, section: p.type, error: err })
       })
       if (live.ctx.cache.missing) trace.failed = true
       // The theme's own `<script>` tags carry the nonce (written at parse time,
@@ -392,7 +401,7 @@ export async function liquidLayoutFor(
     const trace = live.start()
     const parts = await renderLiquidLayout(live.ctx, (err) => {
       trace.failed = true
-      console.error('[liquid] layout failed', err)
+      logger.error('liquid layout failed to render', { storeId, error: err })
     })
     if (live.ctx.cache.missing) trace.failed = true
     const layout: LiquidLayout = {

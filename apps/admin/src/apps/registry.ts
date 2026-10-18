@@ -27,6 +27,13 @@ import ReviewDetail from '@/components/apps/reviews/review-detail'
 import ReviewsPage from '@/components/apps/reviews/reviews-page'
 import ReviewsSettingsPage from '@/components/apps/reviews/settings-page'
 import S3ConnectPage from '@/components/apps/s3/connect-page'
+import SearchConsoleAlmostPageOne from '@/components/apps/search-console/almost-page-one-page'
+import SearchConsoleLosingTraffic from '@/components/apps/search-console/losing-traffic-page'
+import SearchConsoleOverview from '@/components/apps/search-console/overview-page'
+import SearchConsolePages from '@/components/apps/search-console/pages-page'
+import SearchConsoleSearches from '@/components/apps/search-console/searches-page'
+import SearchConsoleSettings from '@/components/apps/search-console/settings-page'
+import SearchConsoleSitemaps from '@/components/apps/search-console/sitemaps-page'
 import ShiprocketConnectPage from '@/components/apps/shiprocket/connect-page'
 import ShiprocketOverviewPage from '@/components/apps/shiprocket/overview-page'
 import ConnectHeaderButton from '@/components/apps/shopify-import/connect-header-button'
@@ -34,6 +41,7 @@ import ConnectPage from '@/components/apps/shopify-import/connect-page'
 import CsvPage from '@/components/apps/shopify-import/csv-page'
 import ImportsPage from '@/components/apps/shopify-import/imports-page'
 import RunPage from '@/components/apps/shopify-import/run-page'
+import ShopifySettingsPage from '@/components/apps/shopify-import/settings-page'
 import UmamiSettingsPage from '@/components/apps/umami/settings-page'
 
 /** What a page of an app receives: the dynamic segments of its path, e.g. `{ id }`. */
@@ -88,6 +96,17 @@ export const ADMIN_APPS: Record<string, AdminApp> = {
   forms: {
     pages: {
       '': SubmissionsList,
+    },
+  },
+  'google-search-console': {
+    pages: {
+      '': SearchConsoleOverview,
+      searches: SearchConsoleSearches,
+      pages: SearchConsolePages,
+      'almost-page-one': SearchConsoleAlmostPageOne,
+      'losing-traffic': SearchConsoleLosingTraffic,
+      sitemaps: SearchConsoleSitemaps,
+      settings: SearchConsoleSettings,
     },
   },
   'gst-invoices': {
@@ -149,6 +168,7 @@ export const ADMIN_APPS: Record<string, AdminApp> = {
       '': ImportsPage,
       csv: CsvPage,
       connect: ConnectPage,
+      settings: ShopifySettingsPage,
       'runs/[id]': RunPage,
     },
   },

@@ -1,0 +1,409 @@
+import {
+  type BoxPreset,
+  type CourierRateRow,
+  compareCourierRates,
+  datedCourierRows,
+  defaultBoxPreset,
+  effectiveWeightGrams,
+  orderParcelsView,
+  resolveParcelPackage,
+  resolveParcelWeightGrams,
+  resolveShippingProviders,
+  type ShippingRegistry,
+  shipFromFor,
+  toShippingPolicy,
+} from '@commerce/core'
+import type { StoreTx } from '@commerce/db'
+import { address, customer, location, order, orderLine, store, variant } from '@commerce/db'
+import { ASSUMED_WEIGHT_GRAMS } from '@commerce/shipping'
+import { eq, inArray, isNotNull, sql } from 'drizzle-orm'
+import { loadShippingSettings } from './shipping.service'
+
+/**
+ * The Create shipment flow (order page, Orders → Shipments, book by order number, bulk): what
+ * step 1 pre-fills (`prepareShipments`) and what step 2 compares (`quoteShipments`). Booking
+ * itself stays on `orders.createShipment` (one parcel) and `shipments.bulkBook` (several
+ * orders), which take the courier the merchant picked here.
+ */
+
+export type DimensionsCm = { length: number; width: number; height: number }
+
+/** Where a courier can collect from: a location with courier pickup on, or (id null)
+ *  Settings › Shipping's address. */
+export type PickupPlace = {
+  id: string | null
+  name: string
+  city: string | null
+  pincode: string
+  /** The rest of the address, for the Create shipment route card. */
+  line1: string | null
+  line2: string | null
+  stateCode: string | null
+  phone: string | null
+}
+
+export type DraftParcel = {
+  /** The fulfilment order; null when the order ships whole (older orders without parcels). */
+  id: string | null
+  position: number
+  locationName: string | null
+  /** The units still to send, per order line. */
+  lines: Array<{ id: string; title: string; quantity: number }>
+  /** Declared value: the parcel's share of the order, or the order total when it ships whole. */
+  valuePaise: number
+  /** From the products' weights, else the default box (what booking would use). */
+  weightGrams: number
+  /** The products' own box when every line agrees on one; null uses the default box. */
+  dimensionsCm: DimensionsCm | null
+  /** Where it leaves from by default: the parcel's location when it has courier pickup on. */
+  pickupLocationId: string | null
+}
+
+export type DraftOrder = {
+  orderId: string
+  orderNumber: number
+  customerName: string | null
+  city: string | null
+  pincode: string | null
+  /** The rest of the ship-to address, for the Create shipment route card. */
+  line1: string | null
+  line2: string | null
+  stateCode: string | null
+  phone: string | null
+  paymentStatus: string
+  fulfillmentStatus: string
+  paymentMode: 'cod' | 'prepaid'
+  totalPaise: number
+  /** Why this order can't be booked here, if it can't. */
+  blocked: 'no_address' | 'closed' | 'nothing_to_ship' | null
+  parcels: DraftParcel[]
+}
+
+export type ShipmentDraft = {
+  couriers: Array<{ id: string; label: string; hasRates: boolean; hasPickup: boolean }>
+  boxes: BoxPreset[]
+  defaultBoxId: string | null
+  pickupPlaces: PickupPlace[]
+  orders: DraftOrder[]
+}
+
+const CLOSED_STATUSES = new Set(['cancelled', 'draft'])
+const OPEN_PARCEL = new Set(['open', 'on_hold'])
+
+function lineTitle(title: string | null, variantTitle: string | null): string {
+  const v = variantTitle?.trim()
+  return [title?.trim() || '—', v && v !== 'Default' && v !== 'Default Title' ? v : null]
+    .filter(Boolean)
+    .join(' / ')
+}
+
+const toDims = (
+  p: { lengthCm: number; widthCm: number; heightCm: number } | null,
+): DimensionsCm | null => (p ? { length: p.lengthCm, width: p.widthCm, height: p.heightCm } : null)
+
+/** Step 1's pre-fill for each order: its parcels (what is in each, from where), weight and
+ *  box from the products, payment mode; plus the store's couriers, boxes and pickup places. */
+export async function prepareShipments(
+  tx: StoreTx,
+  storeId: string,
+  registry: ShippingRegistry,
+  secret: string,
+  orderIds: string[],
+): Promise<ShipmentDraft> {
+  const settings = await loadShippingSettings(tx, storeId)
+  const { providers } = resolveShippingProviders(registry, settings, secret)
+  const [s] = await tx.select({ name: store.name }).from(store).where(eq(store.id, storeId))
+  const storeName = s?.name ?? ''
+  const box = defaultBoxPreset(settings)
+  const boxWeightGrams = box?.weightGrams ?? ASSUMED_WEIGHT_GRAMS
+
+  const places = await tx
+    .select({
+      id: location.id,
+      name: location.name,
+      city: location.city,
+      pincode: location.pincode,
+      line1: location.line1,
+      line2: location.line2,
+      stateCode: location.stateCode,
+      phone: location.phone,
+    })
+    .from(location)
+    .where(isNotNull(location.courierPickup))
+    .orderBy(location.name)
+  const pickupPlaces: PickupPlace[] = [
+    {
+      id: null,
+      name: settings.policy.warehouse.name || storeName,
+      city: settings.policy.warehouse.city || null,
+      pincode: settings.policy.originPincode,
+      line1: settings.policy.warehouse.line1 || null,
+      line2: settings.policy.warehouse.line2 || null,
+      stateCode: settings.policy.warehouse.state || null,
+      phone: settings.policy.warehouse.phone || null,
+    },
+    ...places.flatMap((p) => (p.pincode ? [{ ...p, pincode: p.pincode }] : [])),
+  ]
+
+  const orders =
+    orderIds.length === 0
+      ? []
+      : await tx
+          .select({
+            id: order.id,
+            number: order.number,
+            status: order.status,
+            paymentMethod: order.paymentMethod,
+            totalPaise: order.totalPaise,
+            taxOrigin: order.taxOrigin,
+            hasAddress: isNotNull(order.shippingAddressId),
+            customerName: sql<string | null>`coalesce(${address.name}, ${customer.name})`,
+            city: address.city,
+            pincode: address.pincode,
+            line1: address.line1,
+            line2: address.line2,
+            stateCode: address.stateCode,
+            phone: address.phone,
+            paymentStatus: order.paymentStatus,
+            fulfillmentStatus: order.fulfillmentStatus,
+          })
+          .from(order)
+          .leftJoin(address, eq(address.id, order.shippingAddressId))
+          .leftJoin(customer, eq(customer.id, order.customerId))
+          .where(inArray(order.id, orderIds))
+  const lines =
+    orders.length === 0
+      ? []
+      : await tx
+          .select({
+            id: orderLine.id,
+            orderId: orderLine.orderId,
+            title: orderLine.title,
+            variantTitle: orderLine.variantTitle,
+            quantity: orderLine.quantity,
+            fulfilledQuantity: orderLine.fulfilledQuantity,
+            unitPricePaise: orderLine.unitPricePaise,
+            giftCard: orderLine.giftCard,
+            variantWeightGrams: variant.weightGrams,
+            boxPresetId: variant.boxPresetId,
+            packageLengthCm: variant.packageLengthCm,
+            packageWidthCm: variant.packageWidthCm,
+            packageHeightCm: variant.packageHeightCm,
+          })
+          .from(orderLine)
+          .leftJoin(variant, eq(variant.id, orderLine.variantId))
+          .where(
+            inArray(
+              orderLine.orderId,
+              orders.map((o) => o.id),
+            ),
+          )
+
+  type Line = (typeof lines)[number]
+  const draftParcel = (
+    base: Pick<DraftParcel, 'id' | 'position' | 'locationName' | 'pickupLocationId'>,
+    picked: Array<{ line: Line; quantity: number }>,
+    valuePaise: number | null,
+  ): DraftParcel => {
+    const weighed = picked.map((p) => ({ ...p.line, quantity: p.quantity }))
+    const dims = resolveParcelPackage(weighed, settings.boxPresets)
+    return {
+      ...base,
+      lines: picked.map((p) => ({
+        id: p.line.id,
+        title: lineTitle(p.line.title, p.line.variantTitle),
+        quantity: p.quantity,
+      })),
+      valuePaise:
+        valuePaise ?? picked.reduce((sum, p) => sum + p.line.unitPricePaise * p.quantity, 0),
+      weightGrams: effectiveWeightGrams(resolveParcelWeightGrams(weighed, boxWeightGrams), dims),
+      dimensionsCm: toDims(dims),
+    }
+  }
+
+  const drafts: DraftOrder[] = []
+  for (const o of orders) {
+    const own = lines.filter((l) => l.orderId === o.id)
+    const byLine = new Map(own.map((l) => [l.id, l]))
+    const parcels: DraftParcel[] = []
+    const all = await orderParcelsView(tx, o.id)
+    const views = all.filter((p) => OPEN_PARCEL.has(p.status))
+    // A parcel that is the whole order is worth the order; one of several, its own share.
+    const live = all.filter((p) => p.status !== 'cancelled')
+    for (const view of views) {
+      const picked = view.lines.flatMap((l) => {
+        const line = byLine.get(l.orderLineId)
+        const quantity = l.quantity - l.fulfilledQuantity
+        return line && quantity > 0 ? [{ line, quantity }] : []
+      })
+      if (picked.length === 0) continue
+      const from = await shipFromFor(tx, {
+        taxOrigin: o.taxOrigin,
+        locationId: view.locationId,
+        settings,
+        storeName,
+      })
+      parcels.push(
+        draftParcel(
+          {
+            id: view.id,
+            position: view.position,
+            locationName: view.locationName,
+            pickupLocationId: from.locationId,
+          },
+          picked,
+          live.length === 1 ? o.totalPaise : view.totalPaise,
+        ),
+      )
+    }
+    // An order older than parcels ships whole: every unit still unpacked.
+    if (all.length === 0) {
+      const picked = own.flatMap((line) => {
+        const quantity = line.quantity - line.fulfilledQuantity
+        return quantity > 0 && !line.giftCard ? [{ line, quantity }] : []
+      })
+      if (picked.length > 0) {
+        const from = await shipFromFor(tx, { taxOrigin: o.taxOrigin, settings, storeName })
+        parcels.push(
+          draftParcel(
+            { id: null, position: 1, locationName: null, pickupLocationId: from.locationId },
+            picked,
+            o.totalPaise,
+          ),
+        )
+      }
+    }
+    drafts.push({
+      orderId: o.id,
+      orderNumber: o.number,
+      customerName: o.customerName,
+      city: o.city,
+      pincode: o.pincode,
+      line1: o.line1,
+      line2: o.line2,
+      stateCode: o.stateCode,
+      phone: o.phone,
+      paymentStatus: o.paymentStatus,
+      fulfillmentStatus: o.fulfillmentStatus,
+      paymentMode: o.paymentMethod === 'cod' ? 'cod' : 'prepaid',
+      totalPaise: o.totalPaise,
+      blocked: CLOSED_STATUSES.has(o.status)
+        ? 'closed'
+        : !o.hasAddress
+          ? 'no_address'
+          : parcels.length === 0
+            ? 'nothing_to_ship'
+            : null,
+      parcels,
+    })
+  }
+  // In the order the caller asked for (the rows the merchant ticked).
+  drafts.sort((a, b) => orderIds.indexOf(a.orderId) - orderIds.indexOf(b.orderId))
+
+  return {
+    couriers: providers.map((p) => ({
+      id: p.id,
+      label: p.label,
+      hasRates: Boolean(p.quoteRate),
+      hasPickup: Boolean(p.schedulePickup),
+    })),
+    boxes: settings.boxPresets,
+    defaultBoxId: box?.id ?? null,
+    pickupPlaces,
+    orders: drafts,
+  }
+}
+
+export type QuoteRequest = {
+  orderId: string
+  fulfillmentOrderId?: string | null | undefined
+  /** As picked in step 1: a location id, null for Settings › Shipping, omitted for automatic. */
+  pickupLocationId?: string | null | undefined
+  weightGrams?: number | undefined
+  dimensionsCm?: DimensionsCm | undefined
+  paymentMode?: 'cod' | 'prepaid' | undefined
+  declaredValuePaise?: number | undefined
+}
+
+export type QuoteResult = {
+  orderId: string
+  fulfillmentOrderId: string | null
+  /** The weight couriers bill: the heavier of actual and volumetric. */
+  chargedWeightGrams: number
+  originPincode: string
+  options: CourierRateRow[]
+}
+
+/**
+ * Step 2: every connected courier's price, delivery date and COD support for each parcel, from
+ * the pickup place picked in step 1 to the order's address. A courier that fails or says no
+ * gets its own row with the reason, never blanking the others (`compareCourierRates`).
+ */
+export async function quoteShipments(
+  tx: StoreTx,
+  storeId: string,
+  registry: ShippingRegistry,
+  secret: string,
+  requests: QuoteRequest[],
+  now = new Date(),
+): Promise<QuoteResult[]> {
+  const settings = await loadShippingSettings(tx, storeId)
+  const { providers } = resolveShippingProviders(registry, settings, secret)
+  if (requests.length === 0) return []
+  const [s] = await tx.select({ name: store.name }).from(store).where(eq(store.id, storeId))
+  const rows = await tx
+    .select({
+      id: order.id,
+      totalPaise: order.totalPaise,
+      paymentMethod: order.paymentMethod,
+      taxOrigin: order.taxOrigin,
+      pincode: address.pincode,
+    })
+    .from(order)
+    .innerJoin(address, eq(address.id, order.shippingAddressId))
+    .where(
+      inArray(
+        order.id,
+        requests.map((r) => r.orderId),
+      ),
+    )
+  const byId = new Map(rows.map((r) => [r.id, r]))
+  const policy = toShippingPolicy(settings)
+
+  const results = await Promise.all(
+    requests.map(async (r): Promise<QuoteResult | null> => {
+      const o = byId.get(r.orderId)
+      if (!o) return null
+      const from = await shipFromFor(tx, {
+        taxOrigin: o.taxOrigin,
+        locationId: r.pickupLocationId ?? undefined,
+        storeAddress: r.pickupLocationId === null,
+        settings,
+        storeName: s?.name ?? '',
+      })
+      const dims = r.dimensionsCm
+        ? {
+            lengthCm: r.dimensionsCm.length,
+            widthCm: r.dimensionsCm.width,
+            heightCm: r.dimensionsCm.height,
+          }
+        : null
+      const chargedWeightGrams = effectiveWeightGrams(r.weightGrams ?? ASSUMED_WEIGHT_GRAMS, dims)
+      const options = await compareCourierRates(providers, {
+        originPincode: from.address.pincode,
+        destinationPincode: o.pincode,
+        weightGrams: chargedWeightGrams,
+        declaredValuePaise: r.declaredValuePaise ?? o.totalPaise,
+        paymentMode: r.paymentMode ?? (o.paymentMethod === 'cod' ? 'cod' : 'prepaid'),
+      })
+      return {
+        orderId: o.id,
+        fulfillmentOrderId: r.fulfillmentOrderId ?? null,
+        chargedWeightGrams,
+        originPincode: from.address.pincode,
+        options: datedCourierRows(options, policy, now),
+      }
+    }),
+  )
+  return results.filter((r): r is QuoteResult => r !== null)
+}

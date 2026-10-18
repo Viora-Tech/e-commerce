@@ -42,3 +42,17 @@ export {
   reviewReplyContent,
   reviewReplyInstructions,
 } from './review-reply'
+export {
+  proposalProps,
+  SECTION_WRITER_TYPES,
+  type SectionProposal,
+  SectionProposalSchema,
+  type SectionWriterType,
+  sectionWriterContent,
+  sectionWriterInstructions,
+} from './section-writer'
+export {
+  type SeoKeywordsInput,
+  seoKeywordsContent,
+  seoKeywordsInstructions,
+} from './seo-keywords/prompt'

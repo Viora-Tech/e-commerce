@@ -2,7 +2,7 @@
 
 import { siteConfig } from '@commerce/config/site'
 import type { ProductStatus } from '@commerce/core/catalog'
-import { Download, Plus, SquarePlus, Upload } from '@commerce/ui/icons'
+import { Download, Plus, Upload } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Kbd } from '@commerce/ui/shadcn/kbd'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@commerce/ui/shadcn/tooltip'
@@ -11,21 +11,29 @@ import { useRouter } from 'next/navigation'
 import { parseAsInteger, parseAsString, parseAsStringLiteral, useQueryStates } from 'nuqs'
 import { Suspense, useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
-import PillTabs from '@/components/layout/pill-tabs'
+import ConfirmDialog from '@/components/layout/confirm-dialog'
 import ProoflyListPage from '@/components/layout/proofly-list-page'
 import BulkTagDialog from '@/components/products/bulk-tag-dialog'
 import BulkWriteBanner from '@/components/products/bulk-write/bulk-write-banner'
 import BulkWriteSheet from '@/components/products/bulk-write/bulk-write-sheet'
-import ConfirmBulkDelete from '@/components/products/confirm-bulk-delete'
 import { downloadProductCsv } from '@/components/products/export-products'
 import ImportDialog from '@/components/products/import-dialog'
 import ProductBulkActions from '@/components/products/product-bulk-actions'
 import { productColumns } from '@/components/products/product-columns'
-import ProductFilters, { type StockFilter } from '@/components/products/product-filters'
 import ProductTiles from '@/components/products/product-tiles'
-import ResourceTable, { type AppliedFilter } from '@/components/table/resource-table'
+import {
+  appliedFromGroups,
+  clearGroups,
+  FILTER_PANEL_CLASS,
+  type FilterGroup,
+  FilterPanel,
+  facetOptions,
+} from '@/components/table/filter-panel'
+import ResourceTable from '@/components/table/resource-table'
 import RowMenu from '@/components/table/row-menu'
-import { PRODUCT_STATUSES, productsListContent } from '@/data/products'
+import ViewSelect from '@/components/table/view-select'
+import { filterPanelContent } from '@/data/filter-panel'
+import { PRODUCT_STATUSES, productsListContent, type StockFilter } from '@/data/products'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 import { type ListQuery, sameListQuery } from '@/lib/list-query'
@@ -80,6 +88,7 @@ function hasFilters(q: Query) {
 function ProductsContent({ initial }: { initial: ProductsInitial }) {
   // Hooks
   const copy = useCopy(productsListContent)
+  const panelCopy = useCopy(filterPanelContent)
   const fmt = useFormat()
   usePrimaryAction(routes.products.new())
   const router = useRouter()
@@ -199,29 +208,44 @@ function ProductsContent({ initial }: { initial: ProductsInitial }) {
     draft: stats.draft,
     archived: Math.max(0, stats.total - stats.active - stats.draft),
   }
-  const stockLabel = copy.filters.stockOptions.find((o) => o.value === q.stock)?.label ?? q.stock
-  const applied = [
-    q.vendor && {
+  const groups: FilterGroup[] = [
+    {
       key: 'vendor',
-      label: `${copy.filters.vendor}: ${q.vendor}`,
-      onRemove: () => setQ({ vendor: null, page: 1 }),
+      label: copy.filters.vendor,
+      type: 'select',
+      options: facetOptions(initial.facets.vendors),
+      value: q.vendor,
+      onChange: (vendor) => setQ({ vendor, page: 1 }),
+      anyLabel: copy.filters.any,
     },
-    q.productType && {
+    {
       key: 'type',
-      label: `${copy.filters.productType}: ${q.productType}`,
-      onRemove: () => setQ({ productType: null, page: 1 }),
+      label: copy.filters.productType,
+      type: 'select',
+      options: facetOptions(initial.facets.productTypes),
+      value: q.productType,
+      onChange: (productType) => setQ({ productType, page: 1 }),
+      anyLabel: copy.filters.any,
     },
-    q.tag && {
+    {
       key: 'tag',
-      label: `${copy.filters.tag}: ${q.tag}`,
-      onRemove: () => setQ({ tag: null, page: 1 }),
+      label: copy.filters.tag,
+      type: 'select',
+      options: facetOptions(initial.facets.tags),
+      value: q.tag,
+      onChange: (tag) => setQ({ tag, page: 1 }),
+      anyLabel: copy.filters.any,
     },
-    q.stock && {
+    {
       key: 'stock',
-      label: `${copy.filters.stock}: ${stockLabel}`,
-      onRemove: () => setQ({ stock: null, page: 1 }),
+      label: copy.filters.stock,
+      type: 'select',
+      options: copy.filters.stockOptions,
+      value: q.stock,
+      onChange: (next) => setQ({ stock: STOCK_FILTERS.find((s) => s === next) ?? null, page: 1 }),
+      anyLabel: copy.filters.any,
     },
-  ].filter(Boolean) as AppliedFilter[]
+  ]
 
   return (
     <ProoflyListPage
@@ -259,7 +283,7 @@ function ProductsContent({ initial }: { initial: ProductsInitial }) {
             <TooltipTrigger
               render={
                 <Button render={<Link href={routes.products.new()} />} nativeButton={false}>
-                  <SquarePlus strokeWidth={1.6} />
+                  <Plus strokeWidth={1.6} />
                   {copy.add}
                 </Button>
               }
@@ -308,23 +332,20 @@ function ProductsContent({ initial }: { initial: ProductsInitial }) {
             page: 1,
           })
         }
-        filters={
-          <ProductFilters
-            values={{ vendor: q.vendor, productType: q.productType, tag: q.tag, stock: q.stock }}
-            facets={initial.facets}
-            onChange={(patch) => setQ({ ...patch, page: 1 })}
-            onClear={() =>
-              setQ({ vendor: null, productType: null, tag: null, stock: null, page: 1 })
-            }
+        filters={(close) => (
+          <FilterPanel
+            groups={groups}
+            onClear={() => clearGroups(groups)}
+            footer={{ label: panelCopy.show(total), onDone: close }}
           />
-        }
-        applied={applied}
-        tabs={
-          <PillTabs
-            variant="segmented"
+        )}
+        filtersClassName={FILTER_PANEL_CLASS}
+        applied={appliedFromGroups(groups, panelCopy)}
+        views={
+          <ViewSelect
             value={q.status}
             onChange={(status) => setQ({ status, page: 1 })}
-            tabs={[
+            options={[
               { value: null, label: copy.tabs.all, count: stats.total },
               ...PRODUCT_STATUSES.map((s) => ({
                 value: s,
@@ -381,12 +402,16 @@ function ProductsContent({ initial }: { initial: ProductsInitial }) {
         open={tagging !== null}
         onOpenChange={(open) => !open && setTagging(null)}
         onApply={handleApplyTag}
+        count={tagging?.ids.length ?? 0}
       />
-      <ConfirmBulkDelete
-        count={deleting?.ids.length ?? 0}
+      <ConfirmDialog
         open={deleting !== null}
-        busy={busy}
         onOpenChange={(open) => !open && setDeleting(null)}
+        title={copy.bulk.confirmDelete.title(deleting?.ids.length ?? 0)}
+        body={copy.bulk.confirmDelete.body}
+        confirmLabel={copy.bulk.confirmDelete.confirm}
+        cancelLabel={copy.bulk.confirmDelete.cancel}
+        busy={busy}
         onConfirm={handleConfirmDelete}
       />
     </ProoflyListPage>

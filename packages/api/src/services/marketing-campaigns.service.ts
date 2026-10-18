@@ -1,6 +1,8 @@
 import {
   audienceSize,
+  type CampaignOrder,
   type CampaignStats,
+  campaignOrders,
   campaignStats,
   getCampaign,
   type MarketingDeps,
@@ -29,12 +31,14 @@ export async function marketingDeps(
 export type CampaignDetail = NonNullable<Awaited<ReturnType<typeof getCampaign>>> & {
   stats: CampaignStats
   segmentName: string | null
+  /** The newest orders credited to it, for "Orders from this campaign". */
+  recentOrders: CampaignOrder[]
 }
 
 export async function campaignDetail(tx: StoreTx, id: string): Promise<CampaignDetail | null> {
   const c = await getCampaign(tx, id)
   if (!c) return null
-  const [stats, seg] = await Promise.all([
+  const [stats, seg, recentOrders] = await Promise.all([
     campaignStats(tx, [id]),
     c.segmentId
       ? tx
@@ -42,11 +46,13 @@ export async function campaignDetail(tx: StoreTx, id: string): Promise<CampaignD
           .from(customerSegment)
           .where(eq(customerSegment.id, c.segmentId))
       : [],
+    campaignOrders(tx, id),
   ])
   return {
     ...c,
     stats: stats.get(id) as CampaignStats,
     segmentName: seg[0]?.name ?? null,
+    recentOrders,
   }
 }
 

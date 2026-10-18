@@ -5,10 +5,10 @@ import { Send } from '@commerce/ui/icons'
 import { Card } from '@commerce/ui/shadcn/card'
 import { useState } from 'react'
 import EmptyState from '@/components/layout/empty-state'
-import PillTabs from '@/components/layout/pill-tabs'
 import ProoflyListPage from '@/components/layout/proofly-list-page'
 import ResourceTable from '@/components/table/resource-table'
 import RowMenu from '@/components/table/row-menu'
+import ViewSelect from '@/components/table/view-select'
 import { campaignsContent } from '@/data/marketing-campaigns'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import type { api } from '@/lib/api-client'
@@ -93,15 +93,14 @@ export default function CampaignsPage({ campaigns }: CampaignsPageProps) {
           setTab(null)
           setPage(1)
         }}
-        tabs={
-          <PillTabs
-            variant="segmented"
+        views={
+          <ViewSelect
             value={tab}
             onChange={(next) => {
               setTab(next)
               setPage(1)
             }}
-            tabs={[
+            options={[
               { value: null, label: copy.tabs.all, count: campaigns.length },
               { value: 'sent' as const, label: copy.tabs.sent, count: inStatus(campaigns, 'sent') },
               {

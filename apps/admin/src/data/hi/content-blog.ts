@@ -27,7 +27,7 @@ export default [
     tabs: { all: 'सभी', published: 'चालू', scheduled: 'तय समय पर', draft: 'ड्राफ़्ट' },
     status: { published: 'चालू', scheduled: 'तय समय पर', draft: 'ड्राफ़्ट' },
     scheduledFor: (when) => `${when} को चालू होगा`,
-    filters: { blog: 'ब्लॉग', tag: 'टैग', any: 'कोई भी', clear: 'फ़िल्टर हटाएं' },
+    filters: { blog: 'ब्लॉग', tag: 'टैग', any: 'कोई भी' },
     bulk: {
       publish: 'चालू करें',
       unpublish: 'ड्राफ़्ट में भेजें',

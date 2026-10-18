@@ -350,22 +350,23 @@ h6,
 .h5,
 .h6 {
   font-family: var(--font-heading);
-  font-weight: 500;
-  letter-spacing: var(--heading-tracking, 0.01em);
+  font-weight: 700;
+  letter-spacing: var(--heading-tracking, -0.01em);
   line-height: 1.2;
 }
 
-/* Heading sizes are the Zero Drift scale times the theme's heading scale (1 by default). */
+/* Heading sizes are the Figma storefront scale (Store/Display, H1-H4) times the theme's heading
+   scale (1 by default): bold, sentence case, tighter as they grow. */
 h1,
 .h1 {
   font-size: calc(2.5rem * var(--font-heading-scale, 1));
-  text-transform: uppercase;
+  line-height: 1.1;
 }
 
 h2,
 .h2 {
   font-size: calc(2rem * var(--font-heading-scale, 1));
-  text-transform: uppercase;
+  line-height: 1.15;
 }
 
 h3,
@@ -464,10 +465,10 @@ h6,
   height: 56px;
   padding-inline: var(--space-5);
   border-radius: var(--radius-button, var(--radius-m));
-  font-family: var(--font-heading);
+  font-family: var(--font-body);
   font-size: 14px;
   font-weight: 500;
-  letter-spacing: 0.01em;
+  letter-spacing: 0.02em;
   text-transform: var(--btn-transform, uppercase);
   text-decoration: none;
   white-space: nowrap;
@@ -954,17 +955,17 @@ html.has-cursor-fill [data-icon-close]:hover {
 /* ------------------------------------------------------------------ */
 /* Badges                                                               */
 /* ------------------------------------------------------------------ */
+/* Figma Store / Badge (691:83834): a small rounded tag, 12px medium, sentence case. */
 .badge {
   display: inline-flex;
   align-items: center;
-  height: 24px;
-  padding-inline: var(--space-2);
-  border-radius: var(--radius-pill);
-  font-family: var(--font-heading);
+  padding: 3px var(--space-2);
+  border-radius: var(--radius-button, var(--radius-m));
+  font-family: var(--font-body);
   font-size: 12px;
   font-weight: 500;
-  text-transform: uppercase;
-  letter-spacing: 0.01em;
+  line-height: 1.4;
+  letter-spacing: 0;
   background-color: var(--color-ink);
   color: var(--color-bg);
 }
@@ -1007,7 +1008,7 @@ html.has-cursor-fill [data-icon-close]:hover {
 }
 
 .rte h2 {
-  font-size: 26px;
+  font-size: 24px;
 }
 
 .rte h3 {
@@ -1875,4 +1876,299 @@ html {
     --motion-press-scale: 1;
     --motion-card-press-scale: 1;
   }
+}
+
+/* ------------------------------------------------------------------ */
+/* Section title (Figma Store/H1)                                       */
+/* ------------------------------------------------------------------ */
+/* The heading every Figma section opens with: 40px bold (32px on phones), tight,
+   in ink. Sections that draw their own heading block use SectionHeading, which
+   shares these values. */
+.section-title {
+  margin: 0;
+  color: var(--color-ink);
+  font-family: var(--font-heading);
+  font-size: calc(2rem * var(--font-heading-scale, 1));
+  font-weight: 700;
+  line-height: 1.1;
+  letter-spacing: -0.015em;
+}
+
+@media screen and (min-width: 990px) {
+  .section-title {
+    font-size: calc(2.5rem * var(--font-heading-scale, 1));
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/* Figma Store / Empty state (693:80908) and the 404 page (706:118039)  */
+/* ------------------------------------------------------------------ */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-2);
+  padding-block: var(--space-9);
+  text-align: center;
+}
+
+.empty-state__icon {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  margin-bottom: var(--space-2);
+  border-radius: 50%;
+  background-color: var(--color-surface);
+  color: var(--color-ink);
+}
+
+.empty-state__title {
+  margin: 0;
+  color: var(--color-ink);
+  font-family: var(--font-heading);
+  font-size: var(--font-body-size, 16px);
+  font-weight: 700;
+}
+
+.empty-state__body {
+  margin: 0;
+  color: var(--color-muted);
+  font-size: 14px;
+}
+
+.empty-state__action {
+  height: 40px;
+  margin-top: var(--space-3);
+  padding-inline: var(--space-4);
+}
+
+.not-found {
+  padding-block: var(--space-9);
+  text-align: center;
+}
+
+.not-found__code {
+  margin: 0;
+  color: var(--color-muted);
+  font-family: var(--font-heading);
+  font-size: 48px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.not-found .empty-state {
+  padding-block: var(--space-3) 0;
+}
+
+.not-found__title {
+  font-size: calc(2.5rem * var(--font-heading-scale, 1));
+  letter-spacing: -0.015em;
+}
+
+.not-found__search {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  width: min(22rem, 100%);
+  height: 40px;
+  margin-top: var(--space-3);
+  padding-inline: var(--space-3);
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-input, var(--radius-m));
+  color: var(--color-muted);
+}
+
+.not-found__search input {
+  flex: 1 1 auto;
+  min-width: 0;
+  border: 0;
+  background: none;
+  color: var(--color-ink);
+  font: inherit;
+  font-size: 14px;
+}
+
+.not-found__search input:focus {
+  outline: none;
+}
+
+/* ------------------------------------------------------------------ */
+/* Figma Pages · Account (705:114056, 705:114449)                       */
+/* ------------------------------------------------------------------ */
+/* A 13rem sidebar beside the page: "Account", the shopper, then the section
+   rows (the current one on the surface) and Sign out. Pages open with a 32px
+   title; their cards sit on the surface with the card radius. */
+.account-layout {
+  display: grid;
+  gap: var(--space-6);
+}
+
+.account-nav {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.account-nav__title {
+  margin: 0;
+  color: var(--color-ink);
+  font-family: var(--font-heading);
+  font-size: 20px;
+  font-weight: 700;
+}
+
+.account-nav__who {
+  margin: 0;
+  overflow: hidden;
+  color: var(--color-muted);
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.account-nav__links {
+  display: flex;
+  gap: var(--space-1);
+  overflow-x: auto;
+}
+
+.account-nav__link {
+  display: block;
+  flex: none;
+  width: 100%;
+  padding: var(--space-2) var(--space-3);
+  border: 0;
+  border-radius: var(--radius-m);
+  background: none;
+  color: var(--color-muted);
+  font: inherit;
+  font-size: 14px;
+  text-align: start;
+  text-decoration: none;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.account-nav__link:hover {
+  color: var(--color-ink);
+}
+
+.account-nav__link[aria-current="page"] {
+  background-color: var(--color-surface);
+  color: var(--color-ink);
+  font-weight: 500;
+}
+
+.account-page__title,
+.account-layout__main h2.h3:first-child {
+  margin: 0 0 var(--space-5);
+  color: var(--color-ink);
+  font-family: var(--font-heading);
+  font-size: calc(2rem * var(--font-heading-scale, 1));
+  font-weight: 700;
+  line-height: 1.15;
+  letter-spacing: -0.01em;
+}
+
+@media (min-width: 990px) {
+  .account-layout {
+    grid-template-columns: 13rem minmax(0, 1fr);
+    gap: var(--space-8);
+    align-items: start;
+  }
+
+  .account-nav__links {
+    flex-direction: column;
+    overflow: visible;
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/* Figma Pages · Track order, lookup (707:117741)                       */
+/* ------------------------------------------------------------------ */
+.track-order-page {
+  display: flex;
+  justify-content: center;
+  padding-block: var(--space-9);
+}
+
+.track-order {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  width: min(26rem, 100%);
+  padding: var(--space-6) var(--space-5);
+  border-radius: var(--radius-card, var(--radius-m));
+  background-color: var(--color-surface);
+}
+
+.track-order__head {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.track-order__title {
+  margin: 0;
+  font-size: calc(1.75rem * var(--font-heading-scale, 1));
+  line-height: 1.15;
+  letter-spacing: -0.01em;
+}
+
+.track-order__body,
+.track-order__account {
+  margin: 0;
+  color: var(--color-muted);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.track-order__account {
+  text-align: center;
+}
+
+.track-order__account a {
+  color: var(--color-ink);
+  font-weight: 500;
+  text-decoration: none;
+}
+
+.track-order__field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.track-order__label {
+  color: var(--color-ink);
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.track-order__input {
+  height: 48px;
+  padding-inline: 14px;
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-input, var(--radius-m));
+  background-color: var(--color-bg);
+  color: var(--color-ink);
+  font: inherit;
+  font-size: var(--font-body-size, 16px);
+}
+
+.track-order__input:focus {
+  outline: none;
+  border-color: var(--color-ink);
+}
+
+.track-order__error {
+  margin: 0;
+  color: var(--color-danger);
+  font-size: 14px;
+}
+
+.track-order__submit {
+  width: 100%;
+  height: 48px;
 }

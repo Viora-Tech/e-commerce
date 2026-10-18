@@ -9,12 +9,11 @@
  * WHERE: components/apps/{delhivery,shiprocket,rapidshyp,decentro}/overview-page.tsx.
  */
 
-import { CircleCheck } from '@commerce/ui/icons'
+import { CircleCheck, InfoIcon } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import Link from 'next/link'
 import { type ReactNode, useEffect, useState } from 'react'
 import DataCard from '@/components/layout/data-card'
-import PageHeader from '@/components/layout/page-header'
 import StatusChip from '@/components/layout/status-chip'
 import { routes } from '@/lib/routes'
 import {
@@ -33,7 +32,13 @@ export type OverviewCopy = {
   connectedAndTested: string
 }
 
-export type OverviewList = { heading: string; items: string[]; bulleted?: boolean }
+export type OverviewList = {
+  heading: string
+  items: string[]
+  bulleted?: boolean
+  /** What the provider cannot do yet, under the list with an info mark (Figma "Delhivery · Overview"). */
+  notAvailable?: string[] | undefined
+}
 
 type ProviderOverviewPageProps = {
   providerId: string
@@ -47,6 +52,8 @@ type ProviderOverviewPageProps = {
   /** Under the badges when connected: where to go next. */
   connectedBody: (saved: FieldValues) => ReactNode
   lists: OverviewList[]
+  /** Cards after the lists (a courier's tracking webhook address). */
+  footer?: ReactNode
 }
 
 type Status = { connected: boolean; saved: FieldValues }
@@ -62,6 +69,7 @@ export default function ProviderOverviewPage({
   badges,
   connectedBody,
   lists,
+  footer,
 }: ProviderOverviewPageProps) {
   // Hooks
   const [status, setStatus] = useState<Status | null>(null)
@@ -95,21 +103,18 @@ export default function ProviderOverviewPage({
 
   return (
     <div className="flex flex-col gap-4">
-      <PageHeader title={copy.title} subtitle={copy.subtitle} />
-
-      <DataCard title={copy.title} icon={icon}>
+      <DataCard
+        title={
+          <span className="inline-flex flex-wrap items-center gap-2">
+            {copy.title}
+            {status?.connected ? connectedBadge : null}
+            {status?.connected ? extraBadges : null}
+          </span>
+        }
+        icon={status?.connected ? undefined : icon}
+      >
         {status === null ? null : status.connected ? (
-          <div className="flex flex-col gap-3">
-            {extraBadges ? (
-              <div className="flex flex-wrap gap-2">
-                {connectedBadge}
-                {extraBadges}
-              </div>
-            ) : (
-              connectedBadge
-            )}
-            {connectedBody(status.saved)}
-          </div>
+          connectedBody(status.saved)
         ) : (
           <div className="flex flex-col gap-3">
             <p className="text-body text-muted-foreground">{copy.notConnected}</p>
@@ -130,13 +135,30 @@ export default function ProviderOverviewPage({
             className={list.bulleted ? 'flex list-disc flex-col gap-2 pl-5' : 'flex flex-col gap-2'}
           >
             {list.items.map((item) => (
-              <li key={item} className="text-body text-muted-foreground">
+              <li
+                key={item}
+                className={
+                  list.bulleted
+                    ? 'text-body text-muted-foreground'
+                    : 'flex items-start gap-2 text-body text-foreground'
+                }
+              >
+                {list.bulleted ? null : (
+                  <CircleCheck aria-hidden="true" className="mt-0.5 size-4 shrink-0 text-success" />
+                )}
+                {item}
+              </li>
+            ))}
+            {(list.notAvailable ?? []).map((item) => (
+              <li key={item} className="flex items-start gap-2 text-body text-muted-foreground">
+                <InfoIcon aria-hidden="true" className="mt-0.5 size-4 shrink-0" />
                 {item}
               </li>
             ))}
           </ul>
         </DataCard>
       ))}
+      {footer}
     </div>
   )
 }

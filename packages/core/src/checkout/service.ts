@@ -85,6 +85,8 @@ export type CheckoutLook = {
   storeName: string
   /** Settings → Checkout → Branding's logo, else the live theme's, else null (the name shows). */
   logoUrl: string | null
+  /** The store's contact number (Settings → Store details), for "Need help? WhatsApp us". */
+  contactPhone: string | null
 }
 
 /**
@@ -93,7 +95,7 @@ export type CheckoutLook = {
  */
 export async function storeCheckoutLook(ctx: StoreContext): Promise<CheckoutLook> {
   const [s] = await ctx.tx
-    .select({ name: store.name, preferences: store.preferences })
+    .select({ name: store.name, preferences: store.preferences, phone: store.contactPhone })
     .from(store)
     .where(eq(store.id, ctx.storeId))
   const { branding } = parseCheckoutSettings(s?.preferences)
@@ -102,5 +104,6 @@ export async function storeCheckoutLook(ctx: StoreContext): Promise<CheckoutLook
     branding,
     storeName: s?.name ?? '',
     logoUrl: branding.logo?.url ?? themeLogo?.url ?? null,
+    contactPhone: s?.phone ?? null,
   }
 }

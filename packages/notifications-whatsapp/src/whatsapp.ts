@@ -58,6 +58,7 @@ export function templateParams(template: TemplateId, d: TemplateData): string[] 
     case 'newsletter_confirm':
     case 'staff_invite':
     case 'purchase_order':
+    case 'plan_bill':
       return [d.storeName, d.actionUrl ?? '-']
     case 'gift_card_issued':
       return [d.customerName, d.storeName, d.giftCard?.balanceLabel ?? '-', d.giftCard?.code ?? '-']

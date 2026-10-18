@@ -2044,8 +2044,7 @@ button.header__menu-link {
 /* the menu hover indicator (theme assets/section-header.css tail).    */
 /* ------------------------------------------------------------------ */
 
-/* The account link and the light/dark switch sit in the row on phones only; on desktop
-   they live in the one menu (.header__more). */
+/* The light/dark switch sits in the row on phones only; the Figma desktop header has none. */
 @media screen and (min-width: 990px) {
   .header__icons > .header__mobile-only {
     display: none;
@@ -2164,132 +2163,6 @@ button.header__menu-link {
   }
 }
 
-/* One menu on desktop: the row is search, the cart and a menu button holding the
-   account, the wishlist and the light/dark switch. Mobile keeps its own row. */
-.header__more {
-  position: relative;
-}
-
-.header__more-details > summary {
-  list-style: none;
-}
-
-.header__more-details > summary::-webkit-details-marker {
-  display: none;
-}
-
-@media screen and (min-width: 990px) {
-  /* Three buttons do not need a bordered pill around them. */
-  .header__icons {
-    gap: 0.25rem;
-    padding: 0;
-    border: 0;
-    background: none;
-  }
-
-  .header__more-details[open] > .header__more-toggle {
-    background-color: color-mix(in srgb, var(--color-ink) 7%, transparent);
-  }
-}
-
-.header__more-panel {
-  position: absolute;
-  top: calc(100% + 0.75rem);
-  right: 0;
-  z-index: 40;
-  display: grid;
-  gap: 0.125rem;
-  width: 16.5rem;
-  padding: 0.5rem;
-  border: 1px solid color-mix(in srgb, var(--color-ink) 8%, transparent);
-  border-radius: 1rem;
-  background-color: var(--color-bg);
-  box-shadow:
-    0 1.125rem 3rem color-mix(in srgb, var(--color-ink) 16%, transparent),
-    0 0.125rem 0.375rem color-mix(in srgb, var(--color-ink) 6%, transparent);
-}
-
-@media screen and (prefers-reduced-motion: no-preference) {
-  .header__more-details[open] .header__more-panel {
-    animation: header-more-in 180ms cubic-bezier(0.2, 0.8, 0.2, 1);
-  }
-}
-
-@keyframes header-more-in {
-  from {
-    opacity: 0;
-    transform: translateY(-0.375rem) scale(0.98);
-  }
-
-  to {
-    opacity: 1;
-    transform: none;
-  }
-}
-
-.header__more-row {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  width: 100%;
-  min-height: 2.625rem;
-  padding: 0 0.75rem;
-  border: 0;
-  border-radius: 0.625rem;
-  background: none;
-  color: var(--color-ink);
-  font: inherit;
-  font-size: 0.875rem;
-  font-weight: 500;
-  text-align: start;
-  text-decoration: none;
-  cursor: pointer;
-  transition: background-color 0.15s ease;
-}
-
-.header__more-row:hover,
-.header__more-row:focus-visible {
-  background-color: color-mix(in srgb, var(--color-ink) 6%, transparent);
-}
-
-.header__more-row:focus-visible {
-  outline: 2px solid var(--color-brand);
-  outline-offset: -2px;
-}
-
-.header__more-row > svg,
-.header__more-row .theme-toggle__icon svg {
-  flex: none;
-  width: 1.125rem;
-  height: 1.125rem;
-  color: var(--color-muted);
-}
-
-.header__more-sep {
-  height: 1px;
-  margin: 0.375rem 0.25rem;
-  background-color: var(--color-line);
-}
-
-/* The switch inside the menu: its sun and moon share one slot and its label sits beside
-   them as a normal row. */
-.header__more-theme {
-  display: grid;
-  grid-template-columns: 1.125rem 1fr;
-  column-gap: 0.75rem;
-}
-
-.header__more-theme .theme-toggle__icon {
-  grid-area: 1 / 1;
-  width: 1.125rem;
-  height: 1.125rem;
-  line-height: 0;
-}
-
-.header__more-theme .theme-toggle__label {
-  grid-area: 1 / 2;
-}
-
 /* The menu hover indicator (use-nav-indicator.ts): one element under the items, a lit
    line (Glowing underline) or a soft capsule (Sliding pill), moved with transform and
    width. Desktop only. */
@@ -2371,5 +2244,98 @@ button.header__menu-link {
 
   .header__menu-pill.is-snap {
     transition: none;
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/* Figma storefront header (Section / Header, 704:109055)               */
+/* ------------------------------------------------------------------ */
+/* Bold wordmark, sentence-case links in the muted ink, four plain 20px
+   icons 16px apart and the cart count as a brand pill on the bag. */
+.header {
+  padding-block: 16px;
+}
+
+.header__logo-text {
+  font-size: 24px;
+  font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: -0.005em;
+}
+
+.header__menu-link {
+  gap: 4px;
+  padding-block: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.45;
+  text-transform: none;
+  letter-spacing: 0;
+  color: var(--color-muted);
+  opacity: 1;
+}
+
+.header__menu-link:hover,
+.header__menu-link:focus-visible,
+.header__menu-details[open] > .header__menu-link {
+  color: var(--color-ink);
+}
+
+.header__menu-link svg {
+  width: 14px;
+  height: 14px;
+}
+
+.header__cart-link {
+  position: relative;
+}
+
+.header__cart-count {
+  top: 0;
+  right: -6px;
+  min-width: 0;
+  height: auto;
+  padding: 1px 6px;
+  color: var(--color-on-brand, #fff);
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.4;
+}
+
+@media screen and (min-width: 990px) {
+  .header__row {
+    gap: 24px;
+  }
+
+  .header__row--logo-left .header__nav {
+    justify-self: start;
+  }
+
+  .header__menu-list {
+    gap: 4px;
+  }
+
+  .header__icons {
+    gap: 8px;
+    padding: 0;
+    border: 0;
+    background-color: transparent;
+  }
+
+  .header__icons > .header__icon-btn,
+  .header__icons > details > .header__icon-btn,
+  .header__icons > .header__cart-link {
+    width: 28px;
+    height: 28px;
+  }
+
+  .header__icons svg {
+    width: 20px;
+    height: 20px;
+  }
+
+  .header__icons .header__cart-count {
+    top: -4px;
+    right: -10px;
   }
 }

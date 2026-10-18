@@ -1,8 +1,8 @@
 'use client'
 
-import { type TemplateKind, THEME_FONT_IDS, THEME_FONTS } from '@commerce/core/theme'
+import type { TemplateKind } from '@commerce/core/theme'
 import { liquidPlacement } from '@commerce/core/theme-import'
-import { type Data, Puck, type PuckAction } from '@puckeditor/core'
+import { type Data, Puck } from '@puckeditor/core'
 import '@/styles/vendor-puck.css'
 import '@/styles/vendor-blocks.css'
 import '@/styles/vendor-editor.css'
@@ -12,7 +12,6 @@ import { customizeContent } from '@/data/customize'
 import { themesContent } from '@/data/themes'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
-import { prefersReducedMotion, scrollToSection } from '@/lib/customize-canvas-motion'
 import { createCustomizeConfig } from '@/lib/customize-config'
 import {
   type CustomizeDoc,
@@ -21,9 +20,9 @@ import {
   HEADER_ZONE,
   normalizeDoc,
 } from '@/lib/customize-doc'
+import { FONT_SAMPLES, isSourceError, revealInserted } from '@/lib/customize-editor'
 import { CUSTOMIZE_OVERRIDES } from '@/lib/customize-overrides'
 import { previewMetadata } from '@/lib/customize-preview'
-import { zoneItems } from '@/lib/customize-slots'
 import {
   ImportedThemeContext,
   LiquidHeadContext,
@@ -31,6 +30,7 @@ import {
   ThemePreviewContext,
 } from '@/lib/customize-theme-context'
 import { DynamicSourceContext, scopeFor } from '@/lib/dynamic-sources'
+import { routes } from '@/lib/routes'
 import { useCustomizePreview } from '@/lib/use-customize-preview'
 import { useLiquidTheme } from '@/lib/use-liquid-theme'
 import { partsOf, useTemplateDrafts } from '@/lib/use-template-drafts'
@@ -44,11 +44,14 @@ import CustomizeHotkeys from './customize-hotkeys'
 import CustomizeLayout from './customize-layout'
 import CustomizeTopBar from './customize-top-bar'
 import EditorLoading from './editor-loading'
+import EditorVersionsPanel from './editor-versions-panel'
 import ImportedThemeSettings from './imported-theme-settings'
 import LiquidCanvasSection from './liquid-canvas-section'
 import PagesPanel from './pages-panel'
 import PanelTitle from './panel-title'
+import PublishThemeDialog from './publish-theme-dialog'
 import ResourcePicker from './resource-picker'
+import SectionRemovedToast from './section-removed-toast'
 import TemplatePicker, { type TemplateRef, templateLabel } from './template-picker'
 import ThemePanel from './theme-panel'
 
@@ -66,16 +69,13 @@ type CustomizeEditorProps = {
   user: { name: string; email: string }
   /** AI is set up (the "AI connected" chip) and the assistant is on for this member (AI tab). */
   ai: { connected: boolean; assistant: boolean }
+  /** The store's live theme, named in the publish confirmation; null when there is none. */
+  liveName: string | null
 }
 
 type Loaded = { ref: TemplateRef; doc: CustomizeDoc; nonce: number }
 
 const copy = customizeContent.bar
-
-/** Curated Google Fonts for picker samples and the preview (the storefront self-hosts them). */
-const FONT_SAMPLES = `https://fonts.googleapis.com/css2?${THEME_FONT_IDS.map(
-  (id) => `family=${THEME_FONTS[id].google}`,
-).join('&')}&display=swap`
 
 const sameRef = (a: TemplateRef, b: TemplateRef) => a.key === b.key && a.suffix === b.suffix
 
@@ -85,24 +85,6 @@ const LOAD_TIMEOUT_MS = 20_000
 /** The canvas shows the default home page at desktop width: what the Themes page pictures. */
 const isDesktopHome = (loaded: Loaded | null, device: PreviewDevice) =>
   loaded?.ref.key === 'home' && loaded.ref.suffix === '' && device === 'desktop'
-
-/** Save's only refusal is a connected setting whose source is gone; its message names it. */
-const isSourceError = (err: unknown): err is Error =>
-  err instanceof Error && (err as { code?: unknown }).code === 'BAD_REQUEST'
-
-/**
- * Every way a section gets added — a click in the Add panel, the Sections
- * tree's "Add section" popover, or a card dragged onto the canvas — ends in
- * one Puck `insert` action, so this is the one place that brings the new
- * section into view. (Selection is already handled: a click selects it
- * itself, and Puck selects a dropped one.)
- */
-function revealInserted(action: PuckAction, next: { data: Data }): void {
-  if (action.type !== 'insert') return
-  const doc = next.data as unknown as CustomizeDoc
-  const id = action.id ?? zoneItems(doc, action.destinationZone)[action.destinationIndex]?.props.id
-  if (id) scrollToSection(id, prefersReducedMotion())
-}
 
 /**
  * Online Store › Themes › Customize. Puck is the engine: one document per template
@@ -120,6 +102,7 @@ export default function CustomizeEditor({
   store,
   user,
   ai,
+  liveName,
 }: CustomizeEditorProps) {
   // Hooks
   const [record, setRecord] = useState(theme)
@@ -132,6 +115,8 @@ export default function CustomizeEditor({
   const [templatesDirty, setTemplatesDirty] = useState(false)
   const [saving, setSaving] = useState(false)
   const [publishing, setPublishing] = useState(false)
+  const [confirmPublish, setConfirmPublish] = useState(false)
+  const [versionsOpen, setVersionsOpen] = useState(false)
   const [creating, setCreating] = useState<'closed' | 'open' | 'busy'>('closed')
   const [creatingKind, setCreatingKind] = useState<AlternateKind | null>(null)
   const [device, setDevice] = useState<PreviewDevice>('desktop')
@@ -244,12 +229,16 @@ export default function CustomizeEditor({
         setSettings(next.settings)
       }
       setTemplatesDirty(false)
-      toast.success(copy.saved)
+      toast.success(copy.saved, {
+        description: record.role === 'main' ? copy.savedLive : copy.savedDraft,
+      })
       if (isDesktopHome(loaded, device)) thumbnail.refresh()
       return true
     } catch (err) {
       // A connected setting whose source is gone names itself (see dynamic sources).
-      toast.error(isSourceError(err) ? err.message : copy.saveFailed)
+      toast.error(isSourceError(err) ? err.message : copy.saveFailed, {
+        action: { label: copy.retry, onClick: () => void handleSave() },
+      })
       return false
     } finally {
       setSaving(false)
@@ -264,6 +253,12 @@ export default function CustomizeEditor({
     setTemplatesDirty(false)
     setNonce((n) => n + 1)
     toast.success(copy.discarded)
+  }
+
+  /** A version became the drafts (Version history): load the page again from them. */
+  const handleRestored = () => {
+    setSwitching(true)
+    setNonce((n) => n + 1)
   }
 
   /** Makes this theme the live one, saving unsaved changes first. */
@@ -357,12 +352,14 @@ export default function CustomizeEditor({
       canPublish={canPublish}
       device={device}
       previewHref={previewUrl(origin, record.previewToken)}
+      codeHref={routes.onlineStore.themeCode(record.id)}
       aiConnected={ai.connected}
       user={user}
       onDevice={setDevice}
       onDiscard={handleDiscard}
       onSave={handleSave}
-      onPublish={handlePublish}
+      onPublish={() => setConfirmPublish(true)}
+      onVersions={() => setVersionsOpen(true)}
       pickers={
         <>
           <TemplatePicker
@@ -393,7 +390,7 @@ export default function CustomizeEditor({
       <ImportedThemeSettings themeId={record.id} />
     </>
   ) : (
-    <ThemePanel theme={settings} mode={mode} onChange={setSettings} />
+    <ThemePanel theme={settings} mode={mode} onChange={setSettings} onMode={setModePick} />
   )
   const previewResource = preview.kind
     ? {
@@ -425,6 +422,7 @@ export default function CustomizeEditor({
                 <PreviewModeContext.Provider value={mode}>
                   <DynamicSourceContext.Provider value={sourceScope}>
                     <CustomizeHotkeys />
+                    <SectionRemovedToast />
                     <CustomizeLayout
                       topBar={topBar}
                       settings={settingsPanel}
@@ -466,6 +464,23 @@ export default function CustomizeEditor({
           onRetry={() => setAttempt((n) => n + 1)}
         />
       )}
+      <EditorVersionsPanel
+        open={versionsOpen}
+        theme={record}
+        origin={origin}
+        me={user.name || user.email}
+        onOpenChange={setVersionsOpen}
+        onRestored={handleRestored}
+      />
+      <PublishThemeDialog
+        open={confirmPublish}
+        name={record.name}
+        liveName={liveName}
+        domain={store.domain}
+        dirty={templatesDirty || settingsDirty}
+        onOpenChange={setConfirmPublish}
+        onConfirm={handlePublish}
+      />
       {creating === 'closed' ? null : (
         <CreateTemplateDialog
           current={ref}

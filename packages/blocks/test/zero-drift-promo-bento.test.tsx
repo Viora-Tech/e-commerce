@@ -53,12 +53,12 @@ describe('Zero Drift batch: ships-today, category-panels, promo-bento, drops-tea
     expect(out).not.toContain('promo-tile__copy')
   })
 
-  it('category panels opens the first panel and shows the product count when no line is set', () => {
+  it('category panels leads with the first panel and shows the product count when no line is set', () => {
     const config = categoryPanelsSection(loaders)
     const out = html(config, {
       resolved: [{ title: 'Mice', count: 12, imageUrl: '/media/mice.jpg' }],
     })
-    expect(out).toContain('category-panel is-open')
+    expect(out).toContain('category-panel category-panel--lead')
     expect(out).toContain('12 products')
   })
 

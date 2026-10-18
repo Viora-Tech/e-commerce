@@ -6,14 +6,15 @@ import { Button } from '@commerce/ui/shadcn/button'
 import { Card } from '@commerce/ui/shadcn/card'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
+import DataCard from '@/components/layout/data-card'
+import PageHeader from '@/components/layout/page-header'
 import PillTabs from '@/components/layout/pill-tabs'
-import ProoflyPageHeader from '@/components/layout/proofly-page-header'
 import StatusChip from '@/components/layout/status-chip'
 import { analyticsContent } from '@/data/analytics'
 import { type RangeState, rangeQuery, sameRange } from '@/lib/analytics-range'
 import { api } from '@/lib/api-client'
-import { downloadCsv, toCsv } from '@/lib/csv'
-import { csvCell } from '@/lib/report-format'
+import { downloadCsv } from '@/lib/csv'
+import { csvOf } from '@/lib/report-csv'
 import { routes } from '@/lib/routes'
 import RangePicker from './range-picker'
 import ReportChart from './report-chart'
@@ -27,30 +28,6 @@ type ReportViewProps = {
 }
 
 type Shape = ReportDefinition['chart']
-
-/** Header, CSV rows and totals row for the export; the metric's previous value rides along. */
-function csvOf(report: ReportDefinition, data: ReportResult): string {
-  const c = analyticsContent.reports
-  const metric = report.columns.find((col) => col.id === report.metric)
-  const compare = data.previousTotals !== null && metric !== undefined
-  const headers = [
-    ...report.columns.map((col) => c.columns[col.id] ?? col.id),
-    ...(compare ? [`${c.columns[metric.id] ?? metric.id} (${c.previous})`] : []),
-  ]
-  const rows = data.rows.map((row) => [
-    ...report.columns.map((col) => csvCell(col.kind, row.values[col.id])),
-    ...(compare ? [csvCell(metric.kind, row.previous)] : []),
-  ])
-  if (Object.keys(data.totals).length > 0) {
-    rows.push([
-      ...report.columns.map((col, i) =>
-        i === 0 ? c.totals : csvCell(col.kind, data.totals[col.id]),
-      ),
-      ...(compare ? [csvCell(metric.kind, data.previousTotals?.[metric.id])] : []),
-    ])
-  }
-  return toCsv(headers, rows)
-}
 
 /**
  * A single report in the layout of Figma "Reports · AI query": the "What I understood" card
@@ -107,8 +84,8 @@ export default function ReportView({ report, initialRange, initial }: ReportView
   const c = analyticsContent.reports
 
   return (
-    <div className="mx-auto flex w-full max-w-[81.5rem] flex-col gap-6 px-4 py-6 md:px-8 md:py-8">
-      <ProoflyPageHeader
+    <div className="flex w-full flex-col gap-6 px-4 py-6 md:px-8 md:py-8">
+      <PageHeader
         title={report.title}
         summary={report.description}
         back={{ label: c.back, href: routes.analytics.reports() }}
@@ -159,12 +136,9 @@ export default function ReportView({ report, initialRange, initial }: ReportView
           onConfirm={handleSave}
         />
       ) : null}
-      <Card gap="none" inset={5}>
-        <p className="text-card-title text-ink-strong">{c.details}</p>
-        <div className="mt-5">
-          <ReportTable report={report} data={data} />
-        </div>
-      </Card>
+      <DataCard title={c.details}>
+        <ReportTable report={report} data={data} />
+      </DataCard>
     </div>
   )
 }

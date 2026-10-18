@@ -25,6 +25,10 @@ export type CardProduct = {
   mrpPaise: number | null
   available: number
   images: MediaImage[]
+  /** The variant a card's Quick add puts in the cart: set only when the product has exactly one. */
+  quickAddVariantId?: string | null | undefined
+  /** Published reviews (Reviews app); absent or null when the product has none. */
+  rating?: { average: number; count: number } | null | undefined
 }
 
 export type ProductDetail = {

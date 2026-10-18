@@ -1,0 +1,77 @@
+---
+title: Sales channels (Meta, Google, ChatGPT)
+description: How Instagram, Facebook, WhatsApp, Google Merchant Center and ChatGPT connect, what the catalog sync sends, and the platform apps and keys it needs.
+---
+
+# Sales channels
+
+Each channel's **state** (`not_connected`, `requested`, `first_sync`, `connected`, `syncing`,
+`error`, `expired`, `disconnected`, `paused`) lives on `store.preferences.salesChannels`
+(`@commerce/core/sales-channels`). The live connection to a platform lives in two tables
+(migration `0131`):
+
+- `channel_connection`: one row per store and **provider**. Tokens are encrypted with
+  `SETTINGS_SECRET`.
+- `channel_listing`: one row per item the provider holds, with a hash, so a sync sends only
+  changes and deletes what left.
+
+| Channel | Provider | Platform API |
+|---|---|---|
+| Instagram, Facebook, WhatsApp | `meta` | Graph API v21: one business product catalog (`/{catalog}/items_batch`); WhatsApp links it to the WABA (`/{waba}/product_catalogs`) |
+| Google | `google` | Merchant API v1: an API data source, `productInputs:insert` / delete |
+| ChatGPT | `openai` | The full feed POSTed to the endpoint + key OpenAI gives an approved merchant |
+| Perplexity, Copilot, Google AI | none | still a request (`requested`) |
+
+Code: `packages/core/src/sales-channels/`:
+- `catalog.ts`: items, one per sellable variant.
+- `providers.ts`: plain-`fetch` clients, `ChannelApiError` with `auth`/`api`.
+- `connect.ts`: signed OAuth state, connect, pause, disconnect.
+- `sync.ts`: the sync itself.
+
+## Connect flow
+
+1. `salesChannels.connect` → `startChannelConnect`:
+   - With the platform's app configured, it returns a sign-in URL.
+   - If the store already holds that provider, the channel joins it (`connected`).
+   - Otherwise the old request.
+2. Facebook or Google redirects to `/api/channels/<meta|google>/callback`. The route:
+   - checks the HMAC-signed state (30 min, store + channel + nonce; Google adds PKCE derived from
+     the nonce);
+   - checks the signed-in member belongs to that store;
+   - runs `completeChannelConnect`: code → token (Meta: long-lived, ~60 days; Google: refresh
+     token), find or create the catalog / data source, save encrypted, set `first_sync`;
+   - queues a sync.
+3. ChatGPT: after OpenAI approves, the merchant pastes the feed endpoint and key
+   (`salesChannels.saveOpenAiFeed`).
+
+## Sync
+
+`syncChannelProvider(db, storeId, provider, deps)`:
+
+1. A short read: the connection, live channels on that provider, the items, and the listing.
+2. Mark the channels `syncing` (or keep `first_sync`).
+3. Push outside any transaction: Meta upserts and deletes in batches of 1,000; Google 4 at a
+   time, refreshing the token first when it is about to expire; OpenAI the whole feed.
+4. Success: upsert listing hashes, mark the channels `connected`.
+   - An `auth` error marks them `expired`.
+   - Any other error marks them `error` with the platform's message.
+
+Worker queue `{channels}-sync`: a sweep every 6 hours queues one job per store × provider
+(`stores_with_channel_connections`). The admin queues one after Connect, on **Sync now** and on
+resume. AI agents get only what Agentic sales → Controls leaves visible; social channels get every
+live product.
+
+## Platform setup (production)
+
+| Env key | Where | Notes |
+|---|---|---|
+| `META_APP_ID`, `META_APP_SECRET` | admin + worker | Meta app with Facebook Login for Business; `catalog_management`, `business_management`, `whatsapp_business_management` approved in App Review; redirect `<ADMIN_URL>/api/channels/meta/callback` |
+| `GMC_GOOGLE_CLIENT_ID`, `GMC_GOOGLE_CLIENT_SECRET` | admin + worker | Google OAuth web client with the Merchant API enabled and scope `content` verified; redirect `<ADMIN_URL>/api/channels/google/callback`. Blank: `MERCHANT_GOOGLE_*` is used |
+
+Without these keys, Connect stays a request, so nothing breaks before App Review is done.
+
+**Not live-tested yet.** The flows are covered by `sync.test.ts` against a fake platform. Run them
+end to end once the Meta app, the Google verification and an OpenAI merchant approval exist.
+Things to check then:
+- the Merchant API v1 field names (`productAttributes`, the `IN_STOCK` enums);
+- the OpenAI feed body.

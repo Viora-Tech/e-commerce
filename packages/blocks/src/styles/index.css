@@ -19,6 +19,7 @@
 @import "./section-header.css";
 @import "./section-mobile-dock.css";
 @import "./section-hero-carousel.css";
+@import "./section-heroes.css";
 @import "./section-latest-drop.css";
 @import "./section-sticky-atc.css";
 @import "./section-product.css";
@@ -51,3 +52,4 @@
 @import "./section-newsletter.css";
 @import "./section-cookie-banner.css";
 @import "./section-signup-popup.css";
+@import "./section-whatsapp-chat.css";

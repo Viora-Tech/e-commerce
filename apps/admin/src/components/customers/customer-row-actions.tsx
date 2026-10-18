@@ -1,25 +1,10 @@
 'use client'
 
-import { MoreHorizontal, Send, Trash2, WhatsappLogo } from '@commerce/ui/icons'
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@commerce/ui/shadcn/alert-dialog'
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@commerce/ui/shadcn/dropdown-menu'
+import { Send, Trash2, WhatsappLogo } from '@commerce/ui/icons'
 import { useState } from 'react'
 import { toast } from 'sonner'
+import ActionMenu from '@/components/layout/action-menu'
+import ConfirmDialog from '@/components/layout/confirm-dialog'
 import { customersContent } from '@/data/customers'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
@@ -32,9 +17,6 @@ type CustomerRowActionsProps = {
   phone: string | null
   onDeleted: () => void
 }
-
-const KEBAB =
-  'flex size-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring'
 
 /**
  * The ⋯ menu at the end of a customer row (next to the table's open arrow): email, WhatsApp
@@ -78,49 +60,36 @@ export default function CustomerRowActions({
     // biome-ignore lint/a11y/noStaticElementInteractions: only stops the row's own click; the controls inside are buttons.
     // biome-ignore lint/a11y/useKeyWithClickEvents: same, keyboard events stop at the trigger.
     <span className="flex items-center" onClick={(event) => event.stopPropagation()}>
-      <DropdownMenu>
-        <DropdownMenuTrigger
-          aria-label={copy.menu(name)}
-          className={KEBAB}
-          onClick={(event) => event.stopPropagation()}
-          onKeyDown={(event) => event.stopPropagation()}
-        >
-          <MoreHorizontal className="size-5" aria-hidden="true" />
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="w-48">
-          {email ? (
-            <DropdownMenuItem render={<a href={`mailto:${email}`} />}>
-              <Send />
-              {copy.email}
-            </DropdownMenuItem>
-          ) : null}
-          {chat ? (
-            <DropdownMenuItem render={<a href={chat} target="_blank" rel="noreferrer" />}>
-              <WhatsappLogo />
-              {copy.whatsapp}
-            </DropdownMenuItem>
-          ) : null}
-          {email || chat ? <DropdownMenuSeparator /> : null}
-          <DropdownMenuItem variant="destructive" onClick={() => setConfirming(true)}>
-            <Trash2 />
-            {copy.delete(name)}
-          </DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
-      <AlertDialog open={confirming} onOpenChange={setConfirming}>
-        <AlertDialogContent onClick={(event) => event.stopPropagation()}>
-          <AlertDialogHeader>
-            <AlertDialogTitle>{copy.deleteHeading}</AlertDialogTitle>
-            <AlertDialogDescription>{copy.deleteBody}</AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel disabled={busy}>{copy.cancel}</AlertDialogCancel>
-            <AlertDialogAction variant="destructive" disabled={busy} onClick={handleDelete}>
-              {copy.confirm}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <ActionMenu
+        label={copy.menu(name)}
+        items={[
+          { label: copy.email, icon: Send, href: `mailto:${email}`, hidden: !email },
+          {
+            label: copy.whatsapp,
+            icon: WhatsappLogo,
+            href: chat ?? undefined,
+            newTab: true,
+            hidden: !chat,
+          },
+          {
+            label: copy.delete(name),
+            icon: Trash2,
+            destructive: true,
+            onSelect: () => setConfirming(true),
+          },
+        ]}
+      />
+      <ConfirmDialog
+        open={confirming}
+        onOpenChange={setConfirming}
+        title={copy.deleteHeading}
+        body={copy.deleteBody}
+        confirmLabel={copy.confirm}
+        cancelLabel={copy.cancel}
+        busy={busy}
+        stopPropagation
+        onConfirm={handleDelete}
+      />
     </span>
   )
 }

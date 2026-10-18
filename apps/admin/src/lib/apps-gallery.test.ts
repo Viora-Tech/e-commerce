@@ -6,6 +6,7 @@ const base: Omit<AppSummary, 'id' | 'name' | 'kind' | 'category' | 'company'> = 
   version: '1.0.0',
   description: null,
   builtIn: false,
+  billing: { state: 'free' },
   installed: false,
   connected: false,
   provides: { payments: [], shipping: [], notifications: [], storage: [] },
@@ -13,6 +14,15 @@ const base: Omit<AppSummary, 'id' | 'name' | 'kind' | 'category' | 'company'> = 
   hooks: [],
   productFields: [],
   credits: [],
+  access: { resources: [], summary: null, shares: [] },
+  status: null,
+  problem: null,
+  installedAt: null,
+  installedBy: null,
+  lastActivity: null,
+  lastActivityAt: null,
+  connectsIn: null,
+  canDisconnect: false,
 }
 
 const app = (

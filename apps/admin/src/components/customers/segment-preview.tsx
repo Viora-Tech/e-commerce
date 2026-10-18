@@ -52,6 +52,9 @@ export default function SegmentPreview({ rules }: SegmentPreviewProps) {
       >
         {copy.previewCount(total)}
       </p>
+      <p className="text-caption text-muted-foreground">
+        {rules.conditions.length === 0 ? copy.previewAll : copy.previewLive}
+      </p>
       {total === 0 && !loading ? (
         <p className="mt-3 text-body text-muted-foreground">{copy.previewEmpty}</p>
       ) : (

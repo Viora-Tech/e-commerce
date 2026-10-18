@@ -1,18 +1,10 @@
 'use client'
 
 import { TEMPLATE_SUFFIX } from '@commerce/core/theme'
-import { Button } from '@commerce/ui/shadcn/button'
-import {
-  Dialog,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@commerce/ui/shadcn/dialog'
 import { Field, FieldDescription, FieldLabel } from '@commerce/ui/shadcn/field'
 import { Input } from '@commerce/ui/shadcn/input'
-import { Spinner } from '@commerce/ui/shadcn/spinner'
 import { useState } from 'react'
+import FormDialog from '@/components/layout/form-dialog'
 import { customizeContent } from '@/data/customize'
 
 type RenameTemplateDialogProps = {
@@ -43,37 +35,32 @@ export default function RenameTemplateDialog({
   const valid = next.length > 0 && TEMPLATE_SUFFIX.test(next) && next !== suffix
 
   return (
-    <Dialog open onOpenChange={(open) => !open && onCancel()}>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>{copy.title}</DialogTitle>
-        </DialogHeader>
-        <Field>
-          <FieldLabel htmlFor="rename-template">{copy.name}</FieldLabel>
-          <Input
-            id="rename-template"
-            size="lg"
-            value={name}
-            maxLength={40}
-            onChange={(e) => setName(e.target.value)}
-            autoComplete="off"
-            autoFocus
-          />
-          <FieldDescription>
-            {copy.help}
-            {used ? ` ${copy.moves(used)}` : ''}
-          </FieldDescription>
-        </Field>
-        <DialogFooter>
-          <Button type="button" variant="outline" onClick={onCancel}>
-            {copy.cancel}
-          </Button>
-          <Button type="button" disabled={!valid || busy} onClick={() => onRename(next)}>
-            {busy ? <Spinner /> : null}
-            {copy.confirm}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+    <FormDialog
+      open
+      onOpenChange={(open) => !open && onCancel()}
+      title={copy.title}
+      submitLabel={copy.confirm}
+      cancelLabel={copy.cancel}
+      busy={busy}
+      submitDisabled={!valid}
+      onSubmit={() => onRename(next)}
+    >
+      <Field>
+        <FieldLabel htmlFor="rename-template">{copy.name}</FieldLabel>
+        <Input
+          id="rename-template"
+          size="lg"
+          value={name}
+          maxLength={40}
+          onChange={(e) => setName(e.target.value)}
+          autoComplete="off"
+          autoFocus
+        />
+        <FieldDescription>
+          {copy.help}
+          {used ? ` ${copy.moves(used)}` : ''}
+        </FieldDescription>
+      </Field>
+    </FormDialog>
   )
 }

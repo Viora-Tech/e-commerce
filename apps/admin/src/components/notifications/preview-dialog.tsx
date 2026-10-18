@@ -10,8 +10,9 @@ import {
   DialogTitle,
 } from '@commerce/ui/shadcn/dialog'
 import { Skeleton } from '@commerce/ui/shadcn/skeleton'
-import { ToggleGroup, ToggleGroupItem } from '@commerce/ui/shadcn/toggle-group'
+import { Spinner } from '@commerce/ui/shadcn/spinner'
 import { useEffect, useState } from 'react'
+import PillTabs from '@/components/layout/pill-tabs'
 import { notificationsSettingsContent } from '@/data/notifications'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
@@ -20,13 +21,16 @@ type PreviewDialogProps = {
   /** The message to preview; null closes the dialog. */
   messageId: string | null
   onClose: () => void
+  /** Sends this message to you, the same as the row's "Send me a test". */
+  onTest: () => void
+  testing: boolean
 }
 
 type Preview = Awaited<ReturnType<typeof api.notifications.preview>>
 type Tab = 'email' | 'whatsapp'
 
-/** The message filled with a sample order: the email as the customer sees it, and the WhatsApp text. */
-export default function PreviewDialog({ messageId, onClose }: PreviewDialogProps) {
+/** The message filled with a sample order: the WhatsApp text (when it has one) and the email as the customer sees them. */
+export default function PreviewDialog({ messageId, onClose, onTest, testing }: PreviewDialogProps) {
   // Hooks
   const setupCopy = useCopy(notificationsSettingsContent)
   const { preview: copy } = useCopy(notificationsSettingsContent)
@@ -43,7 +47,9 @@ export default function PreviewDialog({ messageId, onClose }: PreviewDialogProps
     api.notifications
       .preview({ id: messageId as Parameters<typeof api.notifications.preview>[0]['id'] })
       .then((p) => {
-        if (live) setPreview(p)
+        if (!live) return
+        setPreview(p)
+        if (p.whatsapp) setTab('whatsapp')
       })
       .catch(() => {
         if (live) setFailed(true)
@@ -58,11 +64,6 @@ export default function PreviewDialog({ messageId, onClose }: PreviewDialogProps
     if (!open) onClose()
   }
 
-  const handleTab = (next: string[]) => {
-    const value = next[0]
-    if (value === 'email' || value === 'whatsapp') setTab(value)
-  }
-
   // Render logic
   const name = messageId ? (setupCopy.messages[messageId]?.name ?? messageId) : ''
 
@@ -70,7 +71,7 @@ export default function PreviewDialog({ messageId, onClose }: PreviewDialogProps
     <Dialog open={messageId !== null} onOpenChange={handleOpenChange}>
       <DialogContent className="max-h-[calc(100dvh-2rem)] overflow-y-auto sm:max-w-[42rem]">
         <DialogHeader>
-          <DialogTitle>{copy.title(name)}</DialogTitle>
+          <DialogTitle>{name}</DialogTitle>
           <DialogDescription>{copy.help}</DialogDescription>
         </DialogHeader>
         {failed ? (
@@ -84,10 +85,16 @@ export default function PreviewDialog({ messageId, onClose }: PreviewDialogProps
         ) : (
           <div className="flex flex-col gap-3">
             {preview.whatsapp ? (
-              <ToggleGroup value={[tab]} onValueChange={handleTab} variant="outline" spacing={0}>
-                <ToggleGroupItem value="email">{copy.email}</ToggleGroupItem>
-                <ToggleGroupItem value="whatsapp">{copy.whatsapp}</ToggleGroupItem>
-              </ToggleGroup>
+              <PillTabs
+                variant="underline"
+                tabs={[
+                  { value: 'whatsapp' as const, label: copy.whatsapp },
+                  { value: 'email' as const, label: copy.email },
+                ]}
+                value={tab}
+                onChange={setTab}
+                className="border-b border-border"
+              />
             ) : null}
             {tab === 'email' ? (
               <>
@@ -112,9 +119,11 @@ export default function PreviewDialog({ messageId, onClose }: PreviewDialogProps
           </div>
         )}
         <DialogFooter>
-          <Button variant="outline" onClick={onClose}>
-            {copy.close}
+          <Button variant="outline" onClick={onTest} disabled={testing}>
+            {testing ? <Spinner /> : null}
+            {copy.sendTest}
           </Button>
+          <Button onClick={onClose}>{copy.close}</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

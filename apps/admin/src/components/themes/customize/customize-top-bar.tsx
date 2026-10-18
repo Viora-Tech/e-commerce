@@ -46,6 +46,8 @@ type CustomizeTopBarProps = {
   device: PreviewDevice
   /** The storefront preview link for this theme. */
   previewHref: string
+  /** This theme's Edit code page, in the ⋯ menu (Figma 699:93894). */
+  codeHref: string
   /** Template and resource pickers. */
   pickers: ReactNode
   /** An AI gateway is set up: the green "AI connected" chip shows. */
@@ -56,6 +58,8 @@ type CustomizeTopBarProps = {
   onDiscard: () => void
   onSave: () => void
   onPublish: () => void
+  /** Opens Version history beside the canvas (Figma 697:4526). */
+  onVersions: () => void
 }
 
 const DEVICES = [
@@ -84,6 +88,7 @@ export default function CustomizeTopBar({
   canPublish,
   device,
   previewHref,
+  codeHref,
   pickers,
   aiConnected,
   user,
@@ -91,6 +96,7 @@ export default function CustomizeTopBar({
   onDiscard,
   onSave,
   onPublish,
+  onVersions,
 }: CustomizeTopBarProps) {
   // Hooks
   const copy = useCopy(customizeContent.bar)
@@ -128,7 +134,9 @@ export default function CustomizeTopBar({
           {dirty ? (
             <StatusChip tone="attention">{copy.unsaved}</StatusChip>
           ) : (
-            <StatusChip>{live ? editor.live : editor.draft}</StatusChip>
+            <StatusChip tone={live ? 'success' : 'neutral'}>
+              {live ? editor.live : editor.draft}
+            </StatusChip>
           )}
         </div>
       </div>
@@ -160,10 +168,9 @@ export default function CustomizeTopBar({
         <ZoomMenu />
         <FullViewButton className={ICON_BUTTON} />
         {aiConnected ? (
-          <span className="hidden shrink-0 items-center gap-1.5 rounded-full bg-success-soft px-2.5 py-[0.3125rem] text-xs leading-[1.0625rem] font-medium text-foreground xl:flex">
-            <span aria-hidden className="size-[0.4375rem] rounded-full bg-success" />
+          <StatusChip tone="success" className="hidden shrink-0 xl:inline-flex">
             {copy.aiConnected}
-          </span>
+          </StatusChip>
         ) : null}
         <button
           type="button"
@@ -211,6 +218,8 @@ export default function CustomizeTopBar({
             }
           />
           <DropdownMenuContent align="end">
+            <DropdownMenuItem onClick={onVersions}>{copy.versions}</DropdownMenuItem>
+            <DropdownMenuItem render={<Link href={codeHref} />}>{copy.editCode}</DropdownMenuItem>
             <DropdownMenuItem disabled={!dirty || saving} onClick={onDiscard}>
               {copy.discard}
             </DropdownMenuItem>

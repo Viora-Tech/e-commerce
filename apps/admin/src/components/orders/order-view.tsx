@@ -9,6 +9,8 @@ import { type OrderMark, orderDetailContent, ordersContent } from '@/data/orders
 import { shipmentPanelContent } from '@/data/shipping'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { orderChannel } from '@/lib/order-channel'
+import { routes } from '@/lib/routes'
 import CollectPaymentDialog from './collect-payment-dialog'
 import CustomerCard from './customer-card'
 import FulfilDialog from './fulfil-dialog'
@@ -34,6 +36,7 @@ import ParcelsCard from './parcels-card'
 import PaymentCard from './payment-card'
 import ProfitCard from './profit-card'
 import RefundDialog from './refund-dialog'
+import SalesChannelCard from './sales-channel-card'
 import ShipmentPanel from './shipment-panel'
 import TagsCard from './tags-card'
 import TimelineCard from './timeline-card'
@@ -43,9 +46,11 @@ type OrderViewProps = {
   order: OrderDetail
   /** Installed apps that add a card to this page, by plugin id. */
   appCards?: string[]
+  /** Back link override, e.g. to Shipments when the order was opened from there. */
+  back?: { label: string; href: string }
 }
 
-export default function OrderView({ order, appCards = [] }: OrderViewProps) {
+export default function OrderView({ order, appCards = [], back }: OrderViewProps) {
   // Hooks
   const copy = useCopy(orderDetailContent)
   const listCopy = useCopy(ordersContent)
@@ -119,11 +124,7 @@ export default function OrderView({ order, appCards = [] }: OrderViewProps) {
     }
   }
 
-  const handleBook = () =>
-    handleCourier(
-      () => api.orders.createShipment({ orderId: order.id }),
-      (s) => shippingCopy.booked(s.waybill),
-    )
+  const handleShip = () => router.push(routes.orders.ship(order.id))
   const handleRefreshTracking = () =>
     shipmentId &&
     handleCourier(
@@ -138,6 +139,7 @@ export default function OrderView({ order, appCards = [] }: OrderViewProps) {
     )
 
   // Render logic
+  const soldThrough = orderChannel(order.attribution)
   const payment = primaryPayment(order.payments)
   const pay = paymentStatus(payment, order.refunds)
   const remaining = refunding
@@ -177,6 +179,7 @@ export default function OrderView({ order, appCards = [] }: OrderViewProps) {
       header={
         <OrderHeader
           order={order}
+          back={back}
           actions={(n) => (
             <OrderActions
               status={order.status}
@@ -201,6 +204,7 @@ export default function OrderView({ order, appCards = [] }: OrderViewProps) {
             kind={stepKind}
             busy={busy}
             onCollect={() => setCollecting(true)}
+            onShip={handleShip}
             onFulfil={() => setFulfilling(true)}
             onDelivered={() => handleMove('delivered')}
             onSendReminder={sendReminder}
@@ -226,14 +230,16 @@ export default function OrderView({ order, appCards = [] }: OrderViewProps) {
             busy={busy}
           />
           {readOnly ? null : (
-            <ShipmentPanel
-              orderStatus={order.status === 'open' ? order.fulfillmentStatus : order.status}
-              shipment={order.shipment}
-              busy={busy}
-              onBook={handleBook}
-              onRefresh={handleRefreshTracking}
-              onCancel={handleCancelShipment}
-            />
+            <div id="order-shipment" className="scroll-mt-6">
+              <ShipmentPanel
+                orderStatus={order.status === 'open' ? order.fulfillmentStatus : order.status}
+                shipment={order.shipment}
+                busy={busy}
+                onBook={handleShip}
+                onRefresh={handleRefreshTracking}
+                onCancel={handleCancelShipment}
+              />
+            </div>
           )}
           <div id="order-returns" className="scroll-mt-6">
             <OrderReturnsCard orderId={order.id} readOnly={readOnly} onChanged={refresh} />
@@ -246,6 +252,13 @@ export default function OrderView({ order, appCards = [] }: OrderViewProps) {
       }
       side={
         <>
+          {soldThrough ? (
+            <SalesChannelCard
+              channel={soldThrough}
+              cameFrom={order.attribution?.referrer ?? order.attribution?.source ?? null}
+              campaign={order.attribution?.campaign ?? null}
+            />
+          ) : null}
           <CustomerCard order={order} />
           {readOnly ? null : (
             <ProfitCard

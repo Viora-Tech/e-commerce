@@ -148,12 +148,16 @@ export default [
         seo: 'सर्च टाइटल और विवरण',
         tags: 'टैग (आपके टैग में जुड़ेंगे)',
         altText: 'फ़ोटो का alt टेक्स्ट',
+        keywords: 'सर्च कीवर्ड सुझाएं (आपके कीवर्ड में जुड़ेंगे)',
       },
       languageLabel: 'भाषा',
       toneLabel: 'अंदाज़',
       start: 'लिखना शुरू करें',
       starting: 'शुरू हो रहा है…',
-      cost: (n) => `${n} AI रिक्वेस्ट, हर प्रोडक्ट की एक।`,
+      cost: (n, perProduct) =>
+        perProduct === 1
+          ? `${n} AI रिक्वेस्ट, हर प्रोडक्ट की एक।`
+          : `${n * perProduct} AI रिक्वेस्ट, हर प्रोडक्ट की ${perProduct} (कीवर्ड, फिर लिखना)।`,
       progress: (done, total) => `${total} में से ${done} लिखे गए`,
       background: 'इसे बंद करने पर भी काम चलता रहेगा। जांचने के लिए वापस आएं।',
       cancelRun: 'रोकें',
@@ -192,10 +196,11 @@ export default [
       empty: 'अभी तक AI से कोई बदलाव नहीं। AI बार से कुछ करवाएं और मंज़ूर करें।',
       by: (who) => `${who} ने`,
       undo: 'Undo',
+      review: 'देखें',
       undone: 'वापस लिया',
       more: 'और दिखाएं',
       failed: 'Activity लोड नहीं हो पाई।',
-      sources: { assistant: 'AI असिस्टेंट', bulkWriter: 'AI से लिखें' },
+      sources: { assistant: 'AI असिस्टेंट', bulkWriter: 'AI से लिखें', mcp: 'AI क्लाइंट (MCP)' },
     },
   }),
 ]

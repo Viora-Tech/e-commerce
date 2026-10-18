@@ -46,13 +46,14 @@ const footerMeta = (): SectionMetadata => ({
 })
 
 describe('Footer (Zero Drift footer)', () => {
-  it('renders help cards, the about column, menus, payment marks and policies by default', () => {
+  it('renders help cards, the brand column, menus, the sign-up, payment chips and policies by default', () => {
     const html = render('Footer', components.Footer?.defaultProps ?? {}, { metadata: footerMeta() })
     expect(html).toContain('footer__help-card')
     expect(html).toContain('Not sure what to buy?')
-    expect(html).toContain('About us')
+    expect(html).toContain('footer__brand-name')
     expect(html).toContain('All products')
-    expect(html).toContain('aria-label="UPI"')
+    expect(html).toContain('Get drops first')
+    expect(html).toContain('<li class="footer__payment-chip">UPI</li>')
     expect(html).toContain('Refund policy')
     expect(html).toContain('href="#cookie-settings"')
     expect(html).not.toMatch(/#[0-9a-f]{6}/i)
@@ -149,8 +150,8 @@ describe('CookieBanner (Zero Drift cookie banner)', () => {
     expect(html).toContain('cookie-banner--bar')
     expect(html).toContain('aria-label="Cookie consent"')
     expect(html).toContain('Accept all')
-    expect(html).toContain('Decline')
-    expect(html).toContain('Choose cookies')
+    expect(html).toContain('Reject all')
+    expect(html).toContain('Preferences')
   })
 
   it('lets the store-level privacy message win and never leaves a button unlabelled', () => {
@@ -166,7 +167,7 @@ describe('CookieBanner (Zero Drift cookie banner)', () => {
     expect(html).toContain('cookie-banner--left')
     expect(html).not.toContain('cookie-banner--static')
     expect(html).toContain('Accept all')
-    expect(html).toContain('Decline')
+    expect(html).toContain('Reject all')
   })
 
   it('opens on the category list, all unticked, when reopened from Cookie settings', () => {

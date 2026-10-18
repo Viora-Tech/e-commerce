@@ -9,12 +9,13 @@ import { Input } from '@commerce/ui/shadcn/input'
 import { useRouter } from 'next/navigation'
 import { useRef, useState } from 'react'
 import { toast } from 'sonner'
+import PageHeader from '@/components/layout/page-header'
 import ProoflyPageBody from '@/components/layout/proofly-page-body'
-import ProoflyPageHeader from '@/components/layout/proofly-page-header'
 import { themeImportContent } from '@/data/theme-import'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 import { routes } from '@/lib/routes'
+import ImportSteps from './import-steps'
 
 /** Same ceiling the API enforces (`themes.import.shopify`). */
 const MAX_BYTES = 50 * 1024 * 1024
@@ -79,11 +80,7 @@ export default function ImportThemeScreen() {
   if (busy) {
     return (
       <ProoflyPageBody>
-        <ProoflyPageHeader
-          title={screen.workingTitle}
-          summary={screen.workingSubtitle}
-          back={back}
-        />
+        <PageHeader title={screen.workingTitle} summary={screen.workingSubtitle} back={back} />
         <div className="surface-card flex flex-col gap-4 rounded-xl p-5">
           <p className="text-body font-semibold text-ink-strong">{screen.progress}</p>
           <div
@@ -93,6 +90,7 @@ export default function ImportThemeScreen() {
           >
             <div className="h-full w-2/5 animate-pulse rounded-full bg-primary" />
           </div>
+          <ImportSteps />
           <p className="text-body text-muted-foreground">{copy.importing}</p>
         </div>
       </ProoflyPageBody>
@@ -101,7 +99,7 @@ export default function ImportThemeScreen() {
 
   return (
     <ProoflyPageBody>
-      <ProoflyPageHeader
+      <PageHeader
         title={screen.title}
         summary={failed ? screen.failedSubtitle : screen.subtitle}
         back={back}

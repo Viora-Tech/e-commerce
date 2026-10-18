@@ -44,6 +44,8 @@ export type ThemeLibraryErrorCode =
   | 'THEME_SECTION_INVALID'
   /** An uploaded Shopify theme zip that cannot be imported. */
   | 'THEME_IMPORT_INVALID'
+  /** A file saved in Edit code that does not read (JSON, Liquid, CSS) or may not be changed. */
+  | 'THEME_CODE_INVALID'
 
 export class ThemeLibraryError extends CommerceError {
   declare readonly code: ThemeLibraryErrorCode

@@ -6,6 +6,7 @@ import { Field, FieldGroup, FieldLabel } from '@commerce/ui/shadcn/field'
 import { Skeleton } from '@commerce/ui/shadcn/skeleton'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
+import PageHeader from '@/components/layout/page-header'
 import SaveBar from '@/components/layout/save-bar'
 import ChoiceList from '@/components/returns/choice-list'
 import CheckoutBrandingSettings from '@/components/settings/checkout-branding-settings'
@@ -15,11 +16,10 @@ import RupeeInput from '@/components/settings/rupee-input'
 import SectionTabs from '@/components/settings/section-tabs'
 import SettingsSection from '@/components/settings/settings-section'
 import { checkoutBrandingContent, checkoutSettingsContent as copy } from '@/data/checkout-settings'
-import { settingsContent } from '@/data/settings'
+import { SETTINGS_BACK, settingsContent } from '@/data/settings'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 import SettingsCard from './settings-card'
-import SettingsPageHeader from './settings-page-header'
 
 type Form = { settings: Settings; codFee: PaymentAdjustment | null }
 
@@ -95,13 +95,11 @@ export default function CheckoutSettings() {
         onDiscard={handleDiscard}
         saving={busy}
       />
-      <SettingsPageHeader
+      <PageHeader
         title={copy.title}
         subtitle={copy.subtitle}
-        onSave={handleSave}
-        dirty={dirty}
-        saving={busy}
-        saveLabel={copy.save}
+        back={SETTINGS_BACK}
+        save={{ dirty, saving: busy, onSave: handleSave, label: copy.save }}
       />
       {!form || !s || !loaded ? (
         <Skeleton className="h-96 w-full rounded-2xl" />

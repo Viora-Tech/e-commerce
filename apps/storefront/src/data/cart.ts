@@ -1,6 +1,12 @@
 /** Copy for the cart page and the discount code field shared with checkout. */
 export const cartContent = {
   title: 'Your cart',
+  itemCount: (n: number) => `${n} ${n === 1 ? 'item' : 'items'}`,
+  remove: 'Remove',
+  preorder: 'Pre-order',
+  continueShopping: 'Continue shopping',
+  paymentMethods: 'Ways to pay',
+  payments: ['UPI', 'Cards', 'Cash on delivery', 'EMI'],
   summary: 'Summary',
   subtotal: 'Subtotal',
   shipping: 'Shipping',
@@ -13,7 +19,16 @@ export const cartContent = {
   },
   total: 'Total',
   taxes: 'Inclusive of all taxes.',
+  taxesAtCheckout: 'Taxes included. Shipping and COD fee calculated at checkout.',
   checkout: 'Check out',
+  drawer: {
+    close: 'Close cart',
+    viewCart: 'View cart',
+    loading: 'Loading your cart…',
+    failed: 'Could not load your cart. Open the cart page instead.',
+    decrease: (title: string) => `One less ${title}`,
+    increase: (title: string) => `One more ${title}`,
+  },
   empty: {
     heading: 'Your cart is empty',
     body: 'Find something worth gliding on.',

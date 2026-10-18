@@ -23,6 +23,7 @@ const copy = customizeContent.clipboard
  * - Cmd/Ctrl+D duplicates the selection (Puck doesn't wire this up itself);
  * - Cmd/Ctrl+C copies it, children and all, and Cmd/Ctrl+V pastes a fresh copy
  *   (new ids) after the selection, or at the end of the template;
+ * - Cmd/Ctrl+Shift+H hides it on the page, or shows it again (Figma 696:87006);
  * - Alt+Up / Alt+Down move it one place within its zone;
  * - Delete/Backspace is intercepted so it plays the same collapse the canvas
  *   overlay and the Sections tree use before removing (Puck's own handler, on
@@ -101,6 +102,18 @@ export default function CustomizeHotkeys() {
       toast.success(copy.pasted(sectionName(block, labelOf(block.type))))
     }
 
+    const handleHide = (e: KeyboardEvent) => {
+      const { selector, zone, block } = current()
+      if (!selector || !block) return
+      e.preventDefault()
+      dispatch({
+        type: 'replace',
+        destinationIndex: selector.index,
+        destinationZone: zone,
+        data: { ...block, props: { ...block.props, _hidden: block.props._hidden !== true } },
+      })
+    }
+
     const handleMove = (e: KeyboardEvent, step: -1 | 1) => {
       const { selector, zone, items } = current()
       if (!selector) return
@@ -134,7 +147,8 @@ export default function CustomizeHotkeys() {
       if (isEditableTarget(e.target)) return
       const key = e.key.toLowerCase()
       const mod = e.metaKey || e.ctrlKey
-      if (mod && key === 'd') handleDuplicate(e)
+      if (mod && e.shiftKey && key === 'h') handleHide(e)
+      else if (mod && key === 'd') handleDuplicate(e)
       else if (mod && key === 'c') handleCopy(e)
       else if (mod && key === 'v') handlePaste(e)
       else if (e.altKey && key === 'arrowup') handleMove(e, -1)

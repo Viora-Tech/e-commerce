@@ -31,6 +31,7 @@ describe('Zero Drift section types stay as saved templates know them', () => {
       'ImageComparison',
       'MobileDock',
       'SignupPopup',
+      'WhatsappChat',
     ])
   })
 

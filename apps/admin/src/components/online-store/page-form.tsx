@@ -10,8 +10,8 @@ import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import RichTextField from '@/components/fields/rich-text-field'
+import PageHeader from '@/components/layout/page-header'
 import ProoflyDetailPage from '@/components/layout/proofly-detail-page'
-import ProoflyPageHeader from '@/components/layout/proofly-page-header'
 import SaveBar from '@/components/layout/save-bar'
 import MetafieldsCard from '@/components/metaobjects/metafields-card'
 import { onlineStoreContent } from '@/data/online-store'
@@ -96,7 +96,7 @@ export default function PageForm({ page, suffixes, contentHref, storefrontOrigin
   return (
     <ProoflyDetailPage
       header={
-        <ProoflyPageHeader
+        <PageHeader
           title={page.title}
           back={{ label: copy.back, href: routes.onlineStore.pages() }}
           actions={

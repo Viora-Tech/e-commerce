@@ -2,7 +2,7 @@
 
 import { siteConfig } from '@commerce/config/site'
 import { permissions } from '@commerce/core/permissions'
-import { Download, Plus } from '@commerce/ui/icons'
+import { Clock, Download, Plus } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import Link from 'next/link'
 import { parseAsInteger, parseAsString, parseAsStringLiteral, useQueryStates } from 'nuqs'
@@ -18,13 +18,21 @@ import {
   inventoryColumns,
   rowName,
 } from '@/components/inventory/inventory-columns'
-import InventoryFilters from '@/components/inventory/inventory-filters'
 import InventoryStrip from '@/components/inventory/inventory-strip'
 import InventoryTiles, { type InventoryStats } from '@/components/inventory/inventory-tiles'
 import type { StoreLocation } from '@/components/inventory/location-select'
-import PillTabs from '@/components/layout/pill-tabs'
 import ProoflyListPage from '@/components/layout/proofly-list-page'
-import ResourceTable, { type AppliedFilter } from '@/components/table/resource-table'
+import {
+  appliedFromGroups,
+  clearGroups,
+  FILTER_PANEL_CLASS,
+  type FilterGroup,
+  FilterPanel,
+  facetOptions,
+} from '@/components/table/filter-panel'
+import ResourceTable from '@/components/table/resource-table'
+import ViewSelect from '@/components/table/view-select'
+import { filterPanelContent } from '@/data/filter-panel'
 import {
   inventoryContent,
   locationsContent,
@@ -108,6 +116,7 @@ function untouched(initial: InventoryInitial, locationId: string, q: Query) {
 function InventoryContent({ initial }: { initial: InventoryInitial }) {
   // Hooks
   const copy = useCopy(inventoryContent)
+  const panelCopy = useCopy(filterPanelContent)
   const { hasPermission } = usePermissions()
   const [q, setQ] = useQueryStates(
     {
@@ -224,24 +233,36 @@ function InventoryContent({ initial }: { initial: InventoryInitial }) {
   // Render logic
   const locationId = currentLocation()
   const canEdit = hasPermission(permissions.INVENTORY_WRITE)
-  const stockLabel = copy.filters.stockOptions.find((o) => o.value === q.stock)?.label
-  const applied = [
-    q.stock && {
+  const groups: FilterGroup[] = [
+    {
       key: 'stock',
-      label: `${copy.filters.stock}: ${stockLabel}`,
-      onRemove: () => setQ({ stock: null, page: 1 }),
+      label: copy.filters.stock,
+      type: 'select',
+      options: copy.filters.stockOptions,
+      value: q.stock,
+      onChange: (next) => setQ({ stock: STOCK_STATES.find((s) => s === next) ?? null, page: 1 }),
+      anyLabel: copy.filters.any,
     },
-    q.vendor && {
+    {
       key: 'vendor',
-      label: `${copy.filters.vendor}: ${q.vendor}`,
-      onRemove: () => setQ({ vendor: null, page: 1 }),
+      label: copy.filters.vendor,
+      type: 'select',
+      options: facetOptions(initial.facets.vendors),
+      value: q.vendor,
+      onChange: (vendor) => setQ({ vendor, page: 1 }),
+      anyLabel: copy.filters.any,
     },
-    q.productType && {
+    {
       key: 'type',
-      label: `${copy.filters.productType}: ${q.productType}`,
-      onRemove: () => setQ({ productType: null, page: 1 }),
+      label: copy.filters.productType,
+      type: 'select',
+      options: facetOptions(initial.facets.types),
+      value: q.productType,
+      onChange: (productType) => setQ({ productType, page: 1 }),
+      anyLabel: copy.filters.any,
     },
-  ].filter(Boolean) as AppliedFilter[]
+  ]
+  const applied = appliedFromGroups(groups, panelCopy)
   const filtered = applied.length > 0 || q.query !== ''
 
   return (
@@ -275,30 +296,48 @@ function InventoryContent({ initial }: { initial: InventoryInitial }) {
     >
       <ResourceTable
         resourceName={copy.resource}
-        columns={inventoryColumns({ copy, canEdit, onCommit: commitRow, onHistory: setHistory })}
+        columns={inventoryColumns({
+          copy,
+          canEdit,
+          lowAt: stats.lowThreshold,
+          onCommit: commitRow,
+        })}
         items={rows}
         getId={(r) => r.variantId}
+        rowActions={(r) => (
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            aria-label={copy.cell.history}
+            title={copy.cell.history}
+            onClick={(e) => {
+              e.stopPropagation()
+              setHistory(r)
+            }}
+          >
+            <Clock aria-hidden="true" />
+          </Button>
+        )}
         loading={loading}
         query={q.query}
         onQueryChange={(query) => setQ({ query, page: 1 })}
         onClearAll={() =>
           setQ({ query: '', stock: null, vendor: null, productType: null, page: 1 })
         }
-        filters={
-          <InventoryFilters
-            values={{ stock: q.stock, vendor: q.vendor, productType: q.productType }}
-            facets={initial.facets}
-            onChange={(patch) => setQ({ ...patch, page: 1 })}
-            onClear={() => setQ({ stock: null, vendor: null, productType: null, page: 1 })}
+        filters={(close) => (
+          <FilterPanel
+            groups={groups}
+            onClear={() => clearGroups(groups)}
+            footer={{ label: panelCopy.show(total), onDone: close }}
           />
-        }
+        )}
+        filtersClassName={FILTER_PANEL_CLASS}
         applied={applied}
-        tabs={
-          <PillTabs
-            variant="segmented"
+        views={
+          <ViewSelect
             value={q.stock === 'out' || q.stock === 'low' ? q.stock : null}
             onChange={(stock) => setQ({ stock, page: 1 })}
-            tabs={[
+            options={[
               { value: null, label: copy.tabs.all, count: stats.skus },
               { value: 'out', label: copy.tabs.out, count: stats.outOfStock },
               { value: 'low', label: copy.tabs.low, count: stats.lowStock },

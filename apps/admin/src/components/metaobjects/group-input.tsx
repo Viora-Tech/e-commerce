@@ -4,6 +4,7 @@ import { GROUP_ROWS_MAX, type GroupField } from '@commerce/core/metaobjects'
 import { ArrowDown, ArrowUp, Plus, Trash2 } from '@commerce/ui/icons'
 import { cn } from '@commerce/ui/lib/utils'
 import { Button } from '@commerce/ui/shadcn/button'
+import EmptyState from '@/components/layout/empty-state'
 import { entryFormContent, fieldInputContent } from '@/data/metaobjects'
 import { useCopy } from '@/hooks/use-copy'
 import ReferencePicker from './reference-picker'
@@ -75,14 +76,12 @@ export default function GroupInput({
   return (
     <div id={id} className="flex flex-col gap-2">
       {rows.length === 0 ? (
-        <p
-          className={cn(
-            'rounded-md border border-dashed px-4 py-4 text-center text-body text-muted-foreground',
-            invalid ? 'border-destructive' : 'border-line',
-          )}
-        >
-          {copy.rows.empty}
-        </p>
+        <EmptyState
+          variant="dashed"
+          size="sm"
+          className={invalid ? 'border-destructive' : undefined}
+          body={copy.rows.empty}
+        />
       ) : (
         <ol className="flex flex-col gap-2">
           {rows.map((row, index) => {

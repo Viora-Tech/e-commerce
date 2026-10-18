@@ -7,13 +7,14 @@ import {
   REQUIRED_SCOPES,
 } from '@commerce/plugin-shopify-import/client'
 import { Button } from '@commerce/ui/shadcn/button'
-import { Card, CardContent, CardHeader, CardTitle } from '@commerce/ui/shadcn/card'
+import { CardContent } from '@commerce/ui/shadcn/card'
 import { Checkbox } from '@commerce/ui/shadcn/checkbox'
 import { Skeleton } from '@commerce/ui/shadcn/skeleton'
 import { Spinner } from '@commerce/ui/shadcn/spinner'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
+import DataCard from '@/components/layout/data-card'
 import { shopifyImportContent } from '@/data/shopify-import'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
@@ -131,9 +132,9 @@ export default function ConnectPage() {
 
   return (
     <div className="flex flex-col gap-4">
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle>{copy.connection}</CardTitle>
+      <DataCard
+        title={copy.connection}
+        action={
           <Button
             type="button"
             variant="outline"
@@ -143,47 +144,40 @@ export default function ConnectPage() {
           >
             {copy.disconnect}
           </Button>
-        </CardHeader>
-        <CardContent>
-          <dl className="grid grid-cols-[auto_1fr] gap-x-6 gap-y-2 text-body">
-            {facts.map(([label, value]) => (
-              <div key={label} className="contents">
-                <dt className="text-muted-foreground">{label}</dt>
-                <dd className="text-ink-strong">{value}</dd>
-              </div>
-            ))}
-          </dl>
-        </CardContent>
-      </Card>
-      <ScopesCard />
-      <Card>
-        <CardHeader>
-          <CardTitle>{copy.chooseHeading}</CardTitle>
-          <p className="text-body text-muted-foreground">{copy.chooseHelp}</p>
-        </CardHeader>
-        <CardContent className="grid gap-3 sm:grid-cols-2">
-          {IMPORT_RESOURCES.map((resource) => (
-            <label
-              key={resource}
-              htmlFor={`resource-${resource}`}
-              className="flex items-start gap-3"
-            >
-              <Checkbox
-                id={`resource-${resource}`}
-                className="mt-0.5"
-                checked={chosen.includes(resource) && !blocked.has(resource)}
-                disabled={blocked.has(resource)}
-                onCheckedChange={(v) => handleToggle(resource, Boolean(v))}
-              />
-              <span className="flex flex-col">
-                <span className="font-medium text-ink-strong">{resources[resource]}</span>
-                <span className="text-caption text-muted-foreground">
-                  {copy.scope(REQUIRED_SCOPES[resource])}
-                </span>
-              </span>
-            </label>
+        }
+      >
+        <dl className="grid grid-cols-[auto_1fr] gap-x-6 gap-y-2 text-body">
+          {facts.map(([label, value]) => (
+            <div key={label} className="contents">
+              <dt className="text-muted-foreground">{label}</dt>
+              <dd className="text-ink-strong">{value}</dd>
+            </div>
           ))}
-        </CardContent>
+        </dl>
+      </DataCard>
+      <ScopesCard />
+      <DataCard
+        title={copy.chooseHeading}
+        action={<p className="text-body text-muted-foreground">{copy.chooseHelp}</p>}
+        bodyClassName="grid gap-3 sm:grid-cols-2"
+      >
+        {IMPORT_RESOURCES.map((resource) => (
+          <label key={resource} htmlFor={`resource-${resource}`} className="flex items-start gap-3">
+            <Checkbox
+              id={`resource-${resource}`}
+              className="mt-0.5"
+              checked={chosen.includes(resource) && !blocked.has(resource)}
+              disabled={blocked.has(resource)}
+              onCheckedChange={(v) => handleToggle(resource, Boolean(v))}
+            />
+            <span className="flex flex-col">
+              <span className="font-medium text-ink-strong">{resources[resource]}</span>
+              <span className="text-caption text-muted-foreground">
+                {copy.scope(REQUIRED_SCOPES[resource])}
+              </span>
+            </span>
+          </label>
+        ))}
         {importable.includes('files') ? (
           <CardContent>
             <label htmlFor="include-unused-files" className="flex items-start gap-3">
@@ -200,7 +194,7 @@ export default function ConnectPage() {
             </label>
           </CardContent>
         ) : null}
-      </Card>
+      </DataCard>
       <PreflightCard checks={checks} />
       <div className="flex justify-end">
         <Button

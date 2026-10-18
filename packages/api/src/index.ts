@@ -1,5 +1,19 @@
 export type { ApiContext, DailyVisitors, LiveVisitors, VisitorSource } from './context'
 export {
+  type AuthorizeParams,
+  type AuthorizeRequest,
+  authorizationServerMetadata,
+  checkAuthorize,
+  consentStore,
+  decideAuthorize,
+  handleRegister,
+  handleRevoke,
+  handleToken,
+  OAUTH_CORS,
+  protectedResourceMetadata,
+} from './mcp/oauth'
+export { clientIp, handleMcpRequest, mcpPath, resourceMetadataUrl } from './mcp/server'
+export {
   base,
   createRequestMemo,
   isNoStoreError,
@@ -9,6 +23,7 @@ export {
   storeProcedure,
 } from './procedures'
 export { type AppRouter, appRouter } from './routers/_app'
+export { channelDeps, queueChannelSync } from './routers/sales-channels'
 export type {
   AnalyticsKpi,
   AnalyticsLive,
@@ -41,6 +56,11 @@ export type {
   OutcomeRow,
 } from './services/growth-outcomes.service'
 export type {
+  HomeAnalytics,
+  HomeCompare,
+  HomeMetricFigures,
+} from './services/home-analytics.service'
+export type {
   CampaignRow,
   ChannelRow,
   MarketingKpi,
@@ -54,3 +74,4 @@ export {
   SOURCE_KEYS,
   SOURCE_LABELS,
 } from './services/marketing-overview.service'
+export type { OrderSheetRow } from './services/order-sheet.service'

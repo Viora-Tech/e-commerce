@@ -1,14 +1,5 @@
 'use client'
 
-import { Button } from '@commerce/ui/shadcn/button'
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@commerce/ui/shadcn/dialog'
 import { Field, FieldLabel } from '@commerce/ui/shadcn/field'
 import { Input } from '@commerce/ui/shadcn/input'
 import {
@@ -20,6 +11,7 @@ import {
 } from '@commerce/ui/shadcn/select'
 import { useState } from 'react'
 import { toast } from 'sonner'
+import FormDialog from '@/components/layout/form-dialog'
 import { INDIAN_STATES } from '@/data/india'
 import { locationsContent as copy } from '@/data/inventory'
 import { api } from '@/lib/api-client'
@@ -36,9 +28,9 @@ type Draft = { name: string; line1: string; city: string; stateCode: string; pin
 const EMPTY: Draft = { name: '', line1: '', city: '', stateCode: '', pincode: '' }
 
 const FIELDS = [
-  { key: 'line1', label: copy.line1, span: true },
-  { key: 'city', label: copy.city, span: false },
-  { key: 'pincode', label: copy.pincode, span: false },
+  { key: 'line1', label: copy.line1, span: true, placeholder: copy.line1Placeholder },
+  { key: 'city', label: copy.city, span: false, placeholder: undefined },
+  { key: 'pincode', label: copy.pincode, span: false, placeholder: undefined },
 ] as const
 
 /** The state decides which GST number the location can bill under, so it is picked, not typed. */
@@ -82,63 +74,61 @@ export default function AddLocationDialog({
 
   // Render logic
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle>{copy.title}</DialogTitle>
-          <DialogDescription>{copy.body}</DialogDescription>
-        </DialogHeader>
-        <div className="grid grid-cols-2 gap-4">
-          <Field className="col-span-2">
-            <FieldLabel htmlFor="location-name">{copy.name}</FieldLabel>
+    <FormDialog
+      open={open}
+      onOpenChange={onOpenChange}
+      title={copy.title}
+      description={copy.body}
+      submitLabel={busy ? copy.saving : copy.save}
+      cancelLabel={copy.cancel}
+      busy={busy}
+      submitDisabled={draft.name.trim() === ''}
+      onSubmit={handleSave}
+      size="md"
+    >
+      <div className="grid grid-cols-2 gap-4">
+        <Field className="col-span-2">
+          <FieldLabel htmlFor="location-name">{copy.name}</FieldLabel>
+          <Input
+            id="location-name"
+            value={draft.name}
+            placeholder={copy.namePlaceholder}
+            autoComplete="off"
+            onChange={(e) => setDraft({ ...draft, name: e.target.value })}
+          />
+        </Field>
+        {FIELDS.map((f) => (
+          <Field key={f.key} className={f.span ? 'col-span-2' : undefined}>
+            <FieldLabel htmlFor={`location-${f.key}`}>{f.label}</FieldLabel>
             <Input
-              id="location-name"
-              value={draft.name}
-              placeholder={copy.namePlaceholder}
-              autoComplete="off"
-              onChange={(e) => setDraft({ ...draft, name: e.target.value })}
+              id={`location-${f.key}`}
+              value={draft[f.key]}
+              placeholder={f.placeholder}
+              inputMode={f.key === 'pincode' ? 'numeric' : undefined}
+              onChange={(e) => setDraft({ ...draft, [f.key]: e.target.value })}
             />
           </Field>
-          {FIELDS.map((f) => (
-            <Field key={f.key} className={f.span ? 'col-span-2' : undefined}>
-              <FieldLabel htmlFor={`location-${f.key}`}>{f.label}</FieldLabel>
-              <Input
-                id={`location-${f.key}`}
-                value={draft[f.key]}
-                inputMode={f.key === 'pincode' ? 'numeric' : undefined}
-                onChange={(e) => setDraft({ ...draft, [f.key]: e.target.value })}
-              />
-            </Field>
-          ))}
-          <Field className="col-span-2">
-            <FieldLabel htmlFor="location-state">{copy.stateCode}</FieldLabel>
-            <Select
-              items={STATE_ITEMS}
-              value={draft.stateCode || null}
-              onValueChange={(code) => code && setDraft({ ...draft, stateCode: String(code) })}
-            >
-              <SelectTrigger id="location-state" className="w-full">
-                <SelectValue placeholder={copy.statePlaceholder} />
-              </SelectTrigger>
-              <SelectContent>
-                {STATE_ITEMS.map((s) => (
-                  <SelectItem key={s.value} value={s.value}>
-                    {s.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </Field>
-        </div>
-        <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
-            {copy.cancel}
-          </Button>
-          <Button onClick={handleSave} disabled={busy || draft.name.trim() === ''}>
-            {busy ? copy.saving : copy.save}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+        ))}
+        <Field className="col-span-2">
+          <FieldLabel htmlFor="location-state">{copy.stateCode}</FieldLabel>
+          <Select
+            items={STATE_ITEMS}
+            value={draft.stateCode || null}
+            onValueChange={(code) => code && setDraft({ ...draft, stateCode: String(code) })}
+          >
+            <SelectTrigger id="location-state" className="w-full">
+              <SelectValue placeholder={copy.statePlaceholder} />
+            </SelectTrigger>
+            <SelectContent>
+              {STATE_ITEMS.map((s) => (
+                <SelectItem key={s.value} value={s.value}>
+                  {s.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </Field>
+      </div>
+    </FormDialog>
   )
 }

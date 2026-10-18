@@ -1,7 +1,7 @@
 import { CircleCheck } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
-import CopyButton from '@/components/fields/copy-button'
 import DataCard from '@/components/layout/data-card'
+import KeyValueList from '@/components/layout/key-value-list'
 import RelativeTime from '@/components/layout/relative-time'
 import StatusLabel from '@/components/status/status-label'
 import { orderDetailContent } from '@/data/orders'
@@ -30,18 +30,6 @@ type PaymentCardProps = {
   busy?: boolean
 }
 
-function Row({ label, value, copyable }: { label: string; value: string; copyable?: boolean }) {
-  return (
-    <div className="group/row flex justify-between gap-4 text-body">
-      <dt className="text-muted-foreground">{label}</dt>
-      <dd className="flex items-center gap-1 truncate text-right font-medium">
-        <span className="truncate">{value}</span>
-        {copyable ? <CopyButton value={value} what={label} /> : null}
-      </dd>
-    </div>
-  )
-}
-
 /** What the amount row means for an attempt in this status. */
 function amountLabel(copy: typeof orderDetailContent, status: OrderPayment['status']): string {
   if (status === 'captured' || status === 'refunded') return copy.payment.captured
@@ -68,7 +56,7 @@ export default function PaymentCard({
 
   return (
     <DataCard
-      title={copy.payment.heading}
+      title={copy.payment.transactions}
       action={
         onCollect ? (
           <Button variant="outline" size="sm" onClick={onCollect}>
@@ -119,16 +107,30 @@ export default function PaymentCard({
               {pill === 'refund_needed' ? (
                 <p className="text-body text-destructive">{copy.payment.refundNeeded}</p>
               ) : null}
-              <dl className="flex flex-col gap-1.5">
-                <Row label={copy.payment.reference} value={p.providerRef} copyable />
-                {p.providerPaymentId ? (
-                  <Row label={copy.payment.gatewayId} value={p.providerPaymentId} copyable />
-                ) : null}
-                <Row label={amountLabel(copy, p.status)} value={fmt.money(p.amountPaise)} />
-                {back > 0 ? (
-                  <Row label={copy.payment.refundedTotal} value={`−${fmt.money(back)}`} />
-                ) : null}
-              </dl>
+              <KeyValueList
+                variant="grid"
+                rows={[
+                  { label: copy.payment.reference, value: p.providerRef, copy: true, strong: true },
+                  {
+                    label: copy.payment.gatewayId,
+                    value: p.providerPaymentId,
+                    copy: true,
+                    strong: true,
+                    hidden: !p.providerPaymentId,
+                  },
+                  {
+                    label: amountLabel(copy, p.status),
+                    value: fmt.money(p.amountPaise),
+                    strong: true,
+                  },
+                  {
+                    label: copy.payment.refundedTotal,
+                    value: `−${fmt.money(back)}`,
+                    strong: true,
+                    hidden: back <= 0,
+                  },
+                ]}
+              />
             </div>
           )
         })}

@@ -51,16 +51,20 @@ export type LiquidRenderOptions = {
 }
 
 /** One section placed in a template or group, as Puck data keeps it (see `liquid-data.ts`). */
+/** One placed block; `blocks` are the theme blocks nested inside it (a tab's contents). */
+export type LiquidBlockInput = {
+  id: string
+  type: string
+  settings: Record<string, unknown>
+  disabled?: boolean | undefined
+  blocks?: LiquidBlockInput[] | undefined
+}
+
 export type LiquidSectionInput = {
   id: string
   type: string
   settings: Record<string, unknown>
-  blocks: {
-    id: string
-    type: string
-    settings: Record<string, unknown>
-    disabled?: boolean | undefined
-  }[]
+  blocks: LiquidBlockInput[]
   /** `template` or the group name, e.g. `header-group`. */
   location: string
   index: number

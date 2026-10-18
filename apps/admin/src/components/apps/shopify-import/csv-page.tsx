@@ -7,12 +7,12 @@ import {
 } from '@commerce/plugin-shopify-import/client'
 import { Package, ShoppingBag, Users } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
-import { Card, CardContent, CardHeader, CardTitle } from '@commerce/ui/shadcn/card'
 import { Spinner } from '@commerce/ui/shadcn/spinner'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import ChoiceCard from '@/components/layout/choice-card'
+import DataCard from '@/components/layout/data-card'
 import { shopifyImportContent } from '@/data/shopify-import'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
@@ -66,32 +66,22 @@ export default function CsvPage() {
     <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,22rem)]">
       <div className="flex flex-col gap-4">
         {resource === 'products' ? <StorageNotice /> : null}
-        <Card>
-          <CardHeader>
-            <CardTitle>{copy.kindHeading}</CardTitle>
-          </CardHeader>
-          <CardContent className="grid gap-3 sm:grid-cols-3">
-            {CSV_RESOURCES.map((kind) => (
-              <ChoiceCard
-                key={kind}
-                layout="tile"
-                icon={KIND_ICON[kind]}
-                label={copy.kinds[kind].label}
-                description={copy.kinds[kind].short}
-                selected={resource === kind}
-                onSelect={() => setResource(kind)}
-              />
-            ))}
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader>
-            <CardTitle>{copy.fileHeading}</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <CsvDropzone file={file} error={error} onFile={handleFile} />
-          </CardContent>
-        </Card>
+        <DataCard title={copy.kindHeading} bodyClassName="grid gap-3 sm:grid-cols-3">
+          {CSV_RESOURCES.map((kind) => (
+            <ChoiceCard
+              key={kind}
+              layout="tile"
+              icon={KIND_ICON[kind]}
+              label={copy.kinds[kind].label}
+              description={copy.kinds[kind].short}
+              selected={resource === kind}
+              onSelect={() => setResource(kind)}
+            />
+          ))}
+        </DataCard>
+        <DataCard title={copy.fileHeading}>
+          <CsvDropzone file={file} error={error} onFile={handleFile} />
+        </DataCard>
         <div className="flex flex-col items-end gap-1.5">
           <Button type="button" onClick={handlePreview} disabled={!file || busy}>
             {busy ? <Spinner /> : null}

@@ -53,12 +53,6 @@ export const reviewsContent = {
       yes: 'With photos',
       no: 'Without photos',
       ratingValue: (n: number) => `${n} stars`,
-      clear: 'Clear filters',
-    },
-    applied: {
-      rating: (n: number) => `${n} stars`,
-      product: (title: string) => `Product: ${title}`,
-      photos: (yes: boolean) => (yes ? 'With photos' : 'Without photos'),
     },
     bulk: {
       approve: 'Approve',

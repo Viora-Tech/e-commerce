@@ -1,4 +1,4 @@
-import StatusChip from '@/components/layout/status-chip'
+import OrderChip from '@/components/orders/order-chip'
 import ProductThumb from '@/components/products/product-thumb'
 import type { ResourceColumnSpec } from '@/components/table/resource-table'
 import type { productsListContent } from '@/data/products'
@@ -37,6 +37,8 @@ export const productColumns = (
     id: 'product',
     title: copy.columns.product,
     sortValue: (p) => p.title,
+    sortTitle: copy.sortTitles.product,
+    sortLabels: copy.sortAlpha,
     hideable: false,
     align: 'start',
     className: 'w-[40%] whitespace-normal',
@@ -45,13 +47,9 @@ export const productColumns = (
       return (
         <span className="flex items-center gap-3 text-left">
           <ProductThumb url={p.imageUrl} />
-          <span className="flex min-w-0 flex-col gap-1">
-            <span className="line-clamp-2 text-body-strong text-ink-strong">{p.title}</span>
-            {pill ? (
-              <span className="w-fit rounded-full bg-accent px-2 py-0.5 text-caption text-accent-foreground">
-                {pill}
-              </span>
-            ) : null}
+          <span className="flex min-w-0 flex-col">
+            <span className="line-clamp-2 text-body text-ink-strong">{p.title}</span>
+            {pill ? <span className="text-caption text-muted-foreground">{pill}</span> : null}
           </span>
         </span>
       )
@@ -62,11 +60,7 @@ export const productColumns = (
     title: copy.columns.status,
     sortValue: (p) => p.status,
     align: 'center',
-    render: (p) => (
-      <StatusChip tone={p.status === 'draft' ? 'info' : 'neutral'}>
-        {copy.status[p.status]}
-      </StatusChip>
-    ),
+    render: (p) => <OrderChip kind="product" value={p.status} />,
   },
   {
     id: 'inventory',
@@ -93,12 +87,15 @@ export const productColumns = (
     id: 'type',
     title: copy.columns.type,
     sortValue: (p) => p.productType ?? '',
+    sortTitle: copy.sortTitles.type,
+    sortLabels: copy.sortAlpha,
     render: (p) => p.productType ?? copy.none,
   },
   {
     id: 'vendor',
     title: copy.columns.vendor,
     sortValue: (p) => p.vendor ?? '',
+    sortLabels: copy.sortAlpha,
     render: (p) => p.vendor ?? copy.none,
   },
   {

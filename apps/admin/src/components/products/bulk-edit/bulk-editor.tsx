@@ -1,16 +1,19 @@
 'use client'
 
-import { CircleAlert } from '@commerce/ui/icons'
+import { CircleAlert, Pencil } from '@commerce/ui/icons'
 import { Alert, AlertDescription, AlertTitle } from '@commerce/ui/shadcn/alert'
 import { Button } from '@commerce/ui/shadcn/button'
 import { useState } from 'react'
 import { toast } from 'sonner'
-import ProoflyPageHeader from '@/components/layout/proofly-page-header'
+import NoticeBar from '@/components/layout/notice-bar'
+import PageHeader from '@/components/layout/page-header'
+import StatusChip from '@/components/layout/status-chip'
 import { bulkEditContent } from '@/data/bulk-edit'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 import { routes } from '@/lib/routes'
-import { columnKeys } from './bulk-edit-columns'
+import BulkColumnsMenu from './bulk-columns-menu'
+import { columnKeys, isEditableKey } from './bulk-edit-columns'
 import BulkEditGrid from './bulk-edit-grid'
 import {
   type CellErrors,
@@ -18,14 +21,17 @@ import {
   errorKey,
   type GridRow,
   gridColumnOf,
+  type SheetCollection,
   type SheetRow,
-  toBulkRows,
   toGridRow,
-  validateRows,
 } from './bulk-edit-model'
+import { toBulkRows } from './bulk-edit-payload'
+import { validateRows } from './bulk-edit-validate'
+import { useHiddenColumns } from './use-hidden-columns'
 
 export type BulkEditSheet = {
   locations: { id: string; name: string; isDefault: boolean }[]
+  collections: SheetCollection[]
   rows: SheetRow[]
   truncated: boolean
 }
@@ -47,13 +53,14 @@ export default function BulkEditor({ sheet, productIds }: BulkEditorProps) {
   // Hooks
   const copy = useCopy(bulkEditContent)
   const [initial, setInitial] = useState(() =>
-    sheet.rows.map((r) => toGridRow(r, locationIdsOf(sheet))),
+    sheet.rows.map((r) => toGridRow(r, locationIdsOf(sheet), sheet.collections)),
   )
   const [base, setBase] = useState(() => baseOf(initial))
   const [rows, setRows] = useState(initial)
   const [serverErrors, setServerErrors] = useState<CellErrors>(new Map())
   const [attempted, setAttempted] = useState(false)
   const [saving, setSaving] = useState(false)
+  const { hidden, toggle } = useHiddenColumns()
 
   // Helpers
   const label = (key: string) => {
@@ -67,7 +74,7 @@ export default function BulkEditor({ sheet, productIds }: BulkEditorProps) {
 
   const reload = async () => {
     const fresh = await api.products.bulkEditSheet({ ids: productIds })
-    const next = fresh.rows.map((r) => toGridRow(r, locationIdsOf(sheet)))
+    const next = fresh.rows.map((r) => toGridRow(r, locationIdsOf(sheet), sheet.collections))
     setInitial(next)
     setBase(baseOf(next))
     setRows(next)
@@ -99,7 +106,7 @@ export default function BulkEditor({ sheet, productIds }: BulkEditorProps) {
   const handleSave = async () => {
     setAttempted(true)
     if (validation.size > 0) return
-    const payload = toBulkRows(rows, base, locationIdsOf(sheet))
+    const payload = toBulkRows(rows, base, locationIdsOf(sheet), sheet.collections)
     if (payload.length === 0) return
     setSaving(true)
     try {
@@ -131,23 +138,33 @@ export default function BulkEditor({ sheet, productIds }: BulkEditorProps) {
   }
 
   // Render logic
-  const validation = validateRows(rows, locationIdsOf(sheet))
-  const keys = columnKeys(sheet.locations).filter((k) => k !== 'variantTitle')
+  const validation = validateRows(rows, {
+    locationIds: locationIdsOf(sheet),
+    collections: sheet.collections,
+    base,
+  })
+  const keys = columnKeys(sheet.locations, new Set()).filter(isEditableKey)
   const errors: CellErrors = new Map([...validation, ...serverErrors])
   const changed = dirtyCount(rows, base, keys)
   const products = new Set(rows.map((r) => r.productId)).size
   const shown = attempted || serverErrors.size > 0 ? [...errors] : []
   return (
-    <div className="mx-auto flex w-full max-w-[110rem] flex-col gap-6 px-4 py-6 md:px-8 md:py-8">
-      <ProoflyPageHeader
+    <div className="flex w-full flex-col gap-6 px-4 py-6 md:px-8 md:py-8">
+      <PageHeader
         title={copy.title}
         summary={copy.summary(products, rows.length)}
         back={{ label: copy.back, href: routes.products.list() }}
+        lead={{ kind: 'icon', node: <Pencil aria-hidden="true" /> }}
+        badges={
+          changed > 0 ? <StatusChip tone="attention">{copy.unsaved(changed)}</StatusChip> : null
+        }
         actions={
           <>
-            <span className="text-caption text-muted-foreground">
-              {changed > 0 ? copy.unsaved(changed) : copy.noChanges}
-            </span>
+            <BulkColumnsMenu
+              hidden={hidden}
+              hasStock={sheet.locations.length > 0}
+              onToggle={toggle}
+            />
             <Button variant="outline" disabled={changed === 0 || saving} onClick={handleDiscard}>
               {copy.discard}
             </Button>
@@ -157,7 +174,7 @@ export default function BulkEditor({ sheet, productIds }: BulkEditorProps) {
           </>
         }
       />
-      <p className="text-caption text-muted-foreground">{copy.hint}</p>
+      <NoticeBar>{copy.hint}</NoticeBar>
       {sheet.truncated ? (
         <Alert>
           <CircleAlert />
@@ -190,6 +207,7 @@ export default function BulkEditor({ sheet, productIds }: BulkEditorProps) {
         base={base}
         errors={errors}
         locations={sheet.locations}
+        hidden={hidden}
         onRowsChange={handleRowsChange}
       />
     </div>

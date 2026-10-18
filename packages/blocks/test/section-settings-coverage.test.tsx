@@ -11,6 +11,7 @@ import { renderBlock } from '../src/slots'
 const SKIPS: Record<string, string> = {
   MobileDock: 'a bar fixed to the bottom of phone screens',
   SignupPopup: 'a popup dialog',
+  WhatsappChat: 'a button fixed to the corner of every page',
   StickyAtc: 'a bar fixed to the bottom of the product page',
   CookieBanner: 'floats over the page until answered',
   LiquidSection: "an imported Shopify section, set by its own theme's schema",

@@ -36,3 +36,9 @@ const PAIRS: readonly [string, string][] = [
 ]
 
 export const INDIAN_STATES = PAIRS.map(([code, name]) => ({ code, name }))
+
+/** A state's name from its code ("MH" → "Maharashtra"); unknown codes come back as given. */
+export function stateName(code: string | null): string {
+  if (!code) return ''
+  return INDIAN_STATES.find((s) => s.code === code)?.name ?? code
+}

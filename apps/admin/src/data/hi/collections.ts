@@ -9,6 +9,7 @@ export default [
     list: {
       tiles: {
         all: 'सभी कलेक्शन',
+        allNote: 'अब तक के',
         automatic: 'ऑटोमैटिक',
         automaticNote: 'नियमों से बने',
         manual: 'मैन्युअल',

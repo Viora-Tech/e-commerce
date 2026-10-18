@@ -1,30 +1,38 @@
 import type { RenderEditCellProps } from 'react-data-grid'
 import { bulkEditContent } from '@/data/bulk-edit'
 import { useCopy } from '@/hooks/use-copy'
-import { type GridRow, STATUSES } from './bulk-edit-model'
+import { cellValue, type GridRow, STATUSES, withCell } from './bulk-edit-model'
 
-/** Status cell editor: a native select that commits as soon as one is picked. */
+/** Select cell editor (status, Yes/No): a native select that commits as soon as one is picked. */
 export default function BulkSelectEditor({
   row,
+  column,
   onRowChange,
   onClose,
 }: RenderEditCellProps<GridRow>) {
   // Hooks
   const copy = useCopy(bulkEditContent)
 
+  // Render logic
+  const isStatus = column.key === 'status'
+  const options = isStatus
+    ? STATUSES.map((s) => ({ value: s, label: copy.statuses[s] }))
+    : (['yes', 'no'] as const).map((v) => ({ value: v, label: copy.yesNo[v] }))
+  const label = (copy.columns as Record<string, unknown>)[column.key]
+
   return (
     <select
       // biome-ignore lint/a11y/noAutofocus: the editor opens because the person asked to edit this cell.
       autoFocus
-      value={row.status}
-      aria-label={copy.columns.status}
-      onChange={(e) => onRowChange({ ...row, status: e.target.value }, true)}
+      value={cellValue(row, column.key)}
+      aria-label={typeof label === 'string' ? label : column.key}
+      onChange={(e) => onRowChange(withCell(row, column.key, e.target.value), true)}
       onKeyDown={(e) => e.key === 'Escape' && onClose(false)}
       className="size-full border-0 bg-card px-2 text-body text-foreground outline-none"
     >
-      {STATUSES.map((s) => (
-        <option key={s} value={s}>
-          {copy.statuses[s]}
+      {options.map((o) => (
+        <option key={o.value} value={o.value}>
+          {o.label}
         </option>
       ))}
     </select>

@@ -7,7 +7,7 @@ import { Spinner } from '@commerce/ui/shadcn/spinner'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { toast } from 'sonner'
-import StatusLabel from '@/components/status/status-label'
+import OrderChip from '@/components/orders/order-chip'
 import { notificationsSettingsContent } from '@/data/notifications'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
@@ -64,11 +64,9 @@ export default function SendingCard({ email, whatsapp, platformEmail }: SendingC
                 <div className="flex min-w-0 flex-col gap-0.5">
                   <div className="flex flex-wrap items-center gap-2">
                     <p className="text-body font-medium text-foreground">{words.name}</p>
-                    <StatusLabel
+                    <OrderChip
                       kind="app"
                       value={connected || viaPlatform ? 'connected' : 'notConnected'}
-                      variant="pill"
-                      size="sm"
                       label={viaPlatform ? copy.state.platform : copy.state[c.state]}
                     />
                   </div>

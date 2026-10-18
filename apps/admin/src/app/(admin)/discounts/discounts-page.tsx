@@ -1,7 +1,7 @@
 'use client'
 
 import { siteConfig } from '@commerce/config/site'
-import { Plus, SquarePlus } from '@commerce/ui/icons'
+import { Plus } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Kbd } from '@commerce/ui/shadcn/kbd'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@commerce/ui/shadcn/tooltip'
@@ -10,10 +10,10 @@ import { parseAsInteger, parseAsString, parseAsStringLiteral, useQueryStates } f
 import { Suspense, useEffect, useRef, useState } from 'react'
 import { discountColumns } from '@/components/discounts/discount-columns'
 import DiscountTiles, { type DiscountStats } from '@/components/discounts/discount-tiles'
-import PillTabs from '@/components/layout/pill-tabs'
 import ProoflyListPage from '@/components/layout/proofly-list-page'
 import ResourceTable from '@/components/table/resource-table'
 import RowMenu from '@/components/table/row-menu'
+import ViewSelect from '@/components/table/view-select'
 import { DISCOUNT_LIFECYCLES, type DiscountLifecycle, discountsContent } from '@/data/discounts'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
@@ -97,7 +97,7 @@ function DiscountsContent({ initial }: { initial: DiscountsInitial }) {
           <TooltipTrigger
             render={
               <Button render={<Link href={routes.discounts.new()} />} nativeButton={false}>
-                <SquarePlus strokeWidth={1.6} />
+                <Plus strokeWidth={1.6} />
                 {copy.create}
               </Button>
             }
@@ -121,12 +121,11 @@ function DiscountsContent({ initial }: { initial: DiscountsInitial }) {
         query={query}
         onQueryChange={(next) => setQ({ query: next, page: 1 })}
         onClearAll={() => setQ({ query: '', status: null, page: 1 })}
-        tabs={
-          <PillTabs
-            variant="segmented"
+        views={
+          <ViewSelect
             value={status}
             onChange={(next) => setQ({ status: next, page: 1 })}
-            tabs={[
+            options={[
               { value: null, label: copy.tabs.all, count: initial.allCount },
               ...DISCOUNT_LIFECYCLES.map((s) => ({
                 value: s,

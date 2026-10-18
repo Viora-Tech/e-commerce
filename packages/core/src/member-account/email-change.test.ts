@@ -18,7 +18,7 @@ function fakePlatform(ok: boolean) {
   const platform: PlatformCodeSender = {
     transport: {
       fromEmail: 'no-reply@vioratech.in',
-      fromName: 'Sellverse',
+      fromName: 'Koomerce',
       channel: () => channel,
     },
   }
@@ -34,7 +34,7 @@ describe('email change emails', () => {
     expect(sent[0]).toMatchObject({
       to: { email: 'new@example.com' },
       template: 'email_change_code',
-      data: { code: '518204', storeName: 'Sellverse' },
+      data: { code: '518204', storeName: 'Koomerce' },
     })
   })
 

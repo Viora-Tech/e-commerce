@@ -1,12 +1,12 @@
 'use client'
 
-import type { SavedAddress } from '@commerce/core'
+import { ADDRESS_LABELS } from '@commerce/core/accounts'
 import { useRef, useState, useTransition } from 'react'
 import CheckoutField from '@/components/checkout/checkout-field'
 import CheckoutIcon from '@/components/checkout/checkout-icon'
 import CheckoutSelect from '@/components/checkout/checkout-select'
-import { accountContent } from '@/data/account'
 import { checkoutContent as content, INDIAN_STATES } from '@/data/checkout'
+import { CK_LABEL } from '@/lib/checkout-classes'
 import { type CheckoutFieldErrors, cleanPincode, fieldId } from '@/lib/checkout-validation'
 import { lookupPincodeAction, type PincodePlaceView } from '@/lib/pincode-actions'
 
@@ -14,22 +14,18 @@ type AddressKey = 'name' | 'line1' | 'line2' | 'city' | 'gstin' | 'businessName'
 type LeaveKey = 'name' | 'line1' | 'city' | 'pincode' | 'stateCode' | 'gstin'
 
 type CheckoutAddressFieldsProps = {
-  values: Record<AddressKey | 'stateCode' | 'pincode', string>
+  values: Record<AddressKey | 'stateCode' | 'pincode' | 'label', string>
   errors: CheckoutFieldErrors
   digitalOnly: boolean
-  /** Settings → Checkout: PIN code first, city and state filled from it. */
-  pincodeFirst: boolean
   /** Settings → Checkout: business buyers can add a GSTIN. */
   gstinEnabled: boolean
   /** The shopper ticked "Add a GSTIN"; the parent clears the fields when they untick it. */
   business: boolean
-  addresses: SavedAddress[]
-  savedId: string
-  newAddressId: string
   /** The courier's promise under the PIN code; why it cannot deliver shows in Delivery method. */
   deliveryText: string | null
   checking: boolean
-  onPickAddress: (id: string) => void
+  /** Signed-in shoppers tag the address Home, Office or Other for their address book. */
+  onLabel?: ((label: string) => void) | null
   onField: (key: AddressKey) => (e: React.ChangeEvent<HTMLInputElement>) => void
   onLeave: (key: LeaveKey) => void
   onPincode: (pincode: string) => void
@@ -40,29 +36,25 @@ type CheckoutAddressFieldsProps = {
 }
 
 const f = content.fields
-const accountCopy = accountContent.checkout
+const tags = content.addressBook.tags
 const isFullPincode = (v: string) => /^[1-9]\d{5}$/.test(cleanPincode(v))
 const stateName = (code: string) => INDIAN_STATES.find(([c]) => c === code)?.[1] ?? code
-const savedLabel = (a: SavedAddress) => `${a.name}, ${a.line1}, ${a.city} ${a.pincode}`
 
 /**
- * The delivery address. With "PIN code first" on, the PIN code comes first and fills
- * city and state, and the courier's answer shows right under it. Signed-in shoppers
- * pick from their address book.
+ * The delivery address, PIN code first: six digits fill in the city and state (still
+ * editable) and the courier's answer shows right under it, before anything else is typed.
+ * The GSTIN for a business invoice is optional, behind its own box. Saved addresses are
+ * cards around this form (`checkout-address-book.tsx`).
  */
 export default function CheckoutAddressFields({
   values,
   errors,
   digitalOnly,
-  pincodeFirst,
   gstinEnabled,
   business,
-  addresses,
-  savedId,
-  newAddressId,
   deliveryText,
   checking,
-  onPickAddress,
+  onLabel = null,
   onField,
   onLeave,
   onPincode,
@@ -81,7 +73,7 @@ export default function CheckoutAddressFields({
     latest.current = pincode
     setFound(null)
     onPincode(pincode)
-    if (!pincodeFirst || digitalOnly || !isFullPincode(pincode)) return
+    if (digitalOnly || !isFullPincode(pincode)) return
     startFind(async () => {
       const place = await lookupPincodeAction(cleanPincode(pincode))
       // A slower answer for a PIN code the shopper has since changed is dropped.
@@ -97,7 +89,7 @@ export default function CheckoutAddressFields({
     ? null
     : finding
       ? content.pincodeFirst.finding
-      : (deliveryText ?? (pincodeFirst ? found : null))
+      : (deliveryText ?? found)
   const pincodeField = (
     <div className="flex flex-col gap-2">
       <CheckoutField
@@ -132,22 +124,10 @@ export default function CheckoutAddressFields({
 
   return (
     <div className="flex flex-col gap-4">
-      {!digitalOnly && addresses.length > 0 ? (
-        <CheckoutSelect
-          id="checkout-saved-address"
-          label={accountCopy.savedAddresses}
-          value={savedId}
-          options={[
-            ...addresses.map((a) => [a.id, savedLabel(a)] as const),
-            [newAddressId, accountCopy.newAddress],
-          ]}
-          onChange={onPickAddress}
-        />
-      ) : null}
       {digitalOnly ? (
         <p className="text-[0.875rem] text-ck-muted">{content.giftCardDelivery}</p>
       ) : null}
-      {pincodeFirst ? pincodeField : null}
+      {pincodeField}
       <CheckoutField
         id={fieldId('name')}
         label={f.name}
@@ -198,7 +178,29 @@ export default function CheckoutAddressFields({
           error={errors.stateCode}
         />
       </div>
-      {pincodeFirst ? null : pincodeField}
+      {onLabel && !digitalOnly ? (
+        <fieldset className="flex flex-col gap-2 border-0! p-0!">
+          <legend className={`${CK_LABEL} mb-2!`}>{content.addressBook.tagLegend}</legend>
+          <div className="flex flex-wrap gap-2">
+            {ADDRESS_LABELS.map((tag) => (
+              <label
+                key={tag}
+                className="cursor-pointer rounded-full border border-ck-line bg-ck-field px-3.5 py-1.5 text-[0.8125rem] font-medium text-ck-ink transition-[border-color,background-color] duration-150 hover:border-ck-muted/50 has-[:checked]:border-ck-accent has-[:checked]:bg-ck-accent-soft has-[:focus-visible]:[box-shadow:0_0_0_3px_var(--ck-ring)] motion-reduce:transition-none"
+              >
+                <input
+                  type="radio"
+                  name="checkout-address-label"
+                  value={tag}
+                  checked={values.label === tag}
+                  onChange={() => onLabel(tag)}
+                  className="sr-only"
+                />
+                {tags[tag]}
+              </label>
+            ))}
+          </div>
+        </fieldset>
+      ) : null}
       {gstinEnabled ? (
         <div className="flex flex-col gap-4">
           <label className="flex w-fit cursor-pointer items-center gap-3 text-[0.875rem] text-ck-ink">

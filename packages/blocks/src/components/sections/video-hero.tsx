@@ -1,85 +1,101 @@
 'use client'
 
-import type { ReactNode } from 'react'
-import { linkTarget } from '../../link'
+import { type ReactNode, useRef, useState } from 'react'
+import { sectionsContent } from '../../data/sections'
 import type { Image, Link } from '../../sections/framed'
-import { safeHref } from '../../slot-types'
 // Pattern after shadcnblocks' video hero layouts (our own implementation). See THIRD_PARTY_NOTICES.md.
 import { useReducedMotion } from '../../use-reduced-motion'
+import HeroCopy from '../hero-copy'
+import Icon from '../icon'
 import Picture from '../picture'
-import RichCopy from '../rich-copy'
 
 type VideoHeroProps = {
   videoUrl: string
   poster: Image
   overlayOpacity: number
+  eyebrow?: ReactNode
   /** Copy is a string in storage, a React node while edited on the canvas. */
   heading: ReactNode
   text: ReactNode
   button: Link
+  secondaryButton?: Link | undefined
+  align?: 'left' | 'center' | undefined
 }
 
-const PLACEHOLDER_GRADIENT =
-  'linear-gradient(135deg,color-mix(in_oklab,var(--color-ink)_60%,transparent),color-mix(in_oklab,var(--color-brand)_35%,transparent))'
+const copy = sectionsContent.videoHero
 
-// Full-bleed muted autoplay loop. Under reduced motion the poster (or a token gradient when
-// there is none) shows instead, and the <video> element is never mounted.
+/**
+ * Figma Section / Video hero (704:113728): a full-bleed muted loop under a scrim, the copy at the
+ * bottom (left or centred) and a play / pause button in the corner. Under reduced motion the
+ * poster (or the surface) shows instead and the <video> is never mounted.
+ */
 export default function VideoHero({
   videoUrl,
   poster,
   overlayOpacity,
+  eyebrow,
   heading,
   text,
   button,
+  secondaryButton,
+  align = 'left',
 }: VideoHeroProps) {
   // Hooks
   const reducedMotion = useReducedMotion()
+  const video = useRef<HTMLVideoElement>(null)
+  const [paused, setPaused] = useState(false)
+
+  // Event handlers
+  const handleToggle = () => {
+    const el = video.current
+    if (!el) return
+    if (el.paused) void el.play().catch(() => {})
+    else el.pause()
+  }
 
   // Render logic
   const showVideo = Boolean(videoUrl) && !reducedMotion
   const overlay = Math.min(90, Math.max(0, overlayOpacity)) / 100
 
   return (
-    <div className="relative isolate flex min-h-[32rem] flex-col items-center justify-center overflow-hidden px-[1rem] py-[4rem] text-center">
+    <div className={`video-hero video-hero--${align}`}>
       {showVideo ? (
         <video
-          className="absolute inset-0 size-full object-cover"
+          ref={video}
+          className="video-hero__media"
           src={videoUrl}
           poster={poster?.url || undefined}
           autoPlay
           loop
           muted
           playsInline
+          onPlay={() => setPaused(false)}
+          onPause={() => setPaused(true)}
         />
       ) : poster?.url ? (
-        <Picture
-          image={poster}
-          alt={poster.alt}
-          className="absolute inset-0 size-full object-cover"
-          fill
-          sizes="100vw"
+        <Picture image={poster} alt={poster.alt} className="video-hero__media" fill sizes="100vw" />
+      ) : null}
+      <div aria-hidden className="video-hero__scrim" style={{ opacity: overlay }} />
+      <div className="video-hero__inner page-width">
+        <HeroCopy
+          eyebrow={eyebrow}
+          heading={heading}
+          text={text}
+          primary={button}
+          secondary={secondaryButton}
+          className={align === 'center' ? 'hero-copy--center' : undefined}
         />
-      ) : (
-        <div
-          aria-hidden
-          className="absolute inset-0"
-          style={{ backgroundImage: PLACEHOLDER_GRADIENT }}
-        />
-      )}
-      <div aria-hidden className="absolute inset-0 bg-black" style={{ opacity: overlay }} />
-      <div className="page-width relative flex flex-col items-center gap-[1.25rem]">
-        {heading ? <h1 className="h1 text-white">{heading}</h1> : null}
-        <RichCopy value={text} className="text-body max-w-[36rem] text-white/85" />
-        {button?.label ? (
-          <a
-            className="btn btn--primary"
-            href={safeHref(button.href) ?? '#'}
-            {...linkTarget(button)}
-          >
-            {button.label}
-          </a>
-        ) : null}
       </div>
+      {showVideo ? (
+        <button
+          type="button"
+          className="video-hero__play"
+          aria-label={paused ? copy.play : copy.pause}
+          onClick={handleToggle}
+        >
+          <Icon name={paused ? 'play' : 'pause'} size={20} />
+        </button>
+      ) : null}
     </div>
   )
 }

@@ -58,6 +58,40 @@ export default [
     menu: { drafts: 'ड्राफ़्ट ऑर्डर', abandoned: 'अधूरे चेकआउट', returns: 'रिटर्न' },
     export: 'एक्सपोर्ट',
     resource: { singular: 'ऑर्डर', plural: 'ऑर्डर' },
+    viewLabel: 'ऑर्डर व्यू',
+    toShip: 'भेजना है',
+    sortNewest: 'नए पहले',
+    sortOldest: 'पुराने पहले',
+    customView: 'कस्टम',
+    filters: {
+      payment: 'पेमेंट',
+      fulfilment: 'डिलीवरी',
+      date: 'तारीख',
+      anyDate: 'कोई भी तारीख',
+      method: 'पेमेंट का तरीका',
+      courier: 'कूरियर',
+      anyCourier: 'कोई भी कूरियर',
+      show: (n) => `${n} ऑर्डर दिखाएं`,
+      paymentOptions: {
+        paid: 'पेमेंट हो गया',
+        unpaid: 'पेमेंट बाकी',
+        partially_refunded: 'कुछ रिफ़ंड हुआ',
+        refund_needed: 'रिफ़ंड करना है',
+      },
+      fulfilmentOptions: {
+        unfulfilled: 'भेजना बाकी',
+        shipped: 'भेज दिया',
+        delivered: 'डिलीवर हुआ',
+        returned: 'वापस आया',
+      },
+      dateOptions: {
+        today: 'आज',
+        '7d': 'पिछले 7 दिन',
+        '30d': 'पिछले 30 दिन',
+        '90d': 'पिछले 90 दिन',
+      },
+      methodOptions: { cod: 'कैश ऑन डिलीवरी', prepaid: 'प्रीपेड' },
+    },
     tabs: {
       all: 'सभी ऑर्डर',
       unpaid: 'पेमेंट बाकी',
@@ -106,10 +140,19 @@ export default [
       payment: 'पेमेंट',
       fulfilment: 'भेजने की स्थिति',
       status: 'स्थिति',
+      channel: 'चैनल',
+      tags: 'टैग',
+    },
+    sortTitles: {
+      order: 'ऑर्डर नंबर',
+      customer: 'ग्राहक का नाम',
+      payment: 'पेमेंट की स्थिति',
+      fulfilment: 'भेजने की स्थिति',
     },
     moreLines: (n) => `+${n} और`,
     bulk: {
       markAs: 'मार्क करें',
+      bulkEdit: 'एक साथ बदलें',
       updated: (n, status) => `${n} ऑर्डर "${status}" मार्क किए गए`,
       failed: 'ऑर्डर अपडेट नहीं हो पाए',
     },
@@ -268,6 +311,8 @@ export default [
     },
     payment: {
       heading: 'पेमेंट',
+      /** The gateway transactions card (the money side is the Payment card above it). */
+      transactions: 'लेन-देन',
       method: {
         cod: 'कैश ऑन डिलीवरी (COD)',
         manual: 'आपकी अपनी UPI ID पर, आप कन्फ़र्म करते हैं',
@@ -374,6 +419,7 @@ export default [
       state: 'राज्य',
       pincode: 'पिन कोड',
       copyAll: 'सब कॉपी करें',
+      copyAllCourier: 'कूरियर के लिए सब कॉपी करें',
       call: 'कॉल करें',
       whatsapp: 'WhatsApp',
       copyAllHint: 'नाम, फ़ोन, पता, शहर, राज्य और पिन कोड, हर एक अलग लाइन में, कूरियर ऐप के लिए तैयार',
@@ -430,10 +476,10 @@ export default [
     ship: {
       title: (n) => `${n} आइटम पैक करके भेजें`,
       cod: (amount) =>
-        `कैश ऑन डिलीवरी: कूरियर दरवाज़े पर ${amount} लेगा। आइटम भेजें दबाकर कूरियर और ट्रैकिंग जोड़ें।`,
-      paid: (method) => `${method} से पेमेंट हो चुका है। आइटम भेजें दबाकर कूरियर और ट्रैकिंग जोड़ें।`,
+        `कैश ऑन डिलीवरी: कूरियर दरवाज़े पर ${amount} लेगा। शिपमेंट बनाएं, कूरियर चुनें और लेबल प्रिंट करें।`,
+      paid: (method) => `${method} से पेमेंट हो चुका है। शिपमेंट बनाएं, कूरियर चुनें और लेबल प्रिंट करें।`,
       action: 'आइटम भेजें',
-      compare: 'कूरियर की तुलना करें',
+      create: 'शिपमेंट बनाएं',
     },
     transit: {
       title: (name) => `${name} तक रास्ते में`,

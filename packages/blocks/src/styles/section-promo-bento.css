@@ -311,3 +311,69 @@ a.promo-tile:focus-visible {
   height: 100%;
   object-fit: cover;
 }
+
+/* ---- Figma Section / Promo bento (705:114024) ------------------------ */
+/* The section title in the shared H1 style; tiles as borderless surface cards
+   on the card radius with 24px gutters, the copy (24px title, a 14px line and
+   "Shop now ->") at the foot. */
+.promo-bento__head {
+  margin-bottom: var(--space-7);
+}
+
+.promo-bento__heading {
+  font-size: calc(2rem * var(--font-heading-scale, 1));
+  line-height: 1.1;
+  letter-spacing: -0.015em;
+}
+
+@media screen and (min-width: 990px) {
+  .promo-bento__heading {
+    font-size: calc(2.5rem * var(--font-heading-scale, 1));
+  }
+}
+
+.promo-bento__grid {
+  gap: var(--space-5);
+}
+
+.promo-tile {
+  border: 0;
+  border-radius: var(--radius-card, var(--radius-m));
+}
+
+.promo-tile__copy {
+  gap: 6px;
+  padding: var(--space-5);
+}
+
+.promo-tile__eyebrow {
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+}
+
+.promo-tile__title {
+  font-size: calc(1.5rem * var(--font-heading-scale, 1));
+  line-height: 1.2;
+  letter-spacing: -0.005em;
+}
+
+.promo-tile--large .promo-tile__title,
+.promo-tile--tall .promo-tile__title {
+  font-size: calc(2rem * var(--font-heading-scale, 1));
+}
+
+.promo-tile__subtitle {
+  font-size: 14px;
+  line-height: 1.5;
+  opacity: 0.75;
+}
+
+.promo-tile__cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 2px;
+  font-size: 14px;
+  font-weight: 500;
+}

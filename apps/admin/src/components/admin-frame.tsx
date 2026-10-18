@@ -13,6 +13,7 @@ import AssistantHost from './assistant/assistant-host'
 import BugReportHost from './bug-report/bug-report-host'
 import PaletteHost from './layout/palette-host'
 import SidebarShortcutGuard from './layout/sidebar-shortcut-guard'
+import type { SidebarUsage } from './layout/sidebar-usage-card'
 import TopBar from './layout/top-bar'
 
 type StoreOption = { id: string; name: string; slug: string }
@@ -29,6 +30,10 @@ type AdminFrameProps = {
   logoUrl: string | null
   /** The test server's "Report a bug" button and menu item (`BUG_REPORTS_ENABLED`). */
   bugReports: boolean
+  /** Count pills on sidebar rows, by the row's href (Orders: orders waiting to ship). */
+  navCounts: Record<string, number>
+  /** "Orders this month · 142 of 200" above the user row; left out when unknown. */
+  usage?: SidebarUsage | undefined
 }
 
 const SIDEBAR_WIDTH = '16rem'
@@ -46,6 +51,8 @@ export default function AdminFrame({
   apps,
   logoUrl,
   bugReports,
+  navCounts,
+  usage,
 }: AdminFrameProps) {
   // Hooks
   const layoutCopy = useCopy(layoutContent)
@@ -69,7 +76,7 @@ export default function AdminFrame({
 
   return (
     <SidebarProvider
-      className="h-svh overflow-hidden [--sidebar-ms:220ms] in-data-[sidebar-instant]:[--sidebar-ms:0ms] motion-reduce:[--sidebar-ms:0ms] [&_[data-slot=sidebar-container]]:duration-(--sidebar-ms) [&_[data-slot=sidebar-container]]:ease-out [&_[data-slot=sidebar-gap]]:duration-(--sidebar-ms) [&_[data-slot=sidebar-gap]]:ease-out"
+      className="h-svh overflow-hidden [--sidebar-ms:320ms] in-data-[sidebar-instant]:[--sidebar-ms:0ms] motion-reduce:[--sidebar-ms:0ms] [&_[data-slot=sidebar-container]]:duration-(--sidebar-ms) [&_[data-slot=sidebar-container]]:ease-drawer [&_[data-slot=sidebar-gap]]:duration-(--sidebar-ms) [&_[data-slot=sidebar-gap]]:ease-drawer"
       style={{ '--sidebar-width': SIDEBAR_WIDTH } as CSSProperties}
     >
       <SidebarShortcutGuard />
@@ -81,22 +88,27 @@ export default function AdminFrame({
         user={user}
         storefrontUrl={storefrontUrl}
         bugReports={bugReports}
+        navCounts={navCounts}
+        usage={usage}
       />
-      <SidebarInset className="min-h-0 overflow-hidden bg-sidebar">
+      <SidebarInset className="min-h-0 min-w-0 overflow-hidden bg-sidebar">
         {/* Search, Ask AI, notifications, theme and account sit on the shell colour above the
             panel, so the panel below reads as the page itself. */}
         <TopBar
           user={user}
           storefrontUrl={storefrontUrl}
           bugReports={bugReports}
+          storeName={stores.find((s) => s.id === activeStoreId)?.name ?? null}
           scrolled={scrolled}
         />
-        {/* The content panel: radius 16 with a hairline, inset from the window edges. */}
+        {/* The content panel (shadcn SidebarInset): runs to the right and bottom window edges
+            with no margin; rounded on the top-left, top-right and bottom-left corners (owner,
+            2026-10-17), a hairline where it meets the top bar and the sidebar. */}
         <main
           ref={mainRef}
           id="main"
           data-scrolled={scrolled || undefined}
-          className="group/main no-scrollbar min-h-0 flex-1 overflow-y-auto border-panel-border bg-background md:mr-2 md:mb-2 md:rounded-xl md:border"
+          className="group/main no-scrollbar min-h-0 min-w-0 flex-1 overflow-y-auto bg-background md:rounded-tl-lg md:rounded-tr-lg md:rounded-bl-lg md:border-panel-border md:border-t md:border-l"
         >
           {ownHeading ? null : (
             <div className="sticky top-0 z-10 border-panel-border border-b bg-background px-4 py-5 transition-shadow duration-200 group-data-[scrolled]/main:shadow-[0_6px_16px_-10px_var(--shadow-14)] md:px-6">
@@ -108,9 +120,10 @@ export default function AdminFrame({
         </main>
         <Toaster duration={siteConfig.ui.toastMs.default} />
         <PaletteHost />
-        <AssistantHost storeId={activeStoreId} />
         {bugReports ? <BugReportHost /> : null}
       </SidebarInset>
+      {/* The AI panel docks to the right of everything, top bar included, full window height. */}
+      <AssistantHost storeId={activeStoreId} />
     </SidebarProvider>
   )
 }

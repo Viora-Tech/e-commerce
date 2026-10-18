@@ -1,15 +1,15 @@
 'use client'
 
 import { siteConfig } from '@commerce/config/site'
-import { SquarePlus } from '@commerce/ui/icons'
+import { Plus } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { parseAsInteger, parseAsString, parseAsStringLiteral, useQueryStates } from 'nuqs'
 import { Suspense, useEffect, useState } from 'react'
-import PillTabs from '@/components/layout/pill-tabs'
 import ProoflyListPage from '@/components/layout/proofly-list-page'
 import StatusChip from '@/components/layout/status-chip'
 import ResourceTable, { type ResourceColumnSpec } from '@/components/table/resource-table'
 import RowMenu from '@/components/table/row-menu'
+import ViewSelect from '@/components/table/view-select'
 import { pagesListContent } from '@/data/content'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
@@ -71,7 +71,7 @@ function PagesContent() {
       hideable: false,
       render: (p) => (
         <span className="flex min-w-0 flex-col">
-          <span className="truncate font-medium text-ink-strong">{p.title}</span>
+          <span className="truncate text-ink-strong">{p.title}</span>
           <span className="truncate text-caption text-muted-foreground">{pageUrl(p.handle)}</span>
         </span>
       ),
@@ -86,23 +86,23 @@ function PagesContent() {
       id: 'visibility',
       title: copy.columns.visibility,
       sortValue: (p) => (p.publishedAt ? 1 : 0),
-      align: 'center',
       render: (p) => (
-        <StatusChip>{p.publishedAt ? copy.visibility.live : copy.visibility.hidden}</StatusChip>
+        <StatusChip tone={p.publishedAt ? 'success' : 'neutral'}>
+          {p.publishedAt ? copy.visibility.live : copy.visibility.hidden}
+        </StatusChip>
       ),
     },
     {
       id: 'updated',
       title: copy.columns.updated,
       sortValue: (p) => new Date(p.updatedAt),
-      align: 'end',
-      render: (p) => <span className="text-muted-foreground">{fmt.when(p.updatedAt)}</span>,
+      render: (p) => <span title={fmt.dateTime(p.updatedAt)}>{fmt.when(p.updatedAt)}</span>,
     },
   ]
 
   const addButton = (
     <Button type="button" onClick={() => setCreating(true)}>
-      <SquarePlus strokeWidth={1.6} />
+      <Plus strokeWidth={1.6} />
       {copy.add}
     </Button>
   )
@@ -126,12 +126,11 @@ function PagesContent() {
         query={q.query}
         onQueryChange={(query) => setQ({ query, page: 1 })}
         onClearAll={() => setQ({ query: '', tab: null, page: 1 })}
-        tabs={
-          <PillTabs
-            variant="segmented"
+        views={
+          <ViewSelect
             value={q.tab}
             onChange={(tab) => setQ({ tab, page: 1 })}
-            tabs={[
+            options={[
               { value: null, label: copy.tabs.all, count: items.length },
               { value: 'live', label: copy.tabs.live, count: live },
               { value: 'hidden', label: copy.tabs.hidden, count: hidden },

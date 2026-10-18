@@ -55,7 +55,7 @@ export default function OrderDetail({
   const gst = o.gst
   // Parcels from different states put both CGST + SGST and IGST on one order.
   const gstRows = gst ? gstRowsToShow(gst) : null
-  const card = 'flex flex-col gap-4 rounded-2xl border border-line p-6'
+  const card = 'flex flex-col gap-4 rounded-[var(--radius-card)] bg-surface p-5'
   const row = 'flex justify-between gap-4 text-body'
 
   return (
@@ -93,6 +93,17 @@ export default function OrderDetail({
         <p className="text-body text-danger" role="status">
           {copy.reorderNone}
         </p>
+      ) : null}
+      {o.status === 'cancelled' ? (
+        <div className="rounded-xl border border-line px-4 py-3" role="note">
+          <p className="text-body font-medium text-ink">{copy.notices.cancelled}</p>
+          <p className="text-small text-muted">{copy.notices.cancelledBody}</p>
+        </div>
+      ) : o.shipment === 'rto' ? (
+        <div className="rounded-xl border border-danger px-4 py-3 text-danger" role="alert">
+          <p className="text-body font-medium">{copy.notices.failed}</p>
+          <p className="text-small">{copy.notices.failedBody}</p>
+        </div>
       ) : null}
 
       <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_22rem]">

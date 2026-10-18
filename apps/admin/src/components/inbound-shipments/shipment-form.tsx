@@ -1,24 +1,28 @@
 'use client'
 
+import { Trash2, Truck } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { toast } from 'sonner'
-import ConfirmActionDialog from '@/components/inventory/confirm-action-dialog'
 import NotesCard from '@/components/inventory/notes-card'
 import ChargesCard from '@/components/landed-cost/charges-card'
 import LandedCostCard from '@/components/landed-cost/landed-cost-card'
 import type { CostPreview } from '@/components/landed-cost/types'
+import ConfirmDialog from '@/components/layout/confirm-dialog'
+import NoticeBar from '@/components/layout/notice-bar'
 import PageColumns from '@/components/layout/page-columns'
+import PageHeader from '@/components/layout/page-header'
 import ProoflyPageBody from '@/components/layout/proofly-page-body'
-import ProoflyPageHeader from '@/components/layout/proofly-page-header'
 import SaveBar from '@/components/layout/save-bar'
+import OrderChip from '@/components/orders/order-chip'
 import DocumentsCard from '@/components/purchase-documents/documents-card'
-import { inboundShipmentFormContent, inboundShipmentsContent } from '@/data/purchasing'
+import { inboundShipmentFormContent } from '@/data/purchasing'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 import { routes } from '@/lib/routes'
 import ShipmentDetailsCard, { type ShipmentDraft } from './shipment-details-card'
+import ShipmentGlanceCard from './shipment-glance-card'
 import ShipmentOrdersCard from './shipment-orders-card'
 
 export type LoadedShipment = Awaited<ReturnType<typeof api.inboundShipments.get>>
@@ -52,7 +56,6 @@ const LIST = routes.stock.inboundShipments()
 export default function ShipmentForm({ shipment, costs, aiReading }: ShipmentFormProps) {
   // Hooks
   const copy = useCopy(inboundShipmentFormContent)
-  const listCopy = useCopy(inboundShipmentsContent)
   const router = useRouter()
   const [d, setD] = useState<ShipmentDraft>(() => draftFrom(shipment))
   const [saved, setSaved] = useState(() => JSON.stringify(draftFrom(shipment)))
@@ -112,14 +115,28 @@ export default function ShipmentForm({ shipment, costs, aiReading }: ShipmentFor
         onDiscard={() => setD(JSON.parse(saved) as ShipmentDraft)}
         saving={busy}
       />
-      <ProoflyPageHeader
+      <PageHeader
         title={shipment ? copy.title(shipment.number) : copy.newTitle}
-        summary={shipment ? listCopy.status[shipment.status] : undefined}
+        summary={
+          shipment
+            ? [d.reference, d.billOfEntryNo ? copy.billOfEntry(d.billOfEntryNo) : null, d.port]
+                .filter(Boolean)
+                .join(' · ')
+            : undefined
+        }
+        lead={{ kind: 'icon', node: <Truck aria-hidden="true" /> }}
+        badges={shipment ? <OrderChip kind="inboundShipment" value={shipment.status} /> : null}
         back={{ label: copy.back, href: LIST }}
         actions={
           <>
             {shipment ? (
-              <Button variant="outline" onClick={() => setDeleting(true)} disabled={busy}>
+              <Button
+                variant="ghost"
+                className="text-destructive hover:text-destructive"
+                onClick={() => setDeleting(true)}
+                disabled={busy}
+              >
+                <Trash2 aria-hidden="true" />
                 {copy.delete}
               </Button>
             ) : null}
@@ -140,9 +157,7 @@ export default function ShipmentForm({ shipment, costs, aiReading }: ShipmentFor
                 onChanged={() => router.refresh()}
               />
             ) : (
-              <p className="rounded-lg bg-primary-soft px-4 py-3 text-body text-ink-strong">
-                {copy.saveFirst}
-              </p>
+              <NoticeBar>{copy.saveFirst}</NoticeBar>
             )}
             <ChargesCard
               costs={costs}
@@ -159,21 +174,26 @@ export default function ShipmentForm({ shipment, costs, aiReading }: ShipmentFor
           </>
         }
         side={
-          <NotesCard
-            id="shipment-note"
-            heading={copy.notes.heading}
-            placeholder={copy.notes.placeholder}
-            value={d.note}
-            disabled={false}
-            onChange={(note) => patch({ note })}
-          />
+          <>
+            <NotesCard
+              id="shipment-note"
+              heading={copy.notes.heading}
+              placeholder={copy.notes.placeholder}
+              value={d.note}
+              disabled={false}
+              onChange={(note) => patch({ note })}
+            />
+            {shipment ? <ShipmentGlanceCard orders={shipment.orders} costs={costs} /> : null}
+          </>
         }
       />
-      <ConfirmActionDialog
+      <ConfirmDialog
         open={deleting}
         onOpenChange={setDeleting}
-        copy={copy.confirmDelete}
-        destructive
+        title={copy.confirmDelete.title}
+        body={copy.confirmDelete.body}
+        confirmLabel={copy.confirmDelete.confirm}
+        cancelLabel={copy.confirmDelete.cancel}
         onConfirm={handleDelete}
       />
     </ProoflyPageBody>

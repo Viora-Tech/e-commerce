@@ -42,7 +42,11 @@ export function automationColumns(copy: Copy): ResourceColumnSpec<AutomationRow>
       id: 'status',
       title: copy.columns.status,
       align: 'center',
-      render: (a) => <StatusChip>{copy.status[a.status]}</StatusChip>,
+      render: (a) => (
+        <StatusChip tone={a.status === 'active' ? 'success' : 'neutral'}>
+          {copy.status[a.status]}
+        </StatusChip>
+      ),
     },
     {
       id: 'updated',

@@ -15,6 +15,7 @@ import {
   tlsCertState,
 } from '@commerce/core'
 import type { Db } from '@commerce/db'
+import { logger } from '@commerce/observability/logging'
 import {
   DOMAIN_CERTIFICATE_QUEUE,
   DOMAIN_ROUTE_QUEUE,
@@ -50,13 +51,9 @@ export function createDomainPoller(
         provider,
         targets: opts.targets,
         requestRoutes: opts.requestRoutes,
-        log: (m) => console.warn(m),
+        log: (m) => logger.warn(m, { area: 'domains' }),
       })
-      if (r.checked > 0 || r.failed > 0) {
-        console.log(
-          `[domains] checked ${r.checked} in ${r.stores} stores, ${r.failed} failed, ${r.routes} routes requested`,
-        )
-      }
+      if (r.checked > 0 || r.failed > 0) logger.info('domains checked', { area: 'domains', ...r })
       return r
     },
     { connection },
@@ -82,7 +79,7 @@ export function createDomainRouteWorker(
     db,
     client,
     guard: opts.guard,
-    log: (m: string) => console.log(m),
+    log: (m: string) => logger.info(m, { area: 'domains' }),
     // "Retry certificate": after the forced re-register, wait for Traefik and record the result.
     afterReregister: async (storeId: string, domainId: string) => {
       await recheckAfterSettle(certificate, storeId, domainId)
@@ -96,10 +93,16 @@ export function createDomainRouteWorker(
   worker.on('failed', (job, err) => {
     if (!job) return
     const target = job.data.action === 'add' ? job.data.domainId : job.data.hostname
-    console.warn(`[domains] route ${job.data.action} ${target} failed: ${err.message}`)
+    logger.warn('domain route failed', {
+      area: 'domains',
+      storeId: job.data.storeId,
+      action: job.data.action,
+      target,
+      error: err,
+    })
     if (job.attemptsMade >= (job.opts.attempts ?? 1)) {
       markDomainRouteFailed(db, job.data).catch((e: unknown) =>
-        console.warn('[domains] could not mark the route failed:', e),
+        logger.warn('could not mark the domain route failed', { area: 'domains', error: e }),
       )
     }
   })
@@ -118,7 +121,7 @@ function certificateDeps(
     targets: opts.targets,
     tlsCheck: (host) => tlsCertState(host),
     resolver: dns,
-    log: (m) => console.log(m),
+    log: (m) => logger.info(m, { area: 'domains' }),
   }
 }
 
@@ -139,11 +142,8 @@ export function createCertificateSweep(
     DOMAIN_CERTIFICATE_QUEUE,
     async () => {
       const r = await runCertificateSweep(deps)
-      if (r.checked > 0 || r.failed > 0) {
-        console.log(
-          `[domains] certificates: ${r.checked} checked in ${r.stores} stores, ${r.active} active, ${r.reregistered} re-registered, ${r.failed} failed`,
-        )
-      }
+      if (r.checked > 0 || r.failed > 0)
+        logger.info('certificates checked', { area: 'domains', ...r })
       return r
     },
     { connection, concurrency: 1 },

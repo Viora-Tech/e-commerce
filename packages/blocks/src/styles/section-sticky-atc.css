@@ -194,3 +194,36 @@ html.overlay-open .sticky-atc {
   pointer-events: none;
   translate: 0 100%;
 }
+
+/* Figma Section / Sticky add to cart (706:5320): a full-width surface bar under a
+   hairline - the thumbnail, "Name · Variant" and the price on the left, the button on
+   the right. The corner look keeps its floating card. */
+.sticky-atc:not(.sticky-atc--corner) {
+  padding: 0;
+}
+
+.sticky-atc:not(.sticky-atc--corner) .sticky-atc__inner {
+  padding: var(--space-3) var(--page-margin);
+  border: 0;
+  border-top: 1px solid var(--color-line);
+  border-radius: 0;
+  background-color: var(--color-surface);
+  box-shadow: none;
+}
+
+.sticky-atc__image {
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-m);
+  background-color: var(--color-card-media);
+}
+
+.sticky-atc__title {
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.sticky-atc__submit {
+  height: 48px;
+  padding-inline: var(--space-5);
+}

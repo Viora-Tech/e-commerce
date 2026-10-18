@@ -10,11 +10,14 @@
 import { AA_TEXT, contrastRatio } from '../theme/vars'
 
 /**
- * Proofly blue, the stylesheet's own `--primary` (packages/ui/src/styles.css, the "Proofly look"
- * chosen 2026-10-09). Choosing it means "no override". It used to be the Figma kit's Ocean Green;
- * after the stylesheet moved to blue, picking green fell through to the blue default.
+ * Neutral, the stylesheet's own `--primary` (packages/ui/src/styles.css, the Koomerce look from
+ * the Figma "shadcn neutral" theme, 2026-10-16). Choosing it means "no override". Proofly blue,
+ * the previous default, is now an ordinary preset that overrides.
  */
-export const DEFAULT_ACCENT = '#3f72dc'
+export const DEFAULT_ACCENT = '#171717'
+
+/** Proofly blue, the default from 2026-10-09 until the Koomerce look. */
+export const PROOFLY_BLUE = '#3f72dc'
 
 /** Ocean Green, the earlier Figma kit primary: now an ordinary preset that overrides. */
 export const OCEAN_GREEN = '#4ea674'
@@ -23,7 +26,8 @@ export type AccentPreset = { id: string; hex: string }
 
 /** Swatches on Settings › Appearance, default first. */
 export const ACCENT_PRESETS: AccentPreset[] = [
-  { id: 'proofly-blue', hex: DEFAULT_ACCENT },
+  { id: 'neutral', hex: DEFAULT_ACCENT },
+  { id: 'proofly-blue', hex: PROOFLY_BLUE },
   { id: 'ocean-green', hex: OCEAN_GREEN },
   { id: 'blue', hex: '#2563eb' },
   { id: 'indigo', hex: '#4f46e5' },
@@ -141,21 +145,21 @@ export type AccentTokens = {
 export type AccentPalette = { light: AccentTokens; dark: AccentTokens }
 
 /**
- * The default (Proofly blue) exactly as the stylesheet sets it (`packages/ui/src/styles.css`), so the
+ * The default (neutral) exactly as the stylesheet sets it (`packages/ui/src/styles.css`), so the
  * preview of the default matches the real admin rather than a derived palette.
  */
 export const KIT_PALETTE: AccentPalette = {
   light: {
     primary: DEFAULT_ACCENT,
-    primaryForeground: '#ffffff',
-    primarySoft: '#eaf1fd',
-    primaryTint: '#eaf1fd',
+    primaryForeground: '#fafafa',
+    primarySoft: '#f5f5f5',
+    primaryTint: '#f5f5f5',
   },
   dark: {
-    primary: '#7fa2f5',
-    primaryForeground: '#0e1430',
-    primarySoft: 'rgb(127 162 245 / 0.12)',
-    primaryTint: '#1f283d',
+    primary: '#e5e5e5',
+    primaryForeground: '#171717',
+    primarySoft: 'rgb(255 255 255 / 0.06)',
+    primaryTint: '#262626',
   },
 }
 
@@ -230,46 +234,45 @@ export function designVars(t: AccentTokens, mode: 'light' | 'dark'): Record<stri
       '--link': ink,
     }
   }
+  // Dark is neutral (CodeHelp's look): white keys, grey active pills and soft fills for every
+  // accent; the accent shows in links, focus rings, charts and selection only.
   const key = darkKey(p)
-  const soft = alpha(12)
-  const ink = tint(55, 'white')
   return {
-    ...shared,
+    '--brand-wash': 'rgb(255 255 255 / 0.03)',
+    '--brand-wash-end': 'rgb(255 255 255 / 0)',
+    '--brand-border': '#3f3f46',
     '--key-top': key.top,
     '--key-bottom': key.bottom,
     '--key-border': key.border,
-    '--key-glow': alpha(22),
+    '--key-glow': 'transparent',
     '--key-ink': key.ink,
-    '--brand-select': alpha(8),
-    '--accent': soft,
-    '--accent-foreground': ink,
-    '--sidebar-accent': soft,
-    '--sidebar-accent-foreground': ink,
-    '--link': ink,
-    '--glass-active': alpha(14),
-    '--glass-active-ink': key.ink,
+    '--brand-select': 'rgb(255 255 255 / 0.06)',
+    '--accent': NEUTRAL_DARK.pill,
+    '--accent-foreground': NEUTRAL_DARK.pillInk,
+    '--sidebar-accent': NEUTRAL_DARK.pill,
+    '--sidebar-accent-foreground': NEUTRAL_DARK.pillInk,
+    '--link': tint(55, 'white'),
+    '--glass-active': NEUTRAL_DARK.pill,
+    '--glass-active-ink': NEUTRAL_DARK.pillInk,
   }
 }
 
+/** Dark mode's neutral pills (active nav, soft fills), the stylesheet's `.dark` `--accent`. */
+const NEUTRAL_DARK = { pill: '#27272a', pillInk: '#fafafa' } as const
+
 /**
- * The dark key button, from the (already lifted) dark primary: a deep, low-chroma well of the
- * accent's hue with pale ink, the dark twin of light's pale key with deep ink. A saturated fill
- * with white text and a strong glow reads as plastic on a dark canvas. The stylesheet's `.dark`
- * key values are this function's output for the default blue.
+ * The dark key button: white with dark ink for every accent, as on CodeHelp's web app (owner,
+ * 2026-10-14). A coloured fill on a near-black canvas competes with the content; a white key is
+ * calm and the clearest call to action. `primary` is kept so callers stay accent-aware should a
+ * tinted key return. The stylesheet's `.dark` key values are this function's output.
  */
-export function darkKey(primary: string): {
+export function darkKey(_primary: string): {
   top: string
   bottom: string
   border: string
   ink: string
 } {
-  const { c, h } = hexToOklch(primary)
-  return {
-    top: oklchToHex({ l: 0.38, c: Math.min(c * 0.6, 0.09), h }),
-    bottom: oklchToHex({ l: 0.33, c: Math.min(c * 0.55, 0.08), h }),
-    border: oklchToHex({ l: 0.47, c: Math.min(c * 0.65, 0.1), h }),
-    ink: oklchToHex({ l: 0.94, c: Math.min(c * 0.3, 0.035), h }),
-  }
+  return { top: '#fafafa', bottom: '#f4f4f5', border: '#ffffff', ink: '#18181b' }
 }
 
 const declarations = (vars: Record<string, string>) =>

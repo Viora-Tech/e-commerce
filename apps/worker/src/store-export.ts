@@ -39,7 +39,7 @@ export function createStoreExportWorker(
         provider,
         secret: opts.settingsSecret,
       })
-      console.log(`[store-export] store=${storeId} export=${exportId} ready`)
+      // The job's wide event records the finished export with its storeId and exportId.
     }),
     { connection, concurrency: QUEUE_LIMITS.storeExport.concurrency },
   )

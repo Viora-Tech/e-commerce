@@ -1,5 +1,7 @@
+import { loadEnv } from '@commerce/config'
+import { browserSentryMeta } from '@commerce/observability'
 import type { Metadata } from 'next'
-import { Bricolage_Grotesque, DM_Sans, Geist_Mono } from 'next/font/google'
+import { Geist_Mono, Noto_Sans_Devanagari, Plus_Jakarta_Sans } from 'next/font/google'
 import { headers } from 'next/headers'
 import { ThemeProvider } from 'next-themes'
 import { NuqsAdapter } from 'nuqs/adapters/next/app'
@@ -12,24 +14,26 @@ import { localize } from '@/lib/copy'
 import { getLocale, getRegion } from '@/lib/copy-server'
 import { NONCE_HEADER } from '@/lib/csp'
 
-export const metadata: Metadata = { title: 'Admin' }
+// The admin is private: search engines never list it (robots.ts and the X-Robots-Tag header agree).
+export const metadata: Metadata = { title: 'Admin', robots: { index: false, follow: false } }
 
-/* Fonts match Proofly: variable DM Sans / Bricolage Grotesque (every weight, no static list)
-   and Geist Mono for numbers and code. */
-/* DM Sans (SIL OFL 1.1): every UI string. */
-const sans = DM_Sans({
+/* Fonts match the Koomerce Figma kit: variable Plus Jakarta Sans for everything (titles and big
+   numbers too), a Devanagari partner for Hindi, and Geist Mono for eyebrows, keys and code. */
+/* Plus Jakarta Sans (SIL OFL 1.1): every UI string. */
+const sans = Plus_Jakarta_Sans({
   subsets: ['latin'],
   variable: '--font-primary',
   display: 'swap',
   fallback: ['system-ui', 'sans-serif'],
 })
 
-/* Bricolage Grotesque (SIL OFL 1.1): page titles and big numbers only. */
-const display = Bricolage_Grotesque({
-  subsets: ['latin'],
-  variable: '--font-display-face',
+/* Noto Sans Devanagari (SIL OFL 1.1): Hindi glyphs, which Plus Jakarta Sans doesn't have. Its
+   unicode-range keeps it off the wire for English pages, so it isn't preloaded. */
+const devanagari = Noto_Sans_Devanagari({
+  subsets: ['devanagari'],
+  variable: '--font-devanagari',
   display: 'swap',
-  fallback: ['system-ui', 'sans-serif'],
+  preload: false,
 })
 
 /* Geist Mono (SIL OFL 1.1): code, ids and tabular numbers. */
@@ -48,11 +52,14 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
   const copy = localize(layoutContent, locale)
   // The script CSP's nonce for this request (`proxy.ts`): next-themes' no-flash script needs it.
   const nonce = (await headers()).get(NONCE_HEADER) ?? undefined
+  // The DSN, environment and release for browser error reporting, read per request (the image
+  // is built once, env is set at deploy); `instrumentation-client.ts` reads it back.
+  const sentry = browserSentryMeta(loadEnv(process.env))
 
   return (
     <html
       lang={locale}
-      className={`${sans.variable} ${display.variable} ${mono.variable}`}
+      className={`${sans.variable} ${devanagari.variable} ${mono.variable}`}
       suppressHydrationWarning
     >
       {/* Extensions such as Grammarly write attributes onto <body> before React hydrates
@@ -62,6 +69,8 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
         className="min-h-svh bg-sidebar font-sans text-body text-foreground antialiased"
         suppressHydrationWarning
       >
+        {/* React hoists this into <head>. */}
+        {sentry ? <meta name={sentry.name} content={sentry.content} /> : null}
         <a
           href="#main"
           className="sr-only focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-50 focus:rounded-lg focus:bg-card focus:px-4 focus:py-2 focus:text-sm focus:font-medium focus:text-foreground focus:shadow-card focus:outline-none focus:ring-2 focus:ring-ring"

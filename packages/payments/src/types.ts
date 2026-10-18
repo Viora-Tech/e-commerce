@@ -214,6 +214,15 @@ export type WebhookEvent =
       orderId: string | null
       raw: unknown
     }
+  | {
+      /** The gateway gave up on a refund it had accepted: the money did not go back. */
+      type: 'refund.failed'
+      providerRef: string
+      providerRefundId: string
+      reason: string
+      orderId: string | null
+      raw: unknown
+    }
   | { type: 'ignored'; eventName: string; raw: unknown }
 
 export type WebhookVerification =

@@ -2,6 +2,7 @@ import { siteConfig } from '@commerce/config/site'
 import { type Permission, permissions } from '@commerce/core/permissions'
 import type { LucideIcon } from '@commerce/ui/icons'
 import {
+  AgenticSales,
   BadgePercent,
   BarChart3,
   Blocks,
@@ -11,6 +12,7 @@ import {
   Package,
   Settings,
   ShoppingBag,
+  SocialMedia,
   Store,
   TrendingUp,
   Users,
@@ -23,6 +25,8 @@ export type NavItem = {
   href: string
   label: string
   icon: LucideIcon
+  /** Extra classes on the icon (Discounts' tag leans a little, owner 2026-10-17). */
+  iconClassName?: string
   /** Hidden when the member does not hold this. The server still guards each page. */
   permission?: Permission
   /** Sub-pages shown beneath the item while its section is active. */
@@ -153,6 +157,29 @@ export const NAV_GROUPS: NavGroup[] = [
         children: [
           { href: routes.onlineStore.themes(), label: 'Themes' },
           { href: routes.onlineStore.preferences(), label: 'Preferences' },
+          { href: routes.onlineStore.seo(), label: 'SEO' },
+        ],
+      },
+      {
+        href: routes.salesChannels.agentic(),
+        label: 'Agentic sales',
+        icon: AgenticSales,
+        permission: permissions.ONLINE_STORE_READ,
+        children: [
+          { href: routes.salesChannels.agenticReadiness(), label: 'Catalog readiness' },
+          { href: routes.salesChannels.agenticControls(), label: 'Controls' },
+        ],
+      },
+      {
+        href: routes.salesChannels.social(),
+        label: 'Social media',
+        icon: SocialMedia,
+        permission: permissions.ONLINE_STORE_READ,
+        children: [
+          { href: routes.salesChannels.socialChannel('instagram'), label: 'Instagram' },
+          { href: routes.salesChannels.socialChannel('facebook'), label: 'Facebook' },
+          { href: routes.salesChannels.socialChannel('whatsapp'), label: 'WhatsApp' },
+          { href: routes.salesChannels.socialChannel('google'), label: 'Google' },
         ],
       },
     ],
@@ -191,9 +218,14 @@ export const navigationContent = {
   settingsGroup: 'Settings',
   expandSection: (label: string) => `Show ${label} pages`,
   collapseSection: (label: string) => `Hide ${label} pages`,
+  /** The Orders row's count pill. */
+  countHint: (n: number) => `${n} waiting to ship`,
   search: {
     placeholder: 'Search orders, products or customers',
     field: `Search or ask ${siteConfig.brand.name} AI…`,
+    /** The top bar hint: this part stays, the examples after it take turns. */
+    lead: 'Search or ask AI',
+    examples: ['orders to ship', 'best sellers this week', 'low stock', 'today’s sales'],
     shortcut: '⌘K',
     askAi: 'Ask AI',
     empty: 'Nothing matches',
@@ -219,7 +251,20 @@ export const navigationContent = {
   },
   toggleTheme: 'Toggle theme',
   openMenu: 'Open menu',
-  notifications: { label: 'Notifications', empty: 'Nothing to catch up on.' },
+  /** Top-bar tooltips (Figma "TB · Hover states"). */
+  tips: {
+    search: (shortcut: string) => `Search · ${shortcut}`,
+    askAi: (mod: string) => `Ask Koomerce AI · ${mod}J`,
+    viewStore: (domain: string) => `Open store · ${domain} ↗`,
+    theme: (name: string) => `Theme · ${name}`,
+  },
+  /** The top bar's theme menu (Figma "TB · Theme menu"). */
+  theme: {
+    light: 'Light',
+    dark: 'Dark',
+    system: 'System',
+    systemHint: 'Follows your device',
+  },
 } as const
 
 /** A section is active for its own path and everything nested under it; home only for itself. */

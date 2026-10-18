@@ -68,6 +68,14 @@ export default function MarketingConsentCard({
     }
   }
 
+  /** "Allowed at checkout": how the channel got its current state, from the newest matching event. */
+  const sourceLine = (channel: ConsentChannel) => {
+    if (!consent?.channels[channel]) return copy.notAllowed
+    const last = consent.history.find((h) => h.channel === channel && h.granted)
+    if (!last) return copy.granted
+    return `${copy.granted} ${copy.sources[last.source] ?? last.source}`
+  }
+
   // Early returns
   if (!consent) return null
 
@@ -80,9 +88,12 @@ export default function MarketingConsentCard({
       <div className="mt-3 flex flex-col gap-3">
         {CONSENT_CHANNELS.map((channel) => (
           <div key={channel} className="flex items-center justify-between gap-3">
-            <Label htmlFor={`consent-${channel}`} className="text-body">
-              {CHANNEL_LABEL[channel]}
-            </Label>
+            <div className="flex min-w-0 flex-col gap-0.5">
+              <Label htmlFor={`consent-${channel}`} className="text-body">
+                {CHANNEL_LABEL[channel]}
+              </Label>
+              <span className="text-caption text-muted-foreground">{sourceLine(channel)}</span>
+            </div>
             <Switch
               id={`consent-${channel}`}
               checked={consent.channels[channel]}

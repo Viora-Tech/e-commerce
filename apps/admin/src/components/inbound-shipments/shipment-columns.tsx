@@ -1,5 +1,5 @@
 import RelativeTime from '@/components/layout/relative-time'
-import StatusLabel from '@/components/status/status-label'
+import OrderChip from '@/components/orders/order-chip'
 import type { ResourceColumnSpec } from '@/components/table/resource-table'
 import type { inboundShipmentsContent } from '@/data/purchasing'
 import type { api } from '@/lib/api-client'
@@ -48,7 +48,7 @@ export const inboundShipmentColumns = (
     align: 'center',
     title: copy.columns.status,
     sortValue: (r) => r.status,
-    render: (r) => <StatusLabel kind="inboundShipment" value={r.status} />,
+    render: (r) => <OrderChip kind="inboundShipment" value={r.status} />,
   },
   {
     id: 'orders',

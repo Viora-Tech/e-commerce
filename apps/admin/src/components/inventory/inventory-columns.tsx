@@ -1,5 +1,5 @@
 import { formatNumber } from '@commerce/money'
-import KitThumb from '@/components/kit/kit-thumb'
+import ProductThumb from '@/components/products/product-thumb'
 import type { ResourceColumnSpec } from '@/components/table/resource-table'
 import type { inventoryContent } from '@/data/inventory'
 import type { api } from '@/lib/api-client'
@@ -10,8 +10,9 @@ export type InventoryRow = Awaited<ReturnType<typeof api.inventory.list>>['rows'
 type ColumnOptions = {
   copy: typeof inventoryContent
   canEdit: boolean
+  /** At or below this many available a row reads as low (the store's low-stock setting). */
+  lowAt: number
   onCommit: (row: InventoryRow, delta: number) => Promise<boolean>
-  onHistory: (row: InventoryRow) => void
 }
 
 export function rowName(row: InventoryRow): string {
@@ -24,8 +25,8 @@ export function rowName(row: InventoryRow): string {
 export function inventoryColumns({
   copy,
   canEdit,
+  lowAt,
   onCommit,
-  onHistory,
 }: ColumnOptions): ResourceColumnSpec<InventoryRow>[] {
   return [
     {
@@ -36,22 +37,17 @@ export function inventoryColumns({
       align: 'start',
       className: 'w-80 px-3 whitespace-normal',
       render: (r) => (
-        <button
-          type="button"
-          onClick={() => onHistory(r)}
-          className="flex items-center gap-3 text-left hover:underline"
-          title={copy.cell.history}
-        >
-          <KitThumb src={r.imageUrl} alt="" />
+        <span className="flex items-center gap-3 text-left">
+          <ProductThumb url={r.imageUrl} />
           <span className="flex min-w-0 flex-col">
-            <span className="line-clamp-1 text-body-strong">{r.productTitle}</span>
+            <span className="line-clamp-1 text-body text-ink-strong">{r.productTitle}</span>
             {r.variantTitle && r.variantTitle !== 'Default' ? (
               <span className="line-clamp-1 text-caption text-muted-foreground">
                 {r.variantTitle}
               </span>
             ) : null}
           </span>
-        </button>
+        </span>
       ),
     },
     {
@@ -60,7 +56,7 @@ export function inventoryColumns({
       sortValue: (r) => r.sku ?? '',
       render: (r) =>
         r.sku ? (
-          <span className="font-mono text-caption">{r.sku}</span>
+          <span className="text-muted-foreground">{r.sku}</span>
         ) : (
           <span className="text-muted-foreground">{copy.noSku}</span>
         ),
@@ -76,6 +72,7 @@ export function inventoryColumns({
         <AvailableCell
           name={rowName(r)}
           available={r.available}
+          lowAt={lowAt}
           disabled={!canEdit}
           onCommit={(delta) => onCommit(r, delta)}
         />
@@ -93,11 +90,7 @@ export function inventoryColumns({
       align: 'end',
       title: copy.columns.incoming,
       sortValue: (r) => r.incoming,
-      render: (r) => (
-        <span className={r.incoming > 0 ? 'text-link tabular-nums' : 'tabular-nums'}>
-          {formatNumber(r.incoming)}
-        </span>
-      ),
+      render: (r) => <span className="tabular-nums">{formatNumber(r.incoming)}</span>,
     },
     {
       id: 'onHand',

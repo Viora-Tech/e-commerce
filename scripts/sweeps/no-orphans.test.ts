@@ -454,11 +454,6 @@ const ALLOWLIST: AllowEntry[] = [
     reason: 'no external importer today — investigate before removing',
   },
   {
-    file: 'packages/core/src/navigation/resolve.ts',
-    names: ['itemHref'],
-    reason: 'no external importer today — investigate before removing',
-  },
-  {
     file: 'packages/core/src/navigation/settings.ts',
     names: ['defaultNavigationSettings'],
     reason: 'no external importer today — investigate before removing',
@@ -988,11 +983,9 @@ const ALLOWLIST: AllowEntry[] = [
       'isCivilDate',
       'isoWeekday',
       'daysBetween',
-      'addCalendarDays',
       'isWorkingDay',
       'nextWorkingDay',
       'addWorkingDays',
-      'zonedNow',
       'parseCutoff',
       'isValidTimeZone',
       'buildTrack',

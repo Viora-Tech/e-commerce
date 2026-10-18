@@ -43,7 +43,7 @@ Every call goes to one of two tiers in `MODEL_TIERS` (`packages/ai/src/features.
 
 | Tier | Default | Used for | Override |
 |---|---|---|---|
-| `fast` | `anthropic/claude-haiku-4.5` | the assistant (chat and tools), quick writing, reading purchase documents (`documentReader`) | `AI_MODEL` |
+| `fast` | `anthropic/claude-haiku-5.5` | the assistant (chat and tools), quick writing, reading purchase documents (`documentReader`) | `AI_MODEL` |
 | `strong` | `anthropic/claude-sonnet-4.5` | long writing (`productWriter`, `bulkWriter`) when the store picks **Best** writing quality in Settings → AI | `AI_MODEL_STRONG` |
 
 `tierFor(feature, quality)` decides; features marked `writes: true` move to `strong` at "best".
@@ -60,9 +60,9 @@ produce their card. A purchase document read (`documentReader`) answers a fixed 
 Bill of Entry or service bill (`packages/ai/src/purchase-documents/fixtures.ts`). Use it for local demos and screenshots with no key. It is refused when
 `NODE_ENV=production`.
 
-Cost on the fast tier (Claude Haiku 4.5, $1 in / $5 out per million tokens): a product write is
-roughly 5k tokens in and 800 out (about $0.009, ₹0.8); an assistant message roughly 9k in over
-two to four steps and 500 out (about $0.012, ₹1).
+Cost on the fast tier (Claude Haiku 5.5, $0.10 in / $0.50 out per million tokens for prompts up
+to 100K tokens): a product write is roughly 5k tokens in and 800 out (about $0.0009, ₹0.08); an
+assistant message roughly 9k in over two to four steps and 500 out (about $0.0012, ₹0.1).
 
 ## How one call runs
 
@@ -124,6 +124,14 @@ itself runs only from the merchant's Approve, outside the model (see [AI assista
   order's customer first name (`orderDetails`, for reply drafts), and the answer says so.
   Customer notes go through with phone numbers and emails hidden.
 - **Bulk Write with AI**: the same as Write with AI, per product, from the worker.
+- **Suggest keywords** (`ai.suggestKeywords`, and the `keywords` field of a bulk run): the
+  product's title, brand, type, category breadcrumb, description, price range, its current
+  `product.seo_keywords` and, when a source is registered with `setSearchQueriesSource`
+  (`packages/core/src/seo/search-queries.ts`, the Search Console connection), up to 20 queries
+  that brought visitors to `/products/<handle>`. Runs under the `productWriter` switch (bulk:
+  `bulkWriter`). The chosen keywords (primary first) then go to Write with AI, which puts the
+  primary one in the search title and once in the search description. The storefront never
+  prints them (no `meta keywords`: search engines ignore it).
 
 ## Add an AI feature (one slice)
 

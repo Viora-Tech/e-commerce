@@ -43,6 +43,16 @@ export function modelIdForTier(tier: ModelTier, source: Env = process.env): stri
   return override ?? MODEL_TIERS[tier]
 }
 
+/**
+ * Tool-calling rounds for one call of `feature`: `AI_MAX_STEPS` when set, else the feature's
+ * own `maxSteps`. Single-step features (writers, document reader) never take the override.
+ */
+export function maxStepsFor(feature: AiFeature, source: Env = process.env): number {
+  const base = FEATURE_MODELS[feature].maxSteps
+  if (base <= 1) return base
+  return loadAiEnv(source).AI_MAX_STEPS ?? base
+}
+
 /** The model id a feature uses on `tier` (its default tier when omitted). */
 export function modelIdFor(
   feature: AiFeature,

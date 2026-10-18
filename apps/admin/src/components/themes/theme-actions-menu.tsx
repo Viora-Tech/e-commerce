@@ -1,15 +1,6 @@
 'use client'
 
-import { MoreHorizontal } from '@commerce/ui/icons'
-import { Button } from '@commerce/ui/shadcn/button'
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@commerce/ui/shadcn/dropdown-menu'
-import Link from 'next/link'
+import ActionMenu from '@/components/layout/action-menu'
 import { themesContent } from '@/data/themes'
 import { useCopy } from '@/hooks/use-copy'
 
@@ -19,8 +10,10 @@ type ThemeActionsMenuProps = {
   actions: readonly ThemeAction[]
   /** Customize as the menu's first item (Figma "menu open"), for cards whose button is off-screen. */
   customizeHref?: string
+  /** Edit code, after Customize (Figma 699:93894: Themes › ⋯ › Edit code). */
+  codeHref?: string
   /** The live theme card's kebab is a key button beside Customize (Figma); rows keep the rim. */
-  variant?: 'default' | 'outline'
+  variant?: 'default' | 'outline' | 'plain'
   disabled?: boolean
   onAction: (action: ThemeAction) => void
 }
@@ -29,6 +22,7 @@ type ThemeActionsMenuProps = {
 export default function ThemeActionsMenu({
   actions,
   customizeHref,
+  codeHref,
   variant = 'outline',
   disabled,
   onAction,
@@ -41,34 +35,23 @@ export default function ThemeActionsMenu({
   const canDelete = actions.includes('delete')
 
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger
-        render={
-          <Button variant={variant} size="icon" aria-label={labels.actions} disabled={disabled} />
-        }
-      >
-        <MoreHorizontal aria-hidden />
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="start" className="w-56">
-        {customizeHref ? (
-          <DropdownMenuItem render={<Link href={customizeHref} />}>
-            {labels.customize}
-          </DropdownMenuItem>
-        ) : null}
-        {safe.map((a) => (
-          <DropdownMenuItem key={a} onClick={() => onAction(a)}>
-            {labels[a]}
-          </DropdownMenuItem>
-        ))}
-        {canDelete ? (
-          <>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem variant="destructive" onClick={() => onAction('delete')}>
-              {labels.delete}
-            </DropdownMenuItem>
-          </>
-        ) : null}
-      </DropdownMenuContent>
-    </DropdownMenu>
+    <ActionMenu
+      label={labels.actions}
+      variant={variant}
+      size="md"
+      align="start"
+      disabled={disabled}
+      items={[
+        { label: labels.customize, href: customizeHref, hidden: !customizeHref },
+        { label: labels.editCode, href: codeHref, hidden: !codeHref },
+        ...safe.map((a) => ({ label: labels[a], onSelect: () => onAction(a) })),
+        {
+          label: labels.delete,
+          destructive: true,
+          hidden: !canDelete,
+          onSelect: () => onAction('delete'),
+        },
+      ]}
+    />
   )
 }

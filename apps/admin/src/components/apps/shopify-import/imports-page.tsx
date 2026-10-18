@@ -1,7 +1,7 @@
 'use client'
 
 import { siteConfig } from '@commerce/config/site'
-import { Store, Upload } from '@commerce/ui/icons'
+import { Settings, Store, Upload } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Card, CardContent } from '@commerce/ui/shadcn/card'
 import { Skeleton } from '@commerce/ui/shadcn/skeleton'
@@ -10,6 +10,7 @@ import { useEffect, useState } from 'react'
 import BackgroundWorkNotice from '@/components/media/background-work-notice'
 import ResourceTable, { type ResourceColumnSpec } from '@/components/table/resource-table'
 import { shopifyImportContent } from '@/data/shopify-import'
+import { shopifyImportSettingsContent } from '@/data/shopify-import-settings'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 import type { Formatters } from '@/lib/format'
@@ -82,6 +83,7 @@ export default function ImportsPage() {
   // Hooks
   const all = useCopy(shopifyImportContent)
   const fmt = useFormat()
+  const { card: settings } = useCopy(shopifyImportSettingsContent)
   const [page, setPage] = useState(1)
   const [perPage, setPerPage] = useState<number>(siteConfig.ui.rowsPerPage.default)
   const [data, setData] = useState<{ items: RunListItem[]; total: number } | null>(null)
@@ -129,6 +131,13 @@ export default function ImportsPage() {
       action: copy.apiAction,
       href: `${base}/connect`,
     },
+    {
+      icon: Settings,
+      title: settings.title,
+      body: settings.body,
+      action: settings.action,
+      href: `${base}/settings`,
+    },
   ]
 
   return (
@@ -140,7 +149,7 @@ export default function ImportsPage() {
       ) : (
         <RemainingCard connected={shop !== null} />
       )}
-      <div className="grid gap-4 md:grid-cols-2">
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
         {ways.map((way) => (
           <Card key={way.href}>
             <CardContent className="flex h-full flex-col items-start gap-3">

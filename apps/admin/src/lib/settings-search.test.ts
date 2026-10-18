@@ -8,7 +8,7 @@ const first = (q: string) => searchSettings(SETTINGS_SEARCH_INDEX, q)[0]
 describe('searchSettings', () => {
   it('finds pages by the short forms shop owners type', () => {
     expect(first('UPI')?.href).toBe('/settings/payments')
-    expect(first('cod')?.href).toBe('/settings/payments')
+    expect(first('cod')?.href).toBe('/settings/checkout#cod')
     expect(first('GST')?.href).toBe('/settings/taxes')
     expect(first('invoice number')?.href).toBe('/settings/taxes?tab=invoices#invoice-numbers')
     expect(first('irn')?.where).toBe('Taxes & GST › GST & invoices')
@@ -27,7 +27,7 @@ describe('searchSettings', () => {
     expect(first('cookie')?.href).toBe('/settings/privacy#banner')
     expect(first('data request')?.href).toBe('/settings/privacy/requests')
     expect(first('r2')?.href).toBe('/content/files/storage')
-    expect(first('dark mode')?.href).toBe('/account/appearance')
+    expect(first('dark mode')?.href).toBe('/settings/appearance')
     expect(first('hindi')?.href).toBe('/account/language')
     expect(first('sender')?.href).toBe('/settings/notifications#notifications-sender')
   })
@@ -55,7 +55,7 @@ describe('searchSettings', () => {
   })
 
   it('matches multi-word phrases and requires every word', () => {
-    expect(first('cash on delivery')?.title).toBe('Cash on delivery (COD)')
+    expect(first('cash on delivery')?.title).toBe('Cash on delivery rules')
     expect(searchSettings(SETTINGS_SEARCH_INDEX, 'upi zzz')).toEqual([])
   })
 

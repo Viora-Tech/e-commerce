@@ -227,7 +227,6 @@ export const notificationsSettingsContent = {
   channelNames: { email: 'Email', whatsapp: 'WhatsApp' } satisfies Record<ChannelId, string>,
 
   preview: {
-    title: (name: string) => `Preview: ${name}`,
     help: 'Filled with a sample order so you can see how it looks. Nothing is sent.',
     subject: 'Subject',
     email: 'Email',
@@ -235,6 +234,7 @@ export const notificationsSettingsContent = {
     loading: 'Loading preview…',
     failed: 'Could not load the preview.',
     close: 'Close',
+    sendTest: 'Send me a test',
     frameTitle: (name: string) => `Email preview of ${name}`,
   },
 

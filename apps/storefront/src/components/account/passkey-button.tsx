@@ -8,12 +8,14 @@ import { passkeyLoginOptionsAction, passkeySignInAction } from '@/lib/login-acti
 type PasskeyButtonProps = {
   returnTo: string
   remember: boolean
+  /** The checkout's own button look; the theme's by default. */
+  buttonClassName?: string
 }
 
 const copy = accountContent.login
 
 /** "Sign in with a passkey": the browser offers the passkeys saved for this shop. */
-export default function PasskeyButton({ returnTo, remember }: PasskeyButtonProps) {
+export default function PasskeyButton({ returnTo, remember, buttonClassName }: PasskeyButtonProps) {
   // Hooks
   const [pending, start] = useTransition()
   const [error, setError] = useState<string | null>(null)
@@ -44,7 +46,7 @@ export default function PasskeyButton({ returnTo, remember }: PasskeyButtonProps
     <div className="flex flex-col gap-2">
       <button
         type="button"
-        className={`btn btn--secondary w-full${pending ? ' is-loading' : ''}`}
+        className={buttonClassName ?? `btn btn--secondary w-full${pending ? ' is-loading' : ''}`}
         onClick={handleClick}
         disabled={pending}
       >

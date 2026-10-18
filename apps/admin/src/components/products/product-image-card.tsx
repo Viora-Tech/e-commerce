@@ -9,12 +9,14 @@ import { type DragEvent, useId, useRef, useState } from 'react'
 import DataCard from '@/components/layout/data-card'
 import AltTextDialog from '@/components/media/alt-text-dialog'
 import ImageDragOverlay from '@/components/media/image-drag-overlay'
+import ImageEditorDialog from '@/components/media/image-editor-dialog'
 import MediaPickDialog, { type PickedMedia } from '@/components/media/media-pick-dialog'
 import type { MediaTileItem } from '@/components/media/media-tile'
 import { useUploadQueue } from '@/components/media/use-upload-queue'
 import { productFormContent } from '@/data/product-form'
 import { useCopy } from '@/hooks/use-copy'
 import { IMAGE_ENTER_MS, inOrder, useImageDnd, useLiveOrder } from '@/hooks/use-image-dnd'
+import { isEditableImage } from '@/lib/image-edit'
 import ProductImagePending from './product-image-pending'
 import ProductImageTile, { imageName } from './product-image-tile'
 
@@ -56,6 +58,7 @@ export default function ProductImageCard({ items, onChange, onUploading }: Produ
     onChange((prev) => (front ? [done, ...prev] : [...prev, done]))
   })
   const [editing, setEditing] = useState<MediaTileItem | null>(null)
+  const [retouching, setRetouching] = useState<MediaTileItem | null>(null)
   const [picking, setPicking] = useState(false)
   const [fileOver, setFileOver] = useState(false)
   const replaceRef = useRef<HTMLInputElement>(null)
@@ -89,6 +92,10 @@ export default function ProductImageCard({ items, onChange, onUploading }: Produ
 
   const handleRemove = (item: MediaTileItem) =>
     onChange((prev) => prev.filter((i) => i.id !== item.id))
+
+  /** The edited copy takes the original's place, so the order (and main image) stays. */
+  const handleRetouched = (original: MediaTileItem, edited: MediaTileItem) =>
+    onChange((prev) => prev.map((i) => (i.id === original.id ? edited : i)))
 
   const handleAltSaved = (id: string, alt: string | null) =>
     onChange((prev) => prev.map((i) => (i.id === id ? { ...i, alt } : i)))
@@ -175,6 +182,9 @@ export default function ProductImageCard({ items, onChange, onUploading }: Produ
                   main={index === 0}
                   reduced={reduced}
                   onEdit={() => setEditing(item)}
+                  onEditImage={
+                    isEditableImage(item.contentType) ? () => setRetouching(item) : undefined
+                  }
                   onRemove={() => handleRemove(item)}
                   onReplace={() => replaceRef.current?.click()}
                 />
@@ -244,10 +254,16 @@ export default function ProductImageCard({ items, onChange, onUploading }: Produ
         }}
       />
       <AltTextDialog
-        key={editing?.id ?? 'none'}
+        key={`alt-${editing?.id ?? 'none'}`}
         item={editing}
         onClose={() => setEditing(null)}
         onSaved={handleAltSaved}
+      />
+      <ImageEditorDialog
+        key={`edit-${retouching?.id ?? 'none'}`}
+        item={retouching}
+        onClose={() => setRetouching(null)}
+        onSaved={handleRetouched}
       />
       <MediaPickDialog
         open={picking}

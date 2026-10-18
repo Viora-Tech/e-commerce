@@ -90,6 +90,7 @@ export default function CookieBanner({
         tabIndex={-1}
       >
         <div className="cookie-banner__copy">
+          <p className="cookie-banner__heading">{copy.heading}</p>
           {storeMessage ? (
             <p className="cookie-banner__message">{storeMessage}</p>
           ) : (
@@ -157,7 +158,7 @@ export default function CookieBanner({
           </button>
           <button
             type="button"
-            className="btn btn--primary cookie-banner__button"
+            className="btn btn--secondary cookie-banner__button"
             onClick={() => handleChoose(ALL)}
           >
             <span>{orDefault(acceptLabel, copy.acceptLabel)}</span>

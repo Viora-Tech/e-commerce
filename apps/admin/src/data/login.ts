@@ -35,6 +35,9 @@ export const loginContent = {
   google: {
     button: 'Continue with Google',
     or: 'or use your email',
+    signingIn: 'Signing you in with Google…',
+    signingInBody: 'Finish in the Google window. This page continues on its own.',
+    cancel: 'Cancel',
     failed: 'Could not sign in with Google. Try again, or use a code by email.',
     /** Why Google sign-in came back refused (`?error=` on the login page), by Better Auth code. */
     errors: {

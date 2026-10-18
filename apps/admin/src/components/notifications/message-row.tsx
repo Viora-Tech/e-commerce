@@ -64,7 +64,9 @@ export default function MessageRow({
       <SettingsTableCell center>
         {m.switchable ? (
           <span className="inline-flex items-center gap-2">
-            <StatusChip>{m.on ? copy.list.on : copy.list.off}</StatusChip>
+            <StatusChip tone={m.on ? 'success' : 'neutral'}>
+              {m.on ? copy.list.on : copy.list.off}
+            </StatusChip>
             <Switch
               id={switchId}
               aria-label={copy.list.switchLabel(name)}

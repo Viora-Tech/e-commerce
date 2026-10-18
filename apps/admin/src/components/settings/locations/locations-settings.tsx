@@ -8,13 +8,14 @@ import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import AddLocationDialog from '@/components/inventory/add-location-dialog'
+import PageHeader from '@/components/layout/page-header'
 import StatusChip from '@/components/layout/status-chip'
-import SettingsPageHeader from '@/components/settings/settings-page-header'
 import SettingsTable from '@/components/settings/settings-table'
 import SettingsTableCell from '@/components/settings/settings-table-cell'
 import SettingsTableRow from '@/components/settings/settings-table-row'
 import RowActionsCell from '@/components/table/row-actions-cell'
 import { businessGstContent } from '@/data/business-gst'
+import { SETTINGS_BACK } from '@/data/settings'
 import { useCopy } from '@/hooks/use-copy'
 import { usePermissions } from '@/hooks/use-permissions'
 import { api } from '@/lib/api-client'
@@ -84,7 +85,7 @@ export default function LocationsSettings({ view }: LocationsSettingsProps) {
 
   return (
     <div className="flex flex-col gap-4">
-      <SettingsPageHeader
+      <PageHeader
         title={copy.title}
         subtitle={copy.intro}
         actions={
@@ -93,6 +94,7 @@ export default function LocationsSettings({ view }: LocationsSettingsProps) {
             {copy.add}
           </Button>
         }
+        back={SETTINGS_BACK}
       />
       <SettingsTable
         heading={copy.heading}

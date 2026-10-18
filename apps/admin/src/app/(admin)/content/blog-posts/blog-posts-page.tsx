@@ -1,7 +1,7 @@
 'use client'
 
 import { siteConfig } from '@commerce/config/site'
-import { SquarePlus } from '@commerce/ui/icons'
+import { Pencil } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Kbd } from '@commerce/ui/shadcn/kbd'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@commerce/ui/shadcn/tooltip'
@@ -11,12 +11,19 @@ import { Suspense, useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import ArticleBulkActions from '@/components/blog/article-bulk-actions'
 import { articleColumns } from '@/components/blog/article-columns'
-import ArticleFilters from '@/components/blog/article-filters'
-import ConfirmDeleteArticles from '@/components/blog/confirm-delete-articles'
-import PillTabs from '@/components/layout/pill-tabs'
+import ConfirmDialog from '@/components/layout/confirm-dialog'
 import ProoflyListPage from '@/components/layout/proofly-list-page'
-import ResourceTable, { type AppliedFilter } from '@/components/table/resource-table'
+import {
+  appliedFromGroups,
+  clearGroups,
+  FILTER_PANEL_CLASS,
+  type FilterGroup,
+  FilterPanel,
+} from '@/components/table/filter-panel'
+import ResourceTable from '@/components/table/resource-table'
+import ViewSelect from '@/components/table/view-select'
 import { ARTICLE_TABS, type ArticleTab, blogListContent } from '@/data/blog'
+import { filterPanelContent } from '@/data/filter-panel'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 import { type ListQuery, sameListQuery } from '@/lib/list-query'
@@ -62,6 +69,7 @@ function listInput(q: Query) {
 function BlogPostsContent({ initial }: { initial: BlogPostsInitial }) {
   // Hooks
   const copy = useCopy(blogListContent)
+  const panelCopy = useCopy(filterPanelContent)
   const fmt = useFormat()
   usePrimaryAction(routes.content.newBlogPost())
   const [q, setQ] = useQueryStates(
@@ -138,19 +146,26 @@ function BlogPostsContent({ initial }: { initial: BlogPostsInitial }) {
 
   // Render logic
   const blogOptions = initial.blogs.map((b) => ({ value: b.id, label: b.title }))
-  const blogLabel = blogOptions.find((b) => b.value === q.blog)?.label ?? q.blog
-  const applied = [
-    q.blog && {
+  const groups: FilterGroup[] = [
+    {
       key: 'blog',
-      label: `${copy.filters.blog}: ${blogLabel}`,
-      onRemove: () => setQ({ blog: null, page: 1 }),
+      label: copy.filters.blog,
+      type: 'select',
+      options: blogOptions,
+      value: q.blog,
+      onChange: (blog) => setQ({ blog, page: 1 }),
+      anyLabel: copy.filters.any,
     },
-    q.tag && {
+    {
       key: 'tag',
-      label: `${copy.filters.tag}: ${q.tag}`,
-      onRemove: () => setQ({ tag: null, page: 1 }),
+      label: copy.filters.tag,
+      type: 'select',
+      options: initial.tags.map((t) => ({ value: t, label: t })),
+      value: q.tag,
+      onChange: (tag) => setQ({ tag, page: 1 }),
+      anyLabel: copy.filters.any,
     },
-  ].filter(Boolean) as AppliedFilter[]
+  ]
 
   return (
     <ProoflyListPage
@@ -159,7 +174,7 @@ function BlogPostsContent({ initial }: { initial: BlogPostsInitial }) {
       actions={
         <>
           <Button
-            variant="key-neutral"
+            variant="outline"
             nativeButton={false}
             render={<Link href={routes.content.blogs()} />}
           >
@@ -169,7 +184,7 @@ function BlogPostsContent({ initial }: { initial: BlogPostsInitial }) {
             <TooltipTrigger
               render={
                 <Button nativeButton={false} render={<Link href={routes.content.newBlogPost()} />}>
-                  <SquarePlus strokeWidth={1.6} />
+                  <Pencil strokeWidth={1.6} />
                   {copy.add}
                 </Button>
               }
@@ -191,22 +206,20 @@ function BlogPostsContent({ initial }: { initial: BlogPostsInitial }) {
         query={q.query}
         onQueryChange={(query) => setQ({ query, page: 1 })}
         onClearAll={() => setQ({ query: '', status: null, blog: null, tag: null, page: 1 })}
-        filters={
-          <ArticleFilters
-            values={{ blog: q.blog, tag: q.tag }}
-            blogs={blogOptions}
-            tags={initial.tags}
-            onChange={(patch) => setQ({ ...patch, page: 1 })}
-            onClear={() => setQ({ blog: null, tag: null, page: 1 })}
+        filters={(close) => (
+          <FilterPanel
+            groups={groups}
+            onClear={() => clearGroups(groups)}
+            footer={{ label: panelCopy.show(result.total), onDone: close }}
           />
-        }
-        applied={applied}
-        tabs={
-          <PillTabs
-            variant="segmented"
+        )}
+        filtersClassName={FILTER_PANEL_CLASS}
+        applied={appliedFromGroups(groups, panelCopy)}
+        views={
+          <ViewSelect
             value={q.status}
             onChange={(status) => setQ({ status, page: 1 })}
-            tabs={[
+            options={[
               { value: null, label: copy.tabs.all, count: counts.all },
               ...ARTICLE_TABS.map((s) => ({ value: s, label: copy.tabs[s], count: counts[s] })),
             ]}
@@ -242,18 +255,21 @@ function BlogPostsContent({ initial }: { initial: BlogPostsInitial }) {
           body: copy.empty.body,
           action: (
             <Button nativeButton={false} render={<Link href={routes.content.newBlogPost()} />}>
-              <SquarePlus strokeWidth={1.6} />
+              <Pencil strokeWidth={1.6} />
               {copy.add}
             </Button>
           ),
         }}
       />
 
-      <ConfirmDeleteArticles
-        count={deleting?.ids.length ?? 0}
+      <ConfirmDialog
         open={deleting !== null}
-        busy={busy}
         onOpenChange={(open) => !open && setDeleting(null)}
+        title={copy.bulk.confirmDelete.title(deleting?.ids.length ?? 0)}
+        body={copy.bulk.confirmDelete.body}
+        confirmLabel={copy.bulk.confirmDelete.confirm}
+        cancelLabel={copy.bulk.confirmDelete.cancel}
+        busy={busy}
         onConfirm={handleConfirmDelete}
       />
     </ProoflyListPage>

@@ -1,11 +1,11 @@
 'use client'
 
 import { ArrowLeft, Monitor, Moon, Smartphone, Sun, Tablet } from '@commerce/ui/icons'
-import { Badge } from '@commerce/ui/shadcn/badge'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Spinner } from '@commerce/ui/shadcn/spinner'
 import { ToggleGroup, ToggleGroupItem } from '@commerce/ui/shadcn/toggle-group'
 import Link from 'next/link'
+import StatusChip from '@/components/layout/status-chip'
 import { themesContent } from '@/data/themes'
 import type { PreviewDevice } from './theme-preview'
 
@@ -83,7 +83,7 @@ export default function CustomizerTopBar({
           <ArrowLeft aria-hidden />
         </Button>
         <h1 className="truncate text-body font-semibold text-foreground">{name}</h1>
-        <Badge variant={live ? 'success' : 'neutral'}>{live ? copy.live : copy.draft}</Badge>
+        <StatusChip tone={live ? 'success' : 'neutral'}>{live ? copy.live : copy.draft}</StatusChip>
       </div>
       <div className="flex items-center gap-2">
         <ToggleGroup value={[device]} onValueChange={handleDevice} variant="outline" spacing={0}>

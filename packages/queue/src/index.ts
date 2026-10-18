@@ -8,6 +8,9 @@ import {
   type AppEventQueue,
   type AppJobData,
   type AppJobQueue,
+  CHANNEL_SYNC_QUEUE,
+  type ChannelSyncJob,
+  type ChannelSyncQueue,
   type MediaProcessJob,
   type MediaProcessQueue,
   NOTIFICATIONS_QUEUE,
@@ -20,6 +23,7 @@ import {
   type StoreExportJob,
   type StoreExportQueue,
 } from '@commerce/core'
+import { logger } from '@commerce/observability/logging'
 import { Queue } from 'bullmq'
 import IORedis from 'ioredis'
 import type { QueueLimits } from './fair'
@@ -57,6 +61,12 @@ export const MEDIA_PROCESS_QUEUE = '{media}-process'
 export const REVIEW_REQUESTS_QUEUE = '{reviews}-requests'
 /** Repeat job that sends team members their daily summary at the hour each chose. */
 export const MEMBER_DAILY_SUMMARY_QUEUE = '{members}-daily-summary'
+/** Repeat job that queues each connected store's daily Google Search Console sync. */
+export const SEARCH_CONSOLE_SWEEP_QUEUE = '{search-console}-sweep'
+/** Hourly: plan renewals billed ahead, unpaid plans marked due, then paused after grace. */
+export const BILLING_SWEEP_QUEUE = '{billing}-sweep'
+/** Daily: MCP & API activity older than 90 days is deleted. */
+export const API_ACTIVITY_PRUNE_QUEUE = '{api}-activity-prune'
 
 /**
  * Worker concurrency and the per-store cap for every queue that carries store jobs (see
@@ -72,7 +82,7 @@ export const QUEUE_LIMITS = {
   appJobs: { concurrency: 4, perStore: 2 },
   marketingSend: { concurrency: 2, perStore: 1 },
   /** Defaults; `MEDIA_PROCESS_CONCURRENCY` / `MEDIA_PROCESS_PER_STORE` override them (the worker's `mediaProcessLimits`). */
-  mediaProcess: { concurrency: 3, perStore: 3 },
+  mediaProcess: { concurrency: 3, perStore: 2 },
   backInStock: { concurrency: 2, perStore: 1 },
   storeExport: { concurrency: 2, perStore: 1 },
   /** Bulk "Write with AI" runs: one product at a time per store, so a 200-product run never starves another store's. */
@@ -149,7 +159,7 @@ export async function nudgeOutboxRelay(
       { jobId: `nudge:${storeId}:${bucket}`, removeOnComplete: true, removeOnFail: true },
     )
   } catch (err) {
-    console.error(`[outbox] could not nudge relay for store ${storeId}`, err)
+    logger.error('could not nudge the outbox relay', { storeId, error: err })
   }
 }
 
@@ -166,6 +176,22 @@ export function mediaProcessQueue(redisUrl: string): MediaProcessQueue {
     g.__mediaProcessQueue = createMediaProcessQueue(createConnection(redisUrl))
   }
   return g.__mediaProcessQueue
+}
+
+export { CHANNEL_SYNC_QUEUE, type ChannelSyncJob, type ChannelSyncQueue }
+
+export function createChannelSyncQueue(
+  connection: IORedis,
+): Queue<ChannelSyncJob> & ChannelSyncQueue {
+  return new Queue<ChannelSyncJob>(CHANNEL_SYNC_QUEUE, { connection })
+}
+
+/** Process-wide sales-channel sync queue ("Sync now", after Connect), cached like the others. */
+export function channelSyncQueue(redisUrl: string): ChannelSyncQueue {
+  const g = globalThis as { __channelSyncQueue?: ChannelSyncQueue }
+  if (!g.__channelSyncQueue)
+    g.__channelSyncQueue = createChannelSyncQueue(createConnection(redisUrl))
+  return g.__channelSyncQueue
 }
 
 export type { StoreExportJob, StoreExportQueue }

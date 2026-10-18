@@ -1,216 +1,274 @@
 'use client'
 
-import type { DashboardChartsData, DashboardSummary } from '@commerce/api'
-import { ArrowDown, ArrowUp } from '@commerce/ui/icons'
+import type { HomeAnalytics } from '@commerce/api'
+import type { HomeMetric } from '@commerce/core/home-metrics'
+import { ArrowLeftRight, ArrowRight, CheckIcon, ChevronDown, Pencil } from '@commerce/ui/icons'
 import { cn } from '@commerce/ui/lib/utils'
+import { Button } from '@commerce/ui/shadcn/button'
 import {
-  type ChartConfig,
-  ChartContainer,
-  ChartTooltip,
-  ChartTooltipContent,
-} from '@commerce/ui/shadcn/chart'
-import { useState } from 'react'
-import { Area, AreaChart, Line, XAxis } from 'recharts'
-import PillTabs from '@/components/layout/pill-tabs'
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+  DropdownMenuTrigger,
+} from '@commerce/ui/shadcn/dropdown-menu'
+import Link from 'next/link'
+import { useEffect, useRef, useState } from 'react'
+import { toast } from 'sonner'
+import DateRangePicker from '@/components/layout/date-range-picker'
 import { homePageContent } from '@/data/home'
 import { useCopy, useFormat } from '@/hooks/use-copy'
-import type { Formatters } from '@/lib/format'
+import { api } from '@/lib/api-client'
+import type { HomeRange, RangeCompare } from '@/lib/home-range'
+import { routes } from '@/lib/routes'
+import ChannelMenu, { type Channel } from './analytics/channel-menu'
+import { formatMetric, METRIC_META, metricChange, shapeHourly } from './analytics/metric-meta'
+import HeroGlass from './hero-glass'
+import SalesHeroChart, { type SalesChartPoint } from './sales-hero-chart'
+import SalesMetricTiles from './sales-metric-tiles'
 
 type SalesHeroProps = {
-  today: DashboardSummary['today']
-  yesterdayHourly: number[]
-  /** The 30-day daily series; the last entry is today. Every range is cut from it. */
-  charts: DashboardChartsData
+  /** Today's numbers, rendered on the server so the card never paints empty. */
+  initial: { range: HomeRange; analytics: HomeAnalytics; tiles: HomeMetric[] }
+  /** Visitors on the store right now (the beacon's last-30-minutes count). */
+  liveNow: number
 }
 
-type Range = 'today' | '7' | '30'
-
-type Point = { label: string; value: number | null; before: number | null }
-
-const HOURS = 24
 const SHORT_DATE_OPTIONS = { day: 'numeric', month: 'short' } as const
 
-const sum = (values: number[]) => values.reduce((n, v) => n + v, 0)
+/** Figma "Analytics · Filter button" (580:694): 32px pill, 14px lead icon, 13/20 medium. */
+const PILL =
+  'inline-flex h-8 items-center gap-1.5 rounded-full border border-glass-border bg-background/60 pr-2 pl-2.5 text-[0.8125rem] leading-5 font-medium whitespace-nowrap text-foreground shadow-lift [&_svg]:size-3.5 [&_svg]:shrink-0'
+const MENU_PILL = `${PILL} cursor-pointer transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring data-[popup-open]:bg-muted`
 
-/** Percent change from `previous` to `current`, rounded; null when there is nothing to compare. */
-function percentChange(current: number, previous: number): number | null {
-  if (previous <= 0) return null
-  return Math.round(((current - previous) / previous) * 100)
-}
-
-/** A running total, so an hourly series reads as a curve that climbs through the day. */
-function cumulative(values: number[]): number[] {
-  let total = 0
-  return values.map((v) => {
-    total += v
-    return total
-  })
-}
-
-/** Today's and yesterday's orders hour by hour; today stops at the current hour. */
-function hourlyPoints(today: number[], yesterday: number[]): Point[] {
-  const now = cumulative(today)
-  const before = cumulative(yesterday)
-  return Array.from({ length: HOURS }, (_, h) => ({
-    label: `${h}:00`,
-    value: h < now.length ? (now[h] ?? 0) : null,
-    before: before[h] ?? null,
+/** The chart's points for one metric: hour by hour for a single day (running totals), else by day. */
+function pointsFor(
+  data: HomeAnalytics,
+  metric: HomeMetric,
+  dayLabel: (iso: string) => string,
+): SalesChartPoint[] {
+  const figures = data.metrics[metric]
+  /* Visitors are counted by the day, so a single day has no visitor or conversion line. */
+  if (data.hourly && (metric === 'visitors' || metric === 'conversion')) return []
+  const shape = (values: number[]) => (data.hourly ? shapeHourly(metric, values) : values)
+  const now = shape(figures.series)
+  const before = figures.previousSeries ? shape(figures.previousSeries) : null
+  return data.labels.map((label, i) => ({
+    label: data.hourly ? `${label}:00` : dayLabel(label),
+    value: now[i] ?? 0,
+    before: before ? (before[i] ?? null) : null,
   }))
 }
 
-/** Daily sales for the last `days` days, with the `days` before them dashed behind. */
-function dailyPoints(charts: DashboardChartsData, days: number, fmt: Formatters): Point[] {
-  const all = charts.salesPaise
-  const labels = charts.days.slice(-days)
-  const previous = charts.previousSalesPaise
-  return labels.map((day, i) => {
-    const index = all.length - days + i
-    const before = index - days >= 0 ? all[index - days] : previous?.[all.length + index - days]
-    return {
-      label: fmt.pattern(new Date(`${day}T00:00:00+05:30`), SHORT_DATE_OPTIONS),
-      value: all[index] ?? 0,
-      before: before ?? null,
-    }
-  })
-}
-
 /**
- * The sales hero: today's takings as the big number, how that compares with yesterday, and
- * an area chart. The Today / 7 days / 30 days switch cuts the one 30-day series Home already
- * loaded, so switching never refetches. Visit counts are not recorded per day, so the line
- * under the number carries orders only.
+ * The Home analytics card (Figma 580:692): the range picker (presets, calendar, compare), the
+ * channels menu, the live count and Customize; four tiles whose metrics each member picks; the
+ * chart for the selected tile (current solid, comparison dashed) and its legend. Changing the
+ * range or comparison refetches `dashboard.analytics`; the tile choice is saved per member.
  */
-export default function SalesHero({ today, yesterdayHourly, charts }: SalesHeroProps) {
+export default function SalesHero({ initial, liveNow }: SalesHeroProps) {
   // Hooks
   const content = useCopy(homePageContent)
   const fmt = useFormat()
-  const [range, setRange] = useState<Range>('today')
+  const [range, setRange] = useState(initial.range)
+  const [compare, setCompare] = useState<RangeCompare>('previous')
+  const [channel, setChannel] = useState<Channel>('all')
+  const [data, setData] = useState(initial.analytics)
+  const [loading, setLoading] = useState(false)
+  const [tiles, setTiles] = useState(initial.tiles)
+  const [metric, setMetric] = useState<HomeMetric>(initial.tiles[0] ?? 'sales')
+  const [customizing, setCustomizing] = useState(false)
+  const first = useRef(true)
+
+  useEffect(() => {
+    // The server already rendered the opening range.
+    if (first.current) {
+      first.current = false
+      return
+    }
+    let live = true
+    setLoading(true)
+    api.dashboard
+      .analytics({ from: range.from, to: range.to, compare })
+      .then((next) => live && setData(next))
+      .catch(() => live && toast.error(content.sales.loadFailed))
+      .finally(() => live && setLoading(false))
+    return () => {
+      live = false
+    }
+  }, [range.from, range.to, compare, content.sales.loadFailed])
+
+  // Helpers
+  const dayLabel = (iso: string) =>
+    fmt.pattern(new Date(`${iso}T00:00:00+05:30`), SHORT_DATE_OPTIONS)
+
+  // Event handlers
+  const handleApply = (next: HomeRange, nextCompare: RangeCompare) => {
+    setRange(next)
+    setCompare(nextCompare)
+  }
+
+  const handleCompare = (next: unknown) => {
+    if (next === 'previous' || next === 'year' || next === 'none') setCompare(next)
+  }
+
+  const handleSwap = (slot: number, picked: HomeMetric) => {
+    const next = [...tiles]
+    /* A metric lives in one slot: picking one already shown swaps the two. */
+    const already = next.indexOf(picked)
+    if (already >= 0) next[already] = next[slot] ?? picked
+    next[slot] = picked
+    setTiles(next)
+    if (!next.includes(metric)) setMetric(next[0] ?? 'sales')
+    api.dashboard.setTiles({ tiles: next }).catch(() => toast.error(content.sales.tilesSaveFailed))
+  }
 
   // Render logic
   const copy = content.sales
-  const all = charts.salesPaise
-  const days = range === '7' ? 7 : 30
-  let value = today.salesPaise
-  let orders = today.ordersCount
-  let change: number | null = percentChange(today.salesPaise, all[all.length - 2] ?? 0)
-  let comparedTo = copy.vsYesterday
-  let points = hourlyPoints(today.hourly, yesterdayHourly)
-  let title = copy.title
-  if (range !== 'today') {
-    const current = all.slice(-days)
-    const previous = days === 7 ? all.slice(-14, -7) : (charts.previousSalesPaise ?? [])
-    value = sum(current)
-    orders = sum(charts.orders.slice(-days))
-    change = percentChange(value, sum(previous))
-    comparedTo = copy.vsPrevious(days)
-    points = dailyPoints(charts, days, fmt)
-    title = copy.titleDays(days)
-  }
-  const hasData = points.some((p) => (p.value ?? 0) > 0 || (p.before ?? 0) > 0)
-  const up = (change ?? 0) >= 0
-  const config = {
-    value: {
-      label: range === 'today' ? copy.series.today : copy.series.sales,
-      color: 'var(--primary)',
-    },
-    before: {
-      label: range === 'today' ? copy.series.yesterday : copy.series.before,
-      color: 'var(--muted-foreground)',
-    },
-  } satisfies ChartConfig
-  const tabs = [
-    { value: 'today' as Range, label: copy.today },
-    { value: '7' as Range, label: copy.days7 },
-    { value: '30' as Range, label: copy.days30 },
-  ]
+  const comparing = compare !== 'none'
+  const singleDay = range.from === range.to
+  const comparedTo = compare === 'year' ? copy.vsYear : singleDay ? copy.vsYesterday : copy.vsPeriod
+  const picked = data.metrics[metric]
+  const points = pointsFor(data, metric, dayLabel)
+  const valueLabel = singleDay && metric === 'sales' ? copy.series.today : copy.metrics[metric]
+  const beforeLabel =
+    compare === 'year' ? copy.vsYear : singleDay ? copy.series.yesterday : copy.vsPeriod
+  const emptyText =
+    data.hourly && (metric === 'visitors' || metric === 'conversion')
+      ? copy.noHourly
+      : metric === 'visitors' || metric === 'conversion'
+        ? copy.emptyVisitors
+        : copy.empty
 
   return (
-    <section className="grid grid-cols-1 gap-6 rounded-xl surface-card p-[1.875rem] md:grid-cols-[minmax(0,1fr)_minmax(0,1.3fr)] md:items-center">
-      <div className="flex flex-col items-start gap-1.5">
-        <p className="text-[0.8125rem] leading-[1.1875rem] font-medium text-muted-foreground">
-          {title}
-        </p>
-        <p className="font-[family-name:var(--font-display)] text-[3.5rem] leading-[3.75rem] font-extrabold tracking-[-0.1rem] text-ink-strong tabular-nums">
-          {fmt.money(value)}
-        </p>
-        <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[0.8125rem] leading-[1.1875rem] text-muted-foreground">
-          {change !== null ? (
-            <span
-              className={cn(
-                'inline-flex items-center gap-1 rounded-[0.5rem] px-2 py-[0.1875rem] text-xs font-semibold',
-                up ? 'bg-success-soft text-success' : 'bg-danger-soft text-danger',
-              )}
-            >
-              {up ? (
-                <ArrowUp className="size-3" aria-hidden="true" />
-              ) : (
-                <ArrowDown className="size-3" aria-hidden="true" />
-              )}
-              {Math.abs(change)}%
+    <section
+      aria-busy={loading}
+      className="relative isolate flex flex-col overflow-hidden rounded-xl surface-glass"
+    >
+      <HeroGlass />
+      <div className="flex flex-wrap items-center gap-2 pt-4 pr-4 pb-2 pl-5">
+        <DateRangePicker
+          range={range}
+          compare={compare}
+          onApply={handleApply}
+          className={MENU_PILL}
+        />
+        <DropdownMenu>
+          <DropdownMenuTrigger aria-label={copy.compareLabel} className={MENU_PILL}>
+            <ArrowLeftRight aria-hidden="true" />
+            {comparing ? comparedTo : copy.noCompare}
+            <ChevronDown className="text-muted-foreground" aria-hidden="true" />
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="start" className="min-w-48">
+            <DropdownMenuRadioGroup value={compare} onValueChange={handleCompare}>
+              <DropdownMenuRadioItem value="previous" closeOnClick>
+                {singleDay ? copy.vsYesterday : copy.vsPeriod}
+              </DropdownMenuRadioItem>
+              <DropdownMenuRadioItem value="year" closeOnClick>
+                {copy.vsYear}
+              </DropdownMenuRadioItem>
+              <DropdownMenuRadioItem value="none" closeOnClick>
+                {copy.noCompare}
+              </DropdownMenuRadioItem>
+            </DropdownMenuRadioGroup>
+          </DropdownMenuContent>
+        </DropdownMenu>
+        <ChannelMenu value={channel} onChange={setChannel} className={MENU_PILL} />
+        <span className="flex-1" aria-hidden="true" />
+        <span className="inline-flex items-center gap-2 pr-2 text-[0.8125rem] leading-5 font-medium text-foreground">
+          <span className="flex size-3.5 items-center justify-center" aria-hidden="true">
+            <span className="size-2 rounded-full bg-foreground ring-3 ring-foreground/15" />
+          </span>
+          {copy.liveNow(liveNow)}
+        </span>
+        <Button
+          variant={customizing ? 'default' : 'ghost'}
+          size="sm"
+          onClick={() => setCustomizing((c) => !c)}
+          aria-pressed={customizing}
+        >
+          {customizing ? (
+            <CheckIcon className="size-4" aria-hidden="true" />
+          ) : (
+            <Pencil className="size-4" aria-hidden="true" />
+          )}
+          {customizing ? copy.done : copy.customize}
+        </Button>
+      </div>
+      {customizing ? (
+        <p className="px-5 pb-1 text-xs text-muted-foreground">{copy.customizeHint}</p>
+      ) : null}
+      <div
+        className={cn(
+          'px-3 py-1 transition-opacity duration-200 ease-out',
+          loading && 'opacity-60',
+        )}
+      >
+        <SalesMetricTiles
+          tiles={tiles.map((m) => ({
+            metric: m,
+            label: copy.metrics[m],
+            display: formatMetric(fmt, m, data.metrics[m].value),
+            spark: data.metrics[m].series,
+            change: comparing
+              ? metricChange(m, data.metrics[m].value, data.metrics[m].previous)
+              : null,
+            unit: METRIC_META[m].kind === 'percent' ? ` ${copy.points}` : '%',
+            lowerIsBetter: METRIC_META[m].lowerIsBetter,
+            note:
+              m === 'topProducts' && data.topProduct
+                ? copy.bestSeller(data.topProduct.title)
+                : undefined,
+          }))}
+          comparedTo={comparedTo}
+          metric={metric}
+          onSelect={setMetric}
+          customizing={customizing}
+          onSwap={handleSwap}
+        />
+      </div>
+      <div
+        className={cn('min-w-0 px-5 pt-3 transition-opacity duration-200', loading && 'opacity-60')}
+      >
+        <SalesHeroChart
+          points={points}
+          valueLabel={valueLabel}
+          beforeLabel={beforeLabel}
+          emptyText={emptyText}
+          swapKey={`${range.from}-${range.to}-${metric}-${compare}`}
+          formatTooltip={(v) => formatMetric(fmt, metric, v)}
+          formatTick={(v) => (METRIC_META[metric].kind === 'percent' ? `${v}%` : fmt.compact(v))}
+        />
+      </div>
+      <div className="flex flex-wrap items-center justify-between gap-3 px-5 pt-3 pb-4">
+        <p className="flex flex-wrap items-center gap-x-5 gap-y-1 text-[0.8125rem] leading-5 text-muted-foreground">
+          <span className="inline-flex items-center gap-2">
+            <span className="h-0.5 w-3.5 rounded-full bg-primary" aria-hidden="true" />
+            {valueLabel}
+            <strong className="font-semibold text-ink-strong tabular-nums">
+              {formatMetric(fmt, metric, picked.value)}
+            </strong>
+          </span>
+          {comparing && picked.previous !== null ? (
+            <span className="inline-flex items-center gap-2">
+              <span
+                className="h-0 w-3.5 border-t-2 border-dashed border-muted-foreground"
+                aria-hidden="true"
+              />
+              {beforeLabel}
+              <strong className="font-semibold text-ink-strong tabular-nums">
+                {formatMetric(fmt, metric, picked.previous)}
+              </strong>
             </span>
           ) : null}
-          {change !== null ? <span>{comparedTo}</span> : null}
-          <span>
-            {change !== null ? '· ' : ''}
-            {copy.orders(orders)}
-          </span>
         </p>
-        <PillTabs variant="segmented" tabs={tabs} value={range} onChange={setRange} />
-      </div>
-      <div className="min-w-0">
-        {hasData ? (
-          <ChartContainer config={config} className="aspect-auto h-40 w-full">
-            <AreaChart data={points} margin={{ left: 0, right: 0, top: 8, bottom: 0 }}>
-              <defs>
-                <linearGradient id="home-hero-fill" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="var(--primary)" stopOpacity={0.18} />
-                  <stop offset="100%" stopColor="var(--primary)" stopOpacity={0} />
-                </linearGradient>
-              </defs>
-              <XAxis dataKey="label" hide />
-              <ChartTooltip
-                cursor={{ stroke: 'var(--primary)', strokeDasharray: '4 4' }}
-                content={
-                  <ChartTooltipContent
-                    formatter={(v, name) => (
-                      <span className="flex w-full items-center justify-between gap-3">
-                        <span className="text-muted-foreground">
-                          {config[name as keyof typeof config]?.label}
-                        </span>
-                        <span className="font-bold tabular-nums">
-                          {range === 'today' ? String(v) : fmt.money(Number(v))}
-                        </span>
-                      </span>
-                    )}
-                  />
-                }
-              />
-              <Line
-                dataKey="before"
-                type="monotone"
-                stroke="var(--muted-foreground)"
-                strokeDasharray="4 4"
-                strokeWidth={1.5}
-                dot={false}
-                isAnimationActive={false}
-              />
-              <Area
-                dataKey="value"
-                type="monotone"
-                stroke="var(--primary)"
-                strokeWidth={2}
-                fill="url(#home-hero-fill)"
-                isAnimationActive={false}
-                connectNulls={false}
-              />
-            </AreaChart>
-          </ChartContainer>
-        ) : (
-          <p className="text-body text-muted-foreground">{copy.empty}</p>
-        )}
-        {hasData && range === 'today' ? (
-          <p className="mt-1 text-caption font-normal text-muted-foreground">{copy.hourlyNote}</p>
-        ) : null}
+        <Link
+          href={routes.analytics.reports()}
+          className="inline-flex items-center gap-1 text-[0.8125rem] leading-5 font-medium text-foreground transition-colors hover:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        >
+          {copy.viewReport}
+          <ArrowRight className="size-3.5" aria-hidden="true" />
+        </Link>
       </div>
     </section>
   )

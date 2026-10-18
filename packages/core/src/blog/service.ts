@@ -276,6 +276,7 @@ const listColumns = {
   title: article.title,
   handle: article.handle,
   author: article.author,
+  excerpt: article.excerpt,
   status: article.status,
   publishedAt: article.publishedAt,
   tags: article.tags,

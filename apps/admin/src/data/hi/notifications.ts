@@ -215,7 +215,6 @@ export default [
     channelNames: { email: 'ईमेल', whatsapp: 'WhatsApp' },
 
     preview: {
-      title: (name: string) => `प्रीव्यू: ${name}`,
       help: 'नमूने के ऑर्डर से भरा है ताकि आप देख सकें कि कैसा दिखेगा। कुछ भेजा नहीं जाता।',
       subject: 'सब्जेक्ट',
       email: 'ईमेल',
@@ -223,6 +222,7 @@ export default [
       loading: 'प्रीव्यू लोड हो रहा है…',
       failed: 'प्रीव्यू लोड नहीं हो सका।',
       close: 'बंद करें',
+      sendTest: 'मुझे टेस्ट भेजें',
       frameTitle: (name: string) => `${name} का ईमेल प्रीव्यू`,
     },
 

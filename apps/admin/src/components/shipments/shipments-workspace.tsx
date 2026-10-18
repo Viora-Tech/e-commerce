@@ -5,29 +5,26 @@ import {
   SHIPMENT_TABS,
   type ShipmentTab,
 } from '@commerce/core/shipment-tabs'
-import { MoreHorizontal, Plus, Printer, Truck } from '@commerce/ui/icons'
+import { AppWindow, Plus, Printer, Truck } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Card } from '@commerce/ui/shadcn/card'
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@commerce/ui/shadcn/dropdown-menu'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { parseAsInteger, parseAsString, parseAsStringLiteral, useQueryStates } from 'nuqs'
 import { Suspense, useEffect, useState } from 'react'
+import ActionMenu from '@/components/layout/action-menu'
 import EmptyState from '@/components/layout/empty-state'
-import PillTabs from '@/components/layout/pill-tabs'
-import OrdersListFrame from '@/components/orders/orders-list-frame'
-import RowMenu from '@/components/orders/row-menu'
+import ProoflyListPage from '@/components/layout/proofly-list-page'
+import StatusChip from '@/components/layout/status-chip'
 import ResourceTable from '@/components/table/resource-table'
+import RowMenu from '@/components/table/row-menu'
+import ViewSelect from '@/components/table/view-select'
 import { shipmentsContent } from '@/data/shipments'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 import { routes } from '@/lib/routes'
 import { parseRowsPerPage } from '@/lib/rows-per-page'
-import BookDialog from './book-dialog'
+import CreateShipmentDialog from './create-shipment/create-shipment-dialog'
 import {
   rowFromOrder,
   rowFromShipment,
@@ -63,6 +60,7 @@ async function fetchWallets(): Promise<Wallets> {
 function ShipmentsContent() {
   // Hooks
   const copy = useCopy(shipmentsContent)
+  const router = useRouter()
   const fmt = useFormat()
   const [{ tab, query, page, perPage: rawPerPage }, setQ] = useQueryStates(
     {
@@ -143,6 +141,16 @@ function ShipmentsContent() {
     setSheet(null)
     setReloadKey((k) => k + 1)
   }
+  /* One order opens the Create shipment page; several open the shared bulk dialog. */
+  const handleBook = (orderIds: string[]) => {
+    if (orderIds.length === 1 && orderIds[0]) router.push(routes.orders.shipment(orderIds[0]))
+    else if (orderIds.length > 1) setBooking(orderIds)
+  }
+  /* Book by order number found these orders: the same Create shipment flow takes over. */
+  const handleShipFound = (orderIds: string[]) => {
+    setSheet(null)
+    handleBook(orderIds)
+  }
 
   // Render logic
   const toBookCourier =
@@ -165,42 +173,29 @@ function ShipmentsContent() {
   const canBook = tab === 'toBook' && selected.length > 0
 
   return (
-    <OrdersListFrame
+    <ProoflyListPage
       title={copy.title}
-      summary={
-        <>
-          {summaryText}
-          {c && c.needsAttention > 0 && !noCourier ? (
-            <>
-              {' · '}
-              <button
-                type="button"
-                onClick={() => setSheet('ndr')}
-                className="font-medium text-danger underline-offset-2 hover:underline"
-              >
-                {copy.summary.needsAttention(c.needsAttention)}
-              </button>
-            </>
-          ) : null}
-        </>
-      }
+      summary={summaryText}
       actions={
         noCourier ? null : (
           <>
-            <DropdownMenu>
-              <DropdownMenuTrigger
-                render={
-                  <Button variant="outline" size="icon" aria-label={copy.more} title={copy.more}>
-                    <MoreHorizontal aria-hidden />
-                  </Button>
-                }
-              />
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={() => setSheet('byNumber')}>
-                  {copy.byNumberSheet.title}
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+            {c && c.needsAttention > 0 ? (
+              <button
+                type="button"
+                onClick={() => setSheet('ndr')}
+                className="rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              >
+                <StatusChip tone="danger">
+                  {copy.summary.needsAttention(c.needsAttention)}
+                </StatusChip>
+              </button>
+            ) : null}
+            <ActionMenu
+              label={copy.more}
+              variant="outline"
+              size="md"
+              items={[{ label: copy.byNumberSheet.title, onSelect: () => setSheet('byNumber') }]}
+            />
             <Button variant="outline" onClick={() => setSheet('pickups')}>
               {copy.pickupsButton}
             </Button>
@@ -212,7 +207,7 @@ function ShipmentsContent() {
               {copy.courierSettings}
             </Button>
             <Button
-              onClick={() => setBooking(selected)}
+              onClick={() => handleBook(selected)}
               disabled={!canBook}
               title={canBook ? undefined : copy.bookSelectedHint}
             >
@@ -230,7 +225,7 @@ function ShipmentsContent() {
             heading={copy.noCourier.heading}
             body={copy.noCourier.body}
             action={
-              <Button nativeButton={false} render={<Link href={routes.apps.list()} />}>
+              <Button nativeButton={false} render={<Link href={routes.apps.store()} />}>
                 <Plus aria-hidden />
                 {copy.noCourier.browse}
               </Button>
@@ -245,25 +240,48 @@ function ShipmentsContent() {
             columns={shipmentColumns(copy, fmt, courierName, toBookCourier)}
             items={rows}
             getId={(r) => r.id}
-            href={(r) => routes.orders.detail(r.orderId)}
+            href={(r) => routes.orders.shipment(r.orderId)}
             rowActions={(r) => (
-              <RowMenu
-                items={[
-                  { label: copy.menu.viewOrder, href: routes.orders.detail(r.orderId) },
-                  ...(r.labelUrl ? [{ label: copy.menu.label, href: r.labelUrl }] : []),
-                  ...(r.trackingUrl ? [{ label: copy.menu.track, href: r.trackingUrl }] : []),
-                ]}
-              />
+              <span className="flex items-center gap-1">
+                {tab === 'toBook' ? (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      router.push(routes.orders.shipment(r.orderId))
+                    }}
+                  >
+                    {copy.shipNow}
+                  </Button>
+                ) : null}
+                <RowMenu
+                  items={[
+                    {
+                      label: copy.menu.viewOrder,
+                      href: routes.orders.detail(r.orderId),
+                      icon: AppWindow,
+                    },
+                    ...(r.labelUrl
+                      ? [{ label: copy.menu.label, href: r.labelUrl, icon: Printer, newTab: true }]
+                      : []),
+                    ...(r.trackingUrl
+                      ? [{ label: copy.menu.track, href: r.trackingUrl, icon: Truck, newTab: true }]
+                      : []),
+                  ]}
+                />
+              </span>
             )}
             loading={loading}
             query={query}
             onQueryChange={(q) => setQ({ query: q, page: 1 })}
-            tabs={
-              <PillTabs<ShipmentTab>
-                variant="segmented"
+            views={
+              <ViewSelect<ShipmentTab>
+                label={copy.viewLabel}
                 value={tab}
                 onChange={handleTab}
-                tabs={SHIPMENT_TABS.map((t) => ({
+                formatCount={fmt.number}
+                options={SHIPMENT_TABS.map((t) => ({
                   value: t,
                   label: copy.tabs[t],
                   ...(c ? { count: c[t] } : {}),
@@ -278,7 +296,7 @@ function ShipmentsContent() {
             selection={{ ids: selected, onChange: setSelected }}
             bulkActions={(ids) =>
               tab === 'toBook' ? (
-                <Button size="sm" onClick={() => setBooking(ids)}>
+                <Button size="sm" onClick={() => handleBook(ids)}>
                   <Truck aria-hidden />
                   {copy.bookSelected}
                 </Button>
@@ -293,9 +311,13 @@ function ShipmentsContent() {
           />
         </>
       )}
-      <BookDialog orderIds={booking} onClose={() => setBooking([])} onBooked={handleBooked} />
-      <ShipmentSheets open={sheet} onClose={handleSheetClose} onBooked={handleBooked} />
-    </OrdersListFrame>
+      <CreateShipmentDialog
+        orderIds={booking}
+        onClose={() => setBooking([])}
+        onBooked={handleBooked}
+      />
+      <ShipmentSheets open={sheet} onClose={handleSheetClose} onShip={handleShipFound} />
+    </ProoflyListPage>
   )
 }
 

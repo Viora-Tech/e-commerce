@@ -10,12 +10,14 @@ import {
   dispatchAppJobFailure,
   installedApps,
   isFinalJobFailure,
+  recordAppEventFailure,
   storageForStore,
   storeAppContext,
 } from '@commerce/core'
 import { getRegistries, registriesForStore } from '@commerce/core/registries'
 import { type Db, withStore } from '@commerce/db'
 import type { Attachment, TemplateId } from '@commerce/notifications'
+import { logger } from '@commerce/observability/logging'
 import {
   fairProcessor,
   type IORedis,
@@ -48,7 +50,7 @@ export function appDeps(db: Db, opts: AppOpts): DispatchDeps {
           opts.settingsSecret,
         ),
       ),
-    log: (message) => console.log(`[app] ${message}`),
+    log: (message) => logger.info(message, { area: 'app' }),
     notify: async (storeId, input) => {
       const results = await withStore(db, storeId, async (tx) =>
         deliverNotification(
@@ -84,13 +86,25 @@ export function appDeps(db: Db, opts: AppOpts): DispatchDeps {
 export function createAppEventWorker(connection: IORedis, db: Db, opts: AppOpts) {
   const deps = appDeps(db, opts)
   const { concurrency, perStore } = QUEUE_LIMITS.appEvents
-  return new Worker<AppEventJob>(
+  const worker = new Worker<AppEventJob>(
     APP_EVENTS_QUEUE,
     fairProcessor(connection, APP_EVENTS_QUEUE, { perStore }, async (job) =>
       dispatchAppEvent(deps, job.data),
     ),
     { connection, concurrency },
   )
+  // A hook that threw on every retry shows as the app's problem on the Installed apps list.
+  worker.on('failed', (job, error) => {
+    if (!job?.data || !isFinalJobFailure(job, error)) return
+    recordAppEventFailure(deps, job.data, error?.message ?? 'failed').catch((err) =>
+      logger.warn('app event failure could not be recorded', {
+        storeId: job.data.storeId,
+        pluginId: job.data.pluginId,
+        error: err,
+      }),
+    )
+  })
+  return worker
 }
 
 /**
@@ -112,7 +126,12 @@ export function createAppJobWorker(connection: IORedis, db: Db, opts: AppOpts) {
   worker.on('failed', (job, error) => {
     if (!job?.data || !isFinalJobFailure(job, error)) return
     dispatchAppJobFailure(deps, job.data, error?.message ?? 'failed').catch((err) =>
-      console.warn(`[app] ${job.data.pluginId}:${job.data.name} failure handler failed:`, err),
+      logger.warn('app job failure handler failed', {
+        storeId: job.data.storeId,
+        pluginId: job.data.pluginId,
+        jobName: job.data.name,
+        error: err,
+      }),
     )
   })
   return worker

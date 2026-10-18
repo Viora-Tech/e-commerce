@@ -7,6 +7,7 @@ import Link from 'next/link'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import DataCard from '@/components/layout/data-card'
+import KeyValueList, { type KeyValueRow } from '@/components/layout/key-value-list'
 import ProductThumb from '@/components/products/product-thumb'
 import { reviewsContent } from '@/data/reviews'
 import { useCopy } from '@/hooks/use-copy'
@@ -56,10 +57,15 @@ export default function ReviewSideCards({ detail, onChanged, onDeleted }: Review
   const copy = all.detail
   const p = detail.product
   const c = detail.customer
-  const rows: [string, string][] = [
-    [copy.customer.name, c.name],
-    [copy.customer.orders, String(c.orders)],
-    [copy.customer.reviews, String(c.reviews)],
+  const rows: KeyValueRow[] = [
+    { label: copy.customer.name, value: c.name },
+    { label: copy.customer.orders, value: String(c.orders) },
+    { label: copy.customer.reviews, value: String(c.reviews) },
+    {
+      label: copy.customer.bought,
+      value: c.boughtProduct ? copy.customer.yes : copy.customer.no,
+      tone: c.boughtProduct ? 'success' : 'default',
+    },
   ]
 
   return (
@@ -91,20 +97,7 @@ export default function ReviewSideCards({ detail, onChanged, onDeleted }: Review
         </DataCard>
       ) : null}
       <DataCard title={copy.customer.title}>
-        <dl className="flex flex-col gap-2 text-body">
-          {rows.map(([k, v]) => (
-            <div key={k} className="flex items-center justify-between gap-3">
-              <dt className="text-muted-foreground">{k}</dt>
-              <dd className="truncate">{v}</dd>
-            </div>
-          ))}
-          <div className="flex items-center justify-between gap-3">
-            <dt className="text-muted-foreground">{copy.customer.bought}</dt>
-            <dd className={c.boughtProduct ? 'text-success' : undefined}>
-              {c.boughtProduct ? copy.customer.yes : copy.customer.no}
-            </dd>
-          </div>
-        </dl>
+        <KeyValueList rows={rows} variant="grid" />
         {c.id ? (
           <Button
             variant="ghost"

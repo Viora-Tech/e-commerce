@@ -53,6 +53,8 @@ const aiShape = {
   AI_MODEL: optionalOrBlank(z.string().min(3)),
   /** Overrides the stronger model used for long writing when a store picks "Best" quality. Unset: the default in `MODEL_TIERS`. */
   AI_MODEL_STRONG: optionalOrBlank(z.string().min(3)),
+  /** Tool-calling rounds the assistant may take before it must answer (1-20). Unset: the feature default (6). */
+  AI_MAX_STEPS: optionalOrBlank(z.coerce.number().int().min(1).max(20)),
   /** Store slugs on the unlimited AI plan, comma-separated (the platform's own stores, e.g. `waimers`). */
   AI_UNLIMITED_STORES: commaList,
 }
@@ -219,6 +221,29 @@ const shape = z.object({
    */
   MERCHANT_GOOGLE_CLIENT_ID: optionalOrBlank(z.string().min(1)),
   MERCHANT_GOOGLE_CLIENT_SECRET: optionalOrBlank(z.string().min(1)),
+  /**
+   * The Google Search Console app's OAuth web client (scope `webmasters`). Both blank: the app
+   * uses the MERCHANT_GOOGLE_* client instead; set these to keep Search Console in its own
+   * Google Cloud project (its own consent screen and verification). The authorised redirect
+   * URI is `<ADMIN_URL>/api/apps/google-search-console/oauth/callback`.
+   */
+  GSC_GOOGLE_CLIENT_ID: optionalOrBlank(z.string().min(1)),
+  GSC_GOOGLE_CLIENT_SECRET: optionalOrBlank(z.string().min(1)),
+  /**
+   * Sales channels → Google: the Google Merchant Center connection's OAuth web client (scope
+   * `content`). Both blank: the MERCHANT_GOOGLE_* client is used. The authorised redirect URI is
+   * `<ADMIN_URL>/api/channels/google/callback`.
+   */
+  GMC_GOOGLE_CLIENT_ID: optionalOrBlank(z.string().min(1)),
+  GMC_GOOGLE_CLIENT_SECRET: optionalOrBlank(z.string().min(1)),
+  /**
+   * Sales channels → Facebook, Instagram and WhatsApp: the platform's Meta app (Facebook Login
+   * for Business, with catalog_management and business_management approved in App Review).
+   * Either blank keeps "Connect" as a request instead. The valid OAuth redirect URI is
+   * `<ADMIN_URL>/api/channels/meta/callback`.
+   */
+  META_APP_ID: optionalOrBlank(z.string().min(1)),
+  META_APP_SECRET: optionalOrBlank(z.string().min(1)),
   /** `<slug>.<PLATFORM_STORE_DOMAIN>` becomes a new store's primary domain. */
   PLATFORM_STORE_DOMAIN: z.string().min(1).default('waimers.store'),
   /**
@@ -245,12 +270,29 @@ const shape = z.object({
    * `platform-plan` gives the buyer's email a signup invite. Unset: nothing happens.
    */
   PLATFORM_SALES_STORE_ID: z.string().uuid().optional(),
+  /**
+   * UPI AutoPay for plans (Settings → Plan & billing): the platform's own Razorpay account with
+   * Subscriptions enabled. All three set turns AutoPay on. The webhook URL is
+   * `<ADMIN_URL>/api/billing/autopay-webhook` (events: subscription.*).
+   */
+  PLATFORM_RAZORPAY_KEY_ID: optionalOrBlank(z.string().min(1)),
+  PLATFORM_RAZORPAY_KEY_SECRET: optionalOrBlank(z.string().min(1)),
+  PLATFORM_RAZORPAY_WEBHOOK_SECRET: optionalOrBlank(z.string().min(1)),
   /** GlitchTip (or Sentry) DSN. Error tracking is entirely off, in every app, unless this is set. */
   SENTRY_DSN: z.string().url().optional(),
   /** Free-text environment tag on every event, e.g. production, staging. Defaults by NODE_ENV. */
   SENTRY_ENVIRONMENT: z.string().min(1).optional(),
   /** Release tag on every event, e.g. a git SHA. Unset means Sentry leaves it out. */
   SENTRY_RELEASE: z.string().min(1).optional(),
+  /**
+   * Structured logs (evlog): the full OTLP/HTTP logs URL, e.g. OpenObserve's
+   * `https://<host>/api/default/v1/logs`. Unset: logs go to stdout only. docs/ops/logging.md.
+   */
+  OTEL_EXPORTER_OTLP_LOGS_ENDPOINT: optionalOrBlank(z.url({ protocol: /^https?$/ })),
+  /** Headers for that endpoint, OTel style: `Authorization=Basic%20<base64>` (comma-separated, URL-encoded). */
+  OTEL_EXPORTER_OTLP_HEADERS: optionalOrBlank(z.string().min(1)),
+  /** Percent (0–100) of ordinary successful requests and jobs kept. Errors and slow ones are always kept. Default 20 in production, 100 elsewhere. */
+  LOG_SAMPLE_RATE: optionalOrBlank(z.coerce.number().min(0).max(100)),
   /** Cloudflare R2 credentials the backup script uploads to. Independent of a store's own R2 app config. */
   BACKUP_R2_ACCOUNT_ID: z.string().min(1).optional(),
   BACKUP_R2_ACCESS_KEY_ID: z.string().min(1).optional(),
@@ -353,6 +395,33 @@ export type PlatformEmailEnv = z.infer<typeof platformEmailSchema>
  */
 export function loadPlatformEmailEnv(source: Record<string, string | undefined>): PlatformEmailEnv {
   const result = platformEmailSchema.safeParse(source)
+  if (!result.success) {
+    const keys = result.error.issues.map((i) => i.path.join('.')).join(', ')
+    throw new Error(`Invalid environment: ${keys}`)
+  }
+  return result.data
+}
+
+const backupSchema = shape.pick({
+  DATABASE_URL_OWNER: true,
+  NODE_ENV: true,
+  BACKUP_ENCRYPTION_KEY: true,
+  BACKUP_R2_ACCOUNT_ID: true,
+  BACKUP_R2_ACCESS_KEY_ID: true,
+  BACKUP_R2_SECRET_ACCESS_KEY: true,
+  BACKUP_R2_BUCKET: true,
+  BACKUP_LOCAL_DIR: true,
+})
+
+export type BackupEnv = z.infer<typeof backupSchema>
+
+/**
+ * Only what `scripts/backup-db.ts` and `scripts/restore-db.ts` read: the backup job runs as its
+ * own small app and should not need the app's other secrets (SETTINGS_SECRET, REDIS_URL…) just
+ * to pass the full schema. Blank values count as unset, as in `loadEnv`. Key names only in errors.
+ */
+export function loadBackupEnv(source: Record<string, string | undefined>): BackupEnv {
+  const result = backupSchema.safeParse(withoutBlanks(source))
   if (!result.success) {
     const keys = result.error.issues.map((i) => i.path.join('.')).join(', ')
     throw new Error(`Invalid environment: ${keys}`)

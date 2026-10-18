@@ -1,17 +1,21 @@
 import {
   applyTracking,
+  type CreateShipmentOptions,
   cancelShipment,
   createShipmentForOrder,
   decryptShippingSettings,
   estimateForStore,
   mergeMaskedSecrets,
+  orderNumberLabel,
   parseShippingSettings,
   primaryShippingProvider,
   type RateLimitRule,
+  recordProviderActivity,
   type ShippingRegistry,
   type ShippingSettings,
   shippingProviderById,
 } from '@commerce/core'
+import { getRegistries } from '@commerce/core/registries'
 import type { StoreTx } from '@commerce/db'
 import { shipment, store } from '@commerce/db'
 import { CourierError, describeCourierFailure, isValidPincode } from '@commerce/shipping'
@@ -188,23 +192,50 @@ const courierToRpc = (err: unknown): never => {
   throw err
 }
 
+/** Book one order (or one of its parcels) with the courier the merchant picked; without a
+ *  pick, the store's first courier, as before the Create shipment flow. */
 export async function bookShipment(
   tx: StoreTx,
   storeId: string,
   registry: ShippingRegistry,
   secret: string,
   orderId: string,
+  choice: CreateShipmentOptions & { providerId?: string | undefined } = {},
 ) {
-  const provider = primaryShippingProvider(
-    registry,
-    await loadShippingSettings(tx, storeId),
-    secret,
-  )
+  const { providerId, ...options } = choice
+  const settings = await loadShippingSettings(tx, storeId)
+  const provider = providerId
+    ? shippingProviderById(registry, settings, secret, providerId)
+    : primaryShippingProvider(registry, settings, secret)
   if (!provider)
     throw new ORPCError('PRECONDITION_FAILED', {
-      message: 'Enable a courier in Settings › Shipping first.',
+      message: providerId
+        ? `Courier ${providerId} is no longer connected. Pick another one.`
+        : 'Enable a courier in Settings › Shipping first.',
     })
-  return createShipmentForOrder({ storeId, tx }, provider, orderId).catch(courierToRpc)
+  const row = await createShipmentForOrder({ storeId, tx }, provider, orderId, options).catch(
+    courierToRpc,
+  )
+  await noteShipmentBooked(tx, storeId, provider.id, orderId)
+  return row
+}
+
+/** "Booked shipment for #1187" as the courier app's last activity on the Installed apps list. */
+export async function noteShipmentBooked(
+  tx: StoreTx,
+  storeId: string,
+  providerId: string,
+  orderId: string,
+): Promise<void> {
+  const label = await orderNumberLabel(tx, orderId)
+  await recordProviderActivity(
+    tx,
+    storeId,
+    getRegistries().owners,
+    'shipping',
+    providerId,
+    label ? `Booked shipment for ${label}` : 'Booked a shipment',
+  )
 }
 
 export async function refreshShipmentTracking(

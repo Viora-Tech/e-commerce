@@ -335,6 +335,40 @@ to Shopify's with an `adjustment` transaction unless the card has a `debit` here
 `REQUIRED_SCOPES` / `ALL_SCOPE_HANDLES` in `src/client.ts`; **Test connection** compares them
 with `currentAppInstallation.accessScopes`. New in this round: `read_files`,
 `read_metaobject_definitions`, `read_metaobjects`, `read_discounts`, `read_gift_cards`.
+Store settings added `read_shipping` and `read_legal_policies`; locations are read with the
+`read_inventory` the importer already asks for.
+
+## Store settings
+
+A separate step (admin page `settings`, router `shopifyImport.settingsPreview` /
+`importSettings`), not a run: it is a handful of queries, so it answers in the request and
+keeps no run row. Seven parts (`SETTINGS_PARTS` in `src/settings-client.ts`):
+
+| File | Job |
+| --- | --- |
+| `api-settings.ts` | Reads each part on its own (`Read<T>`); an `ACCESS_DENIED` is `access: true`, so the part says "reconnect" instead of failing the rest |
+| `settings-plan.ts` | Shared shapes (`LocalSettings`, `SettingsOp`), store details, tax, locations |
+| `settings-plan-shipping.ts`, `settings-plan-content.ts` | Shipping and packages; policies and extra field definitions |
+| `settings-import.ts` | Loads this store's side, plans, and on import re-reads Shopify and applies each part's ops in its own savepoint |
+| core `settings/store-profile.ts` | `readStoreProfile`, `saveStoreProfile` (only the fields given), `saveLocationDetails` |
+
+Every plan line is codes (`action`, `subject`, `reason`), turned into words by
+`data/shopify-import-settings.ts`. Rules that keep it safe:
+
+- Currency, time zone and weight unit are compared and warned about, never written.
+- A GST registration already here is never replaced (`conflict`). Shopify has no API field for
+  the GSTIN; one is taken only from a shop metafield whose value passes `validateGstin`.
+- New locations are created with `saveLocationDetails`: no stock, not the default, not selling
+  online. Shopify's first shipping location only takes over the store's first location while it
+  still has the generic name `Default location`.
+- Shipping maps only the default delivery profile. Shopify's upper bounds are inclusive and ours
+  exclusive, so a `<=` bound becomes `max + 1` (paise or grams). A rate the merchant already has
+  (same name) keeps its id, COD fee, free-above and delivery days.
+- Saved packages cannot be read over the Admin API (only update/delete mutations exist), so that
+  part only says so.
+- Matches are stored in `shopify_import_mapping` (`settings_locations`,
+  `settings_shipping_zones`, and `metafield_definitions` shared with the main import), so a second
+  import plans only `same` lines.
 
 ## Tests
 
@@ -343,6 +377,10 @@ re-run against a fake Admin API (`test/fixtures/everything.ts`): no real Shopify
 downloads. It checks the counts and `left` reasons of the preview, every written row, the
 second-pass links, and that a re-run updates instead of duplicating; a second test refuses the
 gift card scope and expects the rest to import.
+
+`test/settings-plan.test.ts` feeds recorded settings answers (`test/fixtures/settings.ts`)
+through the real reader and planners, with no database: it applies each plan's ops to an
+in-memory store and checks that planning again changes nothing.
 
 `test/snapshot.test.ts` uses a stateful fake (`test/fixtures/fake-shopify.ts`) that answers bulk
 exports and `updated_at` searches: the preview keeps its copy, a fresh copy means no bulk

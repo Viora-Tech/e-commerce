@@ -80,3 +80,12 @@
     max-width: 18ch;
   }
 }
+
+/* Figma Store / Breadcrumb: 14px, muted links, the page itself in ink, 24px above the page. */
+.breadcrumbs {
+  margin-bottom: var(--space-5);
+}
+
+.breadcrumbs__list {
+  font-size: 14px;
+}

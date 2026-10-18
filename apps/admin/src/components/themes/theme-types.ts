@@ -7,6 +7,10 @@ export type ThemeItem = Awaited<ReturnType<typeof api.themes.list>>[number]
 export const previewUrl = (origin: string, token: string, path = '/'): string =>
   `${origin}${path}?theme-preview=${encodeURIComponent(token)}`
 
+/** The theme's preview link opened on one saved version (Version history › Preview). */
+export const versionPreviewUrl = (origin: string, token: string, batchId: string): string =>
+  `${previewUrl(origin, token)}&theme-version=${encodeURIComponent(batchId)}`
+
 /** "Last saved today, 6:08 pm by Asha", or without the name for themes saved before it was kept. */
 export const savedLine = (
   copy: { lastSaved: (when: string) => string; savedBy: (saved: string, who: string) => string },

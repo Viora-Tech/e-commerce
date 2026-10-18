@@ -1,5 +1,6 @@
 import { installedApps } from '@commerce/core'
 import { type Db, storesWithDueReviewRequests, withStore } from '@commerce/db'
+import { logger } from '@commerce/observability/logging'
 import {
   loadReviewsSettings,
   queueDueReviewRequests,
@@ -33,10 +34,10 @@ export function createReviewRequestSweep(connection: IORedis, db: Db) {
           counts.requests += r.requests
           counts.reminders += r.reminders
         } catch (err) {
-          console.warn(`[reviews] store ${storeId} failed:`, err)
+          logger.warn('review request sweep failed', { storeId, error: err })
         }
       }
-      if (counts.requests || counts.reminders) console.log('[reviews]', counts)
+      if (counts.requests || counts.reminders) logger.info('review requests queued', counts)
       return { stores: storeIds.length, ...counts }
     },
     { connection },

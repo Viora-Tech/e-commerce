@@ -1,18 +1,14 @@
 'use client'
 
 import { siteConfig } from '@commerce/config/site'
-import { CheckIcon, MoreVertical, Plus } from '@commerce/ui/icons'
+import type { AppAccess } from '@commerce/core/billing'
+import { CheckIcon, Plus } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@commerce/ui/shadcn/dropdown-menu'
 import Link from 'next/link'
+import ActionMenu from '@/components/layout/action-menu'
 import StatusChip from '@/components/layout/status-chip'
 import { type AppKind, appsContent } from '@/data/apps'
-import { useCopy } from '@/hooks/use-copy'
+import { useCopy, useFormat } from '@/hooks/use-copy'
 import { routes } from '@/lib/routes'
 import AppLogo from './app-logo'
 
@@ -37,7 +33,28 @@ export type AppSummary = {
   admin: { icon: string | null; pages: { path: string; navLabel?: string | undefined }[] }
   /** Open-source projects the app is built on, credited on the card. */
   credits: { name: string; url: string; license: string; note?: string | undefined }[]
+  /** What the app declares it can see and do, and what it sends to its outside service. */
+  access: {
+    resources: { resource: string; level: AccessLevel; why: string }[]
+    summary: string | null
+    shares: { when: string; what: string }[]
+  }
+  /** Null when not installed. */
+  status: 'connected' | 'needsSetup' | 'error' | null
+  /** The recorded failure behind `error`, in words. */
+  problem: string | null
+  installedAt: string | null
+  installedBy: string | null
+  lastActivity: string | null
+  lastActivityAt: string | null
+  /** `flow`: the install flow connects the account first. `page`: it connects on its own page. */
+  connectsIn: 'flow' | 'page' | null
+  canDisconnect: boolean
+  /** Paid apps: free, included in the plan, bought until a date, or to buy. */
+  billing: AppAccess
 }
+
+export type AccessLevel = 'read' | 'write' | 'read-write'
 
 type AppCardProps = {
   app: AppSummary
@@ -50,6 +67,9 @@ type AppCardProps = {
 }
 
 const KINDS = Object.keys(appsContent.kinds) as AppKind[]
+
+/** Plan names are brand names, the same in every language. */
+const PLAN_NAMES = { starter: 'Starter', growth: 'Growth', pro: 'Pro' } as const
 
 /** Kinds this plugin contributes to, in settings-page order. */
 function providedKinds(app: AppSummary): AppKind[] {
@@ -65,6 +85,7 @@ export function needsSetup(app: AppSummary): boolean {
 export default function AppCard({ app, variant, busy, onInstall, onUninstall }: AppCardProps) {
   // Hooks
   const copy = useCopy(appsContent)
+  const format = useFormat()
 
   // Render logic
   const kinds = providedKinds(app)
@@ -115,6 +136,15 @@ export default function AppCard({ app, variant, busy, onInstall, onUninstall }: 
       {app.description ? (
         <p className="text-body text-muted-foreground">{app.description}</p>
       ) : null}
+      {variant === 'store' && app.billing.state !== 'free' ? (
+        <p className="text-caption text-muted-foreground">
+          {app.billing.state === 'buy'
+            ? `${copy.store.pricePerMonth(format.money(app.billing.pricePaise))} · ${copy.store.includedFrom(PLAN_NAMES[app.billing.includedFrom])}`
+            : app.billing.state === 'included'
+              ? copy.store.includedInPlan
+              : copy.store.boughtUntil(format.date(app.billing.until))}
+        </p>
+      ) : null}
       <div className="relative z-10 mt-auto flex items-center gap-2 pt-1">
         {app.installed ? (
           <>
@@ -129,19 +159,15 @@ export default function AppCard({ app, variant, busy, onInstall, onUninstall }: 
                 {attention ? copy.needsSetup : openLabel}
               </Button>
             ) : null}
-            <DropdownMenu>
-              <DropdownMenuTrigger
-                aria-label={copy.gallery.kebabLabel(app.name)}
-                className="ml-auto flex size-8 shrink-0 items-center justify-center rounded-[0.625rem] text-muted-foreground hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-              >
-                <MoreVertical className="size-4" aria-hidden="true" />
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-44">
-                <DropdownMenuItem variant="destructive" onClick={() => onUninstall(app)}>
-                  {copy.uninstall}
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+            <ActionMenu
+              label={copy.gallery.kebabLabel(app.name)}
+              trigger="kebab-vertical"
+              size="md"
+              triggerClassName="ml-auto"
+              items={[
+                { label: copy.uninstall, destructive: true, onSelect: () => onUninstall(app) },
+              ]}
+            />
           </>
         ) : (
           <Button variant="outline" loading={busy} onClick={() => onInstall(app)}>

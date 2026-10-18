@@ -1,20 +1,20 @@
 'use client'
 
-import { Braces, Pencil, SquarePlus, Trash2 } from '@commerce/ui/icons'
+import { Braces, Pencil, Plus, Trash2 } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
+import ConfirmDialog from '@/components/layout/confirm-dialog'
 import EmptyState from '@/components/layout/empty-state'
+import PageHeader from '@/components/layout/page-header'
 import ProoflyDetailPage from '@/components/layout/proofly-detail-page'
-import ProoflyPageHeader from '@/components/layout/proofly-page-header'
 import StatusChip from '@/components/layout/status-chip'
 import ResourceTable, { type ResourceColumnSpec } from '@/components/table/resource-table'
 import { entryListContent } from '@/data/metaobjects'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 import { routes } from '@/lib/routes'
-import ConfirmDelete from './confirm-delete'
 import { entriesPath, type LoadedDefinition } from './form-state'
 
 type EntriesResult = Awaited<ReturnType<typeof api.metaobjects.entries>>
@@ -44,7 +44,7 @@ const columnsFor = (
     className: 'w-96 px-3 whitespace-normal',
     render: (e) => (
       <span className="flex min-w-0 flex-col text-left">
-        <span className="line-clamp-2 font-medium text-ink-strong">{e.displayName}</span>
+        <span className="line-clamp-2 text-ink-strong">{e.displayName}</span>
         <span className="truncate text-caption text-muted-foreground">{e.handle}</span>
       </span>
     ),
@@ -54,7 +54,11 @@ const columnsFor = (
     title: copy.columns.status,
     sortValue: (e) => e.status,
     align: 'center',
-    render: (e) => <StatusChip>{copy.status[e.status]}</StatusChip>,
+    render: (e) => (
+      <StatusChip tone={e.status === 'active' ? 'success' : 'neutral'}>
+        {copy.status[e.status]}
+      </StatusChip>
+    ),
   },
   {
     id: 'updated',
@@ -134,14 +138,14 @@ export default function EntriesPage({ definition, initial, initialPerPage }: Ent
   return (
     <ProoflyDetailPage
       header={
-        <ProoflyPageHeader
+        <PageHeader
           title={definition.name}
           summary={definition.description ?? copy.summary(definition.entries)}
           back={{ label: copy.back, href: routes.content.contentTypes() }}
           actions={
             <>
               <Button
-                variant="key-neutral"
+                variant="outline"
                 render={<Link href={routes.content.contentTypeDefinition(definition.type)} />}
                 nativeButton={false}
               >
@@ -150,7 +154,7 @@ export default function EntriesPage({ definition, initial, initialPerPage }: Ent
               </Button>
               {hasFields && definition.entries > 0 ? (
                 <Button render={<Link href={addHref} />} nativeButton={false}>
-                  <SquarePlus strokeWidth={1.6} />
+                  <Plus strokeWidth={1.6} />
                   {copy.add}
                 </Button>
               ) : null}
@@ -183,7 +187,7 @@ export default function EntriesPage({ definition, initial, initialPerPage }: Ent
               body={copy.empty.body}
               action={
                 <Button render={<Link href={addHref} />} nativeButton={false}>
-                  <SquarePlus strokeWidth={1.6} />
+                  <Plus strokeWidth={1.6} />
                   {copy.add}
                 </Button>
               }
@@ -220,15 +224,15 @@ export default function EntriesPage({ definition, initial, initialPerPage }: Ent
         )
       }
     >
-      <ConfirmDelete
+      <ConfirmDialog
         open={deleting !== null}
-        busy={busy}
+        onOpenChange={(open) => !open && setDeleting(null)}
         title={copy.bulk.confirmTitle(deleting?.ids.length ?? 0)}
         body={copy.bulk.confirmBody}
-        confirm={copy.bulk.confirm}
-        cancel={copy.bulk.cancel}
-        onOpenChange={(open) => !open && setDeleting(null)}
-        onConfirm={handleConfirmDelete}
+        confirmLabel={copy.bulk.confirm}
+        cancelLabel={copy.bulk.cancel}
+        busy={busy}
+        onConfirm={() => void handleConfirmDelete()}
       />
     </ProoflyDetailPage>
   )

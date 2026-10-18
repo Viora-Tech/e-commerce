@@ -1,6 +1,6 @@
 'use client'
 
-import StatTile from '@/components/layout/stat-tile'
+import StatStrip from '@/components/layout/stat-strip'
 import { collectionsListContent } from '@/data/collections'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import type { api } from '@/lib/api-client'
@@ -21,37 +21,40 @@ export default function CollectionTiles({ stats, tab, onSelect }: CollectionTile
   const fmt = useFormat()
 
   // Render logic
-  const toggle = (next: CollectionTab) => onSelect(tab === next ? null : next)
-
   return (
-    <>
-      <StatTile
-        label={copy.tiles.all}
-        value={fmt.number(stats.total)}
-        active={tab === null}
-        onSelect={() => onSelect(null)}
-      />
-      <StatTile
-        label={copy.tiles.automatic}
-        value={fmt.number(stats.automatic)}
-        trendNote={copy.tiles.automaticNote}
-        active={tab === 'automatic'}
-        onSelect={() => toggle('automatic')}
-      />
-      <StatTile
-        label={copy.tiles.manual}
-        value={fmt.number(stats.manual)}
-        trendNote={copy.tiles.manualNote}
-        active={tab === 'manual'}
-        onSelect={() => toggle('manual')}
-      />
-      <StatTile
-        label={copy.tiles.empty}
-        value={fmt.number(stats.empty)}
-        trendNote={copy.tiles.emptyNote}
-        active={tab === 'empty'}
-        onSelect={() => toggle('empty')}
-      />
-    </>
+    <StatStrip
+      active={tab}
+      onChange={onSelect}
+      tiles={[
+        {
+          id: 'all',
+          label: copy.tiles.all,
+          value: fmt.number(stats.total),
+          note: copy.tiles.allNote,
+          filter: null,
+        },
+        {
+          id: 'automatic',
+          label: copy.tiles.automatic,
+          value: fmt.number(stats.automatic),
+          note: copy.tiles.automaticNote,
+          filter: 'automatic',
+        },
+        {
+          id: 'manual',
+          label: copy.tiles.manual,
+          value: fmt.number(stats.manual),
+          note: copy.tiles.manualNote,
+          filter: 'manual',
+        },
+        {
+          id: 'empty',
+          label: copy.tiles.empty,
+          value: fmt.number(stats.empty),
+          note: copy.tiles.emptyNote,
+          filter: 'empty',
+        },
+      ]}
+    />
   )
 }

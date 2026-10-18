@@ -67,3 +67,65 @@
     padding: var(--space-8) calc(var(--page-margin) * 2);
   }
 }
+
+/* ---- Figma Section / Product features (706:4919), card look ---------- */
+/* A centred title over a row of surface cards: a 36px icon tile, the title and a
+   short muted line. */
+.product-features__heading {
+  margin: 0 0 var(--space-7);
+  font-size: calc(2rem * var(--font-heading-scale, 1));
+  line-height: 1.1;
+  letter-spacing: -0.015em;
+  text-align: center;
+}
+
+.section-product-features--cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(14rem, 100%), 1fr));
+  gap: var(--space-5);
+}
+
+.section-product-features--cards .product-features__heading {
+  grid-column: 1 / -1;
+}
+
+.section-product-features--cards .product-feature,
+.section-product-features--cards .product-feature--image-right {
+  flex-direction: column;
+  gap: var(--space-4);
+  padding: var(--space-5);
+  border-radius: var(--radius-card, var(--radius-m));
+  background-color: var(--color-surface);
+}
+
+.section-product-features--cards .product-feature__media {
+  flex: none;
+  width: 36px;
+  height: 36px;
+  min-height: 0;
+  aspect-ratio: auto;
+  border-radius: var(--radius-m);
+  background-color: color-mix(in srgb, var(--color-ink) 8%, transparent);
+}
+
+.section-product-features--cards .product-feature__content {
+  flex: none;
+  gap: 6px;
+  padding: 0;
+}
+
+.section-product-features--cards .product-feature__heading {
+  font-size: calc(1.125rem * var(--font-heading-scale, 1));
+  line-height: 1.3;
+}
+
+.section-product-features--cards .product-feature__text {
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+@media screen and (min-width: 990px) {
+  .product-features__heading {
+    font-size: calc(2.5rem * var(--font-heading-scale, 1));
+  }
+}

@@ -64,6 +64,27 @@ export const customizeContent = {
     offTitle: 'AI is not set up for this store',
     offBody: 'Turn on the AI assistant in Settings → AI to ask it about this page.',
     offAction: 'Open AI settings',
+    builder: {
+      title: 'Build a section',
+      help: 'Describe it. AI picks a section from the library and writes its words.',
+      label: 'Describe the section',
+      placeholder: 'For example: three reasons to buy our handmade candles',
+      propose: 'Build section',
+      proposing: 'Building…',
+      add: 'Add to page',
+      again: 'Try again',
+      dismiss: 'Dismiss',
+      after: 'Add your own images and links once it is on the page.',
+      added: (name: string) => `${name} added. Save the page to keep it.`,
+      failed: 'Could not build a section this time',
+      credits: 'Uses AI credits',
+      types: {
+        ImageBanner: 'Image banner',
+        ImageWithText: 'Image with text',
+        Multicolumn: 'Multicolumn',
+        Faq: 'FAQ',
+      },
+    },
   },
   help: {
     shortcuts: 'Keyboard shortcuts',
@@ -77,6 +98,7 @@ export const customizeContent = {
       duplicate: 'Duplicate selected',
       copy: 'Copy selected',
       paste: 'Paste',
+      hide: 'Hide or show selected',
       move: 'Move up or down',
       remove: 'Remove selected',
       deselect: 'Deselect',
@@ -126,9 +148,60 @@ export const customizeContent = {
       brand: 'Logo & favicon',
       layout: 'Layout',
       cards: 'Product cards',
+      cart: 'Cart',
+      social: 'Social media',
+      css: 'Custom CSS',
       checkout: 'Checkout branding',
     },
     newTab: 'Opens in a new tab',
+    intro: 'Apply to every page and block. Changing one restyles the whole store.',
+    preset: 'Preset',
+    scheme: 'Scheme',
+    schemes: { light: 'Light', dark: 'Dark' },
+    presetApplied: (name: string) =>
+      `${name} preset applied. Your own colours and fonts were replaced.`,
+    undo: 'Undo',
+    back: 'Theme settings',
+    open: (name: string) => `Open ${name}`,
+    help: {
+      colours: 'Brand, accent, background, text and buttons, for light and dark pages.',
+      typography: 'The fonts and sizes every heading and paragraph uses.',
+      buttons: 'How every button on the store looks.',
+      layout: 'How wide pages are and how much room sits between sections.',
+      cards: 'Used in every product grid, carousel and search result.',
+      cart: 'What the bag in the header opens, and the free shipping bar.',
+      social:
+        'Your profiles. The footer and announcement bar show them unless a section has its own.',
+      css: 'Your own CSS, added after the theme’s on every page. A section can also have its own (Section settings → Advanced).',
+      brand: 'Your logo in the header and the icon in the browser tab.',
+    },
+    summary: {
+      colours: 'Brand, accent, background, text, buttons',
+      typography: (heading: string, body: string, size: string) =>
+        `${heading} / ${body} · size ${size}`,
+      buttons: (style: string, corners: string) => `${style} · ${corners} corners`,
+      layout: (width: number, spacing: string) =>
+        `Page width ${width} · section spacing ${spacing}`,
+      cards: (ratio: string, extras: string[]) => [ratio, ...extras].join(' · '),
+      vendor: 'vendor',
+      saleBadge: 'sale badge',
+      hoverImage: 'second image',
+      quickAdd: 'quick add',
+      rating: 'rating',
+      wishlist: 'wishlist',
+      minimal: 'Minimal',
+      standard: 'Standard',
+      cart: (type: 'drawer' | 'page', bar: boolean) =>
+        [type === 'drawer' ? 'Drawer' : 'Cart page', bar ? 'free shipping bar' : null]
+          .filter(Boolean)
+          .join(' · '),
+      social: (names: string[]) => (names.length ? names.join(', ') : 'None added yet'),
+      css: (lines: number) => (lines ? `${lines} ${lines === 1 ? 'line' : 'lines'}` : 'None'),
+      brand: (logo: string | null, favicon: string | null) =>
+        [logo ?? 'No logo yet', favicon].filter(Boolean).join(' · '),
+      checkout: 'Opens Settings › Checkout',
+      cornersCustom: 'Custom',
+    },
   },
   pageSettings: {
     title: 'Page title',
@@ -352,6 +425,58 @@ export const customizeContent = {
     saving: 'Saving',
     saved: (name: string) => `${name} saved to My sections`,
     failed: 'Could not save the section',
+  },
+  /** Version history beside the canvas (Figma 697:4526). */
+  versions: {
+    title: 'Version history',
+    body: (name: string) =>
+      `Each time ${name} went live: when it was published, and each save of the live theme. The newest 20 of each page are kept.`,
+    now: 'Now',
+    current: 'Current draft',
+    live: 'Live',
+    published: 'Published',
+    saved: 'Saved',
+    preview: 'Preview',
+    previewHelp: 'Opens this version of the store in a new tab',
+    restore: 'Restore',
+    restored: 'Restored as your draft. Nothing goes live until you publish.',
+    restoreFailed: 'Could not restore that version',
+    loading: 'Loading versions',
+    failed: 'Could not load versions',
+    empty: 'No versions yet. One is kept the next time this theme goes live.',
+    close: 'Close version history',
+  },
+  /** "Add block" inside a section (Figma 696:87552). */
+  addBlock: {
+    search: 'Search blocks',
+    groups: { text: 'Text', media: 'Media', layout: 'Layout' },
+    labels: { VideoPlayer: 'Video', ProductCard: 'Product card', CustomHtml: 'Embed' } as Record<
+      string,
+      string
+    >,
+    empty: 'No blocks match',
+    after: (parent: string, block: string) => `Goes inside ${parent}, after ${block}`,
+    first: (parent: string) => `Goes inside ${parent}, at the start`,
+  },
+  /** The toast after a section is removed (Figma 697:2969). */
+  removed: {
+    title: (name: string) => `${name} removed`,
+    body: 'Undo puts it back where it was.',
+    undo: 'Undo',
+  },
+  /** Publish confirmation (Figma 697:3994). */
+  publishDialog: {
+    title: (name: string) => `Publish ${name}?`,
+    body: (live: string, domain: string) =>
+      `It replaces ${live} on ${domain}. Visitors see it right away.`,
+    bodyNoLive: (domain: string) => `It goes live on ${domain}. Visitors see it right away.`,
+    liveNow: 'Live now',
+    after: 'After publishing',
+    saveFirst: 'Save your changes before publishing. We save them first.',
+    goBack: 'You can go back from Version history at any time.',
+    cancel: 'Cancel',
+    publish: 'Publish',
+    saveAndPublish: 'Save and publish',
   },
   clipboard: {
     copied: (name: string) => `${name} copied`,

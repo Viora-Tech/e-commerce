@@ -1,11 +1,11 @@
 'use client'
 
-import { Card, CardContent, CardHeader, CardTitle } from '@commerce/ui/shadcn/card'
 import { Checkbox } from '@commerce/ui/shadcn/checkbox'
 import { Field, FieldDescription, FieldGroup, FieldLabel } from '@commerce/ui/shadcn/field'
 import { Input } from '@commerce/ui/shadcn/input'
 import { RadioGroup, RadioGroupItem } from '@commerce/ui/shadcn/radio-group'
 import MoneyInput from '@/components/fields/money-input'
+import DataCard from '@/components/layout/data-card'
 import { discountFormContent } from '@/data/discounts'
 import type { DiscountFormState } from './form-state'
 
@@ -25,98 +25,83 @@ const eligibility = discountFormContent.eligibility
 export default function ConditionsCard({ form, onChange }: ConditionsCardProps) {
   return (
     <>
-      <Card size="form">
-        <CardHeader>
-          <CardTitle>{minimum.heading}</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <FieldGroup>
-            <RadioGroup
-              value={form.hasMinimum ? 'subtotal' : 'none'}
-              onValueChange={(v) => onChange({ hasMinimum: v === 'subtotal' })}
-              className="gap-2"
-            >
-              <FieldLabel htmlFor="min-none" className="flex items-center gap-2 font-normal">
-                <RadioGroupItem id="min-none" value="none" />
-                {minimum.none}
-              </FieldLabel>
-              <FieldLabel htmlFor="min-subtotal" className="flex items-center gap-2 font-normal">
-                <RadioGroupItem id="min-subtotal" value="subtotal" />
-                {minimum.subtotal}
-              </FieldLabel>
-            </RadioGroup>
-            {form.hasMinimum ? (
-              <Field className="max-w-xs">
-                <MoneyInput
-                  size="lg"
-                  aria-label={minimum.subtotal}
-                  value={form.minSubtotal}
-                  onChange={(minSubtotal) => onChange({ minSubtotal })}
-                />
-                <FieldDescription>{minimum.subtotalHelp}</FieldDescription>
-              </Field>
-            ) : null}
-          </FieldGroup>
-        </CardContent>
-      </Card>
-
-      <Card size="form">
-        <CardHeader>
-          <CardTitle>{eligibility.heading}</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p className="text-body text-muted-foreground">{eligibility.body}</p>
-        </CardContent>
-      </Card>
-
-      <Card size="form">
-        <CardHeader>
-          <CardTitle>{usage.heading}</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <FieldGroup>
-            <Field orientation="horizontal">
-              <Checkbox
-                id="limit-total"
-                checked={form.limitTotal}
-                onCheckedChange={(v) => onChange({ limitTotal: Boolean(v) })}
+      <DataCard title={minimum.heading}>
+        <FieldGroup>
+          <RadioGroup
+            value={form.hasMinimum ? 'subtotal' : 'none'}
+            onValueChange={(v) => onChange({ hasMinimum: v === 'subtotal' })}
+            className="gap-2"
+          >
+            <FieldLabel htmlFor="min-none" className="flex items-center gap-2 font-normal">
+              <RadioGroupItem id="min-none" value="none" />
+              {minimum.none}
+            </FieldLabel>
+            <FieldLabel htmlFor="min-subtotal" className="flex items-center gap-2 font-normal">
+              <RadioGroupItem id="min-subtotal" value="subtotal" />
+              {minimum.subtotal}
+            </FieldLabel>
+          </RadioGroup>
+          {form.hasMinimum ? (
+            <Field className="max-w-xs">
+              <MoneyInput
+                size="lg"
+                aria-label={minimum.subtotal}
+                value={form.minSubtotal}
+                onChange={(minSubtotal) => onChange({ minSubtotal })}
               />
-              <FieldLabel htmlFor="limit-total" className="font-normal">
-                {usage.total}
-              </FieldLabel>
+              <FieldDescription>{minimum.subtotalHelp}</FieldDescription>
             </Field>
-            {form.limitTotal ? (
-              <Field className="max-w-xs">
-                <FieldLabel htmlFor="usage-limit" className="sr-only">
-                  {usage.totalLabel}
-                </FieldLabel>
-                <Input
-                  size="lg"
-                  id="usage-limit"
-                  type="number"
-                  inputMode="numeric"
-                  min={1}
-                  value={form.usageLimit}
-                  onChange={(e) => onChange({ usageLimit: e.target.value })}
-                />
-              </Field>
-            ) : null}
-            <Field orientation="horizontal">
-              <Checkbox
-                id="one-per-customer"
-                checked={form.onePerCustomer}
-                onCheckedChange={(v) => onChange({ onePerCustomer: Boolean(v) })}
+          ) : null}
+        </FieldGroup>
+      </DataCard>
+
+      <DataCard title={eligibility.heading}>
+        <p className="text-body text-muted-foreground">{eligibility.body}</p>
+      </DataCard>
+
+      <DataCard title={usage.heading}>
+        <FieldGroup>
+          <Field orientation="horizontal">
+            <Checkbox
+              id="limit-total"
+              checked={form.limitTotal}
+              onCheckedChange={(v) => onChange({ limitTotal: Boolean(v) })}
+            />
+            <FieldLabel htmlFor="limit-total" className="font-normal">
+              {usage.total}
+            </FieldLabel>
+          </Field>
+          {form.limitTotal ? (
+            <Field className="max-w-xs">
+              <FieldLabel htmlFor="usage-limit" className="sr-only">
+                {usage.totalLabel}
+              </FieldLabel>
+              <Input
+                size="lg"
+                id="usage-limit"
+                type="number"
+                inputMode="numeric"
+                min={1}
+                value={form.usageLimit}
+                onChange={(e) => onChange({ usageLimit: e.target.value })}
               />
-              <FieldLabel htmlFor="one-per-customer" className="font-normal">
-                {usage.perCustomer}
-              </FieldLabel>
             </Field>
-            {form.onePerCustomer ? (
-              <FieldDescription>{usage.perCustomerHelp}</FieldDescription>
-            ) : null}
-          </FieldGroup>
-        </CardContent>
-      </Card>
+          ) : null}
+          <Field orientation="horizontal">
+            <Checkbox
+              id="one-per-customer"
+              checked={form.onePerCustomer}
+              onCheckedChange={(v) => onChange({ onePerCustomer: Boolean(v) })}
+            />
+            <FieldLabel htmlFor="one-per-customer" className="font-normal">
+              {usage.perCustomer}
+            </FieldLabel>
+          </Field>
+          {form.onePerCustomer ? (
+            <FieldDescription>{usage.perCustomerHelp}</FieldDescription>
+          ) : null}
+        </FieldGroup>
+      </DataCard>
     </>
   )
 }

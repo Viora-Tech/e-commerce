@@ -7,6 +7,7 @@ import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import KitIconButton from '@/components/kit/kit-icon-button'
 import KitSearch from '@/components/kit/kit-search'
+import EmptyState from '@/components/layout/empty-state'
 import StatusLabel from '@/components/status/status-label'
 import { inboundShipmentFormContent } from '@/data/purchasing'
 import { useCopy } from '@/hooks/use-copy'
@@ -116,9 +117,12 @@ export default function ShipmentOrdersCard({
         ) : null}
       </CardContent>
       {orders.length === 0 ? (
-        <p className="border-line border-t px-5 py-8 text-center text-body text-muted-foreground">
-          {copy.empty}
-        </p>
+        <EmptyState
+          variant="plain"
+          size="md"
+          className="border-line border-t px-5"
+          body={copy.empty}
+        />
       ) : (
         <ul className="flex flex-col border-line border-t">
           {orders.map((o) => (

@@ -9,6 +9,7 @@ import {
   SelectValue,
 } from '@commerce/ui/shadcn/select'
 import ConnectFields, { type ConnectFieldSpec } from '@/components/apps/shared/connect-fields'
+import CourierConnectAside from '@/components/apps/shared/courier-connect-aside'
 import CourierConnectGuide from '@/components/apps/shared/courier-connect-guide'
 import ProviderConnectPage, {
   type ConnectContext,
@@ -97,7 +98,7 @@ const renderFields = ({ values, setField, lastPassed }: Ctx) => {
           </Select>
         ) : undefined,
     },
-    { key: 'originPincode', inputMode: 'numeric', ...copy.fields.originPincode },
+    { key: 'originPincode', inputMode: 'numeric', pincode: true, ...copy.fields.originPincode },
   ]
   return <ConnectFields providerId={PROVIDER_ID} specs={specs} values={values} onField={setField} />
 }
@@ -109,6 +110,10 @@ const renderExtras = ({ values, setField, advancedOpen, onAdvancedOpenChange }: 
     open={advancedOpen}
     onOpenChange={onAdvancedOpenChange}
   />
+)
+
+const renderAside = (ctx: Ctx) => (
+  <CourierConnectAside providerId={PROVIDER_ID} ctx={ctx} pickupKey="pickupAddressName" />
 )
 
 /** `/apps/rapidshyp/connect`: a 3-step guide, a read-only "Test connection" check (which also
@@ -127,6 +132,7 @@ export default function ConnectPage() {
       guide={renderGuide}
       fields={renderFields}
       extras={renderExtras}
+      aside={renderAside}
     />
   )
 }

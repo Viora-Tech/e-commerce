@@ -7,14 +7,15 @@ import { Button } from '@commerce/ui/shadcn/button'
 import Link from 'next/link'
 import { useState } from 'react'
 import EmptyState from '@/components/layout/empty-state'
+import PageHeader from '@/components/layout/page-header'
 import StatusChip from '@/components/layout/status-chip'
 import SettingsCard from '@/components/settings/settings-card'
-import SettingsPageHeader from '@/components/settings/settings-page-header'
 import SettingsTable from '@/components/settings/settings-table'
 import SettingsTableCell from '@/components/settings/settings-table-cell'
 import SettingsTableRow from '@/components/settings/settings-table-row'
 import RowActionsCell from '@/components/table/row-actions-cell'
 import { domainsContent as copy } from '@/data/domains'
+import { SETTINGS_BACK } from '@/data/settings'
 import { usePermissions } from '@/hooks/use-permissions'
 import { routes } from '@/lib/routes'
 import ChangePrimaryDialog from './change-primary-dialog'
@@ -45,7 +46,7 @@ export default function DomainsSettings({ domains }: DomainsSettingsProps) {
 
   return (
     <div className="flex flex-col gap-4">
-      <SettingsPageHeader
+      <PageHeader
         title={copy.title}
         subtitle={copy.intro}
         actions={
@@ -53,6 +54,7 @@ export default function DomainsSettings({ domains }: DomainsSettingsProps) {
             <Button onClick={() => setConnectOpen(true)}>{copy.connect}</Button>
           ) : undefined
         }
+        back={SETTINGS_BACK}
       />
 
       <SettingsCard

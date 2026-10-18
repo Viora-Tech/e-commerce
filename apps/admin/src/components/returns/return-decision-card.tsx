@@ -1,9 +1,10 @@
 'use client'
 
 import type { returnActions } from '@commerce/core/returns'
+import { CheckIcon, PackageOpen, Truck, Undo } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { useState } from 'react'
-import DataCard from '@/components/layout/data-card'
+import NextStepBanner from '@/components/layout/next-step-banner'
 import { returnDetailContent as copy } from '@/data/returns'
 import PickupDialog from './pickup-dialog'
 import ReceiveDialog from './receive-dialog'
@@ -16,7 +17,10 @@ type ReturnDecisionCardProps = {
   onChanged: () => void
 }
 
-/** The next step before the parcel arrives: approve or decline, arrange the pickup, receive. */
+/**
+ * Figma "Return · Your decision": the banner above the columns with the one next step before
+ * the parcel arrives (approve or decline, arrange the pickup, mark it received).
+ */
 export default function ReturnDecisionCard({ detail, can, onChanged }: ReturnDecisionCardProps) {
   // Hooks
   const [pickup, setPickup] = useState<'approve' | 'arrange' | null>(null)
@@ -29,33 +33,57 @@ export default function ReturnDecisionCard({ detail, can, onChanged }: ReturnDec
     onChanged()
   }
 
+  // Render logic
+  const d = copy.decision
+  const deciding = can.approve || can.reject
+  const banner = deciding
+    ? { eyebrow: d.title, title: d.heading, body: d.body, icon: <Undo aria-hidden="true" /> }
+    : can.arrangePickup
+      ? {
+          eyebrow: d.nextEyebrow,
+          title: d.pickupHeading,
+          body: d.pickupBody,
+          icon: <Truck aria-hidden="true" />,
+        }
+      : {
+          eyebrow: d.nextEyebrow,
+          title: d.receiveHeading,
+          body: d.receiveBody,
+          icon: <PackageOpen aria-hidden="true" />,
+        }
+
   return (
-    <DataCard title={copy.decision.title}>
-      {can.approve ? (
-        <p className="mb-4 text-body text-muted-foreground">{copy.decision.body}</p>
-      ) : null}
-      <div className="flex flex-wrap gap-2">
-        {can.approve ? (
-          <Button size="lg" onClick={() => setPickup('approve')}>
-            {copy.decision.approve}
-          </Button>
-        ) : null}
-        {can.arrangePickup ? (
-          <Button size="lg" variant="outline" onClick={() => setPickup('arrange')}>
-            {copy.arrange}
-          </Button>
-        ) : null}
-        {can.receive ? (
-          <Button size="lg" onClick={() => setReceiving(true)}>
-            {copy.receive.button}
-          </Button>
-        ) : null}
-        {can.reject ? (
-          <Button size="lg" variant="outline" onClick={() => setRejecting(true)}>
-            {copy.decision.reject}
-          </Button>
-        ) : null}
-      </div>
+    <>
+      <NextStepBanner
+        tone={deciding ? 'attention' : 'action'}
+        eyebrow={banner.eyebrow}
+        title={banner.title}
+        body={banner.body}
+        icon={banner.icon}
+        actions={
+          <>
+            {can.reject ? (
+              <Button variant="outline" onClick={() => setRejecting(true)}>
+                {d.reject}
+              </Button>
+            ) : null}
+            {can.arrangePickup ? (
+              <Button variant="outline" onClick={() => setPickup('arrange')}>
+                {copy.arrange}
+              </Button>
+            ) : null}
+            {can.approve ? (
+              <Button onClick={() => setPickup('approve')}>
+                <CheckIcon aria-hidden="true" />
+                {d.approve}
+              </Button>
+            ) : null}
+            {can.receive ? (
+              <Button onClick={() => setReceiving(true)}>{copy.receive.button}</Button>
+            ) : null}
+          </>
+        }
+      />
       <PickupDialog
         detail={detail}
         mode={pickup}
@@ -75,6 +103,6 @@ export default function ReturnDecisionCard({ detail, can, onChanged }: ReturnDec
         onClose={() => setReceiving(false)}
         onDone={done(() => setReceiving(false))}
       />
-    </DataCard>
+    </>
   )
 }

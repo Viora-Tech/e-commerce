@@ -12,7 +12,7 @@ import { type Image, imageField, noImage } from '../framed'
 import { inlineText, inlineTextarea } from '../inline-fields'
 import type { ZeroDriftLoaders } from './loaders'
 
-export type PopupStyle = 'corner' | 'figure' | 'feed'
+export type PopupStyle = 'split' | 'simple' | 'corner' | 'figure' | 'feed'
 
 export type SignupPopupProps = {
   style: PopupStyle
@@ -41,7 +41,7 @@ export type SignupPopupProps = {
 const MAX_FEED = 3
 
 const defaults: SignupPopupProps = {
-  style: 'corner',
+  style: 'split',
   image: noImage,
   figureProduct: '',
   feedProducts: [],
@@ -65,7 +65,8 @@ const defaults: SignupPopupProps = {
 const seconds = (label: string, min: number, max: number) =>
   ({ type: 'number', label, min, max }) as const
 
-// Port of sections/signup-popup.liquid: three looks (corner, figure, feed), opened by
+// Port of sections/signup-popup.liquid plus the Figma dialog: five looks (split, simple, corner,
+// figure, feed), opened by
 // delay, scroll depth or exit intent, posting to the storefront's newsletter action.
 // Not framed: a popup has no band, padding or colour scheme of its own.
 export function signupPopupSection(loaders: ZeroDriftLoaders): ComponentConfig {

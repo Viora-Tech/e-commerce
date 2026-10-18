@@ -73,12 +73,9 @@ export default function DataRequestDetail({ id }: DataRequestDetailProps) {
       <PageHeader
         title={copy.title(r.number)}
         subtitle={KIND_LABEL[r.kind]}
-        icon={<ShieldCheck aria-hidden="true" />}
-        breadcrumbs={[
-          { label: copy.back, href: '/settings/privacy/requests' },
-          { label: copy.title(r.number) },
-        ]}
+        back={{ label: copy.back, href: '/settings/privacy/requests' }}
         badges={<DataRequestStatusBadge status={r.status} />}
+        lead={{ kind: 'icon', node: <ShieldCheck aria-hidden="true" /> }}
       />
       <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_20rem]">
         <div className="flex flex-col gap-4">

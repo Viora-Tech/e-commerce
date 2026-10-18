@@ -5,9 +5,11 @@ import { type ComponentType, useState, useTransition } from 'react'
 import { mainProductContent as copy } from '../data/zero-drift/main-product'
 import { formatPaise } from '../money'
 import { safeHref } from '../slot-types'
+import { announceCartAdded } from '../store-actions'
 import type { ProductDetail } from '../types'
 import { useReducedMotion } from '../use-reduced-motion'
 import Icon from './icon'
+import QuantityInput from './quantity-input'
 
 type ProductBuyButtonsProps = {
   product: ProductDetail
@@ -27,7 +29,9 @@ type ProductBuyButtonsProps = {
 const ui = copy.ui
 
 // The `buy_buttons` block: snippets/buy-buttons.liquid plus our launch countdown, pre-order
-// notes (ship date, deposit split) and the back-in-stock form for a sold-out variant.
+// notes (ship date, deposit split) and the back-in-stock form for a sold-out variant. Laid out
+// as Figma Section / Product (705:122778): the quantity beside an outline Add to cart, then a
+// full-width Buy it now that adds and goes straight to checkout.
 export default function ProductBuyButtons({
   product,
   variant,
@@ -42,15 +46,25 @@ export default function ProductBuyButtons({
   // Hooks
   const [pending, startTransition] = useTransition()
   const [added, setAdded] = useState(false)
+  const [quantity, setQuantity] = useState(1)
   const reduceMotion = useReducedMotion()
 
   // Event handlers
   const handleAdd = () => {
     if (!variant || !onAddToCart) return
     startTransition(async () => {
-      await onAddToCart(variant.id, 1)
+      await onAddToCart(variant.id, quantity)
+      announceCartAdded()
       setAdded(true)
       setTimeout(() => setAdded(false), 2000)
+    })
+  }
+
+  const handleBuyNow = () => {
+    if (!variant || !onAddToCart) return
+    startTransition(async () => {
+      await onAddToCart(variant.id, quantity)
+      window.location.assign('/checkout')
     })
   }
 
@@ -81,6 +95,8 @@ export default function ProductBuyButtons({
           ? ui.inStockShips
           : ui.onlyLeft(variant.available)
   const updatesHref = isPreorder && preorderLink ? safeHref(preorderLink) : null
+  // A plain sale (not a launch countdown or a pre-order) gets the quantity and Buy it now.
+  const buyable = Boolean(variant?.purchasable) && !launching && !isPreorder
 
   return (
     <div className="product-info__buy">
@@ -110,20 +126,39 @@ export default function ProductBuyButtons({
       ) : null}
       <div className="buy-buttons" data-buy-buttons>
         <div className="buy-buttons__row">
+          {buyable ? (
+            <QuantityInput
+              value={quantity}
+              onChange={setQuantity}
+              max={variant?.available && variant.available < 999 ? variant.available : undefined}
+              disabled={pending}
+              className="buy-buttons__quantity"
+            />
+          ) : null}
           <button
             type="button"
-            className={`btn btn--primary buy-buttons__submit${pending ? ' is-loading' : ''}${isPreorder ? ' buy-buttons__submit--preorder' : ''}`}
+            className={`btn ${buyable ? 'btn--secondary' : 'btn--primary'} buy-buttons__submit${pending ? ' is-loading' : ''}${isPreorder ? ' buy-buttons__submit--preorder' : ''}`}
             disabled={!variant?.purchasable || launching || pending || !onAddToCart}
             onClick={handleAdd}
           >
             <span className="btn__label">{buyLabel}</span>
           </button>
-          {added ? (
-            <a href="/cart" className="btn btn--secondary">
-              {ui.viewCart}
-            </a>
-          ) : null}
         </div>
+        {buyable ? (
+          <button
+            type="button"
+            className="btn btn--primary buy-buttons__buy-now"
+            disabled={pending || !onAddToCart}
+            onClick={handleBuyNow}
+          >
+            <span className="btn__label">{ui.buyNow}</span>
+          </button>
+        ) : null}
+        {added ? (
+          <a href="/cart" className="buy-buttons__view-cart text-small">
+            {ui.viewCart}
+          </a>
+        ) : null}
       </div>
       {!launching && variant && availability ? (
         <p className="buy-buttons__availability text-small">{availability}</p>

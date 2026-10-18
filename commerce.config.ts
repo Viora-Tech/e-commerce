@@ -8,6 +8,7 @@ import { emiPlugin } from '@commerce/plugin-emi'
 import { formsPlugin } from '@commerce/plugin-forms'
 import { gstInvoicesPlugin } from '@commerce/plugin-gst-invoices'
 import { reviewsPlugin } from '@commerce/plugin-reviews'
+import { searchConsolePlugin } from '@commerce/plugin-search-console'
 import { shopifyImportPlugin } from '@commerce/plugin-shopify-import'
 import { umamiPlugin } from '@commerce/plugin-umami'
 import { defineConfig } from '@commerce/plugins'
@@ -42,5 +43,6 @@ export default defineConfig({
     formsPlugin,
     reviewsPlugin,
     umamiPlugin,
+    searchConsolePlugin,
   ],
 })

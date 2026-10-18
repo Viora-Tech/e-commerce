@@ -40,3 +40,8 @@ export function searchSettings(
     .slice(0, MAX_RESULTS)
     .map((s) => s.entry)
 }
+
+/** The page alone from a result's "Selling › Checkout" trail, for the right side of a result row. */
+export function settingsPageOf(where: string): string {
+  return where.split(' › ').at(-1) ?? where
+}

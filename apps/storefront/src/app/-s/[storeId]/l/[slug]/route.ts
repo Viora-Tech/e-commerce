@@ -8,6 +8,7 @@ import {
   shortLinkTarget,
 } from '@commerce/core/marketing'
 import { CONSENT_COOKIE } from '@commerce/core/preferences'
+import { logger } from '@commerce/observability/logging'
 import { cookies, headers } from 'next/headers'
 import { NextResponse } from 'next/server'
 import {
@@ -17,6 +18,7 @@ import {
   MARKETING_CLICK_MAX_AGE,
 } from '@/lib/attribution-cookie'
 import { analyticsAllowed } from '@/lib/consent-cookie'
+import { withEvlog } from '@/lib/request-log'
 import { requestOrigin } from '@/lib/seo'
 import { inStore } from '@/lib/store-context'
 
@@ -31,7 +33,7 @@ export const dynamic = 'force-dynamic'
  * order from it is credited: a short-lived `wc_lk` cookie the page beacon reads, and, with
  * analytics consent, the attribution cookie itself. An unknown slug goes to the home page.
  */
-export async function GET(request: Request, { params }: Params) {
+export const GET = withEvlog(async (request: Request, { params }: Params) => {
   const { storeId, slug } = await params
   const h = await headers()
   const origin = await requestOrigin()
@@ -44,7 +46,7 @@ export async function GET(request: Request, { params }: Params) {
       }),
     )
   } catch (err) {
-    console.warn('[links] could not follow a short link', err)
+    logger.warn('could not follow a short link', { storeId, error: err })
   }
   if (!link) return NextResponse.redirect(new URL('/', origin), 302)
 
@@ -70,4 +72,4 @@ export async function GET(request: Request, { params }: Params) {
     )
   }
   return response
-}
+})

@@ -1,16 +1,9 @@
 'use client'
 
-import { CircleCheck, Eye, EyeOff, MoreHorizontal, Trash2 } from '@commerce/ui/icons'
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@commerce/ui/shadcn/dropdown-menu'
-import Link from 'next/link'
+import { CircleCheck, Eye, EyeOff, Trash2 } from '@commerce/ui/icons'
 import { useState } from 'react'
 import { toast } from 'sonner'
+import ActionMenu from '@/components/layout/action-menu'
 import { reviewsContent } from '@/data/reviews'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
@@ -22,9 +15,6 @@ type ReviewRowActionsProps = {
   status: 'pending' | 'published' | 'hidden'
   onChanged: () => void
 }
-
-const KEBAB =
-  'flex size-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring'
 
 /**
  * The menu at the end of a review row. The row opens the review on click, so every event
@@ -50,39 +40,31 @@ export default function ReviewRowActions({ id, status, onChanged }: ReviewRowAct
     // biome-ignore lint/a11y/noStaticElementInteractions: only stops the row's own click; the controls inside are buttons.
     // biome-ignore lint/a11y/useKeyWithClickEvents: same, keyboard events stop at the trigger.
     <span className="flex items-center justify-end" onClick={(event) => event.stopPropagation()}>
-      <DropdownMenu>
-        <DropdownMenuTrigger
-          aria-label={copy.row.menu}
-          className={KEBAB}
-          onClick={(event) => event.stopPropagation()}
-          onKeyDown={(event) => event.stopPropagation()}
-        >
-          <MoreHorizontal className="size-5" aria-hidden="true" />
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="w-52">
-          <DropdownMenuItem render={<Link href={routes.apps.page('reviews', 'reviews', id)} />}>
-            <Eye />
-            {copy.row.open}
-          </DropdownMenuItem>
-          {status !== 'published' ? (
-            <DropdownMenuItem onClick={() => handleStatus('published')}>
-              <CircleCheck />
-              {copy.row.approve}
-            </DropdownMenuItem>
-          ) : null}
-          {status !== 'hidden' ? (
-            <DropdownMenuItem onClick={() => handleStatus('hidden')}>
-              <EyeOff />
-              {copy.row.hide}
-            </DropdownMenuItem>
-          ) : null}
-          <DropdownMenuSeparator />
-          <DropdownMenuItem variant="destructive" onClick={() => setDeleting(true)}>
-            <Trash2 />
-            {copy.row.delete}
-          </DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
+      <ActionMenu
+        label={copy.row.menu}
+        contentClassName="w-52"
+        items={[
+          { label: copy.row.open, icon: Eye, href: routes.apps.page('reviews', 'reviews', id) },
+          {
+            label: copy.row.approve,
+            icon: CircleCheck,
+            hidden: status === 'published',
+            onSelect: () => handleStatus('published'),
+          },
+          {
+            label: copy.row.hide,
+            icon: EyeOff,
+            hidden: status === 'hidden',
+            onSelect: () => handleStatus('hidden'),
+          },
+          {
+            label: copy.row.delete,
+            icon: Trash2,
+            destructive: true,
+            onSelect: () => setDeleting(true),
+          },
+        ]}
+      />
       <DeleteReviewsDialog
         ids={[id]}
         open={deleting}

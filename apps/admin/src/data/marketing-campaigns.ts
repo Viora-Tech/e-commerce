@@ -174,6 +174,14 @@ export const campaignEditorContent = {
     scheduled: 'Campaign scheduled',
     unsaved: 'Save your changes first.',
   },
+  fixThese: 'Fix these before sending',
+  beforeSend: {
+    heading: 'Before you send',
+    approved: 'Template approved by Meta',
+    variables: 'Every variable filled in',
+    optedIn: (n: number) =>
+      n === 1 ? '1 opted-in customer' : `${n.toLocaleString('en-IN')} opted-in customers`,
+  },
   problems: {
     subject: 'Add a subject line.',
     content: 'Add at least one content block.',
@@ -250,4 +258,39 @@ export const campaignReportContent = {
   whatsappOpens: 'WhatsApp does not report opens to the store; clicks and orders still count.',
   content: 'Content',
   audience: 'Audience',
+  /** Notes under each tile (Figma "Campaign report"). */
+  notes: {
+    notReported: 'Not reported by WhatsApp',
+    afterSend: 'After it sends',
+    ofDelivered: (rate: string) => `${rate} of delivered`,
+    opens: (n: number) => `${n.toLocaleString('en-IN')} opened`,
+    window: 'Within 30 days of the click',
+    fromOrders: (n: number) =>
+      n === 0 ? 'From orders' : n === 1 ? 'From 1 order' : `From ${n} orders`,
+  },
+  failedWhatsapp: (n: number) =>
+    `${n === 1 ? '1 could not be sent' : `${n} could not be sent`}. Their numbers are not on WhatsApp or have blocked business messages.`,
+  scheduledNote: (when: string, n: number) =>
+    `Sends ${when} to ${n.toLocaleString('en-IN')} customers. Unschedule to move it back to draft and edit it.`,
+  rows: {
+    template: 'Template',
+    language: 'Language',
+    variable: (n: number) => `Variable {{${n}}}`,
+    subject: 'Subject',
+    previewText: 'Preview text',
+    blocks: 'Blocks',
+    blockCount: (n: number) => (n === 1 ? '1 block' : `${n} blocks`),
+    discount: 'Discount',
+    none: 'None',
+    links: 'Links tagged',
+    segment: 'Segment',
+    optedIn: 'Opted in to WhatsApp',
+    accepts: 'Accepts email marketing',
+    sent: 'Sent',
+    sends: 'Sends',
+    customers: (n: number) => (n === 1 ? '1 customer' : `${n.toLocaleString('en-IN')} customers`),
+  },
+  ordersHeading: 'Orders from this campaign',
+  ordersEmpty: 'Orders appear here once the campaign sends.',
+  ordersNone: 'No orders from this campaign yet.',
 } as const

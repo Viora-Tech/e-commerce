@@ -8,6 +8,7 @@ import GiftCardField from '@/components/checkout/gift-card-field'
 import SummaryLine from '@/components/checkout/summary-line'
 import SummaryRow from '@/components/checkout/summary-row'
 import { checkoutContent as content } from '@/data/checkout'
+import { CK_HEADING } from '@/lib/checkout-classes'
 import type { ShippingRow } from '@/lib/checkout-preview'
 import type { CartDiscountView } from '@/lib/discount-view'
 import type { AppliedGiftCard } from '@/lib/gift-card-actions'
@@ -24,6 +25,8 @@ type CheckoutSummaryProps = {
   adjustmentLabel: string
   shipping: ShippingRow | null
   totalPaise: number
+  /** GST inside the total, once the server has worked it out; null shows "Inclusive of all taxes". */
+  gstPaise?: number | null | undefined
   cardRows: (AppliedGiftCard & { amountPaise: number })[]
   duePaise: number
   /** A deposit pre-order's balance, charged later; 0 when nothing is deferred. */
@@ -44,8 +47,8 @@ function shippingValue(row: ShippingRow): string {
 }
 
 /**
- * The left column: the big amount, every line with its thumbnail, codes, and the price
- * rows down to what is due today. Preview only; `placeOrder` prices the order.
+ * The order summary card: every line with its thumbnail, codes, and the price rows down to
+ * what is due today, on every step. Preview only; `placeOrder` prices the order.
  */
 export default function CheckoutSummary({
   cart,
@@ -58,6 +61,7 @@ export default function CheckoutSummary({
   adjustmentLabel,
   shipping,
   totalPaise,
+  gstPaise,
   cardRows,
   duePaise,
   laterPaise,
@@ -68,6 +72,7 @@ export default function CheckoutSummary({
 }: CheckoutSummaryProps) {
   // Render logic
   const discountPaise = discount?.amountPaise ?? 0
+  const itemCount = cart.lines.reduce((n, l) => n + l.quantity, 0)
   const shimmer = (
     <span
       aria-hidden="true"
@@ -76,15 +81,10 @@ export default function CheckoutSummary({
   )
 
   return (
-    <div className="flex flex-col gap-7 lg:gap-9">
-      <div className="hidden flex-col gap-1.5 lg:flex">
-        <p className="text-[0.875rem] font-medium text-ck-summary-muted">{content.orderTotal}</p>
-        <p
-          className="text-[2.5rem] leading-none font-semibold tracking-[-0.025em] tabular-nums"
-          aria-live="polite"
-        >
-          {updating ? shimmer : formatPaise(payNowPaise)}
-        </p>
+    <div className="flex flex-col gap-6">
+      <div className="hidden items-baseline justify-between gap-4 lg:flex">
+        <h2 className={`${CK_HEADING} text-[1.125rem]!`}>{content.summary}</h2>
+        <p className="text-[0.8125rem] text-ck-summary-muted">{content.itemCount(itemCount)}</p>
       </div>
 
       <section aria-label={content.summary} className="flex flex-col gap-7">
@@ -142,11 +142,17 @@ export default function CheckoutSummary({
                 <span className="flex flex-col gap-0.5">
                   {content.total}
                   <span className="text-[0.75rem] font-normal text-ck-summary-muted">
-                    {content.taxes}
+                    {gstPaise && gstPaise > 0 && !updating
+                      ? content.taxesIncluded(formatPaise(gstPaise))
+                      : content.taxes}
                   </span>
                 </span>
               }
-              value={updating ? shimmer : formatPaise(totalPaise)}
+              value={
+                <span className="text-[1.5rem] tracking-[-0.02em]" aria-live="polite">
+                  {updating ? shimmer : formatPaise(totalPaise)}
+                </span>
+              }
             />
           </div>
           {cardRows.map((c) => (

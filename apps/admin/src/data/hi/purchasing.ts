@@ -34,6 +34,8 @@ export default [
   translation(supplierFormContent, {
     newTitle: 'सप्लायर जोड़ें',
     back: 'सप्लायर',
+    billsIn: (currency: string) => `${currency} में बिल`,
+    orderCount: (n: number) => `${n} परचेज़ ऑर्डर`,
     details: {
       heading: 'सप्लायर',
       name: 'नाम',
@@ -131,6 +133,14 @@ export default [
     newTitle: 'आने वाली खेप बनाएँ',
     title: (n: number) => `आने वाली खेप #IS${n}`,
     back: 'आने वाली खेप',
+    billOfEntry: (no: string) => `बिल ऑफ़ एंट्री ${no}`,
+    glance: {
+      heading: 'एक नज़र में',
+      orders: 'परचेज़ ऑर्डर',
+      units: 'आने वाले यूनिट',
+      charges: 'लागत में चार्ज',
+      landed: 'कुल लैंडेड लागत',
+    },
     details: {
       heading: 'खेप',
       reference: 'आपका रेफ़रेंस',
