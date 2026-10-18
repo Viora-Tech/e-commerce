@@ -6,8 +6,8 @@
   "scripts": {
     "dev": "next dev --port 3500",
     "build": "node scripts/check-redirects.mjs && node scripts/check-links.mjs && next build",
-    "postbuild": "pagefind --site .next/server/app --output-path public/_pagefind",
-    "start": "next start --port 3500",
+    "postbuild": "pagefind --site out --output-path out/_pagefind && node scripts/write-redirects.mjs",
+    "deploy": "bun run build && wrangler deploy",
     "check:redirects": "node scripts/check-redirects.mjs",
     "check:links": "node scripts/check-links.mjs",
     "typecheck": "tsc --noEmit"
@@ -31,6 +31,7 @@
     "@types/react-dom": "^19.2.3",
     "pagefind": "^1.4.0",
     "tailwindcss": "^4.3.3",
-    "typescript": "~5.9.3"
+    "typescript": "~5.9.3",
+    "wrangler": "4.151.1"
   }
 }

@@ -10,6 +10,7 @@
       "!**/coverage",
       "!**/.next",
       "!apps/www/out",
+      "!apps/docs/out",
       "!**/.wrangler",
       "!apps/docs/public/_pagefind",
       "!apps/www/public",

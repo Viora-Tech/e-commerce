@@ -51,8 +51,6 @@ jobs:
             dockerfile: apps/worker/Dockerfile
           - image: tasks
             dockerfile: deploy/Dockerfile.tasks
-          - image: docs
-            dockerfile: apps/docs/Dockerfile
     steps:
       # Third-party actions are pinned to full commit SHAs (a moved tag cannot change what runs);
       # the comment is the release the SHA belongs to. Bump both together.
