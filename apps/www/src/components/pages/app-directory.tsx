@@ -46,9 +46,7 @@ export default function AppDirectory() {
                 </span>
                 <span className="flex min-w-0 flex-col">
                   <span className="truncate font-semibold text-foreground">{app.name}</span>
-                  <span className="truncate text-xs text-muted-foreground">
-                    {copy.by(app.by)}
-                  </span>
+                  <span className="truncate text-xs text-muted-foreground">{copy.by(app.by)}</span>
                 </span>
               </span>
               <span className="text-sm text-muted-foreground">{app.blurb}</span>
