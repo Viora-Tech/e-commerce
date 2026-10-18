@@ -20,7 +20,12 @@ import {
 } from './flow-state'
 
 const row = (over: Partial<CourierRateRow> & { providerId: string }): CourierRateRow => ({
+  optionKey: over.serviceId ? `${over.providerId}:${over.serviceId}` : over.providerId,
+  providerName: over.providerId,
   providerLabel: over.providerId,
+  serviceId: null,
+  charges: [],
+  chargeableWeightGrams: null,
   pricePaise: null,
   minTransitDays: null,
   maxTransitDays: null,
@@ -260,7 +265,27 @@ describe('bulk', () => {
     expect(bulkOrders(picks)).toEqual({
       orderIds: ['o1'],
       courierOverrides: { o1: 'delhivery' },
+      serviceOverrides: {},
     })
+  })
+
+  it('a courier with several services counts and books its cheapest one per order', () => {
+    const services: ParcelQuote[] = [
+      {
+        ...quotes[0],
+        orderId: 'o1',
+        options: [
+          row({ providerId: 'delhivery', serviceId: 'E', pricePaise: 14000 }),
+          row({ providerId: 'delhivery', serviceId: 'S', pricePaise: 9000 }),
+        ],
+      } as ParcelQuote,
+    ]
+    const picks = bulkPicks(services, 'one', 'delhivery')
+    expect(picks.o1?.serviceId).toBe('S')
+    expect(bulkOrders(picks).serviceOverrides).toEqual({ o1: 'S' })
+    expect(
+      courierTotals(services, [{ id: 'delhivery', label: 'Delhivery' }] as never)[0],
+    ).toMatchObject({ pricePaise: 9000, canTake: 1 })
   })
 
   it('cheapest and fastest pick per order', () => {

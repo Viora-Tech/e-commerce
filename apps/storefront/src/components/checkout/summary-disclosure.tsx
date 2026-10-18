@@ -54,6 +54,7 @@ export default function SummaryDisclosure({
         className="-mx-5! flex min-h-14 items-center justify-between gap-3 border-y! border-ck-summary-line! bg-transparent! px-5 text-left text-[0.9375rem]! text-ck-summary-ink! outline-none focus-visible:[box-shadow:inset_0_0_0_3px_var(--ck-ring)] sm:-mx-8! sm:px-8 lg:hidden"
       >
         <span className="flex items-center gap-2 font-medium">
+          <CheckoutIcon name="bag" className="size-[1.125rem]" />
           {open ? content.hideSummary : content.showSummary}
           <CheckoutIcon
             name="chevron"
@@ -66,7 +67,9 @@ export default function SummaryDisclosure({
             className="h-4 w-16 animate-pulse rounded bg-ck-summary-line motion-reduce:animate-none"
           />
         ) : (
-          <span className="text-[1.0625rem] font-semibold tabular-nums">{totalLabel}</span>
+          <span className="text-[1.125rem] font-semibold tracking-[-0.01em] tabular-nums">
+            {totalLabel}
+          </span>
         )}
       </button>
       <div

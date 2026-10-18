@@ -327,6 +327,8 @@ export async function bulkBookShipments(
     /** Merchant's per-row courier pick from the rate comparison table; orders not listed here
      *  book with the store's default rule (`settings.courierRule`). */
     courierOverrides?: Record<string, string> | undefined
+    /** The service picked with each override (`CourierRateRow.serviceId`). */
+    serviceOverrides?: Record<string, string> | undefined
   },
 ) {
   const settings = await loadShippingSettings(tx, storeId)
@@ -335,8 +337,9 @@ export async function bulkBookShipments(
     throw new ORPCError('PRECONDITION_FAILED', { message: 'Enable a courier first.' })
   }
 
-  // Single-courier stores skip rate comparison entirely - there is nothing to choose between.
-  if (providers.length === 1) {
+  /* Single-courier stores skip rate comparison - there is nothing to choose between, unless
+     the merchant picked one of its services (Surface or Express) per order. */
+  if (providers.length === 1 && !input.serviceOverrides) {
     return bulkCreateShipments(
       { storeId, tx },
       providers[0] as (typeof providers)[0],
@@ -385,6 +388,8 @@ export async function bulkBookShipments(
           weightGrams: input.weightGrams,
           dimensionsCm: input.dimensionsCm,
           insured: input.insured,
+          // Only with the courier it was quoted for; a rule-picked courier books its default.
+          serviceId: overrideId ? input.serviceOverrides?.[o.orderId] : undefined,
         },
       )
       await noteShipmentBooked(tx, storeId, row.provider, o.orderId)

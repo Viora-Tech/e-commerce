@@ -64,6 +64,8 @@ export type CreateShipmentOptions = {
   paymentMode?: 'cod' | 'prepaid' | undefined
   /** What the courier collects at the door; defaults to the parcel's (or order's) value. */
   codAmountPaise?: number | undefined
+  /** The courier service picked in the rate table (`CourierRateRow.serviceId`). */
+  serviceId?: string | undefined
 }
 
 /** One parcel of an order and the units it still has to send, by order line. */
@@ -222,6 +224,7 @@ export async function createShipmentForOrder(
     codAmountPaise,
     valuePaise,
     weightGrams,
+    ...(options.serviceId ? { serviceId: options.serviceId } : {}),
   })
 
   // The consignment carries its parcel: the named one, or the order's only one.

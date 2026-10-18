@@ -9,8 +9,9 @@ import type { CheckoutFormModel } from '@/lib/use-checkout-form'
 type CheckoutPaymentStepProps = { ck: CheckoutFormModel }
 
 /**
- * The last step: the ways to pay as cards (UPI first, cash on delivery last), and the order
- * note when the store takes one. Paying opens the provider's own window, as before.
+ * The last step (Figma Checkout / Payment): the ways to pay as one list (UPI first, cash on
+ * delivery last), the picked one opening onto what happens next, and the order note when the
+ * store takes one. Paying opens the provider's own window or the UPI QR, as before.
  */
 export default function CheckoutPaymentStep({ ck }: CheckoutPaymentStepProps) {
   // Render logic
@@ -19,7 +20,7 @@ export default function CheckoutPaymentStep({ ck }: CheckoutPaymentStepProps) {
   return (
     <div className="flex flex-col gap-6">
       {totals.coveredByCards ? (
-        <p className="rounded-ck bg-ck-soft px-4 py-3 text-[0.875rem] text-ck-ink">
+        <p className="rounded-ck border border-ck-line bg-ck-field px-4 py-3 text-[0.875rem] text-ck-ink">
           {content.paidByGiftCard}
         </p>
       ) : (

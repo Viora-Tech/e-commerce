@@ -22,6 +22,8 @@ export type CheckoutIconName =
   | 'bolt'
   | 'spinner'
   | 'chat'
+  | 'shield'
+  | 'bag'
 
 type CheckoutIconProps = {
   name: CheckoutIconName
@@ -106,6 +108,18 @@ const PATHS: Record<CheckoutIconName, ReactNode> = {
     <>
       <circle cx="12" cy="8.5" r="3.5" />
       <path d="M5 19.5c1.2-3.2 3.8-5 7-5s5.8 1.8 7 5" />
+    </>
+  ),
+  shield: (
+    <>
+      <path d="M12 3.5l7 2.75v5.25c0 4.25-2.9 7.6-7 9-4.1-1.4-7-4.75-7-9V6.25z" />
+      <path d="M9 12l2.25 2.25L15.5 10" />
+    </>
+  ),
+  bag: (
+    <>
+      <path d="M5.5 8h13l-1 12h-11z" />
+      <path d="M9 10V7a3 3 0 0 1 6 0v3" />
     </>
   ),
   bolt: <path d="M13 3.5L5.5 13.5H12l-1 7 7.5-10H12z" />,

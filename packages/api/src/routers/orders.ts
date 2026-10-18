@@ -325,6 +325,8 @@ export const ordersRouter = {
       z.object({
         orderId: z.uuid(),
         providerId: z.string().min(1).optional(),
+        /** The courier's service picked in the rate table (Delhivery Express, a Shiprocket carrier). */
+        serviceId: z.string().min(1).max(64).optional(),
         fulfillmentOrderId: z.guid().optional(),
         /** A location id, or null for Settings › Shipping's address; omitted picks for you. */
         pickupLocationId: z.uuid().nullish(),

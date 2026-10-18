@@ -14,7 +14,12 @@ export async function orderLinks(ctx: OrderLinkContext, orderId: string): Promis
       .select({ id: invoice.id, kind: invoice.kind, number: invoice.number })
       .from(invoice)
       .where(
-        and(eq(invoice.orderId, orderId), inArray(invoice.kind, ['tax_invoice', 'credit_note'])),
+        and(
+          eq(invoice.orderId, orderId),
+          inArray(invoice.kind, ['tax_invoice', 'credit_note']),
+          // A draft is not a document yet and a cancelled one is void: only issued ones are offered.
+          eq(invoice.status, 'issued'),
+        ),
       )
       .orderBy(invoice.issuedAt),
   }))

@@ -125,7 +125,8 @@ export default function SingleShipmentFlow({
       } else {
         const s = await api.orders.createShipment({
           orderId: order.orderId,
-          providerId: pick,
+          providerId: chosen?.providerId,
+          serviceId: chosen?.serviceId ?? undefined,
           fulfillmentOrderId: parcel.id ?? undefined,
           pickupLocationId: form.pickupLocationId,
           weightGrams: parsed.weightGrams,
@@ -140,7 +141,7 @@ export default function SingleShipmentFlow({
           labelUrl: s.labelUrl,
           trackingUrl: s.trackingUrl,
           manual: false,
-          canPickup: draft.couriers.find((c) => c.id === pick)?.hasPickup ?? false,
+          canPickup: draft.couriers.find((c) => c.id === chosen?.providerId)?.hasPickup ?? false,
         })
       }
       setStep('done')
@@ -172,7 +173,7 @@ export default function SingleShipmentFlow({
 
   // Render logic
   const parsed = form ? parsePackage(form) : null
-  const chosen = quote?.options.find((o) => o.providerId === pick) ?? null
+  const chosen = quote?.options.find((o) => o.optionKey === pick) ?? null
   const place = draft.pickupPlaces.find((p) => p.id === (form?.pickupLocationId ?? null))
   const pickupLabel = place
     ? copy.package.place(place.name, place.city, place.pincode)

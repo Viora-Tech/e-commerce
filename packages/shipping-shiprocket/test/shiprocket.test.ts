@@ -134,7 +134,7 @@ describe('ShiprocketProvider serviceability and rates', () => {
     expect(r).toEqual({ pricePaise: 6000, minTransitDays: 3, maxTransitDays: 3 })
   })
 
-  it('listCourierOptions returns every serviceable courier for the rate comparison table', async () => {
+  it('quoteOptions returns every serviceable courier with its charges', async () => {
     const f = fakeFetch(
       withLogin({
         '/v1/external/courier/serviceability/': () =>
@@ -145,6 +145,9 @@ describe('ShiprocketProvider serviceability and rates', () => {
                   courier_company_id: 1,
                   courier_name: 'Delhivery Surface',
                   rate: 60,
+                  freight_charge: 52,
+                  coverage_charges: 8,
+                  charge_weight: 0.5,
                   cod: 0,
                   estimated_delivery_days: '3',
                 },
@@ -161,7 +164,7 @@ describe('ShiprocketProvider serviceability and rates', () => {
       }),
     )
     const p = new ShiprocketProvider({ ...config, fetchImpl: f.impl })
-    const options = await p.listCourierOptions({
+    const options = await p.quoteOptions({
       originPincode: '131028',
       destinationPincode: '560001',
       weightGrams: 500,
@@ -170,11 +173,16 @@ describe('ShiprocketProvider serviceability and rates', () => {
     })
     expect(options).toHaveLength(2)
     expect(options[0]).toMatchObject({
-      courierId: '1',
-      courierName: 'Delhivery Surface',
+      serviceId: '1',
+      carrier: 'Delhivery Surface',
       pricePaise: 6000,
+      chargeableWeightGrams: 500,
+      charges: [
+        { kind: 'freight', pricePaise: 5200 },
+        { kind: 'insurance', pricePaise: 800 },
+      ],
     })
-    expect(options[1]).toMatchObject({ courierId: '2', codAvailable: true })
+    expect(options[1]).toMatchObject({ serviceId: '2', codAvailable: true, charges: [] })
   })
 })
 
@@ -211,6 +219,23 @@ describe('ShiprocketProvider createShipment', () => {
       payment_method: 'Prepaid',
       billing_pincode: '560001',
     })
+  })
+
+  it('books the courier picked in the rate table, and none when nothing was picked', async () => {
+    const routes = withLogin({
+      '/v1/external/orders/create/adhoc': () => json({ order_id: 1, shipment_id: 2 }),
+      '/v1/external/courier/assign/awb': () => json({ response: { data: { awb_code: 'SR1' } } }),
+      '/v1/external/courier/generate/label': () => json({ label_url: 'https://labels/2.pdf' }),
+    })
+    const assignBody = async (serviceId?: string) => {
+      const f = fakeFetch(routes)
+      const p = new ShiprocketProvider({ ...config, fetchImpl: f.impl })
+      await p.createShipment({ ...sampleShipment, serviceId })
+      const call = f.calls.find((c) => c.url.pathname.endsWith('/courier/assign/awb'))
+      return JSON.parse(call?.init?.body as string)
+    }
+    expect(await assignBody('42')).toEqual({ shipment_id: 2, courier_id: 42 })
+    expect(await assignBody()).toEqual({ shipment_id: 2 })
   })
 
   it('surfaces a rejected order', async () => {

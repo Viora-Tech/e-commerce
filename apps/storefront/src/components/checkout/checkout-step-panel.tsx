@@ -22,11 +22,13 @@ export default function CheckoutStepPanel({
         <h2
           id={headingId}
           tabIndex={-1}
-          className={`${CK_HEADING} text-[1.5rem]! text-balance outline-none lg:text-[1.75rem]!`}
+          className={`${CK_HEADING} text-[1.625rem]! text-balance outline-none lg:text-[2rem]!`}
         >
           {title}
         </h2>
-        {intro ? <p className="text-[0.9375rem] text-ck-muted">{intro}</p> : null}
+        {intro ? (
+          <p className="text-[0.9375rem] text-pretty text-ck-muted lg:text-[1rem]">{intro}</p>
+        ) : null}
       </div>
       {children}
     </section>

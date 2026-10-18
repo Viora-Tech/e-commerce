@@ -148,11 +148,18 @@ export function quoteRequest(
 
 export const isBookable = (row: CourierRateRow) => row.problem === null
 
+/** The cheapest priced row, else the first; null for none. */
+function cheapestOf(rows: CourierRateRow[]): CourierRateRow | null {
+  const priced = rows.filter((r) => r.pricePaise !== null)
+  if (!priced.length) return rows[0] ?? null
+  return priced.reduce((a, b) => ((b.pricePaise as number) < (a.pricePaise as number) ? b : a))
+}
+
 /** The pick step 2 starts on: the recommended courier, else the first that can take it, else
  *  shipping it yourself. */
 export function startingPick(options: CourierRateRow[]): string {
   const recommended = options.find((o) => o.badges.includes('recommended'))
-  return recommended?.providerId ?? options.find(isBookable)?.providerId ?? MANUAL
+  return recommended?.optionKey ?? options.find(isBookable)?.optionKey ?? MANUAL
 }
 
 // --- Bulk ------------------------------------------------------------------------------------
@@ -203,9 +210,11 @@ export function courierTotals(
   couriers: ShipmentDraft['couriers'],
 ): CourierTotal[] {
   const totals = couriers.map((c) => {
-    const rows = quotes.flatMap((q) =>
-      q.options.filter((o) => o.providerId === c.id && isBookable(o)),
-    )
+    // A courier may quote several services per parcel; the batch counts its cheapest one.
+    const rows = quotes.flatMap((q) => {
+      const best = cheapestOf(q.options.filter((o) => o.providerId === c.id && isBookable(o)))
+      return best ? [best] : []
+    })
     return {
       providerId: c.id,
       label: c.label,
@@ -235,7 +244,7 @@ export function bulkPicks(
     const bookable = q.options.filter(isBookable)
     const row =
       mode === 'one'
-        ? (bookable.find((o) => o.providerId === providerId) ?? null)
+        ? cheapestOf(bookable.filter((o) => o.providerId === providerId))
         : (bookable.find((o) => o.badges.includes(mode)) ??
           bookable.find((o) => o.badges.includes('recommended')) ??
           null)
@@ -248,10 +257,14 @@ export function bulkPicks(
 export function bulkOrders(picks: Record<string, CourierRateRow | null>): {
   orderIds: string[]
   courierOverrides: Record<string, string>
+  serviceOverrides: Record<string, string>
 } {
   const courierOverrides: Record<string, string> = {}
+  const serviceOverrides: Record<string, string> = {}
   for (const [orderId, row] of Object.entries(picks)) {
-    if (row) courierOverrides[orderId] = row.providerId
+    if (!row) continue
+    courierOverrides[orderId] = row.providerId
+    if (row.serviceId) serviceOverrides[orderId] = row.serviceId
   }
-  return { orderIds: Object.keys(courierOverrides), courierOverrides }
+  return { orderIds: Object.keys(courierOverrides), courierOverrides, serviceOverrides }
 }

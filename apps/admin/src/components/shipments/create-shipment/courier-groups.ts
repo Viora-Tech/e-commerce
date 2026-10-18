@@ -1,29 +1,20 @@
 import type { CourierRateRow } from '@commerce/core'
 
-/**
- * The aggregator or courier a rate row belongs to, read from its label: "Xpressbees · Surface
- * via Shiprocket" is Shiprocket, "Delhivery · Express" is Delhivery. The quote has no separate
- * provider field, so the label's own wording is the grouping.
- */
-export function courierGroup(label: string): string {
-  const via = label.split(' via ')[1]?.trim()
-  if (via) return via
-  return label.split(' · ')[0]?.trim() || label
-}
-
-/** Each group in first-seen order with how many rate rows it holds. */
+/** Each connected courier account (Delhivery, Shiprocket) in first-seen order with how many
+ *  rate rows it holds: Shiprocket's carriers group under Shiprocket. */
 export function groupCounts(options: CourierRateRow[]): Array<{ group: string; count: number }> {
   const counts = new Map<string, number>()
   for (const o of options) {
-    const group = courierGroup(o.providerLabel)
+    const group = o.providerName
     counts.set(group, (counts.get(group) ?? 0) + 1)
   }
   return [...counts].map(([group, count]) => ({ group, count }))
 }
 
-/** Two letters for a courier's logo tile: "Blue Dart" is BD, "Delhivery · Surface" is DE. */
+/** Two letters for a courier's logo tile: "Blue Dart" is BD, "Delhivery Surface (Shiprocket)"
+ *  is DS: the carrier's name, never the aggregator in brackets. */
 export function courierInitials(label: string): string {
-  const name = label.split(' · ')[0]?.split(' via ')[0]?.trim() ?? label
+  const name = label.replace(/\s*\([^)]*\)\s*$/, '').trim() || label
   const words = name.split(/\s+/).filter(Boolean)
   const letters =
     words.length > 1

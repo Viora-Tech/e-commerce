@@ -55,6 +55,8 @@ import {
   type NdrActionInput,
   type NdrActionResult,
   type ProviderField,
+  type RateCharge,
+  type RateOption,
   type RateQuery,
   type RateQuote,
   type ReturnPickupInput,
@@ -106,9 +108,30 @@ type ServiceableCourier = {
   cod?: number | string
   rate?: number | string
   freight_charge?: number | string
+  /* Itemised parts of `rate`, read when present: the response schema is not published. */
+  cod_charges?: number | string
+  coverage_charges?: number | string
+  other_charges?: number | string
+  charge_weight?: number | string
   estimated_delivery_days?: string | number
   etd?: string
   is_surface?: boolean
+}
+
+const rupeesToPaise = (v: unknown) => {
+  const n = Number(v)
+  return Number.isFinite(n) && n > 0 ? Math.round(n * 100) : 0
+}
+
+/** The priced lines Shiprocket itemised for one courier; coverage is its insurance. */
+export function shiprocketCharges(c: ServiceableCourier): RateCharge[] {
+  const lines: RateCharge[] = [
+    { kind: 'freight', pricePaise: rupeesToPaise(c.freight_charge) },
+    { kind: 'cod', pricePaise: rupeesToPaise(c.cod_charges) },
+    { kind: 'insurance', pricePaise: rupeesToPaise(c.coverage_charges) },
+    { kind: 'other', pricePaise: rupeesToPaise(c.other_charges) },
+  ]
+  return lines.filter((l) => l.pricePaise > 0)
 }
 
 type ServiceabilityResponse = {
@@ -315,20 +338,10 @@ export class ShiprocketProvider implements ShippingProvider {
     }
   }
 
-  /** Every serviceable courier for a route, for the workspace's rate-comparison
-   *  table. Not part of the ShippingProvider contract (which only has the
-   *  single-best-quote `quoteRate`); called directly by the workspace service
-   *  through `packages/core/src/shipping` on an instance it already holds. */
-  async listCourierOptions(query: RateQuery): Promise<
-    Array<{
-      courierId: string
-      courierName: string
-      pricePaise: number
-      minTransitDays: number | null
-      maxTransitDays: number | null
-      codAvailable: boolean
-    }>
-  > {
+  /** Every courier Shiprocket offers on the route, each bookable by its id (`serviceId`),
+   *  with what Shiprocket itemised. The courier's name is the carrier the rate table shows
+   *  as "Delhivery Surface (Shiprocket)". */
+  async quoteOptions(query: RateQuery): Promise<RateOption[]> {
     const couriers = await this.serviceability({
       originPincode: query.originPincode,
       destinationPincode: query.destinationPincode,
@@ -336,20 +349,29 @@ export class ShiprocketProvider implements ShippingProvider {
       declaredValuePaise: query.declaredValuePaise,
       cod: query.paymentMode === 'cod',
     })
-    return couriers
-      .map((c) => {
-        const price = Number(c.rate ?? c.freight_charge)
-        const days = Number(c.estimated_delivery_days)
-        return {
-          courierId: String(c.courier_company_id ?? ''),
-          courierName: c.courier_name ?? 'Shiprocket courier',
-          pricePaise: Number.isFinite(price) ? Math.round(price * 100) : 0,
+    return couriers.flatMap((c) => {
+      const pricePaise = rupeesToPaise(c.rate ?? c.freight_charge)
+      const id = String(c.courier_company_id ?? '')
+      if (!id || !pricePaise) return []
+      const days = Number(c.estimated_delivery_days)
+      const weight = Number(c.charge_weight)
+      const name = c.courier_name ?? 'Shiprocket courier'
+      return [
+        {
+          serviceId: id,
+          serviceLabel: name,
+          carrier: name,
+          pricePaise,
           minTransitDays: Number.isFinite(days) && days > 0 ? days : null,
           maxTransitDays: Number.isFinite(days) && days > 0 ? days : null,
           codAvailable: Number(c.cod) === 1 || c.cod === '1',
-        }
-      })
-      .filter((c) => c.courierId)
+          charges: shiprocketCharges(c),
+          // charge_weight is in kilograms.
+          chargeableWeightGrams:
+            Number.isFinite(weight) && weight > 0 ? Math.round(weight * 1000) : null,
+        },
+      ]
+    })
   }
 
   buildOrderPayload(input: CreateShipmentInput) {
@@ -397,13 +419,11 @@ export class ShiprocketProvider implements ShippingProvider {
       )
     }
 
-    /* Assign AWB without a courier id: Shiprocket auto-picks its recommended
-       courier for the shipment. Booking a specific courier chosen from the
-       workspace's rate comparison is a later refinement - the API accepts an
-       optional courier_id for that, unconfirmed against a live account so
-       not wired here yet. */
+    /* The courier picked in the rate table (its courier_company_id), or none: Shiprocket
+       then picks its recommended courier for the shipment. */
     const assign = await this.postJson<AssignAwbResponse>('/courier/assign/awb', {
       shipment_id: order.shipment_id,
+      ...(input.serviceId ? { courier_id: Number(input.serviceId) } : {}),
     })
     const awb = assign.response?.data?.awb_code
     if (!awb) {

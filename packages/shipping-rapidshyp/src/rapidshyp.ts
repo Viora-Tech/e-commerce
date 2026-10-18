@@ -86,6 +86,7 @@ import {
   type NdrActionInput,
   type NdrActionResult,
   type ProviderField,
+  type RateOption,
   type RateQuery,
   type RateQuote,
   type ReturnPickupInput,
@@ -323,7 +324,7 @@ export class RapidshypProvider implements ShippingProvider {
     return courierJson<T>(this.id, res)
   }
 
-  /** Shared by checkServiceability, quoteRate, listCourierOptions and createReturnPickup -
+  /** Shared by checkServiceability, quoteRate, quoteOptions and createReturnPickup -
    *  one call answers all four (`is_return` switches to the return-leg network). */
   private async serviceability(query: {
     originPincode: string
@@ -411,19 +412,10 @@ export class RapidshypProvider implements ShippingProvider {
     return { pricePaise: Math.round(price * 100), minTransitDays: days, maxTransitDays: days }
   }
 
-  /** Every serviceable courier for a route, for the Shipments workspace's rate
-   *  comparison table - not part of the shared contract, called directly the
-   *  same way `ShiprocketProvider.listCourierOptions` is. */
-  async listCourierOptions(query: RateQuery): Promise<
-    Array<{
-      courierId: string
-      courierName: string
-      pricePaise: number
-      minTransitDays: number | null
-      maxTransitDays: number | null
-      codAvailable: boolean
-    }>
-  > {
+  /** Every courier RapidShyp offers on the route, each bookable by its code (`serviceId`).
+   *  RapidShyp answers with one total per courier, so no itemised charges. The COD list is
+   *  a second call: a courier missing from it does not collect cash. */
+  async quoteOptions(query: RateQuery): Promise<RateOption[]> {
     const [couriers, codCouriers] = await Promise.all([
       this.serviceability({
         originPincode: query.originPincode,
@@ -441,20 +433,25 @@ export class RapidshypProvider implements ShippingProvider {
       }),
     ])
     const codCodes = new Set(codCouriers.map((c) => c.courier_code))
-    return couriers
-      .map((c) => {
-        const price = Number(c.total_freight)
-        const days = daysFromToday(c.edd)
-        return {
-          courierId: c.courier_code ?? '',
-          courierName: c.courier_name ?? 'RapidShyp courier',
-          pricePaise: Number.isFinite(price) ? Math.round(price * 100) : 0,
+    return couriers.flatMap((c) => {
+      const price = Number(c.total_freight)
+      if (!c.courier_code || !Number.isFinite(price) || price <= 0) return []
+      const days = daysFromToday(c.edd)
+      const name = c.courier_name ?? 'RapidShyp courier'
+      return [
+        {
+          serviceId: c.courier_code,
+          serviceLabel: name,
+          carrier: c.parent_courier_name || name,
+          pricePaise: Math.round(price * 100),
           minTransitDays: days,
           maxTransitDays: days,
           codAvailable: codCodes.has(c.courier_code),
-        }
-      })
-      .filter((c) => c.courierId)
+          charges: [],
+          chargeableWeightGrams: null,
+        },
+      ]
+    })
   }
 
   buildOrderPayload(input: CreateShipmentInput) {
@@ -546,11 +543,22 @@ export class RapidshypProvider implements ShippingProvider {
     }
 
     let awb = first?.awb
+    let labelUrl = first?.labelURL
+    let pickupScheduled = first?.pickupScheduled === true
+    /* The wrapper books by the account's courier priority. When the merchant picked another
+       courier in the rate table, reassign the shipment to it (assign_awb reassigns by
+       shipment id); the label and pickup then follow the new AWB. */
+    if (awb && input.serviceId && first?.courierCode && first.courierCode !== input.serviceId) {
+      const reassigned = await this.assignAwb(shipmentId, input.serviceId)
+      awb = reassigned.awb
+      labelUrl = undefined
+      pickupScheduled = false
+    }
     if (!awb) {
       // The wrapper's own AWB assignment did not come back with one (e.g. no
       // courier matched its rule/priority) - one explicit retry, letting
       // RapidShyp pick the default courier again.
-      const assigned = await this.assignAwb(shipmentId).catch(() => null)
+      const assigned = await this.assignAwb(shipmentId, input.serviceId).catch(() => null)
       awb = assigned?.awb
     }
     if (!awb) {
@@ -561,8 +569,7 @@ export class RapidshypProvider implements ShippingProvider {
       )
     }
 
-    let labelUrl = first?.labelURL
-    if (!first?.pickupScheduled) {
+    if (!pickupScheduled) {
       // Best-effort: pickup failing here never invalidates the booking - the
       // merchant can retry it from the Shipments workspace's pickup tab.
       await this.schedulePickupForShipment(shipmentId, awb).catch(() => undefined)
@@ -750,7 +757,7 @@ export class RapidshypProvider implements ShippingProvider {
    * locations instead of a free-text nickname that must match exactly. Not
    * part of the shared `ShippingProvider` contract (no other courier here
    * exposes an equivalent lookup); called directly by
-   * `testShippingConnection`, same pattern as `listCourierOptions`.
+   * `testShippingConnection`, same pattern as `quoteOptions`.
    */
   async listPickupLocations(): Promise<
     Array<{
