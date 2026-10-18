@@ -26,7 +26,7 @@ export const CHECKOUT_CORNERS = ['sharp', 'soft', 'round'] as const
 export type CheckoutCorners = (typeof CHECKOUT_CORNERS)[number]
 
 /** The neutral look a store gets before it picks anything. */
-const DEFAULT_CHECKOUT_COLOURS = {
+export const DEFAULT_CHECKOUT_COLOURS = {
   accent: '#2F5BEA',
   button: '#2F5BEA',
   summary: '#F5F5F2',

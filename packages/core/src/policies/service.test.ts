@@ -15,7 +15,7 @@ import { resetDb } from '@commerce/db/test'
 import { eq } from 'drizzle-orm'
 import { afterAll, beforeEach, describe, expect, it } from 'vitest'
 import { addToCart, createCart } from '../cart/cart'
-import { loadCheckoutSettings, saveCheckoutSettings } from '../checkout/service'
+import { loadCheckoutSettings, saveCheckoutSettings, storeCheckoutLook } from '../checkout/service'
 import type { StoreContext } from '../context'
 import { CheckoutRuleViolation } from '../errors'
 import { placeOrderAndPay } from '../order/place-order'
@@ -190,6 +190,32 @@ describe('checkout settings', () => {
     expect(
       (await inStore(storeId, (ctx) => loadCheckoutSettings(ctx))).settings.minimumOrderPaise,
     ).toBe(50_000)
+  })
+})
+
+describe('checkout colours', () => {
+  // The default theme's light scheme paints buttons Waimers purple.
+  const THEME_BRAND = '#6C3BAA'
+
+  it('follows the theme brand colour until the store picks its own', async () => {
+    const { storeId } = await seed()
+    const loaded = await inStore(storeId, (ctx) => loadCheckoutSettings(ctx))
+    expect(loaded.settings.branding).toMatchObject({ accent: THEME_BRAND, button: THEME_BRAND })
+    const look = await inStore(storeId, (ctx) => storeCheckoutLook(ctx))
+    expect(look.branding).toMatchObject({ accent: THEME_BRAND, button: THEME_BRAND })
+  })
+
+  it('treats a stored stock blue as not picked, and keeps a picked colour', async () => {
+    const { storeId } = await seed()
+    // A save from before the fallback stored the whole branding, stock blue included.
+    const stock = await inStore(storeId, (ctx) => saveCheckoutSettings(ctx, { settings: {} }))
+    expect(stock.settings.branding.accent).toBe(THEME_BRAND)
+    const picked = await inStore(storeId, (ctx) =>
+      saveCheckoutSettings(ctx, { settings: { branding: { accent: '#112233' } } }),
+    )
+    expect(picked.settings.branding).toMatchObject({ accent: '#112233', button: THEME_BRAND })
+    const look = await inStore(storeId, (ctx) => storeCheckoutLook(ctx))
+    expect(look.branding).toMatchObject({ accent: '#112233', button: THEME_BRAND })
   })
 })
 
