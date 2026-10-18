@@ -82,7 +82,7 @@ describe('loadEnv', () => {
       ...valid,
       DOMAIN_PROVIDER: 'dns',
       STOREFRONT_A_RECORD: '15.206.197.145',
-      STOREFRONT_CNAME_TARGET: 'shops.vioratech.in',
+      STOREFRONT_CNAME_TARGET: 'shops.koomerce.app',
     })
     expect(env).toMatchObject({ DOMAIN_PROVIDER: 'dns', STOREFRONT_A_RECORD: '15.206.197.145' })
   })

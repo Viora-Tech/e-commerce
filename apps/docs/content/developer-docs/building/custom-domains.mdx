@@ -78,7 +78,7 @@ DOMAIN_PROVIDER=dns
 # The storefront server's public IPv4. Apex domains point their A record here.
 STOREFRONT_A_RECORD=15.206.197.145
 # A hostname that resolves to that server. Subdomains point their CNAME here.
-STOREFRONT_CNAME_TARGET=shops.vioratech.in
+STOREFRONT_CNAME_TARGET=shops.koomerce.app
 ```
 
 `loadEnv` refuses `DOMAIN_PROVIDER=dns` while `STOREFRONT_A_RECORD` is still the documentation
@@ -241,7 +241,7 @@ A new store's own address takes the same route path, so with one wildcard DNS re
 works the moment it is created, with no manual step.
 
 1. **DNS, once:** add a wildcard `*` A record for `PLATFORM_STORE_DOMAIN` (for example
-   `*.vioratech.in`) pointing at the proxy server. Our own hosts (admin, shop, worker, panel...)
+   `*.koomerce.app`) pointing at the proxy server. Our own hosts (admin, shop, worker, panel...)
    keep their explicit records, which win over the wildcard.
 2. **On creation:** when the Dokploy keys are set, `createStore` is told (`requestPlatformRoute`)
    to queue the route. The new address row is written with `route_status = 'pending'` and

@@ -4,7 +4,7 @@ import { createDnsDomainProvider, type DnsResolver } from './dns-provider'
 import type { DomainCheckInput } from './provider'
 import { dnsRecordsFor } from './records'
 
-const targets = { aRecord: '15.206.197.145', cnameTarget: 'shops.vioratech.in' }
+const targets = { aRecord: '15.206.197.145', cnameTarget: 'shops.koomerce.app' }
 const TOKEN = 'waimers-verify=abc123'
 const now = new Date('2026-10-05T10:00:00Z')
 
@@ -103,13 +103,13 @@ describe('dns domain provider', () => {
 
   it('verifies a subdomain whose CNAME points at the target, ignoring case and the trailing dot', async () => {
     const { p } = provider({
-      cname: { 'www.brand.in': ['Shops.VioraTech.in.'] },
+      cname: { 'www.brand.in': ['Shops.Koomerce.App.'] },
       a: { 'www.brand.in': ['52.1.1.1'] },
       txt: { '_waimers-verify.www.brand.in': [[TOKEN]] },
     })
     const r = await p.check(input('www.brand.in'))
     expect(r).toMatchObject({ dns: 'verified', ssl: 'active', error: null })
-    expect(r.observed[0]).toEqual({ type: 'CNAME', name: 'www', value: 'shops.vioratech.in' })
+    expect(r.observed[0]).toEqual({ type: 'CNAME', name: 'www', value: 'shops.koomerce.app' })
   })
 
   it('accepts a flattened subdomain whose A record is the server address', async () => {

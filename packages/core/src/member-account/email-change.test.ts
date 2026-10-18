@@ -17,7 +17,7 @@ function fakePlatform(ok: boolean) {
   }
   const platform: PlatformCodeSender = {
     transport: {
-      fromEmail: 'no-reply@vioratech.in',
+      fromEmail: 'no-reply@koomerce.app',
       fromName: 'Koomerce',
       channel: () => channel,
     },
