@@ -9,8 +9,9 @@ import type { CheckoutFormModel } from '@/lib/use-checkout-form'
 type CheckoutPaymentStepProps = { ck: CheckoutFormModel }
 
 /**
- * The last step: the ways to pay as cards (UPI first, cash on delivery last), and the order
- * note when the store takes one. Paying opens the provider's own window, as before.
+ * The last step (Figma Checkout / Payment): the ways to pay as one list (UPI first, cash on
+ * delivery last), the picked one opening onto what happens next, and the order note when the
+ * store takes one. Paying opens the provider's own window or the UPI QR, as before.
  */
 export default function CheckoutPaymentStep({ ck }: CheckoutPaymentStepProps) {
   // Render logic

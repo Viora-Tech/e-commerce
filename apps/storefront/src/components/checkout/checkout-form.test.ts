@@ -205,6 +205,16 @@ describe('CheckoutForm', () => {
     expect(pay.match(/<form/g)).toHaveLength(1)
   })
 
+  it('names the gateways that process the payment under Pay, and only there', () => {
+    const methods = [...props.methods, { id: 'razorpay', label: 'Razorpay', methods: ['upi'] }]
+    const pay = render('?step=payment', { customer, addresses: [address], methods })
+    expect(pay).toContain('Payments processed by Razorpay')
+    expect(pay.indexOf('value="decentro"')).toBeLessThan(pay.indexOf('value="razorpay"'))
+    expect(pay.indexOf('value="razorpay"')).toBeLessThan(pay.indexOf('value="cod"'))
+    const ship = render('?step=shipping', { customer, addresses: [address], methods })
+    expect(ship).not.toContain('Payments processed by')
+  })
+
   it('shows the order summary on every step', () => {
     for (const at of ['', '?step=shipping', '?step=payment']) {
       const page = render(at, { customer, addresses: [address] })

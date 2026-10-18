@@ -5,6 +5,7 @@ import {
   checkoutTotals,
   methodView,
   offeredMethods,
+  processorNames,
   takesUpi,
   trustMethodNames,
 } from './checkout-preview'
@@ -56,13 +57,30 @@ describe('offeredMethods', () => {
 })
 
 describe('method names', () => {
-  it('shows ways to pay, never a gateway brand', () => {
+  it('titles a gateway by its brand, with what it takes as the hint', () => {
     expect(methodView(decentro).title).toBe('UPI')
-    expect(methodView({ ...razorpay, methods: [...razorpay.methods] }).title).toBe(
-      'UPI, cards and more',
-    )
+    expect(methodView(cod).title).toBe('Cash on delivery')
+    const view = methodView({ ...razorpay, methods: [...razorpay.methods] })
+    expect(view.title).toBe('Razorpay')
+    expect(view.hint).toBe('Cards · UPI')
+    expect(methodView({ id: 'cashfree', label: 'Cashfree PG' }).title).toBe('Cashfree')
+    expect(methodView({ id: 'cashfree', label: 'Cashfree PG' }).hint).toBe('UPI, cards and more')
     expect(takesUpi({ id: 'cashfree', label: 'Cashfree', methods: ['card'] })).toBe(false)
     expect(trustMethodNames([decentro, cod])).toEqual(['UPI', 'Cash on delivery'])
+  })
+
+  it('names the gateways that process the money, once each, and nothing else', () => {
+    const cashfree = { id: 'cashfree', label: 'Cashfree' }
+    expect(
+      processorNames([
+        decentro,
+        { ...razorpay, methods: [...razorpay.methods] },
+        cashfree,
+        cod,
+        manual,
+      ]),
+    ).toEqual(['Razorpay', 'Cashfree'])
+    expect(processorNames([decentro, cod])).toEqual([])
   })
 })
 

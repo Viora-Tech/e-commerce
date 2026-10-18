@@ -123,6 +123,14 @@
   }
 }
 
+/* The picked way to pay opening onto its details (PaymentMethods); transform and opacity only. */
+@keyframes ck-reveal {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+}
+
 /* The theme's mobile dock pads <body> for itself; the checkout hides the dock, so not here. */
 body:has(.ck) {
   padding-bottom: 0;
