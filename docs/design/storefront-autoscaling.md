@@ -23,7 +23,7 @@ runtime (Cloudflare Workers / Lambda were weighed and rejected, see "Rejected").
 - `apps/storefront/src/lib/edge-cache.ts` already marks catalogue and content pages from
   cookie-less visitors as shareable (`s-maxage=STOREFRONT_EDGE_TTL`, default 30 s,
   `stale-while-revalidate` 10×). Cart, checkout, account, actions and APIs stay private.
-  `apps/docs/content/developer-docs/operations` → performance.mdx "Shared caches" has the
+  `apps/docs/content/developer-docs/building/performance.mdx` ("Shared caches") has the
   Cloudflare cache rule.
 - Nothing sits in front of the storefront yet: store hosts are DNS only to the server
   (Traefik + Let's Encrypt), merchant custom domains point at it by A/CNAME.
