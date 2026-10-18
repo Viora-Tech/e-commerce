@@ -16,8 +16,10 @@ type BookShipmentArgs = {
   parcel: DraftParcel
   form: PackageForm
   parsed: ParsedPackage
-  /** A courier's provider id, or MANUAL for "ship it yourself". */
+  /** The picked rate row's `optionKey`, or MANUAL for "ship it yourself". */
   pick: string
+  /** The picked rate row: its courier and the service it books. */
+  courier: { providerId: string; serviceId: string | null } | null
   /** The AWB and courier name typed for MANUAL, already trimmed. */
   typed: ReturnType<typeof trackingPayload>
   courierLabel: string | undefined
@@ -49,7 +51,8 @@ export async function bookShipment(a: BookShipmentArgs): Promise<BookedShipment>
   }
   const s = await api.orders.createShipment({
     orderId: a.order.orderId,
-    providerId: a.pick,
+    providerId: a.courier?.providerId,
+    serviceId: a.courier?.serviceId ?? undefined,
     fulfillmentOrderId: a.parcel.id ?? undefined,
     pickupLocationId: a.form.pickupLocationId,
     weightGrams: a.parsed.weightGrams,

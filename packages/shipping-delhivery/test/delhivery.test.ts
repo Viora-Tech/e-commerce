@@ -301,6 +301,75 @@ describe('DelhiveryProvider rates', () => {
     expect(await p.quoteRate(query)).toBeNull()
   })
 
+  it('quotes Surface and Express side by side with what Delhivery itemised', async () => {
+    const f = fakeFetch({
+      '/api/kinko/v1/invoice/charges/.json': (url) =>
+        url.searchParams.get('md') === 'E'
+          ? json([{ total_amount: 140, gross_amount: 118.64, charge_DL: 100, charge_FSC: 18.64 }])
+          : json([
+              {
+                total_amount: 86.73,
+                gross_amount: 73.5,
+                charge_DL: 60,
+                charge_FSC: 11.5,
+                charge_XYZ: 2,
+                charged_weight: 1000,
+                tax_data: { IGST: 13.23 },
+              },
+            ]),
+      '/api/dc/expected_tat': (url) =>
+        json({ success: true, data: { tat: url.searchParams.get('mot') === 'E' ? 2 : 4 } }),
+    })
+    const p = new DelhiveryProvider({ ...config, fetchImpl: f.impl })
+    const options = await p.quoteOptions(query)
+    expect(options).toEqual([
+      {
+        serviceId: 'S',
+        serviceLabel: 'Surface',
+        carrier: null,
+        pricePaise: 8673,
+        minTransitDays: 4,
+        maxTransitDays: 4,
+        codAvailable: null,
+        charges: [
+          { kind: 'freight', pricePaise: 6000 },
+          { kind: 'fuel', pricePaise: 1150 },
+          { kind: 'other', pricePaise: 200 },
+          { kind: 'gst', pricePaise: 1323 },
+        ],
+        chargeableWeightGrams: 1000,
+      },
+      expect.objectContaining({
+        serviceId: 'E',
+        serviceLabel: 'Express',
+        pricePaise: 14000,
+        minTransitDays: 2,
+        // No tax_data: GST is the total less the gross amount.
+        charges: [
+          { kind: 'freight', pricePaise: 10000 },
+          { kind: 'fuel', pricePaise: 1864 },
+          { kind: 'gst', pricePaise: 2136 },
+        ],
+      }),
+    ])
+  })
+
+  it('books the mode picked in the rate table', async () => {
+    const f = fakeFetch({
+      '/waybill/api/bulk/json/': () => json('WB1'),
+      '/api/cmu/create.json': () => json({ success: true, packages: [{ waybill: 'WB1' }] }),
+    })
+    const p = new DelhiveryProvider({ ...config, fetchImpl: f.impl })
+    await p.createShipment({ ...sampleShipment, serviceId: 'E' }).catch(() => undefined)
+    const call = f.calls.find((c) => c.url.pathname.includes('/api/cmu/create.json'))
+    const raw = String(call?.init?.body ?? '')
+    const data = JSON.parse(decodeURIComponent(raw.replace(/^format=json&data=/, '')))
+    expect(data.shipments[0].shipping_mode).toBe('Express')
+    expect(p.buildShipmentPayload(sampleShipment, 'WB2').shipments[0]).not.toHaveProperty(
+      'shipping_mode',
+    )
+  })
+
   it('explains an unknown pickup location in plain words, without a stray "true"', async () => {
     const f = fakeFetch({
       '/waybill/api/bulk/json/': () => json('WB1'),

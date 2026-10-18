@@ -81,13 +81,14 @@ export default function BulkShipmentFlow({ draft, onClose, onBooked }: BulkShipm
     void askCouriers()
   }
   const handleBook = async () => {
-    const { orderIds, courierOverrides } = bulkOrders(picked)
+    const { orderIds, courierOverrides, serviceOverrides } = bulkOrders(picked)
     if (orderIds.length === 0) return
     setBusy(true)
     try {
       const booked = await api.shipments.bulkBook({
         orderIds,
         courierOverrides,
+        ...(Object.keys(serviceOverrides).length ? { serviceOverrides } : {}),
         dimensionsCm: dims,
       })
       const unbooked = rows

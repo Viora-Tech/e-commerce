@@ -1,5 +1,6 @@
 import type {
   CredentialCheck,
+  RateOption,
   RateQuery,
   RateQuote,
   Serviceability,
@@ -12,6 +13,7 @@ import {
   chooseCourier,
   compareCourierRates,
   datedCourierRows,
+  rateOptionLabel,
 } from './courier-rates'
 
 const query: RateQuery = {
@@ -219,8 +221,13 @@ describe('datedCourierRows', () => {
   // Tuesday 13 Oct 2026, 10:00 IST: dispatches today.
   const now = new Date('2026-10-13T04:30:00Z')
   const row = (over: Partial<CourierRateRow>): CourierRateRow => ({
+    optionKey: 'x',
     providerId: 'x',
+    providerName: 'X',
     providerLabel: 'X',
+    serviceId: null,
+    charges: [],
+    chargeableWeightGrams: null,
     pricePaise: null,
     minTransitDays: null,
     maxTransitDays: null,
@@ -254,6 +261,9 @@ describe('chooseCourier', () => {
   const delhivery = fakeProvider('delhivery', 'Delhivery')
   const providers = [delhivery, shiprocket]
   const unbadged = {
+    serviceId: null,
+    charges: [] as CourierRateRow['charges'],
+    chargeableWeightGrams: null,
     problem: null,
     problemDetail: null,
     deliveryBy: null,
@@ -262,7 +272,9 @@ describe('chooseCourier', () => {
   const rows: CourierRateRow[] = [
     {
       ...unbadged,
+      optionKey: 'delhivery',
       providerId: 'delhivery',
+      providerName: 'Delhivery',
       providerLabel: 'Delhivery',
       pricePaise: null,
       minTransitDays: 2,
@@ -272,7 +284,9 @@ describe('chooseCourier', () => {
     },
     {
       ...unbadged,
+      optionKey: 'shiprocket',
       providerId: 'shiprocket',
+      providerName: 'Shiprocket',
       providerLabel: 'Shiprocket',
       pricePaise: 6000,
       minTransitDays: 3,
@@ -318,5 +332,85 @@ describe('chooseCourier', () => {
 
   it('no connected couriers returns null', () => {
     expect(chooseCourier([], [], { mode: 'cheapest' })).toBeNull()
+  })
+})
+
+describe('compareCourierRates with per-service options', () => {
+  const option = (over: Partial<RateOption>): RateOption => ({
+    serviceId: 'S',
+    serviceLabel: 'Surface',
+    carrier: null,
+    pricePaise: 9000,
+    minTransitDays: 4,
+    maxTransitDays: 4,
+    codAvailable: null,
+    charges: [],
+    chargeableWeightGrams: null,
+    ...over,
+  })
+  const withOptions = (
+    id: string,
+    label: string,
+    options: RateOption[] | Error,
+    serviceability: Partial<Serviceability> = {},
+  ): ShippingProvider => ({
+    ...fakeProvider(id, label, {
+      quote: { pricePaise: 1, minTransitDays: 1, maxTransitDays: 1 },
+      serviceability,
+    }),
+    async quoteOptions() {
+      if (options instanceof Error) throw options
+      return options
+    },
+  })
+
+  it('names direct services after the courier and aggregator ones after the carrier', () => {
+    expect(rateOptionLabel('Delhivery', option({ serviceLabel: 'Express' }))).toBe(
+      'Delhivery Express',
+    )
+    expect(
+      rateOptionLabel('Shiprocket', option({ serviceLabel: 'Bluedart Air', carrier: 'Bluedart' })),
+    ).toBe('Bluedart Air (Shiprocket)')
+  })
+
+  it('lists every service as its own bookable row with its charges', async () => {
+    const delhivery = withOptions('delhivery', 'Delhivery', [
+      option({ charges: [{ kind: 'freight', pricePaise: 7000 }] }),
+      option({ serviceId: 'E', serviceLabel: 'Express', pricePaise: 14000, minTransitDays: 2 }),
+    ])
+    const shiprocket = withOptions('shiprocket', 'Shiprocket', [
+      option({
+        serviceId: '10',
+        serviceLabel: 'Delhivery Surface',
+        carrier: 'Delhivery Surface',
+        pricePaise: 8000,
+        codAvailable: true,
+      }),
+    ])
+    const rows = await compareCourierRates([delhivery, shiprocket], query)
+    expect(rows.map((r) => [r.optionKey, r.providerLabel, r.serviceId])).toEqual([
+      ['delhivery:S', 'Delhivery Surface', 'S'],
+      ['delhivery:E', 'Delhivery Express', 'E'],
+      ['shiprocket:10', 'Delhivery Surface (Shiprocket)', '10'],
+    ])
+    expect(rows[0]?.charges).toEqual([{ kind: 'freight', pricePaise: 7000 }])
+    expect(rows.find((r) => r.badges.includes('cheapest'))?.optionKey).toBe('shiprocket:10')
+    expect(rows.find((r) => r.badges.includes('fastest'))?.optionKey).toBe('delhivery:E')
+  })
+
+  it('takes COD support from serviceability when the options do not say', async () => {
+    const p = withOptions('delhivery', 'Delhivery', [option({})], { codAvailable: false })
+    const rows = await compareCourierRates([p], { ...query, paymentMode: 'cod' })
+    expect(rows[0]).toMatchObject({ codAvailable: false, problem: 'no_cod' })
+  })
+
+  it('falls back to one row when the options fail or the PIN code is not served', async () => {
+    const failing = withOptions('a', 'A', new Error('down'))
+    const unserved = withOptions('b', 'B', [option({})], { serviceable: false, reason: 'No' })
+    const rows = await compareCourierRates([failing, unserved], query)
+    expect(rows.map((r) => [r.optionKey, r.serviceId, r.problem])).toEqual([
+      ['a', null, null],
+      ['b', null, 'not_serviceable'],
+    ])
   })
 })

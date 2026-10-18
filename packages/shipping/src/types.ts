@@ -84,6 +84,11 @@ export type CreateShipmentInput = {
   /** Declared value for insurance and customs, in paise. */
   valuePaise: number
   weightGrams: number
+  /**
+   * The service picked from `quoteOptions` (`RateOption.serviceId`): Delhivery's mode, an
+   * aggregator's courier. Absent: the courier's own default, as before.
+   */
+  serviceId?: string | undefined
 }
 
 export type CreateShipmentResult = {
@@ -145,6 +150,35 @@ export type RateQuote = {
   pricePaise: number
   minTransitDays: number | null
   maxTransitDays: number | null
+}
+
+/** One line of a quoted price, only as the courier's answer itemised it. */
+export type RateCharge = {
+  kind: 'freight' | 'cod' | 'fuel' | 'insurance' | 'rto' | 'other' | 'gst'
+  pricePaise: number
+}
+
+/**
+ * One bookable service on a route: Delhivery Surface or Express, or one carrier inside an
+ * aggregator (Shiprocket, RapidShyp). `serviceId` goes back into `createShipment` so the
+ * merchant books what they picked, not the courier's default.
+ */
+export type RateOption = {
+  serviceId: string
+  /** "Surface", "Express", or an aggregator's service name ("Bluedart Air"). */
+  serviceLabel: string
+  /** The carrier behind an aggregator's option ("Delhivery"); null for a direct courier. */
+  carrier: string | null
+  /** Total for the parcel, tax included, in paise. */
+  pricePaise: number
+  minTransitDays: number | null
+  maxTransitDays: number | null
+  /** Null when the courier's answer does not say. */
+  codAvailable: boolean | null
+  /** What the courier itemised; empty when it gave a total only. */
+  charges: RateCharge[]
+  /** The weight the courier charges for, when it says. */
+  chargeableWeightGrams: number | null
 }
 
 /**
@@ -257,6 +291,12 @@ export type ShippingProvider = {
    * changing the contract again.
    */
   quoteRate?(query: RateQuery): Promise<RateQuote | null>
+  /**
+   * Optional: every service the courier offers on this route, each with its price and what
+   * it itemised. The Create shipment rate table lists them all when present and falls back
+   * to `quoteRate` (one row) otherwise.
+   */
+  quoteOptions?(query: RateQuery): Promise<RateOption[]>
   /**
    * Look up serviceability. Throws CourierError on transport or auth failure;
    * returns `serviceable: false` for a successful lookup with a negative
