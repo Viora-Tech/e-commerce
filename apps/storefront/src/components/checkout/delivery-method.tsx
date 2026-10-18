@@ -46,7 +46,7 @@ export default function DeliveryMethod({
   // Early returns
   if (checking || !shipping) {
     return (
-      <div className="flex min-h-20 items-center gap-3 rounded-ck border border-dashed border-ck-line bg-ck-soft px-4 text-[0.875rem] text-ck-muted">
+      <div className="flex min-h-20 items-center gap-3 rounded-ck border border-dashed border-ck-line bg-ck-field px-4 text-[0.875rem] text-ck-muted">
         {checking ? (
           <>
             <CheckoutIcon

@@ -14,7 +14,7 @@ import CheckoutSummary from '@/components/checkout/checkout-summary'
 import DeliveryMethod from '@/components/checkout/delivery-method'
 import SummaryDisclosure from '@/components/checkout/summary-disclosure'
 import { checkoutContent as content } from '@/data/checkout'
-import { shippingRow, trustMethodNames } from '@/lib/checkout-preview'
+import { processorNames, shippingRow, trustMethodNames } from '@/lib/checkout-preview'
 import { recapRows } from '@/lib/checkout-recap'
 import type { CheckoutStep } from '@/lib/checkout-steps'
 import { type CheckoutFormInput, useCheckoutForm } from '@/lib/use-checkout-form'
@@ -77,6 +77,7 @@ export default function CheckoutForm(props: CheckoutFormProps) {
       look={look}
       backHref="/cart"
       backLabel={content.backToCart}
+      policies={ck.policies ?? []}
       summary={
         <SummaryDisclosure totalLabel={ck.payNow} updating={ck.updating}>
           <CheckoutSummary
@@ -159,6 +160,7 @@ export default function CheckoutForm(props: CheckoutFormProps) {
           shortfall={shortfall}
           policies={paying ? (ck.policies ?? []) : []}
           trust={paying && look.branding.trustBadges ? trustMethodNames(totals.offered) : null}
+          processors={paying && !totals.coveredByCards ? processorNames(totals.offered) : []}
           nav={
             <CheckoutStepNav
               label={primaryLabel}

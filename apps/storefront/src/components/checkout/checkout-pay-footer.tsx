@@ -3,6 +3,7 @@ import type { ReactNode } from 'react'
 import CheckoutAgreement from '@/components/checkout/checkout-agreement'
 import CheckoutIcon from '@/components/checkout/checkout-icon'
 import TrustLine from '@/components/checkout/trust-line'
+import { checkoutContent as content } from '@/data/checkout'
 
 type CheckoutPayFooterProps = {
   /** Why the server refused the order, or what to fix before going on. */
@@ -15,6 +16,8 @@ type CheckoutPayFooterProps = {
   policies: PolicyLink[]
   /** The trust line's ways to pay; null when the merchant turned it off or before paying. */
   trust: string[] | null
+  /** The gateways that handle the money ("Razorpay", "Cashfree"), on the paying step only. */
+  processors?: string[]
 }
 
 /**
@@ -28,11 +31,15 @@ export default function CheckoutPayFooter({
   nav,
   policies,
   trust,
+  processors = [],
 }: CheckoutPayFooterProps) {
   return (
     <>
       {shortfall ? (
-        <p role="status" className="rounded-ck bg-ck-soft px-4 py-3 text-[0.875rem] text-ck-ink">
+        <p
+          role="status"
+          className="rounded-ck border border-ck-line bg-ck-field px-4 py-3 text-[0.875rem] text-ck-ink"
+        >
           {shortfall}
         </p>
       ) : null}
@@ -51,6 +58,11 @@ export default function CheckoutPayFooter({
       {nav}
       <CheckoutAgreement policies={policies} />
       {trust ? <TrustLine methods={trust} /> : null}
+      {processors.length > 0 ? (
+        <p className="-mt-4! text-center text-[0.75rem] text-ck-muted">
+          {content.processors(processors)}
+        </p>
+      ) : null}
     </>
   )
 }

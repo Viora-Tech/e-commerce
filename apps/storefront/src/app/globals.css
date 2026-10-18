@@ -55,6 +55,7 @@
   --color-ck-line: var(--ck-line);
   --color-ck-field: var(--ck-field);
   --color-ck-soft: var(--ck-soft);
+  --color-ck-canvas: var(--ck-canvas);
   --color-ck-danger: var(--ck-danger);
   --color-ck-danger-soft: color-mix(in oklab, var(--ck-danger) 9%, transparent);
   --color-ck-success: var(--ck-success);
@@ -82,6 +83,8 @@
   --ck-line: #e3e3e0;
   --ck-field: #ffffff;
   --ck-soft: #f7f7f5;
+  /* The page behind the stepped checkout's cards: a warm off-white in light, the page itself in dark. */
+  --ck-canvas: var(--ck-soft);
   --ck-danger: #c23a2b;
   --ck-success: #1d8a50;
   /* A QR needs a light quiet zone to scan, so it stays white in dark mode too. */
@@ -103,12 +106,29 @@
   --ck-line: #2c2c31;
   --ck-field: #18181b;
   --ck-soft: #1b1b1f;
+  --ck-canvas: var(--ck-bg);
   --ck-danger: #f0776a;
   --ck-success: #4cc488;
   --ck-summary: color-mix(in oklab, var(--ck-summary-light) 8%, #0b0b0d);
   --ck-summary-ink: #ededee;
   --ck-card-shadow: none;
   color-scheme: dark;
+}
+
+/* The thank-you mark settling in (StatusMark); transform and opacity only. */
+@keyframes ck-settle {
+  from {
+    opacity: 0;
+    transform: scale(0.88);
+  }
+}
+
+/* The picked way to pay opening onto its details (PaymentMethods); transform and opacity only. */
+@keyframes ck-reveal {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
 }
 
 /* The theme's mobile dock pads <body> for itself; the checkout hides the dock, so not here. */
@@ -124,6 +144,7 @@ body:has(.ck) {
     --ck-line: #2c2c31;
     --ck-field: #18181b;
     --ck-soft: #1b1b1f;
+    --ck-canvas: var(--ck-bg);
     --ck-danger: #f0776a;
     --ck-success: #4cc488;
     --ck-summary: color-mix(in oklab, var(--ck-summary-light) 8%, #0b0b0d);

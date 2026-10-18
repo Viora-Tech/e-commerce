@@ -6,7 +6,7 @@ import type { CheckoutSession } from '@commerce/payments'
 import type { ReactNode } from 'react'
 import CheckoutIcon from '@/components/checkout/checkout-icon'
 import CheckoutParcels from '@/components/checkout/checkout-parcels'
-import CheckoutShell from '@/components/checkout/checkout-shell'
+import CheckoutStepsShell from '@/components/checkout/checkout-steps-shell'
 import OrderDetails from '@/components/checkout/order-details'
 import OrderSummary from '@/components/checkout/order-summary'
 import StatusMark from '@/components/checkout/status-mark'
@@ -63,9 +63,10 @@ function statusLine(
 }
 
 /**
- * The thank-you page, in the checkout's own look: a calm mark and one headline, the
- * status in plain words, then whatever the shopper still has to do (scan the UPI QR,
- * make the transfer, pay a pre-order balance, retry a failed payment).
+ * The thank-you page (Figma Checkout / Result), in the stepped checkout's frame: a calm mark
+ * and one headline, the status in plain words, the order number on its own card, then
+ * whatever the shopper still has to do (scan the UPI QR, make the transfer, pay a pre-order
+ * balance, retry a failed payment). The order summary stays on the right, as during checkout.
  */
 export default function ThankYouTemplate({
   order: o,
@@ -108,7 +109,7 @@ export default function ThankYouTemplate({
         : content.headline.confirmed
 
   return (
-    <CheckoutShell
+    <CheckoutStepsShell
       look={look}
       backHref="/"
       backLabel={content.continueShopping}
@@ -122,13 +123,19 @@ export default function ThankYouTemplate({
         <div className="flex flex-col gap-5">
           <StatusMark tone={tone} />
           <div className="flex flex-col gap-2">
-            <p className="text-[0.875rem] font-medium text-ck-muted">
-              {content.orderNumber(o.number)}
-            </p>
-            <h1 className={`${CK_HEADING} text-[1.75rem]! sm:text-[2rem]!`}>{headline}</h1>
+            <h1 className={`${CK_HEADING} text-[1.75rem]! text-balance sm:text-[2.25rem]!`}>
+              {headline}
+            </h1>
             <p className="text-[1rem] leading-relaxed text-ck-muted">{status}</p>
           </div>
         </div>
+
+        <p className="flex items-center justify-between gap-4 rounded-ck border border-ck-line bg-ck-field px-5 py-4 [box-shadow:0_1px_2px_rgb(0_0_0/0.03)]">
+          <span className="text-[0.875rem] text-ck-muted">{content.orderNumberLabel}</span>
+          <span className="text-[1.25rem] font-semibold tracking-[-0.015em] tabular-nums">
+            {content.orderNumberValue(o.number)}
+          </span>
+        </p>
 
         {manual ? <TransferInstructions instructions={manual} amountLabel={due} /> : null}
         {qr ? (
@@ -156,7 +163,7 @@ export default function ThankYouTemplate({
           </div>
         ) : null}
 
-        <p className="flex items-start gap-2.5 rounded-ck bg-ck-soft px-4 py-3 text-[0.875rem] text-ck-ink">
+        <p className="flex items-start gap-2.5 rounded-ck border border-ck-line bg-ck-field px-4 py-3 text-[0.875rem] text-ck-ink">
           <CheckoutIcon name="mail" className="mt-0.5! size-4 text-ck-muted" />
           {boughtCards ? content.status.giftCardEmail(o.email) : content.confirmation(o.email)}
         </p>
@@ -175,6 +182,6 @@ export default function ThankYouTemplate({
           </a>
         </div>
       </div>
-    </CheckoutShell>
+    </CheckoutStepsShell>
   )
 }

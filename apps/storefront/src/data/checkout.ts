@@ -30,6 +30,8 @@ export const thankYouContent = {
     cod: 'Your order is confirmed',
   },
   orderNumber: (number: number) => `Order #${number}`,
+  orderNumberLabel: 'Order number',
+  orderNumberValue: (number: number) => `#${number}`,
   confirmation: (email: string | null) =>
     email ? `A confirmation is on its way to ${email}.` : 'We will be in touch about delivery.',
   status: {
@@ -250,6 +252,8 @@ export const checkoutContent = {
     wallet: 'Wallets',
     emi: 'EMI and pay later',
   } as Record<string, string>,
+  /** The payment gateways by brand: a gateway's option is titled with it. */
+  gatewayBrands: { razorpay: 'Razorpay', cashfree: 'Cashfree' } as Record<string, string>,
   /** What each way to pay is called and what it does, by provider. */
   methods: {
     upi: 'UPI',
@@ -262,6 +266,18 @@ export const checkoutContent = {
     manual: 'UPI or bank transfer to the shop',
     manualHint: 'We confirm your order once the money arrives',
   },
+  /** What opens under the picked way to pay (Figma Checkout / Payment). */
+  methodPanel: {
+    upiHeading: 'Pay with any UPI app',
+    upiDesktop: 'Tap Pay to see a QR code. Scan it with any UPI app on your phone and approve.',
+    upiPhone: 'Tap Pay and pick your UPI app to approve. You come straight back here.',
+    appsLabel: 'Works with',
+    upiApps: ['GPay', 'PhonePe', 'Paytm', 'BHIM'],
+    gateway: (brand: string) => `Tap Pay to finish in ${brand}'s secure window.`,
+    processedBy: (brand: string) => `Processed by ${brand}`,
+  },
+  /** Under the Pay button: the gateways that handle the money. */
+  processors: (names: string[]) => `Payments processed by ${names.join(' · ')}`,
   express: {
     heading: 'Express checkout',
     upi: 'Pay with UPI',
