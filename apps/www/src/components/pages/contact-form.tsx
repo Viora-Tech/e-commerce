@@ -10,6 +10,7 @@ import { ctaClass } from '@/lib/cta'
 import { FORM_INITIAL } from '@/lib/form-state'
 import { sendContactMessage } from '@/lib/forms-action'
 import ChoiceChip from '../common/choice-chip'
+import Turnstile from '../common/turnstile'
 
 const copy = contactContent.form
 
@@ -116,6 +117,7 @@ export default function ContactForm() {
           <p className="text-sm text-destructive">{state.errors.message}</p>
         ) : null}
       </div>
+      <Turnstile action="contact" />
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex flex-col gap-1">
           <Label className="flex items-center gap-2 font-medium">
@@ -133,6 +135,11 @@ export default function ContactForm() {
       {state.status === 'success' ? (
         <p role="status" className="text-sm text-foreground">
           {copy.success}
+        </p>
+      ) : null}
+      {state.status === 'error' ? (
+        <p role="alert" className="text-sm text-destructive">
+          {copy.error}
         </p>
       ) : null}
     </form>

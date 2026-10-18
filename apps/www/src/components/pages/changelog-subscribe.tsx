@@ -6,6 +6,7 @@ import { useActionState } from 'react'
 import { changelogContent } from '@/data/changelog'
 import { FORM_INITIAL } from '@/lib/form-state'
 import { subscribeChangelog } from '@/lib/forms-action'
+import Turnstile from '../common/turnstile'
 
 const copy = changelogContent.subscribe
 
@@ -32,6 +33,7 @@ export default function ChangelogSubscribe() {
           aria-invalid={state.errors.email ? true : undefined}
           className="h-9 flex-1 border-0 bg-transparent px-0 shadow-none focus-visible:ring-0"
         />
+        <Turnstile action="changelog" />
         <Button
           type="submit"
           variant="secondary"
@@ -45,6 +47,11 @@ export default function ChangelogSubscribe() {
       {state.status === 'invalid' ? (
         <p role="alert" className="text-sm text-destructive">
           {state.errors.email}
+        </p>
+      ) : null}
+      {state.status === 'error' ? (
+        <p role="alert" className="text-sm text-destructive">
+          {copy.error}
         </p>
       ) : null}
       {state.status === 'success' ? (
