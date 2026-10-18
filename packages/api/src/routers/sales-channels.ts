@@ -49,7 +49,8 @@ export async function queueChannelSync(
   await queue.add(
     'sync',
     { storeId, provider },
-    { jobId: `channel-sync:${storeId}:${provider}:${Date.now()}`, removeOnComplete: true },
+    // Three ':' parts at most (BullMQ): the time joins the third.
+    { jobId: `channel-sync:${storeId}:${provider}-${Date.now()}`, removeOnComplete: true },
   )
 }
 
