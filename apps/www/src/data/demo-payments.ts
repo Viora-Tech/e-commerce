@@ -73,4 +73,17 @@ export const paymentDemoContent = {
   },
   paid: { title: '₹2,999 paid', body: 'Confirmed automatically' },
   confirmed: { title: 'Order confirmed', body: 'Confirmed on WhatsApp' },
+  /** The order beside the demo: one Waimers product (photo in public/brand/waimers). */
+  summary: {
+    heading: 'Order summary',
+    image: '/brand/waimers/a9-mouse.webp',
+    item: 'ATK A9 Wireless Mouse',
+    quantity: 'Qty 1',
+    rows: [
+      { label: 'Subtotal', value: '₹2,999' },
+      { label: 'Shipping', value: 'Free' },
+    ],
+    total: { label: 'Total', value: '₹2,999', note: 'Inclusive of GST' },
+    secure: 'Secure payment through your gateway',
+  },
 }
