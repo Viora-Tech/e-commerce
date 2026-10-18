@@ -80,6 +80,8 @@ export const shipmentsRouter = {
         insured: z.boolean().optional(),
         /** orderId -> providerId. Orders left out book with the store's default courier rule. */
         courierOverrides: z.record(z.uuid(), z.string().min(1)).optional(),
+        /** orderId -> the courier's service picked for it; absent books the courier's default. */
+        serviceOverrides: z.record(z.uuid(), z.string().min(1).max(64)).optional(),
       }),
     )
     .handler(async ({ context, input }) => {

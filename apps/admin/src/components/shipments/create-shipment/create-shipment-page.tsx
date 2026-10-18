@@ -151,9 +151,10 @@ export default function CreateShipmentPage({ orderId, back }: CreateShipmentPage
           form,
           parsed,
           pick,
+          courier: chosen,
           typed,
           courierLabel: chosen?.providerLabel,
-          canPickup: draft?.couriers.find((c) => c.id === pick)?.hasPickup ?? false,
+          canPickup: draft?.couriers.find((c) => c.id === chosen?.providerId)?.hasPickup ?? false,
           pickup,
           pickupFailed: content.pickup.notSupported,
         }),
@@ -184,19 +185,19 @@ export default function CreateShipmentPage({ orderId, back }: CreateShipmentPage
   // Render logic
   const parsed = parsePackage(form)
   const page = content.page
-  const chosen = quote?.options.find((o) => o.providerId === pick) ?? null
+  const chosen = quote?.options.find((o) => o.optionKey === pick) ?? null
   const place = draft.pickupPlaces.find((p) => p.id === form.pickupLocationId)
   const units = parcel.lines.reduce((n, l) => n + l.quantity, 0)
   const manual = pick === MANUAL
   const route = page.routeValue(place?.city ?? place?.name ?? '—', order.city ?? '—')
-  const canPickup = draft.couriers.find((c) => c.id === pick)?.hasPickup ?? false
+  const canPickup = draft.couriers.find((c) => c.id === chosen?.providerId)?.hasPickup ?? false
   const pickupOn = !manual && pickup.ask && canPickup
   const canBook =
     parsed !== null &&
     (manual || (chosen !== null && !chosen.problem)) &&
     (!pickupOn || pickupReady(pickup))
   const serviceable = quote?.options.some((o) => o.problem === null) ?? false
-  const wallet = manual ? null : wallets.find((w) => w.provider === pick)
+  const wallet = manual ? null : wallets.find((w) => w.provider === chosen?.providerId)
   const walletNote =
     wallet && (wallet.supportsLiveBalance || wallet.fetchedAt)
       ? page.walletLeft(wallet.providerLabel, fmt.money(wallet.balancePaise))

@@ -10,7 +10,7 @@ import TrackingFields, { type TrackingDraft } from '@/components/orders/tracking
 import { createShipmentContent } from '@/data/create-shipment'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { routes } from '@/lib/routes'
-import { courierGroup, groupCounts } from './courier-groups'
+import { groupCounts } from './courier-groups'
 import CourierOption from './courier-option'
 import { MANUAL, type ParcelQuote } from './flow-state'
 
@@ -19,7 +19,8 @@ type CourierStepProps = {
   quote: ParcelQuote | null
   hasCouriers: boolean
   pick: string
-  onPick: (providerId: string) => void
+  /** A row's `optionKey`, or MANUAL. */
+  onPick: (optionKey: string) => void
   tracking: TrackingDraft
   onTrackingChange: (next: TrackingDraft) => void
   onRetry: () => void
@@ -54,8 +55,7 @@ export default function CourierStep({
   const manual = pick === MANUAL
   const anyProblem = quote?.options.some((o) => o.problem === 'unreachable') ?? false
   const groups = quote ? groupCounts(quote.options) : []
-  const shown =
-    quote?.options.filter((o) => filter === null || courierGroup(o.providerLabel) === filter) ?? []
+  const shown = quote?.options.filter((o) => filter === null || o.providerName === filter) ?? []
   const kg = quote ? fmt.number(Math.round(quote.chargedWeightGrams / 10) / 100) : null
 
   return (
@@ -130,10 +130,10 @@ export default function CourierStep({
         ) : null}
         {shown.map((row) => (
           <CourierOption
-            key={row.providerId}
+            key={row.optionKey}
             row={row}
-            selected={pick === row.providerId}
-            onSelect={() => onPick(row.providerId)}
+            selected={pick === row.optionKey}
+            onSelect={() => onPick(row.optionKey)}
           />
         ))}
 
