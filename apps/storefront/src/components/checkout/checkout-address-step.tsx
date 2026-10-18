@@ -11,18 +11,21 @@ type CheckoutAddressStepProps = { ck: CheckoutFormModel }
 const SUBHEADING = `${CK_HEADING} text-[1rem]!`
 
 /**
- * Figma Checkout / Address (488:5579): express UPI at the top (the shopper is known by now),
- * then where the order goes, from the address book or new.
+ * Figma Checkout / Address (488:5579): express UPI at the top once nothing is left to ask
+ * (contact, a complete delivery address and a known shipping price, as for a returning
+ * shopper), then where the order goes, from the address book or new.
  */
 export default function CheckoutAddressStep({ ck }: CheckoutAddressStepProps) {
   // Render logic
-  const { totals, contactReady } = ck
+  const { totals, contactReady, gates } = ck
   const shortfall = ck.shortfall > 0
+  const express =
+    contactReady && gates.address === 'ok' && gates.shipping === 'ok' && ck.upi !== null
   const savedCards = ck.customer !== null && ck.addresses.length > 0 && !totals.digitalOnly
 
   return (
     <div className="flex flex-col gap-8">
-      {contactReady && ck.upi && !totals.coveredByCards ? (
+      {express && !totals.coveredByCards ? (
         <ExpressPay
           amountLabel={ck.payNow}
           pending={ck.pending}

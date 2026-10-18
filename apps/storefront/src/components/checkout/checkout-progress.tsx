@@ -43,7 +43,7 @@ export default function CheckoutProgress({ steps, current, labels, onGo }: Check
             <>
               <span
                 aria-hidden="true"
-                className={`flex size-7 shrink-0 items-center justify-center rounded-full text-[0.8125rem] font-semibold tabular-nums transition-colors duration-200 motion-reduce:transition-none ${status === 'upcoming' ? 'border border-ck-line text-ck-muted' : 'bg-ck-accent text-ck-accent-ink'}`}
+                className={`flex size-7 shrink-0 items-center justify-center rounded-full text-[0.8125rem] font-semibold tabular-nums transition-colors duration-200 motion-reduce:transition-none ${status === 'upcoming' ? 'border border-ck-line bg-ck-field text-ck-muted' : 'bg-ck-accent text-ck-accent-ink'}`}
               >
                 {status === 'done' ? <CheckoutIcon name="check" className="size-3.5" /> : i + 1}
               </span>
@@ -82,7 +82,7 @@ export default function CheckoutProgress({ steps, current, labels, onGo }: Check
               {i < steps.length - 1 ? (
                 <span
                   aria-hidden="true"
-                  className={`h-px min-w-6 flex-1 transition-colors duration-200 motion-reduce:transition-none ${status === 'done' ? 'bg-ck-accent' : 'bg-ck-line'}`}
+                  className={`min-w-6 flex-1 rounded-full transition-colors duration-200 motion-reduce:transition-none ${status === 'done' ? 'h-0.5 bg-ck-accent' : 'h-px bg-ck-line'}`}
                 />
               ) : null}
             </li>

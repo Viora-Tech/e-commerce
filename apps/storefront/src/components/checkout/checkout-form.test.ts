@@ -29,6 +29,18 @@ vi.mock('@/lib/privacy-actions', () => ({
   verifyPhoneCodeAction: vi.fn(),
 }))
 vi.mock('@/lib/login-actions', () => ({}))
+// The courier never answers in a static render; a test can stand in for its answer.
+let courier: 'ok' | null = null
+vi.mock('@/lib/use-checkout-shipping', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@/lib/use-checkout-shipping')>()
+  return {
+    ...actual,
+    useCheckoutShipping: (...args: Parameters<typeof actual.useCheckoutShipping>) => {
+      const quote = actual.useCheckoutShipping(...args)
+      return courier ? { ...quote, gate: courier } : quote
+    },
+  }
+})
 
 const { default: CheckoutForm } = await import('./checkout-form')
 
@@ -149,10 +161,22 @@ describe('CheckoutForm', () => {
     expect(page).toContain('Edit the address for Asha Verma')
     expect(page).toContain('Delete the address for Asha Verma')
     expect(page).toContain('Add new address')
-    expect(page).toContain('Pay with UPI')
+    // Express UPI waits for the courier's price too, not only a known shopper and address.
+    expect(page).not.toContain('Pay with UPI')
     expect(page).not.toContain('id="checkout-send-code"')
     // The picked card's details are the form's; the PIN-first form is not open.
     expect(page).not.toContain('for="checkout-pincode"')
+  })
+
+  it('offers express UPI once the contact, the address and the shipping price are all known', () => {
+    courier = 'ok'
+    try {
+      expect(render('', { customer, addresses: [address], signIn })).toContain('Pay with UPI')
+      // A signed-in shopper still typing a new address gets no shortcut yet.
+      expect(render('', { customer, addresses: [], signIn })).not.toContain('Pay with UPI')
+    } finally {
+      courier = null
+    }
   })
 
   it('opens the PIN-first form for a signed-in shopper with no saved address', () => {

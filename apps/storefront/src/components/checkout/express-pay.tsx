@@ -44,7 +44,7 @@ export default function ExpressPay({
         <p
           id="express-pay-message"
           role="status"
-          className="flex items-start gap-2 rounded-ck bg-ck-soft px-3.5 py-3 text-[0.8125rem] text-ck-ink"
+          className="flex items-start gap-2 rounded-ck border border-ck-line bg-ck-field px-3.5 py-3 text-[0.8125rem] text-ck-ink"
         >
           <CheckoutIcon name="alert" className="mt-px! size-4 text-ck-accent" />
           {message}

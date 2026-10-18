@@ -17,7 +17,7 @@ export default function CheckoutParcels({ parcels }: CheckoutParcelsProps) {
   return (
     <section
       aria-label={content.parcels.title(parcels.length)}
-      className="flex flex-col gap-3 rounded-ck border border-ck-line bg-ck-soft p-4"
+      className="flex flex-col gap-3 rounded-ck border border-ck-line bg-ck-field p-4"
     >
       <header className="flex flex-col gap-1">
         <h3 className="flex items-center gap-2 text-[0.9375rem] font-semibold text-ck-ink">

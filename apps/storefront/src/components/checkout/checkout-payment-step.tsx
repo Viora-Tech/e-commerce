@@ -19,7 +19,7 @@ export default function CheckoutPaymentStep({ ck }: CheckoutPaymentStepProps) {
   return (
     <div className="flex flex-col gap-6">
       {totals.coveredByCards ? (
-        <p className="rounded-ck bg-ck-soft px-4 py-3 text-[0.875rem] text-ck-ink">
+        <p className="rounded-ck border border-ck-line bg-ck-field px-4 py-3 text-[0.875rem] text-ck-ink">
           {content.paidByGiftCard}
         </p>
       ) : (

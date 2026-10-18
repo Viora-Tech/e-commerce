@@ -32,7 +32,10 @@ export default function CheckoutPayFooter({
   return (
     <>
       {shortfall ? (
-        <p role="status" className="rounded-ck bg-ck-soft px-4 py-3 text-[0.875rem] text-ck-ink">
+        <p
+          role="status"
+          className="rounded-ck border border-ck-line bg-ck-field px-4 py-3 text-[0.875rem] text-ck-ink"
+        >
           {shortfall}
         </p>
       ) : null}
