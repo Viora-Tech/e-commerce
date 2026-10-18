@@ -80,7 +80,7 @@ export default function SetupChecklistCard() {
                   <span
                     role="img"
                     aria-label={copy.doneLabel}
-                    className="flex size-5 shrink-0 items-center justify-center rounded-full bg-accent text-action"
+                    className="flex size-5 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground"
                   >
                     <CheckIcon aria-hidden="true" className="size-3" />
                   </span>
