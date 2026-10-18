@@ -28,9 +28,9 @@ type TopBarProps = {
 }
 
 /* Figma top-bar "Icon button": 36px round, background fill, hairline and depth/button-outline,
-   a 16px muted glyph; hover takes the muted fill (150 ms) and the full ink. */
+   a 16px glyph in the same ink as the sidebar icons; hover takes the muted fill (150 ms). */
 const ICON_BUTTON =
-  'flex size-9 shrink-0 items-center justify-center rounded-full border border-border bg-background text-muted-foreground shadow-lift transition-colors duration-150 ease-out hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring aria-expanded:bg-muted aria-expanded:text-foreground active:scale-[0.96] motion-reduce:active:scale-100'
+  'flex size-9 shrink-0 items-center justify-center rounded-full border border-border bg-background text-foreground shadow-lift transition-colors duration-150 ease-out hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring aria-expanded:bg-muted aria-expanded:text-foreground active:scale-[0.96] motion-reduce:active:scale-100'
 
 /** The host of a URL for the View store tooltip ("waimers.in"), or the URL itself when it will not parse. */
 function hostOf(url: string): string {
