@@ -2,6 +2,8 @@ import {
   computeDeliveryEstimate,
   type DispatchPolicy,
   describeCourierFailure,
+  type RateCharge,
+  type RateOption,
   type RateQuery,
   type ShippingProvider,
 } from '@commerce/shipping'
@@ -12,14 +14,13 @@ import {
  * over whatever couriers the store connected - no database, no clock - so the
  * flow, the bulk booking service and the tests all run the same code.
  *
- * One row per connected `ShippingProvider` (Delhivery, Shiprocket, ...), not
- * per sub-courier inside an aggregator: Shiprocket books through whichever of
- * its own network it recommends (see packages/shipping-shiprocket, AWB
- * assignment), so "Shiprocket" is one bookable choice here even though it
- * quotes across many carriers internally. A courier without a live price
- * quote (Delhivery: no confirmed rate API, see packages/shipping-delhivery)
- * still gets a row - transit time from serviceability, price left null and
- * shown as "rate on booking" rather than guessed at.
+ * One row per bookable service: a courier with `quoteOptions` gets a row for each one
+ * (Delhivery Surface and Express; every carrier inside Shiprocket or RapidShyp, named
+ * "Delhivery Surface (Shiprocket)" so the merchant sees who carries it and who books it),
+ * and the row's `serviceId` goes back into the booking. A courier with only `quoteRate`
+ * gets one row, as before. A courier without a live price still gets a row - transit
+ * time from serviceability, price left null and shown as "rate on booking" rather than
+ * guessed at.
  */
 
 /**
@@ -30,8 +31,18 @@ import {
 export type CourierProblem = 'not_serviceable' | 'no_cod' | 'unreachable'
 
 export type CourierRateRow = {
+  /** Unique per row: the courier's id, plus its service when it quoted several. */
+  optionKey: string
   providerId: string
+  /** The connected courier account's name ("Shiprocket"): what the rate table groups by. */
+  providerName: string
+  /** What the merchant reads: "Delhivery Surface", "Bluedart Air (Shiprocket)". */
   providerLabel: string
+  /** Passed back when booking this row; null books the courier's own default. */
+  serviceId: string | null
+  /** What the courier itemised in its price; empty when it gave a total only. */
+  charges: RateCharge[]
+  chargeableWeightGrams: number | null
   /** Null when this courier has no live price quote for this route ("rate on booking"). */
   pricePaise: number | null
   minTransitDays: number | null
@@ -59,16 +70,85 @@ export async function compareCourierRates(
   query: RateQuery,
 ): Promise<CourierRateRow[]> {
   const rows = await Promise.all(providers.map((provider) => quoteOneCourier(provider, query)))
-  return assignBadges(rows)
+  return assignBadges(rows.flat())
+}
+
+/** "Delhivery Surface" for a direct courier, "Bluedart Air (Shiprocket)" through an
+ *  aggregator: the carrier first, who books it in brackets. */
+export function rateOptionLabel(providerLabel: string, option: RateOption): string {
+  return option.carrier === null
+    ? `${providerLabel} ${option.serviceLabel}`
+    : `${option.serviceLabel} (${providerLabel})`
 }
 
 async function quoteOneCourier(
   provider: ShippingProvider,
   query: RateQuery,
-): Promise<CourierRateRow> {
+): Promise<CourierRateRow[]> {
+  if (provider.quoteOptions) {
+    const listed = await quoteEveryService(provider, query)
+    if (listed) return listed
+  }
+  return [await quoteSingle(provider, query)]
+}
+
+/**
+ * One row per service the courier offers, or null when the options call failed or came back
+ * empty, so the caller falls back to the single-quote row (which says why it can't book).
+ * Serviceability is asked alongside, as for one row: it is what says "no" to a PIN code
+ * and, for a courier whose options don't say, whether cash on delivery is collected.
+ */
+async function quoteEveryService(
+  provider: ShippingProvider,
+  query: RateQuery,
+): Promise<CourierRateRow[] | null> {
+  const quoteOptions = provider.quoteOptions as NonNullable<ShippingProvider['quoteOptions']>
+  const [listed, served] = await Promise.allSettled([
+    quoteOptions.call(provider, query),
+    provider.checkServiceability({
+      originPincode: query.originPincode,
+      destinationPincode: query.destinationPincode,
+      weightGrams: query.weightGrams,
+    }),
+  ])
+  const options = listed.status === 'fulfilled' ? listed.value : []
+  const service = served.status === 'fulfilled' ? served.value : null
+  if (!options.length || (service && !service.serviceable)) return null
+  return options.map((o) => {
+    const codAvailable = o.codAvailable ?? service?.codAvailable ?? null
+    const row: CourierRateRow = {
+      optionKey: `${provider.id}:${o.serviceId}`,
+      providerId: provider.id,
+      providerName: provider.label,
+      providerLabel: rateOptionLabel(provider.label, o),
+      serviceId: o.serviceId,
+      charges: o.charges,
+      chargeableWeightGrams: o.chargeableWeightGrams,
+      pricePaise: o.pricePaise,
+      minTransitDays: o.minTransitDays,
+      maxTransitDays: o.maxTransitDays,
+      codAvailable,
+      problem: null,
+      problemDetail: null,
+      deliveryBy: null,
+      etaFromSettings: false,
+      badges: [],
+    }
+    return query.paymentMode === 'cod' && codAvailable === false
+      ? { ...row, problem: 'no_cod' as const }
+      : row
+  })
+}
+
+async function quoteSingle(provider: ShippingProvider, query: RateQuery): Promise<CourierRateRow> {
   const base: CourierRateRow = {
+    optionKey: provider.id,
     providerId: provider.id,
+    providerName: provider.label,
     providerLabel: provider.label,
+    serviceId: null,
+    charges: [],
+    chargeableWeightGrams: null,
     pricePaise: null,
     minTransitDays: null,
     maxTransitDays: null,

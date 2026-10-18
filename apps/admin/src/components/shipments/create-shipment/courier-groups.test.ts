@@ -1,11 +1,16 @@
 import type { CourierRateRow } from '@commerce/core'
 import { describe, expect, test } from 'vitest'
-import { courierGroup, courierInitials, groupCounts } from './courier-groups'
+import { courierInitials, groupCounts } from './courier-groups'
 import { pickupDayKey, pickupReady, startingPickupPlan } from './pickup-plan'
 
-const row = (providerLabel: string): CourierRateRow => ({
-  providerId: providerLabel,
+const row = (providerName: string, providerLabel = providerName): CourierRateRow => ({
+  optionKey: providerLabel,
+  providerId: providerName.toLowerCase(),
+  providerName,
   providerLabel,
+  serviceId: null,
+  charges: [],
+  chargeableWeightGrams: null,
   pricePaise: null,
   minTransitDays: null,
   maxTransitDays: null,
@@ -17,19 +22,12 @@ const row = (providerLabel: string): CourierRateRow => ({
   badges: [],
 })
 
-describe('courierGroup', () => {
-  test('reads the aggregator after "via", else the courier before the dot', () => {
-    expect(courierGroup('Xpressbees · Surface via Shiprocket')).toBe('Shiprocket')
-    expect(courierGroup('Shadowfax via RapidShyp')).toBe('RapidShyp')
-    expect(courierGroup('Delhivery · Express')).toBe('Delhivery')
-    expect(courierGroup('Blue Dart')).toBe('Blue Dart')
-  })
-
-  test('counts rows per group in first-seen order', () => {
+describe('groupCounts', () => {
+  test('groups rows by the connected courier, aggregator carriers under the aggregator', () => {
     const groups = groupCounts([
-      row('Delhivery · Surface'),
-      row('Xpressbees via Shiprocket'),
-      row('Delhivery · Express'),
+      row('Delhivery', 'Delhivery Surface'),
+      row('Shiprocket', 'Xpressbees Surface (Shiprocket)'),
+      row('Delhivery', 'Delhivery Express'),
     ])
     expect(groups).toEqual([
       { group: 'Delhivery', count: 2 },
@@ -39,10 +37,10 @@ describe('courierGroup', () => {
 })
 
 describe('courierInitials', () => {
-  test('two words give their initials, one word its first two letters', () => {
-    expect(courierInitials('Blue Dart · Apex (your account)')).toBe('BD')
-    expect(courierInitials('Delhivery · Surface')).toBe('DE')
-    expect(courierInitials('Shadowfax via RapidShyp')).toBe('SH')
+  test('the carrier gives the letters, never the aggregator in brackets', () => {
+    expect(courierInitials('Blue Dart')).toBe('BD')
+    expect(courierInitials('Delhivery Surface (Shiprocket)')).toBe('DS')
+    expect(courierInitials('Delhivery')).toBe('DE')
   })
 })
 

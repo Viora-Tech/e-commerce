@@ -44,6 +44,8 @@ import {
   type NdrActionInput,
   type NdrActionResult,
   type ProviderField,
+  type RateCharge,
+  type RateOption,
   type RateQuery,
   type RateQuote,
   type ReturnPickupInput,
@@ -105,10 +107,59 @@ type ServiceabilityResponse = { delivery_codes?: Array<{ postal_code?: PostalCod
 
 type TatResponse = { success?: boolean; data?: { tat?: number } }
 
-/** Invoice charges: an array with one row; `total_amount` is rupees including tax. */
-type ChargesResponse =
-  | Array<{ total_amount?: number | string }>
-  | { total_amount?: number | string }
+/**
+ * Invoice charges: an array with one row; `total_amount` is rupees including tax. The
+ * itemised `charge_*` fields, `gross_amount`, `tax_data` and `charged_weight` are read when
+ * present and skipped when not: Delhivery does not publish this response's schema.
+ */
+type ChargesRow = {
+  total_amount?: number | string
+  gross_amount?: number | string
+  charged_weight?: number | string
+  tax_data?: Record<string, unknown>
+  [charge: `charge_${string}`]: number | string | undefined
+}
+type ChargesResponse = ChargesRow[] | ChargesRow
+
+/** Delhivery's charge codes we can name; anything else priced is summed as "other". */
+const CHARGE_KINDS: Record<string, RateCharge['kind']> = {
+  charge_DL: 'freight',
+  charge_COD: 'cod',
+  charge_FSC: 'fuel',
+  charge_RTO: 'rto',
+  charge_INS: 'insurance',
+}
+
+const MODES = [
+  { id: 'S', label: 'Surface' },
+  { id: 'E', label: 'Express' },
+] as const
+
+const toPaise = (v: unknown) => {
+  const n = Number(v)
+  return Number.isFinite(n) && n > 0 ? Math.round(n * 100) : 0
+}
+
+/** The itemised lines of one charges row, in a fixed order, priced lines only. */
+export function delhiveryCharges(row: ChargesRow): RateCharge[] {
+  const byKind = new Map<RateCharge['kind'], number>()
+  for (const [key, value] of Object.entries(row)) {
+    if (!key.startsWith('charge_')) continue
+    const paise = toPaise(value)
+    if (!paise) continue
+    const kind = CHARGE_KINDS[key] ?? 'other'
+    byKind.set(kind, (byKind.get(kind) ?? 0) + paise)
+  }
+  const tax = row.tax_data
+    ? Object.values(row.tax_data).reduce<number>((sum, v) => sum + toPaise(v), 0)
+    : toPaise(row.total_amount) - toPaise(row.gross_amount)
+  if (tax > 0 && byKind.size > 0) byKind.set('gst', tax)
+  const order: RateCharge['kind'][] = ['freight', 'fuel', 'cod', 'insurance', 'rto', 'other', 'gst']
+  return order.flatMap((kind) => {
+    const pricePaise = byKind.get(kind)
+    return pricePaise ? [{ kind, pricePaise }] : []
+  })
+}
 
 /** Delhivery's answer when `pickup_location` names no warehouse on the account. */
 const NO_WAREHOUSE = /ClientWarehouse matching query does not exist/i
@@ -225,7 +276,11 @@ export class DelhiveryProvider implements ShippingProvider {
    * a thrown error here would turn a perfectly good serviceability answer
    * into "could not check right now".
    */
-  private async transitDays(origin: string, destination: string): Promise<number | null> {
+  private async transitDays(
+    origin: string,
+    destination: string,
+    mode: 'S' | 'E' = this.config.mode ?? 'S',
+  ): Promise<number | null> {
     const q = new URLSearchParams({
       origin_pin: origin,
       destination_pin: destination,
@@ -234,7 +289,7 @@ export class DelhiveryProvider implements ShippingProvider {
          and putting those numbers on a consumer product page is a promise the
          shipment cannot keep. mot is the merchant's choice: surface and
          express differ by five days to Kochi. */
-      mot: this.config.mode ?? 'S',
+      mot: mode,
       pdt: 'B2C',
     })
     try {
@@ -300,9 +355,25 @@ export class DelhiveryProvider implements ShippingProvider {
    * gives no usable number; the rate table then shows the courier without a price.
    */
   async quoteRate(query: RateQuery): Promise<RateQuote | null> {
+    const option = await this.quoteMode(query, this.config.mode ?? 'S')
+    if (!option) return null
+    const { pricePaise, minTransitDays, maxTransitDays } = option
+    return { pricePaise, minTransitDays, maxTransitDays }
+  }
+
+  /** Surface and Express side by side, each with what Delhivery itemised. A mode Delhivery
+   *  will not price on this route is left out; both failing throws, like `quoteRate`. */
+  async quoteOptions(query: RateQuery): Promise<RateOption[]> {
+    const quoted = await Promise.allSettled(MODES.map((m) => this.quoteMode(query, m.id)))
+    if (quoted.every((r) => r.status === 'rejected'))
+      throw (quoted[0] as PromiseRejectedResult).reason
+    return quoted.flatMap((r) => (r.status === 'fulfilled' && r.value ? [r.value] : []))
+  }
+
+  private async quoteMode(query: RateQuery, mode: 'S' | 'E'): Promise<RateOption | null> {
     const cod = query.paymentMode === 'cod'
     const q = new URLSearchParams({
-      md: this.config.mode ?? 'S',
+      md: mode,
       ss: 'Delivered',
       o_pin: query.originPincode,
       d_pin: query.destinationPincode,
@@ -312,12 +383,23 @@ export class DelhiveryProvider implements ShippingProvider {
     })
     const [data, days] = await Promise.all([
       this.getJson<ChargesResponse>(`/api/kinko/v1/invoice/charges/.json?${q}`),
-      this.transitDays(query.originPincode, query.destinationPincode),
+      this.transitDays(query.originPincode, query.destinationPincode, mode),
     ])
     const row = Array.isArray(data) ? data[0] : data
-    const rupees = Number(row?.total_amount)
-    if (!Number.isFinite(rupees) || rupees <= 0) return null
-    return { pricePaise: Math.round(rupees * 100), minTransitDays: days, maxTransitDays: days }
+    const pricePaise = toPaise(row?.total_amount)
+    if (!row || !pricePaise) return null
+    const weight = Number(row.charged_weight)
+    return {
+      serviceId: mode,
+      serviceLabel: MODES.find((m) => m.id === mode)?.label ?? mode,
+      carrier: null,
+      pricePaise,
+      minTransitDays: days,
+      maxTransitDays: days,
+      codAvailable: null,
+      charges: delhiveryCharges(row),
+      chargeableWeightGrams: Number.isFinite(weight) && weight > 0 ? Math.round(weight) : null,
+    }
   }
 
   async reserveWaybill(): Promise<string> {
@@ -343,6 +425,10 @@ export class DelhiveryProvider implements ShippingProvider {
           phone: input.to.phone,
           order: String(input.orderNumber),
           payment_mode: input.paymentMode === 'cod' ? 'COD' : 'Prepaid',
+          // The mode picked in the rate table; absent, the account's default applies.
+          ...(input.serviceId === 'S' || input.serviceId === 'E'
+            ? { shipping_mode: input.serviceId === 'E' ? 'Express' : 'Surface' }
+            : {}),
           cod_amount: input.paymentMode === 'cod' ? rupees(input.codAmountPaise) : '0',
           weight: input.weightGrams,
           quantity: input.lines.reduce((n, l) => n + l.quantity, 0),
