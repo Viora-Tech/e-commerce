@@ -13,6 +13,9 @@ function routesOf(items: PageMapItem[], into: Set<string>): Set<string> {
   return into
 }
 
+// Built once at `next build`: the site is a static export.
+export const dynamic = 'force-static'
+
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const routes = routesOf((await getPageMap()) as PageMapItem[], new Set(['/']))
   return [...routes].sort().map((route) => ({

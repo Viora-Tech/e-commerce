@@ -35,7 +35,7 @@ export const securityContent = {
     backup: {
       key: 'backups',
       title: 'Encrypted backups',
-      body: 'AES-256-GCM · 7 daily + 4 weekly kept · schedule [owner to confirm]',
+      body: 'Encrypted · 7 daily + 4 weekly kept',
     },
   },
   pillars: {
@@ -60,7 +60,7 @@ export const securityContent = {
       {
         key: 'backups',
         title: 'Encrypted backups',
-        body: 'Backups are encrypted; 7 daily and 4 weekly copies are kept. [Owner to confirm schedule]',
+        body: 'Backups are encrypted; 7 daily and 4 weekly copies are kept.',
       },
       {
         key: 'roles',
@@ -76,12 +76,9 @@ export const securityContent = {
   },
   report: {
     title: 'Found a security issue?',
-    // PLACEHOLDER: the security mailbox and reply time are not final.
-    body:
-      'Write to [security@' +
-      siteConfig.brand.domain +
-      ']. We reply within [N] business days. Please test only on stores you own.',
-    cta: 'Email security',
-    href: `mailto:security@${siteConfig.brand.domain}`,
+    // Support until a security mailbox exists; it is the one address that is routed today.
+    body: `Write to ${siteConfig.contact.supportEmail} with the details. Please test only on stores you own.`,
+    cta: 'Email us',
+    href: `mailto:${siteConfig.contact.supportEmail}`,
   },
 }

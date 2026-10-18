@@ -10,6 +10,7 @@ import { ctaClass } from '@/lib/cta'
 import { FORM_INITIAL } from '@/lib/form-state'
 import { sendContactMessage } from '@/lib/forms-action'
 import ChoiceChip from '../common/choice-chip'
+import Turnstile from '../common/turnstile'
 
 const copy = contactContent.form
 
@@ -65,10 +66,7 @@ export default function ContactForm() {
       noValidate
       className="surface-card mx-auto flex w-full max-w-4xl flex-col gap-6 rounded-3xl p-6 md:p-10"
     >
-      <div className="flex flex-col justify-between gap-2 md:flex-row md:items-baseline">
-        <h2 className="text-2xl font-semibold text-foreground">{copy.title}</h2>
-        <p className="text-sm text-muted-foreground">{copy.reply}</p>
-      </div>
+      <h2 className="text-2xl font-semibold text-foreground">{copy.title}</h2>
       <fieldset className="flex flex-col gap-3">
         <legend className="mb-3 text-sm text-muted-foreground">{copy.topicLabel}</legend>
         <div className="flex flex-wrap gap-2">
@@ -119,6 +117,7 @@ export default function ContactForm() {
           <p className="text-sm text-destructive">{state.errors.message}</p>
         ) : null}
       </div>
+      <Turnstile action="contact" />
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex flex-col gap-1">
           <Label className="flex items-center gap-2 font-medium">
@@ -136,6 +135,11 @@ export default function ContactForm() {
       {state.status === 'success' ? (
         <p role="status" className="text-sm text-foreground">
           {copy.success}
+        </p>
+      ) : null}
+      {state.status === 'error' ? (
+        <p role="alert" className="text-sm text-destructive">
+          {copy.error}
         </p>
       ) : null}
     </form>

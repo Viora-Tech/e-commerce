@@ -1,3 +1,4 @@
+import { cn } from '@commerce/ui/lib/utils'
 import Link from 'next/link'
 import CtaBand from '@/components/common/cta-band'
 import JsonLd from '@/components/common/json-ld'
@@ -14,6 +15,20 @@ export const metadata = pageMetadata({
   path: '/solutions',
 })
 
+/**
+ * Spans that keep every row of the grid full, whatever the number of solutions: on two columns the
+ * first card goes wide when the count is odd; on three, the first goes wide when one cell would be
+ * left over, and the last too when two would.
+ */
+function cardSpan(index: number, count: number) {
+  const last = index === count - 1
+  const lgWide = (index === 0 && count % 3 !== 0) || (last && index !== 0 && count % 3 === 1)
+  return cn(
+    index === 0 && count % 2 === 1 && 'md:col-span-2',
+    lgWide ? 'lg:col-span-2' : 'lg:col-span-1',
+  )
+}
+
 export default function SolutionsPage() {
   return (
     <SiteShell>
@@ -29,8 +44,8 @@ export default function SolutionsPage() {
       </PageContainer>
       <PageContainer as="section" className="pb-16">
         <ul className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {SOLUTIONS.map((s) => (
-            <li key={s.slug}>
+          {SOLUTIONS.map((s, index) => (
+            <li key={s.slug} className={cardSpan(index, SOLUTIONS.length)}>
               <Link
                 href={`/solutions/${s.slug}`}
                 className="surface-card flex h-full flex-col gap-2 rounded-3xl p-7 transition-colors hover:border-border-strong"

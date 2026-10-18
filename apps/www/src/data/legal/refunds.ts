@@ -13,7 +13,9 @@ export const refundsDoc: LegalDoc = {
     {
       title: 'Subscriptions',
       plain: ['Plans renew on their own.', 'Until you cancel.'],
-      body: [`${brand} plans renew automatically every [Billing period] until you cancel.`],
+      body: [
+        `${brand} plans renew automatically every month or year, matching the billing you chose, until you cancel.`,
+      ],
     },
     {
       title: 'Cancelling',
@@ -43,7 +45,9 @@ export const refundsDoc: LegalDoc = {
     {
       title: 'How to ask for a refund',
       plain: ['Email us with your payment reference.', 'We confirm within [N] days.'],
-      body: ['Write to [Billing email] with your store name and payment reference.'],
+      body: [
+        `Write to ${siteConfig.contact.supportEmail} with your store name and payment reference.`,
+      ],
     },
     {
       title: 'Processing time',

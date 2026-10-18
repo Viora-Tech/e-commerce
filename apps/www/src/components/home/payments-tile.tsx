@@ -11,7 +11,7 @@ export default function PaymentsTile() {
       eyebrow={copy.eyebrow}
       title={copy.title}
       body={copy.body}
-      className="min-h-[34rem] lg:col-span-2 lg:min-h-[39rem]"
+      className="md:col-span-2 lg:min-h-[39rem]"
     >
       <PaymentMethodDemo />
     </BentoTile>

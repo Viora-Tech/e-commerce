@@ -13,7 +13,7 @@ export default function CouriersTile() {
       title={copy.title}
       body={copy.body}
       layout="side"
-      className="lg:col-span-2 lg:min-h-[18.75rem]"
+      className="md:col-span-2"
     >
       <p className="mb-4 inline-flex w-fit items-center gap-2 rounded-md bg-muted px-2 py-1 text-xs text-foreground md:absolute md:top-7 md:left-7 md:mb-0">
         <span aria-hidden className="size-1.5 rounded-full bg-muted-foreground" />
@@ -24,7 +24,7 @@ export default function CouriersTile() {
           <li
             key={option.code}
             className={cn(
-              'group/logo flex items-center gap-4 rounded-xl border bg-background px-4 py-3',
+              'group/logo flex items-center gap-3 rounded-xl border bg-background px-4 py-3 sm:gap-4',
               option.selected ? 'border-foreground' : 'border-border',
             )}
           >
@@ -35,7 +35,8 @@ export default function CouriersTile() {
                 option.selected ? 'border-foreground bg-foreground' : 'border-border-strong',
               )}
             />
-            <span className="flex w-28 shrink-0 justify-start">
+            {/* The name already says the courier, so phones drop the logo to keep the price in view. */}
+            <span className="hidden w-28 shrink-0 justify-start sm:flex">
               <BrandLogo brand={option.brand} className="-ml-2" />
             </span>
             <span className="min-w-0 flex-1">
@@ -44,7 +45,7 @@ export default function CouriersTile() {
               </span>
               <span className="block truncate text-xs text-muted-foreground">{option.eta}</span>
             </span>
-            <span className="text-right">
+            <span className="shrink-0 text-right">
               <span className="block text-lg font-semibold text-foreground">{option.price}</span>
               <span className="block text-xs text-muted-foreground">{copy.inclGst}</span>
             </span>

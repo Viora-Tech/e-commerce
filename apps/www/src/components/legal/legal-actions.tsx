@@ -8,7 +8,7 @@ import { legalContent as copy } from '@/data/legal'
 
 type LegalActionsProps = { readMinutes: number }
 
-/** Meta row: last updated, read time, English / हिन्दी switch, and the print actions. */
+/** Meta row: read time, English / हिन्दी switch, and the print actions. */
 export default function LegalActions({ readMinutes }: LegalActionsProps) {
   // Hooks
   const [language, setLanguage] = useState<'en' | 'hi'>('en')
@@ -19,9 +19,6 @@ export default function LegalActions({ readMinutes }: LegalActionsProps) {
   return (
     <div className="flex flex-col gap-3 print:hidden">
       <div className="flex flex-wrap items-center gap-3">
-        <span className="rounded-md bg-muted px-2.5 py-1 text-xs font-medium text-foreground">
-          {copy.lastUpdated}
-        </span>
         <span className="rounded-md bg-muted px-2.5 py-1 text-xs font-medium text-foreground">
           {readMinutes} {copy.minRead}
         </span>

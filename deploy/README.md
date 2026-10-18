@@ -17,7 +17,8 @@ folder holds the files that runbook references:
   service; see its own header comment for why it isn't pruned per-app like the others.
 
 Per-app Dockerfiles live next to their app (`apps/admin/Dockerfile`,
-`apps/storefront/Dockerfile`, `apps/worker/Dockerfile`, `apps/docs/Dockerfile`) — all built from
+`apps/storefront/Dockerfile`, `apps/worker/Dockerfile`; the docs and marketing sites are static
+exports on Cloudflare Workers, see each app's `wrangler.jsonc`) — all built from
 the **monorepo root** as build context, e.g., to test one locally:
 
 ```sh

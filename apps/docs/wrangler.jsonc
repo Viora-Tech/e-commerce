@@ -1,0 +1,16 @@
+// The docs site on Cloudflare Workers: static assets only, no Worker code.
+// Build with `bun run build` (writes out/, the search index and out/_redirects), then
+// `bunx wrangler deploy` from apps/docs.
+{
+  "$schema": "../../node_modules/wrangler/config-schema.json",
+  "name": "koomerce-docs",
+  "compatibility_date": "2026-10-01",
+  "assets": {
+    "directory": "./out",
+    "html_handling": "auto-trailing-slash",
+    "not_found_handling": "404-page"
+  },
+  "routes": [{ "pattern": "docs.koomerce.app", "custom_domain": true }],
+  // Static assets only: no Worker code, so no logs or traces worth keeping.
+  "observability": { "enabled": false }
+}
