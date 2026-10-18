@@ -30,6 +30,8 @@ export const thankYouContent = {
     cod: 'Your order is confirmed',
   },
   orderNumber: (number: number) => `Order #${number}`,
+  orderNumberLabel: 'Order number',
+  orderNumberValue: (number: number) => `#${number}`,
   confirmation: (email: string | null) =>
     email ? `A confirmation is on its way to ${email}.` : 'We will be in touch about delivery.',
   status: {
