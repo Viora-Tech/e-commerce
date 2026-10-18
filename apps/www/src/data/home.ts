@@ -317,10 +317,10 @@ export const homeContent = {
   },
   pricing: {
     eyebrow: 'Pricing',
-    title: 'Start free. Grow when you do.',
-    subtitle: 'Plans by orders a month. Prices are announced at launch.',
+    title: 'Pay for orders, not a cut of sales.',
+    subtitle: `Plans from ₹${siteConfig.plans.starter.monthlyInr.toLocaleString('en-IN')} a month, before GST. Every store starts with ${siteConfig.trialDays} days of Growth free.`,
     compare: 'Compare all plans',
-    note: 'Plan names and order limits come from the product config and are placeholders until billing is final.',
+    note: 'Prices before 18% GST. Yearly billing gets two months free.',
   },
   faq: {
     eyebrow: 'FAQ',

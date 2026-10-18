@@ -1,6 +1,7 @@
 import { CheckIcon } from '@commerce/ui/icons'
 import { cn } from '@commerce/ui/lib/utils'
 import { pricingContent as copy, type Plan } from '@/data/pricing'
+import { formatInr } from '@/lib/pricing-math'
 import Reveal from '../common/reveal'
 import JoinWaitlistButton from '../waitlist/join-waitlist-button'
 
@@ -11,12 +12,21 @@ type PlanCardProps = {
   /** "100 orders a month" on the home page; "Up to 100 orders a month" on the pricing page. */
   upTo?: boolean
   step?: number
+  /** Monthly price, or the yearly price with its monthly equivalent. */
+  billing?: 'monthly' | 'yearly'
 }
 
-export default function PlanCard({ plan, badge, upTo = false, step = 0 }: PlanCardProps) {
+export default function PlanCard({
+  plan,
+  badge,
+  upTo = false,
+  step = 0,
+  billing = 'monthly',
+}: PlanCardProps) {
   // Render logic
   const label = badge ?? (plan.popular ? copy.mostPopular : null)
   const orders = `${upTo ? `${copy.upTo} ` : ''}${plan.ordersPerMonth.toLocaleString('en-IN')} ${copy.ordersAMonth}`
+  const yearly = billing === 'yearly'
 
   return (
     <Reveal
@@ -45,10 +55,16 @@ export default function PlanCard({ plan, badge, upTo = false, step = 0 }: PlanCa
       </header>
       <div>
         <p className="flex items-baseline gap-2">
-          <span className="text-5xl font-semibold tracking-tight text-foreground">
-            {copy.pricePlaceholder}
+          <span className="text-5xl font-semibold tracking-tight text-foreground tabular-nums">
+            {formatInr(yearly ? plan.yearlyInr : plan.monthlyInr)}
           </span>
-          <span className="text-sm text-muted-foreground">{copy.perMonth}</span>
+          <span className="text-sm text-muted-foreground">
+            {yearly ? copy.perYear : copy.perMonth}
+          </span>
+        </p>
+        <p className="mt-1 text-xs text-muted-foreground">
+          {yearly ? `${copy.yearlyEquivalent(formatInr(Math.round(plan.yearlyInr / 12)))} · ` : ''}
+          {copy.gstNote}
         </p>
         <p className="mt-3 text-sm text-foreground">{orders}</p>
       </div>

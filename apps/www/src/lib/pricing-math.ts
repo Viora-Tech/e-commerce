@@ -1,8 +1,8 @@
 import { PLANS, type Plan } from '@/data/pricing'
 
 export const MIN_ORDERS = 50
-export const MAX_ORDERS = 10000
-/** The slider moves in 0..SLIDER_STEPS and maps onto orders on a log scale, so 50 to 10,000 stays usable. */
+export const MAX_ORDERS = 2000
+/** The slider moves in 0..SLIDER_STEPS and maps onto orders on a log scale, so 50 to 2,000 stays usable. */
 export const SLIDER_STEPS = 1000
 export const PLATFORM_FEE_RATE = 0.02
 

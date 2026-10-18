@@ -12,7 +12,7 @@ export const siteContent = {
     { label: 'Apps', href: '/apps' },
     { label: 'Docs', href: docs },
   ],
-  signIn: { label: 'Sign in', href: `https://${siteConfig.brand.domain}/sign-in` },
+  signIn: { label: 'Sign in', href: `${siteConfig.urls.admin}/sign-in` },
   joinWaitlist: 'Join the waitlist',
   openMenu: 'Open menu',
   closeMenu: 'Close menu',
@@ -27,8 +27,20 @@ export const siteContent = {
       ],
     },
     {
+      title: 'Solutions',
+      links: [
+        { label: 'Shopify alternative', href: '/solutions/shopify-alternative-india' },
+        { label: 'GST invoices', href: '/solutions/gst-invoicing' },
+        { label: 'UPI checkout', href: '/solutions/upi-checkout' },
+        { label: 'Indian couriers', href: '/solutions/indian-couriers' },
+        { label: 'Hindi admin', href: '/solutions/hindi-ecommerce-admin' },
+        { label: 'All solutions', href: '/solutions' },
+      ],
+    },
+    {
       title: 'Resources',
       links: [
+        { label: 'Guides', href: '/guides' },
         { label: 'Docs', href: docs },
         { label: 'Status', href: siteConfig.urls.status },
         {

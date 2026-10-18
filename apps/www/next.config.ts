@@ -12,6 +12,17 @@ const config: NextConfig = {
   output: 'standalone',
   outputFileTracingRoot: monorepoRoot,
   transpilePackages: ['@commerce/config', '@commerce/ui'],
+  // One address for search engines: www goes to the bare domain.
+  async redirects() {
+    return [
+      {
+        source: '/:path*',
+        has: [{ type: 'host', value: 'www.koomerce.app' }],
+        destination: 'https://koomerce.app/:path*',
+        permanent: true,
+      },
+    ]
+  },
   async headers() {
     return [
       {

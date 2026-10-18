@@ -1,4 +1,5 @@
 import CtaBand from '@/components/common/cta-band'
+import JsonLd from '@/components/common/json-ld'
 import Hero from '@/components/home/hero'
 import HomeFaq from '@/components/home/home-faq'
 import HomePricing from '@/components/home/home-pricing'
@@ -11,17 +12,19 @@ import ShopifyImport from '@/components/home/shopify-import'
 import SiteShell from '@/components/layout/site-shell'
 import { homeContent } from '@/data/home'
 import { pageMetadata } from '@/lib/metadata'
+import { faqLd, softwareLd } from '@/lib/seo'
 
 export const metadata = pageMetadata({
-  title: 'Run your store in plain words',
+  title: 'Koomerce: AI e-commerce platform for Indian brands',
   description:
-    'An AI-powered store built in India for anyone who sells: UPI-first checkout, GST invoices, Indian couriers, your Shopify theme and an admin in English and Hindi.',
+    'Run your online store in plain words. UPI-first checkout, GST invoices, Delhivery, Shiprocket and RapidShyp, Shopify theme import and an admin in English and Hindi. 0% transaction fee.',
   path: '/',
 })
 
 export default function HomePage() {
   return (
     <SiteShell>
+      <JsonLd data={[softwareLd(), faqLd(homeContent.faq.items)]} />
       <Hero />
       <ProductTour />
       <SellAnything />

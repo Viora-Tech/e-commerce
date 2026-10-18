@@ -41,9 +41,7 @@ export default function AddOns() {
                 <h3 className="text-lg font-semibold text-foreground">{item.title}</h3>
                 <p className="mt-1 text-sm text-muted-foreground">{item.body}</p>
               </div>
-              <p className="mt-auto text-sm font-medium text-foreground">
-                {pricingContent.pricePlaceholder}
-              </p>
+              <p className="mt-auto text-sm font-medium text-foreground">{item.price}</p>
             </Reveal>
           )
         })}

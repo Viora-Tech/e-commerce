@@ -232,6 +232,6 @@ export const featuresContent = {
   ] satisfies readonly FeatureModule[],
   cta: {
     title: 'All of it, on day one.',
-    body: 'Every module is included. Plans differ only by orders a month.',
+    body: 'Every core module is on every plan. Plans differ by orders, staff, AI credits and a few apps.',
   },
 }

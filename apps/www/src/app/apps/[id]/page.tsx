@@ -2,10 +2,12 @@ import { ArrowLeft, CheckIcon } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
+import JsonLd from '@/components/common/json-ld'
 import PageContainer from '@/components/common/page-container'
 import SiteShell from '@/components/layout/site-shell'
 import { appsContent as copy, installUrl, STORE_APPS } from '@/data/apps'
 import { pageMetadata } from '@/lib/metadata'
+import { breadcrumbLd } from '@/lib/seo'
 
 type PageProps = { params: Promise<{ id: string }> }
 
@@ -37,6 +39,12 @@ export default async function AppPage({ params }: PageProps) {
 
   return (
     <SiteShell>
+      <JsonLd
+        data={breadcrumbLd([
+          { name: 'App Store', path: '/apps' },
+          { name: app.name, path: `/apps/${app.id}` },
+        ])}
+      />
       <PageContainer as="section" className="flex max-w-3xl flex-col gap-8 pt-16 pb-20 md:pt-24">
         <Link
           href="/apps"

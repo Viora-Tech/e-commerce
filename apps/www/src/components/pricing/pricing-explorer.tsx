@@ -12,7 +12,7 @@ import SavingsCard from './savings-card'
 
 const copy = pricingContent.page
 
-const INITIAL_ORDERS = 1000
+const INITIAL_ORDERS = 200
 const INITIAL_AOV = 1200
 
 /** The interactive part of the pricing page: billing toggle, order slider, savings and the plan cards. */
@@ -53,6 +53,7 @@ export default function PricingExplorer() {
               plan={plan}
               step={index}
               upTo
+              billing={billing}
               badge={
                 plan.key === recommended.key
                   ? pricingContent.recommended
