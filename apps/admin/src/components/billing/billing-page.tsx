@@ -18,14 +18,15 @@ import { useCopy, useFormat } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 import { daysUntil } from '@/lib/billing'
 import AppsCard, { type BoughtApp } from './apps-card'
+import AutopayRow, { type AutopayState } from './autopay-row'
 import BillsCard from './bills-card'
 import ComparePlansDialog from './compare-plans-dialog'
 import CurrentPlanCard from './current-plan-card'
 
-type BillingPageProps = { view: PlanView; apps: BoughtApp[] }
+type BillingPageProps = { view: PlanView; apps: BoughtApp[]; autopay: AutopayState }
 
 /** Figma "Settings · Plan & billing" (707:119179): plan and usage, payment, invoices, downgrade. */
-export default function BillingPage({ view, apps }: BillingPageProps) {
+export default function BillingPage({ view, apps, autopay }: BillingPageProps) {
   // Hooks
   const copy = useCopy(billingContent)
   const format = useFormat()
@@ -126,9 +127,7 @@ export default function BillingPage({ view, apps }: BillingPageProps) {
           variant="grid"
           rows={[{ label: copy.payment.invoiceEmail, value: view.invoiceEmail ?? '—' }]}
         />
-        <p className="mt-3 text-caption text-muted-foreground">
-          {view.billingReady ? copy.payment.autopay : copy.payment.notReady}
-        </p>
+        <AutopayRow autopay={autopay} billingReady={view.billingReady} />
       </DataCard>
       <AppsCard apps={apps} />
       <BillsCard bills={view.bills} />

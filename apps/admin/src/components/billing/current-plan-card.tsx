@@ -49,7 +49,7 @@ export default function CurrentPlanCard({ view, onKeepPlan, onCompare }: Current
   const bars = [
     { id: 'orders', label: copy.usage.orders, used: view.usage.orders, limit: plan.orders },
     { id: 'staff', label: copy.usage.staff, used: view.usage.staff, limit: plan.staff },
-    { id: 'ai', label: copy.usage.ai, used: view.usage.ai.calls, limit: ai.calls },
+    { id: 'ai', label: copy.usage.ai, used: Math.ceil(view.usage.ai.credits), limit: ai.credits },
   ]
 
   return (

@@ -20,6 +20,7 @@ import { and, desc, eq, sql } from 'drizzle-orm'
 import { storefrontOriginFor } from '../domains/origin'
 import { convertDraft, createDraft } from '../order/drafts'
 import { createPaymentAttempt } from '../payments/attempts'
+import { validateGstin } from '../tax/gstin'
 import { isGatewayProvider } from '../payments/methods'
 import { parsePaymentSettings } from '../payments/settings'
 import { orderViewToken, thankYouPath } from '../preorder/balance-link'
@@ -33,6 +34,8 @@ import {
   RENEW_AHEAD_DAYS,
   TRIAL_DAYS,
 } from './plans'
+import { autopayActive } from './autopay'
+import { planBillWhat, sendPlanBillEmail } from './emails'
 import { type PlanUsage, planUsage } from './usage'
 
 const DAY_MS = 86_400_000
@@ -198,11 +201,13 @@ export async function placeSalesOrder(
   if (!salesStoreId) throw new BillingNotReady('no_sales_store')
   const buyer = await withStore(db, storeId, async (tx) => {
     const [s] = await tx
-      .select({ name: store.name, email: store.contactEmail })
+      .select({ name: store.name, email: store.contactEmail, gstin: store.gstin })
       .from(store)
       .where(eq(store.id, storeId))
     return s
   })
+  // A GST-registered store gets a B2B invoice it can claim input credit on.
+  const gst = buyer?.gstin ? validateGstin(buyer.gstin) : null
   return withStore(db, salesStoreId, async (tx) => {
     const v = await variantBySku(tx, input.sku)
     if (!v) throw new BillingNotReady('no_plan_product')
@@ -217,6 +222,11 @@ export async function placeSalesOrder(
       shippingPaise: 0,
       note: input.note(buyer?.name ?? storeId),
     })
+    if (gst?.ok)
+      await tx
+        .update(order)
+        .set({ buyerGstin: gst.gstin, buyerBusinessName: buyer?.name ?? null })
+        .where(eq(order.id, draft.id))
     const placed = await convertDraft(ctx, draft.id, { paymentMethod: gateway })
     if (!placed) throw new Error(`sales order ${draft.id} could not be placed`)
     const [o] = await tx
@@ -398,9 +408,11 @@ export async function runBillingSweep(
     // Never paid (a trial that ran out): its time ends with the trial.
     const ends = row.periodEnd ?? row.trialEndsAt
     if (!ends) continue
-    if (!open && ends.getTime() - now.getTime() <= RENEW_AHEAD_DAYS * DAY_MS) {
+    // While UPI AutoPay charges the plan, Razorpay bills it; no pay link is needed.
+    const charging = await autopayActive(db, storeId)
+    if (!open && !charging && ends.getTime() - now.getTime() <= RENEW_AHEAD_DAYS * DAY_MS) {
       try {
-        await createPlanBill(
+        const bill = await createPlanBill(
           db,
           storeId,
           {
@@ -411,6 +423,13 @@ export async function runBillingSweep(
           env,
         )
         result.billed++
+        await sendPlanBillEmail(db, storeId, {
+          kind: 'renewal',
+          what: planBillWhat(bill.plan, bill.interval),
+          amountPaise: bill.amountPaise,
+          due: ends,
+          url: bill.url,
+        })
       } catch (err) {
         if (!(err instanceof BillingNotReady)) throw err
       }
@@ -428,7 +447,24 @@ export async function runBillingSweep(
           .set({ status: next, updatedAt: now })
           .where(eq(storePlan.storeId, storeId)),
       )
-      if (next === 'due') result.due++
+      if (next === 'due') {
+        result.due++
+        const bill = await withStore(db, storeId, async (tx) => {
+          const [b] = await tx
+            .select()
+            .from(planPayment)
+            .where(and(eq(planPayment.storeId, storeId), eq(planPayment.status, 'due')))
+          return b ? toBill(env, b) : null
+        })
+        if (bill)
+          await sendPlanBillEmail(db, storeId, {
+            kind: 'overdue',
+            what: planBillWhat(bill.plan, bill.interval),
+            amountPaise: bill.amountPaise,
+            due: ends,
+            url: bill.url,
+          })
+      }
       if (next === 'paused') result.paused++
     }
   }

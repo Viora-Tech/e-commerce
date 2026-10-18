@@ -270,6 +270,14 @@ const shape = z.object({
    * `platform-plan` gives the buyer's email a signup invite. Unset: nothing happens.
    */
   PLATFORM_SALES_STORE_ID: z.string().uuid().optional(),
+  /**
+   * UPI AutoPay for plans (Settings → Plan & billing): the platform's own Razorpay account with
+   * Subscriptions enabled. All three set turns AutoPay on. The webhook URL is
+   * `<ADMIN_URL>/api/billing/autopay-webhook` (events: subscription.*).
+   */
+  PLATFORM_RAZORPAY_KEY_ID: optionalOrBlank(z.string().min(1)),
+  PLATFORM_RAZORPAY_KEY_SECRET: optionalOrBlank(z.string().min(1)),
+  PLATFORM_RAZORPAY_WEBHOOK_SECRET: optionalOrBlank(z.string().min(1)),
   /** GlitchTip (or Sentry) DSN. Error tracking is entirely off, in every app, unless this is set. */
   SENTRY_DSN: z.string().url().optional(),
   /** Free-text environment tag on every event, e.g. production, staging. Defaults by NODE_ENV. */

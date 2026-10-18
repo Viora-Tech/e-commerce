@@ -8,7 +8,14 @@
  * Adding an AI feature never re-implements this: call `startAiCall(context, 'myFeature')`,
  * run the engine with the runtime and model it returns, then `finishAiCall`.
  */
-import { type AiFeature, type AiModel, type AiRuntime, type AiUsage, aiModel } from '@commerce/ai'
+import {
+  type AiFeature,
+  type AiModel,
+  type AiRuntime,
+  type AiUsage,
+  aiModel,
+  type ModelTier,
+} from '@commerce/ai'
 import {
   checkRateLimit,
   createMemoryRateLimitStore,
@@ -45,6 +52,8 @@ const nextMonthLabel = (month: string): string => {
 
 export type StartedAiCall = {
   runtime: AiRuntime
+  /** The model tier the call runs on, so its tokens are priced as credits correctly. */
+  tier: ModelTier
   model: AiModel
   month: string
   store: StoreFacts
@@ -76,7 +85,7 @@ export async function checkAiAvailable(context: AiCallContext): Promise<void> {
 export function refusal(
   admission:
     | { reason: 'feature_off' }
-    | { reason: 'quota'; limit: 'calls' | 'tokens'; month: string },
+    | { reason: 'quota'; limit: 'credits' | 'calls' | 'tokens'; month: string },
 ): ORPCError<string, unknown> {
   if (admission.reason === 'feature_off') {
     return new ORPCError('PRECONDITION_FAILED', {
@@ -85,7 +94,7 @@ export function refusal(
     })
   }
   return new ORPCError('TOO_MANY_REQUESTS', {
-    message: `Your store has used this month's AI allowance. It starts again on 1 ${nextMonthLabel(admission.month)}.`,
+    message: `Your store has used this month's AI credits. They start again on 1 ${nextMonthLabel(admission.month)}, or buy more in Settings → AI.`,
     data: { reason: 'quota', limit: admission.limit },
   })
 }
@@ -108,6 +117,7 @@ export async function startAiCall(
   if (!model) throw new ORPCError('PRECONDITION_FAILED', { data: { reason: 'ai_off' } })
   return {
     runtime: { storeId, userId, plan: admission.plan, feature },
+    tier: admission.tier,
     model,
     month: admission.month,
     store: admission.store,
@@ -117,14 +127,14 @@ export async function startAiCall(
 /** Adds the call's tokens to the store's month. Never throws: metering must not break an answer. */
 export async function finishAiCall(
   db: Db,
-  call: Pick<StartedAiCall, 'runtime' | 'month'>,
+  call: Pick<StartedAiCall, 'runtime' | 'month'> & { tier?: ModelTier | undefined },
   usage: AiUsage,
 ): Promise<void> {
   if (usage.inputTokens === 0 && usage.outputTokens === 0) return
   await withStore(db, call.runtime.storeId, (tx) =>
     recordAiUsage(
       { storeId: call.runtime.storeId, tx },
-      { month: call.month, feature: call.runtime.feature, ...usage },
+      { month: call.month, feature: call.runtime.feature, tier: call.tier, ...usage },
     ),
   ).catch(() => undefined)
 }

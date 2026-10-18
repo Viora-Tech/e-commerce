@@ -1,6 +1,12 @@
 import { loadEnv } from '@commerce/config'
 import {
   AppNotForSale,
+  AutopayError,
+  autopayConfig,
+  cancelAutopay,
+  loadAutopay,
+  startAutopay,
+  buyAiCredits,
   BillingNotReady,
   buyApp,
   choosePlan,
@@ -37,6 +43,39 @@ const NOT_READY: Record<BillingNotReady['reason'], string> = {
 }
 
 export const billingRouter = {
+  /** UPI AutoPay: whether it can be turned on here, and the store's mandate. */
+  autopay: can(permissions.SETTINGS_READ).handler(async ({ context }) => ({
+    available: autopayConfig(process.env) !== null,
+    mandate: await loadAutopay(context.db, context.scope.storeId),
+  })),
+
+  /** "Turn on UPI AutoPay" for the current plan: the page where the owner approves the mandate. */
+  startAutopay: can(permissions.BILLING_MANAGE).handler(async ({ context }) => {
+    const cfg = autopayConfig(process.env)
+    if (!cfg)
+      throw new ORPCError('PRECONDITION_FAILED', { message: 'UPI AutoPay is not switched on yet.' })
+    const view = await loadPlanView(context.tx, context.scope.storeId, await billingEnv(context))
+    try {
+      return await startAutopay(
+        context.db,
+        context.scope.storeId,
+        { plan: view.nextPlan ?? view.plan, interval: view.interval },
+        cfg,
+      )
+    } catch (err) {
+      if (err instanceof AutopayError)
+        throw new ORPCError('BAD_GATEWAY', { message: err.message })
+      throw err
+    }
+  }),
+
+  /** "Turn off AutoPay": renewals go back to pay links. */
+  cancelAutopay: can(permissions.BILLING_MANAGE).handler(async ({ context }) => {
+    const cfg = autopayConfig(process.env)
+    if (cfg) await cancelAutopay(context.db, context.scope.storeId, cfg)
+    return { ok: true }
+  }),
+
   /** Paid apps: what each one costs on this plan, bought months, and the store's app bills. */
   apps: can(permissions.SETTINGS_READ).handler(async ({ context }) => {
     const env = await billingEnv(context)
@@ -66,6 +105,17 @@ export const billingRouter = {
         throw err
       }
     }),
+
+  /** Settings → AI → "Buy 1,000 credits": the pay link; paying adds the credits. */
+  buyCredits: can(permissions.BILLING_MANAGE).handler(async ({ context }) => {
+    try {
+      return await buyAiCredits(context.db, context.scope.storeId, await billingEnv(context))
+    } catch (err) {
+      if (err instanceof BillingNotReady)
+        throw new ORPCError('PRECONDITION_FAILED', { message: NOT_READY[err.reason] })
+      throw err
+    }
+  }),
 
   /** "Stop renewing": the app keeps working until its paid month ends. */
   stopApp: can(permissions.BILLING_MANAGE)

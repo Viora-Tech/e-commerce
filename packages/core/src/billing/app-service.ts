@@ -9,6 +9,7 @@ import { recordAppInstall } from '../apps/installation'
 import { installApp, parseAppsSettings } from '../apps/settings'
 import { orderViewToken, thankYouPath } from '../preorder/balance-link'
 import { APP_PRICING, type AppAccess, appAccess, appSku } from './apps'
+import { sendPlanBillEmail } from './emails'
 import { addInterval, GRACE_DAYS, type PlanId, RENEW_AHEAD_DAYS } from './plans'
 import { type BillingEnv, BillingNotReady, ensureStorePlan, placeSalesOrder } from './service'
 
@@ -293,8 +294,20 @@ export async function runAppRenewals(
         active.periodEnd.getTime() - now.getTime() <= RENEW_AHEAD_DAYS * DAY_MS
       ) {
         try {
-          await createAppBill(db, storeId, { pluginId, periodStart: active.periodEnd }, env)
+          const bill = await createAppBill(
+            db,
+            storeId,
+            { pluginId, periodStart: active.periodEnd },
+            env,
+          )
           result.billed++
+          await sendPlanBillEmail(db, storeId, {
+            kind: 'renewal',
+            what: `${APP_PRICING[pluginId]?.name ?? pluginId} app`,
+            amountPaise: bill.amountPaise,
+            due: active.periodEnd,
+            url: bill.url,
+          })
         } catch (err) {
           if (!(err instanceof BillingNotReady)) throw err
         }

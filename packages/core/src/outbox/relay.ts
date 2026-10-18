@@ -2,6 +2,7 @@ import { type Db, outboxEvent, withStore } from '@commerce/db'
 import type { LoadedPlugins } from '@commerce/plugins'
 import { and, asc, eq, isNull } from 'drizzle-orm'
 import { cancelAppBill, markAppBillPaid } from '../billing/app-service'
+import { cancelAiTopup, markAiTopupPaid } from '../billing/credits-service'
 import { cancelPlanBill, markPlanBillPaid } from '../billing/service'
 import { type DomainRouteQueue, ROUTE_JOB_ATTEMPTS, ROUTE_JOB_BACKOFF_MS } from '../domains/routes'
 import { enqueueNotification, type NotificationQueue } from '../notifications/enqueue'
@@ -108,6 +109,9 @@ async function dispatchRow(deps: OutboxRelayDeps, row: Row): Promise<void> {
     // A paid app bought in the App Store: its month starts and the app is installed.
     const app = await markAppBillPaid(deps.db, payload.orderId as string)
     if (app) deps.log?.(`app order ${payload.orderId}: ${app.pluginId} on for store ${app.storeId}`)
+    // AI credits bought in Settings → AI.
+    const topup = await markAiTopupPaid(deps.db, payload.orderId as string)
+    if (topup) deps.log?.(`credits order ${payload.orderId}: +${topup.credits} for ${topup.storeId}`)
   }
   if (
     (type === 'refund.created' || type === 'order.cancelled') &&
@@ -117,6 +121,7 @@ async function dispatchRow(deps: OutboxRelayDeps, row: Row): Promise<void> {
   ) {
     await cancelPlanBill(deps.db, payload.orderId)
     await cancelAppBill(deps.db, payload.orderId)
+    await cancelAiTopup(deps.db, payload.orderId)
     const r = await revokePlanInvitesForOrder(deps.db, {
       storeId: row.storeId,
       orderId: payload.orderId,

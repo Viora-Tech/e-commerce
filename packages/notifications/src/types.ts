@@ -92,6 +92,11 @@ export type TemplateId =
    */
   | 'email_changed'
   /**
+   * PLATFORM message to a store owner: a plan or paid-app bill to pay (a new bill, a renewal, or
+   * one now overdue). `planBill` says what for; `actionUrl` is the pay link. Email only.
+   */
+  | 'plan_bill'
+  /**
    * To a SUPPLIER: the store's purchase order, with the PDF attached. Sent from the admin's
    * "Email to supplier" through the store's own sender email. Email only.
    */
@@ -226,6 +231,18 @@ export type TemplateData = {
   /** For email_changed: the new sign-in address, masked ("a•••@gmail.com"). */
   emailChange?: { newEmail: string } | undefined
   /** For staff_invite: who sent it, the role offered and the platform's own name (PLATFORM_EMAIL_NAME). */
+  /** For plan_bill: what the bill is for, how much, and by when. */
+  planBill?:
+    | {
+        kind: 'new' | 'renewal' | 'overdue'
+        /** "Growth plan (monthly)", "Reviews app". */
+        what: string
+        amountLabel: string
+        /** "25 Oct 2026": when the paid time ends or ended. */
+        dueLabel: string
+        platformName: string
+      }
+    | undefined
   staffInvite?:
     | {
         inviterEmail: string

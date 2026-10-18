@@ -19,6 +19,8 @@ export type StoreAiSettings = {
   features: AiFeatureToggles
   /** `best` routes long writing to the strong model (each call counts as more requests). */
   writingQuality: WritingQuality
+  /** Bought AI credits still left (whole credits, fractions kept); used after the allowance. */
+  extraCredits: number
 }
 
 /** The store's AI settings; a store that never saved any gets the defaults (every feature on). */
@@ -28,6 +30,7 @@ export async function loadAiSettings(ctx: StoreContext): Promise<StoreAiSettings
       plan: aiSettings.plan,
       features: aiSettings.features,
       writingQuality: aiSettings.writingQuality,
+      extraCreditMillis: aiSettings.extraCreditMillis,
     })
     .from(aiSettings)
     .where(eq(aiSettings.storeId, ctx.storeId))
@@ -36,12 +39,14 @@ export async function loadAiSettings(ctx: StoreContext): Promise<StoreAiSettings
       plan: DEFAULT_AI_PLAN,
       features: parseFeatureToggles(null),
       writingQuality: 'standard',
+      extraCredits: 0,
     }
   }
   return {
     plan: parseAiPlan(row.plan),
     features: parseFeatureToggles(row.features),
     writingQuality: parseWritingQuality(row.writingQuality),
+    extraCredits: row.extraCreditMillis / 1000,
   }
 }
 

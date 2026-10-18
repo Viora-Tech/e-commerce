@@ -7,7 +7,7 @@ export type PlanUsage = {
   orders: number
   staff: number
   storageBytes: number
-  ai: { calls: number; tokens: number }
+  ai: { calls: number; tokens: number; credits: number }
 }
 
 /** Orders placed this month, active staff, stored file bytes and this month's AI use. */
@@ -35,6 +35,7 @@ export async function planUsage(tx: StoreTx, now = new Date()): Promise<PlanUsag
       .select({
         calls: sql<number>`coalesce(sum(${aiUsage.calls}), 0)::int`,
         tokens: sql<number>`coalesce(sum(${aiUsage.inputTokens} + ${aiUsage.outputTokens}), 0)::bigint`,
+        creditMillis: sql<number>`coalesce(sum(${aiUsage.creditMillis}), 0)::bigint`,
       })
       .from(aiUsage)
       .where(eq(aiUsage.month, month)),
@@ -43,6 +44,10 @@ export async function planUsage(tx: StoreTx, now = new Date()): Promise<PlanUsag
     orders: orders?.n ?? 0,
     staff: staff?.n ?? 0,
     storageBytes: Number(storage?.bytes ?? 0),
-    ai: { calls: ai?.calls ?? 0, tokens: Number(ai?.tokens ?? 0) },
+    ai: {
+      calls: ai?.calls ?? 0,
+      tokens: Number(ai?.tokens ?? 0),
+      credits: Number(ai?.creditMillis ?? 0) / 1000,
+    },
   }
 }

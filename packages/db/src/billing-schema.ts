@@ -125,3 +125,55 @@ export const appPurchase = pgTable(
     check('app_purchase_status', sql`${t.status} in ('due','active','cancelled')`),
   ],
 )
+
+/** A top-up of AI credits (₹199 for 1,000), bought as an order on the sales store. */
+export const aiCreditTopup = pgTable(
+  'ai_credit_topup',
+  {
+    id: id(),
+    storeId: storeId(),
+    credits: integer('credits').notNull(),
+    status: text('status').$type<PlanPaymentStatus>().notNull().default('due'),
+    salesOrderId: uuid('sales_order_id').notNull(),
+    salesOrderNumber: integer('sales_order_number').notNull(),
+    amountPaise: integer('amount_paise').notNull(),
+    paidAt: timestamp('paid_at', { withTimezone: true }),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    index('ai_credit_topup_store').on(t.storeId, t.createdAt),
+    uniqueIndex('ai_credit_topup_order').on(t.salesOrderId),
+    check('ai_credit_topup_status', sql`${t.status} in ('due','paid','cancelled')`),
+  ],
+)
+
+export const AUTOPAY_STATUSES = ['created', 'active', 'halted', 'cancelled'] as const
+export type AutopayStatus = (typeof AUTOPAY_STATUSES)[number]
+
+/**
+ * UPI AutoPay: a Razorpay subscription on the platform's own Razorpay account that charges the
+ * store's plan every period. `created` until the owner approves the mandate, `active` while it
+ * charges, `halted` after Razorpay gave up retrying a charge, `cancelled` when turned off.
+ */
+export const autopayMandate = pgTable(
+  'autopay_mandate',
+  {
+    id: id(),
+    storeId: storeId(),
+    plan: text('plan').$type<StorePlanId>().notNull(),
+    interval: text('interval').$type<PlanInterval>().notNull(),
+    subscriptionId: text('subscription_id').notNull(),
+    status: text('status').$type<AutopayStatus>().notNull().default('created'),
+    /** Where the owner approves the mandate (Razorpay's hosted page). */
+    shortUrl: text('short_url'),
+    /** The last Razorpay payment turned into a paid bill, so a repeated webhook is a no-op. */
+    lastPaymentId: text('last_payment_id'),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    index('autopay_mandate_store').on(t.storeId, t.createdAt),
+    uniqueIndex('autopay_mandate_subscription').on(t.subscriptionId),
+    check('autopay_mandate_status', sql`${t.status} in ('created','active','halted','cancelled')`),
+  ],
+)

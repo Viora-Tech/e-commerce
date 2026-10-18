@@ -70,6 +70,7 @@ const LOG = 'history or usage log; the current value lives in another table'
 export const STOREFRONT_CACHE_EXEMPT: Record<string, string> = {
   address: SHOPPER,
   ai_action: ADMIN,
+  ai_credit_topup: ADMIN,
   ai_job: ADMIN,
   ai_job_item: ADMIN,
   ai_settings: ADMIN,
@@ -79,6 +80,7 @@ export const STOREFRONT_CACHE_EXEMPT: Record<string, string> = {
   api_grant: ADMIN,
   app_installation: ADMIN,
   app_purchase: ADMIN,
+  autopay_mandate: ADMIN,
   back_in_stock_signup: SHOPPER,
   back_in_stock_usage: LOG,
   cart: SHOPPER,

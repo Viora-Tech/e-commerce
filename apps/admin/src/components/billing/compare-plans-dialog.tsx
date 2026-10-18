@@ -1,5 +1,6 @@
 'use client'
 
+import { PLAN_QUOTAS } from '@commerce/ai/client'
 import { type BillingInterval, PLAN_IDS, PLANS, type PlanId } from '@commerce/core/billing'
 import { CheckIcon, MinusIcon } from '@commerce/ui/icons'
 import { cn } from '@commerce/ui/lib/utils'
@@ -61,7 +62,11 @@ export default function ComparePlansDialog({
       label: d.rows.storage,
       cell: (p) => copy.usage.gb(String(PLANS[p].storageGb)),
     },
-    { id: 'ai', label: d.rows.ai, cell: (p) => d.ai[PLANS[p].ai] },
+    {
+      id: 'ai',
+      label: d.rows.ai,
+      cell: (p) => d.aiCredits(format.number(PLAN_QUOTAS[PLANS[p].ai].credits)),
+    },
     { id: 'theme', label: d.rows.shopifyTheme, cell: (p) => tick(PLANS[p].features.shopifyTheme) },
     { id: 'mcp', label: d.rows.mcpApi, cell: (p) => tick(PLANS[p].features.mcpApi) },
     { id: 'loc', label: d.rows.multiLocation, cell: (p) => tick(PLANS[p].features.multiLocation) },

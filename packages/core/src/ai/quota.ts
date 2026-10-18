@@ -46,7 +46,7 @@ export type AiAdmission =
       store: AiStoreFacts
     }
   | { ok: false; reason: 'feature_off' }
-  | { ok: false; reason: 'quota'; limit: 'calls' | 'tokens'; month: string }
+  | { ok: false; reason: 'quota'; limit: 'credits' | 'calls' | 'tokens'; month: string }
 
 /**
  * Admits one call of `feature` for the store and counts it (as `TIER_CALL_WEIGHT` requests:
@@ -63,7 +63,7 @@ export async function admitAiCall(
   const facts = await aiStoreFacts(ctx.tx, ctx.storeId)
   const plan = effectiveAiPlan(facts.slug, settings.plan)
   const used = await aiUsageForMonth(ctx, month)
-  const quota = checkQuota(plan, used.total)
+  const quota = checkQuota(plan, used.total, settings.extraCredits)
   if (!quota.ok) return { ok: false, reason: 'quota', limit: quota.reason, month }
   const tier = tierFor(feature, settings.writingQuality)
   await recordAiUsage(ctx, { month, feature, calls: TIER_CALL_WEIGHT[tier] })

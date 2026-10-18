@@ -6,6 +6,8 @@
 import { PLAN_IDS, type PlanId } from './plans'
 
 export type AppPrice = {
+  /** For bills and emails ("Reviews app"). */
+  name: string
   /** The lowest plan that includes the app. */
   includedFrom: PlanId
   /** Per month (before GST) on a plan below `includedFrom`. */
@@ -14,11 +16,15 @@ export type AppPrice = {
 
 /** First-party apps that cost extra below a plan. Anything not listed is free on every plan. */
 export const APP_PRICING: Readonly<Record<string, AppPrice>> = {
-  reviews: { includedFrom: 'growth', pricePaise: 199_00 },
-  'back-in-stock': { includedFrom: 'growth', pricePaise: 149_00 },
-  forms: { includedFrom: 'growth', pricePaise: 99_00 },
-  'emi-pay-later': { includedFrom: 'pro', pricePaise: 149_00 },
-  'google-search-console': { includedFrom: 'pro', pricePaise: 199_00 },
+  reviews: { name: 'Reviews', includedFrom: 'growth', pricePaise: 199_00 },
+  'back-in-stock': { name: 'Back in stock', includedFrom: 'growth', pricePaise: 149_00 },
+  forms: { name: 'Forms', includedFrom: 'growth', pricePaise: 99_00 },
+  'emi-pay-later': { name: 'EMI & pay later', includedFrom: 'pro', pricePaise: 149_00 },
+  'google-search-console': {
+    name: 'Google Search Console',
+    includedFrom: 'pro',
+    pricePaise: 199_00,
+  },
 }
 
 /** The sales store's product variant that bills one month of an app. */
@@ -54,3 +60,6 @@ export function appAccess(
 
 /** Can be installed (or kept working) right now. */
 export const canUseApp = (a: AppAccess) => a.state !== 'buy'
+
+/** A top-up of AI credits (memory-bank/pricing.md): bought credits carry over until used. */
+export const AI_CREDIT_PACK = { credits: 1_000, pricePaise: 199_00, sku: 'ai-credits-1000' } as const
