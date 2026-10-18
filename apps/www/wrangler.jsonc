@@ -1,0 +1,15 @@
+// The marketing site on Cloudflare Workers: static assets only, no Worker code.
+// Build with `bun run build` (writes out/), then `bunx wrangler deploy` from apps/www.
+{
+  "$schema": "../../node_modules/wrangler/config-schema.json",
+  "name": "koomerce-www",
+  "compatibility_date": "2026-10-01",
+  "assets": {
+    "directory": "./out",
+    "html_handling": "auto-trailing-slash",
+    "not_found_handling": "404-page"
+  },
+  "routes": [{ "pattern": "koomerce.app", "custom_domain": true }],
+  // Static assets only: no Worker code, so no logs or traces worth keeping.
+  "observability": { "enabled": false }
+}

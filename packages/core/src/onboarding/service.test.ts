@@ -223,7 +223,7 @@ describe('createStore: platform address route', () => {
     ownerUserId: OWNER_USER_ID,
     name: 'Asha Handlooms',
     slug: 'asha-handlooms',
-    platformDomain: 'vioratech.in',
+    platformDomain: 'koomerce.app',
     ...fakeOrg('org_asha'),
   }
   const rows = async () => {
@@ -238,7 +238,7 @@ describe('createStore: platform address route', () => {
     const { domains, events } = await rows()
     expect(domains).toHaveLength(1)
     expect(domains[0]).toMatchObject({
-      hostname: 'asha-handlooms.vioratech.in',
+      hostname: 'asha-handlooms.koomerce.app',
       routeStatus: 'pending',
       sslStatus: 'issuing',
     })

@@ -1,6 +1,9 @@
 import { GUIDES, guideBySlug } from '@/data/guides'
 import { OG_CONTENT_TYPE, OG_SIZE, ogImage } from '@/lib/og-image'
 
+// Built once at `next build`: the site is a static export.
+export const dynamic = 'force-static'
+
 export const alt = 'A Koomerce guide for Indian online sellers'
 export const size = OG_SIZE
 export const contentType = OG_CONTENT_TYPE
