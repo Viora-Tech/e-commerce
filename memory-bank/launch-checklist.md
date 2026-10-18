@@ -31,7 +31,7 @@ certificates and the worker checks store records against the server IP. `koomerc
 | Store storage connections → `koomerce-media`, public URL `https://cdn.koomerce.app` | owner | Admin → Storage, per store; then upload one image to test |
 | SES `koomerce.app`: 3 DKIM CNAMEs + `bounce` MX/TXT | owner | Then `PLATFORM_EMAIL_FROM=no-reply@koomerce.app` in admin + worker, redeploy |
 | Cloudflare Workers Builds (GitHub) for `koomerce-www` and `koomerce-docs` | owner | Root `apps/www` / `apps/docs`, build `bun install && bun run build`, deploy `bunx wrangler deploy`, branch `main` |
-| ECR credential helper on vextro-app | owner (SSH) | IAM role `vextro-app-ecr-pull` is attached; install `amazon-ecr-credential-helper`, set `credHelpers`, then clear the saved ECR passwords in Dokploy |
+| ECR credential helper on koomerce-app (was vextro-app) | done 2026-10-18 | Helper installed, `credHelpers` set for the ECR registry, saved ECR passwords cleared on admin, worker, storefront and backup; `deploy-dokploy.mjs` no longer stores one. Verified: a Dokploy deploy pulls with no stored login |
 | Monitoring: uptime checks + Dokploy CPU/RAM alerts | agent | Waiting on Telegram or email |
 | Search Console: keep the verification record; submit both sitemaps | owner | No verification TXT or meta tag was found on 2026-10-18 |
 | Passkeys | owner | Old ones were for admin.vioratech.in; add new ones on admin.koomerce.app |
