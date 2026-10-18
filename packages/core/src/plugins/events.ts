@@ -57,9 +57,12 @@ export async function removeAppJob(
   return removed === 1 || removed === true
 }
 
-/** One job per order event (or per refund) per app; a repeat enqueue is a no-op. */
+/**
+ * One job per order event (or per refund) per app; a repeat enqueue is a no-op. Three
+ * ':' parts, the most BullMQ accepts: the app joins the third.
+ */
 export const appEventJobId = (job: AppEventJob): string =>
-  `${job.storeId}:${job.event}:${job.refundId ?? job.orderId}${job.pluginId ? `:${job.pluginId}` : ''}`
+  `${job.storeId}:${job.event}:${job.refundId ?? job.orderId}${job.pluginId ? `-${job.pluginId}` : ''}`
 
 export async function enqueueAppEvent(queue: AppEventQueue, job: AppEventJob): Promise<void> {
   await queue.add(job.event, job, {

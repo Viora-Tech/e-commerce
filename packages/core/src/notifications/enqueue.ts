@@ -42,8 +42,9 @@ export type NotificationQueue = {
   ): Promise<unknown>
 }
 
+// BullMQ allows ':' in a custom id only as exactly three parts: the key joins the third.
 export const notificationJobId = (job: NotificationJob): string =>
-  `${job.storeId}:${job.orderId}:${job.template}${job.key ? `:${job.key}` : ''}`
+  `${job.storeId}:${job.orderId}:${job.template}${job.key ? `-${job.key}` : ''}`
 
 /**
  * Queue one order event. The job id makes a repeat call for the same order and
