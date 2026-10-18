@@ -15,6 +15,8 @@
     "./icons": "./src/icons.tsx",
     "./brand": "./src/brand/koomerce-mark.tsx",
     "./lib/icon": "./src/lib/icon.tsx",
+    "./globe/*": "./src/globe/*.ts",
+    "./globe/webgl/*": "./src/globe/webgl/*.ts",
     "./sortable": "./src/components/sortable/index.ts",
     "./sortable/tree": "./src/components/sortable/tree.ts"
   },
