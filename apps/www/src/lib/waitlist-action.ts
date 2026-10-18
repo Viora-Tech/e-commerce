@@ -1,4 +1,5 @@
-'use server'
+// Runs in the browser: the site is a static export (Cloudflare Workers static assets), so there
+// are no server actions. `useActionState` takes these as plain async functions.
 
 import { waitlistContent as copy, WAITLIST_INITIAL, type WaitlistState } from '@/data/waitlist'
 

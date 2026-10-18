@@ -404,7 +404,7 @@ describe('removing a domain deletes its route', () => {
 })
 
 describe('runDomainRouteJob: store address (platform kind)', () => {
-  const storeGuard = { ...guard, storeDomain: 'vioratech.in' }
+  const storeGuard = { ...guard, storeDomain: 'koomerce.app' }
 
   async function platformRow(hostname: string) {
     const storeId = await seedStore('p')
@@ -419,20 +419,20 @@ describe('runDomainRouteJob: store address (platform kind)', () => {
   }
 
   it('adds the route and starts the certificate wait; it never assumes SSL is active', async () => {
-    const { id, job } = await platformRow('asha.vioratech.in')
+    const { id, job } = await platformRow('asha.koomerce.app')
     const d = fakeDokploy()
     expect(await runDomainRouteJob({ db: app, client: d.client, guard: storeGuard }, job)).toBe(
       'created',
     )
-    expect(d.domains).toEqual([{ domainId: 'd1', host: 'asha.vioratech.in' }])
+    expect(d.domains).toEqual([{ domainId: 'd1', host: 'asha.koomerce.app' }])
     const row = await domainRow(id)
     expect(row).toMatchObject({ routeStatus: 'ready', sslStatus: 'issuing' })
     expect(row?.sslStartedAt).toBeInstanceOf(Date)
   })
 
   it('re-registers when asked: deletes the old Dokploy domain, creates a new one, restarts the wait', async () => {
-    const { id, job } = await platformRow('asha.vioratech.in')
-    const d = fakeDokploy([{ domainId: 'old', host: 'asha.vioratech.in' }])
+    const { id, job } = await platformRow('asha.koomerce.app')
+    const d = fakeDokploy([{ domainId: 'old', host: 'asha.koomerce.app' }])
     const after: string[] = []
     const out = await runDomainRouteJob(
       {
@@ -446,15 +446,15 @@ describe('runDomainRouteJob: store address (platform kind)', () => {
       { ...job, reregister: true },
     )
     expect(out).toBe('created')
-    expect(d.domains).toEqual([{ domainId: 'd1', host: 'asha.vioratech.in' }])
+    expect(d.domains).toEqual([{ domainId: 'd1', host: 'asha.koomerce.app' }])
     expect(d.calls).toContain('delete old')
     expect(after).toEqual([id])
     expect(await domainRow(id)).toMatchObject({ routeStatus: 'ready', sslStatus: 'issuing' })
   })
 
   it('is idempotent', async () => {
-    const { job } = await platformRow('asha.vioratech.in')
-    const d = fakeDokploy([{ domainId: 'x', host: 'asha.vioratech.in' }])
+    const { job } = await platformRow('asha.koomerce.app')
+    const d = fakeDokploy([{ domainId: 'x', host: 'asha.koomerce.app' }])
     expect(await runDomainRouteJob({ db: app, client: d.client, guard: storeGuard }, job)).toBe(
       'exists',
     )
@@ -462,7 +462,7 @@ describe('runDomainRouteJob: store address (platform kind)', () => {
   })
 
   it('refuses a host that is not a single label under the store domain', async () => {
-    const { job } = await platformRow('a.b.vioratech.in')
+    const { job } = await platformRow('a.b.koomerce.app')
     const d = fakeDokploy()
     expect(await runDomainRouteJob({ db: app, client: d.client, guard: storeGuard }, job)).toBe(
       'skipped',
@@ -471,7 +471,7 @@ describe('runDomainRouteJob: store address (platform kind)', () => {
   })
 
   it('throws when Dokploy is down so the queue retries, leaving the address issuing', async () => {
-    const { id, job } = await platformRow('asha.vioratech.in')
+    const { id, job } = await platformRow('asha.koomerce.app')
     const d = fakeDokploy()
     d.setDown(true)
     await expect(

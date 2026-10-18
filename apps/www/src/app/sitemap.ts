@@ -26,6 +26,9 @@ const PAGES = [
   { path: '/acceptable-use', priority: 0.3 },
 ]
 
+// Built once at `next build`: the site is a static export.
+export const dynamic = 'force-static'
+
 export default function sitemap(): MetadataRoute.Sitemap {
   const url = (path: string) => `${siteConfig.urls.site}${path === '/' ? '' : path}`
   return [

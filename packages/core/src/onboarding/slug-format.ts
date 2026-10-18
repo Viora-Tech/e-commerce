@@ -39,6 +39,8 @@ const RESERVED_STORE_SLUGS: readonly string[] = [
   'undefined',
   // Our own hostnames (infra and tools) under the same parent domain as store addresses.
   'worker',
+  'shops',
+  'errors',
   'dokploy',
   'panel',
   'maus',

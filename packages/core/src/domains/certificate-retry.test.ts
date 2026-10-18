@@ -30,7 +30,7 @@ const targets = { aRecord: SERVER_IP, cnameTarget: 'shops.waimers.localhost' }
 const guard = {
   platformRoots: ['localhost'],
   cnameTarget: targets.cnameTarget,
-  storeDomain: 'vioratech.in',
+  storeDomain: 'koomerce.app',
 }
 const MIN = 60_000
 const t0 = new Date('2026-10-11T10:00:00Z')
@@ -116,15 +116,15 @@ const reload = async (id: string) => {
 
 describe('checkCertificate', () => {
   it('marks a host with a trusted certificate active and clears the error', async () => {
-    const row = await seed('asha.vioratech.in', { sslStatus: 'failed', error: CERT_REASON.dns })
-    const w = world({ 'asha.vioratech.in': 'valid' })
+    const row = await seed('asha.koomerce.app', { sslStatus: 'failed', error: CERT_REASON.dns })
+    const w = world({ 'asha.koomerce.app': 'valid' })
     expect(await checkCertificate(w.deps(), row)).toBe('active')
     expect(await reload(row.id)).toMatchObject({ sslStatus: 'active', error: null })
     expect(w.d.calls).toEqual([])
   })
 
   it('fails with "DNS not pointing here yet" when the name does not resolve to us', async () => {
-    const row = await seed('asha.vioratech.in')
+    const row = await seed('asha.koomerce.app')
     const w = world({}, {})
     expect(await checkCertificate(w.deps(), row)).toBe('dns')
     expect(await reload(row.id)).toMatchObject({ sslStatus: 'failed', error: CERT_REASON.dns })
@@ -132,39 +132,39 @@ describe('checkCertificate', () => {
   })
 
   it('also fails on DNS when it points at some other server', async () => {
-    const row = await seed('asha.vioratech.in')
-    const w = world({}, { 'asha.vioratech.in': ['198.51.100.9'] })
+    const row = await seed('asha.koomerce.app')
+    const w = world({}, { 'asha.koomerce.app': ['198.51.100.9'] })
     expect(await checkCertificate(w.deps(), row)).toBe('dns')
   })
 
   it('treats Cloudflare-proxied addresses as pointing here', async () => {
-    const row = await seed('asha.vioratech.in', { routeRequestedAt: ago(60 * MIN) })
-    const w = world({}, { 'asha.vioratech.in': ['104.16.1.1'] })
+    const row = await seed('asha.koomerce.app', { routeRequestedAt: ago(60 * MIN) })
+    const w = world({}, { 'asha.koomerce.app': ['104.16.1.1'] })
     expect(await checkCertificate(w.deps(), row)).toBe('reregistered')
   })
 
   it('shows "getting the certificate", not a failure, in the first minutes', async () => {
-    const row = await seed('asha.vioratech.in', { sslStartedAt: ago(2 * MIN) })
-    const w = world({}, { 'asha.vioratech.in': [SERVER_IP] })
+    const row = await seed('asha.koomerce.app', { sslStartedAt: ago(2 * MIN) })
+    const w = world({}, { 'asha.koomerce.app': [SERVER_IP] })
     expect(await checkCertificate(w.deps(), row)).toBe('issuing')
     expect(await reload(row.id)).toMatchObject({ sslStatus: 'issuing', error: null })
     expect(w.d.calls).toEqual([])
   })
 
   it('re-registers (delete + create) when DNS is right but Traefik still serves its default certificate', async () => {
-    const row = await seed('asha.vioratech.in', { sslStartedAt: ago(10 * MIN) })
-    const d = fakeDokploy([{ domainId: 'old', host: 'asha.vioratech.in' }])
-    const w = world({}, { 'asha.vioratech.in': [SERVER_IP] }, d)
+    const row = await seed('asha.koomerce.app', { sslStartedAt: ago(10 * MIN) })
+    const d = fakeDokploy([{ domainId: 'old', host: 'asha.koomerce.app' }])
+    const w = world({}, { 'asha.koomerce.app': [SERVER_IP] }, d)
     expect(await checkCertificate(w.deps(), row)).toBe('reregistered')
-    expect(d.calls).toEqual(['delete old', 'create asha.vioratech.in'])
+    expect(d.calls).toEqual(['delete old', 'create asha.koomerce.app'])
     const after = await reload(row.id)
     expect(after).toMatchObject({ sslStatus: 'issuing', routeStatus: 'ready' })
     expect(after.routeRequestedAt).toEqual(t0)
   })
 
   it('does not re-register again within ten minutes of the last time', async () => {
-    const row = await seed('asha.vioratech.in', { routeRequestedAt: ago(3 * MIN) })
-    const w = world({}, { 'asha.vioratech.in': [SERVER_IP] })
+    const row = await seed('asha.koomerce.app', { routeRequestedAt: ago(3 * MIN) })
+    const w = world({}, { 'asha.koomerce.app': [SERVER_IP] })
     expect(await checkCertificate(w.deps(), row)).toBe('certificate')
     expect(w.d.calls).toEqual([])
     expect(await reload(row.id)).toMatchObject({
@@ -174,27 +174,27 @@ describe('checkCertificate', () => {
   })
 
   it('without Dokploy keys it still records the reason', async () => {
-    const row = await seed('asha.vioratech.in')
-    const w = world({}, { 'asha.vioratech.in': [SERVER_IP] })
+    const row = await seed('asha.koomerce.app')
+    const w = world({}, { 'asha.koomerce.app': [SERVER_IP] })
     expect(await checkCertificate(w.deps({ client: null }), row)).toBe('certificate')
   })
 
   it('leaves a live host alone when it simply cannot be reached right now', async () => {
-    const row = await seed('asha.vioratech.in', { sslStatus: 'active', sslStartedAt: null })
-    const w = world({ 'asha.vioratech.in': 'unreachable' }, { 'asha.vioratech.in': [SERVER_IP] })
+    const row = await seed('asha.koomerce.app', { sslStatus: 'active', sslStartedAt: null })
+    const w = world({ 'asha.koomerce.app': 'unreachable' }, { 'asha.koomerce.app': [SERVER_IP] })
     expect(await checkCertificate(w.deps(), row)).toBe('unchanged')
     expect((await reload(row.id)).sslStatus).toBe('active')
   })
 
   it('catches an "active" row that is really serving the default certificate', async () => {
-    const row = await seed('asha.vioratech.in', { sslStatus: 'active', sslStartedAt: null })
-    const w = world({ 'asha.vioratech.in': 'default' }, { 'asha.vioratech.in': [SERVER_IP] })
+    const row = await seed('asha.koomerce.app', { sslStatus: 'active', sslStartedAt: null })
+    const w = world({ 'asha.koomerce.app': 'default' }, { 'asha.koomerce.app': [SERVER_IP] })
     expect(await checkCertificate(w.deps(), row)).toBe('issuing')
     expect((await reload(row.id)).sslStartedAt).toEqual(t0)
   })
 
   it('skips a hostname the route guard refuses', async () => {
-    const row = await seed('a.b.vioratech.in')
+    const row = await seed('a.b.koomerce.app')
     const w = world()
     expect(await checkCertificate(w.deps(), row)).toBe('skipped')
   })
@@ -208,34 +208,34 @@ describe('checkCertificate', () => {
 
 describe('runCertificateSweep', () => {
   it('re-registers a stuck host, then re-checks it once the certificate is issued', async () => {
-    const row = await seed('asha.vioratech.in')
-    const w = world({}, { 'asha.vioratech.in': [SERVER_IP] })
+    const row = await seed('asha.koomerce.app')
+    const w = world({}, { 'asha.koomerce.app': [SERVER_IP] })
     const deps = w.deps({
       sleep: async () => {
-        w.tls['asha.vioratech.in'] = 'valid' // Traefik got its certificate during the pause
+        w.tls['asha.koomerce.app'] = 'valid' // Traefik got its certificate during the pause
       },
     })
     const r = await runCertificateSweep(deps)
     expect(r).toMatchObject({ checked: 1, reregistered: 1, failed: 0 })
-    expect(w.d.calls).toEqual(['create asha.vioratech.in'])
+    expect(w.d.calls).toEqual(['create asha.koomerce.app'])
     expect(await reload(row.id)).toMatchObject({ sslStatus: 'active', error: null })
   })
 
   it('only looks at hosts that are due on their backoff', async () => {
-    await seed('asha.vioratech.in', { sslCheckedAt: ago(2 * MIN) })
-    const w = world({}, { 'asha.vioratech.in': [SERVER_IP] })
+    await seed('asha.koomerce.app', { sslCheckedAt: ago(2 * MIN) })
+    const w = world({}, { 'asha.koomerce.app': [SERVER_IP] })
     expect((await runCertificateSweep(w.deps())).checked).toBe(0)
   })
 
   it('gives up after three days', async () => {
-    await seed('old.vioratech.in', { sslStatus: 'failed', sslStartedAt: ago(4 * 24 * 60 * MIN) })
-    const w = world({}, { 'old.vioratech.in': [SERVER_IP] })
+    await seed('old.koomerce.app', { sslStatus: 'failed', sslStartedAt: ago(4 * 24 * 60 * MIN) })
+    const w = world({}, { 'old.koomerce.app': [SERVER_IP] })
     expect((await runCertificateSweep(w.deps())).checked).toBe(0)
   })
 
   it('carries on past one broken row', async () => {
-    await seed('asha.vioratech.in')
-    const w = world({}, { 'asha.vioratech.in': [SERVER_IP] })
+    await seed('asha.koomerce.app')
+    const w = world({}, { 'asha.koomerce.app': [SERVER_IP] })
     w.d.client.createDomain = async () => {
       throw new Error('Dokploy domain.create answered 502')
     }
@@ -249,7 +249,7 @@ describe('requestCertificateRetry', () => {
     withStore(app, storeId, fn)
 
   it('restarts the wait, clears the error and queues a re-register job', async () => {
-    const row = await seed('asha.vioratech.in', { sslStatus: 'failed', error: CERT_REASON.dns })
+    const row = await seed('asha.koomerce.app', { sslStatus: 'failed', error: CERT_REASON.dns })
     const out = await asStore(row.storeId, (tx) =>
       requestCertificateRetry(tx, row.storeId, row.id, t0),
     )
@@ -266,7 +266,7 @@ describe('requestCertificateRetry', () => {
   })
 
   it('allows one retry per two minutes', async () => {
-    const row = await seed('asha.vioratech.in', {
+    const row = await seed('asha.koomerce.app', {
       sslStatus: 'failed',
       error: CERT_REASON.certificate,
       routeRequestedAt: ago(RETRY_REQUEST_GAP_MS - 1),
@@ -282,7 +282,7 @@ describe('requestCertificateRetry', () => {
   })
 
   it('refuses an active certificate and a domain whose DNS is not verified', async () => {
-    const active = await seed('asha.vioratech.in', { sslStatus: 'active' })
+    const active = await seed('asha.koomerce.app', { sslStatus: 'active' })
     await expect(
       asStore(active.storeId, (tx) => requestCertificateRetry(tx, active.storeId, active.id, t0)),
     ).rejects.toThrow(/already has an active/)
@@ -297,12 +297,12 @@ describe('requestCertificateRetry', () => {
 
 describe('domainView', () => {
   it('says why the certificate failed, only when it did', async () => {
-    const failedDns = await seed('a1.vioratech.in', { sslStatus: 'failed', error: CERT_REASON.dns })
-    const failedCert = await seed('a2.vioratech.in', {
+    const failedDns = await seed('a1.koomerce.app', { sslStatus: 'failed', error: CERT_REASON.dns })
+    const failedCert = await seed('a2.koomerce.app', {
       sslStatus: 'failed',
       error: CERT_REASON.certificate,
     })
-    const fine = await seed('a3.vioratech.in', { sslStatus: 'active' })
+    const fine = await seed('a3.koomerce.app', { sslStatus: 'active' })
     expect(domainView(failedDns, targets).sslReason).toBe('dns')
     expect(domainView(failedCert, targets).sslReason).toBe('certificate')
     expect(domainView(fine, targets).sslReason).toBeNull()
