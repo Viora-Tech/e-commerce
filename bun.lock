@@ -149,6 +149,13 @@
         "wrangler": "4.151.1",
       },
     },
+    "apps/monitor": {
+      "name": "@commerce/monitor",
+      "version": "0.0.0",
+      "devDependencies": {
+        "wrangler": "4.151.1",
+      },
+    },
     "apps/storefront": {
       "name": "@commerce/storefront",
       "version": "0.0.0",
@@ -1251,6 +1258,8 @@
     "@commerce/invoices": ["@commerce/invoices@workspace:packages/invoices"],
 
     "@commerce/money": ["@commerce/money@workspace:packages/money"],
+
+    "@commerce/monitor": ["@commerce/monitor@workspace:apps/monitor"],
 
     "@commerce/notifications": ["@commerce/notifications@workspace:packages/notifications"],
 
