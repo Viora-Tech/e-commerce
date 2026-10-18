@@ -9,5 +9,7 @@
     "html_handling": "auto-trailing-slash",
     "not_found_handling": "404-page"
   },
-  "routes": [{ "pattern": "koomerce.app", "custom_domain": true }]
+  "routes": [{ "pattern": "koomerce.app", "custom_domain": true }],
+  // Static assets only: no Worker code, so no logs or traces worth keeping.
+  "observability": { "enabled": false }
 }
