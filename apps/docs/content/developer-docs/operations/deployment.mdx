@@ -43,7 +43,6 @@ kept in the GitHub Actions cache (one scope per image):
 | `ghcr.io/viora-tech/storefront` | `apps/storefront/Dockerfile` | `storefront` |
 | `ghcr.io/viora-tech/worker` | `apps/worker/Dockerfile` | `worker` |
 | `ghcr.io/viora-tech/tasks` | `deploy/Dockerfile.tasks` | `migrate`, `backup`, restore, key rotation |
-| `ghcr.io/viora-tech/docs` | `apps/docs/Dockerfile` | not in the compose file (optional) |
 
 Each is tagged with the full commit sha and `latest`. The compose file runs
 `${IMAGE_TAG:-latest}`, with `pull_policy: always` so a redeploy really fetches the new `latest`.

@@ -146,6 +146,7 @@
         "pagefind": "^1.4.0",
         "tailwindcss": "^4.3.3",
         "typescript": "~5.9.3",
+        "wrangler": "4.151.1",
       },
     },
     "apps/storefront": {
