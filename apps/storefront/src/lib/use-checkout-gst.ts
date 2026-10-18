@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { checkoutGstAction } from './gst-actions'
+import { retryOnce } from './retry-once'
 
 /** Settle time before asking: typing a PIN or switching rates changes the total in bursts. */
 const WAIT_MS = 300
@@ -19,7 +20,7 @@ export function useCheckoutGst(input: {
   useEffect(() => {
     let live = true
     const timer = setTimeout(() => {
-      checkoutGstAction({ totalPaise, reductionPaise, stateCode })
+      retryOnce(() => checkoutGstAction({ totalPaise, reductionPaise, stateCode }))
         .then((r) => live && setGstPaise(r ? r.taxPaise : null))
         .catch(() => live && setGstPaise(null))
     }, WAIT_MS)
