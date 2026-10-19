@@ -230,17 +230,18 @@ export default [
     tags: {
       heading: 'टैग',
       placeholder: 'टैग लिखें और Enter दबाएँ',
-      saved: 'टैग सेव हुए',
       remove: (tag: string) => `${tag} हटाएँ`,
     },
     note: {
       heading: 'नोट',
       placeholder: 'टीम को जो पता होना चाहिए',
-      save: 'नोट सेव करें',
-      saved: 'नोट सेव हुआ',
+    },
+    changes: {
       unsaved: 'बिना सेव किए बदलाव',
+      save: 'सेव करें',
       discard: 'छोड़ें',
-      failed: 'नोट सेव नहीं हो पाया',
+      saved: 'ग्राहक सेव हुआ',
+      failed: 'सेव नहीं हो पाया। आपके बदलाव यहीं हैं।',
     },
   }),
   translation(segmentsContent, {

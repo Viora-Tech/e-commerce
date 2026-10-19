@@ -33,6 +33,7 @@ import type { StoreTx } from '@commerce/db'
 import { ORPCError } from '@orpc/server'
 import { z } from 'zod'
 import { BULK_MAX, can, heavy } from '../procedures'
+import { sendableConsentChannels } from '../services/notifications.service'
 
 type Ctx = {
   tx: StoreTx
@@ -217,7 +218,10 @@ export const customerPrivacyRouter = {
     .handler(async ({ context, input }) => {
       const consent = await customerMarketingConsent(ctxOf(context), input.customerId)
       if (!consent) throw new ORPCError('NOT_FOUND', { message: 'Customer not found' })
-      return consent
+      return {
+        ...consent,
+        sendable: await sendableConsentChannels(context.tx, context.scope.storeId),
+      }
     }),
 
   /** Staff record consent the customer gave or withdrew outside the store (a call, a form). */
