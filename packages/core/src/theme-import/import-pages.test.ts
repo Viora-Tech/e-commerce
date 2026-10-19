@@ -6,7 +6,7 @@ import { resourceHandle } from './page-context'
 import { isImportedTemplate } from './report'
 
 describe('importedPages', () => {
-  it('takes home, the groups and the product, collection and page templates with alternates', () => {
+  it('takes home, the groups and the resource templates with their alternates', () => {
     expect(
       importedPages([
         'index',
@@ -16,6 +16,9 @@ describe('importedPages', () => {
         'collection',
         'page.about',
         'page.Bad Name',
+        'blog',
+        'blog.series',
+        'article.notes',
         'cart',
         'list-collections',
         'customers/account',
@@ -24,6 +27,9 @@ describe('importedPages', () => {
       ['home', '', 'index'],
       ['header', '', 'header-group'],
       ['footer', '', 'footer-group'],
+      ['article', 'notes', 'article.notes'],
+      ['blog', '', 'blog'],
+      ['blog', 'series', 'blog.series'],
       ['collection', '', 'collection'],
       ['page', 'about', 'page.about'],
       ['product', '', 'product'],
@@ -35,6 +41,7 @@ describe('importedPages', () => {
 describe('isImportedTemplate', () => {
   it('counts alternates with their base template', () => {
     expect(isImportedTemplate('page.faq')).toBe(true)
+    expect(isImportedTemplate('article.notes')).toBe(true)
     expect(isImportedTemplate('product')).toBe(true)
     expect(isImportedTemplate('list-collections')).toBe(false)
     expect(isImportedTemplate('cart')).toBe(false)
@@ -55,6 +62,19 @@ describe('resourceHandle', () => {
       kind: 'page',
       handle: 'about us',
     })
+  })
+
+  it('reads a blog, and an article with its blog', () => {
+    expect(resourceHandle('blog.series', '/blogs/notes?page=2')).toEqual({
+      kind: 'blog',
+      handle: 'notes',
+    })
+    expect(resourceHandle('article', '/blogs/notes/first-post')).toEqual({
+      kind: 'article',
+      handle: 'first-post',
+      blog: 'notes',
+    })
+    expect(resourceHandle('article', '/blogs/notes')).toBeNull()
   })
 
   it('has nothing for other pages or a broken path', () => {

@@ -65,7 +65,7 @@ export const PRODUCTS_QUERY = `query Products($cursor: String, $query: String) {
   products(first: 25, after: $cursor, sortKey: ID, query: $query) {
     ${PAGE_INFO}
     nodes {
-      id handle title descriptionHtml vendor productType tags status
+      id handle title descriptionHtml vendor productType tags status templateSuffix
       seo { title description }
       options { name position }
       hsn: metafield(namespace: "custom", key: "hsn") { value }
@@ -107,6 +107,7 @@ type GProduct = {
   productType: string | null
   tags: string[]
   status: 'ACTIVE' | 'DRAFT' | 'ARCHIVED'
+  templateSuffix: string | null
   seo: { title: string | null; description: string | null } | null
   options: { name: string; position: number }[]
   hsn: { value: string } | null
@@ -129,6 +130,15 @@ const GRAMS: Record<string, number> = {
 function hsnDigits(value: string | null | undefined): string | null {
   const d = (value ?? '').replace(/\D/g, '')
   return d.length >= 4 && d.length <= 8 ? d : null
+}
+
+/**
+ * Shopify's `templateSuffix` (`about` for `page.about.json`), kept only in the shape our
+ * template keys allow; anything else (or none) is the default template.
+ */
+export function templateSuffix(value: string | null | undefined): string | null {
+  const s = (value ?? '').trim().toLowerCase()
+  return /^[a-z0-9-]{1,40}$/.test(s) ? s : null
 }
 
 export function mapVariant(
@@ -189,6 +199,7 @@ export function mapProduct(p: GProduct, variants: GVariant[]): NProduct {
       ? mapped
       : mapped.slice(0, 1).map((v) => ({ ...v, optionValues: [] })),
     images,
+    templateSuffix: templateSuffix(p.templateSuffix),
   }
 }
 
@@ -202,7 +213,7 @@ export const PRODUCTS_BULK_QUERY = `{
   products {
     edges {
       node {
-        id handle title descriptionHtml vendor productType tags status
+        id handle title descriptionHtml vendor productType tags status templateSuffix
         seo { title description }
         options { name position }
         hsn: metafield(namespace: "custom", key: "hsn") { value }
@@ -298,7 +309,7 @@ export const COLLECTIONS_QUERY = `query Collections($cursor: String, $query: Str
   collections(first: 15, after: $cursor, sortKey: ID, query: $query) {
     ${PAGE_INFO}
     nodes {
-      id handle title descriptionHtml sortOrder
+      id handle title descriptionHtml sortOrder templateSuffix
       image { url altText }
       seo { title description }
       ruleSet { appliedDisjunctively rules { column relation condition } }
@@ -317,6 +328,7 @@ type GCollection = {
   title: string
   descriptionHtml: string | null
   sortOrder: string | null
+  templateSuffix: string | null
   image: { url: string; altText: string | null } | null
   seo: { title: string | null; description: string | null } | null
   ruleSet: {
@@ -411,6 +423,7 @@ export async function* fetchCollections(
         unmappedRules: unmapped,
         productHandles: handles,
         published: true,
+        templateSuffix: templateSuffix(c.templateSuffix),
       })
     }
     yield batch
@@ -741,7 +754,7 @@ export const PAGES_QUERY = `query Pages($cursor: String, $query: String) {
   pages(first: 50, after: $cursor, query: $query) {
     ${PAGE_INFO}
     nodes {
-      id handle title body isPublished publishedAt
+      id handle title body isPublished publishedAt templateSuffix
       seoTitle: metafield(namespace: "global", key: "title_tag") { value }
       seoDescription: metafield(namespace: "global", key: "description_tag") { value }
     }
@@ -755,6 +768,7 @@ type GPage = {
   body: string | null
   isPublished: boolean
   publishedAt: string | null
+  templateSuffix: string | null
   seoTitle: { value: string } | null
   seoDescription: { value: string } | null
 }
@@ -778,6 +792,7 @@ export async function* fetchPages(
       seoDescription: p.seoDescription?.value || null,
       published: p.isPublished,
       publishedAt: p.publishedAt,
+      templateSuffix: templateSuffix(p.templateSuffix),
     }))
   }
 }
@@ -786,10 +801,10 @@ export const ARTICLES_QUERY = `query Articles($cursor: String, $query: String) {
   articles(first: 50, after: $cursor, query: $query) {
     ${PAGE_INFO}
     nodes {
-      id handle title body summary tags isPublished publishedAt
+      id handle title body summary tags isPublished publishedAt templateSuffix
       author { name }
       image { url altText }
-      blog { handle title }
+      blog { handle title templateSuffix }
       seoTitle: metafield(namespace: "global", key: "title_tag") { value }
       seoDescription: metafield(namespace: "global", key: "description_tag") { value }
     }
@@ -807,7 +822,8 @@ type GArticle = {
   publishedAt: string | null
   author: { name: string } | null
   image: { url: string; altText: string | null } | null
-  blog: { handle: string; title: string }
+  templateSuffix: string | null
+  blog: { handle: string; title: string; templateSuffix: string | null }
   seoTitle: { value: string } | null
   seoDescription: { value: string } | null
 }
@@ -837,6 +853,8 @@ export async function* fetchArticles(
       publishedAt: a.publishedAt,
       seoTitle: a.seoTitle?.value || null,
       seoDescription: a.seoDescription?.value || null,
+      templateSuffix: templateSuffix(a.templateSuffix),
+      blogTemplateSuffix: templateSuffix(a.blog.templateSuffix),
     }))
   }
 }

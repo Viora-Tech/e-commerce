@@ -433,6 +433,8 @@ describe('API import run', () => {
     ])
     const [aria] = await owner.select().from(product).where(eq(product.handle, 'aria-headset'))
     expect(JSON.stringify(aria?.description)).toContain('https://media.test/stores/')
+    // Each record keeps the theme template Shopify gave it (`product.preorder`).
+    expect(aria?.templateSuffix).toBe('preorder')
 
     // Smart rules we can express stay automatic; the rest fall back to manual membership.
     const cols = await owner.select().from(collection).orderBy(asc(collection.handle))
@@ -459,6 +461,8 @@ describe('API import run', () => {
       .where(eq(collectionProduct.collectionId, cols[0]?.id as string))
     expect(audio.map((m) => m.productId)).toEqual([aria?.id])
     expect(cols[2]?.imageMediaId).not.toBeNull()
+    // A suffix our template keys cannot hold falls back to the default template.
+    expect(cols[2]?.templateSuffix).toBeNull()
 
     const [meera] = await owner.select().from(customer)
     expect(meera).toMatchObject({ email: 'meera@example.com', acceptsMarketing: true })
@@ -476,7 +480,11 @@ describe('API import run', () => {
     expect(line?.variantId).toBe(variants.find((v) => v.sku === 'KEY-BLU')?.id)
 
     const [p] = await owner.select().from(page)
-    expect(p).toMatchObject({ handle: 'shipping-policy', seoTitle: 'Shipping' })
+    expect(p).toMatchObject({
+      handle: 'shipping-policy',
+      seoTitle: 'Shipping',
+      templateSuffix: 'about',
+    })
     expect(p?.publishedAt).not.toBeNull()
 
     const [journal] = await owner.select().from(blog).where(eq(blog.handle, 'journal'))
@@ -487,7 +495,9 @@ describe('API import run', () => {
       status: 'published',
       author: 'Kuldeep',
       excerpt: 'Live now.',
+      templateSuffix: 'notes',
     })
+    expect(journal?.templateSuffix).toBe('series')
     expect(post?.imageMediaId).not.toBeNull()
 
     const [menu] = await owner

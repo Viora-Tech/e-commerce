@@ -110,6 +110,8 @@ function toWrite(
     tags: p.tags.slice(0, 100).map((t) => t.slice(0, 50)),
     seoTitle: clip(p.seoTitle, 70),
     seoDescription: clip(p.seoDescription, 320),
+    // A CSV row has no template column (undefined): the product keeps the one it has.
+    ...(p.templateSuffix === undefined ? {} : { templateSuffix: p.templateSuffix }),
     status: p.status,
     inventoryReason: 'correction',
     options: p.optionNames.map((name, i) => ({ name: name.slice(0, 50), values: values(i) })),

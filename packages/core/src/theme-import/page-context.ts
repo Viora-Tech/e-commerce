@@ -9,6 +9,8 @@ import { importedFileKey } from './filter-values'
 import { numericId } from './numeric-id'
 import {
   AllProductsDrop,
+  ArticleDrop,
+  BlogDrop,
   BlogsDrop,
   CollectionDrop,
   CollectionsDrop,
@@ -81,31 +83,46 @@ async function themeSettingsFor(bundle: ThemeBundle, cache: LiquidDataCache) {
   return settings
 }
 
-/** The path segment of each resource page: `/products/<handle>`, `/collections/<handle>`... */
-const RESOURCE_SEGMENT = { product: 'products', collection: 'collections', page: 'pages' } as const
-type ResourceKind = keyof typeof RESOURCE_SEGMENT
+/**
+ * The path of each resource page: `/products/<handle>`, `/collections/<handle>`, an article's
+ * `/blogs/<blog>/<handle>` (the blog's handle is captured first).
+ */
+const RESOURCE_PATH = {
+  product: /^\/products\/([^/?#]+)/,
+  collection: /^\/collections\/([^/?#]+)/,
+  page: /^\/pages\/([^/?#]+)/,
+  blog: /^\/blogs\/([^/?#]+)/,
+  article: /^\/blogs\/([^/?#]+)\/([^/?#]+)/,
+} as const
+type ResourceKind = keyof typeof RESOURCE_PATH
 
-/** The handle a resource page's path names (`/products/mouse?x=1` → `mouse`), or null. */
+/**
+ * The handle a resource page's path names (`/products/mouse?x=1` → `mouse`), with the blog's
+ * for an article, or null.
+ */
 export function resourceHandle(
   template: string,
   path: string,
-): { kind: ResourceKind; handle: string } | null {
+): { kind: ResourceKind; handle: string; blog?: string } | null {
   const kind = template.split('.')[0] as ResourceKind
-  const segment = RESOURCE_SEGMENT[kind]
-  if (!segment) return null
-  const m = new RegExp(`^/${segment}/([^/?#]+)`).exec(path)
+  const pattern = RESOURCE_PATH[kind]
+  if (!pattern) return null
+  const m = pattern.exec(path)
   if (!m?.[1]) return null
   try {
-    return { kind, handle: decodeURIComponent(m[1]) }
+    if (kind !== 'article') return { kind, handle: decodeURIComponent(m[1]) }
+    if (!m[2]) return null
+    return { kind, handle: decodeURIComponent(m[2]), blog: decodeURIComponent(m[1]) }
   } catch {
     return null
   }
 }
 
 /**
- * Shopify's `product`, `collection` or `page` global on that resource's page, so the theme's
- * own sections around our main section (specs, size guide, related products…) read it. Loaded
- * once here; null when the handle names nothing.
+ * Shopify's `product`, `collection`, `page`, `blog` or `article` (with its `blog`) global on
+ * that resource's page, so the theme's own sections around our main section (specs, size guide,
+ * related products, an article's series…) read it. Loaded once here; null when the handle names
+ * nothing.
  */
 async function resourceGlobals(
   request: LiquidRequest,
@@ -114,6 +131,7 @@ async function resourceGlobals(
   const found = resourceHandle(request.template, request.path)
   if (!found) return {}
   const { kind, handle } = found
+  if (kind === 'blog' || kind === 'article') return blogGlobals(kind, handle, found.blog, cache)
   const read = () =>
     kind === 'product'
       ? cache.product(handle)
@@ -133,6 +151,31 @@ async function resourceGlobals(
         ? new CollectionDrop(data as NonNullable<ReturnType<LiquidDataCache['collection']>>, cache)
         : new PageDrop(data as NonNullable<ReturnType<LiquidDataCache['page']>>)
   return { [kind]: drop, handle, page_title: data.title }
+}
+
+/** `blog` on a blog's page; `blog` and `article` on an article's (among the blog's latest posts). */
+async function blogGlobals(
+  kind: 'blog' | 'article',
+  handle: string,
+  blogOfArticle: string | undefined,
+  cache: LiquidDataCache,
+): Promise<Record<string, unknown>> {
+  const blogHandle = kind === 'blog' ? handle : (blogOfArticle ?? '')
+  let b = cache.blog(blogHandle)
+  if (!b && cache.missing) {
+    await cache.fill()
+    b = cache.blog(blogHandle)
+  }
+  if (!b) return {}
+  if (kind === 'blog') return { blog: new BlogDrop(b), handle: b.handle, page_title: b.title }
+  const a = b.articles.find((x) => x.handle === handle)
+  if (!a) return { blog: new BlogDrop(b) }
+  return {
+    blog: new BlogDrop(b),
+    article: new ArticleDrop(a),
+    handle: a.handle,
+    page_title: a.title,
+  }
 }
 
 /** The Shopify globals one request renders with, shared by every section on the page. */
