@@ -273,17 +273,19 @@ export const customerDetailContent = {
   tags: {
     heading: 'Tags',
     placeholder: 'Add a tag and press Enter',
-    saved: 'Tags saved',
     remove: (tag: string) => `Remove ${tag}`,
   },
   note: {
     heading: 'Notes',
     placeholder: 'Anything the team should know',
-    save: 'Save note',
-    saved: 'Note saved',
+  },
+  /** One save bar for the page's inline edits: note, tags and marketing consent. */
+  changes: {
     unsaved: 'Unsaved changes',
+    save: 'Save',
     discard: 'Discard',
-    failed: 'Could not save the note',
+    saved: 'Customer saved',
+    failed: 'Could not save. Your changes are still here.',
   },
 } as const
 

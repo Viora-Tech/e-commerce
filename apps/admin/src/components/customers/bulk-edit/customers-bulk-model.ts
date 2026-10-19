@@ -147,6 +147,10 @@ function consentFromPaste(value: string, current: string) {
 /** The keys of every column, for paste to count across. */
 export const COLUMN_KEYS = ['email', ...EDITABLE_KEYS] as string[]
 
+/** The columns shown: consent columns only for channels the store can send on. */
+export const visibleKeys = (sendable: readonly ConsentChannel[]): string[] =>
+  COLUMN_KEYS.filter((k) => !isConsentKey(k) || sendable.includes(CONSENT_KEYS[k]))
+
 /**
  * A pasted block of tab-separated text (from Sheets or Excel) laid over the grid from the
  * active cell: down the rows and across the columns, skipping read-only cells.
@@ -155,6 +159,7 @@ export function applyPaste(
   rows: GridRow[],
   start: { rowIdx: number; colIdx: number },
   pasted: string,
+  keys: readonly string[] = COLUMN_KEYS,
 ): GridRow[] {
   const lines = pasted.replace(/\r\n?/g, '\n').replace(/\n$/, '').split('\n')
   const next = [...rows]
@@ -163,7 +168,7 @@ export function applyPaste(
     if (!target) return
     let row = target
     line.split('\t').forEach((value, dx) => {
-      const key = COLUMN_KEYS[start.colIdx + dx]
+      const key = keys[start.colIdx + dx]
       if (!key || !canEdit(row, key)) return
       const cell = isConsentKey(key) ? consentFromPaste(value, cellValue(row, key)) : value.trim()
       row = withCell(row, key, cell)

@@ -7,6 +7,7 @@ import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import PageHeader from '@/components/layout/page-header'
+import SaveBar from '@/components/layout/save-bar'
 import SettingsCard from '@/components/settings/settings-card'
 import SettingsRow from '@/components/settings/settings-row'
 import { umamiContent } from '@/data/umami'
@@ -110,6 +111,8 @@ export default function SettingsPage() {
       toast.success(copy.connect.websiteId.created)
     })
 
+  const handleDiscard = () => setForm(view ? formOf(view) : null)
+
   const handleRemoveKey = () =>
     run('remove', async () => {
       const saved = await api.umami.settings.save({ apiKey: '' })
@@ -125,18 +128,20 @@ export default function SettingsPage() {
   const keyReady = view.hasApiKey || form.apiKey.trim() !== ''
   const canCreate = form.url.trim() !== '' && keyReady
   const canTest = canCreate && form.websiteId.trim() !== ''
+  const dirty = JSON.stringify(form) !== JSON.stringify(formOf(view))
 
   return (
     <div className="flex flex-col gap-5">
-      <PageHeader
-        title={copy.title}
-        summary={copy.subtitle}
-        actions={
-          <Button loading={busy === 'save'} disabled={busy !== null} onClick={handleSave}>
-            {copy.save}
-          </Button>
-        }
+      <SaveBar
+        open={dirty}
+        message={copy.unsaved}
+        saveLabel={copy.save}
+        discardLabel={copy.discard}
+        onSave={handleSave}
+        onDiscard={handleDiscard}
+        saving={busy === 'save'}
       />
+      <PageHeader title={copy.title} summary={copy.subtitle} />
       <p className="rounded-xl surface-banner px-4 py-3 text-body text-foreground">
         {statusOf(copy, view)}{' '}
         {view.reporting ? (

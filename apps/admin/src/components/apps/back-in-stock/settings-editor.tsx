@@ -1,11 +1,11 @@
 'use client'
 
-import { Button } from '@commerce/ui/shadcn/button'
 import { Input } from '@commerce/ui/shadcn/input'
 import { Switch } from '@commerce/ui/shadcn/switch'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import PageHeader from '@/components/layout/page-header'
+import SaveBar from '@/components/layout/save-bar'
 import SettingsCard from '@/components/settings/settings-card'
 import SettingsRow from '@/components/settings/settings-row'
 import { backInStockContent } from '@/data/back-in-stock'
@@ -19,10 +19,14 @@ const copy = backInStockContent.settings
 export default function SettingsEditor() {
   // Hooks
   const [form, setForm] = useState<Settings | null>(null)
+  const [saved, setSaved] = useState<Settings | null>(null)
   const [busy, setBusy] = useState(false)
 
   useEffect(() => {
-    api.backInStock.settings.get().then(setForm)
+    api.backInStock.settings.get().then((s) => {
+      setForm(s)
+      setSaved(s)
+    })
   }, [])
 
   // Event handlers
@@ -30,8 +34,9 @@ export default function SettingsEditor() {
     if (!form) return
     setBusy(true)
     try {
-      const saved = await api.backInStock.settings.save(form)
-      setForm(saved)
+      const next = await api.backInStock.settings.save(form)
+      setForm(next)
+      setSaved(next)
       toast.success(copy.saved)
     } catch (err) {
       toast.error(err instanceof Error ? err.message : copy.failed)
@@ -40,20 +45,26 @@ export default function SettingsEditor() {
     }
   }
 
+  const handleDiscard = () => setForm(saved)
+
   // Early returns
   if (!form) return null
 
+  // Render logic
+  const dirty = JSON.stringify(form) !== JSON.stringify(saved)
+
   return (
     <div className="flex flex-col gap-5">
-      <PageHeader
-        title={copy.title}
-        summary={copy.subtitle}
-        actions={
-          <Button loading={busy} onClick={handleSave}>
-            {copy.save}
-          </Button>
-        }
+      <SaveBar
+        open={dirty}
+        message={copy.unsaved}
+        saveLabel={copy.save}
+        discardLabel={copy.discard}
+        onSave={handleSave}
+        onDiscard={handleDiscard}
+        saving={busy}
       />
+      <PageHeader title={copy.title} summary={copy.subtitle} />
       <SettingsCard title={copy.channels}>
         <SettingsRow label={copy.emailEnabled} htmlFor="bis-email">
           <Switch

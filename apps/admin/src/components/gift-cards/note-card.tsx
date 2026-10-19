@@ -1,10 +1,10 @@
 'use client'
 
-import { Button } from '@commerce/ui/shadcn/button'
 import { Textarea } from '@commerce/ui/shadcn/textarea'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import DataCard from '@/components/layout/data-card'
+import SaveBar from '@/components/layout/save-bar'
 import { giftCardDetailContent } from '@/data/gift-cards'
 import { api } from '@/lib/api-client'
 
@@ -15,7 +15,7 @@ type NoteCardProps = {
 
 const copy = giftCardDetailContent.note
 
-/** Staff-only note; the save button appears once the text changes. */
+/** Staff-only note; the floating save bar appears once the text changes. */
 export default function NoteCard({ card, onChanged }: NoteCardProps) {
   // Hooks
   const [value, setValue] = useState(card.note ?? '')
@@ -35,11 +35,22 @@ export default function NoteCard({ card, onChanged }: NoteCardProps) {
     }
   }
 
+  const handleDiscard = () => setValue(card.note ?? '')
+
   // Render logic
   const dirty = value.trim() !== (card.note ?? '')
 
   return (
     <DataCard title={copy.heading}>
+      <SaveBar
+        open={dirty}
+        message={copy.unsaved}
+        saveLabel={copy.save}
+        discardLabel={copy.discard}
+        onSave={handleSave}
+        onDiscard={handleDiscard}
+        saving={busy}
+      />
       <div className="flex flex-col gap-3">
         <Textarea
           rows={3}
@@ -47,11 +58,6 @@ export default function NoteCard({ card, onChanged }: NoteCardProps) {
           placeholder={copy.placeholder}
           onChange={(e) => setValue(e.target.value)}
         />
-        {dirty ? (
-          <Button size="sm" className="self-end" onClick={handleSave} disabled={busy}>
-            {copy.save}
-          </Button>
-        ) : null}
       </div>
     </DataCard>
   )

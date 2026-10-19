@@ -43,6 +43,8 @@ export const backInStockContent = {
     batchSizeHelp:
       'Throttles a restock so a big waiting list does not flood your sending quota at once.',
     save: 'Save',
+    discard: 'Discard',
+    unsaved: 'Unsaved changes',
     saved: 'Settings saved',
     failed: 'Could not save settings',
   },

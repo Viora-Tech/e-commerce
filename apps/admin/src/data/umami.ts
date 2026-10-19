@@ -3,6 +3,8 @@ export const umamiContent = {
   title: 'Umami',
   subtitle: 'See who visits your store: visitors, top pages, where they came from and more.',
   save: 'Save',
+  discard: 'Discard',
+  unsaved: 'Unsaved changes',
   saved: 'Saved',
   failed: 'Could not save. Try again.',
   status: {

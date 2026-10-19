@@ -3,6 +3,8 @@ export const emiContent = {
   title: 'EMI & pay later',
   subtitle: 'Show shoppers they can pay in parts, right under the product price.',
   save: 'Save',
+  discard: 'Discard',
+  unsaved: 'Unsaved changes',
   saved: 'Saved',
   failed: 'Could not save. Try again.',
   status: {

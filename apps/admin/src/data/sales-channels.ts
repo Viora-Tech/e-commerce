@@ -365,6 +365,9 @@ export const salesChannelsContent = {
     agentUses: 'Uses these controls',
     saved: 'Agent controls saved',
     failed: 'Could not save. Try again.',
+    unsaved: 'Unsaved changes',
+    save: 'Save',
+    discard: 'Discard',
   },
   socialPage: {
     connectCta: (name: string) => `Connect ${name}`,
