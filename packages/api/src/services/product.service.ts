@@ -46,6 +46,7 @@ export type ProductListInput = {
   productType?: string | undefined
   tag?: string | undefined
   stock?: ProductStockFilter | undefined
+  ids?: string[] | undefined
   /** Ids only: the export route reuses the current filter without paging. */
   idsOnly?: boolean | undefined
 }
@@ -63,6 +64,7 @@ function listWhere(input: ProductListInput) {
           ilike(product.vendor, `%${input.search}%`),
         )
       : undefined,
+    input.ids ? inArray(product.id, input.ids) : undefined,
     input.status ? eq(product.status, input.status) : undefined,
     input.vendor ? eq(product.vendor, input.vendor) : undefined,
     input.productType ? eq(product.productType, input.productType) : undefined,
@@ -322,12 +324,36 @@ export type VariantSearchRow = {
   imageUrl: string | null
 }
 
-/** Variant picker for the draft order editor: one row per sellable variant. */
+/**
+ * Variant picker for the draft order editor: one row per sellable variant. `limit` caps the
+ * number of matching *products*; every live variant of each one comes back, so a product with
+ * many options is never cut off part way through its variants.
+ */
 export async function searchVariants(
   tx: StoreTx,
   input: { search?: string | undefined; limit?: number | undefined },
 ): Promise<VariantSearchRow[]> {
   const search = input.search?.trim()
+  const live = and(isNull(variant.archivedAt), ne(product.status, 'archived'), notSystemTest)
+  const matches = await tx
+    .selectDistinct({ id: product.id, title: product.title })
+    .from(variant)
+    .innerJoin(product, eq(product.id, variant.productId))
+    .where(
+      and(
+        live,
+        search
+          ? or(
+              ilike(product.title, `%${search}%`),
+              ilike(variant.sku, `%${search}%`),
+              ilike(variant.title, `%${search}%`),
+            )
+          : undefined,
+      ),
+    )
+    .orderBy(asc(product.title), asc(product.id))
+    .limit(input.limit ?? 20)
+  if (matches.length === 0) return []
   return tx
     .select({
       variantId: variant.id,
@@ -345,16 +371,14 @@ export async function searchVariants(
     .innerJoin(product, eq(product.id, variant.productId))
     .where(
       and(
-        isNull(variant.archivedAt),
-        ne(product.status, 'archived'),
-        notSystemTest,
-        search
-          ? or(ilike(product.title, `%${search}%`), ilike(variant.sku, `%${search}%`))
-          : undefined,
+        live,
+        inArray(
+          product.id,
+          matches.map((m) => m.id),
+        ),
       ),
     )
-    .orderBy(asc(product.title), asc(variant.position))
-    .limit(input.limit ?? 20)
+    .orderBy(asc(product.title), asc(product.id), asc(variant.position))
 }
 
 /** Handles already in the store, so the import preview can say create or update. */

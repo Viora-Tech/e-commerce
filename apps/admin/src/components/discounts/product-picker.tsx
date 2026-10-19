@@ -20,6 +20,13 @@ type ProductPickerProps = {
 
 const copy = discountFormContent.value
 const PAGE_SIZE = 8
+/** The products API returns at most this many per call. */
+const FETCH_MAX = 100
+
+const chunks = <T,>(items: T[], size: number): T[][] =>
+  Array.from({ length: Math.ceil(items.length / size) }, (_, i) =>
+    items.slice(i * size, i * size + size),
+  )
 
 /**
  * Search-and-tick picker for the products a discount covers. Picked products
@@ -43,15 +50,25 @@ export default function ProductPicker({ selected, onChange, rowExtra }: ProductP
     }
   }, [query])
   useEffect(() => {
-    // Picked products the search has not surfaced yet are fetched once so their titles show.
+    // Picked products the search has not surfaced yet are fetched by id so their titles (and
+    // per-product amount fields) show however many products the store has.
     const missing = selected.filter((id) => !picked.some((p) => p.id === id))
     if (missing.length === 0) return
     let cancelled = false
-    api.products
-      .list({ page: 1, perPage: 100 })
-      .then((r) => {
+    Promise.all(
+      chunks(missing, FETCH_MAX).map((ids) =>
+        api.products.list({ page: 1, perPage: ids.length, ids }),
+      ),
+    )
+      .then((pages) => {
         if (cancelled) return
-        setPicked((prev) => [...prev, ...r.items.filter((p) => missing.includes(p.id))])
+        const found = pages.flatMap((r) => r.items)
+        // Same array when nothing new came back (a deleted product): a new one would re-run
+        // this effect and fetch again, forever.
+        setPicked((prev) => {
+          const fresh = found.filter((p) => !prev.some((x) => x.id === p.id))
+          return fresh.length > 0 ? [...prev, ...fresh] : prev
+        })
       })
       .catch(() => undefined)
     return () => {
