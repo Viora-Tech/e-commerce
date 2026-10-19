@@ -43,6 +43,8 @@ const ListFiltersSchema = z.object({
   productType: z.string().trim().max(100).optional(),
   tag: z.string().trim().max(50).optional(),
   stock: z.enum(['in', 'out', 'low']).optional(),
+  /** Exactly these products, e.g. the ones a discount already covers. */
+  ids: z.array(z.uuid()).max(PAGE_SIZE_MAX).optional(),
 })
 
 async function invalidToBadRequest<T>(fn: () => Promise<T>): Promise<T> {

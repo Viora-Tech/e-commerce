@@ -1,6 +1,6 @@
 'use client'
 
-import { FileEdit } from '@commerce/ui/icons'
+import { FileEdit, Trash2 } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Textarea } from '@commerce/ui/shadcn/textarea'
 import { useRouter } from 'next/navigation'
@@ -17,6 +17,7 @@ import {
 } from '@/components/drafts/draft-form-state'
 import DraftProductsCard from '@/components/drafts/draft-products-card'
 import DraftTotalsCard from '@/components/drafts/draft-totals-card'
+import ActionMenu from '@/components/layout/action-menu'
 import ConfirmDialog from '@/components/layout/confirm-dialog'
 import DataCard from '@/components/layout/data-card'
 import PageBody from '@/components/layout/page-body'
@@ -167,6 +168,22 @@ export default function DraftForm({ draft, invoiceSent = false }: DraftFormProps
             <Button disabled={!id || dirty || busy} onClick={handleConvert}>
               {copy.actions.convert}
             </Button>
+            {/* Deleting a saved draft also drops any unsaved edits, so it never waits on Save. */}
+            <ActionMenu
+              label={copy.actions.more}
+              variant="outline"
+              size="md"
+              disabled={busy}
+              items={[
+                {
+                  label: copy.actions.delete,
+                  icon: Trash2,
+                  destructive: true,
+                  hidden: !id,
+                  onSelect: () => setConfirmDelete(true),
+                },
+              ]}
+            />
           </>
         }
         badges={
@@ -200,10 +217,8 @@ export default function DraftForm({ draft, invoiceSent = false }: DraftFormProps
             <DraftAddressCard address={form.address} onChange={(address) => patch({ address })} />
             <DraftActionsCard
               saved={Boolean(id) && !dirty}
-              busy={busy}
               paymentMethod={form.paymentMethod}
               onPaymentMethod={(paymentMethod) => patch({ paymentMethod })}
-              onDelete={() => setConfirmDelete(true)}
             />
           </>
         }

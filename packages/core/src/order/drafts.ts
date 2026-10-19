@@ -301,11 +301,28 @@ export async function deleteDraft(ctx: StoreContext, id: string) {
   const [o] = await ctx.tx.select({ status: order.status }).from(order).where(eq(order.id, id))
   if (!o) return false
   if (o.status !== 'draft') throw new DraftNotEditable(id, ctx.storeId)
-  await ctx.tx.delete(notification).where(eq(notification.orderId, id))
-  await ctx.tx.delete(orderNote).where(eq(orderNote.orderId, id))
-  await ctx.tx.delete(orderLine).where(eq(orderLine.orderId, id))
-  await ctx.tx.delete(order).where(eq(order.id, id))
-  return true
+  return (await deleteDrafts(ctx, [id])) === 1
+}
+
+/**
+ * Delete several drafts at once (the list's bulk action). Only rows still in `draft` go; an id
+ * that converted in the meantime is left alone, and the count says how many went.
+ */
+export async function deleteDrafts(ctx: StoreContext, ids: readonly string[]) {
+  if (ids.length === 0) return 0
+  // Locked so a conversion running at the same time waits, then finds the row gone.
+  const rows = await ctx.tx
+    .select({ id: order.id })
+    .from(order)
+    .where(and(inArray(order.id, [...ids]), eq(order.status, 'draft')))
+    .for('update')
+  const draftIds = rows.map((r) => r.id)
+  if (draftIds.length === 0) return 0
+  await ctx.tx.delete(notification).where(inArray(notification.orderId, draftIds))
+  await ctx.tx.delete(orderNote).where(inArray(orderNote.orderId, draftIds))
+  await ctx.tx.delete(orderLine).where(inArray(orderLine.orderId, draftIds))
+  await ctx.tx.delete(order).where(inArray(order.id, draftIds))
+  return draftIds.length
 }
 
 /**
@@ -318,7 +335,8 @@ export async function convertDraft(
   id: string,
   opts: { paymentMethod?: string | undefined } = {},
 ) {
-  const [o] = await ctx.tx.select().from(order).where(eq(order.id, id))
+  // Locked, so a delete or a second conversion of the same draft waits for this one.
+  const [o] = await ctx.tx.select().from(order).where(eq(order.id, id)).for('update')
   if (!o) return null
   if (o.status !== 'draft') throw new DraftNotEditable(id, ctx.storeId)
   const lines = await ctx.tx.select().from(orderLine).where(eq(orderLine.orderId, id))

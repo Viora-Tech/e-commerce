@@ -1,4 +1,6 @@
 import {
+  collection,
+  collectionProduct,
   createDb,
   inventoryAdjustment,
   inventoryLevel,
@@ -13,7 +15,7 @@ import {
   withStore,
 } from '@commerce/db'
 import { resetDb } from '@commerce/db/test'
-import { asc, eq } from 'drizzle-orm'
+import { asc, eq, sql } from 'drizzle-orm'
 import { afterAll, beforeEach, describe, expect, it } from 'vitest'
 import {
   adjustInventory,
@@ -235,5 +237,25 @@ describe('inventory + delete', () => {
     expect(await withStore(app, storeId, (tx) => deleteProduct(tx, b))).toBe('archived')
     const rows = await withStore(app, storeId, (tx) => tx.select().from(product))
     expect(rows.map((r) => [r.id, r.status])).toEqual([[b, 'archived']])
+  })
+
+  it('deletes a product that sits in a collection and has back-in-stock signups (#500)', async () => {
+    const storeId = await seedStore()
+    const id = await withStore(app, storeId, (tx) => createProduct(tx, storeId, write))
+    const { vs } = await load(storeId, id)
+    const [c] = await owner
+      .insert(collection)
+      .values({ storeId, title: 'Glasspads', handle: 'glasspads' })
+      .returning()
+    if (!c || !vs[0]) throw new Error('seed')
+    await owner.insert(collectionProduct).values({ storeId, collectionId: c.id, productId: id })
+    await owner.execute(sql`
+      insert into back_in_stock_signup (id, store_id, variant_id, product_id, email, unsubscribe_token)
+      values (gen_random_uuid(), ${storeId}, ${vs[0].id}, ${id}, 'a@example.com', 'u1')`)
+    expect(await withStore(app, storeId, (tx) => deleteProduct(tx, id))).toBe('deleted')
+    expect(await owner.select().from(product)).toEqual([])
+    expect(await owner.select().from(collectionProduct)).toEqual([])
+    expect((await owner.execute(sql`select id from back_in_stock_signup`)).length).toBe(0)
+    expect(await owner.select({ id: collection.id }).from(collection)).toEqual([{ id: c.id }])
   })
 })

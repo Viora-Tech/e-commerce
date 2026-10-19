@@ -1,6 +1,7 @@
 import type { StoreTx } from '@commerce/db'
 import {
   cartLine,
+  collectionProduct,
   inventoryAdjustment,
   inventoryLevel,
   newId,
@@ -14,7 +15,7 @@ import {
   variant,
   variantOptionValue,
 } from '@commerce/db'
-import { and, eq, inArray, isNull, sql } from 'drizzle-orm'
+import { and, eq, inArray, isNull, type SQL, sql } from 'drizzle-orm'
 import { CommerceError } from '../errors'
 import { adjustStock, setStock } from '../inventory/levels'
 import { setProductMedia } from '../media/service'
@@ -305,6 +306,14 @@ async function stockDocumentVariants(tx: StoreTx, ids: string[]): Promise<Set<st
   return new Set([...po, ...transfers].map((r) => r.id))
 }
 
+/**
+ * "Notify me" signups (back-in-stock plugin) for variants about to be hard-deleted. Raw SQL
+ * because core does not import plugin schemas; the table always exists (core migration 0060).
+ */
+async function deleteBackInStockSignups(tx: StoreTx, where: SQL) {
+  await tx.execute(sql`delete from back_in_stock_signup where ${where}`)
+}
+
 async function removeVariants(tx: StoreTx, ids: string[]) {
   const referenced = new Set([
     ...(
@@ -328,6 +337,7 @@ async function removeVariants(tx: StoreTx, ids: string[]) {
     await tx.delete(variantOptionValue).where(inArray(variantOptionValue.variantId, archive))
   }
   if (del.length) {
+    await deleteBackInStockSignups(tx, sql`variant_id in (${sql.join(del, sql`, `)})`)
     await tx.delete(variantOptionValue).where(inArray(variantOptionValue.variantId, del))
     await tx.delete(inventoryAdjustment).where(inArray(inventoryAdjustment.variantId, del))
     await tx.delete(inventoryLevel).where(inArray(inventoryLevel.variantId, del))
@@ -398,6 +408,10 @@ export async function deleteProduct(
     await tx.update(variant).set({ archivedAt: new Date() }).where(eq(variant.productId, productId))
     return 'archived'
   }
+  // Rows that only point at the product and mean nothing once it is gone. Left in place, their
+  // foreign keys make the final delete fail (a product in any collection could not be deleted).
+  await tx.delete(collectionProduct).where(eq(collectionProduct.productId, productId))
+  await deleteBackInStockSignups(tx, sql`product_id = ${productId}`)
   if (ids.length) {
     await tx.delete(variantOptionValue).where(inArray(variantOptionValue.variantId, ids))
     await tx.delete(inventoryAdjustment).where(inArray(inventoryAdjustment.variantId, ids))

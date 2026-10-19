@@ -29,6 +29,7 @@ import {
   tagCustomers,
   updateCustomer,
 } from '../services/customer.service'
+import { customerSheet } from '../services/customer-sheet.service'
 
 const FiltersSchema = z.object({
   search: z.string().trim().max(SEARCH_MAX).optional(),
@@ -124,6 +125,11 @@ export const customersRouter = {
       const ctx = { tx: context.tx, storeId: context.scope.storeId }
       return { ...found, addresses: await listAddresses(ctx, input.id) }
     }),
+
+  /** Rows for the Customers bulk-edit spreadsheet, in the order the ids were given. */
+  sheet: can(permissions.CUSTOMERS_READ)
+    .input(z.object({ ids: z.array(z.uuid()).min(1).max(5000) }))
+    .handler(({ context, input }) => customerSheet(context.tx, input.ids, settingsSecret())),
 
   /** Add an address to the customer's book; the first one becomes their default. */
   addAddress: can(permissions.CUSTOMERS_WRITE)

@@ -9,7 +9,7 @@ export type PlanId = (typeof PLAN_IDS)[number]
 export type BillingInterval = 'month' | 'year'
 
 /** The AI plan (packages/ai plans.ts) each store plan grants; AI quotas live there. */
-export type PlanAiTier = 'starter' | 'growth' | 'unlimited'
+export type PlanAiTier = 'starter' | 'growth' | 'pro'
 
 export type PlanDefinition = {
   id: PlanId
@@ -67,7 +67,7 @@ export const PLANS: Record<PlanId, PlanDefinition> = {
     orders: 1000,
     staff: 15,
     storageGb: 50,
-    ai: 'unlimited',
+    ai: 'pro',
     features: {
       shopifyTheme: true,
       mcpApi: true,

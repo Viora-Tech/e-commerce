@@ -10,7 +10,7 @@ it ("owner" is the founder, "agent" is a Claude session). Move a line to Done wi
 | Landing site | https://koomerce.app (Cloudflare Workers `koomerce-www`, static export + `/api/forms` Worker) |
 | Docs | https://docs.koomerce.app (Cloudflare Workers `koomerce-docs`) |
 | Admin | https://admin.koomerce.app (Dokploy project "Koomerce", app `admin`); `admin.vioratech.in` 308-redirects here |
-| Worker / webhooks | https://api.koomerce.app and, until every dashboard is moved, https://worker.vioratech.in |
+| Worker / webhooks | https://api.koomerce.app (worker.vioratech.in removed 2026-10-19) |
 | Platform storefront host | `shops.koomerce.app` (CNAME target); new stores get `<slug>.koomerce.app` |
 | Media | R2 `koomerce-media` at https://cdn.koomerce.app; `/private/` paths blocked by a WAF rule |
 | Backups | R2 `koomerce-backup` (not yet receiving dumps; skipped during testing) |
@@ -30,13 +30,13 @@ certificates and the worker checks store records against the server IP. `koomerc
 | Razorpay missing at checkout | owner → agent | Check an online method is on and the app installed; else storefront log line `misconfigured payment providers` |
 | Store storage connections → `koomerce-media`, public URL `https://cdn.koomerce.app` | owner | Admin → Storage, per store; then upload one image to test |
 | SES `koomerce.app`: 3 DKIM CNAMEs + `bounce` MX/TXT | owner | Then `PLATFORM_EMAIL_FROM=no-reply@koomerce.app` in admin + worker, redeploy |
-| Cloudflare Workers Builds (GitHub) for `koomerce-www` and `koomerce-docs` | owner | Root `apps/www` / `apps/docs`, build `bun install && bun run build`, deploy `bunx wrangler deploy`, branch `main` |
-| ECR credential helper on vextro-app | owner (SSH) | IAM role `vextro-app-ecr-pull` is attached; install `amazon-ecr-credential-helper`, set `credHelpers`, then clear the saved ECR passwords in Dokploy |
-| Monitoring: uptime checks + Dokploy CPU/RAM alerts | agent | Waiting on Telegram or email |
-| Search Console: keep the verification record; submit both sitemaps | owner | No verification TXT or meta tag was found on 2026-10-18 |
-| Passkeys | owner | Old ones were for admin.vioratech.in; add new ones on admin.koomerce.app |
+| Cloudflare Workers Builds (GitHub) for `koomerce-www` and `koomerce-docs` | done 2026-10-19 | Branch `main`, root `/`, build `cd apps/<site> && bun run build`, deploy `cd apps/<site> && npx wrangler deploy`, watch paths limited to the site and its shared packages, build cache on |
+| ECR credential helper on koomerce-app (was vextro-app) | done 2026-10-18 | Helper installed, `credHelpers` set for the ECR registry, saved ECR passwords cleared on admin, worker, storefront and backup; `deploy-dokploy.mjs` no longer stores one. Verified: a Dokploy deploy pulls with no stored login |
+| Monitoring: uptime checks + Dokploy CPU/RAM alerts | done 2026-10-19 | Email. `apps/monitor` Worker (koomerce-monitor): 5-minute checks, down/up emails; Dokploy notification "Koomerce monitor (email)" posts to it; Dokploy schedule `server-threshold-alerts` emails CPU, memory or disk at 85% (Dokploy self-hosted has no remote-server thresholds) |
+| Search Console: keep the verification record; submit both sitemaps | done 2026-10-19 | Domain property koomerce.app (TXT record); both sitemaps submitted |
+| Passkeys | done 2026-10-19 | Added on admin.koomerce.app |
 | Backups to `koomerce-backup` | owner → agent | Before real customers: check the `backup` app log, fix token scope or bucket name |
-| Remove `worker.vioratech.in` | agent | After every provider uses `api.koomerce.app` |
+| Remove `worker.vioratech.in` | done 2026-10-19 | NEXT_PUBLIC_WORKER_URL moved to api.koomerce.app in all apps, Dokploy domain removed, Hostinger DNS record removed |
 | Legal pages: company name, address, grievance officer, retention | owner | The "TEMPLATE" notice stays until filled |
 
 ## Later

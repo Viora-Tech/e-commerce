@@ -1,6 +1,7 @@
 'use client'
 
 import { Search, X } from '@commerce/ui/icons'
+import { cn } from '@commerce/ui/lib/utils'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Input } from '@commerce/ui/shadcn/input'
 import { useEffect, useState } from 'react'
@@ -8,7 +9,8 @@ import type { DraftLine } from '@/components/drafts/draft-form-state'
 import DraftMoneyInput from '@/components/drafts/draft-money-input'
 import DataCard from '@/components/layout/data-card'
 import LineItemRow from '@/components/layout/line-item-row'
-import { draftEditorContent as copy } from '@/data/drafts'
+import { draftEditorContent } from '@/data/drafts'
+import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 import { formatPaise } from '@/lib/money'
 
@@ -21,27 +23,45 @@ type Result = Awaited<ReturnType<typeof api.products.searchVariants>>[number]
 
 const SEARCH_DEBOUNCE_MS = 250
 
+const isDefault = (variantTitle: string) => !variantTitle || variantTitle === 'Default'
+
 const lineTitle = (l: { title: string; variantTitle: string }) =>
-  l.variantTitle && l.variantTitle !== 'Default' ? `${l.title} / ${l.variantTitle}` : l.title
+  isDefault(l.variantTitle) ? l.title : `${l.title} / ${l.variantTitle}`
+
+/** Search rows arrive ordered by product; fold them into one group per product. */
+const groupByProduct = (rows: Result[]) =>
+  rows.reduce<{ productId: string; title: string; variants: Result[] }[]>((groups, r) => {
+    const last = groups.at(-1)
+    if (last?.productId === r.productId) last.variants.push(r)
+    else groups.push({ productId: r.productId, title: r.title, variants: [r] })
+    return groups
+  }, [])
 
 export default function DraftProductsCard({ lines, onChange }: DraftProductsCardProps) {
   // Hooks
+  const copy = useCopy(draftEditorContent)
   const [search, setSearch] = useState('')
   const [results, setResults] = useState<Result[]>([])
   const [searching, setSearching] = useState(false)
+  const [searched, setSearched] = useState('')
 
   useEffect(() => {
     const term = search.trim()
     if (term.length < 2) {
       setResults([])
+      setSearched('')
       return
     }
     let cancelled = false
     setSearching(true)
     const t = setTimeout(() => {
       api.products
-        .searchVariants({ search: term, limit: 8 })
-        .then((r) => !cancelled && setResults(r))
+        .searchVariants({ search: term, limit: 10 })
+        .then((r) => {
+          if (cancelled) return
+          setResults(r)
+          setSearched(term)
+        })
         .finally(() => !cancelled && setSearching(false))
     }, SEARCH_DEBOUNCE_MS)
     return () => {
@@ -87,6 +107,7 @@ export default function DraftProductsCard({ lines, onChange }: DraftProductsCard
   }
 
   // Render logic
+  const groups = groupByProduct(results)
   return (
     <DataCard title={copy.products.heading}>
       <div className="flex flex-col gap-4">
@@ -98,25 +119,42 @@ export default function DraftProductsCard({ lines, onChange }: DraftProductsCard
             placeholder={copy.products.search}
             className="pl-9"
           />
-          {results.length > 0 ? (
-            <ul className="absolute z-20 mt-1 max-h-72 w-full overflow-auto rounded-lg border border-border bg-card p-1 shadow-popover">
-              {results.map((r) => (
-                <li key={r.variantId}>
-                  <button
-                    type="button"
-                    onClick={() => handleAdd(r)}
-                    className="flex w-full items-center gap-3 rounded-md px-2 py-2 text-left hover:bg-muted"
-                  >
-                    <span className="min-w-0 flex-1 truncate text-body">{lineTitle(r)}</span>
-                    <span className="shrink-0 text-body text-muted-foreground tabular-nums">
-                      {formatPaise(r.pricePaise)}
-                    </span>
-                  </button>
-                </li>
-              ))}
-            </ul>
-          ) : null}
         </div>
+        {groups.length > 0 ? (
+          // In the page flow, not a floating dropdown: the card clips anything that overflows
+          // it, which hid most of a product's variants.
+          <ul className="flex max-h-96 flex-col gap-1 overflow-y-auto rounded-lg border border-border p-1">
+            {groups.map((g) =>
+              g.variants.length === 1 && isDefault(g.variants[0]?.variantTitle ?? '') ? (
+                <li key={g.productId}>
+                  <ResultButton
+                    label={g.title}
+                    result={g.variants[0] as Result}
+                    onAdd={handleAdd}
+                  />
+                </li>
+              ) : (
+                <li key={g.productId} className="flex flex-col">
+                  <p className="px-2 pt-2 pb-1 font-medium text-body text-ink-strong">{g.title}</p>
+                  <ul className="flex flex-col">
+                    {g.variants.map((r) => (
+                      <li key={r.variantId}>
+                        <ResultButton
+                          label={isDefault(r.variantTitle) ? r.title : r.variantTitle}
+                          result={r}
+                          onAdd={handleAdd}
+                          inset
+                        />
+                      </li>
+                    ))}
+                  </ul>
+                </li>
+              ),
+            )}
+          </ul>
+        ) : searched && !searching ? (
+          <p className="text-body text-muted-foreground">{copy.products.noResults}</p>
+        ) : null}
         {lines.length === 0 ? (
           <p className="text-body text-muted-foreground">
             {searching ? copy.products.searching : copy.products.empty}
@@ -164,5 +202,38 @@ export default function DraftProductsCard({ lines, onChange }: DraftProductsCard
         )}
       </div>
     </DataCard>
+  )
+}
+
+function ResultButton({
+  label,
+  result,
+  onAdd,
+  inset = false,
+}: {
+  label: string
+  result: Result
+  onAdd: (r: Result) => void
+  inset?: boolean
+}) {
+  return (
+    <button
+      type="button"
+      onClick={() => onAdd(result)}
+      className={cn(
+        'flex w-full items-center gap-3 rounded-md px-2 py-2 text-left hover:bg-muted',
+        inset && 'pl-5',
+      )}
+    >
+      <span className="min-w-0 flex-1 truncate text-body">{label}</span>
+      {result.sku ? (
+        <span className="hidden shrink-0 text-caption text-muted-foreground sm:inline">
+          {result.sku}
+        </span>
+      ) : null}
+      <span className="shrink-0 text-body text-muted-foreground tabular-nums">
+        {formatPaise(result.pricePaise)}
+      </span>
+    </button>
   )
 }

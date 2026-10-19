@@ -1,7 +1,7 @@
 # Storefront autoscaling
 
-Status: proposal (2026-10-18). Owner decides the phases; nothing here is built yet beyond what
-"Today" lists.
+Status: decided 2026-10-19. Phases 1–3 now; phases 4–5 once two or three stores pay for a plan.
+Nothing here is built yet beyond what "Today" lists.
 
 ## Why
 
@@ -105,9 +105,12 @@ The real limit: 20 storefront tasks × their pool can exhaust Postgres connectio
 - **Bigger single box / Swarm nodes**: cheapest now but no autoscaling and one point of failure.
 - **Vercel**: easy scaling, usage billing on every merchant's traffic, database far away.
 
-## Open questions for the owner
+## Decisions (owner, 2026-10-19)
 
-1. Phase 1 only now, or 1–3 together?
-2. Staging store for load tests: a copy of a dummy store on the same box, or a separate small
-   instance?
-3. Budget ceiling per month for the storefront tier.
+1. **Phases**: 1 (edge cache), 2 (measure) and 3 (pooling) now. Phases 4 (Fargate) and 5 (RDS)
+   wait until two or three stores pay for a plan, so their cost is covered by revenue; phase 2's
+   numbers decide which of the two comes first then.
+2. **Load tests**: on a separate small instance created for the test and deleted after (about
+   ₹100 a run), never against the live box. Agent's call, owner did not object.
+3. **Budget**: stay on today's single box (about ₹3,000 a month) until the phase 4–5 trigger;
+   no storefront-tier spend before it.

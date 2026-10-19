@@ -1,13 +1,15 @@
 'use client'
 
-import { AppWindow, SquarePlus } from '@commerce/ui/icons'
+import { AppWindow, SquarePlus, Trash2 } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Kbd } from '@commerce/ui/shadcn/kbd'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@commerce/ui/shadcn/tooltip'
 import Link from 'next/link'
 import { parseAsInteger, parseAsString, parseAsStringLiteral, useQueryStates } from 'nuqs'
 import { Suspense, useEffect, useRef, useState } from 'react'
+import { toast } from 'sonner'
 import CustomerAvatar from '@/components/customers/customer-avatar'
+import ConfirmDialog from '@/components/layout/confirm-dialog'
 import ProoflyListPage from '@/components/layout/proofly-list-page'
 import StatStrip from '@/components/layout/stat-strip'
 import StatusChip from '@/components/layout/status-chip'
@@ -119,7 +121,9 @@ function DraftsContent({ initial }: { initial: DraftsInitial }) {
   )
   const [items, setItems] = useState<Item[]>(initial.result.items)
   const [total, setTotal] = useState(initial.result.total)
+  const [tiles, setTiles] = useState(initial.tiles)
   const [loading, setLoading] = useState(false)
+  const [removing, setRemoving] = useState<{ ids: string[]; clear: () => void } | null>(null)
 
   const hydrated = useRef(false)
 
@@ -150,9 +154,38 @@ function DraftsContent({ initial }: { initial: DraftsInitial }) {
     }
   }, [page, query, status, rawPerPage, initial.query, initial.perPage])
 
+  // Helpers
+  const refresh = async () => {
+    const [r, t] = await Promise.all([
+      api.orders.listDrafts({
+        page,
+        perPage: parseRowsPerPage(rawPerPage),
+        search: query || undefined,
+        status: status ?? undefined,
+      }),
+      api.orders.draftTiles(),
+    ])
+    setItems(r.items)
+    setTotal(r.total)
+    setTiles(t)
+  }
+
+  // Event handlers
+  const handleRemove = async () => {
+    if (!removing) return
+    try {
+      const r = await api.orders.deleteDrafts({ ids: removing.ids })
+      toast.success(copy.deleted(r.deleted))
+      removing.clear()
+      await refresh()
+    } catch (err) {
+      toast.error(err instanceof Error && err.message ? err.message : copy.deleteFailed)
+      throw err
+    }
+  }
+
   // Render logic
   const perPage = parseRowsPerPage(rawPerPage)
-  const tiles = initial.tiles
 
   return (
     <ProoflyListPage
@@ -206,8 +239,27 @@ function DraftsContent({ initial }: { initial: DraftsInitial }) {
         href={(d) => routes.orders.draft(d.id)}
         rowActions={(d) => (
           <RowMenu
-            items={[{ label: copy.openDraft, href: routes.orders.draft(d.id), icon: AppWindow }]}
+            items={[
+              { label: copy.openDraft, href: routes.orders.draft(d.id), icon: AppWindow },
+              {
+                label: copy.deleteDraft,
+                icon: Trash2,
+                destructive: true,
+                onSelect: () => setRemoving({ ids: [d.id], clear: () => {} }),
+              },
+            ]}
           />
+        )}
+        selectable
+        bulkActions={(ids, clear) => (
+          <Button
+            type="button"
+            variant="destructive"
+            size="sm"
+            onClick={() => setRemoving({ ids, clear })}
+          >
+            {copy.deleteSelected(ids.length)}
+          </Button>
         )}
         loading={loading}
         defaultSort={{ id: 'created', desc: true }}
@@ -234,6 +286,18 @@ function DraftsContent({ initial }: { initial: DraftsInitial }) {
         onPerPageChange={(n) => setQ({ perPage: n, page: 1 })}
         empty={query ? { heading: copy.noResults } : { heading: copy.empty, body: copy.intro }}
       />
+      {removing ? (
+        <ConfirmDialog
+          open
+          onOpenChange={(open) => !open && setRemoving(null)}
+          title={copy.deleteTitle(removing.ids.length)}
+          body={copy.deleteBody(removing.ids.length)}
+          confirmLabel={copy.deleteDraft}
+          cancelLabel={copy.cancel}
+          stopPropagation
+          onConfirm={handleRemove}
+        />
+      ) : null}
     </ProoflyListPage>
   )
 }

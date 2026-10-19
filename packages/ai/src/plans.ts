@@ -6,7 +6,7 @@
 import { dayKey } from '@commerce/dates'
 import type { ModelTier } from './features'
 
-export const AI_PLANS = ['free', 'starter', 'growth', 'unlimited'] as const
+export const AI_PLANS = ['free', 'starter', 'growth', 'pro'] as const
 export type AiPlan = (typeof AI_PLANS)[number]
 
 /** What a new store gets until billing sets another plan. */
@@ -30,8 +30,7 @@ export const PLAN_QUOTAS: Record<AiPlan, AiQuota> = {
   free: { credits: 100, calls: 30, tokens: 150_000 },
   starter: { credits: 500, calls: 1_000, tokens: 5_000_000 },
   growth: { credits: 3_000, calls: 5_000, tokens: 30_000_000 },
-  // Pro. Named before plans had a top tier; 15,000 credits like the pricing table.
-  unlimited: { credits: 15_000, calls: null, tokens: null },
+  pro: { credits: 15_000, calls: null, tokens: null },
 }
 
 /** `credits` are whole credits used (fractions kept). */

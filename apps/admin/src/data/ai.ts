@@ -70,7 +70,7 @@ export const aiContent = {
       heading: 'This month',
       help: (resetsOn: string) => `Your allowance starts again on ${resetsOn}.`,
       plan: 'Plan',
-      plans: { free: 'Free', starter: 'Starter', growth: 'Growth', unlimited: 'Pro' },
+      plans: { free: 'Free', starter: 'Starter', growth: 'Growth', pro: 'Pro' },
       requests: 'AI requests',
       credits: 'AI credits',
       creditsHelp:
@@ -81,7 +81,6 @@ export const aiContent = {
       words: 'AI reading and writing',
       wordsHelp: 'Measured in tokens: about four characters each.',
       of: (used: string, limit: string) => `${used} of ${limit}`,
-      unlimited: (used: string) => `${used} used, no limit`,
       byFeature: 'By feature',
       requestCount: (n: number) => (n === 1 ? '1 request' : `${n} requests`),
     },

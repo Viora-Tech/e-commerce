@@ -28,20 +28,20 @@ async function api(method, path, body) {
   return text ? JSON.parse(text) : {}
 }
 
-// ECR tokens last 12 h; refreshed on every deploy so the stored credential is never stale.
-const ecrPassword = execFileSync('aws', ['ecr', 'get-login-password'], { encoding: 'utf8' }).trim()
-
 async function deployApp(app) {
   const applicationId = env[`DOKPLOY_APP_ID_${app.toUpperCase()}`]
   if (!applicationId) throw new Error(`DOKPLOY_APP_ID_${app.toUpperCase()} is not set`)
   const image = `${env.ECR_REGISTRY}/${env.ECR_PREFIX}/${app}:${env.GIT_SHA}`
 
+  /* No registry login is stored: the server pulls from ECR through amazon-ecr-credential-helper
+     (credHelpers in /root/.docker/config.json) with its instance role, so nothing expires. A
+     12-hour ECR password stored here used to turn every later redeploy into a 403. */
   await api('POST', 'application.saveDockerProvider', {
     applicationId,
     dockerImage: image,
-    registryUrl: env.ECR_REGISTRY,
-    username: 'AWS',
-    password: ecrPassword,
+    registryUrl: null,
+    username: null,
+    password: null,
   })
   const startedAt = Date.now()
   await api('POST', 'application.deploy', {
