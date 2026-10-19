@@ -178,6 +178,7 @@ export async function writeCollection(ctx: ImportContext, c: NCollection) {
           sortOrder: SORTS[c.sortOrder ?? ''] ?? 'manual',
           seoTitle: clip(c.seoTitle, 200),
           seoDescription: clip(c.seoDescription, 400),
+          templateSuffix: c.templateSuffix,
           status: c.published ? 'active' : 'draft',
           ...(automatic ? {} : { productIds: productIds.slice(0, 500) }),
         }
@@ -221,6 +222,7 @@ export async function writePage(ctx: ImportContext, p: NPage) {
           seoTitle: clip(p.seoTitle, 200),
           seoDescription: clip(p.seoDescription, 400),
           publishedAt: p.published ? (p.publishedAt ? new Date(p.publishedAt) : new Date()) : null,
+          templateSuffix: p.templateSuffix,
           updatedAt: new Date(),
         }
         let id = existing
@@ -250,9 +252,22 @@ export async function writePage(ctx: ImportContext, p: NPage) {
 
 async function blogFor(tx: StoreTx, storeId: string, a: NArticle): Promise<string> {
   const handle = handleOf(a.blogHandle, 'news')
-  const [row] = await tx.select({ id: blog.id }).from(blog).where(eq(blog.handle, handle))
-  if (row) return row.id
-  return createBlog(tx, storeId, { title: a.blogTitle.slice(0, 120) || 'News', handle })
+  const [row] = await tx
+    .select({ id: blog.id, templateSuffix: blog.templateSuffix })
+    .from(blog)
+    .where(eq(blog.handle, handle))
+  if (!row) {
+    return createBlog(tx, storeId, {
+      title: a.blogTitle.slice(0, 120) || 'News',
+      handle,
+      templateSuffix: a.blogTemplateSuffix,
+    })
+  }
+  // Every article carries its blog's template; the blog takes Shopify's on each import.
+  if (row.templateSuffix !== a.blogTemplateSuffix) {
+    await tx.update(blog).set({ templateSuffix: a.blogTemplateSuffix }).where(eq(blog.id, row.id))
+  }
+  return row.id
 }
 
 export async function writeArticle(ctx: ImportContext, a: NArticle) {
@@ -299,6 +314,7 @@ export async function writeArticle(ctx: ImportContext, a: NArticle) {
           publishedAt: a.published && a.publishedAt ? new Date(a.publishedAt) : null,
           seoTitle: clip(a.seoTitle, 200),
           seoDescription: clip(a.seoDescription, 400),
+          templateSuffix: a.templateSuffix,
         }
         const id = existing ?? (await createArticle(tx, ctx.storeId, write))
         if (existing) await updateArticle(tx, existing, write)
