@@ -8,7 +8,15 @@
  *   a failed deploy, a stopped container). The token must match the DOKPLOY_TOKEN secret.
  */
 import { EmailMessage } from 'cloudflare:email'
-import { CHECKS, type Check, type CheckState, FRESH, nextState, TIMEOUT_MS } from './checks'
+import {
+  CHECKS,
+  type Check,
+  type CheckState,
+  FRESH,
+  nextState,
+  sameState,
+  TIMEOUT_MS,
+} from './checks'
 
 type Env = {
   STATE: KVNamespace
@@ -79,7 +87,7 @@ async function runChecks(env: Env) {
       const prev = (await env.STATE.get<CheckState>(key, 'json')) ?? FRESH
       const result = await probe(check)
       const { state, event } = nextState(prev, result.ok, result.detail, now)
-      await env.STATE.put(key, JSON.stringify(state))
+      if (!sameState(prev, state)) await env.STATE.put(key, JSON.stringify(state))
       if (event === 'down') {
         await sendMail(
           env,

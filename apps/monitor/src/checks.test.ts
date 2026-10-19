@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { FAILS_BEFORE_DOWN, FRESH, nextState } from './checks'
+import { FAILS_BEFORE_DOWN, FRESH, nextState, sameState } from './checks'
 
 const NOW = '2026-10-18T12:00:00.000Z'
 
@@ -30,5 +30,10 @@ describe('nextState', () => {
   it('reports up once when a down check answers again', () => {
     const down = { fails: 3, down: true, since: NOW, detail: 'HTTP 502' }
     expect(nextState(down, true, '', NOW)).toEqual({ state: FRESH, event: 'up' })
+  })
+
+  it('changes nothing to store while a check keeps answering', () => {
+    expect(sameState(FRESH, nextState(FRESH, true, '', NOW).state)).toBe(true)
+    expect(sameState(FRESH, nextState(FRESH, false, 'HTTP 502', NOW).state)).toBe(false)
   })
 })
