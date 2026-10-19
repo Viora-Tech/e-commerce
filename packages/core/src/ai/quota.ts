@@ -31,9 +31,12 @@ export async function aiStoreFacts(tx: StoreTx, storeId: string): Promise<AiStor
   return row ?? { name: 'your store', slug: '', currency: 'INR', timezone: 'Asia/Kolkata' }
 }
 
-/** The plan that applies: the platform's own stores (AI_UNLIMITED_STORES) are unlimited. */
+/**
+ * The plan that applies: the platform's own stores (AI_UNLIMITED_STORES) get Pro's tier. Their
+ * separate no-quota bypass is in `admitAiCall`; Pro itself stops at its monthly credits.
+ */
 export function effectiveAiPlan(slug: string, stored: AiPlan): AiPlan {
-  return slug && isUnlimitedStore(slug) ? 'unlimited' : stored
+  return slug && isUnlimitedStore(slug) ? 'pro' : stored
 }
 
 export type AiAdmission =

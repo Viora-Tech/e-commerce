@@ -312,6 +312,31 @@ describe('customers', () => {
     expect(afterRemove.items.find((c) => c.email === 'asha@example.com')?.tags).toEqual(['vip'])
   })
 
+  it('loads the bulk-edit sheet in the order asked, skipping other stores', async () => {
+    const a = await merchant('a@example.com', 'store-a')
+    const b = await merchant('b@example.com', 'store-b')
+    const [asha, ravi] = await owner
+      .insert(customer)
+      .values([
+        { storeId: a.storeId, email: 'asha@example.com', name: 'Asha', tags: ['vip'] },
+        { storeId: a.storeId, email: 'ravi@example.com', acceptsSms: true },
+      ])
+      .returning()
+    const [other] = await owner
+      .insert(customer)
+      .values({ storeId: b.storeId, email: 'other@example.com' })
+      .returning()
+    const sheet = await call(
+      appRouter.customers.sheet,
+      { ids: [ravi?.id as string, other?.id as string, asha?.id as string] },
+      { context: a.ctx },
+    )
+    expect(sheet.map((r) => [r.email, r.name, r.tags, r.acceptsSms, r.anonymised])).toEqual([
+      ['ravi@example.com', '', [], true, false],
+      ['asha@example.com', 'Asha', ['vip'], false, false],
+    ])
+  })
+
   it('saves a segment, counts its members and previews rules before saving', async () => {
     const a = await merchant('a@example.com', 'store-a')
     const b = await merchant('b@example.com', 'store-b')

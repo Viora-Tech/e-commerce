@@ -13,6 +13,7 @@ import { Input } from '@commerce/ui/shadcn/input'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import { customersContent } from '@/data/customers'
+import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 
 type TagCustomersDialogProps = {
@@ -22,8 +23,6 @@ type TagCustomersDialogProps = {
   onDone: () => void
 }
 
-const copy = customersContent.bulk
-
 /** Asks for one tag, then adds or removes it across the selection. */
 export default function TagCustomersDialog({
   ids,
@@ -32,6 +31,7 @@ export default function TagCustomersDialog({
   onDone,
 }: TagCustomersDialogProps) {
   // Hooks
+  const copy = useCopy(customersContent).bulk
   const [tag, setTag] = useState('')
   const [saving, setSaving] = useState(false)
 

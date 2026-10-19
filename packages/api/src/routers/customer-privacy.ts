@@ -32,7 +32,7 @@ import { registriesForStore } from '@commerce/core/registries'
 import type { StoreTx } from '@commerce/db'
 import { ORPCError } from '@orpc/server'
 import { z } from 'zod'
-import { can } from '../procedures'
+import { BULK_MAX, can, heavy } from '../procedures'
 
 type Ctx = {
   tx: StoreTx
@@ -236,5 +236,30 @@ export const customerPrivacyRouter = {
         actor: staffOf(context),
       })
       return { changed }
+    }),
+
+  /** The same for a selection on the Customers list; each change keeps its own history row. */
+  setConsentMany: can(permissions.CUSTOMERS_WRITE)
+    .use(heavy('bulk'))
+    .input(
+      z.object({
+        ids: z.array(z.uuid()).min(1).max(BULK_MAX),
+        channel: z.enum(CONSENT_CHANNELS),
+        granted: z.boolean(),
+      }),
+    )
+    .handler(async ({ context, input }) => {
+      let updated = 0
+      for (const customerId of new Set(input.ids)) {
+        const changed = await setMarketingConsent(ctxOf(context), {
+          customerId,
+          channel: input.channel,
+          granted: input.granted,
+          source: 'admin',
+          actor: staffOf(context),
+        })
+        if (changed) updated++
+      }
+      return { updated }
     }),
 }

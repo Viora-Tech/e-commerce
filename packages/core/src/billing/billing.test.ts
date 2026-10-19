@@ -86,7 +86,7 @@ describe('store plan', () => {
     // Paid a day late: the month starts when the money arrived.
     expect(plan?.periodStart?.getTime()).toBe(paidAt.getTime())
     const [ai] = await owner.select().from(aiSettings).where(eq(aiSettings.storeId, id))
-    expect(ai?.plan).toBe('unlimited')
+    expect(ai?.plan).toBe('pro')
     // Running twice changes nothing.
     await markPlanBillPaid(app, orderId, new Date(paidAt.getTime() + DAY))
     const [again] = await owner.select().from(storePlan).where(eq(storePlan.storeId, id))

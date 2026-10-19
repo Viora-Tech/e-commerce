@@ -93,12 +93,15 @@ prompt or answer is ever stored or logged.
 
 ### Plans
 
-| Plan | Calls / month | Tokens / month |
-|---|---|---|
-| free | 30 | 150,000 |
-| starter (default) | 300 | 1,500,000 |
-| growth | 2,000 | 10,000,000 |
-| unlimited | no limit | no limit |
+| Plan | Credits / month | Calls / month | Tokens / month |
+|---|---|---|---|
+| free | 100 | 30 | 150,000 |
+| starter (default) | 500 | 1,000 | 5,000,000 |
+| growth | 3,000 | 5,000 | 30,000,000 |
+| pro | 15,000 | no cap | no cap |
+
+Pro is capped by its credits. Only the platform's own stores (`AI_UNLIMITED_STORES`) skip the
+quota.
 
 The merchant API never changes the plan; billing (or a platform admin) sets `ai_settings.plan`.
 

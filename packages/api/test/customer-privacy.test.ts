@@ -176,6 +176,34 @@ describe('customer privacy API', () => {
     ])
   })
 
+  it('sets consent for many customers at once, skipping those already so', async () => {
+    const boss = await merchant('owner@example.com', 'waimers')
+    const rows = await owner
+      .insert(customer)
+      .values([
+        { storeId: boss.storeId, email: 'asha@example.com' },
+        { storeId: boss.storeId, email: 'ravi@example.com', acceptsSms: true },
+      ])
+      .returning()
+    const ids = rows.map((r) => r.id)
+    const result = await call(
+      appRouter.customerPrivacy.setConsentMany,
+      { ids, channel: 'sms', granted: true },
+      { context: boss.ctx },
+    )
+    expect(result).toEqual({ updated: 1 })
+    const after = await owner.select().from(customer).where(eq(customer.storeId, boss.storeId))
+    expect(after.every((c) => c.acceptsSms)).toBe(true)
+    const consent = await call(
+      appRouter.customerPrivacy.consent,
+      { customerId: ids[0] as string },
+      { context: boss.ctx },
+    )
+    expect(consent.history.map((h) => [h.channel, h.granted, h.source])).toEqual([
+      ['sms', true, 'admin'],
+    ])
+  })
+
   it('keeps other preferences when Online Store preferences and privacy settings are saved', async () => {
     const boss = await merchant('owner@example.com', 'waimers')
     await call(

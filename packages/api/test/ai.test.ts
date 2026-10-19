@@ -280,7 +280,7 @@ describe('settings, switches and quota', () => {
       call(appRouter.ai.writeProduct, writeInput, { context: a.ctx }),
     ).resolves.toBeTruthy()
     const settings = await call(appRouter.ai.settings, undefined, { context: a.ctx })
-    expect(settings.plan).toBe('unlimited')
+    expect(settings.plan).toBe('pro')
     expect(settings.quota).toMatchObject({ calls: null, tokens: null })
   })
 

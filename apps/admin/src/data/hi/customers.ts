@@ -96,6 +96,21 @@ export default [
       tagged: (n: number) => `${n} ग्राहक अपडेट हुए`,
       noChange: 'बदलने के लिए कुछ नहीं',
       failed: 'टैग अपडेट नहीं हो पाए',
+      marketing: 'मार्केटिंग',
+      subscribe: (channel: string) => `${channel} के लिए सब्सक्राइब करें`,
+      unsubscribe: (channel: string) => `${channel} से अनसब्सक्राइब करें`,
+      consentTitle: (granted: boolean, channel: string, n: number) =>
+        granted
+          ? `${n} ग्राहकों को ${channel} मार्केटिंग के लिए सब्सक्राइब करें?`
+          : `${n} ग्राहकों को ${channel} मार्केटिंग से अनसब्सक्राइब करें?`,
+      consentBody: (granted: boolean) =>
+        granted
+          ? 'यह तभी करें जब उन्होंने आपसे मैसेज पाने की हामी भरी हो, जैसे कॉल पर या साइन किए फ़ॉर्म में। हर बदलाव उनकी सहमति हिस्ट्री में रहता है।'
+          : 'इस चैनल पर उन्हें मार्केटिंग मैसेज आने बंद हो जाएँगे। हर बदलाव उनकी सहमति हिस्ट्री में रहता है।',
+      consentConfirm: (granted: boolean) => (granted ? 'सब्सक्राइब करें' : 'अनसब्सक्राइब करें'),
+      consentFailed: 'मार्केटिंग सहमति अपडेट नहीं हो पाई',
+      bulkEdit: 'एक साथ बदलें',
+      openFailed: 'बल्क एडिटर नहीं खुल पाया',
     },
     saveSegment: 'सेगमेंट के रूप में सेव करें',
     exportAll: 'एक्सपोर्ट',

@@ -134,7 +134,7 @@ export default [
         apps: 'ऐप',
         support: 'सपोर्ट',
       },
-      ai: { starter: 'हल्का इस्तेमाल', growth: 'रोज़ का इस्तेमाल', unlimited: 'भारी इस्तेमाल' },
+      ai: { starter: 'हल्का इस्तेमाल', growth: 'रोज़ का इस्तेमाल', pro: 'भारी इस्तेमाल' },
       aiCredits: (n) => `हर महीने ${n} क्रेडिट`,
       apps: { core: 'ज़रूरी ऐप; बाकी खरीदें', all: 'हमारे सारे ऐप शामिल' },
       support: { email: 'ईमेल', whatsapp: 'ईमेल + WhatsApp', priority: 'प्राथमिकता' },
