@@ -224,6 +224,11 @@ export const customerPrivacyRouter = {
       }
     }),
 
+  /** The marketing channels this store can send on, for the Customers list and bulk edit. */
+  sendableChannels: can(permissions.CUSTOMERS_READ).handler(({ context }) =>
+    sendableConsentChannels(context.tx, context.scope.storeId),
+  ),
+
   /** Staff record consent the customer gave or withdrew outside the store (a call, a form). */
   setConsent: can(permissions.CUSTOMERS_WRITE)
     .input(

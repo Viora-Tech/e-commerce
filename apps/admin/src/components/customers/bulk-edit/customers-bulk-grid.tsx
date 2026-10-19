@@ -9,7 +9,6 @@ import { buildColumns } from './customers-bulk-columns'
 import {
   applyPaste,
   type CellErrors,
-  COLUMN_KEYS,
   canEdit,
   cellValue,
   type GridRow,
@@ -21,6 +20,8 @@ type CustomersBulkGridProps = {
   /** The sheet as loaded, to light up changed cells. */
   base: Map<string, GridRow>
   errors: CellErrors
+  /** Column keys in order (`visibleKeys`). */
+  keys: readonly string[]
   onRowsChange: (rows: GridRow[]) => void
 }
 
@@ -35,6 +36,7 @@ export default function CustomersBulkGrid({
   rows,
   base,
   errors,
+  keys,
   onRowsChange,
 }: CustomersBulkGridProps) {
   // Hooks
@@ -92,14 +94,14 @@ export default function CustomersBulkGrid({
     if (!at || target.tagName === 'INPUT' || target.tagName === 'SELECT') return
     event.preventDefault()
     event.stopPropagation()
-    const colIdx = COLUMN_KEYS.indexOf(at.key)
+    const colIdx = keys.indexOf(at.key)
     if (colIdx < 0) return
     const pasted = event.clipboardData.getData('text/plain')
-    onRowsChange(applyPaste(rows, { rowIdx: at.rowIdx, colIdx }, pasted))
+    onRowsChange(applyPaste(rows, { rowIdx: at.rowIdx, colIdx }, pasted, keys))
   }
 
   // Render logic
-  const columns = buildColumns(copy, base, errors)
+  const columns = buildColumns(copy, base, errors, keys)
 
   return (
     <div

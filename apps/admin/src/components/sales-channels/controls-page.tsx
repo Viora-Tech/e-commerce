@@ -13,6 +13,7 @@ import DataCard from '@/components/layout/data-card'
 import KeyValueList from '@/components/layout/key-value-list'
 import PageBody from '@/components/layout/page-body'
 import PageHeader from '@/components/layout/page-header'
+import SaveBar from '@/components/layout/save-bar'
 import { salesChannelsContent } from '@/data/sales-channels'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
@@ -60,6 +61,8 @@ export default function ControlsPage({ view: initial, collections }: ControlsPag
     }
   }
 
+  const handleDiscard = () => setForm(view.controls)
+
   // Render logic
   const dirty = JSON.stringify(form) !== JSON.stringify(view.controls)
   const { products } = view
@@ -67,6 +70,15 @@ export default function ControlsPage({ view: initial, collections }: ControlsPag
 
   return (
     <PageBody className="gap-6 md:py-8">
+      <SaveBar
+        open={dirty}
+        message={copy.unsaved}
+        saveLabel={copy.save}
+        discardLabel={copy.discard}
+        onSave={handleSave}
+        onDiscard={handleDiscard}
+        saving={saving}
+      />
       <PageHeader
         title={copy.title}
         subtitle={copy.subtitle}

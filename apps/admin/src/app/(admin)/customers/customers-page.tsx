@@ -113,6 +113,15 @@ function CustomersContent({ initial }: { initial: CustomersInitial }) {
   const [tagIds, setTagIds] = useState<string[]>([])
   const [consentChange, setConsentChange] = useState<ConsentChange | null>(null)
   const [reloadKey, setReloadKey] = useState(0)
+  /** Channels the store can send on; the Marketing menu offers only these. */
+  const [sendable, setSendable] = useState<readonly ConsentChannel[]>(['email'])
+
+  useEffect(() => {
+    api.customerPrivacy
+      .sendableChannels()
+      .then(setSendable)
+      .catch(() => {})
+  }, [])
   const hydrated = useRef(false)
 
   useEffect(() => {
@@ -328,7 +337,7 @@ function CustomersContent({ initial }: { initial: CustomersInitial }) {
                     <ChevronDown />
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="start">
-                    {CONSENT_CHANNELS.map((channel, i) => (
+                    {CONSENT_CHANNELS.filter((c) => sendable.includes(c)).map((channel, i) => (
                       <Fragment key={channel}>
                         {i > 0 ? <DropdownMenuSeparator /> : null}
                         <DropdownMenuItem

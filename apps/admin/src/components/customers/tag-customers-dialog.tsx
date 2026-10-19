@@ -31,7 +31,7 @@ export default function TagCustomersDialog({
   onDone,
 }: TagCustomersDialogProps) {
   // Hooks
-  const copy = useCopy(customersContent).bulk
+  const { bulk: copy } = useCopy(customersContent)
   const [tag, setTag] = useState('')
   const [saving, setSaving] = useState(false)
 

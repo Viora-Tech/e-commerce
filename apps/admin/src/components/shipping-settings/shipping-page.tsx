@@ -83,10 +83,17 @@ export default function ShippingPage() {
     if (saved) setForm(JSON.parse(saved) as Settings)
   }
 
-  const handleDemoSaved = (next: Settings) => {
-    setForm(next)
-    setSaved(JSON.stringify(next))
-  }
+  const handleDemo = (on: boolean) =>
+    setForm((f) =>
+      f
+        ? {
+            ...f,
+            enabled: on
+              ? [...new Set([...f.enabled, DEMO_COURIER])]
+              : f.enabled.filter((id) => id !== DEMO_COURIER),
+          }
+        : f,
+    )
 
   // Early returns
   if (!loaded || !form) {
@@ -169,12 +176,7 @@ export default function ShippingPage() {
       </Section>
 
       {DEV ? (
-        <DemoCourierSection
-          settings={form}
-          dirty={dirty}
-          onSaved={handleDemoSaved}
-          demoId={DEMO_COURIER}
-        />
+        <DemoCourierSection on={form.enabled.includes(DEMO_COURIER)} onChange={handleDemo} />
       ) : null}
       <HelpFooter />
     </div>

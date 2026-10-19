@@ -1,6 +1,7 @@
 'use client'
 
 import type { CustomerSheetRow } from '@commerce/api'
+import type { ConsentChannel } from '@commerce/core/privacy'
 import { LayoutGrid } from '@commerce/ui/icons'
 import { useEffect, useState } from 'react'
 import { z } from 'zod'
@@ -19,6 +20,7 @@ type State =
   | {
       phase: 'ready'
       sheet: CustomerSheetRow[]
+      sendable: readonly ConsentChannel[]
     }
 
 const idsSchema = z.array(z.uuid()).max(5000)
@@ -48,9 +50,8 @@ export default function CustomersBulkLoader() {
       setState({ phase: 'empty' })
       return
     }
-    api.customers
-      .sheet({ ids })
-      .then((sheet) => !cancelled && setState({ phase: 'ready', sheet }))
+    Promise.all([api.customers.sheet({ ids }), api.customerPrivacy.sendableChannels()])
+      .then(([sheet, sendable]) => !cancelled && setState({ phase: 'ready', sheet, sendable }))
       .catch(() => !cancelled && setState({ phase: 'failed' }))
     return () => {
       cancelled = true
@@ -74,5 +75,5 @@ export default function CustomersBulkLoader() {
   }
 
   // Render logic
-  return <CustomersBulkEditor sheet={state.sheet} />
+  return <CustomersBulkEditor sheet={state.sheet} sendable={state.sendable} />
 }

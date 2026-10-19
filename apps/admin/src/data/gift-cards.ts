@@ -205,6 +205,8 @@ export const giftCardDetailContent = {
     placeholder: 'Only staff see this',
     empty: 'No notes',
     save: 'Save',
+    discard: 'Discard',
+    unsaved: 'Unsaved changes',
     saved: 'Note saved',
   },
   details: {

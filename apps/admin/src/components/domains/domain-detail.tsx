@@ -11,6 +11,7 @@ import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import ConfirmDialog from '@/components/layout/confirm-dialog'
 import PageHeader from '@/components/layout/page-header'
+import SaveBar from '@/components/layout/save-bar'
 import SettingsCard from '@/components/settings/settings-card'
 import { domainsContent } from '@/data/domains'
 import { usePermissions } from '@/hooks/use-permissions'
@@ -49,6 +50,8 @@ export default function DomainDetail({ initial, primaryHostname }: DomainDetailP
   const [checking, setChecking] = useState(false)
   const [saving, setSaving] = useState(false)
   const [confirmRemove, setConfirmRemove] = useState(false)
+  /** The redirect switch as edited; the save bar records it. */
+  const [redirect, setRedirect] = useState(initial.redirectToPrimary)
 
   // Poll while DNS or the certificate is still settling, only while the tab is visible.
   useEffect(() => {
@@ -91,9 +94,11 @@ export default function DomainDetail({ initial, primaryHostname }: DomainDetailP
     }
   }
 
-  const handleRedirect = (checked: boolean) =>
+  const handleSaveRedirect = () =>
     run(async () => {
-      setDomain(await api.domains.setRedirect({ id: domain.id, redirectToPrimary: checked }))
+      const next = await api.domains.setRedirect({ id: domain.id, redirectToPrimary: redirect })
+      setDomain(next)
+      setRedirect(next.redirectToPrimary)
       toast.success(copy.traffic.saved)
     })
 
@@ -125,6 +130,15 @@ export default function DomainDetail({ initial, primaryHostname }: DomainDetailP
 
   return (
     <div className="flex flex-col gap-4">
+      <SaveBar
+        open={redirect !== domain.redirectToPrimary}
+        message={copy.traffic.unsaved}
+        saveLabel={copy.traffic.save}
+        discardLabel={copy.traffic.discard}
+        onSave={handleSaveRedirect}
+        onDiscard={() => setRedirect(domain.redirectToPrimary)}
+        saving={saving}
+      />
       <PageHeader
         title={domain.hostname}
         back={{ label: copy.back, href: routes.settings.domains() }}
@@ -185,9 +199,9 @@ export default function DomainDetail({ initial, primaryHostname }: DomainDetailP
             </div>
             <Switch
               id="domain-redirect"
-              checked={domain.redirectToPrimary}
+              checked={redirect}
               disabled={!canManage || saving}
-              onCheckedChange={handleRedirect}
+              onCheckedChange={setRedirect}
             />
           </div>
         )}
