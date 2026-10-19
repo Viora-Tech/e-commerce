@@ -11,6 +11,7 @@ import { afterAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import {
   notificationsOverview,
   previewMessage,
+  sendableConsentChannels,
   sendTestMessage,
   setMessageOn,
 } from '../src/services/notifications.service'
@@ -70,6 +71,19 @@ describe('notificationsOverview', () => {
     expect(r.channels.email.state).toBe('connected')
     expect(r.channels.whatsapp.state).toBe('installed')
     expect(r.canSendTest).toBe(true)
+  })
+
+  it('offers WhatsApp consent only once the WhatsApp app is connected, and never SMS', async () => {
+    const off = await makeStore('n-send-off', { apps: { installed: ['whatsapp'] } })
+    const on = await makeStore('n-send-on', {
+      apps: { installed: ['whatsapp'] },
+      notifications: { enabled: ['whatsapp'], providers: {} },
+    })
+    expect(await withStore(app, off, (tx) => sendableConsentChannels(tx, off))).toEqual(['email'])
+    expect(await withStore(app, on, (tx) => sendableConsentChannels(tx, on))).toEqual([
+      'email',
+      'whatsapp',
+    ])
   })
 })
 

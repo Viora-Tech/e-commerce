@@ -2,7 +2,6 @@
 
 import { lowestEmiPaise } from '@commerce/core/emi'
 import { EMI_GATEWAYS, type EmiGateway } from '@commerce/plugin-emi/offer'
-import { Button } from '@commerce/ui/shadcn/button'
 import { Input } from '@commerce/ui/shadcn/input'
 import { RadioGroup, RadioGroupItem } from '@commerce/ui/shadcn/radio-group'
 import { Switch } from '@commerce/ui/shadcn/switch'
@@ -10,6 +9,7 @@ import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import PageHeader from '@/components/layout/page-header'
+import SaveBar from '@/components/layout/save-bar'
 import SettingsCard from '@/components/settings/settings-card'
 import SettingsRow from '@/components/settings/settings-row'
 import { emiContent as copy } from '@/data/emi'
@@ -74,9 +74,9 @@ export default function SettingsPage() {
     if (!form) return
     setBusy(true)
     try {
-      const saved = await api.emi.settings.save(form)
-      setView(saved)
-      setForm(saved.settings)
+      const next = await api.emi.settings.save(form)
+      setView(next)
+      setForm(next.settings)
       toast.success(copy.saved)
     } catch (err) {
       toast.error(err instanceof Error ? err.message : copy.failed)
@@ -84,6 +84,8 @@ export default function SettingsPage() {
       setBusy(false)
     }
   }
+
+  const handleDiscard = () => setForm(view?.settings ?? null)
 
   const handleMinPrice = (value: string) => {
     const rupees = Math.min(1_000_000, Number(value.replace(/\D/g, '')) || 0)
@@ -97,18 +99,20 @@ export default function SettingsPage() {
   const status = statusOf(view)
   const examplePaise = Math.max(PREVIEW_PAISE, form.minPricePaise)
   const usesWidget = form.gateway === 'razorpay' && view.officialWidget
+  const dirty = JSON.stringify(form) !== JSON.stringify(view.settings)
 
   return (
     <div className="flex flex-col gap-5">
-      <PageHeader
-        title={copy.title}
-        summary={copy.subtitle}
-        actions={
-          <Button loading={busy} onClick={handleSave}>
-            {copy.save}
-          </Button>
-        }
+      <SaveBar
+        open={dirty}
+        message={copy.unsaved}
+        saveLabel={copy.save}
+        discardLabel={copy.discard}
+        onSave={handleSave}
+        onDiscard={handleDiscard}
+        saving={busy}
       />
+      <PageHeader title={copy.title} summary={copy.subtitle} />
       <p className="rounded-xl surface-banner px-4 py-3 text-body text-foreground">
         {status.text}{' '}
         {status.link ? (

@@ -1,6 +1,7 @@
 'use client'
 
 import type { CustomerSheetRow } from '@commerce/api'
+import type { ConsentChannel } from '@commerce/core/privacy'
 import { CircleAlert } from '@commerce/ui/icons'
 import { Alert, AlertDescription, AlertTitle } from '@commerce/ui/shadcn/alert'
 import { Button } from '@commerce/ui/shadcn/button'
@@ -18,17 +19,22 @@ import {
   type GridRow,
   toGridRow,
   validateRows,
+  visibleKeys,
 } from './customers-bulk-model'
 import { dirtyRows, saveRows } from './customers-bulk-save'
 
-type CustomersBulkEditorProps = { sheet: CustomerSheetRow[] }
+type CustomersBulkEditorProps = {
+  sheet: CustomerSheetRow[]
+  /** Channels the store can send on; consent columns for the rest are hidden. */
+  sendable: readonly ConsentChannel[]
+}
 
 const SHOWN_ERRORS = 5
 
 const baseOf = (rows: GridRow[]) => new Map(rows.map((r) => [r.id, r]))
 
 /** Content of `/customers/bulk-edit`: header, error summary and the grid; one Save sends it all. */
-export default function CustomersBulkEditor({ sheet }: CustomersBulkEditorProps) {
+export default function CustomersBulkEditor({ sheet, sendable }: CustomersBulkEditorProps) {
   // Hooks
   const copy = useCopy(customersBulkEditContent)
   const [initial] = useState(() => sheet.map(toGridRow))
@@ -131,7 +137,13 @@ export default function CustomersBulkEditor({ sheet }: CustomersBulkEditorProps)
           </AlertDescription>
         </Alert>
       ) : null}
-      <CustomersBulkGrid rows={rows} base={base} errors={errors} onRowsChange={handleRowsChange} />
+      <CustomersBulkGrid
+        rows={rows}
+        base={base}
+        errors={errors}
+        keys={visibleKeys(sendable)}
+        onRowsChange={handleRowsChange}
+      />
     </div>
   )
 }

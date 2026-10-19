@@ -4,7 +4,6 @@ import type { customersBulkEditContent } from '@/data/customers-bulk-edit'
 import {
   type CellErrors,
   canEdit,
-  EDITABLE_KEYS,
   errorKey,
   type GridRow,
   isConsentKey,
@@ -34,9 +33,10 @@ export function buildColumns(
   copy: Copy,
   base: Map<string, GridRow>,
   errors: CellErrors,
+  keys: readonly string[],
 ): Column<GridRow>[] {
   const names = copy.columns as Record<string, string>
-  return ['email', ...EDITABLE_KEYS].map((key) => {
+  return keys.map((key) => {
     const message = (row: GridRow) =>
       errors.get(errorKey(row.id, key)) ??
       (key === 'email' ? errors.get(errorKey(row.id, 'row')) : undefined)
