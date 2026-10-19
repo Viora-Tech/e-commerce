@@ -4,7 +4,7 @@ import { createRedisRateLimitStore, dokployConfigFrom, platformRoots } from '@co
 import { createDb } from '@commerce/db'
 import { reportWorkerFailures } from '@commerce/observability'
 import { flushLogs, initLogging, logger, logWorkerJobs } from '@commerce/observability/logging'
-import { createAppEventQueue, createNotificationQueue } from '@commerce/queue'
+import { createAppEventQueue, createNotificationQueue, trimFinishedJobs } from '@commerce/queue'
 import { sql } from 'drizzle-orm'
 import { evlog } from 'evlog/hono'
 import { Hono } from 'hono'
@@ -176,6 +176,14 @@ for (const [w, queueName] of watched) {
   reportWorkerFailures(w, queueName, reportError)
   logWorkerJobs(w, queueName)
 }
+// Finished jobs kept from before KEEP_FINISHED; in the background so start-up does not wait.
+trimFinishedJobs(
+  redis,
+  watched.map(([w]) => w.name),
+).catch((err) => {
+  logger.error('could not trim finished jobs', { error: err })
+  reportError(err, { where: 'trimFinishedJobs' })
+})
 
 await queue.upsertJobScheduler('heartbeat-every-minute', { every: 60_000 }, { name: 'tick' })
 await tracker.queue.upsertJobScheduler(

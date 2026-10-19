@@ -6,7 +6,7 @@ import {
   queueDueReviewRequests,
   REVIEWS_ID,
 } from '@commerce/plugin-reviews/server'
-import { type IORedis, Queue, REVIEW_REQUESTS_QUEUE, Worker } from '@commerce/queue'
+import { type IORedis, KEEP_FINISHED, Queue, REVIEW_REQUESTS_QUEUE, Worker } from '@commerce/queue'
 
 /** Requests go out days after delivery; ten minutes of slack is plenty. */
 export const REVIEW_REQUESTS_EVERY_MS = 10 * 60_000
@@ -40,7 +40,7 @@ export function createReviewRequestSweep(connection: IORedis, db: Db) {
       if (counts.requests || counts.reminders) logger.info('review requests queued', counts)
       return { stores: storeIds.length, ...counts }
     },
-    { connection },
+    { connection, ...KEEP_FINISHED },
   )
   return { queue, worker }
 }

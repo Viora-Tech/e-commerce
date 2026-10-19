@@ -91,6 +91,45 @@ export const QUEUE_LIMITS = {
   purchaseDocuments: { concurrency: 2, perStore: 1 },
 } as const satisfies Record<string, QueueLimits>
 
+/**
+ * What every worker keeps of its finished jobs. BullMQ keeps them all by default, and the
+ * scheduled queues finish one every few seconds (the outbox relay every 5s), so without a cap
+ * Dragonfly filled its 512 MB in about a week and refused new jobs, order emails included.
+ * A job's own `removeOnComplete` still wins over this.
+ */
+export const KEEP_FINISHED = {
+  removeOnComplete: { count: 100, age: 24 * 60 * 60 },
+  removeOnFail: { count: 1000, age: 14 * 24 * 60 * 60 },
+}
+
+/**
+ * Trim what queues kept before `KEEP_FINISHED` existed, in batches so no one script holds
+ * Dragonfly for long. Run at worker start; on a trimmed queue it is a no-op.
+ */
+export async function trimFinishedJobs(connection: IORedis, queueNames: readonly string[]) {
+  const BATCH = 5000
+  for (const name of queueNames) {
+    const queue = new Queue(name, { connection })
+    try {
+      for (const [type, graceMs] of [
+        // The last hour only, so the first `count` trim after start has little left to do.
+        ['completed', 60 * 60_000],
+        ['failed', KEEP_FINISHED.removeOnFail.age * 1000],
+      ] as const) {
+        let removed = 0
+        for (;;) {
+          const ids = await queue.clean(graceMs, BATCH, type)
+          removed += ids.length
+          if (ids.length < BATCH) break
+        }
+        if (removed) logger.info('trimmed finished jobs', { queue: name, type, removed })
+      }
+    } finally {
+      await queue.close()
+    }
+  }
+}
+
 export function createConnection(redisUrl: string): IORedis {
   return new IORedis(redisUrl, { maxRetriesPerRequest: null })
 }

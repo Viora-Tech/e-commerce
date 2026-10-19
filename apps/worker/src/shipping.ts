@@ -7,7 +7,7 @@ import {
 import { registriesForStore } from '@commerce/core/registries'
 import { type Db, store, storesWithOpenShipments, withStore } from '@commerce/db'
 import { logger } from '@commerce/observability/logging'
-import { type IORedis, Queue, SHIPPING_TRACK_QUEUE, Worker } from '@commerce/queue'
+import { type IORedis, KEEP_FINISHED, Queue, SHIPPING_TRACK_QUEUE, Worker } from '@commerce/queue'
 import { eq } from 'drizzle-orm'
 
 /** How often open shipments are polled. Couriers update scans a few times a day. */
@@ -75,7 +75,7 @@ export function createShippingTracker(
       }
       return { stores: storeIds.length, updated }
     },
-    { connection },
+    { connection, ...KEEP_FINISHED },
   )
   return { queue, worker }
 }

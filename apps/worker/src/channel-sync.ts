@@ -6,7 +6,7 @@ import {
 } from '@commerce/core'
 import { type Db, storesWithChannelConnections } from '@commerce/db'
 import { logger } from '@commerce/observability/logging'
-import { CHANNEL_SYNC_QUEUE, type IORedis, Queue, Worker } from '@commerce/queue'
+import { CHANNEL_SYNC_QUEUE, type IORedis, KEEP_FINISHED, Queue, Worker } from '@commerce/queue'
 
 export { CHANNEL_SYNC_EVERY_MS } from '@commerce/core'
 
@@ -57,7 +57,7 @@ export function createChannelSync(
         })
       return r
     },
-    { connection, concurrency: 2 },
+    { connection, concurrency: 2, ...KEEP_FINISHED },
   )
   return { queue, worker }
 }

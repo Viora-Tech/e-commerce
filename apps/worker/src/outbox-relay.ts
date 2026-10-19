@@ -12,6 +12,7 @@ import { type Db, storesWithUndispatchedOutboxEvents } from '@commerce/db'
 import { logger } from '@commerce/observability/logging'
 import {
   type IORedis,
+  KEEP_FINISHED,
   OUTBOX_RELAY_QUEUE,
   type OutboxRelayJob,
   Queue,
@@ -80,7 +81,7 @@ export function createOutboxRelay(
       if (dispatched || failed) logger.info('outbox relayed', { dispatched, failed })
       return { stores: storeIds.length, dispatched, failed }
     },
-    { connection },
+    { connection, ...KEEP_FINISHED },
   )
   return { queue, worker }
 }
