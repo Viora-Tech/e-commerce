@@ -15,7 +15,7 @@ export default function SidebarShortcutGuard() {
   useEffect(() => {
     let timer: ReturnType<typeof setTimeout> | undefined
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key.toLowerCase() !== 'b' || !(event.metaKey || event.ctrlKey)) return
+      if (event.key?.toLowerCase() !== 'b' || !(event.metaKey || event.ctrlKey)) return
       const root = document.documentElement
       root.setAttribute('data-sidebar-instant', '')
       clearTimeout(timer)

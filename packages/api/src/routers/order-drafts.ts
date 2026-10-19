@@ -19,6 +19,7 @@ import {
   listStoreDrafts,
   recordInvoiceSent,
   removeDraft,
+  removeDrafts,
   saveDraft,
   sendRecovery,
   storeAbandonedStats,
@@ -55,6 +56,11 @@ export const draftAndAbandonedRoutes = {
   deleteDraft: can(permissions.DRAFTS_WRITE)
     .input(z.object({ id: z.uuid() }))
     .handler(({ context, input }) => removeDraft(context.tx, context.scope.storeId, input.id)),
+
+  /** The list's bulk delete; ids that are no longer drafts are skipped. */
+  deleteDrafts: can(permissions.DRAFTS_WRITE)
+    .input(z.object({ ids: z.array(z.uuid()).min(1).max(PAGE_SIZE_MAX) }))
+    .handler(({ context, input }) => removeDrafts(context.tx, context.scope.storeId, input.ids)),
 
   /** Email the shopper a pay link for the draft. */
   sendInvoice: can(permissions.DRAFTS_WRITE)
