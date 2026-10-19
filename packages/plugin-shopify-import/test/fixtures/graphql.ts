@@ -335,3 +335,22 @@ export const VARIANT_STOCK = {
     nodes: [stock('11', 7), stock('21', 1), stock('22', 2)],
   },
 }
+
+/** Purchase options: a pre-order plan (aria-headset) and a subscription that is not one. */
+export const SELLING_PLAN_GROUPS = {
+  sellingPlanGroups: {
+    pageInfo: pageInfo(null),
+    nodes: [
+      {
+        name: 'Preorder',
+        merchantCode: 'preorder',
+        products: { nodes: [{ id: 'gid://shopify/Product/1' }] },
+      },
+      {
+        name: 'Subscribe & save',
+        merchantCode: 'subscription',
+        products: { nodes: [{ id: 'gid://shopify/Product/2' }] },
+      },
+    ],
+  },
+}

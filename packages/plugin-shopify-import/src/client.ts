@@ -214,6 +214,8 @@ export const ALL_SCOPE_HANDLES = [
   'read_shipping',
   /** Store settings: refund, privacy, terms, shipping and contact policies. */
   'read_legal_policies',
+  /** Pre-orders: Shopify's purchase options (selling plan groups). Optional. */
+  'read_purchase_options',
 ] as const
 export type ScopeHandle = (typeof ALL_SCOPE_HANDLES)[number]
 

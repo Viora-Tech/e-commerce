@@ -220,6 +220,7 @@ export const shopifyImportContent = {
       read_gift_cards: 'Read gift cards',
       read_shipping: 'Read shipping zones and rates',
       read_legal_policies: 'Read store policies',
+      read_purchase_options: 'Read pre-orders (purchase options)',
     } satisfies Record<ScopeHandle, string>,
     chooseHeading: 'What to import',
     chooseHelp:

@@ -22,6 +22,7 @@ import {
   fetchMenus,
   fetchOrders,
   fetchPages,
+  fetchPreorderProductIds,
   fetchProducts,
   fetchRedirects,
 } from './shopify-api'
@@ -55,7 +56,7 @@ import { importGiftCards } from './write-gift-cards'
 import { importMetafields } from './write-metafields'
 import { importMetaobjects } from './write-metaobjects'
 import { orderSourceId, writeOrders } from './write-orders'
-import { productSourceId, writeProducts } from './write-products'
+import { applyPreorders, productSourceId, writeProducts } from './write-products'
 
 /** Records per write batch: products are heavy (images, variants), customers light. */
 const PRODUCT_BATCH = 25
@@ -279,6 +280,7 @@ export async function runApi(
       PRODUCT_BATCH,
       (b) => writeProducts(ctx, b),
     )
+    await importPreorders(ctx, client)
   }
   if (wanted('collections')) {
     const collections = read<NCollection>({
@@ -401,6 +403,29 @@ async function optional(ctx: ImportContext, resource: ImportResource, run: () =>
     ctx.report.issue({
       resource,
       message: `Shopify did not allow reading this (${REQUIRED_SCOPES[resource]}). Add the scope to your Shopify app, then run the import again. ${err.message}`,
+    })
+  }
+}
+
+/**
+ * Shopify's pre-order purchase options, read after the products. A connection without
+ * `read_purchase_options` (or any failure here) loses only this step: the products stay
+ * imported and one issue says why pre-orders were left out.
+ */
+async function importPreorders(ctx: ImportContext, client: ShopifyClient) {
+  try {
+    const changed = await applyPreorders(ctx, await fetchPreorderProductIds(client))
+    if (changed)
+      ctx.log(`Switched pre-order on for ${changed} products sold as pre-orders on Shopify`)
+  } catch (err) {
+    // Never the run's end: the products are in; only their pre-order switch is missing.
+    if (ctx.signal?.aborted) throw err
+    const scope = err instanceof ShopifyError && err.kind === 'scope'
+    ctx.report.issue({
+      resource: 'products',
+      message: scope
+        ? `Pre-orders were not brought over: Shopify did not allow reading purchase options (read_purchase_options). Add the scope to your Shopify app, then run the products import again. ${err.message}`
+        : `Pre-orders were not brought over: ${errorMessage(err)}`,
     })
   }
 }

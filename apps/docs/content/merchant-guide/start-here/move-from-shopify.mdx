@@ -137,7 +137,12 @@ In the Shopify Dev Dashboard, give your app these read scopes:
 
 `read_products`, `read_inventory`, `read_customers`, `read_orders`, `read_all_orders`,
 `read_content`, `read_online_store_navigation`, `read_files`, `read_metaobject_definitions`,
-`read_metaobjects`, `read_discounts`, `read_gift_cards`, `read_shipping`, `read_legal_policies`.
+`read_metaobjects`, `read_discounts`, `read_gift_cards`, `read_shipping`, `read_legal_policies`,
+`read_purchase_options`.
+
+`read_purchase_options` brings pre-orders over: products Shopify sells through a pre-order
+purchase option (a selling plan named like "Pre-order") arrive with pre-order switched on.
+Without it the products still import, and the run says pre-orders were left out.
 
 The last two are for **Store settings** (shipping rates and policies). An app connected before
 they were added keeps working: add them in the Dev Dashboard, release a new version, then press

@@ -6,12 +6,13 @@ import {
   upsertImportedRedirect,
 } from '@commerce/core'
 import { product, type StoreTx } from '@commerce/db'
-import { eq } from 'drizzle-orm'
+import { and, eq, inArray } from 'drizzle-orm'
 import { mapLimit } from './concurrency'
 import { htmlToRichText, replaceImageSources } from './html'
 import {
   errorMessage,
   findMapping,
+  findMappings,
   type ImportContext,
   type MappingRow,
   saveMapping,
@@ -284,5 +285,28 @@ export async function writeProducts(ctx: ImportContext, batch: readonly NProduct
     },
     report: (_r, outcome) => ctx.report.count('products', outcome),
     one: (r) => commitOne(ctx, r.p, r.write, r.existingId),
+  })
+}
+
+/**
+ * Products Shopify sells through a pre-order purchase option become pre-order products here
+ * (buyable beyond stock, "Pre-order" button). Only ever switches pre-order on: a merchant who
+ * turned it off again here keeps that until Shopify adds the product to a pre-order plan anew.
+ * Returns how many products changed.
+ */
+export async function applyPreorders(
+  ctx: ImportContext,
+  sourceIds: ReadonlySet<string>,
+): Promise<number> {
+  if (ctx.dryRun || sourceIds.size === 0) return 0
+  return ctx.inStore(async (tx) => {
+    const ids = [...(await findMappings(tx, 'products', [...sourceIds])).values()]
+    if (ids.length === 0) return 0
+    const rows = await tx
+      .update(product)
+      .set({ preorderEnabled: true, updatedAt: new Date() })
+      .where(and(inArray(product.id, ids), eq(product.preorderEnabled, false)))
+      .returning({ id: product.id })
+    return rows.length
   })
 }

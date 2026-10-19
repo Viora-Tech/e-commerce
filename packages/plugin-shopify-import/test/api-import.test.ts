@@ -34,6 +34,7 @@ import {
   PAGES,
   PRODUCT_PAGES,
   REDIRECTS,
+  SELLING_PLAN_GROUPS,
   VARIANT_PAGES,
   VARIANT_STOCK,
 } from './fixtures/graphql'
@@ -95,6 +96,7 @@ function shopify(query: string, variables: Record<string, unknown>): Response {
     Articles: ARTICLES,
     Menus: MENUS,
     Redirects: REDIRECTS,
+    SellingPlanGroups: SELLING_PLAN_GROUPS,
   }
   return json({ data: data[op], extensions: { cost } })
 }
@@ -435,6 +437,10 @@ describe('API import run', () => {
     expect(JSON.stringify(aria?.description)).toContain('https://media.test/stores/')
     // Each record keeps the theme template Shopify gave it (`product.preorder`).
     expect(aria?.templateSuffix).toBe('preorder')
+    // Sold through Shopify's pre-order plan: buyable beyond stock here; a subscription is not.
+    expect(aria?.preorderEnabled).toBe(true)
+    const [keycaps] = await owner.select().from(product).where(eq(product.handle, 'keycaps'))
+    expect(keycaps?.preorderEnabled).toBe(false)
 
     // Smart rules we can express stay automatic; the rest fall back to manual membership.
     const cols = await owner.select().from(collection).orderBy(asc(collection.handle))
