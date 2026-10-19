@@ -1,6 +1,8 @@
 import {
   type AbandonedListStatus,
   abandonedStats,
+  CannotShipToState,
+  CommerceError,
   captureCartContact,
   convertDraft,
   createDraft,
@@ -9,10 +11,12 @@ import {
   type DraftListStatus,
   DraftNotEditable,
   deleteDraft,
+  deleteDrafts,
   deliverCartRecovery,
   listAbandoned,
   listDrafts,
   markRecoverySent,
+  OutOfStock,
   RECOVERY_NO_CONSENT,
   recoveryUrl,
   storefrontOriginFor,
@@ -51,6 +55,13 @@ function draftErrorToRpc(err: unknown): never {
   if (err instanceof DraftEmpty) {
     throw new ORPCError('BAD_REQUEST', { message: 'Add at least one product first' })
   }
+  if (err instanceof CannotShipToState) {
+    throw new ORPCError('BAD_REQUEST', {
+      message: "None of your locations ships to this address's state",
+    })
+  }
+  // Any other rule core refuses on (a product removed from the catalogue, ...) reads as itself.
+  if (err instanceof CommerceError) throw new ORPCError('BAD_REQUEST', { message: err.message })
   throw err
 }
 
@@ -148,6 +159,26 @@ export async function removeDraft(tx: StoreTx, storeId: string, id: string) {
   }
 }
 
+/** The list's bulk delete: drafts only, so an order placed from one of them is never removed. */
+export async function removeDrafts(tx: StoreTx, storeId: string, ids: string[]) {
+  return { deleted: await deleteDrafts(ctxOf(tx, storeId), ids) }
+}
+
+/** "Not enough stock of Glasspad / Black": the line the shortfall is on, by name. */
+async function outOfStockMessage(tx: StoreTx, orderId: string, variantId: string) {
+  const [line] = await tx
+    .select({ title: orderLine.title, variantTitle: orderLine.variantTitle })
+    .from(orderLine)
+    .where(and(eq(orderLine.orderId, orderId), eq(orderLine.variantId, variantId)))
+  const name =
+    line?.variantTitle && line.variantTitle !== 'Default'
+      ? `${line.title} / ${line.variantTitle}`
+      : line?.title
+  return name
+    ? `Not enough stock of ${name} to place this order`
+    : 'Not enough stock to place this order'
+}
+
 export async function convertStoreDraft(
   tx: StoreTx,
   storeId: string,
@@ -160,6 +191,11 @@ export async function convertStoreDraft(
     if (!row) throw new ORPCError('NOT_FOUND', { message: 'Draft not found' })
     return row
   } catch (err) {
+    if (err instanceof OutOfStock) {
+      throw new ORPCError('BAD_REQUEST', {
+        message: await outOfStockMessage(tx, input.id, err.variantId),
+      })
+    }
     draftErrorToRpc(err)
   }
 }

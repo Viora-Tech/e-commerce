@@ -19,8 +19,11 @@ export class CommerceError extends Error {
 }
 
 export class OutOfStock extends CommerceError {
+  readonly variantId: string
+
   constructor(variantId: string, storeId?: string) {
     super('OUT_OF_STOCK', `Variant ${variantId} has insufficient stock`, { storeId })
+    this.variantId = variantId
   }
 }
 

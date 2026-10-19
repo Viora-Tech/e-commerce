@@ -1,7 +1,5 @@
 'use client'
 
-import { Trash2 } from '@commerce/ui/icons'
-import { Button } from '@commerce/ui/shadcn/button'
 import { Field, FieldLabel } from '@commerce/ui/shadcn/field'
 import {
   Select,
@@ -16,18 +14,14 @@ import { useCopy } from '@/hooks/use-copy'
 
 type DraftActionsCardProps = {
   saved: boolean
-  busy: boolean
   paymentMethod: string
   onPaymentMethod: (method: string) => void
-  onDelete: () => void
 }
 
 export default function DraftActionsCard({
   saved,
-  busy,
   paymentMethod,
   onPaymentMethod,
-  onDelete,
 }: DraftActionsCardProps) {
   // Hooks
   const copy = useCopy(draftEditorContent)
@@ -55,17 +49,6 @@ export default function DraftActionsCard({
           </SelectContent>
         </Select>
       </Field>
-      <div className="flex flex-col gap-2">
-        <Button
-          variant="ghost"
-          className="text-danger hover:text-danger"
-          disabled={!saved || busy}
-          onClick={onDelete}
-        >
-          <Trash2 />
-          {copy.actions.delete}
-        </Button>
-      </div>
       {saved ? null : (
         <p className="text-caption text-muted-foreground">{copy.actions.saveFirst}</p>
       )}

@@ -28,6 +28,16 @@ export const draftsContent = {
   },
   noResults: 'No drafts match that search',
   openDraft: 'Open draft',
+  deleteDraft: 'Delete draft',
+  deleteSelected: (n: number) => `Delete ${n} ${n === 1 ? 'draft' : 'drafts'}`,
+  deleteTitle: (n: number) => (n === 1 ? 'Delete this draft?' : `Delete ${n} drafts?`),
+  deleteBody: (n: number) =>
+    n === 1
+      ? 'The draft and its items are removed. This cannot be undone.'
+      : 'The drafts and their items are removed. Orders already placed from a draft are kept. This cannot be undone.',
+  deleted: (n: number) => (n === 1 ? 'Draft deleted' : `${n} drafts deleted`),
+  deleteFailed: 'Could not delete the drafts',
+  cancel: 'Cancel',
   resource: { singular: 'draft', plural: 'drafts' },
   search: 'Search drafts',
   empty: 'No draft orders yet',
@@ -100,6 +110,7 @@ export const draftEditorContent = {
   note: { heading: 'Note', placeholder: 'Anything the packing team should know' },
   actions: {
     heading: 'Actions',
+    more: 'More actions',
     sendInvoice: 'Send invoice',
     invoiceSent: (to: string) => `Invoice sent to ${to}`,
     invoiceFailed: 'Could not send the invoice',
