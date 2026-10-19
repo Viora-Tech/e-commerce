@@ -25,6 +25,13 @@ export type CheckState = { fails: number; down: boolean; since: string | null; d
 
 export const FRESH: CheckState = { fails: 0, down: false, since: null, detail: '' }
 
+/**
+ * Whether a run changed anything worth storing. KV on the free plan allows 1,000 writes a day
+ * and the cron runs 288 times a day per check, so state is written only when it changes.
+ */
+export const sameState = (a: CheckState, b: CheckState) =>
+  a.fails === b.fails && a.down === b.down && a.since === b.since && a.detail === b.detail
+
 /** What one run changes, and whether that is worth an email. */
 export function nextState(
   prev: CheckState,

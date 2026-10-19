@@ -52,7 +52,9 @@ function shared(): Shared {
   const s = g.__storefrontCache
   if (!s.listening) {
     s.listening = true
-    listenStorefrontCache(loadEnv(process.env).DATABASE_URL, {
+    // LISTEN needs a connection of its own for good, so never through PgBouncer.
+    const env = loadEnv(process.env)
+    listenStorefrontCache(env.DATABASE_URL_DIRECT ?? env.DATABASE_URL, {
       onChange: (storeId, soft) => {
         s.versions.notify(storeId, soft)
         // Re-render the store's recent pages once the change has settled (a soft one applies
