@@ -52,6 +52,8 @@ export type NProduct = {
   optionNames: string[]
   variants: NVariant[]
   images: NImage[]
+  /** Alternate template (`product.<suffix>`); null is the default, undefined (CSV) leaves it as is. */
+  templateSuffix?: string | null
   row?: number | undefined
 }
 
@@ -141,6 +143,8 @@ export type NCollection = {
   /** Member product handles in the source's order. */
   productHandles: string[]
   published: boolean
+  /** Alternate template (`collection.<suffix>`); null is the default. */
+  templateSuffix: string | null
 }
 
 export type NPage = {
@@ -152,6 +156,8 @@ export type NPage = {
   seoDescription: string | null
   published: boolean
   publishedAt: string | null
+  /** Alternate template (`page.<suffix>`); null is the default. */
+  templateSuffix: string | null
 }
 
 export type NArticle = {
@@ -169,6 +175,9 @@ export type NArticle = {
   publishedAt: string | null
   seoTitle: string | null
   seoDescription: string | null
+  /** Alternate templates (`article.<suffix>`, and the blog's `blog.<suffix>`); null is the default. */
+  templateSuffix: string | null
+  blogTemplateSuffix: string | null
 }
 
 export type NMenuItem = {

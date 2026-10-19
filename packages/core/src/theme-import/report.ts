@@ -80,7 +80,14 @@ export function importStatusFor(reasons: ReportReason[]): ImportStatus {
  * `product.preorder`); the rest run on our pages. A resource template keeps the theme's
  * sections around our own main section (`main_template`).
  */
-export const IMPORTED_TEMPLATES = new Set(['index', 'product', 'collection', 'page'])
+export const IMPORTED_TEMPLATES = new Set([
+  'index',
+  'product',
+  'collection',
+  'page',
+  'blog',
+  'article',
+])
 
 /** Whether a Shopify template name (`page.about` included) is turned into one of ours. */
 export const isImportedTemplate = (name: string): boolean =>
