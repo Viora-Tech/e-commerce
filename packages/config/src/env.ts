@@ -108,6 +108,19 @@ const DOC_A_RECORD = '192.0.2.10'
 const shape = z.object({
   DATABASE_URL: z.string().url(),
   DATABASE_URL_OWNER: z.string().url(),
+  /**
+   * `true` when DATABASE_URL goes through PgBouncer in transaction mode: queries are sent
+   * unprepared, since a pooled server connection is shared between clients. Unset is direct.
+   */
+  DATABASE_POOLED: z
+    .enum(['true', 'false'])
+    .optional()
+    .transform((v) => v === 'true'),
+  /**
+   * Postgres itself, for what pooling cannot carry: the storefront cache's LISTEN connection
+   * stays open for good. Unset uses DATABASE_URL (right when that is direct).
+   */
+  DATABASE_URL_DIRECT: z.string().url().optional(),
   REDIS_URL: z.string().url(),
   WORKER_PORT: z.coerce.number().int().min(1).max(65535).default(4100),
   /** Image jobs the worker runs at once; unset uses `QUEUE_LIMITS.mediaProcess` (3). Keep it near the box's vCPU count. */
