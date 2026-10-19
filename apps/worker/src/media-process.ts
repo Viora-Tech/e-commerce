@@ -11,6 +11,7 @@ import { logger } from '@commerce/observability/logging'
 import {
   fairProcessor,
   type IORedis,
+  KEEP_FINISHED,
   MEDIA_PROCESS_QUEUE,
   type MediaProcessJob,
   Queue,
@@ -106,7 +107,7 @@ export function createMediaProcessWorker(
         })
       })
     }),
-    { connection, concurrency: opts.limits.concurrency },
+    { connection, concurrency: opts.limits.concurrency, ...KEEP_FINISHED },
   )
 
   worker.on('failed', async (job, err) => {

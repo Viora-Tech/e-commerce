@@ -9,6 +9,7 @@ import { logger } from '@commerce/observability/logging'
 import {
   createAppJobQueue,
   type IORedis,
+  KEEP_FINISHED,
   Queue,
   SEARCH_CONSOLE_SWEEP_QUEUE,
   Worker,
@@ -47,7 +48,7 @@ export function createSearchConsoleSweep(connection: IORedis, db: Db) {
       if (queued) logger.info('search console syncs queued', { queued })
       return { stores: storeIds.length, queued }
     },
-    { connection },
+    { connection, ...KEEP_FINISHED },
   )
   return { queue, worker, appJobs }
 }

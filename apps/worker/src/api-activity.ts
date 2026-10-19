@@ -1,7 +1,13 @@
 import { pruneApiActivity } from '@commerce/core'
 import { type Db, storesWithOldApiActivity, withStore } from '@commerce/db'
 import { logger } from '@commerce/observability/logging'
-import { API_ACTIVITY_PRUNE_QUEUE, type IORedis, Queue, Worker } from '@commerce/queue'
+import {
+  API_ACTIVITY_PRUNE_QUEUE,
+  type IORedis,
+  KEEP_FINISHED,
+  Queue,
+  Worker,
+} from '@commerce/queue'
 
 export const API_ACTIVITY_PRUNE_EVERY_MS = 24 * 60 * 60_000
 
@@ -22,7 +28,7 @@ export function createApiActivityPrune(connection: IORedis, db: Db) {
       if (deleted) logger.info('api activity pruned', { area: 'api-access', deleted })
       return { deleted }
     },
-    { connection, concurrency: 1 },
+    { connection, concurrency: 1, ...KEEP_FINISHED },
   )
   return { queue, worker }
 }

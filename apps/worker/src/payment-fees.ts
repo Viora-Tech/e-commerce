@@ -9,7 +9,7 @@ import {
 import { registriesForStore } from '@commerce/core/registries'
 import { type Db, store, storesWithUnknownPaymentFees, withStore } from '@commerce/db'
 import { logger } from '@commerce/observability/logging'
-import { type IORedis, PAYMENT_FEES_QUEUE, Queue, Worker } from '@commerce/queue'
+import { type IORedis, KEEP_FINISHED, PAYMENT_FEES_QUEUE, Queue, Worker } from '@commerce/queue'
 import { eq } from 'drizzle-orm'
 
 /** How often the fee sync runs. Razorpay usually reports the fee on capture; Cashfree after settling. */
@@ -82,7 +82,7 @@ export function createPaymentFeeSync(
       if (r.checked) logger.info('payment fees synced', { ...r })
       return r
     },
-    { connection },
+    { connection, ...KEEP_FINISHED },
   )
   return { queue, worker }
 }

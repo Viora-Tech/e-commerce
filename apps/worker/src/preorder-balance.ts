@@ -2,7 +2,7 @@ import { parsePaymentSettings, resolvePaymentProviders, runBalanceSchedule } fro
 import { registriesForStore } from '@commerce/core/registries'
 import { type Db, store, storesWithBalanceDue, withStore } from '@commerce/db'
 import { logger } from '@commerce/observability/logging'
-import { type IORedis, PREORDER_BALANCE_QUEUE, Queue, Worker } from '@commerce/queue'
+import { type IORedis, KEEP_FINISHED, PREORDER_BALANCE_QUEUE, Queue, Worker } from '@commerce/queue'
 import { eq } from 'drizzle-orm'
 
 /** Reminders and deadlines are in days; a minute of slack is plenty. */
@@ -60,7 +60,7 @@ export function createPreorderBalanceJob(
       if (Object.values(counts).some(Boolean)) logger.info('preorder balances processed', counts)
       return { stores: storeIds.length, ...counts }
     },
-    { connection },
+    { connection, ...KEEP_FINISHED },
   )
   return { queue, worker }
 }

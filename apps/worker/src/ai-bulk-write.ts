@@ -1,7 +1,14 @@
 import { AI_BULK_QUEUE, type AiBulkJob } from '@commerce/core'
 import { runAiJob } from '@commerce/core/ai-runtime'
 import type { Db } from '@commerce/db'
-import { fairProcessor, type IORedis, QUEUE_LIMITS, Queue, Worker } from '@commerce/queue'
+import {
+  fairProcessor,
+  type IORedis,
+  KEEP_FINISHED,
+  QUEUE_LIMITS,
+  Queue,
+  Worker,
+} from '@commerce/queue'
 
 /**
  * Bulk "Write with AI" (products list → select → Write with AI): one job per run. The runner
@@ -24,7 +31,12 @@ export function createAiBulkWriteWorker(
       await runAiJob({ db, storeId, jobId, settingsSecret: opts.settingsSecret })
     }),
     // A run can take minutes; keep the lock alive well past one product's model call.
-    { connection, concurrency: QUEUE_LIMITS.aiBulkWrite.concurrency, lockDuration: 120_000 },
+    {
+      connection,
+      concurrency: QUEUE_LIMITS.aiBulkWrite.concurrency,
+      lockDuration: 120_000,
+      ...KEEP_FINISHED,
+    },
   )
   return { queue, worker }
 }

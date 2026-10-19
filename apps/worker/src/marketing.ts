@@ -13,6 +13,7 @@ import {
   ABANDONED_SWEEP_QUEUE,
   fairProcessor,
   type IORedis,
+  KEEP_FINISHED,
   MARKETING_SEND_QUEUE,
   MARKETING_TICK_QUEUE,
   QUEUE_LIMITS,
@@ -98,7 +99,7 @@ export function createMarketingWorker(connection: IORedis, db: Db, opts: Opts) {
       }
       return { stores: storeIds.length, queued, enrolled, steps }
     },
-    { connection },
+    { connection, ...KEEP_FINISHED },
   )
 
   const send = new Worker<SendJob>(
@@ -118,7 +119,7 @@ export function createMarketingWorker(connection: IORedis, db: Db, opts: Opts) {
       // The job's wide event carries these counts as `result`, with storeId and campaignId.
       return { sent, failed }
     }),
-    { connection, concurrency: QUEUE_LIMITS.marketingSend.concurrency },
+    { connection, concurrency: QUEUE_LIMITS.marketingSend.concurrency, ...KEEP_FINISHED },
   )
 
   return { tickQueue, sendQueue, tick, send }

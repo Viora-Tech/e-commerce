@@ -1,7 +1,7 @@
 import { resolveBillingEnv, runAppRenewals, runBillingSweep } from '@commerce/core'
 import type { Db } from '@commerce/db'
 import { logger } from '@commerce/observability/logging'
-import { BILLING_SWEEP_QUEUE, type IORedis, Queue, Worker } from '@commerce/queue'
+import { BILLING_SWEEP_QUEUE, type IORedis, KEEP_FINISHED, Queue, Worker } from '@commerce/queue'
 
 /** The sweep is idempotent, so hourly keeps renewals on time without double billing. */
 export const BILLING_EVERY_MS = 60 * 60_000
@@ -29,7 +29,7 @@ export function createBillingSweep(
       if (apps.billed || apps.lapsed) logger.info('apps swept', { area: 'billing', ...apps })
       return { ...r, apps }
     },
-    { connection, concurrency: 1 },
+    { connection, concurrency: 1, ...KEEP_FINISHED },
   )
   return { queue, worker }
 }
