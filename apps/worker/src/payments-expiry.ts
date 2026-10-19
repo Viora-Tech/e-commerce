@@ -14,7 +14,7 @@ import {
   withStore,
 } from '@commerce/db'
 import { logger } from '@commerce/observability/logging'
-import { type IORedis, Queue, UNPAID_EXPIRY_QUEUE, Worker } from '@commerce/queue'
+import { type IORedis, KEEP_FINISHED, Queue, UNPAID_EXPIRY_QUEUE, Worker } from '@commerce/queue'
 import { eq } from 'drizzle-orm'
 
 /** How often unpaid orders are checked. Windows are in minutes, so a minute of slack is fine. */
@@ -80,7 +80,7 @@ export function createUnpaidOrderExpiry(
       const transfers = await followUpManualTransfers(db)
       return { stores: storeIds.length, cancelled, paid, ...transfers }
     },
-    { connection },
+    { connection, ...KEEP_FINISHED },
   )
   return { queue, worker }
 }

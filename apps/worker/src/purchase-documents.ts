@@ -1,7 +1,14 @@
 import { PURCHASE_DOCUMENT_QUEUE, type PurchaseDocumentJob } from '@commerce/core'
 import { readPurchaseDocument } from '@commerce/core/ai-runtime'
 import type { Db } from '@commerce/db'
-import { fairProcessor, type IORedis, QUEUE_LIMITS, Queue, Worker } from '@commerce/queue'
+import {
+  fairProcessor,
+  type IORedis,
+  KEEP_FINISHED,
+  QUEUE_LIMITS,
+  Queue,
+  Worker,
+} from '@commerce/queue'
 
 /**
  * "Upload bills and let us read them" (purchase order and inbound shipment pages): one
@@ -25,7 +32,12 @@ export function createPurchaseDocumentWorker(connection: IORedis, db: Db) {
       },
     ),
     // A long scanned Bill of Entry can take a minute or two to read.
-    { connection, concurrency: QUEUE_LIMITS.purchaseDocuments.concurrency, lockDuration: 180_000 },
+    {
+      connection,
+      concurrency: QUEUE_LIMITS.purchaseDocuments.concurrency,
+      lockDuration: 180_000,
+      ...KEEP_FINISHED,
+    },
   )
   return { queue, worker }
 }

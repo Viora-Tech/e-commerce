@@ -1,4 +1,4 @@
-import { HEARTBEAT_QUEUE, type IORedis, Queue, Worker } from '@commerce/queue'
+import { HEARTBEAT_QUEUE, type IORedis, KEEP_FINISHED, Queue, Worker } from '@commerce/queue'
 
 export { createConnection, HEARTBEAT_QUEUE } from '@commerce/queue'
 
@@ -9,7 +9,7 @@ export function createHeartbeat(connection: IORedis) {
     async () => {
       // Nothing to do: the job's wide event (`logWorkerJobs`) is the heartbeat.
     },
-    { connection },
+    { connection, ...KEEP_FINISHED },
   )
   return { queue, worker }
 }

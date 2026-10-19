@@ -21,7 +21,7 @@ import {
   replyEmailData,
   reviewRequestEmail,
 } from '@commerce/plugin-reviews/server'
-import { fairProcessor, type IORedis, QUEUE_LIMITS, Worker } from '@commerce/queue'
+import { fairProcessor, type IORedis, KEEP_FINISHED, QUEUE_LIMITS, Worker } from '@commerce/queue'
 import { appEmailExtras } from './app-events'
 
 /** One line per delivery attempt: template, channel and outcome, never the recipient. */
@@ -251,6 +251,6 @@ export function createNotificationWorker(
       }
       return results
     }),
-    { connection, concurrency },
+    { connection, concurrency, ...KEEP_FINISHED },
   )
 }

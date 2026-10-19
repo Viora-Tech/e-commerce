@@ -10,7 +10,14 @@ import {
   type RestockJob,
   sendRestockAlerts,
 } from '@commerce/plugin-back-in-stock'
-import { fairProcessor, type IORedis, QUEUE_LIMITS, Queue, Worker } from '@commerce/queue'
+import {
+  fairProcessor,
+  type IORedis,
+  KEEP_FINISHED,
+  QUEUE_LIMITS,
+  Queue,
+  Worker,
+} from '@commerce/queue'
 import { eq } from 'drizzle-orm'
 
 export type BackInStockOpts = {
@@ -94,7 +101,7 @@ export function createBackInStockWorker(connection: IORedis, db: Db, opts: BackI
         variantId,
       )
     }),
-    { connection, concurrency: QUEUE_LIMITS.backInStock.concurrency },
+    { connection, concurrency: QUEUE_LIMITS.backInStock.concurrency, ...KEEP_FINISHED },
   )
   return { queue, worker }
 }

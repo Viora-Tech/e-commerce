@@ -6,7 +6,13 @@ import {
   SNAPSHOT_CLEANUP_JOB,
   SNAPSHOT_KEEP_MS,
 } from '@commerce/plugin-shopify-import/client'
-import { IMPORT_SNAPSHOT_CLEANUP_QUEUE, type IORedis, Queue, Worker } from '@commerce/queue'
+import {
+  IMPORT_SNAPSHOT_CLEANUP_QUEUE,
+  type IORedis,
+  KEEP_FINISHED,
+  Queue,
+  Worker,
+} from '@commerce/queue'
 import { appDeps } from './app-events'
 
 /** Copies only need to go within the day they turn a week old. */
@@ -47,7 +53,7 @@ export function createImportSnapshotCleanup(
       }
       return { stores: storeIds.length, cleaned }
     },
-    { connection },
+    { connection, ...KEEP_FINISHED },
   )
   return { queue, worker }
 }

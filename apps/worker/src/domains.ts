@@ -21,6 +21,7 @@ import {
   DOMAIN_ROUTE_QUEUE,
   DOMAIN_VERIFY_QUEUE,
   type IORedis,
+  KEEP_FINISHED,
   Queue,
   Worker,
 } from '@commerce/queue'
@@ -56,7 +57,7 @@ export function createDomainPoller(
       if (r.checked > 0 || r.failed > 0) logger.info('domains checked', { area: 'domains', ...r })
       return r
     },
-    { connection },
+    { connection, ...KEEP_FINISHED },
   )
   return { queue, worker }
 }
@@ -88,7 +89,7 @@ export function createDomainRouteWorker(
   const worker = new Worker<DomainRouteJob>(
     DOMAIN_ROUTE_QUEUE,
     (job) => runDomainRouteJob(deps, job.data),
-    { connection, concurrency: 1 },
+    { connection, concurrency: 1, ...KEEP_FINISHED },
   )
   worker.on('failed', (job, err) => {
     if (!job) return
@@ -146,7 +147,7 @@ export function createCertificateSweep(
         logger.info('certificates checked', { area: 'domains', ...r })
       return r
     },
-    { connection, concurrency: 1 },
+    { connection, concurrency: 1, ...KEEP_FINISHED },
   )
   return { queue, worker }
 }

@@ -21,6 +21,7 @@ import { logger } from '@commerce/observability/logging'
 import {
   fairProcessor,
   type IORedis,
+  KEEP_FINISHED,
   type MediaProcessQueue,
   QUEUE_LIMITS,
   Worker,
@@ -91,7 +92,7 @@ export function createAppEventWorker(connection: IORedis, db: Db, opts: AppOpts)
     fairProcessor(connection, APP_EVENTS_QUEUE, { perStore }, async (job) =>
       dispatchAppEvent(deps, job.data),
     ),
-    { connection, concurrency },
+    { connection, concurrency, ...KEEP_FINISHED },
   )
   // A hook that threw on every retry shows as the app's problem on the Installed apps list.
   worker.on('failed', (job, error) => {
@@ -121,7 +122,7 @@ export function createAppJobWorker(connection: IORedis, db: Db, opts: AppOpts) {
     fairProcessor(connection, APP_JOBS_QUEUE, { perStore }, async (job) =>
       dispatchAppJob(deps, job.data),
     ),
-    { connection, concurrency },
+    { connection, concurrency, ...KEEP_FINISHED },
   )
   worker.on('failed', (job, error) => {
     if (!job?.data || !isFinalJobFailure(job, error)) return
