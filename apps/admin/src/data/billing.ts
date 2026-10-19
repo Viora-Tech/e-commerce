@@ -142,7 +142,7 @@ export const billingContent = {
       apps: 'Apps',
       support: 'Support',
     },
-    ai: { starter: 'Light use', growth: 'Daily use', unlimited: 'Heavy use' },
+    ai: { starter: 'Light use', growth: 'Daily use', pro: 'Heavy use' },
     aiCredits: (n: string) => `${n} credits a month`,
     apps: { core: 'Core apps; buy others', all: 'All our apps included' },
     support: { email: 'Email', whatsapp: 'Email + WhatsApp', priority: 'Priority' },

@@ -75,10 +75,9 @@ export default function AiSettings() {
   }, [])
 
   // Helpers
-  const meter = (used: number, limit: number | null) =>
-    limit === null
-      ? copy.settings.usage.unlimited(fmt.number(used))
-      : copy.settings.usage.of(fmt.number(used), fmt.number(limit))
+  // Every plan, Pro included, has a monthly credit cap; the meter always shows it.
+  const meter = (used: number, limit: number) =>
+    copy.settings.usage.of(fmt.number(used), fmt.number(limit))
 
   // Event handlers
   const handleSave = async () => {

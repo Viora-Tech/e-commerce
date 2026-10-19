@@ -33,8 +33,8 @@ describe('checkQuota', () => {
   })
 
   it('gives Pro 15,000 credits and no call or token cap', () => {
-    expect(checkQuota('unlimited', used(1_000_000, 1_000_000_000, 14_999))).toEqual({ ok: true })
-    expect(checkQuota('unlimited', used(1, 0, 15_000))).toEqual({ ok: false, reason: 'credits' })
+    expect(checkQuota('pro', used(1_000_000, 1_000_000_000, 14_999))).toEqual({ ok: true })
+    expect(checkQuota('pro', used(1, 0, 15_000))).toEqual({ ok: false, reason: 'credits' })
   })
 })
 

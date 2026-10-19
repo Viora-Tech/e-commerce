@@ -1,21 +1,25 @@
 'use client'
 
-import { ChevronDown, Download, Users } from '@commerce/ui/icons'
+import { CONSENT_CHANNELS, type ConsentChannel } from '@commerce/core/privacy'
+import { ChevronDown, Download, Pencil, Users } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@commerce/ui/shadcn/dropdown-menu'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { parseAsInteger, parseAsString, parseAsStringLiteral, useQueryStates } from 'nuqs'
-import { Suspense, useEffect, useRef, useState } from 'react'
+import { Fragment, Suspense, useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
 import { type CustomerRow, customerColumns } from '@/components/customers/customer-columns'
 import CustomerRowActions from '@/components/customers/customer-row-actions'
 import CustomerTiles, { type CustomerStats } from '@/components/customers/customer-tiles'
 import TagCustomersDialog from '@/components/customers/tag-customers-dialog'
+import ConfirmDialog from '@/components/layout/confirm-dialog'
 import PageBody from '@/components/layout/page-body'
 import PageHeader from '@/components/layout/page-header'
 import PageState from '@/components/states/page-state'
@@ -27,7 +31,9 @@ import {
 } from '@/components/table/filter-panel'
 import ResourceTable from '@/components/table/resource-table'
 import ViewSelect from '@/components/table/view-select'
+import { CHANNEL_LABEL } from '@/data/customer-privacy'
 import { CUSTOMER_SEGMENTS, type CustomerSegment, customersContent } from '@/data/customers'
+import { CUSTOMERS_BULK_EDIT_IDS_KEY } from '@/data/customers-bulk-edit'
 import { filterPanelContent } from '@/data/filter-panel'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
@@ -45,6 +51,9 @@ import {
 } from './customer-filter-state'
 
 type ListResult = Awaited<ReturnType<typeof api.customers.list>>
+
+/** A bulk marketing consent change waiting for the merchant to confirm it. */
+type ConsentChange = { ids: string[]; channel: ConsentChannel; granted: boolean }
 
 /** First page, stat cards and the all-customers count from the server so nothing paints empty. */
 export type CustomersInitial = {
@@ -85,6 +94,7 @@ function CustomersContent({ initial }: { initial: CustomersInitial }) {
   // Hooks
   const copy = useCopy(customersContent)
   const panelCopy = useCopy(filterPanelContent)
+  const router = useRouter()
   const [{ page, perPage, query, status }, setQ] = useQueryStates(
     {
       query: parseAsString.withDefault(''),
@@ -101,6 +111,7 @@ function CustomersContent({ initial }: { initial: CustomersInitial }) {
   const [failed, setFailed] = useState(false)
   const [tagAction, setTagAction] = useState<'add' | 'remove' | null>(null)
   const [tagIds, setTagIds] = useState<string[]>([])
+  const [consentChange, setConsentChange] = useState<ConsentChange | null>(null)
   const [reloadKey, setReloadKey] = useState(0)
   const hydrated = useRef(false)
 
@@ -163,12 +174,35 @@ function CustomersContent({ initial }: { initial: CustomersInitial }) {
     }
   }
 
+  /* Thousands of ids don't fit in a URL: hand them to the sheet through sessionStorage. */
+  const handleBulkEdit = (ids: string[]) => {
+    try {
+      sessionStorage.setItem(CUSTOMERS_BULK_EDIT_IDS_KEY, JSON.stringify(ids))
+    } catch {
+      toast.error(copy.bulk.openFailed)
+      return
+    }
+    router.push(routes.customers.bulkEdit())
+  }
+
   const handleBulkTag = (ids: string[], action: 'add' | 'remove') => {
     setTagIds(ids)
     setTagAction(action)
   }
 
   const handleReload = () => setReloadKey((k) => k + 1)
+
+  const handleConfirmConsent = async () => {
+    if (!consentChange) return
+    try {
+      const { updated } = await api.customerPrivacy.setConsentMany(consentChange)
+      toast.success(updated === 0 ? copy.bulk.noChange : copy.bulk.tagged(updated))
+      handleReload()
+    } catch (err) {
+      toast.error(copy.bulk.consentFailed)
+      throw err
+    }
+  }
 
   // Render logic
   const columns = customerColumns(copy)
@@ -270,6 +304,10 @@ function CustomersContent({ initial }: { initial: CustomersInitial }) {
             const mail = bulkMailto(items.filter((i) => ids.includes(i.id)))
             return (
               <>
+                <Button variant="outline" size="sm" onClick={() => handleBulkEdit(ids)}>
+                  <Pencil />
+                  {copy.bulk.bulkEdit}
+                </Button>
                 <DropdownMenu>
                   <DropdownMenuTrigger render={<Button variant="outline" size="sm" />}>
                     {copy.bulk.addTag}
@@ -282,6 +320,29 @@ function CustomersContent({ initial }: { initial: CustomersInitial }) {
                     <DropdownMenuItem onClick={() => handleBulkTag(ids, 'remove')}>
                       {copy.bulk.removeTag}
                     </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+                <DropdownMenu>
+                  <DropdownMenuTrigger render={<Button variant="outline" size="sm" />}>
+                    {copy.bulk.marketing}
+                    <ChevronDown />
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="start">
+                    {CONSENT_CHANNELS.map((channel, i) => (
+                      <Fragment key={channel}>
+                        {i > 0 ? <DropdownMenuSeparator /> : null}
+                        <DropdownMenuItem
+                          onClick={() => setConsentChange({ ids, channel, granted: true })}
+                        >
+                          {copy.bulk.subscribe(CHANNEL_LABEL[channel])}
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={() => setConsentChange({ ids, channel, granted: false })}
+                        >
+                          {copy.bulk.unsubscribe(CHANNEL_LABEL[channel])}
+                        </DropdownMenuItem>
+                      </Fragment>
+                    ))}
                   </DropdownMenuContent>
                 </DropdownMenu>
                 <Button
@@ -318,6 +379,23 @@ function CustomersContent({ initial }: { initial: CustomersInitial }) {
         action={tagAction}
         onClose={() => setTagAction(null)}
         onDone={handleReload}
+      />
+      <ConfirmDialog
+        open={consentChange !== null}
+        onOpenChange={(open) => !open && setConsentChange(null)}
+        title={
+          consentChange
+            ? copy.bulk.consentTitle(
+                consentChange.granted,
+                CHANNEL_LABEL[consentChange.channel],
+                consentChange.ids.length,
+              )
+            : ''
+        }
+        body={consentChange ? copy.bulk.consentBody(consentChange.granted) : undefined}
+        confirmLabel={copy.bulk.consentConfirm(consentChange?.granted ?? true)}
+        tone={consentChange?.granted === false ? 'destructive' : 'default'}
+        onConfirm={handleConfirmConsent}
       />
     </PageBody>
   )

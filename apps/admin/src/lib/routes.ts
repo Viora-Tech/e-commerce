@@ -92,6 +92,7 @@ export const routes = {
   customers: {
     list: () => '/customers',
     detail: (customerId: string) => `/customers/${id(customerId)}`,
+    bulkEdit: () => '/customers/bulk-edit',
     segments: () => '/customers/segments',
     newSegment: () => '/customers/segments/new',
     segment: (segmentId: string) => `/customers/segments/${id(segmentId)}`,

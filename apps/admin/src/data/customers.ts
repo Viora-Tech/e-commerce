@@ -116,6 +116,23 @@ export const customersContent = {
     tagged: (n: number) => (n === 1 ? '1 customer updated' : `${n} customers updated`),
     noChange: 'Nothing to change',
     failed: 'Could not update the tags',
+    marketing: 'Marketing',
+    subscribe: (channel: string) => `Subscribe to ${channel}`,
+    unsubscribe: (channel: string) => `Unsubscribe from ${channel}`,
+    consentTitle: (granted: boolean, channel: string, n: number) => {
+      const who = n === 1 ? '1 customer' : `${n} customers`
+      return granted
+        ? `Subscribe ${who} to ${channel} marketing?`
+        : `Unsubscribe ${who} from ${channel} marketing?`
+    },
+    consentBody: (granted: boolean) =>
+      granted
+        ? 'Only do this if they agreed to hear from you, for example on a call or a signed form. Each change is kept in their consent history.'
+        : 'They stop getting marketing on this channel. Each change is kept in their consent history.',
+    consentConfirm: (granted: boolean) => (granted ? 'Subscribe' : 'Unsubscribe'),
+    consentFailed: 'Could not update marketing consent',
+    bulkEdit: 'Bulk edit',
+    openFailed: 'Could not open the bulk editor',
   },
   saveSegment: 'Save as segment',
   exportAll: 'Export',

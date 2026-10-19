@@ -44,6 +44,7 @@ export {
   type ReportColumnKind,
   type ReportDefinition,
 } from './services/analytics-reports'
+export type { CustomerSheetRow } from './services/customer-sheet.service'
 export {
   DASHBOARD_LOW_STOCK_THRESHOLD,
   type DashboardChartRange,
