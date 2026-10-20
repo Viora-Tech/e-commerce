@@ -162,9 +162,12 @@ export function createNotificationWorker(
             {
               customerName: r.name.split(' ')[0] || 'there',
               review: {
-                productTitle: r.productTitle,
+                productTitle: r.productTitle ?? undefined,
+                // A store review (no product) links the shop's home page.
                 productUrl: base
-                  ? `${base}/products/${encodeURIComponent(r.handle)}#reviews`
+                  ? r.handle
+                    ? `${base}/products/${encodeURIComponent(r.handle)}#reviews`
+                    : `${base}/`
                   : undefined,
                 reply: r.reply,
               },

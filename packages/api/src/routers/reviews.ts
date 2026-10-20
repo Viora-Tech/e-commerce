@@ -157,15 +157,26 @@ export const reviewsRouter = {
         return previewJudgemeImport(context.tx, input.csv)
       }),
 
-    /** Imports what the preview showed; photos are copied by a background job. */
+    /**
+     * Imports what the preview showed (store reviews too, and missing-product rows as store
+     * reviews when asked); photos are copied by a background job.
+     */
     import: can(permissions.PRODUCTS_WRITE)
-      .input(z.object({ csv: Csv, copyPhotos: z.boolean(), publish: z.boolean() }))
+      .input(
+        z.object({
+          csv: Csv,
+          copyPhotos: z.boolean(),
+          publish: z.boolean(),
+          unmatchedAsStore: z.boolean().default(false),
+        }),
+      )
       .handler(async ({ context, input }) => {
         await requireInstalled(context)
         const storeId = context.scope.storeId
         const result = await importJudgemeReviews(context.tx, storeId, input.csv, {
           copyPhotos: input.copyPhotos,
           publish: input.publish,
+          unmatchedAsStore: input.unmatchedAsStore,
         })
         if (result.ok && result.photosToCopy > 0 && context.appJobs) {
           await enqueueAppJob(context.appJobs, {

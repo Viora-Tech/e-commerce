@@ -49,7 +49,12 @@ export async function cardRatings(
     .from(review)
     .where(and(inArray(review.productId, ids), eq(review.status, 'published')))
     .groupBy(review.productId)
-  return new Map(rows.map((r) => [r.productId, { average: r.average, count: r.count }]))
+  // The filter names products, so no store review (null product) is among the rows.
+  return new Map(
+    rows.flatMap((r) =>
+      r.productId ? [[r.productId, { average: r.average, count: r.count }] as const] : [],
+    ),
+  )
 }
 
 /** Products for cards: first two images, lowest price, summed availability. */

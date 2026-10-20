@@ -34,7 +34,7 @@ async function publicReviews(
   sort: ReviewSort,
   limit: number,
   showPhotos: boolean,
-): Promise<(PublicReview & { productId: string })[]> {
+): Promise<(PublicReview & { productId: string | null })[]> {
   const rows = await tx
     .select({
       id: review.id,
@@ -107,7 +107,8 @@ export async function storeReviewTotals(tx: StoreTx) {
 
 /**
  * The newest published reviews across the store, the ones the merchant featured first,
- * each with its product: what a theme's review wall (Judge.me's `reviews_grid`) lists.
+ * each with its product (null title and handle on a store review): what a theme's review
+ * wall (Judge.me's `reviews_grid`) lists.
  */
 export async function storeReviewFeed(tx: StoreTx, settings: ReviewsSettings, limit = 25) {
   const rows = await tx
@@ -123,7 +124,7 @@ export async function storeReviewFeed(tx: StoreTx, settings: ReviewsSettings, li
       handle: product.handle,
     })
     .from(review)
-    .innerJoin(product, eq(product.id, review.productId))
+    .leftJoin(product, eq(product.id, review.productId))
     .where(eq(review.status, 'published'))
     .orderBy(desc(review.featured), desc(review.createdAt))
     .limit(limit)

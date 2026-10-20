@@ -95,7 +95,11 @@ export default function ReviewSideCards({ detail, onChanged, onDeleted }: Review
             </Button>
           </div>
         </DataCard>
-      ) : null}
+      ) : (
+        <DataCard title={all.list.storeReview}>
+          <p className="text-body text-muted-foreground">{copy.product.store}</p>
+        </DataCard>
+      )}
       <DataCard title={copy.customer.title}>
         <KeyValueList rows={rows} variant="grid" />
         {c.id ? (
