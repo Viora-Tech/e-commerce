@@ -221,6 +221,13 @@ export function fakeShopify(opts: { customers: number; orders: number; products:
         extensions: { cost },
       })
     }
+    // Collection membership, read after a narrowed products import: none unless a test serves some.
+    if (name === 'Collections') {
+      return json({
+        data: { collections: { pageInfo: { hasNextPage: false, endCursor: null }, nodes: [] } },
+        extensions: { cost },
+      })
+    }
     const resource = OP[name]
     if (!resource) {
       return json({

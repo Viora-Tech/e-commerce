@@ -276,6 +276,11 @@ export const settingsContent = {
       help: 'Used for prices, order times and reports.',
       currency: 'Currency',
       currencyHelp: 'Indian rupees (INR) for now.',
+      moneyFormat: 'Price format',
+      moneyFormatHelp:
+        'How prices read in your store. {{amount}} shows 6,499.00 and {{amount_no_decimals}} shows 6,499, e.g. Rs. {{amount}}. Leave blank for ₹6,499. A Shopify import brings your shop’s format.',
+      moneyFormatError: 'Include {{amount}} or {{amount_no_decimals}}, e.g. Rs. {{amount}}',
+      moneyFormatPreview: (example: string) => `Shows as ${example}`,
       timezone: 'Time zone',
     },
     timezones: [

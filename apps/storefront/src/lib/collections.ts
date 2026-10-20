@@ -13,7 +13,7 @@ import {
 } from '@commerce/db'
 import type { RichTextValue } from '@commerce/richtext'
 import { and, asc, desc, eq, inArray, isNull, sql } from 'drizzle-orm'
-import { cardRatings } from './catalog'
+import { cardPreorder, cardRatings } from './catalog'
 
 export type CollectionDetail = {
   id: string
@@ -135,6 +135,15 @@ export async function listCollectionProducts(
       title: product.title,
       vendor: product.vendor,
       productType: product.productType,
+      launchAt: product.launchAt,
+      preorderEnabled: product.preorderEnabled,
+      preorderShipDate: product.preorderShipDate,
+      preorderShipsInDays: product.preorderShipsInDays,
+      preorderLimit: product.preorderLimit,
+      preorderButtonLabel: product.preorderButtonLabel,
+      preorderPaymentMode: product.preorderPaymentMode,
+      preorderDepositPaise: product.preorderDepositPaise,
+      preorderDepositPercent: product.preorderDepositPercent,
     })
     .from(collectionProduct)
     .innerJoin(product, eq(product.id, collectionProduct.productId))
@@ -154,6 +163,7 @@ export async function listCollectionProducts(
       onHand: sellableStock.onHand,
       reserved: sellableStock.reserved,
       trackInventory: variant.trackInventory,
+      preorderOverride: variant.preorderOverride,
     })
     .from(variant)
     .leftJoin(sellableStock, eq(sellableStock.variantId, variant.id))
@@ -189,6 +199,7 @@ export async function listCollectionProducts(
       available: vs.reduce((n, v) => n + availableFor(v), 0),
       // Quick add needs no choice only when there is one variant to add.
       quickAddVariantId: vs.length === 1 ? (vs[0]?.id ?? null) : null,
+      preorder: cardPreorder(p, vs),
       rating: ratings.get(p.id) ?? null,
       images: images
         .filter((i) => i.productId === p.id)

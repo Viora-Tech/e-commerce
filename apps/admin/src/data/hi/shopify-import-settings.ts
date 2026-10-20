@@ -94,6 +94,7 @@ export default [
       currency: 'करेंसी',
       timezone: 'टाइम ज़ोन',
       weight_unit: 'वज़न की इकाई',
+      money_format: 'कीमत का फ़ॉर्मेट',
       prices_include_tax: 'कीमतों में टैक्स शामिल',
       gstin: 'GST नंबर',
       location: 'लोकेशन',

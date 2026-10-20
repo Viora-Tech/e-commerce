@@ -1,4 +1,6 @@
-import { formatPaise } from '../money'
+'use client'
+
+import { useFormatPaise } from '../money-format'
 
 // Port of snippets/price.liquid, as Figma Store / Price (691:85138): the price (in the sale
 // colour when discounted), the MRP struck through and the saving in rupees.
@@ -12,7 +14,13 @@ export default function Price({
   /** The product page's "−17%" tag after the saving. */
   percentBadge?: boolean | undefined
 }) {
+  // Hooks
+  const formatPaise = useFormatPaise()
+
+  // Derived state
   const onSale = mrpPaise != null && mrpPaise > pricePaise
+
+  // Render logic
   return (
     <div className={`price${onSale ? ' price--on-sale' : ''}`}>
       <span className="price__current">{formatPaise(pricePaise)}</span>

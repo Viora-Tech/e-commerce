@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { afterLoadWhenIdle } from '../idle'
-import { formatPaise } from '../money'
+import { useFormatPaise } from '../money-format'
 import {
   AFFORDABILITY_ELEMENT_ID,
   claimAffordabilitySlot,
@@ -56,6 +56,7 @@ const DARK_QUERY = '(prefers-color-scheme: dark)'
  */
 export default function EmiOffersBlock({ context, copy }: EmiOffersBlockProps) {
   // Hooks
+  const formatPaise = useFormatPaise()
   const [dark, setDark] = useState<boolean | null>(null)
   const [widgetShown, setWidgetShown] = useState(false)
   const slot = useRef<HTMLDivElement>(null)

@@ -28,6 +28,7 @@ import {
   LiquidHeadContext,
   PreviewModeContext,
   ThemePreviewContext,
+  useThemePacks,
 } from '@/lib/customize-theme-context'
 import { DynamicSourceContext, scopeFor } from '@/lib/dynamic-sources'
 import { routes } from '@/lib/routes'
@@ -125,10 +126,10 @@ export default function CustomizeEditor({
   /** The first page could not be loaded (an error, or no answer in `LOAD_TIMEOUT_MS`). */
   const [loadFailed, setLoadFailed] = useState(false)
   const [attempt, setAttempt] = useState(0)
-  // `<Puck>` only reads `config` at mount, so the installed apps (the Add panel's
-  // Apps tab, and the "app is off" placeholder for blocks from an uninstalled
-  // app) come from the server: the editor mounts once, already right.
-  const [config] = useState(() => createCustomizeConfig(new Set(installedApps)))
+  // `<Puck>` only reads `config` at mount, so the installed apps (Apps tab, "app is off"
+  // placeholders) and theme packs come from the server: the editor mounts once, already right.
+  const themePacks = useThemePacks()
+  const [config] = useState(() => createCustomizeConfig(new Set(installedApps), themePacks))
   const drafts = useTemplateDrafts(record.id, () => toast.error(copy.draftFailed))
   const preview = useCustomizePreview(ref.key, initial.resource)
   // An imported Shopify theme: section fields from each `{% schema %}`, its head for the canvas.

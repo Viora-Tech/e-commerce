@@ -5,6 +5,7 @@
  * Each part is read on its own, so a scope the connection lacks fails only that part.
  */
 import { validateGstin } from '@commerce/core/gstin'
+import { cleanMoneyFormat } from '@commerce/money'
 import { definitionsOf } from './api-metafields'
 import { mapFieldDefinition } from './api-metaobjects'
 import type { SettingsPart } from './settings-client'
@@ -40,6 +41,8 @@ export type NShopSettings = {
   taxesIncluded: boolean
   /** A valid GSTIN found in the shop's own extra fields (some GST apps keep it there), else null. */
   gstin: string | null
+  /** The shop's price format as plain text (`Rs. {{amount}}`); null when it has no usable one. */
+  moneyFormat: string | null
 }
 
 export type NLocation = {
@@ -159,6 +162,7 @@ async function read<T>(load: () => Promise<T>): Promise<Read<T>> {
 
 const SHOP_SETTINGS_QUERY = `{ shop {
   name email contactEmail currencyCode ianaTimezone weightUnit taxesIncluded
+  currencyFormats { moneyFormat }
   shopAddress { address1 address2 city province provinceCode countryCodeV2 zip phone }
 } }`
 
@@ -172,6 +176,7 @@ type GShop = {
   ianaTimezone: string
   weightUnit: string
   taxesIncluded: boolean
+  currencyFormats?: { moneyFormat: string | null } | null
   shopAddress: GAddress
 }
 
@@ -205,6 +210,7 @@ async function fetchShop(client: ShopifyClient): Promise<NShopSettings> {
     weightUnit: shop.weightUnit,
     taxesIncluded: shop.taxesIncluded,
     gstin: await shopGstin(client),
+    moneyFormat: cleanMoneyFormat(shop.currencyFormats?.moneyFormat),
   }
 }
 

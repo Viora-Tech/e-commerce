@@ -147,6 +147,13 @@ export const locationsContent = {
   created: (name: string) => `${name} added`,
   failed: 'Could not add location',
   invalidPincode: 'PIN code has six digits',
+  edit: 'Edit address',
+  editTitle: 'Edit location',
+  editBody:
+    'Its state decides which GST number it bills under. If you have exactly one GST number in that state, it is picked for you.',
+  editSave: 'Save',
+  editSaved: 'Location saved',
+  editFailed: 'Could not save the location',
 } as const
 
 export const purchaseOrdersContent = {

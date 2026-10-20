@@ -119,6 +119,7 @@ export const storeRouter = {
       StoreGeneralSchema.extend({
         gstin: GstinSchema.optional(),
         gstRatePercent: z.coerce.number().min(0).max(40).optional(),
+        moneyFormat: StoreGeneralSchema.shape.moneyFormat.optional(),
       }),
     )
     .handler(async ({ context, input }) => {
@@ -133,6 +134,7 @@ export const storeRouter = {
           ? {}
           : { gstRatePercent: Math.round(input.gstRatePercent) }),
         timezone: input.timezone,
+        ...(input.moneyFormat === undefined ? {} : { moneyFormat: empty(input.moneyFormat) }),
       }).catch((err: unknown) => {
         if (err instanceof GstRegistrationError) {
           throw new ORPCError('BAD_REQUEST', { message: err.message, data: { code: err.code } })

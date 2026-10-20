@@ -63,6 +63,11 @@ const ALLOWLIST: Record<string, { lines: number; reason: string }> = {
     lines: 568,
     reason: 'Liquid drops for every resource — split collection/search drops into their own module',
   },
+  'packages/plugin-shopify-import/src/write-content.ts': {
+    lines: 505,
+    reason:
+      'collections, pages, blogs, menus and redirects in one writer — split one file per resource',
+  },
   'packages/db/src/schema.ts': {
     lines: 2446,
     reason: 'the Drizzle schema; split into per-area schema files (like marketing-schema.ts)',
