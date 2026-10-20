@@ -29,6 +29,7 @@ import dates from './dates'
 import discounts from './discounts'
 import domains from './domains'
 import drafts from './drafts'
+import ekart from './ekart'
 import filterPanel from './filter-panel'
 import growth from './growth'
 import gstInvoices from './gst-invoices'
@@ -61,6 +62,7 @@ import selectProducts from './select-products'
 import seoKeywords from './seo-keywords'
 import seoReport from './seo-report'
 import settings from './settings'
+import shadowfax from './shadowfax'
 import shipping from './shipping'
 import shippingRates from './shipping-rates'
 import shopifyImport from './shopify-import'
@@ -77,6 +79,7 @@ import themeCode from './theme-code'
 import themeImport from './theme-import'
 import themes from './themes'
 import umami from './umami'
+import xpressbees from './xpressbees'
 
 /**
  * Every Hindi translation, as [English export, Hindi overlay] pairs. A `data/<feature>.ts`
@@ -162,4 +165,7 @@ export const hindiCopy: readonly TranslationPair[] = [
   ...seoReport,
   ...seoKeywords,
   ...umami,
+  ...xpressbees,
+  ...ekart,
+  ...shadowfax,
 ]

@@ -34,8 +34,11 @@
         "@commerce/plugin-umami#build",
         "@commerce/plugins#build",
         "@commerce/shipping-delhivery#build",
+        "@commerce/shipping-ekart#build",
         "@commerce/shipping-rapidshyp#build",
+        "@commerce/shipping-shadowfax#build",
         "@commerce/shipping-shiprocket#build",
+        "@commerce/shipping-xpressbees#build",
         "@commerce/storage-r2#build",
         "@commerce/storage-s3#build"
       ],

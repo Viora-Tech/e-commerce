@@ -26,8 +26,11 @@
         "@commerce/plugin-umami": "workspace:*",
         "@commerce/plugins": "workspace:*",
         "@commerce/shipping-delhivery": "workspace:*",
+        "@commerce/shipping-ekart": "workspace:*",
         "@commerce/shipping-rapidshyp": "workspace:*",
+        "@commerce/shipping-shadowfax": "workspace:*",
         "@commerce/shipping-shiprocket": "workspace:*",
+        "@commerce/shipping-xpressbees": "workspace:*",
         "@commerce/storage-r2": "workspace:*",
         "@commerce/storage-s3": "workspace:*",
         "drizzle-orm": "^0.45.2",
@@ -902,6 +905,28 @@
         "react": "^19.0.0",
       },
     },
+    "packages/shipping-ekart": {
+      "name": "@commerce/shipping-ekart",
+      "version": "0.0.0",
+      "dependencies": {
+        "@commerce/blocks": "workspace:*",
+        "@commerce/observability": "workspace:*",
+        "@commerce/plugins": "workspace:*",
+        "@commerce/shipping": "workspace:*",
+      },
+      "devDependencies": {
+        "@commerce/config": "workspace:*",
+        "@types/node": "^22.20.4",
+        "@types/react": "^19.2.8",
+        "dotenv": "^18.0.1",
+        "react": "^19.2.0",
+        "typescript": "~5.9.3",
+        "vitest": "^4.1.11",
+      },
+      "peerDependencies": {
+        "react": "^19.0.0",
+      },
+    },
     "packages/shipping-rapidshyp": {
       "name": "@commerce/shipping-rapidshyp",
       "version": "0.0.0",
@@ -923,8 +948,52 @@
         "react": "^19.0.0",
       },
     },
+    "packages/shipping-shadowfax": {
+      "name": "@commerce/shipping-shadowfax",
+      "version": "0.0.0",
+      "dependencies": {
+        "@commerce/blocks": "workspace:*",
+        "@commerce/observability": "workspace:*",
+        "@commerce/plugins": "workspace:*",
+        "@commerce/shipping": "workspace:*",
+      },
+      "devDependencies": {
+        "@commerce/config": "workspace:*",
+        "@types/node": "^22.20.4",
+        "@types/react": "^19.2.8",
+        "dotenv": "^18.0.1",
+        "react": "^19.2.0",
+        "typescript": "~5.9.3",
+        "vitest": "^4.1.11",
+      },
+      "peerDependencies": {
+        "react": "^19.0.0",
+      },
+    },
     "packages/shipping-shiprocket": {
       "name": "@commerce/shipping-shiprocket",
+      "version": "0.0.0",
+      "dependencies": {
+        "@commerce/blocks": "workspace:*",
+        "@commerce/observability": "workspace:*",
+        "@commerce/plugins": "workspace:*",
+        "@commerce/shipping": "workspace:*",
+      },
+      "devDependencies": {
+        "@commerce/config": "workspace:*",
+        "@types/node": "^22.20.4",
+        "@types/react": "^19.2.8",
+        "dotenv": "^18.0.1",
+        "react": "^19.2.0",
+        "typescript": "~5.9.3",
+        "vitest": "^4.1.11",
+      },
+      "peerDependencies": {
+        "react": "^19.0.0",
+      },
+    },
+    "packages/shipping-xpressbees": {
+      "name": "@commerce/shipping-xpressbees",
       "version": "0.0.0",
       "dependencies": {
         "@commerce/blocks": "workspace:*",
@@ -1306,9 +1375,15 @@
 
     "@commerce/shipping-delhivery": ["@commerce/shipping-delhivery@workspace:packages/shipping-delhivery"],
 
+    "@commerce/shipping-ekart": ["@commerce/shipping-ekart@workspace:packages/shipping-ekart"],
+
     "@commerce/shipping-rapidshyp": ["@commerce/shipping-rapidshyp@workspace:packages/shipping-rapidshyp"],
 
+    "@commerce/shipping-shadowfax": ["@commerce/shipping-shadowfax@workspace:packages/shipping-shadowfax"],
+
     "@commerce/shipping-shiprocket": ["@commerce/shipping-shiprocket@workspace:packages/shipping-shiprocket"],
+
+    "@commerce/shipping-xpressbees": ["@commerce/shipping-xpressbees@workspace:packages/shipping-xpressbees"],
 
     "@commerce/storage": ["@commerce/storage@workspace:packages/storage"],
 

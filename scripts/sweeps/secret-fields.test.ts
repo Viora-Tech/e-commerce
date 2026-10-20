@@ -24,8 +24,11 @@ import { cashfreeFactory } from '@commerce/payments-cashfree'
 import { decentroFactory } from '@commerce/payments-decentro'
 import { razorpayFactory } from '@commerce/payments-razorpay'
 import { delhiveryFactory } from '@commerce/shipping-delhivery'
+import { ekartFactory } from '@commerce/shipping-ekart'
 import { rapidshypFactory } from '@commerce/shipping-rapidshyp'
+import { shadowfaxFactory } from '@commerce/shipping-shadowfax'
 import { shiprocketFactory } from '@commerce/shipping-shiprocket'
+import { xpressbeesFactory } from '@commerce/shipping-xpressbees'
 import { r2Factory } from '@commerce/storage-r2'
 import { s3Factory } from '@commerce/storage-s3'
 import { describe, expect, it } from 'vitest'
@@ -57,6 +60,9 @@ describe('sweep: secret-fields', () => {
       delhiveryFactory,
       shiprocketFactory,
       rapidshypFactory,
+      xpressbeesFactory,
+      ekartFactory,
+      shadowfaxFactory,
       sesFactory,
       whatsappFactory,
       r2Factory,

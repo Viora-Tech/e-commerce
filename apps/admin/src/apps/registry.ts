@@ -8,6 +8,8 @@ import DecentroConnectPage from '@/components/apps/decentro/connect-page'
 import DecentroOverviewPage from '@/components/apps/decentro/overview-page'
 import DelhiveryConnectPage from '@/components/apps/delhivery/connect-page'
 import DelhiveryOverviewPage from '@/components/apps/delhivery/overview-page'
+import EkartConnectPage from '@/components/apps/ekart/connect-page'
+import EkartOverviewPage from '@/components/apps/ekart/overview-page'
 import EmiSettingsPage from '@/components/apps/emi/settings-page'
 import SubmissionsList from '@/components/apps/forms/submissions-list'
 import InvoiceDetail from '@/components/apps/gst-invoices/invoice-detail'
@@ -34,6 +36,8 @@ import SearchConsolePages from '@/components/apps/search-console/pages-page'
 import SearchConsoleSearches from '@/components/apps/search-console/searches-page'
 import SearchConsoleSettings from '@/components/apps/search-console/settings-page'
 import SearchConsoleSitemaps from '@/components/apps/search-console/sitemaps-page'
+import ShadowfaxConnectPage from '@/components/apps/shadowfax/connect-page'
+import ShadowfaxOverviewPage from '@/components/apps/shadowfax/overview-page'
 import ShiprocketConnectPage from '@/components/apps/shiprocket/connect-page'
 import ShiprocketOverviewPage from '@/components/apps/shiprocket/overview-page'
 import ConnectHeaderButton from '@/components/apps/shopify-import/connect-header-button'
@@ -43,6 +47,8 @@ import ImportsPage from '@/components/apps/shopify-import/imports-page'
 import RunPage from '@/components/apps/shopify-import/run-page'
 import ShopifySettingsPage from '@/components/apps/shopify-import/settings-page'
 import UmamiSettingsPage from '@/components/apps/umami/settings-page'
+import XpressbeesConnectPage from '@/components/apps/xpressbees/connect-page'
+import XpressbeesOverviewPage from '@/components/apps/xpressbees/overview-page'
 
 /** What a page of an app receives: the dynamic segments of its path, e.g. `{ id }`. */
 export type AppPageProps = { params: Record<string, string> }
@@ -86,6 +92,12 @@ export const ADMIN_APPS: Record<string, AdminApp> = {
     pages: {
       '': DelhiveryOverviewPage,
       connect: DelhiveryConnectPage,
+    },
+  },
+  ekart: {
+    pages: {
+      '': EkartOverviewPage,
+      connect: EkartConnectPage,
     },
   },
   'emi-pay-later': {
@@ -150,6 +162,12 @@ export const ADMIN_APPS: Record<string, AdminApp> = {
       connect: SesConnectPage,
     },
   },
+  shadowfax: {
+    pages: {
+      '': ShadowfaxOverviewPage,
+      connect: ShadowfaxConnectPage,
+    },
+  },
   shiprocket: {
     pages: {
       '': ShiprocketOverviewPage,
@@ -174,6 +192,12 @@ export const ADMIN_APPS: Record<string, AdminApp> = {
   },
   umami: {
     pages: { '': UmamiSettingsPage },
+  },
+  xpressbees: {
+    pages: {
+      '': XpressbeesOverviewPage,
+      connect: XpressbeesConnectPage,
+    },
   },
 }
 

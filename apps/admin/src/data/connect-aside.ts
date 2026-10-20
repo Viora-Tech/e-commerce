@@ -49,5 +49,35 @@ export const connectAsideContent = {
       helpTitle: 'Where is my API key?',
       helpBody: 'In your RapidShyp dashboard, open Settings › API and copy the key shown there.',
     },
+    xpressbees: {
+      connects: [
+        'Rates for every Xpressbees service on a route',
+        'Book shipments with automatic pickup and print labels',
+        'Tracking and failed delivery (NDR) follow-ups',
+      ],
+      helpTitle: 'Which login do I use?',
+      helpBody:
+        'The email and password you sign in to shipment.xpressbees.com with. Your Xpressbees account manager turns on API access.',
+    },
+    ekart: {
+      connects: [
+        'Ekart price and delivery days at checkout',
+        'Book shipments and return pickups',
+        'Tracking and failed delivery (NDR) follow-ups',
+      ],
+      helpTitle: 'Where are my API credentials?',
+      helpBody:
+        'Ekart emails a client ID, API username and password at onboarding. Ask your Ekart account manager if you cannot find them.',
+    },
+    shadowfax: {
+      connects: [
+        'PIN serviceability at checkout',
+        'Book shipments and return pickups, and print labels',
+        'Tracking and failed delivery (NDR) follow-ups',
+      ],
+      helpTitle: 'Where is my API key?',
+      helpBody:
+        'Shadowfax emails it when your account is activated. Staging and production keys differ; use the production key.',
+    },
   } as Record<string, { connects: string[]; helpTitle: string; helpBody: string }>,
 } as const

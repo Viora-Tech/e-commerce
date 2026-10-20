@@ -13,8 +13,11 @@ import { shopifyImportPlugin } from '@commerce/plugin-shopify-import'
 import { umamiPlugin } from '@commerce/plugin-umami'
 import { defineConfig } from '@commerce/plugins'
 import { delhiveryPlugin } from '@commerce/shipping-delhivery'
+import { ekartPlugin } from '@commerce/shipping-ekart'
 import { rapidshypPlugin } from '@commerce/shipping-rapidshyp'
+import { shadowfaxPlugin } from '@commerce/shipping-shadowfax'
 import { shiprocketPlugin } from '@commerce/shipping-shiprocket'
+import { xpressbeesPlugin } from '@commerce/shipping-xpressbees'
 import { r2Plugin } from '@commerce/storage-r2'
 import { s3Plugin } from '@commerce/storage-s3'
 
@@ -32,6 +35,9 @@ export default defineConfig({
     delhiveryPlugin,
     shiprocketPlugin,
     rapidshypPlugin,
+    xpressbeesPlugin,
+    ekartPlugin,
+    shadowfaxPlugin,
     sesPlugin,
     whatsappPlugin,
     r2Plugin,

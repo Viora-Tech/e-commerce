@@ -1,6 +1,6 @@
 ---
 title: Couriers
-description: Connect Delhivery, Shiprocket or RapidShyp, then check your courier wallet balance.
+description: Connect Delhivery, Shiprocket, RapidShyp, Xpressbees, Ekart or Shadowfax, then check your courier wallet balance.
 ---
 
 # Couriers
@@ -12,7 +12,7 @@ Couriers are apps. Connect one here, then book parcels from [Shipments](/merchan
 If no courier is connected yet you'll see **Connect a courier** with a **Browse courier apps**
 button that opens **Apps**.
 
-<Tabs items={['Delhivery', 'Shiprocket', 'RapidShyp']}>
+<Tabs items={['Delhivery', 'Shiprocket', 'RapidShyp', 'Xpressbees', 'Ekart', 'Shadowfax']}>
 <Tabs.Tab>
 
 From **Apps**, install **Delhivery**, then open its **Connect** page. It takes about a minute.
@@ -127,6 +127,135 @@ Delhivery and Shiprocket.
 </Callout>
 
 </Tabs.Tab>
+<Tabs.Tab>
+
+From **Apps**, install **Xpressbees**, then open its **Connect** page.
+
+<Steps>
+
+### Ask for API access
+
+Sign in to [shipment.xpressbees.com](https://shipment.xpressbees.com/). Your Xpressbees account
+manager turns on API access; ask them if you have not used the API before.
+
+### Note your login and pickup warehouse
+
+We connect with the email and password you sign in with. Under **Warehouses**, copy the exact
+name of the warehouse your parcels leave from.
+
+### Paste them below
+
+Enter **Login email**, **Password**, **Pickup warehouse name** and **Origin PIN code**, then
+**Test connection**.
+
+</Steps>
+
+The test signs in and asks for rates on your own PIN code; nothing is booked. The warehouse
+name is only checked when you book.
+
+| Field | Where to find it |
+| --- | --- |
+| **Login email** and **Password** | What you sign in to shipment.xpressbees.com with. |
+| **Pickup warehouse name** | Xpressbees dashboard → Warehouses, spelled exactly. |
+| **Origin PIN code** | The 6-digit PIN code your parcels ship from. |
+| **Webhook secret** (Advanced) | Any secret you choose; set the same one on the Xpressbees webhook page. |
+
+Every booking asks Xpressbees for a pickup automatically, so there is no separate pickup step.
+Rates list each Xpressbees service (Surface, Air, same day) in the Create shipment table, with
+the COD charge shown separately. Cancel works until pickup. From the NDR queue you can ask for
+a reattempt, a new address or a new phone number; to send a parcel back (RTO), use the
+Xpressbees dashboard.
+
+For tracking within minutes, copy the **Tracking webhook URL** from the app's Overview into the
+Xpressbees webhook settings with your webhook secret. Without it, tracking is checked on the
+usual schedule.
+
+<Callout type="warning">
+  Xpressbees does not send delivery days, so the delivery date at checkout comes from your own
+  transit days. Return pickups and wallet balance are not available for Xpressbees yet.
+</Callout>
+
+</Tabs.Tab>
+<Tabs.Tab>
+
+From **Apps**, install **Ekart**, then open its **Connect** page. It takes about two minutes.
+
+<Steps>
+
+### Find your API credentials
+
+Ekart emails a **client ID**, **API username** and **API password** when your account is
+onboarded. If you don't have them, ask your Ekart account manager for API access.
+
+### Note your pickup address alias
+
+In the Ekart dashboard, open **Addresses** and copy the alias of the address your parcels
+leave from. With only one address registered you can leave this blank.
+
+### Paste them below
+
+Fill in the credentials, **Origin PIN code**, your **Seller name**, **Seller billing address**
+and **Seller GSTIN** (blank if you are not GST registered), then **Test connection**.
+
+</Steps>
+
+The test signs in and looks up your own PIN code; nothing is booked.
+
+Ekart shows its price and delivery days at checkout and in the Create shipment table (one
+row: Ekart routes each parcel itself, so there is no service to pick). Booking, cancelling,
+return pickups for customer returns, and NDR actions (reattempt with a new phone or address, or
+send it back) work from the Shipments workspace.
+
+Ekart registers webhooks on its side: send your account manager the **Tracking webhook URL**
+from the app's Overview and the **Webhook secret** (6 to 30 characters) you set under
+**Advanced**, and ask for the `track_updated` topic.
+
+<Callout type="warning">
+  Ekart sends labels as a file rather than a link, so print labels from the Ekart dashboard for
+  now. Wallet balance is not available for Ekart.
+</Callout>
+
+</Tabs.Tab>
+<Tabs.Tab>
+
+From **Apps**, install **Shadowfax**, then open its **Connect** page.
+
+<Steps>
+
+### Find your API key
+
+Shadowfax emails your API key when your account is activated. Staging and production keys are
+different; use the production one.
+
+### Keep it safe
+
+The key is all it takes to book on your account. Store it in a password manager.
+
+### Paste it below
+
+Enter **API key** and **Origin PIN code** (and **Seller GSTIN** for return pickups, if you are
+GST registered), then **Test connection**.
+
+</Steps>
+
+The test runs a serviceability lookup on your own PIN code; nothing is booked. Testing with a
+staging key? Put `https://dale.staging.shadowfax.in/api` in **API base URL** under **Advanced**.
+
+Shadowfax collects from the ship-from address of each order and schedules the pickup itself.
+Labels can be printed until the parcel is picked up. Cancel works even while a parcel is
+moving: Shadowfax stops it at the next hub. Return pickups and NDR actions (reattempt, new
+address, send back) work from the Shipments workspace.
+
+For tracking within minutes, paste the **Tracking webhook URL** from the app's Overview into the
+**Webhook** tab of the Shadowfax client portal, with your **Webhook key** as the Authorization
+header.
+
+<Callout type="warning">
+  Shadowfax has no price lookup, so it shows no rate in the Create shipment table and checkout
+  uses your own shipping rates. Wallet balance is not available for Shadowfax.
+</Callout>
+
+</Tabs.Tab>
 </Tabs>
 
 <VideoTip
@@ -136,13 +265,13 @@ Delhivery and Shiprocket.
 
 ## Courier wallet balance
 
-Delhivery, Shiprocket and RapidShyp are prepaid: shipments are charged from a wallet on their
+Most couriers are prepaid: shipments are charged from a wallet on their
 side. Shiprocket shares its balance, so a strip above the table shows "Shiprocket wallet ·
 ₹1,240" with **Recharge**, which opens Shiprocket's wallet page. Set **Warn me when my courier
 wallet is below (₹)** under **Settings → Shipping → When orders go out → More options**, say
 ₹2,000; below it the strip says "Below your ₹2,000 alert. Recharge before booking more."
 
-Delhivery and RapidShyp don't share their balance over an API, so they get no strip; check the
+The other couriers don't share their balance over an API, so they get no strip; check the
 balance on their own dashboards.
 
 <Callout type="info">
