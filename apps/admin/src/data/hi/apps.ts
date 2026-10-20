@@ -87,7 +87,7 @@ export default [
       category: 'श्रेणी',
       madeBy: 'बनाने वाला',
       type: 'प्रकार',
-      typeBuiltin: 'बिल्ट-इन ऐप',
+      typeBuiltin: 'Koomerce ऐप',
       typeConnection: 'किसी दूसरी सेवा से कनेक्शन',
       builtOn: 'इन पर बना',
     },
@@ -139,7 +139,7 @@ export default [
     },
     configure: (kind: string) => `${kind} में सेटअप करें`,
     docs: 'FedEx, DHL या नया गेटवे चाहिए? प्लगइन लिखें: docs/plugins.md',
-    builtByPlatform: 'Waimers द्वारा बनाया',
+    builtByPlatform: 'Koomerce ऐप',
     byCompany: (company: string) => `${company} की ओर से`,
     connection: { connected: 'जुड़ा है', notConnected: 'जुड़ा नहीं है' },
     gallery: {
@@ -161,8 +161,8 @@ export default [
       noResultsBody: 'कोई दूसरी खोज या फ़िल्टर आज़माएं।',
       kebabLabel: (name: string) => `${name} के लिए और विकल्प`,
       builtin: {
-        title: 'बिल्ट-इन ऐप',
-        intro: 'हमारे बनाए। चालू करें और इस्तेमाल करें, कोई अकाउंट नहीं चाहिए।',
+        title: 'Koomerce ऐप',
+        intro: 'Koomerce के बनाए, आपके स्टोर पर चलते हैं। चालू करें और इस्तेमाल करें: कोई अकाउंट, की या सर्वर नहीं चाहिए।',
       },
       connections: {
         title: 'कनेक्शन',
