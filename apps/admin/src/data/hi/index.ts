@@ -12,6 +12,7 @@ import billing from './billing'
 import bugReport from './bug-report'
 import bulkEdit from './bulk-edit'
 import businessGst from './business-gst'
+import chatwoot from './chatwoot'
 import checkoutSettings from './checkout-settings'
 import collections from './collections'
 import commandPalette from './command-palette'
@@ -168,4 +169,5 @@ export const hindiCopy: readonly TranslationPair[] = [
   ...seoKeywords,
   ...umami,
   ...meilisearch,
+  ...chatwoot,
 ]

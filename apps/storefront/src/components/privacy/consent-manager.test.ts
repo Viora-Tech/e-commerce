@@ -22,6 +22,10 @@ vi.mock('@/components/analytics/tracking-tags', () => ({
       'data-pixel': p.metaPixel ?? '',
     }),
 }))
+vi.mock('@/components/support/chatwoot-widget', () => ({
+  default: (p: { identity: { identifier: string } | null }) =>
+    createElement('i', { 'data-testid': 'chatwoot', 'data-user': p.identity?.identifier ?? '' }),
+}))
 vi.mock('@/lib/privacy-actions', () => ({ recordConsentAction: vi.fn(async () => ({ ok: true })) }))
 
 const { default: ConsentManager } = await import('./consent-manager')
@@ -74,6 +78,43 @@ describe('consent gating on the storefront', () => {
     expect(html).toContain('aria-label="Cookie consent"')
     // A cookie from before banner versions existed also counts as no answer.
     expect(render('a1m1')).toContain('aria-label="Cookie consent"')
+  })
+})
+
+describe('the Chatwoot chat', () => {
+  const widget = { baseUrl: 'https://cw.shop.in', websiteToken: 'webtok12345' }
+  const withChat = (cookie: string | null, consent: 'necessary' | 'analytics' | 'marketing') =>
+    renderToStaticMarkup(
+      createElement(ConsentManager, {
+        tracking,
+        bannerMessage: '',
+        bannerVersion: 1,
+        initial: decodeConsent(cookie),
+        chatwoot: {
+          widget: { ...widget, consent },
+          identity: {
+            identifier: 'cust-1',
+            identifierHash: 'hash',
+            name: 'Asha',
+            email: null,
+            phone: null,
+            attributes: {},
+          },
+        },
+      }),
+    )
+
+  it('loads for everyone when the store treats chat as necessary, with the shopper', () => {
+    expect(withChat(null, 'necessary')).toContain('data-testid="chatwoot" data-user="cust-1"')
+    const no = encodeConsent({ analytics: false, marketing: false }, 1, AT)
+    expect(withChat(no, 'necessary')).toContain('data-testid="chatwoot"')
+  })
+
+  it('waits for the category the store picked', () => {
+    expect(withChat(null, 'marketing')).not.toContain('data-testid="chatwoot"')
+    const analytics = encodeConsent({ analytics: true, marketing: false }, 1, AT)
+    expect(withChat(analytics, 'marketing')).not.toContain('data-testid="chatwoot"')
+    expect(withChat(analytics, 'analytics')).toContain('data-testid="chatwoot"')
   })
 })
 

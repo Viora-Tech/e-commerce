@@ -213,6 +213,7 @@ const ALLOWLIST: AllowEntry[] = [
   { path: 'packages/plugin-back-in-stock/src/settings.ts', exact: true, reason: PLUGIN },
   { path: 'packages/plugin-back-in-stock/src/signups.ts', exact: true, reason: PLUGIN },
   { path: 'packages/plugin-back-in-stock/src/stock.ts', exact: true, reason: PLUGIN },
+  { path: 'packages/plugin-chatwoot/src/server.ts', exact: true, reason: PLUGIN },
   { path: 'packages/plugin-forms/src/messages.ts', exact: true, reason: PLUGIN },
   { path: 'packages/plugin-meilisearch/src/server.ts', exact: true, reason: PLUGIN },
   { path: 'packages/plugin-forms/src/schema.ts', exact: true, reason: PLUGIN },

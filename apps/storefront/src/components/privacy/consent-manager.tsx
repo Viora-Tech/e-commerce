@@ -11,12 +11,18 @@ import {
   encodeConsent,
   type StoredConsent,
 } from '@commerce/core/consent'
+import {
+  type ChatwootIdentity,
+  type ChatwootWidget as ChatwootWidgetConfig,
+  chatwootAllowed,
+} from '@commerce/plugin-chatwoot/widget'
 import { type UmamiTracker, umamiAllowed } from '@commerce/plugin-umami/settings'
 import { useEffect, useState } from 'react'
 import TrackingTags from '@/components/analytics/tracking-tags'
 import UmamiScript from '@/components/analytics/umami-script'
 import VisitBeacon from '@/components/analytics/visit-beacon'
 import CookieBanner from '@/components/privacy/cookie-banner'
+import ChatwootWidget from '@/components/support/chatwoot-widget'
 import { consentContent } from '@/data/online-store'
 import { COOKIE_SETTINGS_HASH } from '@/lib/cookie-settings'
 import { recordConsentAction } from '@/lib/privacy-actions'
@@ -35,6 +41,11 @@ type ConsentManagerProps = {
    * count visitors who have not answered yet (`waitForConsent: false`); a no always stops it.
    */
   umami?: UmamiTracker | null | undefined
+  /**
+   * The Chatwoot app's chat, when installed and set up, with the signed-in shopper's signed
+   * identity. Loads after the cookie category the store picked (`necessary`: for everyone).
+   */
+  chatwoot?: { widget: ChatwootWidgetConfig; identity: ChatwootIdentity | null } | null | undefined
   /**
    * The footer group's CookieBanner section (its look and labels), when the theme has one.
    * Only the banner changes: the cookie, the version check and what each answer loads do not.
@@ -63,6 +74,8 @@ function remember(consent: Consent, version: number): void {
  * optional renders before consent, except Umami (cookieless) when the store chose
  * not to wait; each loads the moment its category is allowed, without a reload,
  * and a no stops them all. A choice made for an older banner version does not count.
+ * The Chatwoot app's chat waits for the category its store picked (none by default: a
+ * chat is something the shopper asks for).
  */
 export default function ConsentManager({
   tracking,
@@ -73,6 +86,7 @@ export default function ConsentManager({
   appearance,
   themeBanner,
   umami,
+  chatwoot,
 }: ConsentManagerProps) {
   // Hooks
   const [consent, setConsent] = useState<Consent | null>(currentConsent(initial, bannerVersion))
@@ -122,6 +136,9 @@ export default function ConsentManager({
       {consent?.analytics ? <VisitBeacon /> : null}
       <TrackingTags {...tags} nonce={nonce} />
       {umami && umamiAllowed(umami, consent) ? <UmamiScript tracker={umami} nonce={nonce} /> : null}
+      {chatwoot && chatwootAllowed(chatwoot.widget, consent) ? (
+        <ChatwootWidget widget={chatwoot.widget} identity={chatwoot.identity} nonce={nonce} />
+      ) : null}
       {asking && appearance ? (
         <ZeroDriftCookieBanner
           {...appearance}

@@ -164,6 +164,22 @@ export const STORE_APPS: StoreApp[] = [
     guide: `${docs}/merchant-guide/apps/meilisearch`,
   },
   {
+    id: 'chatwoot',
+    name: 'Chatwoot',
+    by: 'Chatwoot',
+    category: 'messages',
+    blurb: 'Live chat and a shared support inbox, with each shopper’s orders beside the chat.',
+    does: [
+      'Chat on every page of your store, in your own theme or an imported one',
+      'Signed-in shoppers arrive with their name, orders and total spent',
+      'Their conversations on the customer and order pages',
+    ],
+    access: ['Customers · read', 'Orders · read'],
+    shares: 'Customer name, email, phone and order totals, to your Chatwoot',
+    pricing: { kind: 'free' },
+    guide: `${docs}/merchant-guide/apps/chatwoot`,
+  },
+  {
     id: 'shopify-import',
     name: 'Shopify importer',
     by: us,

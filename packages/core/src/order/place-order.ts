@@ -29,6 +29,7 @@ import {
   parseCheckoutSettings,
 } from '../checkout/settings'
 import type { StoreContext } from '../context'
+import { recordCustomerChange } from '../customers/changes'
 import { encryptCustomerPhone, phoneBlindIndex } from '../customers/phone-crypto'
 import { applyDiscount } from '../discounts/evaluate'
 import {
@@ -478,6 +479,8 @@ const createOrder: WorkflowStep<State> = {
         .returning({ id: address.id })
       customerId = cu?.id ?? null
       shippingAddressId = ad?.id ?? null
+      // Created or updated (the upsert does not say which); app consumers upsert either way.
+      if (customerId) await recordCustomerChange(ctx.tx, ctx.storeId, customerId, 'updated')
     }
     const [s] = await ctx.tx
       .update(store)

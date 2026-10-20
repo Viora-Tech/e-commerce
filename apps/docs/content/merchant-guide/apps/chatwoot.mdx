@@ -1,0 +1,91 @@
+---
+title: Chatwoot (support inbox)
+description: Add live chat to your store with Chatwoot, recognise signed-in shoppers with their orders, keep customers as Chatwoot contacts, and see their conversations on customer and order pages.
+---
+
+# Chatwoot (support inbox)
+
+The **Chatwoot** app puts a chat bubble on every page of your store and sends the messages to
+[Chatwoot](https://www.chatwoot.com), a free, open-source support inbox where your team answers
+website chat, WhatsApp, email and more in one place.
+
+- **Live chat** on your store, in our themes and in a theme you imported from Shopify.
+- **Shoppers recognised**: a signed-in shopper's chat arrives with their name, email, phone, the
+  date they became a customer, how many orders they placed, how much they spent and their last
+  order.
+- **Contacts kept in sync**: when a customer signs up, changes their details or pays, their
+  Chatwoot contact is created or updated.
+- **Conversations card** on each customer page and order page, with links straight into
+  Chatwoot.
+
+Chatwoot runs on its own: use [Chatwoot Cloud](https://app.chatwoot.com) or your own Chatwoot
+server. The app only connects to it.
+
+## What you need
+
+- A Chatwoot account (Cloud or self-hosted) and a **Website** inbox in it. To add one: in
+  Chatwoot, **Settings → Inboxes → Add inbox → Website**, type your store's address and finish
+  the steps.
+- For contacts and the Conversations card: an **API access token**. In Chatwoot, click your
+  avatar → **Profile settings** and copy the **Access token** at the bottom.
+- For recognising shoppers: the inbox's **identity secret**. In Chatwoot, open the website inbox
+  → **Configuration** → **Identity validation**, copy the HMAC token and turn on **Enforce user
+  identity validation**.
+
+## Connect it
+
+1. Go to **Apps**, find **Chatwoot** under **Connections** and click **Install**.
+2. Open **Apps → Chatwoot**.
+3. **Chatwoot address**: where your Chatwoot opens, for example `app.chatwoot.com` or
+   `https://support.yourstore.in`. Tip: paste a full dashboard link and the account id fills
+   itself in.
+4. **Account id**: the number after `/app/accounts/` in your Chatwoot address bar.
+5. **Website inbox token**: in the website inbox's **Configuration**, copy the `websiteToken`
+   value from the script shown there.
+6. Paste the **API access token** and the **identity secret**. Both are stored encrypted and are
+   never shown again; paste a new one any time to replace it.
+7. Click **Test connection**. It checks the token can open the account and the website token
+   belongs to it. It creates nothing in Chatwoot.
+8. Click **Save**.
+
+The chat shows on your store straight away. Open your store in a private window to see it.
+
+## Shoppers
+
+- **Recognise signed-in shoppers** (on by default): a shopper who is signed in to your store
+  chats as themselves, so you never ask "what's your order number?". The identity secret proves
+  it is really them, so nobody can chat as somebody else.
+- **Keep customers as Chatwoot contacts** (on by default): every new customer, every change to a
+  customer's details, and every payment updates their Chatwoot contact. A shopper who chatted
+  as a guest with the same email is joined to their customer record instead of being added
+  twice.
+
+Next to each chat, Chatwoot shows these contact attributes: `customer_since`, `orders_count`,
+`total_spent` (in rupees), `last_order` and `last_order_at`. To show them neatly, add them in
+Chatwoot under **Settings → Custom attributes** (applies to: Contact).
+
+## Privacy and the cookie banner
+
+Chatwoot keeps a cookie so a shopper's chat carries on from page to page. Under **Privacy →
+Load the chat** pick when the chat loads:
+
+- **Always** (default): a chat is something the shopper asks for, so it loads for everyone.
+- **After the shopper allows analytics cookies**, or **marketing cookies**: the chat waits for
+  that answer on your cookie banner.
+
+The chat never loads on the sign-in pages, and never in the theme editor's preview.
+
+## Conversations on customer and order pages
+
+With an API access token saved, each customer page and order page has a **Conversations** card:
+the shopper's latest chats with their status (Open, Pending, Snoozed, Resolved), the last
+message and how long ago it was. Click one to open it in Chatwoot. An order placed by a guest
+shows the conversations of the email on the order.
+
+## Good to know
+
+- Customers imported in bulk (from Shopify) become Chatwoot contacts the next time they sign in,
+  change their details or pay.
+- If Chatwoot is busy or down, the sync tries again by itself a few times; a problem that does not
+  clear shows on **Apps → Installed apps**.
+- Uninstalling the app keeps your settings, so installing it again picks up where you left off.

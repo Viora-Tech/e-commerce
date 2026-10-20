@@ -25,6 +25,7 @@
         "@commerce/payments-decentro#build",
         "@commerce/payments-razorpay#build",
         "@commerce/plugin-back-in-stock#build",
+        "@commerce/plugin-chatwoot#build",
         "@commerce/plugin-emi#build",
         "@commerce/plugin-forms#build",
         "@commerce/plugin-meilisearch#build",

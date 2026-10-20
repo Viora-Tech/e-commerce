@@ -381,7 +381,7 @@ that installed the app from Admin → Apps.
 | Field | What it does |
 | --- | --- |
 | `category` | Badge on the Apps page, e.g. `invoicing`. |
-| `hooks` | `order.paid`, `order.fulfilled`, `order.delivered`, `refund.created`. Run in the worker on the `{apps}-events` queue, at least once per (order, event) or (refund, event): **make them idempotent**. `order.paid`/`order.fulfilled` fire from the `payment_received`/`order_shipped` notifications, so every path that marks an order paid or shipped is covered; `order.delivered` fans out from the `order.delivered` outbox row (courier tracking or "mark delivered"); `refund.created` is queued by the refund route. |
+| `hooks` | `order.paid`, `order.fulfilled`, `order.delivered`, `refund.created`. Run in the worker on the `{apps}-events` queue, at least once per (order, event) or (refund, event): **make them idempotent**. `order.paid`/`order.fulfilled` fire from the `payment_received`/`order_shipped` notifications, so every path that marks an order paid or shipped is covered; `order.delivered` fans out from the `order.delivered` outbox row (courier tracking or "mark delivered"); `refund.created` is queued by the refund route. `customer.created` / `customer.updated` (payload `customerId`, `orderId` empty) fan out from outbox rows written with `recordCustomerChange` (`@commerce/core`) on sign-up, checkout, profile and admin edits, one job per row; read the customer when the hook runs and upsert. Bulk imports write none. |
 | `jobs` | Named background jobs the app queues for itself with `enqueueAppJob(context.appJobs, { storeId, pluginId, name, data })`. They run on `{apps}-jobs` with the same context as hooks. |
 | `orderLinks` | Links on the shopper's order page and in order emails (`ctx.surface` says which). Failures are swallowed. |
 | `emailAttachments` | Files attached to one order email (`{ orderId, template }`). A failure fails the notification job so it retries. SES sends them; other channels ignore them. |
@@ -389,6 +389,8 @@ that installed the app from Admin → Apps.
 | `admin.icon` | Icon name (from the admin icon set) for the sidebar entry and the app header. |
 | `admin.pages[]` | `{ path, title, navLabel?, icon? }`. Each page renders at `/apps/<pluginId>/<path>` inside the admin shell with the app header (icon and name) and tabs for every page that has a `navLabel`. `path: ''` is the app root, which the sidebar links to. Dynamic segments use `[name]`, e.g. `invoices/[id]`. |
 | `admin.orderDetailCard` | Adds a card to the order detail page. |
+| `admin.customerDetailCard` | Adds a card to the customer detail page (`ADMIN_APPS[id].CustomerCard`, gets `customerId`). |
+
 | `admin.orderActions` | Actions on orders, Shopify style: in the order page's **More actions**, an Orders list row's ⋯ menu and the bulk bar, under the app's icon and name. See [Order actions](#order-actions). |
 
 Hooks and jobs get an `AppHookContext`: `inStore(fn)` (a transaction under
@@ -505,6 +507,31 @@ kind and no table:
   drawable state (`not-installed`, `not-connected`, `error`, `ready`), never a thrown error.
   `./report` normalises Umami 3 and Umami 2 answers (`path` vs `url` metric names, flat figures
   vs `{ value, prev }`).
+
+`packages/plugin-chatwoot` (Chatwoot, id `chatwoot`) is the worked example of an app that wraps a
+separately run service and mirrors customers into it:
+
+- **Settings** in `store.apps` under `chatwoot` (`./settings`, pure): address, account id,
+  website inbox token, `consent` (`necessary` | `analytics` | `marketing`), `identifyShoppers`,
+  `syncContacts`, and two `encryptSecret` blobs, the API access token and the inbox's HMAC
+  identity secret. `./widget` is the zod-free slice the consent manager imports.
+- **Storefront**: `apps/storefront/src/lib/chatwoot.ts` reads the widget from the store row and,
+  for a signed-in shopper only (never an edge-cached page), signs their identifier
+  (`identifier_hash` = HMAC-SHA256 hex) and adds `contactAttributes`. `ConsentManager` renders
+  `ChatwootWidget` (Chatwoot's `/packs/js/sdk.js` via `next/script` with the nonce, then
+  `chatwootSDK.run`, `setUser`, `setCustomAttributes`; `reset` after a sign-out) once
+  `chatwootAllowed` says so. ConsentManager is drawn by both the block layout and the imported
+  Liquid theme layout, so the chat works on both.
+- **Sync**: hooks on `customer.created`, `customer.updated` and `order.paid` call
+  `syncCustomerToChatwoot`: read settings and `loadCustomerFacts` in one transaction, then search
+  Chatwoot by our customer id (the contact `identifier`), then email, then phone; create, or update
+  only when something changed (`contactNeedsUpdate`), so retries cost one search. A guest contact
+  with the same email is claimed; a contact tied to another identifier never is. A 429 or outage
+  throws and the `{apps}-events` backoff retries.
+- **Admin**: `api.chatwoot.settings.{get,save,test}` and
+  `api.chatwoot.conversations.{customer,order}` (a drawable state, never an error) behind the
+  Conversations card on both detail pages. Outbound calls go through `safeFetch` unless the origin
+  is listed in `CHATWOOT_TRUSTED_ORIGINS`.
 
 `packages/plugin-search-console` (Google Search Console, id `google-search-console`) is the
 worked example of a per-store **OAuth** connection with a daily background pull:

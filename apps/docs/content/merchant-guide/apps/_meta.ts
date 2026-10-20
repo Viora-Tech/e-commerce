@@ -7,4 +7,5 @@ export default {
   umami: 'Umami',
   'google-search-console': 'Google Search Console',
   meilisearch: 'Meilisearch search',
+  chatwoot: 'Chatwoot',
 }

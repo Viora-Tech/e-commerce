@@ -5,6 +5,7 @@ import { and, desc, eq, isNull } from 'drizzle-orm'
 import type { StoreContext } from '../context'
 import type { LoginMethod } from '../customer-accounts/client'
 import { type LoginChannelDeps, loginChannels } from '../customer-accounts/service'
+import { recordCustomerChange } from '../customers/changes'
 import {
   decryptCustomerPhone,
   encryptCustomerPhone,
@@ -245,6 +246,7 @@ export async function verifyPhoneLoginCode(
       })
       .returning({ id: customer.id })
     customerId = row?.id as string
+    await recordCustomerChange(ctx.tx, ctx.storeId, customerId, 'created')
   }
   const session = await startCustomerSession(ctx, customerId, now, ttlMs)
   return { ...session, created: !found }

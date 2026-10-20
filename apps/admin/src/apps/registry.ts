@@ -4,6 +4,9 @@ import SettingsEditorBackInStock from '@/components/apps/back-in-stock/settings-
 import SignupsList from '@/components/apps/back-in-stock/signups-list'
 import CashfreeConnectPage from '@/components/apps/cashfree/connect-page'
 import CashfreeOverviewPage from '@/components/apps/cashfree/overview-page'
+import ChatwootCustomerCard from '@/components/apps/chatwoot/customer-card'
+import ChatwootOrderCard from '@/components/apps/chatwoot/order-card'
+import ChatwootSettingsPage from '@/components/apps/chatwoot/settings-page'
 import DecentroConnectPage from '@/components/apps/decentro/connect-page'
 import DecentroOverviewPage from '@/components/apps/decentro/overview-page'
 import DelhiveryConnectPage from '@/components/apps/delhivery/connect-page'
@@ -50,7 +53,7 @@ export type AppPageProps = { params: Record<string, string> }
 
 /**
  * Admin screens contributed by installed apps, keyed by plugin id. The
- * manifest (server) declares the pages (`admin.pages`) and the order card;
+ * manifest (server) declares the pages (`admin.pages`) and the order and customer cards;
  * the components live here so server code never imports React. Pages render
  * under `/apps/<pluginId>/<path>` inside the app shell, only for stores that
  * installed the app.
@@ -59,6 +62,8 @@ export type AdminApp = {
   /** Keyed by the manifest page path, e.g. `''`, `'settings'`, `'invoices/[id]'`. */
   pages: Record<string, ComponentType<AppPageProps>>
   OrderCard?: ComponentType<{ orderId: string }>
+  /** A card on the customer detail page (manifest `admin.customerDetailCard`). */
+  CustomerCard?: ComponentType<{ customerId: string }>
   /** A button in the app header beside the more menu, on every tab. */
   HeaderAction?: ComponentType
 }
@@ -76,6 +81,11 @@ export const ADMIN_APPS: Record<string, AdminApp> = {
       '': CashfreeOverviewPage,
       connect: CashfreeConnectPage,
     },
+  },
+  chatwoot: {
+    pages: { '': ChatwootSettingsPage },
+    OrderCard: ChatwootOrderCard,
+    CustomerCard: ChatwootCustomerCard,
   },
   decentro: {
     pages: {

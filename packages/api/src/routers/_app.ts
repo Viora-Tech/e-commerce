@@ -11,6 +11,7 @@ import { billingRouter } from './billing'
 import { blogRouter } from './blog'
 import { bugReportsRouter } from './bug-reports'
 import { businessGstRouter } from './business-gst'
+import { chatwootRouter } from './chatwoot'
 import { checkoutSettingsRouter } from './checkout-settings'
 import { collectionsRouter } from './collections'
 import { customerAccountsRouter } from './customer-accounts'
@@ -109,6 +110,7 @@ export const appRouter = {
   forms: formsRouter,
   reviews: reviewsRouter,
   umami: umamiRouter,
+  chatwoot: chatwootRouter,
   searchConsole: searchConsoleRouter,
   meilisearch: meilisearchRouter,
   dashboard: dashboardRouter,

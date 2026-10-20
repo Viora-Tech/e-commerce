@@ -159,6 +159,16 @@ Candidate projects, with verified licences and what to take from each: [`docs/op
   `oxlint` MIT (oxc project) — https://github.com/oxc-project/oxc. Installed as dev
   dependencies; no code copied.
 
+## Chatwoot
+
+- Used in: the Chatwoot app (`packages/plugin-chatwoot`, `apps/admin/src/components/apps/chatwoot`,
+  `apps/storefront/src/components/support/chatwoot-widget.tsx`). The storefront loads the store's
+  own Chatwoot website SDK (`<chatwoot>/packs/js/sdk.js`) from the store's Chatwoot server or
+  Chatwoot Cloud, and the server calls Chatwoot's Application API. No Chatwoot code is copied or
+  bundled, and nothing from its `enterprise/` folder is used.
+- Licence: MIT (Expat) outside `enterprise/`, Copyright (c) 2017-2026 Chatwoot Inc. —
+  https://github.com/chatwoot/chatwoot (licence checked on GitHub 2026-10-20).
+
 ## Umami
 
 - Used in: the Umami app (`packages/plugin-umami`, `apps/admin/src/components/apps/umami`,

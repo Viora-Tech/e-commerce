@@ -17,6 +17,7 @@
         "@commerce/payments-decentro": "workspace:*",
         "@commerce/payments-razorpay": "workspace:*",
         "@commerce/plugin-back-in-stock": "workspace:*",
+        "@commerce/plugin-chatwoot": "workspace:*",
         "@commerce/plugin-emi": "workspace:*",
         "@commerce/plugin-forms": "workspace:*",
         "@commerce/plugin-gst-invoices": "workspace:*",
@@ -61,6 +62,7 @@
         "@commerce/observability": "workspace:*",
         "@commerce/payments": "workspace:*",
         "@commerce/plugin-back-in-stock": "workspace:*",
+        "@commerce/plugin-chatwoot": "workspace:*",
         "@commerce/plugin-emi": "workspace:*",
         "@commerce/plugin-forms": "workspace:*",
         "@commerce/plugin-meilisearch": "workspace:*",
@@ -177,6 +179,7 @@
         "@commerce/observability": "workspace:*",
         "@commerce/payments": "workspace:*",
         "@commerce/plugin-back-in-stock": "workspace:*",
+        "@commerce/plugin-chatwoot": "workspace:*",
         "@commerce/plugin-emi": "workspace:*",
         "@commerce/plugin-forms": "workspace:*",
         "@commerce/plugin-gst-invoices": "workspace:*",
@@ -225,6 +228,7 @@
         "@commerce/observability": "workspace:*",
         "@commerce/payments": "workspace:*",
         "@commerce/plugin-back-in-stock": "workspace:*",
+        "@commerce/plugin-chatwoot": "workspace:*",
         "@commerce/plugin-forms": "workspace:*",
         "@commerce/plugin-meilisearch": "workspace:*",
         "@commerce/plugin-reviews": "workspace:*",
@@ -310,6 +314,7 @@
         "@commerce/payments-cashfree": "workspace:*",
         "@commerce/payments-razorpay": "workspace:*",
         "@commerce/plugin-back-in-stock": "workspace:*",
+        "@commerce/plugin-chatwoot": "workspace:*",
         "@commerce/plugin-emi": "workspace:*",
         "@commerce/plugin-forms": "workspace:*",
         "@commerce/plugin-gst-invoices": "workspace:*",
@@ -693,6 +698,23 @@
       },
       "peerDependencies": {
         "react": "^19.0.0",
+      },
+    },
+    "packages/plugin-chatwoot": {
+      "name": "@commerce/plugin-chatwoot",
+      "version": "0.0.0",
+      "dependencies": {
+        "@commerce/core": "workspace:*",
+        "@commerce/db": "workspace:*",
+        "@commerce/plugins": "workspace:*",
+        "drizzle-orm": "^0.45.2",
+        "zod": "^4.6.5",
+      },
+      "devDependencies": {
+        "@commerce/config": "workspace:*",
+        "@types/node": "^22.20.4",
+        "typescript": "~5.9.3",
+        "vitest": "^4.1.11",
       },
     },
     "packages/plugin-emi": {
@@ -1327,6 +1349,7 @@
 
     "@commerce/plugin-back-in-stock": ["@commerce/plugin-back-in-stock@workspace:packages/plugin-back-in-stock"],
 
+    "@commerce/plugin-chatwoot": ["@commerce/plugin-chatwoot@workspace:packages/plugin-chatwoot"],
     "@commerce/plugin-emi": ["@commerce/plugin-emi@workspace:packages/plugin-emi"],
 
     "@commerce/plugin-forms": ["@commerce/plugin-forms@workspace:packages/plugin-forms"],
