@@ -29,6 +29,8 @@ import type {
 } from './drops'
 import { loadImportedFiles } from './imported-files'
 import { uuidPrefixOf } from './numeric-id'
+import { browseProducts } from '../catalog/browse'
+import { BROWSE_SORTS, parseBrowseFilters, parseBrowseSort, parsePage } from '../catalog/browse-params'
 import { collectionsProducts, loadProducts, productsByHandles } from './product-data'
 import { MAX_RECOMMENDATIONS, pickedRecommendationIds, relatedProductIds } from './related'
 import { richTextHtml } from './rich-html'
@@ -326,6 +328,31 @@ export async function storeLiquidData(
       once(`mt:${type}`, () => loadMetaobjectsOfType(tx, keyFromName(type))),
     metaobjects: (ids) => loadMetaobjects(tx, ids),
     importedFiles: () => once('imported-files', () => loadImportedFiles(tx)),
+    browse: async ({ collectionId, query, perPage }) => {
+      const first = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v)
+      const q = (first(query.q) ?? '').trim().slice(0, 100)
+      const filters = parseBrowseFilters(query)
+      // Shopify's defaults: a collection's own order, search by relevance.
+      const fallback = collectionId ? 'manual' : q ? 'relevance' : 'title-ascending'
+      const sort = parseBrowseSort(first(query.sort_by), BROWSE_SORTS, fallback)
+      const result = await browseProducts(tx, {
+        collectionId: collectionId ?? undefined,
+        query: q || undefined,
+        filters,
+        sort: sort === 'manual' && !collectionId ? 'title-ascending' : sort,
+        page: parsePage(first(query.page)),
+        perPage,
+      })
+      const byHandle = await productsByHandles(tx, result.handles)
+      return {
+        products: result.handles.flatMap((h) => byHandle.get(h) ?? []),
+        total: result.total,
+        facets: result.facets,
+        filters,
+        sort,
+        q,
+      }
+    },
   }
 }
 

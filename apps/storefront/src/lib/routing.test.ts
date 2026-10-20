@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import {
   ACCOUNTS_PREFIX,
   INTERNAL_PREFIX,
+  listingSearch,
   PASSWORD_PREFIX,
   primaryRedirect,
   routeForAccounts,
@@ -106,5 +107,17 @@ describe('routeForAccounts (platform login domain)', () => {
     expect(routeForStore('store-a', `${ACCOUNTS_PREFIX}/oauth/google/start`)).toEqual({
       kind: 'forbidden',
     })
+  })
+})
+
+describe('listingSearch', () => {
+  it('keeps filters, terms, sort and page in a stable order, drops the rest', () => {
+    const params = new URLSearchParams(
+      'utm_source=x&sort_by=price-ascending&filter.p.m.custom.grip=Palm&q=mouse&filter.p.m.custom.grip=Claw&page=2&filter.v.price.gte=&fbclid=y',
+    )
+    expect(listingSearch(params)).toBe(
+      'filter.p.m.custom.grip=Claw&filter.p.m.custom.grip=Palm&page=2&q=mouse&sort_by=price-ascending',
+    )
+    expect(listingSearch(new URLSearchParams('utm_source=x'))).toBe('')
   })
 })

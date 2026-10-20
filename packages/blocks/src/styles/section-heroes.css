@@ -316,21 +316,21 @@
 /* ---- Hero copy, section size --------------------------------------- */
 /* The same block inside a page (image with text): a 32px heading, 16px text and
    48px buttons. */
-.hero-copy--section {
+.hero-copy--section:not(:where(.shopify-section *)) {
   gap: var(--space-5);
 }
 
-.hero-copy--section .hero-copy__heading {
+.hero-copy--section .hero-copy__heading:not(:where(.shopify-section *)) {
   font-size: calc(2rem * var(--font-heading-scale, 1));
   line-height: 1.15;
   letter-spacing: -0.01em;
 }
 
-.hero-copy--section .hero-copy__text {
+.hero-copy--section .hero-copy__text:not(:where(.shopify-section *)) {
   font-size: var(--font-body-size, 16px);
 }
 
-.hero-copy--section .hero-copy__button {
+.hero-copy--section .hero-copy__button:not(:where(.shopify-section *)) {
   height: 48px;
   padding-inline: var(--space-5);
   font-size: 14px;

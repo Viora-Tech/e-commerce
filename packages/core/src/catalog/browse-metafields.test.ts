@@ -40,35 +40,54 @@ describe('metafield filter params', () => {
 })
 
 describe('metafieldFacets', () => {
-  const row = (field: string, value: string, count: number, name = field) => ({
+  const row = (field: string, value: string, count: number, type = 'single_line_text') => ({
     field,
-    name,
+    name: field === 'custom.filter_grip' ? 'Grip' : field,
+    type,
     value,
     count,
   })
 
-  it('keeps fields whose values repeat across products, values A to Z', () => {
+  it('groups values per field in field order, values in natural order', () => {
     const facets = metafieldFacets([
-      row('custom.filter_grip', 'Palm', 4, 'Grip'),
-      row('custom.filter_grip', 'Claw', 6, 'Grip'),
-      row('custom.spec_sensor', 'PAW3395', 1),
-      row('custom.spec_sensor', 'PAW3950', 1),
-      row('custom.only', 'One', 9),
+      row('custom.filter_grip', 'Palm', 4),
+      row('custom.filter_grip', 'Claw', 6),
+      row('custom.dpi', '26000', 2, 'number_integer'),
+      row('custom.dpi', '8000', 3, 'number_integer'),
+      row('custom.dpi', '', 1, 'number_integer'),
     ])
     expect(facets).toEqual([
       {
         key: 'custom.filter_grip',
         name: 'Grip',
+        type: 'list',
         values: [
           { value: 'Claw', count: 6 },
           { value: 'Palm', count: 4 },
         ],
       },
+      {
+        key: 'custom.dpi',
+        name: 'custom.dpi',
+        type: 'list',
+        values: [
+          { value: '8000', count: 3 },
+          { value: '26000', count: 2 },
+        ],
+      },
     ])
   })
 
-  it('drops a field with too many values to be a filter', () => {
-    const many = Array.from({ length: 30 }, (_, i) => row('custom.notes', `Note ${i}`, 2))
-    expect(metafieldFacets(many)).toEqual([])
+  it('reads a yes/no field as a boolean filter, yes first', () => {
+    const [f] = metafieldFacets([
+      row('custom.wireless', '0', 2, 'boolean'),
+      row('custom.wireless', '1', 5, 'boolean'),
+    ])
+    expect(f?.type).toBe('boolean')
+    expect(f?.values.map((v) => v.value)).toEqual(['1', '0'])
+  })
+
+  it('keeps one value: a filter shows even when every product agrees', () => {
+    expect(metafieldFacets([row('custom.only', 'One', 9)])).toHaveLength(1)
   })
 })

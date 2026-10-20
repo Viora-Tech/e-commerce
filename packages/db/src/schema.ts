@@ -2083,6 +2083,8 @@ export const metafieldDefinition = pgTable(
     list: boolean('list').notNull().default(false),
     validations: jsonb('validations').$type<Record<string, unknown>>().notNull().default({}),
     storefrontAccess: boolean('storefront_access').notNull().default(true),
+    /** Offered as a filter on collection and search pages (product fields of simple types). */
+    filterable: boolean('filterable').notNull().default(false),
     position: integer('position').notNull().default(0),
     createdAt: createdAt(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),

@@ -473,22 +473,20 @@ html:not(.has-cursor-fill) .tabbed-products__tab[aria-selected='true']:hover {
 /* 704:121703): the tabs as Store / Tabs "Pills" - a surface track with  */
 /* the chosen tab raised on the page colour - and 24px gutters.         */
 /* ------------------------------------------------------------------ */
-/* Only on our own sections: an imported Shopify theme with the same class names (Zero Drift
-   itself) draws its own tabs, and these overrides made its selected label ink on its ink pill. */
-.tabbed-products__tabs:not(.shopify-section *) {
+.tabbed-products__tabs:not(:where(.shopify-section *)) {
   margin-bottom: var(--space-7);
 }
 
-.tabbed-products__tablist:not(.shopify-section *) {
+.tabbed-products__tablist:not(:where(.shopify-section *)) {
   gap: 0;
   padding: 4px;
   border-radius: var(--radius-m);
   background-color: var(--color-surface);
 }
 
-.tabbed-products__tab:not(.shopify-section *),
-html.has-cursor-fill .tabbed-products__tab:hover:not(.shopify-section *),
-html:not(.has-cursor-fill) .tabbed-products__tab:hover:not(.shopify-section *) {
+.tabbed-products__tab:not(:where(.shopify-section *)),
+html.has-cursor-fill .tabbed-products__tab:hover:not(:where(.shopify-section *)),
+html:not(.has-cursor-fill) .tabbed-products__tab:hover:not(:where(.shopify-section *)) {
   padding: 6px var(--space-4);
   border: 0;
   border-radius: calc(var(--radius-m) - 2px);
@@ -502,32 +500,32 @@ html:not(.has-cursor-fill) .tabbed-products__tab:hover:not(.shopify-section *) {
   --tp-fill-color: transparent;
 }
 
-.tabbed-products__tab:hover:not(.shopify-section *) {
+.tabbed-products__tab:hover:not(:where(.shopify-section *)) {
   color: var(--color-ink);
 }
 
-.tabbed-products__tab[aria-selected='true']:not(.shopify-section *),
-html.has-cursor-fill .tabbed-products__tab[aria-selected='true']:hover:not(.shopify-section *),
-html:not(.has-cursor-fill) .tabbed-products__tab[aria-selected='true']:hover:not(.shopify-section *) {
+.tabbed-products__tab[aria-selected='true']:not(:where(.shopify-section *)),
+html.has-cursor-fill .tabbed-products__tab[aria-selected='true']:hover:not(:where(.shopify-section *)),
+html:not(.has-cursor-fill) .tabbed-products__tab[aria-selected='true']:hover:not(:where(.shopify-section *)) {
   background-color: var(--color-bg);
   color: var(--color-ink);
 }
 
-.tabbed-products__indicator:not(.shopify-section *) {
+.tabbed-products__indicator:not(:where(.shopify-section *)) {
   border-radius: calc(var(--radius-m) - 2px);
   background-color: var(--color-bg);
 }
 
-.tabbed-products__tablist.has-indicator .tabbed-products__tab[aria-selected='true']:not(.shopify-section *),
-.tabbed-products__tablist.has-indicator .tabbed-products__tab[aria-selected='true']:hover:not(.shopify-section *) {
+.tabbed-products__tablist.has-indicator .tabbed-products__tab[aria-selected='true']:not(:where(.shopify-section *)),
+.tabbed-products__tablist.has-indicator .tabbed-products__tab[aria-selected='true']:hover:not(:where(.shopify-section *)) {
   color: var(--color-ink);
 }
 
-.tabbed-products__grid:not(.shopify-section *) {
+.tabbed-products__grid:not(:where(.shopify-section *)) {
   gap: var(--space-7) var(--space-5);
 }
 
-.tabbed-products__heading:not(.shopify-section *) {
+.tabbed-products__heading:not(:where(.shopify-section *)) {
   --tp-line: 1.1em;
 
   margin-bottom: var(--space-6);
@@ -535,12 +533,12 @@ html:not(.has-cursor-fill) .tabbed-products__tab[aria-selected='true']:hover:not
   letter-spacing: -0.015em;
 }
 
-.tabbed-products__heading-item:not(.shopify-section *) {
+.tabbed-products__heading-item:not(:where(.shopify-section *)) {
   line-height: 1.1;
 }
 
 @media screen and (min-width: 990px) {
-  .tabbed-products__heading:not(.shopify-section *) {
+  .tabbed-products__heading:not(:where(.shopify-section *)) {
     font-size: calc(2.5rem * var(--font-heading-scale, 1));
   }
 }

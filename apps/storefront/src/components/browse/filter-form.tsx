@@ -160,7 +160,9 @@ export default function FilterForm({
       open: (filters.metafields[m.key]?.length ?? 0) > 0,
       body: checks(
         `${FILTER_PARAM.metafieldPrefix}${m.key}`,
-        m.values,
+        m.type === 'boolean'
+          ? m.values.map((v) => ({ ...v, label: v.value === '1' ? copy.yes : copy.no }))
+          : m.values,
         filters.metafields[m.key] ?? [],
         m.key,
       ),

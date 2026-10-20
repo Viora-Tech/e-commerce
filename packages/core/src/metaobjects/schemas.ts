@@ -209,6 +209,19 @@ export type MetafieldOwnerType = z.infer<typeof MetafieldOwnerTypeSchema>
  */
 export const PRIVATE_METAFIELD_OWNERS: readonly MetafieldOwnerType[] = ['customer', 'order']
 
+/** Field types a shopper can filter by: one short value per item (Shopify's filterable types). */
+export const FILTERABLE_FIELD_TYPES: readonly FieldType[] = [
+  'single_line_text',
+  'choice',
+  'number_integer',
+  'number_decimal',
+  'boolean',
+]
+
+/** Whether a definition can be a storefront filter: a product field of a filterable type. */
+export const canFilterBy = (d: { ownerType: MetafieldOwnerType; type: FieldType }): boolean =>
+  d.ownerType === 'product' && FILTERABLE_FIELD_TYPES.includes(d.type)
+
 export const MetafieldDefinitionWriteSchema = z.object({
   ownerType: MetafieldOwnerTypeSchema,
   name: z.string().trim().min(1).max(100),
@@ -220,6 +233,11 @@ export const MetafieldDefinitionWriteSchema = z.object({
   list: z.boolean().default(false),
   validations: FieldValidationsSchema.default({}),
   storefrontAccess: z.boolean().default(true),
+  /**
+   * Offered as a collection and search filter; kept only where `canFilterBy` allows. Left out,
+   * a new field is not a filter and an edit keeps what the field had.
+   */
+  filterable: z.boolean().optional(),
 })
 export type MetafieldDefinitionWrite = z.infer<typeof MetafieldDefinitionWriteSchema>
 

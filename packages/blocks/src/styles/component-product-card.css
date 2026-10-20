@@ -733,26 +733,26 @@
 /* ------------------------------------------------------------------ */
 /* The photo panel, the name in the body size, rating and price 6px apart; the
    badge a small rounded tag in the top-left corner. */
-.product-card__link {
+.product-card__link:not(:where(.shopify-section *)) {
   gap: var(--space-3);
 }
 
-.product-card__info {
+.product-card__info:not(:where(.shopify-section *)) {
   gap: 6px;
 }
 
-.product-card__title {
+.product-card__title:not(:where(.shopify-section *)) {
   font-size: var(--font-body-size, 16px);
   line-height: 1.5;
   min-height: calc(2 * 1.5em);
 }
 
-.product-card__badge {
+.product-card__badge:not(:where(.shopify-section *)) {
   top: var(--space-3);
   left: var(--space-3);
 }
 
-.product-card__quick-add {
+.product-card__quick-add:not(:where(.shopify-section *)) {
   width: 100%;
   height: 40px;
   margin-top: var(--space-3);
@@ -760,11 +760,11 @@
 }
 
 /* Figma Store / Product card "Wishlist": a round button on the photo's top-right corner. */
-.product-card {
+.product-card:not(:where(.shopify-section *)) {
   position: relative;
 }
 
-.product-card__wishlist {
+.product-card__wishlist:not(:where(.shopify-section *)) {
   position: absolute;
   top: var(--space-3);
   right: var(--space-3);
@@ -782,16 +782,16 @@
   transition: scale var(--duration-press, 120ms) ease-out;
 }
 
-.product-card__wishlist:active {
+.product-card__wishlist:active:not(:where(.shopify-section *)) {
   scale: 0.94;
 }
 
-.product-card__wishlist[aria-pressed="true"] {
+.product-card__wishlist[aria-pressed="true"]:not(:where(.shopify-section *)) {
   color: var(--color-sale, var(--color-brand));
 }
 
 /* Theme settings → Product cards (data attributes from themeRootAttrs). */
-.product-card__rating {
+.product-card__rating:not(:where(.shopify-section *)) {
   display: flex;
   align-items: center;
   gap: 0.25rem;
@@ -799,10 +799,10 @@
   font-size: 0.8125rem;
   color: var(--color-ink);
 }
-.product-card__rating > span[aria-hidden] {
+.product-card__rating > span[aria-hidden]:not(:where(.shopify-section *)) {
   color: var(--color-rating, #f5a524);
 }
-.product-card__rating-count {
+.product-card__rating-count:not(:where(.shopify-section *)) {
   color: var(--color-ink-muted, currentColor);
 }
 :root[data-card-rating="off"] .product-card__rating {

@@ -897,6 +897,13 @@
       "when": 1792467343309,
       "tag": "0137_review_store_reviews",
       "breakpoints": true
+    },
+    {
+      "idx": 128,
+      "version": "7",
+      "when": 1792470503313,
+      "tag": "0139_metafield_filterable",
+      "breakpoints": true
     }
   ]
 }
