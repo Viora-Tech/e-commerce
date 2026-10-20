@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect } from 'react'
+import { clearRerender } from '@/lib/themed-rerender'
 
 const STREAM_POLL_MS = 50
 const STREAM_WAIT_MS = 5000
@@ -51,11 +52,14 @@ function afterParse(fn: () => void): () => void {
 /**
  * Starts an imported Shopify theme's deferred scripts once React has hydrated the page (see
  * `lib/liquid-defer.ts` for why they wait): after this layout's effects, once the page is
- * fully parsed, its streamed sections are in place and one more task has run. Draws nothing.
+ * fully parsed, its streamed sections are in place and one more task has run. Also drops the
+ * themed reload's cookie (`lib/themed-rerender.ts`) once a page has drawn. Draws nothing.
  */
 export default function LiquidBoot() {
   // Hooks
   useEffect(() => afterParse(() => void window.__commerceBootTheme?.().catch(() => undefined)), [])
+  // After the slots' effects, which read the cookie to decide whether to reload.
+  useEffect(() => clearRerender(), [])
 
   // Render logic
   return null

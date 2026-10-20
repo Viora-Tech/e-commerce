@@ -76,16 +76,33 @@ export function richTextToText(body: unknown): string {
   return blocks.join('\n')
 }
 
+/** An HTML tag, as in `<h2>` or `</p>`: not a lone `<` in prose ("a < b"). */
+const HTML_TAG = /<\/?[a-z][a-z0-9]*\b[^>]*>/i
+
+/**
+ * The words of an excerpt or body on one line. HTML is read as HTML, even typed into the editor
+ * as text (a merchant pasting an article's source): a card never shows its tags.
+ */
+function plainLine(value: unknown): string {
+  const text = richTextToText(value)
+  return (HTML_TAG.test(text) ? htmlToText(text) : text).replace(/\s+/g, ' ').trim()
+}
+
+/** The merchant's excerpt as plain text on one line; empty when there is none. */
+export function excerptText(excerpt: string | null | undefined): string {
+  // A Shopify import can carry HTML in the excerpt too; the card shows words.
+  return excerpt ? plainLine(excerpt) : ''
+}
+
 /** The merchant's excerpt, or the opening of the body cut at a word boundary. */
 export function articleExcerpt(
   excerpt: string | null | undefined,
   body: unknown,
   max = 160,
 ): string {
-  // A Shopify import can carry HTML in the excerpt too; the card shows words.
-  const own = excerpt ? richTextToText(excerpt).replace(/\s+/g, ' ').trim() : ''
+  const own = excerptText(excerpt)
   if (own) return own
-  const text = richTextToText(body).replace(/\s+/g, ' ').trim()
+  const text = plainLine(body)
   if (text.length <= max) return text
   const cut = text.slice(0, max)
   const lastSpace = cut.lastIndexOf(' ')

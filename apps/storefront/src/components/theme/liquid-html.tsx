@@ -11,6 +11,11 @@ type LiquidHtmlProps = {
   tag?: string | undefined
   id?: string | undefined
   className?: string | undefined
+  /**
+   * Carry the markup in the RSC payload even on a page load: for markup the browser may have to
+   * draw itself, with no server HTML to keep (the not-found boundary, `not-found.tsx`).
+   */
+  inline?: boolean | undefined
 }
 
 /**
@@ -22,9 +27,15 @@ type LiquidHtmlProps = {
  * a digest of the markup goes along, so the browser replaces what it shows only when the markup
  * really changed (a cart count after an action), not for a new nonce.
  */
-export default async function LiquidHtml({ html, tag, id, className }: LiquidHtmlProps) {
+export default async function LiquidHtml({
+  html,
+  tag,
+  id,
+  className,
+  inline: always,
+}: LiquidHtmlProps) {
   // Hooks
-  const inline = await flightOnlyRequest()
+  const inline = always || (await flightOnlyRequest())
   const nonce = (await headers()).get(NONCE_HEADER) ?? ''
 
   // Render logic

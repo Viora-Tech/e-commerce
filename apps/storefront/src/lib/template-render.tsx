@@ -56,6 +56,8 @@ export type TemplateOptions = {
   sources?: { productId?: string | undefined; collectionId?: string | undefined }
   /** Told which section types this request draws (hidden ones left out), before they render. */
   onSections?: ((types: ReadonlySet<string>) => void) | undefined
+  /** Imported sections' markup rides in the RSC payload, for a render the browser draws (`LiquidHtml`). */
+  inlineLiquid?: boolean | undefined
 }
 
 /** Whether this request is a verified theme preview (Customize, or the Preview button). */
@@ -226,8 +228,10 @@ export async function renderTemplate(
       LiquidSection: (settings) => {
         const id = String(settings.id)
         const section = liquidHtml?.get(id)
-        if (section) return <LiquidHtml {...section} />
-        return streamed ? <DeferredLiquid sections={streamed} id={id} /> : null
+        if (section) return <LiquidHtml {...section} inline={options.inlineLiquid} />
+        return streamed ? (
+          <DeferredLiquid sections={streamed} id={id} inline={options.inlineLiquid} />
+        ) : null
       },
       ...options.renderers,
     },

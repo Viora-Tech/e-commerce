@@ -13,6 +13,7 @@ import {
   variant,
 } from '@commerce/db'
 import { and, asc, desc, eq, isNotNull, like, sql } from 'drizzle-orm'
+import { excerptText } from '../blog/text'
 import { keyFromName } from '../metaobjects/validate'
 import { toNavLinks } from '../navigation/resolve'
 import { loadMetafields, loadMetaobjects, loadMetaobjectsOfType } from './custom-data'
@@ -86,6 +87,15 @@ const toHtml = richTextHtml
 
 const escapeHtml = (s: string) =>
   s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+
+/**
+ * `article.excerpt`, which Liquid reads as HTML: the stored excerpt is text (a Shopify import
+ * keeps the summary's words), read as plain text first so tags saved in it never show escaped.
+ */
+function excerptHtml(excerpt: string | null): string {
+  const text = excerptText(excerpt)
+  return text ? `<p>${escapeHtml(text)}</p>` : ''
+}
 
 /** Our menu items as Shopify links, three levels deep. */
 function toLinks(links: ReturnType<typeof toNavLinks>): LiquidLinkData[] {
@@ -282,7 +292,7 @@ export async function storeLiquidData(
             title: a.title,
             url: `/blogs/${b.handle}/${a.handle}`,
             author: a.author,
-            excerptHtml: a.excerpt ? `<p>${escapeHtml(a.excerpt)}</p>` : '',
+            excerptHtml: excerptHtml(a.excerpt),
             contentHtml: toHtml(a.body),
             image: a.imageUrl ? { url: a.imageUrl, alt: a.imageAlt ?? a.title } : null,
             tags: a.tags,

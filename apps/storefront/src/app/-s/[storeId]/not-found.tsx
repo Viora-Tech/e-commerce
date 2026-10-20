@@ -3,7 +3,11 @@ import { headers } from 'next/headers'
 import { notFoundContent as copy } from '@/data/search'
 import { renderTemplate } from '@/lib/template-render'
 
-/** The theme's 404 template. Not-found pages get no params, so the store id comes from the proxy. */
+/**
+ * The theme's 404 template. Not-found pages get no params, so the store id comes from the proxy.
+ * The browser draws it from the RSC payload (Next's error shell, or the Suspense boundary of the
+ * themed reload, `lib/themed-rerender.ts`), never from server HTML: imported sections inline.
+ */
 export default async function StoreNotFound() {
   // Hooks
   const storeId = (await headers()).get('x-store-id')
@@ -13,6 +17,7 @@ export default async function StoreNotFound() {
 
   // Render logic
   return renderTemplate(storeId, 'not_found', {
+    inlineLiquid: true,
     renderers: {
       MainNotFound: () => (
         <section className="not-found page-width">
