@@ -1,3 +1,4 @@
+export { withFallback } from './fallback'
 export { NotificationRegistry } from './registry'
 export { sampleTemplateDataByTemplate } from './samples'
 export {

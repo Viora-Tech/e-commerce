@@ -1,6 +1,6 @@
 # Campaigns: visual drag-and-drop email builder (GrapesJS + MJML)
 
-Branch `feat/email-visual-builder`. Migration `0140_email_design`.
+Branch `feat/email-visual-builder`. Migration `0142_email_design`.
 
 - **Choice per campaign.** The email composer's Content area now picks **Block composer** (the
   existing blocks, unchanged) or **Visual builder**. `marketing_campaign.editor`

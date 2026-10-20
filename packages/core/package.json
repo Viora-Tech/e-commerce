@@ -93,6 +93,7 @@
     "@commerce/db": "workspace:*",
     "@commerce/money": "workspace:*",
     "@commerce/notifications": "workspace:*",
+    "@commerce/notifications-resend": "workspace:*",
     "@commerce/notifications-ses": "workspace:*",
     "@commerce/observability": "workspace:*",
     "@commerce/payments": "workspace:*",

@@ -27,6 +27,7 @@ export { default as Footer } from './components/footer'
 export { default as Header, type NavLink } from './components/header'
 export { default as HeroCarousel, type HeroSlide } from './components/hero-carousel'
 export { default as Icon } from './components/icon'
+export { default as MoneyFormatProvider } from './components/money-format-provider'
 export { default as Pagination } from './components/pagination'
 export { default as Price } from './components/price'
 export { default as ProductCard } from './components/product-card'
@@ -35,6 +36,7 @@ export { default as ProductRecommendations } from './components/product-recommen
 export { default as ProductView } from './components/product-view'
 export { default as QuantityInput } from './components/quantity-input'
 export { default as Reveal } from './components/reveal'
+export { default as ReviewsWidget } from './components/reviews/reviews-widget'
 export { default as RichTextBlock, type RichTextBlockProps } from './components/rich-text'
 export { default as SectionFrame } from './components/section-frame'
 export { default as SectionHeading } from './components/section-heading'
@@ -43,6 +45,7 @@ export { default as StoreActionsProvider } from './components/store-actions-prov
 export { default as ThemeToggle } from './components/theme-toggle'
 export { type MenuCollection, type SearchShortcut, searchShortcuts } from './header-menu'
 export { formatPaise } from './money'
+export { useFormatPaise } from './money-format'
 export {
   cleanCustomCss,
   defaultSectionSettings,

@@ -9,11 +9,13 @@ import { useRouter } from 'next/navigation'
 import { parseAsInteger, parseAsString, parseAsStringLiteral, useQueryStates } from 'nuqs'
 import { Suspense, useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
+import type { OrderActionGroup } from '@/apps/order-actions'
 import ActionMenu from '@/components/layout/action-menu'
 import ProoflyListPage from '@/components/layout/proofly-list-page'
 import DeleteTestOrdersDialog from '@/components/orders/delete-test-orders-dialog'
 import OrdersBulkActions from '@/components/orders/orders-bulk-actions'
 import OrdersTiles, { type OrderTilesData } from '@/components/orders/orders-tiles'
+import { useOrderAppActions } from '@/components/orders/use-order-app-actions'
 import InlineState from '@/components/states/inline-state'
 import {
   appliedFromGroups,
@@ -61,6 +63,8 @@ export type OrdersInitial = {
   perPage: number
   result: ListResult
   tiles: OrderTilesData
+  /** Installed apps' order actions for the row menus and bulk bar (`api.apps.orderActions`). */
+  appActions: OrderActionGroup[]
   /** Tab badges: every order, unpaid, to pack and manual UPI waiting to be matched. */
   counts: { all: number; unpaid: number; unfulfilled: number; pendingUpi: number }
 }
@@ -157,6 +161,9 @@ function OrdersContent({ initial }: { initial: OrdersInitial }) {
   const [askDeleteTests, setAskDeleteTests] = useState(false)
 
   const hydrated = useRef(false)
+  const apps = useOrderAppActions(initial.appActions, () => {
+    reload().catch(() => setFailed(true))
+  })
 
   // The Courier filter lists only couriers the store's orders actually went with.
   useEffect(() => {
@@ -303,6 +310,7 @@ function OrdersContent({ initial }: { initial: OrdersInitial }) {
                     },
                   ]
                 : []),
+              ...apps.items('row', o, [o.id]),
             ]}
           />
         )}
@@ -354,7 +362,15 @@ function OrdersContent({ initial }: { initial: OrdersInitial }) {
           })
         }
         bulkActions={(ids, clear) => (
-          <OrdersBulkActions ids={ids} onMark={(i, m) => handleBulkSetStatus(i, m, clear)} />
+          <OrdersBulkActions
+            ids={ids}
+            onMark={(i, m) => handleBulkSetStatus(i, m, clear)}
+            appActions={initial.appActions}
+            onAppActionDone={() => {
+              clear()
+              reload().catch(() => setFailed(true))
+            }}
+          />
         )}
         empty={searching ? copy.noResults : copy.empty}
       />

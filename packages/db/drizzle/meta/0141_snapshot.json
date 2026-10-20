@@ -1,5 +1,5 @@
 {
-  "id": "fe98af7a-1d68-4876-9df1-8252ca8b4a95",
+  "id": "812108a9-b9e4-47f0-90ee-37ba364349be",
   "prevId": "68c95779-19f3-42c6-9ca0-d2a117529f09",
   "version": "7",
   "dialect": "postgresql",
@@ -8416,6 +8416,12 @@
           "notNull": true,
           "default": "'INR'"
         },
+        "money_format": {
+          "name": "money_format",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
         "next_order_number": {
           "name": "next_order_number",
           "type": "integer",
@@ -13013,19 +13019,6 @@
           "notNull": true,
           "default": "'[]'::jsonb"
         },
-        "editor": {
-          "name": "editor",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'blocks'"
-        },
-        "design": {
-          "name": "design",
-          "type": "jsonb",
-          "primaryKey": false,
-          "notNull": false
-        },
         "whatsapp": {
           "name": "whatsapp",
           "type": "jsonb",
@@ -13134,99 +13127,8 @@
         "marketing_campaign_kind": {
           "name": "marketing_campaign_kind",
           "value": "\"marketing_campaign\".\"kind\" in ('email','whatsapp')"
-        },
-        "marketing_campaign_editor": {
-          "name": "marketing_campaign_editor",
-          "value": "\"marketing_campaign\".\"editor\" in ('blocks','visual')"
         }
       },
-      "isRLSEnabled": false
-    },
-    "public.marketing_email_template": {
-      "name": "marketing_email_template",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "uuid",
-          "primaryKey": true,
-          "notNull": true
-        },
-        "store_id": {
-          "name": "store_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "name": {
-          "name": "name",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "design": {
-          "name": "design",
-          "type": "jsonb",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        },
-        "updated_at": {
-          "name": "updated_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        }
-      },
-      "indexes": {
-        "marketing_email_template_store": {
-          "name": "marketing_email_template_store",
-          "columns": [
-            {
-              "expression": "store_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "updated_at",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        }
-      },
-      "foreignKeys": {
-        "marketing_email_template_store_id_store_id_fk": {
-          "name": "marketing_email_template_store_id_store_id_fk",
-          "tableFrom": "marketing_email_template",
-          "tableTo": "store",
-          "columnsFrom": [
-            "store_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {},
       "isRLSEnabled": false
     },
     "public.marketing_message": {

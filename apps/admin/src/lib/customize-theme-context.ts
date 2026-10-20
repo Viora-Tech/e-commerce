@@ -40,6 +40,16 @@ export function useLiquidHead(): LiquidHead | null {
 }
 
 /**
+ * The store's opt-in theme packs (`themes.packs`), so the Add panel offers a pack's sections
+ * (Zero Drift…) only where it is on. Context because the panel sits deep in Puck's overrides.
+ */
+export const ThemePacksContext = createContext<readonly string[]>([])
+
+export function useThemePacks(): readonly string[] {
+  return useContext(ThemePacksContext)
+}
+
+/**
  * Set while Customize edits an imported theme: its section schemas, so the Add panel can offer
  * the theme's own sections. `null` for our own themes.
  */

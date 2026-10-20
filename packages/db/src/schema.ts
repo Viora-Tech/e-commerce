@@ -31,6 +31,8 @@ export const store = pgTable('store', {
   /** Better Auth organization that owns this store. One org = one store. */
   organizationId: text('organization_id').unique(),
   currency: text('currency').notNull().default('INR'),
+  /** Storefront price format, Shopify-style (`Rs. {{amount}}`); null = currency's own. Display only. */
+  moneyFormat: text('money_format'),
   nextOrderNumber: integer('next_order_number').notNull().default(1),
   /**
    * Legacy theme tokens, validated by @commerce/core ThemeSchema. Superseded by the

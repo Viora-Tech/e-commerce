@@ -28,6 +28,8 @@ export function useShipQuote(
   draft: ShipmentDraft | null,
   parcelId: string | null,
   form: PackageForm | null,
+  /** A courier's provider id to start on when it can take the parcel (a courier app's action). */
+  preferred?: string | null,
 ) {
   // Hooks
   const [quote, setQuote] = useState<ParcelQuote | null>(null)
@@ -57,7 +59,7 @@ export function useShipQuote(
           setPick((current) =>
             current === MANUAL || answer?.options.some((r) => r.providerId === current)
               ? current
-              : startingPick(answer?.options ?? []),
+              : startingPick(answer?.options ?? [], preferred),
           )
         })
         .catch((err) => {
@@ -70,7 +72,7 @@ export function useShipQuote(
       live = false
       clearTimeout(timer)
     }
-  }, [draft, parcelId, form, retry])
+  }, [draft, parcelId, form, retry, preferred])
 
   return {
     quote,
