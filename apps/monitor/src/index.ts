@@ -6,6 +6,8 @@
  *   KV, and emails only when one goes down or comes back.
  * - `POST /dokploy?token=…`: Dokploy's custom notification (CPU or memory over its threshold,
  *   a failed deploy, a stopped container). The token must match the DOKPLOY_TOKEN secret.
+ *   CPU, memory and disk readings from the server schedule go through src/server.ts: CPU is
+ *   made whole-machine and must stay high for a few readings in a row before it emails.
  */
 import { EmailMessage } from 'cloudflare:email'
 import {
@@ -17,16 +19,29 @@ import {
   sameState,
   TIMEOUT_MS,
 } from './checks'
+import {
+  CPU_FRESH,
+  type CpuState,
+  nextCpuState,
+  readServerAlert,
+  type ServerReading,
+  sameCpuState,
+  serverAlertSubject,
+  serverAlertText,
+} from './server'
 
 type Env = {
   STATE: KVNamespace
   NOTIFY: SendEmail
   DOKPLOY_TOKEN: string
+  /** Cores on the app server, when the alert payload does not say (wrangler.jsonc vars). */
+  SERVER_CPU_CORES?: string
 }
 
 const FROM = 'monitor@koomerce.app'
 const TO = 'vioramice@gmail.com'
 const MAX_BODY_BYTES = 32_768
+const CPU_KEY = 'server:cpu'
 
 /** One line, printable ASCII only: safe in an email header. */
 const headerSafe = (value: string, max: number) =>
@@ -105,6 +120,25 @@ async function runChecks(env: Env) {
   )
 }
 
+/** A reading from the server schedule; CPU only emails once it has stayed high. */
+async function handleServerAlert(reading: ServerReading, env: Env): Promise<Response> {
+  const now = new Date().toISOString()
+  if (reading.kind === 'CPU') {
+    const prev = (await env.STATE.get<CpuState>(CPU_KEY, 'json')) ?? CPU_FRESH
+    const { state, alert } = nextCpuState(prev, reading.cpu >= reading.threshold, now)
+    if (!sameCpuState(prev, state)) await env.STATE.put(CPU_KEY, JSON.stringify(state))
+    if (!alert) return new Response('ok')
+  }
+  await sendMail(
+    env,
+    `Dokploy: ${serverAlertSubject(reading)}`,
+    `${serverAlertText(reading)}
+
+Received ${IST(now)} IST`,
+  )
+  return new Response('ok')
+}
+
 /** Dokploy's custom notification body, read loosely: its shape differs per event. */
 async function handleDokploy(request: Request, env: Env): Promise<Response> {
   const url = new URL(request.url)
@@ -121,6 +155,8 @@ async function handleDokploy(request: Request, env: Env): Promise<Response> {
   } catch {
     body = { message: text }
   }
+  const reading = readServerAlert(body, env.SERVER_CPU_CORES)
+  if (reading) return handleServerAlert(reading, env)
   const title = String(body.title ?? body.type ?? body.event ?? 'Dokploy alert')
   const details = Object.entries(body)
     .map(([k, v]) => `${k}: ${typeof v === 'string' ? v : JSON.stringify(v)}`)
