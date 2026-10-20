@@ -1,3 +1,4 @@
+/** SOURCE OF TRUTH: sales channel platform APIs — WHAT: Meta Graph and Google Merchant calls over fetch / WHY: no SDKs, server side only */
 /**
  * The platform APIs behind Sales channels, over plain `fetch` (no SDKs), server side only:
  *
@@ -46,8 +47,8 @@ async function request<T>(
 
 /* ---------- Meta ---------- */
 
-export const META_GRAPH = 'https://graph.facebook.com/v21.0'
-export const META_SCOPES = [
+const META_GRAPH = 'https://graph.facebook.com/v21.0'
+const META_SCOPES = [
   'catalog_management',
   'business_management',
   'whatsapp_business_management',
@@ -266,7 +267,7 @@ export async function metaPushItems(
 
 /* ---------- Google Merchant Center ---------- */
 
-export const GOOGLE_CONTENT_SCOPE = 'https://www.googleapis.com/auth/content'
+const GOOGLE_CONTENT_SCOPE = 'https://www.googleapis.com/auth/content'
 const GOOGLE_AUTHORIZE = 'https://accounts.google.com/o/oauth2/v2/auth'
 const GOOGLE_TOKEN = 'https://oauth2.googleapis.com/token'
 const MERCHANT_API = 'https://merchantapi.googleapis.com'

@@ -1,3 +1,4 @@
+/** SOURCE OF TRUTH: MCP & API areas and limits — WHAT: grant areas, permissions they unlock, AI client switches / WHY: client-safe for the admin */
 /**
  * Settings → MCP & API: the areas a client or token can reach and the permissions each one
  * unlocks, the "What AI clients can do" switches, and the limits. Pure and client-safe, so

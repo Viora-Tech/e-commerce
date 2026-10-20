@@ -1,3 +1,4 @@
+/** SOURCE OF TRUTH: custom analytics query schema — WHAT: tables, fields and operators a query can read / WHY: every field maps to one fixed SQL expression */
 /**
  * What a custom analytics query can read (Figma "Analytics · Report — query editor", "Data you
  * can query"). Every field here maps to one fixed SQL expression on the server; nothing a

@@ -1,3 +1,4 @@
+/** SOURCE OF TRUTH: paid app pricing — WHAT: which apps each plan includes and what the rest cost / WHY: one table for admin and billing */
 /**
  * Paid apps (memory-bank/pricing.md): core apps and every connection are free on every plan;
  * the apps below are included from a plan up and bought per month below it. Pure and

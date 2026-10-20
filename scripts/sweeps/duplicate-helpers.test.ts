@@ -27,6 +27,21 @@ const ALLOWLIST: AllowEntry[] = [
     reason:
       "adapter-private: converts Decentro's rupee amounts (numbers or strings in API answers) to paise; not typed merchant input, so parseRupees' null-for-junk rule does not fit",
   },
+  {
+    site: 'packages/shipping-delhivery/src/delhivery.ts: toPaise',
+    reason:
+      "adapter-private: converts Delhivery's rupee charge fields (numbers or strings in API answers) to paise; not typed merchant input, so parseRupees' null-for-junk rule does not fit",
+  },
+  {
+    site: 'apps/www/src/lib/pricing-math.ts: inr',
+    reason:
+      'marketing-site pricing calculator formats whole rupees (not paise) with no decimals; www does not depend on @commerce/money',
+  },
+  {
+    site: 'packages/blocks/src/components/sections/testimonials.tsx: initials',
+    reason:
+      'storefront testimonial avatar letters from a ReactNode name; blocks cannot import the admin lib owner',
+  },
 ]
 
 describe('sweep: duplicate-helpers', () => {

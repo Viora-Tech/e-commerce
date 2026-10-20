@@ -102,11 +102,6 @@ const ALLOWLIST: AllowEntry[] = [
     reason: 'the redaction rule behind buildBugIssue, exported for its unit test',
   },
   {
-    file: 'packages/core/src/theme-import/archive.ts',
-    names: ['safeThemePath'],
-    reason: 'the zip-slip guard behind readThemeArchive, exported for its unit test',
-  },
-  {
     file: 'packages/core/src/theme-import/bundle.ts',
     names: ['nonceThemeScripts'],
     reason:
@@ -125,7 +120,7 @@ const ALLOWLIST: AllowEntry[] = [
   },
   {
     file: 'packages/core/src/theme-import/fields.ts',
-    names: ['settingsFromProps', 'blocksFromProps', 'liquidSectionKey', 'shopifySectionId'],
+    names: ['settingsFromProps', 'blocksFromProps', 'shopifySectionId'],
     reason: 'the parts of liquidPlacement (props to engine input), exported for their unit tests',
   },
   {
@@ -195,7 +190,7 @@ const ALLOWLIST: AllowEntry[] = [
   },
   {
     file: 'packages/api/src/services/analytics-buckets.ts',
-    names: ['DEFAULT_RANGE', 'istDayStart'],
+    names: ['DEFAULT_RANGE'],
     reason: 'no external importer today — investigate before removing',
   },
   {
@@ -402,7 +397,7 @@ const ALLOWLIST: AllowEntry[] = [
   },
   {
     file: 'packages/core/src/marketing/automation-steps.ts',
-    names: ['AUTOMATION_TRIGGERS', 'AutomationStepSchema'],
+    names: ['AutomationStepSchema'],
     reason: 'no external importer today — investigate before removing',
   },
   {
@@ -412,7 +407,7 @@ const ALLOWLIST: AllowEntry[] = [
   },
   {
     file: 'packages/core/src/marketing/campaigns.ts',
-    names: ['CAMPAIGN_BATCH_SIZE', 'utmName'],
+    names: ['CAMPAIGN_BATCH_SIZE'],
     reason: 'no external importer today — investigate before removing',
   },
   {
@@ -666,11 +661,6 @@ const ALLOWLIST: AllowEntry[] = [
     reason: 'no external importer today — investigate before removing',
   },
   {
-    file: 'packages/core/src/theme/templates-data.ts',
-    names: ['isTemplateKey'],
-    reason: 'no external importer today — investigate before removing',
-  },
-  {
     file: 'packages/core/src/theme/vars.ts',
     names: ['themeToCssVars'],
     reason: 'no external importer today — investigate before removing',
@@ -860,7 +850,15 @@ const ALLOWLIST: AllowEntry[] = [
   },
   {
     file: 'packages/plugin-reviews/src/judgeme.ts',
-    names: ['parseJudgemeCsv', 'matchJudgemeRows'],
+    names: [
+      'parseJudgemeCsv',
+      'matchJudgemeRows',
+      'curationOf',
+      'matchRow',
+      'countJudgemeRows',
+      'importedStatus',
+      'rowsToImport',
+    ],
     reason: 'the pure CSV reader and the matcher, used inside this file and tested directly',
   },
   {
@@ -900,7 +898,7 @@ const ALLOWLIST: AllowEntry[] = [
   },
   {
     file: 'packages/plugin-shopify-import/src/csv-orders.ts',
-    names: ['orderNumberFrom', 'shopifyDate'],
+    names: ['shopifyDate'],
     reason: 'no external importer today — investigate before removing',
   },
   {
@@ -1200,8 +1198,73 @@ const ALLOWLIST: AllowEntry[] = [
   },
   {
     file: 'packages/ui/src/icons-more.tsx',
-    names: ['SidebarToggleIcon'],
+    names: ['SidebarToggleIcon', 'Circle', 'Highlighter'],
     reason: 'no external importer today — investigate before removing',
+  },
+  {
+    file: 'packages/core/src/catalog/browse.ts',
+    names: ['searchTerms'],
+    reason: 'the search-term split behind the catalog search, exported for its unit test',
+  },
+  {
+    file: 'packages/core/src/sales-channels/connect.ts',
+    names: ['signChannelState'],
+    reason: 'the signed OAuth state behind the channel connect flow, exported for sync.test.ts',
+  },
+  {
+    file: 'packages/core/src/shipping/courier-rates.ts',
+    names: ['rateOptionLabel'],
+    reason: 'the label rule behind the courier rate options, exported for its unit test',
+  },
+  {
+    file: 'packages/core/src/theme-code/check.ts',
+    names: ['checkCss', 'checkLiquid'],
+    reason: 'the per-language checks behind codeProblems, exported for check.test.ts',
+  },
+  {
+    file: 'packages/core/src/theme-code/files.ts',
+    names: ['codeProblems'],
+    reason: 'the save-time check behind the theme code editor, exported for check.test.ts',
+  },
+  {
+    file: 'packages/ui/src/globe/webgl/border-dash.ts',
+    names: ['DASH_DUTY_CYCLE', 'isDashVisible'],
+    reason: 'the dash pattern the border shader draws, exported for its unit test',
+  },
+  {
+    file: 'packages/ui/src/globe/webgl/border-points.ts',
+    names: ['encodeBorderPoints'],
+    reason: 'the border vertex packing, exported for its unit test',
+  },
+  {
+    file: 'packages/ui/src/globe/webgl/dot-layout.ts',
+    names: ['TARGET_ROW_SPACING_CSS_PX'],
+    reason: 'the dot grid spacing, exported for its unit test',
+  },
+  {
+    file: 'packages/core/src/analytics-query/schema.ts',
+    names: ['QUERY_KEYWORDS'],
+    reason: 'no external importer today — investigate before removing',
+  },
+  {
+    file: 'packages/core/src/billing/apps.ts',
+    names: ['canUseApp'],
+    reason: 'no external importer today — billing API not wired into the admin yet',
+  },
+  {
+    file: 'packages/core/src/billing/credits-service.ts',
+    names: ['listAiTopups'],
+    reason: 'no external importer today — billing API not wired into the admin yet',
+  },
+  {
+    file: 'packages/core/src/billing/plans.ts',
+    names: ['PLAN_GST_PERCENT', 'isPlanId'],
+    reason: 'no external importer today — billing API not wired into the admin yet',
+  },
+  {
+    file: 'packages/core/src/billing/service.ts',
+    names: ['orderAllowance'],
+    reason: 'no external importer today — billing API not wired into the admin yet',
   },
 ]
 

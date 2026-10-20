@@ -1,3 +1,4 @@
+/** SOURCE OF TRUTH: sales channels — WHAT: which channels exist, attribution mapping and settings / WHY: client-safe for the admin */
 /**
  * Sales channels (admin → Agentic sales, Social media): which channels exist, how an order's
  * attribution maps to one, and the settings kept on `store.preferences.salesChannels`. Pure

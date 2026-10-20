@@ -1,3 +1,4 @@
+/** SOURCE OF TRUTH: custom analytics query parser tests — WHAT: parsing, formatting and suggestions / WHY: a merchant query never reaches SQL unchecked */
 import { describe, expect, test } from 'vitest'
 import { formatQuery, parseQuery } from './parse'
 import { STARTER_QUERY } from './schema'

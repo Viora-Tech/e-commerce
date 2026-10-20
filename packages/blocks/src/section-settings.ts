@@ -3,7 +3,7 @@ import type { CSSProperties } from 'react'
 import { safeColour } from './element-style'
 
 /** Longest custom CSS one section keeps. */
-export const CUSTOM_CSS_MAX = 5000
+const CUSTOM_CSS_MAX = 5000
 
 /** Applies to this section only; rules are written as if inside it, e.g. `h2 { … }`. */
 const CUSTOM_CSS_FIELD = { type: 'textarea', label: 'Custom CSS' }

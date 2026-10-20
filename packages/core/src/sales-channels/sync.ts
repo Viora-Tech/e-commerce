@@ -1,3 +1,4 @@
+/** SOURCE OF TRUTH: sales channel catalog sync — WHAT: build, send and delete items per connection / WHY: no transaction stays open while a platform answers */
 /**
  * The catalog sync for one platform connection (`meta`, `google`, `openai`): build the items,
  * send what changed (deleting what left), and move each channel on it through its states:

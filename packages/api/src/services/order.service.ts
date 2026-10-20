@@ -119,7 +119,7 @@ type OrderListFilters = {
 }
 
 /** The most ids "Select all" takes at once; bulk actions above this would need a background job. */
-export const SELECT_ALL_MAX = 5000
+const SELECT_ALL_MAX = 5000
 
 /** Every order id the list's filters match, newest first (the table's "Select all N orders"). */
 export async function listOrderIds(tx: StoreTx, input: OrderListFilters): Promise<string[]> {

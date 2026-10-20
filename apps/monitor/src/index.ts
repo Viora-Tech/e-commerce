@@ -8,6 +8,7 @@
  *   a failed deploy, a stopped container). The token must match the DOKPLOY_TOKEN secret.
  */
 import { EmailMessage } from 'cloudflare:email'
+import { siteConfig } from '@commerce/config/site'
 import {
   CHECKS,
   type Check,
@@ -37,7 +38,7 @@ const headerSafe = (value: string, max: number) =>
 
 async function sendMail(env: Env, subject: string, text: string) {
   const raw = [
-    `From: Koomerce monitor <${FROM}>`,
+    `From: ${siteConfig.brand.name} monitor <${FROM}>`,
     `To: ${TO}`,
     `Subject: ${headerSafe(subject, 150)}`,
     `Message-ID: <${crypto.randomUUID()}@koomerce.app>`,

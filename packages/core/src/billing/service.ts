@@ -1,9 +1,10 @@
-/**
- * SOURCE OF TRUTH: store plans and plan bills — WHAT a store's plan is, what it owes, and how a
+/** SOURCE OF TRUTH: store plans and plan bills — WHAT a store's plan is, what it owes, and how a
  * bill becomes an order on the platform's sales store / WHY payments, GST invoices and receipts
  * already work there (checkout, Razorpay, the GST-invoice app); billing only remembers which
  * order paid for which period. Pay-by-link for now (UPI AutoPay later).
  */
+
+import { siteConfig } from '@commerce/config/site'
 import {
   aiSettings,
   type Db,
@@ -18,6 +19,7 @@ import {
 } from '@commerce/db'
 import { and, desc, eq, sql } from 'drizzle-orm'
 import { storefrontOriginFor } from '../domains/origin'
+import { CommerceError } from '../errors'
 import { convertDraft, createDraft } from '../order/drafts'
 import { createPaymentAttempt } from '../payments/attempts'
 import { isGatewayProvider } from '../payments/methods'
@@ -48,9 +50,9 @@ export type BillingEnv = {
   salesStorefrontUrl: string | null
 }
 
-export class BillingNotReady extends Error {
+export class BillingNotReady extends CommerceError {
   constructor(readonly reason: 'no_sales_store' | 'no_plan_product' | 'no_gateway') {
-    super(`Billing is not set up: ${reason}`)
+    super('BILLING_NOT_READY', `Billing is not set up: ${reason}`)
   }
 }
 
@@ -253,7 +255,8 @@ export async function createPlanBill(
   const periodEnd = addInterval(input.periodStart, input.interval)
   const sale = await placeSalesOrder(db, env, storeId, {
     sku: planSku(input.plan, input.interval),
-    note: (buyer) => `Koomerce ${input.plan} (${input.interval}) for ${buyer}, store ${storeId}`,
+    note: (buyer) =>
+      `${siteConfig.brand.name} ${input.plan} (${input.interval}) for ${buyer}, store ${storeId}`,
   })
 
   const bill = await withStore(db, storeId, async (tx) => {

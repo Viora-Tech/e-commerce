@@ -1,4 +1,6 @@
 /** Copy for Sales channels → Agentic sales and Social media. */
+import { siteConfig } from '@commerce/config/site'
+
 export const salesChannelsContent = {
   /** The order page's "Sold through ChatGPT" card and "via ChatGPT" chip. */
   orderCard: {
@@ -338,7 +340,7 @@ export const salesChannelsContent = {
     inAgent: 'Checkout inside the agent',
     inAgentBody: 'Shoppers pay without leaving the chat. Only for agents that support it.',
     onStore: 'Send shoppers to your checkout',
-    onStoreBody: 'The agent links to your Koomerce checkout on your store.',
+    onStoreBody: `The agent links to your ${siteConfig.brand.name} checkout on your store.`,
     bigOrders: 'Big orders',
     hold: 'Hold large orders for review',
     holdBody: 'Orders above this amount wait in Orders until you approve them.',

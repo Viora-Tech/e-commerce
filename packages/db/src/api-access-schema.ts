@@ -22,14 +22,14 @@ import { newId, store } from './schema'
 export type ApiScopes = Record<string, 'read' | 'write'>
 
 /** `oauth`: an AI client that signed in. `token`: an access token made for a script. */
-export const API_GRANT_KINDS = ['oauth', 'token'] as const
+const API_GRANT_KINDS = ['oauth', 'token'] as const
 export type ApiGrantKind = (typeof API_GRANT_KINDS)[number]
 
 /**
  * What the activity log records. `read` and `change` are tool and API calls; `approval` is a
  * change that waits in AI approvals; `blocked` is a call a setting or a scope refused.
  */
-export const API_ACTIVITY_KINDS = [
+const API_ACTIVITY_KINDS = [
   'read',
   'change',
   'approval',

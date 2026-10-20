@@ -124,6 +124,45 @@ const ALLOWLIST: AllowEntry[] = [
     exact: true,
     reason: 'resolves the store from the db in middleware — move behind a core service',
   },
+  {
+    path: 'apps/admin/src/app/api/channels/[provider]/callback/route.ts',
+    exact: true,
+    reason:
+      'sales-channel OAuth callback opens withStore for the core connect call — no raw query, only the tx',
+  },
+  {
+    path: 'apps/storefront/src/lib/liquid-theme.ts',
+    exact: true,
+    reason: STOREFRONT_LIB,
+  },
+  {
+    path: 'apps/storefront/src/lib/track-order-actions.ts',
+    exact: true,
+    reason: STOREFRONT_LIB,
+  },
+  { path: 'apps/worker/src/api-activity.ts', exact: true, reason: WORKER },
+  { path: 'apps/worker/src/channel-sync.ts', exact: true, reason: WORKER },
+  {
+    path: 'apps/worker/src/media-rehost.ts',
+    exact: true,
+    reason: 'one-off repair CLI (media:rehost) run from the worker image, like a script',
+  },
+  {
+    path: 'packages/api/src/mcp/oauth.ts',
+    exact: true,
+    reason:
+      'MCP OAuth endpoints resolve the store and open withStore before calling core api-access',
+  },
+  {
+    path: 'packages/api/src/mcp/server.ts',
+    exact: true,
+    reason: 'MCP transport opens withStore per request; queries live in services/core',
+  },
+  {
+    path: 'packages/api/src/mcp/tools.ts',
+    exact: true,
+    reason: 'MCP tools open withStore and call services; no raw queries',
+  },
   { path: 'apps/worker/src/app-events.ts', exact: true, reason: WORKER },
   { path: 'apps/worker/src/back-in-stock.ts', exact: true, reason: WORKER },
   {

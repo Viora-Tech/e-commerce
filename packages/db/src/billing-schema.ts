@@ -17,17 +17,17 @@ import { newId, store } from './schema'
  * and its checkout takes the money; these tables only remember which order paid for what.
  */
 
-export const STORE_PLANS = ['starter', 'growth', 'pro'] as const
+const STORE_PLANS = ['starter', 'growth', 'pro'] as const
 export type StorePlanId = (typeof STORE_PLANS)[number]
 
-export const PLAN_INTERVALS = ['month', 'year'] as const
+const PLAN_INTERVALS = ['month', 'year'] as const
 export type PlanInterval = (typeof PLAN_INTERVALS)[number]
 
 /**
  * `trialing`: the first 14 days. `active`: paid through `periodEnd`. `due`: a renewal order
  * waits for payment. `paused`: the grace period ran out unpaid. `cancelled`: closed by the owner.
  */
-export const STORE_PLAN_STATUSES = ['trialing', 'active', 'due', 'paused', 'cancelled'] as const
+const STORE_PLAN_STATUSES = ['trialing', 'active', 'due', 'paused', 'cancelled'] as const
 export type StorePlanStatus = (typeof STORE_PLAN_STATUSES)[number]
 
 const id = () => uuid('id').primaryKey().$defaultFn(newId)
@@ -64,7 +64,7 @@ export const storePlan = pgTable(
   ],
 )
 
-export const PLAN_PAYMENT_STATUSES = ['due', 'paid', 'cancelled'] as const
+const PLAN_PAYMENT_STATUSES = ['due', 'paid', 'cancelled'] as const
 export type PlanPaymentStatus = (typeof PLAN_PAYMENT_STATUSES)[number]
 
 /** One bill: the order on the sales store that pays for one period of one plan. */
@@ -97,7 +97,7 @@ export const planPayment = pgTable(
  * `cancelled`: the owner stopped it (the app keeps working until `periodEnd`), or the bill was
  * cancelled before it was paid.
  */
-export const APP_PURCHASE_STATUSES = ['due', 'active', 'cancelled'] as const
+const APP_PURCHASE_STATUSES = ['due', 'active', 'cancelled'] as const
 export type AppPurchaseStatus = (typeof APP_PURCHASE_STATUSES)[number]
 
 /**
@@ -147,7 +147,7 @@ export const aiCreditTopup = pgTable(
   ],
 )
 
-export const AUTOPAY_STATUSES = ['created', 'active', 'halted', 'cancelled'] as const
+const AUTOPAY_STATUSES = ['created', 'active', 'halted', 'cancelled'] as const
 export type AutopayStatus = (typeof AUTOPAY_STATUSES)[number]
 
 /**

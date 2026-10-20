@@ -1,3 +1,4 @@
+/** SOURCE OF TRUTH: custom analytics query suggestions — WHAT: completions for the query editor / WHY: the same vocabulary as the parser */
 import { tokenize } from './parse'
 import {
   COMPARE_OPTIONS,

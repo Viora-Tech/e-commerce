@@ -12,13 +12,9 @@ type AllowEntry = { pair: string; reason: string }
 
 const ALLOWLIST: AllowEntry[] = [
   {
-    pair: 'apps/admin/src/components/blog/confirm-delete-articles.tsx <-> apps/admin/src/components/products/confirm-bulk-delete.tsx',
+    pair: 'apps/admin/src/components/customers/bulk-edit/customers-bulk-grid.tsx <-> apps/admin/src/components/orders/bulk-edit/orders-bulk-grid.tsx',
     reason:
-      'two bulk-delete confirm dialogs with different copy and API calls — fold into one shared ConfirmBulkDelete with copy + action props',
-  },
-  {
-    pair: 'apps/admin/src/components/customers/customer-tags-card.tsx <-> apps/admin/src/components/orders/tags-card.tsx',
-    reason: 'customer and order tag cards — fold into one TagsCard with the save call as a prop',
+      'customers and orders bulk-edit grids (same keyboard/paste wiring, own model and columns) — fold into one BulkGrid with model + columns props',
   },
 ]
 
