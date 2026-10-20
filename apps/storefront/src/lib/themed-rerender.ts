@@ -56,6 +56,7 @@ export function rerenderThemed() {
   const path = location.pathname
   if (isRerender(readRerenderCookie(document.cookie), path)) return
   reloading = true
+  // biome-ignore lint/suspicious/noDocumentCookie: a short-lived first-party flag the server reads on the reload.
   document.cookie = `${RERENDER_COOKIE}=${rerenderValue(path)}; path=/; max-age=${MAX_AGE_SECONDS}; samesite=lax`
   // The bare page drawn so far is not worth a glimpse.
   document.documentElement.style.visibility = 'hidden'
@@ -65,5 +66,6 @@ export function rerenderThemed() {
 /** Drops the cookie once the themed reload has drawn. Browser only. */
 export function clearRerender() {
   if (reloading || readRerenderCookie(document.cookie) === undefined) return
+  // biome-ignore lint/suspicious/noDocumentCookie: clears the same first-party flag.
   document.cookie = `${RERENDER_COOKIE}=; path=/; max-age=0; samesite=lax`
 }

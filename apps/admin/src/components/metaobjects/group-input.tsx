@@ -75,7 +75,12 @@ export default function GroupInput({
 
   const handleReorder = (rows: Row[], next: { id: string; index: number }[]) => {
     rowIds.reorder(next.map((r) => r.id))
-    setRows(next.flatMap((r) => rows[r.index] ?? []))
+    setRows(
+      next.flatMap((r) => {
+        const row = rows[r.index]
+        return row ? [row] : []
+      }),
+    )
   }
 
   // Render logic

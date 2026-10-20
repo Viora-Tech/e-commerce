@@ -61,8 +61,8 @@ import { storeRead } from '@/lib/store-cache'
 import { inStore } from '@/lib/store-context'
 import { readPreview } from '@/lib/storefront-gate'
 import { liveThemeId, renderTemplate } from '@/lib/template-render'
-import { isRerender, RERENDER_COOKIE } from '@/lib/themed-rerender'
 import { htmlThemeAttr, resolveThemeMode, THEME_COOKIE, themeViewport } from '@/lib/theme-mode'
+import { isRerender, RERENDER_COOKIE } from '@/lib/themed-rerender'
 import { umamiTrackerOf } from '@/lib/umami'
 
 type Props = { children: ReactNode; params: Promise<{ storeId: string }> }

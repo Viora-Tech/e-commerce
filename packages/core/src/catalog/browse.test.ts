@@ -272,7 +272,12 @@ describe('browseProducts', () => {
     await seed(storeId, { handle: 'gamma', price: 100, stock: 1, sku: 'PLS-PULSAR' })
     await seed(storeId, { handle: 'pulsar-x3', title: 'Pulsar X3', price: 100, stock: 1 })
     await seed(storeId, { handle: 'legacy', price: 100, stock: 1, description: 'old pulsar copy' })
-    await seed(storeId, { handle: 'other', price: 100, stock: 1, description: lexical('paragraph') })
+    await seed(storeId, {
+      handle: 'other',
+      price: 100,
+      stock: 1,
+      description: lexical('paragraph'),
+    })
     await seed(storeId, { handle: 'tee', price: 100, stock: 1, sizes: ['Crimson'] })
     const search = (query: string) =>
       run(storeId, (tx) => browseProducts(tx, { ...base, query, sort: 'relevance' }))
