@@ -105,6 +105,7 @@
     "jose": "6.2.12",
     "libphonenumber-js": "^1.13.15",
     "liquidjs": "10.30.0",
+    "pdf-lib": "^1.17.1",
     "sharp": "^0.35.4",
     "thumbhash": "^0.1.1",
     "zod": "^4.6.5"

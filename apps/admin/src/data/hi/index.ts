@@ -26,9 +26,11 @@ import customersBulkEdit from './customers-bulk-edit'
 import customizeMedia from './customize-media'
 import dateRange from './date-range'
 import dates from './dates'
+import dhlExpress from './dhl-express'
 import discounts from './discounts'
 import domains from './domains'
 import drafts from './drafts'
+import fedex from './fedex'
 import filterPanel from './filter-panel'
 import growth from './growth'
 import gstInvoices from './gst-invoices'
@@ -108,6 +110,8 @@ export const hindiCopy: readonly TranslationPair[] = [
   ...customersBulkEdit,
   ...customizeMedia,
   ...dates,
+  ...dhlExpress,
+  ...fedex,
   ...drafts,
   ...domains,
   ...analytics,

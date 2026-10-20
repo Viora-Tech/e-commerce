@@ -36,6 +36,8 @@
     "@commerce/queue": "workspace:*",
     "@commerce/richtext": "workspace:*",
     "@commerce/shipping-delhivery": "workspace:*",
+    "@commerce/shipping-dhl-express": "workspace:*",
+    "@commerce/shipping-fedex": "workspace:*",
     "@commerce/shipping-shiprocket": "workspace:*",
     "@commerce/storage": "workspace:*",
     "@commerce/ui": "workspace:*",

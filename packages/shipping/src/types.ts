@@ -25,6 +25,14 @@ export type ServiceabilityQuery = {
   weightGrams?: number | null | undefined
   /** Order value in rupees, for aggregators that quote insurance against it. */
   declaredValue?: number | null | undefined
+  /**
+   * ISO 3166-1 alpha-2 of the destination; absent means India. Only couriers with
+   * `coverage` 'international' or 'both' are asked about a foreign address, and then
+   * `destinationPincode` holds that country's postal code.
+   */
+  destinationCountry?: string | undefined
+  /** Destination city, which some international rate APIs want next to the postal code. */
+  destinationCity?: string | undefined
 }
 
 export type Serviceability = {
@@ -63,6 +71,13 @@ export type ShipmentLine = {
   title: string
   quantity: number
   unitPricePaise: number
+  /** Customs fields for a parcel going abroad (the variant's HS code, made-in country). */
+  hsCode?: string | undefined
+  /** ISO 3166-1 alpha-2; absent on an international booking means India. */
+  countryOfOrigin?: string | undefined
+  sku?: string | undefined
+  /** One unit's weight, when the variant has one; customs lines need a weight each. */
+  unitWeightGrams?: number | undefined
 }
 
 export type CreateShipmentInput = {
@@ -89,6 +104,10 @@ export type CreateShipmentInput = {
    * aggregator's courier. Absent: the courier's own default, as before.
    */
   serviceId?: string | undefined
+  /** The parcel's box, when known. Domestic adapters may ignore it; international rates need it. */
+  dimensionsCm?: { length: number; width: number; height: number } | undefined
+  /** The store's GSTIN, printed on an export's commercial invoice. */
+  exporterGstin?: string | undefined
 }
 
 export type CreateShipmentResult = {
@@ -99,6 +118,17 @@ export type CreateShipmentResult = {
   providerRef: string
   /** What the courier charges for this consignment, when its booking answer says (paise). */
   chargePaise?: number | undefined
+  /**
+   * The label (and, abroad, the commercial invoice) as base64 PDFs, for couriers that hand
+   * back the file rather than a link (DHL Express). The platform joins them into one PDF in
+   * the store's storage and records its address as `labelUrl`.
+   */
+  documents?: ShipmentDocument[] | undefined
+}
+
+export type ShipmentDocument = {
+  kind: 'label' | 'commercial_invoice' | 'other'
+  pdfBase64: string
 }
 
 export type ShipmentStatus =
@@ -143,6 +173,11 @@ export type RateQuery = {
   /** Goods value after discounts, in paise. */
   declaredValuePaise: number
   paymentMode: 'prepaid' | 'cod'
+  /** ISO 3166-1 alpha-2; absent means India. See `ServiceabilityQuery.destinationCountry`. */
+  destinationCountry?: string | undefined
+  destinationCity?: string | undefined
+  /** The parcel's box, for couriers that price by volumetric weight themselves. */
+  dimensionsCm?: { length: number; width: number; height: number } | undefined
 }
 
 /** A courier's own price for one parcel. Never shown raw; the platform names and rounds it. */
@@ -205,6 +240,15 @@ export type ShippingCapability =
   | 'insurance'
   /** Book a courier to collect a customer return from the shopper (a reverse pickup). */
   | 'reverse_pickup'
+  /** Carry parcels abroad, with the customs lines and commercial invoice that needs. */
+  | 'international'
+
+/**
+ * Where a courier delivers. `domestic` (the default when a provider leaves it out): Indian
+ * PIN codes only. `international`: other countries only (DHL Express and FedEx from India);
+ * the storefront's PIN-code estimate never asks such a courier. `both`: either.
+ */
+export type ShippingCoverage = 'domestic' | 'international' | 'both'
 
 /**
  * A reverse pickup: the courier collects the parcel from the shopper
@@ -282,6 +326,8 @@ export type ShippingProvider = {
   /** Stable id used in store settings and the shipment table. Lowercase, no spaces. */
   readonly id: string
   readonly label: string
+  /** Where it delivers; absent means `domestic`. See `ShippingCoverage`. */
+  readonly coverage?: ShippingCoverage | undefined
   /**
    * Optional: what the courier would charge for this parcel, or null when it
    * will not quote. Checkout prices shipping from the merchant's zones and

@@ -13,6 +13,8 @@ import { shopifyImportPlugin } from '@commerce/plugin-shopify-import'
 import { umamiPlugin } from '@commerce/plugin-umami'
 import { defineConfig } from '@commerce/plugins'
 import { delhiveryPlugin } from '@commerce/shipping-delhivery'
+import { dhlExpressPlugin } from '@commerce/shipping-dhl-express'
+import { fedexPlugin } from '@commerce/shipping-fedex'
 import { rapidshypPlugin } from '@commerce/shipping-rapidshyp'
 import { shiprocketPlugin } from '@commerce/shipping-shiprocket'
 import { r2Plugin } from '@commerce/storage-r2'
@@ -32,6 +34,8 @@ export default defineConfig({
     delhiveryPlugin,
     shiprocketPlugin,
     rapidshypPlugin,
+    dhlExpressPlugin,
+    fedexPlugin,
     sesPlugin,
     whatsappPlugin,
     r2Plugin,

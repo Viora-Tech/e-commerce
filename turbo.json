@@ -34,6 +34,8 @@
         "@commerce/plugin-umami#build",
         "@commerce/plugins#build",
         "@commerce/shipping-delhivery#build",
+        "@commerce/shipping-dhl-express#build",
+        "@commerce/shipping-fedex#build",
         "@commerce/shipping-rapidshyp#build",
         "@commerce/shipping-shiprocket#build",
         "@commerce/storage-r2#build",

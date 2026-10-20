@@ -414,3 +414,62 @@ describe('compareCourierRates with per-service options', () => {
     ])
   })
 })
+
+describe('compareCourierRates coverage', () => {
+  const abroad: RateQuery = { ...query, destinationPincode: '76449', destinationCountry: 'US' }
+
+  /** A quoting courier that counts its serviceability calls. */
+  function counting(id: string, calls: string[], coverage?: ShippingProvider['coverage']) {
+    const base = fakeProvider(id, id, {
+      quote: { pricePaise: 5000, minTransitDays: 3, maxTransitDays: 3 },
+    })
+    const provider: ShippingProvider = {
+      ...base,
+      ...(coverage ? { coverage } : {}),
+      async checkServiceability(q) {
+        calls.push(id)
+        return base.checkServiceability(q)
+      },
+    }
+    return provider
+  }
+
+  it('never asks a domestic courier about a foreign address, or an export courier about India', async () => {
+    const calls: string[] = []
+    const domestic = counting('delhivery', calls)
+    const exports = counting('dhl-express', calls, 'international')
+
+    const foreign = await compareCourierRates([domestic, exports], abroad)
+    expect(foreign.find((r) => r.providerId === 'delhivery')).toMatchObject({
+      problem: 'not_serviceable',
+      problemDetail: 'Delivers within India only.',
+    })
+    expect(foreign.find((r) => r.providerId === 'dhl-express')).toMatchObject({
+      problem: null,
+      pricePaise: 5000,
+    })
+    expect(calls).toEqual(['dhl-express'])
+
+    const home = await compareCourierRates([domestic, exports], query)
+    expect(home.find((r) => r.providerId === 'dhl-express')).toMatchObject({
+      problem: 'not_serviceable',
+      problemDetail: 'Ships from India to other countries only.',
+    })
+    expect(calls).toEqual(['dhl-express', 'delhivery'])
+  })
+
+  it('passes the destination country and city on to serviceability', async () => {
+    const seen: ServiceabilityQuery[] = []
+    const base = fakeProvider('fedex', 'FedEx')
+    const fedex: ShippingProvider = {
+      ...base,
+      coverage: 'international',
+      async checkServiceability(q) {
+        seen.push(q)
+        return base.checkServiceability(q)
+      },
+    }
+    await compareCourierRates([fedex], { ...abroad, destinationCity: 'Graford' })
+    expect(seen[0]).toMatchObject({ destinationCountry: 'US', destinationCity: 'Graford' })
+  })
+})

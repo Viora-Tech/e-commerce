@@ -49,5 +49,27 @@ export const connectAsideContent = {
       helpTitle: 'Where is my API key?',
       helpBody: 'In your RapidShyp dashboard, open Settings › API and copy the key shown there.',
     },
+    'dhl-express': {
+      connects: [
+        'DHL Express rates to the shopper’s country, in rupees',
+        'Labels with the commercial invoice in one PDF',
+        'A DHL pickup booked with each shipment',
+        'Tracking on every export',
+      ],
+      helpTitle: 'Where are my API key and secret?',
+      helpBody:
+        'On developer.dhl.com, open My apps, pick the app with "DHL Express - MyDHL API" and copy its key and secret. Your account number is on your DHL invoice.',
+    },
+    fedex: {
+      connects: [
+        'FedEx rates to the shopper’s country, in rupees',
+        'Labels with the commercial invoice in one PDF',
+        'A FedEx pickup after each booking',
+        'Tracking and cancellation',
+      ],
+      helpTitle: 'Where are my API key and secret key?',
+      helpBody:
+        'On developer.fedex.com, open My Projects, pick your project and copy the key pair for test or production. Your account number is on your FedEx invoice.',
+    },
   } as Record<string, { connects: string[]; helpTitle: string; helpBody: string }>,
 } as const

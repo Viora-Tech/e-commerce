@@ -190,6 +190,18 @@ Rules that keep every adapter interchangeable:
 - **Never call `Date.now()` for delivery dates.** Return transit days; the
   platform's calendar (`@commerce/shipping` `delivery-date.ts`) turns them into
   a date in the store's timezone with cutoff and holidays applied.
+- **Say where you deliver.** `coverage` on the provider is `domestic` (the default: Indian
+  PIN codes only), `international` (exports only: `packages/shipping-dhl-express` and
+  `packages/shipping-fedex`, the real versions of this sketch) or `both`. The rate table
+  never asks a courier about a country it does not cover, and the storefront's PIN-code
+  estimate never asks an export-only one. Rate and serviceability queries carry
+  `destinationCountry` (ISO alpha-2, absent means India) and `destinationCity`; shipment lines
+  carry `hsCode`, `countryOfOrigin`, `sku` and `unitWeightGrams`, the input carries
+  `dimensionsCm` and `exporterGstin`. `customsLines` in `@commerce/shipping` checks the HS
+  codes and shares out the parcel weight.
+- **A courier that answers with PDFs, not a link,** returns them as `documents` (base64,
+  `label` / `commercial_invoice`); the platform joins them label-first into one file in the
+  store's storage and records that as `labelUrl`.
 - Payments: `createPayment` returns a `CheckoutSession` of kind `client`,
   `redirect`, `manual` or `none`; `parseWebhook` must verify the signature with
   a constant-time compare and return a stable `eventId` for deduplication.

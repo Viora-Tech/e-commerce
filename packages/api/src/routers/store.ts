@@ -77,6 +77,32 @@ const previousSecrets = () => parsePreviousSecrets(loadEnv(process.env).SETTINGS
  */
 const fallbackRateLimit = createMemoryRateLimitStore()
 
+/** A courier Connect page's "Test connection", rate-limited per store like the others. */
+const courierConnectionTest = (providerId: string) =>
+  can(permissions.SETTINGS_MANAGE)
+    .input(z.object({ fields: z.record(z.string(), z.string()) }))
+    .handler(async ({ context, input }) => {
+      const limit = await checkRateLimit(
+        context.rateLimit ?? fallbackRateLimit,
+        rateLimitKey('shipping-test-connection', context.scope.storeId),
+        TEST_CONNECTION_RULE,
+      )
+      if (!limit.ok) {
+        throw new ORPCError('TOO_MANY_REQUESTS', {
+          message: `Too many attempts. Try again in about ${Math.ceil(retryAfterSeconds(limit) / 60)} minute(s).`,
+        })
+      }
+      const { shipping } = await storeRegistries(context.tx, context.scope.storeId)
+      return testShippingConnection(
+        context.tx,
+        context.scope.storeId,
+        shipping,
+        settingsSecret(),
+        providerId,
+        input.fields,
+      )
+    })
+
 export const storeRouter = {
   current: can(permissions.SETTINGS_READ).handler(async ({ context }) => {
     const { storeId } = context.scope
@@ -334,79 +360,18 @@ export const storeRouter = {
    * mistyped token can't be hammered into a credential-guessing loop against
    * the real courier account.
    */
-  testDelhiveryConnection: can(permissions.SETTINGS_MANAGE)
-    .input(z.object({ fields: z.record(z.string(), z.string()) }))
-    .handler(async ({ context, input }) => {
-      const limit = await checkRateLimit(
-        context.rateLimit ?? fallbackRateLimit,
-        rateLimitKey('shipping-test-connection', context.scope.storeId),
-        TEST_CONNECTION_RULE,
-      )
-      if (!limit.ok) {
-        throw new ORPCError('TOO_MANY_REQUESTS', {
-          message: `Too many attempts. Try again in about ${Math.ceil(retryAfterSeconds(limit) / 60)} minute(s).`,
-        })
-      }
-      const { shipping } = await storeRegistries(context.tx, context.scope.storeId)
-      return testShippingConnection(
-        context.tx,
-        context.scope.storeId,
-        shipping,
-        settingsSecret(),
-        'delhivery',
-        input.fields,
-      )
-    }),
+  testDelhiveryConnection: courierConnectionTest('delhivery'),
 
   /** Same as `testDelhiveryConnection`, for the Shiprocket Connect page. */
-  testShiprocketConnection: can(permissions.SETTINGS_MANAGE)
-    .input(z.object({ fields: z.record(z.string(), z.string()) }))
-    .handler(async ({ context, input }) => {
-      const limit = await checkRateLimit(
-        context.rateLimit ?? fallbackRateLimit,
-        rateLimitKey('shipping-test-connection', context.scope.storeId),
-        TEST_CONNECTION_RULE,
-      )
-      if (!limit.ok) {
-        throw new ORPCError('TOO_MANY_REQUESTS', {
-          message: `Too many attempts. Try again in about ${Math.ceil(retryAfterSeconds(limit) / 60)} minute(s).`,
-        })
-      }
-      const { shipping } = await storeRegistries(context.tx, context.scope.storeId)
-      return testShippingConnection(
-        context.tx,
-        context.scope.storeId,
-        shipping,
-        settingsSecret(),
-        'shiprocket',
-        input.fields,
-      )
-    }),
+  testShiprocketConnection: courierConnectionTest('shiprocket'),
 
   /** Same as `testDelhiveryConnection`, for the RapidShyp Connect page. */
-  testRapidshypConnection: can(permissions.SETTINGS_MANAGE)
-    .input(z.object({ fields: z.record(z.string(), z.string()) }))
-    .handler(async ({ context, input }) => {
-      const limit = await checkRateLimit(
-        context.rateLimit ?? fallbackRateLimit,
-        rateLimitKey('shipping-test-connection', context.scope.storeId),
-        TEST_CONNECTION_RULE,
-      )
-      if (!limit.ok) {
-        throw new ORPCError('TOO_MANY_REQUESTS', {
-          message: `Too many attempts. Try again in about ${Math.ceil(retryAfterSeconds(limit) / 60)} minute(s).`,
-        })
-      }
-      const { shipping } = await storeRegistries(context.tx, context.scope.storeId)
-      return testShippingConnection(
-        context.tx,
-        context.scope.storeId,
-        shipping,
-        settingsSecret(),
-        'rapidshyp',
-        input.fields,
-      )
-    }),
+  testRapidshypConnection: courierConnectionTest('rapidshyp'),
+
+  /** Same as `testDelhiveryConnection`, for the DHL Express and FedEx Connect pages: their
+   *  own read-only key check, since an export-only courier has no Indian PIN to look up. */
+  testDhlExpressConnection: courierConnectionTest('dhl-express'),
+  testFedexConnection: courierConnectionTest('fedex'),
 
   /**
    * The Decentro Connect page's "Test connection": the form's values (a

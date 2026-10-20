@@ -50,6 +50,28 @@ export default [
         helpTitle: 'मेरी API कुंजी कहाँ है?',
         helpBody: 'अपने RapidShyp डैशबोर्ड में Settings › API खोलें और वहाँ दिखी कुंजी कॉपी करें।',
       },
+      'dhl-express': {
+        connects: [
+          'ग्राहक के देश तक DHL Express के रेट, रुपये में',
+          'कमर्शियल इनवॉइस के साथ लेबल, एक PDF में',
+          'हर शिपमेंट के साथ DHL पिकअप',
+          'हर एक्सपोर्ट की ट्रैकिंग',
+        ],
+        helpTitle: 'मेरी API key और secret कहाँ हैं?',
+        helpBody:
+          'developer.dhl.com पर My apps खोलें, "DHL Express - MyDHL API" वाला ऐप चुनें और उसकी key और secret कॉपी करें। अकाउंट नंबर आपके DHL इनवॉइस पर है।',
+      },
+      fedex: {
+        connects: [
+          'ग्राहक के देश तक FedEx के रेट, रुपये में',
+          'कमर्शियल इनवॉइस के साथ लेबल, एक PDF में',
+          'हर बुकिंग के बाद FedEx पिकअप',
+          'ट्रैकिंग और रद्द करना',
+        ],
+        helpTitle: 'मेरी API key और secret key कहाँ हैं?',
+        helpBody:
+          'developer.fedex.com पर My Projects खोलें, अपना प्रोजेक्ट चुनें और टेस्ट या प्रोडक्शन की कुंजियाँ कॉपी करें। अकाउंट नंबर आपके FedEx इनवॉइस पर है।',
+      },
     },
   }),
 ]

@@ -43,6 +43,8 @@ const SKIP: Record<string, string> = {
   'store.testDelhiveryConnection': 'courier API',
   'store.testShiprocketConnection': 'courier API',
   'store.testRapidshypConnection': 'courier API',
+  'store.testDhlExpressConnection': 'courier API',
+  'store.testFedexConnection': 'courier API',
   'store.testDecentroConnection': 'payment gateway API',
   'store.verifyStorage': 'storage bucket API',
   'store.testStorageConnection': 'storage bucket API',

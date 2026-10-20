@@ -77,6 +77,9 @@ type OrderShippingContext = {
   orderNumber: number
   pincode: string
   stateCode: string | null
+  /** ISO alpha-2; 'IN' for every Indian address. */
+  country: string
+  city: string
   totalPaise: number
   paymentMethod: string | null
 }
@@ -97,6 +100,8 @@ async function loadOrderShippingContexts(
       paymentMethod: order.paymentMethod,
       pincode: address.pincode,
       stateCode: address.stateCode,
+      country: address.country,
+      city: address.city,
     })
     .from(order)
     .innerJoin(address, eq(address.id, order.shippingAddressId))
@@ -374,6 +379,8 @@ export async function bulkBookShipments(
           weightGrams: input.weightGrams ?? ASSUMED_WEIGHT_GRAMS,
           declaredValuePaise: o.totalPaise,
           paymentMode: o.paymentMethod === 'cod' ? 'cod' : 'prepaid',
+          destinationCountry: o.country,
+          destinationCity: o.city,
         }
         const options = await compareCourierRates(providers, query)
         provider =
