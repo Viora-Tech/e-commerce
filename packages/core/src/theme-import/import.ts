@@ -167,7 +167,7 @@ function templateBlocks(
 
 /**
  * One JSON template (or group) as our template data. In a resource template (product,
- * collection, page, blog, article) the theme's first main section becomes ours and any further one is
+ * collection, page, blog, article, 404) the theme's first main section becomes ours and any further one is
  * dropped (ours covers it); every other section stays the theme's own. A product or
  * collection template with no main section gets ours first.
  */
@@ -232,12 +232,14 @@ const RESOURCE_TEMPLATES: Record<string, TemplateKey> = {
   page: 'page',
   blog: 'blog',
   article: 'article',
+  // The not-found page: its main section becomes ours, the theme's other sections stay around it.
+  '404': 'not_found',
 }
 
 /**
  * The theme's templates and groups an import turns into ours, as `[our key, suffix, Shopify
- * name]`: the home page, the header and footer groups, and the product, collection, page, blog
- * and article templates with their alternates (`page.about` → page `about`). An alternate whose name our
+ * name]`: the home page, the header and footer groups, the 404 page, and the product,
+ * collection, page, blog and article templates with their alternates (`page.about` → page `about`). An alternate whose name our
  * templates cannot hold is left out (its pages run on the default template).
  */
 export function importedPages(names: Iterable<string>): [TemplateKey, string, string][] {

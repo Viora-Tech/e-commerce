@@ -87,6 +87,7 @@ export const IMPORTED_TEMPLATES = new Set([
   'page',
   'blog',
   'article',
+  '404',
 ])
 
 /** Whether a Shopify template name (`page.about` included) is turned into one of ours. */

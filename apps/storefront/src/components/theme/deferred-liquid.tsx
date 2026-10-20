@@ -6,18 +6,20 @@ type DeferredLiquidProps = {
   sections: Promise<Map<string, LiquidSectionHtml> | null>
   /** This section's Puck id. */
   id: string
+  /** Carry the markup in the RSC payload (`LiquidHtml`). */
+  inline?: boolean | undefined
 }
 
 /**
  * One of an imported theme's sections past the page's split: waits for the later sections'
  * render inside the template's Suspense boundary, so the first sections stream without it.
  */
-export default async function DeferredLiquid({ sections, id }: DeferredLiquidProps) {
+export default async function DeferredLiquid({ sections, id, inline }: DeferredLiquidProps) {
   // Hooks
   const section = (await sections)?.get(id)
 
   // Early returns
   if (!section) return null
 
-  return <LiquidHtml {...section} />
+  return <LiquidHtml {...section} inline={inline} />
 }
