@@ -198,8 +198,6 @@ export const automationEditorContent = {
     } satisfies Record<ConditionField, string>,
     yes: 'Yes',
     no: 'No',
-    moveUp: 'Move up',
-    moveDown: 'Move down',
     remove: 'Remove step',
     noDiscount: 'Choose a discount code for this email before switching the automation on.',
   },

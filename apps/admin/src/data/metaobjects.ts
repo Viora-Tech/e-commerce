@@ -206,8 +206,6 @@ export const definitionFormContent = {
     list: 'Several values',
     edit: 'Edit field',
     remove: 'Remove field',
-    moveUp: 'Move up',
-    moveDown: 'Move down',
   },
   display: {
     heading: 'Entry name',
@@ -277,8 +275,6 @@ export const fieldDialogContent = {
     type: 'What goes in it',
     required: 'Must fill',
     remove: 'Remove row field',
-    moveUp: 'Move up',
-    moveDown: 'Move down',
   },
   target: 'Content type',
   targetPlaceholder: 'Pick a content type',
@@ -391,8 +387,6 @@ export const fieldInputContent = {
     row: (n: number) => `Row ${n}`,
     add: 'Add row',
     remove: 'Remove row',
-    moveUp: 'Move up',
-    moveDown: 'Move down',
     empty: 'No rows yet. Add the first one.',
   },
 } as const

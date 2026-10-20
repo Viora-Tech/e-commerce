@@ -108,8 +108,6 @@ export default [
       pickupShipping: 'शिपिंग सेटिंग्स वाला रिटर्न पता',
       ships: 'भेजती है',
       stockOnly: 'सिर्फ़ स्टॉक',
-      moveUp: (name) => `${name} को ऊपर करें`,
-      moveDown: (name) => `${name} को नीचे करें`,
       reordered: 'क्रम सेव हो गया',
       failed: 'सेव नहीं हो सका',
       routing: {

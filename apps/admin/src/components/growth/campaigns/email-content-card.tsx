@@ -6,7 +6,7 @@ import {
   type EmailBlockType,
   newEmailBlock,
 } from '@commerce/core/marketing'
-import { ArrowDown, ArrowUp, ChevronDown, Plus, Trash2 } from '@commerce/ui/icons'
+import { ChevronDown, Plus, Trash2 } from '@commerce/ui/icons'
 import { cn } from '@commerce/ui/lib/utils'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@commerce/ui/shadcn/card'
@@ -16,10 +16,13 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@commerce/ui/shadcn/dropdown-menu'
+import { SortableList } from '@commerce/ui/sortable'
 import { useState } from 'react'
+import { reorderLabels } from '@/data/common'
 import { campaignEditorContent } from '@/data/marketing-campaigns'
+import { useCopy } from '@/hooks/use-copy'
 import EmailBlockFields from './email-block-fields'
-import { blockId, moveBlock } from './form-state'
+import { blockId } from './form-state'
 
 type EmailContentCardProps = {
   blocks: EmailBlock[]
@@ -60,6 +63,7 @@ export default function EmailContentCard({
   bare,
 }: EmailContentCardProps) {
   // Hooks
+  const sortLabels = useCopy(reorderLabels)
   const [open, setOpen] = useState<string | null>(blocks[1]?.id ?? blocks[0]?.id ?? null)
 
   // Event handlers
@@ -104,63 +108,54 @@ export default function EmailContentCard({
         {blocks.length === 0 ? (
           <p className="text-body text-muted-foreground">{copy.content.empty}</p>
         ) : null}
-        {blocks.map((block, i) => {
-          const expanded = open === block.id
-          return (
-            <div key={block.id} className="rounded-lg border border-border">
-              <div className="flex items-center gap-1 pr-1">
-                <button
-                  type="button"
-                  onClick={() => setOpen(expanded ? null : block.id)}
-                  className="flex min-w-0 flex-1 items-center gap-2 px-3 py-2.5 text-left"
-                  aria-expanded={expanded}
-                >
-                  <ChevronDown
-                    className={cn(
-                      'size-4 shrink-0 text-muted-foreground transition-transform',
-                      !expanded && '-rotate-90',
-                    )}
-                  />
-                  <span className="shrink-0 text-body-strong">{copy.blocks[block.type]}</span>
-                  <span className="truncate text-caption text-muted-foreground">
-                    {summary(block)}
-                  </span>
-                </button>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  aria-label={copy.content.moveUp}
-                  disabled={i === 0}
-                  onClick={() => onChange(moveBlock(blocks, i, -1))}
-                >
-                  <ArrowUp />
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  aria-label={copy.content.moveDown}
-                  disabled={i === blocks.length - 1}
-                  onClick={() => onChange(moveBlock(blocks, i, 1))}
-                >
-                  <ArrowDown />
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  aria-label={copy.content.remove}
-                  onClick={() => handleRemove(block.id)}
-                >
-                  <Trash2 />
-                </Button>
-              </div>
-              {expanded && block.type !== 'divider' ? (
-                <div className="border-t border-border p-3">
-                  <EmailBlockFields block={block} onChange={handleChange} />
+        <SortableList
+          items={blocks}
+          onReorder={onChange}
+          getTitle={(block) => copy.blocks[block.type]}
+          labels={sortLabels}
+          className="flex flex-col gap-2"
+          itemClassName="rounded-lg"
+          renderItem={(block, { handle }) => {
+            const expanded = open === block.id
+            return (
+              <div className="rounded-lg border border-border">
+                <div className="flex items-center gap-1 px-1">
+                  {handle}
+                  <button
+                    type="button"
+                    onClick={() => setOpen(expanded ? null : block.id)}
+                    className="flex min-w-0 flex-1 items-center gap-2 py-2.5 pr-3 pl-1 text-left"
+                    aria-expanded={expanded}
+                  >
+                    <ChevronDown
+                      className={cn(
+                        'size-4 shrink-0 text-muted-foreground transition-transform',
+                        !expanded && '-rotate-90',
+                      )}
+                    />
+                    <span className="shrink-0 text-body-strong">{copy.blocks[block.type]}</span>
+                    <span className="truncate text-caption text-muted-foreground">
+                      {summary(block)}
+                    </span>
+                  </button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    aria-label={copy.content.remove}
+                    onClick={() => handleRemove(block.id)}
+                  >
+                    <Trash2 />
+                  </Button>
                 </div>
-              ) : null}
-            </div>
-          )
-        })}
+                {expanded && block.type !== 'divider' ? (
+                  <div className="border-t border-border p-3">
+                    <EmailBlockFields block={block} onChange={handleChange} />
+                  </div>
+                ) : null}
+              </div>
+            )
+          }}
+        />
       </CardContent>
     </Card>
   )

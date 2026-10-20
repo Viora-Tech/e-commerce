@@ -1,7 +1,7 @@
 'use client'
 
 import { type AutomationStep, CONDITION_FIELDS } from '@commerce/core/marketing'
-import { ArrowDown, ArrowUp, Trash2 } from '@commerce/ui/icons'
+import { Trash2 } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Dialog, DialogContent, DialogTitle } from '@commerce/ui/shadcn/dialog'
 import { Field, FieldGroup, FieldLabel } from '@commerce/ui/shadcn/field'
@@ -18,8 +18,6 @@ import { automationEditorContent, durationLabel } from '@/data/marketing-automat
 
 type AutomationStepCardProps = {
   step: AutomationStep
-  index: number
-  count: number
   /** Total wait before this step, for the "After 6 hours" label. */
   offsetMinutes: number
   hasCart: boolean
@@ -27,7 +25,6 @@ type AutomationStepCardProps = {
   storeName: string
   storefrontUrl: string
   onChange: (step: AutomationStep) => void
-  onMove: (delta: number) => void
   onRemove: () => void
 }
 
@@ -42,15 +39,12 @@ const BOOL_OPTIONS = [
 /** One step of an automation: its timing, its controls and the fields for its type. */
 export default function AutomationStepCard({
   step,
-  index,
-  count,
   offsetMinutes,
   hasCart,
   templates,
   storeName,
   storefrontUrl,
   onChange,
-  onMove,
   onRemove,
 }: AutomationStepCardProps) {
   // Hooks
@@ -69,29 +63,9 @@ export default function AutomationStepCard({
       title={copy.types[step.type]}
       subtitle={when}
       action={
-        <div className="flex items-center">
-          <Button
-            variant="ghost"
-            size="icon"
-            aria-label={copy.moveUp}
-            disabled={index === 0}
-            onClick={() => onMove(-1)}
-          >
-            <ArrowUp />
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            aria-label={copy.moveDown}
-            disabled={index === count - 1}
-            onClick={() => onMove(1)}
-          >
-            <ArrowDown />
-          </Button>
-          <Button variant="ghost" size="icon" aria-label={copy.remove} onClick={onRemove}>
-            <Trash2 />
-          </Button>
-        </div>
+        <Button variant="ghost" size="icon" aria-label={copy.remove} onClick={onRemove}>
+          <Trash2 />
+        </Button>
       }
     >
       {step.type === 'wait' ? (

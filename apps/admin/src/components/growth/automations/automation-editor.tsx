@@ -149,15 +149,6 @@ export default function AutomationEditor({
     router.refresh()
   }
 
-  const handleMove = (index: number, delta: number) => {
-    const to = index + delta
-    if (to < 0 || to >= form.steps.length) return
-    const next = [...form.steps]
-    const [moved] = next.splice(index, 1)
-    if (moved) next.splice(to, 0, moved)
-    setSteps(next)
-  }
-
   // Render logic
   const trigger = automation.trigger as AutomationTrigger
   const selectedIndex = form.steps.findIndex((x) => x.id === selected)
@@ -259,6 +250,7 @@ export default function AutomationEditor({
             selected={current}
             onSelect={setSelected}
             onInsert={handleInsert}
+            onReorder={setSteps}
           />
           <aside className="flex min-w-0 flex-col gap-3 overflow-y-auto border-border border-t p-4 lg:border-t-0 lg:border-l">
             {testing ? (
@@ -269,8 +261,6 @@ export default function AutomationEditor({
                 <AutomationStepCard
                   key={selectedStep.id}
                   step={selectedStep}
-                  index={selectedIndex}
-                  count={form.steps.length}
                   offsetMinutes={triggerDelay + minutesBefore(form.steps, selectedIndex)}
                   hasCart={TRIGGER_HAS_CART[trigger]}
                   templates={templates}
@@ -279,7 +269,6 @@ export default function AutomationEditor({
                   onChange={(next) =>
                     setSteps(form.steps.map((x) => (x.id === selectedStep.id ? next : x)))
                   }
-                  onMove={(delta) => handleMove(selectedIndex, delta)}
                   onRemove={() => {
                     setSteps(form.steps.filter((x) => x.id !== selectedStep.id))
                     setSelected('trigger')

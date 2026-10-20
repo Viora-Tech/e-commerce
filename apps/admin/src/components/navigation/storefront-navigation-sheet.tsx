@@ -1,7 +1,7 @@
 'use client'
 
 import type { NavigationSettings } from '@commerce/core/navigation'
-import { ArrowDown, ArrowUp, Plus, Trash2 } from '@commerce/ui/icons'
+import { Plus, Trash2 } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import {
   Field,
@@ -28,10 +28,13 @@ import {
   SheetTitle,
 } from '@commerce/ui/shadcn/sheet'
 import { Spinner } from '@commerce/ui/shadcn/spinner'
+import { SortableList } from '@commerce/ui/sortable'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
+import { reorderLabels } from '@/data/common'
 import { storefrontContent } from '@/data/menus'
 import { useCopy } from '@/hooks/use-copy'
+import { useRowIds } from '@/hooks/use-row-ids'
 import { api } from '@/lib/api-client'
 
 /** A menu as far as this sheet cares: what it is called, and the handle a pointer stores. */
@@ -66,8 +69,10 @@ export default function StorefrontNavigationSheet({
 }: StorefrontNavigationSheetProps) {
   // Hooks
   const copy = useCopy(storefrontContent)
+  const sortLabels = useCopy(reorderLabels)
   const [main, setMain] = useState(settings.main)
   const [footer, setFooter] = useState(settings.footer)
+  const rowIds = useRowIds(footer.length)
   const [saving, setSaving] = useState(false)
 
   useEffect(() => {
@@ -77,6 +82,8 @@ export default function StorefrontNavigationSheet({
   }, [open, settings])
 
   // Helpers
+  const titleOf = (handle: string | undefined) =>
+    menus.find((m) => m.handle === handle)?.title ?? handle ?? ''
   const persist = async () => {
     setSaving(true)
     try {
@@ -98,15 +105,9 @@ export default function StorefrontNavigationSheet({
     setFooter((prev) => prev.map((handle, i) => (i === index ? value : handle)))
   }
 
-  const handleColumnMove = (index: number, dir: -1 | 1) => {
-    const target = index + dir
-    if (target < 0 || target >= footer.length) return
-    setFooter((prev) => {
-      const next = [...prev]
-      const [moved] = next.splice(index, 1)
-      if (moved) next.splice(target, 0, moved)
-      return next
-    })
+  const handleColumnReorder = (next: { id: string; index: number }[]) => {
+    rowIds.reorder(next.map((r) => r.id))
+    setFooter(next.flatMap((r) => footer[r.index] ?? []))
   }
 
   const handleColumnAdd = () => {
@@ -115,6 +116,7 @@ export default function StorefrontNavigationSheet({
   }
 
   const handleColumnRemove = (index: number) => {
+    rowIds.remove(index)
     setFooter((prev) => prev.filter((_, i) => i !== index))
   }
 
@@ -126,6 +128,7 @@ export default function StorefrontNavigationSheet({
     optionsFor(menus, [...footer.filter((_, j) => j !== index), main]),
   )
   const spare = optionsFor(menus, [...footer, main]).length > 0
+  const columns = footer.map((_, index) => ({ id: rowIds.ids[index] ?? String(index), index }))
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -157,59 +160,50 @@ export default function StorefrontNavigationSheet({
             <FieldLegend variant="label">{copy.footerLabel}</FieldLegend>
             <FieldGroup>
               {footer.length > 0 ? (
-                <ul className="flex flex-col gap-2">
-                  {footer.map((handle, index) => (
-                    // biome-ignore lint/suspicious/noArrayIndexKey: a row is a position, and its handle changes as the merchant picks.
-                    <li key={index} className="flex items-center gap-2">
-                      <Select
-                        value={handle}
-                        onValueChange={(v) => handleColumnChange(index, String(v))}
-                      >
-                        <SelectTrigger
-                          className="w-full"
-                          aria-label={`${copy.footerLabel} ${index + 1}`}
+                <SortableList
+                  items={columns}
+                  onReorder={handleColumnReorder}
+                  getTitle={({ index }) => titleOf(footer[index])}
+                  labels={sortLabels}
+                  className="flex flex-col gap-1"
+                  itemClassName="rounded-md"
+                  renderItem={({ index }, { handle }) => {
+                    const menu = footer[index]
+                    if (menu === undefined) return null
+                    return (
+                      <div className="flex items-center gap-1 py-0.5">
+                        {handle}
+                        <Select
+                          value={menu}
+                          onValueChange={(v) => handleColumnChange(index, String(v))}
                         >
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {(columnChoices[index] ?? []).map((m) => (
-                            <SelectItem key={m.handle} value={m.handle}>
-                              {m.title}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <div className="flex shrink-0 items-center gap-1">
+                          <SelectTrigger
+                            className="w-full"
+                            aria-label={`${copy.footerLabel} ${index + 1}`}
+                          >
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {(columnChoices[index] ?? []).map((m) => (
+                              <SelectItem key={m.handle} value={m.handle}>
+                                {m.title}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
                         <Button
                           variant="ghost"
                           size="icon"
-                          onClick={() => handleColumnMove(index, -1)}
-                          disabled={index === 0}
-                          aria-label={copy.moveUp}
-                        >
-                          <ArrowUp className="size-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleColumnMove(index, 1)}
-                          disabled={index === footer.length - 1}
-                          aria-label={copy.moveDown}
-                        >
-                          <ArrowDown className="size-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
+                          className="shrink-0"
                           onClick={() => handleColumnRemove(index)}
                           aria-label={copy.removeColumn}
                         >
                           <Trash2 className="size-4" />
                         </Button>
                       </div>
-                    </li>
-                  ))}
-                </ul>
+                    )
+                  }}
+                />
               ) : null}
               <div>
                 <Button type="button" variant="outline" onClick={handleColumnAdd} disabled={!spare}>
