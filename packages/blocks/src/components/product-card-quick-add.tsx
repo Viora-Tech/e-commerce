@@ -9,6 +9,8 @@ type ProductCardQuickAddProps = {
   /** The one variant to add; a product with options gets "Choose options" instead. */
   variantId: string | null | undefined
   soldOut: boolean
+  /** Set while the product sells as a pre-order: the add button reads this label instead. */
+  preorderLabel?: string | null | undefined
 }
 
 /**
@@ -19,6 +21,7 @@ export default function ProductCardQuickAdd({
   handle,
   variantId,
   soldOut,
+  preorderLabel,
 }: ProductCardQuickAddProps) {
   // Hooks
   const { addToCart } = useStoreActions()
@@ -35,6 +38,9 @@ export default function ProductCardQuickAdd({
       setState('failed')
     }
   }
+
+  // Derived state
+  const idleLabel = preorderLabel || copy.quickAdd
 
   // Early returns
   if (soldOut) {
@@ -61,7 +67,7 @@ export default function ProductCardQuickAdd({
       disabled={state === 'adding'}
       aria-live="polite"
     >
-      {state === 'added' ? copy.added : state === 'failed' ? copy.failed : copy.quickAdd}
+      {state === 'added' ? copy.added : state === 'failed' ? copy.failed : idleLabel}
     </button>
   )
 }

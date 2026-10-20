@@ -39,7 +39,7 @@ flowchart TD
   perstore --> settings["Settings → Payments / Shipping / Notifications<br/>forms generated from factory.fields"]
   perstore --> runtime["Checkout · webhooks · worker jobs"]
   load --> hooks["hooksFor(event) · jobFor(name)<br/>{apps}-events · {apps}-jobs"]
-  manifest -->|"admin.pages · orderDetailCard"| adminreg["apps/admin/src/apps/registry.ts<br/>ADMIN_APPS → /apps/pluginId/…"]
+  manifest -->|"admin.pages · orderDetailCard · orderActions"| adminreg["apps/admin/src/apps/registry.ts<br/>ADMIN_APPS → /apps/pluginId/…"]
   manifest -->|storefront.blocks| appblocks["App blocks<br/>template-render (storefront) ·<br/>commerce.blocks.config.ts (editor)"]
 ```
 
@@ -391,6 +391,8 @@ that installed the app from Admin → Apps.
 | `admin.orderDetailCard` | Adds a card to the order detail page. |
 | `admin.customerDetailCard` | Adds a card to the customer detail page (`ADMIN_APPS[id].CustomerCard`, gets `customerId`). |
 
+| `admin.orderActions` | Actions on orders, Shopify style: in the order page's **More actions**, an Orders list row's ⋯ menu and the bulk bar, under the app's icon and name. See [Order actions](#order-actions). |
+
 Hooks and jobs get an `AppHookContext`: `inStore(fn)` (a transaction under
 the store's RLS), `storage()` (the store's provider, now with server-side
 `put`/`get`), `notify(...)` (send an order email with attachments through the
@@ -561,6 +563,67 @@ worked example of a per-store **OAuth** connection with a daily background pull:
   `almost_page_one` issues, which never lower the score. The same module registers the stored
   per-page searches with `setSearchQueriesSource` (`seo/search-queries.ts`), so "Suggest
   keywords" grounds its suggestions in real Google searches once the app is connected.
+
+### Order actions
+
+An installed app can add actions to orders, the way Shopify apps add to an order's "More
+actions". They show in three places, each app's actions under its name with its `admin.icon`
+beside every item:
+
+- the order page's **More actions** (`detail`),
+- an Orders list row's ⋯ menu (`row`),
+- the Orders list's bulk bar, **More actions** for the selected orders (`bulk`).
+
+```ts filename="src/plugin.ts"
+admin: {
+  icon: 'FileText',
+  orderActions: [
+    {
+      id: 'add-to-queue',                                   // unique in the app
+      label: { en: 'Add to invoice queue', hi: 'इनवॉइस कतार में जोड़ें' },
+      targets: ['detail', 'row', 'bulk'],
+      handler: { type: 'procedure', procedure: 'gst-invoices/queue-add' },
+      permission: 'orders.write',                           // the default
+      requires: ['not-test'],
+    },
+  ],
+},
+```
+
+**Handlers** (`OrderActionHandler`, plain data so the manifest stays server-safe):
+
+| `type` | What happens |
+| --- | --- |
+| `link` | Opens an admin route. `path` must start with `/`; `{orderId}` becomes the order's id, and on the bulk bar `{orderIds}` the selected ids, comma separated. |
+| `procedure` | Runs a server action through an existing API procedure. `procedure` is a key namespaced `<pluginId>/<name>`; the admin registers the call under it in `apps/admin/src/apps/order-action-procedures.ts` (`ORDER_ACTION_PROCEDURES`), which calls the app's API procedure for the chosen orders and returns the toast text. A key with no entry is never shown. |
+| `shipment` | Opens the Create shipment flow with this courier picked: one order goes to `/orders/<id>/ship?courier=<providerId>`, several open the bulk dialog on "one courier for all". `providerId` must be a courier the plugin provides. |
+
+**Create shipment comes free for couriers.** Every plugin that provides a shipping courier gets
+a `ship-<providerId>` action (`orderActionsOf` in `@commerce/plugins`): "Create shipment",
+on all three menus, needs `orders.fulfil`, and shows only for open orders still to pack that are
+paid or cash on delivery. Declare nothing for it. The core plugin's demo courier gets none,
+because the order page has its own first-class **Create shipment** item.
+
+**Conditions** (`requires`): `open`, `unfulfilled`, `paid-or-cod`, `not-test`. The order page
+and the row menu hide an action on an order that fails one; the bulk bar always offers it, so
+the handler must skip what it cannot do (the GST app's bulk "Add to invoice queue" passes
+`skipIneligible` and reports how many test or gift-card-only orders it skipped).
+
+**Who sees what.** `api.apps.orderActions` (`orders.read`, so staff without settings access get
+them too) returns the groups for the store and member: only apps that are installed and set up
+(a connection needs its account), only actions whose `permission` the member holds (an unknown
+permission grants nothing), and a courier's Create shipment only while that courier is switched
+on. The rules are the pure `orderActionGroups` (`packages/api/src/services/order-actions.service.ts`);
+the admin's `actionsFor` (`apps/admin/src/apps/order-actions.ts`) then picks one menu's actions
+and applies the conditions. The API procedure behind a `procedure` action still checks its own
+permission and the installed app, so the menus are a convenience, never the guard.
+
+`definePlugin` rejects a bad or repeated id, an empty English label, no targets, a link outside
+the admin, an un-namespaced procedure key, and a courier the plugin does not provide.
+`packages/plugin-gst-invoices` is the worked example: **Generate GST invoice** (`detail`, `row`;
+`gstInvoices.generate` queues the order and issues it at once, dated when the goods left or
+today) and **Add to invoice queue** (all three; `gstInvoices.queue.add`), both hidden on test
+orders.
 
 ## 7. Storefront app blocks
 

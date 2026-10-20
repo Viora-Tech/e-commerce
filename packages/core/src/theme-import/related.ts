@@ -76,6 +76,25 @@ export function rankRelated(
 const POOL = 120
 
 /**
+ * The first `wanted` in-stock products of a ranked id list, in rank order. Loads the list a
+ * chunk at a time (three times `wanted`) and stops once it has enough, so a run of sold-out
+ * close matches never empties the row while an in-stock match sits further down.
+ */
+export async function firstAvailable<T extends { variants: { available: boolean }[] }>(
+  ids: string[],
+  wanted: number,
+  load: (chunk: string[]) => Promise<T[]>,
+): Promise<T[]> {
+  const chunk = Math.max(1, wanted * 3)
+  const found: T[] = []
+  for (let at = 0; at < ids.length && found.length < wanted; at += chunk) {
+    const loaded = await load(ids.slice(at, at + chunk))
+    found.push(...loaded.filter((p) => p.variants.some((v) => v.available)))
+  }
+  return found.slice(0, wanted)
+}
+
+/**
  * Candidate product ids for one product, best first. Unpublished products and the product
  * itself are never returned; sold-out ones are dropped by the caller once it has loaded
  * them (availability lives on the variants).

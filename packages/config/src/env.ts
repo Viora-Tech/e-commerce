@@ -2,12 +2,21 @@ import { z } from 'zod'
 import { siteConfig } from './site'
 
 /**
- * The platform's own email sending: one Amazon SES account for every store.
+ * The platform's own email sending: one account for every store.
  * `SENDER_EMAIL_PROVIDER=dev` (default) checks sender domains offline and
- * sends nothing; `ses` needs the SES_* keys and PLATFORM_EMAIL_FROM.
+ * sends nothing; `ses` needs the SES_* keys and PLATFORM_EMAIL_FROM; `resend`
+ * needs RESEND_API_KEY and PLATFORM_EMAIL_FROM. Stores' own sender domains are
+ * always SES identities (Resend carries only the platform address).
  */
 const platformEmailShape = {
-  SENDER_EMAIL_PROVIDER: z.enum(['dev', 'ses']).default('dev'),
+  SENDER_EMAIL_PROVIDER: z.enum(['dev', 'ses', 'resend']).default('dev'),
+  /**
+   * The other provider, tried when the first fails with a provider error (down,
+   * throttled, paused). Needs that provider's keys too. Blank or `none`: no fallback.
+   */
+  SENDER_EMAIL_FALLBACK: z.enum(['none', 'ses', 'resend']).default('none'),
+  /** Resend API key (`re_…`); "Sending access" is enough. */
+  RESEND_API_KEY: z.string().min(1).optional(),
   /** The platform SES account (also used by the SES live test suite). */
   SES_REGION: z.string().min(1).optional(),
   SES_ACCESS_KEY_ID: z.string().min(1).optional(),
@@ -413,7 +422,7 @@ export type PlatformEmailEnv = z.infer<typeof platformEmailSchema>
  * URLs (the send path in `@commerce/core`). Throws on a malformed value.
  */
 export function loadPlatformEmailEnv(source: Record<string, string | undefined>): PlatformEmailEnv {
-  const result = platformEmailSchema.safeParse(source)
+  const result = platformEmailSchema.safeParse(withoutBlanks(source))
   if (!result.success) {
     const keys = result.error.issues.map((i) => i.path.join('.')).join(', ')
     throw new Error(`Invalid environment: ${keys}`)

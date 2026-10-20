@@ -1,7 +1,39 @@
-import { inventoryContent, purchaseOrderFormContent, purchaseOrdersContent } from '@/data/inventory'
+import {
+  inventoryContent,
+  locationsContent,
+  purchaseOrderFormContent,
+  purchaseOrdersContent,
+} from '@/data/inventory'
 import { translation } from '@/lib/i18n'
 
 export default [
+  translation(locationsContent, {
+    add: 'लोकेशन जोड़ें',
+    title: 'लोकेशन जोड़ें',
+    body: 'लोकेशन वह जगह है जहाँ आप स्टॉक रखते हैं: गोदाम, दुकान या पार्टनर। उसका राज्य तय करता है कि बिल किस GST नंबर से बनेगा। नई लोकेशन तब तक ऑनलाइन नहीं बेचती जब तक स्टॉक मुख्य लोकेशन पर न भेजा जाए।',
+    name: 'नाम',
+    namePlaceholder: 'बेंगलुरु गोदाम',
+    line1: 'पता',
+    line1Placeholder: 'बिल्डिंग, गली, इलाका',
+    city: 'शहर',
+    stateCode: 'राज्य',
+    statePlaceholder: 'राज्य चुनें',
+    pincode: 'पिन कोड',
+    phone: 'फ़ोन',
+    save: 'लोकेशन सेव करें',
+    saving: 'सेव हो रहा है',
+    cancel: 'रद्द करें',
+    created: (name: string) => `${name} जोड़ दी गई`,
+    failed: 'लोकेशन नहीं जुड़ सकी',
+    invalidPincode: 'पिन कोड में छह अंक होते हैं',
+    edit: 'पता बदलें',
+    editTitle: 'लोकेशन बदलें',
+    editBody:
+      'उसका राज्य तय करता है कि बिल किस GST नंबर से बनेगा। अगर उस राज्य में आपका ठीक एक GST नंबर है, तो वह अपने आप चुन लिया जाता है।',
+    editSave: 'सेव करें',
+    editSaved: 'लोकेशन सेव हो गई',
+    editFailed: 'लोकेशन सेव नहीं हो सकी',
+  }),
   translation(inventoryContent, {
     heading: 'इन्वेंटरी',
     tabs: { all: 'सभी SKU', out: 'स्टॉक खत्म', low: 'कम स्टॉक' },

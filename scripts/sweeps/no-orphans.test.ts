@@ -18,6 +18,18 @@ type AllowEntry = { file: string; names: string[]; reason: string }
 
 const ALLOWLIST: AllowEntry[] = [
   {
+    file: 'packages/api/src/services/order-actions.service.ts',
+    names: ['orderActionGroups'],
+    reason:
+      'the pure who-sees-which-order-action rule behind apps.orderActions, exported for its unit test',
+  },
+  {
+    file: 'packages/core/src/sender-email/platform.ts',
+    names: ['platformEmailFromEnv'],
+    reason:
+      'builds the platform email account from given env (SES/Resend, fallback), exported for its unit test',
+  },
+  {
     file: 'packages/blocks/src/components/product-payment-signals.tsx',
     names: ['upiPricePaise'],
     reason: 'the checkout-matching UPI price behind the offer note, exported for its unit test',
@@ -883,7 +895,7 @@ const ALLOWLIST: AllowEntry[] = [
   },
   {
     file: 'packages/plugin-gst-invoices/src/queue.ts',
-    names: ['soldOnlyGiftCards', 'B2C_DETAIL_THRESHOLD_PAISE', 'checkRule46'],
+    names: ['B2C_DETAIL_THRESHOLD_PAISE', 'checkRule46'],
     reason: 'no external importer today — investigate before removing',
   },
   {
@@ -970,9 +982,9 @@ const ALLOWLIST: AllowEntry[] = [
     reason: 'no external importer today — investigate before removing',
   },
   {
-    file: 'packages/plugin-shopify-import/src/write-products.ts',
-    names: ['localHandle'],
-    reason: 'no external importer today — investigate before removing',
+    file: 'packages/plugin-shopify-import/src/shopify-api.ts',
+    names: ['productStatus'],
+    reason: 'the Online Store visibility rule behind product status, exported for its unit test',
   },
   {
     file: 'packages/plugin-shopify-import/src/write-customers.ts',

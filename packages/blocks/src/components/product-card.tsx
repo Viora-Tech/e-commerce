@@ -1,3 +1,4 @@
+import { productCardContent as copy } from '../data/product-card'
 import type { CardProduct } from '../types'
 import Picture from './picture'
 import Price from './price'
@@ -26,8 +27,9 @@ export default function ProductCard({
   quickAdd?: boolean | undefined
 }) {
   const [primary, hover] = product.images
-  const soldOut = product.available <= 0
-  const lowStock = !soldOut && product.available <= 5
+  const preorder = product.available <= 0 ? (product.preorder ?? null) : null
+  const soldOut = product.available <= 0 && !preorder
+  const lowStock = !soldOut && !preorder && product.available <= 5
   const sale = salePercent(product.pricePaise, product.mrpPaise)
 
   return (
@@ -38,7 +40,13 @@ export default function ProductCard({
       <a href={`/products/${product.handle}`} className="product-card__link">
         <div className="product-card__media">
           {soldOut ? (
-            <span className="badge product-card__badge product-card__badge--quiet">Sold out</span>
+            <span className="badge product-card__badge product-card__badge--quiet">
+              {copy.soldOut}
+            </span>
+          ) : preorder ? (
+            <span className="badge product-card__badge product-card__badge--preorder">
+              {copy.preorder}
+            </span>
           ) : lowStock ? (
             <span className="badge product-card__badge product-card__badge--urgent">Low stock</span>
           ) : sale ? (
@@ -99,6 +107,7 @@ export default function ProductCard({
         handle={product.handle}
         variantId={product.quickAddVariantId}
         soldOut={soldOut}
+        preorderLabel={preorder?.buttonLabel ?? null}
       />
     </div>
   )

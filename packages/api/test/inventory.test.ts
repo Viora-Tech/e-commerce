@@ -138,9 +138,22 @@ describe('inventory router', () => {
   it('keeps each store to its own locations', async () => {
     const a = await merchant('a@example.com', 'inv-c')
     const b = await merchant('b@example.com', 'inv-d')
-    await call(appRouter.inventory.createLocation, { name: 'Warehouse' }, { context: a.ctx })
+    const made = await call(
+      appRouter.inventory.createLocation,
+      { name: 'Warehouse' },
+      { context: a.ctx },
+    )
     const seen = await call(appRouter.inventory.locations, undefined, { context: b.ctx })
     expect(seen.map((l) => l.name)).toEqual(['Default location'])
+    await expect(
+      call(appRouter.inventory.updateLocation, { id: made.id, name: 'Mine' }, { context: b.ctx }),
+    ).rejects.toMatchObject({ code: 'BAD_REQUEST' })
+    const renamed = await call(
+      appRouter.inventory.updateLocation,
+      { id: made.id, name: 'Pune warehouse', city: 'Pune', stateCode: 'MH' },
+      { context: a.ctx },
+    )
+    expect(renamed).toMatchObject({ name: 'Pune warehouse', city: 'Pune', stateCode: 'MH' })
     const none = await call(appRouter.transfers.list, { search: 'Warehouse' }, { context: a.ctx })
     expect(none.total).toBe(0)
   })

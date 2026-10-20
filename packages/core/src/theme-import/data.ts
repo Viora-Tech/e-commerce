@@ -38,7 +38,12 @@ import type {
 import { loadImportedFiles } from './imported-files'
 import { uuidPrefixOf } from './numeric-id'
 import { collectionsProducts, loadProducts, productsByHandles } from './product-data'
-import { MAX_RECOMMENDATIONS, pickedRecommendationIds, relatedProductIds } from './related'
+import {
+  firstAvailable,
+  MAX_RECOMMENDATIONS,
+  pickedRecommendationIds,
+  relatedProductIds,
+} from './related'
 import { richTextHtml } from './rich-html'
 
 export type StoreLiquidDataOptions = {
@@ -263,9 +268,10 @@ export async function storeLiquidData(
         )
         const auto = intent === 'related' ? await relatedProductIds(tx, productId) : []
         const ids = [...new Set([...picked, ...auto])]
-        // Over-read: sold-out products are dropped after loading (stock lives on the variants).
-        const loaded = await loadProducts(tx, ids.slice(0, wanted * 3))
-        return loaded.filter((p) => p.variants.some((v) => v.available)).slice(0, wanted)
+        // Sold-out products are dropped after loading (stock lives on the variants), so the
+        // ranked list is read in chunks until enough are in stock: the closest matches (same
+        // brand and kind) are often all sold out, and one fixed slice of them left the row empty.
+        return firstAvailable(ids, wanted, (chunk) => loadProducts(tx, chunk))
       }),
     menu: (handle) =>
       once(`m:${handle}`, async () => {

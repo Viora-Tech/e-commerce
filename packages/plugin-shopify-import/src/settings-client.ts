@@ -41,6 +41,7 @@ const SETTINGS_SUBJECTS = [
   'currency',
   'timezone',
   'weight_unit',
+  'money_format',
   'prices_include_tax',
   'gstin',
   'location',

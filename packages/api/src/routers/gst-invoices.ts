@@ -8,7 +8,6 @@ import {
   documentIssuer,
   documentsByIds,
   documentsForOrder,
-  enqueueOrderParcels,
   GST_INVOICES_ID,
   gstr1ForPeriod,
   InvoiceError,
@@ -35,7 +34,6 @@ import {
   createEmailBatch,
   emailBatch,
   mediaUrls,
-  orderIdsByNumber,
   orderRefunds,
   storeName,
 } from '../services/gst-invoices.service'
@@ -49,6 +47,7 @@ import {
   renderDeps,
   requireInstalled,
 } from './gst-invoices-context'
+import { addToQueue, generateInvoice } from './gst-invoices-order-actions'
 
 const IssueBatch = z.object({
   items: z
@@ -172,6 +171,9 @@ export const gstInvoicesRouter = {
       }
     }),
 
+  /** "Generate GST invoice": queue and issue one order at once (`./gst-invoices-order-actions`). */
+  generate: generateInvoice,
+
   queue: {
     list: can(permissions.ORDERS_READ)
       .input(
@@ -202,34 +204,8 @@ export const gstInvoicesRouter = {
           }
         })
       }),
-    /** Add orders by hand, e.g. a pre-order the merchant wants invoiced now. */
-    add: can(permissions.ORDERS_WRITE)
-      .input(
-        z.object({
-          orderIds: z.array(z.uuid()).max(100).default([]),
-          orderNumbers: z.array(z.number().int().positive()).max(100).default([]),
-        }),
-      )
-      .handler(async ({ context, input }) => {
-        await requireInstalled(context)
-        try {
-          const byNumber = await orderIdsByNumber(context.tx, input.orderNumbers)
-          let added = 0
-          for (const orderId of [...input.orderIds, ...byNumber.ids]) {
-            const queued = await enqueueOrderParcels(
-              context.tx,
-              context.scope.storeId,
-              orderId,
-              'manual',
-            )
-            // One draft per parcel; a split order adds one per GSTIN.
-            added += queued.filter((q) => q.created).length
-          }
-          return { added, missing: byNumber.missing }
-        } catch (err) {
-          asOrpc(err)
-        }
-      }),
+    /** Add orders by hand, or the Orders list's bulk action (`./gst-invoices-order-actions`). */
+    add: addToQueue,
     remove: can(permissions.ORDERS_WRITE)
       .input(z.object({ ids: z.array(z.uuid()).min(1).max(BULK_MAX) }))
       .handler(async ({ context, input }) => {

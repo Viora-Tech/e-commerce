@@ -5,6 +5,7 @@ import userEvent from '@testing-library/user-event'
 import type { ReactNode } from 'react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { customizeContent } from '@/data/customize'
+import { ThemePacksContext } from '@/lib/customize-theme-context'
 import AddSectionBrowser from './add-section-browser'
 
 const copy = customizeContent.addSection
@@ -223,5 +224,44 @@ describe('AddSectionBrowser', () => {
     setup()
     expect(screen.getByText(copy.limit(25))).toBeTruthy()
     expect(card('Rich text').closest('[inert]')).not.toBeNull()
+  })
+})
+
+describe('AddSectionBrowser theme packs', () => {
+  const ZERO_DRIFT = 'Zero Drift theme'
+
+  const renderWith = (packs: string[], group: 'footer' | null = null) =>
+    render(
+      <ThemePacksContext.Provider value={packs}>
+        <AddSectionBrowser zone="root:default-zone" group={group} index={0} count={0} />
+      </ThemePacksContext.Provider>,
+    )
+
+  const follows = (first: HTMLElement, second: HTMLElement) =>
+    Boolean(first.compareDocumentPosition(second) & Node.DOCUMENT_POSITION_FOLLOWING)
+
+  it('leaves the Zero Drift sections out for a store that has not turned the pack on', () => {
+    renderWith([])
+    expect(screen.queryByText(ZERO_DRIFT)).toBeNull()
+    // Its product-page sections are gone from Products too; our own stay.
+    expect(findCard('ProductSpecStrip')).toBeNull()
+    expect(card('Rich text')).toBeTruthy()
+  })
+
+  it('offers them after our own groups once the pack is on', () => {
+    renderWith(['zero-drift'])
+    const zeroDrift = screen.getByText(ZERO_DRIFT)
+    expect(follows(screen.getByText('Banners'), zeroDrift)).toBe(true)
+    expect(follows(screen.getByText('More'), zeroDrift)).toBe(true)
+    expect(findCard('ProductSpecStrip')).not.toBeNull()
+  })
+
+  it("keeps the pack's phone dock and popups out of the footer group without it", () => {
+    const { unmount } = renderWith([], 'footer')
+    expect(findCard('MobileDock')).toBeNull()
+    expect(findCard('SignupPopup')).toBeNull()
+    unmount()
+    renderWith(['zero-drift'], 'footer')
+    expect(findCard('MobileDock')).not.toBeNull()
   })
 })
