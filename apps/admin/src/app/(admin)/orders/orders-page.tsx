@@ -1,15 +1,17 @@
 'use client'
 
-import { AppWindow, ExternalLink, SquarePlus, Users } from '@commerce/ui/icons'
+import { AppWindow, ExternalLink, SquarePlus, Trash2, Users } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Kbd } from '@commerce/ui/shadcn/kbd'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@commerce/ui/shadcn/tooltip'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { parseAsInteger, parseAsString, parseAsStringLiteral, useQueryStates } from 'nuqs'
 import { Suspense, useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
 import ActionMenu from '@/components/layout/action-menu'
 import ProoflyListPage from '@/components/layout/proofly-list-page'
+import DeleteTestOrdersDialog from '@/components/orders/delete-test-orders-dialog'
 import OrdersBulkActions from '@/components/orders/orders-bulk-actions'
 import OrdersTiles, { type OrderTilesData } from '@/components/orders/orders-tiles'
 import InlineState from '@/components/states/inline-state'
@@ -75,8 +77,14 @@ function fetchOrders(q: Query, perPage: number, f: OrderFiltersValue) {
   })
 }
 
-/* More actions (the other order lists) and the one key button. */
-function HeaderActions() {
+/* More actions (the other order lists, and "Delete test orders" while there are some) and the one key button. */
+function HeaderActions({
+  testOrders,
+  onDeleteTests,
+}: {
+  testOrders: number
+  onDeleteTests: () => void
+}) {
   // Hooks
   const copy = useCopy(ordersContent)
 
@@ -90,6 +98,16 @@ function HeaderActions() {
           { label: copy.menu.drafts, href: routes.orders.drafts() },
           { label: copy.menu.abandoned, href: routes.orders.abandonedCheckouts() },
           { label: copy.menu.returns, href: routes.orders.returns() },
+          ...(testOrders > 0
+            ? [
+                {
+                  label: copy.deleteTests.menu,
+                  icon: Trash2,
+                  destructive: true,
+                  onSelect: onDeleteTests,
+                },
+              ]
+            : []),
         ]}
       />
       <Tooltip>
@@ -114,6 +132,7 @@ function OrdersContent({ initial }: { initial: OrdersInitial }) {
   const copy = useCopy(ordersContent)
   const panelCopy = useCopy(filterPanelContent)
   const fmt = useFormat()
+  const router = useRouter()
   usePrimaryAction(routes.orders.drafts())
   const [
     { page, query, status, perPage: rawPerPage, payment, fulfilment, date, method, courier },
@@ -134,6 +153,8 @@ function OrdersContent({ initial }: { initial: OrdersInitial }) {
   const [loading, setLoading] = useState(false)
   const [failed, setFailed] = useState(false)
   const [couriers, setCouriers] = useState<string[]>([])
+  const [testOrders, setTestOrders] = useState(initial.result.testOrders)
+  const [askDeleteTests, setAskDeleteTests] = useState(false)
 
   const hydrated = useRef(false)
 
@@ -164,6 +185,7 @@ function OrdersContent({ initial }: { initial: OrdersInitial }) {
         if (cancelled) return
         setItems(r.items)
         setTotal(r.total)
+        setTestOrders(r.testOrders)
       })
       .catch(() => !cancelled && setFailed(true))
       .finally(() => !cancelled && setLoading(false))
@@ -184,8 +206,27 @@ function OrdersContent({ initial }: { initial: OrdersInitial }) {
     initial.perPage,
   ])
 
+  // Helpers
+  const reload = async () => {
+    const r = await fetchOrders({ page, query, status }, parseRowsPerPage(rawPerPage), {
+      payment,
+      fulfilment,
+      date,
+      method,
+      courier,
+    })
+    setItems(r.items)
+    setTotal(r.total)
+    setTestOrders(r.testOrders)
+  }
+
   // Event handlers
   const setFilters = (patch: Partial<OrderFiltersValue>) => setQ({ ...patch, page: 1 })
+  const handleTestsDeleted = () => {
+    // The tiles and tab counts come from the server render; the rows are fetched again here.
+    router.refresh()
+    reload().catch(() => setFailed(true))
+  }
   const handleBulkSetStatus = async (ids: string[], mark: OrderMark, clear: () => void) => {
     try {
       /* "Select all" can hand over thousands of ids: ten requests at a time, never all at once. */
@@ -196,15 +237,7 @@ function OrdersContent({ initial }: { initial: OrdersInitial }) {
       }
       toast.success(copy.bulk.updated(ids.length, copy.marks[mark]))
       clear()
-      const r = await fetchOrders({ page, query, status }, parseRowsPerPage(rawPerPage), {
-        payment,
-        fulfilment,
-        date,
-        method,
-        courier,
-      })
-      setItems(r.items)
-      setTotal(r.total)
+      await reload()
     } catch {
       toast.error(copy.bulk.failed)
     }
@@ -231,7 +264,9 @@ function OrdersContent({ initial }: { initial: OrdersInitial }) {
         initial.tiles.readyToShip,
         initial.counts.pendingUpi,
       )}
-      actions={<HeaderActions />}
+      actions={
+        <HeaderActions testOrders={testOrders} onDeleteTests={() => setAskDeleteTests(true)} />
+      }
       stats={
         <OrdersTiles
           tiles={initial.tiles}
@@ -322,6 +357,12 @@ function OrdersContent({ initial }: { initial: OrdersInitial }) {
           <OrdersBulkActions ids={ids} onMark={(i, m) => handleBulkSetStatus(i, m, clear)} />
         )}
         empty={searching ? copy.noResults : copy.empty}
+      />
+      <DeleteTestOrdersDialog
+        open={askDeleteTests}
+        onOpenChange={setAskDeleteTests}
+        count={testOrders}
+        onDeleted={handleTestsDeleted}
       />
     </ProoflyListPage>
   )

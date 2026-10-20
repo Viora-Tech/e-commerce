@@ -17,7 +17,7 @@ export function codeLanguage(path: string): CodeLanguage {
 }
 
 /** Line and column of a character offset. */
-export function positionAt(text: string, offset: number): { line: number; column: number } {
+function positionAt(text: string, offset: number): { line: number; column: number } {
   let line = 1
   let lineStart = 0
   const end = Math.min(offset, text.length)

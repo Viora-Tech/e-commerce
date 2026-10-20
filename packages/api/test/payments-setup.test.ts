@@ -6,7 +6,7 @@ import {
 import { createDb, store, withStore } from '@commerce/db'
 import { resetDb } from '@commerce/db/test'
 import { cashfreeFactory } from '@commerce/payments-cashfree'
-import { razorpayFactory } from '@commerce/payments-razorpay'
+import { RazorpayProvider, razorpayFactory } from '@commerce/payments-razorpay'
 import { eq } from 'drizzle-orm'
 import { afterAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import {
@@ -14,7 +14,9 @@ import {
   connectPaymentGateway,
   paymentsSetup,
   savePaymentMethods,
+  setPaymentGatewayActive,
   signOAuthState,
+  switchPaymentMode,
   testPaymentConnection,
   verifyOAuthState,
 } from '../src/services/payments-setup.service'
@@ -195,6 +197,73 @@ describe('paymentsSetup', () => {
       problems: [],
     })
     expect(connected.settings.providers.razorpay?.keySecret).toMatch(/^••••/)
+  })
+})
+
+describe('two key sets and the Live/Test switch', () => {
+  const liveKeys = {
+    keyId: 'rzp_live_xyz789',
+    keySecret: 'live-secret-4321',
+    webhookSecret: 'whsec-live-0000',
+  }
+
+  it('saves live keys beside the test keys without changing checkout, then swaps on switch', async () => {
+    const storeId = await makeStore('pay-two-sets')
+    // Going live runs the gateway's own key check; Razorpay is never called.
+    const check = vi
+      .spyOn(RazorpayProvider.prototype, 'testConnection')
+      .mockResolvedValue({ ok: true, message: 'Connected.' })
+    await withStore(app, storeId, async (tx) => {
+      await connectPaymentGateway(tx, storeId, registry, env, 'razorpay', razorpayKeys, 'test')
+      await connectPaymentGateway(tx, storeId, registry, env, 'razorpay', liveKeys, 'live')
+    })
+    let saved = decryptPaymentSettings(await savedSettings(storeId), secret)
+    expect(saved.providers.razorpay?.keyId).toBe(razorpayKeys.keyId)
+    expect(saved.providers['razorpay~live']?.keySecret).toBe(liveKeys.keySecret)
+
+    const r = await withStore(app, storeId, (tx) =>
+      switchPaymentMode(tx, storeId, registry, env, 'razorpay', 'live'),
+    )
+    check.mockRestore()
+    expect(r.ok).toBe(true)
+    saved = decryptPaymentSettings(await savedSettings(storeId), secret)
+    expect(saved.providers.razorpay?.keyId).toBe(liveKeys.keyId)
+    expect(saved.providers['razorpay~test']?.keySecret).toBe(razorpayKeys.keySecret)
+    expect(saved.providers['razorpay~live']).toBeUndefined()
+  })
+
+  it('refuses test keys pasted as live keys, and going live without live keys', async () => {
+    const storeId = await makeStore('pay-wrong-set')
+    await withStore(app, storeId, (tx) =>
+      connectPaymentGateway(tx, storeId, registry, env, 'razorpay', razorpayKeys, 'test'),
+    )
+    await expect(
+      withStore(app, storeId, (tx) =>
+        connectPaymentGateway(tx, storeId, registry, env, 'razorpay', razorpayKeys, 'live'),
+      ),
+    ).rejects.toThrow(/test keys/)
+    const r = await withStore(app, storeId, (tx) =>
+      switchPaymentMode(tx, storeId, registry, env, 'razorpay', 'live'),
+    )
+    expect(r).toMatchObject({ ok: false, code: 'no_keys' })
+  })
+
+  it('Inactive takes the gateway off checkout and keeps it off when methods are saved', async () => {
+    const storeId = await makeStore('pay-inactive')
+    await withStore(app, storeId, async (tx) => {
+      await connectPaymentGateway(tx, storeId, registry, env, 'razorpay', razorpayKeys)
+      await setPaymentGatewayActive(tx, storeId, registry, 'razorpay', false)
+      await savePaymentMethods(tx, storeId, registry, env, [{ id: 'upi', on: true }])
+    })
+    let saved = await savedSettings(storeId)
+    expect(saved.enabled).not.toContain('razorpay')
+    expect(saved.providers.razorpay?.keyId).toBe(razorpayKeys.keyId)
+    await withStore(app, storeId, (tx) =>
+      setPaymentGatewayActive(tx, storeId, registry, 'razorpay', true),
+    )
+    saved = await savedSettings(storeId)
+    expect(saved.enabled[0]).toBe('razorpay')
+    expect(saved.inactive).toEqual({})
   })
 })
 

@@ -1,3 +1,4 @@
+/** SOURCE OF TRUTH: sales channel tests — WHAT: attribution, settings parsing and catalog readiness / WHY: pure logic behind Agentic sales */
 import { describe, expect, it } from 'vitest'
 import { channelOfAttribution, parseSalesChannels } from './client'
 import { catalogReadiness, type ReadinessProduct } from './readiness'

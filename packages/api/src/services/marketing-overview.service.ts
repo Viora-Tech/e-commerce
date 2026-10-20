@@ -1,3 +1,4 @@
+import { notTestOrder } from '@commerce/core'
 import type { MarketingChannel } from '@commerce/core/marketing'
 import {
   marketingAutomation,
@@ -108,7 +109,7 @@ export type MarketingOverview = {
 }
 
 const TOP_CAMPAIGNS = 10
-const counted = and(ne(order.status, 'draft'), ne(order.status, 'cancelled'))
+const counted = and(ne(order.status, 'draft'), ne(order.status, 'cancelled'), notTestOrder)
 
 type SessionRow = {
   channel: string

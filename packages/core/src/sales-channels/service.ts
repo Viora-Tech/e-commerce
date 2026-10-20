@@ -32,7 +32,7 @@ import { catalogReadiness } from './readiness'
 
 const DAY = 86_400_000
 /** The window every channel number covers, against the one before it. */
-export const CHANNEL_PERIOD_DAYS = 30
+const CHANNEL_PERIOD_DAYS = 30
 /** More channel orders than this in two periods and the oldest are left out of the counts. */
 const MAX_ORDERS = 20_000
 
@@ -152,7 +152,14 @@ async function channelOrders(ctx: StoreContext, now: Date): Promise<ChannelOrder
     })
     .from(order)
     .leftJoin(customer, eq(customer.id, order.customerId))
-    .where(and(ne(order.status, 'draft'), isNotNull(order.attribution), gte(order.placedAt, since)))
+    .where(
+      and(
+        ne(order.status, 'draft'),
+        eq(order.isTest, false),
+        isNotNull(order.attribution),
+        gte(order.placedAt, since),
+      ),
+    )
     .orderBy(sql`${order.placedAt} desc`)
     .limit(MAX_ORDERS)
   const out: ChannelOrder[] = []

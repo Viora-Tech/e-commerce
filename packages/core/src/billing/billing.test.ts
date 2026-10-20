@@ -1,3 +1,4 @@
+/** SOURCE OF TRUTH: plan billing tests — WHAT: choosing plans, bills and renewals / WHY: a bill must become a paid order on the sales store */
 import { aiSettings, createDb, planPayment, store, storePlan, withStore } from '@commerce/db'
 import { resetDb } from '@commerce/db/test'
 import { eq } from 'drizzle-orm'

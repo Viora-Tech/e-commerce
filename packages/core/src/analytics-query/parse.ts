@@ -1,3 +1,4 @@
+/** SOURCE OF TRUTH: custom analytics query parser — WHAT: tokenize, parse and format the query language / WHY: one parser for the editor and the server */
 import {
   COMPARE_OPTIONS,
   fieldOf,
@@ -60,7 +61,7 @@ function distance(a: string, b: string): number {
   return row[b.length] as number
 }
 
-export function closest(word: string, options: readonly string[]): string | null {
+function closest(word: string, options: readonly string[]): string | null {
   let best: string | null = null
   let bestD = Number.POSITIVE_INFINITY
   for (const o of options) {

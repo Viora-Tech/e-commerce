@@ -150,7 +150,7 @@ export async function automationStats(
       runs: sql<number>`count(*)::int`,
       active: sql<number>`count(*) filter (where ${marketingAutomationRun.status} = 'active')::int`,
       converted: sql<number>`count(*) filter (where ${marketingAutomationRun.status} = 'converted')::int`,
-      revenue: sql<number>`coalesce(sum(o.total_paise) filter (where ${marketingAutomationRun.status} = 'converted'), 0)::int`,
+      revenue: sql<number>`coalesce(sum(o.total_paise) filter (where ${marketingAutomationRun.status} = 'converted' and not o.is_test), 0)::int`,
     })
     .from(marketingAutomationRun)
     .leftJoin(sql`"order" o`, sql`o.id = ${marketingAutomationRun.convertedOrderId}`)

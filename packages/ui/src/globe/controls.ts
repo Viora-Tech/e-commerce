@@ -14,8 +14,8 @@ const ZOOM_WHEEL_SENSITIVITY = 0.0016
 const ZOOM_EASE = 0.2
 
 /** Zoom clamps and how far a +/- button press moves the target. */
-export const ZOOM_MIN = 0.6
-export const ZOOM_MAX = 2.6
+const ZOOM_MIN = 0.6
+const ZOOM_MAX = 2.6
 export const ZOOM_BUTTON_STEP = 0.25
 
 /** How far a vertical drag may tilt the globe, in radians, so it never flips over a pole. */

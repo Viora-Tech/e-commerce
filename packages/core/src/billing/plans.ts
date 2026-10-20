@@ -1,5 +1,4 @@
-/**
- * SOURCE OF TRUTH: Koomerce plans — WHAT each plan includes and costs / WHY one place for the
+/** SOURCE OF TRUTH: Koomerce plans — WHAT each plan includes and costs / WHY one place for the
  * Plan & billing page, Compare plans, the sidebar usage card and the billing service. Prices are
  * the owner's decision of 2026-10-18 (memory-bank/pricing.md), before GST. Pure, client-safe.
  */
@@ -94,7 +93,7 @@ export const planSku = (plan: PlanId, interval: BillingInterval): string =>
   `plan-${plan}-${interval}`
 
 /** Months a bill covers. */
-export const intervalMonths = (interval: BillingInterval): number => (interval === 'year' ? 12 : 1)
+const intervalMonths = (interval: BillingInterval): number => (interval === 'year' ? 12 : 1)
 
 /** `from` moved forward by one billing interval (calendar months, so 31 Jan → 28 Feb). */
 export function addInterval(from: Date, interval: BillingInterval): Date {

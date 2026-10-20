@@ -1,3 +1,4 @@
+import { notTestOrder } from '@commerce/core'
 import type { StoreTx } from '@commerce/db'
 import {
   customer,
@@ -42,7 +43,7 @@ export type OutcomeOrder = {
   discountKey: string | null
 }
 
-const counted = and(ne(order.status, 'draft'), ne(order.status, 'cancelled'))
+const counted = and(ne(order.status, 'draft'), ne(order.status, 'cancelled'), notTestOrder)
 
 const keyOf: Record<OutcomeKind, (o: OutcomeOrder) => string | null> = {
   campaigns: (o) => o.campaignId,

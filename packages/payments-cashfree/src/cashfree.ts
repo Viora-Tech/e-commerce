@@ -191,6 +191,10 @@ export class CashfreeProvider implements PaymentProvider {
     private readonly fetchImpl: typeof fetch = fetch,
   ) {}
 
+  get mode(): 'test' | 'live' {
+    return this.config.mode
+  }
+
   private async request<T>(
     method: string,
     path: string,

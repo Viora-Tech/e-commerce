@@ -24,6 +24,8 @@ export type CheckoutMethod = {
   adjustment?: PaymentAdjustment | undefined
   /** For the main gateway: the ways to pay the merchant turned on, in their order. */
   methods?: OnlineMethodId[] | undefined
+  /** The gateway runs on its test keys: shown as "Test mode", no real money moves. */
+  test?: boolean | undefined
 }
 
 async function loadSettings(tx: StoreTx, storeId: string) {
@@ -72,6 +74,7 @@ export async function storeCheckoutMethods(
       label: p.label,
       adjustment: settings.adjustments[p.id],
       methods: online && isGatewayProvider(p.id) ? online : undefined,
+      test: p.mode === 'test' ? true : undefined,
     }))
 }
 

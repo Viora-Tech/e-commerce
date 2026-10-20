@@ -138,7 +138,7 @@ function hsnDigits(value: string | null | undefined): string | null {
  * Shopify's `templateSuffix` (`about` for `page.about.json`), kept only in the shape our
  * template keys allow; anything else (or none) is the default template.
  */
-export function templateSuffix(value: string | null | undefined): string | null {
+function templateSuffix(value: string | null | undefined): string | null {
   const s = (value ?? '').trim().toLowerCase()
   return /^[a-z0-9-]{1,40}$/.test(s) ? s : null
 }
@@ -753,7 +753,7 @@ export async function* fetchOrders(
 
 /* -------------------------------------------------------------- pre-orders */
 
-export const SELLING_PLAN_GROUPS_QUERY = `query SellingPlanGroups($cursor: String) {
+const SELLING_PLAN_GROUPS_QUERY = `query SellingPlanGroups($cursor: String) {
   sellingPlanGroups(first: 25, after: $cursor) {
     ${PAGE_INFO}
     nodes { name merchantCode products(first: 250) { nodes { id } } }

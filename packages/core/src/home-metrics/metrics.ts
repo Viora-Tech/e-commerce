@@ -1,3 +1,4 @@
+/** SOURCE OF TRUTH: Home analytics tile metrics — WHAT: the metrics a member can pin to a tile / WHY: one list for the picker and the stats */
 /**
  * The metrics a Home analytics tile can show (Figma "Choose a metric for this slot", 580:692).
  * Each member picks which four sit in the tiles; the choice lives on their store membership

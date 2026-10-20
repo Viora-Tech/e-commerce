@@ -17,12 +17,11 @@ import { ROOT } from './walk'
 
 type AllowEntry = { file: string; reason: string }
 
-/** Images whose Next.js server renders on Node (Alpine `apk add nodejs`). */
-const NODE_DOCKERFILES = [
-  'apps/admin/Dockerfile',
-  'apps/storefront/Dockerfile',
-  'apps/docs/Dockerfile',
-]
+/**
+ * Images whose Next.js server renders on Node (Alpine `apk add nodejs`). The docs site is a
+ * static export on Cloudflare Workers now, so it has no image.
+ */
+const NODE_DOCKERFILES = ['apps/admin/Dockerfile', 'apps/storefront/Dockerfile']
 
 const ADMIN = 'admin screen not on the 2026-10-01 audit list — move to useFormat().pattern'
 const ADMIN_LIB = 'admin lib/copy formatter — build it on formatPattern in lib/format-date.ts'
@@ -39,6 +38,21 @@ const ALLOWLIST: AllowEntry[] = [
   { file: 'apps/admin/src/data/products.ts', reason: ADMIN_LIB },
   { file: 'apps/admin/src/lib/analytics-range.ts', reason: ADMIN_LIB },
   { file: 'apps/admin/src/lib/report-format.ts', reason: ADMIN_LIB },
+  {
+    file: 'apps/monitor/src/index.ts',
+    reason:
+      'standalone Cloudflare Worker (uptime monitor) with no workspace deps; pins timeZone Asia/Kolkata itself',
+  },
+  {
+    file: 'apps/www/src/data/guides.ts',
+    reason:
+      'marketing site guide dates, pinned to Asia/Kolkata; www does not depend on @commerce/dates',
+  },
+  {
+    file: 'apps/www/worker/index.ts',
+    reason:
+      'marketing-site Cloudflare Worker (contact notifications), pins timeZone Asia/Kolkata itself',
+  },
   { file: 'apps/storefront/src/components/checkout/balance-due.tsx', reason: STOREFRONT },
   { file: 'apps/storefront/src/data/account.ts', reason: STOREFRONT },
   { file: 'apps/storefront/src/data/policies.ts', reason: STOREFRONT },

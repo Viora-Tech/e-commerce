@@ -1,10 +1,11 @@
+import { siteConfig } from '@commerce/config/site'
 import { SOLUTIONS, solutionBySlug } from '@/data/solutions'
 import { OG_CONTENT_TYPE, OG_SIZE, ogImage } from '@/lib/og-image'
 
 // Built once at `next build`: the site is a static export.
 export const dynamic = 'force-static'
 
-export const alt = 'Koomerce for Indian online stores'
+export const alt = `${siteConfig.brand.name} for Indian online stores`
 export const size = OG_SIZE
 export const contentType = OG_CONTENT_TYPE
 
@@ -17,7 +18,7 @@ export default async function Image({ params }: { params: Promise<{ slug: string
   const solution = solutionBySlug(slug)
   return ogImage({
     eyebrow: solution?.eyebrow,
-    title: solution?.title ?? 'Koomerce',
+    title: solution?.title ?? siteConfig.brand.name,
     line: solution?.lead,
   })
 }

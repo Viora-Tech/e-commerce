@@ -1,3 +1,4 @@
+/** SOURCE OF TRUTH: template data tests — WHAT: default templates and dropping Liquid sections / WHY: templates stay valid after import */
 import { describe, expect, it } from 'vitest'
 import { defaultTemplate, withoutLiquidSections } from './templates-data'
 

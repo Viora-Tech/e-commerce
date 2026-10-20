@@ -203,7 +203,7 @@ export type AuthorizeCheck =
   | { ok: false; redirect: string; message: string }
 
 /** `?error=…&state=…` on the client's own redirect address. */
-export function redirectWith(uri: string, params: Record<string, string | null>): string {
+function redirectWith(uri: string, params: Record<string, string | null>): string {
   const url = new URL(uri)
   for (const [k, v] of Object.entries(params)) if (v !== null) url.searchParams.set(k, v)
   return url.toString()

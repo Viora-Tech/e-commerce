@@ -1,8 +1,10 @@
+/** SOURCE OF TRUTH: plan bill emails — WHAT: the `plan_bill` email for renewals and overdue plans / WHY: owners pay before the plan lapses */
 /**
  * The "pay your bill" email (template `plan_bill`), sent through the platform email account to
  * the store's contact email: when a renewal is billed, and once when a plan goes overdue. A new
  * bill the owner just opened from Plan & billing gets no email; they are on the pay page already.
  */
+import { formatInZone } from '@commerce/dates'
 import { type Db, store, withStore } from '@commerce/db'
 import { formatMoney } from '@commerce/money'
 import { eq } from 'drizzle-orm'
@@ -19,13 +21,7 @@ export type PlanBillEmail = {
   url: string | null
 }
 
-const dayLabel = (d: Date) =>
-  new Intl.DateTimeFormat('en-IN', {
-    day: 'numeric',
-    month: 'short',
-    year: 'numeric',
-    timeZone: 'Asia/Kolkata',
-  }).format(d)
+const dayLabel = (d: Date) => formatInZone(d, { day: 'numeric', month: 'short', year: 'numeric' })
 
 /** Never throws: a bill exists either way, and Plan & billing shows it. */
 export async function sendPlanBillEmail(

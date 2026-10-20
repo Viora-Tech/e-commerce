@@ -1,3 +1,4 @@
+import { notTestOrder } from '@commerce/core'
 import { SHORT_LINK_SLUG } from '@commerce/core/marketing'
 import type { StoreTx } from '@commerce/db'
 import { order, shortLink, shortLinkClickDay } from '@commerce/db'
@@ -44,7 +45,7 @@ const takenSlug = (err: unknown) =>
   err instanceof Error && /short_link_store_slug/.test(`${err.message} ${String(err.cause ?? '')}`)
 
 /** Orders counted for a link: placed (not draft or cancelled), like the Growth overview. */
-const countedOrder = and(ne(order.status, 'draft'), ne(order.status, 'cancelled'))
+const countedOrder = and(ne(order.status, 'draft'), ne(order.status, 'cancelled'), notTestOrder)
 
 /**
  * Clicks, orders and revenue per link. Orders are the ones whose attribution carries the link

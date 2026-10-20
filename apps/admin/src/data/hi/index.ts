@@ -49,6 +49,7 @@ import orderCards from './order-cards'
 import orders from './orders'
 import ordersBulkEdit from './orders-bulk-edit'
 import payments from './payments'
+import paymentModes from './payment-modes'
 import paymentsSetup from './payments-setup'
 import products from './products'
 import profitCosts from './profit-costs'
@@ -132,6 +133,7 @@ export const hindiCopy: readonly TranslationPair[] = [
   ...orders,
   ...ordersBulkEdit,
   ...payments,
+  ...paymentModes,
   ...paymentsSetup,
   ...collections,
   ...commandPalette,

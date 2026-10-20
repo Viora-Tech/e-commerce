@@ -1,6 +1,6 @@
 {
   "id": "68c95779-19f3-42c6-9ca0-d2a117529f09",
-  "prevId": "fcb11dc5-23d2-44b2-ba6e-3bd75afae444",
+  "prevId": "3ee8159e-73e5-4bd2-8909-dd5a744b74e2",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -3827,13 +3827,6 @@
           "notNull": true,
           "default": true
         },
-        "filterable": {
-          "name": "filterable",
-          "type": "boolean",
-          "primaryKey": false,
-          "notNull": true,
-          "default": false
-        },
         "position": {
           "name": "position",
           "type": "integer",
@@ -3854,6 +3847,13 @@
           "primaryKey": false,
           "notNull": true,
           "default": "now()"
+        },
+        "filterable": {
+          "name": "filterable",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
         }
       },
       "indexes": {
@@ -4512,6 +4512,13 @@
           "type": "text",
           "primaryKey": false,
           "notNull": false
+        },
+        "is_test": {
+          "name": "is_test",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
         },
         "status": {
           "name": "status",

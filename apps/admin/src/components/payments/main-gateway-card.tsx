@@ -5,15 +5,21 @@ import { Button } from '@commerce/ui/shadcn/button'
 import { Card, CardContent } from '@commerce/ui/shadcn/card'
 import Link from 'next/link'
 import StatusChip from '@/components/layout/status-chip'
+import { paymentModesContent } from '@/data/payment-modes'
 import { gatewayCatalogue, paymentsSetupContent } from '@/data/payments-setup'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { routes } from '@/lib/routes'
 import GatewayLogo from './gateway-logo'
 import GatewayProblem from './gateway-problem'
-import type { GatewayStatus } from './types'
+import GatewaySwitches from './gateway-switches'
+import type { GatewayApp, GatewayStatus } from './types'
 
 type MainGatewayCardProps = {
   primary: GatewayStatus | null
+  /** The primary gateway's app row: its Live/Test and Active/Inactive switches. */
+  gateway: GatewayApp | undefined
+  /** It is the only online gateway on at checkout. */
+  onlyOnline: boolean
   onAdd: () => void
   onChanged: () => void
   onTurnOnUpi: () => void
@@ -25,12 +31,15 @@ const monogramOf = (id: string) =>
 /** "Main way to get paid": who takes the money, Test or Live, whether it works, the last payment. */
 export default function MainGatewayCard({
   primary,
+  gateway,
+  onlyOnline,
   onAdd,
   onChanged,
   onTurnOnUpi,
 }: MainGatewayCardProps) {
   // Hooks
   const { main: copy } = useCopy(paymentsSetupContent)
+  const { active: activeCopy } = useCopy(paymentModesContent)
   const fmt = useFormat()
 
   // Early returns
@@ -67,6 +76,9 @@ export default function MainGatewayCard({
                   {primary.mode === 'live' ? copy.live : copy.test}
                 </StatusChip>
               ) : null}
+              {gateway && !gateway.connected ? (
+                <StatusChip tone="neutral">{activeCopy.off}</StatusChip>
+              ) : null}
               {healthy ? (
                 <span className="flex items-center gap-1 text-caption font-medium text-success">
                   <CircleCheck aria-hidden="true" className="size-3.5" />
@@ -96,6 +108,10 @@ export default function MainGatewayCard({
             </Button>
           </div>
         </div>
+
+        {gateway ? (
+          <GatewaySwitches gateway={gateway} onlyOnline={onlyOnline} onChanged={onChanged} />
+        ) : null}
 
         <dl className="grid gap-3 text-body sm:grid-cols-2">
           <div className="flex flex-col gap-0.5">

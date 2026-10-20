@@ -240,6 +240,12 @@ export interface PaymentProvider {
    * the gateway's one webhook URL and its event dedupe.
    */
   readonly webhookId?: string | undefined
+  /**
+   * Whether these credentials take real money ('live') or are the gateway's
+   * sandbox ('test'). Orders paid through a 'test' provider are flagged as test
+   * orders. Unset means unknown, which is treated as live.
+   */
+  readonly mode?: 'test' | 'live' | undefined
 
   createPayment(input: CreatePaymentInput): Promise<CreatePaymentResult>
 

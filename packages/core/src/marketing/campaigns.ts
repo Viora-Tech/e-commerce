@@ -400,6 +400,7 @@ export async function campaignOrders(
       and(
         sql`${order.attribution} ->> 'campaignId' = ${campaignId}`,
         sql`${order.status} not in ('draft', 'cancelled')`,
+        eq(order.isTest, false),
       ),
     )
     .orderBy(desc(order.placedAt))
@@ -441,6 +442,7 @@ export async function campaignStats(
           sql`, `,
         )})`,
         sql`${order.status} not in ('draft', 'cancelled')`,
+        eq(order.isTest, false),
       ),
     )
     .groupBy(sql`${order.attribution} ->> 'campaignId'`)

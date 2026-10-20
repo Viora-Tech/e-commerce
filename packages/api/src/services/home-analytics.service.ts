@@ -1,4 +1,6 @@
+import { notTestOrder } from '@commerce/core'
 import { HOME_METRICS, type HomeMetric, parseHomeTiles } from '@commerce/core/home-metrics'
+import { IST_OFFSET_MS } from '@commerce/dates'
 import type { StoreTx } from '@commerce/db'
 import { cart, order, orderLine, product, refund, storeMember, variant } from '@commerce/db'
 import { and, desc, eq, gte, inArray, lt, min, ne, sum } from 'drizzle-orm'
@@ -7,7 +9,7 @@ import { DAY_MS, istDayStart, istIsoDate } from './analytics-buckets'
 import { countSessions } from './sessions'
 
 /** The longest span the Home analytics card reads at once (a financial year and a day). */
-export const HOME_ANALYTICS_MAX_DAYS = 366
+const HOME_ANALYTICS_MAX_DAYS = 366
 
 /** What the dashed line compares against: the span just before, the same dates a year ago, or nothing. */
 export type HomeCompare = 'previous' | 'year' | 'none'
@@ -32,9 +34,8 @@ export type HomeAnalytics = {
 
 type Window = { from: Date; to: Date; days: string[] }
 
-const IST_OFFSET_MS = 5.5 * 60 * 60 * 1000
 const HOURS = 24
-const counted = and(ne(order.status, 'draft'), ne(order.status, 'cancelled'))
+const counted = and(ne(order.status, 'draft'), ne(order.status, 'cancelled'), notTestOrder)
 
 function zeros(n: number): number[] {
   return Array.from({ length: n }, () => 0)

@@ -8,6 +8,7 @@
  * Routing (`NOTIFY`, which can only send to its one verified address).
  */
 import { EmailMessage } from 'cloudflare:email'
+import { siteConfig } from '@commerce/config/site'
 
 type Env = {
   ASSETS: Fetcher
@@ -134,8 +135,8 @@ function notificationHtml(kind: Exclude<Kind, 'changelog'>, checked: Checked, at
         `<p style="margin:24px 0 8px;font-size:13px;color:${MUTED}">${escapeHtml(f.label)}</p><div style="padding:16px;background:#f7f7f7;border-radius:8px;font-size:15px;line-height:1.55;color:${INK};white-space:pre-wrap;word-break:break-word">${escapeHtml(f.value)}</div>`,
     )
     .join('')
-  const replyHref = `mailto:${encodeURIComponent(checked.email)}?subject=${encodeURIComponent('Re: Koomerce')}`
-  return `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="light"></head><body style="margin:0;padding:0;background:#f4f4f4;font-family:${FONT}"><table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f4f4f4"><tr><td align="center" style="padding:32px 12px"><table role="presentation" width="560" cellpadding="0" cellspacing="0" style="width:100%;max-width:560px;background:#ffffff;border-radius:12px;border:1px solid ${LINE}"><tr><td style="padding:28px 32px 0"><a href="https://koomerce.app" style="text-decoration:none;color:${INK}"><img src="https://koomerce.app/icon-192.png" alt="" width="28" height="28" style="display:inline-block;vertical-align:middle;width:28px;height:28px;border:0;border-radius:6px"><span style="display:inline-block;vertical-align:middle;margin-left:10px;font-size:16px;font-weight:700;letter-spacing:-0.01em">Koomerce</span></a></td></tr><tr><td style="padding:24px 32px 8px"><h1 style="margin:0 0 4px;font-size:22px;line-height:1.3;font-weight:700;color:${INK}">${TITLES[kind]}</h1><p style="margin:0 0 20px;font-size:14px;color:${MUTED}">From the form on koomerce.app &middot; ${escapeHtml(when)} IST</p><table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-bottom:1px solid ${LINE}">${rows}</table>${blocks}</td></tr><tr><td style="padding:24px 32px 32px"><table role="presentation" cellpadding="0" cellspacing="0"><tr><td style="background:${INK};border-radius:8px"><a href="${escapeHtml(replyHref)}" style="display:inline-block;padding:12px 22px;font-size:15px;font-weight:600;color:#ffffff;text-decoration:none">Reply to ${escapeHtml(checked.email)}</a></td></tr></table></td></tr></table><p style="margin:16px 0 0;font-size:12px;color:${MUTED}">Sent by the koomerce.app form Worker. Replying goes to the person who filled the form.</p></td></tr></table></body></html>`
+  const replyHref = `mailto:${encodeURIComponent(checked.email)}?subject=${encodeURIComponent(`Re: ${siteConfig.brand.name}`)}`
+  return `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="light"></head><body style="margin:0;padding:0;background:#f4f4f4;font-family:${FONT}"><table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f4f4f4"><tr><td align="center" style="padding:32px 12px"><table role="presentation" width="560" cellpadding="0" cellspacing="0" style="width:100%;max-width:560px;background:#ffffff;border-radius:12px;border:1px solid ${LINE}"><tr><td style="padding:28px 32px 0"><a href="https://koomerce.app" style="text-decoration:none;color:${INK}"><img src="https://koomerce.app/icon-192.png" alt="" width="28" height="28" style="display:inline-block;vertical-align:middle;width:28px;height:28px;border:0;border-radius:6px"><span style="display:inline-block;vertical-align:middle;margin-left:10px;font-size:16px;font-weight:700;letter-spacing:-0.01em">${siteConfig.brand.name}</span></a></td></tr><tr><td style="padding:24px 32px 8px"><h1 style="margin:0 0 4px;font-size:22px;line-height:1.3;font-weight:700;color:${INK}">${TITLES[kind]}</h1><p style="margin:0 0 20px;font-size:14px;color:${MUTED}">From the form on koomerce.app &middot; ${escapeHtml(when)} IST</p><table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-bottom:1px solid ${LINE}">${rows}</table>${blocks}</td></tr><tr><td style="padding:24px 32px 32px"><table role="presentation" cellpadding="0" cellspacing="0"><tr><td style="background:${INK};border-radius:8px"><a href="${escapeHtml(replyHref)}" style="display:inline-block;padding:12px 22px;font-size:15px;font-weight:600;color:#ffffff;text-decoration:none">Reply to ${escapeHtml(checked.email)}</a></td></tr></table></td></tr></table><p style="margin:16px 0 0;font-size:12px;color:${MUTED}">Sent by the koomerce.app form Worker. Replying goes to the person who filled the form.</p></td></tr></table></body></html>`
 }
 
 function notificationText(kind: Exclude<Kind, 'changelog'>, checked: Checked) {
@@ -157,7 +158,7 @@ async function notify(env: Env, kind: Exclude<Kind, 'changelog'>, checked: Check
   const at = new Date()
   const boundary = `koomerce-${crypto.randomUUID()}`
   const raw = [
-    `From: Koomerce <${FROM}>`,
+    `From: ${siteConfig.brand.name} <${FROM}>`,
     `To: team`,
     `Reply-To: ${checked.email}`,
     `Subject: ${checked.subject}`,
