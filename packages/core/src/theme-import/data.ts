@@ -23,6 +23,7 @@ import {
 } from '../catalog/browse-params'
 import { keyFromName } from '../metaobjects/validate'
 import { toNavLinks } from '../navigation/resolve'
+import { publishedPolicyLinks } from '../policies/service'
 import { loadMetafields, loadMetaobjects, loadMetaobjectsOfType } from './custom-data'
 import type {
   LiquidBlogData,
@@ -148,6 +149,8 @@ export async function storeLiquidData(
     })
     .from(store)
     .where(eq(store.id, options.storeId))
+  // The footer's policy links (`shop.policies`): payment gateways check a store shows them.
+  const policyLinks = await publishedPolicyLinks({ tx, storeId: options.storeId })
   const seo = ((s?.preferences as { seo?: { description?: string } } | null)?.seo ?? {}) as {
     description?: string
   }
@@ -159,6 +162,7 @@ export async function storeLiquidData(
     url: options.origin,
     currency: 'INR',
     description: seo.description ?? '',
+    policies: policyLinks.map((l) => ({ type: l.type, title: l.title, url: l.href })),
   }
 
   const collectionList = (): Promise<LiquidCollectionData[]> =>

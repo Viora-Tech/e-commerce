@@ -118,7 +118,16 @@ export type LiquidShopData = {
   url: string
   currency: string
   description: string
+  /**
+   * Published store policies (Settings → Policies) in footer order, for `shop.policies` and
+   * `shop.privacy_policy` etc. `type` is the policy's handle (`privacy-policy`...), `url` our
+   * `/policies/<type>` page.
+   */
+  policies: LiquidPolicyData[]
 }
+
+/** One published store policy, for Shopify's `policy` object. */
+export type LiquidPolicyData = { type: string; title: string; url: string }
 
 /** A file an extra field points at (an image, or any other file in Files). */
 export type LiquidFileData = LiquidImageData & { id: string; contentType: string | null }
