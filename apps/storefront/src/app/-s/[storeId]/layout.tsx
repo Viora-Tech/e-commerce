@@ -6,6 +6,7 @@ import {
   footerSettings,
   Header,
   headerSettings,
+  MoneyFormatProvider,
   StoreActionsProvider,
   searchShortcuts,
 } from '@commerce/blocks'
@@ -108,6 +109,7 @@ function layoutData(storeId: string) {
         preferences: store.preferences,
         navigation: store.navigation,
         apps: store.apps,
+        moneyFormat: store.moneyFormat,
       })
       .from(store)
       .where(eq(store.id, storeId))
@@ -338,11 +340,14 @@ export default async function StoreLayout({ children, params }: Props) {
           />
           {previewName && !preview?.inFrame ? <PreviewBar themeName={previewName} /> : null}
           <LiquidHtml html={liquid.beforeHeader} />
-          {header}
-          <main id="MainContent" tabIndex={-1} {...reactAttrs(liquid.mainAttrs)}>
-            {page}
-          </main>
-          {footer}
+          {/* React sections inside the theme (cards, product, search) read the store's price format. */}
+          <MoneyFormatProvider format={current.moneyFormat}>
+            {header}
+            <main id="MainContent" tabIndex={-1} {...reactAttrs(liquid.mainAttrs)}>
+              {page}
+            </main>
+            {footer}
+          </MoneyFormatProvider>
           <LiquidHtml html={liquid.afterFooter} />
           <LiquidBoot />
           <ThemePreviewBridge adminOrigin={adminOrigin} />
@@ -370,20 +375,23 @@ export default async function StoreLayout({ children, params }: Props) {
         {theme.brand.favicon ? <link rel="icon" href={theme.brand.favicon.url} /> : null}
       </head>
       <body>
-        {previewName && !preview?.inFrame ? <PreviewBar themeName={previewName} /> : null}
-        <StoreChrome>{header}</StoreChrome>
-        <main id="MainContent">
-          <StoreActionsProvider addToCart={addLineAction}>{page}</StoreActionsProvider>
-        </main>
-        {theme.cart.type === 'drawer' ? (
-          <CartDrawer freeShippingBar={theme.cart.freeShippingBar} />
-        ) : null}
-        <StoreChrome>
-          <CursorFill />
-        </StoreChrome>
-        <ThemePreviewBridge adminOrigin={adminOrigin} />
-        {preview || themedConsent ? null : <ConsentManager {...consent} />}
-        <StoreChrome>{footer}</StoreChrome>
+        {/* Prices in blocks (cards, product, search) read the store's format. */}
+        <MoneyFormatProvider format={current.moneyFormat}>
+          {previewName && !preview?.inFrame ? <PreviewBar themeName={previewName} /> : null}
+          <StoreChrome>{header}</StoreChrome>
+          <main id="MainContent">
+            <StoreActionsProvider addToCart={addLineAction}>{page}</StoreActionsProvider>
+          </main>
+          {theme.cart.type === 'drawer' ? (
+            <CartDrawer freeShippingBar={theme.cart.freeShippingBar} />
+          ) : null}
+          <StoreChrome>
+            <CursorFill />
+          </StoreChrome>
+          <ThemePreviewBridge adminOrigin={adminOrigin} />
+          {preview || themedConsent ? null : <ConsentManager {...consent} />}
+          <StoreChrome>{footer}</StoreChrome>
+        </MoneyFormatProvider>
       </body>
     </html>
   )

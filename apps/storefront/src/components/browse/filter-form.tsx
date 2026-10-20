@@ -1,6 +1,6 @@
 'use client'
 
-import { formatPaise, Icon } from '@commerce/blocks'
+import { Icon, useFormatPaise } from '@commerce/blocks'
 import type { BrowseFacets, FacetValue } from '@commerce/core'
 import { type BrowseFilters, FILTER_PARAM } from '@commerce/core/browse'
 import { useRouter } from 'next/navigation'
@@ -44,6 +44,7 @@ export default function FilterForm({
   idPrefix,
 }: FilterFormProps) {
   // Hooks
+  const formatPaise = useFormatPaise()
   const router = useRouter()
   const formRef = useRef<HTMLFormElement>(null)
 

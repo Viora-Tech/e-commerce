@@ -204,3 +204,86 @@ export function formatPercent(
     maximumFractionDigits: opts.maximumFractionDigits ?? 0,
   }).format(ratio)
 }
+
+/** Longest money format a store can save; Shopify's own run to a few dozen characters. */
+export const MONEY_FORMAT_MAX = 60
+
+/** A `{{ amount… }}` placeholder: what makes a money format show the amount at all. */
+const AMOUNT_TAG = /{{\s*amount\w*\s*}}/
+
+/** True when `format` shows the amount (`Rs. {{amount}}`, `₹{{ amount_no_decimals }}`). */
+export function isMoneyFormat(format: string): boolean {
+  return format.length <= MONEY_FORMAT_MAX && AMOUNT_TAG.test(format)
+}
+
+const ENTITIES: Record<string, string> = { amp: '&', nbsp: ' ', quot: '"', apos: "'" }
+
+/**
+ * A money format as Shopify stores it (`shop.currencyFormats.moneyFormat`, HTML such as
+ * `<span class=money>Rs. {{amount}}</span>` or `&#8377;{{amount}}`) as plain text, or null
+ * when nothing usable is left. Tags go and entities decode: the format is shown as text.
+ */
+export function cleanMoneyFormat(raw: string | null | undefined): string | null {
+  if (!raw) return null
+  const text = raw
+    .replace(/<[^>]*>/g, '')
+    .replace(/&#(\d+);/g, (_, n: string) => String.fromCodePoint(Number(n)))
+    .replace(/&#x([0-9a-f]+);/gi, (_, n: string) => String.fromCodePoint(Number.parseInt(n, 16)))
+    .replace(/&(amp|nbsp|quot|apos);/g, (_, n: string) => ENTITIES[n] ?? '')
+    .replace(/[<>]/g, '')
+    .trim()
+  return isMoneyFormat(text) ? text : null
+}
+
+/**
+ * SOURCE OF TRUTH KEYWORDS: money_format, shopifyMoney, Rs. {{amount}}, store money format
+ * WHAT:  An integer minor-unit amount in a Shopify-style money format: `{{amount}}`
+ *        (6,499.00), `{{amount_no_decimals}}` (6,499), comma, apostrophe and space variants.
+ * WHY:   A store moved from Shopify keeps how its prices read ("Rs. 6,499.00"); the Liquid
+ *        `money` filters and the storefront's own blocks both format through this.
+ * WHERE: `formatStoreMoney` below, theme-import `money` filters.
+ */
+export function formatWithMoneyFormat(minor: number, format: string): string {
+  const major = minor / 100
+  const group = (n: string, sep: string) => n.replace(/\B(?=(\d{3})+(?!\d))/g, sep)
+  const parts = (decimals: number, thousands: string, point: string) => {
+    const [whole = '0', frac] = Math.abs(major).toFixed(decimals).split('.')
+    const sign = major < 0 ? '-' : ''
+    return `${sign}${group(whole, thousands)}${frac ? `${point}${frac}` : ''}`
+  }
+  return format.replace(/{{\s*(\w+)\s*}}/g, (_, name: string) => {
+    switch (name) {
+      case 'amount':
+        return parts(2, ',', '.')
+      case 'amount_no_decimals':
+        return parts(0, ',', '.')
+      case 'amount_with_comma_separator':
+        return parts(2, '.', ',')
+      case 'amount_no_decimals_with_comma_separator':
+        return parts(0, '.', ',')
+      case 'amount_with_apostrophe_separator':
+        return parts(2, "'", '.')
+      case 'amount_no_decimals_with_space_separator':
+        return parts(0, ' ', '.')
+      case 'amount_with_space_separator':
+        return parts(2, ' ', ',')
+      default:
+        return parts(2, ',', '.')
+    }
+  })
+}
+
+/**
+ * A price as the store shows prices: its money format when it set one (Settings › Store
+ * details, or brought over from Shopify), else `formatMoney` (₹6,499). Display only:
+ * amounts stay integer minor units everywhere else.
+ */
+export function formatStoreMoney(
+  minor: number,
+  format: string | null | undefined,
+  currency: Currency = DEFAULT_CURRENCY,
+): string {
+  return format && isMoneyFormat(format)
+    ? formatWithMoneyFormat(minor, format)
+    : formatMoney(minor, currency)
+}

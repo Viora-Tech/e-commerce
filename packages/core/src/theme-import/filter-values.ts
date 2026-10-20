@@ -1,5 +1,5 @@
 /** SOURCE OF TRUTH: the values behind Shopify's Liquid filters — WHAT: the per-render runtime filters read, filter argument parsing, translations with plurals, Shopify money formats, image URLs and `image_tag` markup, placeholder art, colour maths and payment marks / WHY: kept apart from the filter table so each piece is testable and the table stays readable */
-import { type Currency, formatMoney } from '@commerce/money'
+import { type Currency, formatMoney, formatWithMoneyFormat } from '@commerce/money'
 import { Drop } from 'liquidjs'
 import { ColorDrop, type FontDrop, ImageDrop } from './drops'
 
@@ -92,35 +92,7 @@ export function translate(locale: Record<string, unknown>, key: string, vars: Na
 }
 
 /** Shopify money formats: `{{amount}}`, `{{amount_no_decimals}}`, comma separators. */
-export function shopifyMoney(paise: number, format: string): string {
-  const major = paise / 100
-  const group = (n: string, sep: string) => n.replace(/\B(?=(\d{3})+(?!\d))/g, sep)
-  const parts = (decimals: number, thousands: string, point: string) => {
-    const [whole = '0', frac] = Math.abs(major).toFixed(decimals).split('.')
-    const sign = major < 0 ? '-' : ''
-    return `${sign}${group(whole, thousands)}${frac ? `${point}${frac}` : ''}`
-  }
-  return format.replace(/{{\s*(\w+)\s*}}/g, (_, name: string) => {
-    switch (name) {
-      case 'amount':
-        return parts(2, ',', '.')
-      case 'amount_no_decimals':
-        return parts(0, ',', '.')
-      case 'amount_with_comma_separator':
-        return parts(2, '.', ',')
-      case 'amount_no_decimals_with_comma_separator':
-        return parts(0, '.', ',')
-      case 'amount_with_apostrophe_separator':
-        return parts(2, "'", '.')
-      case 'amount_no_decimals_with_space_separator':
-        return parts(0, ' ', '.')
-      case 'amount_with_space_separator':
-        return parts(2, ' ', ',')
-      default:
-        return parts(2, ',', '.')
-    }
-  })
-}
+export const shopifyMoney = formatWithMoneyFormat
 
 export function money(rt: LiquidRuntime, value: unknown): string {
   const paise = Number(value ?? 0)

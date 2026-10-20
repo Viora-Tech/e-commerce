@@ -1,6 +1,7 @@
 'use client'
 
 import { type StoreGeneral, StoreGeneralSchema } from '@commerce/core/store-settings'
+import { formatStoreMoney, isMoneyFormat } from '@commerce/money'
 import { MapPinLineIcon } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Card } from '@commerce/ui/shadcn/card'
@@ -37,6 +38,15 @@ const copy = settingsContent.general
 const movedCopy = taxesContent.movedFromGeneral
 const TAXES_HREF = '/settings/taxes'
 const timezoneItems = Object.fromEntries(copy.timezones.map((t) => [t.value, t.label]))
+/** ₹6,499: the price the format field previews. */
+const SAMPLE_PAISE = 649_900
+
+/** The format's help line, with how a sample price reads once it is valid. */
+function moneyFormatHelp(format: string): string {
+  const trimmed = format.trim()
+  if (!trimmed || !isMoneyFormat(trimmed)) return copy.locale.moneyFormatHelp
+  return `${copy.locale.moneyFormatHelp} ${copy.locale.moneyFormatPreview(formatStoreMoney(SAMPLE_PAISE, trimmed))}`
+}
 
 /** Zod issues keyed by dotted path, e.g. `address.pincode`. */
 function validate(form: StoreGeneral): Errors {
@@ -257,6 +267,14 @@ export default function GeneralSettings() {
             >
               <Input size="lg" id="store-currency" value={form.currency} readOnly disabled />
             </SettingsRow>
+            <SettingsTextRow
+              id="store-money-format"
+              label={copy.locale.moneyFormat}
+              description={moneyFormatHelp(form.moneyFormat)}
+              value={form.moneyFormat}
+              onChange={(moneyFormat) => patch({ moneyFormat })}
+              error={errors.moneyFormat ? copy.locale.moneyFormatError : undefined}
+            />
             <SettingsRow label={copy.locale.timezone} htmlFor="store-timezone">
               <Select
                 items={timezoneItems}
