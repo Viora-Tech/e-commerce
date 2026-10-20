@@ -35,7 +35,9 @@ describe('metafield filter params', () => {
     const chips = activeFilters(f)
     expect(chips.map((c) => c.value)).toEqual(['Claw', 'Palm'])
     expect(chips[0]?.without.metafields).toEqual({ 'custom.filter_grip': ['Palm'] })
-    expect(activeFilters({ ...EMPTY_FILTERS, metafields: { 'custom.x': ['a'] } })[0]?.without.metafields).toEqual({})
+    expect(
+      activeFilters({ ...EMPTY_FILTERS, metafields: { 'custom.x': ['a'] } })[0]?.without.metafields,
+    ).toEqual({})
   })
 })
 

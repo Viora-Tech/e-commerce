@@ -7,7 +7,6 @@ import {
   type LiquidCartData,
   type LiquidPageContext,
   type LiquidSectionInput,
-  type RecommendationIntent,
   liquidPlacement,
   liquidSectionKey,
   loadTemplate,
@@ -16,6 +15,7 @@ import {
   mainThemeId,
   ProductDrop,
   peekThemeBundle,
+  type RecommendationIntent,
   renderLiquidLayout,
   renderLiquidSection,
   resolveThemeProductId,
@@ -131,7 +131,11 @@ type RequestScope = Awaited<ReturnType<typeof requestScope>>
 /** `listingSearch` params as the Liquid listing reads them: one key, its values. */
 function listingQuery(search: string): Record<string, string[]> {
   const out: Record<string, string[]> = {}
-  for (const [k, v] of new URLSearchParams(search)) (out[k] ??= []).push(v)
+  for (const [k, v] of new URLSearchParams(search)) {
+    const list = out[k] ?? []
+    list.push(v)
+    out[k] = list
+  }
   return out
 }
 

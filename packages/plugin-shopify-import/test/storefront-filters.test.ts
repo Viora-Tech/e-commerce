@@ -34,7 +34,9 @@ describe('storefront metafield filters', () => {
   })
 
   it('gives none when the storefront is locked or down', async () => {
-    expect((await storefrontFilterKeys(client(async () => new Response('', { status: 401 })))).size).toBe(0)
+    expect(
+      (await storefrontFilterKeys(client(async () => new Response('', { status: 401 })))).size,
+    ).toBe(0)
     const down = client(async () => {
       throw new Error('offline')
     })

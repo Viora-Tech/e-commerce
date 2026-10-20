@@ -15,12 +15,12 @@ import {
   withStore,
 } from '@commerce/db'
 import { resetDb } from '@commerce/db/test'
+import { afterAll, beforeEach, describe, expect, it } from 'vitest'
 import {
   createMetafieldDefinition,
   markMetafieldsFilterable,
   setMetafields,
 } from '../metaobjects/service'
-import { afterAll, beforeEach, describe, expect, it } from 'vitest'
 import { browseProducts, searchTerms, suggestProducts } from './browse'
 import {
   activeFilters,
@@ -390,9 +390,21 @@ describe('extra field filters', () => {
     const b = await seed(storeId, { handle: 'beta', price: 100_00, stock: 1 })
     const c = await seed(storeId, { handle: 'gamma', price: 100_00, stock: 1 })
     const ids = await run(storeId, async (tx) => {
-      const grip = await createMetafieldDefinition(tx, storeId, field('Grip', 'single_line_text', { filterable: true }))
-      const sensor = await createMetafieldDefinition(tx, storeId, field('Sensor', 'single_line_text'))
-      const wireless = await createMetafieldDefinition(tx, storeId, field('Wireless', 'boolean', { filterable: true }))
+      const grip = await createMetafieldDefinition(
+        tx,
+        storeId,
+        field('Grip', 'single_line_text', { filterable: true }),
+      )
+      const sensor = await createMetafieldDefinition(
+        tx,
+        storeId,
+        field('Sensor', 'single_line_text'),
+      )
+      const wireless = await createMetafieldDefinition(
+        tx,
+        storeId,
+        field('Wireless', 'boolean', { filterable: true }),
+      )
       const values: [string, Record<string, unknown>][] = [
         [a.productId, { [grip.id]: 'Claw', [sensor.id]: 'PAW3395', [wireless.id]: true }],
         [b.productId, { [grip.id]: 'Palm', [sensor.id]: 'PAW3395', [wireless.id]: false }],
@@ -427,21 +439,32 @@ describe('extra field filters', () => {
     ])
 
     const claw = await run(storeId, (tx) =>
-      browseProducts(tx, { ...base, filters: parseBrowseFilters({ 'filter.p.m.custom.grip': 'Claw' }) }),
+      browseProducts(tx, {
+        ...base,
+        filters: parseBrowseFilters({ 'filter.p.m.custom.grip': 'Claw' }),
+      }),
     )
     expect(claw.handles).toEqual(['alpha', 'gamma'])
     const wired = await run(storeId, (tx) =>
-      browseProducts(tx, { ...base, filters: parseBrowseFilters({ 'filter.p.m.custom.wireless': '0' }) }),
+      browseProducts(tx, {
+        ...base,
+        filters: parseBrowseFilters({ 'filter.p.m.custom.wireless': '0' }),
+      }),
     )
     expect(wired.handles).toEqual(['beta'])
     // A field not marked as a filter neither shows nor filters.
     const sensor = await run(storeId, (tx) =>
-      browseProducts(tx, { ...base, filters: parseBrowseFilters({ 'filter.p.m.custom.sensor': 'PAW3395' }) }),
+      browseProducts(tx, {
+        ...base,
+        filters: parseBrowseFilters({ 'filter.p.m.custom.sensor': 'PAW3395' }),
+      }),
     )
     expect(sensor.handles).toEqual([])
 
     // The Shopify import marks fields the old store filtered by; only filterable types change.
-    const marked = await run(storeId, (tx) => markMetafieldsFilterable(tx, [ids.sensor.id, ids.grip.id]))
+    const marked = await run(storeId, (tx) =>
+      markMetafieldsFilterable(tx, [ids.sensor.id, ids.grip.id]),
+    )
     expect(marked).toBe(1)
     const after = await run(storeId, (tx) => browseProducts(tx, base))
     expect(after.facets.metafields.map((m) => m.key)).toEqual([
@@ -459,7 +482,11 @@ describe('extra field filters', () => {
     )
     const sensor = await run(storeId, async (tx) => {
       const grip = await createMetafieldDefinition(tx, storeId, field('Grip', 'single_line_text'))
-      const sensor = await createMetafieldDefinition(tx, storeId, field('Sensor', 'single_line_text'))
+      const sensor = await createMetafieldDefinition(
+        tx,
+        storeId,
+        field('Sensor', 'single_line_text'),
+      )
       const grips = ['Claw', 'Claw', 'Palm', 'Palm']
       for (const [i, p] of products.entries()) {
         await setMetafields(tx, storeId, {
@@ -473,7 +500,10 @@ describe('extra field filters', () => {
     const guessed = await run(storeId, (tx) => browseProducts(tx, base))
     expect(guessed.facets.metafields.map((m) => m.key)).toEqual(['custom.grip'])
     const palm = await run(storeId, (tx) =>
-      browseProducts(tx, { ...base, filters: parseBrowseFilters({ 'filter.p.m.custom.grip': 'Palm' }) }),
+      browseProducts(tx, {
+        ...base,
+        filters: parseBrowseFilters({ 'filter.p.m.custom.grip': 'Palm' }),
+      }),
     )
     expect(palm.handles).toEqual(['c', 'd'])
 

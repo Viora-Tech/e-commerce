@@ -22,7 +22,11 @@ const monogramOf = (id: string) =>
   gatewayCatalogue.find((g) => g.id === id)?.monogram ?? id.slice(0, 2)
 
 /** A connected payment company that is not the main one (Decentro UPI, a second gateway). */
-export default function OtherGatewayCard({ gateway, onlyOnline, onChanged }: OtherGatewayCardProps) {
+export default function OtherGatewayCard({
+  gateway,
+  onlyOnline,
+  onChanged,
+}: OtherGatewayCardProps) {
   // Hooks
   const { main: copy } = useCopy(paymentsSetupContent)
   const modes = useCopy(paymentModesContent)
@@ -39,9 +43,7 @@ export default function OtherGatewayCard({ gateway, onlyOnline, onChanged }: Oth
                 {gateway.mode === 'live' ? copy.live : copy.test}
               </StatusChip>
             ) : null}
-            {gateway.connected ? null : (
-              <StatusChip tone="neutral">{modes.active.off}</StatusChip>
-            )}
+            {gateway.connected ? null : <StatusChip tone="neutral">{modes.active.off}</StatusChip>}
           </div>
           <Button
             variant="outline"

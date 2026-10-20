@@ -62,7 +62,11 @@ describe('liquidFilters', () => {
     const grip = by('filter.p.m.custom.filter_grip')
     const claw = grip?.values.find((v) => v.value === 'Claw')
     const palm = grip?.values.find((v) => v.value === 'Palm')
-    expect(claw).toMatchObject({ active: true, count: 2, param_name: 'filter.p.m.custom.filter_grip' })
+    expect(claw).toMatchObject({
+      active: true,
+      count: 2,
+      param_name: 'filter.p.m.custom.filter_grip',
+    })
     expect(claw?.url_to_remove).toBe('/collections/mice')
     expect(palm?.active).toBe(false)
     expect(palm?.url_to_add).toBe(
@@ -79,9 +83,11 @@ describe('liquidFilters', () => {
   })
 
   it('reads the price range in paise, as Shopify reads cents', () => {
-    const price = liquidFilters(FACETS, { ...EMPTY_FILTERS, priceMin: 100_000 }, { path: '/search', q: 'mouse' }).find(
-      (f) => f.type === 'price_range',
-    )
+    const price = liquidFilters(
+      FACETS,
+      { ...EMPTY_FILTERS, priceMin: 100_000 },
+      { path: '/search', q: 'mouse' },
+    ).find((f) => f.type === 'price_range')
     expect(price).toMatchObject({
       range_max: 899_900,
       min_value: { param_name: 'filter.v.price.gte', value: 100_000 },
@@ -93,7 +99,12 @@ describe('liquidFilters', () => {
 
 let themes = 0
 
-async function renderPage(source: string, template: 'collection' | 'search', path: string, listing: Record<string, string[]>) {
+async function renderPage(
+  source: string,
+  template: 'collection' | 'search',
+  path: string,
+  listing: Record<string, string[]>,
+) {
   const calls: unknown[] = []
   const base = fakeDataSource({
     collections: [

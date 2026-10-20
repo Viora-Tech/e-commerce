@@ -1,12 +1,12 @@
 'use client'
 
 import {
+  canFilterBy,
   type FieldType,
   type FieldValidations,
   KEY_PATTERN,
   keyFromName,
   type MetafieldOwnerType,
-  canFilterBy,
   NO_LIST_TYPES,
   PRIVATE_METAFIELD_OWNERS,
   ruleProblems,

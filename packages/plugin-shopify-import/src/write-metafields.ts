@@ -9,8 +9,8 @@ import {
   createMetafieldDefinition,
   getMetafields,
   listMetafieldDefinitions,
-  markMetafieldsFilterable,
   type MetafieldOwnerType,
+  markMetafieldsFilterable,
   setMetafields,
 } from '@commerce/core'
 import {

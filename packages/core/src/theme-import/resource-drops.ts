@@ -10,11 +10,11 @@ import {
   imageDrop,
   type LiquidArticleData,
   type LiquidBlogData,
+  type LiquidBrowseData,
   type LiquidCollectionData,
   type LiquidLinkData,
   type LiquidMenuData,
   type LiquidPageData,
-  type LiquidBrowseData,
   type LiquidProductData,
   type LiquidVariantData,
 } from './drops'

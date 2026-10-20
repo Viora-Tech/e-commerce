@@ -15,11 +15,11 @@ import {
   CollectionDrop,
   CollectionsDrop,
   LinklistsDrop,
+  type ListingQuery,
   PageDrop,
   PagesDrop,
   ProductDrop,
   SearchDrop,
-  type ListingQuery,
 } from './resource-drops'
 import { liquidSettings } from './settings-values'
 
