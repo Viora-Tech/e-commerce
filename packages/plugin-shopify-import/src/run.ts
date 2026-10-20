@@ -10,7 +10,7 @@ import { CommerceError } from '@commerce/core'
 import type { LookupAll } from '@commerce/core/safe-fetch'
 import type { StorageProvider } from '@commerce/storage'
 import { and, eq, isNotNull, ne } from 'drizzle-orm'
-import type { SnapshotUse } from './client'
+import { SNAPSHOT_FORMAT, type SnapshotUse } from './client'
 import { clientFor } from './connection'
 import { FileUsage } from './file-usage'
 import { createMediaHost, type MediaHostOptions } from './media'
@@ -343,7 +343,7 @@ export async function executeRun(deps: RunDeps, runId: string): Promise<void> {
           snapshotUse: snap.use,
           ...(keep
             ? {
-                snapshot: { takenAt, streams: snap.recorded },
+                snapshot: { takenAt, format: SNAPSHOT_FORMAT, streams: snap.recorded },
                 snapshotTakenAt: new Date(takenAt),
               }
             : {}),

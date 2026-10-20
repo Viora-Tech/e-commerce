@@ -11,7 +11,7 @@ import { media, product, productMedia, type StoreTx, withStore } from '@commerce
 import { resetDb } from '@commerce/db/test'
 import { eq } from 'drizzle-orm'
 import { afterAll, beforeEach, describe, expect, it } from 'vitest'
-import type { ImportResource, ImportStatus } from '../src/client'
+import { type ImportResource, type ImportStatus, SNAPSHOT_FORMAT } from '../src/client'
 import { connect } from '../src/connection'
 import { createMediaHost } from '../src/media'
 import { executeRun } from '../src/run'
@@ -155,6 +155,7 @@ describe("what's left to import tells the truth", () => {
       progress: { files: progress({ total: 2, created: 2 }) },
       snapshot: {
         takenAt: new Date().toISOString(),
+        format: SNAPSHOT_FORMAT,
         streams: { files: { key: 'stores/x/private/imports/y/snapshot/files.jsonl.gz', count: 9 } },
       },
     })
