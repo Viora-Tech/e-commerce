@@ -29,6 +29,10 @@ export const LocationInputSchema = z.object({
 })
 export type LocationInput = z.infer<typeof LocationInputSchema>
 
+/** Every field is written: a blank one clears it (except `line2`, kept when left out). */
+export const LocationUpdateSchema = LocationInputSchema.extend({ id: z.uuid() })
+export type LocationUpdate = z.infer<typeof LocationUpdateSchema>
+
 export const StockEditSchema = z.object({
   variantId: z.string().uuid(),
   locationId: z.string().uuid(),

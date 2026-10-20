@@ -128,7 +128,7 @@ export const businessGstContent = {
   location: {
     back: 'Locations & warehouses',
     address: 'Address',
-    noAddress: 'No address added. Add it under Products › Inventory.',
+    noAddress: 'No address added yet.',
     billingHeading: 'GST for this location',
     billingHelp: 'Orders sent from here are billed under this GST number.',
     billsUnder: 'Bills under',
