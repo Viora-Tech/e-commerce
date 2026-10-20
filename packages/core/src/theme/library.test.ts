@@ -1,5 +1,6 @@
-import { createDb, type StoreTx, store, theme, withStore } from '@commerce/db'
+import { createDb, newId, type StoreTx, store, theme, themeTemplate, withStore } from '@commerce/db'
 import { resetDb } from '@commerce/db/test'
+import { eq } from 'drizzle-orm'
 import { afterAll, beforeEach, describe, expect, it } from 'vitest'
 import {
   createThemeFromPreset,
@@ -19,6 +20,7 @@ import {
 import { applyThemePreset } from './presets'
 import { readThemePreviewToken, signThemePreviewToken } from './preview-token'
 import { defaultTheme } from './schema'
+import { defaultTemplate } from './templates-data'
 
 const owner = createDb(process.env.DATABASE_URL_OWNER as string)
 const app = createDb(process.env.DATABASE_URL as string)
@@ -145,6 +147,63 @@ describe('last saved by and thumbnails', () => {
     expect(copy).toMatchObject({ thumbnailUrl: 'https://cdn.test/t.webp?v=1', updatedBy: 'Ravi' })
     const [touched] = await inStore(storeId, (tx) => listThemes(tx))
     expect(touched?.updatedBy).toBe('Ravi')
+  })
+})
+
+describe('templates of an imported live theme', () => {
+  const liquid = (key: string) => ({
+    type: 'LiquidSection',
+    props: { id: `LiquidSection-${key}`, sectionType: key, sectionKey: key, blocks: [] },
+  })
+  const ours = { type: 'MainProduct', props: { id: 'main' } }
+
+  async function seedImportedLive(storeId: string) {
+    return inStore(storeId, async (tx) => {
+      const live = await ensureMainTheme(tx, storeId)
+      const row = (template: string, content: unknown[]) => ({
+        id: newId(),
+        storeId,
+        themeId: live.id,
+        template,
+        sections: { root: { props: {} }, content },
+      })
+      await tx
+        .insert(themeTemplate)
+        .values([
+          row('home', [liquid('hero'), liquid('featured')]),
+          row('product', [ours, liquid('related')]),
+          row('page', [{ type: 'RichText', props: { id: 'rich' } }]),
+        ])
+      return live
+    })
+  }
+
+  const sectionsOf = (storeId: string, themeId: string) =>
+    inStore(storeId, async (tx) => {
+      const rows = await tx.select().from(themeTemplate).where(eq(themeTemplate.themeId, themeId))
+      return Object.fromEntries(rows.map((r) => [r.template, r.sections]))
+    })
+
+  it('a preset theme drops the Shopify sections and falls back to our default', async () => {
+    const storeId = await seedStore()
+    await seedImportedLive(storeId)
+    const minimal = await inStore(storeId, (tx) =>
+      createThemeFromPreset(tx, storeId, { preset: 'minimal' }),
+    )
+    const copied = await sectionsOf(storeId, minimal.id)
+    expect(copied.home).toEqual(defaultTemplate('home'))
+    expect(copied.product).toEqual({ root: { props: {} }, content: [ours] })
+    expect(copied.page).toEqual({
+      root: { props: {} },
+      content: [{ type: 'RichText', props: { id: 'rich' } }],
+    })
+  })
+
+  it('a duplicate keeps every section (it gets the files too)', async () => {
+    const storeId = await seedStore()
+    const live = await seedImportedLive(storeId)
+    const copy = await inStore(storeId, (tx) => duplicateTheme(tx, storeId, live.id))
+    expect(await sectionsOf(storeId, copy.id)).toEqual(await sectionsOf(storeId, live.id))
   })
 })
 

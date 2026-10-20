@@ -8,12 +8,14 @@ import { reassignTemplate } from './template-assignments'
 import {
   type AlternateKind,
   defaultTemplate,
+  isTemplateKey,
   parseTemplateData,
   stableTemplateJson,
   stripResolved,
   TEMPLATE_SUFFIX,
   type TemplateData,
   type TemplateKey,
+  withoutLiquidSections,
 } from './templates-data'
 
 /**
@@ -317,12 +319,17 @@ export async function renameTemplateAlternate(
   return reassignTemplate(tx, input.template, input.from, input.to)
 }
 
-/** Copies a theme's saved templates onto another (duplicate, new theme from a preset). */
+/**
+ * Copies a theme's saved templates onto another (duplicate, new theme from a preset).
+ * `withoutLiquid` drops the source's imported Shopify sections (see `withoutLiquidSections`):
+ * a theme that does not get the source's files cannot render them.
+ */
 export async function copyTemplates(
   tx: StoreTx,
   storeId: string,
   fromThemeId: string,
   toThemeId: string,
+  opts: { withoutLiquid?: boolean } = {},
 ): Promise<void> {
   const rows = await tx
     .select({
@@ -335,6 +342,17 @@ export async function copyTemplates(
   if (rows.length === 0) return
   await tx
     .insert(themeTemplate)
-    .values(rows.map((r) => ({ ...r, id: newId(), storeId, themeId: toThemeId })))
+    .values(
+      rows.map((r) => ({
+        ...r,
+        sections:
+          opts.withoutLiquid && isTemplateKey(r.template)
+            ? withoutLiquidSections(r.template, r.sections)
+            : r.sections,
+        id: newId(),
+        storeId,
+        themeId: toThemeId,
+      })),
+    )
     .onConflictDoNothing()
 }
