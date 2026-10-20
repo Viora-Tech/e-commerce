@@ -7,6 +7,16 @@ export {
   courierFetch,
   courierJson,
 } from './courier-error'
+export { isDomesticCountry, servesDestination } from './coverage'
+export {
+  type CustomsLine,
+  type CustomsLinesResult,
+  customsLines,
+  indiaLocalTime,
+  missingHsCodeMessage,
+  normaliseHsCode,
+  wrapAddressLines,
+} from './customs'
 export * from './delivery-date'
 export {
   type DeliveryEstimate,

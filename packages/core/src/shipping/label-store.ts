@@ -1,12 +1,12 @@
-/** SOURCE OF TRUTH: storeShippingLabel, readShippingLabel — WHAT: courier label PDFs kept in the store's private storage / WHY: Blue Dart and DTDC hand back the file, not a link */
+/** SOURCE OF TRUTH: storeShippingLabel, readShippingLabel — WHAT: courier label PDFs kept in the store's private storage / WHY: Blue Dart, DTDC, DHL Express and FedEx hand back the file, not a link */
 import type { ShippingLabelDocument } from '@commerce/shipping'
 import type { StoreContext } from '../context'
 import { documentStorage } from '../inventory/documents'
 
 /**
- * Labels a courier handed back as a PDF (`CreateShipmentResult.labelDocument`: Blue Dart, DTDC)
- * rather than as a public link. The file goes to the store's private storage, and the shipment's
- * `labelUrl` points at the admin's own download route, which checks the member's session and
+ * Labels a courier handed back as a PDF (`CreateShipmentResult.labelDocument`: Blue Dart, DTDC;
+ * or `documents` joined into one: DHL Express, FedEx) rather than as a public link. The file
+ * goes to the store's private storage, and the shipment's `labelUrl` points at the admin's own download route, which checks the member's session and
  * store before streaming it (apps/admin/src/app/api/shipments/[id]/label/route.ts).
  */
 

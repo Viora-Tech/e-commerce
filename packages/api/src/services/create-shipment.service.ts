@@ -358,6 +358,8 @@ export async function quoteShipments(
       paymentMethod: order.paymentMethod,
       taxOrigin: order.taxOrigin,
       pincode: address.pincode,
+      country: address.country,
+      city: address.city,
     })
     .from(order)
     .innerJoin(address, eq(address.id, order.shippingAddressId))
@@ -395,6 +397,9 @@ export async function quoteShipments(
         weightGrams: chargedWeightGrams,
         declaredValuePaise: r.declaredValuePaise ?? o.totalPaise,
         paymentMode: r.paymentMode ?? (o.paymentMethod === 'cod' ? 'cod' : 'prepaid'),
+        destinationCountry: o.country,
+        destinationCity: o.city,
+        ...(r.dimensionsCm ? { dimensionsCm: r.dimensionsCm } : {}),
       })
       return {
         orderId: o.id,

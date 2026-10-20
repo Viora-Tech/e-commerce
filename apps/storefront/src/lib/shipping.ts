@@ -2,11 +2,11 @@ import 'server-only'
 import { loadEnv } from '@commerce/config'
 import {
   type DeliveryEstimate,
+  domesticShippingProvider,
   freeShippingThreshold,
   loadRateZones,
   parseShippingSettings,
   previewCartParcels,
-  primaryShippingProvider,
   quoteCartShipping,
   type Serviceability,
   type ShippingRateOption,
@@ -59,7 +59,7 @@ export async function estimateForPincode(
   const settings = await loadShippingSettings(tx, storeId)
   const secret = env().SETTINGS_SECRET
   const { shipping } = await registriesForStore(tx, storeId)
-  const provider = primaryShippingProvider(shipping, settings, secret)
+  const provider = domesticShippingProvider(shipping, settings, secret)
   const parsed = parsePincode(pincode)
   const storePolicy = toShippingPolicy(settings)
   const origin = originPincode ? parsePincode(originPincode) : null

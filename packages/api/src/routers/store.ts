@@ -373,6 +373,8 @@ export const storeRouter = {
   testXpressbeesConnection: courierConnectionTest('xpressbees'),
   testEkartConnection: courierConnectionTest('ekart'),
   testShadowfaxConnection: courierConnectionTest('shadowfax'),
+  testDhlExpressConnection: courierConnectionTest('dhl-express'),
+  testFedexConnection: courierConnectionTest('fedex'),
 
   /**
    * The Decentro Connect page's "Test connection": the form's values (a

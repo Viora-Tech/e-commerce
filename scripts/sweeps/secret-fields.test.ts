@@ -28,6 +28,8 @@ import { delhiveryFactory } from '@commerce/shipping-delhivery'
 import { dtdcFactory } from '@commerce/shipping-dtdc'
 import { indiaPostFactory } from '@commerce/shipping-indiapost'
 import { ekartFactory } from '@commerce/shipping-ekart'
+import { dhlExpressFactory } from '@commerce/shipping-dhl-express'
+import { fedexFactory } from '@commerce/shipping-fedex'
 import { rapidshypFactory } from '@commerce/shipping-rapidshyp'
 import { shadowfaxFactory } from '@commerce/shipping-shadowfax'
 import { shiprocketFactory } from '@commerce/shipping-shiprocket'
@@ -69,6 +71,8 @@ describe('sweep: secret-fields', () => {
       xpressbeesFactory,
       ekartFactory,
       shadowfaxFactory,
+      dhlExpressFactory,
+      fedexFactory,
       sesFactory,
       whatsappFactory,
       r2Factory,

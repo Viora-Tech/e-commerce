@@ -40,6 +40,8 @@
         "@commerce/shipping-dtdc#build",
         "@commerce/shipping-indiapost#build",
         "@commerce/shipping-ekart#build",
+        "@commerce/shipping-dhl-express#build",
+        "@commerce/shipping-fedex#build",
         "@commerce/shipping-rapidshyp#build",
         "@commerce/shipping-shadowfax#build",
         "@commerce/shipping-shiprocket#build",

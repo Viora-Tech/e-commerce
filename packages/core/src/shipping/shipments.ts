@@ -16,6 +16,7 @@ import { ensureFulfillmentOrders, soleFulfillmentOrder } from '../order/fulfillm
 import { recomputeOrderStatuses } from '../order/recompute'
 import { insertOutboxEvent } from '../outbox/write'
 import { recordRtoForShipment } from '../returns/rto'
+import { shipmentDocumentsAsLabel } from './label-documents'
 import { storeShippingLabel } from './label-store'
 import { syncNdrFromTracking } from './ndr'
 import { effectiveWeightGrams, resolveParcelPackage, resolveParcelWeightGrams } from './parcel'
@@ -69,6 +70,24 @@ export type CreateShipmentOptions = {
   serviceId?: string | undefined
   /** The merchant's own tracking number, for a courier with `requiresTrackingNumber` (India Post). */
   trackingNumber?: string | undefined
+}
+
+/** A line's customs fields, only those it has (domestic couriers never read them). */
+function customsFields(l: {
+  lineHsCode: string | null
+  variantHsCode: string | null
+  countryOfOrigin: string | null
+  sku: string | null
+  variantWeightGrams: number | null
+}) {
+  const hsCode = (l.lineHsCode || l.variantHsCode)?.trim()
+  const origin = l.countryOfOrigin?.trim()
+  return {
+    ...(hsCode ? { hsCode } : {}),
+    ...(origin ? { countryOfOrigin: origin } : {}),
+    ...(l.sku ? { sku: l.sku } : {}),
+    ...(l.variantWeightGrams ? { unitWeightGrams: l.variantWeightGrams } : {}),
+  }
 }
 
 /** One parcel of an order and the units it still has to send, by order line. */
@@ -135,6 +154,12 @@ export async function createShipmentForOrder(
       variantTitle: orderLine.variantTitle,
       quantity: orderLine.quantity,
       unitPricePaise: orderLine.unitPricePaise,
+      /* Customs fields, for a parcel going abroad: the HS code as it stood at order time,
+         else the variant's own. */
+      lineHsCode: orderLine.hsCode,
+      variantHsCode: variant.hsCode,
+      countryOfOrigin: variant.countryOfOrigin,
+      sku: variant.sku,
       variantWeightGrams: variant.weightGrams,
       boxPresetId: variant.boxPresetId,
       packageLengthCm: variant.packageLengthCm,
@@ -222,6 +247,7 @@ export async function createShipmentForOrder(
         .join(' / '),
       quantity: l.quantity,
       unitPricePaise: l.unitPricePaise,
+      ...customsFields(l),
     })),
     paymentMode,
     codAmountPaise,
@@ -229,6 +255,16 @@ export async function createShipmentForOrder(
     weightGrams,
     ...(options.serviceId ? { serviceId: options.serviceId } : {}),
     ...(options.trackingNumber ? { trackingNumber: options.trackingNumber } : {}),
+    ...(parcelPackage
+      ? {
+          dimensionsCm: {
+            length: parcelPackage.lengthCm,
+            width: parcelPackage.widthCm,
+            height: parcelPackage.heightCm,
+          },
+        }
+      : {}),
+    ...(s?.gstin ? { exporterGstin: s.gstin } : {}),
   })
 
   // The consignment carries its parcel: the named one, or the order's only one.
@@ -254,10 +290,19 @@ export async function createShipmentForOrder(
     })
     .returning()
   if (!row) throw new Error('could not record shipment')
-  // A courier that hands back the PDF itself (Blue Dart, DTDC): kept privately, linked by id.
+  /* A courier that hands back the PDF itself (Blue Dart, DTDC) or several (DHL Express, FedEx:
+     label and commercial invoice, joined label-first): kept privately, linked by id. The
+     booking stands even if storage fails: the AWB is real, and the label can be reprinted
+     from the courier's own site. */
   let booked = row
-  if (!result.labelUrl && result.labelDocument) {
-    const labelUrl = await storeShippingLabel(ctx, row.id, result.labelDocument)
+  const labelDocument = result.labelUrl
+    ? undefined
+    : (result.labelDocument ??
+      (result.documents?.length
+        ? await shipmentDocumentsAsLabel(result.documents).catch(() => null)
+        : null))
+  if (labelDocument) {
+    const labelUrl = await storeShippingLabel(ctx, row.id, labelDocument)
     if (labelUrl) {
       const [withLabel] = await ctx.tx
         .update(shipment)

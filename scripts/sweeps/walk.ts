@@ -37,6 +37,8 @@ export const SERVER_ONLY_PACKAGES = new Set([
   '@commerce/shipping-dtdc',
   '@commerce/shipping-indiapost',
   '@commerce/shipping-ekart',
+  '@commerce/shipping-dhl-express',
+  '@commerce/shipping-fedex',
   '@commerce/shipping-rapidshyp',
   '@commerce/shipping-shadowfax',
   '@commerce/shipping-shiprocket',

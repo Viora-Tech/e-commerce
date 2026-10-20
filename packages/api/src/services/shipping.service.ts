@@ -155,6 +155,13 @@ export async function testShippingConnection(
     return { ok: false, message: 'Enter a valid 6-digit origin PIN code first.' }
   }
 
+  /* An export-only courier (DHL Express, FedEx) has no answer for an Indian PIN code, so its
+     own read-only check (a token or a rate lookup abroad) stands in for the serviceability one. */
+  if (built.provider.coverage === 'international') {
+    const check = await built.provider.verifyCredentials()
+    return check.ok ? { ok: true, message: check.message } : { ok: false, message: check.message }
+  }
+
   try {
     const result = await built.provider.checkServiceability({
       originPincode: pincode,

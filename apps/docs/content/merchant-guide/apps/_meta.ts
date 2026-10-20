@@ -3,6 +3,7 @@ export default {
   reviews: 'Reviews',
   couriers: 'Couriers',
   'india-post': 'India Post',
+  'international-couriers': 'International couriers',
   'emi-and-pay-later': 'EMI & pay later',
   'back-in-stock': 'Back in stock',
   umami: 'Umami',

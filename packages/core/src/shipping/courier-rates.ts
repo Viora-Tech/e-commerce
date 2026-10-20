@@ -6,6 +6,7 @@ import {
   type RateOption,
   type RateQuery,
   type ShippingProvider,
+  servesDestination,
 } from '@commerce/shipping'
 
 /**
@@ -83,10 +84,28 @@ export function rateOptionLabel(providerLabel: string, option: RateOption): stri
     : `${option.serviceLabel} (${providerLabel})`
 }
 
+/** What the merchant reads when a courier does not go where this parcel goes at all. */
+const OUTSIDE_COVERAGE = {
+  domestic: 'Delivers within India only.',
+  international: 'Ships from India to other countries only.',
+}
+
 async function quoteOneCourier(
   provider: ShippingProvider,
   query: RateQuery,
 ): Promise<CourierRateRow[]> {
+  /* Coverage is declared, so it is answered without a call: a domestic courier is never sent
+     a foreign postal code, an export-only one (DHL Express, FedEx) never an Indian PIN. */
+  if (!servesDestination(provider, query.destinationCountry)) {
+    return [
+      {
+        ...emptyRow(provider),
+        problem: 'not_serviceable',
+        problemDetail:
+          OUTSIDE_COVERAGE[provider.coverage === 'international' ? 'international' : 'domestic'],
+      },
+    ]
+  }
   const rows = (provider.quoteOptions && (await quoteEveryService(provider, query))) || [
     await quoteSingle(provider, query),
   ]
@@ -108,11 +127,7 @@ async function quoteEveryService(
   const quoteOptions = provider.quoteOptions as NonNullable<ShippingProvider['quoteOptions']>
   const [listed, served] = await Promise.allSettled([
     quoteOptions.call(provider, query),
-    provider.checkServiceability({
-      originPincode: query.originPincode,
-      destinationPincode: query.destinationPincode,
-      weightGrams: query.weightGrams,
-    }),
+    provider.checkServiceability(serviceabilityQuery(query)),
   ])
   const options = listed.status === 'fulfilled' ? listed.value : []
   const service = served.status === 'fulfilled' ? served.value : null
@@ -143,8 +158,18 @@ async function quoteEveryService(
   })
 }
 
-async function quoteSingle(provider: ShippingProvider, query: RateQuery): Promise<CourierRateRow> {
-  const base: CourierRateRow = {
+/** The serviceability question that goes alongside a rate question on the same route. */
+const serviceabilityQuery = (query: RateQuery) => ({
+  originPincode: query.originPincode,
+  destinationPincode: query.destinationPincode,
+  weightGrams: query.weightGrams,
+  ...(query.destinationCountry ? { destinationCountry: query.destinationCountry } : {}),
+  ...(query.destinationCity ? { destinationCity: query.destinationCity } : {}),
+})
+
+/** A courier's one row before anything is known about the route. */
+function emptyRow(provider: ShippingProvider): CourierRateRow {
+  return {
     optionKey: provider.id,
     providerId: provider.id,
     providerName: provider.label,
@@ -162,15 +187,15 @@ async function quoteSingle(provider: ShippingProvider, query: RateQuery): Promis
     etaFromSettings: false,
     badges: [],
   }
+}
+
+async function quoteSingle(provider: ShippingProvider, query: RateQuery): Promise<CourierRateRow> {
+  const base = emptyRow(provider)
   /* Both questions at once: the rate call carries the price, serviceability carries COD
      support and the "no" for a PIN code the courier does not reach. */
   const [quoted, served] = await Promise.allSettled([
     provider.quoteRate ? provider.quoteRate(query) : Promise.resolve(null),
-    provider.checkServiceability({
-      originPincode: query.originPincode,
-      destinationPincode: query.destinationPincode,
-      weightGrams: query.weightGrams,
-    }),
+    provider.checkServiceability(serviceabilityQuery(query)),
   ])
   const quote = quoted.status === 'fulfilled' ? quoted.value : null
   const service = served.status === 'fulfilled' ? served.value : null

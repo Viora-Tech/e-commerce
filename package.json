@@ -75,6 +75,8 @@
     "@commerce/shipping-dtdc": "workspace:*",
     "@commerce/shipping-indiapost": "workspace:*",
     "@commerce/shipping-ekart": "workspace:*",
+    "@commerce/shipping-dhl-express": "workspace:*",
+    "@commerce/shipping-fedex": "workspace:*",
     "@commerce/shipping-rapidshyp": "workspace:*",
     "@commerce/shipping-shadowfax": "workspace:*",
     "@commerce/shipping-shiprocket": "workspace:*",

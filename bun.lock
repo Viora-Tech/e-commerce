@@ -29,8 +29,10 @@
         "@commerce/plugins": "workspace:*",
         "@commerce/shipping-bluedart": "workspace:*",
         "@commerce/shipping-delhivery": "workspace:*",
+        "@commerce/shipping-dhl-express": "workspace:*",
         "@commerce/shipping-dtdc": "workspace:*",
         "@commerce/shipping-ekart": "workspace:*",
+        "@commerce/shipping-fedex": "workspace:*",
         "@commerce/shipping-indiapost": "workspace:*",
         "@commerce/shipping-rapidshyp": "workspace:*",
         "@commerce/shipping-shadowfax": "workspace:*",
@@ -79,6 +81,8 @@
         "@commerce/queue": "workspace:*",
         "@commerce/richtext": "workspace:*",
         "@commerce/shipping-delhivery": "workspace:*",
+        "@commerce/shipping-dhl-express": "workspace:*",
+        "@commerce/shipping-fedex": "workspace:*",
         "@commerce/shipping-shiprocket": "workspace:*",
         "@commerce/storage": "workspace:*",
         "@commerce/ui": "workspace:*",
@@ -445,6 +449,7 @@
         "libphonenumber-js": "^1.13.15",
         "liquidjs": "10.30.0",
         "mjml": "5.4.1",
+        "pdf-lib": "^1.17.1",
         "sharp": "^0.35.4",
         "thumbhash": "^0.1.1",
         "zod": "^4.6.5",
@@ -987,6 +992,20 @@
         "react": "^19.0.0",
       },
     },
+    "packages/shipping-dhl-express": {
+      "name": "@commerce/shipping-dhl-express",
+      "version": "0.0.0",
+      "dependencies": {
+        "@commerce/plugins": "workspace:*",
+        "@commerce/shipping": "workspace:*",
+      },
+      "devDependencies": {
+        "@commerce/config": "workspace:*",
+        "@types/node": "^22.20.4",
+        "typescript": "~5.9.3",
+        "vitest": "^4.1.11",
+      },
+    },
     "packages/shipping-dtdc": {
       "name": "@commerce/shipping-dtdc",
       "version": "0.0.0",
@@ -1022,6 +1041,20 @@
       },
       "peerDependencies": {
         "react": "^19.0.0",
+      },
+    },
+    "packages/shipping-fedex": {
+      "name": "@commerce/shipping-fedex",
+      "version": "0.0.0",
+      "dependencies": {
+        "@commerce/plugins": "workspace:*",
+        "@commerce/shipping": "workspace:*",
+      },
+      "devDependencies": {
+        "@commerce/config": "workspace:*",
+        "@types/node": "^22.20.4",
+        "typescript": "~5.9.3",
+        "vitest": "^4.1.11",
       },
     },
     "packages/shipping-indiapost": {
@@ -1503,9 +1536,11 @@
 
     "@commerce/shipping-delhivery": ["@commerce/shipping-delhivery@workspace:packages/shipping-delhivery"],
 
+    "@commerce/shipping-dhl-express": ["@commerce/shipping-dhl-express@workspace:packages/shipping-dhl-express"],
     "@commerce/shipping-dtdc": ["@commerce/shipping-dtdc@workspace:packages/shipping-dtdc"],
 
     "@commerce/shipping-ekart": ["@commerce/shipping-ekart@workspace:packages/shipping-ekart"],
+    "@commerce/shipping-fedex": ["@commerce/shipping-fedex@workspace:packages/shipping-fedex"],
     "@commerce/shipping-indiapost": ["@commerce/shipping-indiapost@workspace:packages/shipping-indiapost"],
     "@commerce/shipping-rapidshyp": ["@commerce/shipping-rapidshyp@workspace:packages/shipping-rapidshyp"],
 

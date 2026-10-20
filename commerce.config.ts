@@ -19,6 +19,8 @@ import { delhiveryPlugin } from '@commerce/shipping-delhivery'
 import { dtdcPlugin } from '@commerce/shipping-dtdc'
 import { indiaPostPlugin } from '@commerce/shipping-indiapost'
 import { ekartPlugin } from '@commerce/shipping-ekart'
+import { dhlExpressPlugin } from '@commerce/shipping-dhl-express'
+import { fedexPlugin } from '@commerce/shipping-fedex'
 import { rapidshypPlugin } from '@commerce/shipping-rapidshyp'
 import { shadowfaxPlugin } from '@commerce/shipping-shadowfax'
 import { shiprocketPlugin } from '@commerce/shipping-shiprocket'
@@ -46,6 +48,8 @@ export default defineConfig({
     xpressbeesPlugin,
     ekartPlugin,
     shadowfaxPlugin,
+    dhlExpressPlugin,
+    fedexPlugin,
     sesPlugin,
     whatsappPlugin,
     r2Plugin,

@@ -13,11 +13,15 @@ import DecentroConnectPage from '@/components/apps/decentro/connect-page'
 import DecentroOverviewPage from '@/components/apps/decentro/overview-page'
 import DelhiveryConnectPage from '@/components/apps/delhivery/connect-page'
 import DelhiveryOverviewPage from '@/components/apps/delhivery/overview-page'
+import DhlExpressConnectPage from '@/components/apps/dhl-express/connect-page'
+import DhlExpressOverviewPage from '@/components/apps/dhl-express/overview-page'
 import DtdcConnectPage from '@/components/apps/dtdc/connect-page'
 import DtdcOverviewPage from '@/components/apps/dtdc/overview-page'
 import EkartConnectPage from '@/components/apps/ekart/connect-page'
 import EkartOverviewPage from '@/components/apps/ekart/overview-page'
 import EmiSettingsPage from '@/components/apps/emi/settings-page'
+import FedexConnectPage from '@/components/apps/fedex/connect-page'
+import FedexOverviewPage from '@/components/apps/fedex/overview-page'
 import SubmissionsList from '@/components/apps/forms/submissions-list'
 import InvoiceDetail from '@/components/apps/gst-invoices/invoice-detail'
 import InvoicesList from '@/components/apps/gst-invoices/invoices-list'
@@ -149,6 +153,18 @@ export const ADMIN_APPS: Record<string, AdminApp> = {
       'losing-traffic': SearchConsoleLosingTraffic,
       sitemaps: SearchConsoleSitemaps,
       settings: SearchConsoleSettings,
+    },
+  },
+  'dhl-express': {
+    pages: {
+      '': DhlExpressOverviewPage,
+      connect: DhlExpressConnectPage,
+    },
+  },
+  fedex: {
+    pages: {
+      '': FedexOverviewPage,
+      connect: FedexConnectPage,
     },
   },
   'gst-invoices': {
