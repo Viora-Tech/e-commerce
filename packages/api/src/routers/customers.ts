@@ -5,6 +5,7 @@ import {
   deleteAddress,
   listAddresses,
   permissions,
+  recordCustomerChange,
   setMarketingConsent,
   updateAddress,
 } from '@commerce/core'
@@ -210,7 +211,11 @@ export const customersRouter = {
           },
         )
       }
-      return updateCustomer(context.tx, id, patch, settingsSecret())
+      const updated = await updateCustomer(context.tx, id, patch, settingsSecret())
+      if (updated) {
+        await recordCustomerChange(context.tx, context.scope.storeId, id, 'updated')
+      }
+      return updated
     }),
 
   delete: can(permissions.CUSTOMERS_DELETE)

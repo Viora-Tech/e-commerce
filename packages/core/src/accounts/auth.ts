@@ -1,8 +1,9 @@
 import { createHash, randomBytes, randomInt, timingSafeEqual } from 'node:crypto'
 import { customer, customerLoginCode, customerSession } from '@commerce/db'
-import { and, eq, gt, isNull, lt } from 'drizzle-orm'
+import { and, eq, gt, isNull, lt, sql } from 'drizzle-orm'
 import { z } from 'zod'
 import type { StoreContext } from '../context'
+import { recordCustomerChange } from '../customers/changes'
 import { decryptCustomerPhone } from '../customers/phone-crypto'
 import { normaliseMobile } from './schemas'
 
@@ -150,7 +151,9 @@ export async function verifyLoginCode(
       target: [customer.storeId, customer.email],
       set: { updatedAt: now },
     })
-    .returning({ id: customer.id })
+    // `xmax = 0`: the row was inserted, not updated by the conflict.
+    .returning({ id: customer.id, inserted: sql<boolean>`(xmax = 0)` })
+  if (cu?.inserted) await recordCustomerChange(ctx.tx, ctx.storeId, cu.id, 'created')
   return startCustomerSession(ctx, cu?.id as string, now, ttlMs)
 }
 

@@ -1192,6 +1192,16 @@ const ALLOWLIST: AllowEntry[] = [
     reason: 'exported for its unit test; no other importer today',
   },
   {
+    file: 'packages/plugin-chatwoot/src/plugin.ts',
+    names: ['chatwootPlugin'],
+    reason: 'no external importer today — investigate before removing',
+  },
+  {
+    file: 'packages/plugin-chatwoot/src/plugin.ts',
+    names: ['syncCustomerToChatwoot'],
+    reason: 'exported for its unit test; no other importer today',
+  },
+  {
     file: 'packages/plugin-umami/src/plugin.ts',
     names: ['umamiPlugin'],
     reason: 'no external importer today — investigate before removing',

@@ -4,6 +4,7 @@ import { CONSENT_CHANNELS, type ConsentChannel } from '@commerce/core/privacy'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
+import { ADMIN_APPS } from '@/apps/registry'
 import PageBody from '@/components/layout/page-body'
 import PageColumns from '@/components/layout/page-columns'
 import SaveBar from '@/components/layout/save-bar'
@@ -27,6 +28,8 @@ import ProfileCard from './profile-card'
 
 type CustomerViewProps = {
   customer: CustomerDetail
+  /** Installed apps with a card for this page (`admin.customerDetailCard`). */
+  appCards?: string[]
   /** Open the edit dialog on arrival, so one click from elsewhere lands in it. */
   startEditing?: boolean
 }
@@ -50,7 +53,11 @@ const sameTags = (a: string[], b: string[]) =>
  * The customer page. Note, tags and marketing consent are edited in place and saved together
  * from one floating save bar; addresses and the profile keep their own dialogs.
  */
-export default function CustomerView({ customer, startEditing = false }: CustomerViewProps) {
+export default function CustomerView({
+  customer,
+  appCards = [],
+  startEditing = false,
+}: CustomerViewProps) {
   // Hooks
   const router = useRouter()
   const detail = useCopy(customerDetailContent)
@@ -134,6 +141,10 @@ export default function CustomerView({ customer, startEditing = false }: Custome
             <CustomerOrdersCard customer={customer} />
             <CustomerActivityCard customer={customer} />
             <MessagesCard messages={customer.notifications} />
+            {appCards.map((id) => {
+              const Card = ADMIN_APPS[id]?.CustomerCard
+              return Card ? <Card key={id} customerId={customer.id} /> : null
+            })}
           </>
         }
         side={

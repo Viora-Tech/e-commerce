@@ -14,8 +14,16 @@ export const APP_EVENTS_QUEUE = '{apps}-events'
 export type AppEventJob = {
   storeId: string
   event: AppEvent
+  /** Empty for the `customer.*` events. */
   orderId: string
   refundId?: string | undefined
+  /** Set for `customer.created` and `customer.updated`. */
+  customerId?: string | undefined
+  /**
+   * The outbox row this job came from, for events that repeat for the same subject (a customer
+   * edited twice is two jobs). Order events leave it out: one job per (order, event).
+   */
+  key?: string | undefined
   /**
    * One job per installed app's hook, set by the outbox relay so a failing
    * app retries on its own without re-running any other app's hook or the
@@ -58,11 +66,11 @@ export async function removeAppJob(
 }
 
 /**
- * One job per order event (or per refund) per app; a repeat enqueue is a no-op. Three
- * ':' parts, the most BullMQ accepts: the app joins the third.
+ * One job per order event (or per refund, or per outbox row for repeating events) per app; a
+ * repeat enqueue is a no-op. Three ':' parts, the most BullMQ accepts: the app joins the third.
  */
 export const appEventJobId = (job: AppEventJob): string =>
-  `${job.storeId}:${job.event}:${job.refundId ?? job.orderId}${job.pluginId ? `-${job.pluginId}` : ''}`
+  `${job.storeId}:${job.event}:${job.key ?? job.refundId ?? job.orderId}${job.pluginId ? `-${job.pluginId}` : ''}`
 
 export async function enqueueAppEvent(queue: AppEventQueue, job: AppEventJob): Promise<void> {
   await queue.add(job.event, job, {
@@ -185,9 +193,16 @@ export async function dispatchAppEvent(
     }
     await hook(
       { ...ctx, reportActivity },
-      { storeId: job.storeId, orderId: job.orderId, refundId: job.refundId },
+      {
+        storeId: job.storeId,
+        orderId: job.orderId,
+        refundId: job.refundId,
+        ...(job.customerId ? { customerId: job.customerId } : {}),
+      },
     )
-    log(`[${job.event}] ${pluginId} order=${job.orderId}`)
+    log(
+      `[${job.event}] ${pluginId} ${job.customerId ? `customer=${job.customerId}` : `order=${job.orderId}`}`,
+    )
     await noteActivity(deps, job.storeId, pluginId, said)
   }
   return { ran: hooks.map((h) => h.pluginId) }

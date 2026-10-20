@@ -63,6 +63,10 @@ export type OutboxEventType =
   | 'domain.route_requested'
   /** A removed custom domain's HTTPS route should be deleted from the proxy. */
   | 'domain.route_removed'
+  /** A customer was created (sign-up, first checkout, provider sign-in); apps such as Chatwoot sync it. */
+  | 'customer.created'
+  /** A customer's profile changed (checkout details, account page, admin edit). */
+  | 'customer.updated'
 
 /**
  * `orderId` is required for every order-lifecycle type; `variantId` (and
@@ -92,6 +96,8 @@ export type OutboxPayload = {
   reregister?: boolean | undefined
   /** For `domain.route_removed`: the hostname, since its `store_domain` row is gone. */
   hostname?: string | undefined
+  /** The customer a `customer.created` / `customer.updated` event is about. */
+  customerId?: string | undefined
 }
 
 export type OutboxEventRow = {
@@ -153,6 +159,9 @@ export const OUTBOX_NOTIFICATION_TEMPLATE: Record<OutboxEventType, TemplateId | 
   // Platform work, no message: the relay queues a `{domains}-route` job (`dispatchRow`).
   'domain.route_requested': null,
   'domain.route_removed': null,
+  // App hooks only (`OUTBOX_APP_EVENT`): nobody is emailed about their own profile.
+  'customer.created': null,
+  'customer.updated': null,
 }
 
 /**
@@ -207,4 +216,6 @@ export const OUTBOX_APP_EVENT: Record<OutboxEventType, AppEvent | null> = {
   'review.replied': null,
   'domain.route_requested': null,
   'domain.route_removed': null,
+  'customer.created': 'customer.created',
+  'customer.updated': 'customer.updated',
 }

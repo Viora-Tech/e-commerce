@@ -4,6 +4,7 @@ import { cashfreePlugin } from '@commerce/payments-cashfree'
 import { decentroPlugin } from '@commerce/payments-decentro'
 import { razorpayPlugin } from '@commerce/payments-razorpay'
 import { backInStockPlugin } from '@commerce/plugin-back-in-stock'
+import { chatwootPlugin } from '@commerce/plugin-chatwoot'
 import { emiPlugin } from '@commerce/plugin-emi'
 import { formsPlugin } from '@commerce/plugin-forms'
 import { gstInvoicesPlugin } from '@commerce/plugin-gst-invoices'
@@ -44,5 +45,6 @@ export default defineConfig({
     reviewsPlugin,
     umamiPlugin,
     searchConsolePlugin,
+    chatwootPlugin,
   ],
 })

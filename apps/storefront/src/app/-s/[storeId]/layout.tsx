@@ -45,6 +45,7 @@ import { policyPageContent } from '@/data/policies'
 import { privacyContent } from '@/data/privacy'
 import { searchContent } from '@/data/search'
 import { addLineAction } from '@/lib/cart-actions'
+import { chatwootChatFor } from '@/lib/chatwoot'
 import { liquidLayoutForPath } from '@/lib/checkout-path'
 import { listCollections } from '@/lib/collections'
 import { COOKIE_SETTINGS_HASH } from '@/lib/cookie-settings'
@@ -263,6 +264,8 @@ export default async function StoreLayout({ children, params }: Props) {
     initial: decodeConsent(jar.get(CONSENT_COOKIE)?.value),
     nonce,
     umami: umamiTrackerOf(current.apps),
+    // Never in a theme preview (the consent manager is not drawn there either).
+    chatwoot: preview ? null : await chatwootChatFor(storeId, current.apps),
   }
   let themedConsent = false
   let consentDrawn = false

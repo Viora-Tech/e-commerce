@@ -90,8 +90,10 @@ async function dispatchRow(deps: OutboxRelayDeps, row: Row): Promise<void> {
       await enqueueAppEvent(deps.appEvents, {
         storeId: row.storeId,
         event: appEvent,
-        orderId: payload.orderId as string,
+        orderId: payload.orderId ?? '',
         refundId: payload.refundId,
+        // A customer changes many times: each change (row) is its own job.
+        ...(payload.customerId ? { customerId: payload.customerId, key: row.id } : {}),
         pluginId,
       })
     }

@@ -146,6 +146,7 @@ export function loadPlugins(plugins: PluginManifest[]): LoadedPlugins {
           icon: p.admin?.icon ?? null,
           pages: (p.admin?.pages ?? []).map((page) => ({ ...page })),
           orderDetailCard: p.admin?.orderDetailCard === true,
+          customerDetailCard: p.admin?.customerDetailCard === true,
         },
         provides: {
           payments: (p.provides.payments ?? []).map((f) => ({ id: f.id, label: f.label })),

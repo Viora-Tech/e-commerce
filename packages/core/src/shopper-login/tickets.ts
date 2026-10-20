@@ -2,9 +2,10 @@
 
 import { customer, customerLoginTicket } from '@commerce/db'
 import { safeEqual } from '@commerce/payments'
-import { and, desc, eq, gt, isNull, lt } from 'drizzle-orm'
+import { and, desc, eq, gt, isNull, lt, sql } from 'drizzle-orm'
 import { normaliseLoginEmail } from '../accounts/auth'
 import type { StoreContext } from '../context'
+import { recordCustomerChange } from '../customers/changes'
 import type { ShopperIdentity } from './identities'
 import {
   checkHandoffToken,
@@ -255,8 +256,14 @@ export async function redeemMagicLink(
     .insert(customer)
     .values({ storeId: ctx.storeId, email: row.email })
     .onConflictDoUpdate({ target: [customer.storeId, customer.email], set: { updatedAt: now } })
-    .returning({ id: customer.id, anonymisedAt: customer.anonymisedAt })
+    // `xmax = 0`: the row was inserted, not updated by the conflict.
+    .returning({
+      id: customer.id,
+      anonymisedAt: customer.anonymisedAt,
+      inserted: sql<boolean>`(xmax = 0)`,
+    })
   if (!cu || cu.anonymisedAt) return { ok: false, reason: 'invalid' }
+  if (cu.inserted) await recordCustomerChange(ctx.tx, ctx.storeId, cu.id, 'created')
   return {
     ok: true,
     customerId: cu.id,

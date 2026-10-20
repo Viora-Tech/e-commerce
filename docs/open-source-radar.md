@@ -44,7 +44,7 @@ copying: projects relicense (Unleash moved to AGPL, Cal.com moved to MIT).
 | Analytics | [Plausible](https://github.com/plausible/analytics) | AGPL-3.0 | | Ideas only |
 | Experiments | [GrowthBook](https://github.com/growthbook/growthbook) | MIT outside its enterprise folders | A/B tests on sections and prices | Experiments plugin |
 | Flags | [Unleash](https://github.com/Unleash/unleash) | AGPL-3.0 | | Ideas only |
-| Support | [Chatwoot](https://github.com/chatwoot/chatwoot) | MIT outside `enterprise/` | Shared inbox: WhatsApp, email, website chat | Support inbox plugin |
+| Support | [Chatwoot](https://github.com/chatwoot/chatwoot) | MIT outside `enterprise/` (LICENSE, 2026-10-20) | Shared inbox: WhatsApp, email, website chat | In use: the Chatwoot app (`packages/plugin-chatwoot`, 2026-10-20), a connection to a separately run Chatwoot through its website SDK and Application API; no Chatwoot code copied, nothing from `enterprise/` |
 | Search | [Meilisearch](https://github.com/meilisearch/meilisearch) | MIT, Enterprise Edition parts BUSL-1.1 (LICENSE, 2026-10-11; unchanged) | Typo-tolerant storefront search | Search plugin (separate server) |
 | Search | [Typesense](https://github.com/typesense/typesense) | GPL-3.0 | | Separate server only |
 | Surveys | [Formbricks](https://github.com/formbricks/formbricks) | AGPL-3.0 core; `packages/js` etc. MIT; `modules/ee` commercial (LICENSE, 2026-10-11) | Survey types, targeting rules | Ideas only (the MIT SDK is useless without their server) |

@@ -6,4 +6,5 @@ export default {
   'back-in-stock': 'Back in stock',
   umami: 'Umami',
   'google-search-console': 'Google Search Console',
+  chatwoot: 'Chatwoot',
 }
