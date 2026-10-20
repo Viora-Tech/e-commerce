@@ -5,6 +5,7 @@ import { copyThemeImport } from '../theme-import/bundle-store'
 import { applyThemePreset } from './presets'
 import { defaultTheme, parseTheme, type Theme, type ThemePresetId, ThemeSchema } from './schema'
 import { copyTemplates } from './templates'
+import { parseThemePacks, type ThemePackId } from './theme-packs'
 
 /**
  * The theme library: a store's themes, one of which (`main`) is live on the
@@ -129,6 +130,12 @@ export async function liveThemeLogoUrl(tx: StoreTx): Promise<string | null> {
   return row?.url ?? null
 }
 
+/** The store's opt-in theme packs (`parseThemePacks`): which pack sections its editor offers. */
+export async function storeThemePacks(tx: StoreTx, storeId: string): Promise<ThemePackId[]> {
+  const [s] = await tx.select({ apps: store.apps }).from(store).where(eq(store.id, storeId))
+  return parseThemePacks(s?.apps)
+}
+
 /** The live theme's id, or null before the store has one. */
 export async function liveThemeId(tx: StoreTx): Promise<string | null> {
   const [row] = await tx.select({ id: theme.id }).from(theme).where(eq(theme.role, 'main'))
@@ -151,13 +158,20 @@ export async function liveThemeSettings(tx: StoreTx, storeId: string): Promise<T
 
 /**
  * The live theme, creating it from the legacy `store.theme` document when a store
- * has none yet (stores created after the migration's backfill ran).
+ * has none yet (stores created after the migration's backfill ran). A brand-new store (no
+ * legacy document either) starts from `preset` when given: merchant signup passes `minimal`,
+ * so a new store never opens on the Waimers look.
  */
-export async function ensureMainTheme(tx: StoreTx, storeId: string): Promise<ThemeRecord> {
+export async function ensureMainTheme(
+  tx: StoreTx,
+  storeId: string,
+  preset?: ThemePresetId,
+): Promise<ThemeRecord> {
   const [row] = await tx.select().from(theme).where(eq(theme.role, 'main'))
   if (row) return toRecord(row)
   const [s] = await tx.select({ theme: store.theme }).from(store).where(eq(store.id, storeId))
-  const settings = parseTheme(s?.theme)
+  const settings =
+    s?.theme == null && preset ? applyThemePreset(defaultTheme, preset) : parseTheme(s?.theme)
   const [created] = await tx
     .insert(theme)
     .values({

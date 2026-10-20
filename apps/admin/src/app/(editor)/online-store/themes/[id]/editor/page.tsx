@@ -4,6 +4,7 @@ import type { Metadata } from 'next'
 import { headers } from 'next/headers'
 import { notFound, redirect } from 'next/navigation'
 import CustomizeEditor from '@/components/themes/customize/customize-editor'
+import ThemePacksProvider from '@/components/themes/customize/theme-packs-provider'
 import { appRouter, call, serverContext } from '@/lib/api'
 import { auth, getSession } from '@/lib/auth'
 import { routes } from '@/lib/routes'
@@ -25,7 +26,7 @@ export default async function Page({ params, searchParams }: Props) {
   const session = await getSession()
   if (!session) redirect(routes.login())
   const context = await serverContext()
-  const [theme, me, apps, themes, aiStatus, orgs] = await Promise.all([
+  const [theme, me, apps, themes, aiStatus, orgs, themePacks] = await Promise.all([
     call(appRouter.themes.get, { id }, { context }).catch(() => null),
     call(appRouter.staff.me, {}, { context }).catch(() => null),
     call(appRouter.apps.list, undefined, { context }).catch(() => []),
@@ -34,6 +35,7 @@ export default async function Page({ params, searchParams }: Props) {
     auth()
       .api.listOrganizations({ headers: await headers() })
       .catch(() => []),
+    call(appRouter.themes.packs, undefined, { context }).catch(() => []),
   ])
 
   if (!theme) notFound()
@@ -46,25 +48,29 @@ export default async function Page({ params, searchParams }: Props) {
   const canPublish =
     me?.isOwner === true || (me?.permissions ?? []).includes(permissions.ONLINE_STORE_PUBLISH)
   return (
-    <CustomizeEditor
-      theme={theme}
-      origin={origin}
-      canPublish={canPublish}
-      store={{
-        id: active?.id ?? null,
-        name: active?.name ?? '',
-        domain: new URL(origin).host,
-        logoUrl,
-      }}
-      user={{ name: session.user.name, email: session.user.email }}
-      ai={{ connected: aiStatus?.configured === true, assistant: aiStatus?.assistant === true }}
-      liveName={themes.find((t) => t.role === 'main' && t.id !== theme.id)?.name ?? null}
-      installedApps={apps.filter((a) => a.installed).map((a) => a.id)}
-      initial={{
-        template: isKind(query.template) ? query.template : 'home',
-        suffix: query.suffix && TEMPLATE_SUFFIX.test(query.suffix) ? query.suffix : '',
-        resource: query.resource && /^[0-9a-f-]{36}$/.test(query.resource) ? query.resource : null,
-      }}
-    />
+    // The store's theme packs: which pack sections (Zero Drift…) the editor offers.
+    <ThemePacksProvider packs={themePacks}>
+      <CustomizeEditor
+        theme={theme}
+        origin={origin}
+        canPublish={canPublish}
+        store={{
+          id: active?.id ?? null,
+          name: active?.name ?? '',
+          domain: new URL(origin).host,
+          logoUrl,
+        }}
+        user={{ name: session.user.name, email: session.user.email }}
+        ai={{ connected: aiStatus?.configured === true, assistant: aiStatus?.assistant === true }}
+        liveName={themes.find((t) => t.role === 'main' && t.id !== theme.id)?.name ?? null}
+        installedApps={apps.filter((a) => a.installed).map((a) => a.id)}
+        initial={{
+          template: isKind(query.template) ? query.template : 'home',
+          suffix: query.suffix && TEMPLATE_SUFFIX.test(query.suffix) ? query.suffix : '',
+          resource:
+            query.resource && /^[0-9a-f-]{36}$/.test(query.resource) ? query.resource : null,
+        }}
+      />
+    </ThemePacksProvider>
   )
 }
