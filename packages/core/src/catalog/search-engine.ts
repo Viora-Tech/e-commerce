@@ -15,10 +15,10 @@ export type ProductSearchEngine = (input: {
 }) => Promise<string[] | null>
 
 /** How long a search waits for the engine before falling back to SQL. */
-export const ENGINE_BUDGET_MS = 300
+const ENGINE_BUDGET_MS = 300
 
 /** The most ids an engine hands over; Meilisearch's own default ceiling (`maxTotalHits`). */
-export const ENGINE_MAX_HITS = 1000
+const ENGINE_MAX_HITS = 1000
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 

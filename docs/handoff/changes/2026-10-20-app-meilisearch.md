@@ -14,8 +14,8 @@ library, no code copied. Radar row is now "In use".
   ids in SQL, so RLS, prices and stock stay Postgres'. Falls back to the SQL search when no
   engine, not installed/connected/indexed, no match, an error, or over 300 ms; a failure cools that
   Meilisearch off for 30 s. Wired in the storefront search page and `/api/search/suggest`
-  (`apps/storefront/src/lib/search-engine.ts`). Liquid `search` is still `performed: false` on
-  `dev` (not implemented), so imported themes' search pages are unchanged.
+  (`apps/storefront/src/lib/search-engine.ts`). Imported themes' Liquid `search`
+  (#612) uses it too: `storeLiquidData` passes `storeId` to `browseProducts`.
 - **Incremental sync**: outbox type `catalog.products_changed` (`productIds`), written by
   `noteProductsChanged` from create/update/archive/delete, bulk status/tags, the bulk editor,
   AI field writes and the product quick edits. The relay (now given an `{apps}-jobs` producer)
