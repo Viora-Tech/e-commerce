@@ -158,6 +158,8 @@ export type SnapshotResource = (typeof SNAPSHOT_RESOURCES)[number]
 export type ImportSnapshot = {
   /** When the preview started reading; the import asks Shopify for changes since then. */
   takenAt: string
+  /** `SNAPSHOT_FORMAT` of the code that saved it; a copy from another format is read again. */
+  format?: number
   streams: Partial<Record<SnapshotResource, { key: string; count: number }>>
 }
 
@@ -168,6 +170,13 @@ export type SnapshotUse = {
   changes: number
   reused: SnapshotResource[]
 }
+
+/**
+ * Shape of the saved items. Raise it whenever a reader adds or changes a field the writers use
+ * (2: `templateSuffix` on products, collections, pages and articles; 3: products off the Online
+ * Store read as draft), so an import never writes from a copy saved by older code that lacks it.
+ */
+export const SNAPSHOT_FORMAT = 3
 
 /** A preview is reused for 24 hours; after that the import reads Shopify again. */
 export const SNAPSHOT_FRESH_MS = 24 * 60 * 60 * 1000

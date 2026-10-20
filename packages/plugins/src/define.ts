@@ -2,6 +2,7 @@ import type { NotificationChannelFactory } from '@commerce/notifications'
 import type { PaymentProviderFactory } from '@commerce/payments'
 import type { ShippingProviderFactory } from '@commerce/shipping'
 import type { StorageProviderFactory } from '@commerce/storage'
+import { validateOrderActions } from './order-actions'
 import type { CommerceConfig, PluginManifest } from './types'
 
 const ID_PATTERN = /^[a-z][a-z0-9-]*$/
@@ -52,6 +53,7 @@ export function definePlugin(input: DefinePluginInput): PluginManifest {
     }
     seenBlockTypes.add(block.type)
   }
+  validateOrderActions(input)
   return {
     id: input.id,
     name: input.name,

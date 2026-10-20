@@ -58,7 +58,16 @@ export async function seedDev(ownerUrl: string): Promise<void> {
       console.log('seed: waimers already present')
       return
     }
-    const [s] = await db.insert(store).values({ slug: 'waimers', name: 'Waimers' }).returning()
+    const [s] = await db
+      .insert(store)
+      .values({
+        slug: 'waimers',
+        name: 'Waimers',
+        // Zero Drift is Waimers' own theme: its sections are offered in this store's editor
+        // only (`store.apps.settings.core.themePacks`, read by @commerce/core parseThemePacks).
+        apps: { installed: [], settings: { core: { themePacks: ['zero-drift'] } } },
+      })
+      .returning()
     if (!s) throw new Error('store insert failed')
     const storeId = s.id
     await db.insert(storeDomain).values([

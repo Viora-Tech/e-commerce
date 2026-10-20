@@ -156,6 +156,52 @@ export type AppPage = {
 }
 
 /**
+ * Where an app's order action shows: the order page's "More actions" menu (`detail`), a row's
+ * ⋯ menu on the Orders list (`row`), or the Orders list's bulk bar for the selected orders
+ * (`bulk`).
+ */
+export type OrderActionTarget = 'detail' | 'row' | 'bulk'
+
+/**
+ * What picking an order action does. Plain data, so the manifest stays serialisable and server
+ * code never imports React.
+ *
+ * - `link`: opens an admin route. `{orderId}` in `path` becomes the order's id; on the bulk bar
+ *   `{orderIds}` becomes the selected ids, comma separated.
+ * - `procedure`: runs a server action through an existing API procedure. `procedure` is the key
+ *   the admin registered the call under (`apps/admin/src/apps/order-action-procedures.ts`,
+ *   `<pluginId>/<name>`); an unregistered key is never shown.
+ * - `shipment`: opens the Create shipment flow with this courier picked (one order: the order's
+ *   Create shipment page; several: the bulk dialog). Added for you for every courier a plugin
+ *   provides (see `orderActionsOf`).
+ */
+export type OrderActionHandler =
+  | { type: 'link'; path: string }
+  | { type: 'procedure'; procedure: string }
+  | { type: 'shipment'; providerId: string }
+
+/**
+ * Order states an action needs. The detail page and row menus hide the action on an order
+ * that does not match; the bulk bar always offers it and the handler skips what it cannot do.
+ * `open`: not cancelled or archived. `unfulfilled`: units still to pack. `paid-or-cod`: the money
+ * is in, or the courier collects it. `not-test`: not paid on a gateway's test keys.
+ */
+export type OrderActionCondition = 'open' | 'unfulfilled' | 'paid-or-cod' | 'not-test'
+
+/** An action an installed app adds to orders, Shopify style: shown under the app's icon and name. */
+export type OrderAction = {
+  /** Unique within the app, lowercase with dashes, e.g. `add-to-queue`. */
+  id: string
+  /** The menu text. `hi` is shown to members using the admin in Hindi; English otherwise. */
+  label: { en: string; hi?: string | undefined }
+  targets: OrderActionTarget[]
+  handler: OrderActionHandler
+  /** The permission a member needs to see and run it, e.g. `orders.fulfil`. Default `orders.write`. */
+  permission?: string | undefined
+  requires?: OrderActionCondition[] | undefined
+}
+
+/**
  * What an app adds to the admin, Shopify style: its own pages under
  * `/apps/<pluginId>/...` and an entry in the sidebar's Apps group. Apps never
  * mount inside Settings. The components are registered in the admin app's
@@ -169,6 +215,8 @@ export type AppAdmin = {
   pages?: AppPage[] | undefined
   /** A card on the order detail page. */
   orderDetailCard?: boolean | undefined
+  /** Actions on orders: the order page's "More actions", the list's row menu and bulk bar. */
+  orderActions?: OrderAction[] | undefined
 }
 
 /**
@@ -336,7 +384,13 @@ export type PluginSummary = {
   /** Lifecycle events the app subscribes to. */
   hooks: AppEvent[]
   productFields: ProductField[]
-  admin: { icon: string | null; pages: AppPage[]; orderDetailCard: boolean }
+  admin: {
+    icon: string | null
+    pages: AppPage[]
+    orderDetailCard: boolean
+    /** Declared actions plus a Create shipment per courier the plugin provides. */
+    orderActions: OrderAction[]
+  }
   credits: AppCredit[]
   access: {
     resources: AppResourceAccess[]

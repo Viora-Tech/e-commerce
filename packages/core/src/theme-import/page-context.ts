@@ -3,7 +3,13 @@
 import { type EngineEntry, engineFor, type ThemeBundle, usesFileUrl } from './bundle'
 import { LiquidDataCache } from './cache'
 import { MetaobjectsDrop, ShopMetafieldsDrop } from './custom-drops'
-import { imageDrop, LIQUID_ROUTES, type LiquidCartData, type LiquidDataSource } from './drops'
+import {
+  imageDrop,
+  LIQUID_ROUTES,
+  type LiquidCartData,
+  type LiquidDataSource,
+  type LiquidPolicyData,
+} from './drops'
 import { type EngineRuntime, newRenderBudget, type RenderBudget } from './engine'
 import { importedFileKey } from './filter-values'
 import { numericId } from './numeric-id'
@@ -249,11 +255,7 @@ export async function createPageContext(options: LiquidRenderOptions): Promise<L
       enabled_currencies: [{ iso_code: shop.currency, symbol: '₹' }],
       enabled_payment_types: options.paymentTypes,
       published_locales: [{ iso_code: 'en', name: 'English', primary: true }],
-      policies: [],
-      privacy_policy: { url: '/policies/privacy-policy', title: 'Privacy policy' },
-      refund_policy: { url: '/policies/refund-policy', title: 'Refund policy' },
-      shipping_policy: { url: '/policies/shipping-policy', title: 'Shipping policy' },
-      terms_of_service: { url: '/policies/terms-of-service', title: 'Terms of service' },
+      ...shopPolicies(shop.policies),
       customer_accounts_enabled: true,
       customer_accounts_optional: true,
       types: [],
@@ -298,6 +300,7 @@ export async function createPageContext(options: LiquidRenderOptions): Promise<L
     customer: null,
     content_for_header: '',
     content_for_index: '',
+    // Shopify prints "Powered by Shopify" here; our own storefront shows no platform credit.
     powered_by_link: '',
     canonical_url: `${request.origin}${request.path}`,
     page_title: shop.name,
@@ -314,6 +317,31 @@ export async function createPageContext(options: LiquidRenderOptions): Promise<L
     ...resource,
   }
   return { bundle, entry, globals, runtime, options, cache, budget: newRenderBudget() }
+}
+
+/** Shopify's `policy` object: `id`, `title`, `url` (our `/policies/<type>` page). */
+function policyDrop(p: LiquidPolicyData) {
+  return { id: p.type, handle: p.type, title: p.title, url: p.url }
+}
+
+/**
+ * `shop.policies` (the published ones, footer order) and `shop.privacy_policy`,
+ * `refund_policy`, `shipping_policy`, `terms_of_service`, `contact_information`: each the
+ * published policy or nil, as on Shopify, so a theme never links a page that 404s.
+ */
+function shopPolicies(policies: LiquidPolicyData[]): Record<string, unknown> {
+  const of = (type: string) => {
+    const found = policies.find((p) => p.type === type)
+    return found ? policyDrop(found) : null
+  }
+  return {
+    policies: policies.map(policyDrop),
+    privacy_policy: of('privacy-policy'),
+    refund_policy: of('refund-policy'),
+    shipping_policy: of('shipping-policy'),
+    terms_of_service: of('terms-of-service'),
+    contact_information: of('contact-information'),
+  }
 }
 
 function cartDrop(cart: LiquidCartData, cache: LiquidDataCache): Record<string, unknown> {

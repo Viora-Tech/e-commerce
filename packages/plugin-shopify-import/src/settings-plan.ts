@@ -278,6 +278,18 @@ export function planStore(shop: NShopSettings, local: LocalSettings): PartPlan {
       to: shop.timezone,
     })
   }
+  // How prices read ("Rs. 6,499.00"): the storefront's blocks and Liquid `money` filters use it.
+  if (shop.moneyFormat && shop.moneyFormat !== here.moneyFormat) {
+    items.push({
+      action: 'update',
+      subject: 'money_format',
+      from: here.moneyFormat,
+      to: shop.moneyFormat,
+    })
+    patch.moneyFormat = shop.moneyFormat
+  } else if (shop.moneyFormat) {
+    items.push({ action: 'same', subject: 'money_format', to: here.moneyFormat })
+  }
   if (shop.weightUnit === 'POUNDS' || shop.weightUnit === 'OUNCES') {
     items.push({
       action: 'warn',

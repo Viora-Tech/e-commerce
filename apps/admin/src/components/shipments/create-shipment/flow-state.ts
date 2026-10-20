@@ -155,9 +155,13 @@ function cheapestOf(rows: CourierRateRow[]): CourierRateRow | null {
   return priced.reduce((a, b) => ((b.pricePaise as number) < (a.pricePaise as number) ? b : a))
 }
 
-/** The pick step 2 starts on: the recommended courier, else the first that can take it, else
- *  shipping it yourself. */
-export function startingPick(options: CourierRateRow[]): string {
+/** The pick step 2 starts on: the courier the merchant came for (a courier app's Create
+ *  shipment) when it can take the parcel, its recommended or cheapest service; else the
+ *  recommended courier, else the first that can take it, else shipping it yourself. */
+export function startingPick(options: CourierRateRow[], preferred?: string | null): string {
+  const mine = preferred ? options.filter((o) => o.providerId === preferred && isBookable(o)) : []
+  const preferredPick = mine.find((o) => o.badges.includes('recommended')) ?? cheapestOf(mine)
+  if (preferredPick) return preferredPick.optionKey
   const recommended = options.find((o) => o.badges.includes('recommended'))
   return recommended?.optionKey ?? options.find(isBookable)?.optionKey ?? MANUAL
 }
@@ -230,6 +234,17 @@ export function courierTotals(
       (a, b) => b.canTake - a.canTake || a.unpriced - b.unpriced || a.pricePaise - b.pricePaise,
     )[0]
   return totals.map((t) => ({ ...t, recommended: t === best }))
+}
+
+/** Bulk step 2's starting choice: "one courier for all" with the courier the merchant came for
+ *  when it can take any of the orders, else the default mode on the recommended courier. */
+export function startingBulkPick(
+  totals: CourierTotal[],
+  preferred?: string | null,
+): { mode: BulkMode | null; providerId: string | null } {
+  const mine = preferred ? totals.find((t) => t.providerId === preferred && t.canTake > 0) : null
+  if (mine) return { mode: 'one', providerId: mine.providerId }
+  return { mode: null, providerId: totals.find((t) => t.recommended)?.providerId ?? null }
 }
 
 /** Each order's courier row under the chosen mode; null when no courier (or not the chosen

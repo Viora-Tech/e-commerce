@@ -16,6 +16,7 @@ import {
   article,
   blog,
   collection,
+  collectionProduct,
   type NavigationItem,
   navigationMenu,
   newId,
@@ -23,7 +24,7 @@ import {
   product,
   type StoreTx,
 } from '@commerce/db'
-import { and, eq, inArray } from 'drizzle-orm'
+import { and, eq, inArray, max } from 'drizzle-orm'
 import { htmlToRichText, htmlToText, type RichText, replaceImageSources } from './html'
 import { errorMessage, findMapping, type ImportContext, saveMapping } from './runtime'
 import type { ImportResource } from './schema'
@@ -202,6 +203,61 @@ export async function writeCollection(ctx: ImportContext, c: NCollection) {
     },
     automatic ? 'Automatic' : `${c.productHandles.length} products`,
   )
+}
+
+/**
+ * Put products this run wrote into the manual collection Shopify has them in, for a run
+ * that did not rewrite the collection itself ("Import remaining", a retry, products only):
+ * without this a product imported after its collections never joins them. Only adds, and
+ * only `written` products (local handles), after the members already there, so a product
+ * the merchant took out here stays out unless it was imported again. Collections we keep
+ * automatic are left to their rules. Returns how many products joined.
+ */
+export async function linkCollectionMembers(
+  ctx: ImportContext,
+  c: NCollection,
+  written: ReadonlySet<string>,
+): Promise<number> {
+  if (c.rules !== null && c.unmappedRules.length === 0) return 0
+  const handles = [...new Set(c.productHandles.map((h) => handleOf(h, 'product')))].filter((h) =>
+    written.has(h),
+  )
+  if (handles.length === 0) return 0
+  return ctx.inStore(async (tx) => {
+    const id = await findMapping(tx, 'collections', c.sourceId ?? `handle:${c.handle}`)
+    if (!id) return 0
+    const [row] = await tx
+      .select({ kind: collection.kind })
+      .from(collection)
+      .where(eq(collection.id, id))
+    if (row?.kind !== 'manual') return 0
+    const rows = await tx
+      .select({ id: product.id, handle: product.handle })
+      .from(product)
+      .where(inArray(product.handle, handles))
+    const byHandle = new Map(rows.map((r) => [r.handle, r.id]))
+    const ids = handles.flatMap((h) => byHandle.get(h) ?? [])
+    if (ids.length === 0) return 0
+    const [last] = await tx
+      .select({ position: max(collectionProduct.position) })
+      .from(collectionProduct)
+      .where(eq(collectionProduct.collectionId, id))
+    const start = (last?.position ?? -1) + 1
+    const added = await tx
+      .insert(collectionProduct)
+      .values(
+        ids.map((productId, i) => ({
+          id: newId(),
+          storeId: ctx.storeId,
+          collectionId: id,
+          productId,
+          position: start + i,
+        })),
+      )
+      .onConflictDoNothing()
+      .returning({ id: collectionProduct.id })
+    return added.length
+  })
 }
 
 export async function writePage(ctx: ImportContext, p: NPage) {

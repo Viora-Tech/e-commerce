@@ -165,11 +165,16 @@ export function registerShopifyFilters(engine: Liquid): void {
   add('weight_with_unit', (grams: unknown) => `${(Number(grams ?? 0) / 1000).toFixed(2)} kg`)
   add('unit_price_with_measurement', () => '')
 
-  add(
-    'link_to',
-    (text: unknown, url: unknown, title: unknown) =>
-      `<a href="${escapeAttr(url)}"${title ? ` title="${escapeAttr(title)}"` : ''}>${str(text)}</a>`,
-  )
+  // `link_to: url, title` plus Shopify's named attributes (`class: 'x'`), printed before `href`.
+  add('link_to', (text: unknown, url: unknown, ...args: unknown[]) => {
+    const { positional, named } = splitArgs(args)
+    const title = positional[0]
+    const attrs = Object.entries(named)
+      .filter(([k]) => /^[\w-]+$/.test(k))
+      .map(([k, v]) => ` ${k}="${escapeAttr(v)}"`)
+      .join('')
+    return `<a${attrs} href="${escapeAttr(url)}"${title ? ` title="${escapeAttr(title)}"` : ''}>${str(text)}</a>`
+  })
   add('url_for_type', (type: unknown) => `/collections/types?q=${encodeURIComponent(str(type))}`)
   add('url_for_vendor', (v: unknown) => `/collections/vendors?q=${encodeURIComponent(str(v))}`)
   add(

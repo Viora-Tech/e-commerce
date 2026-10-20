@@ -257,6 +257,12 @@ describe('importShopifyTheme', () => {
         sections: { hero: { type: 'hero', settings: { heading: 'About us' } } },
         order: ['hero'],
       }),
+      'templates/page.wishlist.json': JSON.stringify({
+        sections: { main: { type: 'main-wishlist', settings: {} } },
+        order: ['main'],
+      }),
+      'sections/main-wishlist.liquid':
+        '<h1>{{ page.title }}</h1>{% schema %}{"name":"Wishlist"}{% endschema %}',
       'templates/page.Not Valid.json': JSON.stringify({ sections: {}, order: [] }),
       'templates/cart.json': JSON.stringify({ sections: {}, order: [] }),
     }
@@ -282,6 +288,11 @@ describe('importShopifyTheme', () => {
     // An alternate keeps its suffix; a page alternate needs no main section.
     const about = await inStore(storeId, (tx) => loadTemplate(tx, themeId, 'page', 'about'))
     expect(about.data.content.map((s) => s.props.sectionType)).toEqual(['hero'])
+    // A page template keeps the theme's own main section (a wishlist grid, not our page body).
+    const wishlist = await inStore(storeId, (tx) => loadTemplate(tx, themeId, 'page', 'wishlist'))
+    expect(wishlist.data.content.map((s) => [s.type, s.props.sectionType])).toEqual([
+      [LIQUID_SECTION, 'main-wishlist'],
+    ])
 
     const status = Object.fromEntries(report.templates.map((t) => [t.name, t.status]))
     expect(status).toMatchObject({
@@ -292,6 +303,7 @@ describe('importShopifyTheme', () => {
       cart: 'ours',
     })
     expect(report.sections.find((s) => s.type === 'main-product')?.status).toBe('replaced')
+    expect(report.sections.find((s) => s.type === 'main-wishlist')?.status).toBe('imported')
     expect(report.sections.find((s) => s.type === 'specs')?.usedIn).toEqual(
       expect.arrayContaining(['product', 'collection']),
     )

@@ -23,7 +23,7 @@ export default function DeleteTestOrdersDialog({
   onDeleted,
 }: DeleteTestOrdersDialogProps) {
   // Hooks
-  const copy = useCopy(ordersContent).deleteTests
+  const { deleteTests: copy } = useCopy(ordersContent)
 
   // Event handlers
   const handleConfirm = async () => {

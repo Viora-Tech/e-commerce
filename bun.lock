@@ -413,6 +413,7 @@
         "@commerce/db": "workspace:*",
         "@commerce/money": "workspace:*",
         "@commerce/notifications": "workspace:*",
+        "@commerce/notifications-resend": "workspace:*",
         "@commerce/notifications-ses": "workspace:*",
         "@commerce/observability": "workspace:*",
         "@commerce/payments": "workspace:*",
@@ -546,6 +547,20 @@
         "@commerce/config": "workspace:*",
         "@types/node": "^22.20.4",
         "@types/react": "^19.2.8",
+        "typescript": "~5.9.3",
+        "vitest": "^4.1.11",
+      },
+    },
+    "packages/notifications-resend": {
+      "name": "@commerce/notifications-resend",
+      "version": "0.0.0",
+      "dependencies": {
+        "@commerce/notifications": "workspace:*",
+        "@commerce/notifications-ses": "workspace:*",
+      },
+      "devDependencies": {
+        "@commerce/config": "workspace:*",
+        "@types/node": "^22.20.4",
         "typescript": "~5.9.3",
         "vitest": "^4.1.11",
       },
@@ -1290,6 +1305,8 @@
     "@commerce/monitor": ["@commerce/monitor@workspace:apps/monitor"],
 
     "@commerce/notifications": ["@commerce/notifications@workspace:packages/notifications"],
+
+    "@commerce/notifications-resend": ["@commerce/notifications-resend@workspace:packages/notifications-resend"],
 
     "@commerce/notifications-ses": ["@commerce/notifications-ses@workspace:packages/notifications-ses"],
 

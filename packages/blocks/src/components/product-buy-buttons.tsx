@@ -3,7 +3,7 @@
 import { formatCountdown, formatInZone } from '@commerce/dates'
 import { type ComponentType, useState, useTransition } from 'react'
 import { mainProductContent as copy } from '../data/zero-drift/main-product'
-import { formatPaise } from '../money'
+import { useFormatPaise } from '../money-format'
 import { safeHref } from '../slot-types'
 import { announceCartAdded } from '../store-actions'
 import type { ProductDetail } from '../types'
@@ -45,6 +45,7 @@ export default function ProductBuyButtons({
   preorderLink,
 }: ProductBuyButtonsProps) {
   // Hooks
+  const formatPaise = useFormatPaise()
   const [pending, startTransition] = useTransition()
   const [added, setAdded] = useState(false)
   const [quantity, setQuantity] = useState(1)

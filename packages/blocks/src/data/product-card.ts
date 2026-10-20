@@ -5,6 +5,8 @@ export const productCardContent = {
   added: 'Added to cart',
   failed: 'Try again',
   soldOut: 'Sold out',
+  /** Badge on a card still selling as a pre-order once stock runs out. */
+  preorder: 'Pre-order',
   save: (title: string) => `Save ${title} to your wishlist`,
   unsave: (title: string) => `Remove ${title} from your wishlist`,
 } as const

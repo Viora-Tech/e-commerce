@@ -75,6 +75,11 @@ export default [
         help: 'कीमतों, ऑर्डर के समय और रिपोर्ट में काम आता है।',
         currency: 'करेंसी',
         currencyHelp: 'अभी सिर्फ़ भारतीय रुपया (INR)।',
+        moneyFormat: 'कीमत का फ़ॉर्मेट',
+        moneyFormatHelp:
+          'आपके स्टोर में कीमतें कैसे दिखें। {{amount}} से 6,499.00 और {{amount_no_decimals}} से 6,499 दिखता है, जैसे Rs. {{amount}}। ₹6,499 के लिए खाली छोड़ें। Shopify इंपोर्ट आपकी शॉप का फ़ॉर्मेट ले आता है।',
+        moneyFormatError: '{{amount}} या {{amount_no_decimals}} डालें, जैसे Rs. {{amount}}',
+        moneyFormatPreview: (example: string) => `ऐसे दिखेगा: ${example}`,
         timezone: 'टाइम ज़ोन',
       },
       timezones: [

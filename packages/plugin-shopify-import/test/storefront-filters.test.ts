@@ -12,6 +12,19 @@ const PAGE = `
 const client = (fetch: typeof globalThis.fetch) =>
   new ShopifyClient({ shopDomain: 'waimers.myshopify.com', accessToken: 't', fetch })
 
+/** Answers the Admin API with `primary` as the shop's primary domain, and pages with `page`. */
+const shop =
+  (primary: string | null, page: (url: string) => Response, urls: string[] = []) =>
+  async (input: RequestInfo | URL) => {
+    const url = String(input)
+    if (url.includes('/admin/api/')) {
+      const primaryDomain = primary ? { url: primary } : null
+      return Response.json({ data: { shop: { primaryDomain } } })
+    }
+    urls.push(url)
+    return page(url)
+  }
+
 describe('storefront metafield filters', () => {
   it('reads every metafield filter a collection page names, once each', () => {
     expect([...filterKeysFromHtml(PAGE)]).toEqual([
@@ -21,21 +34,43 @@ describe('storefront metafield filters', () => {
     ])
   })
 
-  it("reads them from the store's /collections/all", async () => {
+  it("reads them from /collections/all on the store's primary domain", async () => {
     const urls: string[] = []
     const keys = await storefrontFilterKeys(
-      client(async (url) => {
-        urls.push(String(url))
-        return new Response(PAGE, { status: 200 })
-      }),
+      client(shop('https://waimers.in', () => new Response(PAGE), urls)),
     )
-    expect(urls).toEqual(['https://waimers.myshopify.com/collections/all'])
+    expect(urls).toEqual(['https://waimers.in/collections/all'])
     expect(keys.has('custom.filter_grip')).toBe(true)
+  })
+
+  it('falls back to the myshopify address when the primary domain gives none', async () => {
+    const urls: string[] = []
+    const keys = await storefrontFilterKeys(
+      client(
+        shop(
+          'https://waimers.in/',
+          (url) => new Response(url.includes('myshopify') ? PAGE : '', { status: 200 }),
+          urls,
+        ),
+      ),
+    )
+    expect(urls).toEqual([
+      'https://waimers.in/collections/all',
+      'https://waimers.myshopify.com/collections/all',
+    ])
+    expect(keys.size).toBe(3)
+  })
+
+  it('uses the myshopify address alone when the store has no primary domain', async () => {
+    const urls: string[] = []
+    await storefrontFilterKeys(client(shop(null, () => new Response(PAGE), urls)))
+    expect(urls).toEqual(['https://waimers.myshopify.com/collections/all'])
   })
 
   it('gives none when the storefront is locked or down', async () => {
     expect(
-      (await storefrontFilterKeys(client(async () => new Response('', { status: 401 })))).size,
+      (await storefrontFilterKeys(client(shop(null, () => new Response('', { status: 402 })))))
+        .size,
     ).toBe(0)
     const down = client(async () => {
       throw new Error('offline')
