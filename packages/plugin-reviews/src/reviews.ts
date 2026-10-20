@@ -56,7 +56,10 @@ function listWhere(input: ReviewListInput): SQL | undefined {
   )
 }
 
-/** One admin page of reviews, newest first, with the product and whether it has photos. */
+/**
+ * One admin page of reviews, newest first, with the product (none on a store review) and
+ * whether it has photos.
+ */
 export async function listReviews(tx: StoreTx, input: ReviewListInput) {
   const where = listWhere(input)
   const rows = await tx
@@ -76,7 +79,7 @@ export async function listReviews(tx: StoreTx, input: ReviewListInput) {
       createdAt: review.createdAt,
     })
     .from(review)
-    .innerJoin(product, eq(product.id, review.productId))
+    .leftJoin(product, eq(product.id, review.productId))
     .where(where)
     .orderBy(desc(review.createdAt), desc(review.id))
     .limit(input.perPage)
@@ -84,7 +87,7 @@ export async function listReviews(tx: StoreTx, input: ReviewListInput) {
   const [count] = await tx
     .select({ n: sql<number>`count(*)::int` })
     .from(review)
-    .innerJoin(product, eq(product.id, review.productId))
+    .leftJoin(product, eq(product.id, review.productId))
     .where(where)
   return { rows, total: count?.n ?? 0 }
 }
@@ -146,6 +149,8 @@ export async function ratingSummaries(
     .where(and(inArray(review.productId, ids), eq(review.status, 'published')))
     .groupBy(review.productId, review.rating)
   for (const r of rows) {
+    // Never null here (the filter names products); the check narrows the type.
+    if (!r.productId) continue
     const s = out.get(r.productId) ?? emptySummary()
     s.stars[r.rating - 1] = (s.stars[r.rating - 1] ?? 0) + r.n
     out.set(r.productId, s)
@@ -201,16 +206,21 @@ export type ActivityEntry = {
 export async function getReview(tx: StoreTx, id: string) {
   const [r] = await tx.select().from(review).where(eq(review.id, id))
   if (!r) return null
-  const [p] = await tx
-    .select({
-      id: product.id,
-      title: product.title,
-      handle: product.handle,
-      image: coverOf(),
-    })
-    .from(product)
-    .where(eq(product.id, r.productId))
-  const summary = (await ratingSummaries(tx, [r.productId])).get(r.productId) ?? emptySummary()
+  const productId = r.productId
+  const [p] = productId
+    ? await tx
+        .select({
+          id: product.id,
+          title: product.title,
+          handle: product.handle,
+          image: coverOf(),
+        })
+        .from(product)
+        .where(eq(product.id, productId))
+    : []
+  const summary = productId
+    ? ((await ratingSummaries(tx, [productId])).get(productId) ?? emptySummary())
+    : emptySummary()
   const photos = (await photosFor(tx, [r.id])).get(r.id) ?? []
   const [waiting] = await tx
     .select({ n: sql<number>`count(*)::int` })
@@ -237,12 +247,13 @@ export async function getReview(tx: StoreTx, id: string) {
         .from(review)
         .where(sql`lower(${review.reviewerEmail}) = ${email}`)
     : [{ n: 1 }]
-  const [request] = r.orderId
-    ? await tx
-        .select({ sentAt: reviewRequest.sentAt })
-        .from(reviewRequest)
-        .where(and(eq(reviewRequest.orderId, r.orderId), eq(reviewRequest.productId, r.productId)))
-    : []
+  const [request] =
+    r.orderId && productId
+      ? await tx
+          .select({ sentAt: reviewRequest.sentAt })
+          .from(reviewRequest)
+          .where(and(eq(reviewRequest.orderId, r.orderId), eq(reviewRequest.productId, productId)))
+      : []
   const [cu] = r.customerId
     ? await tx.select({ id: customer.id }).from(customer).where(eq(customer.id, r.customerId))
     : []
@@ -364,7 +375,7 @@ export async function replyToReview(
   return { emailed }
 }
 
-/** What the reply email says: who, which product, the reply and where to see it. */
+/** What the reply email says: who, which product (none for a store review), the reply. */
 export async function replyEmailData(tx: StoreTx, id: string) {
   const [r] = await tx
     .select({
@@ -376,7 +387,7 @@ export async function replyEmailData(tx: StoreTx, id: string) {
       handle: product.handle,
     })
     .from(review)
-    .innerJoin(product, eq(product.id, review.productId))
+    .leftJoin(product, eq(product.id, review.productId))
     .where(eq(review.id, id))
   if (!r?.email || !r.reply) return null
   return r

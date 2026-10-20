@@ -32,7 +32,11 @@ export default function ImportPage() {
   const [preview, setPreview] = useState<Ready | null>(null)
   const [reading, setReading] = useState(false)
   const [importing, setImporting] = useState(false)
-  const [options, setOptions] = useState({ copyPhotos: true, publish: true })
+  const [options, setOptions] = useState({
+    copyPhotos: true,
+    publish: true,
+    unmatchedAsStore: false,
+  })
 
   // Helpers
   const reset = () => {

@@ -33,6 +33,8 @@ export const reviewsContent = {
       photosHelp: (pct: number) => `${pct}% of reviews`,
     },
     tabs: { all: 'All', pending: 'Waiting', published: 'Published', hidden: 'Hidden' },
+    /** In the Product column for a review of the store itself. */
+    storeReview: 'Store review',
     columns: {
       product: 'Product',
       rating: 'Rating',
@@ -127,6 +129,7 @@ export const reviewsContent = {
       title: 'Product',
       reviews: (n: number) => `${n} ${n === 1 ? 'review' : 'reviews'}`,
       view: 'View product',
+      store: 'A review of your store, not of one product. It shows in review showcases.',
     },
     customer: {
       title: 'Customer',
@@ -158,7 +161,7 @@ export const reviewsContent = {
       lines: [
         'Open Judge.me in your Shopify admin',
         'Go to Settings, then Data export, then Export reviews',
-        'Choose "Product reviews" and download the CSV file',
+        'Export all reviews and download the CSV file (product and store reviews both come in)',
       ],
     },
     step2: {
@@ -171,14 +174,17 @@ export const reviewsContent = {
     },
     step3: {
       title: '3. Check before importing',
-      help: 'We match each review to a product by its SKU, then by its product handle.',
+      help: 'We match each review to a product by its SKU, then its Shopify product ID, then its product handle. Reviews with no product are store reviews.',
       ready: 'Ready to import',
+      store: 'Store reviews',
       noMatch: 'No matching product',
       photos: 'Photos to copy',
       already: (n: number) =>
         `${n} ${n === 1 ? 'review was' : 'reviews were'} imported before and will be skipped.`,
       skipped: (n: number) =>
-        `${n} ${n === 1 ? 'row has' : 'rows have'} no star rating or product and will be skipped.`,
+        `${n} ${n === 1 ? 'row has' : 'rows have'} no star rating and will be skipped.`,
+      unmatchedTitle: 'Products in the file that are not in your store',
+      unmatchedRow: (n: number) => `${n} ${n === 1 ? 'review' : 'reviews'}`,
       more: (n: number) => `And ${n} more`,
       columns: {
         product: 'Product in the CSV',
@@ -189,14 +195,17 @@ export const reviewsContent = {
       },
       result: {
         sku: 'Matched by SKU',
+        product_id: 'Matched by product ID',
         handle: 'Matched by handle',
+        store: 'Store review',
         none: 'No product found',
         imported: 'Already imported',
       },
       copyPhotos: (n: number) => `Copy review photos (${n})`,
       publish: 'Publish imported reviews right away',
-      skipUnmatched: (n: number) => `Skip reviews with no matching product (${n})`,
-      skipUnmatchedHelp: 'A review needs a product here. Import or create it, then run this again.',
+      asStore: (n: number) => `Import reviews with no matching product as store reviews (${n})`,
+      asStoreHelp:
+        'Otherwise they are skipped. You can also import or create those products, then upload the file again.',
       cancel: 'Cancel',
       run: (n: number) => `Import ${n} ${n === 1 ? 'review' : 'reviews'}`,
       running: 'Importing...',
@@ -218,6 +227,8 @@ export const reviewsContent = {
         'Photos the customer added',
         'Verified buyer badge, when Judge.me had it',
         'Store replies',
+        'Store reviews (about your shop, not one product)',
+        'Spam or unpublished reviews come in hidden; uncurated ones wait for approval',
       ],
       safe: 'Safe to run again',
       safeBody:

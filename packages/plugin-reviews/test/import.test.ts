@@ -1,11 +1,13 @@
 import { media, withStore } from '@commerce/db'
 import { resetDb } from '@commerce/db/test'
 import { MemoryStorageProvider } from '@commerce/storage/testing'
-import { eq } from 'drizzle-orm'
+import { eq, sql } from 'drizzle-orm'
 import { afterAll, beforeEach, describe, expect, it } from 'vitest'
 import { importJudgemeReviews, parseJudgemeCsv, previewJudgemeImport } from '../src/judgeme'
 import { copyReviewPhotos } from '../src/photos'
-import { ratingSummaries, reviewStats } from '../src/reviews'
+import { getReview, listReviews, ratingSummaries, reviewStats } from '../src/reviews'
+import { defaultReviewsSettings } from '../src/settings'
+import { storeReviewFeed } from '../src/storefront'
 import { review, reviewMedia } from '../src/schema'
 import { addProduct, app, owner, seedStore } from './helpers'
 
@@ -43,7 +45,7 @@ describe('parseJudgemeCsv', () => {
       pictures: ['https://judgeme.imgix.net/a.jpg'],
     })
     expect(first?.externalId).toMatch(/^fp:/)
-    expect(r.ok && r.rows[3]?.spam).toBe(true)
+    expect(r.ok && r.rows[3]?.curation).toBe('hidden')
   })
 
   it('refuses a file that is not a Judge.me export', () => {
@@ -164,5 +166,61 @@ describe('Judge.me import', () => {
     )
     expect(rerun).toEqual({ copied: 0, failed: 0 })
     expect((await withStore(app, storeId, (tx) => reviewStats(tx))).withPhotos).toBe(1)
+  })
+
+  it('imports store reviews, missing-product rows as store reviews when asked, and Shopify ids', async () => {
+    const storeId = await seedStore()
+    const renamed = await addProduct(storeId, 'veil-v2')
+    await owner.execute(
+      sql`insert into shopify_import_mapping (store_id, resource, source_id, local_id)
+        values (${storeId}, 'products', 'gid://shopify/Product/7001', ${renamed.productId})`,
+    )
+    const csv = [
+      HEADER,
+      'Old handle,Body,5,2025-01-01,web,ok,A,a@x.co,7001,veil,,,',
+      'Great shop,Fast delivery,5,2025-01-02,web,ok,B,b@x.co,,,,,',
+      'Waiting,Body,4,2025-01-03,web,not-yet,C,c@x.co,,,,,',
+      'Gone product,Body,3,2025-01-04,web,ok,D,d@x.co,9,gone,,,',
+    ].join('\n')
+    const preview = await withStore(app, storeId, (tx) => previewJudgemeImport(tx, csv))
+    expect(preview).toMatchObject({
+      ok: true,
+      ready: 1,
+      store: 2,
+      noMatch: 1,
+      unmatched: [{ product: 'gone', reviews: 1 }],
+    })
+    const opts = { copyPhotos: false, publish: true }
+    const first = await withStore(app, storeId, (tx) =>
+      importJudgemeReviews(tx, storeId, csv, opts),
+    )
+    expect(first).toMatchObject({ ok: true, imported: 3, storeReviews: 2, noMatch: 1 })
+    const second = await withStore(app, storeId, (tx) =>
+      importJudgemeReviews(tx, storeId, csv, { ...opts, unmatchedAsStore: true }),
+    )
+    expect(second).toMatchObject({ ok: true, imported: 1, storeReviews: 1, alreadyHere: 3 })
+    const third = await withStore(app, storeId, (tx) =>
+      importJudgemeReviews(tx, storeId, csv, { ...opts, unmatchedAsStore: true }),
+    )
+    expect(third).toMatchObject({ imported: 0, alreadyHere: 4 })
+
+    const rows = await owner.select().from(review)
+    expect(rows.find((r) => r.title === 'Old handle')?.productId).toBe(renamed.productId)
+    expect(rows.find((r) => r.title === 'Great shop')).toMatchObject({
+      productId: null,
+      status: 'published',
+    })
+    expect(rows.find((r) => r.title === 'Waiting')?.status).toBe('pending')
+    expect(rows.find((r) => r.title === 'Gone product')?.productId).toBeNull()
+
+    // The admin list, the detail page and the theme's review wall all carry store reviews.
+    const list = await withStore(app, storeId, (tx) => listReviews(tx, { page: 1, perPage: 20 }))
+    expect(list.total).toBe(4)
+    expect(list.rows.filter((r) => r.productTitle === null)).toHaveLength(3)
+    const shop = rows.find((r) => r.title === 'Great shop')
+    const detail = await withStore(app, storeId, (tx) => getReview(tx, shop?.id as string))
+    expect(detail?.product).toBeNull()
+    const feed = await withStore(app, storeId, (tx) => storeReviewFeed(tx, defaultReviewsSettings))
+    expect(feed.map((r) => r.title).sort()).toEqual(['Gone product', 'Great shop', 'Old handle'])
   })
 })

@@ -78,17 +78,29 @@ order was delivered in the last 60 days and was never asked gets one email withi
 
 ## Bring your reviews over from Judge.me
 
-1. In your Shopify admin, open **Judge.me → Settings → Data export → Export reviews**, choose
-   **Product reviews** and download the CSV file Judge.me emails you.
+1. In your Shopify admin, open **Judge.me → Settings → Data export → Export reviews**, export
+   all reviews and download the CSV file Judge.me emails you.
 2. In **Apps → Reviews**, click **Import from Judge.me** and choose that file.
-3. Check the numbers: **Ready to import**, **No matching product** and **Photos to copy**. Each
-   review is matched to your product by its SKU, then by its product handle (the Shopify
-   importer keeps handles, so imported products match).
-4. Choose whether to copy photos and publish the reviews straight away, then click
-   **Import**.
+3. Check the numbers: **Ready to import**, **Store reviews**, **No matching product** and
+   **Photos to copy**. Each review is matched to your product by its SKU, then by its Shopify
+   product ID (products brought over with the Shopify importer remember it), then by its
+   product handle. Products the file names that are not in your store are listed by handle.
+4. Choose whether to copy photos, publish the reviews straight away, and import reviews with
+   no matching product as store reviews. Then click **Import**.
+
+What comes over: stars, title, text, reviewer name, the original date, the verified buyer
+badge, your reply and its date, and photos. Reviews Judge.me marked as spam or unpublished
+come in hidden; ones not yet curated there wait for your approval. The reviewer's email is
+kept private (never shown on your store), and IP address and location are not imported.
+
+**Store reviews** are reviews of your shop rather than one product (Judge.me leaves their
+product empty). They show in your theme's review showcases and in the store-wide rating and
+count, not on product pages. On the Reviews page they say **Store review** in the Product
+column.
 
 Photos are copied into your **Files** in the background, with location data removed. It is
-safe to import again later: reviews already imported are skipped.
+safe to import the same file again, or a newer export later: reviews already imported are
+skipped, so nothing is duplicated.
 
 ## Imported Shopify themes
 
@@ -99,8 +111,8 @@ show your reviews.
 
 ## Good to know
 
-- A review needs a product here. Reviews for products you have not brought over are left out
-  of a Judge.me import; bring the product over, then import again.
+- Reviews for products you have not brought over are left out of a Judge.me import unless you
+  import them as store reviews. Bring the product over, then import again to attach them.
 - Average ratings and counts update straight away when you approve, hide, delete or import.
 - When a customer asks for their data to be deleted, their reviews stay as text from "A
   customer", without their name or email.
