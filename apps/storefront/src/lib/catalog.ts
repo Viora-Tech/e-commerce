@@ -4,10 +4,11 @@ import {
   computeDepositFromSettings,
   depositPreview,
   isLaunched,
+  type ProductPreorderRow,
   resolvePreorderSettings,
   resolveShipDate,
 } from '@commerce/core/preorder'
-import type { StoreTx } from '@commerce/db'
+import type { StoreTx, VariantPreorderOverride } from '@commerce/db'
 import {
   media,
   product,
@@ -32,6 +33,45 @@ function availableFor(v: {
 }): number {
   if (!v.trackInventory) return 999
   return Math.max(0, (v.onHand ?? 0) - (v.reserved ?? 0))
+}
+
+type StockRow = {
+  onHand: number | null
+  reserved: number | null
+  trackInventory: boolean
+  preorderOverride: VariantPreorderOverride | null
+}
+
+/**
+ * A variant is purchasable "beyond stock" while pre-order is on and its already-committed
+ * pre-order units (reserved beyond on_hand) haven't hit the limit; see reserveStock in
+ * @commerce/core/order/place-order for the matching server-side check this only previews.
+ */
+function purchasableFor(p: ProductPreorderRow, v: StockRow, launched: boolean): boolean {
+  if (!launched) return false
+  if (availableFor(v) > 0) return true
+  const settings = resolvePreorderSettings(p, v.preorderOverride)
+  if (!settings.enabled) return false
+  if (settings.limit == null) return true
+  const committed = Math.max(0, (v.reserved ?? 0) - (v.onHand ?? 0))
+  return committed < settings.limit
+}
+
+/**
+ * A card's pre-order state, by the product page's rule: nothing left in stock, yet a variant
+ * still sells as a pre-order (the product's or variant's pre-order switch, which the Shopify
+ * import sets from "continue selling when out of stock"). Null when the card sells normally
+ * or is sold out.
+ */
+export function cardPreorder(
+  p: ProductPreorderRow & { launchAt: Date | null },
+  vs: StockRow[],
+): CardProduct['preorder'] {
+  const launched = isLaunched(p.launchAt)
+  if (vs.some((v) => availableFor(v) > 0)) return null
+  const v = vs.find((x) => purchasableFor(p, x, launched))
+  if (!v) return null
+  return { buttonLabel: resolvePreorderSettings(p, v.preorderOverride).buttonLabel }
 }
 
 /** Average stars and count of published reviews per product (Reviews app), for the cards. */
@@ -91,6 +131,7 @@ export async function listCardProducts(
       onHand: sellableStock.onHand,
       reserved: sellableStock.reserved,
       trackInventory: variant.trackInventory,
+      preorderOverride: variant.preorderOverride,
     })
     .from(variant)
     .leftJoin(sellableStock, eq(sellableStock.variantId, variant.id))
@@ -128,6 +169,7 @@ export async function listCardProducts(
       available: vs.reduce((n, v) => n + availableFor(v), 0),
       // Quick add needs no choice only when there is one variant to add.
       quickAddVariantId: vs.length === 1 ? (vs[0]?.id ?? null) : null,
+      preorder: cardPreorder(p, vs),
       rating: ratings.get(p.id) ?? null,
       images: images
         .filter((i) => i.productId === p.id)
@@ -213,22 +255,9 @@ export async function getProductByHandle(
           .where(inArray(variantOptionValue.variantId, vids))
       : []
 
-  // A variant is purchasable "beyond stock" while pre-order is on and its
-  // already-committed pre-order units (reserved beyond on_hand) haven't hit
-  // the limit; see reserveStock in @commerce/core/order/place-order for the
-  // matching server-side check this only previews.
-  const purchasableFor = (v: (typeof vs)[number]): boolean => {
-    if (!launched) return false
-    const stockAvailable = availableFor(v)
-    if (stockAvailable > 0) return true
-    const settings = resolvePreorderSettings(p, v.preorderOverride)
-    if (!settings.enabled) return false
-    if (settings.limit == null) return true
-    const committed = Math.max(0, (v.reserved ?? 0) - (v.onHand ?? 0))
-    return committed < settings.limit
-  }
+  const purchasable = (v: (typeof vs)[number]) => purchasableFor(p, v, launched)
 
-  const firstVariant = vs.find((v) => purchasableFor(v)) ?? vs[0]
+  const firstVariant = vs.find((v) => purchasable(v)) ?? vs[0]
   const preorderSettings = firstVariant
     ? resolvePreorderSettings(p, firstVariant.preorderOverride)
     : resolvePreorderSettings(p)
@@ -269,7 +298,7 @@ export async function getProductByHandle(
       pricePaise: v.pricePaise,
       mrpPaise: v.mrpPaise,
       available: availableFor(v),
-      purchasable: purchasableFor(v),
+      purchasable: purchasable(v),
       optionValueIds: links.filter((l) => l.variantId === v.id).map((l) => l.optionValueId),
       imageUrl: v.imageUrl,
     })),

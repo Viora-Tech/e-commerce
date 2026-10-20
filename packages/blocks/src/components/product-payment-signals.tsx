@@ -2,7 +2,7 @@
 
 import { type ReactNode, useRef } from 'react'
 import { mainProductContent as copy } from '../data/zero-drift/main-product'
-import { formatPaise } from '../money'
+import { useFormatPaise } from '../money-format'
 import { safeHref } from '../slot-types'
 import Icon from './icon'
 import RichCopy from './rich-copy'
@@ -55,6 +55,7 @@ export default function ProductPaymentSignals({
   upiDiscount,
 }: ProductPaymentSignalsProps) {
   // Hooks
+  const formatPaise = useFormatPaise()
   const dialogRef = useRef<HTMLDialogElement>(null)
 
   // Event handlers
