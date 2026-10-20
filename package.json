@@ -74,8 +74,11 @@
     "@commerce/shipping-delhivery": "workspace:*",
     "@commerce/shipping-dtdc": "workspace:*",
     "@commerce/shipping-indiapost": "workspace:*",
+    "@commerce/shipping-ekart": "workspace:*",
     "@commerce/shipping-rapidshyp": "workspace:*",
+    "@commerce/shipping-shadowfax": "workspace:*",
     "@commerce/shipping-shiprocket": "workspace:*",
+    "@commerce/shipping-xpressbees": "workspace:*",
     "@commerce/storage-r2": "workspace:*",
     "@commerce/storage-s3": "workspace:*",
     "drizzle-orm": "^0.45.2"

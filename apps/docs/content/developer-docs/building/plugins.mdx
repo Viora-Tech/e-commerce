@@ -191,6 +191,16 @@ Rules that keep every adapter interchangeable:
 - **Throw `CourierError` for transport/auth failures**; return
   `serviceable: false` for a genuine "no". The platform falls back on the first
   and tells the shopper the second.
+- **Couriers with a login, and signed webhooks, use the shared helpers.** A courier that
+  answers a username/password login with a bearer token keeps it in a `LoginTokenCache`
+  (one login for concurrent calls, a fresh one after a 401); a webhook signed with an
+  HMAC-SHA256 of the body checks it with `hmacSha256Matches` (hex or base64). Both come from
+  `@commerce/shipping`; `packages/shipping-xpressbees` and `packages/shipping-ekart` use them,
+  and each newer courier keeps every wire shape in its own `mapping.ts`.
+- **A failed delivery attempt must say so in the scan's wording.** The NDR queue opens from
+  the latest scan's description, so an adapter whose courier marks attempts by code prefixes
+  "Undelivered: " to that scan (see `scanDescription` in the Xpressbees, Ekart and Shadowfax
+  adapters).
 - **Never call `Date.now()` for delivery dates.** Return transit days; the
   platform's calendar (`@commerce/shipping` `delivery-date.ts`) turns them into
   a date in the store's timezone with cutoff and holidays applied.

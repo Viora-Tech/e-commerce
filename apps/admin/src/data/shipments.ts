@@ -58,7 +58,7 @@ export const shipmentsContent = {
   },
   noCourier: {
     heading: 'Connect a courier',
-    body: `Book pickups, print labels and track parcels without leaving ${siteConfig.brand.name}. Delhivery, Shiprocket, RapidShyp, Blue Dart and DTDC are ready.`,
+    body: `Book pickups, print labels and track parcels without leaving ${siteConfig.brand.name}. Delhivery, Shiprocket, RapidShyp, Blue Dart, DTDC, India Post, Xpressbees, Ekart and Shadowfax are ready.`,
     browse: 'Browse courier apps',
   },
   wallet: {

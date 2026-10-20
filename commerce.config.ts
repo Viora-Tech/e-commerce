@@ -18,8 +18,11 @@ import { bluedartPlugin } from '@commerce/shipping-bluedart'
 import { delhiveryPlugin } from '@commerce/shipping-delhivery'
 import { dtdcPlugin } from '@commerce/shipping-dtdc'
 import { indiaPostPlugin } from '@commerce/shipping-indiapost'
+import { ekartPlugin } from '@commerce/shipping-ekart'
 import { rapidshypPlugin } from '@commerce/shipping-rapidshyp'
+import { shadowfaxPlugin } from '@commerce/shipping-shadowfax'
 import { shiprocketPlugin } from '@commerce/shipping-shiprocket'
+import { xpressbeesPlugin } from '@commerce/shipping-xpressbees'
 import { r2Plugin } from '@commerce/storage-r2'
 import { s3Plugin } from '@commerce/storage-s3'
 
@@ -40,6 +43,9 @@ export default defineConfig({
     bluedartPlugin,
     dtdcPlugin,
     indiaPostPlugin,
+    xpressbeesPlugin,
+    ekartPlugin,
+    shadowfaxPlugin,
     sesPlugin,
     whatsappPlugin,
     r2Plugin,
