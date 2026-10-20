@@ -1,0 +1,32 @@
+{
+  "name": "@commerce/plugin-chatwoot",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Support inbox: the store's Chatwoot chat widget on the storefront, signed-in shoppers identified, contacts kept in sync, and their conversations on the customer and order pages.",
+  "exports": {
+    ".": "./src/index.ts",
+    "./settings": "./src/settings.ts",
+    "./widget": "./src/widget.ts",
+    "./client": "./src/client.ts",
+    "./contact": "./src/contact.ts",
+    "./server": "./src/server.ts"
+  },
+  "scripts": {
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@commerce/core": "workspace:*",
+    "@commerce/db": "workspace:*",
+    "@commerce/plugins": "workspace:*",
+    "drizzle-orm": "^0.45.2",
+    "zod": "^4.6.5"
+  },
+  "devDependencies": {
+    "@commerce/config": "workspace:*",
+    "@types/node": "^22.20.4",
+    "typescript": "~5.9.3",
+    "vitest": "^4.1.11"
+  }
+}

@@ -17,10 +17,12 @@ import { address, giftCard, order, orderLine, payment, withStore } from '@commer
 import type { CheckoutSession } from '@commerce/payments'
 import { eq, inArray } from 'drizzle-orm'
 import { notFound } from 'next/navigation'
+import ExperimentBeacon from '@/components/analytics/experiment-beacon'
 import CheckoutBalance from '@/components/checkout/checkout-balance'
 import ThankYouTemplate from '@/components/checkout/thank-you'
 import { currentCustomer } from '@/lib/customer-session'
 import { db } from '@/lib/db'
+import { experimentsEnabled, requestExperiments } from '@/lib/experiments'
 import { shopperParcels } from '@/lib/parcels'
 import { balanceView, storePreorderPolicy } from '@/lib/preorder'
 import { inStore } from '@/lib/store-context'
@@ -123,29 +125,35 @@ export default async function ThankYouPage({ params, searchParams }: Params) {
       env.SETTINGS_SECRET,
     )
   const payToken = tokenFits ? token : orderViewToken(data.order.id, env.SETTINGS_SECRET)
+  // A purchase for the store's A/B tests (the GrowthBook app), after a yes to analytics.
+  const measured =
+    (await requestExperiments(storeId)).visitorId !== null && (await experimentsEnabled(storeId))
   return (
-    <ThankYouTemplate
-      viewToken={payToken}
-      order={data.order}
-      lines={data.lines}
-      payment={data.pay}
-      giftCards={data.giftCards}
-      links={links}
-      payPath={buildPayPath(data.order.number, payToken)}
-      look={data.look}
-      images={data.images}
-      shipTo={data.shipTo}
-      parcels={data.parcels}
-      balance={
-        data.balance ? (
-          <CheckoutBalance
-            orderNumber={data.order.number}
-            viewToken={payToken}
-            balance={data.balance}
-            session={data.balanceAttempt?.checkoutSession as CheckoutSession | null | undefined}
-          />
-        ) : null
-      }
-    />
+    <>
+      {measured ? <ExperimentBeacon order={data.order.id} /> : null}
+      <ThankYouTemplate
+        viewToken={payToken}
+        order={data.order}
+        lines={data.lines}
+        payment={data.pay}
+        giftCards={data.giftCards}
+        links={links}
+        payPath={buildPayPath(data.order.number, payToken)}
+        look={data.look}
+        images={data.images}
+        shipTo={data.shipTo}
+        parcels={data.parcels}
+        balance={
+          data.balance ? (
+            <CheckoutBalance
+              orderNumber={data.order.number}
+              viewToken={payToken}
+              balance={data.balance}
+              session={data.balanceAttempt?.checkoutSession as CheckoutSession | null | undefined}
+            />
+          ) : null
+        }
+      />
+    </>
   )
 }

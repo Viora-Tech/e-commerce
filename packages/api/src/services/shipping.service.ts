@@ -155,6 +155,13 @@ export async function testShippingConnection(
     return { ok: false, message: 'Enter a valid 6-digit origin PIN code first.' }
   }
 
+  /* An export-only courier (DHL Express, FedEx) has no answer for an Indian PIN code, so its
+     own read-only check (a token or a rate lookup abroad) stands in for the serviceability one. */
+  if (built.provider.coverage === 'international') {
+    const check = await built.provider.verifyCredentials()
+    return check.ok ? { ok: true, message: check.message } : { ok: false, message: check.message }
+  }
+
   try {
     const result = await built.provider.checkServiceability({
       originPincode: pincode,
@@ -165,6 +172,11 @@ export async function testShippingConnection(
         ok: false,
         message: `${factory.label} accepted the token, but does not currently serve PIN ${pincode}. Double check the origin PIN code.`,
       }
+    }
+    // The PIN code lookup did not use the credentials (DTDC), so prove them separately.
+    if (factory.serviceabilityWithoutCredentials) {
+      const check = await built.provider.verifyCredentials()
+      if (!check.ok) return { ok: false, message: check.message }
     }
     // A cheap bonus lookup: only RapidShyp exposes this today (Fetch Pickup Location API), and
     // failing to fetch it never fails the connection test itself - the Connect page just keeps

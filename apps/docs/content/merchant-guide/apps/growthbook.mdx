@@ -1,0 +1,94 @@
+---
+title: A/B tests (GrowthBook)
+description: Show different hero banners and sections to different shoppers, and see which one sells more.
+---
+
+# A/B tests (GrowthBook)
+
+The **GrowthBook** app lets you test two (or more) versions of a section on your store at the
+same time. Half your shoppers see one hero banner, half see the other, and GrowthBook tells you
+which one brought more orders.
+
+[GrowthBook](https://www.growthbook.io) is a free, open-source A/B testing tool. Use
+**GrowthBook Cloud** or your own GrowthBook server.
+
+## What you can test
+
+- **Sections on your Customize pages**: hero banners, image banners, announcement bars,
+  featured collections, testimonials, any section. Each shopper sees one version, the same one
+  on every visit.
+- **Imported Shopify themes**: your developer can show different Liquid to each variant (see
+  "For your developer" below).
+
+**Prices are never tested.** Every shopper pays the same price for the same product. Showing
+different prices to different people can break consumer-protection rules, and your GST invoices
+must match the price on your store, so this app does not do it.
+
+## How it works
+
+- The page arrives already showing the shopper's version. Nothing flickers or swaps after it
+  loads.
+- Only shoppers who **allow analytics** on your cookie banner are put in a test. Everyone else,
+  and anyone who said no, sees the **control** (version 0).
+- When a shopper in a test sees a tested section, and when they place an order, your store
+  records it. GrowthBook reads those records to show the results.
+
+## What you need
+
+- A GrowthBook account (Cloud or self-hosted).
+- An **SDK connection** in GrowthBook (**SDK Connections → Add**, language "Node.js" or
+  "Other"). Copy its **Client key** (it starts with `sdk-`).
+- Optional: a **secret API key** with the read-only role (**Settings → API keys**), so the app
+  page can list your experiments.
+
+## Connect it
+
+1. Go to **Apps**, find **GrowthBook** under **Connections** and click **Install**.
+2. Open **Apps → GrowthBook** in the sidebar.
+3. Fill in **API host**: `cdn.growthbook.io` for GrowthBook Cloud, or your GrowthBook server's
+   API address.
+4. Paste the **Client key**. If the SDK connection encrypts its features, paste the
+   **Decryption key** too.
+5. Optional: paste a **Secret API key**. It is stored locked (encrypted) and never shown again.
+6. Click **Test connection**. You should see how many features (and experiments) were found.
+
+## Run your first test
+
+1. In GrowthBook, create a **feature** (for example `hero-banner`) and add an **Experiment**
+   rule to it with two variations. Note the experiment's **tracking key**, for example
+   `hero-test`.
+2. In **Online store → Customize**, add both versions of the section, for example two hero
+   banners one under the other.
+3. Select the first one, open **Advanced → A/B test**, type `hero-test` as the **Experiment
+   key** and `0` as the variant. On the second one, type `hero-test` and `1`.
+4. Save, then start the experiment in GrowthBook.
+
+In Customize you still see both sections, so you can edit them. On your live store each shopper
+sees only theirs. You can also type `control` instead of `0`, or the variation's name.
+
+When the test is over, delete the section that lost and clear the **A/B test** setting on the
+one that won.
+
+## See the results
+
+The app page lists your experiments (running first) with their tracking keys and variants.
+Results, charts and decisions are in GrowthBook: click **Open in GrowthBook**.
+
+For GrowthBook to read your store's numbers it needs a **data source**. If your store is hosted
+for you, ask support to connect one. If you run your own platform, your developer can set it up
+from the developer docs.
+
+## For your developer
+
+Imported Shopify themes can branch on the shopper's variation in Liquid:
+
+```liquid
+{% if request.experiments['hero-test'] == 1 %}
+  {% render 'hero-big' %}
+{% else %}
+  {% render 'hero-classic' %}
+{% endif %}
+```
+
+`request.experiments` maps each experiment's tracking key to the variation number (0 is the
+control). A shopper outside the test has no entry, so the `else` branch (the control) shows.

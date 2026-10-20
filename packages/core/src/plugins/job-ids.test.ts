@@ -29,6 +29,13 @@ describe('queue job ids', () => {
     ).toBe(true)
   })
 
+  it('customer events are one job per outbox row', () => {
+    const base = { storeId: STORE, event: 'customer.updated', orderId: '', customerId: ORDER }
+    const first = appEventJobId({ ...base, key: 'row-1', pluginId: 'chatwoot' } as never)
+    expect(bullmqAccepts(first)).toBe(true)
+    expect(first).not.toBe(appEventJobId({ ...base, key: 'row-2', pluginId: 'chatwoot' } as never))
+  })
+
   it('a key or app still tells two jobs apart', () => {
     const base = { storeId: STORE, orderId: ORDER, template: 'review_request' } as const
     expect(notificationJobId({ ...base, key: 'a' } as never)).not.toBe(

@@ -1,6 +1,8 @@
+/** SOURCE OF TRUTH: saved email templates — WHAT: a store's reusable designs (list, get, save with a per-store cap) / WHY: one place enforces the cap and the design schema */
 import { marketingEmailTemplate, type StoreTx } from '@commerce/db'
 import { desc, eq } from 'drizzle-orm'
 import { z } from 'zod'
+import { CommerceError } from '../errors'
 import { type EmailDesign, EmailDesignSchema } from './email-design'
 
 /** Reusable visual-builder designs, per store (RLS scopes every query). */
@@ -12,12 +14,14 @@ export const EmailTemplateInputSchema = z.object({
 export type EmailTemplateInput = z.infer<typeof EmailTemplateInputSchema>
 
 /** A store keeps at most this many; the list stays scannable in the builder's menu. */
-export const MAX_EMAIL_TEMPLATES = 100
+const MAX_EMAIL_TEMPLATES = 100
 
-export class EmailTemplateLimit extends Error {
+export class EmailTemplateLimit extends CommerceError {
   constructor() {
-    super(`A store can keep up to ${MAX_EMAIL_TEMPLATES} email templates. Delete one first.`)
-    this.name = 'EmailTemplateLimit'
+    super(
+      'EMAIL_TEMPLATE_LIMIT',
+      `A store can keep up to ${MAX_EMAIL_TEMPLATES} email templates. Delete one first.`,
+    )
   }
 }
 

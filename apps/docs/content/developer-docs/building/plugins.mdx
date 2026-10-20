@@ -144,6 +144,10 @@ export class FedexProvider implements ShippingProvider {
   constructor(private readonly config: FedexConfig) {}
 
   async checkServiceability(q) { /* GET rates, map to Serviceability */ }
+  // A courier that answers with the label PDF instead of a public link (Blue Dart, DTDC)
+  // returns `labelDocument: { contentType: 'application/pdf', body }` instead of `labelUrl`:
+  // core keeps it in the store's private storage and links the admin's
+  // `/api/shipments/<id>/label`, so no courier credential ends up in a URL.
   async createShipment(input) { /* POST ship, return { waybill, labelUrl, providerRef } */ }
   async track(waybill) { /* map FedEx scan codes to the normalised status */ }
   async cancel(waybill) { /* ... */ }
@@ -187,9 +191,36 @@ Rules that keep every adapter interchangeable:
 - **Throw `CourierError` for transport/auth failures**; return
   `serviceable: false` for a genuine "no". The platform falls back on the first
   and tells the shopper the second.
+- **Couriers with a login, and signed webhooks, use the shared helpers.** A courier that
+  answers a username/password login with a bearer token keeps it in a `LoginTokenCache`
+  (one login for concurrent calls, a fresh one after a 401); a webhook signed with an
+  HMAC-SHA256 of the body checks it with `hmacSha256Matches` (hex or base64). Both come from
+  `@commerce/shipping`; `packages/shipping-xpressbees` and `packages/shipping-ekart` use them,
+  and each newer courier keeps every wire shape in its own `mapping.ts`.
+- **A failed delivery attempt must say so in the scan's wording.** The NDR queue opens from
+  the latest scan's description, so an adapter whose courier marks attempts by code prefixes
+  "Undelivered: " to that scan (see `scanDescription` in the Xpressbees, Ekart and Shadowfax
+  adapters).
 - **Never call `Date.now()` for delivery dates.** Return transit days; the
   platform's calendar (`@commerce/shipping` `delivery-date.ts`) turns them into
   a date in the store's timezone with cutoff and holidays applied.
+- **A courier booked at its own counter** (India Post, `packages/shipping-indiapost`) sets
+  `requiresTrackingNumber = true`: the Create shipment flow asks the merchant for the number on
+  the receipt and passes it as `CreateShipmentInput.trackingNumber`. A courier with no tracking
+  feed sets `tracksManually = true`: the poll job skips it and the merchant records statuses
+  with `shipments.recordStatus` (`recordManualTracking` in core).
+- **Say where you deliver.** `coverage` on the provider is `domestic` (the default: Indian
+  PIN codes only), `international` (exports only: `packages/shipping-dhl-express` and
+  `packages/shipping-fedex`, the real versions of this sketch) or `both`. The rate table
+  never asks a courier about a country it does not cover, and the storefront's PIN-code
+  estimate never asks an export-only one. Rate and serviceability queries carry
+  `destinationCountry` (ISO alpha-2, absent means India) and `destinationCity`; shipment lines
+  carry `hsCode`, `countryOfOrigin`, `sku` and `unitWeightGrams`, the input carries
+  `dimensionsCm` and `exporterGstin`. `customsLines` in `@commerce/shipping` checks the HS
+  codes and shares out the parcel weight.
+- **A courier that answers with PDFs, not a link,** returns them as `documents` (base64,
+  `label` / `commercial_invoice`); the platform joins them label-first into one PDF and keeps
+  it exactly like `labelDocument` (private storage, opened through the admin's label route).
 - Payments: `createPayment` returns a `CheckoutSession` of kind `client`,
   `redirect`, `manual` or `none`; `parseWebhook` must verify the signature with
   a constant-time compare and return a stable `eventId` for deduplication.
@@ -381,7 +412,7 @@ that installed the app from Admin → Apps.
 | Field | What it does |
 | --- | --- |
 | `category` | Badge on the Apps page, e.g. `invoicing`. |
-| `hooks` | `order.paid`, `order.fulfilled`, `order.delivered`, `refund.created`. Run in the worker on the `{apps}-events` queue, at least once per (order, event) or (refund, event): **make them idempotent**. `order.paid`/`order.fulfilled` fire from the `payment_received`/`order_shipped` notifications, so every path that marks an order paid or shipped is covered; `order.delivered` fans out from the `order.delivered` outbox row (courier tracking or "mark delivered"); `refund.created` is queued by the refund route. |
+| `hooks` | `order.paid`, `order.fulfilled`, `order.delivered`, `refund.created`. Run in the worker on the `{apps}-events` queue, at least once per (order, event) or (refund, event): **make them idempotent**. `order.paid`/`order.fulfilled` fire from the `payment_received`/`order_shipped` notifications, so every path that marks an order paid or shipped is covered; `order.delivered` fans out from the `order.delivered` outbox row (courier tracking or "mark delivered"); `refund.created` is queued by the refund route. `customer.created` / `customer.updated` (payload `customerId`, `orderId` empty) fan out from outbox rows written with `recordCustomerChange` (`@commerce/core`) on sign-up, checkout, profile and admin edits, one job per row; read the customer when the hook runs and upsert. Bulk imports write none. |
 | `jobs` | Named background jobs the app queues for itself with `enqueueAppJob(context.appJobs, { storeId, pluginId, name, data })`. They run on `{apps}-jobs` with the same context as hooks. |
 | `orderLinks` | Links on the shopper's order page and in order emails (`ctx.surface` says which). Failures are swallowed. |
 | `emailAttachments` | Files attached to one order email (`{ orderId, template }`). A failure fails the notification job so it retries. SES sends them; other channels ignore them. |
@@ -389,6 +420,8 @@ that installed the app from Admin → Apps.
 | `admin.icon` | Icon name (from the admin icon set) for the sidebar entry and the app header. |
 | `admin.pages[]` | `{ path, title, navLabel?, icon? }`. Each page renders at `/apps/<pluginId>/<path>` inside the admin shell with the app header (icon and name) and tabs for every page that has a `navLabel`. `path: ''` is the app root, which the sidebar links to. Dynamic segments use `[name]`, e.g. `invoices/[id]`. |
 | `admin.orderDetailCard` | Adds a card to the order detail page. |
+| `admin.customerDetailCard` | Adds a card to the customer detail page (`ADMIN_APPS[id].CustomerCard`, gets `customerId`). |
+
 | `admin.orderActions` | Actions on orders, Shopify style: in the order page's **More actions**, an Orders list row's ⋯ menu and the bulk bar, under the app's icon and name. See [Order actions](#order-actions). |
 
 Hooks and jobs get an `AppHookContext`: `inStore(fn)` (a transaction under
@@ -505,6 +538,35 @@ kind and no table:
   drawable state (`not-installed`, `not-connected`, `error`, `ready`), never a thrown error.
   `./report` normalises Umami 3 and Umami 2 answers (`path` vs `url` metric names, flat figures
   vs `{ value, prev }`).
+
+`packages/plugin-chatwoot` (Chatwoot, id `chatwoot`) is the worked example of an app that wraps a
+separately run service and mirrors customers into it:
+
+- **Settings** in `store.apps` under `chatwoot` (`./settings`, pure): address, account id,
+  website inbox token, `consent` (`necessary` | `analytics` | `marketing`), `identifyShoppers`,
+  `syncContacts`, and two `encryptSecret` blobs, the API access token and the inbox's HMAC
+  identity secret. `./widget` is the zod-free slice the consent manager imports.
+- **Storefront**: `apps/storefront/src/lib/chatwoot.ts` reads the widget from the store row and,
+  for a signed-in shopper only (never an edge-cached page), signs their identifier
+  (`identifier_hash` = HMAC-SHA256 hex) and adds `contactAttributes`. `ConsentManager` renders
+  `ChatwootWidget` (Chatwoot's `/packs/js/sdk.js` via `next/script` with the nonce, then
+  `chatwootSDK.run`, `setUser`, `setCustomAttributes`; `reset` after a sign-out) once
+  `chatwootAllowed` says so. ConsentManager is drawn by both the block layout and the imported
+  Liquid theme layout, so the chat works on both.
+- **Sync**: hooks on `customer.created`, `customer.updated` and `order.paid` call
+  `syncCustomerToChatwoot`: read settings and `loadCustomerFacts` in one transaction, then search
+  Chatwoot by our customer id (the contact `identifier`), then email, then phone; create, or update
+  only when something changed (`contactNeedsUpdate`), so retries cost one search. A guest contact
+  with the same email is claimed; a contact tied to another identifier never is. A 429 or outage
+  throws and the `{apps}-events` backoff retries.
+- **Admin**: `api.chatwoot.settings.{get,save,test}` and
+  `api.chatwoot.conversations.{customer,order}` (a drawable state, never an error) behind the
+  Conversations card on both detail pages. Outbound calls go through `safeFetch` unless the origin
+  is listed in `CHATWOOT_TRUSTED_ORIGINS`.
+
+`packages/plugin-growthbook` (GrowthBook, id `growthbook`) is a `connection` app that also owns a
+table (`experiment_event`) and changes what the storefront renders: server-side A/B assignment
+for sections and Liquid themes. See [A/B tests (GrowthBook)](/developer-docs/building/experiments).
 
 `packages/plugin-search-console` (Google Search Console, id `google-search-console`) is the
 worked example of a per-store **OAuth** connection with a daily background pull:

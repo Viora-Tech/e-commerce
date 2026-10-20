@@ -49,6 +49,11 @@ export type LiquidRequest = {
    * page's `collection.products` / `collection.filters` and `search` follow them.
    */
   listing?: ListingQuery | undefined
+  /**
+   * The shopper's A/B test variations (the GrowthBook app): experiment tracking key → variation
+   * number, 0 for the control. Themes read `request.experiments['hero-test']`; empty without.
+   */
+  experiments?: Readonly<Record<string, number>> | undefined
 }
 
 export type LiquidRenderOptions = {
@@ -275,6 +280,7 @@ export async function createPageContext(options: LiquidRenderOptions): Promise<L
       host: request.host,
       origin: request.origin,
       locale: { iso_code: 'en', name: 'English', primary: true, root_url: '/' },
+      experiments: { ...request.experiments },
     },
     localization: {
       language: { iso_code: 'en', name: 'English', endonym_name: 'English', root_url: '/' },

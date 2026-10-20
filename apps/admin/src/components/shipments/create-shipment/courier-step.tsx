@@ -3,6 +3,8 @@
 import { PackageOpen, Plus, RefreshCw } from '@commerce/ui/icons'
 import { cn } from '@commerce/ui/lib/utils'
 import { Button } from '@commerce/ui/shadcn/button'
+import { Field, FieldDescription, FieldLabel } from '@commerce/ui/shadcn/field'
+import { Input } from '@commerce/ui/shadcn/input'
 import { Spinner } from '@commerce/ui/shadcn/spinner'
 import Link from 'next/link'
 import { useState } from 'react'
@@ -53,6 +55,7 @@ export default function CourierStep({
 
   // Render logic
   const manual = pick === MANUAL
+  const counter = quote?.options.find((o) => o.optionKey === pick)?.needsTrackingNumber === true
   const anyProblem = quote?.options.some((o) => o.problem === 'unreachable') ?? false
   const groups = quote ? groupCounts(quote.options) : []
   const shown = quote?.options.filter((o) => filter === null || o.providerName === filter) ?? []
@@ -136,6 +139,20 @@ export default function CourierStep({
             onSelect={() => onPick(row.optionKey)}
           />
         ))}
+        {counter ? (
+          <Field className="rounded-lg border border-primary bg-primary-soft p-3">
+            <FieldLabel htmlFor="counter-number">{copy.courier.counterNumber.label}</FieldLabel>
+            <Input
+              id="counter-number"
+              autoComplete="off"
+              spellCheck={false}
+              className="uppercase"
+              value={tracking.trackingNumber}
+              onChange={(e) => onTrackingChange({ ...tracking, trackingNumber: e.target.value })}
+            />
+            <FieldDescription>{copy.courier.counterNumber.help}</FieldDescription>
+          </Field>
+        ) : null}
 
         <div
           className={cn(

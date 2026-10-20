@@ -1,5 +1,5 @@
 import 'server-only'
-import { Reveal } from '@commerce/blocks'
+import { Reveal, sectionExperimentGate } from '@commerce/blocks'
 import { createBlocksConfig, type PageData, type SectionMetadata } from '@commerce/blocks/puck'
 import { renderBlock } from '@commerce/blocks/slots'
 import {
@@ -21,15 +21,18 @@ import {
 import { preorderBlocks } from '@commerce/core/preorder-block'
 import { appBlockSourcesForStore } from '@commerce/core/registries'
 import type { StoreTx } from '@commerce/db'
+import { type Assignments, variantMatches } from '@commerce/plugin-growthbook/assign'
 import type { ComponentConfig } from '@puckeditor/core'
 import { resolveAllData } from '@puckeditor/core'
 import { headers } from 'next/headers'
 import { Fragment, Suspense } from 'react'
+import ExperimentBeacon from '@/components/analytics/experiment-beacon'
 import RecentlyViewed from '@/components/product/recently-viewed'
 import DeferredLiquid from '@/components/theme/deferred-liquid'
 import LiquidHtml from '@/components/theme/liquid-html'
 import { listCardProducts } from './catalog'
 import { collectionCards, listCollections } from './collections'
+import { requestExperiments } from './experiments'
 import { digest } from './liquid-cache'
 import { liquidSplit, STREAM_GRACE_MS, settlesWithin } from './liquid-split'
 import { renderLiquidSections } from './liquid-theme'
@@ -133,6 +136,25 @@ async function blocksConfig(storeId: string, read: ReturnType<typeof readerFor>)
 }
 
 /**
+ * The top-level sections this shopper sees of an A/B test (a section's "A/B test" setting, the
+ * GrowthBook app), and the experiments those sections belong to, for the "experiment viewed"
+ * beacon. Sections for another variant are left out before anything renders or loads.
+ */
+function experimentSections<T extends { props: Record<string, unknown> }>(
+  content: T[],
+  assignments: Assignments,
+): { content: T[]; seen: string[] } {
+  const seen = new Set<string>()
+  const shown = content.filter((section) => {
+    const gate = sectionExperimentGate(section.props)
+    if (!gate) return true
+    if (Object.hasOwn(assignments, gate.key)) seen.add(gate.key)
+    return variantMatches(gate, assignments)
+  })
+  return { content: shown, seen: [...seen] }
+}
+
+/**
  * Renders a theme template (or the header or footer group) for this request: the
  * live theme's saved sections, or in the Customize preview the previewed theme
  * with its unsaved drafts. Hidden sections are skipped. Opens its own short transactions, and
@@ -161,7 +183,15 @@ export async function renderTemplate(
           )
         ).data
       : defaultTemplate(key))
-  const visibleSections = { ...data, content: data.content.filter((s) => !isSectionHidden(s)) }
+  // A theme preview shows every variant's sections, so the merchant can edit them all.
+  const experiments = preview ? null : await requestExperiments(storeId)
+  const tested = experiments
+    ? experimentSections(
+        data.content.filter((s) => !isSectionHidden(s)),
+        experiments.assignments,
+      )
+    : { content: data.content.filter((s) => !isSectionHidden(s)), seen: [] }
+  const visibleSections = { ...data, content: tested.content }
   // Lists bound to store data (FAQ items from a content type, a collection's products) fill
   // their rows now, capped and under this store's RLS; an empty list shows the typed-in rows.
   const loops = boundLoops(visibleSections)
@@ -282,6 +312,7 @@ export async function renderTemplate(
 
   return (
     <>
+      {tested.seen.length ? <ExperimentBeacon seen={tested.seen} /> : null}
       {sections.slice(0, streamFrom)}
       {streamFrom < sections.length ? (
         <Suspense fallback={null}>{sections.slice(streamFrom)}</Suspense>

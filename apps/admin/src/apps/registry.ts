@@ -2,20 +2,37 @@ import type { ComponentType } from 'react'
 import OverviewPage from '@/components/apps/back-in-stock/overview-page'
 import SettingsEditorBackInStock from '@/components/apps/back-in-stock/settings-editor'
 import SignupsList from '@/components/apps/back-in-stock/signups-list'
+import BluedartConnectPage from '@/components/apps/bluedart/connect-page'
+import BluedartOverviewPage from '@/components/apps/bluedart/overview-page'
 import CashfreeConnectPage from '@/components/apps/cashfree/connect-page'
 import CashfreeOverviewPage from '@/components/apps/cashfree/overview-page'
+import ChatwootCustomerCard from '@/components/apps/chatwoot/customer-card'
+import ChatwootOrderCard from '@/components/apps/chatwoot/order-card'
+import ChatwootSettingsPage from '@/components/apps/chatwoot/settings-page'
 import DecentroConnectPage from '@/components/apps/decentro/connect-page'
 import DecentroOverviewPage from '@/components/apps/decentro/overview-page'
 import DelhiveryConnectPage from '@/components/apps/delhivery/connect-page'
 import DelhiveryOverviewPage from '@/components/apps/delhivery/overview-page'
+import DhlExpressConnectPage from '@/components/apps/dhl-express/connect-page'
+import DhlExpressOverviewPage from '@/components/apps/dhl-express/overview-page'
+import DtdcConnectPage from '@/components/apps/dtdc/connect-page'
+import DtdcOverviewPage from '@/components/apps/dtdc/overview-page'
+import EkartConnectPage from '@/components/apps/ekart/connect-page'
+import EkartOverviewPage from '@/components/apps/ekart/overview-page'
 import EmiSettingsPage from '@/components/apps/emi/settings-page'
+import FedexConnectPage from '@/components/apps/fedex/connect-page'
+import FedexOverviewPage from '@/components/apps/fedex/overview-page'
 import SubmissionsList from '@/components/apps/forms/submissions-list'
+import GrowthbookExperimentsPage from '@/components/apps/growthbook/experiments-page'
 import InvoiceDetail from '@/components/apps/gst-invoices/invoice-detail'
 import InvoicesList from '@/components/apps/gst-invoices/invoices-list'
 import GstOrderCard from '@/components/apps/gst-invoices/order-card'
 import QueuePage from '@/components/apps/gst-invoices/queue-page'
 import ReturnsPage from '@/components/apps/gst-invoices/returns-page'
 import GstSettingsEditor from '@/components/apps/gst-invoices/settings-editor'
+import IndiaPostConnectPage from '@/components/apps/india-post/connect-page'
+import IndiaPostLabelPage from '@/components/apps/india-post/label-page'
+import IndiaPostOverviewPage from '@/components/apps/india-post/overview-page'
 import MeilisearchPage from '@/components/apps/meilisearch/settings-page'
 import SesConnectPage from '@/components/apps/messages/ses-connect-page'
 import WhatsappConnectPage from '@/components/apps/messages/whatsapp-connect-page'
@@ -35,6 +52,8 @@ import SearchConsolePages from '@/components/apps/search-console/pages-page'
 import SearchConsoleSearches from '@/components/apps/search-console/searches-page'
 import SearchConsoleSettings from '@/components/apps/search-console/settings-page'
 import SearchConsoleSitemaps from '@/components/apps/search-console/sitemaps-page'
+import ShadowfaxConnectPage from '@/components/apps/shadowfax/connect-page'
+import ShadowfaxOverviewPage from '@/components/apps/shadowfax/overview-page'
 import ShiprocketConnectPage from '@/components/apps/shiprocket/connect-page'
 import ShiprocketOverviewPage from '@/components/apps/shiprocket/overview-page'
 import ConnectHeaderButton from '@/components/apps/shopify-import/connect-header-button'
@@ -44,13 +63,15 @@ import ImportsPage from '@/components/apps/shopify-import/imports-page'
 import RunPage from '@/components/apps/shopify-import/run-page'
 import ShopifySettingsPage from '@/components/apps/shopify-import/settings-page'
 import UmamiSettingsPage from '@/components/apps/umami/settings-page'
+import XpressbeesConnectPage from '@/components/apps/xpressbees/connect-page'
+import XpressbeesOverviewPage from '@/components/apps/xpressbees/overview-page'
 
 /** What a page of an app receives: the dynamic segments of its path, e.g. `{ id }`. */
 export type AppPageProps = { params: Record<string, string> }
 
 /**
  * Admin screens contributed by installed apps, keyed by plugin id. The
- * manifest (server) declares the pages (`admin.pages`) and the order card;
+ * manifest (server) declares the pages (`admin.pages`) and the order and customer cards;
  * the components live here so server code never imports React. Pages render
  * under `/apps/<pluginId>/<path>` inside the app shell, only for stores that
  * installed the app.
@@ -59,6 +80,8 @@ export type AdminApp = {
   /** Keyed by the manifest page path, e.g. `''`, `'settings'`, `'invoices/[id]'`. */
   pages: Record<string, ComponentType<AppPageProps>>
   OrderCard?: ComponentType<{ orderId: string }>
+  /** A card on the customer detail page (manifest `admin.customerDetailCard`). */
+  CustomerCard?: ComponentType<{ customerId: string }>
   /** A button in the app header beside the more menu, on every tab. */
   HeaderAction?: ComponentType
 }
@@ -71,11 +94,22 @@ export const ADMIN_APPS: Record<string, AdminApp> = {
       settings: SettingsEditorBackInStock,
     },
   },
+  bluedart: {
+    pages: {
+      '': BluedartOverviewPage,
+      connect: BluedartConnectPage,
+    },
+  },
   cashfree: {
     pages: {
       '': CashfreeOverviewPage,
       connect: CashfreeConnectPage,
     },
+  },
+  chatwoot: {
+    pages: { '': ChatwootSettingsPage },
+    OrderCard: ChatwootOrderCard,
+    CustomerCard: ChatwootCustomerCard,
   },
   decentro: {
     pages: {
@@ -87,6 +121,18 @@ export const ADMIN_APPS: Record<string, AdminApp> = {
     pages: {
       '': DelhiveryOverviewPage,
       connect: DelhiveryConnectPage,
+    },
+  },
+  dtdc: {
+    pages: {
+      '': DtdcOverviewPage,
+      connect: DtdcConnectPage,
+    },
+  },
+  ekart: {
+    pages: {
+      '': EkartOverviewPage,
+      connect: EkartConnectPage,
     },
   },
   'emi-pay-later': {
@@ -110,6 +156,18 @@ export const ADMIN_APPS: Record<string, AdminApp> = {
       settings: SearchConsoleSettings,
     },
   },
+  'dhl-express': {
+    pages: {
+      '': DhlExpressOverviewPage,
+      connect: DhlExpressConnectPage,
+    },
+  },
+  fedex: {
+    pages: {
+      '': FedexOverviewPage,
+      connect: FedexConnectPage,
+    },
+  },
   'gst-invoices': {
     pages: {
       '': QueuePage,
@@ -119,6 +177,13 @@ export const ADMIN_APPS: Record<string, AdminApp> = {
       settings: GstSettingsEditor,
     },
     OrderCard: GstOrderCard,
+  },
+  'india-post': {
+    pages: {
+      '': IndiaPostOverviewPage,
+      connect: IndiaPostConnectPage,
+      'labels/[waybill]': IndiaPostLabelPage,
+    },
   },
   rapidshyp: {
     pages: {
@@ -151,6 +216,12 @@ export const ADMIN_APPS: Record<string, AdminApp> = {
       connect: SesConnectPage,
     },
   },
+  shadowfax: {
+    pages: {
+      '': ShadowfaxOverviewPage,
+      connect: ShadowfaxConnectPage,
+    },
+  },
   shiprocket: {
     pages: {
       '': ShiprocketOverviewPage,
@@ -173,11 +244,20 @@ export const ADMIN_APPS: Record<string, AdminApp> = {
       'runs/[id]': RunPage,
     },
   },
+  growthbook: {
+    pages: { '': GrowthbookExperimentsPage },
+  },
   umami: {
     pages: { '': UmamiSettingsPage },
   },
   meilisearch: {
     pages: { '': MeilisearchPage },
+  },
+  xpressbees: {
+    pages: {
+      '': XpressbeesOverviewPage,
+      connect: XpressbeesConnectPage,
+    },
   },
 }
 

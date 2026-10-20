@@ -68,6 +68,10 @@ export type OutboxEventType =
    * Meilisearch app's search index) get their `PRODUCTS_CHANGED_JOB` with the ids.
    */
   | 'catalog.products_changed'
+  /** A customer was created (sign-up, first checkout, provider sign-in); apps such as Chatwoot sync it. */
+  | 'customer.created'
+  /** A customer's profile changed (checkout details, account page, admin edit). */
+  | 'customer.updated'
 
 /**
  * `orderId` is required for every order-lifecycle type; `variantId` (and
@@ -99,6 +103,8 @@ export type OutboxPayload = {
   hostname?: string | undefined
   /** For `catalog.products_changed`: the products, which may no longer exist. */
   productIds?: string[] | undefined
+  /** The customer a `customer.created` / `customer.updated` event is about. */
+  customerId?: string | undefined
 }
 
 /**
@@ -168,6 +174,9 @@ export const OUTBOX_NOTIFICATION_TEMPLATE: Record<OutboxEventType, TemplateId | 
   'domain.route_removed': null,
   // Apps only: the relay queues `PRODUCTS_CHANGED_JOB` for apps that have it (`dispatchRow`).
   'catalog.products_changed': null,
+  // App hooks only (`OUTBOX_APP_EVENT`): nobody is emailed about their own profile.
+  'customer.created': null,
+  'customer.updated': null,
 }
 
 /**
@@ -223,4 +232,6 @@ export const OUTBOX_APP_EVENT: Record<OutboxEventType, AppEvent | null> = {
   'domain.route_requested': null,
   'domain.route_removed': null,
   'catalog.products_changed': null,
+  'customer.created': 'customer.created',
+  'customer.updated': 'customer.updated',
 }

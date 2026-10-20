@@ -33,6 +33,7 @@ import { headers } from 'next/headers'
 import { cache } from 'react'
 import { readCartId } from './cart-cookie'
 import { NONCE_HEADER } from './csp'
+import { liquidExperimentsFor } from './experiments'
 import { formsInstalled } from './forms-context'
 import {
   type CachedLiquid,
@@ -116,6 +117,7 @@ const requestScope = cache(async (storeId: string) => {
   // Filters, sort and page shape a collection or search page's listing (`listingSearch`).
   const listing =
     template === 'collection' || template === 'search' ? (h.get('x-listing') ?? '') : ''
+  const preview = readPreview(storeId, h.get('x-theme-preview')) !== null
   return {
     origin: await requestOrigin(),
     path,
@@ -123,7 +125,8 @@ const requestScope = cache(async (storeId: string) => {
     template,
     postedForm: h.get('x-form-posted'),
     nonce: h.get(NONCE_HEADER) ?? '',
-    preview: readPreview(storeId, h.get('x-theme-preview')) !== null,
+    preview,
+    ...(await liquidExperimentsFor(storeId, preview)),
   }
 })
 
@@ -215,6 +218,7 @@ async function createLiquidContext(
         formsInstalled(tx, storeId),
       ),
       nonce,
+      experiments: scope.experiments,
     },
     assetBase: `/theme-assets/${themeId}`,
     shopifyHost: theme.shopifyHost,
@@ -295,6 +299,7 @@ function cacheScope(
     path: scope.listing ? `${scope.path}?${scope.listing}` : scope.path,
     template: scope.template,
     postedForm: scope.postedForm,
+    experiments: scope.experimentsKey,
   }
 }
 

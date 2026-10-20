@@ -424,8 +424,13 @@ const ALLOWLIST: AllowEntry[] = [
   },
   {
     file: 'packages/core/src/marketing/email.ts',
-    names: ['EmailBlockSchema', 'MERGE_TAGS', 'escapeHtml', 'safeUrl'],
+    names: ['EmailBlockSchema'],
     reason: 'no external importer today — investigate before removing',
+  },
+  {
+    file: 'packages/core/src/marketing/email-design.ts',
+    names: ['decodeEntities', 'htmlToPlainText', 'hasUnsubscribeTag'],
+    reason: 'exported for its unit test (email-design.test.ts)',
   },
   {
     file: 'packages/core/src/marketing/send.ts',
@@ -752,11 +757,6 @@ const ALLOWLIST: AllowEntry[] = [
   {
     file: 'packages/editor/src/utils/can-use-dom.ts',
     names: ['CAN_USE_DOM'],
-    reason: 'no external importer today — investigate before removing',
-  },
-  {
-    file: 'packages/invoices/src/barcode.ts',
-    names: ['code128Values'],
     reason: 'no external importer today — investigate before removing',
   },
   {
@@ -1199,8 +1199,23 @@ const ALLOWLIST: AllowEntry[] = [
     reason: 'no external importer today — investigate before removing',
   },
   {
+    file: 'packages/plugin-growthbook/src/plugin.ts',
+    names: ['growthbookPlugin'],
+    reason: 'listed in the root commerce.config.ts, which this sweep does not scan',
+  },
+  {
     file: 'packages/plugin-gst-invoices/src/queue.ts',
     names: ['enqueueOrder'],
+    reason: 'exported for its unit test; no other importer today',
+  },
+  {
+    file: 'packages/plugin-chatwoot/src/plugin.ts',
+    names: ['chatwootPlugin'],
+    reason: 'no external importer today — investigate before removing',
+  },
+  {
+    file: 'packages/plugin-chatwoot/src/plugin.ts',
+    names: ['syncCustomerToChatwoot'],
     reason: 'exported for its unit test; no other importer today',
   },
   {

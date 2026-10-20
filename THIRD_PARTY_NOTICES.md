@@ -125,6 +125,16 @@ third-party copy was substituted. To add it:
 
 Until then checkout works as before: shoppers type city and state.
 
+**India Post app, live lookups** (`packages/shipping-indiapost/src/pin-directory.ts`): with a
+merchant's own data.gov.in API key, the India Post app asks the same directory's official API
+(resource `5c2f62fe-5afa-4119-a499-fec9d604d5bd`) about one PIN code at a time and keeps the
+answer in memory for a day. GODL-India was read on the data.gov.in catalog page on 2026-10-20.
+Nothing from the dataset is stored in the repository. Attribution: All India Pincode Directory,
+Department of Posts, Ministry of Communications, Government of India, via data.gov.in, under
+the Government Open Data Licence - India. The Speed Post Parcel rates in
+`packages/shipping-indiapost/src/data/speed-post-parcel-tariff.ts` are a government tariff
+(facts, typed by hand from indiapost.gov.in); credit: Department of Posts.
+
 **PIN prefix → state check** (security audit D-06, `packages/core/src/checkout/pincode-state.ts`):
 until the directory is installed, `placeOrder` checks the typed state against a small table of
 the first two digits of a PIN code and the states each can belong to. It was written by hand
@@ -159,6 +169,16 @@ Candidate projects, with verified licences and what to take from each: [`docs/op
   `oxlint` MIT (oxc project) — https://github.com/oxc-project/oxc. Installed as dev
   dependencies; no code copied.
 
+## Chatwoot
+
+- Used in: the Chatwoot app (`packages/plugin-chatwoot`, `apps/admin/src/components/apps/chatwoot`,
+  `apps/storefront/src/components/support/chatwoot-widget.tsx`). The storefront loads the store's
+  own Chatwoot website SDK (`<chatwoot>/packs/js/sdk.js`) from the store's Chatwoot server or
+  Chatwoot Cloud, and the server calls Chatwoot's Application API. No Chatwoot code is copied or
+  bundled, and nothing from its `enterprise/` folder is used.
+- Licence: MIT (Expat) outside `enterprise/`, Copyright (c) 2017-2026 Chatwoot Inc. —
+  https://github.com/chatwoot/chatwoot (licence checked on GitHub 2026-10-20).
+
 ## Umami
 
 - Used in: the Umami app (`packages/plugin-umami`, `apps/admin/src/components/apps/umami`,
@@ -168,6 +188,18 @@ Candidate projects, with verified licences and what to take from each: [`docs/op
   admin reads Umami's REST API. No Umami code is copied or bundled.
 - Licence: MIT, Copyright (c) 2022 Umami Software, Inc. — https://github.com/umami-software/umami
   (licence checked on GitHub 2026-10-10).
+
+## GrowthBook
+
+- Used in: the GrowthBook app (`packages/plugin-growthbook`, `apps/admin/src/components/apps/growthbook`,
+  `apps/storefront/src/lib/experiments.ts`). The storefront evaluates the store's GrowthBook
+  features on the server with GrowthBook's JavaScript SDK (`@growthbook/growthbook` 1.8.0, an
+  npm dependency, not copied), and the admin reads GrowthBook's REST API. GrowthBook itself runs
+  as a separate service. Nothing from GrowthBook's `enterprise` folders is used.
+- Licence: MIT ("MIT Expat" outside `packages/back-end/src/enterprise`,
+  `packages/front-end/enterprise` and `packages/shared/src/enterprise`), Copyright (c) 2025
+  GrowthBook, Inc. — https://github.com/growthbook/growthbook (LICENSE checked 2026-10-20). The
+  SDK's one dependency, `dom-mutator` 0.6.0, is MIT (GrowthBook).
 
 ## Third-party app logos (trademarks)
 
