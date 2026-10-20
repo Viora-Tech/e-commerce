@@ -31,6 +31,9 @@ export type CardProduct = {
   rating?: { average: number; count: number } | null | undefined
 }
 
+/** One of the product's extra fields, ready to show: `text` to parse, `html` for a panel body. */
+export type ProductFieldText = { text: string; html: string }
+
 export type ProductDetail = {
   id: string
   handle: string
@@ -73,6 +76,10 @@ export type ProductDetail = {
       }
     | null
     | undefined
+  /** The product's `custom` extra fields by key (spec cells, metafield accordions); none when absent. */
+  fields?: Record<string, ProductFieldText> | undefined
+  /** The collection the breadcrumb names between Home and the product. */
+  collection?: { title: string; url: string } | null | undefined
 }
 
 export type ThemeMode = 'light' | 'dark' | 'system'

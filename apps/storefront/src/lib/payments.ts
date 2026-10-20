@@ -79,3 +79,18 @@ export async function storeCheckoutMethods(
 export async function storeOffersEmi(tx: StoreTx, storeId: string): Promise<boolean> {
   return gatewayOffersEmi(await loadSettings(tx, storeId))
 }
+
+/**
+ * The store's discount for paying by UPI or bank transfer to its own account (the `manual`
+ * method's adjustment), when that method is on and the adjustment takes money off; null
+ * otherwise. The product page shows the price after it ("₹6,304 with UPI").
+ */
+export async function storeUpiDiscount(
+  tx: StoreTx,
+  storeId: string,
+): Promise<PaymentAdjustment | null> {
+  const settings = await loadSettings(tx, storeId)
+  const adjustment = settings.adjustments.manual
+  if (!settings.enabled.includes('manual') || !adjustment || adjustment.value >= 0) return null
+  return adjustment
+}

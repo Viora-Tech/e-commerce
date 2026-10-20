@@ -39,6 +39,7 @@ import {
   takeMedia,
 } from './import-media'
 import { buildReport, collectHandles, missingHandles, type Wanted } from './import-report'
+import { mainProductProps } from './main-product-props'
 import { type ImportReport, isMainSection } from './report'
 import {
   extractSchema,
@@ -186,7 +187,14 @@ function toTemplateData(
     if (main && isMainSection(s.type)) {
       if (mainPlaced) return []
       mainPlaced = true
-      return [{ ...main, props: { ...main.props, ...(s.disabled ? { _hidden: true } : {}) } }]
+      // Ours opens with what the theme's product section was set to show (./main-product-props).
+      const fromTheme = key === 'product' ? mainProductProps(s) : {}
+      return [
+        {
+          ...main,
+          props: { ...main.props, ...fromTheme, ...(s.disabled ? { _hidden: true } : {}) },
+        },
+      ]
     }
     if (!schemas.has(s.type)) return []
     const schema = schemas.get(s.type) ?? null

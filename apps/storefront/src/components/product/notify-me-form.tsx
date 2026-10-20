@@ -12,7 +12,10 @@ type NotifyMeFormProps = {
 
 const idle: NotifyMeState = { status: 'idle' }
 
-/** Sold-out variant, not on pre-order: ask for an email (and optionally WhatsApp) alert. */
+/**
+ * Sold-out variant, not on pre-order: ask for an email (and optionally WhatsApp) alert. Drawn
+ * inside the buy box's sold-out panel (`product-notify`), which carries the heading.
+ */
 export default function NotifyMeForm({ variantId, whatsappEnabled }: NotifyMeFormProps) {
   // Hooks
   const [phone, setPhone] = useState('')
@@ -29,30 +32,32 @@ export default function NotifyMeForm({ variantId, whatsappEnabled }: NotifyMeFor
 
   if (state.status === 'done') {
     return (
-      <p className="notify-me__message text-body" role="status">
+      <p className="product-notify__success" role="status">
         {content.doneEmail}
       </p>
     )
   }
 
   return (
-    <div className="notify-me">
-      <p className="notify-me__heading text-caption">{content.heading}</p>
-      <form className="notify-me__form" action={submit}>
-        <label className="visually-hidden" htmlFor="notify-me-email">
-          {content.emailLabel}
-        </label>
-        <input
-          id="notify-me-email"
-          className="field__input"
-          type="email"
-          name="email"
-          autoComplete="email"
-          placeholder={content.emailPlaceholder}
-        />
+    <form className="product-notify__form" action={submit}>
+      <div className="product-notify__fields">
+        <div className="product-notify__field">
+          <label className="product-notify__label" htmlFor="notify-me-email">
+            {content.emailLabel}
+          </label>
+          <input
+            id="notify-me-email"
+            className="product-notify__input"
+            type="email"
+            name="email"
+            autoComplete="email"
+            required
+            placeholder={content.emailPlaceholder}
+          />
+        </div>
         {whatsappEnabled ? (
-          <>
-            <label className="visually-hidden" htmlFor="notify-me-phone">
+          <div className="product-notify__field">
+            <label className="product-notify__label" htmlFor="notify-me-phone">
               {content.whatsappLabel}
             </label>
             <PhoneInput
@@ -63,18 +68,18 @@ export default function NotifyMeForm({ variantId, whatsappEnabled }: NotifyMeFor
               onChange={setPhone}
             />
             <input type="hidden" name="phone" value={phone} />
-          </>
+          </div>
         ) : null}
-        <p className="notify-me__consent text-small">{content.consent}</p>
-        <button className="btn btn--primary" type="submit" disabled={pending}>
-          {pending ? content.submitting : content.submit}
-        </button>
-      </form>
+      </div>
+      <button className="btn btn--primary product-notify__submit" type="submit" disabled={pending}>
+        <span>{pending ? content.submitting : content.submit}</span>
+      </button>
+      <p className="product-notify__note text-caption">{content.consent}</p>
       {state.status === 'error' ? (
-        <p className="notify-me__message text-small" role="alert">
+        <p className="product-notify__error" role="alert">
           {errorText}
         </p>
       ) : null}
-    </div>
+    </form>
   )
 }

@@ -48,6 +48,17 @@ async function matchProduct(tx: StoreTx, p: NProduct): Promise<string | null> {
   return byHandle?.id ?? null
 }
 
+/**
+ * Pre-order from Shopify's "Continue selling when out of stock": a tracked variant that
+ * sells past zero is what our pre-order is (purchasable beyond stock, no limit), and it is
+ * how Shopify pre-order apps run. Undefined when no variant says (a CSV without the column).
+ */
+export function preorderFrom(variants: NProduct['variants']): boolean | undefined {
+  const known = variants.filter((v) => v.sellsOutOfStock !== undefined)
+  if (known.length === 0) return undefined
+  return known.some((v) => v.sellsOutOfStock && v.trackInventory)
+}
+
 const existingProduct = (ctx: ImportContext, p: NProduct) =>
   ctx.inStore((tx) => matchProduct(tx, p))
 
@@ -102,6 +113,7 @@ function toWrite(
     [...new Set(p.variants.map((v) => v.optionValues[i] ?? ''))]
       .filter(Boolean)
       .map((value) => ({ value: value.slice(0, 100) }))
+  const preorder = preorderFrom(p.variants)
   return {
     title: p.title.slice(0, 200),
     handle: localHandle(p.handle),
@@ -113,6 +125,7 @@ function toWrite(
     seoDescription: clip(p.seoDescription, 320),
     // A CSV row has no template column (undefined): the product keeps the one it has.
     ...(p.templateSuffix === undefined ? {} : { templateSuffix: p.templateSuffix }),
+    ...(preorder === undefined ? {} : { preorderEnabled: preorder }),
     status: p.status,
     inventoryReason: 'correction',
     options: p.optionNames.map((name, i) => ({ name: name.slice(0, 50), values: values(i) })),

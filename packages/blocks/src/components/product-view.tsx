@@ -19,9 +19,10 @@ import ProductBuyButtons from './product-buy-buttons'
 import ProductDescription from './product-description'
 import ProductGallery from './product-gallery'
 import ProductNoteLine from './product-note-line'
-import ProductPaymentSignals from './product-payment-signals'
+import ProductPaymentSignals, { type UpiDiscount } from './product-payment-signals'
 import ProductRating from './product-rating'
 import ProductShareRow from './product-share-row'
+import ProductSpecGrid from './product-spec-grid'
 import ProductStockBar from './product-stock-bar'
 import ProductTrustBadges from './product-trust-badges'
 import ProductVariantPicker from './product-variant-picker'
@@ -45,6 +46,12 @@ type ProductViewProps = {
   notifyMeProps?: { whatsappEnabled: boolean } | undefined
   /** The MainProduct section's settings (`mainProductSettings(saved)`); defaults when omitted. */
   settings?: MainProductSettings | undefined
+  /**
+   * The store's discount for paying by UPI / bank transfer (its checkout adjustment), so the
+   * offer note shows the price checkout will charge; null when it has none, which hides a
+   * UPI price note. Left out (the editor canvas), the section's own percentage previews it.
+   */
+  upiDiscount?: UpiDiscount | null | undefined
 }
 
 function defaultVariant(product: ProductDetail) {
@@ -71,6 +78,7 @@ export default function ProductView({
   NotifyMe,
   notifyMeProps,
   settings,
+  upiDiscount,
 }: ProductViewProps) {
   // Hooks
   const [variantId, setVariantId] = useState(defaultVariant(product)?.id)
@@ -115,7 +123,11 @@ export default function ProductView({
     <section className="section-product page-width">
       <Breadcrumbs
         items={[
-          ...(product.productType ? [{ label: product.productType }] : []),
+          ...(product.collection
+            ? [{ label: product.collection.title, href: product.collection.url }]
+            : product.productType
+              ? [{ label: product.productType }]
+              : []),
           { label: product.title },
         ]}
       />
@@ -139,7 +151,7 @@ export default function ProductView({
           ) : null}
           <h1 className="product-info__title">
             {product.title}
-            {product.preorder?.enabled ? (
+            {isPreorder ? (
               <span className="product-info__preorder-badge">{copy.ui.preorderBadge}</span>
             ) : null}
           </h1>
@@ -160,6 +172,7 @@ export default function ProductView({
               body={s.offerBody}
               supportLabel={s.offerSupportLabel}
               supportUrl={s.offerSupportUrl}
+              upiDiscount={upiDiscount}
             />
           ) : null}
           <ProductVariantPicker product={product} variant={variant} onPick={handlePick} />
@@ -188,6 +201,7 @@ export default function ProductView({
               {belowBuy}
             </>
           )}
+          {s.showSpecs ? <ProductSpecGrid fields={product.fields} spec={s.specFields} /> : null}
           {s.showTrustBadges ? (
             <ProductTrustBadges
               badges={s.trustBadges}
@@ -204,7 +218,13 @@ export default function ProductView({
               whatsappLabel={s.assuranceWhatsappLabel}
             />
           ) : null}
-          {s.showAccordions ? <ProductAccordions items={s.accordions} /> : null}
+          {s.showAccordions ? (
+            <ProductAccordions
+              items={s.accordions}
+              fields={product.fields}
+              specTableRows={s.specRows}
+            />
+          ) : null}
           {s.showReturnsLine ? (
             <ProductNoteLine
               icon="shield"
