@@ -80,7 +80,7 @@ export default async function CollectionPage({ params, searchParams }: Params) {
       typeof query.sort === 'string' ? DEFAULT_SORT[query.sort as CollectionSort] : undefined
     const sort = parseBrowseSort(query.sort_by ?? legacy, COLLECTION_SORTS, defaultSort)
     const result = await browseProducts(tx, {
-      collectionId: found.id,
+      collectionId: found.id || undefined,
       filters,
       sort,
       page,
@@ -94,7 +94,7 @@ export default async function CollectionPage({ params, searchParams }: Params) {
   const origin = await requestOrigin()
   return renderTemplate(storeId, 'collection', {
     suffix: data.collection.templateSuffix,
-    sources: { collectionId: data.collection.id },
+    sources: { collectionId: data.collection.id || undefined },
     view: typeof query.view === 'string' ? query.view : undefined,
     renderers: {
       MainCollection: (settings) => (
