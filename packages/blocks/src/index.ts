@@ -36,6 +36,7 @@ export { default as ProductRecommendations } from './components/product-recommen
 export { default as ProductView } from './components/product-view'
 export { default as QuantityInput } from './components/quantity-input'
 export { default as Reveal } from './components/reveal'
+export { default as ReviewsWidget } from './components/reviews/reviews-widget'
 export { default as RichTextBlock, type RichTextBlockProps } from './components/rich-text'
 export { default as SectionFrame } from './components/section-frame'
 export { default as SectionHeading } from './components/section-heading'

@@ -17,6 +17,7 @@ import {
   type ValueToken,
 } from 'liquidjs'
 import { CommerceError } from '../errors'
+import { AssignTag } from './assign-tag'
 import { escapeAttr, type LiquidRuntime, registerShopifyFilters, stringifyLiquid } from './filters'
 import { MAX_BLOCK_DEPTH } from './schema'
 
@@ -457,6 +458,7 @@ export function createThemeEngine(snippets: Map<string, string>): Liquid {
     memoryLimit: LIQUID_LIMITS.memory,
   })
   registerShopifyFilters(engine)
+  engine.registerTag('assign', AssignTag)
   engine.registerTag('form', FormTag)
   engine.registerTag('paginate', PaginateTag)
   engine.registerTag('section', SectionTag)
