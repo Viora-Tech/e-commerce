@@ -1,6 +1,6 @@
 # Payments: Live/Test key sets, Active/Inactive, test orders
 
-Branch `feat/payments-live-test-deactivate`. Migration **0137_order_is_test** (`order.is_test
+Branch `feat/payments-live-test-deactivate`. Migration **0138_order_is_test** (`order.is_test
 boolean not null default false`).
 
 - **Two key sets per gateway** (Razorpay, Cashfree, Decentro): `packages/core/src/payments/modes.ts`
