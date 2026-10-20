@@ -208,3 +208,8 @@ Candidate projects, with verified licences and what to take from each: [`docs/op
 - These are trademarks of their owners, shown only to identify the integration. No endorsement is
   implied. Taken from the approved design file; replace with each company's brand-kit asset if they
   supply one.
+- Also in `apps/admin/public/app-logos/`: Blue Dart, Chatwoot, DHL Express, DTDC, Ekart, FedEx,
+  Google Search Console, GrowthBook, India Post, Meilisearch, Cloudflare (R2), Amazon S3, Amazon SES,
+  Shadowfax, Umami, WhatsApp and Xpressbees, same terms. The single-colour SVGs are from Simple Icons
+  (CC0 1.0, https://simpleicons.org), filled with each brand's colour; the others are the companies'
+  own site icons or their Wikimedia Commons logo files.
