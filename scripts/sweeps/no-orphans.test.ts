@@ -970,9 +970,9 @@ const ALLOWLIST: AllowEntry[] = [
     reason: 'no external importer today — investigate before removing',
   },
   {
-    file: 'packages/plugin-shopify-import/src/write-products.ts',
-    names: ['localHandle'],
-    reason: 'no external importer today — investigate before removing',
+    file: 'packages/plugin-shopify-import/src/shopify-api.ts',
+    names: ['productStatus'],
+    reason: 'the Online Store visibility rule behind product status, exported for its unit test',
   },
   {
     file: 'packages/plugin-shopify-import/src/write-customers.ts',
