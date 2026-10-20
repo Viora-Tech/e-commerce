@@ -51,8 +51,8 @@ international shipping needed.
 
 - Karrio: LGPL-3.0 outside `ee/` (commercial `LICENSE_EE`), Python service. Ideas only; row in
   `docs/open-source-radar.md`.
-- `bun install` re-resolved sharp 0.35.4 → 0.35.5 (patch, now shared with miniflare's pin) in
-  `bun.lock` when the new workspace packages were added.
+- `bun.lock` only gains the two workspace packages and `pdf-lib` on core (a plain `bun install` would
+  also bump sharp; that was reverted by hand, `bun install --frozen-lockfile` passes).
 
 ## Not done / follow-ups
 
