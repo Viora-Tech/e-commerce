@@ -189,6 +189,18 @@ const shape = z.object({
    */
   MEILISEARCH_TRUSTED_ORIGINS: z.string().optional(),
   /**
+   * Chatwoot addresses the server may reach on a private network or over http (comma-separated
+   * origins, e.g. `http://chatwoot:3000`). Every other address a store saves in the Chatwoot app
+   * goes through the SSRF guard: public https hosts only.
+   */
+  CHATWOOT_TRUSTED_ORIGINS: z.string().optional(),
+  /**
+   * GrowthBook addresses the server may reach on a private network or over http (comma-separated
+   * origins, e.g. our own `http://growthbook:3100`). Every other address a store saves goes
+   * through the SSRF guard: public https hosts only.
+   */
+  GROWTHBOOK_TRUSTED_ORIGINS: z.string().optional(),
+  /**
    * Razorpay Technology Partner OAuth app ("Connect Razorpay"). Both set turns
    * the one-click connect button on; unset, merchants paste API keys instead.
    * The app's redirect URL must be `<ADMIN_URL>/api/apps/razorpay/oauth/callback`.

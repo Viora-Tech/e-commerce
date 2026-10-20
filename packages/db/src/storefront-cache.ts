@@ -101,6 +101,7 @@ export const STOREFRONT_CACHE_EXEMPT: Record<string, string> = {
   customer_session: SHOPPER,
   data_request: SHOPPER,
   discount_usage: LOG,
+  experiment_event: LOG,
   fulfillment_order: SHOPPER,
   fulfillment_order_line: SHOPPER,
   gift_card: SHOPPER,

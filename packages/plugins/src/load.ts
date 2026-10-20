@@ -147,6 +147,7 @@ export function loadPlugins(plugins: PluginManifest[]): LoadedPlugins {
           icon: p.admin?.icon ?? null,
           pages: (p.admin?.pages ?? []).map((page) => ({ ...page })),
           orderDetailCard: p.admin?.orderDetailCard === true,
+          customerDetailCard: p.admin?.customerDetailCard === true,
           orderActions: orderActionsOf(p, CORE_PLUGIN_ID),
         },
         provides: {

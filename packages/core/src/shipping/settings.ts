@@ -7,6 +7,7 @@ import {
   type ShippingPolicy,
   type ShippingProvider,
   ShippingRegistry,
+  servesDestination,
 } from '@commerce/shipping'
 import { z } from 'zod'
 import {
@@ -199,14 +200,29 @@ export function resolveShippingProviders(
   return { providers, errors }
 }
 
-/** The one courier estimates default to: the first enabled and valid one. */
+/**
+ * The one courier estimates default to: the first enabled and valid one that delivers inside
+ * India. An export-only courier (DHL Express, FedEx) is passed over, since a storefront PIN
+ * code is always Indian; it is the answer only when it is all the store has.
+ */
 export function primaryShippingProvider(
   registry: ShippingRegistry,
   settings: ShippingSettings,
   secret: string,
   previousSecrets: string[] = [],
 ): ShippingProvider | null {
-  return resolveShippingProviders(registry, settings, secret, previousSecrets).providers[0] ?? null
+  const { providers } = resolveShippingProviders(registry, settings, secret, previousSecrets)
+  return providers.find((p) => servesDestination(p, 'IN')) ?? providers[0] ?? null
+}
+
+/** The courier a storefront PIN-code estimate asks: the primary one, unless it only ships abroad. */
+export function domesticShippingProvider(
+  registry: ShippingRegistry,
+  settings: ShippingSettings,
+  secret: string,
+): ShippingProvider | null {
+  const provider = primaryShippingProvider(registry, settings, secret)
+  return provider && servesDestination(provider, 'IN') ? provider : null
 }
 
 /**
@@ -243,7 +259,7 @@ export async function estimateForStore(input: {
   return estimateDelivery({
     pincode: input.pincode,
     policy: toShippingPolicy(input.settings),
-    provider: primaryShippingProvider(input.registry, input.settings, input.secret),
+    provider: domesticShippingProvider(input.registry, input.settings, input.secret),
     now: input.now ?? new Date(),
     cached: input.cached,
   })

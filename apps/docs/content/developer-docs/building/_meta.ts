@@ -16,6 +16,7 @@ export default {
   billing: 'Plans and billing',
   'media-pipeline': 'Image pipeline',
   'live-globe': 'Live view globe',
+  experiments: 'A/B tests (GrowthBook)',
   performance: 'Storefront performance',
   'admin-performance': 'Admin performance',
   'customer-privacy': 'Customer privacy and accounts',

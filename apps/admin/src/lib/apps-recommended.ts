@@ -12,7 +12,10 @@ type Gap = {
 
 /** Gaps a store commonly has, most valuable first. Ids are plugin ids from commerce.config.ts. */
 const GAPS: readonly Gap[] = [
-  { apps: ['delhivery', 'shiprocket', 'rapidshyp'], kind: 'shipping' },
+  {
+    apps: ['delhivery', 'shiprocket', 'rapidshyp', 'xpressbees', 'ekart', 'shadowfax'],
+    kind: 'shipping',
+  },
   { apps: ['reviews'] },
   { apps: ['whatsapp'], kind: 'notifications' },
   { apps: ['gst-invoices'] },

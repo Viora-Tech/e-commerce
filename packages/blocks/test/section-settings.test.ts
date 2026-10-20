@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest'
+import { sectionExperimentGate } from '../src/section-experiment'
 import {
   defaultSectionSettings,
   migrateSectionSettings,
+  sectionSettingsField,
   sectionVisibilityClassName,
   shouldAnimateEntrance,
 } from '../src/section-settings'
@@ -162,5 +164,34 @@ describe('migrateSectionSettings — unsafe stored values', () => {
     expect(scheme('scheme-1 fixed inset-0 z-50')).toBe('scheme-1')
     expect(scheme(7)).toBe('scheme-1')
     expect(migrateSectionSettings({ scheme: 'x fixed' }).style.colorScheme).toBe('scheme-1')
+  })
+})
+
+describe('the A/B test setting', () => {
+  it('keeps a named experiment through migration and drops a blank one', () => {
+    const kept = migrateSectionSettings({
+      settings: { experiment: { key: ' hero-test ', variant: ' 1 ' } },
+    })
+    expect(kept.experiment).toEqual({ key: 'hero-test', variant: '1' })
+    expect(migrateSectionSettings({ settings: { experiment: { key: '  ' } } })).not.toHaveProperty(
+      'experiment',
+    )
+    expect(migrateSectionSettings({})).not.toHaveProperty('experiment')
+  })
+
+  it('reads the gate from saved props without migrating them', () => {
+    expect(sectionExperimentGate({ settings: { experiment: { key: 'hero-test' } } })).toEqual({
+      key: 'hero-test',
+      variant: '',
+    })
+    expect(sectionExperimentGate({ settings: { experiment: { key: 42 } } })).toBeNull()
+    expect(sectionExperimentGate({})).toBeNull()
+  })
+
+  it('is offered on every kind of section', () => {
+    for (const kind of ['section', 'bleed', 'flow'] as const) {
+      const field = sectionSettingsField([], kind) as { objectFields: Record<string, unknown> }
+      expect(field.objectFields).toHaveProperty('experiment')
+    }
   })
 })

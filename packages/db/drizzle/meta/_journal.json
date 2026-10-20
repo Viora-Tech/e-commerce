@@ -925,6 +925,13 @@
       "when": 1792514463843,
       "tag": "0142_email_design",
       "breakpoints": true
+    },
+    {
+      "idx": 132,
+      "version": "7",
+      "when": 1792514523843,
+      "tag": "0143_app_growthbook",
+      "breakpoints": true
     }
   ]
 }

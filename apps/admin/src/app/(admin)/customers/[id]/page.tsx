@@ -2,6 +2,7 @@ import { notFound, redirect } from 'next/navigation'
 import CustomerView from '@/components/customers/customer-view'
 import { appRouter, call, serverContext } from '@/lib/api'
 import { routes } from '@/lib/routes'
+import { listApps } from '@/lib/shell-data'
 import { orNoStore } from '@/lib/store-guard'
 
 type Params = {
@@ -13,11 +14,13 @@ export default async function CustomerPage({ params, searchParams }: Params) {
   const { id } = await params
   const { edit } = await searchParams
   const context = await serverContext()
-  const customer = await call(appRouter.customers.get, { id }, { context }).catch(
-    orNoStore(undefined),
-  )
+  const [customer, apps] = await Promise.all([
+    call(appRouter.customers.get, { id }, { context }).catch(orNoStore(undefined)),
+    listApps().catch(() => []),
+  ])
   if (customer === undefined) redirect(routes.selectStore())
   if (!customer) notFound()
+  const appCards = apps.filter((a) => a.installed && a.admin.customerDetailCard).map((a) => a.id)
   // `?edit=1` (the order page's "View profile" → edit) opens the editor straight away.
-  return <CustomerView customer={customer} startEditing={edit === '1'} />
+  return <CustomerView customer={customer} appCards={appCards} startEditing={edit === '1'} />
 }

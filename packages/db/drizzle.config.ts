@@ -23,6 +23,7 @@ export default defineConfig({
     '../plugin-back-in-stock/src/schema.ts',
     '../plugin-forms/src/schema.ts',
     '../plugin-reviews/src/schema.ts',
+    '../plugin-growthbook/src/schema.ts',
   ],
   out: './drizzle',
   casing: 'snake_case',

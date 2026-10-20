@@ -49,7 +49,8 @@ export function createShippingTracker(
         )
         for (const row of open) {
           const provider = providers.find((p) => p.id === row.provider)
-          if (!provider) continue
+          // No feed to ask (India Post): the merchant sets the status by hand.
+          if (!provider || provider.tracksManually) continue
           try {
             const tracking = await provider.track(row.waybill)
             const r = await withStore(db, storeId, (tx) =>

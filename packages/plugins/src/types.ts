@@ -45,16 +45,27 @@ export type PluginProvides = {
 }
 
 /**
- * Order lifecycle events an installed app can react to. Fired by the worker,
- * at least once per (order, event) or (refund, event); hooks must be idempotent.
+ * Lifecycle events an installed app can react to. Fired by the worker, at least once per
+ * (order, event), (refund, event) or customer change; hooks must be idempotent.
+ * `customer.created` / `customer.updated` fire on each change to a customer's profile
+ * (sign-up, checkout, profile or admin edit); `orderId` is empty for them.
  */
-export type AppEvent = 'order.paid' | 'order.fulfilled' | 'order.delivered' | 'refund.created'
+export type AppEvent =
+  | 'order.paid'
+  | 'order.fulfilled'
+  | 'order.delivered'
+  | 'refund.created'
+  | 'customer.created'
+  | 'customer.updated'
 
 export type AppEventPayload = {
   storeId: string
+  /** Empty for the `customer.*` events. */
   orderId: string
   /** Set for `refund.created`. */
   refundId?: string | undefined
+  /** Set for `customer.created` and `customer.updated`. */
+  customerId?: string | undefined
 }
 
 /** What a hook gets to work with. Everything is scoped to the one store. */
@@ -216,6 +227,8 @@ export type AppAdmin = {
   pages?: AppPage[] | undefined
   /** A card on the order detail page. */
   orderDetailCard?: boolean | undefined
+  /** A card on the customer detail page. */
+  customerDetailCard?: boolean | undefined
   /** Actions on orders: the order page's "More actions", the list's row menu and bulk bar. */
   orderActions?: OrderAction[] | undefined
 }
@@ -389,6 +402,7 @@ export type PluginSummary = {
     icon: string | null
     pages: AppPage[]
     orderDetailCard: boolean
+    customerDetailCard: boolean
     /** Declared actions plus a Create shipment per courier the plugin provides. */
     orderActions: OrderAction[]
   }

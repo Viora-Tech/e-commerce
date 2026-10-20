@@ -1,3 +1,4 @@
+/** SOURCE OF TRUTH: compileEmailDesign — WHAT: MJML to sanitised email HTML with the compiler's errors / WHY: one server-side compile step for saving, previewing and sending a design */
 import mjml2html from 'mjml'
 import { MAX_DESIGN_MJML, sanitizeEmailHtml } from './email-design'
 

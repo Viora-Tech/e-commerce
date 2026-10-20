@@ -1,3 +1,4 @@
+/** SOURCE OF TRUTH: email designs — WHAT: the visual builder's saved design (MJML + project), its merge tags, HTML sanitising, plain-text fallback and the starter/product/discount MJML snippets / WHY: the builder, campaign sends and previews must render one design the same way */
 import { z } from 'zod'
 import {
   type EmailLabels,
@@ -20,7 +21,7 @@ export type EmailEditor = (typeof EMAIL_EDITORS)[number]
 
 /** 400 kB of MJML is far beyond any real email; the project JSON is bounded on its own. */
 export const MAX_DESIGN_MJML = 400_000
-export const MAX_DESIGN_PROJECT = 2_000_000
+const MAX_DESIGN_PROJECT = 2_000_000
 
 export const EmailDesignSchema = z.object({
   /** GrapesJS `getProjectData()`; only the builder reads it back. */

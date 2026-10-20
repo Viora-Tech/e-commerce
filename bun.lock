@@ -17,8 +17,10 @@
         "@commerce/payments-decentro": "workspace:*",
         "@commerce/payments-razorpay": "workspace:*",
         "@commerce/plugin-back-in-stock": "workspace:*",
+        "@commerce/plugin-chatwoot": "workspace:*",
         "@commerce/plugin-emi": "workspace:*",
         "@commerce/plugin-forms": "workspace:*",
+        "@commerce/plugin-growthbook": "workspace:*",
         "@commerce/plugin-gst-invoices": "workspace:*",
         "@commerce/plugin-meilisearch": "workspace:*",
         "@commerce/plugin-reviews": "workspace:*",
@@ -26,9 +28,17 @@
         "@commerce/plugin-shopify-import": "workspace:*",
         "@commerce/plugin-umami": "workspace:*",
         "@commerce/plugins": "workspace:*",
+        "@commerce/shipping-bluedart": "workspace:*",
         "@commerce/shipping-delhivery": "workspace:*",
+        "@commerce/shipping-dhl-express": "workspace:*",
+        "@commerce/shipping-dtdc": "workspace:*",
+        "@commerce/shipping-ekart": "workspace:*",
+        "@commerce/shipping-fedex": "workspace:*",
+        "@commerce/shipping-indiapost": "workspace:*",
         "@commerce/shipping-rapidshyp": "workspace:*",
+        "@commerce/shipping-shadowfax": "workspace:*",
         "@commerce/shipping-shiprocket": "workspace:*",
+        "@commerce/shipping-xpressbees": "workspace:*",
         "@commerce/storage-r2": "workspace:*",
         "@commerce/storage-s3": "workspace:*",
         "drizzle-orm": "^0.45.2",
@@ -61,8 +71,10 @@
         "@commerce/observability": "workspace:*",
         "@commerce/payments": "workspace:*",
         "@commerce/plugin-back-in-stock": "workspace:*",
+        "@commerce/plugin-chatwoot": "workspace:*",
         "@commerce/plugin-emi": "workspace:*",
         "@commerce/plugin-forms": "workspace:*",
+        "@commerce/plugin-growthbook": "workspace:*",
         "@commerce/plugin-meilisearch": "workspace:*",
         "@commerce/plugin-reviews": "workspace:*",
         "@commerce/plugin-search-console": "workspace:*",
@@ -71,6 +83,8 @@
         "@commerce/queue": "workspace:*",
         "@commerce/richtext": "workspace:*",
         "@commerce/shipping-delhivery": "workspace:*",
+        "@commerce/shipping-dhl-express": "workspace:*",
+        "@commerce/shipping-fedex": "workspace:*",
         "@commerce/shipping-shiprocket": "workspace:*",
         "@commerce/storage": "workspace:*",
         "@commerce/ui": "workspace:*",
@@ -177,8 +191,10 @@
         "@commerce/observability": "workspace:*",
         "@commerce/payments": "workspace:*",
         "@commerce/plugin-back-in-stock": "workspace:*",
+        "@commerce/plugin-chatwoot": "workspace:*",
         "@commerce/plugin-emi": "workspace:*",
         "@commerce/plugin-forms": "workspace:*",
+        "@commerce/plugin-growthbook": "workspace:*",
         "@commerce/plugin-gst-invoices": "workspace:*",
         "@commerce/plugin-meilisearch": "workspace:*",
         "@commerce/plugin-reviews": "workspace:*",
@@ -225,7 +241,9 @@
         "@commerce/observability": "workspace:*",
         "@commerce/payments": "workspace:*",
         "@commerce/plugin-back-in-stock": "workspace:*",
+        "@commerce/plugin-chatwoot": "workspace:*",
         "@commerce/plugin-forms": "workspace:*",
+        "@commerce/plugin-growthbook": "workspace:*",
         "@commerce/plugin-meilisearch": "workspace:*",
         "@commerce/plugin-reviews": "workspace:*",
         "@commerce/plugin-search-console": "workspace:*",
@@ -310,8 +328,10 @@
         "@commerce/payments-cashfree": "workspace:*",
         "@commerce/payments-razorpay": "workspace:*",
         "@commerce/plugin-back-in-stock": "workspace:*",
+        "@commerce/plugin-chatwoot": "workspace:*",
         "@commerce/plugin-emi": "workspace:*",
         "@commerce/plugin-forms": "workspace:*",
+        "@commerce/plugin-growthbook": "workspace:*",
         "@commerce/plugin-gst-invoices": "workspace:*",
         "@commerce/plugin-meilisearch": "workspace:*",
         "@commerce/plugin-reviews": "workspace:*",
@@ -320,6 +340,7 @@
         "@commerce/plugin-umami": "workspace:*",
         "@commerce/plugins": "workspace:*",
         "@commerce/shipping": "workspace:*",
+        "@commerce/shipping-indiapost": "workspace:*",
         "@commerce/storage": "workspace:*",
         "@orpc/client": "^1.15.2",
         "@orpc/server": "^1.15.2",
@@ -433,6 +454,7 @@
         "libphonenumber-js": "^1.13.15",
         "liquidjs": "10.30.0",
         "mjml": "5.4.1",
+        "pdf-lib": "^1.17.1",
         "sharp": "^0.35.4",
         "thumbhash": "^0.1.1",
         "zod": "^4.6.5",
@@ -695,6 +717,23 @@
         "react": "^19.0.0",
       },
     },
+    "packages/plugin-chatwoot": {
+      "name": "@commerce/plugin-chatwoot",
+      "version": "0.0.0",
+      "dependencies": {
+        "@commerce/core": "workspace:*",
+        "@commerce/db": "workspace:*",
+        "@commerce/plugins": "workspace:*",
+        "drizzle-orm": "^0.45.2",
+        "zod": "^4.6.5",
+      },
+      "devDependencies": {
+        "@commerce/config": "workspace:*",
+        "@types/node": "^22.20.4",
+        "typescript": "~5.9.3",
+        "vitest": "^4.1.11",
+      },
+    },
     "packages/plugin-emi": {
       "name": "@commerce/plugin-emi",
       "version": "0.0.0",
@@ -738,6 +777,24 @@
       },
       "peerDependencies": {
         "react": "^19.0.0",
+      },
+    },
+    "packages/plugin-growthbook": {
+      "name": "@commerce/plugin-growthbook",
+      "version": "0.0.0",
+      "dependencies": {
+        "@commerce/core": "workspace:*",
+        "@commerce/db": "workspace:*",
+        "@commerce/plugins": "workspace:*",
+        "@growthbook/growthbook": "1.8.0",
+        "drizzle-orm": "^0.45.2",
+        "zod": "^4.6.5",
+      },
+      "devDependencies": {
+        "@commerce/config": "workspace:*",
+        "@types/node": "^22.20.4",
+        "typescript": "~5.9.3",
+        "vitest": "^4.1.11",
       },
     },
     "packages/plugin-gst-invoices": {
@@ -921,6 +978,21 @@
         "vitest": "^4.1.11",
       },
     },
+    "packages/shipping-bluedart": {
+      "name": "@commerce/shipping-bluedart",
+      "version": "0.0.0",
+      "dependencies": {
+        "@commerce/plugins": "workspace:*",
+        "@commerce/shipping": "workspace:*",
+      },
+      "devDependencies": {
+        "@commerce/config": "workspace:*",
+        "@types/node": "^22.20.4",
+        "dotenv": "^18.0.1",
+        "typescript": "~5.9.3",
+        "vitest": "^4.1.11",
+      },
+    },
     "packages/shipping-delhivery": {
       "name": "@commerce/shipping-delhivery",
       "version": "0.0.0",
@@ -935,6 +1007,94 @@
         "@types/node": "^22.20.4",
         "@types/react": "^19.2.8",
         "dotenv": "^18.0.1",
+        "react": "^19.2.0",
+        "typescript": "~5.9.3",
+        "vitest": "^4.1.11",
+      },
+      "peerDependencies": {
+        "react": "^19.0.0",
+      },
+    },
+    "packages/shipping-dhl-express": {
+      "name": "@commerce/shipping-dhl-express",
+      "version": "0.0.0",
+      "dependencies": {
+        "@commerce/plugins": "workspace:*",
+        "@commerce/shipping": "workspace:*",
+      },
+      "devDependencies": {
+        "@commerce/config": "workspace:*",
+        "@types/node": "^22.20.4",
+        "typescript": "~5.9.3",
+        "vitest": "^4.1.11",
+      },
+    },
+    "packages/shipping-dtdc": {
+      "name": "@commerce/shipping-dtdc",
+      "version": "0.0.0",
+      "dependencies": {
+        "@commerce/plugins": "workspace:*",
+        "@commerce/shipping": "workspace:*",
+      },
+      "devDependencies": {
+        "@commerce/config": "workspace:*",
+        "@types/node": "^22.20.4",
+        "dotenv": "^18.0.1",
+        "typescript": "~5.9.3",
+        "vitest": "^4.1.11",
+      },
+    },
+    "packages/shipping-ekart": {
+      "name": "@commerce/shipping-ekart",
+      "version": "0.0.0",
+      "dependencies": {
+        "@commerce/blocks": "workspace:*",
+        "@commerce/observability": "workspace:*",
+        "@commerce/plugins": "workspace:*",
+        "@commerce/shipping": "workspace:*",
+      },
+      "devDependencies": {
+        "@commerce/config": "workspace:*",
+        "@types/node": "^22.20.4",
+        "@types/react": "^19.2.8",
+        "dotenv": "^18.0.1",
+        "react": "^19.2.0",
+        "typescript": "~5.9.3",
+        "vitest": "^4.1.11",
+      },
+      "peerDependencies": {
+        "react": "^19.0.0",
+      },
+    },
+    "packages/shipping-fedex": {
+      "name": "@commerce/shipping-fedex",
+      "version": "0.0.0",
+      "dependencies": {
+        "@commerce/plugins": "workspace:*",
+        "@commerce/shipping": "workspace:*",
+      },
+      "devDependencies": {
+        "@commerce/config": "workspace:*",
+        "@types/node": "^22.20.4",
+        "typescript": "~5.9.3",
+        "vitest": "^4.1.11",
+      },
+    },
+    "packages/shipping-indiapost": {
+      "name": "@commerce/shipping-indiapost",
+      "version": "0.0.0",
+      "dependencies": {
+        "@commerce/blocks": "workspace:*",
+        "@commerce/invoices": "workspace:*",
+        "@commerce/money": "workspace:*",
+        "@commerce/plugins": "workspace:*",
+        "@commerce/shipping": "workspace:*",
+        "@react-pdf/renderer": "^4.9.0",
+      },
+      "devDependencies": {
+        "@commerce/config": "workspace:*",
+        "@types/node": "^22.20.4",
+        "@types/react": "^19.2.8",
         "react": "^19.2.0",
         "typescript": "~5.9.3",
         "vitest": "^4.1.11",
@@ -964,8 +1124,52 @@
         "react": "^19.0.0",
       },
     },
+    "packages/shipping-shadowfax": {
+      "name": "@commerce/shipping-shadowfax",
+      "version": "0.0.0",
+      "dependencies": {
+        "@commerce/blocks": "workspace:*",
+        "@commerce/observability": "workspace:*",
+        "@commerce/plugins": "workspace:*",
+        "@commerce/shipping": "workspace:*",
+      },
+      "devDependencies": {
+        "@commerce/config": "workspace:*",
+        "@types/node": "^22.20.4",
+        "@types/react": "^19.2.8",
+        "dotenv": "^18.0.1",
+        "react": "^19.2.0",
+        "typescript": "~5.9.3",
+        "vitest": "^4.1.11",
+      },
+      "peerDependencies": {
+        "react": "^19.0.0",
+      },
+    },
     "packages/shipping-shiprocket": {
       "name": "@commerce/shipping-shiprocket",
+      "version": "0.0.0",
+      "dependencies": {
+        "@commerce/blocks": "workspace:*",
+        "@commerce/observability": "workspace:*",
+        "@commerce/plugins": "workspace:*",
+        "@commerce/shipping": "workspace:*",
+      },
+      "devDependencies": {
+        "@commerce/config": "workspace:*",
+        "@types/node": "^22.20.4",
+        "@types/react": "^19.2.8",
+        "dotenv": "^18.0.1",
+        "react": "^19.2.0",
+        "typescript": "~5.9.3",
+        "vitest": "^4.1.11",
+      },
+      "peerDependencies": {
+        "react": "^19.0.0",
+      },
+    },
+    "packages/shipping-xpressbees": {
+      "name": "@commerce/shipping-xpressbees",
       "version": "0.0.0",
       "dependencies": {
         "@commerce/blocks": "workspace:*",
@@ -1327,10 +1531,12 @@
 
     "@commerce/plugin-back-in-stock": ["@commerce/plugin-back-in-stock@workspace:packages/plugin-back-in-stock"],
 
+    "@commerce/plugin-chatwoot": ["@commerce/plugin-chatwoot@workspace:packages/plugin-chatwoot"],
     "@commerce/plugin-emi": ["@commerce/plugin-emi@workspace:packages/plugin-emi"],
 
     "@commerce/plugin-forms": ["@commerce/plugin-forms@workspace:packages/plugin-forms"],
 
+    "@commerce/plugin-growthbook": ["@commerce/plugin-growthbook@workspace:packages/plugin-growthbook"],
     "@commerce/plugin-gst-invoices": ["@commerce/plugin-gst-invoices@workspace:packages/plugin-gst-invoices"],
 
     "@commerce/plugin-meilisearch": ["@commerce/plugin-meilisearch@workspace:packages/plugin-meilisearch"],
@@ -1350,12 +1556,22 @@
 
     "@commerce/shipping": ["@commerce/shipping@workspace:packages/shipping"],
 
+    "@commerce/shipping-bluedart": ["@commerce/shipping-bluedart@workspace:packages/shipping-bluedart"],
+
     "@commerce/shipping-delhivery": ["@commerce/shipping-delhivery@workspace:packages/shipping-delhivery"],
 
+    "@commerce/shipping-dhl-express": ["@commerce/shipping-dhl-express@workspace:packages/shipping-dhl-express"],
+    "@commerce/shipping-dtdc": ["@commerce/shipping-dtdc@workspace:packages/shipping-dtdc"],
+
+    "@commerce/shipping-ekart": ["@commerce/shipping-ekart@workspace:packages/shipping-ekart"],
+    "@commerce/shipping-fedex": ["@commerce/shipping-fedex@workspace:packages/shipping-fedex"],
+    "@commerce/shipping-indiapost": ["@commerce/shipping-indiapost@workspace:packages/shipping-indiapost"],
     "@commerce/shipping-rapidshyp": ["@commerce/shipping-rapidshyp@workspace:packages/shipping-rapidshyp"],
 
+    "@commerce/shipping-shadowfax": ["@commerce/shipping-shadowfax@workspace:packages/shipping-shadowfax"],
     "@commerce/shipping-shiprocket": ["@commerce/shipping-shiprocket@workspace:packages/shipping-shiprocket"],
 
+    "@commerce/shipping-xpressbees": ["@commerce/shipping-xpressbees@workspace:packages/shipping-xpressbees"],
     "@commerce/storage": ["@commerce/storage@workspace:packages/storage"],
 
     "@commerce/storage-r2": ["@commerce/storage-r2@workspace:packages/storage-r2"],
@@ -1491,6 +1707,8 @@
     "@floating-ui/utils": ["@floating-ui/utils@0.2.12", "", {}, "sha512-HpCo8tmWzLVad5s2d19EhAz5zqrrQ6s69qd6moPMQvkOuSwDT1YgRfWSVuc4ennqrgv3OHppiOGMQ7oC13yIww=="],
 
     "@formatjs/intl-localematcher": ["@formatjs/intl-localematcher@0.6.2", "", { "dependencies": { "tslib": "^2.8.0" } }, "sha512-XOMO2Hupl0wdd172Y06h6kLpBz6Dv+J4okPLl4LPtzbr8f66WbIoy4ev98EBuZ6ZK4h5ydTN6XneT4QVpD7cdA=="],
+
+    "@growthbook/growthbook": ["@growthbook/growthbook@1.8.0", "", { "dependencies": { "dom-mutator": "^0.6.0" } }, "sha512-WlS5bCwm0EJQDdTNkiPGE1X9EdvU7BIaAbHP8pg/5xP1stRyUI7sPQMpC21p6B2c/VvgxatGn/tM+r0SYnhfQw=="],
 
     "@headlessui/react": ["@headlessui/react@2.2.10", "", { "dependencies": { "@floating-ui/react": "^0.26.16", "@react-aria/focus": "^3.20.2", "@react-aria/interactions": "^3.25.0", "@tanstack/react-virtual": "^3.13.9", "use-sync-external-store": "^1.5.0" }, "peerDependencies": { "react": "^18 || ^19 || ^19.0.0-rc", "react-dom": "^18 || ^19 || ^19.0.0-rc" } }, "sha512-5pVLNK9wlpxTUTy9GpgbX/SdcRh+HBnPktjM2wbiLTH4p+2EPHBO1aoSryUCuKUIItdDWO9ITlhUL8UnUN/oIA=="],
 
@@ -2829,6 +3047,8 @@
     "dijkstrajs": ["dijkstrajs@1.0.3", "", {}, "sha512-qiSlmBq9+BCdCA/L46dw8Uy93mloxsPSbwnm5yrKn2vMPiy8KyAskTF6zuV/j5BMsmOGZDPs7KjU+mjb670kfA=="],
 
     "dom-accessibility-api": ["dom-accessibility-api@0.5.16", "", {}, "sha512-X7BJ2yElsnOJ30pZF4uIIDfBEVgF4XEBxL9Bxhy6dnrm5hkzqmsWHGTiHqRiITNhMyFLyAiWndIJP7Z1NTteDg=="],
+
+    "dom-mutator": ["dom-mutator@0.6.0", "", {}, "sha512-iCt9o0aYfXMUkz/43ZOAUFQYotjGB+GNbYJiJdz4TgXkyToXbbRy5S6FbTp72lRBtfpUMwEc1KmpFEU4CZeoNg=="],
 
     "dom-serializer": ["dom-serializer@2.0.0", "", { "dependencies": { "domelementtype": "^2.3.0", "domhandler": "^5.0.2", "entities": "^4.2.0" } }, "sha512-wIkAryiqt/nV5EQKqQpo3SToSOV9J0DnbJqwK7Wv/Trc92zIAYZ4FlMu+JPFW1DfGFt81ZTCGgDEabffXeLyJg=="],
 

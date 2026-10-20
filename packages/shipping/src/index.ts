@@ -7,6 +7,16 @@ export {
   courierFetch,
   courierJson,
 } from './courier-error'
+export { isDomesticCountry, servesDestination } from './coverage'
+export {
+  type CustomsLine,
+  type CustomsLinesResult,
+  customsLines,
+  indiaLocalTime,
+  missingHsCodeMessage,
+  normaliseHsCode,
+  wrapAddressLines,
+} from './customs'
 export * from './delivery-date'
 export {
   type DeliveryEstimate,
@@ -16,7 +26,8 @@ export {
   type ShippingPolicy,
 } from './estimate'
 export { type FakeShippingConfig, FakeShippingProvider, fakeShippingFactory } from './fake'
+export { LoginTokenCache } from './login-token'
 export * from './pincode'
 export { ShippingRegistry } from './registry'
 export type * from './types'
-export { timingSafeEqualString } from './webhook-auth'
+export { firstHeader, hmacSha256Matches, timingSafeEqualString } from './webhook-auth'

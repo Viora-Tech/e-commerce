@@ -137,7 +137,13 @@ const appState = (id: string, actions: OrderAction[], extra = {}) => ({
   builtIn: false,
   installed: true,
   connected: true,
-  admin: { icon: 'Truck', pages: [], orderDetailCard: false, orderActions: actions },
+  admin: {
+    icon: 'Truck',
+    pages: [],
+    orderDetailCard: false,
+    customerDetailCard: false,
+    orderActions: actions,
+  },
   ...extra,
 })
 

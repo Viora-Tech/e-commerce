@@ -3,6 +3,7 @@ import { customer, customerIdentity, type SHOPPER_IDENTITY_PROVIDERS } from '@co
 import { and, desc, eq, isNull } from 'drizzle-orm'
 import { phoneSignInMatch } from '../accounts/phone-proof'
 import type { StoreContext } from '../context'
+import { recordCustomerChange } from '../customers/changes'
 import { encryptCustomerPhone, phoneBlindIndex } from '../customers/phone-crypto'
 
 export type IdentityProvider = (typeof SHOPPER_IDENTITY_PROVIDERS)[number]
@@ -266,6 +267,7 @@ export async function resolveShopperIdentity(
           )
       }
       await linkIdentity(ctx, customerId, identity, now)
+      await recordCustomerChange(ctx.tx, ctx.storeId, customerId, 'created')
       return { kind: 'signed_in', customerId, created: true }
     }
     case 'verify_email':

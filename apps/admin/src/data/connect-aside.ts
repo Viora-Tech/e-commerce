@@ -49,5 +49,90 @@ export const connectAsideContent = {
       helpTitle: 'Where is my API key?',
       helpBody: 'In your RapidShyp dashboard, open Settings › API and copy the key shown there.',
     },
+    bluedart: {
+      connects: [
+        'PIN serviceability and delivery dates at checkout',
+        'Book waybills with the label PDF',
+        'Pickups registered with every booking',
+        'Tracking on every order',
+      ],
+      helpTitle: 'Where are my Blue Dart keys?',
+      helpBody:
+        'Create an app for the Blue Dart APIs on the DHL developer portal (developer.dhl.com, My Apps) for the Client ID and secret. The Login ID, licence key, customer code and area code come from your Blue Dart account manager.',
+    },
+    dtdc: {
+      connects: [
+        'PIN serviceability at checkout',
+        'Book consignments and print labels',
+        'Tracking on every order',
+        'Cancel a booking before pickup',
+      ],
+      helpTitle: 'Where is my DTDC API key?',
+      helpBody:
+        'DTDC sends the API key, customer code and the tracking username and password when your account manager turns on API access. Ask them if you have not received it.',
+    },
+    'india-post': {
+      connects: [
+        'Every Indian PIN code, with its post office',
+        'Speed Post rates from India Post’s tariff',
+        'Address labels with a barcode, COD on the label',
+        'Parcel status you set, on every order',
+      ],
+      helpTitle: 'Where do I get a data.gov.in key?',
+      helpBody:
+        'Sign up free at data.gov.in, open My Account, and copy the API key shown there. It is optional: without it rates and delivery times still work.',
+    },
+    xpressbees: {
+      connects: [
+        'Rates for every Xpressbees service on a route',
+        'Book shipments with automatic pickup and print labels',
+        'Tracking and failed delivery (NDR) follow-ups',
+      ],
+      helpTitle: 'Which login do I use?',
+      helpBody:
+        'The email and password you sign in to shipment.xpressbees.com with. Your Xpressbees account manager turns on API access.',
+    },
+    ekart: {
+      connects: [
+        'Ekart price and delivery days at checkout',
+        'Book shipments and return pickups',
+        'Tracking and failed delivery (NDR) follow-ups',
+      ],
+      helpTitle: 'Where are my API credentials?',
+      helpBody:
+        'Ekart emails a client ID, API username and password at onboarding. Ask your Ekart account manager if you cannot find them.',
+    },
+    shadowfax: {
+      connects: [
+        'PIN serviceability at checkout',
+        'Book shipments and return pickups, and print labels',
+        'Tracking and failed delivery (NDR) follow-ups',
+      ],
+      helpTitle: 'Where is my API key?',
+      helpBody:
+        'Shadowfax emails it when your account is activated. Staging and production keys differ; use the production key.',
+    },
+    'dhl-express': {
+      connects: [
+        'DHL Express rates to the shopper’s country, in rupees',
+        'Labels with the commercial invoice in one PDF',
+        'A DHL pickup booked with each shipment',
+        'Tracking on every export',
+      ],
+      helpTitle: 'Where are my API key and secret?',
+      helpBody:
+        'On developer.dhl.com, open My apps, pick the app with "DHL Express - MyDHL API" and copy its key and secret. Your account number is on your DHL invoice.',
+    },
+    fedex: {
+      connects: [
+        'FedEx rates to the shopper’s country, in rupees',
+        'Labels with the commercial invoice in one PDF',
+        'A FedEx pickup after each booking',
+        'Tracking and cancellation',
+      ],
+      helpTitle: 'Where are my API key and secret key?',
+      helpBody:
+        'On developer.fedex.com, open My Projects, pick your project and copy the key pair for test or production. Your account number is on your FedEx invoice.',
+    },
   } as Record<string, { connects: string[]; helpTitle: string; helpBody: string }>,
 } as const
