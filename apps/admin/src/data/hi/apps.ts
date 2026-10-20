@@ -151,6 +151,7 @@ export default [
         shipping: 'शिपिंग',
         messages: 'मैसेज',
         analytics: 'एनालिटिक्स',
+        search: 'सर्च',
       },
       categoryFallback: (slug: string) => slug.charAt(0).toUpperCase() + slug.slice(1),
       noResultsHeading: 'कोई ऐप नहीं मिला',

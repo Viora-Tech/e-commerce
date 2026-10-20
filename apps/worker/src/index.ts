@@ -325,6 +325,7 @@ const shutdown = async () => {
   await marketing.sendQueue.close()
   await outboxRelay.worker.close()
   await outboxRelay.queue.close()
+  await outboxRelay.appJobs.close()
   await backInStock.worker.close()
   await backInStock.queue.close()
   await storeExport.worker.close()

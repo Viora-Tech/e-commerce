@@ -12,6 +12,7 @@ import { SEARCH_PER_PAGE, searchContent } from '@/data/search'
 import { listCardProducts } from '@/lib/catalog'
 import { digest } from '@/lib/liquid-cache'
 import { storeRead } from '@/lib/store-cache'
+import '@/lib/search-engine'
 import { renderTemplate } from '@/lib/template-render'
 
 type Params = {
@@ -44,6 +45,7 @@ export default async function SearchPage({ params, searchParams }: Params) {
     ? await storeRead(storeId, `search|${digest([q, filters, sort, page])}`, async (tx) => {
         const result = await browseProducts(tx, {
           query: q,
+          storeId,
           filters,
           sort,
           page,

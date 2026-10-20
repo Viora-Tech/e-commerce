@@ -30,6 +30,7 @@ export type ConnectionCategory =
   | 'messages'
   | 'analytics'
   | 'marketing'
+  | 'search'
 
 /**
  * What a plugin contributes. A plugin is a package that ships one or more

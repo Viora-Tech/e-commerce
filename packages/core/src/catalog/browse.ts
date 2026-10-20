@@ -2,6 +2,7 @@ import type { StoreTx } from '@commerce/db'
 import { type SQL, sql } from 'drizzle-orm'
 import { FILTERABLE_FIELD_TYPES } from '../metaobjects/schemas'
 import { type BrowseFilters, type BrowseSort, EMPTY_FILTERS } from './browse-params'
+import { engineProductIds } from './search-engine'
 
 /**
  * Collection and search listings with Shopify-style filters, facets and sorts,
@@ -49,6 +50,11 @@ export type BrowseInput = {
   collectionId?: string | undefined
   /** Free-text search over title, vendor, type, handle, tags, SKU and description. */
   query?: string | undefined
+  /**
+   * The store, so a search can ask its search engine (the Meilisearch app) for the matching
+   * products first. Left out, or no engine ready, the built-in SQL search runs.
+   */
+  storeId?: string | undefined
   filters: BrowseFilters
   sort: BrowseSort
   page: number
@@ -114,9 +120,21 @@ function searchClauses(query: string): { match: SQL; relevance: SQL } | null {
   return { match, relevance }
 }
 
-/** Every active product in scope with the fields filters and sorts need. */
-function baseQuery(input: BrowseInput): SQL {
-  const search = searchClauses(input.query ?? '')
+/**
+ * The engine's matches as the search: only those products, ranked in the engine's order. The
+ * ids travel as one text parameter (already checked to be uuids by `engineProductIds`).
+ */
+function rankedClauses(ids: string[]): { match: SQL; relevance: SQL } {
+  const list = sql`string_to_array(${ids.join(',')}, ',')::uuid[]`
+  return { match: sql`p.id = any(${list})`, relevance: sql`array_position(${list}, p.id)` }
+}
+
+/**
+ * Every active product in scope with the fields filters and sorts need. `ranked` is the search
+ * engine's answer for the query; null means search in SQL.
+ */
+function baseQuery(input: BrowseInput, ranked: string[] | null = null): SQL {
+  const search = ranked ? rankedClauses(ranked) : searchClauses(input.query ?? '')
   const join = input.collectionId
     ? sql`join collection_product cp on cp.product_id = p.id and cp.collection_id = ${input.collectionId}`
     : sql``
@@ -285,8 +303,14 @@ function orderBy(sort: BrowseSort): SQL {
 type Row = Record<string, unknown>
 const num = (v: unknown): number => Number(v ?? 0)
 
+/** The search engine's matches for a search with a store, or null to search in SQL. */
+async function rankedFor(tx: StoreTx, storeId: string | undefined, query: string | undefined) {
+  if (!storeId || !query || !searchTerms(query).length) return null
+  return engineProductIds(tx, storeId, query.trim().slice(0, 100))
+}
+
 export async function browseProducts(tx: StoreTx, input: BrowseInput): Promise<BrowseResult> {
-  const base = baseQuery(input)
+  const base = baseQuery(input, await rankedFor(tx, input.storeId, input.query))
   const where = filterWhere(input.filters)
   const offset = (Math.max(1, input.page) - 1) * input.perPage
 
@@ -381,12 +405,30 @@ export async function browseProducts(tx: StoreTx, input: BrowseInput): Promise<B
   }
 }
 
-/** Quick matches for the header's predictive search: a few product handles, best first. */
-export async function suggestProducts(tx: StoreTx, query: string, limit = 6): Promise<string[]> {
+/**
+ * Quick matches for the header's predictive search: a few product handles, best first. With
+ * `storeId`, the store's search engine ranks them when it has one ready.
+ */
+export async function suggestProducts(
+  tx: StoreTx,
+  query: string,
+  limit = 6,
+  storeId?: string,
+): Promise<string[]> {
   const q = query.trim().slice(0, 100)
   if (q.length < 2) return []
+  const ranked = storeId ? await engineProductIds(tx, storeId, q, limit * 4) : null
+  const input = {
+    query: q,
+    filters: EMPTY_FILTERS,
+    sort: 'relevance' as const,
+    page: 1,
+    perPage: limit,
+  }
+  // The engine's order is the answer; SQL's own ranking puts in-stock products first.
+  const order = ranked ? sql`b.relevance` : sql`b.relevance, b.in_stock desc, b.title`
   const rows = await tx.execute<Row>(sql`
-    with b as (${baseQuery({ query: q, filters: EMPTY_FILTERS, sort: 'relevance', page: 1, perPage: limit })})
-    select b.handle from b order by b.relevance, b.in_stock desc, b.title limit ${limit}`)
+    with b as (${baseQuery(input, ranked)})
+    select b.handle from b order by ${order} limit ${limit}`)
   return rows.map((r) => String(r.handle))
 }

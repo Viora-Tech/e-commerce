@@ -161,6 +161,7 @@ export const appsContent = {
       shipping: 'Shipping',
       messages: 'Messages',
       analytics: 'Analytics',
+      search: 'Search',
     } as Record<string, string>,
     categoryFallback: (slug: string) => slug.charAt(0).toUpperCase() + slug.slice(1),
     noResultsHeading: 'No apps match',

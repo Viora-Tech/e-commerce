@@ -41,6 +41,7 @@ import login from './login'
 import marketingAutomations from './marketing-automations'
 import marketingCampaigns from './marketing-campaigns'
 import mcp from './mcp'
+import meilisearch from './meilisearch'
 import metaobjects from './metaobjects'
 import navigation from './navigation'
 import notifications from './notifications'
@@ -162,4 +163,5 @@ export const hindiCopy: readonly TranslationPair[] = [
   ...seoReport,
   ...seoKeywords,
   ...umami,
+  ...meilisearch,
 ]

@@ -9,6 +9,7 @@ import {
   variantOptionValue,
 } from '@commerce/db'
 import { asc, eq, inArray } from 'drizzle-orm'
+import { noteProductsChanged } from './changes'
 import type { ImportProduct } from './import-csv'
 import { createProduct, deleteProduct, uniqueHandle, updateProduct } from './products'
 import type { ProductStatus, ProductWrite } from './schemas'
@@ -332,6 +333,10 @@ export async function bulkUpdateProducts(
       .where(inArray(product.id, ids))
       .returning({ id: product.id })
     result.changed = rows.length
+    await noteProductsChanged(
+      tx,
+      rows.map((r) => r.id),
+    )
     return result
   }
 
@@ -341,6 +346,7 @@ export async function bulkUpdateProducts(
     .select({ id: product.id, tags: product.tags })
     .from(product)
     .where(inArray(product.id, ids))
+  const changedIds: string[] = []
   for (const row of rows) {
     const has = row.tags.some((t) => t.toLowerCase() === tag.toLowerCase())
     if (action.kind === 'addTag' && has) continue
@@ -351,6 +357,8 @@ export async function bulkUpdateProducts(
         : row.tags.filter((t) => t.toLowerCase() !== tag.toLowerCase())
     await tx.update(product).set({ tags, updatedAt: new Date() }).where(eq(product.id, row.id))
     result.changed++
+    changedIds.push(row.id)
   }
+  await noteProductsChanged(tx, changedIds)
   return result
 }

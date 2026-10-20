@@ -23,6 +23,7 @@ import {
   type BulkEditRow,
   HS_CODE_PATTERN,
 } from './bulk-edit-schemas'
+import { noteProductsChanged } from './changes'
 
 type ProductCells = NonNullable<BulkEditRow['product']>
 type VariantCells = NonNullable<BulkEditRow['variant']>
@@ -419,5 +420,10 @@ export async function bulkEdit(
     }
   }
 
+  await noteProductsChanged(
+    tx,
+    [...undo.keys()].flatMap((v) => current.get(v)?.productId ?? []),
+    storeId,
+  )
   return { ok: true, updatedProducts, updatedVariants, stockChanges, undo: [...undo.values()] }
 }

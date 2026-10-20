@@ -21,6 +21,7 @@ import { adjustStock, setStock } from '../inventory/levels'
 import { setProductMedia } from '../media/service'
 import { onHandleChange } from '../redirects/handle-change'
 import { mediaInStore, withKnownMedia } from '../store-scope'
+import { noteProductsChanged } from './changes'
 import { preorderErrors, productRow, variantRow } from './product-rows'
 import type { InventoryReason, ProductWrite } from './schemas'
 import { slugify } from './slug'
@@ -78,6 +79,7 @@ export async function createProduct(tx: StoreTx, storeId: string, write: Product
     write.inventoryReason,
   )
   if (write.mediaIds) await setProductMedia(tx, storeId, id, write.mediaIds)
+  await noteProductsChanged(tx, [id], storeId)
   return id
 }
 
@@ -109,6 +111,7 @@ export async function updateProduct(tx: StoreTx, storeId: string, id: string, wr
     write.inventoryReason,
   )
   if (write.mediaIds) await setProductMedia(tx, storeId, id, write.mediaIds)
+  await noteProductsChanged(tx, [id], storeId)
   return id
 }
 
@@ -406,6 +409,7 @@ export async function deleteProduct(
       .set({ status: 'archived', updatedAt: new Date() })
       .where(eq(product.id, productId))
     await tx.update(variant).set({ archivedAt: new Date() }).where(eq(variant.productId, productId))
+    await noteProductsChanged(tx, [productId])
     return 'archived'
   }
   // Rows that only point at the product and mean nothing once it is gone. Left in place, their
@@ -433,6 +437,7 @@ export async function deleteProduct(
   }
   await tx.delete(productMedia).where(eq(productMedia.productId, productId))
   await tx.delete(product).where(eq(product.id, productId))
+  await noteProductsChanged(tx, [productId])
   return 'deleted'
 }
 
