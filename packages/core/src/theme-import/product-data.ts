@@ -12,7 +12,7 @@ import {
   variant,
   variantOptionValue,
 } from '@commerce/db'
-import { and, asc, desc, eq, inArray, isNull } from 'drizzle-orm'
+import { and, asc, eq, inArray, isNull } from 'drizzle-orm'
 import type { LiquidImageData, LiquidProductData } from './drops'
 import { richTextHtml } from './rich-html'
 
@@ -23,7 +23,7 @@ const onHand = (v: { onHand: number | null; reserved: number | null; track: bool
 /** Products by id, fully loaded (variants, options, images), in the order given. */
 export async function loadProducts(tx: StoreTx, ids: string[]): Promise<LiquidProductData[]> {
   if (ids.length === 0) return []
-  const [rows, variants, images, options] = await Promise.all([
+  const [rows, variants, images, options, memberships] = await Promise.all([
     tx
       .select()
       .from(product)
@@ -76,6 +76,12 @@ export async function loadProducts(tx: StoreTx, ids: string[]): Promise<LiquidPr
       .leftJoin(productOptionValue, eq(productOptionValue.optionId, productOption.id))
       .where(inArray(productOption.productId, ids))
       .orderBy(asc(productOption.position), asc(productOptionValue.position)),
+    tx
+      .select({ productId: collectionProduct.productId, handle: collection.handle })
+      .from(collectionProduct)
+      .innerJoin(collection, eq(collection.id, collectionProduct.collectionId))
+      .where(and(inArray(collectionProduct.productId, ids), eq(collection.status, 'active')))
+      .orderBy(asc(collection.title)),
   ])
   const variantIds = variants.map((v) => v.id)
   const values = variantIds.length
@@ -124,6 +130,7 @@ export async function loadProducts(tx: StoreTx, ids: string[]): Promise<LiquidPr
         options: [...opts].map(([name, vals]) => ({ name, values: vals })),
         createdAt: p.createdAt,
         preorder: p.preorderEnabled,
+        collectionHandles: memberships.filter((m) => m.productId === id).map((m) => m.handle),
         variants: variants
           .filter((v) => v.productId === id)
           .map((v) => {
@@ -168,7 +175,7 @@ export async function productsByHandles(
 
 /**
  * Several collections' active products in their own order, the first `limit` of each, in one
- * load (`all` is the newest products). A handle that names no collection gets an empty list.
+ * load (`all` is every product A to Z by title, the order Shopify's `collections.all` reads in). A handle that names no collection gets an empty list.
  */
 export async function collectionsProducts(
   tx: StoreTx,
@@ -197,7 +204,7 @@ export async function collectionsProducts(
         .select({ id: product.id })
         .from(product)
         .where(eq(product.status, 'active'))
-        .orderBy(desc(product.createdAt))
+        .orderBy(asc(product.title), asc(product.id))
         .limit(limit)
     : []
   if (all.length)

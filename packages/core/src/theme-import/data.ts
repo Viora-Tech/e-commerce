@@ -205,11 +205,12 @@ export async function storeLiquidData(
     collectionProducts: (handle, limit) =>
       once(`cp:${handle}:${limit}`, async () => {
         if (handle === 'all') {
+          // Shopify's `collections.all` reads A to Z by title (an empty cart's "Bestsellers").
           const rows = await tx
             .select({ id: product.id })
             .from(product)
             .where(eq(product.status, 'active'))
-            .orderBy(desc(product.createdAt))
+            .orderBy(asc(product.title), asc(product.id))
             .limit(limit)
           return loadProducts(
             tx,
