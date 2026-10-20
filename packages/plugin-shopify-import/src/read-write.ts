@@ -3,6 +3,7 @@
  * snapshot) and hand it to its writer in the right order. On a retry only the
  * records the previous import missed are read and written.
  */
+import { syncAutomaticCollections } from '@commerce/core'
 import type { StorageProvider } from '@commerce/storage'
 import { fetchFiles } from './api-files'
 import { stockRefresher } from './api-stock'
@@ -42,6 +43,7 @@ import type {
   NRedirect,
 } from './types'
 import {
+  linkCollectionMembers,
   redirectSourceId,
   writeArticle,
   writeCollection,
@@ -56,7 +58,7 @@ import { importGiftCards } from './write-gift-cards'
 import { importMetafields } from './write-metafields'
 import { importMetaobjects } from './write-metaobjects'
 import { orderSourceId, writeOrders } from './write-orders'
-import { applyPreorders, productSourceId, writeProducts } from './write-products'
+import { applyPreorders, localHandle, productSourceId, writeProducts } from './write-products'
 
 /** Records per write batch: products are heavy (images, variants), customers light. */
 const PRODUCT_BATCH = 25
@@ -252,6 +254,8 @@ export async function runApi(
     ctx.log(`Shopify bulk read fell back to paged fetching: ${errorMessage(reason)}`)
   const byHandle = (item: { sourceId: string | null; handle: string }) =>
     item.sourceId ?? `handle:${item.handle}`
+  /** Local handles of the products this run wrote, for collection membership. */
+  const written = new Set<string>()
   /**
    * Everything (with the preview's copy when there is one); on a retry only what was missed;
    * for "Import remaining" everything read, but only what is not here yet written.
@@ -276,7 +280,10 @@ export async function runApi(
     await forEachChunk(
       ctx,
       'products',
-      noting(products, (p) => ctx.fileUsage.product(p)),
+      noting(products, (p) => {
+        ctx.fileUsage.product(p)
+        written.add(localHandle(p.handle))
+      }),
       PRODUCT_BATCH,
       (b) => writeProducts(ctx, b),
     )
@@ -296,6 +303,12 @@ export async function runApi(
       (c) => writeCollection(ctx, c),
     )
   }
+  // Unless every collection was just rewritten from Shopify, products written now join the
+  // manual collections they are in there (read fresh: a preview's copy may predate them),
+  // and automatic ones are matched against them.
+  const rewrote =
+    resources.includes('collections') && !only && !snap.use?.reused.includes('collections')
+  if (!ctx.dryRun && written.size > 0 && !rewrote) await joinCollections(ctx, client, written)
   if (wanted('customers')) {
     ctx.log('Asking Shopify to prepare your customers…')
     const customers = read<NCustomer>({
@@ -387,6 +400,35 @@ export async function runApi(
     await optional(ctx, 'discounts', () => importDiscounts(ctx, client, wants(only, 'discounts')))
   if (wanted('gift_cards'))
     await optional(ctx, 'gift_cards', () => importGiftCards(ctx, client, wants(only, 'gift_cards')))
+}
+
+/**
+ * Products a run wrote join their collections when the run did not rewrite those: automatic
+ * ones re-match, manual ones gain the products Shopify lists in them (`linkCollectionMembers`).
+ * The products are already imported, so a failure here is one issue, not a failed run.
+ */
+async function joinCollections(
+  ctx: ImportContext,
+  client: ShopifyClient,
+  written: ReadonlySet<string>,
+) {
+  try {
+    await ctx.inStore((tx) => syncAutomaticCollections(tx, ctx.storeId))
+    let joined = 0
+    for await (const batch of fetchCollections(client)) {
+      for (const c of batch) {
+        ctx.signal?.throwIfAborted()
+        joined += await linkCollectionMembers(ctx, c, written)
+      }
+    }
+    if (joined) ctx.log(`Added ${joined} imported products to their Shopify collections`)
+  } catch (err) {
+    if (ctx.signal?.aborted) throw err
+    ctx.report.issue({
+      resource: 'products',
+      message: `Imported products were not added to their collections: ${errorMessage(err)}. Import Collections again to add them.`,
+    })
+  }
 }
 
 /**
