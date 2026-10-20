@@ -268,5 +268,22 @@ export const gstInvoicesPlugin = definePlugin({
       { path: 'invoices/[id]', title: 'Invoice' },
     ],
     orderDetailCard: true,
+    // Test-mode orders are hidden: they get no GST invoice (see `isTestOrder`).
+    orderActions: [
+      {
+        id: 'generate-invoice',
+        label: { en: 'Generate GST invoice', hi: 'GST इनवॉइस बनाएं' },
+        targets: ['detail', 'row'],
+        handler: { type: 'procedure', procedure: `${GST_INVOICES_ID}/generate` },
+        requires: ['not-test'],
+      },
+      {
+        id: 'add-to-queue',
+        label: { en: 'Add to invoice queue', hi: 'इनवॉइस कतार में जोड़ें' },
+        targets: ['detail', 'row', 'bulk'],
+        handler: { type: 'procedure', procedure: `${GST_INVOICES_ID}/queue-add` },
+        requires: ['not-test'],
+      },
+    ],
   },
 })

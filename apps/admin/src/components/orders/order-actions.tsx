@@ -1,11 +1,19 @@
 'use client'
 
-import { ChevronLeftIcon, ChevronRightIcon, Printer, RotateCcw, Send } from '@commerce/ui/icons'
+import {
+  ChevronLeftIcon,
+  ChevronRightIcon,
+  Printer,
+  RotateCcw,
+  Send,
+  Truck,
+} from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import Link from 'next/link'
 import { useState } from 'react'
-import ActionMenu from '@/components/layout/action-menu'
+import ActionMenu, { type ActionItem } from '@/components/layout/action-menu'
 import ConfirmDialog from '@/components/layout/confirm-dialog'
+import { orderAppActionsContent } from '@/data/order-app-actions'
 import {
   type OrderFulfillmentStatus,
   type OrderMark,
@@ -25,6 +33,10 @@ type OrderActionsProps = {
   onRefund: () => void
   /** Present while a deposit pre-order's balance is owed: "Request balance". */
   onRequestBalance?: (() => void) | undefined
+  /** Present while the order is ready to ship (open, to pack, paid or COD): "Create shipment". */
+  onShip?: (() => void) | undefined
+  /** Installed apps' actions, grouped under each app (`useOrderAppActions`). */
+  appItems?: readonly ActionItem[]
   /** Imported history: only printing and stepping between orders. */
   readOnly?: boolean
   previousId?: string | undefined
@@ -72,12 +84,15 @@ export default function OrderActions({
   onMove,
   onRefund,
   onRequestBalance,
+  onShip,
+  appItems = [],
   readOnly = false,
   previousId,
   nextId,
 }: OrderActionsProps) {
   // Hooks
   const copy = useCopy(orderDetailContent)
+  const appCopy = useCopy(orderAppActionsContent)
   const [confirmCancel, setConfirmCancel] = useState(false)
 
   // Render logic
@@ -129,6 +144,13 @@ export default function OrderActions({
             onSelect: () => menuMove && onMove(menuMove.to),
           },
           {
+            label: appCopy.createShipment,
+            icon: Truck,
+            hidden: !onShip || readOnly,
+            disabled: busy,
+            onSelect: onShip,
+          },
+          {
             label: copy.actions.refund,
             icon: RotateCcw,
             hidden: !refundable,
@@ -142,6 +164,7 @@ export default function OrderActions({
             disabled: busy,
             onSelect: onRequestBalance,
           },
+          ...(readOnly ? [] : appItems),
           {
             label: copy.actions.cancel,
             destructive: true,

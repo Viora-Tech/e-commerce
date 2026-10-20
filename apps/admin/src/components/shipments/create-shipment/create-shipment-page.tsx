@@ -46,6 +46,8 @@ type CreateShipmentPageProps = {
   orderId: string
   /** Back link override; the order page unless opened from Shipments. */
   back?: { label: string; href: string }
+  /** A courier's provider id to start on (a courier app's "Create shipment" order action). */
+  courier?: string | undefined
 }
 
 const SHORT_DATE = { weekday: 'short', day: 'numeric', month: 'short' } as const
@@ -55,7 +57,7 @@ const SHORT_DATE = { weekday: 'short', day: 'numeric', month: 'short' } as const
  * courier on the left with live rates as the package changes; the summary and Book on the
  * right; once booked, the label and the pickup request take the summary's place.
  */
-export default function CreateShipmentPage({ orderId, back }: CreateShipmentPageProps) {
+export default function CreateShipmentPage({ orderId, back, courier }: CreateShipmentPageProps) {
   // Hooks
   const content = useCopy(createShipmentContent)
   const fmt = useFormat()
@@ -71,7 +73,7 @@ export default function CreateShipmentPage({ orderId, back }: CreateShipmentPage
     recheck,
     needsPackage,
     failed: quoteFailed,
-  } = useShipQuote(draft, parcelId, form)
+  } = useShipQuote(draft, parcelId, form, courier)
   const [pickup, setPickup] = useState(() => startingPickupPlan())
   const [wallets, setWallets] = useState<Wallets>([])
   const [tracking, setTracking] = useState<TrackingDraft>(EMPTY_TRACKING)

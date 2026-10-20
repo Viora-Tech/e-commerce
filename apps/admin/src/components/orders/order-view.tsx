@@ -1,13 +1,16 @@
 'use client'
 
+import { permissions } from '@commerce/core/permissions'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { toast } from 'sonner'
+import { type OrderActionGroup, readyToShip } from '@/apps/order-actions'
 import { ADMIN_APPS } from '@/apps/registry'
 import MetafieldsCard from '@/components/metaobjects/metafields-card'
 import { type OrderMark, orderDetailContent, ordersContent } from '@/data/orders'
 import { shipmentPanelContent } from '@/data/shipping'
 import { useCopy } from '@/hooks/use-copy'
+import { usePermissions } from '@/hooks/use-permissions'
 import { api } from '@/lib/api-client'
 import { orderChannel } from '@/lib/order-channel'
 import { routes } from '@/lib/routes'
@@ -41,21 +44,26 @@ import ShipmentPanel from './shipment-panel'
 import TagsCard from './tags-card'
 import TimelineCard from './timeline-card'
 import UnfulfilledCard from './unfulfilled-card'
+import { useOrderAppActions } from './use-order-app-actions'
 
 type OrderViewProps = {
   order: OrderDetail
   /** Installed apps that add a card to this page, by plugin id. */
   appCards?: string[]
+  /** Installed apps' order actions for "More actions" (`api.apps.orderActions`). */
+  appActions?: OrderActionGroup[]
   /** Back link override, e.g. to Shipments when the order was opened from there. */
   back?: { label: string; href: string }
 }
 
-export default function OrderView({ order, appCards = [], back }: OrderViewProps) {
+export default function OrderView({ order, appCards = [], appActions = [], back }: OrderViewProps) {
   // Hooks
   const copy = useCopy(orderDetailContent)
   const listCopy = useCopy(ordersContent)
   const shippingCopy = useCopy(shipmentPanelContent)
   const router = useRouter()
+  const { hasPermission } = usePermissions()
+  const apps = useOrderAppActions(appActions, () => router.refresh())
   const [busy, setBusy] = useState(false)
   const [refunding, setRefunding] = useState<OrderPayment | null>(null)
   const [fulfilling, setFulfilling] = useState(false)
@@ -173,6 +181,7 @@ export default function OrderView({ order, appCards = [], back }: OrderViewProps
 
   const awaitingTransfer = live && !order.checkoutPaidAt && order.paymentMethod === 'manual'
   const stepKind = nextStepKind(order, { readOnly, canCollect, canFulfil, awaitingTransfer })
+  const canShip = !readOnly && readyToShip(order) && hasPermission(permissions.ORDERS_FULFIL)
 
   return (
     <OrderPageFrame
@@ -186,10 +195,12 @@ export default function OrderView({ order, appCards = [], back }: OrderViewProps
               paymentStatus={order.paymentStatus}
               fulfillmentStatus={order.fulfillmentStatus}
               canRefund={canRefund}
-              busy={busy}
+              busy={busy || apps.busy}
               onMove={handleMove}
               onRefund={openRefund}
               onRequestBalance={requestBalance}
+              onShip={canShip ? handleShip : undefined}
+              appItems={apps.items('detail', order, [order.id])}
               readOnly={readOnly}
               previousId={n?.previous?.id}
               nextId={n?.next?.id}
