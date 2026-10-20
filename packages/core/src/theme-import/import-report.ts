@@ -64,7 +64,14 @@ export function buildReport(input: {
     const body = withoutSchema(raw)
     const reasons: ReportReason[] = swapsIn(body).filter((k) => k !== 'app_blocks')
     if (appBlocksIn.has(type)) reasons.push('app_blocks')
-    if (isMainSection(type)) reasons.push('main_template')
+    // Ours replaces a main section, except on page templates, which keep the theme's (import.ts).
+    const placed = [...(used.get(type) ?? [])]
+    if (
+      isMainSection(type) &&
+      (placed.length === 0 || placed.some((t) => !/^page(\.|$)/.test(t)))
+    ) {
+      reasons.push('main_template')
+    }
     let error: string | undefined
     try {
       engine.parse(normalizeLiquid(body))
