@@ -484,7 +484,8 @@ export async function renderStaticLiquidSection(
 function templateKeyFor(path: string): TemplateKey {
   const name = liquidTemplateFor(path)
   if (name === 'index') return 'home'
-  if (name === '404' || name === 'list-collections' || name === 'customers/account') return 'not_found'
+  if (name === '404' || name === 'list-collections' || name === 'customers/account')
+    return 'not_found'
   return name as TemplateKey
 }
 

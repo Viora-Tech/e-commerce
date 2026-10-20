@@ -6,9 +6,9 @@ import { afterAll, beforeEach, describe, expect, it } from 'vitest'
 import { importJudgemeReviews, parseJudgemeCsv, previewJudgemeImport } from '../src/judgeme'
 import { copyReviewPhotos } from '../src/photos'
 import { getReview, listReviews, ratingSummaries, reviewStats } from '../src/reviews'
+import { review, reviewMedia } from '../src/schema'
 import { defaultReviewsSettings } from '../src/settings'
 import { storeReviewFeed } from '../src/storefront'
-import { review, reviewMedia } from '../src/schema'
 import { addProduct, app, owner, seedStore } from './helpers'
 
 beforeEach(async () => {

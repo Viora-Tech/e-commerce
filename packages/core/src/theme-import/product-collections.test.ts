@@ -24,7 +24,11 @@ const accessory = (n: number, handle: string, title: string, available: boolean)
   id: `01a0def6-3000-7000-8000-00000000000${n}`,
   handle,
   title,
-  variants: FIXTURE_PRODUCT.variants.map((v) => ({ ...v, id: `${v.id.slice(0, -1)}${n}`, available })),
+  variants: FIXTURE_PRODUCT.variants.map((v) => ({
+    ...v,
+    id: `${v.id.slice(0, -1)}${n}`,
+    available,
+  })),
 })
 
 const MOUSE: LiquidProductData = { ...FIXTURE_PRODUCT, collectionHandles: ['mice', 'pulsar'] }

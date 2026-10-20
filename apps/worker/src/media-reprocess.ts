@@ -124,7 +124,8 @@ async function main() {
           const message = err instanceof Error ? err.message : String(err)
           console.warn(`[media:reprocess] ${storeId}/${row.id} failed: ${message}`)
           await withStore(db, storeId, (tx) => markMediaFailed(tx, row.id, message)).catch(
-            (markErr) => console.warn(`[media:reprocess] ${storeId}/${row.id} not marked: ${markErr}`),
+            (markErr) =>
+              console.warn(`[media:reprocess] ${storeId}/${row.id} not marked: ${markErr}`),
           )
         }
       })
