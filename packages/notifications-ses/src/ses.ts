@@ -31,6 +31,61 @@ export function formatFrom(config: SesConfig): string {
   return formatMailbox(config.fromName, config.fromEmail)
 }
 
+/** SES errors that say the account or the service, not the message, is the problem. */
+const PROVIDER_ERRORS: ReadonlySet<string> = new Set([
+  'ThrottlingException',
+  'TooManyRequestsException',
+  'LimitExceededException',
+  'SendingPausedException',
+  'AccountSuspendedException',
+  'InternalFailure',
+  'ServiceUnavailable',
+  'ServiceUnavailableException',
+  'TimeoutError',
+])
+
+/** Node socket errors: the request never got an answer. */
+const NETWORK_CODES: ReadonlySet<string> = new Set([
+  'ECONNRESET',
+  'ECONNREFUSED',
+  'ETIMEDOUT',
+  'ENOTFOUND',
+  'EAI_AGAIN',
+  'EPIPE',
+])
+
+type SdkError = {
+  name?: unknown
+  code?: unknown
+  $retryable?: unknown
+  $fault?: unknown
+  $metadata?: { httpStatusCode?: unknown }
+}
+
+/**
+ * True when another provider could deliver what SES could not. Only clear signals count
+ * (the SDK's own `$retryable`/`$fault`, a 429/5xx, a known account or throttling error, a
+ * socket error); an unknown error is not retried elsewhere.
+ */
+function sesRetryable(err: unknown): boolean {
+  if (!err || typeof err !== 'object') return false
+  const e = err as SdkError
+  const status = e.$metadata?.httpStatusCode
+  return Boolean(
+    e.$retryable ||
+      e.$fault === 'server' ||
+      (typeof status === 'number' && (status === 429 || status >= 500)) ||
+      (typeof e.name === 'string' && PROVIDER_ERRORS.has(e.name)) ||
+      (typeof e.code === 'string' && NETWORK_CODES.has(e.code)),
+  )
+}
+
+/** A thrown SDK error as a failed send; `retryable` only when it is. */
+function sesFailure(err: unknown): SendResult {
+  const error = err instanceof Error ? err.message : String(err)
+  return sesRetryable(err) ? { ok: false, error, retryable: true } : { ok: false, error }
+}
+
 /** `ReplyToAddresses`, only when set: SES would otherwise reply to From. */
 const replyTo = (config: SesConfig) =>
   config.replyTo ? { ReplyToAddresses: [config.replyTo] } : {}
@@ -96,7 +151,7 @@ export class SesChannel implements NotificationChannel {
         ? { ok: true, providerRef: r.MessageId }
         : { ok: false, error: 'SES returned no MessageId' }
     } catch (err) {
-      return { ok: false, error: err instanceof Error ? err.message : String(err) }
+      return sesFailure(err)
     }
   }
 
@@ -129,7 +184,7 @@ export class SesChannel implements NotificationChannel {
         ? { ok: true, providerRef: r.MessageId }
         : { ok: false, error: 'SES returned no MessageId' }
     } catch (err) {
-      return { ok: false, error: err instanceof Error ? err.message : String(err) }
+      return sesFailure(err)
     }
   }
 }

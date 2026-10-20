@@ -18,6 +18,12 @@ type AllowEntry = { file: string; names: string[]; reason: string }
 
 const ALLOWLIST: AllowEntry[] = [
   {
+    file: 'packages/core/src/sender-email/platform.ts',
+    names: ['platformEmailFromEnv'],
+    reason:
+      'builds the platform email account from given env (SES/Resend, fallback), exported for its unit test',
+  },
+  {
     file: 'packages/blocks/src/components/product-payment-signals.tsx',
     names: ['upiPricePaise'],
     reason: 'the checkout-matching UPI price behind the offer note, exported for its unit test',
