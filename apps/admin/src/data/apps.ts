@@ -91,7 +91,7 @@ export const appsContent = {
     category: 'Category',
     madeBy: 'Made by',
     type: 'Type',
-    typeBuiltin: 'Built-in app',
+    typeBuiltin: 'Koomerce app',
     typeConnection: 'Connection to another service',
     builtOn: 'Built on',
   },
@@ -144,7 +144,7 @@ export const appsContent = {
   configure: (kind: string) => `Set up in ${kind}`,
   docs: 'Want FedEx, DHL or a new gateway? Write a plugin: docs/plugins.md',
   /** Shown on a `kind: 'builtin'` card: made by us, nothing else to sign up for. */
-  builtByPlatform: 'Built by Waimers',
+  builtByPlatform: 'Koomerce app',
   /** Shown on a `kind: 'connection'` card: which outside company this links to. */
   byCompany: (company: string) => `by ${company}`,
   connection: {
@@ -172,8 +172,8 @@ export const appsContent = {
     kebabLabel: (name: string) => `More actions for ${name}`,
     /** Section 1: features we designed, no outside account. */
     builtin: {
-      title: 'Built-in apps',
-      intro: 'Made by us. Turn one on and start using it — no account to set up.',
+      title: 'Koomerce apps',
+      intro: 'Made by Koomerce and run on your store. Turn one on and use it: no account, keys or server to set up.',
     },
     /** Section 2: links to another company's service. */
     connections: {

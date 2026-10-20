@@ -110,7 +110,7 @@ export const installedAppsContent = {
     title: (name: string) => `${name} permissions`,
     intro: (store: string) => `What this app can see and do in ${store}.`,
     introNoStore: 'What this app can see and do in your store.',
-    typeBuiltin: 'Built-in app',
+    typeBuiltin: 'Koomerce app',
     typeConnection: 'Connection to another service',
     version: (v: string) => `v${v}`,
     canAccess: 'What it can access',
