@@ -323,7 +323,7 @@ export async function* fetchProducts(
   )
 }
 
-export const ONLINE_STORE_QUERY = `query OnlineStoreProducts {
+const ONLINE_STORE_QUERY = `query OnlineStoreProducts {
   products(first: 1, query: "published_status:published") { nodes { id } }
 }`
 
@@ -332,7 +332,7 @@ export const ONLINE_STORE_QUERY = `query OnlineStoreProducts {
  * shop publishes none, so its products are not hidden for missing that channel. Unknown
  * (the question failed) counts as no.
  */
-export async function sellsOnOnlineStore(client: ShopifyClient): Promise<boolean> {
+async function sellsOnOnlineStore(client: ShopifyClient): Promise<boolean> {
   try {
     const data = await client.query<{ products?: { nodes: unknown[] } | null }>(
       ONLINE_STORE_QUERY,
