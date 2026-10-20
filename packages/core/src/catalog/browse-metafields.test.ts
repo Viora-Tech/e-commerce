@@ -40,12 +40,19 @@ describe('metafield filter params', () => {
 })
 
 describe('metafieldFacets', () => {
-  const row = (field: string, value: string, count: number, type = 'single_line_text') => ({
+  const row = (
+    field: string,
+    value: string,
+    count: number,
+    type = 'single_line_text',
+    flagged = true,
+  ) => ({
     field,
     name: field === 'custom.filter_grip' ? 'Grip' : field,
     type,
     value,
     count,
+    flagged,
   })
 
   it('groups values per field in field order, values in natural order', () => {
@@ -89,5 +96,20 @@ describe('metafieldFacets', () => {
 
   it('keeps one value: a filter shows even when every product agrees', () => {
     expect(metafieldFacets([row('custom.only', 'One', 9)])).toHaveLength(1)
+  })
+
+  it('guesses filters while no field is marked: short values that repeat', () => {
+    const guess = (field: string, value: string, count: number) =>
+      row(field, value, count, 'single_line_text', false)
+    const facets = metafieldFacets([
+      guess('custom.filter_grip', 'Claw', 6),
+      guess('custom.filter_grip', 'Palm', 4),
+      guess('custom.spec_sensor', 'PAW3395', 1),
+      guess('custom.spec_sensor', 'PAW3950', 1),
+      guess('custom.only', 'One', 9),
+      guess('custom.blurb', 'x'.repeat(80), 3),
+      guess('custom.blurb', 'y', 3),
+    ])
+    expect(facets.map((f) => f.key)).toEqual(['custom.filter_grip'])
   })
 })

@@ -18,8 +18,11 @@ Also carries the Search & Discovery recommendations commit that missed #603's me
 
 ## Catalogue filters
 
-- `browse.ts`: facet counts per filterable field (`facets.metafields`: key, name, type
-  `list` or `boolean`, values). The old value-based guess is gone; only marked fields show.
+- `browse.ts`: facet counts per filter field (`facets.metafields`: key, name, type `list` or
+  `boolean`, values). Until a store marks any product field "Use as filter", fields of a
+  filterable type are guessed from their values: 2 to 25 values of up to 60 characters,
+  shared by 1.5 products each on average. Existing imported stores therefore lose nothing.
+  Once any field is marked, only marked fields show and filter.
   Yes/no reads `1` / `0`, as Shopify's boolean filters do. Filter:
   `filter.p.m.<namespace>.<key>=value` (Shopify's shape; `hand-size` maps to `hand_size`), OR
   within a field, AND across fields. Availability, price, type, vendor, tags and options are

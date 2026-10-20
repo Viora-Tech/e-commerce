@@ -450,4 +450,35 @@ describe('extra field filters', () => {
       'custom.wireless',
     ])
   })
+
+  it('guesses the filters of a store with no field marked, then follows the marks', async () => {
+    const [s] = await owner.insert(store).values({ slug: 'mg', name: 'MG' }).returning()
+    const storeId = s?.id as string
+    const products = await Promise.all(
+      ['a', 'b', 'c', 'd'].map((h) => seed(storeId, { handle: h, price: 100_00, stock: 1 })),
+    )
+    const sensor = await run(storeId, async (tx) => {
+      const grip = await createMetafieldDefinition(tx, storeId, field('Grip', 'single_line_text'))
+      const sensor = await createMetafieldDefinition(tx, storeId, field('Sensor', 'single_line_text'))
+      const grips = ['Claw', 'Claw', 'Palm', 'Palm']
+      for (const [i, p] of products.entries()) {
+        await setMetafields(tx, storeId, {
+          ownerType: 'product',
+          ownerId: p.productId,
+          values: { [grip.id]: grips[i], [sensor.id]: `S${i}` },
+        })
+      }
+      return sensor
+    })
+    const guessed = await run(storeId, (tx) => browseProducts(tx, base))
+    expect(guessed.facets.metafields.map((m) => m.key)).toEqual(['custom.grip'])
+    const palm = await run(storeId, (tx) =>
+      browseProducts(tx, { ...base, filters: parseBrowseFilters({ 'filter.p.m.custom.grip': 'Palm' }) }),
+    )
+    expect(palm.handles).toEqual(['c', 'd'])
+
+    await run(storeId, (tx) => markMetafieldsFilterable(tx, [sensor.id]))
+    const marked = await run(storeId, (tx) => browseProducts(tx, base))
+    expect(marked.facets.metafields.map((m) => m.key)).toEqual(['custom.sensor'])
+  })
 })
