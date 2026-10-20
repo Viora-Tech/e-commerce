@@ -7,12 +7,19 @@ import { cancelPlanBill, markPlanBillPaid } from '../billing/service'
 import { type DomainRouteQueue, ROUTE_JOB_ATTEMPTS, ROUTE_JOB_BACKOFF_MS } from '../domains/routes'
 import { enqueueNotification, type NotificationQueue } from '../notifications/enqueue'
 import { inviteForPaidPlanOrder, revokePlanInvitesForOrder } from '../onboarding/plan-invites'
-import { type AppEventQueue, enqueueAppEvent, installedApps } from '../plugins/events'
+import {
+  type AppEventQueue,
+  type AppJobQueue,
+  enqueueAppEvent,
+  enqueueAppJob,
+  installedApps,
+} from '../plugins/events'
 import {
   OUTBOX_APP_EVENT,
   OUTBOX_NOTIFICATION_TEMPLATE,
   type OutboxEventType,
   type OutboxPayload,
+  PRODUCTS_CHANGED_JOB,
   REPEATABLE_OUTBOX_EVENTS,
 } from './types'
 
@@ -39,6 +46,8 @@ export type OutboxRelayDeps = {
   inventoryRestock?: InventoryRestockQueue | undefined
   /** Absent only in tests that do not exercise `domain.route_*`; those rows are then just marked dispatched. */
   domainRoutes?: DomainRouteQueue | undefined
+  /** Absent only in tests that do not exercise `catalog.products_changed`; that row is then just marked dispatched. */
+  appJobs?: AppJobQueue | undefined
   log?: ((message: string) => void) | undefined
   /** The platform's own sales store (`PLATFORM_SALES_STORE_ID`): paid plan orders there grant a signup invite. */
   salesStoreId?: string | undefined
@@ -201,6 +210,23 @@ async function dispatchRow(deps: OutboxRelayDeps, row: Row): Promise<void> {
         backoff: { type: 'exponential', delay: ROUTE_JOB_BACKOFF_MS },
       },
     )
+  }
+  if (type === 'catalog.products_changed' && payload.productIds?.length && deps.appJobs) {
+    const installed = await installedApps(deps.db, row.storeId)
+    for (const pluginId of installed) {
+      if (!deps.plugins.jobFor(pluginId, PRODUCTS_CHANGED_JOB, installed)) continue
+      // Keyed by the row: a re-dispatch is a no-op, a later change (new row) is its own job.
+      await enqueueAppJob(
+        deps.appJobs,
+        {
+          storeId: row.storeId,
+          pluginId,
+          name: PRODUCTS_CHANGED_JOB,
+          data: { productIds: payload.productIds },
+        },
+        `products-${row.id}`,
+      )
+    }
   }
   if (type === 'inventory.restocked' && payload.variantId && deps.inventoryRestock) {
     await deps.inventoryRestock.add(

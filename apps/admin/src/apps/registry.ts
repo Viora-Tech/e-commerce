@@ -16,6 +16,7 @@ import GstOrderCard from '@/components/apps/gst-invoices/order-card'
 import QueuePage from '@/components/apps/gst-invoices/queue-page'
 import ReturnsPage from '@/components/apps/gst-invoices/returns-page'
 import GstSettingsEditor from '@/components/apps/gst-invoices/settings-editor'
+import MeilisearchPage from '@/components/apps/meilisearch/settings-page'
 import SesConnectPage from '@/components/apps/messages/ses-connect-page'
 import WhatsappConnectPage from '@/components/apps/messages/whatsapp-connect-page'
 import RapidshypConnectPage from '@/components/apps/rapidshyp/connect-page'
@@ -174,6 +175,9 @@ export const ADMIN_APPS: Record<string, AdminApp> = {
   },
   umami: {
     pages: { '': UmamiSettingsPage },
+  },
+  meilisearch: {
+    pages: { '': MeilisearchPage },
   },
 }
 

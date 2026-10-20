@@ -45,7 +45,7 @@ copying: projects relicense (Unleash moved to AGPL, Cal.com moved to MIT).
 | Experiments | [GrowthBook](https://github.com/growthbook/growthbook) | MIT outside its enterprise folders | A/B tests on sections and prices | Experiments plugin |
 | Flags | [Unleash](https://github.com/Unleash/unleash) | AGPL-3.0 | | Ideas only |
 | Support | [Chatwoot](https://github.com/chatwoot/chatwoot) | MIT outside `enterprise/` | Shared inbox: WhatsApp, email, website chat | Support inbox plugin |
-| Search | [Meilisearch](https://github.com/meilisearch/meilisearch) | MIT, Enterprise Edition parts BUSL-1.1 (LICENSE, 2026-10-11; unchanged) | Typo-tolerant storefront search | Search plugin (separate server) |
+| Search | [Meilisearch](https://github.com/meilisearch/meilisearch) | MIT, Enterprise Edition parts BUSL-1.1 (LICENSE, 2026-10-11; unchanged) | Typo-tolerant storefront search | In use: `packages/plugin-meilisearch` (separate server, REST API, community edition only) |
 | Search | [Typesense](https://github.com/typesense/typesense) | GPL-3.0 | | Separate server only |
 | Surveys | [Formbricks](https://github.com/formbricks/formbricks) | AGPL-3.0 core; `packages/js` etc. MIT; `modules/ee` commercial (LICENSE, 2026-10-11) | Survey types, targeting rules | Ideas only (the MIT SDK is useless without their server) |
 | Booking | [Cal.diy](https://github.com/calcom/cal.diy) (open edition; calcom/cal.com redirects here) | MIT (LICENSE, 2026-10-11). README: personal, non-production use; Cal.com itself is now commercial | Availability, event types, booking flow, calendar sync design | Ideas and small MIT pieces only; not run as a multi-tenant service. Own bookings plugin later |

@@ -183,6 +183,12 @@ const shape = z.object({
    */
   UMAMI_TRUSTED_ORIGINS: z.string().optional(),
   /**
+   * Meilisearch addresses the server may reach on a private network or over http
+   * (comma-separated origins, e.g. our own `http://meilisearch:7700`). Every other address a
+   * store saves in the Meilisearch app goes through the SSRF guard: public https hosts only.
+   */
+  MEILISEARCH_TRUSTED_ORIGINS: z.string().optional(),
+  /**
    * Razorpay Technology Partner OAuth app ("Connect Razorpay"). Both set turns
    * the one-click connect button on; unset, merchants paste API keys instead.
    * The app's redirect URL must be `<ADMIN_URL>/api/apps/razorpay/oauth/callback`.

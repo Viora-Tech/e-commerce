@@ -355,6 +355,8 @@ export async function storeLiquidData(
       const result = await browseProducts(tx, {
         collectionId: collectionId ?? undefined,
         query: q || undefined,
+        // The store's search engine (the Meilisearch app) ranks a search when it has one ready.
+        storeId: options.storeId,
         filters,
         sort: sort === 'manual' && !collectionId ? 'title-ascending' : sort,
         page: parsePage(first(query.page)),
