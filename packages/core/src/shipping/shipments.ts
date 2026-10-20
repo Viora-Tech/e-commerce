@@ -16,6 +16,7 @@ import { ensureFulfillmentOrders, soleFulfillmentOrder } from '../order/fulfillm
 import { recomputeOrderStatuses } from '../order/recompute'
 import { insertOutboxEvent } from '../outbox/write'
 import { recordRtoForShipment } from '../returns/rto'
+import { storeShippingLabel } from './label-store'
 import { syncNdrFromTracking } from './ndr'
 import { effectiveWeightGrams, resolveParcelPackage, resolveParcelWeightGrams } from './parcel'
 import { defaultBoxPreset, parseShippingSettings } from './settings'
@@ -249,12 +250,25 @@ export async function createShipmentForOrder(
     })
     .returning()
   if (!row) throw new Error('could not record shipment')
+  // A courier that hands back the PDF itself (Blue Dart, DTDC): kept privately, linked by id.
+  let booked = row
+  if (!result.labelUrl && result.labelDocument) {
+    const labelUrl = await storeShippingLabel(ctx, row.id, result.labelDocument)
+    if (labelUrl) {
+      const [withLabel] = await ctx.tx
+        .update(shipment)
+        .set({ labelUrl })
+        .where(eq(shipment.id, row.id))
+        .returning()
+      booked = withLabel ?? row
+    }
+  }
   // The label exists, so the parcel ships: its lines (every line, for the whole order) are
   // packed and leave stock, and the recompute (inside) derives the fulfilment status.
   if (named) await fulfilParcelLines(ctx, o.id, named.id)
   else await fulfilRemainingLines(ctx, o.id)
   await recomputeOrderStatuses(ctx, o.id)
-  return row
+  return booked
 }
 
 /** Store a fresh Tracking answer; flips the order to delivered when the courier says so. */

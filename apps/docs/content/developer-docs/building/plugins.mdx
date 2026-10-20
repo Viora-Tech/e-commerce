@@ -144,6 +144,10 @@ export class FedexProvider implements ShippingProvider {
   constructor(private readonly config: FedexConfig) {}
 
   async checkServiceability(q) { /* GET rates, map to Serviceability */ }
+  // A courier that answers with the label PDF instead of a public link (Blue Dart, DTDC)
+  // returns `labelDocument: { contentType: 'application/pdf', body }` instead of `labelUrl`:
+  // core keeps it in the store's private storage and links the admin's
+  // `/api/shipments/<id>/label`, so no courier credential ends up in a URL.
   async createShipment(input) { /* POST ship, return { waybill, labelUrl, providerRef } */ }
   async track(waybill) { /* map FedEx scan codes to the normalised status */ }
   async cancel(waybill) { /* ... */ }

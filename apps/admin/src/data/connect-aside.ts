@@ -49,5 +49,27 @@ export const connectAsideContent = {
       helpTitle: 'Where is my API key?',
       helpBody: 'In your RapidShyp dashboard, open Settings › API and copy the key shown there.',
     },
+    bluedart: {
+      connects: [
+        'PIN serviceability and delivery dates at checkout',
+        'Book waybills with the label PDF',
+        'Pickups registered with every booking',
+        'Tracking on every order',
+      ],
+      helpTitle: 'Where are my Blue Dart keys?',
+      helpBody:
+        'Create an app for the Blue Dart APIs on the DHL developer portal (developer.dhl.com, My Apps) for the Client ID and secret. The Login ID, licence key, customer code and area code come from your Blue Dart account manager.',
+    },
+    dtdc: {
+      connects: [
+        'PIN serviceability at checkout',
+        'Book consignments and print labels',
+        'Tracking on every order',
+        'Cancel a booking before pickup',
+      ],
+      helpTitle: 'Where is my DTDC API key?',
+      helpBody:
+        'DTDC sends the API key, customer code and the tracking username and password when your account manager turns on API access. Ask them if you have not received it.',
+    },
   } as Record<string, { connects: string[]; helpTitle: string; helpBody: string }>,
 } as const

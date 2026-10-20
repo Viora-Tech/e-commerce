@@ -23,7 +23,9 @@ import { whatsappFactory } from '@commerce/notifications-whatsapp'
 import { cashfreeFactory } from '@commerce/payments-cashfree'
 import { decentroFactory } from '@commerce/payments-decentro'
 import { razorpayFactory } from '@commerce/payments-razorpay'
+import { bluedartFactory } from '@commerce/shipping-bluedart'
 import { delhiveryFactory } from '@commerce/shipping-delhivery'
+import { dtdcFactory } from '@commerce/shipping-dtdc'
 import { rapidshypFactory } from '@commerce/shipping-rapidshyp'
 import { shiprocketFactory } from '@commerce/shipping-shiprocket'
 import { r2Factory } from '@commerce/storage-r2'
@@ -57,6 +59,8 @@ describe('sweep: secret-fields', () => {
       delhiveryFactory,
       shiprocketFactory,
       rapidshypFactory,
+      bluedartFactory,
+      dtdcFactory,
       sesFactory,
       whatsappFactory,
       r2Factory,

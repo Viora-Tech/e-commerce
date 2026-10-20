@@ -9,6 +9,7 @@ import apps from './apps'
 import assistant from './assistant'
 import backgroundWork from './background-work'
 import billing from './billing'
+import bluedart from './bluedart'
 import bugReport from './bug-report'
 import bulkEdit from './bulk-edit'
 import businessGst from './business-gst'
@@ -30,6 +31,7 @@ import dates from './dates'
 import discounts from './discounts'
 import domains from './domains'
 import drafts from './drafts'
+import dtdc from './dtdc'
 import emailBuilder from './email-builder'
 import filterPanel from './filter-panel'
 import growth from './growth'
@@ -97,6 +99,7 @@ export const hindiCopy: readonly TranslationPair[] = [
   ...assistant,
   ...backgroundWork,
   ...billing,
+  ...bluedart,
   ...mcp,
   ...bugReport,
   ...bulkEdit,
@@ -115,6 +118,7 @@ export const hindiCopy: readonly TranslationPair[] = [
   ...drafts,
   ...domains,
   ...emailBuilder,
+  ...dtdc,
   ...analytics,
   ...discounts,
   ...dateRange,

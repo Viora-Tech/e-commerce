@@ -50,6 +50,28 @@ export default [
         helpTitle: 'मेरी API कुंजी कहाँ है?',
         helpBody: 'अपने RapidShyp डैशबोर्ड में Settings › API खोलें और वहाँ दिखी कुंजी कॉपी करें।',
       },
+      bluedart: {
+        connects: [
+          'चेकआउट पर PIN से डिलीवरी और तारीख की जाँच',
+          'लेबल PDF के साथ वेबिल बुक करें',
+          'हर बुकिंग के साथ पिकअप दर्ज',
+          'हर ऑर्डर की ट्रैकिंग',
+        ],
+        helpTitle: 'मेरी Blue Dart कुंजियाँ कहाँ हैं?',
+        helpBody:
+          'Client ID और secret के लिए DHL डेवलपर पोर्टल (developer.dhl.com, My Apps) पर Blue Dart APIs का ऐप बनाएं। Login ID, licence key, customer code और area code आपके Blue Dart अकाउंट मैनेजर से मिलते हैं।',
+      },
+      dtdc: {
+        connects: [
+          'चेकआउट पर PIN से डिलीवरी की जाँच',
+          'कंसाइनमेंट बुक करें और लेबल छापें',
+          'हर ऑर्डर की ट्रैकिंग',
+          'पिकअप से पहले बुकिंग रद्द करें',
+        ],
+        helpTitle: 'मेरी DTDC API कुंजी कहाँ है?',
+        helpBody:
+          'API एक्सेस चालू होने पर DTDC आपको API key, customer code और ट्रैकिंग का यूज़रनेम-पासवर्ड भेजता है। न मिला हो तो अपने अकाउंट मैनेजर से पूछें।',
+      },
     },
   }),
 ]

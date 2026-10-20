@@ -27,7 +27,9 @@
         "@commerce/plugin-shopify-import": "workspace:*",
         "@commerce/plugin-umami": "workspace:*",
         "@commerce/plugins": "workspace:*",
+        "@commerce/shipping-bluedart": "workspace:*",
         "@commerce/shipping-delhivery": "workspace:*",
+        "@commerce/shipping-dtdc": "workspace:*",
         "@commerce/shipping-rapidshyp": "workspace:*",
         "@commerce/shipping-shiprocket": "workspace:*",
         "@commerce/storage-r2": "workspace:*",
@@ -943,6 +945,21 @@
         "vitest": "^4.1.11",
       },
     },
+    "packages/shipping-bluedart": {
+      "name": "@commerce/shipping-bluedart",
+      "version": "0.0.0",
+      "dependencies": {
+        "@commerce/plugins": "workspace:*",
+        "@commerce/shipping": "workspace:*",
+      },
+      "devDependencies": {
+        "@commerce/config": "workspace:*",
+        "@types/node": "^22.20.4",
+        "dotenv": "^18.0.1",
+        "typescript": "~5.9.3",
+        "vitest": "^4.1.11",
+      },
+    },
     "packages/shipping-delhivery": {
       "name": "@commerce/shipping-delhivery",
       "version": "0.0.0",
@@ -963,6 +980,21 @@
       },
       "peerDependencies": {
         "react": "^19.0.0",
+      },
+    },
+    "packages/shipping-dtdc": {
+      "name": "@commerce/shipping-dtdc",
+      "version": "0.0.0",
+      "dependencies": {
+        "@commerce/plugins": "workspace:*",
+        "@commerce/shipping": "workspace:*",
+      },
+      "devDependencies": {
+        "@commerce/config": "workspace:*",
+        "@types/node": "^22.20.4",
+        "dotenv": "^18.0.1",
+        "typescript": "~5.9.3",
+        "vitest": "^4.1.11",
       },
     },
     "packages/shipping-rapidshyp": {
@@ -1373,7 +1405,11 @@
 
     "@commerce/shipping": ["@commerce/shipping@workspace:packages/shipping"],
 
+    "@commerce/shipping-bluedart": ["@commerce/shipping-bluedart@workspace:packages/shipping-bluedart"],
+
     "@commerce/shipping-delhivery": ["@commerce/shipping-delhivery@workspace:packages/shipping-delhivery"],
+
+    "@commerce/shipping-dtdc": ["@commerce/shipping-dtdc@workspace:packages/shipping-dtdc"],
 
     "@commerce/shipping-rapidshyp": ["@commerce/shipping-rapidshyp@workspace:packages/shipping-rapidshyp"],
 

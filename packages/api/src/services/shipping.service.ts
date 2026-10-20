@@ -166,6 +166,11 @@ export async function testShippingConnection(
         message: `${factory.label} accepted the token, but does not currently serve PIN ${pincode}. Double check the origin PIN code.`,
       }
     }
+    // The PIN code lookup did not use the credentials (DTDC), so prove them separately.
+    if (factory.serviceabilityWithoutCredentials) {
+      const check = await built.provider.verifyCredentials()
+      if (!check.ok) return { ok: false, message: check.message }
+    }
     // A cheap bonus lookup: only RapidShyp exposes this today (Fetch Pickup Location API), and
     // failing to fetch it never fails the connection test itself - the Connect page just keeps
     // the free-text field instead of showing a dropdown.

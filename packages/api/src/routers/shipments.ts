@@ -1,5 +1,6 @@
 import { settingsSecret } from '@commerce/config'
-import { permissions } from '@commerce/core'
+import { permissions, readShippingLabel } from '@commerce/core'
+import { ORPCError } from '@orpc/server'
 import { z } from 'zod'
 import { BULK_MAX, can, heavy, PAGE_SIZE_MAX, SEARCH_MAX } from '../procedures'
 import { storeRegistries } from '../services/apps.service'
@@ -51,6 +52,25 @@ export const shipmentsRouter = {
       }),
     )
     .handler(({ context, input }) => listShipments(context.tx, input)),
+
+  /**
+   * A label the courier handed back as a PDF (Blue Dart, DTDC), kept in the store's private
+   * storage at booking. The admin's `/api/shipments/<id>/label` route streams this; the key is
+   * built from the caller's own store, so another store's shipment id finds nothing.
+   */
+  label: can(permissions.ORDERS_READ)
+    .input(z.object({ id: z.uuid() }))
+    .handler(async ({ context, input }) => {
+      const bytes = await readShippingLabel(
+        { storeId: context.scope.storeId, tx: context.tx },
+        input.id,
+      )
+      if (!bytes)
+        throw new ORPCError('NOT_FOUND', { message: 'No label on file for this shipment.' })
+      return new File([bytes as Uint8Array<ArrayBuffer>], `label-${input.id}.pdf`, {
+        type: 'application/pdf',
+      })
+    }),
 
   /** Rows per Shipments tab, plus "booked today" and "need attention" for the summary line. */
   counts: can(permissions.ORDERS_READ).handler(({ context }) => shipmentCounts(context.tx)),
