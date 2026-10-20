@@ -172,8 +172,8 @@ describe('Judge.me import', () => {
     const storeId = await seedStore()
     const renamed = await addProduct(storeId, 'veil-v2')
     await owner.execute(
-      sql`insert into shopify_import_mapping (store_id, resource, source_id, local_id)
-        values (${storeId}, 'products', 'gid://shopify/Product/7001', ${renamed.productId})`,
+      sql`insert into shopify_import_mapping (id, store_id, resource, source_id, local_id)
+        values (gen_random_uuid(), ${storeId}, 'products', 'gid://shopify/Product/7001', ${renamed.productId})`,
     )
     const csv = [
       HEADER,
