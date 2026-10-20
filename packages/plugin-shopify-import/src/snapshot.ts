@@ -17,6 +17,7 @@ import type { StorageProvider } from '@commerce/storage'
 import { and, eq, isNotNull, lt } from 'drizzle-orm'
 import {
   type ImportSnapshot,
+  SNAPSHOT_FORMAT,
   SNAPSHOT_FRESH_MS,
   SNAPSHOT_KEEP_MS,
   type SnapshotResource,
@@ -112,12 +113,12 @@ async function* fetchByIds<T>(
   }
 }
 
-/** A snapshot the import may use: under 24 hours old. */
+/** A snapshot the import may use: under 24 hours old, saved in today's `SNAPSHOT_FORMAT`. */
 export function freshSnapshot(
   snapshot: ImportSnapshot | null | undefined,
   now = Date.now(),
 ): ImportSnapshot | null {
-  if (!snapshot) return null
+  if (!snapshot || snapshot.format !== SNAPSHOT_FORMAT) return null
   const age = now - new Date(snapshot.takenAt).getTime()
   return age >= 0 && age < SNAPSHOT_FRESH_MS ? snapshot : null
 }
