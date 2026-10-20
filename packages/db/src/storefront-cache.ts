@@ -118,6 +118,7 @@ export const STOREFRONT_CACHE_EXEMPT: Record<string, string> = {
   marketing_automation_run: LOG,
   marketing_campaign: ADMIN,
   marketing_consent_event: LOG,
+  marketing_email_template: ADMIN,
   marketing_message: SHOPPER,
   marketing_session: SHOPPER,
   newsletter_signup: SHOPPER,
