@@ -4,6 +4,7 @@ import { cart, order, orderLine, product, refund, storeMember, variant } from '@
 import { and, desc, eq, gte, inArray, lt, min, ne, sum } from 'drizzle-orm'
 import type { VisitorSource } from '../context'
 import { DAY_MS, istDayStart, istIsoDate } from './analytics-buckets'
+import { countSessions } from './sessions'
 
 /** The longest span the Home analytics card reads at once (a financial year and a day). */
 export const HOME_ANALYTICS_MAX_DAYS = 366
@@ -117,6 +118,7 @@ async function figures(
   hourly: boolean,
   visitorsDaily: number[],
 ): Promise<Record<HomeMetric, { value: number; series: number[] }>> {
+  const sessionSeries = await countSessions(tx, w, hourly)
   const n = hourly ? HOURS : w.days.length
   const bucket = (at: Date) =>
     hourly
@@ -156,6 +158,8 @@ async function figures(
   series.visitors = hourly ? zeros(n) : visitorsDaily.slice(0, n)
   const total = (m: HomeMetric) => series[m].reduce((a, b) => a + b, 0)
   const visitors = hourly ? (visitorsDaily[0] ?? 0) : total('visitors')
+  series.sessions = sessionSeries
+  const sessions = total('sessions')
   const pct = (part: number, whole: number) =>
     whole > 0 ? Math.round(Math.min(part / whole, 1) * 1000) / 10 : 0
   series.aov = series.sales.map((s, i) => {
@@ -163,9 +167,15 @@ async function figures(
     return count > 0 ? Math.round(s / count) : 0
   })
   series.codShare = cod.map((c, i) => pct(c, series.orders[i] ?? 0))
-  series.conversion = hourly
-    ? zeros(n)
-    : series.orders.map((o, i) => pct(o, series.visitors[i] ?? 0))
+  /* Conversion is orders ÷ sessions: per day, or for a single day the running rate by hour. */
+  let ordersSoFar = 0
+  let sessionsSoFar = 0
+  series.conversion = series.orders.map((o, i) => {
+    if (!hourly) return pct(o, series.sessions[i] ?? 0)
+    ordersSoFar += o
+    sessionsSoFar += series.sessions[i] ?? 0
+    return pct(ordersSoFar, sessionsSoFar)
+  })
 
   const units = await topUnits(tx, w)
   series.topProducts = units.series(bucket, n)
@@ -175,8 +185,9 @@ async function figures(
     sales: total('sales'),
     orders: orderCount,
     aov: orderCount > 0 ? Math.round(total('sales') / orderCount) : 0,
+    sessions,
     visitors,
-    conversion: pct(orderCount, visitors),
+    conversion: pct(orderCount, sessions),
     returning: total('returning'),
     gross: total('gross'),
     refunds: total('refunds'),
@@ -237,7 +248,8 @@ async function bestSeller(tx: StoreTx, w: Window) {
 /**
  * Home's analytics card for any date range (Figma 580:692): every metric a tile can show, with
  * its value, its line (by hour for a single day, else by day) and, when comparing, the same for
- * the span before or the same dates a year earlier. Visitors come from the beacon's daily counts.
+ * the span before or the same dates a year earlier. Sessions are the beacon's `marketing_session`
+ * rows; visitors are its daily unique counts.
  */
 export async function homeAnalytics(
   tx: StoreTx,

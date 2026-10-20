@@ -74,7 +74,7 @@ export default [
       viewReport: 'बिक्री रिपोर्ट देखें',
       vsYesterday: 'कल के मुकाबले',
       noCompare: 'तुलना नहीं',
-      emptyVisitors: 'दुकान पर ग्राहक आने लगते ही यहां विज़िटर दिखेंगे।',
+      emptyVisitors: 'दुकान पर ग्राहक आने लगते ही यहां सेशन दिखेंगे।',
       ranges: {
         today: 'आज',
         yesterday: 'कल',
@@ -112,6 +112,7 @@ export default [
         sales: 'कुल बिक्री',
         orders: 'ऑर्डर',
         aov: 'औसत ऑर्डर मूल्य',
+        sessions: 'सेशन',
         visitors: 'विज़िटर',
         conversion: 'कन्वर्ज़न दर',
         returning: 'दोबारा आने वाले ग्राहक',
