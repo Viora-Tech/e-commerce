@@ -13,6 +13,7 @@ export type AppCategory =
   | 'payments'
   | 'marketing'
   | 'analytics'
+  | 'search'
   | 'messages'
   | 'storage'
   | 'import'
@@ -145,6 +146,22 @@ export const STORE_APPS: StoreApp[] = [
     shares: 'Page views, without personal details',
     pricing: { kind: 'free' },
     guide: `${docs}/merchant-guide/analytics/visitor-analytics`,
+  },
+  {
+    id: 'meilisearch',
+    name: 'Meilisearch',
+    by: 'Meilisearch',
+    category: 'search',
+    blurb: 'Fast store search that forgives typos, with your own synonyms.',
+    does: [
+      'Finds “t-shrit” and “tee” alike',
+      'Search box suggestions as shoppers type',
+      'Your store’s own search takes over if Meilisearch is down',
+    ],
+    access: ['Products · read', 'Collections · read'],
+    shares: 'Product details and the words shoppers search for, to your Meilisearch server',
+    pricing: { kind: 'free' },
+    guide: `${docs}/merchant-guide/apps/meilisearch`,
   },
   {
     id: 'shopify-import',
@@ -284,6 +301,7 @@ export const appsContent = {
     { key: 'payments', label: 'Payments' },
     { key: 'marketing', label: 'Marketing' },
     { key: 'analytics', label: 'Analytics' },
+    { key: 'search', label: 'Search' },
     { key: 'messages', label: 'Messages' },
     { key: 'storage', label: 'Storage' },
     { key: 'import', label: 'Import' },

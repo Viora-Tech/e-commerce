@@ -25,7 +25,7 @@ import {
   type ThemeBundle,
   themeImportFor,
 } from '@commerce/core'
-import { product as productTable, type StoreTx } from '@commerce/db'
+import { product as productTable, type StoreTx, store } from '@commerce/db'
 import { logger } from '@commerce/observability/logging'
 import { reviewsLiquidSource } from '@commerce/plugin-reviews/server'
 import { eq } from 'drizzle-orm'
@@ -52,6 +52,7 @@ import { cachedLiquidData } from './liquid-data-cache'
 import { deferThemeScripts } from './liquid-defer'
 import { belowTheFold } from './liquid-fold'
 import { cartIsEmpty, requestCart } from './request-cart'
+import './search-engine'
 import { requestOrigin } from './seo'
 import { CACHE_TTL_MS, cachedForStore, peekForStore, rememberForStore } from './store-cache'
 import { inStore } from './store-context'
@@ -217,7 +218,14 @@ async function createLiquidContext(
     },
     assetBase: `/theme-assets/${themeId}`,
     shopifyHost: theme.shopifyHost,
-    moneyFormat: null,
+    // The store's price format (`Rs. {{amount}}` from Shopify), for `| money` and `shop.money_format`.
+    moneyFormat: await cachedForStore(storeId, 'money-format', async () => {
+      const [s] = await tx
+        .select({ moneyFormat: store.moneyFormat })
+        .from(store)
+        .where(eq(store.id, storeId))
+      return s?.moneyFormat ?? null
+    }),
     paymentTypes: PAYMENT_TYPES,
   })
 }

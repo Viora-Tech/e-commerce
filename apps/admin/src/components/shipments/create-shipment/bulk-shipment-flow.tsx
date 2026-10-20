@@ -20,11 +20,14 @@ import {
   OWN_WEIGHT,
   type ParcelQuote,
   type ShipmentDraft,
+  startingBulkPick,
 } from './flow-state'
 import FlowSteps, { type FlowStep } from './flow-steps'
 
 type BulkShipmentFlowProps = {
   draft: ShipmentDraft
+  /** Start on "one courier for all" with this courier (a courier app's Create shipment). */
+  courier?: string | undefined
   onClose: () => void
   onBooked: () => void
 }
@@ -35,7 +38,12 @@ const STEPS: readonly FlowStep[] = ['package', 'courier', 'done']
 
 /** Several orders at once: the box for all → one courier, or the cheapest or fastest for each
  *  → booked, order by order. */
-export default function BulkShipmentFlow({ draft, onClose, onBooked }: BulkShipmentFlowProps) {
+export default function BulkShipmentFlow({
+  draft,
+  courier,
+  onClose,
+  onBooked,
+}: BulkShipmentFlowProps) {
   // Hooks
   const copy = useCopy(createShipmentContent)
   const [step, setStep] = useState<FlowStep>('package')
@@ -66,9 +74,9 @@ export default function BulkShipmentFlow({ draft, onClose, onBooked }: BulkShipm
         })),
       })
       setQuotes(answer)
-      setProviderId(
-        courierTotals(answer, draft.couriers).find((t) => t.recommended)?.providerId ?? null,
-      )
+      const start = startingBulkPick(courierTotals(answer, draft.couriers), courier)
+      if (start.mode) setMode(start.mode)
+      setProviderId(start.providerId)
     } catch (err) {
       toast.error(err instanceof Error ? err.message : String(err))
       setQuotes([])

@@ -1,4 +1,4 @@
-import { notSystemTest, onHandleChange } from '@commerce/core'
+import { noteProductsChanged, notSystemTest, onHandleChange } from '@commerce/core'
 import type { StoreTx } from '@commerce/db'
 import {
   inventoryLevel,
@@ -279,6 +279,7 @@ export async function updateProduct(tx: StoreTx, storeId: string, id: string, pa
     .where(eq(product.id, id))
     .returning()
   if (row) await onHandleChange(tx, storeId, 'product', before?.handle, row.handle)
+  if (row) await noteProductsChanged(tx, [row.id], storeId)
   return row ?? null
 }
 
@@ -311,6 +312,8 @@ export async function updateVariant(tx: StoreTx, id: string, patch: VariantPatch
     }
   }
   const [row] = await tx.select().from(variant).where(eq(variant.id, id))
+  // Price and SKU are in the search index; stock is read live, so it needs no catch-up.
+  if (row && Object.keys(variantPatch).length > 0) await noteProductsChanged(tx, [row.productId])
   return row ?? null
 }
 

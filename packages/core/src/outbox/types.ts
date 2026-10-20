@@ -63,6 +63,11 @@ export type OutboxEventType =
   | 'domain.route_requested'
   /** A removed custom domain's HTTPS route should be deleted from the proxy. */
   | 'domain.route_removed'
+  /**
+   * Products were created, edited or deleted. Apps that keep a copy of the catalogue (the
+   * Meilisearch app's search index) get their `PRODUCTS_CHANGED_JOB` with the ids.
+   */
+  | 'catalog.products_changed'
 
 /**
  * `orderId` is required for every order-lifecycle type; `variantId` (and
@@ -92,7 +97,15 @@ export type OutboxPayload = {
   reregister?: boolean | undefined
   /** For `domain.route_removed`: the hostname, since its `store_domain` row is gone. */
   hostname?: string | undefined
+  /** For `catalog.products_changed`: the products, which may no longer exist. */
+  productIds?: string[] | undefined
 }
+
+/**
+ * The app job `catalog.products_changed` fans out to: any installed app whose manifest has a
+ * job by this name gets `{ productIds }`.
+ */
+export const PRODUCTS_CHANGED_JOB = 'products.changed'
 
 export type OutboxEventRow = {
   id: string
@@ -153,6 +166,8 @@ export const OUTBOX_NOTIFICATION_TEMPLATE: Record<OutboxEventType, TemplateId | 
   // Platform work, no message: the relay queues a `{domains}-route` job (`dispatchRow`).
   'domain.route_requested': null,
   'domain.route_removed': null,
+  // Apps only: the relay queues `PRODUCTS_CHANGED_JOB` for apps that have it (`dispatchRow`).
+  'catalog.products_changed': null,
 }
 
 /**
@@ -207,4 +222,5 @@ export const OUTBOX_APP_EVENT: Record<OutboxEventType, AppEvent | null> = {
   'review.replied': null,
   'domain.route_requested': null,
   'domain.route_removed': null,
+  'catalog.products_changed': null,
 }

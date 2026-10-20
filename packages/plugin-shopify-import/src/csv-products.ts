@@ -27,8 +27,10 @@ export function readHsn(row: CsvRow): string | null {
 
 function status(row: CsvRow): NProduct['status'] {
   const s = row.get('status').toLowerCase()
-  if (s === 'active' || s === 'draft' || s === 'archived') return s
   const published = row.get('published')
+  // "Published" is the Online Store channel: an active product off it is hidden on Shopify too.
+  if (s === 'active') return published && !bool(published, true) ? 'draft' : 'active'
+  if (s === 'draft' || s === 'archived') return s
   return published && bool(published, false) ? 'active' : 'draft'
 }
 

@@ -168,9 +168,11 @@ function templateBlocks(
 
 /**
  * One JSON template (or group) as our template data. In a resource template (product,
- * collection, page, blog, article, 404) the theme's first main section becomes ours and any further one is
+ * collection, blog, article, 404) the theme's first main section becomes ours and any further one is
  * dropped (ours covers it); every other section stays the theme's own. A product or
- * collection template with no main section gets ours first.
+ * collection template with no main section gets ours first. A page template keeps the theme's
+ * own main section: it only reads `page.title` / `page.content`, which Liquid has, and a page
+ * alternate's main is often the page itself (a wishlist grid, a styled title with breadcrumbs).
  */
 function toTemplateData(
   tpl: ShopifyJsonTemplate,
@@ -179,7 +181,7 @@ function toTemplateData(
   hosted: Hosted,
   key: TemplateKey,
 ): TemplateData {
-  const main = ourMainSection(key)
+  const main = key === 'page' ? null : ourMainSection(key)
   let mainPlaced = false
   const content = tpl.order.flatMap((sectionKey): TemplateSection[] => {
     const s = tpl.sections[sectionKey]

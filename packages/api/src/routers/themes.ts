@@ -14,9 +14,12 @@ import {
   publishTheme,
   renameTheme,
   restoreThemeVersion,
+  saveThemePacks,
   setThemeThumbnail,
   signThemePreviewToken,
   snapshotTheme,
+  storeThemePacks,
+  THEME_PACK_IDS,
   THEME_PRESET_IDS,
   type ThemeRecord,
   ThemeSchema,
@@ -202,6 +205,18 @@ export const themesRouter = {
 
   /** The live theme's logo for the admin sidebar (every page load): one small read. */
   logo: can(permissions.ONLINE_STORE_READ).handler(({ context }) => liveThemeLogoUrl(context.tx)),
+
+  /** The store's opt-in theme packs (Zero Drift…): which pack sections Customize's Add menu offers. */
+  packs: can(permissions.ONLINE_STORE_READ).handler(({ context }) =>
+    storeThemePacks(context.tx, context.scope.storeId),
+  ),
+
+  /** Turns theme packs on or off for the store: owners and administrators (settings manage). */
+  setPacks: can(permissions.SETTINGS_MANAGE)
+    .input(z.object({ packs: z.array(z.enum(THEME_PACK_IDS)).max(THEME_PACK_IDS.length) }))
+    .handler(({ context, input }) =>
+      saveThemePacks(context.tx, context.scope.storeId, input.packs),
+    ),
 
   list: can(permissions.ONLINE_STORE_READ).handler(async ({ context }) => {
     const { storeId } = context.scope

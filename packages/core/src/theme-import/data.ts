@@ -23,6 +23,7 @@ import {
 } from '../catalog/browse-params'
 import { keyFromName } from '../metaobjects/validate'
 import { toNavLinks } from '../navigation/resolve'
+import { publishedPolicyLinks } from '../policies/service'
 import { loadMetafields, loadMetaobjects, loadMetaobjectsOfType } from './custom-data'
 import type {
   LiquidBlogData,
@@ -37,7 +38,12 @@ import type {
 import { loadImportedFiles } from './imported-files'
 import { uuidPrefixOf } from './numeric-id'
 import { collectionsProducts, loadProducts, productsByHandles } from './product-data'
-import { MAX_RECOMMENDATIONS, pickedRecommendationIds, relatedProductIds } from './related'
+import {
+  firstAvailable,
+  MAX_RECOMMENDATIONS,
+  pickedRecommendationIds,
+  relatedProductIds,
+} from './related'
 import { richTextHtml } from './rich-html'
 
 export type StoreLiquidDataOptions = {
@@ -148,6 +154,8 @@ export async function storeLiquidData(
     })
     .from(store)
     .where(eq(store.id, options.storeId))
+  // The footer's policy links (`shop.policies`): payment gateways check a store shows them.
+  const policyLinks = await publishedPolicyLinks({ tx, storeId: options.storeId })
   const seo = ((s?.preferences as { seo?: { description?: string } } | null)?.seo ?? {}) as {
     description?: string
   }
@@ -159,6 +167,7 @@ export async function storeLiquidData(
     url: options.origin,
     currency: 'INR',
     description: seo.description ?? '',
+    policies: policyLinks.map((l) => ({ type: l.type, title: l.title, url: l.href })),
   }
 
   const collectionList = (): Promise<LiquidCollectionData[]> =>
@@ -259,9 +268,10 @@ export async function storeLiquidData(
         )
         const auto = intent === 'related' ? await relatedProductIds(tx, productId) : []
         const ids = [...new Set([...picked, ...auto])]
-        // Over-read: sold-out products are dropped after loading (stock lives on the variants).
-        const loaded = await loadProducts(tx, ids.slice(0, wanted * 3))
-        return loaded.filter((p) => p.variants.some((v) => v.available)).slice(0, wanted)
+        // Sold-out products are dropped after loading (stock lives on the variants), so the
+        // ranked list is read in chunks until enough are in stock: the closest matches (same
+        // brand and kind) are often all sold out, and one fixed slice of them left the row empty.
+        return firstAvailable(ids, wanted, (chunk) => loadProducts(tx, chunk))
       }),
     menu: (handle) =>
       once(`m:${handle}`, async () => {
@@ -345,6 +355,8 @@ export async function storeLiquidData(
       const result = await browseProducts(tx, {
         collectionId: collectionId ?? undefined,
         query: q || undefined,
+        // The store's search engine (the Meilisearch app) ranks a search when it has one ready.
+        storeId: options.storeId,
         filters,
         sort: sort === 'manual' && !collectionId ? 'title-ascending' : sort,
         page: parsePage(first(query.page)),

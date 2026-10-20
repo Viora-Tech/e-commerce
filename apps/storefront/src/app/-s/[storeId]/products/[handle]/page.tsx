@@ -1,4 +1,4 @@
-import { mainProductSettings, ProductView } from '@commerce/blocks'
+import { mainProductSettings, ProductView, ReviewsWidget } from '@commerce/blocks'
 import { loadProductPageExtras } from '@commerce/core'
 import {
   depositIsNonRefundable,
@@ -20,6 +20,7 @@ import NotifyMeForm from '@/components/product/notify-me-form'
 import RecentlyViewed from '@/components/product/recently-viewed'
 import RecordView from '@/components/product/record-view'
 import RelatedProducts from '@/components/product/related-products'
+import LiquidAppBlock from '@/components/theme/liquid-app-block'
 import { notifyMeAction } from '@/lib/back-in-stock-actions'
 import { backInStockContext } from '@/lib/back-in-stock-context'
 import { addLineAction } from '@/lib/cart-actions'
@@ -227,6 +228,12 @@ export default async function ProductPage({ params, searchParams }: Params) {
       {/* biome-ignore lint/security/noDangerouslySetInnerHtml: JSON-LD from our own data; jsonLd() escapes it. */}
       <script type="application/ld+json" dangerouslySetInnerHTML={jsonLd(schema)} />
       {page}
+      {/* An imported theme's Judge.me review widget (an app block) draws our Reviews app here. */}
+      {reviews ? (
+        <LiquidAppBlock slot="reviews">
+          <ReviewsWidget context={reviews.widget} />
+        </LiquidAppBlock>
+      ) : null}
     </>
   )
 }

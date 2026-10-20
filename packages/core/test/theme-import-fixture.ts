@@ -239,6 +239,7 @@ export function fakeDataSource(extra: FakeStoreData = {}): LiquidDataSource & { 
       url: 'https://shop.example',
       currency: 'INR',
       description: '',
+      policies: [],
     },
     product: async (h) => {
       calls.push(`product:${h}`)

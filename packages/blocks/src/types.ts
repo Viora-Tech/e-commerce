@@ -27,6 +27,11 @@ export type CardProduct = {
   images: MediaImage[]
   /** The variant a card's Quick add puts in the cart: set only when the product has exactly one. */
   quickAddVariantId?: string | null | undefined
+  /**
+   * Out of stock but still selling as a pre-order (the product page's rule): the card shows a
+   * "Pre-order" badge and its button reads `buttonLabel` instead of "Sold out". Null otherwise.
+   */
+  preorder?: { buttonLabel: string } | null | undefined
   /** Published reviews (Reviews app); absent or null when the product has none. */
   rating?: { average: number; count: number } | null | undefined
 }

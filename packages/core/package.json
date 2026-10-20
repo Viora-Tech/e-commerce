@@ -53,6 +53,7 @@
     "./billing": "./src/billing/client.ts",
     "./api-access": "./src/api-access/client.ts",
     "./marketing": "./src/marketing/client.ts",
+    "./email-design-compile": "./src/marketing/email-design-compile.ts",
     "./admin-accent": "./src/admin-accent/accent.ts",
     "./home-metrics": "./src/home-metrics/metrics.ts",
     "./shipping-rates": "./src/shipping/rates.ts",
@@ -92,6 +93,7 @@
     "@commerce/db": "workspace:*",
     "@commerce/money": "workspace:*",
     "@commerce/notifications": "workspace:*",
+    "@commerce/notifications-resend": "workspace:*",
     "@commerce/notifications-ses": "workspace:*",
     "@commerce/observability": "workspace:*",
     "@commerce/payments": "workspace:*",
@@ -105,6 +107,7 @@
     "jose": "6.2.12",
     "libphonenumber-js": "^1.13.15",
     "liquidjs": "10.30.0",
+    "mjml": "5.4.1",
     "sharp": "^0.35.4",
     "thumbhash": "^0.1.1",
     "zod": "^4.6.5"
@@ -113,6 +116,7 @@
     "react": "^19.0.0"
   },
   "devDependencies": {
+    "@types/mjml": "5.0.0",
     "@types/node": "^22.20.4",
     "@types/react": "^19.2.8",
     "@vitest/coverage-v8": "4.1.11",

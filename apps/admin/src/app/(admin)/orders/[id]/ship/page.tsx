@@ -4,10 +4,17 @@ import CreateShipmentPage from '@/components/shipments/create-shipment/create-sh
 import { createShipmentContent } from '@/data/create-shipment'
 export const metadata: Metadata = { title: createShipmentContent.page.title }
 
-type Params = { params: Promise<{ id: string }> }
+type Params = {
+  params: Promise<{ id: string }>
+  /** `courier`: a courier app's "Create shipment" starts the page on that courier. */
+  searchParams: Promise<{ courier?: string | string[] }>
+}
 
 /** Orders › #1042 › Create shipment (Figma 616:16737). */
-export default async function ShipOrderPage({ params }: Params) {
+export default async function ShipOrderPage({ params, searchParams }: Params) {
   const { id } = await params
-  return <CreateShipmentPage orderId={id} />
+  const { courier } = await searchParams
+  return (
+    <CreateShipmentPage orderId={id} courier={typeof courier === 'string' ? courier : undefined} />
+  )
 }

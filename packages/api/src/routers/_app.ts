@@ -27,6 +27,7 @@ import { inventoryRouter, purchaseOrdersRouter, transfersRouter } from './invent
 import { invitationsRouter } from './invitations'
 import { marketingRouter } from './marketing'
 import { mediaRouter } from './media'
+import { meilisearchRouter } from './meilisearch'
 import { metaobjectsRouter } from './metaobjects'
 import { navigationRouter } from './navigation'
 import { notificationsRouter } from './notifications'
@@ -109,6 +110,7 @@ export const appRouter = {
   reviews: reviewsRouter,
   umami: umamiRouter,
   searchConsole: searchConsoleRouter,
+  meilisearch: meilisearchRouter,
   dashboard: dashboardRouter,
   analytics: analyticsRouter,
   ai: aiRouter,

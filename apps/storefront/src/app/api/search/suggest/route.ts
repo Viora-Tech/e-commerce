@@ -3,6 +3,7 @@ import { listCardProducts } from '@/lib/catalog'
 import { lockedOut } from '@/lib/lock-gate'
 import { clientIp, rateLimited, retryAfterSeconds } from '@/lib/rate-limit'
 import { withEvlog } from '@/lib/request-log'
+import '@/lib/search-engine'
 import { inStore } from '@/lib/store-context'
 import {
   ACCESS_COOKIE,
@@ -46,7 +47,7 @@ export const GET = withEvlog(async (request: Request) => {
   if (lockedOut(lock, passes)) return Response.json([])
   const q = (new URL(request.url).searchParams.get('q') ?? '').trim().slice(0, 100)
   const products = await inStore(storeId, async (tx) => {
-    const handles = await suggestProducts(tx, q)
+    const handles = await suggestProducts(tx, q, 6, storeId)
     return listCardProducts(tx, handles.length, undefined, handles)
   })
   const body: Suggestion[] = products.map((p) => ({
@@ -55,7 +56,8 @@ export const GET = withEvlog(async (request: Request) => {
     vendor: p.vendor,
     pricePaise: p.pricePaise,
     mrpPaise: p.mrpPaise,
-    available: p.available > 0,
+    // A pre-order still sells past zero stock: not "Sold out" in the dropdown.
+    available: p.available > 0 || Boolean(p.preorder),
     // The result row draws a 3rem thumbnail: the smallest generated variant, not the original.
     image: p.images[0]
       ? { url: p.images[0].variants?.['320']?.webp ?? p.images[0].url, alt: p.images[0].alt }

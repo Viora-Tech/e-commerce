@@ -911,6 +911,20 @@
       "when": 1792470503313,
       "tag": "0139_metafield_filterable",
       "breakpoints": true
+    },
+    {
+      "idx": 130,
+      "version": "7",
+      "when": 1792509002571,
+      "tag": "0141_store_money_format",
+      "breakpoints": true
+    },
+    {
+      "idx": 131,
+      "version": "7",
+      "when": 1792514463843,
+      "tag": "0142_email_design",
+      "breakpoints": true
     }
   ]
 }

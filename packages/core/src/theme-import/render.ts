@@ -1,4 +1,5 @@
 /** SOURCE OF TRUTH: rendering an imported Shopify theme — WHAT: the section, theme-block and layout renders the storefront and the editor canvas call (synchronous passes over the request's data cache), Shopify's section wrappers and the layout split around `<main>` / WHY: every imported section, on every page and in Customize, renders through this one path */
+import { appBlockHtml } from './app-blocks'
 import { parsed, type ThemeBundle } from './bundle'
 import type { FontDrop } from './drops'
 import { BLOCK_SCOPE, type EngineRuntime, renderBounded } from './engine'
@@ -142,7 +143,8 @@ function withHooks(ctx: LiquidPageContext): EngineRuntime {
     renderThemeBlock: (block, section, liquidCtx, depth) => {
       const b = block as { type?: string }
       const def = b.type ? ctx.bundle.blocks.get(b.type) : undefined
-      if (!def || !b.type) return ''
+      // An app block (`shopify://apps/…`) is not theme code: one of our apps may draw it.
+      if (!def || !b.type) return appBlockHtml(ctx, b)
       const tpl = parsed(ctx.entry, `blocks/${b.type}.liquid`, def.source)
       // The block's own scope: its `content_for 'blocks'` lists its children, one level deeper.
       const scope = { block, section, [BLOCK_SCOPE.parent]: block, [BLOCK_SCOPE.depth]: depth }

@@ -29,6 +29,7 @@ import dates from './dates'
 import discounts from './discounts'
 import domains from './domains'
 import drafts from './drafts'
+import emailBuilder from './email-builder'
 import filterPanel from './filter-panel'
 import growth from './growth'
 import gstInvoices from './gst-invoices'
@@ -41,10 +42,12 @@ import login from './login'
 import marketingAutomations from './marketing-automations'
 import marketingCampaigns from './marketing-campaigns'
 import mcp from './mcp'
+import meilisearch from './meilisearch'
 import metaobjects from './metaobjects'
 import navigation from './navigation'
 import notifications from './notifications'
 import onboarding from './onboarding'
+import orderAppActions from './order-app-actions'
 import orderCards from './order-cards'
 import orders from './orders'
 import ordersBulkEdit from './orders-bulk-edit'
@@ -110,6 +113,7 @@ export const hindiCopy: readonly TranslationPair[] = [
   ...dates,
   ...drafts,
   ...domains,
+  ...emailBuilder,
   ...analytics,
   ...discounts,
   ...dateRange,
@@ -126,6 +130,7 @@ export const hindiCopy: readonly TranslationPair[] = [
   ...metaobjects,
   ...navigation,
   ...onboarding,
+  ...orderAppActions,
   ...orderCards,
   ...shopifyImportFiles,
   ...shopifyImportRun,
@@ -162,4 +167,5 @@ export const hindiCopy: readonly TranslationPair[] = [
   ...seoReport,
   ...seoKeywords,
   ...umami,
+  ...meilisearch,
 ]

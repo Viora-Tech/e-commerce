@@ -4,7 +4,7 @@ import type { ThemePresetId } from '@commerce/core/theme'
 import { Plus, Upload } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import Link from 'next/link'
-import { useState } from 'react'
+import { type ReactNode, useState } from 'react'
 import { toast } from 'sonner'
 import ConfirmDialog from '@/components/layout/confirm-dialog'
 import PageHeader from '@/components/layout/page-header'
@@ -26,6 +26,8 @@ type ThemesLibraryProps = {
   initial: ThemeItem[]
   origin: string
   canPublish: boolean
+  /** Below the import callout: the "Section packs" card, for owners and administrators. */
+  footer?: ReactNode
 }
 
 /** Live first, then the library by last saved, as the server orders them. */
@@ -56,7 +58,7 @@ function download(theme: ThemeItem): void {
  */
 const deleteCopy = themesContent.deleteDialog
 
-export default function ThemesLibrary({ initial, origin, canPublish }: ThemesLibraryProps) {
+export default function ThemesLibrary({ initial, origin, canPublish, footer }: ThemesLibraryProps) {
   // Hooks
   const [themes, setThemes] = useState(initial)
   const [busy, setBusy] = useState(false)
@@ -234,6 +236,7 @@ export default function ThemesLibrary({ initial, origin, canPublish }: ThemesLib
           {copy.importAction}
         </Button>
       </section>
+      {footer}
       <AddThemeDialog open={adding} busy={busy} onOpenChange={setAdding} onAdd={handleAdd} />
       {renaming ? (
         <RenameThemeDialog

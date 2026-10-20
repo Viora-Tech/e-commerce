@@ -1,0 +1,31 @@
+{
+  "name": "@commerce/plugin-meilisearch",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Meilisearch search: typo-tolerant storefront search, ranked by a Meilisearch server the store connects, with the built-in search as the fallback.",
+  "exports": {
+    ".": "./src/plugin.ts",
+    "./settings": "./src/settings.ts",
+    "./client": "./src/client.ts",
+    "./documents": "./src/documents.ts",
+    "./server": "./src/server.ts"
+  },
+  "scripts": {
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@commerce/core": "workspace:*",
+    "@commerce/db": "workspace:*",
+    "@commerce/plugins": "workspace:*",
+    "drizzle-orm": "^0.45.2",
+    "zod": "^4.6.5"
+  },
+  "devDependencies": {
+    "@commerce/config": "workspace:*",
+    "@types/node": "^22.20.4",
+    "typescript": "~5.9.3",
+    "vitest": "^4.1.11"
+  }
+}

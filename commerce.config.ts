@@ -7,6 +7,7 @@ import { backInStockPlugin } from '@commerce/plugin-back-in-stock'
 import { emiPlugin } from '@commerce/plugin-emi'
 import { formsPlugin } from '@commerce/plugin-forms'
 import { gstInvoicesPlugin } from '@commerce/plugin-gst-invoices'
+import { meilisearchPlugin } from '@commerce/plugin-meilisearch'
 import { reviewsPlugin } from '@commerce/plugin-reviews'
 import { searchConsolePlugin } from '@commerce/plugin-search-console'
 import { shopifyImportPlugin } from '@commerce/plugin-shopify-import'
@@ -44,5 +45,6 @@ export default defineConfig({
     reviewsPlugin,
     umamiPlugin,
     searchConsolePlugin,
+    meilisearchPlugin,
   ],
 })

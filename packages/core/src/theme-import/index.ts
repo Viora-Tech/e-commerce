@@ -1,4 +1,6 @@
 /** SOURCE OF TRUTH: the theme-import module's server entry — WHAT: everything the API, storefront and admin server code use to import, store and render Shopify themes / WHY: one owner module; other code imports from here, never from the files inside */
+export * from './app-block-slots'
+export * from './app-blocks'
 export * from './archive'
 export * from './bundle'
 export * from './bundle-store'

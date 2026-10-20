@@ -11,6 +11,7 @@ import { getRegistries } from '@commerce/core/registries'
 import { type Db, storesWithUndispatchedOutboxEvents } from '@commerce/db'
 import { logger } from '@commerce/observability/logging'
 import {
+  createAppJobQueue,
   type IORedis,
   KEEP_FINISHED,
   OUTBOX_RELAY_QUEUE,
@@ -36,6 +37,9 @@ export const RELAY_EVERY_MS = 5_000
  * `{ storeId }` job so an interactive admin action can nudge its own store's
  * rows out sooner than the next sweep, without waiting on every other store.
  *
+ * `catalog.products_changed` rows become app jobs (the Meilisearch app's index sync) on the
+ * relay's own `{apps}-jobs` producer.
+ *
  * Pattern from Trigger.dev's event log and Temporal's workflow history
  * (credited in `outbox/write.ts`): a durable poll-and-fan-out relay, not a
  * message broker.
@@ -50,6 +54,7 @@ export function createOutboxRelay(
     domainRoutes?: DomainRouteQueue | undefined
   },
 ) {
+  const appJobs = createAppJobQueue(connection)
   const deps: OutboxRelayDeps = {
     db,
     plugins: getRegistries(),
@@ -57,6 +62,7 @@ export function createOutboxRelay(
     appEvents: opts.appEvents,
     inventoryRestock: opts.inventoryRestock,
     domainRoutes: opts.domainRoutes,
+    appJobs,
     salesStoreId: loadEnv(process.env).PLATFORM_SALES_STORE_ID,
     log: (message) => logger.info(message, { area: 'outbox' }),
   }
@@ -83,5 +89,5 @@ export function createOutboxRelay(
     },
     { connection, ...KEEP_FINISHED },
   )
-  return { queue, worker }
+  return { queue, worker, appJobs }
 }

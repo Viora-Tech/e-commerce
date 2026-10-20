@@ -1,5 +1,11 @@
 import { z } from 'zod'
 import { type EmailBlock, EmailBlocksSchema } from './email'
+import {
+  EMAIL_EDITORS,
+  type EmailDesign,
+  EmailDesignSchema,
+  type EmailEditor,
+} from './email-design'
 import { type WhatsappTemplateRef, WhatsappTemplateRefSchema } from './whatsapp'
 
 /** What the campaign editor saves. Pure, so the admin form validates with the same rules. */
@@ -11,6 +17,10 @@ export const CampaignInputSchema = z.object({
   subject: z.string().trim().max(200).default(''),
   previewText: z.string().trim().max(200).default(''),
   blocks: EmailBlocksSchema.default([]),
+  /** Which content is sent; the other is kept so the merchant can switch back. */
+  editor: z.enum(EMAIL_EDITORS).default('blocks'),
+  /** The visual builder's design; its `html` is recompiled from `mjml` on the server. */
+  design: EmailDesignSchema.nullable().default(null),
   whatsapp: WhatsappTemplateRefSchema.nullable().default(null),
 })
 export type CampaignInput = z.infer<typeof CampaignInputSchema>
@@ -22,6 +32,8 @@ export function campaignProblems(c: {
   kind: 'email' | 'whatsapp'
   subject: string
   blocks: EmailBlock[]
+  editor?: EmailEditor | undefined
+  design?: Pick<EmailDesign, 'html' | 'mjml'> | null | undefined
   whatsapp: WhatsappTemplateRef | null
   /** Placeholder count of the chosen template, when known. */
   variableCount?: number | undefined
@@ -29,7 +41,11 @@ export function campaignProblems(c: {
   const out: CampaignProblem[] = []
   if (c.kind === 'email') {
     if (!c.subject.trim()) out.push('subject')
-    if (c.blocks.length === 0) out.push('content')
+    const empty =
+      c.editor === 'visual'
+        ? !c.design || (!c.design.html.trim() && !c.design.mjml.trim())
+        : c.blocks.length === 0
+    if (empty) out.push('content')
     return out
   }
   if (!c.whatsapp) return ['template']
