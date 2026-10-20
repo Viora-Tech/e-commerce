@@ -189,6 +189,18 @@ Candidate projects, with verified licences and what to take from each: [`docs/op
 - Licence: MIT, Copyright (c) 2022 Umami Software, Inc. — https://github.com/umami-software/umami
   (licence checked on GitHub 2026-10-10).
 
+## GrowthBook
+
+- Used in: the GrowthBook app (`packages/plugin-growthbook`, `apps/admin/src/components/apps/growthbook`,
+  `apps/storefront/src/lib/experiments.ts`). The storefront evaluates the store's GrowthBook
+  features on the server with GrowthBook's JavaScript SDK (`@growthbook/growthbook` 1.8.0, an
+  npm dependency, not copied), and the admin reads GrowthBook's REST API. GrowthBook itself runs
+  as a separate service. Nothing from GrowthBook's `enterprise` folders is used.
+- Licence: MIT ("MIT Expat" outside `packages/back-end/src/enterprise`,
+  `packages/front-end/enterprise` and `packages/shared/src/enterprise`), Copyright (c) 2025
+  GrowthBook, Inc. — https://github.com/growthbook/growthbook (LICENSE checked 2026-10-20). The
+  SDK's one dependency, `dom-mutator` 0.6.0, is MIT (GrowthBook).
+
 ## Third-party app logos (trademarks)
 
 - Used in: `apps/admin/public/app-logos/` (Apps page, install step): Cashfree, Decentro, Delhivery,

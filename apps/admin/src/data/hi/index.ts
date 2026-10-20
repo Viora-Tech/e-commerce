@@ -38,6 +38,7 @@ import ekart from './ekart'
 import fedex from './fedex'
 import filterPanel from './filter-panel'
 import growth from './growth'
+import growthbook from './growthbook'
 import gstInvoices from './gst-invoices'
 import home from './home'
 import imageEditor from './image-editor'
@@ -186,4 +187,5 @@ export const hindiCopy: readonly TranslationPair[] = [
   ...xpressbees,
   ...ekart,
   ...shadowfax,
+  ...growthbook,
 ]

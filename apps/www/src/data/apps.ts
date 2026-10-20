@@ -180,6 +180,22 @@ export const STORE_APPS: StoreApp[] = [
     guide: `${docs}/merchant-guide/apps/chatwoot`,
   },
   {
+    id: 'growthbook',
+    name: 'GrowthBook',
+    by: 'GrowthBook',
+    category: 'marketing',
+    blurb: 'A/B test your banners and sections, with no flicker.',
+    does: [
+      'Shows each shopper one version of a section',
+      'Counts who saw each version and who bought',
+      'Lists your running experiments',
+    ],
+    access: ['Store pages · read', 'Analytics · read'],
+    shares: 'Nothing: your store downloads your test setup',
+    pricing: { kind: 'free' },
+    guide: `${docs}/merchant-guide/apps/growthbook`,
+  },
+  {
     id: 'shopify-import',
     name: 'Shopify importer',
     by: us,

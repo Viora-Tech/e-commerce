@@ -46,6 +46,7 @@ export { default as ThemeToggle } from './components/theme-toggle'
 export { type MenuCollection, type SearchShortcut, searchShortcuts } from './header-menu'
 export { formatPaise } from './money'
 export { useFormatPaise } from './money-format'
+export { type SectionExperiment, sectionExperimentGate } from './section-experiment'
 export {
   cleanCustomCss,
   defaultSectionSettings,

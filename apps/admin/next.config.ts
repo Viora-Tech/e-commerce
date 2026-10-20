@@ -89,6 +89,7 @@ const config: NextConfig = {
     '@commerce/plugin-emi',
     '@commerce/plugin-gst-invoices',
     '@commerce/plugin-forms',
+    '@commerce/plugin-growthbook',
     '@commerce/plugin-reviews',
     '@commerce/plugin-meilisearch',
     '@commerce/plugin-search-console',

@@ -30,6 +30,7 @@
     "@commerce/plugin-chatwoot": "workspace:*",
     "@commerce/plugin-emi": "workspace:*",
     "@commerce/plugin-forms": "workspace:*",
+    "@commerce/plugin-growthbook": "workspace:*",
     "@commerce/plugin-reviews": "workspace:*",
     "@commerce/plugin-meilisearch": "workspace:*",
     "@commerce/plugin-search-console": "workspace:*",

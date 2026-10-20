@@ -7,6 +7,7 @@ import { backInStockPlugin } from '@commerce/plugin-back-in-stock'
 import { chatwootPlugin } from '@commerce/plugin-chatwoot'
 import { emiPlugin } from '@commerce/plugin-emi'
 import { formsPlugin } from '@commerce/plugin-forms'
+import { growthbookPlugin } from '@commerce/plugin-growthbook'
 import { gstInvoicesPlugin } from '@commerce/plugin-gst-invoices'
 import { meilisearchPlugin } from '@commerce/plugin-meilisearch'
 import { reviewsPlugin } from '@commerce/plugin-reviews'
@@ -64,5 +65,6 @@ export default defineConfig({
     searchConsolePlugin,
     meilisearchPlugin,
     chatwootPlugin,
+    growthbookPlugin,
   ],
 })

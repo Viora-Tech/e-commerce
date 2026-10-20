@@ -564,6 +564,10 @@ separately run service and mirrors customers into it:
   Conversations card on both detail pages. Outbound calls go through `safeFetch` unless the origin
   is listed in `CHATWOOT_TRUSTED_ORIGINS`.
 
+`packages/plugin-growthbook` (GrowthBook, id `growthbook`) is a `connection` app that also owns a
+table (`experiment_event`) and changes what the storefront renders: server-side A/B assignment
+for sections and Liquid themes. See [A/B tests (GrowthBook)](/developer-docs/building/experiments).
+
 `packages/plugin-search-console` (Google Search Console, id `google-search-console`) is the
 worked example of a per-store **OAuth** connection with a daily background pull:
 

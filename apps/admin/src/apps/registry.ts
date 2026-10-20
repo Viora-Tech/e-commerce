@@ -23,6 +23,7 @@ import EmiSettingsPage from '@/components/apps/emi/settings-page'
 import FedexConnectPage from '@/components/apps/fedex/connect-page'
 import FedexOverviewPage from '@/components/apps/fedex/overview-page'
 import SubmissionsList from '@/components/apps/forms/submissions-list'
+import GrowthbookExperimentsPage from '@/components/apps/growthbook/experiments-page'
 import InvoiceDetail from '@/components/apps/gst-invoices/invoice-detail'
 import InvoicesList from '@/components/apps/gst-invoices/invoices-list'
 import GstOrderCard from '@/components/apps/gst-invoices/order-card'
@@ -242,6 +243,9 @@ export const ADMIN_APPS: Record<string, AdminApp> = {
       settings: ShopifySettingsPage,
       'runs/[id]': RunPage,
     },
+  },
+  growthbook: {
+    pages: { '': GrowthbookExperimentsPage },
   },
   umami: {
     pages: { '': UmamiSettingsPage },

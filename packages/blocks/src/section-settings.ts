@@ -1,6 +1,7 @@
 import type { Fields } from '@puckeditor/core'
 import type { CSSProperties } from 'react'
 import { safeColour } from './element-style'
+import { cleanExperiment, EXPERIMENT_GROUP, type SectionExperiment } from './section-experiment'
 
 /** Longest custom CSS one section keeps. */
 const CUSTOM_CSS_MAX = 5000
@@ -65,6 +66,12 @@ export type SectionSettingsValue = {
     /** The merchant's own CSS for this section, scoped to it (`.section-css-<hash> { … }`). */
     customCss: string
   }
+  /**
+   * Show only in one variant of a GrowthBook experiment (the GrowthBook app): the experiment's
+   * tracking key and the variant (`0` or `control`, `1`, or the variation's name). Absent or a
+   * blank key shows the section to everyone. The storefront applies it before rendering.
+   */
+  experiment?: SectionExperiment
 }
 
 /** Legacy per-section shape (`packages/blocks/src/sections/library.tsx`'s old `Frame`). */
@@ -149,6 +156,7 @@ function mergeSettings(
   stored: Partial<SectionSettingsValue> | Record<string, unknown>,
 ): SectionSettingsValue {
   const s = stored as Partial<SectionSettingsValue>
+  const experiment = cleanExperiment(s.experiment)
   const mergePadding = (
     fallback: ResponsivePadding,
     partial: Partial<ResponsivePadding> | undefined,
@@ -207,6 +215,7 @@ function mergeSettings(
           ? s.advanced.customCss.slice(0, CUSTOM_CSS_MAX)
           : '',
     },
+    ...(experiment ? { experiment } : {}),
   }
 }
 
@@ -326,6 +335,7 @@ export function sectionSettingsField(
             customCss: CUSTOM_CSS_FIELD,
           },
         },
+        experiment: EXPERIMENT_GROUP,
       },
     } as unknown as Fields[string]
   }
@@ -425,6 +435,7 @@ export function sectionSettingsField(
           customCss: CUSTOM_CSS_FIELD,
         },
       },
+      experiment: EXPERIMENT_GROUP,
     },
   } as unknown as Fields[string]
 }

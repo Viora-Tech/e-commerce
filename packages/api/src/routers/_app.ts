@@ -23,6 +23,7 @@ import { domainsRouter } from './domains'
 import { emiRouter } from './emi'
 import { formsRouter } from './forms'
 import { giftCardsRouter } from './gift-cards'
+import { growthbookRouter } from './growthbook'
 import { gstInvoicesRouter } from './gst-invoices'
 import { inventoryRouter, purchaseOrdersRouter, transfersRouter } from './inventory'
 import { invitationsRouter } from './invitations'
@@ -111,6 +112,7 @@ export const appRouter = {
   reviews: reviewsRouter,
   umami: umamiRouter,
   chatwoot: chatwootRouter,
+  growthbook: growthbookRouter,
   searchConsole: searchConsoleRouter,
   meilisearch: meilisearchRouter,
   dashboard: dashboardRouter,
