@@ -3,19 +3,27 @@ import {
   AutomationInputSchema,
   type AutomationStats,
   automationStats,
+  type CampaignInput,
   CampaignInputSchema,
   CampaignLocked,
   CampaignNotReady,
   cancelCampaign,
   createAutomationFromTemplate,
   createCampaign,
+  createEmailTemplate,
   deleteAutomation,
   deleteCampaign,
+  deleteEmailTemplate,
   duplicateCampaign,
   EmailBlocksSchema,
+  EmailDesignSchema,
+  EmailTemplateInputSchema,
+  EmailTemplateLimit,
   getAutomation,
+  getEmailTemplate,
   listAutomations,
   listCampaigns,
+  listEmailTemplates,
   permissions,
   recentRuns,
   scheduleCampaign,
@@ -24,12 +32,14 @@ import {
   updateAutomation,
   updateCampaign,
 } from '@commerce/core'
+import { compileEmailDesign } from '@commerce/core/email-design-compile'
 import { ORPCError } from '@orpc/server'
 import { z } from 'zod'
 import { can } from '../procedures'
 import {
   audienceSize,
   campaignDetail,
+  emailBrand,
   marketingDeps,
   marketingSetup,
   whatsappTemplates,
@@ -59,6 +69,52 @@ function surface<T>(work: () => Promise<T>): Promise<T> {
 }
 
 const id = z.object({ id: z.uuid() })
+
+type Design = NonNullable<CampaignInput['design']>
+
+/** The stored HTML is always compiled here from the design's MJML, never taken from the client. */
+async function compiled<T extends Design | null>(design: T): Promise<T> {
+  if (!design) return design
+  const { html, errors } = await compileEmailDesign(design.mjml)
+  if (design.mjml.trim() && !html) {
+    throw new ORPCError('BAD_REQUEST', {
+      message: `The design could not be compiled: ${errors[0] ?? 'unknown error'}`,
+    })
+  }
+  return { ...design, html }
+}
+
+async function withCompiledDesign(input: CampaignInput): Promise<CampaignInput> {
+  return { ...input, design: await compiled(input.design) }
+}
+
+const emailTemplatesRouter = {
+  list: can(permissions.MARKETING_READ).handler(({ context }) => listEmailTemplates(context.tx)),
+
+  get: can(permissions.MARKETING_READ)
+    .input(id)
+    .handler(({ context, input }) => getEmailTemplate(context.tx, input.id)),
+
+  create: can(permissions.MARKETING_WRITE)
+    .input(EmailTemplateInputSchema)
+    .handler(async ({ context, input }) => {
+      try {
+        return await createEmailTemplate(context.tx, context.scope.storeId, {
+          name: input.name,
+          design: await compiled(input.design),
+        })
+      } catch (err) {
+        if (err instanceof EmailTemplateLimit) {
+          throw new ORPCError('CONFLICT', { message: err.message })
+        }
+        throw err
+      }
+    }),
+
+  delete: can(permissions.MARKETING_WRITE)
+    .input(id)
+    .handler(({ context, input }) => deleteEmailTemplate(context.tx, input.id)),
+}
 
 const automationsRouter = {
   list: can(permissions.MARKETING_READ).handler(({ context }) => listAutomations(context.tx)),
@@ -104,6 +160,13 @@ const automationsRouter = {
 
 export const marketingRouter = {
   automations: automationsRouter,
+  emailTemplates: emailTemplatesRouter,
+
+  /** Logo, colours and social links from the live theme, for the visual email builder. */
+  emailBrand: can(permissions.MARKETING_READ).handler(async ({ context }) => {
+    const deps = await marketingDeps(context.tx, context.scope.storeId, env())
+    return emailBrand(context.tx, context.scope.storeId, deps.storefrontUrl)
+  }),
 
   /** Sessions, attributed sales, channels and top campaigns for one range. */
   overview: can(permissions.MARKETING_READ)
@@ -131,13 +194,22 @@ export const marketingRouter = {
     create: can(permissions.MARKETING_WRITE)
       .input(CampaignInputSchema)
       .handler(({ context, input }) =>
-        surface(() => createCampaign(context.tx, context.scope.storeId, input)),
+        surface(async () =>
+          createCampaign(context.tx, context.scope.storeId, await withCompiledDesign(input)),
+        ),
       ),
 
     update: can(permissions.MARKETING_WRITE)
       .input(z.object({ id: z.uuid(), data: CampaignInputSchema }))
       .handler(({ context, input }) =>
-        surface(() => updateCampaign(context.tx, context.scope.storeId, input.id, input.data)),
+        surface(async () =>
+          updateCampaign(
+            context.tx,
+            context.scope.storeId,
+            input.id,
+            await withCompiledDesign(input.data),
+          ),
+        ),
       ),
 
     delete: can(permissions.MARKETING_WRITE)
@@ -187,6 +259,8 @@ export const marketingRouter = {
           subject: z.string().max(200),
           previewText: z.string().max(200).default(''),
           blocks: EmailBlocksSchema,
+          /** The visual builder's design; sent instead of the blocks when present. */
+          design: EmailDesignSchema.nullable().default(null),
           testPrefix: z.string().max(20).default('[Test]'),
         }),
       )
@@ -195,7 +269,7 @@ export const marketingRouter = {
           context.tx,
           context.scope.storeId,
           await marketingDeps(context.tx, context.scope.storeId, env()),
-          input,
+          { ...input, designHtml: (await compiled(input.design))?.html || undefined },
         )
         if (!r.ok) throw new ORPCError('BAD_REQUEST', { message: r.error })
         return r

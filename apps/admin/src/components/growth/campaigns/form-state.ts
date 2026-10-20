@@ -1,4 +1,10 @@
-import type { CampaignInput, EmailBlock, WhatsappTemplateRef } from '@commerce/core/marketing'
+import type {
+  CampaignInput,
+  EmailBlock,
+  EmailDesign,
+  EmailEditor,
+  WhatsappTemplateRef,
+} from '@commerce/core/marketing'
 import { newEmailBlock, parseEmailBlocks } from '@commerce/core/marketing'
 import type { api } from '@/lib/api-client'
 
@@ -12,6 +18,9 @@ export type CampaignForm = {
   subject: string
   previewText: string
   blocks: EmailBlock[]
+  /** Which content is sent: the block list or the visual builder's design. */
+  editor: EmailEditor
+  design: EmailDesign | null
   whatsapp: WhatsappTemplateRef | null
 }
 
@@ -34,6 +43,8 @@ export function emptyForm(kind: CampaignKind, name: string): CampaignForm {
       kind === 'email'
         ? [newEmailBlock('header', 'header-1'), newEmailBlock('text', 'text-1')]
         : [],
+    editor: 'blocks',
+    design: null,
     whatsapp: null,
   }
 }
@@ -46,6 +57,10 @@ export function fromCampaign(c: LoadedCampaign): CampaignForm {
     subject: c.subject,
     previewText: c.previewText,
     blocks: parseEmailBlocks(c.blocks),
+    editor: c.editor,
+    design: c.design
+      ? { project: c.design.project, mjml: c.design.mjml, html: c.design.html }
+      : null,
     whatsapp: c.whatsapp,
   }
 }
@@ -58,6 +73,8 @@ export function toInput(f: CampaignForm): CampaignInput {
     subject: f.subject,
     previewText: f.previewText,
     blocks: f.blocks,
+    editor: f.editor,
+    design: f.design,
     whatsapp: f.whatsapp,
   }
 }

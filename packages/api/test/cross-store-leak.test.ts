@@ -246,6 +246,7 @@ const NAMESPACE_TABLE: Record<string, string> = {
   discounts: 'discount',
   'marketing.automations': 'marketing_automation',
   'marketing.campaigns': 'marketing_campaign',
+  'marketing.emailTemplates': 'marketing_email_template',
   giftCards: 'gift_card',
   gstInvoices: 'invoice',
   'gstInvoices.periods': 'invoice_period',

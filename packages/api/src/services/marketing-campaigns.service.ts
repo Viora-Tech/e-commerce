@@ -4,7 +4,9 @@ import {
   type CampaignStats,
   campaignOrders,
   campaignStats,
+  type EmailBrand,
   getCampaign,
+  liveThemeSettings,
   type MarketingDeps,
   marketingChannels,
   storefrontOriginFor,
@@ -85,6 +87,39 @@ export async function marketingSetup(
     storeName: sender.storeName,
     storefrontUrl: deps.storefrontUrl,
     segments,
+  }
+}
+
+/** A root-relative media URL (`/media/...`) made absolute, since an inbox has no base URL. */
+function absolute(url: string | null | undefined, origin: string): string | null {
+  if (!url) return null
+  if (/^https?:\/\//i.test(url)) return url
+  return url.startsWith('/') ? `${origin.replace(/\/$/, '')}${url}` : null
+}
+
+/** The live theme's logo, first colour scheme and social profiles, for the visual email builder. */
+export async function emailBrand(
+  tx: StoreTx,
+  storeId: string,
+  storefrontUrl: string,
+): Promise<EmailBrand> {
+  const [theme, sender] = await Promise.all([
+    liveThemeSettings(tx, storeId),
+    storeSender(tx, storeId),
+  ])
+  const scheme = theme.schemes[0]
+  return {
+    storeName: sender.storeName,
+    logoUrl: absolute(theme.brand.logo?.url, storefrontUrl),
+    logoWidth: theme.brand.logoWidth,
+    colours: {
+      background: scheme?.background ?? '#ffffff',
+      text: scheme?.text ?? '#1a1a1a',
+      muted: scheme?.textMuted ?? '#6b6b6b',
+      button: scheme?.button ?? '#1a1a1a',
+      buttonText: scheme?.buttonText ?? '#ffffff',
+    },
+    social: theme.social.links.map((l) => ({ platform: l.platform, url: l.url })),
   }
 }
 

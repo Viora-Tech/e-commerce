@@ -911,6 +911,13 @@
       "when": 1792470503313,
       "tag": "0139_metafield_filterable",
       "breakpoints": true
+    },
+    {
+      "idx": 130,
+      "version": "7",
+      "when": 1792471444965,
+      "tag": "0140_email_design",
+      "breakpoints": true
     }
   ]
 }

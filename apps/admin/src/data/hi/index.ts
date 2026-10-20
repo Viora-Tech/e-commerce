@@ -29,6 +29,7 @@ import dates from './dates'
 import discounts from './discounts'
 import domains from './domains'
 import drafts from './drafts'
+import emailBuilder from './email-builder'
 import filterPanel from './filter-panel'
 import growth from './growth'
 import gstInvoices from './gst-invoices'
@@ -110,6 +111,7 @@ export const hindiCopy: readonly TranslationPair[] = [
   ...dates,
   ...drafts,
   ...domains,
+  ...emailBuilder,
   ...analytics,
   ...discounts,
   ...dateRange,
