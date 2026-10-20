@@ -1,3 +1,4 @@
+/** SOURCE OF TRUTH: email design tests — WHAT: merge tags, sanitising, plain-text fallback, unsubscribe detection and MJML snippets, all pure / WHY: every sent design goes through these helpers */
 import { describe, expect, it } from 'vitest'
 import { campaignProblems } from './campaign-input'
 import {

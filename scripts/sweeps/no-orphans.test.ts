@@ -424,8 +424,13 @@ const ALLOWLIST: AllowEntry[] = [
   },
   {
     file: 'packages/core/src/marketing/email.ts',
-    names: ['EmailBlockSchema', 'MERGE_TAGS', 'escapeHtml', 'safeUrl'],
+    names: ['EmailBlockSchema'],
     reason: 'no external importer today — investigate before removing',
+  },
+  {
+    file: 'packages/core/src/marketing/email-design.ts',
+    names: ['decodeEntities', 'htmlToPlainText', 'hasUnsubscribeTag'],
+    reason: 'exported for its unit test (email-design.test.ts)',
   },
   {
     file: 'packages/core/src/marketing/send.ts',
@@ -752,11 +757,6 @@ const ALLOWLIST: AllowEntry[] = [
   {
     file: 'packages/editor/src/utils/can-use-dom.ts',
     names: ['CAN_USE_DOM'],
-    reason: 'no external importer today — investigate before removing',
-  },
-  {
-    file: 'packages/invoices/src/barcode.ts',
-    names: ['code128Values'],
     reason: 'no external importer today — investigate before removing',
   },
   {

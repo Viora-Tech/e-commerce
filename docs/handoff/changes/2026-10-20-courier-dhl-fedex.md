@@ -41,9 +41,10 @@ international shipping needed.
 - `primaryShippingProvider` prefers a courier that delivers in India; storefront and
   `estimateForStore` use `domesticShippingProvider` (null when only export couriers are on).
 - `createShipmentForOrder` passes HS code (order line first, then variant), origin, SKU, unit
-  weight, box and GSTIN; `documents` are joined label-first with pdf-lib and stored at
-  `stores/<id>/shipping-labels/<random>.pdf` (`label-documents.ts`). A storage failure leaves
-  `labelUrl` null but keeps the booking. `pdf-lib` added to `@commerce/core`.
+  weight, box and GSTIN; `documents` are joined label-first with pdf-lib
+  (`shipmentDocumentsAsLabel`, `label-documents.ts`) and, since the integration branch, stored
+  like Blue Dart / DTDC labels (`storeShippingLabel`: private storage, admin label route). A
+  storage failure leaves `labelUrl` null but keeps the booking. `pdf-lib` added to `@commerce/core`.
 - Quotes (`quoteShipments`, bulk booking) pass the address's country and city.
 - `testShippingConnection` uses `verifyCredentials` for export-only couriers.
 
