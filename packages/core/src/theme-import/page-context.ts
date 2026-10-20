@@ -329,7 +329,7 @@ function policyDrop(p: LiquidPolicyData) {
  * `refund_policy`, `shipping_policy`, `terms_of_service`, `contact_information`: each the
  * published policy or nil, as on Shopify, so a theme never links a page that 404s.
  */
-export function shopPolicies(policies: LiquidPolicyData[]): Record<string, unknown> {
+function shopPolicies(policies: LiquidPolicyData[]): Record<string, unknown> {
   const of = (type: string) => {
     const found = policies.find((p) => p.type === type)
     return found ? policyDrop(found) : null

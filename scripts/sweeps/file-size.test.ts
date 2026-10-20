@@ -23,7 +23,6 @@ const ALLOWLIST: Record<string, { lines: number; reason: string }> = {
   'apps/admin/src/data/hi/orders.ts': { lines: 539, reason: COPY },
   'apps/admin/src/data/orders.ts': { lines: 543, reason: COPY },
   'apps/storefront/src/lib/liquid-theme.ts': { lines: 560, reason: SPLIT },
-  'packages/api/src/routers/gst-invoices.ts': { lines: 510, reason: SPLIT },
   'packages/api/src/routers/store.ts': { lines: 524, reason: SPLIT },
   'packages/api/src/services/analytics-reports.ts': { lines: 554, reason: SPLIT },
   'packages/api/src/services/dashboard.service.ts': { lines: 1027, reason: SPLIT },
@@ -63,6 +62,11 @@ const ALLOWLIST: Record<string, { lines: number; reason: string }> = {
   'packages/core/src/theme-import/resource-drops.ts': {
     lines: 568,
     reason: 'Liquid drops for every resource — split collection/search drops into their own module',
+  },
+  'packages/plugin-shopify-import/src/write-content.ts': {
+    lines: 505,
+    reason:
+      'collections, pages, blogs, menus and redirects in one writer — split one file per resource',
   },
   'packages/db/src/schema.ts': {
     lines: 2446,

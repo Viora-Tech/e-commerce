@@ -48,6 +48,16 @@ export default [
     deleted: 'थीम हटा दी गई',
     failed: 'कुछ गड़बड़ हो गई। फिर कोशिश करें।',
   }),
+  translation(themesContent.packs, {
+    heading: 'सेक्शन पैक',
+    body: 'थीम एडिटर के लिए अतिरिक्त सेक्शन। जिन पेजों में ये पहले से हैं, वे हर हाल में चलते रहेंगे।',
+    zeroDrift: 'Zero Drift सेक्शन',
+    zeroDriftHelp:
+      'कस्टमाइज़ के Add मेन्यू में Zero Drift थीम के सेक्शन (ड्रॉप, Discord, सोशल वॉल, प्रोडक्ट के अतिरिक्त सेक्शन)।',
+    on: (name: string) => `${name} चालू किए गए`,
+    off: (name: string) => `${name} बंद किए गए`,
+    failed: 'सेव नहीं हो सका। फिर कोशिश करें।',
+  }),
   translation(themesContent.editor, {
     back: 'थीम पर वापस',
     live: 'लाइव',

@@ -47,6 +47,7 @@ import metaobjects from './metaobjects'
 import navigation from './navigation'
 import notifications from './notifications'
 import onboarding from './onboarding'
+import orderAppActions from './order-app-actions'
 import orderCards from './order-cards'
 import orders from './orders'
 import ordersBulkEdit from './orders-bulk-edit'
@@ -130,6 +131,7 @@ export const hindiCopy: readonly TranslationPair[] = [
   ...metaobjects,
   ...navigation,
   ...onboarding,
+  ...orderAppActions,
   ...orderCards,
   ...shopifyImportFiles,
   ...shopifyImportRun,

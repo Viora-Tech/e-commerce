@@ -1,6 +1,6 @@
 'use client'
 
-import { formatPaise, Icon, type SearchShortcut } from '@commerce/blocks'
+import { Icon, type SearchShortcut, useFormatPaise } from '@commerce/blocks'
 import { useEffect, useRef, useState } from 'react'
 import { PREDICTIVE_DEBOUNCE_MS, searchContent } from '@/data/search'
 import type { Suggestion } from '@/lib/suggestion'
@@ -27,6 +27,7 @@ export default function PredictiveSearch({
   brands = [],
 }: PredictiveSearchProps) {
   // Hooks
+  const formatPaise = useFormatPaise()
   const [q, setQ] = useState('')
   const [results, setResults] = useState<Suggestion[] | null>(null)
   const [loading, setLoading] = useState(false)

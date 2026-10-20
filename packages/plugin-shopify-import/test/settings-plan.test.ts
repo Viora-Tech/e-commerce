@@ -43,6 +43,7 @@ function emptyLocal(): LocalSettings {
       contactPhone: '',
       address: { line1: '', line2: '', city: '', state: '', pincode: '', country: 'IN' },
       pricesIncludeGst: true,
+      moneyFormat: null,
     },
     defaultGstin: null,
     gstins: [],
@@ -185,6 +186,7 @@ describe('reading store settings from Shopify', () => {
       currency: 'INR',
       taxesIncluded: true,
       gstin: '29AAGCB7383J1Z4',
+      moneyFormat: 'Rs. {{amount}}',
     })
     expect(source.shop.address).toMatchObject({
       line1: '12 MG Road',
@@ -241,7 +243,12 @@ describe('store details and tax', () => {
     })
     expect(plan.ops[0]).toMatchObject({
       kind: 'profile',
-      patch: { name: 'Waimers', contactEmail: 'hello@waimers.in' },
+      patch: { name: 'Waimers', contactEmail: 'hello@waimers.in', moneyFormat: 'Rs. {{amount}}' },
+    })
+    expect(find(plan.items, { subject: 'money_format' })).toMatchObject({
+      action: 'update',
+      from: null,
+      to: 'Rs. {{amount}}',
     })
     expect(plan.ops[1]).toMatchObject({
       kind: 'location',

@@ -26,7 +26,7 @@ export default async function Page({ searchParams }: Props) {
   const query = parseListQuery(params, ORDER_LIST_FILTERS)
   const perPage = parseRowsPerPage(params.perPage)
   const context = await serverContext()
-  const [result, all, unpaid, unfulfilled, pending, tiles] = await Promise.all([
+  const [result, all, unpaid, unfulfilled, pending, tiles, appActions] = await Promise.all([
     call(
       appRouter.orders.list,
       {
@@ -42,6 +42,7 @@ export default async function Page({ searchParams }: Props) {
     count(context, 'unfulfilled'),
     count(context, 'pending_upi'),
     call(appRouter.orders.tiles, undefined, { context }),
+    call(appRouter.apps.orderActions, undefined, { context }).catch(() => []),
   ])
 
   return (
@@ -51,6 +52,7 @@ export default async function Page({ searchParams }: Props) {
         perPage,
         result,
         tiles,
+        appActions,
         counts: {
           all: all.total,
           unpaid: unpaid.total,

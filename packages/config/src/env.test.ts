@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { loadEnv, merchantGoogleSignIn } from './env'
+import { loadEnv, loadPlatformEmailEnv, merchantGoogleSignIn } from './env'
 
 const valid = {
   DATABASE_URL: 'postgres://app:app@localhost:5432/commerce',
@@ -150,6 +150,32 @@ describe('bug reports env', () => {
   it('rejects a repo that is not owner/name', () => {
     expect(() => loadEnv({ ...valid, GITHUB_ISSUES_REPO: 'https://github.com/a/b' })).toThrow(
       /GITHUB_ISSUES_REPO/,
+    )
+  })
+})
+
+describe('platform email env', () => {
+  it('treats blanks as unset (compose passes every key, most of them empty)', () => {
+    const env = loadPlatformEmailEnv({
+      SENDER_EMAIL_PROVIDER: 'resend',
+      SENDER_EMAIL_FALLBACK: '',
+      RESEND_API_KEY: 're_test',
+      SES_REGION: '',
+      SES_CONFIGURATION_SET: '',
+      PLATFORM_EMAIL_FROM: 'no-reply@mail.platform.test',
+    })
+    expect(env.SENDER_EMAIL_PROVIDER).toBe('resend')
+    expect(env.SENDER_EMAIL_FALLBACK).toBe('none')
+    expect(env.SES_REGION).toBeUndefined()
+    expect(env.SES_CONFIGURATION_SET).toBeUndefined()
+  })
+
+  it('refuses an unknown provider or fallback', () => {
+    expect(() => loadPlatformEmailEnv({ SENDER_EMAIL_PROVIDER: 'mailgun' })).toThrow(
+      /SENDER_EMAIL_PROVIDER/,
+    )
+    expect(() => loadPlatformEmailEnv({ SENDER_EMAIL_FALLBACK: 'smtp' })).toThrow(
+      /SENDER_EMAIL_FALLBACK/,
     )
   })
 })

@@ -97,6 +97,8 @@ export type StoreGeneralPatch = {
   gstin?: string | null
   gstRatePercent?: number
   timezone: string
+  /** Null is the currency's own format; left out keeps the saved one. */
+  moneyFormat?: string | null
 }
 
 export async function updateStoreGeneral(tx: StoreTx, storeId: string, patch: StoreGeneralPatch) {

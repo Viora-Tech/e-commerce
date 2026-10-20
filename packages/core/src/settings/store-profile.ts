@@ -1,5 +1,6 @@
 /** SOURCE OF TRUTH: readStoreProfile, saveStoreProfile, saveLocationDetails — WHAT: read and patch the store's own details (name, contact email and phone, business address, prices-include-GST switch) and create or edit a location's name and address, field by field / WHY: a store migration (the Shopify importer's Store settings step) writes only the fields it brings over, leaving GSTIN, rate, time zone, currency, stock and every other setting exactly as they were */
 import { location, newId, store } from '@commerce/db'
+import { cleanMoneyFormat } from '@commerce/money'
 import { eq } from 'drizzle-orm'
 import type { StoreContext } from '../context'
 import { parseStoreTax, withStoreTax } from '../tax/settings'
@@ -13,6 +14,8 @@ export type StoreProfile = {
   contactPhone: string
   address: StoreAddress
   pricesIncludeGst: boolean
+  /** Shopify-style price format (`Rs. {{amount}}`); null is the currency's own. */
+  moneyFormat: string | null
 }
 
 export async function readStoreProfile(ctx: StoreContext): Promise<StoreProfile> {
@@ -25,6 +28,7 @@ export async function readStoreProfile(ctx: StoreContext): Promise<StoreProfile>
       contactPhone: store.contactPhone,
       address: store.address,
       apps: store.apps,
+      moneyFormat: store.moneyFormat,
     })
     .from(store)
     .where(eq(store.id, ctx.storeId))
@@ -38,6 +42,7 @@ export async function readStoreProfile(ctx: StoreContext): Promise<StoreProfile>
     contactPhone: s.contactPhone ?? '',
     address: address.success ? address.data : emptyStoreAddress,
     pricesIncludeGst: parseStoreTax(s.apps).pricesIncludeGst,
+    moneyFormat: s.moneyFormat,
   }
 }
 
@@ -48,6 +53,7 @@ export type StoreProfilePatch = {
   contactPhone?: string | undefined
   address?: StoreAddress | undefined
   pricesIncludeGst?: boolean | undefined
+  moneyFormat?: string | undefined
 }
 
 export async function saveStoreProfile(ctx: StoreContext, patch: StoreProfilePatch): Promise<void> {
@@ -58,6 +64,7 @@ export async function saveStoreProfile(ctx: StoreContext, patch: StoreProfilePat
   if (patch.contactEmail !== undefined) set.contactEmail = patch.contactEmail || null
   if (patch.contactPhone !== undefined) set.contactPhone = patch.contactPhone || null
   if (patch.address !== undefined) set.address = StoreAddressSchema.parse(patch.address)
+  if (patch.moneyFormat !== undefined) set.moneyFormat = cleanMoneyFormat(patch.moneyFormat)
   if (patch.pricesIncludeGst !== undefined) {
     set.apps = withStoreTax(s.apps, {
       ...parseStoreTax(s.apps),

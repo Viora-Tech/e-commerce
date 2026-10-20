@@ -15,6 +15,7 @@ import {
   parsePackage,
   quoteRequest,
   type ShipmentDraft,
+  startingBulkPick,
   startingPick,
   withBox,
 } from './flow-state'
@@ -191,6 +192,42 @@ describe('startingPick', () => {
     ).toBe('b')
     expect(startingPick([row({ providerId: 'a', problem: 'unreachable' })])).toBe(MANUAL)
     expect(startingPick([])).toBe(MANUAL)
+  })
+
+  it("starts on the courier app's own courier when it can take the parcel", () => {
+    const options = [
+      row({ providerId: 'delhivery', serviceId: 'surface', pricePaise: 9000 }),
+      row({ providerId: 'delhivery', serviceId: 'air', pricePaise: 15000 }),
+      row({ providerId: 'shiprocket', badges: ['recommended'] }),
+    ]
+    expect(startingPick(options, 'delhivery')).toBe('delhivery:surface')
+    const cannot = [
+      row({ providerId: 'delhivery', problem: 'not_serviceable' }),
+      row({ providerId: 'shiprocket', badges: ['recommended'] }),
+    ]
+    expect(startingPick(cannot, 'delhivery')).toBe('shiprocket')
+  })
+})
+
+describe('startingBulkPick', () => {
+  const total = (providerId: string, canTake: number, recommended = false) => ({
+    providerId,
+    label: providerId,
+    pricePaise: 0,
+    unpriced: 0,
+    canTake,
+    recommended,
+  })
+
+  it("picks one courier for all with the courier app's courier", () => {
+    const totals = [total('delhivery', 2), total('shiprocket', 3, true)]
+    expect(startingBulkPick(totals, 'delhivery')).toEqual({ mode: 'one', providerId: 'delhivery' })
+  })
+
+  it('keeps the default mode on the recommended courier otherwise', () => {
+    const totals = [total('delhivery', 0), total('shiprocket', 3, true)]
+    expect(startingBulkPick(totals, 'delhivery')).toEqual({ mode: null, providerId: 'shiprocket' })
+    expect(startingBulkPick(totals)).toEqual({ mode: null, providerId: 'shiprocket' })
   })
 })
 

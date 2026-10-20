@@ -246,7 +246,8 @@ export async function createStore(input: CreateStoreInput): Promise<CreateStoreR
       roleId: ownerRoleId,
       status: 'active',
     })
-    await ensureMainTheme(tx, storeId)
+    // A new merchant starts on the neutral Minimal look, never the Waimers one.
+    await ensureMainTheme(tx, storeId, 'minimal')
     await seedWaimersShipping(tx, storeId)
     if (input.profile) await applyBusinessProfile(tx, storeId, input.profile)
     if (input.installApps?.length) await installStoreApps(tx, storeId, input.installApps)
