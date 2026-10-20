@@ -1,33 +1,33 @@
 'use client'
 
+import type { Theme } from '@commerce/core/theme'
 import { themesContent } from '@/data/themes'
 import { useCopy } from '@/hooks/use-copy'
-import { previewUrl } from './theme-types'
+import ThemeSwatch from './theme-swatch'
 
 type ThemePreviewStageProps = {
   name: string
   origin: string
-  previewToken: string
-  /** The home page picture Customize took on Save; the live page in a frame until then. */
+  settings: Theme
+  /** The home page picture Customize took on Save; a swatch in the theme's colours until then. */
   picture: string | null
 }
 
 /**
  * Figma "Current theme › Preview" (683:78386): the storefront in a desktop browser frame with a
- * phone frame overlapping its right edge, on the card's stage. Both are inert: scaled pages with
- * no pointer events, out of the tab order.
+ * phone frame overlapping its right edge, on the card's stage. Static on purpose: two live
+ * storefront frames made the page lag, so the live page opens only from Preview or Customize.
  */
 export default function ThemePreviewStage({
   name,
   origin,
-  previewToken,
+  settings,
   picture,
 }: ThemePreviewStageProps) {
   // Hooks
   const copy = useCopy(themesContent.library)
 
   // Render logic
-  const src = previewUrl(origin, previewToken)
   const host = origin.replace(/^https?:\/\//, '')
 
   return (
@@ -56,13 +56,9 @@ export default function ThemePreviewStage({
                 className="size-full object-cover object-top"
               />
             ) : (
-              <iframe
-                src={src}
-                title={copy.thumbnail(name)}
-                tabIndex={-1}
-                loading="lazy"
-                className="pointer-events-none absolute top-0 left-0 h-[222.22%] w-[222.22%] origin-top-left scale-[0.45] border-0 bg-card"
-              />
+              <span role="img" aria-label={copy.thumbnail(name)} title={copy.pictureHint}>
+                <ThemeSwatch theme={settings} className="absolute inset-0 border-0 p-8" />
+              </span>
             )}
           </div>
         </div>
@@ -71,13 +67,18 @@ export default function ThemePreviewStage({
           aria-hidden="true"
         >
           <div className="relative aspect-[390/800] overflow-hidden">
-            <iframe
-              src={src}
-              title={copy.thumbnail(name)}
-              tabIndex={-1}
-              loading="lazy"
-              className="pointer-events-none absolute top-0 left-0 h-[232.14%] w-[232.14%] origin-top-left scale-[0.43] border-0 bg-card"
-            />
+            {picture ? (
+              // biome-ignore lint/performance/noImgElement: a small stored webp from the store's storage.
+              <img
+                src={picture}
+                alt=""
+                loading="lazy"
+                decoding="async"
+                className="size-full bg-card object-contain object-top"
+              />
+            ) : (
+              <ThemeSwatch theme={settings} className="absolute inset-0 border-0 p-4" />
+            )}
           </div>
         </div>
       </div>

@@ -81,40 +81,40 @@
 /* ------------------------------------------------------------------ */
 /* Figma Pages · Blog and article (705:122973, 705:123319)               */
 /* ------------------------------------------------------------------ */
-.blog-page {
+.blog-page:not(:where(.shopify-section *)) {
   display: flex;
   flex-direction: column;
   gap: var(--space-6);
   padding-block: var(--space-5) var(--space-9);
 }
 
-.blog-page .breadcrumbs {
+.blog-page .breadcrumbs:not(:where(.shopify-section *)) {
   margin: 0;
 }
 
-.blog-page__header {
+.blog-page__header:not(:where(.shopify-section *)) {
   display: flex;
   flex-direction: column;
   gap: var(--space-3);
 }
 
-.blog-page__intro {
+.blog-page__intro:not(:where(.shopify-section *)) {
   margin: 0;
   color: var(--color-muted);
 }
 
-.article-card__media {
+.article-card__media:not(:where(.shopify-section *)) {
   border: 0;
   border-radius: var(--radius-card, var(--radius-m));
   background-color: var(--color-surface);
 }
 
-.article-card__meta {
+.article-card__meta:not(:where(.shopify-section *)) {
   color: var(--color-muted);
   font-size: 12px;
 }
 
-.article-card__title {
+.article-card__title:not(:where(.shopify-section *)) {
   font-family: var(--font-heading);
   font-size: calc(1.125rem * var(--font-heading-scale, 1));
   font-weight: 700;
@@ -122,7 +122,7 @@
   text-transform: none;
 }
 
-.article-card__excerpt {
+.article-card__excerpt:not(:where(.shopify-section *)) {
   color: var(--color-muted);
   font-size: 14px;
   line-height: 1.5;
@@ -130,7 +130,7 @@
 
 /* Article (705:123319): "Back to …", the tag, date and reading time, a 40px title,
    the byline, the image on the surface, the body, then share and the neighbours. */
-.article-page {
+.article-page:not(:where(.shopify-section *)) {
   display: flex;
   flex-direction: column;
   gap: var(--space-6);
@@ -139,7 +139,7 @@
   padding-block: var(--space-5) var(--space-9);
 }
 
-.article-page__back {
+.article-page__back:not(:where(.shopify-section *)) {
   display: inline-flex;
   align-items: center;
   gap: var(--space-2);
@@ -149,17 +149,17 @@
   text-decoration: none;
 }
 
-.article-page__back svg {
+.article-page__back svg:not(:where(.shopify-section *)) {
   transform: rotate(180deg);
 }
 
-.article-page__header {
+.article-page__header:not(:where(.shopify-section *)) {
   display: flex;
   flex-direction: column;
   gap: var(--space-3);
 }
 
-.article-page__meta {
+.article-page__meta:not(:where(.shopify-section *)) {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
@@ -169,20 +169,20 @@
   font-size: 12px;
 }
 
-.article-page__tag {
+.article-page__tag:not(:where(.shopify-section *)) {
   padding: 2px var(--space-2);
   border-radius: var(--radius-button, var(--radius-m));
   background-color: var(--color-surface);
   color: var(--color-ink);
 }
 
-.article-page__byline {
+.article-page__byline:not(:where(.shopify-section *)) {
   margin: 0;
   color: var(--color-muted);
   font-size: 14px;
 }
 
-.article-page__image {
+.article-page__image:not(:where(.shopify-section *)) {
   width: 100%;
   aspect-ratio: 16 / 9;
   border-radius: var(--radius-card, var(--radius-m));

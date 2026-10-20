@@ -1,20 +1,29 @@
 import { createHmac, randomBytes, timingSafeEqual } from 'node:crypto'
 import {
+  activateGateway,
   type CheckoutMethod,
   checkoutMethodsOf,
+  checkoutTestMode,
   createPaymentTestCart,
   DEFAULT_CHECKOUT_METHODS,
+  deactivateGateway,
   decryptPaymentSettings,
   enabledForMethods,
   GATEWAY_PROVIDER_IDS,
+  gatewayKeySets,
+  isGatewayInactive,
   isGatewayProvider,
   isMaskedSecret,
+  keySetMode,
   onlineMethodsOn,
+  type PaymentMode,
   type PaymentRegistry,
   type PaymentSettings,
   parsePaymentSettings,
   recoveryUrl,
   storefrontOriginFor,
+  switchKeySet,
+  withKeySet,
 } from '@commerce/core'
 import { getRegistries } from '@commerce/core/registries'
 import type { StoreTx } from '@commerce/db'
@@ -27,6 +36,7 @@ import {
   registerRazorpayWebhook,
   updateRazorpayWebhook,
 } from '@commerce/payments-razorpay'
+import { ORPCError } from '@orpc/server'
 import { and, desc, eq, inArray } from 'drizzle-orm'
 import {
   availableProviders,
@@ -78,19 +88,18 @@ export type GatewayApp = {
   installed: boolean
   connected: boolean
   methods: string[]
+  /** Saved keys exist, in either mode. */
+  configured: boolean
+  /** The Active/Inactive switch is off: out of checkout, keys kept. */
+  inactive: boolean
+  /** The key set checkout uses; null before any keys are saved. */
+  mode: PaymentMode | null
+  /** Which of the two key sets are saved. */
+  keys: Record<PaymentMode, boolean>
 }
 
 const webhookUrlFor = (workerUrl: string, providerId: string, storeId: string) =>
   `${workerUrl.replace(/\/$/, '')}/webhooks/payments/${providerId}/${storeId}`
-
-function modeOf(id: string, cfg: Record<string, string> | undefined): 'test' | 'live' | null {
-  if (!cfg) return null
-  if (id === 'cashfree' || id === 'decentro') return cfg.mode === 'live' ? 'live' : 'test'
-  const key = cfg.keyId ?? ''
-  if (key.startsWith('rzp_test_')) return 'test'
-  if (key.startsWith('rzp_live_')) return 'live'
-  return null
-}
 
 async function loadSettings(tx: StoreTx, storeId: string): Promise<PaymentSettings> {
   const [s] = await tx.select({ payments: store.payments }).from(store).where(eq(store.id, storeId))
@@ -98,7 +107,8 @@ async function loadSettings(tx: StoreTx, storeId: string): Promise<PaymentSettin
 }
 
 /** Payment gateways this deployment ships (Connection apps in the payments category). */
-function gatewayApps(installed: Set<string>, enabled: string[]): GatewayApp[] {
+function gatewayApps(installed: Set<string>, settings: PaymentSettings): GatewayApp[] {
+  const { enabled } = settings
   return getRegistries()
     .summaries()
     .filter((p) => p.kind === 'connection' && p.category === 'payments')
@@ -107,12 +117,18 @@ function gatewayApps(installed: Set<string>, enabled: string[]): GatewayApp[] {
       const main =
         p.provides.payments.find((f) => isGatewayProvider(f.id)) ?? p.provides.payments[0]
       const isInstalled = installed.has(p.id)
+      const mainId = main?.id ?? p.id
+      const sets = gatewayKeySets(settings.providers, mainId)
       return {
         id: p.id,
         name: p.name,
         installed: isInstalled,
         connected: isInstalled && !!main && enabled.includes(main.id),
         methods: [...(getRegistries().payments.get(main?.id ?? '')?.methods ?? [])],
+        configured: !!sets.test || !!sets.live,
+        inactive: isGatewayInactive(settings, mainId),
+        mode: sets.active,
+        keys: { test: !!sets.test, live: !!sets.live },
       }
     })
 }
@@ -169,7 +185,7 @@ async function gatewayStatus(
   return {
     id,
     label: registry.get(id)?.label ?? id,
-    mode: modeOf(id, cfg),
+    mode: gatewayKeySets(decrypted.providers, id).active,
     via,
     lastPayment: last ? { amountPaise: last.amountPaise, at: last.at.toISOString() } : null,
     lastUpdateAt: update ? update.at.toISOString() : null,
@@ -205,12 +221,15 @@ export async function paymentsSetup(
   const gatewayOn = !!primaryId && settings.enabled.includes(primaryId)
   const online = gatewayOn && onlineMethodsOn(methods).length > 0
   const offline = settings.enabled.some((id) => id === 'cod' || id === 'manual')
+  const gateways = gatewayApps(new Set(installedApps), settings)
   return {
     settings: presentProviderSettings(settings, env.secret, registry, env.previousSecrets),
     available: availableProviders(registry),
     methods,
     primary,
-    gateways: gatewayApps(new Set(installedApps), settings.enabled),
+    gateways,
+    /** A gateway on at checkout runs on test keys: its payments are not real. */
+    testMode: gateways.some((g) => g.connected && g.mode === 'test'),
     canTakePayments: online || offline,
     canTakeOnline: online,
     showSetup: !gatewayOn && !settings.setupSkippedAt,
@@ -219,6 +238,11 @@ export async function paymentsSetup(
       GATEWAY_PROVIDER_IDS.map((id) => [id, webhookUrlFor(env.workerUrl, id, storeId)]),
     ) as Record<string, string>,
   }
+}
+
+/** A gateway at checkout runs on its test keys: what the admin-wide "Test mode" banner shows. */
+export async function paymentsTestMode(tx: StoreTx, storeId: string): Promise<boolean> {
+  return checkoutTestMode(await loadSettings(tx, storeId))
 }
 
 /** True once the store has saved payment settings; before that every value is a default. */
@@ -258,10 +282,12 @@ export function savePaymentMethods(
   methods: CheckoutMethod[],
 ) {
   return writeSettings(tx, storeId, registry, env, (s) => {
+    // A gateway the merchant switched off stays off when methods are saved.
+    const usable = (id: string) => !!registry.get(id) && !isGatewayInactive(s, id)
     const gateway =
       s.enabled.find(isGatewayProvider) ??
-      GATEWAY_PROVIDER_IDS.find((id) => registry.get(id) && s.providers[id]?.keyId) ??
-      GATEWAY_PROVIDER_IDS.find((id) => registry.get(id) && s.providers[id]?.appId) ??
+      GATEWAY_PROVIDER_IDS.find((id) => usable(id) && s.providers[id]?.keyId) ??
+      GATEWAY_PROVIDER_IDS.find((id) => usable(id) && s.providers[id]?.appId) ??
       null
     const full = checkoutMethodsOf({ ...s, methods })
     return { ...s, methods: full, enabled: enabledForMethods(s.enabled, full, gateway) }
@@ -269,9 +295,11 @@ export function savePaymentMethods(
 }
 
 /**
- * Save a gateway's credentials and make it the main way to get paid: it
- * replaces any other gateway at checkout (whose keys are kept, for switching
- * back). First connection also saves the default method row.
+ * Save one of a gateway's two key sets (test or live). When it is the set
+ * checkout uses, or the gateway has none yet, the gateway becomes the main way
+ * to get paid: it replaces any other gateway at checkout (whose keys are kept,
+ * for switching back), and first connection also saves the default method row.
+ * A set for the other mode is only stored; the Live/Test switch puts it to use.
  */
 export async function connectPaymentGateway(
   tx: StoreTx,
@@ -280,12 +308,12 @@ export async function connectPaymentGateway(
   env: Pick<PaymentsEnv, 'secret' | 'previousSecrets' | 'workerUrl'>,
   providerId: string,
   fields: Record<string, string>,
+  mode?: PaymentMode,
 ) {
   // COD starts off for a shop that never saved payment settings (its "on" is only
   // the schema default); a shop that saved its own choice keeps it.
   const everSaved = await paymentsEverSaved(tx, storeId)
   return writeSettings(tx, storeId, registry, env, (s) => {
-    const others = s.enabled.filter((id) => !isGatewayProvider(id) || id === providerId)
     const methods = checkoutMethodsOf(
       s.methods?.length
         ? s
@@ -296,17 +324,91 @@ export async function connectPaymentGateway(
             ),
           },
     )
-    const saved = { ...(s.providers[providerId] ?? {}), ...fields }
+    const slot = mode ?? keySetMode(fields) ?? 'live'
+    const saved = { ...(gatewayKeySets(s.providers, providerId)[slot] ?? {}), ...fields }
+    // Cashfree and Decentro pick their sandbox or live host from `mode`.
+    if (providerId === 'cashfree' || providerId === 'decentro') saved.mode = slot
+    const detected = keySetMode(saved)
+    if (detected && detected !== slot) {
+      // A `rzp_test_` key pasted under Live, or the other way round.
+      throw new ORPCError('BAD_REQUEST', {
+        message:
+          slot === 'live'
+            ? 'These are test keys. Paste your live keys here.'
+            : 'These are live keys. Paste your test keys here.',
+      })
+    }
     // Cashfree takes its update URL per order, so nothing is set up by hand.
     if (providerId === 'cashfree')
       saved.notifyUrl = webhookUrlFor(env.workerUrl, providerId, storeId)
-    return {
-      ...s,
-      methods,
-      providers: { ...s.providers, [providerId]: saved },
-      enabled: enabledForMethods(others, methods, providerId),
-    }
+    const { providers, inUse } = withKeySet(s.providers, providerId, slot, saved)
+    if (!inUse) return { ...s, providers }
+    return activateGateway({ ...s, methods, providers }, providerId, methods)
   })
+}
+
+/**
+ * The Live ⇄ Test switch on a gateway's card. The waiting key set becomes the
+ * one checkout uses and the other waits; nothing is deleted. Going live first
+ * proves the live keys work with the gateway's own read-only check.
+ */
+export async function switchPaymentMode(
+  tx: StoreTx,
+  storeId: string,
+  registry: PaymentRegistry,
+  env: Pick<PaymentsEnv, 'secret' | 'previousSecrets'>,
+  providerId: string,
+  to: PaymentMode,
+): Promise<ConnectionTestResult & { code?: 'no_keys' | 'check_failed' }> {
+  const current = await loadSettings(tx, storeId)
+  const decrypted = decryptPaymentSettings(current, env.secret, env.previousSecrets)
+  const incoming = gatewayKeySets(decrypted.providers, providerId)[to]
+  if (!incoming) {
+    return { ok: false, code: 'no_keys', message: `Add your ${to} keys first.` }
+  }
+  if (to === 'live') {
+    const built = registry.create(providerId, {
+      ...registry.configFor(providerId, decrypted.providers),
+      ...incoming,
+    })
+    if (!built.ok) {
+      return { ok: false, code: 'check_failed', message: `Fill in: ${built.errors.join(', ')}` }
+    }
+    const check = await built.provider.testConnection?.()
+    if (check && !check.ok) return { ...check, code: 'check_failed' }
+  }
+  // Swapped on the stored (encrypted) blob: the masked form would let one set's
+  // "unchanged" secrets be filled from the other set.
+  const swapped = switchKeySet(current.providers, providerId, to)
+  if (!swapped.ok) return { ok: false, code: 'no_keys', message: `Add your ${to} keys first.` }
+  await updateStorePayments(tx, storeId, { ...current, providers: swapped.providers })
+  return { ok: true, message: to === 'live' ? 'Live: payments are real.' : 'Test mode is on.' }
+}
+
+/**
+ * The Active/Inactive switch: an inactive gateway leaves checkout at once and
+ * keeps its keys and settings; switching it on restores what it had on.
+ */
+export async function setPaymentGatewayActive(
+  tx: StoreTx,
+  storeId: string,
+  registry: PaymentRegistry,
+  gatewayId: string,
+  active: boolean,
+): Promise<{ ok: boolean; message?: string }> {
+  const current = await loadSettings(tx, storeId)
+  if (active) {
+    const sets = gatewayKeySets(current.providers, gatewayId)
+    if (!sets.active) return { ok: false, message: 'Connect it first.' }
+    const methods = checkoutMethodsOf(current)
+    await updateStorePayments(tx, storeId, activateGateway(current, gatewayId, methods))
+    return { ok: true }
+  }
+  const family = registry
+    .ids()
+    .filter((x) => x === gatewayId || registry.get(x)?.credentialsFrom === gatewayId)
+  await updateStorePayments(tx, storeId, deactivateGateway(current, gatewayId, family))
+  return { ok: true }
 }
 
 /** "Skip for now" on the first-time setup: the full page shows instead, and the guide can be reopened. */
@@ -335,14 +437,20 @@ export async function testPaymentConnection(
   env: Pick<PaymentsEnv, 'secret' | 'previousSecrets'>,
   providerId: string,
   fields: Record<string, string>,
+  mode?: PaymentMode,
 ): Promise<ConnectionTestResult> {
   const factory = registry.get(providerId)
   if (!factory) return { ok: false, message: 'Install this app from Apps first.' }
-  const stored =
+  const sets = gatewayKeySets(
     decryptPaymentSettings(await loadSettings(tx, storeId), env.secret, env.previousSecrets)
-      .providers[providerId] ?? {}
+      .providers,
+    providerId,
+  )
+  // A masked secret means "the saved one" of the key set being edited.
+  const stored = sets[mode ?? sets.active ?? 'live'] ?? {}
   const merged: Record<string, string> = { ...stored }
   for (const [k, v] of Object.entries(fields)) merged[k] = isMaskedSecret(v) ? (stored[k] ?? '') : v
+  if (mode && (providerId === 'cashfree' || providerId === 'decentro')) merged.mode = mode
   // The webhook secret isn't needed to prove the keys work.
   merged.webhookSecret ||= 'not-needed-for-a-test'
   const built = registry.create(providerId, merged)
@@ -441,13 +549,21 @@ export async function completeRazorpayOAuth(
   } catch (err) {
     webhookError = err instanceof Error ? err.message : String(err)
   }
-  await connectPaymentGateway(tx, storeId, registry, env, 'razorpay', {
-    ...oauthConfigFields(tokens),
-    keySecret: '',
-    webhookSecret,
-    webhookId,
-    oauthMode: input.mode,
-  })
+  await connectPaymentGateway(
+    tx,
+    storeId,
+    registry,
+    env,
+    'razorpay',
+    {
+      ...oauthConfigFields(tokens),
+      keySecret: '',
+      webhookSecret,
+      webhookId,
+      oauthMode: input.mode,
+    },
+    input.mode,
+  )
   return webhookError ? { webhook: 'failed', webhookError } : { webhook: 'registered' }
 }
 

@@ -1,12 +1,15 @@
+/** SOURCE OF TRUTH: paid app bills — WHAT: buying, renewing and stopping a paid app / WHY: same order, payment and GST-invoice path as plan bills */
 /**
  * Paid apps: buying an app the store's plan does not include, as a monthly bill on the sales
  * store (the same order, payment and GST-invoice path as plan bills). Paying installs the app;
  * renewals are billed a few days ahead; stopping keeps the app until the paid month ends.
  */
+import { siteConfig } from '@commerce/config/site'
 import { appPurchase, type Db, type StoreTx, store, withStore } from '@commerce/db'
 import { and, desc, eq, inArray, sql } from 'drizzle-orm'
 import { recordAppInstall } from '../apps/installation'
 import { installApp, parseAppsSettings } from '../apps/settings'
+import { CommerceError } from '../errors'
 import { orderViewToken, thankYouPath } from '../preorder/balance-link'
 import { APP_PRICING, type AppAccess, appAccess, appSku } from './apps'
 import { sendPlanBillEmail } from './emails'
@@ -97,14 +100,14 @@ export async function accessForApp(
   return (await storeAppAccess(tx, storeId, now))[pluginId] as AppAccess
 }
 
-export class AppNotForSale extends Error {
+export class AppNotForSale extends CommerceError {
   constructor(readonly pluginId: string) {
-    super(`${pluginId} does not need buying on this plan`)
+    super('APP_NOT_FOR_SALE', `${pluginId} does not need buying on this plan`)
   }
 }
 
 /** Bills one month of a paid app on the sales store; any older unpaid bill for it goes. */
-export async function createAppBill(
+async function createAppBill(
   db: Db,
   storeId: string,
   input: { pluginId: string; periodStart: Date },
@@ -112,7 +115,8 @@ export async function createAppBill(
 ): Promise<AppBill> {
   const sale = await placeSalesOrder(db, env, storeId, {
     sku: appSku(input.pluginId),
-    note: (buyer) => `Koomerce app ${input.pluginId} for ${buyer}, store ${storeId}`,
+    note: (buyer) =>
+      `${siteConfig.brand.name} app ${input.pluginId} for ${buyer}, store ${storeId}`,
   })
   return withStore(db, storeId, async (tx) => {
     await tx

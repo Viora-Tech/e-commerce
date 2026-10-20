@@ -926,6 +926,12 @@ export const order = pgTable(
     shippingAddressId: uuid('shipping_address_id').references(() => address.id),
     paymentMethod: text('payment_method'),
     /**
+     * Paid through a gateway running on its test keys (Settings → Payments,
+     * Live/Test): no real money moved. Test orders are left out of analytics,
+     * sales reports and GST invoices, and "Delete test orders" removes them.
+     */
+    isTest: boolean('is_test').notNull().default(false),
+    /**
      * Lifecycle only. `draft` is a merchant-built order that has not been placed
      * (no stock held, no revenue); `open` is live; `completed` is paid and
      * delivered (derived); `cancelled` is set by hand or by expiry. Money and
@@ -2083,6 +2089,8 @@ export const metafieldDefinition = pgTable(
     list: boolean('list').notNull().default(false),
     validations: jsonb('validations').$type<Record<string, unknown>>().notNull().default({}),
     storefrontAccess: boolean('storefront_access').notNull().default(true),
+    /** Offered as a filter on collection and search pages (product fields of simple types). */
+    filterable: boolean('filterable').notNull().default(false),
     position: integer('position').notNull().default(0),
     createdAt: createdAt(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),

@@ -106,8 +106,9 @@ two ways in. Both are read-only: the import never writes anything back to Shopif
   2. Give it these read scopes: `read_products`, `read_inventory`, `read_customers`,
      `read_orders`, `read_all_orders`, `read_content`, `read_online_store_navigation`,
      `read_files`, `read_metaobject_definitions`, `read_metaobjects`, `read_discounts`,
-     `read_gift_cards`, `read_shipping`, `read_legal_policies` (the files, content type,
-     discount and gift card scopes bring those over; the last two are for Store settings;
+     `read_gift_cards`, `read_shipping`, `read_legal_policies`, `read_purchase_options` (the
+     files, content type, discount and gift card scopes bring those over; shipping and policies
+     are for Store settings; purchase options bring pre-orders over;
      see [Move from Shopify](/merchant-guide/start-here/move-from-shopify)).
   3. Release a version, then install the app on your own store.
   4. Copy the **client ID** and **client secret** from the app's API credentials page and paste

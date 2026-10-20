@@ -6,6 +6,7 @@ import {
   customer,
   inventoryAdjustment,
   inventoryLevel,
+  marketingSession,
   order,
   orderLine,
   payment,
@@ -34,7 +35,7 @@ const auth = createMerchantAuth({
   },
 })
 
-/** Fixed sessions so conversion maths is checkable without Dragonfly. */
+/** Fixed beacon counts; sessions come from `marketing_session` rows each test seeds. */
 const visitors = {
   live: async () => ({ last30: 4, perMinute: Array.from({ length: 30 }, () => 0) }),
   daily: async (_storeId: string, days: string[]) => ({
@@ -139,6 +140,15 @@ describe('analytics.overview', () => {
         placedAt: daysAgo(12),
       },
     ])
+    // Four visits this week (one visitor came twice) and one in the week before.
+    const visit = { storeId: a.storeId, channel: 'direct' }
+    await owner.insert(marketingSession).values([
+      { ...visit, visitorId: 'v1', startedAt: hoursAgo(1) },
+      { ...visit, visitorId: 'v2', startedAt: daysAgo(1) },
+      { ...visit, visitorId: 'v2', startedAt: daysAgo(1.5) },
+      { ...visit, visitorId: 'v3', startedAt: daysAgo(3) },
+      { ...visit, visitorId: 'v4', startedAt: daysAgo(9) },
+    ])
     await owner.insert(cart).values([
       { storeId: a.storeId, status: 'open', email: 'someone@example.com' },
       { storeId: a.storeId, status: 'open' },
@@ -153,13 +163,20 @@ describe('analytics.overview', () => {
     const kpi = (id: string) => week.kpis.find((k) => k.id === id)
     expect(kpi('orders')?.value).toBe(2)
     expect(kpi('revenue')?.value).toBe(160000)
-    expect(kpi('sessions')?.value).toBe(200)
-    expect(kpi('conversion')?.value).toBeCloseTo(2 / 200)
+    expect(week.kpis.map((k) => k.id).slice(0, 4)).toEqual([
+      'sessions',
+      'revenue',
+      'orders',
+      'conversion',
+    ])
+    expect(kpi('sessions')?.value).toBe(4)
+    expect(kpi('sessions')?.previous).toBe(1)
+    expect(kpi('conversion')?.value).toBeCloseTo(2 / 4)
     expect(kpi('aov')?.value).toBe(80000)
     expect(week.range.days).toHaveLength(7)
 
     const funnel = Object.fromEntries(week.funnel.map((s) => [s.id, s.value]))
-    expect(funnel.sessions).toBe(200)
+    expect(funnel.sessions).toBe(4)
     expect(funnel.carts).toBe(3)
     expect(funnel.checkouts).toBe(2)
     expect(funnel.orders).toBe(2)

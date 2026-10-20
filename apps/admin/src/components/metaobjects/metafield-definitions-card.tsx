@@ -88,6 +88,7 @@ export default function MetafieldDefinitionsCard({
                   {d.storefrontAccess ? null : (
                     <Badge variant="neutral">{copy.metafields.hidden}</Badge>
                   )}
+                  {d.filterable ? <Badge variant="neutral">{copy.metafields.filter}</Badge> : null}
                 </span>
                 <span className="truncate font-mono text-caption text-muted-foreground">
                   {d.namespace}.{d.key}

@@ -6,12 +6,13 @@ import {
   upsertImportedRedirect,
 } from '@commerce/core'
 import { product, type StoreTx } from '@commerce/db'
-import { eq } from 'drizzle-orm'
+import { and, eq, inArray } from 'drizzle-orm'
 import { mapLimit } from './concurrency'
 import { htmlToRichText, replaceImageSources } from './html'
 import {
   errorMessage,
   findMapping,
+  findMappings,
   type ImportContext,
   type MappingRow,
   saveMapping,
@@ -45,6 +46,17 @@ async function matchProduct(tx: StoreTx, p: NProduct): Promise<string | null> {
     .from(product)
     .where(eq(product.handle, localHandle(p.handle)))
   return byHandle?.id ?? null
+}
+
+/**
+ * Pre-order from Shopify's "Continue selling when out of stock": a tracked variant that
+ * sells past zero is what our pre-order is (purchasable beyond stock, no limit), and it is
+ * how Shopify pre-order apps run. Undefined when no variant says (a CSV without the column).
+ */
+export function preorderFrom(variants: NProduct['variants']): boolean | undefined {
+  const known = variants.filter((v) => v.sellsOutOfStock !== undefined)
+  if (known.length === 0) return undefined
+  return known.some((v) => v.sellsOutOfStock && v.trackInventory)
 }
 
 const existingProduct = (ctx: ImportContext, p: NProduct) =>
@@ -101,6 +113,7 @@ function toWrite(
     [...new Set(p.variants.map((v) => v.optionValues[i] ?? ''))]
       .filter(Boolean)
       .map((value) => ({ value: value.slice(0, 100) }))
+  const preorder = preorderFrom(p.variants)
   return {
     title: p.title.slice(0, 200),
     handle: localHandle(p.handle),
@@ -112,6 +125,7 @@ function toWrite(
     seoDescription: clip(p.seoDescription, 320),
     // A CSV row has no template column (undefined): the product keeps the one it has.
     ...(p.templateSuffix === undefined ? {} : { templateSuffix: p.templateSuffix }),
+    ...(preorder === undefined ? {} : { preorderEnabled: preorder }),
     status: p.status,
     inventoryReason: 'correction',
     options: p.optionNames.map((name, i) => ({ name: name.slice(0, 50), values: values(i) })),
@@ -284,5 +298,28 @@ export async function writeProducts(ctx: ImportContext, batch: readonly NProduct
     },
     report: (_r, outcome) => ctx.report.count('products', outcome),
     one: (r) => commitOne(ctx, r.p, r.write, r.existingId),
+  })
+}
+
+/**
+ * Products Shopify sells through a pre-order purchase option become pre-order products here
+ * (buyable beyond stock, "Pre-order" button). Only ever switches pre-order on: a merchant who
+ * turned it off again here keeps that until Shopify adds the product to a pre-order plan anew.
+ * Returns how many products changed.
+ */
+export async function applyPreorders(
+  ctx: ImportContext,
+  sourceIds: ReadonlySet<string>,
+): Promise<number> {
+  if (ctx.dryRun || sourceIds.size === 0) return 0
+  return ctx.inStore(async (tx) => {
+    const ids = [...(await findMappings(tx, 'products', [...sourceIds])).values()]
+    if (ids.length === 0) return 0
+    const rows = await tx
+      .update(product)
+      .set({ preorderEnabled: true, updatedAt: new Date() })
+      .where(and(inArray(product.id, ids), eq(product.preorderEnabled, false)))
+      .returning({ id: product.id })
+    return rows.length
   })
 }

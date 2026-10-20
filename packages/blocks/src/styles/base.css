@@ -956,7 +956,7 @@ html.has-cursor-fill [data-icon-close]:hover {
 /* Badges                                                               */
 /* ------------------------------------------------------------------ */
 /* Figma Store / Badge (691:83834): a small rounded tag, 12px medium, sentence case. */
-.badge {
+.badge:not(:where(.shopify-section *)) {
   display: inline-flex;
   align-items: center;
   padding: 3px var(--space-2);
@@ -1007,7 +1007,7 @@ html.has-cursor-fill [data-icon-close]:hover {
   font-size: 32px;
 }
 
-.rte h2 {
+.rte h2:not(:where(.shopify-section *)) {
   font-size: 24px;
 }
 
@@ -1884,7 +1884,7 @@ html {
 /* The heading every Figma section opens with: 40px bold (32px on phones), tight,
    in ink. Sections that draw their own heading block use SectionHeading, which
    shares these values. */
-.section-title {
+.section-title:not(:where(.shopify-section *)) {
   margin: 0;
   color: var(--color-ink);
   font-family: var(--font-heading);
@@ -1895,7 +1895,7 @@ html {
 }
 
 @media screen and (min-width: 990px) {
-  .section-title {
+  .section-title:not(:where(.shopify-section *)) {
     font-size: calc(2.5rem * var(--font-heading-scale, 1));
   }
 }
@@ -1903,7 +1903,7 @@ html {
 /* ------------------------------------------------------------------ */
 /* Figma Store / Empty state (693:80908) and the 404 page (706:118039)  */
 /* ------------------------------------------------------------------ */
-.empty-state {
+.empty-state:not(:where(.shopify-section *)) {
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -1912,7 +1912,7 @@ html {
   text-align: center;
 }
 
-.empty-state__icon {
+.empty-state__icon:not(:where(.shopify-section *)) {
   display: grid;
   place-items: center;
   width: 40px;
@@ -1923,7 +1923,7 @@ html {
   color: var(--color-ink);
 }
 
-.empty-state__title {
+.empty-state__title:not(:where(.shopify-section *)) {
   margin: 0;
   color: var(--color-ink);
   font-family: var(--font-heading);
@@ -1931,24 +1931,24 @@ html {
   font-weight: 700;
 }
 
-.empty-state__body {
+.empty-state__body:not(:where(.shopify-section *)) {
   margin: 0;
   color: var(--color-muted);
   font-size: 14px;
 }
 
-.empty-state__action {
+.empty-state__action:not(:where(.shopify-section *)) {
   height: 40px;
   margin-top: var(--space-3);
   padding-inline: var(--space-4);
 }
 
-.not-found {
+.not-found:not(:where(.shopify-section *)) {
   padding-block: var(--space-9);
   text-align: center;
 }
 
-.not-found__code {
+.not-found__code:not(:where(.shopify-section *)) {
   margin: 0;
   color: var(--color-muted);
   font-family: var(--font-heading);
@@ -1957,16 +1957,16 @@ html {
   line-height: 1;
 }
 
-.not-found .empty-state {
+.not-found .empty-state:not(:where(.shopify-section *)) {
   padding-block: var(--space-3) 0;
 }
 
-.not-found__title {
+.not-found__title:not(:where(.shopify-section *)) {
   font-size: calc(2.5rem * var(--font-heading-scale, 1));
   letter-spacing: -0.015em;
 }
 
-.not-found__search {
+.not-found__search:not(:where(.shopify-section *)) {
   display: flex;
   align-items: center;
   gap: var(--space-2);
@@ -1979,7 +1979,7 @@ html {
   color: var(--color-muted);
 }
 
-.not-found__search input {
+.not-found__search input:not(:where(.shopify-section *)) {
   flex: 1 1 auto;
   min-width: 0;
   border: 0;
@@ -1989,7 +1989,7 @@ html {
   font-size: 14px;
 }
 
-.not-found__search input:focus {
+.not-found__search input:focus:not(:where(.shopify-section *)) {
   outline: none;
 }
 
@@ -1999,18 +1999,18 @@ html {
 /* A 13rem sidebar beside the page: "Account", the shopper, then the section
    rows (the current one on the surface) and Sign out. Pages open with a 32px
    title; their cards sit on the surface with the card radius. */
-.account-layout {
+.account-layout:not(:where(.shopify-section *)) {
   display: grid;
   gap: var(--space-6);
 }
 
-.account-nav {
+.account-nav:not(:where(.shopify-section *)) {
   display: flex;
   flex-direction: column;
   gap: var(--space-3);
 }
 
-.account-nav__title {
+.account-nav__title:not(:where(.shopify-section *)) {
   margin: 0;
   color: var(--color-ink);
   font-family: var(--font-heading);
@@ -2018,7 +2018,7 @@ html {
   font-weight: 700;
 }
 
-.account-nav__who {
+.account-nav__who:not(:where(.shopify-section *)) {
   margin: 0;
   overflow: hidden;
   color: var(--color-muted);
@@ -2027,13 +2027,13 @@ html {
   white-space: nowrap;
 }
 
-.account-nav__links {
+.account-nav__links:not(:where(.shopify-section *)) {
   display: flex;
   gap: var(--space-1);
   overflow-x: auto;
 }
 
-.account-nav__link {
+.account-nav__link:not(:where(.shopify-section *)) {
   display: block;
   flex: none;
   width: 100%;
@@ -2050,18 +2050,18 @@ html {
   cursor: pointer;
 }
 
-.account-nav__link:hover {
+.account-nav__link:hover:not(:where(.shopify-section *)) {
   color: var(--color-ink);
 }
 
-.account-nav__link[aria-current="page"] {
+.account-nav__link[aria-current="page"]:not(:where(.shopify-section *)) {
   background-color: var(--color-surface);
   color: var(--color-ink);
   font-weight: 500;
 }
 
-.account-page__title,
-.account-layout__main h2.h3:first-child {
+.account-page__title:not(:where(.shopify-section *)),
+.account-layout__main h2.h3:first-child:not(:where(.shopify-section *)) {
   margin: 0 0 var(--space-5);
   color: var(--color-ink);
   font-family: var(--font-heading);
@@ -2072,13 +2072,13 @@ html {
 }
 
 @media (min-width: 990px) {
-  .account-layout {
+  .account-layout:not(:where(.shopify-section *)) {
     grid-template-columns: 13rem minmax(0, 1fr);
     gap: var(--space-8);
     align-items: start;
   }
 
-  .account-nav__links {
+  .account-nav__links:not(:where(.shopify-section *)) {
     flex-direction: column;
     overflow: visible;
   }
@@ -2087,13 +2087,13 @@ html {
 /* ------------------------------------------------------------------ */
 /* Figma Pages · Track order, lookup (707:117741)                       */
 /* ------------------------------------------------------------------ */
-.track-order-page {
+.track-order-page:not(:where(.shopify-section *)) {
   display: flex;
   justify-content: center;
   padding-block: var(--space-9);
 }
 
-.track-order {
+.track-order:not(:where(.shopify-section *)) {
   display: flex;
   flex-direction: column;
   gap: var(--space-4);
@@ -2103,50 +2103,50 @@ html {
   background-color: var(--color-surface);
 }
 
-.track-order__head {
+.track-order__head:not(:where(.shopify-section *)) {
   display: flex;
   flex-direction: column;
   gap: var(--space-2);
 }
 
-.track-order__title {
+.track-order__title:not(:where(.shopify-section *)) {
   margin: 0;
   font-size: calc(1.75rem * var(--font-heading-scale, 1));
   line-height: 1.15;
   letter-spacing: -0.01em;
 }
 
-.track-order__body,
-.track-order__account {
+.track-order__body:not(:where(.shopify-section *)),
+.track-order__account:not(:where(.shopify-section *)) {
   margin: 0;
   color: var(--color-muted);
   font-size: 14px;
   line-height: 1.5;
 }
 
-.track-order__account {
+.track-order__account:not(:where(.shopify-section *)) {
   text-align: center;
 }
 
-.track-order__account a {
+.track-order__account a:not(:where(.shopify-section *)) {
   color: var(--color-ink);
   font-weight: 500;
   text-decoration: none;
 }
 
-.track-order__field {
+.track-order__field:not(:where(.shopify-section *)) {
   display: flex;
   flex-direction: column;
   gap: 6px;
 }
 
-.track-order__label {
+.track-order__label:not(:where(.shopify-section *)) {
   color: var(--color-ink);
   font-size: 14px;
   font-weight: 500;
 }
 
-.track-order__input {
+.track-order__input:not(:where(.shopify-section *)) {
   height: 48px;
   padding-inline: 14px;
   border: 1px solid var(--color-line);
@@ -2157,18 +2157,18 @@ html {
   font-size: var(--font-body-size, 16px);
 }
 
-.track-order__input:focus {
+.track-order__input:focus:not(:where(.shopify-section *)) {
   outline: none;
   border-color: var(--color-ink);
 }
 
-.track-order__error {
+.track-order__error:not(:where(.shopify-section *)) {
   margin: 0;
   color: var(--color-danger);
   font-size: 14px;
 }
 
-.track-order__submit {
+.track-order__submit:not(:where(.shopify-section *)) {
   width: 100%;
   height: 48px;
 }

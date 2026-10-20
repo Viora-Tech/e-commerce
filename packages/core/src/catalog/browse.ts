@@ -1,5 +1,6 @@
 import type { StoreTx } from '@commerce/db'
 import { type SQL, sql } from 'drizzle-orm'
+import { FILTERABLE_FIELD_TYPES } from '../metaobjects/schemas'
 import { type BrowseFilters, type BrowseSort, EMPTY_FILTERS } from './browse-params'
 
 /**
@@ -21,6 +22,19 @@ export type BrowseFacets = {
   tags: FacetValue[]
   /** Options such as Size and Colour, with the values any product offers. */
   options: { key: string; name: string; values: FacetValue[] }[]
+  /**
+   * Product extra fields marked "Use as filter" (`namespace.key`, the field's name, its values),
+   * like Shopify's Search & Discovery filters on metafields (Hand size, Grip, Switches). A yes/no
+   * field reads `1` and `0`, as Shopify's boolean filters do.
+   */
+  metafields: MetafieldFacet[]
+}
+
+export type MetafieldFacet = {
+  key: string
+  name: string
+  type: 'list' | 'boolean'
+  values: FacetValue[]
 }
 
 export type BrowseResult = {
@@ -33,7 +47,7 @@ export type BrowseResult = {
 export type BrowseInput = {
   /** Limit to one collection's members (and allow its manual order). */
   collectionId?: string | undefined
-  /** Free-text search over title, type, vendor, tags and SKU. */
+  /** Free-text search over title, vendor, type, handle, tags, SKU and description. */
   query?: string | undefined
   filters: BrowseFilters
   sort: BrowseSort
@@ -49,24 +63,65 @@ const inList = (values: string[]): SQL =>
     sql`, `,
   )})`
 
+/** Up to eight distinct words of a search query; every one has to match somewhere. */
+export function searchTerms(query: string): string[] {
+  const words = query.trim().slice(0, 100).toLowerCase().split(/\s+/).filter(Boolean)
+  return [...new Set(words)].slice(0, 8)
+}
+
+/** The description's plain text: Lexical text nodes, or a legacy plain string. */
+const descriptionText = sql`case jsonb_typeof(p.description)
+  when 'string' then p.description #>> '{}'
+  when 'object' then jsonb_path_query_array(p.description, 'lax $.**.text')::text
+end`
+
+/**
+ * One term against the product's own fields (everything but the description): Shopify Search &
+ * Discovery's scope of title, vendor, type, handle, tags, SKUs and option values ("Black", "XL").
+ */
+const fieldMatch = (pattern: string): SQL => sql`(
+  p.title ilike ${pattern} or p.vendor ilike ${pattern} or p.product_type ilike ${pattern}
+  or p.handle ilike ${pattern}
+  or exists (select 1 from unnest(p.tags) t where t ilike ${pattern})
+  or exists (select 1 from variant sv where sv.product_id = p.id and sv.archived_at is null and sv.sku ilike ${pattern})
+  or exists (
+    select 1 from product_option spo join product_option_value spov on spov.option_id = spo.id
+    where spo.product_id = p.id and spov.value ilike ${pattern}
+  )
+)`
+
+const every = (parts: SQL[]): SQL => sql`(${sql.join(parts, sql` and `)})`
+
+/**
+ * Shopify-style matching: each word must appear in the title, vendor, type, handle, a tag, a SKU
+ * or the description. Ranked: title starts with the query, title contains it, title holds every
+ * word, every word in the product's fields, then description-only matches.
+ */
+function searchClauses(query: string): { match: SQL; relevance: SQL } | null {
+  const terms = searchTerms(query)
+  if (!terms.length) return null
+  const phrase = escapeLike(terms.join(' '))
+  const patterns = terms.map((t) => `%${escapeLike(t)}%`)
+  const match = every(
+    patterns.map((pt) => sql`(${fieldMatch(pt)} or ${descriptionText} ilike ${pt})`),
+  )
+  const relevance = sql`case
+    when p.title ilike ${`${phrase}%`} then 0
+    when p.title ilike ${`%${phrase}%`} then 1
+    when ${every(patterns.map((pt) => sql`p.title ilike ${pt}`))} then 2
+    when ${every(patterns.map(fieldMatch))} then 3
+    else 4 end`
+  return { match, relevance }
+}
+
 /** Every active product in scope with the fields filters and sorts need. */
 function baseQuery(input: BrowseInput): SQL {
-  const q = input.query?.trim().slice(0, 100) ?? ''
-  const pattern = `%${escapeLike(q)}%`
-  const prefix = `${escapeLike(q)}%`
+  const search = searchClauses(input.query ?? '')
   const join = input.collectionId
     ? sql`join collection_product cp on cp.product_id = p.id and cp.collection_id = ${input.collectionId}`
     : sql``
-  const match = q
-    ? sql`and (
-        p.title ilike ${pattern} or p.product_type ilike ${pattern} or p.vendor ilike ${pattern}
-        or exists (select 1 from unnest(p.tags) t where t ilike ${pattern})
-        or exists (select 1 from variant sv where sv.product_id = p.id and sv.archived_at is null and sv.sku ilike ${pattern})
-      )`
-    : sql``
-  const relevance = q
-    ? sql`case when p.title ilike ${prefix} then 0 when p.title ilike ${pattern} then 1 else 2 end`
-    : sql`0`
+  const match = search ? sql`and ${search.match}` : sql``
+  const relevance = search?.relevance ?? sql`0`
   return sql`
     select p.id, p.handle, p.title, p.created_at, p.product_type, p.vendor, p.tags,
       ${input.collectionId ? sql`cp.position` : sql`0`} as position,
@@ -79,8 +134,37 @@ function baseQuery(input: BrowseInput): SQL {
           and (not v.track_inventory or coalesce(il.on_hand, 0) - coalesce(il.reserved, 0) > 0)
       ) as in_stock
     from product p ${join}
-    where p.status = 'active' ${match}`
+    where p.status = 'active' and not p.is_system_test ${match}`
 }
+
+/**
+ * A filter field's values as text rows (`v.value`), a list field one row per item and a yes/no
+ * field `1` or `0`. Reads `m` (the value) and `d` (its definition).
+ */
+const fieldValues = sql`lateral (
+  select case when d.type = 'boolean' then (case when x.value = 'true' then '1' else '0' end)
+    else trim(x.value) end as value
+  from jsonb_array_elements_text(
+    case when jsonb_typeof(m.value) = 'array' then m.value else jsonb_build_array(m.value) end
+  ) as x(value)
+) as v`
+
+/** Values one filter offers at most; Shopify shows up to 100 as well. */
+const MAX_FIELD_VALUES = 100
+
+/**
+ * Which product extra fields can filter (reads `d`, the definition): the ones marked "Use as
+ * filter" once any field in the store is marked; until then every field of a filterable type,
+ * and `metafieldFacets` keeps the ones whose values read as a filter.
+ */
+const filterField = sql`d.storefront_access and d.owner_type = 'product'
+  and d.type in ${inList([...FILTERABLE_FIELD_TYPES])}
+  and (d.filterable or not exists (
+    select 1 from metafield_definition fd where fd.owner_type = 'product' and fd.filterable
+  ))`
+
+/** Without marked fields: a guessed filter has repeating values, not one spec line apiece. */
+const GUESS = { maxValues: 25, maxLength: 60, perValue: 1.5 }
 
 function filterWhere(f: BrowseFilters): SQL {
   const parts: SQL[] = [sql`true`]
@@ -102,7 +186,73 @@ function filterWhere(f: BrowseFilters): SQL {
         and lower(po.name) = ${name} and pov.value in ${inList(values)}
     )`)
   }
+  for (const [field, values] of Object.entries(f.metafields)) {
+    const [namespace = '', key = ''] = field.split('.')
+    parts.push(sql`exists (
+      select 1 from metafield m
+      join metafield_definition d on d.id = m.definition_id
+      cross join ${fieldValues}
+      where m.owner_type = 'product' and m.owner_id = b.id and ${filterField}
+        and d.namespace = ${namespace} and d.key = ${key} and v.value in ${inList(values)}
+    )`)
+  }
   return sql.join(parts, sql` and `)
+}
+
+type FieldRow = {
+  field: string
+  name: string
+  type: string
+  value: string
+  count: number
+  /** The field is marked "Use as filter". */
+  flagged: boolean
+}
+
+/**
+ * The filter fields of a listing from their value counts (rows in definition order): values in
+ * natural order (`2` before `10`), yes before no, at most `MAX_FIELD_VALUES` each. When no field
+ * is marked "Use as filter" (an imported store before anyone ticked one), a field shows when its
+ * values read as a filter: 2 to 25 short values that repeat across products.
+ */
+export function metafieldFacets(rows: FieldRow[]): MetafieldFacet[] {
+  const marked = rows.some((r) => r.flagged)
+  const guessed = (f: MetafieldFacet) => {
+    const n = f.values.length
+    const products = f.values.reduce((sum, v) => sum + v.count, 0)
+    return (
+      n >= 2 &&
+      n <= GUESS.maxValues &&
+      products / n >= GUESS.perValue &&
+      f.values.every((v) => v.value.length <= GUESS.maxLength)
+    )
+  }
+  const out: MetafieldFacet[] = []
+  for (const r of rows) {
+    if (r.value === '') continue
+    let f = out.find((x) => x.key === r.field)
+    if (!f) {
+      f = {
+        key: r.field,
+        name: r.name,
+        type: r.type === 'boolean' ? 'boolean' : 'list',
+        values: [],
+      }
+      out.push(f)
+    }
+    f.values.push({ value: r.value, count: r.count })
+  }
+  const natural = (a: FacetValue, b: FacetValue) =>
+    a.value.localeCompare(b.value, undefined, { numeric: true, sensitivity: 'base' })
+  return out
+    .filter((f) => marked || guessed(f))
+    .map((f) => ({
+      ...f,
+      values: (f.type === 'boolean'
+        ? f.values.sort((a, b) => b.value.localeCompare(a.value))
+        : f.values.sort(natural)
+      ).slice(0, MAX_FIELD_VALUES),
+    }))
 }
 
 function orderBy(sort: BrowseSort): SQL {
@@ -114,7 +264,8 @@ function orderBy(sort: BrowseSort): SQL {
         select coalesce(sum(ol.quantity), 0) from order_line ol
         join variant v on v.id = ol.variant_id
         join "order" o on o.id = ol.order_id
-        where v.product_id = b.id and o.status not in ('draft', 'cancelled')
+        where v.product_id = b.id and o.status not in ('draft', 'cancelled') and not o.is_test
+
       ) desc, b.title, b.id`
     case 'title-ascending':
       return sql`b.title, b.id`
@@ -176,6 +327,18 @@ export async function browseProducts(tx: StoreTx, input: BrowseInput): Promise<B
     group by lower(po.name), pov.value
     order by opos, key, vpos, pov.value`)
 
+  const fieldRows = await tx.execute<Row>(sql`
+    with b as (${base})
+    select d.namespace || '.' || d.key as field, min(d.name) as name, min(d.type) as type,
+      v.value, count(distinct b.id) as n, min(d.position) as pos, bool_or(d.filterable) as flagged
+    from b
+    join metafield m on m.owner_type = 'product' and m.owner_id = b.id
+    join metafield_definition d on d.id = m.definition_id and ${filterField}
+    cross join ${fieldValues}
+    where v.value <> ''
+    group by d.namespace, d.key, v.value
+    order by pos, field, v.value`)
+
   const values = (kind: string): FacetValue[] =>
     facetRows
       .filter((r) => r.kind === kind)
@@ -204,6 +367,16 @@ export async function browseProducts(tx: StoreTx, input: BrowseInput): Promise<B
       vendors: values('vendor'),
       tags: values('tag'),
       options,
+      metafields: metafieldFacets(
+        fieldRows.map((r) => ({
+          field: String(r.field),
+          name: String(r.name),
+          type: String(r.type),
+          value: String(r.value),
+          count: num(r.n),
+          flagged: r.flagged === true,
+        })),
+      ),
     },
   }
 }

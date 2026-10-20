@@ -1,3 +1,4 @@
+/** SOURCE OF TRUTH: BullMQ job id tests — WHAT: notification and app-event job ids / WHY: BullMQ refuses ids with a stray colon */
 import { describe, expect, it } from 'vitest'
 import { notificationJobId } from '../notifications/enqueue'
 import { appEventJobId } from './events'

@@ -149,6 +149,9 @@ export const checkoutContent = {
   address: 'Delivery',
   deliveryMethod: 'Delivery method',
   payment: 'Payment',
+  /** Beside a way to pay whose gateway runs on test keys (Settings → Payments, Test). */
+  testMode: 'Test mode',
+  testModeHint: 'No real money is charged.',
   /** Step numbers read out with the heading, e.g. "Step 2 of 4". */
   step: (n: number, of: number) => `Step ${n} of ${of}`,
   stepDone: 'Complete',

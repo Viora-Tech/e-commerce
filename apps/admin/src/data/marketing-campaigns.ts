@@ -98,8 +98,6 @@ export const campaignEditorContent = {
     title: 'Content',
     add: 'Add block',
     empty: 'Start with a header and some text, then add products, a discount or a button.',
-    moveUp: 'Move up',
-    moveDown: 'Move down',
     remove: 'Remove block',
   },
   blocks: {

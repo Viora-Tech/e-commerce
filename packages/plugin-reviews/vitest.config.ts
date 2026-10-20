@@ -5,7 +5,7 @@ loadTestEnv('reviews', '../../.env.test')
 
 export default defineConfig({
   test: {
-    include: ['test/**/*.test.ts'],
+    include: ['src/**/*.test.ts', 'test/**/*.test.ts'],
     globalSetup: ['./test/global-setup.ts'],
     // One database copy per worker (TEST_WORKERS, default 3): see parallelDbTests.
     ...parallelDbTests(),

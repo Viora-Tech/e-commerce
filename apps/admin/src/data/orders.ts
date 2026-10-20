@@ -80,6 +80,20 @@ export const ordersContent = {
   viewLabel: 'Order view',
   /** Status column for a paid order nobody has shipped yet (Figma: blue "To ship"). */
   toShip: 'To ship',
+  /** Chip on an order paid with the payment gateway in test mode (no real money). */
+  testChip: 'Test',
+  testChipHint:
+    'Paid in test mode: no real money moved. Left out of analytics, reports and GST invoices.',
+  /** "Delete test orders" in More actions, shown only while test orders exist. */
+  deleteTests: {
+    menu: 'Delete test orders',
+    title: (n: number) => `Delete ${n} test ${n === 1 ? 'order' : 'orders'}?`,
+    body: 'Orders paid with a payment gateway in test mode are removed with their payments, notes and parcels. Real orders are never touched. This cannot be undone.',
+    confirm: 'Delete test orders',
+    done: (n: number) => `${n} test ${n === 1 ? 'order' : 'orders'} deleted`,
+    failed: 'Could not delete test orders',
+  },
+
   /** The sort menu's direction labels for the Date column (Figma "State · Sort open"). */
   sortNewest: 'Newest first',
   sortOldest: 'Oldest first',

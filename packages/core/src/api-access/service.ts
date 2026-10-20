@@ -1,3 +1,4 @@
+/** SOURCE OF TRUTH: MCP & API access — WHAT: access tokens, OAuth for AI clients, the activity log / WHY: every grant is capped by role and areas */
 /**
  * Settings → MCP & API, the server side: access tokens for scripts, OAuth for AI clients
  * (RFC 6749 code flow with PKCE, RFC 7591 registration), the activity log and the three
@@ -31,6 +32,7 @@ import {
 import { and, desc, eq, gte, inArray, isNull, lt, sql } from 'drizzle-orm'
 import { z } from 'zod'
 import type { StoreContext } from '../context'
+import { CommerceError } from '../errors'
 import { memberAccess } from '../permissions/service'
 import { ALL_PERMISSIONS, type Permission } from '../permissions/statement'
 import {
@@ -51,20 +53,19 @@ import {
 const DAY = 86_400_000
 
 /** Lifetimes. Access tokens are short so a revoke or a role change bites within the hour. */
-export const OAUTH_ACCESS_TTL_MS = 60 * 60_000
-export const OAUTH_REFRESH_TTL_MS = 30 * DAY
-export const OAUTH_CODE_TTL_MS = 5 * 60_000
+const OAUTH_ACCESS_TTL_MS = 60 * 60_000
+const OAUTH_REFRESH_TTL_MS = 30 * DAY
+const OAUTH_CODE_TTL_MS = 5 * 60_000
 
 /** Prefixes make a leaked secret recognisable (and greppable by secret scanners). */
-export const TOKEN_PREFIX = 'kmc_live_'
+const TOKEN_PREFIX = 'kmc_live_'
 const ACCESS_PREFIX = 'kmo_'
 const REFRESH_PREFIX = 'kmr_'
 const CODE_PREFIX = 'kmz_'
 const CLIENT_PREFIX = 'kmcl_'
 const CLIENT_SECRET_PREFIX = 'kmcs_'
 
-export const hashSecret = (value: string): string =>
-  createHash('sha256').update(value).digest('hex')
+const hashSecret = (value: string): string => createHash('sha256').update(value).digest('hex')
 
 const newSecret = (prefix: string): string => `${prefix}${randomBytes(24).toString('base64url')}`
 
@@ -480,7 +481,7 @@ export async function loadMcpOverview(ctx: StoreContext, now = new Date()): Prom
  * on a local port), or an app's own scheme (`cursor://`, `vscode://`, RFC 8252). Never
  * script-carrying or local-file schemes.
  */
-export function isAllowedRedirectUri(uri: string): boolean {
+function isAllowedRedirectUri(uri: string): boolean {
   let url: URL
   try {
     url = new URL(uri)
@@ -498,7 +499,7 @@ export function isAllowedRedirectUri(uri: string): boolean {
   return /^[a-z][a-z0-9+.-]*$/.test(scheme)
 }
 
-export const OAuthRegisterSchema = z.object({
+const OAuthRegisterSchema = z.object({
   client_name: z.string().trim().max(120).optional(),
   redirect_uris: z
     .array(z.string().max(2000))
@@ -573,20 +574,22 @@ export function clientAuthenticates(client: OAuthClientRow, secret: string | nul
 
 /* ---------- OAuth: codes and tokens ---------- */
 
-export class OAuthError extends Error {
-  constructor(
-    readonly code:
-      | 'invalid_request'
-      | 'invalid_client'
-      | 'invalid_grant'
-      | 'unsupported_grant_type',
-    message: string,
-  ) {
-    super(message)
+type OAuthErrorCode =
+  | 'invalid_request'
+  | 'invalid_client'
+  | 'invalid_grant'
+  | 'unsupported_grant_type'
+
+/** The OAuth `error` value doubles as the CommerceError code, so callers read `err.code` as before. */
+export class OAuthError extends CommerceError {
+  declare readonly code: OAuthErrorCode
+
+  constructor(code: OAuthErrorCode, message: string) {
+    super(code, message)
   }
 }
 
-export const AuthorizeSchema = z.object({
+const AuthorizeSchema = z.object({
   clientId: z.string().min(1).max(200),
   redirectUri: z.string().min(1).max(2000),
   codeChallenge: z.string().min(43).max(128),
@@ -630,7 +633,7 @@ const scopeString = (scopes: ApiScopes): string =>
     .join(' ')
 
 /** PKCE S256: base64url(sha256(verifier)) must equal the challenge sent at sign-in. */
-export function pkceMatches(verifier: string, challenge: string): boolean {
+function pkceMatches(verifier: string, challenge: string): boolean {
   if (!/^[A-Za-z0-9\-._~]{43,128}$/.test(verifier)) return false
   const hashed = createHash('sha256').update(verifier).digest('base64url')
   return sameHash(hashed, challenge)

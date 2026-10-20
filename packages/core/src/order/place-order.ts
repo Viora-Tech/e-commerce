@@ -623,6 +623,8 @@ const createOrder: WorkflowStep<State> = {
         buyerBusinessName: contact?.businessName ?? null,
         customerNote: contact?.note ?? null,
         paymentMethod: input.paymentProvider.id,
+        // The gateway runs on its test keys: no real money, kept out of reports and invoices.
+        isTest: input.paymentProvider.mode === 'test',
         attribution: cartAttribution,
         cartId: input.cartId,
         tags,

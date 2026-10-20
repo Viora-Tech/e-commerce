@@ -4,6 +4,7 @@ import {
   encryptCustomerPhone,
   evaluateSegment,
   normalisePhoneDigits,
+  notTestOrder,
   phoneBlindIndex,
   type SegmentCustomer,
 } from '@commerce/core'
@@ -23,8 +24,11 @@ const DAY_MS = 86_400_000
 const RECENT_WINDOW_DAYS = 30
 /** The overview card plots one week against the week before (frame 5:3062). */
 const WINDOW_DAYS = 7
-/** Drafts are not orders yet, so they never count as customer activity. */
-const notDraft = ne(order.status, 'draft')
+/**
+ * Drafts are not orders yet, and test-mode orders (gateway test keys) moved no real money:
+ * neither counts as customer activity.
+ */
+const notDraft = and(ne(order.status, 'draft'), notTestOrder)
 
 export type CustomerSegmentName = 'new' | 'returning' | 'subscribed'
 export type CustomerSort = 'recent' | 'name' | 'orders' | 'spent'
@@ -78,14 +82,19 @@ export type CustomerStats = {
  */
 const c = alias(customer, 'c')
 
-/** Per-customer totals; drafts never count, and cancelled orders never count towards spend. */
+/**
+ * Per-customer totals; drafts and test-mode orders never count, and cancelled orders never
+ * count towards spend.
+ */
 const orderCountSql = sql<number>`(
-  select count(*)::int from ${order} o where o.customer_id = c.id and o.status <> 'draft')`
+  select count(*)::int from ${order} o
+  where o.customer_id = c.id and o.status <> 'draft' and not o.is_test)`
 const spentSql = sql<number>`(
   select coalesce(sum(o.total_paise), 0)::int from ${order} o
-  where o.customer_id = c.id and o.status not in ('cancelled', 'draft'))`
+  where o.customer_id = c.id and o.status not in ('cancelled', 'draft') and not o.is_test)`
 const lastOrderSql = sql<Date | null>`(
-  select max(o.placed_at) from ${order} o where o.customer_id = c.id and o.status <> 'draft')`
+  select max(o.placed_at) from ${order} o
+  where o.customer_id = c.id and o.status <> 'draft' and not o.is_test)`
 const citySql = sql<string | null>`(${c.defaultAddress} ->> 'city')`
 const stateSql = sql<string | null>`(${c.defaultAddress} ->> 'stateCode')`
 
@@ -318,6 +327,7 @@ export async function getCustomer(tx: StoreTx, id: string, secret: string) {
         paymentMethod: order.paymentMethod,
         totalPaise: order.totalPaise,
         placedAt: order.placedAt,
+        isTest: order.isTest,
       })
       .from(order)
       .where(and(eq(order.customerId, id), sql`${order.status} <> 'draft'`))
@@ -338,7 +348,9 @@ export async function getCustomer(tx: StoreTx, id: string, secret: string) {
           .limit(50)
       : Promise.resolve([]),
   ])
-  const live = orders.filter((o) => o.status !== 'cancelled')
+  // The list still shows test-mode orders; the totals leave them out.
+  const real = orders.filter((o) => !o.isTest)
+  const live = real.filter((o) => o.status !== 'cancelled')
   const spentPaise = live.reduce((sum, o) => sum + o.totalPaise, 0)
   const { phoneIndex: _phoneIndex, ...customerFields } = row
   return {
@@ -346,10 +358,11 @@ export async function getCustomer(tx: StoreTx, id: string, secret: string) {
     orders,
     notifications: sent,
     totals: {
-      orderCount: orders.length,
+      orderCount: real.length,
       spentPaise,
-      lastOrderAt: orders[0]?.placedAt ?? null,
-      firstOrderAt: orders.at(-1)?.placedAt ?? null,
+      lastOrderAt: real[0]?.placedAt ?? null,
+      firstOrderAt: real.at(-1)?.placedAt ?? null,
+
       averagePaise: live.length > 0 ? Math.round(spentPaise / live.length) : 0,
     },
   }

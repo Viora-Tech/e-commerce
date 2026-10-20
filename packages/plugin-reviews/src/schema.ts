@@ -47,10 +47,9 @@ export const review = pgTable(
     id: id(),
     storeId: storeId(),
     // A product deleted for good takes its reviews with it (one that was ever ordered is
-    // archived instead, and keeps them).
-    productId: uuid('product_id')
-      .notNull()
-      .references(() => product.id, { onDelete: 'cascade' }),
+    // archived instead, and keeps them). Null for a store review: one about the shop as a
+    // whole (Judge.me's store reviews), which only the store-wide showcase lists.
+    productId: uuid('product_id').references(() => product.id, { onDelete: 'cascade' }),
     orderId: uuid('order_id').references(() => order.id, { onDelete: 'set null' }),
     customerId: uuid('customer_id').references(() => customer.id, { onDelete: 'set null' }),
     rating: integer('rating').notNull(),

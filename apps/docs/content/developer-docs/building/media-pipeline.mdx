@@ -160,7 +160,7 @@ none did. Copy: `data/background-work.ts` (Hindi in `data/hi/`).
 ## Backfill
 
 ```bash
-bun run media:reprocess [--store <slug>]
+bun run media:reprocess [--store <slug>] [--concurrency <n>]
 ```
 
 Runs the same `processImage` pipeline directly (no queue) over every row that still needs it:
@@ -168,6 +168,23 @@ stuck `processing` (a worker restart mid-job, or a Shopify-import image whose en
 and was listed as an import issue), `failed` (retry), and `ready` rows with
 `variants IS NULL` (legacy media from before this feature). Batched (`LIMIT`, not `OFFSET` — a fixed row already re-fetches out of the
 `WHERE` on its own) and resumable: interrupt it any time, re-run it, it continues.
+
+`--concurrency <n>` (default 2, max 8) processes that many rows at once, each in its own
+transaction; one failed row is marked `failed` and the rest carry on. `processImage` (sharp) is
+CPU-bound, so set it to about the server's cores.
+
+### Rehost after a bucket move
+
+```bash
+bun run media:rehost --store <slug> [--dry-run] [--concurrency <n>]
+```
+
+For rows whose `url` is not under the store's current storage: if the object is already in the
+current bucket only the URLs are rewritten, otherwise the Shopify source (from the import
+mapping) is downloaded again, run through `processImage` and stored in the current bucket.
+Product and collection descriptions that mention the old base are rewritten afterwards.
+`--dry-run` only counts; safe to re-run. `--concurrency` works as for `media:reprocess`: about
+one row per core (one at a time took ~25 s an image on a 2-vCPU server and used one core).
 
 ## Testing
 

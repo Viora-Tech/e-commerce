@@ -61,13 +61,3 @@ export function toInput(f: CampaignForm): CampaignInput {
     whatsapp: f.whatsapp,
   }
 }
-
-/** Moves the block at `index` by `delta` places, clamped to the list. */
-export function moveBlock(blocks: EmailBlock[], index: number, delta: number): EmailBlock[] {
-  const to = index + delta
-  if (to < 0 || to >= blocks.length) return blocks
-  const next = [...blocks]
-  const [moved] = next.splice(index, 1)
-  if (moved) next.splice(to, 0, moved)
-  return next
-}

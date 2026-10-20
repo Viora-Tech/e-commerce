@@ -8,22 +8,27 @@ import {
   type LiquidPageContext,
   type LiquidSectionInput,
   liquidPlacement,
+  liquidSectionKey,
+  loadTemplate,
   loadThemeBundle,
   loadThemeDraftBundle,
   mainThemeId,
   ProductDrop,
   peekThemeBundle,
+  type RecommendationIntent,
   renderLiquidLayout,
   renderLiquidSection,
   resolveThemeProductId,
   sectionWrapper,
   storeLiquidData,
+  type TemplateKey,
   type ThemeBundle,
   themeImportFor,
 } from '@commerce/core'
-import type { StoreTx } from '@commerce/db'
+import { product as productTable, type StoreTx } from '@commerce/db'
 import { logger } from '@commerce/observability/logging'
 import { reviewsLiquidSource } from '@commerce/plugin-reviews/server'
+import { eq } from 'drizzle-orm'
 import { headers } from 'next/headers'
 import { cache } from 'react'
 import { readCartId } from './cart-cookie'
@@ -106,10 +111,15 @@ export function liquidTemplateFor(path: string): string {
 const requestScope = cache(async (storeId: string) => {
   const h = await headers()
   const path = h.get('x-pathname') ?? '/'
+  const template = liquidTemplateFor(path)
+  // Filters, sort and page shape a collection or search page's listing (`listingSearch`).
+  const listing =
+    template === 'collection' || template === 'search' ? (h.get('x-listing') ?? '') : ''
   return {
     origin: await requestOrigin(),
     path,
-    template: liquidTemplateFor(path),
+    listing,
+    template,
     postedForm: h.get('x-form-posted'),
     nonce: h.get(NONCE_HEADER) ?? '',
     preview: readPreview(storeId, h.get('x-theme-preview')) !== null,
@@ -117,6 +127,17 @@ const requestScope = cache(async (storeId: string) => {
 })
 
 type RequestScope = Awaited<ReturnType<typeof requestScope>>
+
+/** `listingSearch` params as the Liquid listing reads them: one key, its values. */
+function listingQuery(search: string): Record<string, string[]> {
+  const out: Record<string, string[]> = {}
+  for (const [k, v] of new URLSearchParams(search)) {
+    const list = out[k] ?? []
+    list.push(v)
+    out[k] = list
+  }
+  return out
+}
 
 type ImportedTheme = { bundle: ThemeBundle; shopifyHost: string | null }
 
@@ -188,6 +209,7 @@ async function createLiquidContext(
       origin: scope.origin,
       designMode: false,
       postedForm: scope.postedForm,
+      listing: listingQuery(scope.listing),
       formsAvailable: await cachedForStore(storeId, 'forms-installed', () =>
         formsInstalled(tx, storeId),
       ),
@@ -261,7 +283,8 @@ function cacheScope(
     themeId,
     themeVersion: bundle.version,
     origin: scope.origin,
-    path: scope.path,
+    // A filtered listing is its own page.
+    path: scope.listing ? `${scope.path}?${scope.listing}` : scope.path,
     template: scope.template,
     postedForm: scope.postedForm,
   }
@@ -443,12 +466,15 @@ export async function renderStaticLiquidSection(
 ): Promise<string | null> {
   const themeId = await requestThemeId(tx, storeId)
   const ctx = themeId ? await liquidContextFor(tx, storeId, themeId) : null
-  if (!ctx) return null
+  if (!themeId || !ctx) return null
   // Shopify's section ids read `template--123__<key>`; the key is the section's type for
   // the sections a theme ships by default.
   const key = sectionType.split('__').pop() ?? sectionType
   const type = [sectionType, key].find((t) => ctx.bundle.sections.has(t))
-  if (!type) return null
+  // A JSON template's key is not always its type (`"related": { "type": "related-products" }`):
+  // the section placed under that key in the path's template, with its own settings.
+  const placed = type ? null : await placedSection(tx, themeId, ctx.bundle, path, key)
+  if (!type && !placed) return null
   const collection = /^\/collections\/([^/]+)/.exec(path)?.[1]
   const product = /^\/products\/([^/]+)/.exec(path)?.[1]
   if (collection) {
@@ -460,9 +486,9 @@ export async function renderStaticLiquidSection(
     if (found) ctx.globals.product = new ProductDrop(found, ctx.cache)
   }
   await prepare?.(ctx)
-  const section: LiquidSectionInput = {
-    id: type,
-    type,
+  const section: LiquidSectionInput = placed ?? {
+    id: type ?? key,
+    type: type ?? key,
     settings: {},
     blocks: [],
     location: 'template',
@@ -473,24 +499,60 @@ export async function renderStaticLiquidSection(
   return `<${w.tag} id="${w.id}" class="${w.className}">${html}</${w.tag}>`
 }
 
+/** The template a storefront path renders (`/products/x` → `product`). */
+function templateKeyFor(path: string): TemplateKey {
+  const name = liquidTemplateFor(path)
+  if (name === 'index') return 'home'
+  if (name === '404' || name === 'list-collections' || name === 'customers/account')
+    return 'not_found'
+  return name as TemplateKey
+}
+
 /**
- * Our answer to Shopify's `/recommendations/products?product_id=&limit=&section_id=`: the
- * theme's own section rendered with `recommendations.products` filled from the product's
- * related products (shared collection, then type and tags; published and in stock only).
- * Null when the section is not in the theme, or the product is not ours.
+ * The Liquid section placed under `key` in the template of `path` (Shopify's section ids end
+ * in the template key), as the page itself renders it; null when that template has none.
+ */
+async function placedSection(
+  tx: StoreTx,
+  themeId: string,
+  bundle: ThemeBundle,
+  path: string,
+  key: string,
+): Promise<LiquidSectionInput | null> {
+  const { data } = await loadTemplate(tx, themeId, templateKeyFor(path))
+  const liquid = data.content.filter((item) => item.type === 'LiquidSection')
+  const index = liquid.findIndex((item) => liquidSectionKey(item.props) === key)
+  const item = liquid[index]
+  const type = typeof item?.props.sectionType === 'string' ? item.props.sectionType : ''
+  if (!item || !bundle.sections.has(type)) return null
+  return liquidPlacement(item.props, bundle.sections.get(type)?.schema, 'template', index)
+}
+
+/**
+ * Our answer to Shopify's `/recommendations/products?product_id=&limit=&section_id=&intent=`:
+ * the theme's own section rendered on the product's page with `recommendations` filled. For
+ * `related`, the merchant's Search & Discovery picks, then shared collection, type and tags; for
+ * `complementary`, the picks only. Published and in stock only. Null when the section is not in
+ * the theme, or the product is not ours.
  */
 export async function renderRecommendations(
   tx: StoreTx,
   storeId: string,
-  input: { sectionId: string; productId: string; limit: number },
+  input: { sectionId: string; productId: string; limit: number; intent: RecommendationIntent },
 ): Promise<string | null> {
   const productId = await resolveThemeProductId(tx, input.productId)
   if (!productId) return null
-  return renderStaticLiquidSection(tx, storeId, input.sectionId, '/', async (ctx) => {
-    const related = await ctx.options.data.relatedProducts(productId, input.limit)
+  const [row] = await tx
+    .select({ handle: productTable.handle })
+    .from(productTable)
+    .where(eq(productTable.id, productId))
+  if (!row) return null
+  const path = `/products/${encodeURIComponent(row.handle)}`
+  return renderStaticLiquidSection(tx, storeId, input.sectionId, path, async (ctx) => {
+    const related = await ctx.options.data.relatedProducts(productId, input.limit, input.intent)
     ctx.globals.recommendations = {
       performed: true,
-      intent: 'related',
+      intent: input.intent,
       products: related.map((p) => new ProductDrop(p, ctx.cache)),
       products_count: related.length,
     }

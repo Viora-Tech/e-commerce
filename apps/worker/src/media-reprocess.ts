@@ -1,5 +1,5 @@
 /**
- * `bun run media:reprocess [--store <slug>]`
+ * `bun run media:reprocess [--store <slug>] [--concurrency <n>]`
  *
  * Backfill: runs the upload-time pipeline (`processImage`) over media that
  * never went through it — legacy rows from before this feature, Shopify
@@ -11,6 +11,10 @@
  * restarting) just continues where it left off next time, in createdAt/id
  * order (batched with `LIMIT`, never `OFFSET`, so rows already fixed in this
  * run drop out of the next batch's `WHERE` on their own — no page to skip).
+ *
+ * `--concurrency <n>` (default 2, max 8) works on that many rows of a batch at once, each in
+ * its own `withStore` transaction; a failed row is marked `failed` and the others go on.
+ * `processImage` (sharp) is CPU-bound, so set it to about the server's cores.
  */
 import { loadEnv } from '@commerce/config'
 import { markMediaFailed, markMediaProcessed, storageForStore } from '@commerce/core'
@@ -18,12 +22,16 @@ import { processImage } from '@commerce/core/media-pipeline'
 import { registriesForStore } from '@commerce/core/registries'
 import { createDb, media, store, withStore } from '@commerce/db'
 import { and, eq, isNull, or, sql } from 'drizzle-orm'
+import { forEachLimit, parseConcurrency } from './media-concurrency'
 
 const BATCH = 10
 
-function parseArgs(argv: string[]): { storeSlug: string | null } {
+function parseArgs(argv: string[]): { storeSlug: string | null; concurrency: number } {
   const idx = argv.indexOf('--store')
-  return { storeSlug: idx !== -1 ? (argv[idx + 1] ?? null) : null }
+  return {
+    storeSlug: idx !== -1 ? (argv[idx + 1] ?? null) : null,
+    concurrency: parseConcurrency(argv),
+  }
 }
 
 const needsProcessing = or(
@@ -46,7 +54,7 @@ async function storeIdsToProcess(db: ReturnType<typeof createDb>, slug: string |
 
 async function main() {
   const env = loadEnv(process.env)
-  const { storeSlug } = parseArgs(process.argv.slice(2))
+  const { storeSlug, concurrency } = parseArgs(process.argv.slice(2))
   const db = createDb(env.DATABASE_URL)
 
   const storeIds = await storeIdsToProcess(db, storeSlug)
@@ -69,10 +77,11 @@ async function main() {
           .where(needsProcessing)
           .limit(BATCH),
       )
-      for (const row of batch) {
+      // One `withStore` transaction per row, never shared, so rows in flight stay independent.
+      await forEachLimit(batch, concurrency, async (row) => {
         if (!row.key) {
           done += 1
-          continue
+          return
         }
         try {
           await withStore(db, storeId, async (tx) => {
@@ -114,9 +123,12 @@ async function main() {
           failed += 1
           const message = err instanceof Error ? err.message : String(err)
           console.warn(`[media:reprocess] ${storeId}/${row.id} failed: ${message}`)
-          await withStore(db, storeId, (tx) => markMediaFailed(tx, row.id, message))
+          await withStore(db, storeId, (tx) => markMediaFailed(tx, row.id, message)).catch(
+            (markErr) =>
+              console.warn(`[media:reprocess] ${storeId}/${row.id} not marked: ${markErr}`),
+          )
         }
-      }
+      })
     } while (batch.length === BATCH)
   }
 

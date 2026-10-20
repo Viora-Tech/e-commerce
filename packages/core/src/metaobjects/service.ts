@@ -20,6 +20,7 @@ import { storedFieldProblems } from './field-changes'
 import { type FromPresetInput, presetDefinition } from './presets'
 import { referenceProblems } from './references'
 import {
+  canFilterBy,
   type FieldDefinition,
   InvalidMetaobject,
   type MetafieldDefinitionWrite,
@@ -428,6 +429,7 @@ export async function listMetafieldDefinitions(tx: StoreTx, ownerType: Metafield
       list: metafieldDefinition.list,
       validations: metafieldDefinition.validations,
       storefrontAccess: metafieldDefinition.storefrontAccess,
+      filterable: metafieldDefinition.filterable,
       position: metafieldDefinition.position,
       values: sql<number>`(select count(*)::int from metafield v where v.definition_id = "metafield_definition"."id")`,
     })
@@ -482,6 +484,7 @@ export async function createMetafieldDefinition(
     list: write.list,
     validations: write.validations,
     storefrontAccess: storefrontAccessFor(write),
+    filterable: (write.filterable ?? false) && canFilterBy(write),
     position: (last?.n ?? -1) + 1,
   })
   return { id, key }
@@ -520,9 +523,33 @@ export async function updateMetafieldDefinition(
       description: write.description || null,
       validations: write.validations,
       storefrontAccess: storefrontAccessFor(write),
+      filterable: (write.filterable ?? current.filterable) && canFilterBy(write),
       updatedAt: new Date(),
     })
     .where(eq(metafieldDefinition.id, id))
+}
+
+/**
+ * Turns "Use as filter" on for these definitions where their type allows it (the Shopify import,
+ * for the fields the old store filtered by). Never turns it off. Returns how many changed.
+ */
+export async function markMetafieldsFilterable(tx: StoreTx, ids: string[]): Promise<number> {
+  if (ids.length === 0) return 0
+  const rows = await tx
+    .select({
+      id: metafieldDefinition.id,
+      ownerType: metafieldDefinition.ownerType,
+      type: metafieldDefinition.type,
+    })
+    .from(metafieldDefinition)
+    .where(and(inArray(metafieldDefinition.id, ids), eq(metafieldDefinition.filterable, false)))
+  const allowed = rows.filter((r) => canFilterBy(r)).map((r) => r.id)
+  if (allowed.length === 0) return 0
+  await tx
+    .update(metafieldDefinition)
+    .set({ filterable: true, updatedAt: new Date() })
+    .where(inArray(metafieldDefinition.id, allowed))
+  return allowed.length
 }
 
 /** Removes the definition and every value stored for it. */

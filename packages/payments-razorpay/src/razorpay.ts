@@ -180,9 +180,11 @@ function hmacHex(secret: string, body: string): string {
 export class RazorpayProvider implements PaymentProvider {
   readonly id: string = 'razorpay'
   readonly label: string = 'UPI, cards, netbanking (Razorpay)'
+  readonly mode: 'test' | 'live' | undefined
   protected readonly client: Razorpay
 
   constructor(protected readonly config: RazorpayConfig) {
+    this.mode = razorpayMode(config.keyId) ?? undefined
     // An OAuth connection calls the API as the merchant with a Bearer token;
     // pasted keys use basic auth. The SDK supports both (`oauthToken`).
     this.client = isOAuthConfig(config)

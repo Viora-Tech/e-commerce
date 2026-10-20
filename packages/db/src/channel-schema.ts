@@ -22,7 +22,7 @@ import { newId, store } from './schema'
  * `meta`: one Facebook business catalog that Facebook, Instagram and WhatsApp all read.
  * `google`: a Google Merchant Center account. `openai`: the ChatGPT merchant feed endpoint.
  */
-export const CHANNEL_PROVIDERS = ['meta', 'google', 'openai'] as const
+const CHANNEL_PROVIDERS = ['meta', 'google', 'openai'] as const
 export type ChannelProvider = (typeof CHANNEL_PROVIDERS)[number]
 
 const at = (name: string) => timestamp(name, { withTimezone: true })

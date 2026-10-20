@@ -43,19 +43,19 @@
 
 /* Figma Store / Price (691:85138): the price in the body face, the sale price in
    --color-sale, then the saving as a small line in the same colour. */
-.price__current {
+.price__current:not(:where(.shopify-section *)) {
   font-family: var(--font-body);
   font-size: var(--font-body-size, 16px);
   font-weight: 500;
   line-height: 1.4;
 }
 
-.price--on-sale .price__current {
+.price--on-sale .price__current:not(:where(.shopify-section *)) {
   color: var(--color-sale, var(--color-brand));
   font-weight: 500;
 }
 
-.price__save {
+.price__save:not(:where(.shopify-section *)) {
   color: var(--color-sale, var(--color-brand));
   font-size: 12px;
   font-weight: 500;

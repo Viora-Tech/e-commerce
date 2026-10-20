@@ -36,6 +36,11 @@ export type NVariant = {
   hsCode: string | null
   /** Source URL of the variant's image; must also appear in the product images. */
   imageSrc: string | null
+  /**
+   * Shopify's "Continue selling when out of stock" (inventory policy `continue`), which
+   * pre-order apps switch on; undefined when the source did not say (a CSV without the column).
+   */
+  sellsOutOfStock?: boolean | undefined
 }
 
 export type NProduct = {

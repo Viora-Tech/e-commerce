@@ -1,4 +1,5 @@
 import {
+  baseProviderId,
   decryptProviderSettings,
   encryptProviderSettings,
   isEncryptedSecret,
@@ -51,7 +52,8 @@ export function presentProviderSettings<S extends ProviderSettings>(
   registry?: FactoryLookup,
   previousSecrets: string[] = [],
 ): S {
-  const fieldsOf = registry ? (id: string) => registry.get(id)?.fields : undefined
+  // A gateway's waiting key set (`razorpay~live`) has that gateway's fields.
+  const fieldsOf = registry ? (id: string) => registry.get(baseProviderId(id))?.fields : undefined
   return maskProviderSettings(decryptProviderSettings(s, secret, previousSecrets), fieldsOf)
 }
 
@@ -95,5 +97,5 @@ export function prepareProviderSettings<S extends ProviderSettings>(
       throw new ORPCError('BAD_REQUEST', { message: `${f.label}: ${check.errors.join(', ')}` })
     }
   }
-  return encryptProviderSettings(merged, secret, (id) => registry.get(id)?.fields)
+  return encryptProviderSettings(merged, secret, (id) => registry.get(baseProviderId(id))?.fields)
 }

@@ -13,6 +13,14 @@ import {
   variant,
 } from '@commerce/db'
 import { and, asc, desc, eq, isNotNull, like, sql } from 'drizzle-orm'
+import { excerptText } from '../blog/text'
+import { browseProducts } from '../catalog/browse'
+import {
+  BROWSE_SORTS,
+  parseBrowseFilters,
+  parseBrowseSort,
+  parsePage,
+} from '../catalog/browse-params'
 import { keyFromName } from '../metaobjects/validate'
 import { toNavLinks } from '../navigation/resolve'
 import { loadMetafields, loadMetaobjects, loadMetaobjectsOfType } from './custom-data'
@@ -29,7 +37,7 @@ import type {
 import { loadImportedFiles } from './imported-files'
 import { uuidPrefixOf } from './numeric-id'
 import { collectionsProducts, loadProducts, productsByHandles } from './product-data'
-import { MAX_RECOMMENDATIONS, relatedProductIds } from './related'
+import { MAX_RECOMMENDATIONS, pickedRecommendationIds, relatedProductIds } from './related'
 import { richTextHtml } from './rich-html'
 
 export type StoreLiquidDataOptions = {
@@ -86,6 +94,15 @@ const toHtml = richTextHtml
 
 const escapeHtml = (s: string) =>
   s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+
+/**
+ * `article.excerpt`, which Liquid reads as HTML: the stored excerpt is text (a Shopify import
+ * keeps the summary's words), read as plain text first so tags saved in it never show escaped.
+ */
+function excerptHtml(excerpt: string | null): string {
+  const text = excerptText(excerpt)
+  return text ? `<p>${escapeHtml(text)}</p>` : ''
+}
 
 /** Our menu items as Shopify links, three levels deep. */
 function toLinks(links: ReturnType<typeof toNavLinks>): LiquidLinkData[] {
@@ -205,11 +222,12 @@ export async function storeLiquidData(
     collectionProducts: (handle, limit) =>
       once(`cp:${handle}:${limit}`, async () => {
         if (handle === 'all') {
+          // Shopify's `collections.all` reads A to Z by title (an empty cart's "Bestsellers").
           const rows = await tx
             .select({ id: product.id })
             .from(product)
             .where(eq(product.status, 'active'))
-            .orderBy(desc(product.createdAt))
+            .orderBy(asc(product.title), asc(product.id))
             .limit(limit)
           return loadProducts(
             tx,
@@ -231,10 +249,16 @@ export async function storeLiquidData(
       }),
     collectionsProducts: (handles, limit) => collectionsProducts(tx, handles, limit),
     collections: collectionList,
-    relatedProducts: (productId, limit) =>
-      once(`rel:${productId}:${limit}`, async () => {
+    relatedProducts: (productId, limit, intent = 'related') =>
+      once(`rel:${productId}:${limit}:${intent}`, async () => {
         const wanted = Math.min(Math.max(1, Math.trunc(limit) || 4), MAX_RECOMMENDATIONS)
-        const ids = await relatedProductIds(tx, productId)
+        // The merchant's picks first (Search & Discovery); complementary has nothing else.
+        const fields = (await loadMetafields(tx, 'product', [productId])).metafields[productId]
+        const picked = pickedRecommendationIds(fields ?? [], intent).filter(
+          (id) => id !== productId,
+        )
+        const auto = intent === 'related' ? await relatedProductIds(tx, productId) : []
+        const ids = [...new Set([...picked, ...auto])]
         // Over-read: sold-out products are dropped after loading (stock lives on the variants).
         const loaded = await loadProducts(tx, ids.slice(0, wanted * 3))
         return loaded.filter((p) => p.variants.some((v) => v.available)).slice(0, wanted)
@@ -281,7 +305,7 @@ export async function storeLiquidData(
             title: a.title,
             url: `/blogs/${b.handle}/${a.handle}`,
             author: a.author,
-            excerptHtml: a.excerpt ? `<p>${escapeHtml(a.excerpt)}</p>` : '',
+            excerptHtml: excerptHtml(a.excerpt),
             contentHtml: toHtml(a.body),
             image: a.imageUrl ? { url: a.imageUrl, alt: a.imageAlt ?? a.title } : null,
             tags: a.tags,
@@ -311,6 +335,31 @@ export async function storeLiquidData(
       once(`mt:${type}`, () => loadMetaobjectsOfType(tx, keyFromName(type))),
     metaobjects: (ids) => loadMetaobjects(tx, ids),
     importedFiles: () => once('imported-files', () => loadImportedFiles(tx)),
+    browse: async ({ collectionId, query, perPage }) => {
+      const first = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v)
+      const q = (first(query.q) ?? '').trim().slice(0, 100)
+      const filters = parseBrowseFilters(query)
+      // Shopify's defaults: a collection's own order, search by relevance.
+      const fallback = collectionId ? 'manual' : q ? 'relevance' : 'title-ascending'
+      const sort = parseBrowseSort(first(query.sort_by), BROWSE_SORTS, fallback)
+      const result = await browseProducts(tx, {
+        collectionId: collectionId ?? undefined,
+        query: q || undefined,
+        filters,
+        sort: sort === 'manual' && !collectionId ? 'title-ascending' : sort,
+        page: parsePage(first(query.page)),
+        perPage,
+      })
+      const byHandle = await productsByHandles(tx, result.handles)
+      return {
+        products: result.handles.flatMap((h) => byHandle.get(h) ?? []),
+        total: result.total,
+        facets: result.facets,
+        filters,
+        sort,
+        q,
+      }
+    },
   }
 }
 

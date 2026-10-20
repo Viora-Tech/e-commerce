@@ -32,6 +32,7 @@ export default [
         photosHelp: (pct) => `${pct}% रिव्यू`,
       },
       tabs: { all: 'सभी', pending: 'इंतज़ार में', published: 'पब्लिश', hidden: 'छिपे हुए' },
+      storeReview: 'स्टोर रिव्यू',
       columns: {
         product: 'प्रोडक्ट',
         rating: 'रेटिंग',
@@ -128,6 +129,7 @@ export default [
         title: 'प्रोडक्ट',
         reviews: (n) => `${n} रिव्यू`,
         view: 'प्रोडक्ट देखें',
+        store: 'यह आपके स्टोर का रिव्यू है, किसी एक प्रोडक्ट का नहीं। यह रिव्यू शोकेस में दिखता है।',
       },
       customer: {
         title: 'ग्राहक',

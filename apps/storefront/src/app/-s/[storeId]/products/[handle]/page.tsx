@@ -1,4 +1,5 @@
 import { mainProductSettings, ProductView } from '@commerce/blocks'
+import { loadProductPageExtras } from '@commerce/core'
 import {
   depositIsNonRefundable,
   type PreorderStoreSettings,
@@ -24,7 +25,7 @@ import { backInStockContext } from '@/lib/back-in-stock-context'
 import { addLineAction } from '@/lib/cart-actions'
 import { getProductByHandle, getProductSeo, type ProductDetail } from '@/lib/catalog'
 import { storeEmiOffers } from '@/lib/emi-offers'
-import { storeOffersEmi } from '@/lib/payments'
+import { storeOffersEmi, storeUpiDiscount } from '@/lib/payments'
 import { productReviews } from '@/lib/reviews'
 import { jsonLd, metaDescription, productGraph, requestOrigin } from '@/lib/seo'
 import { estimateDeliveryAction } from '@/lib/shipping-actions'
@@ -107,7 +108,21 @@ export default async function ProductPage({ params, searchParams }: Params) {
     requestToken: typeof review === 'string' ? review : null,
     storeName: found.storeName,
   })
-  const rated = reviews && reviews.summary.count > 0 ? reviews.summary : null
+  const extras = await storeRead(storeId, `product-extras|${product.id}`, (tx) =>
+    loadProductPageExtras(tx, product.id),
+  )
+  // The stars are the product's real figure: the Reviews app's, else the rating imported
+  // from Shopify's review app; never a typed one.
+  const rated =
+    reviews && reviews.summary.count > 0
+      ? reviews.summary
+      : extras.rating
+        ? { rating: extras.rating.value, count: extras.rating.count }
+        : null
+  const upiDiscount = await storeRead(storeId, 'upi-discount', (tx) =>
+    storeUpiDiscount(tx, storeId),
+  )
+  const shown = { ...product, fields: extras.fields, collection: extras.collection }
   const emiApp = await storeRead(storeId, 'emi-offers', (tx) => storeEmiOffers(tx, storeId))
   // Before the EMI & pay later app is installed, the older built-in hint still shows.
   const legacyEmi = emiApp.installed
@@ -164,17 +179,14 @@ export default async function ProductPage({ params, searchParams }: Params) {
       MainProduct: (s) => {
         const view = (
           <ProductView
-            product={product}
+            product={shown}
             onAddToCart={addLineAction}
-            settings={
-              rated
-                ? {
-                    ...mainProductSettings(s),
-                    ratingValue: rated.rating,
-                    ratingCount: rated.count,
-                  }
-                : mainProductSettings(s)
-            }
+            settings={{
+              ...mainProductSettings(s),
+              ratingValue: rated?.rating ?? 0,
+              ratingCount: rated?.count ?? 0,
+            }}
+            upiDiscount={upiDiscount}
             UnderPrice={s.showEmiHint !== false ? UnderPrice : undefined}
             belowBuy={s.showDeliveryEstimate === false ? undefined : <DeliveryEstimateWidget />}
             NotifyMe={bis.installed ? NotifyMeForm : undefined}

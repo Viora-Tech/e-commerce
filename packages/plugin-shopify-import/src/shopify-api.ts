@@ -50,7 +50,7 @@ export async function fetchShopAndScopes(
 
 /* ---------------------------------------------------------------- products */
 
-const VARIANT_FIELDS = `id title sku barcode price compareAtPrice taxable inventoryQuantity
+const VARIANT_FIELDS = `id title sku barcode price compareAtPrice taxable inventoryQuantity inventoryPolicy
   selectedOptions { name value } image { url }
   inventoryItem { tracked harmonizedSystemCode unitCost { amount } measurement { weight { unit value } } }`
 
@@ -88,6 +88,8 @@ type GVariant = {
   compareAtPrice: string | null
   taxable: boolean
   inventoryQuantity: number | null
+  /** `CONTINUE` keeps selling at zero stock: how Shopify pre-order apps sell past stock. */
+  inventoryPolicy?: 'DENY' | 'CONTINUE' | null
   selectedOptions: { name: string; value: string }[]
   image: { url: string } | null
   inventoryItem: {
@@ -136,7 +138,7 @@ function hsnDigits(value: string | null | undefined): string | null {
  * Shopify's `templateSuffix` (`about` for `page.about.json`), kept only in the shape our
  * template keys allow; anything else (or none) is the default template.
  */
-export function templateSuffix(value: string | null | undefined): string | null {
+function templateSuffix(value: string | null | undefined): string | null {
   const s = (value ?? '').trim().toLowerCase()
   return /^[a-z0-9-]{1,40}$/.test(s) ? s : null
 }
@@ -162,6 +164,7 @@ export function mapVariant(
     onHand: v.inventoryItem?.tracked === false ? null : Math.max(0, v.inventoryQuantity ?? 0),
     hsCode: hsnDigits(v.inventoryItem?.harmonizedSystemCode) ?? productHsn,
     imageSrc: v.image?.url ?? null,
+    sellsOutOfStock: v.inventoryPolicy === 'CONTINUE',
   }
 }
 
@@ -746,6 +749,48 @@ export async function* fetchOrders(
     () => fetchOrdersPaged(client),
     onBulkFallback,
   )
+}
+
+/* -------------------------------------------------------------- pre-orders */
+
+const SELLING_PLAN_GROUPS_QUERY = `query SellingPlanGroups($cursor: String) {
+  sellingPlanGroups(first: 25, after: $cursor) {
+    ${PAGE_INFO}
+    nodes { name merchantCode products(first: 250) { nodes { id } } }
+  }
+}`
+
+type GSellingPlanGroup = {
+  name: string
+  merchantCode: string
+  products: { nodes: { id: string }[] }
+}
+
+const PREORDER_PLAN = /pre[-s]?order/i
+
+/**
+ * Shopify ids of the products sold through a pre-order purchase option: a selling plan group
+ * named (or coded) like "Pre-order", as Shopify's pre-order apps make them. Needs
+ * `read_purchase_options`; Shopify refuses the query without it (a `scope` error).
+ */
+export async function fetchPreorderProductIds(client: ShopifyClient): Promise<Set<string>> {
+  const ids = new Set<string>()
+  for await (const groups of client.paginate<GSellingPlanGroup>(
+    SELLING_PLAN_GROUPS_QUERY,
+    (d) =>
+      (d as { sellingPlanGroups?: Page<GSellingPlanGroup> }).sellingPlanGroups ?? {
+        nodes: [],
+        pageInfo: { hasNextPage: false, endCursor: null },
+      },
+    {},
+    150,
+  )) {
+    for (const g of groups) {
+      if (!PREORDER_PLAN.test(g.name) && !PREORDER_PLAN.test(g.merchantCode)) continue
+      for (const p of g.products.nodes) ids.add(p.id)
+    }
+  }
+  return ids
 }
 
 /* ---------------------------------------------------- pages and articles */

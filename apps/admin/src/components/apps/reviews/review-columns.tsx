@@ -19,11 +19,15 @@ export function reviewColumns(copy: typeof reviewsContent): ResourceColumnSpec<R
       hideable: false,
       align: 'start',
       className: 'w-60 px-3 whitespace-normal',
-      sortValue: (r) => r.productTitle,
+      sortValue: (r) => r.productTitle ?? '',
       render: (r) => (
         <span className="flex items-center gap-3 text-left">
           <ProductThumb url={r.productImage} />
-          <span className="line-clamp-2 text-body">{r.productTitle}</span>
+          {r.productTitle === null ? (
+            <span className="text-body text-muted-foreground">{c.storeReview}</span>
+          ) : (
+            <span className="line-clamp-2 text-body">{r.productTitle}</span>
+          )}
         </span>
       ),
     },

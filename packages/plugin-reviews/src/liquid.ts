@@ -86,9 +86,10 @@ function judgemeShopData(
     reviewer_name: r.name,
     reviewer_initial: r.name.trim().charAt(0).toUpperCase(),
     verified_buyer: r.verified,
-    product_title: r.productTitle,
-    product_url: `/products/${r.handle}`,
-    product_handle: r.handle,
+    // A store review has no product: Judge.me leaves these blank and links the shop.
+    product_title: r.productTitle ?? '',
+    product_url: r.handle ? `/products/${r.handle}` : '/',
+    product_handle: r.handle ?? '',
     created_at: r.createdAt.toISOString(),
     pictures_urls: r.photos.map((url) => ({ original: url, huge: url, small: url })),
   }))

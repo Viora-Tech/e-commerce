@@ -10,6 +10,7 @@ import {
   imageDrop,
   type LiquidArticleData,
   type LiquidBlogData,
+  type LiquidBrowseData,
   type LiquidCollectionData,
   type LiquidLinkData,
   type LiquidMenuData,
@@ -17,7 +18,11 @@ import {
   type LiquidProductData,
   type LiquidVariantData,
 } from './drops'
+import { type LiquidFilter, liquidFilters } from './liquid-filters'
 import { numericId } from './numeric-id'
+
+/** A listing page's search params (`filter.*`, `sort_by`, `page`, `q`). */
+export type ListingQuery = Record<string, string | string[] | undefined>
 
 export class VariantDrop extends Drop {
   /** A whole number, as Shopify ids are (see `numeric-id.ts`). */
@@ -117,7 +122,6 @@ export class ProductDrop extends Drop {
   readonly created_at: Date
   readonly published_at: Date
   readonly metafields: MetafieldsDrop
-  readonly collections: unknown[] = []
   readonly gift_card = false
   readonly requires_selling_plan = false
   readonly selling_plan_groups: {
@@ -128,8 +132,12 @@ export class ProductDrop extends Drop {
   }[]
   readonly template_suffix = ''
   readonly quantity_price_breaks_configured = false
+  readonly #collectionHandles: string[]
+  readonly #cache: LiquidDataCache
   constructor(p: LiquidProductData, cache: LiquidDataCache) {
     super()
+    this.#collectionHandles = p.collectionHandles ?? []
+    this.#cache = cache
     this.metafields = new MetafieldsDrop(cache, { type: 'product', id: p.id })
     // Pre-order apps on Shopify mark products with a selling plan group; ours is built in.
     this.selling_plan_groups = p.preorder
@@ -179,6 +187,16 @@ export class ProductDrop extends Drop {
   override valueOf(): string {
     return this.handle
   }
+  /**
+   * The collections it is in (themes pick related rows and accessories by them), read from the
+   * request's collection list, which is loaded before the first render.
+   */
+  get collections(): CollectionDrop[] {
+    return this.#collectionHandles.flatMap((handle) => {
+      const c = this.#cache.collection(handle)
+      return c ? [new CollectionDrop(c, this.#cache)] : []
+    })
+  }
   get options_by_name(): Record<string, unknown> {
     return Object.fromEntries(this.options_with_values.map((o) => [o.name.toLowerCase(), o]))
   }
@@ -195,15 +213,15 @@ export class CollectionDrop extends Drop {
   readonly url: string
   readonly description: string
   readonly image: ImageDrop | null
-  readonly products_count: number
   readonly all_products_count: number
   readonly metafields: MetafieldsDrop
-  readonly filters: unknown[] = []
-  readonly sort_by = ''
   readonly default_sort_by = 'manual'
   readonly template_suffix = ''
   readonly #cache: LiquidDataCache
+  readonly #count: number
   #products: ProductDrop[] | null = null
+  /** On the collection's own page: the request's filters, sort and page (`listingOf`). */
+  #listing: ListingQuery | null = null
   constructor(c: LiquidCollectionData, cache: LiquidDataCache) {
     super()
     this.#cache = cache
@@ -213,7 +231,7 @@ export class CollectionDrop extends Drop {
     this.url = `/collections/${c.handle}`
     this.description = c.descriptionHtml
     this.image = imageDrop(c.image)
-    this.products_count = c.productsCount
+    this.#count = c.productsCount
     this.all_products_count = c.productsCount
     this.metafields = new MetafieldsDrop(cache, { type: 'collection', id: c.id })
   }
@@ -221,8 +239,38 @@ export class CollectionDrop extends Drop {
   override valueOf(): string {
     return this.handle
   }
+  /**
+   * Makes this the collection's own page: `products`, `products_count`, `filters` and `sort_by`
+   * follow the request's filters, sort and page, as on Shopify.
+   */
+  listOn(query: ListingQuery) {
+    this.#listing = query
+    this.#products = null
+  }
+  /** The filtered listing, once loaded; null off the collection's page or while loading. */
+  #listed(): LiquidBrowseData | null {
+    if (!this.#listing) return null
+    return this.#cache.listing(this.id === 'all' ? null : this.id, this.#listing)
+  }
+  get products_count(): number {
+    return this.#listed()?.total ?? this.#count
+  }
+  get sort_by(): string {
+    return this.#listed()?.sort ?? ''
+  }
+  /** Shopify's filter objects (`liquid-filters.ts`); none off the collection's own page. */
+  get filters(): LiquidFilter[] {
+    const l = this.#listed()
+    return l ? liquidFilters(l.facets, l.filters, { path: this.url, sort: l.sort }) : []
+  }
   get products(): ProductDrop[] {
     if (this.#products) return this.#products
+    if (this.#listing && this.#cache.source.browse) {
+      const l = this.#listed()
+      if (!l) return []
+      this.#products = l.products.map((p) => new ProductDrop(p, this.#cache))
+      return this.#products
+    }
     const list = this.#cache.collectionProducts(this.handle)
     if (!list) return []
     this.#products = list.map((p) => new ProductDrop(p, this.#cache))
@@ -475,5 +523,45 @@ export class PagesDrop extends Drop {
   override liquidMethodMissing(handle: string): unknown {
     const page = this.#cache.page(handle)
     return page ? new PageDrop(page) : null
+  }
+}
+
+/**
+ * Shopify's `search` on the search page: the terms, the matching products (one page, with the
+ * request's filters and sort) and the filters. Off the search page it reads as not performed.
+ */
+export class SearchDrop extends Drop {
+  readonly #cache: LiquidDataCache
+  readonly #query: ListingQuery | null
+  readonly types = ['product']
+  readonly default_sort_by = 'relevance'
+  constructor(cache: LiquidDataCache, query: ListingQuery | null) {
+    super()
+    this.#cache = cache
+    this.#query = query
+  }
+  #listed(): LiquidBrowseData | null {
+    return this.#query ? this.#cache.listing(null, this.#query) : null
+  }
+  get terms(): string {
+    const q = this.#query?.q
+    return (Array.isArray(q) ? q[0] : q)?.trim() ?? ''
+  }
+  get performed(): boolean {
+    return this.terms !== ''
+  }
+  get results(): ProductDrop[] {
+    if (!this.performed) return []
+    return (this.#listed()?.products ?? []).map((p) => new ProductDrop(p, this.#cache))
+  }
+  get results_count(): number {
+    return this.performed ? (this.#listed()?.total ?? 0) : 0
+  }
+  get sort_by(): string {
+    return this.#listed()?.sort ?? ''
+  }
+  get filters(): LiquidFilter[] {
+    const l = this.performed ? this.#listed() : null
+    return l ? liquidFilters(l.facets, l.filters, { path: '/search', q: l.q, sort: l.sort }) : []
   }
 }

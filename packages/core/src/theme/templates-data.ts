@@ -5,6 +5,7 @@
  * `header` and `footer` are the section groups every template shares.
  */
 
+import { LIQUID_SECTION } from '../theme-import/fields'
 import { mapNestedBlocks, type StoredBlock } from './nested-blocks'
 
 export const TEMPLATE_KINDS = [
@@ -175,6 +176,20 @@ export function parseTemplateData(value: unknown): TemplateData | null {
 
 /** Hidden sections stay in the template (Shopify's eye toggle) but never render. */
 export const isSectionHidden = (s: TemplateSection): boolean => s.props._hidden === true
+
+/**
+ * A stored template without an imported theme's own sections (`LiquidSection`), which render
+ * only with that theme's Liquid files. A theme made from a preset keeps the live theme's
+ * templates through this: our sections stay, the Shopify ones go, and a template left with
+ * nothing to show is our default for its key. Anything without Liquid sections comes back as is.
+ */
+export function withoutLiquidSections(key: TemplateKey, value: unknown): unknown {
+  const parsed = parseTemplateData(value)
+  if (!parsed?.content.some((s) => s.type === LIQUID_SECTION)) return value
+  const content = parsed.content.filter((s) => s.type !== LIQUID_SECTION)
+  if (!content.some((s) => !isSectionHidden(s))) return defaultTemplate(key)
+  return { ...(value as object), content }
+}
 
 /**
  * Sections a page shows at most, to keep it fast (Figma 698:92403). Hidden sections do not

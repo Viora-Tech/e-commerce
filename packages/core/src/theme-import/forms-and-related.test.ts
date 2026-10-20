@@ -1,7 +1,7 @@
-/** SOURCE OF TRUTH: tests for an imported theme's contact form (posted, errors, honeypot, Forms app missing) and the related products ranking */
+/** SOURCE OF TRUTH: tests for an imported theme's contact form (posted, errors, honeypot, Forms app missing) and the related products ranking and Search & Discovery picks */
 import { describe, expect, it } from 'vitest'
 import { createThemeEngine } from './engine'
-import { rankRelated } from './related'
+import { DISCOVERY_NAMESPACE, pickedRecommendationIds, rankRelated } from './related'
 
 function render(source: string, rt: { postedForm?: string | null; formsAvailable?: boolean }) {
   return createThemeEngine(new Map()).parseAndRenderSync(
@@ -91,5 +91,29 @@ describe('rankRelated', () => {
 
   it('does not match an empty type', () => {
     expect(rankRelated({ type: '', tags: [] }, [c('a', { type: '' })])).toEqual([])
+  })
+})
+
+describe('pickedRecommendationIds', () => {
+  const field = (key: string, value: unknown) => ({
+    namespace: DISCOVERY_NAMESPACE,
+    key,
+    type: 'product_reference' as const,
+    list: true,
+    measure: null,
+    value,
+  })
+  const ref = (id: string) => ({ kind: 'product', id, handle: id })
+
+  it("reads Search & Discovery's picks for each intent, in order, once each", () => {
+    const fields = [
+      field('related_products', [ref('b'), ref('a'), ref('b')]),
+      field('complementary_products', [ref('c'), { kind: 'page', id: 'p' }]),
+      { ...field('related_products', [ref('x')]), namespace: 'custom' },
+    ]
+    expect(DISCOVERY_NAMESPACE).toBe('shopify_discovery_product_recommendation')
+    expect(pickedRecommendationIds(fields, 'related')).toEqual(['b', 'a'])
+    expect(pickedRecommendationIds(fields, 'complementary')).toEqual(['c'])
+    expect(pickedRecommendationIds([], 'related')).toEqual([])
   })
 })

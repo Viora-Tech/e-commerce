@@ -21,7 +21,7 @@ import type { api } from '@/lib/api-client'
 import ReviewStars from './review-stars'
 
 type Preview = Extract<Awaited<ReturnType<typeof api.reviews.judgeme.preview>>, { ok: true }>
-type Options = { copyPhotos: boolean; publish: boolean }
+type Options = { copyPhotos: boolean; publish: boolean; unmatchedAsStore: boolean }
 
 type ImportPreviewProps = {
   preview: Preview
@@ -34,18 +34,24 @@ type ImportPreviewProps = {
 
 const RESULT_TONE = {
   sku: 'success',
+  product_id: 'success',
   handle: 'success',
+  store: 'info',
   none: 'attention',
   imported: 'neutral',
 } as const
 
 const COUNT_TONE = {
   ready: 'border-success/30 bg-success-soft',
+  store: 'border-success/30 bg-success-soft',
   noMatch: 'border-warning/35 bg-warning-soft',
   photos: 'border-info/30 bg-info-soft',
 } as const
 
-/** Step 3: what the file holds, how each review matched, the options and the Import button. */
+/**
+ * Step 3: what the file holds, how each review matched, the products it names that are
+ * not here, the options and the Import button.
+ */
 export default function ImportPreview({
   preview,
   options,
@@ -61,16 +67,18 @@ export default function ImportPreview({
   const copy = all.import.step3
   const counts = [
     { key: 'ready' as const, n: preview.ready, label: copy.ready },
+    { key: 'store' as const, n: preview.store, label: copy.store },
     { key: 'noMatch' as const, n: preview.noMatch, label: copy.noMatch },
     { key: 'photos' as const, n: preview.photos, label: copy.photos },
   ]
   const hidden = preview.total - preview.rows.length
+  const toImport = preview.ready + preview.store + (options.unmatchedAsStore ? preview.noMatch : 0)
 
   return (
     <DataCard title={copy.title}>
       <div className="flex flex-col gap-4">
         <p className="text-caption text-muted-foreground">{copy.help}</p>
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
           {counts.map((c) => (
             <div key={c.key} className={cn('rounded-lg border p-4', COUNT_TONE[c.key])}>
               <p className="text-stat text-ink-strong tabular-nums">{formatNumber(c.n)}</p>
@@ -83,6 +91,21 @@ export default function ImportPreview({
         ) : null}
         {preview.skipped > 0 ? (
           <p className="text-caption text-muted-foreground">{copy.skipped(preview.skipped)}</p>
+        ) : null}
+        {preview.unmatched.length > 0 ? (
+          <div className="flex flex-col gap-2 rounded-md border border-warning/35 bg-warning-soft p-3">
+            <p className="text-body-strong">{copy.unmatchedTitle}</p>
+            <ul className="flex flex-col gap-1 text-body">
+              {preview.unmatched.map((u) => (
+                <li key={u.product} className="flex items-center justify-between gap-3">
+                  <span className="min-w-0 truncate font-mono text-caption">{u.product}</span>
+                  <span className="shrink-0 text-caption text-muted-foreground tabular-nums">
+                    {copy.unmatchedRow(u.reviews)}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </div>
         ) : null}
         <div className="overflow-x-auto rounded-md border border-border">
           <Table>
@@ -132,21 +155,30 @@ export default function ImportPreview({
             />
             {copy.publish}
           </label>
-          <label htmlFor="import-skip" className="flex items-start gap-2 text-body">
-            <Checkbox id="import-skip" checked disabled className="mt-0.5" />
-            <span className="flex flex-col">
-              {copy.skipUnmatched(preview.noMatch)}
-              <span className="text-caption text-muted-foreground">{copy.skipUnmatchedHelp}</span>
-            </span>
-          </label>
+          {preview.noMatch > 0 ? (
+            <label htmlFor="import-as-store" className="flex items-start gap-2 text-body">
+              <Checkbox
+                id="import-as-store"
+                checked={options.unmatchedAsStore}
+                onCheckedChange={(v) =>
+                  onOptionsChange({ ...options, unmatchedAsStore: v === true })
+                }
+                className="mt-0.5"
+              />
+              <span className="flex flex-col">
+                {copy.asStore(preview.noMatch)}
+                <span className="text-caption text-muted-foreground">{copy.asStoreHelp}</span>
+              </span>
+            </label>
+          ) : null}
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <Button variant="outline" onClick={onCancel} disabled={importing}>
             {copy.cancel}
           </Button>
-          <Button onClick={onImport} disabled={importing || preview.ready === 0}>
+          <Button onClick={onImport} disabled={importing || toImport === 0}>
             {importing ? <Spinner /> : null}
-            {importing ? copy.running : copy.run(preview.ready)}
+            {importing ? copy.running : copy.run(toImport)}
           </Button>
         </div>
       </div>

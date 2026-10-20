@@ -18,9 +18,12 @@ export const analyticsContent = {
   },
   compare: 'vs previous period',
   kpis: {
-    sessions: { label: 'Sessions', help: 'Unique visitors on the storefront.' },
-    orders: { label: 'Orders', help: 'Orders placed, drafts and cancellations excluded.' },
+    sessions: {
+      label: 'Sessions',
+      help: 'Visits to your store. One shopper can make many; a visit ends after 30 minutes idle.',
+    },
     revenue: { label: 'Revenue', help: 'Order totals including tax and shipping.' },
+    orders: { label: 'Orders', help: 'Orders placed, drafts and cancellations excluded.' },
     conversion: { label: 'Conversion rate', help: 'Orders divided by sessions.' },
     aov: { label: 'Average order value', help: 'Revenue divided by orders.' },
     returning: { label: 'Returning customers', help: 'Share of orders from repeat buyers.' },

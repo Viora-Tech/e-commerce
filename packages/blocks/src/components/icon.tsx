@@ -40,6 +40,16 @@ export type IconName =
   | 'question'
   | 'facebook'
   | 'telegram'
+  | 'sensor'
+  | 'speed'
+  | 'switch'
+  | 'swap'
+  | 'weight'
+  | 'keyboard'
+  | 'ruler'
+  | 'layers'
+  | 'usb'
+  | 'battery'
 
 const paths: Record<IconName, { viewBox: string; body: string }> = {
   search: {
@@ -197,6 +207,47 @@ const paths: Record<IconName, { viewBox: string; body: string }> = {
   telegram: {
     viewBox: '0 0 24 24',
     body: '<path d="M21.4 3.4L2.6 10.7C1.85 10.99 1.89 12.06 2.66 12.29L7.4 13.71L17.1 7.3C17.32 7.16 17.55 7.45 17.36 7.63L9.9 14.6L9.55 18.9C9.48 19.72 10.47 20.17 11.04 19.58L13.1 17.44L17.9 20.86C18.5 21.29 19.35 20.96 19.5 20.24L22.6 4.5C22.75 3.74 22.02 3.13 21.4 3.4Z" fill="currentColor"/>',
+  },
+  // Spec glyphs (the theme's spec-cells rows name these): 1.5 stroke, round caps.
+  sensor: {
+    viewBox: '0 0 24 24',
+    body: '<circle cx="12" cy="12" r="8" stroke="currentColor" stroke-width="1.5"/><circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="1.5"/>',
+  },
+  speed: {
+    viewBox: '0 0 24 24',
+    body: '<path d="M4 17a8 8 0 1 1 16 0" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M12 17l4.2-4.6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>',
+  },
+  switch: {
+    viewBox: '0 0 24 24',
+    body: '<rect x="4" y="10" width="16" height="10" rx="2" stroke="currentColor" stroke-width="1.5"/><path d="M9.5 10V6.5a2.5 2.5 0 0 1 5 0V10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>',
+  },
+  swap: {
+    viewBox: '0 0 24 24',
+    body: '<path d="M4 9h13l-3.2-3.2M20 15H7l3.2 3.2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>',
+  },
+  weight: {
+    viewBox: '0 0 24 24',
+    body: '<path d="M7.5 9h9l1.8 10.5a1 1 0 0 1-1 1.5H6.7a1 1 0 0 1-1-1.5L7.5 9Z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><path d="M9.8 9a2.7 2.7 0 1 1 4.4 0" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>',
+  },
+  keyboard: {
+    viewBox: '0 0 24 24',
+    body: '<rect x="2.5" y="6.5" width="19" height="11" rx="2" stroke="currentColor" stroke-width="1.5"/><path d="M6 10h.01M9.5 10h.01M13 10h.01M16.5 10h.01M8.5 14h7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>',
+  },
+  ruler: {
+    viewBox: '0 0 24 24',
+    body: '<rect x="2.5" y="8.5" width="19" height="7" rx="1.5" stroke="currentColor" stroke-width="1.5"/><path d="M7 8.5v3M12 8.5v4M17 8.5v3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>',
+  },
+  layers: {
+    viewBox: '0 0 24 24',
+    body: '<path d="M12 3.5l8.5 4.2L12 11.9 3.5 7.7 12 3.5Z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><path d="M3.5 12.2L12 16.4l8.5-4.2M3.5 16.4L12 20.5l8.5-4.1" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>',
+  },
+  usb: {
+    viewBox: '0 0 24 24',
+    body: '<rect x="8.5" y="3.5" width="7" height="9" rx="2" stroke="currentColor" stroke-width="1.5"/><path d="M11 7h2M12 12.5V21" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>',
+  },
+  battery: {
+    viewBox: '0 0 24 24',
+    body: '<rect x="2.5" y="7.5" width="16" height="9" rx="2" stroke="currentColor" stroke-width="1.5"/><path d="M21 10.5v3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M5.5 10.5h5v3h-5z" fill="currentColor"/>',
   },
 }
 

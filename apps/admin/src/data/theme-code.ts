@@ -1,10 +1,11 @@
+import { siteConfig } from '@commerce/config/site'
 import type { NewFileKind } from '@commerce/core/theme-code'
 
 /** Copy for Online store › Themes › Edit code (Figma "Theme editor · 5 · Edit code"). */
 export const themeCodeContent = {
   title: 'Edit code',
   back: 'Back to themes',
-  badge: { imported: 'Imported from Shopify', native: 'Koomerce theme' },
+  badge: { imported: 'Imported from Shopify', native: `${siteConfig.brand.name} theme` },
   search: {
     placeholder: 'Search files',
     label: 'Search files',
@@ -56,7 +57,7 @@ export const themeCodeContent = {
     heading: 'Files',
     add: 'Add a new file',
     locked: 'locked',
-    library: 'Koomerce library',
+    library: `${siteConfig.brand.name} library`,
     more: (n: number) => `… ${n} more`,
     folders: {
       layout: 'layout',
@@ -97,15 +98,15 @@ export const themeCodeContent = {
       svg: 'SVG',
       text: 'Text',
     } as Record<string, string>,
-    librarySection: 'Koomerce library section',
+    librarySection: `${siteConfig.brand.name} library section`,
   },
   problems: { heading: 'Problems' },
   locked: {
-    title: (name: string) => `${name} is part of the Koomerce library`,
-    body: 'This section is part of the Koomerce library. Its code is not editable — change it with its settings in the theme editor, or add it to a page and save it to My sections to make your own copy.',
+    title: (name: string) => `${name} is part of the ${siteConfig.brand.name} library`,
+    body: `This section is part of the ${siteConfig.brand.name} library. Its code is not editable — change it with its settings in the theme editor, or add it to a page and save it to My sections to make your own copy.`,
     usedOn: (where: string) => `Used on: ${where}`,
     unused: 'Not used on any page of this theme yet',
-    updates: 'Updates: improved by Koomerce, applied automatically',
+    updates: `Updates: improved by ${siteConfig.brand.name}, applied automatically`,
     openEditor: 'Open in theme editor',
   },
   leave: {

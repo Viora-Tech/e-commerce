@@ -7,7 +7,7 @@ import { useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
 import ConfirmDialog from '@/components/layout/confirm-dialog'
 import { themeCodeContent } from '@/data/theme-code'
-import { useCodeBuffers } from '@/hooks/use-code-buffers'
+import { isDirty, useCodeBuffers } from '@/hooks/use-code-buffers'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 import { routes } from '@/lib/routes'
@@ -64,7 +64,7 @@ export default function ThemeCodeEditor({ theme, origin, me, initialFile }: Them
 
   // Closing the tab or reloading with unsaved files asks first, as leaving with Back does.
   useEffect(() => {
-    if (!Object.values(code.buffers).some((b) => b.text !== b.saved)) return
+    if (!Object.values(code.buffers).some(isDirty)) return
     const warn = (e: BeforeUnloadEvent) => e.preventDefault()
     window.addEventListener('beforeunload', warn)
     return () => window.removeEventListener('beforeunload', warn)
@@ -154,7 +154,7 @@ export default function ThemeCodeEditor({ theme, origin, me, initialFile }: Them
   // Render logic
   const dirtyPaths = new Set(
     Object.entries(code.buffers)
-      .filter(([, b]) => b.text !== b.saved)
+      .filter(([, b]) => isDirty(b))
       .map(([p]) => p),
   )
   const activeBuffer = active ? code.buffers[active] : undefined

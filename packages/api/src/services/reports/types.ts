@@ -1,3 +1,4 @@
+import { notTestOrder } from '@commerce/core'
 import type { StoreTx } from '@commerce/db'
 import { order } from '@commerce/db'
 import { and, gte, lt, ne } from 'drizzle-orm'
@@ -31,8 +32,12 @@ export type ReportSpan = {
 
 export type ReportBuilder = (tx: StoreTx, span: ReportSpan) => Promise<ReportData>
 
-/** Drafts never count; cancelled orders count only where a report says so. */
-export const notDraft = ne(order.status, 'draft')
+/**
+ * Drafts never count, nor do test-mode orders (paid on a gateway's test keys, no real money);
+ * cancelled orders count only where a report says so.
+ */
+export const notDraft = and(ne(order.status, 'draft'), notTestOrder)
+
 export const counted = and(notDraft, ne(order.status, 'cancelled'))
 
 export const placedIn = (span: ReportSpan) =>

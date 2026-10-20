@@ -13,5 +13,8 @@
   "kv_namespaces": [{ "binding": "STATE", "id": "1f4e154ac26e494b9917f2d3ffc244b6" }],
   // A send_email binding can only reach this one verified address.
   "send_email": [{ "name": "NOTIFY", "destination_address": "vioramice@gmail.com" }],
+  // Cores on the app server (EC2 t3a.medium: 2 vCPUs). The schedule's CPU is summed over cores,
+  // so it is divided by this when the payload carries no `cores` field.
+  "vars": { "SERVER_CPU_CORES": "2" },
   "observability": { "enabled": true }
 }

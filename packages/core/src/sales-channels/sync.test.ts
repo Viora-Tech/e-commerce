@@ -1,3 +1,4 @@
+/** SOURCE OF TRUTH: sales channel sync tests — WHAT: catalog sync and channel state moves / WHY: only changed items are sent */
 import {
   channelConnection,
   createDb,

@@ -11,6 +11,7 @@ describe('importedPages', () => {
       importedPages([
         'index',
         'header-group',
+        '404',
         'product',
         'product.preorder',
         'collection',
@@ -27,6 +28,7 @@ describe('importedPages', () => {
       ['home', '', 'index'],
       ['header', '', 'header-group'],
       ['footer', '', 'footer-group'],
+      ['not_found', '', '404'],
       ['article', 'notes', 'article.notes'],
       ['blog', '', 'blog'],
       ['blog', 'series', 'blog.series'],
@@ -43,6 +45,7 @@ describe('isImportedTemplate', () => {
     expect(isImportedTemplate('page.faq')).toBe(true)
     expect(isImportedTemplate('article.notes')).toBe(true)
     expect(isImportedTemplate('product')).toBe(true)
+    expect(isImportedTemplate('404')).toBe(true)
     expect(isImportedTemplate('list-collections')).toBe(false)
     expect(isImportedTemplate('cart')).toBe(false)
   })

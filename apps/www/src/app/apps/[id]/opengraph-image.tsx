@@ -1,10 +1,11 @@
+import { siteConfig } from '@commerce/config/site'
 import { STORE_APPS } from '@/data/apps'
 import { OG_CONTENT_TYPE, OG_SIZE, ogImage } from '@/lib/og-image'
 
 // Built once at `next build`: the site is a static export.
 export const dynamic = 'force-static'
 
-export const alt = 'A Koomerce App Store app'
+export const alt = `A ${siteConfig.brand.name} App Store app`
 export const size = OG_SIZE
 export const contentType = OG_CONTENT_TYPE
 

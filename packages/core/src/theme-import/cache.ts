@@ -1,6 +1,7 @@
 /** SOURCE OF TRUTH: synchronous data for Liquid renders — WHAT: a per-request cache in front of `LiquidDataSource` (catalogue, menus, blogs, pages, extra fields and content entries); a render reads it synchronously, a value not loaded yet reads as blank and is noted, then the cache loads every noted value at once and the section renders again / WHY: rendering with promises (LiquidJS async mode) creates tens of thousands of promises per page, which React's development server tracks one by one (20 s home pages); a synchronous render with a few batched loads between passes is fast everywhere and keeps database reads per request the same */
 import type {
   LiquidBlogData,
+  LiquidBrowseData,
   LiquidCollectionData,
   LiquidCustomData,
   LiquidDataSource,
@@ -39,6 +40,8 @@ export class LiquidDataCache {
   /** Content type → its entries' ids, in order. */
   readonly #types: Store<string[]> = new Map()
   readonly #pending = new Map<string, () => Promise<void>>()
+  /** Collection and search listings with the request's filters, by collection and query. */
+  readonly #listings: Store<LiquidBrowseData> = new Map()
   /** Judge.me's shop data from the Reviews app (one value per request). */
   readonly #judgeme: Store<Record<string, unknown>> = new Map()
   /** Every collection, titles and images only, in title order (`{% for c in collections %}`). */
@@ -102,6 +105,22 @@ export class LiquidDataCache {
       })
     }
     return null
+  }
+
+  /**
+   * A listing with filters, sort and page applied (`source.browse`), at most `COLLECTION_PAGE_SIZE`
+   * products; null while it loads, or always when the source cannot filter.
+   */
+  listing(
+    collectionId: string | null,
+    query: Record<string, string | string[] | undefined>,
+  ): LiquidBrowseData | null {
+    const browse = this.source.browse
+    if (!browse) return null
+    const key = JSON.stringify([collectionId, query])
+    return this.#read(this.#listings, 'ls', key, () =>
+      browse({ collectionId, query, perPage: COLLECTION_PAGE_SIZE }),
+    )
   }
 
   menu(handle: string): LiquidMenuData | null {

@@ -39,6 +39,7 @@ import {
   takeMedia,
 } from './import-media'
 import { buildReport, collectHandles, missingHandles, type Wanted } from './import-report'
+import { mainProductProps } from './main-product-props'
 import { type ImportReport, isMainSection } from './report'
 import {
   extractSchema,
@@ -167,7 +168,7 @@ function templateBlocks(
 
 /**
  * One JSON template (or group) as our template data. In a resource template (product,
- * collection, page, blog, article) the theme's first main section becomes ours and any further one is
+ * collection, page, blog, article, 404) the theme's first main section becomes ours and any further one is
  * dropped (ours covers it); every other section stays the theme's own. A product or
  * collection template with no main section gets ours first.
  */
@@ -186,7 +187,14 @@ function toTemplateData(
     if (main && isMainSection(s.type)) {
       if (mainPlaced) return []
       mainPlaced = true
-      return [{ ...main, props: { ...main.props, ...(s.disabled ? { _hidden: true } : {}) } }]
+      // Ours opens with what the theme's product section was set to show (./main-product-props).
+      const fromTheme = key === 'product' ? mainProductProps(s) : {}
+      return [
+        {
+          ...main,
+          props: { ...main.props, ...fromTheme, ...(s.disabled ? { _hidden: true } : {}) },
+        },
+      ]
     }
     if (!schemas.has(s.type)) return []
     const schema = schemas.get(s.type) ?? null
@@ -232,12 +240,14 @@ const RESOURCE_TEMPLATES: Record<string, TemplateKey> = {
   page: 'page',
   blog: 'blog',
   article: 'article',
+  // The not-found page: its main section becomes ours, the theme's other sections stay around it.
+  '404': 'not_found',
 }
 
 /**
  * The theme's templates and groups an import turns into ours, as `[our key, suffix, Shopify
- * name]`: the home page, the header and footer groups, and the product, collection, page, blog
- * and article templates with their alternates (`page.about` → page `about`). An alternate whose name our
+ * name]`: the home page, the header and footer groups, the 404 page, and the product,
+ * collection, page, blog and article templates with their alternates (`page.about` → page `about`). An alternate whose name our
  * templates cannot hold is left out (its pages run on the default template).
  */
 export function importedPages(names: Iterable<string>): [TemplateKey, string, string][] {

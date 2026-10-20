@@ -15,9 +15,11 @@ import {
   CollectionDrop,
   CollectionsDrop,
   LinklistsDrop,
+  type ListingQuery,
   PageDrop,
   PagesDrop,
   ProductDrop,
+  SearchDrop,
 } from './resource-drops'
 import { liquidSettings } from './settings-values'
 
@@ -36,6 +38,11 @@ export type LiquidRequest = {
   formsAvailable?: boolean | undefined
   /** CSP nonce for inline scripts on the storefront; blank in the editor. */
   nonce: string
+  /**
+   * A collection or search page's listing params (`filter.*`, `sort_by`, `page`, `q`): the
+   * page's `collection.products` / `collection.filters` and `search` follow them.
+   */
+  listing?: ListingQuery | undefined
 }
 
 export type LiquidRenderOptions = {
@@ -150,6 +157,7 @@ async function resourceGlobals(
       : kind === 'collection'
         ? new CollectionDrop(data as NonNullable<ReturnType<LiquidDataCache['collection']>>, cache)
         : new PageDrop(data as NonNullable<ReturnType<LiquidDataCache['page']>>)
+  if (drop instanceof CollectionDrop && request.listing) drop.listOn(request.listing)
   return { [kind]: drop, handle, page_title: data.title }
 }
 
@@ -297,7 +305,7 @@ export async function createPageContext(options: LiquidRenderOptions): Promise<L
     handle: '',
     current_page: 1,
     current_tags: [],
-    search: { performed: false, results: [], results_count: 0, terms: '', types: [], filters: [] },
+    search: new SearchDrop(cache, request.template === 'search' ? (request.listing ?? {}) : null),
     predictive_search: { performed: false, resources: {}, terms: '' },
     recommendations: { performed: false, products: [], products_count: 0 },
     additional_checkout_buttons: false,

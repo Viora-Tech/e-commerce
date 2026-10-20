@@ -1,5 +1,7 @@
 /** SOURCE OF TRUTH: our data and Shopify's basic Liquid objects — WHAT: the plain data an imported theme reads (`LiquidData*` types the store loader fills, extra fields and content entries included) and the small objects every theme prints: images, videos, colours, colour schemes, fonts / WHY: a theme's markup reads Shopify's objects; these shapes are what lets a theme LOOK the same while every value comes from our store */
 import { Drop } from 'liquidjs'
+import type { BrowseFacets } from '../catalog/browse'
+import type { BrowseFilters, BrowseSort } from '../catalog/browse-params'
 import type { FieldType, MeasureKind } from '../metaobjects/schemas'
 import { numericId } from './numeric-id'
 
@@ -41,7 +43,12 @@ export type LiquidProductData = {
   createdAt: Date
   /** Sold under our pre-order rules; shown to the theme as a "Pre-order" selling plan group. */
   preorder: boolean
+  /** Handles of the active collections it is in (`product.collections`); none when not loaded. */
+  collectionHandles?: string[] | undefined
 }
+
+/** Shopify's recommendation intents (`/recommendations/products?intent=`). */
+export type RecommendationIntent = 'related' | 'complementary'
 
 export type LiquidCollectionData = {
   id: string
@@ -161,6 +168,16 @@ export type LiquidCustomData = {
   entries: LiquidMetaobjectData[]
 }
 
+/** A collection or search listing for a Liquid theme: one page of products and its filters. */
+export type LiquidBrowseData = {
+  products: LiquidProductData[]
+  total: number
+  facets: BrowseFacets
+  filters: BrowseFilters
+  sort: BrowseSort
+  q: string
+}
+
 /**
  * Everything a render can ask our store for. Each call is per request; the store
  * loader caches within one request, so a header and a footer asking for the same
@@ -185,8 +202,16 @@ export type LiquidDataSource = {
     | ((handles: string[], limit: number) => Promise<Map<string, LiquidProductData[]>>)
     | undefined
   collections(): Promise<LiquidCollectionData[]>
-  /** Products related to one (our UUID): shared collection first, then type and tags; available ones only. */
-  relatedProducts(productId: string, limit: number): Promise<LiquidProductData[]>
+  /**
+   * Shopify's product recommendations for one product (our UUID), available ones only.
+   * `related`: the merchant's picks (Search & Discovery's `related_products`), then shared
+   * collection, type and tags. `complementary`: the merchant's `complementary_products` only.
+   */
+  relatedProducts(
+    productId: string,
+    limit: number,
+    intent?: RecommendationIntent,
+  ): Promise<LiquidProductData[]>
   menu(handle: string): Promise<LiquidMenuData | null>
   blog(handle: string): Promise<LiquidBlogData | null>
   page(handle: string): Promise<LiquidPageData | null>
@@ -207,6 +232,18 @@ export type LiquidDataSource = {
    * `all_reviews_rating`...), built from the Reviews app; null when the app is not installed.
    */
   judgeme?: (() => Promise<Record<string, unknown> | null>) | undefined
+  /**
+   * A listing with the request's filters, sort and page applied (`collection.products` and
+   * `collection.filters` on a collection page, `search` on the search page). `collectionId`
+   * null lists every product. Optional: without it a theme sees the first products unfiltered.
+   */
+  browse?:
+    | ((input: {
+        collectionId: string | null
+        query: Record<string, string | string[] | undefined>
+        perPage: number
+      }) => Promise<LiquidBrowseData>)
+    | undefined
 }
 
 /**

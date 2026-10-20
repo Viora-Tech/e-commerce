@@ -1,8 +1,49 @@
 ---
 title: Payments
-description: Turn on payment methods and connect a payment company.
+description: Turn on payment methods, connect a payment company, switch between Test and Live keys, and turn a payment company off without losing its keys.
 ---
 
 # Payments
 
-Payments is covered in [Payments](/merchant-guide/money-and-gst/payments).
+Connecting a payment company, choosing how shoppers pay and the ₹1 test order are covered in
+[Payments](/merchant-guide/money-and-gst/payments). This page covers the two switches on each
+payment company's card in **Settings → Payments**: **Test / Live** and **Active / Inactive**.
+They work the same for Razorpay, Cashfree and Decentro (UPI).
+
+## Test keys and live keys
+
+Every payment company gives you two sets of keys: **test** keys, where nothing real is charged,
+and **live** keys, which take real money. Your shop keeps both. On the Connect page, pick
+**Test** or **Live** under **Which keys?** to see and edit that set; saving one never touches
+the other.
+
+The **Keys in use** switch on the card picks which set checkout uses:
+
+- **Test** — shoppers can go through checkout, but no real money moves.
+- **Live** — real payments from real shoppers.
+
+Switching never deletes keys, so you can go back and forth. Before switching to **Live**, your
+shop checks the live keys with the payment company (nothing is charged) and asks you to
+confirm. If you have not saved live keys yet, press **Add live keys** first.
+
+If you connected before there were two sets, nothing changes: your keys are already in the right
+place (Razorpay keys starting `rzp_test_` are test keys, `rzp_live_` are live keys).
+
+## While you are in Test mode
+
+- Settings → Payments shows an orange **Test mode — payments are not real** bar, and a small
+  banner shows at the top of every admin page.
+- Shoppers see a **Test mode** badge next to that way to pay at checkout.
+- Orders paid in Test mode are marked **Test** in your orders list and on the order page. They
+  are left out of your analytics, sales reports and GST invoices.
+- When you are done testing, open **Orders** and use **Delete test orders**. It only ever
+  deletes orders marked Test; real orders are never touched.
+
+## Turning a payment company off
+
+The **Active** switch on the card takes a payment company out of checkout straight away, without
+disconnecting it. Its keys and settings stay saved; turn it back on any time and it returns with
+what it had on (for Razorpay, its UPI QR too).
+
+If it is your only online way to get paid, you are warned first: shoppers will then only see
+cash on delivery or bank transfer, if you have those on.

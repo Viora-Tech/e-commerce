@@ -10,6 +10,7 @@ import {
   getMetafields,
   listMetafieldDefinitions,
   type MetafieldOwnerType,
+  markMetafieldsFilterable,
   setMetafields,
 } from '@commerce/core'
 import {
@@ -22,6 +23,7 @@ import { convertFields, type FieldPlan, localKey, nameFromKey } from './field-va
 import type { ReferenceResolver } from './references'
 import { errorMessage, findMapping, type ImportContext, saveMapping } from './runtime'
 import type { ShopifyClient } from './shopify-client'
+import { storefrontFilterKeys } from './storefront-filters'
 import type {
   MetafieldOwner,
   NFieldDefinition,
@@ -54,6 +56,11 @@ class DefinitionCache {
     defs: NMetafieldDefinition[],
   ) {
     for (const d of defs) this.shopifyDefs.set(`${d.namespace}.${d.key}`, d)
+  }
+
+  /** Our definition for a Shopify `namespace.key` this run has made or matched, if any. */
+  defIdFor(nsKey: string): string | null {
+    return this.slots.get(nsKey)?.defId ?? null
   }
 
   /** Shopify's definitions with no values yet still become fields. */
@@ -236,6 +243,22 @@ async function writeOwner(
   }
 }
 
+/**
+ * Marks "Use as filter" on the product fields the Shopify store filters its collections by
+ * (Search & Discovery), read from its own collection page (`storefront-filters.ts`).
+ */
+async function markFilters(ctx: ImportContext, client: ShopifyClient, cache: DefinitionCache) {
+  if (ctx.dryRun) return
+  const keys = await storefrontFilterKeys(client)
+  const ids = [...keys].flatMap((nsKey) => cache.defIdFor(nsKey) ?? [])
+  if (ids.length === 0) {
+    ctx.log("no metafield filters found on the store's collection page")
+    return
+  }
+  const marked = await ctx.inStore((tx) => markMetafieldsFilterable(tx, ids))
+  ctx.log(`marked ${marked} product extra fields as filters (${[...keys].join(', ')})`)
+}
+
 /** Product and collection extra fields, then a count of what other owners carry. */
 export async function importMetafields(
   ctx: ImportContext,
@@ -257,6 +280,7 @@ export async function importMetafields(
         await ctx.report.flush()
       }
     }
+    if (owner.ours === 'product') await markFilters(ctx, client, cache)
   }
   const others = await countOtherMetafields(client, (ownerType, err) =>
     ctx.log(`metafield count for ${ownerType} skipped: ${errorMessage(err)}`),

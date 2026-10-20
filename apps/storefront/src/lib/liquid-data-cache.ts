@@ -70,8 +70,10 @@ export function cachedLiquidData(
           )
       : undefined,
     collections: () => read('collections', () => source.collections()),
-    relatedProducts: (productId, limit) =>
-      read(`rel|${productId}|${limit}`, () => source.relatedProducts(productId, limit)),
+    relatedProducts: (productId, limit, intent = 'related') =>
+      read(`rel|${productId}|${limit}|${intent}`, () =>
+        source.relatedProducts(productId, limit, intent),
+      ),
     menu: (handle) => read(`m|${handle}`, () => source.menu(handle)),
     blog: (handle) => read(`b|${handle}`, () => source.blog(handle)),
     page: (handle) => read(`pg|${handle}`, () => source.page(handle)),

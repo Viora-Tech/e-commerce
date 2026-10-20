@@ -176,7 +176,8 @@ export async function ensureMainTheme(tx: StoreTx, storeId: string): Promise<The
 
 /**
  * A new unpublished theme from a preset. It keeps the live theme's brand (logo,
- * favicon) and templates, which belong to the store rather than the look.
+ * favicon) and templates, which belong to the store rather than the look (less any
+ * imported Shopify sections, which need the live theme's files).
  */
 export async function createThemeFromPreset(
   tx: StoreTx,
@@ -200,8 +201,10 @@ export async function createThemeFromPreset(
     })
     .returning()
   if (!created) throw new Error('theme insert returned nothing')
-  // The content (home page, page layouts) belongs to the store; a new look keeps it.
-  await copyTemplates(tx, storeId, live.id, created.id)
+  // The content (home page, page layouts) belongs to the store; a new look keeps it. Not an
+  // imported theme's own Shopify sections: their Liquid lives in that theme's files, which a
+  // preset theme does not get, so they would render blank. Those templates fall back to ours.
+  await copyTemplates(tx, storeId, live.id, created.id, { withoutLiquid: true })
   return toRecord(created)
 }
 

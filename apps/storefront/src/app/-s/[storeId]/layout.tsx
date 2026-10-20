@@ -32,7 +32,7 @@ import { eq } from 'drizzle-orm'
 import type { Metadata, Viewport } from 'next'
 import { cookies, headers } from 'next/headers'
 import { notFound } from 'next/navigation'
-import type { ReactNode } from 'react'
+import { type ReactNode, Suspense } from 'react'
 import CartDrawer from '@/components/cart/cart-drawer'
 import StoreChrome from '@/components/checkout/store-chrome'
 import ConsentManager from '@/components/privacy/consent-manager'
@@ -62,6 +62,7 @@ import { inStore } from '@/lib/store-context'
 import { readPreview } from '@/lib/storefront-gate'
 import { liveThemeId, renderTemplate } from '@/lib/template-render'
 import { htmlThemeAttr, resolveThemeMode, THEME_COOKIE, themeViewport } from '@/lib/theme-mode'
+import { isRerender, RERENDER_COOKIE } from '@/lib/themed-rerender'
 import { umamiTrackerOf } from '@/lib/umami'
 
 type Props = { children: ReactNode; params: Promise<{ storeId: string }> }
@@ -71,6 +72,15 @@ async function previewRequest(storeId: string) {
   const h = await headers()
   const preview = readPreview(storeId, h.get('x-theme-preview'))
   return preview ? { ...preview, inFrame: h.get('sec-fetch-dest') === 'iframe' } : null
+}
+
+/**
+ * The browser's second load of a not-found page under an imported theme (`lib/themed-rerender.ts`):
+ * the page renders inside a Suspense boundary, so the theme's shell is rendered on the server.
+ */
+async function themedRerender() {
+  const pathname = (await headers()).get('x-pathname') ?? '/'
+  return isRerender((await cookies()).get(RERENDER_COOKIE)?.value, pathname)
 }
 
 /** The Header section's menu, or the Navigation setting's main menu when it names none. */
@@ -132,8 +142,11 @@ export async function generateMetadata({ params }: Pick<Props, 'params'>): Promi
     description,
     openGraph: { type: 'website', siteName: s.name, title, description, images },
     twitter: { card: images ? 'summary_large_image' : 'summary', title, description, images },
-    // A preview renders an unpublished theme; keep it out of every index.
-    ...((await previewRequest(storeId)) ? { robots: { index: false, follow: false } } : {}),
+    // A preview renders an unpublished theme, and the themed reload a page that may be a 404
+    // answered with 200: keep both out of every index.
+    ...((await previewRequest(storeId)) || (await themedRerender())
+      ? { robots: { index: false, follow: false } }
+      : {}),
   }
 }
 
@@ -308,6 +321,8 @@ export default async function StoreLayout({ children, params }: Props) {
     : null
   // Header and footer render side by side.
   const [header, footer] = await Promise.all([headerGroup, footerGroup])
+  // A not-found error inside the boundary leaves the shell to render on the server (status 200).
+  const page = (await themedRerender()) ? <Suspense fallback={null}>{children}</Suspense> : children
 
   if (liquid) {
     return (
@@ -325,7 +340,7 @@ export default async function StoreLayout({ children, params }: Props) {
           <LiquidHtml html={liquid.beforeHeader} />
           {header}
           <main id="MainContent" tabIndex={-1} {...reactAttrs(liquid.mainAttrs)}>
-            {children}
+            {page}
           </main>
           {footer}
           <LiquidHtml html={liquid.afterFooter} />
@@ -358,7 +373,7 @@ export default async function StoreLayout({ children, params }: Props) {
         {previewName && !preview?.inFrame ? <PreviewBar themeName={previewName} /> : null}
         <StoreChrome>{header}</StoreChrome>
         <main id="MainContent">
-          <StoreActionsProvider addToCart={addLineAction}>{children}</StoreActionsProvider>
+          <StoreActionsProvider addToCart={addLineAction}>{page}</StoreActionsProvider>
         </main>
         {theme.cart.type === 'drawer' ? (
           <CartDrawer freeShippingBar={theme.cart.freeShippingBar} />

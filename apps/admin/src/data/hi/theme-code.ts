@@ -1,3 +1,4 @@
+import { siteConfig } from '@commerce/config/site'
 import { themeCodeContent } from '@/data/theme-code'
 import { translation, untranslated } from '@/lib/i18n'
 
@@ -5,7 +6,7 @@ export default [
   translation(themeCodeContent, {
     title: 'कोड बदलें',
     back: 'थीम पर वापस जाएँ',
-    badge: { imported: 'Shopify से इंपोर्ट की गई', native: 'Koomerce थीम' },
+    badge: { imported: 'Shopify से इंपोर्ट की गई', native: `${siteConfig.brand.name} थीम` },
     search: {
       placeholder: 'फ़ाइलें खोजें',
       label: 'फ़ाइलें खोजें',
@@ -57,7 +58,7 @@ export default [
       heading: 'फ़ाइलें',
       add: 'नई फ़ाइल जोड़ें',
       locked: 'लॉक',
-      library: 'Koomerce लाइब्रेरी',
+      library: `${siteConfig.brand.name} लाइब्रेरी`,
       more: (n) => `… ${n} और`,
       folders: untranslated,
       unsaved: 'बिना सेव किए बदलाव',
@@ -77,11 +78,11 @@ export default [
     bar: untranslated,
     problems: { heading: 'दिक्कतें' },
     locked: {
-      title: (name) => `${name} Koomerce लाइब्रेरी का हिस्सा है`,
-      body: 'यह सेक्शन Koomerce लाइब्रेरी का हिस्सा है। इसका कोड नहीं बदला जा सकता — इसे थीम एडिटर में इसकी सेटिंग्स से बदलें, या इसे किसी पेज पर जोड़कर My sections में सेव करें ताकि आपकी अपनी कॉपी बन जाए।',
+      title: (name) => `${name} ${siteConfig.brand.name} लाइब्रेरी का हिस्सा है`,
+      body: `यह सेक्शन ${siteConfig.brand.name} लाइब्रेरी का हिस्सा है। इसका कोड नहीं बदला जा सकता — इसे थीम एडिटर में इसकी सेटिंग्स से बदलें, या इसे किसी पेज पर जोड़कर My sections में सेव करें ताकि आपकी अपनी कॉपी बन जाए।`,
       usedOn: (where) => `यहाँ इस्तेमाल: ${where}`,
       unused: 'अभी इस थीम के किसी पेज पर इस्तेमाल नहीं',
-      updates: 'अपडेट: Koomerce इसे बेहतर करता है, अपने-आप लागू होता है',
+      updates: `अपडेट: ${siteConfig.brand.name} इसे बेहतर करता है, अपने-आप लागू होता है`,
       openEditor: 'थीम एडिटर में खोलें',
     },
     leave: {

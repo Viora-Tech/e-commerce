@@ -1,3 +1,4 @@
+import { notTestOrder } from '@commerce/core'
 import {
   fieldOf,
   type ParsedQuery,
@@ -84,7 +85,9 @@ async function run(tx: StoreTx, q: ParsedQuery, span: Span, grouped: boolean) {
   const where = and(
     ne(order.status, 'draft'),
     ne(order.status, 'cancelled'),
+    notTestOrder,
     gte(order.placedAt, span.from),
+
     lt(order.placedAt, span.to),
   )
   const base =

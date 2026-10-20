@@ -35,6 +35,16 @@ type AllowEntry = { file: string; reason: string }
 
 const ALLOWLIST: AllowEntry[] = [
   {
+    file: 'apps/admin/src/components/mcp/mcp-client-logo.tsx',
+    reason:
+      "third-party brand marks (Claude, VS Code) drawn in each vendor's own brand colour, which no theme token should restyle",
+  },
+  {
+    file: 'apps/admin/src/components/settings/accent-wheel.tsx',
+    reason:
+      'the accent colour wheel paints the full hue spectrum with a white centre; it shows raw colours the merchant picks from, not themed UI',
+  },
+  {
     file: 'apps/admin/src/components/analytics/live-globe/globe-settings-panel.tsx',
     reason:
       'Live view globe colour presets (Night, Ocean blue, Mono) and colour-picker fallbacks: they are uploaded to the WebGL shader as RGB uniforms, which cannot read CSS custom properties; the default "Store accent" preset still comes from theme tokens',

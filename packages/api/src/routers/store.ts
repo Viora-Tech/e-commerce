@@ -6,6 +6,7 @@ import {
   ensureMainTheme,
   GstinSchema,
   GstRegistrationError,
+  keepReplacedKeySets,
   liveThemeSettings,
   loadStoreStorageSettings,
   NotificationSettingsSchema,
@@ -203,8 +204,9 @@ export const storeRouter = {
         (await getStore(context.tx, context.scope.storeId))?.payments,
       )
       const { payments } = await storeRegistries(context.tx, context.scope.storeId)
+      // Keys of the other mode replacing a gateway's set keep the replaced set waiting.
       const next = prepareProviderSettings(
-        input,
+        { ...input, providers: keepReplacedKeySets(current.providers, input.providers) },
         current,
         payments,
         settingsSecret(),

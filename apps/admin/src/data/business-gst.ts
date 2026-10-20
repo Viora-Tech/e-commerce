@@ -112,8 +112,6 @@ export const businessGstContent = {
     pickupShipping: 'Return address in Shipping settings',
     ships: 'Ships',
     stockOnly: 'Stock only',
-    moveUp: (name: string) => `Move ${name} up`,
-    moveDown: (name: string) => `Move ${name} down`,
     reordered: 'Order saved',
     failed: 'Could not save',
     routing: {

@@ -153,6 +153,21 @@ export default function FilterForm({
       ),
     })
   }
+  for (const m of facets.metafields) {
+    groups.push({
+      key: `metafield-${m.key}`,
+      title: m.name,
+      open: (filters.metafields[m.key]?.length ?? 0) > 0,
+      body: checks(
+        `${FILTER_PARAM.metafieldPrefix}${m.key}`,
+        m.type === 'boolean'
+          ? m.values.map((v) => ({ ...v, label: v.value === '1' ? copy.yes : copy.no }))
+          : m.values,
+        filters.metafields[m.key] ?? [],
+        m.key,
+      ),
+    })
+  }
   if (facets.productTypes.length > 1) {
     groups.push({
       key: 'type',

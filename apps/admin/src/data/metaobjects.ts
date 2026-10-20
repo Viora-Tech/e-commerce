@@ -206,8 +206,6 @@ export const definitionFormContent = {
     list: 'Several values',
     edit: 'Edit field',
     remove: 'Remove field',
-    moveUp: 'Move up',
-    moveDown: 'Move down',
   },
   display: {
     heading: 'Entry name',
@@ -277,8 +275,6 @@ export const fieldDialogContent = {
     type: 'What goes in it',
     required: 'Must fill',
     remove: 'Remove row field',
-    moveUp: 'Move up',
-    moveDown: 'Move down',
   },
   target: 'Content type',
   targetPlaceholder: 'Pick a content type',
@@ -391,8 +387,6 @@ export const fieldInputContent = {
     row: (n: number) => `Row ${n}`,
     add: 'Add row',
     remove: 'Remove row',
-    moveUp: 'Move up',
-    moveDown: 'Move down',
     empty: 'No rows yet. Add the first one.',
   },
 } as const
@@ -424,6 +418,7 @@ export const customDataContent = {
     values: (n: number) => (n === 1 ? '1 value' : `${n} values`),
     listOf: (label: string) => `List of ${label.toLowerCase()}`,
     hidden: 'Hidden from storefront',
+    filter: 'Filter',
     edit: 'Edit',
     delete: 'Delete',
     actions: (name: string) => `Actions for ${name}`,
@@ -439,6 +434,9 @@ export const customDataContent = {
     descriptionPlaceholder: 'Shown under the field',
     storefront: 'Show on your store',
     storefrontHelp: 'Let your theme show this value.',
+    filterable: 'Use as filter',
+    filterableHelp:
+      'Shoppers can narrow collection and search pages by this value, like Grip or Hand size.',
     privateNote:
       'Customer and order extra fields stay private: they are never shown on your store.',
     fixed: 'What goes in it and the key are fixed once the extra field is saved.',

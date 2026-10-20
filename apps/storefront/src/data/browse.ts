@@ -21,6 +21,9 @@ export const browseContent = {
   productType: 'Product type',
   vendor: 'Brand',
   tag: 'Tags',
+  /** A yes/no extra field's filter values (`1`, `0`). */
+  yes: 'Yes',
+  no: 'No',
   chip: {
     available: (v: string) => (v === 'true' ? 'In stock' : 'Out of stock'),
     price: (min: string | null, max: string | null) =>

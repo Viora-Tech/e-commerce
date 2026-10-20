@@ -4,10 +4,13 @@ import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import { themeCodeContent } from '@/data/theme-code'
 import { api } from '@/lib/api-client'
-import { type CodeFile, type CodeFileList, codeFileName } from '@/lib/theme-code'
+import { type CodeFile, type CodeFileList, codeFileName, editorText } from '@/lib/theme-code'
 
 /** An open file: what is saved, what is in the editor, and the edits to undo. */
 export type CodeBuffer = { file: CodeFile; saved: string; text: string; past: string[] }
+
+/** Unsaved: the editor's text differs from the last saved text (undoing back to it is clean). */
+export const isDirty = (b: CodeBuffer) => b.text !== b.saved
 
 /** Undo steps kept per file. */
 const UNDO_KEPT = 100
@@ -61,18 +64,20 @@ export function useCodeBuffers(themeId: string) {
     })
     try {
       const file = await api.themes.code.read({ themeId, path })
+      const body = editorText(file.body)
       setBuffers((prev) => ({
         ...prev,
-        [path]: { file, saved: file.body, text: file.body, past: [] },
+        [path]: { file, saved: body, text: body, past: [] },
       }))
     } catch {
       setFailed((prev) => new Set(prev).add(path))
     }
   }
 
-  const edit = (path: string, text: string) =>
+  const edit = (path: string, value: string) =>
     setBuffers((prev) => {
       const b = prev[path]
+      const text = editorText(value)
       if (!b || b.text === text) return prev
       return { ...prev, [path]: { ...b, text, past: [...b.past, b.text].slice(-UNDO_KEPT) } }
     })

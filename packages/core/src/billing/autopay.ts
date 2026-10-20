@@ -1,3 +1,4 @@
+/** SOURCE OF TRUTH: plan UPI AutoPay — WHAT: Razorpay subscriptions and their webhook charges / WHY: each charge becomes a plan bill paid like a link */
 /**
  * UPI AutoPay for plans: a Razorpay subscription on the platform's own Razorpay account. The
  * owner approves a UPI mandate once (Razorpay's hosted page); every period Razorpay charges it
@@ -9,8 +10,10 @@
  * POST /v1/subscriptions/{id}/cancel; webhooks signed with HMAC-SHA256 of the raw body.
  */
 import { createHmac, timingSafeEqual } from 'node:crypto'
+import { siteConfig } from '@commerce/config/site'
 import { autopayMandate, type Db, order, payment, withStore } from '@commerce/db'
 import { and, desc, eq, inArray, sql } from 'drizzle-orm'
+import { CommerceError } from '../errors'
 import { applyPaymentStatus } from '../payments/confirm'
 import { type BillingInterval, PLANS, type PlanId } from './plans'
 import { type BillingEnv, createPlanBill } from './service'
@@ -33,7 +36,11 @@ export function autopayConfig(env: Record<string, string | undefined>): AutopayC
   return keyId && keySecret && webhookSecret ? { keyId, keySecret, webhookSecret, fetch } : null
 }
 
-export class AutopayError extends Error {}
+export class AutopayError extends CommerceError {
+  constructor(message: string) {
+    super('AUTOPAY_FAILED', message)
+  }
+}
 
 async function rzp<T>(cfg: AutopayConfig, path: string, body: unknown): Promise<T> {
   let res: Response
@@ -102,7 +109,11 @@ export async function startAutopay(
   const rzpPlan = await rzp<{ id: string }>(cfg, '/plans', {
     period: input.interval === 'year' ? 'yearly' : 'monthly',
     interval: 1,
-    item: { name: `Koomerce ${input.plan} (${input.interval})`, amount, currency: 'INR' },
+    item: {
+      name: `${siteConfig.brand.name} ${input.plan} (${input.interval})`,
+      amount,
+      currency: 'INR',
+    },
     notes: { storeId },
   })
   const sub = await rzp<{ id: string; short_url: string }>(cfg, '/subscriptions', {
@@ -155,7 +166,7 @@ export async function cancelAutopay(db: Db, storeId: string, cfg: AutopayConfig)
 }
 
 /** Razorpay's webhook signature: HMAC-SHA256 of the raw body with the webhook secret. */
-export function verifyAutopaySignature(raw: string, signature: string, secret: string): boolean {
+function verifyAutopaySignature(raw: string, signature: string, secret: string): boolean {
   const expected = Buffer.from(createHmac('sha256', secret).update(raw).digest('hex'))
   const given = Buffer.from(signature)
   return expected.length === given.length && timingSafeEqual(expected, given)
