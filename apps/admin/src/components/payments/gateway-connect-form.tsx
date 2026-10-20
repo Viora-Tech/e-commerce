@@ -1,5 +1,6 @@
 'use client'
 
+import { gatewayKeySets } from '@commerce/core/payment-modes'
 import { CircleAlert, CircleCheck } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Card, CardContent } from '@commerce/ui/shadcn/card'
@@ -9,6 +10,7 @@ import { Spinner } from '@commerce/ui/shadcn/spinner'
 import { ToggleGroup, ToggleGroupItem } from '@commerce/ui/shadcn/toggle-group'
 import { useState } from 'react'
 import { toast } from 'sonner'
+import { paymentModesContent } from '@/data/payment-modes'
 import { gatewayGuides, paymentsSetupContent } from '@/data/payments-setup'
 import { useCopy } from '@/hooks/use-copy'
 import { useSetupNext } from '@/hooks/use-setup-next'
@@ -52,9 +54,16 @@ function initialValues(
   }
 }
 
-function initialMode(providerId: GatewayId, saved: Record<string, string>): Mode {
-  if (providerId === 'cashfree') return saved.mode === 'live' ? 'live' : 'test'
-  return saved.keyId?.startsWith('rzp_live_') ? 'live' : 'test'
+/** The saved key set for one mode (masked secrets), wherever it is stored. */
+function savedSet(providerId: GatewayId, setup: PaymentsSetup, mode: Mode): Record<string, string> {
+  return gatewayKeySets(setup.settings.providers, providerId)[mode] ?? {}
+}
+
+/** `?keys=live` (the card's "Add live keys"), else the set checkout uses, else Test. */
+function initialMode(providerId: GatewayId, setup: PaymentsSetup): Mode {
+  const asked = new URLSearchParams(window.location.search).get('keys')
+  if (asked === 'test' || asked === 'live') return asked
+  return gatewayKeySets(setup.settings.providers, providerId).active ?? 'test'
 }
 
 /** The Razorpay key's own mode, from its prefix; null when it can't tell. */
@@ -78,12 +87,12 @@ export default function GatewayConnectForm({
   // Hooks
   const announceSetup = useSetupNext()
   const { connect: copy } = useCopy(paymentsSetupContent)
+  const { keySet: keySetCopy } = useCopy(paymentModesContent)
   const guides = useCopy(gatewayGuides)
+  // Each mode has its own saved keys; the toggle picks which set is being edited.
+  const [mode, setMode] = useState<Mode>(() => initialMode(providerId, setup))
   const [values, setValues] = useState<Record<string, string>>(() =>
-    initialValues(providerId, setup.settings.providers[providerId] ?? {}),
-  )
-  const [mode, setMode] = useState<Mode>(() =>
-    initialMode(providerId, setup.settings.providers[providerId] ?? {}),
+    initialValues(providerId, savedSet(providerId, setup, mode)),
   )
   const [openedDashboard, setOpenedDashboard] = useState(false)
   const [showKeys, setShowKeys] = useState(!(providerId === 'razorpay' && setup.razorpayOAuth))
@@ -102,7 +111,10 @@ export default function GatewayConnectForm({
 
   const handleMode = (next: string[]) => {
     const picked = next[0]
-    if (picked === 'test' || picked === 'live') setMode(picked)
+    if (picked === 'test' || picked === 'live') {
+      setMode(picked)
+      setValues(initialValues(providerId, savedSet(providerId, setup, picked)))
+    }
     setTest({ status: 'idle' })
   }
 
@@ -126,7 +138,7 @@ export default function GatewayConnectForm({
   const handleTest = async () => {
     setTest({ status: 'testing' })
     try {
-      const r = await api.payments.testConnection({ providerId, fields: fieldsToSend() })
+      const r = await api.payments.testConnection({ providerId, fields: fieldsToSend(), mode })
       setTest({ status: r.ok ? 'ok' : 'error', message: r.message })
     } catch (err) {
       setTest({ status: 'error', message: err instanceof Error ? err.message : copy.saveFailed })
@@ -136,8 +148,11 @@ export default function GatewayConnectForm({
   const handleSave = async () => {
     setSaving(true)
     try {
-      await api.payments.connect({ providerId, fields: fieldsToSend() })
-      toast.success(copy.saved(guides[providerId].name))
+      await api.payments.connect({ providerId, fields: fieldsToSend(), mode })
+      // Keys for the mode checkout isn't using wait for the card's Live/Test switch.
+      const active = gatewayKeySets(setup.settings.providers, providerId).active
+      if (active && active !== mode) toast.success(keySetCopy.waiting(mode))
+      else toast.success(copy.saved(guides[providerId].name))
       void announceSetup('payments')
       onConnected()
     } catch (err) {
@@ -222,7 +237,7 @@ export default function GatewayConnectForm({
         </ToggleGroup>
       </div>
       <p className="text-caption text-muted-foreground">
-        {mode === 'test' ? copy.mode.testHelp : copy.mode.liveHelp}
+        {mode === 'test' ? copy.mode.testHelp : copy.mode.liveHelp} {keySetCopy.editing(mode)}
       </p>
     </div>
   )

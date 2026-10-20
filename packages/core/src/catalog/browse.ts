@@ -155,7 +155,8 @@ function orderBy(sort: BrowseSort): SQL {
         select coalesce(sum(ol.quantity), 0) from order_line ol
         join variant v on v.id = ol.variant_id
         join "order" o on o.id = ol.order_id
-        where v.product_id = b.id and o.status not in ('draft', 'cancelled')
+        where v.product_id = b.id and o.status not in ('draft', 'cancelled') and not o.is_test
+
       ) desc, b.title, b.id`
     case 'title-ascending':
       return sql`b.title, b.id`

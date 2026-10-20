@@ -27,6 +27,13 @@ export const ordersToShipCount = cache(async () =>
   ),
 )
 
+/** A gateway at checkout runs on test keys (the admin-wide banner); false without permission. */
+export const paymentsTestMode = cache(async () =>
+  call(appRouter.payments.testMode, undefined, { context: await serverContext() })
+    .then((r) => r.testMode)
+    .catch(() => false),
+)
+
 /** The live theme's logo for the sidebar's brand mark; null when unset or not readable. */
 export const liveLogoUrl = cache(async () =>
   call(appRouter.themes.logo, undefined, { context: await serverContext() }).catch(() => null),

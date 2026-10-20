@@ -1,6 +1,7 @@
 import { loadEnv } from '@commerce/config'
 import {
   CheckoutMethodSchema,
+  MODE_GATEWAY_IDS,
   checkRateLimit,
   createMemoryRateLimitStore,
   parsePreviousSecrets,
@@ -20,11 +21,14 @@ import {
   fixRazorpayWebhook,
   type PaymentsEnv,
   paymentsSetup,
+  paymentsTestMode,
   paymentTestOrderLink,
   razorpayRedirectUri,
   savePaymentMethods,
+  setPaymentGatewayActive,
   signOAuthState,
   skipPaymentSetup,
+  switchPaymentMode,
   testPaymentConnection,
   verifyOAuthState,
 } from '../services/payments-setup.service'
@@ -32,6 +36,8 @@ import { TEST_CONNECTION_RULE } from '../services/shipping.service'
 
 /** Gateways the admin connects with pasted keys. */
 const KEY_GATEWAYS = ['razorpay', 'cashfree'] as const
+
+const ModeSchema = z.enum(['test', 'live'])
 
 function paymentsEnv(): PaymentsEnv & { adminUrl: string } {
   const env = loadEnv(process.env)
@@ -69,6 +75,11 @@ export const paymentsRouter = {
     return paymentsSetup(context.tx, storeId, payments, apps.installed, env)
   }),
 
+  /** For the admin-wide "Test mode" banner: a gateway at checkout runs on test keys. */
+  testMode: can(permissions.SETTINGS_READ).handler(async ({ context }) => {
+    return { testMode: await paymentsTestMode(context.tx, context.scope.storeId) }
+  }),
+
   /** "Shoppers can pay with": on/off and order. Checkout follows. */
   saveMethods: can(permissions.SETTINGS_MANAGE)
     .input(z.object({ methods: z.array(CheckoutMethodSchema).max(12) }))
@@ -90,6 +101,8 @@ export const paymentsRouter = {
       z.object({
         providerId: z.enum(KEY_GATEWAYS),
         fields: z.record(z.string().max(64), z.string().max(4000)),
+        /** Which of the two key sets these are; read from the keys when left out. */
+        mode: ModeSchema.optional(),
       }),
     )
     .handler(async ({ context, input }) => {
@@ -104,6 +117,7 @@ export const paymentsRouter = {
         paymentsEnv(),
         input.providerId,
         input.fields,
+        input.mode,
       )
       return { ok: true }
     }),
@@ -114,6 +128,7 @@ export const paymentsRouter = {
       z.object({
         providerId: z.enum(KEY_GATEWAYS),
         fields: z.record(z.string().max(64), z.string().max(4000)),
+        mode: ModeSchema.optional(),
       }),
     )
     .handler(async ({ context, input }) => {
@@ -131,6 +146,49 @@ export const paymentsRouter = {
         paymentsEnv(),
         input.providerId,
         input.fields,
+        input.mode,
+      )
+    }),
+
+  /**
+   * The Live ⇄ Test switch on a gateway's card: swaps which saved key set
+   * checkout uses, never deleting one. Going live runs the read-only key check
+   * first, so it shares the test-connection rate limit.
+   */
+  switchMode: can(permissions.SETTINGS_MANAGE)
+    .input(z.object({ providerId: z.enum(MODE_GATEWAY_IDS), mode: ModeSchema }))
+    .handler(async ({ context, input }) => {
+      const limit = await checkRateLimit(
+        context.rateLimit ?? fallbackRateLimit,
+        rateLimitKey('payments-test-connection', context.scope.storeId),
+        TEST_CONNECTION_RULE,
+      )
+      if (!limit.ok) throw tooMany(retryAfterSeconds(limit))
+      const { payments } = await storeRegistries(context.tx, context.scope.storeId)
+      if (!payments.get(input.providerId)) {
+        throw new ORPCError('BAD_REQUEST', { message: 'Install this app from Apps first.' })
+      }
+      return switchPaymentMode(
+        context.tx,
+        context.scope.storeId,
+        payments,
+        paymentsEnv(),
+        input.providerId,
+        input.mode,
+      )
+    }),
+
+  /** The Active/Inactive switch: off leaves checkout at once, keys and settings kept. */
+  setActive: can(permissions.SETTINGS_MANAGE)
+    .input(z.object({ providerId: z.enum(MODE_GATEWAY_IDS), active: z.boolean() }))
+    .handler(async ({ context, input }) => {
+      const { payments } = await storeRegistries(context.tx, context.scope.storeId)
+      return setPaymentGatewayActive(
+        context.tx,
+        context.scope.storeId,
+        payments,
+        input.providerId,
+        input.active,
       )
     }),
 

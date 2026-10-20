@@ -8,6 +8,7 @@ import { useState } from 'react'
 import { toast } from 'sonner'
 import PageHeader from '@/components/layout/page-header'
 import SettingsCard from '@/components/settings/settings-card'
+import { paymentModesContent } from '@/data/payment-modes'
 import { paymentsSetupContent } from '@/data/payments-setup'
 import { SETTINGS_BACK } from '@/data/settings'
 import { useCopy } from '@/hooks/use-copy'
@@ -20,7 +21,9 @@ import HelpFooter from './help-footer'
 import MainGatewayCard from './main-gateway-card'
 import MethodsList from './methods-list'
 import { openTestOrder } from './open-test-order'
+import OtherGatewayCard from './other-gateway-card'
 import StatusBanner from './status-banner'
+import TestModeBar from './test-mode-bar'
 import type { CheckoutMethodRow, PaymentsSetup } from './types'
 import WhatsThis from './whats-this'
 
@@ -28,6 +31,12 @@ type PaymentsOverviewProps = {
   setup: PaymentsSetup
   onReload: () => Promise<void>
   onOpenGuide: () => void
+}
+
+/** The one online gateway on at checkout: turning it off leaves COD / bank transfer only. */
+function isOnlyOnline(setup: PaymentsSetup, id: string | undefined): boolean {
+  const on = setup.gateways.filter((g) => g.connected)
+  return on.length === 1 && on[0]?.id === id
 }
 
 /**
@@ -39,6 +48,7 @@ export default function PaymentsOverview({ setup, onReload, onOpenGuide }: Payme
   // Hooks
   const announceSetup = useSetupNext()
   const copy = useCopy(paymentsSetupContent)
+  const modes = useCopy(paymentModesContent)
   const router = useRouter()
   const [methods, setMethods] = useState<CheckoutMethodRow[]>(setup.methods)
   const [savingMethods, setSavingMethods] = useState(false)
@@ -88,6 +98,7 @@ export default function PaymentsOverview({ setup, onReload, onOpenGuide }: Payme
 
   // Render logic
   const hasGateway = setup.primary !== null
+  const others = setup.gateways.filter((g) => g.configured && g.id !== setup.primary?.id)
   const actions = (
     <Button variant="outline" className="gap-1.5" onClick={handleTestOrder} disabled={opening}>
       {opening ? <Spinner /> : null}
@@ -111,6 +122,7 @@ export default function PaymentsOverview({ setup, onReload, onOpenGuide }: Payme
       />
 
       <StatusBanner canTakePayments={setup.canTakePayments} canTakeOnline={setup.canTakeOnline} />
+      {setup.testMode ? <TestModeBar /> : null}
 
       <section className="flex flex-col gap-2" aria-labelledby="payments-main">
         <h2 id="payments-main" className="text-card font-semibold text-foreground">
@@ -118,11 +130,29 @@ export default function PaymentsOverview({ setup, onReload, onOpenGuide }: Payme
         </h2>
         <MainGatewayCard
           primary={setup.primary}
+          gateway={setup.gateways.find((g) => g.id === setup.primary?.id)}
+          onlyOnline={isOnlyOnline(setup, setup.primary?.id)}
           onAdd={handleOpenAdd}
           onChanged={onReload}
           onTurnOnUpi={handleTurnOnUpi}
         />
       </section>
+
+      {others.length ? (
+        <section className="flex flex-col gap-2" aria-labelledby="payments-others">
+          <h2 id="payments-others" className="text-card font-semibold text-foreground">
+            {modes.others.heading}
+          </h2>
+          {others.map((g) => (
+            <OtherGatewayCard
+              key={g.id}
+              gateway={g}
+              onlyOnline={isOnlyOnline(setup, g.id)}
+              onChanged={onReload}
+            />
+          ))}
+        </section>
+      ) : null}
 
       <SettingsCard
         id="payments-methods"

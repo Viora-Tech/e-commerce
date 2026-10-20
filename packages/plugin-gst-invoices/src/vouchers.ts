@@ -12,6 +12,7 @@ import {
 } from './issue'
 import { takeNumber } from './numbers'
 import { assertPeriodOpen } from './periods'
+import { isTestOrder } from './queue'
 import { documentIssuer, orderIssuer } from './registration'
 import { invoice } from './schema'
 
@@ -48,6 +49,8 @@ export async function issueReceiptVoucher(
 ): Promise<{ row: InvoiceRow; created: boolean } | null> {
   const prior = await existing(tx, orderId, 'receipt_voucher')
   if (prior) return { row: prior, created: false }
+  // A test-mode order never takes a GST number (queue.ts).
+  if (await isTestOrder(tx, orderId)) return null
   const settings = await loadSettings(tx, storeId)
   if (!settings.documents.receipt_voucher.enabled) return null
   await tx.execute(sql`select pg_advisory_xact_lock(hashtext(${`gst-invoices:rv:${orderId}`}))`)

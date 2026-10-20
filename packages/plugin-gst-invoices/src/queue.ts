@@ -49,6 +49,18 @@ export async function soldOnlyGiftCards(tx: StoreTx, orderId: string): Promise<b
   return lines.length > 0 && lines.every((l) => l.giftCard)
 }
 
+/**
+ * A test-mode order (paid on a gateway's test keys, `order.is_test`) moved no real money:
+ * it never takes a GST number, never enters the queue and never appears in GST exports.
+ */
+export async function isTestOrder(tx: StoreTx, orderId: string): Promise<boolean> {
+  const [o] = await tx.select({ isTest: order.isTest }).from(order).where(eq(order.id, orderId))
+  return o?.isTest === true
+}
+
+export const TEST_ORDER_MESSAGE =
+  'This is a test order (paid with the payment gateway in test mode). No real money moved, so it gets no GST invoice.'
+
 /** Orders tagged as pre-orders (tag set in settings) are invoiced at dispatch. */
 export async function isPreorder(tx: StoreTx, orderId: string, tag: string): Promise<boolean> {
   const [o] = await tx.select({ tags: order.tags }).from(order).where(eq(order.id, orderId))
@@ -70,6 +82,10 @@ export async function enqueueOrderParcels(
   reason: QueueReason,
   at: Date = new Date(),
 ): Promise<{ row: InvoiceRow; created: boolean }[]> {
+  if (await isTestOrder(tx, orderId)) {
+    if (reason === 'manual') throw new InvoiceError('invalid', TEST_ORDER_MESSAGE)
+    return []
+  }
   const settings = await loadSettings(tx, storeId)
   if (await soldOnlyGiftCards(tx, orderId)) {
     if (reason === 'manual') {
@@ -248,6 +264,8 @@ export async function issueDrafts(
     if (row?.kind !== 'tax_invoice' || row.status !== 'draft') {
       throw new InvoiceError('invalid', 'Only queued drafts can be issued')
     }
+    if (await isTestOrder(tx, row.orderId)) throw new InvoiceError('invalid', TEST_ORDER_MESSAGE)
+
     if (item.invoiceDate.getTime() > now.getTime() + 60_000) {
       throw new InvoiceError('invalid', 'An invoice cannot be dated in the future')
     }

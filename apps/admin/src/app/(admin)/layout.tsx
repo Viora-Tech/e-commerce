@@ -5,6 +5,7 @@ import { redirect } from 'next/navigation'
 import type { ReactNode } from 'react'
 import AdminFrame from '@/components/admin-frame'
 import AccentStyle from '@/components/layout/accent-style'
+import PaymentsTestBanner from '@/components/layout/payments-test-banner'
 import { billingContent } from '@/data/billing'
 import { appEntryHref } from '@/lib/apps-gallery'
 import { getSession } from '@/lib/auth'
@@ -15,6 +16,7 @@ import {
   listStores,
   liveLogoUrl,
   ordersToShipCount,
+  paymentsTestMode,
   planUsageSummary,
 } from '@/lib/shell-data'
 import { storefrontOrigin } from '@/lib/storefront-origin'
@@ -33,13 +35,14 @@ export default async function AdminLayout({ children }: { children: ReactNode })
   // Everything else needs only the session, so it is read at once rather than one after
   // another. Store calls for a stale active id answer "no store" on their own and are dropped
   // below unless that store is one of the member's.
-  const [orgs, apps, logo, storefrontUrl, toShip, plan] = await Promise.all([
+  const [orgs, apps, logo, storefrontUrl, toShip, plan, testMode] = await Promise.all([
     listStores(),
     activeId ? listApps().catch(() => []) : [],
     activeId ? liveLogoUrl() : null,
     storefrontOrigin(),
     activeId ? ordersToShipCount() : null,
     activeId ? planUsageSummary() : null,
+    activeId ? paymentsTestMode() : false,
   ])
   // No store at all yet: send them to create one, which shows the invite-only
   // screen instead of the wizard when they are not allowed to sign up.
@@ -85,7 +88,14 @@ export default async function AdminLayout({ children }: { children: ReactNode })
       >
         {/* No active org yet: auto-pick it when the member belongs to exactly one store, else
             show the picker instead of letting every page below throw "Pick a store first". */}
-        {active ? children : <SelectStore stores={storeOptions} autoSelect />}
+        {active ? (
+          <>
+            {testMode ? <PaymentsTestBanner /> : null}
+            {children}
+          </>
+        ) : (
+          <SelectStore stores={storeOptions} autoSelect />
+        )}
       </AdminFrame>
     </>
   )

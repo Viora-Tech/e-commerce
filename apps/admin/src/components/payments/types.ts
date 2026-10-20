@@ -10,3 +10,4 @@ export type CheckoutMethodRow = PaymentsSetup['methods'][number]
 export type GatewayId = 'razorpay' | 'cashfree'
 
 export const isGatewayId = (id: string): id is GatewayId => id === 'razorpay' || id === 'cashfree'
+export type GatewayApp = PaymentsSetup['gateways'][number]

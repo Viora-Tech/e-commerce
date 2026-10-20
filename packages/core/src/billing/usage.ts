@@ -23,6 +23,8 @@ export async function planUsage(tx: StoreTx, now = new Date()): Promise<PlanUsag
         and(
           ne(order.status, 'draft'),
           ne(order.status, 'cancelled'),
+          // Test-mode orders (gateway test keys) do not use up the plan's order allowance.
+          eq(order.isTest, false),
           gte(order.placedAt, monthStart),
         ),
       ),

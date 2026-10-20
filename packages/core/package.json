@@ -10,6 +10,7 @@
     "./adjustments": "./src/payments/adjustments.ts",
     "./adjustment-math": "./src/payments/adjustment-math.ts",
     "./payment-methods": "./src/payments/methods.ts",
+    "./payment-modes": "./src/payments/modes.ts",
     "./manual-payments": "./src/payments/manual-collection.ts",
     "./registries": "./src/plugins/registries.ts",
     "./ai-runtime": "./src/ai/runtime.ts",

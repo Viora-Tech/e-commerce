@@ -68,6 +68,11 @@ export default function OrderHeader({ order, actions, back }: OrderHeaderProps) 
             ) : (
               <OrderChip kind="fulfilment" value={order.fulfillmentStatus} />
             )}
+            {order.isTest ? (
+              <span title={listCopy.testChipHint}>
+                <StatusChip tone="attention">{listCopy.testChip}</StatusChip>
+              </span>
+            ) : null}
             {soldThrough ? (
               <StatusChip tone="neutral" variant="outline">
                 {salesChannelsContent.orderCard.via(soldThrough.name)}
