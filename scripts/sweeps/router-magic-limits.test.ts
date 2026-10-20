@@ -48,7 +48,7 @@ const ALLOWLIST: AllowEntry[] = [
     reason: 'a manual collection may hold more products than one bulk action carries',
   },
   {
-    site: 'packages/api/src/routers/gst-invoices.ts: orderIds.max(100)',
+    site: 'packages/api/src/routers/gst-invoices-order-actions.ts: orderIds.max(100)',
     reason: 'invoicing orders by hand is capped lower: each order is issued (numbered, PDF) inline',
   },
   {

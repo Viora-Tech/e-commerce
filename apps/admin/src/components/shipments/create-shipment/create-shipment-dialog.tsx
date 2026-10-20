@@ -14,6 +14,8 @@ type CreateShipmentDialogProps = {
   /** The orders to ship; the dialog is open while there are any. One order is the full flow,
    *  several are the bulk flow. */
   orderIds: string[]
+  /** A courier's provider id to start the bulk flow on (a courier app's Create shipment). */
+  courier?: string | undefined
   onClose: () => void
   /** After a booking, so the page behind reloads (order status, Shipments tabs). */
   onBooked: () => void
@@ -26,6 +28,7 @@ type CreateShipmentDialogProps = {
  */
 export default function CreateShipmentDialog({
   orderIds,
+  courier,
   onClose,
   onBooked,
 }: CreateShipmentDialogProps) {
@@ -73,7 +76,13 @@ export default function CreateShipmentDialog({
             onBooked={onBooked}
           />
         ) : (
-          <BulkShipmentFlow key={key} draft={draft} onClose={onClose} onBooked={onBooked} />
+          <BulkShipmentFlow
+            key={key}
+            draft={draft}
+            courier={courier}
+            onClose={onClose}
+            onBooked={onBooked}
+          />
         )}
       </DialogContent>
     </Dialog>

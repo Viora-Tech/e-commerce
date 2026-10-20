@@ -18,6 +18,12 @@ type AllowEntry = { file: string; names: string[]; reason: string }
 
 const ALLOWLIST: AllowEntry[] = [
   {
+    file: 'packages/api/src/services/order-actions.service.ts',
+    names: ['orderActionGroups'],
+    reason:
+      'the pure who-sees-which-order-action rule behind apps.orderActions, exported for its unit test',
+  },
+  {
     file: 'packages/blocks/src/components/product-payment-signals.tsx',
     names: ['upiPricePaise'],
     reason: 'the checkout-matching UPI price behind the offer note, exported for its unit test',
@@ -883,7 +889,7 @@ const ALLOWLIST: AllowEntry[] = [
   },
   {
     file: 'packages/plugin-gst-invoices/src/queue.ts',
-    names: ['soldOnlyGiftCards', 'B2C_DETAIL_THRESHOLD_PAISE', 'checkRule46'],
+    names: ['B2C_DETAIL_THRESHOLD_PAISE', 'checkRule46'],
     reason: 'no external importer today — investigate before removing',
   },
   {

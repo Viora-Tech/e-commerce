@@ -2,6 +2,7 @@ import { type Attachment, NotificationRegistry, type TemplateId } from '@commerc
 import { PaymentRegistry } from '@commerce/payments'
 import { ShippingRegistry } from '@commerce/shipping'
 import { StorageRegistry } from '@commerce/storage'
+import { orderActionsOf } from './order-actions'
 import type {
   AppEvent,
   AppHook,
@@ -146,6 +147,7 @@ export function loadPlugins(plugins: PluginManifest[]): LoadedPlugins {
           icon: p.admin?.icon ?? null,
           pages: (p.admin?.pages ?? []).map((page) => ({ ...page })),
           orderDetailCard: p.admin?.orderDetailCard === true,
+          orderActions: orderActionsOf(p, CORE_PLUGIN_ID),
         },
         provides: {
           payments: (p.provides.payments ?? []).map((f) => ({ id: f.id, label: f.label })),
