@@ -255,7 +255,7 @@ describe('browseProducts', () => {
     expect(await run(storeId, (tx) => suggestProducts(tx, '100%'))).toEqual([])
   })
 
-  it('searches vendor, handle, SKU and description too, title matches first', async () => {
+  it('searches vendor, handle, SKU, option values and description too, title matches first', async () => {
     const [s] = await owner.insert(store).values({ slug: 'e', name: 'E' }).returning()
     const storeId = s?.id as string
     const lexical = (text: string) => ({
@@ -273,6 +273,7 @@ describe('browseProducts', () => {
     await seed(storeId, { handle: 'pulsar-x3', title: 'Pulsar X3', price: 100, stock: 1 })
     await seed(storeId, { handle: 'legacy', price: 100, stock: 1, description: 'old pulsar copy' })
     await seed(storeId, { handle: 'other', price: 100, stock: 1, description: lexical('paragraph') })
+    await seed(storeId, { handle: 'tee', price: 100, stock: 1, sizes: ['Crimson'] })
     const search = (query: string) =>
       run(storeId, (tx) => browseProducts(tx, { ...base, query, sort: 'relevance' }))
 
@@ -285,6 +286,8 @@ describe('browseProducts', () => {
     expect((await search('paragraph')).handles).toEqual(['other'])
     // Every word must match, in any field.
     expect((await search('pulsar wireless')).handles).toEqual(['pulsar-x2'])
+    // Option values, as Search & Discovery matches variant titles.
+    expect((await search('crimson')).handles).toEqual(['tee'])
   })
 })
 

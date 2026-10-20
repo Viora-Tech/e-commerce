@@ -5,7 +5,7 @@ Branch `fix/storefront-search-and-editor-dirty`. No migration.
 - **Storefront search** (`packages/core/src/catalog/browse.ts`, shared by `/search`, the header's
   predictive search via `suggestProducts`, and the Liquid search page). Searching "pulsar" on the
   Waimers store found 23 products against Shopify's 82: most Pulsar mice only name the brand in
-  their description (their vendor is "Waimers"). Search now also matches the product handle and
+  their description (their vendor is "Waimers"). Search now also matches the product handle, option values (Search & Discovery's variant-title scope) and
   the description's plain text (Lexical text nodes via `jsonb_path_query_array(description,
   'lax $.**.text')`, or a legacy plain-string description), so node keys such as "paragraph" are
   not searchable. A query is split into up to eight words (`searchTerms`) and every word must
