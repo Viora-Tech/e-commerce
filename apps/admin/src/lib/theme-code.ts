@@ -21,6 +21,12 @@ const FOLDER_ORDER = [
 
 export type CodeFolder<T extends { path: string }> = { name: string; files: T[] }
 
+/**
+ * A textarea reports every line break as `\n`, so Edit code holds text that way from the start:
+ * otherwise a CRLF file would never compare equal to its saved copy, even after undoing every edit.
+ */
+export const editorText = (text: string) => text.replace(/\r\n?/g, '\n')
+
 /** `sections/hero.liquid` → `hero.liquid`. */
 export const codeFileName = (path: string) => path.slice(path.lastIndexOf('/') + 1)
 

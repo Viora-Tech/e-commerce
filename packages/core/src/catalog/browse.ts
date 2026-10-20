@@ -33,7 +33,7 @@ export type BrowseResult = {
 export type BrowseInput = {
   /** Limit to one collection's members (and allow its manual order). */
   collectionId?: string | undefined
-  /** Free-text search over title, type, vendor, tags and SKU. */
+  /** Free-text search over title, vendor, type, handle, tags, SKU and description. */
   query?: string | undefined
   filters: BrowseFilters
   sort: BrowseSort
@@ -49,24 +49,58 @@ const inList = (values: string[]): SQL =>
     sql`, `,
   )})`
 
+/** Up to eight distinct words of a search query; every one has to match somewhere. */
+export function searchTerms(query: string): string[] {
+  const words = query.trim().slice(0, 100).toLowerCase().split(/\s+/).filter(Boolean)
+  return [...new Set(words)].slice(0, 8)
+}
+
+/** The description's plain text: Lexical text nodes, or a legacy plain string. */
+const descriptionText = sql`case jsonb_typeof(p.description)
+  when 'string' then p.description #>> '{}'
+  when 'object' then jsonb_path_query_array(p.description, 'lax $.**.text')::text
+end`
+
+/** One term against the product's own fields, SKUs included (everything but the description). */
+const fieldMatch = (pattern: string): SQL => sql`(
+  p.title ilike ${pattern} or p.vendor ilike ${pattern} or p.product_type ilike ${pattern}
+  or p.handle ilike ${pattern}
+  or exists (select 1 from unnest(p.tags) t where t ilike ${pattern})
+  or exists (select 1 from variant sv where sv.product_id = p.id and sv.archived_at is null and sv.sku ilike ${pattern})
+)`
+
+const every = (parts: SQL[]): SQL => sql`(${sql.join(parts, sql` and `)})`
+
+/**
+ * Shopify-style matching: each word must appear in the title, vendor, type, handle, a tag, a SKU
+ * or the description. Ranked: title starts with the query, title contains it, title holds every
+ * word, every word in the product's fields, then description-only matches.
+ */
+function searchClauses(query: string): { match: SQL; relevance: SQL } | null {
+  const terms = searchTerms(query)
+  if (!terms.length) return null
+  const phrase = escapeLike(terms.join(' '))
+  const patterns = terms.map((t) => `%${escapeLike(t)}%`)
+  const match = every(
+    patterns.map((pt) => sql`(${fieldMatch(pt)} or ${descriptionText} ilike ${pt})`),
+  )
+  const relevance = sql`case
+    when p.title ilike ${`${phrase}%`} then 0
+    when p.title ilike ${`%${phrase}%`} then 1
+    when ${every(patterns.map((pt) => sql`p.title ilike ${pt}`))} then 2
+    when ${every(patterns.map(fieldMatch))} then 3
+    else 4 end`
+  return { match, relevance }
+}
+
 /** Every active product in scope with the fields filters and sorts need. */
 function baseQuery(input: BrowseInput): SQL {
-  const q = input.query?.trim().slice(0, 100) ?? ''
-  const pattern = `%${escapeLike(q)}%`
-  const prefix = `${escapeLike(q)}%`
+  const search = searchClauses(input.query ?? '')
   const join = input.collectionId
     ? sql`join collection_product cp on cp.product_id = p.id and cp.collection_id = ${input.collectionId}`
     : sql``
-  const match = q
-    ? sql`and (
-        p.title ilike ${pattern} or p.product_type ilike ${pattern} or p.vendor ilike ${pattern}
-        or exists (select 1 from unnest(p.tags) t where t ilike ${pattern})
-        or exists (select 1 from variant sv where sv.product_id = p.id and sv.archived_at is null and sv.sku ilike ${pattern})
-      )`
-    : sql``
-  const relevance = q
-    ? sql`case when p.title ilike ${prefix} then 0 when p.title ilike ${pattern} then 1 else 2 end`
-    : sql`0`
+  const match = search ? sql`and ${search.match}` : sql``
+  const relevance = search?.relevance ?? sql`0`
   return sql`
     select p.id, p.handle, p.title, p.created_at, p.product_type, p.vendor, p.tags,
       ${input.collectionId ? sql`cp.position` : sql`0`} as position,
@@ -79,7 +113,7 @@ function baseQuery(input: BrowseInput): SQL {
           and (not v.track_inventory or coalesce(il.on_hand, 0) - coalesce(il.reserved, 0) > 0)
       ) as in_stock
     from product p ${join}
-    where p.status = 'active' ${match}`
+    where p.status = 'active' and not p.is_system_test ${match}`
 }
 
 function filterWhere(f: BrowseFilters): SQL {
