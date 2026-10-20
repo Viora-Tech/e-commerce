@@ -5,7 +5,7 @@ import { copyThemeImport } from '../theme-import/bundle-store'
 import { applyThemePreset } from './presets'
 import { defaultTheme, parseTheme, type Theme, type ThemePresetId, ThemeSchema } from './schema'
 import { copyTemplates } from './templates'
-import { parseThemePacks, type ThemePackId } from './theme-packs'
+import { parseThemePacks, type ThemePackId, withThemePacks } from './theme-packs'
 
 /**
  * The theme library: a store's themes, one of which (`main`) is live on the
@@ -134,6 +134,23 @@ export async function liveThemeLogoUrl(tx: StoreTx): Promise<string | null> {
 export async function storeThemePacks(tx: StoreTx, storeId: string): Promise<ThemePackId[]> {
   const [s] = await tx.select({ apps: store.apps }).from(store).where(eq(store.id, storeId))
   return parseThemePacks(s?.apps)
+}
+
+/**
+ * Turns the store's theme packs to exactly `packs` (Online Store › Themes, "Section packs").
+ * Only `store.apps.settings.core.themePacks` changes; installed apps and every other setting
+ * in `store.apps` stay as they were. Returns the packs as now stored.
+ */
+export async function saveThemePacks(
+  tx: StoreTx,
+  storeId: string,
+  packs: readonly ThemePackId[],
+): Promise<ThemePackId[]> {
+  const [s] = await tx.select({ apps: store.apps }).from(store).where(eq(store.id, storeId))
+  if (!s) throw new Error(`store ${storeId} not visible in context`)
+  const apps = withThemePacks(s.apps, packs)
+  await tx.update(store).set({ apps }).where(eq(store.id, storeId))
+  return parseThemePacks(apps)
 }
 
 /** The live theme's id, or null before the store has one. */

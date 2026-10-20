@@ -26,7 +26,15 @@ Zero Drift is the Waimers store's own Shopify theme rebuilt as React sections. I
   **Minimal** preset (`ensureMainTheme(tx, storeId, 'minimal')`); existing stores are untouched.
 - **Dev seed**: the Waimers seed store gets `themePacks: ['zero-drift']`.
 
-## Turning it on for Waimers (production, run by the owner)
+## Turning it on for Waimers
+
+**Admin:** Online store › Themes › "Section packs" card › "Zero Drift sections" switch. Shown to
+owners and administrators only (`settings:manage`). It calls `api.themes.setPacks({ packs })`
+(`saveThemePacks` in `library.ts`), which rewrites only `settings.core.themePacks` and keeps the
+rest of `store.apps`. Tested in `packages/api/test/theme-packs.test.ts` (round trip, unknown pack
+refused, staff refused). Copy in `data/themes.ts` (`packs`) with Hindi in `data/hi/themes.ts`.
+
+**Or SQL**, if the admin is not reachable:
 
 ```sql
 UPDATE store SET apps = jsonb_set(jsonb_set(jsonb_set(coalesce(apps, '{"installed":[]}'::jsonb), '{settings}', coalesce(apps->'settings', '{}'::jsonb)), '{settings,core}', coalesce(apps#>'{settings,core}', '{}'::jsonb)), '{settings,core,themePacks}', '["zero-drift"]'::jsonb) WHERE slug = 'waimers';
