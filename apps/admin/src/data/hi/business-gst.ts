@@ -124,7 +124,7 @@ export default [
     location: {
       back: 'लोकेशन',
       address: 'पता',
-      noAddress: 'पता नहीं जोड़ा गया। इसे Products › Inventory में जोड़ें।',
+      noAddress: 'अभी कोई पता नहीं जोड़ा गया।',
       billingHeading: 'इस लोकेशन का GST',
       billingHelp: 'यहाँ से भेजे गए ऑर्डर का बिल इसी GST नंबर से बनता है।',
       billsUnder: 'बिल किस नंबर से',

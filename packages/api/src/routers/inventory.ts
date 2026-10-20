@@ -11,6 +11,7 @@ import {
   emailPurchaseOrder,
   InventoryError,
   LocationInputSchema,
+  LocationUpdateSchema,
   listLocations,
   loadPurchaseOrderSheet,
   markOrdered,
@@ -29,6 +30,7 @@ import {
   shipTransfer,
   storeNotificationChannels,
   TransferInputSchema,
+  updateLocation,
 } from '@commerce/core'
 import type { StoreTx } from '@commerce/db'
 import { renderPurchaseOrderToBuffer } from '@commerce/invoices/render'
@@ -102,6 +104,13 @@ export const inventoryRouter = {
   createLocation: can(permissions.INVENTORY_WRITE)
     .input(LocationInputSchema)
     .handler(({ context, input }) => createLocation(context.tx, context.scope.storeId, input)),
+
+  /** Name, address and phone of an existing location; "Bills under" follows a new state. */
+  updateLocation: can(permissions.INVENTORY_WRITE)
+    .input(LocationUpdateSchema)
+    .handler(({ context, input }) =>
+      friendly(() => updateLocation(context.tx, context.scope.storeId, input)),
+    ),
 
   stats: can(permissions.INVENTORY_READ)
     .input(z.object({ locationId: z.uuid() }))
