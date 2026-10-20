@@ -13,6 +13,7 @@ import { shopifyImportPlugin } from '@commerce/plugin-shopify-import'
 import { umamiPlugin } from '@commerce/plugin-umami'
 import { defineConfig } from '@commerce/plugins'
 import { delhiveryPlugin } from '@commerce/shipping-delhivery'
+import { indiaPostPlugin } from '@commerce/shipping-indiapost'
 import { rapidshypPlugin } from '@commerce/shipping-rapidshyp'
 import { shiprocketPlugin } from '@commerce/shipping-shiprocket'
 import { r2Plugin } from '@commerce/storage-r2'
@@ -32,6 +33,7 @@ export default defineConfig({
     delhiveryPlugin,
     shiprocketPlugin,
     rapidshypPlugin,
+    indiaPostPlugin,
     sesPlugin,
     whatsappPlugin,
     r2Plugin,

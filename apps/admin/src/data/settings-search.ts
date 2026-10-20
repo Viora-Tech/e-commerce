@@ -202,6 +202,8 @@ export const SETTINGS_SEARCH_INDEX: SettingsSearchEntry[] = [
       'delhivery',
       'shiprocket',
       'rapidshyp',
+      'india post',
+      'speed post',
       'connect courier',
       'awb',
       'pickup',

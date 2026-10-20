@@ -49,5 +49,16 @@ export const connectAsideContent = {
       helpTitle: 'Where is my API key?',
       helpBody: 'In your RapidShyp dashboard, open Settings › API and copy the key shown there.',
     },
+    'india-post': {
+      connects: [
+        'Every Indian PIN code, with its post office',
+        'Speed Post rates from India Post’s tariff',
+        'Address labels with a barcode, COD on the label',
+        'Parcel status you set, on every order',
+      ],
+      helpTitle: 'Where do I get a data.gov.in key?',
+      helpBody:
+        'Sign up free at data.gov.in, open My Account, and copy the API key shown there. It is optional: without it rates and delivery times still work.',
+    },
   } as Record<string, { connects: string[]; helpTitle: string; helpBody: string }>,
 } as const

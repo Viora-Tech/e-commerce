@@ -27,6 +27,7 @@ const TILES: Record<string, string> = {
   'emi-pay-later': 'from-violet-500 to-violet-700 border-violet-700/90',
   whatsapp: 'from-green-500 to-green-700 border-green-700/90',
   forms: 'from-sky-500 to-sky-700 border-sky-700/90',
+  'india-post': 'from-red-600 to-red-800 border-red-800/90',
   'shopify-import': 'from-lime-500 to-lime-700 border-lime-700/90',
   ses: 'from-orange-500 to-orange-700 border-orange-700/90',
   s3: 'from-rose-500 to-rose-700 border-rose-700/90',

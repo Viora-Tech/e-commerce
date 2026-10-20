@@ -110,6 +110,12 @@ export const createShipmentContent = {
     manual: 'Ship it yourself',
     manualHelp: 'Your own courier or local delivery: type the AWB (tracking number) yourself.',
     manualMissing: 'Enter the AWB (tracking number) and the courier name.',
+    /** For a courier booked at its own counter (India Post): the number on the receipt. */
+    counterNumber: {
+      label: 'Article number',
+      help: 'Book the parcel at the post office first, then type the number from the receipt, like EE123456785IN.',
+      invalid: 'That article number does not add up. Check it against the receipt.',
+    },
   },
   bulkCourier: {
     mode: 'How to pick couriers',

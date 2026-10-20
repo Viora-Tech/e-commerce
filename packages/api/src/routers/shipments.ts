@@ -4,6 +4,7 @@ import { z } from 'zod'
 import { BULK_MAX, can, heavy, PAGE_SIZE_MAX, SEARCH_MAX } from '../procedures'
 import { storeRegistries } from '../services/apps.service'
 import { prepareShipments, quoteShipments } from '../services/create-shipment.service'
+import { indiaPostLabel, recordShipmentStatus } from '../services/india-post.service'
 import {
   actOnNdr,
   createManifestForStore,
@@ -25,6 +26,15 @@ import {
 } from '../services/shipments-workspace.service'
 
 const ndrAction = z.enum(['reattempt', 'change_address', 'rto'])
+
+const manualStatus = z.enum([
+  'created',
+  'picked_up',
+  'in_transit',
+  'out_for_delivery',
+  'delivered',
+  'rto',
+])
 
 const dimensionsCm = z.object({
   length: z.number().min(1),
@@ -230,6 +240,50 @@ export const shipmentsRouter = {
         input.providerId,
         input.lowBalanceThresholdPaise,
       )
+    }),
+
+  /**
+   * A status set by hand, for a courier with no tracking feed (India Post): appended to the
+   * shipment's timeline and applied like a scan (delivered closes the order, RTO opens its task).
+   */
+  recordStatus: can(permissions.ORDERS_FULFIL)
+    .input(
+      z.object({
+        shipmentId: z.uuid(),
+        status: manualStatus,
+        description: z.string().trim().min(1).max(200),
+        location: z.string().trim().max(120).optional(),
+        at: z.iso.datetime({ offset: true }).optional(),
+      }),
+    )
+    .handler(async ({ context, input }) => {
+      const { shipping } = await storeRegistries(context.tx, context.scope.storeId)
+      const { shipmentId, ...event } = input
+      return recordShipmentStatus(
+        context.tx,
+        context.scope.storeId,
+        shipping,
+        settingsSecret(),
+        shipmentId,
+        event,
+      )
+    }),
+
+  /** Our own India Post address label (Code 128 article number), as a PDF. */
+  indiaPostLabel: can(permissions.ORDERS_READ)
+    .input(z.object({ waybill: z.string().trim().min(1).max(40) }))
+    .handler(async ({ context, input }) => {
+      const { shipping } = await storeRegistries(context.tx, context.scope.storeId)
+      const label = await indiaPostLabel(
+        context.tx,
+        context.scope.storeId,
+        shipping,
+        settingsSecret(),
+        input.waybill.toUpperCase(),
+      )
+      return new File([label.bytes as Uint8Array<ArrayBuffer>], label.name, {
+        type: 'application/pdf',
+      })
     }),
 
   recordWalletBalance: can(permissions.ORDERS_FULFIL)

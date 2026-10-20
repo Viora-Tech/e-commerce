@@ -142,6 +142,10 @@ export default function CreateShipmentPage({ orderId, back }: CreateShipmentPage
       toast.error(content.courier.manualMissing)
       return
     }
+    if (chosen?.needsTrackingNumber && !typed.trackingNumber) {
+      toast.error(content.courier.counterNumber.help)
+      return
+    }
     setBusy(true)
     try {
       setBooked(

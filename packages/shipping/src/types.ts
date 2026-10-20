@@ -89,6 +89,12 @@ export type CreateShipmentInput = {
    * aggregator's courier. Absent: the courier's own default, as before.
    */
   serviceId?: string | undefined
+  /**
+   * The tracking number the merchant already has, for a courier booked outside the platform
+   * (India Post at the post office counter: the article number on the receipt). Only couriers
+   * with `requiresTrackingNumber` read it; the rest issue their own.
+   */
+  trackingNumber?: string | undefined
 }
 
 export type CreateShipmentResult = {
@@ -99,6 +105,8 @@ export type CreateShipmentResult = {
   providerRef: string
   /** What the courier charges for this consignment, when its booking answer says (paise). */
   chargePaise?: number | undefined
+  /** Public page a shopper can open, when the courier names it at booking (before any scan). */
+  trackingUrl?: string | undefined
 }
 
 export type ShipmentStatus =
@@ -282,6 +290,17 @@ export type ShippingProvider = {
   /** Stable id used in store settings and the shipment table. Lowercase, no spaces. */
   readonly id: string
   readonly label: string
+  /**
+   * True for a courier booked outside the platform (India Post's counter): `createShipment`
+   * needs the merchant's own tracking number in `trackingNumber`, so the Create shipment flow
+   * asks for it.
+   */
+  readonly requiresTrackingNumber?: boolean | undefined
+  /**
+   * True when the courier has no tracking feed for us: the merchant sets the status by hand
+   * (`recordManualTracking` in core) and the shared poll job never calls `track()`.
+   */
+  readonly tracksManually?: boolean | undefined
   /**
    * Optional: what the courier would charge for this parcel, or null when it
    * will not quote. Checkout prices shipping from the merchant's zones and
