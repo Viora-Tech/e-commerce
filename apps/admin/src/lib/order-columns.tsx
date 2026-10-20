@@ -77,7 +77,14 @@ export function orderColumns(
       hideable: false,
       className: 'w-[9%]',
       render: (o) => (
-        <span className="text-body font-medium text-ink-strong tabular-nums">#{o.number}</span>
+        <span className="inline-flex items-center gap-1.5">
+          <span className="text-body font-medium text-ink-strong tabular-nums">#{o.number}</span>
+          {o.isTest ? (
+            <span title={copy.testChipHint}>
+              <StatusChip tone="attention">{copy.testChip}</StatusChip>
+            </span>
+          ) : null}
+        </span>
       ),
     },
     {

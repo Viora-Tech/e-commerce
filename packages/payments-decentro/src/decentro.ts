@@ -205,6 +205,10 @@ export class DecentroProvider implements PaymentProvider {
     private readonly now: () => Date = () => new Date(),
   ) {}
 
+  get mode(): 'test' | 'live' {
+    return this.config.mode
+  }
+
   private get creds(): DecentroCredentials {
     return {
       clientId: this.config.clientId,

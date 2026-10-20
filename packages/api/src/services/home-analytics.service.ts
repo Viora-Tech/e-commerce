@@ -1,3 +1,4 @@
+import { notTestOrder } from '@commerce/core'
 import { HOME_METRICS, type HomeMetric, parseHomeTiles } from '@commerce/core/home-metrics'
 import type { StoreTx } from '@commerce/db'
 import { cart, order, orderLine, product, refund, storeMember, variant } from '@commerce/db'
@@ -34,7 +35,7 @@ type Window = { from: Date; to: Date; days: string[] }
 
 const IST_OFFSET_MS = 5.5 * 60 * 60 * 1000
 const HOURS = 24
-const counted = and(ne(order.status, 'draft'), ne(order.status, 'cancelled'))
+const counted = and(ne(order.status, 'draft'), ne(order.status, 'cancelled'), notTestOrder)
 
 function zeros(n: number): number[] {
   return Array.from({ length: n }, () => 0)

@@ -1,5 +1,6 @@
 import {
   notSystemTest,
+  notTestOrder,
   type OrderFulfillmentStatus,
   type OrderPaymentStatus,
   parseAppsSettings,
@@ -45,8 +46,11 @@ import type { OrderStatus } from './order.service'
 
 const DAY_MS = 86_400_000
 const WINDOW_DAYS = 7
-/** Drafts are not orders yet: they never count towards revenue, tiles or the recent list. */
-const notDraft = ne(order.status, 'draft')
+/**
+ * Drafts are not orders yet, and test-mode orders (gateway test keys) moved no real money:
+ * neither counts towards revenue, tiles or the recent list.
+ */
+const notDraft = and(ne(order.status, 'draft'), notTestOrder)
 
 const RECENT_ORDERS = 7
 const TOP_PRODUCTS = 5

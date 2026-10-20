@@ -152,7 +152,14 @@ async function channelOrders(ctx: StoreContext, now: Date): Promise<ChannelOrder
     })
     .from(order)
     .leftJoin(customer, eq(customer.id, order.customerId))
-    .where(and(ne(order.status, 'draft'), isNotNull(order.attribution), gte(order.placedAt, since)))
+    .where(
+      and(
+        ne(order.status, 'draft'),
+        eq(order.isTest, false),
+        isNotNull(order.attribution),
+        gte(order.placedAt, since),
+      ),
+    )
     .orderBy(sql`${order.placedAt} desc`)
     .limit(MAX_ORDERS)
   const out: ChannelOrder[] = []

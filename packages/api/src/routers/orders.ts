@@ -2,6 +2,7 @@ import { settingsSecret } from '@commerce/config'
 import {
   CommerceError,
   CourierChargeInputSchema,
+  deleteTestOrders,
   InvalidOrderContact,
   insertOutboxEvent,
   isIsoDay,
@@ -109,6 +110,14 @@ export const ordersRouter = {
 
   /** The couriers the store's orders went with (the filter panel's Courier select). */
   couriers: can(permissions.ORDERS_READ).handler(({ context }) => orderCouriers(context.tx)),
+
+  /**
+   * "Delete test orders": removes every order of this store paid on a gateway's test keys
+   * (`is_test`), with its dependent rows. Real orders are never touched. Returns the count.
+   */
+  deleteTestOrders: can(permissions.ORDERS_CANCEL).handler(async ({ context }) => ({
+    deleted: await deleteTestOrders({ tx: context.tx, storeId: context.scope.storeId }),
+  })),
 
   stats: can(permissions.ORDERS_READ).handler(({ context }) => orderStats(context.tx)),
 

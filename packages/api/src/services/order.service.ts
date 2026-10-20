@@ -1,6 +1,7 @@
 import {
   changeOrderStatus,
   insertOutboxEvent,
+  notTestOrder,
   type OrderFulfillmentStatus,
   type OrderPaymentStatus,
   type OrderStatus,
@@ -200,6 +201,8 @@ export async function listOrders(
       totalPaise: order.totalPaise,
       email: order.email,
       customerName: customer.name,
+      /* Paid on a gateway's test keys: the list shows a "Test" chip. */
+      isTest: order.isTest,
       placedAt: order.placedAt,
       /* The Channel and Tags columns (Figma "State · Columns open"): where the visit came from. */
       channel: sql<string | null>`${order.attribution}->>'channel'`,
@@ -226,11 +229,15 @@ export async function listOrders(
     .from(order)
     .leftJoin(customer, eq(customer.id, order.customerId))
     .where(where)
-  const items = await base
-    .orderBy(desc(order.placedAt))
-    .limit(input.perPage)
-    .offset((input.page - 1) * input.perPage)
-  return { items, total: countRow?.total ?? 0 }
+  const [items, [testRow]] = await Promise.all([
+    base
+      .orderBy(desc(order.placedAt))
+      .limit(input.perPage)
+      .offset((input.page - 1) * input.perPage),
+    /* Store-wide, whatever the filters: "Delete test orders" shows only when there are some. */
+    tx.select({ n: count() }).from(order).where(eq(order.isTest, true)),
+  ])
+  return { items, total: countRow?.total ?? 0, testOrders: testRow?.n ?? 0 }
 }
 
 export type OrderTiles = {
@@ -268,7 +275,8 @@ export async function orderTiles(tx: StoreTx, now = new Date()): Promise<OrderTi
   const sameTimeYesterday = new Date(now.getTime() - 86_400_000)
   const weekStart = new Date(now.getTime() - 7 * 86_400_000)
   const lastWeekStart = new Date(now.getTime() - 14 * 86_400_000)
-  const live = and(notDraft, ne(order.status, 'cancelled'))
+  // Test-mode orders (gateway test keys) moved no real money: not counted as new or as sales.
+  const live = and(notDraft, ne(order.status, 'cancelled'), notTestOrder)
   const [[today], [yesterday], [ready], [upi], weekRows] = await Promise.all([
     tx
       .select({ n: count() })
@@ -324,8 +332,9 @@ export async function orderStats(tx: StoreTx, now = new Date()): Promise<OrderSt
       placedAt: order.placedAt,
     })
     .from(order)
-    .where(and(notDraft, gte(order.placedAt, lastStart)))
+    .where(and(notDraft, notTestOrder, gte(order.placedAt, lastStart)))
   const cur = rows.filter((r) => r.placedAt >= thisStart)
+
   const prev = rows.filter((r) => r.placedAt < thisStart)
   const window = (pick: (r: (typeof rows)[number]) => boolean): OrderWindow => ({
     value: cur.filter(pick).length,

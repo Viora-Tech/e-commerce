@@ -83,8 +83,16 @@ export default function PaymentMethods({
                   )}
                 </span>
                 <span className="flex min-w-0 flex-1 flex-col gap-0.5">
-                  <span className="text-[0.9375rem] leading-snug font-medium text-ck-ink">
+                  <span className="flex flex-wrap items-center gap-2 text-[0.9375rem] leading-snug font-medium text-ck-ink">
                     {view.title}
+                    {m.test ? (
+                      <span
+                        title={content.testModeHint}
+                        className="rounded-full border border-ck-line bg-ck-bg px-2 py-0.5 text-[0.6875rem] font-semibold tracking-wide text-ck-muted uppercase"
+                      >
+                        {content.testMode}
+                      </span>
+                    ) : null}
                   </span>
                   {view.hint ? (
                     <span className="text-[0.8125rem] leading-snug text-ck-muted">{view.hint}</span>

@@ -1,3 +1,4 @@
+import { notTestOrder } from '@commerce/core'
 import type { StoreTx } from '@commerce/db'
 import {
   address,
@@ -31,7 +32,8 @@ import {
 import { countSessions, totalSessions } from './sessions'
 
 /** Drafts are not orders: they never reach revenue, counts or the funnel. */
-const notDraft = ne(order.status, 'draft')
+/** Test-mode orders (gateway test keys, no real money) are left out too. */
+const notDraft = and(ne(order.status, 'draft'), notTestOrder)
 const counted = and(notDraft, ne(order.status, 'cancelled'))
 
 const TOP_PRODUCTS = 8
@@ -420,6 +422,7 @@ export async function bigSaleDays(tx: StoreTx, limit = 5): Promise<SaleDay[]> {
     .where(
       and(
         sql`${order.status} not in ('draft', 'cancelled')`,
+        notTestOrder,
         gte(order.placedAt, sql`now() - interval '365 days'`),
       ),
     )

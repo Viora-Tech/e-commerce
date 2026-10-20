@@ -52,6 +52,9 @@ export default function GatewayOverviewPage({ providerId }: GatewayOverviewPageP
   // Render logic
   const isMain = setup.primary?.id === providerId
   const entry = catalogue.find((g) => g.id === providerId)
+  const gateway = setup.gateways.find((g) => g.id === providerId)
+  const onlineOn = setup.gateways.filter((g) => g.connected)
+  const onlyOnline = onlineOn.length === 1 && onlineOn[0]?.id === providerId
 
   return (
     <div className="flex flex-col gap-4">
@@ -59,6 +62,8 @@ export default function GatewayOverviewPage({ providerId }: GatewayOverviewPageP
       {isMain ? (
         <MainGatewayCard
           primary={setup.primary}
+          gateway={gateway}
+          onlyOnline={onlyOnline}
           onAdd={() => undefined}
           onChanged={reload}
           onTurnOnUpi={() => undefined}

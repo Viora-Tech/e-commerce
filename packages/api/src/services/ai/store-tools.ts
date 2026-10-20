@@ -7,7 +7,7 @@
  * phones or addresses ever leave here.
  */
 import { type AiRuntime, type AiToolSet, defineAiTool, guardData } from '@commerce/ai'
-import { abandonedStats, notSystemTest, UNFULFILLED_STATUSES } from '@commerce/core'
+import { abandonedStats, notSystemTest, notTestOrder, UNFULFILLED_STATUSES } from '@commerce/core'
 import { formatInZone, startOfDay } from '@commerce/dates'
 import {
   type Db,
@@ -29,8 +29,10 @@ export type Fact = { label: string; value: string }
 export type ToolOutput = { facts: Fact[] }
 
 const DAY_MS = 86_400_000
-const notDraft = ne(order.status, 'draft')
+/** Sales answers leave out drafts and test-mode orders (gateway test keys, no real money). */
+const notDraft = and(ne(order.status, 'draft'), notTestOrder)
 const live = and(notDraft, ne(order.status, 'cancelled'))
+
 const available = sql<number>`${sellableStock.onHand} - ${sellableStock.reserved}`
 
 export type ToolEnv = { db: Db; store: StoreFacts; now: () => Date; taint?: Taint | undefined }
@@ -73,7 +75,14 @@ async function salesWindow(tx: StoreTx, from: Date, to: Date) {
   const [cancelled] = await tx
     .select({ n: sql<number>`count(*)::int` })
     .from(order)
-    .where(and(eq(order.status, 'cancelled'), gte(order.placedAt, from), lt(order.placedAt, to)))
+    .where(
+      and(
+        eq(order.status, 'cancelled'),
+        notTestOrder,
+        gte(order.placedAt, from),
+        lt(order.placedAt, to),
+      ),
+    )
   return { orders: row?.orders ?? 0, revenue: row?.revenue ?? 0, cancelled: cancelled?.n ?? 0 }
 }
 
