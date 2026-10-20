@@ -1,6 +1,11 @@
 'use client'
 
-import { applyMergeTags, type EmailBlock, renderMarketingEmail } from '@commerce/core/marketing'
+import {
+  applyMergeTags,
+  type EmailBlock,
+  renderDesignedEmail,
+  renderMarketingEmail,
+} from '@commerce/core/marketing'
 import { Monitor, Smartphone } from '@commerce/ui/icons'
 import { cn } from '@commerce/ui/lib/utils'
 import { Card } from '@commerce/ui/shadcn/card'
@@ -14,6 +19,8 @@ type EmailPreviewProps = {
   subject: string
   previewText: string
   blocks: EmailBlock[]
+  /** The visual builder's compiled HTML; previewed instead of the blocks when set. */
+  designHtml?: string | undefined
   /** A sample basket for cart and checkout automations. */
   sampleCart?: boolean | undefined
 }
@@ -44,6 +51,7 @@ export default function EmailPreview({
   subject,
   previewText,
   blocks,
+  designHtml,
   sampleCart,
 }: EmailPreviewProps) {
   // Hooks
@@ -51,14 +59,17 @@ export default function EmailPreview({
 
   // Render logic
   const shownSubject = applyMergeTags(subject, { ...SAMPLE_MERGE, store_name: storeName })
-  const { html } = renderMarketingEmail(blocks, {
+  const ctx = {
     storeName,
     shopUrl: storefrontUrl,
     previewText,
     merge: SAMPLE_MERGE,
     cart: sampleCart ? SAMPLE_CART : undefined,
     unsubscribeUrl: '#',
-  })
+  }
+  const { html } = designHtml
+    ? renderDesignedEmail(designHtml, ctx)
+    : renderMarketingEmail(blocks, ctx)
 
   return (
     <Card gap="none" inset="none" className="sticky top-4 overflow-hidden">

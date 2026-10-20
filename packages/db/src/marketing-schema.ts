@@ -57,6 +57,14 @@ export const marketingSession = pgTable(
 )
 
 export type MarketingCampaignKind = 'email' | 'whatsapp'
+/** How an email campaign is built: the block composer or the visual (GrapesJS) builder. */
+export type MarketingEmailEditor = 'blocks' | 'visual'
+
+/**
+ * A visual-builder design: the GrapesJS project, the MJML it exports and the email HTML
+ * compiled from that MJML on save. Validated by @commerce/core EmailDesignSchema.
+ */
+export type MarketingEmailDesign = { project: unknown; mjml: string; html: string }
 export type MarketingCampaignStatus =
   | 'draft'
   | 'scheduled'
@@ -88,6 +96,9 @@ export const marketingCampaign = pgTable(
     previewText: text('preview_text').notNull().default(''),
     /** Email blocks, validated by @commerce/core EmailBlocksSchema. */
     blocks: jsonb('blocks').$type<unknown[]>().notNull().default([]),
+    /** Which content is sent: `blocks`, or the visual builder's `design`. Both are kept. */
+    editor: text('editor').$type<MarketingEmailEditor>().notNull().default('blocks'),
+    design: jsonb('design').$type<MarketingEmailDesign>(),
     whatsapp: jsonb('whatsapp').$type<WhatsappTemplateRef>(),
     scheduledAt: timestamp('scheduled_at', { withTimezone: true }),
     startedAt: timestamp('started_at', { withTimezone: true }),
@@ -103,8 +114,23 @@ export const marketingCampaign = pgTable(
       sql`${t.status} in ('draft','scheduled','sending','sent','cancelled','failed')`,
     ),
     check('marketing_campaign_kind', sql`${t.kind} in ('email','whatsapp')`),
+    check('marketing_campaign_editor', sql`${t.editor} in ('blocks','visual')`),
     index('marketing_campaign_store_status').on(t.storeId, t.status),
   ],
+)
+
+/** A reusable visual-builder design the merchant saved (Campaigns → visual builder → Templates). */
+export const marketingEmailTemplate = pgTable(
+  'marketing_email_template',
+  {
+    id: id(),
+    storeId: storeId(),
+    name: text('name').notNull(),
+    design: jsonb('design').$type<MarketingEmailDesign>().notNull(),
+    createdAt: createdAt(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index('marketing_email_template_store').on(t.storeId, t.updatedAt)],
 )
 
 export type MarketingAutomationStatus = 'active' | 'paused'

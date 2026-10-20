@@ -16,7 +16,7 @@ import { campaignEditorContent as copy } from '@/data/marketing-campaigns'
 import { api } from '@/lib/api-client'
 import { routes } from '@/lib/routes'
 import CampaignSettingsCard from './campaign-settings-card'
-import EmailContentCard from './email-content-card'
+import EmailContentSwitch from './email-content-switch'
 import EmailPreview from './email-preview'
 import {
   type CampaignForm,
@@ -237,7 +237,13 @@ export default function CampaignEditor({
         <div className="flex min-w-0 flex-col gap-5">
           <CampaignSettingsCard form={form} segments={segments} reach={reach} onChange={patch} />
           {form.kind === 'email' ? (
-            <EmailContentCard blocks={form.blocks} onChange={(blocks) => patch({ blocks })} />
+            <EmailContentSwitch
+              editor={form.editor}
+              blocks={form.blocks}
+              design={form.design}
+              storefrontUrl={storefrontUrl}
+              onChange={patch}
+            />
           ) : (
             <WhatsappTemplateCard
               value={form.whatsapp}
@@ -253,6 +259,7 @@ export default function CampaignEditor({
             subject={form.subject}
             previewText={form.previewText}
             blocks={form.blocks}
+            designHtml={form.editor === 'visual' ? form.design?.html : undefined}
           />
         ) : (
           <div className="flex min-w-0 flex-col gap-5">

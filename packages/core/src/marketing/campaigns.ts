@@ -11,6 +11,7 @@ import { and, asc, desc, eq, inArray, lte, sql } from 'drizzle-orm'
 import { campaignAudience } from './audience'
 import { type CampaignInput, campaignProblems, utmName } from './campaign-input'
 import { applyMergeTags, type EmailBlock, parseEmailBlocks, renderMarketingEmail } from './email'
+import { designHtmlOf, renderDesignedEmail } from './email-design'
 import {
   firstName,
   type MarketingDeps,
@@ -72,6 +73,8 @@ function values(storeId: string, input: CampaignInput) {
     subject: input.kind === 'email' ? input.subject : '',
     previewText: input.kind === 'email' ? input.previewText : '',
     blocks: input.kind === 'email' ? input.blocks : [],
+    editor: input.kind === 'email' ? input.editor : 'blocks',
+    design: input.kind === 'email' ? input.design : null,
     whatsapp: input.kind === 'whatsapp' ? input.whatsapp : null,
   }
 }
@@ -143,6 +146,8 @@ export async function duplicateCampaign(tx: StoreTx, storeId: string, id: string
       subject: c.subject,
       previewText: c.previewText,
       blocks: c.blocks,
+      editor: c.editor,
+      design: c.design,
       whatsapp: c.whatsapp,
     })
     .returning()
@@ -165,6 +170,8 @@ export async function scheduleCampaign(
     kind: c.kind,
     subject: c.subject,
     blocks: parseEmailBlocks(c.blocks),
+    editor: c.editor,
+    design: c.design,
     whatsapp: c.whatsapp,
     variableCount: opts.variableCount,
   })
@@ -331,6 +338,7 @@ export async function sendCampaignBatch(
             subject: applyMergeTags(c.subject, merge),
             previewText: c.previewText,
             blocks: parseEmailBlocks(c.blocks),
+            designHtml: designHtmlOf(c),
             merge,
             utmCampaign: utmName(c.name),
           })
@@ -504,6 +512,8 @@ export async function testSendCampaignEmail(
     subject: string
     previewText: string
     blocks: EmailBlock[]
+    /** Compiled visual design; sent instead of the blocks when present. */
+    designHtml?: string | undefined
     testPrefix: string
   },
 ): Promise<{ ok: true } | { ok: false; error: string }> {
@@ -516,13 +526,16 @@ export async function testSendCampaignEmail(
     store_name: sender.storeName,
     shop_url: deps.storefrontUrl,
   }
-  const { html, text } = renderMarketingEmail(input.blocks, {
+  const ctx = {
     storeName: sender.storeName,
     storeAddress: sender.storeAddress,
     shopUrl: deps.storefrontUrl,
     previewText: input.previewText,
     merge,
-  })
+  }
+  const { html, text } = input.designHtml
+    ? renderDesignedEmail(input.designHtml, ctx)
+    : renderMarketingEmail(input.blocks, ctx)
   const send = channels.email.sendMarketing
   if (!send) return { ok: false, error: 'the email channel cannot send marketing' }
   const r = await send.call(channels.email, {

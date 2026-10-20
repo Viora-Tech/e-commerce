@@ -1,6 +1,6 @@
 'use client'
 
-import { type EmailBlock, parseEmailBlocks, utmName } from '@commerce/core/marketing'
+import { designHtmlOf, type EmailBlock, parseEmailBlocks, utmName } from '@commerce/core/marketing'
 import { formatNumber } from '@commerce/money'
 import { Copy, InfoIcon, Send, TriangleAlert, WhatsappLogo } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
@@ -217,6 +217,7 @@ export default function CampaignReport({
                 subject={campaign.subject}
                 previewText={campaign.previewText}
                 blocks={blocks}
+                designHtml={designHtmlOf(campaign)}
               />
             ) : (
               <WhatsappPreview value={campaign.whatsapp} body={null} storeName={storeName} />

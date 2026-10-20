@@ -10,6 +10,7 @@ import {
   type MergeValues,
   renderMarketingEmail,
 } from './email'
+import { renderDesignedEmail } from './email-design'
 import {
   clickToken,
   clickUrl,
@@ -129,6 +130,8 @@ export type EmailSendInput = {
   subject: string
   previewText: string
   blocks: EmailBlock[]
+  /** A compiled visual-builder design; sent instead of `blocks` when present. */
+  designHtml?: string | undefined
   merge: MergeValues
   cart?: { lines: EmailCartLine[]; totalLabel: string } | undefined
   /** Links carry the campaign or automation so the landing session and order are credited. */
@@ -170,7 +173,7 @@ export async function sendMarketingEmail(
   const payload = { storeId, messageId: input.messageId }
   const unsubToken = input.customerId ? unsubscribeToken(storeId, input.customerId, secret) : null
   const unsubscribe = unsubToken ? unsubscribeUrl(base, unsubToken) : undefined
-  const { html, text } = renderMarketingEmail(input.blocks, {
+  const ctx = {
     storeName: sender.storeName,
     storeAddress: sender.storeAddress,
     shopUrl: base,
@@ -179,11 +182,14 @@ export async function sendMarketingEmail(
     cart: input.cart,
     unsubscribeUrl: unsubscribe,
     openPixelUrl: openPixelUrl(base, messageToken(payload, secret)),
-    trackLink: (url) => {
+    trackLink: (url: string) => {
       const tagged = withUtm(url, base, input.utmCampaign, 'email')
       return clickUrl(base, clickToken(payload, tagged, secret), tagged)
     },
-  })
+  }
+  const { html, text } = input.designHtml
+    ? renderDesignedEmail(input.designHtml, ctx)
+    : renderMarketingEmail(input.blocks, ctx)
   const headers = unsubToken
     ? [
         {

@@ -49,6 +49,7 @@ export default function TestSendDialog({
         subject: form.subject,
         previewText: form.previewText,
         blocks: form.blocks,
+        design: form.editor === 'visual' ? form.design : null,
         testPrefix: copy.prefix,
       })
       toast.success(copy.sent(to.trim()))
