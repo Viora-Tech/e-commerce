@@ -38,6 +38,7 @@
         "@commerce/shipping-bluedart#build",
         "@commerce/shipping-delhivery#build",
         "@commerce/shipping-dtdc#build",
+        "@commerce/shipping-indiapost#build",
         "@commerce/shipping-rapidshyp#build",
         "@commerce/shipping-shiprocket#build",
         "@commerce/storage-r2#build",

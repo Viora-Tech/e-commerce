@@ -125,6 +125,16 @@ third-party copy was substituted. To add it:
 
 Until then checkout works as before: shoppers type city and state.
 
+**India Post app, live lookups** (`packages/shipping-indiapost/src/pin-directory.ts`): with a
+merchant's own data.gov.in API key, the India Post app asks the same directory's official API
+(resource `5c2f62fe-5afa-4119-a499-fec9d604d5bd`) about one PIN code at a time and keeps the
+answer in memory for a day. GODL-India was read on the data.gov.in catalog page on 2026-10-20.
+Nothing from the dataset is stored in the repository. Attribution: All India Pincode Directory,
+Department of Posts, Ministry of Communications, Government of India, via data.gov.in, under
+the Government Open Data Licence - India. The Speed Post Parcel rates in
+`packages/shipping-indiapost/src/data/speed-post-parcel-tariff.ts` are a government tariff
+(facts, typed by hand from indiapost.gov.in); credit: Department of Posts.
+
 **PIN prefix → state check** (security audit D-06, `packages/core/src/checkout/pincode-state.ts`):
 until the directory is installed, `placeOrder` checks the typed state against a small table of
 the first two digits of a PIN code and the states each can belong to. It was written by hand

@@ -26,6 +26,7 @@ import { razorpayFactory } from '@commerce/payments-razorpay'
 import { bluedartFactory } from '@commerce/shipping-bluedart'
 import { delhiveryFactory } from '@commerce/shipping-delhivery'
 import { dtdcFactory } from '@commerce/shipping-dtdc'
+import { indiaPostFactory } from '@commerce/shipping-indiapost'
 import { rapidshypFactory } from '@commerce/shipping-rapidshyp'
 import { shiprocketFactory } from '@commerce/shipping-shiprocket'
 import { r2Factory } from '@commerce/storage-r2'
@@ -61,6 +62,7 @@ describe('sweep: secret-fields', () => {
       rapidshypFactory,
       bluedartFactory,
       dtdcFactory,
+      indiaPostFactory,
       sesFactory,
       whatsappFactory,
       r2Factory,

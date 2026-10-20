@@ -6,6 +6,7 @@
   "description": "GST documents: pure maths, snapshots, GSTR-1 export and PDF templates (templates ported from invoicely, MIT).",
   "exports": {
     ".": "./src/index.ts",
+    "./barcode": "./src/barcode.ts",
     "./link": "./src/link.ts",
     "./pdf": "./src/pdf/index.ts",
     "./render": "./src/pdf/render.ts",

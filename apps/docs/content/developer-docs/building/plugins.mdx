@@ -194,6 +194,11 @@ Rules that keep every adapter interchangeable:
 - **Never call `Date.now()` for delivery dates.** Return transit days; the
   platform's calendar (`@commerce/shipping` `delivery-date.ts`) turns them into
   a date in the store's timezone with cutoff and holidays applied.
+- **A courier booked at its own counter** (India Post, `packages/shipping-indiapost`) sets
+  `requiresTrackingNumber = true`: the Create shipment flow asks the merchant for the number on
+  the receipt and passes it as `CreateShipmentInput.trackingNumber`. A courier with no tracking
+  feed sets `tracksManually = true`: the poll job skips it and the merchant records statuses
+  with `shipments.recordStatus` (`recordManualTracking` in core).
 - Payments: `createPayment` returns a `CheckoutSession` of kind `client`,
   `redirect`, `manual` or `none`; `parseWebhook` must verify the signature with
   a constant-time compare and return a stable `eventId` for deduplication.

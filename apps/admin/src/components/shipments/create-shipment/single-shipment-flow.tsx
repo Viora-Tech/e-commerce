@@ -98,6 +98,10 @@ export default function SingleShipmentFlow({
         toast.error(copy.courier.manualMissing)
         return
       }
+      if (chosen?.needsTrackingNumber && !typed.trackingNumber) {
+        toast.error(copy.courier.counterNumber.help)
+        return
+      }
       setStep('review')
     }
   }
@@ -127,6 +131,7 @@ export default function SingleShipmentFlow({
           orderId: order.orderId,
           providerId: chosen?.providerId,
           serviceId: chosen?.serviceId ?? undefined,
+          trackingNumber: chosen?.needsTrackingNumber ? typed.trackingNumber : undefined,
           fulfillmentOrderId: parcel.id ?? undefined,
           pickupLocationId: form.pickupLocationId,
           weightGrams: parsed.weightGrams,

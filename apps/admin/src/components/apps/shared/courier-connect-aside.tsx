@@ -24,8 +24,9 @@ import type { ConnectContext, TestOutcome } from './provider-connect-page'
 type CourierConnectAsideProps = {
   providerId: string
   ctx: ConnectContext<TestOutcome>
-  /** The field holding the pickup location's name (couriers spell it differently). */
-  pickupKey: string
+  /** The field holding the pickup location's name (couriers spell it differently); none for a
+   *  courier booked at its own counter (India Post). */
+  pickupKey?: string | undefined
   mode?: ModeSwitch | undefined
 }
 
@@ -60,7 +61,7 @@ export default function CourierConnectAside({
         '—'
       ),
     },
-    { label: copy.pickup, value: (saved[pickupKey] ?? '').trim() || '—' },
+    ...(pickupKey ? [{ label: copy.pickup, value: (saved[pickupKey] ?? '').trim() || '—' }] : []),
     {
       label: copy.lastChecked,
       value: ctx.checkedAt ? <RelativeTime value={ctx.checkedAt} /> : copy.notChecked,

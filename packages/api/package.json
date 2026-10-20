@@ -37,6 +37,7 @@
     "@commerce/plugin-shopify-import": "workspace:*",
     "@commerce/plugins": "workspace:*",
     "@commerce/shipping": "workspace:*",
+    "@commerce/shipping-indiapost": "workspace:*",
     "@commerce/storage": "workspace:*",
     "@orpc/client": "^1.15.2",
     "@orpc/server": "^1.15.2",

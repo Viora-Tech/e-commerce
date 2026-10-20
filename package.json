@@ -73,6 +73,7 @@
     "@commerce/shipping-bluedart": "workspace:*",
     "@commerce/shipping-delhivery": "workspace:*",
     "@commerce/shipping-dtdc": "workspace:*",
+    "@commerce/shipping-indiapost": "workspace:*",
     "@commerce/shipping-rapidshyp": "workspace:*",
     "@commerce/shipping-shiprocket": "workspace:*",
     "@commerce/storage-r2": "workspace:*",

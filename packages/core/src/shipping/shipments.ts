@@ -67,6 +67,8 @@ export type CreateShipmentOptions = {
   codAmountPaise?: number | undefined
   /** The courier service picked in the rate table (`CourierRateRow.serviceId`). */
   serviceId?: string | undefined
+  /** The merchant's own tracking number, for a courier with `requiresTrackingNumber` (India Post). */
+  trackingNumber?: string | undefined
 }
 
 /** One parcel of an order and the units it still has to send, by order line. */
@@ -226,6 +228,7 @@ export async function createShipmentForOrder(
     valuePaise,
     weightGrams,
     ...(options.serviceId ? { serviceId: options.serviceId } : {}),
+    ...(options.trackingNumber ? { trackingNumber: options.trackingNumber } : {}),
   })
 
   // The consignment carries its parcel: the named one, or the order's only one.
@@ -239,6 +242,7 @@ export async function createShipmentForOrder(
       waybill: result.waybill,
       providerRef: result.providerRef ?? null,
       labelUrl: result.labelUrl ?? null,
+      trackingUrl: result.trackingUrl ?? null,
       weightGrams,
       lengthCm: parcelPackage?.lengthCm ?? null,
       widthCm: parcelPackage?.widthCm ?? null,

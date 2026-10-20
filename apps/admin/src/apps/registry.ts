@@ -23,6 +23,9 @@ import GstOrderCard from '@/components/apps/gst-invoices/order-card'
 import QueuePage from '@/components/apps/gst-invoices/queue-page'
 import ReturnsPage from '@/components/apps/gst-invoices/returns-page'
 import GstSettingsEditor from '@/components/apps/gst-invoices/settings-editor'
+import IndiaPostConnectPage from '@/components/apps/india-post/connect-page'
+import IndiaPostLabelPage from '@/components/apps/india-post/label-page'
+import IndiaPostOverviewPage from '@/components/apps/india-post/overview-page'
 import MeilisearchPage from '@/components/apps/meilisearch/settings-page'
 import SesConnectPage from '@/components/apps/messages/ses-connect-page'
 import WhatsappConnectPage from '@/components/apps/messages/whatsapp-connect-page'
@@ -145,6 +148,13 @@ export const ADMIN_APPS: Record<string, AdminApp> = {
       settings: GstSettingsEditor,
     },
     OrderCard: GstOrderCard,
+  },
+  'india-post': {
+    pages: {
+      '': IndiaPostOverviewPage,
+      connect: IndiaPostConnectPage,
+      'labels/[waybill]': IndiaPostLabelPage,
+    },
   },
   rapidshyp: {
     pages: {

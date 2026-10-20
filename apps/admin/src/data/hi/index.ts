@@ -38,6 +38,7 @@ import growth from './growth'
 import gstInvoices from './gst-invoices'
 import home from './home'
 import imageEditor from './image-editor'
+import indiaPost from './india-post'
 import installedApps from './installed-apps'
 import inventory from './inventory'
 import layout from './layout'
@@ -127,6 +128,7 @@ export const hindiCopy: readonly TranslationPair[] = [
   ...gstInvoices,
   ...home,
   ...imageEditor,
+  ...indiaPost,
   ...installedApps,
   ...layout,
   ...marketingAutomations,

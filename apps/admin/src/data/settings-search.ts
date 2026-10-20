@@ -208,6 +208,8 @@ export const SETTINGS_SEARCH_INDEX: SettingsSearchEntry[] = [
       'blue dart',
       'bluedart',
       'dtdc',
+      'india post',
+      'speed post',
       'connect courier',
       'awb',
       'pickup',

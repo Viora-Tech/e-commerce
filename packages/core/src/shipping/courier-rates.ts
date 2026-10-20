@@ -58,6 +58,8 @@ export type CourierRateRow = {
   /** True when `deliveryBy` comes from the store's usual transit days, not the courier. */
   etaFromSettings: boolean
   badges: Array<'cheapest' | 'fastest' | 'recommended'>
+  /** Booked at the courier's counter (India Post): the merchant types the tracking number. */
+  needsTrackingNumber?: boolean | undefined
 }
 
 /**
@@ -85,11 +87,12 @@ async function quoteOneCourier(
   provider: ShippingProvider,
   query: RateQuery,
 ): Promise<CourierRateRow[]> {
-  if (provider.quoteOptions) {
-    const listed = await quoteEveryService(provider, query)
-    if (listed) return listed
-  }
-  return [await quoteSingle(provider, query)]
+  const rows = (provider.quoteOptions && (await quoteEveryService(provider, query))) || [
+    await quoteSingle(provider, query),
+  ]
+  return provider.requiresTrackingNumber
+    ? rows.map((r) => ({ ...r, needsTrackingNumber: true }))
+    : rows
 }
 
 /**

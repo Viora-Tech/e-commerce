@@ -30,6 +30,7 @@
         "@commerce/shipping-bluedart": "workspace:*",
         "@commerce/shipping-delhivery": "workspace:*",
         "@commerce/shipping-dtdc": "workspace:*",
+        "@commerce/shipping-indiapost": "workspace:*",
         "@commerce/shipping-rapidshyp": "workspace:*",
         "@commerce/shipping-shiprocket": "workspace:*",
         "@commerce/storage-r2": "workspace:*",
@@ -327,6 +328,7 @@
         "@commerce/plugin-umami": "workspace:*",
         "@commerce/plugins": "workspace:*",
         "@commerce/shipping": "workspace:*",
+        "@commerce/shipping-indiapost": "workspace:*",
         "@commerce/storage": "workspace:*",
         "@orpc/client": "^1.15.2",
         "@orpc/server": "^1.15.2",
@@ -997,6 +999,29 @@
         "vitest": "^4.1.11",
       },
     },
+    "packages/shipping-indiapost": {
+      "name": "@commerce/shipping-indiapost",
+      "version": "0.0.0",
+      "dependencies": {
+        "@commerce/blocks": "workspace:*",
+        "@commerce/invoices": "workspace:*",
+        "@commerce/money": "workspace:*",
+        "@commerce/plugins": "workspace:*",
+        "@commerce/shipping": "workspace:*",
+        "@react-pdf/renderer": "^4.9.0",
+      },
+      "devDependencies": {
+        "@commerce/config": "workspace:*",
+        "@types/node": "^22.20.4",
+        "@types/react": "^19.2.8",
+        "react": "^19.2.0",
+        "typescript": "~5.9.3",
+        "vitest": "^4.1.11",
+      },
+      "peerDependencies": {
+        "react": "^19.0.0",
+      },
+    },
     "packages/shipping-rapidshyp": {
       "name": "@commerce/shipping-rapidshyp",
       "version": "0.0.0",
@@ -1411,6 +1436,7 @@
 
     "@commerce/shipping-dtdc": ["@commerce/shipping-dtdc@workspace:packages/shipping-dtdc"],
 
+    "@commerce/shipping-indiapost": ["@commerce/shipping-indiapost@workspace:packages/shipping-indiapost"],
     "@commerce/shipping-rapidshyp": ["@commerce/shipping-rapidshyp@workspace:packages/shipping-rapidshyp"],
 
     "@commerce/shipping-shiprocket": ["@commerce/shipping-shiprocket@workspace:packages/shipping-shiprocket"],
