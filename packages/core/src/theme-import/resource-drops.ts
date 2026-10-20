@@ -117,7 +117,6 @@ export class ProductDrop extends Drop {
   readonly created_at: Date
   readonly published_at: Date
   readonly metafields: MetafieldsDrop
-  readonly collections: unknown[] = []
   readonly gift_card = false
   readonly requires_selling_plan = false
   readonly selling_plan_groups: {
@@ -128,8 +127,12 @@ export class ProductDrop extends Drop {
   }[]
   readonly template_suffix = ''
   readonly quantity_price_breaks_configured = false
+  readonly #collectionHandles: string[]
+  readonly #cache: LiquidDataCache
   constructor(p: LiquidProductData, cache: LiquidDataCache) {
     super()
+    this.#collectionHandles = p.collectionHandles ?? []
+    this.#cache = cache
     this.metafields = new MetafieldsDrop(cache, { type: 'product', id: p.id })
     // Pre-order apps on Shopify mark products with a selling plan group; ours is built in.
     this.selling_plan_groups = p.preorder
@@ -178,6 +181,16 @@ export class ProductDrop extends Drop {
   /** Used as a key (`collections[setting]`), a resource reads as its handle, as on Shopify. */
   override valueOf(): string {
     return this.handle
+  }
+  /**
+   * The collections it is in (themes pick related rows and accessories by them), read from the
+   * request's collection list, which is loaded before the first render.
+   */
+  get collections(): CollectionDrop[] {
+    return this.#collectionHandles.flatMap((handle) => {
+      const c = this.#cache.collection(handle)
+      return c ? [new CollectionDrop(c, this.#cache)] : []
+    })
   }
   get options_by_name(): Record<string, unknown> {
     return Object.fromEntries(this.options_with_values.map((o) => [o.name.toLowerCase(), o]))

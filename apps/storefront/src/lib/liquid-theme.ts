@@ -8,6 +8,8 @@ import {
   type LiquidPageContext,
   type LiquidSectionInput,
   liquidPlacement,
+  liquidSectionKey,
+  loadTemplate,
   loadThemeBundle,
   loadThemeDraftBundle,
   mainThemeId,
@@ -18,12 +20,14 @@ import {
   resolveThemeProductId,
   sectionWrapper,
   storeLiquidData,
+  type TemplateKey,
   type ThemeBundle,
   themeImportFor,
 } from '@commerce/core'
-import type { StoreTx } from '@commerce/db'
+import { product as productTable, type StoreTx } from '@commerce/db'
 import { logger } from '@commerce/observability/logging'
 import { reviewsLiquidSource } from '@commerce/plugin-reviews/server'
+import { eq } from 'drizzle-orm'
 import { headers } from 'next/headers'
 import { cache } from 'react'
 import { readCartId } from './cart-cookie'
@@ -443,12 +447,15 @@ export async function renderStaticLiquidSection(
 ): Promise<string | null> {
   const themeId = await requestThemeId(tx, storeId)
   const ctx = themeId ? await liquidContextFor(tx, storeId, themeId) : null
-  if (!ctx) return null
+  if (!themeId || !ctx) return null
   // Shopify's section ids read `template--123__<key>`; the key is the section's type for
   // the sections a theme ships by default.
   const key = sectionType.split('__').pop() ?? sectionType
   const type = [sectionType, key].find((t) => ctx.bundle.sections.has(t))
-  if (!type) return null
+  // A JSON template's key is not always its type (`"related": { "type": "related-products" }`):
+  // the section placed under that key in the path's template, with its own settings.
+  const placed = type ? null : await placedSection(tx, themeId, ctx.bundle, path, key)
+  if (!type && !placed) return null
   const collection = /^\/collections\/([^/]+)/.exec(path)?.[1]
   const product = /^\/products\/([^/]+)/.exec(path)?.[1]
   if (collection) {
@@ -460,9 +467,9 @@ export async function renderStaticLiquidSection(
     if (found) ctx.globals.product = new ProductDrop(found, ctx.cache)
   }
   await prepare?.(ctx)
-  const section: LiquidSectionInput = {
-    id: type,
-    type,
+  const section: LiquidSectionInput = placed ?? {
+    id: type ?? key,
+    type: type ?? key,
     settings: {},
     blocks: [],
     location: 'template',
@@ -471,6 +478,34 @@ export async function renderStaticLiquidSection(
   const html = await renderLiquidSection(ctx, section)
   const w = sectionWrapper(ctx.bundle, section)
   return `<${w.tag} id="${w.id}" class="${w.className}">${html}</${w.tag}>`
+}
+
+/** The template a storefront path renders (`/products/x` → `product`). */
+function templateKeyFor(path: string): TemplateKey {
+  const name = liquidTemplateFor(path)
+  if (name === 'index') return 'home'
+  if (name === '404' || name === 'list-collections' || name === 'customers/account') return 'not_found'
+  return name as TemplateKey
+}
+
+/**
+ * The Liquid section placed under `key` in the template of `path` (Shopify's section ids end
+ * in the template key), as the page itself renders it; null when that template has none.
+ */
+async function placedSection(
+  tx: StoreTx,
+  themeId: string,
+  bundle: ThemeBundle,
+  path: string,
+  key: string,
+): Promise<LiquidSectionInput | null> {
+  const { data } = await loadTemplate(tx, themeId, templateKeyFor(path))
+  const liquid = data.content.filter((item) => item.type === 'LiquidSection')
+  const index = liquid.findIndex((item) => liquidSectionKey(item.props) === key)
+  const item = liquid[index]
+  const type = typeof item?.props.sectionType === 'string' ? item.props.sectionType : ''
+  if (!item || !bundle.sections.has(type)) return null
+  return liquidPlacement(item.props, bundle.sections.get(type)?.schema, 'template', index)
 }
 
 /**
@@ -486,7 +521,13 @@ export async function renderRecommendations(
 ): Promise<string | null> {
   const productId = await resolveThemeProductId(tx, input.productId)
   if (!productId) return null
-  return renderStaticLiquidSection(tx, storeId, input.sectionId, '/', async (ctx) => {
+  const [row] = await tx
+    .select({ handle: productTable.handle })
+    .from(productTable)
+    .where(eq(productTable.id, productId))
+  if (!row) return null
+  const path = `/products/${encodeURIComponent(row.handle)}`
+  return renderStaticLiquidSection(tx, storeId, input.sectionId, path, async (ctx) => {
     const related = await ctx.options.data.relatedProducts(productId, input.limit)
     ctx.globals.recommendations = {
       performed: true,

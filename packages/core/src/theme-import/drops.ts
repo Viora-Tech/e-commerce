@@ -41,6 +41,8 @@ export type LiquidProductData = {
   createdAt: Date
   /** Sold under our pre-order rules; shown to the theme as a "Pre-order" selling plan group. */
   preorder: boolean
+  /** Handles of the active collections it is in (`product.collections`); none when not loaded. */
+  collectionHandles?: string[] | undefined
 }
 
 export type LiquidCollectionData = {
