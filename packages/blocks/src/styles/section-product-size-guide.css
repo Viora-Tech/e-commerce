@@ -189,26 +189,26 @@
 
 /* Figma Section / Size guide (705:122971), guide look: surface cards, the size name in
    24px bold on the left with its measures under it, the match outlined in ink. */
-.size-guide__card {
+.size-guide__card:not(:where(.shopify-section *)) {
   padding: var(--space-5);
   border-color: transparent;
   border-radius: var(--radius-card, var(--radius-m));
   background-color: var(--color-surface);
 }
 
-.size-guide__card.is-match {
+.size-guide__card.is-match:not(:where(.shopify-section *)) {
   border-color: var(--color-ink);
   transform: none;
 }
 
-.size-guide__name {
+.size-guide__name:not(:where(.shopify-section *)) {
   margin-bottom: var(--space-2);
   font-size: calc(1.5rem * var(--font-heading-scale, 1));
   font-weight: 700;
   text-align: start;
 }
 
-.size-guide__badge {
+.size-guide__badge:not(:where(.shopify-section *)) {
   font-family: var(--font-body);
   font-size: 12px;
   font-weight: 500;

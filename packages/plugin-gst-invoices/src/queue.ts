@@ -58,7 +58,7 @@ export async function isTestOrder(tx: StoreTx, orderId: string): Promise<boolean
   return o?.isTest === true
 }
 
-export const TEST_ORDER_MESSAGE =
+const TEST_ORDER_MESSAGE =
   'This is a test order (paid with the payment gateway in test mode). No real money moved, so it gets no GST invoice.'
 
 /** Orders tagged as pre-orders (tag set in settings) are invoiced at dispatch. */

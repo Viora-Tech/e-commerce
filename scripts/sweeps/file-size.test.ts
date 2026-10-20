@@ -28,7 +28,12 @@ const ALLOWLIST: Record<string, { lines: number; reason: string }> = {
   'packages/api/src/services/analytics-reports.ts': { lines: 554, reason: SPLIT },
   'packages/api/src/services/dashboard.service.ts': { lines: 1027, reason: SPLIT },
   'packages/api/src/services/order.service.ts': { lines: 527, reason: SPLIT },
-  'packages/api/src/services/payments-setup.service.ts': { lines: 515, reason: SPLIT },
+  'packages/api/src/services/customer.service.ts': { lines: 509, reason: SPLIT },
+  'packages/api/src/services/payments-setup.service.ts': {
+    lines: 626,
+    reason:
+      'gateway setup plus the Live/Test and Active switches — move the switches into their own module',
+  },
   'packages/api/src/services/product.service.ts': { lines: 501, reason: SPLIT },
   'packages/blocks/src/section-settings.ts': {
     lines: 524,
@@ -55,6 +60,10 @@ const ALLOWLIST: Record<string, { lines: number; reason: string }> = {
     reason: 'Meta and Google Merchant Center adapters in one module — split one file per provider',
   },
   'packages/core/src/theme-code/files.ts': { lines: 550, reason: SPLIT },
+  'packages/core/src/theme-import/resource-drops.ts': {
+    lines: 568,
+    reason: 'Liquid drops for every resource — split collection/search drops into their own module',
+  },
   'packages/db/src/schema.ts': {
     lines: 2446,
     reason: 'the Drizzle schema; split into per-area schema files (like marketing-schema.ts)',

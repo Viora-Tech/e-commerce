@@ -6,6 +6,7 @@ import {
   KEY_PATTERN,
   keyFromName,
   type MetafieldOwnerType,
+  canFilterBy,
   NO_LIST_TYPES,
   PRIVATE_METAFIELD_OWNERS,
   ruleProblems,
@@ -60,6 +61,7 @@ type Draft = {
   list: boolean
   validations: FieldValidations
   storefrontAccess: boolean
+  filterable: boolean
 }
 
 function toDraft(d: MetafieldDefinitionRow | null): Draft {
@@ -73,6 +75,7 @@ function toDraft(d: MetafieldDefinitionRow | null): Draft {
     list: d?.list ?? false,
     validations: (d?.validations as FieldValidations | undefined) ?? {},
     storefrontAccess: d?.storefrontAccess ?? true,
+    filterable: d?.filterable ?? false,
   }
 }
 
@@ -118,6 +121,7 @@ export default function MetafieldDefinitionDialog({
       list: draft.list,
       validations: draft.validations,
       storefrontAccess: draft.storefrontAccess,
+      filterable: draft.filterable,
     }
     setBusy(true)
     try {
@@ -145,6 +149,7 @@ export default function MetafieldDefinitionDialog({
       : [fieldCopy.typeRequired]),
   ]
   const listable = draft.type !== null && !NO_LIST_TYPES.includes(draft.type)
+  const filterable = draft.type !== null && canFilterBy({ ownerType, type: draft.type })
 
   return (
     <Dialog open={open} onOpenChange={(next) => !next && onClose()}>
@@ -236,6 +241,15 @@ export default function MetafieldDefinitionDialog({
               onChange={(storefrontAccess) => patch({ storefrontAccess })}
             />
           )}
+          {filterable ? (
+            <ToggleField
+              id="metafield-filterable"
+              label={copy.filterable}
+              help={copy.filterableHelp}
+              checked={draft.filterable}
+              onChange={(next) => patch({ filterable: next })}
+            />
+          ) : null}
           {draft.type ? (
             <>
               <FieldSeparator />

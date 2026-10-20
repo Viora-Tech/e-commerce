@@ -316,60 +316,60 @@ a.promo-tile:focus-visible {
 /* The section title in the shared H1 style; tiles as borderless surface cards
    on the card radius with 24px gutters, the copy (24px title, a 14px line and
    "Shop now ->") at the foot. */
-.promo-bento__head {
+.promo-bento__head:not(:where(.shopify-section *)) {
   margin-bottom: var(--space-7);
 }
 
-.promo-bento__heading {
+.promo-bento__heading:not(:where(.shopify-section *)) {
   font-size: calc(2rem * var(--font-heading-scale, 1));
   line-height: 1.1;
   letter-spacing: -0.015em;
 }
 
 @media screen and (min-width: 990px) {
-  .promo-bento__heading {
+  .promo-bento__heading:not(:where(.shopify-section *)) {
     font-size: calc(2.5rem * var(--font-heading-scale, 1));
   }
 }
 
-.promo-bento__grid {
+.promo-bento__grid:not(:where(.shopify-section *)) {
   gap: var(--space-5);
 }
 
-.promo-tile {
+.promo-tile:not(:where(.shopify-section *)) {
   border: 0;
   border-radius: var(--radius-card, var(--radius-m));
 }
 
-.promo-tile__copy {
+.promo-tile__copy:not(:where(.shopify-section *)) {
   gap: 6px;
   padding: var(--space-5);
 }
 
-.promo-tile__eyebrow {
+.promo-tile__eyebrow:not(:where(.shopify-section *)) {
   font-size: 12px;
   font-weight: 500;
   letter-spacing: 0.08em;
 }
 
-.promo-tile__title {
+.promo-tile__title:not(:where(.shopify-section *)) {
   font-size: calc(1.5rem * var(--font-heading-scale, 1));
   line-height: 1.2;
   letter-spacing: -0.005em;
 }
 
-.promo-tile--large .promo-tile__title,
-.promo-tile--tall .promo-tile__title {
+.promo-tile--large .promo-tile__title:not(:where(.shopify-section *)),
+.promo-tile--tall .promo-tile__title:not(:where(.shopify-section *)) {
   font-size: calc(2rem * var(--font-heading-scale, 1));
 }
 
-.promo-tile__subtitle {
+.promo-tile__subtitle:not(:where(.shopify-section *)) {
   font-size: 14px;
   line-height: 1.5;
   opacity: 0.75;
 }
 
-.promo-tile__cta {
+.promo-tile__cta:not(:where(.shopify-section *)) {
   display: inline-flex;
   align-items: center;
   gap: 6px;

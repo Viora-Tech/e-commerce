@@ -1,5 +1,6 @@
 import type { StoreTx } from '@commerce/db'
 import { type SQL, sql } from 'drizzle-orm'
+import { FILTERABLE_FIELD_TYPES } from '../metaobjects/schemas'
 import { type BrowseFilters, type BrowseSort, EMPTY_FILTERS } from './browse-params'
 
 /**
@@ -21,6 +22,19 @@ export type BrowseFacets = {
   tags: FacetValue[]
   /** Options such as Size and Colour, with the values any product offers. */
   options: { key: string; name: string; values: FacetValue[] }[]
+  /**
+   * Product extra fields marked "Use as filter" (`namespace.key`, the field's name, its values),
+   * like Shopify's Search & Discovery filters on metafields (Hand size, Grip, Switches). A yes/no
+   * field reads `1` and `0`, as Shopify's boolean filters do.
+   */
+  metafields: MetafieldFacet[]
+}
+
+export type MetafieldFacet = {
+  key: string
+  name: string
+  type: 'list' | 'boolean'
+  values: FacetValue[]
 }
 
 export type BrowseResult = {
@@ -123,6 +137,35 @@ function baseQuery(input: BrowseInput): SQL {
     where p.status = 'active' and not p.is_system_test ${match}`
 }
 
+/**
+ * A filter field's values as text rows (`v.value`), a list field one row per item and a yes/no
+ * field `1` or `0`. Reads `m` (the value) and `d` (its definition).
+ */
+const fieldValues = sql`lateral (
+  select case when d.type = 'boolean' then (case when x.value = 'true' then '1' else '0' end)
+    else trim(x.value) end as value
+  from jsonb_array_elements_text(
+    case when jsonb_typeof(m.value) = 'array' then m.value else jsonb_build_array(m.value) end
+  ) as x(value)
+) as v`
+
+/** Values one filter offers at most; Shopify shows up to 100 as well. */
+const MAX_FIELD_VALUES = 100
+
+/**
+ * Which product extra fields can filter (reads `d`, the definition): the ones marked "Use as
+ * filter" once any field in the store is marked; until then every field of a filterable type,
+ * and `metafieldFacets` keeps the ones whose values read as a filter.
+ */
+const filterField = sql`d.storefront_access and d.owner_type = 'product'
+  and d.type in ${inList([...FILTERABLE_FIELD_TYPES])}
+  and (d.filterable or not exists (
+    select 1 from metafield_definition fd where fd.owner_type = 'product' and fd.filterable
+  ))`
+
+/** Without marked fields: a guessed filter has repeating values, not one spec line apiece. */
+const GUESS = { maxValues: 25, maxLength: 60, perValue: 1.5 }
+
 function filterWhere(f: BrowseFilters): SQL {
   const parts: SQL[] = [sql`true`]
   if (f.available !== null) parts.push(f.available ? sql`b.in_stock` : sql`not b.in_stock`)
@@ -143,7 +186,63 @@ function filterWhere(f: BrowseFilters): SQL {
         and lower(po.name) = ${name} and pov.value in ${inList(values)}
     )`)
   }
+  for (const [field, values] of Object.entries(f.metafields)) {
+    const [namespace = '', key = ''] = field.split('.')
+    parts.push(sql`exists (
+      select 1 from metafield m
+      join metafield_definition d on d.id = m.definition_id
+      cross join ${fieldValues}
+      where m.owner_type = 'product' and m.owner_id = b.id and ${filterField}
+        and d.namespace = ${namespace} and d.key = ${key} and v.value in ${inList(values)}
+    )`)
+  }
   return sql.join(parts, sql` and `)
+}
+
+type FieldRow = {
+  field: string
+  name: string
+  type: string
+  value: string
+  count: number
+  /** The field is marked "Use as filter". */
+  flagged: boolean
+}
+
+/**
+ * The filter fields of a listing from their value counts (rows in definition order): values in
+ * natural order (`2` before `10`), yes before no, at most `MAX_FIELD_VALUES` each. When no field
+ * is marked "Use as filter" (an imported store before anyone ticked one), a field shows when its
+ * values read as a filter: 2 to 25 short values that repeat across products.
+ */
+export function metafieldFacets(rows: FieldRow[]): MetafieldFacet[] {
+  const marked = rows.some((r) => r.flagged)
+  const guessed = (f: MetafieldFacet) => {
+    const n = f.values.length
+    const products = f.values.reduce((sum, v) => sum + v.count, 0)
+    return (
+      n >= 2 &&
+      n <= GUESS.maxValues &&
+      products / n >= GUESS.perValue &&
+      f.values.every((v) => v.value.length <= GUESS.maxLength)
+    )
+  }
+  const out: MetafieldFacet[] = []
+  for (const r of rows) {
+    if (r.value === '') continue
+    let f = out.find((x) => x.key === r.field)
+    if (!f) {
+      f = { key: r.field, name: r.name, type: r.type === 'boolean' ? 'boolean' : 'list', values: [] }
+      out.push(f)
+    }
+    f.values.push({ value: r.value, count: r.count })
+  }
+  const natural = (a: FacetValue, b: FacetValue) =>
+    a.value.localeCompare(b.value, undefined, { numeric: true, sensitivity: 'base' })
+  return out.filter((f) => marked || guessed(f)).map((f) => ({
+    ...f,
+    values: (f.type === 'boolean' ? f.values.sort((a, b) => b.value.localeCompare(a.value)) : f.values.sort(natural)).slice(0, MAX_FIELD_VALUES),
+  }))
 }
 
 function orderBy(sort: BrowseSort): SQL {
@@ -218,6 +317,18 @@ export async function browseProducts(tx: StoreTx, input: BrowseInput): Promise<B
     group by lower(po.name), pov.value
     order by opos, key, vpos, pov.value`)
 
+  const fieldRows = await tx.execute<Row>(sql`
+    with b as (${base})
+    select d.namespace || '.' || d.key as field, min(d.name) as name, min(d.type) as type,
+      v.value, count(distinct b.id) as n, min(d.position) as pos, bool_or(d.filterable) as flagged
+    from b
+    join metafield m on m.owner_type = 'product' and m.owner_id = b.id
+    join metafield_definition d on d.id = m.definition_id and ${filterField}
+    cross join ${fieldValues}
+    where v.value <> ''
+    group by d.namespace, d.key, v.value
+    order by pos, field, v.value`)
+
   const values = (kind: string): FacetValue[] =>
     facetRows
       .filter((r) => r.kind === kind)
@@ -246,6 +357,16 @@ export async function browseProducts(tx: StoreTx, input: BrowseInput): Promise<B
       vendors: values('vendor'),
       tags: values('tag'),
       options,
+      metafields: metafieldFacets(
+        fieldRows.map((r) => ({
+          field: String(r.field),
+          name: String(r.name),
+          type: String(r.type),
+          value: String(r.value),
+          count: num(r.n),
+          flagged: r.flagged === true,
+        })),
+      ),
     },
   }
 }

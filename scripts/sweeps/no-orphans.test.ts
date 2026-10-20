@@ -1266,6 +1266,26 @@ const ALLOWLIST: AllowEntry[] = [
     names: ['orderAllowance'],
     reason: 'no external importer today — billing API not wired into the admin yet',
   },
+  {
+    file: 'packages/core/src/catalog/browse.ts',
+    names: ['metafieldFacets'],
+    reason: 'the extra-field filter grouping behind listing filters, exported for its unit test',
+  },
+  {
+    file: 'packages/core/src/order/test-orders.ts',
+    names: ['discountReleases', 'countTestOrders'],
+    reason: 'test order purge helpers, exported for their unit and database tests',
+  },
+  {
+    file: 'packages/core/src/theme-import/related.ts',
+    names: ['DISCOVERY_NAMESPACE'],
+    reason: 'the Search & Discovery metafield namespace, exported for its unit test',
+  },
+  {
+    file: 'packages/plugin-shopify-import/src/storefront-filters.ts',
+    names: ['filterKeysFromHtml'],
+    reason: 'the filter-key parser behind storefrontFilterKeys, exported for its unit test',
+  },
 ]
 
 function allowlistedNames(file: string): Set<string> {

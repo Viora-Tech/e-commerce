@@ -13,7 +13,7 @@
   color: var(--color-muted);
 }
 
-.category-panels__row {
+.category-panels__row:not(:where(.shopify-section *)) {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
   grid-auto-rows: minmax(15rem, auto);
@@ -21,17 +21,17 @@
 }
 
 @media screen and (min-width: 990px) {
-  .category-panels__row {
+  .category-panels__row:not(:where(.shopify-section *)) {
     grid-template-columns: repeat(2, minmax(0, 1fr));
     grid-auto-rows: minmax(16.5rem, 1fr);
   }
 
-  .category-panel--lead {
+  .category-panel--lead:not(:where(.shopify-section *)) {
     grid-row: span 2;
   }
 }
 
-.category-panel {
+.category-panel:not(:where(.shopify-section *)) {
   position: relative;
   isolation: isolate;
   display: flex;
@@ -44,7 +44,7 @@
   text-decoration: none;
 }
 
-.category-panel__img {
+.category-panel__img:not(:where(.shopify-section *)) {
   position: absolute;
   inset: 0;
   z-index: -1;
@@ -54,17 +54,17 @@
   transition: transform var(--motion-overlay, 300ms) var(--motion-overlay-ease, ease);
 }
 
-.category-panel:hover .category-panel__img {
+.category-panel:hover .category-panel__img:not(:where(.shopify-section *)) {
   transform: scale(1.04);
 }
 
-.category-panel__body {
+.category-panel__body:not(:where(.shopify-section *)) {
   display: flex;
   flex-direction: column;
   gap: 6px;
 }
 
-.category-panel__title {
+.category-panel__title:not(:where(.shopify-section *)) {
   font-family: var(--font-heading);
   font-size: calc(1.5rem * var(--font-heading-scale, 1));
   font-weight: 700;
@@ -72,17 +72,17 @@
   letter-spacing: -0.005em;
 }
 
-.category-panel--lead .category-panel__title {
+.category-panel--lead .category-panel__title:not(:where(.shopify-section *)) {
   font-size: calc(2rem * var(--font-heading-scale, 1));
 }
 
-.category-panel__meta {
+.category-panel__meta:not(:where(.shopify-section *)) {
   color: var(--color-muted);
   font-size: 14px;
   line-height: 1.5;
 }
 
-.category-panel__cta {
+.category-panel__cta:not(:where(.shopify-section *)) {
   display: inline-flex;
   align-items: center;
   gap: 6px;
@@ -92,11 +92,11 @@
 }
 
 /* Over a photo the copy is light; the foot of the photo is darkened under it. */
-.category-panel:has(.category-panel__img) {
+.category-panel:has(.category-panel__img):not(:where(.shopify-section *)) {
   color: #ffffff;
 }
 
-.category-panel:has(.category-panel__img)::after {
+.category-panel:has(.category-panel__img):not(:where(.shopify-section *))::after {
   content: "";
   position: absolute;
   inset: 0;
@@ -104,6 +104,6 @@
   background: linear-gradient(to top, rgb(0 0 0 / 60%), transparent 60%);
 }
 
-.category-panel:has(.category-panel__img) .category-panel__meta {
+.category-panel:has(.category-panel__img) .category-panel__meta:not(:where(.shopify-section *)) {
   color: rgb(255 255 255 / 80%);
 }

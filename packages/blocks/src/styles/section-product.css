@@ -1734,7 +1734,7 @@ html:not(.has-cursor-fill) .share-row__copy:hover {
   background-color: color-mix(in srgb, var(--color-success) 14%, transparent);
 }
 
-.status-chip--out {
+.status-chip--out:not(:where(.shopify-section *)) {
   color: var(--color-danger);
   background-color: color-mix(in srgb, var(--color-danger) 14%, transparent);
 }
@@ -1744,7 +1744,7 @@ html:not(.has-cursor-fill) .share-row__copy:hover {
 /* ------------------------------------------------------------------ */
 /* It takes the spot of the buy buttons, so it reads as a deliberate state:
    a bordered ground with the status chip, a heading and the notify form. */
-.product-notify {
+.product-notify:not(:where(.shopify-section *)) {
   display: grid;
   gap: var(--space-5);
   padding: var(--space-5);
@@ -1753,47 +1753,47 @@ html:not(.has-cursor-fill) .share-row__copy:hover {
   background-color: var(--color-surface, var(--color-bg));
 }
 
-.product-notify__head {
+.product-notify__head:not(:where(.shopify-section *)) {
   display: grid;
   gap: var(--space-2);
 }
 
-.product-notify__head .status-chip {
+.product-notify__head .status-chip:not(:where(.shopify-section *)) {
   justify-self: start;
 }
 
-.product-notify__heading,
-.product-notify__text,
-.product-notify__note,
-.product-notify__error {
+.product-notify__heading:not(:where(.shopify-section *)),
+.product-notify__text:not(:where(.shopify-section *)),
+.product-notify__note:not(:where(.shopify-section *)),
+.product-notify__error:not(:where(.shopify-section *)) {
   margin: 0;
 }
 
-.product-notify__text,
-.product-notify__note {
+.product-notify__text:not(:where(.shopify-section *)),
+.product-notify__note:not(:where(.shopify-section *)) {
   color: var(--color-muted);
 }
 
-.product-notify__form,
-.product-notify__fields {
+.product-notify__form:not(:where(.shopify-section *)),
+.product-notify__fields:not(:where(.shopify-section *)) {
   display: grid;
   gap: var(--space-3);
   margin: 0;
 }
 
-.product-notify__field {
+.product-notify__field:not(:where(.shopify-section *)) {
   display: grid;
   gap: var(--space-1);
   min-width: 0;
 }
 
-.product-notify__label {
+.product-notify__label:not(:where(.shopify-section *)) {
   font-size: 0.8125rem;
   font-weight: 600;
 }
 
 /* 16px minimum so iOS Safari does not zoom in on focus. */
-.product-notify__input {
+.product-notify__input:not(:where(.shopify-section *)) {
   width: 100%;
   min-width: 0;
   padding: var(--space-3);
@@ -1805,16 +1805,16 @@ html:not(.has-cursor-fill) .share-row__copy:hover {
   font-family: inherit;
 }
 
-.product-notify__input:focus-visible {
+.product-notify__input:focus-visible:not(:where(.shopify-section *)) {
   outline: 2px solid var(--color-brand);
   outline-offset: 1px;
 }
 
-.product-notify__submit {
+.product-notify__submit:not(:where(.shopify-section *)) {
   width: 100%;
 }
 
-.product-notify__success {
+.product-notify__success:not(:where(.shopify-section *)) {
   margin: 0;
   padding: var(--space-4);
   border-radius: var(--radius-m);
@@ -1823,12 +1823,12 @@ html:not(.has-cursor-fill) .share-row__copy:hover {
   font-weight: 600;
 }
 
-.product-notify__error {
+.product-notify__error:not(:where(.shopify-section *)) {
   color: var(--color-danger);
   font-size: 0.875rem;
 }
 
-.product-info__rating-value {
+.product-info__rating-value:not(:where(.shopify-section *)) {
   color: var(--color-ink);
   font-weight: 600;
 }
@@ -1839,7 +1839,7 @@ html:not(.has-cursor-fill) .share-row__copy:hover {
 /* Vendor eyebrow over a 40px bold title, rating, the price with its saving and
    −% tag, the tax note and a hairline; then the options, the quantity beside an
    outline Add to cart, a full-width Buy it now and the reassurance chips. */
-.product-info__vendor {
+.product-info__vendor:not(:where(.shopify-section *)) {
   margin: 0;
   color: var(--color-muted);
   font-size: 12px;
@@ -1849,7 +1849,7 @@ html:not(.has-cursor-fill) .share-row__copy:hover {
   text-transform: uppercase;
 }
 
-.product-info__title {
+.product-info__title:not(:where(.shopify-section *)) {
   font-size: calc(2rem * var(--font-heading-scale, 1));
   line-height: 1.1;
   letter-spacing: -0.015em;
@@ -1857,12 +1857,12 @@ html:not(.has-cursor-fill) .share-row__copy:hover {
 }
 
 @media screen and (min-width: 990px) {
-  .product-info__title {
+  .product-info__title:not(:where(.shopify-section *)) {
     font-size: calc(2.5rem * var(--font-heading-scale, 1));
   }
 }
 
-.product-info__price--large {
+.product-info__price--large:not(:where(.shopify-section *)) {
   display: flex;
   flex-direction: column;
   gap: var(--space-2);
@@ -1870,11 +1870,11 @@ html:not(.has-cursor-fill) .share-row__copy:hover {
   border-bottom: 1px solid var(--color-line);
 }
 
-.product-info__price--large .price__current {
+.product-info__price--large .price__current:not(:where(.shopify-section *)) {
   font-size: calc(var(--font-body-size, 16px) * 1.25);
 }
 
-.product-info__tax-note {
+.product-info__tax-note:not(:where(.shopify-section *)) {
   margin: 0;
   color: var(--color-muted);
   font-size: 12px;
@@ -1882,43 +1882,43 @@ html:not(.has-cursor-fill) .share-row__copy:hover {
   line-height: 1.4;
 }
 
-.variant-picker__option-name {
+.variant-picker__option-name:not(:where(.shopify-section *)) {
   font-weight: 500;
   text-transform: none;
   letter-spacing: 0;
 }
 
-.variant-picker__pill {
+.variant-picker__pill:not(:where(.shopify-section *)) {
   height: 40px;
   padding-inline: var(--space-4);
   border-radius: var(--radius-button, var(--radius-m));
 }
 
-.buy-buttons__row {
+.buy-buttons__row:not(:where(.shopify-section *)) {
   align-items: stretch;
 }
 
-.buy-buttons__quantity {
+.buy-buttons__quantity:not(:where(.shopify-section *)) {
   flex: none;
 }
 
-.buy-buttons__submit,
-.buy-buttons__buy-now {
+.buy-buttons__submit:not(:where(.shopify-section *)),
+.buy-buttons__buy-now:not(:where(.shopify-section *)) {
   height: 56px;
   font-size: var(--font-body-size, 16px);
 }
 
-.buy-buttons__buy-now {
+.buy-buttons__buy-now:not(:where(.shopify-section *)) {
   width: 100%;
 }
 
-.buy-buttons__view-cart {
+.buy-buttons__view-cart:not(:where(.shopify-section *)) {
   align-self: flex-start;
   color: var(--color-ink);
   text-underline-offset: 3px;
 }
 
-.trust-badges {
+.trust-badges:not(:where(.shopify-section *)) {
   display: flex;
   flex-wrap: wrap;
   gap: var(--space-2);
@@ -1927,11 +1927,11 @@ html:not(.has-cursor-fill) .share-row__copy:hover {
   overflow: visible;
 }
 
-.trust-badges__item,
-.trust-badges__item:nth-child(2n),
-.trust-badges__item:last-child,
-.trust-badges__item:nth-last-child(2):nth-child(odd),
-.trust-badges__item:last-child:nth-child(odd) {
+.trust-badges__item:not(:where(.shopify-section *)),
+.trust-badges__item:nth-child(2n):not(:where(.shopify-section *)),
+.trust-badges__item:last-child:not(:where(.shopify-section *)),
+.trust-badges__item:nth-last-child(2):nth-child(odd):not(:where(.shopify-section *)),
+.trust-badges__item:last-child:nth-child(odd):not(:where(.shopify-section *)) {
   grid-column: auto;
   gap: 6px;
   padding: 4px 10px;
@@ -1943,22 +1943,22 @@ html:not(.has-cursor-fill) .share-row__copy:hover {
   line-height: 1.4;
 }
 
-.trust-badges__icon {
+.trust-badges__icon:not(:where(.shopify-section *)) {
   color: inherit;
 }
 
-.trust-badges__icon svg {
+.trust-badges__icon svg:not(:where(.shopify-section *)) {
   width: 14px;
   height: 14px;
 }
 
 /* Figma "Check delivery" card (Section / PIN code delivery checker, 706:118273): a
    surface card, the heading over the PIN field and its button, the answer lines under. */
-.section-product .breadcrumbs {
+.section-product .breadcrumbs:not(:where(.shopify-section *)) {
   margin-top: var(--space-5);
 }
 
-.delivery-estimate {
+.delivery-estimate:not(:where(.shopify-section *)) {
   flex-direction: column;
   align-items: stretch;
   gap: var(--space-4);
@@ -1968,7 +1968,7 @@ html:not(.has-cursor-fill) .share-row__copy:hover {
   background-color: var(--color-surface);
 }
 
-.delivery-estimate__heading {
+.delivery-estimate__heading:not(:where(.shopify-section *)) {
   margin: 0;
   color: var(--color-ink);
   font-size: var(--font-body-size, 16px);
@@ -1976,12 +1976,12 @@ html:not(.has-cursor-fill) .share-row__copy:hover {
   line-height: 1.5;
 }
 
-.delivery-estimate__form {
+.delivery-estimate__form:not(:where(.shopify-section *)) {
   display: flex;
   gap: var(--space-2);
 }
 
-.delivery-estimate__form .field__input {
+.delivery-estimate__form .field__input:not(:where(.shopify-section *)) {
   flex: 1 1 auto;
   min-width: 0;
   height: 48px;
@@ -1994,24 +1994,24 @@ html:not(.has-cursor-fill) .share-row__copy:hover {
   font-size: var(--font-body-size, 16px);
 }
 
-.delivery-estimate__form .btn {
+.delivery-estimate__form .btn:not(:where(.shopify-section *)) {
   height: 48px;
   padding-inline: 20px;
 }
 
-.delivery-estimate__result {
+.delivery-estimate__result:not(:where(.shopify-section *)) {
   display: flex;
   flex-direction: column;
   gap: var(--space-2);
 }
 
-.delivery-estimate__result p {
+.delivery-estimate__result p:not(:where(.shopify-section *)) {
   margin: 0;
   color: var(--color-ink);
   font-size: 14px;
 }
 
-.delivery-estimate__change {
+.delivery-estimate__change:not(:where(.shopify-section *)) {
   align-self: flex-start;
   padding: 0;
   border: 0;

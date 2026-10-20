@@ -1,6 +1,35 @@
 /** SOURCE OF TRUTH: related products for imported themes — WHAT: the products Shopify's `/recommendations/products` and the `recommendations` Liquid object show next to a product: first the ones sharing a collection with it, then the ones sharing its product type or tags, never the product itself, only published (active) products / WHY: a theme's "You may also like" row calls Shopify's recommendations endpoint; we answer from our own catalogue, store-scoped by RLS */
 import { collectionProduct, product, type StoreTx } from '@commerce/db'
 import { and, eq, inArray, ne, or, sql } from 'drizzle-orm'
+import { keyFromName } from '../metaobjects/validate'
+import type { LiquidMetafieldData, RecommendationIntent } from './drops'
+
+/**
+ * Where Shopify's Search & Discovery app keeps a product's hand-picked recommendations
+ * (`shopify--discovery--product_recommendation`), as the importer stored the namespace.
+ */
+export const DISCOVERY_NAMESPACE = keyFromName('shopify--discovery--product_recommendation')
+
+const DISCOVERY_KEY: Record<RecommendationIntent, string> = {
+  related: 'related_products',
+  complementary: 'complementary_products',
+}
+
+/** The products a merchant picked for one intent, in their order, from the product's extra fields. */
+export function pickedRecommendationIds(
+  fields: LiquidMetafieldData[],
+  intent: RecommendationIntent,
+): string[] {
+  const field = fields.find(
+    (f) => f.namespace === DISCOVERY_NAMESPACE && f.key === DISCOVERY_KEY[intent],
+  )
+  const values = Array.isArray(field?.value) ? field.value : field?.value ? [field.value] : []
+  const ids = values.flatMap((v) => {
+    const ref = v as { kind?: unknown; id?: unknown }
+    return ref?.kind === 'product' && typeof ref.id === 'string' ? [ref.id] : []
+  })
+  return [...new Set(ids)]
+}
 
 /** Shopify allows 1 to 10 recommendations per request. */
 export const MAX_RECOMMENDATIONS = 10

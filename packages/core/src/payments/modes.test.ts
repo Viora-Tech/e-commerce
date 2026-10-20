@@ -1,3 +1,4 @@
+/** SOURCE OF TRUTH: payment gateway Live/Test modes — WHAT covers activating, deactivating and switching key sets / WHY a switch must never lose a key set or put test keys live */
 import { describe, expect, it } from 'vitest'
 import {
   activateGateway,
@@ -181,8 +182,9 @@ describe('keepReplacedKeySets', () => {
   })
 
   it('leaves a same-mode edit alone and drops a stale waiting copy of the new mode', () => {
-    expect(keepReplacedKeySets({ decentro: dcTest }, { decentro: { ...dcTest, clientId: 'x' } }))
-      .toEqual({ decentro: { ...dcTest, clientId: 'x' } })
+    expect(
+      keepReplacedKeySets({ decentro: dcTest }, { decentro: { ...dcTest, clientId: 'x' } }),
+    ).toEqual({ decentro: { ...dcTest, clientId: 'x' } })
     const before = { decentro: dcTest, [parkedKey('decentro', 'live')]: dcLive }
     const after = { ...before, decentro: { ...dcLive, clientId: 'new' } }
     expect(keepReplacedKeySets(before, after)).toEqual({
@@ -195,7 +197,9 @@ describe('keepReplacedKeySets', () => {
 describe('checkoutTestMode', () => {
   it('is on only while a gateway at checkout runs on test keys', () => {
     expect(checkoutTestMode({ enabled: ['razorpay'], providers: { razorpay: rzpTest } })).toBe(true)
-    expect(checkoutTestMode({ enabled: ['razorpay'], providers: { razorpay: rzpLive } })).toBe(false)
+    expect(checkoutTestMode({ enabled: ['razorpay'], providers: { razorpay: rzpLive } })).toBe(
+      false,
+    )
     expect(checkoutTestMode({ enabled: ['cod'], providers: { razorpay: rzpTest } })).toBe(false)
     expect(
       checkoutTestMode({

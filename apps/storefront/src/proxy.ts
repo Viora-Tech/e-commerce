@@ -14,6 +14,7 @@ import { noteVisit, WARM_USER_AGENT } from './lib/recent-pages'
 import { redirectFor } from './lib/redirects'
 import {
   DERIVED_HEADERS,
+  listingSearch,
   PASSWORD_PREFIX,
   primaryRedirect,
   routeForAccounts,
@@ -122,6 +123,8 @@ async function routeRequest(request: NextRequest, withNonce: (headers: Headers) 
   const posted = request.nextUrl.searchParams.get('form_posted')
   if (posted && /^[a-z_]{1,40}$/.test(posted)) headers.set('x-form-posted', posted)
   headers.set('x-pathname', request.nextUrl.pathname)
+  const listing = listingSearch(request.nextUrl.searchParams)
+  if (listing) headers.set('x-listing', listing)
 
   if (route.kind === 'passthrough') return NextResponse.next({ request: { headers } })
 

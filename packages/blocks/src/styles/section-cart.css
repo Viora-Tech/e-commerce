@@ -1039,7 +1039,7 @@
 /* "Your cart" in 40px with the item count beside it; lines as thumbnail, name,
    variant, stepper and Remove with the total at the right; a surface summary
    card with the code field, the rows, the total, Check out and the ways to pay. */
-.cart-page__title {
+.cart-page__title:not(:where(.shopify-section *)) {
   display: flex;
   align-items: baseline;
   gap: var(--space-3);
@@ -1050,7 +1050,7 @@
   text-transform: none;
 }
 
-.cart-page__count {
+.cart-page__count:not(:where(.shopify-section *)) {
   color: var(--color-muted);
   font-family: var(--font-body);
   font-size: var(--font-body-size, 16px);
@@ -1058,56 +1058,56 @@
   letter-spacing: 0;
 }
 
-.cart-line {
+.cart-line:not(:where(.shopify-section *)) {
   grid-template-columns: 86px minmax(0, 1fr) auto;
   grid-template-areas: 'image info total';
   align-items: start;
   border-bottom: 1px solid var(--color-line);
 }
 
-.cart-line:last-child {
+.cart-line:last-child:not(:where(.shopify-section *)) {
   border-bottom: 1px solid var(--color-line);
 }
 
-.cart-line__image {
+.cart-line__image:not(:where(.shopify-section *)) {
   width: 86px;
   height: 86px;
   border-radius: var(--radius-m);
   background-color: var(--color-card-media);
 }
 
-.cart-line__info {
+.cart-line__info:not(:where(.shopify-section *)) {
   gap: 6px;
 }
 
-.cart-line__title {
+.cart-line__title:not(:where(.shopify-section *)) {
   color: var(--color-ink);
   font-size: 14px;
   font-weight: 500;
 }
 
-.cart-line__variant {
+.cart-line__variant:not(:where(.shopify-section *)) {
   margin: 0;
   color: var(--color-muted);
   font-size: 12px;
 }
 
-.cart-line__actions {
+.cart-line__actions:not(:where(.shopify-section *)) {
   display: flex;
   align-items: center;
   gap: var(--space-3);
   margin-top: var(--space-2);
 }
 
-.cart-line__quantity.quantity-input {
+.cart-line__quantity.quantity-input:not(:where(.shopify-section *)) {
   height: 36px;
 }
 
-.cart-line__quantity .quantity-input__button {
+.cart-line__quantity .quantity-input__button:not(:where(.shopify-section *)) {
   width: 32px;
 }
 
-.cart-line__remove {
+.cart-line__remove:not(:where(.shopify-section *)) {
   padding: 0;
   border: 0;
   background: none;
@@ -1119,14 +1119,14 @@
   cursor: pointer;
 }
 
-.cart-line__total-price {
+.cart-line__total-price:not(:where(.shopify-section *)) {
   grid-area: total;
   color: var(--color-ink);
   font-size: 14px;
   font-weight: 500;
 }
 
-.cart-page__continue {
+.cart-page__continue:not(:where(.shopify-section *)) {
   display: inline-flex;
   align-items: center;
   gap: var(--space-2);
@@ -1135,11 +1135,11 @@
   text-decoration: none;
 }
 
-.cart-page__continue svg {
+.cart-page__continue svg:not(:where(.shopify-section *)) {
   transform: rotate(180deg);
 }
 
-.cart-summary {
+.cart-summary:not(:where(.shopify-section *)) {
   gap: var(--space-4);
   padding: var(--space-5);
   border: 0;
@@ -1147,22 +1147,22 @@
   background-color: var(--color-surface);
 }
 
-.cart-summary__heading {
+.cart-summary__heading:not(:where(.shopify-section *)) {
   font-family: var(--font-heading);
   font-size: 18px;
   font-weight: 700;
 }
 
-.cart-summary__row {
+.cart-summary__row:not(:where(.shopify-section *)) {
   color: var(--color-muted);
   font-size: 14px;
 }
 
-.cart-summary__row > :last-child {
+.cart-summary__row > :last-child:not(:where(.shopify-section *)) {
   color: var(--color-ink);
 }
 
-.cart-summary__row--total {
+.cart-summary__row--total:not(:where(.shopify-section *)) {
   padding-top: var(--space-4);
   border-top: 1px solid var(--color-line);
   color: var(--color-ink);
@@ -1170,11 +1170,11 @@
   font-weight: 700;
 }
 
-.cart-summary__checkout {
+.cart-summary__checkout:not(:where(.shopify-section *)) {
   height: 48px;
 }
 
-.cart-summary__methods {
+.cart-summary__methods:not(:where(.shopify-section *)) {
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
@@ -1184,7 +1184,7 @@
   list-style: none;
 }
 
-.cart-summary__method {
+.cart-summary__method:not(:where(.shopify-section *)) {
   padding: 2px var(--space-2);
   border: 1px solid var(--color-line);
   border-radius: var(--radius-pill);

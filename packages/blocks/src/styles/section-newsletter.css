@@ -443,11 +443,11 @@ html:not(.has-cursor-fill) .newsletter__submit:hover {
 /* ------------------------------------------------------------------ */
 /* A surface card on the card radius: eyebrow, a 32px bold heading, the line,
    then a plain field and a separate button rather than one pill. */
-.newsletter__card {
+.newsletter__card:not(:where(.shopify-section *)) {
   border-radius: var(--radius-card, var(--radius-m));
 }
 
-.newsletter__heading {
+.newsletter__heading:not(:where(.shopify-section *)) {
   font-size: calc(2rem * var(--font-heading-scale, 1));
   font-weight: 700;
   line-height: 1.15;
@@ -455,25 +455,25 @@ html:not(.has-cursor-fill) .newsletter__submit:hover {
   text-transform: none;
 }
 
-.newsletter__eyebrow {
+.newsletter__eyebrow:not(:where(.shopify-section *)) {
   font-family: var(--font-body);
   font-size: 12px;
   font-weight: 500;
   letter-spacing: 0.08em;
 }
 
-.newsletter__field {
+.newsletter__field:not(:where(.shopify-section *)) {
   padding: 0;
   border: 0;
   border-radius: 0;
   background: none;
 }
 
-.newsletter__field:focus-within {
+.newsletter__field:focus-within:not(:where(.shopify-section *)) {
   box-shadow: none;
 }
 
-.newsletter__input {
+.newsletter__input:not(:where(.shopify-section *)) {
   height: 48px;
   padding-inline: 14px;
   border: 1px solid var(--nl-field-border);
@@ -481,11 +481,11 @@ html:not(.has-cursor-fill) .newsletter__submit:hover {
   background-color: var(--nl-field-bg);
 }
 
-.newsletter__input:focus {
+.newsletter__input:focus:not(:where(.shopify-section *)) {
   border-color: var(--nl-ink);
 }
 
-.newsletter__submit {
+.newsletter__submit:not(:where(.shopify-section *)) {
   height: 48px;
   border-radius: var(--radius-button, var(--radius-m));
 }

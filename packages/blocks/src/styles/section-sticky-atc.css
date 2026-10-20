@@ -198,11 +198,11 @@ html.overlay-open .sticky-atc {
 /* Figma Section / Sticky add to cart (706:5320): a full-width surface bar under a
    hairline - the thumbnail, "Name · Variant" and the price on the left, the button on
    the right. The corner look keeps its floating card. */
-.sticky-atc:not(.sticky-atc--corner) {
+.sticky-atc:not(.sticky-atc--corner):not(:where(.shopify-section *)) {
   padding: 0;
 }
 
-.sticky-atc:not(.sticky-atc--corner) .sticky-atc__inner {
+.sticky-atc:not(.sticky-atc--corner) .sticky-atc__inner:not(:where(.shopify-section *)) {
   padding: var(--space-3) var(--page-margin);
   border: 0;
   border-top: 1px solid var(--color-line);
@@ -211,19 +211,19 @@ html.overlay-open .sticky-atc {
   box-shadow: none;
 }
 
-.sticky-atc__image {
+.sticky-atc__image:not(:where(.shopify-section *)) {
   width: 40px;
   height: 40px;
   border-radius: var(--radius-m);
   background-color: var(--color-card-media);
 }
 
-.sticky-atc__title {
+.sticky-atc__title:not(:where(.shopify-section *)) {
   font-size: 14px;
   font-weight: 500;
 }
 
-.sticky-atc__submit {
+.sticky-atc__submit:not(:where(.shopify-section *)) {
   height: 48px;
   padding-inline: var(--space-5);
 }

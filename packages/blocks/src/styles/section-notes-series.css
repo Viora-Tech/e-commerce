@@ -181,7 +181,7 @@
 }
 
 /* Figma Section / Story series (707:122700): eyebrow, H1 and a muted line, then cards whose photo sits on the surface and whose copy sits under it. */
-.notes-series__eyebrow {
+.notes-series__eyebrow:not(:where(.shopify-section *)) {
   color: var(--color-muted);
   font-family: var(--font-body);
   font-size: 12px;
@@ -191,7 +191,7 @@
   text-transform: uppercase;
 }
 
-.notes-series__heading {
+.notes-series__heading:not(:where(.shopify-section *)) {
   font-size: calc(2rem * var(--font-heading-scale, 1));
   line-height: 1.1;
   letter-spacing: -0.015em;
@@ -199,16 +199,16 @@
 }
 
 @media screen and (min-width: 990px) {
-  .notes-series__heading {
+  .notes-series__heading:not(:where(.shopify-section *)) {
     font-size: calc(2.5rem * var(--font-heading-scale, 1));
   }
 }
 
-.notes-series__text {
+.notes-series__text:not(:where(.shopify-section *)) {
   color: var(--color-muted);
 }
 
-.note-card__series {
+.note-card__series:not(:where(.shopify-section *)) {
   color: var(--color-muted);
   font-family: var(--font-body);
   font-size: 12px;
@@ -218,7 +218,7 @@
   text-transform: uppercase;
 }
 
-.note-card__title {
+.note-card__title:not(:where(.shopify-section *)) {
   font-family: var(--font-body);
   font-size: var(--font-body-size, 16px);
   font-weight: 600;
@@ -227,7 +227,7 @@
   letter-spacing: 0;
 }
 
-.note-card__read {
+.note-card__read:not(:where(.shopify-section *)) {
   color: var(--color-ink);
   font-size: 14px;
   font-weight: 500;

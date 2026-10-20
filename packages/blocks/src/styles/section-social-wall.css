@@ -626,7 +626,7 @@ html:not(.has-cursor-fill) .social-wall__tab[aria-selected='true']:hover {
 }
 
 /* Figma Section / Social wall (707:122460): a centred handle eyebrow and H1, square tiles on the card radius, an outline "Follow" button under them. */
-.social-wall__subheading {
+.social-wall__subheading:not(:where(.shopify-section *)) {
   color: var(--color-muted);
   font-family: var(--font-body);
   font-size: 12px;
@@ -636,7 +636,7 @@ html:not(.has-cursor-fill) .social-wall__tab[aria-selected='true']:hover {
   text-transform: uppercase;
 }
 
-.social-wall__heading {
+.social-wall__heading:not(:where(.shopify-section *)) {
   font-size: calc(2rem * var(--font-heading-scale, 1));
   line-height: 1.1;
   letter-spacing: -0.015em;
@@ -644,12 +644,12 @@ html:not(.has-cursor-fill) .social-wall__tab[aria-selected='true']:hover {
 }
 
 @media screen and (min-width: 990px) {
-  .social-wall__heading {
+  .social-wall__heading:not(:where(.shopify-section *)) {
     font-size: calc(2.5rem * var(--font-heading-scale, 1));
   }
 }
 
-.social-tile__media {
+.social-tile__media:not(:where(.shopify-section *)) {
   border-radius: var(--radius-card, var(--radius-m));
   background-color: var(--color-surface);
 }

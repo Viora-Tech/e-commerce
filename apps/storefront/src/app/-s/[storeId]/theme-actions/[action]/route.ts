@@ -104,9 +104,11 @@ export const GET = withEvlog(async (req: Request, { params }: Params) => {
     const productId = url.searchParams.get('product_id') ?? ''
     const sectionId = url.searchParams.get('section_id') ?? ''
     const limit = Number(url.searchParams.get('limit')) || 4
+    // Shopify's intents; anything else is the default, related.
+    const intent = url.searchParams.get('intent') === 'complementary' ? 'complementary' : 'related'
     if (!productId || !/^[a-z0-9_-]{1,120}$/i.test(sectionId)) return notFound()
     const html = await inStore(storeId, (tx) =>
-      renderRecommendations(tx, storeId, { sectionId, productId, limit }),
+      renderRecommendations(tx, storeId, { sectionId, productId, limit, intent }),
     )
     if (html === null) return notFound()
     return new Response(html, { headers: { 'content-type': 'text/html; charset=utf-8' } })

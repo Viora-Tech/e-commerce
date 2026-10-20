@@ -7,6 +7,7 @@ import {
   type LiquidCartData,
   type LiquidPageContext,
   type LiquidSectionInput,
+  type RecommendationIntent,
   liquidPlacement,
   liquidSectionKey,
   loadTemplate,
@@ -110,10 +111,15 @@ export function liquidTemplateFor(path: string): string {
 const requestScope = cache(async (storeId: string) => {
   const h = await headers()
   const path = h.get('x-pathname') ?? '/'
+  const template = liquidTemplateFor(path)
+  // Filters, sort and page shape a collection or search page's listing (`listingSearch`).
+  const listing =
+    template === 'collection' || template === 'search' ? (h.get('x-listing') ?? '') : ''
   return {
     origin: await requestOrigin(),
     path,
-    template: liquidTemplateFor(path),
+    listing,
+    template,
     postedForm: h.get('x-form-posted'),
     nonce: h.get(NONCE_HEADER) ?? '',
     preview: readPreview(storeId, h.get('x-theme-preview')) !== null,
@@ -121,6 +127,13 @@ const requestScope = cache(async (storeId: string) => {
 })
 
 type RequestScope = Awaited<ReturnType<typeof requestScope>>
+
+/** `listingSearch` params as the Liquid listing reads them: one key, its values. */
+function listingQuery(search: string): Record<string, string[]> {
+  const out: Record<string, string[]> = {}
+  for (const [k, v] of new URLSearchParams(search)) (out[k] ??= []).push(v)
+  return out
+}
 
 type ImportedTheme = { bundle: ThemeBundle; shopifyHost: string | null }
 
@@ -192,6 +205,7 @@ async function createLiquidContext(
       origin: scope.origin,
       designMode: false,
       postedForm: scope.postedForm,
+      listing: listingQuery(scope.listing),
       formsAvailable: await cachedForStore(storeId, 'forms-installed', () =>
         formsInstalled(tx, storeId),
       ),
@@ -265,7 +279,8 @@ function cacheScope(
     themeId,
     themeVersion: bundle.version,
     origin: scope.origin,
-    path: scope.path,
+    // A filtered listing is its own page.
+    path: scope.listing ? `${scope.path}?${scope.listing}` : scope.path,
     template: scope.template,
     postedForm: scope.postedForm,
   }
@@ -510,15 +525,16 @@ async function placedSection(
 }
 
 /**
- * Our answer to Shopify's `/recommendations/products?product_id=&limit=&section_id=`: the
- * theme's own section rendered with `recommendations.products` filled from the product's
- * related products (shared collection, then type and tags; published and in stock only).
- * Null when the section is not in the theme, or the product is not ours.
+ * Our answer to Shopify's `/recommendations/products?product_id=&limit=&section_id=&intent=`:
+ * the theme's own section rendered on the product's page with `recommendations` filled. For
+ * `related`, the merchant's Search & Discovery picks, then shared collection, type and tags; for
+ * `complementary`, the picks only. Published and in stock only. Null when the section is not in
+ * the theme, or the product is not ours.
  */
 export async function renderRecommendations(
   tx: StoreTx,
   storeId: string,
-  input: { sectionId: string; productId: string; limit: number },
+  input: { sectionId: string; productId: string; limit: number; intent: RecommendationIntent },
 ): Promise<string | null> {
   const productId = await resolveThemeProductId(tx, input.productId)
   if (!productId) return null
@@ -529,10 +545,10 @@ export async function renderRecommendations(
   if (!row) return null
   const path = `/products/${encodeURIComponent(row.handle)}`
   return renderStaticLiquidSection(tx, storeId, input.sectionId, path, async (ctx) => {
-    const related = await ctx.options.data.relatedProducts(productId, input.limit)
+    const related = await ctx.options.data.relatedProducts(productId, input.limit, input.intent)
     ctx.globals.recommendations = {
       performed: true,
-      intent: 'related',
+      intent: input.intent,
       products: related.map((p) => new ProductDrop(p, ctx.cache)),
       products_count: related.length,
     }

@@ -36,8 +36,11 @@ type BrowseResultsProps = {
   showCount?: boolean | undefined
 }
 
-function chipLabel(kind: string, value: string, f: BrowseFilters): string {
+function chipLabel(kind: string, value: string, f: BrowseFilters, facets: BrowseFacets): string {
   if (kind === 'available') return copy.chip.available(value)
+  // A yes/no extra field reads `1` / `0` in the URL; the chip names the field.
+  const field = facets.metafields.find((m) => kind === `metafield:${m.key}`)
+  if (field?.type === 'boolean') return `${field.name}: ${value === '1' ? copy.yes : copy.no}`
   if (kind === 'price') {
     return copy.chip.price(
       f.priceMin === null ? null : formatPaise(f.priceMin),
@@ -144,7 +147,7 @@ export default function BrowseResults({
           {chips.length > 0 ? (
             <ul className="browse__chips">
               {chips.map((c) => {
-                const label = chipLabel(c.kind, c.value, filters)
+                const label = chipLabel(c.kind, c.value, filters, facets)
                 return (
                   <li key={c.key}>
                     <Link

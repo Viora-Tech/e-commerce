@@ -1,3 +1,10 @@
+/*
+ * These styles load on every storefront page, imported Shopify themes included, and many of
+ * their class names are the Zero Drift theme's (`.badge`, `.price`, `.product-card`...). A rule
+ * that differs from the theme's own copy is written `.x:not(:where(.shopify-section *))`: it
+ * styles our sections only, never an imported Liquid section (Shopify's `.shopify-section`
+ * wrapper), and `:where` keeps its specificity what it was.
+ */
 @import "./base.css";
 @import "./effects.css";
 @import "./editor-overlay.css";

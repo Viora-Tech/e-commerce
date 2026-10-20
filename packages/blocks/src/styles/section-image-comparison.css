@@ -201,18 +201,18 @@
 
 /* Figma Section / Before/after image (706:5388): a 1px white rule, a small pill
    handle with both arrows, and the labels as quiet tags in sentence case. */
-.image-comparison__divider {
+.image-comparison__divider:not(:where(.shopify-section *)) {
   width: 2px;
   box-shadow: none;
 }
 
-.image-comparison__grip {
+.image-comparison__grip:not(:where(.shopify-section *)) {
   width: 42px;
   height: 28px;
   box-shadow: none;
 }
 
-.image-comparison__label {
+.image-comparison__label:not(:where(.shopify-section *)) {
   padding: 3px var(--space-2);
   border: 1px solid rgb(255 255 255 / 16%);
   border-radius: var(--radius-button, var(--radius-m));
@@ -223,14 +223,14 @@
   text-transform: none;
 }
 
-.image-comparison__heading {
+.image-comparison__heading:not(:where(.shopify-section *)) {
   font-size: calc(2rem * var(--font-heading-scale, 1));
   letter-spacing: -0.015em;
   text-align: center;
 }
 
 @media screen and (min-width: 990px) {
-  .image-comparison__heading {
+  .image-comparison__heading:not(:where(.shopify-section *)) {
     font-size: calc(2.5rem * var(--font-heading-scale, 1));
   }
 }
