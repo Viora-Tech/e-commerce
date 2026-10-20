@@ -1,0 +1,25 @@
+{
+  "name": "@commerce/shipping-dtdc",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./client": "./src/client.ts"
+  },
+  "scripts": {
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@commerce/plugins": "workspace:*",
+    "@commerce/shipping": "workspace:*"
+  },
+  "devDependencies": {
+    "@commerce/config": "workspace:*",
+    "@types/node": "^22.20.4",
+    "dotenv": "^18.0.1",
+    "typescript": "~5.9.3",
+    "vitest": "^4.1.11"
+  }
+}

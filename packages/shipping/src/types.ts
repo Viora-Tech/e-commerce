@@ -99,6 +99,18 @@ export type CreateShipmentResult = {
   providerRef: string
   /** What the courier charges for this consignment, when its booking answer says (paise). */
   chargePaise?: number | undefined
+  /**
+   * The label itself, for a courier that hands back the PDF rather than a public link (Blue
+   * Dart's waybill answer carries it; DTDC streams it behind the API key). The platform keeps
+   * it in the store's private storage and points `labelUrl` at the admin's own download, so a
+   * courier credential never ends up in a link. Ignored when `labelUrl` is set.
+   */
+  labelDocument?: ShippingLabelDocument | undefined
+}
+
+export type ShippingLabelDocument = {
+  contentType: 'application/pdf'
+  body: Uint8Array
 }
 
 export type ShipmentStatus =
@@ -351,6 +363,12 @@ export type ShippingProviderFactory<Config> = {
   fields: ProviderField[]
   /** What this adapter can do; the admin uses it to grey out unsupported actions. */
   capabilities: ShippingCapability[]
+  /**
+   * True when `checkServiceability` answers without the merchant's credentials (DTDC's PIN code
+   * lookup is a public endpoint), so a passing lookup proves nothing about the key: the Connect
+   * page's "Test connection" then also runs `verifyCredentials`.
+   */
+  serviceabilityWithoutCredentials?: boolean
   validateConfig(raw: unknown): { ok: true; config: Config } | { ok: false; errors: string[] }
   create(config: Config): ShippingProvider
 }

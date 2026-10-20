@@ -1,6 +1,6 @@
 ---
 title: Couriers
-description: Connect Delhivery, Shiprocket or RapidShyp, then check your courier wallet balance.
+description: Connect Delhivery, Shiprocket, RapidShyp, Blue Dart or DTDC, then check your courier wallet balance.
 ---
 
 # Couriers
@@ -12,7 +12,7 @@ Couriers are apps. Connect one here, then book parcels from [Shipments](/merchan
 If no courier is connected yet you'll see **Connect a courier** with a **Browse courier apps**
 button that opens **Apps**.
 
-<Tabs items={['Delhivery', 'Shiprocket', 'RapidShyp']}>
+<Tabs items={['Delhivery', 'Shiprocket', 'RapidShyp', 'Blue Dart', 'DTDC']}>
 <Tabs.Tab>
 
 From **Apps**, install **Delhivery**, then open its **Connect** page. It takes about a minute.
@@ -127,6 +127,77 @@ Delhivery and Shiprocket.
 </Callout>
 
 </Tabs.Tab>
+<Tabs.Tab>
+
+From **Apps**, install **Blue Dart**, then open its **Connect** page. You need API access on
+your Blue Dart business account first; your Blue Dart account manager turns it on.
+
+<Steps>
+
+### Create an app on the DHL developer portal
+
+Blue Dart's API Gateway lives on [developer.dhl.com](https://developer.dhl.com/). Sign in,
+open **My Apps** and create an app with the Blue Dart APIs (Waybill, Pickup, Tracking, Location
+Finder, Transit Time). The app shows a **Consumer Key** (the Client ID) and a secret.
+
+### Collect your Blue Dart details
+
+From your Blue Dart account manager: the **Login ID**, the **licence key**, your **customer
+code**, and the 3-letter **area code** of the PIN code you ship from (for example `DEL`).
+
+### Paste them in and test
+
+Enter all of them with your **Origin PIN code**, then **Test connection**. Use the **Test /
+Live** switch for sandbox keys. The test signs in to Blue Dart and looks up your origin PIN
+code; nothing is booked.
+
+</Steps>
+
+Booking works for prepaid and cash on delivery (Blue Dart collects the COD amount you set).
+The label PDF comes back with the waybill and stays with the shipment: **Print label** opens it.
+Each waybill also asks Blue Dart to collect the parcel; to schedule pickups yourself from
+**Shipments** instead, turn **Register a pickup with every waybill** off under **Advanced** and
+fill in the pickup address and phone there. Cancelling, and tracking (checked on a schedule)
+work like the other couriers. Bookings use Apex (air) unless you switch on **Book Surface**.
+
+<Callout type="warning">
+  Blue Dart has no rate API, so checkout prices shipping from your own shipping rates, and
+  failed deliveries (NDR) show on the shipment but are handled with Blue Dart directly.
+</Callout>
+
+</Tabs.Tab>
+<Tabs.Tab>
+
+From **Apps**, install **DTDC**, then open its **Connect** page. You need API access on your
+DTDC business account first; your DTDC account manager turns it on.
+
+<Steps>
+
+### Get your API details from DTDC
+
+DTDC emails the **API key** for your **customer code**, and a separate **username and
+password** for its tracking service.
+
+### Paste them in and test
+
+Enter the API key, customer code, **Origin PIN code** and the tracking login, then **Test
+connection**. Use the **Test / Live** switch for a demo key. The test checks the API key and the
+tracking login with DTDC and that DTDC serves your origin PIN code; nothing is booked.
+
+</Steps>
+
+Booking works for prepaid and cash on delivery, and the label PDF is saved with the shipment so
+**Print label** opens it. Bookings use DTDC's `B2C PRIORITY` service unless you enter another
+service name from your contract under **Advanced**. Cancelling and tracking (checked on a
+schedule) work like the other couriers.
+
+<Callout type="warning">
+  Without the tracking username and password, bookings and labels still work but shipments don't
+  track. DTDC has no rate API and collects parcels on your account's daily pickup, so there is no
+  **Schedule pickup** for DTDC.
+</Callout>
+
+</Tabs.Tab>
 </Tabs>
 
 <VideoTip
@@ -143,7 +214,8 @@ wallet is below (₹)** under **Settings → Shipping → When orders go out →
 ₹2,000; below it the strip says "Below your ₹2,000 alert. Recharge before booking more."
 
 Delhivery and RapidShyp don't share their balance over an API, so they get no strip; check the
-balance on their own dashboards.
+balance on their own dashboards. Blue Dart and DTDC have no balance API either,
+so they get no strip.
 
 <Callout type="info">
   **Tip.** Put your real dispatch days, order cutoff (for example `14:00`) and holidays (Diwali,

@@ -2,12 +2,16 @@ import type { ComponentType } from 'react'
 import OverviewPage from '@/components/apps/back-in-stock/overview-page'
 import SettingsEditorBackInStock from '@/components/apps/back-in-stock/settings-editor'
 import SignupsList from '@/components/apps/back-in-stock/signups-list'
+import BluedartConnectPage from '@/components/apps/bluedart/connect-page'
+import BluedartOverviewPage from '@/components/apps/bluedart/overview-page'
 import CashfreeConnectPage from '@/components/apps/cashfree/connect-page'
 import CashfreeOverviewPage from '@/components/apps/cashfree/overview-page'
 import DecentroConnectPage from '@/components/apps/decentro/connect-page'
 import DecentroOverviewPage from '@/components/apps/decentro/overview-page'
 import DelhiveryConnectPage from '@/components/apps/delhivery/connect-page'
 import DelhiveryOverviewPage from '@/components/apps/delhivery/overview-page'
+import DtdcConnectPage from '@/components/apps/dtdc/connect-page'
+import DtdcOverviewPage from '@/components/apps/dtdc/overview-page'
 import EmiSettingsPage from '@/components/apps/emi/settings-page'
 import SubmissionsList from '@/components/apps/forms/submissions-list'
 import InvoiceDetail from '@/components/apps/gst-invoices/invoice-detail'
@@ -70,6 +74,12 @@ export const ADMIN_APPS: Record<string, AdminApp> = {
       settings: SettingsEditorBackInStock,
     },
   },
+  bluedart: {
+    pages: {
+      '': BluedartOverviewPage,
+      connect: BluedartConnectPage,
+    },
+  },
   cashfree: {
     pages: {
       '': CashfreeOverviewPage,
@@ -86,6 +96,12 @@ export const ADMIN_APPS: Record<string, AdminApp> = {
     pages: {
       '': DelhiveryOverviewPage,
       connect: DelhiveryConnectPage,
+    },
+  },
+  dtdc: {
+    pages: {
+      '': DtdcOverviewPage,
+      connect: DtdcConnectPage,
     },
   },
   'emi-pay-later': {

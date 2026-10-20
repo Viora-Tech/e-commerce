@@ -12,7 +12,9 @@ import { searchConsolePlugin } from '@commerce/plugin-search-console'
 import { shopifyImportPlugin } from '@commerce/plugin-shopify-import'
 import { umamiPlugin } from '@commerce/plugin-umami'
 import { defineConfig } from '@commerce/plugins'
+import { bluedartPlugin } from '@commerce/shipping-bluedart'
 import { delhiveryPlugin } from '@commerce/shipping-delhivery'
+import { dtdcPlugin } from '@commerce/shipping-dtdc'
 import { rapidshypPlugin } from '@commerce/shipping-rapidshyp'
 import { shiprocketPlugin } from '@commerce/shipping-shiprocket'
 import { r2Plugin } from '@commerce/storage-r2'
@@ -32,6 +34,8 @@ export default defineConfig({
     delhiveryPlugin,
     shiprocketPlugin,
     rapidshypPlugin,
+    bluedartPlugin,
+    dtdcPlugin,
     sesPlugin,
     whatsappPlugin,
     r2Plugin,
