@@ -274,7 +274,8 @@
 /* Coming soon advances, like low stock does - it is news, not an apology. It
    takes the brand colour rather than the urgent red because a drop is
    something to look forward to, not something about to run out. */
-.product-card__badge--coming {
+.product-card__badge--coming,
+.product-card__badge--preorder {
   background-color: var(--color-brand);
   color: var(--color-bg);
   font-weight: 600;

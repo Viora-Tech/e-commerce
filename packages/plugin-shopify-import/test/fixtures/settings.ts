@@ -21,6 +21,7 @@ export const SHOP = {
     ianaTimezone: 'Asia/Kolkata',
     weightUnit: 'KILOGRAMS',
     taxesIncluded: true,
+    currencyFormats: { moneyFormat: '<span class=money>Rs. {{amount}}</span>' },
     shopAddress: {
       address1: '12 MG Road',
       address2: 'Floor 3',

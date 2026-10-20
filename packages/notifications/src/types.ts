@@ -286,7 +286,17 @@ export type Message = {
   attachments?: Attachment[] | undefined
 }
 
-export type SendResult = { ok: true; providerRef: string } | { ok: false; error: string }
+export type SendResult =
+  | { ok: true; providerRef: string }
+  | {
+      ok: false
+      error: string
+      /**
+       * The provider, not the message, failed (network, throttling, 5xx, account paused), so
+       * another provider may well deliver it. Absent means "don't know": no fallback.
+       */
+      retryable?: boolean | undefined
+    }
 
 /**
  * A marketing send: an email the platform already rendered (campaigns,

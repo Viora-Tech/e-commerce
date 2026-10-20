@@ -6,6 +6,7 @@
  */
 
 import { LIQUID_SECTION } from '../theme-import/fields'
+import { defaultTemplatesContent } from './data/default-templates'
 import { mapNestedBlocks, type StoredBlock } from './nested-blocks'
 
 export const TEMPLATE_KINDS = [
@@ -97,42 +98,54 @@ const data = (content: TemplateSection[]): TemplateData => ({
   zones: {},
 })
 
-/** One of Zero Drift's three signup popups, as `sections/footer-group.json` sets it up. */
-const popup = (id: string, props: Record<string, unknown>): TemplateSection => ({
-  type: 'SignupPopup',
+/** A section with props set over its block's defaults. */
+const withProps = (type: string, id: string, props: Record<string, unknown>): TemplateSection => ({
+  type,
   props: { id, ...props },
 })
 
+const copy = defaultTemplatesContent
+
 /**
- * Zero Drift's footer group (`sections/footer-group.json`), in its order: the newsletter card,
- * the footer, the phone dock, the cookie banner and the three signup popups (one shows per
- * visit at most). Anything not set here takes the blocks' defaults, which are the theme's;
- * product handles are left out because they name the theme store's own products.
+ * Our generic sections only, with neutral copy set on each: several blocks' own defaults are
+ * still the Zero Drift theme's (the Waimers store's own words and links), and a store's
+ * stored `{ id }` rows rely on those, so the new-store copy lives here instead. Zero Drift
+ * pack sections (phone dock, signup popups) are left out; a store adds them on opt-in.
  */
+const HEADER_GROUP: TemplateSection[] = [
+  withProps('AnnouncementBar', 'announcement-bar', {
+    announcements: [{ text: copy.announcement, link: '' }],
+    displayMode: 'rotate',
+    showSocial: false,
+    socials: [],
+  }),
+  // No curated menu cards: the theme's pointed at the Waimers quiz page.
+  withProps('Header', 'header', { featureCards: [] }),
+]
+
 const FOOTER_GROUP: TemplateSection[] = [
-  { type: 'Newsletter', props: { id: 'newsletter', reasons: [] } },
-  section('Footer', 'footer'),
-  section('MobileDock', 'mobile-dock'),
+  withProps('Newsletter', 'newsletter', { ...copy.newsletter, interests: [], reasons: [] }),
+  withProps('Footer', 'footer', { ...copy.footer, helpCards: [], socials: [] }),
   section('CookieBanner', 'cookie-banner'),
-  popup('popup-corner', { style: 'corner', trigger: 'engaged', delay: 20, delayMobile: 30 }),
-  popup('popup-figure', {
-    style: 'figure',
-    trigger: 'exit',
-    kicker: 'Waimers list',
-    text: '',
+]
+
+const HOME: TemplateSection[] = [
+  withProps('Hero', 'hero', {
+    slides: [
+      {
+        kind: 'image',
+        layout: 'full_bleed',
+        heading: copy.hero.heading,
+        subheading: copy.hero.subheading,
+        image: { url: '', alt: '' },
+        cta: { ...copy.hero.cta },
+        textPosition: 'left',
+        colorScheme: 'dark',
+      },
+    ],
   }),
-  popup('popup-feed', {
-    style: 'feed',
-    where: 'collections',
-    collections: 'preorder, holidays-sale',
-    trigger: 'soon',
-    delay: 10,
-    delayMobile: 15,
-    kicker: 'Live on Waimers',
-    heading: 'Never miss a [drop]',
-    text: '',
-    buttonLabel: 'Alert me',
-  }),
+  section('ProductGrid', 'product-grid'),
+  withProps('RichText', 'rich-text', { ...copy.richText }),
 ]
 
 /**
@@ -141,19 +154,11 @@ const FOOTER_GROUP: TemplateSection[] = [
  * did before templates existed.
  */
 export function defaultTemplate(key: TemplateKey): TemplateData {
-  // Zero Drift's header group (`sections/header-group.json`): the announcement bar over the
-  // header. Both take their settings from the blocks' defaults, which are the theme's.
-  if (key === 'header') {
-    return data([section('AnnouncementBar', 'announcement-bar'), section('Header', 'header')])
-  }
-  if (key === 'footer') return data(FOOTER_GROUP)
-  if (key === 'home') {
-    return data([
-      section('Hero', 'hero'),
-      section('ProductGrid', 'product-grid'),
-      section('RichText', 'rich-text'),
-    ])
-  }
+  // Fresh copies each call: callers store and edit what they get back.
+  const fresh = (sections: TemplateSection[]) => data(structuredClone(sections))
+  if (key === 'header') return fresh(HEADER_GROUP)
+  if (key === 'footer') return fresh(FOOTER_GROUP)
+  if (key === 'home') return fresh(HOME)
   const main = MAIN_SECTION[key]
   return data(main ? [section(main, 'main')] : [])
 }

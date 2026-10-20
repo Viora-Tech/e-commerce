@@ -9,10 +9,18 @@ type SwitchFieldProps = {
   help?: string
   checked: boolean
   onChange: (checked: boolean) => void
+  /** While a save is in flight. */
+  disabled?: boolean
 }
 
 /** A setting that is on or off. */
-export default function SwitchField({ label, help, checked, onChange }: SwitchFieldProps) {
+export default function SwitchField({
+  label,
+  help,
+  checked,
+  onChange,
+  disabled,
+}: SwitchFieldProps) {
   // Hooks
   const id = useId()
 
@@ -24,7 +32,7 @@ export default function SwitchField({ label, help, checked, onChange }: SwitchFi
         </Label>
         {help ? <p className="text-caption text-muted-foreground">{help}</p> : null}
       </div>
-      <Switch id={id} checked={checked} onCheckedChange={onChange} />
+      <Switch id={id} checked={checked} onCheckedChange={onChange} disabled={disabled} />
     </div>
   )
 }

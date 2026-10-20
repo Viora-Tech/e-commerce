@@ -18,6 +18,7 @@ import {
 } from '../services/app-connect.service'
 import { disconnectStoreApp, installStoreApp, uninstallStoreApp } from '../services/apps.service'
 import { storeAppSummaries } from '../services/installed-apps.service'
+import { storeOrderActions } from '../services/order-actions.service'
 import { TEST_CONNECTION_RULE } from '../services/shipping.service'
 
 /** A plugin id as commerce.config.ts spells it. */
@@ -53,6 +54,15 @@ export const appsRouter = {
     const pricing = await storeAppAccess(context.tx, context.scope.storeId)
     return apps.map((a) => ({ ...a, billing: pricing[a.id] ?? ({ state: 'free' } as const) }))
   }),
+
+  /**
+   * Actions installed apps add to orders (the order page's More actions, the Orders list's row
+   * menu and bulk bar), grouped by app, limited to what this member may run. Needs only
+   * `orders.read`, unlike `list`, so staff who work orders without settings access see them.
+   */
+  orderActions: can(permissions.ORDERS_READ).handler(({ context }) =>
+    storeOrderActions(context.tx, context.scope.storeId, context.scope.can),
+  ),
 
   /**
    * Install, optionally saving the account typed in the install flow's first step in the same

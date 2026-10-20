@@ -47,6 +47,17 @@ export const themesContent = {
     deleted: 'Theme deleted',
     failed: 'Something went wrong. Try again.',
   },
+  /** Online Store › Themes: opt-in section packs (Zero Drift) for this store's editor. */
+  packs: {
+    heading: 'Section packs',
+    body: 'Extra sections for the theme editor. Pages that already use them keep working either way.',
+    zeroDrift: 'Zero Drift sections',
+    zeroDriftHelp:
+      'The Zero Drift theme’s sections (drops, Discord, social wall, product extras) in Customize’s Add menu.',
+    on: (name: string) => `${name} turned on`,
+    off: (name: string) => `${name} turned off`,
+    failed: 'Could not save. Try again.',
+  },
   addDialog: {
     title: 'Add theme',
     body: 'Start from a preset. Your logo and favicon come along; the theme stays unpublished until you publish it.',

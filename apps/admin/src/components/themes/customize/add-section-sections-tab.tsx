@@ -1,9 +1,10 @@
 'use client'
 
-import { SECTION_CATEGORIES } from '@commerce/blocks/puck'
+import { hiddenPackSections, sectionCategories } from '@commerce/blocks/puck'
 import { GROUP_SECTIONS, type SectionGroup } from '@commerce/core/theme'
 import { SearchX } from '@commerce/ui/icons'
 import { customizeContent } from '@/data/customize'
+import { useThemePacks } from '@/lib/customize-theme-context'
 import AddSectionGroup from './add-section-group'
 import SectionCard from './section-card'
 
@@ -31,15 +32,21 @@ const BLOCK_CATEGORIES = new Set(['layout', 'elements'])
 
 const copy = customizeContent.addSection
 
-/** Categories to offer: the library's sections or blocks for a template, the group's list for a group. */
-function categoriesFor(group: SectionGroup | null, kind: AddKind) {
+/**
+ * Categories to offer: the library's sections or blocks for a template (a theme pack's only
+ * when the store turned it on), the group's list for a group.
+ */
+function categoriesFor(group: SectionGroup | null, kind: AddKind, themePacks: readonly string[]) {
   if (!group)
-    return Object.entries(SECTION_CATEGORIES)
+    return Object.entries(sectionCategories(themePacks))
       .filter(([id]) => BLOCK_CATEGORIES.has(id) === (kind === 'blocks'))
-      .map(([, c]) => ({ title: c.title, types: [...c.components] as string[] }))
+      .flatMap(([, c]) => (c ? [{ title: c.title, types: c.components }] : []))
   // A header or footer group takes its own sections; it has no blocks of its own.
   if (kind === 'blocks') return []
-  const allowed = GROUP_SECTIONS[group].filter((t) => t !== 'Header' && t !== 'Footer')
+  const hidden = hiddenPackSections(themePacks)
+  const allowed = GROUP_SECTIONS[group].filter(
+    (t) => t !== 'Header' && t !== 'Footer' && !hidden.has(t),
+  )
   return [{ title: customizeContent.groups[group], types: [...allowed] }]
 }
 
@@ -66,9 +73,12 @@ export default function SectionsTab({
   onAdd,
   othersMatch,
 }: SectionsTabProps) {
+  // Hooks
+  const themePacks = useThemePacks()
+
   // Early returns
   const needle = query.trim().toLowerCase()
-  const offered = categoriesFor(group, kind)
+  const offered = categoriesFor(group, kind, themePacks)
   if (offered.length === 0) return null
   const categories = offered
     .map((c) => ({ ...c, types: c.types.filter((t) => matches(t, labelOf(t), needle)) }))

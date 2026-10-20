@@ -64,4 +64,32 @@ describe('ses marketing sends', () => {
       }),
     ).toEqual({ ok: false, error: 'throttled' })
   })
+
+  /** An SDK-shaped error: name, message and the extra fields the SDK sets. */
+  const sdkError = (name: string, extra: Record<string, unknown> = {}) =>
+    Object.assign(new Error(name), { name, ...extra })
+  const send = (fail: Error) =>
+    new SesChannel(config, fakeClient([], fail)).sendMarketing({
+      kind: 'email',
+      to: { email: 'a@b.in' },
+      subject: 's',
+      html: '',
+      text: '',
+    })
+
+  it.each([
+    sdkError('ThrottlingException'),
+    sdkError('SendingPausedException'),
+    sdkError('Whatever', { $retryable: { throttling: true } }),
+    sdkError('Whatever', { $fault: 'server' }),
+    sdkError('Whatever', { $metadata: { httpStatusCode: 503 } }),
+    sdkError('Error', { code: 'ECONNRESET' }),
+  ])('marks provider failures retryable (%s)', async (err) => {
+    expect(await send(err)).toMatchObject({ ok: false, retryable: true })
+  })
+
+  it('leaves a rejected message non-retryable', async () => {
+    const r = await send(sdkError('MessageRejected', { $metadata: { httpStatusCode: 400 } }))
+    expect(r).toEqual({ ok: false, error: 'MessageRejected' })
+  })
 })

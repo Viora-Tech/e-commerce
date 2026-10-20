@@ -29,6 +29,10 @@ export type ActionItem = {
   hidden?: boolean | undefined
   /** A rule above this item; destructive items get one automatically. */
   separatorBefore?: boolean | undefined
+  /** Starts a titled group (an app's name over its actions), with a rule above unless first. */
+  heading?: string | undefined
+  /** A stable key when two items may share a label (e.g. two apps' "Create shipment"). */
+  id?: string | undefined
 }
 
 type ActionMenuProps = {
@@ -149,11 +153,16 @@ export default function ActionMenu({
         onClick={guard}
       >
         {visible.map((item, i) => {
-          const rule = item.separatorBefore || (i === firstDestructive && i > 0)
+          const rule = item.separatorBefore || ((i === firstDestructive || item.heading) && i > 0)
           const render = linkFor(item)
           return (
-            <Fragment key={`${item.label}:${item.href ?? ''}`}>
+            <Fragment key={item.id ?? `${item.label}:${item.href ?? ''}`}>
               {rule ? <DropdownMenuSeparator /> : null}
+              {item.heading ? (
+                <div className="truncate px-1.5 py-1 text-caption font-medium text-muted-foreground">
+                  {item.heading}
+                </div>
+              ) : null}
               <DropdownMenuItem
                 variant={item.destructive ? 'destructive' : 'default'}
                 disabled={item.disabled}

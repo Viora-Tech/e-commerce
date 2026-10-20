@@ -56,7 +56,8 @@ export const GET = withEvlog(async (request: Request) => {
     vendor: p.vendor,
     pricePaise: p.pricePaise,
     mrpPaise: p.mrpPaise,
-    available: p.available > 0,
+    // A pre-order still sells past zero stock: not "Sold out" in the dropdown.
+    available: p.available > 0 || Boolean(p.preorder),
     // The result row draws a 3rem thumbnail: the smallest generated variant, not the original.
     image: p.images[0]
       ? { url: p.images[0].variants?.['320']?.webp ?? p.images[0].url, alt: p.images[0].alt }
