@@ -10,7 +10,7 @@ import { useCopy } from '@/hooks/use-copy'
 /** `/apps/fedex`: status, what the connector can do, and a way into the Shipments workspace. */
 export default function OverviewPage() {
   // Hooks
-  const copy = useCopy(fedexAppContent).overview
+  const { overview: copy } = useCopy(fedexAppContent)
 
   // Helpers
   const connectedBody = () => (

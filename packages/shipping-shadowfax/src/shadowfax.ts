@@ -88,12 +88,13 @@ const READABLE = new Set([304, 400, 404])
 const ORIGINAL_STATUS = 'x-shadowfax-status'
 
 function readableErrors(fetchImpl: typeof fetch): typeof fetch {
-  return async (input, init) => {
+  // Cast: Bun's `fetch` type also carries `preconnect`, which a wrapper does not need.
+  return (async (input: Parameters<typeof fetch>[0], init?: Parameters<typeof fetch>[1]) => {
     const res = await fetchImpl(input, init)
     if (!READABLE.has(res.status)) return res
     const text = res.status === 304 ? '{}' : await res.text()
     return new Response(text, { status: 200, headers: { [ORIGINAL_STATUS]: String(res.status) } })
-  }
+  }) as typeof fetch
 }
 
 export class ShadowfaxProvider implements ShippingProvider {

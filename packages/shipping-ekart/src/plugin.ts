@@ -14,7 +14,8 @@ export const ekartPlugin = definePlugin({
   kind: 'connection',
   category: 'shipping',
   company: 'Ekart Logistics (Flipkart)',
-  description: 'Ekart rates, bookings, returns, tracking, cancellation and NDR on Ekart’s own network.',
+  description:
+    'Ekart rates, bookings, returns, tracking, cancellation and NDR on Ekartâ€™s own network.',
   access: {
     resources: [
       {

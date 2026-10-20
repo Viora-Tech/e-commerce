@@ -39,6 +39,6 @@ describe('cleanMoneyFormat', () => {
   it('drops formats that show no amount', () => {
     expect(cleanMoneyFormat('Rs.')).toBeNull()
     expect(cleanMoneyFormat(null)).toBeNull()
-    expect(isMoneyFormat('x'.repeat(70) + '{{amount}}')).toBe(false)
+    expect(isMoneyFormat(`${'x'.repeat(70)}{{amount}}`)).toBe(false)
   })
 })

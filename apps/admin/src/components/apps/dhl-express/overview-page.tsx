@@ -10,7 +10,7 @@ import { useCopy } from '@/hooks/use-copy'
 /** `/apps/dhl-express`: status, what the connector can do, and a way into the Shipments workspace. */
 export default function OverviewPage() {
   // Hooks
-  const copy = useCopy(dhlExpressAppContent).overview
+  const { overview: copy } = useCopy(dhlExpressAppContent)
 
   // Helpers
   const connectedBody = () => (

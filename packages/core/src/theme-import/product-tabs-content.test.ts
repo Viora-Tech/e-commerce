@@ -8,7 +8,8 @@ import { createPageContext } from './page-context'
 import { firstAvailable } from './related'
 import { renderLiquidSection } from './render'
 
-const JUDGE_ME = 'shopify://apps/judge-me-reviews/blocks/review_widget/61ccd3b1-a9f2-4160-9fe9-4fec8413e5d8'
+const JUDGE_ME =
+  'shopify://apps/judge-me-reviews/blocks/review_widget/61ccd3b1-a9f2-4160-9fe9-4fec8413e5d8'
 
 /** A tab that, like Zero Drift's `_tab`, only shows when its children print some text. */
 const TAB = `{%- capture children -%}{%- content_for 'blocks' -%}{%- endcapture -%}
@@ -74,7 +75,7 @@ async function render(
 describe('assign with blank and empty', () => {
   it('stores the empty string, as Shopify does, so it equals blank and has size 0', async () => {
     const html = await render(
-      "{%- assign a = blank -%}{%- assign b = empty -%}[{{ a == blank }}|{{ a == empty }}|{{ a.size }}|{{ b == blank }}|{{ b.size }}|{{ a }}]",
+      '{%- assign a = blank -%}{%- assign b = empty -%}[{{ a == blank }}|{{ a == empty }}|{{ a.size }}|{{ b == blank }}|{{ b.size }}|{{ a }}]',
     )
     expect(html).toBe('[true|true|0|true|0|]')
   })
