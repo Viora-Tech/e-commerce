@@ -6,13 +6,14 @@ import TabbedProducts from './components/product-grid'
 import RichTextBlock from './components/rich-text'
 import SectionFrame from './components/section-frame'
 import SectionHeading from './components/section-heading'
+import { sectionCategories } from './section-categories'
 import {
   defaultSectionSettings,
   migrateSectionSettings,
   type SectionSettingsValue,
   sectionSettingsField,
 } from './section-settings'
-import { type CustomProps, customSections, ELEMENT_BLOCKS, LAYOUT_BLOCKS } from './sections/custom'
+import { type CustomProps, customSections } from './sections/custom'
 import { type DynamicSection, dynamicSections, type SectionSettings } from './sections/dynamic'
 import { type EngageProps, engageSections } from './sections/engage'
 import { type HeroProps, heroBlock } from './sections/hero-block'
@@ -26,13 +27,9 @@ import {
 } from './sections/library'
 import { liquidSectionConfig } from './sections/liquid'
 import { type ModernProps, modernSections } from './sections/modern'
-import { ZERO_DRIFT_SECTIONS, type ZeroDriftProps, zeroDriftSections } from './sections/zero-drift'
+import { type ZeroDriftProps, zeroDriftSections } from './sections/zero-drift'
 import { type ProductGridProps, tabbedProductsSection } from './sections/zero-drift/tabbed-products'
-import {
-  ZERO_DRIFT_PRODUCT_SECTIONS,
-  type ZeroDriftProductProps,
-  zeroDriftProductSections,
-} from './sections/zero-drift-product'
+import { type ZeroDriftProductProps, zeroDriftProductSections } from './sections/zero-drift-product'
 import type { CardProduct } from './types'
 
 export type { ArticleLoader, BlogPostsProps } from './blog-posts-block'
@@ -136,6 +133,11 @@ export type BlocksConfigOptions = {
   loadCollections?: CollectionLoader | undefined
   /** One product for the featured product section. */
   loadProduct?: SingleProductLoader | undefined
+  /**
+   * The store's opt-in theme packs (`store.apps.settings.core.themePacks`). Only decides which
+   * sections the Add menu offers (`sectionCategories`); every section still renders.
+   */
+  themePacks?: readonly string[] | undefined
 }
 
 export type BlockProps = {
@@ -154,85 +156,15 @@ export type BlockProps = {
   CustomProps &
   Record<DynamicSection | 'LiquidSection', SectionSettings>
 
-/**
- * The add-section menu, in Shopify's order. Main sections and the header and
- * footer are placed by their template or group, never added from here.
- */
-export const SECTION_CATEGORIES = {
-  // Rebuilt from our own Shopify theme, Zero Drift; see ./sections/zero-drift.tsx.
-  zeroDrift: { title: 'Zero Drift theme', components: ZERO_DRIFT_SECTIONS },
-  banners: {
-    title: 'Banners',
-    components: [
-      'Hero',
-      'ImageBanner',
-      'ImageWithText',
-      'AnnouncementBar',
-      'SpotlightHero',
-      'SplitHero',
-      'VideoHero',
-      'CtaBanner',
-      'SaleCountdown',
-      'ProductLaunch',
-      'OffersStrip',
-      // The starter kit (`./sections/kit.tsx`).
-      'GridHero',
-      'RotatingHero',
-      'ShowcaseHero',
-      'CtaCard',
-      'CtaSplit',
-      'FeatureChecklist',
-    ],
-  },
-  text: {
-    title: 'Text',
-    components: [
-      'RichText',
-      'Multicolumn',
-      'Testimonials',
-      'Faq',
-      'LogoList',
-      'BentoGrid',
-      'StatsCounter',
-      'FaqAccordion',
-      'TestimonialMarquee',
-      'LogoMarquee',
-      'StatsCards',
-      'FeatureCards',
-      'FeatureSteps',
-      'TestimonialGrid',
-      'TestimonialSpotlight',
-      'FaqSplit',
-      'ComparisonTable',
-      'PricingCards',
-      'Timeline',
-      'TeamGrid',
-      'TrustBadges',
-    ],
-  },
-  products: {
-    title: 'Products',
-    components: [
-      'ProductGrid',
-      'FeaturedProducts',
-      'CollectionGrid',
-      'FeaturedProduct',
-      'CollectionList',
-      'RelatedProducts',
-      'RecentlyViewed',
-      // The Zero Drift theme's product-page sections; see ./sections/zero-drift-product.tsx.
-      ...ZERO_DRIFT_PRODUCT_SECTIONS,
-    ],
-  },
-  media: { title: 'Media', components: ['Video', 'Gallery', 'LogoCloud', 'Lookbook'] },
-  more: {
-    title: 'More',
-    components: ['BlogPosts', 'Newsletter', 'NewsletterBand', 'StoreLocator'],
-  },
-  // Build your own: containers whose content is slots, and the elements that go in them.
-  layout: { title: 'Layout', components: LAYOUT_BLOCKS },
-  elements: { title: 'Elements', components: ELEMENT_BLOCKS },
-} as const
+export {
+  hiddenPackSections,
+  SECTION_CATEGORIES,
+  type SectionCategory,
+  type SectionCategoryId,
+  sectionCategories,
+  THEME_PACK_SECTIONS,
+  ZERO_DRIFT_PACK,
+} from './section-categories'
 
 /**
  * App blocks (Shopify's "app blocks"): sections the plugin SDK's
@@ -274,29 +206,11 @@ export function createBlocksConfig(
   return {
     appBlockOwners: appBlocks.owners,
     categories: {
-      zeroDrift: {
-        ...SECTION_CATEGORIES.zeroDrift,
-        components: [...SECTION_CATEGORIES.zeroDrift.components],
-      },
-      banners: {
-        ...SECTION_CATEGORIES.banners,
-        components: [...SECTION_CATEGORIES.banners.components],
-      },
-      text: { ...SECTION_CATEGORIES.text, components: [...SECTION_CATEGORIES.text.components] },
-      products: {
-        ...SECTION_CATEGORIES.products,
-        components: [...SECTION_CATEGORIES.products.components],
-      },
-      media: { ...SECTION_CATEGORIES.media, components: [...SECTION_CATEGORIES.media.components] },
-      more: { ...SECTION_CATEGORIES.more, components: [...SECTION_CATEGORIES.more.components] },
-      layout: {
-        ...SECTION_CATEGORIES.layout,
-        components: [...SECTION_CATEGORIES.layout.components],
-      },
-      elements: {
-        ...SECTION_CATEGORIES.elements,
-        components: [...SECTION_CATEGORIES.elements.components],
-      },
+      // Our own groups first; a theme pack's sections only for a store that turned it on.
+      ...(sectionCategories(options.themePacks) as Record<
+        string,
+        { title: string; components: (keyof BlockProps)[] }
+      >),
       // App block types are dynamic (one per installed plugin's block), so the category's
       // components list is cast the same way `components` below is for library/dynamic sections.
       [APPS_CATEGORY]: {
