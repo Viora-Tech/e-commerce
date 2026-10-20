@@ -48,8 +48,8 @@ function pointsFor(
   dayLabel: (iso: string) => string,
 ): SalesChartPoint[] {
   const figures = data.metrics[metric]
-  /* Visitors are counted by the day, so a single day has no visitor or conversion line. */
-  if (data.hourly && (metric === 'visitors' || metric === 'conversion')) return []
+  /* Visitors are counted by the day, so a single day has no visitor line. */
+  if (data.hourly && metric === 'visitors') return []
   const shape = (values: number[]) => (data.hourly ? shapeHourly(metric, values) : values)
   const now = shape(figures.series)
   const before = figures.previousSeries ? shape(figures.previousSeries) : null
@@ -58,6 +58,11 @@ function pointsFor(
     value: now[i] ?? 0,
     before: before ? (before[i] ?? null) : null,
   }))
+}
+
+/** The tile whose chart opens: Total sales when it is on show, else the first tile. */
+function openingMetric(tiles: HomeMetric[]): HomeMetric {
+  return tiles.includes('sales') ? 'sales' : (tiles[0] ?? 'sales')
 }
 
 /**
@@ -76,7 +81,7 @@ export default function SalesHero({ initial, liveNow }: SalesHeroProps) {
   const [data, setData] = useState(initial.analytics)
   const [loading, setLoading] = useState(false)
   const [tiles, setTiles] = useState(initial.tiles)
-  const [metric, setMetric] = useState<HomeMetric>(initial.tiles[0] ?? 'sales')
+  const [metric, setMetric] = useState<HomeMetric>(openingMetric(initial.tiles))
   const [customizing, setCustomizing] = useState(false)
   const first = useRef(true)
 
@@ -119,7 +124,7 @@ export default function SalesHero({ initial, liveNow }: SalesHeroProps) {
     if (already >= 0) next[already] = next[slot] ?? picked
     next[slot] = picked
     setTiles(next)
-    if (!next.includes(metric)) setMetric(next[0] ?? 'sales')
+    if (!next.includes(metric)) setMetric(openingMetric(next))
     api.dashboard.setTiles({ tiles: next }).catch(() => toast.error(content.sales.tilesSaveFailed))
   }
 
@@ -134,9 +139,9 @@ export default function SalesHero({ initial, liveNow }: SalesHeroProps) {
   const beforeLabel =
     compare === 'year' ? copy.vsYear : singleDay ? copy.series.yesterday : copy.vsPeriod
   const emptyText =
-    data.hourly && (metric === 'visitors' || metric === 'conversion')
+    data.hourly && metric === 'visitors'
       ? copy.noHourly
-      : metric === 'visitors' || metric === 'conversion'
+      : metric === 'sessions' || metric === 'visitors' || metric === 'conversion'
         ? copy.emptyVisitors
         : copy.empty
 

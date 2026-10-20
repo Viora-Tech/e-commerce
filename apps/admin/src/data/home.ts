@@ -77,7 +77,7 @@ export const homePageContent = {
     viewReport: 'View sales report',
     vsYesterday: 'vs yesterday',
     noCompare: 'No comparison',
-    emptyVisitors: 'Visitor numbers will show here once shoppers start visiting your store.',
+    emptyVisitors: 'Sessions will show here once shoppers start visiting your store.',
     /** The range picker (Figma 580:692 "Today ▾"). */
     ranges: {
       today: 'Today',
@@ -118,6 +118,7 @@ export const homePageContent = {
       sales: 'Total sales',
       orders: 'Orders',
       aov: 'Average order value',
+      sessions: 'Sessions',
       visitors: 'Visitors',
       conversion: 'Conversion rate',
       returning: 'Returning customers',

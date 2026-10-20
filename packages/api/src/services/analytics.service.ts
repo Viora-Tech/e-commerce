@@ -11,7 +11,7 @@ import {
   variant,
 } from '@commerce/db'
 import { and, asc, count, desc, eq, gte, inArray, lt, ne, sql, sum } from 'drizzle-orm'
-import type { DailyVisitors, LiveVisitors, VisitorSource } from '../context'
+import type { LiveVisitors, VisitorSource } from '../context'
 import {
   averageOrderValue,
   bucketByDay,
@@ -28,6 +28,7 @@ import {
   toDailyPoints,
   toWeeklyPoints,
 } from './analytics-buckets'
+import { countSessions, totalSessions } from './sessions'
 
 /** Drafts are not orders: they never reach revenue, counts or the funnel. */
 const notDraft = ne(order.status, 'draft')
@@ -103,15 +104,6 @@ async function ordersIn(tx: StoreTx, from: Date, to: Date): Promise<OrderRow[]> 
     .where(and(counted, gte(order.placedAt, from), lt(order.placedAt, to)))
 }
 
-async function sessionsFor(
-  visitors: VisitorSource | undefined,
-  storeId: string | undefined,
-  days: string[],
-): Promise<DailyVisitors> {
-  if (!visitors?.daily || !storeId) return { perDay: days.map(() => 0), total: 0 }
-  return visitors.daily(storeId, days)
-}
-
 /** Orders whose customer had already ordered before the order in question. */
 async function returningOrderIds(tx: StoreTx, rows: OrderRow[]): Promise<Set<string>> {
   const ids = [...new Set(rows.map((r) => r.customerId).filter((v): v is string => v !== null))]
@@ -167,15 +159,16 @@ export async function analyticsOverview(
     ordersIn(tx, range.from, range.to),
     ordersIn(tx, range.previousFrom, range.previousTo),
   ])
-  const sessions = await sessionsFor(opts.visitors, opts.storeId, range.days)
+  const [sessionsPerDay, sessionsPrev] = await Promise.all([
+    countSessions(tx, range, false),
+    totalSessions(tx, range.previousFrom, range.previousTo),
+  ])
 
   const revenue = current.reduce((n, r) => n + r.totalPaise, 0)
   const revenuePrev = previous.reduce((n, r) => n + r.totalPaise, 0)
   const returning = await returningOrderIds(tx, current)
   const returningPrev = await returningOrderIds(tx, previous)
-  const sessionTotal = sessions.total
-  /* No historical session store, so the comparison period reads zero rather than a wrong number. */
-  const sessionsPrev = 0
+  const sessionTotal = sessionsPerDay.reduce((n, v) => n + v, 0)
 
   const revenueByDay = bucketByDay(
     current.map((r) => ({ at: r.placedAt, weight: r.totalPaise })),
@@ -196,14 +189,7 @@ export async function analyticsOverview(
       value: sessionTotal,
       previous: sessionsPrev,
       delta: delta(sessionTotal, sessionsPrev),
-      series: sessions.perDay,
-    },
-    {
-      id: 'orders',
-      value: current.length,
-      previous: previous.length,
-      delta: delta(current.length, previous.length),
-      series: ordersByDay,
+      series: sessionsPerDay,
     },
     {
       id: 'revenue',
@@ -213,11 +199,21 @@ export async function analyticsOverview(
       series: revenueByDay,
     },
     {
+      id: 'orders',
+      value: current.length,
+      previous: previous.length,
+      delta: delta(current.length, previous.length),
+      series: ordersByDay,
+    },
+    {
       id: 'conversion',
       value: conversionRate(current.length, sessionTotal),
       previous: conversionRate(previous.length, sessionsPrev),
-      delta: null,
-      series: ordersByDay.map((o, i) => conversionRate(o, sessions.perDay[i] ?? 0)),
+      delta: delta(
+        conversionRate(current.length, sessionTotal),
+        conversionRate(previous.length, sessionsPrev),
+      ),
+      series: ordersByDay.map((o, i) => conversionRate(o, sessionsPerDay[i] ?? 0)),
     },
     {
       id: 'aov',
