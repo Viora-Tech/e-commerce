@@ -7,6 +7,7 @@ import {
   type LiquidCartData,
   type LiquidPageContext,
   type LiquidSectionInput,
+  type RecommendationIntent,
   liquidPlacement,
   liquidSectionKey,
   loadTemplate,
@@ -510,15 +511,16 @@ async function placedSection(
 }
 
 /**
- * Our answer to Shopify's `/recommendations/products?product_id=&limit=&section_id=`: the
- * theme's own section rendered with `recommendations.products` filled from the product's
- * related products (shared collection, then type and tags; published and in stock only).
- * Null when the section is not in the theme, or the product is not ours.
+ * Our answer to Shopify's `/recommendations/products?product_id=&limit=&section_id=&intent=`:
+ * the theme's own section rendered on the product's page with `recommendations` filled. For
+ * `related`, the merchant's Search & Discovery picks, then shared collection, type and tags; for
+ * `complementary`, the picks only. Published and in stock only. Null when the section is not in
+ * the theme, or the product is not ours.
  */
 export async function renderRecommendations(
   tx: StoreTx,
   storeId: string,
-  input: { sectionId: string; productId: string; limit: number },
+  input: { sectionId: string; productId: string; limit: number; intent: RecommendationIntent },
 ): Promise<string | null> {
   const productId = await resolveThemeProductId(tx, input.productId)
   if (!productId) return null
@@ -529,10 +531,10 @@ export async function renderRecommendations(
   if (!row) return null
   const path = `/products/${encodeURIComponent(row.handle)}`
   return renderStaticLiquidSection(tx, storeId, input.sectionId, path, async (ctx) => {
-    const related = await ctx.options.data.relatedProducts(productId, input.limit)
+    const related = await ctx.options.data.relatedProducts(productId, input.limit, input.intent)
     ctx.globals.recommendations = {
       performed: true,
-      intent: 'related',
+      intent: input.intent,
       products: related.map((p) => new ProductDrop(p, ctx.cache)),
       products_count: related.length,
     }

@@ -45,6 +45,9 @@ export type LiquidProductData = {
   collectionHandles?: string[] | undefined
 }
 
+/** Shopify's recommendation intents (`/recommendations/products?intent=`). */
+export type RecommendationIntent = 'related' | 'complementary'
+
 export type LiquidCollectionData = {
   id: string
   handle: string
@@ -187,8 +190,16 @@ export type LiquidDataSource = {
     | ((handles: string[], limit: number) => Promise<Map<string, LiquidProductData[]>>)
     | undefined
   collections(): Promise<LiquidCollectionData[]>
-  /** Products related to one (our UUID): shared collection first, then type and tags; available ones only. */
-  relatedProducts(productId: string, limit: number): Promise<LiquidProductData[]>
+  /**
+   * Shopify's product recommendations for one product (our UUID), available ones only.
+   * `related`: the merchant's picks (Search & Discovery's `related_products`), then shared
+   * collection, type and tags. `complementary`: the merchant's `complementary_products` only.
+   */
+  relatedProducts(
+    productId: string,
+    limit: number,
+    intent?: RecommendationIntent,
+  ): Promise<LiquidProductData[]>
   menu(handle: string): Promise<LiquidMenuData | null>
   blog(handle: string): Promise<LiquidBlogData | null>
   page(handle: string): Promise<LiquidPageData | null>

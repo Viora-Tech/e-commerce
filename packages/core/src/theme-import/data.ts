@@ -30,7 +30,7 @@ import type {
 import { loadImportedFiles } from './imported-files'
 import { uuidPrefixOf } from './numeric-id'
 import { collectionsProducts, loadProducts, productsByHandles } from './product-data'
-import { MAX_RECOMMENDATIONS, relatedProductIds } from './related'
+import { MAX_RECOMMENDATIONS, pickedRecommendationIds, relatedProductIds } from './related'
 import { richTextHtml } from './rich-html'
 
 export type StoreLiquidDataOptions = {
@@ -242,10 +242,14 @@ export async function storeLiquidData(
       }),
     collectionsProducts: (handles, limit) => collectionsProducts(tx, handles, limit),
     collections: collectionList,
-    relatedProducts: (productId, limit) =>
-      once(`rel:${productId}:${limit}`, async () => {
+    relatedProducts: (productId, limit, intent = 'related') =>
+      once(`rel:${productId}:${limit}:${intent}`, async () => {
         const wanted = Math.min(Math.max(1, Math.trunc(limit) || 4), MAX_RECOMMENDATIONS)
-        const ids = await relatedProductIds(tx, productId)
+        // The merchant's picks first (Search & Discovery); complementary has nothing else.
+        const fields = (await loadMetafields(tx, 'product', [productId])).metafields[productId]
+        const picked = pickedRecommendationIds(fields ?? [], intent).filter((id) => id !== productId)
+        const auto = intent === 'related' ? await relatedProductIds(tx, productId) : []
+        const ids = [...new Set([...picked, ...auto])]
         // Over-read: sold-out products are dropped after loading (stock lives on the variants).
         const loaded = await loadProducts(tx, ids.slice(0, wanted * 3))
         return loaded.filter((p) => p.variants.some((v) => v.available)).slice(0, wanted)

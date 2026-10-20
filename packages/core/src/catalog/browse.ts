@@ -21,6 +21,12 @@ export type BrowseFacets = {
   tags: FacetValue[]
   /** Options such as Size and Colour, with the values any product offers. */
   options: { key: string; name: string; values: FacetValue[] }[]
+  /**
+   * Product extra fields that read as filters (`namespace.key`, the field's name, its values):
+   * short text, choice or number values that several products share, like Shopify's
+   * Search & Discovery filters on metafields (Hand size, Grip, Switches).
+   */
+  metafields: { key: string; name: string; values: FacetValue[] }[]
 }
 
 export type BrowseResult = {
@@ -123,6 +129,18 @@ function baseQuery(input: BrowseInput): SQL {
     where p.status = 'active' and not p.is_system_test ${match}`
 }
 
+/** Extra field types a shopper can filter by: one short value per item. */
+const FILTER_FIELD_TYPES = ['single_line_text', 'choice', 'number_integer', 'number_decimal']
+
+/** An extra field's values as text rows (`v.value`), a list field one row per item. */
+const fieldValues = sql`jsonb_array_elements_text(
+  case when jsonb_typeof(m.value) = 'array' then m.value else jsonb_build_array(m.value) end
+) as v(value)`
+
+/** Facet limits: a field with more values than this, or longer ones, is a spec, not a filter. */
+const MAX_FIELD_VALUES = 25
+const MAX_VALUE_LENGTH = 60
+
 function filterWhere(f: BrowseFilters): SQL {
   const parts: SQL[] = [sql`true`]
   if (f.available !== null) parts.push(f.available ? sql`b.in_stock` : sql`not b.in_stock`)
@@ -143,7 +161,43 @@ function filterWhere(f: BrowseFilters): SQL {
         and lower(po.name) = ${name} and pov.value in ${inList(values)}
     )`)
   }
+  for (const [field, values] of Object.entries(f.metafields)) {
+    const [namespace = '', key = ''] = field.split('.')
+    parts.push(sql`exists (
+      select 1 from metafield m
+      join metafield_definition d on d.id = m.definition_id
+      cross join lateral ${fieldValues}
+      where m.owner_type = 'product' and m.owner_id = b.id and d.storefront_access
+        and d.namespace = ${namespace} and d.key = ${key} and v.value in ${inList(values)}
+    )`)
+  }
   return sql.join(parts, sql` and `)
+}
+
+type FieldRow = { field: string; name: string; value: string; count: number }
+
+/**
+ * Which extra fields show as filters, from their value counts in the listing (rows in
+ * definition order): two or more values, at most `MAX_FIELD_VALUES`, and values that repeat
+ * (on average shared by at least 1.5 products), so a per-product spec line never shows.
+ */
+export function metafieldFacets(rows: FieldRow[]): BrowseFacets['metafields'] {
+  const out: BrowseFacets['metafields'] = []
+  for (const r of rows) {
+    let f = out.find((x) => x.key === r.field)
+    if (!f) {
+      f = { key: r.field, name: r.name, values: [] }
+      out.push(f)
+    }
+    f.values.push({ value: r.value, count: r.count })
+  }
+  return out
+    .filter((f) => {
+      const n = f.values.length
+      const products = f.values.reduce((sum, v) => sum + v.count, 0)
+      return n >= 2 && n <= MAX_FIELD_VALUES && products / n >= 1.5
+    })
+    .map((f) => ({ ...f, values: f.values.sort((a, b) => a.value.localeCompare(b.value)) }))
 }
 
 function orderBy(sort: BrowseSort): SQL {
@@ -217,6 +271,19 @@ export async function browseProducts(tx: StoreTx, input: BrowseInput): Promise<B
     group by lower(po.name), pov.value
     order by opos, key, vpos, pov.value`)
 
+  const fieldRows = await tx.execute<Row>(sql`
+    with b as (${base})
+    select d.namespace || '.' || d.key as field, min(d.name) as name, v.value,
+      count(distinct b.id) as n, min(d.position) as pos
+    from b
+    join metafield m on m.owner_type = 'product' and m.owner_id = b.id
+    join metafield_definition d on d.id = m.definition_id and d.storefront_access
+      and d.type in ${inList(FILTER_FIELD_TYPES)}
+    cross join lateral ${fieldValues}
+    where length(trim(v.value)) between 1 and ${MAX_VALUE_LENGTH}
+    group by d.namespace, d.key, v.value
+    order by pos, field, v.value`)
+
   const values = (kind: string): FacetValue[] =>
     facetRows
       .filter((r) => r.kind === kind)
@@ -245,6 +312,14 @@ export async function browseProducts(tx: StoreTx, input: BrowseInput): Promise<B
       vendors: values('vendor'),
       tags: values('tag'),
       options,
+      metafields: metafieldFacets(
+        fieldRows.map((r) => ({
+          field: String(r.field),
+          name: String(r.name),
+          value: String(r.value),
+          count: num(r.n),
+        })),
+      ),
     },
   }
 }

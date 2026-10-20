@@ -43,18 +43,36 @@ theme export (5 Oct 2026) as the Liquid source.
 - `/pages/roadmap` on Koomerce draws our default page, not the theme's `page.roadmap` template.
   That is template suffix handling (see the import-template-suffix change).
 
-## Not done: metafield filters (Hand size, Grip, Weight, Switches, Connection)
+## Search & Discovery recommendations
 
-Shopify's filters come from Search & Discovery: product metafield definitions an admin marks as
-filters. That configuration is not in the theme export. Our collection page (`MainCollection`,
-`packages/core/src/catalog/browse.ts`) has facets for availability, price, type, vendor, tags
-and options only. Adding these filters would need:
+Search & Discovery keeps a product's hand-picked recommendations as product metafields in
+`shopify--discovery--product_recommendation` (`related_products`, `complementary_products`,
+lists of product references). The importer does not skip that namespace, and stores it as
+`shopify_discovery_product_recommendation`. `relatedProducts(productId, limit, intent)` now
+reads them:
 
-1. A "use as filter" flag on product extra-field definitions (schema and admin toggle), set by
-   the Shopify importer when it can read the store's filter list.
-2. Facet counts and `filter.p.m.<namespace>.<key>=value` params in `browse.ts` /
-   `browse-params.ts` over the stored extra-field values (single-line text, choice, boolean,
-   number, and lists of them).
-3. Filter groups in the MainCollection drawer, named after the definition.
+- `intent=related` (the default): the picks first, then shared collection, type and tags.
+- `intent=complementary`: the picks only, as on Shopify.
 
-That is a feature of its own, not a data fix.
+Available products only. The `/theme-actions/recommendations` route (the shim's
+`/recommendations/products`) passes `intent` through and sets `recommendations.intent`. Tests:
+`pickedRecommendationIds` in `forms-and-related.test.ts`.
+
+## Metafield filters (Hand size, Grip, Weight, Switches, Connection)
+
+Shopify's filter list lives in the Search & Discovery app and is not in the Admin API. The
+filters themselves are product metafields. Collection and search listings (`browse.ts`) now
+offer product extra fields as filters:
+
+- Types: short text, choice and number fields with storefront access.
+- A field shows when it has 2 to 25 values in the listing and its values repeat (on average 1.5
+  products per value). A per-product spec line therefore never shows.
+- URLs use Shopify's shape: `filter.p.m.<namespace>.<key>=value`. Namespace and key are mapped
+  to the stored keys, so `filter.p.m.custom.filter_grip=Claw` works as on waimers.in.
+- The filter drawer adds one group per field, named after the field. Chips remove one value.
+
+Tests: `catalog/browse-metafields.test.ts` (params and the field selection). The SQL (facet
+counts, `exists` filter) has no database test here; there was no local Postgres. Run
+`browse.test.ts` against a database before merging. The rule decides from values, not from a
+merchant's choice. If a store sees an unwanted group, the next step is a "use as filter" flag on
+extra-field definitions (set by the importer when it can tell).
