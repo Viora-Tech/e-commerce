@@ -38,7 +38,7 @@ export default function CurrentThemeCard({ theme, origin, busy, onAction }: Curr
       <ThemePreviewStage
         name={theme.name}
         origin={origin}
-        previewToken={theme.previewToken}
+        settings={theme.settings}
         picture={theme.thumbnailUrl}
       />
       <div className="flex flex-wrap items-center justify-between gap-4 px-4 py-4 md:px-6 md:py-5">
