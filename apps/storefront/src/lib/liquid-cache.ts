@@ -28,6 +28,8 @@ export type LiquidRenderScope = {
   template: string
   /** `?form_posted=<type>` after one of our form handlers, or null. */
   postedForm: string | null
+  /** The shopper's A/B test variations (`assignmentsKey`), blank when in none. */
+  experiments?: string | undefined
 }
 
 function scopeKey(scope: LiquidRenderScope): string {
@@ -38,6 +40,8 @@ function scopeKey(scope: LiquidRenderScope): string {
     scope.path,
     scope.template,
     scope.postedForm ?? '',
+    // Only when set, so pages outside any experiment keep their cache keys.
+    ...(scope.experiments ? [scope.experiments] : []),
   ].join('|')
 }
 

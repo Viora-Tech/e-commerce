@@ -1187,6 +1187,11 @@ const ALLOWLIST: AllowEntry[] = [
     reason: 'no external importer today — investigate before removing',
   },
   {
+    file: 'packages/plugin-growthbook/src/plugin.ts',
+    names: ['growthbookPlugin'],
+    reason: 'listed in the root commerce.config.ts, which this sweep does not scan',
+  },
+  {
     file: 'packages/plugin-gst-invoices/src/queue.ts',
     names: ['enqueueOrder'],
     reason: 'exported for its unit test; no other importer today',

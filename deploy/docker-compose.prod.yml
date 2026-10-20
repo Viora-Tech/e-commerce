@@ -106,6 +106,8 @@ x-app-env: &app-env
   AI_UNLIMITED_STORES: ${AI_UNLIMITED_STORES:-}
   # Umami addresses reachable on a private network or over http (our own Umami).
   UMAMI_TRUSTED_ORIGINS: ${UMAMI_TRUSTED_ORIGINS:-}
+  # GrowthBook addresses reachable on a private network or over http (our own GrowthBook).
+  GROWTHBOOK_TRUSTED_ORIGINS: ${GROWTHBOOK_TRUSTED_ORIGINS:-}
   SENTRY_DSN: ${SENTRY_DSN:-}
   SENTRY_ENVIRONMENT: ${SENTRY_ENVIRONMENT:-production}
   # Release-tag Sentry events with the image's commit sha when IMAGE_TAG is pinned; override

@@ -1,0 +1,33 @@
+{
+  "name": "@commerce/plugin-growthbook",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "GrowthBook experiments: server-side A/B assignment for storefront sections and Liquid themes, exposure and purchase events for GrowthBook to analyse, and the running experiments in the admin.",
+  "exports": {
+    ".": "./src/index.ts",
+    "./settings": "./src/settings.ts",
+    "./assign": "./src/assign.ts",
+    "./client": "./src/client.ts",
+    "./schema": "./src/schema.ts",
+    "./server": "./src/server.ts"
+  },
+  "scripts": {
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@commerce/core": "workspace:*",
+    "@commerce/db": "workspace:*",
+    "@commerce/plugins": "workspace:*",
+    "@growthbook/growthbook": "1.8.0",
+    "drizzle-orm": "^0.45.2",
+    "zod": "^4.6.5"
+  },
+  "devDependencies": {
+    "@commerce/config": "workspace:*",
+    "@types/node": "^22.20.4",
+    "typescript": "~5.9.3",
+    "vitest": "^4.1.11"
+  }
+}

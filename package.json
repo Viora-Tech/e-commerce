@@ -62,6 +62,7 @@
     "@commerce/plugin-back-in-stock": "workspace:*",
     "@commerce/plugin-emi": "workspace:*",
     "@commerce/plugin-forms": "workspace:*",
+    "@commerce/plugin-growthbook": "workspace:*",
     "@commerce/plugin-reviews": "workspace:*",
     "@commerce/plugin-search-console": "workspace:*",
     "@commerce/plugin-umami": "workspace:*",

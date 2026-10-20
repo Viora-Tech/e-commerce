@@ -40,6 +40,7 @@ describe('liquid cache keys', () => {
       { path: '/products/mouse' },
       { template: 'product' },
       { postedForm: 'contact' },
+      { experiments: 'hero-test=1' },
     ]
     for (const patch of variants) {
       expect(sectionCacheKey({ ...scope, ...patch }, section), JSON.stringify(patch)).not.toBe(base)
@@ -47,6 +48,12 @@ describe('liquid cache keys', () => {
     }
     expect(sectionCacheKey(scope, { ...section, settings: { title: 'Bye' } })).not.toBe(base)
     expect(sectionCacheKey(scope, { ...section, index: 1 })).not.toBe(base)
+  })
+
+  it('keeps the keys of pages outside any experiment', () => {
+    expect(sectionCacheKey({ ...scope, experiments: '' }, section)).toBe(
+      sectionCacheKey(scope, section),
+    )
   })
 
   it('a section key never equals a layout key', () => {

@@ -22,6 +22,7 @@ import { domainsRouter } from './domains'
 import { emiRouter } from './emi'
 import { formsRouter } from './forms'
 import { giftCardsRouter } from './gift-cards'
+import { growthbookRouter } from './growthbook'
 import { gstInvoicesRouter } from './gst-invoices'
 import { inventoryRouter, purchaseOrdersRouter, transfersRouter } from './inventory'
 import { invitationsRouter } from './invitations'
@@ -108,6 +109,7 @@ export const appRouter = {
   forms: formsRouter,
   reviews: reviewsRouter,
   umami: umamiRouter,
+  growthbook: growthbookRouter,
   searchConsole: searchConsoleRouter,
   dashboard: dashboardRouter,
   analytics: analyticsRouter,

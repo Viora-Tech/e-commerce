@@ -27,6 +27,7 @@
         "@commerce/plugin-back-in-stock#build",
         "@commerce/plugin-emi#build",
         "@commerce/plugin-forms#build",
+        "@commerce/plugin-growthbook#build",
         "@commerce/plugin-reviews#build",
         "@commerce/plugin-search-console#build",
         "@commerce/plugin-gst-invoices#build",

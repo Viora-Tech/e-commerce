@@ -33,6 +33,7 @@ import type { Metadata, Viewport } from 'next'
 import { cookies, headers } from 'next/headers'
 import { notFound } from 'next/navigation'
 import { type ReactNode, Suspense } from 'react'
+import ExperimentBeacon from '@/components/analytics/experiment-beacon'
 import CartDrawer from '@/components/cart/cart-drawer'
 import StoreChrome from '@/components/checkout/store-chrome'
 import ConsentManager from '@/components/privacy/consent-manager'
@@ -49,6 +50,7 @@ import { liquidLayoutForPath } from '@/lib/checkout-path'
 import { listCollections } from '@/lib/collections'
 import { COOKIE_SETTINGS_HASH } from '@/lib/cookie-settings'
 import { NONCE_HEADER } from '@/lib/csp'
+import { requestExperiments } from '@/lib/experiments'
 import { themeFontVariables } from '@/lib/fonts'
 import { liquidShim } from '@/lib/liquid-shim'
 import { liquidLayoutFor, reactAttrs } from '@/lib/liquid-theme'
@@ -325,6 +327,10 @@ export default async function StoreLayout({ children, params }: Props) {
   const page = (await themedRerender()) ? <Suspense fallback={null}>{children}</Suspense> : children
 
   if (liquid) {
+    // An imported theme may branch on `request.experiments` anywhere, so every experiment the
+    // shopper is in counts as viewed on its pages (sections with an A/B test setting report
+    // their own in `renderTemplate`).
+    const tested = preview ? [] : Object.keys((await requestExperiments(storeId)).assignments)
     return (
       <html lang="en" {...reactAttrs(liquid.htmlAttrs)} suppressHydrationWarning>
         <head>
@@ -345,6 +351,7 @@ export default async function StoreLayout({ children, params }: Props) {
           {footer}
           <LiquidHtml html={liquid.afterFooter} />
           <LiquidBoot />
+          {tested.length ? <ExperimentBeacon seen={tested} /> : null}
           <ThemePreviewBridge adminOrigin={adminOrigin} />
           {preview ? null : <ConsentManager {...consent} themeBanner={themedConsent} />}
         </body>

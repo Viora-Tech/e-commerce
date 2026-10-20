@@ -1,0 +1,153 @@
+---
+title: A/B tests (GrowthBook)
+description: How the GrowthBook app assigns shoppers on the server, what sections and Liquid themes read, the events it records, and the SQL data source GrowthBook reads them with.
+---
+
+# A/B tests (GrowthBook)
+
+`packages/plugin-growthbook` (id `growthbook`, a `connection` app in the `marketing` category)
+runs A/B tests on storefront sections and imported Liquid themes. GrowthBook itself runs
+elsewhere (GrowthBook Cloud or a self-hosted server); we use only its MIT JavaScript SDK
+(`@growthbook/growthbook`, pinned) and its REST API. Nothing from GrowthBook's `enterprise`
+folders is used or copied, and no paid GrowthBook feature is needed.
+
+## Pieces
+
+| Where | What |
+| --- | --- |
+| `plugin-growthbook/src/settings.ts` | `store.apps.settings.growthbook`: API host, client key (`sdk-…`), optional decryption key, GrowthBook app address, secret API key (`encryptSecret`, never returned; the admin sees `hasSecretKey`). Pure and client-safe. |
+| `plugin-growthbook/src/client.ts` | `features(clientKey)` (`GET <apiHost>/api/features/<key>`) and `experiments(secretKey)` (`GET /api/v1/experiments`). Through `safeFetch` unless the origin is in `GROWTHBOOK_TRUSTED_ORIGINS`. |
+| `plugin-growthbook/src/assign.ts` | `featureEvaluator(payload, decryptionKey)`: a `GrowthBookClient` (the SDK's multi-user client) built once per payload; `assign(visitorId)` evaluates every feature and keeps the experiments the visitor is in, keyed by tracking key. `variantMatches`, `liquidExperiments`, `assignmentsKey`, `ttlCache`. |
+| `plugin-growthbook/src/schema.ts`, `server.ts` | The `experiment_event` table (migration `0140`) and its writers `recordExposures`, `recordPurchase`; `growthbookConnectionFor`. |
+| `apps/storefront/src/lib/experiments.ts` | `requestExperiments(storeId)` (once per request), `assignVisitor`, `liquidExperimentsFor`. |
+| `apps/storefront/src/app/api/experiments/route.ts` | The beacon endpoint for exposures and purchases. |
+| `packages/api` `growthbook` router | `settings.{get,save,test}`, `experiments` (a drawable state: `not-connected`, `no-key`, `error`, `ready`). |
+| `apps/admin/src/components/apps/growthbook` | The app page: connection, how-to, experiment list. |
+
+## Assignment
+
+- **Who**: only a shopper whose consent cookie says yes to analytics and who carries the
+  anonymous `wc_vid` visitor id (minted by the proxy after that yes). The id is GrowthBook's
+  `id` attribute, so experiments must hash on `id`. Without consent, or when GrowthBook is down
+  or not set up, `assignments` is empty and every experiment shows its **control**.
+- **When**: on the server, while the page renders, so the HTML already holds the variant (no
+  flicker, no client SDK, no extra request from the browser).
+- **Cost**: each server keeps one evaluator per SDK connection for 60 seconds (`ttlCache`); a
+  failed fetch is remembered as "none" for the same minute, and a fetch never holds a page for
+  more than 2 seconds. A page then costs one `evalFeature` per feature.
+- **Caching**: a visitor id is a `wc_*` cookie, so these pages never go to the shared (CDN)
+  cache (`lib/edge-cache.ts`). Imported themes' render cache keys include `assignmentsKey`
+  (only when non-empty, so pages outside any test keep their keys).
+- **Theme preview**: Customize shows every variant's sections (so they can be edited) and Liquid
+  sees no experiments.
+
+Experiments are GrowthBook **features with an Experiment rule**; the experiment's **tracking
+key** is the name sections and Liquid use. Visual-editor and URL-redirect experiments
+(`experiments` in the payload) are not applied.
+
+## What reads the assignment
+
+- **Sections** (Puck): every section's settings have an **A/B test** group
+  (`settings.experiment = { key, variant }`, `packages/blocks/src/section-experiment.ts`).
+  `renderTemplate` drops top-level sections whose gate does not match
+  (`variantMatches`: the variant as a number, the variation key or name, `control` for 0; a
+  shopper outside the experiment matches only the control) before anything loads or renders.
+- **Liquid** (imported themes): `request.experiments` maps tracking key → variation number:
+  `{% if request.experiments['hero-test'] == 1 %}`.
+- **Prices**: out of scope on purpose. Showing different prices for the same product to
+  different shoppers is a consumer-protection risk (unfair trade practice, dark-pattern rules),
+  and the price on the GST invoice must match what the store showed; checkout, discounts and
+  invoices all read one price. Test the way a price is *presented* (a banner, a badge) instead.
+
+## Events
+
+`experiment_event` (store-scoped, RLS like every table with `store_id`):
+
+| Column | Exposure | Purchase |
+| --- | --- | --- |
+| `visitor_id` | `wc_vid` | `wc_vid` |
+| `kind` | `exposure` | `purchase` |
+| `experiment_key`, `variation_id` | tracking key, variation (0 = control) | null |
+| `order_id`, `value_paise` | null | the order, its total |
+| `created_at` | first time seen | when recorded |
+
+- **Exposure** ("experiment viewed"): `renderTemplate` renders `ExperimentBeacon` with the keys
+  of the gated sections it drew; under an imported theme the layout reports every experiment the
+  shopper is in, since Liquid may branch anywhere. One row per visitor, experiment and variation.
+- **Purchase**: the thank-you page renders `ExperimentBeacon` with the order id. The endpoint
+  records orders of this store placed in the last 24 hours, once per order.
+- The endpoint re-checks consent and recomputes the variation from the visitor id; the browser
+  only names experiment keys, never variations.
+- Linking the anonymous visitor id to an order happens only after a yes to analytics, which is
+  what the cookie banner asks for.
+
+## GrowthBook data source (SQL)
+
+GrowthBook reads results from a SQL data source (Settings → Data sources → Add → PostgreSQL).
+Give it **one store's rows only**, through views, never the shared tables. `app.store_id` must not
+be the guard: any session can `SET` it, and the merchant writes the SQL GrowthBook runs.
+
+Run as the database owner (a superuser or a role with `BYPASSRLS`, so the views can read under
+forced RLS), once per store. Replace `<store-uuid>`, the schema/role suffix and the password:
+
+```sql
+CREATE SCHEMA gb_waimers;
+
+CREATE VIEW gb_waimers.exposures WITH (security_barrier) AS
+  SELECT visitor_id, experiment_key, variation_id, created_at
+  FROM public.experiment_event
+  WHERE store_id = '<store-uuid>' AND kind = 'exposure';
+
+CREATE VIEW gb_waimers.purchases WITH (security_barrier) AS
+  SELECT visitor_id, order_id, value_paise, created_at
+  FROM public.experiment_event
+  WHERE store_id = '<store-uuid>' AND kind = 'purchase';
+
+CREATE ROLE gb_waimers LOGIN PASSWORD '<long random password>' NOINHERIT;
+GRANT USAGE ON SCHEMA gb_waimers TO gb_waimers;
+GRANT SELECT ON gb_waimers.exposures, gb_waimers.purchases TO gb_waimers;
+ALTER ROLE gb_waimers SET default_transaction_read_only = on;
+ALTER ROLE gb_waimers SET statement_timeout = '60s';
+```
+
+The role has no grant on any `public` table. Point it at a read replica if you have one.
+
+In GrowthBook, with identifier type **`anonymous_id`**:
+
+**Experiment assignment query**
+
+```sql
+SELECT
+  visitor_id      AS anonymous_id,
+  created_at      AS timestamp,
+  experiment_key  AS experiment_id,
+  variation_id::text AS variation_id
+FROM gb_waimers.exposures
+WHERE created_at BETWEEN '{{startDate}}' AND '{{endDate}}'
+```
+
+**Metric: Purchased** (proportion)
+
+```sql
+SELECT visitor_id AS anonymous_id, created_at AS timestamp
+FROM gb_waimers.purchases
+WHERE created_at BETWEEN '{{startDate}}' AND '{{endDate}}'
+```
+
+**Metric: Revenue** (mean, in rupees)
+
+```sql
+SELECT visitor_id AS anonymous_id, created_at AS timestamp, value_paise / 100.0 AS value
+FROM gb_waimers.purchases
+WHERE created_at BETWEEN '{{startDate}}' AND '{{endDate}}'
+```
+
+## Infrastructure
+
+- A GrowthBook server (self-hosted: the `growthbook/growthbook` image plus MongoDB; or
+  GrowthBook Cloud). Its API host must be reachable from the storefront servers; a private
+  address or plain http needs `GROWTHBOOK_TRUSTED_ORIGINS`.
+- For results: network access from GrowthBook to Postgres (a read replica, an allow-listed IP
+  with TLS for GrowthBook Cloud), and the per-store views and role above.
+- No queue, cron or extra service in this repo; the table grows by one row per visitor per
+  variation, plus one per order.

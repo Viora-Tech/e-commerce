@@ -505,6 +505,10 @@ kind and no table:
   `./report` normalises Umami 3 and Umami 2 answers (`path` vs `url` metric names, flat figures
   vs `{ value, prev }`).
 
+`packages/plugin-growthbook` (GrowthBook, id `growthbook`) is a `connection` app that also owns a
+table (`experiment_event`) and changes what the storefront renders: server-side A/B assignment
+for sections and Liquid themes. See [A/B tests (GrowthBook)](/developer-docs/building/experiments).
+
 `packages/plugin-search-console` (Google Search Console, id `google-search-console`) is the
 worked example of a per-store **OAuth** connection with a daily background pull:
 

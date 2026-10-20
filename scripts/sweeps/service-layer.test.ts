@@ -215,6 +215,8 @@ const ALLOWLIST: AllowEntry[] = [
   { path: 'packages/plugin-back-in-stock/src/stock.ts', exact: true, reason: PLUGIN },
   { path: 'packages/plugin-forms/src/messages.ts', exact: true, reason: PLUGIN },
   { path: 'packages/plugin-forms/src/schema.ts', exact: true, reason: PLUGIN },
+  { path: 'packages/plugin-growthbook/src/schema.ts', exact: true, reason: PLUGIN },
+  { path: 'packages/plugin-growthbook/src/server.ts', exact: true, reason: PLUGIN },
   { path: 'packages/plugin-reviews/src/judgeme.ts', exact: true, reason: PLUGIN },
   { path: 'packages/plugin-reviews/src/photos.ts', exact: true, reason: PLUGIN },
   { path: 'packages/plugin-reviews/src/requests.ts', exact: true, reason: PLUGIN },

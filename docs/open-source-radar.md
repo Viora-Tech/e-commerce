@@ -42,7 +42,7 @@ copying: projects relicense (Unleash moved to AGPL, Cal.com moved to MIT).
 | Analytics | [Umami](https://github.com/umami-software/umami) | MIT | Sessions, referrers, visitor map | Live view globe and analytics; adopted as the Umami app (connection plugin, `packages/plugin-umami`, 2026-10-10) |
 | Analytics | [PostHog](https://github.com/PostHog/posthog) | MIT outside `ee/` | Funnels, feature flags, session replay design | Ideas, selective code |
 | Analytics | [Plausible](https://github.com/plausible/analytics) | AGPL-3.0 | | Ideas only |
-| Experiments | [GrowthBook](https://github.com/growthbook/growthbook) | MIT outside its enterprise folders | A/B tests on sections and prices | Experiments plugin |
+| Experiments | [GrowthBook](https://github.com/growthbook/growthbook) | MIT outside its enterprise folders; JS SDK `@growthbook/growthbook` MIT (LICENSE re-checked 2026-10-20) | A/B tests on sections and Liquid themes (prices deliberately not tested) | **In use**: the GrowthBook app (connection plugin, `packages/plugin-growthbook`, 2026-10-20). GrowthBook runs as a separate service; we use only its SDK (pinned 1.8.0) and REST API |
 | Flags | [Unleash](https://github.com/Unleash/unleash) | AGPL-3.0 | | Ideas only |
 | Support | [Chatwoot](https://github.com/chatwoot/chatwoot) | MIT outside `enterprise/` | Shared inbox: WhatsApp, email, website chat | Support inbox plugin |
 | Search | [Meilisearch](https://github.com/meilisearch/meilisearch) | MIT, Enterprise Edition parts BUSL-1.1 (LICENSE, 2026-10-11; unchanged) | Typo-tolerant storefront search | Search plugin (separate server) |

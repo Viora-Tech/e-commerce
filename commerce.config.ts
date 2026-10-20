@@ -6,6 +6,7 @@ import { razorpayPlugin } from '@commerce/payments-razorpay'
 import { backInStockPlugin } from '@commerce/plugin-back-in-stock'
 import { emiPlugin } from '@commerce/plugin-emi'
 import { formsPlugin } from '@commerce/plugin-forms'
+import { growthbookPlugin } from '@commerce/plugin-growthbook'
 import { gstInvoicesPlugin } from '@commerce/plugin-gst-invoices'
 import { reviewsPlugin } from '@commerce/plugin-reviews'
 import { searchConsolePlugin } from '@commerce/plugin-search-console'
@@ -44,5 +45,6 @@ export default defineConfig({
     reviewsPlugin,
     umamiPlugin,
     searchConsolePlugin,
+    growthbookPlugin,
   ],
 })
