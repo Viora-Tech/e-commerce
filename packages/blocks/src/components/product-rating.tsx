@@ -2,16 +2,16 @@ import { mainProductContent as copy } from '../data/zero-drift/main-product'
 import Icon from './icon'
 
 type ProductRatingProps = {
-  /** Out of 5; 0 draws nothing (there is no reviews source yet, so the merchant types it). */
+  /** Out of 5; 0 draws nothing (a product with no reviews shows no stars). */
   value: number
   count: number
 }
 
 const STARS = [1, 2, 3, 4, 5]
 
-// The `rating` block of sections/main-product.liquid. The theme read Judge.me's rating
-// metafields and, with none, invited the first review; we have no reviews data source, so
-// the stars show only when the merchant gives a figure in the section settings.
+// The `rating` block of sections/main-product.liquid (snippets/rating-stars): stars, the
+// average and the count. On the store the figure is the product's real one (the Reviews
+// app, else the rating imported from Shopify); with none there are no stars.
 export default function ProductRating({ value, count }: ProductRatingProps) {
   // Early returns
   if (value <= 0) return null
@@ -32,6 +32,7 @@ export default function ProductRating({ value, count }: ProductRatingProps) {
           </span>
         ))}
       </span>
+      <span className="product-info__rating-value">{value.toFixed(1)}</span>
       {count > 0 ? <span>{copy.ui.reviews(count)}</span> : null}
     </div>
   )

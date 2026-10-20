@@ -1,7 +1,6 @@
 /** Copy for the "notify me" sold-out form. Never inline this in a component. */
 export const backInStockContent = {
-  heading: 'Notify me when available',
-  emailLabel: 'Email address',
+  emailLabel: 'Email',
   emailPlaceholder: 'you@example.com',
   whatsappLabel: 'WhatsApp number (optional)',
   whatsappPlaceholder: '98765 43210',

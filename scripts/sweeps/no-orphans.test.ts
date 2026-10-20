@@ -18,6 +18,32 @@ type AllowEntry = { file: string; names: string[]; reason: string }
 
 const ALLOWLIST: AllowEntry[] = [
   {
+    file: 'packages/blocks/src/components/product-payment-signals.tsx',
+    names: ['upiPricePaise'],
+    reason: 'the checkout-matching UPI price behind the offer note, exported for its unit test',
+  },
+  {
+    file: 'packages/blocks/src/components/product-variant-picker.tsx',
+    names: ['swatchImages'],
+    reason: 'the swatch-or-pill rule behind the variant picker, exported for its unit test',
+  },
+  {
+    file: 'packages/core/src/theme-import/main-product-props.ts',
+    names: ['plainText'],
+    reason: 'the rich text to inline copy rule behind mainProductProps, exported for its unit test',
+  },
+  {
+    file: 'packages/core/src/theme-import/product-fields.ts',
+    names: ['productDisplayFields'],
+    reason: 'the pure shaping behind loadProductPageExtras, exported for its unit test (no DB)',
+  },
+  {
+    file: 'packages/plugin-shopify-import/src/write-products.ts',
+    names: ['preorderFrom'],
+    reason:
+      'the inventory-policy to pre-order rule behind the product write, exported for its unit test',
+  },
+  {
     file: 'packages/db/src/storefront-cache.ts',
     names: [
       'STOREFRONT_CACHE_CHANNEL',

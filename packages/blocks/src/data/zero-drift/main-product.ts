@@ -37,6 +37,10 @@ export const mainProductContent = {
     accordions: 'Accordions',
     accordionTitle: 'Title',
     accordionBody: 'Content',
+    accordionMetafieldKey: 'Product field key (fills the content when the product has it)',
+    showSpecs: 'Spec cells',
+    specFields: 'Spec cells, one per line: Label | field key | icon (## Heading starts a group)',
+    specRows: 'Specification table, one per line: field key | Label',
     showTrustBadges: 'Trust badges',
     trustBadges: 'Trust badges',
     badgeIcon: 'Icon',
@@ -69,7 +73,7 @@ export const mainProductContent = {
     { label: 'Check', value: 'check' },
     { label: 'Location', value: 'location' },
   ],
-  newAccordion: { title: 'New accordion', body: '' },
+  newAccordion: { title: 'New accordion', body: '', metafieldKey: '' },
   newBadge: { icon: 'check', label: 'New badge' },
 
   defaults: {
@@ -94,16 +98,20 @@ export const mainProductContent = {
     showPreorderLink: false,
     preorderLinkUrl: '/pages/preorder-updates',
     deliveryText: '',
+    showSpecs: false,
+    specFields: '',
+    specRows: '',
     showDescription: true,
     showAccordions: false,
     accordions: [
-      { title: 'Specification', body: '' },
-      { title: 'Package contents', body: '' },
+      { title: 'Specification', body: '', metafieldKey: 'specification' },
+      { title: 'Package contents', body: '', metafieldKey: 'package_contents' },
       {
         title: 'Warranty & claims',
         body: '<p><strong>An unboxing video is mandatory.</strong> When your parcel is delivered, record a clear, uncut video while opening it, starting with the sealed package and the packing label / AWB clearly visible. This video is the proof for any claim - damage in transit, a wrong or missing item, or warranty - and it lets us process replacements quickly. Claims without it cannot be accepted, and photos alone are not enough.</p><p>Mice and keyboards carry a 1-year warranty, handled by us in India. Mousepads, skates, grip tape and other accessories have no warranty - but damage in transit is always covered with the unboxing video.</p><p>To claim, message us on WhatsApp with your order number and the video.</p>',
+        metafieldKey: '',
       },
-      { title: 'Dimensions', body: '' },
+      { title: 'Dimensions', body: '', metafieldKey: 'dimensions' },
     ],
     showTrustBadges: false,
     trustBadges: [
@@ -146,7 +154,14 @@ export const mainProductContent = {
     availablePreorder: 'Available for pre-order',
     inStockShips: 'In stock, ships today if ordered before 12 pm',
     onlyLeft: (n: number) => `Only ${n} left`,
-    notifyWhenBack: 'Notify me when back',
+    soldOutHeading: 'Currently out of stock',
+    soldOutAllNotify:
+      "Every variant is gone. Leave your details and we'll let you know when it's back.",
+    soldOutOneNotify:
+      "This option is gone. Leave your details and we'll let you know when it's back.",
+    soldOutAll: 'Every variant is gone for now.',
+    soldOutOne: 'This option is gone for now. Another one may still be in stock.',
+    upiPrice: 'with UPI',
     readMore: 'Read more',
     showLess: 'Show less',
     preorderUpdates: 'Preorder updates',
@@ -157,7 +172,6 @@ export const mainProductContent = {
     urgentUnits: 10,
     ratingLabel: (value: string) => `Rated ${value} out of 5`,
     reviews: (n: number) => `(${n})`,
-    upiPrice: 'with UPI',
     offerHow: 'How?',
     close: 'Close',
     gallery: {

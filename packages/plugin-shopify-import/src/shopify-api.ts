@@ -50,7 +50,7 @@ export async function fetchShopAndScopes(
 
 /* ---------------------------------------------------------------- products */
 
-const VARIANT_FIELDS = `id title sku barcode price compareAtPrice taxable inventoryQuantity
+const VARIANT_FIELDS = `id title sku barcode price compareAtPrice taxable inventoryQuantity inventoryPolicy
   selectedOptions { name value } image { url }
   inventoryItem { tracked harmonizedSystemCode unitCost { amount } measurement { weight { unit value } } }`
 
@@ -88,6 +88,8 @@ type GVariant = {
   compareAtPrice: string | null
   taxable: boolean
   inventoryQuantity: number | null
+  /** `CONTINUE` keeps selling at zero stock: how Shopify pre-order apps sell past stock. */
+  inventoryPolicy?: 'DENY' | 'CONTINUE' | null
   selectedOptions: { name: string; value: string }[]
   image: { url: string } | null
   inventoryItem: {
@@ -162,6 +164,7 @@ export function mapVariant(
     onHand: v.inventoryItem?.tracked === false ? null : Math.max(0, v.inventoryQuantity ?? 0),
     hsCode: hsnDigits(v.inventoryItem?.harmonizedSystemCode) ?? productHsn,
     imageSrc: v.image?.url ?? null,
+    sellsOutOfStock: v.inventoryPolicy === 'CONTINUE',
   }
 }
 

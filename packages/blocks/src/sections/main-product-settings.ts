@@ -18,7 +18,8 @@ import { inlineRichtext, inlineText } from './inline-fields'
 /** Copy a merchant can type on the canvas: a string, or Puck's inline editor node. */
 type Copy = ReactNode
 
-export type MainProductAccordion = { title: Copy; body: Copy }
+/** `metafieldKey` fills the body from the product's own field (`custom.<key>`) when it has one. */
+export type MainProductAccordion = { title: Copy; body: Copy; metafieldKey: string }
 export type MainProductBadge = { icon: string; label: Copy }
 
 export type MainProductSettings = {
@@ -42,6 +43,11 @@ export type MainProductSettings = {
   showPreorderLink: boolean
   preorderLinkUrl: string
   deliveryText: Copy
+  showSpecs: boolean
+  /** Spec cells, one per line: `Label | field key | icon`, `## Group` for a group label. */
+  specFields: string
+  /** The Specification panel's table when the product has no written spec: `field key | Label`. */
+  specRows: string
   showDescription: boolean
   showAccordions: boolean
   accordions: MainProductAccordion[]
@@ -97,6 +103,9 @@ export const mainProductFields: Fields = {
   showPreorderLink: showHide(f.showPreorderLink),
   preorderLinkUrl: { type: 'text', label: f.preorderLinkUrl },
   deliveryText: inlineText(f.deliveryText),
+  showSpecs: showHide(f.showSpecs),
+  specFields: { type: 'textarea', label: f.specFields },
+  specRows: { type: 'textarea', label: f.specRows },
   showDescription: showHide(f.showDescription),
   showAccordions: showHide(f.showAccordions),
   accordions: {
@@ -109,6 +118,7 @@ export const mainProductFields: Fields = {
     arrayFields: {
       title: inlineText(f.accordionTitle),
       body: inlineRichtext(f.accordionBody),
+      metafieldKey: { type: 'text', label: f.accordionMetafieldKey },
     },
   },
   showTrustBadges: showHide(f.showTrustBadges),
@@ -186,11 +196,15 @@ export function mainProductSettings(raw: Record<string, unknown> = {}): MainProd
     showPreorderLink: bool(raw.showPreorderLink, d.showPreorderLink),
     preorderLinkUrl: str(raw.preorderLinkUrl, d.preorderLinkUrl),
     deliveryText: text(raw.deliveryText, d.deliveryText),
+    showSpecs: bool(raw.showSpecs, d.showSpecs),
+    specFields: str(raw.specFields, d.specFields),
+    specRows: str(raw.specRows, d.specRows),
     showDescription: bool(raw.showDescription, d.showDescription),
     showAccordions: bool(raw.showAccordions, d.showAccordions),
     accordions: (accordions ?? d.accordions).map((a) => ({
       title: text(a.title, ''),
       body: text(a.body, ''),
+      metafieldKey: str(a.metafieldKey, '').trim(),
     })),
     showTrustBadges: bool(raw.showTrustBadges, d.showTrustBadges),
     trustBadges: (badges ?? d.trustBadges).map((b) => ({
