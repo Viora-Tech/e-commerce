@@ -65,7 +65,7 @@ export const PRODUCTS_QUERY = `query Products($cursor: String, $query: String) {
   products(first: 25, after: $cursor, sortKey: ID, query: $query) {
     ${PAGE_INFO}
     nodes {
-      id handle title descriptionHtml vendor productType tags status templateSuffix
+      id handle title descriptionHtml vendor productType tags status templateSuffix publishedAt
       seo { title description }
       options { name position }
       hsn: metafield(namespace: "custom", key: "hsn") { value }
@@ -109,6 +109,8 @@ type GProduct = {
   productType: string | null
   tags: string[]
   status: 'ACTIVE' | 'DRAFT' | 'ARCHIVED'
+  /** When it went on the Online Store; null while it is not on that sales channel. */
+  publishedAt?: string | null
   templateSuffix: string | null
   seo: { title: string | null; description: string | null } | null
   options: { name: string; position: number }[]
@@ -168,7 +170,17 @@ export function mapVariant(
   }
 }
 
-export function mapProduct(p: GProduct, variants: GVariant[]): NProduct {
+/**
+ * Our status for a Shopify product. An active product not on the Online Store sales channel
+ * (Shopify's storefront 404s it) stays hidden here too, when the shop sells on the Online Store.
+ */
+export function productStatus(p: Pick<GProduct, 'status' | 'publishedAt'>, onlineStore: boolean) {
+  if (p.status === 'ARCHIVED') return 'archived' as const
+  if (p.status !== 'ACTIVE') return 'draft' as const
+  return onlineStore && p.publishedAt === null ? ('draft' as const) : ('active' as const)
+}
+
+export function mapProduct(p: GProduct, variants: GVariant[], onlineStore = false): NProduct {
   const optionNames = [...p.options]
     .sort((a, b) => a.position - b.position)
     .map((o) => o.name)
@@ -194,7 +206,7 @@ export function mapProduct(p: GProduct, variants: GVariant[]): NProduct {
     vendor: p.vendor || null,
     productType: p.productType || null,
     tags: p.tags,
-    status: p.status === 'ACTIVE' ? 'active' : p.status === 'ARCHIVED' ? 'archived' : 'draft',
+    status: productStatus(p, onlineStore),
     seoTitle: p.seo?.title || null,
     seoDescription: p.seo?.description || null,
     optionNames: optionNames.length ? optionNames : [],
@@ -216,7 +228,7 @@ export const PRODUCTS_BULK_QUERY = `{
   products {
     edges {
       node {
-        id handle title descriptionHtml vendor productType tags status templateSuffix
+        id handle title descriptionHtml vendor productType tags status templateSuffix publishedAt
         seo { title description }
         options { name position }
         hsn: metafield(namespace: "custom", key: "hsn") { value }
@@ -231,7 +243,10 @@ export const PRODUCTS_BULK_QUERY = `{
   }
 }`
 
-async function* fetchProductsBulk(client: ShopifyClient): AsyncGenerator<NProduct[]> {
+async function* fetchProductsBulk(
+  client: ShopifyClient,
+  onlineStore: boolean,
+): AsyncGenerator<NProduct[]> {
   const url = await runBulkQuery(client, PRODUCTS_BULK_QUERY)
   if (!url) return
   for await (const nodes of streamBulkRoots<GProduct>(
@@ -248,12 +263,13 @@ async function* fetchProductsBulk(client: ShopifyClient): AsyncGenerator<NProduc
     ],
     BULK_BATCH_SIZE,
   )) {
-    yield nodes.map((p) => mapProduct(p, p.variants.nodes.slice(0, 100)))
+    yield nodes.map((p) => mapProduct(p, p.variants.nodes.slice(0, 100), onlineStore))
   }
 }
 
 async function* fetchProductsPaged(
   client: ShopifyClient,
+  onlineStore: boolean,
   search: string | null = null,
 ): AsyncGenerator<NProduct[]> {
   for await (const nodes of client.paginate<GProduct>(
@@ -276,7 +292,7 @@ async function* fetchProductsPaged(
           for (const v of more) if (!variants.some((x) => x.id === v.id)) variants.push(v)
         }
       }
-      batch.push(mapProduct(p, variants.slice(0, 100)))
+      batch.push(mapProduct(p, variants.slice(0, 100), onlineStore))
     }
     yield batch
   }
@@ -295,15 +311,38 @@ export async function* fetchProducts(
   /** Only what matches (`updated_at:>'…'`): read page by page, no bulk operation. */
   search: string | null = null,
 ): AsyncGenerator<NProduct[]> {
+  const onlineStore = await sellsOnOnlineStore(client)
   if (search) {
-    yield* fetchProductsPaged(client, search)
+    yield* fetchProductsPaged(client, onlineStore, search)
     return
   }
   yield* bulkOrPaged(
-    () => fetchProductsBulk(client),
-    () => fetchProductsPaged(client),
+    () => fetchProductsBulk(client, onlineStore),
+    () => fetchProductsPaged(client, onlineStore),
     onBulkFallback,
   )
+}
+
+export const ONLINE_STORE_QUERY = `query OnlineStoreProducts {
+  products(first: 1, query: "published_status:published") { nodes { id } }
+}`
+
+/**
+ * Whether the shop sells on the Online Store: some product is published there. A headless
+ * shop publishes none, so its products are not hidden for missing that channel. Unknown
+ * (the question failed) counts as no.
+ */
+export async function sellsOnOnlineStore(client: ShopifyClient): Promise<boolean> {
+  try {
+    const data = await client.query<{ products?: { nodes: unknown[] } | null }>(
+      ONLINE_STORE_QUERY,
+      {},
+      5,
+    )
+    return (data?.products?.nodes.length ?? 0) > 0
+  } catch {
+    return false
+  }
 }
 
 /* ------------------------------------------------------------- collections */
