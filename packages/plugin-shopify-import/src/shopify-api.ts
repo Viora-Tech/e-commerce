@@ -748,6 +748,48 @@ export async function* fetchOrders(
   )
 }
 
+/* -------------------------------------------------------------- pre-orders */
+
+export const SELLING_PLAN_GROUPS_QUERY = `query SellingPlanGroups($cursor: String) {
+  sellingPlanGroups(first: 25, after: $cursor) {
+    ${PAGE_INFO}
+    nodes { name merchantCode products(first: 250) { nodes { id } } }
+  }
+}`
+
+type GSellingPlanGroup = {
+  name: string
+  merchantCode: string
+  products: { nodes: { id: string }[] }
+}
+
+const PREORDER_PLAN = /pre[-s]?order/i
+
+/**
+ * Shopify ids of the products sold through a pre-order purchase option: a selling plan group
+ * named (or coded) like "Pre-order", as Shopify's pre-order apps make them. Needs
+ * `read_purchase_options`; Shopify refuses the query without it (a `scope` error).
+ */
+export async function fetchPreorderProductIds(client: ShopifyClient): Promise<Set<string>> {
+  const ids = new Set<string>()
+  for await (const groups of client.paginate<GSellingPlanGroup>(
+    SELLING_PLAN_GROUPS_QUERY,
+    (d) =>
+      (d as { sellingPlanGroups?: Page<GSellingPlanGroup> }).sellingPlanGroups ?? {
+        nodes: [],
+        pageInfo: { hasNextPage: false, endCursor: null },
+      },
+    {},
+    150,
+  )) {
+    for (const g of groups) {
+      if (!PREORDER_PLAN.test(g.name) && !PREORDER_PLAN.test(g.merchantCode)) continue
+      for (const p of g.products.nodes) ids.add(p.id)
+    }
+  }
+  return ids
+}
+
 /* ---------------------------------------------------- pages and articles */
 
 export const PAGES_QUERY = `query Pages($cursor: String, $query: String) {
