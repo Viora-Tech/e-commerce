@@ -1,3 +1,4 @@
+/** SOURCE OF TRUTH: sales channel catalog — WHAT: one item per sellable variant for Meta, Google and OpenAI / WHY: one feed shape for every channel */
 /**
  * The catalog a sales channel receives: one item per sellable variant of every live product,
  * in the fields Meta, Google and OpenAI share (id, title, description, link, image, price,
@@ -44,7 +45,7 @@ export type ChannelItem = {
 /** Platforms cap descriptions; 5,000 characters is Google's and Meta's limit. */
 const DESCRIPTION_MAX = 5000
 /** A sync sends at most this many items; more is a catalog for the full feed APIs, not this. */
-export const CATALOG_MAX_ITEMS = 10_000
+const CATALOG_MAX_ITEMS = 10_000
 
 const absolute = (url: string, origin: string) =>
   /^https?:\/\//i.test(url) ? url : `${origin.replace(/\/$/, '')}/${url.replace(/^\//, '')}`

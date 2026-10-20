@@ -102,7 +102,7 @@ export async function recordAiUsage(
  * After a call's credits are counted: whatever of them went past the plan's monthly allowance
  * comes out of the store's bought credits (never below zero).
  */
-export async function spendExtraCredits(
+async function spendExtraCredits(
   ctx: StoreContext,
   month: string,
   callMillis: number,

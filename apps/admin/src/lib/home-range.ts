@@ -3,6 +3,8 @@
  * the picker and how each turns into an IST from–to pair. Pure, so the server can render the
  * first range and the picker can recompute on the client.
  */
+import { IST_OFFSET_MS } from '@commerce/dates'
+
 export const RANGE_PRESETS = [
   'today',
   'yesterday',
@@ -24,7 +26,6 @@ export type RangeCompare = 'previous' | 'year' | 'none'
 
 export type HomeRange = { preset: RangePreset; from: string; to: string }
 
-const IST_OFFSET_MS = 5.5 * 60 * 60 * 1000
 const DAY_MS = 86_400_000
 
 /** Diwali (Lakshmi Puja) by year; the "Diwali week" preset is the three days either side. */

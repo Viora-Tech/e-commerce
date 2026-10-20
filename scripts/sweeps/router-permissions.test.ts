@@ -38,6 +38,8 @@ const ALLOWLIST: AllowEntry[] = [
   { site: 'account.ts: updateNotifications (storeProcedure)', reason: OWN_MEMBER },
   { site: 'appearance.ts: get (storeProcedure)', reason: OWN_MEMBER },
   { site: 'appearance.ts: setMine (storeProcedure)', reason: OWN_MEMBER },
+  { site: 'dashboard.ts: tiles (storeProcedure)', reason: OWN_MEMBER },
+  { site: 'dashboard.ts: setTiles (storeProcedure)', reason: OWN_MEMBER },
   {
     site: 'appearance.ts: setStoreDefault (storeProcedure)',
     reason: 'owner-only, checked in the handler (scope.isOwner): not a grain in the roles model',

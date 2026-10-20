@@ -16,6 +16,32 @@ const SMALL = 'a picker/preview that deliberately shows fewer rows than a list p
 
 const ALLOWLIST: AllowEntry[] = [
   { site: 'packages/api/src/routers/blog.ts: limit.max(12)', reason: SMALL },
+  {
+    site: 'packages/api/src/routers/analytics.ts: query.max(4000)',
+    reason: 'the analytics.query procedure: its source is a whole query program, not a search box',
+  },
+  {
+    site: 'packages/api/src/routers/customers.ts: ids.max(5000)',
+    reason:
+      'bulk-edit spreadsheet rows: matches "Select all" (SELECT_ALL_MAX 5000), a read, not a bulk write',
+  },
+  {
+    site: 'packages/api/src/routers/orders.ts: ids.max(10)',
+    reason: 'the orders.ids (Select all) procedure: its status filter lists hold a few enum values',
+  },
+  {
+    site: 'packages/api/src/routers/orders.ts: ids.max(5000)',
+    reason:
+      'bulk-edit spreadsheet rows: matches "Select all" (SELECT_ALL_MAX 5000), a read, not a bulk write',
+  },
+  {
+    site: 'packages/api/src/routers/orders.ts: ids.max(60)',
+    reason: 'the orders.ids (Select all) procedure: its courier filter is a name, not a search box',
+  },
+  {
+    site: 'packages/api/src/routers/themes.ts: page.max(60)',
+    reason: 'a theme page key (template name) for the AI section proposal, not a page number',
+  },
   { site: 'packages/api/src/routers/collections.ts: limit.max(50)', reason: SMALL },
   {
     site: 'packages/api/src/routers/collections.ts: productIds.max(500)',

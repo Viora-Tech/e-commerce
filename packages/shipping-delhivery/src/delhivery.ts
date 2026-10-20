@@ -141,7 +141,7 @@ const toPaise = (v: unknown) => {
 }
 
 /** The itemised lines of one charges row, in a fixed order, priced lines only. */
-export function delhiveryCharges(row: ChargesRow): RateCharge[] {
+function delhiveryCharges(row: ChargesRow): RateCharge[] {
   const byKind = new Map<RateCharge['kind'], number>()
   for (const [key, value] of Object.entries(row)) {
     if (!key.startsWith('charge_')) continue

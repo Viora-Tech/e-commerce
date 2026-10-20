@@ -124,7 +124,7 @@ const rupeesToPaise = (v: unknown) => {
 }
 
 /** The priced lines Shiprocket itemised for one courier; coverage is its insurance. */
-export function shiprocketCharges(c: ServiceableCourier): RateCharge[] {
+function shiprocketCharges(c: ServiceableCourier): RateCharge[] {
   const lines: RateCharge[] = [
     { kind: 'freight', pricePaise: rupeesToPaise(c.freight_charge) },
     { kind: 'cod', pricePaise: rupeesToPaise(c.cod_charges) },

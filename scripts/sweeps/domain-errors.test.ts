@@ -24,6 +24,11 @@ const ALLOWLIST: AllowEntry[] = [
   { site: 'packages/api/src/services/discount.service.ts: DiscountCodeTaken', reason: MOVE },
   { site: 'packages/api/src/services/invitation.service.ts: InvitationError', reason: MOVE },
   { site: 'packages/api/src/services/taxes.service.ts: TaxesError', reason: MOVE },
+  {
+    site: 'packages/core/src/analytics-query/parse.ts: Problem',
+    reason:
+      'parser control flow: thrown and caught inside parseQuery, returned as a QueryError value, never reaches a caller',
+  },
   { site: 'packages/core/src/blog/schemas.ts: InvalidArticle', reason: MOVE },
   { site: 'packages/core/src/collections/schemas.ts: InvalidCollection', reason: MOVE },
   {
@@ -54,6 +59,11 @@ const ALLOWLIST: AllowEntry[] = [
   { site: 'packages/core/src/shipping/pickup.ts: PickupNotSupported', reason: MOVE },
   { site: 'packages/core/src/shopper-login/credentials.ts: LoginAppIncomplete', reason: MOVE },
   { site: 'packages/core/src/theme/custom-sections.ts: CustomSectionProblem', reason: MOVE },
+  {
+    site: 'packages/core/src/theme-code/check.ts: JsonProblem',
+    reason:
+      'JSON reader control flow: thrown and caught inside the theme-code checker, reported as a problem with a position',
+  },
   { site: 'packages/plugin-gst-invoices/src/issue.ts: InvoiceError', reason: PLUGIN },
   { site: 'packages/plugin-gst-invoices/src/periods.ts: PeriodError', reason: PLUGIN },
   { site: 'packages/plugin-shopify-import/src/bulk.ts: BulkUnavailableError', reason: PLUGIN },

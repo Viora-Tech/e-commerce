@@ -1,3 +1,4 @@
+import { siteConfig } from '@commerce/config/site'
 import CtaBand from '@/components/common/cta-band'
 import JsonLd from '@/components/common/json-ld'
 import Hero from '@/components/home/hero'
@@ -15,7 +16,7 @@ import { pageMetadata } from '@/lib/metadata'
 import { faqLd, softwareLd } from '@/lib/seo'
 
 export const metadata = pageMetadata({
-  title: 'Koomerce: AI e-commerce platform for Indian brands',
+  title: `${siteConfig.brand.name}: AI e-commerce platform for Indian brands`,
   description:
     'Run your online store in plain words. UPI-first checkout, GST invoices, Delhivery, Shiprocket and RapidShyp, Shopify theme import and an admin in English and Hindi. 0% transaction fee.',
   path: '/',

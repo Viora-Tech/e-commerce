@@ -1,3 +1,4 @@
+/** SOURCE OF TRUTH: paid app billing tests — WHAT: app access by plan, paying and stopping renewal / WHY: paying must install the app */
 import { appPurchase, createDb, store, storePlan, withStore } from '@commerce/db'
 import { resetDb } from '@commerce/db/test'
 import { eq } from 'drizzle-orm'

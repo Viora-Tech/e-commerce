@@ -152,6 +152,9 @@
     "apps/monitor": {
       "name": "@commerce/monitor",
       "version": "0.0.0",
+      "dependencies": {
+        "@commerce/config": "workspace:*",
+      },
       "devDependencies": {
         "wrangler": "4.151.1",
       },

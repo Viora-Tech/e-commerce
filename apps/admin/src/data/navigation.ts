@@ -254,7 +254,7 @@ export const navigationContent = {
   /** Top-bar tooltips (Figma "TB · Hover states"). */
   tips: {
     search: (shortcut: string) => `Search · ${shortcut}`,
-    askAi: (mod: string) => `Ask Koomerce AI · ${mod}J`,
+    askAi: (mod: string) => `Ask ${siteConfig.brand.name} AI · ${mod}J`,
     viewStore: (domain: string) => `Open store · ${domain} ↗`,
     theme: (name: string) => `Theme · ${name}`,
   },

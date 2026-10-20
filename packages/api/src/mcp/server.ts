@@ -24,7 +24,7 @@ import { type Db, withStore } from '@commerce/db'
 import { z } from 'zod'
 import { callMcpTool, listMcpTools } from './tools'
 
-export const MCP_PROTOCOL_VERSIONS = ['2025-06-18', '2025-03-26', '2024-11-05'] as const
+const MCP_PROTOCOL_VERSIONS = ['2025-06-18', '2025-03-26', '2024-11-05'] as const
 
 export type McpHost = {
   db: Db

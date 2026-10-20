@@ -44,7 +44,7 @@ import {
 } from './paths'
 
 /** Saved versions kept per file; older ones go when a new one is taken. */
-export const CODE_VERSIONS_KEPT = 30
+const CODE_VERSIONS_KEPT = 30
 
 /** An imported theme's files that only fed the import: the theme editor owns what they held. */
 const IMPORT_ONLY = /^(templates\/.+\.json|config\/settings_data\.json)$/

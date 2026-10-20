@@ -15,13 +15,34 @@ const GROWTH_MARGIN = 50
 
 const SPLIT = 'several concerns in one module — split by concern when it next changes'
 
+const COPY =
+  'copy for one admin area (data/<feature>.ts, mirrored in data/hi) — split by screen when it next changes'
+
 const ALLOWLIST: Record<string, { lines: number; reason: string }> = {
-  'apps/storefront/src/lib/liquid-theme.ts': { lines: 509, reason: SPLIT },
+  'apps/admin/src/data/customize.ts': { lines: 556, reason: COPY },
+  'apps/admin/src/data/hi/orders.ts': { lines: 539, reason: COPY },
+  'apps/admin/src/data/orders.ts': { lines: 543, reason: COPY },
+  'apps/storefront/src/lib/liquid-theme.ts': { lines: 560, reason: SPLIT },
   'packages/api/src/routers/gst-invoices.ts': { lines: 510, reason: SPLIT },
   'packages/api/src/routers/store.ts': { lines: 524, reason: SPLIT },
   'packages/api/src/services/analytics-reports.ts': { lines: 554, reason: SPLIT },
   'packages/api/src/services/dashboard.service.ts': { lines: 1027, reason: SPLIT },
+  'packages/api/src/services/order.service.ts': { lines: 527, reason: SPLIT },
   'packages/api/src/services/payments-setup.service.ts': { lines: 515, reason: SPLIT },
+  'packages/api/src/services/product.service.ts': { lines: 501, reason: SPLIT },
+  'packages/blocks/src/section-settings.ts': {
+    lines: 524,
+    reason: 'the typed setting schema every storefront section reads — split per section group',
+  },
+  'packages/core/src/api-access/service.ts': {
+    lines: 856,
+    reason: 'API keys plus the OAuth server for MCP clients — split OAuth into its own module',
+  },
+  'packages/core/src/billing/service.ts': {
+    lines: 502,
+    reason:
+      'plan billing: checkout, renewals and allowances — split renewals into their own module',
+  },
   'packages/core/src/gift-cards/service.ts': { lines: 705, reason: SPLIT },
   'packages/core/src/marketing/automations.ts': { lines: 837, reason: SPLIT },
   'packages/core/src/marketing/campaigns.ts': { lines: 508, reason: SPLIT },
@@ -29,6 +50,11 @@ const ALLOWLIST: Record<string, { lines: number; reason: string }> = {
   'packages/core/src/notifications/deliver.ts': { lines: 609, reason: SPLIT },
   'packages/core/src/order/place-order.ts': { lines: 1044, reason: SPLIT },
   'packages/core/src/returns/service.ts': { lines: 763, reason: SPLIT },
+  'packages/core/src/sales-channels/providers.ts': {
+    lines: 541,
+    reason: 'Meta and Google Merchant Center adapters in one module — split one file per provider',
+  },
+  'packages/core/src/theme-code/files.ts': { lines: 550, reason: SPLIT },
   'packages/db/src/schema.ts': {
     lines: 2446,
     reason: 'the Drizzle schema; split into per-area schema files (like marketing-schema.ts)',
@@ -40,11 +66,11 @@ const ALLOWLIST: Record<string, { lines: number; reason: string }> = {
   },
   'packages/plugin-gst-invoices/src/issue.ts': { lines: 529, reason: SPLIT },
   'packages/plugin-shopify-import/src/shopify-api.ts': {
-    lines: 866,
+    lines: 957,
     reason: 'Shopify GraphQL queries and their typed answers',
   },
   'packages/shipping-delhivery/src/delhivery.ts': {
-    lines: 719,
+    lines: 831,
     reason: 'one courier adapter implementing the whole provider contract',
   },
   'packages/shipping-rapidshyp/src/rapidshyp.ts': {

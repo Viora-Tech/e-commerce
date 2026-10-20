@@ -1,8 +1,10 @@
+/** SOURCE OF TRUTH: AI credit top-ups — WHAT: buying extra AI credits as a sales-store order / WHY: bought credits never reset */
 /**
  * AI credit top-ups: ₹199 for 1,000 credits, bought as an order on the sales store like a plan
  * bill. Paying adds them to the store's bought credits (`ai_settings.extra_credit_millis`), which
  * the AI guard uses after the month's allowance and never resets.
  */
+import { siteConfig } from '@commerce/config/site'
 import { aiCreditTopup, aiSettings, type Db, withStore } from '@commerce/db'
 import { and, desc, eq, sql } from 'drizzle-orm'
 import { orderViewToken, thankYouPath } from '../preorder/balance-link'
@@ -41,7 +43,7 @@ export async function buyAiCredits(db: Db, storeId: string, env: BillingEnv): Pr
   const sale = await placeSalesOrder(db, env, storeId, {
     sku: AI_CREDIT_PACK.sku,
     note: (buyer) =>
-      `Koomerce AI credits (${AI_CREDIT_PACK.credits}) for ${buyer}, store ${storeId}`,
+      `${siteConfig.brand.name} AI credits (${AI_CREDIT_PACK.credits}) for ${buyer}, store ${storeId}`,
   })
   return withStore(db, storeId, async (tx) => {
     await tx

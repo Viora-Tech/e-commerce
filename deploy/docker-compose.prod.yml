@@ -25,6 +25,10 @@ name: commerce
 x-app-env: &app-env
   DATABASE_URL: ${DATABASE_URL}
   DATABASE_URL_OWNER: ${DATABASE_URL_OWNER}
+  # PgBouncer (transaction mode): DATABASE_POOLED=true, and DATABASE_URL_DIRECT for the
+  # storefront cache's LISTEN connection. Blank is a direct connection.
+  DATABASE_POOLED: ${DATABASE_POOLED:-}
+  DATABASE_URL_DIRECT: ${DATABASE_URL_DIRECT:-}
   REDIS_URL: ${REDIS_URL:-redis://dragonfly:6379}
   AUTH_SECRET: ${AUTH_SECRET}
   ADMIN_URL: ${ADMIN_URL}
@@ -54,7 +58,17 @@ x-app-env: &app-env
   # Google Search Console app; blank uses the MERCHANT_GOOGLE_* client.
   GSC_GOOGLE_CLIENT_ID: ${GSC_GOOGLE_CLIENT_ID:-}
   GSC_GOOGLE_CLIENT_SECRET: ${GSC_GOOGLE_CLIENT_SECRET:-}
+  # Sales channels: Google Merchant Center client (blank uses MERCHANT_GOOGLE_*) and the Meta app
+  # (either blank keeps "Connect" as a request).
+  GMC_GOOGLE_CLIENT_ID: ${GMC_GOOGLE_CLIENT_ID:-}
+  GMC_GOOGLE_CLIENT_SECRET: ${GMC_GOOGLE_CLIENT_SECRET:-}
+  META_APP_ID: ${META_APP_ID:-}
+  META_APP_SECRET: ${META_APP_SECRET:-}
   PLATFORM_SALES_STORE_ID: ${PLATFORM_SALES_STORE_ID:-}
+  # UPI AutoPay for plans: the platform's own Razorpay account. All three set turns AutoPay on.
+  PLATFORM_RAZORPAY_KEY_ID: ${PLATFORM_RAZORPAY_KEY_ID:-}
+  PLATFORM_RAZORPAY_KEY_SECRET: ${PLATFORM_RAZORPAY_KEY_SECRET:-}
+  PLATFORM_RAZORPAY_WEBHOOK_SECRET: ${PLATFORM_RAZORPAY_WEBHOOK_SECRET:-}
   # Which proxy's client-IP header to believe for per-IP rate limits. `cloudflare` only when the
   # origin is firewalled to Cloudflare's IP ranges (see the deployment runbook); `none` ignores
   # every forwarded header.
@@ -88,6 +102,7 @@ x-app-env: &app-env
   OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:-}
   AI_MODEL: ${AI_MODEL:-}
   AI_MODEL_STRONG: ${AI_MODEL_STRONG:-}
+  AI_MAX_STEPS: ${AI_MAX_STEPS:-}
   AI_UNLIMITED_STORES: ${AI_UNLIMITED_STORES:-}
   # Umami addresses reachable on a private network or over http (our own Umami).
   UMAMI_TRUSTED_ORIGINS: ${UMAMI_TRUSTED_ORIGINS:-}

@@ -1,3 +1,4 @@
+/** SOURCE OF TRUTH: plan usage — WHAT: orders, staff, media and AI a store used this month / WHY: compared against the plan limits */
 import { dayKey, startOfMonth } from '@commerce/dates'
 import { aiUsage, media, order, type StoreTx, storeMember } from '@commerce/db'
 import { and, eq, gte, ne, sql } from 'drizzle-orm'

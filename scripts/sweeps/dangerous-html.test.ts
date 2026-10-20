@@ -13,6 +13,16 @@ type AllowEntry = { file: string; reason: string }
 
 const ALLOWLIST: AllowEntry[] = [
   {
+    file: 'apps/www/src/components/common/json-ld.tsx',
+    reason:
+      'JSON-LD <script> built from our own static SEO data (lib/seo.ts) with every `<` escaped as a unicode escape, so nothing can close the tag',
+  },
+  {
+    file: 'packages/blocks/src/components/section-custom-css.tsx',
+    reason:
+      "merchant's own section CSS in a <style> tag; cleanCustomCss (section-settings.ts) strips every `<` and @import, so it cannot close the style element or open HTML",
+  },
+  {
     file: 'apps/admin/src/components/themes/customize/liquid-canvas-section.tsx',
     reason:
       "the merchant's own imported Shopify theme rendered by our Liquid engine for the Customize canvas; the API strips every <script> and inline on* handler first (theme-import.service.ts stripScripts)",

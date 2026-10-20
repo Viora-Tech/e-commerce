@@ -32,7 +32,7 @@ import { catalogReadiness } from './readiness'
 
 const DAY = 86_400_000
 /** The window every channel number covers, against the one before it. */
-export const CHANNEL_PERIOD_DAYS = 30
+const CHANNEL_PERIOD_DAYS = 30
 /** More channel orders than this in two periods and the oldest are left out of the counts. */
 const MAX_ORDERS = 20_000
 

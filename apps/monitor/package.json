@@ -9,6 +9,9 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run"
   },
+  "dependencies": {
+    "@commerce/config": "workspace:*"
+  },
   "devDependencies": {
     "wrangler": "4.151.1"
   }

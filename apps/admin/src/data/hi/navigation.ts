@@ -200,7 +200,7 @@ export default [
     openMenu: 'मेन्यू खोलें',
     tips: {
       search: (shortcut: string) => `खोजें · ${shortcut}`,
-      askAi: (mod: string) => `Koomerce AI से पूछें · ${mod}J`,
+      askAi: (mod: string) => `${siteConfig.brand.name} AI से पूछें · ${mod}J`,
       viewStore: (domain: string) => `स्टोर खोलें · ${domain} ↗`,
       theme: (name: string) => `थीम · ${name}`,
     },

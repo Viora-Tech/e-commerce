@@ -1,3 +1,4 @@
+/** SOURCE OF TRUTH: sales channel connections — WHAT: connect, callback, pause, resume, disconnect / WHY: access is saved encrypted per store */
 /**
  * Sales channels, the live connections: "Connect" sends the merchant to Meta or Google to sign
  * in (or, for ChatGPT, takes the feed endpoint and key OpenAI gave them), the callback saves the
@@ -5,6 +6,7 @@
  * and disconnect live here too. Where no platform app is configured, Connect stays a request.
  */
 import { createHash, createHmac, randomBytes, timingSafeEqual } from 'node:crypto'
+import { siteConfig } from '@commerce/config/site'
 import {
   type ChannelProvider,
   channelConnection,
@@ -91,7 +93,7 @@ export function canConnectNow(channel: SalesChannelId, deps: Pick<ChannelDeps, '
   return false
 }
 
-export const callbackUrl = (adminUrl: string, provider: 'meta' | 'google') =>
+const callbackUrl = (adminUrl: string, provider: 'meta' | 'google') =>
   `${adminUrl.replace(/\/+$/, '')}/api/channels/${provider}/callback`
 
 /* ---------- the signed OAuth state ---------- */
@@ -298,7 +300,7 @@ export async function completeChannelConnect(
   const [named] = await withStore(db, s.storeId, (tx) =>
     tx.select({ name: store.name }).from(store).where(eq(store.id, s.storeId)),
   )
-  const catalogName = `${named?.name ?? 'Store'} (Koomerce)`
+  const catalogName = `${named?.name ?? 'Store'} (${siteConfig.brand.name})`
   const redirectUri = callbackUrl(deps.adminUrl, input.provider)
 
   if (input.provider === 'meta') {

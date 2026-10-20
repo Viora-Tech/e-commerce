@@ -1,12 +1,14 @@
 import type { OrderSheetRow } from '@commerce/api'
+import { ORDER_MARKS, type OrderMark } from '@commerce/core/order-status'
 import { z } from 'zod'
 import { INDIAN_STATES } from '@/data/india'
 import type { ordersBulkEditContent } from '@/data/orders-bulk-edit'
 
 type Copy = typeof ordersBulkEditContent
 
-export const MARKS = ['paid', 'fulfilled', 'delivered', 'cancelled'] as const
-export type Mark = (typeof MARKS)[number]
+/** The order moves (core's `ORDER_MARKS`), under the names the Mark as column uses. */
+export const MARKS = ORDER_MARKS
+export type Mark = OrderMark
 
 /** One grid row: every cell is the text the person sees and types. */
 export type GridRow = {

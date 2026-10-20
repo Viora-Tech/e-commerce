@@ -1,3 +1,4 @@
+/** SOURCE OF TRUTH: main-product props tests — WHAT: Shopify main-product section to product page props / WHY: imported product pages match the theme */
 import { describe, expect, it } from 'vitest'
 import { mainProductProps, plainText } from './main-product-props'
 import { productDisplayFields } from './product-fields'

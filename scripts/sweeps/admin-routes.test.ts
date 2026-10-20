@@ -39,7 +39,6 @@ const ALLOWLIST: Record<string, number> = {
   'apps/admin/src/components/preferences/preferences-form.tsx': 1,
   'apps/admin/src/components/privacy/data-request-detail.tsx': 2,
   'apps/admin/src/components/privacy/data-request-queue.tsx': 2,
-  'apps/admin/src/components/returns/return-customer-card.tsx': 1,
   'apps/admin/src/components/returns/return-outcome-card.tsx': 2,
   'apps/admin/src/components/shipments/ndr-tab.tsx': 1,
   'apps/admin/src/components/themes/customize/add-section-apps-tab.tsx': 1,

@@ -20,6 +20,11 @@ const ALLOWLIST: AllowEntry[] = [
     reason:
       'regroups digits per animation frame for whatever string it was given (money, percent, plain) — a generic animation helper, not a money formatter itself',
   },
+  {
+    file: 'apps/www/src/lib/pricing-math.ts',
+    reason:
+      'marketing-site pricing calculator: whole rupees (plan prices, savings) with no decimals; www does not depend on @commerce/money',
+  },
 ]
 
 function isAllowlisted(file: string): boolean {

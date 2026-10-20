@@ -9,6 +9,7 @@
  */
 import type { AiRuntime, AiTool, AiToolSet } from '@commerce/ai'
 import { settingsSecret } from '@commerce/config'
+import { siteConfig } from '@commerce/config/site'
 import {
   type ApiPrincipal,
   type McpSettings,
@@ -132,7 +133,7 @@ export function listMcpTools(env: McpEnv, toolEnv: ToolEnv): McpTool[] {
     .map((a) => ({
       name: a.tool,
       description: env.settings.requireApproval
-        ? `${a.description} The change waits for the store's approval in Koomerce before it happens.`
+        ? `${a.description} The change waits for the store's approval in ${siteConfig.brand.name} before it happens.`
         : a.description,
       input: a.input,
       readOnly: false,
@@ -276,12 +277,12 @@ export async function callMcpTool(
         kind: 'approval',
         tool: name,
         summary: `${p.name} proposed: ${view.summary} → waiting approval`,
-        detail: `${p.userName} · open AI approvals in Koomerce to approve it`,
+        detail: `${p.userName} · open AI approvals in ${siteConfig.brand.name} to approve it`,
         aiActionId: view.id,
         at: env.now(),
       })
       return {
-        text: `Proposed: ${view.summary}. It waits for approval in Koomerce (AI approvals) and changes nothing until then.`,
+        text: `Proposed: ${view.summary}. It waits for approval in ${siteConfig.brand.name} (AI approvals) and changes nothing until then.`,
         data: { id: view.id, status: view.status, preview: view.preview },
         isError: false,
       }

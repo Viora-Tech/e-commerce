@@ -1,3 +1,4 @@
+/** SOURCE OF TRUTH: catalog readiness — WHAT: how well AI agents can read each product / WHY: pure, so it is tested on its own */
 /**
  * Figma "Catalog readiness": how well AI agents can read, match and recommend each product.
  * Pure, so it is tested on its own; `loadCatalogReadiness` feeds it the SEO report's product
@@ -17,11 +18,11 @@ export type ReadinessProduct = {
 }
 
 /** Agents want size, material and what it works with: this many words reads as complete. */
-export const FULL_DESCRIPTION_WORDS = 40
+const FULL_DESCRIPTION_WORDS = 40
 /** Under this a description is too thin to match a question at all. */
-export const MIN_DESCRIPTION_WORDS = 15
+const MIN_DESCRIPTION_WORDS = 15
 /** Agents show a gallery; fewer than this is flagged. */
-export const MIN_IMAGES = 3
+const MIN_IMAGES = 3
 
 const POLICY_RULES: {
   type: PolicyType
