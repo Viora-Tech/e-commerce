@@ -13,7 +13,7 @@ import {
 } from '@commerce/db'
 import type { RichTextValue } from '@commerce/richtext'
 import { and, asc, desc, eq, inArray, isNull, sql } from 'drizzle-orm'
-import { cardPreorder, cardRatings } from './catalog'
+import { cardPreorder, cardRatings, listCardProducts } from './catalog'
 
 export type CollectionDetail = {
   id: string
@@ -75,6 +75,22 @@ export async function listCollections(tx: StoreTx): Promise<CollectionCard[]> {
   }))
 }
 
+/**
+ * Shopify's built-in `all` collection: every active product. It has no row, so its `id` is
+ * empty and callers browse without a collection. A store's own `all` collection wins.
+ */
+const ALL_PRODUCTS: CollectionDetail = {
+  id: '',
+  handle: 'all',
+  title: 'All products',
+  description: null,
+  imageUrl: null,
+  seoTitle: null,
+  seoDescription: null,
+  sortOrder: 'created_desc',
+  templateSuffix: null,
+}
+
 export async function getCollectionByHandle(
   tx: StoreTx,
   handle: string,
@@ -83,7 +99,7 @@ export async function getCollectionByHandle(
     .select()
     .from(collection)
     .where(and(eq(collection.handle, handle), eq(collection.status, 'active')))
-  if (!row) return null
+  if (!row) return handle === 'all' ? ALL_PRODUCTS : null
   const [image] = row.imageMediaId
     ? await tx.select({ url: media.url }).from(media).where(eq(media.id, row.imageMediaId))
     : []
@@ -225,6 +241,7 @@ export async function collectionCards(
 ): Promise<CardProduct[]> {
   const found = await getCollectionByHandle(tx, handle)
   if (!found) return []
+  if (!found.id) return listCardProducts(tx, limit)
   const { items } = await listCollectionProducts(tx, found.id, {
     sort: found.sortOrder,
     page: 1,
