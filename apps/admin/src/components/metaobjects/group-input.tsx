@@ -1,12 +1,15 @@
 'use client'
 
 import { GROUP_ROWS_MAX, type GroupField } from '@commerce/core/metaobjects'
-import { ArrowDown, ArrowUp, Plus, Trash2 } from '@commerce/ui/icons'
+import { Plus, Trash2 } from '@commerce/ui/icons'
 import { cn } from '@commerce/ui/lib/utils'
 import { Button } from '@commerce/ui/shadcn/button'
+import { SortableList } from '@commerce/ui/sortable'
 import EmptyState from '@/components/layout/empty-state'
+import { reorderLabels } from '@/data/common'
 import { entryFormContent, fieldInputContent } from '@/data/metaobjects'
 import { useCopy } from '@/hooks/use-copy'
+import { useRowIds } from '@/hooks/use-row-ids'
 import ReferencePicker from './reference-picker'
 import ScalarInput from './scalar-input'
 
@@ -29,13 +32,6 @@ const rowsOf = (value: unknown): Row[] =>
     ? value.filter((r): r is Row => typeof r === 'object' && r !== null && !Array.isArray(r))
     : []
 
-function move<T>(items: T[], from: number, to: number): T[] {
-  const next = [...items]
-  const [item] = next.splice(from, 1)
-  if (item !== undefined) next.splice(to, 0, item)
-  return next
-}
-
 /** A row's name in its header: its first filled text field, like the size "M". */
 function summaryOf(row: Row, subfields: readonly GroupField[]): string | null {
   for (const sub of subfields) {
@@ -48,8 +44,8 @@ function summaryOf(row: Row, subfields: readonly GroupField[]): string | null {
 }
 
 /**
- * Rows of fields, one level deep: each row a small card with its own inputs, moved up or
- * down, or removed. The idea of naming a row after its first text follows Instatic's
+ * Rows of fields, one level deep: each row a small card with its own inputs, dragged by its
+ * grip to reorder, or removed. The idea of naming a row after its first text follows Instatic's
  * repeater summary (MIT); no code copied.
  */
 export default function GroupInput({
@@ -63,15 +59,29 @@ export default function GroupInput({
   // Hooks
   const copy = useCopy(fieldInputContent)
   const { required } = useCopy(entryFormContent)
+  const sortLabels = useCopy(reorderLabels)
+  const rowIds = useRowIds(rowsOf(value).length)
 
   // Helpers
   const setRows = (rows: Row[]) => onChange(rows.length ? rows : null)
   const setCell = (rows: Row[], index: number, key: string, cell: unknown) =>
     setRows(rows.map((r, i) => (i === index ? { ...r, [key]: cell } : r)))
 
+  // Event handlers
+  const handleRemove = (rows: Row[], index: number) => {
+    rowIds.remove(index)
+    setRows(rows.filter((_, i) => i !== index))
+  }
+
+  const handleReorder = (rows: Row[], next: { id: string; index: number }[]) => {
+    rowIds.reorder(next.map((r) => r.id))
+    setRows(next.flatMap((r) => rows[r.index] ?? []))
+  }
+
   // Render logic
   const rows = rowsOf(value)
   const max = Math.min(maxRows ?? GROUP_ROWS_MAX, GROUP_ROWS_MAX)
+  const items = rows.map((_, index) => ({ id: rowIds.ids[index] ?? String(index), index }))
 
   return (
     <div id={id} className="flex flex-col gap-2">
@@ -83,13 +93,23 @@ export default function GroupInput({
           body={copy.rows.empty}
         />
       ) : (
-        <ol className="flex flex-col gap-2">
-          {rows.map((row, index) => {
+        <SortableList
+          items={items}
+          onReorder={(next) => handleReorder(rows, next)}
+          getTitle={({ index }) => {
+            const summary = summaryOf(rows[index] ?? {}, subfields)
+            return summary ? `${copy.rows.row(index + 1)} · ${summary}` : copy.rows.row(index + 1)
+          }}
+          labels={sortLabels}
+          className="flex flex-col gap-2"
+          itemClassName="rounded-md"
+          renderItem={({ index }, { handle }) => {
+            const row = rows[index] ?? {}
             const summary = summaryOf(row, subfields)
             return (
-              // biome-ignore lint/suspicious/noArrayIndexKey: rows have no identity beyond their position.
-              <li key={index} className="rounded-md border border-line bg-card">
-                <div className="flex items-center gap-1 border-b border-line py-1 pr-1 pl-3">
+              <div className="rounded-md border border-line bg-card">
+                <div className="flex items-center gap-1 border-b border-line py-1 pr-1 pl-1">
+                  {handle}
                   <span className="min-w-0 flex-1 truncate text-body-strong">
                     {copy.rows.row(index + 1)}
                     {summary ? (
@@ -99,26 +119,8 @@ export default function GroupInput({
                   <Button
                     variant="ghost"
                     size="icon-sm"
-                    aria-label={copy.rows.moveUp}
-                    disabled={index === 0}
-                    onClick={() => setRows(move(rows, index, index - 1))}
-                  >
-                    <ArrowUp />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon-sm"
-                    aria-label={copy.rows.moveDown}
-                    disabled={index === rows.length - 1}
-                    onClick={() => setRows(move(rows, index, index + 1))}
-                  >
-                    <ArrowDown />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon-sm"
                     aria-label={copy.rows.remove}
-                    onClick={() => setRows(rows.filter((_, i) => i !== index))}
+                    onClick={() => handleRemove(rows, index)}
                   >
                     <Trash2 />
                   </Button>
@@ -165,10 +167,10 @@ export default function GroupInput({
                     )
                   })}
                 </div>
-              </li>
+              </div>
             )
-          })}
-        </ol>
+          }}
+        />
       )}
       {rows.length < max ? (
         <Button variant="outline" className="self-start" onClick={() => setRows([...rows, {}])}>

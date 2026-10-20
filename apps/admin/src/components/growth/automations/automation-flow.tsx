@@ -6,8 +6,11 @@ import type {
   AutomationTrigger,
 } from '@commerce/core/marketing'
 import { CircleCheck, Minus, Plus, RotateCcw, ShoppingCart } from '@commerce/ui/icons'
+import { cn } from '@commerce/ui/lib/utils'
 import { Button } from '@commerce/ui/shadcn/button'
 import { useState } from 'react'
+import SortableStack from '@/components/layout/sortable-stack'
+import { reorderLabels } from '@/data/common'
 import {
   automationEditorContent,
   automationsContent,
@@ -26,22 +29,29 @@ type AutomationFlowProps = {
   onSelect: (id: string) => void
   /** Adds a step of this type before the step at `index` (the end when it equals the length). */
   onInsert: (type: AutomationStepType, index: number) => void
+  /** The steps in a new order, after one is dragged by its grip. */
+  onReorder: (steps: AutomationStep[]) => void
 }
 
 const ZOOMS = [0.5, 0.75, 0.9, 1, 1.25] as const
 const DEFAULT_ZOOM = 3
 
-/** Figma "Automation builder" canvas: trigger, each step joined by a + you can click or drop on, and the end. */
+/**
+ * Figma "Automation builder" canvas: trigger, each step joined by a + you can click or drop on,
+ * and the end. Steps reorder by dragging their grip (mouse, touch or keyboard).
+ */
 export default function AutomationFlow({
   trigger,
   steps,
   selected,
   onSelect,
   onInsert,
+  onReorder,
 }: AutomationFlowProps) {
   // Hooks
   const copy = useCopy(automationEditorContent)
   const { triggers } = useCopy(automationsContent)
+  const sortLabels = useCopy(reorderLabels)
   const [zoom, setZoom] = useState(DEFAULT_ZOOM)
 
   // Helpers
@@ -81,23 +91,35 @@ export default function AutomationFlow({
           selected={selected === 'trigger'}
           onSelect={() => onSelect('trigger')}
         />
-        {steps.map((step, i) => {
-          const { title, description } = describe(step)
-          return (
-            <div key={step.id} className="flex flex-col items-center">
-              <AutomationFlowJoint onInsert={(type) => onInsert(type, i)} />
-              <AutomationFlowNode
-                kind={copy.steps.types[step.type]}
-                title={title}
-                description={description}
-                icon={STEP_ICON[step.type]}
-                tone={STEP_TONE[step.type]}
-                selected={selected === step.id}
-                onSelect={() => onSelect(step.id)}
-              />
-            </div>
-          )
-        })}
+        <SortableStack
+          items={steps}
+          onReorder={onReorder}
+          getTitle={(step) => copy.steps.types[step.type]}
+          labels={sortLabels}
+          scale={scale}
+          className="flex flex-col items-center"
+          renderItem={(step, { handle, isDragging }) => {
+            const { title, description } = describe(step)
+            const i = steps.indexOf(step)
+            return (
+              <div className="flex flex-col items-center">
+                <AutomationFlowJoint onInsert={(type) => onInsert(type, i)} />
+                <div className={cn('relative rounded-lg', isDragging && 'shadow-popover')}>
+                  <span className="absolute top-1/2 -left-10 -translate-y-1/2">{handle}</span>
+                  <AutomationFlowNode
+                    kind={copy.steps.types[step.type]}
+                    title={title}
+                    description={description}
+                    icon={STEP_ICON[step.type]}
+                    tone={STEP_TONE[step.type]}
+                    selected={selected === step.id}
+                    onSelect={() => onSelect(step.id)}
+                  />
+                </div>
+              </div>
+            )
+          }}
+        />
         <AutomationFlowJoint onInsert={(type) => onInsert(type, steps.length)} />
         <AutomationFlowNode
           kind={copy.flow.end}

@@ -139,8 +139,6 @@ export const collectionFormContent = {
     add: 'Add',
     remove: 'Remove',
     empty: 'No products yet. Search above to add the first one.',
-    moveUp: 'Move up',
-    moveDown: 'Move down',
     count: (n: number) => `${n} ${n === 1 ? 'product' : 'products'}`,
   },
   sort: {

@@ -200,8 +200,6 @@ export const gstInvoicesContent = {
       'Set each invoice date (default: dispatch date, else today). Numbers follow the dates; move rows with the same date to change their order. Once issued, a number never changes.',
     invoiceDate: 'Invoice date',
     number: 'Number',
-    up: 'Move up',
-    down: 'Move down',
     preview: 'Preview numbers',
     confirm: (n: number) => `Issue ${n} ${n === 1 ? 'invoice' : 'invoices'}`,
     issued: (n: number) => `${n} issued`,
