@@ -15,6 +15,7 @@ import {
   caretPosition,
   codeFileName,
   codeFolderOf,
+  editorText,
   sectionTypeName,
   sectionTypeSlug,
 } from '@/lib/theme-code'
@@ -180,7 +181,7 @@ export default function CodeWorkspace({
   const changed = changedLines(buffer.saved, buffer.text)
 
   if (picked) {
-    const rows = diffLines(picked.body, buffer.text)
+    const rows = diffLines(editorText(picked.body), buffer.text)
     const when = format.dateTime(picked.version.createdAt)
     return (
       <>

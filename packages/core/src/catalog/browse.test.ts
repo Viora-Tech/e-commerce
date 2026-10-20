@@ -16,7 +16,7 @@ import {
 } from '@commerce/db'
 import { resetDb } from '@commerce/db/test'
 import { afterAll, beforeEach, describe, expect, it } from 'vitest'
-import { browseProducts, suggestProducts } from './browse'
+import { browseProducts, searchTerms, suggestProducts } from './browse'
 import {
   activeFilters,
   browseHref,
@@ -49,6 +49,9 @@ type Seed = {
   tags?: string[]
   sizes?: string[]
   createdAt?: Date
+  title?: string
+  description?: unknown
+  sku?: string
 }
 
 async function seed(storeId: string, s: Seed) {
@@ -57,7 +60,8 @@ async function seed(storeId: string, s: Seed) {
     .values({
       storeId,
       handle: s.handle,
-      title: s.handle.replace(/-/g, ' '),
+      title: s.title ?? s.handle.replace(/-/g, ' '),
+      description: s.description ?? null,
       status: 'active',
       productType: s.type ?? null,
       vendor: s.vendor ?? null,
@@ -74,7 +78,13 @@ async function seed(storeId: string, s: Seed) {
   for (const [i, size] of sizes.entries()) {
     const [v] = await owner
       .insert(variant)
-      .values({ storeId, productId, title: size ?? 'Default', pricePaise: s.price + i * 100 })
+      .values({
+        storeId,
+        productId,
+        title: size ?? 'Default',
+        pricePaise: s.price + i * 100,
+        sku: s.sku ? `${s.sku}-${i}` : null,
+      })
       .returning()
     variants.push(v?.id as string)
     await owner
@@ -243,6 +253,49 @@ describe('browseProducts', () => {
     ])
     expect(await run(storeId, (tx) => suggestProducts(tx, 'm'))).toEqual([])
     expect(await run(storeId, (tx) => suggestProducts(tx, '100%'))).toEqual([])
+  })
+
+  it('searches vendor, handle, SKU, option values and description too, title matches first', async () => {
+    const [s] = await owner.insert(store).values({ slug: 'e', name: 'E' }).returning()
+    const storeId = s?.id as string
+    const lexical = (text: string) => ({
+      root: { type: 'root', children: [{ type: 'paragraph', children: [{ type: 'text', text }] }] },
+    })
+    await seed(storeId, {
+      handle: 'zeta-pad',
+      price: 100,
+      stock: 1,
+      description: lexical('Made by Pulsar'),
+    })
+    await seed(storeId, { handle: 'beta-mouse', price: 100, stock: 1, vendor: 'Pulsar' })
+    await seed(storeId, { handle: 'pulsar-x2', title: 'X2 Wireless', price: 100, stock: 1 })
+    await seed(storeId, { handle: 'gamma', price: 100, stock: 1, sku: 'PLS-PULSAR' })
+    await seed(storeId, { handle: 'pulsar-x3', title: 'Pulsar X3', price: 100, stock: 1 })
+    await seed(storeId, { handle: 'legacy', price: 100, stock: 1, description: 'old pulsar copy' })
+    await seed(storeId, { handle: 'other', price: 100, stock: 1, description: lexical('paragraph') })
+    await seed(storeId, { handle: 'tee', price: 100, stock: 1, sizes: ['Crimson'] })
+    const search = (query: string) =>
+      run(storeId, (tx) => browseProducts(tx, { ...base, query, sort: 'relevance' }))
+
+    const found = await search('PULSAR')
+    expect(found.handles[0]).toBe('pulsar-x3')
+    expect(found.handles.slice(1, 4).sort()).toEqual(['beta-mouse', 'gamma', 'pulsar-x2'])
+    expect(found.handles.slice(4).sort()).toEqual(['legacy', 'zeta-pad'])
+    expect(found.total).toBe(6)
+    // Lexical's node keys are not searchable text.
+    expect((await search('paragraph')).handles).toEqual(['other'])
+    // Every word must match, in any field.
+    expect((await search('pulsar wireless')).handles).toEqual(['pulsar-x2'])
+    // Option values, as Search & Discovery matches variant titles.
+    expect((await search('crimson')).handles).toEqual(['tee'])
+  })
+})
+
+describe('searchTerms', () => {
+  it('splits, lowercases and dedupes words, at most eight', () => {
+    expect(searchTerms('  Pulsar  X2 pulsar ')).toEqual(['pulsar', 'x2'])
+    expect(searchTerms('')).toEqual([])
+    expect(searchTerms('a b c d e f g h i j')).toHaveLength(8)
   })
 })
 
