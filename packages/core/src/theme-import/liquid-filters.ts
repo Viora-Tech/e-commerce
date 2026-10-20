@@ -90,7 +90,8 @@ function listFilter(
     values: (FacetValue & { label?: string })[]
   },
 ): LiquidFilter {
-  const href = (f: BrowseFilters) => browseHref(page.path, { q: page.q, filters: f, sort: page.sort ?? null })
+  const href = (f: BrowseFilters) =>
+    browseHref(page.path, { q: page.q, filters: f, sort: page.sort ?? null })
   const picked = spec.slot.get(filters)
   const values = spec.values.map((v): LiquidFilterValue => {
     const active = picked.includes(v.value)
@@ -101,7 +102,12 @@ function listFilter(
       count: v.count,
       active,
       url_to_add: href(spec.slot.set(filters, active ? picked : [...picked, v.value])),
-      url_to_remove: href(spec.slot.set(filters, picked.filter((x) => x !== v.value))),
+      url_to_remove: href(
+        spec.slot.set(
+          filters,
+          picked.filter((x) => x !== v.value),
+        ),
+      ),
       image: null,
       swatch: null,
     }
@@ -160,7 +166,11 @@ export function liquidFilters(
       values: [],
       active_values: [],
       inactive_values: [],
-      url_to_remove: browseHref(page.path, { q: page.q, filters: withoutPrice, sort: page.sort ?? null }),
+      url_to_remove: browseHref(page.path, {
+        q: page.q,
+        filters: withoutPrice,
+        sort: page.sort ?? null,
+      }),
       // Paise, the subunit `| money` reads, as Shopify's cents.
       min_value: { param_name: FILTER_PARAM.priceMin, value: filters.priceMin },
       max_value: { param_name: FILTER_PARAM.priceMax, value: filters.priceMax },

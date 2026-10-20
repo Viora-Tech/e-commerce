@@ -232,17 +232,27 @@ export function metafieldFacets(rows: FieldRow[]): MetafieldFacet[] {
     if (r.value === '') continue
     let f = out.find((x) => x.key === r.field)
     if (!f) {
-      f = { key: r.field, name: r.name, type: r.type === 'boolean' ? 'boolean' : 'list', values: [] }
+      f = {
+        key: r.field,
+        name: r.name,
+        type: r.type === 'boolean' ? 'boolean' : 'list',
+        values: [],
+      }
       out.push(f)
     }
     f.values.push({ value: r.value, count: r.count })
   }
   const natural = (a: FacetValue, b: FacetValue) =>
     a.value.localeCompare(b.value, undefined, { numeric: true, sensitivity: 'base' })
-  return out.filter((f) => marked || guessed(f)).map((f) => ({
-    ...f,
-    values: (f.type === 'boolean' ? f.values.sort((a, b) => b.value.localeCompare(a.value)) : f.values.sort(natural)).slice(0, MAX_FIELD_VALUES),
-  }))
+  return out
+    .filter((f) => marked || guessed(f))
+    .map((f) => ({
+      ...f,
+      values: (f.type === 'boolean'
+        ? f.values.sort((a, b) => b.value.localeCompare(a.value))
+        : f.values.sort(natural)
+      ).slice(0, MAX_FIELD_VALUES),
+    }))
 }
 
 function orderBy(sort: BrowseSort): SQL {

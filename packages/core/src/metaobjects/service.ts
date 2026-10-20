@@ -536,7 +536,11 @@ export async function updateMetafieldDefinition(
 export async function markMetafieldsFilterable(tx: StoreTx, ids: string[]): Promise<number> {
   if (ids.length === 0) return 0
   const rows = await tx
-    .select({ id: metafieldDefinition.id, ownerType: metafieldDefinition.ownerType, type: metafieldDefinition.type })
+    .select({
+      id: metafieldDefinition.id,
+      ownerType: metafieldDefinition.ownerType,
+      type: metafieldDefinition.type,
+    })
     .from(metafieldDefinition)
     .where(and(inArray(metafieldDefinition.id, ids), eq(metafieldDefinition.filterable, false)))
   const allowed = rows.filter((r) => canFilterBy(r)).map((r) => r.id)

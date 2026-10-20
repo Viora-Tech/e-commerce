@@ -14,6 +14,13 @@ import {
 } from '@commerce/db'
 import { and, asc, desc, eq, isNotNull, like, sql } from 'drizzle-orm'
 import { excerptText } from '../blog/text'
+import { browseProducts } from '../catalog/browse'
+import {
+  BROWSE_SORTS,
+  parseBrowseFilters,
+  parseBrowseSort,
+  parsePage,
+} from '../catalog/browse-params'
 import { keyFromName } from '../metaobjects/validate'
 import { toNavLinks } from '../navigation/resolve'
 import { loadMetafields, loadMetaobjects, loadMetaobjectsOfType } from './custom-data'
@@ -29,8 +36,6 @@ import type {
 } from './drops'
 import { loadImportedFiles } from './imported-files'
 import { uuidPrefixOf } from './numeric-id'
-import { browseProducts } from '../catalog/browse'
-import { BROWSE_SORTS, parseBrowseFilters, parseBrowseSort, parsePage } from '../catalog/browse-params'
 import { collectionsProducts, loadProducts, productsByHandles } from './product-data'
 import { MAX_RECOMMENDATIONS, pickedRecommendationIds, relatedProductIds } from './related'
 import { richTextHtml } from './rich-html'
@@ -249,7 +254,9 @@ export async function storeLiquidData(
         const wanted = Math.min(Math.max(1, Math.trunc(limit) || 4), MAX_RECOMMENDATIONS)
         // The merchant's picks first (Search & Discovery); complementary has nothing else.
         const fields = (await loadMetafields(tx, 'product', [productId])).metafields[productId]
-        const picked = pickedRecommendationIds(fields ?? [], intent).filter((id) => id !== productId)
+        const picked = pickedRecommendationIds(fields ?? [], intent).filter(
+          (id) => id !== productId,
+        )
         const auto = intent === 'related' ? await relatedProductIds(tx, productId) : []
         const ids = [...new Set([...picked, ...auto])]
         // Over-read: sold-out products are dropped after loading (stock lives on the variants).

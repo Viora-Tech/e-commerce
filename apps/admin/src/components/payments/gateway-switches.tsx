@@ -138,10 +138,15 @@ export default function GatewaySwitches({ gateway, onlyOnline, onChanged }: Gate
           </Button>
         )}
       </div>
-      <label className="flex items-center gap-2 text-caption text-muted-foreground">
-        <Switch checked={active} onCheckedChange={handleActive} disabled={busy} />
-        {active ? copy.active.on : copy.active.off}
-      </label>
+      <div className="flex items-center gap-2 text-caption text-muted-foreground">
+        <Switch
+          checked={active}
+          onCheckedChange={handleActive}
+          disabled={busy}
+          aria-label={active ? copy.active.on : copy.active.off}
+        />
+        <span aria-hidden>{active ? copy.active.on : copy.active.off}</span>
+      </div>
 
       <ConfirmDialog
         open={pending?.kind === 'mode'}

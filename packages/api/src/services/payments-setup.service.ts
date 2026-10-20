@@ -2,8 +2,8 @@ import { createHmac, randomBytes, timingSafeEqual } from 'node:crypto'
 import {
   activateGateway,
   type CheckoutMethod,
-  checkoutTestMode,
   checkoutMethodsOf,
+  checkoutTestMode,
   createPaymentTestCart,
   DEFAULT_CHECKOUT_METHODS,
   deactivateGateway,
@@ -549,13 +549,21 @@ export async function completeRazorpayOAuth(
   } catch (err) {
     webhookError = err instanceof Error ? err.message : String(err)
   }
-  await connectPaymentGateway(tx, storeId, registry, env, 'razorpay', {
-    ...oauthConfigFields(tokens),
-    keySecret: '',
-    webhookSecret,
-    webhookId,
-    oauthMode: input.mode,
-  }, input.mode)
+  await connectPaymentGateway(
+    tx,
+    storeId,
+    registry,
+    env,
+    'razorpay',
+    {
+      ...oauthConfigFields(tokens),
+      keySecret: '',
+      webhookSecret,
+      webhookId,
+      oauthMode: input.mode,
+    },
+    input.mode,
+  )
   return webhookError ? { webhook: 'failed', webhookError } : { webhook: 'registered' }
 }
 
