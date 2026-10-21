@@ -149,10 +149,14 @@ export default function GrowthOverviewPage({ initialRange, initial }: GrowthOver
           },
         ]}
       />
-      <div className="grid grid-cols-1 items-stretch gap-6 xl:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)]">
+      {bestRow ? (
+        <div className="grid grid-cols-1 items-stretch gap-6 xl:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)]">
+          <OutcomesCard outcomes={o} />
+          <BestSourceCallout source={bestRow} />
+        </div>
+      ) : (
         <OutcomesCard outcomes={o} />
-        {bestRow ? <BestSourceCallout source={bestRow} /> : null}
-      </div>
+      )}
       <ChartCard
         title={copy.salesOverTime.title}
         periods={[
