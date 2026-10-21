@@ -16,6 +16,7 @@ import { captureContactAction, checkoutAction } from '@/lib/cart-actions'
 import { readDraft, writeDraft } from '@/lib/checkout-draft'
 import { type CheckoutFormState, NEW_ADDRESS, prefillCheckout } from '@/lib/checkout-form-state'
 import { checkoutTotals, deliveryLine, offeredMethods, takesUpi } from '@/lib/checkout-preview'
+import { readRemembered, writeRemembered } from '@/lib/checkout-remember'
 import { type CheckoutStep, type StepGates, stepsFor } from '@/lib/checkout-steps'
 import {
   type CheckoutFieldKey,
@@ -152,13 +153,23 @@ export function useCheckoutForm(input: CheckoutFormInput) {
       setSavedId(addresses.some((a) => a.id === draft.savedId) ? draft.savedId : NEW_ADDRESS)
       setBusiness(draft.business)
       setRateId(draft.rateId)
+    } else if (!customer) {
+      // A guest back on the same browser: start from the details they used last time.
+      const remembered = readRemembered()
+      if (remembered) {
+        opened = { ...form, ...remembered }
+        setForm(opened)
+        setGuest(true)
+      }
     }
     if (isFullPincode(opened.pincode)) checkPincode(opened.pincode, opened.stateCode)
     setSettled(true)
   }, [])
   useEffect(() => {
-    if (settled) writeDraft(cart.id, { form, savedId, business, rateId, guest })
-  }, [settled, cart.id, form, savedId, business, rateId, guest])
+    if (!settled) return
+    writeDraft(cart.id, { form, savedId, business, rateId, guest })
+    if (!customer) writeRemembered(form)
+  }, [settled, cart.id, form, savedId, business, rateId, guest, customer])
   // A code applied in the summary can move the cart across a band or make shipping free.
   // biome-ignore lint/correctness/useExhaustiveDependencies: re-quote only when the discount changes.
   useEffect(() => {

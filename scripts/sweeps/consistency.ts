@@ -111,6 +111,7 @@ export async function nearDuplicatePairs(): Promise<string[]> {
 export const HELPER_OWNERS: Record<string, string[]> = {
   settingsSecret: ['packages/config/src/env.ts'],
   safeEqual: ['packages/payments/src/safe-equal.ts'],
+  readableError: ['packages/payments/src/readable-error.ts'],
   timingSafeEqualString: ['packages/shipping/src/webhook-auth.ts'],
   isUniqueViolation: ['packages/db/src/errors.ts'],
   msUntilLaunch: ['packages/core/src/preorder/launch.ts'],

@@ -178,6 +178,34 @@ describe('idempotent webhooks', () => {
     expect((await orderRow(r.orderId))?.paymentStatus).toBe('paid')
   })
 
+  it("stores a gateway's plain-object rejection as its words, never [object Object]", async () => {
+    const gw = new GatewayDouble()
+    // How Razorpay's SDK rejects: a plain object, not an Error.
+    gw.rejectNextWith = {
+      statusCode: 400,
+      error: { code: 'BAD_REQUEST_ERROR', description: 'The amount must be at least INR 1.00' },
+    }
+    const r = await placed(gw)
+    expect(r.paymentStatus).toBe('failed')
+    const [a] = await attemptsOf(r.orderId)
+    expect(a).toMatchObject({ status: 'failed', error: 'The amount must be at least INR 1.00' })
+  })
+
+  it("keeps the gateway's failure reason from a payment.failed webhook on the attempt", async () => {
+    const gw = new GatewayDouble()
+    const r = await placed(gw)
+    const reason =
+      'Payment blocked as website does not match registered website(s) (payment_risk_check_failed)'
+    await deliver(r.storeId, gw, {
+      eventId: 'e1',
+      type: 'payment.failed',
+      providerRef: 'order_1',
+      reason,
+    })
+    const [a] = await attemptsOf(r.orderId)
+    expect(a).toMatchObject({ status: 'failed', error: reason })
+  })
+
   it('a capture after a failure on the same gateway order still pays the order', async () => {
     const gw = new GatewayDouble()
     const r = await placed(gw)
