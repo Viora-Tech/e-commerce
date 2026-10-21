@@ -6,6 +6,7 @@ import RelativeTime from '@/components/layout/relative-time'
 import StatusLabel from '@/components/status/status-label'
 import { orderDetailContent } from '@/data/orders'
 import { useCopy, useFormat } from '@/hooks/use-copy'
+import FailedAttemptReason from './failed-attempt-reason'
 import OrderChip from './order-chip'
 import {
   methodLabel,
@@ -106,6 +107,9 @@ export default function PaymentCard({
               </div>
               {pill === 'refund_needed' ? (
                 <p className="text-body text-destructive">{copy.payment.refundNeeded}</p>
+              ) : null}
+              {p.status === 'failed' && p.error ? (
+                <FailedAttemptReason provider={p.provider} error={p.error} />
               ) : null}
               <KeyValueList
                 variant="grid"

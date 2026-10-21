@@ -12,7 +12,14 @@ export type RzpPayment = RzpPaymentCharges & {
   order_id?: string | null
   amount: number
   status: string
+  /** Set on a failed payment: `BAD_REQUEST_ERROR`, `GATEWAY_ERROR`… */
+  error_code?: string | null
   error_description?: string | null
+  /** Machine reason (`payment_risk_check_failed`, `payment_cancelled`…). */
+  error_reason?: string | null
+  /** `customer`, `bank`, `business`, `internal`… */
+  error_source?: string | null
+  error_step?: string | null
   notes?: Record<string, string> | null
 }
 

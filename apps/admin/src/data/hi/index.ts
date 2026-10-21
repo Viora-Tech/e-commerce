@@ -67,6 +67,7 @@ import products from './products'
 import profitCosts from './profit-costs'
 import purchaseDocuments from './purchase-documents'
 import purchasing from './purchasing'
+import razorpayWebsites from './razorpay-websites'
 import reviews from './reviews'
 import searchApp from './search-app'
 import searchConsole from './search-console'
@@ -158,6 +159,7 @@ export const hindiCopy: readonly TranslationPair[] = [
   ...payments,
   ...paymentModes,
   ...paymentsSetup,
+  ...razorpayWebsites,
   ...collections,
   ...commandPalette,
   ...inventory,

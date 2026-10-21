@@ -10,6 +10,7 @@ import PageHeader from '@/components/layout/page-header'
 import SettingsCard from '@/components/settings/settings-card'
 import { paymentModesContent } from '@/data/payment-modes'
 import { paymentsSetupContent } from '@/data/payments-setup'
+import { razorpayWebsitesContent } from '@/data/razorpay-websites'
 import { SETTINGS_BACK } from '@/data/settings'
 import { useCopy } from '@/hooks/use-copy'
 import { useSetupNext } from '@/hooks/use-setup-next'
@@ -22,6 +23,8 @@ import MainGatewayCard from './main-gateway-card'
 import MethodsList from './methods-list'
 import { openTestOrder } from './open-test-order'
 import OtherGatewayCard from './other-gateway-card'
+import RazorpayWebsiteBanner from './razorpay-website-banner'
+import RazorpayWebsiteList from './razorpay-website-list'
 import StatusBanner from './status-banner'
 import TestModeBar from './test-mode-bar'
 import type { CheckoutMethodRow, PaymentsSetup } from './types'
@@ -32,6 +35,9 @@ type PaymentsOverviewProps = {
   onReload: () => Promise<void>
   onOpenGuide: () => void
 }
+
+/** The websites card's id, which the "Razorpay is blocking payments" banner links to. */
+const WEBSITES_ID = 'razorpay-websites'
 
 /** The one online gateway on at checkout: turning it off leaves COD / bank transfer only. */
 function isOnlyOnline(setup: PaymentsSetup, id: string | undefined): boolean {
@@ -49,6 +55,7 @@ export default function PaymentsOverview({ setup, onReload, onOpenGuide }: Payme
   const announceSetup = useSetupNext()
   const copy = useCopy(paymentsSetupContent)
   const modes = useCopy(paymentModesContent)
+  const sites = useCopy(razorpayWebsitesContent)
   const router = useRouter()
   const [methods, setMethods] = useState<CheckoutMethodRow[]>(setup.methods)
   const [savingMethods, setSavingMethods] = useState(false)
@@ -99,6 +106,7 @@ export default function PaymentsOverview({ setup, onReload, onOpenGuide }: Payme
   // Render logic
   const hasGateway = setup.primary !== null
   const others = setup.gateways.filter((g) => g.configured && g.id !== setup.primary?.id)
+  const razorpay = setup.gateways.some((g) => g.id === 'razorpay' && g.configured)
   const actions = (
     <Button variant="outline" className="gap-1.5" onClick={handleTestOrder} disabled={opening}>
       {opening ? <Spinner /> : null}
@@ -123,6 +131,13 @@ export default function PaymentsOverview({ setup, onReload, onOpenGuide }: Payme
 
       <StatusBanner canTakePayments={setup.canTakePayments} canTakeOnline={setup.canTakeOnline} />
       {setup.testMode ? <TestModeBar /> : null}
+      {setup.razorpayWebsiteBlock ? (
+        <RazorpayWebsiteBanner
+          block={setup.razorpayWebsiteBlock}
+          websites={setup.razorpayWebsites}
+          listId={WEBSITES_ID}
+        />
+      ) : null}
 
       <section className="flex flex-col gap-2" aria-labelledby="payments-main">
         <h2 id="payments-main" className="text-card font-semibold text-foreground">
@@ -152,6 +167,12 @@ export default function PaymentsOverview({ setup, onReload, onOpenGuide }: Payme
             />
           ))}
         </section>
+      ) : null}
+
+      {razorpay || setup.razorpayWebsiteBlock ? (
+        <SettingsCard id={WEBSITES_ID} title={sites.list.label} description={sites.list.help}>
+          <RazorpayWebsiteList websites={setup.razorpayWebsites} />
+        </SettingsCard>
       ) : null}
 
       <SettingsCard

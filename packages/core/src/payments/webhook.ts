@@ -1,5 +1,5 @@
 import { paymentEvent, refund } from '@commerce/db'
-import type { PaymentProvider } from '@commerce/payments'
+import { type PaymentProvider, readableError } from '@commerce/payments'
 import { and, eq, ne } from 'drizzle-orm'
 import type { StoreContext } from '../context'
 import { recomputeOrderStatuses } from '../order/recompute'
@@ -123,6 +123,8 @@ export async function handlePaymentWebhook(
           idempotencyKey: e.idempotencyKey,
           status: 'failed',
           providerPaymentId: e.providerPaymentId,
+          // The gateway's own words (Razorpay's "website does not match…"), shown to the merchant.
+          error: e.reason,
         })) !== null
     } else if (e.type === 'refund.processed') {
       await settleRefund(ctx, e.providerRefundId, 'processed')
@@ -143,7 +145,7 @@ export async function handlePaymentWebhook(
   } catch (err) {
     await ctx.tx
       .update(paymentEvent)
-      .set({ status: 'failed', error: err instanceof Error ? err.message : String(err) })
+      .set({ status: 'failed', error: readableError(err) })
       .where(eq(paymentEvent.id, row.id))
     throw err
   }

@@ -14,6 +14,8 @@ export type Delivery = {
   idempotencyKey?: string
   /** What the gateway says was paid; defaults to what that gateway order was created for. */
   amountPaise?: number
+  /** Why a `payment.failed` failed; defaults to "declined". */
+  reason?: string
 }
 
 /**
@@ -26,6 +28,8 @@ export class GatewayDouble implements PaymentProvider {
   readonly label = 'Gateway double'
   readonly created: CreatePaymentInput[] = []
   failNext = false
+  /** What the next `createPayment` rejects with instead of an Error (an SDK's plain object). */
+  rejectNextWith: unknown = undefined
   /** Makes `fetchStatus` throw, as when the gateway is down. */
   fetchFails = false
   readonly status = new Map<string, PaymentStatus>()
@@ -34,6 +38,11 @@ export class GatewayDouble implements PaymentProvider {
     if (this.failNext) {
       this.failNext = false
       throw new Error('gateway timeout')
+    }
+    if (this.rejectNextWith !== undefined) {
+      const err = this.rejectNextWith
+      this.rejectNextWith = undefined
+      throw err
     }
     this.created.push(input)
     const providerRef = `order_${this.created.length}`
@@ -92,7 +101,7 @@ export class GatewayDouble implements PaymentProvider {
             providerRef: d.providerRef,
             idempotencyKey: d.idempotencyKey ?? null,
             providerPaymentId: `pay_${d.eventId}`,
-            reason: 'declined',
+            reason: d.reason ?? 'declined',
             orderId: null,
             raw: d,
           }

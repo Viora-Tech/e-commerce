@@ -31,6 +31,18 @@ export function qrWasPaid(qr: RzpQrCode): boolean {
 }
 
 /**
+ * Why Razorpay refused a payment, in words the merchant can read: its description with the
+ * machine reason after it ("Payment blocked as website does not match registered website(s)
+ * (payment_risk_check_failed)"), so the admin can both show it and recognise known causes.
+ */
+function razorpayFailureReason(pay: RzpPayment): string {
+  const description = pay.error_description?.trim()
+  const reason = pay.error_reason?.trim() || pay.error_code?.trim()
+  if (description && reason) return `${description} (${reason})`
+  return description || reason || 'Payment failed'
+}
+
+/**
  * Checkout payments always belong to a Razorpay order we created (`providerRef`); one
  * without an order was made outside our checkout (anyone can open Checkout with the
  * public key id and put an attempt's `idempotencyKey` in its notes), so it is ignored.
@@ -96,7 +108,7 @@ export function normaliseRazorpayWebhook(body: RzpWebhookBody): WebhookEvent {
         providerRef: pay.order_id ?? '',
         providerPaymentId: pay.id,
         idempotencyKey,
-        reason: pay.error_description ?? 'failed',
+        reason: razorpayFailureReason(pay),
         orderId,
         raw: body,
       }

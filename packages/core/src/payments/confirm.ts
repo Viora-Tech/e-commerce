@@ -110,7 +110,12 @@ export async function paymentAmountFor(
  */
 export async function applyPaymentStatus(
   ctx: StoreContext,
-  input: PaymentRef & { status: PaymentStatus; providerPaymentId: string | null },
+  input: PaymentRef & {
+    status: PaymentStatus
+    providerPaymentId: string | null
+    /** Why a failure happened, in the gateway's words; stored on the attempt when it fails. */
+    error?: string | null | undefined
+  },
 ): Promise<AppliedPayment | null> {
   const id = await findPaymentId(ctx, input)
   if (!id) return null
@@ -161,6 +166,7 @@ export async function applyPaymentStatus(
       providerRef,
       providerPaymentId: input.providerPaymentId ?? p.providerPaymentId,
       refundNeeded,
+      ...(next === 'failed' && input.error ? { error: input.error } : {}),
     })
     .where(eq(payment.id, p.id))
     .returning()
