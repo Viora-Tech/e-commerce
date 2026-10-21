@@ -177,16 +177,11 @@ export function blankTemplate(key: TemplateKey): TemplateData {
 }
 
 /**
- * The template rows a blank theme stores: only those whose blank differs from the code default
- * (header, footer, home). A template with no row renders `defaultTemplate`, which for every other
- * key already is just its main section.
+ * The templates a blank theme stores a row for: only those whose blank differs from the code
+ * default. A template with no row renders `defaultTemplate`, which for every other key already is
+ * just its main section.
  */
-export function blankTemplateRows(): { template: TemplateKey; data: TemplateData }[] {
-  return (['header', 'footer', 'home'] as const).map((template) => ({
-    template,
-    data: blankTemplate(template),
-  }))
-}
+export const BLANK_THEME_TEMPLATES = ['header', 'footer', 'home'] as const satisfies TemplateKey[]
 
 /** Normalises anything stored in a template column into Puck data. */
 export function parseTemplateData(value: unknown): TemplateData | null {

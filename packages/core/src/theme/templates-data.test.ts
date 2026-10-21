@@ -1,8 +1,8 @@
 /** SOURCE OF TRUTH: template data tests — WHAT: default templates and dropping Liquid sections / WHY: templates stay valid after import */
 import { describe, expect, it } from 'vitest'
 import {
+  BLANK_THEME_TEMPLATES,
   blankTemplate,
-  blankTemplateRows,
   defaultTemplate,
   MAIN_SECTION,
   TEMPLATE_KINDS,
@@ -99,7 +99,7 @@ describe('blankTemplate', () => {
   })
 
   it('stores rows only where the blank differs from the code default, as fresh copies', () => {
-    expect(blankTemplateRows().map((r) => r.template)).toEqual(['header', 'footer', 'home'])
+    expect(BLANK_THEME_TEMPLATES).toEqual(['header', 'footer', 'home'])
     const a = blankTemplate('header')
     a.content.push({ type: 'X', props: { id: 'x' } })
     expect(blankTemplate('header').content).toHaveLength(1)

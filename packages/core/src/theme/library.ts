@@ -5,7 +5,7 @@ import { copyThemeImport } from '../theme-import/bundle-store'
 import { applyThemePreset } from './presets'
 import { defaultTheme, parseTheme, type Theme, type ThemePresetId, ThemeSchema } from './schema'
 import { copyTemplates } from './templates'
-import { blankTemplateRows } from './templates-data'
+import { BLANK_THEME_TEMPLATES, blankTemplate } from './templates-data'
 import {
   effectiveThemePacks,
   parseOwnThemePacks,
@@ -273,7 +273,7 @@ export async function createThemeFromPreset(
 }
 
 /** The name a blank theme gets when the merchant leaves it empty. */
-export const BLANK_THEME_NAME = 'Blank theme'
+const BLANK_THEME_NAME = 'Blank theme'
 
 /**
  * "Start from scratch": a new unpublished theme with base settings (the Minimal preset, keeping
@@ -307,13 +307,13 @@ export async function createBlankTheme(
   // Stored rows, so the storefront renders the blank groups and home page instead of falling back
   // to the code defaults (which carry an announcement bar, a hero and a newsletter).
   await tx.insert(themeTemplate).values(
-    blankTemplateRows().map((t) => ({
+    BLANK_THEME_TEMPLATES.map((template) => ({
       id: newId(),
       storeId,
       themeId: created.id,
-      template: t.template,
+      template,
       suffix: '',
-      sections: t.data,
+      sections: blankTemplate(template),
     })),
   )
   return toRecord(created)

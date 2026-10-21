@@ -40,7 +40,7 @@ Branch `fix/theme-isolation`. No migration (everything lives in existing jsonb c
 - Menu item and a dialog choice. `api.themes.createBlank({ name })` → `createBlankTheme`: the
   Minimal preset's settings (keeping the live theme's logo and favicon), no packs, and stored rows
   for `header` (only the Header), `footer` (only the Footer) and `home` (empty), from
-  `blankTemplate` / `blankTemplateRows` (`templates-data.ts`). Every other template has no row and
+  `blankTemplate` / `BLANK_THEME_TEMPLATES` (`templates-data.ts`). Every other template has no row and
   renders its code default, which is just its main section. Nothing is copied from the live
   theme. Copy in `data/themes.ts` (`library.startBlank`, `addDialog.blank*`), Hindi in
   `data/hi/themes.ts` (the add dialog now has a Hindi overlay too).
