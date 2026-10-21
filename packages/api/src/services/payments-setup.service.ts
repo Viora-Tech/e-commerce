@@ -32,6 +32,7 @@ import type { ConnectionTestResult } from '@commerce/payments'
 import {
   exchangeRazorpayCode,
   oauthConfigFields,
+  RAZORPAY_WEBHOOK_EVENTS,
   type RazorpayOAuthApp,
   registerRazorpayWebhook,
   updateRazorpayWebhook,
@@ -237,6 +238,8 @@ export async function paymentsSetup(
     webhookUrls: Object.fromEntries(
       GATEWAY_PROVIDER_IDS.map((id) => [id, webhookUrlFor(env.workerUrl, id, storeId)]),
     ) as Record<string, string>,
+    /** The events to tick on a webhook added by hand in Razorpay's dashboard. */
+    razorpayWebhookEvents: [...RAZORPAY_WEBHOOK_EVENTS],
   }
 }
 

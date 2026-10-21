@@ -9,6 +9,7 @@ import { paymentModesContent } from '@/data/payment-modes'
 import { gatewayCatalogue, paymentsSetupContent } from '@/data/payments-setup'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { routes } from '@/lib/routes'
+import GatewayActiveFooter from './gateway-active-footer'
 import GatewayLogo from './gateway-logo'
 import GatewayProblem from './gateway-problem'
 import GatewaySwitches from './gateway-switches'
@@ -109,9 +110,7 @@ export default function MainGatewayCard({
           </div>
         </div>
 
-        {gateway ? (
-          <GatewaySwitches gateway={gateway} onlyOnline={onlyOnline} onChanged={onChanged} />
-        ) : null}
+        {gateway ? <GatewaySwitches gateway={gateway} onChanged={onChanged} /> : null}
 
         <dl className="grid gap-3 text-body sm:grid-cols-2">
           <div className="flex flex-col gap-0.5">
@@ -141,6 +140,15 @@ export default function MainGatewayCard({
             ))}
           </ul>
         )}
+
+        {gateway ? (
+          <GatewayActiveFooter
+            gateway={gateway}
+            name={primary.label}
+            onlyOnline={onlyOnline}
+            onChanged={onChanged}
+          />
+        ) : null}
       </CardContent>
     </Card>
   )

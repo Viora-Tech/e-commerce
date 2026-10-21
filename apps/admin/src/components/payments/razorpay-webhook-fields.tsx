@@ -2,6 +2,7 @@ import { RefreshCw } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Field, FieldDescription, FieldGroup, FieldLabel } from '@commerce/ui/shadcn/field'
 import { Input } from '@commerce/ui/shadcn/input'
+import CopyButton from '@/components/fields/copy-button'
 import { gatewayGuides, paymentsSetupContent } from '@/data/payments-setup'
 import { useCopy } from '@/hooks/use-copy'
 import CopyField from './copy-field'
@@ -9,6 +10,8 @@ import CopyField from './copy-field'
 type RazorpayWebhookFieldsProps = {
   url: string
   secret: string
+  /** The events to tick in Razorpay's webhook form. */
+  events: string[]
   onNewSecret: () => void
 }
 
@@ -19,6 +22,7 @@ const isMasked = (v: string) => v.startsWith('••••')
 export default function RazorpayWebhookFields({
   url,
   secret,
+  events,
   onNewSecret,
 }: RazorpayWebhookFieldsProps) {
   // Hooks
@@ -65,6 +69,27 @@ export default function RazorpayWebhookFields({
         <FieldDescription>
           {saved ? copy.savedSecret : guide.fields.webhookSecret?.help}
         </FieldDescription>
+      </Field>
+      <Field>
+        <div className="flex items-center gap-1">
+          <FieldLabel id="razorpay-webhook-events">{guide.fields.webhookEvents?.label}</FieldLabel>
+          <CopyButton
+            value={events.join(', ')}
+            what={guide.fields.webhookEvents?.label ?? ''}
+            visible
+          />
+        </div>
+        <ul aria-labelledby="razorpay-webhook-events" className="flex flex-wrap gap-1.5">
+          {events.map((e) => (
+            <li
+              key={e}
+              className="rounded-md border border-border bg-muted px-2 py-0.5 font-mono text-caption text-foreground"
+            >
+              {e}
+            </li>
+          ))}
+        </ul>
+        <FieldDescription>{guide.fields.webhookEvents?.help}</FieldDescription>
       </Field>
     </FieldGroup>
   )
