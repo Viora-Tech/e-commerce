@@ -1,7 +1,7 @@
 'use client'
 
 import type { LiquidSectionPlacement } from '@commerce/core/theme-import'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { renderLiquidCanvas } from '@/lib/liquid-canvas'
 
 type LiquidCanvasSectionProps = {
@@ -18,6 +18,31 @@ function useContentKey(section: LiquidSectionPlacement): string {
 const SETTLE_MS = 180
 
 /**
+ * Muted videos in the section play while on screen, as the storefront's theme script would
+ * start them (a hero video otherwise shows a dark poster here). No theme code runs: the canvas
+ * only calls play()/pause() on the section's own muted videos, so nothing makes a sound.
+ */
+function playMutedVideos(box: HTMLElement): () => void {
+  const videos = [...box.querySelectorAll<HTMLVideoElement>('video')].filter(
+    (v) => v.muted || v.hasAttribute('muted'),
+  )
+  if (videos.length === 0) return () => undefined
+  const view = box.ownerDocument.defaultView
+  if (!view?.IntersectionObserver) return () => undefined
+  const observer = new view.IntersectionObserver((entries) => {
+    for (const e of entries) {
+      const video = e.target as HTMLVideoElement
+      if (e.isIntersecting && video.offsetParent !== null) {
+        video.muted = true
+        video.play().catch(() => undefined)
+      } else video.pause()
+    }
+  })
+  for (const v of videos) observer.observe(v)
+  return () => observer.disconnect()
+}
+
+/**
  * One imported Shopify section on the Customize canvas: the theme's own Liquid,
  * rendered on the server with this store's data. Scripts never run here (the canvas
  * shares the admin's origin); the storefront runs them. Re-renders when its settings
@@ -27,6 +52,7 @@ export default function LiquidCanvasSection({ themeId, section }: LiquidCanvasSe
   // Hooks
   const key = useContentKey(section)
   const [html, setHtml] = useState<string | null>(null)
+  const box = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     let active = true
@@ -42,10 +68,15 @@ export default function LiquidCanvasSection({ themeId, section }: LiquidCanvasSe
     }
   }, [themeId, key])
 
+  useEffect(() => {
+    if (!html || !box.current) return
+    return playMutedVideos(box.current)
+  }, [html])
+
   // Early returns
   if (html === null) return <div className="min-h-24" aria-busy="true" />
 
   // Render logic
   // biome-ignore lint/security/noDangerouslySetInnerHtml: server-rendered Liquid of the merchant's own imported theme, scripts and inline handlers stripped by the API (`theme-import.service.ts`).
-  return <div dangerouslySetInnerHTML={{ __html: html }} />
+  return <div ref={box} dangerouslySetInnerHTML={{ __html: html }} />
 }
