@@ -163,6 +163,31 @@ export function defaultTemplate(key: TemplateKey): TemplateData {
   return data(main ? [section(main, 'main')] : [])
 }
 
+/**
+ * A blank theme's template ("Start from scratch"): the header and footer groups hold only their
+ * Header and Footer, the home page is empty, and every other template is just its main section,
+ * which it needs to show the product, cart or page being viewed. Never the live theme's sections.
+ */
+export function blankTemplate(key: TemplateKey): TemplateData {
+  const fresh = (sections: TemplateSection[]) => data(structuredClone(sections))
+  if (key === 'header') return fresh(HEADER_GROUP.filter((s) => s.type === 'Header'))
+  if (key === 'footer') return fresh(FOOTER_GROUP.filter((s) => s.type === 'Footer'))
+  if (key === 'home') return data([])
+  return defaultTemplate(key)
+}
+
+/**
+ * The template rows a blank theme stores: only those whose blank differs from the code default
+ * (header, footer, home). A template with no row renders `defaultTemplate`, which for every other
+ * key already is just its main section.
+ */
+export function blankTemplateRows(): { template: TemplateKey; data: TemplateData }[] {
+  return (['header', 'footer', 'home'] as const).map((template) => ({
+    template,
+    data: blankTemplate(template),
+  }))
+}
+
 /** Normalises anything stored in a template column into Puck data. */
 export function parseTemplateData(value: unknown): TemplateData | null {
   if (typeof value !== 'object' || value === null) return null

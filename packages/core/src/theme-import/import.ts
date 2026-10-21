@@ -15,6 +15,7 @@ import {
   type TemplateKey,
   type TemplateSection,
 } from '../theme/templates-data'
+import { withOwnThemePacks } from '../theme/theme-packs'
 import { archiveText, readThemeArchive, type ThemeArchive, ThemeArchiveProblem } from './archive'
 import {
   LIQUID_SECTION,
@@ -405,7 +406,8 @@ export async function importShopifyTheme(
     name,
     role: 'unpublished',
     preset: null,
-    settings: live ? parseTheme(live.settings) : defaultTheme,
+    // Its own section packs: none (a pack's sections are ours, not the imported theme's).
+    settings: withOwnThemePacks(live ? parseTheme(live.settings) : defaultTheme, []),
   })
 
   // Files, exactly as uploaded.

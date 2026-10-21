@@ -1,4 +1,4 @@
-/** SOURCE OF TRUTH: store theme packs — WHAT the opt-in section packs a store has turned on, kept in `store.apps.settings.core.themePacks` (beside the tax switches) / WHY a pack's sections (Zero Drift, the Waimers store's own Shopify theme) belong to one store, so the editor's Add menu offers them only where turned on; saved pages using them render for every store either way. Pure: no database, safe for client components. */
+/** SOURCE OF TRUTH: theme packs — WHAT the opt-in section packs a theme has turned on, kept per theme in `theme.settings.themePacks`; a theme without its own list falls back to the older store-level `store.apps.settings.core.themePacks` (beside the tax switches) / WHY a pack's sections (Zero Drift, the Waimers store's own Shopify theme) belong to one store, so the editor's Add menu offers them only where turned on; saved pages using them render for every store either way. Pure: no database, safe for client components. */
 import { z } from 'zod'
 import {
   type AppsSettings,
@@ -37,4 +37,39 @@ export function withThemePacks(appsRaw: unknown, packs: readonly ThemePackId[]):
     ...(entry.success ? entry.data : {}),
     themePacks: [...new Set(packs)],
   })
+}
+
+/**
+ * Packs are per theme: a theme keeps its own list in `theme.settings.themePacks`, beside (not
+ * inside) the colours and fonts `ThemeSchema` parses, so a settings save never touches it.
+ */
+export const THEME_OWN_PACKS_KEY = 'themePacks'
+
+/**
+ * A theme's own packs from its raw `theme.settings`; null when it has no list of its own (themes
+ * from before packs moved to the theme), so the store-level list still decides for those.
+ */
+export function parseOwnThemePacks(settingsRaw: unknown): ThemePackId[] | null {
+  if (typeof settingsRaw !== 'object' || settingsRaw === null) return null
+  const packs = (settingsRaw as Record<string, unknown>)[THEME_OWN_PACKS_KEY]
+  return Array.isArray(packs) ? [...new Set(packs.filter(isPack))] : null
+}
+
+/**
+ * The packs a theme's editor offers: its own list when it has one, else the store-level list
+ * (`store.apps.settings.core.themePacks`), so Waimers' live theme keeps Zero Drift as before.
+ */
+export function effectiveThemePacks(
+  own: readonly ThemePackId[] | null,
+  storePacks: readonly ThemePackId[],
+): ThemePackId[] {
+  return [...new Set(own ?? storePacks)]
+}
+
+/** A settings document to store: `settings` with the theme's own packs beside it (none: as is). */
+export function withOwnThemePacks<T extends object>(
+  settings: T,
+  own: readonly ThemePackId[] | null,
+): T {
+  return own === null ? settings : { ...settings, [THEME_OWN_PACKS_KEY]: [...new Set(own)] }
 }

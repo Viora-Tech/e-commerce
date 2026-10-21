@@ -133,6 +133,12 @@ over, so the Preferences form and the library never overwrite each other.
 - **Insert** (`instantiateCustomSection` → `insertCopyActions`): a deep copy with a fresh id on
   every block, then one `insert` (not recorded) plus one `replace`, so undo is a single step.
 - Pages keep their copies when a saved section is deleted.
+- **Per theme when it holds Liquid**: a section with a `LiquidSection` anywhere in its tree
+  (an imported Shopify section) renders only with its theme's files, so Save records the edited
+  theme as `themeId`. `customSectionsForTheme` decides what `customSections.list({ themeId })`
+  returns: sections built from our own blocks show in every theme; Liquid ones only in their
+  `themeId`; Liquid ones saved before `themeId` was recorded only in imported themes (a theme with
+  a `theme_import` row), never in our own themes.
 
 ## Editor
 

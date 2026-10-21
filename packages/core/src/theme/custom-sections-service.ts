@@ -1,9 +1,11 @@
 /** SOURCE OF TRUTH: "My sections" storage. WHAT list, save, rename and delete of a store's saved sections in store.preferences.customSections, touching only that key. WHY the Preferences form and the library share one jsonb column and must never overwrite each other. */
-import { type StoreTx, store } from '@commerce/db'
+import { type StoreTx, store, themeImport } from '@commerce/db'
 import { eq, sql } from 'drizzle-orm'
 import {
   type CustomSection,
   CustomSectionProblem,
+  customSectionsForTheme,
+  hasLiquidSection,
   parseCustomSections,
   prepareCustomSection,
   withCustomSection,
@@ -41,14 +43,42 @@ const problem = (err: unknown): never => {
   throw err
 }
 
-/** The store's saved sections, newest first. */
-export const listCustomSections = (tx: StoreTx, storeId: string) => readList(tx, storeId)
+/** True when the theme was imported from a Shopify zip (it has a `theme_import` row). */
+async function isImportedTheme(tx: StoreTx, themeId: string): Promise<boolean> {
+  const [row] = await tx
+    .select({ id: themeImport.id })
+    .from(themeImport)
+    .where(eq(themeImport.themeId, themeId))
+    .limit(1)
+  return Boolean(row)
+}
 
-/** Saves a section (a copy of what the merchant selected) to the library. */
+/**
+ * The store's saved sections, newest first. With `themeId` (Customize editing that theme), only
+ * the ones that theme can render (`customSectionsForTheme`): sections holding an imported Shopify
+ * section stay with the theme they were saved from.
+ */
+export async function listCustomSections(
+  tx: StoreTx,
+  storeId: string,
+  themeId?: string,
+): Promise<CustomSection[]> {
+  const list = await readList(tx, storeId)
+  if (!themeId) return list
+  return customSectionsForTheme(list, {
+    id: themeId,
+    imported: await isImportedTheme(tx, themeId),
+  })
+}
+
+/**
+ * Saves a section (a copy of what the merchant selected) to the library. `themeId` is the theme
+ * being edited; it is kept only when the section holds an imported Shopify section.
+ */
 export async function saveCustomSection(
   tx: StoreTx,
   storeId: string,
-  input: { name: string; block: unknown },
+  input: { name: string; block: unknown; themeId?: string | undefined },
 ): Promise<CustomSection> {
   try {
     const prepared = prepareCustomSection(input)
@@ -56,6 +86,8 @@ export async function saveCustomSection(
       id: globalThis.crypto.randomUUID(),
       ...prepared,
       createdAt: new Date().toISOString(),
+      // An imported Shopify section renders only with its theme's files: remember which theme.
+      ...(input.themeId && hasLiquidSection(prepared.block) ? { themeId: input.themeId } : {}),
     }
     await writeList(tx, storeId, withCustomSection(await readList(tx, storeId), section))
     return section
