@@ -3,9 +3,11 @@ import {
   createDb,
   customer,
   inventoryLevel,
+  media,
   order,
   orderLine,
   product,
+  productMedia,
   store,
   variant,
   withStore,
@@ -39,7 +41,7 @@ async function seed() {
     .returning()
   if (!v) throw new Error('seed')
   await owner.insert(inventoryLevel).values({ storeId: s.id, variantId: v.id, onHand: 5 })
-  return { storeId: s.id, variantId: v.id }
+  return { storeId: s.id, productId: p.id, variantId: v.id }
 }
 
 beforeEach(async () => {
@@ -64,6 +66,28 @@ describe('cart', () => {
       return getCart(ctx, cartId)
     })
     expect(view?.lines).toEqual([])
+  })
+
+  it("shows the product's first image on a line whose variant has none", async () => {
+    const { storeId, productId, variantId } = await seed()
+    const [second, first] = await owner
+      .insert(media)
+      .values([
+        { storeId, url: 'https://cdn.test/side.jpg', alt: null },
+        { storeId, url: 'https://cdn.test/front.jpg', alt: null },
+      ])
+      .returning()
+    await owner.insert(productMedia).values([
+      { storeId, productId, mediaId: second?.id as string, position: 1 },
+      { storeId, productId, mediaId: first?.id as string, position: 0 },
+    ])
+    const view = await withStore(app, storeId, async (tx) => {
+      const ctx = { storeId, tx }
+      const cartId = await createCart(ctx)
+      await addToCart(ctx, cartId, variantId, 1)
+      return getCart(ctx, cartId)
+    })
+    expect(view?.lines[0]?.imageUrl).toBe('https://cdn.test/front.jpg')
   })
 
   it('checks out with cash on delivery: customer, address, snapshots, pending payment', async () => {
