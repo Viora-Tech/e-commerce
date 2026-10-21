@@ -174,16 +174,28 @@ export type ShippingQuote =
   | { kind: 'no_rates' }
   | { kind: 'rates'; options: ShippingRateOption[] }
 
+/**
+ * The rates for this address and cart: the most specific zone that covers it and has a rate for
+ * the cart. A zone with no rates (or none for this cart) falls through to the next zone that
+ * covers the address, so an empty zone left behind by an import never blocks checkout
+ * (Waimers, 2026-10-21: two empty "All India" zones listing every state outranked the
+ * everywhere zone that held the only rate).
+ */
 export function quoteShipping(
   zones: readonly ShippingZoneInput[],
   to: ShippingDestination,
   cart: ShippingCartMeasure,
 ): ShippingQuote {
   if (zones.length === 0) return { kind: 'not_configured' }
-  const zone = pickZone(zones, to)
-  if (!zone) return { kind: 'no_rates' }
-  const options = ratesForZone(zone, cart)
-  return options.length ? { kind: 'rates', options } : { kind: 'no_rates' }
+  const covering = zones
+    .map((zone) => ({ zone, score: zoneScore(zone, to) }))
+    .filter((c): c is { zone: ShippingZoneInput; score: number } => c.score !== null)
+    .sort((a, b) => b.score - a.score || a.zone.position - b.zone.position)
+  for (const { zone } of covering) {
+    const options = ratesForZone(zone, cart)
+    if (options.length) return { kind: 'rates', options }
+  }
+  return { kind: 'no_rates' }
 }
 
 /**
