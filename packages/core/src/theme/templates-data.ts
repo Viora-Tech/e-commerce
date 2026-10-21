@@ -19,6 +19,8 @@ export const TEMPLATE_KINDS = [
   'cart',
   'search',
   'not_found',
+  'account',
+  'login',
 ] as const
 export type TemplateKind = (typeof TEMPLATE_KINDS)[number]
 
@@ -59,6 +61,9 @@ export const MAIN_SECTION: Partial<Record<TemplateKind, string>> = {
   cart: 'MainCart',
   search: 'MainSearch',
   not_found: 'MainNotFound',
+  // The shopper's account pages (orders, addresses, profile...) and the sign-in page.
+  account: 'MainAccount',
+  login: 'MainLogin',
 }
 
 /** Sections that belong in a group rather than a template. */

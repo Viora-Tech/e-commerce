@@ -62,6 +62,8 @@ export const THEME_TEMPLATE_KINDS = [
   'cart',
   'search',
   'not_found',
+  'account',
+  'login',
   'header',
   'footer',
 ] as const
@@ -91,7 +93,7 @@ export const themeTemplate = pgTable(
   (t) => [
     check(
       'theme_template_kind',
-      sql`${t.template} in ('home','product','collection','page','blog','article','cart','search','not_found','header','footer')`,
+      sql`${t.template} in ('home','product','collection','page','blog','article','cart','search','not_found','account','login','header','footer')`,
     ),
     check('theme_template_suffix', sql`${t.suffix} ~ '^[a-z0-9-]{0,40}$'`),
     uniqueIndex('theme_template_unique').on(t.themeId, t.template, t.suffix),

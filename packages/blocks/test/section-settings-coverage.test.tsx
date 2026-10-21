@@ -45,6 +45,8 @@ describe('section settings on every section', () => {
       'MainCart',
       'MainSearch',
       'MainNotFound',
+      'MainAccount',
+      'MainLogin',
       'RelatedProducts',
       'RecentlyViewed',
       'Hero',

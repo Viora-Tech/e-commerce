@@ -40,6 +40,8 @@ export const DYNAMIC_SECTIONS = [
   'MainCart',
   'MainSearch',
   'MainNotFound',
+  'MainAccount',
+  'MainLogin',
   'RelatedProducts',
   'RecentlyViewed',
 ] as const
@@ -104,6 +106,8 @@ const SETTINGS_KIND: Partial<Record<DynamicSection, Exclude<SettingsKind, 'secti
   MainCart: 'flow',
   MainSearch: 'flow',
   MainNotFound: 'flow',
+  MainAccount: 'flow',
+  MainLogin: 'flow',
   RelatedProducts: 'flow',
   RecentlyViewed: 'flow',
 }
@@ -146,6 +150,8 @@ const DEFS: Record<DynamicSection, Def> = {
     defaultProps: { showFilters: true, showSort: true },
   },
   MainNotFound: { label: 'Page not found', fields: {}, defaultProps: {} },
+  MainAccount: { label: 'Customer account', fields: {}, defaultProps: {} },
+  MainLogin: { label: 'Sign in', fields: {}, defaultProps: {} },
   RelatedProducts: {
     label: 'Related products',
     fields: {

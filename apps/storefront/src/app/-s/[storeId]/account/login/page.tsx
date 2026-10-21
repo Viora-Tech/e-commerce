@@ -3,12 +3,14 @@ import { openToken } from '@commerce/core'
 import type { Metadata } from 'next'
 import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
+import AccountFrame from '@/components/account/account-frame'
 import SignIn from '@/components/account/sign-in'
 import { accountContent } from '@/data/account'
 import { currentCustomer, safeReturnTo } from '@/lib/customer-session'
 import { type PendingLink, parseLoginError } from '@/lib/login-errors'
 import { PENDING_LINK_COOKIE } from '@/lib/shopper-login'
 import { storeSignIn } from '@/lib/sign-in-methods'
+import { renderTemplate } from '@/lib/template-render'
 
 type LoginPageProps = {
   params: Promise<{ storeId: string }>
@@ -34,17 +36,24 @@ export default async function LoginPage({ params, searchParams }: LoginPageProps
     storeSignIn(storeId),
     pendingEmail(query.confirm),
   ])
-  return (
-    <div className="py-6 md:py-12">
-      <SignIn
-        returnTo={returnTo}
-        methods={signIn.methods}
-        checkout={signIn.checkout}
-        options={signIn.options}
-        oneTapClientId={signIn.oneTapClientId}
-        error={parseLoginError(query.error)}
-        confirmEmail={confirmEmail}
-      />
-    </div>
-  )
+  // The theme's `login` template: its main section is the sign-in form, as before.
+  return renderTemplate(storeId, 'login', {
+    renderers: {
+      MainLogin: () => (
+        <AccountFrame>
+          <div className="py-6 md:py-12">
+            <SignIn
+              returnTo={returnTo}
+              methods={signIn.methods}
+              checkout={signIn.checkout}
+              options={signIn.options}
+              oneTapClientId={signIn.oneTapClientId}
+              error={parseLoginError(query.error)}
+              confirmEmail={confirmEmail}
+            />
+          </div>
+        </AccountFrame>
+      ),
+    },
+  })
 }
