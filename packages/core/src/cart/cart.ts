@@ -1,5 +1,5 @@
-import { cart, cartLine, media, product, sellableStock, variant } from '@commerce/db'
-import { and, eq } from 'drizzle-orm'
+import { cart, cartLine, media, product, productMedia, sellableStock, variant } from '@commerce/db'
+import { and, asc, eq, inArray } from 'drizzle-orm'
 import type { StoreContext } from '../context'
 import { CartNotOpen, NotLaunchedYet } from '../errors'
 import { isLaunched } from '../preorder/launch'
@@ -70,6 +70,26 @@ export async function createCart(ctx: StoreContext): Promise<string> {
   return c.id
 }
 
+/**
+ * Each product's first image, for lines whose variant has no image of its own (most imported
+ * single-variant products): the cart, drawer and checkout show it like Shopify does.
+ */
+async function productFirstImages(
+  ctx: StoreContext,
+  productIds: string[],
+): Promise<Map<string, string>> {
+  const out = new Map<string, string>()
+  if (productIds.length === 0) return out
+  const rows = await ctx.tx
+    .select({ productId: productMedia.productId, url: media.url })
+    .from(productMedia)
+    .innerJoin(media, eq(media.id, productMedia.mediaId))
+    .where(inArray(productMedia.productId, [...new Set(productIds)]))
+    .orderBy(asc(productMedia.position))
+  for (const r of rows) if (!out.has(r.productId)) out.set(r.productId, r.url)
+  return out
+}
+
 export async function getCart(ctx: StoreContext, cartId: string): Promise<CartView | null> {
   const [c] = await ctx.tx.select().from(cart).where(eq(cart.id, cartId))
   if (!c) return null
@@ -80,6 +100,7 @@ export async function getCart(ctx: StoreContext, cartId: string): Promise<CartVi
       quantity: cartLine.quantity,
       unitPricePaise: cartLine.unitPricePaise,
       preorder: cartLine.preorder,
+      productId: product.id,
       productHandle: product.handle,
       productTitle: product.title,
       variantTitle: variant.title,
@@ -104,6 +125,10 @@ export async function getCart(ctx: StoreContext, cartId: string): Promise<CartVi
     .leftJoin(sellableStock, eq(sellableStock.variantId, variant.id))
     .leftJoin(media, eq(media.id, variant.mediaId))
     .where(eq(cartLine.cartId, cartId))
+  const firstImages = await productFirstImages(
+    ctx,
+    rows.filter((r) => !r.imageUrl).map((r) => r.productId),
+  )
   const lines: CartLineView[] = rows.map((r) => ({
     id: r.id,
     variantId: r.variantId,
@@ -114,7 +139,7 @@ export async function getCart(ctx: StoreContext, cartId: string): Promise<CartVi
     unitPricePaise: r.unitPricePaise,
     linePaise: r.quantity * r.unitPricePaise,
     available: lineAvailable(r),
-    imageUrl: r.imageUrl,
+    imageUrl: r.imageUrl ?? firstImages.get(r.productId) ?? null,
     giftCard: r.giftCard,
     preorder: r.preorder,
   }))
