@@ -26,7 +26,7 @@ export default async function Page({ params, searchParams }: Props) {
   const session = await getSession()
   if (!session) redirect(routes.login())
   const context = await serverContext()
-  const [theme, me, apps, themes, aiStatus, orgs, themePacks] = await Promise.all([
+  const [theme, me, apps, themes, aiStatus, orgs] = await Promise.all([
     call(appRouter.themes.get, { id }, { context }).catch(() => null),
     call(appRouter.staff.me, {}, { context }).catch(() => null),
     call(appRouter.apps.list, undefined, { context }).catch(() => []),
@@ -35,7 +35,6 @@ export default async function Page({ params, searchParams }: Props) {
     auth()
       .api.listOrganizations({ headers: await headers() })
       .catch(() => []),
-    call(appRouter.themes.packs, undefined, { context }).catch(() => []),
   ])
 
   if (!theme) notFound()
@@ -48,8 +47,8 @@ export default async function Page({ params, searchParams }: Props) {
   const canPublish =
     me?.isOwner === true || (me?.permissions ?? []).includes(permissions.ONLINE_STORE_PUBLISH)
   return (
-    // The store's theme packs: which pack sections (Zero Drift…) the editor offers.
-    <ThemePacksProvider packs={themePacks}>
+    // This theme's section packs: which pack sections (Zero Drift…) the editor offers.
+    <ThemePacksProvider themeId={theme.id} packs={theme.packs}>
       <CustomizeEditor
         theme={theme}
         origin={origin}

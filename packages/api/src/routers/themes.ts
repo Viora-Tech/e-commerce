@@ -1,5 +1,6 @@
 import { settingsSecret } from '@commerce/config'
 import {
+  createBlankTheme,
   createThemeFromPreset,
   deleteTheme,
   duplicateTheme,
@@ -21,8 +22,10 @@ import {
   storeThemePacks,
   THEME_PACK_IDS,
   THEME_PRESET_IDS,
+  type ThemePackId,
   type ThemeRecord,
   ThemeSchema,
+  themePacksOf,
   themesWithDrafts,
   updateThemeSettings,
 } from '@commerce/core'
@@ -124,10 +127,23 @@ const importRouter = {
     ),
 }
 
-/** What the library shows beside a theme beyond its row: unsaved edits and imported sections. */
-type ThemeFacts = { imported: boolean; hasDraft: boolean; sectionCount: number | null }
+/**
+ * What the library shows beside a theme beyond its row: unsaved edits, imported sections, and the
+ * store-level section packs a theme without its own list follows.
+ */
+type ThemeFacts = {
+  imported: boolean
+  hasDraft: boolean
+  sectionCount: number | null
+  storePacks: ThemePackId[]
+}
 
-const NO_FACTS: ThemeFacts = { imported: false, hasDraft: false, sectionCount: null }
+const NO_FACTS: ThemeFacts = {
+  imported: false,
+  hasDraft: false,
+  sectionCount: null,
+  storePacks: [],
+}
 
 /**
  * A theme as the admin sees it, with a signed token that lets the storefront render
@@ -142,6 +158,8 @@ function present(storeId: string, t: ThemeRecord, facts: ThemeFacts = NO_FACTS) 
     hasDraft: facts.hasDraft,
     /** Liquid sections an imported theme brought; null for our own (they share one library). */
     sectionCount: facts.sectionCount,
+    /** Section packs (Zero Drift…) its Customize Add menu offers: its own, else the store's. */
+    packs: t.ownPacks ?? facts.storePacks,
     previewToken: signThemePreviewToken({ secret: settingsSecret(), storeId, themeId: t.id }),
   }
 }
@@ -149,22 +167,24 @@ function present(storeId: string, t: ThemeRecord, facts: ThemeFacts = NO_FACTS) 
 type LibraryTx = Parameters<typeof importedThemeIds>[0]
 
 /** The facts for every theme of the store, read once for a whole list. */
-async function libraryFacts(tx: LibraryTx): Promise<(id: string) => ThemeFacts> {
-  const [imported, drafts, counts] = await Promise.all([
+async function libraryFacts(tx: LibraryTx, storeId: string): Promise<(id: string) => ThemeFacts> {
+  const [imported, drafts, counts, storePacks] = await Promise.all([
     importedThemeIds(tx),
     themesWithDrafts(tx),
     importedSectionCounts(tx),
+    storeThemePacks(tx, storeId),
   ])
   return (id) => ({
     imported: imported.has(id),
     hasDraft: drafts.has(id),
     sectionCount: counts.get(id) ?? null,
+    storePacks,
   })
 }
 
 /** `present`, with the facts read for this one theme. */
 async function presentOne(tx: LibraryTx, storeId: string, t: ThemeRecord) {
-  return present(storeId, t, (await libraryFacts(tx))(t.id))
+  return present(storeId, t, (await libraryFacts(tx, storeId))(t.id))
 }
 
 /**
@@ -206,23 +226,37 @@ export const themesRouter = {
   /** The live theme's logo for the admin sidebar (every page load): one small read. */
   logo: can(permissions.ONLINE_STORE_READ).handler(({ context }) => liveThemeLogoUrl(context.tx)),
 
-  /** The store's opt-in theme packs (Zero Drift…): which pack sections Customize's Add menu offers. */
-  packs: can(permissions.ONLINE_STORE_READ).handler(({ context }) =>
-    storeThemePacks(context.tx, context.scope.storeId),
-  ),
-
-  /** Turns theme packs on or off for the store: owners and administrators (settings manage). */
-  setPacks: can(permissions.SETTINGS_MANAGE)
-    .input(z.object({ packs: z.array(z.enum(THEME_PACK_IDS)).max(THEME_PACK_IDS.length) }))
+  /**
+   * A theme's opt-in section packs (Zero Drift…): which pack sections its Customize Add menu
+   * offers. Its own list, or for a theme from before packs were per theme, the store's.
+   */
+  packs: can(permissions.ONLINE_STORE_READ)
+    .input(IdInput)
     .handler(({ context, input }) =>
-      saveThemePacks(context.tx, context.scope.storeId, input.packs),
+      libraryErrors(async () => {
+        const found = await getTheme(context.tx, input.id)
+        if (!found) throw new ORPCError('NOT_FOUND', { message: 'Theme not found' })
+        return themePacksOf(context.tx, context.scope.storeId, found)
+      }),
+    ),
+
+  /** Turns section packs on or off for one theme: owners and administrators (settings manage). */
+  setPacks: can(permissions.SETTINGS_MANAGE)
+    .input(
+      z.object({
+        id: z.string().uuid(),
+        packs: z.array(z.enum(THEME_PACK_IDS)).max(THEME_PACK_IDS.length),
+      }),
+    )
+    .handler(({ context, input }) =>
+      libraryErrors(() => saveThemePacks(context.tx, input.id, input.packs)),
     ),
 
   list: can(permissions.ONLINE_STORE_READ).handler(async ({ context }) => {
     const { storeId } = context.scope
     await ensureMainTheme(context.tx, storeId)
     const themes = await listThemes(context.tx)
-    const facts = await libraryFacts(context.tx)
+    const facts = await libraryFacts(context.tx, storeId)
     return themes.map((t) => present(storeId, t, facts(t.id)))
   }),
 
@@ -241,6 +275,18 @@ export const themesRouter = {
         present(
           context.scope.storeId,
           await createThemeFromPreset(context.tx, context.scope.storeId, input, savedBy(context)),
+        ),
+      ),
+    ),
+
+  /** "Start from scratch": base settings and empty templates, nothing from the live theme. */
+  createBlank: can(permissions.ONLINE_STORE_WRITE)
+    .input(z.object({ name: z.string().max(50).optional() }))
+    .handler(({ context, input }) =>
+      libraryErrors(async () =>
+        present(
+          context.scope.storeId,
+          await createBlankTheme(context.tx, context.scope.storeId, input, savedBy(context)),
         ),
       ),
     ),

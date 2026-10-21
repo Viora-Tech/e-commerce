@@ -122,7 +122,7 @@ function withFallbacks(resolveData: ResolveData): ResolveData {
  * `enabledAppIds` (from `api.apps.list()`) gates `categories.apps` and the Add
  * panel's owner grouping the same way the storefront gates them per store; see
  * `commerce.blocks.config.ts` for why the editor cannot import the real plugin
- * manifests directly. `themePacks` (from `api.themes.packs()`) decides which theme-pack
+ * manifests directly. `themePacks` (the edited theme's `packs`) decides which theme-pack
  * sections the categories offer; every section stays registered so saved pages still render.
  */
 export function createCustomizeConfig(

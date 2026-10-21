@@ -3,6 +3,7 @@ import { resetDb } from '@commerce/db/test'
 import { eq } from 'drizzle-orm'
 import { afterAll, beforeEach, describe, expect, it } from 'vitest'
 import {
+  createBlankTheme,
   createThemeFromPreset,
   deleteTheme,
   duplicateTheme,
@@ -12,15 +13,17 @@ import {
   MAX_THEMES,
   publishTheme,
   renameTheme,
+  saveThemePacks,
   setThemeThumbnail,
   ThemeLibraryError,
+  themePacksOf,
   touchTheme,
   updateThemeSettings,
 } from './library'
 import { applyThemePreset } from './presets'
 import { readThemePreviewToken, signThemePreviewToken } from './preview-token'
 import { defaultTheme } from './schema'
-import { defaultTemplate } from './templates-data'
+import { blankTemplate, defaultTemplate } from './templates-data'
 
 const owner = createDb(process.env.DATABASE_URL_OWNER as string)
 const app = createDb(process.env.DATABASE_URL as string)
@@ -204,6 +207,58 @@ describe('templates of an imported live theme', () => {
     const live = await seedImportedLive(storeId)
     const copy = await inStore(storeId, (tx) => duplicateTheme(tx, storeId, live.id))
     expect(await sectionsOf(storeId, copy.id)).toEqual(await sectionsOf(storeId, live.id))
+  })
+})
+
+describe('blank theme (Start from scratch)', () => {
+  it('stores empty templates and copies nothing from the live theme', async () => {
+    const storeId = await seedStore()
+    const live = await inStore(storeId, (tx) => ensureMainTheme(tx, storeId))
+    await inStore(storeId, (tx) =>
+      tx.insert(themeTemplate).values({
+        id: newId(),
+        storeId,
+        themeId: live.id,
+        template: 'page',
+        sections: { root: { props: {} }, content: [{ type: 'RichText', props: { id: 'r' } }] },
+      }),
+    )
+    const blank = await inStore(storeId, (tx) => createBlankTheme(tx, storeId, { name: '' }))
+    expect(blank).toMatchObject({ role: 'unpublished', name: 'Blank theme', ownPacks: [] })
+    const rows = await inStore(storeId, (tx) =>
+      tx.select().from(themeTemplate).where(eq(themeTemplate.themeId, blank.id)),
+    )
+    const byKey = Object.fromEntries(rows.map((r) => [r.template, r.sections]))
+    expect(Object.keys(byKey).sort()).toEqual(['footer', 'header', 'home'])
+    expect(byKey.home).toEqual(blankTemplate('home'))
+    expect(byKey.header).toEqual(blankTemplate('header'))
+  })
+})
+
+describe('section packs per theme', () => {
+  it('follows the store list until the theme has its own, which survives a settings save', async () => {
+    const storeId = await seedStore()
+    await owner
+      .update(store)
+      .set({ apps: { installed: [], settings: { core: { themePacks: ['zero-drift'] } } } })
+      .where(eq(store.id, storeId))
+    const live = await inStore(storeId, (tx) => ensureMainTheme(tx, storeId))
+    expect(live.ownPacks).toBeNull()
+    expect(await inStore(storeId, (tx) => themePacksOf(tx, storeId, live))).toEqual(['zero-drift'])
+
+    const copy = await inStore(storeId, (tx) => duplicateTheme(tx, storeId, live.id))
+    expect(copy.ownPacks).toEqual(['zero-drift'])
+    const fresh = await inStore(storeId, (tx) =>
+      createThemeFromPreset(tx, storeId, { preset: 'soft' }),
+    )
+    expect(await inStore(storeId, (tx) => themePacksOf(tx, storeId, fresh))).toEqual([])
+
+    expect(await inStore(storeId, (tx) => saveThemePacks(tx, live.id, []))).toEqual([])
+    const saved = await inStore(storeId, (tx) =>
+      updateThemeSettings(tx, live.id, applyThemePreset(defaultTheme, 'bold')),
+    )
+    expect(saved.ownPacks).toEqual([])
+    expect(await inStore(storeId, (tx) => themePacksOf(tx, storeId, saved))).toEqual([])
   })
 })
 

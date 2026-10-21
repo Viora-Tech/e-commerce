@@ -4,6 +4,8 @@ import {
   CUSTOM_SECTION_LIMITS,
   type CustomSection,
   CustomSectionProblem,
+  customSectionsForTheme,
+  hasLiquidSection,
   instantiateCustomSection,
   parseCustomSections,
   prepareCustomSection,
@@ -187,5 +189,46 @@ describe('nested blocks in saved templates', () => {
     const data = stripResolved({ root: { props: {} }, content: [group()] as never })
     expect(JSON.stringify(data)).not.toContain('resolved')
     expect(JSON.stringify(data)).toContain('"productHandle":"mouse"')
+  })
+})
+
+describe('My sections per theme', () => {
+  const liquidGroup = {
+    type: 'Group',
+    props: {
+      id: 'Group-2',
+      content: [{ type: 'LiquidSection', props: { id: 'LiquidSection-1', sectionType: 'hero' } }],
+    },
+  }
+  const entry = (id: string, block: unknown, themeId?: string): CustomSection => ({
+    id,
+    name: id,
+    thumbnail: null,
+    block: block as CustomSection['block'],
+    createdAt: '2026-10-21T00:00:00.000Z',
+    ...(themeId ? { themeId } : {}),
+  })
+  const list = [
+    entry('ours', group()),
+    entry('liquid-a', liquidGroup, 'theme-a'),
+    entry('liquid-b', liquidGroup, 'theme-b'),
+    entry('liquid-legacy', liquidGroup),
+  ]
+  const ids = (theme: { id: string; imported: boolean }) =>
+    customSectionsForTheme(list, theme).map((s) => s.id)
+
+  it('finds a Liquid section at any depth', () => {
+    expect(hasLiquidSection(liquidGroup)).toBe(true)
+    expect(hasLiquidSection(group())).toBe(false)
+  })
+
+  it('offers our own sections everywhere and Liquid ones only in their theme', () => {
+    expect(ids({ id: 'theme-a', imported: true })).toEqual(['ours', 'liquid-a', 'liquid-legacy'])
+    expect(ids({ id: 'theme-b', imported: true })).toEqual(['ours', 'liquid-b', 'liquid-legacy'])
+  })
+
+  it('shows a Liquid section saved before themes were recorded only in imported themes', () => {
+    expect(ids({ id: 'native', imported: false })).toEqual(['ours'])
+    expect(ids({ id: 'other-import', imported: true })).toEqual(['ours', 'liquid-legacy'])
   })
 })

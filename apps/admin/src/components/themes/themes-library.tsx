@@ -1,10 +1,10 @@
 'use client'
 
-import type { ThemePresetId } from '@commerce/core/theme'
+import type { ThemePackId } from '@commerce/core/theme'
 import { Plus, Upload } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import Link from 'next/link'
-import { type ReactNode, useState } from 'react'
+import { useState } from 'react'
 import { toast } from 'sonner'
 import ConfirmDialog from '@/components/layout/confirm-dialog'
 import PageHeader from '@/components/layout/page-header'
@@ -13,12 +13,13 @@ import { themesContent } from '@/data/themes'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 import { routes } from '@/lib/routes'
-import AddThemeDialog from './add-theme-dialog'
+import AddThemeDialog, { type ThemeStart } from './add-theme-dialog'
 import AddThemeMenu from './add-theme-menu'
 import CurrentThemeCard from './current-theme-card'
 import RenameThemeDialog from './rename-theme-dialog'
 import type { ThemeAction } from './theme-actions-menu'
 import ThemeLibraryRow from './theme-library-row'
+import ThemePacksCard from './theme-packs-card'
 import type { ThemeItem } from './theme-types'
 import ThemeVersionsDialog from './theme-versions-dialog'
 
@@ -26,8 +27,8 @@ type ThemesLibraryProps = {
   initial: ThemeItem[]
   origin: string
   canPublish: boolean
-  /** Below the import callout: the "Section packs" card, for owners and administrators. */
-  footer?: ReactNode
+  /** Shows the "Section packs" card below the import callout: owners and administrators. */
+  canManagePacks?: boolean
 }
 
 /** Live first, then the library by last saved, as the server orders them. */
@@ -58,11 +59,17 @@ function download(theme: ThemeItem): void {
  */
 const deleteCopy = themesContent.deleteDialog
 
-export default function ThemesLibrary({ initial, origin, canPublish, footer }: ThemesLibraryProps) {
+export default function ThemesLibrary({
+  initial,
+  origin,
+  canPublish,
+  canManagePacks = false,
+}: ThemesLibraryProps) {
   // Hooks
   const [themes, setThemes] = useState(initial)
   const [busy, setBusy] = useState(false)
-  const [adding, setAdding] = useState(false)
+  /** The Add theme dialog, open on a preset or on "Start from scratch"; null when closed. */
+  const [adding, setAdding] = useState<'preset' | 'blank' | null>(null)
   const { title } = useCopy(themesContent)
   const copy = useCopy(themesContent.library)
   const [renaming, setRenaming] = useState<ThemeItem | null>(null)
@@ -84,13 +91,19 @@ export default function ThemesLibrary({ initial, origin, canPublish, footer }: T
     setThemes((list) => order([next, ...list.filter((t) => t.id !== next.id)]))
 
   // Event handlers
-  const handleAdd = (input: { preset: ThemePresetId; name: string }) =>
+  const handleAdd = ({ start, name }: { start: ThemeStart; name: string }) =>
     run(async () => {
-      const created = await api.themes.create(input)
+      const created =
+        start === 'blank'
+          ? await api.themes.createBlank({ name })
+          : await api.themes.create({ preset: start, name })
       upsert(created)
-      setAdding(false)
+      setAdding(null)
       toast.success(copy.duplicated(created.name))
     })
+
+  const handlePacks = (themeId: string, packs: ThemePackId[]) =>
+    setThemes((list) => list.map((t) => (t.id === themeId ? { ...t, packs } : t)))
 
   const handleRename = (id: string, name: string) =>
     run(async () => {
@@ -153,7 +166,8 @@ export default function ThemesLibrary({ initial, origin, canPublish, footer }: T
         actions={
           <AddThemeMenu
             disabled={busy}
-            onAddPreset={() => setAdding(true)}
+            onAddPreset={() => setAdding('preset')}
+            onStartBlank={() => setAdding('blank')}
             onDuplicateLive={live ? () => handleAction(live, 'duplicate') : undefined}
           />
         }
@@ -176,7 +190,8 @@ export default function ThemesLibrary({ initial, origin, canPublish, footer }: T
           </div>
           <AddThemeMenu
             disabled={busy}
-            onAddPreset={() => setAdding(true)}
+            onAddPreset={() => setAdding('preset')}
+            onStartBlank={() => setAdding('blank')}
             onDuplicateLive={live ? () => handleAction(live, 'duplicate') : undefined}
           />
         </div>
@@ -196,7 +211,7 @@ export default function ThemesLibrary({ initial, origin, canPublish, footer }: T
                   {copy.duplicateCurrent}
                 </Button>
               ) : null}
-              <Button variant="outline" disabled={busy} onClick={() => setAdding(true)}>
+              <Button variant="outline" disabled={busy} onClick={() => setAdding('preset')}>
                 <Plus aria-hidden />
                 {copy.addFromPreset}
               </Button>
@@ -236,8 +251,16 @@ export default function ThemesLibrary({ initial, origin, canPublish, footer }: T
           {copy.importAction}
         </Button>
       </section>
-      {footer}
-      <AddThemeDialog open={adding} busy={busy} onOpenChange={setAdding} onAdd={handleAdd} />
+      {canManagePacks ? <ThemePacksCard themes={themes} onSaved={handlePacks} /> : null}
+      <AddThemeDialog
+        // Remounted per opening, so "Start from scratch" opens with the blank choice picked.
+        key={adding ?? 'closed'}
+        open={adding !== null}
+        busy={busy}
+        initialStart={adding === 'blank' ? 'blank' : undefined}
+        onOpenChange={(open) => !open && setAdding(null)}
+        onAdd={handleAdd}
+      />
       {renaming ? (
         <RenameThemeDialog
           key={renaming.id}

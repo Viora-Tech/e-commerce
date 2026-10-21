@@ -1,6 +1,13 @@
 /** SOURCE OF TRUTH: template data tests — WHAT: default templates and dropping Liquid sections / WHY: templates stay valid after import */
 import { describe, expect, it } from 'vitest'
-import { defaultTemplate, withoutLiquidSections } from './templates-data'
+import {
+  BLANK_THEME_TEMPLATES,
+  blankTemplate,
+  defaultTemplate,
+  MAIN_SECTION,
+  TEMPLATE_KINDS,
+  withoutLiquidSections,
+} from './templates-data'
 
 const liquid = (key: string, hidden = false) => ({
   type: 'LiquidSection',
@@ -73,5 +80,28 @@ describe('withoutLiquidSections', () => {
       content: [liquid('hero'), ours('RichText', 'rich', true)],
     }
     expect(withoutLiquidSections('page', onlyHidden)).toEqual(defaultTemplate('page'))
+  })
+})
+
+describe('blankTemplate', () => {
+  it('keeps only the Header and the Footer in the groups and leaves home empty', () => {
+    expect(blankTemplate('header').content.map((s) => s.type)).toEqual(['Header'])
+    expect(blankTemplate('footer').content.map((s) => s.type)).toEqual(['Footer'])
+    expect(blankTemplate('home').content).toEqual([])
+  })
+
+  it('gives every other template just its main section', () => {
+    for (const key of TEMPLATE_KINDS.filter((k) => k !== 'home')) {
+      const content = blankTemplate(key).content
+      expect(content).toHaveLength(1)
+      expect(content[0]?.type).toBe(MAIN_SECTION[key])
+    }
+  })
+
+  it('stores rows only where the blank differs from the code default, as fresh copies', () => {
+    expect(BLANK_THEME_TEMPLATES).toEqual(['header', 'footer', 'home'])
+    const a = blankTemplate('header')
+    a.content.push({ type: 'X', props: { id: 'x' } })
+    expect(blankTemplate('header').content).toHaveLength(1)
   })
 })
