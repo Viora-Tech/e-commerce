@@ -70,33 +70,54 @@ afterAll(async () => {
 })
 
 describe('themes.setPacks', () => {
-  it('turns Zero Drift on and off, keeping everything else in store.apps', async () => {
+  it('turns Zero Drift on and off for one theme, leaving store.apps and other themes alone', async () => {
     const m = await merchantWithStore('packs@example.com', 'packs-a')
     const c = { context: ctx(m.headers) }
-    expect(await call(appRouter.themes.packs, undefined, c)).toEqual([])
+    const [live] = await call(appRouter.themes.list, undefined, c)
+    if (!live) throw new Error('no live theme')
+    const other = await call(appRouter.themes.create, { preset: 'soft' }, c)
+    expect(await call(appRouter.themes.packs, { id: live.id }, c)).toEqual([])
 
-    expect(await call(appRouter.themes.setPacks, { packs: ['zero-drift'] }, c)).toEqual([
-      'zero-drift',
-    ])
-    expect(await call(appRouter.themes.packs, undefined, c)).toEqual(['zero-drift'])
-    expect(await appsOf(m.storeId)).toEqual({
+    expect(
+      await call(appRouter.themes.setPacks, { id: live.id, packs: ['zero-drift'] }, c),
+    ).toEqual(['zero-drift'])
+    expect(await call(appRouter.themes.packs, { id: live.id }, c)).toEqual(['zero-drift'])
+    expect(await call(appRouter.themes.packs, { id: other.id }, c)).toEqual([])
+    const listed = await call(appRouter.themes.list, undefined, c)
+    expect(listed.find((t) => t.id === live.id)?.packs).toEqual(['zero-drift'])
+    expect((await appsOf(m.storeId)) as unknown).toEqual({
       installed: ['reviews'],
       settings: {
-        core: { tax: { pricesIncludeGst: false, composition: true }, themePacks: ['zero-drift'] },
+        core: { tax: { pricesIncludeGst: false, composition: true } },
         reviews: { autoPublish: true },
       },
     })
 
-    expect(await call(appRouter.themes.setPacks, { packs: [] }, c)).toEqual([])
-    expect(await call(appRouter.themes.packs, undefined, c)).toEqual([])
-    const after = (await appsOf(m.storeId)) as { installed: string[]; settings: unknown }
-    expect(after.installed).toEqual(['reviews'])
+    expect(await call(appRouter.themes.setPacks, { id: live.id, packs: [] }, c)).toEqual([])
+    expect(await call(appRouter.themes.packs, { id: live.id }, c)).toEqual([])
+  })
+
+  it('a theme without its own list follows the store-level flag (Waimers before the move)', async () => {
+    const m = await merchantWithStore('packs-old@example.com', 'packs-old')
+    await owner
+      .update(store)
+      .set({ apps: { installed: [], settings: { core: { themePacks: ['zero-drift'] } } } })
+      .where(eq(store.id, m.storeId))
+    const c = { context: ctx(m.headers) }
+    const [live] = await call(appRouter.themes.list, undefined, c)
+    if (!live) throw new Error('no live theme')
+    expect(live.packs).toEqual(['zero-drift'])
+    expect(await call(appRouter.themes.packs, { id: live.id }, c)).toEqual(['zero-drift'])
+    const fresh = await call(appRouter.themes.createBlank, {}, c)
+    expect(fresh.packs).toEqual([])
   })
 
   it('refuses a pack it does not know', async () => {
     const m = await merchantWithStore('packs-b@example.com', 'packs-b')
+    const c = { context: ctx(m.headers) }
+    const [live] = await call(appRouter.themes.list, undefined, c)
     await expect(
-      call(appRouter.themes.setPacks, { packs: ['nope'] } as never, { context: ctx(m.headers) }),
+      call(appRouter.themes.setPacks, { id: live?.id, packs: ['nope'] } as never, c),
     ).rejects.toThrow()
   })
 
@@ -122,12 +143,17 @@ describe('themes.setPacks', () => {
       .insert(storeMember)
       .values({ storeId: boss.storeId, userId: helperId, roleId: staff.id })
 
+    const [live] = await call(appRouter.themes.list, undefined, { context: ctx(boss.headers) })
+    if (!live) throw new Error('no live theme')
     await expect(
-      call(appRouter.themes.setPacks, { packs: ['zero-drift'] }, { context: ctx(helperHeaders) }),
+      call(
+        appRouter.themes.setPacks,
+        { id: live.id, packs: ['zero-drift'] },
+        { context: ctx(helperHeaders) },
+      ),
     ).rejects.toThrow()
     expect(
-      ((await appsOf(boss.storeId)) as { settings: { core: Record<string, unknown> } }).settings
-        .core.themePacks,
-    ).toBeUndefined()
+      await call(appRouter.themes.packs, { id: live.id }, { context: ctx(boss.headers) }),
+    ).toEqual([])
   })
 })

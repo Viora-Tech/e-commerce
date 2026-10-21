@@ -1,4 +1,5 @@
 /** SOURCE OF TRUTH: "My sections" rules. WHAT the saved-section shape, its limits, what is stripped before saving and how a copy gets fresh ids. WHY the editor and the API must agree on what a saved section is. No database. */
+import { LIQUID_SECTION } from '../theme-import/fields'
 import { sanitizeTemplateEmbeds } from './embeds'
 import { isStoredBlock, mapNestedBlocks, type StoredBlock } from './nested-blocks'
 import type { TemplateSection } from './templates-data'
@@ -20,6 +21,13 @@ export type CustomSection = {
   /** The section as stored: `{ type, props }`, slots and all, with editor-only data removed. */
   block: StoredBlock
   createdAt: string
+  /**
+   * The theme it was saved from, kept only when it holds an imported Shopify section
+   * (`LiquidSection`, at any depth): those render only with that theme's Liquid files, so the
+   * section is offered only while editing that theme. Absent for sections built from our own
+   * blocks, which work in every theme. See `customSectionsForTheme`.
+   */
+  themeId?: string
 }
 
 export const CUSTOM_SECTION_LIMITS = {
@@ -126,6 +134,33 @@ export function withFreshBlockIds<T>(value: T, makeId: (type: string) => string 
     ...b,
     props: { ...b.props, id: makeId(b.type) },
   })) as T
+}
+
+/** True when the block is, or holds at any depth, an imported Shopify section (`LiquidSection`). */
+export function hasLiquidSection(block: unknown): boolean {
+  let found = false
+  mapNestedBlocks(block, (b) => {
+    if (b.type === LIQUID_SECTION) found = true
+    return b
+  })
+  return found
+}
+
+/**
+ * The saved sections the Add panel offers while editing one theme. Sections built only from our
+ * own blocks show in every theme. A section holding an imported Shopify section shows only in the
+ * theme it was saved from (`themeId`). One saved before the theme was recorded (no `themeId`)
+ * cannot be traced to its theme, so it shows only in imported themes, the only ones that can
+ * render Liquid; in our own themes it would draw blank.
+ */
+export function customSectionsForTheme(
+  list: CustomSection[],
+  theme: { id: string; imported: boolean },
+): CustomSection[] {
+  return list.filter((s) => {
+    if (!hasLiquidSection(s.block)) return true
+    return s.themeId ? s.themeId === theme.id : theme.imported
+  })
 }
 
 /** The stored list, dropping anything malformed. */

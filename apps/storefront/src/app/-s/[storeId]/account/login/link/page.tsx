@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import { redirect } from 'next/navigation'
+import AccountFrame from '@/components/account/account-frame'
 import MagicLinkSignIn from '@/components/account/magic-link-sign-in'
 import { accountContent } from '@/data/account'
 import { currentCustomer } from '@/lib/customer-session'
@@ -27,8 +28,10 @@ export default async function MagicLinkPage({ params, searchParams }: MagicLinkP
   if (await currentCustomer(storeId)) redirect('/account')
   const live = await magicLinkLive(storeId, token)
   return (
-    <div className="py-6 md:py-12">
-      <MagicLinkSignIn token={live && token ? token : null} />
-    </div>
+    <AccountFrame>
+      <div className="py-6 md:py-12">
+        <MagicLinkSignIn token={live && token ? token : null} />
+      </div>
+    </AccountFrame>
   )
 }

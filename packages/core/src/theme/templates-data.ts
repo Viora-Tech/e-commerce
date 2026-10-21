@@ -19,6 +19,8 @@ export const TEMPLATE_KINDS = [
   'cart',
   'search',
   'not_found',
+  'account',
+  'login',
 ] as const
 export type TemplateKind = (typeof TEMPLATE_KINDS)[number]
 
@@ -59,6 +61,9 @@ export const MAIN_SECTION: Partial<Record<TemplateKind, string>> = {
   cart: 'MainCart',
   search: 'MainSearch',
   not_found: 'MainNotFound',
+  // The shopper's account pages (orders, addresses, profile...) and the sign-in page.
+  account: 'MainAccount',
+  login: 'MainLogin',
 }
 
 /** Sections that belong in a group rather than a template. */
@@ -162,6 +167,26 @@ export function defaultTemplate(key: TemplateKey): TemplateData {
   const main = MAIN_SECTION[key]
   return data(main ? [section(main, 'main')] : [])
 }
+
+/**
+ * A blank theme's template ("Start from scratch"): the header and footer groups hold only their
+ * Header and Footer, the home page is empty, and every other template is just its main section,
+ * which it needs to show the product, cart or page being viewed. Never the live theme's sections.
+ */
+export function blankTemplate(key: TemplateKey): TemplateData {
+  const fresh = (sections: TemplateSection[]) => data(structuredClone(sections))
+  if (key === 'header') return fresh(HEADER_GROUP.filter((s) => s.type === 'Header'))
+  if (key === 'footer') return fresh(FOOTER_GROUP.filter((s) => s.type === 'Footer'))
+  if (key === 'home') return data([])
+  return defaultTemplate(key)
+}
+
+/**
+ * The templates a blank theme stores a row for: only those whose blank differs from the code
+ * default. A template with no row renders `defaultTemplate`, which for every other key already is
+ * just its main section.
+ */
+export const BLANK_THEME_TEMPLATES = ['header', 'footer', 'home'] as const satisfies TemplateKey[]
 
 /** Normalises anything stored in a template column into Puck data. */
 export function parseTemplateData(value: unknown): TemplateData | null {

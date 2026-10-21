@@ -138,6 +138,8 @@ export function previewMetadata({
       MainCart: () => placeholder(copy.templates.names.cart),
       MainSearch: () => placeholder(copy.templates.names.search),
       MainNotFound: () => placeholder(copy.templates.names.not_found),
+      MainAccount: () => placeholder(copy.templates.names.account),
+      MainLogin: () => placeholder(copy.templates.names.login),
       RelatedProducts: (s) => {
         const current = resource?.kind === 'product' ? resource.product : null
         const related = cards.filter(

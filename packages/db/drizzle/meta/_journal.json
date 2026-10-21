@@ -932,6 +932,13 @@
       "when": 1792514523843,
       "tag": "0143_app_growthbook",
       "breakpoints": true
+    },
+    {
+      "idx": 133,
+      "version": "7",
+      "when": 1792549322986,
+      "tag": "0144_theme_template_account_kinds",
+      "breakpoints": true
     }
   ]
 }

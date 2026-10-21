@@ -1,11 +1,19 @@
-import { newId, type StoreTx, store, theme } from '@commerce/db'
+import { newId, type StoreTx, store, theme, themeTemplate } from '@commerce/db'
 import { and, desc, eq, ne, sql } from 'drizzle-orm'
 import { CommerceError } from '../errors'
 import { copyThemeImport } from '../theme-import/bundle-store'
 import { applyThemePreset } from './presets'
 import { defaultTheme, parseTheme, type Theme, type ThemePresetId, ThemeSchema } from './schema'
 import { copyTemplates } from './templates'
-import { parseThemePacks, type ThemePackId, withThemePacks } from './theme-packs'
+import { BLANK_THEME_TEMPLATES, blankTemplate } from './templates-data'
+import {
+  effectiveThemePacks,
+  parseOwnThemePacks,
+  parseThemePacks,
+  THEME_OWN_PACKS_KEY,
+  type ThemePackId,
+  withOwnThemePacks,
+} from './theme-packs'
 
 /**
  * The theme library: a store's themes, one of which (`main`) is live on the
@@ -25,6 +33,11 @@ export type ThemeRecord = {
   role: ThemeRole
   preset: string | null
   settings: Theme
+  /**
+   * The theme's own section packs (`theme.settings.themePacks`); null for a theme from before
+   * packs were per theme, which follows the store-level list (`themePacksOf`).
+   */
+  ownPacks: ThemePackId[] | null
   /** The home page as a small webp (Customize takes it on Save); null until the first one. */
   thumbnailUrl: string | null
   /** Who saved it last, as their name (or email); null for themes saved before it was kept. */
@@ -72,6 +85,7 @@ function toRecord(row: typeof theme.$inferSelect): ThemeRecord {
     role: row.role === 'main' ? 'main' : 'unpublished',
     preset: row.preset,
     settings: parseTheme(row.settings),
+    ownPacks: parseOwnThemePacks(row.settings),
     thumbnailUrl: row.thumbnailUrl,
     updatedBy: row.updatedBy,
     createdAt: row.createdAt,
@@ -130,27 +144,45 @@ export async function liveThemeLogoUrl(tx: StoreTx): Promise<string | null> {
   return row?.url ?? null
 }
 
-/** The store's opt-in theme packs (`parseThemePacks`): which pack sections its editor offers. */
+/** The store-level theme packs (`parseThemePacks`): what themes without their own list offer. */
 export async function storeThemePacks(tx: StoreTx, storeId: string): Promise<ThemePackId[]> {
   const [s] = await tx.select({ apps: store.apps }).from(store).where(eq(store.id, storeId))
   return parseThemePacks(s?.apps)
 }
 
 /**
- * Turns the store's theme packs to exactly `packs` (Online Store › Themes, "Section packs").
- * Only `store.apps.settings.core.themePacks` changes; installed apps and every other setting
- * in `store.apps` stay as they were. Returns the packs as now stored.
+ * The packs a theme's editor offers (`effectiveThemePacks`): the theme's own list, or for a theme
+ * from before packs were per theme, the store-level one.
+ */
+export async function themePacksOf(
+  tx: StoreTx,
+  storeId: string,
+  record: Pick<ThemeRecord, 'ownPacks'>,
+): Promise<ThemePackId[]> {
+  if (record.ownPacks) return [...record.ownPacks]
+  return effectiveThemePacks(null, await storeThemePacks(tx, storeId))
+}
+
+/**
+ * Turns one theme's packs to exactly `packs` (Online Store › Themes, "Section packs"). Only
+ * `theme.settings.themePacks` changes (`jsonb_set`), so the look and "Last saved" stay as they
+ * were. Returns the packs as now stored.
  */
 export async function saveThemePacks(
   tx: StoreTx,
-  storeId: string,
+  themeId: string,
   packs: readonly ThemePackId[],
 ): Promise<ThemePackId[]> {
-  const [s] = await tx.select({ apps: store.apps }).from(store).where(eq(store.id, storeId))
-  if (!s) throw new Error(`store ${storeId} not visible in context`)
-  const apps = withThemePacks(s.apps, packs)
-  await tx.update(store).set({ apps }).where(eq(store.id, storeId))
-  return parseThemePacks(apps)
+  await mustGet(tx, themeId)
+  const [row] = await tx
+    .update(theme)
+    .set({
+      settings: sql`jsonb_set(${theme.settings}, ${`{${THEME_OWN_PACKS_KEY}}`}::text[], ${JSON.stringify([...new Set(packs)])}::jsonb, true)`,
+    })
+    .where(eq(theme.id, themeId))
+    .returning({ settings: theme.settings })
+  if (!row) throw new ThemeLibraryError('THEME_NOT_FOUND', `No theme ${themeId}`)
+  return parseOwnThemePacks(row.settings) ?? []
 }
 
 /** The live theme's id, or null before the store has one. */
@@ -227,7 +259,8 @@ export async function createThemeFromPreset(
       name: cleanName(input.name ?? presetThemeName(input.preset)),
       role: 'unpublished',
       preset: input.preset,
-      settings,
+      // A new theme starts with no section packs; the merchant turns one on for it.
+      settings: withOwnThemePacks(settings, []),
       updatedBy: by ?? null,
     })
     .returning()
@@ -239,6 +272,53 @@ export async function createThemeFromPreset(
   return toRecord(created)
 }
 
+/** The name a blank theme gets when the merchant leaves it empty. */
+const BLANK_THEME_NAME = 'Blank theme'
+
+/**
+ * "Start from scratch": a new unpublished theme with base settings (the Minimal preset, keeping
+ * the live theme's logo and favicon, which belong to the store) and empty templates. Nothing is
+ * copied from the live theme's templates: the header and footer groups hold only the Header and
+ * the Footer, the home page is empty, and every other template is just its main section
+ * (`blankTemplate`). No section packs.
+ */
+export async function createBlankTheme(
+  tx: StoreTx,
+  storeId: string,
+  input: { name?: string | undefined },
+  by?: string,
+): Promise<ThemeRecord> {
+  await assertRoom(tx)
+  const live = await ensureMainTheme(tx, storeId)
+  const settings = applyThemePreset({ ...defaultTheme, brand: live.settings.brand }, 'minimal')
+  const [created] = await tx
+    .insert(theme)
+    .values({
+      id: newId(),
+      storeId,
+      name: cleanName(input.name?.trim() ? input.name : BLANK_THEME_NAME),
+      role: 'unpublished',
+      preset: settings.preset,
+      settings: withOwnThemePacks(settings, []),
+      updatedBy: by ?? null,
+    })
+    .returning()
+  if (!created) throw new Error('theme insert returned nothing')
+  // Stored rows, so the storefront renders the blank groups and home page instead of falling back
+  // to the code defaults (which carry an announcement bar, a hero and a newsletter).
+  await tx.insert(themeTemplate).values(
+    BLANK_THEME_TEMPLATES.map((template) => ({
+      id: newId(),
+      storeId,
+      themeId: created.id,
+      template,
+      suffix: '',
+      sections: blankTemplate(template),
+    })),
+  )
+  return toRecord(created)
+}
+
 /** Saves a theme's settings (validated) and bumps its "last saved" time. */
 export async function updateThemeSettings(
   tx: StoreTx,
@@ -246,11 +326,17 @@ export async function updateThemeSettings(
   settings: unknown,
   by?: string,
 ): Promise<ThemeRecord> {
-  await mustGet(tx, id)
+  const current = await mustGet(tx, id)
   const parsed = ThemeSchema.parse(settings)
   const [row] = await tx
     .update(theme)
-    .set({ settings: parsed, preset: parsed.preset, updatedAt: new Date(), ...savedBy(by) })
+    // The theme's own packs sit beside the settings and are not part of them: keep them.
+    .set({
+      settings: withOwnThemePacks(parsed, current.ownPacks),
+      preset: parsed.preset,
+      updatedAt: new Date(),
+      ...savedBy(by),
+    })
     .where(eq(theme.id, id))
     .returning()
   if (!row) throw new ThemeLibraryError('THEME_NOT_FOUND', `No theme ${id}`)
@@ -290,7 +376,8 @@ export async function duplicateTheme(
       name: cleanName(`Copy of ${source.name}`.slice(0, NAME_MAX)),
       role: 'unpublished',
       preset: source.preset,
-      settings: source.settings,
+      // The copy offers the same section packs the source does, now as its own list.
+      settings: withOwnThemePacks(source.settings, await themePacksOf(tx, storeId, source)),
       // Same look and templates, so the same picture until the copy is saved in Customize.
       thumbnailUrl: source.thumbnailUrl,
       updatedBy: by ?? null,
