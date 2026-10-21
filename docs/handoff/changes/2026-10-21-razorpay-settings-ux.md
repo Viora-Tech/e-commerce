@@ -6,3 +6,4 @@
 - Blue Dart logo SVG gets a `<title>` (lint).
 - Saving live keys while checkout still runs on test keys now asks "Start taking real payments?" right away (Go live switches checkout; closing keeps test keys and says so). Before, the keys were parked silently behind a toast and the "Test mode — payments are not real" banner stayed on, which looked like a bug.
 - Apps home hero carousel now animates: each app slides in from the side it came from (fade + 6-unit slide, 300 ms ease-out; logo disc fades and zooms from 95%), and it advances every 7 s, holding while the pointer or focus is inside. Reduced motion turns the animation off.
+- Switching Live/Test, deactivating/activating a gateway, or going live from the key form now calls `router.refresh()`, so the layout's "Test mode — payments are not real" banner updates at once (layouts are not redrawn on client navigation, so it used to stay until a full reload).

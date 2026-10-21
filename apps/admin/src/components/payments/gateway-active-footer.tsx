@@ -1,6 +1,7 @@
 'use client'
 
 import { Button } from '@commerce/ui/shadcn/button'
+import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import ConfirmDialog from '@/components/layout/confirm-dialog'
@@ -30,6 +31,7 @@ export default function GatewayActiveFooter({
 }: GatewayActiveFooterProps) {
   // Hooks
   const { active: copy } = useCopy(paymentModesContent)
+  const router = useRouter()
   const [asking, setAsking] = useState(false)
   const [busy, setBusy] = useState(false)
 
@@ -45,6 +47,8 @@ export default function GatewayActiveFooter({
       }
       toast.success(active ? copy.turnedOn : copy.turnedOff)
       await onChanged()
+      // Redraws the layout's "Test mode" banner.
+      router.refresh()
     } catch {
       toast.error(copy.failed)
     } finally {

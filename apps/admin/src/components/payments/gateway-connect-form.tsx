@@ -8,6 +8,7 @@ import { Field, FieldDescription, FieldGroup, FieldLabel } from '@commerce/ui/sh
 import { Input } from '@commerce/ui/shadcn/input'
 import { Spinner } from '@commerce/ui/shadcn/spinner'
 import { ToggleGroup, ToggleGroupItem } from '@commerce/ui/shadcn/toggle-group'
+import { useRouter } from 'next/navigation'
 import { useRef, useState } from 'react'
 import { toast } from 'sonner'
 import ConfirmDialog from '@/components/layout/confirm-dialog'
@@ -87,6 +88,7 @@ export default function GatewayConnectForm({
 }: GatewayConnectFormProps) {
   // Hooks
   const announceSetup = useSetupNext()
+  const router = useRouter()
   const { connect: copy } = useCopy(paymentsSetupContent)
   const { keySet: keySetCopy, mode: modeCopy } = useCopy(paymentModesContent)
   const guides = useCopy(gatewayGuides)
@@ -177,8 +179,11 @@ export default function GatewayConnectForm({
     setSwitching(true)
     try {
       const r = await api.payments.switchMode({ providerId, mode: 'live' })
-      if (r.ok) toast.success(modeCopy.switched('live'))
-      else toast.error(r.code === 'no_keys' ? modeCopy.missing('live') : r.message)
+      if (r.ok) {
+        toast.success(modeCopy.switched('live'))
+        // Redraws the layout's "Test mode" banner.
+        router.refresh()
+      } else toast.error(r.code === 'no_keys' ? modeCopy.missing('live') : r.message)
     } catch {
       toast.error(modeCopy.failed)
     } finally {

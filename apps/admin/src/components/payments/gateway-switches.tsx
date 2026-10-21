@@ -3,6 +3,7 @@
 import { Button } from '@commerce/ui/shadcn/button'
 import { ToggleGroup, ToggleGroupItem } from '@commerce/ui/shadcn/toggle-group'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import ConfirmDialog from '@/components/layout/confirm-dialog'
@@ -27,6 +28,7 @@ type Pending = { to: PaymentModeId } | null
 export default function GatewaySwitches({ gateway, onChanged }: GatewaySwitchesProps) {
   // Hooks
   const copy = useCopy(paymentModesContent)
+  const router = useRouter()
   const [pending, setPending] = useState<Pending>(null)
   const [busy, setBusy] = useState(false)
 
@@ -47,6 +49,8 @@ export default function GatewaySwitches({ gateway, onChanged }: GatewaySwitchesP
       }
       toast.success(copy.mode.switched(pending.to))
       await onChanged()
+      // The admin-wide "Test mode" banner lives in the layout, which navigation never redraws.
+      router.refresh()
     } catch {
       toast.error(copy.mode.failed)
     } finally {
