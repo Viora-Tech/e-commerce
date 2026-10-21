@@ -7,7 +7,7 @@ import {
   type TemplateKind,
   templateName,
 } from '@commerce/core/theme'
-import { editorGlyphs, Home, type IconComponent, Plus } from '@commerce/ui/icons'
+import { editorGlyphs, Home, type IconComponent, Lock, Plus, UserCircle } from '@commerce/ui/icons'
 import { cn } from '@commerce/ui/lib/utils'
 import {
   Command,
@@ -62,6 +62,8 @@ const KIND_ICONS: Record<TemplateKind, IconComponent> = {
   cart: editorGlyphs.cart,
   search: editorGlyphs.search,
   not_found: editorGlyphs.notFound,
+  account: UserCircle,
+  login: Lock,
 }
 
 const isAlternateKind = (key: TemplateKind): key is AlternateKind =>

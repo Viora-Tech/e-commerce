@@ -83,6 +83,15 @@ describe('withoutLiquidSections', () => {
   })
 })
 
+describe('account and sign-in templates', () => {
+  it('start as just their main section, so the pages look as they did before templates', () => {
+    expect(defaultTemplate('account').content).toEqual([
+      { type: 'MainAccount', props: { id: 'main' } },
+    ])
+    expect(defaultTemplate('login').content).toEqual([{ type: 'MainLogin', props: { id: 'main' } }])
+  })
+})
+
 describe('blankTemplate', () => {
   it('keeps only the Header and the Footer in the groups and leaves home empty', () => {
     expect(blankTemplate('header').content.map((s) => s.type)).toEqual(['Header'])

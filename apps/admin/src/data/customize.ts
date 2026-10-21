@@ -300,6 +300,8 @@ export const customizeContent = {
       cart: 'Cart',
       search: 'Search',
       not_found: '404 page',
+      account: 'Customer account',
+      login: 'Sign in',
       header: 'Header',
       footer: 'Footer',
     } satisfies Record<TemplateKey, string>,
