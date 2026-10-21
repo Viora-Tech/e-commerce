@@ -43,6 +43,9 @@ export default [
       turnedOff: 'बंद हो गया। अब यह चेकआउट पर नहीं है।',
       turnedOn: 'चालू हो गया। यह फिर से चेकआउट पर है।',
       failed: 'सेव नहीं हो पाया। फिर कोशिश करें।',
+      deactivate: (name: string) => `${name} बंद करें`,
+      activate: (name: string) => `${name} चालू करें`,
+      inactiveHelp: 'बंद: ग्राहकों को यह चेकआउट पर नहीं दिखता। इसकी keys और सेटिंग्स सेव हैं।',
     },
     keySet: {
       editing: (mode: PaymentModeId) =>

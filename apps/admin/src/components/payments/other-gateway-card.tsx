@@ -8,6 +8,7 @@ import { paymentModesContent } from '@/data/payment-modes'
 import { gatewayCatalogue, paymentsSetupContent } from '@/data/payments-setup'
 import { useCopy } from '@/hooks/use-copy'
 import { routes } from '@/lib/routes'
+import GatewayActiveFooter from './gateway-active-footer'
 import GatewayLogo from './gateway-logo'
 import GatewaySwitches from './gateway-switches'
 import type { GatewayApp } from './types'
@@ -53,7 +54,13 @@ export default function OtherGatewayCard({
             {copy.manage}
           </Button>
         </div>
-        <GatewaySwitches gateway={gateway} onlyOnline={onlyOnline} onChanged={onChanged} />
+        <GatewaySwitches gateway={gateway} onChanged={onChanged} />
+        <GatewayActiveFooter
+          gateway={gateway}
+          name={gateway.name}
+          onlyOnline={onlyOnline}
+          onChanged={onChanged}
+        />
       </CardContent>
     </Card>
   )

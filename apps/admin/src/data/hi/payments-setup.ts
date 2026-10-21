@@ -274,7 +274,7 @@ export default [
         },
         {
           title: 'पेमेंट अपडेट चालू करें',
-          body: 'Account & Settings → Webhooks में Add New Webhook दबाएं। नीचे दिया पता और secret पेस्ट करें, payment.captured, payment.failed, refund.processed और refund.failed चुनें, और सेव करें।',
+          body: 'Account & Settings → Webhooks में Add New Webhook दबाएं। नीचे दिया पता और secret पेस्ट करें, उनके नीचे लिखे सभी events चुनें, और सेव करें।',
         },
       ],
       fields: {
@@ -288,6 +288,10 @@ export default [
         webhookSecret: {
           label: 'Webhook secret',
           help: 'हमने आपके लिए एक बना दिया है। यही secret Razorpay में पेस्ट करें।',
+        },
+        webhookEvents: {
+          label: 'चुनने वाले events',
+          help: 'Razorpay में Active Events के नीचे ये सभी चुनें। एक भी छूटा तो कुछ पेमेंट या रिफ़ंड यहां अपडेट नहीं होंगे।',
         },
       },
     },
