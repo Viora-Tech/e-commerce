@@ -8,8 +8,9 @@ import { Field, FieldDescription, FieldGroup, FieldLabel } from '@commerce/ui/sh
 import { Input } from '@commerce/ui/shadcn/input'
 import { Spinner } from '@commerce/ui/shadcn/spinner'
 import { ToggleGroup, ToggleGroupItem } from '@commerce/ui/shadcn/toggle-group'
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { toast } from 'sonner'
+import ConfirmDialog from '@/components/layout/confirm-dialog'
 import { paymentModesContent } from '@/data/payment-modes'
 import { gatewayGuides, paymentsSetupContent } from '@/data/payments-setup'
 import { useCopy } from '@/hooks/use-copy'
@@ -87,7 +88,7 @@ export default function GatewayConnectForm({
   // Hooks
   const announceSetup = useSetupNext()
   const { connect: copy } = useCopy(paymentsSetupContent)
-  const { keySet: keySetCopy } = useCopy(paymentModesContent)
+  const { keySet: keySetCopy, mode: modeCopy } = useCopy(paymentModesContent)
   const guides = useCopy(gatewayGuides)
   // Each mode has its own saved keys; the toggle picks which set is being edited.
   const [mode, setMode] = useState<Mode>(() => initialMode(providerId, setup))
@@ -99,6 +100,11 @@ export default function GatewayConnectForm({
   const [test, setTest] = useState<TestResult>({ status: 'idle' })
   const [saving, setSaving] = useState(false)
   const [redirecting, setRedirecting] = useState(false)
+  // Live keys saved while checkout runs on test keys: offer to go live straight away.
+  const [askLive, setAskLive] = useState(false)
+  const [switching, setSwitching] = useState(false)
+  // Set once "Go live" ran, so closing the dialog afterwards is not read as "not now".
+  const triedLive = useRef(false)
 
   // Helpers
   const fieldsToSend = () => (providerId === 'cashfree' ? { ...values, mode } : values)
@@ -151,15 +157,41 @@ export default function GatewayConnectForm({
       await api.payments.connect({ providerId, fields: fieldsToSend(), mode })
       // Keys for the mode checkout isn't using wait for the card's Live/Test switch.
       const active = gatewayKeySets(setup.settings.providers, providerId).active
+      void announceSetup('payments')
+      if (active === 'test' && mode === 'live') {
+        setAskLive(true)
+        return
+      }
       if (active && active !== mode) toast.success(keySetCopy.waiting(mode))
       else toast.success(copy.saved(guides[providerId].name))
-      void announceSetup('payments')
       onConnected()
     } catch (err) {
       toast.error(err instanceof Error ? err.message : copy.saveFailed)
     } finally {
       setSaving(false)
     }
+  }
+
+  const handleGoLive = async () => {
+    triedLive.current = true
+    setSwitching(true)
+    try {
+      const r = await api.payments.switchMode({ providerId, mode: 'live' })
+      if (r.ok) toast.success(modeCopy.switched('live'))
+      else toast.error(r.code === 'no_keys' ? modeCopy.missing('live') : r.message)
+    } catch {
+      toast.error(modeCopy.failed)
+    } finally {
+      setSwitching(false)
+    }
+  }
+
+  const handleAskLive = (open: boolean) => {
+    if (open) return
+    setAskLive(false)
+    if (!triedLive.current) toast.success(keySetCopy.waiting('live'))
+    triedLive.current = false
+    onConnected()
   }
 
   // Render logic
@@ -302,6 +334,19 @@ export default function GatewayConnectForm({
     </div>
   )
 
+  const goLiveDialog = (
+    <ConfirmDialog
+      open={askLive}
+      onOpenChange={handleAskLive}
+      title={modeCopy.toLive.title}
+      body={modeCopy.toLive.body}
+      confirmLabel={modeCopy.toLive.confirm}
+      tone="default"
+      busy={switching}
+      onConfirm={handleGoLive}
+    />
+  )
+
   if (twoColumn) {
     return (
       <div
@@ -333,6 +378,7 @@ export default function GatewayConnectForm({
             ) : null}
           </CardContent>
         </Card>
+        {goLiveDialog}
       </div>
     )
   }
@@ -355,6 +401,7 @@ export default function GatewayConnectForm({
           {actions}
         </>
       ) : null}
+      {goLiveDialog}
     </div>
   )
 }
