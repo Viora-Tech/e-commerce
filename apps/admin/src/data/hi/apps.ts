@@ -1,3 +1,4 @@
+import { siteConfig } from '@commerce/config/site'
 import { appsContent } from '@/data/apps'
 import { translation } from '@/lib/i18n'
 
@@ -87,7 +88,7 @@ export default [
       category: 'श्रेणी',
       madeBy: 'बनाने वाला',
       type: 'प्रकार',
-      typeBuiltin: 'Koomerce ऐप',
+      typeBuiltin: `${siteConfig.brand.name} ऐप`,
       typeConnection: 'किसी दूसरी सेवा से कनेक्शन',
       builtOn: 'इन पर बना',
     },
@@ -139,7 +140,7 @@ export default [
     },
     configure: (kind: string) => `${kind} में सेटअप करें`,
     docs: 'FedEx, DHL या नया गेटवे चाहिए? प्लगइन लिखें: docs/plugins.md',
-    builtByPlatform: 'Koomerce ऐप',
+    builtByPlatform: `${siteConfig.brand.name} ऐप`,
     byCompany: (company: string) => `${company} की ओर से`,
     connection: { connected: 'जुड़ा है', notConnected: 'जुड़ा नहीं है' },
     gallery: {
@@ -161,8 +162,8 @@ export default [
       noResultsBody: 'कोई दूसरी खोज या फ़िल्टर आज़माएं।',
       kebabLabel: (name: string) => `${name} के लिए और विकल्प`,
       builtin: {
-        title: 'Koomerce ऐप',
-        intro: 'Koomerce के बनाए, आपके स्टोर पर चलते हैं। चालू करें और इस्तेमाल करें: कोई अकाउंट, की या सर्वर नहीं चाहिए।',
+        title: `${siteConfig.brand.name} ऐप`,
+        intro: `${siteConfig.brand.name} के बनाए, आपके स्टोर पर चलते हैं। चालू करें और इस्तेमाल करें: कोई अकाउंट, की या सर्वर नहीं चाहिए।`,
       },
       connections: {
         title: 'कनेक्शन',

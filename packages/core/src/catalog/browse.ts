@@ -3,6 +3,8 @@ import { type SQL, sql } from 'drizzle-orm'
 import { FILTERABLE_FIELD_TYPES } from '../metaobjects/schemas'
 import { type BrowseFilters, type BrowseSort, EMPTY_FILTERS } from './browse-params'
 import { engineProductIds } from './search-engine'
+import { type SearchPlan, searchTerms } from './search-text'
+import { searchWordsFor } from './search-words'
 
 /**
  * Collection and search listings with Shopify-style filters, facets and sorts,
@@ -43,6 +45,11 @@ export type BrowseResult = {
   handles: string[]
   total: number
   facets: BrowseFacets
+  /**
+   * The search as corrected when the words as typed found nothing ("keybord" → "keyboard"),
+   * for "Showing results for …"; null when the shopper's own words were used.
+   */
+  corrected: string | null
 }
 
 export type BrowseInput = {
@@ -69,12 +76,6 @@ const inList = (values: string[]): SQL =>
     sql`, `,
   )})`
 
-/** Up to eight distinct words of a search query; every one has to match somewhere. */
-export function searchTerms(query: string): string[] {
-  const words = query.trim().slice(0, 100).toLowerCase().split(/\s+/).filter(Boolean)
-  return [...new Set(words)].slice(0, 8)
-}
-
 /** The description's plain text: Lexical text nodes, or a legacy plain string. */
 const descriptionText = sql`case jsonb_typeof(p.description)
   when 'string' then p.description #>> '{}'
@@ -98,24 +99,32 @@ const fieldMatch = (pattern: string): SQL => sql`(
 
 const every = (parts: SQL[]): SQL => sql`(${sql.join(parts, sql` and `)})`
 
+/** A group's words: the product matches when any of them appears (a word or its synonyms). */
+const anyOf = (words: string[], match: (pattern: string) => SQL): SQL =>
+  sql`(${sql.join(
+    words.map((w) => match(`%${escapeLike(w)}%`)),
+    sql` or `,
+  )})`
+
 /**
- * Shopify-style matching: each word must appear in the title, vendor, type, handle, a tag, a SKU
- * or the description. Ranked: title starts with the query, title contains it, title holds every
- * word, every word in the product's fields, then description-only matches.
+ * Shopify-style matching: each word (or one of its synonyms) must appear in the title, vendor,
+ * type, handle, a tag, a SKU or the description. Ranked: title starts with the query, title
+ * contains it, title holds every word, every word in the product's fields, then
+ * description-only matches.
  */
-function searchClauses(query: string): { match: SQL; relevance: SQL } | null {
-  const terms = searchTerms(query)
-  if (!terms.length) return null
-  const phrase = escapeLike(terms.join(' '))
-  const patterns = terms.map((t) => `%${escapeLike(t)}%`)
+function searchClauses(plan: SearchPlan | null): { match: SQL; relevance: SQL } | null {
+  if (!plan?.terms.length) return null
+  const phrase = escapeLike(plan.terms.join(' '))
   const match = every(
-    patterns.map((pt) => sql`(${fieldMatch(pt)} or ${descriptionText} ilike ${pt})`),
+    plan.groups.map((g) =>
+      anyOf(g, (pt) => sql`(${fieldMatch(pt)} or ${descriptionText} ilike ${pt})`),
+    ),
   )
   const relevance = sql`case
     when p.title ilike ${`${phrase}%`} then 0
     when p.title ilike ${`%${phrase}%`} then 1
-    when ${every(patterns.map((pt) => sql`p.title ilike ${pt}`))} then 2
-    when ${every(patterns.map(fieldMatch))} then 3
+    when ${every(plan.groups.map((g) => anyOf(g, (pt) => sql`p.title ilike ${pt}`)))} then 2
+    when ${every(plan.groups.map((g) => anyOf(g, fieldMatch)))} then 3
     else 4 end`
   return { match, relevance }
 }
@@ -133,8 +142,12 @@ function rankedClauses(ids: string[]): { match: SQL; relevance: SQL } {
  * Every active product in scope with the fields filters and sorts need. `ranked` is the search
  * engine's answer for the query; null means search in SQL.
  */
-function baseQuery(input: BrowseInput, ranked: string[] | null = null): SQL {
-  const search = ranked ? rankedClauses(ranked) : searchClauses(input.query ?? '')
+function baseQuery(
+  input: BrowseInput,
+  ranked: string[] | null = null,
+  plan: SearchPlan | null = null,
+): SQL {
+  const search = ranked ? rankedClauses(ranked) : searchClauses(plan)
   const join = input.collectionId
     ? sql`join collection_product cp on cp.product_id = p.id and cp.collection_id = ${input.collectionId}`
     : sql``
@@ -309,8 +322,30 @@ async function rankedFor(tx: StoreTx, storeId: string | undefined, query: string
   return engineProductIds(tx, storeId, query.trim().slice(0, 100))
 }
 
+/**
+ * A listing (a collection, or a search): its page of handles, total and facets. The search
+ * engine's answer wins when the store has one; otherwise the shopper's words run in SQL, and
+ * only when they find nothing does the typo-corrected search run ("Showing results for …").
+ */
 export async function browseProducts(tx: StoreTx, input: BrowseInput): Promise<BrowseResult> {
-  const base = baseQuery(input, await rankedFor(tx, input.storeId, input.query))
+  const ranked = await rankedFor(tx, input.storeId, input.query)
+  if (ranked) return { ...(await runBrowse(tx, input, ranked, null)), corrected: null }
+  const words = await searchWordsFor(tx, input.storeId, input.query)
+  const typed = await runBrowse(tx, input, null, words?.typed ?? null)
+  if (typed.total > 0 || !words) return { ...typed, corrected: null }
+  const plan = await words.corrected()
+  if (!plan) return { ...typed, corrected: null }
+  const fixed = await runBrowse(tx, input, null, plan)
+  return fixed.total > 0 ? { ...fixed, corrected: plan.corrected } : { ...typed, corrected: null }
+}
+
+async function runBrowse(
+  tx: StoreTx,
+  input: BrowseInput,
+  ranked: string[] | null,
+  plan: SearchPlan | null,
+): Promise<Omit<BrowseResult, 'corrected'>> {
+  const base = baseQuery(input, ranked, plan)
   const where = filterWhere(input.filters)
   const offset = (Math.max(1, input.page) - 1) * input.perPage
 
@@ -427,8 +462,17 @@ export async function suggestProducts(
   }
   // The engine's order is the answer; SQL's own ranking puts in-stock products first.
   const order = ranked ? sql`b.relevance` : sql`b.relevance, b.in_stock desc, b.title`
-  const rows = await tx.execute<Row>(sql`
-    with b as (${baseQuery(input, ranked)})
-    select b.handle from b order by ${order} limit ${limit}`)
-  return rows.map((r) => String(r.handle))
+  const run = async (plan: SearchPlan | null) => {
+    const rows = await tx.execute<Row>(sql`
+      with b as (${baseQuery(input, ranked, plan)})
+      select b.handle from b order by ${order} limit ${limit}`)
+    return rows.map((r) => String(r.handle))
+  }
+  if (ranked) return run(null)
+  const words = await searchWordsFor(tx, storeId, q)
+  const typed = await run(words?.typed ?? null)
+  if (typed.length || !words) return typed
+  // Nothing for the words as typed: try them typo-corrected, as the search page does.
+  const plan = await words.corrected()
+  return plan ? run(plan) : typed
 }
