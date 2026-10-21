@@ -59,7 +59,7 @@ export const customizeContent = {
     chips: [
       'Write a short headline for my home page banner',
       'Suggest sections for a Diwali sale page',
-      'Rewrite my About page text in a friendly tone',
+      'Which sections are on this page?',
     ],
     offTitle: 'AI is not set up for this store',
     offBody: 'Turn on the AI assistant in Settings → AI to ask it about this page.',

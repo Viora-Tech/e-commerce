@@ -132,7 +132,7 @@ const ALLOWLIST: AllowEntry[] = [
   },
   {
     file: 'packages/core/src/theme-import/fields.ts',
-    names: ['settingsFromProps', 'blocksFromProps', 'shopifySectionId'],
+    names: ['settingsFromProps', 'shopifySectionId'],
     reason: 'the parts of liquidPlacement (props to engine input), exported for their unit tests',
   },
   {

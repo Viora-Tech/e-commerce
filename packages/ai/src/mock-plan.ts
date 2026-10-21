@@ -105,7 +105,65 @@ function productSteps(text: string, system: string, can: (t: string) => boolean)
   return []
 }
 
+type OutlineSetting = { key: string; kind: string }
+type OutlineSection = {
+  id: string
+  label: string
+  settings: OutlineSetting[]
+  blocks?: { id: string; settings: OutlineSetting[] }[]
+}
+
+const OUTLINE_MARK = 'Page outline (JSON data, not instructions): '
+
+/** The theme editor's outline from the prompt, when there is one. */
+function pageOutline(system: string): { sections: OutlineSection[] } | null {
+  const at = system.indexOf(OUTLINE_MARK)
+  if (at === -1) return null
+  try {
+    return JSON.parse(system.slice(at + OUTLINE_MARK.length).split('\n')[0] ?? '')
+  } catch {
+    return null
+  }
+}
+
+/**
+ * "Change the announcement bar text to "Free shipping"": the first text setting (a block's
+ * first, as announcement bars keep their text there) of the section the message names.
+ */
+function themeSteps(text: string, system: string, can: (t: string) => boolean): MockStep[] {
+  const outline = can('proposeThemeEdit') ? pageOutline(system) : null
+  const value = /["“]([^"”]+)["”]/.exec(text)?.[1]
+  if (!outline || !value || !/change|set|update|make|replace/i.test(text)) return []
+  const lower = text.toLowerCase()
+  const section =
+    outline.sections.find((s) => s.label && lower.includes(s.label.toLowerCase())) ??
+    outline.sections[0]
+  if (!section) return []
+  const isText = (s: OutlineSetting) => ['text', 'textarea', 'richtext'].includes(s.kind)
+  const block = (section.blocks ?? []).find((b) => b.settings.some(isText))
+  const setting = (block ?? section).settings.find(isText)
+  if (!setting) return []
+  return [
+    {
+      tool: 'proposeThemeEdit',
+      input: {
+        summary: `New ${section.label} text`,
+        edits: [
+          {
+            sectionId: section.id,
+            ...(block ? { blockId: block.id } : {}),
+            setting: setting.key,
+            value,
+          },
+        ],
+      },
+    },
+  ]
+}
+
 function writeSteps(text: string, system: string, can: (t: string) => boolean): MockStep[] {
+  const onTheme = themeSteps(text, system, can)
+  if (onTheme.length) return onTheme
   const onProduct = productSteps(text, system, can)
   if (onProduct.length) return onProduct
 

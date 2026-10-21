@@ -15,6 +15,7 @@ import {
   role,
   store,
   storeMember,
+  theme,
   variant,
 } from '@commerce/db'
 import { resetDb } from '@commerce/db/test'
@@ -142,11 +143,16 @@ async function ask(
   context: ApiContext,
   message: string,
   page?: { page: string; entityId: string | null },
+  outline?: unknown,
 ) {
   const events: AssistantEvent[] = []
   const stream = await call(
     appRouter.ai.assistant,
-    { message, ...(page ? { page: page as never } : {}) },
+    {
+      message,
+      ...(page ? { page: page as never } : {}),
+      ...(outline ? { theme: outline as never } : {}),
+    },
     { context },
   )
   for await (const event of stream) events.push(event)
@@ -462,6 +468,79 @@ describe('injection guard', () => {
     // The injected text never became an action of its own.
     const actions = await owner.select().from(aiAction).where(eq(aiAction.storeId, a.storeId))
     expect(actions.map((r) => r.tool)).toEqual(['proposeProductUpdate'])
+  })
+})
+
+describe('theme editor', () => {
+  const outline = (published: boolean) => ({
+    themeName: 'Dawn',
+    templateLabel: 'Home page',
+    published,
+    selectedSectionId: null,
+    sections: [
+      {
+        id: 'LiquidSection-announcement',
+        zone: 'header',
+        type: 'announcement-bar',
+        label: 'Announcement bar',
+        settings: [],
+        blocks: [
+          {
+            id: 'a1',
+            type: 'announcement',
+            label: 'Announcement',
+            settings: [{ key: 'text', label: 'Text', kind: 'text', value: 'Welcome' }],
+          },
+        ],
+      },
+    ],
+  })
+
+  it('drafts a page edit from the outline, writing nothing, and only in the editor', async () => {
+    const a = await merchant('a@example.com', 'ai2-theme')
+    const [row] = await owner
+      .insert(theme)
+      .values({ storeId: a.storeId, name: 'Dawn', role: 'main', settings: {} })
+      .returning()
+    const page = { page: 'theme-editor', entityId: row?.id as string }
+    const message = 'Change the announcement bar text to "Free shipping today"'
+    const events = await ask(a.ctx, message, page, outline(true))
+    const edit = events.find((e) => e.type === 'themeEdit')
+    if (edit?.type !== 'themeEdit') throw new Error(`no theme edit in ${JSON.stringify(events)}`)
+    expect(edit.edit.changes).toEqual([
+      {
+        sectionId: 'LiquidSection-announcement',
+        blockId: 'a1',
+        setting: 'text',
+        kind: 'text',
+        value: 'Free shipping today',
+        before: 'Welcome',
+        sectionLabel: 'Announcement bar',
+        blockLabel: 'Announcement',
+        settingLabel: 'Text',
+      },
+    ])
+    expect(edit.edit.flagged).toBe(false)
+    // A draft for the browser: no stored proposal, no source chip for the tool.
+    expect(events.some((e) => e.type === 'proposal')).toBe(false)
+    expect(events.some((e) => e.type === 'source' && e.tool === 'proposeThemeEdit')).toBe(false)
+    expect(await owner.select().from(aiAction).where(eq(aiAction.storeId, a.storeId))).toEqual([])
+
+    // Away from the editor the outline is ignored and the tool is not offered.
+    const elsewhere = await ask(a.ctx, message, { page: 'home', entityId: null }, outline(true))
+    expect(elsewhere.some((e) => e.type === 'themeEdit')).toBe(false)
+  })
+
+  it('rejects an outline over its size limits', async () => {
+    const a = await merchant('a@example.com', 'ai2-theme-big')
+    const big = outline(false)
+    big.sections = Array.from({ length: 61 }, (_, i) => ({
+      ...big.sections[0],
+      id: `S-${i}`,
+    })) as never
+    await expect(
+      ask(a.ctx, 'Which sections are on this page?', { page: 'theme-editor', entityId: null }, big),
+    ).rejects.toMatchObject({ code: 'BAD_REQUEST' })
   })
 })
 

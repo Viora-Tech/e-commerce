@@ -93,7 +93,6 @@ const isDesktopHome = (loaded: Loaded | null, device: PreviewDevice) =>
  * the inspector and undo all share Puck's state. Edits autosave as drafts of this
  * theme; Save commits them, which for the live theme is what shoppers see.
  */
-
 export default function CustomizeEditor({
   theme,
   origin,
@@ -451,6 +450,7 @@ export default function CustomizeEditor({
                       template={ref.key}
                       previewResource={previewResource}
                       aiEnabled={ai.assistant}
+                      theme={{ name: record.name, live: record.role === 'main' }}
                     />
                   </DynamicSourceContext.Provider>
                 </PreviewModeContext.Provider>

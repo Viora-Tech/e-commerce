@@ -1,7 +1,8 @@
 /**
  * Client-safe surface of the AI engine: feature names, model tiers, plans and quotas, the
- * assistant's limits and page context, the product writer's schema and choices, the SEO
- * keyword schema and list helpers. No SDK, no environment, safe in `'use client'` components.
+ * assistant's limits, page context and theme editor outline, the product writer's schema and
+ * choices, the SEO keyword schema and list helpers. No SDK, no environment, safe in
+ * `'use client'` components.
  */
 export {
   ASSISTANT_LIMITS,
@@ -13,6 +14,25 @@ export {
   pageContextFor,
 } from './assistant/limits'
 export type { AssistantLanguage } from './assistant/prompt'
+export {
+  fitOutline,
+  outlineText,
+  THEME_OUTLINE_LIMITS,
+  THEME_SETTING_KINDS,
+  type ThemeEditChange,
+  ThemeEditInput,
+  type ThemeEditRequest,
+  type ThemeEditView,
+  type ThemeOutline,
+  type ThemeOutlineBlock,
+  ThemeOutlineSchema,
+  type ThemeOutlineSection,
+  type ThemeOutlineSetting,
+  type ThemeSettingKind,
+  type ThemeValue,
+  themeOutlineForPrompt,
+  validateThemeEdits,
+} from './assistant/theme-outline'
 export {
   AI_FEATURES,
   type AiFeature,

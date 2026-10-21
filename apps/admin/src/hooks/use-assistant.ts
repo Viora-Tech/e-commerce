@@ -1,6 +1,10 @@
 'use client'
 
-import { ASSISTANT_MAX_MESSAGE, type AssistantPageContext } from '@commerce/ai/client'
+import {
+  ASSISTANT_MAX_MESSAGE,
+  type AssistantPageContext,
+  type ThemeOutline,
+} from '@commerce/ai/client'
 import { useEffect, useRef, useState } from 'react'
 import { api } from '@/lib/api-client'
 
@@ -8,6 +12,10 @@ export type AssistantEvent =
   Awaited<ReturnType<typeof api.ai.assistant>> extends AsyncIterable<infer E> ? E : never
 export type ActionView = Extract<AssistantEvent, { type: 'proposal' }>['action']
 export type AssistantSource = Extract<AssistantEvent, { type: 'source' }>
+/** A theme edit the assistant drafted in the editor, and what the merchant did with it. */
+export type ThemeEditCard = Extract<AssistantEvent, { type: 'themeEdit' }>['edit'] & {
+  status: 'proposed' | 'applied' | 'dismissed'
+}
 
 export type AssistantTurn = {
   id: string
@@ -15,6 +23,8 @@ export type AssistantTurn = {
   answer: string
   sources: AssistantSource[]
   actions: ActionView[]
+  /** Theme edits (only in the theme editor); absent on turns kept from before they existed. */
+  themeEdits?: ThemeEditCard[]
   status: 'streaming' | 'done' | 'error' | 'stopped'
   error: string | null
 }
@@ -54,6 +64,11 @@ function applyEvent(turn: AssistantTurn, event: AssistantEvent): AssistantTurn {
       return { ...turn, sources: [...turn.sources.filter((s) => s.id !== event.id), event] }
     case 'proposal':
       return { ...turn, actions: [...turn.actions, event.action] }
+    case 'themeEdit':
+      return {
+        ...turn,
+        themeEdits: [...(turn.themeEdits ?? []), { ...event.edit, status: 'proposed' }],
+      }
     case 'error':
       return { ...turn, status: 'error', error: event.message }
     case 'done':
@@ -97,7 +112,13 @@ export function useAssistant(storeId: string | null) {
   const update = (id: string, fn: (turn: AssistantTurn) => AssistantTurn) =>
     setTurns((all) => all.map((t) => (t.id === id ? fn(t) : t)))
 
-  const send = async (message: string, page: AssistantPageContext, language: 'en' | 'hi') => {
+  /** `theme`: in the theme editor, the open page's outline, sent with this message only. */
+  const send = async (
+    message: string,
+    page: AssistantPageContext,
+    language: 'en' | 'hi',
+    theme?: ThemeOutline,
+  ) => {
     const text = message.trim().slice(0, ASSISTANT_MAX_MESSAGE)
     if (!text || controller.current) return
     const abort = new AbortController()
@@ -110,7 +131,7 @@ export function useAssistant(storeId: string | null) {
     ])
     try {
       const events = await api.ai.assistant(
-        { message: text, history, page, language },
+        { message: text, history, page, language, ...(theme ? { theme } : {}) },
         { signal: abort.signal },
       )
       for await (const event of events) update(id, (t) => applyEvent(t, event))
@@ -144,6 +165,16 @@ export function useAssistant(storeId: string | null) {
       ),
     )
 
+  /** A theme edit card after Apply or Dismiss. */
+  const setThemeEditStatus = (id: string, status: ThemeEditCard['status']) =>
+    setTurns((all) =>
+      all.map((t) =>
+        t.themeEdits?.some((e) => e.id === id)
+          ? { ...t, themeEdits: t.themeEdits.map((e) => (e.id === id ? { ...e, status } : e)) }
+          : t,
+      ),
+    )
+
   const busy = turns.some((t) => t.status === 'streaming')
-  return { turns, busy, send, stop, clear, replaceAction }
+  return { turns, busy, send, stop, clear, replaceAction, setThemeEditStatus }
 }

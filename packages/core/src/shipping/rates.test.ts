@@ -157,7 +157,11 @@ describe('zone matching', () => {
     const everywhere = zone({ id: 'all', rates: [rate({ id: 'std' })], position: 0 })
     const emptyA = zone({ id: 'a', stateCodes: states, rates: [], position: 1 })
     const emptyB = zone({ id: 'b', stateCodes: states, rates: [], position: 2 })
-    const q = quoteShipping([everywhere, emptyA, emptyB], { stateCode: 'HR', pincode: '131001' }, cart(1))
+    const q = quoteShipping(
+      [everywhere, emptyA, emptyB],
+      { stateCode: 'HR', pincode: '131001' },
+      cart(1),
+    )
     expect(q.kind === 'rates' && q.options.map((o) => o.rateId)).toEqual(['std'])
   })
 
