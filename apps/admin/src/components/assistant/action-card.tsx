@@ -10,6 +10,7 @@ import {
   InfoIcon,
   LayoutGrid,
   MessageSquare,
+  SquareTerminal,
   TrendingUp,
   TriangleAlert,
 } from '@commerce/ui/icons'
@@ -37,6 +38,8 @@ const TOOL_ICONS: Record<string, typeof AiIcon> = {
   proposeCollection: LayoutGrid,
   proposeProductUpdate: FileEdit,
   proposeOrderNote: MessageSquare,
+  // An admin action an MCP client asked to run (Settings → MCP & API).
+  runAdminAction: SquareTerminal,
 }
 
 const BADGE: Record<string, 'attention' | 'success' | 'danger' | 'neutral'> = {
