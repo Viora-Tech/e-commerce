@@ -163,6 +163,11 @@ const ALLOWLIST: AllowEntry[] = [
     exact: true,
     reason: 'MCP tools open withStore and call services; no raw queries',
   },
+  {
+    path: 'packages/api/src/mcp/admin-actions.ts',
+    exact: true,
+    reason: 'MCP runAction opens withStore to log activity and queue approvals; no raw queries',
+  },
   { path: 'apps/worker/src/app-events.ts', exact: true, reason: WORKER },
   { path: 'apps/worker/src/back-in-stock.ts', exact: true, reason: WORKER },
   {

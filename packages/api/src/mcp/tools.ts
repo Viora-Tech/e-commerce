@@ -1,7 +1,9 @@
 /**
  * The tools an MCP client sees: the AI assistant's own read tools and change proposals
  * (`services/ai/assistant`), filtered to what the grant and the member's role allow, plus
- * `customerDetails`, which only answers while "Let clients read customer details" is on.
+ * `customerDetails`, which only answers while "Let clients read customer details" is on, plus
+ * `searchActions` / `describeAction` / `runAction`, which reach every other admin action
+ * (`admin-actions.ts`).
  *
  * Reads run straight away. A change is proposed exactly as the AI bar proposes it: it waits in
  * AI approvals for the member who connected the client, or runs at once when "Changes need
@@ -20,6 +22,7 @@ import {
 import { aiStoreFacts } from '@commerce/core/ai-runtime'
 import { type Db, withStore } from '@commerce/db'
 import { z } from 'zod'
+import type { ApiContext } from '../context'
 import type { StoreScope } from '../procedures'
 import { ProposalProblem } from '../services/ai/assistant/actions/resolve'
 import { readTools } from '../services/ai/assistant/read-tools'
@@ -28,6 +31,7 @@ import { approveAction, proposeAction } from '../services/ai/assistant/service'
 import { freshTaint } from '../services/ai/assistant/taint'
 import { type Fact, storeTools, type ToolEnv } from '../services/ai/store-tools'
 import { findCustomerForMcp } from '../services/mcp.service'
+import { adminActionTools, callAdminActionTool } from './admin-actions'
 
 /** How a read reads in the activity log: "Claude read sales". */
 const READ_LABELS: Record<string, string> = {
@@ -52,11 +56,18 @@ export type McpTool = {
 
 export type McpCallResult = { text: string; data: unknown; isError: boolean }
 
-type McpEnv = {
+/** What `runAction` calls admin procedures with, minus the request and the caller. */
+export type McpApiHost = () => Omit<ApiContext, 'headers' | 'apiPrincipal'>
+
+export type McpEnv = {
   db: Db
   principal: ApiPrincipal
   settings: McpSettings
   now: () => Date
+  /** The admin's public origin, for download links. */
+  origin?: string | undefined
+  /** Absent: `runAction` cannot call admin procedures (it says so). */
+  api?: McpApiHost | undefined
 }
 
 const textOf = (facts: Fact[]): string => facts.map((f) => `${f.label}: ${f.value}`).join('\n')
@@ -127,7 +138,8 @@ export function listMcpTools(env: McpEnv, toolEnv: ToolEnv): McpTool[] {
     input: t.input,
     readOnly: true,
   }))
-  if (!env.settings.allowChanges) return reads
+  const actions = adminActionTools(env)
+  if (!env.settings.allowChanges) return [...reads, ...actions]
   const changes = Object.values(ACTIONS)
     .filter((a) => can(env, a.permission))
     .map((a) => ({
@@ -138,7 +150,7 @@ export function listMcpTools(env: McpEnv, toolEnv: ToolEnv): McpTool[] {
       input: a.input,
       readOnly: false,
     }))
-  return [...reads, ...changes]
+  return [...reads, ...changes, ...actions]
 }
 
 /** A member scope for approving at once (`requireApproval` off): the grant's own permissions. */
@@ -177,6 +189,8 @@ export async function callMcpTool(
   name: string,
   args: unknown,
 ): Promise<McpCallResult> {
+  const generic = await callAdminActionTool(env, name, args)
+  if (generic) return generic
   const p = env.principal
   const store = await withStore(env.db, p.storeId, (tx) => aiStoreFacts(tx, p.storeId))
   const taint = freshTaint()

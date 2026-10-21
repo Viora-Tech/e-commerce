@@ -1,4 +1,4 @@
-import { appRouter, clientIp } from '@commerce/api'
+import { apiTokenRefusal, appRouter, clientIp } from '@commerce/api'
 import {
   API_RATE_LIMIT,
   authenticateApiToken,
@@ -21,6 +21,11 @@ const refuse = (status: number, message: string, headers: Record<string, string>
  * call runs as the token's member, capped to the token's areas; cookies are never read here.
  */
 async function handle(request: Request) {
+  // Sign-in, tokens, approving AI changes and sensitive settings need a person (MCP `runAction`
+  // queues those for approval; a token has no approval step).
+  const procedure = new URL(request.url).pathname.replace(/^\/api\/v1\/?/, '').replace(/\//g, '.')
+  const refusal = apiTokenRefusal(procedure)
+  if (refusal) return refuse(403, refusal)
   const token = request.headers.get('authorization')?.match(/^Bearer\s+(\S+)$/i)?.[1]
   if (!token) return refuse(401, 'Send an access token: Authorization: Bearer kmc_live_…')
   const host = mcpHost()
