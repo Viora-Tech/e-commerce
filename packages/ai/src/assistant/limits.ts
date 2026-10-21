@@ -37,6 +37,8 @@ export const ASSISTANT_PAGES = [
   'customer',
   'analytics',
   'settings',
+  /** Online store → Themes → Customize; the record id is the theme's. */
+  'theme-editor',
   'other',
 ] as const
 export type AssistantPage = (typeof ASSISTANT_PAGES)[number]
@@ -53,10 +55,15 @@ const DETAIL: { prefix: string; page: AssistantPage; list: AssistantPage }[] = [
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
+/** The theme editor: `/online-store/themes/<uuid>/editor`. */
+const THEME_EDITOR = /^\/online-store\/themes\/([^/]+)\/editor(?:\/|$)/
+
 /** The assistant's page context for an admin path, e.g. `/products/<uuid>` → product + id. */
 export function pageContextFor(pathname: string): AssistantPageContext {
   const path = pathname.replace(/\/+$/, '') || '/'
   if (path === '/') return { page: 'home', entityId: null }
+  const editor = THEME_EDITOR.exec(path)?.[1]
+  if (editor && UUID.test(editor)) return { page: 'theme-editor', entityId: editor }
   for (const { prefix, page, list } of DETAIL) {
     if (path === prefix) return { page: list, entityId: null }
     if (!path.startsWith(`${prefix}/`)) continue

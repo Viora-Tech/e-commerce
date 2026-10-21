@@ -55,6 +55,8 @@ type CustomizeLayoutProps = {
   previewResource: { kind: ResourceKind; id: string | null; title: string | null } | null
   /** The AI assistant is on for this store and member (the AI tab can chat). */
   aiEnabled: boolean
+  /** The theme being edited, for the AI tab: its name and whether it is live. */
+  theme: { name: string; live: boolean }
 }
 
 /**
@@ -74,6 +76,7 @@ export default function CustomizeLayout({
   template,
   previewResource,
   aiEnabled,
+  theme,
 }: CustomizeLayoutProps) {
   // Hooks
   const [panel, setPanel] = useState<RailPanel>('sections')
@@ -139,7 +142,7 @@ export default function CustomizeLayout({
   const title = titles[panel]
   const content: Record<RailPanel, ReactNode> = {
     add: <AddSectionPanel />,
-    ai: <AiPanel storeId={store.id} enabled={aiEnabled} page={templateLabel} />,
+    ai: <AiPanel storeId={store.id} enabled={aiEnabled} page={templateLabel} theme={theme} />,
     pages,
     sections: <SectionsPanel onOpenTheme={() => setPanel('theme')} templateLabel={templateLabel} />,
     media: <MediaPanel />,

@@ -20,7 +20,7 @@ const RESERVED = new Set([
 ])
 
 /** The prop a theme setting is stored under. */
-const settingPropKey = (id: string): string => (RESERVED.has(id) ? `setting_${id}` : id)
+export const settingPropKey = (id: string): string => (RESERVED.has(id) ? `setting_${id}` : id)
 
 /** One block, as an item of the section's `blocks` array. */
 export type LiquidBlockItem = {
