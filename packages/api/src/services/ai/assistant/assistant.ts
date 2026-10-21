@@ -5,6 +5,8 @@
  * browser gets a `proposal` event with the card; nothing changes until the merchant approves
  * it (`service.ts`). Errors become one plain `error` event; prompts are never logged.
  */
+
+import { randomUUID } from 'node:crypto'
 import {
   type AiMessage,
   type AiToolSet,
@@ -14,7 +16,14 @@ import {
   assistantInstructions,
   defineAiTool,
   streamAnswer,
+  ThemeEditInput,
+  type ThemeEditRequest,
+  type ThemeEditView,
+  type ThemeOutline,
+  themeOutlineForPrompt,
+  validateThemeEdits,
 } from '@commerce/ai'
+import { permissions } from '@commerce/core'
 import { formatInZone } from '@commerce/dates'
 import { withStore } from '@commerce/db'
 import { type AiCallContext, finishAiCall, type StartedAiCall, startAiCall } from '../guard'
@@ -31,6 +40,8 @@ export type AssistantInput = {
   history: AiMessage[]
   page: AssistantPageContext
   language: AssistantLanguage
+  /** The theme editor's outline of the open page; only with `page.page === 'theme-editor'`. */
+  theme?: ThemeOutline | undefined
 }
 
 export type AssistantEvent =
@@ -45,6 +56,8 @@ export type AssistantEvent =
       shared: string[]
     }
   | { type: 'proposal'; action: ActionView }
+  /** A drafted theme edit for the open editor page; the browser applies it, the API never writes it. */
+  | { type: 'themeEdit'; edit: ThemeEditView }
   | { type: 'error'; message: string }
   | { type: 'done' }
 
@@ -125,6 +138,38 @@ function toolsFor(
   return { ...allowedReads, ...proposes }
 }
 
+/** The theme editor's tool: checks an edit against this message's outline and drafts it. */
+function themeEditTool(
+  outline: ThemeOutline,
+  taint: Taint,
+  edits: Map<string, ThemeEditView>,
+): AiToolSet {
+  return {
+    proposeThemeEdit: defineAiTool({
+      description:
+        'Draft a change to settings of sections or blocks on the page open in the theme editor (text, links, checkboxes, numbers, choices). Use the ids and setting keys from the page outline. Nothing changes until the merchant applies it in the editor.',
+      input: ThemeEditInput,
+      risk: 'propose',
+      run: async (input: ThemeEditRequest) => {
+        if (taint.proposals >= ASSISTANT_LIMITS.maxProposalsPerTurn) {
+          return { error: `At most ${ASSISTANT_LIMITS.maxProposalsPerTurn} changes per message.` }
+        }
+        const checked = validateThemeEdits(outline, input)
+        if (!checked.ok) return { error: checked.error }
+        const view: ThemeEditView = {
+          id: randomUUID(),
+          summary: input.summary,
+          changes: checked.changes,
+          flagged: taint.flagged,
+        }
+        taint.proposals += 1
+        edits.set(view.id, view)
+        return { themeEdit: { id: view.id, summary: view.summary } }
+      },
+    }),
+  }
+}
+
 /** Starts the call (gate, quota, metering) before the first byte, then streams the answer. */
 export async function runAssistant(
   context: Session,
@@ -134,7 +179,16 @@ export async function runAssistant(
   const call = await startAiCall(context, 'assistant')
   const taint = freshTaint()
   const proposals = new Map<string, ActionView>()
-  const tools = toolsFor(context, call, taint, proposals)
+  const themeEdits = new Map<string, ThemeEditView>()
+  const outline = input.page.page === 'theme-editor' ? input.theme : undefined
+  const canEditTheme = Boolean(outline) && context.scope.can(permissions.ONLINE_STORE_WRITE)
+  const tools = {
+    ...toolsFor(context, call, taint, proposals),
+    ...(outline && canEditTheme ? themeEditTool(outline, taint, themeEdits) : {}),
+  }
+  const guarded = outline ? themeOutlineForPrompt(outline) : null
+  // Page text that read like orders to the AI was hidden; later proposals carry the warning.
+  if (guarded?.flagged) taint.flagged = true
   const page = await withStore(context.db, call.runtime.storeId, (tx) => pageLine(tx, input.page))
   const today = formatInZone(
     new Date(),
@@ -150,6 +204,7 @@ export async function runAssistant(
       language: input.language,
       page,
       canPropose: Object.keys(tools).filter((name) => name in ACTIONS),
+      themeEditor: guarded ? { outline: guarded.text, canEdit: canEditTheme } : undefined,
     }),
     messages: [...input.history, { role: 'user', content: input.message }],
     tools,
@@ -167,7 +222,13 @@ export async function runAssistant(
             yield { type: 'proposal', action: view }
             continue
           }
-          if (event.name in ACTIONS) continue
+          const editId = (event.output as { themeEdit?: { id?: string } } | null)?.themeEdit?.id
+          const edit = editId ? themeEdits.get(editId) : undefined
+          if (edit && event.status === 'done') {
+            yield { type: 'themeEdit', edit }
+            continue
+          }
+          if (event.name in ACTIONS || event.name === 'proposeThemeEdit') continue
           const { facts, shared } =
             event.status === 'done' ? factsOf(event.output) : { facts: [], shared: [] }
           yield {

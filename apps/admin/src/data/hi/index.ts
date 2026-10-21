@@ -25,6 +25,7 @@ import contentFiles from './content-files'
 import createShipment from './create-shipment'
 import customers from './customers'
 import customersBulkEdit from './customers-bulk-edit'
+import customizeAi from './customize-ai'
 import customizeMedia from './customize-media'
 import dateRange from './date-range'
 import dates from './dates'
@@ -121,6 +122,7 @@ export const hindiCopy: readonly TranslationPair[] = [
   ...createShipment,
   ...customers,
   ...customersBulkEdit,
+  ...customizeAi,
   ...customizeMedia,
   ...dates,
   ...dhlExpress,

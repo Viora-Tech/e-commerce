@@ -6,6 +6,7 @@ import {
   BULK_WRITE_FIELDS,
   SEO_KEYWORD_LENGTH_MAX,
   SEO_KEYWORDS_MAX,
+  ThemeOutlineSchema,
   WRITER_LANGUAGES,
   WRITER_TONES,
   WRITING_QUALITIES,
@@ -89,6 +90,11 @@ const AssistantInput = z.object({
     .object({ page: z.enum(ASSISTANT_PAGES), entityId: z.uuid().nullable().default(null) })
     .default({ page: 'other', entityId: null }),
   language: z.enum(['en', 'hi']).default('en'),
+  /**
+   * In the theme editor: the open page's outline (sections, simple settings, current values),
+   * so the assistant can answer about the page and propose edits to it. Data, never instructions.
+   */
+  theme: ThemeOutlineSchema.optional(),
 })
 
 const ActionId = z.object({ id: z.uuid() })

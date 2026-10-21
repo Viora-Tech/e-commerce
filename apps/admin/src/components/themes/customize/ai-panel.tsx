@@ -3,6 +3,7 @@
 import { pageContextFor } from '@commerce/ai/client'
 import { AiIcon } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
+import { useGetPuck } from '@puckeditor/core'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useEffect, useRef } from 'react'
@@ -11,33 +12,43 @@ import AssistantTurnView from '@/components/assistant/assistant-turn'
 import { customizeContent } from '@/data/customize'
 import { useAssistant } from '@/hooks/use-assistant'
 import { useCopy, useLocale } from '@/hooks/use-copy'
+import type { CustomizeDoc } from '@/lib/customize-doc'
+import { useImportedTheme } from '@/lib/customize-theme-context'
 import { routes } from '@/lib/routes'
+import { buildThemeOutline, type OutlineComponent } from '@/lib/theme-outline'
 import PanelTitle from './panel-title'
 import SectionProposer from './section-proposer'
+import ThemeEditCard from './theme-edit-card'
 
 type AiPanelProps = {
   /** The active store, so this conversation is the one the admin's AI bar keeps for it. */
   storeId: string | null
   /** AI is set up, on for the store, and this member may use the assistant. */
   enabled: boolean
-  /** The template being edited ("Home page"), for "Build a section". */
+  /** The template being edited ("Home page"), for "Build a section" and the page outline. */
   page: string
+  /** The theme open in the editor: its name, and whether it is the store's live theme. */
+  theme: { name: string; live: boolean }
 }
 
 /**
  * The rail's AI tab (Figma 385:4119 "AI · idle"): "Build with AI" with New chat, the admin's AI
  * assistant (the same conversation as its ⌘J bar) inside the editor, with suggestions about the
- * page being edited and the prompt box at the foot. It answers and runs its usual tools
- * with approval. "Build a section" above it proposes one library section, which goes on the
- * canvas only when the merchant adds it. Without AI it says where to turn it on.
+ * page being edited and the prompt box at the foot. Each message carries an outline of the open
+ * page (`lib/theme-outline.ts`), so it answers about the sections on screen and drafts page
+ * edits as cards the merchant applies here; its store tools still work with approval.
+ * "Build a section" above it proposes one library section, which goes on the canvas only when
+ * the merchant adds it. Without AI it says where to turn it on.
  */
-export default function AiPanel({ storeId, enabled, page }: AiPanelProps) {
+export default function AiPanel({ storeId, enabled, page, theme }: AiPanelProps) {
   // Hooks
   const copy = useCopy(customizeContent.ai)
   const rail = useCopy(customizeContent.rail)
   const pathname = usePathname()
   const locale = useLocale()
   const assistant = useAssistant(storeId)
+  const getPuck = useGetPuck()
+  const imported = useImportedTheme()
   const scroller = useRef<HTMLDivElement>(null)
   // Keep the newest answer in view while it streams.
   useEffect(() => {
@@ -46,9 +57,26 @@ export default function AiPanel({ storeId, enabled, page }: AiPanelProps) {
     if (el) el.scrollTop = el.scrollHeight
   }, [assistant.turns])
 
+  // Helpers
+  /** The open page as it is on screen now, unsaved edits included. */
+  const outline = () => {
+    const puck = getPuck()
+    const selected = puck.selectedItem?.props.id
+    return buildThemeOutline({
+      doc: puck.appState.data as unknown as CustomizeDoc,
+      components: puck.config.components as Record<string, OutlineComponent>,
+      imported,
+      theme: { name: theme.name, published: theme.live },
+      templateLabel: page,
+      selectedSectionId: typeof selected === 'string' ? selected : null,
+    })
+  }
+
   // Event handlers
   const handleSend = (message: string) => {
-    void assistant.send(message, pageContextFor(pathname), locale)
+    const context = pageContextFor(pathname)
+    const pageOutline = context.page === 'theme-editor' ? outline() : undefined
+    void assistant.send(message, context, locale, pageOutline)
   }
 
   // Early returns
@@ -125,7 +153,16 @@ export default function AiPanel({ storeId, enabled, page }: AiPanelProps) {
         ) : (
           <ol className="flex flex-col gap-6">
             {assistant.turns.map((turn) => (
-              <AssistantTurnView key={turn.id} turn={turn} onAction={assistant.replaceAction} />
+              <AssistantTurnView key={turn.id} turn={turn} onAction={assistant.replaceAction}>
+                {(turn.themeEdits ?? []).map((edit) => (
+                  <ThemeEditCard
+                    key={edit.id}
+                    edit={edit}
+                    live={theme.live}
+                    onStatus={assistant.setThemeEditStatus}
+                  />
+                ))}
+              </AssistantTurnView>
             ))}
           </ol>
         )}

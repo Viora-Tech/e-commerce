@@ -98,6 +98,20 @@ through with phone numbers and emails hidden. Customer pages send no customer da
 | `proposeCollection` (new manual, or add to manual) | propose | products.write | hides the new collection, or takes the products back out |
 | `proposeProductUpdate` (title, description, search text, tags) | propose | products.write | previous text back |
 | `proposeOrderNote` (note or reply draft, never sent) | propose | orders.write | none (timeline note) |
+| `proposeThemeEdit` (theme editor only: settings on the open page) | propose, in the browser | online_store.write | Puck's Undo in the editor |
+
+### The theme editor
+
+In Customize the AI tab sends, with each message, an outline of the open page
+(`apps/admin/src/lib/theme-outline.ts`, built from Puck's data): every section in order
+(header, page, footer) with its simple settings and, for imported Liquid sections, its blocks'
+settings, values cut to 200 characters and the whole outline to 12 KB. The shape, limits and
+checks live in `packages/ai/src/assistant/theme-outline.ts`; the API validates it with zod, and
+the prompt carries it as guarded JSON data. `proposeThemeEdit` is checked against that outline
+(every section, block and setting must be in it, each value must fit its kind) and streams back
+as a `themeEdit` event. Nothing is stored on the server: the card's Apply runs
+`applyThemeEdits` (`lib/theme-edit-apply.ts`) through one Puck `setData` with history, so Undo
+works and the draft autosave saves it like any edit.
 
 ## Add an assistant tool (one slice)
 
