@@ -1,3 +1,4 @@
+import { siteConfig } from '@commerce/config/site'
 /** Copy for the Apps page: plugins from commerce.config.ts a store can install. */
 export const appsContent = {
   title: 'Apps',
@@ -91,7 +92,7 @@ export const appsContent = {
     category: 'Category',
     madeBy: 'Made by',
     type: 'Type',
-    typeBuiltin: 'Koomerce app',
+    typeBuiltin: `${siteConfig.brand.name} app`,
     typeConnection: 'Connection to another service',
     builtOn: 'Built on',
   },
@@ -144,7 +145,7 @@ export const appsContent = {
   configure: (kind: string) => `Set up in ${kind}`,
   docs: 'Want FedEx, DHL or a new gateway? Write a plugin: docs/plugins.md',
   /** Shown on a `kind: 'builtin'` card: made by us, nothing else to sign up for. */
-  builtByPlatform: 'Koomerce app',
+  builtByPlatform: `${siteConfig.brand.name} app`,
   /** Shown on a `kind: 'connection'` card: which outside company this links to. */
   byCompany: (company: string) => `by ${company}`,
   connection: {
@@ -172,8 +173,8 @@ export const appsContent = {
     kebabLabel: (name: string) => `More actions for ${name}`,
     /** Section 1: features we designed, no outside account. */
     builtin: {
-      title: 'Koomerce apps',
-      intro: 'Made by Koomerce and run on your store. Turn one on and use it: no account, keys or server to set up.',
+      title: `${siteConfig.brand.name} apps`,
+      intro: `Made by ${siteConfig.brand.name} and run on your store. Turn one on and use it: no account, keys or server to set up.`,
     },
     /** Section 2: links to another company's service. */
     connections: {

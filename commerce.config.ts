@@ -11,6 +11,7 @@ import { growthbookPlugin } from '@commerce/plugin-growthbook'
 import { gstInvoicesPlugin } from '@commerce/plugin-gst-invoices'
 import { meilisearchPlugin } from '@commerce/plugin-meilisearch'
 import { reviewsPlugin } from '@commerce/plugin-reviews'
+import { searchPlugin } from '@commerce/plugin-search'
 import { searchConsolePlugin } from '@commerce/plugin-search-console'
 import { shopifyImportPlugin } from '@commerce/plugin-shopify-import'
 import { umamiPlugin } from '@commerce/plugin-umami'
@@ -66,5 +67,6 @@ export default defineConfig({
     meilisearchPlugin,
     chatwootPlugin,
     growthbookPlugin,
+    searchPlugin,
   ],
 })

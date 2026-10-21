@@ -64,7 +64,9 @@ export async function seedDev(ownerUrl: string): Promise<void> {
         slug: 'waimers',
         name: 'Waimers',
         // Zero Drift is Waimers' own theme: its sections are offered in this store's editor
-        // only (`store.apps.settings.core.themePacks`, read by @commerce/core parseThemePacks).
+        // only. Packs are per theme now (`theme.settings.themePacks`); this store-level list is
+        // what a theme without its own list follows, so the seeded live theme (made later with
+        // no list) offers Zero Drift. @commerce/core `effectiveThemePacks`.
         apps: { installed: [], settings: { core: { themePacks: ['zero-drift'] } } },
       })
       .returning()

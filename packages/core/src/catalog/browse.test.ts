@@ -15,13 +15,14 @@ import {
   withStore,
 } from '@commerce/db'
 import { resetDb } from '@commerce/db/test'
+import { eq, sql } from 'drizzle-orm'
 import { afterAll, beforeEach, describe, expect, it } from 'vitest'
 import {
   createMetafieldDefinition,
   markMetafieldsFilterable,
   setMetafields,
 } from '../metaobjects/service'
-import { browseProducts, searchTerms, suggestProducts } from './browse'
+import { browseProducts, suggestProducts } from './browse'
 import {
   activeFilters,
   browseHref,
@@ -31,6 +32,8 @@ import {
   parseBrowseSort,
   parsePage,
 } from './browse-params'
+import { searchTerms } from './search-text'
+import { getSearchSynonyms, setSearchSynonyms } from './search-words'
 
 const owner = createDb(process.env.DATABASE_URL_OWNER as string)
 const app = createDb(process.env.DATABASE_URL as string)
@@ -299,7 +302,79 @@ describe('browseProducts', () => {
     // Option values, as Search & Discovery matches variant titles.
     expect((await search('crimson')).handles).toEqual(['tee'])
   })
+
+  it('corrects typos only when the words as typed find nothing, and says so', async () => {
+    const [s] = await owner.insert(store).values({ slug: 'f', name: 'F' }).returning()
+    const storeId = s?.id as string
+    await seed(storeId, {
+      handle: 'mech-keyboard',
+      title: 'Mechanical Keyboard',
+      price: 100,
+      stock: 1,
+    })
+    await seed(storeId, { handle: 'wireless-mouse', title: 'Wireless Mouse', price: 100, stock: 1 })
+    const search = (query: string) =>
+      run(storeId, (tx) => browseProducts(tx, { ...base, query, sort: 'relevance', storeId }))
+
+    const typo = await search('wirless mouse')
+    expect(typo.handles).toEqual(['wireless-mouse'])
+    expect(typo.corrected).toBe('wireless mouse')
+    expect((await search('mecanical keybord')).handles).toEqual(['mech-keyboard'])
+    // Found as typed: nothing is corrected.
+    expect((await search('mouse')).corrected).toBeNull()
+    // Nothing close: still nothing, and no correction claimed.
+    const none = await search('banana')
+    expect(none.total).toBe(0)
+    expect(none.corrected).toBeNull()
+    expect(await run(storeId, (tx) => suggestProducts(tx, 'keybord', 6, storeId))).toEqual([
+      'mech-keyboard',
+    ])
+  })
+
+  it('matches a word’s synonyms, and keeps them when the preferences form saves', async () => {
+    const [s] = await owner.insert(store).values({ slug: 'g', name: 'G' }).returning()
+    const storeId = s?.id as string
+    await seed(storeId, {
+      handle: 'mech-keyboard',
+      title: 'Mechanical Keyboard',
+      price: 100,
+      stock: 1,
+    })
+    await seed(storeId, { handle: 'desk-mat', title: 'Desk Mat', price: 100, stock: 1 })
+    const search = (query: string) =>
+      run(storeId, (tx) => browseProducts(tx, { ...base, query, sort: 'relevance', storeId }))
+    expect((await search('kb')).total).toBe(0)
+
+    const saved = await run(storeId, (tx) =>
+      setSearchSynonyms(tx, storeId, [
+        ['KB', 'keyboard', 'kb'],
+        ['mousepad', 'desk mat'],
+        ['solo'],
+      ]),
+    )
+    expect(saved).toEqual([
+      ['kb', 'keyboard'],
+      ['mousepad', 'desk mat'],
+    ])
+    expect((await search('kb')).handles).toEqual(['mech-keyboard'])
+    expect((await search('mousepad')).handles).toEqual(['desk-mat'])
+    expect((await search('kb')).corrected).toBeNull()
+
+    // The Online Store preferences form merges its own keys and never drops the synonyms.
+    await run(storeId, (tx) => updateStorePreferencesLike(tx, storeId))
+    expect(await run(storeId, (tx) => getSearchSynonyms(tx, storeId))).toEqual(saved)
+  })
 })
+
+/** What the Preferences form's save does to the column: merge its keys over what is there. */
+async function updateStorePreferencesLike(tx: StoreTx, storeId: string) {
+  await tx
+    .update(store)
+    .set({
+      preferences: sql`coalesce(${store.preferences}, '{}'::jsonb) || ${JSON.stringify({ seo: {} })}::jsonb`,
+    })
+    .where(eq(store.id, storeId))
+}
 
 describe('searchTerms', () => {
   it('splits, lowercases and dedupes words, at most eight', () => {

@@ -92,6 +92,7 @@ const config: NextConfig = {
     '@commerce/plugin-growthbook',
     '@commerce/plugin-reviews',
     '@commerce/plugin-meilisearch',
+    '@commerce/plugin-search',
     '@commerce/plugin-search-console',
     '@commerce/plugin-umami',
     '@commerce/plugin-chatwoot',

@@ -31,6 +31,7 @@
         "@commerce/plugin-meilisearch#build",
         "@commerce/plugin-growthbook#build",
         "@commerce/plugin-reviews#build",
+        "@commerce/plugin-search#build",
         "@commerce/plugin-search-console#build",
         "@commerce/plugin-gst-invoices#build",
         "@commerce/plugin-shopify-import#build",

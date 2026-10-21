@@ -209,14 +209,22 @@ export const templatesRouter = {
  * The block is validated for shape and size in core (`prepareCustomSection`).
  */
 export const customSectionsRouter = {
-  list: can(permissions.ONLINE_STORE_READ).handler(({ context }) =>
-    listCustomSections(context.tx, context.scope.storeId),
-  ),
+  /**
+   * The saved sections. With `themeId` (Customize), only those that theme can render: a section
+   * holding an imported Shopify section stays with its theme (`customSectionsForTheme`).
+   */
+  list: can(permissions.ONLINE_STORE_READ)
+    .input(z.object({ themeId: z.string().uuid().optional() }).optional())
+    .handler(({ context, input }) =>
+      listCustomSections(context.tx, context.scope.storeId, input?.themeId),
+    ),
 
   save: can(permissions.ONLINE_STORE_WRITE)
     .input(
       z.object({
         name: z.string().max(200),
+        /** The theme being edited; kept on the entry only when the section holds Liquid. */
+        themeId: z.string().uuid().optional(),
         block: z.object({
           type: z.string().min(1).max(60),
           props: z.object({ id: z.string().min(1).max(80) }).catchall(z.unknown()),

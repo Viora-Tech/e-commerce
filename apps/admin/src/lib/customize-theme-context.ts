@@ -40,7 +40,18 @@ export function useLiquidHead(): LiquidHead | null {
 }
 
 /**
- * The store's opt-in theme packs (`themes.packs`), so the Add panel offers a pack's sections
+ * The id of the theme Customize is editing, for what sits deep in Puck's overrides and talks to
+ * the server about this theme ("My sections": saved per theme when they hold Liquid). Empty
+ * outside the editor.
+ */
+export const EditingThemeIdContext = createContext<string>('')
+
+export function useEditingThemeId(): string {
+  return useContext(EditingThemeIdContext)
+}
+
+/**
+ * This theme's opt-in section packs (`theme.packs`), so the Add panel offers a pack's sections
  * (Zero Drift…) only where it is on. Context because the panel sits deep in Puck's overrides.
  */
 export const ThemePacksContext = createContext<readonly string[]>([])

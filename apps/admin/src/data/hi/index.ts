@@ -67,6 +67,7 @@ import profitCosts from './profit-costs'
 import purchaseDocuments from './purchase-documents'
 import purchasing from './purchasing'
 import reviews from './reviews'
+import searchApp from './search-app'
 import searchConsole from './search-console'
 import selectProducts from './select-products'
 import seoKeywords from './seo-keywords'
@@ -178,6 +179,7 @@ export const hindiCopy: readonly TranslationPair[] = [
   ...themeCode,
   ...themeImport,
   ...themes,
+  ...searchApp,
   ...searchConsole,
   ...seoReport,
   ...seoKeywords,

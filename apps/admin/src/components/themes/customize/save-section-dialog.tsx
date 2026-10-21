@@ -17,6 +17,7 @@ import { type FormEvent, useState } from 'react'
 import { toast } from 'sonner'
 import { customizeContent } from '@/data/customize'
 import { saveMySection } from '@/lib/customize-my-sections'
+import { useEditingThemeId } from '@/lib/customize-theme-context'
 import SectionIcon from './section-icon'
 
 type SaveSectionDialogProps = {
@@ -31,6 +32,7 @@ const copy = customizeContent.saveSection
 /** "Save as my section": names a copy of the block and keeps it in the store's library. */
 export default function SaveSectionDialog({ block, defaultName, onClose }: SaveSectionDialogProps) {
   // Hooks
+  const themeId = useEditingThemeId()
   const [name, setName] = useState(defaultName)
   const [busy, setBusy] = useState(false)
 
@@ -40,7 +42,7 @@ export default function SaveSectionDialog({ block, defaultName, onClose }: SaveS
     if (!name.trim() || busy) return
     setBusy(true)
     try {
-      const saved = await saveMySection(name, block)
+      const saved = await saveMySection(themeId, name, block)
       toast.success(copy.saved(saved.name))
       onClose()
     } catch (err) {

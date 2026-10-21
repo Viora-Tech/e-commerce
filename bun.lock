@@ -24,6 +24,7 @@
         "@commerce/plugin-gst-invoices": "workspace:*",
         "@commerce/plugin-meilisearch": "workspace:*",
         "@commerce/plugin-reviews": "workspace:*",
+        "@commerce/plugin-search": "workspace:*",
         "@commerce/plugin-search-console": "workspace:*",
         "@commerce/plugin-shopify-import": "workspace:*",
         "@commerce/plugin-umami": "workspace:*",
@@ -77,6 +78,7 @@
         "@commerce/plugin-growthbook": "workspace:*",
         "@commerce/plugin-meilisearch": "workspace:*",
         "@commerce/plugin-reviews": "workspace:*",
+        "@commerce/plugin-search": "workspace:*",
         "@commerce/plugin-search-console": "workspace:*",
         "@commerce/plugin-shopify-import": "workspace:*",
         "@commerce/plugin-umami": "workspace:*",
@@ -198,6 +200,7 @@
         "@commerce/plugin-gst-invoices": "workspace:*",
         "@commerce/plugin-meilisearch": "workspace:*",
         "@commerce/plugin-reviews": "workspace:*",
+        "@commerce/plugin-search": "workspace:*",
         "@commerce/plugin-search-console": "workspace:*",
         "@commerce/plugin-shopify-import": "workspace:*",
         "@commerce/plugin-umami": "workspace:*",
@@ -246,6 +249,7 @@
         "@commerce/plugin-growthbook": "workspace:*",
         "@commerce/plugin-meilisearch": "workspace:*",
         "@commerce/plugin-reviews": "workspace:*",
+        "@commerce/plugin-search": "workspace:*",
         "@commerce/plugin-search-console": "workspace:*",
         "@commerce/plugin-shopify-import": "workspace:*",
         "@commerce/plugin-umami": "workspace:*",
@@ -335,6 +339,7 @@
         "@commerce/plugin-gst-invoices": "workspace:*",
         "@commerce/plugin-meilisearch": "workspace:*",
         "@commerce/plugin-reviews": "workspace:*",
+        "@commerce/plugin-search": "workspace:*",
         "@commerce/plugin-search-console": "workspace:*",
         "@commerce/plugin-shopify-import": "workspace:*",
         "@commerce/plugin-umami": "workspace:*",
@@ -858,6 +863,19 @@
       },
       "peerDependencies": {
         "react": "^19.0.0",
+      },
+    },
+    "packages/plugin-search": {
+      "name": "@commerce/plugin-search",
+      "version": "0.0.0",
+      "dependencies": {
+        "@commerce/plugins": "workspace:*",
+      },
+      "devDependencies": {
+        "@commerce/config": "workspace:*",
+        "@types/node": "^22.20.4",
+        "typescript": "~5.9.3",
+        "vitest": "^4.1.11",
       },
     },
     "packages/plugin-search-console": {
@@ -1542,6 +1560,7 @@
     "@commerce/plugin-meilisearch": ["@commerce/plugin-meilisearch@workspace:packages/plugin-meilisearch"],
     "@commerce/plugin-reviews": ["@commerce/plugin-reviews@workspace:packages/plugin-reviews"],
 
+    "@commerce/plugin-search": ["@commerce/plugin-search@workspace:packages/plugin-search"],
     "@commerce/plugin-search-console": ["@commerce/plugin-search-console@workspace:packages/plugin-search-console"],
 
     "@commerce/plugin-shopify-import": ["@commerce/plugin-shopify-import@workspace:packages/plugin-shopify-import"],

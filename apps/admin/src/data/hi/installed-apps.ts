@@ -1,3 +1,4 @@
+import { siteConfig } from '@commerce/config/site'
 import { installedAppsContent } from '@/data/installed-apps'
 import { translation } from '@/lib/i18n'
 
@@ -107,7 +108,7 @@ export default [
       title: (name: string) => `${name} की अनुमतियाँ`,
       intro: (store: string) => `यह ऐप ${store} में क्या देख और कर सकता है।`,
       introNoStore: 'यह ऐप आपके स्टोर में क्या देख और कर सकता है।',
-      typeBuiltin: 'Koomerce ऐप',
+      typeBuiltin: `${siteConfig.brand.name} ऐप`,
       typeConnection: 'दूसरी सर्विस से कनेक्शन',
       version: (v: string) => `v${v}`,
       canAccess: 'क्या देख सकता है',
