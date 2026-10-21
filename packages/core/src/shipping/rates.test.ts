@@ -152,6 +152,23 @@ describe('zone matching', () => {
     })
   })
 
+  it('falls through a covering zone with no rates to the next one that has them', () => {
+    const states = ['HR', 'MH', 'KA']
+    const everywhere = zone({ id: 'all', rates: [rate({ id: 'std' })], position: 0 })
+    const emptyA = zone({ id: 'a', stateCodes: states, rates: [], position: 1 })
+    const emptyB = zone({ id: 'b', stateCodes: states, rates: [], position: 2 })
+    const q = quoteShipping([everywhere, emptyA, emptyB], { stateCode: 'HR', pincode: '131001' }, cart(1))
+    expect(q.kind === 'rates' && q.options.map((o) => o.rateId)).toEqual(['std'])
+  })
+
+  it('falls through when the specific zone has no rate for this cart', () => {
+    const heavyOnly = rate({ id: 'heavy', condition: 'weight', minValue: 5000 })
+    const ka = zone({ id: 'ka', stateCodes: ['KA'], rates: [heavyOnly] })
+    const rest = zone({ id: 'rest', rates: [rate({ id: 'std' })], position: 1 })
+    const q = quoteShipping([ka, rest], blr, cart(100_000, 500))
+    expect(q.kind === 'rates' && q.options[0]?.zoneId).toBe('rest')
+  })
+
   it('breaks ties by position', () => {
     const a = zone({ id: 'a', stateCodes: ['KA'], position: 1 })
     const b = zone({ id: 'b', stateCodes: ['KA'], position: 0 })
