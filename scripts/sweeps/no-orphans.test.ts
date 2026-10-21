@@ -856,6 +856,16 @@ const ALLOWLIST: AllowEntry[] = [
     reason: 'imported only by the root commerce.config.ts, like emiPlugin',
   },
   {
+    file: 'packages/core/src/catalog/search-text.ts',
+    names: ['maxEdits', 'editDistance', 'correctTerm', 'synonymsOf'],
+    reason: 'test-only: the steps of planSearch, tested one by one in search-text.test.ts',
+  },
+  {
+    file: 'packages/plugin-search/src/plugin.ts',
+    names: ['searchPlugin'],
+    reason: 'imported only by the root commerce.config.ts, like formsPlugin',
+  },
+  {
     file: 'packages/plugin-reviews/src/plugin.ts',
     names: ['reviewsPlugin'],
     reason: 'imported only by the root commerce.config.ts, like formsPlugin',
@@ -1227,11 +1237,6 @@ const ALLOWLIST: AllowEntry[] = [
     file: 'packages/ui/src/icons-more.tsx',
     names: ['SidebarToggleIcon', 'Circle', 'Highlighter'],
     reason: 'no external importer today — investigate before removing',
-  },
-  {
-    file: 'packages/core/src/catalog/browse.ts',
-    names: ['searchTerms'],
-    reason: 'the search-term split behind the catalog search, exported for its unit test',
   },
   {
     file: 'packages/core/src/sales-channels/connect.ts',

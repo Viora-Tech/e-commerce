@@ -45,6 +45,7 @@ import ReviewDetail from '@/components/apps/reviews/review-detail'
 import ReviewsPage from '@/components/apps/reviews/reviews-page'
 import ReviewsSettingsPage from '@/components/apps/reviews/settings-page'
 import S3ConnectPage from '@/components/apps/s3/connect-page'
+import SearchSynonymsPage from '@/components/apps/search/synonyms-page'
 import SearchConsoleAlmostPageOne from '@/components/apps/search-console/almost-page-one-page'
 import SearchConsoleLosingTraffic from '@/components/apps/search-console/losing-traffic-page'
 import SearchConsoleOverview from '@/components/apps/search-console/overview-page'
@@ -143,6 +144,11 @@ export const ADMIN_APPS: Record<string, AdminApp> = {
   forms: {
     pages: {
       '': SubmissionsList,
+    },
+  },
+  search: {
+    pages: {
+      '': SearchSynonymsPage,
     },
   },
   'google-search-console': {

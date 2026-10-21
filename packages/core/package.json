@@ -39,6 +39,7 @@
     "./consent": "./src/online-store/consent.ts",
     "./blog": "./src/blog/client.ts",
     "./browse": "./src/catalog/browse-params.ts",
+    "./search": "./src/catalog/search-limits.ts",
     "./accounts": "./src/accounts/schemas.ts",
     "./account-patterns": "./src/accounts/patterns.ts",
     "./phone": "./src/accounts/phone.ts",

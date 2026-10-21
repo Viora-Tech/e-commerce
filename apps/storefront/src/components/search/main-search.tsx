@@ -96,21 +96,29 @@ export default function MainSearch({
           </Link>
         </div>
       ) : (
-        <BrowseResults
-          path="/search"
-          q={query}
-          products={products}
-          total={result.total}
-          facets={result.facets}
-          filters={filters}
-          sort={sort}
-          defaultSort="relevance"
-          sorts={SEARCH_SORTS}
-          page={page}
-          perPage={SEARCH_PER_PAGE}
-          showFilters={settings.showFilters !== false}
-          showSort={settings.showSort !== false}
-        />
+        <>
+          {result.corrected ? (
+            <p className="text-body text-muted">
+              {copy.searchInstead(query)}{' '}
+              <span className="font-medium text-ink">{copy.correctedTo(result.corrected)}</span>
+            </p>
+          ) : null}
+          <BrowseResults
+            path="/search"
+            q={query}
+            products={products}
+            total={result.total}
+            facets={result.facets}
+            filters={filters}
+            sort={sort}
+            defaultSort="relevance"
+            sorts={SEARCH_SORTS}
+            page={page}
+            perPage={SEARCH_PER_PAGE}
+            showFilters={settings.showFilters !== false}
+            showSort={settings.showSort !== false}
+          />
+        </>
       )}
     </section>
   )
