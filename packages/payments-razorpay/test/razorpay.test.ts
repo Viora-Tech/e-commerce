@@ -235,6 +235,44 @@ describe('payment attempts', () => {
   })
 })
 
+describe('failed payments', () => {
+  const failed = (entity: Record<string, unknown>) => {
+    const body = JSON.stringify({
+      event: 'payment.failed',
+      payload: {
+        payment: {
+          entity: { id: 'pay_f1', order_id: 'order_f1', amount: 100, status: 'failed', ...entity },
+        },
+      },
+    })
+    const r = new RazorpayProvider(config).parseWebhook({
+      rawBody: body,
+      headers: { 'x-razorpay-signature': sign(body), 'x-razorpay-event-id': 'evt_f1' },
+    })
+    return r.ok && r.event.type === 'payment.failed' ? r.event.reason : null
+  }
+
+  it("carries Razorpay's description and reason through, as on the Waimers website block", () => {
+    expect(
+      failed({
+        error_code: 'BAD_REQUEST_ERROR',
+        error_description: 'Payment blocked as website does not match registered website(s)',
+        error_source: 'internal',
+        error_step: 'payment_initiation',
+        error_reason: 'payment_risk_check_failed',
+      }),
+    ).toBe(
+      'Payment blocked as website does not match registered website(s) (payment_risk_check_failed)',
+    )
+  })
+
+  it('falls back to the code, then a plain line, when the description is missing', () => {
+    expect(failed({ error_code: 'GATEWAY_ERROR' })).toBe('GATEWAY_ERROR')
+    expect(failed({})).toBe('Payment failed')
+    expect(failed({ error_description: 'Card declined' })).toBe('Card declined')
+  })
+})
+
 describe('merchant method row', () => {
   const base = { orderId: 'o1', amountPaise: 100, currency: 'INR' as const, customer: {} }
 

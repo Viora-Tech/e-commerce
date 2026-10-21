@@ -44,6 +44,7 @@ import {
   prepareProviderSettings,
   presentProviderSettings,
 } from './provider-settings'
+import { latestRazorpayWebsiteBlock, razorpayWebsites } from './razorpay-websites.service'
 import { updateStorePayments } from './store.service'
 
 /** What the setup service needs from the host, so tests pass their own. */
@@ -240,6 +241,10 @@ export async function paymentsSetup(
     ) as Record<string, string>,
     /** The events to tick on a webhook added by hand in Razorpay's dashboard. */
     razorpayWebhookEvents: [...RAZORPAY_WEBHOOK_EVENTS],
+    /** Addresses to list under "Website and app details" in Razorpay; others are blocked. */
+    razorpayWebsites: await razorpayWebsites(tx, storeId),
+    /** A Razorpay payment refused in the last 7 days because its website isn't listed there. */
+    razorpayWebsiteBlock: await latestRazorpayWebsiteBlock(tx, storeId, now),
   }
 }
 

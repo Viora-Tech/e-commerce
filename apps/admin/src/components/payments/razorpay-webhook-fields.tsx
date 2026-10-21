@@ -4,14 +4,18 @@ import { Field, FieldDescription, FieldGroup, FieldLabel } from '@commerce/ui/sh
 import { Input } from '@commerce/ui/shadcn/input'
 import CopyButton from '@/components/fields/copy-button'
 import { gatewayGuides, paymentsSetupContent } from '@/data/payments-setup'
+import { razorpayWebsitesContent } from '@/data/razorpay-websites'
 import { useCopy } from '@/hooks/use-copy'
 import CopyField from './copy-field'
+import RazorpayWebsiteList from './razorpay-website-list'
 
 type RazorpayWebhookFieldsProps = {
   url: string
   secret: string
   /** The events to tick in Razorpay's webhook form. */
   events: string[]
+  /** The store's web addresses, to list under "Website and app details" in Razorpay. */
+  websites: string[]
   onNewSecret: () => void
 }
 
@@ -23,11 +27,13 @@ export default function RazorpayWebhookFields({
   url,
   secret,
   events,
+  websites,
   onNewSecret,
 }: RazorpayWebhookFieldsProps) {
   // Hooks
   const { razorpay: guide } = useCopy(gatewayGuides)
   const { connect: copy } = useCopy(paymentsSetupContent)
+  const { list: sitesCopy } = useCopy(razorpayWebsitesContent)
 
   // Render logic
   const saved = isMasked(secret)
@@ -90,6 +96,11 @@ export default function RazorpayWebhookFields({
           ))}
         </ul>
         <FieldDescription>{guide.fields.webhookEvents?.help}</FieldDescription>
+      </Field>
+      <Field id="razorpay-websites">
+        <FieldLabel id="razorpay-websites-label">{sitesCopy.label}</FieldLabel>
+        <RazorpayWebsiteList websites={websites} labelledBy="razorpay-websites-label" />
+        <FieldDescription>{sitesCopy.help}</FieldDescription>
       </Field>
     </FieldGroup>
   )
