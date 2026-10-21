@@ -12,6 +12,9 @@ export const searchContent = {
   promptBody: 'Search by product name, type, brand or SKU.',
   emptyTitle: (query: string) => `No results for "${query}"`,
   emptyBody: 'Check the spelling or try a more general word.',
+  /** When the words as typed found nothing and their typo-corrected spelling did. */
+  correctedTo: (corrected: string) => `Showing results for "${corrected}"`,
+  searchInstead: (query: string) => `No results for "${query}".`,
   browseCollections: 'Browse collections',
   soldOut: 'Sold out',
   predictive: {

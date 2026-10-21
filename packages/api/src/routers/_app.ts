@@ -46,6 +46,7 @@ import { redirectsRouter } from './redirects'
 import { returnsRouter } from './returns'
 import { reviewsRouter } from './reviews'
 import { salesChannelsRouter } from './sales-channels'
+import { searchRouter } from './search'
 import { searchConsoleRouter } from './search-console'
 import { seoRouter } from './seo'
 import { shipmentsRouter } from './shipments'
@@ -113,6 +114,7 @@ export const appRouter = {
   umami: umamiRouter,
   chatwoot: chatwootRouter,
   growthbook: growthbookRouter,
+  search: searchRouter,
   searchConsole: searchConsoleRouter,
   meilisearch: meilisearchRouter,
   dashboard: dashboardRouter,

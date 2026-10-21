@@ -1,0 +1,7 @@
+{
+  "extends": "@commerce/config/tsconfig.base.json",
+  "compilerOptions": {
+    "types": ["node"]
+  },
+  "include": ["src"]
+}

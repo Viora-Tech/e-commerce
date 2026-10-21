@@ -1,3 +1,4 @@
+import { siteConfig } from '@commerce/config/site'
 /** Copy for Apps → Installed apps (Figma "Installed apps · List" and its permissions sheet). */
 export const installedAppsContent = {
   title: 'Installed apps',
@@ -110,7 +111,7 @@ export const installedAppsContent = {
     title: (name: string) => `${name} permissions`,
     intro: (store: string) => `What this app can see and do in ${store}.`,
     introNoStore: 'What this app can see and do in your store.',
-    typeBuiltin: 'Koomerce app',
+    typeBuiltin: `${siteConfig.brand.name} app`,
     typeConnection: 'Connection to another service',
     version: (v: string) => `v${v}`,
     canAccess: 'What it can access',

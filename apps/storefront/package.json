@@ -27,6 +27,7 @@
     "@commerce/plugin-growthbook": "workspace:*",
     "@commerce/plugin-reviews": "workspace:*",
     "@commerce/plugin-meilisearch": "workspace:*",
+    "@commerce/plugin-search": "workspace:*",
     "@commerce/plugin-search-console": "workspace:*",
     "@commerce/plugin-umami": "workspace:*",
     "@commerce/plugin-gst-invoices": "workspace:*",
