@@ -215,6 +215,7 @@ export default function GatewayConnectForm({
       <RazorpayWebhookFields
         url={webhookUrl}
         secret={values.webhookSecret ?? ''}
+        events={setup.razorpayWebhookEvents}
         onNewSecret={handleNewSecret}
       />
     ) : null

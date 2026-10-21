@@ -302,7 +302,7 @@ export const gatewayGuides: Record<'razorpay' | 'cashfree', GatewayGuide> = {
       },
       {
         title: 'Turn on payment updates',
-        body: 'In Account & Settings → Webhooks, press Add New Webhook. Paste the address and secret below, tick payment.captured, payment.failed, refund.processed and refund.failed, and save.',
+        body: 'In Account & Settings → Webhooks, press Add New Webhook. Paste the address and secret below, tick every event listed under them, and save.',
       },
     ],
     fields: {
@@ -316,6 +316,10 @@ export const gatewayGuides: Record<'razorpay' | 'cashfree', GatewayGuide> = {
       webhookSecret: {
         label: 'Webhook secret',
         help: 'We made one for you. Paste the same secret into Razorpay.',
+      },
+      webhookEvents: {
+        label: 'Events to tick',
+        help: 'Tick all of these under Active Events in Razorpay. Missing one means some payments or refunds never update here.',
       },
     },
   },

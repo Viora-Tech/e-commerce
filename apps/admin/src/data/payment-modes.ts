@@ -46,6 +46,9 @@ export const paymentModesContent = {
     turnedOff: 'Turned off. It is gone from checkout.',
     turnedOn: 'Turned on. It is back at checkout.',
     failed: 'Could not save. Try again.',
+    deactivate: (name: string) => `Deactivate ${name}`,
+    activate: (name: string) => `Activate ${name}`,
+    inactiveHelp: 'Off: shoppers do not see it at checkout. Its keys and settings are saved.',
   },
   keySet: {
     editing: (mode: PaymentModeId) =>

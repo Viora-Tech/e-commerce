@@ -1,7 +1,6 @@
 'use client'
 
 import { Button } from '@commerce/ui/shadcn/button'
-import { Switch } from '@commerce/ui/shadcn/switch'
 import { ToggleGroup, ToggleGroupItem } from '@commerce/ui/shadcn/toggle-group'
 import Link from 'next/link'
 import { useState } from 'react'
@@ -11,67 +10,34 @@ import { type PaymentModeId, paymentModesContent } from '@/data/payment-modes'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 import { routes } from '@/lib/routes'
-import type { GatewayApp } from './types'
+import { type GatewayApp, isModeGateway } from './types'
 
 type GatewaySwitchesProps = {
   gateway: GatewayApp
-  /** The only online gateway on at checkout: turning it off leaves COD / bank transfer only. */
-  onlyOnline: boolean
   onChanged: () => Promise<void> | void
 }
 
-type Pending = { kind: 'mode'; to: PaymentModeId } | { kind: 'off' } | null
-
-const MODE_GATEWAYS = ['razorpay', 'cashfree', 'decentro'] as const
-type ModeGatewayId = (typeof MODE_GATEWAYS)[number]
-
-const isModeGateway = (id: string): id is ModeGatewayId =>
-  (MODE_GATEWAYS as readonly string[]).includes(id)
+type Pending = { to: PaymentModeId } | null
 
 /**
- * A gateway card's two switches: Live ⇄ Test (which saved key set checkout
- * uses; flipping never deletes keys) and Active/Inactive (off leaves checkout
- * at once, keys kept). Both ask first.
+ * A gateway card's Live ⇄ Test switch: which saved key set checkout uses. Flipping never
+ * deletes keys and asks first. Turning the gateway off is the card's footer
+ * (`GatewayActiveFooter`).
  */
-export default function GatewaySwitches({ gateway, onlyOnline, onChanged }: GatewaySwitchesProps) {
+export default function GatewaySwitches({ gateway, onChanged }: GatewaySwitchesProps) {
   // Hooks
   const copy = useCopy(paymentModesContent)
   const [pending, setPending] = useState<Pending>(null)
   const [busy, setBusy] = useState(false)
 
-  // Helpers
-  const setActive = async (active: boolean) => {
-    if (!isModeGateway(gateway.id)) return
-    setBusy(true)
-    try {
-      const r = await api.payments.setActive({ providerId: gateway.id, active })
-      if (!r.ok) {
-        toast.error(r.message ?? copy.active.failed)
-        return
-      }
-      toast.success(active ? copy.active.turnedOn : copy.active.turnedOff)
-      await onChanged()
-    } catch {
-      toast.error(copy.active.failed)
-    } finally {
-      setBusy(false)
-      setPending(null)
-    }
-  }
-
   // Event handlers
   const handleMode = (next: string[]) => {
     const to = next[0]
-    if ((to === 'test' || to === 'live') && to !== gateway.mode) setPending({ kind: 'mode', to })
-  }
-
-  const handleActive = (on: boolean) => {
-    if (on) void setActive(true)
-    else setPending({ kind: 'off' })
+    if ((to === 'test' || to === 'live') && to !== gateway.mode) setPending({ to })
   }
 
   const handleConfirmMode = async () => {
-    if (pending?.kind !== 'mode' || !isModeGateway(gateway.id)) return
+    if (!pending || !isModeGateway(gateway.id)) return
     setBusy(true)
     try {
       const r = await api.payments.switchMode({ providerId: gateway.id, mode: pending.to })
@@ -89,8 +55,6 @@ export default function GatewaySwitches({ gateway, onlyOnline, onChanged }: Gate
     }
   }
 
-  const handleConfirmOff = () => setActive(false)
-
   const handleDialog = (open: boolean) => {
     if (!open) setPending(null)
   }
@@ -99,9 +63,8 @@ export default function GatewaySwitches({ gateway, onlyOnline, onChanged }: Gate
   if (!isModeGateway(gateway.id) || !gateway.configured) return null
 
   // Render logic
-  const active = gateway.connected
   const missing = gateway.mode === 'live' ? 'test' : 'live'
-  const goingLive = pending?.kind === 'mode' && pending.to === 'live'
+  const goingLive = pending?.to === 'live'
   const modeCopy = goingLive ? copy.mode.toLive : copy.mode.toTest
 
   return (
@@ -138,18 +101,9 @@ export default function GatewaySwitches({ gateway, onlyOnline, onChanged }: Gate
           </Button>
         )}
       </div>
-      <div className="flex items-center gap-2 text-caption text-muted-foreground">
-        <Switch
-          checked={active}
-          onCheckedChange={handleActive}
-          disabled={busy}
-          aria-label={active ? copy.active.on : copy.active.off}
-        />
-        <span aria-hidden>{active ? copy.active.on : copy.active.off}</span>
-      </div>
 
       <ConfirmDialog
-        open={pending?.kind === 'mode'}
+        open={pending !== null}
         onOpenChange={handleDialog}
         title={modeCopy.title}
         body={modeCopy.body}
@@ -157,15 +111,6 @@ export default function GatewaySwitches({ gateway, onlyOnline, onChanged }: Gate
         tone="default"
         busy={busy}
         onConfirm={handleConfirmMode}
-      />
-      <ConfirmDialog
-        open={pending?.kind === 'off'}
-        onOpenChange={handleDialog}
-        title={copy.active.offTitle}
-        body={onlyOnline ? `${copy.active.offBody} ${copy.active.onlyOnline}` : copy.active.offBody}
-        confirmLabel={copy.active.confirmOff}
-        busy={busy}
-        onConfirm={handleConfirmOff}
       />
     </div>
   )
