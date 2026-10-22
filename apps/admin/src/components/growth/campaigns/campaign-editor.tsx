@@ -162,7 +162,7 @@ export default function CampaignEditor({
   const title = campaign ? form.name : form.kind === 'email' ? copy.newEmail : copy.newWhatsapp
 
   return (
-    <div className="flex w-full flex-col gap-6 px-4 py-6 md:px-8 md:py-8">
+    <div className="flex w-full flex-col gap-6 px-4 pt-4 pb-6 md:px-8 md:pt-5 md:pb-8">
       <SaveBar
         open={dirty}
         message={copy.saveBar.message}
@@ -188,6 +188,7 @@ export default function CampaignEditor({
             ) : null}
             {form.kind === 'email' ? (
               <Button variant="outline" onClick={() => setDialog('test')} disabled={channelMissing}>
+                <Send aria-hidden="true" />
                 {copy.test.action}
               </Button>
             ) : null}

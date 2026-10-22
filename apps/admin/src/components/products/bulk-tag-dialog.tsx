@@ -1,5 +1,6 @@
 'use client'
 
+import { CheckIcon } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import {
   Dialog,
@@ -62,6 +63,7 @@ export default function BulkTagDialog({ open, onOpenChange, onApply, count }: Bu
             {copy.cancel}
           </Button>
           <Button onClick={handleApply} disabled={tag.trim() === ''}>
+            <CheckIcon aria-hidden="true" />
             {copy.apply}
           </Button>
         </DialogFooter>

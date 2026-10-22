@@ -1,6 +1,6 @@
 'use client'
 
-import { Send, Trash2, WhatsappLogo } from '@commerce/ui/icons'
+import { editorGlyphs, Send, ShoppingBag, Trash2, WhatsappLogo } from '@commerce/ui/icons'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import ActionMenu from '@/components/layout/action-menu'
@@ -9,18 +9,21 @@ import { customersContent } from '@/data/customers'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 import { whatsappUrl } from '@/lib/customer-contact'
+import { routes } from '@/lib/routes'
 
 type CustomerRowActionsProps = {
   id: string
   name: string
   email: string | null
   phone: string | null
+  /** Opens the list's tag dialog for this one customer. */
+  onAddTag: () => void
   onDeleted: () => void
 }
 
 /**
- * The ⋯ menu at the end of a customer row (next to the table's open arrow): email, WhatsApp
- * and delete. The row opens the customer on click, so every event here stops at the cell; the
+ * The ⋯ menu at the end of a customer row (next to the table's open arrow): their orders,
+ * email, WhatsApp, a tag and delete. The row opens the customer on click, so every event here stops at the cell; the
  * menu and the confirm dialog are portalled out of the row.
  */
 export default function CustomerRowActions({
@@ -28,6 +31,7 @@ export default function CustomerRowActions({
   name,
   email,
   phone,
+  onAddTag,
   onDeleted,
 }: CustomerRowActionsProps) {
   // Hooks
@@ -63,6 +67,12 @@ export default function CustomerRowActions({
       <ActionMenu
         label={copy.menu(name)}
         items={[
+          {
+            label: copy.viewOrders,
+            icon: ShoppingBag,
+            href: `${routes.orders.list()}?query=${encodeURIComponent(email ?? '')}`,
+            hidden: !email,
+          },
           { label: copy.email, icon: Send, href: `mailto:${email}`, hidden: !email },
           {
             label: copy.whatsapp,
@@ -71,6 +81,7 @@ export default function CustomerRowActions({
             newTab: true,
             hidden: !chat,
           },
+          { label: copy.addTag, icon: editorGlyphs.badge, onSelect: onAddTag },
           {
             label: copy.delete(name),
             icon: Trash2,

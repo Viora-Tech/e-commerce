@@ -11,7 +11,7 @@
  */
 
 import { siteConfig } from '@commerce/config/site'
-import { CircleAlert, CircleCheck, ExternalLink } from '@commerce/ui/icons'
+import { CircleAlert, CircleCheck, ExternalLink, RefreshCw } from '@commerce/ui/icons'
 import { Alert, AlertDescription, AlertTitle } from '@commerce/ui/shadcn/alert'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Card, CardContent } from '@commerce/ui/shadcn/card'
@@ -316,7 +316,11 @@ export default function ProviderConnectPage<R extends TestOutcome>({
                     onClick={handleTest}
                     disabled={testState.status === 'testing' || !canTest(values)}
                   >
-                    {testState.status === 'testing' ? <Spinner /> : null}
+                    {testState.status === 'testing' ? (
+                      <Spinner />
+                    ) : (
+                      <RefreshCw aria-hidden="true" />
+                    )}
                     {testState.status === 'testing' ? copy.testing : copy.testConnection}
                   </Button>
                   {testState.status === 'ok' ? (

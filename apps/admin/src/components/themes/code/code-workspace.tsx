@@ -1,7 +1,7 @@
 'use client'
 
 import { type CodeProblem, codeLanguage } from '@commerce/core/theme-code'
-import { ChevronRight, ImageIcon, Lock } from '@commerce/ui/icons'
+import { ChevronRight, ImageIcon, Lock, RotateCcw } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Skeleton } from '@commerce/ui/shadcn/skeleton'
 import Link from 'next/link'
@@ -130,6 +130,7 @@ export default function CodeWorkspace({
         <div className="flex flex-1 flex-col items-center justify-center gap-3 bg-background">
           <p className="text-body text-muted-foreground">{copy.loadFailed}</p>
           <Button variant="outline" onClick={onRetry}>
+            <RotateCcw aria-hidden="true" />
             {copy.retry}
           </Button>
         </div>

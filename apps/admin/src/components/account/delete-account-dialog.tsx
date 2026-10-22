@@ -1,5 +1,6 @@
 'use client'
 
+import { Send, Trash2 } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import {
   Dialog,
@@ -145,10 +146,12 @@ export default function DeleteAccountDialog({
             </Button>
             {codeSent ? (
               <Button type="submit" variant="destructive" loading={busy} disabled={otp.length < 6}>
+                <Trash2 aria-hidden="true" />
                 {copy.confirm}
               </Button>
             ) : (
               <Button type="submit" variant="destructive" loading={busy} disabled={!typed.trim()}>
+                <Send aria-hidden="true" />
                 {copy.sendCode}
               </Button>
             )}

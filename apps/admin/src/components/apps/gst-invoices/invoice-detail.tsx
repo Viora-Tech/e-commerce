@@ -1,6 +1,6 @@
 'use client'
 
-import { Download } from '@commerce/ui/icons'
+import { Download, Save } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Input } from '@commerce/ui/shadcn/input'
 import { useEffect, useState } from 'react'
@@ -196,6 +196,7 @@ export default function InvoiceDetail({ params }: AppPageProps) {
             />
           </div>
           <Button className="mt-3" variant="outline" disabled={busy} onClick={handleShipping}>
+            <Save aria-hidden="true" />
             {copy.saveShipping}
           </Button>
         </SettingsCard>

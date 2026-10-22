@@ -203,12 +203,12 @@ describe('dashboard.summary', () => {
       expect.objectContaining({ title: 'Mouse', pricePaise: 100000, imageUrl: null }),
     ])
 
-    // Needs you: o1 (today) and o4 (9 days ago) are paid but unfulfilled; o2 is unpaid so it
-    // does not count; o3 is cancelled. Today's briefing only counts o1.
+    // Needs you: the same rule as the Unfulfilled list it opens, so o1 (today), o2 (unpaid) and
+    // o4 (9 days ago) count; o3 is cancelled. Today's briefing counts only o1, placed today.
     expect(s.today.ordersCount).toBe(1)
     expect(s.today.salesPaise).toBe(100000)
     expect(s.today.toShipCount).toBe(1)
-    expect(s.needsYou.ordersToShip.count).toBe(2)
+    expect(s.needsYou.ordersToShip.count).toBe(3)
     expect(s.needsYou.ordersToShip.href).toBe('/orders?status=unfulfilled')
     expect(s.needsYou.upiToVerify.count).toBe(0)
     expect(s.needsYou.gstQueued).toBeNull()
@@ -347,7 +347,7 @@ describe('dashboard.summary', () => {
       upiToVerify: { count: 0, href: '/orders?status=pending_upi' },
       gstQueued: null,
       lowStock: { count: 0, href: '/stock/inventory' },
-      preorderBalanceDue: { count: 0, href: '/orders' },
+      preorderBalanceDue: { count: 0, href: '/orders?status=balance_due' },
       failedDeliveries: null,
     })
     expect(s.insight).toEqual({ salesChange: null, bestSeller: null })

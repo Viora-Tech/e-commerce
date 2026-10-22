@@ -9,7 +9,7 @@
  * WHERE: components/apps/{delhivery,shiprocket,rapidshyp,decentro}/overview-page.tsx.
  */
 
-import { CircleCheck, InfoIcon } from '@commerce/ui/icons'
+import { CircleCheck, InfoIcon, PlugConnect } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import Link from 'next/link'
 import { type ReactNode, useEffect, useState } from 'react'
@@ -123,6 +123,7 @@ export default function ProviderOverviewPage({
               render={<Link href={routes.apps.connect(providerId)} />}
               nativeButton={false}
             >
+              <PlugConnect aria-hidden="true" />
               {copy.connectCta}
             </Button>
           </div>

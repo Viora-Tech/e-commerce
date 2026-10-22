@@ -8,11 +8,13 @@ import { parseAsInteger, parseAsString, parseAsStringLiteral, useQueryStates } f
 import { Suspense, useEffect, useRef, useState } from 'react'
 import { inboundShipmentColumns } from '@/components/inbound-shipments/shipment-columns'
 import ProoflyListPage from '@/components/layout/proofly-list-page'
+import DeleteRowMenu from '@/components/table/delete-row-menu'
 import ResourceTable from '@/components/table/resource-table'
 import ViewSelect from '@/components/table/view-select'
 import {
   INBOUND_SHIPMENT_STATUSES,
   type InboundShipmentStatus,
+  inboundShipmentFormContent,
   inboundShipmentsContent,
 } from '@/data/purchasing'
 import { useCopy } from '@/hooks/use-copy'
@@ -36,6 +38,7 @@ const CREATE_HREF = routes.stock.newInboundShipment()
 function InboundShipmentsContent({ initial }: { initial: InboundShipmentsInitial }) {
   // Hooks
   const copy = useCopy(inboundShipmentsContent)
+  const form = useCopy(inboundShipmentFormContent)
   usePrimaryAction(CREATE_HREF)
   const [state, setState] = useQueryStates(
     {
@@ -73,6 +76,18 @@ function InboundShipmentsContent({ initial }: { initial: InboundShipmentsInitial
     }
   }, [state, initial.query])
 
+  // Helpers
+  const refresh = async () => {
+    setResult(
+      await api.inboundShipments.list({
+        page: state.page,
+        perPage: state.perPage,
+        search: state.query || undefined,
+        status: state.status ?? undefined,
+      }),
+    )
+  }
+
   // Render logic
   const createButton = (
     <Button render={<Link href={CREATE_HREF} />} nativeButton={false}>
@@ -89,6 +104,16 @@ function InboundShipmentsContent({ initial }: { initial: InboundShipmentsInitial
         items={result.rows}
         getId={(r) => r.id}
         href={(r) => routes.stock.inboundShipment(r.id)}
+        rowActions={(r) => (
+          <DeleteRowMenu
+            label={form.delete}
+            confirm={form.confirmDelete}
+            deleted={form.deleted}
+            failed={form.deleteFailed}
+            onDelete={() => api.inboundShipments.delete({ id: r.id })}
+            onChanged={() => void refresh()}
+          />
+        )}
         loading={loading}
         selectable={false}
         query={state.query}

@@ -1,5 +1,6 @@
 'use client'
 
+import { PackageCheck } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import {
   Dialog,
@@ -126,6 +127,7 @@ export default function FulfilDialog({ order, onClose, onDone }: FulfilDialogPro
               {copy.fulfilDialog.cancel}
             </Button>
             <Button type="button" onClick={handleConfirm} disabled={busy || total === 0}>
+              <PackageCheck aria-hidden="true" />
               {copy.fulfilDialog.confirm}
             </Button>
           </DialogFooter>

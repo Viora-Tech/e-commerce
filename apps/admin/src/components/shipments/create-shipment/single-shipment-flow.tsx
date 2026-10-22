@@ -1,5 +1,6 @@
 'use client'
 
+import { Truck } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { DialogFooter, DialogHeader, DialogTitle } from '@commerce/ui/shadcn/dialog'
 import { Spinner } from '@commerce/ui/shadcn/spinner'
@@ -247,7 +248,7 @@ export default function SingleShipmentFlow({
             )}
             {step === 'review' ? (
               <Button onClick={handleBook} disabled={busy}>
-                {busy ? <Spinner /> : null}
+                {busy ? <Spinner /> : <Truck aria-hidden="true" />}
                 {busy
                   ? copy.review.booking
                   : pick === MANUAL

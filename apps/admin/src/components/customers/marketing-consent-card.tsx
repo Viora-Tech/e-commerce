@@ -2,7 +2,7 @@
 
 import type { CustomerConsent } from '@commerce/core'
 import { CONSENT_CHANNELS, type ConsentChannel } from '@commerce/core/privacy'
-import { Download } from '@commerce/ui/icons'
+import { Download, Plus } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Label } from '@commerce/ui/shadcn/label'
 import { Switch } from '@commerce/ui/shadcn/switch'
@@ -118,6 +118,7 @@ export default function MarketingConsentCard({
             {copy.exportJson}
           </Button>
           <Button variant="outline" size="sm" onClick={() => setLogging(true)}>
+            <Plus aria-hidden="true" />
             {copy.logRequest}
           </Button>
         </div>

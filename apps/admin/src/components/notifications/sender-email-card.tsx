@@ -1,5 +1,6 @@
 'use client'
 
+import { RefreshCw, Trash2 } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Card, CardContent } from '@commerce/ui/shadcn/card'
 import { Skeleton } from '@commerce/ui/shadcn/skeleton'
@@ -174,7 +175,7 @@ export default function SenderEmailCard() {
             <div className="flex flex-col gap-2 sm:flex-row">
               {sender.status !== 'verified' ? (
                 <Button onClick={handleCheck} disabled={busy !== null} className="w-full sm:w-auto">
-                  {busy === 'check' ? <Spinner /> : null}
+                  {busy === 'check' ? <Spinner /> : <RefreshCw aria-hidden="true" />}
                   {busy === 'check' ? copy.checking : copy.checkNow}
                 </Button>
               ) : null}
@@ -198,6 +199,7 @@ export default function SenderEmailCard() {
               disabled={busy !== null}
               onClick={() => setConfirmRemove(true)}
             >
+              <Trash2 aria-hidden="true" />
               {copy.remove}
             </Button>
           ) : null}

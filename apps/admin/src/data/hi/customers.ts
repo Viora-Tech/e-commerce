@@ -67,6 +67,8 @@ export default [
       deleted: 'ग्राहक हटा दिया गया',
       cancel: 'रद्द करें',
       confirm: 'हटाएँ',
+      viewOrders: 'ऑर्डर देखें',
+      addTag: 'टैग जोड़ें',
     },
     filters: {
       heading: 'ग्राहक फ़िल्टर करें',
@@ -111,6 +113,11 @@ export default [
       consentFailed: 'मार्केटिंग सहमति अपडेट नहीं हो पाई',
       bulkEdit: 'एक साथ बदलें',
       openFailed: 'बल्क एडिटर नहीं खुल पाया',
+      delete: 'हटाएँ',
+      deleteTitle: (n: number) => `${n} ग्राहक हटाएँ?`,
+      deleteBody:
+        'उनके रिकॉर्ड और नोट हट जाएँगे। इसे वापस नहीं किया जा सकता। जिन ग्राहकों के ऑर्डर हैं वे बने रहेंगे, ताकि ऑर्डर का रिकॉर्ड रहे।',
+      deleteConfirm: 'हटाएँ',
     },
     saveSegment: 'सेगमेंट के रूप में सेव करें',
     exportAll: 'एक्सपोर्ट',

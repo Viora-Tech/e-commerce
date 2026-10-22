@@ -1,6 +1,6 @@
 'use client'
 
-import { ExternalLink } from '@commerce/ui/icons'
+import { ExternalLink, Save, Trash2 } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
@@ -142,11 +142,13 @@ export default function ArticleForm({
                   </Button>
                 ) : null}
                 <Button variant="outline" onClick={() => setConfirmDelete(true)} disabled={busy}>
+                  <Trash2 aria-hidden="true" />
                   {copy.delete.action}
                 </Button>
               </>
             ) : (
               <Button onClick={handleSave} disabled={busy}>
+                <Save aria-hidden="true" />
                 {busy ? copy.saving : copy.save}
               </Button>
             )

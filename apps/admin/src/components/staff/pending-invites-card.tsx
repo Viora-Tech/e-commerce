@@ -147,6 +147,7 @@ export default function PendingInvitesCard({
                           disabled={busy}
                           onClick={() => handleResend(invite)}
                         >
+                          <Send aria-hidden="true" />
                           {copy.actions.resendShort}
                         </Button>
                       ) : null}

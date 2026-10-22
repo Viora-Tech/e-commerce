@@ -7,7 +7,7 @@ import {
   type WritingQuality,
 } from '@commerce/ai/client'
 import { AI_CREDIT_PACK } from '@commerce/core/billing'
-import { CircleAlert, ShieldCheck } from '@commerce/ui/icons'
+import { CircleAlert, CreditCard, ShieldCheck } from '@commerce/ui/icons'
 import { Alert, AlertDescription, AlertTitle } from '@commerce/ui/shadcn/alert'
 import { Badge } from '@commerce/ui/shadcn/badge'
 import { Button } from '@commerce/ui/shadcn/button'
@@ -190,6 +190,7 @@ export default function AiSettings() {
               loading={buying}
               onClick={handleBuyCredits}
             >
+              <CreditCard aria-hidden="true" />
               {copy.settings.usage.buy(fmt.money(AI_CREDIT_PACK.pricePaise))}
             </Button>
           </DataCard>

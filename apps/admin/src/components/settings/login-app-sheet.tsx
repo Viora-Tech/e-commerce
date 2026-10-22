@@ -1,6 +1,7 @@
 'use client'
 
 import type { LoginProvider } from '@commerce/core/customer-accounts'
+import { Copy, Save, Trash2 } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Field, FieldDescription, FieldGroup, FieldLabel } from '@commerce/ui/shadcn/field'
 import { Input } from '@commerce/ui/shadcn/input'
@@ -108,6 +109,7 @@ export default function LoginAppSheet({
             <div className="flex gap-2">
               <Input id="login-redirect" readOnly value={redirectUrl} className="font-mono" />
               <Button variant="outline" onClick={handleCopy}>
+                <Copy aria-hidden="true" />
                 {copied ? content.sheet.copied : content.sheet.copy}
               </Button>
             </div>
@@ -151,12 +153,14 @@ export default function LoginAppSheet({
         <SheetFooter className="flex-row justify-between gap-2">
           {saved ? (
             <Button variant="ghost" onClick={handleRemove} disabled={busy}>
+              <Trash2 aria-hidden="true" />
               {content.sheet.remove}
             </Button>
           ) : (
             <span />
           )}
           <Button onClick={handleSave} disabled={busy}>
+            <Save aria-hidden="true" />
             {busy ? content.sheet.saving : content.sheet.save}
           </Button>
         </SheetFooter>

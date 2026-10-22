@@ -1,7 +1,7 @@
 'use client'
 
 import type { Tracking } from '@commerce/core'
-import { ExternalLink, PackageCheck, Printer, RefreshCw } from '@commerce/ui/icons'
+import { ExternalLink, PackageCheck, Printer, RefreshCw, Truck } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import CopyButton from '@/components/fields/copy-button'
 import DataCard from '@/components/layout/data-card'
@@ -46,6 +46,7 @@ export default function ShipmentPanel({
           <p className="text-body text-muted-foreground">{copy.none}</p>
           {bookable ? (
             <Button onClick={onBook} disabled={busy}>
+              <Truck aria-hidden="true" />
               {busy ? copy.booking : copy.book}
             </Button>
           ) : null}

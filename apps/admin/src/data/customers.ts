@@ -87,6 +87,8 @@ export const customersContent = {
     deleted: 'Customer deleted',
     cancel: 'Cancel',
     confirm: 'Delete',
+    viewOrders: 'View orders',
+    addTag: 'Add tag',
   },
   filters: {
     heading: 'Filter customers',
@@ -133,6 +135,11 @@ export const customersContent = {
     consentFailed: 'Could not update marketing consent',
     bulkEdit: 'Bulk edit',
     openFailed: 'Could not open the bulk editor',
+    delete: 'Delete',
+    deleteTitle: (n: number) => (n === 1 ? 'Delete 1 customer?' : `Delete ${n} customers?`),
+    deleteBody:
+      'Their records and notes go away. This cannot be undone. Customers with orders stay, so the order history keeps them.',
+    deleteConfirm: 'Delete',
   },
   saveSegment: 'Save as segment',
   exportAll: 'Export',

@@ -8,8 +8,9 @@ import { parseAsInteger, parseAsString, useQueryStates } from 'nuqs'
 import { Suspense, useEffect, useState } from 'react'
 import ProoflyListPage from '@/components/layout/proofly-list-page'
 import { supplierColumns } from '@/components/suppliers/supplier-columns'
+import DeleteRowMenu from '@/components/table/delete-row-menu'
 import ResourceTable from '@/components/table/resource-table'
-import { suppliersContent } from '@/data/purchasing'
+import { supplierFormContent, suppliersContent } from '@/data/purchasing'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 import type { ListQuery } from '@/lib/list-query'
@@ -27,6 +28,7 @@ const ADD_HREF = routes.stock.newSupplier()
 function SuppliersContent({ initial }: { initial: SuppliersInitial }) {
   // Hooks
   const copy = useCopy(suppliersContent)
+  const form = useCopy(supplierFormContent)
   usePrimaryAction(ADD_HREF)
   const [state, setState] = useQueryStates(
     {
@@ -56,6 +58,17 @@ function SuppliersContent({ initial }: { initial: SuppliersInitial }) {
     }
   }, [state, initial.query])
 
+  // Helpers
+  const refresh = async () => {
+    setResult(
+      await api.suppliers.list({
+        page: state.page,
+        perPage: state.perPage,
+        search: state.query || undefined,
+      }),
+    )
+  }
+
   // Render logic
   const addButton = (
     <Button render={<Link href={ADD_HREF} />} nativeButton={false}>
@@ -72,6 +85,16 @@ function SuppliersContent({ initial }: { initial: SuppliersInitial }) {
         items={result.rows}
         getId={(r) => r.id}
         href={(r) => routes.stock.supplier(r.id)}
+        rowActions={(r) => (
+          <DeleteRowMenu
+            label={form.delete}
+            confirm={form.confirmDelete}
+            deleted={form.deleted}
+            failed={form.deleteFailed}
+            onDelete={() => api.suppliers.delete({ id: r.id })}
+            onChanged={() => void refresh()}
+          />
+        )}
         loading={loading}
         selectable={false}
         query={state.query}

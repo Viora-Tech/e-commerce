@@ -8,15 +8,17 @@ import { Suspense, useEffect, useState } from 'react'
 import ProoflyListPage from '@/components/layout/proofly-list-page'
 import StatusChip from '@/components/layout/status-chip'
 import ResourceTable, { type ResourceColumnSpec } from '@/components/table/resource-table'
-import RowMenu from '@/components/table/row-menu'
 import ViewSelect from '@/components/table/view-select'
 import { pagesListContent } from '@/data/content'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 import { routes } from '@/lib/routes'
 import CreatePageDialog from './create-page-dialog'
+import PageRowMenu from './page-row-menu'
 
 type Item = Awaited<ReturnType<typeof api.pages.list>>[number]
+
+type PagesListProps = { storefrontOrigin: string }
 
 const TABS = ['live', 'hidden'] as const
 
@@ -29,7 +31,7 @@ const templateName = (suffix: string | null, fallback: string) => {
   return words.charAt(0).toUpperCase() + words.slice(1)
 }
 
-function PagesContent() {
+function PagesContent({ storefrontOrigin }: PagesListProps) {
   // Hooks
   const copy = useCopy(pagesListContent)
   const fmt = useFormat()
@@ -51,6 +53,14 @@ function PagesContent() {
       .then(setItems)
       .finally(() => setLoading(false))
   }, [])
+
+  // Helpers
+  const reload = () => {
+    api.pages
+      .list()
+      .then(setItems)
+      .catch(() => undefined)
+  }
 
   // Render logic
   const live = items.filter((p) => p.publishedAt).length
@@ -120,7 +130,12 @@ function PagesContent() {
         getId={(p) => p.id}
         href={(p) => routes.onlineStore.page(p.id)}
         rowActions={(p) => (
-          <RowMenu items={[{ label: copy.open, href: routes.onlineStore.page(p.id) }]} />
+          <PageRowMenu
+            page={p}
+            path={pageUrl(p.handle)}
+            storefrontOrigin={storefrontOrigin}
+            onChanged={reload}
+          />
         )}
         loading={loading}
         query={q.query}
@@ -155,10 +170,10 @@ function PagesContent() {
 }
 
 /** Content › Pages: every page, published or hidden. */
-export default function PagesList() {
+export default function PagesList({ storefrontOrigin }: PagesListProps) {
   return (
     <Suspense>
-      <PagesContent />
+      <PagesContent storefrontOrigin={storefrontOrigin} />
     </Suspense>
   )
 }

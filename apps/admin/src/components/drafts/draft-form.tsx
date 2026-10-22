@@ -1,6 +1,6 @@
 'use client'
 
-import { FileEdit, Trash2 } from '@commerce/ui/icons'
+import { CircleCheck, FileEdit, Send, Trash2 } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Textarea } from '@commerce/ui/shadcn/textarea'
 import { useRouter } from 'next/navigation'
@@ -25,6 +25,7 @@ import PageColumns from '@/components/layout/page-columns'
 import PageHeader from '@/components/layout/page-header'
 import SaveBar from '@/components/layout/save-bar'
 import StatusChip from '@/components/layout/status-chip'
+import SendMessageDialog, { type CustomMessage } from '@/components/orders/send-message-dialog'
 import { draftEditorContent, draftsContent } from '@/data/drafts'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
@@ -56,6 +57,7 @@ export default function DraftForm({ draft, invoiceSent = false }: DraftFormProps
   const [form, setForm] = useState<DraftFormState>(saved)
   const [busy, setBusy] = useState(false)
   const [confirmDelete, setConfirmDelete] = useState(false)
+  const [reviewing, setReviewing] = useState(false)
   const [resetKey, setResetKey] = useState(0)
   const [sent, setSent] = useState(invoiceSent)
 
@@ -90,11 +92,11 @@ export default function DraftForm({ draft, invoiceSent = false }: DraftFormProps
     }
   }
 
-  const handleSendInvoice = async () => {
+  const handleSendInvoice = async (custom?: CustomMessage) => {
     if (!id) return
     setBusy(true)
     try {
-      const r = await api.orders.sendInvoice({ id })
+      const r = await api.orders.sendInvoice({ id, custom })
       setSent(true)
       toast.success(copy.actions.invoiceSent(r.sentTo))
     } catch (err) {
@@ -144,7 +146,7 @@ export default function DraftForm({ draft, invoiceSent = false }: DraftFormProps
     .join(' · ')
 
   return (
-    <PageBody className="gap-6 md:py-8">
+    <PageBody className="gap-6 md:pt-5 md:pb-8">
       <SaveBar
         open={dirty}
         message={copy.unsaved}
@@ -162,10 +164,16 @@ export default function DraftForm({ draft, invoiceSent = false }: DraftFormProps
         subtitle={subtitle}
         actions={
           <>
-            <Button variant="outline" disabled={!id || dirty || busy} onClick={handleSendInvoice}>
+            <Button
+              variant="outline"
+              disabled={!id || dirty || busy}
+              onClick={() => setReviewing(true)}
+            >
+              <Send aria-hidden="true" />
               {copy.actions.sendInvoice}
             </Button>
             <Button disabled={!id || dirty || busy} onClick={handleConvert}>
+              <CircleCheck aria-hidden="true" />
               {copy.actions.convert}
             </Button>
             {/* Deleting a saved draft also drops any unsaved edits, so it never waits on Save. */}
@@ -222,6 +230,12 @@ export default function DraftForm({ draft, invoiceSent = false }: DraftFormProps
             />
           </>
         }
+      />
+      <SendMessageDialog
+        orderId={reviewing ? id : null}
+        template="draft_invoice"
+        onSend={handleSendInvoice}
+        onClose={() => setReviewing(false)}
       />
       <ConfirmDialog
         open={confirmDelete}

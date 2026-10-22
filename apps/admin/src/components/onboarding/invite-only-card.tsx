@@ -13,7 +13,7 @@ export default async function InviteOnlyCard({ defaultEmail }: InviteOnlyCardPro
   return (
     <DataCard
       title={copy.inviteOnly.heading}
-      className="w-full max-w-md"
+      className="h-auto w-full max-w-md"
       bodyClassName="flex flex-col gap-5"
     >
       <p className="text-body text-muted-foreground">{copy.inviteOnly.body}</p>

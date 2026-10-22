@@ -1,5 +1,6 @@
 'use client'
 
+import { PlugConnect } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Card } from '@commerce/ui/shadcn/card'
 import { Skeleton } from '@commerce/ui/shadcn/skeleton'
@@ -186,6 +187,7 @@ export default function NotificationsPage() {
         action={
           emailOn ? null : (
             <Button nativeButton={false} render={<Link href="#how-messages-are-sent" />}>
+              <PlugConnect aria-hidden="true" />
               {copy.status.connectEmail}
             </Button>
           )

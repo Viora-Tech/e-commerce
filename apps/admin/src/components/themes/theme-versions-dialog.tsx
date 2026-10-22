@@ -1,6 +1,6 @@
 'use client'
 
-import { ExternalLink } from '@commerce/ui/icons'
+import { ExternalLink, RotateCcw } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import {
   Dialog,
@@ -127,6 +127,7 @@ export default function ThemeVersionsDialog({
                       {copy.preview}
                     </Button>
                     <Button variant="outline" size="sm" onClick={() => setConfirming(b)}>
+                      <RotateCcw aria-hidden="true" />
                       {copy.restore}
                     </Button>
                   </div>

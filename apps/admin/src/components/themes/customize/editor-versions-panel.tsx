@@ -1,6 +1,6 @@
 'use client'
 
-import { ExternalLink } from '@commerce/ui/icons'
+import { ExternalLink, RotateCcw } from '@commerce/ui/icons'
 import { cn } from '@commerce/ui/lib/utils'
 import { Button } from '@commerce/ui/shadcn/button'
 import {
@@ -180,7 +180,7 @@ export default function EditorVersionsPanel({
                         onClick={() => void handleRestore(b.batchId)}
                         disabled={restoring}
                       >
-                        {restoring ? <Spinner /> : null}
+                        {restoring ? <Spinner /> : <RotateCcw aria-hidden="true" />}
                         {copy.restore}
                       </Button>
                     </div>

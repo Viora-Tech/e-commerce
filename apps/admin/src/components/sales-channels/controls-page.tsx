@@ -69,7 +69,7 @@ export default function ControlsPage({ view: initial, collections }: ControlsPag
   const rows = copy.rows
 
   return (
-    <PageBody className="gap-6 md:py-8">
+    <PageBody className="gap-6 md:pt-5 md:pb-8">
       <SaveBar
         open={dirty}
         message={copy.unsaved}

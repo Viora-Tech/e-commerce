@@ -1,6 +1,7 @@
 'use client'
 
 import type { FieldDefinition } from '@commerce/core/metaobjects'
+import { Eye, Save, Trash2 } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
@@ -123,14 +124,17 @@ export default function DefinitionForm({ definition, targets }: DefinitionFormPr
                   render={<Link href={entriesPath(definition.type)} />}
                   nativeButton={false}
                 >
+                  <Eye aria-hidden="true" />
                   {copy.viewEntries}
                 </Button>
                 <Button variant="outline" onClick={() => setConfirmDelete(true)} disabled={busy}>
+                  <Trash2 aria-hidden="true" />
                   {copy.delete.action}
                 </Button>
               </>
             ) : (
               <Button onClick={handleSave} disabled={busy}>
+                <Save aria-hidden="true" />
                 {busy ? copy.saving : copy.save}
               </Button>
             )

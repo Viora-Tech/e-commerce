@@ -1,6 +1,6 @@
 'use client'
 
-import { AiIcon, RefreshCw, RotateCcw } from '@commerce/ui/icons'
+import { AiIcon, RefreshCw, RotateCcw, Save } from '@commerce/ui/icons'
 import { cn } from '@commerce/ui/lib/utils'
 import { Button } from '@commerce/ui/shadcn/button'
 import {
@@ -248,6 +248,7 @@ export default function ImageEditorDialog({
               {copy.cancel}
             </Button>
             <Button onClick={() => void handleSave()} disabled={busy || !img || !area}>
+              <Save aria-hidden="true" />
               {busy ? copy.saving : copy.save}
             </Button>
           </div>

@@ -17,9 +17,11 @@ import {
   listDrafts,
   markRecoverySent,
   OutOfStock,
+  previewCartRecovery,
   RECOVERY_NO_CONSENT,
   recoveryUrl,
   storefrontOriginFor,
+  storeNotificationChannels,
   updateDraft,
 } from '@commerce/core'
 import type { StoreTx } from '@commerce/db'
@@ -37,7 +39,7 @@ import {
   productMedia,
   variant,
 } from '@commerce/db'
-import type { NotificationRegistry } from '@commerce/notifications'
+import type { CustomMessage, NotificationRegistry } from '@commerce/notifications'
 import { ORPCError } from '@orpc/server'
 import { and, asc, count, eq, sql } from 'drizzle-orm'
 
@@ -241,6 +243,8 @@ export async function sendRecovery(
   storeId: string,
   input: {
     cartId: string
+    /** The merchant's edited subject and note from the "Review email" dialog. */
+    custom?: CustomMessage | undefined
     registry: NotificationRegistry
     settingsSecret: string
     /** STOREFRONT_URL: the fallback when the store has no live primary domain. */
@@ -254,6 +258,7 @@ export async function sendRecovery(
     {
       cartId: input.cartId,
       actionUrl: recoveryUrl(input.cartId, input.settingsSecret, origin),
+      custom: input.custom,
     },
     { registry: input.registry, settingsSecret: input.settingsSecret },
   )
@@ -319,4 +324,43 @@ export async function getStoreAbandoned(
     /** Not offered for a cart that already became an order: the link would show an empty basket. */
     recoveryUrl: recovered ? null : recoveryUrl(row.id, link.settingsSecret, origin),
   }
+}
+
+/** The email on a draft, for a bulk invoice send; null when it is not a draft or has none. */
+export async function draftEmail(tx: StoreTx, id: string): Promise<string | null> {
+  const [o] = await tx
+    .select({ email: order.email })
+    .from(order)
+    .where(and(eq(order.id, id), eq(order.status, 'draft')))
+  return o?.email ?? null
+}
+
+/** The abandoned checkout's reminder as the shopper would get it, for the "Review email" dialog. */
+export async function previewRecovery(
+  tx: StoreTx,
+  storeId: string,
+  input: {
+    cartId: string
+    custom?: CustomMessage | undefined
+    registry: NotificationRegistry
+    settingsSecret: string
+    storefrontUrl: string
+  },
+) {
+  const ctx = ctxOf(tx, storeId)
+  const origin = await storefrontOriginFor(tx, storeId, input.storefrontUrl)
+  const channels = await storeNotificationChannels(tx, storeId, {
+    registry: input.registry,
+    settingsSecret: input.settingsSecret,
+  })
+  const preview = await previewCartRecovery(
+    ctx,
+    { cartId: input.cartId, custom: input.custom },
+    {
+      actionUrl: recoveryUrl(input.cartId, input.settingsSecret, origin),
+      whatsapp: channels.some((c) => c.requires === 'phone'),
+    },
+  )
+  if (!preview) throw new ORPCError('NOT_FOUND', { message: 'Checkout not found' })
+  return preview
 }

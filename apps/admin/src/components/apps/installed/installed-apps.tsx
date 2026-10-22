@@ -1,7 +1,7 @@
 'use client'
 
 import { siteConfig } from '@commerce/config/site'
-import { Search } from '@commerce/ui/icons'
+import { Search, Trash2 } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
@@ -238,6 +238,7 @@ export default function InstalledApps({ installId }: InstalledAppsProps) {
         onPageChange={setPage}
         bulkActions={(ids, clear) => (
           <Button variant="destructive" size="sm" onClick={() => setBulk({ ids, clear })}>
+            <Trash2 aria-hidden="true" />
             {copy.bulk.uninstall(ids.length)}
           </Button>
         )}

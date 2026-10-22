@@ -2,7 +2,7 @@
 
 import type { DomainView } from '@commerce/core'
 import { permissions } from '@commerce/core/permissions'
-import { ExternalLink } from '@commerce/ui/icons'
+import { ExternalLink, RefreshCw, Trash2 } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Label } from '@commerce/ui/shadcn/label'
 import { Switch } from '@commerce/ui/shadcn/switch'
@@ -172,6 +172,7 @@ export default function DomainDetail({ initial, primaryHostname }: DomainDetailP
             <span className="text-caption text-muted-foreground">{lastChecked}</span>
             {canManage ? (
               <Button variant="outline" size="sm" disabled={checking} onClick={handleVerify}>
+                <RefreshCw aria-hidden="true" />
                 {checking ? copy.verification.verifying : copy.verification.verify}
               </Button>
             ) : null}
@@ -230,6 +231,7 @@ export default function DomainDetail({ initial, primaryHostname }: DomainDetailP
             disabled={removeNote !== null || saving}
             onClick={() => setConfirmRemove(true)}
           >
+            <Trash2 aria-hidden="true" />
             {copy.remove}
           </Button>
         </div>

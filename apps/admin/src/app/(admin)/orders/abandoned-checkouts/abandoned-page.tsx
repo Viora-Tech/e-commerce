@@ -5,18 +5,26 @@ import { Button } from '@commerce/ui/shadcn/button'
 import { parseAsInteger, parseAsString, parseAsStringLiteral, useQueryStates } from 'nuqs'
 import { Suspense, useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
+import { abandonedColumns } from '@/components/abandoned/abandoned-columns'
 import AbandonedTiles, { type AbandonedStats } from '@/components/abandoned/abandoned-tiles'
+import ConfirmDialog from '@/components/layout/confirm-dialog'
 import ProoflyListPage from '@/components/layout/proofly-list-page'
-import StatusChip from '@/components/layout/status-chip'
-import ResourceTable, { type ResourceColumnSpec } from '@/components/table/resource-table'
+import SendMessageDialog, { type CustomMessage } from '@/components/orders/send-message-dialog'
+import ResourceTable from '@/components/table/resource-table'
 import RowMenu from '@/components/table/row-menu'
 import ViewSelect from '@/components/table/view-select'
-import { ABANDONED_LIST_FILTERS, type AbandonedListFilter, abandonedContent } from '@/data/drafts'
+import {
+  ABANDONED_LIST_FILTERS,
+  type AbandonedListFilter,
+  abandonedBulkContent,
+  abandonedContent,
+} from '@/data/drafts'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 import { type ListQuery, sameListQuery } from '@/lib/list-query'
 import { routes } from '@/lib/routes'
 import { parseRowsPerPage } from '@/lib/rows-per-page'
+import { runBatched } from '@/lib/run-batched'
 
 type ListResult = Awaited<ReturnType<typeof api.orders.listAbandoned>>
 type Item = ListResult['items'][number]
@@ -30,14 +38,16 @@ export type AbandonedInitial = {
   counts: AbandonedStats
 }
 
-/** Figma: amber while still open, grey once a reminder went out, green once recovered. */
-const STATUS_TONE = { open: 'attention', sent: 'neutral', recovered: 'success' } as const
+/** A recovery can go out: the shopper left an email and has not bought the cart since. */
+const recoverable = (c: Item) => !c.recovered && Boolean(c.email)
 
-const statusOf = (c: Item) => (c.recovered ? 'recovered' : c.recoverySentAt ? 'sent' : 'open')
+/** The API's refusal for a shopper who has not agreed to marketing messages (`sendRecovery`). */
+const noConsent = (err: unknown) => err instanceof Error && /agreed to marketing/i.test(err.message)
 
 function AbandonedContent({ initial }: { initial: AbandonedInitial }) {
   // Hooks
   const copy = useCopy(abandonedContent)
+  const bulkCopy = useCopy(abandonedBulkContent)
   const fmt = useFormat()
   const [{ page, query, status, perPage: rawPerPage }, setQ] = useQueryStates(
     {
@@ -52,6 +62,10 @@ function AbandonedContent({ initial }: { initial: AbandonedInitial }) {
   const [total, setTotal] = useState(initial.result.total)
   const [loading, setLoading] = useState(false)
   const [sending, setSending] = useState<string | null>(null)
+  /** The cart whose "Send reminder" review dialog is open. */
+  const [reviewing, setReviewing] = useState<string | null>(null)
+  /** Selected carts waiting on the bulk "Send recovery" confirm. */
+  const [bulk, setBulk] = useState<{ ids: string[]; clear: () => void } | null>(null)
 
   const hydrated = useRef(false)
 
@@ -88,11 +102,35 @@ function AbandonedContent({ initial }: { initial: AbandonedInitial }) {
     }
   }, [page, query, status, rawPerPage, initial.query, initial.perPage])
 
+  // Helpers
+  /** Sends one recovery per cart, ten at a time; a refusal never stops the rest. */
+  const sendRecoveries = async (carts: Item[]) => {
+    let sent = 0
+    let declined = 0
+    const r = await runBatched(
+      carts.map((c) => c.id),
+      async (cartId) => {
+        try {
+          await api.orders.sendRecovery({ cartId })
+        } catch (err) {
+          if (!noConsent(err)) throw err
+          declined += 1
+          return
+        }
+        sent += 1
+        setItems((list) =>
+          list.map((x) => (x.id === cartId ? { ...x, recoverySentAt: new Date() } : x)),
+        )
+      },
+    )
+    return { sent, noConsent: declined, failed: r.failed }
+  }
+
   // Event handlers
-  const handleSend = async (cartId: string) => {
+  const handleSend = async (cartId: string, custom?: CustomMessage) => {
     setSending(cartId)
     try {
-      const r = await api.orders.sendRecovery({ cartId })
+      const r = await api.orders.sendRecovery({ cartId, custom })
       toast.success(copy.sent(r.sent))
       setItems((list) =>
         list.map((c) => (c.id === cartId ? { ...c, recoverySentAt: new Date() } : c)),
@@ -105,86 +143,31 @@ function AbandonedContent({ initial }: { initial: AbandonedInitial }) {
   }
 
   const handleSendAll = async () => {
-    const due = items.filter((c) => !c.recovered && c.email && !c.recoverySentAt)
+    const due = items.filter((c) => recoverable(c) && !c.recoverySentAt)
     if (due.length === 0) {
       toast.info(copy.nothingToSend)
       return
     }
     setSending('all')
-    let sent = 0
-    for (const c of due) {
-      try {
-        await api.orders.sendRecovery({ cartId: c.id })
-        sent += 1
-        setItems((list) =>
-          list.map((x) => (x.id === c.id ? { ...x, recoverySentAt: new Date() } : x)),
-        )
-      } catch {
-        // One failed cart must not stop the rest; the row stays "Not recovered".
-      }
-    }
+    const r = await sendRecoveries(due)
     setSending(null)
-    toast.success(copy.remindersDone(sent))
+    toast.success(copy.remindersDone(r.sent))
+  }
+
+  const handleSendSelected = async () => {
+    if (!bulk) return
+    const picked = new Set(bulk.ids)
+    const due = items.filter((c) => picked.has(c.id) && recoverable(c))
+    const r = await sendRecoveries(due)
+    const summary = bulkCopy.done(r.sent, bulk.ids.length - due.length, r.noConsent, r.failed)
+    if (r.sent > 0) toast.success(summary)
+    else toast.info(summary)
+    bulk.clear()
   }
 
   // Render logic
   const perPage = parseRowsPerPage(rawPerPage)
-  const columns: ResourceColumnSpec<Item>[] = [
-    {
-      id: 'contact',
-      title: copy.columns.contact,
-      align: 'start',
-      hideable: false,
-      sortValue: (c) => c.email ?? c.phone ?? '',
-      render: (c) => (
-        <span className="block min-w-0">
-          <span className="block truncate text-body-strong text-foreground">
-            {c.customerName ?? c.email ?? c.phone ?? copy.anonymous}
-          </span>
-          {c.email ? (
-            <span className="block truncate text-caption text-muted-foreground">{c.email}</span>
-          ) : null}
-        </span>
-      ),
-    },
-    {
-      id: 'cart',
-      title: copy.columns.cart,
-      sortValue: (c) => c.itemCount,
-      render: (c) => (
-        <span className="block min-w-0">
-          <span className="block truncate text-body-strong text-foreground">
-            {c.firstTitle ?? copy.itemCount(c.itemCount)}
-            {c.firstTitle && c.itemCount > 1 ? ` ${copy.more(c.itemCount - 1)}` : ''}
-          </span>
-          <span className="block text-caption text-muted-foreground">
-            {copy.itemCount(c.itemCount)}
-          </span>
-        </span>
-      ),
-    },
-    {
-      id: 'value',
-      title: copy.columns.value,
-      sortValue: (c) => c.subtotalPaise,
-      align: 'end',
-      render: (c) => <span className="font-medium tabular-nums">{fmt.money(c.subtotalPaise)}</span>,
-    },
-    {
-      id: 'activity',
-      title: copy.columns.activity,
-      sortValue: (c) => new Date(c.updatedAt).getTime(),
-      render: (c) => <span className="tabular-nums">{fmt.when(c.updatedAt)}</span>,
-    },
-    {
-      id: 'status',
-      title: copy.columns.status,
-      align: 'center',
-      render: (c) => (
-        <StatusChip tone={STATUS_TONE[statusOf(c)]}>{copy.status[statusOf(c)]}</StatusChip>
-      ),
-    },
-  ]
+  const columns = abandonedColumns(copy, fmt)
 
   return (
     <ProoflyListPage
@@ -196,6 +179,7 @@ function AbandonedContent({ initial }: { initial: AbandonedInitial }) {
       )}
       actions={
         <Button loading={sending === 'all'} onClick={handleSendAll}>
+          <Send aria-hidden="true" />
           {copy.sendReminders}
         </Button>
       }
@@ -220,9 +204,16 @@ function AbandonedContent({ initial }: { initial: AbandonedInitial }) {
               { label: copy.view, href: routes.orders.abandonedCheckout(c.id), icon: AppWindow },
               ...(c.recovered || !c.email
                 ? []
-                : [{ label: copy.send, onSelect: () => handleSend(c.id), icon: Send }]),
+                : [{ label: copy.send, onSelect: () => setReviewing(c.id), icon: Send }]),
             ]}
           />
+        )}
+        selectable
+        bulkActions={(ids, clear) => (
+          <Button type="button" variant="outline" size="sm" onClick={() => setBulk({ ids, clear })}>
+            <Send aria-hidden="true" />
+            {bulkCopy.send(ids.length)}
+          </Button>
         )}
         query={query}
         onQueryChange={(query) => setQ({ query, page: 1 })}
@@ -255,6 +246,24 @@ function AbandonedContent({ initial }: { initial: AbandonedInitial }) {
         onPageChange={(page) => setQ({ page })}
         onPerPageChange={(n) => setQ({ perPage: n, page: 1 })}
         empty={{ heading: copy.empty, body: copy.intro }}
+      />
+      {bulk ? (
+        <ConfirmDialog
+          open
+          onOpenChange={(open) => !open && setBulk(null)}
+          title={bulkCopy.title(bulk.ids.length)}
+          body={bulkCopy.body}
+          confirmLabel={bulkCopy.confirm}
+          tone="default"
+          stopPropagation
+          onConfirm={handleSendSelected}
+        />
+      ) : null}
+      <SendMessageDialog
+        orderId={reviewing}
+        template="checkout_recovery"
+        onSend={(custom) => (reviewing ? handleSend(reviewing, custom) : Promise.resolve())}
+        onClose={() => setReviewing(null)}
       />
     </ProoflyListPage>
   )

@@ -1,5 +1,6 @@
 'use client'
 
+import { Save } from '@commerce/ui/icons'
 import PhoneInput from '@commerce/ui/phone-input'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Checkbox } from '@commerce/ui/shadcn/checkbox'
@@ -144,6 +145,7 @@ export default function CustomerAddressDialog({
               {d.cancel}
             </Button>
             <Button type="submit" disabled={saving}>
+              <Save aria-hidden="true" />
               {d.save}
             </Button>
           </DialogFooter>

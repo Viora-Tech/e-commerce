@@ -1,6 +1,7 @@
 'use client'
 
 import type { DomainView } from '@commerce/core'
+import { CheckIcon } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import {
   Dialog,
@@ -83,6 +84,7 @@ export default function ChangePrimaryDialog({
             {copy.detail.removeCancel}
           </DialogClose>
           <Button disabled={saving || !selected || selected === currentId} onClick={handleSave}>
+            <CheckIcon aria-hidden="true" />
             {copy.detail.makePrimary}
           </Button>
         </DialogFooter>

@@ -12,11 +12,13 @@ import { can, PAGE_SIZE_MAX, SEARCH_MAX } from '../procedures'
 import { storeRegistries } from '../services/apps.service'
 import {
   convertStoreDraft,
+  draftEmail,
   draftTiles,
   getDraft,
   getStoreAbandoned,
   listStoreAbandoned,
   listStoreDrafts,
+  previewRecovery,
   recordInvoiceSent,
   removeDraft,
   removeDrafts,
@@ -24,6 +26,7 @@ import {
   sendRecovery,
   storeAbandonedStats,
 } from '../services/draft.service'
+import { customMessage } from './custom-message'
 
 const storefrontUrl = () => loadEnv(process.env).STOREFRONT_URL
 const recoveryLink = () => ({ settingsSecret: settingsSecret(), storefrontUrl: storefrontUrl() })
@@ -64,7 +67,7 @@ export const draftAndAbandonedRoutes = {
 
   /** Email the shopper a pay link for the draft. */
   sendInvoice: can(permissions.DRAFTS_WRITE)
-    .input(z.object({ id: z.uuid() }))
+    .input(z.object({ id: z.uuid(), custom: customMessage }))
     .handler(async ({ context, input }) => {
       const draft = await getDraft(context.tx, input.id)
       if (!draft) throw new ORPCError('NOT_FOUND', { message: 'Draft not found' })
@@ -74,8 +77,30 @@ export const draftAndAbandonedRoutes = {
       await recordInvoiceSent(context.tx, context.scope.storeId, input.id, draft.email)
       await insertOutboxEvent(context.tx, context.scope.storeId, 'draft.invoice_sent', {
         orderId: input.id,
+        custom: input.custom,
       })
       return { sentTo: draft.email }
+    }),
+
+  /** The list's bulk "Send invoices": each selected draft with an email gets its pay link. */
+  sendInvoices: can(permissions.DRAFTS_WRITE)
+    .input(z.object({ ids: z.array(z.uuid()).min(1).max(PAGE_SIZE_MAX) }))
+    .handler(async ({ context, input }) => {
+      let sent = 0
+      let skipped = 0
+      for (const id of input.ids) {
+        const email = await draftEmail(context.tx, id)
+        if (!email) {
+          skipped++
+          continue
+        }
+        await recordInvoiceSent(context.tx, context.scope.storeId, id, email)
+        await insertOutboxEvent(context.tx, context.scope.storeId, 'draft.invoice_sent', {
+          orderId: id,
+        })
+        sent++
+      }
+      return { sent, skipped }
     }),
 
   convertDraft: can(permissions.DRAFTS_WRITE)
@@ -114,12 +139,27 @@ export const draftAndAbandonedRoutes = {
       getStoreAbandoned(context.tx, context.scope.storeId, input.id, recoveryLink()),
     ),
 
+  /** The reminder as the shopper would get it, for the "Review email" dialog. Nothing is sent. */
+  previewRecovery: can(permissions.ORDERS_READ)
+    .input(z.object({ cartId: z.uuid(), custom: customMessage }))
+    .handler(async ({ context, input }) => {
+      const { notifications } = await storeRegistries(context.tx, context.scope.storeId)
+      return previewRecovery(context.tx, context.scope.storeId, {
+        cartId: input.cartId,
+        custom: input.custom,
+        registry: notifications,
+        settingsSecret: settingsSecret(),
+        storefrontUrl: storefrontUrl(),
+      })
+    }),
+
   sendRecovery: can(permissions.ORDERS_WRITE)
-    .input(z.object({ cartId: z.uuid() }))
+    .input(z.object({ cartId: z.uuid(), custom: customMessage }))
     .handler(async ({ context, input }) => {
       const { notifications } = await storeRegistries(context.tx, context.scope.storeId)
       return sendRecovery(context.tx, context.scope.storeId, {
         cartId: input.cartId,
+        custom: input.custom,
         registry: notifications,
         settingsSecret: settingsSecret(),
         storefrontUrl: storefrontUrl(),

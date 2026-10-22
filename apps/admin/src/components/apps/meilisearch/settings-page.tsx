@@ -1,5 +1,6 @@
 'use client'
 
+import { RefreshCw } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Input } from '@commerce/ui/shadcn/input'
 import { useEffect, useState } from 'react'
@@ -180,6 +181,7 @@ export default function SettingsPage() {
               disabled={busy !== null || !canTest}
               onClick={handleTest}
             >
+              <RefreshCw aria-hidden="true" />
               {copy.connect.test}
             </Button>
           </div>

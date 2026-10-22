@@ -76,7 +76,7 @@ export default function PreferencesForm({ initial, storefrontOrigin }: Preferenc
   const errors = attempted ? validate(form) : {}
 
   return (
-    <PageBody className="gap-6 md:py-8">
+    <PageBody className="gap-6 md:pt-5 md:pb-8">
       <SaveBar
         open={dirty}
         message={copy.unsaved}

@@ -1,6 +1,7 @@
 'use client'
 
 import type { Business } from '@commerce/core'
+import { Pencil } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import SettingsCard from '@/components/settings/settings-card'
 import { businessGstContent } from '@/data/business-gst'
@@ -36,6 +37,7 @@ export default function BusinessCard({ business, canManage, onEdit }: BusinessCa
           </dl>
           {canManage ? (
             <Button variant="outline" size="sm" onClick={() => onEdit(business)}>
+              <Pencil aria-hidden="true" />
               {copy.edit}
             </Button>
           ) : null}

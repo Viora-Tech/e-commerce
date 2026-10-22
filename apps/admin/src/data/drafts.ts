@@ -30,6 +30,17 @@ export const draftsContent = {
   openDraft: 'Open draft',
   deleteDraft: 'Delete draft',
   deleteSelected: (n: number) => `Delete ${n} ${n === 1 ? 'draft' : 'drafts'}`,
+  sendInvoice: 'Send invoice',
+  resendInvoice: 'Send invoice again',
+  sendSelected: (n: number) => `Send ${n} ${n === 1 ? 'invoice' : 'invoices'}`,
+  sendTitle: (n: number) => `Send ${n} ${n === 1 ? 'invoice' : 'invoices'}?`,
+  sendBody:
+    'Each customer gets their own invoice by email. Drafts without an email address are skipped.',
+  sendConfirm: 'Send invoices',
+  sentMany: (sent: number, skipped: number) =>
+    `${sent} ${sent === 1 ? 'invoice' : 'invoices'} sent${skipped ? `, ${skipped} skipped (no email)` : ''}`,
+  sendFailed: 'Could not send the invoices. Try again.',
+  invoiceSentOne: (to: string) => `Invoice sent to ${to}`,
   deleteTitle: (n: number) => (n === 1 ? 'Delete this draft?' : `Delete ${n} drafts?`),
   deleteBody: (n: number) =>
     n === 1
@@ -190,3 +201,20 @@ export const abandonedContent = {
     recoveryLink: 'Recovery link',
   },
 } as const
+
+/** The abandoned checkouts list's bulk "Send recovery" for the selected carts. */
+export const abandonedBulkContent = {
+  send: (n: number) => `Send recovery to ${n}`,
+  title: (n: number) => `Send recovery messages to ${n} ${n === 1 ? 'shopper' : 'shoppers'}?`,
+  body: 'Each shopper gets your recovery email (and WhatsApp when set up) with a link back to their cart. Checkouts already recovered or without an email are skipped, and so are shoppers who have not agreed to marketing messages.',
+  confirm: 'Send recovery',
+  done: (sent: number, skipped: number, noConsent: number, failed: number) =>
+    [
+      sent === 1 ? 'Sent 1 recovery message' : `Sent ${sent} recovery messages`,
+      skipped > 0 ? `${skipped} skipped` : null,
+      noConsent > 0 ? `${noConsent} without marketing consent` : null,
+      failed > 0 ? `${failed} failed` : null,
+    ]
+      .filter(Boolean)
+      .join(', '),
+}

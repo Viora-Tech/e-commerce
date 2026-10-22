@@ -1,5 +1,6 @@
 'use client'
 
+import { CheckIcon } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Input } from '@commerce/ui/shadcn/input'
 import { useState } from 'react'
@@ -71,6 +72,7 @@ export default function VariantBulkBar({ count, onApply, onClear }: VariantBulkB
         />
       </span>
       <Button size="sm" onClick={handleApply} disabled={empty}>
+        <CheckIcon aria-hidden="true" />
         {copy.apply}
       </Button>
       <Button size="sm" variant="ghost" onClick={onClear}>

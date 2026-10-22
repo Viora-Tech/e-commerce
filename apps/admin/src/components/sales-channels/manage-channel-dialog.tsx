@@ -1,6 +1,7 @@
 'use client'
 
 import type { ChannelState, SalesChannelId } from '@commerce/core/sales-channels'
+import { Pause, Play, RefreshCw, Unlink } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import {
   Dialog,
@@ -109,6 +110,7 @@ export default function ManageChannelDialog({
               onClick={() => setConfirming(true)}
               disabled={busy !== null}
             >
+              <Unlink aria-hidden="true" />
               {copy.disconnect}
             </Button>
             <div className="flex gap-2">
@@ -118,6 +120,11 @@ export default function ManageChannelDialog({
                 loading={busy === 'pause'}
                 disabled={busy !== null}
               >
+                {state.status === 'paused' ? (
+                  <Play aria-hidden="true" />
+                ) : (
+                  <Pause aria-hidden="true" />
+                )}
                 {state.status === 'paused' ? copy.resume : copy.pause}
               </Button>
               <Button
@@ -125,6 +132,7 @@ export default function ManageChannelDialog({
                 loading={busy === 'sync'}
                 disabled={busy !== null || state.status === 'paused'}
               >
+                <RefreshCw aria-hidden="true" />
                 {copy.syncNow}
               </Button>
             </div>

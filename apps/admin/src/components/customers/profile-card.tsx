@@ -1,5 +1,6 @@
 'use client'
 
+import { Pencil } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import ContactActions from '@/components/layout/contact-actions'
 import DataCard from '@/components/layout/data-card'
@@ -31,6 +32,7 @@ export default function ProfileCard({ customer, onEdit }: ProfileCardProps) {
       className="rounded-xl"
       action={
         <Button variant="ghost" size="sm" onClick={onEdit}>
+          <Pencil aria-hidden="true" />
           {copy.actions.edit}
         </Button>
       }

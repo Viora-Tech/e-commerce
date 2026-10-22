@@ -1,4 +1,4 @@
-import type { TemplateId } from '@commerce/notifications'
+import type { CustomMessage, TemplateId } from '@commerce/notifications'
 
 /** BullMQ queue name. Braces keep every key on one Dragonfly/Redis slot. */
 export const NOTIFICATIONS_QUEUE = '{notifications}-send'
@@ -18,6 +18,8 @@ export type NotificationJob = {
   returnId?: string | undefined
   /** For refund_issued: which refund the message reports. */
   refundId?: string | undefined
+  /** A hand-sent message's edited subject and note. */
+  custom?: CustomMessage | undefined
   /** For newsletter_confirm: the pending `newsletter_signup`. */
   signupId?: string | undefined
   /** For contact_message: the `contact_message` row (Forms app). */

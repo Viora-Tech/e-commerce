@@ -2,6 +2,7 @@
 
 import type { GrievanceOfficer, CustomerPrivacySettings as Settings } from '@commerce/core'
 import { PRIVACY_LIMITS } from '@commerce/core/privacy'
+import { Eye, Pencil } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Input } from '@commerce/ui/shadcn/input'
 import { Skeleton } from '@commerce/ui/shadcn/skeleton'
@@ -189,6 +190,7 @@ export default function CustomerPrivacySettings() {
                 render={<Link href={routes.settings.privacyRequests()} />}
                 nativeButton={false}
               >
+                <Eye aria-hidden="true" />
                 {copy.requests.view}
               </Button>
             </div>
@@ -220,6 +222,7 @@ export default function CustomerPrivacySettings() {
               render={<Link href={`${routes.settings.policies()}#grievance`} />}
               nativeButton={false}
             >
+              <Pencil aria-hidden="true" />
               {copy.grievance.edit}
             </Button>
           </SettingsCard>

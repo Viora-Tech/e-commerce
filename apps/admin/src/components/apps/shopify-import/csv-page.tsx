@@ -5,7 +5,7 @@ import {
   type CsvResource,
   MAX_CSV_BYTES,
 } from '@commerce/plugin-shopify-import/client'
-import { Package, ShoppingBag, Users } from '@commerce/ui/icons'
+import { Eye, Package, ShoppingBag, Users } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Spinner } from '@commerce/ui/shadcn/spinner'
 import { useRouter } from 'next/navigation'
@@ -84,7 +84,7 @@ export default function CsvPage() {
         </DataCard>
         <div className="flex flex-col items-end gap-1.5">
           <Button type="button" onClick={handlePreview} disabled={!file || busy}>
-            {busy ? <Spinner /> : null}
+            {busy ? <Spinner /> : <Eye aria-hidden="true" />}
             {copy.preview}
           </Button>
           {file ? null : <p className="text-caption text-muted-foreground">{copy.previewHint}</p>}

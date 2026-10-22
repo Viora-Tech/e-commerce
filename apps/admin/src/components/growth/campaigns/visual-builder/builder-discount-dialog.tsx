@@ -1,5 +1,6 @@
 'use client'
 
+import { Plus } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import {
   Dialog,
@@ -77,6 +78,7 @@ export default function BuilderDiscountDialog({ open, onDone }: BuilderDiscountD
             onClick={() => handleClose({ code, heading: shownHeading, note })}
             disabled={!code}
           >
+            <Plus aria-hidden="true" />
             {copy.insert}
           </Button>
         </DialogFooter>

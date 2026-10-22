@@ -1,6 +1,15 @@
 'use client'
 
-import { ArrowLeft, CircleAlert, CircleCheck, Clock, Eye, Undo } from '@commerce/ui/icons'
+import {
+  ArrowLeft,
+  CircleAlert,
+  CircleCheck,
+  Clock,
+  Eye,
+  Globe,
+  Save,
+  Undo,
+} from '@commerce/ui/icons'
 import { cn } from '@commerce/ui/lib/utils'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Spinner } from '@commerce/ui/shadcn/spinner'
@@ -134,7 +143,7 @@ export default function CodeTopBar({
           onClick={onSave}
           disabled={!canSave || saving}
         >
-          {saving ? <Spinner /> : null}
+          {saving ? <Spinner /> : <Save aria-hidden="true" />}
           {copy.save}
         </Button>
         {drafts ? (
@@ -150,7 +159,7 @@ export default function CodeTopBar({
               {copy.drafts.discard}
             </Button>
             <Button onClick={onPublish} disabled={publishing} title={copy.drafts.help}>
-              {publishing ? <Spinner /> : null}
+              {publishing ? <Spinner /> : <Globe aria-hidden="true" />}
               {publishing ? copy.drafts.publishing : copy.drafts.publish}
             </Button>
           </>

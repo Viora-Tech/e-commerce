@@ -4,6 +4,7 @@ import {
   orderDetailContent,
   ordersContent,
   ordersSectionsContent,
+  sendMessageContent,
 } from '@/data/orders'
 import { translation } from '@/lib/i18n'
 
@@ -34,6 +35,25 @@ export default [
       openNewTab: 'नए टैब में खोलें',
       open: 'ऑर्डर खोलें',
       sameCustomer: 'इस ग्राहक के ऑर्डर',
+      createShipment: 'शिपमेंट बनाएं',
+      cancelShipment: 'शिपमेंट रद्द करें',
+      cancelShipmentTitle: 'यह शिपमेंट रद्द करें?',
+      cancelShipmentBody:
+        'कूरियर बुकिंग रद्द होगी और ऑर्डर फिर से भेजने के लिए बाकी रहेगा। जो शिपमेंट उठाया जा चुका है, उसे यहां से रद्द नहीं किया जा सकता।',
+      cancelShipmentConfirm: 'शिपमेंट रद्द करें',
+      keepShipment: 'शिपमेंट रखें',
+      noShipment: 'इस ऑर्डर का कोई बुक किया गया शिपमेंट नहीं है।',
+      addTags: 'टैग जोड़ें',
+      removeTags: 'टैग हटाएं',
+      addTagsTitle: 'टैग जोड़ें',
+      removeTagsTitle: 'टैग हटाएं',
+      tagsBody: 'टैग लिखें और Enter दबाएं।',
+      tagsSave: 'टैग सेव करें',
+      tagsCancel: 'रद्द करें',
+      tagsSaved: 'टैग सेव हो गए',
+      apps: 'ऐप्स',
+      copyNumber: 'ऑर्डर नंबर कॉपी करें',
+      numberCopied: 'ऑर्डर नंबर कॉपी हो गया',
     },
     title: 'ऑर्डर',
     heading: 'ऑर्डर लिस्ट',
@@ -46,16 +66,35 @@ export default [
         .filter(Boolean)
         .join(' · '),
     tiles: {
-      newToday: { label: 'आज के नए ऑर्डर', trendNote: 'कल के मुकाबले' },
-      ready: { label: 'भेजने के लिए तैयार', note: 'पेमेंट हो गया, कूरियर का इंतज़ार' },
-      pendingUpi: { label: 'UPI बाकी', note: 'ट्रांसफ़र का इंतज़ार' },
-      sales: { label: 'इस हफ़्ते की बिक्री', trendNote: 'पिछले हफ़्ते के मुकाबले' },
+      newToday: {
+        label: 'आज के नए ऑर्डर',
+        trendNote: 'कल के मुकाबले',
+      },
+      ready: {
+        label: 'भेजने के लिए तैयार',
+        note: 'पेमेंट हो गया, कूरियर का इंतज़ार',
+      },
+      pendingUpi: {
+        label: 'UPI बाकी',
+        note: 'ट्रांसफ़र का इंतज़ार',
+      },
+      sales: {
+        label: 'इस हफ़्ते की बिक्री',
+        trendNote: 'पिछले हफ़्ते के मुकाबले',
+      },
     },
-    noResults: { heading: 'कोई ऑर्डर नहीं मिला', body: 'दूसरा शब्द खोजें या फ़िल्टर हटाएं।' },
+    noResults: {
+      heading: 'कोई ऑर्डर नहीं मिला',
+      body: 'दूसरा शब्द खोजें या फ़िल्टर हटाएं।',
+    },
     loadFailed: 'ऑर्डर लोड नहीं हो पाए',
     addOrder: 'ऑर्डर जोड़ें',
     moreActions: 'और विकल्प',
-    menu: { drafts: 'ड्राफ़्ट ऑर्डर', abandoned: 'अधूरे चेकआउट', returns: 'रिटर्न' },
+    menu: {
+      drafts: 'ड्राफ़्ट ऑर्डर',
+      abandoned: 'अधूरे चेकआउट',
+      returns: 'रिटर्न',
+    },
     export: 'एक्सपोर्ट',
     resource: { singular: 'ऑर्डर', plural: 'ऑर्डर' },
     viewLabel: 'ऑर्डर व्यू',
@@ -108,6 +147,7 @@ export default [
       unpaid: 'पेमेंट बाकी',
       unfulfilled: 'भेजना बाकी',
       pending_upi: 'UPI बाकी',
+      balance_due: 'बाकी रकम',
       completed: 'पूरे हुए',
       cancelled: 'कैंसिल',
     },
@@ -470,7 +510,12 @@ export default [
   }),
 
   translation(orderNextStepContent, {
-    eyebrow: { next: 'अगला कदम', progress: 'रास्ते में', done: 'पूरा', closed: 'बंद' },
+    eyebrow: {
+      next: 'अगला कदम',
+      progress: 'रास्ते में',
+      done: 'पूरा',
+      closed: 'बंद',
+    },
     upi: {
       title: 'UPI पेमेंट जाँचें',
       body: (amount, ago) =>
@@ -544,6 +589,28 @@ export default [
       heading: 'कोई अधूरा चेकआउट नहीं',
       body: 'जब कोई ग्राहक अपनी जानकारी भरकर बिना पेमेंट किए चला जाए, तो वह चेकआउट यहाँ आ जाता है ताकि आप उससे बात कर सकें।',
       action: { label: 'ऑर्डर देखें', href: '/orders' },
+    },
+  }),
+  translation(sendMessageContent, {
+    help: 'यही ईमेल आपके ग्राहक को मिलेगा, इसी ऑर्डर की जानकारी के साथ। भेजें दबाने तक कुछ नहीं जाएगा।',
+    loading: 'ईमेल लोड हो रहा है',
+    failed: 'ईमेल का प्रीव्यू लोड नहीं हो पाया। थोड़ी देर में फिर कोशिश करें।',
+    off: 'यह मैसेज Settings → Notifications में बंद है, इसलिए भेजने पर कुछ डिलीवर नहीं होगा।',
+    to: 'किसे',
+    subject: 'विषय',
+    message: 'अपना मैसेज (वैकल्पिक)',
+    messagePlaceholder: 'ग्राहक के लिए नोट लिखें। यह ऑर्डर की जानकारी के ऊपर दिखेगा।',
+    previewHeading: 'प्रीव्यू',
+    noContact: 'इस ऑर्डर पर कोई ईमेल या फ़ोन नहीं है',
+    email: 'ईमेल',
+    whatsapp: 'WhatsApp',
+    frameTitle: 'ईमेल प्रीव्यू',
+    cancel: 'रद्द करें',
+    templates: {
+      draft_invoice: { title: 'इनवॉइस भेजें', send: 'इनवॉइस भेजें' },
+      balance_request: { title: 'बाकी रकम मांगें', send: 'रिक्वेस्ट भेजें' },
+      payment_reminder: { title: 'पेमेंट रिमाइंडर भेजें', send: 'रिमाइंडर भेजें' },
+      checkout_recovery: { title: 'चेकआउट रिमाइंडर भेजें', send: 'रिमाइंडर भेजें' },
     },
   }),
 ]

@@ -1,6 +1,6 @@
 'use client'
 
-import { CircleCheck } from '@commerce/ui/icons'
+import { CircleCheck, Download } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { DialogDescription, DialogFooter, DialogTitle } from '@commerce/ui/shadcn/dialog'
 import AppAccessList from '@/components/apps/app-access-list'
@@ -74,6 +74,7 @@ export default function InstallPermissionsStep({
           {onBack ? copy.permissions.back : copy.permissions.cancel}
         </Button>
         <Button loading={busy} onClick={onInstall}>
+          <Download aria-hidden="true" />
           {copy.permissions.install}
         </Button>
       </DialogFooter>

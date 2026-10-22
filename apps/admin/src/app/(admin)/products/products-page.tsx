@@ -20,6 +20,7 @@ import { downloadProductCsv } from '@/components/products/export-products'
 import ImportDialog from '@/components/products/import-dialog'
 import ProductBulkActions from '@/components/products/product-bulk-actions'
 import { productColumns } from '@/components/products/product-columns'
+import ProductRowMenu from '@/components/products/product-row-menu'
 import ProductTiles from '@/components/products/product-tiles'
 import {
   appliedFromGroups,
@@ -30,7 +31,6 @@ import {
   facetOptions,
 } from '@/components/table/filter-panel'
 import ResourceTable from '@/components/table/resource-table'
-import RowMenu from '@/components/table/row-menu'
 import ViewSelect from '@/components/table/view-select'
 import { filterPanelContent } from '@/data/filter-panel'
 import { PRODUCT_STATUSES, productsListContent, type StockFilter } from '@/data/products'
@@ -54,6 +54,8 @@ export type ProductsInitial = {
   facets: Facets
   /** Bulk "Write with AI" is on for this store and member. */
   aiBulk: boolean
+  /** The store's public origin, for the row menu's "View on store". */
+  storefrontOrigin: string
 }
 
 type Query = {
@@ -308,14 +310,10 @@ function ProductsContent({ initial }: { initial: ProductsInitial }) {
         getId={(p) => p.id}
         href={(p) => routes.products.detail(p.id)}
         rowActions={(p) => (
-          <RowMenu
-            items={[
-              { label: copy.row.edit, href: routes.products.detail(p.id) },
-              {
-                label: copy.row.inventory,
-                href: `${routes.stock.inventory()}?query=${encodeURIComponent(p.title)}`,
-              },
-            ]}
+          <ProductRowMenu
+            product={p}
+            storefrontOrigin={initial.storefrontOrigin}
+            onChanged={() => void refresh()}
           />
         )}
         loading={loading}
@@ -362,6 +360,7 @@ function ProductsContent({ initial }: { initial: ProductsInitial }) {
         onPageChange={(page) => setQ({ page })}
         bulkActions={(ids, clear) => (
           <ProductBulkActions
+            ids={ids}
             busy={busy}
             onStatus={(status) =>
               runBulk(ids, { kind: 'status', status }, clear, (r) => copy.bulk.updated(r.changed))
@@ -370,6 +369,10 @@ function ProductsContent({ initial }: { initial: ProductsInitial }) {
             onBulkEdit={() => router.push(routes.products.bulkEdit(ids))}
             onDelete={() => setDeleting({ ids, clear })}
             onWriteAi={initial.aiBulk ? () => setWriting({ ids, jobId: null }) : undefined}
+            onDone={() => {
+              clear()
+              void refresh()
+            }}
           />
         )}
         empty={{

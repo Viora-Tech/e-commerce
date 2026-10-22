@@ -1,6 +1,7 @@
 'use client'
 
 import { VALUELESS_ITEM_TYPES } from '@commerce/core/navigation'
+import { Plus, Save } from '@commerce/ui/icons'
 import { cn } from '@commerce/ui/lib/utils'
 import { Button } from '@commerce/ui/shadcn/button'
 import {
@@ -146,6 +147,7 @@ export default function MenuItemDialog({
             {copy.cancel}
           </Button>
           <Button type="button" onClick={handleSave}>
+            {initial ? <Save aria-hidden="true" /> : <Plus aria-hidden="true" />}
             {initial ? copy.update : copy.add}
           </Button>
         </DialogFooter>

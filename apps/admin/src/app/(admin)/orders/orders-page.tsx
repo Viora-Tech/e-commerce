@@ -1,19 +1,17 @@
 'use client'
 
-import { AppWindow, ExternalLink, SquarePlus, Trash2, Users } from '@commerce/ui/icons'
-import { Button } from '@commerce/ui/shadcn/button'
-import { Kbd } from '@commerce/ui/shadcn/kbd'
-import { Tooltip, TooltipContent, TooltipTrigger } from '@commerce/ui/shadcn/tooltip'
-import Link from 'next/link'
+import { AppWindow, ExternalLink, Users } from '@commerce/ui/icons'
 import { useRouter } from 'next/navigation'
 import { parseAsInteger, parseAsString, parseAsStringLiteral, useQueryStates } from 'nuqs'
 import { Suspense, useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
 import type { OrderActionGroup } from '@/apps/order-actions'
-import ActionMenu from '@/components/layout/action-menu'
 import ProoflyListPage from '@/components/layout/proofly-list-page'
 import DeleteTestOrdersDialog from '@/components/orders/delete-test-orders-dialog'
+import OrderRowMenu from '@/components/orders/order-row-menu'
 import OrdersBulkActions from '@/components/orders/orders-bulk-actions'
+import OrdersBulkDialogs, { type OrdersBulkRequest } from '@/components/orders/orders-bulk-dialogs'
+import OrdersHeaderActions from '@/components/orders/orders-header-actions'
 import OrdersTiles, { type OrderTilesData } from '@/components/orders/orders-tiles'
 import { useOrderAppActions } from '@/components/orders/use-order-app-actions'
 import InlineState from '@/components/states/inline-state'
@@ -24,7 +22,6 @@ import {
   FilterPanel,
 } from '@/components/table/filter-panel'
 import ResourceTable from '@/components/table/resource-table'
-import RowMenu from '@/components/table/row-menu'
 import ViewSelect from '@/components/table/view-select'
 import { filterPanelContent } from '@/data/filter-panel'
 import {
@@ -81,56 +78,6 @@ function fetchOrders(q: Query, perPage: number, f: OrderFiltersValue) {
   })
 }
 
-/* More actions (the other order lists, and "Delete test orders" while there are some) and the one key button. */
-function HeaderActions({
-  testOrders,
-  onDeleteTests,
-}: {
-  testOrders: number
-  onDeleteTests: () => void
-}) {
-  // Hooks
-  const copy = useCopy(ordersContent)
-
-  return (
-    <div className="flex items-center gap-2">
-      <ActionMenu
-        label={copy.moreActions}
-        trigger="button"
-        variant="key-neutral"
-        items={[
-          { label: copy.menu.drafts, href: routes.orders.drafts() },
-          { label: copy.menu.abandoned, href: routes.orders.abandonedCheckouts() },
-          { label: copy.menu.returns, href: routes.orders.returns() },
-          ...(testOrders > 0
-            ? [
-                {
-                  label: copy.deleteTests.menu,
-                  icon: Trash2,
-                  destructive: true,
-                  onSelect: onDeleteTests,
-                },
-              ]
-            : []),
-        ]}
-      />
-      <Tooltip>
-        <TooltipTrigger
-          render={
-            <Button render={<Link href={routes.orders.drafts()} />} nativeButton={false}>
-              <SquarePlus strokeWidth={1.6} />
-              {copy.addOrder}
-            </Button>
-          }
-        />
-        <TooltipContent>
-          {copy.addOrder} <Kbd>N</Kbd>
-        </TooltipContent>
-      </Tooltip>
-    </div>
-  )
-}
-
 function OrdersContent({ initial }: { initial: OrdersInitial }) {
   // Hooks
   const copy = useCopy(ordersContent)
@@ -159,6 +106,7 @@ function OrdersContent({ initial }: { initial: OrdersInitial }) {
   const [couriers, setCouriers] = useState<string[]>([])
   const [testOrders, setTestOrders] = useState(initial.result.testOrders)
   const [askDeleteTests, setAskDeleteTests] = useState(false)
+  const [bulkRequest, setBulkRequest] = useState<OrdersBulkRequest | null>(null)
 
   const hydrated = useRef(false)
   const apps = useOrderAppActions(initial.appActions, () => {
@@ -251,6 +199,8 @@ function OrdersContent({ initial }: { initial: OrdersInitial }) {
   }
 
   // Render logic
+  /** Tags already on the loaded orders, offered while adding tags from a row. */
+  const tagSuggestions = [...new Set(items.flatMap((o) => o.tags ?? []))]
   const perPage = parseRowsPerPage(rawPerPage)
   const columns = orderColumns(copy, fmt)
   const filters: OrderFiltersValue = { payment, fulfilment, date, method, courier }
@@ -272,7 +222,10 @@ function OrdersContent({ initial }: { initial: OrdersInitial }) {
         initial.counts.pendingUpi,
       )}
       actions={
-        <HeaderActions testOrders={testOrders} onDeleteTests={() => setAskDeleteTests(true)} />
+        <OrdersHeaderActions
+          testOrders={testOrders}
+          onDeleteTests={() => setAskDeleteTests(true)}
+        />
       }
       stats={
         <OrdersTiles
@@ -292,7 +245,14 @@ function OrdersContent({ initial }: { initial: OrdersInitial }) {
         getId={(o) => o.id}
         href={(o) => routes.orders.detail(o.id)}
         rowActions={(o) => (
-          <RowMenu
+          <OrderRowMenu
+            order={o}
+            appItems={apps.items('row', o, [o.id])}
+            tagSuggestions={tagSuggestions}
+            onChanged={() => {
+              router.refresh()
+              reload().catch(() => setFailed(true))
+            }}
             items={[
               { label: copy.row.open, href: routes.orders.detail(o.id), icon: AppWindow },
               {
@@ -310,7 +270,6 @@ function OrdersContent({ initial }: { initial: OrdersInitial }) {
                     },
                   ]
                 : []),
-              ...apps.items('row', o, [o.id]),
             ]}
           />
         )}
@@ -365,6 +324,7 @@ function OrdersContent({ initial }: { initial: OrdersInitial }) {
           <OrdersBulkActions
             ids={ids}
             onMark={(i, m) => handleBulkSetStatus(i, m, clear)}
+            onRequest={(kind, i) => setBulkRequest({ kind, ids: i, clear })}
             appActions={initial.appActions}
             onAppActionDone={() => {
               clear()
@@ -373,6 +333,16 @@ function OrdersContent({ initial }: { initial: OrdersInitial }) {
           />
         )}
         empty={searching ? copy.noResults : copy.empty}
+      />
+      <OrdersBulkDialogs
+        request={bulkRequest}
+        items={items}
+        tagSuggestions={tagSuggestions}
+        onClose={() => setBulkRequest(null)}
+        onDone={() => {
+          setBulkRequest(null)
+          reload().catch(() => setFailed(true))
+        }}
       />
       <DeleteTestOrdersDialog
         open={askDeleteTests}

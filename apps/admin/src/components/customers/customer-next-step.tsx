@@ -56,6 +56,7 @@ export default function CustomerNextStep({ customer, step }: CustomerNextStepPro
         </Button>
         {chat && mail ? (
           <Button variant="outline" render={<a href={mail} />} nativeButton={false}>
+            <Send aria-hidden="true" />
             {copy.email}
           </Button>
         ) : null}

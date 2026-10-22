@@ -1,6 +1,6 @@
 'use client'
 
-import { CircleAlert, CircleCheck, ExternalLink, Upload } from '@commerce/ui/icons'
+import { CircleAlert, CircleCheck, ExternalLink, RefreshCw, Upload } from '@commerce/ui/icons'
 import { Alert, AlertDescription, AlertTitle } from '@commerce/ui/shadcn/alert'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Card, CardDescription, CardHeader, CardTitle } from '@commerce/ui/shadcn/card'
@@ -273,7 +273,7 @@ export default function ConnectPage() {
                 onClick={handleTest}
                 disabled={test.status === 'testing'}
               >
-                {test.status === 'testing' ? <Spinner /> : null}
+                {test.status === 'testing' ? <Spinner /> : <RefreshCw aria-hidden="true" />}
                 {test.status === 'testing' ? copy.testing : copy.testConnection}
               </Button>
               {test.status === 'ok' ? (

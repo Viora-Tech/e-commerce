@@ -1,6 +1,7 @@
 'use client'
 
 import { NEW_FILE_KINDS_FOR } from '@commerce/core/theme-code'
+import { RotateCcw } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { useRouter } from 'next/navigation'
 import { useEffect, useRef, useState } from 'react'
@@ -145,6 +146,7 @@ export default function ThemeCodeEditor({ theme, origin, me, initialFile }: Them
       <div className="flex h-dvh flex-col items-center justify-center gap-3 bg-background">
         <p className="text-body text-muted-foreground">{copy.filesFailed}</p>
         <Button variant="outline" onClick={() => void code.loadList()}>
+          <RotateCcw aria-hidden="true" />
           {copy.retry}
         </Button>
       </div>

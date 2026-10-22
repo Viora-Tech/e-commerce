@@ -17,6 +17,7 @@ import ResourceTable from '@/components/table/resource-table'
 import ViewSelect from '@/components/table/view-select'
 import SingleLocation from '@/components/transfers/single-location'
 import { transferColumns } from '@/components/transfers/transfer-columns'
+import TransferRowMenu from '@/components/transfers/transfer-row-menu'
 import { TRANSFER_STATUSES, type TransferStatus, transfersContent } from '@/data/inventory'
 import { usePermissions } from '@/hooks/use-permissions'
 import { api } from '@/lib/api-client'
@@ -85,6 +86,18 @@ function TransfersContent({ initial }: { initial: TransfersInitial }) {
     }
   }, [q, initial.query])
 
+  // Helpers
+  const refresh = async () => {
+    const r = await api.transfers.list({
+      page: q.page,
+      perPage: q.perPage,
+      search: q.query || undefined,
+      status: q.status ?? undefined,
+    })
+    setRows(r.rows)
+    setTotal(r.total)
+  }
+
   // Render logic
   const canWrite = hasPermission(permissions.INVENTORY_WRITE)
   const single = initial.locations.length < 2
@@ -119,6 +132,11 @@ function TransfersContent({ initial }: { initial: TransfersInitial }) {
           items={rows}
           getId={(r) => r.id}
           href={(r) => routes.stock.transfer(r.id)}
+          rowActions={
+            canWrite
+              ? (r) => <TransferRowMenu transfer={r} onChanged={() => void refresh()} />
+              : undefined
+          }
           loading={loading}
           selectable={false}
           query={q.query}

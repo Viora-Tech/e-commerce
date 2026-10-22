@@ -1,4 +1,4 @@
-import { Palette } from '@commerce/ui/icons'
+import { Eye, Palette } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import type { Metadata } from 'next'
 import Link from 'next/link'
@@ -52,12 +52,14 @@ export default async function Page({ params }: Props) {
                 <a href={previewUrl(origin, theme.previewToken)} target="_blank" rel="noreferrer" />
               }
             >
+              <Eye aria-hidden="true" />
               {copy.preview}
             </Button>
             <Button
               nativeButton={false}
               render={<Link href={routes.onlineStore.themeEditor(theme.id)} />}
             >
+              <Palette aria-hidden="true" />
               {copy.customize}
             </Button>
           </>

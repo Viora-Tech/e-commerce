@@ -1,6 +1,6 @@
 'use client'
 
-import { Search } from '@commerce/ui/icons'
+import { PlugConnect, Search } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import {
   Dialog,
@@ -125,7 +125,7 @@ export default function AddGatewayDialog({
                     <StatusChip tone="success">{copy.connected}</StatusChip>
                   ) : canConnect ? (
                     <Button size="sm" onClick={() => handleConnect(g.id)} disabled={busy !== null}>
-                      {busy === g.id ? <Spinner /> : null}
+                      {busy === g.id ? <Spinner /> : <PlugConnect aria-hidden="true" />}
                       {busy === g.id ? copy.installing : copy.connect}
                     </Button>
                   ) : (

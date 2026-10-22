@@ -5,6 +5,7 @@ import {
   parseSynonymLines,
   synonymLines,
 } from '@commerce/plugin-meilisearch/settings'
+import { Save } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Textarea } from '@commerce/ui/shadcn/textarea'
 import { useState } from 'react'
@@ -70,6 +71,7 @@ export default function SynonymsCard({ synonyms, onSaved }: SynonymsCardProps) {
             disabled={saving || !dirty}
             onClick={handleSave}
           >
+            <Save aria-hidden="true" />
             {copy.synonyms.save}
           </Button>
         </div>

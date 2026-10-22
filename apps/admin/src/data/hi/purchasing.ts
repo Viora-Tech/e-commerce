@@ -65,6 +65,7 @@ export default [
     needName: 'सप्लायर का नाम लिखें',
     delete: 'हटाएँ',
     deleted: 'सप्लायर हटा दिया',
+    deleteFailed: 'सप्लायर हटाया नहीं जा सका',
     unsaved: 'सप्लायर सेव नहीं हुआ',
     discard: 'छोड़ें',
     confirmDelete: {
@@ -172,6 +173,7 @@ export default [
     failed: 'खेप सेव नहीं हो सकी',
     delete: 'हटाएँ',
     deleted: 'खेप हटा दी',
+    deleteFailed: 'खेप हटाई नहीं जा सकी',
     unsaved: 'खेप सेव नहीं हुई',
     discard: 'छोड़ें',
     confirmDelete: {

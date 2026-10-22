@@ -12,14 +12,16 @@ import { parseAsInteger, parseAsString, parseAsStringLiteral, useQueryStates } f
 import { Suspense, useEffect, useRef, useState } from 'react'
 import GiftCardProductDialog from '@/components/gift-cards/gift-card-product-dialog'
 import GiftCardProductsCard from '@/components/gift-cards/gift-card-products-card'
+import GiftCardRowMenu from '@/components/gift-cards/gift-card-row-menu'
 import GiftCardSettingsCard from '@/components/gift-cards/gift-card-settings-card'
+import GiftCardStateTabs from '@/components/gift-cards/gift-card-state-tabs'
 import GiftCardTiles from '@/components/gift-cards/gift-card-tiles'
+import GiftCardsBulkActions from '@/components/gift-cards/gift-cards-bulk-actions'
 import EmptyState from '@/components/layout/empty-state'
 import ProoflyListPage from '@/components/layout/proofly-list-page'
 import RelativeTime from '@/components/layout/relative-time'
 import OrderChip from '@/components/orders/order-chip'
 import ResourceTable, { type ResourceColumnSpec } from '@/components/table/resource-table'
-import ViewSelect from '@/components/table/view-select'
 import { GIFT_CARD_STATES, type GiftCardStateFilter, giftCardsContent } from '@/data/gift-cards'
 import { api } from '@/lib/api-client'
 import { type ListQuery, sameListQuery } from '@/lib/list-query'
@@ -129,25 +131,6 @@ const columns: ResourceColumnSpec<Item>[] = [
   },
 ]
 
-type TabsProps = {
-  value: GiftCardStateFilter | null
-  allCount: number
-  onChange: (s: GiftCardStateFilter | null) => void
-}
-
-function StateTabs({ value, allCount, onChange }: TabsProps) {
-  return (
-    <ViewSelect<GiftCardStateFilter | null>
-      value={value}
-      onChange={onChange}
-      options={[
-        { value: null, label: copy.tabs.all, count: allCount },
-        ...GIFT_CARD_STATES.map((s) => ({ value: s, label: copy.tabs[s] })),
-      ]}
-    />
-  )
-}
-
 function GiftCardsContent({ initial }: { initial: GiftCardsInitial }) {
   // Hooks
   usePrimaryAction(routes.products.newGiftCard())
@@ -183,6 +166,11 @@ function GiftCardsContent({ initial }: { initial: GiftCardsInitial }) {
     }
   }, [page, perPage, query, status, initial.query])
 
+  // Helpers
+  const refresh = async () => {
+    setResult(await fetchCards({ page, perPage, query, status }))
+  }
+
   // Event handlers
   const handleProductCreated = async () => {
     setProducts(await api.giftCards.products())
@@ -193,6 +181,7 @@ function GiftCardsContent({ initial }: { initial: GiftCardsInitial }) {
   const actions = (
     <div className="flex items-center gap-2">
       <Button variant="outline" onClick={() => setProductOpen(true)}>
+        <Plus strokeWidth={1.6} aria-hidden="true" />
         {copy.addProduct}
       </Button>
       <Tooltip>
@@ -246,12 +235,22 @@ function GiftCardsContent({ initial }: { initial: GiftCardsInitial }) {
           items={result.rows}
           getId={(g) => g.id}
           href={(g) => routes.products.giftCard(g.id)}
+          rowActions={(g) => <GiftCardRowMenu card={g} onChanged={() => void refresh()} />}
+          bulkActions={(ids, clear) => (
+            <GiftCardsBulkActions
+              ids={ids}
+              onDone={() => {
+                clear()
+                void refresh()
+              }}
+            />
+          )}
           loading={loading}
           query={query}
           onQueryChange={(query) => setQ({ query, page: 1 })}
           onClearAll={() => setQ({ query: '', status: null, page: 1 })}
           views={
-            <StateTabs
+            <GiftCardStateTabs
               value={status}
               allCount={initial.allCount}
               onChange={(s) => setQ({ status: s, page: 1 })}
@@ -262,7 +261,6 @@ function GiftCardsContent({ initial }: { initial: GiftCardsInitial }) {
           onPerPageChange={(next) => setQ({ perPage: next, page: 1 })}
           total={result.total}
           onPageChange={(page) => setQ({ page })}
-          selectable={false}
           empty={copy.empty}
         />
       )}

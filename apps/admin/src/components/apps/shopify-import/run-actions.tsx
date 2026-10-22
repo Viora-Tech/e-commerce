@@ -1,6 +1,6 @@
 'use client'
 
-import { ExternalLink } from '@commerce/ui/icons'
+import { ExternalLink, Eye, RotateCcw, Upload } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Spinner } from '@commerce/ui/shadcn/spinner'
 import { useRouter } from 'next/navigation'
@@ -106,16 +106,19 @@ export default function RunActions({ run, onQueued }: RunActionsProps) {
     <>
       {canPreview ? (
         <Button type="button" variant="outline" onClick={handlePreview} disabled={busy}>
+          <Eye aria-hidden="true" />
           {view.previewAgain}
         </Button>
       ) : null}
       {canRetry && !run.retryOf ? (
         <Button type="button" variant="outline" onClick={handleStart} disabled={busy}>
+          <Upload aria-hidden="true" />
           {copy.importAll}
         </Button>
       ) : null}
       {showStore ? (
         <Button type="button" variant="outline" onClick={handleStart} disabled={busy}>
+          <RotateCcw aria-hidden="true" />
           {copy.runAgain}
         </Button>
       ) : null}
@@ -129,7 +132,7 @@ export default function RunActions({ run, onQueued }: RunActionsProps) {
         </Button>
       ) : canRetry ? (
         <Button type="button" onClick={handleRetry} disabled={busy}>
-          {busy ? <Spinner /> : null}
+          {busy ? <Spinner /> : <RotateCcw aria-hidden="true" />}
           {copy.retryMissed(run.retryable)}
         </Button>
       ) : (

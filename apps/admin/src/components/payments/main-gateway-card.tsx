@@ -24,6 +24,11 @@ type MainGatewayCardProps = {
   onAdd: () => void
   onChanged: () => void
   onTurnOnUpi: () => void
+  /**
+   * `page`: the gateway's own page, Shopify style: the "Test mode" card and a red Deactivate
+   * sit under this card. `card` (Payments overview): the mode chip only; both live on that page.
+   */
+  layout?: 'card' | 'page'
 }
 
 const monogramOf = (id: string) =>
@@ -37,6 +42,7 @@ export default function MainGatewayCard({
   onAdd,
   onChanged,
   onTurnOnUpi,
+  layout = 'card',
 }: MainGatewayCardProps) {
   // Hooks
   const { main: copy } = useCopy(paymentsSetupContent)
@@ -64,7 +70,7 @@ export default function MainGatewayCard({
   // Render logic
   const healthy = primary.problems.length === 0
 
-  return (
+  const card = (
     <Card>
       <CardContent className="flex flex-col gap-4">
         <div className="flex flex-wrap items-start gap-3">
@@ -110,8 +116,6 @@ export default function MainGatewayCard({
           </div>
         </div>
 
-        {gateway ? <GatewaySwitches gateway={gateway} onChanged={onChanged} /> : null}
-
         <dl className="grid gap-3 text-body sm:grid-cols-2">
           <div className="flex flex-col gap-0.5">
             <dt className="text-caption text-muted-foreground">{copy.lastPayment}</dt>
@@ -141,7 +145,7 @@ export default function MainGatewayCard({
           </ul>
         )}
 
-        {gateway ? (
+        {gateway && layout === 'card' ? (
           <GatewayActiveFooter
             gateway={gateway}
             name={primary.label}
@@ -151,5 +155,21 @@ export default function MainGatewayCard({
         ) : null}
       </CardContent>
     </Card>
+  )
+
+  if (layout === 'card' || !gateway) return card
+
+  return (
+    <>
+      {card}
+      <GatewaySwitches gateway={gateway} onChanged={onChanged} />
+      <GatewayActiveFooter
+        gateway={gateway}
+        name={primary.label}
+        onlyOnline={onlyOnline}
+        onChanged={onChanged}
+        placement="page"
+      />
+    </>
   )
 }

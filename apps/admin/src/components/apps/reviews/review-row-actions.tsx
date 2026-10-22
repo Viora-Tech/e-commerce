@@ -1,6 +1,6 @@
 'use client'
 
-import { CircleCheck, Eye, EyeOff, Trash2 } from '@commerce/ui/icons'
+import { CircleCheck, Eye, EyeOff, StarIcon, Trash2 } from '@commerce/ui/icons'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import ActionMenu from '@/components/layout/action-menu'
@@ -13,6 +13,7 @@ import DeleteReviewsDialog from './delete-reviews-dialog'
 type ReviewRowActionsProps = {
   id: string
   status: 'pending' | 'published' | 'hidden'
+  featured: boolean
   onChanged: () => void
 }
 
@@ -20,7 +21,12 @@ type ReviewRowActionsProps = {
  * The menu at the end of a review row. The row opens the review on click, so every event
  * the cell owns stops here; the menu and the delete dialog are portalled out of the row.
  */
-export default function ReviewRowActions({ id, status, onChanged }: ReviewRowActionsProps) {
+export default function ReviewRowActions({
+  id,
+  status,
+  featured,
+  onChanged,
+}: ReviewRowActionsProps) {
   // Hooks
   const { list: copy } = useCopy(reviewsContent)
   const [deleting, setDeleting] = useState(false)
@@ -30,6 +36,16 @@ export default function ReviewRowActions({ id, status, onChanged }: ReviewRowAct
     try {
       await api.reviews.setStatus({ ids: [id], status: next })
       toast.success(next === 'published' ? copy.bulk.approved(1) : copy.bulk.hidden(1))
+      onChanged()
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : copy.failed)
+    }
+  }
+
+  const handleFeatured = async (next: boolean) => {
+    try {
+      await api.reviews.setFeatured({ id, featured: next })
+      toast.success(next ? copy.row.featured : copy.row.unfeatured)
       onChanged()
     } catch (err) {
       toast.error(err instanceof Error ? err.message : copy.failed)
@@ -56,6 +72,11 @@ export default function ReviewRowActions({ id, status, onChanged }: ReviewRowAct
             icon: EyeOff,
             hidden: status === 'hidden',
             onSelect: () => handleStatus('hidden'),
+          },
+          {
+            label: featured ? copy.row.unfeature : copy.row.feature,
+            icon: StarIcon,
+            onSelect: () => handleFeatured(!featured),
           },
           {
             label: copy.row.delete,

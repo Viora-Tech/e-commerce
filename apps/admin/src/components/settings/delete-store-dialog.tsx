@@ -1,5 +1,6 @@
 'use client'
 
+import { Trash2 } from '@commerce/ui/icons'
 import {
   AlertDialog,
   AlertDialogCancel,
@@ -83,6 +84,7 @@ export default function DeleteStoreDialog({
         <AlertDialogFooter>
           <AlertDialogCancel disabled={busy}>{copy.cancel}</AlertDialogCancel>
           <Button variant="destructive" onClick={handleConfirm} disabled={!ok || busy}>
+            <Trash2 aria-hidden="true" />
             {busy ? copy.deleting : copy.confirm}
           </Button>
         </AlertDialogFooter>

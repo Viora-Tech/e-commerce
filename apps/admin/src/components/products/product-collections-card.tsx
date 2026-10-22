@@ -1,5 +1,6 @@
 'use client'
 
+import { Save } from '@commerce/ui/icons'
 import { Badge } from '@commerce/ui/shadcn/badge'
 import { Button } from '@commerce/ui/shadcn/button'
 import { FieldDescription, FieldLabel } from '@commerce/ui/shadcn/field'
@@ -7,9 +8,7 @@ import { Skeleton } from '@commerce/ui/shadcn/skeleton'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import DataCard from '@/components/layout/data-card'
-
 import { productCollectionsCardContent } from '@/data/collections'
-
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 import ProductCollectionsField, { type CollectionOption } from './product-collections-field'
@@ -83,6 +82,7 @@ export default function ProductCollectionsCard({
       action={
         productId && dirty ? (
           <Button size="sm" onClick={() => void handleSave()} disabled={busy}>
+            <Save aria-hidden="true" />
             {busy ? copy.saving : copy.save}
           </Button>
         ) : null

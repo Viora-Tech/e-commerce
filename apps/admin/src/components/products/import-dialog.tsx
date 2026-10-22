@@ -1,5 +1,6 @@
 'use client'
 
+import { Upload } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import {
   Dialog,
@@ -165,6 +166,7 @@ export default function ImportDialog({ open, onOpenChange, onImported }: ImportD
             {copy.cancel}
           </Button>
           <Button onClick={handleImport} disabled={busy || !summary || summary.total === 0}>
+            <Upload aria-hidden="true" />
             {busy ? copy.running : copy.start}
           </Button>
         </DialogFooter>

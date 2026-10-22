@@ -1,5 +1,6 @@
 'use client'
 
+import { Pencil, Save } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import {
   Dialog,
@@ -70,6 +71,7 @@ export default function BalanceCard({ card, onChanged }: BalanceCardProps) {
       title={copy.balance.heading}
       action={
         <Button variant="outline" size="sm" onClick={handleOpen}>
+          <Pencil aria-hidden="true" />
           {copy.balance.adjust}
         </Button>
       }
@@ -118,6 +120,7 @@ export default function BalanceCard({ card, onChanged }: BalanceCardProps) {
               {copy.adjust.cancel}
             </Button>
             <Button onClick={() => handleSave(delta)} disabled={!canSave}>
+              <Save aria-hidden="true" />
               {busy ? copy.adjust.saving : copy.adjust.save}
             </Button>
           </DialogFooter>

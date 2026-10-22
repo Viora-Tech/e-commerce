@@ -20,12 +20,19 @@ import SettingsSearch from './settings-search'
 const FOCUS =
   'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2'
 
-/* Proofly settings nav: text-only 32px rows, the active one on a soft blue fill. */
-const TAB = `relative isolate flex h-[1.875rem] w-full min-w-0 items-center rounded-[0.5rem] pr-3 pl-5 text-nav text-ink-strong transition-colors hover:bg-muted ${FOCUS}`
-const TAB_ACTIVE = 'text-sidebar-accent-foreground hover:bg-transparent'
+/* Proofly settings nav: 32px rows with the section's icon, the active one on a soft blue fill. */
+const TAB = `relative isolate flex h-[1.875rem] w-full min-w-0 items-center gap-2.5 rounded-[0.5rem] pr-3 pl-3 [&_svg]:size-4 [&_svg]:shrink-0 [&_svg]:text-muted-foreground text-nav text-ink-strong transition-colors hover:bg-muted ${FOCUS}`
+const TAB_ACTIVE =
+  'text-sidebar-accent-foreground hover:bg-transparent [&_svg]:text-sidebar-accent-foreground'
 
 /* Phones: the Settings home is the list, so a page only needs the way back to it. */
 const BACK = `-ml-1 inline-flex h-9 items-center gap-1 self-start rounded-md pr-2 pl-1 text-nav text-muted-foreground transition-colors hover:text-foreground [&_svg]:size-4 ${FOCUS}`
+
+/** Each group short names first, so the rail reads as a tidy ragged edge (by the shown, translated name). */
+function byNameLength(sections: readonly SettingsSection[], locale: Locale): SettingsSection[] {
+  const name = (s: SettingsSection) => pageName(s.href, s.title, locale)
+  return [...sections].sort((a, b) => name(a).length - name(b).length)
+}
 
 function isTabActive(pathname: string, href: string): boolean {
   // The settings home only lights up on itself, not on every page under it.
@@ -76,7 +83,7 @@ export default function SettingsNav() {
               {copy.groups[group.id]}
             </p>
             <ul aria-labelledby={`settings-group-${group.id}`} className="flex flex-col">
-              {group.sections.map((section) => (
+              {byNameLength(group.sections, locale).map((section) => (
                 <NavTab
                   key={section.href}
                   section={section}
@@ -119,6 +126,7 @@ function NavTab({ section, pathname, locale, slide }: NavTabProps) {
             aria-hidden
           />
         ) : null}
+        <section.icon aria-hidden="true" />
         <span className="min-w-0 truncate">{pageName(section.href, section.title, locale)}</span>
       </Link>
     </li>

@@ -1,5 +1,6 @@
 'use client'
 
+import { Trash2 } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { useEffect, useState } from 'react'
 import SettingsCard from '@/components/settings/settings-card'
@@ -43,6 +44,7 @@ export default function DeleteAccountCard() {
           onClick={() => setOpen(true)}
           disabled={!deletion || owned.length > 0}
         >
+          <Trash2 aria-hidden="true" />
           {copy.button}
         </Button>
       </div>

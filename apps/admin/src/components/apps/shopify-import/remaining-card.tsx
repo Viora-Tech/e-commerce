@@ -6,7 +6,7 @@ import {
   type ImportStatus,
   type ResourceStatus,
 } from '@commerce/plugin-shopify-import/client'
-import { Store } from '@commerce/ui/icons'
+import { PlugConnect, Store } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Skeleton } from '@commerce/ui/shadcn/skeleton'
 import { Spinner } from '@commerce/ui/shadcn/spinner'
@@ -188,6 +188,7 @@ export default function RemainingCard({ connected }: RemainingCardProps) {
           body={copy.notConnected}
           action={
             <Button nativeButton={false} render={<Link href={`${base}/connect`} />}>
+              <PlugConnect aria-hidden="true" />
               {copy.connectAction}
             </Button>
           }

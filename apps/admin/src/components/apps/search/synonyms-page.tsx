@@ -2,6 +2,7 @@
 
 import { MAX_SYNONYM_GROUPS } from '@commerce/core/search'
 import { parseSynonymLines, synonymLines } from '@commerce/plugin-search'
+import { Save } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Textarea } from '@commerce/ui/shadcn/textarea'
 import { useEffect, useState } from 'react'
@@ -75,6 +76,7 @@ export default function SynonymsPage() {
               disabled={saving || !dirty}
               onClick={handleSave}
             >
+              <Save aria-hidden="true" />
               {copy.synonyms.save}
             </Button>
           </div>

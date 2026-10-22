@@ -1,5 +1,6 @@
 'use client'
 
+import { CheckIcon } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import {
   Dialog,
@@ -96,6 +97,7 @@ export default function InventoryBulkDialog({
             {copy.cancel}
           </Button>
           <Button onClick={handleApply} disabled={!valid || busy}>
+            <CheckIcon aria-hidden="true" />
             {copy.apply}
           </Button>
         </DialogFooter>

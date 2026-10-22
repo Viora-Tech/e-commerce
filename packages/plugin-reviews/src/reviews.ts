@@ -73,6 +73,7 @@ export async function listReviews(tx: StoreTx, input: ReviewListInput) {
       body: review.body,
       reviewerName: review.reviewerName,
       verifiedBuyer: review.verifiedBuyer,
+      featured: review.featured,
       status: review.status,
       source: review.source,
       hasPhotos: hasPhotosSql,

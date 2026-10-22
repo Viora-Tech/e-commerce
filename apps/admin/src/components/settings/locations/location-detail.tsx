@@ -2,7 +2,7 @@
 
 import type { GstRegistrationView, LocationBillingView } from '@commerce/core'
 import { permissions } from '@commerce/core/permissions'
-import { MapPinLineIcon, Pencil, TriangleAlert } from '@commerce/ui/icons'
+import { MapPinLineIcon, Pencil, Plus, TriangleAlert } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
@@ -142,6 +142,7 @@ export default function LocationDetail({ location, registrations }: LocationDeta
                 render={<Link href={routes.settings.taxes()} />}
                 nativeButton={false}
               >
+                <Plus aria-hidden="true" />
                 {copy.addGst}
               </Button>
             ) : null}

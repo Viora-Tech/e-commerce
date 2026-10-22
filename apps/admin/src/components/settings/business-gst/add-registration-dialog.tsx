@@ -3,7 +3,7 @@
 import type { Business, GstRegistrationErrorCode } from '@commerce/core'
 import { RegistrationInputSchema } from '@commerce/core/gst-registrations'
 import { gstinStateOf } from '@commerce/core/tax-settings'
-import { MapPinLineIcon } from '@commerce/ui/icons'
+import { CheckIcon, MapPinLineIcon } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Checkbox } from '@commerce/ui/shadcn/checkbox'
 import {
@@ -266,6 +266,7 @@ export default function AddRegistrationDialog({
               {copy.cancel}
             </DialogClose>
             <Button type="submit" disabled={saving || !form.gstin}>
+              <CheckIcon aria-hidden="true" />
               {copy.submit}
             </Button>
           </DialogFooter>

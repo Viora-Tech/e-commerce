@@ -1,6 +1,6 @@
 'use client'
 
-import { ExternalLink } from '@commerce/ui/icons'
+import { ExternalLink, RefreshCw } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Input } from '@commerce/ui/shadcn/input'
 import { NativeSelect, NativeSelectOption } from '@commerce/ui/shadcn/native-select'
@@ -244,6 +244,7 @@ export default function SettingsPage() {
             disabled={busy !== null || !canTest}
             onClick={handleTest}
           >
+            <RefreshCw aria-hidden="true" />
             {copy.connect.test}
           </Button>
         </SettingsRow>

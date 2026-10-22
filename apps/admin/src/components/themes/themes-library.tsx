@@ -1,7 +1,7 @@
 'use client'
 
 import type { ThemePackId } from '@commerce/core/theme'
-import { Plus, Upload } from '@commerce/ui/icons'
+import { Copy, Plus, Upload } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import Link from 'next/link'
 import { useState } from 'react'
@@ -208,6 +208,7 @@ export default function ThemesLibrary({
                   disabled={busy}
                   onClick={() => handleAction(live, 'duplicate')}
                 >
+                  <Copy aria-hidden="true" />
                   {copy.duplicateCurrent}
                 </Button>
               ) : null}

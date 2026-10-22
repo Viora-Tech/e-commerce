@@ -1,6 +1,7 @@
 'use client'
 
 import { dayStart } from '@commerce/dates'
+import { Pencil, Save } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Input } from '@commerce/ui/shadcn/input'
 import { useState } from 'react'
@@ -58,6 +59,7 @@ export default function ExpiryCard({ card, onChanged }: ExpiryCardProps) {
       action={
         editing ? null : (
           <Button variant="ghost" size="sm" onClick={handleEdit}>
+            <Pencil aria-hidden="true" />
             {copy.edit}
           </Button>
         )
@@ -73,6 +75,7 @@ export default function ExpiryCard({ card, onChanged }: ExpiryCardProps) {
           />
           <div className="flex flex-wrap gap-2">
             <Button size="sm" onClick={() => save(value || null)} disabled={busy || !value}>
+              <Save aria-hidden="true" />
               {copy.save}
             </Button>
             {card.expiresOn ? (

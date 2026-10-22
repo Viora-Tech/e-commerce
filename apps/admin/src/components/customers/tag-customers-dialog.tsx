@@ -1,5 +1,6 @@
 'use client'
 
+import { Tag, Trash2 } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import {
   Dialog,
@@ -78,6 +79,7 @@ export default function TagCustomersDialog({
             {copy.cancel}
           </Button>
           <Button onClick={handleApply} disabled={saving || tag.trim().length === 0}>
+            {action === 'remove' ? <Trash2 aria-hidden="true" /> : <Tag aria-hidden="true" />}
             {action === 'remove' ? copy.removeTag : copy.addTag}
           </Button>
         </DialogFooter>

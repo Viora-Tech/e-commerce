@@ -3,6 +3,7 @@ import type { Metadata } from 'next'
 import { ARTICLE_TABS, blogListContent } from '@/data/blog'
 import { appRouter, call, serverContext } from '@/lib/api'
 import { parseListQuery, type SearchParams } from '@/lib/list-query'
+import { storefrontOrigin } from '@/lib/storefront-origin'
 import BlogPostsPage from './blog-posts-page'
 
 export const metadata: Metadata = { title: blogListContent.heading }
@@ -37,5 +38,10 @@ export default async function Page({ searchParams }: Props) {
     call(appRouter.blog.tags, undefined, { context }),
   ])
 
-  return <BlogPostsPage initial={{ query, perPage, result, counts, blogs, tags }} />
+  return (
+    <BlogPostsPage
+      initial={{ query, perPage, result, counts, blogs, tags }}
+      storefrontOrigin={await storefrontOrigin()}
+    />
+  )
 }

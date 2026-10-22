@@ -6,6 +6,7 @@ import {
   type PreflightCheck,
   REQUIRED_SCOPES,
 } from '@commerce/plugin-shopify-import/client'
+import { Eye } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { CardContent } from '@commerce/ui/shadcn/card'
 import { Checkbox } from '@commerce/ui/shadcn/checkbox'
@@ -202,7 +203,7 @@ export default function ConnectPage() {
           onClick={handlePreview}
           disabled={busy || stopped || importable.length === 0}
         >
-          {busy ? <Spinner /> : null}
+          {busy ? <Spinner /> : <Eye aria-hidden="true" />}
           {copy.preview}
         </Button>
       </div>

@@ -8,6 +8,7 @@ import {
   type IconComponent,
   Images,
   MessageSquare,
+  Plus,
   Store,
   Users,
 } from '@commerce/ui/icons'
@@ -88,6 +89,7 @@ export default function NewContentType() {
               nativeButton={false}
               render={<Link href={routes.content.newBlankContentType()} />}
             >
+              <Plus aria-hidden="true" />
               {copy.startBlank}
             </Button>
           }
@@ -131,6 +133,7 @@ export default function NewContentType() {
                   {copy.name.change}
                 </Button>
                 <Button size="lg" disabled={busy} onClick={handleCreate}>
+                  <Plus aria-hidden="true" />
                   {busy ? copy.name.creating : copy.name.create}
                 </Button>
               </div>

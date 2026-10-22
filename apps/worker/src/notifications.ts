@@ -70,6 +70,7 @@ export function createNotificationWorker(
         signupId,
         contactMessageId,
         reviewId,
+        custom,
       } = job.data
       // The one message without an order: the newsletter confirm link (double opt-in).
       if (template === 'newsletter_confirm') {
@@ -239,6 +240,8 @@ export function createNotificationWorker(
             settingsSecret: opts.settingsSecret,
             storefrontUrl: opts.storefrontUrl,
             extras: appEmailExtras(db, opts, storeId),
+            // The merchant's own subject and note from the "Review email" dialog.
+            data: custom ? { custom } : undefined,
             // A keyed job is one of several of the same template (a re-sent balance
             // request, the second reminder): send it even though the template went before.
             resend: key !== undefined,

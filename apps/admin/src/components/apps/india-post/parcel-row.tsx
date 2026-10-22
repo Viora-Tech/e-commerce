@@ -1,7 +1,7 @@
 'use client'
 
 import { INDIA_POST_TRACKING_PAGE } from '@commerce/shipping-indiapost/client'
-import { ExternalLink, Printer } from '@commerce/ui/icons'
+import { ExternalLink, Printer, Save } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { NativeSelect, NativeSelectOption } from '@commerce/ui/shadcn/native-select'
 import { Spinner } from '@commerce/ui/shadcn/spinner'
@@ -104,7 +104,7 @@ export default function ParcelRow({ parcel, onSaved }: ParcelRowProps) {
           ))}
         </NativeSelect>
         <Button size="sm" onClick={handleSave} disabled={!changed || saving}>
-          {saving ? <Spinner /> : null}
+          {saving ? <Spinner /> : <Save aria-hidden="true" />}
           {saving ? copy.parcels.saving : copy.parcels.update}
         </Button>
         {parcel.labelUrl ? (

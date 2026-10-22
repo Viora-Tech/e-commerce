@@ -1,6 +1,6 @@
 'use client'
 
-import { TriangleAlert } from '@commerce/ui/icons'
+import { Plus, TriangleAlert } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
@@ -77,6 +77,7 @@ export default function OrderReturnsCard({ orderId, readOnly, onChanged }: Order
       action={
         canCreate ? (
           <Button variant="outline" onClick={() => setCreating(true)}>
+            <Plus aria-hidden="true" />
             {copy.create}
           </Button>
         ) : undefined

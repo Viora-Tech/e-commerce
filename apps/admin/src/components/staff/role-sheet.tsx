@@ -1,6 +1,7 @@
 'use client'
 
 import type { Permission } from '@commerce/core/permissions'
+import { Save } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Input } from '@commerce/ui/shadcn/input'
 import { Label } from '@commerce/ui/shadcn/label'
@@ -114,6 +115,7 @@ export default function RoleSheet({ open, role, onOpenChange, onSaved }: RoleShe
         <SheetFooter className="flex-row justify-end gap-2">
           <SheetClose render={<Button variant="outline" />}>{copy.roleForm.cancel}</SheetClose>
           <Button disabled={readOnly || saving || !name.trim()} onClick={handleSave}>
+            <Save aria-hidden="true" />
             {copy.roleForm.save}
           </Button>
         </SheetFooter>

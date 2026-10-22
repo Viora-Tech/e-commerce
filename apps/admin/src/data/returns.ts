@@ -281,3 +281,25 @@ export const returnSettingsContent = {
   failed: 'Could not save. Please try again.',
   atLeastOne: 'Choose at least one reason.',
 } as const
+
+/** Row and bulk actions on the Returns list (decide, mark arrived, close) without opening each. */
+export const returnListActionsContent = {
+  approve: 'Approve',
+  approveSelected: (n: number) => `Approve ${n}`,
+  approveTitle: (n: number) => `Approve ${n === 1 ? 'this return' : `${n} returns`}?`,
+  approveBody:
+    'Each customer gets an email that their return is approved. Choose how the items come back (courier pickup or the customer sends them) on each return page.',
+  close: 'Close return',
+  closeSelected: (n: number) => `Close ${n}`,
+  closeTitle: (n: number) => `Close ${n === 1 ? 'this return' : `${n} returns`} without a refund?`,
+  closeBody:
+    'Closing settles the return with no refund, store credit or exchange. Only returns that have arrived can be closed; the rest are skipped.',
+  summary: (done: number, skipped: number, failed: number) =>
+    [
+      `${done} ${done === 1 ? 'return' : 'returns'} updated`,
+      skipped > 0 ? `${skipped} skipped` : null,
+      failed > 0 ? `${failed} failed` : null,
+    ]
+      .filter(Boolean)
+      .join(', '),
+}

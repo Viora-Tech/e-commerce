@@ -1,4 +1,4 @@
-import { settingsSecret } from '@commerce/config'
+import { loadEnv, settingsSecret } from '@commerce/config'
 import {
   CommerceError,
   CourierChargeInputSchema,
@@ -10,13 +10,16 @@ import {
   ORDER_FULFILLMENT_STATUSES,
   ORDER_MARKS,
   ORDER_PAYMENT_STATUSES,
+  ORDER_PREVIEW_TEMPLATES,
   OrderNotFound,
   orderProfit,
   permissions,
+  previewOrderMessage,
   ReminderTooSoon,
   requestBalance,
   sendManualPaymentReminder,
   setCourierCharge,
+  storeNotificationChannels,
   updateOrderContact,
 } from '@commerce/core'
 import { ORPCError } from '@orpc/server'
@@ -36,7 +39,6 @@ import {
   readyToShipCount,
   refundOrderPayment,
   setOrderStatus,
-  setOrderTags,
 } from '../services/order.service'
 import {
   collectOrderPayment,
@@ -46,14 +48,15 @@ import {
   orderBalance,
   orderNeighbours,
 } from '../services/order-fulfil.service'
-import { orderSheet } from '../services/order-sheet.service'
 import {
   bookShipment,
   cancelStoreShipment,
   getShipmentForOrder,
   refreshShipmentTracking,
 } from '../services/shipping.service'
+import { customMessage } from './custom-message'
 import { draftAndAbandonedRoutes } from './order-drafts'
+import { orderListRoutes } from './order-list'
 
 /** What "Mark as" on the order page records; the statuses are then derived. */
 const change = z.enum(ORDER_MARKS)
@@ -281,15 +284,47 @@ export const ordersRouter = {
    * (when set up) with a signed pay link. Can be sent again; reminders and
    * the store's unpaid-balance rule count from the first request.
    */
+  /**
+   * The email (and WhatsApp text) a hand-sent message would carry for this order, filled with
+   * the order's own details, for the "Review email" dialog before Send. Nothing is sent.
+   */
+  previewMessage: can(permissions.ORDERS_READ)
+    .input(
+      z.object({
+        orderId: z.uuid(),
+        template: z.enum(ORDER_PREVIEW_TEMPLATES),
+        custom: customMessage,
+      }),
+    )
+    .handler(async ({ context, input }) => {
+      // WhatsApp only shows when the store has a WhatsApp channel set up.
+      const { notifications } = await storeRegistries(context.tx, context.scope.storeId)
+      const channels = await storeNotificationChannels(context.tx, context.scope.storeId, {
+        registry: notifications,
+        settingsSecret: settingsSecret(),
+      })
+      const preview = await previewOrderMessage(
+        { storeId: context.scope.storeId, tx: context.tx },
+        input,
+        {
+          storefrontUrl: loadEnv(process.env).STOREFRONT_URL,
+          settingsSecret: settingsSecret(),
+          whatsapp: channels.some((c) => c.requires === 'phone'),
+        },
+      )
+      if (!preview) throw new ORPCError('NOT_FOUND', { message: 'Order not found' })
+      return preview
+    }),
+
   requestBalance: can(permissions.ORDERS_WRITE)
-    .input(z.object({ orderId: z.uuid() }))
+    .input(z.object({ orderId: z.uuid(), custom: customMessage }))
     .handler(async ({ context, input }) => {
       await assertNotImported(context.tx, { orderId: input.orderId })
       try {
         return await requestBalance(
           { storeId: context.scope.storeId, tx: context.tx },
           input.orderId,
-          { author: context.session.user.email },
+          { author: context.session.user.email, custom: input.custom },
         )
       } catch (err) {
         if (err instanceof CommerceError) {
@@ -304,14 +339,14 @@ export const ordersRouter = {
    * WhatsApp when set up, with the QR and bank details. At most once every 6 hours.
    */
   sendPaymentReminder: can(permissions.ORDERS_WRITE)
-    .input(z.object({ orderId: z.uuid() }))
+    .input(z.object({ orderId: z.uuid(), custom: customMessage }))
     .handler(async ({ context, input }) => {
       await assertNotImported(context.tx, { orderId: input.orderId })
       try {
         return await sendManualPaymentReminder(
           { storeId: context.scope.storeId, tx: context.tx },
           input.orderId,
-          { author: context.session.user.email },
+          { author: context.session.user.email, custom: input.custom },
         )
       } catch (err) {
         if (err instanceof ReminderTooSoon) {
@@ -466,14 +501,6 @@ export const ordersRouter = {
       }),
     ),
 
-  /** Rows for the Orders bulk-edit spreadsheet, in the order the ids were given. */
-  sheet: can(permissions.ORDERS_READ)
-    .input(z.object({ ids: z.array(z.uuid()).min(1).max(5000) }))
-    .handler(({ context, input }) => orderSheet(context.tx, input.ids)),
-
-  setTags: can(permissions.ORDERS_WRITE)
-    .input(z.object({ id: z.uuid(), tags: z.array(z.string().trim().min(1).max(40)).max(20) }))
-    .handler(({ context, input }) => setOrderTags(context.tx, input.id, input.tags)),
-
+  ...orderListRoutes,
   ...draftAndAbandonedRoutes,
 }

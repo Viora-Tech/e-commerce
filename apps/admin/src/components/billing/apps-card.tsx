@@ -2,6 +2,7 @@
 
 import type { AppBill } from '@commerce/core'
 import type { AppAccess } from '@commerce/core/billing'
+import { CreditCard } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
@@ -77,6 +78,7 @@ export default function AppsCard({ apps }: AppsCardProps) {
                   nativeButton={false}
                   render={<a href={a.due.url} target="_blank" rel="noopener noreferrer" />}
                 >
+                  <CreditCard aria-hidden="true" />
                   {copy.apps.pay}
                 </Button>
               ) : null}

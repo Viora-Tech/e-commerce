@@ -84,6 +84,18 @@ export const productsListContent = {
     archive: 'Archive',
     addTag: 'Add tag',
     delete: 'Delete',
+    exportSelected: 'Export',
+    addToCollection: 'Add to collection',
+    collection: {
+      title: 'Add to collection',
+      label: 'Collection',
+      help: (n: number) =>
+        `The ${n} selected product${n === 1 ? '' : 's'} join this collection. Automatic collections fill themselves, so only manual ones are listed.`,
+      loading: 'Loading collections',
+      none: 'No manual collections yet. Create one under Collections first.',
+      apply: 'Add',
+      cancel: 'Cancel',
+    },
     tagPrompt: 'Tag to add',
     tagPlaceholder: 'summer',
     tagHelp: (n: number) =>

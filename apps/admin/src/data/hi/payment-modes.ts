@@ -11,6 +11,8 @@ export default [
     },
     mode: {
       label: 'इस्तेमाल हो रही keys',
+      testHeading: 'टेस्ट मोड',
+      testHelp: 'असली पैसे के बिना देखें कि आपके स्टोर पर पेमेंट और ऑर्डर कैसे काम करते हैं',
       test: 'Test',
       live: 'Live',
       missing: (mode: PaymentModeId) =>

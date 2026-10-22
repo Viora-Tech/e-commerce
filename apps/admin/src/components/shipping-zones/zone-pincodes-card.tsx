@@ -1,7 +1,7 @@
 'use client'
 
 import { isPincodePattern, type PincodeRule } from '@commerce/core/shipping-rates'
-import { Trash2 } from '@commerce/ui/icons'
+import { Plus, Trash2 } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Field, FieldError, FieldLabel } from '@commerce/ui/shadcn/field'
 import { Input } from '@commerce/ui/shadcn/input'
@@ -90,6 +90,7 @@ export default function ZonePincodesCard({ value, onChange, disabled }: ZonePinc
             />
           </div>
           <Button variant="outline" size="lg" onClick={handleAdd} disabled={disabled}>
+            <Plus aria-hidden="true" />
             {copy.add}
           </Button>
         </div>

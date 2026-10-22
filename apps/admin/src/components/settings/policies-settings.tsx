@@ -2,7 +2,7 @@
 
 import type { PolicySettings, StorePolicy } from '@commerce/core'
 import { REQUIRED_POLICY_TYPES } from '@commerce/core/policies'
-import { InfoIcon } from '@commerce/ui/icons'
+import { InfoIcon, Pencil, Plus } from '@commerce/ui/icons'
 import { Alert, AlertDescription, AlertTitle } from '@commerce/ui/shadcn/alert'
 import { Badge } from '@commerce/ui/shadcn/badge'
 import { Button } from '@commerce/ui/shadcn/button'
@@ -192,6 +192,7 @@ function PolicyRow({ policy }: PolicyRowProps) {
         className="self-start sm:self-center"
         render={<Link href={href} />}
       >
+        {created ? <Pencil aria-hidden="true" /> : <Plus aria-hidden="true" />}
         {created ? copy.list.edit : copy.list.create}
       </Button>
     </li>

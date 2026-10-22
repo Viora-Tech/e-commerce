@@ -8,6 +8,7 @@ import {
   NO_LIST_TYPES,
   ruleProblems,
 } from '@commerce/core/metaobjects'
+import { CheckIcon } from '@commerce/ui/icons'
 import { cn } from '@commerce/ui/lib/utils'
 import { Button } from '@commerce/ui/shadcn/button'
 import {
@@ -231,7 +232,10 @@ export default function FieldDialog({
           <Button variant="outline" onClick={onClose}>
             {copy.cancel}
           </Button>
-          <Button onClick={handleSave}>{copy.done}</Button>
+          <Button onClick={handleSave}>
+            <CheckIcon aria-hidden="true" />
+            {copy.done}
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

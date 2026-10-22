@@ -2,6 +2,7 @@
 
 import type { OrderProfit } from '@commerce/core/profit'
 import { formatPercent, parseRupees } from '@commerce/money'
+import { Save } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Input } from '@commerce/ui/shadcn/input'
 import Link from 'next/link'
@@ -156,6 +157,7 @@ export default function ProfitCard({ orderId, shipment }: ProfitCardProps) {
             />
           </div>
           <Button variant="outline" onClick={handleSaveCharge} disabled={saving}>
+            <Save aria-hidden="true" />
             {copy.courierSave}
           </Button>
         </div>

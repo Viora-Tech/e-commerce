@@ -84,7 +84,7 @@ export default function ReportView({ report, initialRange, initial }: ReportView
   const c = analyticsContent.reports
 
   return (
-    <div className="flex w-full flex-col gap-6 px-4 py-6 md:px-8 md:py-8">
+    <div className="flex w-full flex-col gap-6 px-4 pt-4 pb-6 md:px-8 md:pt-5 md:pb-8">
       <PageHeader
         title={report.title}
         summary={report.description}

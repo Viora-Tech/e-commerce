@@ -2,7 +2,7 @@
 
 import type { PlanView } from '@commerce/core'
 import type { BillingInterval, PlanId } from '@commerce/core/billing'
-import { CircleAlert, InfoIcon } from '@commerce/ui/icons'
+import { CircleAlert, CreditCard, InfoIcon } from '@commerce/ui/icons'
 import { Alert, AlertDescription } from '@commerce/ui/shadcn/alert'
 import { Button } from '@commerce/ui/shadcn/button'
 import { useRouter } from 'next/navigation'
@@ -107,6 +107,7 @@ export default function BillingPage({ view, apps, autopay }: BillingPageProps) {
                 nativeButton={false}
                 render={<a href={view.due.url} target="_blank" rel="noopener noreferrer" />}
               >
+                <CreditCard aria-hidden="true" />
                 {copy.banners.pay}
               </Button>
             ) : (

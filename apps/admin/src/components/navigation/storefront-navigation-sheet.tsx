@@ -1,7 +1,7 @@
 'use client'
 
 import type { NavigationSettings } from '@commerce/core/navigation'
-import { Plus, Trash2 } from '@commerce/ui/icons'
+import { Plus, Save, Trash2 } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import {
   Field,
@@ -218,7 +218,7 @@ export default function StorefrontNavigationSheet({
         <SheetFooter className="flex-row justify-end gap-2">
           <SheetClose render={<Button variant="outline" />}>{copy.cancel}</SheetClose>
           <Button type="button" onClick={handleSave} disabled={saving}>
-            {saving ? <Spinner /> : null}
+            {saving ? <Spinner /> : <Save aria-hidden="true" />}
             {copy.save}
           </Button>
         </SheetFooter>

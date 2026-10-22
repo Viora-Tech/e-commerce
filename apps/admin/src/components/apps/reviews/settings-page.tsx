@@ -1,6 +1,7 @@
 'use client'
 
 import type { ReviewsSettings } from '@commerce/plugin-reviews/settings'
+import { Save } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Skeleton } from '@commerce/ui/shadcn/skeleton'
 import { Spinner } from '@commerce/ui/shadcn/spinner'
@@ -70,7 +71,7 @@ export default function SettingsPage() {
         back={{ label: copy.detail.back, href: routes.apps.page('reviews') }}
         actions={
           <Button onClick={handleSave} disabled={busy || !dirty}>
-            {busy ? <Spinner /> : null}
+            {busy ? <Spinner /> : <Save aria-hidden="true" />}
             {copy.settings.save}
           </Button>
         }

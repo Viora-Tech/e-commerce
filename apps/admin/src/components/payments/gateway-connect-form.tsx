@@ -1,7 +1,7 @@
 'use client'
 
 import { gatewayKeySets } from '@commerce/core/payment-modes'
-import { CircleAlert, CircleCheck } from '@commerce/ui/icons'
+import { CircleAlert, CircleCheck, PlugConnect, RefreshCw, Save } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Card, CardContent } from '@commerce/ui/shadcn/card'
 import { Field, FieldDescription, FieldGroup, FieldLabel } from '@commerce/ui/shadcn/field'
@@ -289,7 +289,7 @@ export default function GatewayConnectForm({
         onClick={handleOAuth}
         disabled={redirecting}
       >
-        {redirecting ? <Spinner /> : null}
+        {redirecting ? <Spinner /> : <PlugConnect aria-hidden="true" />}
         {copy.oneClick(guide.name)}
       </Button>
       <p className="text-caption text-muted-foreground">{copy.oneClickHelp}</p>
@@ -311,7 +311,7 @@ export default function GatewayConnectForm({
           onClick={handleTest}
           disabled={!filled || test.status === 'testing'}
         >
-          {test.status === 'testing' ? <Spinner /> : null}
+          {test.status === 'testing' ? <Spinner /> : <RefreshCw aria-hidden="true" />}
           {test.status === 'testing' ? copy.testing : copy.testConnection}
         </Button>
         <Button
@@ -320,7 +320,7 @@ export default function GatewayConnectForm({
           onClick={handleSave}
           disabled={!filled || saving || mismatch}
         >
-          {saving ? <Spinner /> : null}
+          {saving ? <Spinner /> : <Save aria-hidden="true" />}
           {saving ? copy.saving : copy.save}
         </Button>
       </div>

@@ -15,7 +15,7 @@ export default function PageBody({ children, className }: PageBodyProps) {
     <div
       className={cn(
         /* Saleor rhythm: 24px page inset (16px on phones), 20px between header and cards. */
-        'flex w-full flex-col gap-5 px-4 py-5 md:px-6 md:py-6',
+        'flex w-full flex-col gap-5 px-4 pt-4 pb-5 md:px-6 md:pt-5 md:pb-6',
         className,
       )}
     >
