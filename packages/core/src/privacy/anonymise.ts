@@ -308,6 +308,8 @@ export async function anonymiseCustomer(
       phoneIndex: null,
       phoneVerifiedAt: null,
       name: null,
+      gstin: null,
+      businessName: null,
       defaultAddress: null,
       tags: [],
       note: null,

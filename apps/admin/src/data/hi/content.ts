@@ -7,7 +7,6 @@ export default [
   translation(contentContent, {
     title: 'कंटेंट',
     summary: 'आपके स्टोर पर इस्तेमाल होने वाली फ़ाइलें, मेन्यू और बना-बनाया कंटेंट।',
-    goToPages: 'पेज पर जाएं',
     cards: {
       files: {
         title: 'फ़ाइलें',

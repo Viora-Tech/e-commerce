@@ -103,6 +103,24 @@ describe('draft orders router', () => {
     expect(row.status).toBe('open')
   })
 
+  it('refuses to convert a draft with goods to ship and no shipping address', async () => {
+    const m = await merchant('a@example.com', 'drafts-no-address')
+    const variantId = await seedVariant(m.storeId, 5)
+    const { id } = await call(
+      appRouter.orders.saveDraft,
+      { draft: { ...draftOf(variantId), shipping: null } },
+      { context: m.ctx },
+    )
+    await expect(
+      call(appRouter.orders.convertDraft, { id }, { context: m.ctx }),
+    ).rejects.toMatchObject({
+      code: 'BAD_REQUEST',
+      message: 'Add a shipping address before converting',
+    })
+    const [o] = await owner.select().from(order).where(eq(order.id, id))
+    expect(o?.status).toBe('draft')
+  })
+
   it('names the product when there is not enough stock to convert, and keeps the draft', async () => {
     const m = await merchant('a@example.com', 'drafts-oos')
     const variantId = await seedVariant(m.storeId, 0)

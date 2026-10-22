@@ -7,6 +7,7 @@ import {
   balanceProvider,
   CommerceError,
   convertDraftForOnlinePayment,
+  DraftNeedsShippingAddress,
   OutOfStock,
   orderViewToken,
   PaymentNotRetryable,
@@ -81,6 +82,7 @@ export async function payInvoiceAction(token: string): Promise<PayInvoiceResult>
     }
   } catch (err) {
     if (err instanceof OutOfStock) return { error: content.outOfStock }
+    if (err instanceof DraftNeedsShippingAddress) return { error: content.noAddress }
     if (err instanceof PaymentNotRetryable) thankYou()
     if (err instanceof CommerceError) return { error: content.unavailable }
     throw err

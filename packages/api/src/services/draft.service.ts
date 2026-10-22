@@ -113,9 +113,12 @@ export async function getDraft(tx: StoreTx, id: string) {
         quantity: orderLine.quantity,
         unitPricePaise: orderLine.unitPricePaise,
         sku: variant.sku,
+        /** A gift card ships nothing; every other line needs a shipping address to convert. */
+        giftCard: sql<boolean>`(${orderLine.giftCard} or coalesce(${product.isGiftCard}, false))`,
       })
       .from(orderLine)
       .leftJoin(variant, eq(variant.id, orderLine.variantId))
+      .leftJoin(product, eq(product.id, variant.productId))
       .where(eq(orderLine.orderId, id))
       .orderBy(asc(orderLine.id)),
     tx.select().from(orderNote).where(eq(orderNote.orderId, id)).orderBy(asc(orderNote.createdAt)),

@@ -376,6 +376,8 @@ export type VariantSearchRow = {
   sku: string | null
   pricePaise: number
   imageUrl: string | null
+  /** A gift card: digital, so a draft of only these needs no shipping address. */
+  giftCard: boolean
 }
 
 /**
@@ -416,6 +418,7 @@ export async function searchVariants(
       variantTitle: variant.title,
       sku: variant.sku,
       pricePaise: variant.pricePaise,
+      giftCard: product.isGiftCard,
       imageUrl: sql<string | null>`coalesce((
         select m.url from ${media} m where m.id = ${variant.mediaId}), (
         select m2.url from ${productMedia} pm join ${media} m2 on m2.id = pm.media_id

@@ -229,7 +229,11 @@ export async function placeSalesOrder(
         .update(order)
         .set({ buyerGstin: gst.gstin, buyerBusinessName: buyer?.name ?? null })
         .where(eq(order.id, draft.id))
-    const placed = await convertDraft(ctx, draft.id, { paymentMethod: gateway })
+    // A plan or app bill ships nothing, so it needs no shipping address.
+    const placed = await convertDraft(ctx, draft.id, {
+      paymentMethod: gateway,
+      requireShippingAddress: false,
+    })
     if (!placed) throw new Error(`sales order ${draft.id} could not be placed`)
     const [o] = await tx
       .select({ id: order.id, number: order.number, totalPaise: order.totalPaise })

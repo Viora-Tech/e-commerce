@@ -479,6 +479,17 @@ const createOrder: WorkflowStep<State> = {
         .returning({ id: address.id })
       customerId = cu?.id ?? null
       shippingAddressId = ad?.id ?? null
+      // A business buyer's validated GSTIN (and name) is kept on the customer for next time; a
+      // checkout without them never clears what is saved.
+      if (customerId && contact?.gstin) {
+        await ctx.tx
+          .update(customer)
+          .set({
+            gstin: contact.gstin,
+            businessName: sql`coalesce(${contact.businessName}, ${customer.businessName})`,
+          })
+          .where(eq(customer.id, customerId))
+      }
       // Created or updated (the upsert does not say which); app consumers upsert either way.
       if (customerId) await recordCustomerChange(ctx.tx, ctx.storeId, customerId, 'updated')
     }

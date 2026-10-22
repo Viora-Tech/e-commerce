@@ -33,6 +33,7 @@ export const invoiceContent = {
   busy: 'Too many tries. Wait a minute and try again.',
   noGateway: 'This store cannot take online payments right now. Please contact them to pay.',
   outOfStock: 'Something on this invoice is out of stock now. Please contact the store.',
+  noAddress: 'This invoice has no delivery address yet. Please contact the store to add one.',
   back: 'Back to the shop',
 } as const
 

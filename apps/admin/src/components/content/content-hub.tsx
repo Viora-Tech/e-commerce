@@ -84,15 +84,7 @@ export default function ContentHub({ facts }: { facts: ContentHubFacts }) {
     : null
 
   return (
-    <ProoflyListPage
-      title={copy.title}
-      summary={copy.summary}
-      actions={
-        <Button nativeButton={false} render={<Link href={routes.onlineStore.pages()} />}>
-          {copy.goToPages}
-        </Button>
-      }
-    >
+    <ProoflyListPage title={copy.title} summary={copy.summary}>
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
         <HubCard
           icon={<Images aria-hidden />}

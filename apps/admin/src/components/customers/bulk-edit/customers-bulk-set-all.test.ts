@@ -12,6 +12,12 @@ const row = (patch: Partial<GridRow> = {}): GridRow => ({
   acceptsMarketing: 'no',
   acceptsWhatsapp: 'no',
   acceptsSms: 'no',
+  gstin: '',
+  businessName: '',
+  city: '',
+  stateCode: '',
+  pincode: '',
+  address: null,
   anonymised: false,
   ...patch,
 })

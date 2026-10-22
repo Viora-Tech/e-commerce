@@ -20,6 +20,7 @@
     "./store-settings": "./src/settings/general.ts",
     "./setup-tasks": "./src/settings/setup-tasks.ts",
     "./gstin": "./src/tax/gstin.ts",
+    "./states": "./src/tax/states.ts",
     "./gst": "./src/tax/gst.ts",
     "./tax-settings": "./src/tax/settings.ts",
     "./profit": "./src/order/profit.ts",

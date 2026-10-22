@@ -36,6 +36,8 @@ export type CustomerDataExport = {
     name: string | null
     email: string | null
     phone: string | null
+    gstin: string | null
+    businessName: string | null
     tags: string[]
     note: string | null
     createdAt: string
@@ -145,6 +147,8 @@ async function buildCustomerExport(
       name: cu.name,
       email: cu.email,
       phone: decryptCustomerPhone(cu.phone, secret),
+      gstin: cu.gstin,
+      businessName: cu.businessName,
       tags: cu.tags,
       note: cu.note,
       createdAt: cu.createdAt.toISOString(),
@@ -242,6 +246,8 @@ function customerExportToCsv(data: CustomerDataExport): string {
       ['Name', p.name],
       ['Email', p.email],
       ['Phone', p.phone],
+      ['GSTIN', p.gstin],
+      ['Business name', p.businessName],
       ['Tags', p.tags.join('; ')],
       ['Note', p.note],
       ['Customer since', p.createdAt],

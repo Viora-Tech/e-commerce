@@ -1,5 +1,7 @@
 import { api } from '@/lib/api-client'
 import {
+  ADDRESS_KEYS,
+  addressPayload,
   CONSENT_KEYS,
   type ConsentKey,
   DETAIL_KEYS,
@@ -26,6 +28,11 @@ async function saveRow(row: GridRow, base: GridRow, fallback: string): Promise<R
       await api.customers.update({ id: row.id, ...detailPayload(row, base) })
       done.push(...details)
     }
+    const address = addressPayload(row, base)
+    if (address) {
+      await api.customers.updateAddress(address)
+      done.push(...ADDRESS_KEYS.filter((k) => isDirty(row, base, k)))
+    }
     // Consent goes through the consent writer, one channel at a time, so each change is in
     // the customer's history.
     for (const key of Object.keys(CONSENT_KEYS) as ConsentKey[]) {
@@ -47,7 +54,7 @@ async function saveRow(row: GridRow, base: GridRow, fallback: string): Promise<R
 export const dirtyRows = (rows: GridRow[], base: Map<string, GridRow>) =>
   rows.filter((r) => EDITABLE_KEYS.some((k) => isDirty(r, base.get(r.id), k)))
 
-/** Save each changed row (details, then consent), BATCH rows at a time. */
+/** Save each changed row (details, default address, then consent), BATCH rows at a time. */
 export async function saveRows(rows: GridRow[], base: Map<string, GridRow>, fallback: string) {
   const results: RowResult[] = []
   for (let i = 0; i < rows.length; i += BATCH) {

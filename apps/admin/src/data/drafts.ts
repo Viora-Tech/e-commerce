@@ -135,6 +135,7 @@ export const draftEditorContent = {
     deleteBody: 'The draft and its items are removed. This cannot be undone.',
     cancel: 'Cancel',
     saveFirst: 'Save the draft first',
+    needsAddress: 'Add a shipping address before converting',
     open: 'Open',
     invoiceSentStatus: 'Invoice sent',
   },

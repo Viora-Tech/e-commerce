@@ -3,6 +3,7 @@
 import { CircleCheck, FileEdit, Send, Trash2 } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Textarea } from '@commerce/ui/shadcn/textarea'
+import { Tooltip, TooltipContent, TooltipTrigger } from '@commerce/ui/shadcn/tooltip'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { toast } from 'sonner'
@@ -11,6 +12,7 @@ import DraftAddressCard from '@/components/drafts/draft-address-card'
 import DraftCustomerCard from '@/components/drafts/draft-customer-card'
 import {
   type DraftFormState,
+  draftMissingAddress,
   draftToForm,
   emptyDraft,
   formToDraft,
@@ -135,6 +137,19 @@ export default function DraftForm({ draft, invoiceSent = false }: DraftFormProps
 
   // Render logic
   const dirty = JSON.stringify(form) !== JSON.stringify(saved)
+  // Why Convert is off, shown on the button and in the Actions card; core refuses the same.
+  const convertHint =
+    !id || dirty
+      ? copy.actions.saveFirst
+      : draftMissingAddress(saved)
+        ? copy.actions.needsAddress
+        : null
+  const convertButton = (
+    <Button disabled={busy || convertHint !== null} onClick={handleConvert}>
+      <CircleCheck aria-hidden="true" />
+      {copy.actions.convert}
+    </Button>
+  )
   const itemCount = form.lines.reduce((sum, l) => sum + l.quantity, 0)
   const who = form.customerName || form.email
   const subtitle = [
@@ -172,10 +187,17 @@ export default function DraftForm({ draft, invoiceSent = false }: DraftFormProps
               <Send aria-hidden="true" />
               {copy.actions.sendInvoice}
             </Button>
-            <Button disabled={!id || dirty || busy} onClick={handleConvert}>
-              <CircleCheck aria-hidden="true" />
-              {copy.actions.convert}
-            </Button>
+            {convertHint ? (
+              // A disabled button gets no pointer events, so the tip hangs on a wrapper.
+              <Tooltip>
+                <TooltipTrigger render={<span className="inline-flex" />}>
+                  {convertButton}
+                </TooltipTrigger>
+                <TooltipContent>{convertHint}</TooltipContent>
+              </Tooltip>
+            ) : (
+              convertButton
+            )}
             {/* Deleting a saved draft also drops any unsaved edits, so it never waits on Save. */}
             <ActionMenu
               label={copy.actions.more}
@@ -224,7 +246,7 @@ export default function DraftForm({ draft, invoiceSent = false }: DraftFormProps
             <DraftCustomerCard form={form} onChange={patch} />
             <DraftAddressCard address={form.address} onChange={(address) => patch({ address })} />
             <DraftActionsCard
-              saved={Boolean(id) && !dirty}
+              hint={convertHint}
               paymentMethod={form.paymentMethod}
               onPaymentMethod={(paymentMethod) => patch({ paymentMethod })}
             />
