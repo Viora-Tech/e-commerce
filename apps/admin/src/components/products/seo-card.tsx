@@ -15,6 +15,7 @@ import { Textarea } from '@commerce/ui/shadcn/textarea'
 import { useState } from 'react'
 import DataCard from '@/components/layout/data-card'
 import { productFormContent } from '@/data/product-form'
+import { productPageContent } from '@/data/product-page'
 import { useCopy } from '@/hooks/use-copy'
 
 type SeoCardProps = {
@@ -24,6 +25,8 @@ type SeoCardProps = {
   seoDescription: string
   handle: string
   storefrontOrigin: string
+  /** The product's first photo: what a shared link shows (no separate share image is stored). */
+  image: { url: string; alt: string | null } | null
   onSeoTitle: (value: string) => void
   onSeoDescription: (value: string) => void
   onHandle: (value: string) => void
@@ -32,6 +35,16 @@ type SeoCardProps = {
 const TITLE_MAX = 70
 const DESCRIPTION_MAX = 320
 const PREVIEW_CHARS = 160
+/** Social cards cut the description much shorter than Google does. */
+const SHARE_CHARS = 110
+
+function hostOf(origin: string): string {
+  try {
+    return new URL(origin).host
+  } catch {
+    return origin
+  }
+}
 
 export default function SeoCard({
   title,
@@ -40,12 +53,14 @@ export default function SeoCard({
   seoDescription,
   handle,
   storefrontOrigin,
+  image,
   onSeoTitle,
   onSeoDescription,
   onHandle,
 }: SeoCardProps) {
   // Hooks
   const { seo: copy } = useCopy(productFormContent)
+  const { social } = useCopy(productPageContent)
   const [editing, setEditing] = useState(Boolean(seoTitle || seoDescription))
 
   // Render logic
@@ -56,6 +71,7 @@ export default function SeoCard({
   )
 
   const url = `${storefrontOrigin}${copy.handlePrefix}${handle}`
+  const shareDescription = previewDescription.slice(0, SHARE_CHARS)
 
   return (
     <DataCard
@@ -72,10 +88,44 @@ export default function SeoCard({
       bodyClassName="flex flex-col gap-4"
     >
       {previewTitle ? (
-        <div className="flex flex-col gap-0.5">
-          <span className="text-xs text-muted-foreground">{url}</span>
-          <span className="text-base font-medium text-link">{previewTitle}</span>
-          <span className="text-body text-muted-foreground">{previewDescription}</span>
+        <div className="grid gap-4 md:grid-cols-2">
+          <section className="flex min-w-0 flex-col gap-2">
+            <h3 className="text-caption font-medium text-muted-foreground">{social.google}</h3>
+            <div className="flex min-w-0 flex-col gap-0.5">
+              <span className="truncate text-xs text-muted-foreground">{url}</span>
+              <span className="text-base font-medium text-link">{previewTitle}</span>
+              <span className="text-body text-muted-foreground">{previewDescription}</span>
+            </div>
+          </section>
+          <section className="flex min-w-0 flex-col gap-2">
+            <h3 className="text-caption font-medium text-muted-foreground">{social.heading}</h3>
+            <div className="overflow-hidden rounded-lg border border-border bg-card">
+              {image ? (
+                // biome-ignore lint/performance/noImgElement: a preview of the merchant's own media URL
+                <img
+                  src={image.url}
+                  alt={image.alt ?? ''}
+                  className="aspect-[1.91/1] w-full bg-muted object-cover"
+                />
+              ) : (
+                <div className="flex aspect-[1.91/1] w-full items-center justify-center bg-muted px-4 text-center text-caption text-muted-foreground">
+                  {social.noImage}
+                </div>
+              )}
+              <div className="flex min-w-0 flex-col gap-0.5 border-t border-border px-3 py-2">
+                <span className="truncate text-caption uppercase text-muted-foreground">
+                  {hostOf(storefrontOrigin)}
+                </span>
+                <span className="truncate text-body font-medium">{previewTitle}</span>
+                <span className="line-clamp-2 text-caption text-muted-foreground">
+                  {shareDescription}
+                </span>
+              </div>
+            </div>
+            {image ? (
+              <p className="text-caption text-muted-foreground">{social.imageHelp}</p>
+            ) : null}
+          </section>
         </div>
       ) : (
         <p className="text-body text-muted-foreground">{copy.previewHint}</p>

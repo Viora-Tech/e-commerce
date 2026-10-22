@@ -1,11 +1,11 @@
 import { cn } from '@commerce/ui/lib/utils'
-import { appIcon } from '@/apps/registry'
+import { appIcon } from '@/apps/app-icons'
 
 type AppLogoProps = {
   /** The plugin id: picks the real third-party logo or the built-in tile colour. */
   id: string
   icon: string | null
-  size?: 44 | 48 | 72 | 160
+  size?: 28 | 44 | 48 | 72 | 160
   className?: string
 }
 
@@ -50,6 +50,7 @@ const FALLBACK_TILE = 'from-slate-500 to-slate-700 border-slate-700/90'
 
 /** Pixel size to rem class pairs, so the tile and its glyph scale together. */
 const SIZES = {
+  28: { box: 'size-7 rounded-[0.4375rem]', logo: 'size-[1.1rem]', glyph: 'size-4' },
   44: { box: 'size-11 rounded-[0.625rem]', logo: 'size-[1.7rem]', glyph: 'size-6' },
   48: { box: 'size-12 rounded-[0.8125rem]', logo: 'size-[2.7rem]', glyph: 'size-6' },
   72: { box: 'size-[4.5rem] rounded-2xl', logo: 'size-[3.75rem]', glyph: 'size-9' },

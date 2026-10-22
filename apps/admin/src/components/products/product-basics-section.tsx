@@ -52,6 +52,8 @@ export default function ProductBasicsSection({
         onChange={onDescription}
         placeholder={copy.descriptionPlaceholder}
         minHeight={155}
+        // Room between the toolbar and the first line, so the text does not hug the toolbar.
+        className="[&_.editor-input]:py-5 [&_.editor-placeholder]:top-5"
       />
     </div>
   )

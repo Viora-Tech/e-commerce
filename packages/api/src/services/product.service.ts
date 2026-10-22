@@ -1,4 +1,13 @@
-import { noteProductsChanged, notSystemTest, onHandleChange } from '@commerce/core'
+import {
+  DEFAULT_GST_RATE_PERCENT,
+  LOW_STOCK_THRESHOLD,
+  noteProductsChanged,
+  notSystemTest,
+  onHandleChange,
+  parseStoreTax,
+  type StockFilter,
+  storeLowStockThreshold,
+} from '@commerce/core'
 import type { StoreTx } from '@commerce/db'
 import {
   inventoryLevel,
@@ -9,6 +18,7 @@ import {
   productOption,
   productOptionValue,
   sellableStock,
+  store,
   variant,
   variantOptionValue,
 } from '@commerce/db'
@@ -35,7 +45,7 @@ export type ProductListItem = {
   available: number
 }
 
-export type ProductStockFilter = 'in' | 'out' | 'low'
+export type ProductStockFilter = StockFilter
 
 export type ProductListInput = {
   page: number
@@ -51,10 +61,8 @@ export type ProductListInput = {
   idsOnly?: boolean | undefined
 }
 
-/** At or below this count a tracked product counts as low stock. */
-export const LOW_STOCK_AT = 5
-
-function listWhere(input: ProductListInput) {
+/** `lowThreshold` is the store's (`storeLowStockThreshold`), for the `low` stock filter. */
+function listWhere(input: ProductListInput, lowThreshold: number) {
   return and(
     notSystemTest,
     input.search
@@ -82,7 +90,7 @@ function listWhere(input: ProductListInput) {
                   select coalesce(sum(greatest(0, il.on_hand - il.reserved)), 0)
                   from variant v left join inventory_level il on il.variant_id = v.id and il.fulfils_online
                   where v.product_id = ${product.id} and v.archived_at is null
-                ) <= ${LOW_STOCK_AT}`
+                ) <= ${lowThreshold}`
               : sql`> 0`
         }`
       : undefined,
@@ -94,7 +102,7 @@ export async function listProductIds(tx: StoreTx, input: ProductListInput): Prom
   const rows = await tx
     .select({ id: product.id })
     .from(product)
-    .where(listWhere(input))
+    .where(listWhere(input, await storeLowStockThreshold(tx)))
     .orderBy(desc(product.createdAt))
   return rows.map((r) => r.id)
 }
@@ -103,7 +111,7 @@ export async function listProducts(
   tx: StoreTx,
   input: ProductListInput,
 ): Promise<{ items: ProductListItem[]; total: number }> {
-  const where = listWhere(input)
+  const where = listWhere(input, await storeLowStockThreshold(tx))
   const [countRow] = await tx.select({ total: count() }).from(product).where(where)
   const total = countRow?.total ?? 0
   const rows = await tx
@@ -171,6 +179,7 @@ export async function getProduct(tx: StoreTx, id: string) {
       taxable: variant.taxable,
       trackInventory: variant.trackInventory,
       weightGrams: variant.weightGrams,
+      weightUnit: variant.weightUnit,
       hsCode: variant.hsCode,
       countryOfOrigin: variant.countryOfOrigin,
       gstRatePercent: variant.gstRatePercent,
@@ -244,18 +253,60 @@ export async function getProduct(tx: StoreTx, id: string) {
 }
 
 /** Distinct vendors, types and tags already used in the store, for autocomplete. */
-export async function productFacets(tx: StoreTx) {
+/** Most option names (and values per name) offered as suggestions on the product page. */
+const OPTION_FACETS_MAX = 50
+
+/**
+ * Values already in use across the store, offered as suggestions on the product page, plus the
+ * store's GST defaults so the pricing card can show what the customer pays.
+ */
+export async function productFacets(tx: StoreTx, storeId: string) {
   const rows = await tx
     .select({ vendor: product.vendor, productType: product.productType, tags: product.tags })
     .from(product)
     .where(notSystemTest)
+  const optionRows = await tx
+    .select({ name: productOption.name, value: productOptionValue.value })
+    .from(productOptionValue)
+    .innerJoin(productOption, eq(productOption.id, productOptionValue.optionId))
+    .orderBy(asc(productOption.name), asc(productOptionValue.position))
+  const [storeRow] = await tx
+    .select({
+      gstRatePercent: store.gstRatePercent,
+      apps: store.apps,
+      lowStockThreshold: store.lowStockThreshold,
+    })
+    .from(store)
+    .where(eq(store.id, storeId))
   const uniq = (xs: (string | null)[]) =>
     [...new Set(xs.filter((x): x is string => Boolean(x)))].sort((a, b) => a.localeCompare(b))
   return {
     vendors: uniq(rows.map((r) => r.vendor)),
     productTypes: uniq(rows.map((r) => r.productType)),
     tags: uniq(rows.flatMap((r) => r.tags)),
+    options: optionFacets(optionRows),
+    gst: {
+      ratePercent: storeRow?.gstRatePercent ?? DEFAULT_GST_RATE_PERCENT,
+      composition: storeRow ? parseStoreTax(storeRow.apps).composition : false,
+    },
+    /** Where "low stock" starts for this store, so the admin's chips match the list filters. */
+    lowStockThreshold: storeRow?.lowStockThreshold ?? LOW_STOCK_THRESHOLD,
   }
+}
+
+/** Option names used across the store, merged case-insensitively, each with its distinct values. */
+function optionFacets(rows: { name: string; value: string }[]) {
+  const byName = new Map<string, { name: string; values: string[] }>()
+  for (const { name, value } of rows) {
+    const key = name.trim().toLowerCase()
+    if (!key) continue
+    const entry = byName.get(key) ?? { name: name.trim(), values: [] }
+    byName.set(key, entry)
+    const v = value.trim()
+    const seen = entry.values.some((x) => x.toLowerCase() === v.toLowerCase())
+    if (v && !seen && entry.values.length < OPTION_FACETS_MAX) entry.values.push(v)
+  }
+  return [...byName.values()].slice(0, OPTION_FACETS_MAX)
 }
 
 export type ProductPatch = {

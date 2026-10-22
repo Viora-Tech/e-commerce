@@ -8,11 +8,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@commerce/ui/shadcn/select'
-import SuggestInput from '@/components/fields/suggest-input'
+import { useEffect, useState } from 'react'
+import ComboInput from '@/components/fields/combo-input'
 import KitField from '@/components/kit/kit-field'
 import DataCard from '@/components/layout/data-card'
 import { productFormContent } from '@/data/product-form'
 import { useCopy } from '@/hooks/use-copy'
+import { api } from '@/lib/api-client'
 import type { Facets } from './form-state'
 
 type StatusCardProps = {
@@ -22,6 +24,9 @@ type StatusCardProps = {
   onChange: (status: ProductStatus) => void
   onVendor: (vendor: string) => void
 }
+
+/** Suppliers offered as vendors; Stock → Suppliers rarely holds more than a page. */
+const SUPPLIERS_MAX = 100
 
 /**
  * Publishing state and vendor. The frame's Publish and Save to draft buttons
@@ -36,9 +41,26 @@ export default function StatusCard({
 }: StatusCardProps) {
   // Hooks
   const copy = useCopy(productFormContent)
+  const [suppliers, setSuppliers] = useState<string[]>([])
+
+  /* Members without stock access just get the vendors already used on products. */
+  useEffect(() => {
+    api.suppliers
+      .list({ perPage: SUPPLIERS_MAX })
+      .then((r) => setSuppliers(r.rows.map((s) => s.name)))
+      .catch(() => setSuppliers([]))
+  }, [])
 
   // Render logic
   const statusItems = Object.fromEntries(copy.status.options.map((o) => [o.value, o.label]))
+  const supplierKeys = new Set(suppliers.map((s) => s.toLowerCase()))
+  const vendorGroups = [
+    { label: copy.organisation.vendorSuppliers, items: suppliers },
+    {
+      label: copy.organisation.vendorUsed,
+      items: facets.vendors.filter((v) => !supplierKeys.has(v.toLowerCase())),
+    },
+  ]
 
   return (
     <DataCard title={copy.status.heading}>
@@ -66,12 +88,12 @@ export default function StatusCard({
           </Select>
         </KitField>
         <KitField label={copy.organisation.vendor} htmlFor="product-vendor">
-          <SuggestInput
+          <ComboInput
             id="product-vendor"
-            size="kit"
             value={vendor}
-            suggestions={facets.vendors}
+            groups={vendorGroups}
             onChange={onVendor}
+            placeholder={copy.organisation.vendorPlaceholder}
           />
         </KitField>
       </div>

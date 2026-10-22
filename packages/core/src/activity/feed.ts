@@ -8,10 +8,10 @@ import {
   refund,
   returnRequest,
   type StoreTx,
-  store,
   variant,
 } from '@commerce/db'
 import { and, desc, eq, gte, ne, sql } from 'drizzle-orm'
+import { storeLowStockThreshold } from '../catalog/stock-threshold'
 import { notSystemTest } from '../catalog/system-test'
 import { type Permission, permissions } from '../permissions/statement'
 
@@ -93,11 +93,7 @@ async function returnEvents(tx: StoreTx): Promise<ActivityEvent[]> {
 
 /** Tracked variants of live products by what they have left, against the store's threshold. */
 async function stockCounts(tx: StoreTx, storeId: string) {
-  const [s] = await tx
-    .select({ threshold: store.lowStockThreshold })
-    .from(store)
-    .where(eq(store.id, storeId))
-  const threshold = s?.threshold ?? 5
+  const threshold = await storeLowStockThreshold(tx, storeId)
   const available = tx
     .select({
       variantId: inventoryLevel.variantId,

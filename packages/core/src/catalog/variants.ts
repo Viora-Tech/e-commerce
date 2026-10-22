@@ -21,6 +21,8 @@ export type VariantInput = {
   taxable?: boolean | undefined
   trackInventory?: boolean | undefined
   weightGrams?: number | null | undefined
+  /** Display unit for the weight on the product page; null shows kilograms. */
+  weightUnit?: 'g' | 'kg' | 'lb' | 'oz' | null | undefined
   /** Customs fields for international labels. */
   hsCode?: string | null | undefined
   countryOfOrigin?: string | null | undefined

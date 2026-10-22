@@ -14,7 +14,12 @@ import { MarkdownShortcutPlugin } from '@lexical/react/LexicalMarkdownShortcutPl
 import { OnChangePlugin } from '@lexical/react/LexicalOnChangePlugin'
 import { RichTextPlugin } from '@lexical/react/LexicalRichTextPlugin'
 import { TablePlugin } from '@lexical/react/LexicalTablePlugin'
-import type { EditorState, SerializedEditorState } from 'lexical'
+import {
+  $createParagraphNode,
+  $getRoot,
+  type EditorState,
+  type SerializedEditorState,
+} from 'lexical'
 import { useEffect, useRef, useState } from 'react'
 import { editorContent } from './content'
 import MediaProvider, { type EditorMedia } from './context/media-context'
@@ -84,6 +89,15 @@ function ReadOnlyPlugin({ readOnly }: { readOnly: boolean }) {
  * The shared rich-text editor. Emits Lexical JSON that `@commerce/richtext`
  * renders on the server; nothing here assumes a particular host app.
  */
+/** A stored value with at least one block; an empty root (or none) starts fresh. */
+const hasContent = (value: RichTextValue | null | undefined): value is RichTextValue =>
+  Boolean(value && (value as { root?: { children?: unknown[] } }).root?.children?.length)
+
+const startWithParagraph = () => {
+  const root = $getRoot()
+  if (root.isEmpty()) root.append($createParagraphNode())
+}
+
 export default function RichTextEditor({
   value,
   onChange,
@@ -113,7 +127,9 @@ export default function RichTextEditor({
     theme: editorTheme,
     nodes: editorNodes,
     editable: !readOnly,
-    editorState: value ? JSON.stringify(value) : null,
+    // An empty document still starts with one paragraph: with a bare root, Chrome puts the caret
+    // on the box's edge instead of inside the padding where the placeholder sits.
+    editorState: hasContent(value) ? JSON.stringify(value) : startWithParagraph,
     onError: (error: Error) => {
       throw error
     },

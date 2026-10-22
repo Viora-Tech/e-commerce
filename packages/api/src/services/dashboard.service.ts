@@ -5,6 +5,7 @@ import {
   type OrderPaymentStatus,
   parseAppsSettings,
   StoreAddressSchema,
+  storeLowStockThreshold,
   UNPAID_PAYMENT_STATUSES,
 } from '@commerce/core'
 import { dayKey, startOfMonth, wallClock, startOfDay as zoneStartOfDay } from '@commerce/dates'
@@ -38,7 +39,6 @@ const notDraft = and(ne(order.status, 'draft'), notTestOrder)
 
 const RECENT_ORDERS = 7
 const TOP_PRODUCTS = 5
-const LOW_STOCK_THRESHOLD = 5
 const LOW_STOCK_ROWS = 6
 const HOURS = 24
 const STATE_ROWS = 5
@@ -407,6 +407,7 @@ export async function dashboardSummary(
   } = {},
 ): Promise<DashboardSummary> {
   const now = opts.now ?? new Date()
+  const lowStockThreshold = await storeLowStockThreshold(tx, opts.storeId)
   const thisStart = startOfDay(now, WINDOW_DAYS - 1)
   const lastStart = startOfDay(now, WINDOW_DAYS * 2 - 1)
 
@@ -541,7 +542,7 @@ export async function dashboardSummary(
       and(
         eq(variant.trackInventory, true),
         ne(product.status, 'archived'),
-        lt(sql`${sellableStock.onHand} - ${sellableStock.reserved}`, LOW_STOCK_THRESHOLD + 1),
+        lt(sql`${sellableStock.onHand} - ${sellableStock.reserved}`, lowStockThreshold + 1),
       ),
     )
     .orderBy(asc(sql`${sellableStock.onHand} - ${sellableStock.reserved}`))
@@ -731,7 +732,7 @@ export async function dashboardSummary(
       and(
         eq(variant.trackInventory, true),
         ne(product.status, 'archived'),
-        lt(sql`${sellableStock.onHand} - ${sellableStock.reserved}`, LOW_STOCK_THRESHOLD + 1),
+        lt(sql`${sellableStock.onHand} - ${sellableStock.reserved}`, lowStockThreshold + 1),
       ),
     )
   const [preorderBalanceDueRow] = await tx
@@ -1042,5 +1043,3 @@ export async function dashboardCharts(
     topProducts: topRows.map((r) => ({ ...r, imageUrl: firstImage.get(r.productId) ?? null })),
   }
 }
-
-export const DASHBOARD_LOW_STOCK_THRESHOLD = LOW_STOCK_THRESHOLD

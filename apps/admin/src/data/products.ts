@@ -2,8 +2,8 @@ import type { ProductStatus } from '@commerce/core/catalog'
 import { parseRupees } from '@commerce/money'
 import { routes } from '@/lib/routes'
 
-/** Stock levels the product list filters by (`?stock=`). */
-export type StockFilter = 'in' | 'out' | 'low'
+/** Stock levels the product list filters by (`?stock=`); defined once in core. */
+export type { StockFilter } from '@commerce/core/catalog'
 
 export const PRODUCT_STATUSES = ['active', 'draft', 'archived'] as const
 
