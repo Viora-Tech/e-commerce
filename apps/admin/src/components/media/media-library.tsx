@@ -1,9 +1,10 @@
 'use client'
 
 import { siteConfig } from '@commerce/config/site'
-import { Database, Search, Upload } from '@commerce/ui/icons'
+import { Database, LayoutGrid, ListView, Search, Upload } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Input } from '@commerce/ui/shadcn/input'
+import { ToggleGroup, ToggleGroupItem } from '@commerce/ui/shadcn/toggle-group'
 import Link from 'next/link'
 import { parseAsInteger, parseAsString, parseAsStringLiteral, useQueryStates } from 'nuqs'
 import { type FormEvent, Suspense, useEffect, useRef, useState } from 'react'
@@ -24,11 +25,14 @@ import BackgroundWorkNotice from './background-work-notice'
 import { FILE_TABS, type FileTab, fileKind, fileName, formatBytes } from './file-meta'
 import ImageEditorDialog from './image-editor-dialog'
 import MediaDropzone from './media-dropzone'
-import MediaTile from './media-tile'
+import MediaFileRows from './media-file-rows'
+import MediaTile, { type MediaTileAction } from './media-tile'
 import { useUploadQueue } from './use-upload-queue'
 
 type ListResult = Awaited<ReturnType<typeof api.media.list>>
 type Item = ListResult['items'][number]
+
+const VIEWS = ['grid', 'list'] as const
 
 export type FileCounts = { all: number; image: number; video: number; document: number }
 
@@ -70,12 +74,13 @@ function MediaLibraryContent({ initial }: { initial: MediaLibraryInitial }) {
   const { library: copy } = useCopy(mediaContent)
   const { title: editImageLabel } = useCopy(imageEditorContent)
   const fileInput = useRef<HTMLInputElement>(null)
-  const [{ page, perPage, query, type }, setQ] = useQueryStates(
+  const [{ page, perPage, query, type, view }, setQ] = useQueryStates(
     {
       query: parseAsString.withDefault(''),
       page: parseAsInteger.withDefault(1),
       perPage: parseAsInteger.withDefault(siteConfig.ui.rowsPerPage.default),
       type: parseAsStringLiteral(FILE_TABS),
+      view: parseAsStringLiteral(VIEWS).withDefault('grid'),
     },
     { shallow: true },
   )
@@ -160,6 +165,18 @@ function MediaLibraryContent({ initial }: { initial: MediaLibraryInitial }) {
     handleDeleted(deleting.id)
   }
 
+  const actionsFor = (item: Item): MediaTileAction[] => [
+    { label: mediaContent.tile.editAlt, onSelect: () => setEditing(item) },
+    ...(isEditableImage(item.contentType)
+      ? [{ label: editImageLabel, onSelect: () => setRetouching(item) }]
+      : []),
+    { label: mediaContent.tile.delete, onSelect: () => setDeleting(item), destructive: true },
+  ]
+  const metaOf = (item: Item) =>
+    [item.size ? formatBytes(item.size) : fileKind(item.contentType), copy.used(item.usedBy)]
+      .filter(Boolean)
+      .join(' · ')
+
   // Render logic
   const empty = items.length === 0 && queue.pending.length === 0 && !query && !type
 
@@ -228,48 +245,64 @@ function MediaLibraryContent({ initial }: { initial: MediaLibraryInitial }) {
                 aria-label={copy.search}
               />
             </form>
+            <ToggleGroup
+              value={[view]}
+              onValueChange={(v) => {
+                const next = VIEWS.find((x) => x === v[0])
+                if (next) setQ({ view: next })
+              }}
+              variant="outline"
+              spacing={0}
+            >
+              <ToggleGroupItem value="grid" aria-label={copy.view.grid} title={copy.view.grid}>
+                <LayoutGrid aria-hidden />
+              </ToggleGroupItem>
+              <ToggleGroupItem value="list" aria-label={copy.view.list} title={copy.view.list}>
+                <ListView aria-hidden />
+              </ToggleGroupItem>
+            </ToggleGroup>
           </div>
-          <ul className="grid grid-cols-2 gap-4 p-4 sm:grid-cols-3 lg:grid-cols-5">
-            {queue.pending.map((p) => (
-              <li
-                key={p.key}
-                className="relative aspect-[4/3] overflow-hidden rounded-xl border bg-muted"
-              >
-                {/* biome-ignore lint/performance/noImgElement: object URL preview while uploading. */}
-                <img src={p.previewUrl} alt="" className="size-full object-cover opacity-50" />
-                <span className="absolute inset-x-0 bottom-0 bg-card/90 px-2 py-1 text-center text-caption">
-                  {p.error
-                    ? mediaContent.tile.failed
-                    : mediaContent.tile.uploading(Math.round(p.progress * 100))}
-                </span>
-              </li>
-            ))}
-            {items.map((item) => (
-              <MediaTile
-                key={item.id}
-                item={item}
-                wide
-                caption={item.key ? fileName(item.key) : undefined}
-                meta={[
-                  item.size ? formatBytes(item.size) : fileKind(item.contentType),
-                  copy.used(item.usedBy),
-                ]
-                  .filter(Boolean)
-                  .join(' · ')}
-                actions={[
-                  { label: mediaContent.tile.editAlt, onSelect: () => setEditing(item) },
-                  ...(isEditableImage(item.contentType)
-                    ? [{ label: editImageLabel, onSelect: () => setRetouching(item) }]
-                    : []),
-                  {
-                    label: mediaContent.tile.delete,
-                    onSelect: () => setDeleting(item),
-                    destructive: true,
-                  },
-                ]}
-              />
-            ))}
-          </ul>
+          {view === 'list' ? (
+            <MediaFileRows
+              pending={queue.pending}
+              rows={items.map((item) => ({
+                id: item.id,
+                url: item.url,
+                alt: item.alt,
+                contentType: item.contentType,
+                name: item.key ? fileName(item.key) : (item.alt ?? copy.title),
+                meta: metaOf(item),
+                actions: actionsFor(item),
+              }))}
+            />
+          ) : (
+            <ul className="grid grid-cols-2 gap-4 p-4 sm:grid-cols-3 lg:grid-cols-5">
+              {queue.pending.map((p) => (
+                <li
+                  key={p.key}
+                  className="relative aspect-[4/3] overflow-hidden rounded-xl border bg-muted"
+                >
+                  {/* biome-ignore lint/performance/noImgElement: object URL preview while uploading. */}
+                  <img src={p.previewUrl} alt="" className="size-full object-cover opacity-50" />
+                  <span className="absolute inset-x-0 bottom-0 bg-card/90 px-2 py-1 text-center text-caption">
+                    {p.error
+                      ? mediaContent.tile.failed
+                      : mediaContent.tile.uploading(Math.round(p.progress * 100))}
+                  </span>
+                </li>
+              ))}
+              {items.map((item) => (
+                <MediaTile
+                  key={item.id}
+                  item={item}
+                  wide
+                  caption={item.key ? fileName(item.key) : undefined}
+                  meta={metaOf(item)}
+                  actions={actionsFor(item)}
+                />
+              ))}
+            </ul>
+          )}
           {items.length === 0 && queue.pending.length === 0 ? (
             <EmptyState variant="plain" size="lg" body={copy.noMatch} />
           ) : null}

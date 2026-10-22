@@ -1,5 +1,5 @@
 import { createMerchantAuth } from '@commerce/auth'
-import { createDb, customer, notification, order, store } from '@commerce/db'
+import { createDb, customer, customerAddress, notification, order, store } from '@commerce/db'
 import { resetDb } from '@commerce/db/test'
 import { call } from '@orpc/server'
 import { afterAll, beforeEach, describe, expect, it } from 'vitest'
@@ -335,6 +335,69 @@ describe('customers', () => {
       ['ravi@example.com', '', [], true, false],
       ['asha@example.com', 'Asha', ['vip'], false, false],
     ])
+  })
+
+  it('sheet rows carry business details and the default address only', async () => {
+    const a = await merchant('a@example.com', 'store-a')
+    const [asha, ravi] = await owner
+      .insert(customer)
+      .values([
+        {
+          storeId: a.storeId,
+          email: 'asha@example.com',
+          gstin: '29AABCT3518Q1ZS',
+          businessName: 'Asha Traders',
+        },
+        { storeId: a.storeId, email: 'ravi@example.com' },
+      ])
+      .returning()
+    const book = (isDefault: boolean, city: string) => ({
+      storeId: a.storeId,
+      customerId: asha?.id as string,
+      name: 'Asha',
+      line1: '12 MG Road',
+      city,
+      stateCode: 'KA',
+      pincode: '560001',
+      phone: '9876543210',
+      isDefault,
+    })
+    await owner.insert(customerAddress).values([book(false, 'Mysuru'), book(true, 'Bengaluru')])
+    const sheet = await call(
+      appRouter.customers.sheet,
+      { ids: [asha?.id as string, ravi?.id as string] },
+      { context: a.ctx },
+    )
+    expect(sheet[0]).toMatchObject({
+      gstin: '29AABCT3518Q1ZS',
+      businessName: 'Asha Traders',
+      defaultAddress: { city: 'Bengaluru', stateCode: 'KA', pincode: '560001', line2: null },
+    })
+    expect(sheet[1]).toMatchObject({ gstin: '', businessName: '', defaultAddress: null })
+  })
+
+  it('saves business details, checking the GSTIN like checkout and clearing on blank', async () => {
+    const a = await merchant('a@example.com', 'store-a')
+    const [asha] = await owner
+      .insert(customer)
+      .values({ storeId: a.storeId, email: 'asha@example.com' })
+      .returning()
+    const id = asha?.id as string
+    await expect(
+      call(appRouter.customers.update, { id, gstin: '29AABCT3518Q1ZV' }, { context: a.ctx }),
+    ).rejects.toMatchObject({ code: 'BAD_REQUEST', message: expect.stringContaining('typo') })
+    const saved = await call(
+      appRouter.customers.update,
+      { id, gstin: ' 29aabct3518q1zs ', businessName: 'Asha Traders' },
+      { context: a.ctx },
+    )
+    expect(saved).toMatchObject({ gstin: '29AABCT3518Q1ZS', businessName: 'Asha Traders' })
+    const cleared = await call(
+      appRouter.customers.update,
+      { id, gstin: '', businessName: '' },
+      { context: a.ctx },
+    )
+    expect(cleared).toMatchObject({ gstin: null, businessName: null })
   })
 
   it('saves a segment, counts its members and previews rules before saving', async () => {

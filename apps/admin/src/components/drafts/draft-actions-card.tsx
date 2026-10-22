@@ -13,13 +13,14 @@ import { draftEditorContent } from '@/data/drafts'
 import { useCopy } from '@/hooks/use-copy'
 
 type DraftActionsCardProps = {
-  saved: boolean
+  /** Why the draft cannot convert yet (unsaved, no address); null when it can. */
+  hint: string | null
   paymentMethod: string
   onPaymentMethod: (method: string) => void
 }
 
 export default function DraftActionsCard({
-  saved,
+  hint,
   paymentMethod,
   onPaymentMethod,
 }: DraftActionsCardProps) {
@@ -49,9 +50,7 @@ export default function DraftActionsCard({
           </SelectContent>
         </Select>
       </Field>
-      {saved ? null : (
-        <p className="text-caption text-muted-foreground">{copy.actions.saveFirst}</p>
-      )}
+      {hint ? <p className="text-caption text-muted-foreground">{hint}</p> : null}
     </DataCard>
   )
 }

@@ -10,6 +10,8 @@ export type DraftLine = {
   quantity: number
   unitPricePaise: number
   imageUrl?: string | null
+  /** A gift card ships nothing; any other line needs a shipping address before converting. */
+  giftCard: boolean
 }
 
 export type DraftFormState = {
@@ -82,6 +84,7 @@ export function draftToForm(d: Draft): DraftFormState {
       sku: l.sku ?? null,
       quantity: l.quantity,
       unitPricePaise: l.unitPricePaise,
+      giftCard: l.giftCard,
     })),
     discountPaise: d.discountPaise,
     discountLabel: d.discountLabel ?? '',
@@ -106,6 +109,10 @@ function addressPayload(a: DraftFormState['address']) {
     phone: a.phone,
   }
 }
+
+/** Something in the draft ships, and there is no complete address to ship it to. */
+export const draftMissingAddress = (f: DraftFormState): boolean =>
+  f.lines.some((l) => !l.giftCard) && addressPayload(f.address) === null
 
 export function formToDraft(f: DraftFormState) {
   return {

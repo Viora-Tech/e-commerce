@@ -377,6 +377,8 @@ export async function updateCustomer(
     tags?: string[] | undefined
     note?: string | null | undefined
     acceptsMarketing?: boolean | undefined
+    gstin?: string | null | undefined
+    businessName?: string | null | undefined
   },
   secret: string,
 ) {

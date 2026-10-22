@@ -1,5 +1,6 @@
 /** SOURCE OF TRUTH: fulfilment order tests — WHAT: splitting an order into per-location fulfilment orders / WHY: guards the routing-to-fulfilment contract */
 import {
+  address,
   business,
   cart,
   cartLine,
@@ -428,6 +429,19 @@ describe('draft conversion makes the parcel', () => {
   it('holds the stock in a parcel at the selling location', async () => {
     const t = await seed()
     const { orderId } = await legacyOrder(t, { status: 'draft', committed: 0 })
+    const [shipTo] = await owner
+      .insert(address)
+      .values({
+        storeId: t.storeId,
+        name: 'Aarav',
+        line1: '12 MG Road',
+        city: 'Gurugram',
+        stateCode: 'HR',
+        pincode: '122001',
+        phone: '9876543210',
+      })
+      .returning()
+    await owner.update(order).set({ shippingAddressId: shipTo?.id }).where(eq(order.id, orderId))
     await inStore(t, (ctx) => convertDraft(ctx, orderId))
     const { fos, lines } = await parcelsOf(orderId)
     expect(fos).toHaveLength(1)

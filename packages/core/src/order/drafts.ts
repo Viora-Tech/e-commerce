@@ -42,6 +42,13 @@ export class DraftEmpty extends CommerceError {
   }
 }
 
+/** A draft with something to ship has no address to ship it to. The message is shown as is. */
+export class DraftNeedsShippingAddress extends CommerceError {
+  constructor(storeId?: string) {
+    super('DRAFT_NEEDS_SHIPPING_ADDRESS', 'Add a shipping address before converting', { storeId })
+  }
+}
+
 export const DraftLineSchema = z.object({
   variantId: z.uuid(),
   quantity: z.number().int().min(1).max(999),
@@ -101,6 +108,7 @@ async function resolveLines(ctx: StoreContext, lines: DraftInput['lines']) {
       title: variant.title,
       pricePaise: variant.pricePaise,
       productTitle: product.title,
+      giftCard: product.isGiftCard,
     })
     .from(variant)
     .innerJoin(product, eq(product.id, variant.productId))
@@ -117,6 +125,8 @@ async function resolveLines(ctx: StoreContext, lines: DraftInput['lines']) {
       variantTitle: v.title,
       quantity: l.quantity,
       unitPricePaise: l.unitPricePaise ?? v.pricePaise,
+      // Snapshotted like checkout does, so routing, GST and card issue treat it as digital.
+      giftCard: v.giftCard,
     }
   })
 }
@@ -326,14 +336,40 @@ export async function deleteDrafts(ctx: StoreContext, ids: readonly string[]) {
 }
 
 /**
+ * Whether any line of the draft is shipped. A gift card is the one digital product (no
+ * address needed, as at checkout); every other line ships.
+ */
+export async function draftNeedsShipping(ctx: StoreContext, orderId: string): Promise<boolean> {
+  const [row] = await ctx.tx
+    .select({ id: orderLine.id })
+    .from(orderLine)
+    .leftJoin(variant, eq(variant.id, orderLine.variantId))
+    .leftJoin(product, eq(product.id, variant.productId))
+    .where(
+      and(
+        eq(orderLine.orderId, orderId),
+        eq(orderLine.giftCard, false),
+        sql`coalesce(${product.isGiftCard}, false) = false`,
+      ),
+    )
+    .limit(1)
+  return Boolean(row)
+}
+
+/**
  * Turn the draft into a real order: hold the stock, record a pending payment
  * for the chosen method and flip the status. The stock guard is the same
- * conditional update placeOrder uses, so two conversions cannot oversell.
+ * conditional update placeOrder uses, so two conversions cannot oversell. A draft with a line
+ * to ship needs a shipping address first (DraftNeedsShippingAddress).
  */
 export async function convertDraft(
   ctx: StoreContext,
   id: string,
-  opts: { paymentMethod?: string | undefined } = {},
+  opts: {
+    paymentMethod?: string | undefined
+    /** False only for a sale nothing ships for (a plan bill on the sales store). */
+    requireShippingAddress?: boolean
+  } = {},
 ) {
   // Locked, so a delete or a second conversion of the same draft waits for this one.
   const [o] = await ctx.tx.select().from(order).where(eq(order.id, id)).for('update')
@@ -341,6 +377,13 @@ export async function convertDraft(
   if (o.status !== 'draft') throw new DraftNotEditable(id, ctx.storeId)
   const lines = await ctx.tx.select().from(orderLine).where(eq(orderLine.orderId, id))
   if (lines.length === 0) throw new DraftEmpty(id, ctx.storeId)
+  if (
+    opts.requireShippingAddress !== false &&
+    !o.shippingAddressId &&
+    (await draftNeedsShipping(ctx, id))
+  ) {
+    throw new DraftNeedsShippingAddress(ctx.storeId)
+  }
 
   /* Routed and held like a checkout (order/routing.ts), to the draft's shipping state; the
      stock guard queues two conversions, so they cannot oversell. Drafts never pre-order. */

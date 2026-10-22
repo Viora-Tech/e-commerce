@@ -286,7 +286,22 @@ export const customerDetailContent = {
     heading: 'Notes',
     placeholder: 'Anything the team should know',
   },
-  /** One save bar for the page's inline edits: note, tags and marketing consent. */
+  /** GSTIN and legal name for B2B invoices; saved with the page's other edits. */
+  business: {
+    heading: 'Business details',
+    gstin: 'GSTIN',
+    gstinPlaceholder: '06AAACW1234A1Z5',
+    businessName: 'Business name',
+    businessNamePlaceholder: 'Registered business name',
+    hint: 'Saved from checkout when the customer enters a GSTIN.',
+  },
+  /** Why a GSTIN was refused, by `validateGstin` reason (same rules as checkout). */
+  gstinErrors: {
+    shape: 'A GSTIN has 15 characters, like 06AAACW1234A1Z5',
+    state: 'The first two digits are not a GST state code',
+    checksum: 'This GSTIN has a typo: its last character does not match the rest',
+  },
+  /** One save bar for the page's inline edits: note, tags, business details and consent. */
   changes: {
     unsaved: 'Unsaved changes',
     save: 'Save',

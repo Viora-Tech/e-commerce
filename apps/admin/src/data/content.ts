@@ -2,7 +2,6 @@
 export const contentContent = {
   title: 'Content',
   summary: 'Files, menus and structured content used across your storefront.',
-  goToPages: 'Go to pages',
   cards: {
     files: {
       title: 'Files',

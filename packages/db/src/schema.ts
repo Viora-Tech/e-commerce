@@ -717,6 +717,12 @@ export const customer = pgTable(
      */
     phoneVerifiedAt: timestamp('phone_verified_at', { withTimezone: true }),
     name: text('name'),
+    /**
+     * Business details for B2B invoices: a validated GSTIN (upper case, `validateGstin`) and
+     * the legal name. Saved from a checkout that carried them, or typed by staff.
+     */
+    gstin: text('gstin'),
+    businessName: text('business_name'),
     /** Snapshot of the address from the latest order, so the profile card needs no join. */
     defaultAddress: jsonb('default_address').$type<CustomerAddress>(),
     tags: text('tags').array().notNull().default([]),

@@ -52,6 +52,7 @@ export const mediaContent = {
     intro: 'Everything uploaded to this store. Files stay here when removed from a product.',
     search: 'Search files',
     upload: 'Upload files',
+    view: { grid: 'Grid view', list: 'List view' },
     empty: {
       heading: 'No files yet',
       body: 'Upload product images here or from any product page. They are stored where Storage on this page says.',

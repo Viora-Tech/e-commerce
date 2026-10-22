@@ -1,5 +1,8 @@
 import type { CustomerSheetRow } from '@commerce/api'
+import { PINCODE_PATTERN } from '@commerce/core/account-patterns'
+import { validateGstin } from '@commerce/core/gstin'
 import type { ConsentChannel } from '@commerce/core/privacy'
+import { INDIAN_STATE_NAMES } from '@commerce/core/states'
 import type { customersBulkEditContent } from '@/data/customers-bulk-edit'
 
 type Copy = typeof customersBulkEditContent
@@ -16,6 +19,14 @@ export type GridRow = {
   acceptsMarketing: string
   acceptsWhatsapp: string
   acceptsSms: string
+  gstin: string
+  businessName: string
+  /** The default address's city, state code and PIN code; blank when there is none. */
+  city: string
+  stateCode: string
+  pincode: string
+  /** The whole default address the address cells edit; null makes them read-only. */
+  address: CustomerSheetRow['defaultAddress']
   anonymised: boolean
 }
 
@@ -28,10 +39,19 @@ export const EDITABLE_KEYS = [
   'acceptsMarketing',
   'acceptsWhatsapp',
   'acceptsSms',
+  'gstin',
+  'businessName',
+  'city',
+  'stateCode',
+  'pincode',
 ] as const
 
 /** Cells saved by `customers.update`. */
-export const DETAIL_KEYS = ['name', 'phone', 'tags', 'note'] as const
+export const DETAIL_KEYS = ['name', 'phone', 'tags', 'note', 'gstin', 'businessName'] as const
+
+/** Cells of the default address, saved by `customers.updateAddress`. */
+export const ADDRESS_KEYS = ['city', 'stateCode', 'pincode'] as const
+export const isAddressKey = (key: string) => (ADDRESS_KEYS as readonly string[]).includes(key)
 
 /** Consent cells and the channel each one sets through `customerPrivacy.setConsent`. */
 export const CONSENT_KEYS = {
@@ -56,8 +76,31 @@ export function toGridRow(r: CustomerSheetRow): GridRow {
     acceptsMarketing: yesNo(r.acceptsMarketing),
     acceptsWhatsapp: yesNo(r.acceptsWhatsapp),
     acceptsSms: yesNo(r.acceptsSms),
+    gstin: r.gstin,
+    businessName: r.businessName,
+    city: r.defaultAddress?.city ?? '',
+    stateCode: r.defaultAddress?.stateCode ?? '',
+    pincode: r.defaultAddress?.pincode ?? '',
+    address: r.defaultAddress,
     anonymised: r.anonymised,
   }
+}
+
+/** "hr" or "Haryana" reads as HR, like the server's state check; null when it is neither. */
+export function stateCodeOf(value: string): string | null {
+  const v = value.trim()
+  if (v.toUpperCase() in INDIAN_STATE_NAMES) return v.toUpperCase()
+  const named = Object.entries(INDIAN_STATE_NAMES).find(
+    ([, name]) => name.toLowerCase() === v.toLowerCase(),
+  )
+  return named?.[0] ?? null
+}
+
+/** The `validateGstin` reason a typed GSTIN fails on; null when blank or valid. */
+export function gstinReason(value: string): 'shape' | 'state' | 'checksum' | null {
+  if (value.trim() === '') return null
+  const check = validateGstin(value)
+  return check.ok ? null : ((check.reason as 'shape' | 'state' | 'checksum') ?? 'shape')
 }
 
 /** "a, b ,,a" becomes ["a", "b"]: trimmed, no blanks, no repeats. */
@@ -70,9 +113,11 @@ export const parseTags = (value: string) => [
   ),
 ]
 
-/** Erased customers are a record: nothing about them changes. */
+/** Erased customers are a record: nothing about them changes. No default address, no address cells. */
 export const canEdit = (row: GridRow, key: string) =>
-  (EDITABLE_KEYS as readonly string[]).includes(key) && !row.anonymised
+  (EDITABLE_KEYS as readonly string[]).includes(key) &&
+  !row.anonymised &&
+  !(isAddressKey(key) && row.address === null)
 
 export const cellValue = (row: GridRow, key: string): string =>
   String((row as Record<string, unknown>)[key] ?? '')
@@ -82,8 +127,14 @@ export const withCell = (row: GridRow, key: string, value: string): GridRow => (
   [key]: value,
 })
 
-const comparable = (row: GridRow, key: string) =>
-  key === 'tags' ? parseTags(row.tags).join('\n') : cellValue(row, key).trim()
+/** GSTINs and state codes are stored upper case, so "hr" over "HR" is no change. */
+const UPPER_KEYS = new Set(['gstin', 'stateCode'])
+
+const comparable = (row: GridRow, key: string) => {
+  if (key === 'tags') return parseTags(row.tags).join('\n')
+  const v = cellValue(row, key).trim()
+  return UPPER_KEYS.has(key) ? v.toUpperCase() : v
+}
 
 export const isDirty = (row: GridRow, base: GridRow | undefined, key: string) =>
   base !== undefined && comparable(row, key) !== comparable(base, key)
@@ -118,6 +169,18 @@ export function validateRows(
       if (tags.length > 50) bad('tags', copy.tagCount)
       else if (tags.some((t) => t.length > 40)) bad('tags', copy.tagLength)
     }
+    const gstin = isDirty(r, b, 'gstin') ? gstinReason(r.gstin) : null
+    if (gstin) bad('gstin', copy.gstin[gstin])
+    if (isDirty(r, b, 'businessName') && r.businessName.trim().length > 120) {
+      bad('businessName', copy.businessName)
+    }
+    // An address is resaved whole, so its cells are checked like the address form's.
+    if (r.address && ADDRESS_KEYS.some((k) => isDirty(r, b, k))) {
+      const city = r.city.trim()
+      if (city.length === 0 || city.length > 80) bad('city', copy.city)
+      if (!stateCodeOf(r.stateCode)) bad('stateCode', copy.stateCode)
+      if (!PINCODE_PATTERN.test(r.pincode.trim())) bad('pincode', copy.pincode)
+    }
   }
   return errors
 }
@@ -130,6 +193,27 @@ export function detailPayload(row: GridRow, base: GridRow) {
     ...(changed('phone') ? { phone: row.phone.trim() || null } : {}),
     ...(changed('tags') ? { tags: parseTags(row.tags) } : {}),
     ...(changed('note') ? { note: row.note.trim() || null } : {}),
+    ...(changed('gstin') ? { gstin: row.gstin.trim().toUpperCase() || null } : {}),
+    ...(changed('businessName') ? { businessName: row.businessName.trim() || null } : {}),
+  }
+}
+
+/** What `customers.updateAddress` takes for a changed default address; null when unchanged. */
+export function addressPayload(row: GridRow, base: GridRow) {
+  const a = row.address
+  if (!a || !ADDRESS_KEYS.some((k) => isDirty(row, base, k))) return null
+  return {
+    customerId: row.id,
+    addressId: a.id,
+    address: {
+      name: a.name,
+      line1: a.line1,
+      ...(a.line2 ? { line2: a.line2 } : {}),
+      city: row.city.trim(),
+      stateCode: stateCodeOf(row.stateCode) ?? row.stateCode.trim(),
+      pincode: row.pincode.trim(),
+      phone: a.phone,
+    },
   }
 }
 

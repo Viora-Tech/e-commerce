@@ -243,6 +243,19 @@ export default [
       heading: 'नोट',
       placeholder: 'टीम को जो पता होना चाहिए',
     },
+    business: {
+      heading: 'बिज़नेस विवरण',
+      gstin: 'GSTIN',
+      gstinPlaceholder: '06AAACW1234A1Z5',
+      businessName: 'बिज़नेस का नाम',
+      businessNamePlaceholder: 'रजिस्टर्ड बिज़नेस का नाम',
+      hint: 'ग्राहक चेकआउट पर GSTIN डाले तो यहाँ सेव हो जाता है।',
+    },
+    gstinErrors: {
+      shape: 'GSTIN में 15 अक्षर होते हैं, जैसे 06AAACW1234A1Z5',
+      state: 'पहले दो अंक कोई GST राज्य कोड नहीं हैं',
+      checksum: 'इस GSTIN में टाइपो है: आख़िरी अक्षर बाकी से मेल नहीं खाता',
+    },
     changes: {
       unsaved: 'बिना सेव किए बदलाव',
       save: 'सेव करें',

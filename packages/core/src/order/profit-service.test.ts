@@ -1,5 +1,6 @@
 /** SOURCE OF TRUTH: order profit service tests — WHAT: profit per order and shipment from landed cost / WHY: guards the money maths */
 import {
+  address,
   business,
   cart,
   cartLine,
@@ -118,11 +119,24 @@ describe('cost at sale', () => {
 
   it('converting a draft takes the cost at conversion', async () => {
     const t = await seed()
+    const [shipTo] = await owner
+      .insert(address)
+      .values({
+        storeId: t.storeId,
+        name: 'Aarav',
+        line1: '12 MG Road',
+        city: 'Gurugram',
+        stateCode: 'HR',
+        pincode: '122001',
+        phone: '9876543210',
+      })
+      .returning()
     const [d] = await owner
       .insert(order)
       .values({
         storeId: t.storeId,
         number: 5,
+        shippingAddressId: shipTo?.id,
         status: 'draft',
         subtotalPaise: 118_000,
         totalPaise: 118_000,

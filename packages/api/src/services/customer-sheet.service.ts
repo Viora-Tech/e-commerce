@@ -1,9 +1,24 @@
 import { decryptCustomerPhone } from '@commerce/core'
 import type { StoreTx } from '@commerce/db'
-import { customer } from '@commerce/db'
-import { inArray } from 'drizzle-orm'
+import { customer, customerAddress } from '@commerce/db'
+import { and, eq, inArray } from 'drizzle-orm'
 
-/** One customer as the bulk-edit spreadsheet shows it: details, tags, note and consent. */
+/** The customer's default address-book entry, whole, so a city or PIN edit can resave it. */
+export type CustomerSheetAddress = {
+  id: string
+  name: string
+  line1: string
+  line2: string | null
+  city: string
+  stateCode: string
+  pincode: string
+  phone: string
+}
+
+/**
+ * One customer as the bulk-edit spreadsheet shows it: details, business details, tags, note,
+ * consent and the default address.
+ */
 export type CustomerSheetRow = {
   id: string
   email: string
@@ -11,6 +26,10 @@ export type CustomerSheetRow = {
   phone: string
   tags: string[]
   note: string
+  gstin: string
+  businessName: string
+  /** Null when the customer has no default address in their book: its cells are read-only. */
+  defaultAddress: CustomerSheetAddress | null
   acceptsMarketing: boolean
   acceptsWhatsapp: boolean
   acceptsSms: boolean
@@ -35,6 +54,8 @@ export async function customerSheet(
       phone: customer.phone,
       tags: customer.tags,
       note: customer.note,
+      gstin: customer.gstin,
+      businessName: customer.businessName,
       acceptsMarketing: customer.acceptsMarketing,
       acceptsWhatsapp: customer.acceptsWhatsapp,
       acceptsSms: customer.acceptsSms,
@@ -43,6 +64,21 @@ export async function customerSheet(
     .from(customer)
     .where(inArray(customer.id, ids))
   const byId = new Map(rows.map((r) => [r.id, r]))
+  const addresses = await tx
+    .select({
+      customerId: customerAddress.customerId,
+      id: customerAddress.id,
+      name: customerAddress.name,
+      line1: customerAddress.line1,
+      line2: customerAddress.line2,
+      city: customerAddress.city,
+      stateCode: customerAddress.stateCode,
+      pincode: customerAddress.pincode,
+      phone: customerAddress.phone,
+    })
+    .from(customerAddress)
+    .where(and(inArray(customerAddress.customerId, ids), eq(customerAddress.isDefault, true)))
+  const addressOf = new Map(addresses.map(({ customerId, ...a }) => [customerId, a]))
   const sheet: CustomerSheetRow[] = []
   for (const id of ids) {
     const r = byId.get(id)
@@ -54,6 +90,9 @@ export async function customerSheet(
       phone: decryptCustomerPhone(r.phone, secret) ?? '',
       tags: r.tags ?? [],
       note: r.note ?? '',
+      gstin: r.gstin ?? '',
+      businessName: r.businessName ?? '',
+      defaultAddress: addressOf.get(r.id) ?? null,
       acceptsMarketing: r.acceptsMarketing,
       acceptsWhatsapp: r.acceptsWhatsapp,
       acceptsSms: r.acceptsSms,
