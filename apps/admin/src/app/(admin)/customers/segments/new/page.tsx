@@ -9,7 +9,7 @@ type Props = { searchParams: Promise<SearchParams> }
 
 const EMPTY: SegmentRules = { match: 'all', conditions: [] }
 
-/** "Save as segment" on the customer list passes the current filter as `rules`. */
+/** "Save as segment" on the customer list and the templates pass `rules` (and a `name`). */
 function parseRules(raw: string | string[] | undefined): SegmentRules {
   const value = Array.isArray(raw) ? raw[0] : raw
   if (!value) return EMPTY
@@ -22,6 +22,7 @@ function parseRules(raw: string | string[] | undefined): SegmentRules {
 }
 
 export default async function Page({ searchParams }: Props) {
-  const { rules } = await searchParams
-  return <SegmentForm initialName="" initialRules={parseRules(rules)} />
+  const { rules, name } = await searchParams
+  const initialName = (Array.isArray(name) ? name[0] : name)?.slice(0, 80) ?? ''
+  return <SegmentForm initialName={initialName} initialRules={parseRules(rules)} />
 }

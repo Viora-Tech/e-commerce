@@ -1,4 +1,4 @@
-import { createHash, randomBytes } from 'node:crypto'
+import { createHash } from 'node:crypto'
 import {
   customer,
   giftCard,
@@ -26,12 +26,11 @@ import {
   addMonths,
   dateInZone,
   formatGiftCardCode,
-  GIFT_CARD_CODE_ALPHABET,
-  GIFT_CARD_CODE_LENGTH,
   GIFT_CARD_CUSTOM_CODE_MAX,
   GIFT_CARD_CUSTOM_CODE_MIN,
   GIFT_CARD_MAX_VALUE_PAISE,
   type GiftCardState,
+  generateGiftCardCode,
   giftCardState,
   normaliseGiftCardCode,
   parseGiftCardSettings,
@@ -65,16 +64,8 @@ const REASON_MESSAGES: Record<Exclude<GiftCardState, 'active'>, string> = {
 
 export type GiftCardRow = typeof giftCard.$inferSelect
 
-/** 16 random characters from the unambiguous alphabet (80 bits). */
-export function generateGiftCardCode(): string {
-  const bytes = randomBytes(GIFT_CARD_CODE_LENGTH)
-  let code = ''
-  for (const b of bytes) code += GIFT_CARD_CODE_ALPHABET[b & 31]
-  return code
-}
-
 /**
- * Lookup hash. Codes carry 80 bits of randomness, so a plain SHA-256 is enough;
+ * Lookup hash. Generated codes carry 60 bits of randomness, so a plain SHA-256 is enough;
  * the store id is mixed in so the same code in two stores hashes differently.
  */
 export function hashGiftCardCode(storeId: string, code: string): string {

@@ -25,6 +25,34 @@ export const customersBulkEditContent = {
     acceptsSms: 'SMS marketing',
   },
   consent: { yes: 'Subscribed', no: 'Not subscribed' },
+  /** "Change for all": one column changed on every row; Save still sends it. */
+  setAll: {
+    trigger: 'Change for all',
+    title: (n: number) => `Change all ${n} ${n === 1 ? 'customer' : 'customers'}`,
+    description:
+      'Applies to every customer in this sheet. Nothing is saved until you click Save, so you can check it first.',
+    column: 'Column',
+    action: 'Change',
+    value: 'Value',
+    tagsPlaceholder: 'vip, diwali-2026',
+    tagsHelp: 'Separate tags with commas.',
+    notePlaceholder: 'Called about the Diwali sale',
+    consentWarning:
+      'Only subscribe customers who agreed to hear from you. Each change is kept in their consent history.',
+    actions: {
+      addTags: 'Add tags',
+      removeTags: 'Remove tags',
+      replaceTags: 'Replace all tags with',
+      appendNote: 'Add to the end of the note',
+      replaceNote: 'Replace the note with',
+      clearNote: 'Clear the note',
+      subscribe: 'Subscribe everyone',
+      unsubscribe: 'Unsubscribe everyone',
+    },
+    apply: 'Apply to all',
+    cancel: 'Cancel',
+    applied: (n: number) => `Changed ${n} rows. Click Save to keep it.`,
+  },
   noEmail: 'No email',
   validation: {
     name: 'Name is at most 200 characters',

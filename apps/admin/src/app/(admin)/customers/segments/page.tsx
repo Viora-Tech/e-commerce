@@ -3,6 +3,7 @@ import { Button } from '@commerce/ui/shadcn/button'
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
+import SegmentTemplates from '@/components/customers/segment-templates'
 import SegmentsList from '@/components/customers/segments-list'
 import PageBody from '@/components/layout/page-body'
 import PageHeader from '@/components/layout/page-header'
@@ -36,6 +37,7 @@ export default async function Page() {
         }
       />
       <SegmentsList segments={segments} />
+      <SegmentTemplates savedNames={segments.map((s) => s.name)} />
     </PageBody>
   )
 }
