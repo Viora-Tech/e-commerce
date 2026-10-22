@@ -9,10 +9,12 @@ import ChoiceCard from '@/components/layout/choice-card'
 import { productFormContent } from '@/data/product-form'
 import { rupees } from '@/data/products'
 import { useCopy, useFormat } from '@/hooks/use-copy'
-import { margin, type VariantRow } from './form-state'
+import { type Facets, margin, type VariantRow } from './form-state'
 
 type ProductPricingSectionProps = {
   variant: VariantRow
+  /** Store GST defaults; without them a blank variant rate shows no breakdown. */
+  gst?: Facets['gst'] | undefined
   taxIncluded: boolean
   saleStartsAt: string
   saleEndsAt: string
@@ -31,11 +33,24 @@ function savingPaise(price: string, mrp: string): number | null {
 }
 
 /**
+ * What the customer pays and what the store keeps, in paise, at `ratePercent`. Null when the
+ * price is not a number yet.
+ */
+function gstSplit(price: string, ratePercent: number, taxIncluded: boolean) {
+  const p = rupees.toPaise(price)
+  if (p == null) return null
+  const excl = taxIncluded ? Math.round((p * 100) / (100 + ratePercent)) : p
+  const incl = taxIncluded ? p : Math.round((p * (100 + ratePercent)) / 100)
+  return { incl, excl, gst: incl - excl }
+}
+
+/**
  * Frame 5:5166, 5:5134 and 5:5154: full-width price with a currency plate,
  * then compare-at beside the tax choice, then the two date fields.
  */
 export default function ProductPricingSection({
   variant,
+  gst,
   taxIncluded,
   saleStartsAt,
   saleEndsAt,
@@ -57,6 +72,21 @@ export default function ProductPricingSection({
     variant.mrp.trim() !== ''
 
   const profit = margin(variant.price, variant.cost)
+  const ownRate = variant.gstRate.trim() === '' ? null : Number(variant.gstRate)
+  // Under the composition scheme no GST is charged, whatever the rate says.
+  const rate = gst?.composition ? 0 : (ownRate ?? gst?.ratePercent ?? null)
+  const pricePaise = rupees.toPaise(variant.price)
+  const split = variant.taxable && rate ? gstSplit(variant.price, rate, taxIncluded) : null
+  const taxLine = split
+    ? copy.gstBreakdown(
+        fmt.money(split.incl),
+        fmt.money(split.excl),
+        fmt.money(split.gst),
+        rate ?? 0,
+      )
+    : pricePaise != null && (!variant.taxable || rate === 0)
+      ? copy.noGst(fmt.money(pricePaise))
+      : null
 
   return (
     <div className="flex flex-col gap-4">
@@ -108,6 +138,11 @@ export default function ProductPricingSection({
               {copy.taxable}
             </label>
             <p className="text-caption text-muted-foreground">{copy.taxableHelp}</p>
+            {taxLine ? (
+              <p className="text-caption text-ink-strong tabular-nums" aria-live="polite">
+                {taxLine}
+              </p>
+            ) : null}
           </div>
           <Switch
             id="variant-taxable"

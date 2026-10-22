@@ -939,6 +939,13 @@
       "when": 1792549322986,
       "tag": "0144_theme_template_account_kinds",
       "breakpoints": true
+    },
+    {
+      "idx": 134,
+      "version": "7",
+      "when": 1792661615664,
+      "tag": "0145_variant_weight_unit",
+      "breakpoints": true
     }
   ]
 }

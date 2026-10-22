@@ -88,6 +88,6 @@ describe('stock maths', () => {
     expect(stockState(0, 5)).toBe('out')
     expect(stockState(-1, 5)).toBe('out')
     expect(stockState(5, 5)).toBe('low')
-    expect(stockState(6, 5)).toBe('in')
+    expect(stockState(6, 5)).toBe('in_stock')
   })
 })

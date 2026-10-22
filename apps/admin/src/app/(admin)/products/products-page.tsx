@@ -1,7 +1,7 @@
 'use client'
 
 import { siteConfig } from '@commerce/config/site'
-import type { ProductStatus } from '@commerce/core/catalog'
+import { type ProductStatus, STOCK_FILTERS } from '@commerce/core/catalog'
 import { Download, Plus, Upload } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Kbd } from '@commerce/ui/shadcn/kbd'
@@ -70,7 +70,6 @@ type Query = {
 }
 
 const DEFAULT_PER_PAGE = siteConfig.ui.rowsPerPage.default
-const STOCK_FILTERS = ['in', 'out', 'low'] as const
 
 function listInput(q: Query) {
   return {
@@ -305,7 +304,7 @@ function ProductsContent({ initial }: { initial: ProductsInitial }) {
       ) : null}
       <ResourceTable
         resourceName={copy.resource}
-        columns={productColumns(copy, fmt)}
+        columns={productColumns(copy, fmt, initial.facets.lowStockThreshold)}
         items={items}
         getId={(p) => p.id}
         href={(p) => routes.products.detail(p.id)}

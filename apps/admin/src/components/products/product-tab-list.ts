@@ -31,7 +31,6 @@ export function tabFromParam(param: string | null, single: boolean): ProductTabI
 export function tabOfError(key: keyof FormErrors, single: boolean): ProductTabId {
   if (key === 'title') return 'overview'
   if (key === 'package') return 'shipping'
-  if (key === 'preorderDeposit') return 'more'
   return single ? 'price' : 'variants'
 }
 

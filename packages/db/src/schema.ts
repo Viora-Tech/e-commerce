@@ -383,43 +383,60 @@ export const article = pgTable(
   ],
 )
 
-export const variant = pgTable('variant', {
-  id: id(),
-  storeId: storeId(),
-  productId: uuid('product_id')
-    .notNull()
-    .references(() => product.id),
-  sku: text('sku'),
-  barcode: text('barcode'),
-  title: text('title').notNull(),
-  pricePaise: integer('price_paise').notNull(),
-  mrpPaise: integer('mrp_paise'),
-  /** What the merchant paid; never shown to shoppers. */
-  costPaise: integer('cost_paise'),
-  taxable: boolean('taxable').notNull().default(true),
-  /** false = always purchasable regardless of inventory_level. */
-  trackInventory: boolean('track_inventory').notNull().default(true),
-  weightGrams: integer('weight_grams'),
-  /** Customs fields printed on international labels and invoices. */
-  hsCode: text('hs_code'),
-  countryOfOrigin: text('country_of_origin'),
-  /** GST rate for this variant; null uses the store default. Ignored when `taxable` is false. */
-  gstRatePercent: integer('gst_rate_percent'),
-  /** One of the store's named boxes (shipping settings JSON); null with dims set below means a custom box. */
-  boxPresetId: text('box_preset_id'),
-  packageLengthCm: integer('package_length_cm'),
-  packageWidthCm: integer('package_width_cm'),
-  packageHeightCm: integer('package_height_cm'),
-  position: integer('position').notNull().default(0),
-  mediaId: uuid('media_id').references(() => media.id),
-  /**
-   * Variants referenced by order lines are never deleted; removing one from
-   * the matrix archives it so old orders keep their titles and prices.
-   */
-  archivedAt: timestamp('archived_at', { withTimezone: true }),
-  /** Partial override of the product's pre-order settings; null inherits every field. */
-  preorderOverride: jsonb('preorder_override').$type<VariantPreorderOverride>(),
-})
+/** Units the product page offers for a variant's weight (`variant.weight_unit`). */
+export const VARIANT_WEIGHT_UNITS = ['g', 'kg', 'lb', 'oz'] as const
+
+export const variant = pgTable(
+  'variant',
+  {
+    id: id(),
+    storeId: storeId(),
+    productId: uuid('product_id')
+      .notNull()
+      .references(() => product.id),
+    sku: text('sku'),
+    barcode: text('barcode'),
+    title: text('title').notNull(),
+    pricePaise: integer('price_paise').notNull(),
+    mrpPaise: integer('mrp_paise'),
+    /** What the merchant paid; never shown to shoppers. */
+    costPaise: integer('cost_paise'),
+    taxable: boolean('taxable').notNull().default(true),
+    /** false = always purchasable regardless of inventory_level. */
+    trackInventory: boolean('track_inventory').notNull().default(true),
+    weightGrams: integer('weight_grams'),
+    /**
+     * Unit the merchant types the weight in on the product page; `weight_grams` stays the source of
+     * truth for shipping. Null shows kilograms.
+     */
+    weightUnit: text('weight_unit', { enum: VARIANT_WEIGHT_UNITS }),
+    /** Customs fields printed on international labels and invoices. */
+    hsCode: text('hs_code'),
+    countryOfOrigin: text('country_of_origin'),
+    /** GST rate for this variant; null uses the store default. Ignored when `taxable` is false. */
+    gstRatePercent: integer('gst_rate_percent'),
+    /** One of the store's named boxes (shipping settings JSON); null with dims set below means a custom box. */
+    boxPresetId: text('box_preset_id'),
+    packageLengthCm: integer('package_length_cm'),
+    packageWidthCm: integer('package_width_cm'),
+    packageHeightCm: integer('package_height_cm'),
+    position: integer('position').notNull().default(0),
+    mediaId: uuid('media_id').references(() => media.id),
+    /**
+     * Variants referenced by order lines are never deleted; removing one from
+     * the matrix archives it so old orders keep their titles and prices.
+     */
+    archivedAt: timestamp('archived_at', { withTimezone: true }),
+    /** Partial override of the product's pre-order settings; null inherits every field. */
+    preorderOverride: jsonb('preorder_override').$type<VariantPreorderOverride>(),
+  },
+  (t) => [
+    check(
+      'variant_weight_unit_check',
+      sql`${t.weightUnit} is null or ${t.weightUnit} in ('g', 'kg', 'lb', 'oz')`,
+    ),
+  ],
+)
 
 export const variantOptionValue = pgTable('variant_option_value', {
   id: id(),

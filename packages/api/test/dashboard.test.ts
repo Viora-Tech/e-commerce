@@ -323,6 +323,44 @@ describe('dashboard.summary', () => {
     expect(s.liveVisitors).toEqual({ last30: 4, perMinute })
   })
 
+  it("judges low stock by the store's own threshold, the same on the dashboard and product list", async () => {
+    const a = await merchant('a@example.com', 'store-a')
+    const [p] = await owner
+      .insert(product)
+      .values({ storeId: a.storeId, handle: 'pad', title: 'Pad', status: 'active' })
+      .returning()
+    const [v] = await owner
+      .insert(variant)
+      .values({
+        storeId: a.storeId,
+        productId: p?.id as string,
+        title: 'Default',
+        pricePaise: 1000,
+      })
+      .returning()
+    await owner
+      .insert(inventoryLevel)
+      .values({ storeId: a.storeId, variantId: v?.id as string, onHand: 8, reserved: 0 })
+    const low = () =>
+      call(appRouter.products.list, { stock: 'low', page: 1, perPage: 10 }, { context: a.ctx })
+
+    // 8 left is fine at the default threshold of 5.
+    expect(
+      (await call(appRouter.dashboard.summary, undefined, { context: a.ctx })).lowStock,
+    ).toEqual([])
+    expect((await low()).total).toBe(0)
+
+    await owner.update(store).set({ lowStockThreshold: 10 }).where(eq(store.id, a.storeId))
+    const s = await call(appRouter.dashboard.summary, undefined, { context: a.ctx })
+    expect(s.lowStock).toEqual([expect.objectContaining({ title: 'Pad', available: 8 })])
+    expect(s.needsYou.lowStock.count).toBe(1)
+    expect((await low()).total).toBe(1)
+    expect((await call(appRouter.products.stats, undefined, { context: a.ctx })).lowStock).toBe(1)
+    expect(
+      (await call(appRouter.products.facets, undefined, { context: a.ctx })).lowStockThreshold,
+    ).toBe(10)
+  })
+
   it('is all zeros for an empty store', async () => {
     const a = await merchant('a@example.com', 'store-a')
     const s = await call(appRouter.dashboard.summary, undefined, { context: a.ctx })

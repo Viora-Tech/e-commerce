@@ -1,8 +1,7 @@
-import { notSystemTest } from '@commerce/core'
+import { notSystemTest, storeLowStockThreshold } from '@commerce/core'
 import type { StoreTx } from '@commerce/db'
 import { inventoryAdjustment, inventoryLevel, product, sellableLevel, variant } from '@commerce/db'
 import { and, count, desc, eq, isNull, sql } from 'drizzle-orm'
-import { LOW_STOCK_AT } from './product.service'
 
 // Stock tiles and the stock movement history for the products screens.
 
@@ -10,7 +9,7 @@ export type ProductStats = {
   total: number
   active: number
   draft: number
-  /** Selling products with 1 to LOW_STOCK_AT units left. */
+  /** Selling products with 1 to the store's low-stock threshold units left. */
   lowStock: number
   outOfStock: number
   stockValuePaise: number
@@ -18,6 +17,7 @@ export type ProductStats = {
 
 /** Tiles above the list: counts plus what the stock on hand is worth at cost. */
 export async function productStats(tx: StoreTx): Promise<ProductStats> {
+  const lowThreshold = await storeLowStockThreshold(tx)
   const [counts] = await tx
     .select({
       total: count(),
@@ -57,7 +57,7 @@ export async function productStats(tx: StoreTx): Promise<ProductStats> {
         select coalesce(sum(greatest(0, il.on_hand - il.reserved)), 0)
         from variant v left join inventory_level il on il.variant_id = v.id and il.fulfils_online
         where v.product_id = ${product.id} and v.archived_at is null
-      ) between 1 and ${LOW_STOCK_AT}`,
+      ) between 1 and ${lowThreshold}`,
       ),
     )
   return {

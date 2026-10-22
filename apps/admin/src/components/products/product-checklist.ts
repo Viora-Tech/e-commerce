@@ -1,11 +1,13 @@
 import type { ChecklistItem } from '@/components/layout/page-checklist'
 import type { productFormContent } from '@/data/product-form'
+import type { productPageContent } from '@/data/product-page'
 import { rupees } from '@/data/products'
 import type { Formatters } from '@/lib/format'
 import { type FormErrors, type ProductFormState, stockOf } from './form-state'
 import { type ProductTabId, tabOfError, tabsFor } from './product-tab-list'
 
 type Copy = typeof productFormContent
+type PageCopy = typeof productPageContent
 
 /** One "On this page" row per tab: done, needs fixing, or not filled in yet, with a short note. */
 export function productChecklist(
@@ -14,6 +16,8 @@ export function productChecklist(
   form: ProductFormState,
   errors: FormErrors,
   single: boolean,
+  /** Installed apps that add a section to the More tab. */
+  apps: { count: number; copy: PageCopy['checklist'] },
 ): ChecklistItem[] {
   const c = copy.checklist
   const broken = new Set<ProductTabId>(
@@ -46,7 +50,9 @@ export function productChecklist(
           ? { state: 'done', note: c.custom }
           : { state: 'todo', note: c.auto }
       case 'more':
-        return form.preorderEnabled ? { state: 'done', note: c.preorderOn } : { state: 'todo' }
+        return apps.count > 0
+          ? { state: 'done', note: apps.copy.apps(apps.count) }
+          : { state: 'todo', note: apps.copy.noApps }
     }
   }
 

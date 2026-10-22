@@ -1,3 +1,4 @@
+import { type StockState, stockStateOf } from '@commerce/core/catalog'
 import OrderChip from '@/components/orders/order-chip'
 import ProductThumb from '@/components/products/product-thumb'
 import type { ResourceColumnSpec } from '@/components/table/resource-table'
@@ -7,8 +8,13 @@ import type { Formatters } from '@/lib/format'
 
 export type ProductRow = Awaited<ReturnType<typeof api.products.list>>['items'][number]
 
-/** At or below this many units a product reads as low on stock (the stock filter uses the same number). */
-const LOW_STOCK_AT = 5
+/** Ink for the units-left line, by the same stock state the `?stock=` filter uses. */
+const STOCK_TEXT: Record<StockState, string> = {
+  out: 'text-danger',
+  low: 'text-warning',
+  in_stock: 'text-foreground',
+  unlimited: 'text-foreground',
+}
 
 type ListCopy = typeof productsListContent
 
@@ -32,6 +38,8 @@ function priceRange(copy: ListCopy, fmt: Formatters, row: ProductRow): string {
 export const productColumns = (
   copy: ListCopy,
   fmt: Formatters,
+  /** The store's low-stock threshold (`products.facets`), the same one the stock filter uses. */
+  lowStockThreshold: number,
 ): ResourceColumnSpec<ProductRow>[] => [
   {
     id: 'product',
@@ -70,11 +78,9 @@ export const productColumns = (
       <span className="flex flex-col leading-tight">
         <span
           className={
-            p.available === 0
-              ? 'text-danger'
-              : p.available <= LOW_STOCK_AT
-                ? 'text-warning'
-                : 'text-foreground'
+            STOCK_TEXT[
+              stockStateOf({ trackInventory: true, available: p.available }, lowStockThreshold)
+            ]
           }
         >
           {copy.inStock(p.available)}

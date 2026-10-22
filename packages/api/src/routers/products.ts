@@ -14,6 +14,7 @@ import {
   ProductWriteSchema,
   parseProductCsv,
   permissions,
+  STOCK_FILTERS,
   summariseImport,
   syncAutomaticCollections,
   uniqueHandle,
@@ -42,7 +43,7 @@ const ListFiltersSchema = z.object({
   vendor: z.string().trim().max(100).optional(),
   productType: z.string().trim().max(100).optional(),
   tag: z.string().trim().max(50).optional(),
-  stock: z.enum(['in', 'out', 'low']).optional(),
+  stock: z.enum(STOCK_FILTERS).optional(),
   /** Exactly these products, e.g. the ones a discount already covers. */
   ids: z.array(z.uuid()).max(PAGE_SIZE_MAX).optional(),
 })
@@ -80,7 +81,9 @@ export const productsRouter = {
     .input(z.object({ id: z.uuid() }))
     .handler(({ context, input }) => getProduct(context.tx, input.id)),
 
-  facets: can(permissions.PRODUCTS_READ).handler(({ context }) => productFacets(context.tx)),
+  facets: can(permissions.PRODUCTS_READ).handler(({ context }) =>
+    productFacets(context.tx, context.scope.storeId),
+  ),
 
   /** Rows for the shared "Select products" dialog, variants included. */
   pick: can(permissions.PRODUCTS_READ)

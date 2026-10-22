@@ -4,15 +4,18 @@ import ProductForm from '@/components/products/product-form'
 import { appRouter, call, serverContext } from '@/lib/api'
 import { PRODUCT_LAYOUT_COOKIE, parseProductLayout } from '@/lib/product-layout'
 import { routes } from '@/lib/routes'
+import { listApps } from '@/lib/shell-data'
 import { orNoStore } from '@/lib/store-guard'
 import { storefrontOrigin } from '@/lib/storefront-origin'
 
 export default async function NewProductPage() {
   const context = await serverContext()
-  const [facets, ai] = await Promise.all([
+  const [facets, ai, installed] = await Promise.all([
     call(appRouter.products.facets, undefined, { context }).catch(orNoStore(null)),
     // AI is optional: any failure just hides the button.
     call(appRouter.ai.status, undefined, { context }).catch(() => null),
+    // Installed apps' sections wait for the first save; without settings access the list is empty.
+    listApps().catch(() => []),
   ])
   if (!facets) redirect(routes.selectStore())
   return (
@@ -22,6 +25,9 @@ export default async function NewProductPage() {
       storefrontOrigin={await storefrontOrigin()}
       aiWriter={ai?.productWriter ?? false}
       layout={parseProductLayout((await cookies()).get(PRODUCT_LAYOUT_COOKIE)?.value)}
+      apps={installed
+        .filter((a) => a.installed)
+        .map((a) => ({ id: a.id, name: a.name, icon: a.admin.icon }))}
     />
   )
 }

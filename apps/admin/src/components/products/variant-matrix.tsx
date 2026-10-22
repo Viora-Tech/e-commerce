@@ -2,6 +2,7 @@
 
 import { variantTitle } from '@commerce/core/catalog'
 import { cn } from '@commerce/ui/lib/utils'
+import { Button } from '@commerce/ui/shadcn/button'
 import { Checkbox } from '@commerce/ui/shadcn/checkbox'
 import { Input } from '@commerce/ui/shadcn/input'
 import {
@@ -25,6 +26,8 @@ type VariantMatrixProps = {
   selected: number[]
   onSelectedChange: (next: number[]) => void
   onVariant: (index: number, patch: Partial<VariantRow>) => void
+  /** Fills one row's blank SKU from the product and its option values. */
+  onGenerateSku: (index: number) => void
 }
 
 /** Same grid as ResourceTable: white 40px header on a hairline, rows on lighter hairlines. */
@@ -41,11 +44,13 @@ export default function VariantMatrix({
   selected,
   onSelectedChange,
   onVariant,
+  onGenerateSku,
 }: VariantMatrixProps) {
   // Hooks
   const {
     variants: { columns: copy, footer },
     variantBulk: bulkCopy,
+    inventory: inventoryCopy,
   } = useCopy(productFormContent)
   const fmt = useFormat()
 
@@ -79,7 +84,7 @@ export default function VariantMatrix({
             <TableHead className={HEAD}>{copy.variant}</TableHead>
             <TableHead className={cn(HEAD, 'w-36')}>{copy.price}</TableHead>
             <TableHead className={cn(HEAD, 'w-36')}>{copy.mrp}</TableHead>
-            <TableHead className={cn(HEAD, 'w-40')}>{copy.sku}</TableHead>
+            <TableHead className={cn(HEAD, 'w-56')}>{copy.sku}</TableHead>
             <TableHead className={cn(HEAD, 'w-28')}>{copy.available}</TableHead>
           </TableRow>
         </TableHeader>
@@ -119,12 +124,27 @@ export default function VariantMatrix({
                   />
                 </TableCell>
                 <TableCell className={CELL}>
-                  <Input
-                    aria-label={`${copy.sku} ${title}`}
-                    value={v.sku}
-                    onChange={(e) => onVariant(i, { sku: e.target.value })}
-                    autoComplete="off"
-                  />
+                  <div className="flex items-center gap-1">
+                    <Input
+                      aria-label={`${copy.sku} ${title}`}
+                      value={v.sku}
+                      onChange={(e) => onVariant(i, { sku: e.target.value })}
+                      autoComplete="off"
+                    />
+                    {v.sku.trim() ? null : (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="shrink-0"
+                        onClick={() => onGenerateSku(i)}
+                        title={inventoryCopy.skuGenerateHelp}
+                        aria-label={`${inventoryCopy.skuGenerate} ${copy.sku} ${title}`}
+                      >
+                        {inventoryCopy.skuGenerate}
+                      </Button>
+                    )}
+                  </div>
                 </TableCell>
                 <TableCell className={CELL}>
                   <MoneyInput

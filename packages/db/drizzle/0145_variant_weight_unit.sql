@@ -1,0 +1,2 @@
+ALTER TABLE "variant" ADD COLUMN "weight_unit" text;--> statement-breakpoint
+ALTER TABLE "variant" ADD CONSTRAINT "variant_weight_unit_check" CHECK ("variant"."weight_unit" is null or "variant"."weight_unit" in ('g', 'kg', 'lb', 'oz'));

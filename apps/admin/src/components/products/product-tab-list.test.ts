@@ -12,13 +12,14 @@ describe('product tabs', () => {
   it('sends each error to the tab that holds its field', () => {
     expect(tabOfError('title', true)).toBe('overview')
     expect(tabOfError('package', false)).toBe('shipping')
-    expect(tabOfError('preorderDeposit', true)).toBe('more')
+    expect(tabOfError('preorderDeposit', true)).toBe('price')
+    expect(tabOfError('preorderDeposit', false)).toBe('variants')
     expect(tabOfError('variants', true)).toBe('price')
     expect(tabOfError('variants', false)).toBe('variants')
   })
 
   it('lists failing tabs in page order', () => {
-    expect(tabsWithErrors({ preorderDeposit: 'x', title: 'y' }, true)).toEqual(['overview', 'more'])
+    expect(tabsWithErrors({ package: 'x', title: 'y' }, true)).toEqual(['overview', 'shipping'])
     expect(tabsWithErrors({}, true)).toEqual([])
   })
 
