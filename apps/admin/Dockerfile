@@ -33,10 +33,11 @@ FROM installer AS builder
 # `next build` runs on Node, not Bun: Bun 1.3.11 segfaults mid-build on linux/arm64 (Graviton)
 # under memory pressure. `bun run` honours the `#!/usr/bin/env node` shebang once Node exists.
 # Build stage only; the runtime image is unchanged.
-# icu-data-full: Alpine's nodejs ships English-only ICU data (icu-data-en), so Intl treats
-# en-IN as en-US ("01/14/2026", "1,234,567") and drops hi-IN, while browsers use the real
-# locale ("14/01/2026", "12,34,567"). Server and browser text then differ: React error #418.
-RUN apk add --no-cache nodejs icu-data-full
+# Node comes from the official image, not Alpine's package: Alpine's nodejs lags security
+# releases (it still served 22.23.2 after the CVE-2026-111497 fix in 22.23.4). The official
+# binary carries full ICU, so en-IN / hi-IN format the same as in the browser (React #418).
+COPY --from=node:22.23.4-alpine /usr/local/bin/node /usr/local/bin/node
+RUN apk add --no-cache libstdc++ libgcc
 COPY --from=pruner /repo/out/full/ .
 # turbo prune only copies workspace packages, not root-only files — packages/core and this
 # app's customize-config.tsx both import these by relative path (see
@@ -59,8 +60,11 @@ RUN if [ -z "$NEXT_PUBLIC_WORKER_URL" ]; then unset NEXT_PUBLIC_WORKER_URL; fi \
 FROM base AS runner
 # The standalone Next server runs on Node: Bun 1.3.11 fails to load Next's compiled
 # server runtime ("Expected CommonJS module to have a function wrapper").
-# icu-data-full: real en-IN/hi-IN formats on the server, see the builder stage (React #418).
-RUN apk add --no-cache nodejs icu-data-full
+# Node comes from the official image, not Alpine's package: Alpine's nodejs lags security
+# releases (it still served 22.23.2 after the CVE-2026-111497 fix in 22.23.4). The official
+# binary carries full ICU, so en-IN / hi-IN format the same as in the browser (React #418).
+COPY --from=node:22.23.4-alpine /usr/local/bin/node /usr/local/bin/node
+RUN apk add --no-cache libstdc++ libgcc
 WORKDIR /app
 RUN addgroup -S nodejs && adduser -S nextjs -G nodejs
 ENV NODE_ENV=production
