@@ -7,8 +7,10 @@ description: Let Claude, ChatGPT, Cursor or VS Code work with your store, make a
 
 **Settings → MCP & API** lets AI tools work with your store. You can ask Claude about yesterday's
 orders, or let Cursor read your products while it builds a theme. Each tool signs in with your
-own account, so it can never do more than your role allows. Every change it suggests waits for
-your approval.
+own account, so it can never do more than your role allows. It can use every action the admin
+has, from fulfilling an order to editing a theme, and every change waits for your approval unless
+you turn that off. Refunds, cancellations, deletes and money, staff, billing and domain settings
+always wait.
 
 The page has three tabs: **Overview**, **Clients & tokens** and **Activity log**.
 
@@ -23,8 +25,8 @@ The page has three tabs: **Overview**, **Clients & tokens** and **Activity log**
      - **ChatGPT:** Settings → Apps & Connectors → Advanced settings → Developer mode → Create.
      - **Cursor and VS Code:** click **Add to Cursor** or **Add to VS Code**.
    - **Sign in.** The tool opens a sign-in page. Sign in with your account, then choose what the
-     tool can use: products, orders, customers, inventory, discounts, content and analytics, each
-     as **Read** or **Read & write**. Click **Allow**.
+     tool can use: products, orders, customers, inventory, discounts, content, analytics,
+     marketing, online store and settings, each as **Read** or **Read & write**. Click **Allow**.
 
 The tool now shows as **Connected**. If you belong to more than one store, connect each store
 separately; each one has its own address.
@@ -36,9 +38,17 @@ them.
 
 | Switch | On | Off |
 |---|---|---|
-| **Allow AI clients to make changes** | Tools can suggest edits to products, discounts and content | Tools can only read |
-| **Changes need approval** (recommended) | Every change waits in AI approvals until you approve it | Changes happen as soon as the tool asks |
+| **Allow AI clients to make changes** | Tools can use any admin action your role allows, in the areas you ticked | Tools can only read |
+| **Changes need approval** (recommended) | Every change waits in AI approvals until you approve it | Changes happen as soon as the tool asks, except sensitive ones (below) |
 | **Let clients read customer details** | Tools can see names, phone numbers and addresses | Off by default; orders still show the city |
+
+### Sensitive actions always wait
+
+Some actions wait for your approval even when **Changes need approval** is off: refunds and store
+credit, cancellations, anything that deletes or removes, gift card balances, payment gateway keys
+and payment settings, staff, roles and invitations, billing and your plan, domains, deleting or
+exporting the store, and the MCP & API settings themselves. A tool can never sign in as you,
+create or revoke tokens, or approve its own changes.
 
 ### Approving a change
 
@@ -46,11 +56,16 @@ When a tool suggests a change, the Activity log shows a row like "Claude propose
 approval".
 
 1. Click **Open approval** on that row.
-2. You see the same preview the AI bar shows: what changes, before and after.
+2. You see the same preview the AI bar shows: what changes, before and after. For any other admin
+   action you see its name, what it does, and every value the tool sent.
 3. Click **Approve**, **Edit** or **Cancel**.
 
 Waiting changes also appear in **Settings → AI → Activity** with a **Review** button. Only the
-person who connected the tool can approve its changes.
+person who connected the tool can approve its changes, and the change runs as them: if their role
+cannot do it, approving fails and nothing changes.
+
+Files a tool asks for, such as a shipping label or an invoice, come back as a download link that
+works for 10 minutes.
 
 ## Access tokens (for scripts)
 
@@ -64,8 +79,9 @@ software. People should connect a client instead, so their own staff permissions
    server's secret settings, never in code.
 
 A token acts as you, limited to the areas you ticked. Unlike AI clients, a token's changes
-happen at once and do not wait for approval. A token can never change settings, staff, billing
-or money (no refunds or cancellations).
+happen at once and do not wait for approval. A token can never refund or cancel, change staff or
+billing, or change payment, domain or MCP & API settings; with the **Settings** area it can change
+other settings, such as shipping or taxes.
 
 ## Revoke a client or token
 

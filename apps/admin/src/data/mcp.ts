@@ -9,7 +9,7 @@ export const mcpContent = {
   tabs: { overview: 'Overview', clients: 'Clients & tokens', activity: 'Activity log' },
   subtitles: {
     overview: (store: string) =>
-      `Let AI tools like Claude, ChatGPT and Cursor work with ${store}. They sign in with your ${brand} account, and every change they make waits for your approval.`,
+      `Let AI tools like Claude, ChatGPT and Cursor work with ${store}. They sign in with your ${brand} account and can use every admin action your role allows. Changes wait for your approval, and sensitive ones always do.`,
     clients: (store: string) =>
       `Who can reach ${store} through MCP or the API, and what they are allowed to do. Revoke anything you do not recognise.`,
     activity: (store: string) =>
@@ -133,10 +133,10 @@ export const mcpContent = {
     heading: 'What AI clients can do',
     allowChanges: 'Allow AI clients to make changes',
     allowChangesHelp:
-      'When off, clients can only read. Turn on to let them propose edits to products, discounts and content.',
+      'When off, clients can only read. Turn on to let them use any admin action your role allows, from products and orders to themes and settings.',
     requireApproval: `Changes need approval in ${brand}`,
     requireApprovalHelp:
-      'Every change waits in AI approvals until you or a staff member approves it. Recommended.',
+      'Every change waits in AI approvals until you or a staff member approves it. Recommended. Refunds, cancellations, deletes, and payment, staff, billing and domain settings always wait, even when this is off.',
     readCustomers: 'Let clients read customer details',
     readCustomersHelp:
       'Names, phone numbers and addresses. Off by default; orders still show the city.',
@@ -172,8 +172,9 @@ export const mcpContent = {
     read: (areas: string) => `Read ${areas}`,
     readWrite: 'Read & write',
     readOnly: 'Read only',
-    propose: (areas: string) => `Propose ${areas} changes`,
+    propose: (areas: string) => `Run ${areas} actions`,
     needsApproval: 'needs approval',
+    sensitiveApproval: 'sensitive ones need approval',
   },
   areas: {
     products: 'Products',
@@ -183,6 +184,9 @@ export const mcpContent = {
     discounts: 'Discounts',
     content: 'Content',
     analytics: 'Analytics',
+    marketing: 'Marketing',
+    online_store: 'Online store',
+    settings: 'Settings',
   } satisfies Record<ApiArea, string>,
   access: { read: 'Read', write: 'Write' },
   empty: {
@@ -199,7 +203,7 @@ export const mcpContent = {
     canAccess: 'Can access',
     expires: 'Expires',
     expiry: { 30: 'In 30 days', 90: 'In 90 days', 365: 'In 1 year', never: 'Never' },
-    note: 'Write access still follows "Changes need approval" for AI clients; tokens act at once.',
+    note: 'Tokens act at once and cannot run sensitive settings actions. AI clients follow "Changes need approval", and their sensitive actions always wait.',
     cancel: 'Cancel',
     create: 'Create token',
     creating: 'Creating…',
@@ -255,7 +259,7 @@ export const mcpContent = {
       `${client} will act as you (${member}) and never do more than your role allows.`,
     signedInAs: (email: string) => `Signed in as ${email}`,
     canAccess: (client: string) => `What ${client} can do`,
-    approvalNote: `Changes still wait in ${brand} for approval unless your store turned approval off.`,
+    approvalNote: `Refunds, cancellations, deletes, and payment, staff and billing settings always wait for approval in ${brand}. Other changes do too, unless your store turned approval off.`,
     allow: 'Allow',
     deny: 'Deny',
     working: 'One moment…',

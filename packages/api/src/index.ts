@@ -1,4 +1,6 @@
 export type { ApiContext, DailyVisitors, LiveVisitors, VisitorSource } from './context'
+export { apiTokenRefusal } from './mcp/action-catalogue'
+export { handleMcpDownload } from './mcp/download-link'
 export {
   type AuthorizeParams,
   type AuthorizeRequest,

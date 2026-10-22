@@ -9,6 +9,7 @@ import type { Permission } from '@commerce/core'
 import type { AiStoreFacts } from '@commerce/core/ai-runtime'
 import type { StoreTx } from '@commerce/db'
 import type { z } from 'zod'
+import type { ApiContext } from '../../../../context'
 
 /** What every step runs with: the caller's store transaction (RLS) and who they are. */
 export type ActionEnv = {
@@ -19,6 +20,11 @@ export type ActionEnv = {
   email: string
   store: AiStoreFacts
   now: Date
+  /**
+   * The approving member's own request (approve in the admin), so `runAdminAction` can call the
+   * admin procedure as them. Absent when nobody is signed in (an MCP call).
+   */
+  api?: ApiContext | undefined
 }
 
 /** One before/after row on the card ("Glide Mouse: ₹1,999 → ₹2,099"). */
@@ -67,8 +73,11 @@ export type Executed = {
 export type ActionDefinition<Raw = unknown, Resolved = unknown> = {
   /** The tool name the model sees, e.g. `proposeDiscount`. */
   tool: string
-  /** Checked when the tool is offered, when it is approved and when it is undone. */
-  permission: Permission
+  /**
+   * Checked when the tool is offered, when it is approved and when it is undone. Null only for
+   * `runAdminAction`, whose admin procedure checks the approving member's role itself.
+   */
+  permission: Permission | null
   description: string
   input: z.ZodType<Raw>
   /** Fields the card's Edit form shows, from the model's input. */
