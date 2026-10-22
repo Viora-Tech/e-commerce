@@ -18,14 +18,14 @@ type Segment = Awaited<ReturnType<typeof api.customers.segments>>[number]
 type SegmentsListProps = { segments: Segment[] }
 type SegmentCopy = typeof segmentsContent
 
-/** "Order count is at least 2 · State is MH": the saved conditions in words. */
+/** "Order count is at least 2 · State is MH": the saved conditions in words (spend is paise). */
 function rulesLine(copy: SegmentCopy, money: (paise: number) => string, s: Segment): string {
   const parts = s.rules.conditions.map((c) => {
     const value =
       c.field === 'marketing'
         ? (copy.marketingValues[c.value] ?? c.value)
         : c.field === 'spend'
-          ? money(Math.round(Number(c.value) * 100))
+          ? money(Number(c.value))
           : c.value
     return `${copy.fields[c.field] ?? c.field} ${copy.ops[c.op] ?? c.op} ${value}`
   })

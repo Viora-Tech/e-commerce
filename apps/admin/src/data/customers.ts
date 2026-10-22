@@ -315,6 +315,35 @@ export const segmentsContent = {
     heading: 'Group customers who behave alike',
     body: 'Make a segment like "bought twice in 60 days" and send it a WhatsApp campaign or a discount.',
   },
+  templates: {
+    heading: 'Start from a template',
+    body: 'Ready-made segments most stores use. Open one, change the numbers to suit your store, and save it.',
+    use: 'Use template',
+    items: {
+      topSpenders: {
+        name: 'Top spenders',
+        description: 'Spent ₹10,000 or more with you.',
+      },
+      repeatBuyers: { name: 'Repeat buyers', description: 'Ordered at least twice.' },
+      oneTimeBuyers: {
+        name: 'One-time buyers',
+        description: 'Ordered once. A nudge can turn them into repeat buyers.',
+      },
+      recentBuyers: { name: 'Bought in the last 30 days', description: 'Fresh, happy customers.' },
+      lapsed: {
+        name: 'No order in 90 days',
+        description: 'Customers drifting away. Win them back with an offer.',
+      },
+      slippingVips: {
+        name: 'Big spenders slipping away',
+        description: 'Spent ₹5,000 or more but have not ordered in 60 days.',
+      },
+      subscribed: {
+        name: 'Subscribed to marketing',
+        description: 'Agreed to hear from you, so you can message them.',
+      },
+    },
+  },
   notFound: {
     heading: 'Segment not found',
     body: 'This segment does not exist in the current store.',

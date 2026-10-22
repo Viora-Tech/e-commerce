@@ -56,14 +56,16 @@ export function inventoryColumns({
       sortValue: (r) => r.sku ?? '',
       render: (r) =>
         r.sku ? (
-          <span className="text-muted-foreground">{r.sku}</span>
+          <span className="block max-w-56 truncate text-muted-foreground" title={r.sku}>
+            {r.sku}
+          </span>
         ) : (
           <span className="text-muted-foreground">{copy.noSku}</span>
         ),
     },
     {
       id: 'available',
-      align: 'end',
+      align: 'center',
       title: copy.columns.available,
       sortValue: (r) => r.available,
       hideable: false,
@@ -80,21 +82,21 @@ export function inventoryColumns({
     },
     {
       id: 'committed',
-      align: 'end',
+      align: 'center',
       title: copy.columns.committed,
       sortValue: (r) => r.committed,
       render: (r) => <span className="tabular-nums">{formatNumber(r.committed)}</span>,
     },
     {
       id: 'incoming',
-      align: 'end',
+      align: 'center',
       title: copy.columns.incoming,
       sortValue: (r) => r.incoming,
       render: (r) => <span className="tabular-nums">{formatNumber(r.incoming)}</span>,
     },
     {
       id: 'onHand',
-      align: 'end',
+      align: 'center',
       title: copy.columns.onHand,
       sortValue: (r) => r.onHand,
       render: (r) => <span className="tabular-nums">{formatNumber(r.onHand)}</span>,
