@@ -1,5 +1,6 @@
 'use client'
 
+import { RotateCcw } from '@commerce/ui/icons'
 import { cn } from '@commerce/ui/lib/utils'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Skeleton } from '@commerce/ui/shadcn/skeleton'
@@ -177,6 +178,7 @@ export default function CodeVersionPanel({
       {pickedVersion ? (
         <div className="flex flex-col gap-2 p-3">
           <Button variant="secondary" onClick={onRestoreFile}>
+            <RotateCcw aria-hidden="true" />
             {copy.restoreFile}
           </Button>
           {canRestoreTheme && pickedVersion.batchId ? (
@@ -186,7 +188,7 @@ export default function CodeVersionPanel({
               disabled={restoring}
               title={copy.restoreThemeHelp}
             >
-              {restoring ? <Spinner /> : null}
+              {restoring ? <Spinner /> : <RotateCcw aria-hidden="true" />}
               {copy.restoreTheme}
             </Button>
           ) : null}

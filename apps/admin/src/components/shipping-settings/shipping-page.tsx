@@ -1,5 +1,6 @@
 'use client'
 
+import { PlugConnect } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Card } from '@commerce/ui/shadcn/card'
 import { Skeleton } from '@commerce/ui/shadcn/skeleton'
@@ -147,6 +148,7 @@ export default function ShippingPage() {
         action={
           couriers.length > 0 ? null : (
             <Button nativeButton={false} render={<Link href={routes.apps.store()} />}>
+              <PlugConnect aria-hidden="true" />
               {copy.health.connect}
             </Button>
           )

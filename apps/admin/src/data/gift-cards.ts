@@ -220,3 +220,28 @@ export const giftCardDetailContent = {
   },
   failed: 'Could not save the change',
 } as const
+
+/** The gift card list's ⋯ menu and selection bar: resend, disable and enable. */
+export const giftCardListActionsContent = {
+  open: 'View gift card',
+  resend: 'Resend',
+  disable: 'Disable',
+  enable: 'Enable',
+  resent: (to: string) => `Gift card emailed to ${to}`,
+  resendFailed: 'Could not send the gift card',
+  disabled: 'Gift card disabled',
+  enabled: 'Gift card enabled',
+  failed: 'Could not update the gift card',
+  confirmDisable: {
+    title: (n: number) => (n === 1 ? 'Disable this gift card?' : `Disable ${n} gift cards?`),
+    body: 'A disabled card cannot be used at checkout. You can enable it again at any time.',
+    confirm: 'Disable',
+    cancel: 'Keep active',
+  },
+  confirmResend: {
+    title: (n: number) => `Email ${n} gift card${n === 1 ? '' : 's'} again?`,
+    body: 'Each code goes again to its recipient, or to the customer when there is none. Cards without an email address are skipped.',
+    confirm: 'Send',
+    cancel: 'Cancel',
+  },
+} as const

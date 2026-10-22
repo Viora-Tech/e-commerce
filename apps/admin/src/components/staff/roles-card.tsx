@@ -1,5 +1,6 @@
 'use client'
 
+import { Trash2 } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import StatusChip from '@/components/layout/status-chip'
 import SettingsTable from '@/components/settings/settings-table'
@@ -61,6 +62,7 @@ export default function RolesCard({ roles, canManage, onEdit, onDelete }: RolesC
                 </Button>
                 {canManage && !role.isSystem ? (
                   <Button variant="ghost" size="sm" onClick={() => onDelete(role)}>
+                    <Trash2 aria-hidden="true" />
                     {copy.roles.delete}
                   </Button>
                 ) : null}

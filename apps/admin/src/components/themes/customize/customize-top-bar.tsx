@@ -3,9 +3,11 @@
 import {
   ChevronLeftIcon,
   Eye,
+  Globe,
   Monitor,
   MoreHorizontal,
   Redo,
+  Save,
   Smartphone,
   Tablet,
   Undo,
@@ -227,18 +229,18 @@ export default function CustomizeTopBar({
         </DropdownMenu>
         {!live && dirty ? (
           <Button variant="outline" onClick={onSave} disabled={saving || publishing}>
-            {saving && !publishing ? <Spinner /> : null}
+            {saving && !publishing ? <Spinner /> : <Save aria-hidden="true" />}
             {copy.save}
           </Button>
         ) : null}
         {live ? (
           <Button onClick={onSave} disabled={!dirty || saving}>
-            {saving ? <Spinner /> : null}
+            {saving ? <Spinner /> : <Globe aria-hidden="true" />}
             {copy.publish}
           </Button>
         ) : canPublish ? (
           <Button onClick={onPublish} disabled={saving || publishing}>
-            {publishing ? <Spinner /> : null}
+            {publishing ? <Spinner /> : <Globe aria-hidden="true" />}
             {publishing ? editor.publishing : copy.publish}
           </Button>
         ) : null}

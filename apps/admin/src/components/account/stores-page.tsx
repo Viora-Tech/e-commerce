@@ -1,6 +1,6 @@
 'use client'
 
-import { Store } from '@commerce/ui/icons'
+import { ArrowLeftRight, LogOut, RotateCcw, Store } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Card } from '@commerce/ui/shadcn/card'
 import { Skeleton } from '@commerce/ui/shadcn/skeleton'
@@ -98,6 +98,7 @@ export default function StoresPage() {
         <Card gap={3} inset={6} className="items-start">
           <p className="text-body text-muted-foreground">{copy.loadFailed}</p>
           <Button variant="outline" onClick={handleRetry}>
+            <RotateCcw aria-hidden="true" />
             {copy.retry}
           </Button>
         </Card>
@@ -147,6 +148,7 @@ export default function StoresPage() {
                     <StatusChip>{copy.owner}</StatusChip>
                   ) : (
                     <Button variant="ghost" size="sm" onClick={() => setLeaving(s)}>
+                      <LogOut aria-hidden="true" />
                       {copy.leave}
                     </Button>
                   )}
@@ -158,6 +160,7 @@ export default function StoresPage() {
                       loading={switchingId === s.organizationId}
                       disabled={switchingId !== null}
                     >
+                      <ArrowLeftRight aria-hidden="true" />
                       {copy.switchTo}
                     </Button>
                   )}

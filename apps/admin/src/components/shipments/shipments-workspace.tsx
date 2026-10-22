@@ -5,7 +5,7 @@ import {
   SHIPMENT_TABS,
   type ShipmentTab,
 } from '@commerce/core/shipment-tabs'
-import { AppWindow, Plus, Printer, Truck } from '@commerce/ui/icons'
+import { Clock, Plus, Settings, Truck } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Card } from '@commerce/ui/shadcn/card'
 import Link from 'next/link'
@@ -17,7 +17,6 @@ import EmptyState from '@/components/layout/empty-state'
 import ProoflyListPage from '@/components/layout/proofly-list-page'
 import StatusChip from '@/components/layout/status-chip'
 import ResourceTable from '@/components/table/resource-table'
-import RowMenu from '@/components/table/row-menu'
 import ViewSelect from '@/components/table/view-select'
 import { shipmentsContent } from '@/data/shipments'
 import { useCopy, useFormat } from '@/hooks/use-copy'
@@ -31,7 +30,9 @@ import {
   type ShipmentRow,
   shipmentColumns,
 } from './shipment-columns'
+import ShipmentRowMenu from './shipment-row-menu'
 import ShipmentSheets, { type SheetKind } from './shipment-sheets'
+import ShipmentsBulkActions from './shipments-bulk-actions'
 import WalletStrip from './wallet-strip'
 
 type Counts = Awaited<ReturnType<typeof api.shipments.counts>>
@@ -197,6 +198,7 @@ function ShipmentsContent() {
               items={[{ label: copy.byNumberSheet.title, onSelect: () => setSheet('byNumber') }]}
             />
             <Button variant="outline" onClick={() => setSheet('pickups')}>
+              <Clock aria-hidden="true" />
               {copy.pickupsButton}
             </Button>
             <Button
@@ -204,6 +206,7 @@ function ShipmentsContent() {
               nativeButton={false}
               render={<Link href={routes.settings.shipping()} />}
             >
+              <Settings aria-hidden="true" />
               {copy.courierSettings}
             </Button>
             <Button
@@ -252,24 +255,11 @@ function ShipmentsContent() {
                       router.push(routes.orders.shipment(r.orderId))
                     }}
                   >
+                    <Truck aria-hidden="true" />
                     {copy.shipNow}
                   </Button>
                 ) : null}
-                <RowMenu
-                  items={[
-                    {
-                      label: copy.menu.viewOrder,
-                      href: routes.orders.detail(r.orderId),
-                      icon: AppWindow,
-                    },
-                    ...(r.labelUrl
-                      ? [{ label: copy.menu.label, href: r.labelUrl, icon: Printer, newTab: true }]
-                      : []),
-                    ...(r.trackingUrl
-                      ? [{ label: copy.menu.track, href: r.trackingUrl, icon: Truck, newTab: true }]
-                      : []),
-                  ]}
-                />
+                <ShipmentRowMenu row={r} onChanged={() => setReloadKey((k) => k + 1)} />
               </span>
             )}
             loading={loading}
@@ -301,10 +291,12 @@ function ShipmentsContent() {
                   {copy.bookSelected}
                 </Button>
               ) : (
-                <Button size="sm" variant="outline" onClick={() => handlePrint(ids)}>
-                  <Printer aria-hidden />
-                  {copy.printLabels}
-                </Button>
+                <ShipmentsBulkActions
+                  ids={ids}
+                  tab={tab}
+                  onPrint={handlePrint}
+                  onDone={handleBooked}
+                />
               )
             }
             empty={{ heading: copy.empty[tab] }}

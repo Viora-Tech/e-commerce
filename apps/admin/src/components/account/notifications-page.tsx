@@ -1,6 +1,7 @@
 'use client'
 
 import { MEMBER_ALERTS, type MemberAlertPrefsInput } from '@commerce/core/member-account'
+import { RotateCcw } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Card } from '@commerce/ui/shadcn/card'
 import { Label } from '@commerce/ui/shadcn/label'
@@ -108,6 +109,7 @@ export default function NotificationsPage() {
         <Card gap={3} inset={6} className="items-start">
           <p className="text-body text-muted-foreground">{copy.loadFailed}</p>
           <Button variant="outline" onClick={handleRetry}>
+            <RotateCcw aria-hidden="true" />
             {copy.retry}
           </Button>
         </Card>

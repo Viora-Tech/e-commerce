@@ -2,7 +2,7 @@
 
 import type { DomainView } from '@commerce/core'
 import { permissions } from '@commerce/core/permissions'
-import { Globe } from '@commerce/ui/icons'
+import { Globe, PlugConnect } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import Link from 'next/link'
 import { useState } from 'react'
@@ -51,7 +51,10 @@ export default function DomainsSettings({ domains }: DomainsSettingsProps) {
         subtitle={copy.intro}
         actions={
           canManage ? (
-            <Button onClick={() => setConnectOpen(true)}>{copy.connect}</Button>
+            <Button onClick={() => setConnectOpen(true)}>
+              <PlugConnect aria-hidden="true" />
+              {copy.connect}
+            </Button>
           ) : undefined
         }
         back={SETTINGS_BACK}

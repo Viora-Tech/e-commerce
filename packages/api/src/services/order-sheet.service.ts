@@ -19,6 +19,8 @@ export type OrderSheetRow = {
     pincode: string
   } | null
   tags: string[]
+  /** For the list's CSV export; the sheet itself does not show it. */
+  totalPaise: number
   paymentStatus: OrderPaymentStatus
   fulfillmentStatus: OrderFulfillmentStatus
   status: OrderStatus
@@ -40,6 +42,7 @@ export async function orderSheet(tx: StoreTx, ids: string[]): Promise<OrderSheet
       email: order.email,
       phone: order.phone,
       tags: order.tags,
+      totalPaise: order.totalPaise,
       paymentStatus: order.paymentStatus,
       fulfillmentStatus: order.fulfillmentStatus,
       status: order.status,
@@ -80,6 +83,7 @@ export async function orderSheet(tx: StoreTx, ids: string[]): Promise<OrderSheet
               pincode: r.pincode ?? '',
             },
       tags: r.tags ?? [],
+      totalPaise: r.totalPaise,
       paymentStatus: r.paymentStatus as OrderPaymentStatus,
       fulfillmentStatus: r.fulfillmentStatus as OrderFulfillmentStatus,
       status: r.status as OrderStatus,

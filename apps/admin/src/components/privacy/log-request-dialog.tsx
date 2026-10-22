@@ -1,6 +1,7 @@
 'use client'
 
 import { type DataRequestKind, STAFF_REQUEST_SOURCES } from '@commerce/core/privacy'
+import { Plus } from '@commerce/ui/icons'
 import PhoneInput from '@commerce/ui/phone-input'
 import { Button } from '@commerce/ui/shadcn/button'
 import {
@@ -216,6 +217,7 @@ export default function LogRequestDialog({
               {copy.cancel}
             </Button>
             <Button type="submit" disabled={busy}>
+              <Plus aria-hidden="true" />
               {copy.submit}
             </Button>
           </DialogFooter>

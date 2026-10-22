@@ -6,7 +6,7 @@ import { appRouter, call, serverContext } from '@/lib/api'
 import { getSession } from '@/lib/auth'
 import { getCopy } from '@/lib/copy-server'
 import { rangeFor } from '@/lib/home-range'
-import { listApps } from '@/lib/shell-data'
+import { listApps, paymentsTestMode } from '@/lib/shell-data'
 import { orNoStore } from '@/lib/store-guard'
 
 export default async function Home() {
@@ -49,7 +49,7 @@ export default async function Home() {
       analytics={{ range: opening, analytics, tiles }}
       firstName={firstName}
       assistant={ai?.assistant ?? false}
-      signals={apps ? homeSignals(apps) : null}
+      signals={apps ? homeSignals(apps, await paymentsTestMode()) : null}
       abandoned={abandoned}
     />
   )

@@ -1,6 +1,7 @@
 'use client'
 
 import { ACCENT_PRESETS, DEFAULT_ACCENT } from '@commerce/core/admin-accent'
+import { CheckIcon, Save } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Card } from '@commerce/ui/shadcn/card'
 import { Skeleton } from '@commerce/ui/shadcn/skeleton'
@@ -117,6 +118,7 @@ export default function AppearanceSettings({ productLayout }: AppearanceSettings
         <AccentPicker value={draft} onChange={setDraft} help={sourceLine(loaded)} />
         <div className="flex flex-wrap items-center gap-2">
           <Button onClick={handleSave} disabled={busy || unchanged}>
+            <Save aria-hidden="true" />
             {copy.accent.save}
           </Button>
           <Button variant="ghost" onClick={handleReset} disabled={busy || !loaded.mine}>
@@ -143,6 +145,7 @@ export default function AppearanceSettings({ productLayout }: AppearanceSettings
               onClick={handleStoreDefault}
               disabled={busy || storeUnchanged}
             >
+              <CheckIcon aria-hidden="true" />
               {copy.store.apply}
             </Button>
             <Button

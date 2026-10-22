@@ -2,7 +2,7 @@
 
 import type { DataRequestRow } from '@commerce/core'
 import { type ExportFormat, isOpenStatus } from '@commerce/core/privacy'
-import { Download } from '@commerce/ui/icons'
+import { CircleCheck, Download, Play, Trash2 } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { useState } from 'react'
 import { toast } from 'sonner'
@@ -101,6 +101,7 @@ export default function DataRequestActions({
         <div className="flex flex-wrap gap-2">
           {request.status === 'open' ? (
             <Button variant="outline" disabled={busy} onClick={() => handleStatus('in_progress')}>
+              <Play aria-hidden="true" />
               {copy.start}
             </Button>
           ) : null}
@@ -118,10 +119,12 @@ export default function DataRequestActions({
           ) : null}
           {canErase ? (
             <Button variant="destructive" disabled={busy} onClick={() => setErasing(true)}>
+              <Trash2 aria-hidden="true" />
               {copy.erase}
             </Button>
           ) : (
             <Button disabled={busy} onClick={() => handleStatus('completed')}>
+              <CircleCheck aria-hidden="true" />
               {copy.complete}
             </Button>
           )}

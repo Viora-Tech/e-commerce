@@ -1,5 +1,6 @@
 'use client'
 
+import { CircleCheck, CreditCard } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
@@ -72,6 +73,7 @@ export default function AutopayRow({ autopay, billingReady }: AutopayRowProps) {
               <a href={autopay.mandate.approveUrl} target="_blank" rel="noopener noreferrer" />
             }
           >
+            <CircleCheck aria-hidden="true" />
             {copy.payment.autopayApprove}
           </Button>
         ) : null}
@@ -81,6 +83,7 @@ export default function AutopayRow({ autopay, billingReady }: AutopayRowProps) {
           </Button>
         ) : (
           <Button size="sm" loading={busy} onClick={handleStart}>
+            <CreditCard aria-hidden="true" />
             {copy.payment.autopayStart}
           </Button>
         )}

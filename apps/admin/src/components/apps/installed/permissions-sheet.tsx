@@ -1,5 +1,6 @@
 'use client'
 
+import { Trash2 } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import {
   Sheet,
@@ -135,6 +136,7 @@ export default function PermissionsSheet({
                 {copy.sheet.close}
               </Button>
               <Button variant="destructive" onClick={() => onRemove(app)}>
+                <Trash2 aria-hidden="true" />
                 {copy.sheet.remove}
               </Button>
             </SheetFooter>

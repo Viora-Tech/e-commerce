@@ -1,5 +1,6 @@
 'use client'
 
+import { PackageCheck } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Checkbox } from '@commerce/ui/shadcn/checkbox'
 import {
@@ -115,6 +116,7 @@ export default function ReceiveDialog({
             {returnDetailContent.cancel}
           </Button>
           <Button type="button" onClick={handleConfirm} disabled={busy}>
+            <PackageCheck aria-hidden="true" />
             {copy.confirm}
           </Button>
         </DialogFooter>

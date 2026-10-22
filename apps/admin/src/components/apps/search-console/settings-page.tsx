@@ -1,5 +1,6 @@
 'use client'
 
+import { PlugConnect } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import { useEffect, useState } from 'react'
@@ -107,6 +108,7 @@ export default function SettingsPage() {
                 disabled={busy !== null}
                 onClick={() => void handleConnect()}
               >
+                <PlugConnect aria-hidden="true" />
                 {view.connected ? c.reconnect : c.connect}
               </Button>
             ) : null}

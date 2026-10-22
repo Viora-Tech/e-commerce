@@ -1,5 +1,6 @@
 'use client'
 
+import { Send } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Checkbox } from '@commerce/ui/shadcn/checkbox'
 import {
@@ -112,6 +113,7 @@ export default function EmailPoDialog({
             {copy.cancel}
           </Button>
           <Button type="button" onClick={handleSend} disabled={busy || !valid}>
+            <Send aria-hidden="true" />
             {busy ? copy.sending : copy.send}
           </Button>
         </DialogFooter>

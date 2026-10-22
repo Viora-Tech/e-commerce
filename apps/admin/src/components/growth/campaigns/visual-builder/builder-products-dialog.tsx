@@ -1,6 +1,7 @@
 'use client'
 
 import type { EmailProductCard } from '@commerce/core/marketing'
+import { Plus } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import {
   Dialog,
@@ -82,6 +83,7 @@ export default function BuilderProductsDialog({
             onClick={() => handleClose({ items, columns: perRow })}
             disabled={items.length === 0}
           >
+            <Plus aria-hidden="true" />
             {copy.insert}
           </Button>
         </DialogFooter>

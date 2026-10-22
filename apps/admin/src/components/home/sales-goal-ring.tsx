@@ -1,7 +1,7 @@
 'use client'
 
 import type { DashboardSummary } from '@commerce/api'
-import { FireIcon, TargetIcon } from '@commerce/ui/icons'
+import { FireIcon, Save, TargetIcon } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Input } from '@commerce/ui/shadcn/input'
 import { useState } from 'react'
@@ -73,6 +73,7 @@ export default function SalesGoalRing({ month }: SalesGoalRingProps) {
       action={
         !editing ? (
           <Button variant="outline" size="sm" onClick={handleEdit}>
+            <TargetIcon aria-hidden="true" />
             {goalPaise ? c.edit : c.setGoal}
           </Button>
         ) : null
@@ -101,7 +102,10 @@ export default function SalesGoalRing({ month }: SalesGoalRingProps) {
             {error ? c.inputError : c.inputHelp}
           </p>
           <div className="flex gap-2">
-            <Button onClick={handleSave}>{c.save}</Button>
+            <Button onClick={handleSave}>
+              <Save aria-hidden="true" />
+              {c.save}
+            </Button>
             <Button variant="outline" onClick={() => setEditing(false)}>
               {c.cancel}
             </Button>

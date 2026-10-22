@@ -1,6 +1,7 @@
 'use client'
 
 import type { ScopeHandle } from '@commerce/plugin-shopify-import/client'
+import { RefreshCw } from '@commerce/ui/icons'
 import { Badge } from '@commerce/ui/shadcn/badge'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@commerce/ui/shadcn/card'
@@ -41,7 +42,7 @@ export default function ScopesCard() {
       <CardHeader className="flex flex-row items-center justify-between">
         <CardTitle>{copy.testHeading}</CardTitle>
         <Button type="button" variant="outline" size="sm" onClick={handleTest} disabled={busy}>
-          {busy ? <Spinner /> : null}
+          {busy ? <Spinner /> : <RefreshCw aria-hidden="true" />}
           {copy.test}
         </Button>
       </CardHeader>

@@ -1,7 +1,7 @@
 'use client'
 
 import { shortLinkPath, tagSummary } from '@commerce/core/marketing'
-import { ExternalLink, Plus } from '@commerce/ui/icons'
+import { ExternalLink, Plus, Trash2 } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Card } from '@commerce/ui/shadcn/card'
 import { useEffect, useState } from 'react'
@@ -16,6 +16,7 @@ import { useCopy, useFormat } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 import type { Formatters } from '@/lib/format'
 import { routes } from '@/lib/routes'
+import { runBatched } from '@/lib/run-batched'
 import LinkDialog from './link-dialog'
 
 type ListResult = Awaited<ReturnType<typeof api.shortLinks.list>>
@@ -102,6 +103,10 @@ export default function LinksPage({ storefrontOrigin }: LinksPageProps) {
   const [page, setPage] = useState(1)
   const [editing, setEditing] = useState<Item | 'new' | null>(null)
   const [deleting, setDeleting] = useState<Item | null>(null)
+  /** Selected links waiting on the bulk delete confirm. */
+  const [bulkDeleting, setBulkDeleting] = useState<{ ids: string[]; clear: () => void } | null>(
+    null,
+  )
   const [reloadKey, setReloadKey] = useState(0)
   // The page of links, and the totals across all of them.
   useEffect(() => {
@@ -142,6 +147,17 @@ export default function LinksPage({ storefrontOrigin }: LinksPageProps) {
       setDeleting(null)
     }
   }
+  const handleBulkDelete = async () => {
+    if (!bulkDeleting) return
+    const { done, failed } = await runBatched(bulkDeleting.ids, (id) =>
+      api.shortLinks.delete({ id }),
+    )
+    const message = copy.bulkDelete.deleted(done)
+    if (failed === 0) toast.success(message)
+    else toast.warning(`${message} · ${copy.bulkDelete.failed(failed)}`)
+    bulkDeleting.clear()
+    reload()
+  }
 
   // Render logic
   const host = new URL(storefrontOrigin).host
@@ -154,7 +170,7 @@ export default function LinksPage({ storefrontOrigin }: LinksPageProps) {
   )
 
   return (
-    <div className="flex w-full flex-col gap-6 px-4 py-6 md:px-8 md:py-8">
+    <div className="flex w-full flex-col gap-6 px-4 pt-4 pb-6 md:px-8 md:pt-5 md:pb-8">
       <PageHeader
         title={copy.title}
         summary={
@@ -183,7 +199,18 @@ export default function LinksPage({ storefrontOrigin }: LinksPageProps) {
           items={result?.items ?? []}
           getId={(l) => l.id}
           loading={result === null}
-          selectable={false}
+          selectable
+          bulkActions={(ids, clear) => (
+            <Button
+              type="button"
+              variant="destructive"
+              size="sm"
+              onClick={() => setBulkDeleting({ ids, clear })}
+            >
+              <Trash2 aria-hidden />
+              {copy.bulkDelete.action}
+            </Button>
+          )}
           query={query}
           onQueryChange={(q) => {
             setPage(1)
@@ -223,6 +250,17 @@ export default function LinksPage({ storefrontOrigin }: LinksPageProps) {
           confirmLabel={copy.deleteDialog.confirm}
           cancelLabel={copy.deleteDialog.cancel}
           onConfirm={handleDelete}
+        />
+      ) : null}
+      {bulkDeleting ? (
+        <ConfirmDialog
+          open
+          onOpenChange={(open) => !open && setBulkDeleting(null)}
+          title={copy.bulkDelete.title(bulkDeleting.ids.length)}
+          body={copy.bulkDelete.body}
+          confirmLabel={copy.bulkDelete.confirm}
+          cancelLabel={copy.bulkDelete.cancel}
+          onConfirm={handleBulkDelete}
         />
       ) : null}
     </div>

@@ -1,6 +1,7 @@
 'use client'
 
 import { parseRupees } from '@commerce/money'
+import { CheckIcon } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Field, FieldDescription, FieldLabel } from '@commerce/ui/shadcn/field'
 import { Input } from '@commerce/ui/shadcn/input'
@@ -148,6 +149,7 @@ export default function ReturnResolveCard({ detail: r, onChanged }: ReturnResolv
             onClick={handleConfirm}
             disabled={busy || (needsAmount && !validAmount)}
           >
+            <CheckIcon aria-hidden="true" />
             {confirmLabel}
           </Button>
         </div>

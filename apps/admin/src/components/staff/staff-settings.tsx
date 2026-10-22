@@ -1,6 +1,7 @@
 'use client'
 
 import { permissions } from '@commerce/core/permissions'
+import { Plus, UserPlus } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
@@ -132,7 +133,10 @@ export default function StaffSettings() {
         <SettingsSection id={copy.tabs.members.id} className="flex flex-col gap-4">
           {canInvite ? (
             <div className="flex justify-end">
-              <Button onClick={() => setInviteOpen(true)}>{copy.members.invite}</Button>
+              <Button onClick={() => setInviteOpen(true)}>
+                <UserPlus aria-hidden="true" />
+                {copy.members.invite}
+              </Button>
             </div>
           ) : null}
           <MembersCard
@@ -148,7 +152,10 @@ export default function StaffSettings() {
         <SettingsSection id={copy.tabs.roles.id} className="flex flex-col gap-4">
           {canManage ? (
             <div className="flex justify-end">
-              <Button onClick={handleCreate}>{copy.roles.create}</Button>
+              <Button onClick={handleCreate}>
+                <Plus aria-hidden="true" />
+                {copy.roles.create}
+              </Button>
             </div>
           ) : null}
           <RolesCard

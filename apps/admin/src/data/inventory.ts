@@ -397,3 +397,15 @@ export const transferFormContent = {
     cancel: 'Cancel',
   },
 } as const
+
+/** The purchase order list's selection bar. */
+export const purchaseOrderBulkContent = {
+  downloadPdfs: 'Download PDFs',
+  close: 'Close',
+  confirmClose: {
+    title: (n: number) => `Close ${n} purchase order${n === 1 ? '' : 's'}?`,
+    body: 'Anything not received yet stops showing as incoming. Received stock stays. Drafts and orders that are already finished are skipped.',
+    confirm: 'Close orders',
+    cancel: 'Cancel',
+  },
+} as const

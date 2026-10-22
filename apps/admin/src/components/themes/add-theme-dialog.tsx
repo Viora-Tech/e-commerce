@@ -1,6 +1,7 @@
 'use client'
 
 import { THEME_PRESET_IDS, THEME_PRESETS, type ThemePresetId } from '@commerce/core/theme'
+import { Plus } from '@commerce/ui/icons'
 import { cn } from '@commerce/ui/lib/utils'
 import { Button } from '@commerce/ui/shadcn/button'
 import {
@@ -125,7 +126,7 @@ export default function AddThemeDialog({
             {copy.cancel}
           </Button>
           <Button type="button" disabled={busy} onClick={() => onAdd({ start, name: finalName })}>
-            {busy ? <Spinner /> : null}
+            {busy ? <Spinner /> : <Plus aria-hidden="true" />}
             {copy.confirm}
           </Button>
         </DialogFooter>

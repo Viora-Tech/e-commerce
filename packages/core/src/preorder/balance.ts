@@ -1,5 +1,6 @@
 import { type Db, order, orderNote, payment, withStore } from '@commerce/db'
 import { formatMoney } from '@commerce/money'
+import type { CustomMessage } from '@commerce/notifications'
 import type { PaymentProvider } from '@commerce/payments'
 import { and, desc, eq } from 'drizzle-orm'
 import type { StoreContext } from '../context'
@@ -89,14 +90,22 @@ export const BALANCE_REQUESTED_NOTE = (owedPaise: number, automatic: boolean) =>
 export async function requestBalance(
   ctx: StoreContext,
   orderId: string,
-  opts: { now?: Date | undefined; author?: string | undefined } = {},
+  opts: {
+    now?: Date | undefined
+    author?: string | undefined
+    /** The merchant's edited subject and note from the "Review email" dialog. */
+    custom?: CustomMessage | undefined
+  } = {},
 ): Promise<{ firstRequest: boolean; owedPaise: number; requestedAt: Date }> {
   const { o, owed } = await lockOwingOrder(ctx, orderId)
   const requestedAt = o.balanceRequestedAt ?? opts.now ?? new Date()
   if (!o.balanceRequestedAt) {
     await ctx.tx.update(order).set({ balanceRequestedAt: requestedAt }).where(eq(order.id, orderId))
   }
-  await insertOutboxEvent(ctx.tx, ctx.storeId, 'order.balance_requested', { orderId })
+  await insertOutboxEvent(ctx.tx, ctx.storeId, 'order.balance_requested', {
+    orderId,
+    custom: opts.custom,
+  })
   const automatic = !opts.author || opts.author === 'system'
   await ctx.tx.insert(orderNote).values({
     storeId: ctx.storeId,

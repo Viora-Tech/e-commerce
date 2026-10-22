@@ -1,7 +1,7 @@
 'use client'
 
 import { permissions } from '@commerce/core/permissions'
-import { BadgePercent, CircleAlert, Copy, Trash2 } from '@commerce/ui/icons'
+import { BadgePercent, CircleAlert, Copy, Pause, Play, Save, Trash2 } from '@commerce/ui/icons'
 import { Alert, AlertDescription, AlertTitle } from '@commerce/ui/shadcn/alert'
 import { Button } from '@commerce/ui/shadcn/button'
 import { useRouter } from 'next/navigation'
@@ -179,6 +179,7 @@ export default function DiscountForm({ discount }: DiscountFormProps) {
                       disabled={busy}
                       onClick={paused ? () => handleStatus('active') : () => setConfirmPause(true)}
                     >
+                      {paused ? <Play aria-hidden="true" /> : <Pause aria-hidden="true" />}
                       {paused ? copy.pause.resume : copy.pause.action}
                     </Button>
                   ) : null}
@@ -197,6 +198,7 @@ export default function DiscountForm({ discount }: DiscountFormProps) {
                 </>
               ) : dirty ? null : (
                 <Button onClick={handleSave} loading={busy}>
+                  <Save aria-hidden="true" />
                   {copy.saveBar.save}
                 </Button>
               )

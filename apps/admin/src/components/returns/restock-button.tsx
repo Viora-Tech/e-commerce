@@ -1,5 +1,6 @@
 'use client'
 
+import { Package } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { useState } from 'react'
 import { toast } from 'sonner'
@@ -35,6 +36,7 @@ export default function RestockButton({ detail: r, onChanged }: RestockButtonPro
 
   return (
     <Button variant="outline" onClick={handleRestock} disabled={busy}>
+      <Package aria-hidden="true" />
       {copy.button}
     </Button>
   )

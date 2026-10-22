@@ -11,6 +11,7 @@ import {
   PRIVATE_METAFIELD_OWNERS,
   ruleProblems,
 } from '@commerce/core/metaobjects'
+import { Save } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import {
   Dialog,
@@ -272,6 +273,7 @@ export default function MetafieldDefinitionDialog({
             {copy.cancel}
           </Button>
           <Button onClick={handleSave} disabled={busy}>
+            <Save aria-hidden="true" />
             {busy ? copy.saving : copy.save}
           </Button>
         </DialogFooter>

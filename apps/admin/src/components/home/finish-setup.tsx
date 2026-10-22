@@ -34,8 +34,13 @@ export default async function FinishSetup({ productCount, signals }: FinishSetup
     {
       key: 'payments',
       title: c.payments.title,
-      body: signals.payments ? c.payments.done(signals.payments) : c.payments.todo,
-      done: signals.payments !== null,
+      body: signals.payments
+        ? signals.paymentsTest
+          ? c.payments.testMode(signals.payments)
+          : c.payments.done(signals.payments)
+        : c.payments.todo,
+      // A gateway on test keys takes no real money yet, so the step stays open until it goes live.
+      done: signals.payments !== null && !signals.paymentsTest,
       href: routes.settings.payments(),
     },
     {

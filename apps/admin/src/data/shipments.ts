@@ -139,3 +139,22 @@ export const shipmentsContent = {
     applied: 'Sent to the courier',
   },
 }
+
+/** Row and bulk actions on the Shipments table: pickups, manifests, tracking, cancel. */
+export const shipmentActionsContent = {
+  schedulePickup: 'Schedule pickup',
+  pickupTitle: (n: number) => `Schedule a pickup for ${n} ${n === 1 ? 'parcel' : 'parcels'}`,
+  pickupBody: 'The courier collects these booked parcels on the day and time you pick.',
+  date: 'Pickup date',
+  timeFrom: 'From (24h, e.g. 14:00)',
+  timeTo: 'To (optional)',
+  pickupDone: (n: number) => `Pickup scheduled for ${n} ${n === 1 ? 'parcel' : 'parcels'}`,
+  createManifest: 'Create manifest',
+  manifestTitle: (n: number) => `Create a manifest for ${n} ${n === 1 ? 'parcel' : 'parcels'}?`,
+  manifestBody:
+    'A manifest groups these parcels into one label sheet to hand to the pickup executive. You find it under Pickups.',
+  manifestDone: 'Manifest created. You find it under Pickups.',
+  refreshTracking: 'Refresh tracking',
+  trackingUpdated: 'Tracking updated',
+  failed: 'The courier request did not go through. Try again in a moment.',
+}

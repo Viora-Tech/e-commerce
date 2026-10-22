@@ -154,7 +154,10 @@ export default function CreateTokenDialog({ open, onOpenChange }: CreateTokenDia
             ))}
           </dl>
           <DialogFooter>
-            <Button onClick={handleDone}>{copy.shown.done}</Button>
+            <Button onClick={handleDone}>
+              <CheckIcon aria-hidden="true" />
+              {copy.shown.done}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

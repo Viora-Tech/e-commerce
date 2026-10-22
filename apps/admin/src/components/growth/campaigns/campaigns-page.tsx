@@ -7,13 +7,13 @@ import { useState } from 'react'
 import EmptyState from '@/components/layout/empty-state'
 import ProoflyListPage from '@/components/layout/proofly-list-page'
 import ResourceTable from '@/components/table/resource-table'
-import RowMenu from '@/components/table/row-menu'
 import ViewSelect from '@/components/table/view-select'
 import { campaignsContent } from '@/data/marketing-campaigns'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import type { api } from '@/lib/api-client'
 import { routes } from '@/lib/routes'
 import { campaignColumns } from './campaign-columns'
+import CampaignRowMenu from './campaign-row-menu'
 import CreateCampaignMenu from './create-campaign-menu'
 
 type Item = Awaited<ReturnType<typeof api.marketing.campaigns.list>>[number]
@@ -80,9 +80,7 @@ export default function CampaignsPage({ campaigns }: CampaignsPageProps) {
         items={items}
         getId={(c) => c.id}
         href={(c) => routes.growth.campaign(c.id)}
-        rowActions={(c) => (
-          <RowMenu items={[{ label: copy.row.open, href: routes.growth.campaign(c.id) }]} />
-        )}
+        rowActions={(c) => <CampaignRowMenu campaign={c} />}
         query={query}
         onQueryChange={(next) => {
           setQuery(next)

@@ -1,5 +1,6 @@
 'use client'
 
+import { Send } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { useState } from 'react'
 import { toast } from 'sonner'
@@ -28,6 +29,7 @@ export default function AskReviewsButton() {
   return (
     <>
       <Button type="button" onClick={() => setOpen(true)}>
+        <Send aria-hidden="true" />
         {copy.ask}
       </Button>
       <ConfirmDialog

@@ -1,6 +1,7 @@
 'use client'
 
 import { CUSTOM_SECTION_LIMITS, type TemplateSection } from '@commerce/core/theme'
+import { Bookmark } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import {
   Dialog,
@@ -83,7 +84,7 @@ export default function SaveSectionDialog({ block, defaultName, onClose }: SaveS
               {copy.cancel}
             </Button>
             <Button type="submit" disabled={!name.trim() || busy}>
-              {busy ? <Spinner /> : null}
+              {busy ? <Spinner /> : <Bookmark aria-hidden="true" />}
               {busy ? copy.saving : copy.confirm}
             </Button>
           </DialogFooter>

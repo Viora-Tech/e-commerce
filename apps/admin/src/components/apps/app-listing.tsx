@@ -1,7 +1,7 @@
 'use client'
 
 import { siteConfig } from '@commerce/config/site'
-import { CheckIcon, ExternalLink } from '@commerce/ui/icons'
+import { CheckIcon, Download, ExternalLink } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import Link from 'next/link'
 import DataCard from '@/components/layout/data-card'
@@ -53,6 +53,7 @@ export default function AppListing({ app }: AppListingProps) {
         badges={<StatusChip className="h-5 text-xs">{copy.version(app.version)}</StatusChip>}
         actions={
           <Button nativeButton={false} render={<Link href={routes.apps.install(app.id)} />}>
+            <Download aria-hidden="true" />
             {copy.install}
           </Button>
         }

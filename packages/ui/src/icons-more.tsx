@@ -4,6 +4,7 @@
  */
 import {
   AppWindowIcon,
+  Archive01Icon,
   CircleIcon,
   ArrowShrink02Icon as CornersIn,
   ArrowExpand01Icon as CornersOut,
@@ -13,16 +14,21 @@ import {
   LeftToRightListBulletIcon as ListBullets,
   LeftToRightListNumberIcon as ListNumbers,
   MinusSignIcon as Minus,
+  PauseIcon,
   Cursor01Icon as PhCursor,
+  PlayIcon,
   HelpCircleIcon as Question,
   QuoteDownIcon as Quotes,
   SidebarLeftIcon as SidebarSimple,
   SparklesIcon,
   Layers01Icon as Stack,
+  Tag01Icon,
   TextBoldIcon as TextB,
   TextItalicIcon as TextItalic,
   TextStrikethroughIcon as TextStrikethrough,
   TextUnderlineIcon as TextUnderline,
+  Unlink01Icon,
+  UserAdd01Icon,
 } from '@hugeicons/core-free-icons'
 import { defineIcon } from './lib/icon'
 
@@ -59,3 +65,11 @@ export const Sparkle = defineIcon(SparklesIcon, 'Sparkle')
 
 /** A window: "Open order" in a row menu (Figma Orders row menu). */
 export const AppWindow = defineIcon(AppWindowIcon, 'AppWindow')
+
+/* Action buttons: archive, pause / resume, invite, tag and unlink. */
+export const Archive = defineIcon(Archive01Icon, 'Archive')
+export const Pause = defineIcon(PauseIcon, 'Pause')
+export const Play = defineIcon(PlayIcon, 'Play')
+export const UserPlus = defineIcon(UserAdd01Icon, 'UserPlus')
+export const Tag = defineIcon(Tag01Icon, 'Tag')
+export const Unlink = defineIcon(Unlink01Icon, 'Unlink')

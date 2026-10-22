@@ -1,6 +1,7 @@
 'use client'
 
 import { articleExcerpt, slugify } from '@commerce/core/blog'
+import { Pencil } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Field, FieldDescription, FieldGroup, FieldLabel } from '@commerce/ui/shadcn/field'
 import { Input } from '@commerce/ui/shadcn/input'
@@ -13,9 +14,7 @@ import {
 import { Textarea } from '@commerce/ui/shadcn/textarea'
 import { useState } from 'react'
 import DataCard from '@/components/layout/data-card'
-
 import { articleFormContent } from '@/data/blog'
-
 import { useCopy } from '@/hooks/use-copy'
 
 type SeoPatch = { seoTitle?: string; seoDescription?: string; handle?: string }
@@ -63,6 +62,7 @@ export default function ArticleSeoCard({
       action={
         !editing ? (
           <Button type="button" variant="ghost" size="sm" onClick={() => setEditing(true)}>
+            <Pencil aria-hidden="true" />
             {copy.edit}
           </Button>
         ) : null

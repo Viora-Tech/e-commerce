@@ -10,6 +10,8 @@ type OtpInputProps = {
   label: string
   invalid?: boolean
   disabled?: boolean
+  /** Called once the last digit lands (typed, pasted or autofilled), so the form can submit itself. */
+  onComplete?: (value: string) => void
 }
 
 const LENGTH = 6
@@ -21,7 +23,15 @@ const SLOTS = ['one', 'two', 'three', 'four', 'five', 'six']
  * and the browser's one-time-code autofill all behave like a normal field. Pattern: shadcn
  * InputOTP (MIT), built without the `input-otp` package.
  */
-export default function OtpInput({ id, value, onChange, label, invalid, disabled }: OtpInputProps) {
+export default function OtpInput({
+  id,
+  value,
+  onChange,
+  label,
+  invalid,
+  disabled,
+  onComplete,
+}: OtpInputProps) {
   // Hooks
   const inputRef = useRef<HTMLInputElement>(null)
   const [focused, setFocused] = useState(false)
@@ -29,7 +39,11 @@ export default function OtpInput({ id, value, onChange, label, invalid, disabled
   useEffect(() => inputRef.current?.focus(), [])
 
   // Event handlers
-  const handleChange = (raw: string) => onChange(raw.replace(/\D/g, '').slice(0, LENGTH))
+  const handleChange = (raw: string) => {
+    const next = raw.replace(/\D/g, '').slice(0, LENGTH)
+    onChange(next)
+    if (next.length === LENGTH && value.length < LENGTH) onComplete?.(next)
+  }
 
   // Render logic
   const active = Math.min(value.length, LENGTH - 1)

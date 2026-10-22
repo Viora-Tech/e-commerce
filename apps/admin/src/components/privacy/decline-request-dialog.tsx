@@ -1,5 +1,6 @@
 'use client'
 
+import { CancelCircle } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import {
   Dialog,
@@ -60,6 +61,7 @@ export default function DeclineRequestDialog({
               {copy.cancel}
             </Button>
             <Button type="submit" variant="destructive" disabled={busy || !reason.trim()}>
+              <CancelCircle aria-hidden="true" />
               {copy.declineConfirm}
             </Button>
           </DialogFooter>

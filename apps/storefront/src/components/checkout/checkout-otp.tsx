@@ -97,23 +97,27 @@ export default function CheckoutOtp({
       if (r.field) document.getElementById(fieldId(r.field))?.focus()
     })
   }
-  const verify = () => {
+  const verify = (typed = code) => {
     if (!sentTo) return
-    if (code.length !== 6) {
+    if (typed.length !== 6) {
       codeRef.current?.focus()
       return
     }
     setError(null)
     start(async () => {
-      const failed = await verifyOtp({ channel, sentTo, code }, ACTIONS)
+      const failed = await verifyOtp({ channel, sentTo, code: typed }, ACTIONS)
       if (failed) setError(failed)
     })
   }
 
   // Event handlers
   const handlePrimary = () => (sentTo ? verify() : send())
-  const handleCode = (e: React.ChangeEvent<HTMLInputElement>) =>
-    setCode(e.target.value.replace(/\D/g, '').slice(0, 6))
+  const handleCode = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const next = e.target.value.replace(/\D/g, '').slice(0, 6)
+    setCode(next)
+    // The sixth digit (typed or pasted) sends the code: no extra tap on Verify.
+    if (next.length === 6 && code.length < 6 && !pending) verify(next)
+  }
   const handleRestart = () => {
     setSentTo(null)
     setCode('')

@@ -1,6 +1,6 @@
 'use client'
 
-import { ArrowLeftRight } from '@commerce/ui/icons'
+import { ArrowLeftRight, PackageCheck, Save, Trash2, Truck } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
@@ -152,18 +152,22 @@ export default function TransferForm({ transfer, locations }: TransferFormProps)
             <>
               {transfer ? (
                 <Button variant="outline" onClick={() => setConfirmDelete(true)} disabled={busy}>
+                  <Trash2 aria-hidden="true" />
                   {copy.delete}
                 </Button>
               ) : null}
               <Button variant="outline" onClick={handleSave} disabled={busy || sameRoute}>
+                <Save aria-hidden="true" />
                 {busy ? copy.saving : copy.save}
               </Button>
               <Button onClick={handleShip} disabled={busy || sameRoute}>
+                <Truck aria-hidden="true" />
                 {copy.ship}
               </Button>
             </>
           ) : status === 'in_transit' ? (
             <Button onClick={handleReceive} disabled={busy}>
+              <PackageCheck aria-hidden="true" />
               {copy.receive}
             </Button>
           ) : null

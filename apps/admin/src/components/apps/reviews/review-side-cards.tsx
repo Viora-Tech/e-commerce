@@ -1,5 +1,6 @@
 'use client'
 
+import { Eye, Trash2 } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Label } from '@commerce/ui/shadcn/label'
 import { Switch } from '@commerce/ui/shadcn/switch'
@@ -91,6 +92,7 @@ export default function ReviewSideCards({ detail, onChanged, onDeleted }: Review
               nativeButton={false}
               render={<Link href={routes.products.detail(p.id)} />}
             >
+              <Eye aria-hidden="true" />
               {copy.product.view}
             </Button>
           </div>
@@ -148,6 +150,7 @@ export default function ReviewSideCards({ detail, onChanged, onDeleted }: Review
         className="self-start text-destructive"
         onClick={() => setDeleting(true)}
       >
+        <Trash2 aria-hidden="true" />
         {copy.delete}
       </Button>
       <DeleteReviewsDialog

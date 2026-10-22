@@ -1,4 +1,4 @@
-import type { TemplateId } from '@commerce/notifications'
+import type { CustomMessage, TemplateId } from '@commerce/notifications'
 import type { AppEvent } from '@commerce/plugins'
 
 /**
@@ -82,6 +82,8 @@ export type OutboxEventType =
  */
 export type OutboxPayload = {
   orderId?: string | undefined
+  /** A hand-sent message's edited subject and note (invoice, balance request, reminder). */
+  custom?: CustomMessage | undefined
   refundId?: string | undefined
   variantId?: string | undefined
   locationId?: string | undefined

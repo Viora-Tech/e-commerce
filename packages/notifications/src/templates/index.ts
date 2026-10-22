@@ -259,11 +259,14 @@ export async function renderEmail(template: TemplateId, d: TemplateData): Promis
   // Messages about no order (a sign-in code) carry no items or total.
   const hasItems = d.lines.length > 0
   const gc = d.giftCard
+  // The merchant's own note from the "Review email" dialog, under the intro.
+  const note = d.custom?.message?.trim() || undefined
 
   const text = squash([
     c.heading(d),
     '',
     c.intro(d),
+    ...(note ? ['', note] : []),
     '',
     ...(gc
       ? [
@@ -287,7 +290,7 @@ export async function renderEmail(template: TemplateId, d: TemplateData): Promis
     shared.footer(d),
   ])
 
-  const subject = c.subject(d)
+  const subject = d.custom?.subject?.trim() || c.subject(d)
   // Extra links go under the body as text lines (document links, installed-app links);
   // the primary action already carries the main call to action as a button.
   const primaryAction = primaryActionFor(template, d)
@@ -301,6 +304,7 @@ export async function renderEmail(template: TemplateId, d: TemplateData): Promis
       eyebrow: eyebrowFor(template, d),
       heading: c.heading(d),
       intro: c.intro(d),
+      note,
       outro: c.outro(d),
       lines: gc ? [] : d.lines,
       totalLabel: gc ? undefined : d.totalLabel,
@@ -318,5 +322,7 @@ export async function renderEmail(template: TemplateId, d: TemplateData): Promis
 }
 
 export function renderWhatsapp(template: TemplateId, d: TemplateData): WhatsappBody {
-  return { text: templateContent[template].whatsapp(d) }
+  const text = templateContent[template].whatsapp(d)
+  const note = d.custom?.message?.trim()
+  return { text: note ? `${note}\n\n${text}` : text }
 }

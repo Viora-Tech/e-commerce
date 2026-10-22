@@ -1,4 +1,4 @@
-import { CircleCheck } from '@commerce/ui/icons'
+import { CircleCheck, RotateCcw } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import DataCard from '@/components/layout/data-card'
 import KeyValueList from '@/components/layout/key-value-list'
@@ -100,6 +100,7 @@ export default function PaymentCard({
                   <OrderChip kind="payment" value={pill} />
                   {refundable && onRefund ? (
                     <Button size="sm" variant="outline" onClick={() => onRefund(p)}>
+                      <RotateCcw aria-hidden="true" />
                       {copy.actions.refund}
                     </Button>
                   ) : null}

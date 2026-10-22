@@ -121,8 +121,13 @@ export type EmailParcel = {
 }
 
 /** Everything a template needs; built by the worker from the order row. */
+/** The merchant's own subject and note for a hand-sent message ("Review email" dialog). */
+export type CustomMessage = { subject?: string | undefined; message?: string | undefined }
+
 export type TemplateData = {
   storeName: string
+  /** Set when the merchant edited the subject or added a note before sending. */
+  custom?: CustomMessage | undefined
   /** Absent for messages about a cart that is not an order yet. */
   orderNumber?: number | undefined
   customerName: string

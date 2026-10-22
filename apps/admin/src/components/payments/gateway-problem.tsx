@@ -1,5 +1,6 @@
 'use client'
 
+import { PlugConnect } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Spinner } from '@commerce/ui/shadcn/spinner'
 import Link from 'next/link'
@@ -59,6 +60,7 @@ export default function GatewayProblem({
       </Button>
     ) : problem.code === 'reconnect' ? (
       <Button size="sm" nativeButton={false} render={<Link href={connectHref} />}>
+        <PlugConnect aria-hidden="true" />
         {copy.reconnectAction}
       </Button>
     ) : problem.code === 'config_invalid' ? (

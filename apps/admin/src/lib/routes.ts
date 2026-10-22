@@ -48,6 +48,8 @@ export const routes = {
      *  at its shipment card. Under /orders/shipments so the sidebar keeps Shipments lit. */
     shipment: (orderId: string) => `/orders/shipments/${id(orderId)}`,
     bulkEdit: () => '/orders/bulk-edit',
+    /** Packing slips for these orders, one per page, printed straight away. */
+    packingSlips: (orderIds: string[]) => `/orders/packing-slips?ids=${orderIds.map(id).join(',')}`,
     drafts: () => '/orders/drafts',
     newDraft: () => '/orders/drafts/new',
     draft: (draftId: string) => `/orders/drafts/${id(draftId)}`,

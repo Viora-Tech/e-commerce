@@ -6,7 +6,7 @@ import {
   type MetafieldOwnerType,
 } from '@commerce/core/metaobjects'
 import { permissions } from '@commerce/core/permissions'
-import { Plus } from '@commerce/ui/icons'
+import { Plus, Save } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import {
   Card,
@@ -167,6 +167,7 @@ export default function MetafieldsCard({
         <CardAction>
           {dirty && canWrite ? (
             <Button onClick={handleSave} disabled={busy}>
+              <Save aria-hidden="true" />
               {busy ? copy.saving : copy.save}
             </Button>
           ) : canManage ? (

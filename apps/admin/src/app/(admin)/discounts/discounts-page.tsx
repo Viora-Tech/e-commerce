@@ -8,11 +8,12 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@commerce/ui/shadcn/too
 import Link from 'next/link'
 import { parseAsInteger, parseAsString, parseAsStringLiteral, useQueryStates } from 'nuqs'
 import { Suspense, useEffect, useRef, useState } from 'react'
+import DiscountBulkActions from '@/components/discounts/discount-bulk-actions'
 import { discountColumns } from '@/components/discounts/discount-columns'
+import DiscountRowMenu from '@/components/discounts/discount-row-menu'
 import DiscountTiles, { type DiscountStats } from '@/components/discounts/discount-tiles'
 import ProoflyListPage from '@/components/layout/proofly-list-page'
 import ResourceTable from '@/components/table/resource-table'
-import RowMenu from '@/components/table/row-menu'
 import ViewSelect from '@/components/table/view-select'
 import { DISCOUNT_LIFECYCLES, type DiscountLifecycle, discountsContent } from '@/data/discounts'
 import { useCopy, useFormat } from '@/hooks/use-copy'
@@ -50,6 +51,8 @@ function DiscountsContent({ initial }: { initial: DiscountsInitial }) {
   const [items, setItems] = useState(initial.result.items)
   const [total, setTotal] = useState(initial.result.total)
   const [loading, setLoading] = useState(false)
+  /** Bumped by a row's menu after a pause, resume or delete, so the page re-reads its rows. */
+  const [reload, setReload] = useState(0)
   const hydrated = useRef(false)
 
   useEffect(() => {
@@ -58,6 +61,7 @@ function DiscountsContent({ initial }: { initial: DiscountsInitial }) {
     const firstRun = !hydrated.current
     hydrated.current = true
     if (
+      reload === 0 &&
       firstRun &&
       sameListQuery({ page, query, status }, initial.query) &&
       perPage === DEFAULT_PER_PAGE
@@ -76,7 +80,7 @@ function DiscountsContent({ initial }: { initial: DiscountsInitial }) {
     return () => {
       cancelled = true
     }
-  }, [page, perPage, query, status, initial.query])
+  }, [page, perPage, query, status, initial.query, reload])
 
   // Render logic
   const { stats } = initial
@@ -115,7 +119,7 @@ function DiscountsContent({ initial }: { initial: DiscountsInitial }) {
         getId={(d) => d.id}
         href={(d) => routes.discounts.detail(d.id)}
         rowActions={(d) => (
-          <RowMenu items={[{ label: copy.row.edit, href: routes.discounts.detail(d.id) }]} />
+          <DiscountRowMenu discount={d} onChanged={() => setReload((n) => n + 1)} />
         )}
         loading={loading}
         query={query}
@@ -140,7 +144,10 @@ function DiscountsContent({ initial }: { initial: DiscountsInitial }) {
         onPerPageChange={(next) => setQ({ perPage: next, page: 1 })}
         total={total}
         onPageChange={(next) => setQ({ page: next })}
-        selectable={false}
+        selectable
+        bulkActions={(ids, clear) => (
+          <DiscountBulkActions ids={ids} clear={clear} onChanged={() => setReload((n) => n + 1)} />
+        )}
         empty={{
           heading: copy.empty.heading,
           body: copy.empty.body,

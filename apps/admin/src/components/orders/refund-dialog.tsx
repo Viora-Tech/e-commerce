@@ -1,6 +1,7 @@
 'use client'
 
 import { parseRupees } from '@commerce/money'
+import { RotateCcw } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import {
   Dialog,
@@ -118,6 +119,7 @@ export default function RefundDialog({
               {copy.refundDialog.close}
             </Button>
             <Button type="submit" disabled={!valid || busy}>
+              <RotateCcw aria-hidden="true" />
               {copy.refundDialog.confirm}
               {valid ? ` ${fmt.money(paise)}` : ''}
             </Button>

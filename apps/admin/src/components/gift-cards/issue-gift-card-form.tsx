@@ -1,6 +1,7 @@
 'use client'
 
 import { parseRupees } from '@commerce/money'
+import { Save } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Checkbox } from '@commerce/ui/shadcn/checkbox'
 import { Field, FieldDescription, FieldLabel } from '@commerce/ui/shadcn/field'
@@ -92,6 +93,7 @@ export default function IssueGiftCardForm({ today }: IssueGiftCardFormProps) {
               {copy.cancel}
             </Button>
             <Button onClick={handleSave} disabled={!canSave}>
+              <Save aria-hidden="true" />
               {busy ? copy.saving : copy.save}
             </Button>
           </>

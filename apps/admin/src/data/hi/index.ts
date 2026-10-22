@@ -11,6 +11,7 @@ import backgroundWork from './background-work'
 import billing from './billing'
 import bluedart from './bluedart'
 import bugReport from './bug-report'
+import bulkActions from './bulk-actions'
 import bulkEdit from './bulk-edit'
 import businessGst from './business-gst'
 import chatwoot from './chatwoot'
@@ -38,6 +39,7 @@ import ekart from './ekart'
 import emailBuilder from './email-builder'
 import fedex from './fedex'
 import filterPanel from './filter-panel'
+import giftCards from './gift-cards'
 import growth from './growth'
 import growthbook from './growthbook'
 import gstInvoices from './gst-invoices'
@@ -59,6 +61,7 @@ import onboarding from './onboarding'
 import orderAppActions from './order-app-actions'
 import orderCards from './order-cards'
 import orders from './orders'
+import ordersBulk from './orders-bulk'
 import ordersBulkEdit from './orders-bulk-edit'
 import paymentModes from './payment-modes'
 import payments from './payments'
@@ -68,6 +71,7 @@ import profitCosts from './profit-costs'
 import purchaseDocuments from './purchase-documents'
 import purchasing from './purchasing'
 import razorpayWebsites from './razorpay-websites'
+import returns from './returns'
 import reviews from './reviews'
 import searchApp from './search-app'
 import searchConsole from './search-console'
@@ -76,6 +80,7 @@ import seoKeywords from './seo-keywords'
 import seoReport from './seo-report'
 import settings from './settings'
 import shadowfax from './shadowfax'
+import shipments from './shipments'
 import shipping from './shipping'
 import shippingRates from './shipping-rates'
 import shopifyImport from './shopify-import'
@@ -112,6 +117,7 @@ export const hindiCopy: readonly TranslationPair[] = [
   ...bluedart,
   ...mcp,
   ...bugReport,
+  ...bulkActions,
   ...bulkEdit,
   ...businessGst,
   ...checkoutSettings,
@@ -128,6 +134,7 @@ export const hindiCopy: readonly TranslationPair[] = [
   ...dates,
   ...dhlExpress,
   ...fedex,
+  ...giftCards,
   ...drafts,
   ...domains,
   ...emailBuilder,
@@ -155,6 +162,7 @@ export const hindiCopy: readonly TranslationPair[] = [
   ...shopifyImportRun,
   ...shopifyImportSettings,
   ...orders,
+  ...ordersBulk,
   ...ordersBulkEdit,
   ...payments,
   ...paymentModes,
@@ -168,8 +176,10 @@ export const hindiCopy: readonly TranslationPair[] = [
   ...profitCosts,
   ...purchasing,
   ...selectProducts,
+  ...returns,
   ...reviews,
   ...settings,
+  ...shipments,
   ...shipping,
   ...shippingRates,
   ...shopifyImport,

@@ -1,16 +1,24 @@
 'use client'
 
 import {
+  Bell,
+  CancelCircle,
   ChevronLeftIcon,
   ChevronRightIcon,
+  CircleCheck,
+  Copy,
+  Package,
+  PackageCheck,
   Printer,
   RotateCcw,
   Send,
   Truck,
+  Users,
 } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import Link from 'next/link'
 import { useState } from 'react'
+import { toast } from 'sonner'
 import ActionMenu, { type ActionItem } from '@/components/layout/action-menu'
 import ConfirmDialog from '@/components/layout/confirm-dialog'
 import { orderAppActionsContent } from '@/data/order-app-actions'
@@ -20,8 +28,11 @@ import {
   type OrderPaymentStatus,
   type OrderStatus,
   orderDetailContent,
+  ordersContent,
 } from '@/data/orders'
 import { useCopy } from '@/hooks/use-copy'
+import { MOVE_ACTION, nextOrderMove } from '@/lib/order-next-move'
+import { routes } from '@/lib/routes'
 
 type OrderActionsProps = {
   status: OrderStatus
@@ -35,44 +46,20 @@ type OrderActionsProps = {
   onRequestBalance?: (() => void) | undefined
   /** Present while the order is ready to ship (open, to pack, paid or COD): "Create shipment". */
   onShip?: (() => void) | undefined
+  /** Cancels the booked courier shipment (asks first); undefined when there is none to cancel. */
+  onCancelShipment?: (() => void) | undefined
+  /** Nudges the customer about an unmatched UPI or bank transfer. */
+  onSendReminder?: (() => void) | undefined
+  /** The order's number, for "Copy order number". */
+  orderNumber?: number | undefined
+  /** The customer's email, for "Orders from this customer". */
+  customerEmail?: string | null | undefined
   /** Installed apps' actions, grouped under each app (`useOrderAppActions`). */
   appItems?: readonly ActionItem[]
   /** Imported history: only printing and stepping between orders. */
   readOnly?: boolean
   previousId?: string | undefined
   nextId?: string | undefined
-}
-
-type Step = { label: string; to: OrderMark }
-
-const OWED: ReadonlySet<OrderPaymentStatus> = new Set(['unpaid', 'authorized', 'partially_paid'])
-const TO_PACK: ReadonlySet<OrderFulfillmentStatus> = new Set(['unfulfilled', 'partially_fulfilled'])
-const ON_ITS_WAY: ReadonlySet<OrderFulfillmentStatus> = new Set([
-  'fulfilled',
-  'shipped',
-  'partially_delivered',
-])
-
-/**
- * The one forward step for an open order: take the money, then pack, then
- * hand over. Taking the money and marking delivered earn the ink button;
- * packing stays in the menu because the Unfulfilled section already offers it.
- */
-function nextStep(
-  copy: typeof orderDetailContent,
-  status: OrderStatus,
-  payment: OrderPaymentStatus,
-  fulfilment: OrderFulfillmentStatus,
-): Step | undefined {
-  if (status !== 'open') return undefined
-  if (OWED.has(payment)) return { label: copy.actions.markPaid, to: 'paid' }
-  if (TO_PACK.has(fulfilment)) {
-    return { label: copy.actions.fulfil, to: 'fulfilled' }
-  }
-  if (ON_ITS_WAY.has(fulfilment)) {
-    return { label: copy.actions.deliver, to: 'delivered' }
-  }
-  return undefined
 }
 
 export default function OrderActions({
@@ -85,6 +72,10 @@ export default function OrderActions({
   onRefund,
   onRequestBalance,
   onShip,
+  onCancelShipment,
+  onSendReminder,
+  orderNumber,
+  customerEmail,
   appItems = [],
   readOnly = false,
   previousId,
@@ -92,16 +83,26 @@ export default function OrderActions({
 }: OrderActionsProps) {
   // Hooks
   const copy = useCopy(orderDetailContent)
+  const list = useCopy(ordersContent)
   const appCopy = useCopy(orderAppActionsContent)
-  const [confirmCancel, setConfirmCancel] = useState(false)
+  const [confirm, setConfirm] = useState<'cancel' | 'cancelShipment' | null>(null)
+
+  // Event handlers
+  const handleCopyNumber = async () => {
+    if (orderNumber === undefined) return
+    await navigator.clipboard.writeText(`#${orderNumber}`).catch(() => undefined)
+    toast.success(list.row.numberCopied)
+  }
 
   // Render logic
-  const next = readOnly ? undefined : nextStep(copy, status, paymentStatus, fulfillmentStatus)
+  const move = readOnly ? undefined : nextOrderMove(status, paymentStatus, fulfillmentStatus)
   /* The Next step card owns the main action; the menu keeps the same move for when it is not shown. */
-  const menuMove = next
+  const menuMove = move ? { label: copy.actions[MOVE_ACTION[move]], to: move } : undefined
   // Once the parcel is in the shopper's hands, a cancel no longer undoes anything.
   const cancellable = !readOnly && status === 'open' && fulfillmentStatus !== 'delivered'
   const refundable = !readOnly && canRefund
+  const moveIcon =
+    menuMove?.to === 'paid' ? CircleCheck : menuMove?.to === 'fulfilled' ? PackageCheck : Package
 
   /* Figma "Orders / Order detail" header: previous / next order arrows, Print and "More actions"
      (outline); the main action lives in the Next step card. */
@@ -139,6 +140,7 @@ export default function OrderActions({
         items={[
           {
             label: menuMove?.label ?? '',
+            icon: moveIcon,
             hidden: !menuMove,
             disabled: busy,
             onSelect: () => menuMove && onMove(menuMove.to),
@@ -149,6 +151,13 @@ export default function OrderActions({
             hidden: !onShip || readOnly,
             disabled: busy,
             onSelect: onShip,
+          },
+          {
+            label: list.row.cancelShipment,
+            icon: CancelCircle,
+            hidden: !onCancelShipment || readOnly,
+            disabled: busy,
+            onSelect: () => setConfirm('cancelShipment'),
           },
           {
             label: copy.actions.refund,
@@ -164,24 +173,58 @@ export default function OrderActions({
             disabled: busy,
             onSelect: onRequestBalance,
           },
-          ...(readOnly ? [] : appItems),
+          {
+            label: copy.payment.transfer.send,
+            icon: Bell,
+            hidden: !onSendReminder || readOnly,
+            disabled: busy,
+            onSelect: onSendReminder,
+          },
+          {
+            label: list.row.copyNumber,
+            icon: Copy,
+            hidden: orderNumber === undefined,
+            separatorBefore: true,
+            onSelect: handleCopyNumber,
+          },
+          {
+            label: list.row.sameCustomer,
+            icon: Users,
+            hidden: !customerEmail,
+            href: `${routes.orders.list()}?query=${encodeURIComponent(customerEmail ?? '')}`,
+          },
+          ...(readOnly ? [] : appItems).map((item, i) => ({
+            ...item,
+            heading: i === 0 ? list.row.apps : undefined,
+          })),
           {
             label: copy.actions.cancel,
+            icon: CancelCircle,
             destructive: true,
             hidden: !cancellable,
-            onSelect: () => setConfirmCancel(true),
+            separatorBefore: true,
+            onSelect: () => setConfirm('cancel'),
           },
         ]}
       />
 
       <ConfirmDialog
-        open={confirmCancel}
-        onOpenChange={setConfirmCancel}
+        open={confirm === 'cancel'}
+        onOpenChange={(o) => !o && setConfirm(null)}
         title={copy.cancelDialog.title}
         body={copy.cancelDialog.body}
         confirmLabel={copy.cancelDialog.confirm}
         cancelLabel={copy.cancelDialog.keep}
         onConfirm={() => onMove('cancelled')}
+      />
+      <ConfirmDialog
+        open={confirm === 'cancelShipment'}
+        onOpenChange={(o) => !o && setConfirm(null)}
+        title={list.row.cancelShipmentTitle}
+        body={list.row.cancelShipmentBody}
+        confirmLabel={list.row.cancelShipmentConfirm}
+        cancelLabel={list.row.keepShipment}
+        onConfirm={() => onCancelShipment?.()}
       />
     </div>
   )

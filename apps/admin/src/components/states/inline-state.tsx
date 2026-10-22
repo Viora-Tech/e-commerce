@@ -1,6 +1,6 @@
 'use client'
 
-import { CircleAlert, Inbox, WifiOff } from '@commerce/ui/icons'
+import { CircleAlert, Inbox, RotateCcw, WifiOff } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import type { ReactNode } from 'react'
 import EmptyState from '@/components/layout/empty-state'
@@ -49,6 +49,7 @@ export default function InlineState({
         action ??
         (onRetry && retry ? (
           <Button variant="outline" size="sm" onClick={onRetry}>
+            <RotateCcw aria-hidden="true" />
             {retry}
           </Button>
         ) : null)

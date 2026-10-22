@@ -1,6 +1,7 @@
 'use client'
 
 import { MemberProfileInputSchema } from '@commerce/core/member-account'
+import { RotateCcw } from '@commerce/ui/icons'
 import PhoneInput from '@commerce/ui/phone-input'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Card } from '@commerce/ui/shadcn/card'
@@ -124,6 +125,7 @@ export default function ProfilePage() {
         <Card gap={3} inset={6} className="items-start">
           <p className="text-body text-muted-foreground">{copy.loadFailed}</p>
           <Button variant="outline" onClick={handleRetry}>
+            <RotateCcw aria-hidden="true" />
             {copy.retry}
           </Button>
         </Card>

@@ -1,6 +1,6 @@
 'use client'
 
-import { ChevronLeftIcon, ChevronRightIcon } from '@commerce/ui/icons'
+import { ChevronLeftIcon, ChevronRightIcon, Download } from '@commerce/ui/icons'
 import { cn } from '@commerce/ui/lib/utils'
 import { Button } from '@commerce/ui/shadcn/button'
 import Link from 'next/link'
@@ -88,6 +88,7 @@ export default function AppsHero({ apps, busyId, onInstall }: AppsHeroProps) {
           ) : null}
           <div className="flex items-center gap-2.5 pt-1.5">
             <Button loading={busyId === app.id} onClick={() => onInstall(app)}>
+              <Download aria-hidden="true" />
               {copy.install}
             </Button>
             <Button

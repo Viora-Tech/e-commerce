@@ -1,6 +1,6 @@
 'use client'
 
-import { CircleCheck, Package, Plus, Store } from '@commerce/ui/icons'
+import { CheckIcon, CircleCheck, Package, Plus, Store } from '@commerce/ui/icons'
 import { cn } from '@commerce/ui/lib/utils'
 import { Button } from '@commerce/ui/shadcn/button'
 import {
@@ -111,7 +111,10 @@ export default function ChangePickupDialog({
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             {copy.package.pickupCancel}
           </Button>
-          <Button onClick={handleUse}>{copy.package.pickupUse}</Button>
+          <Button onClick={handleUse}>
+            <CheckIcon aria-hidden="true" />
+            {copy.package.pickupUse}
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

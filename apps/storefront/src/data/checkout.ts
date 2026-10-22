@@ -20,6 +20,22 @@ export const balanceContent = {
   back: 'Back to the shop',
 } as const
 
+/** The signed page a draft invoice email's "Pay securely" button opens. */
+export const invoiceContent = {
+  pageTitle: (number: number) => `Invoice #${number}`,
+  intro: (store: string) =>
+    `${store} sent you this invoice. Check the items, then pay securely online.`,
+  quantity: (n: number) => `Qty ${n}`,
+  total: 'Total',
+  pay: (total: string) => `Pay ${total}`,
+  paying: 'Opening secure payment',
+  unavailable: 'This invoice link is no longer valid. Ask the store for a new one.',
+  busy: 'Too many tries. Wait a minute and try again.',
+  noGateway: 'This store cannot take online payments right now. Please contact them to pay.',
+  outOfStock: 'Something on this invoice is out of stock now. Please contact the store.',
+  back: 'Back to the shop',
+} as const
+
 export const thankYouContent = {
   heading: (number: number) => `Thank you, order #${number} is in`,
   /** The calm headline above the status line, by where the order stands. */

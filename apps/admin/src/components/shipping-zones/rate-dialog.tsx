@@ -1,5 +1,6 @@
 'use client'
 
+import { Save } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import {
   Dialog,
@@ -195,7 +196,10 @@ export default function RateDialog({ open, rate, onOpenChange, onDone }: RateDia
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             {copy.cancel}
           </Button>
-          <Button onClick={handleDone}>{copy.save}</Button>
+          <Button onClick={handleDone}>
+            <Save aria-hidden="true" />
+            {copy.save}
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

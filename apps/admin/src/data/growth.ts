@@ -269,4 +269,13 @@ export const growthLinksContent = {
     cancel: 'Cancel',
     confirm: 'Delete',
   },
+  bulkDelete: {
+    action: 'Delete',
+    title: (n: number) => `Delete ${n} ${n === 1 ? 'link' : 'links'}?`,
+    body: 'These short links stop working. Orders they already brought stay credited in Growth.',
+    cancel: 'Cancel',
+    confirm: 'Delete',
+    deleted: (n: number) => `${n} ${n === 1 ? 'link' : 'links'} deleted`,
+    failed: (n: number) => `${n} could not be deleted`,
+  },
 } as const

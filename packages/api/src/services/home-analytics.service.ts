@@ -1,9 +1,9 @@
-import { notTestOrder } from '@commerce/core'
+import { ABANDONED_AFTER_MS, notTestOrder } from '@commerce/core'
 import { HOME_METRICS, type HomeMetric, parseHomeTiles } from '@commerce/core/home-metrics'
 import { IST_OFFSET_MS } from '@commerce/dates'
 import type { StoreTx } from '@commerce/db'
 import { cart, order, orderLine, product, refund, storeMember, variant } from '@commerce/db'
-import { and, desc, eq, gte, inArray, lt, min, ne, sum } from 'drizzle-orm'
+import { and, desc, eq, gte, inArray, isNotNull, lt, min, ne, or, sql, sum } from 'drizzle-orm'
 import type { VisitorSource } from '../context'
 import { DAY_MS, istDayStart, istIsoDate } from './analytics-buckets'
 import { countSessions } from './sessions'
@@ -82,21 +82,33 @@ async function load(tx: StoreTx, w: Window) {
       })
       .from(order)
       .where(and(counted, inWindow(order.placedAt))),
+    // Joined to its order so a test order's refund stays out, as everywhere else on Home.
     tx
       .select({ at: refund.createdAt, amountPaise: refund.amountPaise })
       .from(refund)
+      .innerJoin(order, eq(order.id, refund.orderId))
       .where(
         and(
+          notTestOrder,
           inArray(refund.status, ['processed', 'manual']),
           gte(refund.createdAt, w.from),
           lt(refund.createdAt, w.to),
         ),
       ),
+    // The Abandoned page's definition: a contact, at least one line, quiet for the grace period,
+    // and never checked out. (Nothing sets `cart.status = abandoned`, so that filter was always 0.)
     tx
       .select({ at: cart.updatedAt })
       .from(cart)
       .where(
-        and(eq(cart.status, 'abandoned'), gte(cart.updatedAt, w.from), lt(cart.updatedAt, w.to)),
+        and(
+          ne(cart.status, 'converted'),
+          or(isNotNull(cart.email), isNotNull(cart.phone)),
+          sql`exists (select 1 from cart_line cl where cl.cart_id = cart.id)`,
+          gte(cart.updatedAt, w.from),
+          lt(cart.updatedAt, w.to),
+          lt(cart.updatedAt, new Date(Date.now() - ABANDONED_AFTER_MS)),
+        ),
       ),
   ])
   /* An order is "returning" when its customer had ordered before it. */
@@ -131,6 +143,9 @@ async function figures(
     number[]
   >
   const cod = zeros(n)
+  // Returning = distinct customers who had ordered before, per bucket and over the whole window.
+  const returningIn = Array.from({ length: n }, () => new Set<string>())
+  const returningAll = new Set<string>()
   for (const o of orders) {
     const i = bucket(o.at)
     if (i < 0 || i >= n) continue
@@ -145,7 +160,10 @@ async function figures(
     add('gst', o.taxPaise)
     if (o.paymentMethod === 'cod') cod[i] = (cod[i] ?? 0) + 1
     const first = o.customerId ? firstAt.get(o.customerId) : undefined
-    if (first && o.at.getTime() > new Date(first).getTime()) add('returning', 1)
+    if (o.customerId && first && o.at.getTime() > new Date(first).getTime()) {
+      returningIn[i]?.add(o.customerId)
+      returningAll.add(o.customerId)
+    }
   }
   for (const r of refunds) {
     const i = bucket(r.at)
@@ -155,6 +173,7 @@ async function figures(
     const i = bucket(c.at)
     if (i >= 0 && i < n) series.abandoned[i] = (series.abandoned[i] ?? 0) + 1
   }
+  series.returning = returningIn.map((s) => s.size)
   /* Visitors are counted by the day; a single day keeps its total and no hourly line. */
   series.visitors = hourly ? zeros(n) : visitorsDaily.slice(0, n)
   const total = (m: HomeMetric) => series[m].reduce((a, b) => a + b, 0)
@@ -189,7 +208,7 @@ async function figures(
     sessions,
     visitors,
     conversion: pct(orderCount, sessions),
-    returning: total('returning'),
+    returning: returningAll.size,
     gross: total('gross'),
     refunds: total('refunds'),
     discounts: total('discounts'),
@@ -283,9 +302,18 @@ export async function homeAnalytics(
     before ? daily(before.days) : Promise.resolve(null),
   ])
 
-  const [now, then, topProduct] = await Promise.all([
+  // A range still running (Today, this week) is compared with the same elapsed time of the
+  // earlier span, not all of it: otherwise every morning reads as a large drop.
+  const at = new Date()
+  const soFar =
+    before && current.to > at
+      ? { ...before, to: new Date(before.from.getTime() + (at.getTime() - current.from.getTime())) }
+      : null
+
+  const [now, then, thenSoFar, topProduct] = await Promise.all([
     figures(tx, current, hourly, visitorsNow),
     before && visitorsBefore ? figures(tx, before, hourly, visitorsBefore) : Promise.resolve(null),
+    soFar && visitorsBefore ? figures(tx, soFar, hourly, visitorsBefore) : Promise.resolve(null),
     bestSeller(tx, current),
   ])
 
@@ -294,7 +322,7 @@ export async function homeAnalytics(
       m,
       {
         value: now[m].value,
-        previous: then ? then[m].value : null,
+        previous: (thenSoFar ?? then)?.[m].value ?? null,
         series: now[m].series,
         previousSeries: then ? then[m].series : null,
       },

@@ -1,7 +1,7 @@
 'use client'
 
 import type { BoxPreset } from '@commerce/core'
-import { Package, Trash2 } from '@commerce/ui/icons'
+import { Package, Plus, Trash2 } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Field, FieldLabel } from '@commerce/ui/shadcn/field'
 import { Input } from '@commerce/ui/shadcn/input'
@@ -139,6 +139,7 @@ export default function BoxPresetsFields({ value, onChange }: BoxPresetsFieldsPr
           </div>
         )}
         <Button variant="outline" size="sm" className="w-fit" onClick={handleAdd}>
+          <Plus aria-hidden="true" />
           {copy.add}
         </Button>
       </div>

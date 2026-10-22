@@ -10,7 +10,9 @@ import { payClientContent as content } from '@/data/checkout'
 import { confirmPaymentAction } from '@/lib/cart-actions'
 import { CK_BUTTON_PRIMARY, CK_HEADING } from '@/lib/checkout-classes'
 
-type RazorpayCheckout = new (options: Record<string, unknown>) => { open(): void }
+type RazorpayCheckout = new (
+  options: Record<string, unknown>,
+) => { open(): void; on(event: 'payment.failed', handler: () => void): void }
 type CashfreeResult = { error?: unknown; redirect?: boolean; paymentDetails?: unknown }
 type CashfreeFactory = (init: { mode: string }) => {
   checkout(options: Record<string, unknown>): Promise<CashfreeResult>
@@ -55,7 +57,16 @@ export default function PayClient({
   const opened = useRef(false)
   useEffect(() => {
     const src = SCRIPTS[session.provider]
-    if (!src) return
+    if (!src || opened.current) return
+    // Added once: re-adding it on every render re-ran the gateway's script under its open window.
+    if (document.querySelector(`script[src="${src}"]`)) {
+      // Already loaded (back on this page without a reload): open straight away.
+      if (window.Razorpay || window.Cashfree) {
+        opened.current = true
+        handleOpen()
+      }
+      return
+    }
     const s = document.createElement('script')
     s.src = src
     s.onload = () => {
@@ -65,9 +76,6 @@ export default function PayClient({
       }
     }
     document.body.appendChild(s)
-    return () => {
-      s.remove()
-    }
   })
 
   // Helpers
@@ -94,6 +102,13 @@ export default function PayClient({
     else setState('dismissed')
   }
 
+  /** Razorpay can leave its dimmed layer and a locked scroll behind after a failed or closed
+   *  payment; clear them so the page (and its Try again button) is usable. */
+  const clearOverlay = () => {
+    for (const el of document.querySelectorAll('.razorpay-container')) el.remove()
+    document.body.style.overflow = ''
+  }
+
   // Event handlers
   const handleOpen = () => {
     if (session.provider === 'cashfree') {
@@ -106,8 +121,16 @@ export default function PayClient({
     const checkout = new Rzp({
       ...session.options,
       handler: confirm,
-      modal: { ondismiss: () => setState('dismissed') },
+      modal: {
+        ondismiss: () => {
+          clearOverlay()
+          setState((s) => (s === 'failed' ? s : 'dismissed'))
+        },
+      },
     })
+    // A declined or blocked payment: Razorpay shows its own message; the page underneath says
+    // it failed and offers Try again once the window closes.
+    checkout.on('payment.failed', () => setState('failed'))
     checkout.open()
   }
 

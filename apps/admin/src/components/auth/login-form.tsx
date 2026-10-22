@@ -77,9 +77,15 @@ export default function LoginForm({ google, googleError, next }: LoginFormProps)
 
   const handleVerify = async (e: FormEvent) => {
     e.preventDefault()
+    await handleCodeComplete(otp)
+  }
+
+  /** The sixth digit verifies straight away; the button is there for a retry. */
+  const handleCodeComplete = async (code: string) => {
+    if (busy) return
     setBusy(true)
     setError(null)
-    const res = await authClient.signIn.emailOtp({ email, otp })
+    const res = await authClient.signIn.emailOtp({ email, otp: code })
     setBusy(false)
     if (res.error) return setError(res.error.message ?? copy.wrongCode)
     router.push(next ?? routes.home())
@@ -116,6 +122,7 @@ export default function LoginForm({ google, googleError, next }: LoginFormProps)
               id="login-otp"
               value={otp}
               onChange={setOtp}
+              onComplete={handleCodeComplete}
               label={copy.otp.label}
               invalid={Boolean(error)}
               disabled={busy}

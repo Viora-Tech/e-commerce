@@ -5,7 +5,6 @@ import {
   type OrderPaymentStatus,
   parseAppsSettings,
   StoreAddressSchema,
-  UNFULFILLED_STATUSES,
   UNPAID_PAYMENT_STATUSES,
 } from '@commerce/core'
 import { dayKey, startOfMonth, wallClock, startOfDay as zoneStartOfDay } from '@commerce/dates'
@@ -24,25 +23,10 @@ import {
   variant,
 } from '@commerce/db'
 import { GST_INVOICES_ID, invoice } from '@commerce/plugin-gst-invoices/server'
-import {
-  and,
-  asc,
-  count,
-  desc,
-  eq,
-  gt,
-  gte,
-  inArray,
-  isNull,
-  lt,
-  ne,
-  notInArray,
-  sql,
-  sum,
-} from 'drizzle-orm'
+import { and, asc, count, desc, eq, gte, inArray, isNull, lt, ne, sql, sum } from 'drizzle-orm'
 import type { LiveVisitors, VisitorSource } from '../context'
 import { istIsoDate } from './analytics-buckets'
-import type { OrderStatus } from './order.service'
+import { type OrderStatus, viewFilter } from './order.service'
 
 const DAY_MS = 86_400_000
 const WINDOW_DAYS = 7
@@ -708,29 +692,25 @@ export async function dashboardSummary(
       : { perDay: [0, 0], total: 0 }
   const [visitorsYesterday = 0, visitorsToday = 0] = dailyVisitors.perDay
   const todayRows = live(recentRows).filter((r) => r.placedAt >= todayStart)
+  // Same rule as the Unfulfilled list "Ship N orders" opens, so the counts match (COD included).
+  const toShip = viewFilter('unfulfilled')
   const [toShipTodayRow] = await tx
     .select({ n: count() })
     .from(order)
-    .where(
-      and(
-        eq(order.status, 'open'),
-        notInArray(order.paymentStatus, [...UNPAID_PAYMENT_STATUSES]),
-        inArray(order.fulfillmentStatus, [...UNFULFILLED_STATUSES]),
-        gte(order.placedAt, todayStart),
-      ),
-    )
+    .where(and(toShip, gte(order.placedAt, todayStart)))
 
   /* Needs you: one count per queue, each with its deep link. */
+  // "Waiting N days" skips orders held for a pre-order line that has not shipped yet: they are
+  // waiting on stock, not on the merchant.
   const [ordersToShipRow] = await tx
-    .select({ n: count(), oldestAt: sql<Date | null>`min(${order.placedAt})` })
+    .select({
+      n: count(),
+      oldestAt: sql<Date | null>`min(${order.placedAt}) filter (where not exists (
+        select 1 from order_line ol where ol.order_id = "order".id and ol.preorder
+        and (ol.preorder_ship_date is null or ol.preorder_ship_date > now())))`,
+    })
     .from(order)
-    .where(
-      and(
-        eq(order.status, 'open'),
-        notInArray(order.paymentStatus, [...UNPAID_PAYMENT_STATUSES]),
-        inArray(order.fulfillmentStatus, [...UNFULFILLED_STATUSES]),
-      ),
-    )
+    .where(toShip)
   const [upiToVerifyRow] = await tx
     .select({ n: count() })
     .from(order)
@@ -757,15 +737,7 @@ export async function dashboardSummary(
   const [preorderBalanceDueRow] = await tx
     .select({ n: count() })
     .from(order)
-    .where(
-      and(
-        gt(order.balanceDuePaise, 0),
-        isNull(order.balancePaidAt),
-        isNull(order.importedFrom),
-        ne(order.status, 'cancelled'),
-        ne(order.status, 'draft'),
-      ),
-    )
+    .where(and(viewFilter('balance_due'), ne(order.status, 'draft')))
   let gstQueued: { count: number; href: string } | null = null
   let dispatch: DashboardSummary['dispatch'] = null
   if (opts.storeId) {
@@ -799,14 +771,18 @@ export async function dashboardSummary(
     Date.UTC(shifted.getUTCFullYear(), shifted.getUTCMonth() + 1, 0),
   ).getUTCDate()
   const monthStart = startOfMonth(now)
-  const monthToDatePaise = sumPaise(live(recentRows.filter((r) => r.placedAt >= monthStart)))
-  const projectedPaise =
-    dayOfMonth > 0 ? Math.round((monthToDatePaise / dayOfMonth) * daysInMonth) : 0
   const ninetyDaysAgo = startOfDay(now, 89)
   const revenueRows = await tx
     .select({ placedAt: order.placedAt, totalPaise: order.totalPaise })
     .from(order)
     .where(and(notDraft, ne(order.status, 'cancelled'), gte(order.placedAt, ninetyDaysAgo)))
+  // From the whole month (revenueRows reach back 90 days), not the 14-day window above:
+  // from the 15th that window no longer held the month's first days.
+  const monthToDatePaise = revenueRows
+    .filter((r) => r.placedAt >= monthStart)
+    .reduce((n, r) => n + r.totalPaise, 0)
+  const projectedPaise =
+    dayOfMonth > 0 ? Math.round((monthToDatePaise / dayOfMonth) * daysInMonth) : 0
   const byDay = new Map<string, number>()
   for (const r of revenueRows)
     byDay.set(isoDate(r.placedAt), (byDay.get(isoDate(r.placedAt)) ?? 0) + r.totalPaise)
@@ -942,7 +918,10 @@ export async function dashboardSummary(
       upiToVerify: { count: upiToVerifyRow?.n ?? 0, href: '/orders?status=pending_upi' },
       gstQueued,
       lowStock: { count: lowStockCountRow?.n ?? 0, href: '/stock/inventory' },
-      preorderBalanceDue: { count: preorderBalanceDueRow?.n ?? 0, href: '/orders' },
+      preorderBalanceDue: {
+        count: preorderBalanceDueRow?.n ?? 0,
+        href: '/orders?status=balance_due',
+      },
       failedDeliveries: null,
     },
     insight: { salesChange, bestSeller },

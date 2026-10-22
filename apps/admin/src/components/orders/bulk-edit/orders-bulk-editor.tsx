@@ -1,7 +1,7 @@
 'use client'
 
 import type { OrderSheetRow } from '@commerce/api'
-import { CircleAlert } from '@commerce/ui/icons'
+import { CircleAlert, Save } from '@commerce/ui/icons'
 import { Alert, AlertDescription, AlertTitle } from '@commerce/ui/shadcn/alert'
 import { Button } from '@commerce/ui/shadcn/button'
 import { useState } from 'react'
@@ -98,7 +98,7 @@ export default function OrdersBulkEditor({ sheet }: OrdersBulkEditorProps) {
   const changed = dirtyCount(rows, base)
   const shown = attempted ? [...validation] : []
   return (
-    <div className="flex w-full flex-col gap-6 px-4 py-6 md:px-8 md:py-8">
+    <div className="flex w-full flex-col gap-6 px-4 pt-4 pb-6 md:px-8 md:pt-5 md:pb-8">
       <PageHeader
         title={copy.title}
         summary={copy.summary(rows.length)}
@@ -112,6 +112,7 @@ export default function OrdersBulkEditor({ sheet }: OrdersBulkEditorProps) {
               {copy.discard}
             </Button>
             <Button disabled={changed === 0} loading={saving} onClick={handleSave}>
+              <Save aria-hidden="true" />
               {saving ? copy.saving : copy.save}
             </Button>
           </>

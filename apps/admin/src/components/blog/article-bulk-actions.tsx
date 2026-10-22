@@ -1,5 +1,6 @@
 'use client'
 
+import { EyeOff, Globe, Trash2 } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { blogListContent } from '@/data/blog'
 import { useCopy } from '@/hooks/use-copy'
@@ -25,12 +26,15 @@ export default function ArticleBulkActions({
   return (
     <>
       <Button variant="outline" size="sm" disabled={busy} onClick={onPublish}>
+        <Globe aria-hidden="true" />
         {copy.publish}
       </Button>
       <Button variant="outline" size="sm" disabled={busy} onClick={onUnpublish}>
+        <EyeOff aria-hidden="true" />
         {copy.unpublish}
       </Button>
       <Button variant="outline" size="sm" disabled={busy} onClick={onDelete}>
+        <Trash2 aria-hidden="true" />
         {copy.delete}
       </Button>
     </>

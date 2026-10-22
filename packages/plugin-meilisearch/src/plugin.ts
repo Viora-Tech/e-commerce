@@ -1,4 +1,6 @@
-import { PRODUCTS_CHANGED_JOB } from '@commerce/core'
+// The leaf module, not the barrel: @commerce/core's barrel loads the plugin registry, which
+// loads this plugin, so importing the barrel here reads the name before it exists.
+import { PRODUCTS_CHANGED_JOB } from '@commerce/core/outbox-types'
 import { definePlugin } from '@commerce/plugins'
 import { z } from 'zod'
 import { meiliEnv, reindexStore, syncProducts } from './server'

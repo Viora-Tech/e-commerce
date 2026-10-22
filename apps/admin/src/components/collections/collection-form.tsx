@@ -1,7 +1,7 @@
 'use client'
 
 import { emptyCollectionRules } from '@commerce/core/collections'
-import { Eye, Folder, Trash2 } from '@commerce/ui/icons'
+import { Eye, Folder, Save, Trash2 } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
@@ -187,6 +187,7 @@ export default function CollectionForm({ collection, storefrontOrigin }: Collect
           ) : (
             /* A saved collection saves from the save bar (Figma 629:6409); a new one needs a button. */
             <Button onClick={handleSave} loading={busy}>
+              <Save aria-hidden="true" />
               {copy.save}
             </Button>
           )}

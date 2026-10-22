@@ -1,7 +1,7 @@
 'use client'
 
 import { SEARCH_CONSOLE_APP_ID } from '@commerce/core/search-console'
-import { CircleAlert, ListTree } from '@commerce/ui/icons'
+import { CircleAlert, ListTree, Send } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Card } from '@commerce/ui/shadcn/card'
 import { Skeleton } from '@commerce/ui/shadcn/skeleton'
@@ -112,6 +112,7 @@ export default function SitemapsPage() {
             {data.ours}
           </a>
           <Button loading={submitting} disabled={submitting} onClick={() => void handleSubmit()}>
+            <Send aria-hidden="true" />
             {known ? copy.sitemaps.resubmit : copy.sitemaps.submit}
           </Button>
         </div>

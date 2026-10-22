@@ -14,6 +14,8 @@ export const paymentModesContent = {
   },
   mode: {
     label: 'Keys in use',
+    testHeading: 'Test mode',
+    testHelp: 'See how payments and orders work on your store, without real money',
     test: 'Test',
     live: 'Live',
     missing: (mode: PaymentModeId) =>

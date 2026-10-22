@@ -1,5 +1,6 @@
 'use client'
 
+import { Send } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import {
   Dialog,
@@ -76,6 +77,7 @@ export default function TestSendDialog({
         </Field>
         <DialogFooter>
           <Button onClick={handleSend} disabled={busy || !to.includes('@')}>
+            <Send aria-hidden="true" />
             {copy.send}
           </Button>
         </DialogFooter>

@@ -89,7 +89,7 @@ export default function ReadinessPage({ report, aiBulk }: ReadinessPageProps) {
   const aiCount = Math.min(report.aiFixable.length, AI_RUN_MAX)
 
   return (
-    <PageBody className="gap-6 md:py-8">
+    <PageBody className="gap-6 md:pt-5 md:pb-8">
       <PageHeader
         title={copy.title}
         subtitle={copy.subtitle}

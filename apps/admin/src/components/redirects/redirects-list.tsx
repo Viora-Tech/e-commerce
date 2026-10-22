@@ -1,7 +1,7 @@
 'use client'
 
 import { siteConfig } from '@commerce/config/site'
-import { ArrowRight, Download, Plus, Upload } from '@commerce/ui/icons'
+import { ArrowRight, Download, Plus, Trash2, Upload } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
@@ -190,6 +190,7 @@ export default function RedirectsList({ initial }: RedirectsListProps) {
               size="sm"
               onClick={() => setRemoving({ ids, clear })}
             >
+              <Trash2 aria-hidden="true" />
               {copy.actions.deleteSelected(ids.length)}
             </Button>
           )}

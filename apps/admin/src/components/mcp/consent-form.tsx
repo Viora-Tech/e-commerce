@@ -2,6 +2,7 @@
 
 import type { AuthorizeParams } from '@commerce/api'
 import { type ApiScopes, mcpClientOf } from '@commerce/core/api-access'
+import { CheckIcon } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Card } from '@commerce/ui/shadcn/card'
 import { useState } from 'react'
@@ -83,6 +84,7 @@ export default function ConsentForm({
             disabled={busy !== null}
             loading={busy === 'allow'}
           >
+            <CheckIcon aria-hidden="true" />
             {busy === 'allow' ? copy.consent.returning(client) : copy.consent.allow}
           </Button>
         </div>

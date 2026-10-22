@@ -1,6 +1,6 @@
 'use client'
 
-import { Gift } from '@commerce/ui/icons'
+import { CancelCircle, CircleCheck, Gift, Send } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { useState } from 'react'
 import { toast } from 'sonner'
@@ -79,6 +79,7 @@ export default function GiftCardDetail({ initial }: GiftCardDetailProps) {
           <>
             {canResend ? (
               <Button variant="outline" onClick={handleResend} disabled={busy}>
+                <Send aria-hidden="true" />
                 {copy.resend}
               </Button>
             ) : null}
@@ -87,6 +88,11 @@ export default function GiftCardDetail({ initial }: GiftCardDetailProps) {
               onClick={handleToggle}
               disabled={busy}
             >
+              {card.disabledAt ? (
+                <CircleCheck aria-hidden="true" />
+              ) : (
+                <CancelCircle aria-hidden="true" />
+              )}
               {card.disabledAt ? copy.enable : copy.disable}
             </Button>
           </>

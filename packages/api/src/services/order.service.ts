@@ -39,6 +39,7 @@ import {
   count,
   desc,
   eq,
+  gt,
   gte,
   ilike,
   inArray,
@@ -59,6 +60,7 @@ export const ORDER_VIEWS = [
   'unpaid',
   'unfulfilled',
   'pending_upi',
+  'balance_due',
   'completed',
   'cancelled',
 ] as const
@@ -72,7 +74,8 @@ const notDraft = ne(order.status, 'draft')
  * open orders count; Pending UPI is a manual transfer whose checkout amount
  * has not been matched yet.
  */
-function viewFilter(view: OrderView): SQL | undefined {
+/** A list tab's rows; Home's to-do counts use the same rule so their number matches the list they open. */
+export function viewFilter(view: OrderView): SQL | undefined {
   switch (view) {
     case 'unpaid':
       return and(
@@ -80,9 +83,11 @@ function viewFilter(view: OrderView): SQL | undefined {
         inArray(order.paymentStatus, [...UNPAID_PAYMENT_STATUSES]),
       )
     case 'unfulfilled':
+      // Imported history is a read-only record: nothing on it is left to ship.
       return and(
         eq(order.status, 'open'),
         inArray(order.fulfillmentStatus, [...UNFULFILLED_STATUSES]),
+        isNull(order.importedFrom),
       )
     case 'pending_upi':
       return and(
@@ -90,6 +95,14 @@ function viewFilter(view: OrderView): SQL | undefined {
         isNull(order.checkoutPaidAt),
         eq(order.paymentMethod, 'manual'),
         isNull(order.importedFrom),
+      )
+    case 'balance_due':
+      // Deposit pre-orders whose balance is still owed (Home's "pre-orders waiting on balance").
+      return and(
+        gt(order.balanceDuePaise, 0),
+        isNull(order.balancePaidAt),
+        isNull(order.importedFrom),
+        ne(order.status, 'cancelled'),
       )
     case 'completed':
       return eq(order.status, 'completed')

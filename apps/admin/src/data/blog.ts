@@ -49,6 +49,14 @@ export const blogListContent = {
       confirm: 'Delete',
     },
   },
+  row: {
+    open: 'Open post',
+    publish: 'Publish',
+    unpublish: 'Unpublish',
+    view: 'View on store',
+    delete: 'Delete',
+    deleteTitle: (title: string) => `Delete ${title}?`,
+  },
   empty: {
     heading: 'Write your first blog post',
     body: 'Posts publish to your storefront blog and help search engines find you for the topics your shoppers care about.',

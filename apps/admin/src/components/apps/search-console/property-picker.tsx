@@ -1,5 +1,6 @@
 'use client'
 
+import { Save } from '@commerce/ui/icons'
 import { cn } from '@commerce/ui/lib/utils'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Skeleton } from '@commerce/ui/shadcn/skeleton'
@@ -120,6 +121,7 @@ export default function PropertyPicker({ current, onSaved }: PropertyPickerProps
           disabled={saving || !choice || choice === current}
           onClick={() => void handleSave()}
         >
+          <Save aria-hidden="true" />
           {p.save}
         </Button>
       </div>

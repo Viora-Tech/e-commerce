@@ -1,6 +1,6 @@
 'use client'
 
-import { Search } from '@commerce/ui/icons'
+import { Plus, Search } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import {
   Dialog,
@@ -226,6 +226,7 @@ export default function SelectProductsDialog({
               {copy.cancel}
             </Button>
             <Button disabled={picked.size === 0} onClick={handleConfirm}>
+              <Plus aria-hidden="true" />
               {copy.add(picked.size)}
             </Button>
           </div>

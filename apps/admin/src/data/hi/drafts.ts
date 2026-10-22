@@ -1,8 +1,18 @@
-import { draftEditorContent, draftsContent } from '@/data/drafts'
+import { abandonedBulkContent, draftEditorContent, draftsContent } from '@/data/drafts'
 import { translation } from '@/lib/i18n'
 
 export default [
   translation(draftsContent, {
+    sendInvoice: 'इनवॉइस भेजें',
+    resendInvoice: 'इनवॉइस फिर से भेजें',
+    sendSelected: (n: number) => `${n} इनवॉइस भेजें`,
+    sendTitle: (n: number) => `${n} इनवॉइस भेजें?`,
+    sendBody: 'हर ग्राहक को ईमेल पर अपना इनवॉइस मिलेगा। जिन ड्राफ़्ट पर ईमेल नहीं है वे छोड़ दिए जाएँगे।',
+    sendConfirm: 'इनवॉइस भेजें',
+    sentMany: (sent: number, skipped: number) =>
+      `${sent} इनवॉइस भेजे गए${skipped ? `, ${skipped} छोड़े गए (ईमेल नहीं)` : ''}`,
+    sendFailed: 'इनवॉइस नहीं भेजे जा सके। फिर से कोशिश करें।',
+    invoiceSentOne: (to: string) => `इनवॉइस ${to} को भेजा गया`,
     title: 'ड्राफ़्ट ऑर्डर',
     heading: 'ड्राफ़्ट ऑर्डर',
     intro: 'ग्राहक के लिए बनाए गए ऑर्डर। कन्वर्ट करने तक ये आपके स्टोरफ़्रंट पर नहीं दिखते।',
@@ -126,5 +136,20 @@ export default [
       cod: 'कैश ऑन डिलीवरी',
       razorpay: 'Razorpay',
     },
+  }),
+  translation(abandonedBulkContent, {
+    send: (n) => `${n} को रिकवरी भेजें`,
+    title: (n) => `${n} ग्राहकों को रिकवरी मैसेज भेजें?`,
+    body: 'हर ग्राहक को उसके कार्ट के लिंक के साथ आपका रिकवरी ईमेल (और सेट होने पर WhatsApp) मिलेगा। जो चेकआउट पहले ही रिकवर हो चुके हैं या जिन पर ईमेल नहीं है, वे छोड़ दिए जाएंगे। जिन ग्राहकों ने मार्केटिंग मैसेज की अनुमति नहीं दी है, उन्हें भी नहीं भेजा जाएगा।',
+    confirm: 'रिकवरी भेजें',
+    done: (sent, skipped, noConsent, failed) =>
+      [
+        `${sent} रिकवरी मैसेज भेजे गए`,
+        skipped > 0 ? `${skipped} छोड़े गए` : null,
+        noConsent > 0 ? `${noConsent} की मार्केटिंग अनुमति नहीं` : null,
+        failed > 0 ? `${failed} नहीं भेजे जा सके` : null,
+      ]
+        .filter(Boolean)
+        .join(', '),
   }),
 ]

@@ -1,3 +1,4 @@
+import { Plus } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import Link from 'next/link'
 import DataCard from '@/components/layout/data-card'
@@ -26,6 +27,7 @@ export default function GiftCardProductsCard({ products, onAdd }: GiftCardProduc
       subtitle={copy.help}
       action={
         <Button variant="outline" size="sm" onClick={onAdd}>
+          <Plus aria-hidden="true" />
           {copy.add}
         </Button>
       }

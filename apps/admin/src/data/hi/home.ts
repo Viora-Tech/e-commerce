@@ -44,6 +44,7 @@ export default [
       payments: {
         title: 'पेमेंट जोड़ें',
         done: (name) => `${name} से पेमेंट मिल रहे हैं`,
+        testMode: (name) => `${name} टेस्ट मोड में है। असली पेमेंट लेने के लिए live keys पर जाएँ`,
         todo: 'UPI और कार्ड लेने के लिए गेटवे जोड़ें',
       },
       shipping: {
@@ -168,7 +169,8 @@ export default [
       hidden: 'सुझाव छिपा दिया गया',
       undo: 'वापस करें',
       restockTitle: 'अपना सबसे ज़्यादा बिकने वाला प्रोडक्ट भरें',
-      restockBody: (title, units, left) => `${title} इस हफ़्ते ${units} बिका और सिर्फ़ ${left} बचे हैं।`,
+      restockBody: (title, units, left) =>
+        `${title} पिछले 30 दिनों में ${units} बिका और सिर्फ़ ${left} बचे हैं।`,
       restockCta: 'स्टॉक भरें',
       abandonedTitle: 'छोड़े गए कार्ट वापस लाएं',
       abandonedBody: (carts, value) =>
@@ -249,7 +251,7 @@ export default [
       salesDown: (pct, comparedTo) => `${comparedTo} के मुकाबले बिक्री ${pct} घटी है।`,
       salesFlat: 'बिक्री पिछले हफ़्ते जितनी ही है।',
       comparedToLastWeek: 'पिछले हफ़्ते के इसी समय',
-      bestSeller: (title, units) => `इस हफ़्ते सबसे ज़्यादा ${title} बिका, ${units} पीस।`,
+      bestSeller: (title, units) => `पिछले 30 दिनों में सबसे ज़्यादा ${title} बिका, ${units} पीस।`,
       lowStockNudge: (n) =>
         n === 1
           ? '1 प्रोडक्ट इसी रफ़्तार से जल्दी खत्म हो जाएगा।'

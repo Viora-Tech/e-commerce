@@ -2,6 +2,7 @@
 
 import { MANUAL_PAYMENT_METHODS, type ManualPaymentMethod } from '@commerce/core/manual-payments'
 import { parseRupees } from '@commerce/money'
+import { CircleCheck, ExternalLink } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import {
   Dialog,
@@ -175,6 +176,7 @@ export default function CollectPaymentDialog({
                 variant="outline"
                 render={<Link href={payHref} />}
               >
+                <ExternalLink aria-hidden="true" />
                 {copy.collectDialog.openPayPage}
               </Button>
             ) : null}
@@ -182,6 +184,7 @@ export default function CollectPaymentDialog({
               {copy.collectDialog.cancel}
             </Button>
             <Button type="submit" disabled={!valid || busy}>
+              <CircleCheck aria-hidden="true" />
               {copy.collectDialog.confirm}
             </Button>
           </DialogFooter>

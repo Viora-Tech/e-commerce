@@ -1,6 +1,7 @@
 'use client'
 
 import { remainingOf, weightedAverageCost } from '@commerce/core/inventory'
+import { PackageCheck } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import {
   Dialog,
@@ -183,6 +184,7 @@ export default function ReceiveDialog({
             {copy.cancel}
           </Button>
           <Button onClick={handleReceive} disabled={busy}>
+            <PackageCheck aria-hidden="true" />
             {copy.confirm}
           </Button>
         </DialogFooter>

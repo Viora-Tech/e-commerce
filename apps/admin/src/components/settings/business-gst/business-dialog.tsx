@@ -2,6 +2,7 @@
 
 import type { Business } from '@commerce/core'
 import { BusinessInputSchema } from '@commerce/core/gst-registrations'
+import { Save } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import {
   Dialog,
@@ -140,6 +141,7 @@ export default function BusinessDialog({
               {copy.cancel}
             </DialogClose>
             <Button type="submit" disabled={saving}>
+              <Save aria-hidden="true" />
               {copy.save}
             </Button>
           </DialogFooter>

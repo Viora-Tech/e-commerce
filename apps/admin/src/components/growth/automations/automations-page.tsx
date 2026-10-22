@@ -11,13 +11,14 @@ import { toast } from 'sonner'
 import ProoflyListPage from '@/components/layout/proofly-list-page'
 import SectionHead from '@/components/layout/section-head'
 import ResourceTable from '@/components/table/resource-table'
-import RowMenu from '@/components/table/row-menu'
 import ViewSelect from '@/components/table/view-select'
 import { automationsContent } from '@/data/marketing-automations'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 import { routes } from '@/lib/routes'
+import AutomationBulkActions from './automation-bulk-actions'
 import { automationColumns } from './automation-columns'
+import AutomationRowMenu from './automation-row-menu'
 
 type Item = Awaited<ReturnType<typeof api.marketing.automations.list>>[number]
 
@@ -86,9 +87,7 @@ export default function AutomationsPage({ automations }: AutomationsPageProps) {
           items={items}
           getId={(a) => a.id}
           href={(a) => routes.growth.automation(a.id)}
-          rowActions={(a) => (
-            <RowMenu items={[{ label: copy.open, href: routes.growth.automation(a.id) }]} />
-          )}
+          rowActions={(a) => <AutomationRowMenu automation={a} />}
           query={query}
           onQueryChange={(next) => {
             setQuery(next)
@@ -125,7 +124,8 @@ export default function AutomationsPage({ automations }: AutomationsPageProps) {
           }}
           total={filtered.length}
           onPageChange={setPage}
-          selectable={false}
+          selectable
+          bulkActions={(ids, clear) => <AutomationBulkActions ids={ids} clear={clear} />}
           empty={{ heading: copy.empty }}
         />
       ) : null}
