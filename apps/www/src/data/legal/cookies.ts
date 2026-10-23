@@ -45,9 +45,11 @@ export const cookiesDoc: LegalDoc = {
     },
     {
       title: 'List of cookies',
-      plain: [
-        'A full list is coming.',
-        '[Cookie name, provider, purpose, duration — table to be filled from the live site.]',
+      plain: ['Today this site sets one cookie of its own.', 'It remembers your cookie choice.'],
+      body: [
+        'cookie_consent: set by us, necessary, remembers your cookie choice, kept for 1 year.',
+        `${domain} loads no analytics or marketing cookies today. If we add any, they appear here first and stay off until you allow them.`,
+        'Cloudflare, which serves this site, may set a short-lived security cookie (such as __cf_bm) to filter bots, and its Turnstile check on our forms runs from challenges.cloudflare.com.',
       ],
     },
   ]),

@@ -21,7 +21,7 @@ export const acceptableUseDoc: LegalDoc = {
       title: 'Prohibited goods and services',
       plain: ['No illegal or fake goods.', 'Nothing payment partners ban.'],
       body: [
-        '[List — illegal goods, counterfeit items, weapons, regulated drugs, and anything our payment partners do not allow.]',
+        'Anything illegal in India or where you sell; counterfeit, pirated or stolen goods and anything that infringes someone else’s trademark or copyright; weapons, ammunition and explosives; narcotics, regulated drugs and prescription medicines sold without the required licence; tobacco, alcohol and other age-restricted goods sold without the required licence or age checks; sexually explicit content or services; gambling, lotteries and betting; and any product or service our payment partners do not allow.',
       ],
     },
     {

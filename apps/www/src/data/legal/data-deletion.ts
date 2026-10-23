@@ -52,7 +52,7 @@ export const dataDeletionDoc: LegalDoc = {
       title: 'Ask us',
       plain: ['Email us from your account email.', 'We confirm when it is done.'],
       body: [
-        `Write to ${support} from the email on your account, saying what you want deleted (a connection, your store, or your whole account). We confirm by email and complete the request within [OWNER: deletion turnaround, e.g. 30 days].`,
+        `Write to ${support} from the email on your account, saying what you want deleted (a connection, your store, or your whole account). We confirm by email and complete the request within 30 days.`,
       ],
     },
     {

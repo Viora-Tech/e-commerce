@@ -84,7 +84,7 @@ export const siteConfig: SiteConfig = {
     supportEmail: 'support@koomerce.app',
     whatsappNumber: '910000000000',
     whatsappGreeting: 'Hi, I need help with my store.',
-    phone: '+91 00000 00000',
+    phone: '+91 94168 74123',
   },
   urls: {
     site: 'https://koomerce.app',
