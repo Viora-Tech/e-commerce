@@ -233,6 +233,8 @@ export type ManualWorkflow = {
   actions: { actionId: string; needsApproval: boolean }[]
   /** False when the member lacks an action's permission. */
   allowed: boolean
+  /** The workflow's latest run of any kind, for the dialog's "Last run 2 days ago". */
+  lastRunAt: string | null
 }
 
 export type RecordHistoryItem = {

@@ -66,6 +66,8 @@ import ShopifySettingsPage from '@/components/apps/shopify-import/settings-page'
 import UmamiSettingsPage from '@/components/apps/umami/settings-page'
 import XpressbeesConnectPage from '@/components/apps/xpressbees/connect-page'
 import XpressbeesOverviewPage from '@/components/apps/xpressbees/overview-page'
+import AutomationsCustomerCard from '@/components/automations/records/customer-card'
+import AutomationsOrderCard from '@/components/automations/records/order-card'
 
 /** What a page of an app receives: the dynamic segments of its path, e.g. `{ id }`. */
 export type AppPageProps = { params: Record<string, string> }
@@ -88,6 +90,11 @@ export type AdminApp = {
 }
 
 export const ADMIN_APPS: Record<string, AdminApp> = {
+  automations: {
+    pages: {},
+    OrderCard: AutomationsOrderCard,
+    CustomerCard: AutomationsCustomerCard,
+  },
   'back-in-stock': {
     pages: {
       '': OverviewPage,

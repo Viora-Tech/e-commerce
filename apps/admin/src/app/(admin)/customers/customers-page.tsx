@@ -57,6 +57,8 @@ export type CustomersInitial = {
   stats: CustomerStats
   allCount: number
   tags: string[]
+  /** The Automations app is installed: "Run automation" on the bulk bar. */
+  automations: boolean
 }
 
 function exportRows(rows: CustomerRow[], exported: (n: number) => string): void {
@@ -318,6 +320,8 @@ function CustomersContent({ initial }: { initial: CustomersInitial }) {
                 clear()
                 handleReload()
               }}
+              automations={initial.automations}
+              onAutomationDone={clear}
             />
           )}
           empty={filtered ? copy.noResults : copy.empty}

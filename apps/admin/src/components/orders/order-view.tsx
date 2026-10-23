@@ -6,6 +6,8 @@ import { useState } from 'react'
 import { toast } from 'sonner'
 import { type OrderActionGroup, readyToShip } from '@/apps/order-actions'
 import { ADMIN_APPS } from '@/apps/registry'
+import RunAutomationDialog from '@/components/automations/records/run-automation-dialog'
+import { useRunAutomation } from '@/components/automations/records/use-run-automation'
 import MetafieldsCard from '@/components/metaobjects/metafields-card'
 import { type OrderMark, orderDetailContent, ordersContent } from '@/data/orders'
 import { shipmentPanelContent } from '@/data/shipping'
@@ -65,6 +67,7 @@ export default function OrderView({ order, appCards = [], appActions = [], back 
   const router = useRouter()
   const { hasPermission } = usePermissions()
   const apps = useOrderAppActions(appActions, () => router.refresh())
+  const automation = useRunAutomation('order', appCards.includes('automations'))
   const [busy, setBusy] = useState(false)
   const [refunding, setRefunding] = useState<OrderPayment | null>(null)
   const [fulfilling, setFulfilling] = useState(false)
@@ -212,7 +215,10 @@ export default function OrderView({ order, appCards = [], appActions = [], back 
               onSendReminder={sendReminder}
               orderNumber={order.number}
               customerEmail={order.email}
-              appItems={apps.items('detail', order, [order.id])}
+              appItems={[
+                ...automation.items([order.id], { runsLink: true }),
+                ...apps.items('detail', order, [order.id]),
+              ]}
               readOnly={readOnly}
               previousId={n?.previous?.id}
               nextId={n?.next?.id}
@@ -305,6 +311,12 @@ export default function OrderView({ order, appCards = [], appActions = [], back 
       }
     >
       <PackingSlip order={order} />
+      <RunAutomationDialog
+        subjectType="order"
+        ids={automation.target}
+        onClose={automation.close}
+        onDone={refresh}
+      />
       <SendMessageDialog
         orderId={reviewing ? order.id : null}
         template={reviewing ?? 'payment_reminder'}

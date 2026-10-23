@@ -56,6 +56,8 @@ export type ProductsInitial = {
   aiBulk: boolean
   /** The store's public origin, for the row menu's "View on store". */
   storefrontOrigin: string
+  /** The Automations app is installed: "Run automation" on the bulk bar. */
+  automations: boolean
 }
 
 type Query = {
@@ -368,6 +370,7 @@ function ProductsContent({ initial }: { initial: ProductsInitial }) {
             onBulkEdit={() => router.push(routes.products.bulkEdit(ids))}
             onDelete={() => setDeleting({ ids, clear })}
             onWriteAi={initial.aiBulk ? () => setWriting({ ids, jobId: null }) : undefined}
+            automations={initial.automations}
             onDone={() => {
               clear()
               void refresh()

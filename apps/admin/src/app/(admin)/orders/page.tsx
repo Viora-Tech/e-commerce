@@ -4,6 +4,7 @@ import { appRouter, call, serverContext } from '@/lib/api'
 import { parseListQuery, type SearchParams } from '@/lib/list-query'
 import { orderListFilter } from '@/lib/order-filter'
 import { parseRowsPerPage } from '@/lib/rows-per-page'
+import { listApps } from '@/lib/shell-data'
 import OrdersPage from './orders-page'
 
 export const metadata: Metadata = { title: 'Orders' }
@@ -26,7 +27,7 @@ export default async function Page({ searchParams }: Props) {
   const query = parseListQuery(params, ORDER_LIST_FILTERS)
   const perPage = parseRowsPerPage(params.perPage)
   const context = await serverContext()
-  const [result, all, unpaid, unfulfilled, pending, tiles, appActions] = await Promise.all([
+  const [result, all, unpaid, unfulfilled, pending, tiles, appActions, apps] = await Promise.all([
     call(
       appRouter.orders.list,
       {
@@ -43,6 +44,7 @@ export default async function Page({ searchParams }: Props) {
     count(context, 'pending_upi'),
     call(appRouter.orders.tiles, undefined, { context }),
     call(appRouter.apps.orderActions, undefined, { context }).catch(() => []),
+    listApps().catch(() => []),
   ])
 
   return (
@@ -53,6 +55,7 @@ export default async function Page({ searchParams }: Props) {
         result,
         tiles,
         appActions,
+        automations: apps.some((a) => a.installed && a.id === 'automations'),
         counts: {
           all: all.total,
           unpaid: unpaid.total,
