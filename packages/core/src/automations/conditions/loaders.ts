@@ -15,7 +15,7 @@ import {
   store,
   variant,
 } from '@commerce/db'
-import { and, eq, isNull, notInArray, sql } from 'drizzle-orm'
+import { and, eq, isNotNull, isNull, notInArray, or, sql } from 'drizzle-orm'
 import { hasMarketingConsent } from '../../privacy/client'
 import { INDIAN_STATE_NAMES } from '../../tax/states'
 import type { RunSubject, SubjectData, SubjectLoader } from '../executor'
@@ -80,13 +80,18 @@ function financialStatus(o: typeof order.$inferSelect): string {
 
 const FULFILLED = new Set(['fulfilled', 'shipped', 'partially_delivered', 'delivered', 'returned'])
 
-/** Fulfilment words of the picker; a held parcel of an unfinished order reads `on_hold`. */
+/** Fulfilment words of the picker; a held (or pre-order waiting) parcel of an unfinished order reads `on_hold`. */
 async function fulfillmentStatus(tx: StoreTx, o: typeof order.$inferSelect): Promise<string> {
   if (FULFILLED.has(o.fulfillmentStatus)) return 'fulfilled'
   const [held] = await tx
     .select({ id: fulfillmentOrder.id })
     .from(fulfillmentOrder)
-    .where(and(eq(fulfillmentOrder.orderId, o.id), eq(fulfillmentOrder.status, 'on_hold')))
+    .where(
+      and(
+        eq(fulfillmentOrder.orderId, o.id),
+        or(eq(fulfillmentOrder.status, 'on_hold'), isNotNull(fulfillmentOrder.heldAt)),
+      ),
+    )
     .limit(1)
   if (held) return 'on_hold'
   return o.fulfillmentStatus === 'partially_fulfilled' ? 'partially_fulfilled' : 'unfulfilled'

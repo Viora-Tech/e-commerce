@@ -1,7 +1,7 @@
-/** SOURCE OF TRUTH: built-in executor DB tests — WHAT: tags, notes, hold/release, cancel, metafields, collections and messages against a real store transaction, each run twice to prove idempotency / WHY: internal actions commit with their step row, so a re-run must change nothing. */
+/** SOURCE OF TRUTH: built-in executor DB tests — WHAT: tags, notes, hold/release (blocking shipment booking), fulfil without notice, cancel with or without restock, metafields, collections and messages against a real store transaction, each run twice to prove idempotency / WHY: internal actions commit with their step row, so a re-run must change nothing. */
 import {
+  address,
   automationRun,
-  automationStepRun,
   automationVersion,
   automationWorkflow,
   cart,
@@ -11,11 +11,14 @@ import {
   createDb,
   customer,
   fulfillmentOrder,
+  fulfillmentOrderLine,
+  inventoryLevel,
   location,
   marketingMessage,
   metafield,
   metafieldDefinition,
   order,
+  orderLine,
   orderNote,
   outboxEvent,
   product,
@@ -26,9 +29,13 @@ import {
 } from '@commerce/db'
 import { resetDb } from '@commerce/db/test'
 import type { MarketingSend, NotificationChannel } from '@commerce/notifications'
+import type { ShippingProvider } from '@commerce/shipping'
 import { eq } from 'drizzle-orm'
 import { afterAll, beforeEach, describe, expect, it } from 'vitest'
 import { createProduct } from '../../catalog/products'
+import { FulfillmentOnHold, heldParcels } from '../../order/fulfillment-hold'
+import { createShipmentForOrder } from '../../shipping/shipments'
+import { loadSubject } from '../conditions/loaders'
 import type { ActionContext, ActionExecutor, ActionResult } from '../executor'
 import { builtinExecutors } from './index'
 import type { BuiltinActionDeps } from './shared'
@@ -213,6 +220,72 @@ const orderSubject =
     id: await newOrder(tx, storeId, over),
   })
 
+/** Courier stub for the hold guard: booking reaches it only when nothing is held. */
+const noBooking = {
+  id: 'stub',
+  async createShipment() {
+    throw new Error('should not book')
+  },
+} as unknown as ShippingProvider
+
+/** Order #7: 2 units of a tracked tea at Main (5 on hand, 2 committed), one open parcel, an address. */
+async function stockedOrder(tx: StoreTx, storeId: string) {
+  const [loc] = await tx
+    .insert(location)
+    .values({ storeId, name: 'Main', isDefault: true, fulfilsOnlineOrders: true })
+    .returning()
+  const productId = await createProduct(tx, storeId, {
+    title: 'Tea',
+    status: 'active',
+    options: [],
+    variants: [{ optionValues: [], pricePaise: 50_000 }],
+  })
+  const [v] = await tx.select().from(variant).where(eq(variant.productId, productId))
+  await tx.delete(inventoryLevel).where(eq(inventoryLevel.variantId, v?.id as string))
+  await tx.insert(inventoryLevel).values({
+    storeId,
+    variantId: v?.id as string,
+    locationId: loc?.id as string,
+    onHand: 5,
+    reserved: 2,
+  })
+  const [a] = await tx
+    .insert(address)
+    .values({
+      storeId,
+      name: 'Asha',
+      line1: 'x',
+      city: 'Pune',
+      stateCode: 'MH',
+      pincode: '411001',
+      phone: '9876543210',
+    })
+    .returning()
+  const orderId = await newOrder(tx, storeId, { shippingAddressId: a?.id })
+  const [line] = await tx
+    .insert(orderLine)
+    .values({
+      storeId,
+      orderId,
+      variantId: v?.id as string,
+      title: 'Tea',
+      quantity: 2,
+      unitPricePaise: 50_000,
+    })
+    .returning()
+  const [parcel] = await tx
+    .insert(fulfillmentOrder)
+    .values({ storeId, orderId, locationId: loc?.id as string, position: 1 })
+    .returning()
+  await tx.insert(fulfillmentOrderLine).values({
+    storeId,
+    fulfillmentOrderId: parcel?.id as string,
+    orderLineId: line?.id as string,
+    quantity: 2,
+  })
+  return { type: 'order', id: orderId }
+}
+
 async function run(
   ex: Map<string, ActionExecutor>,
   id: string,
@@ -332,45 +405,60 @@ describe('order note, hold, release, cancel', () => {
     })
   })
 
-  it('holds open parcels and releases only what an automation held', async () => {
+  it('holds every unshipped parcel so no shipment can be booked, and release lifts it', async () => {
     const ex = executors()
-    await inStore(orderSubject(), async (w) => {
-      const [loc] = await w.tx
-        .insert(location)
-        .values({ storeId: w.storeId, name: 'Main' })
-        .returning()
-      const parcel = (position: number, status: 'open' | 'on_hold') =>
-        w.tx
-          .insert(fulfillmentOrder)
-          .values({
-            storeId: w.storeId,
-            orderId: w.subject.id,
-            locationId: loc?.id as string,
-            position,
-            status,
-          })
-          .returning()
-      const [open] = await parcel(1, 'open')
-      const [preorder] = await parcel(2, 'on_hold')
+    await inStore(stockedOrder, async (w) => {
+      const book = () =>
+        createShipmentForOrder({ storeId: w.storeId, tx: w.tx }, noBooking, w.subject.id)
       const held = await run(ex, 'order.hold', w, { reason: 'Risky COD' }, 'hold')
-      expect(held.output).toMatchObject({ heldParcelIds: [open?.id] })
+      expect(held.output).toMatchObject({ reason: 'Risky COD' })
+      expect((held.output as { heldParcelIds: string[] }).heldParcelIds).toHaveLength(1)
       expect((await run(ex, 'order.hold', w, { reason: '' }, 'hold2')).noop).toBe(true)
-      // The interpreter writes the step row with the executor's output.
-      await w.tx.insert(automationStepRun).values({
-        storeId: w.storeId,
-        runId: w.runId,
-        nodeId: 'hold',
-        kind: 'action',
-        actionId: 'order.hold',
-        status: 'succeeded',
-        output: held.output,
-      })
+      await expect(book()).rejects.toBeInstanceOf(FulfillmentOnHold)
+      await expect(book()).rejects.toThrow('Order #7 is on hold (Risky COD)')
+      await expect(
+        run(ex, 'order.fulfil', w, { notifyCustomer: true }, 'fulfil'),
+      ).rejects.toMatchObject({ retryable: false, code: 'FULFILLMENT_ON_HOLD' })
+      const data = await loadSubject(w.tx, w.storeId, w.subject)
+      expect(data?.order).toMatchObject({ fulfillment_status: 'on_hold' })
+
       const released = await run(ex, 'order.release', w, {}, 'release')
-      expect(released.output).toEqual({ releasedParcelIds: [open?.id] })
-      const rows = await w.tx.select().from(fulfillmentOrder)
-      expect(rows.find((r) => r.id === open?.id)?.status).toBe('open')
-      expect(rows.find((r) => r.id === preorder?.id)?.status).toBe('on_hold')
+      expect((released.output as { releasedParcelIds: string[] }).releasedParcelIds).toHaveLength(1)
       expect((await run(ex, 'order.release', w, {}, 'release2')).noop).toBe(true)
+      expect(await heldParcels(w.tx, w.subject.id)).toEqual([])
+      await expect(book()).rejects.toThrow('should not book')
+    })
+  })
+
+  it('fulfils without telling the shopper when notify is off', async () => {
+    const ex = executors()
+    await inStore(stockedOrder, async (w) => {
+      await run(ex, 'order.fulfil', w, { notifyCustomer: false })
+      const [o] = await w.tx.select().from(order)
+      expect(o?.fulfillmentStatus).toBe('fulfilled')
+      const event = (await w.tx.select().from(outboxEvent)).find(
+        (e) => e.type === 'order.fulfilled',
+      )
+      expect(event?.payload).toMatchObject({
+        notifyCustomer: false,
+        automation: { runId: w.runId },
+      })
+      expect((await run(ex, 'order.fulfil', w, { notifyCustomer: false })).noop).toBe(true)
+    })
+  })
+
+  it('cancels with restock off, leaving available stock as it was', async () => {
+    const ex = executors()
+    await inStore(stockedOrder, async (w) => {
+      await run(ex, 'order.cancel', w, { reason: 'fraud', notifyCustomer: false, restock: false })
+      const [level] = await w.tx.select().from(inventoryLevel)
+      // 5 on hand, 2 committed before: 3 available before and after.
+      expect(level).toMatchObject({ onHand: 3, reserved: 0 })
+    })
+    await inStore(stockedOrder, async (w) => {
+      await run(ex, 'order.cancel', w, { reason: 'other', notifyCustomer: false, restock: true })
+      const [level] = await w.tx.select().from(inventoryLevel)
+      expect(level).toMatchObject({ onHand: 5, reserved: 0 })
     })
   })
 

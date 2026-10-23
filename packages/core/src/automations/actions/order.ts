@@ -1,14 +1,13 @@
-/** SOURCE OF TRUTH: order automation actions — WHAT: add a timeline note, hold and release fulfilment, fulfil the rest of an order, cancel it (through `cancelOrder` / `fulfilRemainingLines`), each idempotent per step and noted on the order's timeline / WHY: Flow's order steps; cancel asks before running by default (owner, Q2: the interpreter parks it), and the events the core services write carry the run's cause for the loop guard. Server-only. Design §8.4, §8.7. */
-import {
-  automationRun,
-  automationStepRun,
-  fulfillmentOrder,
-  orderNote,
-  type StoreTx,
-} from '@commerce/db'
-import { and, eq, inArray } from 'drizzle-orm'
+/** SOURCE OF TRUTH: order automation actions — WHAT: add a timeline note, hold and release fulfilment (`fulfillment-hold.ts`: a held order books no shipment), fulfil the rest of an order (shopper message optional), cancel it with or without restocking (through `cancelOrder` / `fulfilRemainingLines`), each idempotent per step and noted on the order's timeline / WHY: Flow's order steps; cancel asks before running by default (owner, Q2: the interpreter parks it), and the events the core services write carry the run's cause for the loop guard. Server-only. Design §8.4, §8.7. */
+import { orderNote } from '@commerce/db'
 import { CommerceError } from '../../errors'
 import { fulfilRemainingLines } from '../../order/fulfil'
+import {
+  assertNotHeld,
+  heldParcels,
+  holdFulfillment,
+  releaseFulfillment,
+} from '../../order/fulfillment-hold'
 import { cancelOrder } from '../../order/status'
 import { type ActionExecutor, type ActionPreview, AutomationActionError } from '../executor'
 import {
@@ -68,12 +67,7 @@ const addNote: ActionExecutor<NoteConfig> = {
 
 type HoldConfig = { reason: string }
 
-async function parcels(tx: StoreTx, orderId: string) {
-  return tx
-    .select({ id: fulfillmentOrder.id, status: fulfillmentOrder.status })
-    .from(fulfillmentOrder)
-    .where(eq(fulfillmentOrder.orderId, orderId))
-}
+const parcelWord = (n: number) => `${n} parcel${n > 1 ? 's' : ''}`
 
 const hold: ActionExecutor<HoldConfig> = {
   id: 'order.hold',
@@ -81,54 +75,22 @@ const hold: ActionExecutor<HoldConfig> = {
     const orderId = subjectId(ctx, 'an order')
     const o = await lockedOrder(tx, orderId)
     if (!o) throw gone('order')
-    const open = (await parcels(tx, orderId)).filter((p) => p.status === 'open').map((p) => p.id)
-    if (CLOSED.has(o.status) || open.length === 0) {
-      return { noop: true, summary: 'Nothing left to hold', output: { heldParcelIds: [] } }
-    }
-    await tx
-      .update(fulfillmentOrder)
-      .set({ status: 'on_hold', updatedAt: new Date() })
-      .where(inArray(fulfillmentOrder.id, open))
+    if (CLOSED.has(o.status)) return { noop: true, summary: 'Nothing left to hold' }
     const reason = ctx.render(config.reason ?? '').trim()
+    const held = await holdFulfillment({ storeId: ctx.storeId, tx }, orderId, reason || null)
+    if (held.length === 0) return { noop: true, summary: 'Nothing left to hold' }
     await noteOnOrder(tx, ctx, orderId, `Fulfilment held${reason ? `: ${reason}` : ''}`)
-    return {
-      summary: `Held ${open.length} parcel${open.length > 1 ? 's' : ''}`,
-      // Release reads these: only parcels an automation held are reopened, never a
-      // pre-order parcel waiting for stock.
-      output: { heldParcelIds: open, reason },
-    }
+    return { summary: `Held ${parcelWord(held.length)}`, output: { heldParcelIds: held, reason } }
   },
   async preview({ tx, ctx }) {
     const orderId = subjectId(ctx, 'an order')
-    const open = (await parcels(tx, orderId)).filter((p) => p.status === 'open')
-    return open.length
-      ? { summary: `Would hold ${open.length} parcel${open.length > 1 ? 's' : ''}`, wouldRun: true }
-      : { summary: 'Nothing left to hold', wouldRun: false }
+    const o = await orderRow(tx, orderId)
+    if (!o || CLOSED.has(o.status)) return { summary: 'Nothing left to hold', wouldRun: false }
+    if ((await heldParcels(tx, orderId)).length > 0) {
+      return { summary: 'Already on hold', wouldRun: false }
+    }
+    return { summary: `Would hold order #${o.number}: no shipment until released`, wouldRun: true }
   },
-}
-
-/** Parcels of this order still on hold that an automation's Hold step put there. */
-async function heldByAutomations(tx: StoreTx, orderId: string): Promise<string[]> {
-  const steps = await tx
-    .select({ output: automationStepRun.output })
-    .from(automationStepRun)
-    .innerJoin(automationRun, eq(automationRun.id, automationStepRun.runId))
-    .where(
-      and(
-        eq(automationStepRun.actionId, 'order.hold'),
-        eq(automationStepRun.status, 'succeeded'),
-        eq(automationRun.subjectType, 'order'),
-        eq(automationRun.subjectId, orderId),
-      ),
-    )
-  const ids = new Set<string>()
-  for (const s of steps) {
-    const held = (s.output as { heldParcelIds?: unknown } | null)?.heldParcelIds
-    if (Array.isArray(held)) for (const id of held) if (typeof id === 'string') ids.add(id)
-  }
-  if (ids.size === 0) return []
-  const still = (await parcels(tx, orderId)).filter((p) => p.status === 'on_hold' && ids.has(p.id))
-  return still.map((p) => p.id)
 }
 
 const release: ActionExecutor<Record<string, never>> = {
@@ -136,25 +98,19 @@ const release: ActionExecutor<Record<string, never>> = {
   async run({ tx, ctx }) {
     const orderId = subjectId(ctx, 'an order')
     if (!(await lockedOrder(tx, orderId))) throw gone('order')
-    const held = await heldByAutomations(tx, orderId)
-    if (held.length === 0) {
-      return { noop: true, summary: 'Nothing on hold', output: { releasedParcelIds: [] } }
-    }
-    await tx
-      .update(fulfillmentOrder)
-      .set({ status: 'open', updatedAt: new Date() })
-      .where(inArray(fulfillmentOrder.id, held))
+    const released = await releaseFulfillment({ storeId: ctx.storeId, tx }, orderId)
+    if (released.length === 0) return { noop: true, summary: 'Nothing on hold' }
     await noteOnOrder(tx, ctx, orderId, 'Fulfilment released')
     return {
-      summary: `Released ${held.length} parcel${held.length > 1 ? 's' : ''}`,
-      output: { releasedParcelIds: held },
+      summary: `Released ${parcelWord(released.length)}`,
+      output: { releasedParcelIds: released },
     }
   },
   async preview({ tx, ctx }) {
-    const held = await heldByAutomations(tx, subjectId(ctx, 'an order'))
+    const held = await heldParcels(tx, subjectId(ctx, 'an order'))
     return held.length
-      ? { summary: `Would release ${held.length} held parcel(s)`, wouldRun: true }
-      : { summary: 'Nothing an automation held', wouldRun: false }
+      ? { summary: `Would release ${parcelWord(held.length)} on hold`, wouldRun: true }
+      : { summary: 'Nothing on hold', wouldRun: false }
   },
 }
 
@@ -164,12 +120,9 @@ const release: ActionExecutor<Record<string, never>> = {
 
 type FulfilConfig = { notifyCustomer: boolean }
 
-const NOTIFY_WARNING =
-  'The shopper gets the "order shipped" message whenever it is on in Settings → Notifications.'
-
 const fulfil: ActionExecutor<FulfilConfig> = {
   id: 'order.fulfil',
-  async run({ tx, ctx }) {
+  async run({ tx, ctx, config }) {
     const orderId = subjectId(ctx, 'an order')
     const o = await lockedOrder(tx, orderId)
     if (!o) throw gone('order')
@@ -179,10 +132,17 @@ const fulfil: ActionExecutor<FulfilConfig> = {
     if (o.fulfillmentStatus !== 'unfulfilled' && o.fulfillmentStatus !== 'partially_fulfilled') {
       return { noop: true, summary: 'Already fulfilled' }
     }
-    await fulfilRemainingLines({ storeId: ctx.storeId, tx }, orderId).catch(refused)
+    const store = { storeId: ctx.storeId, tx }
+    await assertNotHeld(store, orderId).catch(refused)
+    await fulfilRemainingLines(store, orderId, {
+      notifyCustomer: config.notifyCustomer !== false,
+    }).catch(refused)
     await stampCause(tx, ctx)
     await noteOnOrder(tx, ctx, orderId, 'Marked fulfilled')
-    return { summary: `Fulfilled order #${o.number}` }
+    return {
+      summary: `Fulfilled order #${o.number}`,
+      output: { notified: config.notifyCustomer !== false },
+    }
   },
   async preview({ tx, ctx, config }) {
     const o = await orderRow(tx, subjectId(ctx, 'an order'))
@@ -192,8 +152,11 @@ const fulfil: ActionExecutor<FulfilConfig> = {
     if (o.fulfillmentStatus !== 'unfulfilled' && o.fulfillmentStatus !== 'partially_fulfilled') {
       return { summary: `Order #${o.number} is already fulfilled`, wouldRun: false }
     }
-    const warnings = config.notifyCustomer === false ? [NOTIFY_WARNING] : undefined
-    return { summary: `Would mark order #${o.number} fulfilled`, wouldRun: true, warnings }
+    if ((await heldParcels(tx, o.id)).length > 0) {
+      return { summary: `Order #${o.number} is on hold`, wouldRun: false }
+    }
+    const notify = config.notifyCustomer === false ? ' without telling the shopper' : ''
+    return { summary: `Would mark order #${o.number} fulfilled${notify}`, wouldRun: true }
   },
 }
 
@@ -207,13 +170,11 @@ type CancelConfig = {
   restock: boolean
 }
 
-const RESTOCK_WARNING =
-  'Stock held for unpacked items always goes back on sale; packed items stay out of stock.'
-
 function cancelWords(o: { number: number; paymentStatus: string }, config: CancelConfig): string {
   const notify = config.notifyCustomer !== false ? ' and tell the shopper' : ''
+  const stock = config.restock === false ? ', keeping its items off sale' : ''
   const paid = o.paymentStatus === 'paid' ? ' Money paid online is refunded by you, not here.' : ''
-  return `cancel order #${o.number}${notify}.${paid}`
+  return `cancel order #${o.number}${stock}${notify}.${paid}`
 }
 
 const cancel: ActionExecutor<CancelConfig> = {
@@ -228,12 +189,17 @@ const cancel: ActionExecutor<CancelConfig> = {
     }
     await cancelOrder({ storeId: ctx.storeId, tx }, orderId, {
       notifyCustomer: config.notifyCustomer !== false,
+      restock: config.restock !== false,
     }).catch(refused)
     await stampCause(tx, ctx)
     await noteOnOrder(tx, ctx, orderId, `Cancelled (reason: ${config.reason ?? 'other'})`)
     return {
       summary: `Cancelled order #${o.number}`,
-      output: { reason: config.reason ?? 'other', notified: config.notifyCustomer !== false },
+      output: {
+        reason: config.reason ?? 'other',
+        notified: config.notifyCustomer !== false,
+        restocked: config.restock !== false,
+      },
     }
   },
   async preview({ tx, ctx, config }): Promise<ActionPreview> {
@@ -247,7 +213,6 @@ const cancel: ActionExecutor<CancelConfig> = {
     return {
       summary: `Would ${cancelWords(o, config)}`,
       wouldRun: true,
-      warnings: config.restock === false ? [RESTOCK_WARNING] : undefined,
     }
   },
 }

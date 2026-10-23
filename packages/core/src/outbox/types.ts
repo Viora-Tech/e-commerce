@@ -136,6 +136,11 @@ export type OutboxPayload = {
         data?: Record<string, unknown> | undefined
       }
     | undefined
+  /**
+   * False: the shopper gets no message for this event (an automation fulfilled the order with
+   * "Notify customer" off); app hooks and automations still see it. Absent means notify.
+   */
+  notifyCustomer?: boolean | undefined
   /** Set when an automation run caused this event (loop guard, design §8.5). */
   automation?: AutomationCause | undefined
 }
