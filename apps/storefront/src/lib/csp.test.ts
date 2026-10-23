@@ -82,6 +82,31 @@ describe('storefront script CSP', () => {
     for (const tag of scripts) expect(tag).toContain('nonce="n0nce"')
   })
 
+  it('loads gtag.js once for GA4 and Google Ads, configuring both', async () => {
+    const { default: TrackingTags } = await import('@/components/analytics/tracking-tags')
+    const both = renderToStaticMarkup(
+      createElement(TrackingTags, {
+        ga4: 'G-ABC123',
+        gtm: null,
+        metaPixel: null,
+        googleAds: 'AW-123456789',
+        nonce: 'n0nce',
+      }),
+    )
+    expect(both.match(/gtag\/js\?id=/g)).toHaveLength(1)
+    expect(both).toContain("gtag('config','G-ABC123');gtag('config','AW-123456789');")
+    const adsOnly = renderToStaticMarkup(
+      createElement(TrackingTags, {
+        ga4: null,
+        gtm: null,
+        metaPixel: null,
+        googleAds: 'AW-123456789',
+        nonce: 'n0nce',
+      }),
+    )
+    expect(adsOnly).toContain('gtag/js?id=AW-123456789')
+  })
+
   it('hands the nonce on to gtm.js, so Tag Manager can give it to Custom HTML tags', async () => {
     const { default: TrackingTags } = await import('@/components/analytics/tracking-tags')
     const html = renderToStaticMarkup(

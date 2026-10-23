@@ -1,3 +1,4 @@
+import type { Metadata } from 'next'
 import { headers } from 'next/headers'
 import { SEO_DESCRIPTION_MAX, seoContent } from '@/data/seo'
 import { originFromHost } from './store-resolver'
@@ -244,3 +245,23 @@ export function canonicalPath(path: string, page = 1): string {
 
 /** Robots directive for pages that must never be indexed (cart, checkout, account). */
 export const NO_INDEX = { index: false, follow: false } as const
+
+/** The ownership tokens saved under Preferences › Search engine visibility. */
+type VerificationTokens = { google: string; bing: string; meta: string; pinterest: string }
+
+/**
+ * Next's `verification` metadata for the saved tokens: Google Search Console, Bing
+ * Webmaster Tools (`msvalidate.01`), Meta Business domain verification and Pinterest.
+ * Tokens are validated to a plain character set when saved; blank ones add no tag.
+ */
+export function verificationMeta(t: VerificationTokens): Metadata['verification'] {
+  const other: Record<string, string> = {}
+  if (t.bing) other['msvalidate.01'] = t.bing
+  if (t.meta) other['facebook-domain-verification'] = t.meta
+  if (t.pinterest) other['p:domain_verify'] = t.pinterest
+  if (!t.google && !Object.keys(other).length) return undefined
+  return {
+    ...(t.google ? { google: t.google } : {}),
+    ...(Object.keys(other).length ? { other } : {}),
+  }
+}

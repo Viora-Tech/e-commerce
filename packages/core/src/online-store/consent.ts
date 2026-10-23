@@ -56,12 +56,12 @@ export function currentConsent(
 /**
  * Which tags may load. Nothing optional loads before the shopper says yes to
  * its category (DPDP: consent is opt in); analytics tags need analytics, the
- * Meta pixel needs marketing.
+ * Meta pixel and the Google Ads tag need marketing.
  */
 export function allowedTags(
   prefs: ConsentPreferences,
   consent: Consent | null,
-): { ga4: string | null; gtm: string | null; metaPixel: string | null } {
+): { ga4: string | null; gtm: string | null; metaPixel: string | null; googleAds: string | null } {
   const analytics = consent?.analytics === true
   const marketing = consent?.marketing === true
   const t = prefs.tracking
@@ -69,10 +69,11 @@ export function allowedTags(
     ga4: analytics && t.ga4 ? t.ga4 : null,
     gtm: analytics && t.gtm ? t.gtm : null,
     metaPixel: marketing && t.metaPixel ? t.metaPixel : null,
+    googleAds: marketing && t.googleAds ? t.googleAds : null,
   }
 }
 
 /** The slice of the store's preferences the tags read. */
 export type ConsentPreferences = {
-  tracking: { ga4: string; gtm: string; metaPixel: string }
+  tracking: { ga4: string; gtm: string; metaPixel: string; googleAds?: string | undefined }
 }

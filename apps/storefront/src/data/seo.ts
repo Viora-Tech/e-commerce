@@ -27,6 +27,28 @@ export const ROBOTS_DISALLOW = [
   '/*?*sort=',
 ] as const
 
+/**
+ * AI crawlers turned away when Preferences › AI crawlers is off: model training and
+ * AI answer engines. Regular search crawlers (Googlebot, Bingbot) are not on it.
+ */
+export const AI_CRAWLERS = [
+  'GPTBot',
+  'ChatGPT-User',
+  'OAI-SearchBot',
+  'ClaudeBot',
+  'Claude-SearchBot',
+  'Claude-User',
+  'anthropic-ai',
+  'Google-Extended',
+  'Applebot-Extended',
+  'PerplexityBot',
+  'Perplexity-User',
+  'CCBot',
+  'Bytespider',
+  'meta-externalagent',
+  'Amazonbot',
+] as const
+
 /** llms.txt lists at most this many products; the sitemap has the rest. */
 export const LLMS_PRODUCT_LIMIT = 200
 
