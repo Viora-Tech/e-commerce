@@ -1,5 +1,4 @@
-import type { DiscountInput } from '@commerce/core'
-import { normaliseCode } from '@commerce/core'
+import { type DiscountInput, discountType, normaliseCode } from '@commerce/core'
 import type { StoreTx } from '@commerce/db'
 import { discount, discountUsage } from '@commerce/db'
 import { and, count, desc, eq, gte, ilike, isNotNull, isNull, lte, or, sql } from 'drizzle-orm'
@@ -164,6 +163,7 @@ function productValuesOf(input: DiscountInput): Record<string, number> | null {
 
 function toRow(storeId: string, input: DiscountInput) {
   const productValues = productValuesOf(input)
+  const type = discountType(input)
   return {
     storeId,
     title: input.title,
@@ -173,9 +173,17 @@ function toRow(storeId: string, input: DiscountInput) {
     // A per-product discount keeps its amounts in product_values; the single value is unused.
     value: input.method === 'free_shipping' || productValues ? 0 : input.value,
     minSubtotalPaise: input.minSubtotalPaise ?? null,
+    minQuantity: input.minQuantity ?? null,
     appliesTo: input.appliesTo,
     appliesToIds: input.appliesTo === 'all' ? [] : input.appliesToIds,
     productValues,
+    type,
+    bxgy: type === 'bxgy' ? (input.bxgy ?? null) : null,
+    shippingStates: type === 'shipping' ? input.shippingStates : [],
+    maxShippingPaise: type === 'shipping' ? (input.maxShippingPaise ?? null) : null,
+    customerEligibility: input.customerEligibility,
+    eligibleIds: input.customerEligibility === 'all' ? [] : input.eligibleIds,
+    combinesWith: input.combinesWith,
     usageLimit: input.usageLimit ?? null,
     usagePerCustomer: input.usagePerCustomer ?? null,
     startsAt: input.startsAt ?? null,

@@ -188,6 +188,12 @@ export const ACTION_DOCS: Record<string, string> = {
   'marketing.automations.get': 'One automation with its stats and the latest runs.',
   'marketing.automations.setStatus':
     'Turning an automation on starts enrolling at the next worker tick.',
+  'marketing.autopilot.approve':
+    'Schedules the draft (adding its discount code) or switches cart reminders on.',
+  'marketing.autopilot.plan':
+    'Writes draft campaigns for the goals that need one; the AI writer runs outside a transaction.',
+  'marketing.campaignPerformance':
+    'Every campaign (our sends and tracking-link campaigns) with sessions and sales this year.',
   'marketing.campaigns.audience':
     'Customers the campaign would reach now: in the segment, consented, not unsubscribed.',
   'marketing.campaigns.schedule':

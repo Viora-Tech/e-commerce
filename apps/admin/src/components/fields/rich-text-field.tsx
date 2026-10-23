@@ -5,6 +5,7 @@ import type { RichTextValue } from '@commerce/richtext'
 import { cn } from '@commerce/ui/lib/utils'
 import { Field, FieldDescription, FieldError, FieldLabel } from '@commerce/ui/shadcn/field'
 import { useId } from 'react'
+import RequiredMark from '@/components/fields/required-mark'
 import '@/styles/vendor-editor.css'
 
 type RichTextFieldProps = {
@@ -42,7 +43,7 @@ export default function RichTextField({
     <Field data-invalid={Boolean(error)}>
       <FieldLabel htmlFor={id}>
         {label}
-        {required ? <span aria-hidden="true">*</span> : null}
+        {required ? <RequiredMark /> : null}
       </FieldLabel>
       <RichTextEditor
         id={id}

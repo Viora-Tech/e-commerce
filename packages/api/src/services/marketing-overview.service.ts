@@ -4,6 +4,9 @@ import {
   type CustomerSplit,
   EMPTY_SPLIT,
   type MarketingChannel,
+  TRAFFIC_TYPES,
+  type TrafficType,
+  trafficType,
 } from '@commerce/core/marketing'
 import {
   marketingAutomation,
@@ -17,7 +20,9 @@ import {
   averageOrderValue,
   bucketByDay,
   conversionRate,
+  DAY_MS,
   delta,
+  istIsoDate,
   type RangeInput,
   resolveRange,
   type SeriesPoint,
@@ -44,6 +49,8 @@ export type MarketingKpi = {
   previous: number
   delta: number | null
   series: number[]
+  /** The previous period, day by day, aligned with `series` (Sales attributed to marketing). */
+  previousSeries?: number[]
 }
 
 export type ChannelRow = {
@@ -91,6 +98,8 @@ export type MarketingOverview = {
   sources: SourceRow[]
   /** The best-performing non-direct, non-other source this period, or null with too little data. */
   bestSource: SourceKey | null
+  /** Sessions as Shopify buckets them: direct, paid, organic, unknown. */
+  trafficTypes: Record<TrafficType, number>
   campaigns: CampaignRow[]
   /** What marketing earned: campaigns, automations, discounts and links (Figma outcomes). */
   outcomes: GrowthOutcomes
@@ -225,6 +234,12 @@ function sourceRows(sessions: SessionRow[], orders: AttributedOrder[]): SourceRo
       shareOfSales: totalSales > 0 ? r.salesPaise / totalSales : 0,
     }))
     .sort((a, b) => b.salesPaise - a.salesPaise || b.sessions - a.sessions)
+}
+
+function trafficTypes(sessions: SessionRow[]): Record<TrafficType, number> {
+  const out = Object.fromEntries(TRAFFIC_TYPES.map((t) => [t, 0])) as Record<TrafficType, number>
+  for (const s of sessions) out[trafficType(s.channel)] += 1
+  return out
 }
 
 /** The best source this period to feature in the "best source" callout. */
@@ -372,6 +387,14 @@ export async function marketingOverview(
     attributed.map((o) => ({ at: o.placedAt, weight: o.totalPaise })),
     range.days,
   )
+  // The previous period is the same length, so day i lines up with day i of this one.
+  const previousDays = range.days.map((_, i) =>
+    istIsoDate(new Date(range.previousFrom.getTime() + i * DAY_MS)),
+  )
+  const salesPrevByDay = bucketByDay(
+    attributedPrev.map((o) => ({ at: o.placedAt, weight: o.totalPaise })),
+    previousDays,
+  )
   const ordersByDay = bucketByDay(
     attributed.map((o) => ({ at: o.placedAt })),
     range.days,
@@ -413,6 +436,7 @@ export async function marketingOverview(
       previous: salesPrev,
       delta: delta(sales, salesPrev),
       series: salesByDay,
+      previousSeries: salesPrevByDay,
     },
     {
       id: 'attributed_orders',
@@ -463,6 +487,7 @@ export async function marketingOverview(
     channels: channelRows(sessions, orders),
     sources,
     bestSource: bestSource(sources),
+    trafficTypes: trafficTypes(sessions),
     campaigns: await campaignRows(tx, sessions, orders),
     outcomes: await growthOutcomes(tx, range, opts.now ?? new Date()),
   }

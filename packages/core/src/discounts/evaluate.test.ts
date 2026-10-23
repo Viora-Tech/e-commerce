@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
+import { combineDiscounts } from './combine'
 import {
   applyDiscount,
-  bestAutomaticDiscount,
   type DiscountCart,
   type DiscountRule,
   describeDiscountValue,
@@ -96,25 +96,26 @@ describe('evaluateDiscount', () => {
   })
 })
 
-describe('bestAutomaticDiscount', () => {
-  it('picks the largest automatic discount and ignores codes', () => {
-    const r = bestAutomaticDiscount(
+describe('combineDiscounts without combinations', () => {
+  const applied = (rules: DiscountRule[]) =>
+    rules.map((d) => evaluateDiscount(cart, d, { now })).filter((r) => r.ok)
+
+  it('picks the most valuable automatic discount', () => {
+    const r = combineDiscounts(
       cart,
-      [
-        { ...base, id: 'code', kind: 'code' },
+      null,
+      applied([
         { ...base, id: 'auto5', kind: 'automatic', code: null, value: 500 },
         { ...base, id: 'auto200', kind: 'automatic', code: null, method: 'fixed', value: 20_000 },
         { ...base, id: 'ship', kind: 'automatic', code: null, method: 'free_shipping', value: 0 },
-      ],
-      { now },
+      ]),
+      new Map(),
     )
     expect(r?.discount.id).toBe('auto5')
   })
 
   it('returns null when nothing applies', () => {
-    expect(
-      bestAutomaticDiscount(cart, [{ ...base, kind: 'automatic', status: 'disabled' }]),
-    ).toBeNull()
+    expect(combineDiscounts(cart, null, [], new Map())).toBeNull()
   })
 })
 

@@ -42,6 +42,7 @@ import fedex from './fedex'
 import filterPanel from './filter-panel'
 import giftCards from './gift-cards'
 import growth from './growth'
+import growthHome from './growth-home'
 import growthReport from './growth-report'
 import growthbook from './growthbook'
 import gstInvoices from './gst-invoices'
@@ -76,6 +77,7 @@ import profitCosts from './profit-costs'
 import purchaseDocuments from './purchase-documents'
 import purchasing from './purchasing'
 import razorpayWebsites from './razorpay-websites'
+import resourcePicker from './resource-picker'
 import returns from './returns'
 import reviews from './reviews'
 import searchApp from './search-app'
@@ -130,6 +132,7 @@ export const hindiCopy: readonly TranslationPair[] = [
   ...businessGst,
   ...checkoutSettings,
   ...common,
+  ...resourcePicker,
   ...connectAside,
   ...content,
   ...contentBlog,
@@ -152,6 +155,7 @@ export const hindiCopy: readonly TranslationPair[] = [
   ...dateRange,
   ...filterPanel,
   ...growth,
+  ...growthHome,
   ...growthReport,
   ...gstInvoices,
   ...home,

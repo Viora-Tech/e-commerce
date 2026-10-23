@@ -1,6 +1,8 @@
+import type { CampaignPerformanceRow } from '@commerce/api'
 import RelativeTime from '@/components/layout/relative-time'
 import OrderChip from '@/components/orders/order-chip'
 import type { ResourceColumnSpec } from '@/components/table/resource-table'
+import type { growthCampaignTabsContent } from '@/data/growth-home'
 import { campaignReportContent, type campaignsContent } from '@/data/marketing-campaigns'
 import type { api } from '@/lib/api-client'
 import type { Formatters } from '@/lib/format'
@@ -16,8 +18,37 @@ function when(c: CampaignRow): Date | string | null {
 const dash = '—'
 
 /** Columns of the campaign list (Figma "Marketing / Campaigns list"). */
-export function campaignColumns(copy: Copy, fmt: Formatters): ResourceColumnSpec<CampaignRow>[] {
+export function campaignColumns(
+  copy: Copy,
+  fmt: Formatters,
+  ytd?: { rows: Map<string, CampaignPerformanceRow>; copy: typeof growthCampaignTabsContent },
+): ResourceColumnSpec<CampaignRow>[] {
   const rate = campaignReportContent.rate
+  const year = (c: CampaignRow) => ytd?.rows.get(c.id)
+  const ytdColumns: ResourceColumnSpec<CampaignRow>[] = ytd
+    ? [
+        {
+          id: 'sessions-ytd',
+          title: ytd.copy.columns.sessions,
+          align: 'end',
+          sortValue: (c) => year(c)?.sessions ?? 0,
+          render: (c) => {
+            const n = year(c)?.sessions ?? 0
+            return <span className="tabular-nums">{n ? fmt.number(n) : dash}</span>
+          },
+        },
+        {
+          id: 'sales-ytd',
+          title: ytd.copy.columns.sales,
+          align: 'end',
+          sortValue: (c) => year(c)?.salesPaise ?? 0,
+          render: (c) => {
+            const n = year(c)?.salesPaise ?? 0
+            return <span className="tabular-nums">{n ? fmt.money(n) : dash}</span>
+          },
+        },
+      ]
+    : []
   return [
     {
       id: 'name',
@@ -65,6 +96,7 @@ export function campaignColumns(copy: Copy, fmt: Formatters): ResourceColumnSpec
         </span>
       ),
     },
+    ...ytdColumns,
     {
       id: 'status',
       title: copy.columns.status,

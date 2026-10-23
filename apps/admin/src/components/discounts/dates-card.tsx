@@ -11,6 +11,7 @@ import {
 import { Input } from '@commerce/ui/shadcn/input'
 import DataCard from '@/components/layout/data-card'
 import { discountFormContent } from '@/data/discounts'
+import { useCopy } from '@/hooks/use-copy'
 import type { DiscountFormState } from './form-state'
 
 type DatesCardProps = {
@@ -19,9 +20,10 @@ type DatesCardProps = {
   onChange: (patch: Partial<DiscountFormState>) => void
 }
 
-const copy = discountFormContent.dates
-
 export default function DatesCard({ form, error, onChange }: DatesCardProps) {
+  // Hooks
+  const { dates: copy } = useCopy(discountFormContent)
+
   return (
     <DataCard title={copy.heading}>
       <FieldGroup>

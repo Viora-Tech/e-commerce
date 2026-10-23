@@ -1,46 +1,48 @@
 'use client'
 
-import type { MarketingOverview } from '@commerce/api'
+import type { CampaignPerformanceRow, MarketingOverview } from '@commerce/api'
 import type { GrowthRecommendation } from '@commerce/core/marketing'
-import { LinkIcon, Plus } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import RangePicker from '@/components/analytics/range-picker'
-import ChartCard from '@/components/layout/chart-card'
-import PageHeader from '@/components/layout/page-header'
-import { growthOverviewContent } from '@/data/growth'
-import { useCopy, useFormat } from '@/hooks/use-copy'
-import { formatDay, type RangeState, rangeQuery, sameRange } from '@/lib/analytics-range'
+import PageBody from '@/components/layout/page-body'
+import { growthHomeContent } from '@/data/growth-home'
+import { useCopy } from '@/hooks/use-copy'
+import { type RangeState, rangeQuery, sameRange } from '@/lib/analytics-range'
 import { api } from '@/lib/api-client'
-import { formatPaiseCompact } from '@/lib/money'
 import { routes } from '@/lib/routes'
-import BestSourceCallout from './best-source-callout'
-import GrowthKpiStrip from './growth-kpi-strip'
-import OutcomesCard from './outcomes-card'
+import AttributedSalesCard from './overview/attributed-sales-card'
+import AutopilotHero from './overview/autopilot-hero'
+import AutopilotStrip from './overview/autopilot-strip'
+import RecentCampaignsCard from './overview/recent-campaigns-card'
+import TopSourceCards from './overview/top-source-cards'
+import TrafficTypeCard from './overview/traffic-type-card'
 import RecommendationsCard from './recommendations-card'
-import SourceOrChannelCard from './source-or-channel-card'
-import TopCampaignsCard from './top-campaigns-card'
 
 type GrowthOverviewPageProps = {
   initialRange: RangeState
   initial: MarketingOverview
   recommendations: GrowthRecommendation[]
+  campaigns: CampaignPerformanceRow[]
+  autopilot: { enabled: boolean; waiting: number }
 }
 
 /**
- * Growth overview (Figma "Marketing / Growth overview"): Shopify's tiles (sessions, conversion,
- * AOV, total sales, sales from marketing), recommendations, what marketing earned, then sales
- * over time, by source and channel, and the top campaigns.
+ * Growth overview, laid out like Shopify's: the Autopilot banner, Performance for the picked
+ * range (sales attributed to marketing against the period before, sessions by traffic type,
+ * recommendations, the top four sources), the Autopilot strip and the recent campaigns.
+ * The full report is Attribution ("View details").
  */
 export default function GrowthOverviewPage({
   initialRange,
   initial,
   recommendations,
+  campaigns,
+  autopilot,
 }: GrowthOverviewPageProps) {
   // Hooks
-  const copy = useCopy(growthOverviewContent)
-  const fmt = useFormat()
+  const copy = useCopy(growthHomeContent)
   const [range, setRange] = useState(initialRange)
   const [data, setData] = useState(initial)
   const [loading, setLoading] = useState(false)
@@ -72,70 +74,39 @@ export default function GrowthOverviewPage({
   }
 
   // Render logic
-  const o = data.outcomes
-  const dayPoints = data.salesOverTime.day.map((p) => ({ ...p, label: formatDay(p.label) }))
-  const weekPoints = data.salesOverTime.week.map((p) => ({ ...p, label: formatDay(p.label) }))
-
-  const bestRow = data.sources.find((r) => r.source === data.bestSource) ?? null
+  const kpi = (id: string) => data.kpis.find((k) => k.id === id)
 
   return (
-    <div className="flex w-full flex-col gap-6 px-4 pt-4 pb-6 md:px-8 md:pt-5 md:pb-8">
-      <PageHeader
-        title={copy.title}
-        summary={copy.intro}
-        actions={
-          <div className="flex items-center gap-2">
+    <PageBody className="gap-8 md:pt-5 md:pb-8">
+      <h1 className="sr-only">{copy.title}</h1>
+      <AutopilotHero enabled={autopilot.enabled} waiting={autopilot.waiting} />
+      <section className="flex flex-col gap-4" aria-busy={loading || undefined}>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <h2 className="text-body-strong text-foreground">{copy.performance.title}</h2>
+          <div className="flex flex-wrap items-center gap-2">
+            <RangePicker value={range} onChange={handleRange} />
             <Button
-              variant="outline"
-              render={<Link href={routes.growth.links()} />}
+              variant="ghost"
+              render={<Link href={`${routes.growth.attribution()}${rangeQuery(range)}`} />}
               nativeButton={false}
             >
-              <LinkIcon aria-hidden />
-              {copy.links}
-            </Button>
-            <Button render={<Link href={routes.growth.newCampaign()} />} nativeButton={false}>
-              <Plus aria-hidden />
-              {copy.newCampaign}
+              {copy.performance.viewDetails}
             </Button>
           </div>
-        }
-      />
-      {/* Figma 658:64823: the range on its own row, with what growth brought in beside it. */}
-      <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-        <RangePicker value={range} onChange={handleRange} />
-        <span className="text-caption text-muted-foreground">
-          {copy.outcomes.summary(
-            fmt.money(o.earnedPaise),
-            copy.outcomes.periods[data.range.key] ?? copy.outcomes.periods.custom ?? '',
-          )}
-        </span>
-      </div>
-      <GrowthKpiStrip kpis={data.kpis} loading={loading} />
-      <RecommendationsCard initial={recommendations} />
-      {bestRow ? (
-        <div className="grid grid-cols-1 items-stretch gap-6 xl:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)]">
-          <OutcomesCard outcomes={o} />
-          <BestSourceCallout source={bestRow} />
         </div>
-      ) : (
-        <OutcomesCard outcomes={o} />
-      )}
-      <ChartCard
-        title={copy.salesOverTime.title}
-        periods={[
-          { id: 'day', label: copy.salesOverTime.day, data: dayPoints },
-          { id: 'week', label: copy.salesOverTime.week, data: weekPoints },
-        ]}
-        seriesKey={`marketing-sales-${range.key}`}
-        seriesLabel={copy.salesOverTime.series}
-        formatValue={formatPaiseCompact}
-      />
-      <SourceOrChannelCard
-        sources={data.sources}
-        channels={data.channels}
-        campaigns={data.campaigns}
-      />
-      <TopCampaignsCard rows={data.campaigns} />
-    </div>
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+          <AttributedSalesCard
+            attributed={kpi('attributed_sales')}
+            total={kpi('total_sales')}
+            days={data.range.days}
+          />
+          <TrafficTypeCard counts={data.trafficTypes} />
+        </div>
+        <TopSourceCards sources={data.sources} />
+      </section>
+      <RecommendationsCard initial={recommendations} />
+      <AutopilotStrip enabled={autopilot.enabled} waiting={autopilot.waiting} />
+      <RecentCampaignsCard rows={campaigns} />
+    </PageBody>
   )
 }

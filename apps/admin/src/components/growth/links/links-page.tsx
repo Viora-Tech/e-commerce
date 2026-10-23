@@ -4,7 +4,7 @@ import { shortLinkPath, tagSummary } from '@commerce/core/marketing'
 import { ExternalLink, Plus, Trash2 } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Card } from '@commerce/ui/shadcn/card'
-import { useEffect, useState } from 'react'
+import { type ReactNode, useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import ConfirmDialog from '@/components/layout/confirm-dialog'
 import EmptyState from '@/components/layout/empty-state'
@@ -12,6 +12,7 @@ import PageHeader from '@/components/layout/page-header'
 import ResourceTable, { type ResourceColumnSpec } from '@/components/table/resource-table'
 import RowMenu from '@/components/table/row-menu'
 import { growthLinksContent, growthOverviewContent } from '@/data/growth'
+import { growthCampaignTabsContent } from '@/data/growth-home'
 import { linkQrContent } from '@/data/growth-report'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
@@ -25,7 +26,11 @@ type ListResult = Awaited<ReturnType<typeof api.shortLinks.list>>
 type Item = ListResult['items'][number]
 type Totals = Awaited<ReturnType<typeof api.shortLinks.totals>>
 
-type LinksPageProps = { storefrontOrigin: string }
+type LinksPageProps = {
+  storefrontOrigin: string
+  /** Campaigns | Tracking links, under the header. */
+  tabs?: ReactNode
+}
 
 const PER_PAGE = 25
 
@@ -94,10 +99,11 @@ function linkColumns(
  * Growth → Links (Figma "Marketing / Links list"): short `/l/<slug>` links with their tracking
  * tags, clicks, the orders they brought and that revenue, a QR code per link, and New link.
  */
-export default function LinksPage({ storefrontOrigin }: LinksPageProps) {
+export default function LinksPage({ storefrontOrigin, tabs }: LinksPageProps) {
   // Hooks
   const copy = useCopy(growthLinksContent)
   const overview = useCopy(growthOverviewContent)
+  const tabsCopy = useCopy(growthCampaignTabsContent)
   const qrCopy = useCopy(linkQrContent)
   const fmt = useFormat()
   const [result, setResult] = useState<ListResult | null>(null)
@@ -176,7 +182,7 @@ export default function LinksPage({ storefrontOrigin }: LinksPageProps) {
   return (
     <div className="flex w-full flex-col gap-6 px-4 pt-4 pb-6 md:px-8 md:pt-5 md:pb-8">
       <PageHeader
-        title={copy.title}
+        title={tabs ? tabsCopy.title : copy.title}
         summary={
           totals === null
             ? undefined
@@ -187,6 +193,7 @@ export default function LinksPage({ storefrontOrigin }: LinksPageProps) {
         back={{ label: overview.title, href: routes.growth.home() }}
         actions={newButton}
       />
+      {tabs}
       {empty ? (
         <Card>
           <EmptyState

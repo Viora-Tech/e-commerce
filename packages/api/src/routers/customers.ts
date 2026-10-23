@@ -113,6 +113,8 @@ export const customersRouter = {
   list: can(permissions.CUSTOMERS_READ)
     .input(
       FiltersSchema.extend({
+        /** Exactly these customers, e.g. the ones a discount is limited to. */
+        ids: z.array(z.uuid()).max(PAGE_SIZE_MAX).optional(),
         page: z.number().int().min(1).default(1),
         perPage: z.number().int().min(1).max(PAGE_SIZE_MAX).default(25),
         sort: z.enum(['recent', 'name', 'orders', 'spent']).optional(),
