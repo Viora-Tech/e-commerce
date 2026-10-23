@@ -203,6 +203,7 @@ export async function runCustomQuery(
       value: typeof r.values[metric] === 'number' ? (r.values[metric] as number) : 0,
       previous: r.previous ?? null,
     })),
+    profit: null,
   }
   return { ok: true, report, result, ms: Math.round(performance.now() - started) }
 }

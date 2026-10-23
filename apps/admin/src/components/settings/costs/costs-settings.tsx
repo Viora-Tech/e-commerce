@@ -10,6 +10,7 @@ import {
 } from '@commerce/core/profit'
 import { parseRupees } from '@commerce/money'
 import { Button } from '@commerce/ui/shadcn/button'
+import { Input } from '@commerce/ui/shadcn/input'
 import { Skeleton } from '@commerce/ui/shadcn/skeleton'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
@@ -28,6 +29,7 @@ type Form = {
   methods: Record<MethodRateId, FeeRateText>
   gateways: Record<string, FeeRateText>
   cod: FeeRateText
+  delivery: string
 }
 
 const COD = 'cod'
@@ -53,6 +55,7 @@ const formOf = (view: View): Form => ({
   methods: methodsText(view.costs.methodFees),
   gateways: Object.fromEntries(view.gateways.map((id) => [id, toText(view.costs.gatewayFees[id])])),
   cod: toText(view.costs.codFee),
+  delivery: String(view.costs.defaultDeliveryPaise / 100),
 })
 
 /**
@@ -110,9 +113,19 @@ export default function CostsSettings() {
       toast.error(copy.invalid(nameOf(COD)))
       return
     }
+    const defaultDeliveryPaise = parseRupees(form.delivery)
+    if (defaultDeliveryPaise === null) {
+      toast.error(copy.delivery.invalid)
+      return
+    }
     setBusy(true)
     try {
-      const costs = await api.profitCosts.save({ methodFees, gatewayFees, codFee })
+      const costs = await api.profitCosts.save({
+        methodFees,
+        gatewayFees,
+        codFee,
+        defaultDeliveryPaise,
+      })
       const next = { ...view, costs }
       setView(next)
       setForm(formOf(next))
@@ -200,6 +213,29 @@ export default function CostsSettings() {
             {view.methodRatesOn ? null : (
               <p className="pt-4 text-caption text-muted-foreground">{gstNote}</p>
             )}
+          </SettingsCard>
+          <SettingsCard
+            id="delivery"
+            title={copy.delivery.heading}
+            description={copy.delivery.help}
+          >
+            <div className="flex flex-col gap-1">
+              <label htmlFor="default-delivery" className="text-caption text-muted-foreground">
+                {copy.delivery.label}
+              </label>
+              <Input
+                size="lg"
+                id="default-delivery"
+                inputMode="decimal"
+                className="w-36"
+                value={form.delivery}
+                disabled={!canManage || busy}
+                onChange={(e) => setForm((f) => (f ? { ...f, delivery: e.target.value } : f))}
+              />
+              <p className="text-caption text-muted-foreground">
+                {view.gstClaimable ? copy.delivery.gstClaimable : copy.delivery.gstNotClaimable}
+              </p>
+            </div>
           </SettingsCard>
           {view.codOn ? (
             <SettingsCard id="cod-fee" title={copy.cod.heading} description={copy.cod.help}>

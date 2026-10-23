@@ -1,10 +1,15 @@
 import {
   allocateProfit,
   computeOrderProfit,
+  expensesForMonth,
+  type MonthExpenses,
+  monthlyExpenseVersions,
   notSystemTest,
   type OrderProfit,
   parseProfitCosts,
+  profitAverages,
   profitFacts,
+  profitVerdict,
 } from '@commerce/core'
 import { order, product, type StoreTx, store, variant } from '@commerce/db'
 import { and, eq, inArray } from 'drizzle-orm'
@@ -13,6 +18,7 @@ import {
   byDesc,
   groupBy,
   notDraft,
+  type ProfitInsights,
   placedIn,
   type ReportBuilder,
   type ReportRow,
@@ -23,7 +29,10 @@ import {
 /*
  * Profit (Analytics › Reports, Finance): PROFIT_FORMULA from @commerce/core order/profit.ts
  * over every order placed in the span, cancelled ones included (their courier and fee costs are
- * real; their sales count only what was collected). Drafts never count.
+ * real; their sales count only what was collected). Drafts never count. Packing and delivery are
+ * estimated until known (order/profit-estimates.ts), so every figure is a floor while
+ * `estimatedOrders` is above zero. Monthly expenses (finance/monthly-expenses.ts) come off the
+ * month's order profit for net profit; the month in progress counts the days so far.
  */
 
 type Profited = { orderId: string; placedAt: Date; profit: OrderProfit; facts: ProfitFactsOf }
@@ -55,6 +64,7 @@ function moneyColumns(group: Profited[]) {
   return {
     netSales,
     costOfGoods: sumOf(group, (p) => p.profit.goodsPaise),
+    packingCost: sumOf(group, (p) => p.profit.packingPaise),
     courierCost: sumOf(group, (p) => p.profit.courierPaise),
     gatewayFees: sumOf(group, (p) => p.profit.feesPaise),
     rtoCost: sumOf(group, (p) => p.profit.rtoPaise),
@@ -63,17 +73,86 @@ function moneyColumns(group: Profited[]) {
   }
 }
 
-/** One row per month (IST) the span touches, oldest first. */
+/** Units sold in an order: not gift cards, not put back in stock. */
+const unitsOf = (p: Profited) =>
+  sumOf(
+    p.facts.lines.filter((l) => !l.giftCard),
+    (l) => Math.max(0, l.quantity - l.restockedQuantity),
+  )
+
+/** The months the span touches (IST), each with the expenses its counted days carry. */
+async function monthsIn(tx: StoreTx, span: ReportSpan): Promise<MonthExpenses[]> {
+  const expenses = await monthlyExpenseVersions(tx)
+  const today = istIsoDate(span.now)
+  const months = [...new Set(span.days.map((d) => d.slice(0, 7)))]
+  return months.map((month) => expensesForMonth(expenses, month, { days: span.days, today }))
+}
+
+/** PROFIT_AVERAGES (@commerce/core finance/profit-summary.ts) and net profit for the span. */
+function insightsOf(profits: Profited[], months: MonthExpenses[]): ProfitInsights {
+  const averages = profitAverages(
+    profits.map((p) => ({
+      profitPaise: p.profit.profitPaise,
+      units: unitsOf(p),
+      estimated: p.profit.estimated,
+    })),
+  )
+  const expensesPaise = sumOf(months, (m) => m.countedPaise)
+  const netProfitPaise = averages.profitPaise - expensesPaise
+  const current = months.find((m) => m.inProgress && m.daysCounted < m.daysInMonth)
+  return {
+    ...averages,
+    expensesPaise,
+    netProfitPaise,
+    verdict: profitVerdict(netProfitPaise, averages.perOrderPaise),
+    soFar: current
+      ? {
+          month: current.month,
+          daysCounted: current.daysCounted,
+          daysInMonth: current.daysInMonth,
+          fullPaise: current.fullPaise,
+          countedPaise: current.countedPaise,
+        }
+      : null,
+  }
+}
+
+/** One row per month (IST) the span touches, oldest first, with expenses and net profit. */
 const profitByMonth: ReportBuilder = async (tx, span) => {
   const profits = await profitsIn(tx, span)
-  const months = [...new Set(span.days.map((d) => d.slice(0, 7)))]
+  const months = await monthsIn(tx, span)
   const byMonth = groupBy(profits, (p) => istIsoDate(p.placedAt).slice(0, 7))
-  const rows: ReportRow[] = months.map((month) => {
-    const group = byMonth.get(month) ?? []
-    return { key: month, values: { month, orders: group.length, ...moneyColumns(group) } }
+  const rows: ReportRow[] = months.map((m) => {
+    const group = byMonth.get(m.month) ?? []
+    const money = moneyColumns(group)
+    return {
+      key: m.month,
+      values: {
+        month: m.month,
+        orders: group.length,
+        ...money,
+        expenses: m.countedPaise,
+        netProfit: money.profit - m.countedPaise,
+        estimatedOrders: group.filter((p) => p.profit.estimated).length,
+      },
+    }
   })
-  return { rows, totals: { orders: profits.length, ...moneyColumns(profits) } }
+  const money = moneyColumns(profits)
+  const expenses = sumOf(months, (m) => m.countedPaise)
+  return {
+    rows,
+    totals: {
+      orders: profits.length,
+      ...money,
+      expenses,
+      netProfit: money.profit - expenses,
+      estimatedOrders: profits.filter((p) => p.profit.estimated).length,
+    },
+    profit: insightsOf(profits, months),
+  }
 }
+
+const perUnit = (profit: number, units: number) => (units > 0 ? Math.round(profit / units) : null)
 
 /** One row per product: its share of each order's sales and costs (allocateProfit). */
 const profitByProduct: ReportBuilder = async (tx, span) => {
@@ -133,6 +212,10 @@ const profitByProduct: ReportBuilder = async (tx, span) => {
           netSales,
           costOfGoods: sumOf(group, (g) => g.goods),
           profit,
+          profitPerUnit: perUnit(
+            profit,
+            sumOf(group, (g) => g.units),
+          ),
           margin: netSales > 0 ? profit / netSales : null,
         },
       }
@@ -140,15 +223,18 @@ const profitByProduct: ReportBuilder = async (tx, span) => {
     .sort(byDesc('profit'))
   const netSales = sumOf(parts, (g) => g.net)
   const profit = sumOf(parts, (g) => g.profit)
+  const units = sumOf(parts, (g) => g.units)
   return {
     rows,
     totals: {
-      units: sumOf(parts, (g) => g.units),
+      units,
       netSales,
       costOfGoods: sumOf(parts, (g) => g.goods),
       profit,
+      profitPerUnit: perUnit(profit, units),
       margin: netSales > 0 ? profit / netSales : null,
     },
+    profit: insightsOf(profits, await monthsIn(tx, span)),
   }
 }
 

@@ -12,7 +12,9 @@
  *          − goods     = each unit's cost at sale (`order_line.cost_at_sale_paise`, the
  *                        weighted average landed cost when it sold) for units not put back
  *                        in stock after a return
- *          − courier   = what the courier charged per live consignment
+ *          − packing   = each parcel's box (order/profit-estimates.ts, PARCEL_COSTS)
+ *          − courier   = what the courier charged per live consignment, else a cautious
+ *                        estimate per parcel (PARCEL_COSTS)
  *          − fees      = what the gateway kept, per payment (paymentFee):
  *                        1. actual: `payment.fee_paise`, the gateway's own figure;
  *                        2. else the store's rate for how the shopper paid
@@ -23,7 +25,8 @@
  *                        GST on a fee is left out when the store can claim it back (a regular
  *                        GST registration), the same way net sales leave out GST
  *          − RTO       = what couriers charged to bring undelivered parcels back
- *          = profit.   Anything unknown counts as zero and is flagged, never guessed.
+ *          = profit.   Packing and delivery are estimated cautiously until known (a floor:
+ *                      "at least"); anything else unknown counts as zero and is flagged.
  * WHERE: order/profit-service.ts loads the facts; the order page's Profit card and the
  *        Profit reports (Analytics) show the result.
  */
@@ -34,6 +37,9 @@ import {
   parseAppsSettings,
   withAppSettings,
 } from '../apps/settings'
+import { DEFAULT_DELIVERY_PAISE, type ParcelCost } from './profit-estimates'
+
+export * from './profit-estimates'
 
 /** A rate the store pays on money it takes: basis points of the amount plus a fixed sum. */
 export const FeeRateSchema = z.object({
@@ -145,6 +151,11 @@ export const ProfitCostSettingsSchema = z.object({
     .default(() => ({ ...STANDARD_METHOD_FEES })),
   gatewayFees: z.record(z.string().min(1).max(40), FeeRateSchema).default({}),
   codFee: FeeRateSchema.nullable().default(null),
+  /**
+   * What a parcel's delivery is estimated at when no real charge to its state is on record in
+   * the last 60 days (order/profit-estimates.ts). Before GST when the store is registered.
+   */
+  defaultDeliveryPaise: z.number().int().min(0).max(10_000_00).default(DEFAULT_DELIVERY_PAISE),
 })
 export type ProfitCostSettings = z.infer<typeof ProfitCostSettingsSchema>
 
@@ -233,8 +244,8 @@ export type ProfitInput = {
    */
   collectedPaise: number | null
   lines: readonly ProfitLine[]
-  /** Consignments not cancelled; null charge = not known yet. */
-  shipments: readonly { courierChargePaise: number | null }[]
+  /** Each parcel's packing and delivery (order/profit-estimates.ts parcelCost). */
+  parcels: readonly ParcelCost[]
   payments: readonly ProfitPayment[]
   /** What couriers charged for RTOs on this order. */
   rtoPaise: number
@@ -246,6 +257,7 @@ export type ProfitInput = {
 export type OrderProfit = {
   netSalesPaise: number
   goodsPaise: number
+  packingPaise: number
   courierPaise: number
   feesPaise: number
   rtoPaise: number
@@ -257,14 +269,25 @@ export type OrderProfit = {
    * two, or null when no payment took a fee.
    */
   feeSource: 'actual' | 'estimated' | 'mixed' | null
+  /**
+   * Some part will still change when the real figure arrives (packing, delivery or a payment
+   * fee), so the profit is a floor: at least this much, from the costs entered.
+   */
+  estimated: boolean
   /** Why the figure may be off, in the merchant's terms. */
   flags: {
     /** Some units' cost was filled in after the sale from the cost then. */
     costEstimated: boolean
     /** Some goods had no cost at all: they count as free. */
     costMissing: boolean
-    /** A consignment's courier charge is not known yet. */
+    /** A consignment's courier charge is not known and could not be estimated. */
     courierMissing: boolean
+    /** Some delivery is estimated until the courier's charge is known. */
+    courierEstimated: boolean
+    /** Some packing is the box's cost now, not a snapshot from when it was packed. */
+    packingEstimated: boolean
+    /** A parcel's box has no cost set (or the store has no boxes): packing counts as ₹0. */
+    packingMissing: boolean
     /** A payment's fee came from the store's rate, not the gateway. */
     feeFromRate: boolean
     /** A payment's method has no rate set and the gateway reported no fee. */
@@ -295,11 +318,17 @@ export function computeOrderProfit(input: ProfitInput): OrderProfit {
     costEstimated ||= l.costEstimated
   }
 
+  let packingPaise = 0
   let courierPaise = 0
-  let courierMissing = false
-  for (const s of input.shipments) {
-    if (s.courierChargePaise === null) courierMissing = true
-    else courierPaise += s.courierChargePaise
+  let courierEstimated = false
+  let packingEstimated = false
+  let packingMissing = false
+  for (const p of input.parcels) {
+    packingPaise += Math.max(0, p.packingPaise)
+    courierPaise += Math.max(0, p.courierPaise)
+    courierEstimated ||= p.courierEstimated
+    packingEstimated ||= p.packingEstimated
+    packingMissing ||= p.packingMissing
   }
 
   let feesPaise = 0
@@ -316,33 +345,49 @@ export function computeOrderProfit(input: ProfitInput): OrderProfit {
   const estimated = feeFromRate || feeMissing
 
   const rtoPaise = Math.max(0, input.rtoPaise)
-  const profitPaise = netSalesPaise - goodsPaise - courierPaise - feesPaise - rtoPaise
+  const profitPaise =
+    netSalesPaise - goodsPaise - packingPaise - courierPaise - feesPaise - rtoPaise
   return {
     netSalesPaise,
     goodsPaise,
+    packingPaise,
     courierPaise,
     feesPaise,
     rtoPaise,
     profitPaise,
     marginBps: netSalesPaise > 0 ? Math.round((profitPaise * 10_000) / netSalesPaise) : null,
     feeSource: feeActual ? (estimated ? 'mixed' : 'actual') : estimated ? 'estimated' : null,
-    flags: { costEstimated, costMissing, courierMissing, feeFromRate, feeMissing },
+    estimated: courierEstimated || packingEstimated || feeFromRate,
+    flags: {
+      costEstimated,
+      costMissing,
+      courierMissing: false,
+      courierEstimated,
+      packingEstimated,
+      packingMissing,
+      feeFromRate,
+      feeMissing,
+    },
   }
 }
 
 /**
  * Split an order's profit over its lines (for profit by product): net sales by each line's
- * share of the goods value, its own goods cost, and the order's courier, fees and RTO by the
- * same share. Whole paise, largest remainder, so the lines add back to the order exactly.
+ * share of the goods value, its own goods cost, and the order's packing, courier, fees and RTO
+ * by the same share. Whole paise, largest remainder, so the lines add back to the order exactly.
  */
 export function allocateProfit(
-  profit: Pick<OrderProfit, 'netSalesPaise' | 'courierPaise' | 'feesPaise' | 'rtoPaise'>,
+  profit: Pick<OrderProfit, 'netSalesPaise' | 'courierPaise' | 'feesPaise' | 'rtoPaise'> & {
+    packingPaise?: number
+  },
   lines: readonly { grossPaise: number; goodsPaise: number }[],
 ): { netSalesPaise: number; goodsPaise: number; profitPaise: number }[] {
   const weights = lines.map((l) => Math.max(0, l.grossPaise))
   const share = (amount: number) => largestRemainder(amount, weights)
   const net = share(profit.netSalesPaise)
-  const overhead = share(profit.courierPaise + profit.feesPaise + profit.rtoPaise)
+  const overhead = share(
+    (profit.packingPaise ?? 0) + profit.courierPaise + profit.feesPaise + profit.rtoPaise,
+  )
   return lines.map((l, i) => {
     const netSalesPaise = net[i] ?? 0
     return {

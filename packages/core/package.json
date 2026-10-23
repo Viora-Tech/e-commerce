@@ -24,6 +24,8 @@
     "./gst": "./src/tax/gst.ts",
     "./tax-settings": "./src/tax/settings.ts",
     "./profit": "./src/order/profit.ts",
+    "./expenses": "./src/finance/monthly-expenses.ts",
+    "./profit-summary": "./src/finance/profit-summary.ts",
     "./gst-registrations": "./src/tax/registration-schemas.ts",
     "./gst-registration-service": "./src/tax/registrations.ts",
     "./tax-origin": "./src/tax/origin.ts",

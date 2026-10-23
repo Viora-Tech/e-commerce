@@ -105,6 +105,11 @@ export const BoxPresetSchema = z.object({
   heightCm: z.number().min(1).max(200),
   weightGrams: z.number().int().min(1).max(50000),
   isDefault: z.boolean().default(false),
+  /**
+   * What one box plus its filler costs, for order profit (packing). Before GST for a
+   * GST-registered store, as paid otherwise. Null: not set, counts as ₹0 and is flagged.
+   */
+  costPaise: z.number().int().min(0).max(10_000_00).nullable().default(null),
 })
 export type BoxPreset = z.infer<typeof BoxPresetSchema>
 

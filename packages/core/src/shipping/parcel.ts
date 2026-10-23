@@ -35,6 +35,22 @@ export function effectiveWeightGrams(
   return Math.max(actualGrams, volumetricWeightGrams(dims))
 }
 
+/**
+ * The named box a parcel is packed in, for its packing cost: the one every packed line's
+ * product picks, else the store's main box (custom dimensions, mixed boxes or none set).
+ * Null when the store has no boxes.
+ */
+export function parcelBoxPreset<B extends { id: string; isDefault: boolean }>(
+  lines: readonly { quantity: number; boxPresetId: string | null | undefined }[],
+  boxPresets: readonly B[],
+): B | null {
+  const packed = lines.filter((l) => l.quantity > 0)
+  const ids = new Set(packed.map((l) => l.boxPresetId ?? null))
+  const [only] = [...ids]
+  const named = ids.size === 1 && only ? boxPresets.find((b) => b.id === only) : undefined
+  return named ?? boxPresets.find((b) => b.isDefault) ?? boxPresets[0] ?? null
+}
+
 export type LinePackage = {
   quantity: number
   boxPresetId: string | null | undefined

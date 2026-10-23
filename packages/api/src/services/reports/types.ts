@@ -1,4 +1,4 @@
-import { notTestOrder } from '@commerce/core'
+import { notTestOrder, type ProfitAverages, type ProfitVerdict } from '@commerce/core'
 import type { StoreTx } from '@commerce/db'
 import { order } from '@commerce/db'
 import { and, gte, lt, ne } from 'drizzle-orm'
@@ -19,6 +19,26 @@ export type ReportData = {
   totals: Record<string, ReportValue>
   /** Daily chart for reports whose rows are not days; `series` reports draw their rows. */
   series?: { label: string; value: number }[]
+  /** The Profit reports' summary tiles. */
+  profit?: ProfitInsights
+}
+
+/**
+ * Averages, net profit and the verdict over a span (Profit reports). Every figure is a floor
+ * while `estimatedOrders` is above zero. `soFar`: the month in progress, whose expenses count
+ * only the days gone.
+ */
+export type ProfitInsights = ProfitAverages & {
+  expensesPaise: number
+  netProfitPaise: number
+  verdict: ProfitVerdict
+  soFar: {
+    month: string
+    daysCounted: number
+    daysInMonth: number
+    fullPaise: number
+    countedPaise: number
+  } | null
 }
 
 /** A span of IST days: `from` is midnight of the first, `to` midnight after the last. */

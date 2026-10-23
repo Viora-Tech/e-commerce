@@ -233,6 +233,7 @@ export const routes = {
     shippingZone: (zoneId: string) => `/settings/shipping/zones/${id(zoneId)}`,
     taxes: () => '/settings/taxes',
     costs: () => '/settings/costs',
+    expenses: () => '/settings/expenses',
     locations: () => '/settings/locations',
     location: (locationId: string) => `/settings/locations/${id(locationId)}`,
     domains: () => '/settings/domains',

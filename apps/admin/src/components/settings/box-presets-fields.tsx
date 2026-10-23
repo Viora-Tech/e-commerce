@@ -1,6 +1,7 @@
 'use client'
 
 import type { BoxPreset } from '@commerce/core'
+import { parseRupees } from '@commerce/money'
 import { Package, Plus, Trash2 } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Field, FieldLabel } from '@commerce/ui/shadcn/field'
@@ -23,7 +24,11 @@ const blankBox = (): BoxPreset => ({
   heightCm: 10,
   weightGrams: 200,
   isDefault: false,
+  costPaise: null,
 })
+
+/** Typed rupees as paise; blank (or not a number) is "no cost set". */
+const costOf = (text: string): number | null => (text.trim() ? parseRupees(text) : null)
 
 /** Settings → Shipping's named boxes, stored in the shipping settings JSON. The booking flow
  *  pre-fills from whichever one is the default. */
@@ -61,6 +66,7 @@ export default function BoxPresetsFields({ value, onChange }: BoxPresetsFieldsPr
     <DataCard title={copy.heading}>
       <div className="flex flex-col gap-4">
         <p className="text-body text-muted-foreground">{copy.intro}</p>
+        <p className="text-caption text-muted-foreground">{copy.costHelp}</p>
         {boxes.length === 0 ? (
           <EmptyState icon={Package} heading={copy.empty} />
         ) : (
@@ -68,7 +74,7 @@ export default function BoxPresetsFields({ value, onChange }: BoxPresetsFieldsPr
             {boxes.map((box) => (
               <div
                 key={box.id}
-                className="grid gap-3 rounded-lg border border-border p-4 sm:grid-cols-[1.5fr_1fr_1fr_1fr_1fr_auto] sm:items-end"
+                className="grid gap-3 rounded-lg border border-border p-4 sm:grid-cols-[1.5fr_1fr_1fr_1fr_1fr_1fr_auto] sm:items-end"
               >
                 <Field>
                   <FieldLabel htmlFor={`box-name-${box.id}`}>{copy.name}</FieldLabel>
@@ -113,6 +119,15 @@ export default function BoxPresetsFields({ value, onChange }: BoxPresetsFieldsPr
                     type="number"
                     value={box.weightGrams}
                     onChange={(e) => handlePatch(box.id, { weightGrams: Number(e.target.value) })}
+                  />
+                </Field>
+                <Field>
+                  <FieldLabel htmlFor={`box-cost-${box.id}`}>{copy.cost}</FieldLabel>
+                  <Input
+                    id={`box-cost-${box.id}`}
+                    inputMode="decimal"
+                    defaultValue={box.costPaise == null ? '' : String(box.costPaise / 100)}
+                    onBlur={(e) => handlePatch(box.id, { costPaise: costOf(e.target.value) })}
                   />
                 </Field>
                 <div className="flex items-center gap-2">

@@ -61,6 +61,7 @@ import marketingCampaigns from './marketing-campaigns'
 import mcp from './mcp'
 import meilisearch from './meilisearch'
 import metaobjects from './metaobjects'
+import monthlyExpenses from './monthly-expenses'
 import navigation from './navigation'
 import notifications from './notifications'
 import onboarding from './onboarding'
@@ -77,6 +78,7 @@ import productForm from './product-form'
 import productPage from './product-page'
 import products from './products'
 import profitCosts from './profit-costs'
+import profitReport from './profit-report'
 import purchaseDocuments from './purchase-documents'
 import purchasing from './purchasing'
 import razorpayWebsites from './razorpay-websites'
@@ -196,6 +198,8 @@ export const hindiCopy: readonly TranslationPair[] = [
   ...products,
   ...purchaseDocuments,
   ...profitCosts,
+  ...profitReport,
+  ...monthlyExpenses,
   ...purchasing,
   ...selectProducts,
   ...returns,

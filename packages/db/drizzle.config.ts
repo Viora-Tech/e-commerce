@@ -10,6 +10,7 @@ export default defineConfig({
     './src/automation-schema.ts',
     './src/billing-schema.ts',
     './src/channel-schema.ts',
+    './src/finance-schema.ts',
     './src/auth-schema.ts',
     './src/marketing-schema.ts',
     './src/privacy-schema.ts',

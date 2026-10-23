@@ -6,6 +6,7 @@ import {
   defaultProfitCosts,
   feeOn,
   methodRateIdOf,
+  type ParcelCost,
   type PaymentMethodDetail,
   type ProfitInput,
   type ProfitPayment,
@@ -29,6 +30,16 @@ const paid = (
   ...over,
 })
 
+/** A parcel with real costs, unless given. */
+const parcel = (over: Partial<ParcelCost> = {}): ParcelCost => ({
+  packingPaise: 0,
+  packingEstimated: false,
+  packingMissing: false,
+  courierPaise: 0,
+  courierEstimated: false,
+  ...over,
+})
+
 /**
  * ₹1,180 incl. 18% GST (₹180), one unit that cost ₹500, paid online by Razorpay. The store is
  * GST-registered, so the GST on fees is claimed back and left out.
@@ -47,13 +58,14 @@ const base = (over: Partial<ProfitInput> = {}): ProfitInput => ({
       giftCard: false,
     },
   ],
-  shipments: [{ courierChargePaise: 6_500 }],
+  parcels: [parcel({ courierPaise: 6_500 })],
   payments: [paid('razorpay', 118_000)],
   rtoPaise: 0,
   costs: {
     methodFees: {},
     gatewayFees: { razorpay: { percentBps: 236, fixedPaise: 0 } },
     codFee: null,
+    defaultDeliveryPaise: 10_000,
   },
   feeGstClaimable: true,
   ...over,
@@ -77,6 +89,9 @@ describe('computeOrderProfit', () => {
       costEstimated: false,
       costMissing: false,
       courierMissing: false,
+      courierEstimated: false,
+      packingEstimated: false,
+      packingMissing: false,
       feeFromRate: true,
       feeMissing: false,
     })
@@ -111,7 +126,12 @@ describe('computeOrderProfit', () => {
     const p = computeOrderProfit(
       base({
         payments: [paid('cod', 118_000)],
-        costs: { methodFees: {}, gatewayFees: {}, codFee: { percentBps: 200, fixedPaise: 3_000 } },
+        costs: {
+          methodFees: {},
+          gatewayFees: {},
+          codFee: { percentBps: 200, fixedPaise: 3_000 },
+          defaultDeliveryPaise: 10_000,
+        },
       }),
     )
     // 2% of ₹1,180 = 2,360 paise + ₹30
@@ -122,7 +142,12 @@ describe('computeOrderProfit', () => {
     const p = computeOrderProfit(
       base({
         payments: [paid('cod', 118_000)],
-        costs: { methodFees: {}, gatewayFees: {}, codFee: { percentBps: 200, fixedPaise: 3_000 } },
+        costs: {
+          methodFees: {},
+          gatewayFees: {},
+          codFee: { percentBps: 200, fixedPaise: 3_000 },
+          defaultDeliveryPaise: 10_000,
+        },
         feeGstClaimable: false,
       }),
     )
@@ -168,12 +193,38 @@ describe('computeOrderProfit', () => {
     expect(p.flags.costMissing).toBe(true)
   })
 
-  it('a consignment with no known charge is flagged', () => {
+  it('packing and estimated delivery come off, and an estimate makes the profit a floor', () => {
     const p = computeOrderProfit(
-      base({ shipments: [{ courierChargePaise: 5_000 }, { courierChargePaise: null }] }),
+      base({
+        parcels: [
+          parcel({ packingPaise: 800, courierPaise: 5_000 }),
+          parcel({
+            packingPaise: 2_500,
+            packingEstimated: true,
+            courierPaise: 10_000,
+            courierEstimated: true,
+          }),
+        ],
+      }),
     )
-    expect(p.courierPaise).toBe(5_000)
-    expect(p.flags.courierMissing).toBe(true)
+    expect(p.packingPaise).toBe(3_300)
+    expect(p.courierPaise).toBe(15_000)
+    expect(p.profitPaise).toBe(100_000 - 50_000 - 3_300 - 15_000 - 2_785)
+    expect(p.flags).toMatchObject({
+      courierEstimated: true,
+      packingEstimated: true,
+      packingMissing: false,
+    })
+    expect(p.estimated).toBe(true)
+  })
+
+  it('a box with no cost counts nothing and is flagged; real costs are not estimated', () => {
+    const p = computeOrderProfit(
+      base({ parcels: [parcel({ packingMissing: true, courierPaise: 6_500 })], payments: [] }),
+    )
+    expect(p.packingPaise).toBe(0)
+    expect(p.flags.packingMissing).toBe(true)
+    expect(p.estimated).toBe(false)
   })
 
   it('an RTO counts only what was collected and its return charge', () => {
@@ -209,7 +260,13 @@ describe('feeOn', () => {
 describe('allocateProfit', () => {
   it('shares net sales and overheads by line value, adding back exactly', () => {
     const shares = allocateProfit(
-      { netSalesPaise: 100_001, courierPaise: 6_500, feesPaise: 2_785, rtoPaise: 0 },
+      {
+        netSalesPaise: 100_001,
+        packingPaise: 800,
+        courierPaise: 6_500,
+        feesPaise: 2_785,
+        rtoPaise: 0,
+      },
       [
         { grossPaise: 2, goodsPaise: 30_000 },
         { grossPaise: 1, goodsPaise: 20_000 },
@@ -217,7 +274,7 @@ describe('allocateProfit', () => {
     )
     expect(shares.reduce((n, s) => n + s.netSalesPaise, 0)).toBe(100_001)
     expect(shares.map((s) => s.netSalesPaise)).toEqual([66_667, 33_334])
-    const overhead = 6_500 + 2_785
+    const overhead = 800 + 6_500 + 2_785
     expect(shares.reduce((n, s) => n + s.profitPaise, 0)).toBe(100_001 - 50_000 - overhead)
   })
 })
@@ -232,6 +289,7 @@ describe('profit cost settings', () => {
       methodFees: { upi: { percentBps: 0, fixedPaise: 0 } },
       gatewayFees: { razorpay: { percentBps: 200, fixedPaise: 0 } },
       codFee: null,
+      defaultDeliveryPaise: 9_000,
     }
     const next = withProfitCosts(apps, costs)
     expect(parseProfitCosts(next)).toEqual(costs)
@@ -304,6 +362,7 @@ describe('paymentFee', () => {
       decentro: { percentBps: 50, fixedPaise: 0 },
     },
     codFee: null,
+    defaultDeliveryPaise: 10_000,
   }
 
   it('uses the gateway’s fee first, without the GST inside it when it can be claimed', () => {

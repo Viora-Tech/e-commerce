@@ -32,6 +32,7 @@ export type {
   AnalyticsOverview,
 } from './services/analytics.service'
 export type {
+  ProfitInsights,
   ReportChartPoint,
   ReportResult,
   ReportRow,

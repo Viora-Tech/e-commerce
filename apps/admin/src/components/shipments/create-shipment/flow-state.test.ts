@@ -84,6 +84,7 @@ const draft = (over: Partial<ShipmentDraft> = {}): ShipmentDraft => ({
       heightCm: 5,
       weightGrams: 80,
       isDefault: true,
+      costPaise: 800,
     },
   ],
   defaultBoxId: 'mailer',

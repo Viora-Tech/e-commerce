@@ -16,6 +16,7 @@ import { api } from '@/lib/api-client'
 import { downloadCsv } from '@/lib/csv'
 import { csvOf } from '@/lib/report-csv'
 import { routes } from '@/lib/routes'
+import ProfitInsightsCard from './profit-insights-card'
 import RangePicker from './range-picker'
 import ReportChart from './report-chart'
 import ReportNameDialog from './report-name-dialog'
@@ -125,6 +126,7 @@ export default function ReportView({ report, initialRange, initial }: ReportView
           ) : null}
         </div>
       </Card>
+      {data.profit ? <ProfitInsightsCard insights={data.profit} /> : null}
       <ReportChart report={report} data={data} shape={shape} />
       {saving ? (
         <ReportNameDialog

@@ -1,6 +1,6 @@
 # Profit you can trust: packaging, delivery estimates, monthly expenses, floor profit
 
-Status: design, awaiting owner approval (22 Oct 2026).
+Status: approved and built (owner answers 23 Oct 2026, below).
 
 ## Why
 
@@ -149,7 +149,15 @@ net sales − goods − packing − courier (actual or estimate) − fees − RT
 - GST: registered stores type costs before GST; other stores type what they pay.
 - Monthly expense edits apply from a chosen month forward; past months never change.
 
-## Open for the owner
+## Answered by the owner (23 Oct 2026)
 
-- Past orders at launch (see answer when given).
-- Expenses in a month still in progress (see answer when given).
+- **Past orders at launch: 1a.** Every past order gets packing and delivery estimates the same way
+  as new ones, and is clearly labelled: the order's Profit card says "Estimated" and "at least",
+  and the Profit report shows how many orders in each month (old months included) are still
+  estimated.
+- **Expenses in a month still in progress: 2a.** The month in progress counts each expense
+  prorated by the days gone (`amount × days so far ÷ days in month`), labelled "so far". The same
+  rule covers a report span that includes only part of an older month (that share of its days).
+
+Built in PR "Profit you can trust" (migration `0159_profit`); see
+`docs/handoff/changes/2026-10-23-profit.md`.

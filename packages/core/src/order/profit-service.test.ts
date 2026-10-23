@@ -253,15 +253,16 @@ describe('order profit', () => {
       .insert(shipment)
       .values({ storeId: t.storeId, orderId: placed.orderId, provider: 'manual', waybill: 'M1' })
       .returning()
-    expect(
-      (await inStore(t, (ctx) => orderProfit(ctx, placed.orderId)))?.flags.courierMissing,
-    ).toBe(true)
+    // No charge yet and none on record to Haryana: the default ₹100, estimated.
+    const before = await inStore(t, (ctx) => orderProfit(ctx, placed.orderId))
+    expect(before?.courierPaise).toBe(10_000)
+    expect(before?.flags.courierEstimated).toBe(true)
     await inStore(t, (ctx) =>
       setCourierCharge(ctx, { shipmentId: s?.id as string, chargePaise: 7_500 }),
     )
     const profit = await inStore(t, (ctx) => orderProfit(ctx, placed.orderId))
     expect(profit?.courierPaise).toBe(7_500)
-    expect(profit?.flags.courierMissing).toBe(false)
+    expect(profit?.flags.courierEstimated).toBe(false)
     await expect(
       inStore(t, (ctx) =>
         setCourierCharge(ctx, {
@@ -293,6 +294,85 @@ describe('order profit', () => {
     await inStore(t, (ctx) => cancelOrder(ctx, second.orderId, { notifyCustomer: false }))
     const [cancelled] = await inStore(t, (ctx) => profitFacts(ctx.tx, [second.orderId]))
     expect(cancelled?.collectedPaise).toBe(118_000)
+  })
+})
+
+describe('packing and delivery estimates', () => {
+  const boxes = (costPaise: number | null) => ({
+    boxPresets: [
+      {
+        id: 'mailer',
+        name: 'Poly mailer',
+        lengthCm: 30,
+        widthCm: 25,
+        heightCm: 2,
+        weightGrams: 20,
+        isDefault: true,
+        costPaise,
+      },
+    ],
+  })
+
+  it('an unbooked order counts its box now and ₹100 delivery, both estimated', async () => {
+    const t = await seed()
+    await owner
+      .update(store)
+      .set({ shipping: boxes(800) })
+      .where(eq(store.id, t.storeId))
+    const placed = await place(t)
+    const profit = await inStore(t, (ctx) => orderProfit(ctx, placed.orderId))
+    expect(profit).toMatchObject({ packingPaise: 800, courierPaise: 10_000, estimated: true })
+    expect(profit?.flags).toMatchObject({ packingEstimated: true, courierEstimated: true })
+  })
+
+  it('booking snapshots the box cost, so a later price change leaves the order alone', async () => {
+    const t = await seed()
+    await owner
+      .update(store)
+      .set({ shipping: boxes(800) })
+      .where(eq(store.id, t.storeId))
+    const placed = await place(t)
+    const [booked] = await inStore(t, async (ctx) => [
+      await createShipmentForOrder(ctx, new FakeShippingProvider(), placed.orderId),
+    ])
+    expect(booked).toMatchObject({ packingCostPaise: 800, boxPresetId: 'mailer' })
+    await owner
+      .update(store)
+      .set({ shipping: boxes(3_000) })
+      .where(eq(store.id, t.storeId))
+    const profit = await inStore(t, (ctx) => orderProfit(ctx, placed.orderId))
+    expect(profit).toMatchObject({ packingPaise: 800, courierPaise: 6_000 })
+    expect(profit?.flags).toMatchObject({ packingEstimated: false, courierEstimated: false })
+  })
+
+  it('delivery is estimated at the highest real charge to the same state in 60 days', async () => {
+    const t = await seed()
+    const first = await place(t)
+    await owner.insert(shipment).values({
+      storeId: t.storeId,
+      orderId: first.orderId,
+      provider: 'manual',
+      waybill: 'H1',
+      courierChargePaise: 9_000,
+    })
+    const second = await place(t)
+    const profit = await inStore(t, (ctx) => orderProfit(ctx, second.orderId))
+    expect(profit?.courierPaise).toBe(9_000)
+    expect(profit?.flags.courierEstimated).toBe(true)
+    // No box set up: packing counts nothing and says so.
+    expect(profit?.flags.packingMissing).toBe(true)
+  })
+
+  it('an order cancelled before packing gets no packing or delivery', async () => {
+    const t = await seed()
+    await owner
+      .update(store)
+      .set({ shipping: boxes(800) })
+      .where(eq(store.id, t.storeId))
+    const placed = await place(t)
+    await inStore(t, (ctx) => cancelOrder(ctx, placed.orderId, { notifyCustomer: false }))
+    const profit = await inStore(t, (ctx) => orderProfit(ctx, placed.orderId))
+    expect(profit).toMatchObject({ packingPaise: 0, courierPaise: 0, estimated: false })
   })
 })
 
