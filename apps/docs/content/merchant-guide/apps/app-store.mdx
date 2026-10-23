@@ -1,12 +1,15 @@
 ---
 title: Apps
-description: Built-in apps and connections, what each one adds to your store, and how to install, set up and uninstall them.
+description: The App Store website where you find and install apps, your Installed apps in the admin, what each app adds to your store, and how to set up and uninstall them.
 ---
 
 # Apps
 
-**Apps** is where you add tools to your store: invoicing, importers, marketing tools,
-couriers, payment gateways and more. Each one is a plugin you can turn on or off any time.
+Apps add tools to your store: invoicing, importers, marketing tools, couriers, payment
+gateways and more. You find and install them on the **App Store website**,
+[koomerce.app/apps](https://koomerce.app/apps) (`apps.koomerce.app` opens the same page). Your
+admin keeps the apps your store has, under **Apps** in the sidebar, where you open, set up and
+uninstall them.
 
 ## What this is for
 
@@ -29,7 +32,9 @@ shows its permissions or uninstalls it. Tick several rows to uninstall them toge
 **Error** means the app's last background work failed, or its outside account (for example Google
 Search Console access) needs attention. The banner on the app's own page says what to do.
 
-Click **Browse App Store** to see every app you can add (`Apps → App Store`).
+Click **Browse App Store** (or **App Store** at the bottom of **Apps** in the sidebar, or type
+"app store" in the search bar) to open the App Store website in a new tab. The old
+`Apps → App Store` page in the admin now sends you there.
 
 ## How it works
 
@@ -39,7 +44,7 @@ can place in the theme editor.
 
 ```mermaid
 flowchart TD
-  install["Apps → Install"] --> app(("The app"))
+  install["App Store → Install"] --> app(("The app"))
   app -->|connections| settings["Its settings form<br/>Settings → Payments / Shipping / Notifications"]
   app -->|many built-in apps| pages["Its own pages<br/>under Apps in the sidebar"]
   app -->|some apps| card["A card on the<br/>order page"]
@@ -47,19 +52,24 @@ flowchart TD
   app -->|some apps| work["Work in the background<br/>e.g. issue an invoice when an order is paid"]
 ```
 
-## Recommended for your store
+## The App Store website
 
-At the top of the **App Store** a strip called **Recommended for** *your store's name* suggests up to three
-apps you have not installed yet, each with a short reason. It looks at what is missing: with no
-courier connected it suggests Delhivery (then Shiprocket or RapidShyp); with no reviews it suggests
-Reviews; then WhatsApp, GST invoices, Back in stock and a payment gateway. A gap counts as
-covered as soon as you have any app that does that job, so the strip only ever shows what you
-actually lack, and goes away when nothing is missing. Select an app to see what it does, and
-**Install** to add it. You see what the app can do before it is switched on.
+The App Store lists every app, with the same details the admin shows before you install:
+
+- **Categories** down the side (Shipping, Payments, Invoicing, Marketing, Messages, Analytics,
+  Search, Storage, Store migration). Each category has its own page you can share.
+- **Search** by name or by what you need ("courier", "GST", "reviews").
+- **Filters**: **Free** or **Paid**, and **Built by Koomerce** for our own apps.
+- **The app's page**: what it does, what it works with (for example "Your own Delhivery account"
+  or "Delivery checker block in your theme"), the pages and theme blocks it adds, what it can
+  access in your store and why, what it shares with an outside company, and its price.
+
+Prices are the same as in the admin: free apps say **Free**, paid apps show the monthly price and
+the plan that includes them (for example "₹199 / month · included in Growth").
 
 ## Built-in apps vs connections
 
-The App Store has two sections:
+Every app is one of two kinds. On the App Store, **Built by Koomerce** shows only the first:
 
 - **Built-in apps**: "Made by us. Turn one on and start using it — no account to set up."
 - **Connections**: link your store to another company's account. They show **by \<company\>**
@@ -97,8 +107,8 @@ Every store also has the core features built in, with nothing to install: cash o
 UPI or bank transfer, a demo courier for testing, and local file storage.
 
 <Screenshot
-  name="Apps page"
-  caption="Apps page with the Built-in apps section on top (GST invoices showing Installed, Shopify importer and Back in stock with Install buttons) and the Connections section below, filtered to All."
+  name="App Store website"
+  caption="The App Store website: categories on the left, the search box with the Free, Paid and Built by Koomerce filters above a grid of app cards, each with its logo, maker, one line and price."
 />
 
 ## Connect your Shopify store
@@ -158,14 +168,20 @@ as it came from Shopify, and it is optimised the next time the platform reproces
 
 <Steps>
 
-### Open the App Store
+### Find the app
 
-Select **Apps** in the sidebar, then **Browse App Store**. Use the category chips (Invoicing,
-Payments, Shipping, Messages, Storage and so on) to find one.
+Open the App Store website: **Apps → Browse App Store** in the admin, or go to
+[koomerce.app/apps](https://koomerce.app/apps). Pick a category or search, then open the app's
+page to read what it does and what it can access.
 
 ### Install
 
-Select **Install** on the app's card. A short flow opens:
+Select **Install** on the app's page. Your admin opens at the app's install page:
+
+1. **Sign in** if you are not signed in yet. You come straight back to the install afterwards.
+2. **Pick a store** if you belong to more than one. The app goes into the store you pick.
+
+Then a short flow opens:
 
 1. **Connect account**, for couriers and other connections: enter the company's account details
    and **Test connection**. Built-in apps skip this step.
@@ -175,14 +191,14 @@ Select **Install** on the app's card. A short flow opens:
 
 Razorpay and Cashfree are still set up in **Settings → Payments**.
 
-**Paid apps.** If your plan doesn't include an app, its card shows the monthly price, and Install
-opens a **Buy** step first. Paying installs it. See
+**Paid apps.** If your plan doesn't include an app, its App Store page shows the monthly price,
+and the install flow opens a **Buy** step first. Paying installs it. See
 [Plan & billing](/merchant-guide/settings/plan-and-billing#paid-apps).
 
 ### Open it
 
-Apps with their own pages appear under **Apps** in the sidebar. Select **Open** on the card, or
-the app's name in the sidebar.
+Apps with their own pages appear under **Apps** in the sidebar. Select **Open** on the **Done**
+step, or the app's name in the sidebar.
 
 </Steps>
 
@@ -219,7 +235,8 @@ shows the CORS rule the bucket needs so uploads can go straight from your browse
 | Problem | Why it happens | Fix |
 | --- | --- | --- |
 | Installed a connection but nothing changed | It's installed but not connected yet. | Follow **Set up in …** and fill in the account details. |
-| App's page says to install it first | The app was uninstalled. | Install it again from **Apps**; your settings come back. |
+| App's page says to install it first | The app was uninstalled. | Install it again from the App Store; your settings come back. |
+| Install opened the wrong store | You belong to several stores and picked another. | Open the Install link again and pick the right store. |
 | Can't install apps | Your role doesn't allow it. | Ask the store owner, or an Administrator. |
 | The theme editor's Apps tab is empty | No app with blocks is installed. | Install Back in stock, EMI & pay later, Delhivery or Shiprocket. |
 
@@ -237,8 +254,15 @@ Built-in apps come with the platform. Connections use your own account with that
 <FaqItem question="Can I get an app for a gateway or courier that isn't listed?">
 
 A developer can build one as a plugin (see [Build your first app](/developer-docs/building/first-app)).
-A public app store on our website, listing every app with an Install button that opens the
-install flow in your admin, is coming soon.
+Apps from outside developers will be listed on the same App Store website later.
+
+</FaqItem>
+
+<FaqItem question="Where did the App Store in the admin go?">
+
+It moved to its own website, so you can look at apps (and share a link to one) without signing
+in. **Browse App Store** in the admin opens it in a new tab; installing still happens in your
+admin.
 
 </FaqItem>
 

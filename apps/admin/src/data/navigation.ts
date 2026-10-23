@@ -19,7 +19,13 @@ import {
 } from '@commerce/ui/icons'
 import { routes } from '@/lib/routes'
 
-export type NavChild = { href: string; label: string; permission?: Permission }
+export type NavChild = {
+  href: string
+  label: string
+  permission?: Permission
+  /** A site outside the admin (the App Store website): opens in a new tab, never "active". */
+  external?: boolean
+}
 
 export type NavItem = {
   href: string

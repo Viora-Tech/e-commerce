@@ -1,3 +1,4 @@
+import { APP_LOGOS } from '@commerce/core/app-logos'
 import { cn } from '@commerce/ui/lib/utils'
 import { appIcon } from '@/apps/app-icons'
 
@@ -7,33 +8,6 @@ type AppLogoProps = {
   icon: string | null
   size?: 28 | 44 | 48 | 72 | 160
   className?: string
-}
-
-/** Real third-party logos under `public/app-logos`, shown on a white tile (trademarks of their owners). */
-const LOGOS: Record<string, string> = {
-  bluedart: '/app-logos/bluedart.svg',
-  cashfree: '/app-logos/cashfree.png',
-  chatwoot: '/app-logos/chatwoot.svg',
-  decentro: '/app-logos/decentro.png',
-  delhivery: '/app-logos/delhivery.png',
-  'dhl-express': '/app-logos/dhl-express.svg',
-  dtdc: '/app-logos/dtdc.png',
-  ekart: '/app-logos/ekart.png',
-  fedex: '/app-logos/fedex.svg',
-  'google-search-console': '/app-logos/google-search-console.svg',
-  growthbook: '/app-logos/growthbook.png',
-  'india-post': '/app-logos/india-post.png',
-  meilisearch: '/app-logos/meilisearch.svg',
-  r2: '/app-logos/r2.svg',
-  rapidshyp: '/app-logos/rapidshyp.png',
-  razorpay: '/app-logos/razorpay.svg',
-  s3: '/app-logos/s3.svg',
-  ses: '/app-logos/ses.svg',
-  shadowfax: '/app-logos/shadowfax.png',
-  shiprocket: '/app-logos/shiprocket.png',
-  umami: '/app-logos/umami.svg',
-  whatsapp: '/app-logos/whatsapp.svg',
-  xpressbees: '/app-logos/xpressbees.png',
 }
 
 /** Built-in family: one gradient tile per app, a white glyph on top. */
@@ -61,7 +35,8 @@ const SIZES = {
 export default function AppLogo({ id, icon, size = 44, className }: AppLogoProps) {
   // Render logic
   const dims = SIZES[size]
-  const src = LOGOS[id]
+  // Real third-party logos, shown on a white tile (trademarks of their owners).
+  const src = APP_LOGOS[id]
 
   if (src) {
     return (

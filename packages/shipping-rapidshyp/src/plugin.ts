@@ -17,6 +17,17 @@ export const rapidshypPlugin = definePlugin({
   category: 'shipping',
   company: 'RapidShyp',
   description: 'Rate comparison across RapidShyp’s courier network, bookings and cancellation.',
+  listing: {
+    tagline: 'Multi-courier rates, labels, pickups and tracking.',
+    highlights: ['Courier rates and labels', 'Pickups and cancellation', 'Tracking on a schedule'],
+    guide: '/merchant-guide/orders/shipments',
+    worksWith: [
+      'The Shipments workspace, beside any other courier you install',
+      'Courier rules in Settings → Shipping',
+      'Delivery checker block in your theme',
+    ],
+    keywords: ['courier', 'shipping', 'aggregator'],
+  },
   access: {
     resources: [
       {

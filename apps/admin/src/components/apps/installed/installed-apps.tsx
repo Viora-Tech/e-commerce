@@ -1,13 +1,12 @@
 'use client'
 
 import { siteConfig } from '@commerce/config/site'
-import { Search, Trash2 } from '@commerce/ui/icons'
+import { Trash2 } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
-import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
-import type { AppSummary } from '@/components/apps/app-card'
+import AppStoreLink from '@/components/apps/app-store-link'
 import InstallFlow from '@/components/apps/install/install-flow'
 import ConfirmDialog from '@/components/layout/confirm-dialog'
 import ProoflyListPage from '@/components/layout/proofly-list-page'
@@ -28,6 +27,7 @@ import {
   settingsHref,
   statusCounts,
 } from '@/lib/app-access'
+import type { AppSummary } from '@/lib/app-summary'
 import { matchesQuery } from '@/lib/apps-gallery'
 import { routes } from '@/lib/routes'
 import { installedColumns } from './installed-columns'
@@ -185,21 +185,12 @@ export default function InstalledApps({ installId }: InstalledAppsProps) {
         ].join(' · ')
   const byId = new Map(installed.map((a) => [a.id, a]))
   const bulkNames = (bulk?.ids ?? []).map((id) => byId.get(id)?.name ?? id)
-  const browse = (
-    <Button variant="outline" nativeButton={false} render={<Link href={routes.apps.store()} />}>
-      {copy.browseStore}
-    </Button>
-  )
+  const browse = <AppStoreLink>{copy.browseStore}</AppStoreLink>
   return (
     <ProoflyListPage
       title={copy.title}
       summary={apps === null ? undefined : summary}
-      actions={
-        <Button variant="outline" nativeButton={false} render={<Link href={routes.apps.store()} />}>
-          <Search aria-hidden="true" />
-          {copy.browseStore}
-        </Button>
-      }
+      actions={<AppStoreLink>{copy.browseStore}</AppStoreLink>}
       controls={
         installed.length > 0 ? (
           <StatusPills

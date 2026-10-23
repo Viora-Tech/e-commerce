@@ -2,12 +2,11 @@
 
 import { CircleAlert, Puzzle } from '@commerce/ui/icons'
 import { Alert, AlertDescription, AlertTitle } from '@commerce/ui/shadcn/alert'
-import { Button } from '@commerce/ui/shadcn/button'
 import { Card } from '@commerce/ui/shadcn/card'
 import { Skeleton } from '@commerce/ui/shadcn/skeleton'
-import Link from 'next/link'
 import { type ReactNode, useEffect, useState } from 'react'
 import { toast } from 'sonner'
+import AppStoreLink from '@/components/apps/app-store-link'
 import EmptyState from '@/components/layout/empty-state'
 import PageHeader from '@/components/layout/page-header'
 import SaveBar from '@/components/layout/save-bar'
@@ -199,15 +198,7 @@ export default function ProviderSettingsForm<Extra extends object>({
                   icon={Puzzle}
                   heading={copy.noProviders.heading}
                   body={copy.noProviders.body}
-                  action={
-                    <Button
-                      nativeButton={false}
-                      variant="outline"
-                      render={<Link href={copy.noProviders.href} />}
-                    >
-                      {copy.noProviders.action}
-                    </Button>
-                  }
+                  action={<AppStoreLink>{copy.noProviders.action}</AppStoreLink>}
                 />
               </Card>
             ) : (

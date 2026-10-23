@@ -18,6 +18,21 @@ export const delhiveryPlugin = definePlugin({
   company: 'Delhivery',
   description:
     'Serviceability, delivery estimates, waybills, pickups, tracking and NDR on your Delhivery account.',
+  listing: {
+    tagline: 'Rates, labels, pickups and tracking, plus a delivery checker block.',
+    highlights: [
+      'Live rates and labels',
+      'Pickups, tracking updates and NDR',
+      'Pincode delivery checker for product pages',
+    ],
+    guide: '/merchant-guide/orders/shipments',
+    worksWith: [
+      'The Shipments workspace, beside any other courier you install',
+      'Courier rules in Settings → Shipping',
+      'Delivery checker block in your theme',
+    ],
+    keywords: ['courier', 'shipping', 'awb', 'pincode'],
+  },
   access: {
     resources: [
       {

@@ -17,6 +17,21 @@ export const indiaPostPlugin = definePlugin({
   company: 'Department of Posts',
   description:
     'Speed Post parcels to every PIN code in India: published rates, address labels and COD.',
+  listing: {
+    tagline: 'Speed Post to every PIN code in India, with labels and COD.',
+    highlights: [
+      'Published Speed Post rates',
+      'Address labels to print',
+      'COD parcels and their status',
+    ],
+    guide: '/merchant-guide/apps/india-post',
+    worksWith: [
+      'The Shipments workspace, beside any other courier you install',
+      'Courier rules in Settings → Shipping',
+      'Delivery checker block in your theme',
+    ],
+    keywords: ['speed post', 'courier', 'post office'],
+  },
   access: {
     resources: [
       {

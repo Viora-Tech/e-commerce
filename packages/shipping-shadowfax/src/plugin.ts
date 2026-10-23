@@ -15,6 +15,17 @@ export const shadowfaxPlugin = definePlugin({
   category: 'shipping',
   company: 'Shadowfax Technologies',
   description: 'Shadowfax forward and reverse bookings, labels, tracking, cancellation and NDR.',
+  listing: {
+    tagline: 'Fast metro and same-city delivery: bookings, labels, returns and tracking.',
+    highlights: ['Bookings and labels', 'Return pickups', 'Tracking and NDR'],
+    guide: '/merchant-guide/apps/couriers',
+    worksWith: [
+      'The Shipments workspace, beside any other courier you install',
+      'Courier rules in Settings → Shipping',
+      'Delivery checker block in your theme',
+    ],
+    keywords: ['courier', 'shipping', 'same day'],
+  },
   access: {
     resources: [
       {

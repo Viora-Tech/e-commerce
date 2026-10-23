@@ -16,6 +16,17 @@ export const ekartPlugin = definePlugin({
   company: 'Ekart Logistics (Flipkart)',
   description:
     'Ekart rates, bookings, returns, tracking, cancellation and NDR on Ekart’s own network.',
+  listing: {
+    tagline: 'Flipkart’s courier network: rates, bookings, returns and tracking.',
+    highlights: ['Rates and delivery days', 'Bookings and return pickups', 'Tracking and NDR'],
+    guide: '/merchant-guide/apps/couriers',
+    worksWith: [
+      'The Shipments workspace, beside any other courier you install',
+      'Courier rules in Settings → Shipping',
+      'Delivery checker block in your theme',
+    ],
+    keywords: ['courier', 'shipping', 'flipkart'],
+  },
   access: {
     resources: [
       {

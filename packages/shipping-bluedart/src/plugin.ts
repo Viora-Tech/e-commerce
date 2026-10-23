@@ -15,6 +15,20 @@ export const bluedartPlugin = definePlugin({
   company: 'Blue Dart',
   description:
     'Serviceability, waybills with labels, pickups, tracking and cancellation on your Blue Dart account.',
+  listing: {
+    tagline: 'Blue Dart waybills with labels, pickups and tracking.',
+    highlights: [
+      'Pincode serviceability',
+      'Waybills with labels and pickups',
+      'Tracking and cancellation',
+    ],
+    guide: '/merchant-guide/apps/couriers',
+    worksWith: [
+      'The Shipments workspace, beside any other courier you install',
+      'Courier rules in Settings → Shipping',
+    ],
+    keywords: ['courier', 'shipping', 'apex', 'surface'],
+  },
   access: {
     resources: [
       {

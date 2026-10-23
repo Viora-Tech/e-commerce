@@ -1,7 +1,7 @@
-import { siteConfig } from '@commerce/config/site'
+import { appStoreUrl, siteConfig } from '@commerce/config/site'
 import { type Permission, permissions } from '@commerce/core/permissions'
 import type { LucideIcon } from '@commerce/ui/icons'
-import { Palette, Plus, Settings } from '@commerce/ui/icons'
+import { Blocks, Palette, Plus, Settings } from '@commerce/ui/icons'
 import { routes } from '@/lib/routes'
 import { ACCOUNT_NAV } from './account'
 import { NAV_GROUPS, SETTINGS_NAV } from './navigation'
@@ -60,6 +60,8 @@ export const paletteContent = {
   toggleTheme: 'Switch between light and dark',
   settings: 'Settings',
   account: 'Your account',
+  /** The App Store website (opens a new tab). */
+  appStore: 'App Store',
   breadcrumbSeparator: ' › ',
   order: { guest: 'Guest' },
   product: {
@@ -226,6 +228,13 @@ export const PAGE_LINKS: PaletteLink[] = [
       icon: p.icon,
     }),
   ),
+  // Apps are browsed and installed on the App Store website, not in the admin.
+  {
+    label: paletteContent.appStore,
+    href: appStoreUrl(),
+    icon: Blocks,
+    permission: permissions.SETTINGS_READ,
+  },
 ]
 
 /** Settings sections as palette links, for the Settings scope with nothing typed. */

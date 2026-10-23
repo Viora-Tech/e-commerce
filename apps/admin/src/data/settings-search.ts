@@ -4,12 +4,14 @@
  * "COD", "GST", "courier"). Client-side only; nothing is fetched.
  */
 
+import { appStoreUrl } from '@commerce/config/site'
 import { routes } from '@/lib/routes'
 
 export type SettingsSearchEntry = {
   title: string
   /** The page it lives on, shown under the title. */
   where: string
+  /** An admin path, or a full `https://` URL (the App Store website), which opens a new tab. */
   href: string
   /** Other words that should find it. Lowercase. */
   keywords: string[]
@@ -202,9 +204,24 @@ export const SETTINGS_SEARCH_INDEX: SettingsSearchEntry[] = [
     ],
   },
   {
+    title: 'Find more apps',
+    where: 'App Store',
+    href: appStoreUrl(),
+    keywords: [
+      'app store',
+      'apps',
+      'install app',
+      'browse apps',
+      'more apps',
+      'plugins',
+      'integrations',
+      'add app',
+    ],
+  },
+  {
     title: 'Connect a courier',
-    where: 'Apps',
-    href: '/apps',
+    where: 'App Store',
+    href: appStoreUrl({ category: 'shipping' }),
     keywords: [
       'courier',
       'delhivery',

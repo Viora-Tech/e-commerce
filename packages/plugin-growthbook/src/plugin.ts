@@ -19,6 +19,17 @@ export const growthbookPlugin = definePlugin({
   company: 'GrowthBook',
   description:
     'A/B test your storefront: show different hero banners and sections to different shoppers and see which sells more.',
+  listing: {
+    tagline: 'A/B test your banners and sections, with no flicker.',
+    highlights: [
+      'Shows each shopper one version of a section',
+      'Counts who saw each version and who bought',
+      'Lists your running experiments',
+    ],
+    guide: '/merchant-guide/apps/growthbook',
+    worksWith: ['A GrowthBook Cloud account or your own GrowthBook server'],
+    keywords: ['ab test', 'experiments', 'split test'],
+  },
   access: {
     resources: [
       { resource: 'store-pages', level: 'read', why: 'Shows each shopper their variant of a page' },

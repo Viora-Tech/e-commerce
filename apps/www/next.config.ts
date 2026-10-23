@@ -11,7 +11,7 @@ const config: NextConfig = {
   output: 'export',
   // No image server in a static export; images ship as they are in public/.
   images: { unoptimized: true },
-  transpilePackages: ['@commerce/config', '@commerce/ui'],
+  transpilePackages: ['@commerce/config', '@commerce/core', '@commerce/ui'],
 }
 
 export default config

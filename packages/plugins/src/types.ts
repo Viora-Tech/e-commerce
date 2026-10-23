@@ -333,6 +333,29 @@ export type AppAccess = {
   shares?: AppDataShare[] | undefined
 }
 
+/**
+ * How the public App Store site (`apps/www`, koomerce.app/apps) presents an app: the words a
+ * merchant reads before installing. Public marketing copy, English. The site's catalogue is
+ * generated from these (`bun scripts/gen-app-catalogue.ts`), so this is the one place to edit a
+ * listing. Shaped so a third-party app's listing can carry the same fields later.
+ */
+export type AppListing = {
+  /** One line for the app's card and the search result, e.g. `Tax invoices and GSTR-1, per GSTIN.` */
+  tagline: string
+  /** Two to four short lines for "What it does". */
+  highlights: string[]
+  /** The merchant guide, as a path under the docs site (`/merchant-guide/apps/reviews`). */
+  guide?: string | undefined
+  /** "Works with" notes: what it pairs with, what the merchant needs first. */
+  worksWith?: string[] | undefined
+  /** Screenshots under `apps/www/public`, e.g. `{ src: '/app-shots/reviews-1.png', alt: '...' }`. */
+  screenshots?: { src: string; alt: string }[] | undefined
+  /** Search words beyond the name and tagline (`tee`, `invoice`, `courier`). */
+  keywords?: string[] | undefined
+  /** Kept off the App Store site (internal, or not ready to list). The admin still shows it. */
+  unlisted?: boolean | undefined
+}
+
 /** What the Installed apps list shows for an app besides "installed": derived from the app's own saved settings. */
 export type AppSetupState = {
   /** The app has what it needs to work (an account connected, a property chosen). */
@@ -370,6 +393,8 @@ export type PluginManifest = {
   storefront?: PluginStorefront | undefined
   /** What the app can see and do in the store; required so no app installs without saying. */
   access: AppAccess
+  /** The App Store site's listing. Apps without one are not listed there. */
+  listing?: AppListing | undefined
   /**
    * For an app that keeps its connection in its own settings (`store.apps.settings[id]`) rather
    * than a provider: whether it is connected and any recorded problem. Apps with providers are
