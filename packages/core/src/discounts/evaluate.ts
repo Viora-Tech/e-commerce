@@ -1,4 +1,14 @@
-import type { DiscountAppliesTo, DiscountKind, DiscountMethod, DiscountStatus } from '@commerce/db'
+import type {
+  DiscountAppliesTo,
+  DiscountBxgy,
+  DiscountCombinesWith,
+  DiscountEligibility,
+  DiscountKind,
+  DiscountMethod,
+  DiscountStatus,
+  DiscountType,
+} from '@commerce/db'
+import { bxgyAmount } from './bxgy'
 
 /** The subset of a `discount` row the evaluator needs; the DB row satisfies it directly. */
 export type DiscountRule = {
@@ -16,6 +26,22 @@ export type DiscountRule = {
    * off every unit. Empty or null: the single `value` applies the old way.
    */
   productValues?: Record<string, number> | null | undefined
+  /**
+   * Shopify's discount type. Rows always have it; older callers may leave it out and get it
+   * derived from `method` and `appliesTo` (see `discountType`).
+   */
+  type?: DiscountType | undefined
+  /** Minimum items in the cart (eligible items for a products discount). */
+  minQuantity?: number | null | undefined
+  bxgy?: DiscountBxgy | null | undefined
+  /** Free shipping only to these state codes; empty or missing means everywhere. */
+  shippingStates?: string[] | undefined
+  /** Free shipping skips rates above this price. */
+  maxShippingPaise?: number | null | undefined
+  customerEligibility?: DiscountEligibility | undefined
+  /** Segment or customer ids, per `customerEligibility`. */
+  eligibleIds?: string[] | undefined
+  combinesWith?: DiscountCombinesWith | undefined
   usageLimit: number | null
   usagePerCustomer: number | null
   usedCount: number
@@ -41,6 +67,15 @@ export type DiscountContext = {
   now?: Date | undefined
   /** How many times this shopper already used the discount; drives the per-customer cap. */
   customerUses?: number | undefined
+  /**
+   * Who is buying, once checkout knows: their customer id (null for a new shopper) and the
+   * segments they are in. Left out (the cart, before an email) the eligibility check waits.
+   */
+  customer?: { id: string | null; segmentIds: string[] } | undefined
+  /** Delivery state code once an address is known; free shipping limited to states reads it. */
+  stateCode?: string | null | undefined
+  /** Already taken off by product discounts it combines with; an order discount works on the rest. */
+  alreadyOffPaise?: number | undefined
 }
 
 export type DiscountRejection =
@@ -50,6 +85,9 @@ export type DiscountRejection =
   | 'usage_limit'
   | 'customer_limit'
   | 'min_subtotal'
+  | 'min_quantity'
+  | 'customer_not_eligible'
+  | 'region'
   | 'no_eligible_items'
 
 export type DiscountOutcome =
@@ -59,7 +97,11 @@ export type DiscountOutcome =
       /** Amount taken off the subtotal (0 for free shipping). */
       amountPaise: number
       freeShipping: boolean
+      /** Free shipping only covers rates up to this price; null or missing means any rate. */
+      freeShippingMaxPaise?: number | null | undefined
       label: string
+      /** When discounts combine: each one that applied. `discount` is then the first of them. */
+      parts?: Extract<DiscountOutcome, { ok: true }>[] | undefined
     }
   | { ok: false; reason: DiscountRejection; discount: DiscountRule }
 
@@ -69,12 +111,50 @@ const roundHalfUp = (n: number): number => Math.sign(n) * Math.round(Math.abs(n)
 export const subtotalPaise = (lines: DiscountCartLine[]): number =>
   lines.reduce((sum, l) => sum + l.quantity * l.unitPricePaise, 0)
 
+/** Lines in a product or collection scope; `all` means the whole cart. */
+export function linesIn(
+  lines: DiscountCartLine[],
+  appliesTo: DiscountAppliesTo,
+  ids: string[],
+): DiscountCartLine[] {
+  if (appliesTo === 'all') return lines
+  const set = new Set(ids)
+  if (appliesTo === 'products') return lines.filter((l) => set.has(l.productId))
+  return lines.filter((l) => (l.collectionIds ?? []).some((c) => set.has(c)))
+}
+
 /** Lines the discount can touch; `all` means the whole cart. */
 export function eligibleLines(cart: DiscountCart, d: DiscountRule): DiscountCartLine[] {
-  if (d.appliesTo === 'all') return cart.lines
-  const ids = new Set(d.appliesToIds)
-  if (d.appliesTo === 'products') return cart.lines.filter((l) => ids.has(l.productId))
-  return cart.lines.filter((l) => (l.collectionIds ?? []).some((c) => ids.has(c)))
+  return linesIn(cart.lines, d.appliesTo, d.appliesToIds)
+}
+
+export const itemCount = (lines: DiscountCartLine[]): number =>
+  lines.reduce((n, l) => n + l.quantity, 0)
+
+/** The rule's type; rows written before types existed read as products, order or shipping. */
+export function discountType(d: Pick<DiscountRule, 'type' | 'method' | 'appliesTo'>): DiscountType {
+  if (d.type) return d.type
+  if (d.method === 'free_shipping') return 'shipping'
+  return d.appliesTo === 'all' ? 'order' : 'products'
+}
+
+/** The class a discount stacks as: buy X get Y counts as a product discount, like Shopify. */
+export type DiscountClass = keyof DiscountCombinesWith
+
+export function discountClass(
+  d: Pick<DiscountRule, 'type' | 'method' | 'appliesTo'>,
+): DiscountClass {
+  const t = discountType(d)
+  return t === 'bxgy' ? 'products' : t
+}
+
+/** Whether the shopper may use it; unknown shoppers (no email yet) are let through for now. */
+function customerAllowed(d: DiscountRule, ctx: DiscountContext): boolean {
+  const who = d.customerEligibility ?? 'all'
+  if (who === 'all' || !ctx.customer) return true
+  const ids = new Set(d.eligibleIds ?? [])
+  if (who === 'customers') return ctx.customer.id !== null && ids.has(ctx.customer.id)
+  return ctx.customer.segmentIds.some((s) => ids.has(s))
 }
 
 /**
@@ -138,17 +218,42 @@ export function evaluateDiscount(
   if (d.usagePerCustomer !== null && (ctx.customerUses ?? 0) >= d.usagePerCustomer) {
     return reject('customer_limit')
   }
+  if (!customerAllowed(d, ctx)) return reject('customer_not_eligible')
 
+  const type = discountType(d)
   const total = subtotalPaise(cart.lines)
   if (d.minSubtotalPaise !== null && total < d.minSubtotalPaise) return reject('min_subtotal')
 
-  const lines = eligibleLines(cart, d)
-  if (lines.length === 0) return reject('no_eligible_items')
-  const base = subtotalPaise(lines)
-
-  if (d.method === 'free_shipping') {
-    return { ok: true, discount: d, amountPaise: 0, freeShipping: true, label: d.title }
+  if (type === 'bxgy') {
+    const raw =
+      d.bxgy && d.method !== 'free_shipping' ? bxgyAmount(cart.lines, d.method, d.value, d.bxgy) : 0
+    const amountPaise = Math.min(raw, total)
+    if (amountPaise <= 0) return reject('no_eligible_items')
+    return { ok: true, discount: d, amountPaise, freeShipping: false, label: d.title }
   }
+
+  // Order and shipping discounts cover the whole cart (`appliesTo` is `all` for them).
+  const lines = eligibleLines(cart, d)
+  if (d.minQuantity != null && itemCount(lines) < d.minQuantity) return reject('min_quantity')
+  if (lines.length === 0) return reject('no_eligible_items')
+
+  if (type === 'shipping' || d.method === 'free_shipping') {
+    const states = d.shippingStates ?? []
+    if (states.length > 0 && ctx.stateCode && !states.includes(ctx.stateCode)) {
+      return reject('region')
+    }
+    return {
+      ok: true,
+      discount: d,
+      amountPaise: 0,
+      freeShipping: true,
+      freeShippingMaxPaise: d.maxShippingPaise ?? null,
+      label: d.title,
+    }
+  }
+  // An order discount stacked after product discounts works on what they left.
+  const alreadyOff = type === 'order' ? (ctx.alreadyOffPaise ?? 0) : 0
+  const base = Math.max(0, subtotalPaise(lines) - alreadyOff)
   const perItem = perProductValues(d)
   const raw = perItem
     ? perItemAmount(lines, d.method, perItem)
@@ -194,9 +299,12 @@ export function applyDiscount(
 ): { discountPaise: number; shippingPaise: number; discountedSubtotalPaise: number } {
   if (!outcome) return { discountPaise: 0, shippingPaise, discountedSubtotalPaise: subtotal }
   const discountPaise = Math.min(outcome.amountPaise, subtotal)
+  const cap = outcome.freeShippingMaxPaise ?? null
+  // "Exclude shipping rates over a certain amount": a dearer rate is charged in full.
+  const waived = outcome.freeShipping && (cap === null || shippingPaise <= cap)
   return {
     discountPaise,
-    shippingPaise: outcome.freeShipping ? 0 : shippingPaise,
+    shippingPaise: waived ? 0 : shippingPaise,
     discountedSubtotalPaise: subtotal - discountPaise,
   }
 }

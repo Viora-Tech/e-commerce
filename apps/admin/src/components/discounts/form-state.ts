@@ -176,6 +176,10 @@ export function toInput(f: DiscountFormState): DiscountInput {
         )
       : null,
     usageLimit: Number.isFinite(limit) && limit > 0 ? limit : null,
+    shippingStates: [],
+    customerEligibility: 'all',
+    eligibleIds: [],
+    combinesWith: { products: false, order: false, shipping: false },
     usagePerCustomer: f.onePerCustomer ? 1 : null,
     startsAt: fromLocalInput(f.startsAt),
     endsAt: f.hasEnd ? fromLocalInput(f.endsAt) : null,

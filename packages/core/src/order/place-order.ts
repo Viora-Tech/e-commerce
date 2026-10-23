@@ -19,7 +19,7 @@ import {
 } from '@commerce/db'
 import type { CheckoutSession, PaymentProvider } from '@commerce/payments'
 import { loadPincodeDirectory } from '@commerce/shipping/pincode-directory'
-import { and, desc, eq, isNull, lt, ne, or, sql } from 'drizzle-orm'
+import { and, desc, eq, inArray, isNull, lt, ne, or, sql } from 'drizzle-orm'
 import { stateMatchesPincode } from '../checkout/pincode-state'
 import {
   type CheckoutContact,
@@ -299,6 +299,7 @@ const resolveDiscount: WorkflowStep<State> = {
     const code = input.discountCode === undefined ? cartDiscountCode : input.discountCode
     const { outcome } = await resolveCartDiscount(ctx, input.cartId, code, {
       email: input.checkout?.email,
+      stateCode: input.checkout?.address?.stateCode,
     })
     return { discount: outcome }
   },
@@ -691,15 +692,19 @@ const createOrder: WorkflowStep<State> = {
     })
     if (applied) {
       const email = (contact ? contact.email : input.checkout?.email.trim().toLowerCase()) || null
-      await claimDiscountUse(ctx, applied.discount.id, email)
-      await ctx.tx.insert(discountUsage).values({
-        storeId: ctx.storeId,
-        discountId: applied.discount.id,
-        orderId: o.id,
-        customerId,
-        email,
-        amountPaise: discountPaise,
-      })
+      // Combined discounts each count a use and record their own share.
+      const parts = applied.parts ?? [{ ...applied, amountPaise: discountPaise }]
+      for (const part of parts) {
+        await claimDiscountUse(ctx, part.discount.id, email)
+        await ctx.tx.insert(discountUsage).values({
+          storeId: ctx.storeId,
+          discountId: part.discount.id,
+          orderId: o.id,
+          customerId,
+          email,
+          amountPaise: part.amountPaise,
+        })
+      }
     }
     return { orderId: o.id, orderNumber, totalPaise, balanceDuePaise, depositPaise }
   },
@@ -710,7 +715,12 @@ const createOrder: WorkflowStep<State> = {
       await ctx.tx
         .update(discount)
         .set({ usedCount: sql`greatest(${discount.usedCount} - 1, 0)` })
-        .where(eq(discount.id, applied.discount.id))
+        .where(
+          inArray(
+            discount.id,
+            (applied.parts ?? [applied]).map((p) => p.discount.id),
+          ),
+        )
     }
     await deleteFulfillmentOrders(ctx.tx, orderId)
     await ctx.tx.delete(orderLine).where(eq(orderLine.orderId, orderId))

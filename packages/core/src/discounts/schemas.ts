@@ -4,6 +4,31 @@ export const DiscountKindSchema = z.enum(['code', 'automatic'])
 export const DiscountMethodSchema = z.enum(['percent', 'fixed', 'free_shipping'])
 export const DiscountAppliesToSchema = z.enum(['all', 'products', 'collections'])
 export const DiscountStatusSchema = z.enum(['active', 'disabled'])
+/** Shopify's four types: amount off products, amount off order, buy X get Y, free shipping. */
+export const DiscountTypeSchema = z.enum(['products', 'order', 'bxgy', 'shipping'])
+export const DiscountEligibilitySchema = z.enum(['all', 'segments', 'customers'])
+
+export const DiscountCombinesWithSchema = z.object({
+  products: z.boolean().default(false),
+  order: z.boolean().default(false),
+  shipping: z.boolean().default(false),
+})
+
+const scopeSchema = z.object({
+  appliesTo: z.enum(['products', 'collections']),
+  ids: z.array(z.uuid()).min(1, 'Pick at least one item').max(500),
+})
+
+/** Buy X get Y: what the shopper buys, what they get, and a per-order cap. */
+export const DiscountBxgySchema = z.object({
+  buys: scopeSchema.extend({
+    kind: z.enum(['quantity', 'amount']),
+    quantity: z.number().int().min(0).max(10_000),
+    amountPaise: z.number().int().min(0).max(1_000_000_000),
+  }),
+  gets: scopeSchema.extend({ quantity: z.number().int().min(1).max(10_000) }),
+  maxUsesPerOrder: z.number().int().min(1).max(10_000).nullable(),
+})
 
 /** Codes: letters, digits and hyphens, stored upper-case. */
 export const DiscountCodeSchema = z
@@ -54,15 +79,56 @@ function checkProductValues(
   }
 }
 
+/** Each type's own rules: what it gives and what it may point at. */
+function checkType(
+  d: {
+    type?: z.infer<typeof DiscountTypeSchema> | undefined
+    method: string
+    appliesTo: string
+    bxgy?: z.infer<typeof DiscountBxgySchema> | null | undefined
+  },
+  ctx: z.RefinementCtx,
+): void {
+  if (d.type === 'shipping' && d.method !== 'free_shipping') {
+    ctx.addIssue({ code: 'custom', path: ['method'], message: 'Free shipping gives free shipping' })
+  }
+  if (d.type && d.type !== 'shipping' && d.method === 'free_shipping') {
+    ctx.addIssue({ code: 'custom', path: ['method'], message: 'Pick a percentage or an amount' })
+  }
+  if (d.type === 'order' && d.appliesTo !== 'all') {
+    ctx.addIssue({
+      code: 'custom',
+      path: ['appliesTo'],
+      message: 'Order discounts cover the order',
+    })
+  }
+  if (d.type === 'products' && d.appliesTo === 'all') {
+    ctx.addIssue({ code: 'custom', path: ['appliesTo'], message: 'Pick products or collections' })
+  }
+  if (d.type === 'bxgy') {
+    if (!d.bxgy) {
+      ctx.addIssue({ code: 'custom', path: ['bxgy'], message: 'Say what shoppers buy and get' })
+    } else if (
+      d.bxgy.buys.kind === 'quantity' ? d.bxgy.buys.quantity < 1 : d.bxgy.buys.amountPaise < 1
+    ) {
+      ctx.addIssue({ code: 'custom', path: ['bxgy', 'buys'], message: 'Enter what shoppers buy' })
+    }
+  }
+}
+
 export const DiscountInputSchema = z
   .object({
     title: z.string().trim().min(1).max(120),
+    /** Left out by older callers: derived from `method` and `appliesTo` on save. */
+    type: DiscountTypeSchema.optional(),
     kind: DiscountKindSchema,
     code: DiscountCodeSchema.nullable().optional(),
     method: DiscountMethodSchema,
     /** Basis points for percent (100 = 1%), paise for fixed, ignored for free shipping. */
     value: z.number().int().min(0).max(100_000_000),
     minSubtotalPaise: z.number().int().min(0).max(1_000_000_000).nullable().optional(),
+    /** Minimum number of items; Shopify offers it instead of a minimum amount. */
+    minQuantity: z.number().int().min(1).max(10_000).nullable().optional(),
     appliesTo: DiscountAppliesToSchema.default('all'),
     appliesToIds: z.array(z.uuid()).max(500).default([]),
     /**
@@ -74,6 +140,19 @@ export const DiscountInputSchema = z
       .refine((m) => Object.keys(m).length <= 500, 'At most 500 products')
       .nullable()
       .optional(),
+    bxgy: DiscountBxgySchema.nullable().optional(),
+    /** Free shipping: only to these state codes (empty: every state). */
+    shippingStates: z.array(z.string().trim().min(2).max(3)).max(40).default([]),
+    /** Free shipping: rates above this price are charged in full. */
+    maxShippingPaise: z.number().int().min(0).max(100_000_000).nullable().optional(),
+    customerEligibility: DiscountEligibilitySchema.default('all'),
+    /** Segment ids or customer ids, per `customerEligibility`. */
+    eligibleIds: z.array(z.uuid()).max(500).default([]),
+    combinesWith: DiscountCombinesWithSchema.default({
+      products: false,
+      order: false,
+      shipping: false,
+    }),
     usageLimit: limit.optional(),
     usagePerCustomer: limit.optional(),
     startsAt: z.coerce.date().nullable().optional(),
@@ -100,6 +179,21 @@ export const DiscountInputSchema = z
     }
     if (d.startsAt && d.endsAt && d.endsAt <= d.startsAt) {
       ctx.addIssue({ code: 'custom', path: ['endsAt'], message: 'End must be after start' })
+    }
+    checkType(d, ctx)
+    if (d.customerEligibility !== 'all' && d.eligibleIds.length === 0) {
+      const message =
+        d.customerEligibility === 'segments'
+          ? 'Pick at least one segment'
+          : 'Pick at least one customer'
+      ctx.addIssue({ code: 'custom', path: ['eligibleIds'], message })
+    }
+    if (d.minSubtotalPaise != null && d.minQuantity != null) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['minQuantity'],
+        message: 'Use a minimum amount or a minimum quantity, not both',
+      })
     }
   })
 
