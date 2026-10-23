@@ -94,6 +94,14 @@ export type ActionExecutor<C = Record<string, unknown>> = {
   id: string
   run(input: ActionRunInput<C>): Promise<ActionResult>
   preview(input: ActionRunInput<C>): Promise<ActionPreview>
+  /**
+   * Optional two-phase form for slow outbound calls (HTTP): `prepare` reads what the call needs
+   * in a short transaction, `send` makes the call with no transaction open, and the engine
+   * records the result in another short one. Without it, an external action's `run` gets its
+   * own short transaction, never the run's lock (design §8.5).
+   */
+  prepare?: ((input: ActionRunInput<C>) => Promise<unknown>) | undefined
+  send?: ((prepared: unknown, ctx: ActionContext, config: C) => Promise<ActionResult>) | undefined
 }
 
 /** Loads the data a subject's conditions and merge tags read; null when the record is gone. */

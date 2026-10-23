@@ -74,6 +74,7 @@ function harness(flag = true) {
     exec('order.add_tags'),
     exec('order.cancel'),
     exec('order.add_note'),
+    exec('staff.email'),
   ])
   let now = new Date()
   const loadSubject: SubjectLoader = async () => ({ order: { flag } })
@@ -310,6 +311,37 @@ describe('interpreter', () => {
     // A duplicate job finds nothing left to do.
     await advanceRun(app, storeId, run?.runId as string, h.deps)
     expect(h.calls).toHaveLength(2)
+  })
+
+  it('makes external calls after the run transaction commits, then records them', async () => {
+    const h = harness(true)
+    const storeId = await seedStore()
+    const orderId = await seedOrder(storeId)
+    await publish(storeId, {
+      ...tagThenNote,
+      start: 'alert',
+      nodes: {
+        alert: {
+          kind: 'action',
+          id: 'alert',
+          action: 'staff.email',
+          config: { to: ['ops@x.in'], subject: 'Order {order.number}', body: 'Pack it' },
+          next: 'tag',
+          onError: 'stop',
+        },
+        tag: {
+          ...(tagThenNote.nodes.tag as object),
+          next: null,
+        } as WorkflowDefinition['nodes'][string],
+      },
+    })
+    const [run] = (await start(storeId, await outbox(storeId, 'order.paid', { orderId }))).started
+    const id = run?.runId as string
+    await advanceRun(app, storeId, id, h.deps)
+    expect(h.calls.map((c) => c.id)).toEqual(['staff.email', 'order.add_tags'])
+    const alert = (await stepsOf(id)).find((s) => s.nodeId === 'alert')
+    expect(alert).toMatchObject({ status: 'succeeded', summary: 'ran staff.email' })
+    expect((await runOf(id))?.status).toBe('completed')
   })
 
   it('stops on Otherwise when the condition says so', async () => {

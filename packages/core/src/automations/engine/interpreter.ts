@@ -20,6 +20,7 @@ import {
 import {
   type ActionContext,
   type ActionExecutor,
+  type ActionResult,
   AutomationActionError,
   type ConditionEvaluator,
   type RunSubject,
@@ -216,7 +217,7 @@ async function doAction(
   data: SubjectData,
   deps: EngineDeps,
   now: Date,
-): Promise<StepOutcome> {
+): Promise<Outcome> {
   const existing = await stepRow(tx, run.id, node.id)
   // Exactly once: a node that already succeeded is never run again.
   if (existing?.status === 'succeeded') return moveTo(tx, run.id, node.next)
@@ -285,37 +286,138 @@ async function doAction(
       now,
     )
   }
+  if (resolved.descriptor.external) {
+    // Another job is making this call right now: leave it to that one.
+    const inFlight = (existing?.output as { inFlight?: boolean } | null)?.inFlight === true
+    if (
+      existing?.status === 'running' &&
+      inFlight &&
+      now.getTime() - existing.startedAt.getTime() < IN_FLIGHT_MS
+    ) {
+      return { kind: 'done' }
+    }
+    let prepared: unknown
+    const prepare = resolved.executor.prepare
+    try {
+      prepared = prepare
+        ? await tx.transaction((sp) => prepare({ tx: sp, ctx, config: parsed.data }))
+        : undefined
+    } catch (err) {
+      return onActionError(tx, run, node, resolved, attempt, err, now)
+    }
+    await writeStep(tx, run, node, node.action, {
+      status: 'running',
+      attempt,
+      input: node.config,
+      output: { inFlight: true },
+      error: null,
+      retryAt: null,
+      startedAt: now,
+      finishedAt: null,
+    })
+    await tx.update(automationRun).set({ status: 'running' }).where(eq(automationRun.id, run.id))
+    return { kind: 'external', node, resolved, ctx, config: parsed.data, attempt, prepared }
+  }
   try {
     // A savepoint: a failing executor's partial writes roll back, the step-run row stays.
     const result = await tx.transaction((sp) =>
       resolved.executor.run({ tx: sp, ctx, config: parsed.data }),
     )
-    await writeStep(tx, run, node, node.action, {
-      status: 'succeeded',
-      attempt,
-      input: node.config,
-      output: truncateOutput(result.output),
-      summary: result.summary ?? null,
-      error: null,
-      retryAt: null,
-      finishedAt: now,
-    })
-    for (const rec of result.changed ?? []) {
-      await tx
-        .insert(automationRunRecord)
-        .values({
-          runId: run.id,
-          storeId: run.storeId,
-          recordType: rec.type,
-          recordId: rec.id,
-          role: 'changed',
-        })
-        .onConflictDoNothing()
-    }
-    return moveTo(tx, run.id, node.next)
+    return recordSuccess(tx, run, node, attempt, result, now)
   } catch (err) {
     return onActionError(tx, run, node, resolved, attempt, err, now)
   }
+}
+
+/** An external call made after the run's transaction committed (see `callOut`). */
+type ExternalCall = {
+  kind: 'external'
+  node: ActionNode
+  resolved: ResolvedAction
+  ctx: ActionContext
+  config: Record<string, unknown>
+  attempt: number
+  prepared: unknown
+}
+
+type Outcome = StepOutcome | ExternalCall
+
+/** An external call older than this is assumed lost (the worker died) and is made again. */
+const IN_FLIGHT_MS = 5 * 60_000
+
+async function recordSuccess(
+  tx: StoreTx,
+  run: RunRow,
+  node: ActionNode,
+  attempt: number,
+  result: ActionResult,
+  now: Date,
+): Promise<StepOutcome> {
+  await writeStep(tx, run, node, node.action, {
+    status: 'succeeded',
+    attempt,
+    input: node.config,
+    output: truncateOutput(result.output),
+    summary: result.summary ?? null,
+    error: null,
+    retryAt: null,
+    finishedAt: now,
+  })
+  for (const rec of result.changed ?? []) {
+    await tx
+      .insert(automationRunRecord)
+      .values({
+        runId: run.id,
+        storeId: run.storeId,
+        recordType: rec.type,
+        recordId: rec.id,
+        role: 'changed',
+      })
+      .onConflictDoNothing()
+  }
+  return moveTo(tx, run.id, node.next)
+}
+
+type CallResult = { ok: true; result: ActionResult } | { ok: false; error: unknown }
+
+/**
+ * Makes an external action's call with the run's transaction already committed: `send` with
+ * nothing open at all, or `run` in a short transaction of its own. Keyed by `ctx.stepKey`, so
+ * a retry after a crash is the same request to the provider.
+ */
+async function callOut(db: Db, storeId: string, call: ExternalCall): Promise<CallResult> {
+  try {
+    const { executor } = call.resolved
+    const result = executor.send
+      ? await executor.send(call.prepared, call.ctx, call.config)
+      : await withStore(db, storeId, (tx) =>
+          executor.run({ tx, ctx: call.ctx, config: call.config }),
+        )
+    return { ok: true, result }
+  } catch (error) {
+    return { ok: false, error }
+  }
+}
+
+/** Writes an external call's result, unless the run moved on meanwhile (cancelled, retried). */
+async function recordCall(
+  tx: StoreTx,
+  runId: string,
+  call: ExternalCall,
+  outcome: CallResult,
+  deps: EngineDeps,
+): Promise<StepOutcome> {
+  const now = deps.now?.() ?? new Date()
+  const [run] = await tx
+    .select()
+    .from(automationRun)
+    .where(eq(automationRun.id, runId))
+    .for('update')
+  if (!run || run.status !== 'running' || run.cursor !== call.node.id) return { kind: 'done' }
+  const step = await stepRow(tx, run.id, call.node.id)
+  if (step?.status !== 'running' || step.attempt !== call.attempt) return { kind: 'done' }
+  if (outcome.ok) return recordSuccess(tx, run, call.node, call.attempt, outcome.result, now)
+  return onActionError(tx, run, call.node, call.resolved, call.attempt, outcome.error, now)
 }
 
 /** One node of one run, in the caller's transaction. */
@@ -324,7 +426,7 @@ async function stepOnce(
   runId: string,
   deps: EngineDeps,
   cache: Map<string, WorkflowDefinition | null>,
-): Promise<StepOutcome> {
+): Promise<Outcome> {
   const now = deps.now?.() ?? new Date()
   const [run] = await tx
     .select()
@@ -393,7 +495,13 @@ export async function advanceRun(
   const cache = new Map<string, WorkflowDefinition | null>()
   let nodes = 0
   while (nodes < MAX_NODES_PER_JOB) {
-    const outcome = await withStore(db, storeId, (tx) => stepOnce(tx, runId, deps, cache))
+    let outcome: Outcome = await withStore(db, storeId, (tx) => stepOnce(tx, runId, deps, cache))
+    if (outcome.kind === 'external') {
+      // The call happens between two short transactions, never inside one that holds the run.
+      const call = outcome
+      const result = await callOut(db, storeId, call)
+      outcome = await withStore(db, storeId, (tx) => recordCall(tx, runId, call, result, deps))
+    }
     if (outcome.kind === 'done') return { nodes, parked: null }
     if (outcome.kind === 'park')
       return { nodes, parked: { status: outcome.status, nextAt: outcome.nextAt } }

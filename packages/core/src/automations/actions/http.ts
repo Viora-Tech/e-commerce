@@ -6,7 +6,12 @@ import { and, eq, inArray } from 'drizzle-orm'
 import { BlockedUrlError, readCapped, safeFetch } from '../../net/safe-fetch'
 import { checkRateLimit, rateLimitKey } from '../../rate-limit/limiter'
 import { decryptSecret } from '../../secrets'
-import { type ActionContext, type ActionExecutor, AutomationActionError } from '../executor'
+import {
+  type ActionContext,
+  type ActionExecutor,
+  type ActionResult,
+  AutomationActionError,
+} from '../executor'
 import type { BuiltinActionDeps, DepsFor } from './shared'
 
 type HttpConfig = {
@@ -191,85 +196,123 @@ function networkFailure(err: unknown): AutomationActionError {
   )
 }
 
+/** Everything the call needs, read in a short transaction (`prepare`). */
+type Outbound = {
+  storeId: string
+  method: string
+  url: string
+  shownUrl: string
+  headers: Record<string, string>
+  body: string
+  secrets: string[]
+  fetch?: BuiltinActionDeps['fetch']
+  lookup?: BuiltinActionDeps['lookup']
+}
+
+async function prepareCall(
+  tx: StoreTx,
+  ctx: ActionContext,
+  config: HttpConfig,
+  depsFor: DepsFor,
+): Promise<Outbound> {
+  const deps = await depsFor(tx, ctx.storeId)
+  const p = await prepare(tx, ctx, config, deps)
+  if (p.missing.length) {
+    throw new AutomationActionError(`Unknown secret: ${p.missing.join(', ')}`, {
+      retryable: false,
+    })
+  }
+  checkUrl(p.url)
+  if (deps.rateLimit) {
+    const limit = await checkRateLimit(
+      deps.rateLimit,
+      rateLimitKey('automations-http', ctx.storeId),
+      PER_STORE_RATE,
+    )
+    if (!limit.ok) {
+      throw new AutomationActionError('Too many requests from this store right now', {
+        retryable: true,
+        retryAfterMs: limit.retryAfterMs,
+      })
+    }
+  }
+  const [signing] = (
+    await loadSecrets(tx, ctx.storeId, [HTTP_SIGNING_SECRET_HANDLE], deps.settingsSecret)
+  ).values()
+  const key = signing ?? httpSigningKey(ctx.storeId, deps.settingsSecret)
+  const timestamp = Math.floor(Date.now() / 1000)
+  return {
+    storeId: ctx.storeId,
+    method: p.method,
+    url: p.url,
+    shownUrl: p.shownUrl,
+    headers: {
+      ...p.headers,
+      'User-Agent': `${siteConfig.brand.name}-Automations/1.0`,
+      'Idempotency-Key': ctx.stepKey,
+      'X-Automation-Workflow': ctx.workflow.id,
+      'X-Webhook-Timestamp': String(timestamp),
+      'X-Webhook-Signature': signRequest(key, timestamp, p.body),
+    },
+    body: p.body,
+    secrets: [...p.secrets.values()],
+    ...(deps.fetch ? { fetch: deps.fetch } : {}),
+    ...(deps.lookup ? { lookup: deps.lookup } : {}),
+  }
+}
+
+/** The call itself, with no database transaction open (`send`). */
+async function sendCall(o: Outbound, config: HttpConfig): Promise<ActionResult> {
+  const busy = running.get(o.storeId) ?? 0
+  if (busy >= PER_STORE_CONCURRENCY) {
+    throw new AutomationActionError('Too many requests at once from this store', {
+      retryable: true,
+      retryAfterMs: 1000,
+    })
+  }
+  running.set(o.storeId, busy + 1)
+  let res: Response
+  try {
+    res = await safeFetch(o.url, {
+      method: o.method,
+      headers: o.headers,
+      body: o.method === 'GET' ? undefined : o.body,
+      timeoutMs: TIMEOUT_MS,
+      ...(o.fetch ? { fetch: o.fetch } : {}),
+      ...(o.lookup ? { lookup: o.lookup } : {}),
+    })
+  } catch (err) {
+    throw networkFailure(err)
+  } finally {
+    const n = (running.get(o.storeId) ?? 1) - 1
+    if (n <= 0) running.delete(o.storeId)
+    else running.set(o.storeId, n)
+  }
+  const text = redact(await responseText(res), o.secrets)
+  const output = { method: o.method, url: o.shownUrl, status: res.status, body: text }
+  if (res.status < 400) {
+    return { summary: `${o.method} ${o.shownUrl}: ${res.status}`, output }
+  }
+  const transient = res.status === 429 || res.status >= 500
+  if (config.onHttpError === 'continue') {
+    return { summary: `${o.method} ${o.shownUrl}: ${res.status}, carried on`, output }
+  }
+  const wait = transient ? retryAfterMs(res) : undefined
+  throw new AutomationActionError(`${o.shownUrl} answered ${res.status}`, {
+    retryable: config.onHttpError !== 'fail' && transient,
+    code: 'AUTOMATION_HTTP_STATUS',
+    ...(wait !== undefined ? { retryAfterMs: wait } : {}),
+  })
+}
+
 function httpExecutor(depsFor: DepsFor): ActionExecutor<HttpConfig> {
   return {
     id: 'http.request',
     async run({ tx, ctx, config }) {
-      const deps = await depsFor(tx, ctx.storeId)
-      const p = await prepare(tx, ctx, config, deps)
-      if (p.missing.length) {
-        throw new AutomationActionError(`Unknown secret: ${p.missing.join(', ')}`, {
-          retryable: false,
-        })
-      }
-      checkUrl(p.url)
-      if (deps.rateLimit) {
-        const limit = await checkRateLimit(
-          deps.rateLimit,
-          rateLimitKey('automations-http', ctx.storeId),
-          PER_STORE_RATE,
-        )
-        if (!limit.ok) {
-          throw new AutomationActionError('Too many requests from this store right now', {
-            retryable: true,
-            retryAfterMs: limit.retryAfterMs,
-          })
-        }
-      }
-      const busy = running.get(ctx.storeId) ?? 0
-      if (busy >= PER_STORE_CONCURRENCY) {
-        throw new AutomationActionError('Too many requests at once from this store', {
-          retryable: true,
-          retryAfterMs: 1000,
-        })
-      }
-      const [signing] = (
-        await loadSecrets(tx, ctx.storeId, [HTTP_SIGNING_SECRET_HANDLE], deps.settingsSecret)
-      ).values()
-      const key = signing ?? httpSigningKey(ctx.storeId, deps.settingsSecret)
-      const timestamp = Math.floor(Date.now() / 1000)
-      const headers = {
-        ...p.headers,
-        'User-Agent': `${siteConfig.brand.name}-Automations/1.0`,
-        'Idempotency-Key': ctx.stepKey,
-        'X-Automation-Workflow': ctx.workflow.id,
-        'X-Webhook-Timestamp': String(timestamp),
-        'X-Webhook-Signature': signRequest(key, timestamp, p.body),
-      }
-      running.set(ctx.storeId, busy + 1)
-      let res: Response
-      try {
-        res = await safeFetch(p.url, {
-          method: p.method,
-          headers,
-          body: p.method === 'GET' ? undefined : p.body,
-          timeoutMs: TIMEOUT_MS,
-          ...(deps.fetch ? { fetch: deps.fetch } : {}),
-          ...(deps.lookup ? { lookup: deps.lookup } : {}),
-        })
-      } catch (err) {
-        throw networkFailure(err)
-      } finally {
-        const n = (running.get(ctx.storeId) ?? 1) - 1
-        if (n <= 0) running.delete(ctx.storeId)
-        else running.set(ctx.storeId, n)
-      }
-      const text = redact(await responseText(res), p.secrets.values())
-      const output = { method: p.method, url: p.shownUrl, status: res.status, body: text }
-      if (res.status < 400) {
-        return { summary: `${p.method} ${p.shownUrl}: ${res.status}`, output }
-      }
-      const transient = res.status === 429 || res.status >= 500
-      if (config.onHttpError === 'continue') {
-        return { summary: `${p.method} ${p.shownUrl}: ${res.status}, carried on`, output }
-      }
-      const wait = transient ? retryAfterMs(res) : undefined
-      throw new AutomationActionError(`${p.shownUrl} answered ${res.status}`, {
-        retryable: config.onHttpError !== 'fail' && transient,
-        code: 'AUTOMATION_HTTP_STATUS',
-        ...(wait !== undefined ? { retryAfterMs: wait } : {}),
-      })
+      return sendCall(await prepareCall(tx, ctx, config, depsFor), config)
     },
+    prepare: ({ tx, ctx, config }) => prepareCall(tx, ctx, config, depsFor),
+    send: (prepared, _ctx, config) => sendCall(prepared as Outbound, config),
     async preview({ tx, ctx, config }) {
       const deps = await depsFor(tx, ctx.storeId)
       const p = await prepare(tx, ctx, config, deps)
