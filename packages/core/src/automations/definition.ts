@@ -256,7 +256,8 @@ export function definitionIssues(def: WorkflowDefinition): DefinitionIssue[] {
     seen.add(id)
     const node = def.nodes[id]
     if (!node) continue
-    for (const c of childrenOf(node)) if (c && def.nodes[c]) stack.push(c)
+    // Follow only the edge that owns the child, so a shared child is reported once, as shared.
+    for (const c of new Set(childrenOf(node))) if (c && parents.get(c) === node.id) stack.push(c)
   }
   for (const id of ids) {
     if (!seen.has(id)) {

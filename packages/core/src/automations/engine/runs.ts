@@ -427,7 +427,7 @@ export async function decideApproval(
     .from(automationStepRun)
     .innerJoin(automationRun, eq(automationRun.id, automationStepRun.runId))
     .where(eq(automationStepRun.id, input.stepRunId))
-  if (!row || row.step.status !== 'awaiting_approval') {
+  if (row?.step.status !== 'awaiting_approval') {
     throw new WorkflowError('NOT_FOUND', 'Nothing is waiting for approval here')
   }
   const items = await listApprovals(tx, storeId, member, plugins)
