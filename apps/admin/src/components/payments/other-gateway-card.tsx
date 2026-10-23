@@ -36,7 +36,7 @@ export default function OtherGatewayCard({
     <Card>
       <CardContent className="flex flex-col gap-4">
         <div className="flex flex-wrap items-center gap-3">
-          <GatewayLogo monogram={monogramOf(gateway.id)} />
+          <GatewayLogo id={gateway.id} monogram={monogramOf(gateway.id)} />
           <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
             <p className="text-body font-semibold text-foreground">{gateway.name}</p>
             {gateway.mode ? (

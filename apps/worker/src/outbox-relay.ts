@@ -7,6 +7,7 @@ import {
   type OutboxRelayDeps,
   relayStoreOutbox,
 } from '@commerce/core'
+import type { AutomationTriggerQueue } from '@commerce/core/automations/server'
 import { getRegistries } from '@commerce/core/registries'
 import { type Db, storesWithUndispatchedOutboxEvents } from '@commerce/db'
 import { logger } from '@commerce/observability/logging'
@@ -52,6 +53,7 @@ export function createOutboxRelay(
     appEvents?: AppEventQueue | undefined
     inventoryRestock?: InventoryRestockQueue | undefined
     domainRoutes?: DomainRouteQueue | undefined
+    automationTriggers?: AutomationTriggerQueue | undefined
   },
 ) {
   const appJobs = createAppJobQueue(connection)
@@ -62,6 +64,7 @@ export function createOutboxRelay(
     appEvents: opts.appEvents,
     inventoryRestock: opts.inventoryRestock,
     domainRoutes: opts.domainRoutes,
+    automationTriggers: opts.automationTriggers,
     appJobs,
     salesStoreId: loadEnv(process.env).PLATFORM_SALES_STORE_ID,
     log: (message) => logger.info(message, { area: 'outbox' }),

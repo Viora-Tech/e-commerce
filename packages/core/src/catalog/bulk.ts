@@ -9,7 +9,7 @@ import {
   variantOptionValue,
 } from '@commerce/db'
 import { asc, eq, inArray } from 'drizzle-orm'
-import { noteProductsChanged } from './changes'
+import { noteProductEvent, noteProductsChanged, txStoreId } from './changes'
 import type { ImportProduct } from './import-csv'
 import { createProduct, deleteProduct, uniqueHandle, updateProduct } from './products'
 import type { ProductStatus, ProductWrite } from './schemas'
@@ -119,10 +119,10 @@ export async function importProducts(
     const id = byHandle.get(row.handle)
     try {
       if (id) {
-        await updateProduct(tx, storeId, id, write)
+        await updateProduct(tx, storeId, id, write, { imported: true })
         outcome.updated++
       } else {
-        await createProduct(tx, storeId, write)
+        await createProduct(tx, storeId, write, { imported: true })
         outcome.created++
       }
     } catch (err) {
@@ -337,6 +337,12 @@ export async function bulkUpdateProducts(
       tx,
       rows.map((r) => r.id),
     )
+    await noteProductEvent(
+      tx,
+      await txStoreId(tx),
+      'product.updated',
+      rows.map((r) => r.id),
+    )
     return result
   }
 
@@ -360,5 +366,8 @@ export async function bulkUpdateProducts(
     changedIds.push(row.id)
   }
   await noteProductsChanged(tx, changedIds)
+  if (changedIds.length) {
+    await noteProductEvent(tx, await txStoreId(tx), 'product.updated', changedIds)
+  }
   return result
 }

@@ -7,6 +7,7 @@ import { analyticsRouter } from './analytics'
 import { apiAccessRouter } from './api-access'
 import { appearanceRouter } from './appearance'
 import { appsRouter } from './apps'
+import { automationsRouter } from './automations'
 import { backInStockRouter } from './back-in-stock'
 import { billingRouter } from './billing'
 import { blogRouter } from './blog'
@@ -101,6 +102,7 @@ export const appRouter = {
   customers: customersRouter,
   discounts: discountsRouter,
   marketing: marketingRouter,
+  automations: automationsRouter,
   shortLinks: shortLinksRouter,
   giftCards: giftCardsRouter,
   apps: appsRouter,

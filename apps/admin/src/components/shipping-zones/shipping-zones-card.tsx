@@ -105,7 +105,7 @@ export default function ShippingZonesCard() {
         { label: copy.columns.covers, className: 'hidden md:table-cell' },
         { label: copy.columns.rates },
       ]}
-      after={create ? <div className="px-4 py-3 md:px-6">{create}</div> : null}
+      footer={create}
     >
       {zones.map((z) => (
         <SettingsTableRow key={z.id} className="align-top">

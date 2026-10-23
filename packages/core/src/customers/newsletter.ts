@@ -4,6 +4,7 @@ import { z } from 'zod'
 import { insertOutboxEvent } from '../outbox/write'
 import { setMarketingConsent } from '../privacy/marketing-consent'
 import { openToken, signToken } from '../shopper-login/tokens'
+import { noteCustomerTagsChanged } from './changes'
 
 const Email = z.string().trim().toLowerCase().email().max(254)
 
@@ -29,6 +30,10 @@ async function grantNewsletterConsent(
 ): Promise<string | null> {
   const parsed = Email.safeParse(rawEmail)
   if (!parsed.success) return null
+  const [before] = await tx
+    .select({ tags: customer.tags })
+    .from(customer)
+    .where(eq(customer.email, parsed.data))
   const [row] = await tx
     .insert(customer)
     .values({ storeId, email: parsed.data, tags: [NEWSLETTER_TAG] })
@@ -39,8 +44,9 @@ async function grantNewsletterConsent(
         updatedAt: now,
       },
     })
-    .returning({ id: customer.id })
+    .returning({ id: customer.id, tags: customer.tags })
   if (!row) return null
+  if (before) await noteCustomerTagsChanged(tx, storeId, row.id, before.tags, row.tags)
   // Consent is recorded with its time and source; signing up again after an
   // unsubscribe is a fresh opt in, so the unsubscribe is cleared.
   await setMarketingConsent(

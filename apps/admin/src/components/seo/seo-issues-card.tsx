@@ -100,7 +100,11 @@ export default function SeoIssuesCard({ issues }: SeoIssuesCardProps) {
         </ul>
       )}
       {rest > 0 ? (
-        <KitButton variant="secondary" onClick={() => setShown((n) => n + PAGE)}>
+        <KitButton
+          variant="secondary"
+          className="self-end"
+          onClick={() => setShown((n) => n + PAGE)}
+        >
           {copy.more(Math.min(rest, PAGE))}
         </KitButton>
       ) : null}

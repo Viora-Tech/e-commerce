@@ -75,6 +75,37 @@ export const ACTION_DOCS: Record<string, string> = {
     "Actions installed apps add to orders (the order page's More actions, the Orders list's row menu and bulk bar), grouped by app, limited to what this member may run.",
   'apps.testConnection': 'Read-only check of the account typed in the install flow.',
   'apps.uninstallMany': 'Bulk uninstall from the Installed apps list: all or none.',
+  'automations.approvals.decide':
+    "Approves or declines a waiting step; needs the action's own permission.",
+  'automations.approvals.list': 'Steps waiting for approval ("Ask before running"), oldest first.',
+  'automations.catalogue':
+    'The triggers, actions and condition fields this store can use in the editor.',
+  'automations.create': 'Creates an Off workflow from a template or a trigger.',
+  'automations.delete': 'Deletes a workflow with its versions and runs; open runs are cancelled.',
+  'automations.duplicate': 'Copies a workflow as a new Off draft.',
+  'automations.get': 'One workflow with its draft, live definition, versions and open runs.',
+  'automations.history':
+    'Automations on this record: runs about it or that changed it, newest first.',
+  'automations.list':
+    "Every workflow in the store, Growth's marketing ones included (filter origin).",
+  'automations.listManual':
+    "On workflows with this record type's manual trigger, for the Run automation dialog.",
+  'automations.publish':
+    "Publishes the draft as a new version (checks pieces, plan and the publisher's permissions).",
+  'automations.restoreVersion': 'Copies a version back into the draft.',
+  'automations.runNow': 'Run automation on one record or a selection (up to 250).',
+  'automations.runs.cancel': 'Cancels a queued, waiting or approval-waiting run.',
+  'automations.runs.get':
+    "One run with each step's input, output and error, over the version it ran on.",
+  'automations.runs.list': 'Runs, newest first, filtered by workflow, status or record.',
+  'automations.runs.retry': 'Retries a failed run from its failed step.',
+  'automations.setStatus': 'Turns a workflow on or off; off can cancel or let waiting runs finish.',
+  'automations.templates':
+    "Template gallery: built-in, Growth's marketing ones and installed apps' templates.",
+  'automations.testRun': 'Test with a record: walks the draft against real data, writes nothing.',
+  'automations.update':
+    'Saves the name, description or draft; the live version keeps running until Publish.',
+  'automations.usage': "Monthly runs and active workflows against the plan's limits.",
   'billing.apps':
     "Paid apps: what each one costs on this plan, bought months, and the store's app bills.",
   'billing.autopay': "UPI AutoPay: whether it can be turned on here, and the store's mandate.",
@@ -186,6 +217,8 @@ export const ACTION_DOCS: Record<string, string> = {
   'invitations.preview':
     'Public: the accept page shows the store, inviter and role before sign in.',
   'marketing.automations.get': 'One automation with its stats and the latest runs.',
+  'marketing.automations.mode':
+    "Which runner owns the store's automations: after the cutover Growth opens the Automations app.",
   'marketing.automations.setStatus':
     'Turning an automation on starts enrolling at the next worker tick.',
   'marketing.autopilot.approve':
@@ -244,18 +277,36 @@ export const ACTION_DOCS: Record<string, string> = {
   'onboarding.joinWaitlist':
     'Invite mode: leave your details so the platform can invite you later.',
   'onboarding.slugAvailability': 'Live check while typing the store address.',
+  'orders.abandonedStats':
+    'Abandoned checkouts in a period: how many, their value, and how many were recovered.',
+  'orders.addNote': "Add a staff note to the order's timeline.",
+  'orders.cancelShipment': 'Cancel a booked shipment with its courier.',
   'orders.collectPayment': 'Record money collected outside a gateway; the order becomes paid.',
+  'orders.convertDraft':
+    'Place a draft as a real order: holds stock and records a pending payment for the chosen method.',
   'orders.couriers':
     "The couriers the store's orders went with (the filter panel's Courier select).",
   'orders.createShipment':
     "Book the parcel with the courier picked in the Create shipment flow (the store's first courier when none is named); the parcel's items are packed and the shopper is told.",
+  'orders.deleteDraft': 'Delete one draft order; placed orders cannot be deleted this way.',
   'orders.deleteDrafts': "The list's bulk delete; ids that are no longer drafts are skipped.",
   'orders.deleteTestOrders':
     '"Delete test orders": removes every order of this store paid on a gateway\'s test keys (is_test), with its dependent rows.',
+  'orders.draftTiles':
+    'The stat cards above the drafts list: open drafts, invoices sent, and their total value.',
   'orders.fulfil':
     'Pack some or all of the lines; the shopper is told once the parcel is complete.',
+  'orders.get':
+    "One order with its lines, payments, shipment, balance due and the customer's order history.",
+  'orders.getAbandoned': 'One abandoned checkout with its cart, contact and recovery link.',
+  'orders.getDraft': 'One draft order with its lines, customer, addresses and totals.',
   'orders.ids':
     'Every order id the list\'s filters match (the table\'s "Select all N orders"), up to 5,000.',
+  'orders.list':
+    'Orders, a page at a time, by list tab, status, payment, fulfilment, date or a search.',
+  'orders.listAbandoned':
+    'Abandoned checkouts from recent days, a page at a time, by recovery status or a search.',
+  'orders.listDrafts': 'Draft orders, a page at a time, filtered by status or a search.',
   'orders.neighbours':
     'Order numbers either side of this one, for the arrows in the detail header.',
   'orders.previewMessage':
@@ -264,20 +315,27 @@ export const ACTION_DOCS: Record<string, string> = {
     'The reminder as the shopper would get it, for the "Review email" dialog.',
   'orders.profit':
     'What the order earned: net sales less goods, courier, fees and RTO (order/profit.ts).',
+  'orders.refreshTracking': 'Fetch the latest tracking events for a shipment from its courier.',
   'orders.refund':
     'Send money back through the gateway (or record a cash/UPI refund); partial amounts allowed.',
   'orders.requestBalance':
     "Ask the shopper for a deposit pre-order's balance: email and WhatsApp (when set up) with a signed pay link.",
+  'orders.saveDraft':
+    "Create a draft order (no id) or replace an existing draft's lines, customer and addresses.",
   'orders.sendInvoice': 'Email the shopper a pay link for the draft.',
   'orders.sendInvoices':
     'The list\'s bulk "Send invoices": each selected draft with an email gets its pay link.',
   'orders.sendPaymentReminder':
     '"Send payment reminder" on an unpaid UPI / bank transfer order: email, and WhatsApp when set up, with the QR and bank details.',
+  'orders.sendRecovery': 'Email the shopper a reminder with a link back to their abandoned cart.',
   'orders.setCourierCharge': 'What the courier charged for a consignment, typed by the merchant.',
   'orders.setStatus': '"Mark as paid / fulfilled / delivered", or cancel.',
   'orders.sheet': 'Rows for the Orders bulk-edit spreadsheet, in the order the ids were given.',
+  'orders.stats': 'The order stats for the last 7 days, against the 7 days before.',
   'orders.tagMany':
     'The list\'s bulk "Add tags" / "Remove tags": every given tag on (or off) every order.',
+  'orders.tiles': 'The stat cards above the Orders list.',
+  'orders.toShipCount': 'How many orders are waiting to ship.',
   'orders.updateContact':
     "\"Edit\" on the order page's customer card: this order's contact and shipping address, optionally copied to the customer's saved address.",
   'payments.connect': 'Save pasted keys and make that gateway the main way to get paid.',

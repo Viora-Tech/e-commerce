@@ -65,7 +65,7 @@ export default function MediaFileAlt({ id, alt, onSaved }: MediaFileAltProps) {
         size="sm"
         disabled={!changed || saving}
         onClick={() => void handleSave()}
-        className="self-start"
+        className="self-end"
       >
         {saving ? <Loader2Icon className="size-4 animate-spin" aria-hidden="true" /> : null}
         {saving ? copy.saving : copy.saveAlt}

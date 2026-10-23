@@ -11,6 +11,7 @@ import {
   uniqueIndex,
   uuid,
 } from 'drizzle-orm/pg-core'
+import { automationRun } from './automation-schema'
 import { cart, customer, customerSegment, newId, order, store } from './schema'
 
 /*
@@ -216,6 +217,11 @@ export const marketingMessage = pgTable(
     }),
     runId: uuid('run_id').references(() => marketingAutomationRun.id, { onDelete: 'cascade' }),
     stepIndex: integer('step_index'),
+    /** Engine runs (Automations): the run and node that sent it; unique so a retry never resends. */
+    automationRunId: uuid('automation_run_id').references(() => automationRun.id, {
+      onDelete: 'cascade',
+    }),
+    automationNodeId: text('automation_node_id'),
     customerId: uuid('customer_id').references(() => customer.id),
     channel: text('channel').notNull(),
     to: text('to').notNull(),
@@ -235,6 +241,9 @@ export const marketingMessage = pgTable(
     uniqueIndex('marketing_message_run_step')
       .on(t.runId, t.stepIndex)
       .where(sql`run_id is not null`),
+    uniqueIndex('marketing_message_automation_step')
+      .on(t.automationRunId, t.automationNodeId)
+      .where(sql`automation_run_id is not null`),
     index('marketing_message_store_created').on(t.storeId, t.createdAt),
     index('marketing_message_campaign').on(t.campaignId, t.status),
   ],

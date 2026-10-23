@@ -222,7 +222,7 @@ export default function CourierRuleFields({ value, onChange }: CourierRuleFields
         )}
         <Button
           variant="outline"
-          className="w-fit"
+          className="w-fit self-end"
           nativeButton={false}
           render={<Link href={routes.apps.list()} />}
         >

@@ -168,6 +168,7 @@ export default function PreferencesForm({ initial, storefrontOrigin }: Preferenc
             <SettingsCard title={copy.privacy.heading} description={copy.privacy.body}>
               <Button
                 variant="outline"
+                className="self-end"
                 render={<Link href="/settings/privacy#banner" />}
                 nativeButton={false}
               >

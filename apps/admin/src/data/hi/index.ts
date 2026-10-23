@@ -8,6 +8,8 @@ import analytics from './analytics'
 import appInstall from './app-install'
 import apps from './apps'
 import assistant from './assistant'
+import automationRecords from './automation-records'
+import automations from './automations'
 import backgroundWork from './background-work'
 import billing from './billing'
 import bluedart from './bluedart'
@@ -25,6 +27,7 @@ import content from './content'
 import contentBlog from './content-blog'
 import contentFiles from './content-files'
 import createShipment from './create-shipment'
+import customData from './custom-data'
 import customers from './customers'
 import customersBulkEdit from './customers-bulk-edit'
 import customizeAi from './customize-ai'
@@ -122,6 +125,8 @@ export const hindiCopy: readonly TranslationPair[] = [
   ...abandonedDetail,
   ...ai,
   ...assistant,
+  ...automationRecords,
+  ...automations,
   ...backgroundWork,
   ...billing,
   ...bluedart,
@@ -138,6 +143,7 @@ export const hindiCopy: readonly TranslationPair[] = [
   ...contentBlog,
   ...contentFiles,
   ...createShipment,
+  ...customData,
   ...customers,
   ...customersBulkEdit,
   ...customizeAi,

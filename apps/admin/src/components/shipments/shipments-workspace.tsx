@@ -17,6 +17,7 @@ import ActionMenu from '@/components/layout/action-menu'
 import EmptyState from '@/components/layout/empty-state'
 import ProoflyListPage from '@/components/layout/proofly-list-page'
 import StatusChip from '@/components/layout/status-chip'
+import BookByNumberDialog from '@/components/shipments/book-by-number-dialog'
 import ResourceTable from '@/components/table/resource-table'
 import ViewSelect from '@/components/table/view-select'
 import { shipmentsContent } from '@/data/shipments'
@@ -32,7 +33,6 @@ import {
   shipmentColumns,
 } from './shipment-columns'
 import ShipmentRowMenu from './shipment-row-menu'
-import ShipmentSheets, { type SheetKind } from './shipment-sheets'
 import ShipmentsBulkActions from './shipments-bulk-actions'
 import WalletStrip from './wallet-strip'
 
@@ -84,9 +84,9 @@ function ShipmentsContent() {
   })
   const [selected, setSelected] = useState<string[]>([])
   const [booking, setBooking] = useState<string[]>([])
-  const [sheet, setSheet] = useState<SheetKind | null>(null)
+  const [byNumber, setByNumber] = useState(false)
   const [reloadKey, setReloadKey] = useState(0)
-  // Counts, wallets and courier names: once, and again after a booking or a sheet action.
+  // Counts, wallets and courier names: once, and again after a booking.
   useEffect(() => {
     if (reloadKey < 0) return
     let live = true
@@ -139,10 +139,6 @@ function ShipmentsContent() {
       if (ids.includes(r.id) && r.labelUrl) window.open(r.labelUrl, '_blank', 'noopener')
     }
   }
-  const handleSheetClose = () => {
-    setSheet(null)
-    setReloadKey((k) => k + 1)
-  }
   /* One order opens the Create shipment page; several open the shared bulk dialog. */
   const handleBook = (orderIds: string[]) => {
     if (orderIds.length === 1 && orderIds[0]) router.push(routes.orders.shipment(orderIds[0]))
@@ -150,7 +146,7 @@ function ShipmentsContent() {
   }
   /* Book by order number found these orders: the same Create shipment flow takes over. */
   const handleShipFound = (orderIds: string[]) => {
-    setSheet(null)
+    setByNumber(false)
     handleBook(orderIds)
   }
 
@@ -182,23 +178,26 @@ function ShipmentsContent() {
         noCourier ? null : (
           <>
             {c && c.needsAttention > 0 ? (
-              <button
-                type="button"
-                onClick={() => setSheet('ndr')}
+              <Link
+                href={routes.orders.shipmentProblems()}
                 className="rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
                 <StatusChip tone="danger">
                   {copy.summary.needsAttention(c.needsAttention)}
                 </StatusChip>
-              </button>
+              </Link>
             ) : null}
             <ActionMenu
               label={copy.more}
               variant="outline"
               size="md"
-              items={[{ label: copy.byNumberSheet.title, onSelect: () => setSheet('byNumber') }]}
+              items={[{ label: copy.byNumberSheet.title, onSelect: () => setByNumber(true) }]}
             />
-            <Button variant="outline" onClick={() => setSheet('pickups')}>
+            <Button
+              variant="outline"
+              nativeButton={false}
+              render={<Link href={routes.orders.shipmentPickups()} />}
+            >
               <Clock aria-hidden="true" />
               {copy.pickupsButton}
             </Button>
@@ -308,7 +307,7 @@ function ShipmentsContent() {
         onClose={() => setBooking([])}
         onBooked={handleBooked}
       />
-      <ShipmentSheets open={sheet} onClose={handleSheetClose} onShip={handleShipFound} />
+      <BookByNumberDialog open={byNumber} onOpenChange={setByNumber} onShip={handleShipFound} />
     </ProoflyListPage>
   )
 }
@@ -316,7 +315,7 @@ function ShipmentsContent() {
 /**
  * Orders → Shipments (Figma "Orders / Shipments"): To book, Booked, In transit, Delivered and
  * Returned (RTO) in one table, the courier wallet strip, Book selected for the orders ticked in
- * To book, and the pickups and delivery-problem queues in side sheets.
+ * To book, booking by order number in a dialog, and links to the pickups and delivery-problem pages.
  */
 export default function ShipmentsWorkspace() {
   return (

@@ -16,7 +16,7 @@ import { toast } from 'sonner'
 import PageHeader from '@/components/layout/page-header'
 import SaveBar from '@/components/layout/save-bar'
 import ChoiceList from '@/components/returns/choice-list'
-import LoginAppSheet from '@/components/settings/login-app-sheet'
+import LoginAppDialog from '@/components/settings/login-app-dialog'
 import SignInExtrasCard from '@/components/settings/sign-in-extras-card'
 import SignInProvidersCard from '@/components/settings/sign-in-providers-card'
 import {
@@ -200,7 +200,7 @@ export default function CustomerAccountsSettings() {
 
           <SignInExtrasCard form={form} onChange={setForm} />
 
-          <LoginAppSheet
+          <LoginAppDialog
             key={setupFor ?? 'closed'}
             provider={setupFor}
             onOpenChange={(open) => {
@@ -215,6 +215,7 @@ export default function CustomerAccountsSettings() {
           <SettingsCard title={copy.deletion.heading} description={copy.deletion.body}>
             <Button
               variant="outline"
+              className="self-end"
               render={<Link href={routes.settings.privacy()} />}
               nativeButton={false}
             >

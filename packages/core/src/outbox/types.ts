@@ -1,5 +1,6 @@
 import type { CustomMessage, TemplateId } from '@commerce/notifications'
 import type { AppEvent } from '@commerce/plugins'
+import type { AutomationCause } from '../automations/types'
 
 /**
  * Reuses the event names already used by notifications and app hooks
@@ -82,6 +83,24 @@ export type OutboxEventType =
   | 'affiliate.commission_reversed'
   /** Affiliates app: the merchant marked a payout paid; the affiliate is emailed. */
   | 'affiliate.payout_paid'
+  /** A customer's tags changed (admin edit, bulk tag, an automation); payload has the diff. */
+  | 'customer.tags_changed'
+  /** A shopper gave marketing consent (newsletter confirm, checkout tick). Growth's welcome trigger. */
+  | 'customer.subscribed'
+  /** A product was created (admin, import, API). Written beside `catalog.products_changed`. */
+  | 'product.created'
+  /** A product was edited. Written beside `catalog.products_changed`. */
+  | 'product.updated'
+  /** A variant's available stock fell to or below the store's low-stock threshold (a crossing). */
+  | 'inventory.low'
+  /** A variant's available stock reached 0 (a crossing). */
+  | 'inventory.out'
+  /** An installed app fired one of its Automations triggers (`ctx.triggerAutomation`). */
+  | 'automation.app_trigger'
+  /** An automation's "Send order update" email: the relay queues the order email it names. */
+  | 'automation.order_update'
+  /** Tell the store owner about Automations: 80% / 100% of the month's runs, a workflow switched off. */
+  | 'automation.owner_alert'
   /**
    * Platform apps (no consumer yet; for automations to subscribe to). A sales channel's catalog
    * sync failed or its access lapsed (`platform`: meta, google, openai; `message`: the platform's words).
@@ -134,6 +153,39 @@ export type OutboxPayload = {
   commissionId?: string | undefined
   /** The `affiliate_payout` an `affiliate.payout_paid` event is about. */
   payoutId?: string | undefined
+  /** The product a `product.created` / `product.updated` / `inventory.*` event is about. */
+  productId?: string | undefined
+  /** For `customer.tags_changed`: what changed. */
+  tagsAdded?: string[] | undefined
+  tagsRemoved?: string[] | undefined
+  /** For `automation.app_trigger`: the plugin trigger, its idempotency key and event data. */
+  appTrigger?:
+    | {
+        trigger: string
+        key: string
+        subject?: { type: string; id: string } | undefined
+        data?: Record<string, unknown> | undefined
+      }
+    | undefined
+  /**
+   * False: the shopper gets no message for this event (an automation fulfilled the order with
+   * "Notify customer" off); app hooks and automations still see it. Absent means notify.
+   */
+  notifyCustomer?: boolean | undefined
+  /** For `automation.owner_alert`: what to tell the owner. */
+  ownerAlert?:
+    | {
+        kind: 'usage_80' | 'usage_100' | 'switched_off'
+        workflowId?: string | undefined
+        problem?: string | undefined
+        runs?: number | undefined
+        limit?: number | undefined
+      }
+    | undefined
+  /** For `automation.order_update`: the order email template to send. */
+  notificationTemplate?: string | undefined
+  /** Set when an automation run caused this event (loop guard, design §8.5). */
+  automation?: AutomationCause | undefined
   /** Platform-app events: the platform (`meta`, `google`, `openai`, `whatsapp`, `shopify`). */
   platform?: string | undefined
   /** Platform-app events: the outside account (catalog, WhatsApp Business account, shop). */
@@ -221,6 +273,17 @@ export const OUTBOX_NOTIFICATION_TEMPLATE: Record<OutboxEventType, TemplateId | 
   'affiliate.commission_approved': null,
   'affiliate.commission_reversed': null,
   'affiliate.payout_paid': null,
+  // Automations triggers only (the relay's `{automations}-trigger` consumer).
+  'customer.tags_changed': null,
+  'customer.subscribed': null,
+  'product.created': null,
+  'product.updated': null,
+  'inventory.low': null,
+  'inventory.out': null,
+  'automation.app_trigger': null,
+  // The relay queues the named order email itself (`dispatchRow`).
+  'automation.order_update': null,
+  'automation.owner_alert': null,
   // Platform-app events have no message or app hook yet: they are there for automations.
   'channel.sync_failed': null,
   'whatsapp.account_updated': null,
@@ -289,6 +352,15 @@ export const OUTBOX_APP_EVENT: Record<OutboxEventType, AppEvent | null> = {
   'affiliate.commission_approved': null,
   'affiliate.commission_reversed': null,
   'affiliate.payout_paid': null,
+  'customer.tags_changed': null,
+  'customer.subscribed': null,
+  'product.created': null,
+  'product.updated': null,
+  'inventory.low': null,
+  'inventory.out': null,
+  'automation.app_trigger': null,
+  'automation.order_update': null,
+  'automation.owner_alert': null,
   'channel.sync_failed': null,
   'whatsapp.account_updated': null,
   'meta.access_removed': null,

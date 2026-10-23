@@ -33,6 +33,13 @@ export default async function AppPage({ params }: Params) {
   const match = matchAppPage(app.admin.pages, path)
   const Page = match ? registered.pages[match.page.path] : undefined
   if (!match || !Page) notFound()
+  if (registered.fullPages?.includes(match.page.path)) {
+    return (
+      <PageBody>
+        <Page params={match.params} />
+      </PageBody>
+    )
+  }
   const tabs = app.admin.pages.flatMap((p) =>
     p.navLabel ? [{ path: p.path, label: p.navLabel }] : [],
   )

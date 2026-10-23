@@ -9,6 +9,7 @@ import {
   trafficType,
 } from '@commerce/core/marketing'
 import {
+  automationWorkflow,
   marketingAutomation,
   marketingCampaign,
   marketingSession,
@@ -329,6 +330,13 @@ async function campaignRows(
           .select({ id: marketingAutomation.id, name: marketingAutomation.name })
           .from(marketingAutomation)
           .where(inArray(marketingAutomation.id, automationIds))
+          // Growth automations on the engine (same ids once cut over).
+          .union(
+            tx
+              .select({ id: automationWorkflow.id, name: automationWorkflow.name })
+              .from(automationWorkflow)
+              .where(inArray(automationWorkflow.id, automationIds)),
+          )
       : [],
   ])
   for (const c of campaigns) {

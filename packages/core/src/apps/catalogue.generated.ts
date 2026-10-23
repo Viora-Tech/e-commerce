@@ -1703,4 +1703,76 @@ export const APP_CATALOGUE_DATA: CatalogueEntry[] = [
     themeBlocks: ['Affiliate signup'],
     credits: [],
   },
+  {
+    id: 'automations',
+    name: 'Automations',
+    kind: 'builtin',
+    category: 'operations',
+    company: null,
+    description:
+      'Do the same small jobs on every order, customer and product automatically: tag, hold, alert your team, message shoppers and more.',
+    tagline: 'Tag, hold, alert and message on every order automatically, like Shopify Flow.',
+    highlights: [
+      'A trigger, conditions and actions, with Then and Otherwise branches',
+      'Ready-made templates: high-value orders, risky COD, low stock and more',
+      'Run log with every step, and automation history on each order, customer and product',
+      'Test on a real order before you switch it on; cancelling asks for approval first',
+    ],
+    guide: '/merchant-guide/apps/automations',
+    worksWith: [
+      'Marketing automations (abandoned checkout, welcome, win-back and more), included',
+      'Apps that add their own triggers and actions',
+    ],
+    screenshots: [],
+    keywords: [
+      'marketing automation',
+      'abandoned checkout',
+      'flow',
+      'workflow',
+      'automation',
+      'rules',
+      'auto tag',
+      'shopify flow',
+    ],
+    faq: [],
+    icon: 'Workflow',
+    access: {
+      resources: [
+        {
+          resource: 'orders',
+          level: 'read-write',
+          why: 'Checks orders and tags, holds or notes them',
+        },
+        {
+          resource: 'customers',
+          level: 'read-write',
+          why: 'Checks customers and tags them',
+        },
+        {
+          resource: 'products',
+          level: 'read-write',
+          why: 'Checks products and tags them',
+        },
+        {
+          resource: 'collections',
+          level: 'write',
+          why: 'Adds products to collections you pick',
+        },
+        {
+          resource: 'inventory',
+          level: 'read',
+          why: 'Starts workflows when stock runs low',
+        },
+      ],
+      shares: [
+        {
+          when: 'Only in workflows with a Send HTTP request step',
+          what: 'The data you put in that request, to the address you set',
+        },
+      ],
+    },
+    adminPages: ['Workflows', 'Templates', 'Runs', 'Needs approval', 'Settings'],
+    themeBlocks: [],
+    credits: [],
+  },
 ]

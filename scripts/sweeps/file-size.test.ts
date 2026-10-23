@@ -19,6 +19,9 @@ const COPY =
   'copy for one admin area (data/<feature>.ts, mirrored in data/hi) — split by screen when it next changes'
 
 const ALLOWLIST: Record<string, { lines: number; reason: string }> = {
+  'apps/admin/src/data/automations.ts': { lines: 675, reason: COPY },
+  'apps/admin/src/data/hi/automations.ts': { lines: 655, reason: COPY },
+  'packages/api/src/services/marketing-overview.service.ts': { lines: 503, reason: SPLIT },
   'apps/admin/src/data/customize.ts': { lines: 556, reason: COPY },
   'apps/storefront/src/lib/liquid-theme.ts': { lines: 560, reason: SPLIT },
   'packages/api/src/routers/store.ts': { lines: 524, reason: SPLIT },

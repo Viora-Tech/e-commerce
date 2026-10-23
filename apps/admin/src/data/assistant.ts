@@ -171,7 +171,9 @@ export const assistantContent = {
           ? `Uses ${n} AI requests, one per product.`
           : `Uses ${n * perProduct} AI requests, ${perProduct} per product (keywords, then the writing).`,
     progress: (done: number, total: number) => `${done} of ${total} written`,
-    background: 'It keeps going if you close this. Come back to review.',
+    background: 'It keeps going if you leave this page. Come back to review.',
+    optionsHeading: 'Settings for this run',
+    backTo: { products: 'Products', seo: 'SEO', readiness: 'Catalog readiness' },
     cancelRun: 'Stop',
     reviewHeading: 'Review and apply',
     reviewHint: 'Untick any you do not want. Apply saves the ticked ones to your products.',

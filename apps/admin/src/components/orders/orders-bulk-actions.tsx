@@ -12,6 +12,8 @@ import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import type { OrderActionGroup } from '@/apps/order-actions'
+import RunAutomationDialog from '@/components/automations/records/run-automation-dialog'
+import { useRunAutomation } from '@/components/automations/records/use-run-automation'
 import ActionMenu, { type ActionItem } from '@/components/layout/action-menu'
 import CreateShipmentDialog from '@/components/shipments/create-shipment/create-shipment-dialog'
 import { orderAppActionsContent } from '@/data/order-app-actions'
@@ -35,6 +37,8 @@ type OrdersBulkActionsProps = {
   appActions?: OrderActionGroup[]
   /** After an app action ran (or a bulk shipment was booked): clear the selection and reload. */
   onAppActionDone?: () => void
+  /** The Automations app is installed: "Run automation" on the selection. */
+  automations?: boolean
 }
 
 /** Most packing slips one print view loads (the ids ride in its URL). */
@@ -54,6 +58,7 @@ export default function OrdersBulkActions({
   onRequest,
   appActions = [],
   onAppActionDone,
+  automations = false,
 }: OrdersBulkActionsProps) {
   // Hooks
   const copy = useCopy(ordersContent)
@@ -61,6 +66,7 @@ export default function OrdersBulkActions({
   const appCopy = useCopy(orderAppActionsContent)
   const router = useRouter()
   const apps = useOrderAppActions(appActions, () => onAppActionDone?.())
+  const automation = useRunAutomation('order', automations)
   /* The dialog stays open on its Booked step; the list reloads once the merchant closes it. */
   const [booked, setBooked] = useState(false)
   const [exporting, setExporting] = useState(false)
@@ -117,7 +123,9 @@ export default function OrdersBulkActions({
     },
     { label: bulkCopy.export, icon: Download, disabled: exporting, onSelect: handleExport },
     { label: bulkCopy.print, icon: Printer, onSelect: handlePrint },
-    ...appItems.map((item, i) => (i === 0 ? { ...item, separatorBefore: true } : item)),
+    ...[...automation.items(ids), ...appItems].map((item, i) =>
+      i === 0 ? { ...item, separatorBefore: true } : item,
+    ),
   ]
 
   return (
@@ -152,6 +160,12 @@ export default function OrdersBulkActions({
         courier={apps.shipping?.providerId}
         onClose={handleShippingClosed}
         onBooked={() => setBooked(true)}
+      />
+      <RunAutomationDialog
+        subjectType="order"
+        ids={automation.target}
+        onClose={automation.close}
+        onDone={onAppActionDone}
       />
     </>
   )

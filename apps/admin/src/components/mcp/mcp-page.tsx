@@ -1,25 +1,28 @@
 'use client'
 
 import type { ApiGrantView, McpOverview } from '@commerce/core'
-import type { McpClientId, McpSettings } from '@commerce/core/api-access'
-import { Download } from '@commerce/ui/icons'
+import type { McpSettings } from '@commerce/core/api-access'
+import { ArrowRight } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
+import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { useQueryState } from 'nuqs'
-import { type ReactNode, useState } from 'react'
+import { useState } from 'react'
 import { toast } from 'sonner'
 import PageHeader from '@/components/layout/page-header'
 import SaveBar from '@/components/layout/save-bar'
-import SectionTabs, { useActiveSection } from '@/components/settings/section-tabs'
+import SettingsCard from '@/components/settings/settings-card'
 import { mcpContent } from '@/data/mcp'
 import { SETTINGS_BACK, settingsContent } from '@/data/settings'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
-import { downloadCsv } from '@/lib/csv'
-import ConnectClientDialog from './connect-client-dialog'
-import McpActivityTab from './mcp-activity'
-import McpClientsTab from './mcp-clients'
-import McpOverviewTab from './mcp-overview'
+import { routes } from '@/lib/routes'
+import CreateTokenDialog from './create-token-dialog'
+import McpConnectGuide from './mcp-connect-guide'
+import McpConnectedApps from './mcp-connected-apps'
+import McpPermissionsCard from './mcp-permissions-card'
+import McpStatusCard from './mcp-status-card'
+import McpTokensCard from './mcp-tokens-card'
+import RevokeGrantDialog from './revoke-grant-dialog'
 
 type McpPageProps = {
   overview: McpOverview
@@ -27,29 +30,20 @@ type McpPageProps = {
   serverUrl: string
 }
 
-type TabId = 'overview' | 'clients' | 'activity'
-
-/** Renders its children only while its tab is the open one. */
-function Tab({ id, children }: { id: TabId; children: ReactNode }) {
-  // Hooks
-  const active = useActiveSection()
-
-  // Render logic
-  return active === null || active === id ? children : null
-}
-
-/** Settings → MCP & API (Figma 704:110463): Overview, Clients & tokens, Activity log. */
+/**
+ * Settings → MCP & API, one page: status, the connect guide, connected apps, permissions and
+ * approvals, API tokens, and a link to the activity log.
+ */
 export default function McpPage({ overview, grants, serverUrl }: McpPageProps) {
   // Hooks
   const copy = useCopy(mcpContent)
   const settingsCopy = useCopy(settingsContent)
   const router = useRouter()
-  const [tab] = useQueryState('tab', { defaultValue: 'overview' })
   const [settings, setSettings] = useState<McpSettings>(overview.settings)
   const [saved, setSaved] = useState<McpSettings>(overview.settings)
   const [saving, setSaving] = useState(false)
-  const [connecting, setConnecting] = useState<McpClientId | null>(null)
-  const [exporting, setExporting] = useState(false)
+  const [creating, setCreating] = useState(false)
+  const [revoking, setRevoking] = useState<ApiGrantView | null>(null)
 
   // Event handlers
   const handleSave = async () => {
@@ -67,21 +61,14 @@ export default function McpPage({ overview, grants, serverUrl }: McpPageProps) {
     }
   }
 
-  const handleExport = async () => {
-    setExporting(true)
-    try {
-      downloadCsv(`mcp-activity-${overview.store.slug}.csv`, await api.apiAccess.activityCsv())
-    } catch {
-      toast.error(copy.activity.exportFailed)
-    } finally {
-      setExporting(false)
-    }
-  }
-
   // Render logic
   const store = overview.store.name
-  const current: TabId = tab === 'clients' || tab === 'activity' ? tab : 'overview'
   const dirty = JSON.stringify(settings) !== JSON.stringify(saved)
+  // Every app that signed in, plus tokens something has actually called with.
+  const apps = [...grants.clients, ...grants.tokens.filter((t) => t.lastUsedAt)].sort(
+    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+  )
+  const live = apps.filter((g) => g.status === 'active').length
 
   return (
     <div className="flex flex-col gap-4">
@@ -96,57 +83,44 @@ export default function McpPage({ overview, grants, serverUrl }: McpPageProps) {
       />
       <PageHeader
         title={copy.title}
-        subtitle={copy.subtitles[current](store)}
+        subtitle={copy.subtitle(store)}
         back={SETTINGS_BACK}
-        save={
-          current === 'overview'
-            ? { dirty, saving, onSave: handleSave, label: copy.save }
-            : undefined
-        }
-        actions={
-          current === 'activity' ? (
-            <Button variant="outline" onClick={handleExport} loading={exporting}>
-              <Download aria-hidden="true" />
-              {copy.activity.export}
-            </Button>
-          ) : undefined
-        }
+        save={{ dirty, saving, onSave: handleSave, label: copy.save }}
       />
-      <SectionTabs
-        tabs={[
-          { id: 'overview', label: copy.tabs.overview },
-          { id: 'clients', label: copy.tabs.clients },
-          { id: 'activity', label: copy.tabs.activity },
-        ]}
-      >
-        <Tab id="overview">
-          <McpOverviewTab
-            overview={overview}
-            serverUrl={serverUrl}
-            settings={settings}
-            onSettings={setSettings}
-            onConnect={setConnecting}
-          />
-        </Tab>
-        <Tab id="clients">
-          <McpClientsTab
-            clients={grants.clients}
-            tokens={grants.tokens}
-            settings={saved}
-            storeName={store}
-            onConnect={() => setConnecting('claude')}
-          />
-        </Tab>
-        <Tab id="activity">
-          <McpActivityTab />
-        </Tab>
-      </SectionTabs>
-      <ConnectClientDialog
-        client={connecting}
+      <McpStatusCard
+        connected={live}
+        lastRequestAt={overview.lastRequestAt}
         serverUrl={serverUrl}
-        storeName={store}
-        onClose={() => setConnecting(null)}
       />
+      <McpConnectGuide serverUrl={serverUrl} onCreateToken={() => setCreating(true)} />
+      <McpConnectedApps apps={apps} settings={saved} onDisconnect={setRevoking} />
+      <McpPermissionsCard settings={settings} onSettings={setSettings} />
+      <McpTokensCard
+        tokens={grants.tokens}
+        onCreate={() => setCreating(true)}
+        onRevoke={setRevoking}
+      />
+      <SettingsCard bodyClassName="flex-row flex-wrap items-center justify-between gap-3">
+        <div className="flex min-w-0 flex-col gap-0.5">
+          <h2 className="text-[0.9375rem] leading-[1.375rem] font-semibold text-ink-strong">
+            {copy.activity.heading}
+          </h2>
+          <p className="text-[0.8125rem] leading-[1.1875rem] text-muted-foreground">
+            {copy.activity.help}
+          </p>
+        </div>
+        <Button
+          variant="outline"
+          nativeButton={false}
+          render={<Link href={routes.settings.mcp('activity')} />}
+        >
+          {copy.activity.open}
+          <ArrowRight aria-hidden="true" />
+        </Button>
+      </SettingsCard>
+
+      <CreateTokenDialog open={creating} onOpenChange={setCreating} serverUrl={serverUrl} />
+      <RevokeGrantDialog grant={revoking} storeName={store} onClose={() => setRevoking(null)} />
     </div>
   )
 }

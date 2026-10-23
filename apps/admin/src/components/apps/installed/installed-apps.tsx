@@ -31,7 +31,7 @@ import type { AppSummary } from '@/lib/app-summary'
 import { matchesQuery } from '@/lib/apps-gallery'
 import { routes } from '@/lib/routes'
 import { installedColumns } from './installed-columns'
-import PermissionsSheet from './permissions-sheet'
+import PermissionsDialog from './permissions-dialog'
 import StatusPills from './status-pills'
 
 type InstalledAppsProps = {
@@ -57,7 +57,7 @@ export default function InstalledApps({ installId }: InstalledAppsProps) {
   const [query, setQuery] = useState('')
   const [page, setPage] = useState(1)
   const [perPage, setPerPage] = useState<number>(DEFAULT_PER_PAGE)
-  const [sheetApp, setSheetApp] = useState<AppSummary | null>(null)
+  const [permissionsApp, setPermissionsApp] = useState<AppSummary | null>(null)
   const [uninstalling, setUninstalling] = useState<AppSummary | null>(null)
   const [disconnecting, setDisconnecting] = useState<AppSummary | null>(null)
   const [bulk, setBulk] = useState<{ ids: string[]; clear: () => void } | null>(null)
@@ -112,7 +112,7 @@ export default function InstalledApps({ installId }: InstalledAppsProps) {
     if (!app) return
     try {
       await api.apps.uninstall({ id: app.id })
-      setSheetApp(null)
+      setPermissionsApp(null)
       toast.success(copy.toast.uninstalled(app.name), { description: copy.toast.uninstalledBody })
       await afterChange()
     } catch (err) {
@@ -244,7 +244,7 @@ export default function InstalledApps({ installId }: InstalledAppsProps) {
                     href: settingsHref(a) ?? undefined,
                     hidden: !settingsHref(a),
                   },
-              { label: copy.menu.permissions, onSelect: () => setSheetApp(a) },
+              { label: copy.menu.permissions, onSelect: () => setPermissionsApp(a) },
               {
                 label: copy.menu.disconnect,
                 onSelect: () => setDisconnecting(a),
@@ -266,11 +266,11 @@ export default function InstalledApps({ installId }: InstalledAppsProps) {
         }}
       />
 
-      <PermissionsSheet
-        app={sheetApp}
+      <PermissionsDialog
+        app={permissionsApp}
         storeName={storeName}
         byline={byline}
-        onClose={() => setSheetApp(null)}
+        onClose={() => setPermissionsApp(null)}
         onRemove={setUninstalling}
       />
 

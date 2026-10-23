@@ -1,6 +1,7 @@
 import { notTestOrder } from '@commerce/core'
 import type { StoreTx } from '@commerce/db'
 import {
+  automationWorkflow,
   customer,
   marketingAutomation,
   marketingCampaign,
@@ -125,11 +126,18 @@ async function namesFor(tx: StoreTx, ids: Record<OutcomeKind, string | null>) {
           .from(marketingCampaign)
           .where(eq(marketingCampaign.id, ids.campaigns as string))
       : [],
+    // Growth automations live in automation_workflow once the store is on the engine (same ids).
     uuid(ids.automations)
       ? tx
           .select({ name: marketingAutomation.name })
           .from(marketingAutomation)
           .where(eq(marketingAutomation.id, ids.automations as string))
+          .unionAll(
+            tx
+              .select({ name: automationWorkflow.name })
+              .from(automationWorkflow)
+              .where(eq(automationWorkflow.id, ids.automations as string)),
+          )
       : [],
     uuid(ids.links)
       ? tx

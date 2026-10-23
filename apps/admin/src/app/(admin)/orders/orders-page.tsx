@@ -62,6 +62,8 @@ export type OrdersInitial = {
   tiles: OrderTilesData
   /** Installed apps' order actions for the row menus and bulk bar (`api.apps.orderActions`). */
   appActions: OrderActionGroup[]
+  /** The Automations app is installed: "Run automation" on the bulk bar. */
+  automations: boolean
   /** Tab badges: every order, unpaid, to pack and manual UPI waiting to be matched. */
   counts: { all: number; unpaid: number; unfulfilled: number; pendingUpi: number }
 }
@@ -326,6 +328,7 @@ function OrdersContent({ initial }: { initial: OrdersInitial }) {
             onMark={(i, m) => handleBulkSetStatus(i, m, clear)}
             onRequest={(kind, i) => setBulkRequest({ kind, ids: i, clear })}
             appActions={initial.appActions}
+            automations={initial.automations}
             onAppActionDone={() => {
               clear()
               reload().catch(() => setFailed(true))

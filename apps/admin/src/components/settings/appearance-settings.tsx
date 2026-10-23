@@ -139,7 +139,7 @@ export default function AppearanceSettings({ productLayout }: AppearanceSettings
           <p className="text-body text-foreground">
             {copy.store.current(colourName(loaded.storeDefault))}
           </p>
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="flex flex-wrap items-center justify-end gap-2">
             <Button
               variant="outline"
               onClick={handleStoreDefault}

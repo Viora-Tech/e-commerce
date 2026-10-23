@@ -195,7 +195,12 @@ export default function InvoiceDetail({ params }: AppPageProps) {
               onChange={setShipField('exchangeRate')}
             />
           </div>
-          <Button className="mt-3" variant="outline" disabled={busy} onClick={handleShipping}>
+          <Button
+            className="mt-3 self-end"
+            variant="outline"
+            disabled={busy}
+            onClick={handleShipping}
+          >
             <Save aria-hidden="true" />
             {copy.saveShipping}
           </Button>

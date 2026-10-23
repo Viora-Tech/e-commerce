@@ -95,7 +95,14 @@ function assertNoBalanceDue(
  * Used when the whole order ships at once (a courier booking, or the merchant
  * setting the status to fulfilled). Running it again moves nothing.
  */
-export async function fulfilRemainingLines(ctx: StoreContext, orderId: string): Promise<void> {
+export async function fulfilRemainingLines(
+  ctx: StoreContext,
+  orderId: string,
+  opts: {
+    /** False: no "order shipped" message to the shopper (an automation's choice). */
+    notifyCustomer?: boolean | undefined
+  } = {},
+): Promise<void> {
   const { o, lines } = await lockOrder(ctx, orderId)
   if (!o || UNFULFILLABLE.has(o.status)) return
   assertNoBalanceDue(ctx, orderId, o)
@@ -113,7 +120,7 @@ export async function fulfilRemainingLines(ctx: StoreContext, orderId: string): 
     }
   }
   await packFulfillmentOrderLines(ctx, orderId, picks)
-  await recomputeOrderStatuses(ctx, orderId)
+  await recomputeOrderStatuses(ctx, orderId, opts)
 }
 
 /**

@@ -97,6 +97,10 @@ async function paymentFacts(ctx: StoreContext, orderId: string) {
 export async function recomputeOrderStatuses(
   ctx: StoreContext,
   orderId: string,
+  opts: {
+    /** False: the `order.fulfilled` this call may write tells the shopper nothing. */
+    notifyCustomer?: boolean | undefined
+  } = {},
 ): Promise<RecomputeResult | null> {
   const [o] = await ctx.tx.select().from(order).where(eq(order.id, orderId)).for('update')
   if (!o) return null
@@ -180,7 +184,10 @@ export async function recomputeOrderStatuses(
     fullyPacked &&
     UNFULFILLED_STATUSES.includes(before.fulfillmentStatus)
   if (becameFulfilled) {
-    await insertOutboxEvent(ctx.tx, ctx.storeId, 'order.fulfilled', { orderId })
+    await insertOutboxEvent(ctx.tx, ctx.storeId, 'order.fulfilled', {
+      orderId,
+      ...(opts.notifyCustomer === false ? { notifyCustomer: false } : {}),
+    })
   }
 
   return { before, after, changed, becamePaid, becameFulfilled }

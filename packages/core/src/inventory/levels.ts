@@ -13,6 +13,7 @@ import { CommerceError } from '../errors'
 import { insertOutboxEvent } from '../outbox/write'
 import type { LocationInput } from './schemas'
 import { availableOf, NegativeStockError, nextOnHand } from './stock'
+import { watchStockCrossings } from './stock-events'
 
 export class InventoryError extends CommerceError {}
 
@@ -140,11 +141,17 @@ export type AdjustStockInput = {
  * below zero; variants that sell regardless of stock may.
  */
 export async function adjustStock(tx: StoreTx, input: AdjustStockInput): Promise<number> {
+  if (input.delta === 0) return changeStock(tx, input)
+  // Falling to low or out of stock is an Automations trigger (once per crossing).
+  return watchStockCrossings(tx, input.storeId, [input.variantId], () => changeStock(tx, input))
+}
+
+async function changeStock(tx: StoreTx, input: AdjustStockInput): Promise<number> {
   const locationId = input.locationId ?? (await defaultLocationId(tx, input.storeId))
   const level = await levelFor(tx, input.storeId, input.variantId, locationId)
   if (input.delta === 0) return level.onHand
   const [v] = await tx
-    .select({ trackInventory: variant.trackInventory })
+    .select({ trackInventory: variant.trackInventory, productId: variant.productId })
     .from(variant)
     .where(eq(variant.id, input.variantId))
   let next: number
