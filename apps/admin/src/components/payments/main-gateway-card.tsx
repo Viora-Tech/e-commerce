@@ -74,7 +74,7 @@ export default function MainGatewayCard({
     <Card>
       <CardContent className="flex flex-col gap-4">
         <div className="flex flex-wrap items-start gap-3">
-          <GatewayLogo monogram={monogramOf(primary.id)} size="lg" />
+          <GatewayLogo id={primary.id} monogram={monogramOf(primary.id)} size="lg" />
           <div className="flex min-w-0 flex-1 flex-col gap-1">
             <div className="flex flex-wrap items-center gap-2">
               <p className="text-body font-semibold text-foreground">{primary.label}</p>

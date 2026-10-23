@@ -38,7 +38,7 @@ export default function ProductSection({ variants, onOpenTab }: ProductSectionPr
         type="button"
         variant="outline"
         size="sm"
-        className="self-start"
+        className="self-end"
         onClick={() => onOpenTab('shipping', 'variant-hs')}
       >
         <Pencil aria-hidden="true" />

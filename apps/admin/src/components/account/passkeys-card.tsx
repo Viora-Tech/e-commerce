@@ -136,11 +136,7 @@ export default function PasskeysCard() {
           </ul>
         )}
         {supported ? (
-          <Button
-            variant="outline"
-            className="self-start"
-            onClick={() => setNaming({ mode: 'add' })}
-          >
+          <Button variant="outline" className="self-end" onClick={() => setNaming({ mode: 'add' })}>
             <Plus aria-hidden="true" />
             {copy.add}
           </Button>

@@ -13,7 +13,7 @@ type Summary = Awaited<ReturnType<typeof api.ai.bulkJobs>>[number]
 
 type BulkWriteBannerProps = {
   /** Bumped when a run starts or is applied, so the banner looks again. */
-  refreshKey: number
+  refreshKey?: number
   onOpen: (jobId: string) => void
 }
 
@@ -31,7 +31,7 @@ function isLive(job: Summary | null): boolean {
 }
 
 /** Above the products list: a bulk AI run still writing, or suggestions waiting for review. */
-export default function BulkWriteBanner({ refreshKey, onOpen }: BulkWriteBannerProps) {
+export default function BulkWriteBanner({ refreshKey = 0, onOpen }: BulkWriteBannerProps) {
   // Hooks
   const copy = useCopy(assistantContent)
   const [latest, setLatest] = useState<Summary | null>(null)

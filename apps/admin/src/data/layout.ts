@@ -8,6 +8,8 @@ const PAGE_TITLES: [prefix: string, title: string][] = [
   ['/orders/drafts', 'Draft orders'],
   ['/orders/abandoned-checkouts', 'Abandoned checkouts'],
   ['/orders/shipments', 'Shipments'],
+  ['/orders/shipments/pickups', 'Pickups and manifests'],
+  ['/orders/shipments/attention', 'Deliveries that need you'],
   ['/orders/returns', 'Returns'],
   ['/products', 'Products'],
   ['/products/collections', 'Collections'],

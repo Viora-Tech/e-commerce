@@ -269,18 +269,36 @@ export const ACTION_DOCS: Record<string, string> = {
   'onboarding.joinWaitlist':
     'Invite mode: leave your details so the platform can invite you later.',
   'onboarding.slugAvailability': 'Live check while typing the store address.',
+  'orders.abandonedStats':
+    'Abandoned checkouts in a period: how many, their value, and how many were recovered.',
+  'orders.addNote': "Add a staff note to the order's timeline.",
+  'orders.cancelShipment': 'Cancel a booked shipment with its courier.',
   'orders.collectPayment': 'Record money collected outside a gateway; the order becomes paid.',
+  'orders.convertDraft':
+    'Place a draft as a real order: holds stock and records a pending payment for the chosen method.',
   'orders.couriers':
     "The couriers the store's orders went with (the filter panel's Courier select).",
   'orders.createShipment':
     "Book the parcel with the courier picked in the Create shipment flow (the store's first courier when none is named); the parcel's items are packed and the shopper is told.",
+  'orders.deleteDraft': 'Delete one draft order; placed orders cannot be deleted this way.',
   'orders.deleteDrafts': "The list's bulk delete; ids that are no longer drafts are skipped.",
   'orders.deleteTestOrders':
     '"Delete test orders": removes every order of this store paid on a gateway\'s test keys (is_test), with its dependent rows.',
+  'orders.draftTiles':
+    'The stat cards above the drafts list: open drafts, invoices sent, and their total value.',
   'orders.fulfil':
     'Pack some or all of the lines; the shopper is told once the parcel is complete.',
+  'orders.get':
+    "One order with its lines, payments, shipment, balance due and the customer's order history.",
+  'orders.getAbandoned': 'One abandoned checkout with its cart, contact and recovery link.',
+  'orders.getDraft': 'One draft order with its lines, customer, addresses and totals.',
   'orders.ids':
     'Every order id the list\'s filters match (the table\'s "Select all N orders"), up to 5,000.',
+  'orders.list':
+    'Orders, a page at a time, by list tab, status, payment, fulfilment, date or a search.',
+  'orders.listAbandoned':
+    'Abandoned checkouts from recent days, a page at a time, by recovery status or a search.',
+  'orders.listDrafts': 'Draft orders, a page at a time, filtered by status or a search.',
   'orders.neighbours':
     'Order numbers either side of this one, for the arrows in the detail header.',
   'orders.previewMessage':
@@ -289,20 +307,27 @@ export const ACTION_DOCS: Record<string, string> = {
     'The reminder as the shopper would get it, for the "Review email" dialog.',
   'orders.profit':
     'What the order earned: net sales less goods, courier, fees and RTO (order/profit.ts).',
+  'orders.refreshTracking': 'Fetch the latest tracking events for a shipment from its courier.',
   'orders.refund':
     'Send money back through the gateway (or record a cash/UPI refund); partial amounts allowed.',
   'orders.requestBalance':
     "Ask the shopper for a deposit pre-order's balance: email and WhatsApp (when set up) with a signed pay link.",
+  'orders.saveDraft':
+    "Create a draft order (no id) or replace an existing draft's lines, customer and addresses.",
   'orders.sendInvoice': 'Email the shopper a pay link for the draft.',
   'orders.sendInvoices':
     'The list\'s bulk "Send invoices": each selected draft with an email gets its pay link.',
   'orders.sendPaymentReminder':
     '"Send payment reminder" on an unpaid UPI / bank transfer order: email, and WhatsApp when set up, with the QR and bank details.',
+  'orders.sendRecovery': 'Email the shopper a reminder with a link back to their abandoned cart.',
   'orders.setCourierCharge': 'What the courier charged for a consignment, typed by the merchant.',
   'orders.setStatus': '"Mark as paid / fulfilled / delivered", or cancel.',
   'orders.sheet': 'Rows for the Orders bulk-edit spreadsheet, in the order the ids were given.',
+  'orders.stats': 'The order stats for the last 7 days, against the 7 days before.',
   'orders.tagMany':
     'The list\'s bulk "Add tags" / "Remove tags": every given tag on (or off) every order.',
+  'orders.tiles': 'The stat cards above the Orders list.',
+  'orders.toShipCount': 'How many orders are waiting to ship.',
   'orders.updateContact':
     "\"Edit\" on the order page's customer card: this order's contact and shipping address, optionally copied to the customer's saved address.",
   'payments.connect': 'Save pasted keys and make that gateway the main way to get paid.',

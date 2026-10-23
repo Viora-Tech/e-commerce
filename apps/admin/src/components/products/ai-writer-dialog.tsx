@@ -5,13 +5,13 @@ import { richTextToPlainText } from '@commerce/richtext'
 import { AiIcon, CircleAlert } from '@commerce/ui/icons'
 import { Alert, AlertDescription } from '@commerce/ui/shadcn/alert'
 import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetFooter,
-  SheetHeader,
-  SheetTitle,
-} from '@commerce/ui/shadcn/sheet'
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@commerce/ui/shadcn/dialog'
 import { Skeleton } from '@commerce/ui/shadcn/skeleton'
 import { Spinner } from '@commerce/ui/shadcn/spinner'
 import { useState } from 'react'
@@ -26,7 +26,7 @@ import AiWriterOptions from './ai-writer-options'
 import AiWriterPreview from './ai-writer-preview'
 import type { ProductFormState } from './form-state'
 
-type AiWriterSheetProps = {
+type AiWriterDialogProps = {
   open: boolean
   onOpenChange: (open: boolean) => void
   form: ProductFormState
@@ -51,9 +51,9 @@ function isImage(contentType: string | null): boolean {
  * "Write with AI" on the product page: pick a tone and language, optionally add notes, and
  * the AI writes a description, search text, tags and key specs from the photos. The result
  * shows next to what the product has now; Apply puts the ticked parts in the form (the save
- * bar then asks to save). Nothing is saved by this sheet.
+ * bar then asks to save). Nothing is saved by this dialog.
  */
-export default function AiWriterSheet({ open, onOpenChange, form, onApply }: AiWriterSheetProps) {
+export default function AiWriterDialog({ open, onOpenChange, form, onApply }: AiWriterDialogProps) {
   // Hooks
   const copy = useCopy(aiContent)
   const keywordCopy = useCopy(seoKeywordsContent.writer)
@@ -116,15 +116,15 @@ export default function AiWriterSheet({ open, onOpenChange, form, onApply }: AiW
   const primaryKeyword = form.seoKeywords[0] ?? null
 
   return (
-    <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent className="flex flex-col gap-0 data-[side=right]:w-full data-[side=right]:sm:max-w-xl">
-        <SheetHeader className="border-line border-b pr-12">
-          <SheetTitle className="flex items-center gap-2">
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="flex max-h-[calc(100dvh-2rem)] flex-col gap-0 p-0 sm:max-w-2xl">
+        <DialogHeader className="gap-0.5 border-line border-b p-4 pr-12">
+          <DialogTitle className="flex items-center gap-2">
             <AiIcon className="size-5 text-primary" aria-hidden="true" />
             {copy.writer.title}
-          </SheetTitle>
-          <SheetDescription>{copy.writer.subtitle}</SheetDescription>
-        </SheetHeader>
+          </DialogTitle>
+          <DialogDescription>{copy.writer.subtitle}</DialogDescription>
+        </DialogHeader>
         <div className="flex flex-1 flex-col gap-6 overflow-y-auto p-4 md:p-5">
           {editing || !result ? (
             <AiWriterOptions
@@ -193,7 +193,7 @@ export default function AiWriterSheet({ open, onOpenChange, form, onApply }: AiW
           ) : null}
           <p className="text-caption text-muted-foreground">{copy.disclaimer}</p>
         </div>
-        <SheetFooter className="flex-row flex-wrap justify-end border-line border-t">
+        <DialogFooter className="m-0 flex-row flex-wrap justify-end border-line border-t">
           {result ? (
             <>
               <KitButton variant="secondary" onClick={() => void handleGenerate()} disabled={busy}>
@@ -219,8 +219,8 @@ export default function AiWriterSheet({ open, onOpenChange, form, onApply }: AiW
               </KitButton>
             </>
           )}
-        </SheetFooter>
-      </SheetContent>
-    </Sheet>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   )
 }

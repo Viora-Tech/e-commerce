@@ -208,13 +208,13 @@ export default function HomePageSettings({ title, domain }: HomePageSettingsProp
         </FieldFrame>
       ) : null}
       {dirty ? (
-        <div className="sticky bottom-0 -mx-4 flex items-center gap-2 border-t border-border bg-card px-4 py-3">
+        <div className="sticky bottom-0 -mx-4 flex items-center justify-end gap-2 border-t border-border bg-card px-4 py-3">
+          <Button size="sm" variant="ghost" onClick={() => setForm(saved)} disabled={busy}>
+            {copy.discard}
+          </Button>
           <Button size="sm" onClick={handleSave} disabled={busy || shortPassword}>
             <Save aria-hidden="true" />
             {copy.save}
-          </Button>
-          <Button size="sm" variant="ghost" onClick={() => setForm(saved)} disabled={busy}>
-            {copy.discard}
           </Button>
         </div>
       ) : null}

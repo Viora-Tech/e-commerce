@@ -21,6 +21,8 @@ type DataCardProps = {
   action?: ReactNode
   /** Links behind the kebab; omitted means no kebab. */
   menu?: readonly ActionItem[]
+  /** Card actions under the body, right-aligned like every card footer. */
+  footer?: ReactNode
   /** Outlined "Details" pill pinned to the bottom-right corner. */
   detailsHref?: string
   children: ReactNode
@@ -53,6 +55,7 @@ export default function DataCard({
   action,
   menu,
   detailsHref,
+  footer,
   children,
   id,
   className,
@@ -102,6 +105,9 @@ export default function DataCard({
       >
         {children}
       </div>
+      {footer ? (
+        <div className="mt-4 flex flex-wrap items-center justify-end gap-2">{footer}</div>
+      ) : null}
       {detailsHref ? (
         <div className="absolute right-5 bottom-5">
           <DetailsLink href={detailsHref} />

@@ -552,6 +552,22 @@ export async function markMetafieldsFilterable(tx: StoreTx, ids: string[]): Prom
   return allowed.length
 }
 
+/** Puts one kind of record's extra fields in this order; ids of another kind are left alone. */
+export async function reorderMetafieldDefinitions(
+  tx: StoreTx,
+  ownerType: MetafieldOwnerType,
+  ids: string[],
+): Promise<void> {
+  for (const [position, definitionId] of ids.entries()) {
+    await tx
+      .update(metafieldDefinition)
+      .set({ position })
+      .where(
+        and(eq(metafieldDefinition.id, definitionId), eq(metafieldDefinition.ownerType, ownerType)),
+      )
+  }
+}
+
 /** Removes the definition and every value stored for it. */
 export async function deleteMetafieldDefinition(tx: StoreTx, id: string): Promise<void> {
   await tx.delete(metafield).where(eq(metafield.definitionId, id))

@@ -17,7 +17,6 @@ import PageBody from '@/components/layout/page-body'
 import PageHeader from '@/components/layout/page-header'
 import ScoreRing from '@/components/layout/score-ring'
 import StatusChip from '@/components/layout/status-chip'
-import BulkWriteSheet from '@/components/products/bulk-write/bulk-write-sheet'
 import { salesChannelsContent } from '@/data/sales-channels'
 import { useCopy } from '@/hooks/use-copy'
 import { routes } from '@/lib/routes'
@@ -50,17 +49,14 @@ export default function ReadinessPage({ report, aiBulk }: ReadinessPageProps) {
   const copy = useCopy(salesChannelsContent.readiness)
   const [filter, setFilter] = useState<Filter>('all')
   const [shown, setShown] = useState(PAGE)
-  const [writing, setWriting] = useState<string[] | null>(null)
 
   // Event handlers
   const handleFilter = (next: Filter) => {
     setFilter(next)
     setShown(PAGE)
   }
-  const handleSheet = (open: boolean) => {
-    if (open) return
-    setWriting(null)
-    router.refresh()
+  const handleWrite = (ids: string[]) => {
+    router.push(routes.products.bulkWrite({ ids, fields: ['description'], from: 'readiness' }))
   }
 
   // Helpers
@@ -71,7 +67,7 @@ export default function ReadinessPage({ report, aiBulk }: ReadinessPageProps) {
   }
   const action = (i: ReadinessIssue) =>
     i.fix === 'ai' && aiBulk ? (
-      <KitButton variant="chip" onClick={() => setWriting([i.ref])}>
+      <KitButton variant="chip" onClick={() => handleWrite([i.ref])}>
         <AiIcon />
         {copy.fixes.ai}
       </KitButton>
@@ -101,7 +97,7 @@ export default function ReadinessPage({ report, aiBulk }: ReadinessPageProps) {
               {copy.checkAgain}
             </KitButton>
             {aiBulk && aiCount > 0 ? (
-              <KitButton onClick={() => setWriting(report.aiFixable.slice(0, AI_RUN_MAX))}>
+              <KitButton onClick={() => handleWrite(report.aiFixable.slice(0, AI_RUN_MAX))}>
                 <AiIcon />
                 {copy.fixWithAi(aiCount)}
               </KitButton>
@@ -188,7 +184,7 @@ export default function ReadinessPage({ report, aiBulk }: ReadinessPageProps) {
             </ul>
           )}
           {matching.length > visible.length ? (
-            <div className="border-t border-border px-4 py-3">
+            <div className="flex justify-end border-t border-border px-4 py-3">
               <KitButton variant="linkSm" onClick={() => setShown(shown + PAGE)}>
                 {copy.more(Math.min(PAGE, matching.length - visible.length))}
               </KitButton>
@@ -201,16 +197,6 @@ export default function ReadinessPage({ report, aiBulk }: ReadinessPageProps) {
           ) : null}
         </DataCard>
       </div>
-      {aiBulk && writing ? (
-        <BulkWriteSheet
-          open
-          onOpenChange={handleSheet}
-          productIds={writing}
-          jobId={null}
-          initialFields={['description']}
-          onApplied={() => router.refresh()}
-        />
-      ) : null}
     </PageBody>
   )
 }

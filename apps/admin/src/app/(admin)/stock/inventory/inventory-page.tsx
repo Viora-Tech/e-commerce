@@ -11,7 +11,7 @@ import { Suspense, useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import AddLocationDialog from '@/components/inventory/add-location-dialog'
 import { downloadInventoryCsv } from '@/components/inventory/export-inventory'
-import HistorySheet from '@/components/inventory/history-sheet'
+import HistoryDialog from '@/components/inventory/history-dialog'
 import InventoryBulkActions from '@/components/inventory/inventory-bulk-actions'
 import InventoryBulkDialog, { type BulkEdit } from '@/components/inventory/inventory-bulk-dialog'
 import {
@@ -358,7 +358,7 @@ function InventoryContent({ initial }: { initial: InventoryInitial }) {
         onOpenChange={(open) => !open && setBulk(undefined)}
         onApply={handleBulk}
       />
-      <HistorySheet
+      <HistoryDialog
         variantId={history?.variantId ?? null}
         name={history ? rowName(history) : ''}
         sku={history?.sku ?? null}

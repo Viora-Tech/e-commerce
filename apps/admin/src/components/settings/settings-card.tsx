@@ -9,6 +9,8 @@ type SettingsCardProps = {
   className?: string
   /** Classes for the body under the title (default stacks children in a column). */
   bodyClassName?: string
+  /** Card actions under the body, right-aligned like every card footer. */
+  footer?: ReactNode
 }
 
 /** A settings card (Proofly): raised panel with a small title and help line over its rows. */
@@ -19,6 +21,7 @@ export default function SettingsCard({
   children,
   className,
   bodyClassName,
+  footer,
 }: SettingsCardProps) {
   return (
     <section
@@ -38,6 +41,9 @@ export default function SettingsCard({
         </header>
       ) : null}
       <div className={cn('flex flex-col', bodyClassName)}>{children}</div>
+      {footer ? (
+        <div className="flex flex-wrap items-center justify-end gap-2">{footer}</div>
+      ) : null}
     </section>
   )
 }

@@ -32,6 +32,8 @@ type FormDialogProps = {
   size?: 'default' | 'md' | 'lg'
   /** For dialogs rendered inside a clickable row. */
   stopPropagation?: boolean
+  /** A quieter action at the far left of the footer ("Remove"). */
+  secondaryAction?: ReactNode
 }
 
 const SIZE_CLASS = {
@@ -54,6 +56,7 @@ export default function FormDialog({
   children,
   size = 'default',
   stopPropagation = false,
+  secondaryAction,
 }: FormDialogProps) {
   // Hooks
   const shared = useCopy(dialogContent)
@@ -94,6 +97,7 @@ export default function FormDialog({
           </DialogHeader>
           {children}
           <DialogFooter>
+            {secondaryAction ? <div className="flex sm:mr-auto">{secondaryAction}</div> : null}
             <Button
               type="button"
               variant="outline"

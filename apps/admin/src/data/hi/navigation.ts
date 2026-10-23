@@ -14,6 +14,8 @@ export const hindiPageNames: Record<string, { title: string; body?: string }> = 
   '/orders/drafts': { title: 'ड्राफ़्ट' },
   '/orders/abandoned-checkouts': { title: 'अधूरे चेकआउट' },
   '/orders/shipments': { title: 'शिपमेंट' },
+  '/orders/shipments/pickups': { title: 'पिकअप और मैनिफ़ेस्ट' },
+  '/orders/shipments/attention': { title: 'जिन डिलीवरी पर ध्यान चाहिए' },
   '/orders/returns': { title: 'रिटर्न' },
   '/products': { title: 'प्रोडक्ट' },
   '/products/collections': { title: 'कलेक्शन' },

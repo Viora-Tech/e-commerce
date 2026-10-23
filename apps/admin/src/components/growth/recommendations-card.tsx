@@ -118,7 +118,7 @@ export default function RecommendationsCard({ initial }: RecommendationsCardProp
               {r.action.kind === 'open' ? (
                 <Button
                   variant="outline"
-                  className="self-start"
+                  className="self-end"
                   render={<Link href={r.action.href} />}
                   nativeButton={false}
                 >
@@ -126,7 +126,7 @@ export default function RecommendationsCard({ initial }: RecommendationsCardProp
                 </Button>
               ) : (
                 <Button
-                  className="self-start"
+                  className="self-end"
                   disabled={busy !== null}
                   onClick={() => void handleCreate(r)}
                 >
