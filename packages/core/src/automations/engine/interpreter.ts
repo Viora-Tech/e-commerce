@@ -2,14 +2,13 @@
 import {
   automationRun,
   automationRunRecord,
-  automationStepRun,
   automationVersion,
   automationWorkflow,
   type Db,
   type StoreTx,
   withStore,
 } from '@commerce/db'
-import { and, eq, gte, sql } from 'drizzle-orm'
+import { eq } from 'drizzle-orm'
 import { type ActionDescriptor, builtinAction, nodeNeedsApproval } from '../catalogue'
 import {
   type ActionNode,
@@ -32,13 +31,21 @@ import { actionExecutor } from '../registry'
 import {
   APPROVAL_EXPIRY_HOURS,
   type AutomationCause,
-  MAX_FAILURES_PER_HOUR,
   type RunReason,
   type RunStatus,
 } from '../types'
-import { switchOffWithProblem } from './trigger'
+import {
+  finish,
+  moveTo,
+  onActionError,
+  type RunRow,
+  type StepOutcome,
+  stepRow,
+  truncateOutput,
+  writeStep,
+} from './steps'
 
-type RunRow = typeof automationRun.$inferSelect
+export { retryDelayMs } from './steps'
 
 /** An action as the interpreter needs it: its descriptor and its server half. */
 export type ResolvedAction = { descriptor: ActionDescriptor; executor: ActionExecutor }
@@ -65,59 +72,8 @@ export type EngineDeps = {
   now?: (() => Date) | undefined
 }
 
-/** Internal actions: a lock or deadlock is worth a quick retry. */
-const INTERNAL_ATTEMPTS = 3
-/** External actions (email, WhatsApp, HTTP, apps): backoff up to about a day (Flow: 24 h). */
-const EXTERNAL_DELAYS_MS = [
-  60_000,
-  5 * 60_000,
-  30 * 60_000,
-  2 * 3600_000,
-  6 * 3600_000,
-  12 * 3600_000,
-  24 * 3600_000,
-]
 /** Nodes one step job walks before handing back (a workflow has at most 50). */
 const MAX_NODES_PER_JOB = 60
-const TRANSIENT_PG = new Set(['40001', '40P01', '55P03', '57014'])
-
-/** The delay before attempt `attempt + 1`, or null when retries are used up. */
-export function retryDelayMs(
-  external: boolean,
-  attempt: number,
-  hint?: number | undefined,
-): number | null {
-  if (!external) return attempt < INTERNAL_ATTEMPTS ? 5_000 * 2 ** (attempt - 1) : null
-  const base = EXTERNAL_DELAYS_MS[attempt - 1]
-  if (base === undefined) return null
-  return hint && hint > base ? Math.min(hint, 24 * 3600_000) : base
-}
-
-function pgCode(err: unknown): string | undefined {
-  const e = err as { code?: unknown; cause?: { code?: unknown } }
-  const code = e?.code ?? e?.cause?.code
-  return typeof code === 'string' ? code : undefined
-}
-
-/** Retryable: the executor said so, or the database had a transient conflict. */
-function classify(err: unknown): { retryable: boolean; message: string; retryAfterMs?: number } {
-  if (err instanceof AutomationActionError) {
-    return {
-      retryable: err.retryable,
-      message: err.message,
-      ...(err.retryAfterMs !== undefined ? { retryAfterMs: err.retryAfterMs } : {}),
-    }
-  }
-  const code = pgCode(err)
-  const message = err instanceof Error ? err.message : String(err)
-  return { retryable: code !== undefined && TRANSIENT_PG.has(code), message }
-}
-
-const truncateOutput = (o: Record<string, unknown> | undefined): Record<string, unknown> | null => {
-  if (!o) return null
-  const json = JSON.stringify(o)
-  return json.length <= 8192 ? o : { truncated: true, preview: json.slice(0, 8000) }
-}
 
 async function defaultResolve(
   _tx: StoreTx,
@@ -127,83 +83,6 @@ async function defaultResolve(
   const descriptor = builtinAction(id)
   const executor = actionExecutor(id)
   return descriptor && executor ? { descriptor, executor } : null
-}
-
-type StepOutcome =
-  | { kind: 'continue' }
-  | { kind: 'park'; status: RunStatus; nextAt: Date | null }
-  | { kind: 'done' }
-
-/** Ends the run. */
-async function finish(
-  tx: StoreTx,
-  runId: string,
-  status: RunStatus,
-  now: Date,
-  extra: {
-    stopReason?: string | null
-    error?: string | null
-    convertedOrderId?: string | null
-  } = {},
-): Promise<StepOutcome> {
-  await tx
-    .update(automationRun)
-    .set({ status, finishedAt: now, ...extra })
-    .where(eq(automationRun.id, runId))
-  return { kind: 'done' }
-}
-
-async function moveTo(tx: StoreTx, runId: string, cursor: string | null): Promise<StepOutcome> {
-  await tx
-    .update(automationRun)
-    .set({ cursor, status: 'running' })
-    .where(eq(automationRun.id, runId))
-  return { kind: 'continue' }
-}
-
-type StepRow = typeof automationStepRun.$inferSelect
-
-async function stepRow(tx: StoreTx, runId: string, nodeId: string): Promise<StepRow | null> {
-  const [row] = await tx
-    .select()
-    .from(automationStepRun)
-    .where(
-      and(
-        eq(automationStepRun.runId, runId),
-        eq(automationStepRun.nodeId, nodeId),
-        eq(automationStepRun.iteration, 0),
-      ),
-    )
-  return row ?? null
-}
-
-type StepWrite = Partial<typeof automationStepRun.$inferInsert> & {
-  status: StepRow['status']
-}
-
-/** Writes the node's step-run row (one per run, node and iteration). */
-async function writeStep(
-  tx: StoreTx,
-  run: RunRow,
-  node: { id: string; kind: string },
-  actionId: string | null,
-  values: StepWrite,
-): Promise<void> {
-  await tx
-    .insert(automationStepRun)
-    .values({
-      storeId: run.storeId,
-      runId: run.id,
-      nodeId: node.id,
-      iteration: 0,
-      kind: node.kind,
-      actionId,
-      ...values,
-    })
-    .onConflictDoUpdate({
-      target: [automationStepRun.runId, automationStepRun.nodeId, automationStepRun.iteration],
-      set: values,
-    })
 }
 
 async function loadDefinition(
@@ -315,69 +194,6 @@ function actionContext(
     dryRun: false,
     render: (template) => renderMergeTags(template, data),
     log: (m) => deps.log?.(`[automations] ${run.id}/${node.id}: ${m}`),
-  }
-}
-
-/** On a failed step: retry later, carry on, or fail the run. */
-async function onActionError(
-  tx: StoreTx,
-  run: RunRow,
-  node: ActionNode,
-  resolved: ResolvedAction,
-  attempt: number,
-  err: unknown,
-  now: Date,
-): Promise<StepOutcome> {
-  const c = classify(err)
-  const delay = c.retryable
-    ? retryDelayMs(resolved.descriptor.external, attempt, c.retryAfterMs)
-    : null
-  if (delay !== null) {
-    const retryAt = new Date(now.getTime() + delay)
-    await writeStep(tx, run, node, node.action, {
-      status: 'failed',
-      attempt,
-      error: c.message.slice(0, 2000),
-      retryAt,
-      finishedAt: now,
-    })
-    await tx
-      .update(automationRun)
-      .set({ status: 'waiting', nextAt: retryAt })
-      .where(eq(automationRun.id, run.id))
-    return { kind: 'park', status: 'waiting', nextAt: retryAt }
-  }
-  await writeStep(tx, run, node, node.action, {
-    status: 'failed',
-    attempt,
-    error: c.message.slice(0, 2000),
-    retryAt: null,
-    finishedAt: now,
-  })
-  if (node.onError === 'continue') return moveTo(tx, run.id, node.next)
-  await failureBreaker(tx, run.workflowId, now)
-  // The cursor stays on the failed node, so "Retry from failed step" re-runs it.
-  return finish(tx, run.id, 'failed', now, { error: c.message.slice(0, 2000) })
-}
-
-/** More than 1,000 failed runs of one workflow in an hour switches it off (design §8.5). */
-async function failureBreaker(tx: StoreTx, workflowId: string, now: Date) {
-  const [{ n } = { n: 0 }] = await tx
-    .select({ n: sql<number>`count(*)::int` })
-    .from(automationRun)
-    .where(
-      and(
-        eq(automationRun.workflowId, workflowId),
-        eq(automationRun.status, 'failed'),
-        gte(automationRun.finishedAt, new Date(now.getTime() - 3600_000)),
-      ),
-    )
-  if (n + 1 > MAX_FAILURES_PER_HOUR) {
-    await switchOffWithProblem(
-      tx,
-      workflowId,
-      `Switched off: more than ${MAX_FAILURES_PER_HOUR} runs failed in an hour`,
-    )
   }
 }
 

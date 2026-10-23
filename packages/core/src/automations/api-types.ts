@@ -64,7 +64,7 @@ export const WorkflowSetStatusInput = z.object({
 
 export const WorkflowRestoreVersionInput = z.object({ id: z.uuid(), versionId: z.uuid() })
 
-export const SubjectRefInput = z.object({
+const SubjectRefInput = z.object({
   type: z.string().trim().min(1).max(60),
   id: z.uuid(),
 })

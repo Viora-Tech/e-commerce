@@ -3,10 +3,10 @@ import { z } from 'zod'
 import { MAX_RULE_DEPTH, MAX_WAIT_MINUTES, MAX_WORKFLOW_NODES, MIN_WAIT_MINUTES } from './types'
 
 /** Bumped when the stored shape changes; old versions are migrated on read, never rewritten. */
-export const WORKFLOW_SCHEMA_VERSION = 1
+const WORKFLOW_SCHEMA_VERSION = 1
 
 /** `[a-z0-9_-]`, unique within the workflow. Growth's migrated step ids fit this. */
-export const NodeIdSchema = z
+const NodeIdSchema = z
   .string()
   .trim()
   .min(1)
@@ -18,7 +18,7 @@ export type NodeId = z.infer<typeof NodeIdSchema>
  * A trigger or action id from the catalogue. Built-ins are bare (`order.paid`,
  * `order.add_tags`); plugin ones are namespaced `<pluginId>/<name>`.
  */
-export const PieceIdSchema = z
+const PieceIdSchema = z
   .string()
   .trim()
   .min(1)
@@ -53,7 +53,7 @@ export type RuleOperator = (typeof RULE_OPERATORS)[number]
 export const RULE_QUANTIFIERS = ['any', 'all', 'none'] as const
 export type RuleQuantifier = (typeof RULE_QUANTIFIERS)[number]
 
-export const RuleSchema = z.object({
+const RuleSchema = z.object({
   /** Dotted path into the subject schema, e.g. `order.total`, `order.line_items.sku`. */
   field: z
     .string()
@@ -121,7 +121,7 @@ const WaitNodeSchema = z.object({
   next: NodeIdSchema.nullable(),
 })
 
-export const WorkflowNodeSchema = z.discriminatedUnion('kind', [
+const WorkflowNodeSchema = z.discriminatedUnion('kind', [
   ConditionNodeSchema,
   ActionNodeSchema,
   WaitNodeSchema,
@@ -132,14 +132,14 @@ export type ActionNode = z.infer<typeof ActionNodeSchema>
 export type WaitNode = z.infer<typeof WaitNodeSchema>
 export type WorkflowNodeKind = WorkflowNode['kind']
 
-export const WorkflowTriggerSchema = z.object({
+const WorkflowTriggerSchema = z.object({
   type: PieceIdSchema,
   /** Validated against the trigger's `configSchema` (e.g. `{ includeTest }`, `{ afterMinutes }`). */
   config: z.record(z.string(), z.unknown()).default({}),
 })
 export type WorkflowTrigger = z.infer<typeof WorkflowTriggerSchema>
 
-export const WorkflowSettingsSchema = z.object({
+const WorkflowSettingsSchema = z.object({
   /** Marketing: end the run as `converted` when the subject's customer places an order. */
   exitOnOrder: z.boolean().optional(),
   /** Same subject, same workflow: no second run within N minutes (0 or unset = no limit). */
@@ -176,7 +176,7 @@ export type DefinitionIssueCode =
   | 'empty_rules'
 
 /** The ids a node points at, in branch order. */
-export function childrenOf(node: WorkflowNode): (NodeId | null)[] {
+function childrenOf(node: WorkflowNode): (NodeId | null)[] {
   return node.kind === 'condition' ? [node.next, node.otherwise] : [node.next]
 }
 

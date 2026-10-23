@@ -2,18 +2,9 @@
 import { automationRun, automationVersion, automationWorkflow, type StoreTx } from '@commerce/db'
 import type { PluginManifest } from '@commerce/plugins'
 import { and, desc, eq, ilike, inArray, max, sql } from 'drizzle-orm'
-import { PLANS } from '../../billing/plans'
 import { CommerceError } from '../../errors'
 import { ALL_PERMISSIONS, type Permission } from '../../permissions/statement'
-import type {
-  AutomationUsage,
-  CatalogueView,
-  PublishResult,
-  TemplateView,
-  WorkflowDetail,
-  WorkflowSummary,
-} from '../api-types'
-import { CONDITION_FIELDS } from '../catalogue'
+import type { PublishResult, WorkflowDetail, WorkflowSummary } from '../api-types'
 import {
   actionIdsOf,
   emptyDefinition,
@@ -21,17 +12,11 @@ import {
   WorkflowDefinitionSchema,
 } from '../definition'
 import { pieceIssues } from '../registry'
-import { BUILTIN_TEMPLATES, builtinTemplate } from '../templates'
+import { builtinTemplate } from '../templates'
 import { OPEN_RUN_STATUSES, type WorkflowOrigin, type WorkflowStatus } from '../types'
 import { storePieces } from './resolve'
 import { nextFireAt, type ScheduleConfig } from './tick'
-import {
-  activeWorkflowCount,
-  canTurnOnAnother,
-  runsThisMonth,
-  storePlanId,
-  usageMonth,
-} from './usage'
+import { canTurnOnAnother, storePlanId } from './usage'
 
 /** Who is asking, as the API's store scope has it. */
 export type Member = { userId: string; isOwner: boolean; permissions: readonly Permission[] }
@@ -465,97 +450,6 @@ export async function deleteWorkflow(tx: StoreTx, id: string): Promise<{ ok: tru
   // Versions, runs, step runs and record history go with it (foreign keys cascade).
   await tx.delete(automationWorkflow).where(eq(automationWorkflow.id, id))
   return { ok: true }
-}
-
-/** The editor's pickers for this store. */
-export async function catalogueView(
-  tx: StoreTx,
-  storeId: string,
-  plugins: readonly PluginManifest[],
-): Promise<CatalogueView> {
-  const { catalogue } = await storePieces(tx, storeId, plugins)
-  const strip = <T extends { configSchema: unknown }>({ configSchema: _s, ...rest }: T) => rest
-  const pluginFields: CatalogueView['pluginFields'] = {}
-  for (const p of plugins) {
-    for (const t of p.automations?.triggers ?? []) {
-      pluginFields[t.id] = (t.fields ?? []).map((f) => ({
-        path: f.path,
-        labelKey: f.path,
-        subject: 'none',
-        type: f.type,
-        ...(f.options ? { options: f.options } : {}),
-      }))
-    }
-  }
-  return {
-    triggers: catalogue.triggers.map(strip),
-    actions: catalogue.actions.map(strip),
-    fields: [...CONDITION_FIELDS],
-    pluginFields,
-  }
-}
-
-/** Built-in and installed apps' templates. Growth's six are added by the Growth migration. */
-export async function templateViews(
-  tx: StoreTx,
-  storeId: string,
-  plugins: readonly PluginManifest[],
-): Promise<TemplateView[]> {
-  const { catalogue, plugins: installed } = await storePieces(tx, storeId, plugins)
-  const builtin = BUILTIN_TEMPLATES.map(
-    (t): TemplateView => ({
-      id: t.id,
-      nameKey: t.nameKey,
-      descriptionKey: t.descriptionKey,
-      name: null,
-      description: null,
-      category: t.category,
-      triggerType: t.definition.trigger.type,
-      pluginId: null,
-      available:
-        catalogue.trigger(t.definition.trigger.type) !== null &&
-        actionIdsOf(t.definition).every((a) => catalogue.action(a) !== null),
-    }),
-  )
-  const fromApps = installed.flatMap((p) =>
-    (p.automations?.templates ?? []).map(
-      (t): TemplateView => ({
-        id: `${p.id}/${t.id}`,
-        nameKey: null,
-        descriptionKey: null,
-        name: t.name.en,
-        description: t.description.en,
-        category: t.category,
-        triggerType: String((t.definition.trigger as { type?: unknown } | undefined)?.type ?? ''),
-        pluginId: p.id,
-        available: true,
-      }),
-    ),
-  )
-  return [...builtin, ...fromApps]
-}
-
-export async function automationUsage(
-  tx: StoreTx,
-  storeId: string,
-  plugins: readonly PluginManifest[],
-): Promise<AutomationUsage> {
-  const plan = await storePlanId(tx, storeId)
-  const limits = PLANS[plan].automations
-  const [runs, active, pieces] = await Promise.all([
-    runsThisMonth(tx, storeId),
-    activeWorkflowCount(tx, storeId),
-    storePieces(tx, storeId, plugins),
-  ])
-  return {
-    month: usageMonth(),
-    runs,
-    runsLimit: limits.runsPerMonth,
-    activeWorkflows: active,
-    activeLimit: limits.activeWorkflows,
-    connectors: limits.connectors,
-    appInstalled: pieces.appInstalled,
-  }
 }
 
 /** Where a workflow came from (Growth's keep marketing permissions); null when missing. */

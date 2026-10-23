@@ -34,7 +34,7 @@ export const triggerJobId = (outboxId: string): string => `trg-${outboxId}`
  * the job already waiting, and the next generation (after a wait, a retry or an approval) gets
  * a new id. Step jobs are removed on completion so an id never blocks a later add.
  */
-export const stepJobId = (runId: string, nextAt: Date): string => `run-${runId}-${nextAt.getTime()}`
+const stepJobId = (runId: string, nextAt: Date): string => `run-${runId}-${nextAt.getTime()}`
 
 /** Enqueue one run generation. Never throws: the tick re-enqueues anything due it missed. */
 export async function enqueueRunStep(

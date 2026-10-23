@@ -51,7 +51,7 @@ export function resetActionExecutorsForTest(next: ActionExecutor[] = []): void {
 // ---------------------------------------------------------------------------------------------
 
 /** Plugin triggers as descriptors. Config is free-form JSON; conditions read `trigger.*`. */
-export function pluginTriggers(plugins: readonly PluginManifest[]): TriggerDescriptor[] {
+function pluginTriggers(plugins: readonly PluginManifest[]): TriggerDescriptor[] {
   return plugins.flatMap((p) =>
     (p.automations?.triggers ?? []).map(
       (t): TriggerDescriptor => ({
@@ -71,7 +71,7 @@ export function pluginTriggers(plugins: readonly PluginManifest[]): TriggerDescr
 }
 
 /** Plugin actions as descriptors. Plugin actions are Growth+ (owner, 2026-10-23, Q1). */
-export function pluginActions(plugins: readonly PluginManifest[]): ActionDescriptor[] {
+function pluginActions(plugins: readonly PluginManifest[]): ActionDescriptor[] {
   return plugins.flatMap((p) =>
     (p.automations?.actions ?? []).map((a): ActionDescriptor => {
       const permission: Permission =

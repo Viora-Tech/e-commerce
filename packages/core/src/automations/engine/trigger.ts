@@ -58,7 +58,7 @@ export type StartOutcome = {
 const NONE: StartOutcome = { started: [], skipped: [] }
 
 /** Trigger ids that listen to an outbox type, from the built-in catalogue. */
-export function triggersForOutboxType(type: string): string[] {
+function triggersForOutboxType(type: string): string[] {
   return BUILTIN_TRIGGERS.filter((t) => t.outboxTypes?.includes(type)).map((t) => t.id)
 }
 
@@ -69,7 +69,7 @@ export const AUTOMATION_OUTBOX_TYPES: ReadonlySet<string> = new Set([
 ])
 
 /** What an outbox row is about. */
-export function subjectForOutbox(type: OutboxEventType, payload: OutboxPayload): RunSubject | null {
+function subjectForOutbox(type: OutboxEventType, payload: OutboxPayload): RunSubject | null {
   if (type === 'automation.app_trigger') {
     const s = payload.appTrigger?.subject
     return s ? { type: s.type, id: s.id } : { type: 'none', id: null }

@@ -1,13 +1,13 @@
 /** SOURCE OF TRUTH: the automation tick — WHAT: per store, every 30 s: runs whose wait or retry is due, runs a lost job left queued or running, approvals past their 72 h, and scheduled workflows whose time came (next fire in IST) / WHY: the database is the source of truth for every wait, so a Redis loss or a dropped job only delays a run, never loses it (design §8.5). */
+import { IST_OFFSET_MS } from '@commerce/dates'
 import { automationRun, automationStepRun, automationWorkflow, type StoreTx } from '@commerce/db'
 import { and, asc, eq, inArray, isNull, lte, or, sql } from 'drizzle-orm'
 import { WorkflowDefinitionSchema } from '../definition'
 import { type StartedRun, startRuns } from './trigger'
 
 /** A queued or running run untouched this long is assumed lost and re-enqueued. */
-export const STALE_RUN_MS = 5 * 60_000
+const STALE_RUN_MS = 5 * 60_000
 const DUE_PER_TICK = 200
-const IST_OFFSET_MS = 330 * 60_000
 
 export type ScheduleConfig = { every: 'hour' | 'day' | 'week'; at?: string; weekday?: number }
 
@@ -114,7 +114,7 @@ async function fireSchedules(tx: StoreTx, storeId: string, now: Date): Promise<S
 }
 
 /** The live definition of a workflow, or null. */
-export async function publishedDefinition(tx: StoreTx, workflowId: string) {
+async function publishedDefinition(tx: StoreTx, workflowId: string) {
   const rows = await tx.execute<{ definition: unknown }>(sql`
     select v.definition from automation_workflow w
     join automation_version v on v.id = w.published_version_id

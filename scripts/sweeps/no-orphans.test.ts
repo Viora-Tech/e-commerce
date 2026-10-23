@@ -18,6 +18,76 @@ type AllowEntry = { file: string; names: string[]; reason: string }
 
 const ALLOWLIST: AllowEntry[] = [
   {
+    file: 'packages/core/src/automations/catalogue.ts',
+    names: [
+      'FIELD_TYPES',
+      'OPERATORS_BY_TYPE',
+      'UNARY_OPERATORS',
+      'isPluginPieceId',
+      'builtinTrigger',
+      'conditionFieldsFor',
+    ],
+    reason:
+      'Automations contract (feat/automations, 2026-10-23): read by the admin editor and the conditions/actions work built in parallel on this branch',
+  },
+  {
+    file: 'packages/core/src/automations/definition.ts',
+    names: [
+      'RULE_OPERATORS',
+      'RULE_QUANTIFIERS',
+      'RuleGroupSchema',
+      'isRuleGroup',
+      'definitionIssues',
+      'walkNodes',
+    ],
+    reason:
+      'Automations contract (feat/automations, 2026-10-23): read by the admin editor and the conditions/actions work built in parallel on this branch',
+  },
+  {
+    file: 'packages/core/src/automations/merge-tags.ts',
+    names: ['readPath', 'mergeTagsIn'],
+    reason:
+      'Automations contract (feat/automations, 2026-10-23): read by the admin editor and the conditions/actions work built in parallel on this branch',
+  },
+  {
+    file: 'packages/core/src/automations/templates.ts',
+    names: ['TEMPLATE_CATEGORIES'],
+    reason:
+      'Automations contract (feat/automations, 2026-10-23): read by the admin editor and the conditions/actions work built in parallel on this branch',
+  },
+  {
+    file: 'packages/core/src/automations/types.ts',
+    names: [
+      'WORKFLOW_STATUSES',
+      'WORKFLOW_ORIGINS',
+      'BUILTIN_SUBJECT_TYPES',
+      'isOpenRunStatus',
+      'STEP_RUN_STATUSES',
+      'ACTION_RISKS',
+      'TRIGGER_SOURCES',
+      'RUN_REASONS',
+      'STEP_RUN_RETENTION_DAYS',
+      'RUN_RETENTION_MONTHS',
+    ],
+    reason:
+      'Automations contract (feat/automations, 2026-10-23): read by the admin editor and the conditions/actions work built in parallel on this branch',
+  },
+  {
+    file: 'packages/db/src/automation-schema.ts',
+    names: ['automationSecret'],
+    reason: 'HTTP action secrets (design §8.3); the HTTP request executor reads it',
+  },
+  {
+    file: 'packages/core/src/automations/engine/trigger.ts',
+    names: ['eventForOutbox'],
+    reason: 'the outbox row to automation event rule, exported for its unit test',
+  },
+  {
+    file: 'packages/core/src/automations/registry.ts',
+    names: ['resetActionExecutorsForTest'],
+    reason: 'lets engine tests install mock executors',
+  },
+  {
     file: 'packages/api/src/services/order-actions.service.ts',
     names: ['orderActionGroups'],
     reason:
