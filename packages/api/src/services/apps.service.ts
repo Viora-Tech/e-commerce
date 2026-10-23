@@ -10,6 +10,7 @@ import {
   removeAppInstall,
   uninstallApp,
 } from '@commerce/core'
+import { pauseWorkflowsForRemovedApp } from '@commerce/core/automations/server'
 import { getRegistries, registriesForStore } from '@commerce/core/registries'
 import type { StoreTx } from '@commerce/db'
 import { store } from '@commerce/db'
@@ -84,6 +85,9 @@ export async function uninstallStoreApp(tx: StoreTx, storeId: string, pluginId: 
     .set({ apps, ...withoutProviders(s, pluginId) })
     .where(eq(store.id, storeId))
   await removeAppInstall(tx, storeId, pluginId)
+  // Workflows that use the app's triggers or actions stop, with a note saying why.
+  const name = getRegistries().plugins.find((p) => p.id === pluginId)?.name ?? pluginId
+  await pauseWorkflowsForRemovedApp(tx, pluginId, name)
   return apps
 }
 

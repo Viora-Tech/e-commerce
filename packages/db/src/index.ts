@@ -2,6 +2,7 @@ export * from './ai-schema'
 export * from './api-access-schema'
 export * from './app-schema'
 export * as authSchema from './auth-schema'
+export * from './automation-schema'
 export * from './billing-schema'
 export * from './channel-schema'
 export { createDb, type Db } from './client'
@@ -23,6 +24,7 @@ export {
   storeIdForSlug,
   storesForPlatformAccount,
   storesWithAbandonedCarts,
+  storesWithAutomationWork,
   storesWithBalanceDue,
   storesWithCertificateChecks,
   storesWithChannelConnections,
@@ -30,6 +32,7 @@ export {
   storesWithMarketingWork,
   storesWithMemberDailySummaries,
   storesWithOldApiActivity,
+  storesWithOldAutomationRuns,
   storesWithOpenShipments,
   storesWithPendingDomains,
   storesWithPendingManualOrders,

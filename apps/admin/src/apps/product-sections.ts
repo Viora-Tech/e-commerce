@@ -7,6 +7,7 @@ import type { ComponentType } from 'react'
 import BackInStockSection from '@/components/apps/back-in-stock/product-section'
 import GstSection from '@/components/apps/gst-invoices/product-section'
 import ReviewsSection from '@/components/apps/reviews/product-section'
+import AutomationsSection from '@/components/automations/records/product-section'
 
 /** One saved variant, as an app section reads it. */
 export type ProductSectionVariant = { id: string; label: string; hsCode: string; gstRate: string }
@@ -22,4 +23,5 @@ export const PRODUCT_APP_SECTIONS: Record<string, ComponentType<ProductSectionPr
   reviews: ReviewsSection,
   'back-in-stock': BackInStockSection,
   'gst-invoices': GstSection,
+  automations: AutomationsSection,
 }

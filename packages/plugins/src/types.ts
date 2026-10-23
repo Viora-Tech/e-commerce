@@ -3,6 +3,7 @@ import type { Attachment, NotificationChannelFactory, TemplateId } from '@commer
 import type { PaymentProviderFactory } from '@commerce/payments'
 import type { ShippingProviderFactory } from '@commerce/shipping'
 import type { StorageProvider, StorageProviderFactory } from '@commerce/storage'
+import type { AppAutomationEvent, AppAutomations } from './automations'
 
 /** The kinds of provider a plugin can contribute. Each maps to one registry. */
 export type ProviderKind = 'payments' | 'shipping' | 'notifications' | 'storage'
@@ -105,6 +106,13 @@ export type AppHookContext = {
    * call wins. Absent where nothing records it (tests, scripts).
    */
   reportActivity?: ((summary: string) => void) | undefined
+  /**
+   * Fire one of this app's Automations triggers (`automations.triggers` in the manifest). Writes
+   * an outbox row (`automation.app_trigger`) in `tx`, the same transaction as the app's own
+   * change, so a rollback drops the event too. `key` makes it idempotent per app: the same key
+   * never starts a second run of a workflow. Absent where no engine is wired (tests, scripts).
+   */
+  triggerAutomation?: ((tx: StoreTx, event: AppAutomationEvent) => Promise<void>) | undefined
 }
 
 export type AppHook = (ctx: AppHookContext, payload: AppEventPayload) => Promise<void>
@@ -406,6 +414,8 @@ export type PluginManifest = {
    * judged by the store's enabled providers instead.
    */
   setupState?: ((settings: unknown) => AppSetupState) | undefined
+  /** Triggers, actions and templates the app adds to Automations (Flow-style connectors). */
+  automations?: AppAutomations | undefined
 }
 
 /** commerce.config.ts shape. The core plugin is always loaded and never listed here. */

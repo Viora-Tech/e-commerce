@@ -49,7 +49,10 @@ const AREA_PERMISSIONS: Record<ApiArea, Record<ApiAccess, Permission[]>> = {
     read: [p.ONLINE_STORE_READ],
     write: [p.ONLINE_STORE_WRITE, p.ONLINE_STORE_PUBLISH],
   },
-  settings: { read: [p.SETTINGS_READ, p.STAFF_READ], write: [p.SETTINGS_MANAGE, p.APPS_MANAGE] },
+  settings: {
+    read: [p.SETTINGS_READ, p.STAFF_READ, p.AUTOMATIONS_READ],
+    write: [p.SETTINGS_MANAGE, p.APPS_MANAGE, p.AUTOMATIONS_WRITE],
+  },
 }
 
 /** Areas with nothing to write: the Write box is off and disabled. */

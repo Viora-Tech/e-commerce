@@ -1,5 +1,15 @@
 import { createMerchantAuth } from '@commerce/auth'
-import { address, createDb, order, orderLine, product, store, variant } from '@commerce/db'
+import {
+  address,
+  createDb,
+  fulfillmentOrder,
+  location,
+  order,
+  orderLine,
+  product,
+  store,
+  variant,
+} from '@commerce/db'
 import { resetDb } from '@commerce/db/test'
 import { call } from '@orpc/server'
 import { afterAll, beforeEach, describe, expect, it } from 'vitest'
@@ -143,6 +153,23 @@ describe('shipments.readyToShip', () => {
       },
       [{ quantity: 1 }],
     )
+    // Hold fulfilment (an automation's step): its parcel is held until released.
+    const held = await seedOrderWithLines(
+      m.storeId,
+      { number: 7, paymentStatus: 'paid', fulfillmentStatus: 'unfulfilled' },
+      [{ quantity: 1 }],
+    )
+    const [loc] = await owner
+      .insert(location)
+      .values({ storeId: m.storeId, name: 'Main' })
+      .returning()
+    await owner.insert(fulfillmentOrder).values({
+      storeId: m.storeId,
+      orderId: held,
+      locationId: loc?.id as string,
+      heldAt: new Date(),
+      holdReason: 'Risky COD',
+    })
 
     const r = await call(
       appRouter.shipments.readyToShip,

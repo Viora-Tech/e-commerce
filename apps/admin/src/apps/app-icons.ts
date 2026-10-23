@@ -22,6 +22,7 @@ import {
   Truck,
   Upload,
   Users,
+  Workflow,
 } from '@commerce/ui/icons'
 
 /** Icon names a manifest may use, mapped to the admin icon set. */
@@ -43,6 +44,7 @@ const ICONS: Record<string, LucideIcon> = {
   Truck,
   Upload,
   Users,
+  Workflow,
 }
 
 export const appIcon = (name: string | null | undefined): LucideIcon =>

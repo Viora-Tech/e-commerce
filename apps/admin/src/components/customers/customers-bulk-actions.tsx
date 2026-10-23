@@ -11,6 +11,7 @@ import {
   DropdownMenuTrigger,
 } from '@commerce/ui/shadcn/dropdown-menu'
 import { Fragment, useState } from 'react'
+import RunAutomationButton from '@/components/automations/records/run-automation-button'
 import ConfirmDialog from '@/components/layout/confirm-dialog'
 import { bulkActionsContent } from '@/data/bulk-actions'
 import { CHANNEL_LABEL } from '@/data/customer-privacy'
@@ -32,6 +33,10 @@ type CustomersBulkActionsProps = {
   onExport: () => void
   /** After the bulk delete: clear the selection and reload. */
   onDeleted: () => void
+  /** The Automations app is installed: "Run automation" on the selection. */
+  automations?: boolean
+  /** After runs were queued: clear the selection. */
+  onAutomationDone?: () => void
 }
 
 /** One mailto with the selected customers in Bcc, so the addresses stay private from each other. */
@@ -50,6 +55,8 @@ export default function CustomersBulkActions({
   onConsent,
   onExport,
   onDeleted,
+  automations = false,
+  onAutomationDone,
 }: CustomersBulkActionsProps) {
   // Hooks
   const { bulk: copy } = useCopy(customersContent)
@@ -116,6 +123,12 @@ export default function CustomersBulkActions({
           {copy.email}
         </Button>
       ) : null}
+      <RunAutomationButton
+        subjectType="customer"
+        ids={ids}
+        installed={automations}
+        onDone={onAutomationDone}
+      />
       <Button variant="outline" size="sm" onClick={() => setDeleting(true)}>
         <Trash2 aria-hidden="true" />
         {copy.delete}

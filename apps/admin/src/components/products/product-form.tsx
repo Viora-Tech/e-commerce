@@ -8,6 +8,8 @@ import { type ReactNode, useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import type { ProductApp } from '@/apps/product-actions'
 import type { ProductSectionProps } from '@/apps/product-sections'
+import RunAutomationDialog from '@/components/automations/records/run-automation-dialog'
+import { useRunAutomation } from '@/components/automations/records/use-run-automation'
 import ConfirmDialog from '@/components/layout/confirm-dialog'
 import DataCard from '@/components/layout/data-card'
 import ProoflyDetailPage from '@/components/layout/proofly-detail-page'
@@ -93,6 +95,10 @@ export default function ProductForm({
   const [revision, setRevision] = useState(0)
   const appItems = useProductAppActions(apps, product?.id ?? null, (tab, focus) =>
     handleOpenTab(tab, focus),
+  )
+  const automation = useRunAutomation(
+    'product',
+    apps.some((a) => a.id === 'automations'),
   )
 
   /* Browser guard: a reload or a close with edits pending asks first. */
@@ -357,7 +363,10 @@ export default function ProductForm({
             onDuplicate={handleDuplicate}
             onArchive={handleArchive}
             onDelete={() => setConfirmDelete(true)}
-            appItems={appItems}
+            appItems={[
+              ...automation.items(product ? [product.id] : [], { runsLink: true, heading: true }),
+              ...appItems,
+            ]}
           />
           {product ? (
             <ProductBanner
@@ -413,6 +422,11 @@ export default function ProductForm({
         cancelLabel={copy.delete.cancel}
         busy={busy}
         onConfirm={handleRemove}
+      />
+      <RunAutomationDialog
+        subjectType="product"
+        ids={automation.target}
+        onClose={automation.close}
       />
     </ProoflyDetailPage>
   )

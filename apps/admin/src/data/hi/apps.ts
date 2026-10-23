@@ -121,6 +121,7 @@ export default [
         messages: 'मैसेज',
         analytics: 'एनालिटिक्स',
         search: 'सर्च',
+        operations: 'स्टोर संचालन',
       },
       categoryFallback: (slug: string) => slug.charAt(0).toUpperCase() + slug.slice(1),
       kebabLabel: (name: string) => `${name} के लिए और विकल्प`,

@@ -1209,6 +1209,13 @@ export const fulfillmentOrder = pgTable(
      * the address, at checkout): civil dates, `YYYY-MM-DD`. Null when none was worked out.
      */
     deliveryEstimate: jsonb('delivery_estimate').$type<ParcelDeliveryEstimate>(),
+    /**
+     * Fulfilment held (an automation's "Hold fulfilment", for a risky COD order, say): no
+     * shipment is booked for this parcel until it is released. Separate from `status`, whose
+     * `on_hold` means pre-order goods waiting for stock.
+     */
+    heldAt: timestamp('held_at', { withTimezone: true }),
+    holdReason: text('hold_reason'),
     createdAt: createdAt(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   },

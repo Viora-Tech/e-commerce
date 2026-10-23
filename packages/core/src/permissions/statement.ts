@@ -14,6 +14,7 @@ export const statement = {
   customers: ['read', 'write', 'delete'],
   discounts: ['read', 'write'],
   marketing: ['read', 'write', 'send'],
+  automations: ['read', 'write', 'publish', 'run'],
   content: ['read', 'write', 'manage_types'],
   analytics: ['read'],
   online_store: ['read', 'write', 'publish'],
@@ -60,6 +61,14 @@ export const permissions = {
   MARKETING_READ: permission('marketing', 'read'),
   MARKETING_WRITE: permission('marketing', 'write'),
   MARKETING_SEND: permission('marketing', 'send'),
+  /** See workflows, runs and record history. */
+  AUTOMATIONS_READ: permission('automations', 'read'),
+  /** Edit drafts and run dry tests ("Test with a record"). */
+  AUTOMATIONS_WRITE: permission('automations', 'write'),
+  /** Turn workflows on or off, publish versions, retry or cancel runs. */
+  AUTOMATIONS_PUBLISH: permission('automations', 'publish'),
+  /** "Run automation" on a record or a selection (plus each action's own permission). */
+  AUTOMATIONS_RUN: permission('automations', 'run'),
   CONTENT_READ: permission('content', 'read'),
   CONTENT_WRITE: permission('content', 'write'),
   /** Add, change and delete content types and extra fields (their entries and values need write). */
@@ -96,6 +105,10 @@ export const RESOURCE_METADATA: { [R in Resource]: ResourceMeta } = {
   marketing: {
     label: 'Marketing',
     description: 'View marketing reports, edit campaigns and automations, and send them.',
+  },
+  automations: {
+    label: 'Automations',
+    description: 'View workflows and runs, edit and publish workflows, and run them on records.',
   },
   content: {
     label: 'Content',

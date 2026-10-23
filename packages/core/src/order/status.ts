@@ -77,6 +77,11 @@ export async function cancelOrder(
      * true: writes `order.cancel_notice`, which sends the generic `order_cancelled` message.
      */
     notifyCustomer?: boolean | undefined
+    /**
+     * False: the units the order held unpacked do not go back on sale (an automation's
+     * "Restock" off); they are written off, so available stock stays as it was.
+     */
+    restock?: boolean | undefined
   } = {},
 ) {
   // An order older than parcels gets them while it is still live, so they hold its stock.
@@ -92,7 +97,7 @@ export async function cancelOrder(
     return current ?? null
   }
   // Each parcel gives back its unpacked units at its own location (gift cards hold none).
-  await releaseFulfillmentOrders(ctx, orderId)
+  await releaseFulfillmentOrders(ctx, orderId, { restock: opts.restock })
   if (opts.returnGiftCards !== false) await returnGiftCardPayments(ctx, orderId)
   if (opts.notifyCustomer !== false) {
     await insertOutboxEvent(ctx.tx, ctx.storeId, 'order.cancel_notice', { orderId })

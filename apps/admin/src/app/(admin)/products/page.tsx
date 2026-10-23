@@ -3,6 +3,7 @@ import type { Metadata } from 'next'
 import { PRODUCT_STATUSES } from '@/data/products'
 import { appRouter, call, serverContext } from '@/lib/api'
 import { parseListQuery, type SearchParams } from '@/lib/list-query'
+import { listApps } from '@/lib/shell-data'
 import { storefrontOrigin } from '@/lib/storefront-origin'
 import ProductsPage from './products-page'
 
@@ -13,7 +14,7 @@ type Props = { searchParams: Promise<SearchParams> }
 export default async function Page({ searchParams }: Props) {
   const query = parseListQuery(await searchParams, PRODUCT_STATUSES)
   const context = await serverContext()
-  const [result, stats, facets, ai, origin] = await Promise.all([
+  const [result, stats, facets, ai, origin, apps] = await Promise.all([
     call(
       appRouter.products.list,
       {
@@ -29,6 +30,7 @@ export default async function Page({ searchParams }: Props) {
     // AI is optional: any failure just hides bulk "Write with AI".
     call(appRouter.ai.status, undefined, { context }).catch(() => null),
     storefrontOrigin(),
+    listApps().catch(() => []),
   ])
 
   return (
@@ -40,6 +42,7 @@ export default async function Page({ searchParams }: Props) {
         facets,
         aiBulk: ai?.bulkWriter ?? false,
         storefrontOrigin: origin,
+        automations: apps.some((a) => a.installed && a.id === 'automations'),
       }}
     />
   )

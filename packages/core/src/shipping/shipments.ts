@@ -12,6 +12,7 @@ import { ASSUMED_WEIGHT_GRAMS, type ShippingProvider, type Tracking } from '@com
 import { and, eq, inArray, ne } from 'drizzle-orm'
 import type { StoreContext } from '../context'
 import { fulfilParcelLines, fulfilRemainingLines } from '../order/fulfil'
+import { assertNotHeld } from '../order/fulfillment-hold'
 import { ensureFulfillmentOrders, soleFulfillmentOrder } from '../order/fulfillment-orders'
 import { recomputeOrderStatuses } from '../order/recompute'
 import { insertOutboxEvent } from '../outbox/write'
@@ -142,6 +143,8 @@ export async function createShipmentForOrder(
       (!parcelOnly || s.fulfillmentOrderId === parcelOnly),
   )
   if (existing) return existing
+  // A held parcel (or, booking the whole order, any held parcel) is not booked until released.
+  await assertNotHeld(ctx, o.id, parcelOnly ?? null)
 
   const [to] = await ctx.tx.select().from(address).where(eq(address.id, o.shippingAddressId))
   if (!to) throw new Error('shipping address not found')

@@ -1,4 +1,4 @@
-/** SOURCE OF TRUTH: customer change events — WHAT: the `customer.created` / `customer.updated` outbox rows / WHY: apps mirroring customers (Chatwoot) hear about every change from one writer */
+/** SOURCE OF TRUTH: customer change events — WHAT: the `customer.created` / `customer.updated` outbox rows, and `customer.tags_changed` with the diff (the Automations trigger) / WHY: apps mirroring customers (Chatwoot) hear about every change from one writer */
 import type { StoreTx } from '@commerce/db'
 import { insertOutboxEvent } from '../outbox/write'
 
@@ -15,4 +15,28 @@ export async function recordCustomerChange(
   change: 'created' | 'updated',
 ): Promise<void> {
   await insertOutboxEvent(tx, storeId, `customer.${change}`, { customerId })
+}
+
+/**
+ * `customer.tags_changed` with what was added and removed (compared without regard to case),
+ * written only when the tags really changed. Every staff, shopper and newsletter tag write
+ * calls it; automations write their own with the run's cause.
+ */
+export async function noteCustomerTagsChanged(
+  tx: StoreTx,
+  storeId: string,
+  customerId: string,
+  before: readonly string[],
+  after: readonly string[],
+): Promise<void> {
+  const had = new Set(before.map((t) => t.toLowerCase()))
+  const has = new Set(after.map((t) => t.toLowerCase()))
+  const tagsAdded = after.filter((t) => !had.has(t.toLowerCase()))
+  const tagsRemoved = before.filter((t) => !has.has(t.toLowerCase()))
+  if (tagsAdded.length === 0 && tagsRemoved.length === 0) return
+  await insertOutboxEvent(tx, storeId, 'customer.tags_changed', {
+    customerId,
+    tagsAdded,
+    tagsRemoved,
+  })
 }

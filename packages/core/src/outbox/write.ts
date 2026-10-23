@@ -1,5 +1,6 @@
 import type { StoreTx } from '@commerce/db'
 import { outboxEvent } from '@commerce/db'
+import type { AutomationCause } from '../automations/types'
 import type { OutboxEventType, OutboxPayload } from './types'
 
 /**
@@ -17,6 +18,14 @@ export async function insertOutboxEvent(
   storeId: string,
   type: OutboxEventType,
   payload: OutboxPayload,
+  opts: {
+    /**
+     * The automation run whose action wrote this event (`ActionContext.cause`). Stored as
+     * `payload.automation` so the trigger job can stop loops; omit outside automations.
+     */
+    cause?: AutomationCause | null | undefined
+  } = {},
 ): Promise<void> {
-  await tx.insert(outboxEvent).values({ storeId, type, payload })
+  const value = opts.cause ? { ...payload, automation: opts.cause } : payload
+  await tx.insert(outboxEvent).values({ storeId, type, payload: value })
 }
