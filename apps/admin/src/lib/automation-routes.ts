@@ -4,7 +4,9 @@ import { routes } from '@/lib/routes'
 const APP = 'automations'
 
 export const automationRoutes = {
-  workflows: () => routes.apps.page(APP),
+  /** The workflows list; `origin: 'growth'` opens it on Growth's marketing automations. */
+  workflows: (origin?: 'automations' | 'growth') =>
+    origin ? `${routes.apps.page(APP)}?origin=${origin}` : routes.apps.page(APP),
   workflow: (id: string) => routes.apps.page(APP, 'workflows', id),
   templates: () => routes.apps.page(APP, 'templates'),
   runs: () => routes.apps.page(APP, 'runs'),

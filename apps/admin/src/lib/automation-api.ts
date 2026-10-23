@@ -41,7 +41,11 @@ export const automationApi = {
   catalogue: () => call(() => a().catalogue(), mock.catalogue),
   templates: () => call(() => a().templates(), mock.templates),
   usage: () => call(() => a().usage(), mock.usage),
-  list: () => call(() => a().list({}), mock.list),
+  list: (origin?: 'automations' | 'growth') =>
+    call(
+      () => a().list(origin ? { origin } : {}),
+      () => mock.list(origin),
+    ),
   get: (id: string) =>
     call(
       () => a().get({ id }),

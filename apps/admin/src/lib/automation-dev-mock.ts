@@ -194,9 +194,9 @@ export const automationDevMock = {
       appInstalled: true,
     }
   },
-  list: (): WorkflowSummary[] => {
+  list: (origin?: 'automations' | 'growth'): WorkflowSummary[] => {
     seed()
-    return [...workflows.values()].map(summary)
+    return [...workflows.values()].filter((w) => !origin || w.origin === origin).map(summary)
   },
   get: (id: string): WorkflowDetail | null => {
     seed()

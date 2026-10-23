@@ -5,7 +5,7 @@ import type { AutomationUsage, TriggerView, WorkflowSummary } from '@commerce/co
 import { Blocks, Plus, Workflow } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import EmptyState from '@/components/layout/empty-state'
@@ -23,6 +23,10 @@ import UsageMeter from './usage-meter'
 import { viewOf, type WorkflowView, workflowColumns } from './workflow-columns'
 import WorkflowRowMenu from './workflow-row-menu'
 
+/** `?origin=growth` (Growth's link after cut-over) or `?origin=automations`. */
+const originOf = (raw: string | null) =>
+  raw === 'growth' || raw === 'automations' ? raw : undefined
+
 /** Automations home: every workflow with its trigger, status and recent runs, and the plan meter. */
 export default function WorkflowsPage() {
   // Hooks
@@ -31,6 +35,7 @@ export default function WorkflowsPage() {
   const locale = useLocale()
   const fmt = useFormat()
   const router = useRouter()
+  const searchParams = useSearchParams()
   const catalogue = useAutomationCatalogue()
   const [items, setItems] = useState<WorkflowSummary[] | null>(null)
   const [usage, setUsage] = useState<AutomationUsage | null>(null)
@@ -45,7 +50,7 @@ export default function WorkflowsPage() {
   // biome-ignore lint/correctness/useExhaustiveDependencies: `round` is the reload trigger after a row action
   useEffect(() => {
     let live = true
-    Promise.all([automationApi.list(), automationApi.usage()])
+    Promise.all([automationApi.list(originOf(searchParams.get('origin'))), automationApi.usage()])
       .then(([list, use]) => {
         if (!live) return
         setItems(list)
@@ -55,7 +60,7 @@ export default function WorkflowsPage() {
     return () => {
       live = false
     }
-  }, [round])
+  }, [round, searchParams])
 
   // Helpers
   const count = (v: WorkflowView) => (items ?? []).filter((w) => viewOf(w) === v).length
@@ -79,6 +84,17 @@ export default function WorkflowsPage() {
   // Render logic
   const copy = all.list
   const rows = items ?? []
+  const origin = originOf(searchParams.get('origin'))
+  const applied = origin
+    ? [
+        {
+          key: 'origin',
+          field: copy.originField,
+          label: origin === 'growth' ? copy.marketing : copy.originAutomations,
+          onRemove: () => router.push(automationRoutes.workflows()),
+        },
+      ]
+    : undefined
   const q = query.trim().toLowerCase()
   const filtered = rows.filter(
     (w) => (!view || viewOf(w) === view) && (!q || w.name.toLowerCase().includes(q)),
@@ -132,7 +148,9 @@ export default function WorkflowsPage() {
             setQuery(next)
             setPage(1)
           }}
+          applied={applied}
           onClearAll={() => {
+            if (origin) router.push(automationRoutes.workflows())
             setQuery('')
             setView(null)
             setPage(1)

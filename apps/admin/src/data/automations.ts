@@ -256,6 +256,8 @@ export const automationsContent = {
     status: { on: 'Active', paused: 'Paused', draft: 'Draft' },
     unsaved: 'Unpublished changes',
     marketing: 'Marketing',
+    originField: 'Made in',
+    originAutomations: 'Automations',
     never: 'Never',
     problem: 'Turned off',
     empty: {

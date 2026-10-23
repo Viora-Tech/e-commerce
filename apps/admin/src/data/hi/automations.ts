@@ -247,6 +247,8 @@ export default [
       status: { on: 'चालू', paused: 'रुका हुआ', draft: 'ड्राफ़्ट' },
       unsaved: 'बदलाव अभी लाइव नहीं',
       marketing: 'मार्केटिंग',
+      originField: 'कहाँ बना',
+      originAutomations: 'ऑटोमेशन',
       never: 'कभी नहीं',
       problem: 'बंद किया गया',
       empty: {
