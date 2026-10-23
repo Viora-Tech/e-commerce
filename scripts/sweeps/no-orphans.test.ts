@@ -18,6 +18,11 @@ type AllowEntry = { file: string; names: string[]; reason: string }
 
 const ALLOWLIST: AllowEntry[] = [
   {
+    file: 'packages/ui/src/globe/webgl/sprite-dots.ts',
+    names: ['MAX_SPRITE_DOT_SAMPLES', 'spriteDotSpacing'],
+    reason: 'the sample cap and dot spacing behind pickSpriteDotSamples and spriteDotRadiusPx; exported for their unit test',
+  },
+  {
     file: 'packages/core/src/automations/engine/maintenance.ts',
     names: ['pruneAutomationRuns'],
     reason: 'the prune for one store, behind runAutomationPruneJob; exported for its unit test',
