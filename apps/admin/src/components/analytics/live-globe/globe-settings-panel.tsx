@@ -80,7 +80,13 @@ export default function GlobeSettingsPanel({
   /* The theme's own colours, as drawn (custom picks left out), for the pickers to start from. */
   const themeSwatches = readPalette(
     dark,
-    { theme: settings.look.theme, customLand: null, customOcean: null, customAccent: null },
+    {
+      theme: settings.look.theme,
+      customLand: null,
+      customOcean: null,
+      customAccent: null,
+      customBorder: null,
+    },
     true,
   ).swatches
 
@@ -267,6 +273,12 @@ export default function GlobeSettingsPanel({
                   value={settings.look.customAccent}
                   fallback={themeSwatches.accent}
                   onChange={(v) => setLook('customAccent', v)}
+                />
+                <ColorRow
+                  label={copy.look.customBorder}
+                  value={settings.look.customBorder}
+                  fallback={themeSwatches.border}
+                  onChange={(v) => setLook('customBorder', v)}
                 />
               </Group>
             </>
