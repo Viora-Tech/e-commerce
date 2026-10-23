@@ -444,6 +444,7 @@ function orderUpdate(deps: BuiltinActionDeps): ActionExecutor<OrderUpdateConfig>
             settingsSecret: deps.settingsSecret,
             storefrontUrl: deps.storefrontUrl,
             requires: 'email',
+            channels: deps.channels,
           },
         )
         // Nothing sent: already sent for this order (once per template), or switched off.

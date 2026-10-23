@@ -1,6 +1,6 @@
 /** SOURCE OF TRUTH: shared automation action helpers — WHAT: host deps the external executors need, subject/customer lookups, tag planning, order timeline notes, the loop-guard stamp for events core services write, and the one-row-per-step message claim / WHY: every executor in `actions/**` must treat ids, tags, idempotency and loop protection the same way. Server-only. Design §8.4–8.5. */
 import { marketingMessage, order, orderNote, outboxEvent, type StoreTx } from '@commerce/db'
-import type { NotificationRegistry } from '@commerce/notifications'
+import type { NotificationChannel, NotificationRegistry } from '@commerce/notifications'
 import { and, eq, isNull, sql } from 'drizzle-orm'
 import type { LookupAll } from '../../net/safe-fetch'
 import type { RateLimitStore } from '../../rate-limit/limiter'
@@ -12,6 +12,8 @@ export type BuiltinActionDeps = {
   settingsSecret: string
   /** Platform storefront URL, the fallback for links when a store has no live domain. */
   storefrontUrl: string
+  /** Tests inject channels instead of resolving them from store settings. */
+  channels?: NotificationChannel[] | undefined
   /** HTTP action only: injected in tests. */
   fetch?: typeof fetch | undefined
   /** HTTP action only: DNS lookup for the SSRF guard; injected in tests. */
