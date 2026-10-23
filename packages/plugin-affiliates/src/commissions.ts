@@ -16,6 +16,7 @@ import { addressKey, type FraudFinding, phoneKey, selfReferral } from './fraud'
 import {
   canReverse,
   eligibleAt,
+  isDue,
   type ReverseReason,
   withinCookieWindow,
   withinLifetime,
@@ -388,6 +389,7 @@ export async function approveDueCommissions(
   const counts = { approved: 0, reversed: 0 }
   const fyStart = financialYearStart(now)
   for (const c of due) {
+    if (!isDue(c, now)) continue
     const [o] = await tx
       .select({
         status: order.status,

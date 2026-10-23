@@ -4,17 +4,11 @@ import {
   encodeAttribution,
 } from '@commerce/core/marketing'
 import { describe, expect, it } from 'vitest'
-import {
-  type CommissionLine,
-  computeCommission,
-  lineBasePaise,
-  scaleForRefund,
-  tierFor,
-} from '../src/commission'
+import { type CommissionLine, computeCommission, scaleForRefund, tierFor } from '../src/commission'
 import { addressKey, phoneKey, selfReferral } from '../src/fraud'
 import { canReverse, eligibleAt, isDue, withinCookieWindow, withinLifetime } from '../src/hold'
 import { defaultAffiliateSettings, normaliseRefCode, parseAffiliateSettings } from '../src/settings'
-import { financialYearLabel, financialYearStart, tdsForCredit } from '../src/tds'
+import { financialYearStart, tdsForCredit } from '../src/tds'
 
 const P1 = '00000000-0000-4000-8000-000000000001'
 const P2 = '00000000-0000-4000-8000-000000000002'
@@ -33,7 +27,6 @@ const line = (over: Partial<CommissionLine> = {}): CommissionLine => ({
 describe('commission maths', () => {
   it('takes GST out of the net sale and leaves shipping out', () => {
     const order = { subtotalPaise: 1180_00, discountPaise: 0, lines: [line()] }
-    expect(lineBasePaise(line(), order)).toBe(1000_00)
     const r = computeCommission(order, defaultAffiliateSettings)
     expect(r).toEqual({ basePaise: 1000_00, commissionPaise: 100_00 })
   })
@@ -298,6 +291,5 @@ describe('TDS', () => {
     expect(financialYearStart(new Date('2026-03-31T23:00:00+05:30')).toISOString()).toBe(
       '2025-03-31T18:30:00.000Z',
     )
-    expect(financialYearLabel(new Date('2026-10-23'))).toBe('FY 2026-27')
   })
 })

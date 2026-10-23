@@ -56,7 +56,7 @@ export const PayoutDetailsSchema = z.discriminatedUnion('method', [
 export type PayoutDetails = z.infer<typeof PayoutDetailsSchema>
 
 /** "UPI as•••@okaxis" / "Bank account ending 1234": all the admin and the portal ever show. */
-export function payoutHint(d: PayoutDetails): string {
+function payoutHint(d: PayoutDetails): string {
   if (d.method === 'upi') {
     const [name = '', bank = ''] = d.upiId.split('@')
     return `UPI ${name.slice(0, 2)}•••@${bank}`
@@ -65,7 +65,7 @@ export function payoutHint(d: PayoutDetails): string {
 }
 
 /** A free referral code from a name: `asha-k`, else `asha-k2`, `asha-k3`... */
-export async function freeCode(tx: StoreTx, storeId: string, wanted: string): Promise<string> {
+async function freeCode(tx: StoreTx, storeId: string, wanted: string): Promise<string> {
   const base = (slugify(wanted).slice(0, 24).replace(/-+$/, '') || 'partner').padEnd(3, '0')
   for (let n = 1; n < 500; n++) {
     const code = n === 1 ? base : `${base}${n}`
@@ -125,7 +125,7 @@ export async function applyAsAffiliate(
 }
 
 /** The affiliate's personal code in the discount engine; made once, never twice. */
-export async function ensureCoupon(
+async function ensureCoupon(
   tx: StoreTx,
   storeId: string,
   row: AffiliateRow,

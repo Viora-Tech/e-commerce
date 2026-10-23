@@ -22,6 +22,14 @@ export const ACTION_DOCS: Record<string, string> = {
   'account.stores': 'Every store the member belongs to, with their role and an owner flag.',
   'account.updateNotifications':
     "Saves the member's own alerts for this store, on their own staff row only.",
+  'affiliates.add': 'The merchant adds someone by hand (a creator they already work with).',
+  'affiliates.commissions.approveDue':
+    'Approves every commission whose hold is over now, instead of waiting for the hourly pass.',
+  'affiliates.commissions.decide': 'Clear a fraud flag (back to pending) or refuse a commission.',
+  'affiliates.overview':
+    'Sales from affiliates, money owed, the best affiliates and who is waiting to be paid.',
+  'affiliates.payouts.exportCsv':
+    'The bank bulk-upload file for pending payouts, account numbers and UPI IDs decrypted.',
   'ai.action': 'One AI action with its card, for "Open approval" from the MCP & API activity log.',
   'ai.activity': 'Settings → AI → Activity: every AI action in the store, newest first.',
   'ai.applyBulk': 'Applies the reviewed suggestions to products; logged in Activity with an undo.',

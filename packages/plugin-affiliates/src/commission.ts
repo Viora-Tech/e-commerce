@@ -29,7 +29,7 @@ export type CommissionResult = {
 }
 
 /** A line's share of the order discount, then GST taken out. */
-export function lineBasePaise(line: CommissionLine, order: CommissionOrder): number {
+function lineBasePaise(line: CommissionLine, order: CommissionOrder): number {
   if (line.giftCard || line.quantity <= 0) return 0
   const gross = line.unitPricePaise * line.quantity
   const share =

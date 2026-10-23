@@ -292,26 +292,22 @@ describe('commission lifecycle', () => {
         status: 'captured',
       })
       .returning()
-    await owner
-      .insert(refund)
-      .values({
-        storeId: s.storeId,
-        orderId: partial.id,
-        paymentId: pay?.id as string,
-        amountPaise: 295_00,
-        status: 'processed',
-      })
+    await owner.insert(refund).values({
+      storeId: s.storeId,
+      orderId: partial.id,
+      paymentId: pay?.id as string,
+      amountPaise: 295_00,
+      status: 'processed',
+    })
     const shrunk = await inStore(s.storeId, (tx) => applyRefunds(tx, s.storeId, partial.id))
     expect(shrunk?.commissionPaise).toBe(75_00)
-    await owner
-      .insert(refund)
-      .values({
-        storeId: s.storeId,
-        orderId: partial.id,
-        paymentId: pay?.id as string,
-        amountPaise: 885_00,
-        status: 'processed',
-      })
+    await owner.insert(refund).values({
+      storeId: s.storeId,
+      orderId: partial.id,
+      paymentId: pay?.id as string,
+      amountPaise: 885_00,
+      status: 'processed',
+    })
     const gone = await inStore(s.storeId, (tx) => applyRefunds(tx, s.storeId, partial.id))
     expect(gone).toMatchObject({ status: 'reversed', reversedReason: 'refunded' })
     const rows = await inStore(s.storeId, async (tx) => [

@@ -4,6 +4,7 @@ import 'server-only'
 
 import { settingsSecret } from '@commerce/config'
 import {
+  AFFILIATE_PORTAL_PATH,
   affiliateForCustomer,
   affiliateState,
   applyAsAffiliate,
@@ -68,7 +69,7 @@ export async function applyAffiliateAction(input: {
     return 'ok' as const
   })
   if (result !== 'ok') return { ok: false, error: result }
-  revalidatePath('/affiliate')
+  revalidatePath(AFFILIATE_PORTAL_PATH)
   return { ok: true }
 }
 
@@ -93,6 +94,6 @@ export async function savePayoutDetailsAction(
     return true
   })
   if (!saved) return { ok: false, error: 'not_affiliate' }
-  revalidatePath('/affiliate')
+  revalidatePath(AFFILIATE_PORTAL_PATH)
   return { ok: true }
 }

@@ -872,6 +872,16 @@ const ALLOWLIST: AllowEntry[] = [
     reason: 'imported only by the root commerce.config.ts, like backInStockPlugin',
   },
   {
+    file: 'packages/plugin-affiliates/src/plugin.ts',
+    names: ['affiliatesPlugin'],
+    reason: 'imported only by the root commerce.config.ts, like formsPlugin',
+  },
+  {
+    file: 'packages/plugin-affiliates/src/commissions.ts',
+    names: ['commissionForOrder'],
+    reason: 'used inside the module; exported for the flow tests that read one order’s commission',
+  },
+  {
     file: 'packages/plugin-forms/src/plugin.ts',
     names: ['formsPlugin'],
     reason: 'imported only by the root commerce.config.ts, like emiPlugin',

@@ -28,12 +28,11 @@ export default function AffiliateDetail({ params }: AppPageProps) {
   const [note, setNote] = useState('')
   const [reload, setReload] = useState(0)
   const [origin, setOrigin] = useState('')
-  const id = params.id ?? ''
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: `reload` re-runs the load after a change
   useEffect(() => {
     let cancelled = false
-    api.affiliates.get({ id }).then((r) => {
+    api.affiliates.get({ id: params.id ?? '' }).then((r) => {
       if (cancelled) return
       setData(r)
       setNote(r.affiliate.note)
@@ -44,13 +43,13 @@ export default function AffiliateDetail({ params }: AppPageProps) {
     return () => {
       cancelled = true
     }
-  }, [id, reload])
+  }, [params.id, reload])
 
   // Event handlers
   const handleChanged = () => setReload((n) => n + 1)
   const handleSaveNote = async () => {
     try {
-      await api.affiliates.saveNote({ id, note })
+      await api.affiliates.saveNote({ id: params.id ?? '', note })
       toast.success(copy.detail.noteSaved)
     } catch (err) {
       toast.error(err instanceof Error ? err.message : copy.failed)

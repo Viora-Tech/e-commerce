@@ -1639,4 +1639,68 @@ export const APP_CATALOGUE_DATA: CatalogueEntry[] = [
     themeBlocks: [],
     credits: [],
   },
+  {
+    id: 'affiliates',
+    name: 'Affiliates',
+    kind: 'builtin',
+    category: 'marketing',
+    company: null,
+    description:
+      'Run your own affiliate and influencer program: referral links and codes, commissions after delivery, payouts with TDS.',
+    tagline:
+      'Referral links and codes for creators, paid only on orders that are delivered and kept.',
+    highlights: [
+      'A link and a discount code per affiliate',
+      'Commission waits for delivery and the return window; cancels, RTO and refunds reverse it',
+      'Payouts by UPI or a bank bulk-upload file, with TDS worked out',
+      'A signup page and dashboard for affiliates on your store',
+    ],
+    guide: '/merchant-guide/apps/affiliates',
+    worksWith: [
+      'Discounts (each affiliate’s code is a normal discount)',
+      'Instagram, YouTube and WhatsApp creators',
+    ],
+    screenshots: [],
+    keywords: ['affiliate', 'referral', 'influencer', 'creator', 'commission', 'tds'],
+    faq: [],
+    icon: 'Users',
+    access: {
+      resources: [
+        {
+          resource: 'orders',
+          level: 'read',
+          why: 'Credits orders placed through a link or code',
+        },
+        {
+          resource: 'customers',
+          level: 'read-write',
+          why: 'Affiliates sign up with their store account; checks orders are not their own',
+        },
+        {
+          resource: 'discounts',
+          level: 'write',
+          why: 'Makes each affiliate’s personal code',
+        },
+        {
+          resource: 'refunds',
+          level: 'read',
+          why: 'Lowers or reverses commission on refunds',
+        },
+        {
+          resource: 'visits',
+          level: 'read',
+          why: 'Counts clicks on referral links',
+        },
+        {
+          resource: 'order-events',
+          level: 'read',
+          why: 'Reacts when an order is paid, delivered, cancelled or returned',
+        },
+      ],
+      shares: [],
+    },
+    adminPages: ['Overview', 'Affiliates', 'Commissions', 'Payouts', 'Settings'],
+    themeBlocks: [],
+    credits: [],
+  },
 ]

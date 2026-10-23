@@ -144,7 +144,7 @@ export const affiliatesContent = {
   payouts: {
     title: 'Payouts',
     subtitle:
-      'Pay affiliates by UPI or a bank bulk upload, then mark the payout paid. No money moves through Koomerce.',
+      'Pay affiliates by UPI or a bank bulk upload, then mark the payout paid. No money moves through your store’s admin.',
     readyTitle: 'Ready to pay',
     readyEmpty: 'Nobody is owed money yet.',
     create: 'Create payouts',

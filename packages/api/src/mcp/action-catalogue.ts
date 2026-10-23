@@ -181,6 +181,7 @@ const EXCLUDED_NAMESPACES: Record<string, string> = {
 
 /** Single procedures no client may see. */
 const EXCLUDED_PATHS: Record<string, string> = {
+  'affiliates.payouts.exportCsv': 'decrypted bank accounts and UPI IDs (people only)',
   'apiAccess.createToken': 'creates an access token',
   'apiAccess.revoke': 'revokes MCP clients and access tokens',
   'ai.approveAction': 'a client must never approve its own proposals',
@@ -219,6 +220,8 @@ const SENSITIVE_PREFIXES = [
 ]
 
 const SENSITIVE_PATHS: Record<string, string> = {
+  'affiliates.payouts.markPaid': 'records an affiliate payout as paid (money)',
+  'affiliates.payouts.create': 'groups commissions into payouts (money)',
   'returns.storeCredit': 'issues store credit (money)',
   'giftCards.issue': 'issues a gift card (money)',
   'giftCards.adjust': 'changes a gift card balance (money)',

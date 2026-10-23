@@ -974,6 +974,13 @@
       "when": 1792737087345,
       "tag": "0153_platform_accounts",
       "breakpoints": true
+    },
+    {
+      "idx": 139,
+      "version": "7",
+      "when": 1792740378982,
+      "tag": "0158_affiliates",
+      "breakpoints": true
     }
   ]
 }

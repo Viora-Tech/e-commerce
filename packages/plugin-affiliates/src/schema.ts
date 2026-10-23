@@ -12,7 +12,7 @@ import {
 
 /**
  * Tables owned by the Affiliates app. They live in the platform's single migration chain
- * (packages/db/drizzle, 0151) and carry `store_id`, so `apply_store_rls()` isolates them like
+ * (packages/db/drizzle, 0158) and carry `store_id`, so `apply_store_rls()` isolates them like
  * core tables. The program itself is in `store.apps.settings.affiliates` (./settings).
  */
 

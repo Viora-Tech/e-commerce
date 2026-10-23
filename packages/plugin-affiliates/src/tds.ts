@@ -32,9 +32,3 @@ export function financialYearStart(at: Date): Date {
   const year = wall.getUTCMonth() >= 3 ? wall.getUTCFullYear() : wall.getUTCFullYear() - 1
   return dayStart(`${year}-04-01`)
 }
-
-/** "FY 2026-27" for the CSV and the payouts page. */
-export function financialYearLabel(at: Date): string {
-  const y = new Date(financialYearStart(at).getTime() + 86_400_000).getUTCFullYear()
-  return `FY ${y}-${String((y + 1) % 100).padStart(2, '0')}`
-}
