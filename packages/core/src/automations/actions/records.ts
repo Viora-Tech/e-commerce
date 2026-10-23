@@ -10,6 +10,7 @@ import {
 import { and, eq, sql } from 'drizzle-orm'
 import { noteProductsChanged } from '../../catalog/changes'
 import { CommerceError } from '../../errors'
+import { InvalidMetaobject } from '../../metaobjects/schemas'
 import { setMetafields } from '../../metaobjects/service'
 import { insertOutboxEvent } from '../../outbox/write'
 import { customerIdOf } from '../conditions/loaders'
@@ -101,7 +102,7 @@ function metafieldExecutor(
       try {
         await setMetafields(tx, ctx.storeId, { ownerType, ownerId, values: { [def.id]: input } })
       } catch (err) {
-        if (err instanceof CommerceError) {
+        if (err instanceof CommerceError || err instanceof InvalidMetaobject) {
           throw new AutomationActionError(err.message, { retryable: false, cause: err })
         }
         throw err
