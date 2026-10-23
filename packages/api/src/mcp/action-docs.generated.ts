@@ -484,7 +484,7 @@ export const ACTION_DOCS: Record<string, string> = {
   'store.getPayments':
     'Payment settings with secrets masked, plus the gateways this deployment can offer.',
   'store.getPreferences':
-    'Online Store › Preferences: SEO defaults, password page, privacy banner and tracking.',
+    'Online Store › Preferences: SEO defaults, password page, search and AI crawler access, site verification and tracking.',
   'store.getPreorder':
     'Pre-order balance rules: automatic request, reminders, what an unpaid balance does.',
   'store.getShipping':

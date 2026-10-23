@@ -18,8 +18,12 @@ import SettingsToggleRow from '@/components/settings/settings-toggle-row'
 import { preferencesContent as copy } from '@/data/preferences'
 import { api } from '@/lib/api-client'
 import PreferencesPreviews from './preferences-previews'
+import PreferencesRelated from './preferences-related'
 import SocialImageField from './social-image-field'
 import TextSetting from './text-setting'
+
+/** The verification fields, in the order the card lists them. */
+const VERIFICATION_FIELDS = ['google', 'bing', 'meta', 'pinterest'] as const
 
 type PreferencesFormProps = {
   initial: StorePreferences
@@ -36,7 +40,11 @@ function validate(form: StorePreferences): Errors {
   return Object.fromEntries(r.error.issues.map((i) => [i.path.join('.'), i.message]))
 }
 
-/** Online Store › Preferences: search listing, social image, password page, consent, tags. */
+/**
+ * Online Store › Preferences: search listing, social image, password page, search engine and
+ * AI crawler access, site verification, spam protection, consent, tags, and links to the
+ * storefront settings that live elsewhere.
+ */
 export default function PreferencesForm({ initial, storefrontOrigin }: PreferencesFormProps) {
   // Hooks
   const [form, setForm] = useState(initial)
@@ -165,6 +173,54 @@ export default function PreferencesForm({ initial, storefrontOrigin }: Preferenc
               ) : null}
             </SettingsCard>
 
+            <SettingsCard title={copy.indexing.heading} description={copy.indexing.body}>
+              {form.password.enabled ? (
+                <p className="mb-4 rounded-lg bg-muted px-3 py-2 text-caption text-muted-foreground">
+                  {copy.indexing.locked}
+                </p>
+              ) : null}
+              <SettingsToggleRow
+                id="indexing-search"
+                label={copy.indexing.search}
+                description={copy.indexing.searchHelp}
+                checked={form.indexing.searchEngines}
+                onChange={(searchEngines) => patch('indexing', { searchEngines })}
+              />
+              <SettingsToggleRow
+                id="indexing-ai"
+                label={copy.indexing.ai}
+                description={
+                  form.indexing.searchEngines ? copy.indexing.aiHelp : copy.indexing.aiNeedsSearch
+                }
+                checked={form.indexing.searchEngines && form.indexing.aiCrawlers}
+                disabled={!form.indexing.searchEngines}
+                onChange={(aiCrawlers) => patch('indexing', { aiCrawlers })}
+              />
+            </SettingsCard>
+
+            <SettingsCard
+              title={copy.verification.heading}
+              description={copy.verification.body}
+              bodyClassName="gap-5"
+            >
+              {VERIFICATION_FIELDS.map((key) => (
+                <TextSetting
+                  key={key}
+                  id={`verification-${key}`}
+                  label={copy.verification[key]}
+                  value={form.verification[key]}
+                  placeholder={copy.verification.placeholder}
+                  onChange={(v) => patch('verification', { [key]: v })}
+                  help={copy.verification[`${key}Help`]}
+                  error={errors[`verification.${key}`]}
+                />
+              ))}
+            </SettingsCard>
+
+            <SettingsCard title={copy.spam.heading}>
+              <p className="text-body text-muted-foreground">{copy.spam.body}</p>
+            </SettingsCard>
+
             <SettingsCard title={copy.privacy.heading} description={copy.privacy.body}>
               <Button
                 variant="outline"
@@ -204,7 +260,18 @@ export default function PreferencesForm({ initial, storefrontOrigin }: Preferenc
                 help={copy.tracking.marketing}
                 error={errors['tracking.metaPixel']}
               />
+              <TextSetting
+                id="tracking-google-ads"
+                label={copy.tracking.googleAds}
+                value={form.tracking.googleAds}
+                placeholder={copy.tracking.googleAdsPlaceholder}
+                onChange={(googleAds) => patch('tracking', { googleAds })}
+                help={copy.tracking.marketing}
+                error={errors['tracking.googleAds']}
+              />
             </SettingsCard>
+
+            <PreferencesRelated />
           </>
         }
         side={<PreferencesPreviews seo={form.seo} origin={storefrontOrigin} />}

@@ -7,6 +7,7 @@ import Image from 'next/image'
 import { notFound } from 'next/navigation'
 import PasswordForm from '@/components/privacy/password-form'
 import { passwordContent as copy } from '@/data/online-store'
+import { verificationMeta } from '@/lib/seo'
 import { inStore } from '@/lib/store-context'
 
 type Params = { params: Promise<{ storeId: string }> }
@@ -23,7 +24,11 @@ async function load(storeId: string) {
 
 export async function generateMetadata({ params }: Params): Promise<Metadata> {
   const s = await load((await params).storeId)
-  return { title: s?.name ?? copy.title }
+  // The console's ownership check reads the home page, which is this page while locked.
+  const verification = s
+    ? verificationMeta(parsePreferences(s.preferences).verification)
+    : undefined
+  return { title: s?.name ?? copy.title, verification }
 }
 
 /** Shopify-style password page: logo or name, the merchant's message, the password form. */

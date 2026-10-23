@@ -9,6 +9,8 @@ type TrackingTagsProps = {
   ga4: string | null
   gtm: string | null
   metaPixel: string | null
+  /** Google Ads tag (AW-…), cleared by marketing consent; shares gtag.js with GA4. */
+  googleAds?: string | null | undefined
   /**
    * The request's script CSP nonce (`lib/csp.ts`). The inline loaders need it; the scripts
    * they load (gtag.js, gtm.js, fbevents.js) are then trusted through `strict-dynamic`. The
@@ -18,16 +20,25 @@ type TrackingTagsProps = {
   nonce?: string | undefined
 }
 
+/** gtag.js loads once for every Google tag (GA4 and Ads); each id is then configured. */
+function gtagInit(ids: string[]): string {
+  const config = ids.map((id) => `gtag('config','${id}');`).join('')
+  return `window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)}gtag('js',new Date());${config}`
+}
+
 /**
- * Google Analytics 4, Tag Manager and the Meta pixel. Rendered only with ids the
+ * Google Analytics 4, Google Ads, Tag Manager and the Meta pixel. Rendered only with ids the
  * consent banner allows; the ids match strict patterns, so inlining them is safe.
  * `lazyOnload`: they are injected once the page has loaded and the browser is idle,
  * so they never compete with the hero image (LCP) or the first tap (INP). Never on
  * sign-in pages, whose URLs carry single-use tokens (`trackingAllowedOn`).
  */
-export default function TrackingTags({ ga4, gtm, metaPixel, nonce }: TrackingTagsProps) {
+export default function TrackingTags({ ga4, gtm, metaPixel, googleAds, nonce }: TrackingTagsProps) {
   // Hooks
   const pathname = usePathname()
+
+  // Helpers
+  const gtagIds = [ga4, googleAds].filter((id): id is string => Boolean(id))
 
   // Early returns
   if (!trackingAllowedOn(pathname)) return null
@@ -35,16 +46,16 @@ export default function TrackingTags({ ga4, gtm, metaPixel, nonce }: TrackingTag
   // Render logic
   return (
     <>
-      {ga4 ? (
+      {gtagIds.length ? (
         <>
           <Script
             id="ga4-src"
-            src={`https://www.googletagmanager.com/gtag/js?id=${ga4}`}
+            src={`https://www.googletagmanager.com/gtag/js?id=${gtagIds[0]}`}
             strategy="lazyOnload"
             nonce={nonce}
           />
           <Script id="ga4-init" strategy="lazyOnload" nonce={nonce}>
-            {`window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)}gtag('js',new Date());gtag('config','${ga4}');`}
+            {gtagInit(gtagIds)}
           </Script>
         </>
       ) : null}

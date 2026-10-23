@@ -22,6 +22,7 @@ import {
   parseNavigationSettings,
   parsePreferences,
   publishedPolicyLinks,
+  searchIndexable,
   themeRootAttrs,
   themeToCss,
   toFooterColumns,
@@ -60,7 +61,7 @@ import { mediaByUrl } from '@/lib/media-lookup'
 import { subscribeAction } from '@/lib/newsletter-actions'
 import { requestCart } from '@/lib/request-cart'
 import { heightForWidth } from '@/lib/section-images'
-import { requestOrigin } from '@/lib/seo'
+import { requestOrigin, verificationMeta } from '@/lib/seo'
 import { storeRead } from '@/lib/store-cache'
 import { inStore } from '@/lib/store-context'
 import { readPreview } from '@/lib/storefront-gate'
@@ -136,11 +137,14 @@ export async function generateMetadata({ params }: Pick<Props, 'params'>): Promi
   const { storeId } = await params
   const s = (await layoutData(storeId)).current
   if (!s) return {}
-  const { seo } = parsePreferences(s.preferences)
+  const prefs = parsePreferences(s.preferences)
+  const { seo } = prefs
   const title = seo.title || s.name
   const description = seo.description || undefined
   const images = seo.image ? [{ url: seo.image.url, alt: seo.imageAlt || title }] : undefined
   return {
+    // Preferences › Search engine visibility: ownership tags for the search consoles and Meta.
+    verification: verificationMeta(prefs.verification),
     // Canonical and Open Graph URLs are paths; they resolve against the host being served.
     metadataBase: new URL(await requestOrigin()),
     title: { default: title, template: `%s | ${s.name}` },
@@ -148,8 +152,9 @@ export async function generateMetadata({ params }: Pick<Props, 'params'>): Promi
     openGraph: { type: 'website', siteName: s.name, title, description, images },
     twitter: { card: images ? 'summary_large_image' : 'summary', title, description, images },
     // A preview renders an unpublished theme, and the themed reload a page that may be a 404
-    // answered with 200: keep both out of every index.
-    ...((await previewRequest(storeId)) || (await themedRerender())
+    // answered with 200: keep both out of every index. So is every page when the merchant
+    // switched search indexing off (Preferences), matching robots.txt.
+    ...(!searchIndexable(prefs) || (await previewRequest(storeId)) || (await themedRerender())
       ? { robots: { index: false, follow: false } }
       : {}),
   }
