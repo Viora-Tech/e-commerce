@@ -55,6 +55,33 @@ describe('definition', () => {
     ).toEqual(['shared_child'])
   })
 
+  it('checks For each: a Find above it, no wait or loop inside', () => {
+    const find = {
+      kind: 'find' as const,
+      id: 'a',
+      resource: 'order' as const,
+      rules: { join: 'and' as const, rules: [] },
+      limit: 10,
+      next: 'b',
+    }
+    const ok = def({
+      a: find,
+      b: { kind: 'forEach', id: 'b', source: 'a', body: 'c', next: null },
+      c: tag('c'),
+    })
+    expect(definitionIssues(ok)).toEqual([])
+    const bad = def({
+      a: find,
+      b: { kind: 'forEach', id: 'b', source: 'c', body: 'c', next: null },
+      c: { kind: 'wait', id: 'c', minutes: 5, next: null },
+    })
+    expect(
+      definitionIssues(bad)
+        .map((i) => i.code)
+        .sort(),
+    ).toEqual(['loop_body', 'loop_source'])
+  })
+
   it('limits rule nesting to two groups', () => {
     const deep = { join: 'and' as const, rules: [{ join: 'or' as const, rules: [totalOver] }] }
     const d = def({ a: { kind: 'condition', id: 'a', rules: deep, next: null, otherwise: null } })

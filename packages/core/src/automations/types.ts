@@ -114,6 +114,8 @@ export type AutomationCause = { runId: string; workflowId: string; depth: number
 export const MAX_AUTOMATION_DEPTH = 3
 /** Nodes per workflow (Flow-like). */
 export const MAX_WORKFLOW_NODES = 50
+/** Records one Find records step returns, and so one For each walks (Flow: 100). */
+export const MAX_FIND_RECORDS = 100
 /** Condition groups nest at most this deep (a group inside a group). */
 export const MAX_RULE_DEPTH = 2
 /** Wait bounds, in minutes: 1 minute to 60 days, as Growth today. */

@@ -55,7 +55,7 @@ function linear(def: WorkflowDefinition | null): boolean {
   return Object.values(def.nodes).every((n) => {
     if (n.kind === 'condition') return n.otherwise === null
     if (n.kind === 'action') return n.action.startsWith('marketing.')
-    return true
+    return n.kind === 'wait'
   })
 }
 

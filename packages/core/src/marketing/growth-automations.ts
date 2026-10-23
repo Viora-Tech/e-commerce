@@ -116,13 +116,13 @@ export function stepsFromDefinition(raw: unknown): AutomationStep[] | null {
           template: c.template as Extract<AutomationStep, { type: 'whatsapp' }>['template'],
         })
       } else return null
-    } else {
+    } else if (node.kind === 'condition') {
       const [rule, ...rest] = node.rules.rules
       if (node.otherwise !== null || rest.length > 0 || !rule || 'join' in rule) return null
       const step = conditionStep(node.id, rule)
       if (!step) return null
       steps.push(step)
-    }
+    } else return null
   }
   return steps
 }

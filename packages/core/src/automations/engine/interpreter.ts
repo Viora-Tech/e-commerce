@@ -21,9 +21,11 @@ import {
   type RunReason,
   type RunStatus,
 } from '../types'
+import { doFind, doForEach, loopItem, nextPass, withLoopItem } from './loops'
 import {
   finish,
   isHeld,
+  iterationOf,
   loadDefinition,
   moveTo,
   onActionError,
@@ -154,9 +156,9 @@ function actionContext(
     workflow: { id: run.workflowId, name, versionId: run.versionId },
     runId: run.id,
     nodeId: node.id,
-    stepKey: `${run.id}:${node.id}:0`,
+    stepKey: `${run.id}:${node.id}:${iterationOf(run)}`,
     attempt,
-    subject: { type: run.subjectType, id: run.subjectId },
+    subject: loopItem(run) ?? { type: run.subjectType, id: run.subjectId },
     data,
     triggerData: run.triggerData,
     cause,
@@ -174,7 +176,7 @@ async function doAction(
   deps: EngineDeps,
   now: Date,
 ): Promise<Outcome> {
-  const existing = await stepRow(tx, run.id, node.id)
+  const existing = await stepRow(tx, run, node.id)
   // Exactly once: a node that already succeeded is never run again.
   if (existing?.status === 'succeeded') return moveTo(tx, run.id, node.next)
 
@@ -370,7 +372,7 @@ async function recordCall(
     .where(eq(automationRun.id, runId))
     .for('update')
   if (run?.status !== 'running' || run.cursor !== call.node.id) return { kind: 'done' }
-  const step = await stepRow(tx, run.id, call.node.id)
+  const step = await stepRow(tx, run, call.node.id)
   if (step?.status !== 'running' || step.attempt !== call.attempt) return { kind: 'done' }
   if (outcome.ok) return recordSuccess(tx, run, call.node, call.attempt, outcome.result, now)
   return onActionError(tx, run, call.node, call.resolved, call.attempt, outcome.error, now)
@@ -400,7 +402,10 @@ async function stepOnce(
   const def = await loadDefinition(tx, run.versionId, cache)
   if (!def)
     return finish(tx, run.id, 'failed', now, { error: 'The workflow version is unreadable' })
-  if (run.cursor === null) return finish(tx, run.id, 'completed', now)
+  if (run.cursor === null) {
+    // A For each body branch ended: the next record's pass, or out of the loop.
+    return run.loop ? nextPass(tx, run, def) : finish(tx, run.id, 'completed', now)
+  }
   const node = def.nodes[run.cursor]
   if (!node) return finish(tx, run.id, 'failed', now, { error: `Step ${run.cursor} is missing` })
 
@@ -424,8 +429,13 @@ async function stepOnce(
     await tx.update(automationRun).set({ status: 'running' }).where(eq(automationRun.id, run.id))
   }
   if (node.kind === 'wait') return doWait(tx, run, node, now)
-  const data = await subjectData(tx, run, deps)
-  if (!data) return finish(tx, run.id, 'stopped', now, { stopReason: 'subject_missing' })
+  if (node.kind === 'find') return doFind(tx, run, node, deps, now)
+  if (node.kind === 'forEach') return doForEach(tx, run, node, def, now)
+  const own = await subjectData(tx, run, deps)
+  if (!own) return finish(tx, run.id, 'stopped', now, { stopReason: 'subject_missing' })
+  const data = await withLoopItem(tx, run, own, deps.loadSubject)
+  // The record of this pass is gone: skip to the next one.
+  if (!data) return nextPass(tx, run, def)
   if (node.kind === 'condition') return doCondition(tx, run, node, data, deps, now)
   return doAction(tx, run, node, data, deps, now)
 }

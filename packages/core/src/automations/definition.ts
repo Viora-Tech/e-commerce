@@ -1,6 +1,12 @@
 /** SOURCE OF TRUTH: workflow definition — WHAT: the zod schema of a stored workflow (trigger, tree of condition / action / wait nodes, AND/OR rule groups, settings, schema version) and its tree checks / WHY: the editor, the API, the publish check and the worker's interpreter must agree on one shape; a version row stores exactly this JSON. Pure, client-safe (`@commerce/core/automations`). Design §8.2. */
 import { z } from 'zod'
-import { MAX_RULE_DEPTH, MAX_WAIT_MINUTES, MAX_WORKFLOW_NODES, MIN_WAIT_MINUTES } from './types'
+import {
+  MAX_FIND_RECORDS,
+  MAX_RULE_DEPTH,
+  MAX_WAIT_MINUTES,
+  MAX_WORKFLOW_NODES,
+  MIN_WAIT_MINUTES,
+} from './types'
 
 /** Bumped when the stored shape changes; old versions are migrated on read, never rewritten. */
 export const WORKFLOW_SCHEMA_VERSION = 1
@@ -121,15 +127,53 @@ const WaitNodeSchema = z.object({
   next: NodeIdSchema.nullable(),
 })
 
+/** Records "Find records" can look for (design phase 5, Flow's "Get data"). */
+export const FIND_RESOURCES = ['order', 'customer', 'product'] as const
+export type FindResource = (typeof FIND_RESOURCES)[number]
+
+/**
+ * Find records: the newest records of one kind that match the rules, up to `limit` (Flow's
+ * "Get data", at most 100). A later For each walks them.
+ */
+const FindNodeSchema = z.object({
+  kind: z.literal('find'),
+  id: NodeIdSchema,
+  label: z.string().trim().max(120).optional(),
+  resource: z.enum(FIND_RESOURCES),
+  /** Over the resource's condition fields (`order.total`…); empty finds the newest records. */
+  rules: RuleGroupSchema,
+  limit: z.number().int().min(1).max(MAX_FIND_RECORDS),
+  next: NodeIdSchema.nullable(),
+})
+
+/**
+ * For each: runs its `body` branch once per record a Find records step above it found, with
+ * that record as the steps' subject, then carries on to `next`. No waits and no second loop
+ * inside the body, so a loop always finishes in one go.
+ */
+const ForEachNodeSchema = z.object({
+  kind: z.literal('forEach'),
+  id: NodeIdSchema,
+  label: z.string().trim().max(120).optional(),
+  /** The Find records node whose records it walks; must be above it on the path. */
+  source: NodeIdSchema,
+  body: NodeIdSchema.nullable(),
+  next: NodeIdSchema.nullable(),
+})
+
 const WorkflowNodeSchema = z.discriminatedUnion('kind', [
   ConditionNodeSchema,
   ActionNodeSchema,
   WaitNodeSchema,
+  FindNodeSchema,
+  ForEachNodeSchema,
 ])
 export type WorkflowNode = z.infer<typeof WorkflowNodeSchema>
 export type ConditionNode = z.infer<typeof ConditionNodeSchema>
 export type ActionNode = z.infer<typeof ActionNodeSchema>
 export type WaitNode = z.infer<typeof WaitNodeSchema>
+export type FindNode = z.infer<typeof FindNodeSchema>
+export type ForEachNode = z.infer<typeof ForEachNodeSchema>
 export type WorkflowNodeKind = WorkflowNode['kind']
 
 const WorkflowTriggerSchema = z.object({
@@ -180,10 +224,14 @@ export type DefinitionIssueCode =
   | 'unreachable'
   | 'rule_depth'
   | 'empty_rules'
+  | 'loop_source'
+  | 'loop_body'
 
 /** The ids a node points at, in branch order. */
 export function childrenOf(node: WorkflowNode): (NodeId | null)[] {
-  return node.kind === 'condition' ? [node.next, node.otherwise] : [node.next]
+  if (node.kind === 'condition') return [node.next, node.otherwise]
+  if (node.kind === 'forEach') return [node.body, node.next]
+  return [node.next]
 }
 
 function ruleDepth(group: RuleGroup): number {
@@ -211,7 +259,7 @@ export function definitionIssues(def: WorkflowDefinition): DefinitionIssue[] {
     if (node.id !== key) {
       issues.push({ nodeId: key, code: 'id_mismatch', message: 'Node id does not match its key' })
     }
-    if (node.kind === 'condition') {
+    if (node.kind === 'condition' || node.kind === 'find') {
       if (ruleDepth(node.rules) > MAX_RULE_DEPTH) {
         issues.push({
           nodeId: key,
@@ -219,7 +267,7 @@ export function definitionIssues(def: WorkflowDefinition): DefinitionIssue[] {
           message: `Groups nest at most ${MAX_RULE_DEPTH} deep`,
         })
       }
-      if (node.rules.rules.length === 0) {
+      if (node.kind === 'condition' && node.rules.rules.length === 0) {
         issues.push({ nodeId: key, code: 'empty_rules', message: 'Add at least one rule' })
       }
     }
@@ -268,6 +316,48 @@ export function definitionIssues(def: WorkflowDefinition): DefinitionIssue[] {
   for (const id of ids) {
     if (!seen.has(id)) {
       issues.push({ nodeId: id, code: 'unreachable', message: 'This step is not connected' })
+    }
+  }
+  issues.push(...loopIssues(def, parents))
+  return issues
+}
+
+/** For each: its source is a Find records above it; its body has no wait and no second loop. */
+function loopIssues(def: WorkflowDefinition, parents: Map<NodeId, NodeId | 'start'>) {
+  const issues: DefinitionIssue[] = []
+  const above = (id: NodeId): NodeId[] => {
+    const out: NodeId[] = []
+    let at = parents.get(id)
+    while (at && at !== 'start' && !out.includes(at)) {
+      out.push(at)
+      at = parents.get(at)
+    }
+    return out
+  }
+  for (const node of Object.values(def.nodes)) {
+    if (node.kind !== 'forEach') continue
+    if (def.nodes[node.source]?.kind !== 'find' || !above(node.id).includes(node.source)) {
+      issues.push({
+        nodeId: node.id,
+        code: 'loop_source',
+        message: 'Pick a Find records step above this one',
+      })
+    }
+    const stack = node.body ? [node.body] : []
+    const seen = new Set<NodeId>()
+    while (stack.length > 0) {
+      const id = stack.pop() as NodeId
+      const inner = def.nodes[id]
+      if (!inner || seen.has(id)) continue
+      seen.add(id)
+      if (inner.kind === 'wait' || inner.kind === 'forEach') {
+        issues.push({
+          nodeId: id,
+          code: 'loop_body',
+          message: 'A For each cannot hold a wait or another For each',
+        })
+      }
+      for (const c of childrenOf(inner)) if (c) stack.push(c)
     }
   }
   return issues

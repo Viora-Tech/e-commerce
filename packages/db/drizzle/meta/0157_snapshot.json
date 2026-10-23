@@ -10574,6 +10574,12 @@
           "primaryKey": false,
           "notNull": false
         },
+        "loop": {
+          "name": "loop",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
+        },
         "next_at": {
           "name": "next_at",
           "type": "timestamp with time zone",

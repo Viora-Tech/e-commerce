@@ -10,6 +10,7 @@ CREATE TABLE "automation_run" (
 	"subject_id" uuid,
 	"status" text DEFAULT 'queued' NOT NULL,
 	"cursor" text,
+	"loop" jsonb,
 	"next_at" timestamp with time zone DEFAULT now() NOT NULL,
 	"depth" integer DEFAULT 0 NOT NULL,
 	"caused_by_run_id" uuid,

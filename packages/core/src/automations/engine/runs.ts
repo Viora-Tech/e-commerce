@@ -127,6 +127,7 @@ function stepView(s: typeof automationStepRun.$inferSelect, showData: boolean): 
   return {
     id: s.id,
     nodeId: s.nodeId,
+    iteration: s.iteration,
     kind: s.kind as StepRunView['kind'],
     actionId: s.actionId,
     status: s.status,

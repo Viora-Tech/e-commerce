@@ -3,10 +3,11 @@ import type { StoreTx } from '@commerce/db'
 import { TransactionRollbackError } from 'drizzle-orm'
 import type { TestRunResult, TestStep } from '../api-types'
 import { nodeNeedsApproval } from '../catalogue'
-import type { WorkflowDefinition } from '../definition'
+import type { WorkflowDefinition, WorkflowNode } from '../definition'
 import type { ActionContext, RunSubject, SubjectData } from '../executor'
 import { renderMergeTags } from '../merge-tags'
 import type { EngineDeps, ResolvedAction } from './interpreter'
+import { findRecords } from './loops'
 
 export type DryRunDeps = Pick<EngineDeps, 'evaluate' | 'loadSubject'> & {
   resolveAction: (tx: StoreTx, storeId: string, id: string) => Promise<ResolvedAction | null>
@@ -42,17 +43,65 @@ export async function dryRun(
   const loaded = subject.id ? await deps.loadSubject(tx, storeId, subject) : {}
   if (!loaded)
     return { subject: null, steps: [], path: [], blocked: 'This record no longer exists' }
-  const data: SubjectData = { ...loaded, trigger: {} }
+  let data: SubjectData = { ...loaded, trigger: {} }
+  const found = new Map<string, { resource: string; ids: string[] }>()
+  // Inside a For each: where to go once the body branch ends, and the data to go back to.
+  let afterLoop: { next: string | null; data: SubjectData } | null = null
 
   const steps: TestStep[] = []
   const path: string[] = []
   let cursor = input.def.start
   const seen = new Set<string>()
-  while (cursor && !seen.has(cursor)) {
+  for (;;) {
+    if (!cursor && afterLoop) {
+      cursor = afterLoop.next
+      data = afterLoop.data
+      afterLoop = null
+    }
+    if (!cursor || seen.has(cursor)) break
     seen.add(cursor)
-    const node = input.def.nodes[cursor]
+    const node: WorkflowNode | undefined = input.def.nodes[cursor]
     if (!node) break
     path.push(node.id)
+    if (node.kind === 'find') {
+      const r = await findRecords(tx, storeId, node, deps)
+      found.set(node.id, { resource: node.resource, ids: r.ids })
+      steps.push({
+        nodeId: node.id,
+        kind: 'find',
+        actionId: null,
+        status: 'would_run',
+        summary: `Would find ${r.ids.length} ${node.resource}${r.ids.length === 1 ? '' : 's'}`,
+        warnings: [],
+        output: { ids: r.ids, scanned: r.scanned },
+      })
+      cursor = node.next
+      continue
+    }
+    if (node.kind === 'forEach') {
+      const source = found.get(node.source)
+      const first = source?.ids[0]
+      const itemData = first
+        ? await deps.loadSubject(tx, storeId, { type: source.resource, id: first })
+        : null
+      steps.push({
+        nodeId: node.id,
+        kind: 'forEach',
+        actionId: null,
+        status: first ? 'would_run' : 'would_skip',
+        summary: first
+          ? `Would repeat for ${source.ids.length} records (the test shows the first)`
+          : 'Would repeat for no records',
+        warnings: [],
+        output: { count: source?.ids.length ?? 0 },
+      })
+      if (first && itemData && node.body) {
+        afterLoop = { next: node.next, data }
+        data = { ...data, ...itemData }
+        cursor = node.body
+      } else cursor = node.next
+      continue
+    }
     if (node.kind === 'wait') {
       steps.push({
         nodeId: node.id,

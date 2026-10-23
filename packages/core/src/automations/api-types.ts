@@ -182,7 +182,9 @@ export type RunSummary = {
 export type StepRunView = {
   id: string
   nodeId: string
-  kind: 'condition' | 'action' | 'wait'
+  /** 0 outside a For each; the pass (1, 2, 3…) inside one. */
+  iteration: number
+  kind: 'condition' | 'action' | 'wait' | 'find' | 'forEach'
   actionId: string | null
   status: StepRunStatus
   attempt: number
@@ -211,7 +213,7 @@ export type RunPage = { runs: RunSummary[]; nextCursor: string | null }
 /** One step of a dry run: what would happen, nothing changed. */
 export type TestStep = {
   nodeId: string
-  kind: 'condition' | 'action' | 'wait'
+  kind: 'condition' | 'action' | 'wait' | 'find' | 'forEach'
   actionId: string | null
   status: 'then' | 'otherwise' | 'would_run' | 'would_skip' | 'would_wait' | 'would_ask' | 'error'
   summary: string

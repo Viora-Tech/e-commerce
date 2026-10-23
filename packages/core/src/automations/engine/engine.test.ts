@@ -344,6 +344,53 @@ describe('interpreter', () => {
     expect((await runOf(id))?.status).toBe('completed')
   })
 
+  it('finds records and runs a For each body once per record, then carries on', async () => {
+    const h = harness(true)
+    const storeId = await seedStore()
+    const trigger = await seedOrder(storeId)
+    await seedOrder(storeId, { number: 2 })
+    await seedOrder(storeId, { number: 3 })
+    await publish(storeId, {
+      ...tagThenNote,
+      start: 'find',
+      nodes: {
+        find: {
+          kind: 'find',
+          id: 'find',
+          resource: 'order',
+          rules: { join: 'and', rules: [] },
+          limit: 2,
+          next: 'loop',
+        },
+        loop: { kind: 'forEach', id: 'loop', source: 'find', body: 'tag', next: 'note' },
+        tag: {
+          ...(tagThenNote.nodes.tag as object),
+          next: null,
+        } as WorkflowDefinition['nodes'][string],
+        note: tagThenNote.nodes.note as WorkflowDefinition['nodes'][string],
+      },
+    })
+    const [run] = (await start(storeId, await outbox(storeId, 'order.paid', { orderId: trigger })))
+      .started
+    const id = run?.runId as string
+    await advanceRun(app, storeId, id, h.deps)
+    expect(h.calls.map((c) => [c.id, c.key.split(':').slice(1).join(':')])).toEqual([
+      ['order.add_tags', 'tag:1'],
+      ['order.add_tags', 'tag:2'],
+      ['order.add_note', 'note:0'],
+    ])
+    const r = await runOf(id)
+    expect(r).toMatchObject({ status: 'completed', loop: null })
+    const steps = await stepsOf(id)
+    expect(
+      steps
+        .filter((s) => s.nodeId === 'tag')
+        .map((s) => s.iteration)
+        .sort(),
+    ).toEqual([1, 2])
+    expect(steps.find((s) => s.nodeId === 'find')?.output).toMatchObject({ resource: 'order' })
+  })
+
   it('stops on Otherwise when the condition says so', async () => {
     const h = harness(false)
     const storeId = await seedStore()

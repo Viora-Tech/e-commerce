@@ -107,15 +107,28 @@ export async function moveTo(
 
 export type StepRow = typeof automationStepRun.$inferSelect
 
-export async function stepRow(tx: StoreTx, runId: string, nodeId: string): Promise<StepRow | null> {
+/** The loop a run is inside, stored on `automation_run.loop` (see `loops.ts`). */
+export type RunLoop = { node: string; items: { type: string; id: string }[]; index: number }
+
+/** Step rows inside a For each body are kept per pass: 1, 2, 3… (0 outside a loop). */
+export const iterationOf = (run: Pick<RunRow, 'loop'>): number => {
+  const loop = run.loop as RunLoop | null
+  return loop ? loop.index + 1 : 0
+}
+
+export async function stepRow(
+  tx: StoreTx,
+  run: Pick<RunRow, 'id' | 'loop'>,
+  nodeId: string,
+): Promise<StepRow | null> {
   const [row] = await tx
     .select()
     .from(automationStepRun)
     .where(
       and(
-        eq(automationStepRun.runId, runId),
+        eq(automationStepRun.runId, run.id),
         eq(automationStepRun.nodeId, nodeId),
-        eq(automationStepRun.iteration, 0),
+        eq(automationStepRun.iteration, iterationOf(run)),
       ),
     )
   return row ?? null
@@ -139,7 +152,7 @@ export async function writeStep(
       storeId: run.storeId,
       runId: run.id,
       nodeId: node.id,
-      iteration: 0,
+      iteration: iterationOf(run),
       kind: node.kind,
       actionId,
       ...values,

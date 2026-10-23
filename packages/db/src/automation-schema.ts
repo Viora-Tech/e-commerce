@@ -123,6 +123,11 @@ export const automationRun = pgTable(
     status: text('status').$type<AutomationRunStatus>().notNull().default('queued'),
     /** The node to run next; null when finished (or before the first step). */
     cursor: text('cursor'),
+    /**
+     * Inside a For each: which loop, its records and the pass it is on (`{ node, items, index }`);
+     * null outside one. Step rows of a pass carry iteration `index + 1`.
+     */
+    loop: jsonb('loop').$type<{ node: string; items: { type: string; id: string }[]; index: number }>(),
     nextAt: at('next_at').notNull().defaultNow(),
     /** Automation chain depth of the event that started it (loop guard). */
     depth: integer('depth').notNull().default(0),

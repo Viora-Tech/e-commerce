@@ -16,6 +16,7 @@ import {
 } from './catalogue'
 import type { ActionNode, WorkflowDefinition } from './definition'
 import type { ActionExecutor } from './executor'
+import type { SubjectType } from './types'
 
 const anyConfig = z.record(z.string(), z.unknown())
 
@@ -180,10 +181,11 @@ export function pieceIssues(
   }
   const connectors = PLANS[input.plan].automations.connectors
   const held = new Set(input.memberPermissions)
+  const subjects = nodeSubjects(def, trigger.subject)
   for (const node of Object.values(def.nodes)) {
     if (node.kind !== 'action') continue
     issues.push(
-      ...actionIssues(node, trigger, {
+      ...actionIssues(node, subjects.get(node.id) ?? trigger.subject, {
         catalogue: input.catalogue,
         plan: input.plan,
         held,
@@ -195,9 +197,34 @@ export function pieceIssues(
   return issues
 }
 
+/**
+ * What each node's run is about: the trigger's subject, except inside a For each body, where
+ * steps work on the record of the pass (the source Find records' kind).
+ */
+export function nodeSubjects(def: WorkflowDefinition, triggerSubject: SubjectType) {
+  const out = new Map<string, SubjectType>()
+  const stack: { id: string | null; subject: SubjectType }[] = [
+    { id: def.start, subject: triggerSubject },
+  ]
+  while (stack.length > 0) {
+    const { id, subject } = stack.pop() as { id: string | null; subject: SubjectType }
+    const node = id ? def.nodes[id] : undefined
+    if (!node || out.has(node.id)) continue
+    out.set(node.id, subject)
+    if (node.kind === 'forEach') {
+      const source = def.nodes[node.source]
+      stack.push({ id: node.body, subject: source?.kind === 'find' ? source.resource : subject })
+      stack.push({ id: node.next, subject })
+    } else if (node.kind === 'condition') {
+      stack.push({ id: node.next, subject }, { id: node.otherwise, subject })
+    } else stack.push({ id: node.next, subject })
+  }
+  return out
+}
+
 function actionIssues(
   node: ActionNode,
-  trigger: TriggerDescriptor,
+  subject: SubjectType,
   input: {
     catalogue: PieceCatalogue
     plan: PlanId
@@ -214,7 +241,7 @@ function actionIssues(
   if (!a.configSchema.safeParse(node.config).success) {
     out.push({ nodeId: node.id, code: 'bad_config', message: 'Fill in this step' })
   }
-  if (!actionFitsSubject(a, trigger.subject)) {
+  if (!actionFitsSubject(a, subject)) {
     out.push({
       nodeId: node.id,
       code: 'wrong_subject',
