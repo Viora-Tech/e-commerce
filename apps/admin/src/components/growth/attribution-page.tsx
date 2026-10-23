@@ -4,19 +4,20 @@ import type { MarketingOverview } from '@commerce/api'
 import { Card } from '@commerce/ui/shadcn/card'
 import { useEffect, useState } from 'react'
 import RangePicker from '@/components/analytics/range-picker'
-import ChartCard from '@/components/layout/chart-card'
 import PageBody from '@/components/layout/page-body'
 import PageHeader from '@/components/layout/page-header'
 import { growthOverviewContent } from '@/data/growth'
 import { growthAttributionContent } from '@/data/growth-home'
 import { useCopy, useFormat } from '@/hooks/use-copy'
-import { formatDay, type RangeState, rangeQuery, sameRange } from '@/lib/analytics-range'
+import { type RangeState, rangeQuery, sameRange } from '@/lib/analytics-range'
 import { api } from '@/lib/api-client'
-import { formatPaiseCompact } from '@/lib/money'
 import { routes } from '@/lib/routes'
 import BestSourceCallout from './best-source-callout'
 import GrowthKpiStrip from './growth-kpi-strip'
 import OutcomesCard from './outcomes-card'
+import AttributedSalesCard from './overview/attributed-sales-card'
+import ChannelsChartCard from './overview/channels-chart-card'
+import SessionsCard from './overview/sessions-card'
 import TrafficTypeCard from './overview/traffic-type-card'
 import SourceOrChannelCard from './source-or-channel-card'
 import TopCampaignsCard from './top-campaigns-card'
@@ -28,8 +29,8 @@ type AttributionPageProps = {
 
 /**
  * Growth → Attribution, the detailed report behind the overview: the tiles against the
- * previous period, sessions by traffic type, how credit is given, attributed sales over
- * time, sales by source or channel (first-time vs returning, paid/organic, campaigns under
+ * previous period, sessions by traffic type, how credit is given, attributed sales and
+ * sessions over time, a by-channel chart, sales by source or channel (first-time vs returning, paid/organic, campaigns under
  * each source), what marketing earned and the top campaigns.
  */
 export default function AttributionPage({ initialRange, initial }: AttributionPageProps) {
@@ -68,9 +69,8 @@ export default function AttributionPage({ initialRange, initial }: AttributionPa
   }
 
   // Render logic
+  const kpi = (id: string) => data.kpis.find((k) => k.id === id)
   const o = data.outcomes
-  const dayPoints = data.salesOverTime.day.map((p) => ({ ...p, label: formatDay(p.label) }))
-  const weekPoints = data.salesOverTime.week.map((p) => ({ ...p, label: formatDay(p.label) }))
   const bestRow = data.sources.find((r) => r.source === data.bestSource) ?? null
 
   return (
@@ -100,16 +100,16 @@ export default function AttributionPage({ initialRange, initial }: AttributionPa
           <p className="text-caption text-muted-foreground">{copy.model.body}</p>
         </Card>
       </div>
-      <ChartCard
-        title={report.salesOverTime.title}
-        periods={[
-          { id: 'day', label: report.salesOverTime.day, data: dayPoints },
-          { id: 'week', label: report.salesOverTime.week, data: weekPoints },
-        ]}
-        seriesKey={`attribution-sales-${range.key}`}
-        seriesLabel={report.salesOverTime.series}
-        formatValue={formatPaiseCompact}
+      <AttributedSalesCard
+        attributed={kpi('attributed_sales')}
+        total={kpi('total_sales')}
+        days={data.range.days}
+        detailed
       />
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+        <SessionsCard sessions={kpi('sessions')} days={data.range.days} detailed />
+        <ChannelsChartCard channels={data.channels} detailed />
+      </div>
       <SourceOrChannelCard
         sources={data.sources}
         channels={data.channels}

@@ -3,7 +3,8 @@ import { SHORT_LINK_SLUG } from '@commerce/core/marketing'
 import type { StoreTx } from '@commerce/db'
 import { order, shortLink, shortLinkClickDay } from '@commerce/db'
 import { ORPCError } from '@orpc/server'
-import { and, count, desc, eq, ilike, inArray, ne, or, sql } from 'drizzle-orm'
+import { and, count, desc, eq, gte, ilike, inArray, isNotNull, lt, ne, or, sql } from 'drizzle-orm'
+import { bucketByDay, istIsoDate, resolveRange } from './analytics-buckets'
 
 export type ShortLinkInput = {
   name: string
@@ -177,4 +178,55 @@ export async function updateShortLink(tx: StoreTx, id: string, input: ShortLinkI
 
 export async function deleteShortLink(tx: StoreTx, id: string) {
   await tx.delete(shortLink).where(eq(shortLink.id, id))
+}
+
+/** One day of Growth → Links: clicks on every link, and the orders and revenue they brought. */
+export type ShortLinkTrendDay = {
+  day: string
+  clicks: number
+  orders: number
+  revenuePaise: number
+}
+
+/** Clicks, orders and revenue across every link for each of the last 30 IST days, quiet days 0. */
+export async function shortLinkTrend(tx: StoreTx, now = new Date()): Promise<ShortLinkTrendDay[]> {
+  const range = resolveRange({ key: '30d' }, now)
+  const first = range.days[0] ?? istIsoDate(range.from)
+  const linkOf = sql<string | null>`${order.attribution}->>'linkId'`
+  const [clicks, orders] = await Promise.all([
+    tx
+      .select({
+        day: shortLinkClickDay.day,
+        clicks: sql<number>`coalesce(sum(${shortLinkClickDay.clicks}), 0)::int`,
+      })
+      .from(shortLinkClickDay)
+      .where(gte(shortLinkClickDay.day, first))
+      .groupBy(shortLinkClickDay.day),
+    tx
+      .select({ placedAt: order.placedAt, totalPaise: order.totalPaise })
+      .from(order)
+      .where(
+        and(
+          countedOrder,
+          isNotNull(linkOf),
+          gte(order.placedAt, range.from),
+          lt(order.placedAt, range.to),
+        ),
+      ),
+  ])
+  const clicksByDay = new Map(clicks.map((c) => [c.day, Number(c.clicks)]))
+  const ordersByDay = bucketByDay(
+    orders.map((o) => ({ at: o.placedAt })),
+    range.days,
+  )
+  const revenueByDay = bucketByDay(
+    orders.map((o) => ({ at: o.placedAt, weight: o.totalPaise })),
+    range.days,
+  )
+  return range.days.map((day, i) => ({
+    day,
+    clicks: clicksByDay.get(day) ?? 0,
+    orders: ordersByDay[i] ?? 0,
+    revenuePaise: revenueByDay[i] ?? 0,
+  }))
 }

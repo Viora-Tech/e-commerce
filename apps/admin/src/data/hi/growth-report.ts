@@ -68,6 +68,12 @@ export default [
     },
   }),
   translation(campaignPerformanceContent, {
+    trend: {
+      title: 'समय के साथ नतीजे',
+      subtitle: 'भेजना शुरू होने के दिन से, इस कैंपेन से आए सेशन, ऑर्डर और बिक्री, दिन-ब-दिन।',
+      metrics: { sessions: 'सेशन', orders: 'ऑर्डर', sales: 'बिक्री' },
+      empty: 'इस कैंपेन से अभी कोई विज़िट या ऑर्डर नहीं',
+    },
     funnel: {
       title: 'फ़नल',
       subtitle: 'भेजने से लेकर उससे आए ऑर्डर तक।',

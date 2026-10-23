@@ -50,7 +50,7 @@ export type MarketingKpi = {
   previous: number
   delta: number | null
   series: number[]
-  /** The previous period, day by day, aligned with `series` (Sales attributed to marketing). */
+  /** The previous period, day by day, aligned with `series` (sessions, sales attributed to marketing). */
   previousSeries?: number[]
 }
 
@@ -399,6 +399,10 @@ export async function marketingOverview(
   const previousDays = range.days.map((_, i) =>
     istIsoDate(new Date(range.previousFrom.getTime() + i * DAY_MS)),
   )
+  const sessionsPrevByDay = bucketByDay(
+    sessionsPrev.map((s) => ({ at: s.startedAt })),
+    previousDays,
+  )
   const salesPrevByDay = bucketByDay(
     attributedPrev.map((o) => ({ at: o.placedAt, weight: o.totalPaise })),
     previousDays,
@@ -437,6 +441,7 @@ export async function marketingOverview(
       previous: sessionsPrev.length,
       delta: delta(sessions.length, sessionsPrev.length),
       series: sessionsByDay,
+      previousSeries: sessionsPrevByDay,
     },
     {
       id: 'attributed_sales',

@@ -54,12 +54,6 @@ export default [
       total_sales: { label: 'कुल बिक्री', help: 'इस रेंज में किसी भी सोर्स से आए सभी ऑर्डर।' },
       aov: { label: 'औसत ऑर्डर वैल्यू', help: 'कुल बिक्री को ऑर्डर की गिनती से भाग देकर।' },
     },
-    salesOverTime: {
-      title: 'समय के साथ मार्केटिंग से बिक्री',
-      day: 'रोज़',
-      week: 'हफ़्ते के हिसाब से',
-      series: 'मार्केटिंग से बिक्री',
-    },
     view: { label: 'देखें', bySource: 'सोर्स के हिसाब से', byChannel: 'चैनल के हिसाब से' },
     bestSource: {
       title: 'इस अवधि में आपका सबसे अच्छा सोर्स {source} है',
@@ -120,6 +114,12 @@ export default [
     resource: { singular: 'लिंक', plural: 'लिंक' },
     summary: (links: number, clicks: string, orders: string) =>
       `${links} छोटे लिंक · ${clicks} क्लिक · ${orders} ऑर्डर`,
+    trend: {
+      title: 'समय के साथ लिंक के नतीजे',
+      subtitle: 'पिछले 30 दिन, सभी लिंक मिलाकर।',
+      metrics: { clicks: 'क्लिक', orders: 'ऑर्डर', revenue: 'कमाई' },
+      empty: 'इस अवधि में अभी आपके लिंक पर कोई क्लिक नहीं',
+    },
     noLinks: 'अभी कोई लिंक नहीं',
     newLink: 'नया लिंक',
     columns: {

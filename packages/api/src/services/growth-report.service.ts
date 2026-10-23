@@ -18,6 +18,7 @@ import {
   type StoreTx,
 } from '@commerce/db'
 import { and, eq, gte, isNotNull, or, type SQL, sql } from 'drizzle-orm'
+import { bucketByDay, DAY_MS, istDayStart, istIsoDate } from './analytics-buckets'
 
 /*
  * Written literally rather than with `${order.customerId}`: Drizzle renders an interpolated
@@ -47,9 +48,16 @@ export type CampaignReport = {
   /** Orders and sales from first-time vs returning buyers. */
   split: CustomerSplit
   links: CampaignLinkRow[]
+  /** Sessions, orders and sales per IST day from the day sending began (up to 30 days). */
+  daily: CampaignDay[]
 }
 
+/** One day of a campaign's results, for the report's over-time chart. */
+export type CampaignDay = { day: string; sessions: number; orders: number; salesPaise: number }
+
 const MAX_LINKS = 20
+/** The over-time chart covers the campaign's first 30 days, or up to today when sooner. */
+const REPORT_DAYS = 30
 const pathOf = (landing: string | null) => (landing ?? '/').split(/[?#]/)[0] || '/'
 
 type ReportCampaign = {
@@ -64,9 +72,13 @@ type ReportCampaign = {
  * to it when it carries the campaign's id (a tracked email click) or its `utm_campaign` tag
  * (WhatsApp buttons, copied links), from the moment sending began.
  */
-export async function campaignReport(tx: StoreTx, c: ReportCampaign): Promise<CampaignReport> {
+export async function campaignReport(
+  tx: StoreTx,
+  c: ReportCampaign,
+  now = new Date(),
+): Promise<CampaignReport> {
   // Nothing can belong to a campaign that has not started sending.
-  const since = c.startedAt ?? new Date()
+  const since = c.startedAt ?? now
   const tag = utmName(c.name)
   const attr = (key: string) => sql`${order.attribution} ->> ${key}`
   const ours = (idCol: SQL, tagCol: SQL) => sql`(${idCol} = ${c.id} or lower(${tagCol}) = ${tag})`
@@ -80,7 +92,7 @@ export async function campaignReport(tx: StoreTx, c: ReportCampaign): Promise<Ca
       .from(marketingMessage)
       .where(eq(marketingMessage.campaignId, c.id)),
     tx
-      .select({ landing: marketingSession.landingPath })
+      .select({ landing: marketingSession.landingPath, startedAt: marketingSession.startedAt })
       .from(marketingSession)
       .where(
         and(
@@ -94,6 +106,7 @@ export async function campaignReport(tx: StoreTx, c: ReportCampaign): Promise<Ca
     tx
       .select({
         totalPaise: order.totalPaise,
+        placedAt: order.placedAt,
         landing: sql<string | null>`${attr('landing')}`,
         returning: returningCustomer,
       })
@@ -147,7 +160,45 @@ export async function campaignReport(tx: StoreTx, c: ReportCampaign): Promise<Ca
     rates: campaignRates(counts),
     split: splitByCustomerType(orders),
     links: linkRows(sessions, orders),
+    daily: dailyRows(since, now, sessions, orders),
   }
+}
+
+/** The report's days: from the IST day sending began, up to 30 days or today, whichever is sooner. */
+function reportDays(since: Date, now: Date): string[] {
+  const first = istDayStart(istIsoDate(since))
+  const today = istDayStart(istIsoDate(now))
+  const span = Math.floor((today.getTime() - first.getTime()) / DAY_MS) + 1
+  const count = Math.min(REPORT_DAYS, Math.max(1, span))
+  return Array.from({ length: count }, (_, i) => istIsoDate(new Date(first.getTime() + i * DAY_MS)))
+}
+
+/** Sessions, orders and sales per day of the report, zero on quiet days. */
+function dailyRows(
+  since: Date,
+  now: Date,
+  sessions: { startedAt: Date }[],
+  orders: { placedAt: Date; totalPaise: number }[],
+): CampaignDay[] {
+  const days = reportDays(since, now)
+  const visits = bucketByDay(
+    sessions.map((s) => ({ at: s.startedAt })),
+    days,
+  )
+  const placed = bucketByDay(
+    orders.map((o) => ({ at: o.placedAt })),
+    days,
+  )
+  const sales = bucketByDay(
+    orders.map((o) => ({ at: o.placedAt, weight: o.totalPaise })),
+    days,
+  )
+  return days.map((day, i) => ({
+    day,
+    sessions: visits[i] ?? 0,
+    orders: placed[i] ?? 0,
+    salesPaise: sales[i] ?? 0,
+  }))
 }
 
 /** Visits and orders per landing page, busiest first. */

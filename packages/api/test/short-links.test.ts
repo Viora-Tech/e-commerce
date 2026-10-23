@@ -13,6 +13,7 @@ import {
   createShortLink,
   listShortLinks,
   shortLinkTotals,
+  shortLinkTrend,
 } from '../src/services/short-links.service'
 
 const owner = createDb(process.env.DATABASE_URL_OWNER as string)
@@ -126,6 +127,19 @@ describe('short links', () => {
     const list = await withStore(app, one, (tx) => listShortLinks(tx, { page: 1, perPage: 25 }))
     expect(list.items).toHaveLength(1)
     expect(list.items[0]).toMatchObject({ orders: 0, revenuePaise: 0 })
+  })
+
+  it('charts clicks, orders and revenue per day over the last 30 days', async () => {
+    const storeId = await newStore('l6')
+    const a = await link(storeId, 'trend')
+    await follow(storeId, 'trend', PHONE)
+    await follow(storeId, 'trend', PHONE, 'GET', new Date(Date.now() - 40 * 86_400_000))
+    await placed(storeId, 250000, a?.id as string)
+    await placed(storeId, 90000, null)
+    const trend = await withStore(app, storeId, (tx) => shortLinkTrend(tx))
+    expect(trend).toHaveLength(30)
+    const sum = (key: 'clicks' | 'orders' | 'revenuePaise') => trend.reduce((n, d) => n + d[key], 0)
+    expect([sum('clicks'), sum('orders'), sum('revenuePaise')]).toEqual([1, 1, 250000])
   })
 
   it('refuses a short name the store already uses', async () => {

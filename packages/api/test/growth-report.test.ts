@@ -219,6 +219,12 @@ describe('campaign report', () => {
       orders: 1,
       salesPaise: 40000,
     })
+    // The over-time chart: one row per day since sending began, adding up to the funnel.
+    expect(r.daily.length).toBeGreaterThanOrEqual(1)
+    expect(r.daily.length).toBeLessThanOrEqual(30)
+    const sum = (key: 'sessions' | 'orders' | 'salesPaise') =>
+      r.daily.reduce((n, d) => n + d[key], 0)
+    expect([sum('sessions'), sum('orders'), sum('salesPaise')]).toEqual([3, 1, 40000])
   })
 
   it('leaves opens out of a WhatsApp funnel', async () => {
