@@ -1,15 +1,26 @@
-import { settingsSecret } from '@commerce/config'
-import { enqueueAppJob, permissions, removeAppJob } from '@commerce/core'
+import { loadEnv, settingsSecret } from '@commerce/config'
+import { siteConfig } from '@commerce/config/site'
+import {
+  enqueueAppJob,
+  linkPlatformAccount,
+  permissions,
+  removeAppJob,
+  unlinkPlatformAccount,
+} from '@commerce/core'
 import type { StoreTx } from '@commerce/db'
 import {
   ConnectionError,
   CSV_RESOURCES,
+  checkInstallCallback,
   connect,
+  connectApp,
+  connectedShop,
   createApiRun,
   createCsvRun,
   createRemainingRun,
   createRetryRun,
   disconnect,
+  exchangeInstallCode,
   failRun,
   getConnection,
   getRun,
@@ -29,6 +40,8 @@ import {
   SHOPIFY_IMPORT_ID,
   ShopifyError,
   ShopifyOAuthError,
+  shopifyAppFromEnv,
+  shopifyInstallUrl,
   startRun,
   testConnection,
 } from '@commerce/plugin-shopify-import/server'
@@ -121,6 +134,81 @@ export const shopifyImportRouter = {
       )
     }),
 
+  /** Whether this deployment has the platform's own Shopify app, so "Install the app" can show. */
+  appInstall: can(permissions.APPS_MANAGE).handler(async ({ context }) => {
+    await requireInstalled(context)
+    return { available: shopifyAppFromEnv(process.env) !== null }
+  }),
+
+  /**
+   * "Install the app" (the platform's own Shopify app): the URL on the merchant's shop that asks them to approve the
+   * app's read scopes. Shopify sends them back to `/api/apps/shopify-import/oauth/callback`.
+   */
+  startAppInstall: can(permissions.APPS_MANAGE)
+    .input(z.object({ shopDomain: z.string().trim().min(1).max(200) }))
+    .handler(async ({ context, input }) => {
+      await requireInstalled(context)
+      const app = shopifyAppFromEnv(process.env)
+      if (!app)
+        throw new ORPCError('PRECONDITION_FAILED', {
+          message: `The ${siteConfig.brand.name} Shopify app is not set up on this deployment.`,
+        })
+      try {
+        return {
+          url: shopifyInstallUrl(app, {
+            shopDomain: input.shopDomain,
+            storeId: context.scope.storeId,
+            adminUrl: loadEnv(process.env).ADMIN_URL,
+            secret: settingsSecret(),
+          }),
+        }
+      } catch (err) {
+        return asOrpc(err)
+      }
+    }),
+
+  /**
+   * Shopify's redirect after the merchant approved the app (the callback route passes the
+   * whole query): Shopify's hmac, our state for this very store, then the code exchange.
+   */
+  completeAppInstall: can(permissions.APPS_MANAGE)
+    .input(z.object({ callback: z.string().max(4000) }))
+    .handler(async ({ context, input }) => {
+      await requireInstalled(context)
+      const app = shopifyAppFromEnv(process.env)
+      if (!app)
+        throw new ORPCError('PRECONDITION_FAILED', {
+          message: `The ${siteConfig.brand.name} Shopify app is not set up on this deployment.`,
+        })
+      try {
+        const cb = checkInstallCallback(new URLSearchParams(input.callback), app, settingsSecret())
+        if (cb.storeId !== context.scope.storeId)
+          throw new ORPCError('FORBIDDEN', {
+            message: 'This install was started for another store.',
+          })
+        const token = await exchangeInstallCode(app, cb.shop, cb.code)
+        const view = await connectApp(
+          context.tx,
+          context.scope.storeId,
+          cb.shop,
+          token,
+          settingsSecret(),
+        )
+        await linkPlatformAccount(
+          { tx: context.tx, storeId: context.scope.storeId },
+          'shopify',
+          cb.shop,
+          {
+            shopName: view.shopName ?? '',
+          },
+        )
+        return view
+      } catch (err) {
+        if (err instanceof ORPCError) throw err
+        return asOrpc(err)
+      }
+    }),
+
   /** Shop name plus which of the import's scopes the saved token actually has. */
   testConnection: can(permissions.APPS_MANAGE).handler(async ({ context }) => {
     await requireInstalled(context)
@@ -129,7 +217,10 @@ export const shopifyImportRouter = {
 
   disconnect: can(permissions.APPS_MANAGE).handler(async ({ context }) => {
     await requireInstalled(context)
+    const shop = await connectedShop(context.tx)
     await disconnect(context.tx)
+    if (shop)
+      await unlinkPlatformAccount({ tx: context.tx, storeId: context.scope.storeId }, 'shopify')
     return true
   }),
 

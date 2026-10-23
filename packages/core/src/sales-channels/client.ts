@@ -106,6 +106,13 @@ const ChannelSyncSchema = z.object({
   endedAt: z.string().nullable().catch(null),
   /** The platform's own words for a failure, when it gave any. */
   message: z.string().max(300).nullable().catch(null),
+  /** Items the platform refused to show after the last sync (Google disapproved, Meta rejected). */
+  rejected: z.number().int().min(0).nullable().catch(null),
+  /** A few of them, with the platform's reason, for "Fix these on the product page". */
+  rejectedItems: z
+    .array(z.object({ id: z.string().max(100), reason: z.string().max(200) }))
+    .max(20)
+    .catch([]),
 })
 export type ChannelSync = z.infer<typeof ChannelSyncSchema>
 
@@ -116,6 +123,8 @@ const EMPTY_SYNC: ChannelSync = {
   lastTriedAt: null,
   endedAt: null,
   message: null,
+  rejected: null,
+  rejectedItems: [],
 }
 
 const ChannelStateSchema = z.object({

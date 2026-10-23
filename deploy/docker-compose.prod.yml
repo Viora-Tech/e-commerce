@@ -64,6 +64,13 @@ x-app-env: &app-env
   GMC_GOOGLE_CLIENT_SECRET: ${GMC_GOOGLE_CLIENT_SECRET:-}
   META_APP_ID: ${META_APP_ID:-}
   META_APP_SECRET: ${META_APP_SECRET:-}
+  # The Meta app's Login for Business configurations and webhook verify token (integrations/meta).
+  META_LOGIN_CONFIG_ID: ${META_LOGIN_CONFIG_ID:-}
+  META_WHATSAPP_CONFIG_ID: ${META_WHATSAPP_CONFIG_ID:-}
+  META_WEBHOOK_VERIFY_TOKEN: ${META_WEBHOOK_VERIFY_TOKEN:-}
+  # The Koomerce migration app on Shopify (integrations/shopify); blank hides "Install the app".
+  SHOPIFY_APP_CLIENT_ID: ${SHOPIFY_APP_CLIENT_ID:-}
+  SHOPIFY_APP_CLIENT_SECRET: ${SHOPIFY_APP_CLIENT_SECRET:-}
   PLATFORM_SALES_STORE_ID: ${PLATFORM_SALES_STORE_ID:-}
   # UPI AutoPay for plans: the platform's own Razorpay account. All three set turns AutoPay on.
   PLATFORM_RAZORPAY_KEY_ID: ${PLATFORM_RAZORPAY_KEY_ID:-}

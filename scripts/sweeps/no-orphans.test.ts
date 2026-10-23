@@ -18,6 +18,17 @@ type AllowEntry = { file: string; names: string[]; reason: string }
 
 const ALLOWLIST: AllowEntry[] = [
   {
+    file: 'packages/core/src/platform-apps/meta-callbacks.ts',
+    names: ['whatsappEventUpdate'],
+    reason:
+      'one WhatsApp webhook change to an account update, behind handleMetaWebhook; exported for its unit test',
+  },
+  {
+    file: 'packages/plugin-shopify-import/src/app-install.ts',
+    names: ['signInstallState'],
+    reason: 'the signed state inside shopifyInstallUrl; exported so the callback test can sign one',
+  },
+  {
     file: 'packages/api/src/services/order-actions.service.ts',
     names: ['orderActionGroups'],
     reason:

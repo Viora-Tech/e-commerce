@@ -3,14 +3,18 @@ import {
   channelConnection,
   createDb,
   inventoryLevel,
+  outboxEvent,
   product,
   store,
+  storesForPlatformAccount,
   variant,
   withStore,
 } from '@commerce/db'
 import { resetDb } from '@commerce/db/test'
 import { eq } from 'drizzle-orm'
 import { afterAll, beforeEach, describe, expect, it } from 'vitest'
+import { linkPlatformAccount, loadPlatformAccount } from '../platform-apps/accounts'
+import { forgetMetaUser, handleMetaWebhook } from '../platform-apps/meta-callbacks'
 import { buildChannelCatalog } from './catalog'
 import { channelState, defaultAgentControls } from './client'
 import {
@@ -317,5 +321,76 @@ describe('syncChannelProvider', () => {
     expect(
       await owner.select().from(channelConnection).where(eq(channelConnection.storeId, storeId)),
     ).toEqual([])
+  })
+})
+
+describe('platform accounts and callbacks', () => {
+  it('links the Facebook user on connect, and data deletion ends every Meta channel', async () => {
+    const { storeId } = await seedStore()
+    const fake = platform({ '/me?fields=id': { id: 'fbuser1' } })
+    await connectMeta(storeId, fake.fetch)
+    expect(await storesForPlatformAccount(app, 'meta', 'fbuser1')).toEqual([storeId])
+
+    expect(await forgetMetaUser(app, 'fbuser1')).toBe(1)
+    expect((await stateOf(storeId, 'instagram')).status).toBe('disconnected')
+    const left = await owner.select().from(channelConnection)
+    expect(left).toHaveLength(0)
+    expect(await storesForPlatformAccount(app, 'meta', 'fbuser1')).toEqual([])
+    const events = await owner.select().from(outboxEvent).where(eq(outboxEvent.storeId, storeId))
+    expect(events.map((e) => e.type)).toContain('meta.access_removed')
+  })
+
+  it('records WhatsApp webhooks on the linked account and writes an event for automations', async () => {
+    const { storeId } = await seedStore()
+    await withStore(app, storeId, (tx) =>
+      linkPlatformAccount({ tx, storeId }, 'whatsapp', '555000111', { phoneNumberId: '42' }),
+    )
+    const recorded = await handleMetaWebhook(app, {
+      object: 'whatsapp_business_account',
+      entry: [
+        {
+          id: '555000111',
+          changes: [{ field: 'account_update', value: { event: 'ACCOUNT_RESTRICTION' } }],
+        },
+        { id: 'unknown-waba', changes: [{ field: 'account_update', value: { event: 'X' } }] },
+      ],
+    })
+    expect(recorded).toBe(1)
+    const row = await withStore(app, storeId, (tx) =>
+      loadPlatformAccount({ tx, storeId }, 'whatsapp'),
+    )
+    expect(row).toMatchObject({
+      status: 'restricted',
+      detail: { phoneNumberId: '42', lastAccountEvent: 'ACCOUNT_RESTRICTION' },
+    })
+    const events = await owner.select().from(outboxEvent).where(eq(outboxEvent.storeId, storeId))
+    expect(events.find((e) => e.type === 'whatsapp.account_updated')?.payload).toMatchObject({
+      platform: 'whatsapp',
+      platformStatus: 'restricted',
+    })
+  })
+
+  it('keeps what the platform refused on the channel, and a failed sync writes an event', async () => {
+    const { storeId } = await seedStore()
+    const fake = platform({
+      '/products?fields': {
+        data: [{ retailer_id: 'v9', review_status: 'rejected', errors: [{ title: 'No image' }] }],
+      },
+    })
+    await connectMeta(storeId, fake.fetch)
+    await syncChannelProvider(app, storeId, 'meta', deps(fake.fetch))
+    const state = await stateOf(storeId, 'instagram')
+    expect(state.sync.rejected).toBe(1)
+    expect(state.sync.rejectedItems).toEqual([{ id: 'v9', reason: 'No image' }])
+
+    const broken = platform({ '/items_batch': { _status: 500, error: { message: 'Down' } } })
+    await owner.update(product).set({ title: 'Silk Saree, new' })
+    const r = await syncChannelProvider(app, storeId, 'meta', deps(broken.fetch))
+    expect(r.state).toBe('failed')
+    const events = await owner.select().from(outboxEvent).where(eq(outboxEvent.storeId, storeId))
+    expect(events.find((e) => e.type === 'channel.sync_failed')?.payload).toMatchObject({
+      platform: 'meta',
+      platformStatus: 'error',
+    })
   })
 })

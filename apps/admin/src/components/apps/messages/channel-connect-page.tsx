@@ -3,6 +3,7 @@
 import { siteConfig } from '@commerce/config/site'
 import { Bell, ExternalLink } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
+import type { ReactNode } from 'react'
 import ProviderSettingsForm from '@/components/settings/provider-settings-form'
 import { appsContent } from '@/data/apps'
 import { messageAppsContent } from '@/data/notifications'
@@ -12,7 +13,11 @@ import { routes } from '@/lib/routes'
 
 type ChannelId = 'ses' | 'whatsapp'
 
-type ChannelConnectPageProps = { channelId: ChannelId }
+type ChannelConnectPageProps = {
+  channelId: ChannelId
+  /** Above the guide, e.g. WhatsApp's "Connect with Facebook". */
+  lead?: ReactNode
+}
 
 /** The per-message switches ride along in the same blob untouched. */
 type Extra = Record<never, never>
@@ -49,7 +54,7 @@ function guide(copy: typeof messageAppsContent, channelId: ChannelId) {
  * fields and on/off switch, from the same notifications settings Settings →
  * Notifications reads. Only this app's channel is shown.
  */
-export default function ChannelConnectPage({ channelId }: ChannelConnectPageProps) {
+export default function ChannelConnectPage({ channelId, lead }: ChannelConnectPageProps) {
   // Hooks
   const apps = useCopy(appsContent)
   const copy = useCopy(messageAppsContent)
@@ -65,7 +70,12 @@ export default function ChannelConnectPage({ channelId }: ChannelConnectPageProp
       load={LOADERS[channelId]}
       save={save}
       emptyExtra={{}}
-      renderDescription={() => guide(copy, channelId)}
+      renderDescription={() => (
+        <div className="flex flex-col gap-4">
+          {lead}
+          {guide(copy, channelId)}
+        </div>
+      )}
       headerActions={
         <Button
           variant="ghost"
