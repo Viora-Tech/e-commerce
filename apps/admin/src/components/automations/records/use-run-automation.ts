@@ -7,7 +7,7 @@ import type { ActionItem } from '@/components/layout/action-menu'
 import { type AutomationRecordType, automationRecordsContent } from '@/data/automation-records'
 import { useCopy } from '@/hooks/use-copy'
 import { usePermissions } from '@/hooks/use-permissions'
-import { routes } from '@/lib/routes'
+import { automationRoutes } from '@/lib/automation-routes'
 
 /**
  * "Run automation" for a detail page's More actions or a list's bulk bar: the menu items and
@@ -46,7 +46,7 @@ export function useRunAutomation(subjectType: AutomationRecordType, installed: b
         label: copy.runs,
         icon: FileText,
         hidden: !opts.runsLink || !canRead || ids.length !== 1 || !first,
-        href: `${routes.apps.page('automations', 'runs')}?recordType=${subjectType}&recordId=${encodeURIComponent(first ?? '')}`,
+        href: automationRoutes.recordRuns(subjectType, first ?? ''),
       },
     ]
     return all

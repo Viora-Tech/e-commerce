@@ -1,5 +1,3 @@
-import type { RunStatus } from '@commerce/core/automations'
-
 /** Records "Run automation" works on (the manual triggers of the Automations app). */
 export type AutomationRecordType = 'order' | 'customer' | 'product'
 
@@ -54,16 +52,4 @@ export const automationRecordsContent = {
     changed: 'Changed by it',
     error: 'Automation history could not load.',
   },
-  statuses: {
-    queued: 'Queued',
-    running: 'In progress',
-    waiting: 'Waiting',
-    awaiting_approval: 'Needs approval',
-    completed: 'Completed',
-    failed: 'Failed',
-    cancelled: 'Cancelled',
-    skipped: 'Skipped',
-    converted: 'Converted',
-    stopped: 'Stopped',
-  } satisfies Record<RunStatus, string>,
 }

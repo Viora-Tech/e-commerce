@@ -14,8 +14,8 @@ import FormDialog from '@/components/layout/form-dialog'
 import { type AutomationRecordType, automationRecordsContent } from '@/data/automation-records'
 import { useCopy, useLocale } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { automationRoutes } from '@/lib/automation-routes'
 import { formatAgo } from '@/lib/format-date'
-import { routes } from '@/lib/routes'
 
 type RunAutomationDialogProps = {
   subjectType: AutomationRecordType
@@ -84,10 +84,7 @@ export default function RunAutomationDialog({
       toast.success(copy.dialog.started(r.started, r.skipped), {
         action: {
           label: copy.dialog.viewRuns,
-          onClick: () =>
-            router.push(
-              `${routes.apps.page('automations', 'runs')}?workflow=${encodeURIComponent(picked)}`,
-            ),
+          onClick: () => router.push(automationRoutes.workflowRuns(picked)),
         },
       })
       onClose()
@@ -129,7 +126,7 @@ export default function RunAutomationDialog({
           body={copy.dialog.emptyBody}
           action={
             <Link
-              href={routes.apps.page('automations')}
+              href={automationRoutes.workflows()}
               className="text-body font-medium text-primary hover:underline"
             >
               {copy.dialog.openApp}

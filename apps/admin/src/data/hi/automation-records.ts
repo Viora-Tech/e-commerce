@@ -44,17 +44,5 @@ export default [
       changed: 'इससे बदला गया',
       error: 'ऑटोमेशन हिस्ट्री लोड नहीं हो सकी।',
     },
-    statuses: {
-      queued: 'कतार में',
-      running: 'चल रहा है',
-      waiting: 'इंतज़ार में',
-      awaiting_approval: 'मंज़ूरी चाहिए',
-      completed: 'पूरा हुआ',
-      failed: 'फ़ेल',
-      cancelled: 'रद्द',
-      skipped: 'छोड़ा गया',
-      converted: 'ऑर्डर हुआ',
-      stopped: 'रुका',
-    },
   }),
 ]

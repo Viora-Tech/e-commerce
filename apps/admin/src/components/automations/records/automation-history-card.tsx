@@ -1,17 +1,16 @@
 'use client'
 
-import type { RecordHistoryItem, RunStatus } from '@commerce/core/automations'
+import type { RecordHistoryItem } from '@commerce/core/automations'
 import { Workflow } from '@commerce/ui/icons'
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
+import RunStatusChip from '@/components/apps/automations/run-status-chip'
 import DataCard from '@/components/layout/data-card'
-import StatusChip from '@/components/layout/status-chip'
-import type { ChipTone } from '@/components/status/tone'
 import { type AutomationRecordType, automationRecordsContent } from '@/data/automation-records'
 import { useCopy, useLocale } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { automationRoutes } from '@/lib/automation-routes'
 import { formatAgo } from '@/lib/format-date'
-import { routes } from '@/lib/routes'
 
 type AutomationHistoryCardProps = {
   type: AutomationRecordType
@@ -20,19 +19,6 @@ type AutomationHistoryCardProps = {
 
 /** How many runs the card lists; "View all" opens the runs page for the rest. */
 const LIMIT = 5
-
-const TONE: Record<RunStatus, ChipTone> = {
-  queued: 'info',
-  running: 'info',
-  waiting: 'attention',
-  awaiting_approval: 'attention',
-  completed: 'success',
-  failed: 'danger',
-  cancelled: 'neutral',
-  skipped: 'neutral',
-  converted: 'success',
-  stopped: 'neutral',
-}
 
 /**
  * "Automations" on an order, customer or product page: the latest runs about the record or
@@ -65,8 +51,8 @@ export default function AutomationHistoryCard({ type, id }: AutomationHistoryCar
   if (!items && !failed) return null
 
   // Render logic
-  const app = routes.apps.page('automations')
-  const runsHref = `${routes.apps.page('automations', 'runs')}?recordType=${type}&recordId=${encodeURIComponent(id)}`
+  const app = automationRoutes.workflows()
+  const runsHref = automationRoutes.recordRuns(type, id)
   const rows = items ?? []
 
   return (
@@ -92,7 +78,7 @@ export default function AutomationHistoryCard({ type, id }: AutomationHistoryCar
         {rows.map((r) => (
           <Link
             key={r.runId}
-            href={routes.apps.page('automations', 'runs', r.runId)}
+            href={automationRoutes.run(r.runId)}
             className="flex items-start gap-3 rounded-lg border border-border p-2.5 transition-colors hover:bg-muted"
           >
             <Workflow aria-hidden="true" className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
@@ -103,7 +89,7 @@ export default function AutomationHistoryCard({ type, id }: AutomationHistoryCar
                 {r.role === 'changed' ? ` · ${copy.history.changed}` : ''}
               </span>
             </span>
-            <StatusChip tone={TONE[r.status]}>{copy.statuses[r.status]}</StatusChip>
+            <RunStatusChip status={r.status} />
           </Link>
         ))}
       </div>

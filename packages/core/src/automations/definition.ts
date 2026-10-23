@@ -182,7 +182,7 @@ export type DefinitionIssueCode =
   | 'empty_rules'
 
 /** The ids a node points at, in branch order. */
-function childrenOf(node: WorkflowNode): (NodeId | null)[] {
+export function childrenOf(node: WorkflowNode): (NodeId | null)[] {
   return node.kind === 'condition' ? [node.next, node.otherwise] : [node.next]
 }
 
