@@ -1,5 +1,5 @@
 {
-  "id": "7bb8e305-0591-48ee-b0dd-ccc524869259",
+  "id": "01055a8c-876e-4039-931e-da19cd7a6234",
   "prevId": "b2036416-5538-413f-b77d-441915b842ec",
   "version": "7",
   "dialect": "postgresql",
@@ -1811,13 +1811,6 @@
           "primaryKey": false,
           "notNull": true
         },
-        "type": {
-          "name": "type",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'order'"
-        },
         "kind": {
           "name": "kind",
           "type": "text",
@@ -1850,12 +1843,6 @@
           "primaryKey": false,
           "notNull": false
         },
-        "min_quantity": {
-          "name": "min_quantity",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": false
-        },
         "applies_to": {
           "name": "applies_to",
           "type": "text",
@@ -1875,46 +1862,6 @@
           "type": "jsonb",
           "primaryKey": false,
           "notNull": false
-        },
-        "bxgy": {
-          "name": "bxgy",
-          "type": "jsonb",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "shipping_states": {
-          "name": "shipping_states",
-          "type": "jsonb",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'[]'::jsonb"
-        },
-        "max_shipping_paise": {
-          "name": "max_shipping_paise",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "customer_eligibility": {
-          "name": "customer_eligibility",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'all'"
-        },
-        "eligible_ids": {
-          "name": "eligible_ids",
-          "type": "jsonb",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'[]'::jsonb"
-        },
-        "combines_with": {
-          "name": "combines_with",
-          "type": "jsonb",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'{\"products\":false,\"order\":false,\"shipping\":false}'::jsonb"
         },
         "usage_limit": {
           "name": "usage_limit",
@@ -11407,6 +11354,139 @@
       "uniqueConstraints": {},
       "policies": {},
       "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.platform_account": {
+      "name": "platform_account",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "store_id": {
+          "name": "store_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "platform": {
+          "name": "platform",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "external_id": {
+          "name": "external_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "status": {
+          "name": "status",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'active'"
+        },
+        "detail": {
+          "name": "detail",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'{}'::jsonb"
+        },
+        "last_event_at": {
+          "name": "last_event_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "platform_account_store": {
+          "name": "platform_account_store",
+          "columns": [
+            {
+              "expression": "store_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "platform",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "platform_account_external": {
+          "name": "platform_account_external",
+          "columns": [
+            {
+              "expression": "platform",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "external_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "platform_account_store_id_store_id_fk": {
+          "name": "platform_account_store_id_store_id_fk",
+          "tableFrom": "platform_account",
+          "tableTo": "store",
+          "columnsFrom": [
+            "store_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "platform_account_platform_check": {
+          "name": "platform_account_platform_check",
+          "value": "\"platform_account\".\"platform\" in ('meta','whatsapp','shopify')"
+        }
+      },
       "isRLSEnabled": false
     },
     "public.account": {

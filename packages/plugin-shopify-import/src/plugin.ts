@@ -34,6 +34,23 @@ export const shopifyImportPlugin = definePlugin({
     guide: '/merchant-guide/start-here/move-from-shopify',
     worksWith: ['A Shopify store you can sign in to, or its CSV exports'],
     keywords: ['shopify', 'migration', 'import', 'csv'],
+    faq: [
+      {
+        question: 'Will anything change before I say so?',
+        answer:
+          'No. Each import starts with a dry run that shows what will be added and changed, and what stays in Shopify.',
+      },
+      {
+        question: 'What stays in Shopify?',
+        answer:
+          'A few things with no match here, such as some discount types and documents like PDFs. The run page lists each one with a count.',
+      },
+      {
+        question: 'Do gift cards keep their codes?',
+        answer:
+          'No. Shopify never shares a card’s full code, so active cards with a customer get a new code with the same balance, which you send when you are ready.',
+      },
+    ],
   },
   access: {
     resources: [

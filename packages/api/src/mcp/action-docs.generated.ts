@@ -180,6 +180,12 @@ export const ACTION_DOCS: Record<string, string> = {
   'marketing.automations.get': 'One automation with its stats and the latest runs.',
   'marketing.automations.setStatus':
     'Turning an automation on starts enrolling at the next worker tick.',
+  'marketing.autopilot.approve':
+    'Schedules the draft (adding its discount code) or switches cart reminders on.',
+  'marketing.autopilot.plan':
+    'Writes draft campaigns for the goals that need one; the AI writer runs outside a transaction.',
+  'marketing.campaignPerformance':
+    'Every campaign (our sends and tracking-link campaigns) with sessions and sales this year.',
   'marketing.campaigns.audience':
     'Customers the campaign would reach now: in the segment, consented, not unsubscribed.',
   'marketing.campaigns.schedule':
@@ -283,6 +289,12 @@ export const ACTION_DOCS: Record<string, string> = {
     'For the admin-wide "Test mode" banner: a gateway at checkout runs on test keys.',
   'payments.testOrderLink':
     '"Place a test order": a signed storefront link with only the ₹1 test product in the basket.',
+  'platformApps.completeWhatsapp':
+    "The popup finished: swap the code (it lives 30 seconds), subscribe, register the number, then save it as the store's WhatsApp channel and turn the channel on.",
+  'platformApps.disconnectWhatsapp':
+    'Forget the Embedded Signup account: the channel turns off and its saved access goes.',
+  'platformApps.whatsapp':
+    'Whether Embedded Signup is set up here, what the SDK needs, and the linked account.',
   'policies.template':
     "A policy's template filled from the store as it is now; the editor shows it, nothing is saved.",
   'products.adjustments': "Stock movements for the product form's inventory history.",
@@ -363,6 +375,10 @@ export const ACTION_DOCS: Record<string, string> = {
   'shipments.recordStatus':
     "A status set by hand, for a courier with no tracking feed (India Post): appended to the shipment's timeline and applied like a scan (delivered closes the order, RTO opens its task).",
   'shipments.wallets': 'One card per connected courier - each has its own account and balance.',
+  'shopifyImport.appInstall':
+    'Whether this deployment has the platform\'s own Shopify app, so "Install the app" can show.',
+  'shopifyImport.completeAppInstall':
+    "Shopify's redirect after the merchant approved the app (the callback route passes the whole query): Shopify's hmac, our state for this very store, then the code exchange.",
   'shopifyImport.createApiRun': 'Preview an API import of the chosen resources.',
   'shopifyImport.createCsvRun': 'Upload one Shopify CSV export; the preview runs straight away.',
   'shopifyImport.importRemaining':
@@ -376,6 +392,8 @@ export const ACTION_DOCS: Record<string, string> = {
   'shopifyImport.settingsPreview':
     'Store settings: what each part (store details, tax, locations, shipping, packages, policies, extra field definitions) would change here.',
   'shopifyImport.start': 'Import for real after a preview, or run a finished import again.',
+  'shopifyImport.startAppInstall':
+    "\"Install the app\" (the platform's own Shopify app): the URL on the merchant's shop that asks them to approve the app's read scopes.",
   'shopifyImport.status':
     '"What is left to import": Shopify\'s counts (cached a few minutes per store), what is here, and what is missing per resource, plus product images.',
   'shopifyImport.stop':

@@ -108,74 +108,167 @@ const RESOURCES: Record<string, string> = {
   visits: 'Visits',
 }
 
-const LEVELS: Record<CatalogueAccessLevel, string> = {
-  read: 'Read',
-  write: 'Write',
-  'read-write': 'Read and write',
+export const resourceLabel = (resource: string) => RESOURCES[resource] ?? resource
+
+const VERBS: Record<CatalogueAccessLevel, string> = {
+  read: 'Can see',
+  write: 'Can add to',
+  'read-write': 'Can see and change',
 }
 
-export const resourceLabel = (resource: string) => RESOURCES[resource] ?? resource
-export const levelLabel = (level: CatalogueAccessLevel) => LEVELS[level]
+/** One permission in plain words: "Can see and change payments". */
+export const accessSentence = (resource: string, level: CatalogueAccessLevel) =>
+  `${VERBS[level]} ${resourceLabel(resource).toLowerCase()}`
 
 const planName = (plan: keyof typeof siteConfig.plans) => siteConfig.plans[plan].name
+const monthly = (price: Extract<CataloguePrice, { kind: 'paid' }>) =>
+  `${formatInr(price.pricePaise / 100)}/month`
 
-/** The short price on a card: "Free", or "₹199 / month · included in Growth". */
+/** The chip on a card and in the header: "Free" or "₹149/month". */
 export function priceChip(price: CataloguePrice): string {
-  if (price.kind === 'free') return 'Free'
-  return `${formatInr(price.pricePaise / 100)} / month · included in ${planName(price.includedFrom)}`
+  return price.kind === 'free' ? 'Free' : monthly(price)
 }
 
-/** The price sentence on the app's page. */
+/** The line under a paid chip: "Included in Growth and up". Null for free apps. */
+export function priceIncluded(price: CataloguePrice): string | null {
+  return price.kind === 'free' ? null : `Included in ${planName(price.includedFrom)} and up`
+}
+
+/** The price sentence on the app's page and in its FAQ. */
 export function priceText(price: CataloguePrice): string {
   if (price.kind === 'free') return 'Free on every plan.'
-  return `Included in ${planName(price.includedFrom)} and up. On a smaller plan, ${formatInr(price.pricePaise / 100)} / month + GST.`
+  return `Included in ${planName(price.includedFrom)} and up. On a smaller plan, ${formatInr(price.pricePaise / 100)} a month + GST.`
 }
 
+const PLAN_ORDER = ['starter', 'growth', 'pro'] as const
+
+/** The pricing card's rows: each plan and what the app costs on it. */
+export function priceRows(price: CataloguePrice): { plan: string; value: string }[] {
+  return PLAN_ORDER.map((plan) => ({
+    plan: planName(plan),
+    value:
+      price.kind === 'free' || PLAN_ORDER.indexOf(plan) >= PLAN_ORDER.indexOf(price.includedFrom)
+        ? 'Included'
+        : `${monthly(price)} + GST`,
+  }))
+}
+
+/** "Koomerce" or "Razorpay": who makes the app. */
+export const maker = (app: Pick<CatalogueApp, 'kind' | 'company'>) =>
+  app.kind === 'builtin' || !app.company ? us : app.company
+
 /** "by Koomerce" or "by Razorpay". */
-export const byline = (app: Pick<CatalogueApp, 'kind' | 'company'>) =>
-  `by ${app.kind === 'builtin' || !app.company ? us : app.company}`
+export const byline = (app: Pick<CatalogueApp, 'kind' | 'company'>) => `by ${maker(app)}`
+
+/**
+ * The app's questions: its own (from the listing), then the ones every app answers from its
+ * data: price, the outside account it needs, what leaves the store, and removing it.
+ */
+export function appFaq(app: CatalogueApp): { question: string; answer: string }[] {
+  const shares = app.access.shares
+  return [
+    ...app.faq,
+    { question: 'How much does it cost?', answer: priceText(app.price) },
+    ...(app.kind === 'connection' && app.company
+      ? [
+          {
+            question: `Do I need a ${app.company} account?`,
+            answer: `Yes. After installing, you connect your own ${app.company} account. Anything ${app.company} charges for its service is between you and ${app.company}.`,
+          },
+        ]
+      : []),
+    {
+      question: `Does any of my store’s data leave ${us}?`,
+      answer:
+        shares.length === 0
+          ? 'No. The app works inside your store and sends nothing out.'
+          : `Only what the app needs. ${shares.map((s) => `${s.when}: ${s.what}.`).join(' ')}`,
+    },
+    {
+      question: 'Can I remove it later?',
+      answer:
+        'Yes, any time, from Installed apps in your admin. You also see everything it can access before you install it.',
+    },
+  ]
+}
+
+/**
+ * Hand-picked rows on the directory's front page. Each names apps by id; an id that is not in
+ * the catalogue is skipped, so a row never shows a gap.
+ */
+export const appCollections = {
+  essentials: {
+    title: 'Essentials for Indian D2C',
+    body: 'What an order needs on its way to the doorstep, in the order it happens.',
+    steps: [
+      { label: 'Get paid', body: 'UPI, cards and netbanking', ids: ['razorpay', 'decentro'] },
+      { label: 'Bill it', body: 'A GST invoice for every order', ids: ['gst-invoices'] },
+      {
+        label: 'Ship it',
+        body: 'Couriers to every PIN code',
+        ids: ['delhivery', 'shiprocket', 'india-post'],
+      },
+      { label: 'Keep shoppers posted', body: 'Order updates on WhatsApp', ids: ['whatsapp'] },
+    ],
+  },
+  ours: {
+    title: `Built by ${us}`,
+    body: 'Made and looked after by us. No outside account and no extra login.',
+  },
+}
 
 export const appsContent = {
-  eyebrow: 'App Store',
-  title: 'Add what your store needs',
-  subtitle: `Every app works inside ${us}: one admin, one login, no plugins to update. Most are free; a few are included from Growth or Pro.`,
   metaTitle: 'App Store',
   metaDescription:
     'Every app a store can add: GST invoices, couriers, payments, reviews, back in stock, analytics and more, with what each can access and what it costs.',
   appMetaTitle: (name: string) => `${name} app`,
+  heroTitle: 'Apps that run inside your store',
+  heroBody: (count: number) =>
+    `${count} apps for shipping, payments, GST and more. Each one installs in a click and works in the same admin. Most are free.`,
   search: 'Search apps',
-  searchPlaceholder: 'Search apps, e.g. courier, GST, reviews',
+  searchPlaceholder: 'Search couriers, GST, reviews',
   categoriesLabel: 'Categories',
-  allApps: 'All apps',
+  allApps: 'All',
   filtersLabel: 'Filter apps',
   price: { all: 'Any price', free: 'Free', paid: 'Paid' },
   ours: `Built by ${us}`,
   results: (n: number) => (n === 1 ? '1 app' : `${n} apps`),
-  noResultsTitle: 'No apps match',
-  noResultsBody: 'Try another word, or clear the filters.',
-  clear: 'Clear filters',
+  noResultsTitle: (query: string) => (query ? `No apps for “${query}”` : 'No apps match'),
+  noResultsBody: 'Try a shorter word, like “courier” or “GST”, or clear the filters.',
+  clear: 'Clear search and filters',
+  clearSearch: 'Clear search',
+  searchKey: 'Press / to search',
+  suggestionsLabel: 'Try',
+  suggestions: ['courier', 'GST', 'UPI', 'WhatsApp', 'reviews'],
+  browse: 'Browse by category',
+  seeAll: (n: number) => `See all ${n}`,
   install: 'Install',
+  viewDocs: 'View docs',
   installHint: `Opens your ${us} admin. Sign in, pick your store, then agree to what the app can access.`,
   noStore: 'No store yet?',
   joinWaitlist: 'Join the waitlist',
+  breadcrumb: 'Breadcrumb',
   does: 'What it does',
-  access: 'What it can access',
-  accessIntro: 'You agree to this before the app is added, and can remove it any time.',
-  shares: 'What it shares',
-  sharesNothing: 'Nothing leaves your store.',
+  showcase: 'What it adds to your store',
+  storeSide: `Your ${us} store`,
+  flowTitle: 'What travels between them',
+  flowNothing: 'Nothing leaves your store. The app works on your own data.',
+  themeTitle: 'On your storefront',
+  themeBody: 'Place it from the theme editor’s Apps tab, wherever you want it.',
+  adminNone: 'It works in the background and adds no pages of its own.',
+  access: 'What it needs access to',
+  accessIntro: 'You see this list and agree to it before the app is added.',
   worksWith: 'Works with',
   needsAccount: (company: string) => `Your own ${company} account`,
-  adds: 'Adds to your admin',
-  blocks: 'Adds to your theme',
-  priceTitle: 'Price',
-  guide: 'Read the guide',
-  screenshots: 'Screenshots',
+  priceTitle: 'Pricing',
   details: 'Details',
-  developer: 'Developer',
+  developer: 'Made by',
   category: 'Category',
   builtOn: 'Built on',
+  faq: 'Questions',
   related: 'More like this',
-  back: 'All apps',
+  back: 'App Store',
+  builtBadge: `Built by ${us}`,
   cta: {
     title: 'Every app, one admin',
     body: 'Start a store and install apps in a click. No developer, no plugins to keep updated.',

@@ -38,9 +38,10 @@ Branch `ui/discounts-pass` (from `origin/dev`).
 
 ## Migration
 
-`0152_discount_shopify_parity` (journal idx 138, prevId = 0148 snapshot, the latest on
-origin/dev when made; 0149–0151 are on other branches, so whichever merges later re-chains).
-Adds the columns with defaults and backfills `type`. Not applied to the dev DB.
+`0154_discount_shopify_parity` (journal idx 139, after dev's `0153_platform_accounts`, prevId =
+0153's snapshot, newer `when`). Idempotent: `ADD COLUMN IF NOT EXISTS`, and the `type` backfill
+only touches rows still on the default where it is wrong, so it is harmless on the owner's dev
+DB, where the statements were applied by hand before the renumber.
 
 ## Not done / notes
 

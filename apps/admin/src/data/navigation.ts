@@ -137,9 +137,9 @@ export const NAV_GROUPS: NavGroup[] = [
         icon: TrendingUp,
         permission: permissions.MARKETING_READ,
         children: [
+          { href: routes.growth.attribution(), label: 'Attribution' },
+          { href: routes.growth.autopilot(), label: 'Autopilot' },
           { href: routes.growth.campaigns(), label: 'Campaigns' },
-          { href: routes.growth.automations(), label: 'Automations' },
-          { href: routes.growth.links(), label: 'Links' },
         ],
       },
       {

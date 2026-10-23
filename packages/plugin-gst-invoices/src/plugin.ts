@@ -186,6 +186,27 @@ export const gstInvoicesPlugin = definePlugin({
     guide: '/merchant-guide/money-and-gst/gst-invoices',
     worksWith: ['Order emails, with the invoice attached', 'Returns, for credit notes'],
     keywords: ['gst', 'invoice', 'tax', 'gstr-1'],
+    faq: [
+      {
+        question: 'Do I need this app if I am not GST registered?',
+        answer:
+          'No. Under the GST threshold you can skip it, and you can still print packing slips from each order.',
+      },
+      {
+        question: 'Can shoppers download their invoice?',
+        answer:
+          'Yes. Once issued, a link to the invoice shows on the shopper’s order page and in their order emails.',
+      },
+      {
+        question: 'I have more than one GST number. Does that work?',
+        answer:
+          'Yes. Each invoice comes from the order’s GST number, each number counts its own invoices, and each files its own GSTR-1.',
+      },
+      {
+        question: 'Does cancelling an order create a credit note?',
+        answer: 'A refund does. Refund an invoiced order and the credit note is issued with it.',
+      },
+    ],
   },
   access: {
     resources: [

@@ -72,6 +72,17 @@ export type OutboxEventType =
   | 'customer.created'
   /** A customer's profile changed (checkout details, account page, admin edit). */
   | 'customer.updated'
+  /**
+   * Platform apps (no consumer yet; for automations to subscribe to). A sales channel's catalog
+   * sync failed or its access lapsed (`platform`: meta, google, openai; `message`: the platform's words).
+   */
+  | 'channel.sync_failed'
+  /** Meta changed the store's WhatsApp Business account: restricted, disabled, quality, a failed send. */
+  | 'whatsapp.account_updated'
+  /** The Facebook user removed the platform's Meta app or asked for their data to go; Meta access ended. */
+  | 'meta.access_removed'
+  /** The merchant uninstalled the Koomerce app from their Shopify shop; its saved access went. */
+  | 'shopify.app_uninstalled'
 
 /**
  * `orderId` is required for every order-lifecycle type; `variantId` (and
@@ -107,6 +118,14 @@ export type OutboxPayload = {
   productIds?: string[] | undefined
   /** The customer a `customer.created` / `customer.updated` event is about. */
   customerId?: string | undefined
+  /** Platform-app events: the platform (`meta`, `google`, `openai`, `whatsapp`, `shopify`). */
+  platform?: string | undefined
+  /** Platform-app events: the outside account (catalog, WhatsApp Business account, shop). */
+  externalId?: string | undefined
+  /** Platform-app events: the new status, when the event changed one. */
+  platformStatus?: string | undefined
+  /** Platform-app events: the platform's own words, trimmed. */
+  message?: string | undefined
 }
 
 /**
@@ -179,6 +198,11 @@ export const OUTBOX_NOTIFICATION_TEMPLATE: Record<OutboxEventType, TemplateId | 
   // App hooks only (`OUTBOX_APP_EVENT`): nobody is emailed about their own profile.
   'customer.created': null,
   'customer.updated': null,
+  // Platform-app events have no message or app hook yet: they are there for automations.
+  'channel.sync_failed': null,
+  'whatsapp.account_updated': null,
+  'meta.access_removed': null,
+  'shopify.app_uninstalled': null,
 }
 
 /**
@@ -236,4 +260,8 @@ export const OUTBOX_APP_EVENT: Record<OutboxEventType, AppEvent | null> = {
   'catalog.products_changed': null,
   'customer.created': 'customer.created',
   'customer.updated': 'customer.updated',
+  'channel.sync_failed': null,
+  'whatsapp.account_updated': null,
+  'meta.access_removed': null,
+  'shopify.app_uninstalled': null,
 }

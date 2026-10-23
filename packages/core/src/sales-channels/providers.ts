@@ -2,11 +2,12 @@
 /**
  * The platform APIs behind Sales channels, over plain `fetch` (no SDKs), server side only:
  *
- * - Meta Graph API: Facebook Login for Business, then one business product catalog that
- *   Facebook Shops, Instagram Shopping and the WhatsApp catalog all read
- *   (`/{catalog}/items_batch`, `/{waba}/product_catalogs`).
- * - Google Merchant API v1: OAuth (scope `content`), an API data source, then
- *   `productInputs:insert` / delete per item.
+ * - Meta Graph API (`META_GRAPH_VERSION`): Facebook Login for Business, then one business
+ *   product catalog that Facebook Shops, Instagram Shopping and the WhatsApp catalog all read
+ *   (`/{catalog}/items_batch`, `/{waba}/product_catalogs`). With a login configuration
+ *   (`META_LOGIN_CONFIG_ID`) the sign-in asks for that configuration's permissions and hands
+ *   back a business integration system user token, which does not expire.
+ * - Google Merchant API v1: in `google-merchant.ts`.
  * - OpenAI (ChatGPT merchants): the product feed pushed to the endpoint OpenAI gives the
  *   merchant after approval, with their key.
  *
@@ -28,7 +29,7 @@ export class ChannelApiError extends CommerceError {
 
 const TIMEOUT_MS = 30_000
 
-async function request<T>(
+export async function request<T>(
   fetchImpl: typeof fetch,
   url: string,
   init: RequestInit,
@@ -47,14 +48,25 @@ async function request<T>(
 
 /* ---------- Meta ---------- */
 
-const META_GRAPH = 'https://graph.facebook.com/v21.0'
+/**
+ * The Graph API version every Meta call uses. v26.0 is the newest (29 Jul 2026); v21.0, which
+ * this used before, stops on 21 Jan 2027 (developers.facebook.com/docs/graph-api/changelog/versions).
+ */
+export const META_GRAPH_VERSION = 'v26.0'
+const META_GRAPH = `https://graph.facebook.com/${META_GRAPH_VERSION}`
+/** Asked for by name only when no login configuration is set (user tokens, about 60 days). */
 const META_SCOPES = [
   'catalog_management',
   'business_management',
   'whatsapp_business_management',
 ] as const
 
-export type MetaApp = { appId: string; appSecret: string }
+export type MetaApp = {
+  appId: string
+  appSecret: string
+  /** Facebook Login for Business configuration: its permissions and a system user token. */
+  loginConfigId?: string | null
+}
 
 type GraphError = { error?: { message?: string; code?: number; error_subcode?: number } }
 
@@ -68,24 +80,32 @@ const metaError = (_status: number, body: unknown) => {
   )
 }
 
-export function metaAuthorizeUrl(input: { appId: string; redirectUri: string; state: string }) {
+export function metaAuthorizeUrl(input: {
+  appId: string
+  redirectUri: string
+  state: string
+  configId?: string | null
+}) {
   const q = new URLSearchParams({
     client_id: input.appId,
     redirect_uri: input.redirectUri,
     state: input.state,
     response_type: 'code',
-    scope: META_SCOPES.join(','),
+    ...(input.configId ? { config_id: input.configId } : { scope: META_SCOPES.join(',') }),
   })
-  return `https://www.facebook.com/v21.0/dialog/oauth?${q}`
+  return `https://www.facebook.com/${META_GRAPH_VERSION}/dialog/oauth?${q}`
 }
 
-/** The code → a short token → a long-lived (about 60 day) token. */
+/**
+ * The code → a token. A login configuration's system user token is kept as it is (it does
+ * not expire); a user token is swapped for a long-lived (about 60 day) one.
+ */
 export async function metaExchangeCode(
   fetchImpl: typeof fetch,
   app: MetaApp,
   input: { code: string; redirectUri: string },
 ): Promise<{ token: string; expiresAt: Date | null }> {
-  const short = await request<{ access_token: string }>(
+  const short = await request<{ access_token: string; expires_in?: number }>(
     fetchImpl,
     `${META_GRAPH}/oauth/access_token?${new URLSearchParams({
       client_id: app.appId,
@@ -96,6 +116,11 @@ export async function metaExchangeCode(
     { method: 'GET' },
     metaError,
   )
+  if (app.loginConfigId)
+    return {
+      token: short.access_token,
+      expiresAt: short.expires_in ? new Date(Date.now() + short.expires_in * 1000) : null,
+    }
   const long = await request<{ access_token: string; expires_in?: number }>(
     fetchImpl,
     `${META_GRAPH}/oauth/access_token?${new URLSearchParams({
@@ -117,7 +142,7 @@ export async function metaExchangeCode(
 const proof = (token: string, app: MetaApp) =>
   createHmac('sha256', app.appSecret).update(token).digest('hex')
 
-async function graph<T>(
+export async function graph<T>(
   fetchImpl: typeof fetch,
   app: MetaApp,
   token: string,
@@ -151,6 +176,8 @@ export type MetaAccount = {
   businessName: string
   catalogId: string
   wabaId: string | null
+  /** The Facebook user (or system user) the token belongs to: Meta's deletion callbacks name it. */
+  userId: string | null
 }
 
 /**
@@ -196,11 +223,15 @@ export async function metaDiscover(
     token,
     `/${business.id}/owned_whatsapp_business_accounts?fields=id`,
   ).catch(() => ({ data: [] }))
+  const me = await graph<{ id?: string }>(fetchImpl, app, token, '/me?fields=id').catch(() => ({
+    id: undefined,
+  }))
   return {
     businessId: business.id,
     businessName: business.name,
     catalogId,
     wabaId: wabas.data[0]?.id ?? null,
+    userId: me.id ?? null,
   }
 }
 
@@ -265,227 +296,7 @@ export async function metaPushItems(
   }
 }
 
-/* ---------- Google Merchant Center ---------- */
-
-const GOOGLE_CONTENT_SCOPE = 'https://www.googleapis.com/auth/content'
-const GOOGLE_AUTHORIZE = 'https://accounts.google.com/o/oauth2/v2/auth'
-const GOOGLE_TOKEN = 'https://oauth2.googleapis.com/token'
-const MERCHANT_API = 'https://merchantapi.googleapis.com'
-
-export type GoogleMerchantApp = { clientId: string; clientSecret: string }
-
-const googleError = (status: number, body: unknown) => {
-  const b = body as { error?: { message?: string } | string; error_description?: string }
-  const message =
-    typeof b.error === 'object'
-      ? b.error?.message
-      : (b.error_description ?? (typeof b.error === 'string' ? b.error : undefined))
-  const auth = status === 401 || b.error === 'invalid_grant'
-  return new ChannelApiError(
-    auth ? 'auth' : 'api',
-    message?.slice(0, 300) ?? 'Google refused the request.',
-  )
-}
-
-export function googleMerchantAuthorizeUrl(input: {
-  clientId: string
-  redirectUri: string
-  state: string
-  codeChallenge: string
-}): string {
-  const q = new URLSearchParams({
-    client_id: input.clientId,
-    redirect_uri: input.redirectUri,
-    response_type: 'code',
-    scope: ['openid', 'email', GOOGLE_CONTENT_SCOPE].join(' '),
-    access_type: 'offline',
-    prompt: 'consent',
-    include_granted_scopes: 'true',
-    state: input.state,
-    code_challenge: input.codeChallenge,
-    code_challenge_method: 'S256',
-  })
-  return `${GOOGLE_AUTHORIZE}?${q}`
-}
-
-type GoogleTokens = { access_token: string; refresh_token?: string; expires_in?: number }
-
-export async function googleExchangeCode(
-  fetchImpl: typeof fetch,
-  app: GoogleMerchantApp,
-  input: { code: string; redirectUri: string; codeVerifier: string },
-): Promise<{ accessToken: string; refreshToken: string | null; expiresAt: Date }> {
-  const t = await request<GoogleTokens>(
-    fetchImpl,
-    GOOGLE_TOKEN,
-    {
-      method: 'POST',
-      headers: { 'content-type': 'application/x-www-form-urlencoded' },
-      body: new URLSearchParams({
-        grant_type: 'authorization_code',
-        code: input.code,
-        redirect_uri: input.redirectUri,
-        client_id: app.clientId,
-        client_secret: app.clientSecret,
-        code_verifier: input.codeVerifier,
-      }),
-    },
-    googleError,
-  )
-  return {
-    accessToken: t.access_token,
-    refreshToken: t.refresh_token ?? null,
-    expiresAt: new Date(Date.now() + (t.expires_in ?? 3600) * 1000),
-  }
-}
-
-export async function googleRefresh(
-  fetchImpl: typeof fetch,
-  app: GoogleMerchantApp,
-  refreshToken: string,
-): Promise<{ accessToken: string; expiresAt: Date }> {
-  const t = await request<GoogleTokens>(
-    fetchImpl,
-    GOOGLE_TOKEN,
-    {
-      method: 'POST',
-      headers: { 'content-type': 'application/x-www-form-urlencoded' },
-      body: new URLSearchParams({
-        grant_type: 'refresh_token',
-        refresh_token: refreshToken,
-        client_id: app.clientId,
-        client_secret: app.clientSecret,
-      }),
-    },
-    googleError,
-  )
-  return {
-    accessToken: t.access_token,
-    expiresAt: new Date(Date.now() + (t.expires_in ?? 3600) * 1000),
-  }
-}
-
-const bearer = (token: string) => ({ authorization: `Bearer ${token}` })
-
-export type GoogleAccount = { accountId: string; accountName: string; dataSource: string }
-
-/** The first Merchant Center account the merchant can reach, and our API data source in it. */
-export async function googleDiscover(
-  fetchImpl: typeof fetch,
-  token: string,
-  dataSourceName: string,
-): Promise<GoogleAccount> {
-  const accounts = await request<{ accounts?: { name: string; accountName?: string }[] }>(
-    fetchImpl,
-    `${MERCHANT_API}/accounts/v1/accounts`,
-    { headers: bearer(token) },
-    googleError,
-  )
-  const account = accounts.accounts?.[0]
-  if (!account)
-    throw new ChannelApiError(
-      'api',
-      'No Google Merchant Center account found. Create one at merchants.google.com, then connect again.',
-    )
-  const accountId = account.name.split('/')[1] as string
-  const sources = await request<{
-    dataSources?: { name: string; displayName?: string }[]
-  }>(
-    fetchImpl,
-    `${MERCHANT_API}/datasources/v1/accounts/${accountId}/dataSources`,
-    { headers: bearer(token) },
-    googleError,
-  )
-  const found = sources.dataSources?.find((d) => d.displayName === dataSourceName)
-  const dataSource =
-    found?.name ??
-    (
-      await request<{ name: string }>(
-        fetchImpl,
-        `${MERCHANT_API}/datasources/v1/accounts/${accountId}/dataSources`,
-        {
-          method: 'POST',
-          headers: { ...bearer(token), 'content-type': 'application/json' },
-          body: JSON.stringify({
-            displayName: dataSourceName,
-            primaryProductDataSource: { contentLanguage: 'en', feedLabel: 'IN', countries: ['IN'] },
-          }),
-        },
-        googleError,
-      )
-    ).name
-  return { accountId, accountName: account.accountName ?? accountId, dataSource }
-}
-
-const micros = (paise: number) => ({ amountMicros: String(paise * 10_000), currencyCode: 'INR' })
-
-function googleInput(item: ChannelItem) {
-  return {
-    offerId: item.id,
-    contentLanguage: 'en',
-    feedLabel: 'IN',
-    productAttributes: {
-      title: item.title,
-      description: item.description,
-      link: item.link,
-      ...(item.imageLink ? { imageLink: item.imageLink } : {}),
-      ...(item.additionalImages.length ? { additionalImageLinks: item.additionalImages } : {}),
-      availability: item.availability === 'in_stock' ? 'IN_STOCK' : 'OUT_OF_STOCK',
-      condition: 'NEW',
-      price: micros(item.mrpPaise ?? item.pricePaise),
-      ...(item.mrpPaise ? { salePrice: micros(item.pricePaise) } : {}),
-      brand: item.brand,
-      itemGroupId: item.groupId,
-      ...(item.gtin ? { gtins: [item.gtin] } : { identifierExists: false }),
-      ...(item.sku ? { mpn: item.sku } : {}),
-    },
-  }
-}
-
-/** Items go one by one (the Merchant API has no batch insert), a few at a time. */
-const GOOGLE_PARALLEL = 4
-
-export async function googlePushItems(
-  fetchImpl: typeof fetch,
-  token: string,
-  account: { accountId: string; dataSource: string },
-  upserts: ChannelItem[],
-  deletes: string[],
-): Promise<void> {
-  const ds = encodeURIComponent(account.dataSource)
-  const jobs: (() => Promise<unknown>)[] = [
-    ...upserts.map(
-      (item) => () =>
-        request(
-          fetchImpl,
-          `${MERCHANT_API}/products/v1/accounts/${account.accountId}/productInputs:insert?dataSource=${ds}`,
-          {
-            method: 'POST',
-            headers: { ...bearer(token), 'content-type': 'application/json' },
-            body: JSON.stringify(googleInput(item)),
-          },
-          googleError,
-        ),
-    ),
-    ...deletes.map(
-      (id) => () =>
-        request(
-          fetchImpl,
-          `${MERCHANT_API}/products/v1/accounts/${account.accountId}/productInputs/en~IN~${encodeURIComponent(id)}?dataSource=${ds}`,
-          { method: 'DELETE', headers: bearer(token) },
-          (status, body) =>
-            status === 404 ? new ChannelApiError('api', 'gone') : googleError(status, body),
-        ).catch((err) => {
-          // Already gone on Google's side is what we wanted.
-          if (err instanceof ChannelApiError && err.message === 'gone') return null
-          throw err
-        }),
-    ),
-  ]
-  for (let i = 0; i < jobs.length; i += GOOGLE_PARALLEL) {
-    await Promise.all(jobs.slice(i, i + GOOGLE_PARALLEL).map((job) => job()))
-  }
-}
+export const bearer = (token: string) => ({ authorization: `Bearer ${token}` })
 
 /* ---------- OpenAI (ChatGPT merchants) ---------- */
 

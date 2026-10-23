@@ -38,6 +38,8 @@ export function collectCatalogue(plugins: PluginManifest[]): CatalogueEntry[] {
         worksWith: listing.worksWith ?? [],
         screenshots: listing.screenshots ?? [],
         keywords: listing.keywords ?? [],
+        faq: (listing.faq ?? []).map((f) => ({ question: f.question, answer: f.answer })),
+        icon: p.admin?.icon ?? null,
         access: {
           resources: p.access.resources.map((r) => ({
             resource: r.resource,
