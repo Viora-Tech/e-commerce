@@ -1,5 +1,6 @@
 import { homeContent } from '@/data/home'
-import { orderDetailContent, ordersContent } from '@/data/orders'
+import { orderDetailContent } from '@/data/order-detail'
+import { ordersContent } from '@/data/orders'
 import { productsListContent } from '@/data/products'
 import { reviewsContent } from '@/data/reviews'
 import { shipmentPanelContent } from '@/data/shipping'

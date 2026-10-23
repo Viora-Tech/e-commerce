@@ -1,6 +1,6 @@
 import ProductThumb from '@/components/products/product-thumb'
 import RowMenu from '@/components/table/row-menu'
-import { orderDetailContent } from '@/data/orders'
+import { orderDetailContent } from '@/data/order-detail'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { routes } from '@/lib/routes'
 import type { OrderLine } from './order-detail-types'

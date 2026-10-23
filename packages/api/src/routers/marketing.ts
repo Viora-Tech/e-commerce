@@ -25,6 +25,7 @@ import {
   listCampaigns,
   listEmailTemplates,
   permissions,
+  RECOMMENDATION_IDS,
   recentRuns,
   scheduleCampaign,
   setAutomationStatus,
@@ -36,6 +37,10 @@ import { compileEmailDesign } from '@commerce/core/email-design-compile'
 import { ORPCError } from '@orpc/server'
 import { z } from 'zod'
 import { can } from '../procedures'
+import {
+  dismissRecommendation,
+  recommendationsFor,
+} from '../services/growth-recommendations.service'
 import {
   audienceSize,
   campaignDetail,
@@ -172,6 +177,18 @@ export const marketingRouter = {
   overview: can(permissions.MARKETING_READ)
     .input(z.object({ range: rangeInput.default({ key: '30d' }) }))
     .handler(({ context, input }) => marketingOverview(context.tx, { range: input.range })),
+
+  /** Growth overview recommendations: up to three rule-based next steps with their numbers. */
+  recommendations: can(permissions.MARKETING_READ).handler(({ context }) =>
+    recommendationsFor(context.tx, context.scope.storeId),
+  ),
+
+  /** Hides one recommendation for the whole store and returns the cards left to show. */
+  dismissRecommendation: can(permissions.MARKETING_WRITE)
+    .input(z.object({ id: z.enum(RECOMMENDATION_IDS) }))
+    .handler(({ context, input }) =>
+      dismissRecommendation(context.tx, context.scope.storeId, input.id),
+    ),
 
   /** Which channels can carry marketing for this store. */
   setup: can(permissions.MARKETING_READ).handler(async ({ context }) =>

@@ -17,6 +17,7 @@ const buyer: SegmentCustomer = {
   tags: ['vip', 'wholesale'],
   lastOrderAt: new Date('2026-09-12T12:00:00.000Z'),
   acceptsMarketing: true,
+  hasGstin: false,
 }
 
 const rules = (r: Partial<SegmentRules>): SegmentRules => ({
@@ -76,6 +77,16 @@ describe('matchesCondition', () => {
     )
   })
 
+  it('reads business (has a GSTIN) as a boolean', () => {
+    const business = { ...buyer, hasGstin: true }
+    const isBusiness = { field: 'business', op: 'eq', value: 'true' } as const
+    const isIndividual = { field: 'business', op: 'eq', value: 'false' } as const
+    expect(matchesCondition(business, isBusiness, now)).toBe(true)
+    expect(matchesCondition(business, isIndividual, now)).toBe(false)
+    expect(matchesCondition(buyer, isBusiness, now)).toBe(false)
+    expect(matchesCondition(buyer, isIndividual, now)).toBe(true)
+  })
+
   it('treats an unparseable number as zero rather than throwing', () => {
     expect(matchesCondition(buyer, { field: 'spend', op: 'gte', value: 'abc' }, now)).toBe(true)
     expect(matchesCondition(buyer, { field: 'orders', op: 'lte', value: '' }, now)).toBe(false)
@@ -121,5 +132,9 @@ describe('defaultCondition', () => {
 
   it('defaults marketing to true so the row is usable straight away', () => {
     expect(defaultCondition('marketing')).toEqual({ field: 'marketing', op: 'eq', value: 'true' })
+  })
+
+  it('defaults business to true, so the row reads "business customers"', () => {
+    expect(defaultCondition('business')).toEqual({ field: 'business', op: 'eq', value: 'true' })
   })
 })

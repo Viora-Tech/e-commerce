@@ -1,8 +1,12 @@
 import { formatPaise } from '@commerce/blocks'
 import { settingsSecret } from '@commerce/config'
-import { orderViewToken, storeCheckoutLook, thankYouPath, verifyInvoiceToken } from '@commerce/core'
-import { order, orderLine, store } from '@commerce/db'
-import { asc, eq } from 'drizzle-orm'
+import {
+  loadDraftInvoice,
+  orderViewToken,
+  storeCheckoutLook,
+  thankYouPath,
+  verifyInvoiceToken,
+} from '@commerce/core'
 import { redirect } from 'next/navigation'
 import CheckoutShell from '@/components/checkout/checkout-shell'
 import InvoicePay from '@/components/checkout/invoice-pay'
@@ -22,38 +26,20 @@ export default async function InvoicePage({ params }: Params) {
   const { storeId, token } = await params
   const verified = verifyInvoiceToken(token, settingsSecret())
   const data = verified.ok
-    ? await inStore(storeId, async (tx) => {
-        const [o] = await tx.select().from(order).where(eq(order.id, verified.orderId))
-        if (!o) return null
-        const [s] = await tx.select({ name: store.name }).from(store).where(eq(store.id, storeId))
-        const lines = await tx
-          .select({
-            id: orderLine.id,
-            title: orderLine.title,
-            variant: orderLine.variantTitle,
-            quantity: orderLine.quantity,
-            unitPricePaise: orderLine.unitPricePaise,
-          })
-          .from(orderLine)
-          .where(eq(orderLine.orderId, o.id))
-          .orderBy(asc(orderLine.id))
-        return { o, lines, storeName: s?.name ?? '' }
-      })
+    ? await inStore(storeId, (tx) => loadDraftInvoice({ storeId, tx }, verified.orderId))
     : null
 
   // Paid, or no longer payable: the order's own page says where it stands.
-  const payable =
-    data && (data.o.status === 'draft' || (data.o.status === 'open' && !data.o.checkoutPaidAt))
-  if (data && !payable)
-    redirect(thankYouPath(data.o.number, orderViewToken(data.o.id, settingsSecret())))
+  if (data && !data.payable)
+    redirect(thankYouPath(data.number, orderViewToken(data.id, settingsSecret())))
 
   const look = await inStore(storeId, (tx) => storeCheckoutLook({ tx, storeId }))
   return (
     <CheckoutShell look={look} backHref="/" backLabel={content.back}>
-      {data && payable ? (
+      {data?.payable ? (
         <div className="flex flex-col gap-6">
           <div className="flex flex-col gap-2">
-            <h1 className={`${CK_HEADING} text-[1.75rem]!`}>{content.pageTitle(data.o.number)}</h1>
+            <h1 className={`${CK_HEADING} text-[1.75rem]!`}>{content.pageTitle(data.number)}</h1>
             <p className="text-[1rem] text-ck-muted">{content.intro(data.storeName)}</p>
           </div>
           <ul className="flex flex-col gap-4">
@@ -70,9 +56,9 @@ export default async function InvoicePage({ params }: Params) {
           </ul>
           <p className="flex items-baseline justify-between border-t border-ck-summary-line pt-4 text-[1.125rem] font-semibold text-ck-ink">
             <span>{content.total}</span>
-            <span className="tabular-nums">{formatPaise(data.o.totalPaise)}</span>
+            <span className="tabular-nums">{formatPaise(data.totalPaise)}</span>
           </p>
-          <InvoicePay token={token} totalLabel={formatPaise(data.o.totalPaise)} />
+          <InvoicePay token={token} totalLabel={formatPaise(data.totalPaise)} />
         </div>
       ) : (
         <p className="rounded-ck bg-ck-soft px-4 py-3 text-[0.9375rem] text-ck-ink">

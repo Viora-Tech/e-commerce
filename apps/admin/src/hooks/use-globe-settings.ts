@@ -33,7 +33,7 @@ export function useGlobeSettings(prefersReducedMotion: boolean) {
   }
   const reset = () => {
     const next = defaultGlobeSettings(prefersReducedMotion)
-    saveGlobeSettings(next)
+    saveGlobeSettings(next, { replaceZoom: true })
     setSettings(next)
   }
 

@@ -13,7 +13,7 @@ type QuerySchemaPanelProps = {
   onInsert: (name: string) => void
 }
 
-/** Figma "Data you can query": every table and field the language reads; a click inserts it. */
+/** Figma "Data you can query" (the side panel's reference tab): every table and field; a click inserts it. */
 export default function QuerySchemaPanel({ table, onInsert }: QuerySchemaPanelProps) {
   // Hooks
   const copy = useCopy(analyticsContent.query)
@@ -21,8 +21,8 @@ export default function QuerySchemaPanel({ table, onInsert }: QuerySchemaPanelPr
 
   // Render logic
   return (
-    <aside className="flex flex-col gap-2 rounded-lg border border-border bg-card p-3">
-      <h2 className="text-eyebrow text-muted-foreground">{copy.schemaHeading}</h2>
+    <div className="flex flex-col gap-2">
+      <h3 className="text-eyebrow text-muted-foreground">{copy.schemaHeading}</h3>
       <ul className="flex flex-col">
         {QUERY_TABLE_NAMES.map((name) => (
           <li key={name}>
@@ -62,6 +62,6 @@ export default function QuerySchemaPanel({ table, onInsert }: QuerySchemaPanelPr
         ))}
       </ul>
       <p className="text-caption text-muted-foreground">{copy.schemaHelp}</p>
-    </aside>
+    </div>
   )
 }

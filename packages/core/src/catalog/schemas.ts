@@ -18,7 +18,7 @@ const paise = z.number().int().min(0).max(1_000_000_000)
 
 /** Units a variant's weight can be typed in on the product page (`variant.weight_unit`). */
 export const WEIGHT_UNITS = ['g', 'kg', 'lb', 'oz'] as const
-export const WeightUnitSchema = z.enum(WEIGHT_UNITS)
+const WeightUnitSchema = z.enum(WEIGHT_UNITS)
 export type WeightUnit = z.infer<typeof WeightUnitSchema>
 
 export const VariantInputSchema = z.object({

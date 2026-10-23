@@ -22,12 +22,12 @@ import { toast } from 'sonner'
 import ActionMenu, { type ActionItem } from '@/components/layout/action-menu'
 import ConfirmDialog from '@/components/layout/confirm-dialog'
 import { orderAppActionsContent } from '@/data/order-app-actions'
+import { orderDetailContent } from '@/data/order-detail'
 import {
   type OrderFulfillmentStatus,
   type OrderMark,
   type OrderPaymentStatus,
   type OrderStatus,
-  orderDetailContent,
   ordersContent,
 } from '@/data/orders'
 import { useCopy } from '@/hooks/use-copy'

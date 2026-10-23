@@ -15,7 +15,6 @@ import {
   buildBorderStrokePoints,
   decodeBorderPoints,
 } from '@commerce/ui/globe/webgl/border-points'
-import { dotRadiusPx as dotRadius, pickDotRows } from '@commerce/ui/globe/webgl/dot-layout'
 import {
   anglesFor,
   createGlobeRenderer,
@@ -33,7 +32,7 @@ import { cn } from '@commerce/ui/lib/utils'
 import { useEffect, useRef } from 'react'
 import GlobeOverlay from './globe-overlay'
 import { readPalette } from './globe-palette'
-import { defaultGlobeSettings, saveLastZoom } from './globe-settings'
+import { defaultGlobeSettings, type GlobeStartView, saveLastZoom } from './globe-settings'
 import GlobeSettingsPanel from './globe-settings-panel'
 import type { GlobeCanvasProps } from './types'
 
@@ -69,11 +68,17 @@ const ZOOM_SAVE_INTERVAL_MS = 1000
 const WORLD_START_ZOOM = 0.65
 
 /**
+ * "Look > Style: Dotted": cobe's own dots with the Home card's numbers (`live-globe-canvas.tsx`),
+ * so both globes look the same. 32k is about the most cobe's Fibonacci lookup keeps precise.
+ */
+const COBE_DOTS = { samples: 32000, diffuse: 1.15, brightness: { dark: 4.5, light: 5.5 } }
+
+/**
  * Our own WebGL globe for the Live view (cobe stays on the Home card). Same props, markers,
- * arcs, drag/tilt, zoom and reduced-motion behaviour as `LiveGlobeCanvas`, but land is drawn
- * as smooth filled continents from the land map with faint 15° grid lines instead of dots, so
- * it never shimmers (dots at 3-6 px beat against the screen's pixel grid) and stays sharp
- * when zoomed in on India.
+ * arcs, drag/tilt, zoom and reduced-motion behaviour as `LiveGlobeCanvas`. By default it looks
+ * like the Home card (cobe's dots, `COBE_DOTS`); "Solid land" draws smooth filled continents
+ * from the land map instead, which stay sharp when zoomed in on India, with optional
+ * coastlines, borders and 15° grid lines.
  *
  * `settings` (the "Globe settings" panel, only ever passed by the Live view hero) is read every
  * frame from a ref, never as an effect dependency: every layer toggle, colour, style and data
@@ -102,6 +107,7 @@ export default function WebglGlobeCanvas({
   const activeIdRef = useRef(activeId)
   const motionRef = useRef<GlobeMotion | null>(null)
   const settingsRef = useRef(settings ?? defaultGlobeSettings(reducedMotion))
+  const startViewRef = useRef<GlobeStartView | null>(null)
 
   useEffect(() => {
     const canvas = canvasRef.current
@@ -113,11 +119,18 @@ export default function WebglGlobeCanvas({
     const s = createMotion(target, reducedMotion, ZOOM_MAX)
     const initial = settingsRef.current
     const defaultZoom = initial.motion.startView === 'world' ? WORLD_START_ZOOM : 1
-    // A theme or focus change rebuilds the globe; keep the zoom the merchant asked for, or (on
-    // first load, with "Remember last zoom" on) the one from their last visit.
+    // A theme or focus change rebuilds the globe; keep the zoom the merchant asked for. A new
+    // "Start view" starts from that view's own zoom; the first load, with "Remember last zoom"
+    // on, from the one saved on their last visit.
+    const previous = motionRef.current
+    const sameView = startViewRef.current === initial.motion.startView
+    startViewRef.current = initial.motion.startView
     s.zoomTarget =
-      motionRef.current?.zoomTarget ??
-      (initial.motion.rememberZoom ? clampZoom(initial.lastZoom, ZOOM_MAX) : defaultZoom)
+      previous && sameView
+        ? previous.zoomTarget
+        : !previous && initial.motion.rememberZoom
+          ? clampZoom(initial.lastZoom, ZOOM_MAX)
+          : defaultZoom
     motionRef.current = s
     let revealStartedAt = performance.now()
     let lastNewestId = markersRef.current.find((m) => m.isNewest)?.id ?? null
@@ -174,7 +187,8 @@ export default function WebglGlobeCanvas({
       const cx = w / 2 + shiftX * w
       const cy = h / 2
 
-      const palette = readPalette(dark, live.look)
+      // `brand`: "Store accent" is the Home card's palette exactly (deep accent land in dark).
+      const palette = readPalette(dark, live.look, true)
       const overlayPalette = {
         marker: palette.marker,
         arc: palette.arc,
@@ -210,10 +224,8 @@ export default function WebglGlobeCanvas({
 
       const m = rotation(s.phi, s.theta)
       const radiusDevicePx = radius * dpr
-      const dotRows = live.look.style === 'dotted' ? pickDotRows(radiusDevicePx, dpr) : 0
-      const sun = live.data.dayNightShadow
-        ? toVector(subsolarPoint(new Date()).lat, subsolarPoint(new Date()).lng)
-        : null
+      const subsolar = live.data.dayNightShadow ? subsolarPoint(new Date()) : null
+      const sun = subsolar ? toVector(subsolar.lat, subsolar.lng) : null
 
       // Dashed borders replace the shader's own border line (coastlines are unaffected either
       // way); the "Country borders" layer toggle still gates both.
@@ -244,8 +256,14 @@ export default function WebglGlobeCanvas({
         glow: palette.glow,
         layers: { ...live.layers, borders: live.layers.borders && !dashedBorders },
         style: live.look.style,
-        dotRows,
-        dotRadiusPx: dotRows > 0 ? dotRadius(dotRows, radiusDevicePx, dpr) : 0,
+        dotRows: 0,
+        dotRadiusPx: 0,
+        cobeDots: {
+          samples: COBE_DOTS.samples,
+          brightness: dark ? COBE_DOTS.brightness.dark : COBE_DOTS.brightness.light,
+          diffuse: COBE_DOTS.diffuse,
+          color: palette.dotColor,
+        },
         sun,
         dashPeriodPx: DASH_PERIOD_CSS_PX * dpr,
       })
@@ -310,6 +328,7 @@ export default function WebglGlobeCanvas({
     settings && onSettingsChange && onSettingsReset ? (
       <GlobeSettingsPanel
         settings={settings}
+        dark={dark}
         onChange={onSettingsChange}
         onReset={onSettingsReset}
       />

@@ -12,12 +12,14 @@ import PageHeader from '@/components/layout/page-header'
 import ResourceTable, { type ResourceColumnSpec } from '@/components/table/resource-table'
 import RowMenu from '@/components/table/row-menu'
 import { growthLinksContent, growthOverviewContent } from '@/data/growth'
+import { linkQrContent } from '@/data/growth-report'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 import type { Formatters } from '@/lib/format'
 import { routes } from '@/lib/routes'
 import { runBatched } from '@/lib/run-batched'
 import LinkDialog from './link-dialog'
+import LinkQrDialog from './link-qr-dialog'
 
 type ListResult = Awaited<ReturnType<typeof api.shortLinks.list>>
 type Item = ListResult['items'][number]
@@ -90,12 +92,13 @@ function linkColumns(
 
 /**
  * Growth → Links (Figma "Marketing / Links list"): short `/l/<slug>` links with their tracking
- * tags, clicks, the orders they brought and that revenue, and New link to make one.
+ * tags, clicks, the orders they brought and that revenue, a QR code per link, and New link.
  */
 export default function LinksPage({ storefrontOrigin }: LinksPageProps) {
   // Hooks
   const copy = useCopy(growthLinksContent)
   const overview = useCopy(growthOverviewContent)
+  const qrCopy = useCopy(linkQrContent)
   const fmt = useFormat()
   const [result, setResult] = useState<ListResult | null>(null)
   const [totals, setTotals] = useState<Totals | null>(null)
@@ -103,6 +106,7 @@ export default function LinksPage({ storefrontOrigin }: LinksPageProps) {
   const [page, setPage] = useState(1)
   const [editing, setEditing] = useState<Item | 'new' | null>(null)
   const [deleting, setDeleting] = useState<Item | null>(null)
+  const [qr, setQr] = useState<Item | null>(null)
   /** Selected links waiting on the bulk delete confirm. */
   const [bulkDeleting, setBulkDeleting] = useState<{ ids: string[]; clear: () => void } | null>(
     null,
@@ -225,6 +229,7 @@ export default function LinksPage({ storefrontOrigin }: LinksPageProps) {
               items={[
                 { label: copy.menu.copy, onSelect: () => void handleCopy(l) },
                 { label: copy.menu.edit, onSelect: () => setEditing(l) },
+                { label: qrCopy.menu, onSelect: () => setQr(l) },
                 { label: copy.menu.open, href: `${storefrontOrigin}${shortLinkPath(l.slug)}` },
                 { label: copy.menu.delete, onSelect: () => setDeleting(l), destructive: true },
               ]}
@@ -239,6 +244,14 @@ export default function LinksPage({ storefrontOrigin }: LinksPageProps) {
           origin={storefrontOrigin}
           onClose={() => setEditing(null)}
           onSaved={handleSaved}
+        />
+      ) : null}
+      {qr ? (
+        <LinkQrDialog
+          name={qr.name}
+          slug={qr.slug}
+          url={`${storefrontOrigin}${shortLinkPath(qr.slug)}`}
+          onClose={() => setQr(null)}
         />
       ) : null}
       {deleting ? (

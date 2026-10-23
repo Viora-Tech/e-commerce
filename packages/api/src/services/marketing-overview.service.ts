@@ -1,5 +1,10 @@
 import { notTestOrder } from '@commerce/core'
-import type { MarketingChannel } from '@commerce/core/marketing'
+import {
+  addToSplit,
+  type CustomerSplit,
+  EMPTY_SPLIT,
+  type MarketingChannel,
+} from '@commerce/core/marketing'
 import {
   marketingAutomation,
   marketingCampaign,
@@ -9,6 +14,7 @@ import {
 } from '@commerce/db'
 import { and, gte, inArray, lt, ne, sql } from 'drizzle-orm'
 import {
+  averageOrderValue,
   bucketByDay,
   conversionRate,
   delta,
@@ -19,12 +25,21 @@ import {
   toWeeklyPoints,
 } from './analytics-buckets'
 import { type GrowthOutcomes, growthOutcomes } from './growth-outcomes.service'
+import { returningCustomer } from './growth-report.service'
+import { normalizeSource, type SourceKey } from './marketing-sources.service'
+
+export {
+  normalizeSource,
+  SOURCE_KEYS,
+  SOURCE_LABELS,
+  type SourceKey,
+} from './marketing-sources.service'
 
 /** Orders placed before attribution existed, or without a beacon (API, drafts), have no channel. */
 export type OverviewChannel = MarketingChannel | 'untracked'
 
 export type MarketingKpi = {
-  id: 'sessions' | 'attributed_sales' | 'attributed_orders' | 'conversion'
+  id: 'sessions' | 'attributed_sales' | 'attributed_orders' | 'conversion' | 'total_sales' | 'aov'
   value: number
   previous: number
   delta: number | null
@@ -37,36 +52,8 @@ export type ChannelRow = {
   orders: number
   salesPaise: number
   conversion: number
-}
-
-/**
- * A source normalised to something a non-technical merchant recognises, so
- * the overview can answer "how much am I selling from Instagram/Google/
- * WhatsApp/ChatGPT/direct" without them knowing what a UTM parameter is.
- */
-export const SOURCE_KEYS = [
-  'instagram',
-  'facebook',
-  'youtube',
-  'google',
-  'whatsapp',
-  'ai_assistant',
-  'email',
-  'direct',
-  'other',
-] as const
-export type SourceKey = (typeof SOURCE_KEYS)[number]
-
-export const SOURCE_LABELS: Record<SourceKey, string> = {
-  instagram: 'Instagram',
-  facebook: 'Facebook',
-  youtube: 'YouTube',
-  google: 'Google',
-  whatsapp: 'WhatsApp',
-  ai_assistant: 'AI assistants',
-  email: 'Email',
-  direct: 'Direct',
-  other: 'Other',
+  /** The same orders and sales split into first-time and returning buyers. */
+  split: CustomerSplit
 }
 
 export type SourceRow = {
@@ -77,6 +64,7 @@ export type SourceRow = {
   conversion: number
   /** Share of this range's total sales, 0 to 1. */
   shareOfSales: number
+  split: CustomerSplit
 }
 
 export type CampaignRow = {
@@ -132,6 +120,8 @@ type AttributedOrder = {
   campaign: string | null
   campaignId: string | null
   automationId: string | null
+  /** The buyer had a counted order before this one. */
+  returning: boolean
 }
 
 async function sessionsIn(tx: StoreTx, from: Date, to: Date): Promise<SessionRow[]> {
@@ -162,6 +152,7 @@ async function ordersIn(tx: StoreTx, from: Date, to: Date): Promise<AttributedOr
       campaign: sql<string | null>`${order.attribution}->>'campaign'`,
       campaignId: sql<string | null>`${order.attribution}->>'campaignId'`,
       automationId: sql<string | null>`${order.attribution}->>'automationId'`,
+      returning: returningCustomer,
     })
     .from(order)
     .where(and(counted, gte(order.placedAt, from), lt(order.placedAt, to)))
@@ -175,7 +166,14 @@ function channelRows(sessions: SessionRow[], orders: AttributedOrder[]): Channel
   const get = (channel: OverviewChannel) => {
     let row = by.get(channel)
     if (!row) {
-      row = { channel, sessions: 0, orders: 0, salesPaise: 0, conversion: 0 }
+      row = {
+        channel,
+        sessions: 0,
+        orders: 0,
+        salesPaise: 0,
+        conversion: 0,
+        split: { ...EMPTY_SPLIT },
+      }
       by.set(channel, row)
     }
     return row
@@ -185,48 +183,11 @@ function channelRows(sessions: SessionRow[], orders: AttributedOrder[]): Channel
     const row = get((o.channel as MarketingChannel | null) ?? 'untracked')
     row.orders += 1
     row.salesPaise += o.totalPaise
+    addToSplit(row.split, o)
   }
   return [...by.values()]
     .map((r) => ({ ...r, conversion: conversionRate(r.orders, r.sessions) }))
     .sort((a, b) => b.salesPaise - a.salesPaise || b.sessions - a.sessions)
-}
-
-/**
- * Normalises a source/medium/channel/referrer combination to a name a
- * non-technical merchant recognises. UTM tags win (a merchant who tagged
- * "instagram" meant Instagram); the channel and referrer are the fallback
- * for untagged organic and AI-assistant traffic.
- */
-export function normalizeSource(input: {
-  source: string | null
-  medium: string | null
-  referrer: string | null
-  channel: string | null
-}): SourceKey {
-  const source = input.source?.toLowerCase() ?? ''
-  const medium = input.medium?.toLowerCase() ?? ''
-  const referrer = input.referrer?.toLowerCase() ?? ''
-  const has = (needle: string) => source.includes(needle) || referrer.includes(needle)
-  if (has('instagram') || source === 'ig') return 'instagram'
-  if (has('facebook') || source === 'fb' || source === 'meta') return 'facebook'
-  if (has('youtube') || source === 'yt') return 'youtube'
-  if (has('google') || source === 'adwords' || source === 'googleads') return 'google'
-  if (has('whatsapp') || source === 'wa' || medium === 'whatsapp' || input.channel === 'whatsapp')
-    return 'whatsapp'
-  if (
-    has('chatgpt') ||
-    has('openai') ||
-    has('perplexity') ||
-    has('gemini') ||
-    has('claude.ai') ||
-    has('copilot.microsoft') ||
-    input.channel === 'ai_assistant'
-  )
-    return 'ai_assistant'
-  if (has('mail.') || medium === 'email' || medium === 'newsletter' || input.channel === 'email')
-    return 'email'
-  if (!input.channel || input.channel === 'direct') return 'direct'
-  return 'other'
 }
 
 /** Aggregates every session and order (attributed or not) by friendly source. */
@@ -235,7 +196,15 @@ function sourceRows(sessions: SessionRow[], orders: AttributedOrder[]): SourceRo
   const get = (source: SourceKey) => {
     let row = by.get(source)
     if (!row) {
-      row = { source, sessions: 0, orders: 0, salesPaise: 0, conversion: 0, shareOfSales: 0 }
+      row = {
+        source,
+        sessions: 0,
+        orders: 0,
+        salesPaise: 0,
+        conversion: 0,
+        shareOfSales: 0,
+        split: { ...EMPTY_SPLIT },
+      }
       by.set(source, row)
     }
     return row
@@ -246,6 +215,7 @@ function sourceRows(sessions: SessionRow[], orders: AttributedOrder[]): SourceRo
     const row = get(normalizeSource(o))
     row.orders += 1
     row.salesPaise += o.totalPaise
+    addToSplit(row.split, o)
     totalSales += o.totalPaise
   }
   return [...by.values()]
@@ -416,6 +386,18 @@ export async function marketingOverview(
   )
   const conversion = conversionRate(tracked.length, sessions.length)
   const conversionPrev = conversionRate(trackedPrev.length, sessionsPrev.length)
+  const totalSales = orders.reduce((n, o) => n + o.totalPaise, 0)
+  const totalSalesPrev = ordersPrev.reduce((n, o) => n + o.totalPaise, 0)
+  const totalByDay = bucketByDay(
+    orders.map((o) => ({ at: o.placedAt, weight: o.totalPaise })),
+    range.days,
+  )
+  const everyOrderByDay = bucketByDay(
+    orders.map((o) => ({ at: o.placedAt })),
+    range.days,
+  )
+  const aov = averageOrderValue(totalSales, orders.length)
+  const aovPrev = averageOrderValue(totalSalesPrev, ordersPrev.length)
 
   const kpis: MarketingKpi[] = [
     {
@@ -446,6 +428,22 @@ export async function marketingOverview(
       delta: delta(conversion, conversionPrev),
       series: range.days.map((_, i) =>
         conversionRate(allOrdersByDay[i] ?? 0, sessionsByDay[i] ?? 0),
+      ),
+    },
+    {
+      id: 'total_sales',
+      value: totalSales,
+      previous: totalSalesPrev,
+      delta: delta(totalSales, totalSalesPrev),
+      series: totalByDay,
+    },
+    {
+      id: 'aov',
+      value: aov,
+      previous: aovPrev,
+      delta: delta(aov, aovPrev),
+      series: range.days.map((_, i) =>
+        averageOrderValue(totalByDay[i] ?? 0, everyOrderByDay[i] ?? 0),
       ),
     },
   ]

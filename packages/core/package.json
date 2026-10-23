@@ -81,6 +81,7 @@
     "./member-account": "./src/member-account/client.ts",
     "./media-queue": "./src/media/queue.ts",
     "./media-loader": "./src/media/loader.ts",
+    "./media-content-type": "./src/media/content-type.ts",
     "./safe-fetch": "./src/net/safe-fetch.ts",
     "./dynamic-sources": "./src/dynamic-sources/client.ts",
     "./product-taxonomy.json": "./src/catalog/product-taxonomy.json"

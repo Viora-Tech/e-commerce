@@ -1,3 +1,4 @@
+/** SOURCE OF TRUTH: hand-sent order message previews — WHAT: renders a draft invoice, balance request or payment reminder exactly as delivery would, without sending / WHY: the "Review email" dialog must show what the customer will get */
 import { order } from '@commerce/db'
 import {
   type CustomMessage,

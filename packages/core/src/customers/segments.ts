@@ -13,6 +13,7 @@ export const SEGMENT_FIELDS = [
   'tag',
   'last_order_days',
   'marketing',
+  'business',
 ] as const
 export type SegmentField = (typeof SEGMENT_FIELDS)[number]
 
@@ -24,7 +25,10 @@ export type SegmentMatch = 'all' | 'any'
 export type SegmentCondition = {
   field: SegmentField
   op: SegmentOp
-  /** Paise for spend, a count for orders, days for last_order_days, text otherwise. */
+  /**
+   * Paise for spend, a count for orders, days for last_order_days, 'true'/'false' for
+   * marketing and business, text otherwise.
+   */
   value: string
 }
 
@@ -41,6 +45,8 @@ export type SegmentCustomer = {
   tags: string[]
   lastOrderAt: Date | string | null
   acceptsMarketing: boolean
+  /** Saved a GSTIN, i.e. buys as a business (B2B). */
+  hasGstin: boolean
 }
 
 /** Which operators make sense per field, so the builder never offers a nonsense pair. */
@@ -51,6 +57,7 @@ export const OPS_BY_FIELD: Record<SegmentField, readonly SegmentOp[]> = {
   tag: ['contains', 'eq', 'neq'],
   last_order_days: ['lte', 'gte'],
   marketing: ['eq'],
+  business: ['eq'],
 }
 
 const DAY_MS = 86_400_000
@@ -92,6 +99,11 @@ function compareTags(tags: string[], op: SegmentOp, expected: string): boolean {
   return has
 }
 
+function compareFlag(actual: boolean, op: SegmentOp, value: string): boolean {
+  const wants = value === 'true'
+  return op === 'eq' ? actual === wants : actual !== wants
+}
+
 /** True when a single condition holds. Unknown or unusable values never match. */
 export function matchesCondition(
   customer: SegmentCustomer,
@@ -103,10 +115,8 @@ export function matchesCondition(
   if (field === 'orders') return compareNumber(customer.orderCount, op, toNumber(value))
   if (field === 'state') return compareText(customer.stateCode, op, value)
   if (field === 'tag') return compareTags(customer.tags, op, value)
-  if (field === 'marketing') {
-    const wants = value === 'true'
-    return op === 'eq' ? customer.acceptsMarketing === wants : customer.acceptsMarketing !== wants
-  }
+  if (field === 'marketing') return compareFlag(customer.acceptsMarketing, op, value)
+  if (field === 'business') return compareFlag(customer.hasGstin, op, value)
   const days = daysSince(customer.lastOrderAt, now)
   if (days === null) return false
   return compareNumber(days, op, toNumber(value))
@@ -127,7 +137,12 @@ export function evaluateSegment(
   return conditions.every((c) => matchesCondition(customer, c, now))
 }
 
+/** Yes/no fields, whose value is 'true' or 'false'. */
+export function isFlagField(field: SegmentField): boolean {
+  return field === 'marketing' || field === 'business'
+}
+
 /** Default row for a freshly added condition, so the builder always has a valid op. */
 export function defaultCondition(field: SegmentField = 'spend'): SegmentCondition {
-  return { field, op: OPS_BY_FIELD[field][0] ?? 'eq', value: field === 'marketing' ? 'true' : '' }
+  return { field, op: OPS_BY_FIELD[field][0] ?? 'eq', value: isFlagField(field) ? 'true' : '' }
 }

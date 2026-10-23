@@ -1,17 +1,29 @@
 /** SOURCE OF TRUTH: media file types (image, video, document), the library's type filter and the storage usage breakdown */
 import type { StoreTx } from '@commerce/db'
 import { media } from '@commerce/db'
-import { and, desc, eq, ilike, isNotNull, sql } from 'drizzle-orm'
+import { and, desc, eq, isNotNull, sql } from 'drizzle-orm'
+import { CONTENT_TYPE_BY_EXTENSION } from './content-type'
 
 export type MediaFileType = 'image' | 'video' | 'document'
 
+/**
+ * The row's type, else the one the extension of its key (or URL, without `?query`) implies,
+ * as `contentTypeFromName` does: a row stored without a type still sorts as an image or video.
+ * Literals only (no bind parameters), so the expression can sit in a GROUP BY.
+ */
+const typeOf = sql`coalesce(${media.contentType}, case lower(substring(split_part(coalesce(${media.key}, ${media.url}), '?', 1) from '[.]([A-Za-z0-9]+)$')) ${sql.raw(
+  Object.entries(CONTENT_TYPE_BY_EXTENSION)
+    .map(([ext, type]) => `when '${ext}' then '${type}'`)
+    .join(' '),
+)} end)`
+
 /** Images and videos by MIME prefix; "document" is everything else (PDFs, text, files with no type). */
 export function fileTypeWhere(fileType: MediaFileType) {
-  if (fileType !== 'document') return ilike(media.contentType, `${fileType}/%`)
-  return sql`coalesce(${media.contentType}, '') not ilike 'image/%' and coalesce(${media.contentType}, '') not ilike 'video/%'`
+  if (fileType !== 'document') return sql`${typeOf} ilike ${`${fileType}/%`}`
+  return sql`coalesce(${typeOf}, '') not ilike 'image/%' and coalesce(${typeOf}, '') not ilike 'video/%'`
 }
 
-const kindOf = sql<MediaFileType>`case when ${media.contentType} ilike 'image/%' then 'image' when ${media.contentType} ilike 'video/%' then 'video' else 'document' end`
+const kindOf = sql<MediaFileType>`case when ${typeOf} ilike 'image/%' then 'image' when ${typeOf} ilike 'video/%' then 'video' else 'document' end`
 
 /**
  * What the Files storage page shows: bytes and file count per type (images, videos,

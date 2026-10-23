@@ -27,7 +27,7 @@ import AddressFields, {
   type AddressValue,
   EMPTY_ADDRESS,
 } from '@/components/customers/address-fields'
-import { orderDetailContent } from '@/data/orders'
+import { orderDetailContent } from '@/data/order-detail'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 import { fieldErrorsOf } from '@/lib/api-errors'

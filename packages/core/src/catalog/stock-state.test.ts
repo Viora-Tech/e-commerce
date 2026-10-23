@@ -1,3 +1,4 @@
+/** SOURCE OF TRUTH: stock status tests — WHAT: stockStateOf at and around the low threshold, and the `?stock=` filter spellings / WHY: the storefront, admin lists and filters all read stock through these */
 import { describe, expect, it } from 'vitest'
 import {
   LOW_STOCK_THRESHOLD,

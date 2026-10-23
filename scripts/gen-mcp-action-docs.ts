@@ -99,6 +99,12 @@ export function collectActionDocs(): Record<string, string> {
   }
   const walk = (file: string, obj: ts.ObjectLiteralExpression, prefix: string[]) => {
     for (const prop of obj.properties) {
+      // `...orderListRoutes`: routes kept in their own module, mounted flat on this router.
+      if (ts.isSpreadAssignment(prop) && ts.isIdentifier(prop.expression)) {
+        const target = resolve(file, prop.expression.text)
+        if (target) walk(target[0], target[1], prefix)
+        continue
+      }
       if (!ts.isPropertyAssignment(prop) && !ts.isShorthandPropertyAssignment(prop)) continue
       const key = prop.name && (ts.isIdentifier(prop.name) || ts.isStringLiteral(prop.name))
       if (!key) continue

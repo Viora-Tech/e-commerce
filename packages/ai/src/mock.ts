@@ -18,6 +18,7 @@ import {
   DOCUMENT_SHAPES,
   type DocumentShape,
 } from './purchase-documents/schema'
+import { QUERY_WRITER_MARKER } from './query-writer'
 import { REVIEW_REPLY_MARKER } from './review-reply'
 import { SECTION_WRITER_MARKER } from './section-writer'
 import { SEO_KEYWORDS_MARKER } from './seo-keywords/prompt'
@@ -121,11 +122,32 @@ function documentRead(system: string): string {
   return JSON.stringify(MOCK_DOCUMENTS[shape])
 }
 
+/** A canned query for "Refine with AI": products or sales, top N when the request says so. */
+function analyticsQuery(prompt: Prompt): string {
+  const request = /Request: """(.*)"""/.exec(lastUserText(prompt))?.[1]?.toLowerCase() ?? ''
+  const top = Number(/top (\d{1,3})/.exec(request)?.[1] ?? 10)
+  const query = request.includes('product')
+    ? `FROM products
+  SHOW net_quantity, gross_sales
+  GROUP BY product_title
+  SINCE -30d UNTIL today
+  ORDER BY net_quantity DESC
+  LIMIT ${top}`
+    : `FROM sales
+  SHOW net_sales, orders
+  GROUP BY state
+  SINCE -1m UNTIL today
+  ORDER BY net_sales DESC
+  LIMIT ${top}`
+  return JSON.stringify({ query })
+}
+
 /** The canned structured answer for whichever writer or reader made the call. */
 function generated(prompt: Prompt): string {
   const system = systemText(prompt)
   if (system.includes(DOCUMENT_READ_MARKER)) return documentRead(system)
   if (system.includes(SEO_KEYWORDS_MARKER)) return seoKeywords(prompt)
+  if (system.includes(QUERY_WRITER_MARKER)) return analyticsQuery(prompt)
   if (system.includes(REVIEW_REPLY_MARKER)) {
     return JSON.stringify({
       reply:

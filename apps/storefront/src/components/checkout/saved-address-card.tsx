@@ -3,7 +3,8 @@
 import type { SavedAddress } from '@commerce/core'
 import { useEffect, useRef, useState } from 'react'
 import CheckoutIcon from '@/components/checkout/checkout-icon'
-import { checkoutContent as content, INDIAN_STATES } from '@/data/checkout'
+import { checkoutContent as content } from '@/data/checkout'
+import { INDIAN_STATES } from '@/data/indian-states'
 import { CK_LINK } from '@/lib/checkout-classes'
 import { displayPhone } from '@/lib/checkout-recap'
 

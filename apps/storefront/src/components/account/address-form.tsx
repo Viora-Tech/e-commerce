@@ -4,7 +4,7 @@ import type { SavedAddress } from '@commerce/core'
 import { isPincode } from '@commerce/core/account-patterns'
 import { useState, useTransition } from 'react'
 import { accountContent } from '@/data/account'
-import { INDIAN_STATES } from '@/data/checkout'
+import { INDIAN_STATES } from '@/data/indian-states'
 import { saveAddressAction } from '@/lib/account-actions'
 
 type AddressFormProps = {

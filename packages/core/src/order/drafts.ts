@@ -339,7 +339,7 @@ export async function deleteDrafts(ctx: StoreContext, ids: readonly string[]) {
  * Whether any line of the draft is shipped. A gift card is the one digital product (no
  * address needed, as at checkout); every other line ships.
  */
-export async function draftNeedsShipping(ctx: StoreContext, orderId: string): Promise<boolean> {
+async function draftNeedsShipping(ctx: StoreContext, orderId: string): Promise<boolean> {
   const [row] = await ctx.tx
     .select({ id: orderLine.id })
     .from(orderLine)
