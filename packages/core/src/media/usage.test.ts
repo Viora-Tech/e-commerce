@@ -1,3 +1,4 @@
+/** SOURCE OF TRUTH: media type and usage tests — WHAT: files with no stored type sort by key or URL extension in the library filter and usage breakdown / WHY: imported rows often lack a content type */
 import { createDb, media, store, withStore } from '@commerce/db'
 import { resetDb } from '@commerce/db/test'
 import { afterAll, beforeEach, describe, expect, it } from 'vitest'

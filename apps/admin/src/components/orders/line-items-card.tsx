@@ -1,7 +1,7 @@
 import { PackageCheck } from '@commerce/ui/icons'
 import DataCard from '@/components/layout/data-card'
 import TotalsList, { type TotalsLine } from '@/components/layout/totals-list'
-import { orderDetailContent } from '@/data/orders'
+import { orderDetailContent } from '@/data/order-detail'
 import type { StatusValue } from '@/data/status'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import OrderChip from './order-chip'

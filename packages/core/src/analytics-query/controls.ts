@@ -85,7 +85,7 @@ export function setRange(q: ParsedQuery, since: QueryTime, until: QueryTime): Pa
 }
 
 /** The quick ranges the Reports date picker offers, as SINCE / UNTIL. */
-export const QUERY_RANGE_KEYS = ['today', '7d', '30d', '90d'] as const
+const QUERY_RANGE_KEYS = ['today', '7d', '30d', '90d'] as const
 export type QueryRangeKey = (typeof QUERY_RANGE_KEYS)[number]
 
 const TODAY: QueryTime = { kind: 'word', word: 'today' }

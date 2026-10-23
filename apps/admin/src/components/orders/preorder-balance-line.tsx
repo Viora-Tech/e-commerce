@@ -1,6 +1,6 @@
 import { Send } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
-import { orderDetailContent } from '@/data/orders'
+import { orderDetailContent } from '@/data/order-detail'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import type { OrderDetail } from './order-detail-types'
 
