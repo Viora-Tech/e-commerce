@@ -4,7 +4,9 @@ import { type LegalDoc, sections } from './types'
 const brand = siteConfig.brand.name
 const domain = siteConfig.brand.domain
 const support = siteConfig.contact.supportEmail
-const company = '[OWNER: company legal name]'
+const company = 'Viora India (a sole proprietorship of Kuldeep Saini)'
+const address = '745/25, Saini Niwas, Gali Number 3, Sonipat 131001, Haryana, India'
+const grievanceEmail = 'grievance@koomerce.app'
 
 export const privacyDoc: LegalDoc = {
   slug: 'privacy',
@@ -17,7 +19,7 @@ export const privacyDoc: LegalDoc = {
       title: 'Who we are',
       plain: [`We are the company behind ${domain}.`, 'This page follows India’s DPDP Act, 2023.'],
       body: [
-        `${company} (“${brand}”, “we”) runs ${domain}, the ${brand} admin and the stores merchants build with it, from [OWNER: registered office address]. This policy explains how we handle personal data as a Data Fiduciary under the Digital Personal Data Protection Act, 2023 (DPDP Act) and the Information Technology Act, 2000 and its rules.`,
+        `${company} (“${brand}”, “we”) runs ${domain}, the ${brand} admin and the stores merchants build with it, from ${address}. This policy explains how we handle personal data as a Data Fiduciary under the Digital Personal Data Protection Act, 2023 (DPDP Act) and the Information Technology Act, 2000 and its rules.`,
         `It covers our website, the ${brand} admin (admin.${domain}) and the apps ${brand} registers on other platforms so merchants can connect them: our Meta app (WhatsApp, Facebook and Instagram catalog), our Google Cloud project (Google Merchant Center) and our Shopify app (${brand} Migration).`,
       ],
     },
@@ -78,7 +80,7 @@ export const privacyDoc: LegalDoc = {
       title: 'Consent and your choices',
       plain: ['You can take back your consent any time.', 'Disconnecting an app stops it at once.'],
       body: [
-        'We process personal data with your consent or for legitimate uses allowed by the DPDP Act. You can withdraw consent any time by writing to us or, for a connected platform, by disconnecting it in the admin or removing our app on that platform. Withdrawal does not affect processing done before.',
+        `We process personal data with your consent or for legitimate uses allowed by the DPDP Act. You can withdraw consent any time by writing to ${support} with the subject “Withdraw consent” or, for a connected platform, by disconnecting it in the admin or removing our app on that platform. Withdrawal does not affect processing done before.`,
       ],
     },
     {
@@ -88,7 +90,7 @@ export const privacyDoc: LegalDoc = {
         'Authorities only when the law says so.',
       ],
       body: [
-        `Service providers (sub-processors) that help us run ${brand}, under written contracts that limit them to providing their service: [OWNER: list each sub-processor, what it does and where it stores data, e.g. server hosting provider and region, email delivery (Amazon SES), website hosting (Cloudflare), error monitoring (Sentry), AI provider for admin assistant features]. Data from a connected platform goes back only to that platform, as part of the feature (for example, your products to your own Meta catalog or Merchant Center).`,
+        `Service providers (sub-processors) that help us run ${brand}, under written contracts that limit them to providing their service: Amazon Web Services (server hosting on AWS Lightsail and our database, in the Mumbai region, India; Amazon SES for sending email), Cloudflare (DNS, content delivery and security in front of our servers, hosting of this website and its forms, Turnstile bot checks, R2 storage for store media and encrypted backups), Resend (backup email delivery when Amazon SES is unavailable), Razorpay (collecting payment for our plans, including UPI AutoPay; card and UPI details stay with Razorpay) and the AI provider behind the admin’s optional AI features (the Vercel AI Gateway or OpenRouter, which pass prompts to the underlying model provider). Payment gateways, couriers and other apps a merchant connects to their own store are chosen and contracted by that merchant. Data from a connected platform goes back only to that platform, as part of the feature (for example, your products to your own Meta catalog or Merchant Center).`,
         'We share data with authorities only when the law requires it.',
       ],
       callout: {
@@ -114,7 +116,7 @@ export const privacyDoc: LegalDoc = {
       ],
       body: [
         'Access tokens and account links for Meta, Google and Shopify are kept only while the connection is active and are deleted when you disconnect, uninstall or remove our app, or ask for deletion.',
-        'Other account and store data is kept while your account is active and for [OWNER: retention period after account closure, e.g. 90 days] after, or longer where the law requires (for example tax and invoice records). Then we delete or anonymise it. Backups roll off within [OWNER: backup retention, e.g. 30 days].',
+        'Other account and store data is kept while your account is active and for 90 days after, or longer where the law requires (for example tax and invoice records). Then we delete or anonymise it. Backups roll off within 30 days.',
       ],
     },
     {
@@ -142,7 +144,7 @@ export const privacyDoc: LegalDoc = {
       title: 'Grievance officer',
       plain: ['A named person handles complaints.', 'We reply within a fixed time.'],
       body: [
-        'Under the DPDP Act, 2023 and the Information Technology (Intermediary Guidelines and Digital Media Ethics Code) Rules, 2021: [OWNER: grievance officer name], [OWNER: grievance officer email], [OWNER: grievance officer postal address]. We acknowledge a complaint within 24 hours and resolve it within [OWNER: resolution time, at most 15 days].',
+        `Under the DPDP Act, 2023 and the Information Technology (Intermediary Guidelines and Digital Media Ethics Code) Rules, 2021, our grievance officer is Kuldeep Saini, ${grievanceEmail}, ${address}. We acknowledge a complaint within 24 hours and resolve it within 15 days, and never later than the 90 days the DPDP Rules allow.`,
       ],
       callout: {
         title: 'Not happy with our answer?',
@@ -153,7 +155,7 @@ export const privacyDoc: LegalDoc = {
       title: 'Changes to this policy',
       plain: ['We update this page when things change.', 'Big changes are emailed to you.'],
       body: [
-        'Last updated: [OWNER: date this version goes live]. We tell account owners by email before a material change takes effect.',
+        'Last updated: 24 October 2026. We tell account owners by email before a material change takes effect.',
       ],
     },
   ]),

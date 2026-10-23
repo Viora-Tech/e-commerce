@@ -22,9 +22,8 @@ Reviewers test the live product, so these must be true first:
    lawyer's review (`legalContent.templateNotice` in `apps/www/src/data/legal/index.ts`).
    Reviewers reject privacy policies with visible placeholders.
 3. **Hosts**: this kit uses `ADMIN = https://admin.koomerce.app` and
-   `WORKER = https://api.koomerce.app` (from `deploy/env.production.example`).
-   `[OWNER: confirm production ADMIN_URL and NEXT_PUBLIC_WORKER_URL; if different, replace
-   every URL below]`.
+   `WORKER = https://api.koomerce.app`, confirmed against `deploy/env.production.example`
+   (`ADMIN_URL`, `NEXT_PUBLIC_WORKER_URL`, 24 Oct 2026).
 4. **Support mailbox** `support@koomerce.app` receives and is answered (it is the contact on
    every console). `[OWNER: confirm the mailbox works]`
 5. **Reviewer account**: one Koomerce admin login with a demo store that reviewers can use on
@@ -45,11 +44,11 @@ Reviewers test the live product, so these must be true first:
 | Field | Value |
 |---|---|
 | App / brand name | Koomerce (Shopify app: Koomerce Migration) |
-| Company legal name | `[OWNER: company legal name]` |
-| Registered address | `[OWNER: registered office address]` |
+| Company legal name | VIORA INDIA (sole proprietorship of Kuldeep Saini; Koomerce, Waimers and Viora Tech are its brands) |
+| Registered address | 745/25, Saini Niwas, Gali Number 3, Sonipat 131001, Haryana, India |
 | Support email | support@koomerce.app |
 | Developer contact email | `[OWNER: developer contact email, on the koomerce.app domain if possible]` |
-| Phone | `[OWNER: business phone]` |
+| Phone | +91 94168 74123 |
 | Website | https://koomerce.app |
 | Privacy policy | https://koomerce.app/privacy |
 | Terms | https://koomerce.app/terms |
@@ -61,6 +60,9 @@ Reviewers test the live product, so these must be true first:
 ## 1. Meta (one Business app: WhatsApp Tech Provider + catalog)
 
 ### 1.1 Business verification (do this first; it gates App Review and Tech Provider)
+
+**Done.** Business portfolio **VIORA INDIA** (id `235952131917619`) was verified on
+23 Sep 2026. The checklist below is kept for reference.
 
 business.facebook.com → Settings → Security Center → Start verification. Have ready (scans,
 PDF or JPG, names and address exactly matching what you type):
@@ -88,9 +90,16 @@ Accepted documents differ by country and change; follow the list Meta shows in t
 | Use case | "Other" → app type **Business** (or the "Connect with customers through WhatsApp" use case, which adds WhatsApp; add the rest under Products) |
 | App name | Koomerce |
 | App contact email | support@koomerce.app |
-| Business portfolio | the verified Koomerce portfolio |
+| Business portfolio | VIORA INDIA (id `235952131917619`, verified) |
 
 Products to add: **Facebook Login for Business**, **WhatsApp**, **Webhooks**.
+
+**Status (24 Oct 2026): created.** App **Koomerce**, App ID `2698025377367158`, under the
+VIORA INDIA portfolio. Use cases chosen at creation include WhatsApp, Catalog API, Marketing
+API (create and measure ads), Messenger, Instagram messaging and content, Pages and others.
+App settings → Basic (1.3) and Facebook Login for Business → Settings (1.4) are saved. The
+data deletion URL in Basic temporarily points to https://koomerce.app/privacy until
+`/data-deletion` is deployed on koomerce.app; switch it to the values in 1.3 then.
 
 ### 1.3 App settings → Basic
 
@@ -380,6 +389,9 @@ saves them that step.
 
 ### 3.2 Create the app (dev.shopify.com → Apps → Create app)
 
+Create it in the **Waimers Partner account** (business-owned), with the business name in the
+Partner account set to **Viora India**.
+
 | Field | Value |
 |---|---|
 | App name | Koomerce Migration |
@@ -434,7 +446,7 @@ before ticking; tick only what is true]`):
 | Respect and apply consent decisions | Yes: customer marketing consent fields are imported as they are in Shopify. `[OWNER: verify the importer keeps accepts-marketing flags]` |
 | Customers can opt out of data sale | We do not sell data. |
 | Automated decision-making with legal effect | No. |
-| Retention periods | Shopify access token deleted on uninstall or `shop/redact`; imported data belongs to the merchant's store and follows Koomerce's account retention. |
+| Retention periods | Shopify access token deleted on uninstall or `shop/redact`; imported data belongs to the merchant's store and follows Koomerce's account retention (kept while the account is active and 90 days after closure, then deleted or anonymised; backups roll off within 30 days). |
 | Encrypt data at rest and in transit | Tokens encrypted (AES via `encryptSecret`); HTTPS everywhere; database encryption at rest: `[OWNER: confirm your host's disk encryption]`. |
 | Encrypt backups | Yes, `BACKUP_ENCRYPTION_KEY`. `[OWNER: confirm backups run encrypted in production]` |
 | Separate test and production data | Yes (separate test server). |

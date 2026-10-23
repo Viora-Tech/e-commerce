@@ -2,12 +2,13 @@ import { siteConfig } from '@commerce/config/site'
 import { type LegalDoc, sections } from './types'
 
 const brand = siteConfig.brand.name
+const company = 'Viora India (a sole proprietorship of Kuldeep Saini)'
 
 export const termsDoc: LegalDoc = {
   slug: 'terms',
   title: 'Terms of use',
-  description: `The agreement between you and [OWNER: company legal name] for using ${brand}.`,
-  lead: `The agreement between you and [OWNER: company legal name] for using ${brand}.`,
+  description: `The agreement between you and Viora India for using ${brand}.`,
+  lead: `The agreement between you and ${company} for using ${brand}.`,
   readMinutes: 5,
   sections: sections([
     {
@@ -66,15 +67,18 @@ export const termsDoc: LegalDoc = {
     {
       title: 'Liability',
       plain: [
-        'To be written with a lawyer.',
-        '[OWNER: limitation of liability clause, drafted with counsel]',
+        'Our total liability is capped at what you paid us in the last 12 months.',
+        'We are not liable for indirect losses such as lost profits.',
+      ],
+      body: [
+        `To the extent the law allows, ${brand} is provided “as is”, and Viora India’s total liability for all claims arising out of or relating to these terms or ${brand} is limited to the fees you paid us in the 12 months before the event giving rise to the claim. We are not liable for indirect, incidental, special or consequential losses, including lost profits, revenue, data or goodwill. Nothing in these terms limits liability that cannot be limited under Indian law, such as for fraud.`,
       ],
     },
     {
       title: 'Governing law',
-      plain: ['Indian law applies.', 'Disputes go to courts in [OWNER: city for jurisdiction].'],
+      plain: ['Indian law applies.', 'Disputes go to courts in Sonipat, Haryana.'],
       body: [
-        'These terms are governed by the laws of India. Courts at [OWNER: city for jurisdiction] have exclusive jurisdiction.',
+        'These terms are governed by the laws of India. Courts at Sonipat, Haryana have exclusive jurisdiction.',
       ],
     },
   ]),
