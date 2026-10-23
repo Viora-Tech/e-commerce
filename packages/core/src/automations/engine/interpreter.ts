@@ -413,7 +413,7 @@ async function recordCall(
     .from(automationRun)
     .where(eq(automationRun.id, runId))
     .for('update')
-  if (!run || run.status !== 'running' || run.cursor !== call.node.id) return { kind: 'done' }
+  if (run?.status !== 'running' || run.cursor !== call.node.id) return { kind: 'done' }
   const step = await stepRow(tx, run.id, call.node.id)
   if (step?.status !== 'running' || step.attempt !== call.attempt) return { kind: 'done' }
   if (outcome.ok) return recordSuccess(tx, run, call.node, call.attempt, outcome.result, now)
