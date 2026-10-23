@@ -13,7 +13,7 @@ import {
 type Applied = Extract<DiscountOutcome, { ok: true }>
 
 /** Two discounts stack only when each allows the other's class. */
-export function combinable(a: DiscountRule, b: DiscountRule): boolean {
+function combinable(a: DiscountRule, b: DiscountRule): boolean {
   return Boolean(a.combinesWith?.[discountClass(b)] && b.combinesWith?.[discountClass(a)])
 }
 

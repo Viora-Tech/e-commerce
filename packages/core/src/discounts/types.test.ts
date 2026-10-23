@@ -1,7 +1,7 @@
 /** SOURCE OF TRUTH: Shopify discount type tests — buy X get Y, minimum quantity, customer eligibility, free shipping limits and combinations */
 import { describe, expect, it } from 'vitest'
 import { bxgyAmount } from './bxgy'
-import { combinable, combineDiscounts } from './combine'
+import { combineDiscounts } from './combine'
 import {
   applyDiscount,
   type DiscountCart,
@@ -192,8 +192,8 @@ describe('combinations', () => {
   ])
 
   it('needs both sides to allow the other class', () => {
-    expect(combinable(productOff, orderOff)).toBe(true)
-    expect(combinable(productOff, { ...orderOff, combinesWith: undefined })).toBe(false)
+    const halfway = { ...ok(orderOff), discount: { ...orderOff, combinesWith: undefined } }
+    expect(combineDiscounts(cart, null, [ok(productOff), halfway], contexts)?.parts).toBeUndefined()
   })
 
   it('stacks product, order and shipping discounts, the order one on what is left', () => {

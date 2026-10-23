@@ -277,10 +277,14 @@ describe('discounts', () => {
       },
       { context: a.ctx },
     )
-    const got = await call(appRouter.discounts.get, { id: bogo.id }, { context: a.ctx })
+    const got = await call(appRouter.discounts.get, { id: bogo?.id as string }, { context: a.ctx })
     expect(got).toMatchObject({ type: 'bxgy', bxgy: { maxUsesPerOrder: 2 } })
     expect(got?.combinesWith).toEqual({ products: false, order: true, shipping: true })
-    const gotShip = await call(appRouter.discounts.get, { id: ship.id }, { context: a.ctx })
+    const gotShip = await call(
+      appRouter.discounts.get,
+      { id: ship?.id as string },
+      { context: a.ctx },
+    )
     expect(gotShip).toMatchObject({
       type: 'shipping',
       minQuantity: 2,
@@ -295,7 +299,11 @@ describe('discounts', () => {
       { title: 'Old', kind: 'code', code: 'OLD5', method: 'fixed', value: 500 },
       { context: a.ctx },
     )
-    const gotOld = await call(appRouter.discounts.get, { id: old.id }, { context: a.ctx })
+    const gotOld = await call(
+      appRouter.discounts.get,
+      { id: old?.id as string },
+      { context: a.ctx },
+    )
     expect(gotOld).toMatchObject({ type: 'order', customerEligibility: 'all', bxgy: null })
   })
 })

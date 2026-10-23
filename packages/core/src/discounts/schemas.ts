@@ -5,10 +5,10 @@ export const DiscountMethodSchema = z.enum(['percent', 'fixed', 'free_shipping']
 export const DiscountAppliesToSchema = z.enum(['all', 'products', 'collections'])
 export const DiscountStatusSchema = z.enum(['active', 'disabled'])
 /** Shopify's four types: amount off products, amount off order, buy X get Y, free shipping. */
-export const DiscountTypeSchema = z.enum(['products', 'order', 'bxgy', 'shipping'])
-export const DiscountEligibilitySchema = z.enum(['all', 'segments', 'customers'])
+const DiscountTypeSchema = z.enum(['products', 'order', 'bxgy', 'shipping'])
+const DiscountEligibilitySchema = z.enum(['all', 'segments', 'customers'])
 
-export const DiscountCombinesWithSchema = z.object({
+const DiscountCombinesWithSchema = z.object({
   products: z.boolean().default(false),
   order: z.boolean().default(false),
   shipping: z.boolean().default(false),
@@ -20,7 +20,7 @@ const scopeSchema = z.object({
 })
 
 /** Buy X get Y: what the shopper buys, what they get, and a per-order cap. */
-export const DiscountBxgySchema = z.object({
+const DiscountBxgySchema = z.object({
   buys: scopeSchema.extend({
     kind: z.enum(['quantity', 'amount']),
     quantity: z.number().int().min(0).max(10_000),

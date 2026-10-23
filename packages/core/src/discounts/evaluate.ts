@@ -112,7 +112,7 @@ export const subtotalPaise = (lines: DiscountCartLine[]): number =>
   lines.reduce((sum, l) => sum + l.quantity * l.unitPricePaise, 0)
 
 /** Lines in a product or collection scope; `all` means the whole cart. */
-export function linesIn(
+function linesIn(
   lines: DiscountCartLine[],
   appliesTo: DiscountAppliesTo,
   ids: string[],
@@ -128,8 +128,7 @@ export function eligibleLines(cart: DiscountCart, d: DiscountRule): DiscountCart
   return linesIn(cart.lines, d.appliesTo, d.appliesToIds)
 }
 
-export const itemCount = (lines: DiscountCartLine[]): number =>
-  lines.reduce((n, l) => n + l.quantity, 0)
+const itemCount = (lines: DiscountCartLine[]): number => lines.reduce((n, l) => n + l.quantity, 0)
 
 /** The rule's type; rows written before types existed read as products, order or shipping. */
 export function discountType(d: Pick<DiscountRule, 'type' | 'method' | 'appliesTo'>): DiscountType {
@@ -265,30 +264,6 @@ export function evaluateDiscount(
   // Never more than the eligible lines are worth, and never more than the cart.
   const amountPaise = Math.max(0, Math.min(raw, base, total))
   return { ok: true, discount: d, amountPaise, freeShipping: false, label: d.title }
-}
-
-/**
- * The single best automatic discount for this cart: the largest amount off,
- * free shipping breaking ties only when nothing else applies. Automatic
- * discounts never stack with each other.
- */
-export function bestAutomaticDiscount(
-  cart: DiscountCart,
-  discounts: DiscountRule[],
-  ctx: DiscountContext = {},
-): Extract<DiscountOutcome, { ok: true }> | null {
-  let best: Extract<DiscountOutcome, { ok: true }> | null = null
-  for (const d of discounts) {
-    if (d.kind !== 'automatic') continue
-    const r = evaluateDiscount(cart, d, ctx)
-    if (!r.ok) continue
-    const value = r.amountPaise + (r.freeShipping ? (cart.shippingPaise ?? 0) : 0)
-    const bestValue = best
-      ? best.amountPaise + (best.freeShipping ? (cart.shippingPaise ?? 0) : 0)
-      : -1
-    if (value > bestValue) best = r
-  }
-  return best
 }
 
 /** Totals after a discount and before the payment-method adjustment. */
