@@ -7,7 +7,7 @@ import {
   retryAfterSeconds,
   storeAppAccess,
 } from '@commerce/core'
-import { appUninstallBlocker, onAppUninstalled } from '@commerce/core/automations/server'
+import { appUninstallBlocker } from '@commerce/core/automations/server'
 import { getRegistries } from '@commerce/core/registries'
 import type { StoreTx } from '@commerce/db'
 import { ORPCError } from '@orpc/server'
@@ -107,7 +107,6 @@ export const appsRouter = {
     .handler(async ({ context, input }) => {
       requirePlugin(input.id)
       await refuseBlockedUninstall(context.tx, context.scope.storeId, input.id)
-      await onAppUninstalled(context.tx, context.scope.storeId, input.id)
       return uninstallStoreApp(context.tx, context.scope.storeId, input.id)
     }),
 
@@ -118,7 +117,6 @@ export const appsRouter = {
       const ids = [...new Set(input.ids)]
       for (const id of ids) requirePlugin(id)
       for (const id of ids) await refuseBlockedUninstall(context.tx, context.scope.storeId, id)
-      for (const id of ids) await onAppUninstalled(context.tx, context.scope.storeId, id)
       for (const id of ids) await uninstallStoreApp(context.tx, context.scope.storeId, id)
       return { removed: ids.length }
     }),

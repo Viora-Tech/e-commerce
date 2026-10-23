@@ -57,8 +57,6 @@ export const automationWorkflow = pgTable(
     nextFireAt: at('next_fire_at'),
     /** Why the engine switched it off (circuit breaker, app removed); null when fine. */
     problem: text('problem'),
-    /** The owner was emailed about `problem` (once per problem). */
-    problemNotifiedAt: at('problem_notified_at'),
     createdBy: text('created_by'),
     createdAt: createdAt(),
     updatedAt: at('updated_at').notNull().defaultNow(),

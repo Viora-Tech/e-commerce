@@ -11568,12 +11568,6 @@
           "primaryKey": false,
           "notNull": false
         },
-        "problem_notified_at": {
-          "name": "problem_notified_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": false
-        },
         "created_by": {
           "name": "created_by",
           "type": "text",

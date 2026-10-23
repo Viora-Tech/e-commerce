@@ -11,11 +11,8 @@ import { Hono } from 'hono'
 import { createAiBulkWriteWorker } from './ai-bulk-write'
 import { API_ACTIVITY_PRUNE_EVERY_MS, createApiActivityPrune } from './api-activity'
 import { createAppEventWorker, createAppJobWorker } from './app-events'
-import {
-  AUTOMATIONS_PRUNE_EVERY_MS,
-  AUTOMATIONS_TICK_MS,
-  createAutomationsWorker,
-} from './automations'
+import { AUTOMATIONS_TICK_MS, createAutomationsWorker } from './automations'
+import { AUTOMATION_PRUNE_EVERY_MS, createAutomationsPrune } from './automations-prune'
 import { createBackInStockWorker } from './back-in-stock'
 import { BILLING_EVERY_MS, createBillingSweep } from './billing'
 import { CHANNEL_SYNC_EVERY_MS, createChannelSync } from './channel-sync'
@@ -136,6 +133,7 @@ const billing = createBillingSweep(redis, db, {
   storefrontUrl: env.STOREFRONT_URL,
 })
 const apiActivityPrune = createApiActivityPrune(redis, db)
+const automationsPrune = createAutomationsPrune(redis, db)
 const channelSync = createChannelSync(redis, db, {
   settingsSecret: env.SETTINGS_SECRET,
   adminUrl: env.ADMIN_URL,
@@ -144,6 +142,7 @@ const channelSync = createChannelSync(redis, db, {
 const automations = createAutomationsWorker(redis, db, {
   settingsSecret: env.SETTINGS_SECRET,
   storefrontUrl: env.STOREFRONT_URL,
+  adminUrl: env.ADMIN_URL,
   mediaProcess: mediaProcess.queue,
 })
 const outboxRelay = createOutboxRelay(redis, db, {
@@ -174,7 +173,6 @@ const watched = [
   [automations.trigger, 'automations-trigger'],
   [automations.step, 'automations-step'],
   [automations.tick, 'automations-tick'],
-  [automations.prune, 'automations-prune'],
   [backInStock.worker, 'back-in-stock'],
   [mediaProcess.worker, 'media-process'],
   [storeExport.worker, 'store-export'],
@@ -186,6 +184,7 @@ const watched = [
   [searchConsole.worker, 'search-console-sweep'],
   [billing.worker, 'billing-sweep'],
   [apiActivityPrune.worker, 'api-activity-prune'],
+  [automationsPrune.worker, 'automations-prune'],
   [channelSync.worker, 'channel-sync'],
 ] as const
 for (const [w, queueName] of watched) {
@@ -255,11 +254,6 @@ await automations.tickQueue.upsertJobScheduler(
   { every: AUTOMATIONS_TICK_MS },
   { name: 'tick' },
 )
-await automations.pruneQueue.upsertJobScheduler(
-  'automations-prune',
-  { every: AUTOMATIONS_PRUNE_EVERY_MS },
-  { name: 'prune' },
-)
 await outboxRelay.queue.upsertJobScheduler(
   'relay-outbox-events',
   { every: RELAY_EVERY_MS },
@@ -289,6 +283,11 @@ await billing.queue.upsertJobScheduler(
   'billing-sweep',
   { every: BILLING_EVERY_MS },
   { name: 'sweep' },
+)
+await automationsPrune.queue.upsertJobScheduler(
+  'automations-prune',
+  { every: AUTOMATION_PRUNE_EVERY_MS },
+  { name: 'prune' },
 )
 await apiActivityPrune.queue.upsertJobScheduler(
   'api-activity-prune',
@@ -363,8 +362,6 @@ const shutdown = async () => {
   await automations.trigger.close()
   await automations.step.close()
   await automations.tick.close()
-  await automations.prune.close()
-  await automations.pruneQueue.close()
   await automations.triggerQueue.close()
   await automations.stepQueue.close()
   await automations.tickQueue.close()
@@ -395,6 +392,8 @@ const shutdown = async () => {
   await billing.queue.close()
   await apiActivityPrune.worker.close()
   await apiActivityPrune.queue.close()
+  await automationsPrune.worker.close()
+  await automationsPrune.queue.close()
   await channelSync.worker.close()
   await channelSync.queue.close()
   await queue.close()

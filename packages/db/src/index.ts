@@ -32,6 +32,7 @@ export {
   storesWithMarketingWork,
   storesWithMemberDailySummaries,
   storesWithOldApiActivity,
+  storesWithOldAutomationRuns,
   storesWithOpenShipments,
   storesWithPendingDomains,
   storesWithPendingManualOrders,

@@ -19,6 +19,7 @@ import {
   MAX_RUNS_PER_SUBJECT_HOUR,
   type RunReason,
 } from '../types'
+import { noteSwitchedOff } from './owner-alerts'
 import { meterRun, storePlanId } from './usage'
 
 /** One thing that happened, ready to start runs. */
@@ -66,6 +67,8 @@ function triggersForOutboxType(type: string): string[] {
 export const AUTOMATION_OUTBOX_TYPES: ReadonlySet<string> = new Set([
   ...BUILTIN_TRIGGERS.flatMap((t) => t.outboxTypes ?? []),
   'automation.app_trigger',
+  // Not a trigger: the trigger job emails it to the owner (owner-alerts.ts).
+  'automation.owner_alert',
 ])
 
 /** What an outbox row is about. */
@@ -236,10 +239,17 @@ async function recentRunCount(
 
 /** Switches a workflow off with a reason the merchant sees (circuit breaker, app removed). */
 export async function switchOffWithProblem(tx: StoreTx, workflowId: string, problem: string) {
+  const [before] = await tx
+    .select({ status: automationWorkflow.status, storeId: automationWorkflow.storeId })
+    .from(automationWorkflow)
+    .where(eq(automationWorkflow.id, workflowId))
+    .for('update')
   await tx
     .update(automationWorkflow)
     .set({ status: 'off', problem, updatedAt: new Date() })
     .where(eq(automationWorkflow.id, workflowId))
+  // The owner is emailed once, by the call that actually switched it off.
+  if (before?.status === 'on') await noteSwitchedOff(tx, before.storeId, workflowId, problem)
 }
 
 /**

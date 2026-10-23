@@ -2,12 +2,6 @@
 import { type Db, storesWithAutomationWork, withStore } from '@commerce/db'
 import { type AdvanceResult, advanceRun, type EngineDeps } from './interpreter'
 import { type AutomationStepQueue, enqueueRunStep } from './jobs'
-import {
-  claimOwnerNotices,
-  pruneAutomationHistory,
-  sendOwnerNotices,
-  storesWithOldAutomationHistory,
-} from './notices'
 import { automationTick, type TickSweep } from './tick'
 import { startRunsForOutboxRow } from './trigger'
 
@@ -60,12 +54,9 @@ export async function runTickJob(
   let expired = 0
   for (const storeId of storeIds) {
     try {
-      const r = await withStore(db, storeId, async (tx) => {
-        const tick = await automationTick(tx, storeId, new Date(), { sweeps })
-        return { ...tick, notices: await claimOwnerNotices(tx, storeId) }
-      })
-      // Emails go after the commit, so no transaction waits on the mail provider.
-      await sendOwnerNotices(db, storeId, r.notices)
+      const r = await withStore(db, storeId, (tx) =>
+        automationTick(tx, storeId, new Date(), { sweeps }),
+      )
       expired += r.expired
       for (const run of [...r.due, ...r.scheduled]) {
         await enqueueRunStep(steps, { storeId, runId: run.runId, nextAt: run.nextAt }, log)
@@ -76,21 +67,4 @@ export async function runTickJob(
     }
   }
   return { stores: storeIds.length, queued, expired }
-}
-
-/** `{automations}-prune`, daily: old step detail and run summaries, store by store. */
-export async function runPruneJob(db: Db, log?: Log) {
-  const storeIds = await storesWithOldAutomationHistory(db)
-  let steps = 0
-  let runs = 0
-  for (const storeId of storeIds) {
-    try {
-      const r = await withStore(db, storeId, (tx) => pruneAutomationHistory(tx))
-      steps += r.steps
-      runs += r.runs
-    } catch (err) {
-      log?.(`[automations] prune ${storeId} failed: ${err instanceof Error ? err.message : err}`)
-    }
-  }
-  return { stores: storeIds.length, steps, runs }
 }

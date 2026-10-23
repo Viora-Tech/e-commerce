@@ -108,6 +108,17 @@ export async function storesWithAutomationWork(db: Db): Promise<string[]> {
   return rows.map((r) => r.id)
 }
 
+/**
+ * Store ids with automation step detail or finished runs past retention, for the daily prune.
+ * SECURITY DEFINER backed (`stores_with_old_automation_runs`, migration 0154_automations).
+ */
+export async function storesWithOldAutomationRuns(db: Db, now = new Date()): Promise<string[]> {
+  const rows = await db.execute<{ id: string }>(
+    sql`select stores_with_old_automation_runs(${now.toISOString()}::timestamptz) as id`,
+  )
+  return rows.map((r) => r.id)
+}
+
 /** Store ids with baskets worth a recovery nudge, for the worker. SECURITY DEFINER backed. */
 export async function storesWithAbandonedCarts(db: Db, cutoff: Date): Promise<string[]> {
   const rows = await db.execute<{ id: string }>(

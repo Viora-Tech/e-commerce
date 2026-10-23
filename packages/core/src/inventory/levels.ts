@@ -8,13 +8,12 @@ import {
 } from '@commerce/db'
 import { and, asc, eq, inArray, type SQL, sql } from 'drizzle-orm'
 import type { PgTable } from 'drizzle-orm/pg-core'
-import { noteStockCrossing } from '../automations/record-events'
 import type { InventoryReason } from '../catalog/schemas'
-import { storeLowStockThreshold } from '../catalog/stock-threshold'
 import { CommerceError } from '../errors'
 import { insertOutboxEvent } from '../outbox/write'
 import type { LocationInput } from './schemas'
 import { availableOf, NegativeStockError, nextOnHand } from './stock'
+import { watchStockCrossings } from './stock-events'
 
 export class InventoryError extends CommerceError {}
 
@@ -142,6 +141,12 @@ export type AdjustStockInput = {
  * below zero; variants that sell regardless of stock may.
  */
 export async function adjustStock(tx: StoreTx, input: AdjustStockInput): Promise<number> {
+  if (input.delta === 0) return changeStock(tx, input)
+  // Falling to low or out of stock is an Automations trigger (once per crossing).
+  return watchStockCrossings(tx, input.storeId, [input.variantId], () => changeStock(tx, input))
+}
+
+async function changeStock(tx: StoreTx, input: AdjustStockInput): Promise<number> {
   const locationId = input.locationId ?? (await defaultLocationId(tx, input.storeId))
   const level = await levelFor(tx, input.storeId, input.variantId, locationId)
   if (input.delta === 0) return level.onHand
@@ -181,18 +186,6 @@ export async function adjustStock(tx: StoreTx, input: AdjustStockInput): Promise
     await insertOutboxEvent(tx, input.storeId, 'inventory.restocked', {
       variantId: input.variantId,
       locationId,
-    })
-  }
-  // Automations' "Stock low" / "Stock out" triggers fire on the crossing, not on every sale.
-  if (v?.trackInventory && isAvailable < wasAvailable) {
-    await noteStockCrossing(tx, {
-      storeId: input.storeId,
-      productId: v.productId,
-      variantId: input.variantId,
-      locationId,
-      before: wasAvailable,
-      after: isAvailable,
-      threshold: await storeLowStockThreshold(tx, input.storeId),
     })
   }
   return next

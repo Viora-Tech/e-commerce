@@ -18,6 +18,16 @@ type AllowEntry = { file: string; names: string[]; reason: string }
 
 const ALLOWLIST: AllowEntry[] = [
   {
+    file: 'packages/core/src/automations/engine/maintenance.ts',
+    names: ['pruneAutomationRuns'],
+    reason: 'the prune for one store, behind runAutomationPruneJob; exported for its unit test',
+  },
+  {
+    file: 'packages/core/src/inventory/stock-events.ts',
+    names: ['stockCrossings'],
+    reason: 'the pure low/out crossing rule behind watchStockCrossings, exported for its unit test',
+  },
+  {
     file: 'packages/core/src/automations/actions/index.ts',
     names: ['builtinExecutors', 'missingBuiltinExecutors'],
     reason:
@@ -78,7 +88,6 @@ const ALLOWLIST: AllowEntry[] = [
       'TRIGGER_SOURCES',
       'RUN_REASONS',
       'STEP_RUN_RETENTION_DAYS',
-      'RUN_RETENTION_MONTHS',
     ],
     reason:
       'Automations contract (feat/automations, 2026-10-23): read by the admin editor and the conditions/actions work built in parallel on this branch',

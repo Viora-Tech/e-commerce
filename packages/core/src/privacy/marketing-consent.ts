@@ -2,6 +2,7 @@
 import { customer, marketingConsentEvent, type StoreTx } from '@commerce/db'
 import { desc, eq, sql } from 'drizzle-orm'
 import type { StoreContext } from '../context'
+import { insertOutboxEvent } from '../outbox/write'
 import { type PrivacyActor, recordPrivacyEvent } from './audit'
 import { CONSENT_CHANNELS, CONSENT_FLAG, type ConsentChannel } from './client'
 
@@ -75,6 +76,13 @@ export async function setMarketingConsent(
     actorId: change.actor.id ?? null,
     createdAt: at,
   })
+  // A fresh email or WhatsApp opt in starts the "Customer subscribed" automations (Growth's
+  // welcome series; the engine runs it once per customer). Imports are history, not signups.
+  if (change.granted && change.channel !== 'sms' && change.source !== 'import') {
+    await insertOutboxEvent(ctx.tx, ctx.storeId, 'customer.subscribed', {
+      customerId: change.customerId,
+    })
+  }
   if (change.actor.type === 'staff') {
     await recordPrivacyEvent(ctx, {
       action: 'consent.changed',

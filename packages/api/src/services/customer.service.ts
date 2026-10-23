@@ -399,9 +399,6 @@ export async function updateCustomer(
   secret: string,
 ) {
   const { phone, ...rest } = patch
-  const [before] = patch.tags
-    ? await tx.select({ tags: customer.tags }).from(customer).where(eq(customer.id, id))
-    : []
   const phoneUpdate =
     phone === undefined
       ? {}
@@ -414,13 +411,17 @@ export async function updateCustomer(
             // keeps its proof (phone sign-in trusts only proven numbers).
             phoneVerifiedAt: sql`case when ${customer.phoneIndex} = ${phoneBlindIndex(phone, secret)} then ${customer.phoneVerifiedAt} else null end`,
           }
+  const [before] =
+    rest.tags === undefined
+      ? []
+      : await tx.select({ tags: customer.tags }).from(customer).where(eq(customer.id, id))
   const [row] = await tx
     .update(customer)
     .set({ ...rest, ...phoneUpdate, updatedAt: new Date() })
     .where(eq(customer.id, id))
     .returning()
   if (!row) return null
-  if (before && patch.tags) await noteCustomerTagsChanged(tx, undefined, id, before.tags, row.tags)
+  if (before) await noteCustomerTagsChanged(tx, row.storeId, row.id, before.tags, row.tags)
   const { phoneIndex: _phoneIndex, ...rest2 } = row
   return { ...rest2, phone: decryptCustomerPhone(row.phone, secret) }
 }
@@ -443,7 +444,7 @@ export async function tagCustomers(
   const tag = input.tag.trim().toLowerCase()
   if (input.ids.length === 0 || !tag) return { updated: 0 }
   const rows = await tx
-    .select({ id: customer.id, tags: customer.tags })
+    .select({ id: customer.id, storeId: customer.storeId, tags: customer.tags })
     .from(customer)
     .where(inArray(customer.id, input.ids))
   let updated = 0
@@ -455,7 +456,7 @@ export async function tagCustomers(
       .update(customer)
       .set({ tags: next, updatedAt: new Date() })
       .where(eq(customer.id, row.id))
-    await noteCustomerTagsChanged(tx, undefined, row.id, row.tags, next)
+    await noteCustomerTagsChanged(tx, row.storeId, row.id, row.tags, next)
     updated += 1
   }
   return { updated }
