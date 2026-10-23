@@ -166,6 +166,7 @@ export default [
         affiliate: 'एफ़िलिएट',
         to: 'किसे',
         gross: 'कमीशन',
+        clawback: 'वापस ली गई रकम',
         tds: 'TDS',
         net: 'देना है',
         status: 'स्थिति',

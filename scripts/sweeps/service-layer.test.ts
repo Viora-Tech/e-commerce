@@ -229,6 +229,7 @@ const ALLOWLIST: AllowEntry[] = [
   { path: 'packages/plugin-affiliates/src/emails.ts', exact: true, reason: PLUGIN },
   { path: 'packages/plugin-affiliates/src/payouts.ts', exact: true, reason: PLUGIN },
   { path: 'packages/plugin-affiliates/src/schema.ts', exact: true, reason: PLUGIN },
+  { path: 'packages/plugin-affiliates/src/secrets.ts', exact: true, reason: PLUGIN },
   { path: 'packages/plugin-affiliates/src/stats.ts', exact: true, reason: PLUGIN },
   { path: 'packages/plugin-affiliates/src/store-settings.ts', exact: true, reason: PLUGIN },
   { path: 'packages/plugin-forms/src/messages.ts', exact: true, reason: PLUGIN },

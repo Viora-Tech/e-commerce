@@ -871,6 +871,11 @@ const ALLOWLIST: AllowEntry[] = [
     reason: 'imported only by the root commerce.config.ts, like formsPlugin',
   },
   {
+    file: 'packages/plugin-affiliates/src/secrets.ts',
+    names: ['AFFILIATE_CIPHER_COLUMNS', 'refreshAffiliatePhoneIndexes'],
+    reason: 'imported only by scripts/rotate-secrets.ts (scripts are not counted as importers)',
+  },
+  {
     file: 'packages/plugin-affiliates/src/commissions.ts',
     names: ['commissionForOrder'],
     reason: 'used inside the module; exported for the flow tests that read one order’s commission',

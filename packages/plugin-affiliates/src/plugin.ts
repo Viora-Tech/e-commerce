@@ -1,4 +1,5 @@
 import { definePlugin } from '@commerce/plugins'
+import { affiliateBlocks } from './blocks'
 import {
   applyRefunds,
   approveDueCommissions,
@@ -61,6 +62,7 @@ export const affiliatesPlugin = definePlugin({
     summary: 'tracks referrals',
   },
   provides: {},
+  storefront: { blocks: affiliateBlocks },
   hooks: {
     'order.paid': async (ctx, payload) => {
       const row = await ctx.inStore(async (tx) =>

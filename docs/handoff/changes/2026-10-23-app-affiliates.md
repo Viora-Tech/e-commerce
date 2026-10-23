@@ -45,10 +45,32 @@ regenerate this one so its `when` stays last.
 - Pricing: `APP_PRICING.affiliates` included from Growth, ₹299/month below. The sales store needs a
   product with SKU `app-affiliates-month`.
 
+## Also in this PR
+
+- **Theme block** `affiliates/AffiliateSignup` (heading, text, button to `/affiliate`), in the
+  manifest and `commerce.blocks.config.ts`; the component is `AffiliateSignupBlock` in
+  `packages/blocks/src/app-blocks`.
+- **WhatsApp**: `affiliate_update` is on both channels in the message catalogue. The worker sends
+  through `deliverMessageTo` (core, new: email to the address, WhatsApp to the phone on the
+  affiliate's store account). The merchant creates a WhatsApp template named `affiliate_update`
+  with four parameters: store, what happened, amount or code, dashboard link.
+- **Key rotation**: `bun run rotate-secrets` re-encrypts `affiliate.payout_details`
+  (`AFFILIATE_CIPHER_COLUMNS`) and recomputes `affiliate.phone_index` from the customer phone
+  (`refreshAffiliatePhoneIndexes`), in the same transaction per store.
+- **Privacy erase** (`anonymiseCustomer`): the affiliate row keeps its commissions and payouts
+  but loses name, email, phone index, application text, note, payout details, PAN flag and the
+  account link. It is suspended and its discount code is switched off. As a buyer, their
+  commissions lose the customer link.
+- **Clawback**: a commission already in a payout (paid or waiting) that is then cancelled,
+  RTO'd or refunded gets `clawback_paise` (all of it, or the refunded share). The affiliate's next
+  payout subtracts it (`affiliate_payout.clawback_paise`, and the commission's
+  `clawback_payout_id` marks it recovered). Cancelling that payout puts the clawback back. TDS
+  for the year is recomputed on commissions still standing.
+- **Storefront Hindi**: the storefront has no language mechanism (no `data/hi` and no locale
+  switch), so `/affiliate` and the block are English like the rest of the storefront. Admin
+  copy has Hindi.
+
 ## Not in v1
 
 No money moves (no payout API); no GST invoices from affiliates; no TDS filing or Form 16A; no
-MLM; no creator marketplace; no theme app block (the signup is the `/affiliate` route);
-`rotate-secrets` does not yet re-encrypt `affiliate.payout_details` (decryption accepts previous
-keys, so rotation does not break it); privacy erase does not yet anonymise an affiliate row;
-storefront copy is English only (the storefront has no Hindi overlay).
+MLM; no creator marketplace.

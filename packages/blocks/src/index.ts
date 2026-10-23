@@ -1,3 +1,4 @@
+export { default as AffiliateSignupBlock } from './app-blocks/affiliate-signup-block'
 export {
   type DeliveryCheckerContext,
   type DeliveryCheckerCopy,

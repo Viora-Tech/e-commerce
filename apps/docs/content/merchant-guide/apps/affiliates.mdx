@@ -37,6 +37,18 @@ An order placed from the affiliate's own account, email, phone or saved address 
 
 Affiliates add a UPI ID or bank account (and optionally their PAN) on their dashboard at **/affiliate**. The details are stored encrypted. Your admin only shows a masked line such as `UPI as•••@okaxis`. The bank file holds the full details and needs the **Settings** permission to download. Keep it private and delete it after uploading.
 
-## Emails
+## Signup block
 
-Affiliates get an email when they are approved, when a sale comes in, and when you mark a payout paid. These are listed in **Settings → Notifications** as **Affiliate update**.
+In the [website builder](/merchant-guide/online-store/website-builder), **Add → Apps → Affiliate signup** places an invitation with a button to **/affiliate** on any page. Edit its heading, text and button there.
+
+## Clawbacks
+
+If an order is refunded, cancelled or returned after its commission went into a payout, the commission is not taken out of that payout. The amount becomes a **clawback** and is subtracted from the affiliate's next payout. The Payouts page and the bank file show it.
+
+## Messages
+
+Affiliates get a message when they are approved, when a sale comes in, and when you mark a payout paid. These are listed in **Settings → Notifications** as **Affiliate update**. Email always goes out. To send it on WhatsApp too, create a WhatsApp template named `affiliate_update` with four parameters: your store name, what happened, the amount or code, and the dashboard link. Once Meta approves it, affiliates with a phone on their account get it there as well.
+
+## Privacy
+
+Erasing an affiliate's customer account removes their name, email, payout details and PAN from the affiliate record, pauses it and switches off their code. Their commissions and payouts stay in your books.

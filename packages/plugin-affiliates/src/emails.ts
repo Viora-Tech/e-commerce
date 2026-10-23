@@ -1,5 +1,6 @@
 /** SOURCE OF TRUTH: affiliate emails — WHAT: who an affiliate_update goes to and what it says / WHY: the worker sends it without knowing the app's tables */
-import type { StoreTx } from '@commerce/db'
+import { decryptCustomerPhone } from '@commerce/core'
+import { customer, type StoreTx } from '@commerce/db'
 import { formatMoney } from '@commerce/money'
 import type { TemplateData } from '@commerce/notifications'
 import { eq } from 'drizzle-orm'
@@ -11,8 +12,9 @@ export type AffiliateNotice = 'approved' | 'sale' | 'payout'
 export const AFFILIATE_PORTAL_PATH = '/affiliate'
 
 /**
- * The address and data for one `affiliate_update` email, or null when there is nothing to
- * send (the affiliate has no email, or the commission or payout is gone).
+ * Who one `affiliate_update` goes to (their email, and the phone on their store account for
+ * WhatsApp) and what it says, or null when there is nothing to send (no way to reach them, or
+ * the commission or payout is gone).
  */
 export async function affiliateEmail(
   tx: StoreTx,
@@ -22,10 +24,19 @@ export async function affiliateEmail(
     commissionId?: string | undefined
     payoutId?: string | undefined
     storefrontUrl: string
+    settingsSecret: string
   },
-): Promise<{ to: string; data: Partial<TemplateData> } | null> {
+): Promise<{
+  to: { email: string | null; phone: string | null }
+  data: Partial<TemplateData>
+} | null> {
   const [a] = await tx.select().from(affiliate).where(eq(affiliate.id, input.affiliateId))
-  if (!a?.email) return null
+  if (!a) return null
+  const [c] = a.customerId
+    ? await tx.select({ phone: customer.phone }).from(customer).where(eq(customer.id, a.customerId))
+    : []
+  const phone = decryptCustomerPhone(c?.phone, input.settingsSecret)
+  if (!a.email && !phone) return null
   const base = input.storefrontUrl.replace(/\/+$/, '')
   const info: NonNullable<TemplateData['affiliate']> = {
     kind: input.notice,
@@ -54,5 +65,5 @@ export async function affiliateEmail(
     info.tdsLabel = p.tdsPaise > 0 ? formatMoney(p.tdsPaise) : undefined
     info.reference = p.reference || undefined
   }
-  return { to: a.email, data: { customerName: info.name, affiliate: info } }
+  return { to: { email: a.email, phone }, data: { customerName: info.name, affiliate: info } }
 }

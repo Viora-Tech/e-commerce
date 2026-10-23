@@ -1700,7 +1700,7 @@ export const APP_CATALOGUE_DATA: CatalogueEntry[] = [
       shares: [],
     },
     adminPages: ['Overview', 'Affiliates', 'Commissions', 'Payouts', 'Settings'],
-    themeBlocks: [],
+    themeBlocks: ['Affiliate signup'],
     credits: [],
   },
 ]

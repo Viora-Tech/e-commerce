@@ -16,6 +16,8 @@ export type PayoutCandidate = {
   payoutHint: string | null
   grossPaise: number
   tdsPaise: number
+  /** Earlier paid commissions whose orders came back, taken off this payout. */
+  clawbackPaise: number
   netPaise: number
   commissions: number
   /** Over the minimum payout and has payout details saved. */
@@ -24,11 +26,30 @@ export type PayoutCandidate = {
   blocker: 'below_minimum' | 'no_details' | null
 }
 
-/** Approved commissions not yet in a payout, per affiliate. */
+/** Clawbacks not yet recovered, per affiliate. */
+async function openClawbacks(tx: StoreTx): Promise<Map<string, number>> {
+  const rows = await tx
+    .select({
+      affiliateId: affiliateCommission.affiliateId,
+      total: sql<number>`sum(${affiliateCommission.clawbackPaise})::int`,
+    })
+    .from(affiliateCommission)
+    .where(
+      and(
+        sql`${affiliateCommission.clawbackPaise} > 0`,
+        isNull(affiliateCommission.clawbackPayoutId),
+      ),
+    )
+    .groupBy(affiliateCommission.affiliateId)
+  return new Map(rows.map((r) => [r.affiliateId, r.total]))
+}
+
+/** Approved commissions not yet in a payout, per affiliate, less any clawback still owed. */
 export async function payoutCandidates(
   tx: StoreTx,
   settings: AffiliateSettings,
 ): Promise<PayoutCandidate[]> {
+  const clawbacks = await openClawbacks(tx)
   const rows = await tx
     .select({
       affiliateId: affiliateCommission.affiliateId,
@@ -44,8 +65,14 @@ export async function payoutCandidates(
     .where(and(eq(affiliateCommission.status, 'approved'), isNull(affiliateCommission.payoutId)))
     .groupBy(affiliateCommission.affiliateId, affiliate.name, affiliate.code, affiliate.payoutHint)
   return rows.map((r) => {
+    const clawbackPaise = Math.min(clawbacks.get(r.affiliateId) ?? 0, r.gross)
+    const owed = r.gross - clawbackPaise
     const blocker =
-      r.gross < settings.minPayoutPaise ? 'below_minimum' : !r.payoutHint ? 'no_details' : null
+      owed <= 0 || owed < settings.minPayoutPaise
+        ? 'below_minimum'
+        : !r.payoutHint
+          ? 'no_details'
+          : null
     return {
       affiliateId: r.affiliateId,
       name: r.name,
@@ -53,7 +80,8 @@ export async function payoutCandidates(
       payoutHint: r.payoutHint,
       grossPaise: r.gross,
       tdsPaise: r.tds,
-      netPaise: r.gross - r.tds,
+      clawbackPaise,
+      netPaise: Math.max(0, owed - r.tds),
       commissions: r.n,
       ready: blocker === null,
       blocker,
@@ -83,10 +111,23 @@ export async function createPayouts(
         affiliateId: c.affiliateId,
         grossPaise: c.grossPaise,
         tdsPaise: c.tdsPaise,
+        clawbackPaise: c.clawbackPaise,
         netPaise: c.netPaise,
       })
       .returning()
     if (!p) continue
+    if (c.clawbackPaise > 0) {
+      await tx
+        .update(affiliateCommission)
+        .set({ clawbackPayoutId: p.id, updatedAt: new Date() })
+        .where(
+          and(
+            eq(affiliateCommission.affiliateId, c.affiliateId),
+            sql`${affiliateCommission.clawbackPaise} > 0`,
+            isNull(affiliateCommission.clawbackPayoutId),
+          ),
+        )
+    }
     await tx
       .update(affiliateCommission)
       .set({ payoutId: p.id, updatedAt: new Date() })
@@ -138,6 +179,10 @@ export async function cancelPayout(tx: StoreTx, payoutId: string): Promise<void>
     .update(affiliateCommission)
     .set({ payoutId: null, updatedAt: new Date() })
     .where(eq(affiliateCommission.payoutId, p.id))
+  await tx
+    .update(affiliateCommission)
+    .set({ clawbackPayoutId: null, updatedAt: new Date() })
+    .where(eq(affiliateCommission.clawbackPayoutId, p.id))
   await tx.delete(affiliatePayout).where(eq(affiliatePayout.id, p.id))
 }
 
@@ -196,6 +241,7 @@ export async function payoutsCsv(
     'PAN',
     'Gross (INR)',
     'TDS (INR)',
+    'Clawback (INR)',
     'Amount to pay (INR)',
     'Email',
   ]
@@ -213,6 +259,7 @@ export async function payoutsCsv(
         d?.pan ?? '',
         rupees(p.grossPaise),
         rupees(p.tdsPaise),
+        rupees(p.clawbackPaise),
         rupees(p.netPaise),
         a.email ?? '',
       ]

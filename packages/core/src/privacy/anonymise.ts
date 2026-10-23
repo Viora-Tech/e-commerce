@@ -299,6 +299,23 @@ export async function anonymiseCustomer(
       sql`update review set reviewer_email = null, reviewer_name = 'A customer', customer_id = null where store_id = ${ctx.storeId} and (lower(reviewer_email) = ${cu.email.toLowerCase()} or customer_id = ${input.customerId})`,
     )
   }
+  // Affiliates app (same plain-SQL reason): an affiliate record of theirs keeps its commissions
+  // and payouts (the merchant's books, TDS), but the person goes: name, email, phone index, what
+  // they wrote, the encrypted payout details and PAN, and the account link. It stops earning and
+  // its discount code is switched off.
+  const affiliateOf = cu.email
+    ? sql`(customer_id = ${input.customerId} or lower(email) = ${cu.email.toLowerCase()})`
+    : sql`customer_id = ${input.customerId}`
+  await tx.execute(
+    sql`update discount set status = 'disabled', updated_at = now() where store_id = ${ctx.storeId} and id in (select discount_id from affiliate where store_id = ${ctx.storeId} and ${affiliateOf})`,
+  )
+  await tx.execute(
+    sql`update affiliate set name = 'Former affiliate', email = null, phone_index = null, social = '', message = '', note = '', payout_method = null, payout_details = null, payout_hint = null, has_pan = false, customer_id = null, status = 'suspended', updated_at = now() where store_id = ${ctx.storeId} and ${affiliateOf}`,
+  )
+  // As a buyer: their orders stay credited to the affiliate, without the link back to them.
+  await tx.execute(
+    sql`update affiliate_commission set customer_id = null where store_id = ${ctx.storeId} and customer_id = ${input.customerId}`,
+  )
 
   await tx
     .update(customer)

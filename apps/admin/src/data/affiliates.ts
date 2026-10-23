@@ -170,6 +170,7 @@ export const affiliatesContent = {
       affiliate: 'Affiliate',
       to: 'Pays to',
       gross: 'Commission',
+      clawback: 'Clawback',
       tds: 'TDS',
       net: 'To pay',
       status: 'Status',

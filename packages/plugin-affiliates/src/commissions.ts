@@ -302,7 +302,11 @@ export async function startHold(
   return row ?? null
 }
 
-/** Cancel, RTO, a full refund or the merchant: the commission is never paid. Paid ones stay paid. */
+/**
+ * Cancel, RTO, a full refund or the merchant: the commission is never paid. One already in a
+ * payout (paid, or waiting to be paid) cannot be taken out of it, so the money becomes a
+ * clawback the affiliate's next payout recovers.
+ */
 export async function reverseCommission(
   tx: StoreTx,
   storeId: string,
@@ -310,7 +314,9 @@ export async function reverseCommission(
   reason: ReverseReason,
 ): Promise<CommissionRow | null> {
   const current = await commissionForOrder(tx, orderId)
-  if (!current || !canReverse(current.status) || current.payoutId) return null
+  if (!current || current.status === 'reversed') return null
+  const inPayout = Boolean(current.payoutId)
+  if (!inPayout && !canReverse(current.status)) return null
   const [row] = await tx
     .update(affiliateCommission)
     .set({
@@ -318,6 +324,7 @@ export async function reverseCommission(
       reversedAt: new Date(),
       reversedReason: reason,
       updatedAt: new Date(),
+      ...(inPayout ? { clawbackPaise: current.clawbackPaise + current.commissionPaise } : {}),
     })
     .where(eq(affiliateCommission.id, current.id))
     .returning()
@@ -338,7 +345,8 @@ export async function applyRefunds(
   orderId: string,
 ): Promise<CommissionRow | null> {
   const current = await commissionForOrder(tx, orderId)
-  if (!current || !canReverse(current.status) || current.payoutId) return null
+  if (!current || current.status === 'reversed') return null
+  if (!current.payoutId && !canReverse(current.status)) return null
   const [o] = await tx.select({ total: order.totalPaise }).from(order).where(eq(order.id, orderId))
   const [r] = await tx
     .select({ s: sql<number>`coalesce(sum(${refund.amountPaise}), 0)::int` })
@@ -347,10 +355,19 @@ export async function applyRefunds(
   const total = o?.total ?? 0
   const refunded = r?.s ?? 0
   if (refunded >= total) return reverseCommission(tx, storeId, orderId, 'refunded')
-  const next = scaleForRefund(current.earnedPaise, total, refunded)
+  const next = Math.min(
+    current.commissionPaise,
+    scaleForRefund(current.earnedPaise, total, refunded),
+  )
+  // Already in a payout: the part refunded since is recovered from the next payout.
+  const clawback = current.payoutId ? current.commissionPaise - next : 0
   const [row] = await tx
     .update(affiliateCommission)
-    .set({ commissionPaise: next, updatedAt: new Date() })
+    .set({
+      commissionPaise: next,
+      clawbackPaise: current.clawbackPaise + clawback,
+      updatedAt: new Date(),
+    })
     .where(eq(affiliateCommission.id, current.id))
     .returning()
   return row ?? null

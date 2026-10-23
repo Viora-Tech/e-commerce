@@ -23,8 +23,8 @@ export function isDue(
 export type ReverseReason = 'cancelled' | 'rto' | 'refunded' | 'self_referral' | 'manual'
 
 /**
- * Whether an order event may still change this commission. Paid money is not clawed back
- * automatically (the merchant settles it with the affiliate); a reversed one stays reversed.
+ * Whether an order event may simply reverse this commission. One already in a payout is
+ * reversed as a clawback instead (`reverseCommission`); a reversed one stays reversed.
  */
 export function canReverse(status: CommissionStatus): boolean {
   return status === 'pending' || status === 'approved'

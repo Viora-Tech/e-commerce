@@ -78,6 +78,8 @@ export const affiliatePayout = pgTable(
       .references(() => affiliate.id),
     grossPaise: integer('gross_paise').notNull(),
     tdsPaise: integer('tds_paise').notNull().default(0),
+    /** Clawbacks of earlier paid commissions taken off this payout. */
+    clawbackPaise: integer('clawback_paise').notNull().default(0),
     netPaise: integer('net_paise').notNull(),
     status: text('status', { enum: ['pending', 'paid'] })
       .notNull()
@@ -126,6 +128,13 @@ export const affiliateCommission = pgTable(
     reversedAt: timestamp('reversed_at', { withTimezone: true }),
     reversedReason: text('reversed_reason'),
     payoutId: uuid('payout_id').references(() => affiliatePayout.id),
+    /**
+     * Money to win back: the commission was already in a payout when its order was refunded,
+     * cancelled or returned. The affiliate's next payout is lowered by it.
+     */
+    clawbackPaise: integer('clawback_paise').notNull().default(0),
+    /** The payout that recovered the clawback. */
+    clawbackPayoutId: uuid('clawback_payout_id').references(() => affiliatePayout.id),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   },

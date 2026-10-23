@@ -123,13 +123,14 @@ export default function PayoutsPage() {
               <TableHead className={HEAD}>{cols.affiliate}</TableHead>
               <TableHead className={HEAD}>{cols.to}</TableHead>
               <TableHead className={`${HEAD} text-right`}>{cols.gross}</TableHead>
+              <TableHead className={`${HEAD} text-right`}>{cols.clawback}</TableHead>
               <TableHead className={`${HEAD} text-right`}>{cols.tds}</TableHead>
               <TableHead className={`${HEAD} text-right`}>{cols.net}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {candidates.length === 0 ? (
-              <TableEmptyRow colSpan={5} message={copy.readyEmpty} />
+              <TableEmptyRow colSpan={6} message={copy.readyEmpty} />
             ) : null}
             {candidates.map((c) => (
               <TableRow key={c.affiliateId}>
@@ -143,6 +144,9 @@ export default function PayoutsPage() {
                 </TableCell>
                 <TableCell className={`${CELL} text-right tabular-nums`}>
                   {f.money(c.grossPaise)}
+                </TableCell>
+                <TableCell className={`${CELL} text-right tabular-nums`}>
+                  {c.clawbackPaise ? f.money(-c.clawbackPaise) : '—'}
                 </TableCell>
                 <TableCell className={`${CELL} text-right tabular-nums`}>
                   {f.money(c.tdsPaise)}

@@ -1,4 +1,4 @@
-import { deliverEmailTo, installedApps, storefrontOriginFor } from '@commerce/core'
+import { deliverMessageTo, installedApps, storefrontOriginFor } from '@commerce/core'
 import { registriesForStore } from '@commerce/core/registries'
 import { type Db, storesWithDueAffiliateCommissions, withStore } from '@commerce/db'
 import { logger } from '@commerce/observability/logging'
@@ -18,7 +18,8 @@ import {
 } from '@commerce/queue'
 
 /**
- * Sends one `affiliate_update` email (approved, a new sale, a payout) to the affiliate, with
+ * Sends one `affiliate_update` (approved, a new sale, a payout) to the affiliate by email, and by
+ * WhatsApp once the store has an approved `affiliate_update` template, with
  * links on the store's own domain. Nothing to send (no email, the commission reversed) is [].
  */
 export async function deliverAffiliateUpdate(
@@ -42,9 +43,10 @@ export async function deliverAffiliateUpdate(
       storefrontUrl: input.storefrontUrl
         ? await storefrontOriginFor(tx, storeId, input.storefrontUrl)
         : '',
+      settingsSecret: input.settingsSecret,
     })
     if (!email) return []
-    return deliverEmailTo({ storeId, tx }, 'affiliate_update', email.to, email.data, {
+    return deliverMessageTo({ storeId, tx }, 'affiliate_update', email.to, email.data, {
       registry: (await registriesForStore(tx, storeId)).notifications,
       settingsSecret: input.settingsSecret,
     })

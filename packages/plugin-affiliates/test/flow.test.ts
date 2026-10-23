@@ -1,3 +1,4 @@
+import { anonymiseCustomer, phoneBlindIndex, rotateStoreSecrets } from '@commerce/core'
 import {
   address,
   createDb,
@@ -28,6 +29,7 @@ import {
 } from '../src/commissions'
 import { createPayouts, markPayoutPaid, payoutsCsv } from '../src/payouts'
 import { affiliate } from '../src/schema'
+import { AFFILIATE_CIPHER_COLUMNS, refreshAffiliatePhoneIndexes } from '../src/secrets'
 import { type AffiliateSettings, defaultAffiliateSettings } from '../src/settings'
 
 const owner = createDb(process.env.DATABASE_URL_OWNER as string)
@@ -401,9 +403,152 @@ describe('payouts', () => {
     await inStore(s.storeId, (tx) => markPayoutPaid(tx, s.storeId, p?.id as string, 'UTR123'))
     expect((await inStore(s.storeId, (tx) => commissionForOrder(tx, big.id)))?.status).toBe('paid')
     expect(await events(s.storeId, 'affiliate.payout_paid')).toHaveLength(1)
-    // Paid money is not clawed back by a later refund.
-    expect(
-      await inStore(s.storeId, (tx) => reverseCommission(tx, s.storeId, big.id, 'refunded')),
-    ).toBeNull()
+
+    // Clawback: the paid order is refunded; its commission is won back from the next payout.
+    const clawed = await inStore(s.storeId, (tx) =>
+      reverseCommission(tx, s.storeId, big.id, 'refunded'),
+    )
+    expect(clawed).toMatchObject({ status: 'reversed', clawbackPaise: 20_000_00 })
+    const third = await placeOrder(s.storeId, s.variantId, {
+      attribution: ref(a.code),
+      email: 'third@example.com',
+      subtotalPaise: 2_95_000_00,
+      totalPaise: 2_95_000_00,
+    })
+    await owner
+      .update(orderLine)
+      .set({ unitPricePaise: 2_95_000_00 })
+      .where(eq(orderLine.orderId, third.id))
+    await inStore(s.storeId, async (tx) => {
+      await creditOrder(tx, s.storeId, third.id, settings, SECRET)
+      await startHold(tx, third.id, { ...settings, holdDays: 0 }, new Date(now.getTime() - 1000))
+      await approveDueCommissions(tx, s.storeId, settings, now)
+    })
+    // 2,50,000 net, 10% = 25,000 commission. The reversed 20,000 no longer counts for the year:
+    // 30,000 at 2% = 600, less 500 already deducted = 100 TDS. Less the 20,000 clawback.
+    const [next] = await inStore(s.storeId, (tx) => createPayouts(tx, s.storeId, settings))
+    expect(next).toMatchObject({
+      grossPaise: 25_000_00,
+      clawbackPaise: 20_000_00,
+      tdsPaise: 100_00,
+      netPaise: 4_900_00,
+    })
+    // Recovered once: a further payout has no clawback left.
+    const [again] = await inStore(s.storeId, (tx) => createPayouts(tx, s.storeId, settings))
+    expect(again).toBeUndefined()
+  })
+
+  it('takes a partial refund on a paid commission back as a clawback', async () => {
+    const s = await seed()
+    const a = await newAffiliate(s.storeId, s.affiliateCustomerId)
+    await inStore(s.storeId, (tx) =>
+      savePayoutDetails(tx, a.id, { method: 'upi', upiId: 'asha@okaxis' }, SECRET),
+    )
+    const o = await placeOrder(s.storeId, s.variantId, {
+      attribution: ref(a.code),
+      subtotalPaise: 11_800_00,
+      totalPaise: 11_800_00,
+    })
+    await owner
+      .update(orderLine)
+      .set({ unitPricePaise: 11_800_00 })
+      .where(eq(orderLine.orderId, o.id))
+    const now = new Date()
+    await inStore(s.storeId, async (tx) => {
+      await creditOrder(tx, s.storeId, o.id, settings, SECRET)
+      await startHold(tx, o.id, { ...settings, holdDays: 0 }, new Date(now.getTime() - 1000))
+      await approveDueCommissions(tx, s.storeId, settings, now)
+    })
+    const [p] = await inStore(s.storeId, (tx) => createPayouts(tx, s.storeId, settings))
+    await inStore(s.storeId, (tx) => markPayoutPaid(tx, s.storeId, p?.id as string, 'UTR1'))
+    const [pay] = await owner
+      .insert(payment)
+      .values({
+        storeId: s.storeId,
+        orderId: o.id,
+        provider: 'razorpay',
+        providerRef: 'pay_2',
+        amountPaise: 11_800_00,
+        status: 'captured',
+      })
+      .returning()
+    await owner.insert(refund).values({
+      storeId: s.storeId,
+      orderId: o.id,
+      paymentId: pay?.id as string,
+      amountPaise: 2_950_00,
+      status: 'processed',
+    })
+    const c = await inStore(s.storeId, (tx) => applyRefunds(tx, s.storeId, o.id))
+    expect(c).toMatchObject({ status: 'paid', commissionPaise: 750_00, clawbackPaise: 250_00 })
+  })
+})
+
+describe('secrets and privacy', () => {
+  it('rotate-secrets moves payout details and the phone index to the new key', async () => {
+    const s = await seed()
+    const a = await newAffiliate(s.storeId, s.affiliateCustomerId)
+    await owner
+      .update(customer)
+      .set({ phone: '+91 98765 43210' })
+      .where(eq(customer.id, s.affiliateCustomerId))
+    await inStore(s.storeId, (tx) =>
+      savePayoutDetails(tx, a.id, { method: 'upi', upiId: 'asha@okaxis' }, SECRET),
+    )
+    const NEXT = 'next-secret-next-secret-next-secret-000'
+    const keyring = { current: NEXT, previous: [SECRET] }
+    const counts = await inStore(s.storeId, async (tx) => {
+      const c = await rotateStoreSecrets(tx, s.storeId, keyring, {
+        apply: true,
+        columns: AFFILIATE_CIPHER_COLUMNS,
+      })
+      await refreshAffiliatePhoneIndexes(tx, NEXT, [SECRET])
+      return c
+    })
+    expect(counts.columns['affiliate payout details']).toBe(1)
+    const [row] = await owner.select().from(affiliate).where(eq(affiliate.id, a.id))
+    expect(readPayoutDetails(row as typeof affiliate.$inferSelect, NEXT)).toMatchObject({
+      upiId: 'asha@okaxis',
+    })
+    expect(row?.phoneIndex).toBe(phoneBlindIndex('9876543210', NEXT))
+  })
+
+  it('erasing the affiliate keeps the ledger but drops the person and payout details', async () => {
+    const s = await seed()
+    const a = await newAffiliate(s.storeId, s.affiliateCustomerId)
+    await inStore(s.storeId, (tx) =>
+      savePayoutDetails(
+        tx,
+        a.id,
+        { method: 'upi', upiId: 'asha@okaxis', pan: 'ABCDE1234F' },
+        SECRET,
+      ),
+    )
+    const o = await placeOrder(s.storeId, s.variantId, { attribution: ref(a.code) })
+    await inStore(s.storeId, (tx) => creditOrder(tx, s.storeId, o.id, settings, SECRET))
+    await inStore(s.storeId, (tx) =>
+      anonymiseCustomer(
+        { storeId: s.storeId, tx },
+        { customerId: s.affiliateCustomerId, actor: { type: 'system' } },
+      ),
+    )
+    const [row] = await owner.select().from(affiliate).where(eq(affiliate.id, a.id))
+    expect(row).toMatchObject({
+      name: 'Former affiliate',
+      email: null,
+      phoneIndex: null,
+      payoutDetails: null,
+      payoutHint: null,
+      hasPan: false,
+      customerId: null,
+      status: 'suspended',
+    })
+    const [d] = await owner
+      .select()
+      .from(discount)
+      .where(eq(discount.id, row?.discountId as string))
+    expect(d?.status).toBe('disabled')
+    const c = await inStore(s.storeId, (tx) => commissionForOrder(tx, o.id))
+    expect(c).toMatchObject({ commissionPaise: 100_00, basePaise: 1000_00 })
   })
 })

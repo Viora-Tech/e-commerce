@@ -6,6 +6,7 @@
   "description": "Affiliates app: referral links and coupons per affiliate, commissions held until delivery and the return window, payouts with TDS, and a storefront portal.",
   "exports": {
     ".": "./src/index.ts",
+    "./blocks": "./src/blocks.tsx",
     "./schema": "./src/schema.ts",
     "./settings": "./src/settings.ts",
     "./server": "./src/server.ts"
@@ -15,6 +16,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@commerce/blocks": "workspace:*",
     "@commerce/core": "workspace:*",
     "@commerce/dates": "workspace:*",
     "@commerce/db": "workspace:*",

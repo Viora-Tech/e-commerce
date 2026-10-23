@@ -48,7 +48,7 @@ export type TemplateId =
   | 'review_reminder'
   /** The store replied to the shopper's review (Reviews app). Email only. */
   | 'review_reply'
-  /** To an AFFILIATE (Affiliates app): approved, a new sale, or a payout sent. Email only. */
+  /** To an AFFILIATE (Affiliates app): approved, a new sale, or a payout sent. Email, and WhatsApp with an approved template. */
   | 'affiliate_update'
   /** To the MERCHANT: an unpaid transfer order will be cancelled automatically. Email only. */
   | 'unpaid_cancel_notice'

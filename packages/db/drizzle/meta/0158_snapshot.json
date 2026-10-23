@@ -1,5 +1,5 @@
 {
-  "id": "404646a0-a2a5-42a1-aee1-35556e63ab7f",
+  "id": "989f9292-a920-4ad0-9303-fc1ed910855c",
   "prevId": "ef4a4e30-2f21-463b-aab7-19c4d2225ee4",
   "version": "7",
   "dialect": "postgresql",
@@ -21360,6 +21360,19 @@
           "primaryKey": false,
           "notNull": false
         },
+        "clawback_paise": {
+          "name": "clawback_paise",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "clawback_payout_id": {
+          "name": "clawback_payout_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
         "created_at": {
           "name": "created_at",
           "type": "timestamp with time zone",
@@ -21525,6 +21538,19 @@
           ],
           "onDelete": "no action",
           "onUpdate": "no action"
+        },
+        "affiliate_commission_clawback_payout_id_affiliate_payout_id_fk": {
+          "name": "affiliate_commission_clawback_payout_id_affiliate_payout_id_fk",
+          "tableFrom": "affiliate_commission",
+          "tableTo": "affiliate_payout",
+          "columnsFrom": [
+            "clawback_payout_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
@@ -21563,6 +21589,13 @@
         },
         "tds_paise": {
           "name": "tds_paise",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "clawback_paise": {
+          "name": "clawback_paise",
           "type": "integer",
           "primaryKey": false,
           "notNull": true,

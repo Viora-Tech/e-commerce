@@ -42,6 +42,8 @@ CREATE TABLE "affiliate_commission" (
 	"reversed_at" timestamp with time zone,
 	"reversed_reason" text,
 	"payout_id" uuid,
+	"clawback_paise" integer DEFAULT 0 NOT NULL,
+	"clawback_payout_id" uuid,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
 	"updated_at" timestamp with time zone DEFAULT now() NOT NULL
 );
@@ -52,6 +54,7 @@ CREATE TABLE "affiliate_payout" (
 	"affiliate_id" uuid NOT NULL,
 	"gross_paise" integer NOT NULL,
 	"tds_paise" integer DEFAULT 0 NOT NULL,
+	"clawback_paise" integer DEFAULT 0 NOT NULL,
 	"net_paise" integer NOT NULL,
 	"status" text DEFAULT 'pending' NOT NULL,
 	"reference" text DEFAULT '' NOT NULL,
@@ -65,6 +68,7 @@ ALTER TABLE "affiliate_commission" ADD CONSTRAINT "affiliate_commission_store_id
 ALTER TABLE "affiliate_commission" ADD CONSTRAINT "affiliate_commission_affiliate_id_affiliate_id_fk" FOREIGN KEY ("affiliate_id") REFERENCES "public"."affiliate"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "affiliate_commission" ADD CONSTRAINT "affiliate_commission_order_id_order_id_fk" FOREIGN KEY ("order_id") REFERENCES "public"."order"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "affiliate_commission" ADD CONSTRAINT "affiliate_commission_payout_id_affiliate_payout_id_fk" FOREIGN KEY ("payout_id") REFERENCES "public"."affiliate_payout"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "affiliate_commission" ADD CONSTRAINT "affiliate_commission_clawback_payout_id_affiliate_payout_id_fk" FOREIGN KEY ("clawback_payout_id") REFERENCES "public"."affiliate_payout"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "affiliate_payout" ADD CONSTRAINT "affiliate_payout_store_id_store_id_fk" FOREIGN KEY ("store_id") REFERENCES "public"."store"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "affiliate_payout" ADD CONSTRAINT "affiliate_payout_affiliate_id_affiliate_id_fk" FOREIGN KEY ("affiliate_id") REFERENCES "public"."affiliate"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 CREATE UNIQUE INDEX "affiliate_store_code" ON "affiliate" USING btree ("store_id","code");--> statement-breakpoint
