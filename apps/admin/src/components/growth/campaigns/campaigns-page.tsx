@@ -1,13 +1,17 @@
 'use client'
 
+import type { CampaignPerformanceRow } from '@commerce/api'
 import { siteConfig } from '@commerce/config/site'
 import { Send } from '@commerce/ui/icons'
+import { Button } from '@commerce/ui/shadcn/button'
 import { Card } from '@commerce/ui/shadcn/card'
-import { useState } from 'react'
+import Link from 'next/link'
+import { type ReactNode, useState } from 'react'
 import EmptyState from '@/components/layout/empty-state'
 import ProoflyListPage from '@/components/layout/proofly-list-page'
 import ResourceTable from '@/components/table/resource-table'
 import ViewSelect from '@/components/table/view-select'
+import { growthCampaignTabsContent } from '@/data/growth-home'
 import { campaignsContent } from '@/data/marketing-campaigns'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import type { api } from '@/lib/api-client'
@@ -15,20 +19,31 @@ import { routes } from '@/lib/routes'
 import { campaignColumns } from './campaign-columns'
 import CampaignRowMenu from './campaign-row-menu'
 import CreateCampaignMenu from './create-campaign-menu'
+import TrackedCampaignsCard from './tracked-campaigns-card'
 
 type Item = Awaited<ReturnType<typeof api.marketing.campaigns.list>>[number]
 type Tab = 'sent' | 'scheduled' | 'draft'
 
-type CampaignsPageProps = { campaigns: Item[] }
+type CampaignsPageProps = {
+  campaigns: Item[]
+  /** Sessions and sales since 1 January for our sends and tracking-link campaigns. */
+  performance: CampaignPerformanceRow[]
+  /** Campaigns | Tracking links, under the header. */
+  tabs?: ReactNode
+}
 
 function inStatus(campaigns: Item[], status: Tab): number {
   return campaigns.filter((c) => c.status === status).length
 }
 
-/** Growth > Campaigns: every email and WhatsApp campaign with its results, filtered by status. */
-export default function CampaignsPage({ campaigns }: CampaignsPageProps) {
+/**
+ * Growth > Campaigns: every email and WhatsApp campaign with its results and this year's
+ * sessions and sales, filtered by status, then the campaigns found on tracking links.
+ */
+export default function CampaignsPage({ campaigns, performance, tabs }: CampaignsPageProps) {
   // Hooks
   const copy = useCopy(campaignsContent)
+  const tabsCopy = useCopy(growthCampaignTabsContent)
   const fmt = useFormat()
   const [tab, setTab] = useState<Tab | null>(null)
   const [query, setQuery] = useState('')
@@ -40,6 +55,20 @@ export default function CampaignsPage({ campaigns }: CampaignsPageProps) {
   const sales = campaigns.reduce((n, c) => n + c.stats.revenuePaise, 0)
   const back = { label: copy.back, href: routes.growth.home() }
   const summary = copy.summary(campaigns.length, sentCount, fmt.money(sales))
+  const ytd = new Map(performance.flatMap((r) => (r.id ? [[r.id, r] as const] : [])))
+  const tracked = performance.filter((r) => r.kind === 'utm')
+  const actions = (
+    <div className="flex items-center gap-2">
+      <Button
+        variant="outline"
+        render={<Link href={routes.growth.automations()} />}
+        nativeButton={false}
+      >
+        {tabsCopy.automations}
+      </Button>
+      <CreateCampaignMenu />
+    </div>
+  )
 
   if (campaigns.length === 0) {
     return (
@@ -47,7 +76,8 @@ export default function CampaignsPage({ campaigns }: CampaignsPageProps) {
         title={copy.title}
         summary={copy.summaryEmpty}
         back={back}
-        actions={<CreateCampaignMenu />}
+        actions={actions}
+        controls={tabs}
       >
         <Card inset="y-10">
           <EmptyState
@@ -57,6 +87,7 @@ export default function CampaignsPage({ campaigns }: CampaignsPageProps) {
             action={<CreateCampaignMenu />}
           />
         </Card>
+        <TrackedCampaignsCard rows={tracked} />
       </ProoflyListPage>
     )
   }
@@ -72,11 +103,12 @@ export default function CampaignsPage({ campaigns }: CampaignsPageProps) {
       title={copy.title}
       summary={summary}
       back={back}
-      actions={<CreateCampaignMenu />}
+      actions={actions}
+      controls={tabs}
     >
       <ResourceTable
         resourceName={copy.resource}
-        columns={campaignColumns(copy, fmt)}
+        columns={campaignColumns(copy, fmt, { rows: ytd, copy: tabsCopy })}
         items={items}
         getId={(c) => c.id}
         href={(c) => routes.growth.campaign(c.id)}
@@ -125,6 +157,7 @@ export default function CampaignsPage({ campaigns }: CampaignsPageProps) {
         selectable={false}
         empty={{ heading: copy.empty.heading }}
       />
+      <TrackedCampaignsCard rows={tracked} />
     </ProoflyListPage>
   )
 }

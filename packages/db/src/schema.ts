@@ -1713,6 +1713,27 @@ export type DiscountKind = 'code' | 'automatic'
 export type DiscountMethod = 'percent' | 'fixed' | 'free_shipping'
 export type DiscountAppliesTo = 'all' | 'products' | 'collections'
 export type DiscountStatus = 'active' | 'disabled'
+/** Shopify's four discount types; `method` still says what a products/order/bxgy discount gives. */
+export type DiscountType = 'products' | 'order' | 'bxgy' | 'shipping'
+export type DiscountEligibility = 'all' | 'segments' | 'customers'
+/** Which other discount classes this one may stack with at checkout. */
+export type DiscountCombinesWith = { products: boolean; order: boolean; shipping: boolean }
+/**
+ * Buy X get Y. The shopper buys `buys` (a quantity of items or an amount spent, from products
+ * or collections) and gets `gets.quantity` items from `gets` at the discount's `method`/`value`
+ * (percent 10000 = free), at most `maxUsesPerOrder` times per order (null = no cap).
+ */
+export type DiscountBxgy = {
+  buys: {
+    kind: 'quantity' | 'amount'
+    quantity: number
+    amountPaise: number
+    appliesTo: 'products' | 'collections'
+    ids: string[]
+  }
+  gets: { quantity: number; appliesTo: 'products' | 'collections'; ids: string[] }
+  maxUsesPerOrder: number | null
+}
 
 /**
  * A discount code or an automatic offer. `value` is basis points for
@@ -1725,12 +1746,15 @@ export const discount = pgTable(
     id: id(),
     storeId: storeId(),
     title: text('title').notNull(),
+    type: text('type').$type<DiscountType>().notNull().default('order'),
     kind: text('kind').$type<DiscountKind>().notNull().default('code'),
     /** Upper-cased and trimmed; null for automatic discounts. */
     code: text('code'),
     method: text('method').$type<DiscountMethod>().notNull(),
     value: integer('value').notNull().default(0),
     minSubtotalPaise: integer('min_subtotal_paise'),
+    /** Minimum number of items (eligible items for a products discount) in the cart. */
+    minQuantity: integer('min_quantity'),
     appliesTo: text('applies_to').$type<DiscountAppliesTo>().notNull().default('all'),
     /** Product or collection ids when applies_to narrows the scope. */
     appliesToIds: jsonb('applies_to_ids').$type<string[]>().notNull().default([]),
@@ -1740,6 +1764,22 @@ export const discount = pgTable(
      * applies_to `products` and method `percent` or `fixed`; null means `value` applies.
      */
     productValues: jsonb('product_values').$type<Record<string, number>>(),
+    /** Buy X get Y settings; only for type `bxgy`. */
+    bxgy: jsonb('bxgy').$type<DiscountBxgy>(),
+    /** Free shipping only to these Indian state codes; empty means every state. */
+    shippingStates: jsonb('shipping_states').$type<string[]>().notNull().default([]),
+    /** Free shipping skips rates above this price; null means any rate. */
+    maxShippingPaise: integer('max_shipping_paise'),
+    customerEligibility: text('customer_eligibility')
+      .$type<DiscountEligibility>()
+      .notNull()
+      .default('all'),
+    /** Segment ids or customer ids, per `customer_eligibility`. */
+    eligibleIds: jsonb('eligible_ids').$type<string[]>().notNull().default([]),
+    combinesWith: jsonb('combines_with')
+      .$type<DiscountCombinesWith>()
+      .notNull()
+      .default({ products: false, order: false, shipping: false }),
     usageLimit: integer('usage_limit'),
     usagePerCustomer: integer('usage_per_customer'),
     usedCount: integer('used_count').notNull().default(0),

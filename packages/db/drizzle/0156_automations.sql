@@ -143,7 +143,8 @@ CREATE UNIQUE INDEX "automation_version_number" ON "automation_version" USING bt
 CREATE INDEX "automation_workflow_trigger" ON "automation_workflow" USING btree ("store_id","trigger_type","status");--> statement-breakpoint
 CREATE INDEX "automation_workflow_schedule" ON "automation_workflow" USING btree ("next_fire_at") WHERE "automation_workflow"."status" = 'on' and "automation_workflow"."next_fire_at" is not null;--> statement-breakpoint
 ALTER TABLE "marketing_message" ADD CONSTRAINT "marketing_message_automation_run_id_automation_run_id_fk" FOREIGN KEY ("automation_run_id") REFERENCES "public"."automation_run"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-CREATE UNIQUE INDEX "marketing_message_automation_step" ON "marketing_message" USING btree ("automation_run_id","automation_node_id") WHERE automation_run_id is not null;--> statement-breakpoint
+CREATE UNIQUE INDEX "marketing_message_automation_step" ON "marketing_message" USING btree ("automation_run_id","automation_node_id") WHERE automation_run_id is not null;
+--> statement-breakpoint
 SELECT apply_store_rls();
 --> statement-breakpoint
 -- New `automations` permissions (design §8.7). The system Administrator role gets all four, as new

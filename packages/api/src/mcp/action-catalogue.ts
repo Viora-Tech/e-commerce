@@ -196,6 +196,7 @@ const EXCLUDED_PATHS: Record<string, string> = {
   'payments.razorpayOAuthComplete': 'a browser sign-in hand-off to Razorpay',
   'searchConsole.connectStart': 'a browser sign-in hand-off to Google',
   'searchConsole.connectComplete': 'a browser sign-in hand-off to Google',
+  'platformApps.completeWhatsapp': 'a browser sign-in hand-off to Meta (WhatsApp Embedded Signup)',
   'media.presign': 'a browser upload hand-off',
   'media.confirm': 'a browser upload hand-off',
 }
@@ -307,6 +308,7 @@ const NAMESPACE_AREA: Record<string, ApiArea> = {
   umami: 'settings',
   chatwoot: 'settings',
   growthbook: 'settings',
+  platformApps: 'settings',
   searchConsole: 'settings',
   meilisearch: 'settings',
   ai: 'settings',

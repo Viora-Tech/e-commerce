@@ -66,7 +66,11 @@ async function automationStates(tx: StoreTx): Promise<GrowthFacts['automations']
 const subscribed = and(eq(customer.acceptsMarketing, true), isNull(customer.unsubscribedAt))
 
 /** The store numbers the recommendation rules read (core `growthRecommendations`). */
-async function growthFacts(tx: StoreTx, storeId: string, now = new Date()): Promise<GrowthFacts> {
+export async function growthFacts(
+  tx: StoreTx,
+  storeId: string,
+  now = new Date(),
+): Promise<GrowthFacts> {
   const ago = (days: number) => new Date(now.getTime() - days * DAY_MS)
   const [
     automations,

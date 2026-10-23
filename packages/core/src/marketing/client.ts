@@ -3,6 +3,7 @@
 export type { MarketingCampaignStatus, MarketingRunStatus } from '@commerce/db'
 export * from './attribution'
 export * from './automation-steps'
+export * from './autopilot'
 export * from './campaign-input'
 export * from './email'
 export * from './email-design'

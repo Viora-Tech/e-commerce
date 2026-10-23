@@ -978,15 +978,22 @@
     {
       "idx": 139,
       "version": "7",
-      "when": 1792740899075,
-      "tag": "0154_automations",
+      "when": 1792742876885,
+      "tag": "0155_discount_shopify_parity",
       "breakpoints": true
     },
     {
       "idx": 140,
       "version": "7",
-      "when": 1792742605078,
-      "tag": "0155_fulfillment_hold",
+      "when": 1792745569702,
+      "tag": "0156_automations",
+      "breakpoints": true
+    },
+    {
+      "idx": 141,
+      "version": "7",
+      "when": 1792745572519,
+      "tag": "0157_fulfillment_hold",
       "breakpoints": true
     }
   ]

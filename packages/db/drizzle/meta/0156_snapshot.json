@@ -1,6 +1,6 @@
 {
-  "id": "837597d6-494a-48b7-9734-ab1d2be644b2",
-  "prevId": "01055a8c-876e-4039-931e-da19cd7a6234",
+  "id": "1c92c27e-11bf-4665-bfc9-773cc4d4a61d",
+  "prevId": "ef4a4e30-2f21-463b-aab7-19c4d2225ee4",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -1811,6 +1811,13 @@
           "primaryKey": false,
           "notNull": true
         },
+        "type": {
+          "name": "type",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'order'"
+        },
         "kind": {
           "name": "kind",
           "type": "text",
@@ -1843,6 +1850,12 @@
           "primaryKey": false,
           "notNull": false
         },
+        "min_quantity": {
+          "name": "min_quantity",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
         "applies_to": {
           "name": "applies_to",
           "type": "text",
@@ -1862,6 +1875,46 @@
           "type": "jsonb",
           "primaryKey": false,
           "notNull": false
+        },
+        "bxgy": {
+          "name": "bxgy",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "shipping_states": {
+          "name": "shipping_states",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'[]'::jsonb"
+        },
+        "max_shipping_paise": {
+          "name": "max_shipping_paise",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "customer_eligibility": {
+          "name": "customer_eligibility",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'all'"
+        },
+        "eligible_ids": {
+          "name": "eligible_ids",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'[]'::jsonb"
+        },
+        "combines_with": {
+          "name": "combines_with",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'{\"products\":false,\"order\":false,\"shipping\":false}'::jsonb"
         },
         "usage_limit": {
           "name": "usage_limit",
@@ -11500,6 +11553,12 @@
         "problem": {
           "name": "problem",
           "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "problem_notified_at": {
+          "name": "problem_notified_at",
+          "type": "timestamp with time zone",
           "primaryKey": false,
           "notNull": false
         },

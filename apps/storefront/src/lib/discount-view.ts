@@ -1,6 +1,7 @@
 import 'server-only'
 
 import { type CodeRejection, resolveCartDiscount } from '@commerce/core'
+import { currentCustomer } from './customer-session'
 import { requestStoreId } from './request-store'
 import { inStore } from './store-context'
 
@@ -26,8 +27,11 @@ export async function cartDiscountView(
   code: string | null,
 ): Promise<CartDiscountView | null> {
   const storeId = await requestStoreId()
+  // A signed-in shopper is known before checkout, so discounts limited to customers or
+  // segments show (or drop) for them on the cart already; guests are checked at checkout.
+  const me = await currentCustomer(storeId)
   const { outcome, codeRejected } = await inStore(storeId, (tx) =>
-    resolveCartDiscount({ storeId, tx }, cartId, code),
+    resolveCartDiscount({ storeId, tx }, cartId, code, { email: me?.email }),
   )
   if (!outcome) return codeRejected ? emptyRejected(codeRejected) : null
   return {

@@ -1,5 +1,5 @@
 /** SOURCE OF TRUTH: growth report maths — WHAT: paid vs organic channels, first-time vs returning split, a campaign's funnel (sent → delivered → opened → visited → added to cart → ordered) and its rates, with "not reported" kept apart from zero / WHY: the overview, the campaign report and their tests must agree, and the admin needs these without a database import */
-import type { MarketingChannel } from './attribution'
+import { MARKETING_CHANNELS, type MarketingChannel } from './attribution'
 
 /** Channels a merchant pays for: the Paid filter on the overview's channel table. */
 const PAID_CHANNELS: readonly MarketingChannel[] = ['paid_search', 'paid_social', 'other_paid']
@@ -12,6 +12,18 @@ export function channelMatches(channel: string, filter: ChannelFilter): boolean 
   if (channel === 'untracked') return false
   const paid = (PAID_CHANNELS as readonly string[]).includes(channel)
   return filter === 'paid' ? paid : !paid
+}
+
+/** Shopify's "Sessions by traffic type" buckets. */
+export const TRAFFIC_TYPES = ['direct', 'paid', 'organic', 'unknown'] as const
+export type TrafficType = (typeof TRAFFIC_TYPES)[number]
+
+/** Direct, paid (search, social, other paid), organic (everything else we can name) or unknown. */
+export function trafficType(channel: string | null | undefined): TrafficType {
+  if (!channel || channel === 'untracked') return 'unknown'
+  if (channel === 'direct') return 'direct'
+  if ((PAID_CHANNELS as readonly string[]).includes(channel)) return 'paid'
+  return (MARKETING_CHANNELS as readonly string[]).includes(channel) ? 'organic' : 'unknown'
 }
 
 /** Orders and sales from first-time buyers and from buyers who had ordered before. */
