@@ -128,6 +128,19 @@ export const sampleTemplateDataByTemplate: Record<TemplateId, TemplateData> = {
   balance_received: { ...base, orderUrl: 'https://waimers.example/orders/42' },
   payment_reminder: { ...base, orderUrl: 'https://waimers.example/orders/42/pay' },
   unpaid_cancel_notice: { ...base, deadlineLabel: '28 Sep 2026' },
+  affiliate_update: {
+    ...base,
+    orderNumber: undefined,
+    lines: [],
+    taxBreakdown: undefined,
+    affiliate: {
+      kind: 'approved',
+      name: 'Asha',
+      link: 'https://waimers.example/?ref=asha',
+      couponCode: 'ASHA',
+      portalUrl: 'https://waimers.example/affiliate',
+    },
+  },
   contact_message: {
     ...base,
     orderNumber: undefined,

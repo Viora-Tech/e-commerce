@@ -48,6 +48,8 @@ export type TemplateId =
   | 'review_reminder'
   /** The store replied to the shopper's review (Reviews app). Email only. */
   | 'review_reply'
+  /** To an AFFILIATE (Affiliates app): approved, a new sale, or a payout sent. Email only. */
+  | 'affiliate_update'
   /** To the MERCHANT: an unpaid transfer order will be cancelled automatically. Email only. */
   | 'unpaid_cancel_notice'
   /** A manual UPI / bank transfer order was cancelled for non-payment. */
@@ -223,6 +225,23 @@ export type TemplateData = {
         productTitle?: string | undefined
         productUrl?: string | undefined
         reply?: string | undefined
+      }
+    | undefined
+  /**
+   * For affiliate_update: which news it is, already formatted. `kind` picks the wording:
+   * approved (with the link and code), sale (a pending commission) or payout (money sent).
+   */
+  affiliate?:
+    | {
+        kind: 'approved' | 'sale' | 'payout'
+        name: string
+        link?: string | undefined
+        couponCode?: string | undefined
+        amountLabel?: string | undefined
+        /** For payout: the TDS taken and the merchant's reference. */
+        tdsLabel?: string | undefined
+        reference?: string | undefined
+        portalUrl?: string | undefined
       }
     | undefined
   /** For contact_message: who wrote and what they said. */

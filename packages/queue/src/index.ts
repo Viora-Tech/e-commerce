@@ -59,6 +59,8 @@ export const IMPORT_SNAPSHOT_CLEANUP_QUEUE = '{imports}-snapshot-cleanup'
 export const MEDIA_PROCESS_QUEUE = '{media}-process'
 /** Repeat job that queues due review request and reminder emails (Reviews app). */
 export const REVIEW_REQUESTS_QUEUE = '{reviews}-requests'
+/** Repeat job that approves affiliate commissions whose hold is over (Affiliates app). */
+export const AFFILIATE_COMMISSIONS_QUEUE = '{affiliates}-commissions'
 /** Repeat job that sends team members their daily summary at the hour each chose. */
 export const MEMBER_DAILY_SUMMARY_QUEUE = '{members}-daily-summary'
 /** Repeat job that queues each connected store's daily Google Search Console sync. */

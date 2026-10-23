@@ -210,6 +210,10 @@ export const notificationsSettingsContent = {
       name: 'Reply to a review',
       when: 'The first time you reply to a customer review (Reviews app).',
     },
+    affiliate_update: {
+      name: 'Affiliate update',
+      when: 'To an affiliate when they are approved, make a sale, or are paid (Affiliates app).',
+    },
     unpaid_cancel_notice: {
       name: 'Unpaid order will be cancelled',
       when: 'Before an unpaid UPI or bank transfer order is cancelled for you.',

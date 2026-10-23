@@ -71,6 +71,8 @@ export function templateParams(template: TemplateId, d: TemplateData): string[] 
       return [d.customerName, d.storeName, n, d.totalLabel, d.orderUrl ?? '-']
     case 'unpaid_cancelled':
       return [d.customerName, d.storeName, n, d.totalLabel]
+    case 'affiliate_update':
+      return [d.storeName, d.affiliate?.portalUrl ?? '-']
     case 'contact_message':
       return [d.storeName, d.contactMessage?.name || '-']
     case 'review_request':

@@ -36,6 +36,8 @@ export type Attribution = {
   automationId?: string | undefined
   /** The short link (Growth → Links) the visit came through. */
   linkId?: string | undefined
+  /** An affiliate's referral code from `?ref=` (Affiliates app), lower-cased. */
+  ref?: string | undefined
   /** ISO time of the touch. */
   at: string
 }
@@ -114,6 +116,15 @@ const hostMatches = (host: string, list: string[]) =>
 const clip = (v: string | null | undefined, max = 120): string | undefined => {
   const t = v?.trim()
   return t ? t.slice(0, max) : undefined
+}
+
+/**
+ * An affiliate's referral code from `?ref=` (Affiliates app): lower-case letters, digits and
+ * hyphens, 3 to 32 long; anything else is not one of ours.
+ */
+export function refCodeOf(raw: string | null | undefined): string | null {
+  const v = raw?.trim().toLowerCase()
+  return v && /^[a-z0-9][a-z0-9-]{1,30}[a-z0-9]$/.test(v) ? v : null
 }
 
 /** Lower-cased host without `www.`, or null for anything that is not an http(s) URL. */
@@ -216,7 +227,11 @@ export function attributionFromVisit(input: {
   })
   // A short link is never a direct visit: untagged and opened from an app (no referrer), it
   // still came from wherever the merchant shared it, and must not lose to an older touch.
-  const channel = classified === 'direct' && input.linkId ? 'referral' : classified
+  const linked = classified === 'direct' && input.linkId ? 'referral' : classified
+  // An affiliate's link is the affiliate's sale, unless the merchant tagged it otherwise.
+  const ref = refCodeOf(params.get('ref'))
+  const untagged = linked === 'direct' || linked === 'referral' || linked === 'social'
+  const channel = ref && untagged ? 'affiliate' : linked
   return {
     channel,
     source: source ?? externalRef ?? undefined,
@@ -230,6 +245,7 @@ export function attributionFromVisit(input: {
     campaignId: input.marketing?.campaignId,
     automationId: input.marketing?.automationId,
     linkId: input.linkId,
+    ref: ref ?? undefined,
     at: (input.now ?? new Date()).toISOString(),
   }
 }
@@ -284,6 +300,7 @@ export function decodeAttribution(raw: string | null | undefined): Attribution |
       campaignId: str(v.campaignId, 40),
       automationId: str(v.automationId, 40),
       linkId: str(v.linkId, 40),
+      ref: refCodeOf(str(v.ref, 40)) ?? undefined,
       at: v.at,
     }
   } catch {

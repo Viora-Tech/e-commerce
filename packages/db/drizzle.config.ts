@@ -25,6 +25,7 @@ export default defineConfig({
     '../plugin-forms/src/schema.ts',
     '../plugin-reviews/src/schema.ts',
     '../plugin-growthbook/src/schema.ts',
+    '../plugin-affiliates/src/schema.ts',
   ],
   out: './drizzle',
   casing: 'snake_case',

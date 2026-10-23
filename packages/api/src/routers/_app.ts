@@ -1,6 +1,7 @@
 import { protectedProcedure } from '../procedures'
 import { accountRouter } from './account'
 import { activityRouter } from './activity'
+import { affiliatesRouter } from './affiliates'
 import { aiRouter } from './ai'
 import { analyticsRouter } from './analytics'
 import { apiAccessRouter } from './api-access'
@@ -107,6 +108,7 @@ export const appRouter = {
   businessGst: businessGstRouter,
   profitCosts: profitCostsRouter,
   shopifyImport: shopifyImportRouter,
+  affiliates: affiliatesRouter,
   backInStock: backInStockRouter,
   emi: emiRouter,
   forms: formsRouter,

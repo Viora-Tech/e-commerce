@@ -55,6 +55,10 @@ export type AppEvent =
   | 'order.fulfilled'
   | 'order.delivered'
   | 'refund.created'
+  /** The order was cancelled (by the merchant, or automatically for non-payment). */
+  | 'order.cancelled'
+  /** A shipment came back undelivered (RTO). */
+  | 'order.rto'
   | 'customer.created'
   | 'customer.updated'
 

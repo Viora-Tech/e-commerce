@@ -72,6 +72,16 @@ export type OutboxEventType =
   | 'customer.created'
   /** A customer's profile changed (checkout details, account page, admin edit). */
   | 'customer.updated'
+  /** Affiliates app: an affiliate was approved; they are emailed their link and code. */
+  | 'affiliate.approved'
+  /** Affiliates app: an order earned an affiliate a (pending) commission; they are emailed. */
+  | 'affiliate.commission_created'
+  /** Affiliates app: a commission passed its hold (delivered, return window over) and can be paid. */
+  | 'affiliate.commission_approved'
+  /** Affiliates app: a commission was reversed (cancel, RTO, refund, self-referral). */
+  | 'affiliate.commission_reversed'
+  /** Affiliates app: the merchant marked a payout paid; the affiliate is emailed. */
+  | 'affiliate.payout_paid'
 
 /**
  * `orderId` is required for every order-lifecycle type; `variantId` (and
@@ -107,6 +117,12 @@ export type OutboxPayload = {
   productIds?: string[] | undefined
   /** The customer a `customer.created` / `customer.updated` event is about. */
   customerId?: string | undefined
+  /** The affiliate an `affiliate.*` event is about (Affiliates app). */
+  affiliateId?: string | undefined
+  /** The `affiliate_commission` an `affiliate.commission_*` event is about. */
+  commissionId?: string | undefined
+  /** The `affiliate_payout` an `affiliate.payout_paid` event is about. */
+  payoutId?: string | undefined
 }
 
 /**
@@ -179,6 +195,13 @@ export const OUTBOX_NOTIFICATION_TEMPLATE: Record<OutboxEventType, TemplateId | 
   // App hooks only (`OUTBOX_APP_EVENT`): nobody is emailed about their own profile.
   'customer.created': null,
   'customer.updated': null,
+  // The relay queues `affiliate_update` to the affiliate itself (`dispatchRow`), keyed by the row.
+  'affiliate.approved': null,
+  'affiliate.commission_created': null,
+  // No message: for the Automations app and reports.
+  'affiliate.commission_approved': null,
+  'affiliate.commission_reversed': null,
+  'affiliate.payout_paid': null,
 }
 
 /**
@@ -206,7 +229,7 @@ export const OUTBOX_APP_EVENT: Record<OutboxEventType, AppEvent | null> = {
   'order.placed': null,
   'order.paid': 'order.paid',
   'order.fulfilled': 'order.fulfilled',
-  'order.cancelled': null,
+  'order.cancelled': 'order.cancelled',
   'refund.created': 'refund.created',
   'draft.invoice_sent': null,
   'order.balance_requested': null,
@@ -223,10 +246,11 @@ export const OUTBOX_APP_EVENT: Record<OutboxEventType, AppEvent | null> = {
   'return.rejected': null,
   'return.received': null,
   'return.refunded': null,
-  'order.rto': null,
+  'order.rto': 'order.rto',
   'shipment.out_for_delivery': null,
   'order.delivered': 'order.delivered',
-  'order.cancel_notice': null,
+  // The merchant's own cancel writes only this row; apps hear it as a cancel (one job per order).
+  'order.cancel_notice': 'order.cancelled',
   'newsletter.confirm_requested': null,
   'contact.message_received': null,
   'review.request_due': null,
@@ -236,4 +260,9 @@ export const OUTBOX_APP_EVENT: Record<OutboxEventType, AppEvent | null> = {
   'catalog.products_changed': null,
   'customer.created': 'customer.created',
   'customer.updated': 'customer.updated',
+  'affiliate.approved': null,
+  'affiliate.commission_created': null,
+  'affiliate.commission_approved': null,
+  'affiliate.commission_reversed': null,
+  'affiliate.payout_paid': null,
 }

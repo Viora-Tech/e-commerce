@@ -8,6 +8,7 @@ import { createAppEventQueue, createNotificationQueue, trimFinishedJobs } from '
 import { sql } from 'drizzle-orm'
 import { evlog } from 'evlog/hono'
 import { Hono } from 'hono'
+import { AFFILIATE_COMMISSIONS_EVERY_MS, createAffiliateCommissionSweep } from './affiliates'
 import { createAiBulkWriteWorker } from './ai-bulk-write'
 import { API_ACTIVITY_PRUNE_EVERY_MS, createApiActivityPrune } from './api-activity'
 import { createAppEventWorker, createAppJobWorker } from './app-events'
@@ -119,6 +120,7 @@ const importSnapshots = createImportSnapshotCleanup(redis, db, {
   settingsSecret: env.SETTINGS_SECRET,
 })
 const reviewRequests = createReviewRequestSweep(redis, db)
+const affiliateCommissions = createAffiliateCommissionSweep(redis, db)
 const memberDailySummary = createMemberDailySummary(redis, db, {
   settingsSecret: env.SETTINGS_SECRET,
   adminUrl: env.ADMIN_URL,
@@ -166,6 +168,7 @@ const watched = [
   [purchaseDocuments.worker, 'purchase-documents'],
   [importSnapshots.worker, 'import-snapshot-cleanup'],
   [reviewRequests.worker, 'review-requests'],
+  [affiliateCommissions.worker, 'affiliate-commissions'],
   [memberDailySummary.worker, 'member-daily-summary'],
   [searchConsole.worker, 'search-console-sweep'],
   [billing.worker, 'billing-sweep'],
@@ -247,6 +250,11 @@ await importSnapshots.queue.upsertJobScheduler(
 await reviewRequests.queue.upsertJobScheduler(
   'queue-review-requests',
   { every: REVIEW_REQUESTS_EVERY_MS },
+  { name: 'sweep' },
+)
+await affiliateCommissions.queue.upsertJobScheduler(
+  'approve-affiliate-commissions',
+  { every: AFFILIATE_COMMISSIONS_EVERY_MS },
   { name: 'sweep' },
 )
 await memberDailySummary.queue.upsertJobScheduler(
@@ -338,6 +346,8 @@ const shutdown = async () => {
   await importSnapshots.queue.close()
   await reviewRequests.worker.close()
   await reviewRequests.queue.close()
+  await affiliateCommissions.worker.close()
+  await affiliateCommissions.queue.close()
   await memberDailySummary.worker.close()
   await memberDailySummary.queue.close()
   await searchConsole.worker.close()

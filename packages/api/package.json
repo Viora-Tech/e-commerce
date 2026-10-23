@@ -25,6 +25,7 @@
     "@commerce/payments": "workspace:*",
     "@commerce/payments-cashfree": "workspace:*",
     "@commerce/payments-razorpay": "workspace:*",
+    "@commerce/plugin-affiliates": "workspace:*",
     "@commerce/plugin-back-in-stock": "workspace:*",
     "@commerce/plugin-chatwoot": "workspace:*",
     "@commerce/plugin-emi": "workspace:*",

@@ -1,4 +1,10 @@
 import type { ComponentType } from 'react'
+import AffiliateDetail from '@/components/apps/affiliates/affiliate-detail'
+import AffiliatesList from '@/components/apps/affiliates/affiliates-list'
+import CommissionsList from '@/components/apps/affiliates/commissions-list'
+import AffiliatesOverview from '@/components/apps/affiliates/overview-page'
+import AffiliatePayouts from '@/components/apps/affiliates/payouts-page'
+import AffiliateSettings from '@/components/apps/affiliates/settings-page'
 import OverviewPage from '@/components/apps/back-in-stock/overview-page'
 import SettingsEditorBackInStock from '@/components/apps/back-in-stock/settings-editor'
 import SignupsList from '@/components/apps/back-in-stock/signups-list'
@@ -88,6 +94,16 @@ export type AdminApp = {
 }
 
 export const ADMIN_APPS: Record<string, AdminApp> = {
+  affiliates: {
+    pages: {
+      '': AffiliatesOverview,
+      affiliates: AffiliatesList,
+      'affiliates/[id]': AffiliateDetail,
+      commissions: CommissionsList,
+      payouts: AffiliatePayouts,
+      settings: AffiliateSettings,
+    },
+  },
   'back-in-stock': {
     pages: {
       '': OverviewPage,
