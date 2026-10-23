@@ -1,4 +1,11 @@
 import type { ComponentType } from 'react'
+import AutomationApprovalsPage from '@/components/apps/automations/approvals-page'
+import AutomationRunPage from '@/components/apps/automations/run-page'
+import AutomationRunsPage from '@/components/apps/automations/runs-page'
+import AutomationSettingsPage from '@/components/apps/automations/settings-page'
+import AutomationTemplatesPage from '@/components/apps/automations/templates-page'
+import AutomationWorkflowPage from '@/components/apps/automations/workflow-page'
+import AutomationWorkflowsPage from '@/components/apps/automations/workflows-page'
 import OverviewPage from '@/components/apps/back-in-stock/overview-page'
 import SettingsEditorBackInStock from '@/components/apps/back-in-stock/settings-editor'
 import SignupsList from '@/components/apps/back-in-stock/signups-list'
@@ -85,9 +92,26 @@ export type AdminApp = {
   CustomerCard?: ComponentType<{ customerId: string }>
   /** A button in the app header beside the more menu, on every tab. */
   HeaderAction?: ComponentType
+  /**
+   * Pages drawn edge to edge without the app header and tabs, for full-screen tools such as
+   * the Automations workflow editor (Shopify Flow's editor fills the window too).
+   */
+  fullPages?: readonly string[]
 }
 
 export const ADMIN_APPS: Record<string, AdminApp> = {
+  automations: {
+    pages: {
+      '': AutomationWorkflowsPage,
+      templates: AutomationTemplatesPage,
+      runs: AutomationRunsPage,
+      approvals: AutomationApprovalsPage,
+      settings: AutomationSettingsPage,
+      'workflows/[id]': AutomationWorkflowPage,
+      'runs/[id]': AutomationRunPage,
+    },
+    fullPages: ['workflows/[id]'],
+  },
   'back-in-stock': {
     pages: {
       '': OverviewPage,
