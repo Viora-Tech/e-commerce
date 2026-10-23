@@ -24,3 +24,15 @@
   Google ads shown as "coming with" their apps. The festival calendar (`FESTIVALS`) runs to
   Diwali 2027 and needs extending then.
 - Merchant guide: growth overview rewritten, new attribution and autopilot pages.
+
+## How to test
+
+1. `/growth`: hero, range picker, View details opens Attribution with the same range; hover
+   the dotted labels; Recent campaigns shows YTD sessions and sales.
+2. `/growth/attribution`: source/channel toggle, paid/organic filter, expandable sources.
+3. `/growth/campaigns`: switch to Tracking links; `/growth/links` redirects there; "Marketing
+   automations" opens `/growth/automations`.
+4. `/growth/autopilot`: switch on, pick goals and limits, Save, Plan campaigns; open a draft;
+   Approve & schedule (campaign becomes scheduled, a discount code within the limit appears
+   in Discounts); Dismiss deletes the draft.
+5. Tests: `packages/api/test/growth-autopilot.test.ts`, `packages/core/src/marketing/autopilot.test.ts`.
