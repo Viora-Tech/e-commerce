@@ -1,12 +1,14 @@
 import {
   DEFAULT_GST_RATE_PERCENT,
   LOW_STOCK_THRESHOLD,
+  noteProductEvent,
   noteProductsChanged,
   notSystemTest,
   onHandleChange,
   parseStoreTax,
   type StockFilter,
   storeLowStockThreshold,
+  watchStockCrossings,
 } from '@commerce/core'
 import type { StoreTx } from '@commerce/db'
 import {
@@ -331,6 +333,7 @@ export async function updateProduct(tx: StoreTx, storeId: string, id: string, pa
     .returning()
   if (row) await onHandleChange(tx, storeId, 'product', before?.handle, row.handle)
   if (row) await noteProductsChanged(tx, [row.id], storeId)
+  if (row) await noteProductEvent(tx, storeId, 'product.updated', [row.id])
   return row ?? null
 }
 
@@ -356,15 +359,25 @@ export async function updateVariant(tx: StoreTx, id: string, patch: VariantPatch
       .where(eq(sellableStock.variantId, id))
     const delta = onHand - (current?.onHand ?? 0)
     if (delta !== 0) {
-      await tx
-        .update(inventoryLevel)
-        .set({ onHand: sql`greatest(0, ${inventoryLevel.onHand} + ${delta})` })
-        .where(and(eq(inventoryLevel.variantId, id), primarySellingLevel(id)))
+      const [owner] = await tx
+        .select({ storeId: variant.storeId })
+        .from(variant)
+        .where(eq(variant.id, id))
+      // Falling to low or out of stock is an Automations trigger (once per crossing).
+      await watchStockCrossings(tx, owner?.storeId ?? '', [id], () =>
+        tx
+          .update(inventoryLevel)
+          .set({ onHand: sql`greatest(0, ${inventoryLevel.onHand} + ${delta})` })
+          .where(and(eq(inventoryLevel.variantId, id), primarySellingLevel(id))),
+      )
     }
   }
   const [row] = await tx.select().from(variant).where(eq(variant.id, id))
   // Price and SKU are in the search index; stock is read live, so it needs no catch-up.
-  if (row && Object.keys(variantPatch).length > 0) await noteProductsChanged(tx, [row.productId])
+  if (row && Object.keys(variantPatch).length > 0) {
+    await noteProductsChanged(tx, [row.productId])
+    await noteProductEvent(tx, row.storeId, 'product.updated', [row.productId])
+  }
   return row ?? null
 }
 

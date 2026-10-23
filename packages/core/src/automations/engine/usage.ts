@@ -4,6 +4,7 @@ import { automationUsage, automationWorkflow, type StoreTx } from '@commerce/db'
 import { and, eq, ne, sql } from 'drizzle-orm'
 import { PLANS, type PlanId } from '../../billing/plans'
 import { ensureStorePlan } from '../../billing/service'
+import { noteUsageAlert } from './owner-alerts'
 
 /** The metering bucket: calendar month in India, `YYYY-MM` (same as AI usage). */
 export const usageMonth = (at: Date = new Date()): string => aiMonth(at)
@@ -34,7 +35,13 @@ export async function meterRun(
     returning runs
   `)
   const runs = rows[0]?.runs
+  // The owner hears at 80% and at the limit, once each a month (owner-alerts.ts).
+  if (runs === undefined || runs >= limit) {
+    await noteUsageAlert(tx, storeId, month, 100, { runs: limit, limit })
+  }
   if (runs === undefined) return { ok: false, runs: limit, limit, crossed80: false }
+  const crossed80 = runs >= Math.ceil(limit * 0.8)
+  if (crossed80) await noteUsageAlert(tx, storeId, month, 80, { runs, limit })
   return { ok: true, runs, limit, crossed80: runs === Math.ceil(limit * 0.8) }
 }
 

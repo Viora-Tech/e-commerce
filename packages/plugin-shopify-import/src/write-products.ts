@@ -191,8 +191,8 @@ async function applyProduct(
   mappings?: MappingRow[],
 ): Promise<string> {
   const saved = existingId
-    ? await updateProduct(tx, ctx.storeId, existingId, write)
-    : await createProduct(tx, ctx.storeId, write)
+    ? await updateProduct(tx, ctx.storeId, existingId, write, { imported: true })
+    : await createProduct(tx, ctx.storeId, write, { imported: true })
   if (mappings) mappings.push({ sourceId: productSourceId(p), localId: saved })
   else await saveMapping(tx, ctx.storeId, 'products', productSourceId(p), saved)
   const [row] = await tx

@@ -21,6 +21,7 @@ import { and, asc, eq, inArray, isNull, sql } from 'drizzle-orm'
 import type { StoreContext } from '../context'
 import { CannotShipToState, OutOfStock } from '../errors'
 import { defaultLocationId } from '../inventory/levels'
+import { watchStockCrossings } from '../inventory/stock-events'
 import { parseShippingSettings } from '../shipping/settings'
 import { gstinState } from '../tax/gstin'
 import { stateCode } from '../tax/states'
@@ -229,6 +230,15 @@ export async function previewRoute(ctx: StoreContext, input: RouteInput) {
  * are left out.
  */
 export async function routeAndReserve(
+  ctx: StoreContext,
+  input: RouteInput,
+): Promise<{ parcels: RoutedParcel[]; reserved: ReservedUnits[] }> {
+  // Selling stock may cross to low or out: Automations triggers, once per crossing.
+  const variantIds = input.lines.filter((l) => !l.giftCard).map((l) => l.variantId)
+  return watchStockCrossings(ctx.tx, ctx.storeId, variantIds, () => reserveRoute(ctx, input))
+}
+
+async function reserveRoute(
   ctx: StoreContext,
   input: RouteInput,
 ): Promise<{ parcels: RoutedParcel[]; reserved: ReservedUnits[] }> {

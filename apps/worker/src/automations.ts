@@ -6,6 +6,7 @@ import {
   type AutomationStepJob,
   type AutomationTriggerJob,
   actionResolver,
+  deliverOwnerAlertRow,
   type EngineDeps,
   evaluateRules,
   loadSubjectData,
@@ -35,6 +36,8 @@ export const AUTOMATIONS_TICK_MS = 30_000
 type Opts = {
   settingsSecret: string
   storefrontUrl: string
+  /** For the link in owner alert emails. */
+  adminUrl: string
   mediaProcess?: MediaProcessQueue | undefined
 }
 
@@ -76,8 +79,15 @@ export function createAutomationsWorker(connection: IORedis, db: Db, opts: Opts)
 
   const trigger = new Worker<AutomationTriggerJob>(
     AUTOMATION_TRIGGER_QUEUE,
-    fairProcessor(connection, AUTOMATION_TRIGGER_QUEUE, QUEUE_LIMITS.automationsTrigger, (job) =>
-      runTriggerJob(db, job.data, stepQueue, log),
+    fairProcessor(
+      connection,
+      AUTOMATION_TRIGGER_QUEUE,
+      QUEUE_LIMITS.automationsTrigger,
+      async (job) =>
+        // An owner alert row (80% / 100% of runs, a workflow switched off) is emailed, not run.
+        (await deliverOwnerAlertRow(db, job.data, opts))
+          ? { alert: true }
+          : runTriggerJob(db, job.data, stepQueue, log),
     ),
     { connection, concurrency: QUEUE_LIMITS.automationsTrigger.concurrency, ...KEEP_FINISHED },
   )

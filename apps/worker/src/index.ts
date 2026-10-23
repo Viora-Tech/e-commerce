@@ -12,6 +12,7 @@ import { createAiBulkWriteWorker } from './ai-bulk-write'
 import { API_ACTIVITY_PRUNE_EVERY_MS, createApiActivityPrune } from './api-activity'
 import { createAppEventWorker, createAppJobWorker } from './app-events'
 import { AUTOMATIONS_TICK_MS, createAutomationsWorker } from './automations'
+import { AUTOMATION_PRUNE_EVERY_MS, createAutomationsPrune } from './automations-prune'
 import { createBackInStockWorker } from './back-in-stock'
 import { BILLING_EVERY_MS, createBillingSweep } from './billing'
 import { CHANNEL_SYNC_EVERY_MS, createChannelSync } from './channel-sync'
@@ -132,6 +133,7 @@ const billing = createBillingSweep(redis, db, {
   storefrontUrl: env.STOREFRONT_URL,
 })
 const apiActivityPrune = createApiActivityPrune(redis, db)
+const automationsPrune = createAutomationsPrune(redis, db)
 const channelSync = createChannelSync(redis, db, {
   settingsSecret: env.SETTINGS_SECRET,
   adminUrl: env.ADMIN_URL,
@@ -140,6 +142,7 @@ const channelSync = createChannelSync(redis, db, {
 const automations = createAutomationsWorker(redis, db, {
   settingsSecret: env.SETTINGS_SECRET,
   storefrontUrl: env.STOREFRONT_URL,
+  adminUrl: env.ADMIN_URL,
   mediaProcess: mediaProcess.queue,
 })
 const outboxRelay = createOutboxRelay(redis, db, {
@@ -181,6 +184,7 @@ const watched = [
   [searchConsole.worker, 'search-console-sweep'],
   [billing.worker, 'billing-sweep'],
   [apiActivityPrune.worker, 'api-activity-prune'],
+  [automationsPrune.worker, 'automations-prune'],
   [channelSync.worker, 'channel-sync'],
 ] as const
 for (const [w, queueName] of watched) {
@@ -279,6 +283,11 @@ await billing.queue.upsertJobScheduler(
   'billing-sweep',
   { every: BILLING_EVERY_MS },
   { name: 'sweep' },
+)
+await automationsPrune.queue.upsertJobScheduler(
+  'automations-prune',
+  { every: AUTOMATION_PRUNE_EVERY_MS },
+  { name: 'prune' },
 )
 await apiActivityPrune.queue.upsertJobScheduler(
   'api-activity-prune',
@@ -383,6 +392,8 @@ const shutdown = async () => {
   await billing.queue.close()
   await apiActivityPrune.worker.close()
   await apiActivityPrune.queue.close()
+  await automationsPrune.worker.close()
+  await automationsPrune.queue.close()
   await channelSync.worker.close()
   await channelSync.queue.close()
   await queue.close()

@@ -87,6 +87,8 @@ export type OutboxEventType =
   | 'inventory.out'
   /** An installed app fired one of its Automations triggers (`ctx.triggerAutomation`). */
   | 'automation.app_trigger'
+  /** Tell the store owner about Automations: 80% / 100% of the month's runs, a workflow switched off. */
+  | 'automation.owner_alert'
   /**
    * Platform apps (no consumer yet; for automations to subscribe to). A sales channel's catalog
    * sync failed or its access lapsed (`platform`: meta, google, openai; `message`: the platform's words).
@@ -152,6 +154,16 @@ export type OutboxPayload = {
    * "Notify customer" off); app hooks and automations still see it. Absent means notify.
    */
   notifyCustomer?: boolean | undefined
+  /** For `automation.owner_alert`: what to tell the owner. */
+  ownerAlert?:
+    | {
+        kind: 'usage_80' | 'usage_100' | 'switched_off'
+        workflowId?: string | undefined
+        problem?: string | undefined
+        runs?: number | undefined
+        limit?: number | undefined
+      }
+    | undefined
   /** Set when an automation run caused this event (loop guard, design §8.5). */
   automation?: AutomationCause | undefined
   /** Platform-app events: the platform (`meta`, `google`, `openai`, `whatsapp`, `shopify`). */
@@ -242,6 +254,7 @@ export const OUTBOX_NOTIFICATION_TEMPLATE: Record<OutboxEventType, TemplateId | 
   'inventory.low': null,
   'inventory.out': null,
   'automation.app_trigger': null,
+  'automation.owner_alert': null,
   // Platform-app events have no message or app hook yet: they are there for automations.
   'channel.sync_failed': null,
   'whatsapp.account_updated': null,
@@ -311,6 +324,7 @@ export const OUTBOX_APP_EVENT: Record<OutboxEventType, AppEvent | null> = {
   'inventory.low': null,
   'inventory.out': null,
   'automation.app_trigger': null,
+  'automation.owner_alert': null,
   'channel.sync_failed': null,
   'whatsapp.account_updated': null,
   'meta.access_removed': null,
