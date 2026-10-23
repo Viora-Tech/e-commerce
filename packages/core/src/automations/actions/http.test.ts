@@ -1,9 +1,10 @@
+/** SOURCE OF TRUTH: HTTP action tests — WHAT: signing, secret filling and redaction, retry classes, rate cap and the SSRF guard (private, loopback, link-local, metadata, IPv6, redirects) with injected fetch and DNS / WHY: no external calls in tests, and data must never reach our own network. */
 import { createHmac } from 'node:crypto'
 import type { StoreTx } from '@commerce/db'
 import { describe, expect, it, vi } from 'vitest'
 import { createMemoryRateLimitStore } from '../../rate-limit/memory-store'
 import { encryptSecret } from '../../secrets'
-import { type ActionContext, AutomationActionError } from '../executor'
+import { type ActionContext, type ActionExecutor, AutomationActionError } from '../executor'
 import { httpExecutors, httpSigningKey, signRequest } from './http'
 import type { BuiltinActionDeps } from './shared'
 
@@ -55,8 +56,8 @@ function setup(
     lookup: publicLookup,
     ...extra,
   }
-  const [executor] = httpExecutors(deps)
-  return { executor: executor as unknown as typeof executor & { run: Function }, fetch, deps }
+  const executor = httpExecutors(deps)[0] as unknown as ActionExecutor<never>
+  return { executor, fetch, deps }
 }
 
 const config = (over: Record<string, unknown> = {}) =>
@@ -81,12 +82,12 @@ describe('http.request', () => {
     const h = init.headers as Record<string, string>
     expect(h['Idempotency-Key']).toBe('run-1:n1:0')
     expect(h['Content-Type']).toBe('application/json')
-    const ts = Number(h['X-Koomerce-Timestamp'])
+    const ts = Number(h['X-Webhook-Timestamp'])
     const key = httpSigningKey(STORE, SECRET)
-    expect(h['X-Koomerce-Signature']).toBe(
+    expect(h['X-Webhook-Signature']).toBe(
       `sha256=${createHmac('sha256', key).update(`${ts}.{"order":"1042"}`).digest('hex')}`,
     )
-    expect(signRequest(key, ts, '{"order":"1042"}')).toBe(h['X-Koomerce-Signature'])
+    expect(signRequest(key, ts, '{"order":"1042"}')).toBe(h['X-Webhook-Signature'])
   })
 
   it('fills secrets but never shows them in the output or preview', async () => {
@@ -115,8 +116,8 @@ describe('http.request', () => {
       config: config(),
     })
     const h = (fetch.mock.calls[0] as [string, RequestInit])[1].headers as Record<string, string>
-    expect(h['X-Koomerce-Signature']).toBe(
-      signRequest('merchant-key', Number(h['X-Koomerce-Timestamp']), '{"order":"1042"}'),
+    expect(h['X-Webhook-Signature']).toBe(
+      signRequest('merchant-key', Number(h['X-Webhook-Timestamp']), '{"order":"1042"}'),
     )
   })
 

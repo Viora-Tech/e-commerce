@@ -1,3 +1,4 @@
+/** SOURCE OF TRUTH: built-in executor DB tests — WHAT: tags, notes, hold/release, cancel, metafields, collections and messages against a real store transaction, each run twice to prove idempotency / WHY: internal actions commit with their step row, so a re-run must change nothing. */
 import {
   automationRun,
   automationStepRun,

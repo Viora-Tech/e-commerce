@@ -5,6 +5,7 @@ import { registerActionExecutor } from '../registry'
 import { httpExecutors } from './http'
 import { messageExecutors } from './messages'
 import { orderExecutors } from './order'
+import { orderUpdate } from './order-update'
 import { recordExecutors } from './records'
 import type { BuiltinActionDeps } from './shared'
 import { tagExecutors } from './tags'
@@ -16,6 +17,7 @@ export function builtinExecutors(deps: BuiltinActionDeps): ActionExecutor[] {
     ...orderExecutors(),
     ...recordExecutors(),
     ...messageExecutors(deps),
+    orderUpdate(deps) as unknown as ActionExecutor,
     ...httpExecutors(deps),
   ] as unknown as ActionExecutor[]
 }

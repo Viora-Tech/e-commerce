@@ -1,3 +1,4 @@
+/** SOURCE OF TRUTH: condition evaluator tests — WHAT: every operator per field type, any/all/none over line items and tags, AND/OR groups, store-zone calendar dates, inferred plugin fields / WHY: the worker and the dry run branch on this. */
 import { describe, expect, it } from 'vitest'
 import type { Rule, RuleGroup } from '../definition'
 import { evaluateRulesAt, readPath } from './evaluate'

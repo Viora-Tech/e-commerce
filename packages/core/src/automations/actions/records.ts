@@ -30,7 +30,7 @@ const JSON_TYPES = new Set(['rich_text', 'money', 'link', 'rating', 'measurement
  * lists written as `[...]`, other lists one item per line (or comma); numbers, booleans and
  * dates stay text, which the validator parses.
  */
-export function metafieldInput(text: string, type: string, list: boolean): unknown {
+function metafieldInput(text: string, type: string, list: boolean): unknown {
   const t = text.trim()
   const json = () => {
     try {

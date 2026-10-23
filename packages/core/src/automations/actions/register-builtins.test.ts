@@ -1,8 +1,8 @@
+/** SOURCE OF TRUTH: built-in executor registration tests — WHAT: one executor per catalogue action, tag planning and order-update template rules / WHY: a missing executor must fail here, not in a run. */
 import { afterEach, describe, expect, it } from 'vitest'
 import { BUILTIN_ACTION_IDS } from '../builtin-actions'
 import { actionExecutor, resetActionExecutorsForTest } from '../registry'
-import { isOrderUpdateTemplate } from './messages'
-import { metafieldInput } from './records'
+import { isOrderUpdateTemplate } from './order-update'
 import {
   builtinExecutors,
   missingBuiltinExecutors,
@@ -49,19 +49,6 @@ describe('planTags', () => {
       changed: ['VIP'],
       unchanged: ['x'],
     })
-  })
-})
-
-describe('metafieldInput', () => {
-  it('passes scalars as text, parses JSON types and splits lists', () => {
-    expect(metafieldInput(' 42 ', 'number_integer', false)).toBe('42')
-    expect(metafieldInput('{"amount":10,"currency":"INR"}', 'money', false)).toEqual({
-      amount: 10,
-      currency: 'INR',
-    })
-    expect(metafieldInput('{broken', 'money', false)).toBe('{broken')
-    expect(metafieldInput('a, b\nc', 'single_line_text', true)).toEqual(['a', 'b', 'c'])
-    expect(metafieldInput('[1,2]', 'number_integer', true)).toEqual([1, 2])
   })
 })
 

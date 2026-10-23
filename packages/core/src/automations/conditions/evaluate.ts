@@ -1,4 +1,5 @@
 /** SOURCE OF TRUTH: automation condition evaluator — WHAT: decides an AND/OR rule group over a run's subject data (typed operators per field type, any/all/none over line items and tag lists, money in paise, calendar dates in the store's time zone) and traces every rule for the run log / WHY: the worker's interpreter and the editor's "Test with a record" must branch the same way on the same data. Pure, no database. Design §8.2. */
+import { DEFAULT_TIME_ZONE, dayStart, startOfDay } from '@commerce/dates'
 import { type FieldType, OPERATORS_BY_TYPE } from '../catalogue'
 import { CONDITION_FIELDS } from '../condition-fields'
 import { isRuleGroup, type Rule, type RuleGroup, type RuleQuantifier } from '../definition'
@@ -6,9 +7,6 @@ import type { ConditionResult, RuleTrace, SubjectData } from '../executor'
 
 /** Field types by path; paths outside the catalogue (plugin `trigger.*` data) are inferred. */
 const FIELD_TYPE = new Map(CONDITION_FIELDS.map((f) => [f.path, f]))
-
-/** Stores without a time zone of their own are in India. */
-export const DEFAULT_TIME_ZONE = 'Asia/Kolkata'
 
 export type EvaluateOptions = {
   /** "Within the last N days" counts back from here; tests pin it. */
@@ -56,32 +54,7 @@ function toNumber(v: unknown): number | null {
 const asList = (v: unknown): unknown[] =>
   Array.isArray(v) ? v : v === null || v === undefined || v === '' ? [] : [v]
 
-/** Offset of `timeZone` from UTC at `at`, in ms (IST is +5:30). */
-function zoneOffsetMs(timeZone: string, at: number): number {
-  const parts = new Intl.DateTimeFormat('en-US', {
-    timeZone,
-    hourCycle: 'h23',
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit',
-  }).formatToParts(new Date(at))
-  const get = (t: string) => Number(parts.find((p) => p.type === t)?.value ?? 0)
-  const asUtc = Date.UTC(get('year'), get('month') - 1, get('day'), get('hour'), get('minute'))
-  return asUtc - Math.floor(at / 60_000) * 60_000
-}
-
-const DATE_ONLY = /^(\d{4})-(\d{2})-(\d{2})$/
-
-/** Midnight starting the calendar day `y-m-d` in `timeZone`, as epoch ms. */
-function zonedMidnight(y: number, m: number, d: number, timeZone: string): number {
-  const guess = Date.UTC(y, m - 1, d)
-  const first = guess - zoneOffsetMs(timeZone, guess)
-  // Second pass settles days where the offset changes (DST zones).
-  return guess - zoneOffsetMs(timeZone, first)
-}
+const DATE_ONLY = /^\d{4}-\d{2}-\d{2}$/
 
 /**
  * A rule's date as the instant it starts, plus the start of the next day for calendar dates
@@ -89,11 +62,9 @@ function zonedMidnight(y: number, m: number, d: number, timeZone: string): numbe
  */
 function ruleDate(v: unknown, timeZone: string): { start: number; end: number } | null {
   const s = norm(v)
-  const m = DATE_ONLY.exec(s)
-  if (m) {
-    const [y, mo, d] = [Number(m[1]), Number(m[2]), Number(m[3])]
-    const start = zonedMidnight(y, mo, d, timeZone)
-    return { start, end: zonedMidnight(y, mo, d + 1, timeZone) }
+  if (DATE_ONLY.test(s) && !Number.isNaN(Date.parse(s))) {
+    const start = dayStart(s, timeZone)
+    return { start: start.getTime(), end: startOfDay(start, timeZone, 1).getTime() }
   }
   const t = Date.parse(s)
   return Number.isNaN(t) ? null : { start: t, end: t }

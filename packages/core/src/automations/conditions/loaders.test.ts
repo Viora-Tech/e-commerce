@@ -1,3 +1,4 @@
+/** SOURCE OF TRUTH: subject loader DB tests — WHAT: order, product, cart and customer loaders fill every condition-field path from real rows / WHY: a path the loader misses would make a condition silently false. */
 import {
   address,
   cart,
@@ -152,7 +153,7 @@ describe('subject loaders', () => {
         },
         store: { name: 'Chai Co', timezone: 'Asia/Kolkata' },
       })
-      expect(typeof (data?.order as { created_at: unknown }).created_at).toBe('string')
+      expect(readPath(data, 'order.created_at').value).toEqual(expect.any(String))
       expectAllPaths('order', data as Record<string, unknown>)
 
       const r = evaluateRules(
@@ -208,7 +209,7 @@ describe('subject loaders', () => {
         price: 29_900,
         collections: ['Mugs'],
       })
-      expect((data?.product as { total_stock: number }).total_stock).toBeGreaterThanOrEqual(8)
+      expect(readPath(data, 'product.total_stock').value).toBeGreaterThanOrEqual(8)
       expectAllPaths('product', data as Record<string, unknown>)
     })
   })
@@ -225,15 +226,13 @@ describe('subject loaders', () => {
       const [v] = await tx.select().from(variant).where(eq(variant.productId, id))
       const [c] = await tx.insert(customer).values({ storeId, email: 'a@example.com' }).returning()
       const [k] = await tx.insert(cart).values({ storeId, customerId: c?.id }).returning()
-      await tx
-        .insert(cartLine)
-        .values({
-          storeId,
-          cartId: k?.id as string,
-          variantId: v?.id as string,
-          quantity: 3,
-          unitPricePaise: 10_000,
-        })
+      await tx.insert(cartLine).values({
+        storeId,
+        cartId: k?.id as string,
+        variantId: v?.id as string,
+        quantity: 3,
+        unitPricePaise: 10_000,
+      })
       const cartData = await loadSubjectData(tx, storeId, { type: 'cart', id: k?.id as string })
       expect(cartData?.cart).toMatchObject({
         total: 30_000,

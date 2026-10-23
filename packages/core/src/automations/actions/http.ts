@@ -1,5 +1,6 @@
 /** SOURCE OF TRUTH: "Send HTTP request" automation action — WHAT: one signed HTTPS request per step to a public host (SSRF guard via `safeFetch`: every resolved address and redirect checked, 30 s timeout, 1 MB read cap), with `{{secrets.handle}}` values from `automation_secret` filled in but never logged, an `Idempotency-Key` of the step key, per-store rate and concurrency caps, and Flow's Retry / Fail / Continue choice on error answers / WHY: data leaves the platform here (a sensitive action, Growth plan and up), so it must never reach our own network, leak a secret into the run log, or hammer a merchant's endpoint. Server-only. Design §8.4, §8.5. */
 import { createHmac } from 'node:crypto'
+import { siteConfig } from '@commerce/config/site'
 import { automationSecret, type StoreTx } from '@commerce/db'
 import { and, eq, inArray } from 'drizzle-orm'
 import { BlockedUrlError, readCapped, safeFetch } from '../../net/safe-fetch'
@@ -39,9 +40,9 @@ const RESERVED_HEADERS = new Set([
   'keep-alive',
   'proxy-authorization',
   'idempotency-key',
-  'x-koomerce-signature',
-  'x-koomerce-timestamp',
-  'x-koomerce-workflow',
+  'x-webhook-signature',
+  'x-webhook-timestamp',
+  'x-automation-workflow',
 ])
 const HEADER_NAME = /^[!#$%&'*+.^_`|~0-9A-Za-z-]+$/
 
@@ -228,11 +229,11 @@ function httpExecutor(deps: BuiltinActionDeps): ActionExecutor<HttpConfig> {
       const timestamp = Math.floor(Date.now() / 1000)
       const headers = {
         ...p.headers,
-        'User-Agent': 'Koomerce-Automations/1.0',
+        'User-Agent': `${siteConfig.brand.name}-Automations/1.0`,
         'Idempotency-Key': ctx.stepKey,
-        'X-Koomerce-Workflow': ctx.workflow.id,
-        'X-Koomerce-Timestamp': String(timestamp),
-        'X-Koomerce-Signature': signRequest(key, timestamp, p.body),
+        'X-Automation-Workflow': ctx.workflow.id,
+        'X-Webhook-Timestamp': String(timestamp),
+        'X-Webhook-Signature': signRequest(key, timestamp, p.body),
       }
       running.set(ctx.storeId, busy + 1)
       let res: Response
