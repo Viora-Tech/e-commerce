@@ -65,6 +65,7 @@ export const siteContent = {
         { label: 'Cookies', href: '/cookies' },
         { label: 'Shipping & delivery', href: '/shipping' },
         { label: 'Acceptable use', href: '/acceptable-use' },
+        { label: 'Data deletion', href: '/data-deletion' },
       ],
     },
   ],

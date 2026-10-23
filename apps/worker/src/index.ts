@@ -33,6 +33,7 @@ import { createOutboxRelay, RELAY_EVERY_MS } from './outbox-relay'
 import { createPaymentFeeSync, PAYMENT_FEES_EVERY_MS } from './payment-fees'
 import { paymentWebhooks } from './payments'
 import { createUnpaidOrderExpiry, EXPIRY_EVERY_MS } from './payments-expiry'
+import { platformWebhooks } from './platform-webhooks'
 import { BALANCE_EVERY_MS, createPreorderBalanceJob } from './preorder-balance'
 import { createPurchaseDocumentWorker } from './purchase-documents'
 import { createConnection, createHeartbeat } from './queues'
@@ -290,6 +291,20 @@ const app = new Hono()
 app.use(evlog({ exclude: ['/health'] }))
 app.route('/', paymentWebhooks(db, env.SETTINGS_SECRET, rateLimitStore))
 app.route('/', shipmentWebhooks(db, env.SETTINGS_SECRET, rateLimitStore))
+app.route(
+  '/',
+  platformWebhooks(
+    db,
+    {
+      metaAppSecret: env.META_APP_SECRET ?? null,
+      metaVerifyToken: env.META_WEBHOOK_VERIFY_TOKEN ?? null,
+      shopifySecret: env.SHOPIFY_APP_CLIENT_SECRET ?? null,
+      settingsSecret: env.SETTINGS_SECRET,
+      adminUrl: env.ADMIN_URL,
+    },
+    rateLimitStore,
+  ),
+)
 
 app.get('/health', async (c) => {
   const [dbOk, queueOk] = await Promise.all([

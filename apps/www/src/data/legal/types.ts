@@ -8,7 +8,14 @@ export type LegalSection = {
 }
 
 export type LegalDoc = {
-  slug: 'privacy' | 'terms' | 'cookies' | 'refunds' | 'shipping' | 'acceptable-use'
+  slug:
+    | 'privacy'
+    | 'terms'
+    | 'cookies'
+    | 'refunds'
+    | 'shipping'
+    | 'acceptable-use'
+    | 'data-deletion'
   title: string
   lead: string
   readMinutes: number

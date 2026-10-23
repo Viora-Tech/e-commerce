@@ -24,6 +24,8 @@ export const APP_CATALOGUE_DATA: CatalogueEntry[] = [
     ],
     screenshots: [],
     keywords: ['payment gateway', 'upi', 'card', 'emi'],
+    faq: [],
+    icon: 'CreditCard',
     access: {
       resources: [
         {
@@ -82,6 +84,8 @@ export const APP_CATALOGUE_DATA: CatalogueEntry[] = [
     ],
     screenshots: [],
     keywords: ['payment gateway', 'upi', 'card'],
+    faq: [],
+    icon: 'CreditCard',
     access: {
       resources: [
         {
@@ -141,6 +145,8 @@ export const APP_CATALOGUE_DATA: CatalogueEntry[] = [
     ],
     screenshots: [],
     keywords: ['upi', 'qr', 'payment'],
+    faq: [],
+    icon: 'CreditCard',
     access: {
       resources: [
         {
@@ -196,6 +202,8 @@ export const APP_CATALOGUE_DATA: CatalogueEntry[] = [
     ],
     screenshots: [],
     keywords: ['courier', 'shipping', 'awb', 'pincode'],
+    faq: [],
+    icon: 'Truck',
     access: {
       resources: [
         {
@@ -253,6 +261,8 @@ export const APP_CATALOGUE_DATA: CatalogueEntry[] = [
     ],
     screenshots: [],
     keywords: ['courier', 'shipping', 'aggregator'],
+    faq: [],
+    icon: 'Truck',
     access: {
       resources: [
         {
@@ -304,6 +314,8 @@ export const APP_CATALOGUE_DATA: CatalogueEntry[] = [
     ],
     screenshots: [],
     keywords: ['courier', 'shipping', 'aggregator'],
+    faq: [],
+    icon: 'Truck',
     access: {
       resources: [
         {
@@ -359,6 +371,8 @@ export const APP_CATALOGUE_DATA: CatalogueEntry[] = [
     ],
     screenshots: [],
     keywords: ['courier', 'shipping', 'apex', 'surface'],
+    faq: [],
+    icon: 'Truck',
     access: {
       resources: [
         {
@@ -410,6 +424,8 @@ export const APP_CATALOGUE_DATA: CatalogueEntry[] = [
     ],
     screenshots: [],
     keywords: ['courier', 'shipping'],
+    faq: [],
+    icon: 'Truck',
     access: {
       resources: [
         {
@@ -466,6 +482,8 @@ export const APP_CATALOGUE_DATA: CatalogueEntry[] = [
     ],
     screenshots: [],
     keywords: ['speed post', 'courier', 'post office'],
+    faq: [],
+    icon: 'Truck',
     access: {
       resources: [
         {
@@ -518,6 +536,8 @@ export const APP_CATALOGUE_DATA: CatalogueEntry[] = [
     ],
     screenshots: [],
     keywords: ['courier', 'shipping'],
+    faq: [],
+    icon: 'Truck',
     access: {
       resources: [
         {
@@ -570,6 +590,8 @@ export const APP_CATALOGUE_DATA: CatalogueEntry[] = [
     ],
     screenshots: [],
     keywords: ['courier', 'shipping', 'flipkart'],
+    faq: [],
+    icon: 'Truck',
     access: {
       resources: [
         {
@@ -621,6 +643,8 @@ export const APP_CATALOGUE_DATA: CatalogueEntry[] = [
     ],
     screenshots: [],
     keywords: ['courier', 'shipping', 'same day'],
+    faq: [],
+    icon: 'Truck',
     access: {
       resources: [
         {
@@ -676,6 +700,8 @@ export const APP_CATALOGUE_DATA: CatalogueEntry[] = [
     ],
     screenshots: [],
     keywords: ['international', 'export', 'courier'],
+    faq: [],
+    icon: 'Truck',
     access: {
       resources: [
         {
@@ -731,6 +757,8 @@ export const APP_CATALOGUE_DATA: CatalogueEntry[] = [
     ],
     screenshots: [],
     keywords: ['international', 'export', 'courier'],
+    faq: [],
+    icon: 'Truck',
     access: {
       resources: [
         {
@@ -778,6 +806,8 @@ export const APP_CATALOGUE_DATA: CatalogueEntry[] = [
     worksWith: ['Every order and marketing email the store sends'],
     screenshots: [],
     keywords: ['email', 'aws'],
+    faq: [],
+    icon: 'Inbox',
     access: {
       resources: [
         {
@@ -815,6 +845,8 @@ export const APP_CATALOGUE_DATA: CatalogueEntry[] = [
     worksWith: ['Abandoned cart reminders', 'Back in stock alerts'],
     screenshots: [],
     keywords: ['whatsapp', 'messages', 'meta'],
+    faq: [],
+    icon: 'MessageSquare',
     access: {
       resources: [
         {
@@ -857,6 +889,8 @@ export const APP_CATALOGUE_DATA: CatalogueEntry[] = [
     worksWith: ['Products, Files and every app that stores images'],
     screenshots: [],
     keywords: ['storage', 'cloudflare', 'images'],
+    faq: [],
+    icon: null,
     access: {
       resources: [
         {
@@ -894,6 +928,8 @@ export const APP_CATALOGUE_DATA: CatalogueEntry[] = [
     worksWith: ['Products, Files and every app that stores images'],
     screenshots: [],
     keywords: ['storage', 'aws', 'images'],
+    faq: [],
+    icon: 'Upload',
     access: {
       resources: [
         {
@@ -932,6 +968,28 @@ export const APP_CATALOGUE_DATA: CatalogueEntry[] = [
     worksWith: ['Order emails, with the invoice attached', 'Returns, for credit notes'],
     screenshots: [],
     keywords: ['gst', 'invoice', 'tax', 'gstr-1'],
+    faq: [
+      {
+        question: 'Do I need this app if I am not GST registered?',
+        answer:
+          'No. Under the GST threshold you can skip it, and you can still print packing slips from each order.',
+      },
+      {
+        question: 'Can shoppers download their invoice?',
+        answer:
+          'Yes. Once issued, a link to the invoice shows on the shopper’s order page and in their order emails.',
+      },
+      {
+        question: 'I have more than one GST number. Does that work?',
+        answer:
+          'Yes. Each invoice comes from the order’s GST number, each number counts its own invoices, and each files its own GSTR-1.',
+      },
+      {
+        question: 'Does cancelling an order create a credit note?',
+        answer: 'A refund does. Refund an invoiced order and the credit note is issued with it.',
+      },
+    ],
+    icon: 'FileText',
     access: {
       resources: [
         {
@@ -991,6 +1049,24 @@ export const APP_CATALOGUE_DATA: CatalogueEntry[] = [
     worksWith: ['A Shopify store you can sign in to, or its CSV exports'],
     screenshots: [],
     keywords: ['shopify', 'migration', 'import', 'csv'],
+    faq: [
+      {
+        question: 'Will anything change before I say so?',
+        answer:
+          'No. Each import starts with a dry run that shows what will be added and changed, and what stays in Shopify.',
+      },
+      {
+        question: 'What stays in Shopify?',
+        answer:
+          'A few things with no match here, such as some discount types and documents like PDFs. The run page lists each one with a count.',
+      },
+      {
+        question: 'Do gift cards keep their codes?',
+        answer:
+          'No. Shopify never shares a card’s full code, so active cards with a customer get a new code with the same balance, which you send when you are ready.',
+      },
+    ],
+    icon: 'Download',
     access: {
       resources: [
         {
@@ -1058,6 +1134,18 @@ export const APP_CATALOGUE_DATA: CatalogueEntry[] = [
     worksWith: ['Notify me block in your theme', 'The WhatsApp app, for alerts on WhatsApp'],
     screenshots: [],
     keywords: ['restock', 'waitlist', 'notify'],
+    faq: [
+      {
+        question: 'Where does the Notify me button show?',
+        answer:
+          'On product pages, wherever you place the Notify me block in your theme. It shows only while the chosen variant is sold out.',
+      },
+      {
+        question: 'Can I change the alert message?',
+        answer: 'Yes. Edit its messages in the app’s Settings, not in Settings → Notifications.',
+      },
+    ],
+    icon: 'Bell',
     access: {
       resources: [
         {
@@ -1096,6 +1184,24 @@ export const APP_CATALOGUE_DATA: CatalogueEntry[] = [
     worksWith: ['EMI offers block in your theme', 'Razorpay, for EMI at checkout'],
     screenshots: [],
     keywords: ['emi', 'pay later', 'bnpl'],
+    faq: [
+      {
+        question: 'What do I need before it shows anything?',
+        answer:
+          'Razorpay or Cashfree taking payments, and EMI turned on at checkout in Settings → Payments. The app’s page tells you which of the two is still missing.',
+      },
+      {
+        question: 'Does it show on every product?',
+        answer:
+          'Only on products at or above the lowest price you set, ₹1,000 by default. Cheaper products show nothing.',
+      },
+      {
+        question: 'What is the difference between Razorpay and Cashfree here?',
+        answer:
+          'With Razorpay it shows Razorpay’s own offers box, with your banks, tenures and offers. With Cashfree it shows a simple monthly price.',
+      },
+    ],
+    icon: 'CreditCard',
     access: {
       resources: [
         {
@@ -1134,6 +1240,19 @@ export const APP_CATALOGUE_DATA: CatalogueEntry[] = [
     worksWith: ['Themes imported from Shopify'],
     screenshots: [],
     keywords: ['contact form', 'messages'],
+    faq: [
+      {
+        question: 'Do I need this app?',
+        answer:
+          'Only if your theme was imported from Shopify and has contact forms. Without it, those forms have nowhere to send.',
+      },
+      {
+        question: 'Where do the messages go?',
+        answer:
+          'Each one is saved on the app’s Submissions page and emailed to your store’s address.',
+      },
+    ],
+    icon: 'Inbox',
     access: {
       resources: [
         {
@@ -1166,6 +1285,23 @@ export const APP_CATALOGUE_DATA: CatalogueEntry[] = [
     worksWith: ['Product pages in your theme', 'Judge.me exports'],
     screenshots: [],
     keywords: ['reviews', 'ratings', 'judge.me'],
+    faq: [
+      {
+        question: 'Do reviews go live straight away?',
+        answer:
+          'You choose. By default 4★ and 5★ reviews publish right away and the rest wait for you; reviews with photos always wait unless you turn that off.',
+      },
+      {
+        question: 'Who can write a review?',
+        answer:
+          'By default only customers who bought the product. You can open it to anyone in Settings.',
+      },
+      {
+        question: 'Can I bring my Judge.me reviews?',
+        answer: 'Yes. They come over with their stars, dates, photos and your replies.',
+      },
+    ],
+    icon: 'Star',
     access: {
       resources: [
         {
@@ -1218,6 +1354,8 @@ export const APP_CATALOGUE_DATA: CatalogueEntry[] = [
     worksWith: ['An Umami Cloud account or your own Umami server'],
     screenshots: [],
     keywords: ['analytics', 'visitors', 'privacy'],
+    faq: [],
+    icon: 'BarChart3',
     access: {
       resources: [
         {
@@ -1261,6 +1399,8 @@ export const APP_CATALOGUE_DATA: CatalogueEntry[] = [
     worksWith: ['A Google account that owns your domain in Search Console'],
     screenshots: [],
     keywords: ['seo', 'google', 'search'],
+    faq: [],
+    icon: 'Search',
     access: {
       resources: [
         {
@@ -1320,6 +1460,8 @@ export const APP_CATALOGUE_DATA: CatalogueEntry[] = [
     ],
     screenshots: [],
     keywords: ['search', 'typo', 'synonyms'],
+    faq: [],
+    icon: 'Search',
     access: {
       resources: [
         {
@@ -1372,6 +1514,8 @@ export const APP_CATALOGUE_DATA: CatalogueEntry[] = [
     worksWith: ['A Chatwoot Cloud account or your own Chatwoot server'],
     screenshots: [],
     keywords: ['chat', 'support', 'helpdesk'],
+    faq: [],
+    icon: 'MessageSquare',
     access: {
       resources: [
         {
@@ -1424,6 +1568,8 @@ export const APP_CATALOGUE_DATA: CatalogueEntry[] = [
     worksWith: ['A GrowthBook Cloud account or your own GrowthBook server'],
     screenshots: [],
     keywords: ['ab test', 'experiments', 'split test'],
+    faq: [],
+    icon: 'BarChart3',
     access: {
       resources: [
         {
@@ -1471,6 +1617,14 @@ export const APP_CATALOGUE_DATA: CatalogueEntry[] = [
     worksWith: ['The Meilisearch app'],
     screenshots: [],
     keywords: ['search', 'synonyms'],
+    faq: [
+      {
+        question: 'Do I need Meilisearch for this?',
+        answer:
+          'No. Synonyms work with the built-in store search, and with Meilisearch if you add it.',
+      },
+    ],
+    icon: 'Search',
     access: {
       resources: [
         {

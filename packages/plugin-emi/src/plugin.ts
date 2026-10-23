@@ -24,6 +24,23 @@ export const emiPlugin = definePlugin({
     guide: '/merchant-guide/apps/emi-and-pay-later',
     worksWith: ['EMI offers block in your theme', 'Razorpay, for EMI at checkout'],
     keywords: ['emi', 'pay later', 'bnpl'],
+    faq: [
+      {
+        question: 'What do I need before it shows anything?',
+        answer:
+          'Razorpay or Cashfree taking payments, and EMI turned on at checkout in Settings → Payments. The app’s page tells you which of the two is still missing.',
+      },
+      {
+        question: 'Does it show on every product?',
+        answer:
+          'Only on products at or above the lowest price you set, ₹1,000 by default. Cheaper products show nothing.',
+      },
+      {
+        question: 'What is the difference between Razorpay and Cashfree here?',
+        answer:
+          'With Razorpay it shows Razorpay’s own offers box, with your banks, tenures and offers. With Cashfree it shows a simple monthly price.',
+      },
+    ],
   },
   access: {
     resources: [

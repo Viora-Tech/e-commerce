@@ -79,6 +79,11 @@ export const salesChannelsContent = {
     paused: 'Paused',
   },
   bar: {
+    rejected: (n: number, name: string) =>
+      n === 1 ? `1 product is not shown on ${name}` : `${n} products are not shown on ${name}`,
+    rejectedHelp:
+      'The platform refused these after the last sync. Fix the product (title, images, GTIN, price) and the next sync sends it again.',
+    rejectedItem: (id: string, reason: string) => `Item ${id}: ${reason}`,
     notConnected: 'Not connected',
     notConnectedBody: 'Nothing is shared until you connect and approve what it can see.',
     requested: (name: string) => `${name} access requested`,

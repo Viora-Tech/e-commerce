@@ -88,6 +88,7 @@ import shadowfax from './shadowfax'
 import shipments from './shipments'
 import shipping from './shipping'
 import shippingRates from './shipping-rates'
+import shopifyAppInstall from './shopify-app-install'
 import shopifyImport from './shopify-import'
 import shopifyImportFiles from './shopify-import-files'
 import shopifyImportRun from './shopify-import-run'
@@ -102,6 +103,7 @@ import themeCode from './theme-code'
 import themeImport from './theme-import'
 import themes from './themes'
 import umami from './umami'
+import whatsappSignup from './whatsapp-signup'
 import xpressbees from './xpressbees'
 
 /**
@@ -193,6 +195,7 @@ export const hindiCopy: readonly TranslationPair[] = [
   ...shipping,
   ...shippingRates,
   ...shopifyImport,
+  ...shopifyAppInstall,
   ...notifications,
   ...staff,
   ...staffInvites,
@@ -214,4 +217,5 @@ export const hindiCopy: readonly TranslationPair[] = [
   ...ekart,
   ...shadowfax,
   ...growthbook,
+  ...whatsappSignup,
 ]

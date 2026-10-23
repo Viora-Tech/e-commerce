@@ -357,7 +357,7 @@ export type ImportStatus = {
 }
 
 /** Which mode a saved connection authenticates with. */
-export const AUTH_MODES = ['legacy', 'client_credentials'] as const
+export const AUTH_MODES = ['legacy', 'client_credentials', 'app'] as const
 export type AuthMode = (typeof AUTH_MODES)[number]
 
 /** What `testConnection` reports: shop name plus which scopes the token has and lacks. */

@@ -8,6 +8,9 @@
  *    installed on this store, exchanged for a ~24h Admin API access token
  *    (see `oauth.ts`). The token is cached alongside its expiry and
  *    refreshed automatically, here and mid-run on a 401.
+ *  - `app`: the platform's own Shopify app (`app-install.ts`), installed through Shopify's
+ *    authorization code grant. An expiring offline token plus its refresh token, refreshed
+ *    the same way before it lapses.
  *
  * Both shapes live in the same `access_token` column as encrypted JSON, so no
  * migration was needed to add the new mode.
@@ -15,6 +18,7 @@
 import { decryptSecret, encryptSecret } from '@commerce/core'
 import type { StoreTx } from '@commerce/db'
 import { eq } from 'drizzle-orm'
+import { type AppToken, refreshAppToken, type ShopifyApp, shopifyAppFromEnv } from './app-install'
 import type { AuthMode, ScopeCheck } from './client'
 import { ALL_SCOPE_HANDLES, type ScopeHandle } from './client'
 import { fetchClientCredentialsToken, isExpiring } from './oauth'
@@ -51,6 +55,7 @@ type Credential =
       accessToken: string | null
       expiresAt: string | null
     }
+  | ({ mode: 'app' } & Omit<AppToken, 'scope'>)
 
 export function maskToken(token: string): string {
   const prefix = /^shp[a-z]+_/.exec(token)?.[0] ?? ''
@@ -61,7 +66,8 @@ function decodeCredential(blob: string, secret: string): Credential {
   const decrypted = decryptSecret(blob, secret)
   try {
     const parsed = JSON.parse(decrypted) as Credential
-    if (parsed.mode === 'legacy' || parsed.mode === 'client_credentials') return parsed
+    if (parsed.mode === 'legacy' || parsed.mode === 'client_credentials' || parsed.mode === 'app')
+      return parsed
   } catch {
     // Not JSON: a raw token saved before client-credentials support existed.
   }
@@ -73,6 +79,7 @@ const encodeCredential = (cred: Credential, secret: string): string =>
 
 function hintFor(cred: Credential): string {
   if (cred.mode === 'legacy') return maskToken(cred.token)
+  if (cred.mode === 'app') return maskToken(cred.accessToken)
   return `••••${cred.clientId.slice(-4)}`
 }
 
@@ -96,15 +103,49 @@ export async function getConnection(tx: StoreTx, secret: string): Promise<Connec
   }
 }
 
+type ConnectionRow = typeof shopifyConnection.$inferSelect
+
+/**
+ * The Koomerce app's expiring offline token: refreshed (and the new refresh token saved,
+ * since Shopify hands out a new one each time) once it is about to lapse.
+ */
+async function refreshAppCredential(
+  tx: StoreTx,
+  row: ConnectionRow,
+  cred: Extract<Credential, { mode: 'app' }>,
+  secret: string,
+  app: ShopifyApp | null,
+  fetchImpl: typeof fetch,
+): Promise<string> {
+  if (!cred.expiresAt || !isExpiring(cred.expiresAt)) return cred.accessToken
+  if (!app || !cred.refreshToken)
+    throw new ConnectionError('Shopify access ran out. Install the app again from Connect.')
+  const token = await refreshAppToken(app, row.shopDomain, cred.refreshToken, fetchImpl)
+  const next: Credential = {
+    mode: 'app',
+    accessToken: token.accessToken,
+    expiresAt: token.expiresAt,
+    refreshToken: token.refreshToken ?? cred.refreshToken,
+    refreshExpiresAt: token.refreshExpiresAt ?? cred.refreshExpiresAt,
+  }
+  await tx
+    .update(shopifyConnection)
+    .set({ accessToken: encodeCredential(next, secret), updatedAt: new Date() })
+    .where(eq(shopifyConnection.id, row.id))
+  return token.accessToken
+}
+
 /** Re-reads the row, exchanges a fresh token if needed, and persists it. Safe to call repeatedly. */
-async function refreshClientCredentials(
+async function refreshSavedToken(
   tx: StoreTx,
   secret: string,
   fetchImpl: typeof fetch,
+  app: ShopifyApp | null,
 ): Promise<string | null> {
   const [row] = await tx.select().from(shopifyConnection).limit(1)
   if (!row) return null
   const cred = decodeCredential(row.accessToken, secret)
+  if (cred.mode === 'app') return refreshAppCredential(tx, row, cred, secret, app, fetchImpl)
   if (cred.mode !== 'client_credentials') return null
   if (!isExpiring(cred.expiresAt)) return cred.accessToken
   const token = await fetchClientCredentialsToken(
@@ -122,8 +163,10 @@ async function refreshClientCredentials(
 }
 
 export type ClientForOptions = Pick<ClientOptions, 'fetch' | 'sleep'> & {
-  /** Needed for a client-credentials connection to refresh and persist its token mid-run. */
+  /** Needed for a client-credentials or app connection to refresh and persist its token mid-run. */
   inStore?: InStore
+  /** The platform's Shopify app; defaults to `SHOPIFY_APP_CLIENT_ID` / `_SECRET`. */
+  app?: ShopifyApp | null
 }
 
 /** A client for the store's saved connection, or null when there is none. */
@@ -134,7 +177,8 @@ export async function clientFor(
 ): Promise<ShopifyClient | null> {
   const [row] = await tx.select().from(shopifyConnection).limit(1)
   if (!row) return null
-  const { inStore, ...clientOpts } = opts
+  const { inStore, app: appOpt, ...clientOpts } = opts
+  const app = appOpt === undefined ? shopifyAppFromEnv(process.env) : appOpt
   const cred = decodeCredential(row.accessToken, secret)
   const fetchImpl = clientOpts.fetch ?? fetch
   if (cred.mode === 'legacy') {
@@ -144,9 +188,27 @@ export async function clientFor(
       ...clientOpts,
     })
   }
+  if (cred.mode === 'app') {
+    // Every refresh is saved: Shopify replaces the refresh token each time.
+    const refresh = async (): Promise<string> => {
+      const token = inStore
+        ? await inStore((tx2) => refreshSavedToken(tx2, secret, fetchImpl, app))
+        : await refreshSavedToken(tx, secret, fetchImpl, app)
+      if (!token) throw new ConnectionError('Connect your Shopify store first')
+      return token
+    }
+    const accessToken =
+      cred.expiresAt && isExpiring(cred.expiresAt) ? await refresh() : cred.accessToken
+    return new ShopifyClient({
+      shopDomain: row.shopDomain,
+      accessToken,
+      ...(cred.refreshToken ? { refreshToken: refresh } : {}),
+      ...clientOpts,
+    })
+  }
   const refresh = async (): Promise<string> => {
     const token = inStore
-      ? await inStore((tx2) => refreshClientCredentials(tx2, secret, fetchImpl))
+      ? await inStore((tx2) => refreshSavedToken(tx2, secret, fetchImpl, app))
       : (
           await fetchClientCredentialsToken(
             row.shopDomain,
@@ -267,6 +329,41 @@ export async function connect(
     data.shop.name,
     secret,
   )
+}
+
+/**
+ * The merchant installed the Koomerce app on their shop (`app-install.ts`): check the token
+ * with one `shop` query and save it, encrypted, as an `app` connection.
+ */
+export async function connectApp(
+  tx: StoreTx,
+  storeId: string,
+  shopDomain: string,
+  token: AppToken,
+  secret: string,
+  fetchImpl: typeof fetch = globalThis.fetch,
+): Promise<ConnectionView> {
+  const shop = normaliseShopDomain(shopDomain)
+  if (!shop) throw new ConnectionError(ERRORS.domain)
+  const client = new ShopifyClient({
+    shopDomain: shop,
+    accessToken: token.accessToken,
+    maxAttempts: 2,
+    fetch: fetchImpl,
+  })
+  const data = await client.query<{ shop: { name: string } }>(
+    '{ shop { name myshopifyDomain } }',
+    {},
+    10,
+  )
+  const { scope: _scope, ...rest } = token
+  return saveConnection(tx, storeId, shop, { mode: 'app', ...rest }, data.shop.name, secret)
+}
+
+/** The saved shop, for unlinking its platform account when the merchant disconnects. */
+export async function connectedShop(tx: StoreTx): Promise<string | null> {
+  const [row] = await tx.select({ shop: shopifyConnection.shopDomain }).from(shopifyConnection)
+  return row?.shop ?? null
 }
 
 export async function disconnect(tx: StoreTx): Promise<void> {

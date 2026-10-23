@@ -1,3 +1,4 @@
+import { siteConfig } from '@commerce/config/site'
 import {
   ALL_SCOPE_HANDLES,
   type AuthMode,
@@ -130,6 +131,7 @@ export const shopifyImportContent = {
     headerConnect: 'Connect Shopify store',
     headerEdit: 'Edit connection',
     mode: {
+      install: `Install the ${siteConfig.brand.name} app`,
       app: 'Connect with your Shopify app',
       token: 'I already have an Admin API token',
     },
@@ -168,8 +170,7 @@ export const shopifyImportContent = {
       clientSecretHelp:
         'Kept encrypted. We exchange it for a token that Shopify expires after 24 hours, and refresh it for you automatically.',
       submit: 'Connect',
-      oauthNote:
-        'A one-click "Connect Shopify" button needs a public web address to send merchants back to, so it is a follow-up once the admin is deployed. This is the way to connect your own store today.',
+      oauthNote: `No app to make by hand? Use Install the ${siteConfig.brand.name} app instead, when it shows above.`,
     },
     token: {
       stepsHeading: 'Create the token in Shopify',
@@ -195,6 +196,7 @@ export const shopifyImportContent = {
     authMode: {
       legacy: 'Admin API token',
       client_credentials: 'Shopify app (Dev Dashboard)',
+      app: `${siteConfig.brand.name} app on Shopify`,
     } satisfies Record<AuthMode, string>,
     verified: 'Checked',
     disconnect: 'Disconnect',
