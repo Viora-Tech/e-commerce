@@ -2,7 +2,7 @@
 
 import { siteConfig } from '@commerce/config/site'
 import type { AutomationUsage, TriggerView, WorkflowSummary } from '@commerce/core/automations'
-import { Blocks, Plus, Workflow } from '@commerce/ui/icons'
+import { Blocks, ChevronLeftIcon, Plus, Workflow } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
@@ -17,15 +17,22 @@ import { useCopy, useFormat, useLocale } from '@/hooks/use-copy'
 import { automationApi } from '@/lib/automation-api'
 import { triggerLabel } from '@/lib/automation-labels'
 import { automationRoutes } from '@/lib/automation-routes'
+import { routes } from '@/lib/routes'
 import DevMockNotice from './dev-mock-notice'
 import TriggerPickerDialog from './trigger-picker-dialog'
 import UsageMeter from './usage-meter'
 import { viewOf, type WorkflowView, workflowColumns } from './workflow-columns'
 import WorkflowRowMenu from './workflow-row-menu'
 
-/** `?origin=growth` (Growth's link after cut-over) or `?origin=automations`. */
-const originOf = (raw: string | null) =>
-  raw === 'growth' || raw === 'automations' ? raw : undefined
+/**
+ * `?origin=growth` (Growth's link after cut-over) or `?origin=automations`; `?category=marketing`
+ * reads as Growth's marketing automations too.
+ */
+const originOf = (params: { get: (name: string) => string | null }) => {
+  const raw = params.get('origin')
+  if (raw === 'growth' || raw === 'automations') return raw
+  return params.get('category') === 'marketing' ? 'growth' : undefined
+}
 
 /** Automations home: every workflow with its trigger, status and recent runs, and the plan meter. */
 export default function WorkflowsPage() {
@@ -50,7 +57,7 @@ export default function WorkflowsPage() {
   // biome-ignore lint/correctness/useExhaustiveDependencies: `round` is the reload trigger after a row action
   useEffect(() => {
     let live = true
-    Promise.all([automationApi.list(originOf(searchParams.get('origin'))), automationApi.usage()])
+    Promise.all([automationApi.list(originOf(searchParams)), automationApi.usage()])
       .then(([list, use]) => {
         if (!live) return
         setItems(list)
@@ -84,7 +91,7 @@ export default function WorkflowsPage() {
   // Render logic
   const copy = all.list
   const rows = items ?? []
-  const origin = originOf(searchParams.get('origin'))
+  const origin = originOf(searchParams)
   const applied = origin
     ? [
         {
@@ -111,6 +118,17 @@ export default function WorkflowsPage() {
     <div className="flex flex-col gap-4">
       <DevMockNotice />
       <div className="flex flex-wrap items-center justify-end gap-2">
+        {origin === 'growth' ? (
+          <Button
+            variant="ghost"
+            className="mr-auto"
+            nativeButton={false}
+            render={<Link href={routes.growth.home()} />}
+          >
+            <ChevronLeftIcon aria-hidden="true" />
+            {copy.backToGrowth}
+          </Button>
+        ) : null}
         <Button
           variant="outline"
           nativeButton={false}

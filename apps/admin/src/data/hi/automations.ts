@@ -249,6 +249,7 @@ export default [
       marketing: 'मार्केटिंग',
       originField: 'कहाँ बना',
       originAutomations: 'ऑटोमेशन',
+      backToGrowth: 'ग्रोथ पर लौटें',
       never: 'कभी नहीं',
       problem: 'बंद किया गया',
       empty: {

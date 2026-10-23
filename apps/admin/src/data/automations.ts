@@ -258,6 +258,7 @@ export const automationsContent = {
     marketing: 'Marketing',
     originField: 'Made in',
     originAutomations: 'Automations',
+    backToGrowth: 'Back to Growth',
     never: 'Never',
     problem: 'Turned off',
     empty: {
