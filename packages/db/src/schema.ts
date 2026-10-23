@@ -1461,9 +1461,7 @@ export const shipment = pgTable(
     fulfillmentOrderId: uuid('fulfillment_order_id').references(() => fulfillmentOrder.id),
     provider: text('provider').notNull(),
     waybill: text('waybill').notNull(),
-    /** Whatever id the courier's own API needs for a later call (cancel, pickup, label) when
-     *  that is not the waybill itself - e.g. RapidShyp's cancel_order wants its own order id,
-     *  not the AWB. Null for couriers (Delhivery) whose every follow-up call takes the waybill. */
+    /** Courier's own id for follow-up calls when not the waybill (RapidShyp); else null. */
     providerRef: text('provider_ref'),
     status: text('status', {
       enum: [
@@ -1504,6 +1502,8 @@ export const shipment = pgTable(
     pickupId: uuid('pickup_id'),
     /** What the courier charged for this consignment (from the booking, or typed by the merchant). */
     courierChargePaise: integer('courier_charge_paise'),
+    packingCostPaise: integer('packing_cost_paise'), // packing snapshot when booked or packed
+    boxPresetId: text('box_preset_id'),
     createdAt: createdAt(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   },

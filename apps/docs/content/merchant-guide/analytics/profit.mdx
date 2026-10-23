@@ -1,23 +1,26 @@
 ---
 title: Profit
-description: What each order, product and month really earned, after what the goods cost you, courier charges, payment fees and RTO.
+description: What each order, product and month really earned, after goods, packing, delivery, payment fees, RTO and your monthly expenses.
 ---
 
 # Profit
 
 Sales tell you what came in. Profit tells you what you kept. Koomerce works it out for every order,
 using what the goods actually cost you (your landed cost from purchase orders: price, freight,
-customs and the rest).
+customs and the rest), and then for every month, after your running costs.
+
+One order's profit is an estimate: two identical orders can end up ₹10 apart once the courier
+bills. What to trust is the **average over time**, so the reports show averages, and every figure
+is a **floor**: you made at least this much, based on the costs you entered.
 
 ## What this is for
 
 - Seeing if an order made money, on the order page.
-- Finding which products earn the most, and which barely pay for themselves.
-- Watching profit month by month.
+- Finding which products earn the most per unit, and which barely pay for themselves.
+- Seeing that bigger baskets earn more (one box and one delivery for the whole parcel).
+- Knowing whether the month paid for your rent, staff and apps.
 
-## How it is worked out
-
-For each order:
+## How an order's profit is worked out
 
 1. **Net sales (without GST)**: what the customer paid, less refunds, without the GST inside it.
    If the order was cancelled or came back undelivered (RTO), only the money you actually
@@ -25,41 +28,66 @@ For each order:
 2. **Less the cost of goods**: what each item cost you *when it sold*. This is saved on the order
    when it is placed, so later cost changes do not change old orders. Items returned to stock do
    not count.
-3. **Less courier charges**: what the courier charged for the parcel. When you book through a
-   connected courier that tells us its charge, it is filled in for you. Otherwise type it on the
-   order page.
-4. **Less payment fees**: what the payment gateway kept. Razorpay and Cashfree report the actual
-   fee for each payment, and that is used. Until it arrives, your rate from **Settings → Costs
-   for profit** for how the customer paid (UPI, credit card, net banking…) is used, then your
-   rate for that gateway. For cash on delivery, the courier's COD fee from the same page is used.
-   GST on fees is left out if you have a GST registration (you claim it back), and counted if you
-   do not.
-5. **Less RTO costs**: what the courier charged to bring an undelivered parcel back.
+3. **Less packing**: the cost of the box each parcel goes in, once per parcel, from your boxes in
+   **[Settings → Shipping](/merchant-guide/settings/shipping)**. The box is the one the products
+   pick (else your main box). When the parcel is booked or packed, that box's cost is saved on it,
+   so changing a box price later never changes past orders. Until then it shows as estimated.
+4. **Less delivery**: what the courier charged for each parcel. Until that is known, a cautious
+   estimate: your **highest** charge in the last 60 days for the same courier and state, else
+   your **default delivery cost** from **[Settings → Costs for
+   profit](/merchant-guide/settings/costs)** (₹100 until you change it). Three items in one
+   parcel pay one delivery and one box.
+5. **Less payment fees**: what the payment gateway kept, the actual fee when Razorpay or Cashfree
+   reports it, else your rates from **Settings → Costs for profit**.
+6. **Less RTO costs**: what the courier charged to bring an undelivered parcel back.
 
 What is left is the **profit**, and the **margin** is profit as a share of net sales.
 
-When something is not known (an item without a cost, a parcel without a courier charge, a payment
-method without a fee rate), it counts as zero and the order page says so. Nothing is guessed.
+No packing or delivery is counted for an order cancelled before anything was packed or booked,
+a parcel with only gift cards, or an order with no address to ship to. A booking you cancel keeps
+its packing cost (the box was used) but not its delivery charge.
+
+GST: if you are GST-registered, type box costs and the default delivery cost **before GST** (you
+claim it back). If not, type what you actually pay.
+
+## Net profit each month
+
+Add your running costs in **[Settings → Monthly
+expenses](/merchant-guide/settings/monthly-expenses)**: rent, salaries, apps, your website. Each
+month's net profit is the month's order profit less those expenses.
+
+- A month still going counts only the days gone ("so far"): on the 10th of a 30-day month, a third
+  of each expense. Otherwise a fresh month would look like a loss.
+- If the report covers only part of an older month, that part of each expense counts.
+
+## Estimated, and "at least"
+
+A figure is **estimated** while any packing, delivery or payment fee in it is still an estimate.
+It becomes real when the parcel is booked, the courier's charge arrives or the gateway reports its
+fee. Estimates are cautious, so real profit is usually a little higher.
+
+Orders from before this was added get estimates too, and say so: the Profit report shows how many
+orders in each month are still estimated (for example "12 of 140 orders still estimated").
+
+Wherever profit is shown with an estimate in it, you see one line: *Based on the costs you
+entered. Your real profit may be higher or lower if some costs differ.*
 
 ## Where to see it
 
-- **Order page → Profit**: the lines above for that order, with a note when something is
-  missing. **Payment fees** says **Actual** when the gateway reported the fee, **Estimated**
-  while your rates are used, or **Partly estimated** when an order has both. If the order has a
-  parcel, you can type its courier charge here.
-- **Analytics → Reports → Profit by month** and **Profit by product**. By product, each order's
-  courier charge, fees and RTO are shared across its items by their value.
-- **[Settings → Costs for profit](/merchant-guide/settings/costs)**: the rates used until the
-  actual fee arrives, by how the customer paid and by gateway (a percent, plus a fixed amount if
-  your gateway charges one), and your courier's cash on delivery fee.
-
-Orders placed before profit tracking began use each item's cost from that day, marked as
-estimated.
+- **Order page → Profit**: each line above. **Packing** and **Delivery** say *estimated* until
+  known, the card shows an **Estimated** tag and the profit reads "at least". You can type the
+  courier's charge under the card.
+- **Analytics → Reports → Profit by month**: packing, delivery, fees, RTO, profit, monthly expenses
+  and **net profit** per month, and how many orders are still estimated. Above the chart:
+  net profit, average profit per order and per unit, profit per order by basket size (1, 2, 3+
+  items), and a verdict: *Profitable in these dates*, or *₹X short: about N more orders at your
+  average profit*.
+- **Analytics → Reports → Profit by product**: each product's share of its orders' packing,
+  delivery, fees and RTO, with **profit per unit**.
 
 ## Try it
 
-1. Open **Settings → Costs for profit** and check the rates against your Razorpay plan.
-2. Open a recent order. The **Profit** card shows net sales, cost of goods, courier charges, fees
-   and the profit.
-3. If it says the courier charge is not known, type it under the card and select **Save**.
-4. Open **Analytics → Reports → Profit by product** to see your best earners.
+1. Open **Settings → Shipping** and give each box its cost.
+2. Open **Settings → Costs for profit**, check the fee rates and your default delivery cost.
+3. Add your rent and salaries in **Settings → Monthly expenses**.
+4. Open **Analytics → Reports → Profit by month** to see net profit and your averages.

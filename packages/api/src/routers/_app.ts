@@ -33,6 +33,7 @@ import { marketingRouter } from './marketing'
 import { mediaRouter } from './media'
 import { meilisearchRouter } from './meilisearch'
 import { metaobjectsRouter } from './metaobjects'
+import { monthlyExpensesRouter } from './monthly-expenses'
 import { navigationRouter } from './navigation'
 import { notificationsRouter } from './notifications'
 import { onboardingRouter } from './onboarding'
@@ -110,6 +111,7 @@ export const appRouter = {
   taxes: taxesRouter,
   businessGst: businessGstRouter,
   profitCosts: profitCostsRouter,
+  monthlyExpenses: monthlyExpensesRouter,
   shopifyImport: shopifyImportRouter,
   affiliates: affiliatesRouter,
   platformApps: platformAppsRouter,

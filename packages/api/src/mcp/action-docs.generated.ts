@@ -260,6 +260,12 @@ export const ACTION_DOCS: Record<string, string> = {
     'A ready-made content type (Size guide, FAQ, ...) from METAOBJECT_PRESETS.',
   'metaobjects.references':
     'Rows for reference pickers: search results, or labels for ids already chosen.',
+  'monthlyExpenses.create':
+    'Add a monthly expense from a month on (one-off: its last month is its first).',
+  'monthlyExpenses.delete':
+    'Delete an expense entered by mistake: it no longer counts in any month.',
+  'monthlyExpenses.list': 'Every expense (each version of it), and what this month carries so far.',
+  'monthlyExpenses.update': 'Change an expense from a month on; earlier months keep what they had.',
   'navigation.checkLinks':
     "Items whose destination is gone or hidden from shoppers (the editor's broken-link check).",
   'navigation.settings': 'Which menus the storefront header and footer render, by handle.',

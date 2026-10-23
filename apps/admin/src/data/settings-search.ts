@@ -434,6 +434,12 @@ export const SETTINGS_SEARCH_INDEX: SettingsSearchEntry[] = [
     keywords: ['cod', 'cash on delivery', 'cod fee', 'cod charges', 'courier cod fee'],
   },
   {
+    title: 'Monthly expenses',
+    where: 'Taxes & GST › Monthly expenses',
+    href: routes.settings.expenses(),
+    keywords: ['expenses', 'rent', 'salary', 'staff', 'running costs', 'net profit', 'overheads'],
+  },
+  {
     title: 'PIN codes without cash on delivery',
     where: 'Selling › Checkout',
     href: `${routes.settings.checkout()}#cod`,

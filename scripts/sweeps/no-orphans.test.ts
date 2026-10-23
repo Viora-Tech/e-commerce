@@ -212,9 +212,9 @@ const ALLOWLIST: AllowEntry[] = [
     reason: 'the shopper-paid-fee split behind recordPaymentCharges, exported for its unit test',
   },
   {
-    file: 'packages/core/src/order/profit-service.ts',
-    names: ['feeGstClaimable'],
-    reason: 'the GST-on-fees rule behind profitFacts and profitCostsView, exported for its test',
+    file: 'packages/db/src/finance-schema.ts',
+    names: ['MONTHLY_EXPENSE_CATEGORIES'],
+    reason: 'the table check list, exported so core monthly-expenses.test.ts checks it matches',
   },
   {
     file: 'packages/core/src/inventory/schemas.ts',

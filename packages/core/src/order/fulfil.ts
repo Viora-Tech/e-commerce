@@ -7,6 +7,7 @@ import {
   type PackPick,
   packFulfillmentOrderLines,
 } from './fulfillment-orders'
+import { packingSnapshot } from './profit-parcels'
 import { recomputeOrderStatuses } from './recompute'
 
 export type FulfilLineInput = { lineId: string; quantity: number }
@@ -225,6 +226,7 @@ export async function fulfilOrderLines(
   if (waybill) {
     /* One shipment row per waybill: re-packing under the same number updates it
        rather than creating a duplicate the tracking poller would fight over. */
+    const packing = await packingSnapshot(ctx.tx, picks)
     const [row] = await ctx.tx
       .insert(shipment)
       .values({
@@ -235,6 +237,7 @@ export async function fulfilOrderLines(
         waybill,
         status: 'created',
         trackingUrl: input.trackingUrl?.trim() || null,
+        ...packing,
       })
       .onConflictDoUpdate({
         target: [shipment.provider, shipment.waybill],

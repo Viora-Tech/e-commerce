@@ -281,11 +281,16 @@ export const analyticsContent = {
       cumulativeShare: 'Cumulative share',
       month: 'Month',
       costOfGoods: 'Cost of goods',
-      courierCost: 'Courier charges',
+      packingCost: 'Packing',
+      courierCost: 'Delivery',
       gatewayFees: 'Payment fees',
       rtoCost: 'RTO costs',
       profit: 'Profit',
       margin: 'Margin',
+      expenses: 'Monthly expenses',
+      netProfit: 'Net profit',
+      estimatedOrders: 'Orders still estimated',
+      profitPerUnit: 'Profit per unit',
     } as Record<string, string>,
     /** Words for the fixed keys some columns hold (status, COD or prepaid, finance lines). */
     labels: {

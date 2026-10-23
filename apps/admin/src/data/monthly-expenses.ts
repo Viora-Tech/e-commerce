@@ -1,0 +1,62 @@
+/** Copy for Settings › Monthly expenses: the store's running costs, taken off profit each month. */
+export const monthlyExpensesContent = {
+  title: 'Monthly expenses',
+  intro:
+    'Rent, staff, apps, your website: what running the shop costs each month. Net profit in Analytics takes these off the month’s order profit.',
+  gst: {
+    claimable: 'Type amounts before GST: you claim the GST back.',
+    notClaimable: 'Type what you actually pay, GST included.',
+  },
+  thisMonth: 'This month so far',
+  thisMonthNote: (days: number, total: number, full: string) =>
+    `${days} of ${total} days of ${full}. A month still going counts only the days gone.`,
+  listTitle: 'Your expenses',
+  empty: 'No expenses yet. Add rent, salaries or the apps you pay for.',
+  add: 'Add expense',
+  edit: 'Edit',
+  delete: 'Delete',
+  columns: {
+    name: 'Expense',
+    category: 'Category',
+    amount: 'Per month',
+    months: 'Counts in',
+  },
+  from: (month: string) => `From ${month}`,
+  range: (from: string, to: string) => (from === to ? from : `${from} to ${to}`),
+  categories: {
+    staff: 'Staff and salaries',
+    rent: 'Rent and office',
+    software: 'Apps and website',
+    marketing: 'Marketing',
+    utilities: 'Electricity, internet and phone',
+    services: 'Accounting and other services',
+    other: 'Other',
+  } as Record<string, string>,
+  dialog: {
+    addTitle: 'Add a monthly expense',
+    editTitle: 'Change this expense',
+    editHelp:
+      'Pick the month the change starts. Months before it keep the old amount, so past profit never changes.',
+    name: 'Name',
+    namePlaceholder: 'Shop rent',
+    category: 'Category',
+    amount: 'Amount per month (₹)',
+    startsOn: 'First month',
+    fromMonth: 'Change from',
+    repeats: 'Repeats every month',
+    endsOn: 'Last month (optional)',
+    endsOnHelp: 'Leave empty while you keep paying it.',
+    save: 'Save',
+    add: 'Add expense',
+  },
+  confirmDelete: {
+    title: 'Delete this expense?',
+    body: 'It stops counting in every month, past ones too. To stop paying it from a month on, edit it and set a last month instead.',
+    confirm: 'Delete',
+  },
+  saved: 'Saved',
+  deleted: 'Deleted',
+  failed: 'Could not save',
+  invalidAmount: 'Type the amount in rupees, like 25000.',
+  invalidName: 'Give the expense a name.',
+}

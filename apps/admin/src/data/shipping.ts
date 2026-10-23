@@ -68,6 +68,9 @@ export const shippingSettingsContent = {
     width: 'Width (cm)',
     height: 'Height (cm)',
     weight: 'Box weight (g)',
+    cost: 'Cost (₹)',
+    costHelp:
+      'What one box and its filler cost you, counted once per parcel in order profit. Before GST if you are GST-registered, else what you pay. Leave it empty and packing counts as nothing.',
     default: 'Main box',
     makeDefault: 'Make main box',
     remove: 'Remove',

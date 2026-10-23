@@ -309,6 +309,7 @@ const NAMESPACE_AREA: Record<string, ApiArea> = {
   taxes: 'settings',
   businessGst: 'settings',
   profitCosts: 'settings',
+  monthlyExpenses: 'settings',
   shopifyImport: 'settings',
   emi: 'settings',
   umami: 'settings',
