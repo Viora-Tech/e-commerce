@@ -9,5 +9,5 @@ export const evaluateRules: ConditionEvaluator = (rules, data) => evaluateRulesA
 /** Loads `{ order }` / `{ customer }` / `{ product }` / `{ cart }` plus `store`; null when gone. */
 export const loadSubjectData: SubjectLoader = loadSubject
 
-export { type EvaluateOptions, evaluateRulesAt, readPath } from './evaluate'
+export { type EvaluateOptions, evaluateRulesAt } from './evaluate'
 export { customerIdOf } from './loaders'

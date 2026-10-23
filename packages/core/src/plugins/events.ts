@@ -5,6 +5,7 @@ import type { StorageProvider } from '@commerce/storage'
 import { eq } from 'drizzle-orm'
 import { recordAppActivity, recordAppError } from '../apps/installation'
 import { parseAppsSettings } from '../apps/settings'
+import { fireAppTrigger } from '../automations/engine/app-trigger'
 import { storefrontOriginFor } from '../domains/origin'
 import { addMediaProcessJob, type MediaProcessQueue } from '../media/queue'
 
@@ -137,6 +138,7 @@ function appContext(deps: DispatchDeps, storeId: string, tag: string): AppHookCo
     settingsSecret: deps.settingsSecret,
     storefrontUrl: deps.storefrontUrl,
     log: (message) => log(`[${tag}] ${message}`),
+    triggerAutomation: (tx, event) => fireAppTrigger(tx, storeId, event),
     notify: (input) =>
       deps.notify
         ? deps.notify(storeId, input)

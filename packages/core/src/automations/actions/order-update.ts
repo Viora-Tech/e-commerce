@@ -9,7 +9,7 @@ import { deliverNotification } from '../../notifications/deliver'
 import { messageDef } from '../../notifications/messages'
 import { type ActionContext, type ActionExecutor, AutomationActionError } from '../executor'
 import { fill, mergeValues, notConnected, skipped } from './messages'
-import { type BuiltinActionDeps, claimMessage, gone, sendFailure, subjectId } from './shared'
+import { claimMessage, type DepsFor, gone, sendFailure, subjectId } from './shared'
 
 // ---------------------------------------------------------------------------------------------
 // Send order update (no consent: order email templates, utility WhatsApp templates)
@@ -62,7 +62,7 @@ async function utilityTemplate(
   return { ok: true, template: t }
 }
 
-export function orderUpdate(deps: BuiltinActionDeps): ActionExecutor<OrderUpdateConfig> {
+export function orderUpdate(depsFor: DepsFor): ActionExecutor<OrderUpdateConfig> {
   const orderOf = async (tx: StoreTx, ctx: ActionContext) => {
     const [o] = await tx
       .select()
@@ -74,6 +74,7 @@ export function orderUpdate(deps: BuiltinActionDeps): ActionExecutor<OrderUpdate
   return {
     id: 'customer.send_order_update',
     async run({ tx, ctx, config }) {
+      const deps = await depsFor(tx, ctx.storeId)
       const o = await orderOf(tx, ctx)
       if (config.channel === 'email') {
         if (!isOrderUpdateTemplate(config.template)) {
@@ -135,6 +136,7 @@ export function orderUpdate(deps: BuiltinActionDeps): ActionExecutor<OrderUpdate
       return { summary: `Sent ${config.template.name} on WhatsApp`, output: { to: phone } }
     },
     async preview({ tx, ctx, config }) {
+      const deps = await depsFor(tx, ctx.storeId)
       const o = await orderOf(tx, ctx)
       if (config.channel === 'email') {
         if (!isOrderUpdateTemplate(config.template)) {

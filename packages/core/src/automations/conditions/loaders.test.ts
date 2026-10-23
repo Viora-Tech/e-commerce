@@ -19,7 +19,8 @@ import { eq } from 'drizzle-orm'
 import { afterAll, beforeEach, describe, expect, it } from 'vitest'
 import { createProduct } from '../../catalog/products'
 import { CONDITION_FIELDS } from '../condition-fields'
-import { evaluateRules, loadSubjectData, readPath } from './index'
+import { readPath } from './evaluate'
+import { evaluateRules, loadSubjectData } from './index'
 
 const owner = createDb(process.env.DATABASE_URL_OWNER as string)
 const app = createDb(process.env.DATABASE_URL as string)

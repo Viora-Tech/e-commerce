@@ -4,6 +4,8 @@ import {
   automationStepRun,
   automationVersion,
   automationWorkflow,
+  cart,
+  cartLine,
   collection,
   collectionProduct,
   createDb,
@@ -19,6 +21,7 @@ import {
   product,
   type StoreTx,
   store,
+  variant,
   withStore,
 } from '@commerce/db'
 import { resetDb } from '@commerce/db/test'
@@ -27,7 +30,7 @@ import { eq } from 'drizzle-orm'
 import { afterAll, beforeEach, describe, expect, it } from 'vitest'
 import { createProduct } from '../../catalog/products'
 import type { ActionContext, ActionExecutor, ActionResult } from '../executor'
-import { builtinExecutors } from './register-builtins'
+import { builtinExecutors } from './index'
 import type { BuiltinActionDeps } from './shared'
 
 const owner = createDb(process.env.DATABASE_URL_OWNER as string)
@@ -89,15 +92,22 @@ function executors(): Map<string, ActionExecutor> {
     storefrontUrl: 'https://shop.example',
     channels: [email, whatsapp],
   }
-  return new Map(builtinExecutors(deps).map((e) => [e.id, e]))
+  return new Map(builtinExecutors(async () => deps).map((e) => [e.id, e]))
 }
 
-type World = { storeId: string; tx: StoreTx; runId: string; workflowId: string }
+type World = { storeId: string; tx: StoreTx; runId: string; workflowId: string; versionId: string }
+
+type Setup = {
+  workflow?: Partial<typeof automationWorkflow.$inferInsert>
+  definition?: Record<string, unknown>
+  run?: Partial<typeof automationRun.$inferInsert>
+}
 
 /** A store, inside one `withStore` transaction, with a workflow, version and run to attach steps to. */
 async function inStore<T>(
   subject: (tx: StoreTx, storeId: string) => Promise<{ type: string; id: string }>,
   fn: (w: World & { subject: { type: string; id: string } }) => Promise<T>,
+  setup: Setup = {},
 ): Promise<T> {
   const [s] = await owner
     .insert(store)
@@ -108,11 +118,16 @@ async function inStore<T>(
     const subj = await subject(tx, storeId)
     const [w] = await tx
       .insert(automationWorkflow)
-      .values({ storeId, name: 'Test flow', triggerType: 'manual.order' })
+      .values({ storeId, name: 'Test flow', triggerType: 'manual.order', ...setup.workflow })
       .returning()
     const [v] = await tx
       .insert(automationVersion)
-      .values({ storeId, workflowId: w?.id as string, number: 1, definition: {} })
+      .values({
+        storeId,
+        workflowId: w?.id as string,
+        number: 1,
+        definition: setup.definition ?? {},
+      })
       .returning()
     const [r] = await tx
       .insert(automationRun)
@@ -124,9 +139,17 @@ async function inStore<T>(
         triggerKey: 'manual:1',
         subjectType: subj.type,
         subjectId: subj.id,
+        ...setup.run,
       })
       .returning()
-    return fn({ storeId, tx, runId: r?.id as string, workflowId: w?.id as string, subject: subj })
+    return fn({
+      storeId,
+      tx,
+      runId: r?.id as string,
+      workflowId: w?.id as string,
+      versionId: v?.id as string,
+      subject: subj,
+    })
   })
 }
 
@@ -136,7 +159,7 @@ function ctxFor(
 ): ActionContext {
   return {
     storeId: w.storeId,
-    workflow: { id: w.workflowId, name: 'Test flow', versionId: 'v' },
+    workflow: { id: w.workflowId, name: 'Test flow', versionId: w.versionId },
     runId: w.runId,
     nodeId,
     stepKey: `${w.runId}:${nodeId}:0`,
@@ -546,5 +569,115 @@ describe('messages', () => {
       expect((await run(ex, 'staff.email', w, cfg)).noop).toBe(true)
       expect(email.sent).toHaveLength(2)
     })
+  })
+})
+
+describe('marketing parity with Growth', () => {
+  const cod = {
+    workflow: {
+      origin: 'growth' as const,
+      templateId: 'cod_confirmation',
+      triggerType: 'order.cod_placed',
+    },
+    definition: { trigger: { type: 'order.cod_placed', config: {} }, start: 'n1', nodes: {} },
+  }
+  const template = { name: 'cod_confirm', language: 'en', variables: ['{order_number}'] }
+
+  it('sends the COD confirmation to the order phone without consent, even unsubscribed', async () => {
+    const ex = executors()
+    await inStore(
+      async (tx, storeId) => ({
+        type: 'order',
+        id: await newOrder(tx, storeId, {
+          phone: '9000000001',
+          customerId: await newCustomer(tx, storeId, { unsubscribedAt: new Date() }),
+        }),
+      }),
+      async (w) => {
+        const r = await run(ex, 'marketing.send_whatsapp', w, { template })
+        expect(r.output).toEqual({ to: '919000000001', transactional: true })
+        expect(whatsapp.sent).toHaveLength(1)
+        // Any later WhatsApp step of the same workflow is marketing again.
+        const later = await run(ex, 'marketing.send_whatsapp', w, { template }, 'n2')
+        expect(later).toMatchObject({ noop: true, output: { skipped: 'no_consent' } })
+      },
+      cod,
+    )
+  })
+
+  it("skips a typed contact that is not the consenting customer's own", async () => {
+    const ex = executors()
+    await inStore(
+      async (tx, storeId) => ({
+        type: 'customer',
+        id: await newCustomer(tx, storeId, { acceptsMarketing: true }),
+      }),
+      async (w) => {
+        const r = await run(ex, 'marketing.send_email', w, {
+          subject: 'Hi',
+          previewText: '',
+          blocks: [],
+        })
+        expect(r).toMatchObject({ noop: true, output: { skipped: 'recipient_mismatch' } })
+        const [m] = await w.tx.select().from(marketingMessage)
+        expect(m).toMatchObject({
+          status: 'skipped',
+          error: 'recipient_mismatch',
+          automationId: null,
+        })
+        expect(email.sent).toHaveLength(0)
+      },
+      { run: { email: 'someone-else@example.com' } },
+    )
+  })
+
+  it('emails an abandoned cart with its lines, discount code and Growth UTM, then marks it nudged', async () => {
+    const ex = executors()
+    await inStore(
+      async (tx, storeId) => {
+        const customerId = await newCustomer(tx, storeId, { acceptsMarketing: true })
+        const productId = await createProduct(tx, storeId, {
+          title: 'Masala tea',
+          status: 'active',
+          options: [],
+          variants: [{ optionValues: [], pricePaise: 25_000 }],
+        })
+        const [v] = await tx.select().from(variant).where(eq(variant.productId, productId))
+        const [c] = await tx
+          .insert(cart)
+          .values({ storeId, customerId, email: 'asha@example.com' })
+          .returning()
+        await tx.insert(cartLine).values({
+          storeId,
+          cartId: c?.id as string,
+          variantId: v?.id as string,
+          quantity: 2,
+          unitPricePaise: 25_000,
+        })
+        return { type: 'cart', id: c?.id as string }
+      },
+      async (w) => {
+        const blocks = [
+          { id: 'b1', type: 'text', text: 'Use {discount_code} on {cart_total}' },
+          { id: 'b2', type: 'cart' },
+          { id: 'b3', type: 'discount', code: 'COMEBACK10' },
+          { id: 'b4', type: 'button', label: 'Back to cart', url: '{checkout_url}' },
+        ]
+        await run(ex, 'marketing.send_email', w, {
+          subject: 'Hi {first_name}',
+          previewText: '',
+          blocks,
+        })
+        const sent = email.sent[0]
+        expect(sent?.kind === 'email' && sent.subject).toBe('Hi Asha')
+        const html = sent?.kind === 'email' ? sent.html : ''
+        expect(html).toContain('COMEBACK10')
+        expect(html).toContain('Masala tea')
+        expect(html).toContain('automation-abandoned_checkout')
+        const [k] = await w.tx.select().from(cart)
+        expect(k?.recoverySentAt).toBeInstanceOf(Date)
+      },
+      { workflow: { origin: 'growth', templateId: 'abandoned_checkout' } },
+    )
   })
 })

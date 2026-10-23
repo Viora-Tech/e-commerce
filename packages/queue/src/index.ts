@@ -23,6 +23,11 @@ import {
   type StoreExportJob,
   type StoreExportQueue,
 } from '@commerce/core'
+import {
+  AUTOMATION_STEP_QUEUE,
+  type AutomationStepJob,
+  type AutomationStepQueue,
+} from '@commerce/core/automations/server'
 import { logger } from '@commerce/observability/logging'
 import { Queue } from 'bullmq'
 import IORedis from 'ioredis'
@@ -89,6 +94,9 @@ export const QUEUE_LIMITS = {
   aiBulkWrite: { concurrency: 2, perStore: 1 },
   /** AI reads of uploaded supplier invoices and Bills of Entry: one at a time per store. */
   purchaseDocuments: { concurrency: 2, perStore: 1 },
+  /** Automations: one job per outbox row a trigger listens to, then one per run step (design §8.5). */
+  automationsTrigger: { concurrency: 10, perStore: 4 },
+  automationsStep: { concurrency: 20, perStore: 4 },
 } as const satisfies Record<string, QueueLimits>
 
 /**
@@ -292,6 +300,15 @@ export function appEventQueue(redisUrl: string): AppEventQueue {
   const g = globalThis as { __appEventQueue?: AppEventQueue }
   if (!g.__appEventQueue) g.__appEventQueue = createAppEventQueue(createConnection(redisUrl))
   return g.__appEventQueue
+}
+
+/** Producer side of the Automations step queue, cached like the others (API: run now, approvals, retry). */
+export function automationStepQueue(redisUrl: string): AutomationStepQueue {
+  const g = globalThis as { __automationStepQueue?: AutomationStepQueue }
+  g.__automationStepQueue ??= new Queue<AutomationStepJob>(AUTOMATION_STEP_QUEUE, {
+    connection: createConnection(redisUrl),
+  })
+  return g.__automationStepQueue
 }
 
 /** One process-wide Redis connection for caches; same globalThis caching as the queue. */

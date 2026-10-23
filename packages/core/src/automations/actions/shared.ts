@@ -2,7 +2,9 @@
 import { marketingMessage, order, orderNote, outboxEvent, type StoreTx } from '@commerce/db'
 import type { NotificationChannel, NotificationRegistry } from '@commerce/notifications'
 import { and, eq, isNull, sql } from 'drizzle-orm'
+import { storefrontOriginFor } from '../../domains/origin'
 import type { LookupAll } from '../../net/safe-fetch'
+import { registriesForStore } from '../../plugins/registries'
 import type { RateLimitStore } from '../../rate-limit/limiter'
 import { type ActionContext, AutomationActionError } from '../executor'
 
@@ -20,6 +22,46 @@ export type BuiltinActionDeps = {
   lookup?: LookupAll | undefined
   /** HTTP action only: per-store request rate (10/s); without one only concurrency is capped. */
   rateLimit?: RateLimitStore | undefined
+}
+
+/**
+ * What the host process knows: the platform secret and storefront URL (the worker passes its
+ * own; without them `SETTINGS_SECRET` / `STOREFRONT_URL` are read), plus test overrides.
+ * The notification registry and the store's own domain are resolved per store, as Growth does.
+ */
+export type ActionHost = {
+  settingsSecret?: string | undefined
+  storefrontUrl?: string | undefined
+  registry?: NotificationRegistry | undefined
+  channels?: NotificationChannel[] | undefined
+  fetch?: typeof fetch | undefined
+  lookup?: LookupAll | undefined
+  rateLimit?: RateLimitStore | undefined
+}
+
+/** The deps for one store, resolved when a step runs. */
+export type DepsFor = (tx: StoreTx, storeId: string) => Promise<BuiltinActionDeps>
+
+export function depsResolver(host: ActionHost = {}): DepsFor {
+  return async (tx, storeId) => {
+    const settingsSecret = host.settingsSecret ?? process.env.SETTINGS_SECRET
+    const fallbackUrl = host.storefrontUrl ?? process.env.STOREFRONT_URL ?? ''
+    if (!settingsSecret) {
+      throw new AutomationActionError('Automations are not configured on this server', {
+        retryable: false,
+      })
+    }
+    return {
+      registry: host.registry ?? (await registriesForStore(tx, storeId)).notifications,
+      settingsSecret,
+      // Shop, click and unsubscribe links go to the store's own domain, as Growth's do.
+      storefrontUrl: await storefrontOriginFor(tx, storeId, fallbackUrl),
+      channels: host.channels,
+      fetch: host.fetch,
+      lookup: host.lookup,
+      rateLimit: host.rateLimit,
+    }
+  }
 }
 
 /** Author of the timeline notes automations write on orders. */

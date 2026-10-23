@@ -7,7 +7,7 @@ import { BlockedUrlError, readCapped, safeFetch } from '../../net/safe-fetch'
 import { checkRateLimit, rateLimitKey } from '../../rate-limit/limiter'
 import { decryptSecret } from '../../secrets'
 import { type ActionContext, type ActionExecutor, AutomationActionError } from '../executor'
-import type { BuiltinActionDeps } from './shared'
+import type { BuiltinActionDeps, DepsFor } from './shared'
 
 type HttpConfig = {
   method: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE'
@@ -191,10 +191,11 @@ function networkFailure(err: unknown): AutomationActionError {
   )
 }
 
-function httpExecutor(deps: BuiltinActionDeps): ActionExecutor<HttpConfig> {
+function httpExecutor(depsFor: DepsFor): ActionExecutor<HttpConfig> {
   return {
     id: 'http.request',
     async run({ tx, ctx, config }) {
+      const deps = await depsFor(tx, ctx.storeId)
       const p = await prepare(tx, ctx, config, deps)
       if (p.missing.length) {
         throw new AutomationActionError(`Unknown secret: ${p.missing.join(', ')}`, {
@@ -270,6 +271,7 @@ function httpExecutor(deps: BuiltinActionDeps): ActionExecutor<HttpConfig> {
       })
     },
     async preview({ tx, ctx, config }) {
+      const deps = await depsFor(tx, ctx.storeId)
       const p = await prepare(tx, ctx, config, deps)
       const warnings: string[] = []
       if (p.missing.length) warnings.push(`Unknown secret: ${p.missing.join(', ')}`)
@@ -291,5 +293,5 @@ function httpExecutor(deps: BuiltinActionDeps): ActionExecutor<HttpConfig> {
   }
 }
 
-export const httpExecutors = (deps: BuiltinActionDeps): ActionExecutor<never>[] =>
-  [httpExecutor(deps)] as unknown as ActionExecutor<never>[]
+export const httpExecutors = (depsFor: DepsFor): ActionExecutor<never>[] =>
+  [httpExecutor(depsFor)] as unknown as ActionExecutor<never>[]

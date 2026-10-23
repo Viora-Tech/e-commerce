@@ -163,3 +163,20 @@ WHERE r."slug" <> 'owner' AND EXISTS (
   WHERE rp."role_id" = r."id" AND rp."permission" IN ('orders.read', 'customers.read', 'products.read')
 )
 ON CONFLICT ("role_id", "permission") DO NOTHING;
+--> statement-breakpoint
+-- The automations tick's store list (ids only), across RLS like the marketing tick's.
+CREATE OR REPLACE FUNCTION stores_with_automation_work() RETURNS SETOF uuid
+LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public AS $$
+  SELECT store_id FROM automation_run
+    WHERE status IN ('queued', 'running', 'waiting') AND next_at <= now()
+  UNION
+  SELECT store_id FROM automation_step_run
+    WHERE status = 'awaiting_approval' AND approval_expires_at <= now()
+  UNION
+  SELECT store_id FROM automation_workflow
+    WHERE status = 'on' AND trigger_type = 'schedule' AND (next_fire_at IS NULL OR next_fire_at <= now());
+$$;
+--> statement-breakpoint
+REVOKE ALL ON FUNCTION stores_with_automation_work() FROM PUBLIC;
+--> statement-breakpoint
+GRANT EXECUTE ON FUNCTION stores_with_automation_work() TO app;

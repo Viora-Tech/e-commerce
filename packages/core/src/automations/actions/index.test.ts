@@ -1,13 +1,9 @@
-/** SOURCE OF TRUTH: built-in executor registration tests — WHAT: one executor per catalogue action, tag planning and order-update template rules / WHY: a missing executor must fail here, not in a run. */
+/** SOURCE OF TRUTH: built-in executor registration tests (actions/index.ts) — WHAT: one executor per catalogue action, tag planning and order-update template rules / WHY: a missing executor must fail here, not in a run. */
 import { afterEach, describe, expect, it } from 'vitest'
 import { BUILTIN_ACTION_IDS } from '../builtin-actions'
 import { actionExecutor, resetActionExecutorsForTest } from '../registry'
+import { builtinExecutors, missingBuiltinExecutors, registerBuiltinActions } from './index'
 import { isOrderUpdateTemplate } from './order-update'
-import {
-  builtinExecutors,
-  missingBuiltinExecutors,
-  registerBuiltinActions,
-} from './register-builtins'
 import { type BuiltinActionDeps, planTags } from './shared'
 
 const deps = {
@@ -20,8 +16,8 @@ afterEach(() => resetActionExecutorsForTest())
 
 describe('registration', () => {
   it('has exactly one executor per built-in action', () => {
-    const ids = builtinExecutors(deps).map((e) => e.id)
-    expect(missingBuiltinExecutors(deps)).toEqual([])
+    const ids = builtinExecutors(async () => deps).map((e) => e.id)
+    expect(missingBuiltinExecutors()).toEqual([])
     expect(new Set(ids).size).toBe(ids.length)
     expect([...ids].sort()).toEqual([...BUILTIN_ACTION_IDS].sort())
   })

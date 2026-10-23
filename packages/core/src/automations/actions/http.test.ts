@@ -56,7 +56,7 @@ function setup(
     lookup: publicLookup,
     ...extra,
   }
-  const executor = httpExecutors(deps)[0] as unknown as ActionExecutor<never>
+  const executor = httpExecutors(async () => deps)[0] as unknown as ActionExecutor<never>
   return { executor, fetch, deps }
 }
 

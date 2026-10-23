@@ -1,35 +1,25 @@
-/** SOURCE OF TRUTH: message automation actions — WHAT: staff alerts by email and WhatsApp, Growth's consent-gated marketing email and WhatsApp, each sent at most once per step (`marketing_message` keyed by run and node) / WHY: owner answer Q4 splits customer messages into consent-gated marketing (here) and order updates (`order-update.ts`); every rule of `marketing/send.ts` (consent per channel, own address only) still applies. Server-only. Design §8.4, §8.7. */
-import { cartLine, customer, order, type StoreTx } from '@commerce/db'
+/** SOURCE OF TRUTH: staff alert automation actions and shared message helpers — WHAT: alert the team by email or on WhatsApp (sent at most once per step, `marketing_message` keyed by run and node), plus the merge values, merge-tag fill and skip results the customer-message actions (`marketing.ts`, `order-update.ts`) share / WHY: one place renders Growth's single-word tags next to the run's dotted ones. Server-only. Design §8.4. */
+import { cartLine, order, type StoreTx } from '@commerce/db'
 import { formatMoney } from '@commerce/money'
 import { eq, sql } from 'drizzle-orm'
 import { recoveryUrl } from '../../cart/abandoned'
-import { decryptCustomerPhone } from '../../customers/phone-crypto'
 import { normalisePhone } from '../../marketing/audience'
-import {
-  applyMergeTags,
-  type EmailBlock,
-  escapeHtml,
-  type MergeValues,
-} from '../../marketing/email'
-import { recipientIsCustomers } from '../../marketing/recipient'
-import {
-  firstName,
-  marketingChannels,
-  sendMarketingEmail,
-  sendMarketingWhatsapp,
-  storeSender,
-} from '../../marketing/send'
+import { applyMergeTags, escapeHtml, type MergeValues } from '../../marketing/email'
+import { firstName, marketingChannels, storeSender } from '../../marketing/send'
 import type { WhatsappTemplateRef } from '../../marketing/whatsapp'
-import { hasMarketingConsent } from '../../privacy/client'
-import { customerIdOf } from '../conditions/loaders'
 import {
   type ActionContext,
   type ActionExecutor,
-  type ActionPreview,
   type ActionResult,
   AutomationActionError,
 } from '../executor'
-import { type BuiltinActionDeps, claimMessage, recordMessage, sendFailure } from './shared'
+import {
+  type BuiltinActionDeps,
+  claimMessage,
+  type DepsFor,
+  recordMessage,
+  sendFailure,
+} from './shared'
 
 export const notConnected = (what: string) =>
   new AutomationActionError(`Connect ${what} in Settings → Notifications first`, {
@@ -42,7 +32,7 @@ export const fill = (ctx: ActionContext, text: string, merge: MergeValues) =>
   applyMergeTags(ctx.render(text), merge)
 
 /** Every string inside Growth's email blocks with the run's dotted merge tags filled in. */
-function renderBlocks(ctx: ActionContext, value: unknown): unknown {
+export function renderBlocks(ctx: ActionContext, value: unknown): unknown {
   if (typeof value === 'string') return ctx.render(value)
   if (Array.isArray(value)) return value.map((v) => renderBlocks(ctx, v))
   if (value && typeof value === 'object') {
@@ -62,45 +52,13 @@ export const skipped = (summary: string, reason: string): ActionResult => ({
   output: { skipped: reason },
 })
 
-// ---------------------------------------------------------------------------------------------
-// The run's people: the customer (marketing), the order (order updates)
-// ---------------------------------------------------------------------------------------------
-
-type Person = {
-  customerId: string | null
-  email: string | null
-  phone: string | null
-  name: string | null
-  consent: { email: boolean; whatsapp: boolean }
-}
-
-async function runCustomer(
-  tx: StoreTx,
-  ctx: ActionContext,
-  deps: BuiltinActionDeps,
-): Promise<Person | null> {
-  const id = await customerIdOf(tx, ctx.subject)
-  if (!id) return null
-  const [c] = await tx.select().from(customer).where(eq(customer.id, id))
-  if (!c) return null
-  return {
-    customerId: c.id,
-    email: c.email,
-    phone: decryptCustomerPhone(c.phone, deps.settingsSecret),
-    name: c.name,
-    consent: {
-      email: hasMarketingConsent(c, 'email'),
-      whatsapp: hasMarketingConsent(c, 'whatsapp'),
-    },
-  }
-}
-
 /** Growth's merge values for the run's subject (cart link and total, order number). */
 export async function mergeValues(
   tx: StoreTx,
   ctx: ActionContext,
   deps: BuiltinActionDeps,
   name: string | null,
+  cartId: string | null = ctx.subject.type === 'cart' ? ctx.subject.id : null,
 ): Promise<MergeValues> {
   const sender = await storeSender(tx, ctx.storeId)
   const merge: MergeValues = {
@@ -110,17 +68,17 @@ export async function mergeValues(
     shop_url: deps.storefrontUrl,
     checkout_url: deps.storefrontUrl,
   }
-  if (ctx.subject.type === 'cart' && ctx.subject.id) {
+  if (cartId) {
     const [c] = await tx
       .select({
         total: sql<number>`coalesce(sum(${cartLine.quantity} * ${cartLine.unitPricePaise}), 0)::int`,
       })
       .from(cartLine)
-      .where(eq(cartLine.cartId, ctx.subject.id))
-    merge.checkout_url = recoveryUrl(ctx.subject.id, deps.settingsSecret, deps.storefrontUrl)
+      .where(eq(cartLine.cartId, cartId))
+    merge.checkout_url = recoveryUrl(cartId, deps.settingsSecret, deps.storefrontUrl)
     if (c) merge.cart_total = formatMoney(Number(c.total))
   }
-  if (ctx.subject.type === 'order' && ctx.subject.id) {
+  if (ctx.subject.type === 'order' && ctx.subject.id && !cartId) {
     const [o] = await tx
       .select({ number: order.number, total: order.totalPaise })
       .from(order)
@@ -140,10 +98,11 @@ export async function mergeValues(
 type StaffEmailConfig = { to: string[]; subject: string; body: string }
 type StaffWhatsappConfig = { to: string[]; template: WhatsappTemplateRef }
 
-function staffEmail(deps: BuiltinActionDeps): ActionExecutor<StaffEmailConfig> {
+function staffEmail(depsFor: DepsFor): ActionExecutor<StaffEmailConfig> {
   return {
     id: 'staff.email',
     async run({ tx, ctx, config }) {
+      const deps = await depsFor(tx, ctx.storeId)
       const { email } = await marketingChannels(tx, ctx.storeId, deps)
       if (!email?.sendMarketing) throw notConnected('an email channel')
       const msg = await claimMessage(tx, ctx, {
@@ -174,6 +133,7 @@ function staffEmail(deps: BuiltinActionDeps): ActionExecutor<StaffEmailConfig> {
       return { summary: `Emailed ${config.to.join(', ')}`, output: { to: config.to, subject } }
     },
     async preview({ tx, ctx, config }) {
+      const deps = await depsFor(tx, ctx.storeId)
       const { email } = await marketingChannels(tx, ctx.storeId, deps)
       return {
         summary: `Would email ${config.to.join(', ')}: "${ctx.render(config.subject)}"`,
@@ -185,10 +145,11 @@ function staffEmail(deps: BuiltinActionDeps): ActionExecutor<StaffEmailConfig> {
   }
 }
 
-function staffWhatsapp(deps: BuiltinActionDeps): ActionExecutor<StaffWhatsappConfig> {
+function staffWhatsapp(depsFor: DepsFor): ActionExecutor<StaffWhatsappConfig> {
   return {
     id: 'staff.whatsapp',
     async run({ tx, ctx, config }) {
+      const deps = await depsFor(tx, ctx.storeId)
       const { whatsapp } = await marketingChannels(tx, ctx.storeId, deps)
       if (!whatsapp?.sendMarketing) throw notConnected('WhatsApp')
       const phones = config.to.map((p) => normalisePhone(p)).filter((p): p is string => !!p)
@@ -226,6 +187,7 @@ function staffWhatsapp(deps: BuiltinActionDeps): ActionExecutor<StaffWhatsappCon
       }
     },
     async preview({ tx, ctx, config }) {
+      const deps = await depsFor(tx, ctx.storeId)
       const { whatsapp } = await marketingChannels(tx, ctx.storeId, deps)
       return {
         summary: `Would send ${config.template.name} on WhatsApp to ${config.to.join(', ')}`,
@@ -237,128 +199,5 @@ function staffWhatsapp(deps: BuiltinActionDeps): ActionExecutor<StaffWhatsappCon
   }
 }
 
-// ---------------------------------------------------------------------------------------------
-// Marketing messages (consent-gated, Growth's steps)
-// ---------------------------------------------------------------------------------------------
-
-type MarketingEmailConfig = { subject: string; previewText: string; blocks: EmailBlock[] }
-type MarketingWhatsappConfig = { template: WhatsappTemplateRef }
-
-const NO_CONSENT = 'no_consent'
-
-function marketingEmail(deps: BuiltinActionDeps): ActionExecutor<MarketingEmailConfig> {
-  const plan = async (tx: StoreTx, ctx: ActionContext) => {
-    const person = await runCustomer(tx, ctx, deps)
-    // Consent belongs to the customer, so the email goes only to their own stored address.
-    if (!person?.email || !recipientIsCustomers('email', person.email, person)) {
-      return { person: null, reason: 'No customer email to send to' }
-    }
-    if (!person.consent.email)
-      return { person: null, reason: 'The customer has not agreed to marketing email' }
-    return { person, reason: null }
-  }
-  return {
-    id: 'marketing.send_email',
-    async run({ tx, ctx, config }) {
-      const { person, reason } = await plan(tx, ctx)
-      if (!person?.email) return skipped(reason ?? 'Skipped', NO_CONSENT)
-      const { email } = await marketingChannels(tx, ctx.storeId, deps)
-      if (!email) return skipped('No email channel can send marketing', 'no_channel')
-      const msg = await claimMessage(tx, ctx, {
-        channel: 'email',
-        to: person.email,
-        customerId: person.customerId,
-      })
-      if (msg.alreadySent) return { noop: true, summary: 'Already sent' }
-      const merge = await mergeValues(tx, ctx, deps, person.name)
-      const sender = await storeSender(tx, ctx.storeId)
-      const r = await sendMarketingEmail(tx, ctx.storeId, deps, email, sender, {
-        messageId: msg.id,
-        to: person.email,
-        customerId: person.customerId,
-        subject: fill(ctx, config.subject, merge),
-        previewText: fill(ctx, config.previewText, merge),
-        blocks: renderBlocks(ctx, config.blocks) as EmailBlock[],
-        merge,
-        utmCampaign: `automation-${ctx.workflow.id}`,
-      })
-      if (!r.ok) {
-        if (r.error === NO_CONSENT) return skipped('The customer withdrew consent', NO_CONSENT)
-        throw sendFailure(r.error, r.retryable)
-      }
-      return { summary: `Emailed ${person.email}`, output: { to: person.email } }
-    },
-    async preview({ tx, ctx, config }): Promise<ActionPreview> {
-      const { person, reason } = await plan(tx, ctx)
-      if (!person) return { summary: `Would send nothing: ${reason}`, wouldRun: false }
-      const merge = await mergeValues(tx, ctx, deps, person.name)
-      return {
-        summary: `Would email ${person.email}: "${fill(ctx, config.subject, merge)}"`,
-        wouldRun: true,
-      }
-    },
-  }
-}
-
-function marketingWhatsapp(deps: BuiltinActionDeps): ActionExecutor<MarketingWhatsappConfig> {
-  const plan = async (tx: StoreTx, ctx: ActionContext) => {
-    const person = await runCustomer(tx, ctx, deps)
-    const phone = normalisePhone(person?.phone)
-    if (!person || !phone)
-      return { person: null, phone: null, reason: 'No customer phone to send to' }
-    if (!person.consent.whatsapp) {
-      return {
-        person: null,
-        phone: null,
-        reason: 'The customer has not agreed to WhatsApp marketing',
-      }
-    }
-    return { person, phone, reason: null }
-  }
-  return {
-    id: 'marketing.send_whatsapp',
-    async run({ tx, ctx, config }) {
-      const { person, phone, reason } = await plan(tx, ctx)
-      if (!person || !phone) return skipped(reason ?? 'Skipped', NO_CONSENT)
-      const { whatsapp } = await marketingChannels(tx, ctx.storeId, deps)
-      if (!whatsapp) return skipped('WhatsApp is not connected', 'no_channel')
-      const msg = await claimMessage(tx, ctx, {
-        channel: 'whatsapp',
-        to: phone,
-        customerId: person.customerId,
-      })
-      if (msg.alreadySent) return { noop: true, summary: 'Already sent' }
-      const merge = await mergeValues(tx, ctx, deps, person.name)
-      const r = await sendMarketingWhatsapp(
-        tx,
-        whatsapp,
-        {
-          messageId: msg.id,
-          to: phone,
-          customerId: person.customerId,
-          template: config.template,
-          merge,
-        },
-        (s, m) => fill(ctx, s, m),
-      )
-      if (!r.ok) {
-        if (r.error === NO_CONSENT) return skipped('The customer withdrew consent', NO_CONSENT)
-        throw sendFailure(r.error, r.retryable)
-      }
-      return { summary: `Sent ${config.template.name} on WhatsApp`, output: { to: phone } }
-    },
-    async preview({ tx, ctx, config }) {
-      const { person, reason } = await plan(tx, ctx)
-      if (!person) return { summary: `Would send nothing: ${reason}`, wouldRun: false }
-      return { summary: `Would send ${config.template.name} on WhatsApp`, wouldRun: true }
-    },
-  }
-}
-
-export const messageExecutors = (deps: BuiltinActionDeps): ActionExecutor<never>[] =>
-  [
-    staffEmail(deps),
-    staffWhatsapp(deps),
-    marketingEmail(deps),
-    marketingWhatsapp(deps),
-  ] as unknown as ActionExecutor<never>[]
+export const messageExecutors = (depsFor: DepsFor): ActionExecutor<never>[] =>
+  [staffEmail(depsFor), staffWhatsapp(depsFor)] as unknown as ActionExecutor<never>[]

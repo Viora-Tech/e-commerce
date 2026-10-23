@@ -517,7 +517,8 @@ type Context = {
   steps: AutomationStep[]
 }
 
-async function cartFacts(tx: StoreTx, cartId: string) {
+/** The cart as the abandoned-cart email shows it: lines with image and price label, total, status. */
+export async function cartFacts(tx: StoreTx, cartId: string) {
   const [c] = await tx.select({ status: cart.status }).from(cart).where(eq(cart.id, cartId))
   const lines = await tx.execute<{
     title: string
