@@ -63,6 +63,7 @@ export const globeSettingsContent = {
     customLand: 'Land colour',
     customOcean: 'Ocean colour',
     customAccent: 'Accent colour',
+    customBorder: 'Border colour',
     useTheme: 'Use theme colour',
   },
 

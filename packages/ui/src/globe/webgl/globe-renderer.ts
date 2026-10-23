@@ -46,6 +46,9 @@ export type GlobeFrame = {
    * both), a separate colour for the other theme presets. */
   ocean: Rgb
   glow: Rgb
+  /** Border and coast line colour, drawn as is and a little stronger; omitted keeps the
+   * original subtle tint of `base`. */
+  line?: Rgb
   layers: GlobeLayerFlags
   /** "Dotted" draws land as dots straight from the land map's texel, in even rows of latitude
    * (see `webgl/dot-layout.ts`); "solid" is the original filled-continent look. */
@@ -129,7 +132,7 @@ dist=best;return near.xzy;}`
 // the one that is smooth at this pixel is used (Tarini's trick).
 const SPHERE_FS = `#extension GL_OES_standard_derivatives : enable
 precision highp float;uniform vec4 V;uniform vec3 C,O,G,SUN,DC;uniform mat3 M;uniform sampler2D T;
-uniform float H;uniform vec4 L,K;uniform vec2 D;uniform float R;
+uniform float H;uniform vec4 L,K;uniform vec2 D;uniform float R;uniform vec3 LC;uniform float LO;
 float grid(float x){float w=fwidth(x);return 1.-min(abs(fract(x-.5)-.5)/max(w,1e-4),1.);}
 ${FIBONACCI_DOT}
 void main(){vec2 b=(gl_FragCoord.xy-V.xy)/V.z;float a=dot(b,b);
@@ -173,8 +176,8 @@ col=mix(sea+glow,ground,land*smoothstep(0.,.18,i));
 float coast=L.y*H*(1.-smoothstep(.4,1.8,abs(m.r-.5)/max(fwidth(m.r),1e-4)));
 float px=max(fwidth(st.x*2048.),1e-4);float bd=1.4*sqrt(-2.*log(max(m.g,1e-3)))/px;
 float border=L.x*H*step(.03,m.g)*(1.-smoothstep(.05,1.2,bd));
-vec3 line=mix(C*1.1+.07,C*1.9+.14,V.w);float rim=smoothstep(0.,.3,i);
-col=mix(col,line,coast*rim*.65);col=mix(col,line,border*rim*.35);
+vec3 line=LO>.5?LC:mix(C*1.1+.07,C*1.9+.14,V.w);float rim=smoothstep(0.,.3,i);
+col=mix(col,line,coast*rim*(LO>.5?.9:.65));col=mix(col,line,border*rim*(LO>.5?.85:.35));
 float g1=grid(degrees(lat)/15.);float lx=u*24.;float g2=grid(lx)*smoothstep(.97,.88,abs(w.y));
 float g=L.z*max(g1,g2)*smoothstep(0.,.25,i)*(.1+.08*V.w);
 col=mix(col,G*.9+C*.3,g);
@@ -337,6 +340,8 @@ export function createGlobeRenderer(canvas: HTMLCanvasElement): GlobeRenderer | 
       )
       gl.uniform3fv(sphere.u('DC'), spriteDots?.color ?? cobeDots?.color ?? f.base)
       gl.uniform3fv(sphere.u('SUN'), f.sun ?? [0, 0, 0])
+      gl.uniform3fv(sphere.u('LC'), f.line ?? [0, 0, 0])
+      gl.uniform1f(sphere.u('LO'), f.line ? 1 : 0)
       // Row-major upload read as column-major is the transpose: the inverse rotation.
       gl.uniformMatrix3fv(sphere.u('M'), false, f.rotation)
       gl.activeTexture(gl.TEXTURE0)

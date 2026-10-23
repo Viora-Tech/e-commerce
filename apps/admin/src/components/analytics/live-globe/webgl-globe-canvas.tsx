@@ -268,6 +268,7 @@ export default function WebglGlobeCanvas({
         base: palette.base,
         ocean: palette.ocean,
         glow: palette.glow,
+        line: palette.line ?? undefined,
         layers: { ...live.layers, borders: live.layers.borders && !dashedBorders },
         style: live.look.style,
         dotRows: 0,
