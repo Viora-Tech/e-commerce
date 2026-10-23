@@ -141,7 +141,9 @@ export async function listRuns(
         ...(input.status ? [eq(automationRun.status, input.status)] : []),
         ...(recordRuns ? [inArray(automationRun.id, recordRuns)] : []),
         ...(at && id
-          ? [sql`(${automationRun.startedAt}, ${automationRun.id}) < (${new Date(at)}, ${id})`]
+          ? [
+              sql`(${automationRun.startedAt}, ${automationRun.id}) < (${new Date(at).toISOString()}::timestamptz, ${id}::uuid)`,
+            ]
           : []),
       ),
     )

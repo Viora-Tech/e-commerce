@@ -62,12 +62,12 @@ function linear(def: WorkflowDefinition | null): boolean {
 async function runStats(tx: StoreTx, ids: string[]) {
   const stats = new Map<string, { runs: number; errors: number; last: Date | null }>()
   if (ids.length === 0) return stats
-  const since = new Date(Date.now() - 30 * 86_400_000)
+  const since = new Date(Date.now() - 30 * 86_400_000).toISOString()
   const rows = await tx
     .select({
       workflowId: automationRun.workflowId,
-      runs: sql<number>`count(*) filter (where ${automationRun.startedAt} >= ${since})::int`,
-      errors: sql<number>`count(*) filter (where ${automationRun.startedAt} >= ${since} and ${automationRun.status} = 'failed')::int`,
+      runs: sql<number>`count(*) filter (where ${automationRun.startedAt} >= ${since}::timestamptz)::int`,
+      errors: sql<number>`count(*) filter (where ${automationRun.startedAt} >= ${since}::timestamptz and ${automationRun.status} = 'failed')::int`,
       last: max(automationRun.startedAt),
     })
     .from(automationRun)

@@ -184,7 +184,7 @@ export async function adjustStock(tx: StoreTx, input: AdjustStockInput): Promise
     })
   }
   // Automations' "Stock low" / "Stock out" triggers fire on the crossing, not on every sale.
-  if (v && v.trackInventory && isAvailable < wasAvailable) {
+  if (v?.trackInventory && isAvailable < wasAvailable) {
     await noteStockCrossing(tx, {
       storeId: input.storeId,
       productId: v.productId,
