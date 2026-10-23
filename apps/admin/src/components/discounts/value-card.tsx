@@ -8,26 +8,33 @@ import {
   FieldGroup,
   FieldLabel,
 } from '@commerce/ui/shadcn/field'
-import { RadioGroup, RadioGroupItem } from '@commerce/ui/shadcn/radio-group'
+import { RadioGroup } from '@commerce/ui/shadcn/radio-group'
 import { Switch } from '@commerce/ui/shadcn/switch'
 import MoneyInput from '@/components/fields/money-input'
+import RadioOption from '@/components/fields/radio-option'
+import RequiredMark from '@/components/fields/required-mark'
 import DataCard from '@/components/layout/data-card'
 import { discountFormContent } from '@/data/discounts'
+import { useCopy } from '@/hooks/use-copy'
+import AppliesToPicker from './applies-to-picker'
 import { type DiscountFormState, usesPerProduct, validAmount } from './form-state'
-import ProductPicker from './product-picker'
 
 type ValueCardProps = {
   form: Pick<
     DiscountFormState,
-    'method' | 'value' | 'appliesTo' | 'productIds' | 'perProduct' | 'productValues'
+    | 'method'
+    | 'value'
+    | 'appliesTo'
+    | 'productIds'
+    | 'collectionIds'
+    | 'perProduct'
+    | 'productValues'
   >
   valueError?: string | undefined
   productsError?: string | undefined
   productValuesError?: string | undefined
   onChange: (patch: Partial<DiscountFormState>) => void
 }
-
-const copy = discountFormContent.value
 
 export default function ValueCard({
   form,
@@ -36,9 +43,20 @@ export default function ValueCard({
   productValuesError,
   onChange,
 }: ValueCardProps) {
+  // Hooks
+  const { value: copy } = useCopy(discountFormContent)
+
   // Helpers
   const setProductValue = (id: string, value: string) =>
     onChange({ productValues: { ...form.productValues, [id]: value } })
+
+  // Event handlers
+  const handlePicked = ({ kind, ids }: { kind: 'products' | 'collections'; ids: string[] }) =>
+    onChange(
+      kind === 'collections'
+        ? { appliesTo: kind, collectionIds: ids }
+        : { appliesTo: kind, productIds: ids },
+    )
 
   // Render logic
   const isPercent = form.method === 'percent'
@@ -69,7 +87,7 @@ export default function ValueCard({
           <Field data-invalid={valueError ? true : undefined} className="max-w-xs">
             <FieldLabel htmlFor="discount-value">
               {isPercent ? copy.percent : copy.amount}
-              <span aria-hidden="true">*</span>
+              <RequiredMark />
             </FieldLabel>
             <MoneyInput
               size="lg"
@@ -90,18 +108,15 @@ export default function ValueCard({
             onValueChange={(v) => onChange({ appliesTo: v as DiscountFormState['appliesTo'] })}
             className="gap-2"
           >
-            <FieldLabel htmlFor="applies-all" className="flex items-center gap-2 font-normal">
-              <RadioGroupItem id="applies-all" value="all" />
-              {copy.all}
-            </FieldLabel>
-            <FieldLabel htmlFor="applies-products" className="flex items-center gap-2 font-normal">
-              <RadioGroupItem id="applies-products" value="products" />
-              {copy.products}
-            </FieldLabel>
+            <RadioOption id="applies-all" value="all" label={copy.all} />
+            <RadioOption id="applies-collections" value="collections" label={copy.collections} />
+            <RadioOption id="applies-products" value="products" label={copy.products} />
           </RadioGroup>
-          {form.appliesTo === 'products' ? (
+          {form.appliesTo !== 'all' ? (
             <>
-              <FieldDescription>{copy.productsHelp}</FieldDescription>
+              <FieldDescription>
+                {form.appliesTo === 'collections' ? copy.collectionsHelp : copy.productsHelp}
+              </FieldDescription>
               {canSplit ? (
                 <Field orientation="horizontal">
                   <FieldContent>
@@ -117,10 +132,11 @@ export default function ValueCard({
                   />
                 </Field>
               ) : null}
-              <ProductPicker
-                selected={form.productIds}
-                onChange={(productIds) => onChange({ productIds })}
-                rowExtra={rowExtra}
+              <AppliesToPicker
+                kind={form.appliesTo}
+                ids={form.appliesTo === 'collections' ? form.collectionIds : form.productIds}
+                onChange={handlePicked}
+                rowExtra={form.appliesTo === 'products' ? rowExtra : undefined}
               />
               {productsError ? <FieldError>{productsError}</FieldError> : null}
               {productValuesError ? <FieldError>{productValuesError}</FieldError> : null}

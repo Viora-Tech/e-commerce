@@ -1,6 +1,9 @@
+'use client'
+
 import { type DiscountInput, describeDiscountValue } from '@commerce/core/discounts'
 import DataCard from '@/components/layout/data-card'
 import { discountFormContent } from '@/data/discounts'
+import { useCopy } from '@/hooks/use-copy'
 import { formatPattern } from '@/lib/format-date'
 import { formatPaise } from '@/lib/money'
 import type { DiscountFormState, LoadedDiscount } from './form-state'
@@ -11,7 +14,7 @@ type SummaryCardProps = {
   discount: LoadedDiscount | null
 }
 
-const copy = discountFormContent.summary
+type SummaryCopy = (typeof discountFormContent)['summary']
 
 function fmt(s: string): string | null {
   if (!s) return null
@@ -34,10 +37,20 @@ function describeValue(input: DiscountInput): string | null {
 }
 
 /** Sentences describing the discount as the merchant builds it, like Shopify's side card. */
-function detailLines(form: DiscountFormState, discount: LoadedDiscount | null): string[] {
+function detailLines(
+  copy: SummaryCopy,
+  form: DiscountFormState,
+  discount: LoadedDiscount | null,
+): string[] {
   const input = toInput(form)
   const lines: string[] = []
-  lines.push(form.appliesTo === 'products' ? copy.forSome(form.productIds.length) : copy.forAll)
+  lines.push(
+    form.appliesTo === 'products'
+      ? copy.forSome(form.productIds.length)
+      : form.appliesTo === 'collections'
+        ? copy.forCollections(form.collectionIds.length)
+        : copy.forAll,
+  )
   lines.push(
     input.minSubtotalPaise ? copy.minimum(formatPaise(input.minSubtotalPaise)) : copy.noMinimum,
   )
@@ -51,7 +64,11 @@ function detailLines(form: DiscountFormState, discount: LoadedDiscount | null): 
 }
 
 export default function SummaryCard({ form, discount }: SummaryCardProps) {
+  // Hooks
+  const all = useCopy(discountFormContent)
+
   // Render logic
+  const copy = all.summary
   const input = toInput(form)
   const title = form.title.trim() || copy.untitled
   const code =
@@ -62,19 +79,19 @@ export default function SummaryCard({ form, discount }: SummaryCardProps) {
     <DataCard title={copy.heading} bodyClassName="flex flex-col gap-4">
       <div>
         <p className="text-body-strong">{title}</p>
-        <p className="font-mono text-caption uppercase tracking-wide">{code}</p>
+        <p className="text-caption">{code}</p>
       </div>
       <div>
         <p className="text-caption">{copy.typeAndMethod}</p>
         <p className="text-body">
-          {discountFormContent.method.kinds[form.kind].label}
+          {all.method.kinds[form.kind].label}
           {valueText ? `, ${valueText.toLowerCase()}` : ''}
         </p>
       </div>
       <div>
         <p className="text-caption">{copy.details}</p>
         <ul className="list-disc pl-4 text-body">
-          {detailLines(form, discount).map((line) => (
+          {detailLines(copy, form, discount).map((line) => (
             <li key={line}>{line}</li>
           ))}
         </ul>

@@ -11,8 +11,9 @@ export type DiscountFormState = {
   method: 'percent' | 'fixed' | 'free_shipping'
   /** Percent as typed ("12.5") or rupees as typed ("200"); converted on save. */
   value: string
-  appliesTo: 'all' | 'products'
+  appliesTo: 'all' | 'products' | 'collections'
   productIds: string[]
+  collectionIds: string[]
   /** "Different amount for each product": each chosen product gets its own value. */
   perProduct: boolean
   /** Per-product value as typed, keyed by product id; same unit as `value`. */
@@ -63,6 +64,7 @@ export function emptyForm(): DiscountFormState {
     value: '',
     appliesTo: 'all',
     productIds: [],
+    collectionIds: [],
     perProduct: false,
     productValues: {},
     hasMinimum: false,
@@ -89,8 +91,9 @@ export function fromDiscount(d: LoadedDiscount): DiscountFormState {
         : d.method === 'fixed'
           ? String(d.value / 100)
           : '',
-    appliesTo: d.appliesTo === 'products' ? 'products' : 'all',
+    appliesTo: d.appliesTo,
     productIds: d.appliesTo === 'products' ? d.appliesToIds : [],
+    collectionIds: d.appliesTo === 'collections' ? d.appliesToIds : [],
     perProduct: perProductValues(d) !== null,
     productValues: Object.fromEntries(
       Object.entries(perProductValues(d) ?? {}).map(([id, v]) => [id, String(v / 100)]),
@@ -143,6 +146,7 @@ export function formErrors(f: DiscountFormState): FormErrors {
     if (!validAmount(f.method, f.value)) e.value = copy.value
   }
   if (f.appliesTo === 'products' && f.productIds.length === 0) e.products = copy.products
+  if (f.appliesTo === 'collections' && f.collectionIds.length === 0) e.products = copy.collections
   const start = fromLocalInput(f.startsAt)
   const end = f.hasEnd ? fromLocalInput(f.endsAt) : null
   if (f.hasEnd && start && end && end <= start) e.dates = copy.dates
@@ -160,7 +164,12 @@ export function toInput(f: DiscountFormState): DiscountInput {
     value: f.method === 'free_shipping' || perProduct ? 0 : toUnits(f.method, f.value),
     minSubtotalPaise: f.hasMinimum && f.minSubtotal ? rupeesToPaise(f.minSubtotal) : null,
     appliesTo: f.appliesTo,
-    appliesToIds: f.appliesTo === 'products' ? f.productIds : [],
+    appliesToIds:
+      f.appliesTo === 'products'
+        ? f.productIds
+        : f.appliesTo === 'collections'
+          ? f.collectionIds
+          : [],
     productValues: perProduct
       ? Object.fromEntries(
           f.productIds.map((id) => [id, toUnits(f.method, f.productValues[id] ?? '')]),

@@ -10,6 +10,7 @@ import {
 } from '@commerce/ui/shadcn/select'
 import DataCard from '@/components/layout/data-card'
 import { discountFormContent } from '@/data/discounts'
+import { useCopy } from '@/hooks/use-copy'
 
 type DiscountStatus = 'active' | 'disabled'
 
@@ -18,10 +19,13 @@ type DiscountStatusCardProps = {
   onChange: (status: DiscountStatus) => void
 }
 
-const copy = discountFormContent.status
-const statusItems = Object.fromEntries(copy.options.map((o) => [o.value, o.label]))
-
 export default function DiscountStatusCard({ status, onChange }: DiscountStatusCardProps) {
+  // Hooks
+  const { status: copy } = useCopy(discountFormContent)
+
+  // Render logic
+  const statusItems = Object.fromEntries(copy.options.map((o) => [o.value, o.label]))
+
   return (
     <DataCard title={copy.heading}>
       <Field>

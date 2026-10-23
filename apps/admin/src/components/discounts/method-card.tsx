@@ -1,6 +1,5 @@
 'use client'
 
-import { cn } from '@commerce/ui/lib/utils'
 import { Button } from '@commerce/ui/shadcn/button'
 import {
   Field,
@@ -10,9 +9,12 @@ import {
   FieldLabel,
 } from '@commerce/ui/shadcn/field'
 import { Input } from '@commerce/ui/shadcn/input'
-import { RadioGroup, RadioGroupItem } from '@commerce/ui/shadcn/radio-group'
+import { RadioGroup } from '@commerce/ui/shadcn/radio-group'
+import ChoiceTile from '@/components/fields/choice-tile'
+import RequiredMark from '@/components/fields/required-mark'
 import DataCard from '@/components/layout/data-card'
 import { discountFormContent } from '@/data/discounts'
+import { useCopy } from '@/hooks/use-copy'
 import type { DiscountFormState } from './form-state'
 import { randomCode } from './form-state'
 
@@ -23,38 +25,13 @@ type MethodCardProps = {
   onChange: (patch: Partial<DiscountFormState>) => void
 }
 
-type RadioCardProps = {
-  name: string
-  value: string
-  checked: boolean
-  label: string
-  help: string
-}
-
-const copy = discountFormContent.method
 const KINDS = ['code', 'automatic'] as const
 const METHODS = ['percent', 'fixed', 'free_shipping'] as const
 
-/* Shopify-style method cards: a bordered tile that fills soft green when picked. */
-function RadioCard({ name, value, checked, label, help }: RadioCardProps) {
-  return (
-    <FieldLabel
-      htmlFor={`${name}-${value}`}
-      className={cn(
-        'flex cursor-pointer items-start gap-3 rounded-lg border border-border p-4 font-normal transition-colors hover:bg-muted',
-        checked && 'border-primary bg-primary-soft',
-      )}
-    >
-      <RadioGroupItem id={`${name}-${value}`} value={value} className="mt-0.5" />
-      <span className="flex flex-col gap-0.5">
-        <span className="text-body-strong">{label}</span>
-        <span className="text-caption">{help}</span>
-      </span>
-    </FieldLabel>
-  )
-}
-
 export default function MethodCard({ form, titleError, codeError, onChange }: MethodCardProps) {
+  // Hooks
+  const { method: copy } = useCopy(discountFormContent)
+
   // Event handlers
   const handleGenerate = () => onChange({ code: randomCode() })
 
@@ -69,7 +46,7 @@ export default function MethodCard({ form, titleError, codeError, onChange }: Me
             className="grid gap-3 md:grid-cols-2"
           >
             {KINDS.map((k) => (
-              <RadioCard
+              <ChoiceTile
                 key={k}
                 name="kind"
                 value={k}
@@ -88,7 +65,7 @@ export default function MethodCard({ form, titleError, codeError, onChange }: Me
             className="grid gap-3 md:grid-cols-3"
           >
             {METHODS.map((m) => (
-              <RadioCard
+              <ChoiceTile
                 key={m}
                 name="method"
                 value={m}
@@ -102,7 +79,7 @@ export default function MethodCard({ form, titleError, codeError, onChange }: Me
         <Field data-invalid={titleError ? true : undefined}>
           <FieldLabel htmlFor="discount-title">
             {copy.title}
-            <span aria-hidden="true">*</span>
+            <RequiredMark />
           </FieldLabel>
           <Input
             size="lg"
@@ -122,7 +99,7 @@ export default function MethodCard({ form, titleError, codeError, onChange }: Me
           <Field data-invalid={codeError ? true : undefined}>
             <FieldLabel htmlFor="discount-code">
               {copy.code}
-              <span aria-hidden="true">*</span>
+              <RequiredMark />
             </FieldLabel>
             <div className="flex gap-2">
               <Input

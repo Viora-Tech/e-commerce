@@ -3,10 +3,12 @@
 import { Checkbox } from '@commerce/ui/shadcn/checkbox'
 import { Field, FieldDescription, FieldGroup, FieldLabel } from '@commerce/ui/shadcn/field'
 import { Input } from '@commerce/ui/shadcn/input'
-import { RadioGroup, RadioGroupItem } from '@commerce/ui/shadcn/radio-group'
+import { RadioGroup } from '@commerce/ui/shadcn/radio-group'
 import MoneyInput from '@/components/fields/money-input'
+import RadioOption from '@/components/fields/radio-option'
 import DataCard from '@/components/layout/data-card'
 import { discountFormContent } from '@/data/discounts'
+import { useCopy } from '@/hooks/use-copy'
 import type { DiscountFormState } from './form-state'
 
 type ConditionsCardProps = {
@@ -17,12 +19,11 @@ type ConditionsCardProps = {
   onChange: (patch: Partial<DiscountFormState>) => void
 }
 
-const minimum = discountFormContent.minimum
-const usage = discountFormContent.usage
-const eligibility = discountFormContent.eligibility
-
 /** Minimum requirement, customer eligibility and usage limits in one card, Shopify style. */
 export default function ConditionsCard({ form, onChange }: ConditionsCardProps) {
+  // Hooks
+  const { minimum, usage, eligibility } = useCopy(discountFormContent)
+
   return (
     <>
       <DataCard title={minimum.heading}>
@@ -32,14 +33,8 @@ export default function ConditionsCard({ form, onChange }: ConditionsCardProps) 
             onValueChange={(v) => onChange({ hasMinimum: v === 'subtotal' })}
             className="gap-2"
           >
-            <FieldLabel htmlFor="min-none" className="flex items-center gap-2 font-normal">
-              <RadioGroupItem id="min-none" value="none" />
-              {minimum.none}
-            </FieldLabel>
-            <FieldLabel htmlFor="min-subtotal" className="flex items-center gap-2 font-normal">
-              <RadioGroupItem id="min-subtotal" value="subtotal" />
-              {minimum.subtotal}
-            </FieldLabel>
+            <RadioOption id="min-none" value="none" label={minimum.none} />
+            <RadioOption id="min-subtotal" value="subtotal" label={minimum.subtotal} />
           </RadioGroup>
           {form.hasMinimum ? (
             <Field className="max-w-xs">
