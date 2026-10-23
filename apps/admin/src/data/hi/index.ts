@@ -76,6 +76,7 @@ import profitCosts from './profit-costs'
 import purchaseDocuments from './purchase-documents'
 import purchasing from './purchasing'
 import razorpayWebsites from './razorpay-websites'
+import resourcePicker from './resource-picker'
 import returns from './returns'
 import reviews from './reviews'
 import searchApp from './search-app'
@@ -129,6 +130,7 @@ export const hindiCopy: readonly TranslationPair[] = [
   ...businessGst,
   ...checkoutSettings,
   ...common,
+  ...resourcePicker,
   ...connectAside,
   ...content,
   ...contentBlog,

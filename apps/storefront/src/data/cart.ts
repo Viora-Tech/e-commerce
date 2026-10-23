@@ -48,6 +48,8 @@ export const discountFieldContent = {
     not_applicable: 'That code does not apply to the items in your cart.',
     min_subtotal: 'Your order is below the minimum for that code.',
     limit_reached: 'That code has reached its usage limit.',
+    min_quantity: 'Add more items to use that code.',
+    not_eligible: 'That code is not available for your account.',
   } as Record<string, string>,
   rejected: (code: string) => `${code} no longer applies and was removed.`,
 } as const

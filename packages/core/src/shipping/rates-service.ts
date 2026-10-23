@@ -211,7 +211,10 @@ export async function quoteCartShipping(
   if (!c || lines.length === 0 || lines.every((l) => l.giftCard)) {
     return { kind: 'not_configured', freeShippingDiscount: false }
   }
-  const { outcome } = await resolveCartDiscount(ctx, cartId, c.discountCode, opts)
+  const { outcome } = await resolveCartDiscount(ctx, cartId, c.discountCode, {
+    ...opts,
+    stateCode: to.stateCode,
+  })
   const { discountedSubtotalPaise } = applyDiscount(subtotalPaise(lines), 0, outcome)
   const measure: ShippingCartMeasure = {
     valuePaise: discountedSubtotalPaise,
@@ -220,9 +223,13 @@ export async function quoteCartShipping(
   const quote = quoteShipping(await loadRateZones(ctx.tx), to, measure)
   const free = outcome?.freeShipping === true
   if (quote.kind !== 'rates' || !free) return { ...quote, freeShippingDiscount: free }
+  // A rate above the discount's "exclude rates over" cap keeps its price (applyDiscount).
   return {
     kind: 'rates',
-    options: quote.options.map((o) => ({ ...o, pricePaise: 0 })),
+    options: quote.options.map((o) => ({
+      ...o,
+      pricePaise: applyDiscount(0, o.pricePaise, outcome).shippingPaise,
+    })),
     freeShippingDiscount: true,
   }
 }

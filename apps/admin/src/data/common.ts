@@ -12,6 +12,11 @@ export const dialogContent = {
   close: 'Close',
 } as const
 
+/** The red asterisk on a required field's label; screen readers hear the word instead. */
+export const requiredMarkContent = {
+  required: 'required',
+} as const
+
 /** The Call / WhatsApp buttons under any customer's contact details. */
 export const contactContent = {
   call: 'Call',

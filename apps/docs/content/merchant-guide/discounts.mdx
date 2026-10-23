@@ -1,6 +1,6 @@
 ---
 title: Discounts
-description: Make discount codes and automatic offers, choose what they take off, give a different amount for each product, and pause, resume or duplicate them.
+description: Make discount codes and automatic offers of four types (amount off products, amount off order, buy X get Y, free shipping), limit who can use them, let them combine, and pause, resume or duplicate them.
 ---
 
 # Discounts
@@ -8,72 +8,117 @@ description: Make discount codes and automatic offers, choose what they take off
 Go to **Discounts** in the sidebar. The list shows every discount with its value, how many
 times it was used and the dates it runs. Select **Create discount** to make a new one.
 
-## Two kinds of discount
+## Discount type
+
+Pick the type first, at the top of the page. It is fixed once the discount is saved.
+
+| Type | What the shopper gets |
+| --- | --- |
+| **Amount off products** | A percentage or rupee amount off the products or collections you pick. |
+| **Amount off order** | A percentage or rupee amount off the whole order. |
+| **Buy X get Y** | Buy some items (or spend an amount) and get other items free or cheaper. |
+| **Free shipping** | Shipping is free on qualifying orders, in every state or the ones you pick. |
+
+A fixed amount is taken once from the order and never more than the items it covers are worth.
+
+## Method: code or automatic
 
 - **Discount code.** Shoppers type a code, such as `DIWALI10`, in the cart or at checkout.
   Case does not matter: `diwali10` works too.
 - **Automatic.** Applied to every cart that qualifies, no code needed. When several automatic
-  offers fit a cart, the one that saves the shopper the most wins.
+  offers fit a cart, the one that saves the shopper the most wins (unless they combine, below).
 
-## What it gives
+## Amount off products: what it applies to
 
-| Choice | What the shopper gets |
-| --- | --- |
-| **Percentage off** | A share of the price, for example 10% off. |
-| **Fixed amount off** | A rupee amount, for example ₹200 off. Taken once from the order, never more than the items it covers are worth. |
-| **Free shipping** | Shipping is free on the order. |
+Choose **Specific collections** or **Specific products**, then select **Browse** (or the
+search field beside it). A picker opens with **Products** and **Collections** tabs, a search
+box, pictures, price and stock (or the number of products in a collection). Tick what you
+want, or **Select all shown**, and select **Done**. The picks are listed on the card; select
+the cross on a row to take one off. A collection covers every product in it, including
+products added to it later.
 
-## What it applies to
+### A different amount for each product
 
-- **Entire order**: every product in the cart.
-- **Specific products**: only the products you pick. Search, tick the products, and they are
-  listed above the search box. Select the cross on a row to take a product off.
+One code can take a different amount off different products, for example ₹200 off a keyboard
+and ₹300 off a mouse.
 
-## A different amount for each product
-
-One code can take a different amount off different products. For example, the code
-`KILLTONED` takes ₹200 off a keyboard and ₹300 off a mouse.
-
-1. Under **Applies to**, choose **Specific products** and pick the products.
+1. Choose **Specific products** and pick the products.
 2. Turn on **Different amount for each product**.
-3. Type an amount next to each product. With **Percentage off** each box takes a percentage
-   (up to 100%); with **Fixed amount off** each box takes rupees.
+3. Type an amount next to each product: a percentage (up to 100%) with **Percentage off**,
+   rupees with **Fixed amount off**.
 4. Select **Save**.
 
-The amount comes off **every piece** of that product. Two keyboards with ₹200 off each means
-₹400 off. A fixed amount never takes more than the product's price, so a ₹500 discount on a
-₹300 product gives ₹300 off. Products in the cart that are not on the list get nothing off,
-and a cart with none of the listed products is told the code does not apply to its items.
+The amount comes off **every piece** of that product: two keyboards with ₹200 off each means
+₹400 off. A fixed amount never takes more than the product's price. The **Value** column on
+the discount list shows the range, for example "₹200 to ₹300 off each item".
 
-Every product on the list needs an amount above zero before you can save. The **Value**
-column on the discount list shows the range, for example "₹200 to ₹300 off each item".
+## Buy X get Y
 
-The minimum order amount, usage limits and dates work the same way as for any other discount.
+- **Customer buys**: a minimum quantity of items, or a minimum purchase amount, from the
+  products or collections you browse to.
+- **Customer gets**: how many items, from which products or collections, and at what value:
+  **Free**, a **Percentage** off, or an **Amount off each**.
+- **Set a maximum number of uses per order** caps how many times one order earns it.
 
-## Minimum, limits and dates
+Shoppers add the "gets" items to their cart themselves; the cheapest qualifying items are the
+ones discounted, and an item never counts as both bought and given. Example: "Buy 2, get 1
+free" on three ₹1,000 shirts makes one shirt free. With a minimum amount, every multiple of
+the amount spent earns another round.
 
-- **Minimum requirement**: the cart must be worth at least this much before the discount.
-- **Usage limits**: cap the total number of uses, or allow one use per customer (counted by
-  email address).
-- **Active dates**: when the discount starts, and optionally when it ends.
+## Free shipping
 
-The order keeps the discount's name, code and the rupee amount it took off, so later changes
-to the discount never change an order already placed.
+- **All states** or **Selected states**: tick the states that get free shipping. The state is
+  checked once the shopper enters their address at checkout.
+- **Exclude shipping rates over a certain amount**: rates above this price (an express
+  courier, for example) are charged in full.
+
+## Minimum purchase requirements
+
+- **No minimum requirements**.
+- **Minimum purchase amount**: the cart must be worth at least this much before discounts.
+- **Minimum quantity of items**: the cart must hold at least this many items (for an amount
+  off products, only the items the discount covers count).
+
+## Customer eligibility
+
+- **All customers**.
+- **Specific customer segments**: browse to the segments you made under Customers → Segments.
+  A shopper qualifies while they match the segment's rules.
+- **Specific customers**: browse to the customers by name or email.
+
+Eligibility is checked when a signed-in shopper views the cart, or at checkout once the
+shopper enters their email. A shopper who does not qualify is told the code is not available
+for their account.
+
+## Maximum discount uses
+
+Cap the total number of uses, or allow one use per customer (counted by email address).
+
+## Combinations
+
+By default a discount does not stack with others. Under **Combinations**, tick **Product
+discounts**, **Order discounts** or **Shipping discounts** to let this one apply together with
+discounts of those kinds. Both discounts must allow each other. At checkout the shopper's code
+applies first, then the automatic discounts it combines with, at most one of each kind. An
+order discount is worked out on what is left after the product discount. Every combined
+discount counts a use, and the order shows each one's name.
+
+## Active dates
+
+When the discount starts, and optionally when it ends. The order keeps the discount's name,
+code and the rupee amount it took off, so later changes never change an order already placed.
 
 ## Pause, resume and duplicate
 
 Open a discount and use the buttons at the top (you need permission to change discounts).
 
-- **Pause** stops shoppers using it, with nothing deleted. Confirm with **Pause discount**. The
-  discount shows as paused, and orders already placed are not touched.
+- **Pause** stops shoppers using it, with nothing deleted. Confirm with **Pause discount**.
 - **Resume** turns it on again.
 - **Duplicate** makes a copy called "*name* (copy)". Its code gets `-COPY` added (then `-COPY2`
-  and so on), its use count starts at zero, and it starts **paused**, so you can change it and
-  **Resume** it when it is ready. Handy for next month's version of the same offer.
+  and so on), its use count starts at zero, and it starts **paused**.
 - **Delete** removes it. A discount already used on an order is disabled instead, so history
   stays intact.
 
 ## Turning a discount off
 
-Set **Status** to **Disabled** to stop it working while keeping it for your records. Deleting a
-discount that was already used on orders disables it instead, so order history stays intact.
+Set **Status** to **Disabled** to stop it working while keeping it for your records.

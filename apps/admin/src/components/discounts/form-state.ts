@@ -1,24 +1,54 @@
-import { type DiscountInput, perProductValues } from '@commerce/core/discounts'
-import { discountFormContent } from '@/data/discounts'
+import { discountType, perProductValues } from '@commerce/core/discounts'
 import type { api } from '@/lib/api-client'
 
 export type LoadedDiscount = NonNullable<Awaited<ReturnType<typeof api.discounts.get>>>
 
+export type DiscountType = 'products' | 'order' | 'bxgy' | 'shipping'
+export type ItemScope = 'products' | 'collections'
+
 export type DiscountFormState = {
+  /** Shopify's four types; picked when the discount is created. */
+  type: DiscountType
   title: string
   kind: 'code' | 'automatic'
   code: string
+  /** Percent or a fixed amount off; free shipping for the shipping type. */
   method: 'percent' | 'fixed' | 'free_shipping'
   /** Percent as typed ("12.5") or rupees as typed ("200"); converted on save. */
   value: string
-  appliesTo: 'all' | 'products'
+  /** Amount off products: which products or collections. */
+  appliesTo: ItemScope
   productIds: string[]
+  collectionIds: string[]
   /** "Different amount for each product": each chosen product gets its own value. */
   perProduct: boolean
   /** Per-product value as typed, keyed by product id; same unit as `value`. */
   productValues: Record<string, string>
-  hasMinimum: boolean
+  /** Buy X get Y: what the shopper buys. */
+  buysKind: 'quantity' | 'amount'
+  buysQuantity: string
+  buysAmount: string
+  buysScope: ItemScope
+  buysIds: string[]
+  /** Buy X get Y: what the shopper gets, and at what discount. */
+  getsQuantity: string
+  getsScope: ItemScope
+  getsIds: string[]
+  getsMode: 'free' | 'percent' | 'fixed'
+  limitPerOrder: boolean
+  maxUsesPerOrder: string
+  /** Free shipping: every state or the ticked ones, and the rate cap. */
+  allStates: boolean
+  shippingStates: string[]
+  excludeRates: boolean
+  maxShipping: string
+  minimum: 'none' | 'amount' | 'quantity'
   minSubtotal: string
+  minQuantity: string
+  eligibility: 'all' | 'segments' | 'customers'
+  segmentIds: string[]
+  customerIds: string[]
+  combinesWith: { products: boolean; order: boolean; shipping: boolean }
   limitTotal: boolean
   usageLimit: string
   onePerCustomer: boolean
@@ -27,10 +57,6 @@ export type DiscountFormState = {
   endsAt: string
   status: 'active' | 'disabled'
 }
-
-export type FormErrors = Partial<
-  Record<'title' | 'code' | 'value' | 'products' | 'productValues' | 'dates', string>
->
 
 const CODE_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
 
@@ -42,31 +68,47 @@ export function toLocalInput(d: Date | string | null): string {
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`
 }
 
-function fromLocalInput(s: string): Date | null {
-  if (!s) return null
-  const d = new Date(s)
-  return Number.isNaN(d.getTime()) ? null : d
-}
-
 export function randomCode(length = 8): string {
   const bytes = new Uint8Array(length)
   crypto.getRandomValues(bytes)
   return Array.from(bytes, (b) => CODE_ALPHABET[b % CODE_ALPHABET.length]).join('')
 }
 
-export function emptyForm(): DiscountFormState {
+export function emptyForm(type: DiscountType = 'products'): DiscountFormState {
   return {
+    type,
     title: '',
     kind: 'code',
     code: '',
-    method: 'percent',
+    method: type === 'shipping' ? 'free_shipping' : 'percent',
     value: '',
-    appliesTo: 'all',
+    appliesTo: 'collections',
     productIds: [],
+    collectionIds: [],
     perProduct: false,
     productValues: {},
-    hasMinimum: false,
+    buysKind: 'quantity',
+    buysQuantity: '1',
+    buysAmount: '',
+    buysScope: 'products',
+    buysIds: [],
+    getsQuantity: '1',
+    getsScope: 'products',
+    getsIds: [],
+    getsMode: 'free',
+    limitPerOrder: false,
+    maxUsesPerOrder: '',
+    allStates: true,
+    shippingStates: [],
+    excludeRates: false,
+    maxShipping: '',
+    minimum: 'none',
     minSubtotal: '',
+    minQuantity: '',
+    eligibility: 'all',
+    segmentIds: [],
+    customerIds: [],
+    combinesWith: { products: false, order: false, shipping: false },
     limitTotal: false,
     usageLimit: '',
     onePerCustomer: false,
@@ -77,26 +119,63 @@ export function emptyForm(): DiscountFormState {
   }
 }
 
+const rupees = (paise: number | null | undefined): string =>
+  paise === null || paise === undefined ? '' : String(paise / 100)
+
+/** Typed rupees, or percent from basis points: both are stored in hundredths. */
+const typed = (stored: number): string => String(stored / 100)
+
 export function fromDiscount(d: LoadedDiscount): DiscountFormState {
+  const type = discountType(d)
+  const base = emptyForm(type)
+  const values = perProductValues(d)
+  const bxgy = type === 'bxgy' ? d.bxgy : null
+  const free = Boolean(bxgy) && d.method === 'percent' && d.value === 10_000
+  const scope: ItemScope = d.appliesTo === 'products' ? 'products' : 'collections'
   return {
+    ...base,
     title: d.title,
     kind: d.kind,
     code: d.code ?? '',
     method: d.method,
-    value:
-      d.method === 'percent'
-        ? String(d.value / 100)
-        : d.method === 'fixed'
-          ? String(d.value / 100)
-          : '',
-    appliesTo: d.appliesTo === 'products' ? 'products' : 'all',
+    value: d.method === 'free_shipping' || free ? '' : typed(d.value),
+    appliesTo: scope,
     productIds: d.appliesTo === 'products' ? d.appliesToIds : [],
-    perProduct: perProductValues(d) !== null,
+    collectionIds: d.appliesTo === 'collections' ? d.appliesToIds : [],
+    perProduct: values !== null,
     productValues: Object.fromEntries(
-      Object.entries(perProductValues(d) ?? {}).map(([id, v]) => [id, String(v / 100)]),
+      Object.entries(values ?? {}).map(([id, v]) => [id, typed(v)]),
     ),
-    hasMinimum: d.minSubtotalPaise !== null,
-    minSubtotal: d.minSubtotalPaise !== null ? String(d.minSubtotalPaise / 100) : '',
+    ...(bxgy
+      ? {
+          buysKind: bxgy.buys.kind,
+          buysQuantity: bxgy.buys.kind === 'quantity' ? String(bxgy.buys.quantity) : '1',
+          buysAmount: bxgy.buys.kind === 'amount' ? rupees(bxgy.buys.amountPaise) : '',
+          buysScope: bxgy.buys.appliesTo,
+          buysIds: bxgy.buys.ids,
+          getsQuantity: String(bxgy.gets.quantity),
+          getsScope: bxgy.gets.appliesTo,
+          getsIds: bxgy.gets.ids,
+          getsMode: free
+            ? ('free' as const)
+            : d.method === 'fixed'
+              ? ('fixed' as const)
+              : ('percent' as const),
+          limitPerOrder: bxgy.maxUsesPerOrder !== null,
+          maxUsesPerOrder: bxgy.maxUsesPerOrder === null ? '' : String(bxgy.maxUsesPerOrder),
+        }
+      : {}),
+    allStates: d.shippingStates.length === 0,
+    shippingStates: d.shippingStates,
+    excludeRates: d.maxShippingPaise !== null,
+    maxShipping: rupees(d.maxShippingPaise),
+    minimum: d.minSubtotalPaise !== null ? 'amount' : d.minQuantity !== null ? 'quantity' : 'none',
+    minSubtotal: rupees(d.minSubtotalPaise),
+    minQuantity: d.minQuantity === null ? '' : String(d.minQuantity),
+    eligibility: d.customerEligibility,
+    segmentIds: d.customerEligibility === 'segments' ? d.eligibleIds : [],
+    customerIds: d.customerEligibility === 'customers' ? d.eligibleIds : [],
+    combinesWith: { ...base.combinesWith, ...d.combinesWith },
     limitTotal: d.usageLimit !== null,
     usageLimit: d.usageLimit !== null ? String(d.usageLimit) : '',
     onePerCustomer: d.usagePerCustomer === 1,
@@ -107,69 +186,19 @@ export function fromDiscount(d: LoadedDiscount): DiscountFormState {
   }
 }
 
-const num = (s: string): number => Number.parseFloat(s)
-const rupeesToPaise = (s: string): number => Math.round(num(s) * 100)
-
 /** Whether the form takes a different amount off each product. */
 export function usesPerProduct(
-  f: Pick<DiscountFormState, 'appliesTo' | 'method' | 'perProduct'>,
+  f: Pick<DiscountFormState, 'type' | 'appliesTo' | 'method' | 'perProduct'>,
 ): boolean {
-  return f.appliesTo === 'products' && f.method !== 'free_shipping' && f.perProduct
+  return (
+    f.type === 'products' &&
+    f.appliesTo === 'products' &&
+    f.method !== 'free_shipping' &&
+    f.perProduct
+  )
 }
 
-/** A typed amount is usable: above zero, and at most 100 for a percent. */
-export function validAmount(method: DiscountFormState['method'], raw: string | undefined): boolean {
-  const n = num(raw ?? '')
-  if (!Number.isFinite(n) || n <= 0) return false
-  return method !== 'percent' || n <= 100
-}
-
-/** Typed value to stored units: basis points for a percent, paise for an amount. */
-const toUnits = (method: DiscountFormState['method'], raw: string): number =>
-  method === 'percent' ? Math.round(num(raw) * 100) : rupeesToPaise(raw)
-
-export function formErrors(f: DiscountFormState): FormErrors {
-  const e: FormErrors = {}
-  const copy = discountFormContent.errors
-  if (!f.title.trim()) e.title = copy.title
-  if (f.kind === 'code' && !/^[A-Za-z0-9-]{2,40}$/.test(f.code.trim())) e.code = copy.code
-  if (usesPerProduct(f)) {
-    if (f.productIds.some((id) => !validAmount(f.method, f.productValues[id]))) {
-      e.productValues = f.method === 'percent' ? copy.productPercents : copy.productValues
-    }
-  } else if (f.method === 'percent') {
-    if (!validAmount(f.method, f.value)) e.value = copy.percent
-  } else if (f.method === 'fixed') {
-    if (!validAmount(f.method, f.value)) e.value = copy.value
-  }
-  if (f.appliesTo === 'products' && f.productIds.length === 0) e.products = copy.products
-  const start = fromLocalInput(f.startsAt)
-  const end = f.hasEnd ? fromLocalInput(f.endsAt) : null
-  if (f.hasEnd && start && end && end <= start) e.dates = copy.dates
-  return e
-}
-
-export function toInput(f: DiscountFormState): DiscountInput {
-  const limit = f.limitTotal ? Number.parseInt(f.usageLimit, 10) : Number.NaN
-  const perProduct = usesPerProduct(f)
-  return {
-    title: f.title.trim(),
-    kind: f.kind,
-    code: f.kind === 'code' ? f.code.trim().toUpperCase() : null,
-    method: f.method,
-    value: f.method === 'free_shipping' || perProduct ? 0 : toUnits(f.method, f.value),
-    minSubtotalPaise: f.hasMinimum && f.minSubtotal ? rupeesToPaise(f.minSubtotal) : null,
-    appliesTo: f.appliesTo,
-    appliesToIds: f.appliesTo === 'products' ? f.productIds : [],
-    productValues: perProduct
-      ? Object.fromEntries(
-          f.productIds.map((id) => [id, toUnits(f.method, f.productValues[id] ?? '')]),
-        )
-      : null,
-    usageLimit: Number.isFinite(limit) && limit > 0 ? limit : null,
-    usagePerCustomer: f.onePerCustomer ? 1 : null,
-    startsAt: fromLocalInput(f.startsAt),
-    endsAt: f.hasEnd ? fromLocalInput(f.endsAt) : null,
-    status: f.status,
-  }
-}
+/** The ids the products discount points at, for its current scope. */
+export const scopeIds = (
+  f: Pick<DiscountFormState, 'appliesTo' | 'productIds' | 'collectionIds'>,
+) => (f.appliesTo === 'products' ? f.productIds : f.collectionIds)

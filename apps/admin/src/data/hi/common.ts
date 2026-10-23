@@ -1,4 +1,10 @@
-import { contactContent, copyButtonContent, dialogContent, reorderLabels } from '@/data/common'
+import {
+  contactContent,
+  copyButtonContent,
+  dialogContent,
+  reorderLabels,
+  requiredMarkContent,
+} from '@/data/common'
 import { translation } from '@/lib/i18n'
 
 export default [
@@ -9,6 +15,9 @@ export default [
   translation(dialogContent, {
     cancel: 'रद्द करें',
     close: 'बंद करें',
+  }),
+  translation(requiredMarkContent, {
+    required: 'ज़रूरी',
   }),
   translation(contactContent, {
     call: 'कॉल करें',

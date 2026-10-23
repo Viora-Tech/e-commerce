@@ -47,6 +47,8 @@ export type CustomerFilters = {
 
 export type CustomerQuery = {
   search?: string | undefined
+  /** Exactly these customers, e.g. the ones a discount is limited to. */
+  ids?: string[] | undefined
   segment?: CustomerSegmentName | undefined
 } & CustomerFilters
 
@@ -131,6 +133,7 @@ function filterWhere(input: CustomerQuery, now: Date, secret: string) {
   const phoneMatch =
     searchDigits.length >= 4 ? eq(c.phoneIndex, phoneBlindIndex(searchDigits, secret)) : undefined
   return and(
+    input.ids ? (input.ids.length > 0 ? inArray(c.id, input.ids) : sql`false`) : undefined,
     input.search
       ? or(ilike(c.name, `%${input.search}%`), ilike(c.email, `%${input.search}%`), phoneMatch)
       : undefined,
