@@ -4,8 +4,11 @@ import { addOrderTags } from './order-tags'
 
 let registered = false
 
+/** What the host passes the executors (the actions work widens this; all optional). */
+export type ActionHost = { settingsSecret?: string | undefined; storefrontUrl?: string | undefined }
+
 /** Registers every built-in executor once per process (the worker and the API call it). */
-export function registerBuiltinActions(): void {
+export function registerBuiltinActions(_host: ActionHost = {}): void {
   if (registered) return
   registered = true
   registerActionExecutor(addOrderTags)

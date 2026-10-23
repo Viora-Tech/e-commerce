@@ -17,9 +17,12 @@ import Link from 'next/link'
 import type { CSSProperties } from 'react'
 import { Fragment, useState } from 'react'
 import { growthOverviewContent as copy, SOURCE_LABELS } from '@/data/growth'
+import { growthSplitContent } from '@/data/growth-report'
+import { useCopy } from '@/hooks/use-copy'
 import { formatRate } from '@/lib/analytics-range'
 import { formatPaise } from '@/lib/money'
 import SourceIcon from './source-icon'
+import SplitCell from './split-cell'
 
 type SourceTableCardProps = {
   rows: SourceRow[]
@@ -31,9 +34,13 @@ const c = copy.sources.columns
 /** Width for a row's share-of-sales bar, clamped to a sane range. */
 const shareWidth = (share: number) => `${Math.min(100, Math.round(share * 100))}%`
 
-/** Sessions, orders, sales and conversion per friendly source, expandable to that source's campaigns. */
+/**
+ * Sessions, orders, sales (first-time vs returning) and conversion per friendly source,
+ * expandable to that source's campaigns.
+ */
 export default function SourceTableCard({ rows, campaigns }: SourceTableCardProps) {
   // Hooks
+  const split = useCopy(growthSplitContent)
   const [expanded, setExpanded] = useState<string | null>(null)
 
   // Event handlers
@@ -57,6 +64,8 @@ export default function SourceTableCard({ rows, campaigns }: SourceTableCardProp
               <TableHead className="text-right">{c.sessions}</TableHead>
               <TableHead className="text-right">{c.orders}</TableHead>
               <TableHead className="text-right">{c.sales}</TableHead>
+              <TableHead className="text-right">{split.newBuyers}</TableHead>
+              <TableHead className="text-right">{split.returning}</TableHead>
               <TableHead className="text-right">{c.conversion}</TableHead>
               <TableHead className="text-right">{c.share}</TableHead>
               <TableHead aria-hidden className="w-8" />
@@ -84,6 +93,18 @@ export default function SourceTableCard({ rows, campaigns }: SourceTableCardProp
                     <TableCell className="text-right tabular-nums">
                       {formatPaise(row.salesPaise)}
                     </TableCell>
+                    <TableCell className="text-right">
+                      <SplitCell
+                        salesPaise={row.split.newSalesPaise}
+                        orders={row.split.newOrders}
+                      />
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <SplitCell
+                        salesPaise={row.split.returningSalesPaise}
+                        orders={row.split.returningOrders}
+                      />
+                    </TableCell>
                     <TableCell className="text-right tabular-nums">
                       {row.sessions > 0 ? formatRate(row.conversion) : '-'}
                     </TableCell>
@@ -109,7 +130,7 @@ export default function SourceTableCard({ rows, campaigns }: SourceTableCardProp
                   </TableRow>
                   {open ? (
                     <TableRow className="bg-muted/30">
-                      <TableCell colSpan={7} className="py-3">
+                      <TableCell colSpan={9} className="py-3">
                         <p className="mb-2 text-kit-mini font-medium text-muted-foreground">
                           {copy.sources.campaignsUnder}
                         </p>

@@ -330,13 +330,16 @@ listing: {
   worksWith: ['The Shipments workspace, beside any other courier you install'],
   keywords: ['courier', 'awb', 'pincode'], // extra search words
   screenshots: [{ src: '/app-shots/delhivery-1.png', alt: 'The Delhivery overview page' }],
+  // questions a merchant asks first, answered from the merchant guide (never invented stats);
+  // the site adds price, account, data and removal questions from the catalogue itself
+  faq: [{ question: 'Does it do COD?', answer: 'Yes, ...' }],
   // unlisted: true keeps it off the site (the admin still has it)
 },
 ```
 
 The site cannot import plugins (they carry server code), so `bun scripts/gen-app-catalogue.ts`
 copies the listed apps (name, kind, category, company, description, `listing`, `access`, the
-admin pages' nav labels and theme block labels) into `packages/core/src/apps/catalogue.generated.ts`,
+admin pages' nav labels, the admin icon name and theme block labels) into `packages/core/src/apps/catalogue.generated.ts`,
 read through `@commerce/core/app-catalogue`. Run it after changing a manifest; the
 `app-catalogue` sweep fails while the file is stale. Prices are not in the listing: they come from
 `APP_PRICING` (`@commerce/core/billing`). A third-party logo goes in `public/app-logos` of both

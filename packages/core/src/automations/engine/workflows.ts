@@ -5,11 +5,13 @@ import { and, desc, eq, ilike, inArray, max, sql } from 'drizzle-orm'
 import { CommerceError } from '../../errors'
 import { ALL_PERMISSIONS, type Permission } from '../../permissions/statement'
 import type { PublishResult, WorkflowDetail, WorkflowSummary } from '../api-types'
+import { AUTOMATIONS_APP_ID } from '../app'
 import {
   actionIdsOf,
   emptyDefinition,
   type WorkflowDefinition,
   WorkflowDefinitionSchema,
+  WorkflowDraftSchema,
 } from '../definition'
 import { pieceIssues } from '../registry'
 import { builtinTemplate } from '../templates'
@@ -41,6 +43,12 @@ function parseDef(value: unknown): WorkflowDefinition | null {
   return parsed.success ? parsed.data : null
 }
 
+/** A saved draft may be half finished: only its shape is checked (publish checks the rest). */
+function parseDraft(value: unknown): WorkflowDefinition | null {
+  const parsed = WorkflowDraftSchema.safeParse(value)
+  return parsed.success ? parsed.data : null
+}
+
 /** Growth's linear editor can open it: no branch, only marketing pieces (design §9.4). */
 function linear(def: WorkflowDefinition | null): boolean {
   if (!def) return true
@@ -52,19 +60,20 @@ function linear(def: WorkflowDefinition | null): boolean {
 }
 
 async function runStats(tx: StoreTx, ids: string[]) {
-  const stats = new Map<string, { runs: number; last: Date | null }>()
+  const stats = new Map<string, { runs: number; errors: number; last: Date | null }>()
   if (ids.length === 0) return stats
   const since = new Date(Date.now() - 30 * 86_400_000)
   const rows = await tx
     .select({
       workflowId: automationRun.workflowId,
       runs: sql<number>`count(*) filter (where ${automationRun.startedAt} >= ${since})::int`,
+      errors: sql<number>`count(*) filter (where ${automationRun.startedAt} >= ${since} and ${automationRun.status} = 'failed')::int`,
       last: max(automationRun.startedAt),
     })
     .from(automationRun)
     .where(inArray(automationRun.workflowId, ids))
     .groupBy(automationRun.workflowId)
-  for (const r of rows) stats.set(r.workflowId, { runs: r.runs, last: r.last })
+  for (const r of rows) stats.set(r.workflowId, { runs: r.runs, errors: r.errors, last: r.last })
   return stats
 }
 
@@ -80,7 +89,7 @@ async function versionNumbers(tx: StoreTx, ids: (string | null)[]) {
 
 function summary(
   w: WorkflowRow,
-  stats: { runs: number; last: Date | null } | undefined,
+  stats: { runs: number; errors: number; last: Date | null } | undefined,
   version: number | null,
 ): WorkflowSummary {
   return {
@@ -95,6 +104,7 @@ function summary(
     publishedVersion: version,
     problem: w.problem,
     runsLast30Days: stats?.runs ?? 0,
+    errorRuns30d: stats?.errors ?? 0,
     lastRunAt: iso(stats?.last ?? null),
     updatedAt: w.updatedAt.toISOString(),
   }
@@ -157,7 +167,7 @@ export async function getWorkflow(tx: StoreTx, id: string): Promise<WorkflowDeta
   const live = versions.find((v) => v.id === w.publishedVersionId)
   const published = live ? parseDef(live.definition) : null
   const definition =
-    (w.draftDefinition ? parseDef(w.draftDefinition) : null) ??
+    (w.draftDefinition ? parseDraft(w.draftDefinition) : null) ??
     published ??
     emptyDefinition(w.triggerType)
   const [stats, [open = { n: 0 }]] = await Promise.all([
@@ -459,4 +469,24 @@ export async function workflowOrigin(tx: StoreTx, id: string): Promise<WorkflowO
     .from(automationWorkflow)
     .where(eq(automationWorkflow.id, id))
   return w?.origin ?? null
+}
+
+/**
+ * Why an app cannot be uninstalled now, or null. Automations holds the store's marketing
+ * automations (abandoned checkout, welcome…), so it stays while any exist (owner, 2026-10-23).
+ */
+export async function appUninstallBlocker(
+  tx: StoreTx,
+  storeId: string,
+  pluginId: string,
+): Promise<string | null> {
+  if (pluginId !== AUTOMATIONS_APP_ID) return null
+  const [w] = await tx
+    .select({ id: automationWorkflow.id })
+    .from(automationWorkflow)
+    .where(and(eq(automationWorkflow.storeId, storeId), eq(automationWorkflow.origin, 'growth')))
+    .limit(1)
+  return w
+    ? 'Automations runs your marketing automations. Delete those first to uninstall it.'
+    : null
 }

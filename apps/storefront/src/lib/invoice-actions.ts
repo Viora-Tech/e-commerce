@@ -8,6 +8,7 @@ import {
   CommerceError,
   convertDraftForOnlinePayment,
   DraftNeedsShippingAddress,
+  draftInvoiceState,
   OutOfStock,
   orderViewToken,
   PaymentNotRetryable,
@@ -17,8 +18,6 @@ import {
   thankYouPath,
   verifyInvoiceToken,
 } from '@commerce/core'
-import { order } from '@commerce/db'
-import { eq } from 'drizzle-orm'
 import { headers } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { invoiceContent as content } from '@/data/checkout'
@@ -53,10 +52,7 @@ export async function payInvoiceAction(token: string): Promise<PayInvoiceResult>
   if (!byIp.ok || !byInvoice.ok) return { error: content.busy }
 
   const found = await inStore(storeId, async (tx) => {
-    const [o] = await tx
-      .select({ status: order.status, number: order.number, paidAt: order.checkoutPaidAt })
-      .from(order)
-      .where(eq(order.id, orderId))
+    const o = await draftInvoiceState({ storeId, tx }, orderId)
     const provider = balanceProvider(await storePaymentProviders(tx, storeId), null)
     return o ? { ...o, provider } : null
   })
@@ -64,7 +60,7 @@ export async function payInvoiceAction(token: string): Promise<PayInvoiceResult>
   const secret = settingsSecret()
   const thankYou = (): never =>
     redirect(thankYouPath(found.number, orderViewToken(orderId, secret)))
-  if (found.status !== 'draft' && (found.status !== 'open' || found.paidAt)) thankYou()
+  if (!found.payable) thankYou()
   if (!found.provider) return { error: content.noGateway }
   const provider = found.provider
 

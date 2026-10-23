@@ -13,6 +13,9 @@ type QueryEditorProps = {
   errorLine: number | null
   onChange: (value: string) => void
   onRun: () => void
+  /** ⌘Z / ⌘⇧Z (Ctrl+Y): the page's history, which also holds control and AI edits. */
+  onUndo: () => void
+  onRedo: () => void
 }
 
 const TONE: Record<QueryTone, string> = {
@@ -26,7 +29,14 @@ const TONE: Record<QueryTone, string> = {
 const LINE_PX = 24
 
 /** Figma "Query editor" with "Query autocomplete": coloured text, line numbers, ⌘↵ runs. */
-export default function QueryEditor({ value, errorLine, onChange, onRun }: QueryEditorProps) {
+export default function QueryEditor({
+  value,
+  errorLine,
+  onChange,
+  onRun,
+  onUndo,
+  onRedo,
+}: QueryEditorProps) {
   // Hooks
   const copy = useCopy(analyticsContent.query)
   const area = useRef<HTMLTextAreaElement>(null)
@@ -55,6 +65,14 @@ export default function QueryEditor({ value, errorLine, onChange, onRun }: Query
       e.preventDefault()
       setOpen(false)
       onRun()
+      return
+    }
+    const key = e.key.toLowerCase()
+    if ((e.metaKey || e.ctrlKey) && (key === 'z' || key === 'y')) {
+      e.preventDefault()
+      setOpen(false)
+      if (key === 'y' || e.shiftKey) onRedo()
+      else onUndo()
       return
     }
     if ((e.ctrlKey && e.key === ' ') || (e.key === 'Tab' && !options.length)) {

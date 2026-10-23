@@ -1,10 +1,12 @@
 'use client'
 
 import { ImageIcon, Video } from '@commerce/ui/icons'
+import Link from 'next/link'
 import ActionMenu from '@/components/layout/action-menu'
 import FallbackImage from '@/components/layout/fallback-image'
 import { mediaContent } from '@/data/media'
 import { useCopy } from '@/hooks/use-copy'
+import { contentTypeOf } from './file-meta'
 import type { MediaTileAction } from './media-tile'
 import type { PendingUpload } from './use-upload-queue'
 
@@ -18,6 +20,8 @@ export type MediaFileRow = {
   /** "240 KB · Used on 2 products". */
   meta: string
   actions: MediaTileAction[]
+  /** The file's page; the whole row becomes a link to it. */
+  href: string
 }
 
 type MediaFileRowsProps = {
@@ -48,11 +52,11 @@ export default function MediaFileRows({ rows, pending }: MediaFileRowsProps) {
         </li>
       ))}
       {rows.map((row) => {
-        const video = row.contentType?.startsWith('video/') ?? false
+        const video = contentTypeOf(row.contentType, row.url)?.startsWith('video/') ?? false
         return (
           <li
             key={row.id}
-            className="group flex items-center gap-3 border-b border-line px-4 py-2.5 transition-colors last:border-0 hover:bg-muted/50"
+            className="group relative flex items-center gap-3 border-b border-line px-4 py-2.5 transition-colors last:border-0 hover:bg-muted/50"
           >
             <span className="relative flex size-12 shrink-0 items-center justify-center overflow-hidden rounded-md border bg-muted">
               {video ? (
@@ -78,13 +82,19 @@ export default function MediaFileRows({ rows, pending }: MediaFileRowsProps) {
             <ActionMenu
               label={copy.tile.menu}
               variant="bare"
-              triggerClassName="size-7 shrink-0 rounded-md text-muted-foreground hover:bg-muted hover:text-foreground"
+              triggerClassName="relative z-20 size-7 shrink-0 rounded-md text-muted-foreground hover:bg-muted hover:text-foreground"
               items={[
                 ...row.actions.filter((a) => !a.destructive),
                 ...row.actions
                   .filter((a) => a.destructive)
                   .map((a) => ({ ...a, destructive: true as const })),
               ]}
+            />
+            {/* Over the row, under the ⋯ menu (z-20), so the menu keeps its own click. */}
+            <Link
+              href={row.href}
+              aria-label={copy.details.open(row.name)}
+              className="absolute inset-0 z-10 outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset"
             />
           </li>
         )

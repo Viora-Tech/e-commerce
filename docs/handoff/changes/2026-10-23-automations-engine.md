@@ -18,13 +18,16 @@ without the app).
   `workflows.ts` and `runs.ts` (router services), `jobs.ts` / `jobs-run.ts` (queues, handlers).
 - **Seams for parallel work**: `conditions/index.ts` (`evaluateRules`, `loadSubjectData`) are
   stubs; executors go in `actions/**` and `actions/index.ts` (`order.add_tags` is the example).
-- **DB**: migration `0149_automations` (workflow, version, run, step run, run record, secret,
+- **DB**: migration `0154_automations` (journal entry last, newest `when`) (workflow, version, run, step run, run record, secret,
   usage; `marketing_message.automation_run_id` / `automation_node_id`; `automations.*` grants;
-  `stores_with_automation_work()`).
+  `stores_with_automation_work()`; Automations pre-installed on every existing store).
 - **Wiring**: new outbox types (product created/updated, customer tags changed/subscribed,
   inventory low/out, `automation.app_trigger`) and `insertOutboxEvent(..., { cause })`; the relay
   queues `{automations}-trigger`; worker `apps/worker/src/automations.ts` (trigger, step, tick);
   `automations.*` router; `AppHookContext.triggerAutomation`; plugin manifest `automations` block;
   permissions `automations.read/write/publish/run`; `PLANS[x].automations`.
+- **Pre-installed** (owner, 2026-10-23): marketing automations leave Growth for the Automations
+  app, which every store has (`PREINSTALLED_APPS`, onboarding installs it). It cannot be
+  uninstalled while Growth-origin workflows exist (`appUninstallBlocker`, apps router).
 - **Open**: writers for the new outbox types, Growth migration and sweeps, owner emails at
   80%/100% usage and circuit breaker, retention prune job, admin UI.

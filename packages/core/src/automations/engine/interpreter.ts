@@ -64,7 +64,10 @@ export type EngineDeps = {
   resolveAction?:
     | ((tx: StoreTx, storeId: string, id: string) => Promise<ResolvedAction | null>)
     | undefined
-  /** Runs before every node of a workflow with `exitOnOrder` (Growth parity lives here). */
+  /**
+   * Runs before every node of every run (Growth's conversion and unsubscribe exits live here);
+   * returns null for runs it does not own.
+   */
   exitCheck?:
     | ((tx: StoreTx, run: RunRow, def: WorkflowDefinition) => Promise<ExitDecision | null>)
     | undefined
@@ -107,6 +110,15 @@ async function workflowName(tx: StoreTx, id: string): Promise<string> {
     .from(automationWorkflow)
     .where(eq(automationWorkflow.id, id))
   return w?.name ?? ''
+}
+
+/** True for an Off Growth workflow: its runs wait, neither advancing nor ending. */
+async function isHeld(tx: StoreTx, workflowId: string): Promise<boolean> {
+  const [w] = await tx
+    .select({ status: automationWorkflow.status, origin: automationWorkflow.origin })
+    .from(automationWorkflow)
+    .where(eq(automationWorkflow.id, workflowId))
+  return w?.status === 'off' && w.origin === 'growth'
 }
 
 /** Subject data plus the trigger snapshot under `trigger`. */
@@ -334,7 +346,14 @@ async function stepOnce(
   const node = def.nodes[run.cursor]
   if (!node) return finish(tx, run.id, 'failed', now, { error: `Step ${run.cursor} is missing` })
 
-  if (def.settings.exitOnOrder && deps.exitCheck) {
+  // A paused Growth workflow holds its runs where they are (Growth parity); switching it back
+  // on lets the tick pick them up. Other workflows' runs finish after an Off (design §8.5).
+  if (await isHeld(tx, run.workflowId)) {
+    return { kind: 'park', status: run.status, nextAt: null }
+  }
+  // Every run asks: Growth's hook also stops unsubscribed customers on triggers without
+  // `exitOnOrder`; the hook returns null for runs it does not own.
+  if (deps.exitCheck) {
     const exit = await deps.exitCheck(tx, run, def)
     if (exit) {
       return finish(tx, run.id, exit.status, now, {

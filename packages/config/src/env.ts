@@ -284,6 +284,14 @@ const shape = z.object({
    */
   META_APP_ID: optionalOrBlank(z.string().min(1)),
   META_APP_SECRET: optionalOrBlank(z.string().min(1)),
+  /** Meta Login for Business configuration ids: catalog (system user token), WhatsApp Embedded Signup. */
+  META_LOGIN_CONFIG_ID: optionalOrBlank(z.string().min(1)),
+  META_WHATSAPP_CONFIG_ID: optionalOrBlank(z.string().min(1)),
+  /** Typed again as the Verify token of the Meta app's webhook (`<worker>/webhooks/platform/meta`). */
+  META_WEBHOOK_VERIFY_TOKEN: optionalOrBlank(z.string().min(16)),
+  /** The Koomerce Shopify app (`integrations/shopify`); the secret also signs its webhooks. */
+  SHOPIFY_APP_CLIENT_ID: optionalOrBlank(z.string().min(1)),
+  SHOPIFY_APP_CLIENT_SECRET: optionalOrBlank(z.string().min(1)),
   /** `<slug>.<PLATFORM_STORE_DOMAIN>` becomes a new store's primary domain. */
   PLATFORM_STORE_DOMAIN: z.string().min(1).default('waimers.store'),
   /**

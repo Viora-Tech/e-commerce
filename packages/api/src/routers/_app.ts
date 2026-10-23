@@ -38,6 +38,7 @@ import { onboardingRouter } from './onboarding'
 import { ordersRouter } from './orders'
 import { pagesRouter } from './pages'
 import { paymentsRouter } from './payments'
+import { platformAppsRouter } from './platform-apps'
 import { policiesRouter } from './policies'
 import { productsRouter } from './products'
 import { profitCostsRouter } from './profit-costs'
@@ -109,6 +110,7 @@ export const appRouter = {
   businessGst: businessGstRouter,
   profitCosts: profitCostsRouter,
   shopifyImport: shopifyImportRouter,
+  platformApps: platformAppsRouter,
   backInStock: backInStockRouter,
   emi: emiRouter,
   forms: formsRouter,

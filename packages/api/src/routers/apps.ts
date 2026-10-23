@@ -7,7 +7,9 @@ import {
   retryAfterSeconds,
   storeAppAccess,
 } from '@commerce/core'
+import { appUninstallBlocker } from '@commerce/core/automations/server'
 import { getRegistries } from '@commerce/core/registries'
+import type { StoreTx } from '@commerce/db'
 import { ORPCError } from '@orpc/server'
 import { z } from 'zod'
 import { BULK_MAX, can } from '../procedures'
@@ -41,6 +43,12 @@ function requirePlugin(id: string) {
     throw new ORPCError('BAD_REQUEST', { message: 'The built-in plugin is always installed' })
   }
   return p
+}
+
+/** Some built-in apps stay while the store depends on them (Automations holds marketing). */
+async function refuseBlockedUninstall(tx: StoreTx, storeId: string, pluginId: string) {
+  const reason = await appUninstallBlocker(tx, storeId, pluginId)
+  if (reason) throw new ORPCError('PRECONDITION_FAILED', { message: reason })
 }
 
 export const appsRouter = {
@@ -96,8 +104,9 @@ export const appsRouter = {
 
   uninstall: can(permissions.APPS_MANAGE)
     .input(pluginId)
-    .handler(({ context, input }) => {
+    .handler(async ({ context, input }) => {
       requirePlugin(input.id)
+      await refuseBlockedUninstall(context.tx, context.scope.storeId, input.id)
       return uninstallStoreApp(context.tx, context.scope.storeId, input.id)
     }),
 
@@ -107,6 +116,7 @@ export const appsRouter = {
     .handler(async ({ context, input }) => {
       const ids = [...new Set(input.ids)]
       for (const id of ids) requirePlugin(id)
+      for (const id of ids) await refuseBlockedUninstall(context.tx, context.scope.storeId, id)
       for (const id of ids) await uninstallStoreApp(context.tx, context.scope.storeId, id)
       return { removed: ids.length }
     }),

@@ -2,8 +2,6 @@ import { catalogueApps, catalogueCategories } from '@commerce/core/app-catalogue
 import { notFound } from 'next/navigation'
 import CtaBand from '@/components/common/cta-band'
 import JsonLd from '@/components/common/json-ld'
-import PageContainer from '@/components/common/page-container'
-import SectionHeading from '@/components/common/section-heading'
 import SiteShell from '@/components/layout/site-shell'
 import AppDirectory from '@/components/pages/app-directory'
 import { categoryCopy, categoryPath, appsContent as copy } from '@/data/apps'
@@ -48,16 +46,13 @@ export default async function AppCategoryPage({ params }: PageProps) {
         ])}
       />
       <JsonLd data={appListLd(words.title, inCategory)} />
-      <PageContainer as="section" className="pt-20 pb-10 md:pt-28 md:pb-14">
-        <SectionHeading
-          as="h1"
-          size="display"
-          eyebrow={copy.eyebrow}
-          title={words.title}
-          subtitle={words.description}
-        />
-      </PageContainer>
-      <AppDirectory apps={apps} categories={categories} category={slug} />
+      <AppDirectory
+        apps={apps}
+        categories={categories}
+        category={slug}
+        title={words.title}
+        body={words.description}
+      />
       <div className="mt-16 md:mt-24">
         <CtaBand title={copy.cta.title} body={copy.cta.body} inline />
       </div>

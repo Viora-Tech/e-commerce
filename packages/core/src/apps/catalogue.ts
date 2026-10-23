@@ -33,6 +33,10 @@ export type CatalogueEntry = {
   worksWith: string[]
   screenshots: { src: string; alt: string }[]
   keywords: string[]
+  /** The app's own questions and answers, from its listing. */
+  faq: { question: string; answer: string }[]
+  /** The admin icon name (`Star`, `FileText`), drawn on the tile when there is no logo; or null. */
+  icon: string | null
   access: {
     resources: { resource: string; level: CatalogueAccessLevel; why: string }[]
     shares: { when: string; what: string }[]

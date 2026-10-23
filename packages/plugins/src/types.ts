@@ -360,6 +360,11 @@ export type AppListing = {
   screenshots?: { src: string; alt: string }[] | undefined
   /** Search words beyond the name and tagline (`tee`, `invoice`, `courier`). */
   keywords?: string[] | undefined
+  /**
+   * Questions a merchant asks before installing, answered in plain words from what the app really
+   * does (the merchant guide is the source). The site adds its own price and data questions.
+   */
+  faq?: { question: string; answer: string }[] | undefined
   /** Kept off the App Store site (internal, or not ready to list). The admin still shows it. */
   unlisted?: boolean | undefined
 }

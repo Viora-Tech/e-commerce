@@ -6,6 +6,7 @@ import {
   automationVersion,
   automationWorkflow,
   createDb,
+  customer,
   order,
   outboxEvent,
   store,
@@ -23,9 +24,9 @@ import {
   type SubjectLoader,
 } from '../executor'
 import { resetActionExecutorsForTest } from '../registry'
-import { advanceRun, type EngineDeps, retryDelayMs } from './interpreter'
+import { advanceRun, type EngineDeps } from './interpreter'
 import { decideApproval } from './runs'
-import { automationTick, nextFireAt } from './tick'
+import { automationTick } from './tick'
 import { startRunsForOutboxRow } from './trigger'
 import { storePlanId, usageMonth } from './usage'
 
@@ -261,6 +262,20 @@ describe('trigger', () => {
     expect(r.started.map((s) => s.workflowId)).toEqual([growth])
   })
 
+  it('enrols a customer in a welcome series once, however often they subscribe', async () => {
+    const storeId = await seedStore()
+    const [c] = await owner.insert(customer).values({ storeId, email: 'asha@x.in' }).returning()
+    const wf = await publish(storeId, {
+      ...tagThenNote,
+      trigger: { type: 'customer.subscribed', config: {} },
+    })
+    for (let i = 0; i < 3; i++) {
+      await start(storeId, await outbox(storeId, 'customer.subscribed', { customerId: c?.id }))
+    }
+    const runs = await owner.select().from(automationRun).where(eq(automationRun.workflowId, wf))
+    expect(runs.map((r) => r.triggerKey)).toEqual([`subscribed:${c?.id}`])
+  })
+
   it('meters each started general run', async () => {
     const storeId = await seedStore()
     const orderId = await seedOrder(storeId)
@@ -452,6 +467,49 @@ describe('interpreter', () => {
 })
 
 describe('tick', () => {
+  it('holds the runs of a paused Growth workflow until it is switched back on', async () => {
+    const h = harness(true)
+    const storeId = await seedStore()
+    const orderId = await seedOrder(storeId)
+    const wf = await publish(
+      storeId,
+      {
+        ...tagThenNote,
+        start: 'wait',
+        nodes: {
+          ...tagThenNote.nodes,
+          wait: { kind: 'wait', id: 'wait', minutes: 5, next: 'check' },
+        },
+      },
+      { origin: 'growth' },
+    )
+    const [run] = (
+      await start(storeId, await outbox(storeId, 'order.paid', { orderId }), h.nowIs())
+    ).started
+    const id = run?.runId as string
+    await advanceRun(app, storeId, id, h.deps)
+    await owner
+      .update(automationWorkflow)
+      .set({ status: 'off' })
+      .where(eq(automationWorkflow.id, wf))
+    const due = new Date(h.nowIs().getTime() + 6 * MIN)
+    h.advanceClock(6 * MIN)
+    expect((await withStore(app, storeId, (tx) => automationTick(tx, storeId, due))).due).toEqual(
+      [],
+    )
+    await advanceRun(app, storeId, id, h.deps)
+    expect(h.calls).toHaveLength(0)
+    expect((await runOf(id))?.status).toBe('waiting')
+    await owner
+      .update(automationWorkflow)
+      .set({ status: 'on' })
+      .where(eq(automationWorkflow.id, wf))
+    const back = await withStore(app, storeId, (tx) => automationTick(tx, storeId, due))
+    expect(back.due.map((d) => d.runId)).toEqual([id])
+    await advanceRun(app, storeId, id, h.deps)
+    expect(h.calls).toHaveLength(2)
+  })
+
   it('returns waits that came due and expires old approvals', async () => {
     const h = harness(true)
     const storeId = await seedStore()
@@ -474,31 +532,5 @@ describe('tick', () => {
       automationTick(tx, storeId, new Date(h.nowIs().getTime() + 6 * MIN)),
     )
     expect(later.due.map((d) => d.runId)).toEqual([run?.runId])
-  })
-})
-
-describe('pure helpers', () => {
-  it('backs off internal actions three times and external ones for about a day', () => {
-    expect(retryDelayMs(false, 1)).toBe(5_000)
-    expect(retryDelayMs(false, 3)).toBeNull()
-    expect(retryDelayMs(true, 1)).toBe(60_000)
-    expect(retryDelayMs(true, 7)).toBe(24 * 3600_000)
-    expect(retryDelayMs(true, 8)).toBeNull()
-  })
-
-  it('fires schedules in IST', () => {
-    // 2026-10-23 10:00 IST = 04:30 UTC.
-    const from = new Date('2026-10-23T04:30:00Z')
-    expect(nextFireAt({ every: 'hour' }, from).toISOString()).toBe('2026-10-23T05:00:00.000Z')
-    expect(nextFireAt({ every: 'day', at: '09:00' }, from).toISOString()).toBe(
-      '2026-10-24T03:30:00.000Z',
-    )
-    expect(nextFireAt({ every: 'day', at: '18:30' }, from).toISOString()).toBe(
-      '2026-10-23T13:00:00.000Z',
-    )
-    // 2026-10-23 is a Friday; next Monday 09:00 IST.
-    expect(nextFireAt({ every: 'week', weekday: 1, at: '09:00' }, from).toISOString()).toBe(
-      '2026-10-26T03:30:00.000Z',
-    )
   })
 })

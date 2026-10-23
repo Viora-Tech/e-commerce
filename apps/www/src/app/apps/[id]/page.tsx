@@ -1,26 +1,28 @@
 import { catalogueApp, catalogueApps, relatedApps } from '@commerce/core/app-catalogue'
-import { ArrowLeft, CheckIcon } from '@commerce/ui/icons'
-import { Button } from '@commerce/ui/shadcn/button'
-import Link from 'next/link'
+import { CheckIcon } from '@commerce/ui/icons'
 import { notFound } from 'next/navigation'
 import AppAccess from '@/components/apps/app-access'
 import AppCard from '@/components/apps/app-card'
 import AppFacts from '@/components/apps/app-facts'
+import AppHeader from '@/components/apps/app-header'
+import AppShowcase from '@/components/apps/app-showcase'
+import AppStickyBar from '@/components/apps/app-sticky-bar'
 import AppTile from '@/components/apps/app-tile'
+import InstallActions from '@/components/apps/install-actions'
+import FaqList from '@/components/common/faq-list'
 import JsonLd from '@/components/common/json-ld'
 import PageContainer from '@/components/common/page-container'
 import SiteShell from '@/components/layout/site-shell'
 import {
+  appFaq,
   appPath,
-  byline,
   categoryCopy,
   categoryPath,
   appsContent as copy,
-  installUrl,
   priceChip,
 } from '@/data/apps'
 import { pageMetadata } from '@/lib/metadata'
-import { appLd, breadcrumbLd } from '@/lib/seo'
+import { appLd, breadcrumbLd, faqLd } from '@/lib/seo'
 
 type PageProps = { params: Promise<{ id: string }> }
 
@@ -40,15 +42,12 @@ export async function generateMetadata({ params }: PageProps) {
   })
 }
 
-/** "Works with": the manifest's notes, the outside account a connection needs, and what it adds. */
-function worksWith(app: NonNullable<ReturnType<typeof catalogueApp>>): string[] {
-  return [
-    ...(app.kind === 'connection' && app.company ? [copy.needsAccount(app.company)] : []),
-    ...app.worksWith,
-  ]
-}
+const ACTIONS_ID = 'app-actions'
 
-/** One app: what it does, what it works with, what it can access and share, its price, and Install. */
+/**
+ * One app: header with Install, a drawing of what it adds, what it does, what it can access,
+ * its price and details, questions, and related apps. A compact Install bar follows the scroll.
+ */
 export default async function AppPage({ params }: PageProps) {
   const { id } = await params
   const app = catalogueApp(id)
@@ -56,11 +55,7 @@ export default async function AppPage({ params }: PageProps) {
 
   // Render logic
   const related = relatedApps(app)
-  const pairs = worksWith(app)
-  const extras = [
-    ...(app.adminPages.length > 0 ? [{ title: copy.adds, items: app.adminPages }] : []),
-    ...(app.themeBlocks.length > 0 ? [{ title: copy.blocks, items: app.themeBlocks }] : []),
-  ]
+  const faq = appFaq(app)
 
   return (
     <SiteShell>
@@ -72,97 +67,71 @@ export default async function AppPage({ params }: PageProps) {
         ])}
       />
       <JsonLd data={appLd(app)} />
-      <PageContainer as="section" className="flex flex-col gap-10 pt-16 pb-20 md:pt-24">
-        <Link
-          href="/apps"
-          className="inline-flex items-center gap-1.5 self-start text-sm text-muted-foreground hover:text-foreground"
-        >
-          <ArrowLeft className="size-4" aria-hidden />
-          {copy.back}
-        </Link>
+      <JsonLd data={faqLd(faq)} />
 
-        <header className="flex flex-col gap-6 md:flex-row md:items-start md:justify-between">
-          <div className="flex items-start gap-4">
-            <AppTile id={app.id} name={app.name} size="lg" />
-            <div className="flex min-w-0 flex-col gap-1.5">
-              <h1 className="text-3xl font-semibold tracking-tight text-foreground md:text-4xl">
-                {app.name}
-              </h1>
-              <p className="text-sm text-muted-foreground">
-                {byline(app)} · {priceChip(app.price)}
+      <AppHeader app={app} actionsId={ACTIONS_ID} />
+      <AppStickyBar
+        watch={ACTIONS_ID}
+        name={app.name}
+        price={priceChip(app.price)}
+        tile={
+          <AppTile
+            id={app.id}
+            name={app.name}
+            icon={app.icon}
+            ours={app.kind === 'builtin'}
+            size="sm"
+          />
+        }
+        actions={<InstallActions id={app.id} guide={app.guide} size="md" docs={false} />}
+      />
+
+      <PageContainer className="flex flex-col gap-16 pt-12 pb-20 md:gap-24 md:pt-16 md:pb-28">
+        <AppShowcase app={app} />
+
+        <div className="grid gap-12 lg:grid-cols-[minmax(0,1fr)_22rem] lg:gap-16">
+          <div className="flex min-w-0 flex-col gap-16 md:gap-20">
+            <section aria-labelledby="does-title" className="flex flex-col gap-6">
+              <h2 id="does-title" className="text-2xl font-semibold tracking-tight text-foreground">
+                {copy.does}
+              </h2>
+              <p className="max-w-2xl text-xl leading-relaxed text-pretty text-foreground md:text-2xl md:leading-snug">
+                {app.description}
               </p>
-              <p className="max-w-2xl text-lg text-muted-foreground">{app.tagline}</p>
-            </div>
-          </div>
-          <div className="flex flex-col items-start gap-2 md:max-w-xs md:items-end md:text-right">
-            <Button size="lg" nativeButton={false} render={<a href={installUrl(app.id)} />}>
-              {copy.install}
-            </Button>
-            <p className="text-xs text-muted-foreground">{copy.installHint}</p>
-            <p className="text-xs text-muted-foreground">
-              {copy.noStore}{' '}
-              <Link
-                href="/waitlist"
-                className="font-medium text-foreground underline-offset-2 hover:underline"
-              >
-                {copy.joinWaitlist}
-              </Link>
-            </p>
-          </div>
-        </header>
+              <ul className="grid gap-3 sm:grid-cols-2">
+                {app.highlights.map((line) => (
+                  <li
+                    key={line}
+                    className="flex gap-3 rounded-[1.25rem] p-5 ring-1 ring-border ring-inset"
+                  >
+                    <CheckIcon aria-hidden className="mt-0.5 size-4 shrink-0 text-foreground" />
+                    <span className="text-sm text-pretty text-foreground">{line}</span>
+                  </li>
+                ))}
+              </ul>
+            </section>
 
-        {app.screenshots.length > 0 ? (
-          <section
-            aria-label={copy.screenshots}
-            className="-mx-4 overflow-x-auto px-4 md:mx-0 md:px-0"
-          >
-            <ul className="flex snap-x snap-mandatory gap-4">
-              {app.screenshots.map((shot) => (
-                <li key={shot.src} className="w-[85%] shrink-0 snap-start md:w-[48%]">
-                  {/* biome-ignore lint/performance/noImgElement: static export, images ship as they are */}
-                  <img
-                    src={shot.src}
-                    alt={shot.alt}
-                    loading="lazy"
-                    decoding="async"
-                    className="aspect-video w-full rounded-2xl border border-border object-cover"
-                  />
-                </li>
-              ))}
-            </ul>
-          </section>
-        ) : null}
-
-        <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_20rem]">
-          <div className="flex flex-col gap-6">
-            <p className="text-base text-muted-foreground">{app.description}</p>
-            <div className="grid gap-4 sm:grid-cols-2">
-              {[
-                { title: copy.does, items: app.highlights },
-                ...(pairs.length > 0 ? [{ title: copy.worksWith, items: pairs }] : []),
-                ...extras,
-              ].map((s) => (
-                <section key={s.title} className="surface-card flex flex-col gap-3 rounded-2xl p-5">
-                  <h2 className="text-sm font-semibold text-foreground">{s.title}</h2>
-                  <ul className="flex flex-col gap-2">
-                    {s.items.map((item) => (
-                      <li key={item} className="flex gap-2 text-sm text-muted-foreground">
-                        <CheckIcon className="mt-0.5 size-4 shrink-0 text-foreground" aria-hidden />
-                        {item}
-                      </li>
-                    ))}
-                  </ul>
-                </section>
-              ))}
-            </div>
             <AppAccess app={app} />
+
+            <section aria-labelledby="faq-title" className="flex flex-col gap-2">
+              <h2 id="faq-title" className="text-2xl font-semibold tracking-tight text-foreground">
+                {copy.faq}
+              </h2>
+              <FaqList items={faq} />
+            </section>
           </div>
-          <AppFacts app={app} />
+
+          <AppFacts app={app} className="lg:sticky lg:top-36 lg:self-start" />
         </div>
 
         {related.length > 0 ? (
-          <section className="flex flex-col gap-4">
-            <h2 className="text-xl font-semibold text-foreground">{copy.related}</h2>
+          <section aria-labelledby="related-title" className="flex flex-col gap-6">
+            <h2
+              id="related-title"
+              className="text-2xl font-semibold tracking-tight text-foreground"
+            >
+              {copy.related}
+            </h2>
             <ul className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {related.map((other) => (
                 <li key={other.id}>

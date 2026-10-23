@@ -1,4 +1,4 @@
-import { orderDetailContent } from '@/data/orders'
+import { orderDetailContent } from '@/data/order-detail'
 import type { StatusValue } from '@/data/status'
 import type { api } from '@/lib/api-client'
 import { formatDateTime } from '@/lib/format-date'

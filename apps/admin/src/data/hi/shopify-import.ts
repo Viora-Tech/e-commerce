@@ -1,3 +1,4 @@
+import { siteConfig } from '@commerce/config/site'
 import { SCOPE_LIST, shopifyImportContent } from '@/data/shopify-import'
 import { type Translation, translation } from '@/lib/i18n'
 
@@ -117,6 +118,7 @@ const hi = {
     headerConnect: 'Shopify स्टोर जोड़ें',
     headerEdit: 'कनेक्शन बदलें',
     mode: {
+      install: `${siteConfig.brand.name} ऐप इंस्टॉल करें`,
       app: 'अपने Shopify ऐप से जोड़ें',
       token: 'मेरे पास पहले से Admin API टोकन है',
     },
@@ -151,8 +153,7 @@ const hi = {
       clientSecretHelp:
         'एन्क्रिप्ट करके रखा जाता है। हम इसके बदले एक टोकन लेते हैं जिसे Shopify 24 घंटे में खत्म कर देता है, और उसे अपने आप नया करते रहते हैं।',
       submit: 'जोड़ें',
-      oauthNote:
-        'एक क्लिक वाला "Connect Shopify" बटन तब आएगा जब एडमिन का पब्लिक पता होगा, ताकि Shopify वापस भेज सके। अपना स्टोर जोड़ने का आज यही तरीका है।',
+      oauthNote: `खुद ऐप नहीं बनाना? ऊपर दिखे तो ${siteConfig.brand.name} ऐप इंस्टॉल करें चुनें।`,
     },
     token: {
       stepsHeading: 'Shopify में टोकन बनाएं',
@@ -178,6 +179,7 @@ const hi = {
     authMode: {
       legacy: 'Admin API टोकन',
       client_credentials: 'Shopify ऐप (Dev Dashboard)',
+      app: `Shopify पर ${siteConfig.brand.name} ऐप`,
     },
     verified: 'जाँचा गया',
     disconnect: 'हटाएं',

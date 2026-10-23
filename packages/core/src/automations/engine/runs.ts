@@ -303,7 +303,17 @@ export async function listManualWorkflows(
       memberPermissions: member.isOwner ? ALL_PERMISSIONS : member.permissions,
       isOwner: member.isOwner,
     })
-    out.push({ id: w.id, name: w.name, actions, allowed: issues.length === 0 })
+    const [last] = await tx
+      .select({ at: sql<Date | null>`max(${automationRun.startedAt})` })
+      .from(automationRun)
+      .where(eq(automationRun.workflowId, w.id))
+    out.push({
+      id: w.id,
+      name: w.name,
+      actions,
+      allowed: issues.length === 0,
+      lastRunAt: last?.at ? new Date(last.at).toISOString() : null,
+    })
   }
   return out
 }

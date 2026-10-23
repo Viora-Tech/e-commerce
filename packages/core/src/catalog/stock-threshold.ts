@@ -1,3 +1,4 @@
+/** SOURCE OF TRUTH: the store's low-stock threshold — WHAT: reads `store.low_stock_threshold`, falling back to LOW_STOCK_THRESHOLD / WHY: every place that decides "low" asks here, so one setting moves them all */
 import { type StoreTx, store } from '@commerce/db'
 import { eq } from 'drizzle-orm'
 import { LOW_STOCK_THRESHOLD } from './stock-state'

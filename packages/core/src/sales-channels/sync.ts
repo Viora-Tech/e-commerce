@@ -16,18 +16,15 @@ import {
 } from '@commerce/db'
 import { and, eq, inArray, sql } from 'drizzle-orm'
 import { storefrontOriginFor } from '../domains/origin'
+import { insertOutboxEvent } from '../outbox/write'
 import { encryptSecret } from '../secrets'
 import { buildChannelCatalog, type ChannelItem, itemHash } from './catalog'
 import { type ChannelState, channelState, type SalesChannelId } from './client'
 import { type ChannelDeps, channelsOf, loadConnection, readToken } from './connect'
-import {
-  ChannelApiError,
-  googlePushItems,
-  googleRefresh,
-  metaPushItems,
-  openAiPushFeed,
-} from './providers'
+import { googlePushItems, googleRefresh } from './google-merchant'
+import { ChannelApiError, metaPushItems, openAiPushFeed } from './providers'
 import { loadSalesChannelSettings, patchChannelStates } from './service'
+import { googleRejectedItems, metaRejectedItems, type RejectedItem } from './verdicts'
 
 /** One store's sync for one platform; the worker's sweep queues one per connection. */
 export const CHANNEL_SYNC_QUEUE = '{channels}-sync'
@@ -120,7 +117,9 @@ export async function syncChannelProvider(
     provider === 'openai' ? items : items.filter((i) => before.get(i.id) !== hashes.get(i.id))
   const removed = [...before.keys()].filter((id) => !hashes.has(id))
 
-  // 2. Send, outside any transaction.
+  // 2. Send, outside any transaction. Then ask what the platform refused; that check never
+  // fails the sync (it reports on the previous batch while the platform still reviews this one).
+  let verdict: { count: number; items: RejectedItem[] } | null = null
   try {
     let token = readToken(connection.accessToken, deps.secret)
     if (provider === 'meta') {
@@ -128,6 +127,12 @@ export async function syncChannelProvider(
         throw new ChannelApiError('auth', 'Facebook access ran out. Connect again to keep syncing.')
       if (!deps.meta) throw new ChannelApiError('api', 'Facebook connections are not set up.')
       await metaPushItems(deps.fetch, deps.meta, token, connection.target ?? '', changed, removed)
+      verdict = await metaRejectedItems(
+        deps.fetch,
+        deps.meta,
+        token,
+        connection.target ?? '',
+      ).catch(() => null)
     } else if (provider === 'google') {
       if (!deps.google) throw new ChannelApiError('api', 'Google connections are not set up.')
       if (!connection.expiresAt || connection.expiresAt.getTime() - now().getTime() < 60_000) {
@@ -156,6 +161,9 @@ export async function syncChannelProvider(
         changed,
         removed,
       )
+      verdict = await googleRejectedItems(deps.fetch, token, connection.accountId ?? '').catch(
+        () => null,
+      )
     } else {
       await openAiPushFeed(
         deps.fetch,
@@ -171,16 +179,22 @@ export async function syncChannelProvider(
         ? err.message
         : 'The sync stopped unexpectedly. It will try again.'
     const at = now().toISOString()
-    await withStore(db, storeId, (tx) =>
-      patchChannelStates(
+    await withStore(db, storeId, async (tx) => {
+      await patchChannelStates(
         { tx, storeId },
         patchAll(channels, plan.states, (st) => ({
           ...st,
           status: reconnect ? 'expired' : 'error',
           sync: { ...st.sync, lastTriedAt: at, message, ...(reconnect ? { endedAt: at } : {}) },
         })),
-      ),
-    )
+      )
+      // For automations ("when a catalog sync fails, tell me on WhatsApp").
+      await insertOutboxEvent(tx, storeId, 'channel.sync_failed', {
+        platform: provider,
+        platformStatus: reconnect ? 'expired' : 'error',
+        message: message.slice(0, 300),
+      })
+    })
     if (!(err instanceof ChannelApiError)) throw err
     return { state: 'failed', message, reconnect }
   }
@@ -226,6 +240,7 @@ export async function syncChannelProvider(
           lastTriedAt: at.toISOString(),
           endedAt: null,
           message: null,
+          ...(verdict ? { rejected: verdict.count, rejectedItems: verdict.items } : {}),
         },
       })),
     )

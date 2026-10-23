@@ -163,6 +163,12 @@ const WorkflowDefinitionShape = z.object({
 
 export type WorkflowDefinition = z.infer<typeof WorkflowDefinitionShape>
 
+/**
+ * A draft as the editor autosaves it: the shape only, so a half-built tree (a dangling branch,
+ * an unconnected step, too deep a group) still saves. Publish checks `WorkflowDefinitionSchema`.
+ */
+export const WorkflowDraftSchema = WorkflowDefinitionShape
+
 /** Where a structural problem is, for the editor to point at. */
 export type DefinitionIssue = { nodeId: NodeId | null; code: DefinitionIssueCode; message: string }
 export type DefinitionIssueCode =

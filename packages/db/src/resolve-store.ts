@@ -260,3 +260,18 @@ export async function storesWithChannelConnections(db: Db): Promise<string[]> {
   const rows = await db.execute<{ id: string }>(sql`select stores_with_channel_connections() as id`)
   return rows.map((r) => r.id)
 }
+
+/**
+ * The stores behind an outside platform's account (a Facebook user id, a WhatsApp Business
+ * account id, a `shop.myshopify.com` domain), for callbacks that name no store.
+ */
+export async function storesForPlatformAccount(
+  db: Db,
+  platform: 'meta' | 'whatsapp' | 'shopify',
+  externalId: string,
+): Promise<string[]> {
+  const rows = await db.execute<{ id: string }>(
+    sql`select stores_for_platform_account(${platform}, ${externalId}) as id`,
+  )
+  return rows.map((r) => r.id)
+}

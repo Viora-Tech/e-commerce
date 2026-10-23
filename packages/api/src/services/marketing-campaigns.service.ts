@@ -16,6 +16,7 @@ import { registriesForStore } from '@commerce/core/registries'
 import { customerSegment, type StoreTx } from '@commerce/db'
 import type { ChannelTemplate } from '@commerce/notifications'
 import { asc, eq } from 'drizzle-orm'
+import { type CampaignReport, campaignReport } from './growth-report.service'
 
 export async function marketingDeps(
   tx: StoreTx,
@@ -35,12 +36,14 @@ export type CampaignDetail = NonNullable<Awaited<ReturnType<typeof getCampaign>>
   segmentName: string | null
   /** The newest orders credited to it, for "Orders from this campaign". */
   recentOrders: CampaignOrder[]
+  /** Funnel, rates, buyer split and landing pages; null until sending starts. */
+  report: CampaignReport | null
 }
 
 export async function campaignDetail(tx: StoreTx, id: string): Promise<CampaignDetail | null> {
   const c = await getCampaign(tx, id)
   if (!c) return null
-  const [stats, seg, recentOrders] = await Promise.all([
+  const [stats, seg, recentOrders, report] = await Promise.all([
     campaignStats(tx, [id]),
     c.segmentId
       ? tx
@@ -49,12 +52,14 @@ export async function campaignDetail(tx: StoreTx, id: string): Promise<CampaignD
           .where(eq(customerSegment.id, c.segmentId))
       : [],
     campaignOrders(tx, id),
+    c.startedAt ? campaignReport(tx, c) : null,
   ])
   return {
     ...c,
     stats: stats.get(id) as CampaignStats,
     segmentName: seg[0]?.name ?? null,
     recentOrders,
+    report,
   }
 }
 

@@ -65,16 +65,7 @@ export const growthOverviewContent = {
       '90d': 'in the last 90 days',
       custom: 'in this period',
     } as Record<string, string>,
-    tiles: {
-      earned: 'Sales from growth',
-      messages: 'Messages sent',
-      automationOrders: 'Automation orders',
-      subscribers: 'Subscribers',
-    },
     vsPrevious: 'vs previous period',
-    messagesNote: (whatsapp: string, email: string) => `WhatsApp ${whatsapp} · email ${email}`,
-    automationNote: 'Orders your automations led to',
-    subscribersNote: (n: string) => `${n} new this week`,
     card: {
       title: 'What marketing earned',
       subtitle: (orders: string) =>
@@ -102,7 +93,7 @@ export const growthOverviewContent = {
       help: 'Counted from the first storefront visit after this was switched on.',
     },
     attributed_sales: {
-      label: 'Sales attributed to marketing',
+      label: 'Sales from marketing',
       help: 'Orders whose last non-direct visit came from a channel or campaign.',
     },
     attributed_orders: {
@@ -112,6 +103,14 @@ export const growthOverviewContent = {
     conversion: {
       label: 'Conversion rate',
       help: 'Tracked orders divided by sessions.',
+    },
+    total_sales: {
+      label: 'Total sales',
+      help: 'Every order placed in the range, from any source.',
+    },
+    aov: {
+      label: 'Average order value',
+      help: 'Total sales divided by orders.',
     },
   },
   salesOverTime: {
@@ -177,29 +176,6 @@ export const growthOverviewContent = {
       whatsapp: 'WhatsApp',
       automation: 'Automation',
       utm: 'Tagged link',
-    },
-  },
-  shortcuts: {
-    title: 'Reach your customers',
-    campaigns: {
-      title: 'Campaigns',
-      body: 'Send an email or WhatsApp broadcast to a customer segment.',
-      href: routes.growth.campaigns(),
-    },
-    automations: {
-      title: 'Automations',
-      body: 'Recover abandoned checkouts, welcome subscribers and win back lapsed buyers.',
-      href: routes.growth.automations(),
-    },
-    links: {
-      title: 'Links',
-      body: 'Build a tagged link for your Instagram bio, a WhatsApp broadcast or an ad.',
-      href: routes.growth.links(),
-    },
-    discounts: {
-      title: 'Discounts',
-      body: 'Create codes to use in campaigns and automations.',
-      href: routes.discounts.list(),
     },
   },
 } as const

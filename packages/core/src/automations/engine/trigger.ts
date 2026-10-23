@@ -276,6 +276,10 @@ export async function startRuns(
       if (!m.match) continue
       if (m.key) key = m.key
     }
+    // Growth enrols a customer in its welcome series once per workflow, ever: however often they
+    // subscribe again, the key stays the same.
+    if (wf.triggerType === 'customer.subscribed' && ev.subject.id)
+      key = `subscribed:${ev.subject.id}`
 
     let reason: RunReason | null = null
     if (ev.cause && ev.cause.depth >= MAX_AUTOMATION_DEPTH) reason = 'loop_depth'

@@ -46,7 +46,7 @@ type Opts = {
  * (`fairProcessor`), so one store's flood never slows the rest.
  */
 export function createAutomationsWorker(connection: IORedis, db: Db, opts: Opts) {
-  registerBuiltinActions()
+  registerBuiltinActions({ settingsSecret: opts.settingsSecret, storefrontUrl: opts.storefrontUrl })
   const log = (message: string) => logger.info(message, { area: 'automations' })
   const apps = appDeps(db, opts)
   const plugins = getRegistries().plugins

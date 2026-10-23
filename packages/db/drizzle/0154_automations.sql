@@ -174,9 +174,28 @@ LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public AS $$
     WHERE status = 'awaiting_approval' AND approval_expires_at <= now()
   UNION
   SELECT store_id FROM automation_workflow
-    WHERE status = 'on' AND trigger_type = 'schedule' AND (next_fire_at IS NULL OR next_fire_at <= now());
+    WHERE status = 'on' AND trigger_type = 'schedule' AND (next_fire_at IS NULL OR next_fire_at <= now())
+  UNION
+  -- Sweep triggers (abandoned checkout and cart, lapsed customers) look for records every tick.
+  SELECT store_id FROM automation_workflow
+    WHERE status = 'on' AND trigger_type IN ('checkout.abandoned', 'cart.abandoned', 'customer.lapsed');
 $$;
 --> statement-breakpoint
 REVOKE ALL ON FUNCTION stores_with_automation_work() FROM PUBLIC;
 --> statement-breakpoint
 GRANT EXECUTE ON FUNCTION stores_with_automation_work() TO app;
+--> statement-breakpoint
+-- Automations is pre-installed on every store (owner, 2026-10-23: like Shopify Flow, it holds the
+-- marketing automations that left Growth). New stores get it at onboarding.
+UPDATE "store"
+SET "apps" = jsonb_set(
+  CASE WHEN jsonb_typeof("apps") = 'object' THEN "apps" ELSE '{}'::jsonb END,
+  '{installed}',
+  CASE WHEN jsonb_typeof("apps"->'installed') = 'array' THEN "apps"->'installed' ELSE '[]'::jsonb END
+    || '["automations"]'::jsonb
+)
+WHERE NOT (CASE WHEN jsonb_typeof("apps"->'installed') = 'array' THEN "apps"->'installed' ELSE '[]'::jsonb END ? 'automations');
+--> statement-breakpoint
+INSERT INTO "app_installation" ("id", "store_id", "plugin_id", "installed_at")
+SELECT gen_random_uuid(), s."id", 'automations', now() FROM "store" s
+ON CONFLICT ("store_id", "plugin_id") DO NOTHING;

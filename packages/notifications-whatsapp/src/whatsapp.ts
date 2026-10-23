@@ -26,7 +26,8 @@ export type WhatsappConfig = {
 
 export type FetchLike = (input: string, init: RequestInit) => Promise<Response>
 
-export const GRAPH_API = 'https://graph.facebook.com/v22.0'
+/** Same Graph version as Sales channels (META_GRAPH_VERSION in @commerce/core); v22.0 stops 20 May 2027. */
+export const GRAPH_API = 'https://graph.facebook.com/v26.0'
 
 /**
  * Body parameters for each approved template, in the order the template's

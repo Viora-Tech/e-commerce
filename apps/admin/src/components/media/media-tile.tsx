@@ -4,12 +4,14 @@ import { ImageIcon, Video } from '@commerce/ui/icons'
 import { cn } from '@commerce/ui/lib/utils'
 import { ROW_STATE_CLASS } from '@commerce/ui/sortable'
 import { motion } from 'motion/react'
+import Link from 'next/link'
 import type { Ref } from 'react'
 import ActionMenu from '@/components/layout/action-menu'
 import FallbackImage from '@/components/layout/fallback-image'
 import { mediaContent } from '@/data/media'
 import { useCopy } from '@/hooks/use-copy'
 import { IMAGE_GLIDE_SPRING } from '@/hooks/use-image-dnd'
+import { contentTypeOf } from './file-meta'
 
 export type MediaTileItem = {
   id: string
@@ -37,6 +39,8 @@ type MediaTileProps = {
   /** Landscape thumbnail (the Files library) instead of a square. */
   wide?: boolean | undefined
   actions: MediaTileAction[]
+  /** The file's page (the Files library); the whole tile becomes a link to it. */
+  href?: string | undefined
   /** @dnd-kit wiring from the sortable grid (`MediaSortableTile`); absent in the library. */
   sortable?:
     | {
@@ -48,8 +52,6 @@ type MediaTileProps = {
     | undefined
 }
 
-const isVideo = (contentType: string | null) => contentType?.startsWith('video/') ?? false
-
 export default function MediaTile({
   item,
   cover,
@@ -57,13 +59,14 @@ export default function MediaTile({
   meta,
   wide,
   actions,
+  href,
   sortable,
 }: MediaTileProps) {
   // Hooks
-  const { tile: copy } = useCopy(mediaContent)
+  const { tile: copy, details } = useCopy(mediaContent)
 
   // Render logic
-  const video = isVideo(item.contentType)
+  const video = contentTypeOf(item.contentType, item.url)?.startsWith('video/') ?? false
   const primary = actions.filter((a) => !a.destructive)
   const destructive = actions.filter((a) => a.destructive)
 
@@ -114,7 +117,7 @@ export default function MediaTile({
         <ActionMenu
           label={copy.menu}
           variant="bare"
-          triggerClassName="absolute top-2 right-2 size-7 rounded-md bg-card/90 text-foreground opacity-0 shadow-card transition-opacity group-hover:opacity-100 focus-visible:opacity-100 data-popup-open:opacity-100"
+          triggerClassName="absolute top-2 right-2 z-20 size-7 rounded-md bg-card/90 text-foreground opacity-0 shadow-card transition-opacity group-hover:opacity-100 focus-visible:opacity-100 data-popup-open:opacity-100"
           items={[
             ...primary.map((a) => ({ label: a.label, onSelect: a.onSelect, disabled: a.disabled })),
             ...destructive.map((a) => ({
@@ -137,6 +140,17 @@ export default function MediaTile({
         </span>
       ) : null}
       {meta ? <span className="truncate text-caption text-muted-foreground">{meta}</span> : null}
+      {href ? (
+        // Over the thumbnail and captions, under the ⋯ menu (z-20), so the menu keeps its own click.
+        <Link
+          href={href}
+          aria-label={details.open(caption ?? item.alt ?? '')}
+          className={cn(
+            'absolute inset-0 z-10 outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
+            wide ? 'rounded-xl' : 'rounded-lg',
+          )}
+        />
+      ) : null}
     </motion.li>
   )
 }

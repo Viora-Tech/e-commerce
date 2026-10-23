@@ -6,7 +6,7 @@ import { GUIDES } from '@/data/guides'
 import { SOLUTIONS } from '@/data/solutions'
 
 /** When the static pages last changed meaningfully; move it when their content does. */
-const PAGES_UPDATED = '2026-10-18'
+const PAGES_UPDATED = '2026-10-23'
 /** When the App Store pages last changed meaningfully. */
 const APPS_UPDATED = '2026-10-23'
 
@@ -26,6 +26,7 @@ const PAGES = [
   { path: '/refunds', priority: 0.3 },
   { path: '/shipping', priority: 0.3 },
   { path: '/acceptable-use', priority: 0.3 },
+  { path: '/data-deletion', priority: 0.3 },
 ]
 
 // Built once at `next build`: the site is a static export.

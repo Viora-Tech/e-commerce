@@ -22,6 +22,7 @@ export {
   resolveStore,
   resolveStoreForOrganization,
   storeIdForSlug,
+  storesForPlatformAccount,
   storesWithAbandonedCarts,
   storesWithAutomationWork,
   storesWithBalanceDue,
@@ -41,6 +42,7 @@ export {
   storesWithUnknownPaymentFees,
   storesWithUnpaidOnlineOrders,
 } from './resolve-store'
+export * from './returns-schema'
 export * from './schema'
 export * from './search-console-schema'
 export * from './shopper-login-schema'

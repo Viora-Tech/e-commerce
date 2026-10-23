@@ -1,5 +1,5 @@
 import { growthLinksContent, growthOverviewContent } from '@/data/growth'
-import { translation, untranslated } from '@/lib/i18n'
+import { translation } from '@/lib/i18n'
 
 export default [
   translation(growthOverviewContent, {
@@ -18,16 +18,7 @@ export default [
         '90d': 'पिछले 90 दिनों में',
         custom: 'इस अवधि में',
       },
-      tiles: {
-        earned: 'ग्रोथ से बिक्री',
-        messages: 'भेजे गए मैसेज',
-        automationOrders: 'ऑटोमेशन से ऑर्डर',
-        subscribers: 'सब्सक्राइबर',
-      },
       vsPrevious: 'पिछली अवधि के मुकाबले',
-      messagesNote: (whatsapp: string, email: string) => `WhatsApp ${whatsapp} · ईमेल ${email}`,
-      automationNote: 'आपके ऑटोमेशन से आए ऑर्डर',
-      subscribersNote: (n: string) => `इस हफ़्ते ${n} नए`,
       card: {
         title: 'मार्केटिंग से कितनी कमाई हुई',
         subtitle: (orders: string) =>
@@ -60,6 +51,8 @@ export default [
         help: 'सीधे के अलावा किसी चैनल को मिले ऑर्डर।',
       },
       conversion: { label: 'कन्वर्ज़न रेट', help: 'ट्रैक हुए ऑर्डर को सेशन से भाग देकर।' },
+      total_sales: { label: 'कुल बिक्री', help: 'इस रेंज में किसी भी सोर्स से आए सभी ऑर्डर।' },
+      aov: { label: 'औसत ऑर्डर वैल्यू', help: 'कुल बिक्री को ऑर्डर की गिनती से भाग देकर।' },
     },
     salesOverTime: {
       title: 'समय के साथ मार्केटिंग से बिक्री',
@@ -119,29 +112,6 @@ export default [
         whatsapp: 'WhatsApp',
         automation: 'ऑटोमेशन',
         utm: 'टैग किया लिंक',
-      },
-    },
-    shortcuts: {
-      title: 'अपने ग्राहकों तक पहुँचें',
-      campaigns: {
-        title: 'कैंपेन',
-        body: 'ग्राहकों के किसी सेगमेंट को ईमेल या WhatsApp ब्रॉडकास्ट भेजें।',
-        href: untranslated,
-      },
-      automations: {
-        title: 'ऑटोमेशन',
-        body: 'छोड़े हुए चेकआउट वापस पाएँ, नए सब्सक्राइबर का स्वागत करें और पुराने खरीदारों को वापस लाएँ।',
-        href: untranslated,
-      },
-      links: {
-        title: 'लिंक',
-        body: 'अपने Instagram बायो, WhatsApp ब्रॉडकास्ट या विज्ञापन के लिए टैग किया लिंक बनाएँ।',
-        href: untranslated,
-      },
-      discounts: {
-        title: 'डिस्काउंट',
-        body: 'कैंपेन और ऑटोमेशन में इस्तेमाल करने के लिए कोड बनाएँ।',
-        href: untranslated,
       },
     },
   }),

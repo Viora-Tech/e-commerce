@@ -1,7 +1,7 @@
 /** SOURCE OF TRUTH: Automations API shapes — WHAT: the inputs (zod) and outputs (types) of the `automations.*` procedures: workflows, versions, runs, step runs, approvals, record history, test runs, usage and the editor catalogue / WHY: the router, the engine's services and the admin UI are built in parallel against this one contract. Pure, client-safe (`@commerce/core/automations`). */
 import { z } from 'zod'
 import type { ActionDescriptor, ConditionFieldDescriptor, TriggerDescriptor } from './catalogue'
-import { type WorkflowDefinition, WorkflowDefinitionSchema } from './definition'
+import { type WorkflowDefinition, WorkflowDraftSchema } from './definition'
 import type { TemplateCategory } from './templates'
 import {
   MAX_MANUAL_RECORDS,
@@ -44,7 +44,8 @@ export const WorkflowUpdateInput = z.object({
   id: z.uuid(),
   name: z.string().trim().min(1).max(120).optional(),
   description: z.string().trim().max(500).optional(),
-  draft: WorkflowDefinitionSchema.optional(),
+  /** Structure only, so a half-finished draft autosaves; publish runs the full checks. */
+  draft: WorkflowDraftSchema.optional(),
 })
 
 export const WorkflowPublishInput = z.object({
@@ -72,8 +73,8 @@ const SubjectRefInput = z.object({
 /** "Test with a record": walks the draft (or `definition`) in a dry run. Writes nothing. */
 export const WorkflowTestInput = z.object({
   id: z.uuid(),
-  /** Unsaved editor state; defaults to the saved draft, then the live version. */
-  definition: WorkflowDefinitionSchema.optional(),
+  /** Unsaved editor state (may be half finished); defaults to the saved draft, then the live version. */
+  definition: WorkflowDraftSchema.optional(),
   /** Null for subject-free triggers (schedule). */
   subject: SubjectRefInput.nullable(),
 })
@@ -129,6 +130,8 @@ export type WorkflowSummary = {
   publishedVersion: number | null
   problem: string | null
   runsLast30Days: number
+  /** Failed runs in the last 30 days (the list's Errors column). */
+  errorRuns30d: number
   lastRunAt: string | null
   updatedAt: string
 }
@@ -233,6 +236,8 @@ export type ManualWorkflow = {
   actions: { actionId: string; needsApproval: boolean }[]
   /** False when the member lacks an action's permission. */
   allowed: boolean
+  /** The workflow's latest run of any kind, for the dialog's "Last run 2 days ago". */
+  lastRunAt: string | null
 }
 
 export type RecordHistoryItem = {

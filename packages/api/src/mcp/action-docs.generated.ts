@@ -41,14 +41,19 @@ export const ACTION_DOCS: Record<string, string> = {
   'ai.writeProduct': '"Write with AI" on the product page.',
   'analytics.bigSaleDays':
     'The store\'s biggest sales days in the last year, for the date picker\'s "Big sale days".',
+  'analytics.getSavedReport': 'One saved report, to open a saved custom query in the editor.',
   'analytics.live': 'Visitors now, carts in flight and the last hour of activity.',
   'analytics.overview': 'KPI tiles, sales over time, breakdown cards and the funnel for one range.',
   'analytics.query':
     'Runs a custom query (Figma "query editor"): parsed, then fixed SQL only, read-only.',
+  'analytics.refineQuery':
+    '"Refine with AI" in the query editor: the request and the current query in, new query text out, already parsed (never run here).',
   'analytics.reports':
     'The report catalogue; static, so the page can render before any query runs.',
   'analytics.savedReports':
     "Reports saved under the merchant's own name: a catalogue report and its range.",
+  'analytics.updateSavedQuery':
+    'Saves a custom query\'s edited text over the saved one ("Save" on a saved query).',
   'apiAccess.createToken': 'The plain token is in this answer only; the store keeps a hash.',
   'apps.connectForm':
     'The fields of the install flow\'s "Connect account" step, or null when the app connects on its own page.',
@@ -214,16 +219,24 @@ export const ACTION_DOCS: Record<string, string> = {
     "Sends the editor's current content to one address, marked as a test.",
   'marketing.campaigns.whatsappTemplates':
     'Approved WhatsApp templates for the broadcast and automation pickers.',
+  'marketing.dismissRecommendation':
+    'Hides one recommendation for the whole store and returns the cards left to show.',
   'marketing.emailBrand':
     'Logo, colours and social links from the live theme, for the visual email builder.',
   'marketing.overview': 'Sessions, attributed sales, channels and top campaigns for one range.',
+  'marketing.recommendations':
+    'Growth overview recommendations: up to three rule-based next steps with their numbers.',
   'marketing.setup': 'Which channels can carry marketing for this store.',
   'media.backgroundWork':
     'Images still processing and a running import: the "store may be slower" notice.',
   'media.confirm':
     'Step 2: the PUT succeeded; the object is HEAD-checked for its real size (see confirmUpload).',
+  'media.get': 'One file for its page in the library.',
+  'media.neighbours':
+    "The files before and after one in the library's order, for the file page's arrows.",
   'media.presign':
     'Step 1 of an upload: reserve the row and get a presigned request for the browser.',
+  'media.usedIn': 'The products using one file, for the file page.',
   'meilisearch.reindex': "Queues a full rebuild of the store's search index in the worker.",
   'meilisearch.test':
     'Checks the address and admin key, then prepares the index and a search-only key.',
@@ -253,6 +266,7 @@ export const ACTION_DOCS: Record<string, string> = {
     "The couriers the store's orders went with (the filter panel's Courier select).",
   'orders.createShipment':
     "Book the parcel with the courier picked in the Create shipment flow (the store's first courier when none is named); the parcel's items are packed and the shopper is told.",
+  'orders.deleteDrafts': "The list's bulk delete; ids that are no longer drafts are skipped.",
   'orders.deleteTestOrders':
     '"Delete test orders": removes every order of this store paid on a gateway\'s test keys (is_test), with its dependent rows.',
   'orders.fulfil':
@@ -263,14 +277,24 @@ export const ACTION_DOCS: Record<string, string> = {
     'Order numbers either side of this one, for the arrows in the detail header.',
   'orders.previewMessage':
     'The email (and WhatsApp text) a hand-sent message would carry for this order, filled with the order\'s own details, for the "Review email" dialog before Send.',
+  'orders.previewRecovery':
+    'The reminder as the shopper would get it, for the "Review email" dialog.',
   'orders.profit':
     'What the order earned: net sales less goods, courier, fees and RTO (order/profit.ts).',
   'orders.refund':
     'Send money back through the gateway (or record a cash/UPI refund); partial amounts allowed.',
+  'orders.requestBalance':
+    "Ask the shopper for a deposit pre-order's balance: email and WhatsApp (when set up) with a signed pay link.",
+  'orders.sendInvoice': 'Email the shopper a pay link for the draft.',
+  'orders.sendInvoices':
+    'The list\'s bulk "Send invoices": each selected draft with an email gets its pay link.',
   'orders.sendPaymentReminder':
     '"Send payment reminder" on an unpaid UPI / bank transfer order: email, and WhatsApp when set up, with the QR and bank details.',
   'orders.setCourierCharge': 'What the courier charged for a consignment, typed by the merchant.',
   'orders.setStatus': '"Mark as paid / fulfilled / delivered", or cancel.',
+  'orders.sheet': 'Rows for the Orders bulk-edit spreadsheet, in the order the ids were given.',
+  'orders.tagMany':
+    'The list\'s bulk "Add tags" / "Remove tags": every given tag on (or off) every order.',
   'orders.updateContact':
     "\"Edit\" on the order page's customer card: this order's contact and shipping address, optionally copied to the customer's saved address.",
   'payments.connect': 'Save pasted keys and make that gateway the main way to get paid.',
@@ -290,6 +314,12 @@ export const ACTION_DOCS: Record<string, string> = {
     'For the admin-wide "Test mode" banner: a gateway at checkout runs on test keys.',
   'payments.testOrderLink':
     '"Place a test order": a signed storefront link with only the ₹1 test product in the basket.',
+  'platformApps.completeWhatsapp':
+    "The popup finished: swap the code (it lives 30 seconds), subscribe, register the number, then save it as the store's WhatsApp channel and turn the channel on.",
+  'platformApps.disconnectWhatsapp':
+    'Forget the Embedded Signup account: the channel turns off and its saved access goes.',
+  'platformApps.whatsapp':
+    'Whether Embedded Signup is set up here, what the SDK needs, and the linked account.',
   'policies.template':
     "A policy's template filled from the store as it is now; the editor shows it, nothing is saved.",
   'products.adjustments': "Stock movements for the product form's inventory history.",
@@ -370,6 +400,10 @@ export const ACTION_DOCS: Record<string, string> = {
   'shipments.recordStatus':
     "A status set by hand, for a courier with no tracking feed (India Post): appended to the shipment's timeline and applied like a scan (delivered closes the order, RTO opens its task).",
   'shipments.wallets': 'One card per connected courier - each has its own account and balance.',
+  'shopifyImport.appInstall':
+    'Whether this deployment has the platform\'s own Shopify app, so "Install the app" can show.',
+  'shopifyImport.completeAppInstall':
+    "Shopify's redirect after the merchant approved the app (the callback route passes the whole query): Shopify's hmac, our state for this very store, then the code exchange.",
   'shopifyImport.createApiRun': 'Preview an API import of the chosen resources.',
   'shopifyImport.createCsvRun': 'Upload one Shopify CSV export; the preview runs straight away.',
   'shopifyImport.importRemaining':
@@ -383,6 +417,8 @@ export const ACTION_DOCS: Record<string, string> = {
   'shopifyImport.settingsPreview':
     'Store settings: what each part (store details, tax, locations, shipping, packages, policies, extra field definitions) would change here.',
   'shopifyImport.start': 'Import for real after a preview, or run a finished import again.',
+  'shopifyImport.startAppInstall':
+    "\"Install the app\" (the platform's own Shopify app): the URL on the merchant's shop that asks them to approve the app's read scopes.",
   'shopifyImport.status':
     '"What is left to import": Shopify\'s counts (cached a few minutes per store), what is here, and what is missing per resource, plus product images.',
   'shopifyImport.stop':

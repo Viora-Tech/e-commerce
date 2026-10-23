@@ -11,7 +11,7 @@ import {
   shipmentLabels,
   shipmentTone,
 } from '@/data/account'
-import { INDIAN_STATES } from '@/data/checkout'
+import { INDIAN_STATES } from '@/data/indian-states'
 import { reorderAction } from '@/lib/account-actions'
 import { shopperParcels } from '@/lib/parcels'
 import OrderParcels from './order-parcels'

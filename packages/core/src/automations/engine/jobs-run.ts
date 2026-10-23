@@ -2,7 +2,7 @@
 import { type Db, storesWithAutomationWork, withStore } from '@commerce/db'
 import { type AdvanceResult, advanceRun, type EngineDeps } from './interpreter'
 import { type AutomationStepQueue, enqueueRunStep } from './jobs'
-import { automationTick } from './tick'
+import { automationTick, type TickSweep } from './tick'
 import { startRunsForOutboxRow } from './trigger'
 
 type Log = ((message: string) => void) | undefined
@@ -43,13 +43,20 @@ export async function runStepJob(
 }
 
 /** `{automations}-tick`: every store with due work; one store failing never stops the rest. */
-export async function runTickJob(db: Db, steps: AutomationStepQueue, log?: Log) {
+export async function runTickJob(
+  db: Db,
+  steps: AutomationStepQueue,
+  log?: Log,
+  sweeps: readonly TickSweep[] = [],
+) {
   const storeIds = await storesWithAutomationWork(db)
   let queued = 0
   let expired = 0
   for (const storeId of storeIds) {
     try {
-      const r = await withStore(db, storeId, (tx) => automationTick(tx, storeId))
+      const r = await withStore(db, storeId, (tx) =>
+        automationTick(tx, storeId, new Date(), { sweeps }),
+      )
       expired += r.expired
       for (const run of [...r.due, ...r.scheduled]) {
         await enqueueRunStep(steps, { storeId, runId: run.runId, nextAt: run.nextAt }, log)

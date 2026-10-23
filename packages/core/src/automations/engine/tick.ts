@@ -1,9 +1,9 @@
 /** SOURCE OF TRUTH: the automation tick — WHAT: per store, every 30 s: runs whose wait or retry is due, runs a lost job left queued or running, approvals past their 72 h, and scheduled workflows whose time came (next fire in IST) / WHY: the database is the source of truth for every wait, so a Redis loss or a dropped job only delays a run, never loses it (design §8.5). */
 import { IST_OFFSET_MS } from '@commerce/dates'
 import { automationRun, automationStepRun, automationWorkflow, type StoreTx } from '@commerce/db'
-import { and, asc, eq, inArray, isNull, lte, or, sql } from 'drizzle-orm'
+import { and, asc, eq, inArray, isNull, lte, not, or, type SQL, sql } from 'drizzle-orm'
 import { WorkflowDefinitionSchema } from '../definition'
-import { type StartedRun, startRuns } from './trigger'
+import { type StartedRun, type StartOutcome, startRuns, type TriggerEvent } from './trigger'
 
 /** A queued or running run untouched this long is assumed lost and re-enqueued. */
 const STALE_RUN_MS = 5 * 60_000
@@ -124,14 +124,30 @@ async function publishedDefinition(tx: StoreTx, workflowId: string) {
   return parsed?.success ? parsed.data : null
 }
 
+/**
+ * Sweep trigger sources run by the tick (Growth's abandoned checkout, abandoned cart and lapsed
+ * customer). Each finds its records and starts runs through `start`; runs it starts are queued
+ * now, so the due query below returns them in the same tick.
+ */
+export type TickSweep = (
+  tx: StoreTx,
+  storeId: string,
+  now: Date,
+  start: (event: TriggerEvent) => Promise<StartOutcome>,
+) => Promise<unknown>
+
 /** One store's due work. The caller enqueues `due` and `scheduled` after the commit. */
 export async function automationTick(
   tx: StoreTx,
   storeId: string,
   now = new Date(),
+  opts: { sweeps?: readonly TickSweep[] | undefined } = {},
 ): Promise<TickOutcome> {
   const expired = await expireApprovals(tx, storeId, now)
   const scheduled = await fireSchedules(tx, storeId, now)
+  for (const sweep of opts.sweeps ?? []) {
+    await sweep(tx, storeId, now, (event) => startRuns(tx, storeId, event, now))
+  }
 
   // Lost runs get a fresh `next_at` so their step job id is new (a failed job's id lingers).
   const stale = new Date(now.getTime() - STALE_RUN_MS)
@@ -148,9 +164,14 @@ export async function automationTick(
   const due = await tx
     .select({ runId: automationRun.id, nextAt: automationRun.nextAt })
     .from(automationRun)
+    .innerJoin(automationWorkflow, eq(automationWorkflow.id, automationRun.workflowId))
     .where(
       and(
         eq(automationRun.storeId, storeId),
+        // A paused Growth workflow holds its runs (Growth parity); everything else finishes.
+        not(
+          and(eq(automationWorkflow.status, 'off'), eq(automationWorkflow.origin, 'growth')) as SQL,
+        ),
         or(
           and(eq(automationRun.status, 'waiting'), lte(automationRun.nextAt, now)),
           and(eq(automationRun.status, 'queued'), lte(automationRun.nextAt, now)),

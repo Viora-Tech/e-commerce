@@ -1,7 +1,14 @@
-/** SOURCE OF TRUTH: the Automations app manifest — WHAT: the built-in, free "Automations" app (listing, access, admin pages) that unlocks the general workflow builder, record actions and non-marketing pieces / WHY: the App Store catalogue, Installed apps and the admin sidebar read apps from manifests; the engine itself is core, so Growth's marketing automations work without it (owner, 2026-10-23, Q3). Free because it is absent from `APP_PRICING`. Imported by commerce.config.ts. */
+/** SOURCE OF TRUTH: the Automations app manifest — WHAT: the built-in, free "Automations" app (listing, access, admin pages) that is pre-installed on every store and holds every workflow, the marketing ones (category Marketing) included / WHY: the App Store catalogue, Installed apps and the admin sidebar read apps from manifests; marketing automations moved out of Growth into this app (owner, 2026-10-23, like Shopify 2026). It cannot be uninstalled while marketing workflows exist (`uninstallBlocker`). Free because it is absent from `APP_PRICING`. Imported by commerce.config.ts. */
 import { definePlugin } from '@commerce/plugins'
 
 export const AUTOMATIONS_APP_ID = 'automations'
+
+/**
+ * Apps every store has from the start (owner, 2026-10-23: Automations is pre-installed, like
+ * Shopify Flow, and holds the marketing automations that left Growth). New stores get them at
+ * onboarding; the 0154 migration put them on existing stores.
+ */
+export const PREINSTALLED_APPS: readonly string[] = [AUTOMATIONS_APP_ID]
 
 /**
  * Automations, Koomerce's Shopify Flow: a trigger, conditions and actions across orders,
@@ -26,10 +33,19 @@ export const automationsPlugin = definePlugin({
     ],
     guide: '/merchant-guide/apps/automations',
     worksWith: [
-      'Growth marketing automations, which run on the same engine',
+      'Marketing automations (abandoned checkout, welcome, win-back and more), included',
       'Apps that add their own triggers and actions',
     ],
-    keywords: ['flow', 'workflow', 'automation', 'rules', 'auto tag', 'shopify flow'],
+    keywords: [
+      'marketing automation',
+      'abandoned checkout',
+      'flow',
+      'workflow',
+      'automation',
+      'rules',
+      'auto tag',
+      'shopify flow',
+    ],
   },
   access: {
     resources: [
