@@ -13,6 +13,13 @@ export type GlobePalette = {
   /** "Border style: Dotted"'s dot colour: the same subtle tint as the shader's own solid
    * border line (`globe-renderer.ts`'s `line`), computed the same way from `base`. */
   borderDot: Rgb01
+  /** The cobe-style dotted land's colour (`GlobeFrame.cobeDots.color`): cobe's `baseColor` in
+   * dark mode (a deep tone the shader brightens about 4.5x, so the dots come out roughly the
+   * nominal land colour), the dots' ink in light mode. */
+  dotColor: Rgb01
+  /** What the settings panel's colour pickers show when no custom colour is set: roughly the
+   * colour actually seen on the globe (land dots, the sea at the centre, the accent). */
+  swatches: { land: string; ocean: string; accent: string }
 }
 
 /** The Home globe's deep tone in dark mode (Figma 227:549): the primary at about a third. In
@@ -23,6 +30,28 @@ function deep(c: Rgb01): Rgb01 {
 
 function clamp01(v: number): number {
   return Math.min(1, Math.max(0, v))
+}
+
+/** `deep()` undone, clamped: a dark-mode dot colour back to the colour it reads as. */
+function lift(c: Rgb01): Rgb01 {
+  return c.map((v) => clamp01(v / 0.38)) as Rgb01
+}
+
+function toHex(c: Rgb01): string {
+  return `#${c
+    .map((v) =>
+      Math.round(clamp01(v) * 255)
+        .toString(16)
+        .padStart(2, '0'),
+    )
+    .join('')}`
+}
+
+/** The sea's lit share at the centre of the disc (the WebGL globe's `sea` in
+ * `globe-renderer.ts`): a tenth in dark mode, 1.1x in light. A custom ocean colour is divided
+ * by this, so the sea comes out as the picked colour. */
+function seaGain(dark: boolean): number {
+  return dark ? 0.1 : 1.1
 }
 
 /** Fixed land/ocean/accent colours for the non-"Store accent" theme presets — chosen to read
@@ -67,21 +96,38 @@ export function readPalette(dark: boolean, look?: GlobeLookColors, brand = false
         ]
       : [THEME_COLORS[theme].land, THEME_COLORS[theme].ocean, THEME_COLORS[theme].accent]
 
-  const resolvedBase = hexToRgb01(look?.customLand ?? '') ?? base
+  const customLand = hexToRgb01(look?.customLand ?? '')
+  const customOcean = hexToRgb01(look?.customOcean ?? '')
+  const resolvedBase = customLand ?? base
+  // Dark: cobe's deep base (the Home card's "Store accent" is already deep); light: the ink
+  // cobe's light mode shades its dots towards (a tenth of the base), or the picked colour.
+  const alreadyDeep = theme === 'accent' && brand && dark && !customLand
+  const dotColor: Rgb01 = dark
+    ? alreadyDeep
+      ? resolvedBase
+      : deep(resolvedBase)
+    : theme === 'accent' && !customLand
+      ? (resolvedBase.map((c) => c * 0.1) as Rgb01)
+      : resolvedBase
+  const resolvedOcean = customOcean ? (customOcean.map((c) => c / seaGain(dark)) as Rgb01) : ocean
+  const resolvedAccent = hexToRgb01(look?.customAccent ?? '') ?? accent
   const borderDot: Rgb01 = dark
     ? (resolvedBase.map((c) => clamp01(c * 2.3 + 0.2)) as Rgb01)
     : (resolvedBase.map((c) => clamp01(c * 1.25 + 0.12)) as Rgb01)
 
   return {
     base: resolvedBase,
-    ocean: hexToRgb01(look?.customOcean ?? '') ?? ocean,
-    marker: hexToRgb01(look?.customAccent ?? '') ?? accent,
-    glow: hexToRgb01(look?.customAccent ?? '') ?? accent,
-    arc: hexToRgb01(look?.customAccent ?? '') ?? accent,
-    arcNewest:
-      theme === 'accent'
-        ? readCssColorVar('--chart-2', fallbackPrimary)
-        : (hexToRgb01(look?.customAccent ?? '') ?? accent),
+    ocean: resolvedOcean,
+    marker: resolvedAccent,
+    glow: resolvedAccent,
+    arc: resolvedAccent,
+    arcNewest: theme === 'accent' ? readCssColorVar('--chart-2', fallbackPrimary) : resolvedAccent,
     borderDot,
+    dotColor,
+    swatches: {
+      land: toHex(dark ? lift(dotColor) : dotColor),
+      ocean: toHex(resolvedOcean.map((c) => c * seaGain(dark)) as Rgb01),
+      accent: toHex(resolvedAccent),
+    },
   }
 }

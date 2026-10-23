@@ -5,10 +5,13 @@ import {
   createUploadIntent,
   deleteMedia,
   enqueueMediaProcess,
+  getMedia,
   InvalidUpload,
   listMedia,
   mediaBacklog,
+  mediaNeighbours,
   mediaUsage,
+  mediaUsedIn,
   permissions,
   UploadIntentSchema,
   updateMedia,
@@ -98,6 +101,31 @@ export const mediaRouter = {
   backgroundWork: can(permissions.CONTENT_READ).handler(async ({ context }) =>
     backgroundWork(await mediaBacklog(context.tx), await importInProgress(context.tx)),
   ),
+
+  /** One file for its page in the library. */
+  get: can(permissions.CONTENT_READ)
+    .input(z.object({ id: z.uuid() }))
+    .handler(async ({ context, input }) => {
+      const row = await getMedia(context.tx, input.id)
+      if (!row) throw new ORPCError('NOT_FOUND', { message: 'This file was not found' })
+      return row
+    }),
+
+  /** The files before and after one in the library's order, for the file page's arrows. */
+  neighbours: can(permissions.CONTENT_READ)
+    .input(
+      z.object({
+        id: z.uuid(),
+        search: z.string().trim().max(SEARCH_MAX).optional(),
+        fileType: z.enum(['image', 'video', 'document']).optional(),
+      }),
+    )
+    .handler(({ context, input: { id, ...filters } }) => mediaNeighbours(context.tx, id, filters)),
+
+  /** The products using one file, for the file page. */
+  usedIn: can(permissions.CONTENT_READ)
+    .input(z.object({ id: z.uuid() }))
+    .handler(({ context, input }) => mediaUsedIn(context.tx, input.id)),
 
   update: can(permissions.CONTENT_WRITE)
     .input(z.object({ id: z.uuid(), alt: z.string().trim().max(300).nullable() }))

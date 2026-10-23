@@ -183,16 +183,24 @@ export const ACTION_DOCS: Record<string, string> = {
     "Sends the editor's current content to one address, marked as a test.",
   'marketing.campaigns.whatsappTemplates':
     'Approved WhatsApp templates for the broadcast and automation pickers.',
+  'marketing.dismissRecommendation':
+    'Hides one recommendation for the whole store and returns the cards left to show.',
   'marketing.emailBrand':
     'Logo, colours and social links from the live theme, for the visual email builder.',
   'marketing.overview': 'Sessions, attributed sales, channels and top campaigns for one range.',
+  'marketing.recommendations':
+    'Growth overview recommendations: up to three rule-based next steps with their numbers.',
   'marketing.setup': 'Which channels can carry marketing for this store.',
   'media.backgroundWork':
     'Images still processing and a running import: the "store may be slower" notice.',
   'media.confirm':
     'Step 2: the PUT succeeded; the object is HEAD-checked for its real size (see confirmUpload).',
+  'media.get': 'One file for its page in the library.',
+  'media.neighbours':
+    "The files before and after one in the library's order, for the file page's arrows.",
   'media.presign':
     'Step 1 of an upload: reserve the row and get a presigned request for the browser.',
+  'media.usedIn': 'The products using one file, for the file page.',
   'meilisearch.reindex': "Queues a full rebuild of the store's search index in the worker.",
   'meilisearch.test':
     'Checks the address and admin key, then prepares the index and a search-only key.',

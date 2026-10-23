@@ -41,6 +41,8 @@ export type CustomerFilters = {
   minOrders?: number | undefined
   acceptsMarketing?: boolean | undefined
   tag?: string | undefined
+  /** Business (B2B) customers: true keeps those with a saved GSTIN, false those without. */
+  business?: boolean | undefined
 }
 
 export type CustomerQuery = {
@@ -57,6 +59,8 @@ export type CustomerListItem = {
   stateCode: string | null
   tags: string[]
   acceptsMarketing: boolean
+  /** Saved a GSTIN; the GSTIN itself stays on the customer page. */
+  hasGstin: boolean
   orderCount: number
   spentPaise: number
   lastOrderAt: Date | null
@@ -97,6 +101,7 @@ const lastOrderSql = sql<Date | null>`(
   where o.customer_id = c.id and o.status <> 'draft' and not o.is_test)`
 const citySql = sql<string | null>`(${c.defaultAddress} ->> 'city')`
 const stateSql = sql<string | null>`(${c.defaultAddress} ->> 'stateCode')`
+const hasGstinSql = sql<boolean>`(coalesce(btrim(${c.gstin}), '') <> '')`
 
 const SELECTION = {
   id: c.id,
@@ -107,6 +112,7 @@ const SELECTION = {
   stateCode: stateSql,
   tags: c.tags,
   acceptsMarketing: c.acceptsMarketing,
+  hasGstin: hasGstinSql,
   orderCount: orderCountSql,
   spentPaise: spentSql,
   lastOrderAt: lastOrderSql,
@@ -139,6 +145,11 @@ function filterWhere(input: CustomerQuery, now: Date, secret: string) {
       ? eq(c.acceptsMarketing, input.acceptsMarketing)
       : undefined,
     input.tag ? sql`${c.tags} @> array[${input.tag}]::text[]` : undefined,
+    input.business === undefined
+      ? undefined
+      : input.business
+        ? hasGstinSql
+        : sql`not ${hasGstinSql}`,
   )
 }
 
@@ -150,6 +161,7 @@ function toSegmentCustomer(item: CustomerListItem): SegmentCustomer {
     tags: item.tags,
     lastOrderAt: item.lastOrderAt,
     acceptsMarketing: item.acceptsMarketing,
+    hasGstin: item.hasGstin,
   }
 }
 

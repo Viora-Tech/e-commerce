@@ -41,6 +41,7 @@ import fedex from './fedex'
 import filterPanel from './filter-panel'
 import giftCards from './gift-cards'
 import growth from './growth'
+import growthReport from './growth-report'
 import growthbook from './growthbook'
 import gstInvoices from './gst-invoices'
 import home from './home'
@@ -145,6 +146,7 @@ export const hindiCopy: readonly TranslationPair[] = [
   ...dateRange,
   ...filterPanel,
   ...growth,
+  ...growthReport,
   ...gstInvoices,
   ...home,
   ...imageEditor,

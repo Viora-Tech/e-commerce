@@ -1,8 +1,8 @@
 import { mkdirSync, writeFileSync } from 'node:fs'
 import { dirname } from 'node:path'
 import { createMerchantAuth } from '@commerce/auth'
-import { localStoragePath } from '@commerce/core'
-import { createDb, media, store } from '@commerce/db'
+import { createProduct, localStoragePath } from '@commerce/core'
+import { createDb, media, store, withStore } from '@commerce/db'
 import { resetDb } from '@commerce/db/test'
 import { call } from '@orpc/server'
 import { afterAll, beforeEach, describe, expect, it } from 'vitest'
@@ -85,6 +85,34 @@ describe('media', () => {
     await expect(
       call(appRouter.media.update, { id: ticket.mediaId, alt: 'x' }, { context: b.ctx }),
     ).rejects.toThrow()
+
+    // Its page: the list columns plus status for its own store, 404 for another or a missing id.
+    const file = await call(appRouter.media.get, { id: ticket.mediaId }, { context: a.ctx })
+    expect(file).toMatchObject({ id: ticket.mediaId, status: 'processing', size: 1234 })
+    await expect(
+      call(appRouter.media.get, { id: ticket.mediaId }, { context: b.ctx }),
+    ).rejects.toMatchObject({ code: 'NOT_FOUND' })
+    await expect(
+      call(appRouter.media.get, { id: '01a16498-0000-7000-8000-000000000000' }, { context: a.ctx }),
+    ).rejects.toMatchObject({ code: 'NOT_FOUND' })
+
+    // Used in: the products whose gallery holds it, only for its own store.
+    const productId = await withStore(app, a.storeId, (tx) =>
+      createProduct(tx, a.storeId, {
+        title: 'Pad',
+        status: 'active',
+        tags: [],
+        options: [],
+        variants: [{ optionValues: [], pricePaise: 100 }],
+        mediaIds: [ticket.mediaId],
+      }),
+    )
+    expect(await call(appRouter.media.usedIn, { id: ticket.mediaId }, { context: a.ctx })).toEqual([
+      { productId, title: 'Pad' },
+    ])
+    expect(await call(appRouter.media.usedIn, { id: ticket.mediaId }, { context: b.ctx })).toEqual(
+      [],
+    )
 
     await call(
       appRouter.media.update,

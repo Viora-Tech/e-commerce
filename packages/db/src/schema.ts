@@ -759,6 +759,7 @@ export type CustomerSegmentField =
   | 'tag'
   | 'last_order_days'
   | 'marketing'
+  | 'business'
 export type CustomerSegmentOp = 'gte' | 'lte' | 'eq' | 'neq' | 'contains'
 export type CustomerSegmentCondition = {
   field: CustomerSegmentField
@@ -2508,6 +2509,8 @@ export const savedReport = pgTable(
     name: text('name').notNull(),
     reportSlug: text('report_slug').notNull(),
     range: jsonb('range').$type<SavedReportRange>().notNull(),
+    /** A saved custom query (`report_slug` 'query'): its text, run through the query parser. */
+    query: text('query'),
     createdBy: text('created_by'),
     createdAt: createdAt(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),

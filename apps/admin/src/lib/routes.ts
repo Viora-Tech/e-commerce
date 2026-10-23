@@ -103,6 +103,14 @@ export const routes = {
   content: {
     home: () => '/content',
     files: () => '/content/files',
+    /** One file's page; `query` and `type` keep the library's filter for its previous / next. */
+    file: (fileId: string, filter?: { query?: string | null; type?: string | null }) => {
+      const params = new URLSearchParams()
+      if (filter?.query) params.set('query', filter.query)
+      if (filter?.type) params.set('type', filter.type)
+      const qs = params.toString()
+      return `/content/files/${id(fileId)}${qs ? `?${qs}` : ''}`
+    },
     storage: () => '/content/files/storage',
     menus: () => '/content/menus',
     menu: (menuId: string) => `/content/menus/${id(menuId)}`,

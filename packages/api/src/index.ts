@@ -57,6 +57,7 @@ export type {
   OutcomeKind,
   OutcomeRow,
 } from './services/growth-outcomes.service'
+export type { CampaignLinkRow, CampaignReport } from './services/growth-report.service'
 export type {
   HomeAnalytics,
   HomeCompare,

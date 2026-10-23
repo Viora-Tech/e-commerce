@@ -11,6 +11,11 @@ type Props = { searchParams: Promise<SearchParams> }
 export default async function Page({ searchParams }: Props) {
   const range = parseRange(await searchParams)
   const context = await serverContext()
-  const overview = await call(appRouter.marketing.overview, { range }, { context })
-  return <GrowthOverviewPage initialRange={range} initial={overview} />
+  const [overview, recommendations] = await Promise.all([
+    call(appRouter.marketing.overview, { range }, { context }),
+    call(appRouter.marketing.recommendations, undefined, { context }),
+  ])
+  return (
+    <GrowthOverviewPage initialRange={range} initial={overview} recommendations={recommendations} />
+  )
 }

@@ -272,6 +272,53 @@ describe('customers', () => {
     expect(cheap.items.map((c) => c.email)).toEqual(['ravi@example.com'])
   })
 
+  it('filters business customers (a saved GSTIN) in the list, export and segments', async () => {
+    const a = await merchant('a@example.com', 'store-a')
+    await owner.insert(customer).values([
+      {
+        storeId: a.storeId,
+        email: 'firm@example.com',
+        gstin: '29AABCT3518Q1ZS',
+        businessName: 'Asha Traders',
+      },
+      { storeId: a.storeId, email: 'blank@example.com', gstin: ' ' },
+      { storeId: a.storeId, email: 'person@example.com' },
+    ])
+
+    const business = await call(appRouter.customers.list, { business: true }, { context: a.ctx })
+    expect(business.items.map((c) => c.email)).toEqual(['firm@example.com'])
+    expect(business.total).toBe(1)
+    expect(business.items[0]).toMatchObject({ hasGstin: true })
+    expect(business.items[0]).not.toHaveProperty('gstin')
+
+    const individuals = await call(
+      appRouter.customers.list,
+      { business: false, sort: 'name' },
+      { context: a.ctx },
+    )
+    expect(individuals.items.map((c) => c.email).sort()).toEqual([
+      'blank@example.com',
+      'person@example.com',
+    ])
+
+    const exported = await call(appRouter.customers.export, { business: true }, { context: a.ctx })
+    expect(exported.map((c) => c.email)).toEqual(['firm@example.com'])
+
+    const rules = {
+      match: 'all' as const,
+      conditions: [{ field: 'business' as const, op: 'eq' as const, value: 'true' }],
+    }
+    const preview = await call(appRouter.customers.previewSegment, { rules }, { context: a.ctx })
+    expect(preview.sample.map((c) => c.email)).toEqual(['firm@example.com'])
+    await call(
+      appRouter.customers.saveSegment,
+      { name: 'Business customers', rules },
+      { context: a.ctx },
+    )
+    const segments = await call(appRouter.customers.segments, undefined, { context: a.ctx })
+    expect(segments[0]).toMatchObject({ name: 'Business customers', customerCount: 1 })
+  })
+
   it('adds and removes a tag across a selection without touching other tags', async () => {
     const a = await merchant('a@example.com', 'store-a')
     const [asha, ravi] = await owner

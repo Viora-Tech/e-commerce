@@ -7,6 +7,7 @@ import {
   listAddresses,
   permissions,
   recordCustomerChange,
+  SEGMENT_FIELDS,
   setMarketingConsent,
   updateAddress,
   validateGstin,
@@ -43,6 +44,8 @@ const FiltersSchema = z.object({
   minOrders: z.number().int().min(0).optional(),
   acceptsMarketing: z.boolean().optional(),
   tag: z.string().trim().min(1).max(40).optional(),
+  /** Business (B2B) customers, i.e. those with a saved GSTIN. */
+  business: z.boolean().optional(),
 })
 
 const RulesSchema = z.object({
@@ -50,7 +53,7 @@ const RulesSchema = z.object({
   conditions: z
     .array(
       z.object({
-        field: z.enum(['spend', 'orders', 'state', 'tag', 'last_order_days', 'marketing']),
+        field: z.enum(SEGMENT_FIELDS),
         op: z.enum(['gte', 'lte', 'eq', 'neq', 'contains']),
         value: z.string().trim().max(100),
       }),

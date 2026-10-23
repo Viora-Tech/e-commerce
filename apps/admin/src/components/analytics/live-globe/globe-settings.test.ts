@@ -36,17 +36,17 @@ describe('defaultGlobeSettings', () => {
     expect(defaultGlobeSettings(false).motion.autoRotate).toBe(true)
   })
 
-  it('defaults to the store accent theme, solid land, 24h, India', () => {
+  it('defaults to the store accent theme, dotted land like the Home card, 24h, India', () => {
     const d = defaultGlobeSettings(false)
     expect(d.look.theme).toBe('accent')
-    expect(d.look.style).toBe('solid')
+    expect(d.look.style).toBe('dotted')
     expect(d.look.borderStyle).toBe('solid')
     expect(d.data.timeRange).toBe('24h')
     expect(d.motion.startView).toBe('india')
     expect(d.layers).toEqual({
-      borders: true,
-      coastlines: true,
-      grid: true,
+      borders: false,
+      coastlines: false,
+      grid: false,
       arcs: true,
       glow: true,
     })
@@ -60,8 +60,8 @@ describe('loadGlobeSettings / saveGlobeSettings', () => {
 
   it('round-trips a saved change', () => {
     const next = defaultGlobeSettings(false)
-    next.look.style = 'dotted'
-    next.layers.grid = false
+    next.look.style = 'solid'
+    next.layers.grid = true
     saveGlobeSettings(next)
     expect(loadGlobeSettings(false)).toEqual(next)
   })
@@ -75,13 +75,13 @@ describe('loadGlobeSettings / saveGlobeSettings', () => {
   })
 
   it('ignores corrupt storage and falls back to defaults', () => {
-    storage.setItem('wc-live-globe-settings-v1', '{not json')
+    storage.setItem('wc-live-globe-settings-v2', '{not json')
     expect(loadGlobeSettings(false)).toEqual(defaultGlobeSettings(false))
   })
 
   it('sanitises an invalid enum back to its default rather than rejecting the whole save', () => {
     storage.setItem(
-      'wc-live-globe-settings-v1',
+      'wc-live-globe-settings-v2',
       JSON.stringify({ look: { theme: 'not-a-real-theme' }, motion: { speed: 'ludicrous' } }),
     )
     const loaded = loadGlobeSettings(false)
@@ -91,7 +91,7 @@ describe('loadGlobeSettings / saveGlobeSettings', () => {
 
   it('only accepts a well-formed hex colour for a custom override', () => {
     storage.setItem(
-      'wc-live-globe-settings-v1',
+      'wc-live-globe-settings-v2',
       JSON.stringify({ look: { customLand: 'javascript:alert(1)', customOcean: '#1a2b3c' } }),
     )
     const loaded = loadGlobeSettings(false)
@@ -121,5 +121,22 @@ describe('saveLastZoom', () => {
   it('never throws when storage is unavailable', () => {
     storage.throwOnSet = true
     expect(() => saveLastZoom(1.2)).not.toThrow()
+  })
+  it('survives a later settings change, whose own lastZoom is stale', () => {
+    const settings = defaultGlobeSettings(false)
+    saveGlobeSettings(settings)
+    saveLastZoom(2.5)
+
+    saveGlobeSettings({ ...settings, layers: { ...settings.layers, grid: true } })
+
+    const loaded = loadGlobeSettings(false)
+    expect(loaded.lastZoom).toBe(2.5)
+    expect(loaded.layers.grid).toBe(true)
+  })
+
+  it('is cleared by a reset (replaceZoom)', () => {
+    saveLastZoom(2.5)
+    saveGlobeSettings(defaultGlobeSettings(false), { replaceZoom: true })
+    expect(loadGlobeSettings(false).lastZoom).toBe(1)
   })
 })

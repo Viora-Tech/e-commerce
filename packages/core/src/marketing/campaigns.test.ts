@@ -150,6 +150,25 @@ describe('campaign audience and consent', () => {
     )
     expect(members.map((m) => m.to)).toEqual(['buyer@x.in'])
   })
+
+  it('narrows to business customers, those with a saved GSTIN', async () => {
+    const storeId = await newStore('b2')
+    await addCustomer(storeId, 'firm@x.in', { gstin: '27AAPFU0939F1ZV' })
+    await addCustomer(storeId, 'blank@x.in', { gstin: '  ' })
+    await addCustomer(storeId, 'person@x.in')
+    const [seg] = await owner
+      .insert(customerSegment)
+      .values({
+        storeId,
+        name: 'Business customers',
+        rules: { match: 'all', conditions: [{ field: 'business', op: 'eq', value: 'true' }] },
+      })
+      .returning()
+    const members = await withStore(app, storeId, (tx) =>
+      campaignAudience(tx, { kind: 'email', segmentId: seg?.id as string }, TEST_SECRET),
+    )
+    expect(members.map((m) => m.to)).toEqual(['firm@x.in'])
+  })
 })
 
 describe('scheduling', () => {
