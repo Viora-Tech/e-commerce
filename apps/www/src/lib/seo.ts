@@ -1,9 +1,11 @@
 /**
  * SOURCE OF TRUTH: structured data — WHAT the schema.org JSON-LD the landing site puts on its
- * pages (the company, the site, the product with its plans, FAQs, breadcrumbs, articles) / WHY
+ * pages (the company, the site, the product with its plans, FAQs, breadcrumbs, articles, App
+ * Store apps and lists) / WHY
  * search engines read these for rich results, and each must say only what the page shows.
  */
 import { siteConfig } from '@commerce/config/site'
+import type { CatalogueApp } from '@commerce/core/app-catalogue'
 
 const site = siteConfig.urls.site
 const brand = siteConfig.brand.name
@@ -108,5 +110,46 @@ export function articleLd(article: {
     author: { '@id': `${site}/#organization` },
     publisher: { '@id': `${site}/#organization` },
     image: absolute(`${article.path}/opengraph-image`),
+  }
+}
+
+type LdApp = Pick<CatalogueApp, 'id' | 'name' | 'kind' | 'company' | 'tagline' | 'price'>
+
+/** One App Store app: a web application with its price (before GST), made by us or its company. */
+export function appLd(app: LdApp): JsonLd {
+  const maker =
+    app.kind === 'connection' && app.company
+      ? { '@type': 'Organization', name: app.company }
+      : { '@id': `${site}/#organization` }
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'WebApplication',
+    name: app.name,
+    description: app.tagline,
+    url: absolute(`/apps/${app.id}`),
+    applicationCategory: 'BusinessApplication',
+    operatingSystem: 'Web',
+    author: maker,
+    offers: {
+      '@type': 'Offer',
+      price: app.price.kind === 'free' ? 0 : app.price.pricePaise / 100,
+      priceCurrency: 'INR',
+      url: absolute(`/apps/${app.id}`),
+    },
+  }
+}
+
+/** A directory page's apps, in the order shown. */
+export function appListLd(name: string, apps: readonly LdApp[]): JsonLd {
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'ItemList',
+    name,
+    itemListElement: apps.map((app, index) => ({
+      '@type': 'ListItem',
+      position: index + 1,
+      url: absolute(`/apps/${app.id}`),
+      name: app.name,
+    })),
   }
 }

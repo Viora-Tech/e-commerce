@@ -12,6 +12,8 @@ export type CustomerFilterState = {
   maxSpend: string
   minOrders: string
   marketing: string
+  /** 'yes' keeps business customers (a saved GSTIN), 'no' the rest. */
+  business: string
   tag: string
 }
 
@@ -21,6 +23,7 @@ export const EMPTY_CUSTOMER_FILTERS: CustomerFilterState = {
   maxSpend: '',
   minOrders: '',
   marketing: '',
+  business: '',
   tag: '',
 }
 
@@ -46,6 +49,7 @@ export function customerFilterInput(f: CustomerFilterState) {
     maxSpentPaise: f.maxSpend ? paise(f.maxSpend) : undefined,
     minOrders: f.minOrders ? whole(f.minOrders) : undefined,
     acceptsMarketing: f.marketing ? f.marketing === 'yes' : undefined,
+    business: f.business ? f.business === 'yes' : undefined,
     tag: f.tag || undefined,
   }
 }
@@ -102,6 +106,18 @@ export function customerFilterGroups(
       onChange: (next) => onChange({ marketing: next ?? '' }),
       anyLabel: copy.marketingAny,
     },
+    {
+      key: 'business',
+      label: copy.business,
+      type: 'select',
+      options: [
+        { value: 'yes', label: copy.businessYes },
+        { value: 'no', label: copy.businessNo },
+      ],
+      value: f.business || null,
+      onChange: (next) => onChange({ business: next ?? '' }),
+      anyLabel: copy.businessAny,
+    },
     ...(tags.length > 0
       ? [
           {
@@ -138,6 +154,9 @@ export function segmentRulesFromFilters(
   if (f.marketing || segment === 'subscribed') {
     const wants = f.marketing ? f.marketing === 'yes' : true
     rules.conditions.push({ field: 'marketing', op: 'eq', value: String(wants) })
+  }
+  if (f.business) {
+    rules.conditions.push({ field: 'business', op: 'eq', value: String(f.business === 'yes') })
   }
   if (f.tag) rules.conditions.push({ field: 'tag', op: 'contains', value: f.tag })
   return rules

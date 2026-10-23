@@ -1,5 +1,5 @@
 import { gstRowsToShow } from '@commerce/core/gst'
-import type { orderDetailContent } from '@/data/orders'
+import type { orderDetailContent } from '@/data/order-detail'
 import type { Formatters } from '@/lib/format'
 import type { OrderDetail } from './order-detail-types'
 

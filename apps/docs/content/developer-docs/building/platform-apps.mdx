@@ -26,7 +26,7 @@ deployment without the apps works as before.
 
 Platform callbacks name an outside account, never our store: a Facebook user id (deauthorize, data
 deletion), a WhatsApp Business account id (WhatsApp webhooks), a `shop.myshopify.com` (Shopify
-webhooks). Connecting writes a `platform_account` row (`linkPlatformAccount`, migration `0147`,
+webhooks). Connecting writes a `platform_account` row (`linkPlatformAccount`, migration `0153`,
 RLS) and callbacks find the stores with the SECURITY DEFINER `stores_for_platform_account()`
 (`storesForPlatformAccount` in `@commerce/db`), then work inside `withStore` as usual. The row also
 keeps what the platform last said (`status`, `detail`, `last_event_at`), which the WhatsApp page

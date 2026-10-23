@@ -27,3 +27,27 @@ export function fileKind(contentType: string | null): string {
   if (!sub) return ''
   return (sub === 'jpeg' ? 'jpg' : sub).toUpperCase()
 }
+
+const TYPE_BY_EXTENSION: Record<string, string> = {
+  jpg: 'image/jpeg',
+  jpeg: 'image/jpeg',
+  png: 'image/png',
+  webp: 'image/webp',
+  avif: 'image/avif',
+  gif: 'image/gif',
+  svg: 'image/svg+xml',
+  mp4: 'video/mp4',
+  webm: 'video/webm',
+  mov: 'video/quicktime',
+  pdf: 'application/pdf',
+}
+
+/**
+ * The file's type, or a guess from its extension when none was saved (files brought in by the
+ * Shopify import have no content type).
+ */
+export function contentTypeOf(contentType: string | null, address: string): string | null {
+  if (contentType) return contentType
+  const ext = fileName(address).split('.').pop()?.toLowerCase() ?? ''
+  return TYPE_BY_EXTENSION[ext] ?? null
+}

@@ -22,6 +22,17 @@ export const searchConsolePlugin = definePlugin({
   company: 'Google',
   description:
     'See how shoppers find you on Google: the searches, your top pages, pages almost on page 1, pages losing clicks, and your sitemap.',
+  listing: {
+    tagline: 'The Google searches that find you, pages almost on page 1, and sitemaps.',
+    highlights: [
+      'Top searches and top pages, every day',
+      'Pages almost on page 1, and pages losing clicks',
+      'Submits your sitemap',
+    ],
+    guide: '/merchant-guide/apps/google-search-console',
+    worksWith: ['A Google account that owns your domain in Search Console'],
+    keywords: ['seo', 'google', 'search'],
+  },
   access: {
     resources: [
       {

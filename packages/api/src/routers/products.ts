@@ -29,12 +29,11 @@ import {
   listProductHandles,
   listProductIds,
   listProducts,
-  pickProducts,
   productFacets,
-  searchVariants,
   updateProduct,
   updateVariant,
 } from '../services/product.service'
+import { pickProducts, searchVariants } from '../services/product-picker.service'
 import { productAdjustments, productStats } from '../services/product-stats.service'
 
 const ListFiltersSchema = z.object({

@@ -33,6 +33,7 @@ const TEMPLATE_RULES: Record<TemplateId, SegmentRules> = {
     ],
   },
   subscribed: { match: 'all', conditions: [{ field: 'marketing', op: 'eq', value: 'true' }] },
+  business: { match: 'all', conditions: [{ field: 'business', op: 'eq', value: 'true' }] },
 }
 
 function templateHref(name: string, rules: SegmentRules): string {

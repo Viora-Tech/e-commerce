@@ -5,13 +5,14 @@ import {
   SHIPMENT_TABS,
   type ShipmentTab,
 } from '@commerce/core/shipment-tabs'
-import { Clock, Plus, Settings, Truck } from '@commerce/ui/icons'
+import { Clock, Settings, Truck } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Card } from '@commerce/ui/shadcn/card'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { parseAsInteger, parseAsString, parseAsStringLiteral, useQueryStates } from 'nuqs'
 import { Suspense, useEffect, useState } from 'react'
+import AppStoreLink from '@/components/apps/app-store-link'
 import ActionMenu from '@/components/layout/action-menu'
 import EmptyState from '@/components/layout/empty-state'
 import ProoflyListPage from '@/components/layout/proofly-list-page'
@@ -228,10 +229,9 @@ function ShipmentsContent() {
             heading={copy.noCourier.heading}
             body={copy.noCourier.body}
             action={
-              <Button nativeButton={false} render={<Link href={routes.apps.store()} />}>
-                <Plus aria-hidden />
+              <AppStoreLink category="shipping" variant="default">
                 {copy.noCourier.browse}
-              </Button>
+              </AppStoreLink>
             }
           />
         </Card>

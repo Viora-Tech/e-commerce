@@ -3,13 +3,13 @@
 import { Button } from '@commerce/ui/shadcn/button'
 import { DialogDescription, DialogFooter, DialogTitle } from '@commerce/ui/shadcn/dialog'
 import Link from 'next/link'
-import type { AppSummary } from '@/components/apps/app-card'
 import AppLogo from '@/components/apps/app-logo'
 import StatusChip from '@/components/layout/status-chip'
 import { appInstallContent } from '@/data/app-install'
 import { installedAppsContent } from '@/data/installed-apps'
 import { useCopy } from '@/hooks/use-copy'
 import { connectHref, openHref, STATUS_TONE } from '@/lib/app-access'
+import type { AppSummary } from '@/lib/app-summary'
 
 type InstallDoneStepProps = {
   /** The app as the list reads it after the install, so its status is the real one. */

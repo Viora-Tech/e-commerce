@@ -1,427 +1,180 @@
 import { siteConfig } from '@commerce/config/site'
+import {
+  appInstallPath,
+  type CatalogueAccessLevel,
+  type CatalogueApp,
+  type CataloguePrice,
+} from '@commerce/core/app-catalogue'
+import { formatInr } from '@/lib/pricing-math'
 
 /**
- * The public App Store: every app a store can add, what it does, what it can access, and what it
- * costs. Install opens the admin's install flow for the store the visitor is signed in to
- * (`/apps/install?app=<id>`, apps/admin). Prices follow memory-bank/pricing.md and
- * `APP_PRICING` in `@commerce/core/billing`; keep the three in step.
+ * The App Store's words. The apps themselves come from `@commerce/core/app-catalogue`, generated
+ * from the plugin manifests the admin reads (`bun scripts/gen-app-catalogue.ts`); prices from
+ * `APP_PRICING` in `@commerce/core/billing`. Only copy lives here.
  */
 
-export type AppCategory =
-  | 'invoicing'
-  | 'shipping'
-  | 'payments'
-  | 'marketing'
-  | 'analytics'
-  | 'search'
-  | 'messages'
-  | 'storage'
-  | 'import'
+const us = siteConfig.brand.name
 
-/** `free` on every plan, or included from a plan up and bought monthly below it. */
-export type AppPricing =
-  | { kind: 'free' }
-  | { kind: 'paid'; includedFrom: 'Growth' | 'Pro'; perMonth: string }
+/**
+ * The admin that Install opens. `NEXT_PUBLIC_ADMIN_URL` points a local build at a local admin
+ * (`http://localhost:3200`); the deployed site uses the public admin URL.
+ */
+const ADMIN_URL = process.env.NEXT_PUBLIC_ADMIN_URL || siteConfig.urls.admin
 
-export type StoreApp = {
-  id: string
-  name: string
-  /** Made by us, or the outside company a connection links to. */
-  by: string
-  category: AppCategory
-  blurb: string
-  does: string[]
-  /** What it can see and change in the store, in plain words. */
-  access: string[]
-  /** What it sends to an outside company, if anything. */
-  shares: string | null
-  pricing: AppPricing
-  /** Merchant guide for the app, under the docs site. */
-  guide: string | null
+/** The admin's install flow for this app: sign in, pick a store, Connect, Permissions, Done. */
+export const installUrl = (id: string) => `${ADMIN_URL}${appInstallPath(id)}`
+
+/** Canonical path of an App Store page on this site. */
+export const appPath = (id: string) => `/apps/${id}`
+export const categoryPath = (slug: string) => `/apps/category/${slug}`
+
+const CATEGORIES: Record<string, { label: string; title: string; description: string }> = {
+  shipping: {
+    label: 'Shipping',
+    title: 'Courier and shipping apps',
+    description:
+      'Indian and international couriers: live rates, labels, pickups, tracking and NDR, all in one Shipments workspace.',
+  },
+  payments: {
+    label: 'Payments',
+    title: 'Payment apps',
+    description: 'UPI, cards, netbanking, wallets and pay later at checkout, beside COD.',
+  },
+  invoicing: {
+    label: 'Invoicing',
+    title: 'GST invoicing apps',
+    description: 'GST tax invoices, credit notes and GSTR-1 export for Indian stores.',
+  },
+  marketing: {
+    label: 'Marketing',
+    title: 'Marketing apps',
+    description: 'Reviews, back in stock alerts, EMI prices, forms and A/B tests that sell more.',
+  },
+  messages: {
+    label: 'Messages',
+    title: 'Messaging and support apps',
+    description: 'Order updates on WhatsApp and email, and live chat with your shoppers.',
+  },
+  analytics: {
+    label: 'Analytics',
+    title: 'Analytics apps',
+    description: 'Visitors, searches and pages: see how shoppers find and use your store.',
+  },
+  search: {
+    label: 'Search',
+    title: 'Store search apps',
+    description: 'Search that forgives typos, with synonyms, so shoppers find what they mean.',
+  },
+  storage: {
+    label: 'Storage',
+    title: 'File storage apps',
+    description: 'Keep your product images and files on your own bucket.',
+  },
+  migration: {
+    label: 'Store migration',
+    title: 'Store migration apps',
+    description: 'Move your products, customers, orders and pages over from Shopify.',
+  },
 }
 
-const us = siteConfig.brand.name
-const docs = siteConfig.urls.docs
+export function categoryCopy(slug: string) {
+  return (
+    CATEGORIES[slug] ?? {
+      label: slug.charAt(0).toUpperCase() + slug.slice(1),
+      title: `${slug} apps`,
+      description: `Apps for your ${us} store.`,
+    }
+  )
+}
 
-export const installUrl = (id: string) =>
-  `https://${siteConfig.brand.domain}/apps/install?app=${encodeURIComponent(id)}`
+const RESOURCES: Record<string, string> = {
+  orders: 'Orders',
+  'order-events': 'Order updates',
+  customers: 'Customers',
+  products: 'Products',
+  inventory: 'Inventory',
+  shipments: 'Shipments',
+  payments: 'Payments',
+  refunds: 'Refunds',
+  invoices: 'Invoices',
+  reviews: 'Reviews',
+  collections: 'Collections',
+  discounts: 'Discounts',
+  'gift-cards': 'Gift cards',
+  'store-pages': 'Store pages',
+  content: 'Content',
+  files: 'Files',
+  'store-settings': 'Store settings',
+  visits: 'Visits',
+}
 
-export const STORE_APPS: StoreApp[] = [
-  {
-    id: 'gst-invoices',
-    name: 'GST invoices',
-    by: us,
-    category: 'invoicing',
-    blurb: 'Tax invoices, credit notes and GSTR-1 export, per GST number.',
-    does: [
-      'Issues a GST invoice when an order is paid, numbered per GSTIN',
-      'Credit notes for returns and cancellations',
-      'GSTR-1 export for your accountant',
-    ],
-    access: ['Orders · read', 'Settings · read'],
-    shares: null,
-    pricing: { kind: 'free' },
-    guide: `${docs}/merchant-guide/money-and-gst/gst-invoices`,
-  },
-  {
-    id: 'reviews',
-    name: 'Reviews',
-    by: us,
-    category: 'marketing',
-    blurb: 'Product reviews with photos, verified buyer badges and review request emails.',
-    does: [
-      'Review request emails after delivery',
-      'Photos, verified buyer badges and your replies',
-      'Import your reviews from Judge.me',
-    ],
-    access: ['Products · read', 'Orders · read', 'Customers · read'],
-    shares: null,
-    pricing: { kind: 'paid', includedFrom: 'Growth', perMonth: '₹199' },
-    guide: `${docs}/merchant-guide/apps/reviews`,
-  },
-  {
-    id: 'back-in-stock',
-    name: 'Back in stock',
-    by: us,
-    category: 'marketing',
-    blurb: 'A "Notify me" button on sold-out products, and an alert when they are back.',
-    does: [
-      'A Notify me block for sold-out products',
-      'Emails shoppers the moment stock returns',
-      'Signups and how many came back to buy',
-    ],
-    access: ['Products · read', 'Inventory · read'],
-    shares: null,
-    pricing: { kind: 'paid', includedFrom: 'Growth', perMonth: '₹149' },
-    guide: `${docs}/merchant-guide/apps/back-in-stock`,
-  },
-  {
-    id: 'forms',
-    name: 'Forms',
-    by: us,
-    category: 'marketing',
-    blurb: 'Makes the contact forms of an imported theme work, with every message saved.',
-    does: ['Saves every message on a Submissions page', 'Emails each one to your store'],
-    access: ['Content · read'],
-    shares: null,
-    pricing: { kind: 'paid', includedFrom: 'Growth', perMonth: '₹99' },
-    guide: null,
-  },
-  {
-    id: 'emi-pay-later',
-    name: 'EMI & pay later',
-    by: us,
-    category: 'payments',
-    blurb: '"Or ₹X/month" under product prices, and an EMI offers block.',
-    does: ['Shows the lowest EMI under each price', 'An EMI offers block for product pages'],
-    access: ['Products · read'],
-    shares: null,
-    pricing: { kind: 'paid', includedFrom: 'Pro', perMonth: '₹149' },
-    guide: `${docs}/merchant-guide/apps/emi-and-pay-later`,
-  },
-  {
-    id: 'google-search-console',
-    name: 'Google Search Console',
-    by: 'Google',
-    category: 'analytics',
-    blurb: 'The Google searches that find you, pages almost on page 1, and sitemaps.',
-    does: [
-      'Top searches and top pages, every day',
-      'Pages almost on page 1, and pages losing clicks',
-      'Submits your sitemap',
-    ],
-    access: ['Products · read', 'Content · read'],
-    shares: 'Your store address, to read its Search Console data',
-    pricing: { kind: 'paid', includedFrom: 'Pro', perMonth: '₹199' },
-    guide: `${docs}/merchant-guide/apps/google-search-console`,
-  },
-  {
-    id: 'umami',
-    name: 'Umami',
-    by: 'Umami',
-    category: 'analytics',
-    blurb: 'Visitor analytics without cookies, inside Analytics.',
-    does: ['Visitors, pages and sources on the Analytics page', 'No cookie banner needed'],
-    access: ['Analytics · read'],
-    shares: 'Page views, without personal details',
-    pricing: { kind: 'free' },
-    guide: `${docs}/merchant-guide/analytics/visitor-analytics`,
-  },
-  {
-    id: 'meilisearch',
-    name: 'Meilisearch',
-    by: 'Meilisearch',
-    category: 'search',
-    blurb: 'Fast store search that forgives typos, with your own synonyms.',
-    does: [
-      'Finds “t-shrit” and “tee” alike',
-      'Search box suggestions as shoppers type',
-      'Your store’s own search takes over if Meilisearch is down',
-    ],
-    access: ['Products · read', 'Collections · read'],
-    shares: 'Product details and the words shoppers search for, to your Meilisearch server',
-    pricing: { kind: 'free' },
-    guide: `${docs}/merchant-guide/apps/meilisearch`,
-  },
-  {
-    id: 'chatwoot',
-    name: 'Chatwoot',
-    by: 'Chatwoot',
-    category: 'messages',
-    blurb: 'Live chat and a shared support inbox, with each shopper’s orders beside the chat.',
-    does: [
-      'Chat on every page of your store, in your own theme or an imported one',
-      'Signed-in shoppers arrive with their name, orders and total spent',
-      'Their conversations on the customer and order pages',
-    ],
-    access: ['Customers · read', 'Orders · read'],
-    shares: 'Customer name, email, phone and order totals, to your Chatwoot',
-    pricing: { kind: 'free' },
-    guide: `${docs}/merchant-guide/apps/chatwoot`,
-  },
-  {
-    id: 'growthbook',
-    name: 'GrowthBook',
-    by: 'GrowthBook',
-    category: 'marketing',
-    blurb: 'A/B test your banners and sections, with no flicker.',
-    does: [
-      'Shows each shopper one version of a section',
-      'Counts who saw each version and who bought',
-      'Lists your running experiments',
-    ],
-    access: ['Store pages · read', 'Analytics · read'],
-    shares: 'Nothing: your store downloads your test setup',
-    pricing: { kind: 'free' },
-    guide: `${docs}/merchant-guide/apps/growthbook`,
-  },
-  {
-    id: 'shopify-import',
-    name: 'Shopify importer',
-    by: us,
-    category: 'import',
-    blurb: 'Products, customers, orders, pages, menus and more, moved over from Shopify.',
-    does: [
-      'Products, collections, customers and orders',
-      'Pages, blog posts, menus, redirects and files',
-      'Discounts and gift card balances',
-    ],
-    access: ['Products · read & write', 'Customers · read & write', 'Orders · read & write'],
-    shares: null,
-    pricing: { kind: 'free' },
-    guide: `${docs}/merchant-guide/start-here/move-from-shopify`,
-  },
-  {
-    id: 'delhivery',
-    name: 'Delhivery',
-    by: 'Delhivery',
-    category: 'shipping',
-    blurb: 'Rates, labels, pickups and tracking, plus a delivery checker block.',
-    does: ['Live rates and labels', 'Pickups and tracking updates', 'Pincode delivery checker'],
-    access: ['Orders · read & write'],
-    shares: 'Delivery address and parcel details for each shipment',
-    pricing: { kind: 'free' },
-    guide: `${docs}/merchant-guide/orders/shipments`,
-  },
-  {
-    id: 'shiprocket',
-    name: 'Shiprocket',
-    by: 'Shiprocket',
-    category: 'shipping',
-    blurb: 'Many couriers through one account: rates, labels and tracking.',
-    does: ['Compare courier rates', 'Labels and tracking', 'Pincode delivery checker'],
-    access: ['Orders · read & write'],
-    shares: 'Delivery address and parcel details for each shipment',
-    pricing: { kind: 'free' },
-    guide: `${docs}/merchant-guide/orders/shipments`,
-  },
-  {
-    id: 'rapidshyp',
-    name: 'RapidShyp',
-    by: 'RapidShyp',
-    category: 'shipping',
-    blurb: 'Multi-courier rates, labels, pickups and tracking.',
-    does: ['Courier rates and labels', 'Pickups', 'Tracking on a schedule'],
-    access: ['Orders · read & write'],
-    shares: 'Delivery address and parcel details for each shipment',
-    pricing: { kind: 'free' },
-    guide: `${docs}/merchant-guide/orders/shipments`,
-  },
-  {
-    id: 'xpressbees',
-    name: 'Xpressbees',
-    by: 'Xpressbees',
-    category: 'shipping',
-    blurb: 'Surface, Air and same-day rates, labels with auto pickup, and live tracking.',
-    does: ['Rates per Xpressbees service', 'Labels and auto pickup', 'Tracking and NDR'],
-    access: ['Orders · read & write'],
-    shares: 'Delivery address and parcel details for each shipment',
-    pricing: { kind: 'free' },
-    guide: `${docs}/merchant-guide/apps/couriers`,
-  },
-  {
-    id: 'ekart',
-    name: 'Ekart',
-    by: 'Ekart Logistics',
-    category: 'shipping',
-    blurb: 'Flipkart’s courier network: rates, bookings, returns and tracking.',
-    does: ['Rates and delivery days', 'Bookings and return pickups', 'Tracking and NDR'],
-    access: ['Orders · read & write'],
-    shares: 'Delivery address and parcel details for each shipment',
-    pricing: { kind: 'free' },
-    guide: `${docs}/merchant-guide/apps/couriers`,
-  },
-  {
-    id: 'shadowfax',
-    name: 'Shadowfax',
-    by: 'Shadowfax',
-    category: 'shipping',
-    blurb: 'Fast metro and same-city delivery: bookings, labels, returns and tracking.',
-    does: ['Bookings and labels', 'Return pickups', 'Tracking and NDR'],
-    access: ['Orders · read & write'],
-    shares: 'Delivery address and parcel details for each shipment',
-    pricing: { kind: 'free' },
-    guide: `${docs}/merchant-guide/apps/couriers`,
-  },
-  {
-    id: 'dhl-express',
-    name: 'DHL Express',
-    by: 'DHL',
-    category: 'shipping',
-    blurb: 'Ship abroad: DHL rates in rupees, labels with the commercial invoice, pickups.',
-    does: [
-      'Export rates and labels',
-      'Commercial invoice from your HS codes',
-      'Pickups and tracking',
-    ],
-    access: ['Orders · read & write'],
-    shares: 'Delivery address, parcel and customs details for each export',
-    pricing: { kind: 'free' },
-    guide: `${docs}/merchant-guide/apps/international-couriers`,
-  },
-  {
-    id: 'fedex',
-    name: 'FedEx',
-    by: 'FedEx',
-    category: 'shipping',
-    blurb: 'Ship abroad: FedEx rates in rupees, labels with the commercial invoice, pickups.',
-    does: [
-      'Export rates and labels',
-      'Commercial invoice from your HS codes',
-      'Pickups, tracking and cancel',
-    ],
-    access: ['Orders · read & write'],
-    shares: 'Delivery address, parcel and customs details for each export',
-    pricing: { kind: 'free' },
-    guide: `${docs}/merchant-guide/apps/international-couriers`,
-  },
-  {
-    id: 'razorpay',
-    name: 'Razorpay',
-    by: 'Razorpay',
-    category: 'payments',
-    blurb: 'Cards, UPI and netbanking, with UPI confirmed automatically.',
-    does: ['Cards, UPI and netbanking at checkout', 'A UPI QR per order, confirmed for you'],
-    access: ['Orders · read & write'],
-    shares: 'Order amount and the shopper’s contact for each payment',
-    pricing: { kind: 'free' },
-    guide: `${docs}/merchant-guide/money-and-gst/payments`,
-  },
-  {
-    id: 'cashfree',
-    name: 'Cashfree',
-    by: 'Cashfree Payments',
-    category: 'payments',
-    blurb: 'UPI, cards, netbanking, wallets and pay later.',
-    does: ['UPI, cards and netbanking', 'Wallets and pay later'],
-    access: ['Orders · read & write'],
-    shares: 'Order amount and the shopper’s contact for each payment',
-    pricing: { kind: 'free' },
-    guide: `${docs}/merchant-guide/money-and-gst/cashfree`,
-  },
-  {
-    id: 'whatsapp',
-    name: 'WhatsApp',
-    by: 'Meta',
-    category: 'messages',
-    blurb: 'Order updates on WhatsApp through the Meta Cloud API.',
-    does: ['Order confirmed, shipped and delivered messages', 'Your own WhatsApp number'],
-    access: ['Orders · read', 'Customers · read'],
-    shares: 'The shopper’s phone number and order status',
-    pricing: { kind: 'free' },
-    guide: `${docs}/merchant-guide/settings/notifications`,
-  },
-  {
-    id: 'ses',
-    name: 'Amazon SES email',
-    by: 'Amazon Web Services',
-    category: 'messages',
-    blurb: 'Sends your order emails through your own Amazon SES account.',
-    does: ['Order emails from your own address', 'Your own sending limits'],
-    access: ['Orders · read', 'Customers · read'],
-    shares: 'The shopper’s email and the email content',
-    pricing: { kind: 'free' },
-    guide: `${docs}/merchant-guide/settings/sender-email`,
-  },
-  {
-    id: 'r2',
-    name: 'Cloudflare R2',
-    by: 'Cloudflare',
-    category: 'storage',
-    blurb: 'Keeps your images and files on your own R2 bucket.',
-    does: ['Your files on your own bucket', 'Moves existing files over safely'],
-    access: ['Content · read & write'],
-    shares: 'Your store’s images and files',
-    pricing: { kind: 'free' },
-    guide: `${docs}/merchant-guide/content/files-and-storage`,
-  },
-  {
-    id: 's3',
-    name: 'Amazon S3',
-    by: 'Amazon Web Services',
-    category: 'storage',
-    blurb: 'Keeps your images and files on your own S3 bucket, with CloudFront if you like.',
-    does: ['Guided bucket and key setup', 'Moves existing files over safely'],
-    access: ['Content · read & write'],
-    shares: 'Your store’s images and files',
-    pricing: { kind: 'free' },
-    guide: `${docs}/merchant-guide/content/files-and-storage`,
-  },
-]
+const LEVELS: Record<CatalogueAccessLevel, string> = {
+  read: 'Read',
+  write: 'Write',
+  'read-write': 'Read and write',
+}
+
+export const resourceLabel = (resource: string) => RESOURCES[resource] ?? resource
+export const levelLabel = (level: CatalogueAccessLevel) => LEVELS[level]
+
+const planName = (plan: keyof typeof siteConfig.plans) => siteConfig.plans[plan].name
+
+/** The short price on a card: "Free", or "₹199 / month · included in Growth". */
+export function priceChip(price: CataloguePrice): string {
+  if (price.kind === 'free') return 'Free'
+  return `${formatInr(price.pricePaise / 100)} / month · included in ${planName(price.includedFrom)}`
+}
+
+/** The price sentence on the app's page. */
+export function priceText(price: CataloguePrice): string {
+  if (price.kind === 'free') return 'Free on every plan.'
+  return `Included in ${planName(price.includedFrom)} and up. On a smaller plan, ${formatInr(price.pricePaise / 100)} / month + GST.`
+}
+
+/** "by Koomerce" or "by Razorpay". */
+export const byline = (app: Pick<CatalogueApp, 'kind' | 'company'>) =>
+  `by ${app.kind === 'builtin' || !app.company ? us : app.company}`
 
 export const appsContent = {
   eyebrow: 'App Store',
   title: 'Add what your store needs',
   subtitle: `Every app works inside ${us}: one admin, one login, no plugins to update. Most are free; a few are included from Growth or Pro.`,
-  filterLabel: 'Filter apps',
-  filters: [
-    { key: 'all', label: 'All' },
-    { key: 'invoicing', label: 'Invoicing' },
-    { key: 'shipping', label: 'Shipping' },
-    { key: 'payments', label: 'Payments' },
-    { key: 'marketing', label: 'Marketing' },
-    { key: 'analytics', label: 'Analytics' },
-    { key: 'search', label: 'Search' },
-    { key: 'messages', label: 'Messages' },
-    { key: 'storage', label: 'Storage' },
-    { key: 'import', label: 'Import' },
-  ] as const,
-  by: (who: string) => `by ${who}`,
-  free: 'Free',
-  paid: (price: string, plan: string) => `${price} / month · included in ${plan}`,
+  metaTitle: 'App Store',
+  metaDescription:
+    'Every app a store can add: GST invoices, couriers, payments, reviews, back in stock, analytics and more, with what each can access and what it costs.',
+  appMetaTitle: (name: string) => `${name} app`,
+  search: 'Search apps',
+  searchPlaceholder: 'Search apps, e.g. courier, GST, reviews',
+  categoriesLabel: 'Categories',
+  allApps: 'All apps',
+  filtersLabel: 'Filter apps',
+  price: { all: 'Any price', free: 'Free', paid: 'Paid' },
+  ours: `Built by ${us}`,
+  results: (n: number) => (n === 1 ? '1 app' : `${n} apps`),
+  noResultsTitle: 'No apps match',
+  noResultsBody: 'Try another word, or clear the filters.',
+  clear: 'Clear filters',
   install: 'Install',
-  installHint: `Opens your ${us} admin and adds the app to your store.`,
+  installHint: `Opens your ${us} admin. Sign in, pick your store, then agree to what the app can access.`,
   noStore: 'No store yet?',
   joinWaitlist: 'Join the waitlist',
   does: 'What it does',
   access: 'What it can access',
+  accessIntro: 'You agree to this before the app is added, and can remove it any time.',
   shares: 'What it shares',
   sharesNothing: 'Nothing leaves your store.',
-  price: 'Price',
-  priceFree: 'Free on every plan',
-  pricePaid: (price: string, plan: string) =>
-    `Included in ${plan} and up. On a smaller plan, ${price} / month + GST.`,
+  worksWith: 'Works with',
+  needsAccount: (company: string) => `Your own ${company} account`,
+  adds: 'Adds to your admin',
+  blocks: 'Adds to your theme',
+  priceTitle: 'Price',
   guide: 'Read the guide',
+  screenshots: 'Screenshots',
+  details: 'Details',
+  developer: 'Developer',
+  category: 'Category',
+  builtOn: 'Built on',
+  related: 'More like this',
   back: 'All apps',
   cta: {
     title: 'Every app, one admin',

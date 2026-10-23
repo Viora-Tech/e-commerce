@@ -102,6 +102,10 @@ export const customersContent = {
     marketingAny: 'Anyone',
     marketingYes: 'Subscribed',
     marketingNo: 'Not subscribed',
+    business: 'Business customers',
+    businessAny: 'Anyone',
+    businessYes: 'Has a GSTIN',
+    businessNo: 'No GSTIN',
     tag: 'Tag',
     anyTag: 'Any tag',
   },
@@ -357,6 +361,10 @@ export const segmentsContent = {
         name: 'Subscribed to marketing',
         description: 'Agreed to hear from you, so you can message them.',
       },
+      business: {
+        name: 'Business customers',
+        description: 'Customers who saved a GSTIN. Send them bulk offers or GST-ready invoices.',
+      },
     },
   },
   notFound: {
@@ -403,6 +411,7 @@ export const segmentsContent = {
     tag: 'Tag',
     last_order_days: 'Days since last order',
     marketing: 'Marketing consent',
+    business: 'Customer type',
   } as Record<string, string>,
   ops: {
     gte: 'is at least',
@@ -412,6 +421,10 @@ export const segmentsContent = {
     contains: 'includes',
   } as Record<string, string>,
   marketingValues: { true: 'Subscribed', false: 'Not subscribed' } as Record<string, string>,
+  businessValues: {
+    true: 'Business (has a GSTIN)',
+    false: 'Individual (no GSTIN)',
+  } as Record<string, string>,
   /** Joins conditions when any one of them is enough. */
   orJoin: ' or ',
   valuePlaceholder: {
@@ -421,6 +434,7 @@ export const segmentsContent = {
     tag: 'vip',
     last_order_days: '90',
     marketing: '',
+    business: '',
   } as Record<string, string>,
 } as const
 

@@ -37,8 +37,8 @@ const WORLD_FOCUS = { lat: 5, lng: 15 }
 const GEOLOCATION_MAX_AGE_MS = 600_000
 const GEOLOCATION_TIMEOUT_MS = 8_000
 
-/** Our WebGL globe (`webgl-globe-canvas.tsx`), fetched only on this page and only once the
- * stats have painted, so it never delays them. */
+/** Our WebGL globe (`webgl-globe-canvas.tsx`, with the Globe settings panel), fetched only on
+ * this page and only once the stats have painted, so it never delays them. */
 function loadGlobe(): Promise<ComponentType<GlobeCanvasProps>> {
   return import('./webgl-globe-canvas').then((module) => module.default)
 }
@@ -140,13 +140,11 @@ export default function LiveGlobeHero({ initial, header, left, right }: LiveGlob
         <div className="glass-bar pointer-events-auto w-fit max-w-[calc(100%-9.5rem)] rounded-2xl px-4 py-3 md:max-w-[calc(100%-11rem)]">
           {header}
         </div>
-        <p className="mx-auto hidden max-w-md text-center text-caption text-muted-foreground lg:block">
-          {!webglOk
-            ? copy.heroUnsupported
-            : markers.length === 0
-              ? copy.heroEmpty
-              : copy.heroSubtitle}
-        </p>
+        {webglOk ? null : (
+          <p className="mx-auto hidden max-w-md text-center text-caption text-muted-foreground lg:block">
+            {copy.heroUnsupported}
+          </p>
+        )}
         <div className="flex min-h-0 flex-1 flex-col justify-end gap-3 lg:flex-row lg:items-start lg:justify-between">
           <div className="pointer-events-auto flex max-h-[55%] min-w-0 flex-col gap-3 overflow-y-auto lg:max-h-full lg:w-[22rem] lg:shrink-0">
             {left}

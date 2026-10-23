@@ -17,6 +17,22 @@ export const shiprocketPlugin = definePlugin({
   company: 'Shiprocket',
   description:
     'Rate comparison across Shiprocket’s courier network, bookings, tracking, NDR and wallet balance.',
+  listing: {
+    tagline: 'Many couriers through one account: rates, labels and tracking.',
+    highlights: [
+      'Compare courier rates',
+      'Bookings, labels and tracking',
+      'Wallet balance and NDR',
+      'Pincode delivery checker',
+    ],
+    guide: '/merchant-guide/orders/shipments',
+    worksWith: [
+      'The Shipments workspace, beside any other courier you install',
+      'Courier rules in Settings → Shipping',
+      'Delivery checker block in your theme',
+    ],
+    keywords: ['courier', 'shipping', 'aggregator'],
+  },
   access: {
     resources: [
       {

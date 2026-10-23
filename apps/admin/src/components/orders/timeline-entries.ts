@@ -1,6 +1,6 @@
 import type { Tracking } from '@commerce/core'
 import { readManualCollection } from '@commerce/core/manual-payments'
-import type { orderDetailContent } from '@/data/orders'
+import type { orderDetailContent } from '@/data/order-detail'
 import type { shipmentPanelContent } from '@/data/shipping'
 import type { Formatters } from '@/lib/format'
 import { dayKey } from '@/lib/format-date'

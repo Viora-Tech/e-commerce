@@ -1,5 +1,6 @@
 'use client'
 
+import { appStoreUrl } from '@commerce/config/site'
 import { ChevronsUpDown, ExternalLink, Globe, Store } from '@commerce/ui/icons'
 import { cn } from '@commerce/ui/lib/utils'
 import {
@@ -76,17 +77,21 @@ const SIDEBAR_MENU = 'w-60 rounded-sm p-1'
 /**
  * Installed apps hang under the Apps entry, like Drafts under Orders. Past a handful the list
  * would push everything else off the rail, so it stops at `SIDEBAR_APPS` with a "View all".
+ * The last row is the App Store website, where more apps are found (a new tab).
  */
 function nestApps(
   items: NavItem[],
   apps: AdminSidebarProps['apps'],
-  viewAllApps: (n: number) => string,
+  words: { viewAllApps: (n: number) => string; appStore: string },
 ): NavItem[] {
   const shown = apps.slice(0, SIDEBAR_APPS).map((a) => ({ href: a.href, label: a.name }))
-  const children =
-    apps.length > SIDEBAR_APPS
-      ? [...shown, { href: routes.apps.list(), label: viewAllApps(apps.length) }]
-      : shown
+  const children = [
+    ...shown,
+    ...(apps.length > SIDEBAR_APPS
+      ? [{ href: routes.apps.list(), label: words.viewAllApps(apps.length) }]
+      : []),
+    { href: appStoreUrl(), label: words.appStore, external: true },
+  ]
   return items.map((item) =>
     item.href === routes.apps.list()
       ? { ...item, children: [...(item.children ?? []), ...children] }
@@ -242,7 +247,7 @@ export default function AdminSidebar({
             label={group.label ? navGroupName(group.label, locale) : undefined}
             items={
               group.label === APPS_GROUP
-                ? nestApps(localizeNavItems(group.items, locale), apps, layoutCopy.viewAllApps)
+                ? nestApps(localizeNavItems(group.items, locale), apps, layoutCopy)
                 : localizeNavItems(group.items, locale)
             }
             pathname={pathname}

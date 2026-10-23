@@ -1,10 +1,6 @@
-/**
- * SOURCE OF TRUTH: stock status. What the storefront and admin say about a variant's or
- * product's stock, the threshold for "low", and the short spellings `?stock=` links and list
- * filters use. Browser-safe (`@commerce/core/catalog`).
- */
+/** SOURCE OF TRUTH: stock status — WHAT: what the storefront and admin say about a variant's or product's stock, the threshold for "low", and the short spellings `?stock=` links and list filters use / WHY: one rule for every stock badge and filter. Browser-safe (`@commerce/core/catalog`). */
 
-export const STOCK_STATES = ['in_stock', 'low', 'out', 'unlimited'] as const
+const STOCK_STATES = ['in_stock', 'low', 'out', 'unlimited'] as const
 export type StockState = (typeof STOCK_STATES)[number]
 
 /**

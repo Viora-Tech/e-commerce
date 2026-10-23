@@ -59,7 +59,8 @@ export type GlobeSettings = {
   lastZoom: number
 }
 
-const STORAGE_KEY = 'wc-live-globe-settings-v1'
+/* v2 (22 Oct 2026): the defaults changed to the Home card's look, so older saved choices reset. */
+const STORAGE_KEY = 'wc-live-globe-settings-v2'
 
 const MOTION_SPEEDS: readonly GlobeMotionSpeed[] = ['slow', 'normal', 'fast']
 const START_VIEWS: readonly GlobeStartView[] = ['india', 'mine', 'world']
@@ -71,7 +72,8 @@ const TIME_RANGES: readonly GlobeTimeRange[] = ['1h', '24h', '7d']
  * everyone until they change it. */
 export function defaultGlobeSettings(prefersReducedMotion: boolean): GlobeSettings {
   return {
-    layers: { borders: true, coastlines: true, grid: true, arcs: true, glow: true },
+    /* The Home card's look by default: no lines on the globe, just dots, glow and arcs. */
+    layers: { borders: false, coastlines: false, grid: false, arcs: true, glow: true },
     motion: {
       autoRotate: !prefersReducedMotion,
       speed: 'normal',
@@ -79,7 +81,8 @@ export function defaultGlobeSettings(prefersReducedMotion: boolean): GlobeSettin
       rememberZoom: false,
     },
     look: {
-      style: 'solid',
+      /* Dotted land by default, like the Home card's globe (owner 2026-10-22). */
+      style: 'dotted',
       borderStyle: 'solid',
       theme: 'accent',
       customLand: null,
@@ -171,11 +174,21 @@ export function loadGlobeSettings(prefersReducedMotion: boolean): GlobeSettings 
 }
 
 /** Saves the whole settings object. Best-effort: a private window or a full quota just means
- * the choice does not survive this tab. */
-export function saveGlobeSettings(settings: GlobeSettings): void {
+ * the choice does not survive this tab. The zoom already saved (by `saveLastZoom`, which never
+ * goes through React state, so `settings.lastZoom` is stale) is kept unless `replaceZoom`. */
+export function saveGlobeSettings(
+  settings: GlobeSettings,
+  options: { replaceZoom?: boolean } = {},
+): void {
   try {
     if (typeof window === 'undefined') return
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(settings))
+    const raw = options.replaceZoom ? null : window.localStorage.getItem(STORAGE_KEY)
+    const stored = raw ? JSON.parse(raw) : null
+    const lastZoom =
+      stored && typeof stored.lastZoom === 'number' && Number.isFinite(stored.lastZoom)
+        ? stored.lastZoom
+        : settings.lastZoom
+    window.localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...settings, lastZoom }))
   } catch {
     // Storage unavailable; the setting still applies for this session, just not saved.
   }

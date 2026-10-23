@@ -53,6 +53,16 @@ export function definePlugin(input: DefinePluginInput): PluginManifest {
     }
     seenBlockTypes.add(block.type)
   }
+  if (input.listing) {
+    if (!input.listing.tagline.trim())
+      throw new Error(`plugin "${input.id}" listing needs a tagline`)
+    if (input.listing.highlights.length === 0) {
+      throw new Error(`plugin "${input.id}" listing needs at least one highlight`)
+    }
+    if (input.listing.guide && !input.listing.guide.startsWith('/')) {
+      throw new Error(`plugin "${input.id}" listing guide must be a docs path starting with "/"`)
+    }
+  }
   validateOrderActions(input)
   return {
     id: input.id,
@@ -72,6 +82,7 @@ export function definePlugin(input: DefinePluginInput): PluginManifest {
     emailAttachments: input.emailAttachments,
     storefront: input.storefront,
     access: input.access,
+    listing: input.listing,
     setupState: input.setupState,
     provides: {
       payments: input.provides.payments ?? [],

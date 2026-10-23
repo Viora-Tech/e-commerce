@@ -11,6 +11,7 @@ import PageBody from '@/components/layout/page-body'
 import PageHeader from '@/components/layout/page-header'
 import { authContent } from '@/data/auth'
 import { authClient } from '@/lib/auth-client'
+import { routes } from '@/lib/routes'
 
 type StoreOption = { id: string; name: string; slug: string }
 
@@ -23,16 +24,30 @@ type SelectStoreProps = {
 
 const copy = authContent.selectStore
 
-/** Sets the active organization and lands on the dashboard; on failure, surfaces the error and
+/**
+ * Where a pick lands: the layout's fallback stands in for the page that was asked for (an App
+ * Store Install link, say), so it reloads that page; the Choose a store page goes home. On the
+ * install page the pick is the store choice too (`&store=`), so it is not asked twice.
+ */
+function landingFor(autoSelect: boolean, storeId: string): string {
+  if (!autoSelect) return '/'
+  const url = new URL(window.location.href)
+  if (url.pathname === INSTALL_PATH) url.searchParams.set('store', storeId)
+  return url.toString()
+}
+
+const INSTALL_PATH = new URL(routes.apps.install('x'), 'http://admin').pathname
+
+/** Sets the active organization and lands on `to`; on failure, surfaces the error and
  *  lets the caller re-enable its controls. Module-scope so both the auto-select effect and the
  *  click handler share one implementation without one calling the other out of hook order. */
-async function pickStore(id: string, setBusyId: (id: string | null) => void) {
+async function pickStore(id: string, setBusyId: (id: string | null) => void, to: string) {
   setBusyId(id)
   try {
     const { error } = await authClient.organization.setActive({ organizationId: id })
     if (error) throw new Error(error.message ?? copy.switchFailed)
     // A full load, so client caches (permissions, lists) start fresh for the new store.
-    window.location.assign('/')
+    window.location.assign(to)
   } catch (err) {
     toast.error(err instanceof Error ? err.message : copy.switchFailed)
     setBusyId(null)
@@ -48,12 +63,12 @@ export default function SelectStore({ stores, autoSelect = false }: SelectStoreP
     const soleStoreId = autoSelect && stores.length === 1 ? (stores[0]?.id ?? null) : null
     if (soleStoreId && !autoPicked.current) {
       autoPicked.current = true
-      pickStore(soleStoreId, setBusyId)
+      pickStore(soleStoreId, setBusyId, landingFor(autoSelect, soleStoreId))
     }
   }, [autoSelect, stores])
 
   // Event handlers
-  const handlePick = (id: string) => pickStore(id, setBusyId)
+  const handlePick = (id: string) => pickStore(id, setBusyId, landingFor(autoSelect, id))
 
   // Early returns
   if (autoSelect && stores.length === 1) {

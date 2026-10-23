@@ -18,6 +18,13 @@ export const emiPlugin = definePlugin({
   category: 'marketing',
   description:
     'Show "or ₹X/month" on product pages so shoppers see they can pay in parts with EMI or pay later.',
+  listing: {
+    tagline: '"Or ₹X/month" under product prices, and an EMI offers block.',
+    highlights: ['Shows the lowest EMI under each price', 'An EMI offers block for product pages'],
+    guide: '/merchant-guide/apps/emi-and-pay-later',
+    worksWith: ['EMI offers block in your theme', 'Razorpay, for EMI at checkout'],
+    keywords: ['emi', 'pay later', 'bnpl'],
+  },
   access: {
     resources: [
       { resource: 'products', level: 'read', why: 'Prices, to show the monthly amount' },

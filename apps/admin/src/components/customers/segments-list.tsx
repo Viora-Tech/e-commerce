@@ -24,9 +24,11 @@ function rulesLine(copy: SegmentCopy, money: (paise: number) => string, s: Segme
     const value =
       c.field === 'marketing'
         ? (copy.marketingValues[c.value] ?? c.value)
-        : c.field === 'spend'
-          ? money(Number(c.value))
-          : c.value
+        : c.field === 'business'
+          ? (copy.businessValues[c.value] ?? c.value)
+          : c.field === 'spend'
+            ? money(Number(c.value))
+            : c.value
     return `${copy.fields[c.field] ?? c.field} ${copy.ops[c.op] ?? c.op} ${value}`
   })
   return parts.join(s.rules.match === 'any' ? copy.orJoin : ' · ')

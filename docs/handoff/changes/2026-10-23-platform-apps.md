@@ -10,7 +10,7 @@ large dependency). No new dependencies.
 
 ## What changed
 
-- **Migration `0147_platform_accounts`**: `platform_account` (store, platform `meta` /
+- **Migration `0153_platform_accounts`**: `platform_account` (store, platform `meta` /
   `whatsapp` / `shopify`, external id, status, detail, last event; RLS) and the SECURITY DEFINER
   `stores_for_platform_account(platform, id)` (`storesForPlatformAccount` in `@commerce/db`), so
   callbacks that name only a Facebook user, a WhatsApp Business account or a shop find the store.

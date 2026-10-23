@@ -3,9 +3,11 @@ import { resetDb } from '@commerce/db/test'
 import { afterAll, beforeEach, describe, expect, it } from 'vitest'
 import {
   deleteSavedReport,
+  getSavedReport,
   listSavedReports,
   renameSavedReport,
   saveReport,
+  updateSavedQuery,
 } from '../src/services/saved-reports.service'
 
 const owner = createDb(process.env.DATABASE_URL_OWNER as string)
@@ -58,5 +60,63 @@ describe('saved reports', () => {
         saveReport(tx, one, { name: 'x', reportSlug: 'nope', range: { key: '30d' } }, null),
       ),
     ).rejects.toThrow(/not available/)
+  })
+
+  it('saves a custom query with its text, lists it and saves edits over it', async () => {
+    const one = await newStore('r4')
+    const query = 'FROM sales\n  SHOW orders\n  GROUP BY state'
+    const saved = await withStore(app, one, (tx) =>
+      saveReport(
+        tx,
+        one,
+        { name: 'Orders by state', reportSlug: 'query', range: { key: '30d' }, query },
+        null,
+      ),
+    )
+    const list = await withStore(app, one, (tx) => listSavedReports(tx))
+    expect(list[0]).toMatchObject({ reportSlug: 'query', query, reportTitle: 'Custom query' })
+    const id = saved?.id as string
+    const next = 'FROM sales SHOW net_sales GROUP BY day SINCE -7d UNTIL today'
+    await withStore(app, one, (tx) =>
+      updateSavedQuery(tx, { id, name: 'Daily sales', query: next, range: { key: '7d' } }),
+    )
+    expect(await withStore(app, one, (tx) => getSavedReport(tx, id))).toMatchObject({
+      name: 'Daily sales',
+      query: next,
+      range: { key: '7d' },
+    })
+  })
+
+  it('refuses a custom query that does not parse, and query edits on a catalogue report', async () => {
+    const one = await newStore('r5')
+    await expect(
+      withStore(app, one, (tx) =>
+        saveReport(
+          tx,
+          one,
+          { name: 'x', reportSlug: 'query', range: { key: '30d' }, query: 'SELECT 1' },
+          null,
+        ),
+      ),
+    ).rejects.toThrow(/line 1/)
+    const catalogue = await withStore(app, one, (tx) =>
+      saveReport(
+        tx,
+        one,
+        { name: 'States', reportSlug: 'sales-by-state', range: { key: '7d' } },
+        null,
+      ),
+    )
+    expect(catalogue?.query).toBeNull()
+    await expect(
+      withStore(app, one, (tx) =>
+        updateSavedQuery(tx, {
+          id: catalogue?.id as string,
+          name: 'x',
+          query: 'FROM sales SHOW orders',
+          range: { key: '7d' },
+        }),
+      ),
+    ).rejects.toThrow()
   })
 })

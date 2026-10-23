@@ -20,8 +20,6 @@ const COPY =
 
 const ALLOWLIST: Record<string, { lines: number; reason: string }> = {
   'apps/admin/src/data/customize.ts': { lines: 556, reason: COPY },
-  'apps/admin/src/data/hi/orders.ts': { lines: 539, reason: COPY },
-  'apps/admin/src/data/orders.ts': { lines: 543, reason: COPY },
   'apps/storefront/src/lib/liquid-theme.ts': { lines: 560, reason: SPLIT },
   'packages/api/src/routers/store.ts': { lines: 524, reason: SPLIT },
   'packages/api/src/services/analytics-reports.ts': { lines: 554, reason: SPLIT },
@@ -33,7 +31,6 @@ const ALLOWLIST: Record<string, { lines: number; reason: string }> = {
     reason:
       'gateway setup plus the Live/Test and Active switches — move the switches into their own module',
   },
-  'packages/api/src/services/product.service.ts': { lines: 501, reason: SPLIT },
   'packages/blocks/src/section-settings.ts': {
     lines: 524,
     reason: 'the typed setting schema every storefront section reads — split per section group',
@@ -65,7 +62,7 @@ const ALLOWLIST: Record<string, { lines: number; reason: string }> = {
       'collections, pages, blogs, menus and redirects in one writer — split one file per resource',
   },
   'packages/db/src/schema.ts': {
-    lines: 2446,
+    lines: 2406,
     reason: 'the Drizzle schema; split into per-area schema files (like marketing-schema.ts)',
   },
   'packages/invoices/src/document.ts': { lines: 508, reason: SPLIT },

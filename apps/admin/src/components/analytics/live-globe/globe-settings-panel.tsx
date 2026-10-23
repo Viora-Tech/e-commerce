@@ -8,6 +8,7 @@ import { Switch } from '@commerce/ui/shadcn/switch'
 import type { ReactNode } from 'react'
 import PillTabs from '@/components/layout/pill-tabs'
 import { globeSettingsContent as copy } from '@/data/live-globe'
+import { readPalette } from './globe-palette'
 import type {
   GlobeLayerSettings,
   GlobeLookSettings,
@@ -18,6 +19,8 @@ import type {
 
 type GlobeSettingsPanelProps = {
   settings: GlobeSettings
+  /** For the colour pickers' "theme colour" swatches, which differ between light and dark. */
+  dark: boolean
   onChange: (patch: Partial<GlobeSettings>) => void
   onReset: () => void
 }
@@ -45,6 +48,7 @@ const THEME_SWATCH: Record<Exclude<GlobeThemePreset, 'accent'>, string> = {
  */
 export default function GlobeSettingsPanel({
   settings,
+  dark,
   onChange,
   onReset,
 }: GlobeSettingsPanelProps) {
@@ -57,6 +61,14 @@ export default function GlobeSettingsPanel({
     onChange({ look: { ...settings.look, [key]: value } })
   const setData = (patch: Partial<GlobeSettings['data']>) =>
     onChange({ data: { ...settings.data, ...patch } })
+
+  // Derived
+  /* The theme's own colours, as drawn (custom picks left out), for the pickers to start from. */
+  const themeSwatches = readPalette(
+    dark,
+    { theme: settings.look.theme, customLand: null, customOcean: null, customAccent: null },
+    true,
+  ).swatches
 
   return (
     <Popover>
@@ -79,7 +91,7 @@ export default function GlobeSettingsPanel({
       <PopoverContent
         align="end"
         sideOffset={8}
-        className="flex max-h-[min(30rem,75svh)] w-80 flex-col gap-4 overflow-y-auto bg-popover/95 p-3 backdrop-blur-md"
+        className="flex max-h-[min(48rem,calc(var(--available-height)-0.5rem))] w-80 flex-col gap-5 overflow-y-auto overscroll-contain bg-popover/95 p-4 backdrop-blur-md"
       >
         <div>
           <p className="text-body font-medium text-popover-foreground">{copy.title}</p>
@@ -140,7 +152,11 @@ export default function GlobeSettingsPanel({
               onChange={(v) => v && setLook('style', v)}
             />
           </Row>
-          <Row label={copy.look.borderStyle} stack>
+          <Row
+            label={copy.look.borderStyle}
+            help={settings.layers.borders ? undefined : copy.look.borderStyleOff}
+            stack
+          >
             <PillTabs
               variant="segmented"
               tabs={STYLES.map((s) => ({ value: s, label: copy.look.borderStyles[s] }))}
@@ -165,19 +181,19 @@ export default function GlobeSettingsPanel({
           <ColorRow
             label={copy.look.customLand}
             value={settings.look.customLand}
-            fallback="#8a8a8a"
+            fallback={themeSwatches.land}
             onChange={(v) => setLook('customLand', v)}
           />
           <ColorRow
             label={copy.look.customOcean}
             value={settings.look.customOcean}
-            fallback="#141b26"
+            fallback={themeSwatches.ocean}
             onChange={(v) => setLook('customOcean', v)}
           />
           <ColorRow
             label={copy.look.customAccent}
             value={settings.look.customAccent}
-            fallback="#4fb37e"
+            fallback={themeSwatches.accent}
             onChange={(v) => setLook('customAccent', v)}
           />
         </Section>
@@ -224,25 +240,26 @@ export default function GlobeSettingsPanel({
 
 type RowProps = { label: string; help?: string; stack?: boolean; children: ReactNode }
 
-/** One settings row: a label (and optional help line) with its control on the right, in a
- * 32px-tall row — or, when `stack` (a segmented control needs more width than fits beside a
- * label), the control on its own line below. */
+/** One settings row: a label (and optional help line, which wraps under it) with its control
+ * on the right, at least 32px tall — or, when `stack` (a segmented control needs more width
+ * than fits beside a label), the control on its own line below. */
 function Row({ label, help, stack, children }: RowProps) {
   if (stack) {
     return (
       <div className="flex flex-col gap-1.5">
         <Label className="text-caption text-muted-foreground">{label}</Label>
         {children}
+        {help ? <span className="text-caption text-muted-foreground">{help}</span> : null}
       </div>
     )
   }
   return (
-    <div className="flex h-8 items-center justify-between gap-3">
-      <div className="flex flex-col justify-center">
+    <div className="flex min-h-8 items-center justify-between gap-3">
+      <div className="flex min-w-0 flex-1 flex-col gap-0.5">
         <Label>{label}</Label>
         {help ? <span className="text-caption text-muted-foreground">{help}</span> : null}
       </div>
-      {children}
+      <div className="shrink-0">{children}</div>
     </div>
   )
 }
@@ -253,9 +270,9 @@ type SectionProps = { heading: string; children: ReactNode }
  * pages' section labels. */
 function Section({ heading, children }: SectionProps) {
   return (
-    <div className="flex flex-col gap-2.5 border-t border-border pt-3 first:border-t-0 first:pt-0">
+    <div className="flex flex-col gap-3 border-t border-border pt-4">
       <p className="text-eyebrow">{heading}</p>
-      <div className="flex flex-col gap-2.5">{children}</div>
+      <div className="flex flex-col gap-3">{children}</div>
     </div>
   )
 }

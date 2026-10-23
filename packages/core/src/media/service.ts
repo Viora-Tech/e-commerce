@@ -229,15 +229,40 @@ const usedSubquery = sql`(select count(*)::int from product_media pm where pm.me
 /** Media a product or metaobject may point at: confirmed and stored, optimised or not yet. */
 const USABLE_MEDIA_STATUSES: ('processing' | 'ready')[] = ['processing', 'ready']
 
-/** Library listing: ready items newest first, with how many products use each. */
-export async function listMedia(tx: StoreTx, input: MediaListInput) {
-  const [sizeMin, sizeMax] = input.size ? SIZE_BUCKETS[input.size] : [null, null]
-  const where = and(
+/** What the library shows of a file: the list item and the file page read the same columns. */
+export const libraryColumns = {
+  id: media.id,
+  url: media.url,
+  key: media.key,
+  alt: media.alt,
+  contentType: media.contentType,
+  size: media.size,
+  width: media.width,
+  height: media.height,
+  /* For the pickers' <Picture> previews: responsive variants and the ThumbHash blur-up. */
+  variants: sql<Record<string, { avif: string; webp: string }> | null>`${media.variants}`,
+  thumbhash: media.thumbhash,
+  createdAt: media.createdAt,
+  /* Drizzle renders correlated columns unqualified inside a single-table select, so spell the join out. */
+  usedBy: sql<number>`(select count(*)::int from product_media pm where pm.media_id = media.id)`,
+}
+
+/** The library's filters, shared by the listing and a file page's previous / next. */
+export function libraryWhere(input: Pick<MediaListInput, 'search' | 'fileType'>) {
+  return and(
     eq(media.status, 'ready'),
     input.search
       ? or(ilike(media.alt, `%${input.search}%`), ilike(media.key, `%${input.search}%`))
       : undefined,
     input.fileType ? fileTypeWhere(input.fileType) : undefined,
+  )
+}
+
+/** Library listing: ready items newest first, with how many products use each. */
+export async function listMedia(tx: StoreTx, input: MediaListInput) {
+  const [sizeMin, sizeMax] = input.size ? SIZE_BUCKETS[input.size] : [null, null]
+  const where = and(
+    libraryWhere(input),
     sizeMin !== null ? sql`${media.size} >= ${sizeMin}` : undefined,
     sizeMax !== null ? sql`${media.size} < ${sizeMax}` : undefined,
     input.used === 'used' ? sql`${usedSubquery} > 0` : undefined,
@@ -253,22 +278,7 @@ export async function listMedia(tx: StoreTx, input: MediaListInput) {
           : [desc(media.createdAt), desc(media.id)]
   const [countRow] = await tx.select({ n: sql<number>`count(*)::int` }).from(media).where(where)
   const rows = await tx
-    .select({
-      id: media.id,
-      url: media.url,
-      key: media.key,
-      alt: media.alt,
-      contentType: media.contentType,
-      size: media.size,
-      width: media.width,
-      height: media.height,
-      /* For the pickers' <Picture> previews: responsive variants and the ThumbHash blur-up. */
-      variants: sql<Record<string, { avif: string; webp: string }> | null>`${media.variants}`,
-      thumbhash: media.thumbhash,
-      createdAt: media.createdAt,
-      /* Drizzle renders correlated columns unqualified inside a single-table select, so spell the join out. */
-      usedBy: sql<number>`(select count(*)::int from product_media pm where pm.media_id = media.id)`,
-    })
+    .select(libraryColumns)
     .from(media)
     .where(where)
     .orderBy(...orderBy)

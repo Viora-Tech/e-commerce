@@ -16,6 +16,12 @@ export const formsPlugin = definePlugin({
   category: 'marketing',
   description:
     'Make the contact and advice forms of your theme work: every message is saved here and emailed to you.',
+  listing: {
+    tagline: 'Makes the contact forms of an imported theme work, with every message saved.',
+    highlights: ['Saves every message on a Submissions page', 'Emails each one to your store'],
+    worksWith: ['Themes imported from Shopify'],
+    keywords: ['contact form', 'messages'],
+  },
   access: {
     resources: [
       {

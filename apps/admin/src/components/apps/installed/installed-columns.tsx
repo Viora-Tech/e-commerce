@@ -1,10 +1,10 @@
-import type { AppSummary } from '@/components/apps/app-card'
 import AppLogo from '@/components/apps/app-logo'
 import RelativeTime from '@/components/layout/relative-time'
 import StatusChip from '@/components/layout/status-chip'
 import type { ResourceColumnSpec } from '@/components/table/resource-table'
 import type { installedAppsContent } from '@/data/installed-apps'
 import { accessDetail, accessNames, STATUS_TONE } from '@/lib/app-access'
+import type { AppSummary } from '@/lib/app-summary'
 import type { Formatters } from '@/lib/format'
 
 type Copy = typeof installedAppsContent

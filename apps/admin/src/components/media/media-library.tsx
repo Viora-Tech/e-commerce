@@ -172,6 +172,8 @@ function MediaLibraryContent({ initial }: { initial: MediaLibraryInitial }) {
       : []),
     { label: mediaContent.tile.delete, onSelect: () => setDeleting(item), destructive: true },
   ]
+  /** The file's page carries the search and type, so its arrows step through this same list. */
+  const fileHref = (id: string) => routes.content.file(id, { query, type })
   const metaOf = (item: Item) =>
     [item.size ? formatBytes(item.size) : fileKind(item.contentType), copy.used(item.usedBy)]
       .filter(Boolean)
@@ -273,6 +275,7 @@ function MediaLibraryContent({ initial }: { initial: MediaLibraryInitial }) {
                 name: item.key ? fileName(item.key) : (item.alt ?? copy.title),
                 meta: metaOf(item),
                 actions: actionsFor(item),
+                href: fileHref(item.id),
               }))}
             />
           ) : (
@@ -299,6 +302,7 @@ function MediaLibraryContent({ initial }: { initial: MediaLibraryInitial }) {
                   caption={item.key ? fileName(item.key) : undefined}
                   meta={metaOf(item)}
                   actions={actionsFor(item)}
+                  href={fileHref(item.id)}
                 />
               ))}
             </ul>

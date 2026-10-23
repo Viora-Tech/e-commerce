@@ -116,6 +116,8 @@ export const layoutContent = {
   more: 'More',
   viewAll: 'View all',
   viewAllApps: (n: number) => `View all apps (${n})`,
+  /** Last row under Apps in the sidebar: the App Store website, in a new tab. */
+  appStore: 'App Store',
   noStore: 'No store selected',
   toggleTheme: 'Toggle theme',
   scroll: {
