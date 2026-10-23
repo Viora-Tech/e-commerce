@@ -1,4 +1,6 @@
 import { cn } from '@commerce/ui/lib/utils'
+import { automationLoopContent } from '@/data/automations'
+import { useCopy } from '@/hooks/use-copy'
 import { nodeView } from '@/lib/automation-node-view'
 import { childAt, type Edge } from '@/lib/automation-tree'
 import CanvasJoint from './canvas-joint'
@@ -18,6 +20,9 @@ type CanvasBranchProps = {
  * into Then and Otherwise columns, each its own branch), until the branch ends.
  */
 export default function CanvasBranch({ ctx, edge, insertLabel }: CanvasBranchProps) {
+  // Hooks
+  const loop = useCopy(automationLoopContent)
+
   // Early returns
   const { copy } = ctx
   const id = childAt(ctx.def, edge)
@@ -39,7 +44,19 @@ export default function CanvasBranch({ ctx, edge, insertLabel }: CanvasBranchPro
   }
 
   // Render logic
-  const view = nodeView(node, ctx)
+  const view = nodeView(node, { ...ctx, loop })
+  const branches =
+    node.kind === 'condition'
+      ? ([
+          ['next', copy.canvas.thenBranch],
+          ['otherwise', copy.canvas.otherwise],
+        ] as const)
+      : node.kind === 'forEach'
+        ? ([
+            ['body', loop.eachRecord],
+            ['next', loop.afterLoop],
+          ] as const)
+        : null
   const mark = ctx.marks ? (ctx.marks[node.id] ?? 'unreached') : undefined
 
   return (
@@ -71,12 +88,11 @@ export default function CanvasBranch({ ctx, edge, insertLabel }: CanvasBranchPro
         }}
         onSelect={ctx.onSelect}
       />
-      {node.kind === 'condition' ? (
+      {branches ? (
         <>
           <span aria-hidden="true" className="h-4 w-px bg-border" />
           <div className="flex items-start">
-            {(['next', 'otherwise'] as const).map((branch, i) => {
-              const name = branch === 'next' ? copy.canvas.thenBranch : copy.canvas.otherwise
+            {branches.map(([branch, name], i) => {
               return (
                 <div key={branch} className="relative flex flex-col items-center px-4">
                   <span
@@ -90,9 +106,7 @@ export default function CanvasBranch({ ctx, edge, insertLabel }: CanvasBranchPro
                   <span
                     className={cn(
                       'rounded-full px-2.5 py-0.5 text-caption font-medium',
-                      branch === 'next'
-                        ? 'bg-success-soft text-success'
-                        : 'bg-muted text-muted-foreground',
+                      i === 0 ? 'bg-success-soft text-success' : 'bg-muted text-muted-foreground',
                     )}
                   >
                     {name}

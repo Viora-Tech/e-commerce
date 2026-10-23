@@ -672,3 +672,28 @@ export const automationRunContent = {
   openWorkflow: 'Open workflow',
   notFound: 'This run is not here any more. Run detail is kept for 30 days.',
 }
+
+/** Find records and For each: the editor's words for look-ups and loops (design phase 5). */
+export const automationLoopContent = {
+  find: 'Find records',
+  findHint: 'Look up orders, customers or products that match',
+  forEach: 'For each',
+  forEachHint: 'Repeat steps for every record a Find records step found',
+  forEachNeedsFind: 'Add a Find records step above first',
+  eachRecord: 'Each record',
+  afterLoop: 'After the loop',
+  findTitle: (n: number, kind: string) => `Find up to ${n} ${kind}`,
+  forEachTitle: (source: string) => `For each from ${source}`,
+  resource: 'Look for',
+  resources: { order: 'Orders', customer: 'Customers', product: 'Products' } as Record<
+    string,
+    string
+  >,
+  rulesHelp: 'Only records that match. Leave empty for the newest ones.',
+  limit: 'At most',
+  limitHelp: (max: number) => `Up to ${max} records, newest first.`,
+  source: 'Records from',
+  sourceHelp: 'The steps on the Each record branch run once per record, about that record.',
+  noSource: 'No Find records step above',
+  pass: (n: number) => `Record ${n}`,
+}

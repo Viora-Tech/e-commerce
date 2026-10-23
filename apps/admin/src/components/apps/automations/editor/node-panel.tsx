@@ -5,8 +5,11 @@ import {
   type AutomationPlanTier,
   type CatalogueView,
   type ConditionNode,
+  type FindNode,
+  type ForEachNode,
   MAX_WAIT_MINUTES,
   MIN_WAIT_MINUTES,
+  nodeSubjects,
   tierAllows,
   type WaitNode,
   type WorkflowDefinition,
@@ -15,15 +18,21 @@ import { CircleAlert, Trash2 } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Field, FieldDescription, FieldLabel } from '@commerce/ui/shadcn/field'
 import { Input } from '@commerce/ui/shadcn/input'
-import { automationEditorContent, automationPiecesContent } from '@/data/automations'
+import {
+  automationEditorContent,
+  automationLoopContent,
+  automationPiecesContent,
+} from '@/data/automations'
 import { useCopy, useLocale } from '@/hooks/use-copy'
 import type { EditorIssue } from '@/lib/automation-issues'
 import { fieldLabel, mergeTagsFor } from '@/lib/automation-labels'
 import { nodeView } from '@/lib/automation-node-view'
-import { patchNode } from '@/lib/automation-tree'
+import { findsAbove, patchNode } from '@/lib/automation-tree'
 import ActionPanel from './action-panel'
 import ConditionPanel from './condition-panel'
 import DurationInput from './duration-input'
+import FindPanel from './find-panel'
+import ForEachPanel from './for-each-panel'
 import TriggerPanel from './trigger-panel'
 
 type NodePanelProps = {
@@ -56,6 +65,7 @@ export default function NodePanel({
   // Hooks
   const copy = useCopy(automationEditorContent)
   const pieces = useCopy(automationPiecesContent)
+  const loop = useCopy(automationLoopContent)
   const locale = useLocale()
 
   // Early returns
@@ -78,12 +88,14 @@ export default function NodePanel({
   if (!node) return <p className="text-body text-muted-foreground">{copy.panel.empty}</p>
 
   // Render logic
-  const view = nodeView(node, { catalogue, pieces, locale, copy })
+  const view = nodeView(node, { catalogue, pieces, locale, copy, loop, def })
+  // Inside a For each body, steps are about the loop's record kind.
+  const nodeSubject = nodeSubjects(def, subject).get(node.id) ?? subject
   const own = issues.filter((i) => i.nodeId === node.id)
   const action =
     node.kind === 'action' ? (catalogue.actions.find((a) => a.id === node.action) ?? null) : null
   const fields = [
-    ...catalogue.fields.filter((f) => f.subject === subject),
+    ...catalogue.fields.filter((f) => f.subject === nodeSubject),
     ...(catalogue.pluginFields[def.trigger.type] ?? []),
   ]
   // Required fields left empty, so their inputs show as invalid.
@@ -145,6 +157,18 @@ export default function NodePanel({
           node={node}
           fields={fields}
           onChange={(next) => onChange(patchNode<ConditionNode>(def, node.id, () => next))}
+        />
+      ) : node.kind === 'find' ? (
+        <FindPanel
+          node={node}
+          fields={catalogue.fields}
+          onChange={(next) => onChange(patchNode<FindNode>(def, node.id, () => next))}
+        />
+      ) : node.kind === 'forEach' ? (
+        <ForEachPanel
+          node={node}
+          sources={findsAbove(def, node.id)}
+          onChange={(next) => onChange(patchNode<ForEachNode>(def, node.id, () => next))}
         />
       ) : node.kind === 'wait' ? (
         <Field>

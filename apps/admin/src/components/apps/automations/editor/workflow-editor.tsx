@@ -21,10 +21,12 @@ import {
   type Edge,
   firstRule,
   insertStep,
+  loopSourceFor,
   type NewStep,
   patchNode,
   removalCount,
   removeStep,
+  subjectAt,
 } from '@/lib/automation-tree'
 import WorkflowCanvas from '../canvas/workflow-canvas'
 import TriggerPickerDialog from '../trigger-picker-dialog'
@@ -86,7 +88,8 @@ export default function WorkflowEditor({
   const handleInsert = (step: NewStep) => {
     if (!inserting) return
     const made = insertStep(def, inserting.edge, step)
-    const fields = catalogue.fields.filter((f) => f.subject === subject)
+    const at = subjectAt(def, inserting.edge, subject)
+    const fields = catalogue.fields.filter((f) => f.subject === at)
     const next =
       step.kind === 'condition'
         ? patchNode(made.def, made.id, (n) =>
@@ -227,9 +230,10 @@ export default function WorkflowEditor({
         open={inserting !== null}
         onOpenChange={(open) => !open && setInserting(null)}
         catalogue={catalogue}
-        subject={subject}
+        subject={inserting ? subjectAt(def, inserting.edge, subject) : subject}
         plan={plan}
         where={inserting?.label ?? ''}
+        loopSource={inserting ? loopSourceFor(def, inserting.edge) : null}
         onPick={handleInsert}
       />
       <TriggerPickerDialog

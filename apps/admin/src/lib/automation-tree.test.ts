@@ -1,6 +1,13 @@
 import { definitionIssues, emptyDefinition, walkNodes } from '@commerce/core/automations'
 import { describe, expect, it } from 'vitest'
-import { edgeTo, insertStep, removalCount, removeStep } from './automation-tree'
+import {
+  edgeTo,
+  insertStep,
+  loopSourceFor,
+  removalCount,
+  removeStep,
+  subjectAt,
+} from './automation-tree'
 
 const base = () => emptyDefinition('order.paid')
 
@@ -45,5 +52,26 @@ describe('removeStep', () => {
     const def = removeStep(no.def, cond.id)
     expect(def.start).toBeNull()
     expect(def.nodes).toEqual({})
+  })
+})
+
+describe('Find records and For each', () => {
+  it('builds a loop under a Find, offers it only below one, and removes its body with it', () => {
+    const find = insertStep(base(), { parent: null }, { kind: 'find' })
+    expect(loopSourceFor(base(), { parent: null })).toBeNull()
+    const after = { parent: find.id, branch: 'next' } as const
+    expect(loopSourceFor(find.def, after)).toBe(find.id)
+    const loop = insertStep(find.def, after, { kind: 'forEach', source: find.id })
+    const body = { parent: loop.id, branch: 'body' } as const
+    // No second loop inside a body; its steps are about the found records.
+    expect(loopSourceFor(loop.def, body)).toBeNull()
+    expect(subjectAt(loop.def, body, 'order')).toBe('order')
+    const tag = insertStep(loop.def, body, { kind: 'action', action: 'order.add_tags' })
+    expect(tag.def.nodes[loop.id]).toMatchObject({ body: tag.id, next: null })
+    expect(edgeTo(tag.def, tag.id)).toEqual(body)
+    expect(definitionIssues(tag.def)).toEqual([])
+    expect(removalCount(tag.def, loop.id)).toBe(2)
+    const gone = removeStep(tag.def, loop.id)
+    expect(Object.keys(gone.nodes)).toEqual([find.id])
   })
 })

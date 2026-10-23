@@ -7,7 +7,7 @@ import {
   type SubjectType,
   tierAllows,
 } from '@commerce/core/automations'
-import { Clock, Lock, Send, ShieldCheck, Workflow } from '@commerce/ui/icons'
+import { Clock, Lock, RefreshCw, Search, Send, ShieldCheck, Workflow } from '@commerce/ui/icons'
 import {
   Dialog,
   DialogContent,
@@ -16,7 +16,11 @@ import {
   DialogTitle,
 } from '@commerce/ui/shadcn/dialog'
 import StatusChip from '@/components/layout/status-chip'
-import { automationEditorContent, automationPiecesContent } from '@/data/automations'
+import {
+  automationEditorContent,
+  automationLoopContent,
+  automationPiecesContent,
+} from '@/data/automations'
 import { useCopy, useLocale } from '@/hooks/use-copy'
 import { actionLabel } from '@/lib/automation-labels'
 import { RESOURCE_ICON } from '@/lib/automation-node-view'
@@ -32,6 +36,8 @@ type StepPickerDialogProps = {
   plan: AutomationPlanTier | null
   /** Where the step goes, read out under the title. */
   where: string
+  /** The Find records a For each here would walk; null when none is above (or inside a loop). */
+  loopSource: string | null
   onPick: (step: NewStep) => void
 }
 
@@ -54,16 +60,20 @@ export default function StepPickerDialog({
   subject,
   plan,
   where,
+  loopSource,
   onPick,
 }: StepPickerDialogProps) {
   // Hooks
   const copy = useCopy(automationEditorContent)
   const pieces = useCopy(automationPiecesContent)
+  const loop = useCopy(automationLoopContent)
   const locale = useLocale()
 
   // Event handlers
   const handlePick = (id: string) => {
-    if (id === 'condition' || id === 'wait') return onPick({ kind: id })
+    if (id === 'condition' || id === 'wait' || id === 'find') return onPick({ kind: id })
+    if (id === 'forEach')
+      return loopSource ? onPick({ kind: 'forEach', source: loopSource }) : undefined
     const a = catalogue.actions.find((x) => x.id === id)
     if (a) onPick({ kind: 'action', action: a.id })
   }
@@ -77,6 +87,14 @@ export default function StepPickerDialog({
       items: [
         { id: 'condition', label: p.condition, hint: p.conditionHint, icon: Workflow },
         { id: 'wait', label: p.wait, hint: p.waitHint, icon: Clock },
+        { id: 'find', label: loop.find, hint: loop.findHint, icon: Search },
+        {
+          id: 'forEach',
+          label: loop.forEach,
+          hint: loopSource ? loop.forEachHint : loop.forEachNeedsFind,
+          icon: RefreshCw,
+          disabled: !loopSource,
+        },
       ],
     },
     ...RESOURCE_ORDER.map((resource) => ({

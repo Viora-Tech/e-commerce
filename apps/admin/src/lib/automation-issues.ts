@@ -14,6 +14,7 @@ import {
   type FieldSpec,
   isRuleGroup,
   nodeNeedsApproval,
+  nodeSubjects,
   type RuleGroup,
   tierAllows,
   UNARY_OPERATORS,
@@ -64,7 +65,12 @@ export function editorIssues(
   }
   if (!def.start) issues.push({ nodeId: null, message: copy.noSteps })
   const actions = new Map<string, ActionView>(catalogue.actions.map((a) => [a.id, a]))
+  const subjects = trigger ? nodeSubjects(def, trigger.subject) : new Map<string, string>()
   for (const node of Object.values(def.nodes)) {
+    if (node.kind === 'find') {
+      if (!rulesFinished(node.rules)) issues.push({ nodeId: node.id, message: copy.incompleteRule })
+      continue
+    }
     if (node.kind === 'condition') {
       if (node.rules.rules.length > 0 && !rulesFinished(node.rules)) {
         issues.push({ nodeId: node.id, message: copy.incompleteRule })
@@ -80,7 +86,8 @@ export function editorIssues(
     for (const f of missingFields(a.configFields, node.config)) {
       issues.push({ nodeId: node.id, message: copy.missing(input.fieldName(f)) })
     }
-    if (trigger && a.subjects !== 'any' && !a.subjects.includes(trigger.subject)) {
+    const at = subjects.get(node.id) ?? trigger?.subject
+    if (at && a.subjects !== 'any' && !a.subjects.includes(at)) {
       issues.push({ nodeId: node.id, message: copy.wrongSubject })
     }
     if (input.plan && !tierAllows(input.plan, a.planTier)) {

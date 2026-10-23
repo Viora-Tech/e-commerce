@@ -8,7 +8,11 @@ import Link from 'next/link'
 import RelativeTime from '@/components/layout/relative-time'
 import StatusChip from '@/components/layout/status-chip'
 import type { ChipTone } from '@/components/status/tone'
-import { automationRunContent, automationRunStatusContent } from '@/data/automations'
+import {
+  automationLoopContent,
+  automationRunContent,
+  automationRunStatusContent,
+} from '@/data/automations'
 import { useCopy } from '@/hooks/use-copy'
 import { automationRoutes } from '@/lib/automation-routes'
 
@@ -48,6 +52,7 @@ export default function RunStepItem({ step, title, selected, onSelect }: RunStep
   // Hooks
   const copy = useCopy(automationRunContent)
   const statuses = useCopy(automationRunStatusContent)
+  const loop = useCopy(automationLoopContent)
 
   // Render logic
   const hidden =
@@ -71,6 +76,7 @@ export default function RunStepItem({ step, title, selected, onSelect }: RunStep
       >
         <span className="text-body-strong text-ink-strong">{title}</span>
         <span className="flex items-center gap-2 text-caption text-muted-foreground">
+          {step.iteration > 0 ? <span>{loop.pass(step.iteration)}</span> : null}
           {step.attempt > 1 ? <span>{copy.attempt(step.attempt)}</span> : null}
           <RelativeTime value={step.startedAt} />
           <StatusChip tone={TONE[step.status]}>{statuses.step[step.status]}</StatusChip>

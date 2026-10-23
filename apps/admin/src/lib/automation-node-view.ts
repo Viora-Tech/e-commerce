@@ -8,6 +8,7 @@ import {
   type CatalogueView,
   nodeNeedsApproval,
   type TriggerView,
+  type WorkflowDefinition,
   type WorkflowNode,
 } from '@commerce/core/automations'
 import {
@@ -20,12 +21,14 @@ import {
   Megaphone,
   Package,
   Pencil,
+  RefreshCw,
+  Search,
   Send,
   ShoppingCart,
   Users,
   Workflow,
 } from '@commerce/ui/icons'
-import type { automationEditorContent } from '@/data/automations'
+import { type automationEditorContent, automationLoopContent } from '@/data/automations'
 import { actionDetail, actionLabel, conditionSummary, durationText } from '@/lib/automation-labels'
 import type { Locale } from '@/lib/i18n'
 
@@ -55,6 +58,7 @@ export const KIND_TONE = {
   condition: 'bg-warning-soft text-warning-foreground dark:text-warning',
   action: 'bg-info-soft text-info',
   wait: 'bg-muted text-muted-foreground',
+  loop: 'bg-violet-soft text-violet',
 } as const
 
 export type NodeView = {
@@ -75,9 +79,36 @@ export function nodeView(
     pieces: Record<string, string>
     locale: Locale
     copy: typeof automationEditorContent
+    /** Find records / For each words; English when the caller has none. */
+    loop?: typeof automationLoopContent | undefined
+    /** For a For each's title: its source step. */
+    def?: WorkflowDefinition | undefined
   },
 ): NodeView {
   const { copy } = ctx
+  if (node.kind === 'find' || node.kind === 'forEach') {
+    const l = ctx.loop ?? automationLoopContent
+    const find = node.kind === 'find' ? node : null
+    const source = node.kind === 'forEach' ? ctx.def?.nodes[node.source] : null
+    const sourceTitle =
+      source?.kind === 'find'
+        ? source.label || l.findTitle(source.limit, l.resources[source.resource] ?? '')
+        : l.noSource
+    return {
+      kind: find ? l.find : l.forEach,
+      title:
+        node.label ||
+        (find
+          ? l.findTitle(find.limit, l.resources[find.resource] ?? find.resource)
+          : l.forEachTitle(sourceTitle)),
+      detail: null,
+      icon: find ? Search : RefreshCw,
+      tone: KIND_TONE.loop,
+      asks: false,
+      sensitive: false,
+      messages: false,
+    }
+  }
   if (node.kind === 'wait') {
     return {
       kind: copy.canvas.wait,
