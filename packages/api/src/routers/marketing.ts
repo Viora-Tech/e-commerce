@@ -1,6 +1,7 @@
 import { loadEnv } from '@commerce/config'
 import {
   AutomationInputSchema,
+  automationsEngineMode,
   type CampaignInput,
   CampaignInputSchema,
   CampaignLocked,
@@ -118,6 +119,11 @@ const emailTemplatesRouter = {
 const automationsRouter = {
   list: can(permissions.MARKETING_READ).handler(({ context }) =>
     listGrowthAutomations(context.tx, context.scope.storeId),
+  ),
+
+  /** Which runner owns the store's automations: after the cutover Growth opens the Automations app. */
+  mode: can(permissions.MARKETING_READ).handler(({ context }) =>
+    automationsEngineMode(context.tx, context.scope.storeId),
   ),
 
   /** One automation with its stats and the latest runs. */

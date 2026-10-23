@@ -52,5 +52,9 @@ to their owners: cart block, recipient mismatch and COD transactional in the mes
 ## Left to wire once the engine lands
 
 Worker: `EngineDeps.exitCheck = growthExitCheck` and `growthSweep(..., startRuns)` in the
-automation tick. Growth's admin read-only mode for branched workflows (`editable: false`) is not
-built (the API refuses the save with CONFLICT).
+automation tick.
+
+After a store's cutover, `/growth/automations` redirects to `/apps/automations?origin=growth`
+(the Marketing filter; the app's list reads `origin`), and `/growth/automations/<id>` to
+`/apps/automations/workflows/<id>` (ids are kept). The check is `marketing.automations.mode`.
+Before cutover the old Growth editor is unchanged. No read-only Growth editor (owner decision).
