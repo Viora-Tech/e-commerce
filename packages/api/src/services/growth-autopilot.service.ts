@@ -44,13 +44,9 @@ import {
   customerSegment,
   type Db,
   marketingCampaign,
-  marketingMessage,
-  media,
   product,
-  productMedia,
   type StoreTx,
   store,
-  variant,
   withStore,
 } from '@commerce/db'
 import { formatMoney } from '@commerce/money'
@@ -100,12 +96,13 @@ async function newProducts(tx: StoreTx, now: Date): Promise<NewProduct[]> {
       id: product.id,
       title: product.title,
       handle: product.handle,
+      // Written literally: Drizzle renders interpolated columns unqualified inside a subquery.
       price: sql<
         number | null
-      >`(select min(${variant.pricePaise}) from ${variant} where ${variant.productId} = ${product.id})`,
+      >`(select min(v.price_paise) from variant v where v.product_id = "product".id)`,
       image: sql<
         string | null
-      >`(select ${media.url} from ${productMedia} join ${media} on ${media.id} = ${productMedia.mediaId} where ${productMedia.productId} = ${product.id} order by ${productMedia.position} limit 1)`,
+      >`(select m.url from product_media pm join media m on m.id = pm.media_id where pm.product_id = "product".id order by pm.position limit 1)`,
     })
     .from(product)
     .where(
@@ -131,7 +128,7 @@ async function thisWeek(tx: StoreTx, now: Date) {
   const [row] = await tx
     .select({
       campaigns: sql<number>`count(*)::int`,
-      messages: sql<number>`coalesce(sum((select count(*) from ${marketingMessage} where ${marketingMessage.campaignId} = ${marketingCampaign.id})), 0)::int`,
+      messages: sql<number>`coalesce(sum((select count(*) from marketing_message mm where mm.campaign_id = "marketing_campaign".id)), 0)::int`,
     })
     .from(marketingCampaign)
     .where(

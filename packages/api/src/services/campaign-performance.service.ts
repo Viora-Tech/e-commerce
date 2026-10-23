@@ -99,7 +99,8 @@ export async function campaignPerformance(
           sql`(${attr('campaignId')} is not null or ${attr('campaign')} is not null)`,
         ),
       )
-      .groupBy(attr('campaignId'), sql`lower(${attr('campaign')})`),
+      // By position: each interpolated key is its own parameter, so the expressions never match.
+      .groupBy(sql`1`, sql`2`),
     tx
       .select({
         tag: sql<string>`lower(${shortLink.utmCampaign})`,
