@@ -6,7 +6,7 @@ source-available or a Stripe-only SaaS tool). Merchant guide: `apps/docs/content
 
 ## Migration
 
-`0158_affiliates` (journal `when` after `0153_platform_accounts`). Tables `affiliate`,
+`0158_affiliates` (after `0155_discount_shopify_parity`; prevId is its snapshot, journal `when` later). Tables `affiliate`,
 `affiliate_commission` (one per order, `ON DELETE CASCADE` with the order), `affiliate_payout`, all
 under RLS, and the SECURITY DEFINER `stores_with_due_affiliate_commissions()` for the worker
 sweep. Number 0158 was allocated by the coordinator (0155 discounts, 0156-0157 automations); if one of them lands after this with a later `when`,
