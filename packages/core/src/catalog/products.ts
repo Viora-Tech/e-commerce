@@ -16,6 +16,7 @@ import {
   variantOptionValue,
 } from '@commerce/db'
 import { and, eq, inArray, isNull, type SQL, sql } from 'drizzle-orm'
+import { noteProductEvent } from '../automations/record-events'
 import { CommerceError } from '../errors'
 import { adjustStock, setStock } from '../inventory/levels'
 import { setProductMedia } from '../media/service'
@@ -80,6 +81,7 @@ export async function createProduct(tx: StoreTx, storeId: string, write: Product
   )
   if (write.mediaIds) await setProductMedia(tx, storeId, id, write.mediaIds)
   await noteProductsChanged(tx, [id], storeId)
+  await noteProductEvent(tx, storeId, id, 'created')
   return id
 }
 
@@ -112,6 +114,7 @@ export async function updateProduct(tx: StoreTx, storeId: string, id: string, wr
   )
   if (write.mediaIds) await setProductMedia(tx, storeId, id, write.mediaIds)
   await noteProductsChanged(tx, [id], storeId)
+  await noteProductEvent(tx, storeId, id, 'updated')
   return id
 }
 

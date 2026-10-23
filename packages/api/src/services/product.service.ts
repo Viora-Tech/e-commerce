@@ -1,6 +1,7 @@
 import {
   DEFAULT_GST_RATE_PERCENT,
   LOW_STOCK_THRESHOLD,
+  noteProductEvent,
   noteProductsChanged,
   notSystemTest,
   onHandleChange,
@@ -331,6 +332,7 @@ export async function updateProduct(tx: StoreTx, storeId: string, id: string, pa
     .returning()
   if (row) await onHandleChange(tx, storeId, 'product', before?.handle, row.handle)
   if (row) await noteProductsChanged(tx, [row.id], storeId)
+  if (row) await noteProductEvent(tx, storeId, row.id, 'updated')
   return row ?? null
 }
 

@@ -4,6 +4,7 @@ import {
   encryptCustomerPhone,
   evaluateSegment,
   normalisePhoneDigits,
+  noteCustomerTagsChanged,
   notTestOrder,
   phoneBlindIndex,
   type SegmentCustomer,
@@ -395,6 +396,9 @@ export async function updateCustomer(
   secret: string,
 ) {
   const { phone, ...rest } = patch
+  const [before] = patch.tags
+    ? await tx.select({ tags: customer.tags }).from(customer).where(eq(customer.id, id))
+    : []
   const phoneUpdate =
     phone === undefined
       ? {}
@@ -413,6 +417,7 @@ export async function updateCustomer(
     .where(eq(customer.id, id))
     .returning()
   if (!row) return null
+  if (before && patch.tags) await noteCustomerTagsChanged(tx, undefined, id, before.tags, row.tags)
   const { phoneIndex: _phoneIndex, ...rest2 } = row
   return { ...rest2, phone: decryptCustomerPhone(row.phone, secret) }
 }
@@ -447,6 +452,7 @@ export async function tagCustomers(
       .update(customer)
       .set({ tags: next, updatedAt: new Date() })
       .where(eq(customer.id, row.id))
+    await noteCustomerTagsChanged(tx, undefined, row.id, row.tags, next)
     updated += 1
   }
   return { updated }
