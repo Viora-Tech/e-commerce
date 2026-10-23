@@ -113,12 +113,6 @@ export const growthOverviewContent = {
       help: 'Total sales divided by orders.',
     },
   },
-  salesOverTime: {
-    title: 'Attributed sales over time',
-    day: 'Daily',
-    week: 'Weekly',
-    series: 'Attributed sales',
-  },
   view: {
     label: 'View',
     bySource: 'By source',
@@ -197,6 +191,12 @@ export const growthLinksContent = {
   resource: { singular: 'link', plural: 'links' },
   summary: (links: number, clicks: string, orders: string) =>
     `${links} short ${links === 1 ? 'link' : 'links'} · ${clicks} clicks · ${orders} orders`,
+  trend: {
+    title: 'Link results over time',
+    subtitle: 'Last 30 days, across every link.',
+    metrics: { clicks: 'Clicks', orders: 'Orders', revenue: 'Revenue' },
+    empty: 'No clicks on your links yet in this period',
+  },
   noLinks: 'No links yet',
   newLink: 'New link',
   columns: {

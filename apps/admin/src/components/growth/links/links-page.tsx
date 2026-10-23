@@ -21,6 +21,7 @@ import { routes } from '@/lib/routes'
 import { runBatched } from '@/lib/run-batched'
 import LinkDialog from './link-dialog'
 import LinkQrDialog from './link-qr-dialog'
+import LinksTrendCard from './links-trend-card'
 
 type ListResult = Awaited<ReturnType<typeof api.shortLinks.list>>
 type Item = ListResult['items'][number]
@@ -194,6 +195,7 @@ export default function LinksPage({ storefrontOrigin, tabs }: LinksPageProps) {
         actions={newButton}
       />
       {tabs}
+      <LinksTrendCard reloadKey={reloadKey} />
       {empty ? (
         <Card>
           <EmptyState

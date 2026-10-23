@@ -6,6 +6,7 @@ import {
   deleteShortLink,
   listShortLinks,
   shortLinkTotals,
+  shortLinkTrend,
   updateShortLink,
 } from '../services/short-links.service'
 
@@ -36,6 +37,9 @@ export const shortLinksRouter = {
 
   /** Links, clicks, orders and revenue across every link, for the summary line. */
   totals: can(permissions.MARKETING_READ).handler(({ context }) => shortLinkTotals(context.tx)),
+
+  /** Clicks, orders and revenue per day over the last 30 days, for the Links chart. */
+  trend: can(permissions.MARKETING_READ).handler(({ context }) => shortLinkTrend(context.tx)),
 
   create: can(permissions.MARKETING_WRITE)
     .input(linkInput)

@@ -63,6 +63,12 @@ export const growthSplitContent = {
 } as const
 
 export const campaignPerformanceContent = {
+  trend: {
+    title: 'Results over time',
+    subtitle: 'Sessions, orders and sales from this campaign, day by day since sending began.',
+    metrics: { sessions: 'Sessions', orders: 'Orders', sales: 'Sales' },
+    empty: 'No visits or orders from this campaign yet',
+  },
   funnel: {
     title: 'Funnel',
     subtitle: 'From the send to the orders it brought.',

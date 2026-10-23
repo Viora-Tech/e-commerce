@@ -43,7 +43,10 @@ export default function TrafficTypeCard({ counts }: TrafficTypeCardProps) {
         ))}
       </dl>
       {total === 0 ? (
-        <p className="flex h-14 items-center text-caption text-muted-foreground">{copy.empty}</p>
+        /* No sessions yet: the empty track keeps the card's shape, with a note on it. */
+        <div className="flex h-14 w-full items-center justify-center rounded-md bg-muted">
+          <span className="text-caption text-muted-foreground">{copy.empty}</span>
+        </div>
       ) : (
         <div className="flex h-14 w-full gap-0.5 overflow-hidden rounded-md" aria-hidden>
           {TRAFFIC_TYPES.filter((t) => counts[t] > 0).map((t) => (

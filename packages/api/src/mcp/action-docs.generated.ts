@@ -467,6 +467,8 @@ export const ACTION_DOCS: Record<string, string> = {
   'shopifyImport.testConnection':
     "Shop name plus which of the import's scopes the saved token actually has.",
   'shortLinks.totals': 'Links, clicks, orders and revenue across every link, for the summary line.',
+  'shortLinks.trend':
+    'Clicks, orders and revenue per day over the last 30 days, for the Links chart.',
   'staff.cancelInvitation': 'Withdraws an open invitation; its link stops working straight away.',
   'staff.invitations':
     'Open invitations for this store (expired ones flagged), for the Pending invites list.',

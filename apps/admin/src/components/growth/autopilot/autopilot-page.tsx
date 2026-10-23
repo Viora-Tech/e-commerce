@@ -1,6 +1,6 @@
 'use client'
 
-import type { AutopilotView } from '@commerce/api'
+import type { AutopilotView, MarketingKpi } from '@commerce/api'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Label } from '@commerce/ui/shadcn/label'
 import { Switch } from '@commerce/ui/shadcn/switch'
@@ -12,17 +12,27 @@ import { AUTOPILOT_DOCS_URL, growthAutopilotContent } from '@/data/growth-home'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 import { routes } from '@/lib/routes'
+import AttributedSalesCard from '../overview/attributed-sales-card'
 import AdChannelsCard from './ad-channels-card'
 import AutopilotProposalsCard from './autopilot-proposals-card'
 import AutopilotSettingsCard from './autopilot-settings-card'
 
-type AutopilotPageProps = { initial: AutopilotView }
+type AutopilotPageProps = {
+  initial: AutopilotView
+  /** Sales attributed to marketing over the last 30 days, against the 30 before. */
+  results: {
+    attributed: MarketingKpi | undefined
+    total: MarketingKpi | undefined
+    days: string[]
+  }
+}
 
 /**
  * Growth > Autopilot: switch it on, choose goals and caps, plan campaigns and approve or
- * dismiss each proposal. Ad channels are listed for when their apps arrive.
+ * dismiss each proposal, with what marketing brought in over the last 30 days. Ad channels
+ * are listed for when their apps arrive.
  */
-export default function AutopilotPage({ initial }: AutopilotPageProps) {
+export default function AutopilotPage({ initial, results }: AutopilotPageProps) {
   // Hooks
   const copy = useCopy(growthAutopilotContent)
   const [view, setView] = useState(initial)
@@ -73,6 +83,11 @@ export default function AutopilotPage({ initial }: AutopilotPageProps) {
       <div className="grid grid-cols-1 items-start gap-6 xl:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)]">
         <AutopilotProposalsCard view={view} onChange={setView} />
         <div className="flex flex-col gap-6">
+          <AttributedSalesCard
+            attributed={results.attributed}
+            total={results.total}
+            days={results.days}
+          />
           <AutopilotSettingsCard settings={view.settings} onSaved={setView} />
           <AdChannelsCard />
         </div>
