@@ -13,6 +13,7 @@ import { and, asc, desc, eq, inArray, isNull, lte, sql } from 'drizzle-orm'
 import { z } from 'zod'
 import { recoveryUrl } from '../cart/abandoned'
 import { decryptCustomerPhone } from '../customers/phone-crypto'
+import { insertOutboxEvent } from '../outbox/write'
 import { hasMarketingConsent } from '../privacy/client'
 import { normalisePhone } from './audience'
 import { legacyOwnsStore } from './automation-cutover'
@@ -29,6 +30,7 @@ import {
   STOPS_ON_ORDER,
 } from './automation-steps'
 import { applyMergeTags, type EmailCartLine, type MergeValues } from './email'
+import { markEngineConversions } from './growth-engine'
 import { RECIPIENT_MISMATCH, recipientIsCustomers } from './recipient'
 import {
   firstName,
@@ -407,9 +409,14 @@ export async function enrolSubscriber(
   secret: string,
   now = new Date(),
 ): Promise<number> {
-  if (!(await legacyOwnsStore(tx, storeId))) return 0
+  const legacy = await legacyOwnsStore(tx, storeId)
   const [c] = await tx.select().from(customer).where(eq(customer.email, email.trim().toLowerCase()))
   if (!c) return 0
+  if (!legacy) {
+    // On the engine the welcome trigger is an outbox event (keyed per customer by the engine).
+    await insertOutboxEvent(tx, storeId, 'customer.subscribed', { customerId: c.id })
+    return 0
+  }
   let n = 0
   for (const a of await activeAutomations(tx, 'customer_subscribed')) {
     const ok = await enrol(
@@ -441,10 +448,11 @@ export async function onOrderPlaced(
   orderId: string,
   now = new Date(),
 ): Promise<{ converted: number; enrolled: number }> {
-  // On the engine, conversions (`exitOnOrder`) and the order triggers come from the outbox.
-  if (!(await legacyOwnsStore(tx, storeId))) return { converted: 0, enrolled: 0 }
+  const legacy = await legacyOwnsStore(tx, storeId)
   const [o] = await tx.select().from(order).where(eq(order.id, orderId))
   if (!o || o.importedFrom || o.status === 'draft') return { converted: 0, enrolled: 0 }
+  // On the engine the order triggers come from the outbox; only the conversion credit is here.
+  if (!legacy) return { converted: await markEngineConversions(tx, o, now), enrolled: 0 }
   const converted = await markConversions(tx, o, now)
   let enrolled = 0
   const [cu] = o.customerId
