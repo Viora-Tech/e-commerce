@@ -8,8 +8,7 @@ import { moveTo, type RunLoop, type RunRow, type StepOutcome, stepRow, writeStep
 /** Records a Find records step reads before it stops looking (newest first). */
 const FIND_SCAN_LIMIT = 500
 
-const loopOf = (run: Pick<RunRow, 'loop'>): RunLoop | null =>
-  (run.loop as RunLoop | null) ?? null
+const loopOf = (run: Pick<RunRow, 'loop'>): RunLoop | null => (run.loop as RunLoop | null) ?? null
 
 /** The record the current pass is about, or null outside a loop. */
 export const loopItem = (run: Pick<RunRow, 'loop'>) => {

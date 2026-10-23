@@ -29,10 +29,13 @@ const ORDER_UPDATE_TEMPLATES: ReadonlySet<string> = new Set([
   'delivered',
   'delivery_failed',
   'order_cancelled',
+  // A nudge to pay an unpaid transfer order: about the shopper's own order, no marketing.
+  'payment_reminder',
 ])
 
 export const isOrderUpdateTemplate = (id: string): boolean =>
-  ORDER_UPDATE_TEMPLATES.has(id) && messageDef(id)?.group === 'orders'
+  ORDER_UPDATE_TEMPLATES.has(id) &&
+  (messageDef(id)?.group === 'orders' || id === 'payment_reminder')
 
 /** The approved UTILITY template on the channel, or why it may not be used. */
 async function utilityTemplate(

@@ -43,7 +43,7 @@ function valueControl({
   tagsPlaceholder,
   pieces,
 }: ControlInput) {
-  if (op === 'within_last_days') {
+  if (op === 'within_last_days' || op === 'older_than_days') {
     return (
       <div className="flex items-center gap-2">
         <Input

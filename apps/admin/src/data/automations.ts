@@ -188,6 +188,9 @@ export const automationPiecesContent: Record<string, string> = {
   'automations.template.notify-packer-whatsapp.name': 'WhatsApp the packer',
   'automations.template.notify-packer-whatsapp.description':
     'Send your packer a WhatsApp message when an order is paid.',
+  'automations.template.remind-unpaid-orders.name': 'Remind unpaid orders',
+  'automations.template.remind-unpaid-orders.description':
+    'Every morning, email a payment reminder for orders still unpaid after 3 days (UPI and bank transfer, not COD).',
   'automations.template.cancel-unconfirmed-cod.name': 'Cancel unconfirmed COD orders',
   'automations.template.cancel-unconfirmed-cod.description':
     'COD orders not confirmed in 48 hours are cancelled, after you approve each one.',
@@ -552,6 +555,7 @@ export const automationEditorContent = {
       before: 'is before',
       after: 'is after',
       within_last_days: 'is within the last',
+      older_than_days: 'is more than',
       is_true: 'is yes',
       is_false: 'is no',
     } as Record<string, string>,

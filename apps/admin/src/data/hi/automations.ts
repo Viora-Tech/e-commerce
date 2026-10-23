@@ -183,6 +183,9 @@ export default [
     'automations.template.notify-packer-whatsapp.name': 'पैकर को WhatsApp',
     'automations.template.notify-packer-whatsapp.description':
       'ऑर्डर का भुगतान होते ही पैकर को WhatsApp मैसेज।',
+    'automations.template.remind-unpaid-orders.name': 'बिना भुगतान वाले ऑर्डर की याद',
+    'automations.template.remind-unpaid-orders.description':
+      'हर सुबह, 3 दिन बाद भी बिना भुगतान वाले ऑर्डर (UPI और बैंक ट्रांसफ़र, COD नहीं) के लिए भुगतान की याद ईमेल करें।',
     'automations.template.cancel-unconfirmed-cod.name': 'पक्के न हुए COD ऑर्डर रद्द करें',
     'automations.template.cancel-unconfirmed-cod.description':
       '48 घंटे में पक्के न हुए COD ऑर्डर रद्द होते हैं, हर एक आपकी मंज़ूरी के बाद।',
@@ -540,6 +543,7 @@ export default [
         before: 'से पहले है',
         after: 'के बाद है',
         within_last_days: 'पिछले इतने दिनों में है',
+        older_than_days: 'इतने दिनों से पुराना है',
         is_true: 'हाँ है',
         is_false: 'नहीं है',
       },

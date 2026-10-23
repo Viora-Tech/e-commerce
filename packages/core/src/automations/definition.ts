@@ -51,6 +51,7 @@ export const RULE_OPERATORS = [
   'before',
   'after',
   'within_last_days',
+  'older_than_days',
   'is_true',
   'is_false',
 ] as const

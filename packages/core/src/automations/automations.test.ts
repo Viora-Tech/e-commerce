@@ -1,7 +1,9 @@
 /** SOURCE OF TRUTH: automation contract tests — WHAT: the pure parts of the engine: definition tree checks, the publish piece check (plan, permissions, Owner-only approval), merge tags, outbox → event mapping, retry backoff and IST schedules / WHY: these run without a database, so the contract every other agent builds on is pinned. */
 import { describe, expect, it } from 'vitest'
 import { permissions } from '../permissions/statement'
+import { isOrderUpdateTemplate } from './actions/order-update'
 import { builtinAction } from './catalogue'
+import { evaluateRulesAt } from './conditions/evaluate'
 import { definitionIssues, type WorkflowDefinition, WorkflowDefinitionSchema } from './definition'
 import { retryDelayMs } from './engine/interpreter'
 import { nextFireAt } from './engine/tick'
@@ -212,5 +214,21 @@ describe('timing', () => {
     expect(at({ every: 'day', at: '09:00' })).toBe('2026-10-24T03:30:00.000Z')
     expect(at({ every: 'day', at: '18:30' })).toBe('2026-10-23T13:00:00.000Z')
     expect(at({ every: 'week', weekday: 1, at: '09:00' })).toBe('2026-10-26T03:30:00.000Z')
+  })
+})
+
+describe('unpaid reminders', () => {
+  it('"older than N days" holds only past the line, and the template walks unpaid non-COD orders', () => {
+    const now = new Date('2026-10-23T10:00:00Z')
+    const rule = {
+      join: 'and' as const,
+      rules: [{ field: 'order.created_at', op: 'older_than_days' as const, value: 3 }],
+    }
+    const at = (iso: string) => evaluateRulesAt(rule, { order: { created_at: iso } }, { now }).pass
+    expect(at('2026-10-19T10:00:00Z')).toBe(true)
+    expect(at('2026-10-21T10:00:00Z')).toBe(false)
+    const tpl = BUILTIN_TEMPLATES.find((t) => t.id === 'remind-unpaid-orders')
+    expect(tpl && definitionIssues(tpl.definition)).toEqual([])
+    expect(isOrderUpdateTemplate('payment_reminder')).toBe(true)
   })
 })

@@ -228,6 +228,41 @@ export const BUILTIN_TEMPLATES: readonly WorkflowTemplate[] = [
     ),
   ),
   t(
+    'remind-unpaid-orders',
+    'orders',
+    def(
+      'schedule',
+      {
+        find: {
+          kind: 'find',
+          id: 'find',
+          resource: 'order',
+          rules: {
+            join: 'and',
+            rules: [
+              { field: 'order.financial_status', op: 'is_one_of', value: ['pending'] },
+              { field: 'order.is_cod', op: 'is_false' },
+              { field: 'order.created_at', op: 'older_than_days', value: 3 },
+            ],
+          },
+          limit: 100,
+          next: 'each',
+        },
+        each: { kind: 'forEach', id: 'each', source: 'find', body: 'remind', next: null },
+        remind: {
+          kind: 'action',
+          id: 'remind',
+          action: 'customer.send_order_update',
+          config: { channel: 'email', template: 'payment_reminder' },
+          next: null,
+          onError: 'continue',
+        },
+      },
+      'find',
+      { every: 'day', at: '10:00' },
+    ),
+  ),
+  t(
     'cancel-unconfirmed-cod',
     'orders',
     def(

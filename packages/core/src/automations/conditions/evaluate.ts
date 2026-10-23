@@ -167,6 +167,11 @@ function compareDate(op: Rule['op'], actual: unknown, expected: unknown, ctx: Ct
     if (days === null || days < 0) return false
     return a <= ctx.now && a >= ctx.now - days * 86_400_000
   }
+  if (op === 'older_than_days') {
+    const days = toNumber(expected)
+    if (days === null || days < 0) return false
+    return a < ctx.now - days * 86_400_000
+  }
   const e = ruleDate(expected, ctx.timeZone)
   if (!e) return false
   if (op === 'before') return a < e.start

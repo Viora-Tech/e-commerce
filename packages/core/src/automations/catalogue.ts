@@ -150,7 +150,7 @@ export const OPERATORS_BY_TYPE: Record<FieldType, readonly RuleOperator[]> = {
   text: ['eq', 'neq', 'contains', 'not_contains', 'starts_with', 'is_empty', 'is_not_empty'],
   tags: ['includes', 'not_includes', 'is_empty', 'is_not_empty'],
   boolean: ['is_true', 'is_false'],
-  date: ['before', 'after', 'within_last_days'],
+  date: ['before', 'after', 'within_last_days', 'older_than_days'],
   enum: ['is_one_of', 'eq', 'neq'],
 }
 
