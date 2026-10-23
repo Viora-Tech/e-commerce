@@ -1,7 +1,8 @@
 import type { Metadata } from 'next'
-import { notFound } from 'next/navigation'
+import { notFound, redirect } from 'next/navigation'
 import AutomationEditor from '@/components/growth/automations/automation-editor'
 import { appRouter, call, serverContext } from '@/lib/api'
+import { routes } from '@/lib/routes'
 
 export const metadata: Metadata = { title: 'Automation' }
 
@@ -13,6 +14,10 @@ export default async function Page({ params }: Props) {
   const { id } = await params
   if (!UUID.test(id)) notFound()
   const context = await serverContext()
+  // Cut over to the Automations engine: the workflow keeps its id and opens in the app's editor.
+  if ((await call(appRouter.marketing.automations.mode, undefined, { context })) === 'engine') {
+    redirect(routes.apps.page('automations', 'workflows', id))
+  }
   const [automation, setup] = await Promise.all([
     call(appRouter.marketing.automations.get, { id }, { context }),
     call(appRouter.marketing.setup, undefined, { context }),

@@ -174,7 +174,11 @@ export default function CustomerView({
         onDiscard={handleDiscard}
         saving={saving}
       />
-      <CustomerHeader customer={customer} onEdit={() => setEditing(true)} />
+      <CustomerHeader
+        customer={customer}
+        onEdit={() => setEditing(true)}
+        automations={appCards.includes('automations')}
+      />
       {step ? <CustomerNextStep customer={customer} step={step} /> : null}
       <PageColumns
         main={

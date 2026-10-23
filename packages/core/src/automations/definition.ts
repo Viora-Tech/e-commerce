@@ -3,7 +3,7 @@ import { z } from 'zod'
 import { MAX_RULE_DEPTH, MAX_WAIT_MINUTES, MAX_WORKFLOW_NODES, MIN_WAIT_MINUTES } from './types'
 
 /** Bumped when the stored shape changes; old versions are migrated on read, never rewritten. */
-const WORKFLOW_SCHEMA_VERSION = 1
+export const WORKFLOW_SCHEMA_VERSION = 1
 
 /** `[a-z0-9_-]`, unique within the workflow. Growth's migrated step ids fit this. */
 const NodeIdSchema = z

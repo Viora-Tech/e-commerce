@@ -15,6 +15,7 @@ import {
 import { Button } from '@commerce/ui/shadcn/button'
 import { useState } from 'react'
 import { toast } from 'sonner'
+import RunAutomationButton from '@/components/automations/records/run-automation-button'
 import { assistantContent } from '@/data/assistant'
 import { bulkActionsContent } from '@/data/bulk-actions'
 import { productsListContent } from '@/data/products'
@@ -38,6 +39,8 @@ type ProductBulkActionsProps = {
   onWriteAi?: (() => void) | undefined
   /** After products joined a collection: clear the selection and reload. */
   onDone: () => void
+  /** The Automations app is installed: "Run automation" on the selection. */
+  automations?: boolean
 }
 
 /** Adds one product to a manual collection, keeping the other collections it sits in. */
@@ -57,6 +60,7 @@ export default function ProductBulkActions({
   onDelete,
   onWriteAi,
   onDone,
+  automations = false,
 }: ProductBulkActionsProps) {
   // Hooks
   const { bulk: copy, exporting } = useCopy(productsListContent)
@@ -131,6 +135,12 @@ export default function ProductBulkActions({
         <Download aria-hidden="true" />
         {copy.exportSelected}
       </Button>
+      <RunAutomationButton
+        subjectType="product"
+        ids={ids}
+        installed={automations}
+        onDone={onDone}
+      />
       <Button variant="outline" size="sm" disabled={disabled} onClick={onDelete}>
         <Trash2 aria-hidden="true" />
         {copy.delete}

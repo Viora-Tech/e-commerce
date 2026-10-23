@@ -7,6 +7,7 @@ import analytics from './analytics'
 import appInstall from './app-install'
 import apps from './apps'
 import assistant from './assistant'
+import automationRecords from './automation-records'
 import backgroundWork from './background-work'
 import billing from './billing'
 import bluedart from './bluedart'
@@ -118,6 +119,7 @@ export const hindiCopy: readonly TranslationPair[] = [
   ...abandonedDetail,
   ...ai,
   ...assistant,
+  ...automationRecords,
   ...backgroundWork,
   ...billing,
   ...bluedart,

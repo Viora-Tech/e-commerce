@@ -1,4 +1,4 @@
-import { storeAppContext } from '@commerce/core'
+import { growthExitCheck, growthSweep, storeAppContext } from '@commerce/core'
 import {
   AUTOMATION_STEP_QUEUE,
   AUTOMATION_TICK_QUEUE,
@@ -13,9 +13,10 @@ import {
   runStepJob,
   runTickJob,
   runTriggerJob,
+  type TickSweep,
 } from '@commerce/core/automations/server'
 import { getRegistries } from '@commerce/core/registries'
-import type { Db } from '@commerce/db'
+import type { Db, StoreTx } from '@commerce/db'
 import { logger } from '@commerce/observability/logging'
 import {
   fairProcessor,
@@ -58,8 +59,16 @@ export function createAutomationsWorker(connection: IORedis, db: Db, opts: Opts)
       pluginContext: (storeId, pluginId) =>
         storeAppContext(apps, storeId, `automation:${pluginId}`),
     }),
+    // Growth's marketing exits (converted, cart bought, unsubscribed); null for other runs.
+    exitCheck: growthExitCheck,
     log,
   }
+  // Growth's sweep triggers (abandoned checkout and cart, lapsed customers), run per store by
+  // the tick; the runs they start come back in the same tick's due list.
+  const sweeps = [
+    (tx: StoreTx, storeId: string, now: Date, start: Parameters<TickSweep>[3]) =>
+      growthSweep(tx, storeId, opts.settingsSecret, now, start),
+  ]
 
   const triggerQueue = new Queue<AutomationTriggerJob>(AUTOMATION_TRIGGER_QUEUE, { connection })
   const stepQueue = new Queue<AutomationStepJob>(AUTOMATION_STEP_QUEUE, { connection })
@@ -82,7 +91,7 @@ export function createAutomationsWorker(connection: IORedis, db: Db, opts: Opts)
     { connection, concurrency: QUEUE_LIMITS.automationsStep.concurrency, ...KEEP_FINISHED },
   )
 
-  const tick = new Worker(AUTOMATION_TICK_QUEUE, () => runTickJob(db, stepQueue, log), {
+  const tick = new Worker(AUTOMATION_TICK_QUEUE, () => runTickJob(db, stepQueue, log, sweeps), {
     connection,
     ...KEEP_FINISHED,
   })
