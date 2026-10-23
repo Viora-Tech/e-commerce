@@ -250,6 +250,25 @@ describe('store preferences', () => {
     expect(saved.tracking.ga4).toBe('G-ABC123XYZ')
     expect((await call(appRouter.store.getPreferences, undefined, c)).seo.title).toBe('Waimers')
 
+    // Search engine visibility: crawler switches and a pasted verification tag.
+    const hidden = await call(
+      appRouter.store.updatePreferences,
+      {
+        ...saved,
+        indexing: { searchEngines: false, aiCrawlers: false },
+        verification: {
+          ...saved.verification,
+          google: '<meta name="google-site-verification" content="abc_DEF-123456" />',
+        },
+        tracking: { ...saved.tracking, googleAds: 'aw-123456789' },
+      },
+      c,
+    )
+    expect(hidden.indexing).toEqual({ searchEngines: false, aiCrawlers: false })
+    expect(hidden.verification.google).toBe('abc_DEF-123456')
+    expect(hidden.tracking.googleAds).toBe('AW-123456789')
+    expect(hidden.seo.title).toBe('Waimers')
+
     await expect(
       call(
         appRouter.store.updatePreferences,

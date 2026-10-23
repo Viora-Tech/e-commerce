@@ -21,7 +21,7 @@ import { adjustStock, setStock } from '../inventory/levels'
 import { setProductMedia } from '../media/service'
 import { onHandleChange } from '../redirects/handle-change'
 import { mediaInStore, withKnownMedia } from '../store-scope'
-import { noteProductsChanged } from './changes'
+import { noteProductEvent, noteProductsChanged } from './changes'
 import { preorderErrors, productRow, variantRow } from './product-rows'
 import type { InventoryReason, ProductWrite } from './schemas'
 import { slugify } from './slug'
@@ -59,7 +59,15 @@ export async function uniqueHandle(tx: StoreTx, base: string, exceptId?: string)
   }
 }
 
-export async function createProduct(tx: StoreTx, storeId: string, write: ProductWrite) {
+/** Product writes from an import (CSV, Shopify) start no automations (`noteProductEvent`). */
+export type ProductWriteOptions = { imported?: boolean | undefined }
+
+export async function createProduct(
+  tx: StoreTx,
+  storeId: string,
+  write: ProductWrite,
+  opts: ProductWriteOptions = {},
+) {
   const errors = [...variantErrors(write.options, write.variants), ...preorderErrors(write)]
   if (errors.length) throw new InvalidProduct(errors)
   const id = newId()
@@ -80,10 +88,17 @@ export async function createProduct(tx: StoreTx, storeId: string, write: Product
   )
   if (write.mediaIds) await setProductMedia(tx, storeId, id, write.mediaIds)
   await noteProductsChanged(tx, [id], storeId)
+  if (!opts.imported) await noteProductEvent(tx, storeId, 'product.created', [id])
   return id
 }
 
-export async function updateProduct(tx: StoreTx, storeId: string, id: string, write: ProductWrite) {
+export async function updateProduct(
+  tx: StoreTx,
+  storeId: string,
+  id: string,
+  write: ProductWrite,
+  opts: ProductWriteOptions = {},
+) {
   const errors = [...variantErrors(write.options, write.variants), ...preorderErrors(write)]
   if (errors.length) throw new InvalidProduct(errors)
   const [existing] = await tx
@@ -112,6 +127,7 @@ export async function updateProduct(tx: StoreTx, storeId: string, id: string, wr
   )
   if (write.mediaIds) await setProductMedia(tx, storeId, id, write.mediaIds)
   await noteProductsChanged(tx, [id], storeId)
+  if (!opts.imported) await noteProductEvent(tx, storeId, 'product.updated', [id])
   return id
 }
 

@@ -82,7 +82,7 @@ export default function CourierConnectAside({
       >
         <div className="flex flex-col gap-3">
           <KeyValueList rows={rows} variant="grid" />
-          <Button variant="outline" onClick={ctx.runTest} disabled={testing}>
+          <Button variant="outline" className="self-end" onClick={ctx.runTest} disabled={testing}>
             {testing ? <Spinner /> : <RefreshCw aria-hidden="true" />}
             {testing ? copy.testing : copy.testAgain}
           </Button>

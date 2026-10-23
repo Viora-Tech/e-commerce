@@ -16,6 +16,24 @@ export const formsPlugin = definePlugin({
   category: 'marketing',
   description:
     'Make the contact and advice forms of your theme work: every message is saved here and emailed to you.',
+  listing: {
+    tagline: 'Makes the contact forms of an imported theme work, with every message saved.',
+    highlights: ['Saves every message on a Submissions page', 'Emails each one to your store'],
+    worksWith: ['Themes imported from Shopify'],
+    keywords: ['contact form', 'messages'],
+    faq: [
+      {
+        question: 'Do I need this app?',
+        answer:
+          'Only if your theme was imported from Shopify and has contact forms. Without it, those forms have nowhere to send.',
+      },
+      {
+        question: 'Where do the messages go?',
+        answer:
+          'Each one is saved on the app’s Submissions page and emailed to your store’s address.',
+      },
+    ],
+  },
   access: {
     resources: [
       {

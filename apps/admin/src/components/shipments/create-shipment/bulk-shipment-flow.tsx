@@ -1,5 +1,6 @@
 'use client'
 
+import { Truck } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { DialogFooter, DialogHeader, DialogTitle } from '@commerce/ui/shadcn/dialog'
 import { Spinner } from '@commerce/ui/shadcn/spinner'
@@ -179,7 +180,7 @@ export default function BulkShipmentFlow({
               </Button>
             ) : (
               <Button onClick={handleBook} disabled={busy || bookable === 0}>
-                {busy ? <Spinner /> : null}
+                {busy ? <Spinner /> : <Truck aria-hidden="true" />}
                 {busy ? copy.review.booking : copy.review.bookMany(bookable)}
               </Button>
             )}

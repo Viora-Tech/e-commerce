@@ -1,3 +1,4 @@
+import { appStoreUrl } from '@commerce/config/site'
 import { ArrowRight } from '@commerce/ui/icons'
 import { cn } from '@commerce/ui/lib/utils'
 import { buttonVariants } from '@commerce/ui/shadcn/button'
@@ -14,7 +15,15 @@ type FinishSetupProps = {
   signals: HomeSignals
 }
 
-type Step = { key: string; title: string; body: string; done: boolean; href: string }
+/** `external`: opens in a new tab (the App Store website). */
+type Step = {
+  key: string
+  title: string
+  body: string
+  done: boolean
+  href: string
+  external?: boolean
+}
 
 /**
  * Three set-up cards (products, payments, shipping), always shown; done ones are ticked.
@@ -34,8 +43,13 @@ export default async function FinishSetup({ productCount, signals }: FinishSetup
     {
       key: 'payments',
       title: c.payments.title,
-      body: signals.payments ? c.payments.done(signals.payments) : c.payments.todo,
-      done: signals.payments !== null,
+      body: signals.payments
+        ? signals.paymentsTest
+          ? c.payments.testMode(signals.payments)
+          : c.payments.done(signals.payments)
+        : c.payments.todo,
+      // A gateway on test keys takes no real money yet, so the step stays open until it goes live.
+      done: signals.payments !== null && !signals.paymentsTest,
       href: routes.settings.payments(),
     },
     {
@@ -43,7 +57,9 @@ export default async function FinishSetup({ productCount, signals }: FinishSetup
       title: c.shipping.title,
       body: signals.shipping ? c.shipping.done(signals.shipping) : c.shipping.todo,
       done: signals.shipping !== null,
-      href: routes.apps.store(),
+      // Couriers are apps, browsed on the App Store website.
+      href: appStoreUrl({ category: 'shipping' }),
+      external: true,
     },
   ]
   // Always shown (Figma 224:584); finished steps stay, ticked.
@@ -57,6 +73,7 @@ export default async function FinishSetup({ productCount, signals }: FinishSetup
           <li key={step.key}>
             <Link
               href={step.href}
+              {...(step.external ? { target: '_blank', rel: 'noopener noreferrer' } : {})}
               className={cn(
                 'flex h-full min-h-[4.9375rem] items-start gap-3.5 rounded-lg p-4 surface-card card-lift focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
                 /* Figma "Home · Polished": finished steps sit back, the next one is outlined. */

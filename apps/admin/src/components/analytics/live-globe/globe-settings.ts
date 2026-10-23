@@ -25,6 +25,9 @@ export type GlobeMotionSettings = {
 
 export type GlobeStyle = 'solid' | 'dotted'
 export type GlobeThemePreset = 'accent' | 'night' | 'ocean' | 'mono'
+/** How fine the dotted land is: more, smaller dots (`fine`, the Home card's look) or fewer,
+ * bigger ones. */
+export type GlobeDotSize = 'fine' | 'medium' | 'bold'
 
 export type GlobeLookSettings = {
   /** Land: filled continents, or dots (drawn in the shader; `webgl/dot-layout.ts`). */
@@ -33,11 +36,14 @@ export type GlobeLookSettings = {
    * line, or small dots along it (`webgl/border-points.ts`, `webgl/border-dot-stride.ts`).
    * Coastlines are always the solid line either way. */
   borderStyle: GlobeStyle
+  dotSize: GlobeDotSize
   theme: GlobeThemePreset
   /** Hex colours (e.g. "#1c2b4a"), or null to use the theme preset's own. */
   customLand: string | null
   customOcean: string | null
   customAccent: string | null
+  /** Country border and coastline colour, or null for the theme's own subtle tint. */
+  customBorder: string | null
 }
 
 export type GlobeTimeRange = '1h' | '24h' | '7d'
@@ -59,11 +65,13 @@ export type GlobeSettings = {
   lastZoom: number
 }
 
-const STORAGE_KEY = 'wc-live-globe-settings-v1'
+/* v2 (22 Oct 2026): the defaults changed to the Home card's look, so older saved choices reset. */
+const STORAGE_KEY = 'wc-live-globe-settings-v2'
 
 const MOTION_SPEEDS: readonly GlobeMotionSpeed[] = ['slow', 'normal', 'fast']
 const START_VIEWS: readonly GlobeStartView[] = ['india', 'mine', 'world']
 const STYLES: readonly GlobeStyle[] = ['solid', 'dotted']
+const DOT_SIZES: readonly GlobeDotSize[] = ['fine', 'medium', 'bold']
 const THEMES: readonly GlobeThemePreset[] = ['accent', 'night', 'ocean', 'mono']
 const TIME_RANGES: readonly GlobeTimeRange[] = ['1h', '24h', '7d']
 
@@ -71,7 +79,8 @@ const TIME_RANGES: readonly GlobeTimeRange[] = ['1h', '24h', '7d']
  * everyone until they change it. */
 export function defaultGlobeSettings(prefersReducedMotion: boolean): GlobeSettings {
   return {
-    layers: { borders: true, coastlines: true, grid: true, arcs: true, glow: true },
+    /* The Home card's look by default: no lines on the globe, just dots, glow and arcs. */
+    layers: { borders: false, coastlines: false, grid: false, arcs: true, glow: true },
     motion: {
       autoRotate: !prefersReducedMotion,
       speed: 'normal',
@@ -79,12 +88,15 @@ export function defaultGlobeSettings(prefersReducedMotion: boolean): GlobeSettin
       rememberZoom: false,
     },
     look: {
-      style: 'solid',
+      /* Dotted land by default, like the Home card's globe (owner 2026-10-22). */
+      style: 'dotted',
       borderStyle: 'solid',
+      dotSize: 'fine',
       theme: 'accent',
       customLand: null,
       customOcean: null,
       customAccent: null,
+      customBorder: null,
     },
     data: { timeRange: '24h', highlightBigOrders: true, dayNightShadow: false },
     lastZoom: 1,
@@ -139,10 +151,12 @@ function sanitize(raw: unknown, fallback: GlobeSettings): GlobeSettings {
     look: {
       style: oneOf(lookRaw.style, STYLES, fallback.look.style),
       borderStyle: oneOf(lookRaw.borderStyle, STYLES, fallback.look.borderStyle),
+      dotSize: oneOf(lookRaw.dotSize, DOT_SIZES, fallback.look.dotSize),
       theme: oneOf(lookRaw.theme, THEMES, fallback.look.theme),
       customLand: hexOrNull(lookRaw.customLand),
       customOcean: hexOrNull(lookRaw.customOcean),
       customAccent: hexOrNull(lookRaw.customAccent),
+      customBorder: hexOrNull(lookRaw.customBorder),
     },
     data: {
       timeRange: oneOf(dataRaw.timeRange, TIME_RANGES, fallback.data.timeRange),
@@ -171,11 +185,21 @@ export function loadGlobeSettings(prefersReducedMotion: boolean): GlobeSettings 
 }
 
 /** Saves the whole settings object. Best-effort: a private window or a full quota just means
- * the choice does not survive this tab. */
-export function saveGlobeSettings(settings: GlobeSettings): void {
+ * the choice does not survive this tab. The zoom already saved (by `saveLastZoom`, which never
+ * goes through React state, so `settings.lastZoom` is stale) is kept unless `replaceZoom`. */
+export function saveGlobeSettings(
+  settings: GlobeSettings,
+  options: { replaceZoom?: boolean } = {},
+): void {
   try {
     if (typeof window === 'undefined') return
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(settings))
+    const raw = options.replaceZoom ? null : window.localStorage.getItem(STORAGE_KEY)
+    const stored = raw ? JSON.parse(raw) : null
+    const lastZoom =
+      stored && typeof stored.lastZoom === 'number' && Number.isFinite(stored.lastZoom)
+        ? stored.lastZoom
+        : settings.lastZoom
+    window.localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...settings, lastZoom }))
   } catch {
     // Storage unavailable; the setting still applies for this session, just not saved.
   }

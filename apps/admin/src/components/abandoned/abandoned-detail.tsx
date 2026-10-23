@@ -1,13 +1,14 @@
 'use client'
 
 import { permissions } from '@commerce/core/permissions'
-import { Copy, ShoppingCart } from '@commerce/ui/icons'
+import { Copy, Send, ShoppingCart } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import PageHeader from '@/components/layout/page-header'
 import ProoflyDetailPage from '@/components/layout/proofly-detail-page'
+import SendMessageDialog, { type CustomMessage } from '@/components/orders/send-message-dialog'
 import { abandonedDetailContent } from '@/data/abandoned-detail'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { usePermissions } from '@/hooks/use-permissions'
@@ -33,6 +34,7 @@ export default function AbandonedDetail({ checkout }: AbandonedDetailProps) {
   const router = useRouter()
   const { hasPermission } = usePermissions()
   const [sending, setSending] = useState(false)
+  const [reviewing, setReviewing] = useState(false)
 
   // Event handlers
   const handleCopyLink = async () => {
@@ -45,10 +47,10 @@ export default function AbandonedDetail({ checkout }: AbandonedDetailProps) {
     }
   }
 
-  const handleSend = async () => {
+  const handleSend = async (custom?: CustomMessage) => {
     setSending(true)
     try {
-      const r = await api.orders.sendRecovery({ cartId: checkout.id })
+      const r = await api.orders.sendRecovery({ cartId: checkout.id, custom })
       toast.success(copy.toasts.sent(r.sent))
       router.refresh()
     } catch (err) {
@@ -85,7 +87,8 @@ export default function AbandonedDetail({ checkout }: AbandonedDetailProps) {
                 </Button>
               ) : null}
               {canSend ? (
-                <Button loading={sending} onClick={handleSend}>
+                <Button loading={sending} onClick={() => setReviewing(true)}>
+                  <Send aria-hidden="true" />
                   {checkout.recoverySentAt ? copy.sendAgain : copy.sendReminder}
                 </Button>
               ) : null}
@@ -103,6 +106,12 @@ export default function AbandonedDetail({ checkout }: AbandonedDetailProps) {
         <>
           <AbandonedCustomerCard checkout={checkout} />
           <AbandonedReminderCard checkout={checkout} />
+          <SendMessageDialog
+            orderId={reviewing ? checkout.id : null}
+            template="checkout_recovery"
+            onSend={handleSend}
+            onClose={() => setReviewing(false)}
+          />
         </>
       }
     />

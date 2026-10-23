@@ -29,7 +29,11 @@ import {
 import { and, asc, desc, eq, inArray, isNull, ne, sql } from 'drizzle-orm'
 import type { StoreContext } from '../context'
 import { defaultLocationId } from '../inventory/levels'
-import { releaseCommittedStock, shipCommittedStock } from './committed-stock'
+import {
+  releaseCommittedStock,
+  shipCommittedStock,
+  writeOffCommittedStock,
+} from './committed-stock'
 
 /** One order line's units placed at a location. */
 export type ParcelLineInput = {
@@ -343,10 +347,17 @@ export async function packFulfillmentOrderLines(
 
 /**
  * A cancelled order gives back every unit its parcels hold unpacked, at each parcel's
- * location. Parcels with nothing packed become cancelled; one that already left keeps its
+ * location (or, with `restock: false`, writes them off so availability stays as it was). Parcels with nothing packed become cancelled; one that already left keeps its
  * status (fulfilled) and a part-packed one is cancelled for the rest.
  */
-export async function releaseFulfillmentOrders(ctx: StoreContext, orderId: string): Promise<void> {
+export async function releaseFulfillmentOrders(
+  ctx: StoreContext,
+  orderId: string,
+  opts: {
+    /** False: the unpacked units do not go back on sale (written off instead). */
+    restock?: boolean | undefined
+  } = {},
+): Promise<void> {
   await ensureFulfillmentOrders(ctx, orderId)
   const rows = await lockParcelLines(ctx, orderId)
   const touched = new Set<string>()
@@ -354,11 +365,9 @@ export async function releaseFulfillmentOrders(ctx: StoreContext, orderId: strin
     if (row.status === 'cancelled') continue
     const unpacked = row.quantity - row.fulfilledQuantity
     if (unpacked <= 0) continue
-    await releaseCommittedStock(ctx, {
-      variantId: row.variantId,
-      quantity: unpacked,
-      locationId: row.locationId,
-    })
+    const move = { variantId: row.variantId, quantity: unpacked, locationId: row.locationId }
+    if (opts.restock === false) await writeOffCommittedStock(ctx, move)
+    else await releaseCommittedStock(ctx, move)
     touched.add(row.fulfillmentOrderId)
   }
   if (touched.size === 0) return

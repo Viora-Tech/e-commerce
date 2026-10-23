@@ -16,6 +16,20 @@ export const fedexPlugin = definePlugin({
   company: 'FedEx',
   description:
     'Ship abroad with FedEx: rates, labels with the commercial invoice, pickups, tracking and cancellation.',
+  listing: {
+    tagline: 'Ship abroad: FedEx rates in rupees, labels with the commercial invoice, pickups.',
+    highlights: [
+      'Export rates and labels',
+      'Commercial invoice from your HS codes',
+      'Pickups, tracking and cancel',
+    ],
+    guide: '/merchant-guide/apps/international-couriers',
+    worksWith: [
+      'The Shipments workspace and export orders',
+      'HS codes on your products, for the commercial invoice',
+    ],
+    keywords: ['international', 'export', 'courier'],
+  },
   access: {
     resources: [
       {

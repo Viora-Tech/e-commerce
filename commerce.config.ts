@@ -1,8 +1,10 @@
+import { automationsPlugin } from '@commerce/core/automations-app'
 import { sesPlugin } from '@commerce/notifications-ses'
 import { whatsappPlugin } from '@commerce/notifications-whatsapp'
 import { cashfreePlugin } from '@commerce/payments-cashfree'
 import { decentroPlugin } from '@commerce/payments-decentro'
 import { razorpayPlugin } from '@commerce/payments-razorpay'
+import { affiliatesPlugin } from '@commerce/plugin-affiliates'
 import { backInStockPlugin } from '@commerce/plugin-back-in-stock'
 import { chatwootPlugin } from '@commerce/plugin-chatwoot'
 import { emiPlugin } from '@commerce/plugin-emi'
@@ -68,5 +70,7 @@ export default defineConfig({
     chatwootPlugin,
     growthbookPlugin,
     searchPlugin,
+    affiliatesPlugin,
+    automationsPlugin,
   ],
 })

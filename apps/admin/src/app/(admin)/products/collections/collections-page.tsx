@@ -1,7 +1,7 @@
 'use client'
 
 import { siteConfig } from '@commerce/config/site'
-import { LayoutGrid, Plus } from '@commerce/ui/icons'
+import { ExternalLink, LayoutGrid, Pencil, Plus, Trash2 } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import Link from 'next/link'
 import { parseAsInteger, parseAsString, parseAsStringLiteral, useQueryStates } from 'nuqs'
@@ -14,16 +14,22 @@ import ProoflyListPage from '@/components/layout/proofly-list-page'
 import ResourceTable from '@/components/table/resource-table'
 import RowMenu from '@/components/table/row-menu'
 import ViewSelect from '@/components/table/view-select'
+import { bulkActionsContent } from '@/data/bulk-actions'
 import { collectionFormContent, collectionsListContent } from '@/data/collections'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 import { usePrimaryAction } from '@/lib/primary-action'
 import { routes } from '@/lib/routes'
+import { runBatched, toastOutcome } from '@/lib/run-batched'
 
 type Collections = Awaited<ReturnType<typeof api.collections.list>>
 type Row = Collections[number]
 
-export type CollectionsInitial = { collections: Collections }
+export type CollectionsInitial = {
+  collections: Collections
+  /** The store's public origin, for the row menu's "View on store". */
+  storefrontOrigin: string
+}
 
 const TABS = ['automatic', 'manual', 'empty'] as const
 
@@ -50,7 +56,11 @@ function CollectionsContent({ initial }: { initial: CollectionsInitial }) {
     { shallow: true },
   )
   const [rows, setRows] = useState(initial.collections)
+  const shared = useCopy(bulkActionsContent)
   const [deleting, setDeleting] = useState<Row | null>(null)
+  const [bulkDeleting, setBulkDeleting] = useState<{ ids: string[]; clear: () => void } | null>(
+    null,
+  )
 
   // Event handlers
   const handleConfirmDelete = async () => {
@@ -64,6 +74,15 @@ function CollectionsContent({ initial }: { initial: CollectionsInitial }) {
     } catch (err) {
       toast.error(err instanceof Error ? err.message : copy.list.deleteFailed)
     }
+  }
+
+  const handleBulkDelete = async () => {
+    if (!bulkDeleting) return
+    const { ids, clear } = bulkDeleting
+    const outcome = await runBatched(ids, (id) => api.collections.delete({ id }))
+    toastOutcome(outcome, shared.summary)
+    clear()
+    setRows(await api.collections.list())
   }
 
   // Render logic
@@ -104,12 +123,30 @@ function CollectionsContent({ initial }: { initial: CollectionsInitial }) {
         rowActions={(c) => (
           <RowMenu
             items={[
-              { label: copy.list.row.edit, href: routes.products.collection(c.id) },
-              { label: copy.list.row.delete, destructive: true, onSelect: () => setDeleting(c) },
+              { label: copy.list.row.edit, icon: Pencil, href: routes.products.collection(c.id) },
+              {
+                label: copy.list.row.viewOnStore,
+                icon: ExternalLink,
+                href: `${initial.storefrontOrigin}/collections/${c.handle}`,
+                newTab: true,
+                hidden: c.status !== 'active',
+              },
+              {
+                label: copy.list.row.delete,
+                icon: Trash2,
+                destructive: true,
+                onSelect: () => setDeleting(c),
+              },
             ]}
           />
         )}
         selectable
+        bulkActions={(ids, clear) => (
+          <Button variant="outline" size="sm" onClick={() => setBulkDeleting({ ids, clear })}>
+            <Trash2 aria-hidden="true" />
+            {copy.list.bulk.delete}
+          </Button>
+        )}
         query={q.query}
         onQueryChange={(query) => setQ({ query, page: 1 })}
         onClearAll={() => setQ({ query: '', tab: null, page: 1 })}
@@ -156,6 +193,15 @@ function CollectionsContent({ initial }: { initial: CollectionsInitial }) {
         confirmLabel={deleteCopy.confirm}
         cancelLabel={deleteCopy.cancel}
         onConfirm={() => void handleConfirmDelete()}
+      />
+      <ConfirmDialog
+        open={bulkDeleting !== null}
+        onOpenChange={(open) => !open && setBulkDeleting(null)}
+        title={copy.list.bulk.title(bulkDeleting?.ids.length ?? 0)}
+        body={copy.list.bulk.body}
+        confirmLabel={copy.list.bulk.confirm}
+        cancelLabel={copy.list.bulk.cancel}
+        onConfirm={handleBulkDelete}
       />
     </ProoflyListPage>
   )

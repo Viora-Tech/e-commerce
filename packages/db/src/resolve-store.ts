@@ -102,6 +102,23 @@ export async function storesWithMarketingWork(db: Db): Promise<string[]> {
   return rows.map((r) => r.id)
 }
 
+/** Store ids with automation work due (waits, retries, lost runs, approvals, schedules). SECURITY DEFINER backed. */
+export async function storesWithAutomationWork(db: Db): Promise<string[]> {
+  const rows = await db.execute<{ id: string }>(sql`select stores_with_automation_work() as id`)
+  return rows.map((r) => r.id)
+}
+
+/**
+ * Store ids with automation step detail or finished runs past retention, for the daily prune.
+ * SECURITY DEFINER backed (`stores_with_old_automation_runs`, migration 0154_automations).
+ */
+export async function storesWithOldAutomationRuns(db: Db, now = new Date()): Promise<string[]> {
+  const rows = await db.execute<{ id: string }>(
+    sql`select stores_with_old_automation_runs(${now.toISOString()}::timestamptz) as id`,
+  )
+  return rows.map((r) => r.id)
+}
+
 /** Store ids with baskets worth a recovery nudge, for the worker. SECURITY DEFINER backed. */
 export async function storesWithAbandonedCarts(db: Db, cutoff: Date): Promise<string[]> {
   const rows = await db.execute<{ id: string }>(
@@ -169,6 +186,14 @@ export async function storesWithCertificateChecks(db: Db, now = new Date()): Pro
  */
 export async function storesWithSearchConsoleDue(db: Db): Promise<string[]> {
   const rows = await db.execute<{ id: string }>(sql`select stores_with_search_console_due() as id`)
+  return rows.map((r) => r.id)
+}
+
+/** Store ids with affiliate commissions whose hold is over (Affiliates app), for the worker. SECURITY DEFINER backed. */
+export async function storesWithDueAffiliateCommissions(db: Db): Promise<string[]> {
+  const rows = await db.execute<{ id: string }>(
+    sql`select stores_with_due_affiliate_commissions() as id`,
+  )
   return rows.map((r) => r.id)
 }
 
@@ -252,5 +277,20 @@ export async function storesWithOldApiActivity(db: Db, now = new Date()): Promis
 /** Stores with a Meta, Google or OpenAI channel connection, for the catalog sync sweep. */
 export async function storesWithChannelConnections(db: Db): Promise<string[]> {
   const rows = await db.execute<{ id: string }>(sql`select stores_with_channel_connections() as id`)
+  return rows.map((r) => r.id)
+}
+
+/**
+ * The stores behind an outside platform's account (a Facebook user id, a WhatsApp Business
+ * account id, a `shop.myshopify.com` domain), for callbacks that name no store.
+ */
+export async function storesForPlatformAccount(
+  db: Db,
+  platform: 'meta' | 'whatsapp' | 'shopify',
+  externalId: string,
+): Promise<string[]> {
+  const rows = await db.execute<{ id: string }>(
+    sql`select stores_for_platform_account(${platform}, ${externalId}) as id`,
+  )
   return rows.map((r) => r.id)
 }

@@ -1,7 +1,7 @@
 'use client'
 
 import { PREFERENCE_LIMITS, type StorePreferences } from '@commerce/core/preferences'
-import { X } from '@commerce/ui/icons'
+import { RotateCcw, Save, X } from '@commerce/ui/icons'
 import { cn } from '@commerce/ui/lib/utils'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Input } from '@commerce/ui/shadcn/input'
@@ -88,6 +88,7 @@ export default function HomePageSettings({ title, domain }: HomePageSettingsProp
       <div className="flex flex-col items-start gap-2">
         <p className="text-[0.8125rem] text-muted-foreground">{copy.loadFailed}</p>
         <Button variant="outline" size="sm" onClick={() => setAttempt((n) => n + 1)}>
+          <RotateCcw aria-hidden="true" />
           {copy.retry}
         </Button>
       </div>
@@ -207,12 +208,13 @@ export default function HomePageSettings({ title, domain }: HomePageSettingsProp
         </FieldFrame>
       ) : null}
       {dirty ? (
-        <div className="sticky bottom-0 -mx-4 flex items-center gap-2 border-t border-border bg-card px-4 py-3">
-          <Button size="sm" onClick={handleSave} disabled={busy || shortPassword}>
-            {copy.save}
-          </Button>
+        <div className="sticky bottom-0 -mx-4 flex items-center justify-end gap-2 border-t border-border bg-card px-4 py-3">
           <Button size="sm" variant="ghost" onClick={() => setForm(saved)} disabled={busy}>
             {copy.discard}
+          </Button>
+          <Button size="sm" onClick={handleSave} disabled={busy || shortPassword}>
+            <Save aria-hidden="true" />
+            {copy.save}
           </Button>
         </div>
       ) : null}

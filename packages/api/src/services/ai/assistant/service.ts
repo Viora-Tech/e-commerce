@@ -19,7 +19,7 @@ import { and, desc, eq, lt } from 'drizzle-orm'
 import type { StoreScope } from '../../../procedures'
 import { ProposalProblem } from './actions/resolve'
 import type { ActionEnv, ActionPreview, EditField } from './actions/types'
-import { ACTIONS, undoerFor } from './registry'
+import { actionFor, undoerFor } from './registry'
 
 type Stored = {
   raw: Record<string, unknown>
@@ -60,7 +60,7 @@ type Row = typeof aiAction.$inferSelect
 function viewOf(row: Row): ActionView {
   const stored = row.input as Partial<Stored>
   const outcome = (row.result ?? {}) as Outcome
-  const definition = ACTIONS[row.tool]
+  const definition = actionFor(row.tool)
   const editable =
     row.status === 'proposed' && definition && stored.raw
       ? definition.editFields(stored.raw as never)
@@ -96,7 +96,7 @@ export async function proposeAction(
   raw: unknown,
   opts: { flagged: boolean; source?: 'assistant' | 'mcp' },
 ): Promise<ActionView> {
-  const definition = ACTIONS[tool]
+  const definition = actionFor(tool)
   if (!definition) throw new ProposalProblem(`There is no ${tool} action.`)
   const parsed = definition.input.parse(raw) as Record<string, unknown>
   const proposal = await definition.propose(env, parsed)
@@ -144,7 +144,8 @@ async function ownOpen(env: ActionEnv, id: string): Promise<Row> {
 function requirePermission(scope: StoreScope, tool: string) {
   const undoer = undoerFor(tool)
   if (!undoer) throw new ORPCError('BAD_REQUEST', { message: 'Unknown AI action.' })
-  if (!scope.can(undoer.permission)) {
+  // `runAdminAction` has no permission of its own: the admin procedure checks the approver's role.
+  if (undoer.permission !== null && !scope.can(undoer.permission)) {
     throw new ORPCError('FORBIDDEN', { message: 'Your role does not allow this change.' })
   }
   return undoer
@@ -167,7 +168,7 @@ export async function reviseAction(
   changes: Record<string, string | number | null>,
 ): Promise<ActionView> {
   const row = await ownOpen(env, id)
-  const definition = ACTIONS[row.tool]
+  const definition = actionFor(row.tool)
   const stored = row.input as Stored
   if (!definition) throw new ORPCError('BAD_REQUEST', { message: 'Unknown AI action.' })
   const fields = definition.editFields(stored.raw as never)
@@ -209,7 +210,7 @@ export async function approveAction(
 ): Promise<ActionView> {
   const row = await ownOpen(env, id)
   requirePermission(scope, row.tool)
-  const definition = ACTIONS[row.tool]
+  const definition = actionFor(row.tool)
   if (!definition) throw new ORPCError('BAD_REQUEST', { message: 'Unknown AI action.' })
   const stored = row.input as Stored
   try {

@@ -1,6 +1,6 @@
 'use client'
 
-import { Loader2Icon } from '@commerce/ui/icons'
+import { CheckIcon, Loader2Icon } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import {
   Dialog,
@@ -417,6 +417,7 @@ export default function MediaPickDialog({
               {copy.cancel}
             </Button>
             <Button type="button" disabled={doneDisabled} onClick={handleDone}>
+              <CheckIcon aria-hidden="true" />
               {doneLabel ?? copy.done}
             </Button>
           </div>

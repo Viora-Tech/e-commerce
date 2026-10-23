@@ -22,7 +22,8 @@ export const profitCardContent = {
   title: 'Profit',
   netSales: 'Net sales (without GST)',
   goods: 'Cost of goods',
-  courier: 'Courier charges',
+  packing: 'Packing',
+  courier: 'Delivery',
   fees: 'Payment fees',
   rto: 'RTO costs',
   profit: 'Profit',
@@ -31,6 +32,11 @@ export const profitCardContent = {
     costEstimated: 'Some item costs were filled in after the sale from the cost at that time.',
     costMissing: 'Some items have no cost yet, so they count as free. Add the cost on the product.',
     courierMissing: 'The courier charge is not known yet. Add it below.',
+    courierEstimated:
+      'Delivery is estimated (your highest charge to this state in 60 days, else your default) until the courier charge is known. Add it below when you have it.',
+    packingEstimated: 'Packing is your box cost today; it is fixed when the parcel is booked.',
+    packingMissing:
+      'Your box has no cost set, so packing counts as nothing. Add it in Settings › Shipping.',
     feeFromRate:
       'Payment fees are estimated from your rates in Settings › Costs for profit until Razorpay or Cashfree reports the actual fee.',
     feeMissing: 'No fee rate is set for this payment method.',
@@ -46,6 +52,11 @@ export const profitCardContent = {
     mixed: 'Some fees are actual, the rest from your rates until the gateway reports them.',
   },
   setRates: 'Set fee rates',
+  estimatedTag: 'Estimated',
+  estimatedDetail: 'estimated',
+  atLeast: (amount: string) => `at least ${amount}`,
+  floor:
+    'Based on the costs you entered. Your real profit may be higher or lower if some costs differ.',
   courierLabel: 'Courier charge (₹)',
   courierSave: 'Save',
   courierSaved: 'Courier charge saved',

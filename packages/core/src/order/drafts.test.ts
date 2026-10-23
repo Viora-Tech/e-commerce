@@ -14,7 +14,14 @@ import { resetDb } from '@commerce/db/test'
 import { eq } from 'drizzle-orm'
 import { afterAll, beforeEach, describe, expect, it } from 'vitest'
 import { OutOfStock } from '../errors'
-import { convertDraft, createDraft, deleteDraft, listDrafts, updateDraft } from './drafts'
+import {
+  convertDraft,
+  createDraft,
+  DraftNeedsShippingAddress,
+  deleteDraft,
+  listDrafts,
+  updateDraft,
+} from './drafts'
 
 const owner = createDb(process.env.DATABASE_URL_OWNER as string)
 const app = createDb(process.env.DATABASE_URL as string)
@@ -39,6 +46,15 @@ async function seed(onHand = 5) {
   if (!v) throw new Error('seed')
   await owner.insert(inventoryLevel).values({ storeId: s.id, variantId: v.id, onHand })
   return { storeId: s.id, variantId: v.id }
+}
+
+const shipping = {
+  name: 'Aarav',
+  line1: '12 MG Road',
+  city: 'Gurugram',
+  stateCode: 'HR',
+  pincode: '122001',
+  phone: '9876543210',
 }
 
 beforeEach(async () => {
@@ -129,6 +145,7 @@ describe('draft orders', () => {
       const ctx = { storeId, tx }
       const created = await createDraft(ctx, {
         email: 'aarav@example.in',
+        shipping,
         lines: [{ variantId, quantity: 2 }],
         discountPaise: 0,
         shippingPaise: 0,
@@ -156,6 +173,7 @@ describe('draft orders', () => {
       withStore(app, storeId, async (tx) => {
         const ctx = { storeId, tx }
         const created = await createDraft(ctx, {
+          shipping,
           lines: [{ variantId, quantity: 3 }],
           discountPaise: 0,
           shippingPaise: 0,
@@ -170,6 +188,7 @@ describe('draft orders', () => {
     const id = await withStore(app, storeId, async (tx) => {
       const ctx = { storeId, tx }
       const created = await createDraft(ctx, {
+        shipping,
         lines: [{ variantId, quantity: 1 }],
         discountPaise: 0,
         shippingPaise: 0,
@@ -180,5 +199,52 @@ describe('draft orders', () => {
     await expect(withStore(app, storeId, (tx) => deleteDraft({ storeId, tx }, id))).rejects.toThrow(
       'no longer a draft',
     )
+  })
+
+  it('refuses to convert a draft with something to ship and no shipping address', async () => {
+    const { storeId, variantId } = await seed()
+    let draftId = ''
+    await expect(
+      withStore(app, storeId, async (tx) => {
+        const ctx = { storeId, tx }
+        const created = await createDraft(ctx, {
+          lines: [{ variantId, quantity: 1 }],
+          discountPaise: 0,
+          shippingPaise: 0,
+        })
+        draftId = created.id
+        return convertDraft(ctx, created.id)
+      }),
+    ).rejects.toThrow(DraftNeedsShippingAddress)
+    const [o] = await owner.select().from(order).where(eq(order.id, draftId))
+    expect(o).toBeUndefined()
+    const [level] = await owner
+      .select()
+      .from(inventoryLevel)
+      .where(eq(inventoryLevel.variantId, variantId))
+    expect(level?.reserved).toBe(0)
+  })
+
+  it('converts a gift-card-only draft without a shipping address', async () => {
+    const { storeId } = await seed()
+    const [p] = await owner
+      .insert(product)
+      .values({ storeId, handle: 'gift', title: 'Gift card', status: 'active', isGiftCard: true })
+      .returning()
+    const [v] = await owner
+      .insert(variant)
+      .values({ storeId, productId: p?.id as string, title: '₹500', pricePaise: 50000 })
+      .returning()
+    const converted = await withStore(app, storeId, async (tx) => {
+      const ctx = { storeId, tx }
+      const created = await createDraft(ctx, {
+        email: 'aarav@example.in',
+        lines: [{ variantId: v?.id as string, quantity: 1 }],
+        discountPaise: 0,
+        shippingPaise: 0,
+      })
+      return convertDraft(ctx, created.id)
+    })
+    expect(converted?.status).toBe('open')
   })
 })

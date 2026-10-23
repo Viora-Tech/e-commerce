@@ -2,12 +2,14 @@
 
 import type { OrderProfit } from '@commerce/core/profit'
 import { formatPercent, parseRupees } from '@commerce/money'
+import { Save } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Input } from '@commerce/ui/shadcn/input'
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import DataCard from '@/components/layout/data-card'
+import StatusChip from '@/components/layout/status-chip'
 import TotalsList, { type TotalsLine } from '@/components/layout/totals-list'
 import { profitCardContent } from '@/data/order-cards'
 import { useCopy, useFormat } from '@/hooks/use-copy'
@@ -25,12 +27,18 @@ type NoteKey = keyof OrderProfit['flags']
 const NOTE_ORDER: NoteKey[] = [
   'costMissing',
   'costEstimated',
+  'packingMissing',
+  'packingEstimated',
   'courierMissing',
+  'courierEstimated',
   'feeMissing',
   'feeFromRate',
 ]
 
-/** What the order earned after goods, courier, payment fees and RTO, with why it may be off. */
+/**
+ * What the order earned after goods, packing, delivery, payment fees and RTO, with why it may be
+ * off. While packing, delivery or a fee is an estimate the profit is a floor ("at least").
+ */
 export default function ProfitCard({ orderId, shipment }: ProfitCardProps) {
   // Hooks
   const copy = useCopy(profitCardContent)
@@ -86,6 +94,7 @@ export default function ProfitCard({ orderId, shipment }: ProfitCardProps) {
   const rows: [string, number, boolean, boolean][] = [
     [copy.netSales, profit.netSalesPaise, false, true],
     [copy.goods, profit.goodsPaise, true, true],
+    [copy.packing, profit.packingPaise, true, true],
     [copy.courier, profit.courierPaise, true, true],
     [copy.fees, profit.feesPaise, true, true],
     [copy.rto, profit.rtoPaise, true, profit.rtoPaise > 0],
@@ -94,6 +103,7 @@ export default function ProfitCard({ orderId, shipment }: ProfitCardProps) {
   const feeSource = profit.feeSource
   const notes = NOTE_ORDER.filter((k) => profit.flags[k])
   const loss = profit.profitPaise < 0
+  const profitText = loss ? `−${fmt.money(-profit.profitPaise)}` : fmt.money(profit.profitPaise)
   const lines: TotalsLine[] = [
     ...rows
       .filter(([, , , show]) => show)
@@ -103,18 +113,26 @@ export default function ProfitCard({ orderId, shipment }: ProfitCardProps) {
         detail:
           label === copy.fees && feeSource ? (
             <span title={copy.feeSourceHelp[feeSource]}>· {copy.feeSource[feeSource]}</span>
+          ) : (label === copy.courier && profit.flags.courierEstimated) ||
+            (label === copy.packing && profit.flags.packingEstimated) ? (
+            <span>· {copy.estimatedDetail}</span>
           ) : undefined,
       })),
     {
       label: copy.profit,
-      value: loss ? `−${fmt.money(-profit.profitPaise)}` : fmt.money(profit.profitPaise),
+      value: profit.estimated ? copy.atLeast(profitText) : profitText,
       strong: true,
       negative: loss,
     },
   ]
 
   return (
-    <DataCard title={copy.title}>
+    <DataCard
+      title={copy.title}
+      action={
+        profit.estimated ? <StatusChip tone="attention">{copy.estimatedTag}</StatusChip> : null
+      }
+    >
       <TotalsList lines={lines} />
       {profit.marginBps !== null ? (
         <p className="mt-2 text-right text-caption text-muted-foreground">
@@ -132,6 +150,9 @@ export default function ProfitCard({ orderId, shipment }: ProfitCardProps) {
             <li key={k}>{copy.notes[k]}</li>
           ))}
         </ul>
+      ) : null}
+      {profit.estimated ? (
+        <p className="mt-2 text-caption text-muted-foreground">{copy.floor}</p>
       ) : null}
       {profit.flags.feeMissing || profit.flags.feeFromRate ? (
         <Link
@@ -156,6 +177,7 @@ export default function ProfitCard({ orderId, shipment }: ProfitCardProps) {
             />
           </div>
           <Button variant="outline" onClick={handleSaveCharge} disabled={saving}>
+            <Save aria-hidden="true" />
             {copy.courierSave}
           </Button>
         </div>

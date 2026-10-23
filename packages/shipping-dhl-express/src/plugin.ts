@@ -16,6 +16,20 @@ export const dhlExpressPlugin = definePlugin({
   company: 'DHL',
   description:
     'Ship abroad with DHL Express: rates, labels with the commercial invoice, pickups and tracking.',
+  listing: {
+    tagline: 'Ship abroad: DHL rates in rupees, labels with the commercial invoice, pickups.',
+    highlights: [
+      'Export rates and labels',
+      'Commercial invoice from your HS codes',
+      'Pickups and tracking',
+    ],
+    guide: '/merchant-guide/apps/international-couriers',
+    worksWith: [
+      'The Shipments workspace and export orders',
+      'HS codes on your products, for the commercial invoice',
+    ],
+    keywords: ['international', 'export', 'courier'],
+  },
   access: {
     resources: [
       {

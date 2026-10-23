@@ -1,7 +1,7 @@
 /** SOURCE OF TRUTH: AI product field changes and their undo — WHAT reads, patches and restores the product fields AI may change (title, description, search text, search keywords, tags, photo alt text) / WHY the assistant, the bulk writer and Undo touch them one way, inside RLS */
 import { media, product, productMedia, type StoreTx } from '@commerce/db'
 import { asc, eq, inArray } from 'drizzle-orm'
-import { noteProductsChanged } from '../catalog/changes'
+import { noteProductEvent, noteProductsChanged } from '../catalog/changes'
 import { syncAutomaticCollections } from '../collections/service'
 
 /** What AI may change on a product. `description` is Lexical JSON (see @commerce/richtext). */
@@ -130,6 +130,7 @@ export async function patchProductFields(
     changedIds.push(productId)
   }
   await noteProductsChanged(tx, changedIds, storeId)
+  await noteProductEvent(tx, storeId, 'product.updated', changedIds)
   if (patches.some((p) => p.patch.tags !== undefined)) await syncAutomaticCollections(tx, storeId)
   return changed
 }

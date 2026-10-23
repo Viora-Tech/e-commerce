@@ -16,6 +16,7 @@ import { api } from '@/lib/api-client'
 import { downloadCsv } from '@/lib/csv'
 import { csvOf } from '@/lib/report-csv'
 import { routes } from '@/lib/routes'
+import ProfitInsightsCard from './profit-insights-card'
 import RangePicker from './range-picker'
 import ReportChart from './report-chart'
 import ReportNameDialog from './report-name-dialog'
@@ -84,7 +85,7 @@ export default function ReportView({ report, initialRange, initial }: ReportView
   const c = analyticsContent.reports
 
   return (
-    <div className="flex w-full flex-col gap-6 px-4 py-6 md:px-8 md:py-8">
+    <div className="flex w-full flex-col gap-6 px-4 pt-4 pb-6 md:px-8 md:pt-5 md:pb-8">
       <PageHeader
         title={report.title}
         summary={report.description}
@@ -125,6 +126,7 @@ export default function ReportView({ report, initialRange, initial }: ReportView
           ) : null}
         </div>
       </Card>
+      {data.profit ? <ProfitInsightsCard insights={data.profit} /> : null}
       <ReportChart report={report} data={data} shape={shape} />
       {saving ? (
         <ReportNameDialog

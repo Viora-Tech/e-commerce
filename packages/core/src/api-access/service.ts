@@ -802,42 +802,69 @@ export async function authenticateApiToken(
       if (row.kind === 'token') await noteExpired(tx, row, now)
       return { ok: false, reason: 'expired' }
     }
-    const access = await memberAccess(tx, found.storeId, row.userId)
-    if (!access) return { ok: false, reason: 'invalid' }
-    const [who] = await tx
-      .select({ email: authSchema.user.email, name: authSchema.user.name })
-      .from(authSchema.user)
-      .where(eq(authSchema.user.id, row.userId))
-    const [s] = await tx
-      .select({ slug: store.slug, organizationId: store.organizationId })
-      .from(store)
-      .where(eq(store.id, found.storeId))
-    if (!who || !s?.organizationId) return { ok: false, reason: 'invalid' }
+    const principal = await principalOf(tx, found.storeId, row)
+    if (!principal) return { ok: false, reason: 'invalid' }
     if (!row.lastUsedAt || now.getTime() - row.lastUsedAt.getTime() > TOUCH_EVERY_MS) {
       await tx
         .update(apiGrant)
         .set({ lastUsedAt: now, lastIp: maskApiIp(opts.ip) ?? row.lastIp })
         .where(eq(apiGrant.id, row.id))
     }
-    const scopes = row.scopes as ApiScopes
-    const held = new Set<Permission>(access.isOwner ? ALL_PERMISSIONS : access.permissions)
-    return {
-      ok: true,
-      principal: {
-        grantId: row.id,
-        kind: row.kind,
-        name: row.name,
-        storeId: found.storeId,
-        storeSlug: s.slug,
-        organizationId: s.organizationId,
-        userId: row.userId,
-        email: who.email,
-        userName: who.name,
-        scopes,
-        permissions: permissionsForScopes(scopes).filter((perm) => held.has(perm)),
-      },
-    }
+    return { ok: true, principal }
   })
+}
+
+/**
+ * A grant still in force, by id: an MCP download link carries the grant, not the token, so
+ * the file is fetched as the same member with the same areas, read fresh.
+ */
+export async function principalForGrant(
+  db: Db,
+  storeId: string,
+  grantId: string,
+  now = new Date(),
+): Promise<ApiPrincipal | null> {
+  return withStore(db, storeId, async (tx) => {
+    const [row] = await tx.select().from(apiGrant).where(eq(apiGrant.id, grantId))
+    if (!row || row.revokedAt) return null
+    const lapsed = row.kind === 'token' ? row.accessExpiresAt : row.refreshExpiresAt
+    if (lapsed && lapsed.getTime() <= now.getTime()) return null
+    return principalOf(tx, storeId, row)
+  })
+}
+
+/** Who a grant acts for: its member (still on the team), their role ∩ the grant's areas. */
+async function principalOf(
+  tx: StoreTx,
+  storeId: string,
+  row: GrantRow,
+): Promise<ApiPrincipal | null> {
+  const access = await memberAccess(tx, storeId, row.userId)
+  if (!access) return null
+  const [who] = await tx
+    .select({ email: authSchema.user.email, name: authSchema.user.name })
+    .from(authSchema.user)
+    .where(eq(authSchema.user.id, row.userId))
+  const [s] = await tx
+    .select({ slug: store.slug, organizationId: store.organizationId })
+    .from(store)
+    .where(eq(store.id, storeId))
+  if (!who || !s?.organizationId) return null
+  const scopes = row.scopes as ApiScopes
+  const held = new Set<Permission>(access.isOwner ? ALL_PERMISSIONS : access.permissions)
+  return {
+    grantId: row.id,
+    kind: row.kind,
+    name: row.name,
+    storeId,
+    storeSlug: s.slug,
+    organizationId: s.organizationId,
+    userId: row.userId,
+    email: who.email,
+    userName: who.name,
+    scopes,
+    permissions: permissionsForScopes(scopes).filter((perm) => held.has(perm)),
+  }
 }
 
 /** The first refused call after a token's expiry leaves one "token expired" row. */

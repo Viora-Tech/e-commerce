@@ -1,11 +1,13 @@
 import { protectedProcedure } from '../procedures'
 import { accountRouter } from './account'
 import { activityRouter } from './activity'
+import { affiliatesRouter } from './affiliates'
 import { aiRouter } from './ai'
 import { analyticsRouter } from './analytics'
 import { apiAccessRouter } from './api-access'
 import { appearanceRouter } from './appearance'
 import { appsRouter } from './apps'
+import { automationsRouter } from './automations'
 import { backInStockRouter } from './back-in-stock'
 import { billingRouter } from './billing'
 import { blogRouter } from './blog'
@@ -31,12 +33,14 @@ import { marketingRouter } from './marketing'
 import { mediaRouter } from './media'
 import { meilisearchRouter } from './meilisearch'
 import { metaobjectsRouter } from './metaobjects'
+import { monthlyExpensesRouter } from './monthly-expenses'
 import { navigationRouter } from './navigation'
 import { notificationsRouter } from './notifications'
 import { onboardingRouter } from './onboarding'
 import { ordersRouter } from './orders'
 import { pagesRouter } from './pages'
 import { paymentsRouter } from './payments'
+import { platformAppsRouter } from './platform-apps'
 import { policiesRouter } from './policies'
 import { productsRouter } from './products'
 import { profitCostsRouter } from './profit-costs'
@@ -99,6 +103,7 @@ export const appRouter = {
   customers: customersRouter,
   discounts: discountsRouter,
   marketing: marketingRouter,
+  automations: automationsRouter,
   shortLinks: shortLinksRouter,
   giftCards: giftCardsRouter,
   apps: appsRouter,
@@ -106,7 +111,10 @@ export const appRouter = {
   taxes: taxesRouter,
   businessGst: businessGstRouter,
   profitCosts: profitCostsRouter,
+  monthlyExpenses: monthlyExpensesRouter,
   shopifyImport: shopifyImportRouter,
+  affiliates: affiliatesRouter,
+  platformApps: platformAppsRouter,
   backInStock: backInStockRouter,
   emi: emiRouter,
   forms: formsRouter,

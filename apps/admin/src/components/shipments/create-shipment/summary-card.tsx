@@ -72,7 +72,10 @@ export default function SummaryCard({
         : null
 
   return (
-    <DataCard title={page.summary} className="lg:sticky lg:top-6">
+    <DataCard
+      title={page.summary}
+      className="lg:sticky lg:top-6 lg:max-h-[calc(100dvh-6rem)] lg:overflow-y-auto no-scrollbar"
+    >
       <KeyValueList
         variant="grid"
         rows={[

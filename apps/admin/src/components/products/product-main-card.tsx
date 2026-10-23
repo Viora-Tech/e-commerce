@@ -6,7 +6,7 @@ import type { ReactNode } from 'react'
 import DataCard from '@/components/layout/data-card'
 import { productFormContent } from '@/data/product-form'
 import { useCopy } from '@/hooks/use-copy'
-import type { ProductFormState, VariantRow } from './form-state'
+import type { Facets, ProductFormState, VariantRow } from './form-state'
 import ProductBasicsSection from './product-basics-section'
 import ProductPricingSection from './product-pricing-section'
 import ProductStockSection from './product-stock-section'
@@ -14,6 +14,8 @@ import ProductStockSection from './product-stock-section'
 type ProductMainCardProps = {
   form: ProductFormState
   variant: VariantRow
+  /** Store GST defaults for the pricing card's breakdown. */
+  facets?: Facets | undefined
   /** Which card this renders; the form puts each one in its own tab. */
   tab: 'details' | 'pricing' | 'inventory'
   titleError?: string | undefined
@@ -32,6 +34,7 @@ type ProductMainCardProps = {
 export default function ProductMainCard({
   form,
   variant,
+  facets,
   tab,
   titleError,
   quantityChanged,
@@ -65,6 +68,7 @@ export default function ProductMainCard({
       <DataCard title={copy.pricing.heading}>
         <ProductPricingSection
           variant={variant}
+          gst={facets?.gst}
           taxIncluded={form.taxIncluded}
           saleStartsAt={form.saleStartsAt}
           saleEndsAt={form.saleEndsAt}
@@ -80,6 +84,9 @@ export default function ProductMainCard({
     <DataCard title={copy.inventory.heading}>
       <ProductStockSection
         variant={variant}
+        skuStem={form.handle || form.title}
+        otherSkus={form.variants.filter((v) => v !== variant).map((v) => v.sku)}
+        lowStockThreshold={facets?.lowStockThreshold}
         featured={form.featured}
         quantityChanged={quantityChanged}
         reason={form.inventoryReason}

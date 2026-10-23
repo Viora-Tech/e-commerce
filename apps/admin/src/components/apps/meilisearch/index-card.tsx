@@ -1,5 +1,6 @@
 'use client'
 
+import { RefreshCw } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { useState } from 'react'
 import { toast } from 'sonner'
@@ -68,6 +69,7 @@ export default function IndexCard({ view, onChanged }: IndexCardProps) {
           disabled={busy || !connected || view.reindexing}
           onClick={handleReindex}
         >
+          <RefreshCw aria-hidden="true" />
           {copy.index.reindex}
         </Button>
         {view.reindexing ? (

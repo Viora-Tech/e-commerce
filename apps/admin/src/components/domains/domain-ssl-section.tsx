@@ -1,6 +1,7 @@
 'use client'
 
 import type { DomainView } from '@commerce/core'
+import { RotateCcw } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { useState } from 'react'
 import { toast } from 'sonner'
@@ -56,6 +57,7 @@ export default function DomainSslSection({ domain, canManage, onChange }: Domain
       {canRetry ? (
         <div>
           <Button variant="outline" size="sm" disabled={retrying} onClick={handleRetry}>
+            <RotateCcw aria-hidden="true" />
             {retrying ? certificate.retryBusy : certificate.retry}
           </Button>
         </div>

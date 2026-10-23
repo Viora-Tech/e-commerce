@@ -1,5 +1,6 @@
 'use client'
 
+import { Globe } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import Link from 'next/link'
 import StatusChip from '@/components/layout/status-chip'
@@ -87,6 +88,7 @@ export default function ThemeLibraryRow({
       <div className="flex items-center gap-2">
         {canPublish ? (
           <Button variant="outline" disabled={busy} onClick={onPublish}>
+            <Globe aria-hidden="true" />
             {copy.publish}
           </Button>
         ) : null}

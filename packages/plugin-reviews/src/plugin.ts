@@ -18,6 +18,33 @@ export const reviewsPlugin = definePlugin({
   category: 'marketing',
   description:
     'Collect product reviews with photos, approve or hide them, reply, ask buyers by email after delivery and bring your Judge.me reviews over.',
+  listing: {
+    tagline: 'Product reviews with photos, verified buyer badges and review request emails.',
+    highlights: [
+      'Review request emails after delivery',
+      'Photos, verified buyer badges and your replies',
+      'Import your reviews from Judge.me',
+    ],
+    guide: '/merchant-guide/apps/reviews',
+    worksWith: ['Product pages in your theme', 'Judge.me exports'],
+    keywords: ['reviews', 'ratings', 'judge.me'],
+    faq: [
+      {
+        question: 'Do reviews go live straight away?',
+        answer:
+          'You choose. By default 4★ and 5★ reviews publish right away and the rest wait for you; reviews with photos always wait unless you turn that off.',
+      },
+      {
+        question: 'Who can write a review?',
+        answer:
+          'By default only customers who bought the product. You can open it to anyone in Settings.',
+      },
+      {
+        question: 'Can I bring my Judge.me reviews?',
+        answer: 'Yes. They come over with their stars, dates, photos and your replies.',
+      },
+    ],
+  },
   access: {
     resources: [
       { resource: 'products', level: 'read', why: 'Shows reviews on each product page' },

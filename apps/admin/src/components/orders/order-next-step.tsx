@@ -1,13 +1,23 @@
 'use client'
 
 import type { Tracking } from '@commerce/core'
-import { CheckIcon, CircleCheck, Clock, Copy, PackageOpen, Truck, X } from '@commerce/ui/icons'
+import {
+  CheckIcon,
+  CircleCheck,
+  Clock,
+  Copy,
+  PackageOpen,
+  Send,
+  Truck,
+  Undo,
+  X,
+} from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import type { ReactNode } from 'react'
 import { toast } from 'sonner'
 import NextStepBanner, { type NextStepTone } from '@/components/layout/next-step-banner'
+import { orderDetailContent } from '@/data/order-detail'
 import { orderNextStepContent } from '@/data/order-next-step'
-import { orderDetailContent } from '@/data/orders'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { methodLabel, type OrderDetail, unfulfilledLines } from './order-detail-types'
 import type { NextStepKind } from './order-next-step-kind'
@@ -89,6 +99,7 @@ export default function OrderNextStep({
       <>
         {onSendReminder ? (
           <Button variant="outline" className={PLAIN} onClick={onSendReminder} disabled={busy}>
+            <Send aria-hidden="true" />
             {copy.upi.resend}
           </Button>
         ) : null}
@@ -183,6 +194,7 @@ export default function OrderNextStep({
         render={<a href="#order-returns" />}
         nativeButton={false}
       >
+        <Undo aria-hidden="true" />
         {copy.done.startReturn}
       </Button>
     )

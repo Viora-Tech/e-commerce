@@ -1,6 +1,6 @@
 'use client'
 
-import { ChevronRight, Plus, Users } from '@commerce/ui/icons'
+import { Plus, Users } from '@commerce/ui/icons'
 import { cn } from '@commerce/ui/lib/utils'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Card } from '@commerce/ui/shadcn/card'
@@ -11,28 +11,31 @@ import { segmentsContent } from '@/data/customers'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import type { api } from '@/lib/api-client'
 import { routes } from '@/lib/routes'
+import SegmentRowMenu from './segment-row-menu'
 
 type Segment = Awaited<ReturnType<typeof api.customers.segments>>[number]
 
 type SegmentsListProps = { segments: Segment[] }
 type SegmentCopy = typeof segmentsContent
 
-/** "Order count is at least 2 · State is MH": the saved conditions in words. */
+/** "Order count is at least 2 · State is MH": the saved conditions in words (spend is paise). */
 function rulesLine(copy: SegmentCopy, money: (paise: number) => string, s: Segment): string {
   const parts = s.rules.conditions.map((c) => {
     const value =
       c.field === 'marketing'
         ? (copy.marketingValues[c.value] ?? c.value)
-        : c.field === 'spend'
-          ? money(Math.round(Number(c.value) * 100))
-          : c.value
+        : c.field === 'business'
+          ? (copy.businessValues[c.value] ?? c.value)
+          : c.field === 'spend'
+            ? money(Number(c.value))
+            : c.value
     return `${copy.fields[c.field] ?? c.field} ${copy.ops[c.op] ?? c.op} ${value}`
   })
   return parts.join(s.rules.match === 'any' ? copy.orJoin : ' · ')
 }
 
-/* Segment, how many customers match right now, last change, open arrow. */
-const ROW = 'grid grid-cols-[minmax(0,1fr)_8rem_9rem_1.5rem] items-center gap-x-3 px-4 md:px-6'
+/* Segment, how many customers match right now, last change, ⋯ menu. */
+const ROW = 'grid grid-cols-[minmax(0,1fr)_8rem_9rem_1.75rem] items-center gap-x-3 px-4 md:px-6'
 
 /** Saved filters in a table card, each with the count it matches right now. */
 export default function SegmentsList({ segments }: SegmentsListProps) {
@@ -74,14 +77,19 @@ export default function SegmentsList({ segments }: SegmentsListProps) {
         <span />
       </div>
       {segments.map((s) => (
-        <Link
+        <div
           key={s.id}
-          href={routes.customers.segment(s.id)}
           className={cn(
             ROW,
-            'group/row h-15 border-b border-line text-body text-foreground transition-colors last:border-0 hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring',
+            'group/row relative h-15 border-b border-line text-body text-foreground transition-colors last:border-0 hover:bg-muted/50',
           )}
         >
+          {/* The whole row opens the segment; the ⋯ menu sits above this link. */}
+          <Link
+            href={routes.customers.segment(s.id)}
+            aria-label={s.name}
+            className="absolute inset-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
+          />
           <span className="flex min-w-0 flex-col">
             <span className="truncate text-ink-strong">{s.name}</span>
             {s.rules.conditions.length > 0 ? (
@@ -94,8 +102,10 @@ export default function SegmentsList({ segments }: SegmentsListProps) {
             {copy.builder.previewCount(s.customerCount)}
           </span>
           <RelativeTime value={s.updatedAt} className="text-muted-foreground" />
-          <ChevronRight className="size-4 text-muted-foreground" aria-hidden />
-        </Link>
+          <span className="relative flex justify-end">
+            <SegmentRowMenu id={s.id} />
+          </span>
+        </div>
       ))}
     </Card>
   )

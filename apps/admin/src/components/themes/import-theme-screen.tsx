@@ -173,6 +173,7 @@ export default function ImportThemeScreen() {
           <p className="text-caption text-muted-foreground">{copy.licence}</p>
           <div className="flex justify-end">
             <Button disabled={!ready} onClick={handleImport}>
+              <Upload aria-hidden="true" />
               {copy.confirm}
             </Button>
           </div>

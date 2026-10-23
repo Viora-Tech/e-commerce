@@ -5,6 +5,7 @@ import KitButton from '@/components/kit/kit-button'
 import { salesChannelsContent } from '@/data/sales-channels'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { channelBar } from '@/lib/channel-status'
+import RejectedItems from './rejected-items'
 import SyncStatusBar from './sync-status-bar'
 
 type ChannelBarProps = {
@@ -29,21 +30,24 @@ export default function ChannelBar({ state, name, onReconnect, onWithdraw }: Cha
     : undefined
 
   return (
-    <SyncStatusBar
-      tone={bar.tone}
-      title={bar.title}
-      detail={bar.detail}
-      meta={meta}
-      progress={bar.progress}
-      action={
-        bar.action === 'reconnect' ? (
-          <KitButton onClick={onReconnect}>{copy.bar.reconnect}</KitButton>
-        ) : bar.action === 'withdraw' ? (
-          <KitButton variant="secondary" onClick={onWithdraw}>
-            {copy.card.viewRequest}
-          </KitButton>
-        ) : undefined
-      }
-    />
+    <div className="flex flex-col gap-3">
+      <SyncStatusBar
+        tone={bar.tone}
+        title={bar.title}
+        detail={bar.detail}
+        meta={meta}
+        progress={bar.progress}
+        action={
+          bar.action === 'reconnect' ? (
+            <KitButton onClick={onReconnect}>{copy.bar.reconnect}</KitButton>
+          ) : bar.action === 'withdraw' ? (
+            <KitButton variant="secondary" onClick={onWithdraw}>
+              {copy.card.viewRequest}
+            </KitButton>
+          ) : undefined
+        }
+      />
+      <RejectedItems state={state} name={name} />
+    </div>
   )
 }

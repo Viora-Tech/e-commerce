@@ -1,6 +1,14 @@
 'use client'
 
-import { Bell, CreditCard, MessageSquare, RotateCcw, ShoppingBag, Truck } from '@commerce/ui/icons'
+import {
+  Bell,
+  CreditCard,
+  MessageSquare,
+  Plus,
+  RotateCcw,
+  ShoppingBag,
+  Truck,
+} from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Textarea } from '@commerce/ui/shadcn/textarea'
 import { type FormEvent, useState } from 'react'
@@ -8,7 +16,7 @@ import { toast } from 'sonner'
 import DataCard from '@/components/layout/data-card'
 import ScrollSection from '@/components/layout/scroll-section'
 import Timeline from '@/components/layout/timeline'
-import { orderDetailContent } from '@/data/orders'
+import { orderDetailContent } from '@/data/order-detail'
 import { shipmentPanelContent } from '@/data/shipping'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
@@ -81,6 +89,7 @@ export default function TimelineCard({ order, onChanged }: TimelineCardProps) {
         />
         <div className="flex justify-end">
           <Button type="submit" size="sm" variant="outline" disabled={saving || !note.trim()}>
+            <Plus aria-hidden="true" />
             {copy.timeline.addNote}
           </Button>
         </div>

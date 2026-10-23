@@ -7,6 +7,7 @@ import {
   type PackPick,
   packFulfillmentOrderLines,
 } from './fulfillment-orders'
+import { packingSnapshot } from './profit-parcels'
 import { recomputeOrderStatuses } from './recompute'
 
 export type FulfilLineInput = { lineId: string; quantity: number }
@@ -95,7 +96,14 @@ function assertNoBalanceDue(
  * Used when the whole order ships at once (a courier booking, or the merchant
  * setting the status to fulfilled). Running it again moves nothing.
  */
-export async function fulfilRemainingLines(ctx: StoreContext, orderId: string): Promise<void> {
+export async function fulfilRemainingLines(
+  ctx: StoreContext,
+  orderId: string,
+  opts: {
+    /** False: no "order shipped" message to the shopper (an automation's choice). */
+    notifyCustomer?: boolean | undefined
+  } = {},
+): Promise<void> {
   const { o, lines } = await lockOrder(ctx, orderId)
   if (!o || UNFULFILLABLE.has(o.status)) return
   assertNoBalanceDue(ctx, orderId, o)
@@ -113,7 +121,7 @@ export async function fulfilRemainingLines(ctx: StoreContext, orderId: string): 
     }
   }
   await packFulfillmentOrderLines(ctx, orderId, picks)
-  await recomputeOrderStatuses(ctx, orderId)
+  await recomputeOrderStatuses(ctx, orderId, opts)
 }
 
 /**
@@ -218,6 +226,7 @@ export async function fulfilOrderLines(
   if (waybill) {
     /* One shipment row per waybill: re-packing under the same number updates it
        rather than creating a duplicate the tracking poller would fight over. */
+    const packing = await packingSnapshot(ctx.tx, picks)
     const [row] = await ctx.tx
       .insert(shipment)
       .values({
@@ -228,6 +237,7 @@ export async function fulfilOrderLines(
         waybill,
         status: 'created',
         trackingUrl: input.trackingUrl?.trim() || null,
+        ...packing,
       })
       .onConflictDoUpdate({
         target: [shipment.provider, shipment.waybill],

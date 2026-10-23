@@ -1,7 +1,7 @@
 'use client'
 
 import { siteConfig } from '@commerce/config/site'
-import { CircleCheck, EyeOff, Trash2 } from '@commerce/ui/icons'
+import { CircleCheck, EyeOff, Settings, Trash2, Upload } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import Link from 'next/link'
 import { parseAsInteger, parseAsString, parseAsStringLiteral, useQueryStates } from 'nuqs'
@@ -167,6 +167,7 @@ function ReviewsList() {
               nativeButton={false}
               render={<Link href={routes.apps.page('reviews', 'import')} />}
             >
+              <Upload aria-hidden="true" />
               {copy.list.importJudgeme}
             </Button>
             <Button
@@ -174,6 +175,7 @@ function ReviewsList() {
               nativeButton={false}
               render={<Link href={routes.apps.page('reviews', 'settings')} />}
             >
+              <Settings aria-hidden="true" />
               {copy.list.settings}
             </Button>
             <AskReviewsButton />
@@ -260,7 +262,9 @@ function ReviewsList() {
             </Button>
           </div>
         )}
-        rowActions={(r) => <ReviewRowActions id={r.id} status={r.status} onChanged={reload} />}
+        rowActions={(r) => (
+          <ReviewRowActions id={r.id} status={r.status} featured={r.featured} onChanged={reload} />
+        )}
         empty={filtered ? copy.list.emptyFiltered : copy.list.empty}
       />
       <DeleteReviewsDialog

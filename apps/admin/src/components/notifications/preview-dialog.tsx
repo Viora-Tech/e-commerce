@@ -1,5 +1,6 @@
 'use client'
 
+import { Send } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import {
   Dialog,
@@ -120,7 +121,7 @@ export default function PreviewDialog({ messageId, onClose, onTest, testing }: P
         )}
         <DialogFooter>
           <Button variant="outline" onClick={onTest} disabled={testing}>
-            {testing ? <Spinner /> : null}
+            {testing ? <Spinner /> : <Send aria-hidden="true" />}
             {copy.sendTest}
           </Button>
           <Button onClick={onClose}>{copy.close}</Button>

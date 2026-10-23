@@ -44,7 +44,8 @@ it, and its monthly price. Apps not listed are free.
 
 `storeAppAccess` gives each app one of four states: `free`, `included`, `bought` (until a date) or
 `buy`.
-- `apps.list` attaches it as `billing`, for the App Store cards and the install flow.
+- `apps.list` attaches it as `billing`, for the Installed apps list and the install flow. The
+  App Store website prices apps from the same `APP_PRICING` (`@commerce/core/app-catalogue`).
 - `apps.install` refuses a `buy` app with `FORBIDDEN` and `data.reason = 'app_not_in_plan'`.
 
 A purchase is an `app_purchase` row (migration `0132`) whose bill is a sales-store order with SKU
@@ -79,7 +80,7 @@ Update `TIER_PRICES_INR` whenever the model or its price changes.
 - Create products with SKUs `plan-starter|growth|pro-month|year`: active, untracked inventory,
   GST-inclusive prices from `PLANS`.
 - For paid apps, one product per app with SKU `app-<pluginId>-month` (`reviews`, `back-in-stock`,
-  `forms`, `emi-pay-later`, `google-search-console`), priced from `APP_PRICING`.
+  `forms`, `affiliates`, `emi-pay-later`, `google-search-console`), priced from `APP_PRICING`.
 - AI credits: a product with SKU `ai-credits-1000` at ₹199 + GST.
 - Enable one payment gateway on the sales store.
 - Run migrations `0121`–`0134`.

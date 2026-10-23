@@ -156,6 +156,12 @@ async function merchant(email: string, slug: string) {
   })
   expect(seeded.failed, `seeder could not fill: ${JSON.stringify(seeded.failed)}`).toEqual([])
   await owner.execute(sql`update product set status = 'active' where store_id = ${s.id}`)
+  // Apps whose routers refuse until installed are walked installed, so their procedures are
+  // probed too (an uninstalled app only ever answers "install it first").
+  await owner
+    .update(store)
+    .set({ apps: { installed: ['affiliates'] } })
+    .where(sql`${store.id} = ${s.id}`)
   return { headers, storeId: s.id, organizationId }
 }
 

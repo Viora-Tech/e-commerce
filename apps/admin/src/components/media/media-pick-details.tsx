@@ -100,7 +100,7 @@ export default function MediaPickDetails({ item, onAltSaved }: MediaPickDetailsP
         size="sm"
         disabled={!changed || saving}
         onClick={() => void handleSave()}
-        className="self-start"
+        className="self-end"
       >
         {saving ? <Loader2Icon className="size-4 animate-spin" aria-hidden="true" /> : null}
         {saving ? copy.saving : copy.save}

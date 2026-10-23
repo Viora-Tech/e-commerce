@@ -1,6 +1,8 @@
 'use client'
 
+import { Trash2 } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
+import Link from 'next/link'
 import StatusChip from '@/components/layout/status-chip'
 import SettingsTable from '@/components/settings/settings-table'
 import SettingsTableCell from '@/components/settings/settings-table-cell'
@@ -8,19 +10,19 @@ import SettingsTableRow from '@/components/settings/settings-table-row'
 import RowActionsCell from '@/components/table/row-actions-cell'
 import { staffContent } from '@/data/staff'
 import { useCopy } from '@/hooks/use-copy'
-import type { EditableRole } from './role-sheet'
+import { routes } from '@/lib/routes'
+import type { EditableRole } from './role-editor'
 
 export type RoleRow = EditableRole & { slug: string; memberCount: number }
 
 type RolesCardProps = {
   roles: RoleRow[]
   canManage: boolean
-  onEdit: (role: RoleRow) => void
   onDelete: (role: RoleRow) => void
 }
 
 /** The role list: what each role is for, who holds it, and how to change it. */
-export default function RolesCard({ roles, canManage, onEdit, onDelete }: RolesCardProps) {
+export default function RolesCard({ roles, canManage, onDelete }: RolesCardProps) {
   // Hooks
   const copy = useCopy(staffContent)
 
@@ -56,11 +58,17 @@ export default function RolesCard({ roles, canManage, onEdit, onDelete }: RolesC
             </SettingsTableCell>
             <SettingsTableCell className="w-48 p-0 last:pr-2 md:last:pr-2">
               <RowActionsCell>
-                <Button variant="outline" size="sm" onClick={() => onEdit(role)}>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  nativeButton={false}
+                  render={<Link href={routes.settings.role(role.id)} />}
+                >
                   {role.isSystem ? 'View' : copy.roles.edit}
                 </Button>
                 {canManage && !role.isSystem ? (
                   <Button variant="ghost" size="sm" onClick={() => onDelete(role)}>
+                    <Trash2 aria-hidden="true" />
                     {copy.roles.delete}
                   </Button>
                 ) : null}

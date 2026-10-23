@@ -22,6 +22,7 @@ import {
   reviewRequestEmail,
 } from '@commerce/plugin-reviews/server'
 import { fairProcessor, type IORedis, KEEP_FINISHED, QUEUE_LIMITS, Worker } from '@commerce/queue'
+import { deliverAffiliateUpdate } from './affiliates'
 import { appEmailExtras } from './app-events'
 
 /** One line per delivery attempt: template, channel and outcome, never the recipient. */
@@ -70,6 +71,11 @@ export function createNotificationWorker(
         signupId,
         contactMessageId,
         reviewId,
+        affiliateId,
+        affiliateNotice,
+        commissionId,
+        payoutId,
+        custom,
       } = job.data
       // The one message without an order: the newsletter confirm link (double opt-in).
       if (template === 'newsletter_confirm') {
@@ -143,6 +149,21 @@ export function createNotificationWorker(
             registry: (await registriesForStore(tx, storeId)).notifications,
             settingsSecret: opts.settingsSecret,
           })
+        })
+        const bad = sent.filter((r) => !r.ok)
+        if (bad.length > 0) throw new Error(bad.map((r) => `${r.channel}: ${r.error}`).join('; '))
+        return sent
+      }
+      // Affiliates app: to the affiliate (approved, a new sale, a payout), no order.
+      if (template === 'affiliate_update') {
+        if (!affiliateId || !affiliateNotice) return []
+        const sent = await deliverAffiliateUpdate(db, storeId, {
+          affiliateId,
+          notice: affiliateNotice,
+          commissionId,
+          payoutId,
+          settingsSecret: opts.settingsSecret,
+          storefrontUrl: opts.storefrontUrl ?? '',
         })
         const bad = sent.filter((r) => !r.ok)
         if (bad.length > 0) throw new Error(bad.map((r) => `${r.channel}: ${r.error}`).join('; '))
@@ -239,6 +260,8 @@ export function createNotificationWorker(
             settingsSecret: opts.settingsSecret,
             storefrontUrl: opts.storefrontUrl,
             extras: appEmailExtras(db, opts, storeId),
+            // The merchant's own subject and note from the "Review email" dialog.
+            data: custom ? { custom } : undefined,
             // A keyed job is one of several of the same template (a re-sent balance
             // request, the second reminder): send it even though the template went before.
             resend: key !== undefined,

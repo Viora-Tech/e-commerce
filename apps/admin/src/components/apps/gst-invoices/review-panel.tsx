@@ -1,6 +1,7 @@
 'use client'
 
 import { dayKey } from '@commerce/dates'
+import { Eye, ReceiptIcon } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Input } from '@commerce/ui/shadcn/input'
 import { SortableList } from '@commerce/ui/sortable'
@@ -132,9 +133,11 @@ export default function ReviewPanel({ rows, onBack, onIssued }: ReviewPanelProps
             {copy.back}
           </Button>
           <Button variant="outline" onClick={handlePreview} disabled={busy}>
+            <Eye aria-hidden="true" />
             {copy.preview}
           </Button>
           <Button onClick={handleIssue} disabled={busy || !numbers}>
+            <ReceiptIcon aria-hidden="true" />
             {copy.confirm(items.length)}
           </Button>
         </div>

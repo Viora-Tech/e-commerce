@@ -1,7 +1,7 @@
 'use client'
 
 import { parseRupees } from '@commerce/money'
-import { X } from '@commerce/ui/icons'
+import { Plus, X } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import {
   Dialog,
@@ -139,6 +139,7 @@ export default function GiftCardProductDialog({
             {copy.cancel}
           </Button>
           <Button onClick={handleCreate} disabled={busy || !title.trim() || values.length === 0}>
+            <Plus aria-hidden="true" />
             {busy ? copy.creating : copy.create}
           </Button>
         </DialogFooter>

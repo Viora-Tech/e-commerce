@@ -1,5 +1,6 @@
 import type { AppBlockSource } from '@commerce/blocks/puck'
 import { preorderBlocks } from '@commerce/core/preorder-block'
+import { affiliateBlocks } from '@commerce/plugin-affiliates/blocks'
 import { backInStockBlocks } from '@commerce/plugin-back-in-stock/blocks'
 import { emiBlocks } from '@commerce/plugin-emi/blocks'
 import { deliveryCheckerBlocks as delhiveryDeliveryCheckerBlocks } from '@commerce/shipping-delhivery/blocks'
@@ -23,6 +24,7 @@ import { deliveryCheckerBlocks as shiprocketDeliveryCheckerBlocks } from '@comme
 export const APP_BLOCK_SOURCES: AppBlockSource[] = [
   { id: 'core', name: 'Built-in', icon: undefined, blocks: preorderBlocks },
   { id: 'back-in-stock', name: 'Back in stock', icon: 'Bell', blocks: backInStockBlocks },
+  { id: 'affiliates', name: 'Affiliates', icon: 'Users', blocks: affiliateBlocks },
   { id: 'emi-pay-later', name: 'EMI & pay later', icon: 'CreditCard', blocks: emiBlocks },
   { id: 'delhivery', name: 'Delhivery', icon: 'Truck', blocks: delhiveryDeliveryCheckerBlocks },
   { id: 'shiprocket', name: 'Shiprocket', icon: 'Truck', blocks: shiprocketDeliveryCheckerBlocks },

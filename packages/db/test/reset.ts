@@ -13,6 +13,14 @@ import type { Db } from '../src/client'
  * switch `session_replication_role` (it needs superuser, which `.env.test` uses).
  */
 export async function resetDb(ownerDb: Db): Promise<void> {
+  // Never empty a dev or production database: a test run from the repo root with `.env`
+  // loaded (instead of the package's `.env.test`) once wiped the local dev store.
+  const [current] = await ownerDb.execute<{ name: string }>(sql`select current_database() as name`)
+  if (!current?.name.startsWith('commerce_test')) {
+    throw new Error(
+      `resetDb refuses to empty "${current?.name}": only commerce_test_* databases. Run tests from the package (bun run --cwd packages/<pkg> test) so .env.test is loaded.`,
+    )
+  }
   const rows = await ownerDb.execute<{ name: string }>(sql`
     select quote_ident(tablename) as name from pg_tables where schemaname = 'public'
   `)

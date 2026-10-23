@@ -1,5 +1,6 @@
 'use client'
 
+import { CircleCheck, PackageCheck, RotateCcw, Save, Trash2 } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { type PurchaseOrderStatus, purchaseOrderFormContent } from '@/data/inventory'
 import { useCopy } from '@/hooks/use-copy'
@@ -59,11 +60,13 @@ export default function PoActions({
         {menu}
         {status === 'cancelled' ? (
           <Button variant="outline" onClick={onDelete} disabled={busy}>
+            <Trash2 aria-hidden="true" />
             {copy.delete}
           </Button>
         ) : null}
         {reopenable ? (
           <Button variant="outline" onClick={onReopen} disabled={busy}>
+            <RotateCcw aria-hidden="true" />
             {copy.reopen}
           </Button>
         ) : null}
@@ -87,6 +90,7 @@ export default function PoActions({
         </Button>
       )}
       <Button onClick={onReceive} disabled={busy}>
+        <PackageCheck aria-hidden="true" />
         {copy.receive}
       </Button>
     </>
@@ -95,13 +99,16 @@ export default function PoActions({
       {menu}
       {status === 'draft' ? (
         <Button variant="outline" onClick={onDelete} disabled={busy}>
+          <Trash2 aria-hidden="true" />
           {copy.delete}
         </Button>
       ) : null}
       <Button variant="outline" onClick={onSave} disabled={busy}>
+        <Save aria-hidden="true" />
         {busy ? copy.saving : copy.save}
       </Button>
       <Button onClick={onMarkOrdered} disabled={busy}>
+        <CircleCheck aria-hidden="true" />
         {copy.markOrdered}
       </Button>
     </>

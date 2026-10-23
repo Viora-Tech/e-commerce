@@ -1,6 +1,6 @@
 'use client'
 
-import { AiIcon } from '@commerce/ui/icons'
+import { AiIcon, Send, Trash2 } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Spinner } from '@commerce/ui/shadcn/spinner'
 import { Textarea } from '@commerce/ui/shadcn/textarea'
@@ -103,11 +103,12 @@ export default function ReplyCard({ reviewId, reply, onSaved }: ReplyCardProps) 
             onClick={() => save(text)}
             disabled={busy || writing || !text.trim() || !changed}
           >
-            {busy ? <Spinner /> : null}
+            {busy ? <Spinner /> : <Send aria-hidden="true" />}
             {reply ? copy.update : copy.post}
           </Button>
           {reply ? (
             <Button type="button" variant="ghost" onClick={() => save('')} disabled={busy}>
+              <Trash2 aria-hidden="true" />
               {copy.remove}
             </Button>
           ) : null}

@@ -5,6 +5,7 @@ import {
   datedCourierRows,
   defaultBoxPreset,
   effectiveWeightGrams,
+  heldParcels,
   orderParcelsView,
   resolveParcelPackage,
   resolveParcelWeightGrams,
@@ -75,7 +76,7 @@ export type DraftOrder = {
   paymentMode: 'cod' | 'prepaid'
   totalPaise: number
   /** Why this order can't be booked here, if it can't. */
-  blocked: 'no_address' | 'closed' | 'nothing_to_ship' | null
+  blocked: 'no_address' | 'closed' | 'nothing_to_ship' | 'on_hold' | null
   parcels: DraftParcel[]
 }
 
@@ -227,7 +228,9 @@ export async function prepareShipments(
     const byLine = new Map(own.map((l) => [l.id, l]))
     const parcels: DraftParcel[] = []
     const all = await orderParcelsView(tx, o.id)
-    const views = all.filter((p) => OPEN_PARCEL.has(p.status))
+    // A held parcel (Hold fulfilment) waits for its release; booking it is refused anyway.
+    const held = new Set((await heldParcels(tx, o.id)).map((p) => p.id))
+    const views = all.filter((p) => OPEN_PARCEL.has(p.status) && !held.has(p.id))
     // A parcel that is the whole order is worth the order; one of several, its own share.
     const live = all.filter((p) => p.status !== 'cancelled')
     for (const view of views) {
@@ -292,7 +295,9 @@ export async function prepareShipments(
         : !o.hasAddress
           ? 'no_address'
           : parcels.length === 0
-            ? 'nothing_to_ship'
+            ? held.size > 0
+              ? 'on_hold'
+              : 'nothing_to_ship'
             : null,
       parcels,
     })

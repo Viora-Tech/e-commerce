@@ -2,7 +2,7 @@
 
 import type { CustomerSheetRow } from '@commerce/api'
 import type { ConsentChannel } from '@commerce/core/privacy'
-import { CircleAlert } from '@commerce/ui/icons'
+import { CircleAlert, Layers, Save } from '@commerce/ui/icons'
 import { Alert, AlertDescription, AlertTitle } from '@commerce/ui/shadcn/alert'
 import { Button } from '@commerce/ui/shadcn/button'
 import { useState } from 'react'
@@ -22,6 +22,8 @@ import {
   visibleKeys,
 } from './customers-bulk-model'
 import { dirtyRows, saveRows } from './customers-bulk-save'
+import { applyToAll, type SetAllChange, setAllKeys } from './customers-bulk-set-all'
+import CustomersBulkSetAllDialog from './customers-bulk-set-all-dialog'
 
 type CustomersBulkEditorProps = {
   sheet: CustomerSheetRow[]
@@ -43,6 +45,7 @@ export default function CustomersBulkEditor({ sheet, sendable }: CustomersBulkEd
   const [serverErrors, setServerErrors] = useState<CellErrors>(new Map())
   const [attempted, setAttempted] = useState(false)
   const [saving, setSaving] = useState(false)
+  const [setAllOpen, setSetAllOpen] = useState(false)
 
   // Helpers
   const label = (key: string) => {
@@ -54,6 +57,12 @@ export default function CustomersBulkEditor({ sheet, sendable }: CustomersBulkEd
 
   // Event handlers
   const handleRowsChange = (next: GridRow[]) => setRows(next)
+
+  const handleSetAll = (change: SetAllChange) => {
+    setRows(applyToAll(rows, change))
+    setSetAllOpen(false)
+    toast.success(copy.setAll.applied(rows.length))
+  }
 
   const handleDiscard = () => {
     setRows(rows.map((r) => base.get(r.id) ?? r))
@@ -99,8 +108,10 @@ export default function CustomersBulkEditor({ sheet, sendable }: CustomersBulkEd
   const errors: CellErrors = new Map([...validation, ...serverErrors])
   const changed = dirtyCount(rows, base)
   const shown = attempted ? [...validation] : []
+  const keys = visibleKeys(sendable)
+  const changeKeys = setAllKeys(keys)
   return (
-    <div className="flex w-full flex-col gap-6 px-4 py-6 md:px-8 md:py-8">
+    <div className="flex w-full flex-col gap-6 px-4 pt-4 pb-6 md:px-8 md:pt-5 md:pb-8">
       <PageHeader
         title={copy.title}
         summary={copy.summary(rows.length)}
@@ -110,10 +121,15 @@ export default function CustomersBulkEditor({ sheet, sendable }: CustomersBulkEd
             <span className="text-caption text-muted-foreground">
               {changed > 0 ? copy.unsaved(changed) : copy.noChanges}
             </span>
+            <Button variant="outline" disabled={saving} onClick={() => setSetAllOpen(true)}>
+              <Layers aria-hidden="true" />
+              {copy.setAll.trigger}
+            </Button>
             <Button variant="outline" disabled={changed === 0 || saving} onClick={handleDiscard}>
               {copy.discard}
             </Button>
             <Button disabled={changed === 0} loading={saving} onClick={handleSave}>
+              <Save aria-hidden="true" />
               {saving ? copy.saving : copy.save}
             </Button>
           </>
@@ -141,8 +157,15 @@ export default function CustomersBulkEditor({ sheet, sendable }: CustomersBulkEd
         rows={rows}
         base={base}
         errors={errors}
-        keys={visibleKeys(sendable)}
+        keys={keys}
         onRowsChange={handleRowsChange}
+      />
+      <CustomersBulkSetAllDialog
+        open={setAllOpen}
+        count={rows.length}
+        keys={changeKeys}
+        onOpenChange={setSetAllOpen}
+        onApply={handleSetAll}
       />
     </div>
   )

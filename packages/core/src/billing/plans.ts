@@ -19,6 +19,12 @@ export type PlanDefinition = {
   staff: number
   storageGb: number
   ai: PlanAiTier
+  /**
+   * Automations app limits (owner, 2026-10-23). `activeWorkflows: null` = unlimited. Runs are
+   * counted per calendar month in India; Growth's marketing workflows never count.
+   * `connectors`: HTTP request and plugin actions.
+   */
+  automations: { activeWorkflows: number | null; runsPerMonth: number; connectors: boolean }
   /** Plan features the Compare plans table ticks. */
   features: {
     shopifyTheme: boolean
@@ -37,6 +43,7 @@ export const PLANS: Record<PlanId, PlanDefinition> = {
     staff: 2,
     storageGb: 2,
     ai: 'starter',
+    automations: { activeWorkflows: 5, runsPerMonth: 2_000, connectors: false },
     features: {
       shopifyTheme: false,
       mcpApi: false,
@@ -52,6 +59,7 @@ export const PLANS: Record<PlanId, PlanDefinition> = {
     staff: 5,
     storageGb: 10,
     ai: 'growth',
+    automations: { activeWorkflows: 25, runsPerMonth: 20_000, connectors: true },
     features: {
       shopifyTheme: true,
       mcpApi: false,
@@ -67,6 +75,7 @@ export const PLANS: Record<PlanId, PlanDefinition> = {
     staff: 15,
     storageGb: 50,
     ai: 'pro',
+    automations: { activeWorkflows: null, runsPerMonth: 200_000, connectors: true },
     features: {
       shopifyTheme: true,
       mcpApi: true,

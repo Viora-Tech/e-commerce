@@ -11,6 +11,7 @@ import { Suspense, useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import ArticleBulkActions from '@/components/blog/article-bulk-actions'
 import { articleColumns } from '@/components/blog/article-columns'
+import ArticleRowMenu from '@/components/blog/article-row-menu'
 import ConfirmDialog from '@/components/layout/confirm-dialog'
 import ProoflyListPage from '@/components/layout/proofly-list-page'
 import {
@@ -53,6 +54,8 @@ type Query = {
   tag: string | null
 }
 
+type BlogPostsPageProps = { initial: BlogPostsInitial; storefrontOrigin: string }
+
 type Pending = { ids: string[]; clear: () => void }
 
 function listInput(q: Query) {
@@ -66,7 +69,7 @@ function listInput(q: Query) {
   }
 }
 
-function BlogPostsContent({ initial }: { initial: BlogPostsInitial }) {
+function BlogPostsContent({ initial, storefrontOrigin }: BlogPostsPageProps) {
   // Hooks
   const copy = useCopy(blogListContent)
   const panelCopy = useCopy(filterPanelContent)
@@ -202,6 +205,9 @@ function BlogPostsContent({ initial }: { initial: BlogPostsInitial }) {
         items={result.rows}
         getId={(a) => a.id}
         href={(a) => routes.content.blogPost(a.id)}
+        rowActions={(a) => (
+          <ArticleRowMenu article={a} storefrontOrigin={storefrontOrigin} onChanged={refresh} />
+        )}
         loading={loading}
         query={q.query}
         onQueryChange={(query) => setQ({ query, page: 1 })}
@@ -276,10 +282,10 @@ function BlogPostsContent({ initial }: { initial: BlogPostsInitial }) {
   )
 }
 
-export default function BlogPostsPage({ initial }: { initial: BlogPostsInitial }) {
+export default function BlogPostsPage({ initial, storefrontOrigin }: BlogPostsPageProps) {
   return (
     <Suspense>
-      <BlogPostsContent initial={initial} />
+      <BlogPostsContent initial={initial} storefrontOrigin={storefrontOrigin} />
     </Suspense>
   )
 }

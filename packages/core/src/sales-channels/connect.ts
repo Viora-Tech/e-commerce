@@ -18,6 +18,7 @@ import {
 import { and, eq } from 'drizzle-orm'
 import { z } from 'zod'
 import type { StoreContext } from '../context'
+import { linkPlatformAccount, unlinkPlatformAccount } from '../platform-apps/accounts'
 import { decryptSecret, encryptSecret } from '../secrets'
 import {
   type ChannelState,
@@ -29,11 +30,13 @@ import {
   type SalesChannelId,
 } from './client'
 import {
-  ChannelApiError,
   type GoogleMerchantApp,
   googleDiscover,
   googleExchangeCode,
   googleMerchantAuthorizeUrl,
+} from './google-merchant'
+import {
+  ChannelApiError,
   type MetaApp,
   metaAuthorizeUrl,
   metaDiscover,
@@ -80,7 +83,14 @@ export function channelApps(env: Record<string, string | undefined>): {
   const gid = env.GMC_GOOGLE_CLIENT_ID?.trim() || env.MERCHANT_GOOGLE_CLIENT_ID?.trim()
   const gsecret = env.GMC_GOOGLE_CLIENT_SECRET?.trim() || env.MERCHANT_GOOGLE_CLIENT_SECRET?.trim()
   return {
-    meta: metaId && metaSecret ? { appId: metaId, appSecret: metaSecret } : null,
+    meta:
+      metaId && metaSecret
+        ? {
+            appId: metaId,
+            appSecret: metaSecret,
+            loginConfigId: env.META_LOGIN_CONFIG_ID?.trim() || null,
+          }
+        : null,
     google: gid && gsecret ? { clientId: gid, clientSecret: gsecret } : null,
   }
 }
@@ -269,7 +279,12 @@ export async function startChannelConnect(
   if (provider === 'meta' && deps.meta)
     return {
       kind: 'redirect',
-      url: metaAuthorizeUrl({ appId: deps.meta.appId, redirectUri, state }),
+      url: metaAuthorizeUrl({
+        appId: deps.meta.appId,
+        redirectUri,
+        state,
+        configId: deps.meta.loginConfigId ?? null,
+      }),
     }
   if (provider === 'google' && deps.google)
     return {
@@ -325,11 +340,23 @@ export async function completeChannelConnect(
           accountId: account.businessId,
           accountName: account.businessName,
           target: account.catalogId,
-          extra: account.wabaId ? { wabaId: account.wabaId } : {},
+          extra: {
+            ...(account.wabaId ? { wabaId: account.wabaId } : {}),
+            ...(account.userId ? { userId: account.userId } : {}),
+          },
         },
         deps.secret,
         now,
       )
+      // Meta's deauthorize and data deletion callbacks name only this user.
+      if (account.userId)
+        await linkPlatformAccount(
+          ctx,
+          'meta',
+          account.userId,
+          { business: account.businessName },
+          now,
+        )
       await patchChannelStates(ctx, {
         [s.channel]: firstSync(account.businessName, s.catalog, now),
       })
@@ -456,6 +483,7 @@ export async function disconnectChannel(
       .where(
         and(eq(channelConnection.storeId, ctx.storeId), eq(channelConnection.provider, provider)),
       )
+    if (provider === 'meta') await unlinkPlatformAccount(ctx, 'meta')
   }
   return next
 }

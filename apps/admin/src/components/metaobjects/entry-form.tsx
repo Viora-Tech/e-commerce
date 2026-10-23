@@ -1,7 +1,7 @@
 'use client'
 
 import { type FieldDefinition, validateFields } from '@commerce/core/metaobjects'
-import { Copy } from '@commerce/ui/icons'
+import { Copy, Save, Trash2 } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Card, CardContent } from '@commerce/ui/shadcn/card'
 import { FieldGroup } from '@commerce/ui/shadcn/field'
@@ -143,11 +143,13 @@ export default function EntryForm({ definition, entry, title }: EntryFormProps) 
                   {copy.duplicate}
                 </Button>
                 <Button variant="outline" onClick={() => setConfirmDelete(true)} disabled={busy}>
+                  <Trash2 aria-hidden="true" />
                   {copy.delete}
                 </Button>
               </>
             ) : (
               <Button className="max-sm:hidden" onClick={handleSave} disabled={busy}>
+                <Save aria-hidden="true" />
                 {busy ? copy.saving : copy.save}
               </Button>
             )

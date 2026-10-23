@@ -239,4 +239,71 @@ describe('discounts', () => {
       await call(appRouter.discounts.duplicate, { id: crypto.randomUUID() }, { context: a.ctx }),
     ).toBeNull()
   })
+
+  it('saves Shopify types: buy X get Y, free shipping limits, eligibility and combinations', async () => {
+    const a = await merchant('t@example.com', 'store-t')
+    const P = '00000000-0000-4000-8000-000000000001'
+    const bogo = await call(
+      appRouter.discounts.create,
+      {
+        title: 'BOGO',
+        type: 'bxgy',
+        kind: 'automatic',
+        method: 'percent',
+        value: 10_000,
+        bxgy: {
+          buys: { kind: 'quantity', quantity: 1, amountPaise: 0, appliesTo: 'products', ids: [P] },
+          gets: { quantity: 1, appliesTo: 'products', ids: [P] },
+          maxUsesPerOrder: 2,
+        },
+        combinesWith: { products: false, order: true, shipping: true },
+      },
+      { context: a.ctx },
+    )
+    const ship = await call(
+      appRouter.discounts.create,
+      {
+        title: 'Ship',
+        type: 'shipping',
+        kind: 'code',
+        code: 'SHIPKA',
+        method: 'free_shipping',
+        value: 0,
+        minQuantity: 2,
+        shippingStates: ['KA'],
+        maxShippingPaise: 15_000,
+        customerEligibility: 'customers',
+        eligibleIds: [P],
+      },
+      { context: a.ctx },
+    )
+    const got = await call(appRouter.discounts.get, { id: bogo?.id as string }, { context: a.ctx })
+    expect(got).toMatchObject({ type: 'bxgy', bxgy: { maxUsesPerOrder: 2 } })
+    expect(got?.combinesWith).toEqual({ products: false, order: true, shipping: true })
+    const gotShip = await call(
+      appRouter.discounts.get,
+      { id: ship?.id as string },
+      { context: a.ctx },
+    )
+    expect(gotShip).toMatchObject({
+      type: 'shipping',
+      minQuantity: 2,
+      shippingStates: ['KA'],
+      maxShippingPaise: 15_000,
+      customerEligibility: 'customers',
+      eligibleIds: [P],
+    })
+    // An older-shaped input still saves, with the type derived and nothing stacking.
+    const old = await call(
+      appRouter.discounts.create,
+      { title: 'Old', kind: 'code', code: 'OLD5', method: 'fixed', value: 500 },
+      { context: a.ctx },
+    )
+    const gotOld = await call(
+      appRouter.discounts.get,
+      { id: old?.id as string },
+      { context: a.ctx },
+    )
+    expect(gotOld).toMatchObject({ type: 'order', customerEligibility: 'all', bxgy: null })
+  })
 })

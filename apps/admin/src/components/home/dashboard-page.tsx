@@ -50,7 +50,7 @@ export default function DashboardPage({
   abandoned,
 }: DashboardPageProps) {
   return (
-    <PageBody width="frame" className="mx-auto max-w-[68rem] gap-10 md:pt-9">
+    <PageBody width="frame" className="mx-auto max-w-[68rem] gap-10 md:pt-5">
       {/* Owner 2026-10-17: Home keeps its 68rem column; the greeting and the Ask AI box sit in a
           narrower 48rem column centred above the rest. */}
       <div className="mx-auto flex w-full max-w-[48rem] flex-col gap-10">

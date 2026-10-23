@@ -1,5 +1,6 @@
 'use client'
 
+import { Plus, RefreshCw } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Input } from '@commerce/ui/shadcn/input'
 import { Switch } from '@commerce/ui/shadcn/switch'
@@ -215,6 +216,7 @@ export default function SettingsPage() {
               disabled={busy !== null || !canCreate}
               onClick={handleCreate}
             >
+              <Plus aria-hidden="true" />
               {copy.connect.websiteId.create}
             </Button>
             <Button
@@ -223,6 +225,7 @@ export default function SettingsPage() {
               disabled={busy !== null || !canTest}
               onClick={handleTest}
             >
+              <RefreshCw aria-hidden="true" />
               {copy.connect.test}
             </Button>
           </div>

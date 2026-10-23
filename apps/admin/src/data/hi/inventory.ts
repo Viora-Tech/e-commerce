@@ -1,6 +1,7 @@
 import {
   inventoryContent,
   locationsContent,
+  purchaseOrderBulkContent,
   purchaseOrderFormContent,
   purchaseOrdersContent,
 } from '@/data/inventory'
@@ -283,6 +284,16 @@ export default [
       doneRejected: (n: number, r: number) => `${n} यूनिट रिसीव हुईं, ${r} रिजेक्ट`,
       nothing: 'कम से कम एक मात्रा डालें',
       failed: 'माल रिसीव नहीं हो सका',
+    },
+  }),
+  translation(purchaseOrderBulkContent, {
+    downloadPdfs: 'PDF डाउनलोड करें',
+    close: 'बंद करें',
+    confirmClose: {
+      title: (n) => `${n} परचेज़ ऑर्डर बंद करें?`,
+      body: 'जो माल अभी नहीं आया वह आने वाले स्टॉक में नहीं दिखेगा। आया हुआ स्टॉक बना रहेगा। ड्राफ़्ट और पहले से पूरे हो चुके ऑर्डर छोड़ दिए जाएंगे।',
+      confirm: 'ऑर्डर बंद करें',
+      cancel: 'रहने दें',
     },
   }),
 ]

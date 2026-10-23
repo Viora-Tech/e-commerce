@@ -73,6 +73,7 @@ export const staffContent = {
     save: 'Save role',
     cancel: 'Cancel',
     readOnly: 'Built in roles cannot be changed.',
+    back: 'Staff',
   },
   status: {
     active: 'Active',

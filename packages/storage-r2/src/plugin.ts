@@ -11,6 +11,17 @@ export const r2Plugin = definePlugin({
   company: 'Cloudflare',
   description:
     'Product images and files on your own R2 bucket, uploaded straight from the browser.',
+  listing: {
+    tagline: 'Keeps your images and files on your own R2 bucket.',
+    highlights: [
+      'Your files on your own bucket',
+      'Uploads straight from the browser',
+      'Moves existing files over safely',
+    ],
+    guide: '/merchant-guide/content/files-and-storage',
+    worksWith: ['Products, Files and every app that stores images'],
+    keywords: ['storage', 'cloudflare', 'images'],
+  },
   access: {
     resources: [
       {

@@ -92,7 +92,7 @@ export default function DefinitionFieldsCard({
           }}
         />
       )}
-      <Button variant="outline" className="self-start" onClick={() => setEditing('new')}>
+      <Button variant="outline" className="self-end" onClick={() => setEditing('new')}>
         <Plus />
         {copy.add}
       </Button>

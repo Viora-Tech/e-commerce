@@ -1,7 +1,8 @@
+import { PackageCheck } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import DataCard from '@/components/layout/data-card'
 import StatusChip from '@/components/layout/status-chip'
-import { orderDetailContent } from '@/data/orders'
+import { orderDetailContent } from '@/data/order-detail'
 import { useCopy } from '@/hooks/use-copy'
 import { type OrderDetail, unfulfilledLines } from './order-detail-types'
 import OrderLinesTable from './order-lines-table'
@@ -30,6 +31,7 @@ export default function UnfulfilledCard({ order, onFulfil }: UnfulfilledCardProp
       icon={<StatusChip tone="attention">{copy.unfulfilled.itemsCount(count)}</StatusChip>}
       action={
         <Button variant="ghost" size="sm" onClick={onFulfil}>
+          <PackageCheck aria-hidden="true" />
           {copy.actions.fulfilItems}
         </Button>
       }

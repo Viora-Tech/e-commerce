@@ -1,5 +1,6 @@
 'use client'
 
+import { ClipboardList, Truck } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Checkbox } from '@commerce/ui/shadcn/checkbox'
 import { Field, FieldLabel } from '@commerce/ui/shadcn/field'
@@ -152,10 +153,11 @@ export default function PickupsTab() {
             </Field>
           </div>
           <Button
-            className="w-fit"
+            className="w-fit self-end"
             onClick={handleSchedule}
             disabled={busy || selected.length === 0 || !date}
           >
+            <Truck aria-hidden="true" />
             {busy ? copy.scheduling : copy.submit}
           </Button>
         </div>
@@ -187,6 +189,7 @@ export default function PickupsTab() {
                 <TableCell className="font-mono text-caption">{p.providerRef ?? '–'}</TableCell>
                 <TableCell className="text-right">
                   <Button variant="outline" size="sm" onClick={() => handleManifest(p.id)}>
+                    <ClipboardList aria-hidden="true" />
                     {copy.createManifestFor}
                   </Button>
                 </TableCell>

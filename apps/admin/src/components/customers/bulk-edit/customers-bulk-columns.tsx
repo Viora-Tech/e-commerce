@@ -22,12 +22,18 @@ const WIDTHS: Record<string, number> = {
   acceptsMarketing: 160,
   acceptsWhatsapp: 170,
   acceptsSms: 150,
+  gstin: 180,
+  businessName: 200,
+  city: 150,
+  stateCode: 110,
+  pincode: 110,
 }
 
 /**
  * The grid's columns in sheet order: email (frozen, read-only), then the editable cells.
  * Changed cells get the soft accent wash, invalid ones the danger wash with the message as a
- * tooltip; erased customers are grey. A failed save marks the row's first cell.
+ * tooltip; erased customers, and the address cells of a customer with no default address,
+ * are grey. A failed save marks the row's first cell.
  */
 export function buildColumns(
   copy: Copy,
@@ -51,6 +57,7 @@ export function buildColumns(
         let text = String((row as Record<string, unknown>)[key] ?? '')
         if (key === 'email') text = row.email || copy.noEmail
         else if (isConsentKey(key)) text = row[key] === 'yes' ? copy.consent.yes : copy.consent.no
+        else if (key === 'city' && !row.address) text = copy.noAddress
         return <span title={message(row)}>{text}</span>
       },
       cellClass: (row) =>

@@ -1,4 +1,6 @@
 export type { ApiContext, DailyVisitors, LiveVisitors, VisitorSource } from './context'
+export { apiTokenRefusal } from './mcp/action-catalogue'
+export { handleMcpDownload } from './mcp/download-link'
 export {
   type AuthorizeParams,
   type AuthorizeRequest,
@@ -30,6 +32,7 @@ export type {
   AnalyticsOverview,
 } from './services/analytics.service'
 export type {
+  ProfitInsights,
   ReportChartPoint,
   ReportResult,
   ReportRow,
@@ -44,18 +47,20 @@ export {
   type ReportColumnKind,
   type ReportDefinition,
 } from './services/analytics-reports'
+export type { CampaignPerformanceRow } from './services/campaign-performance.service'
 export type { CustomerSheetRow } from './services/customer-sheet.service'
-export {
-  DASHBOARD_LOW_STOCK_THRESHOLD,
-  type DashboardChartRange,
-  type DashboardChartsData,
-  type DashboardSummary,
+export type {
+  DashboardChartRange,
+  DashboardChartsData,
+  DashboardSummary,
 } from './services/dashboard.service'
+export type { AutopilotProposalView, AutopilotView } from './services/growth-autopilot.service'
 export type {
   GrowthOutcomes,
   OutcomeKind,
   OutcomeRow,
 } from './services/growth-outcomes.service'
+export type { CampaignDay, CampaignLinkRow, CampaignReport } from './services/growth-report.service'
 export type {
   HomeAnalytics,
   HomeCompare,

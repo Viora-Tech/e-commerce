@@ -6,6 +6,7 @@ import {
   shortLinkPath,
   storeDestination,
 } from '@commerce/core/marketing'
+import { Plus, Save } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import {
   Dialog,
@@ -219,7 +220,7 @@ export default function LinkDialog({ link, origin, onClose, onSaved }: LinkDialo
             {copy.cancel}
           </Button>
           <Button onClick={handleSave} disabled={busy}>
-            {busy ? <Spinner /> : null}
+            {busy ? <Spinner /> : link ? <Save aria-hidden="true" /> : <Plus aria-hidden="true" />}
             {link ? copy.save : copy.create}
           </Button>
         </DialogFooter>

@@ -6,6 +6,7 @@ import {
   type PreflightCheck,
   REQUIRED_SCOPES,
 } from '@commerce/plugin-shopify-import/client'
+import { Eye } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { CardContent } from '@commerce/ui/shadcn/card'
 import { Checkbox } from '@commerce/ui/shadcn/checkbox'
@@ -15,6 +16,7 @@ import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import DataCard from '@/components/layout/data-card'
+import { shopifyAppInstallContent } from '@/data/shopify-app-install'
 import { shopifyImportContent } from '@/data/shopify-import'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
@@ -30,6 +32,7 @@ const base = shopifyImportContent.base
 export default function ConnectPage() {
   // Hooks
   const copy = useCopy(shopifyImportContent.connect)
+  const installCopy = useCopy(shopifyAppInstallContent)
   const resources = useCopy(shopifyImportContent.resources)
   const fmt = useFormat()
   const router = useRouter()
@@ -45,6 +48,15 @@ export default function ConnectPage() {
       .then(setConnection)
       .catch(() => setConnection(null))
   }, [])
+
+  // Back from installing the Koomerce app on Shopify (`?connect=` from the OAuth callback).
+  useEffect(() => {
+    const result = new URLSearchParams(window.location.search).get('connect')
+    if (result === 'connected') toast.success(installCopy.result.connected)
+    else if (result === 'failed') toast.error(installCopy.result.failed)
+    else if (result === 'cancelled') toast(installCopy.result.cancelled)
+    if (result) router.replace(`${base}/connect`)
+  }, [installCopy, router])
 
   // "Before you import" for what is ticked; a missing scope blocks only its own resource.
   useEffect(() => {
@@ -202,7 +214,7 @@ export default function ConnectPage() {
           onClick={handlePreview}
           disabled={busy || stopped || importable.length === 0}
         >
-          {busy ? <Spinner /> : null}
+          {busy ? <Spinner /> : <Eye aria-hidden="true" />}
           {copy.preview}
         </Button>
       </div>

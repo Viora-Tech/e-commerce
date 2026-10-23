@@ -3,6 +3,8 @@
  * No database access here, so client components may import it.
  */
 
+import { type StockState, stockStateOf } from '../catalog/stock-state'
+
 export type StockLevel = { onHand: number; reserved: number; incoming: number }
 
 /** What can still be sold: physically present minus what open orders hold. */
@@ -111,11 +113,7 @@ export function purchaseOrderTotals(
   }
 }
 
-export type StockState = 'in' | 'low' | 'out'
-
-/** In, low (at or under the store threshold) or out, by available count. */
+/** In stock, low (at or under the store threshold) or out, by available count of tracked stock. */
 export function stockState(available: number, lowThreshold: number): StockState {
-  if (available <= 0) return 'out'
-  if (available <= lowThreshold) return 'low'
-  return 'in'
+  return stockStateOf({ trackInventory: true, available }, lowThreshold)
 }

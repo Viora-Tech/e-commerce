@@ -11,7 +11,7 @@ export const dynamic = 'force-dynamic'
 /** Per-host sitemap from the database: active products and collections, published pages and posts. */
 export async function GET(_req: Request, { params }: Params) {
   const { storeId } = await params
-  const body = (await storefrontLock(storeId)).enabled
+  const body = !(await storefrontLock(storeId)).search
     ? emptySitemapXml()
     : sitemapXml(await requestOrigin(), await inStore(storeId, (tx) => loadStoreIndex(tx)))
   return new Response(body, {

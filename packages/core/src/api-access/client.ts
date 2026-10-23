@@ -15,6 +15,9 @@ export const API_AREAS = [
   'discounts',
   'content',
   'analytics',
+  'marketing',
+  'online_store',
+  'settings',
 ] as const
 export type ApiArea = (typeof API_AREAS)[number]
 export type ApiAccess = 'read' | 'write'
@@ -24,8 +27,11 @@ export const isApiArea = (v: unknown): v is ApiArea =>
   typeof v === 'string' && (API_AREAS as readonly string[]).includes(v)
 
 /**
- * What each area unlocks. Write never reaches money or deletion: no refunds, cancellations,
- * product or customer deletes, and nothing in settings, staff or billing.
+ * What each area unlocks for a call that runs at once (an access token, or an MCP change while
+ * "Changes need approval" is off). Write never reaches money or deletion: refunds, cancellations,
+ * product or customer deletes, staff and billing need a person. An MCP client can still ask for
+ * those, but they always wait in AI approvals and run as the member who approves them
+ * (`packages/api/src/mcp/action-catalogue.ts`).
  */
 const AREA_PERMISSIONS: Record<ApiArea, Record<ApiAccess, Permission[]>> = {
   products: { read: [p.PRODUCTS_READ], write: [p.PRODUCTS_WRITE] },
@@ -38,6 +44,15 @@ const AREA_PERMISSIONS: Record<ApiArea, Record<ApiAccess, Permission[]>> = {
   discounts: { read: [p.DISCOUNTS_READ], write: [p.DISCOUNTS_WRITE] },
   content: { read: [p.CONTENT_READ], write: [p.CONTENT_WRITE] },
   analytics: { read: [p.ANALYTICS_READ], write: [] },
+  marketing: { read: [p.MARKETING_READ], write: [p.MARKETING_WRITE] },
+  online_store: {
+    read: [p.ONLINE_STORE_READ],
+    write: [p.ONLINE_STORE_WRITE, p.ONLINE_STORE_PUBLISH],
+  },
+  settings: {
+    read: [p.SETTINGS_READ, p.STAFF_READ, p.AUTOMATIONS_READ],
+    write: [p.SETTINGS_MANAGE, p.APPS_MANAGE, p.AUTOMATIONS_WRITE],
+  },
 }
 
 /** Areas with nothing to write: the Write box is off and disabled. */

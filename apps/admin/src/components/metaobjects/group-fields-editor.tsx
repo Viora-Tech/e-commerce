@@ -184,7 +184,7 @@ export default function GroupFieldsEditor({
         />
       )}
       {subfields.length < GROUP_FIELDS_MAX ? (
-        <Button variant="outline" className="self-start" onClick={handleAdd}>
+        <Button variant="outline" className="self-end" onClick={handleAdd}>
           <Plus />
           {copy.rows.add}
         </Button>

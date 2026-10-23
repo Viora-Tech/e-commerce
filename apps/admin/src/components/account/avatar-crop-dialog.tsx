@@ -1,5 +1,6 @@
 'use client'
 
+import { Save } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import {
   Dialog,
@@ -208,6 +209,7 @@ export default function AvatarCropDialog({ file, busy, onCancel, onCrop }: Avata
             {copy.cancel}
           </Button>
           <Button onClick={handleSave} disabled={!image} loading={busy}>
+            <Save aria-hidden="true" />
             {copy.save}
           </Button>
         </DialogFooter>

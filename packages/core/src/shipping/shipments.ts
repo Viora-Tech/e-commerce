@@ -12,6 +12,7 @@ import { ASSUMED_WEIGHT_GRAMS, type ShippingProvider, type Tracking } from '@com
 import { and, eq, inArray, ne } from 'drizzle-orm'
 import type { StoreContext } from '../context'
 import { fulfilParcelLines, fulfilRemainingLines } from '../order/fulfil'
+import { assertNotHeld } from '../order/fulfillment-hold'
 import { ensureFulfillmentOrders, soleFulfillmentOrder } from '../order/fulfillment-orders'
 import { recomputeOrderStatuses } from '../order/recompute'
 import { insertOutboxEvent } from '../outbox/write'
@@ -19,7 +20,12 @@ import { recordRtoForShipment } from '../returns/rto'
 import { shipmentDocumentsAsLabel } from './label-documents'
 import { storeShippingLabel } from './label-store'
 import { syncNdrFromTracking } from './ndr'
-import { effectiveWeightGrams, resolveParcelPackage, resolveParcelWeightGrams } from './parcel'
+import {
+  effectiveWeightGrams,
+  parcelBoxPreset,
+  resolveParcelPackage,
+  resolveParcelWeightGrams,
+} from './parcel'
 import { defaultBoxPreset, parseShippingSettings } from './settings'
 import { shipFromFor } from './ship-from'
 
@@ -70,6 +76,8 @@ export type CreateShipmentOptions = {
   serviceId?: string | undefined
   /** The merchant's own tracking number, for a courier with `requiresTrackingNumber` (India Post). */
   trackingNumber?: string | undefined
+  /** The box packed, picked in the booking flow; omitted, the parcel's own box (parcelBoxPreset). */
+  boxPresetId?: string | undefined
 }
 
 /** A line's customs fields, only those it has (domestic couriers never read them). */
@@ -142,6 +150,8 @@ export async function createShipmentForOrder(
       (!parcelOnly || s.fulfillmentOrderId === parcelOnly),
   )
   if (existing) return existing
+  // A held parcel (or, booking the whole order, any held parcel) is not booked until released.
+  await assertNotHeld(ctx, o.id, parcelOnly ?? null)
 
   const [to] = await ctx.tx.select().from(address).where(eq(address.id, o.shippingAddressId))
   if (!to) throw new Error('shipping address not found')
@@ -267,6 +277,20 @@ export async function createShipmentForOrder(
     ...(s?.gstin ? { exporterGstin: s.gstin } : {}),
   })
 
+  /* The box packed, for the packing snapshot: the one named, else the box whose size the packer
+     picked in the booking flow, else the parcel's own box (parcelBoxPreset). */
+  const picked = options.dimensionsCm
+  const box =
+    settings.boxPresets.find((b) => b.id === options.boxPresetId) ??
+    (picked
+      ? settings.boxPresets.find(
+          (b) =>
+            b.lengthCm === picked.length &&
+            b.widthCm === picked.width &&
+            b.heightCm === picked.height,
+        )
+      : undefined) ??
+    parcelBoxPreset(lines, settings.boxPresets)
   // The consignment carries its parcel: the named one, or the order's only one.
   const [row] = await ctx.tx
     .insert(shipment)
@@ -287,6 +311,9 @@ export async function createShipmentForOrder(
       declaredValuePaise: valuePaise,
       // What the courier charges, when its booking said; the merchant can type it otherwise.
       courierChargePaise: result.chargePaise ?? null,
+      // Packing as it costs today, so a later box price change never moves this order's profit.
+      packingCostPaise: box?.costPaise ?? null,
+      boxPresetId: box?.id ?? null,
     })
     .returning()
   if (!row) throw new Error('could not record shipment')

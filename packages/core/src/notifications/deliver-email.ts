@@ -36,8 +36,23 @@ export async function deliverEmailTo(
   data: Partial<TemplateData>,
   opts: DeliverOptions,
 ): Promise<DeliveryResult[]> {
+  return deliverMessageTo(ctx, template, { email: to }, data, opts)
+}
+
+/**
+ * The same for a person with an email, a phone or both (an affiliate): each enabled channel
+ * that can reach them sends once (email channels to the address, WhatsApp to the phone, as an
+ * approved template named after the message). Logged and skippable like `deliverEmailTo`.
+ */
+export async function deliverMessageTo(
+  ctx: StoreContext,
+  template: TemplateId,
+  to: { email?: string | null | undefined; phone?: string | null | undefined },
+  data: Partial<TemplateData>,
+  opts: DeliverOptions,
+): Promise<DeliveryResult[]> {
   const [s] = await ctx.tx.select({ name: store.name }).from(store).where(eq(store.id, ctx.storeId))
-  if (!to || !(await messageOn(ctx, template))) return []
+  if ((!to.email && !to.phone) || !(await messageOn(ctx, template))) return []
   const full: TemplateData = {
     customerName: '',
     totalLabel: '',
@@ -48,18 +63,23 @@ export async function deliverEmailTo(
   }
   const results: DeliveryResult[] = []
   for (const channel of await channelsFor(ctx, opts)) {
-    if (channel.requires !== 'email') continue
-    const r = await channel.send({ to: { email: to }, template, data: full })
+    const address = channel.requires === 'email' ? to.email : to.phone
+    if (!address) continue
+    const r = await channel.send({
+      to: channel.requires === 'email' ? { email: address } : { phone: address },
+      template,
+      data: full,
+    })
     await ctx.tx.insert(notification).values({
       storeId: ctx.storeId,
       channel: channel.id,
       template,
-      to,
+      to: address,
       status: r.ok ? 'sent' : 'failed',
       providerRef: r.ok ? r.providerRef : null,
       error: r.ok ? null : r.error,
     })
-    results.push({ channel: channel.id, to, ok: r.ok, error: r.ok ? undefined : r.error })
+    results.push({ channel: channel.id, to: address, ok: r.ok, error: r.ok ? undefined : r.error })
   }
   return results
 }

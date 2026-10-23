@@ -1,6 +1,6 @@
 'use client'
 
-import { Trash2 } from '@commerce/ui/icons'
+import { Save, Trash2 } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import {
   Dialog,
@@ -113,6 +113,7 @@ export default function BuilderTemplatesDialog({
             />
           </Field>
           <Button onClick={handleSave} disabled={!canSave}>
+            <Save aria-hidden="true" />
             {t.nameSave}
           </Button>
         </div>

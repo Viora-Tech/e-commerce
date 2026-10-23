@@ -12,6 +12,7 @@ import type {
   RateLimitStore,
   StoreExportQueue,
 } from '@commerce/core'
+import type { AutomationStepQueue } from '@commerce/core/automations/server'
 import type { Db } from '@commerce/db'
 import type { ErrorReporter } from '@commerce/observability'
 import type { RequestMemo } from './procedures/request-memo'
@@ -37,6 +38,8 @@ export type ApiContext = {
   purchaseDocuments?: PurchaseDocumentQueue | undefined
   /** Sales-channel catalog syncs (after Connect, "Sync now"). Absent in tests: nothing is queued. */
   channelSync?: ChannelSyncQueue | undefined
+  /** Automations step jobs (Run automation, approvals, retry). Absent in tests: the worker's tick picks the runs up. */
+  automationSteps?: AutomationStepQueue | undefined
   /** Live storefront visitors from Dragonfly; absent in tests, the dashboard then shows zeros. */
   visitors?: VisitorSource
   /** Reports an unexpected procedure error (never an intentional ORPCError) to Sentry. No-op in tests. */

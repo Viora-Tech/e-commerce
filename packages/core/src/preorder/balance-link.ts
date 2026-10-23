@@ -125,3 +125,31 @@ export function thankYouUrl(
 ): string {
   return `${storefrontUrl.replace(/\/$/, '')}${thankYouPath(orderNumber, orderViewToken(orderId, secret, now))}`
 }
+
+/** A draft invoice's pay link: long enough for a customer to come back to it. */
+const INVOICE_LINK_TTL_MS = 30 * 86_400_000
+
+/** The signed "pay this invoice" token in a draft invoice email (its own purpose prefix). */
+function invoiceToken(orderId: string, secret: string, now = new Date()): string {
+  return signOrderToken('draft-invoice', orderId, secret, INVOICE_LINK_TTL_MS, now)
+}
+
+export function verifyInvoiceToken(
+  token: string,
+  secret: string,
+  now = new Date(),
+): { ok: true; orderId: string } | { ok: false; reason: 'malformed' | 'expired' | 'signature' } {
+  return verifyOrderToken('draft-invoice', token, secret, now)
+}
+
+const invoicePath = (token: string): string => `/checkout/invoice/${token}`
+
+/** The "Pay securely" button of a draft invoice email, on the store's own domain. */
+export function invoiceUrl(
+  orderId: string,
+  secret: string,
+  storefrontUrl: string,
+  now = new Date(),
+): string {
+  return `${storefrontUrl.replace(/\/$/, '')}${invoicePath(invoiceToken(orderId, secret, now))}`
+}

@@ -122,8 +122,14 @@ export const SETTINGS_GROUPS: SettingsGroup[] = [
       {
         href: routes.settings.costs(),
         title: 'Costs for profit',
-        body: 'What payment gateways and cash on delivery cost you, so order profit is right.',
+        body: 'What payment gateways, cash on delivery and delivery cost you, so order profit is right.',
         icon: TrendingUp,
+      },
+      {
+        href: routes.settings.expenses(),
+        title: 'Monthly expenses',
+        body: 'Rent, staff, apps and other running costs, taken off profit for net profit each month.',
+        icon: ReceiptIcon,
       },
     ],
   },

@@ -58,7 +58,7 @@ export default function AgenticOverviewPage({ data }: AgenticOverviewPageProps) 
   const { totals, products, readiness } = data
 
   return (
-    <PageBody className="gap-6 md:py-8">
+    <PageBody className="gap-6 md:pt-5 md:pb-8">
       <PageHeader
         title={copy.title}
         subtitle={copy.subtitle}

@@ -1,6 +1,7 @@
 'use client'
 
 import { formatNumber } from '@commerce/money'
+import { Upload } from '@commerce/ui/icons'
 import { cn } from '@commerce/ui/lib/utils'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Checkbox } from '@commerce/ui/shadcn/checkbox'
@@ -177,7 +178,7 @@ export default function ImportPreview({
             {copy.cancel}
           </Button>
           <Button onClick={onImport} disabled={importing || toImport === 0}>
-            {importing ? <Spinner /> : null}
+            {importing ? <Spinner /> : <Upload aria-hidden="true" />}
             {importing ? copy.running : copy.run(toImport)}
           </Button>
         </div>

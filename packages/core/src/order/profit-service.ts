@@ -17,6 +17,7 @@ import {
   type StoreTx,
   shipment,
   store,
+  variant,
 } from '@commerce/db'
 import { and, eq, inArray, isNull, ne, sql } from 'drizzle-orm'
 import { z } from 'zod'
@@ -35,6 +36,7 @@ import {
   parseProfitCosts,
   withProfitCosts,
 } from './profit'
+import { orderParcelCosts } from './profit-parcels'
 
 /** One order line as profit by product needs it. */
 export type ProfitFactLine = ProfitInput['lines'][number] & {
@@ -88,6 +90,7 @@ async function factsFor(tx: StoreTx, ids: string[]): Promise<ProfitFacts[]> {
       id: order.id,
       storeId: order.storeId,
       status: order.status,
+      shippingAddressId: order.shippingAddressId,
       placedAt: order.placedAt,
       totalPaise: order.totalPaise,
       taxPaise: order.taxPaise,
@@ -104,8 +107,10 @@ async function factsFor(tx: StoreTx, ids: string[]): Promise<ProfitFacts[]> {
       costAtSalePaise: orderLine.costAtSalePaise,
       costEstimated: orderLine.costEstimated,
       giftCard: orderLine.giftCard,
+      boxPresetId: variant.boxPresetId,
     })
     .from(orderLine)
+    .leftJoin(variant, eq(variant.id, orderLine.variantId))
     .where(inArray(orderLine.orderId, ids))
   const restocked = await tx
     .select({
@@ -124,10 +129,7 @@ async function factsFor(tx: StoreTx, ids: string[]): Promise<ProfitFacts[]> {
     .from(refund)
     .where(and(inArray(refund.orderId, ids), ne(refund.status, 'failed')))
     .groupBy(refund.orderId)
-  const shipments = await tx
-    .select({ orderId: shipment.orderId, courierChargePaise: shipment.courierChargePaise })
-    .from(shipment)
-    .where(and(inArray(shipment.orderId, ids), ne(shipment.status, 'cancelled')))
+  const parcelsOf = await orderParcelCosts(tx, orders, lines)
   const payments = await tx
     .select({
       orderId: payment.orderId,
@@ -175,9 +177,7 @@ async function factsFor(tx: StoreTx, ids: string[]): Promise<ProfitFacts[]> {
             costEstimated: l.costEstimated,
             giftCard: l.giftCard,
           })),
-        shipments: shipments
-          .filter((s) => s.orderId === id)
-          .map((s) => ({ courierChargePaise: s.courierChargePaise })),
+        parcels: parcelsOf.get(id) ?? [],
         payments: paid.map((p) => ({
           provider: p.provider,
           amountPaise: p.amountPaise,

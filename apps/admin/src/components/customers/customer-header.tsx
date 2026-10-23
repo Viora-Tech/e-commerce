@@ -5,6 +5,8 @@ import { Button } from '@commerce/ui/shadcn/button'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { toast } from 'sonner'
+import RunAutomationDialog from '@/components/automations/records/run-automation-dialog'
+import { useRunAutomation } from '@/components/automations/records/use-run-automation'
 import ActionMenu from '@/components/layout/action-menu'
 import ConfirmDialog from '@/components/layout/confirm-dialog'
 import PageHeader from '@/components/layout/page-header'
@@ -22,16 +24,23 @@ import { day } from './customer-detail-types'
 type CustomerHeaderProps = {
   customer: CustomerDetail
   onEdit: () => void
+  /** The Automations app is installed: "Run automation" and "Automation runs" in More actions. */
+  automations?: boolean
 }
 
 /** Back link, avatar, name with its chips, a one-line summary, and the header actions. */
-export default function CustomerHeader({ customer, onEdit }: CustomerHeaderProps) {
+export default function CustomerHeader({
+  customer,
+  onEdit,
+  automations = false,
+}: CustomerHeaderProps) {
   // Hooks
   const copy = useCopy(customerDetailContent)
   const customersCopy = useCopy(customersContent)
   const dates = useCopy(datesContent)
   const locale = useLocale()
   const router = useRouter()
+  const automation = useRunAutomation('customer', automations)
   const [confirming, setConfirming] = useState(false)
   const [busy, setBusy] = useState(false)
 
@@ -109,6 +118,7 @@ export default function CustomerHeader({ customer, onEdit }: CustomerHeaderProps
               trigger="button"
               items={[
                 { label: copy.actions.edit, icon: Pencil, onSelect: onEdit },
+                ...automation.items([customer.id], { runsLink: true }),
                 {
                   label: copy.actions.delete,
                   icon: Trash2,
@@ -129,6 +139,12 @@ export default function CustomerHeader({ customer, onEdit }: CustomerHeaderProps
         cancelLabel={copy.actions.cancel}
         busy={busy}
         onConfirm={handleDelete}
+      />
+      <RunAutomationDialog
+        subjectType="customer"
+        ids={automation.target}
+        onClose={automation.close}
+        onDone={() => router.refresh()}
       />
     </>
   )

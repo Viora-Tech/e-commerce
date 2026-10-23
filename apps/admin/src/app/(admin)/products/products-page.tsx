@@ -1,7 +1,7 @@
 'use client'
 
 import { siteConfig } from '@commerce/config/site'
-import type { ProductStatus } from '@commerce/core/catalog'
+import { type ProductStatus, STOCK_FILTERS } from '@commerce/core/catalog'
 import { Download, Plus, Upload } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Kbd } from '@commerce/ui/shadcn/kbd'
@@ -15,11 +15,11 @@ import ConfirmDialog from '@/components/layout/confirm-dialog'
 import ProoflyListPage from '@/components/layout/proofly-list-page'
 import BulkTagDialog from '@/components/products/bulk-tag-dialog'
 import BulkWriteBanner from '@/components/products/bulk-write/bulk-write-banner'
-import BulkWriteSheet from '@/components/products/bulk-write/bulk-write-sheet'
 import { downloadProductCsv } from '@/components/products/export-products'
 import ImportDialog from '@/components/products/import-dialog'
 import ProductBulkActions from '@/components/products/product-bulk-actions'
 import { productColumns } from '@/components/products/product-columns'
+import ProductRowMenu from '@/components/products/product-row-menu'
 import ProductTiles from '@/components/products/product-tiles'
 import {
   appliedFromGroups,
@@ -30,7 +30,6 @@ import {
   facetOptions,
 } from '@/components/table/filter-panel'
 import ResourceTable from '@/components/table/resource-table'
-import RowMenu from '@/components/table/row-menu'
 import ViewSelect from '@/components/table/view-select'
 import { filterPanelContent } from '@/data/filter-panel'
 import { PRODUCT_STATUSES, productsListContent, type StockFilter } from '@/data/products'
@@ -54,6 +53,10 @@ export type ProductsInitial = {
   facets: Facets
   /** Bulk "Write with AI" is on for this store and member. */
   aiBulk: boolean
+  /** The store's public origin, for the row menu's "View on store". */
+  storefrontOrigin: string
+  /** The Automations app is installed: "Run automation" on the bulk bar. */
+  automations: boolean
 }
 
 type Query = {
@@ -68,7 +71,6 @@ type Query = {
 }
 
 const DEFAULT_PER_PAGE = siteConfig.ui.rowsPerPage.default
-const STOCK_FILTERS = ['in', 'out', 'low'] as const
 
 function listInput(q: Query) {
   return {
@@ -112,10 +114,6 @@ function ProductsContent({ initial }: { initial: ProductsInitial }) {
   const [tagging, setTagging] = useState<{ ids: string[]; clear: () => void } | null>(null)
   const [deleting, setDeleting] = useState<{ ids: string[]; clear: () => void } | null>(null)
   const [busy, setBusy] = useState(false)
-  const [writing, setWriting] = useState<{ ids: string[] | null; jobId: string | null } | null>(
-    null,
-  )
-  const [aiRefresh, setAiRefresh] = useState(0)
 
   const hydrated = useRef(false)
 
@@ -297,25 +295,20 @@ function ProductsContent({ initial }: { initial: ProductsInitial }) {
     >
       {initial.aiBulk ? (
         <BulkWriteBanner
-          refreshKey={aiRefresh}
-          onOpen={(jobId) => setWriting({ ids: null, jobId })}
+          onOpen={(jobId) => router.push(routes.products.bulkWrite({ job: jobId }))}
         />
       ) : null}
       <ResourceTable
         resourceName={copy.resource}
-        columns={productColumns(copy, fmt)}
+        columns={productColumns(copy, fmt, initial.facets.lowStockThreshold)}
         items={items}
         getId={(p) => p.id}
         href={(p) => routes.products.detail(p.id)}
         rowActions={(p) => (
-          <RowMenu
-            items={[
-              { label: copy.row.edit, href: routes.products.detail(p.id) },
-              {
-                label: copy.row.inventory,
-                href: `${routes.stock.inventory()}?query=${encodeURIComponent(p.title)}`,
-              },
-            ]}
+          <ProductRowMenu
+            product={p}
+            storefrontOrigin={initial.storefrontOrigin}
+            onChanged={() => void refresh()}
           />
         )}
         loading={loading}
@@ -362,6 +355,7 @@ function ProductsContent({ initial }: { initial: ProductsInitial }) {
         onPageChange={(page) => setQ({ page })}
         bulkActions={(ids, clear) => (
           <ProductBulkActions
+            ids={ids}
             busy={busy}
             onStatus={(status) =>
               runBulk(ids, { kind: 'status', status }, clear, (r) => copy.bulk.updated(r.changed))
@@ -369,7 +363,14 @@ function ProductsContent({ initial }: { initial: ProductsInitial }) {
             onTag={() => setTagging({ ids, clear })}
             onBulkEdit={() => router.push(routes.products.bulkEdit(ids))}
             onDelete={() => setDeleting({ ids, clear })}
-            onWriteAi={initial.aiBulk ? () => setWriting({ ids, jobId: null }) : undefined}
+            onWriteAi={
+              initial.aiBulk ? () => router.push(routes.products.bulkWrite({ ids })) : undefined
+            }
+            automations={initial.automations}
+            onDone={() => {
+              clear()
+              void refresh()
+            }}
           />
         )}
         empty={{
@@ -385,19 +386,6 @@ function ProductsContent({ initial }: { initial: ProductsInitial }) {
       />
 
       <ImportDialog open={importing} onOpenChange={setImporting} onImported={refresh} />
-      {initial.aiBulk ? (
-        <BulkWriteSheet
-          open={writing !== null}
-          onOpenChange={(open) => {
-            if (open) return
-            setWriting(null)
-            setAiRefresh((n) => n + 1)
-          }}
-          productIds={writing?.ids ?? null}
-          jobId={writing?.jobId ?? null}
-          onApplied={() => void refresh()}
-        />
-      ) : null}
       <BulkTagDialog
         open={tagging !== null}
         onOpenChange={(open) => !open && setTagging(null)}

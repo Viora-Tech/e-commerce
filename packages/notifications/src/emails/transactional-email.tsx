@@ -21,6 +21,8 @@ export type TransactionalEmailProps = {
   eyebrow: string
   heading: string
   intro: string
+  /** The merchant's own note for a hand-sent message, shown under the intro. */
+  note?: string | undefined
   outro: string
   lines: TemplateData['lines']
   totalLabel?: string | undefined
@@ -47,6 +49,7 @@ export function TransactionalEmail({
   eyebrow,
   heading,
   intro,
+  note,
   outro,
   lines,
   totalLabel,
@@ -68,6 +71,12 @@ export function TransactionalEmail({
       <Eyebrow>{eyebrow}</Eyebrow>
       <Heading>{heading}</Heading>
       <Body>{intro}</Body>
+      {note
+        ?.split(/\n+/)
+        .filter(Boolean)
+        .map((p) => (
+          <Body key={p}>{p}</Body>
+        ))}
       {code ? <CodeBlock code={code} /> : null}
       {giftCard ? (
         <GiftCardBlock

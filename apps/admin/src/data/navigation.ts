@@ -19,7 +19,13 @@ import {
 } from '@commerce/ui/icons'
 import { routes } from '@/lib/routes'
 
-export type NavChild = { href: string; label: string; permission?: Permission }
+export type NavChild = {
+  href: string
+  label: string
+  permission?: Permission
+  /** A site outside the admin (the App Store website): opens in a new tab, never "active". */
+  external?: boolean
+}
 
 export type NavItem = {
   href: string
@@ -31,7 +37,7 @@ export type NavItem = {
   permission?: Permission
   /** Sub-pages shown beneath the item while its section is active. */
   children?: NavChild[]
-  /** Paths under `href` that another section owns (Pages live under Content, URLs unchanged). */
+  /** Paths under `href` that another section owns (Blog posts live under Content, URLs unchanged). */
   excludes?: string[]
 }
 export type NavGroup = { label?: string; items: NavItem[] }
@@ -109,7 +115,6 @@ export const NAV_GROUPS: NavGroup[] = [
         icon: FolderOpen,
         permission: permissions.CONTENT_READ,
         children: [
-          { href: routes.onlineStore.pages(), label: 'Pages' },
           { href: routes.content.blogPosts(), label: 'Blog posts' },
           { href: routes.content.files(), label: 'Files' },
           { href: routes.content.menus(), label: 'Menus' },
@@ -132,9 +137,9 @@ export const NAV_GROUPS: NavGroup[] = [
         icon: TrendingUp,
         permission: permissions.MARKETING_READ,
         children: [
+          { href: routes.growth.attribution(), label: 'Attribution' },
+          { href: routes.growth.autopilot(), label: 'Autopilot' },
           { href: routes.growth.campaigns(), label: 'Campaigns' },
-          { href: routes.growth.automations(), label: 'Automations' },
-          { href: routes.growth.links(), label: 'Links' },
         ],
       },
       {
@@ -153,9 +158,10 @@ export const NAV_GROUPS: NavGroup[] = [
         label: 'Online store',
         icon: Store,
         permission: permissions.ONLINE_STORE_READ,
-        excludes: [routes.onlineStore.pages(), routes.onlineStore.blog()],
+        excludes: [routes.onlineStore.blog()],
         children: [
           { href: routes.onlineStore.themes(), label: 'Themes' },
+          { href: routes.onlineStore.pages(), label: 'Pages' },
           { href: routes.onlineStore.preferences(), label: 'Preferences' },
           { href: routes.onlineStore.seo(), label: 'SEO' },
         ],

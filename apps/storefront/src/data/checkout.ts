@@ -20,6 +20,23 @@ export const balanceContent = {
   back: 'Back to the shop',
 } as const
 
+/** The signed page a draft invoice email's "Pay securely" button opens. */
+export const invoiceContent = {
+  pageTitle: (number: number) => `Invoice #${number}`,
+  intro: (store: string) =>
+    `${store} sent you this invoice. Check the items, then pay securely online.`,
+  quantity: (n: number) => `Qty ${n}`,
+  total: 'Total',
+  pay: (total: string) => `Pay ${total}`,
+  paying: 'Opening secure payment',
+  unavailable: 'This invoice link is no longer valid. Ask the store for a new one.',
+  busy: 'Too many tries. Wait a minute and try again.',
+  noGateway: 'This store cannot take online payments right now. Please contact them to pay.',
+  outOfStock: 'Something on this invoice is out of stock now. Please contact the store.',
+  noAddress: 'This invoice has no delivery address yet. Please contact the store to add one.',
+  back: 'Back to the shop',
+} as const
+
 export const thankYouContent = {
   heading: (number: number) => `Thank you, order #${number} is in`,
   /** The calm headline above the status line, by where the order stands. */
@@ -432,45 +449,6 @@ export const checkoutContent = {
       `The state you picked does not match PIN code ${pincode}. Check the state and the PIN code, then try again.`,
   },
 } as const
-
-export const INDIAN_STATES: readonly [string, string][] = [
-  ['AN', 'Andaman and Nicobar Islands'],
-  ['AP', 'Andhra Pradesh'],
-  ['AR', 'Arunachal Pradesh'],
-  ['AS', 'Assam'],
-  ['BR', 'Bihar'],
-  ['CG', 'Chhattisgarh'],
-  ['CH', 'Chandigarh'],
-  ['DN', 'Dadra and Nagar Haveli and Daman and Diu'],
-  ['DL', 'Delhi'],
-  ['GA', 'Goa'],
-  ['GJ', 'Gujarat'],
-  ['HR', 'Haryana'],
-  ['HP', 'Himachal Pradesh'],
-  ['JK', 'Jammu and Kashmir'],
-  ['JH', 'Jharkhand'],
-  ['KA', 'Karnataka'],
-  ['KL', 'Kerala'],
-  ['LA', 'Ladakh'],
-  ['LD', 'Lakshadweep'],
-  ['MP', 'Madhya Pradesh'],
-  ['MH', 'Maharashtra'],
-  ['MN', 'Manipur'],
-  ['ML', 'Meghalaya'],
-  ['MZ', 'Mizoram'],
-  ['NL', 'Nagaland'],
-  ['OD', 'Odisha'],
-  ['PY', 'Puducherry'],
-  ['PB', 'Punjab'],
-  ['RJ', 'Rajasthan'],
-  ['SK', 'Sikkim'],
-  ['TN', 'Tamil Nadu'],
-  ['TS', 'Telangana'],
-  ['TR', 'Tripura'],
-  ['UP', 'Uttar Pradesh'],
-  ['UK', 'Uttarakhand'],
-  ['WB', 'West Bengal'],
-]
 
 export const giftCardFieldContent = {
   label: 'Gift card',

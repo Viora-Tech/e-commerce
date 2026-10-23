@@ -1,6 +1,6 @@
 'use client'
 
-import { StarIcon } from '@commerce/ui/icons'
+import { CircleCheck, Eye, EyeOff, StarIcon } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Card } from '@commerce/ui/shadcn/card'
 import { Skeleton } from '@commerce/ui/shadcn/skeleton'
@@ -102,12 +102,19 @@ export default function ReviewDetail({ params }: AppPageProps) {
           <>
             {r.status !== 'hidden' ? (
               <Button variant="outline" disabled={busy} onClick={() => handleStatus('hidden')}>
+                <EyeOff aria-hidden="true" />
                 {copy.hide}
               </Button>
             ) : null}
             {r.status !== 'published' ? (
               <Button disabled={busy} onClick={() => handleStatus('published')}>
-                {busy ? <Spinner /> : null}
+                {busy ? (
+                  <Spinner />
+                ) : r.status === 'hidden' ? (
+                  <Eye aria-hidden="true" />
+                ) : (
+                  <CircleCheck aria-hidden="true" />
+                )}
                 {r.status === 'hidden' ? copy.unhide : copy.approve}
               </Button>
             ) : null}

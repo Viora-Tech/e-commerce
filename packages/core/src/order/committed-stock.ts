@@ -16,7 +16,8 @@ import type { StoreContext } from '../context'
  * primary selling row (`primarySellingLevel`), as before parcels.
  *
  * - Packing n units: on_hand and reserved both drop by n (the goods left).
- * - Cancelling: reserved drops by the unpacked remainder; on_hand is untouched.
+ * - Cancelling: reserved drops by the unpacked remainder; on_hand is untouched (unless the
+ *   cancel says not to restock: then on_hand drops too, and availability stays as it was).
  *
  * Callers make these idempotent by moving the order line's fulfilled_quantity
  * (or the order's status) under a row lock first and passing only the change,
@@ -48,6 +49,23 @@ async function isTracked(ctx: StoreContext, variantId: string): Promise<boolean>
 
 /** Units that left the building: on hand and committed drop together, logged as sold. */
 export async function shipCommittedStock(ctx: StoreContext, move: StockMove): Promise<void> {
+  await takeCommittedStock(ctx, move, 'sold', null)
+}
+
+/**
+ * A cancelled order's units that do not go back on sale ("Restock" off): on hand and
+ * committed drop together, so what is available stays as it was, logged as `other`.
+ */
+export async function writeOffCommittedStock(ctx: StoreContext, move: StockMove): Promise<void> {
+  await takeCommittedStock(ctx, move, 'other', 'Order cancelled without restocking')
+}
+
+async function takeCommittedStock(
+  ctx: StoreContext,
+  move: StockMove,
+  reason: 'sold' | 'other',
+  note: string | null,
+): Promise<void> {
   if (move.quantity <= 0) return
   // Untracked variants were never reserved and keep no count.
   if (!(await isTracked(ctx, move.variantId))) return
@@ -66,8 +84,8 @@ export async function shipCommittedStock(ctx: StoreContext, move: StockMove): Pr
     variantId: move.variantId,
     locationId: level.locationId,
     delta: -move.quantity,
-    reason: 'sold',
-    note: null,
+    reason,
+    note,
   })
 }
 

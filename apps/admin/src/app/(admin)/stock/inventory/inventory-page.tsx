@@ -1,6 +1,7 @@
 'use client'
 
 import { siteConfig } from '@commerce/config/site'
+import { STOCK_FILTERS, type StockFilter } from '@commerce/core/catalog'
 import { permissions } from '@commerce/core/permissions'
 import { Clock, Download, Plus } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
@@ -10,7 +11,7 @@ import { Suspense, useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import AddLocationDialog from '@/components/inventory/add-location-dialog'
 import { downloadInventoryCsv } from '@/components/inventory/export-inventory'
-import HistorySheet from '@/components/inventory/history-sheet'
+import HistoryDialog from '@/components/inventory/history-dialog'
 import InventoryBulkActions from '@/components/inventory/inventory-bulk-actions'
 import InventoryBulkDialog, { type BulkEdit } from '@/components/inventory/inventory-bulk-dialog'
 import {
@@ -33,13 +34,7 @@ import {
 import ResourceTable from '@/components/table/resource-table'
 import ViewSelect from '@/components/table/view-select'
 import { filterPanelContent } from '@/data/filter-panel'
-import {
-  inventoryContent,
-  locationsContent,
-  type ManualReasonValue,
-  STOCK_STATES,
-  type StockState,
-} from '@/data/inventory'
+import { inventoryContent, locationsContent, type ManualReasonValue } from '@/data/inventory'
 import { useCopy } from '@/hooks/use-copy'
 import { usePermissions } from '@/hooks/use-permissions'
 import { api } from '@/lib/api-client'
@@ -63,7 +58,7 @@ type Query = {
   page: number
   perPage: number
   query: string
-  stock: StockState | null
+  stock: StockFilter | null
   vendor: string | null
   productType: string | null
 }
@@ -124,7 +119,7 @@ function InventoryContent({ initial }: { initial: InventoryInitial }) {
       query: parseAsString.withDefault(''),
       page: parseAsInteger.withDefault(1),
       perPage: parseAsInteger.withDefault(PER_PAGE),
-      stock: parseAsStringLiteral(STOCK_STATES),
+      stock: parseAsStringLiteral(STOCK_FILTERS),
       vendor: parseAsString,
       productType: parseAsString,
     },
@@ -240,7 +235,7 @@ function InventoryContent({ initial }: { initial: InventoryInitial }) {
       type: 'select',
       options: copy.filters.stockOptions,
       value: q.stock,
-      onChange: (next) => setQ({ stock: STOCK_STATES.find((s) => s === next) ?? null, page: 1 }),
+      onChange: (next) => setQ({ stock: STOCK_FILTERS.find((s) => s === next) ?? null, page: 1 }),
       anyLabel: copy.filters.any,
     },
     {
@@ -363,7 +358,7 @@ function InventoryContent({ initial }: { initial: InventoryInitial }) {
         onOpenChange={(open) => !open && setBulk(undefined)}
         onApply={handleBulk}
       />
-      <HistorySheet
+      <HistoryDialog
         variantId={history?.variantId ?? null}
         name={history ? rowName(history) : ''}
         sku={history?.sku ?? null}

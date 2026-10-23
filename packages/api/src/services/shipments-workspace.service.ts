@@ -11,7 +11,15 @@ import {
 import { SHIPMENT_TAB_STATUSES } from '@commerce/core/shipment-tabs'
 import { startOfDay } from '@commerce/dates'
 import type { StoreTx } from '@commerce/db'
-import { address, customer, order, orderLine, shipment, variant } from '@commerce/db'
+import {
+  address,
+  customer,
+  fulfillmentOrder,
+  order,
+  orderLine,
+  shipment,
+  variant,
+} from '@commerce/db'
 import {
   ASSUMED_WEIGHT_GRAMS,
   CourierError,
@@ -244,7 +252,9 @@ const readyToShipWhere = () =>
     inArray(order.paymentStatus, ['paid', 'partially_paid']),
     inArray(order.fulfillmentStatus, ['unfulfilled', 'partially_fulfilled']),
     sql`${order.status} != 'cancelled'`,
-    // No "hold" concept in the schema yet; a hold/on-hold tag is the stand-in until one exists.
+    // A held parcel (Hold fulfilment) keeps the order off the list until it is released.
+    sql`not exists (select 1 from ${fulfillmentOrder} where ${fulfillmentOrder.orderId} = ${order.id} and ${fulfillmentOrder.heldAt} is not null and ${fulfillmentOrder.status} in ('open', 'on_hold'))`,
+    // The older stand-in, kept for stores that mark holds with a tag.
     sql`not (${order.tags} && array['hold', 'on-hold']::text[])`,
   )
 

@@ -5,6 +5,7 @@ import {
   defaultSplitMethod,
   type PurchaseChargeKind,
 } from '@commerce/core/inventory'
+import { Save } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import {
   Dialog,
@@ -213,6 +214,7 @@ export default function ChargeDialog({
             {copy.dialog.cancel}
           </Button>
           <Button onClick={handleSave} disabled={busy}>
+            <Save aria-hidden="true" />
             {busy ? copy.dialog.saving : copy.dialog.save}
           </Button>
         </DialogFooter>

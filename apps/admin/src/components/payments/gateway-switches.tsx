@@ -1,7 +1,9 @@
 'use client'
 
 import { Button } from '@commerce/ui/shadcn/button'
-import { ToggleGroup, ToggleGroupItem } from '@commerce/ui/shadcn/toggle-group'
+import { Card, CardContent } from '@commerce/ui/shadcn/card'
+import { Label } from '@commerce/ui/shadcn/label'
+import { Switch } from '@commerce/ui/shadcn/switch'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
@@ -21,7 +23,7 @@ type GatewaySwitchesProps = {
 type Pending = { to: PaymentModeId } | null
 
 /**
- * A gateway card's Live ⇄ Test switch: which saved key set checkout uses. Flipping never
+ * The gateway's "Test mode" card, Shopify style: one switch for which saved key set checkout uses. Flipping never
  * deletes keys and asks first. Turning the gateway off is the card's footer
  * (`GatewayActiveFooter`).
  */
@@ -33,9 +35,9 @@ export default function GatewaySwitches({ gateway, onChanged }: GatewaySwitchesP
   const [busy, setBusy] = useState(false)
 
   // Event handlers
-  const handleMode = (next: string[]) => {
-    const to = next[0]
-    if ((to === 'test' || to === 'live') && to !== gateway.mode) setPending({ to })
+  const handleTestMode = (on: boolean) => {
+    const to = on ? 'test' : 'live'
+    if (to !== gateway.mode) setPending({ to })
   }
 
   const handleConfirmMode = async () => {
@@ -72,39 +74,33 @@ export default function GatewaySwitches({ gateway, onChanged }: GatewaySwitchesP
   const modeCopy = goingLive ? copy.mode.toLive : copy.mode.toTest
 
   return (
-    <div className="flex flex-wrap items-center gap-x-5 gap-y-3">
-      <div className="flex flex-wrap items-center gap-2">
-        <span id={`${gateway.id}-keys-in-use`} className="text-caption text-muted-foreground">
-          {copy.mode.label}
-        </span>
-        <ToggleGroup
-          aria-labelledby={`${gateway.id}-keys-in-use`}
-          value={gateway.mode ? [gateway.mode] : []}
-          onValueChange={handleMode}
-          variant="outline"
-          size="sm"
-          spacing={0}
-          disabled={busy}
-        >
-          <ToggleGroupItem value="test" disabled={!gateway.keys.test}>
-            {copy.mode.test}
-          </ToggleGroupItem>
-          <ToggleGroupItem value="live" disabled={!gateway.keys.live}>
-            {copy.mode.live}
-          </ToggleGroupItem>
-        </ToggleGroup>
-        {gateway.keys[missing] ? null : (
-          <Button
-            variant="link"
-            size="sm"
-            className="px-0"
-            nativeButton={false}
-            render={<Link href={`${routes.apps.connect(gateway.id)}?keys=${missing}`} />}
-          >
-            {copy.mode.addKeys(missing)}
-          </Button>
-        )}
-      </div>
+    <section aria-labelledby={`${gateway.id}-test-mode`} className="flex flex-col gap-3">
+      <h2 id={`${gateway.id}-test-mode`} className="text-body font-semibold text-foreground">
+        {copy.mode.testHeading}
+      </h2>
+      <Card>
+        <CardContent className="flex flex-col gap-2">
+          <Label className="flex items-center justify-between gap-4 text-body font-normal text-ink-strong">
+            {copy.mode.testHelp}
+            <Switch
+              checked={gateway.mode === 'test'}
+              onCheckedChange={handleTestMode}
+              disabled={busy || !gateway.keys[missing]}
+            />
+          </Label>
+          {gateway.keys[missing] ? null : (
+            <Button
+              variant="link"
+              size="sm"
+              className="w-fit px-0"
+              nativeButton={false}
+              render={<Link href={`${routes.apps.connect(gateway.id)}?keys=${missing}`} />}
+            >
+              {copy.mode.addKeys(missing)}
+            </Button>
+          )}
+        </CardContent>
+      </Card>
 
       <ConfirmDialog
         open={pending !== null}
@@ -116,6 +112,6 @@ export default function GatewaySwitches({ gateway, onChanged }: GatewaySwitchesP
         busy={busy}
         onConfirm={handleConfirmMode}
       />
-    </div>
+    </section>
   )
 }

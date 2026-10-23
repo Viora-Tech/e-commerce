@@ -1,4 +1,5 @@
 /** Copy for Products > Inventory, Purchase orders and Transfers. */
+import type { StockFilter } from '@commerce/core/catalog'
 import {
   PURCHASE_ORDER_STATUSES,
   type PurchaseOrderStatus,
@@ -9,9 +10,6 @@ import {
 export { TRANSFER_STATUSES, type TransferStatus } from '@commerce/core/inventory'
 export type { PurchaseOrderStatus }
 export { PURCHASE_ORDER_STATUSES }
-
-export const STOCK_STATES = ['in', 'low', 'out'] as const
-export type StockState = (typeof STOCK_STATES)[number]
 
 export const MANUAL_REASONS = [
   { value: 'correction', label: 'Correction' },
@@ -73,7 +71,7 @@ export const inventoryContent = {
       { value: 'in', label: 'In stock' },
       { value: 'low', label: 'Low stock' },
       { value: 'out', label: 'Out of stock' },
-    ] as { value: StockState; label: string }[],
+    ] as { value: StockFilter; label: string }[],
   },
   cell: {
     decrease: 'Remove one',
@@ -394,6 +392,18 @@ export const transferFormContent = {
     title: 'Delete this draft?',
     body: 'The draft is removed. Stock is not affected.',
     confirm: 'Delete draft',
+    cancel: 'Cancel',
+  },
+} as const
+
+/** The purchase order list's selection bar. */
+export const purchaseOrderBulkContent = {
+  downloadPdfs: 'Download PDFs',
+  close: 'Close',
+  confirmClose: {
+    title: (n: number) => `Close ${n} purchase order${n === 1 ? '' : 's'}?`,
+    body: 'Anything not received yet stops showing as incoming. Received stock stays. Drafts and orders that are already finished are skipped.',
+    confirm: 'Close orders',
     cancel: 'Cancel',
   },
 } as const

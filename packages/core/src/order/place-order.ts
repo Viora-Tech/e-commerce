@@ -4,8 +4,6 @@ import {
   cartLine,
   customer,
   type Db,
-  discount,
-  discountUsage,
   type MarketingAttribution,
   newId,
   order,
@@ -19,7 +17,7 @@ import {
 } from '@commerce/db'
 import type { CheckoutSession, PaymentProvider } from '@commerce/payments'
 import { loadPincodeDirectory } from '@commerce/shipping/pincode-directory'
-import { and, desc, eq, isNull, lt, ne, or, sql } from 'drizzle-orm'
+import { and, desc, eq, isNull, ne, sql } from 'drizzle-orm'
 import { stateMatchesPincode } from '../checkout/pincode-state'
 import {
   type CheckoutContact,
@@ -32,16 +30,12 @@ import type { StoreContext } from '../context'
 import { recordCustomerChange } from '../customers/changes'
 import { encryptCustomerPhone, phoneBlindIndex } from '../customers/phone-crypto'
 import { applyDiscount } from '../discounts/evaluate'
-import {
-  customerUsageCount,
-  type ResolvedDiscount,
-  resolveCartDiscount,
-} from '../discounts/resolve'
+import { type ResolvedDiscount, resolveCartDiscount } from '../discounts/resolve'
+import { recordDiscountUses, releaseDiscountUses } from '../discounts/usage'
 import {
   CartEmpty,
   CartNotOpen,
   CheckoutRuleViolation,
-  DiscountUnavailable,
   NotLaunchedYet,
   ShippingRateUnavailable,
   ShippingUnavailable,
@@ -299,6 +293,7 @@ const resolveDiscount: WorkflowStep<State> = {
     const code = input.discountCode === undefined ? cartDiscountCode : input.discountCode
     const { outcome } = await resolveCartDiscount(ctx, input.cartId, code, {
       email: input.checkout?.email,
+      stateCode: input.checkout?.address?.stateCode,
     })
     return { discount: outcome }
   },
@@ -479,6 +474,17 @@ const createOrder: WorkflowStep<State> = {
         .returning({ id: address.id })
       customerId = cu?.id ?? null
       shippingAddressId = ad?.id ?? null
+      // A business buyer's validated GSTIN (and name) is kept on the customer for next time; a
+      // checkout without them never clears what is saved.
+      if (customerId && contact?.gstin) {
+        await ctx.tx
+          .update(customer)
+          .set({
+            gstin: contact.gstin,
+            businessName: sql`coalesce(${contact.businessName}, ${customer.businessName})`,
+          })
+          .where(eq(customer.id, customerId))
+      }
       // Created or updated (the upsert does not say which); app consumers upsert either way.
       if (customerId) await recordCustomerChange(ctx.tx, ctx.storeId, customerId, 'updated')
     }
@@ -680,27 +686,13 @@ const createOrder: WorkflowStep<State> = {
     })
     if (applied) {
       const email = (contact ? contact.email : input.checkout?.email.trim().toLowerCase()) || null
-      await claimDiscountUse(ctx, applied.discount.id, email)
-      await ctx.tx.insert(discountUsage).values({
-        storeId: ctx.storeId,
-        discountId: applied.discount.id,
-        orderId: o.id,
-        customerId,
-        email,
-        amountPaise: discountPaise,
-      })
+      await recordDiscountUses(ctx, applied, { id: o.id, customerId, email, discountPaise })
     }
     return { orderId: o.id, orderNumber, totalPaise, balanceDuePaise, depositPaise }
   },
   async compensate({ ctx, orderId, discount: applied }) {
     if (!orderId) return
-    if (applied) {
-      await ctx.tx.delete(discountUsage).where(eq(discountUsage.orderId, orderId))
-      await ctx.tx
-        .update(discount)
-        .set({ usedCount: sql`greatest(${discount.usedCount} - 1, 0)` })
-        .where(eq(discount.id, applied.discount.id))
-    }
+    if (applied) await releaseDiscountUses(ctx, applied, orderId)
     await deleteFulfillmentOrders(ctx.tx, orderId)
     await ctx.tx.delete(orderLine).where(eq(orderLine.orderId, orderId))
     await ctx.tx.delete(order).where(eq(order.id, orderId))
@@ -742,45 +734,6 @@ async function upsertCustomerByPhone(
     .insert(customer)
     .values({ storeId: ctx.storeId, email: null, ...values })
     .returning({ id: customer.id })
-}
-
-/**
- * Count one use of a discount, or throw `DiscountUnavailable` when it has run
- * out. `resolveDiscount` checked the limits from a snapshot, and a concurrent
- * checkout may have used the last redemption since. So the discount row is
- * locked for the rest of the transaction, the shopper's cap is re-counted under
- * that lock, and the increment only happens while `used_count` is under the
- * limit: a limit of 100 means 100 orders however many checkouts race.
- *
- * Pattern from Medusa's promotion `registerUsage` (MIT): lock the promotion
- * row, then re-check the limits under the lock.
- */
-async function claimDiscountUse(
-  ctx: StoreContext,
-  discountId: string,
-  email: string | null,
-): Promise<void> {
-  const [d] = await ctx.tx
-    .select({ usagePerCustomer: discount.usagePerCustomer })
-    .from(discount)
-    .where(eq(discount.id, discountId))
-    .for('update')
-  if (!d) throw new DiscountUnavailable(discountId, ctx.storeId)
-  if (d.usagePerCustomer !== null) {
-    const uses = await customerUsageCount(ctx, discountId, email)
-    if (uses >= d.usagePerCustomer) throw new DiscountUnavailable(discountId, ctx.storeId)
-  }
-  const claimed = await ctx.tx
-    .update(discount)
-    .set({ usedCount: sql`${discount.usedCount} + 1` })
-    .where(
-      and(
-        eq(discount.id, discountId),
-        or(isNull(discount.usageLimit), lt(discount.usedCount, discount.usageLimit)),
-      ),
-    )
-    .returning({ id: discount.id })
-  if (claimed.length === 0) throw new DiscountUnavailable(discountId, ctx.storeId)
 }
 
 /**

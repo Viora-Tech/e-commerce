@@ -1,11 +1,10 @@
 'use client'
 
-import { Button } from '@commerce/ui/shadcn/button'
 import { Card } from '@commerce/ui/shadcn/card'
 import { Skeleton } from '@commerce/ui/shadcn/skeleton'
-import Link from 'next/link'
 import { type ReactNode, useEffect, useState } from 'react'
 import { toast } from 'sonner'
+import AppStoreLink from '@/components/apps/app-store-link'
 import PageHeader from '@/components/layout/page-header'
 import SaveBar from '@/components/layout/save-bar'
 import HelpFooter from '@/components/payments/help-footer'
@@ -21,7 +20,6 @@ import { shippingSettingsContent } from '@/data/shipping'
 import { useCopy } from '@/hooks/use-copy'
 import { useSetupNext } from '@/hooks/use-setup-next'
 import { api } from '@/lib/api-client'
-import { routes } from '@/lib/routes'
 import DemoCourierSection from './demo-courier-section'
 
 type Loaded = Awaited<ReturnType<typeof api.store.getShipping>>
@@ -146,9 +144,9 @@ export default function ShippingPage() {
         help={couriers.length > 0 ? null : copy.health.noCourierHelp}
         action={
           couriers.length > 0 ? null : (
-            <Button nativeButton={false} render={<Link href={routes.apps.store()} />}>
+            <AppStoreLink category="shipping" variant="default">
               {copy.health.connect}
-            </Button>
+            </AppStoreLink>
           )
         }
       />

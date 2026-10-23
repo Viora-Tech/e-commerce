@@ -1,6 +1,6 @@
 'use client'
 
-import { ArrowLeft, WifiOff } from '@commerce/ui/icons'
+import { ArrowLeft, RotateCcw, WifiOff } from '@commerce/ui/icons'
 import { cn } from '@commerce/ui/lib/utils'
 import { Button } from '@commerce/ui/shadcn/button'
 import { motion, useReducedMotion } from 'motion/react'
@@ -106,7 +106,10 @@ export default function EditorLoading({ storeName, state, onRetry }: EditorLoadi
                 </h1>
                 <p className="text-sm text-muted-foreground">{copy.failedBody}</p>
                 <div className="mt-1 flex flex-wrap items-center justify-center gap-2">
-                  <Button onClick={onRetry}>{copy.retry}</Button>
+                  <Button onClick={onRetry}>
+                    <RotateCcw aria-hidden="true" />
+                    {copy.retry}
+                  </Button>
                   <Button
                     variant="outline"
                     nativeButton={false}

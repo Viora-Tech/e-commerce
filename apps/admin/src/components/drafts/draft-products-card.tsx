@@ -86,6 +86,7 @@ export default function DraftProductsCard({ lines, onChange }: DraftProductsCard
               quantity: 1,
               unitPricePaise: r.pricePaise,
               imageUrl: r.imageUrl,
+              giftCard: r.giftCard,
             },
           ],
     )

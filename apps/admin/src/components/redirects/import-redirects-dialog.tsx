@@ -133,6 +133,7 @@ export default function ImportRedirectsDialog({ onClose, onImported }: ImportRed
             onClick={handleImport}
             disabled={busy || !preview || preview.rows === 0}
           >
+            <Upload aria-hidden="true" />
             {busy && preview ? copy.importing : copy.confirm(preview?.rows ?? 0)}
           </Button>
         </DialogFooter>

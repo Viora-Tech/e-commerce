@@ -29,7 +29,9 @@ import StatusChip from '@/components/layout/status-chip'
 import { mcpContent } from '@/data/mcp'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { claudeCodeCommand } from '@/lib/mcp'
 import { tokenScopes } from './can-do'
+import CodeSnippet from './code-snippet'
 import ScopePicker from './scope-picker'
 
 type Created = Awaited<ReturnType<typeof api.apiAccess.createToken>>
@@ -37,6 +39,8 @@ type Created = Awaited<ReturnType<typeof api.apiAccess.createToken>>
 type CreateTokenDialogProps = {
   open: boolean
   onOpenChange: (open: boolean) => void
+  /** The MCP address, for the ready-to-paste Claude Code command once the token exists. */
+  serverUrl?: string
 }
 
 const START: ApiScopes = { products: 'read' }
@@ -47,7 +51,11 @@ const expiryKey = (d: TokenExpiryDays) => (d === null ? 'never' : String(d))
  * Figma "Create access token", then "Token shown once": the plain token is shown here only,
  * with what it can reach and when it expires.
  */
-export default function CreateTokenDialog({ open, onOpenChange }: CreateTokenDialogProps) {
+export default function CreateTokenDialog({
+  open,
+  onOpenChange,
+  serverUrl,
+}: CreateTokenDialogProps) {
   // Hooks
   const copy = useCopy(mcpContent)
   const format = useFormat()
@@ -103,10 +111,10 @@ export default function CreateTokenDialog({ open, onOpenChange }: CreateTokenDia
   // Early returns
   if (created) {
     const s = tokenScopes(copy, created.grant.scopes)
-    const shown = `${created.token.slice(0, 13)}${'•'.repeat(16)}${created.token.slice(-4)}`
+    const shown = `${created.token.slice(0, 13)}${'â€¢'.repeat(16)}${created.token.slice(-4)}`
     return (
       <Dialog open={open} onOpenChange={(o) => (o ? null : handleDone())}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-lg">
           <DialogHeader>
             <DialogTitle>{copy.shown.title}</DialogTitle>
             <DialogDescription>{copy.shown.intro}</DialogDescription>
@@ -139,7 +147,7 @@ export default function CreateTokenDialog({ open, onOpenChange }: CreateTokenDia
           <dl className="flex flex-col divide-y divide-border text-body">
             {[
               [copy.shown.name, created.grant.name],
-              [copy.shown.canAccess, `${s.first} · ${s.second.toLowerCase()}`],
+              [copy.shown.canAccess, `${s.first} Â· ${s.second.toLowerCase()}`],
               [
                 copy.shown.expires,
                 created.grant.expiresAt
@@ -153,8 +161,25 @@ export default function CreateTokenDialog({ open, onOpenChange }: CreateTokenDia
               </div>
             ))}
           </dl>
+          <div className="flex flex-col gap-3">
+            <CodeSnippet
+              value={`Authorization: Bearer ${created.token}`}
+              what={copy.guide.copyHeader}
+              label={copy.shown.use}
+            />
+            {serverUrl ? (
+              <CodeSnippet
+                value={claudeCodeCommand(serverUrl, created.token)}
+                what={copy.guide.copyWhat}
+                label={copy.shown.claudeCode}
+              />
+            ) : null}
+          </div>
           <DialogFooter>
-            <Button onClick={handleDone}>{copy.shown.done}</Button>
+            <Button onClick={handleDone}>
+              <CheckIcon aria-hidden="true" />
+              {copy.shown.done}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

@@ -1,6 +1,6 @@
 'use client'
 
-import { Monitor, Smartphone, Tablet } from '@commerce/ui/icons'
+import { LogOut, Monitor, RotateCcw, Smartphone, Tablet } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Card } from '@commerce/ui/shadcn/card'
 import { Skeleton } from '@commerce/ui/shadcn/skeleton'
@@ -81,6 +81,7 @@ export default function SessionsPage() {
         <Card gap={3} inset={6} className="items-start">
           <p className="text-body text-muted-foreground">{copy.loadFailed}</p>
           <Button variant="outline" onClick={handleRetry}>
+            <RotateCcw aria-hidden="true" />
             {copy.retry}
           </Button>
         </Card>
@@ -99,6 +100,7 @@ export default function SessionsPage() {
         actions={
           others > 0 ? (
             <Button variant="outline" onClick={() => setOthersOpen(true)}>
+              <LogOut aria-hidden="true" />
               {copy.signOutOthers}
             </Button>
           ) : null
@@ -145,6 +147,7 @@ export default function SessionsPage() {
                       className="self-start sm:self-auto"
                       onClick={() => setTarget(s)}
                     >
+                      <LogOut aria-hidden="true" />
                       {copy.signOut}
                     </Button>
                   )}

@@ -199,7 +199,7 @@ export const storeRouter = {
       return saved.settings
     }),
 
-  /** Online Store › Preferences: SEO defaults, password page, privacy banner and tracking. */
+  /** Online Store › Preferences: SEO defaults, password page, search and AI crawler access, site verification and tracking. */
   getPreferences: can(permissions.ONLINE_STORE_READ).handler(async ({ context }) => {
     const s = await getStore(context.tx, context.scope.storeId)
     return parsePreferences(s?.preferences)

@@ -15,6 +15,16 @@ export const dtdcPlugin = definePlugin({
   company: 'DTDC',
   description:
     'PIN code serviceability, bookings with labels, tracking and cancellation on your DTDC account.',
+  listing: {
+    tagline: 'DTDC bookings with labels, tracking and cancellation.',
+    highlights: ['Pincode serviceability', 'Bookings with labels', 'Tracking and cancellation'],
+    guide: '/merchant-guide/apps/couriers',
+    worksWith: [
+      'The Shipments workspace, beside any other courier you install',
+      'Courier rules in Settings → Shipping',
+    ],
+    keywords: ['courier', 'shipping'],
+  },
   access: {
     resources: [
       {

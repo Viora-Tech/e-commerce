@@ -80,7 +80,12 @@ export default function DraftCustomerCard({ form, onChange }: DraftCustomerCardP
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder={copy.customer.search}
-            className="pl-9"
+            className="pl-9 [&::-webkit-search-cancel-button]:hidden"
+            type="search"
+            name="draft-customer-lookup"
+            autoComplete="off"
+            data-1p-ignore
+            data-lpignore="true"
           />
           {results.length > 0 ? (
             <ul className="absolute z-20 mt-1 w-full overflow-hidden rounded-lg border border-border bg-card p-1 shadow-popover">

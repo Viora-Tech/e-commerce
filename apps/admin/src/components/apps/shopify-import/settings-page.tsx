@@ -8,6 +8,7 @@ import {
   type SettingsPartState,
   type SettingsResultState,
 } from '@commerce/plugin-shopify-import/client'
+import { PlugConnect, RefreshCw, Upload } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Card, CardContent } from '@commerce/ui/shadcn/card'
 import { Skeleton } from '@commerce/ui/shadcn/skeleton'
@@ -122,6 +123,7 @@ export default function SettingsPage() {
         <CardContent className="flex flex-col items-start gap-3">
           <p className="text-body text-muted-foreground">{copy.notConnected}</p>
           <Button nativeButton={false} render={<Link href={`${base}/connect`} />}>
+            <PlugConnect aria-hidden="true" />
             {copy.connect}
           </Button>
         </CardContent>
@@ -139,7 +141,7 @@ export default function SettingsPage() {
         ) : null}
       </div>
       <Button variant="outline" onClick={handleCheck} disabled={busy !== null}>
-        {busy === 'check' ? <Spinner /> : null}
+        {busy === 'check' ? <Spinner /> : <RefreshCw aria-hidden="true" />}
         {plan ? copy.checkAgain : copy.check}
       </Button>
     </div>
@@ -185,7 +187,7 @@ export default function SettingsPage() {
           ))}
           <div className="flex justify-end">
             <Button onClick={handleImport} disabled={busy !== null || chosen.length === 0}>
-              {busy === 'import' ? <Spinner /> : null}
+              {busy === 'import' ? <Spinner /> : <Upload aria-hidden="true" />}
               {copy.import(chosen.length)}
             </Button>
           </div>

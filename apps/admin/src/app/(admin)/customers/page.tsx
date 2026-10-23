@@ -3,6 +3,7 @@ import type { Metadata } from 'next'
 import { CUSTOMER_SEGMENTS } from '@/data/customers'
 import { appRouter, call, serverContext } from '@/lib/api'
 import { parseListQuery, type SearchParams } from '@/lib/list-query'
+import { listApps } from '@/lib/shell-data'
 import CustomersPage from './customers-page'
 
 export const metadata: Metadata = { title: 'Customers' }
@@ -21,7 +22,7 @@ export default async function Page({ searchParams }: Props) {
   const query = parseListQuery(params, CUSTOMER_SEGMENTS)
   const perPage = parsePerPage(params.perPage)
   const context = await serverContext()
-  const [result, stats, tags] = await Promise.all([
+  const [result, stats, tags, apps] = await Promise.all([
     call(
       appRouter.customers.list,
       {
@@ -34,7 +35,13 @@ export default async function Page({ searchParams }: Props) {
     ),
     call(appRouter.customers.stats, undefined, { context }),
     call(appRouter.customers.tags, undefined, { context }),
+    listApps().catch(() => []),
   ])
 
-  return <CustomersPage initial={{ query, perPage, result, stats, allCount: stats.total, tags }} />
+  const automations = apps.some((a) => a.installed && a.id === 'automations')
+  return (
+    <CustomersPage
+      initial={{ query, perPage, result, stats, allCount: stats.total, tags, automations }}
+    />
+  )
 }

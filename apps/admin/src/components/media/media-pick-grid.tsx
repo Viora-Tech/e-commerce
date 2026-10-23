@@ -1,6 +1,6 @@
 'use client'
 
-import { Video } from '@commerce/ui/icons'
+import { RotateCcw, Video } from '@commerce/ui/icons'
 import { cn } from '@commerce/ui/lib/utils'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Checkbox } from '@commerce/ui/shadcn/checkbox'
@@ -139,6 +139,7 @@ export default function MediaPickGrid({
                 {p.error ? (
                   <span className="flex flex-wrap gap-1">
                     <Button size="xs" variant="outline" onClick={() => onRetry(p.key)}>
+                      <RotateCcw aria-hidden="true" />
                       {copy.retry}
                     </Button>
                     <Button size="xs" variant="ghost" onClick={() => onDismiss(p.key)}>

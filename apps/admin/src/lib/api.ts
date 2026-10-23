@@ -6,6 +6,7 @@ import {
   aiBulkQueue,
   appEventQueue,
   appJobQueue,
+  automationStepQueue,
   channelSyncQueue,
   dailyVisitors,
   liveVisitors,
@@ -35,6 +36,7 @@ export function apiHost() {
     aiBulk: aiBulkQueue(loadEnv(process.env).REDIS_URL),
     purchaseDocuments: purchaseDocumentQueue(loadEnv(process.env).REDIS_URL),
     channelSync: channelSyncQueue(loadEnv(process.env).REDIS_URL),
+    automationSteps: automationStepQueue(loadEnv(process.env).REDIS_URL),
     visitors: {
       live: (storeId: string) => liveVisitors(sharedRedis(loadEnv(process.env).REDIS_URL), storeId),
       daily: (storeId: string, days: string[]) =>

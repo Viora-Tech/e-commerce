@@ -1,5 +1,6 @@
 'use client'
 
+import { CheckIcon, Save } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { productFormContent } from '@/data/product-form'
 import { useCopy } from '@/hooks/use-copy'
@@ -27,9 +28,11 @@ export default function ProductPageActions({
   return (
     <>
       <Button variant="outline" onClick={onSaveDraft} disabled={busy}>
+        <Save aria-hidden="true" />
         {copy.saveDraft}
       </Button>
       <Button onClick={onPublish} loading={busy}>
+        <CheckIcon aria-hidden="true" />
         {live ? copy.saveChanges : copy.publish}
       </Button>
     </>

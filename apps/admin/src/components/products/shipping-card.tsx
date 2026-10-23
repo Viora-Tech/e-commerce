@@ -19,7 +19,6 @@ import {
 } from '@commerce/ui/shadcn/select'
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
-import MoneyInput from '@/components/fields/money-input'
 import DataCard from '@/components/layout/data-card'
 import SettingsRow from '@/components/settings/settings-row'
 import { COUNTRIES } from '@/data/countries'
@@ -28,6 +27,8 @@ import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 import { routes } from '@/lib/routes'
 import type { VariantRow } from './form-state'
+import WeightInput from './weight-input'
+import { toGrams } from './weight-units'
 
 type ShippingCardProps = {
   variant: VariantRow
@@ -127,8 +128,8 @@ export default function ShippingCard({
   ])
   const dims = packageDims(variant, boxPresets)
   const volumetricKg = dims ? volumetricWeightGrams(dims) / 1000 : null
-  const actualGrams = Number(variant.weight)
-  const actualKg = variant.weight.trim() && Number.isFinite(actualGrams) ? actualGrams / 1000 : null
+  const actualGrams = toGrams(variant.weight, variant.weightUnit)
+  const actualKg = actualGrams == null ? null : actualGrams / 1000
   const billedKg =
     volumetricKg != null && actualKg != null
       ? Math.max(volumetricKg, actualKg)
@@ -139,14 +140,11 @@ export default function ShippingCard({
       <FieldGroup>
         {/* Figma 283:14681 Shipping: label and help on the left, a 330px control on the right. */}
         <SettingsRow label={copy.weight} description={copy.weightHelp} htmlFor="variant-weight">
-          <MoneyInput
-            size="lg"
+          <WeightInput
             id="variant-weight"
-            currency={false}
-            suffix="g"
-            value={variant.weight}
-            onChange={(weight) => onChange({ weight })}
-            className="md:max-w-[20.75rem]"
+            weight={variant.weight}
+            unit={variant.weightUnit}
+            onChange={onChange}
           />
         </SettingsRow>
         <SettingsRow label={copy.hsCode} description={copy.hsCodeHelp} htmlFor="variant-hs">

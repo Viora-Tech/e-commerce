@@ -1,5 +1,6 @@
 'use client'
 
+import { Send } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Checkbox } from '@commerce/ui/shadcn/checkbox'
 import {
@@ -160,7 +161,7 @@ export default function BugReportDialog({ open, onOpenChange, screenshot }: BugR
               {copy.cancel}
             </Button>
             <Button type="submit" disabled={!canSend}>
-              {sending ? <Spinner /> : null}
+              {sending ? <Spinner /> : <Send aria-hidden="true" />}
               {sending ? copy.sending : copy.send}
             </Button>
           </DialogFooter>

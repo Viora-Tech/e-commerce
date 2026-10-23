@@ -3,7 +3,7 @@
 import 'grapesjs/dist/css/grapes.min.css'
 import type { EmailBrand, EmailDesign } from '@commerce/core/marketing'
 import { discountMjml, productGridMjml } from '@commerce/core/marketing'
-import { LayoutGrid, Loader2Icon } from '@commerce/ui/icons'
+import { CheckIcon, LayoutGrid, Loader2Icon } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import type { AssetsCustomData, Editor } from 'grapesjs'
 import { useEffect, useRef, useState } from 'react'
@@ -158,6 +158,7 @@ export default function VisualBuilder({
             {copy.builder.cancel}
           </Button>
           <Button size="sm" onClick={handleSave} disabled={!brand}>
+            <CheckIcon aria-hidden="true" />
             {copy.builder.done}
           </Button>
         </div>

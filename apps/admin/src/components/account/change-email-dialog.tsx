@@ -1,5 +1,6 @@
 'use client'
 
+import { CheckIcon, Send } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import {
   Dialog,
@@ -135,6 +136,7 @@ export default function ChangeEmailDialog({
                 {copy.cancel}
               </Button>
               <Button type="submit" loading={busy} disabled={!email.trim()}>
+                <Send aria-hidden="true" />
                 {copy.send}
               </Button>
             </DialogFooter>
@@ -162,6 +164,7 @@ export default function ChangeEmailDialog({
                 {copy.back}
               </Button>
               <Button type="submit" loading={busy} disabled={otp.length < 6}>
+                <CheckIcon aria-hidden="true" />
                 {copy.confirm}
               </Button>
             </DialogFooter>

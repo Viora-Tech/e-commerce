@@ -1,4 +1,6 @@
-import { PRODUCTS_CHANGED_JOB } from '@commerce/core'
+// The leaf module, not the barrel: @commerce/core's barrel loads the plugin registry, which
+// loads this plugin, so importing the barrel here reads the name before it exists.
+import { PRODUCTS_CHANGED_JOB } from '@commerce/core/outbox-types'
 import { definePlugin } from '@commerce/plugins'
 import { z } from 'zod'
 import { meiliEnv, reindexStore, syncProducts } from './server'
@@ -24,6 +26,20 @@ export const meilisearchPlugin = definePlugin({
   company: 'Meilisearch',
   description:
     'Fast search that forgives typos: shoppers find “tshirt”, “t-shrit” and “tee” alike. Add your own synonyms.',
+  listing: {
+    tagline: 'Fast store search that forgives typos, with your own synonyms.',
+    highlights: [
+      'Finds “t-shrit” and “tee” alike',
+      'Search box suggestions as shoppers type',
+      'Your store’s own search takes over if Meilisearch is down',
+    ],
+    guide: '/merchant-guide/apps/meilisearch',
+    worksWith: [
+      'A Meilisearch Cloud project or your own server',
+      'The Search & discovery synonyms',
+    ],
+    keywords: ['search', 'typo', 'synonyms'],
+  },
   access: {
     resources: [
       { resource: 'products', level: 'read', why: 'Copies product titles and details into search' },

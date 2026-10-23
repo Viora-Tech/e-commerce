@@ -18,10 +18,129 @@ type AllowEntry = { file: string; names: string[]; reason: string }
 
 const ALLOWLIST: AllowEntry[] = [
   {
+    file: 'packages/ui/src/globe/webgl/sprite-dots.ts',
+    names: ['MAX_SPRITE_DOT_SAMPLES', 'spriteDotSpacing'],
+    reason:
+      'the sample cap and dot spacing behind pickSpriteDotSamples and spriteDotRadiusPx; exported for their unit test',
+  },
+  {
+    file: 'packages/core/src/automations/engine/maintenance.ts',
+    names: ['pruneAutomationRuns'],
+    reason: 'the prune for one store, behind runAutomationPruneJob; exported for its unit test',
+  },
+  {
+    file: 'packages/core/src/inventory/stock-events.ts',
+    names: ['stockCrossings'],
+    reason: 'the pure low/out crossing rule behind watchStockCrossings, exported for its unit test',
+  },
+  {
+    file: 'packages/core/src/automations/actions/index.ts',
+    names: ['builtinExecutors', 'missingBuiltinExecutors'],
+    reason:
+      'the executor list and its completeness check, exported for the catalogue-coverage test',
+  },
+  {
+    file: 'packages/core/src/automations/conditions/evaluate.ts',
+    names: ['readPath'],
+    reason: 'the dotted-path reader behind the evaluator, exported for its unit test',
+  },
+  {
+    file: 'packages/core/src/marketing/automation-cutover.ts',
+    names: ['lockAutomationsEngineMode', 'cutoverStoreToEngine', 'verifyCutover'],
+    reason:
+      'the Growth cut-over steps, run by scripts/migrate-marketing-automations.ts (scripts are not scanned)',
+  },
+  {
+    file: 'packages/core/src/marketing/automation-engine-map.ts',
+    names: ['ENGINE_SUBJECT', 'nodeIdsFor', 'ruleFor'],
+    reason: 'pieces of the legacy-to-engine mapping, exported for its unit test',
+  },
+  {
+    file: 'packages/core/src/marketing/growth-automations.ts',
+    names: ['stepsFromDefinition', 'engineAutomationStats'],
+    reason: 'the engine-to-Growth view helpers, exported for the cut-over and parity tests',
+  },
+  {
+    file: 'packages/core/src/marketing/growth-engine.ts',
+    names: ['SWEEP_TRIGGERS', 'isTransactionalNode'],
+    reason: 'the sweep trigger list and the COD transactional rule, exported for their unit tests',
+  },
+  {
+    file: 'packages/core/src/automations/catalogue.ts',
+    names: ['FIELD_TYPES', 'isPluginPieceId', 'builtinTrigger', 'conditionFieldsFor'],
+    reason:
+      'Automations contract (feat/automations, 2026-10-23): read by the admin editor and the conditions/actions work built in parallel on this branch',
+  },
+  {
+    file: 'packages/core/src/automations/definition.ts',
+    names: ['RULE_OPERATORS', 'RULE_QUANTIFIERS', 'RuleGroupSchema'],
+    reason:
+      'Automations contract (feat/automations, 2026-10-23): read by the admin editor and the conditions/actions work built in parallel on this branch',
+  },
+  {
+    file: 'packages/core/src/automations/merge-tags.ts',
+    names: ['readPath', 'mergeTagsIn'],
+    reason:
+      'Automations contract (feat/automations, 2026-10-23): read by the admin editor and the conditions/actions work built in parallel on this branch',
+  },
+  {
+    file: 'packages/core/src/automations/types.ts',
+    names: [
+      'WORKFLOW_STATUSES',
+      'WORKFLOW_ORIGINS',
+      'BUILTIN_SUBJECT_TYPES',
+      'STEP_RUN_STATUSES',
+      'ACTION_RISKS',
+      'TRIGGER_SOURCES',
+      'RUN_REASONS',
+      'STEP_RUN_RETENTION_DAYS',
+    ],
+    reason:
+      'Automations contract (feat/automations, 2026-10-23): read by the admin editor and the conditions/actions work built in parallel on this branch',
+  },
+  {
+    file: 'packages/core/src/automations/engine/trigger.ts',
+    names: ['eventForOutbox'],
+    reason: 'the outbox row to automation event rule, exported for its unit test',
+  },
+  {
+    file: 'packages/core/src/automations/registry.ts',
+    names: ['resetActionExecutorsForTest'],
+    reason: 'lets engine tests install mock executors',
+  },
+  {
+    file: 'packages/core/src/platform-apps/meta-callbacks.ts',
+    names: ['whatsappEventUpdate'],
+    reason:
+      'one WhatsApp webhook change to an account update, behind handleMetaWebhook; exported for its unit test',
+  },
+  {
+    file: 'packages/plugin-shopify-import/src/app-install.ts',
+    names: ['signInstallState'],
+    reason: 'the signed state inside shopifyInstallUrl; exported so the callback test can sign one',
+  },
+  {
     file: 'packages/api/src/services/order-actions.service.ts',
     names: ['orderActionGroups'],
     reason:
       'the pure who-sees-which-order-action rule behind apps.orderActions, exported for its unit test',
+  },
+  {
+    file: 'packages/api/src/services/ai/query-writer.ts',
+    names: ['writeValidQuery'],
+    reason:
+      'the write-parse-retry loop behind refineQuery, exported for its unit test (no AI call)',
+  },
+  {
+    file: 'packages/core/src/analytics-query/controls.ts',
+    names: ['setShow'],
+    reason: 'the metric-order rule behind toggleMetric, exported for its unit test',
+  },
+  {
+    file: 'packages/core/src/catalog/stock-state.ts',
+    names: ['STOCK_FILTER_PARAM', 'stockFilterState'],
+    reason:
+      'the state ↔ `?stock=` spelling map that STOCK_FILTERS must cover, exported for its unit test',
   },
   {
     file: 'packages/core/src/sender-email/platform.ts',
@@ -94,9 +213,9 @@ const ALLOWLIST: AllowEntry[] = [
     reason: 'the shopper-paid-fee split behind recordPaymentCharges, exported for its unit test',
   },
   {
-    file: 'packages/core/src/order/profit-service.ts',
-    names: ['feeGstClaimable'],
-    reason: 'the GST-on-fees rule behind profitFacts and profitCostsView, exported for its test',
+    file: 'packages/db/src/finance-schema.ts',
+    names: ['MONTHLY_EXPENSE_CATEGORIES'],
+    reason: 'the table check list, exported so core monthly-expenses.test.ts checks it matches',
   },
   {
     file: 'packages/core/src/inventory/schemas.ts',
@@ -273,7 +392,6 @@ const ALLOWLIST: AllowEntry[] = [
   {
     file: 'packages/core/src/cart/abandoned.ts',
     names: [
-      'ABANDONED_AFTER_MS',
       'RECOVERY_TTL_MS',
       'getAbandonedCart',
       'recoveryToken',
@@ -300,7 +418,7 @@ const ALLOWLIST: AllowEntry[] = [
   },
   {
     file: 'packages/core/src/collections/rules.ts',
-    names: ['matchesCollectionCondition', 'evaluateRules'],
+    names: ['matchesCollectionCondition'],
     reason: 'no external importer today — investigate before removing',
   },
   {
@@ -378,7 +496,6 @@ const ALLOWLIST: AllowEntry[] = [
   {
     file: 'packages/core/src/gift-cards/service.ts',
     names: [
-      'generateGiftCardCode',
       'hashGiftCardCode',
       'issueGiftCardsForOrder',
       'undeliveredGiftCards',
@@ -398,23 +515,12 @@ const ALLOWLIST: AllowEntry[] = [
   },
   {
     file: 'packages/core/src/marketing/attribution.ts',
-    names: [
-      'MARKETING_CHANNELS',
-      'ATTRIBUTION_WINDOW_DAYS',
-      'SESSION_IDLE_MS',
-      'hostOf',
-      'classifyChannel',
-    ],
+    names: ['ATTRIBUTION_WINDOW_DAYS', 'SESSION_IDLE_MS', 'hostOf', 'classifyChannel'],
     reason: 'no external importer today — investigate before removing',
   },
   {
     file: 'packages/core/src/marketing/automation-steps.ts',
     names: ['AutomationStepSchema'],
-    reason: 'no external importer today — investigate before removing',
-  },
-  {
-    file: 'packages/core/src/marketing/automations.ts',
-    names: ['CONVERSION_WINDOW_DAYS'],
     reason: 'no external importer today — investigate before removing',
   },
   {
@@ -494,11 +600,6 @@ const ALLOWLIST: AllowEntry[] = [
   {
     file: 'packages/core/src/navigation/settings.ts',
     names: ['defaultNavigationSettings'],
-    reason: 'no external importer today — investigate before removing',
-  },
-  {
-    file: 'packages/core/src/notifications/deliver.ts',
-    names: ['buildCartTemplateData'],
     reason: 'no external importer today — investigate before removing',
   },
   {
@@ -849,6 +950,21 @@ const ALLOWLIST: AllowEntry[] = [
     file: 'packages/plugin-emi/src/plugin.ts',
     names: ['emiPlugin'],
     reason: 'imported only by the root commerce.config.ts, like backInStockPlugin',
+  },
+  {
+    file: 'packages/plugin-affiliates/src/plugin.ts',
+    names: ['affiliatesPlugin'],
+    reason: 'imported only by the root commerce.config.ts, like formsPlugin',
+  },
+  {
+    file: 'packages/plugin-affiliates/src/secrets.ts',
+    names: ['AFFILIATE_CIPHER_COLUMNS', 'refreshAffiliatePhoneIndexes'],
+    reason: 'imported only by scripts/rotate-secrets.ts (scripts are not counted as importers)',
+  },
+  {
+    file: 'packages/plugin-affiliates/src/commissions.ts',
+    names: ['commissionForOrder'],
+    reason: 'used inside the module; exported for the flow tests that read one order’s commission',
   },
   {
     file: 'packages/plugin-forms/src/plugin.ts',

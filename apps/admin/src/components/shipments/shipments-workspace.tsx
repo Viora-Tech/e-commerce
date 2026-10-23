@@ -5,19 +5,20 @@ import {
   SHIPMENT_TABS,
   type ShipmentTab,
 } from '@commerce/core/shipment-tabs'
-import { AppWindow, Plus, Printer, Truck } from '@commerce/ui/icons'
+import { Clock, Settings, Truck } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Card } from '@commerce/ui/shadcn/card'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { parseAsInteger, parseAsString, parseAsStringLiteral, useQueryStates } from 'nuqs'
 import { Suspense, useEffect, useState } from 'react'
+import AppStoreLink from '@/components/apps/app-store-link'
 import ActionMenu from '@/components/layout/action-menu'
 import EmptyState from '@/components/layout/empty-state'
 import ProoflyListPage from '@/components/layout/proofly-list-page'
 import StatusChip from '@/components/layout/status-chip'
+import BookByNumberDialog from '@/components/shipments/book-by-number-dialog'
 import ResourceTable from '@/components/table/resource-table'
-import RowMenu from '@/components/table/row-menu'
 import ViewSelect from '@/components/table/view-select'
 import { shipmentsContent } from '@/data/shipments'
 import { useCopy, useFormat } from '@/hooks/use-copy'
@@ -31,7 +32,8 @@ import {
   type ShipmentRow,
   shipmentColumns,
 } from './shipment-columns'
-import ShipmentSheets, { type SheetKind } from './shipment-sheets'
+import ShipmentRowMenu from './shipment-row-menu'
+import ShipmentsBulkActions from './shipments-bulk-actions'
 import WalletStrip from './wallet-strip'
 
 type Counts = Awaited<ReturnType<typeof api.shipments.counts>>
@@ -82,9 +84,9 @@ function ShipmentsContent() {
   })
   const [selected, setSelected] = useState<string[]>([])
   const [booking, setBooking] = useState<string[]>([])
-  const [sheet, setSheet] = useState<SheetKind | null>(null)
+  const [byNumber, setByNumber] = useState(false)
   const [reloadKey, setReloadKey] = useState(0)
-  // Counts, wallets and courier names: once, and again after a booking or a sheet action.
+  // Counts, wallets and courier names: once, and again after a booking.
   useEffect(() => {
     if (reloadKey < 0) return
     let live = true
@@ -137,10 +139,6 @@ function ShipmentsContent() {
       if (ids.includes(r.id) && r.labelUrl) window.open(r.labelUrl, '_blank', 'noopener')
     }
   }
-  const handleSheetClose = () => {
-    setSheet(null)
-    setReloadKey((k) => k + 1)
-  }
   /* One order opens the Create shipment page; several open the shared bulk dialog. */
   const handleBook = (orderIds: string[]) => {
     if (orderIds.length === 1 && orderIds[0]) router.push(routes.orders.shipment(orderIds[0]))
@@ -148,7 +146,7 @@ function ShipmentsContent() {
   }
   /* Book by order number found these orders: the same Create shipment flow takes over. */
   const handleShipFound = (orderIds: string[]) => {
-    setSheet(null)
+    setByNumber(false)
     handleBook(orderIds)
   }
 
@@ -180,23 +178,27 @@ function ShipmentsContent() {
         noCourier ? null : (
           <>
             {c && c.needsAttention > 0 ? (
-              <button
-                type="button"
-                onClick={() => setSheet('ndr')}
+              <Link
+                href={routes.orders.shipmentProblems()}
                 className="rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
                 <StatusChip tone="danger">
                   {copy.summary.needsAttention(c.needsAttention)}
                 </StatusChip>
-              </button>
+              </Link>
             ) : null}
             <ActionMenu
               label={copy.more}
               variant="outline"
               size="md"
-              items={[{ label: copy.byNumberSheet.title, onSelect: () => setSheet('byNumber') }]}
+              items={[{ label: copy.byNumberSheet.title, onSelect: () => setByNumber(true) }]}
             />
-            <Button variant="outline" onClick={() => setSheet('pickups')}>
+            <Button
+              variant="outline"
+              nativeButton={false}
+              render={<Link href={routes.orders.shipmentPickups()} />}
+            >
+              <Clock aria-hidden="true" />
               {copy.pickupsButton}
             </Button>
             <Button
@@ -204,6 +206,7 @@ function ShipmentsContent() {
               nativeButton={false}
               render={<Link href={routes.settings.shipping()} />}
             >
+              <Settings aria-hidden="true" />
               {copy.courierSettings}
             </Button>
             <Button
@@ -225,10 +228,9 @@ function ShipmentsContent() {
             heading={copy.noCourier.heading}
             body={copy.noCourier.body}
             action={
-              <Button nativeButton={false} render={<Link href={routes.apps.store()} />}>
-                <Plus aria-hidden />
+              <AppStoreLink category="shipping" variant="default">
                 {copy.noCourier.browse}
-              </Button>
+              </AppStoreLink>
             }
           />
         </Card>
@@ -252,24 +254,11 @@ function ShipmentsContent() {
                       router.push(routes.orders.shipment(r.orderId))
                     }}
                   >
+                    <Truck aria-hidden="true" />
                     {copy.shipNow}
                   </Button>
                 ) : null}
-                <RowMenu
-                  items={[
-                    {
-                      label: copy.menu.viewOrder,
-                      href: routes.orders.detail(r.orderId),
-                      icon: AppWindow,
-                    },
-                    ...(r.labelUrl
-                      ? [{ label: copy.menu.label, href: r.labelUrl, icon: Printer, newTab: true }]
-                      : []),
-                    ...(r.trackingUrl
-                      ? [{ label: copy.menu.track, href: r.trackingUrl, icon: Truck, newTab: true }]
-                      : []),
-                  ]}
-                />
+                <ShipmentRowMenu row={r} onChanged={() => setReloadKey((k) => k + 1)} />
               </span>
             )}
             loading={loading}
@@ -301,10 +290,12 @@ function ShipmentsContent() {
                   {copy.bookSelected}
                 </Button>
               ) : (
-                <Button size="sm" variant="outline" onClick={() => handlePrint(ids)}>
-                  <Printer aria-hidden />
-                  {copy.printLabels}
-                </Button>
+                <ShipmentsBulkActions
+                  ids={ids}
+                  tab={tab}
+                  onPrint={handlePrint}
+                  onDone={handleBooked}
+                />
               )
             }
             empty={{ heading: copy.empty[tab] }}
@@ -316,7 +307,7 @@ function ShipmentsContent() {
         onClose={() => setBooking([])}
         onBooked={handleBooked}
       />
-      <ShipmentSheets open={sheet} onClose={handleSheetClose} onShip={handleShipFound} />
+      <BookByNumberDialog open={byNumber} onOpenChange={setByNumber} onShip={handleShipFound} />
     </ProoflyListPage>
   )
 }
@@ -324,7 +315,7 @@ function ShipmentsContent() {
 /**
  * Orders → Shipments (Figma "Orders / Shipments"): To book, Booked, In transit, Delivered and
  * Returned (RTO) in one table, the courier wallet strip, Book selected for the orders ticked in
- * To book, and the pickups and delivery-problem queues in side sheets.
+ * To book, booking by order number in a dialog, and links to the pickups and delivery-problem pages.
  */
 export default function ShipmentsWorkspace() {
   return (

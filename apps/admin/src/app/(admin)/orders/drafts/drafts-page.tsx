@@ -1,6 +1,6 @@
 'use client'
 
-import { AppWindow, SquarePlus, Trash2 } from '@commerce/ui/icons'
+import { AppWindow, Send, SquarePlus, Trash2 } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Kbd } from '@commerce/ui/shadcn/kbd'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@commerce/ui/shadcn/tooltip'
@@ -13,6 +13,7 @@ import ConfirmDialog from '@/components/layout/confirm-dialog'
 import ProoflyListPage from '@/components/layout/proofly-list-page'
 import StatStrip from '@/components/layout/stat-strip'
 import StatusChip from '@/components/layout/status-chip'
+import SendMessageDialog, { type CustomMessage } from '@/components/orders/send-message-dialog'
 import ResourceTable, { type ResourceColumnSpec } from '@/components/table/resource-table'
 import RowMenu from '@/components/table/row-menu'
 import ViewSelect from '@/components/table/view-select'
@@ -124,6 +125,10 @@ function DraftsContent({ initial }: { initial: DraftsInitial }) {
   const [tiles, setTiles] = useState(initial.tiles)
   const [loading, setLoading] = useState(false)
   const [removing, setRemoving] = useState<{ ids: string[]; clear: () => void } | null>(null)
+  /** The draft whose "Send invoice" review dialog is open. */
+  const [invoicing, setInvoicing] = useState<string | null>(null)
+  /** Selected drafts waiting on the bulk "Send invoices" confirm. */
+  const [sending, setSending] = useState<{ ids: string[]; clear: () => void } | null>(null)
 
   const hydrated = useRef(false)
 
@@ -180,6 +185,30 @@ function DraftsContent({ initial }: { initial: DraftsInitial }) {
       await refresh()
     } catch (err) {
       toast.error(err instanceof Error && err.message ? err.message : copy.deleteFailed)
+      throw err
+    }
+  }
+
+  const handleSendOne = async (custom: CustomMessage | undefined) => {
+    if (!invoicing) return
+    try {
+      const r = await api.orders.sendInvoice({ id: invoicing, custom })
+      toast.success(copy.invoiceSentOne(r.sentTo))
+      await refresh()
+    } catch (err) {
+      toast.error(err instanceof Error && err.message ? err.message : copy.sendFailed)
+    }
+  }
+
+  const handleSendMany = async () => {
+    if (!sending) return
+    try {
+      const r = await api.orders.sendInvoices({ ids: sending.ids })
+      toast.success(copy.sentMany(r.sent, r.skipped))
+      sending.clear()
+      await refresh()
+    } catch (err) {
+      toast.error(err instanceof Error && err.message ? err.message : copy.sendFailed)
       throw err
     }
   }
@@ -242,6 +271,12 @@ function DraftsContent({ initial }: { initial: DraftsInitial }) {
             items={[
               { label: copy.openDraft, href: routes.orders.draft(d.id), icon: AppWindow },
               {
+                label: d.invoiceSentAt ? copy.resendInvoice : copy.sendInvoice,
+                icon: Send,
+                hidden: !d.email,
+                onSelect: () => setInvoicing(d.id),
+              },
+              {
                 label: copy.deleteDraft,
                 icon: Trash2,
                 destructive: true,
@@ -252,14 +287,26 @@ function DraftsContent({ initial }: { initial: DraftsInitial }) {
         )}
         selectable
         bulkActions={(ids, clear) => (
-          <Button
-            type="button"
-            variant="destructive"
-            size="sm"
-            onClick={() => setRemoving({ ids, clear })}
-          >
-            {copy.deleteSelected(ids.length)}
-          </Button>
+          <>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => setSending({ ids, clear })}
+            >
+              <Send aria-hidden="true" />
+              {copy.sendSelected(ids.length)}
+            </Button>
+            <Button
+              type="button"
+              variant="destructive"
+              size="sm"
+              onClick={() => setRemoving({ ids, clear })}
+            >
+              <Trash2 strokeWidth={1.6} aria-hidden="true" />
+              {copy.deleteSelected(ids.length)}
+            </Button>
+          </>
         )}
         loading={loading}
         defaultSort={{ id: 'created', desc: true }}
@@ -286,6 +333,25 @@ function DraftsContent({ initial }: { initial: DraftsInitial }) {
         onPerPageChange={(n) => setQ({ perPage: n, page: 1 })}
         empty={query ? { heading: copy.noResults } : { heading: copy.empty, body: copy.intro }}
       />
+      <SendMessageDialog
+        orderId={invoicing}
+        template="draft_invoice"
+        onSend={handleSendOne}
+        onClose={() => setInvoicing(null)}
+      />
+      {sending ? (
+        <ConfirmDialog
+          open
+          onOpenChange={(open) => !open && setSending(null)}
+          title={copy.sendTitle(sending.ids.length)}
+          body={copy.sendBody}
+          confirmLabel={copy.sendConfirm}
+          cancelLabel={copy.cancel}
+          tone="default"
+          stopPropagation
+          onConfirm={handleSendMany}
+        />
+      ) : null}
       {removing ? (
         <ConfirmDialog
           open

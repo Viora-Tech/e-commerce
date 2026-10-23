@@ -133,7 +133,7 @@ export default function AiActivityCard() {
             ))}
           </ul>
           {hasMore ? (
-            <KitButton variant="link" onClick={() => setPage((p) => p + 1)} className="self-start">
+            <KitButton variant="link" onClick={() => setPage((p) => p + 1)} className="self-end">
               {copy.activity.more}
             </KitButton>
           ) : null}

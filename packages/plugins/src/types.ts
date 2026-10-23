@@ -3,6 +3,7 @@ import type { Attachment, NotificationChannelFactory, TemplateId } from '@commer
 import type { PaymentProviderFactory } from '@commerce/payments'
 import type { ShippingProviderFactory } from '@commerce/shipping'
 import type { StorageProvider, StorageProviderFactory } from '@commerce/storage'
+import type { AppAutomationEvent, AppAutomations } from './automations'
 
 /** The kinds of provider a plugin can contribute. Each maps to one registry. */
 export type ProviderKind = 'payments' | 'shipping' | 'notifications' | 'storage'
@@ -55,6 +56,10 @@ export type AppEvent =
   | 'order.fulfilled'
   | 'order.delivered'
   | 'refund.created'
+  /** The order was cancelled (by the merchant, or automatically for non-payment). */
+  | 'order.cancelled'
+  /** A shipment came back undelivered (RTO). */
+  | 'order.rto'
   | 'customer.created'
   | 'customer.updated'
 
@@ -105,6 +110,13 @@ export type AppHookContext = {
    * call wins. Absent where nothing records it (tests, scripts).
    */
   reportActivity?: ((summary: string) => void) | undefined
+  /**
+   * Fire one of this app's Automations triggers (`automations.triggers` in the manifest). Writes
+   * an outbox row (`automation.app_trigger`) in `tx`, the same transaction as the app's own
+   * change, so a rollback drops the event too. `key` makes it idempotent per app: the same key
+   * never starts a second run of a workflow. Absent where no engine is wired (tests, scripts).
+   */
+  triggerAutomation?: ((tx: StoreTx, event: AppAutomationEvent) => Promise<void>) | undefined
 }
 
 export type AppHook = (ctx: AppHookContext, payload: AppEventPayload) => Promise<void>
@@ -333,6 +345,34 @@ export type AppAccess = {
   shares?: AppDataShare[] | undefined
 }
 
+/**
+ * How the public App Store site (`apps/www`, koomerce.app/apps) presents an app: the words a
+ * merchant reads before installing. Public marketing copy, English. The site's catalogue is
+ * generated from these (`bun scripts/gen-app-catalogue.ts`), so this is the one place to edit a
+ * listing. Shaped so a third-party app's listing can carry the same fields later.
+ */
+export type AppListing = {
+  /** One line for the app's card and the search result, e.g. `Tax invoices and GSTR-1, per GSTIN.` */
+  tagline: string
+  /** Two to four short lines for "What it does". */
+  highlights: string[]
+  /** The merchant guide, as a path under the docs site (`/merchant-guide/apps/reviews`). */
+  guide?: string | undefined
+  /** "Works with" notes: what it pairs with, what the merchant needs first. */
+  worksWith?: string[] | undefined
+  /** Screenshots under `apps/www/public`, e.g. `{ src: '/app-shots/reviews-1.png', alt: '...' }`. */
+  screenshots?: { src: string; alt: string }[] | undefined
+  /** Search words beyond the name and tagline (`tee`, `invoice`, `courier`). */
+  keywords?: string[] | undefined
+  /**
+   * Questions a merchant asks before installing, answered in plain words from what the app really
+   * does (the merchant guide is the source). The site adds its own price and data questions.
+   */
+  faq?: { question: string; answer: string }[] | undefined
+  /** Kept off the App Store site (internal, or not ready to list). The admin still shows it. */
+  unlisted?: boolean | undefined
+}
+
 /** What the Installed apps list shows for an app besides "installed": derived from the app's own saved settings. */
 export type AppSetupState = {
   /** The app has what it needs to work (an account connected, a property chosen). */
@@ -370,12 +410,16 @@ export type PluginManifest = {
   storefront?: PluginStorefront | undefined
   /** What the app can see and do in the store; required so no app installs without saying. */
   access: AppAccess
+  /** The App Store site's listing. Apps without one are not listed there. */
+  listing?: AppListing | undefined
   /**
    * For an app that keeps its connection in its own settings (`store.apps.settings[id]`) rather
    * than a provider: whether it is connected and any recorded problem. Apps with providers are
    * judged by the store's enabled providers instead.
    */
   setupState?: ((settings: unknown) => AppSetupState) | undefined
+  /** Triggers, actions and templates the app adds to Automations (Flow-style connectors). */
+  automations?: AppAutomations | undefined
 }
 
 /** commerce.config.ts shape. The core plugin is always loaded and never listed here. */

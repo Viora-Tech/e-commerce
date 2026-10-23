@@ -23,6 +23,7 @@ import {
   receivePurchaseOrder,
   receiveTransfer,
   reopenPurchaseOrder,
+  STOCK_FILTERS,
   StockEditSchema,
   savePurchaseOrder,
   saveTransfer,
@@ -68,7 +69,7 @@ export async function friendly<T>(fn: () => Promise<T>): Promise<T> {
 const listInput = z.object({
   locationId: z.uuid(),
   search: z.string().trim().max(SEARCH_MAX).optional(),
-  stock: z.enum(['all', 'in', 'low', 'out']).optional(),
+  stock: z.enum(['all', ...STOCK_FILTERS]).optional(),
   vendor: z.string().max(200).optional(),
   productType: z.string().max(200).optional(),
   sort: z.enum(['product', 'available_asc', 'available_desc']).optional(),

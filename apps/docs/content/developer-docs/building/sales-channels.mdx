@@ -17,14 +17,16 @@ Each channel's **state** (`not_connected`, `requested`, `first_sync`, `connected
 
 | Channel | Provider | Platform API |
 |---|---|---|
-| Instagram, Facebook, WhatsApp | `meta` | Graph API v21: one business product catalog (`/{catalog}/items_batch`); WhatsApp links it to the WABA (`/{waba}/product_catalogs`) |
+| Instagram, Facebook, WhatsApp | `meta` | Graph API v26 (`META_GRAPH_VERSION`): one business product catalog (`/{catalog}/items_batch`); WhatsApp links it to the WABA (`/{waba}/product_catalogs`) |
 | Google | `google` | Merchant API v1: an API data source, `productInputs:insert` / delete |
 | ChatGPT | `openai` | The full feed POSTed to the endpoint + key OpenAI gives an approved merchant |
 | Perplexity, Copilot, Google AI | none | still a request (`requested`) |
 
 Code: `packages/core/src/sales-channels/`:
 - `catalog.ts`: items, one per sellable variant.
-- `providers.ts`: plain-`fetch` clients, `ChannelApiError` with `auth`/`api`.
+- `providers.ts`: plain-`fetch` clients for Meta and OpenAI, `ChannelApiError` with `auth`/`api`.
+- `google-merchant.ts`: the Merchant API v1 client.
+- `verdicts.ts`: what Google and Meta refused after a sync (`sync.rejected`, `rejectedItems`).
 - `connect.ts`: signed OAuth state, connect, pause, disconnect.
 - `sync.ts`: the sync itself.
 
@@ -38,8 +40,10 @@ Code: `packages/core/src/sales-channels/`:
    - checks the HMAC-signed state (30 min, store + channel + nonce; Google adds PKCE derived from
      the nonce);
    - checks the signed-in member belongs to that store;
-   - runs `completeChannelConnect`: code → token (Meta: long-lived, ~60 days; Google: refresh
-     token), find or create the catalog / data source, save encrypted, set `first_sync`;
+   - runs `completeChannelConnect`: code → token (Meta: a system user token that does not
+     expire with `META_LOGIN_CONFIG_ID`, else a ~60-day user token; Google: refresh token), find
+     or create the catalog / data source, save encrypted, link the Facebook user
+     (`platform_account`), set `first_sync`;
    - queues a sync.
 3. ChatGPT: after OpenAI approves, the merchant pastes the feed endpoint and key
    (`salesChannels.saveOpenAiFeed`).
@@ -54,7 +58,10 @@ Code: `packages/core/src/sales-channels/`:
    time, refreshing the token first when it is about to expire; OpenAI the whole feed.
 4. Success: upsert listing hashes, mark the channels `connected`.
    - An `auth` error marks them `expired`.
-   - Any other error marks them `error` with the platform's message.
+   - Any other error marks them `error` with the platform's message, and writes a
+     `channel.sync_failed` outbox event.
+5. Then it asks what the platform refused (`verdicts.ts`) and keeps the count and a few reasons on
+   the channel state; the channel page lists them.
 
 Worker queue `{channels}-sync`: a sweep every 6 hours queues one job per store × provider
 (`stores_with_channel_connections`). The admin queues one after Connect, on **Sync now** and on
@@ -66,6 +73,7 @@ live product.
 | Env key | Where | Notes |
 |---|---|---|
 | `META_APP_ID`, `META_APP_SECRET` | admin + worker | Meta app with Facebook Login for Business; `catalog_management`, `business_management`, `whatsapp_business_management` approved in App Review; redirect `<ADMIN_URL>/api/channels/meta/callback` |
+| `META_LOGIN_CONFIG_ID` | admin + worker | The Login for Business configuration (system user token); see [Platform apps](/developer-docs/building/platform-apps) |
 | `GMC_GOOGLE_CLIENT_ID`, `GMC_GOOGLE_CLIENT_SECRET` | admin + worker | Google OAuth web client with the Merchant API enabled and scope `content` verified; redirect `<ADMIN_URL>/api/channels/google/callback`. Blank: `MERCHANT_GOOGLE_*` is used |
 
 Without these keys, Connect stays a request, so nothing breaks before App Review is done.

@@ -28,7 +28,10 @@ export async function recordMessageClick(
     .where(eq(marketingMessage.id, messageId))
     .returning({
       campaignId: marketingMessage.campaignId,
-      automationId: marketingMessage.automationId,
+      // Engine sends carry their run instead of a legacy automation id (Growth on the engine).
+      automationId: sql<
+        string | null
+      >`coalesce(${marketingMessage.automationId}, (select workflow_id from automation_run where id = ${marketingMessage.automationRunId}))`,
     })
   return m ?? null
 }

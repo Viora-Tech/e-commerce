@@ -1,23 +1,17 @@
 'use client'
 
-import { CONSENT_CHANNELS, type ConsentChannel } from '@commerce/core/privacy'
-import { ChevronDown, Download, Pencil, Users } from '@commerce/ui/icons'
+import type { ConsentChannel } from '@commerce/core/privacy'
+import { Download, Save, Users } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@commerce/ui/shadcn/dropdown-menu'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { parseAsInteger, parseAsString, parseAsStringLiteral, useQueryStates } from 'nuqs'
-import { Fragment, Suspense, useEffect, useRef, useState } from 'react'
+import { Suspense, useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
 import { type CustomerRow, customerColumns } from '@/components/customers/customer-columns'
 import CustomerRowActions from '@/components/customers/customer-row-actions'
 import CustomerTiles, { type CustomerStats } from '@/components/customers/customer-tiles'
+import CustomersBulkActions from '@/components/customers/customers-bulk-actions'
 import TagCustomersDialog from '@/components/customers/tag-customers-dialog'
 import ConfirmDialog from '@/components/layout/confirm-dialog'
 import PageBody from '@/components/layout/page-body'
@@ -63,6 +57,8 @@ export type CustomersInitial = {
   stats: CustomerStats
   allCount: number
   tags: string[]
+  /** The Automations app is installed: "Run automation" on the bulk bar. */
+  automations: boolean
 }
 
 function exportRows(rows: CustomerRow[], exported: (n: number) => string): void {
@@ -82,12 +78,6 @@ function exportRows(rows: CustomerRow[], exported: (n: number) => string): void 
   )
   downloadCsv(`customers-${new Date().toISOString().slice(0, 10)}.csv`, csv)
   toast.success(exported(rows.length))
-}
-
-/** One mailto with the selected customers in Bcc, so the addresses stay private from each other. */
-function bulkMailto(rows: CustomerRow[]): string | null {
-  const emails = rows.flatMap((r) => (r.email ? [r.email] : []))
-  return emails.length > 0 ? `mailto:?bcc=${encodeURIComponent(emails.join(','))}` : null
 }
 
 function CustomersContent({ initial }: { initial: CustomersInitial }) {
@@ -239,6 +229,7 @@ function CustomersContent({ initial }: { initial: CustomersInitial }) {
           <>
             {applied.length > 0 ? (
               <Button variant="outline" render={<Link href={segmentHref} />} nativeButton={false}>
+                <Save strokeWidth={1.6} aria-hidden="true" />
                 {copy.saveSegment}
               </Button>
             ) : null}
@@ -278,6 +269,7 @@ function CustomersContent({ initial }: { initial: CustomersInitial }) {
               name={c.name ?? c.email ?? copy.unnamed}
               email={c.email}
               phone={c.phone}
+              onAddTag={() => handleBulkTag([c.id], 'add')}
               onDeleted={handleReload}
             />
           )}
@@ -309,77 +301,29 @@ function CustomersContent({ initial }: { initial: CustomersInitial }) {
           total={total}
           onPageChange={(p) => setQ({ page: p })}
           onPerPageChange={(n) => setQ({ perPage: n, page: 1 })}
-          bulkActions={(ids, clear) => {
-            const mail = bulkMailto(items.filter((i) => ids.includes(i.id)))
-            return (
-              <>
-                <Button variant="outline" size="sm" onClick={() => handleBulkEdit(ids)}>
-                  <Pencil />
-                  {copy.bulk.bulkEdit}
-                </Button>
-                <DropdownMenu>
-                  <DropdownMenuTrigger render={<Button variant="outline" size="sm" />}>
-                    {copy.bulk.addTag}
-                    <ChevronDown />
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="start">
-                    <DropdownMenuItem onClick={() => handleBulkTag(ids, 'add')}>
-                      {copy.bulk.addTag}
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => handleBulkTag(ids, 'remove')}>
-                      {copy.bulk.removeTag}
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-                <DropdownMenu>
-                  <DropdownMenuTrigger render={<Button variant="outline" size="sm" />}>
-                    {copy.bulk.marketing}
-                    <ChevronDown />
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="start">
-                    {CONSENT_CHANNELS.filter((c) => sendable.includes(c)).map((channel, i) => (
-                      <Fragment key={channel}>
-                        {i > 0 ? <DropdownMenuSeparator /> : null}
-                        <DropdownMenuItem
-                          onClick={() => setConsentChange({ ids, channel, granted: true })}
-                        >
-                          {copy.bulk.subscribe(CHANNEL_LABEL[channel])}
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          onClick={() => setConsentChange({ ids, channel, granted: false })}
-                        >
-                          {copy.bulk.unsubscribe(CHANNEL_LABEL[channel])}
-                        </DropdownMenuItem>
-                      </Fragment>
-                    ))}
-                  </DropdownMenuContent>
-                </DropdownMenu>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => {
-                    exportRows(
-                      items.filter((i) => ids.includes(i.id)),
-                      copy.exported,
-                    )
-                    clear()
-                  }}
-                >
-                  {copy.bulk.export}
-                </Button>
-                {mail ? (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    render={<a href={mail} />}
-                    nativeButton={false}
-                  >
-                    {copy.bulk.email}
-                  </Button>
-                ) : null}
-              </>
-            )
-          }}
+          bulkActions={(ids, clear) => (
+            <CustomersBulkActions
+              ids={ids}
+              rows={items.filter((i) => ids.includes(i.id))}
+              sendable={sendable}
+              onBulkEdit={() => handleBulkEdit(ids)}
+              onTag={(action) => handleBulkTag(ids, action)}
+              onConsent={(channel, granted) => setConsentChange({ ids, channel, granted })}
+              onExport={() => {
+                exportRows(
+                  items.filter((i) => ids.includes(i.id)),
+                  copy.exported,
+                )
+                clear()
+              }}
+              onDeleted={() => {
+                clear()
+                handleReload()
+              }}
+              automations={initial.automations}
+              onAutomationDone={clear}
+            />
+          )}
           empty={filtered ? copy.noResults : copy.empty}
         />
       )}

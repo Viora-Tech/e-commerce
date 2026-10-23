@@ -1,6 +1,6 @@
 'use client'
 
-import { Trash2, Truck } from '@commerce/ui/icons'
+import { Save, Trash2, Truck } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
@@ -141,6 +141,7 @@ export default function ShipmentForm({ shipment, costs, aiReading }: ShipmentFor
               </Button>
             ) : null}
             <Button onClick={handleSave} disabled={busy}>
+              <Save aria-hidden="true" />
               {busy ? copy.saving : copy.save}
             </Button>
           </>

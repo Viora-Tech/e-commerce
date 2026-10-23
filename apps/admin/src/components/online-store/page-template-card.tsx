@@ -1,5 +1,6 @@
 'use client'
 
+import { Pencil } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Field, FieldDescription } from '@commerce/ui/shadcn/field'
 import {
@@ -66,6 +67,7 @@ export default function PageTemplateCard({
         <FieldDescription>{copy.help}</FieldDescription>
       </Field>
       <Button variant="outline" nativeButton={false} render={<Link href={contentHref} />}>
+        <Pencil aria-hidden="true" />
         {copy.editContent}
       </Button>
       <p className="text-caption text-muted-foreground">{copy.editHelp}</p>

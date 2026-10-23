@@ -15,7 +15,8 @@ const SLIDES = [
   { id: 'invoice', Slide: SlideInvoice },
   { id: 'ship', Slide: SlideShip },
 ]
-const ADVANCE_MS = 5000
+/** Time on each slide: long enough to read the headline and the card (owner: 5s felt rushed). */
+const ADVANCE_MS = 8000
 
 /**
  * The brand panel: a soft blue gradient with a faint grid and four illustrated slides that

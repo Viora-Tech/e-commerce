@@ -7,7 +7,6 @@ export default [
   translation(contentContent, {
     title: 'कंटेंट',
     summary: 'आपके स्टोर पर इस्तेमाल होने वाली फ़ाइलें, मेन्यू और बना-बनाया कंटेंट।',
-    goToPages: 'पेज पर जाएं',
     cards: {
       files: {
         title: 'फ़ाइलें',
@@ -52,6 +51,20 @@ export default [
     },
     add: 'पेज जोड़ें',
     open: 'पेज खोलें',
+    row: {
+      show: 'स्टोर पर दिखाएं',
+      hide: 'छिपाएं',
+      shown: 'पेज अब स्टोर पर दिख रहा है',
+      hidden: 'पेज छिप गया',
+      view: 'स्टोर पर देखें',
+      delete: 'डिलीट करें',
+      deleted: 'पेज डिलीट हो गया',
+      deleteTitle: (title) => `${title} डिलीट करें?`,
+      deleteBody: 'पेज स्टोर से हट जाएगा और इसके लिंक काम नहीं करेंगे। यह वापस नहीं होगा।',
+      deleteConfirm: 'डिलीट करें',
+      cancel: 'रद्द करें',
+      failed: 'यह नहीं हो पाया। फिर कोशिश करें',
+    },
     search: 'पेज खोजें',
     resource: { singular: 'पेज', plural: 'पेज' },
     tabs: { all: 'सभी', live: 'चालू', hidden: 'छिपे' },

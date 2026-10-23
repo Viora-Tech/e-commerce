@@ -1,7 +1,7 @@
 'use client'
 
 import type { returnActions } from '@commerce/core/returns'
-import { CheckIcon, PackageOpen, Truck, Undo } from '@commerce/ui/icons'
+import { CancelCircle, CheckIcon, PackageCheck, PackageOpen, Truck, Undo } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { useState } from 'react'
 import NextStepBanner from '@/components/layout/next-step-banner'
@@ -64,11 +64,13 @@ export default function ReturnDecisionCard({ detail, can, onChanged }: ReturnDec
           <>
             {can.reject ? (
               <Button variant="outline" onClick={() => setRejecting(true)}>
+                <CancelCircle aria-hidden="true" />
                 {d.reject}
               </Button>
             ) : null}
             {can.arrangePickup ? (
               <Button variant="outline" onClick={() => setPickup('arrange')}>
+                <Truck aria-hidden="true" />
                 {copy.arrange}
               </Button>
             ) : null}
@@ -79,7 +81,10 @@ export default function ReturnDecisionCard({ detail, can, onChanged }: ReturnDec
               </Button>
             ) : null}
             {can.receive ? (
-              <Button onClick={() => setReceiving(true)}>{copy.receive.button}</Button>
+              <Button onClick={() => setReceiving(true)}>
+                <PackageCheck aria-hidden="true" />
+                {copy.receive.button}
+              </Button>
             ) : null}
           </>
         }

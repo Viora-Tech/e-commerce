@@ -77,3 +77,39 @@ export const channelListing = pgTable(
     index('channel_listing_store').on(t.storeId, t.provider),
   ],
 )
+
+/**
+ * Accounts on outside platforms that call us back without naming a store: Meta (the Facebook
+ * user who connected, for the deauthorize and data deletion callbacks), WhatsApp (the business
+ * account a store connected through Embedded Signup, for its webhooks) and Shopify (the shop
+ * the Koomerce migration app is installed on, for `app/uninstalled` and the privacy webhooks).
+ * `stores_for_platform_account()` finds the stores behind an id; `status` and `detail` hold
+ * what the platform last told us (a restricted WhatsApp account, a phone number's quality).
+ */
+const PLATFORM_ACCOUNT_KINDS = ['meta', 'whatsapp', 'shopify'] as const
+export type PlatformAccountKind = (typeof PLATFORM_ACCOUNT_KINDS)[number]
+
+export const platformAccount = pgTable(
+  'platform_account',
+  {
+    id: uuid('id').primaryKey().$defaultFn(newId),
+    storeId: uuid('store_id')
+      .notNull()
+      .references(() => store.id),
+    platform: text('platform').$type<PlatformAccountKind>().notNull(),
+    /** Facebook user id, WhatsApp Business account id, `shop.myshopify.com`. */
+    externalId: text('external_id').notNull(),
+    /** `active`, or what the platform last reported (`restricted`, `disabled`, `uninstalled`). */
+    status: text('status').notNull().default('active'),
+    /** Platform facts worth showing: phone number id, display name, quality rating. */
+    detail: jsonb('detail').$type<Record<string, string>>().notNull().default({}),
+    lastEventAt: at('last_event_at'),
+    createdAt: at('created_at').notNull().defaultNow(),
+    updatedAt: at('updated_at').notNull().defaultNow(),
+  },
+  (t) => [
+    uniqueIndex('platform_account_store').on(t.storeId, t.platform),
+    index('platform_account_external').on(t.platform, t.externalId),
+    check('platform_account_platform_check', sql`${t.platform} in ('meta','whatsapp','shopify')`),
+  ],
+)

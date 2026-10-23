@@ -1,7 +1,7 @@
 'use client'
 
 import { permissions } from '@commerce/core/permissions'
-import { CircleAlert, Trash2 } from '@commerce/ui/icons'
+import { CircleAlert, Save, Trash2 } from '@commerce/ui/icons'
 import { Alert, AlertDescription, AlertTitle } from '@commerce/ui/shadcn/alert'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Field, FieldDescription, FieldError, FieldLabel } from '@commerce/ui/shadcn/field'
@@ -130,6 +130,7 @@ export default function ZoneForm({ zone }: ZoneFormProps) {
             </Button>
           ) : (
             <Button onClick={handleSave} disabled={busy || !dirty}>
+              <Save aria-hidden="true" />
               {copy.saveBar.save}
             </Button>
           )

@@ -1,5 +1,5 @@
 import { growthLinksContent, growthOverviewContent } from '@/data/growth'
-import { translation, untranslated } from '@/lib/i18n'
+import { translation } from '@/lib/i18n'
 
 export default [
   translation(growthOverviewContent, {
@@ -18,16 +18,7 @@ export default [
         '90d': 'पिछले 90 दिनों में',
         custom: 'इस अवधि में',
       },
-      tiles: {
-        earned: 'ग्रोथ से बिक्री',
-        messages: 'भेजे गए मैसेज',
-        automationOrders: 'ऑटोमेशन से ऑर्डर',
-        subscribers: 'सब्सक्राइबर',
-      },
       vsPrevious: 'पिछली अवधि के मुकाबले',
-      messagesNote: (whatsapp: string, email: string) => `WhatsApp ${whatsapp} · ईमेल ${email}`,
-      automationNote: 'आपके ऑटोमेशन से आए ऑर्डर',
-      subscribersNote: (n: string) => `इस हफ़्ते ${n} नए`,
       card: {
         title: 'मार्केटिंग से कितनी कमाई हुई',
         subtitle: (orders: string) =>
@@ -60,12 +51,8 @@ export default [
         help: 'सीधे के अलावा किसी चैनल को मिले ऑर्डर।',
       },
       conversion: { label: 'कन्वर्ज़न रेट', help: 'ट्रैक हुए ऑर्डर को सेशन से भाग देकर।' },
-    },
-    salesOverTime: {
-      title: 'समय के साथ मार्केटिंग से बिक्री',
-      day: 'रोज़',
-      week: 'हफ़्ते के हिसाब से',
-      series: 'मार्केटिंग से बिक्री',
+      total_sales: { label: 'कुल बिक्री', help: 'इस रेंज में किसी भी सोर्स से आए सभी ऑर्डर।' },
+      aov: { label: 'औसत ऑर्डर वैल्यू', help: 'कुल बिक्री को ऑर्डर की गिनती से भाग देकर।' },
     },
     view: { label: 'देखें', bySource: 'सोर्स के हिसाब से', byChannel: 'चैनल के हिसाब से' },
     bestSource: {
@@ -121,35 +108,18 @@ export default [
         utm: 'टैग किया लिंक',
       },
     },
-    shortcuts: {
-      title: 'अपने ग्राहकों तक पहुँचें',
-      campaigns: {
-        title: 'कैंपेन',
-        body: 'ग्राहकों के किसी सेगमेंट को ईमेल या WhatsApp ब्रॉडकास्ट भेजें।',
-        href: untranslated,
-      },
-      automations: {
-        title: 'ऑटोमेशन',
-        body: 'छोड़े हुए चेकआउट वापस पाएँ, नए सब्सक्राइबर का स्वागत करें और पुराने खरीदारों को वापस लाएँ।',
-        href: untranslated,
-      },
-      links: {
-        title: 'लिंक',
-        body: 'अपने Instagram बायो, WhatsApp ब्रॉडकास्ट या विज्ञापन के लिए टैग किया लिंक बनाएँ।',
-        href: untranslated,
-      },
-      discounts: {
-        title: 'डिस्काउंट',
-        body: 'कैंपेन और ऑटोमेशन में इस्तेमाल करने के लिए कोड बनाएँ।',
-        href: untranslated,
-      },
-    },
   }),
   translation(growthLinksContent, {
     title: 'लिंक',
     resource: { singular: 'लिंक', plural: 'लिंक' },
     summary: (links: number, clicks: string, orders: string) =>
       `${links} छोटे लिंक · ${clicks} क्लिक · ${orders} ऑर्डर`,
+    trend: {
+      title: 'समय के साथ लिंक के नतीजे',
+      subtitle: 'पिछले 30 दिन, सभी लिंक मिलाकर।',
+      metrics: { clicks: 'क्लिक', orders: 'ऑर्डर', revenue: 'कमाई' },
+      empty: 'इस अवधि में अभी आपके लिंक पर कोई क्लिक नहीं',
+    },
     noLinks: 'अभी कोई लिंक नहीं',
     newLink: 'नया लिंक',
     columns: {
@@ -197,6 +167,15 @@ export default [
       body: 'छोटा लिंक काम करना बंद कर देगा। जो ऑर्डर यह पहले ला चुका है, वे ग्रोथ में गिने रहेंगे।',
       cancel: 'रद्द करें',
       confirm: 'हटाएं',
+    },
+    bulkDelete: {
+      action: 'हटाएं',
+      title: (n) => `${n} लिंक हटाएं?`,
+      body: 'ये छोटे लिंक काम करना बंद कर देंगे। जो ऑर्डर ये पहले ला चुके हैं, वे ग्रोथ में गिने रहेंगे।',
+      cancel: 'रद्द करें',
+      confirm: 'हटाएं',
+      deleted: (n) => `${n} लिंक हटाए गए`,
+      failed: (n) => `${n} नहीं हट पाए`,
     },
   }),
 ]

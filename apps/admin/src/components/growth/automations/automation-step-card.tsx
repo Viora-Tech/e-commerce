@@ -1,7 +1,7 @@
 'use client'
 
 import { type AutomationStep, CONDITION_FIELDS } from '@commerce/core/marketing'
-import { Trash2 } from '@commerce/ui/icons'
+import { Eye, Trash2 } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Dialog, DialogContent, DialogTitle } from '@commerce/ui/shadcn/dialog'
 import { Field, FieldGroup, FieldLabel } from '@commerce/ui/shadcn/field'
@@ -172,6 +172,7 @@ export default function AutomationStepCard({
           />
           <div>
             <Button variant="outline" size="sm" onClick={() => setPreview(true)}>
+              <Eye aria-hidden="true" />
               {copy.showPreview}
             </Button>
           </div>

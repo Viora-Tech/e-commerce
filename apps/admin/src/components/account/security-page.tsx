@@ -1,5 +1,6 @@
 'use client'
 
+import { Pencil, RotateCcw } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Card } from '@commerce/ui/shadcn/card'
 import { Skeleton } from '@commerce/ui/shadcn/skeleton'
@@ -65,6 +66,7 @@ export default function SecurityPage() {
         <Card gap={3} inset={6} className="items-start">
           <p className="text-body text-muted-foreground">{copy.loadFailed}</p>
           <Button variant="outline" onClick={handleRetry}>
+            <RotateCcw aria-hidden="true" />
             {copy.retry}
           </Button>
         </Card>
@@ -84,6 +86,7 @@ export default function SecurityPage() {
               <Skeleton className="h-5 w-48" />
             )}
             <Button variant="outline" onClick={() => setChanging(true)} disabled={!security}>
+              <Pencil aria-hidden="true" />
               {copy.email.change}
             </Button>
           </div>

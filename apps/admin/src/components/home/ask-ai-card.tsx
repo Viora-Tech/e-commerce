@@ -114,7 +114,10 @@ export default function AskAiCard({
           ) : null}
         </span>
         <Kbd className="hidden shrink-0 sm:inline-flex">{copy.ask.shortcut}</Kbd>
-        <Button type="submit">{copy.ask.button}</Button>
+        <Button type="submit">
+          <AiIcon aria-hidden="true" />
+          {copy.ask.button}
+        </Button>
       </form>
       <ul className="flex flex-wrap items-center gap-2">
         {chipsLabel ? (

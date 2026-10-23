@@ -1,6 +1,7 @@
 'use client'
 
 import type { AppAccess } from '@commerce/core/billing'
+import { CreditCard } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { DialogDescription, DialogTitle } from '@commerce/ui/shadcn/dialog'
 import Link from 'next/link'
@@ -74,6 +75,7 @@ export default function InstallBuyStep({ appId, appName, access, onCancel }: Ins
           {copy.buy.plans}
         </Button>
         <Button onClick={handleBuy} loading={busy}>
+          <CreditCard aria-hidden="true" />
           {copy.buy.pay(price)}
         </Button>
       </div>

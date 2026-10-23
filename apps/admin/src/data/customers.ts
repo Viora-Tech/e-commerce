@@ -87,6 +87,8 @@ export const customersContent = {
     deleted: 'Customer deleted',
     cancel: 'Cancel',
     confirm: 'Delete',
+    viewOrders: 'View orders',
+    addTag: 'Add tag',
   },
   filters: {
     heading: 'Filter customers',
@@ -100,6 +102,10 @@ export const customersContent = {
     marketingAny: 'Anyone',
     marketingYes: 'Subscribed',
     marketingNo: 'Not subscribed',
+    business: 'Business customers',
+    businessAny: 'Anyone',
+    businessYes: 'Has a GSTIN',
+    businessNo: 'No GSTIN',
     tag: 'Tag',
     anyTag: 'Any tag',
   },
@@ -133,6 +139,11 @@ export const customersContent = {
     consentFailed: 'Could not update marketing consent',
     bulkEdit: 'Bulk edit',
     openFailed: 'Could not open the bulk editor',
+    delete: 'Delete',
+    deleteTitle: (n: number) => (n === 1 ? 'Delete 1 customer?' : `Delete ${n} customers?`),
+    deleteBody:
+      'Their records and notes go away. This cannot be undone. Customers with orders stay, so the order history keeps them.',
+    deleteConfirm: 'Delete',
   },
   saveSegment: 'Save as segment',
   exportAll: 'Export',
@@ -279,7 +290,22 @@ export const customerDetailContent = {
     heading: 'Notes',
     placeholder: 'Anything the team should know',
   },
-  /** One save bar for the page's inline edits: note, tags and marketing consent. */
+  /** GSTIN and legal name for B2B invoices; saved with the page's other edits. */
+  business: {
+    heading: 'Business details',
+    gstin: 'GSTIN',
+    gstinPlaceholder: '06AAACW1234A1Z5',
+    businessName: 'Business name',
+    businessNamePlaceholder: 'Registered business name',
+    hint: 'Saved from checkout when the customer enters a GSTIN.',
+  },
+  /** Why a GSTIN was refused, by `validateGstin` reason (same rules as checkout). */
+  gstinErrors: {
+    shape: 'A GSTIN has 15 characters, like 06AAACW1234A1Z5',
+    state: 'The first two digits are not a GST state code',
+    checksum: 'This GSTIN has a typo: its last character does not match the rest',
+  },
+  /** One save bar for the page's inline edits: note, tags, business details and consent. */
   changes: {
     unsaved: 'Unsaved changes',
     save: 'Save',
@@ -307,6 +333,39 @@ export const segmentsContent = {
   empty: {
     heading: 'Group customers who behave alike',
     body: 'Make a segment like "bought twice in 60 days" and send it a WhatsApp campaign or a discount.',
+  },
+  templates: {
+    heading: 'Start from a template',
+    body: 'Ready-made segments most stores use. Open one, change the numbers to suit your store, and save it.',
+    use: 'Use template',
+    items: {
+      topSpenders: {
+        name: 'Top spenders',
+        description: 'Spent ₹10,000 or more with you.',
+      },
+      repeatBuyers: { name: 'Repeat buyers', description: 'Ordered at least twice.' },
+      oneTimeBuyers: {
+        name: 'One-time buyers',
+        description: 'Ordered once. A nudge can turn them into repeat buyers.',
+      },
+      recentBuyers: { name: 'Bought in the last 30 days', description: 'Fresh, happy customers.' },
+      lapsed: {
+        name: 'No order in 90 days',
+        description: 'Customers drifting away. Win them back with an offer.',
+      },
+      slippingVips: {
+        name: 'Big spenders slipping away',
+        description: 'Spent ₹5,000 or more but have not ordered in 60 days.',
+      },
+      subscribed: {
+        name: 'Subscribed to marketing',
+        description: 'Agreed to hear from you, so you can message them.',
+      },
+      business: {
+        name: 'Business customers',
+        description: 'Customers who saved a GSTIN. Send them bulk offers or GST-ready invoices.',
+      },
+    },
   },
   notFound: {
     heading: 'Segment not found',
@@ -352,6 +411,7 @@ export const segmentsContent = {
     tag: 'Tag',
     last_order_days: 'Days since last order',
     marketing: 'Marketing consent',
+    business: 'Customer type',
   } as Record<string, string>,
   ops: {
     gte: 'is at least',
@@ -361,6 +421,10 @@ export const segmentsContent = {
     contains: 'includes',
   } as Record<string, string>,
   marketingValues: { true: 'Subscribed', false: 'Not subscribed' } as Record<string, string>,
+  businessValues: {
+    true: 'Business (has a GSTIN)',
+    false: 'Individual (no GSTIN)',
+  } as Record<string, string>,
   /** Joins conditions when any one of them is enough. */
   orJoin: ' or ',
   valuePlaceholder: {
@@ -370,6 +434,7 @@ export const segmentsContent = {
     tag: 'vip',
     last_order_days: '90',
     marketing: '',
+    business: '',
   } as Record<string, string>,
 } as const
 

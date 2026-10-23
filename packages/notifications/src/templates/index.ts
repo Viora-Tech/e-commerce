@@ -35,6 +35,7 @@ export const TEMPLATE_IDS: TemplateId[] = [
   'review_request',
   'review_reminder',
   'review_reply',
+  'affiliate_update',
   'unpaid_cancelled',
   'back_in_stock_confirm',
   'back_in_stock_alert',
@@ -90,6 +91,7 @@ export const TEMPLATE_NAMES: Record<TemplateId, string> = {
   review_request: 'Review request',
   review_reminder: 'Review reminder',
   review_reply: 'Reply to a review',
+  affiliate_update: 'Affiliate update (to the affiliate)',
   unpaid_cancelled: 'Unpaid order cancelled',
   back_in_stock_confirm: 'Back in stock: confirm alert',
   back_in_stock_alert: 'Back in stock: alert',
@@ -125,6 +127,8 @@ function eyebrowFor(template: TemplateId, d: TemplateData): string {
     case 'review_reminder':
     case 'review_reply':
       return 'Your review'
+    case 'affiliate_update':
+      return 'Affiliate program'
     case 'gift_card_issued':
       return 'Gift card'
     case 'staff_invite':
@@ -211,6 +215,10 @@ function primaryActionFor(
       const first = d.review?.items?.[0]
       return first ? { label: 'Write a review', url: first.url } : undefined
     }
+    case 'affiliate_update':
+      return d.affiliate?.portalUrl
+        ? { label: 'Open your dashboard', url: d.affiliate.portalUrl }
+        : undefined
     case 'review_reply':
       return d.review?.productUrl ? { label: 'See the reply', url: d.review.productUrl } : undefined
     case 'back_in_stock_alert':
@@ -259,11 +267,14 @@ export async function renderEmail(template: TemplateId, d: TemplateData): Promis
   // Messages about no order (a sign-in code) carry no items or total.
   const hasItems = d.lines.length > 0
   const gc = d.giftCard
+  // The merchant's own note from the "Review email" dialog, under the intro.
+  const note = d.custom?.message?.trim() || undefined
 
   const text = squash([
     c.heading(d),
     '',
     c.intro(d),
+    ...(note ? ['', note] : []),
     '',
     ...(gc
       ? [
@@ -287,7 +298,7 @@ export async function renderEmail(template: TemplateId, d: TemplateData): Promis
     shared.footer(d),
   ])
 
-  const subject = c.subject(d)
+  const subject = d.custom?.subject?.trim() || c.subject(d)
   // Extra links go under the body as text lines (document links, installed-app links);
   // the primary action already carries the main call to action as a button.
   const primaryAction = primaryActionFor(template, d)
@@ -301,6 +312,7 @@ export async function renderEmail(template: TemplateId, d: TemplateData): Promis
       eyebrow: eyebrowFor(template, d),
       heading: c.heading(d),
       intro: c.intro(d),
+      note,
       outro: c.outro(d),
       lines: gc ? [] : d.lines,
       totalLabel: gc ? undefined : d.totalLabel,
@@ -318,5 +330,7 @@ export async function renderEmail(template: TemplateId, d: TemplateData): Promis
 }
 
 export function renderWhatsapp(template: TemplateId, d: TemplateData): WhatsappBody {
-  return { text: templateContent[template].whatsapp(d) }
+  const text = templateContent[template].whatsapp(d)
+  const note = d.custom?.message?.trim()
+  return { text: note ? `${note}\n\n${text}` : text }
 }

@@ -1,6 +1,7 @@
 'use client'
 
 import type { LocationBillingView } from '@commerce/core'
+import { Save } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
@@ -103,6 +104,7 @@ export default function LocationPickupCard({ location, canManage }: LocationPick
       {canManage && addressReady ? (
         <div className="flex justify-end">
           <Button onClick={handleSave} disabled={disabled}>
+            <Save aria-hidden="true" />
             {copy.save}
           </Button>
         </div>

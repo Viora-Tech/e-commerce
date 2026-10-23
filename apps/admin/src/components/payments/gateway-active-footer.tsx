@@ -1,5 +1,6 @@
 'use client'
 
+import { CircleCheck, Pause } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
@@ -17,6 +18,8 @@ type GatewayActiveFooterProps = {
   /** The only online gateway on at checkout: turning it off leaves COD / bank transfer only. */
   onlyOnline: boolean
   onChanged: () => Promise<void> | void
+  /** `page`: the gateway's own page, Shopify style: a red Deactivate at the bottom right, outside the card. */
+  placement?: 'card' | 'page'
 }
 
 /**
@@ -28,6 +31,7 @@ export default function GatewayActiveFooter({
   name,
   onlyOnline,
   onChanged,
+  placement = 'card',
 }: GatewayActiveFooterProps) {
   // Hooks
   const { active: copy } = useCopy(paymentModesContent)
@@ -71,19 +75,27 @@ export default function GatewayActiveFooter({
   const active = gateway.connected
 
   return (
-    <div className="flex flex-wrap items-center gap-3 border-t border-border pt-4">
+    <div
+      className={
+        placement === 'page'
+          ? 'flex flex-wrap items-center justify-end gap-3'
+          : 'flex flex-wrap items-center gap-3 border-t border-border pt-4'
+      }
+    >
       {active ? (
         <Button
-          variant="outline"
-          className="text-destructive hover:text-destructive"
+          variant={placement === 'page' ? 'destructive' : 'outline'}
+          className={placement === 'page' ? undefined : 'text-destructive hover:text-destructive'}
           disabled={busy}
           onClick={handleDeactivate}
         >
+          <Pause aria-hidden="true" />
           {copy.deactivate(name)}
         </Button>
       ) : (
         <>
           <Button disabled={busy} onClick={handleActivate}>
+            <CircleCheck aria-hidden="true" />
             {copy.activate(name)}
           </Button>
           <p className="text-caption text-muted-foreground">{copy.inactiveHelp}</p>

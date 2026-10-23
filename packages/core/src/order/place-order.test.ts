@@ -297,6 +297,44 @@ describe('placeOrder', () => {
     expect(o2?.customerId).toBe(rows[0]?.id)
   })
 
+  it('saves a checkout GSTIN on the customer and keeps it when a later checkout has none', async () => {
+    const first = await seed({ onHand: 10, quantity: 1 })
+    await owner
+      .update(store)
+      .set({ preferences: { checkout: { gstin: true } } })
+      .where(eq(store.id, first.storeId))
+    const [c2] = await owner.insert(cart).values({ storeId: first.storeId }).returning()
+    if (!c2) throw new Error('seed')
+    await owner.insert(cartLine).values({
+      storeId: first.storeId,
+      cartId: c2.id,
+      variantId: first.variantId,
+      quantity: 1,
+      unitPricePaise: 499900,
+    })
+    const checkout = (gstin: string | null, businessName: string | null) => ({
+      name: 'Asha Menon',
+      email: 'asha@example.com',
+      phone: '9999999999',
+      address: { line1: '12 MG Road', city: 'Bengaluru', stateCode: 'KA', pincode: '560001' },
+      gstin,
+      businessName,
+    })
+    const provider = new FakePaymentProvider({ mode: 'capture' })
+    await placeOrderAndPay(app, first.storeId, {
+      cartId: first.cartId,
+      paymentProvider: provider,
+      checkout: checkout('29aabct3518q1zs', 'Asha Traders'),
+    })
+    await placeOrderAndPay(app, first.storeId, {
+      cartId: c2.id,
+      paymentProvider: provider,
+      checkout: checkout(null, null),
+    })
+    const [row] = await owner.select().from(customer).where(eq(customer.storeId, first.storeId))
+    expect(row).toMatchObject({ gstin: '29AABCT3518Q1ZS', businessName: 'Asha Traders' })
+  })
+
   it('throws OutOfStock and leaves nothing behind when stock is short', async () => {
     const { storeId, cartId, variantId } = await seed({ onHand: 1, quantity: 2 })
     const provider = new FakePaymentProvider({ mode: 'capture' })

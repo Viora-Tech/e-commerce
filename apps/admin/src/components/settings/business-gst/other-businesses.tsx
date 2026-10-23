@@ -1,7 +1,7 @@
 'use client'
 
 import type { Business } from '@commerce/core'
-import { ChevronDown, TriangleAlert } from '@commerce/ui/icons'
+import { ChevronDown, Pencil, Plus, TriangleAlert } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Card, CardContent } from '@commerce/ui/shadcn/card'
 import {
@@ -69,6 +69,7 @@ export default function OtherBusinesses({
                     </div>
                     {canManage ? (
                       <Button variant="ghost" size="sm" onClick={() => onEdit(b)}>
+                        <Pencil aria-hidden="true" />
                         {all.business.edit}
                       </Button>
                     ) : null}
@@ -77,7 +78,8 @@ export default function OtherBusinesses({
               </ul>
             )}
             {canManage ? (
-              <Button variant="outline" className="self-start" onClick={onAdd}>
+              <Button variant="outline" className="self-end" onClick={onAdd}>
+                <Plus aria-hidden="true" />
                 {copy.add}
               </Button>
             ) : null}

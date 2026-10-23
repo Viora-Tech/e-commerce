@@ -41,15 +41,13 @@ const ALLOWLIST: Record<string, number> = {
   'apps/admin/src/components/privacy/data-request-queue.tsx': 2,
   'apps/admin/src/components/returns/return-outcome-card.tsx': 2,
   'apps/admin/src/components/shipments/ndr-tab.tsx': 1,
-  'apps/admin/src/components/themes/customize/add-section-apps-tab.tsx': 1,
   'apps/admin/src/components/themes/customize/link-target-rows.tsx': 1,
   'apps/admin/src/components/themes/customizer-top-bar.tsx': 1,
   'apps/admin/src/data/apps.ts': 4,
   'apps/admin/src/data/media.ts': 1,
   'apps/admin/src/data/orders.ts': 2,
   'apps/admin/src/data/policies.ts': 5,
-  'apps/admin/src/data/provider-settings.ts': 1,
-  'apps/admin/src/data/settings-search.ts': 44,
+  'apps/admin/src/data/settings-search.ts': 43,
   'apps/admin/src/lib/auth-paths.ts': 1,
 }
 

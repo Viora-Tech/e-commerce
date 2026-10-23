@@ -1,6 +1,7 @@
 'use client'
 
 import type { PreorderStoreSettings, UnpaidBalanceAction } from '@commerce/core/preorder'
+import { Save } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Field, FieldDescription, FieldGroup, FieldLabel } from '@commerce/ui/shadcn/field'
 import { Input } from '@commerce/ui/shadcn/input'
@@ -155,6 +156,7 @@ export default function PreorderBalanceSettings() {
 
         <div>
           <Button onClick={handleSave} disabled={saving}>
+            <Save aria-hidden="true" />
             {copy.save}
           </Button>
         </div>

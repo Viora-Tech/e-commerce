@@ -317,6 +317,39 @@ An app that keeps its own connection in `store.apps.settings[id]` instead of a p
 Console, Umami) also sets `setupState(settings)`, returning `{ connected, problem }`, so the
 Installed list can show Connected, Needs setup or Error.
 
+### `listing`, the App Store page
+
+Apps are browsed and installed on the App Store website (`apps/www`, `koomerce.app/apps`), not
+in the admin. An app appears there when its manifest has a `listing`:
+
+```ts
+listing: {
+  tagline: 'Rates, labels, pickups and tracking, plus a delivery checker block.',
+  highlights: ['Live rates and labels', 'Pickups, tracking updates and NDR'],
+  guide: '/merchant-guide/orders/shipments', // a path under the docs site
+  worksWith: ['The Shipments workspace, beside any other courier you install'],
+  keywords: ['courier', 'awb', 'pincode'], // extra search words
+  screenshots: [{ src: '/app-shots/delhivery-1.png', alt: 'The Delhivery overview page' }],
+  // questions a merchant asks first, answered from the merchant guide (never invented stats);
+  // the site adds price, account, data and removal questions from the catalogue itself
+  faq: [{ question: 'Does it do COD?', answer: 'Yes, ...' }],
+  // unlisted: true keeps it off the site (the admin still has it)
+},
+```
+
+The site cannot import plugins (they carry server code), so `bun scripts/gen-app-catalogue.ts`
+copies the listed apps (name, kind, category, company, description, `listing`, `access`, the
+admin pages' nav labels, the admin icon name and theme block labels) into `packages/core/src/apps/catalogue.generated.ts`,
+read through `@commerce/core/app-catalogue`. Run it after changing a manifest; the
+`app-catalogue` sweep fails while the file is stale. Prices are not in the listing: they come from
+`APP_PRICING` (`@commerce/core/billing`). A third-party logo goes in `public/app-logos` of both
+`apps/admin` and `apps/www` and in `APP_LOGOS` (`@commerce/core/app-logos`). Screenshots go under
+`apps/www/public`.
+
+The site's **Install** button opens `<admin>/apps/install?app=<id>`: sign-in, store choice for a
+member of several stores, then the usual Connect, Permissions and Done steps. Third-party apps
+(OAuth install, the public API, webhooks) will use the same URL and listing shape later.
+
 ### Storage providers
 
 `@commerce/storage` is the contract for where uploads live. The browser asks
@@ -394,8 +427,9 @@ listed in the PR (for Decentro: the refund-status callback format).
    Two plugins with the same id, or two providers with the same id in one
    kind, fail at boot with a message naming both.
 
-2. Restart the apps. **Admin → Apps** now lists FedEx; a merchant installs it
-   for their store and fills the credentials under **Settings → Shipping**.
+2. Restart the apps. With a `listing`, run `bun scripts/gen-app-catalogue.ts` so the App Store
+   website lists FedEx; a merchant installs it from there (or from
+   `/apps/install?app=fedex` in the admin) and fills the credentials on its Connect page.
    Uninstalling removes it from the enabled list but keeps the credentials, so
    reinstalling restores the setup.
 

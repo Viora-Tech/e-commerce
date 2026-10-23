@@ -19,6 +19,19 @@ export function safeNext(value: string | string[] | undefined): string | null {
   return value
 }
 
+/** A full URL outside the admin (the App Store website): open it in a new tab, not the router. */
+export const isExternalHref = (href: string) => /^https?:\/\//.test(href)
+
+/** Where Products → Write with AI was opened from: its back link and Close lead there. */
+export type BulkWriteFrom = 'products' | 'seo' | 'readiness'
+
+type BulkWriteTarget = {
+  ids?: string[]
+  job?: string
+  fields?: string[]
+  from?: BulkWriteFrom
+}
+
 export const routes = {
   home: () => '/',
   /** `next`: where to go after signing in (an OAuth consent page); see `safeNext`. */
@@ -48,12 +61,18 @@ export const routes = {
      *  at its shipment card. Under /orders/shipments so the sidebar keeps Shipments lit. */
     shipment: (orderId: string) => `/orders/shipments/${id(orderId)}`,
     bulkEdit: () => '/orders/bulk-edit',
+    /** Packing slips for these orders, one per page, printed straight away. */
+    packingSlips: (orderIds: string[]) => `/orders/packing-slips?ids=${orderIds.map(id).join(',')}`,
     drafts: () => '/orders/drafts',
     newDraft: () => '/orders/drafts/new',
     draft: (draftId: string) => `/orders/drafts/${id(draftId)}`,
     abandonedCheckouts: () => '/orders/abandoned-checkouts',
     abandonedCheckout: (cartId: string) => `/orders/abandoned-checkouts/${id(cartId)}`,
     shipments: () => '/orders/shipments',
+    /** Pickups and manifests for booked parcels. */
+    shipmentPickups: () => '/orders/shipments/pickups',
+    /** Deliveries the courier could not make (NDR). */
+    shipmentProblems: () => '/orders/shipments/attention',
     returns: () => '/orders/returns',
     returnDetail: (returnId: string) => `/orders/returns/${id(returnId)}`,
   },
@@ -62,6 +81,16 @@ export const routes = {
     list: () => '/products',
     new: () => '/products/new',
     bulkEdit: (productIds: string[]) => `/products/bulk-edit?ids=${productIds.map(id).join(',')}`,
+    /** Write with AI for many products: a new run for `ids`, or the run `job`. */
+    bulkWrite: ({ ids, job, fields, from }: BulkWriteTarget) => {
+      const q = new URLSearchParams()
+      if (ids?.length) q.set('ids', ids.join(','))
+      if (job) q.set('job', job)
+      if (fields?.length) q.set('fields', fields.join(','))
+      if (from && from !== 'products') q.set('from', from)
+      const s = q.toString()
+      return s ? `/products/bulk-write?${s}` : '/products/bulk-write'
+    },
     detail: (productId: string) => `/products/${id(productId)}`,
     collections: () => '/products/collections',
     newCollection: () => '/products/collections/new',
@@ -101,6 +130,14 @@ export const routes = {
   content: {
     home: () => '/content',
     files: () => '/content/files',
+    /** One file's page; `query` and `type` keep the library's filter for its previous / next. */
+    file: (fileId: string, filter?: { query?: string | null; type?: string | null }) => {
+      const params = new URLSearchParams()
+      if (filter?.query) params.set('query', filter.query)
+      if (filter?.type) params.set('type', filter.type)
+      const qs = params.toString()
+      return `/content/files/${id(fileId)}${qs ? `?${qs}` : ''}`
+    },
     storage: () => '/content/files/storage',
     menus: () => '/content/menus',
     menu: (menuId: string) => `/content/menus/${id(menuId)}`,
@@ -128,7 +165,11 @@ export const routes = {
 
   growth: {
     home: () => '/growth',
+    attribution: () => '/growth/attribution',
+    autopilot: () => '/growth/autopilot',
     campaigns: () => '/growth/campaigns',
+    /** The Campaigns page's Tracking links tab (`/growth/links` redirects here). */
+    trackingLinks: () => '/growth/campaigns?tab=links',
     newCampaign: () => '/growth/campaigns/new',
     campaign: (campaignId: string) => `/growth/campaigns/${id(campaignId)}`,
     automations: () => '/growth/automations',
@@ -168,10 +209,12 @@ export const routes = {
 
   apps: {
     list: () => '/apps',
-    /** Every app this deployment offers, to install (the admin's App Store). */
-    store: () => '/apps/store',
-    /** The install flow for one app, also the entry point for an outside app store. */
-    install: (pluginId: string) => `/apps/install?app=${encodeURIComponent(pluginId)}`,
+    /**
+     * The install flow for one app: where the App Store website's Install button lands
+     * (`appStoreUrl` in `@commerce/config/site` is the store itself, outside the admin).
+     */
+    install: (pluginId: string, storeId?: string) =>
+      `/apps/install?app=${encodeURIComponent(pluginId)}${storeId ? `&store=${encodeURIComponent(storeId)}` : ''}`,
     /** An installed app's own screen: `/apps/<pluginId>/<...path>`. */
     page: (pluginId: string, ...path: string[]) =>
       ['/apps', id(pluginId), ...path.map(id)].join('/'),
@@ -190,6 +233,7 @@ export const routes = {
     shippingZone: (zoneId: string) => `/settings/shipping/zones/${id(zoneId)}`,
     taxes: () => '/settings/taxes',
     costs: () => '/settings/costs',
+    expenses: () => '/settings/expenses',
     locations: () => '/settings/locations',
     location: (locationId: string) => `/settings/locations/${id(locationId)}`,
     domains: () => '/settings/domains',
@@ -203,13 +247,19 @@ export const routes = {
     privacyRequest: (requestId: string) => `/settings/privacy/requests/${id(requestId)}`,
     customerAccounts: () => '/settings/customer-accounts',
     customData: () => '/settings/custom-data',
+    /** One kind of record's extra fields (`products`, `blog-posts`, `store`…). */
+    customDataOwner: (slug: string) => `/settings/custom-data/${id(slug)}`,
     returns: () => '/settings/returns',
     staff: () => '/settings/staff',
+    /** Settings → Staff on its Roles tab. */
+    staffRoles: () => '/settings/staff?tab=section-roles',
+    newRole: () => '/settings/staff/roles/new',
+    role: (roleId: string) => `/settings/staff/roles/${id(roleId)}`,
     ai: () => '/settings/ai',
     appearance: () => '/settings/appearance',
     billing: () => '/settings/billing',
-    /** Settings → MCP & API; `tab` opens Clients & tokens or the Activity log. */
-    mcp: (tab?: 'clients' | 'activity') => (tab ? `/settings/mcp?tab=${tab}` : '/settings/mcp'),
+    /** Settings → MCP & API; `activity` is its full activity log. */
+    mcp: (page?: 'activity') => (page ? `/settings/mcp/${page}` : '/settings/mcp'),
   },
 
   dev: {

@@ -13,6 +13,7 @@ export default {
   '-- taxes': { type: 'separator', title: 'Taxes & GST' },
   taxes: 'GST & invoices',
   costs: 'Costs for profit',
+  'monthly-expenses': 'Monthly expenses',
   '-- customers': { type: 'separator', title: 'Customers' },
   'customer-accounts': 'Customer accounts',
   'customer-privacy': 'Privacy & data requests',

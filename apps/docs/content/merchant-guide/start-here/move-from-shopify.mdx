@@ -26,8 +26,10 @@ it again updates what it brought over before instead of making copies.
 
 ## Run an import
 
-1. Open **Apps → Shopify importer → Connect store** and connect your Shopify app (see
-   [Apps](/merchant-guide/apps/app-store#connect-your-shopify-store)).
+1. Open **Apps → Shopify importer → Connect store**. If you see **Install the Koomerce app**,
+   type your store address (`your-store.myshopify.com`), press **Install**, and approve the app
+   on Shopify: you come back connected, with every scope below already given. Otherwise connect
+   your own Shopify app (see [Apps](/merchant-guide/apps/app-store#connect-your-shopify-store)).
 2. Press **Test connection**. Any scope listed under **Missing** has to be added to the app in
    Shopify first (list below).
 3. Under **What to import**, tick what you want. Everything is ticked to start with.
@@ -131,9 +133,20 @@ anything already here shows as matching.
 | Policies | Refund, privacy, terms of service, shipping and contact policies, with scripts and styling removed | Pictures inside a policy, legal notice, terms of sale and subscription policies |
 | Extra fields | Definitions on products, variants, collections, customers and orders whose type exists here | Types with no match (money, rating, JSON…); a field that already exists here as another type keeps yours |
 
+## The Koomerce app on Shopify
+
+**Install the Koomerce app** is the one-click way in. The app only reads your Shopify store; it
+never changes anything there. Its access refreshes itself, so you do not need to reconnect.
+
+- To disconnect, press **Disconnect** on the Connect page, or remove the app in Shopify
+  (**Settings → Apps**). Removing it in Shopify disconnects it here too, within a minute.
+- What you already imported stays: it is your store's data now.
+- Shopify asks the app's maker, not you, to approve access to customer details and orders older
+  than 60 days, so those work as soon as the app is installed.
+
 ## Shopify scopes to give the app
 
-In the Shopify Dev Dashboard, give your app these read scopes:
+If you connect your own app instead, give it these read scopes in the Shopify Dev Dashboard:
 
 `read_products`, `read_inventory`, `read_customers`, `read_orders`, `read_all_orders`,
 `read_content`, `read_online_store_navigation`, `read_files`, `read_metaobject_definitions`,

@@ -1,12 +1,13 @@
 'use client'
 
-import { Copy, ExternalLink, Eye, Package, Plus, Trash2 } from '@commerce/ui/icons'
+import { Archive, Copy, ExternalLink, Eye, Package, Plus, Trash2 } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
-import ActionMenu from '@/components/layout/action-menu'
+import ActionMenu, { type ActionItem } from '@/components/layout/action-menu'
 import FallbackImage from '@/components/layout/fallback-image'
 import PageHeader from '@/components/layout/page-header'
 import OrderChip from '@/components/orders/order-chip'
 import { productFormContent } from '@/data/product-form'
+import { productPageContent } from '@/data/product-page'
 import { useCopy } from '@/hooks/use-copy'
 import { routes } from '@/lib/routes'
 import { type LoadedProduct, type ProductFormState, stockOf } from './form-state'
@@ -19,7 +20,11 @@ type ProductHeaderProps = {
   busy: boolean
   storefrontOrigin: string
   onDuplicate: () => void
+  /** Archives the product, or brings an archived one back as a draft. */
+  onArchive: () => void
   onDelete: () => void
+  /** Installed apps' actions, each app's under its name (`useProductAppActions`). */
+  appItems: readonly ActionItem[]
 }
 
 /** Figma product editor header (631:7713): photo, title and status, a one-line summary, Preview
@@ -31,13 +36,17 @@ export default function ProductHeader({
   busy,
   storefrontOrigin,
   onDuplicate,
+  onArchive,
   onDelete,
+  appItems,
 }: ProductHeaderProps) {
   // Hooks
   const copy = useCopy(productFormContent)
+  const pageCopy = useCopy(productPageContent)
 
   // Render logic
   const s = copy.summary
+  const archived = form.status === 'archived'
   const summary = product
     ? [
         single ? s.noOptions : s.variants(form.variants.length),
@@ -95,7 +104,18 @@ export default function ProductHeader({
                   hidden: form.status !== 'active',
                 },
                 { label: copy.addAnother, icon: Plus, href: routes.products.new() },
-                { label: copy.delete.action, icon: Trash2, destructive: true, onSelect: onDelete },
+                {
+                  label: archived ? pageCopy.actions.unarchive : pageCopy.actions.archive,
+                  icon: Archive,
+                  onSelect: onArchive,
+                },
+                {
+                  label: copy.delete.action,
+                  icon: Trash2,
+                  destructive: true,
+                  onSelect: onDelete,
+                },
+                ...appItems,
               ]}
             />
           </>

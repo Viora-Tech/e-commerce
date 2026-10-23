@@ -47,6 +47,8 @@ export const homePageContent = {
     payments: {
       title: 'Connect payments',
       done: (name: string) => `${name} is receiving payments`,
+      testMode: (name: string) =>
+        `${name} is in test mode. Switch to live keys to take real payments`,
       todo: 'Connect a gateway to accept UPI and cards',
     },
     shipping: {
@@ -175,7 +177,7 @@ export const homePageContent = {
     undo: 'Undo',
     restockTitle: 'Restock your best seller',
     restockBody: (title: string, units: number, left: number) =>
-      `${title} sold ${units} this week and only ${left} ${left === 1 ? 'is' : 'are'} left.`,
+      `${title} sold ${units} in the last 30 days and only ${left} ${left === 1 ? 'is' : 'are'} left.`,
     restockCta: 'Restock',
     abandonedTitle: 'Recover abandoned carts',
     abandonedBody: (carts: number, value: string) =>
@@ -263,7 +265,7 @@ export const homeContent = {
     salesFlat: 'Sales are about the same as last week.',
     comparedToLastWeek: 'the same period last week',
     bestSeller: (title: string, units: number) =>
-      `Your best seller this week is ${title}, with ${units} sold.`,
+      `Your best seller in the last 30 days is ${title}, with ${units} sold.`,
     lowStockNudge: (n: number) =>
       n === 1
         ? '1 product will run out soon at this pace.'

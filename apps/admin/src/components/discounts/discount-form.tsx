@@ -1,7 +1,7 @@
 'use client'
 
 import { permissions } from '@commerce/core/permissions'
-import { BadgePercent, CircleAlert, Copy, Trash2 } from '@commerce/ui/icons'
+import { BadgePercent, CircleAlert, Copy, Pause, Play, Save, Trash2 } from '@commerce/ui/icons'
 import { Alert, AlertDescription, AlertTitle } from '@commerce/ui/shadcn/alert'
 import { Button } from '@commerce/ui/shadcn/button'
 import { useRouter } from 'next/navigation'
@@ -17,19 +17,18 @@ import { useCopy } from '@/hooks/use-copy'
 import { usePermissions } from '@/hooks/use-permissions'
 import { api } from '@/lib/api-client'
 import { routes } from '@/lib/routes'
-import ConditionsCard from './conditions-card'
+import BxgyCard from './bxgy-card'
+import CombinationsCard from './combinations-card'
 import DatesCard from './dates-card'
 import DiscountStatusCard from './discount-status-card'
-import {
-  type DiscountFormState,
-  emptyForm,
-  formErrors,
-  fromDiscount,
-  type LoadedDiscount,
-  toInput,
-} from './form-state'
+import EligibilityCard from './eligibility-card'
+import { formErrors, toInput } from './form-input'
+import { type DiscountFormState, emptyForm, fromDiscount, type LoadedDiscount } from './form-state'
 import MethodCard from './method-card'
+import MinimumCard from './minimum-card'
+import ShippingCard from './shipping-card'
 import SummaryCard from './summary-card'
+import UsageCard from './usage-card'
 import ValueCard from './value-card'
 
 type DiscountFormProps = {
@@ -60,7 +59,7 @@ export default function DiscountForm({ discount }: DiscountFormProps) {
   // Event handlers
   const handleSave = async () => {
     setAttempted(true)
-    if (Object.keys(formErrors(form)).length) return
+    if (Object.keys(formErrors(form, copy.errors)).length) return
     setBusy(true)
     setServerError(null)
     try {
@@ -147,7 +146,7 @@ export default function DiscountForm({ discount }: DiscountFormProps) {
 
   // Render logic
   const dirty = JSON.stringify(form) !== saved
-  const errors = attempted ? formErrors(form) : {}
+  const errors = attempted ? formErrors(form, copy.errors) : {}
   const title = discount ? discount.title : copy.newTitle
   const canWrite = hasPermission(permissions.DISCOUNTS_WRITE)
   const paused = form.status === 'disabled'
@@ -179,6 +178,7 @@ export default function DiscountForm({ discount }: DiscountFormProps) {
                       disabled={busy}
                       onClick={paused ? () => handleStatus('active') : () => setConfirmPause(true)}
                     >
+                      {paused ? <Play aria-hidden="true" /> : <Pause aria-hidden="true" />}
                       {paused ? copy.pause.resume : copy.pause.action}
                     </Button>
                   ) : null}
@@ -197,6 +197,7 @@ export default function DiscountForm({ discount }: DiscountFormProps) {
                 </>
               ) : dirty ? null : (
                 <Button onClick={handleSave} loading={busy}>
+                  <Save aria-hidden="true" />
                   {copy.saveBar.save}
                 </Button>
               )
@@ -215,18 +216,30 @@ export default function DiscountForm({ discount }: DiscountFormProps) {
         <>
           <MethodCard
             form={form}
+            typeLocked={discount !== null}
             titleError={errors.title}
             codeError={errors.code}
             onChange={patch}
           />
-          <ValueCard
-            form={form}
-            valueError={errors.value}
-            productsError={errors.products}
-            productValuesError={errors.productValues}
-            onChange={patch}
-          />
-          <ConditionsCard form={form} onChange={patch} />
+          {form.type === 'products' || form.type === 'order' ? (
+            <ValueCard
+              form={form}
+              valueError={errors.value}
+              productsError={errors.products}
+              productValuesError={errors.productValues}
+              onChange={patch}
+            />
+          ) : null}
+          {form.type === 'bxgy' ? <BxgyCard form={form} errors={errors} onChange={patch} /> : null}
+          {form.type === 'shipping' ? (
+            <ShippingCard form={form} error={errors.states} onChange={patch} />
+          ) : null}
+          {form.type === 'bxgy' ? null : (
+            <MinimumCard form={form} error={errors.minimum} onChange={patch} />
+          )}
+          <EligibilityCard form={form} error={errors.eligibility} onChange={patch} />
+          <UsageCard form={form} onChange={patch} />
+          <CombinationsCard combinesWith={form.combinesWith} onChange={patch} />
           <DatesCard form={form} error={errors.dates} onChange={patch} />
         </>
       }

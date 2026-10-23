@@ -1,41 +1,54 @@
 import { loadEnv } from '@commerce/config'
 import {
   AutomationInputSchema,
-  type AutomationStats,
-  automationStats,
+  AutopilotSettingsSchema,
+  automationsEngineMode,
   type CampaignInput,
   CampaignInputSchema,
   CampaignLocked,
   CampaignNotReady,
   cancelCampaign,
-  createAutomationFromTemplate,
   createCampaign,
   createEmailTemplate,
-  deleteAutomation,
+  createGrowthAutomation,
   deleteCampaign,
   deleteEmailTemplate,
+  deleteGrowthAutomation,
   duplicateCampaign,
   EmailBlocksSchema,
   EmailDesignSchema,
   EmailTemplateInputSchema,
   EmailTemplateLimit,
-  getAutomation,
+  GrowthAutomationNotEditable,
   getEmailTemplate,
-  listAutomations,
+  getGrowthAutomation,
   listCampaigns,
   listEmailTemplates,
+  listGrowthAutomations,
   permissions,
-  recentRuns,
+  RECOMMENDATION_IDS,
   scheduleCampaign,
-  setAutomationStatus,
+  setGrowthAutomationStatus,
   testSendCampaignEmail,
-  updateAutomation,
   updateCampaign,
+  updateGrowthAutomation,
 } from '@commerce/core'
 import { compileEmailDesign } from '@commerce/core/email-design-compile'
 import { ORPCError } from '@orpc/server'
 import { z } from 'zod'
-import { can } from '../procedures'
+import { can, canDetached } from '../procedures'
+import { campaignPerformance } from '../services/campaign-performance.service'
+import {
+  approveAutopilotProposal,
+  autopilotView,
+  dismissAutopilotProposal,
+  planAutopilotCampaigns,
+  saveAutopilotSettings,
+} from '../services/growth-autopilot.service'
+import {
+  dismissRecommendation,
+  recommendationsFor,
+} from '../services/growth-recommendations.service'
 import {
   audienceSize,
   campaignDetail,
@@ -116,29 +129,32 @@ const emailTemplatesRouter = {
     .handler(({ context, input }) => deleteEmailTemplate(context.tx, input.id)),
 }
 
+/** Growth → Automations; legacy tables or the Automations engine, per store (`growth-automations.ts`). */
 const automationsRouter = {
-  list: can(permissions.MARKETING_READ).handler(({ context }) => listAutomations(context.tx)),
+  list: can(permissions.MARKETING_READ).handler(({ context }) =>
+    listGrowthAutomations(context.tx, context.scope.storeId),
+  ),
+
+  /** Which runner owns the store's automations: after the cutover Growth opens the Automations app. */
+  mode: can(permissions.MARKETING_READ).handler(({ context }) =>
+    automationsEngineMode(context.tx, context.scope.storeId),
+  ),
 
   /** One automation with its stats and the latest runs. */
   get: can(permissions.MARKETING_READ)
     .input(id)
-    .handler(async ({ context, input }) => {
-      const a = await getAutomation(context.tx, input.id)
-      if (!a) return null
-      const [stats, runs] = await Promise.all([
-        automationStats(context.tx, [a.id]),
-        recentRuns(context.tx, a.id),
-      ])
-      return { ...a, stats: stats.get(a.id) as AutomationStats, runs }
-    }),
+    .handler(({ context, input }) =>
+      getGrowthAutomation(context.tx, context.scope.storeId, input.id),
+    ),
 
   create: can(permissions.MARKETING_WRITE)
     .input(z.object({ template: z.string().trim().min(1).max(40) }))
     .handler(async ({ context, input }) => {
-      const row = await createAutomationFromTemplate(
+      const row = await createGrowthAutomation(
         context.tx,
         context.scope.storeId,
         input.template,
+        context.session?.user?.id ?? null,
       )
       if (!row) throw new ORPCError('NOT_FOUND', { message: 'Unknown automation template' })
       return row
@@ -146,20 +162,73 @@ const automationsRouter = {
 
   update: can(permissions.MARKETING_WRITE)
     .input(z.object({ id: z.uuid(), data: AutomationInputSchema }))
-    .handler(({ context, input }) => updateAutomation(context.tx, input.id, input.data)),
+    .handler(async ({ context, input }) => {
+      try {
+        return await updateGrowthAutomation(
+          context.tx,
+          context.scope.storeId,
+          input.id,
+          input.data,
+          context.session?.user?.id ?? null,
+        )
+      } catch (err) {
+        if (err instanceof GrowthAutomationNotEditable) {
+          throw new ORPCError('CONFLICT', { message: err.message })
+        }
+        throw err
+      }
+    }),
 
   /** Turning an automation on starts enrolling at the next worker tick. */
   setStatus: can(permissions.MARKETING_SEND)
     .input(z.object({ id: z.uuid(), status: z.enum(['active', 'paused']) }))
-    .handler(({ context, input }) => setAutomationStatus(context.tx, input.id, input.status)),
+    .handler(({ context, input }) =>
+      setGrowthAutomationStatus(context.tx, context.scope.storeId, input.id, input.status),
+    ),
 
   delete: can(permissions.MARKETING_WRITE)
     .input(id)
-    .handler(({ context, input }) => deleteAutomation(context.tx, input.id)),
+    .handler(({ context, input }) =>
+      deleteGrowthAutomation(context.tx, context.scope.storeId, input.id),
+    ),
+}
+
+const proposalId = z.object({ id: z.string().min(1).max(40) })
+
+/** Growth → Autopilot: settings, proposed campaigns, approve or dismiss each one. */
+const autopilotRouter = {
+  get: can(permissions.MARKETING_READ).handler(({ context }) =>
+    autopilotView(context.tx, context.scope.storeId),
+  ),
+
+  saveSettings: can(permissions.MARKETING_WRITE)
+    .input(AutopilotSettingsSchema)
+    .handler(({ context, input }) =>
+      saveAutopilotSettings(context.tx, context.scope.storeId, input),
+    ),
+
+  /** Writes draft campaigns for the goals that need one; the AI writer runs outside a transaction. */
+  plan: canDetached(permissions.MARKETING_WRITE).handler(({ context, signal }) =>
+    planAutopilotCampaigns(context, new Date(), signal),
+  ),
+
+  /** Schedules the draft (adding its discount code) or switches cart reminders on. */
+  approve: can(permissions.MARKETING_SEND)
+    .input(proposalId)
+    .handler(({ context, input }) =>
+      approveAutopilotProposal(context.tx, context.scope.storeId, input.id),
+    ),
+
+  dismiss: can(permissions.MARKETING_WRITE)
+    .input(proposalId)
+    .handler(({ context, input }) =>
+      dismissAutopilotProposal(context.tx, context.scope.storeId, input.id),
+    ),
 }
 
 export const marketingRouter = {
   automations: automationsRouter,
+  autopilot: autopilotRouter,
   emailTemplates: emailTemplatesRouter,
 
   /** Logo, colours and social links from the live theme, for the visual email builder. */
@@ -172,6 +241,23 @@ export const marketingRouter = {
   overview: can(permissions.MARKETING_READ)
     .input(z.object({ range: rangeInput.default({ key: '30d' }) }))
     .handler(({ context, input }) => marketingOverview(context.tx, { range: input.range })),
+
+  /** Every campaign (our sends and tracking-link campaigns) with sessions and sales this year. */
+  campaignPerformance: can(permissions.MARKETING_READ).handler(({ context }) =>
+    campaignPerformance(context.tx),
+  ),
+
+  /** Growth overview recommendations: up to three rule-based next steps with their numbers. */
+  recommendations: can(permissions.MARKETING_READ).handler(({ context }) =>
+    recommendationsFor(context.tx, context.scope.storeId),
+  ),
+
+  /** Hides one recommendation for the whole store and returns the cards left to show. */
+  dismissRecommendation: can(permissions.MARKETING_WRITE)
+    .input(z.object({ id: z.enum(RECOMMENDATION_IDS) }))
+    .handler(({ context, input }) =>
+      dismissRecommendation(context.tx, context.scope.storeId, input.id),
+    ),
 
   /** Which channels can carry marketing for this store. */
   setup: can(permissions.MARKETING_READ).handler(async ({ context }) =>

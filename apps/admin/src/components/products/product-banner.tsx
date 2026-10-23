@@ -1,5 +1,6 @@
 'use client'
 
+import { stockStateOf } from '@commerce/core/catalog'
 import { TriangleAlert } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { productBannerContent } from '@/data/products'
@@ -10,16 +11,16 @@ type ProductBannerProps = {
   form: ProductFormState
   onUpdateInventory: () => void
   onSetStatus: (status: 'active') => void
+  /** The store's low-stock threshold (`products.facets`). */
+  lowStockThreshold: number
 }
-
-/** At or below this many units in total a product reads as low on stock. */
-const LOW_AT = 5
 
 /** The one next step above a saved product: out of stock, running low, draft or archived. */
 export default function ProductBanner({
   form,
   onUpdateInventory,
   onSetStatus,
+  lowStockThreshold,
 }: ProductBannerProps) {
   // Hooks
   const copy = useCopy(productBannerContent)
@@ -29,8 +30,8 @@ export default function ProductBanner({
   const quantities = tracked.map((v) => Number(v.quantity) || 0)
   const total = quantities.reduce((n, q) => n + q, 0)
   const lowIndex = tracked.findIndex((v) => {
-    const q = Number(v.quantity) || 0
-    return q > 0 && q <= LOW_AT
+    const available = Number(v.quantity) || 0
+    return stockStateOf({ trackInventory: true, available }, lowStockThreshold) === 'low'
   })
   const lowVariant = lowIndex === -1 ? null : tracked[lowIndex]
 

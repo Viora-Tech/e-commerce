@@ -11,7 +11,7 @@ import {
   TRIGGER_HAS_CART,
 } from '@commerce/core/marketing'
 import { formatNumber } from '@commerce/money'
-import { ArrowRight, ChevronLeftIcon, CircleAlert, Trash2, X } from '@commerce/ui/icons'
+import { ArrowRight, ChevronLeftIcon, CircleAlert, Save, Trash2, X } from '@commerce/ui/icons'
 import { Alert, AlertDescription } from '@commerce/ui/shadcn/alert'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Card } from '@commerce/ui/shadcn/card'
@@ -220,6 +220,7 @@ export default function AutomationEditor({
             {testing ? copy.stopTest : copy.testRun}
           </Button>
           <Button onClick={handleSave} disabled={busy || !dirty}>
+            <Save aria-hidden="true" />
             {copy.saveBar.save}
           </Button>
           <Button

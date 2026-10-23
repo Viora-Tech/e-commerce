@@ -1,6 +1,7 @@
 'use client'
 
 import type { AnalyticsLive, DashboardSummary } from '@commerce/api'
+import { Pause, Play } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Card } from '@commerce/ui/shadcn/card'
 import { useEffect, useState } from 'react'
@@ -59,6 +60,7 @@ export default function LiveView({ initial, globe }: LiveViewProps) {
             back={{ label: analyticsContent.title, href: routes.analytics.home() }}
             actions={
               <Button variant="outline" onClick={() => setPaused((p) => !p)}>
+                {paused ? <Play aria-hidden="true" /> : <Pause aria-hidden="true" />}
                 {paused ? c.resume : c.pause}
               </Button>
             }

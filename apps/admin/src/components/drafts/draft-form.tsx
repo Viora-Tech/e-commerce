@@ -1,8 +1,9 @@
 'use client'
 
-import { FileEdit, Trash2 } from '@commerce/ui/icons'
+import { CircleCheck, FileEdit, Send, Trash2 } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Textarea } from '@commerce/ui/shadcn/textarea'
+import { Tooltip, TooltipContent, TooltipTrigger } from '@commerce/ui/shadcn/tooltip'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { toast } from 'sonner'
@@ -11,6 +12,7 @@ import DraftAddressCard from '@/components/drafts/draft-address-card'
 import DraftCustomerCard from '@/components/drafts/draft-customer-card'
 import {
   type DraftFormState,
+  draftMissingAddress,
   draftToForm,
   emptyDraft,
   formToDraft,
@@ -25,6 +27,7 @@ import PageColumns from '@/components/layout/page-columns'
 import PageHeader from '@/components/layout/page-header'
 import SaveBar from '@/components/layout/save-bar'
 import StatusChip from '@/components/layout/status-chip'
+import SendMessageDialog, { type CustomMessage } from '@/components/orders/send-message-dialog'
 import { draftEditorContent, draftsContent } from '@/data/drafts'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
@@ -56,6 +59,7 @@ export default function DraftForm({ draft, invoiceSent = false }: DraftFormProps
   const [form, setForm] = useState<DraftFormState>(saved)
   const [busy, setBusy] = useState(false)
   const [confirmDelete, setConfirmDelete] = useState(false)
+  const [reviewing, setReviewing] = useState(false)
   const [resetKey, setResetKey] = useState(0)
   const [sent, setSent] = useState(invoiceSent)
 
@@ -90,11 +94,11 @@ export default function DraftForm({ draft, invoiceSent = false }: DraftFormProps
     }
   }
 
-  const handleSendInvoice = async () => {
+  const handleSendInvoice = async (custom?: CustomMessage) => {
     if (!id) return
     setBusy(true)
     try {
-      const r = await api.orders.sendInvoice({ id })
+      const r = await api.orders.sendInvoice({ id, custom })
       setSent(true)
       toast.success(copy.actions.invoiceSent(r.sentTo))
     } catch (err) {
@@ -133,6 +137,19 @@ export default function DraftForm({ draft, invoiceSent = false }: DraftFormProps
 
   // Render logic
   const dirty = JSON.stringify(form) !== JSON.stringify(saved)
+  // Why Convert is off, shown on the button and in the Actions card; core refuses the same.
+  const convertHint =
+    !id || dirty
+      ? copy.actions.saveFirst
+      : draftMissingAddress(saved)
+        ? copy.actions.needsAddress
+        : null
+  const convertButton = (
+    <Button disabled={busy || convertHint !== null} onClick={handleConvert}>
+      <CircleCheck aria-hidden="true" />
+      {copy.actions.convert}
+    </Button>
+  )
   const itemCount = form.lines.reduce((sum, l) => sum + l.quantity, 0)
   const who = form.customerName || form.email
   const subtitle = [
@@ -144,7 +161,7 @@ export default function DraftForm({ draft, invoiceSent = false }: DraftFormProps
     .join(' · ')
 
   return (
-    <PageBody className="gap-6 md:py-8">
+    <PageBody className="gap-6 md:pt-5 md:pb-8">
       <SaveBar
         open={dirty}
         message={copy.unsaved}
@@ -162,12 +179,25 @@ export default function DraftForm({ draft, invoiceSent = false }: DraftFormProps
         subtitle={subtitle}
         actions={
           <>
-            <Button variant="outline" disabled={!id || dirty || busy} onClick={handleSendInvoice}>
+            <Button
+              variant="outline"
+              disabled={!id || dirty || busy}
+              onClick={() => setReviewing(true)}
+            >
+              <Send aria-hidden="true" />
               {copy.actions.sendInvoice}
             </Button>
-            <Button disabled={!id || dirty || busy} onClick={handleConvert}>
-              {copy.actions.convert}
-            </Button>
+            {convertHint ? (
+              // A disabled button gets no pointer events, so the tip hangs on a wrapper.
+              <Tooltip>
+                <TooltipTrigger render={<span className="inline-flex" />}>
+                  {convertButton}
+                </TooltipTrigger>
+                <TooltipContent>{convertHint}</TooltipContent>
+              </Tooltip>
+            ) : (
+              convertButton
+            )}
             {/* Deleting a saved draft also drops any unsaved edits, so it never waits on Save. */}
             <ActionMenu
               label={copy.actions.more}
@@ -216,12 +246,18 @@ export default function DraftForm({ draft, invoiceSent = false }: DraftFormProps
             <DraftCustomerCard form={form} onChange={patch} />
             <DraftAddressCard address={form.address} onChange={(address) => patch({ address })} />
             <DraftActionsCard
-              saved={Boolean(id) && !dirty}
+              hint={convertHint}
               paymentMethod={form.paymentMethod}
               onPaymentMethod={(paymentMethod) => patch({ paymentMethod })}
             />
           </>
         }
+      />
+      <SendMessageDialog
+        orderId={reviewing ? id : null}
+        template="draft_invoice"
+        onSend={handleSendInvoice}
+        onClose={() => setReviewing(false)}
       />
       <ConfirmDialog
         open={confirmDelete}

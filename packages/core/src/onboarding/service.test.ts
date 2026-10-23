@@ -174,7 +174,8 @@ describe('createStore', () => {
       const [row] = await tx.select().from(store).where(eq(store.id, result.storeId))
       expect(row?.businessProfile).toEqual({ sells: 'fashion', sellsOn: 'shopify' })
       expect(row?.address).toMatchObject({ state: 'Rajasthan', country: 'IN' })
-      expect(row?.apps).toEqual({ installed: ['shopify-import'] })
+      // Automations is pre-installed on every store, then the apps the merchant asked for.
+      expect(row?.apps).toEqual({ installed: ['automations', 'shopify-import'] })
     })
   })
 })

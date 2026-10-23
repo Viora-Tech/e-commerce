@@ -17,6 +17,28 @@ export const backInStockPlugin = definePlugin({
   category: 'marketing',
   description:
     'Let shoppers ask to be notified when a sold-out variant is back, then message everyone waiting the moment it restocks.',
+  listing: {
+    tagline: 'A "Notify me" button on sold-out products, and an alert when they are back.',
+    highlights: [
+      'A Notify me block for sold-out products',
+      'Emails shoppers the moment stock returns',
+      'Signups and how many came back to buy',
+    ],
+    guide: '/merchant-guide/apps/back-in-stock',
+    worksWith: ['Notify me block in your theme', 'The WhatsApp app, for alerts on WhatsApp'],
+    keywords: ['restock', 'waitlist', 'notify'],
+    faq: [
+      {
+        question: 'Where does the Notify me button show?',
+        answer:
+          'On product pages, wherever you place the Notify me block in your theme. It shows only while the chosen variant is sold out.',
+      },
+      {
+        question: 'Can I change the alert message?',
+        answer: 'Yes. Edit its messages in the app’s Settings, not in Settings → Notifications.',
+      },
+    ],
+  },
   access: {
     resources: [
       { resource: 'products', level: 'read', why: 'Sold-out variants, to offer the signup' },

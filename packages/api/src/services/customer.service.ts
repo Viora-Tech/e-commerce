@@ -4,6 +4,7 @@ import {
   encryptCustomerPhone,
   evaluateSegment,
   normalisePhoneDigits,
+  noteCustomerTagsChanged,
   notTestOrder,
   phoneBlindIndex,
   type SegmentCustomer,
@@ -41,10 +42,14 @@ export type CustomerFilters = {
   minOrders?: number | undefined
   acceptsMarketing?: boolean | undefined
   tag?: string | undefined
+  /** Business (B2B) customers: true keeps those with a saved GSTIN, false those without. */
+  business?: boolean | undefined
 }
 
 export type CustomerQuery = {
   search?: string | undefined
+  /** Exactly these customers, e.g. the ones a discount is limited to. */
+  ids?: string[] | undefined
   segment?: CustomerSegmentName | undefined
 } & CustomerFilters
 
@@ -57,6 +62,8 @@ export type CustomerListItem = {
   stateCode: string | null
   tags: string[]
   acceptsMarketing: boolean
+  /** Saved a GSTIN; the GSTIN itself stays on the customer page. */
+  hasGstin: boolean
   orderCount: number
   spentPaise: number
   lastOrderAt: Date | null
@@ -97,6 +104,7 @@ const lastOrderSql = sql<Date | null>`(
   where o.customer_id = c.id and o.status <> 'draft' and not o.is_test)`
 const citySql = sql<string | null>`(${c.defaultAddress} ->> 'city')`
 const stateSql = sql<string | null>`(${c.defaultAddress} ->> 'stateCode')`
+const hasGstinSql = sql<boolean>`(coalesce(btrim(${c.gstin}), '') <> '')`
 
 const SELECTION = {
   id: c.id,
@@ -107,6 +115,7 @@ const SELECTION = {
   stateCode: stateSql,
   tags: c.tags,
   acceptsMarketing: c.acceptsMarketing,
+  hasGstin: hasGstinSql,
   orderCount: orderCountSql,
   spentPaise: spentSql,
   lastOrderAt: lastOrderSql,
@@ -125,6 +134,7 @@ function filterWhere(input: CustomerQuery, now: Date, secret: string) {
   const phoneMatch =
     searchDigits.length >= 4 ? eq(c.phoneIndex, phoneBlindIndex(searchDigits, secret)) : undefined
   return and(
+    input.ids ? (input.ids.length > 0 ? inArray(c.id, input.ids) : sql`false`) : undefined,
     input.search
       ? or(ilike(c.name, `%${input.search}%`), ilike(c.email, `%${input.search}%`), phoneMatch)
       : undefined,
@@ -139,6 +149,11 @@ function filterWhere(input: CustomerQuery, now: Date, secret: string) {
       ? eq(c.acceptsMarketing, input.acceptsMarketing)
       : undefined,
     input.tag ? sql`${c.tags} @> array[${input.tag}]::text[]` : undefined,
+    input.business === undefined
+      ? undefined
+      : input.business
+        ? hasGstinSql
+        : sql`not ${hasGstinSql}`,
   )
 }
 
@@ -150,6 +165,7 @@ function toSegmentCustomer(item: CustomerListItem): SegmentCustomer {
     tags: item.tags,
     lastOrderAt: item.lastOrderAt,
     acceptsMarketing: item.acceptsMarketing,
+    hasGstin: item.hasGstin,
   }
 }
 
@@ -377,6 +393,8 @@ export async function updateCustomer(
     tags?: string[] | undefined
     note?: string | null | undefined
     acceptsMarketing?: boolean | undefined
+    gstin?: string | null | undefined
+    businessName?: string | null | undefined
   },
   secret: string,
 ) {
@@ -393,12 +411,17 @@ export async function updateCustomer(
             // keeps its proof (phone sign-in trusts only proven numbers).
             phoneVerifiedAt: sql`case when ${customer.phoneIndex} = ${phoneBlindIndex(phone, secret)} then ${customer.phoneVerifiedAt} else null end`,
           }
+  const [before] =
+    rest.tags === undefined
+      ? []
+      : await tx.select({ tags: customer.tags }).from(customer).where(eq(customer.id, id))
   const [row] = await tx
     .update(customer)
     .set({ ...rest, ...phoneUpdate, updatedAt: new Date() })
     .where(eq(customer.id, id))
     .returning()
   if (!row) return null
+  if (before) await noteCustomerTagsChanged(tx, row.storeId, row.id, before.tags, row.tags)
   const { phoneIndex: _phoneIndex, ...rest2 } = row
   return { ...rest2, phone: decryptCustomerPhone(row.phone, secret) }
 }
@@ -421,7 +444,7 @@ export async function tagCustomers(
   const tag = input.tag.trim().toLowerCase()
   if (input.ids.length === 0 || !tag) return { updated: 0 }
   const rows = await tx
-    .select({ id: customer.id, tags: customer.tags })
+    .select({ id: customer.id, storeId: customer.storeId, tags: customer.tags })
     .from(customer)
     .where(inArray(customer.id, input.ids))
   let updated = 0
@@ -433,6 +456,7 @@ export async function tagCustomers(
       .update(customer)
       .set({ tags: next, updatedAt: new Date() })
       .where(eq(customer.id, row.id))
+    await noteCustomerTagsChanged(tx, row.storeId, row.id, row.tags, next)
     updated += 1
   }
   return { updated }

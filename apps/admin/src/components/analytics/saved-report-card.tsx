@@ -31,6 +31,11 @@ export default function SavedReportCard({ saved, onRename, onDelete }: SavedRepo
 
   // Render logic
   const r = saved.range
+  /* A saved custom query opens in the query editor with its own text and dates. */
+  const href =
+    saved.reportSlug === 'query'
+      ? `${routes.analytics.query()}?saved=${saved.id}`
+      : `${routes.analytics.report(saved.reportSlug)}${rangeQuery(r)}`
   const rangeLabel =
     r.key === 'custom'
       ? copy.ranges.custom(fmt.date(r.from ?? ''), fmt.date(r.to ?? ''))
@@ -49,10 +54,7 @@ export default function SavedReportCard({ saved, onRename, onDelete }: SavedRepo
         ))}
       </div>
       <div className="flex flex-col gap-1">
-        <Link
-          href={`${routes.analytics.report(saved.reportSlug)}${rangeQuery(r)}`}
-          className="text-body-strong text-foreground after:absolute after:inset-0"
-        >
+        <Link href={href} className="text-body-strong text-foreground after:absolute after:inset-0">
           {saved.name}
         </Link>
         <p className="text-caption text-muted-foreground">

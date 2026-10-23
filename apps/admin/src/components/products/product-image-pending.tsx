@@ -1,5 +1,6 @@
 'use client'
 
+import { RotateCcw } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { motion, useReducedMotion } from 'motion/react'
 import type { PendingUpload } from '@/components/media/use-upload-queue'
@@ -50,6 +51,7 @@ export default function ProductImagePending({
             <span className="line-clamp-2 text-caption text-destructive">{upload.error}</span>
             <span className="flex gap-1">
               <Button size="xs" variant="outline" onClick={onRetry}>
+                <RotateCcw aria-hidden="true" />
                 {copy.retry}
               </Button>
               <Button size="xs" variant="ghost" onClick={onDismiss}>

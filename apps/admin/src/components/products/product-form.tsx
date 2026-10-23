@@ -6,17 +6,19 @@ import { Alert, AlertDescription, AlertTitle } from '@commerce/ui/shadcn/alert'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { type ReactNode, useEffect, useState } from 'react'
 import { toast } from 'sonner'
+import type { ProductApp } from '@/apps/product-actions'
+import type { ProductSectionProps } from '@/apps/product-sections'
+import RunAutomationDialog from '@/components/automations/records/run-automation-dialog'
+import { useRunAutomation } from '@/components/automations/records/use-run-automation'
 import ConfirmDialog from '@/components/layout/confirm-dialog'
 import DataCard from '@/components/layout/data-card'
-import PageChecklist from '@/components/layout/page-checklist'
 import ProoflyDetailPage from '@/components/layout/proofly-detail-page'
 import SaveBar from '@/components/layout/save-bar'
 import MetafieldsCard from '@/components/metaobjects/metafields-card'
-import TemplateSelectCard from '@/components/themes/template-select-card'
 import { productFormContent } from '@/data/product-form'
+import { productPageContent } from '@/data/product-page'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
-import { validationIssuesOf } from '@/lib/api-errors'
 import type { ProductLayout } from '@/lib/product-layout'
 import { routes } from '@/lib/routes'
 import AiWriterButton from './ai-writer-button'
@@ -34,23 +36,21 @@ import {
   toWrite,
   type VariantRow,
 } from './form-state'
+import ProductAppsPanel, { productAppSections } from './product-apps-panel'
 import ProductBanner from './product-banner'
-import ProductCategoriesCard from './product-categories-card'
 import { productChecklist } from './product-checklist'
-import ProductCollectionsCard from './product-collections-card'
 import ProductHeader from './product-header'
 import ProductImageCard from './product-image-card'
 import ProductMainCard from './product-main-card'
-import ProductPageActions from './product-page-actions'
 import ProductPreorderSection from './product-preorder-section'
+import ProductSeoPanel from './product-seo-panel'
+import ProductSide from './product-side'
 import { type ProductTabId, tabFromParam, tabsFor, tabsWithErrors } from './product-tab-list'
 import ProductTabs from './product-tabs'
-import SearchConsoleCard from './search-console-card'
-import SeoCard from './seo-card'
-import SeoKeywordsCard from './seo-keywords-card'
+import { saveErrorMessage } from './save-error'
 import ShippingCard from './shipping-card'
-import StatusCard from './status-card'
 import StockHistoryCard from './stock-history-card'
+import { useProductAppActions } from './use-product-app-actions'
 import VariantMetafieldsCard from './variant-metafields-card'
 import VariantsCard from './variants-card'
 
@@ -62,16 +62,12 @@ type ProductFormProps = {
   aiWriter?: boolean
   /** The member's choice under Account › Appearance. */
   layout?: ProductLayout
+  /** Installed apps, for their sections on the More tab and their More actions. */
+  apps?: readonly ProductApp[]
 }
 
 function initialForm(product: LoadedProduct | null): ProductFormState {
   return product ? fromProduct(product) : emptyForm()
-}
-
-/** Values of the colour option, for the swatch row on the categories card. */
-function colourValues(options: OptionRow[]): string[] {
-  const option = options.find((o) => /colou?r/i.test(o.name))
-  return option ? option.values.filter((v) => v.trim()) : []
 }
 
 export default function ProductForm({
@@ -80,9 +76,11 @@ export default function ProductForm({
   storefrontOrigin,
   aiWriter = false,
   layout = 'tabs',
+  apps = [],
 }: ProductFormProps) {
   // Hooks
   const copy = useCopy(productFormContent)
+  const pageCopy = useCopy(productPageContent)
   const fmt = useFormat()
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -95,6 +93,13 @@ export default function ProductForm({
   const [confirmDelete, setConfirmDelete] = useState(false)
   /* Bumped after each save so cards that load their own data (collections) refetch. */
   const [revision, setRevision] = useState(0)
+  const appItems = useProductAppActions(apps, product?.id ?? null, (tab, focus) =>
+    handleOpenTab(tab, focus),
+  )
+  const automation = useRunAutomation(
+    'product',
+    apps.some((a) => a.id === 'automations'),
+  )
 
   /* Browser guard: a reload or a close with edits pending asks first. */
   useEffect(() => {
@@ -126,6 +131,7 @@ export default function ProductForm({
       <ProductMainCard
         form={form}
         variant={first}
+        facets={facets}
         tab={tab}
         titleError={showErrors ? errors.title : undefined}
         quantityChanged={quantityChanged}
@@ -145,6 +151,13 @@ export default function ProductForm({
     const url = `${window.location.pathname}?${params}`
     if (replace) window.history.replaceState(null, '', url)
     else window.history.pushState(null, '', url)
+  }
+
+  /* An app's section or menu item jumps to the field it reads (GST: the HSN code). The panel
+     un-hides on the next render, so focus waits a frame. */
+  const handleOpenTab: ProductSectionProps['onOpenTab'] = (tab, focus) => {
+    handleSelectTab(tab)
+    if (focus) window.setTimeout(() => document.getElementById(focus)?.focus(), 50)
   }
 
   const handleSave = async (status?: ProductStatus) => {
@@ -170,24 +183,7 @@ export default function ProductForm({
       if (!product) router.replace(routes.products.detail(result.id))
       else router.refresh()
     } catch (err) {
-      const issues = validationIssuesOf(err)
-      if (issues.length) {
-        setServerError(
-          issues
-            .slice(0, 3)
-            .map((i) => {
-              const field =
-                copy.errors.fields[i.path.split('.')[0] ?? ''] ?? copy.errors.fieldFallback
-              return copy.errors.invalidField(
-                field,
-                i.max === undefined ? i.message : copy.errors.tooLong(i.max),
-              )
-            })
-            .join('. '),
-        )
-      } else {
-        setServerError(err instanceof Error ? err.message : copy.toasts.failed)
-      }
+      setServerError(saveErrorMessage(copy, err))
     } finally {
       setBusy(false)
     }
@@ -217,6 +213,8 @@ export default function ProductForm({
       setBusy(false)
     }
   }
+
+  const handleArchive = () => void handleSave(form.status === 'archived' ? 'draft' : 'archived')
 
   const handleRemove = async () => {
     if (!product) return
@@ -253,8 +251,10 @@ export default function ProductForm({
   const tabIds = tabsFor(single)
   const activeTab = tabFromParam(searchParams.get('tab'), single)
   const failing = new Set<ProductTabId>(showErrors ? tabsWithErrors(errors, single) : [])
-  const checklist = productChecklist(copy, fmt, form, errors, single)
-  const toFix = checklist.filter((item) => item.state === 'warn').length
+  const checklist = productChecklist(copy, fmt, form, errors, single, {
+    count: productAppSections(apps).length,
+    copy: pageCopy.checklist,
+  })
   const tabs = tabIds.map((id) => ({
     id,
     label: copy.tabs.labels[id],
@@ -275,11 +275,20 @@ export default function ProductForm({
         options={form.options}
         variants={form.variants}
         media={form.media}
+        facets={facets}
         error={showErrors ? errors.variants : undefined}
         onOptions={setOptions}
         onVariant={patchVariant}
       />
       <VariantMetafieldsCard variants={savedVariants} />
+      <DataCard title={copy.preorder.heading}>
+        <ProductPreorderSection
+          form={form}
+          depositError={showErrors ? errors.preorderDeposit : undefined}
+          onPatch={patch}
+        />
+      </DataCard>
+      {product ? <StockHistoryCard productId={product.id} /> : null}
     </>
   )
   const panels: Partial<Record<ProductTabId, ReactNode>> = {
@@ -313,43 +322,22 @@ export default function ProductForm({
       />
     ),
     seo: (
-      <>
-        <SeoCard
-          title={form.title}
-          description={form.description}
-          seoTitle={form.seoTitle}
-          seoDescription={form.seoDescription}
-          handle={form.handle}
-          storefrontOrigin={storefrontOrigin}
-          onSeoTitle={(seoTitle) => patch({ seoTitle })}
-          onSeoDescription={(seoDescription) => patch({ seoDescription })}
-          onHandle={(handle) => patch({ handle })}
-        />
-        <SeoKeywordsCard
-          productId={product?.id ?? null}
-          form={form}
-          aiOn={aiWriter}
-          onChange={(seoKeywords) => patch({ seoKeywords })}
-        />
-        {product ? <SearchConsoleCard productId={product.id} /> : null}
-      </>
+      <ProductSeoPanel
+        form={form}
+        productId={product?.id ?? null}
+        storefrontOrigin={storefrontOrigin}
+        aiWriter={aiWriter}
+        onPatch={patch}
+      />
     ),
     more: (
-      <>
-        <DataCard title={copy.preorder.heading}>
-          <ProductPreorderSection
-            form={form}
-            depositError={showErrors ? errors.preorderDeposit : undefined}
-            onPatch={patch}
-          />
-        </DataCard>
-        <TemplateSelectCard
-          kind="product"
-          value={form.templateSuffix}
-          onChange={(templateSuffix) => patch({ templateSuffix })}
-        />
-        {product ? <StockHistoryCard productId={product.id} /> : null}
-      </>
+      <ProductAppsPanel
+        apps={apps}
+        productId={product?.id ?? null}
+        title={form.title}
+        variants={form.variants}
+        onOpenTab={handleOpenTab}
+      />
     ),
   }
 
@@ -373,13 +361,19 @@ export default function ProductForm({
             busy={working}
             storefrontOrigin={storefrontOrigin}
             onDuplicate={handleDuplicate}
+            onArchive={handleArchive}
             onDelete={() => setConfirmDelete(true)}
+            appItems={[
+              ...automation.items(product ? [product.id] : [], { runsLink: true, heading: true }),
+              ...appItems,
+            ]}
           />
           {product ? (
             <ProductBanner
               form={form}
               onUpdateInventory={handleUpdateInventory}
               onSetStatus={() => void handleSave('active')}
+              lowStockThreshold={facets.lowStockThreshold}
             />
           ) : null}
           {serverError ? (
@@ -403,41 +397,20 @@ export default function ProductForm({
         />
       }
       side={
-        <>
-          <PageChecklist
-            heading={copy.checklist.heading}
-            summary={copy.checklist.toFix(toFix)}
-            items={checklist}
-            active={activeTab}
-            onSelect={(id) => handleSelectTab(id)}
-          />
-          <StatusCard
-            status={form.status}
-            vendor={form.vendor}
-            facets={facets}
-            onChange={(status) => patch({ status })}
-            onVendor={(vendor) => patch({ vendor })}
-          />
-          <ProductCategoriesCard
-            categoryId={form.categoryId}
-            productType={form.productType}
-            tags={form.tags}
-            colours={colourValues(form.options)}
-            facets={facets}
-            onCategoryId={(categoryId) => patch({ categoryId })}
-            onProductType={(productType) => patch({ productType })}
-            onTags={(tags) => patch({ tags })}
-          />
-          <ProductCollectionsCard productId={product?.id ?? null} revision={revision} />
-          <div className="flex flex-wrap justify-end gap-2">
-            <ProductPageActions
-              busy={working}
-              live={Boolean(product) && form.status === 'active'}
-              onPublish={() => void handleSave('active')}
-              onSaveDraft={() => void handleSave('draft')}
-            />
-          </div>
-        </>
+        <ProductSide
+          form={form}
+          facets={facets}
+          productId={product?.id ?? null}
+          revision={revision}
+          checklist={checklist}
+          activeTab={activeTab}
+          busy={working}
+          live={Boolean(product) && form.status === 'active'}
+          onPatch={patch}
+          onSelectTab={(id) => handleSelectTab(id)}
+          onPublish={() => void handleSave('active')}
+          onSaveDraft={() => void handleSave('draft')}
+        />
       }
     >
       <ConfirmDialog
@@ -449,6 +422,11 @@ export default function ProductForm({
         cancelLabel={copy.delete.cancel}
         busy={busy}
         onConfirm={handleRemove}
+      />
+      <RunAutomationDialog
+        subjectType="product"
+        ids={automation.target}
+        onClose={automation.close}
       />
     </ProoflyDetailPage>
   )

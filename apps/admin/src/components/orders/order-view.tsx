@@ -6,8 +6,11 @@ import { useState } from 'react'
 import { toast } from 'sonner'
 import { type OrderActionGroup, readyToShip } from '@/apps/order-actions'
 import { ADMIN_APPS } from '@/apps/registry'
+import RunAutomationDialog from '@/components/automations/records/run-automation-dialog'
+import { useRunAutomation } from '@/components/automations/records/use-run-automation'
 import MetafieldsCard from '@/components/metaobjects/metafields-card'
-import { type OrderMark, orderDetailContent, ordersContent } from '@/data/orders'
+import { orderDetailContent } from '@/data/order-detail'
+import { type OrderMark, ordersContent } from '@/data/orders'
 import { shipmentPanelContent } from '@/data/shipping'
 import { useCopy } from '@/hooks/use-copy'
 import { usePermissions } from '@/hooks/use-permissions'
@@ -40,6 +43,7 @@ import PaymentCard from './payment-card'
 import ProfitCard from './profit-card'
 import RefundDialog from './refund-dialog'
 import SalesChannelCard from './sales-channel-card'
+import SendMessageDialog, { type CustomMessage } from './send-message-dialog'
 import ShipmentPanel from './shipment-panel'
 import TagsCard from './tags-card'
 import TimelineCard from './timeline-card'
@@ -64,9 +68,12 @@ export default function OrderView({ order, appCards = [], appActions = [], back 
   const router = useRouter()
   const { hasPermission } = usePermissions()
   const apps = useOrderAppActions(appActions, () => router.refresh())
+  const automation = useRunAutomation('order', appCards.includes('automations'))
   const [busy, setBusy] = useState(false)
   const [refunding, setRefunding] = useState<OrderPayment | null>(null)
   const [fulfilling, setFulfilling] = useState(false)
+  /** The hand-sent message whose "Review email" dialog is open. */
+  const [reviewing, setReviewing] = useState<'balance_request' | 'payment_reminder' | null>(null)
   const [collecting, setCollecting] = useState(false)
 
   // Helpers
@@ -95,10 +102,10 @@ export default function OrderView({ order, appCards = [], appActions = [], back 
       setBusy(false)
     }
   }
-  const handleRequestBalance = async () => {
+  const handleRequestBalance = async (custom?: CustomMessage) => {
     setBusy(true)
     try {
-      await api.orders.requestBalance({ orderId: order.id })
+      await api.orders.requestBalance({ orderId: order.id, custom })
       toast.success(copy.payment.preorder.requestedToast)
       refresh()
     } catch (err) {
@@ -107,10 +114,10 @@ export default function OrderView({ order, appCards = [], appActions = [], back 
       setBusy(false)
     }
   }
-  const handleSendReminder = async () => {
+  const handleSendReminder = async (custom?: CustomMessage) => {
     setBusy(true)
     try {
-      await api.orders.sendPaymentReminder({ orderId: order.id })
+      await api.orders.sendPaymentReminder({ orderId: order.id, custom })
       toast.success(copy.payment.transfer.sentToast)
       refresh()
     } catch (err) {
@@ -172,11 +179,12 @@ export default function OrderView({ order, appCards = [], appActions = [], back 
     order.checkoutPaidAt !== null &&
     !order.balancePaidAt &&
     (order.balanceDuePaise ?? 0) > 0
-  const requestBalance = balanceOwed ? handleRequestBalance : undefined
+  // Both open the "Review email" dialog first; its Send runs the handler.
+  const requestBalance = balanceOwed ? () => setReviewing('balance_request') : undefined
   // A transfer the merchant has not matched yet: the customer can be nudged.
   const sendReminder =
     live && !order.checkoutPaidAt && order.paymentMethod === 'manual'
-      ? handleSendReminder
+      ? () => setReviewing('payment_reminder')
       : undefined
 
   const awaitingTransfer = live && !order.checkoutPaidAt && order.paymentMethod === 'manual'
@@ -200,7 +208,18 @@ export default function OrderView({ order, appCards = [], appActions = [], back 
               onRefund={openRefund}
               onRequestBalance={requestBalance}
               onShip={canShip ? handleShip : undefined}
-              appItems={apps.items('detail', order, [order.id])}
+              onCancelShipment={
+                shipmentId && ['fulfilled', 'shipped'].includes(order.fulfillmentStatus)
+                  ? handleCancelShipment
+                  : undefined
+              }
+              onSendReminder={sendReminder}
+              orderNumber={order.number}
+              customerEmail={order.email}
+              appItems={[
+                ...automation.items([order.id], { runsLink: true }),
+                ...apps.items('detail', order, [order.id]),
+              ]}
               readOnly={readOnly}
               previousId={n?.previous?.id}
               nextId={n?.next?.id}
@@ -293,6 +312,18 @@ export default function OrderView({ order, appCards = [], appActions = [], back 
       }
     >
       <PackingSlip order={order} />
+      <RunAutomationDialog
+        subjectType="order"
+        ids={automation.target}
+        onClose={automation.close}
+        onDone={refresh}
+      />
+      <SendMessageDialog
+        orderId={reviewing ? order.id : null}
+        template={reviewing ?? 'payment_reminder'}
+        onSend={reviewing === 'balance_request' ? handleRequestBalance : handleSendReminder}
+        onClose={() => setReviewing(null)}
+      />
       <RefundDialog
         payment={refunding}
         remainingPaise={remaining}

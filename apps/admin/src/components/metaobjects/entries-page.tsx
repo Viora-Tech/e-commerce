@@ -174,6 +174,7 @@ export default function EntriesPage({ definition, initial, initialPerPage }: Ent
                   render={<Link href={routes.content.contentTypeDefinition(definition.type)} />}
                   nativeButton={false}
                 >
+                  <Pencil strokeWidth={1.6} aria-hidden="true" />
                   {copy.editDefinition}
                 </Button>
               }

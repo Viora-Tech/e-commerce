@@ -12,11 +12,13 @@ import { can, PAGE_SIZE_MAX, SEARCH_MAX } from '../procedures'
 import { storeRegistries } from '../services/apps.service'
 import {
   convertStoreDraft,
+  draftEmail,
   draftTiles,
   getDraft,
   getStoreAbandoned,
   listStoreAbandoned,
   listStoreDrafts,
+  previewRecovery,
   recordInvoiceSent,
   removeDraft,
   removeDrafts,
@@ -24,6 +26,7 @@ import {
   sendRecovery,
   storeAbandonedStats,
 } from '../services/draft.service'
+import { customMessage } from './custom-message'
 
 const storefrontUrl = () => loadEnv(process.env).STOREFRONT_URL
 const recoveryLink = () => ({ settingsSecret: settingsSecret(), storefrontUrl: storefrontUrl() })
@@ -32,6 +35,7 @@ const recoveryLink = () => ({ settingsSecret: settingsSecret(), storefrontUrl: s
 export const draftAndAbandonedRoutes = {
   /* Draft orders: built by hand in admin, invisible to the storefront until converted. */
 
+  /** Draft orders, a page at a time, filtered by status or a search. */
   listDrafts: can(permissions.DRAFTS_READ)
     .input(
       z.object({
@@ -43,16 +47,20 @@ export const draftAndAbandonedRoutes = {
     )
     .handler(({ context, input }) => listStoreDrafts(context.tx, context.scope.storeId, input)),
 
+  /** The stat cards above the drafts list: open drafts, invoices sent, and their total value. */
   draftTiles: can(permissions.DRAFTS_READ).handler(({ context }) => draftTiles(context.tx)),
 
+  /** One draft order with its lines, customer, addresses and totals. */
   getDraft: can(permissions.DRAFTS_READ)
     .input(z.object({ id: z.uuid() }))
     .handler(({ context, input }) => getDraft(context.tx, input.id)),
 
+  /** Create a draft order (no id) or replace an existing draft's lines, customer and addresses. */
   saveDraft: can(permissions.DRAFTS_WRITE)
     .input(z.object({ id: z.uuid().optional(), draft: DraftInputSchema }))
     .handler(({ context, input }) => saveDraft(context.tx, context.scope.storeId, input)),
 
+  /** Delete one draft order; placed orders cannot be deleted this way. */
   deleteDraft: can(permissions.DRAFTS_WRITE)
     .input(z.object({ id: z.uuid() }))
     .handler(({ context, input }) => removeDraft(context.tx, context.scope.storeId, input.id)),
@@ -64,7 +72,7 @@ export const draftAndAbandonedRoutes = {
 
   /** Email the shopper a pay link for the draft. */
   sendInvoice: can(permissions.DRAFTS_WRITE)
-    .input(z.object({ id: z.uuid() }))
+    .input(z.object({ id: z.uuid(), custom: customMessage }))
     .handler(async ({ context, input }) => {
       const draft = await getDraft(context.tx, input.id)
       if (!draft) throw new ORPCError('NOT_FOUND', { message: 'Draft not found' })
@@ -74,10 +82,33 @@ export const draftAndAbandonedRoutes = {
       await recordInvoiceSent(context.tx, context.scope.storeId, input.id, draft.email)
       await insertOutboxEvent(context.tx, context.scope.storeId, 'draft.invoice_sent', {
         orderId: input.id,
+        custom: input.custom,
       })
       return { sentTo: draft.email }
     }),
 
+  /** The list's bulk "Send invoices": each selected draft with an email gets its pay link. */
+  sendInvoices: can(permissions.DRAFTS_WRITE)
+    .input(z.object({ ids: z.array(z.uuid()).min(1).max(PAGE_SIZE_MAX) }))
+    .handler(async ({ context, input }) => {
+      let sent = 0
+      let skipped = 0
+      for (const id of input.ids) {
+        const email = await draftEmail(context.tx, id)
+        if (!email) {
+          skipped++
+          continue
+        }
+        await recordInvoiceSent(context.tx, context.scope.storeId, id, email)
+        await insertOutboxEvent(context.tx, context.scope.storeId, 'draft.invoice_sent', {
+          orderId: id,
+        })
+        sent++
+      }
+      return { sent, skipped }
+    }),
+
+  /** Place a draft as a real order: holds stock and records a pending payment for the chosen method. */
   convertDraft: can(permissions.DRAFTS_WRITE)
     .input(z.object({ id: z.uuid(), paymentMethod: z.string().trim().max(60).optional() }))
     .handler(async ({ context, input }) => {
@@ -90,6 +121,7 @@ export const draftAndAbandonedRoutes = {
 
   /* Abandoned checkouts: carts that captured a contact and went quiet. */
 
+  /** Abandoned checkouts from recent days, a page at a time, by recovery status or a search. */
   listAbandoned: can(permissions.ORDERS_READ)
     .input(
       z.object({
@@ -102,24 +134,42 @@ export const draftAndAbandonedRoutes = {
     )
     .handler(({ context, input }) => listStoreAbandoned(context.tx, context.scope.storeId, input)),
 
+  /** Abandoned checkouts in a period: how many, their value, and how many were recovered. */
   abandonedStats: can(permissions.ORDERS_READ)
     .input(z.object({ days: z.number().int().min(1).max(90).optional() }).optional())
     .handler(({ context, input }) =>
       storeAbandonedStats(context.tx, context.scope.storeId, input?.days),
     ),
 
+  /** One abandoned checkout with its cart, contact and recovery link. */
   getAbandoned: can(permissions.ORDERS_READ)
     .input(z.object({ id: z.uuid() }))
     .handler(({ context, input }) =>
       getStoreAbandoned(context.tx, context.scope.storeId, input.id, recoveryLink()),
     ),
 
+  /** The reminder as the shopper would get it, for the "Review email" dialog. Nothing is sent. */
+  previewRecovery: can(permissions.ORDERS_READ)
+    .input(z.object({ cartId: z.uuid(), custom: customMessage }))
+    .handler(async ({ context, input }) => {
+      const { notifications } = await storeRegistries(context.tx, context.scope.storeId)
+      return previewRecovery(context.tx, context.scope.storeId, {
+        cartId: input.cartId,
+        custom: input.custom,
+        registry: notifications,
+        settingsSecret: settingsSecret(),
+        storefrontUrl: storefrontUrl(),
+      })
+    }),
+
+  /** Email the shopper a reminder with a link back to their abandoned cart. */
   sendRecovery: can(permissions.ORDERS_WRITE)
-    .input(z.object({ cartId: z.uuid() }))
+    .input(z.object({ cartId: z.uuid(), custom: customMessage }))
     .handler(async ({ context, input }) => {
       const { notifications } = await storeRegistries(context.tx, context.scope.storeId)
       return sendRecovery(context.tx, context.scope.storeId, {
         cartId: input.cartId,
+        custom: input.custom,
         registry: notifications,
         settingsSecret: settingsSecret(),
         storefrontUrl: storefrontUrl(),

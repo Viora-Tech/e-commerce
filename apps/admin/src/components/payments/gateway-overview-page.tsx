@@ -1,5 +1,6 @@
 'use client'
 
+import { PlugConnect } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Card, CardContent } from '@commerce/ui/shadcn/card'
 import { Skeleton } from '@commerce/ui/shadcn/skeleton'
@@ -67,6 +68,7 @@ export default function GatewayOverviewPage({ providerId }: GatewayOverviewPageP
           onAdd={() => undefined}
           onChanged={reload}
           onTurnOnUpi={() => undefined}
+          layout="page"
         />
       ) : (
         <Card>
@@ -74,10 +76,11 @@ export default function GatewayOverviewPage({ providerId }: GatewayOverviewPageP
             <p className="text-body font-semibold text-foreground">{guides[providerId].intro}</p>
             {entry ? <p className="text-body text-muted-foreground">{entry.fees}</p> : null}
             <Button
-              className="w-fit"
+              className="w-fit self-end"
               nativeButton={false}
               render={<Link href={routes.apps.connect(providerId)} />}
             >
+              <PlugConnect aria-hidden="true" />
               {copy.main.connect}
             </Button>
           </CardContent>

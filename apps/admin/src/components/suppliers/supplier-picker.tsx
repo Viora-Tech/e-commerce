@@ -22,6 +22,7 @@ export default function SupplierPicker({ disabled, onPick }: SupplierPickerProps
   const copy = useCopy(supplierPickerContent)
   const [search, setSearch] = useState('')
   const [results, setResults] = useState<Hit[]>([])
+  const [open, setOpen] = useState(false)
   const [creating, setCreating] = useState(false)
 
   useEffect(() => {
@@ -47,44 +48,61 @@ export default function SupplierPicker({ disabled, onPick }: SupplierPickerProps
     onPick(supplier)
     setSearch('')
     setResults([])
+    setOpen(false)
+  }
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Escape') setOpen(false)
   }
 
   // Render logic
   return (
-    <div className="flex flex-col gap-1">
-      <div className="flex gap-2">
+    <div className="flex gap-2">
+      {/* The results float over the form below, like a menu, instead of pushing it down. */}
+      <div className="relative min-w-0 flex-1">
         <KitSearch
           size="toolbar"
           className="w-full"
           placeholder={copy.search}
           aria-label={copy.search}
+          role="combobox"
+          aria-expanded={open && results.length > 0}
+          autoComplete="off"
           value={search}
           disabled={disabled}
-          onChange={(e) => setSearch(e.target.value)}
+          onChange={(e) => {
+            setSearch(e.target.value)
+            setOpen(true)
+          }}
+          onFocus={() => setOpen(true)}
+          onBlur={() => setOpen(false)}
+          onKeyDown={handleKeyDown}
         />
-        <Button variant="outline" onClick={() => setCreating(true)} disabled={disabled}>
-          <Plus aria-hidden="true" />
-          {copy.new}
-        </Button>
+        {open && results.length > 0 ? (
+          <ul className="absolute inset-x-0 top-full z-20 mt-1 max-h-72 overflow-y-auto rounded-lg border border-border bg-card p-1 shadow-popover">
+            {results.map((r) => (
+              <li key={r.id}>
+                <button
+                  type="button"
+                  // Keeps focus in the field, so its blur does not close the list before the click.
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={() => handlePick(r)}
+                  className="flex w-full items-center gap-3 rounded-md px-2 py-2 text-left transition-colors hover:bg-muted"
+                >
+                  <span className="min-w-0 flex-1 truncate text-body">{r.name}</span>
+                  <span className="text-caption text-muted-foreground">
+                    {r.country} · {r.currency}
+                  </span>
+                </button>
+              </li>
+            ))}
+          </ul>
+        ) : null}
       </div>
-      {results.length > 0 ? (
-        <ul className="w-full overflow-hidden rounded-lg border border-line bg-card">
-          {results.map((r) => (
-            <li key={r.id}>
-              <button
-                type="button"
-                onClick={() => handlePick(r)}
-                className="flex w-full items-center gap-3 px-3 py-2 text-left transition-colors hover:bg-background"
-              >
-                <span className="min-w-0 flex-1 truncate text-body">{r.name}</span>
-                <span className="text-caption text-muted-foreground">
-                  {r.country} · {r.currency}
-                </span>
-              </button>
-            </li>
-          ))}
-        </ul>
-      ) : null}
+      <Button variant="outline" onClick={() => setCreating(true)} disabled={disabled}>
+        <Plus aria-hidden="true" />
+        {copy.new}
+      </Button>
       {creating ? (
         <NewSupplierDialog
           open={creating}

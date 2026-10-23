@@ -1,5 +1,6 @@
 'use client'
 
+import { CheckIcon } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import {
   Dialog,
@@ -147,6 +148,7 @@ export default function ReviewDialog({ id, onOpenChange, onApplied, onReset }: R
             {copy.cancel}
           </Button>
           <Button onClick={handleApply} disabled={busy || !state || applied}>
+            <CheckIcon aria-hidden="true" />
             {busy ? copy.applying : copy.apply}
           </Button>
         </DialogFooter>

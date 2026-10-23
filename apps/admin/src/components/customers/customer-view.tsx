@@ -1,5 +1,6 @@
 'use client'
 
+import { validateGstin } from '@commerce/core/gstin'
 import { CONSENT_CHANNELS, type ConsentChannel } from '@commerce/core/privacy'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
@@ -14,6 +15,7 @@ import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 import CustomerActivityCard from './customer-activity-card'
 import CustomerAddressesCard from './customer-addresses-card'
+import CustomerBusinessCard from './customer-business-card'
 import { type CustomerDetail, nextStepFor } from './customer-detail-types'
 import CustomerHeader from './customer-header'
 import CustomerNextStep from './customer-next-step'
@@ -37,21 +39,33 @@ type CustomerViewProps = {
 type Draft = {
   note: string
   tags: string[]
+  gstin: string
+  businessName: string
   consent: Record<ConsentChannel, boolean>
 }
 
 const draftOf = (customer: CustomerDetail, consent: ConsentWithChannels | null): Draft => ({
   note: customer.note ?? '',
   tags: customer.tags,
+  gstin: customer.gstin ?? '',
+  businessName: customer.businessName ?? '',
   consent: consent?.channels ?? { email: false, whatsapp: false, sms: false },
 })
+
+/** The `validateGstin` reason a typed GSTIN fails on; null when blank or valid. */
+function gstinReason(value: string): 'shape' | 'state' | 'checksum' | null {
+  if (value.trim() === '') return null
+  const check = validateGstin(value)
+  return check.ok ? null : ((check.reason as 'shape' | 'state' | 'checksum') ?? 'shape')
+}
 
 const sameTags = (a: string[], b: string[]) =>
   a.length === b.length && a.every((t, i) => t === b[i])
 
 /**
- * The customer page. Note, tags and marketing consent are edited in place and saved together
- * from one floating save bar; addresses and the profile keep their own dialogs.
+ * The customer page. Note, tags, business details and marketing consent are edited in place
+ * and saved together from one floating save bar; addresses and the profile keep their own
+ * dialogs.
  */
 export default function CustomerView({
   customer,
@@ -84,11 +98,29 @@ export default function CustomerView({
 
   // Event handlers
   const handleSave = async () => {
+    const refused = gstinReason(draft.gstin)
+    if (refused) {
+      toast.error(detail.gstinErrors[refused])
+      return
+    }
     setSaving(true)
     try {
       const note = draft.note.trim() || null
-      if (note !== (saved.note.trim() || null) || !sameTags(draft.tags, saved.tags)) {
-        await api.customers.update({ id: customer.id, note, tags: draft.tags })
+      const gstin = draft.gstin.trim().toUpperCase()
+      const businessName = draft.businessName.trim()
+      if (
+        note !== (saved.note.trim() || null) ||
+        !sameTags(draft.tags, saved.tags) ||
+        gstin !== saved.gstin ||
+        businessName !== saved.businessName
+      ) {
+        await api.customers.update({
+          id: customer.id,
+          note,
+          tags: draft.tags,
+          gstin: gstin || null,
+          businessName: businessName || null,
+        })
       }
       for (const channel of CONSENT_CHANNELS) {
         if (consent && draft.consent[channel] !== saved.consent[channel]) {
@@ -101,7 +133,13 @@ export default function CustomerView({
       }
       const fresh = await api.customerPrivacy.consent({ customerId: customer.id })
       setConsent(fresh)
-      const next = { note: note ?? '', tags: draft.tags, consent: fresh.channels }
+      const next = {
+        note: note ?? '',
+        tags: draft.tags,
+        gstin,
+        businessName,
+        consent: fresh.channels,
+      }
       setSaved(next)
       setDraft(next)
       toast.success(detail.changes.saved)
@@ -117,9 +155,12 @@ export default function CustomerView({
 
   // Render logic
   const step = nextStepFor(customer)
+  const invalidGstin = gstinReason(draft.gstin)
   const dirty =
     draft.note.trim() !== saved.note.trim() ||
     !sameTags(draft.tags, saved.tags) ||
+    draft.gstin.trim().toUpperCase() !== saved.gstin ||
+    draft.businessName.trim() !== saved.businessName ||
     CONSENT_CHANNELS.some((c) => draft.consent[c] !== saved.consent[c])
 
   return (
@@ -133,7 +174,11 @@ export default function CustomerView({
         onDiscard={handleDiscard}
         saving={saving}
       />
-      <CustomerHeader customer={customer} onEdit={() => setEditing(true)} />
+      <CustomerHeader
+        customer={customer}
+        onEdit={() => setEditing(true)}
+        automations={appCards.includes('automations')}
+      />
       {step ? <CustomerNextStep customer={customer} step={step} /> : null}
       <PageColumns
         main={
@@ -162,6 +207,12 @@ export default function CustomerView({
                 }
               />
             ) : null}
+            <CustomerBusinessCard
+              gstin={draft.gstin}
+              businessName={draft.businessName}
+              gstinError={invalidGstin ? detail.gstinErrors[invalidGstin] : null}
+              onChange={(next) => setDraft((d) => ({ ...d, ...next }))}
+            />
             <CustomerNoteCard
               value={draft.note}
               onChange={(note) => setDraft((d) => ({ ...d, note }))}

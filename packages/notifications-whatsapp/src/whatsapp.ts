@@ -26,7 +26,8 @@ export type WhatsappConfig = {
 
 export type FetchLike = (input: string, init: RequestInit) => Promise<Response>
 
-export const GRAPH_API = 'https://graph.facebook.com/v22.0'
+/** Same Graph version as Sales channels (META_GRAPH_VERSION in @commerce/core); v22.0 stops 20 May 2027. */
+export const GRAPH_API = 'https://graph.facebook.com/v26.0'
 
 /**
  * Body parameters for each approved template, in the order the template's
@@ -71,6 +72,19 @@ export function templateParams(template: TemplateId, d: TemplateData): string[] 
       return [d.customerName, d.storeName, n, d.totalLabel, d.orderUrl ?? '-']
     case 'unpaid_cancelled':
       return [d.customerName, d.storeName, n, d.totalLabel]
+    // One template for the three affiliate messages: {{1}} store, {{2}} what happened, {{3}} amount
+    // or code, {{4}} the dashboard link.
+    case 'affiliate_update':
+      return [
+        d.storeName,
+        d.affiliate?.kind === 'approved'
+          ? 'You are approved'
+          : d.affiliate?.kind === 'payout'
+            ? 'Your payout was sent'
+            : 'New sale through your link',
+        d.affiliate?.amountLabel ?? d.affiliate?.couponCode ?? '-',
+        d.affiliate?.portalUrl ?? '-',
+      ]
     case 'contact_message':
       return [d.storeName, d.contactMessage?.name || '-']
     case 'review_request':

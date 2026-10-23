@@ -3,11 +3,14 @@ import {
   createAddress,
   customerExists,
   deleteAddress,
+  GSTIN_MESSAGES,
   listAddresses,
   permissions,
   recordCustomerChange,
+  SEGMENT_FIELDS,
   setMarketingConsent,
   updateAddress,
+  validateGstin,
 } from '@commerce/core'
 import { lenientPhone } from '@commerce/core/phone'
 import { loadPincodeDirectory } from '@commerce/shipping/pincode-directory'
@@ -41,6 +44,8 @@ const FiltersSchema = z.object({
   minOrders: z.number().int().min(0).optional(),
   acceptsMarketing: z.boolean().optional(),
   tag: z.string().trim().min(1).max(40).optional(),
+  /** Business (B2B) customers, i.e. those with a saved GSTIN. */
+  business: z.boolean().optional(),
 })
 
 const RulesSchema = z.object({
@@ -48,7 +53,7 @@ const RulesSchema = z.object({
   conditions: z
     .array(
       z.object({
-        field: z.enum(['spend', 'orders', 'state', 'tag', 'last_order_days', 'marketing']),
+        field: z.enum(SEGMENT_FIELDS),
         op: z.enum(['gte', 'lte', 'eq', 'neq', 'contains']),
         value: z.string().trim().max(100),
       }),
@@ -89,10 +94,27 @@ function unwrap(result: AddressResult) {
   })
 }
 
+/**
+ * A GSTIN typed by staff, checked like checkout's (`validateGstin`) and stored upper case;
+ * blank clears it, undefined leaves it alone.
+ */
+function parseGstin(raw: string | null | undefined): string | null | undefined {
+  if (raw === undefined) return undefined
+  if (raw === null || raw.trim() === '') return null
+  const check = validateGstin(raw)
+  if (check.ok) return check.gstin
+  throw new ORPCError('BAD_REQUEST', {
+    message: GSTIN_MESSAGES[check.reason as keyof typeof GSTIN_MESSAGES] ?? GSTIN_MESSAGES.shape,
+    data: { field: 'gstin' },
+  })
+}
+
 export const customersRouter = {
   list: can(permissions.CUSTOMERS_READ)
     .input(
       FiltersSchema.extend({
+        /** Exactly these customers, e.g. the ones a discount is limited to. */
+        ids: z.array(z.uuid()).max(PAGE_SIZE_MAX).optional(),
         page: z.number().int().min(1).default(1),
         perPage: z.number().int().min(1).max(PAGE_SIZE_MAX).default(25),
         sort: z.enum(['recent', 'name', 'orders', 'spent']).optional(),
@@ -190,9 +212,17 @@ export const customersRouter = {
         tags: z.array(z.string().trim().min(1).max(40)).max(50).optional(),
         note: z.string().trim().max(2000).nullable().optional(),
         acceptsMarketing: z.boolean().optional(),
+        /** Business details for B2B invoices; blank clears. */
+        gstin: z.string().trim().max(20).nullable().optional(),
+        businessName: z.string().trim().max(120).nullable().optional(),
       }),
     )
-    .handler(async ({ context, input: { id, acceptsMarketing, ...patch } }) => {
+    .handler(async ({ context, input: { id, acceptsMarketing, gstin, ...rest } }) => {
+      const patch = {
+        ...rest,
+        ...(gstin === undefined ? {} : { gstin: parseGstin(gstin) }),
+        ...(rest.businessName === undefined ? {} : { businessName: rest.businessName || null }),
+      }
       // Consent goes through the consent writer, so the change is in the customer's
       // history and the privacy audit trail with who made it.
       if (acceptsMarketing !== undefined) {

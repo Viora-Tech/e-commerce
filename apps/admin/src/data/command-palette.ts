@@ -1,9 +1,11 @@
-import { siteConfig } from '@commerce/config/site'
+import { appStoreUrl, siteConfig } from '@commerce/config/site'
 import { type Permission, permissions } from '@commerce/core/permissions'
 import type { LucideIcon } from '@commerce/ui/icons'
-import { Palette, Plus, Settings } from '@commerce/ui/icons'
+import { Blocks, Braces, Palette, Plus, Settings, TrendingUp, Truck } from '@commerce/ui/icons'
 import { routes } from '@/lib/routes'
 import { ACCOUNT_NAV } from './account'
+import { CUSTOM_DATA_OWNERS } from './custom-data'
+import { customDataContent } from './metaobjects'
 import { NAV_GROUPS, SETTINGS_NAV } from './navigation'
 import { SETTINGS_SECTIONS } from './settings'
 
@@ -60,6 +62,8 @@ export const paletteContent = {
   toggleTheme: 'Switch between light and dark',
   settings: 'Settings',
   account: 'Your account',
+  /** The App Store website (opens a new tab). */
+  appStore: 'App Store',
   breadcrumbSeparator: ' › ',
   order: { guest: 'Guest' },
   product: {
@@ -217,6 +221,44 @@ export const PAGE_LINKS: PaletteLink[] = [
       }),
     ]),
   ),
+  // Growth pages that left the rail: tracking links are a Campaigns tab, automations are
+  // moving to their own app.
+  ...[
+    { label: 'Tracking links', href: routes.growth.links() },
+    { label: 'Marketing automations', href: routes.growth.automations() },
+  ].map(
+    (p): PaletteLink => ({
+      ...p,
+      hint: 'Growth',
+      hintHref: routes.growth.home(),
+      icon: TrendingUp,
+      permission: permissions.MARKETING_READ,
+    }),
+  ),
+  // The queues beside the Shipments table, each on its own page.
+  ...[
+    { label: 'Pickups and manifests', href: routes.orders.shipmentPickups() },
+    { label: 'Deliveries that need you', href: routes.orders.shipmentProblems() },
+  ].map(
+    (p): PaletteLink => ({
+      ...p,
+      hint: 'Shipments',
+      hintHref: routes.orders.shipments(),
+      icon: Truck,
+      permission: permissions.ORDERS_READ,
+    }),
+  ),
+  // Settings → Custom data: each kind of record's extra fields has its own page.
+  ...CUSTOM_DATA_OWNERS.map(
+    (o): PaletteLink => ({
+      label: customDataContent.metafields.heading(customDataContent.owners[o.owner]),
+      hint: customDataContent.title,
+      hintHref: routes.settings.customData(),
+      href: routes.settings.customDataOwner(o.slug),
+      icon: Braces,
+      permission: permissions.SETTINGS_READ,
+    }),
+  ),
   { label: SETTINGS_NAV.label, href: SETTINGS_NAV.href, icon: SETTINGS_NAV.icon },
   ...ACCOUNT_NAV.map(
     (p): PaletteLink => ({
@@ -226,6 +268,13 @@ export const PAGE_LINKS: PaletteLink[] = [
       icon: p.icon,
     }),
   ),
+  // Apps are browsed and installed on the App Store website, not in the admin.
+  {
+    label: paletteContent.appStore,
+    href: appStoreUrl(),
+    icon: Blocks,
+    permission: permissions.SETTINGS_READ,
+  },
 ]
 
 /** Settings sections as palette links, for the Settings scope with nothing typed. */

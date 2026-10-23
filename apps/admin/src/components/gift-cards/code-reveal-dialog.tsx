@@ -1,7 +1,7 @@
 'use client'
 
 import { formatGiftCardCode } from '@commerce/core/gift-cards'
-import { Copy } from '@commerce/ui/icons'
+import { CheckIcon, Copy } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import {
   Dialog,
@@ -61,7 +61,10 @@ export default function CodeRevealDialog({ issued, onDone }: CodeRevealDialogPro
           <p className="text-caption text-destructive">{copy.notSent(failed.error)}</p>
         ) : null}
         <DialogFooter>
-          <Button onClick={() => issued && onDone(issued.id)}>{copy.done}</Button>
+          <Button onClick={() => issued && onDone(issued.id)}>
+            <CheckIcon aria-hidden="true" />
+            {copy.done}
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

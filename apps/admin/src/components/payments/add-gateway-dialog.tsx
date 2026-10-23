@@ -1,6 +1,6 @@
 'use client'
 
-import { Search } from '@commerce/ui/icons'
+import { PlugConnect, Search } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import {
   Dialog,
@@ -116,7 +116,7 @@ export default function AddGatewayDialog({
             return (
               <li key={g.id} className="flex flex-col gap-3 rounded-lg border border-border p-3">
                 <div className="flex items-start gap-3">
-                  <GatewayLogo monogram={g.monogram} />
+                  <GatewayLogo id={g.id} monogram={g.monogram} />
                   <div className="flex min-w-0 flex-1 flex-col gap-0.5">
                     <p className="text-body font-semibold text-foreground">{g.name}</p>
                     <p className="text-caption text-muted-foreground">{g.blurb}</p>
@@ -125,7 +125,7 @@ export default function AddGatewayDialog({
                     <StatusChip tone="success">{copy.connected}</StatusChip>
                   ) : canConnect ? (
                     <Button size="sm" onClick={() => handleConnect(g.id)} disabled={busy !== null}>
-                      {busy === g.id ? <Spinner /> : null}
+                      {busy === g.id ? <Spinner /> : <PlugConnect aria-hidden="true" />}
                       {busy === g.id ? copy.installing : copy.connect}
                     </Button>
                   ) : (

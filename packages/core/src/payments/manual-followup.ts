@@ -1,4 +1,5 @@
 import { type Db, order, orderNote, payment, store, withStore } from '@commerce/db'
+import type { CustomMessage } from '@commerce/notifications'
 import { and, asc, eq, inArray, isNotNull, isNull, lte, ne, or } from 'drizzle-orm'
 import type { StoreContext } from '../context'
 import { CommerceError } from '../errors'
@@ -67,7 +68,12 @@ const stillWaiting = (orderId: string) =>
 export async function sendManualPaymentReminder(
   ctx: StoreContext,
   orderId: string,
-  opts: { author?: string | undefined; now?: Date | undefined } = {},
+  opts: {
+    author?: string | undefined
+    now?: Date | undefined
+    /** The merchant's edited subject and note from the "Review email" dialog. */
+    custom?: CustomMessage | undefined
+  } = {},
 ): Promise<{ sentAt: Date }> {
   const now = opts.now ?? new Date()
   const cutoff = new Date(now.getTime() - REMINDER_EVERY_HOURS * HOUR_MS)
@@ -93,7 +99,10 @@ export async function sendManualPaymentReminder(
       ctx.storeId,
     )
   }
-  await insertOutboxEvent(ctx.tx, ctx.storeId, 'order.payment_reminder', { orderId })
+  await insertOutboxEvent(ctx.tx, ctx.storeId, 'order.payment_reminder', {
+    orderId,
+    custom: opts.custom,
+  })
   await ctx.tx.insert(orderNote).values({
     storeId: ctx.storeId,
     orderId,

@@ -22,6 +22,7 @@ import { api } from '@/lib/api-client'
 import { formatDate, formatDateTime } from '@/lib/format-date'
 import { formatPaise } from '@/lib/money'
 import { routes } from '@/lib/routes'
+import CampaignPerformance from './campaign-performance'
 import EmailPreview from './email-preview'
 import type { LoadedCampaign } from './form-state'
 import WhatsappPreview from './whatsapp-preview'
@@ -55,7 +56,10 @@ function discountCode(blocks: EmailBlock[]): string | null {
   return null
 }
 
-/** Figma "Campaign report" (sent) and "Campaign — scheduled": results, content as sent, audience and orders. */
+/**
+ * Figma "Campaign report" (sent) and "Campaign — scheduled": results, the funnel, rates, links
+ * and buyer split, content as sent, audience and orders.
+ */
 export default function CampaignReport({
   campaign,
   storeName,
@@ -126,7 +130,7 @@ export default function CampaignReport({
       ]
 
   return (
-    <div className="flex w-full flex-col gap-6 px-4 py-6 md:px-8 md:py-8">
+    <div className="flex w-full flex-col gap-6 px-4 pt-4 pb-6 md:px-8 md:pt-5 md:pb-8">
       <PageHeader
         title={campaign.name}
         summary={headline(campaign)}
@@ -207,6 +211,7 @@ export default function CampaignReport({
             .join(' ')}
         </p>
       ) : null}
+      {campaign.report ? <CampaignPerformance report={campaign.report} /> : null}
       <div className="grid grid-cols-1 items-start gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(0,22rem)]">
         <DataCard title={copy.content}>
           <div className="grid gap-4 md:grid-cols-[minmax(0,16rem)_minmax(0,1fr)]">

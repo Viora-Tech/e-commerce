@@ -6,7 +6,7 @@ import {
   type MetafieldOwnerType,
 } from '@commerce/core/metaobjects'
 import { permissions } from '@commerce/core/permissions'
-import { Plus } from '@commerce/ui/icons'
+import { Plus, Save } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import {
   Card,
@@ -21,7 +21,8 @@ import { Skeleton } from '@commerce/ui/shadcn/skeleton'
 import Link from 'next/link'
 import { type ReactNode, useEffect, useState } from 'react'
 import { toast } from 'sonner'
-import { customDataContent, metafieldsCardContent } from '@/data/metaobjects'
+import { CUSTOM_DATA_OWNERS } from '@/data/custom-data'
+import { metafieldsCardContent } from '@/data/metaobjects'
 import { useCopy } from '@/hooks/use-copy'
 import { usePermissions } from '@/hooks/use-permissions'
 import { api } from '@/lib/api-client'
@@ -45,16 +46,6 @@ type MetafieldsCardProps = {
 type Loaded = Awaited<ReturnType<typeof api.metaobjects.metafields>>
 
 /** The Settings → Custom data tab that lists this owner's fields. */
-const TAB: Record<MetafieldOwnerType, string> = {
-  product: customDataContent.tabs.products.id,
-  variant: customDataContent.tabs.variants.id,
-  collection: customDataContent.tabs.collections.id,
-  customer: customDataContent.tabs.customers.id,
-  order: customDataContent.tabs.orders.id,
-  page: customDataContent.tabs.pages.id,
-  article: customDataContent.tabs.articles.id,
-  shop: customDataContent.tabs.shop.id,
-}
 
 /** The id the API takes: none for the shop (the server uses the store), else the record's. */
 const apiOwnerId = (ownerType: MetafieldOwnerType, ownerId: string | null) =>
@@ -154,7 +145,9 @@ export default function MetafieldsCard({
   const canWrite = hasPermission(METAFIELD_OWNER_PERMISSIONS[ownerType].write)
   const canManage = hasPermission(permissions.CONTENT_MANAGE_TYPES)
   const dirty = JSON.stringify(values) !== saved
-  const manageHref = `${routes.settings.customData()}?tab=${TAB[ownerType]}`
+  const manageHref = routes.settings.customDataOwner(
+    CUSTOM_DATA_OWNERS.find((o) => o.owner === ownerType)?.slug ?? '',
+  )
   const definitions = loaded?.definitions ?? []
 
   return (
@@ -167,6 +160,7 @@ export default function MetafieldsCard({
         <CardAction>
           {dirty && canWrite ? (
             <Button onClick={handleSave} disabled={busy}>
+              <Save aria-hidden="true" />
               {busy ? copy.saving : copy.save}
             </Button>
           ) : canManage ? (
@@ -183,7 +177,7 @@ export default function MetafieldsCard({
         </CardContent>
       ) : definitions.length === 0 ? (
         canManage ? (
-          <CardContent>
+          <CardContent className="flex justify-end">
             <Button variant="outline" onClick={handleAdd}>
               <Plus aria-hidden="true" />
               {copy.addField}

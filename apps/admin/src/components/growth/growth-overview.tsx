@@ -1,48 +1,52 @@
 'use client'
 
-import type { MarketingOverview } from '@commerce/api'
-import { ArrowRight, BadgePercent, LinkIcon, Plus, Send, Workflow } from '@commerce/ui/icons'
+import type { CampaignPerformanceRow, MarketingOverview } from '@commerce/api'
+import type { GrowthRecommendation } from '@commerce/core/marketing'
 import { Button } from '@commerce/ui/shadcn/button'
-import { Card } from '@commerce/ui/shadcn/card'
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import RangePicker from '@/components/analytics/range-picker'
-import ChartCard from '@/components/layout/chart-card'
-import PageHeader from '@/components/layout/page-header'
-import SectionHead from '@/components/layout/section-head'
-import StatStrip from '@/components/layout/stat-strip'
-import { growthOverviewContent } from '@/data/growth'
-import { useCopy, useFormat } from '@/hooks/use-copy'
-import { formatDay, type RangeState, rangeQuery, sameRange } from '@/lib/analytics-range'
+import PageBody from '@/components/layout/page-body'
+import { growthHomeContent } from '@/data/growth-home'
+import { useCopy } from '@/hooks/use-copy'
+import { type RangeState, rangeQuery, sameRange } from '@/lib/analytics-range'
 import { api } from '@/lib/api-client'
-import { formatPaiseCompact } from '@/lib/money'
 import { routes } from '@/lib/routes'
-import BestSourceCallout from './best-source-callout'
-import OutcomesCard from './outcomes-card'
-import SourceOrChannelCard from './source-or-channel-card'
-import TopCampaignsCard from './top-campaigns-card'
+import GrowthKpiStrip from './growth-kpi-strip'
+import AttributedSalesCard from './overview/attributed-sales-card'
+import AutopilotHero from './overview/autopilot-hero'
+import AutopilotStrip from './overview/autopilot-strip'
+import ChannelsChartCard from './overview/channels-chart-card'
+import RecentCampaignsCard from './overview/recent-campaigns-card'
+import SessionsCard from './overview/sessions-card'
+import TopSourceCards from './overview/top-source-cards'
+import TrafficTypeCard from './overview/traffic-type-card'
+import RecommendationsCard from './recommendations-card'
 
 type GrowthOverviewPageProps = {
   initialRange: RangeState
   initial: MarketingOverview
+  recommendations: GrowthRecommendation[]
+  campaigns: CampaignPerformanceRow[]
+  autopilot: { enabled: boolean; waiting: number }
 }
 
-const SHORTCUTS = [
-  { ...growthOverviewContent.shortcuts.campaigns, icon: Send },
-  { ...growthOverviewContent.shortcuts.automations, icon: Workflow },
-  { ...growthOverviewContent.shortcuts.links, icon: LinkIcon },
-  { ...growthOverviewContent.shortcuts.discounts, icon: BadgePercent },
-]
-
 /**
- * Growth overview (Figma "Marketing / Growth overview"): what marketing earned (sales from
- * campaigns, automations, discount codes and links, messages sent, subscribers), then sales
- * over time, by source and channel, and the top campaigns.
+ * Growth overview, laid out like Shopify's: the Autopilot banner, Performance for the picked
+ * range (the tiles with sparklines, sales attributed to marketing and sessions over time
+ * against the period before, top channels, sessions by traffic type, the top four sources),
+ * recommendations, the Autopilot strip and the recent campaigns.
+ * The full report is Attribution ("View details").
  */
-export default function GrowthOverviewPage({ initialRange, initial }: GrowthOverviewPageProps) {
+export default function GrowthOverviewPage({
+  initialRange,
+  initial,
+  recommendations,
+  campaigns,
+  autopilot,
+}: GrowthOverviewPageProps) {
   // Hooks
-  const copy = useCopy(growthOverviewContent)
-  const fmt = useFormat()
+  const copy = useCopy(growthHomeContent)
   const [range, setRange] = useState(initialRange)
   const [data, setData] = useState(initial)
   const [loading, setLoading] = useState(false)
@@ -74,126 +78,44 @@ export default function GrowthOverviewPage({ initialRange, initial }: GrowthOver
   }
 
   // Render logic
-  const o = data.outcomes
-  const earnedTrend =
-    o.earnedPrevPaise > 0
-      ? Math.round(((o.earnedPaise - o.earnedPrevPaise) / o.earnedPrevPaise) * 1000) / 10
-      : null
-  const dayPoints = data.salesOverTime.day.map((p) => ({ ...p, label: formatDay(p.label) }))
-  const weekPoints = data.salesOverTime.week.map((p) => ({ ...p, label: formatDay(p.label) }))
-
-  const bestRow = data.sources.find((r) => r.source === data.bestSource) ?? null
+  const kpi = (id: string) => data.kpis.find((k) => k.id === id)
 
   return (
-    <div className="flex w-full flex-col gap-6 px-4 py-6 md:px-8 md:py-8">
-      <PageHeader
-        title={copy.title}
-        summary={copy.intro}
-        actions={
-          <div className="flex items-center gap-2">
+    <PageBody className="gap-8 md:pt-5 md:pb-8">
+      <h1 className="sr-only">{copy.title}</h1>
+      <AutopilotHero enabled={autopilot.enabled} waiting={autopilot.waiting} />
+      <section className="flex flex-col gap-4" aria-busy={loading || undefined}>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <h2 className="text-body-strong text-foreground">{copy.performance.title}</h2>
+          <div className="flex flex-wrap items-center gap-2">
+            <RangePicker value={range} onChange={handleRange} />
             <Button
-              variant="outline"
-              render={<Link href={routes.growth.links()} />}
+              variant="ghost"
+              render={<Link href={`${routes.growth.attribution()}${rangeQuery(range)}`} />}
               nativeButton={false}
             >
-              <LinkIcon aria-hidden />
-              {copy.links}
-            </Button>
-            <Button render={<Link href={routes.growth.newCampaign()} />} nativeButton={false}>
-              <Plus aria-hidden />
-              {copy.newCampaign}
+              {copy.performance.viewDetails}
             </Button>
           </div>
-        }
-      />
-      {/* Figma 658:64823: the range on its own row, with what growth brought in beside it. */}
-      <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-        <RangePicker value={range} onChange={handleRange} />
-        <span className="text-caption text-muted-foreground">
-          {copy.outcomes.summary(
-            fmt.money(o.earnedPaise),
-            copy.outcomes.periods[data.range.key] ?? copy.outcomes.periods.custom ?? '',
-          )}
-        </span>
-      </div>
-      <StatStrip
-        loading={loading}
-        tiles={[
-          {
-            id: 'earned',
-            label: copy.outcomes.tiles.earned,
-            value: fmt.money(o.earnedPaise),
-            trend: earnedTrend,
-            trendNote: copy.outcomes.vsPrevious,
-          },
-          {
-            id: 'messages',
-            label: copy.outcomes.tiles.messages,
-            value: fmt.number(o.messages.email + o.messages.whatsapp),
-            note: copy.outcomes.messagesNote(
-              fmt.number(o.messages.whatsapp),
-              fmt.number(o.messages.email),
-            ),
-          },
-          {
-            id: 'automationOrders',
-            label: copy.outcomes.tiles.automationOrders,
-            value: fmt.number(o.automationOrders),
-            note: copy.outcomes.automationNote,
-          },
-          {
-            id: 'subscribers',
-            label: copy.outcomes.tiles.subscribers,
-            value: fmt.number(o.subscribers.total),
-            note: copy.outcomes.subscribersNote(fmt.number(o.subscribers.newThisWeek)),
-          },
-        ]}
-      />
-      {bestRow ? (
-        <div className="grid grid-cols-1 items-stretch gap-6 xl:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)]">
-          <OutcomesCard outcomes={o} />
-          <BestSourceCallout source={bestRow} />
         </div>
-      ) : (
-        <OutcomesCard outcomes={o} />
-      )}
-      <ChartCard
-        title={copy.salesOverTime.title}
-        periods={[
-          { id: 'day', label: copy.salesOverTime.day, data: dayPoints },
-          { id: 'week', label: copy.salesOverTime.week, data: weekPoints },
-        ]}
-        seriesKey={`marketing-sales-${range.key}`}
-        seriesLabel={copy.salesOverTime.series}
-        formatValue={formatPaiseCompact}
-      />
-      <SourceOrChannelCard
-        sources={data.sources}
-        channels={data.channels}
-        campaigns={data.campaigns}
-      />
-      <TopCampaignsCard rows={data.campaigns} />
-      <section className="flex flex-col gap-3">
-        <SectionHead title={copy.shortcuts.title} />
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {SHORTCUTS.map((s) => (
-            <Link key={s.href} href={s.href} className="group">
-              <Card gap={3} inset={4} className="h-full transition-colors group-hover:bg-muted/50">
-                <div className="flex items-center justify-between">
-                  <span className="flex size-8 items-center justify-center rounded-md border border-border">
-                    <s.icon className="size-4 text-muted-foreground" />
-                  </span>
-                  <ArrowRight className="size-4 text-muted-foreground" aria-hidden />
-                </div>
-                <div className="flex flex-col gap-1">
-                  <p className="text-body-strong text-foreground">{s.title}</p>
-                  <p className="text-caption text-muted-foreground">{s.body}</p>
-                </div>
-              </Card>
-            </Link>
-          ))}
+        <GrowthKpiStrip kpis={data.kpis} loading={loading} />
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+          <AttributedSalesCard
+            attributed={kpi('attributed_sales')}
+            total={kpi('total_sales')}
+            days={data.range.days}
+          />
+          <SessionsCard sessions={kpi('sessions')} days={data.range.days} />
         </div>
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+          <ChannelsChartCard channels={data.channels} />
+          <TrafficTypeCard counts={data.trafficTypes} />
+        </div>
+        <TopSourceCards sources={data.sources} />
       </section>
-    </div>
+      <RecommendationsCard initial={recommendations} />
+      <AutopilotStrip enabled={autopilot.enabled} waiting={autopilot.waiting} />
+      <RecentCampaignsCard rows={campaigns} />
+    </PageBody>
   )
 }

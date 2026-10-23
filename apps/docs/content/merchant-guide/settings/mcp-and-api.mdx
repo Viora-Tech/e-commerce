@@ -1,88 +1,199 @@
 ---
 title: MCP & API
-description: Let Claude, ChatGPT, Cursor or VS Code work with your store, make access tokens for scripts, choose what AI clients may do, and see everything they did.
+description: Connect Claude, Claude Code, ChatGPT, Cursor, VS Code or any MCP app to your store, see every connected app, choose what AI apps may do, make API tokens, and see everything they did.
 ---
 
 # MCP & API
 
-**Settings → MCP & API** lets AI tools work with your store. You can ask Claude about yesterday's
-orders, or let Cursor read your products while it builds a theme. Each tool signs in with your
-own account, so it can never do more than your role allows. Every change it suggests waits for
-your approval.
+**Settings → MCP & API** lets AI apps work with your store. You can ask Claude about yesterday's
+orders, or let Cursor read your products while it builds a theme. Each app acts as the person who
+connected it, so it can never do more than that person's role allows. It can use every action the
+admin has, from fulfilling an order to editing a theme, and every change waits for your approval
+unless you turn that off. Refunds, cancellations, deletes and money, staff, billing and domain
+settings always wait.
 
-The page has three tabs: **Overview**, **Clients & tokens** and **Activity log**.
+The page reads top to bottom:
 
-## Connect an AI tool
+1. **Status:** how many AI apps are connected (or **Not connected yet**), when the last request
+   came, and your store's **MCP server URL** with a copy button.
+2. **Connect an AI app:** a step-by-step guide for each app.
+3. **Connected AI apps:** every app that is connected right now.
+4. **Permissions & approvals:** the rules in plain words, and three switches.
+5. **API tokens:** tokens for scripts, servers and apps that cannot sign in.
+6. **Activity:** a link to everything apps and tokens did.
 
-1. Open **Settings → MCP & API**.
-2. Under **Connect a client**, pick **Claude**, **ChatGPT**, **Cursor** or **VS Code**.
-3. Follow the 3 steps:
-   - **Copy the server URL.** Every store has its own address.
-   - **Add it in the tool.**
-     - **Claude:** Settings → Connectors → Add custom connector.
-     - **ChatGPT:** Settings → Apps & Connectors → Advanced settings → Developer mode → Create.
-     - **Cursor and VS Code:** click **Add to Cursor** or **Add to VS Code**.
-   - **Sign in.** The tool opens a sign-in page. Sign in with your account, then choose what the
-     tool can use: products, orders, customers, inventory, discounts, content and analytics, each
-     as **Read** or **Read & write**. Click **Allow**.
+Every store has its own MCP server URL. Connections belong to the address you used: if you
+connected an app to your live admin, it shows on your live admin's page.
 
-The tool now shows as **Connected**. If you belong to more than one store, connect each store
-separately; each one has its own address.
+## Connect an AI app
 
-## What AI clients can do
+Open **Settings → MCP & API** and pick your app under **Connect an AI app**. Every app uses the
+same server URL. The first time it connects, the app opens a sign-in page: sign in with your
+account, choose the areas it may use (products, orders, customers, inventory, discounts, content,
+analytics, marketing, online store and settings, each as **Read** or **Read & write**) and click
+**Allow**.
 
-Three switches on the Overview tab apply to every connected tool. Click **Save** after changing
-them.
+### Claude (claude.ai and Claude Desktop)
+
+1. Copy the server URL.
+2. On claude.ai, open **Settings → Connectors → Add custom connector**. Paste the URL and name
+   it after your store. The connector also shows in Claude Desktop and the mobile app.
+3. Claude opens the sign-in page. Choose the areas and click **Allow**.
+
+### Claude Code
+
+1. In your terminal, run the command the page shows, for example:
+
+   ```bash
+   claude mcp add --transport http koomerce https://admin.example.com/api/mcp/your-store
+   ```
+
+   Add `--scope user` to use it in every project.
+2. Start Claude Code, type `/mcp`, pick the server and choose **Authenticate**. Your browser
+   opens the sign-in page.
+3. Ask something like "What sold yesterday?"
+
+### ChatGPT
+
+ChatGPT works with the server: it speaks Streamable HTTP with OAuth sign-in, which ChatGPT's
+developer mode needs.
+
+1. In ChatGPT, open **Settings → Apps & Connectors → Advanced settings** and turn on
+   **Developer mode** (paid ChatGPT plans).
+2. Click **Create**, paste the server URL and pick **OAuth** for authentication.
+3. Sign in and click **Allow**. ChatGPT also asks you to confirm each change before it sends it.
+
+### Cursor and VS Code
+
+Click **Add to Cursor** or **Add to VS Code**, or paste the config the page shows into
+`~/.cursor/mcp.json` (Cursor) or `.vscode/mcp.json` (VS Code). The app asks you to sign in the
+first time it uses the server.
+
+### Other MCP apps
+
+The page shows a config with the server URL (transport: Streamable HTTP) and, for apps that only
+run local servers, an `mcp-remote` config that bridges to it. Apps that support MCP sign-in open
+the sign-in page on their own.
+
+### Using an API token instead of signing in
+
+Some apps cannot open a sign-in page. For those, click **Create API token** in the guide, then send
+the token with every request:
+
+```text
+Authorization: Bearer YOUR_API_TOKEN
+```
+
+The guide shows the Claude Code command and the config for each app with the header filled in, and
+the token's dialog shows them with your real token. A token's changes happen at once, without
+approval, so prefer signing in when the app supports it.
+
+Web apps such as claude.ai and ChatGPT reach your store from their own servers, so they need your
+public admin address. On a test copy that runs on your own computer the page says so; use Claude
+Code, Cursor or VS Code there.
+
+## What AI apps can do
+
+A connected app gets three kinds of tools:
+
+- **Quick reads** such as `findProducts`, `orderDetails`, `salesSummary` and `lowStock` answer
+  straight away.
+- **Proposals** such as `proposeProductUpdate`, `proposeDiscount` and `proposeCollection` draft a
+  change for you to approve.
+- **Every admin action:** `searchActions` finds an action, `describeAction` shows its inputs and
+  whether it waits for approval, and `runAction` runs it.
+
+The rules, in plain words: reads run right away; changes follow **Changes need approval**;
+sensitive actions always wait for approval; and an app can never sign in as you, create or revoke
+tokens, or approve its own changes.
+
+If you connected an app before this update, reconnect it (or restart it) so it loads every action.
+
+## Connected AI apps
+
+The list shows every app that signed in and every API token that has been used:
+
+- **App:** the name the app gave when it connected (for example "Claude", "Claude Code" or
+  "Cursor"), and how it connects: **Signed in with OAuth** or **API token**.
+- **Connected by:** the person it acts for, their role, and the date.
+- **Can do:** the areas it can read and change, and whether changes need approval.
+- **Last used:** when it last made a request.
+
+Click **Disconnect** (or **Revoke** for a token) and confirm. It stops working right away. Changes
+already waiting in AI approvals stay there. Disconnect anything you don't recognise, and anything
+belonging to someone who left your team.
+
+If an app has not been used for 30 days, its sign-in lapses and the list says **Sign-in lapsed**;
+connect it again from the app.
+
+## Permissions & approvals
+
+The card first says, in plain words, what happens right now:
+
+- Reads run right away.
+- Changes wait in AI approvals, run at once, or are off, depending on the switches.
+- Sensitive actions always wait for approval.
+- Whether apps can read customer details.
+
+Three switches apply to every app that signs in. Click **Save** after changing them.
 
 | Switch | On | Off |
 |---|---|---|
-| **Allow AI clients to make changes** | Tools can suggest edits to products, discounts and content | Tools can only read |
-| **Changes need approval** (recommended) | Every change waits in AI approvals until you approve it | Changes happen as soon as the tool asks |
-| **Let clients read customer details** | Tools can see names, phone numbers and addresses | Off by default; orders still show the city |
+| **Allow AI apps to make changes** | Apps can use any admin action your role allows, in the areas you ticked | Apps can only read |
+| **Changes need approval** (recommended) | Every change waits in AI approvals until you approve it | Changes happen as soon as the app asks, except sensitive ones (below) |
+| **Let apps read customer details** | Apps can see names, phone numbers and addresses | Off by default; orders still show the city |
+
+### Sensitive actions always wait
+
+Some actions wait for your approval even when **Changes need approval** is off: refunds and store
+credit, cancellations, anything that deletes or removes, gift card balances, payment gateway keys
+and payment settings, staff, roles and invitations, billing and your plan, domains, deleting or
+exporting the store, and the MCP & API settings themselves. An app can never sign in as you,
+create or revoke tokens, or approve its own changes.
 
 ### Approving a change
 
-When a tool suggests a change, the Activity log shows a row like "Claude proposed: …, waiting
+When an app suggests a change, the activity log shows a row like "Claude proposed: …, waiting
 approval".
 
 1. Click **Open approval** on that row.
-2. You see the same preview the AI bar shows: what changes, before and after.
+2. You see the same preview the AI bar shows: what changes, before and after. For any other admin
+   action you see its name, what it does, and every value the app sent.
 3. Click **Approve**, **Edit** or **Cancel**.
 
 Waiting changes also appear in **Settings → AI → Activity** with a **Review** button. Only the
-person who connected the tool can approve its changes.
+person who connected the app can approve its changes, and the change runs as them: if their role
+cannot do it, approving fails and nothing changes.
 
-## Access tokens (for scripts)
+Files an app asks for, such as a shipping label or an invoice, come back as a download link that
+works for 10 minutes.
+
+## API tokens
 
 Tokens are for scripts and servers, such as a script that syncs stock from your warehouse
-software. People should connect a client instead, so their own staff permissions apply.
+software, and for AI apps that cannot sign in. People should sign in instead, so their own staff
+permissions apply.
 
-1. Go to **Clients & tokens** and click **Create token**.
+1. Under **API tokens**, click **Create token**.
 2. Give it a name, tick only the areas it needs, and pick when it expires: 30 days, 90 days,
    1 year or never.
-3. Click **Create token**. Copy the token **now**: it is shown only once. Keep it in your
-   server's secret settings, never in code.
+3. Click **Create token**. Copy the token **now**: it is shown only once, with the header and the
+   Claude Code command ready to paste. Keep it in your server's secret settings, never in code.
 
-A token acts as you, limited to the areas you ticked. Unlike AI clients, a token's changes
-happen at once and do not wait for approval. A token can never change settings, staff, billing
-or money (no refunds or cancellations).
+A token acts as you, limited to the areas you ticked. Unlike apps that sign in, a token's changes
+happen at once and do not wait for approval. A token can never refund or cancel, change staff or
+billing, or change payment, domain or MCP & API settings; with the **Settings** area it can change
+other settings, such as shipping or taxes. Click **Revoke** on a token to stop it.
 
-## Revoke a client or token
+## Activity
 
-On **Clients & tokens**, open the **⋮** menu on a row and click **Revoke**. It stops working
-right away. Changes already waiting in AI approvals stay there.
+Click **View activity** to open everything apps and tokens did in the last 90 days, newest first,
+grouped by day:
 
-Revoke anything you don't recognise, and anything belonging to someone who left your team.
-
-## Activity log
-
-The **Activity log** tab shows everything clients and tokens did in the last 90 days, newest
-first, grouped by day:
-
-- **Reads:** a tool read your data, such as "Claude read sales".
+- **Reads:** an app read your data, such as "Claude read sales".
 - **Changes:** something changed.
 - **Waiting approval:** a suggested change you haven't approved yet.
 - **Blocked:** a switch or a token's areas stopped something.
 
-Each tool and token can make up to 120 requests a minute, so one tool can't slow your store.
+Each app and token can make up to 120 requests a minute, so one app can't slow your store.
 Click **Export CSV** to download the whole log.

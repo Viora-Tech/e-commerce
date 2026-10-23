@@ -1,6 +1,8 @@
 'use client'
 
+import { formatGiftCardCode, generateGiftCardCode } from '@commerce/core/gift-cards'
 import { parseRupees } from '@commerce/money'
+import { RefreshCw, Save } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Checkbox } from '@commerce/ui/shadcn/checkbox'
 import { Field, FieldDescription, FieldLabel } from '@commerce/ui/shadcn/field'
@@ -52,6 +54,8 @@ export default function IssueGiftCardForm({ today }: IssueGiftCardFormProps) {
   const [issued, setIssued] = useState<IssuedCard | null>(null)
 
   // Event handlers
+  const handleGenerate = () => setCode(formatGiftCardCode(generateGiftCardCode()))
+
   const handleSave = async () => {
     const valuePaise = positivePaise(value)
     if (!valuePaise) return
@@ -92,6 +96,7 @@ export default function IssueGiftCardForm({ today }: IssueGiftCardFormProps) {
               {copy.cancel}
             </Button>
             <Button onClick={handleSave} disabled={!canSave}>
+              <Save aria-hidden="true" />
               {busy ? copy.saving : copy.save}
             </Button>
           </>
@@ -121,15 +126,26 @@ export default function IssueGiftCardForm({ today }: IssueGiftCardFormProps) {
               </Field>
               <Field>
                 <FieldLabel htmlFor="gc-code">{copy.code}</FieldLabel>
-                <Input
-                  id="gc-code"
-                  value={code}
-                  maxLength={24}
-                  placeholder={copy.codePlaceholder}
-                  className="font-mono uppercase placeholder:font-sans placeholder:normal-case"
-                  onChange={(e) => setCode(e.target.value.toUpperCase())}
-                  autoComplete="off"
-                />
+                <div className="flex gap-2">
+                  <Input
+                    id="gc-code"
+                    value={code}
+                    maxLength={24}
+                    placeholder={copy.codePlaceholder}
+                    className="font-mono uppercase placeholder:font-sans placeholder:normal-case"
+                    onChange={(e) => setCode(e.target.value.toUpperCase())}
+                    autoComplete="off"
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="shrink-0"
+                    onClick={handleGenerate}
+                  >
+                    <RefreshCw aria-hidden />
+                    {copy.codeGenerate}
+                  </Button>
+                </div>
                 <FieldDescription>{copy.codeHelp}</FieldDescription>
               </Field>
               <Field>

@@ -163,6 +163,11 @@ const ALLOWLIST: AllowEntry[] = [
     exact: true,
     reason: 'MCP tools open withStore and call services; no raw queries',
   },
+  {
+    path: 'packages/api/src/mcp/admin-actions.ts',
+    exact: true,
+    reason: 'MCP runAction opens withStore to log activity and queue approvals; no raw queries',
+  },
   { path: 'apps/worker/src/app-events.ts', exact: true, reason: WORKER },
   { path: 'apps/worker/src/back-in-stock.ts', exact: true, reason: WORKER },
   {
@@ -193,6 +198,11 @@ const ALLOWLIST: AllowEntry[] = [
   { path: 'apps/worker/src/payments.ts', exact: true, reason: WORKER },
   { path: 'apps/worker/src/preorder-balance.ts', exact: true, reason: WORKER },
   {
+    path: 'apps/worker/src/affiliates.ts',
+    exact: true,
+    reason: 'worker sweep lists stores through a SECURITY DEFINER helper (ids only), like reviews',
+  },
+  {
     path: 'apps/worker/src/reviews.ts',
     exact: true,
     reason:
@@ -214,6 +224,14 @@ const ALLOWLIST: AllowEntry[] = [
   { path: 'packages/plugin-back-in-stock/src/signups.ts', exact: true, reason: PLUGIN },
   { path: 'packages/plugin-back-in-stock/src/stock.ts', exact: true, reason: PLUGIN },
   { path: 'packages/plugin-chatwoot/src/server.ts', exact: true, reason: PLUGIN },
+  { path: 'packages/plugin-affiliates/src/affiliates.ts', exact: true, reason: PLUGIN },
+  { path: 'packages/plugin-affiliates/src/commissions.ts', exact: true, reason: PLUGIN },
+  { path: 'packages/plugin-affiliates/src/emails.ts', exact: true, reason: PLUGIN },
+  { path: 'packages/plugin-affiliates/src/payouts.ts', exact: true, reason: PLUGIN },
+  { path: 'packages/plugin-affiliates/src/schema.ts', exact: true, reason: PLUGIN },
+  { path: 'packages/plugin-affiliates/src/secrets.ts', exact: true, reason: PLUGIN },
+  { path: 'packages/plugin-affiliates/src/stats.ts', exact: true, reason: PLUGIN },
+  { path: 'packages/plugin-affiliates/src/store-settings.ts', exact: true, reason: PLUGIN },
   { path: 'packages/plugin-forms/src/messages.ts', exact: true, reason: PLUGIN },
   { path: 'packages/plugin-meilisearch/src/server.ts', exact: true, reason: PLUGIN },
   { path: 'packages/plugin-forms/src/schema.ts', exact: true, reason: PLUGIN },
@@ -242,6 +260,7 @@ const ALLOWLIST: AllowEntry[] = [
   { path: 'packages/plugin-gst-invoices/src/reports.ts', exact: true, reason: PLUGIN },
   { path: 'packages/plugin-gst-invoices/src/schema.ts', exact: true, reason: PLUGIN },
   { path: 'packages/plugin-gst-invoices/src/vouchers.ts', exact: true, reason: PLUGIN },
+  { path: 'packages/plugin-shopify-import/src/app-webhooks.ts', exact: true, reason: PLUGIN },
   { path: 'packages/plugin-shopify-import/src/connection.ts', exact: true, reason: PLUGIN },
   { path: 'packages/plugin-shopify-import/src/media.ts', exact: true, reason: PLUGIN },
   { path: 'packages/plugin-shopify-import/src/references.ts', exact: true, reason: PLUGIN },

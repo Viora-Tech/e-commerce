@@ -1,5 +1,6 @@
 'use client'
 
+import { Eye, Plus, Trash2 } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Checkbox } from '@commerce/ui/shadcn/checkbox'
 import { Input } from '@commerce/ui/shadcn/input'
@@ -170,6 +171,7 @@ export default function QueuePage() {
                 onChange={(e) => setAdding(e.target.value)}
               />
               <Button variant="outline" disabled={busy || !adding.trim()} onClick={handleAdd}>
+                <Plus aria-hidden="true" />
                 {copy.add}
               </Button>
             </div>
@@ -193,6 +195,7 @@ export default function QueuePage() {
               <span className="text-body">{copy.selected(picked.size)}</span>
               <span className="flex-1" />
               <Button size="sm" variant="outline" disabled={busy} onClick={handleRemove}>
+                <Trash2 aria-hidden="true" />
                 {copy.remove}
               </Button>
               <Button
@@ -200,6 +203,7 @@ export default function QueuePage() {
                 disabled={busy}
                 onClick={() => setReviewing(list.filter((r) => picked.has(r.id)))}
               >
+                <Eye aria-hidden="true" />
                 {copy.review}
               </Button>
             </div>

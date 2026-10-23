@@ -1,7 +1,7 @@
 'use client'
 
 import type { PurchaseCurrency } from '@commerce/core/inventory'
-import { Store, Trash2 } from '@commerce/ui/icons'
+import { Save, Store, Trash2 } from '@commerce/ui/icons'
 import PhoneInput from '@commerce/ui/phone-input'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Field, FieldDescription, FieldGroup, FieldLabel } from '@commerce/ui/shadcn/field'
@@ -153,6 +153,7 @@ export default function SupplierForm({ supplier }: SupplierFormProps) {
               </Button>
             ) : null}
             <Button onClick={handleSave} disabled={busy}>
+              <Save aria-hidden="true" />
               {busy ? copy.saving : copy.save}
             </Button>
           </>

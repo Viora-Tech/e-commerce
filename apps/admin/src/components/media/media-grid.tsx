@@ -1,5 +1,6 @@
 'use client'
 
+import { RotateCcw } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Progress } from '@commerce/ui/shadcn/progress'
 import { closestCenter, DndContext } from '@dnd-kit/core'
@@ -106,6 +107,7 @@ export default function MediaGrid({
                   <span className="text-caption text-destructive">{copy.failed}</span>
                   <div className="flex gap-1">
                     <Button size="xs" variant="outline" onClick={() => onRetry(p.key)}>
+                      <RotateCcw aria-hidden="true" />
                       {copy.retry}
                     </Button>
                     <Button size="xs" variant="ghost" onClick={() => onDismiss(p.key)}>

@@ -9,6 +9,8 @@ import Link from 'next/link'
 import { parseAsInteger, parseAsString, parseAsStringLiteral, useQueryStates } from 'nuqs'
 import { Suspense, useEffect, useRef, useState } from 'react'
 import ProoflyListPage from '@/components/layout/proofly-list-page'
+import PoBulkActions from '@/components/purchase-orders/po-bulk-actions'
+import PoRowMenu from '@/components/purchase-orders/po-row-menu'
 import { purchaseOrderColumns } from '@/components/purchase-orders/purchase-order-columns'
 import PurchaseOrderTiles, {
   type PurchaseOrderCounts,
@@ -88,6 +90,18 @@ function PurchaseOrdersContent({ initial }: { initial: PurchaseOrdersInitial }) 
     }
   }, [q, initial.query])
 
+  // Helpers
+  const refresh = async () => {
+    const r = await api.purchaseOrders.list({
+      page: q.page,
+      perPage: q.perPage,
+      search: q.query || undefined,
+      status: q.status ?? undefined,
+    })
+    setRows(r.rows)
+    setTotal(r.total)
+  }
+
   // Render logic
   return (
     <ProoflyListPage
@@ -116,8 +130,17 @@ function PurchaseOrdersContent({ initial }: { initial: PurchaseOrdersInitial }) 
         items={rows}
         getId={(r) => r.id}
         href={(r) => routes.stock.purchaseOrder(r.id)}
+        rowActions={(r) => <PoRowMenu po={r} onChanged={() => void refresh()} />}
+        bulkActions={(ids, clear) => (
+          <PoBulkActions
+            ids={ids}
+            onDone={() => {
+              clear()
+              void refresh()
+            }}
+          />
+        )}
         loading={loading}
-        selectable={false}
         query={q.query}
         onQueryChange={(query) => setQ({ query, page: 1 })}
         onClearAll={() => setQ({ query: '', status: null, page: 1 })}

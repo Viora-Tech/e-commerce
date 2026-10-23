@@ -1,6 +1,7 @@
 'use client'
 
 import type { CourierRuleSettings } from '@commerce/core'
+import { Plus } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Field, FieldDescription, FieldGroup, FieldLabel } from '@commerce/ui/shadcn/field'
 import { Input } from '@commerce/ui/shadcn/input'
@@ -199,6 +200,7 @@ export default function CourierRuleFields({ value, onChange }: CourierRuleFields
                   </div>
                 ))}
                 <Button variant="outline" size="sm" className="w-fit" onClick={handleAddZone}>
+                  <Plus aria-hidden="true" />
                   {copy.addZone}
                 </Button>
                 <Field>
@@ -220,7 +222,7 @@ export default function CourierRuleFields({ value, onChange }: CourierRuleFields
         )}
         <Button
           variant="outline"
-          className="w-fit"
+          className="w-fit self-end"
           nativeButton={false}
           render={<Link href={routes.apps.list()} />}
         >

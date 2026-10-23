@@ -5,6 +5,14 @@
  */
 export type { LanguageModel as AiModel } from 'ai'
 export { assistantInstructions } from './assistant/prompt'
+export {
+  CAMPAIGN_WRITER_MARKER,
+  type CampaignCopy,
+  CampaignCopySchema,
+  campaignWriterContent,
+  campaignWriterInstructions,
+  clampCampaignCopy,
+} from './campaign-writer'
 export * from './client'
 export {
   type AiContent,
@@ -35,6 +43,12 @@ export {
   pdfText,
 } from './purchase-documents/prompt'
 export { DOCUMENT_SCHEMAS } from './purchase-documents/schema'
+export {
+  type QueryWriterOutput,
+  QueryWriterSchema,
+  queryWriterContent,
+  queryWriterInstructions,
+} from './query-writer'
 export {
   clampReply,
   type ReviewReply,

@@ -89,7 +89,7 @@ export default function SocialChannelPage({ data, issues }: SocialChannelPagePro
   const aov = totals.orders > 0 ? Math.round(totals.revenuePaise / totals.orders) : 0
 
   return (
-    <PageBody className="gap-6 md:py-8">
+    <PageBody className="gap-6 md:pt-5 md:pb-8">
       <PageHeader
         title={name}
         subtitle={info.blurb}

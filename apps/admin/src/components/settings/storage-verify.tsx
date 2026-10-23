@@ -42,7 +42,7 @@ export default function StorageVerify() {
     >
       <div>
         <Button type="button" variant="outline" onClick={handleVerify} disabled={busy}>
-          {busy ? <Spinner /> : null}
+          {busy ? <Spinner /> : <CircleCheck aria-hidden="true" />}
           {busy ? copy.verifying : copy.verify}
         </Button>
       </div>

@@ -68,6 +68,7 @@ export const supplierFormContent = {
   needName: 'Add the supplier name',
   delete: 'Delete',
   deleted: 'Supplier deleted',
+  deleteFailed: 'Could not delete the supplier',
   unsaved: 'Unsaved supplier',
   discard: 'Discard',
   confirmDelete: {
@@ -182,6 +183,7 @@ export const inboundShipmentFormContent = {
   failed: 'Could not save shipment',
   delete: 'Delete',
   deleted: 'Shipment deleted',
+  deleteFailed: 'Could not delete the shipment',
   unsaved: 'Unsaved shipment',
   discard: 'Discard',
   confirmDelete: {

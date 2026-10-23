@@ -1,6 +1,9 @@
 import { type Db, outboxEvent, withStore } from '@commerce/db'
+import type { TemplateId } from '@commerce/notifications'
 import type { LoadedPlugins } from '@commerce/plugins'
 import { and, asc, eq, isNull } from 'drizzle-orm'
+import { type AutomationTriggerQueue, triggerJobId } from '../automations/engine/jobs'
+import { AUTOMATION_OUTBOX_TYPES } from '../automations/engine/trigger'
 import { cancelAppBill, markAppBillPaid } from '../billing/app-service'
 import { cancelAiTopup, markAiTopupPaid } from '../billing/credits-service'
 import { cancelPlanBill, markPlanBillPaid } from '../billing/service'
@@ -48,9 +51,18 @@ export type OutboxRelayDeps = {
   domainRoutes?: DomainRouteQueue | undefined
   /** Absent only in tests that do not exercise `catalog.products_changed`; that row is then just marked dispatched. */
   appJobs?: AppJobQueue | undefined
+  /** Absent only in tests that do not exercise Automations; those rows then start no runs. */
+  automationTriggers?: AutomationTriggerQueue | undefined
   log?: ((message: string) => void) | undefined
   /** The platform's own sales store (`PLATFORM_SALES_STORE_ID`): paid plan orders there grant a signup invite. */
   salesStoreId?: string | undefined
+}
+
+/** The Affiliates app's events that email the affiliate, and which message each one is. */
+const AFFILIATE_NOTICES: Partial<Record<OutboxEventType, 'approved' | 'sale' | 'payout'>> = {
+  'affiliate.approved': 'approved',
+  'affiliate.commission_created': 'sale',
+  'affiliate.payout_paid': 'payout',
 }
 
 /** Rows claimed per store per tick; the next tick (or the next store) picks up the rest. */
@@ -79,7 +91,8 @@ async function dispatchRow(deps: OutboxRelayDeps, row: Row): Promise<void> {
   // merchant-only by design (see `order.rto` in OUTBOX_NOTIFICATION_TEMPLATE). Either way,
   // a refund tagged with a return is not the generic `refund_issued` message's job.
   const isReturnRefund = type === 'refund.created' && Boolean(payload.returnId)
-  if (template && !isReturnRefund) {
+  // The caller chose not to tell the shopper (`notifyCustomer: false` on the event).
+  if (template && !isReturnRefund && payload.notifyCustomer !== false) {
     await enqueueNotification(deps.notifications, {
       storeId: row.storeId,
       orderId: payload.orderId as string,
@@ -87,6 +100,7 @@ async function dispatchRow(deps: OutboxRelayDeps, row: Row): Promise<void> {
       key: REPEATABLE_OUTBOX_EVENTS.has(type) ? row.id : undefined,
       returnId: payload.returnId,
       refundId: payload.refundId,
+      custom: payload.custom,
     })
   }
   const appEvent = OUTBOX_APP_EVENT[type]
@@ -185,6 +199,20 @@ async function dispatchRow(deps: OutboxRelayDeps, row: Row): Promise<void> {
       reviewId: payload.reviewId,
     })
   }
+  const affiliateNotice = AFFILIATE_NOTICES[type]
+  if (affiliateNotice && payload.affiliateId) {
+    // Affiliates app: to the affiliate, no order on the job; keyed by this row.
+    await enqueueNotification(deps.notifications, {
+      storeId: row.storeId,
+      orderId: '',
+      template: 'affiliate_update',
+      key: row.id,
+      affiliateId: payload.affiliateId,
+      affiliateNotice,
+      commissionId: payload.commissionId,
+      payoutId: payload.payoutId,
+    })
+  }
   if (type === 'domain.route_requested' && payload.domainId && deps.domainRoutes) {
     await deps.domainRoutes.add(
       'add',
@@ -229,6 +257,30 @@ async function dispatchRow(deps: OutboxRelayDeps, row: Row): Promise<void> {
         `products-${row.id}`,
       )
     }
+  }
+  if (type === 'automation.order_update' && payload.orderId && payload.notificationTemplate) {
+    // "Send order update": the order email the step chose, through the normal queue (it sends
+    // once per template per order, so a re-dispatch or a retried step sends nothing twice).
+    await enqueueNotification(deps.notifications, {
+      storeId: row.storeId,
+      orderId: payload.orderId,
+      template: payload.notificationTemplate as TemplateId,
+    })
+  }
+  if (AUTOMATION_OUTBOX_TYPES.has(type) && deps.automationTriggers) {
+    // Keyed by the row: a re-dispatch is a no-op. The job finds the store's On workflows for
+    // this type and starts runs (or nothing, when none listen).
+    await deps.automationTriggers.add(
+      'trigger',
+      { storeId: row.storeId, outboxId: row.id },
+      {
+        jobId: triggerJobId(row.id),
+        attempts: 5,
+        backoff: { type: 'exponential', delay: 10_000 },
+        removeOnComplete: true,
+        removeOnFail: 1000,
+      },
+    )
   }
   if (type === 'inventory.restocked' && payload.variantId && deps.inventoryRestock) {
     await deps.inventoryRestock.add(

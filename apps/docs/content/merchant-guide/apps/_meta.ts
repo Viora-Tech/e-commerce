@@ -6,6 +6,7 @@ export default {
   'international-couriers': 'International couriers',
   'emi-and-pay-later': 'EMI & pay later',
   'back-in-stock': 'Back in stock',
+  affiliates: 'Affiliates',
   umami: 'Umami',
   growthbook: 'A/B tests (GrowthBook)',
   'google-search-console': 'Google Search Console',

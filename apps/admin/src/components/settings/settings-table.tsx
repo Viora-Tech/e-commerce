@@ -29,6 +29,8 @@ type SettingsTableProps = {
   actions?: boolean
   /** Content under the grid (an empty state) inside the same card. */
   after?: ReactNode
+  /** Card actions under the grid ("Add a delivery area"), right-aligned like every card footer. */
+  footer?: ReactNode
 }
 
 /* Proofly table (Figma "Table · Header / Row"), the same density as the resource tables. */
@@ -48,6 +50,7 @@ export default function SettingsTable({
   description,
   actions = false,
   after,
+  footer,
 }: SettingsTableProps) {
   // Hooks
   const copy = useCopy(tableContent)
@@ -74,6 +77,11 @@ export default function SettingsTable({
         <TableBody>{children}</TableBody>
       </Table>
       {after}
+      {footer ? (
+        <div className="flex flex-wrap items-center justify-end gap-2 px-4 py-3 md:px-6">
+          {footer}
+        </div>
+      ) : null}
       {total === undefined || total === 0 ? null : (
         <p className="px-4 py-3 text-caption text-muted-foreground md:px-6">
           {copy.showing(1, total, total)}

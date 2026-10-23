@@ -1,6 +1,6 @@
 'use client'
 
-import { Trash2 } from '@commerce/ui/icons'
+import { Pencil, Plus, Trash2 } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { useState } from 'react'
 import { toast } from 'sonner'
@@ -76,6 +76,7 @@ export default function CustomerAddressesCard({ customer, onChanged }: CustomerA
       className="rounded-xl"
       action={
         <Button type="button" variant="ghost" size="sm" onClick={() => setEditing('new')}>
+          <Plus aria-hidden="true" />
           {copy.add}
         </Button>
       }
@@ -104,6 +105,7 @@ export default function CustomerAddressesCard({ customer, onChanged }: CustomerA
                 ) : null}
                 <div className="ml-auto flex items-center gap-1">
                   <Button type="button" variant="ghost" size="sm" onClick={() => setEditing(a)}>
+                    <Pencil aria-hidden="true" />
                     {copy.edit}
                   </Button>
                   {a.id ? (

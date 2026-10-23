@@ -1,5 +1,6 @@
 'use client'
 
+import { PackageCheck } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import {
   Dialog,
@@ -13,7 +14,7 @@ import { Input } from '@commerce/ui/shadcn/input'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import LineItemRow from '@/components/layout/line-item-row'
-import { orderDetailContent } from '@/data/orders'
+import { orderDetailContent } from '@/data/order-detail'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 import { type OrderDetail, unfulfilledLines } from './order-detail-types'
@@ -126,6 +127,7 @@ export default function FulfilDialog({ order, onClose, onDone }: FulfilDialogPro
               {copy.fulfilDialog.cancel}
             </Button>
             <Button type="button" onClick={handleConfirm} disabled={busy || total === 0}>
+              <PackageCheck aria-hidden="true" />
               {copy.fulfilDialog.confirm}
             </Button>
           </DialogFooter>

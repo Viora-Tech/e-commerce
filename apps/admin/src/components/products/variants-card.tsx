@@ -12,6 +12,7 @@ import StatusChip from '@/components/layout/status-chip'
 import { productFormContent } from '@/data/product-form'
 import { useCopy } from '@/hooks/use-copy'
 import {
+  type Facets,
   MAX_OPTIONS,
   type MediaItem,
   matrixOptions,
@@ -21,6 +22,7 @@ import {
   suggestSku,
   type VariantRow,
 } from './form-state'
+import { generateSku } from './sku'
 import VariantBulkBar, { type VariantBulkPatch } from './variant-bulk-bar'
 import VariantMatrix from './variant-matrix'
 
@@ -30,6 +32,8 @@ type VariantsCardProps = {
   variants: VariantRow[]
   /** Gallery, so a variant can point at one of its images. */
   media: MediaItem[]
+  /** Option names and values the store's other products use, offered first. */
+  facets?: Facets | undefined
   error?: string | undefined
   onOptions: (options: OptionRow[]) => void
   onVariant: (index: number, patch: Partial<VariantRow>) => void
@@ -37,13 +41,46 @@ type VariantsCardProps = {
 
 type VariantsCopy = (typeof productFormContent)['variants']
 
-/** Suggested chip values for a known option name (Size/Colour/Material); custom names get none. */
-function valueSuggestions(copy: VariantsCopy, name: string): readonly string[] {
+type StoreOptions = Facets['options']
+
+/** Common values for a well-known option name; custom names get none. */
+function presetValues(copy: VariantsCopy, name: string): readonly string[] {
   const key = name.trim().toLowerCase()
-  if (key === 'size') return copy.optionValueSuggestions.size
-  if (/colou?r/.test(key)) return copy.optionValueSuggestions.colour
-  if (key === 'material') return copy.optionValueSuggestions.material
-  return []
+  const presets = copy.optionValueSuggestions
+  if (/colou?r/.test(key)) return presets.colour
+  if (key.startsWith('pack')) return presets.packSize
+  const known = Object.keys(presets) as (keyof typeof presets)[]
+  const match = known.find((k) => k.toLowerCase() === key)
+  return match ? presets[match] : []
+}
+
+/** Case-insensitive union, first spelling wins, order kept. */
+function union(...lists: (readonly string[])[]): string[] {
+  const seen = new Set<string>()
+  const out: string[] = []
+  for (const value of lists.flat()) {
+    const key = value.trim().toLowerCase()
+    if (!key || seen.has(key)) continue
+    seen.add(key)
+    out.push(value)
+  }
+  return out
+}
+
+/** Values the store already uses for this option name, then the common ones. */
+function valueSuggestions(copy: VariantsCopy, store: StoreOptions, name: string): string[] {
+  const key = name.trim().toLowerCase()
+  const used = store.find((o) => o.name.toLowerCase() === key)?.values ?? []
+  return union(used, presetValues(copy, name))
+}
+
+/** Option names the store uses, then the common ones, minus names this product already has. */
+function nameSuggestions(copy: VariantsCopy, store: StoreOptions, taken: string[]): string[] {
+  const own = new Set(taken.map((n) => n.trim().toLowerCase()))
+  return union(
+    store.map((o) => o.name),
+    copy.optionNameSuggestions,
+  ).filter((n) => !own.has(n.toLowerCase()))
 }
 
 export default function VariantsCard({
@@ -51,6 +88,7 @@ export default function VariantsCard({
   options,
   variants,
   media,
+  facets,
   error,
   onOptions,
   onVariant,
@@ -101,10 +139,20 @@ export default function VariantsCard({
   }
 
   const handleAutoFillSku = () => {
+    const taken = variants.map((v) => v.sku)
     variants.forEach((v, i) => {
       if (v.sku.trim()) return
-      onVariant(i, { sku: suggestSku(title, v.optionValues) })
+      const sku = generateSku(title, v.optionValues, taken)
+      taken[i] = sku
+      onVariant(i, { sku })
     })
+  }
+
+  const handleGenerateSku = (index: number) => {
+    const row = variants[index]
+    if (!row) return
+    const taken = variants.filter((_, j) => j !== index).map((v) => v.sku)
+    onVariant(index, { sku: generateSku(title, row.optionValues, taken) })
   }
 
   // Render logic
@@ -113,6 +161,7 @@ export default function VariantsCard({
   const atMax = options.length >= MAX_OPTIONS
   const pendingDropped = pending ? reconcileVariants(pending, options, variants).dropped : []
   const waiting = options.some((o) => !o.values.some((v) => v.trim()))
+  const storeOptions = facets?.options ?? []
 
   return (
     <DataCard
@@ -163,7 +212,11 @@ export default function VariantsCard({
               id={`option-name-${i}`}
               size="lg"
               value={o.name}
-              suggestions={copy.optionNameSuggestions}
+              suggestions={nameSuggestions(
+                copy,
+                storeOptions,
+                options.filter((_, j) => j !== i).map((other) => other.name),
+              )}
               onChange={(name) => setOption(i, { name })}
               placeholder={copy.optionNamePlaceholder}
             />
@@ -173,7 +226,7 @@ export default function VariantsCard({
             <TagInput
               id={`option-values-${i}`}
               tags={o.values}
-              suggestions={valueSuggestions(copy, o.name)}
+              suggestions={valueSuggestions(copy, storeOptions, o.name)}
               onChange={(values) => handleValues(i, values)}
               placeholder={copy.optionValuesPlaceholder}
             />
@@ -213,6 +266,7 @@ export default function VariantsCard({
           selected={selected}
           onSelectedChange={setSelected}
           onVariant={onVariant}
+          onGenerateSku={handleGenerateSku}
         />
       ) : null}
       <ConfirmDialog

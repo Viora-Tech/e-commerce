@@ -13,9 +13,6 @@ import {
   OrderNotFound,
   orderProfit,
   permissions,
-  ReminderTooSoon,
-  requestBalance,
-  sendManualPaymentReminder,
   setCourierCharge,
   updateOrderContact,
 } from '@commerce/core'
@@ -26,7 +23,6 @@ import { storeRegistries } from '../services/apps.service'
 import {
   addOrderNote,
   getOrder,
-  importedSource,
   listOrderIds,
   listOrders,
   ORDER_VIEWS,
@@ -36,7 +32,6 @@ import {
   readyToShipCount,
   refundOrderPayment,
   setOrderStatus,
-  setOrderTags,
 } from '../services/order.service'
 import {
   collectOrderPayment,
@@ -46,32 +41,22 @@ import {
   orderBalance,
   orderNeighbours,
 } from '../services/order-fulfil.service'
-import { orderSheet } from '../services/order-sheet.service'
 import {
   bookShipment,
   cancelStoreShipment,
   getShipmentForOrder,
   refreshShipmentTracking,
 } from '../services/shipping.service'
+import { assertNotImported } from './imported-order'
 import { draftAndAbandonedRoutes } from './order-drafts'
+import { orderListRoutes } from './order-list'
+import { orderMessageRoutes } from './order-messages'
 
 /** What "Mark as" on the order page records; the statuses are then derived. */
 const change = z.enum(ORDER_MARKS)
 
-/** Imported historical orders are read-only; every state-changing route refuses them. */
-async function assertNotImported(
-  tx: Parameters<typeof importedSource>[0],
-  ref: Parameters<typeof importedSource>[1],
-) {
-  const source = await importedSource(tx, ref)
-  if (source) {
-    throw new ORPCError('BAD_REQUEST', {
-      message: 'This order was imported and is read-only. Notes and tags can still be changed.',
-    })
-  }
-}
-
 export const ordersRouter = {
+  /** Orders, a page at a time, by list tab, status, payment, fulfilment, date or a search. */
   list: can(permissions.ORDERS_READ)
     .input(
       z.object({
@@ -119,12 +104,16 @@ export const ordersRouter = {
     deleted: await deleteTestOrders({ tx: context.tx, storeId: context.scope.storeId }),
   })),
 
+  /** The order stats for the last 7 days, against the 7 days before. */
   stats: can(permissions.ORDERS_READ).handler(({ context }) => orderStats(context.tx)),
 
+  /** The stat cards above the Orders list. */
   tiles: can(permissions.ORDERS_READ).handler(({ context }) => orderTiles(context.tx)),
 
+  /** How many orders are waiting to ship. */
   toShipCount: can(permissions.ORDERS_READ).handler(({ context }) => readyToShipCount(context.tx)),
 
+  /** One order with its lines, payments, shipment, balance due and the customer's order history. */
   get: can(permissions.ORDERS_READ)
     .input(z.object({ id: z.uuid() }))
     .handler(async ({ context, input }) => {
@@ -276,57 +265,6 @@ export const ordersRouter = {
       }
     }),
 
-  /**
-   * Ask the shopper for a deposit pre-order's balance: email and WhatsApp
-   * (when set up) with a signed pay link. Can be sent again; reminders and
-   * the store's unpaid-balance rule count from the first request.
-   */
-  requestBalance: can(permissions.ORDERS_WRITE)
-    .input(z.object({ orderId: z.uuid() }))
-    .handler(async ({ context, input }) => {
-      await assertNotImported(context.tx, { orderId: input.orderId })
-      try {
-        return await requestBalance(
-          { storeId: context.scope.storeId, tx: context.tx },
-          input.orderId,
-          { author: context.session.user.email },
-        )
-      } catch (err) {
-        if (err instanceof CommerceError) {
-          throw new ORPCError('BAD_REQUEST', { message: err.message })
-        }
-        throw err
-      }
-    }),
-
-  /**
-   * "Send payment reminder" on an unpaid UPI / bank transfer order: email, and
-   * WhatsApp when set up, with the QR and bank details. At most once every 6 hours.
-   */
-  sendPaymentReminder: can(permissions.ORDERS_WRITE)
-    .input(z.object({ orderId: z.uuid() }))
-    .handler(async ({ context, input }) => {
-      await assertNotImported(context.tx, { orderId: input.orderId })
-      try {
-        return await sendManualPaymentReminder(
-          { storeId: context.scope.storeId, tx: context.tx },
-          input.orderId,
-          { author: context.session.user.email },
-        )
-      } catch (err) {
-        if (err instanceof ReminderTooSoon) {
-          throw new ORPCError('TOO_MANY_REQUESTS', {
-            message: err.message,
-            data: { nextAt: err.nextAt.toISOString() },
-          })
-        }
-        if (err instanceof CommerceError) {
-          throw new ORPCError('BAD_REQUEST', { message: err.message })
-        }
-        throw err
-      }
-    }),
-
   /** Book the parcel with the courier picked in the Create shipment flow (the store's first
    *  courier when none is named); the parcel's items are packed and the shopper is told. */
   createShipment: can(permissions.ORDERS_FULFIL)
@@ -339,7 +277,7 @@ export const ordersRouter = {
         /** The article number from the counter receipt, for a courier booked at its counter (India Post). */
         trackingNumber: z.string().trim().min(1).max(40).optional(),
         fulfillmentOrderId: z.guid().optional(),
-        /** A location id, or null for Settings › Shipping's address; omitted picks for you. */
+        /** A location id, or null for Settings Ã¢â‚¬Âº Shipping's address; omitted picks for you. */
         pickupLocationId: z.uuid().nullish(),
         weightGrams: z.number().int().min(1).optional(),
         dimensionsCm: z
@@ -370,6 +308,7 @@ export const ordersRouter = {
       )
     }),
 
+  /** Fetch the latest tracking events for a shipment from its courier. */
   refreshTracking: can(permissions.ORDERS_READ)
     .input(z.object({ shipmentId: z.uuid() }))
     .handler(async ({ context, input }) => {
@@ -383,6 +322,7 @@ export const ordersRouter = {
       )
     }),
 
+  /** Cancel a booked shipment with its courier. */
   cancelShipment: can(permissions.ORDERS_FULFIL)
     .input(z.object({ shipmentId: z.uuid() }))
     .handler(async ({ context, input }) => {
@@ -457,6 +397,7 @@ export const ordersRouter = {
       }
     }),
 
+  /** Add a staff note to the order's timeline. */
   addNote: can(permissions.ORDERS_WRITE)
     .input(z.object({ orderId: z.uuid(), body: z.string().trim().min(1).max(2000) }))
     .handler(({ context, input }) =>
@@ -466,14 +407,7 @@ export const ordersRouter = {
       }),
     ),
 
-  /** Rows for the Orders bulk-edit spreadsheet, in the order the ids were given. */
-  sheet: can(permissions.ORDERS_READ)
-    .input(z.object({ ids: z.array(z.uuid()).min(1).max(5000) }))
-    .handler(({ context, input }) => orderSheet(context.tx, input.ids)),
-
-  setTags: can(permissions.ORDERS_WRITE)
-    .input(z.object({ id: z.uuid(), tags: z.array(z.string().trim().min(1).max(40)).max(20) }))
-    .handler(({ context, input }) => setOrderTags(context.tx, input.id, input.tags)),
-
+  ...orderListRoutes,
+  ...orderMessageRoutes,
   ...draftAndAbandonedRoutes,
 }

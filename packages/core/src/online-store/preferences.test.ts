@@ -8,6 +8,7 @@ import {
   encodeConsent,
   parsePreferences,
   StorePreferencesSchema,
+  searchIndexable,
 } from './preferences'
 
 describe('store preferences', () => {
@@ -25,7 +26,14 @@ describe('store preferences', () => {
       ga4: 'G-ABC123XYZ',
       gtm: 'GTM-5X7K9Q',
       metaPixel: '1234567890123',
+      googleAds: '',
     })
+    expect(
+      StorePreferencesSchema.parse({ tracking: { googleAds: ' aw-123456789 ' } }).tracking,
+    ).toMatchObject({ googleAds: 'AW-123456789' })
+    expect(StorePreferencesSchema.safeParse({ tracking: { googleAds: 'G-1234' } }).success).toBe(
+      false,
+    )
     expect(StorePreferencesSchema.safeParse({ tracking: { ga4: 'UA-1234-1' } }).success).toBe(false)
     expect(StorePreferencesSchema.safeParse({ tracking: { metaPixel: 'abc' } }).success).toBe(false)
   })
@@ -38,25 +46,57 @@ describe('store preferences', () => {
     ).toBe(true)
   })
 
+  it('keeps a store out of search when indexing is off or the password page is on', () => {
+    expect(defaultPreferences.indexing).toEqual({ searchEngines: true, aiCrawlers: true })
+    expect(searchIndexable(defaultPreferences)).toBe(true)
+    const off = StorePreferencesSchema.parse({ indexing: { searchEngines: false } })
+    expect(searchIndexable(off)).toBe(false)
+    expect(off.indexing.aiCrawlers).toBe(true)
+    const locked = StorePreferencesSchema.parse({
+      password: { enabled: true, password: 'drop-24' },
+    })
+    expect(searchIndexable(locked)).toBe(false)
+  })
+
+  it('keeps the content of a pasted verification meta tag', () => {
+    const p = StorePreferencesSchema.parse({
+      verification: {
+        google: '<meta name="google-site-verification" content="abc_DEF-123456" />',
+        meta: ' x9y8z7w6v5 ',
+      },
+    })
+    expect(p.verification).toEqual({
+      google: 'abc_DEF-123456',
+      bing: '',
+      meta: 'x9y8z7w6v5',
+      pinterest: '',
+    })
+    expect(StorePreferencesSchema.safeParse({ verification: { bing: '"><script>' } }).success).toBe(
+      false,
+    )
+  })
+
   it('holds every tag until the shopper allows its category', () => {
     const prefs = StorePreferencesSchema.parse({
-      tracking: { ga4: 'G-ABC1234', gtm: 'GTM-5X7K9Q', metaPixel: '1234567890' },
+      tracking: {
+        ga4: 'G-ABC1234',
+        gtm: 'GTM-5X7K9Q',
+        metaPixel: '1234567890',
+        googleAds: 'AW-123456789',
+      },
     })
-    expect(allowedTags(prefs, null)).toEqual({ ga4: null, gtm: null, metaPixel: null })
-    expect(allowedTags(prefs, { analytics: false, marketing: false })).toEqual({
-      ga4: null,
-      gtm: null,
-      metaPixel: null,
-    })
+    const none = { ga4: null, gtm: null, metaPixel: null, googleAds: null }
+    expect(allowedTags(prefs, null)).toEqual(none)
+    expect(allowedTags(prefs, { analytics: false, marketing: false })).toEqual(none)
     expect(allowedTags(prefs, { analytics: true, marketing: false })).toEqual({
+      ...none,
       ga4: 'G-ABC1234',
       gtm: 'GTM-5X7K9Q',
-      metaPixel: null,
     })
     expect(allowedTags(prefs, { analytics: false, marketing: true })).toEqual({
-      ga4: null,
-      gtm: null,
+      ...none,
       metaPixel: '1234567890',
+      googleAds: 'AW-123456789',
     })
   })
 

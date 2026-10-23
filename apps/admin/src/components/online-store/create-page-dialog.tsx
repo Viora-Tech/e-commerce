@@ -1,6 +1,7 @@
 'use client'
 
 import { slugify } from '@commerce/core/catalog'
+import { Plus } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import {
   Dialog,
@@ -98,7 +99,7 @@ export default function CreatePageDialog({ open, onOpenChange }: CreatePageDialo
             {copy.cancel}
           </Button>
           <Button type="button" onClick={handleCreate} disabled={!title.trim() || busy}>
-            {busy ? <Spinner /> : null}
+            {busy ? <Spinner /> : <Plus aria-hidden="true" />}
             {copy.confirm}
           </Button>
         </DialogFooter>

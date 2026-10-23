@@ -1,5 +1,6 @@
 'use client'
 
+import { Save } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import {
   Dialog,
@@ -83,6 +84,7 @@ export default function AltTextDialog({ item, onClose, onSaved }: AltTextDialogP
               {copy.cancel}
             </Button>
             <Button type="submit" disabled={busy}>
+              <Save aria-hidden="true" />
               {copy.save}
             </Button>
           </DialogFooter>

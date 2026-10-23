@@ -1,7 +1,7 @@
 'use client'
 
 import { siteConfig } from '@commerce/config/site'
-import { CheckIcon, ExternalLink } from '@commerce/ui/icons'
+import { CheckIcon, Download, ExternalLink } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import Link from 'next/link'
 import DataCard from '@/components/layout/data-card'
@@ -11,9 +11,9 @@ import StatusChip from '@/components/layout/status-chip'
 import { appsContent } from '@/data/apps'
 import { useCopy } from '@/hooks/use-copy'
 import { permissionLines } from '@/lib/app-permissions'
+import type { AppSummary } from '@/lib/app-summary'
 import { routes } from '@/lib/routes'
 import AppAccessList from './app-access-list'
-import type { AppSummary } from './app-card'
 import AppLogo from './app-logo'
 
 type AppListingProps = { app: AppSummary }
@@ -48,11 +48,12 @@ export default function AppListing({ app }: AppListingProps) {
       <PageHeader
         title={app.name}
         summary={`${byline}${category ? ` · ${category}` : ''}`}
-        back={{ label: copy.listing.back, href: routes.apps.store() }}
+        back={{ label: copy.listing.back, href: routes.apps.list() }}
         lead={{ kind: 'logo', node: <AppLogo id={app.id} icon={app.admin.icon} size={72} /> }}
         badges={<StatusChip className="h-5 text-xs">{copy.version(app.version)}</StatusChip>}
         actions={
           <Button nativeButton={false} render={<Link href={routes.apps.install(app.id)} />}>
+            <Download aria-hidden="true" />
             {copy.install}
           </Button>
         }

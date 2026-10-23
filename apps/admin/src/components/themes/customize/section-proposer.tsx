@@ -1,7 +1,7 @@
 'use client'
 
 import type { TemplateSection } from '@commerce/core/theme'
-import { AiIcon } from '@commerce/ui/icons'
+import { AiIcon, Plus, RefreshCw } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Spinner } from '@commerce/ui/shadcn/spinner'
 import { Textarea } from '@commerce/ui/shadcn/textarea'
@@ -119,6 +119,7 @@ export default function SectionProposer({ page }: SectionProposerProps) {
           <p className="text-caption text-muted-foreground">{ai.builder.after}</p>
           <div className="flex flex-wrap gap-2">
             <Button size="sm" onClick={handleAdd}>
+              <Plus aria-hidden="true" />
               {ai.builder.add}
             </Button>
             <Button
@@ -127,7 +128,7 @@ export default function SectionProposer({ page }: SectionProposerProps) {
               onClick={() => void handlePropose()}
               disabled={busy}
             >
-              {busy ? <Spinner /> : null}
+              {busy ? <Spinner /> : <RefreshCw aria-hidden="true" />}
               {ai.builder.again}
             </Button>
             <Button size="sm" variant="ghost" onClick={() => setProposal(null)} disabled={busy}>
@@ -150,11 +151,11 @@ export default function SectionProposer({ page }: SectionProposerProps) {
           />
           <Button
             size="sm"
-            className="self-start"
+            className="self-end"
             onClick={() => void handlePropose()}
             disabled={busy || request.trim().length < 3}
           >
-            {busy ? <Spinner /> : null}
+            {busy ? <Spinner /> : <AiIcon aria-hidden="true" />}
             {busy ? ai.builder.proposing : ai.builder.propose}
           </Button>
         </>

@@ -18,6 +18,7 @@ import {
 import { formatMoney } from '@commerce/money'
 import type {
   Attachment,
+  CustomMessage,
   EmailParcel,
   NotificationChannel,
   NotificationRegistry,
@@ -37,7 +38,7 @@ import { orderParcelsView, type ParcelView } from '../order/parcel-view'
 import { manualCancelAt } from '../payments/manual-followup'
 import { parsePaymentSettings } from '../payments/settings'
 import { balanceOwed } from '../preorder/balance'
-import { balanceUrl, thankYouUrl } from '../preorder/balance-link'
+import { balanceUrl, invoiceUrl, thankYouUrl } from '../preorder/balance-link'
 import {
   balancePayBy,
   depositIsNonRefundable,
@@ -490,11 +491,13 @@ async function recoveryConsented(
  */
 export async function deliverCartRecovery(
   ctx: StoreContext,
-  input: { cartId: string; actionUrl?: string | undefined },
+  input: { cartId: string; actionUrl?: string | undefined; custom?: CustomMessage | undefined },
   opts: DeliverOptions,
 ): Promise<DeliveryResult[]> {
   const built = await buildCartTemplateData(ctx, input.cartId, input.actionUrl)
   if (!built) return []
+  // The merchant's own subject and note from the "Review email" dialog.
+  const data = input.custom ? { ...built.data, custom: input.custom } : built.data
   const template: TemplateId = 'checkout_recovery'
   const channels = await channelsFor(ctx, opts)
   const already = await ctx.tx
@@ -511,7 +514,7 @@ export async function deliverCartRecovery(
       results.push({ channel: channel.id, to, ok: false, error: RECOVERY_NO_CONSENT })
       continue
     }
-    const r = await channel.send({ to: built.to, template, data: built.data })
+    const r = await channel.send({ to: built.to, template, data })
     await ctx.tx
       .insert(notification)
       .values({
@@ -567,6 +570,10 @@ export async function deliverNotification(
     const [o] = await ctx.tx.select().from(order).where(eq(order.id, input.orderId))
     if (!o || balanceOwed(o) <= 0) return []
     if (storefrontUrl) actionUrl = balanceUrl(o.id, opts.settingsSecret, storefrontUrl)
+  }
+  // A draft invoice's "Pay securely" button: the signed page where the customer pays it online.
+  if (input.template === 'draft_invoice' && storefrontUrl) {
+    actionUrl = invoiceUrl(input.orderId, opts.settingsSecret, storefrontUrl)
   }
   // A reminder to pay is pointless once the order is paid or gone.
   if (input.template === 'payment_reminder') {

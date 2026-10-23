@@ -4,7 +4,7 @@ import type { StoreTx } from '@commerce/db'
 import { collection, page, product, variant } from '@commerce/db'
 import { formatMoney } from '@commerce/money'
 import { and, asc, eq, isNotNull, isNull, min } from 'drizzle-orm'
-import { LLMS_PRODUCT_LIMIT, ROBOTS_DISALLOW, seoContent } from '@/data/seo'
+import { AI_CRAWLERS, LLMS_PRODUCT_LIMIT, ROBOTS_DISALLOW, seoContent } from '@/data/seo'
 
 /** One indexable URL on the store's host. */
 export type IndexEntry = { path: string; title?: string; updatedAt?: Date | null }
@@ -111,14 +111,21 @@ export function emptySitemapXml(): string {
   ].join('\n')
 }
 
+/** Which crawlers robots.txt welcomes (`storefrontLock`). */
+export type CrawlerAccess = { search: boolean; ai: boolean }
+
 /**
  * robots.txt. Every crawler, search and AI alike, may read the catalogue; carts,
  * checkout, accounts, on-site search and sort permutations stay out. A locked store
- * (password page on) asks everyone to stay away entirely.
+ * (password page on) or one with search indexing off asks everyone to stay away
+ * entirely; with AI crawlers off, the known AI crawlers get their own `Disallow: /`
+ * group (a crawler obeys only the most specific group naming it).
  */
-export function robotsTxt(origin: string, locked: boolean): string {
-  if (locked) return ['User-agent: *', 'Disallow: /', ''].join('\n')
+export function robotsTxt(origin: string, access: CrawlerAccess): string {
+  if (!access.search) return ['User-agent: *', 'Disallow: /', ''].join('\n')
+  const ai = access.ai ? [] : [...AI_CRAWLERS.map((bot) => `User-agent: ${bot}`), 'Disallow: /', '']
   return [
+    ...ai,
     'User-agent: *',
     'Allow: /',
     ...ROBOTS_DISALLOW.map((p) => `Disallow: ${p}`),

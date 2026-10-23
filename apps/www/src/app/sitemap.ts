@@ -1,18 +1,20 @@
 import { siteConfig } from '@commerce/config/site'
+import { catalogueApps, catalogueCategories } from '@commerce/core/app-catalogue'
 import type { MetadataRoute } from 'next'
-import { STORE_APPS } from '@/data/apps'
+import { appPath, categoryPath } from '@/data/apps'
 import { GUIDES } from '@/data/guides'
 import { SOLUTIONS } from '@/data/solutions'
 
 /** When the static pages last changed meaningfully; move it when their content does. */
-const PAGES_UPDATED = '2026-10-18'
+const PAGES_UPDATED = '2026-10-23'
+/** When the App Store pages last changed meaningfully. */
+const APPS_UPDATED = '2026-10-23'
 
 const PAGES = [
   { path: '/', priority: 1 },
   { path: '/features', priority: 0.9 },
   { path: '/pricing', priority: 0.9 },
   { path: '/solutions', priority: 0.8 },
-  { path: '/apps', priority: 0.8 },
   { path: '/guides', priority: 0.7 },
   { path: '/changelog', priority: 0.7 },
   { path: '/about', priority: 0.6 },
@@ -24,6 +26,7 @@ const PAGES = [
   { path: '/refunds', priority: 0.3 },
   { path: '/shipping', priority: 0.3 },
   { path: '/acceptable-use', priority: 0.3 },
+  { path: '/data-deletion', priority: 0.3 },
 ]
 
 // Built once at `next build`: the site is a static export.
@@ -47,9 +50,15 @@ export default function sitemap(): MetadataRoute.Sitemap {
       lastModified: g.updated,
       priority: 0.6,
     })),
-    ...STORE_APPS.map((app) => ({
-      url: url(`/apps/${app.id}`),
-      lastModified: PAGES_UPDATED,
+    { url: url('/apps'), lastModified: APPS_UPDATED, priority: 0.8 },
+    ...catalogueCategories().map((c) => ({
+      url: url(categoryPath(c.slug)),
+      lastModified: APPS_UPDATED,
+      priority: 0.6,
+    })),
+    ...catalogueApps().map((app) => ({
+      url: url(appPath(app.id)),
+      lastModified: APPS_UPDATED,
       priority: 0.5,
     })),
   ]

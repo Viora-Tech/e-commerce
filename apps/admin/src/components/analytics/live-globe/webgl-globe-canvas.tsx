@@ -15,7 +15,6 @@ import {
   buildBorderStrokePoints,
   decodeBorderPoints,
 } from '@commerce/ui/globe/webgl/border-points'
-import { dotRadiusPx as dotRadius, pickDotRows } from '@commerce/ui/globe/webgl/dot-layout'
 import {
   anglesFor,
   createGlobeRenderer,
@@ -28,12 +27,13 @@ import {
   buildMarkerPoints,
   markerVector,
 } from '@commerce/ui/globe/webgl/overlay-points'
+import { pickSpriteDotSamples, spriteDotRadiusPx } from '@commerce/ui/globe/webgl/sprite-dots'
 import { subsolarPoint } from '@commerce/ui/globe/webgl/sun-position'
 import { cn } from '@commerce/ui/lib/utils'
 import { useEffect, useRef } from 'react'
 import GlobeOverlay from './globe-overlay'
 import { readPalette } from './globe-palette'
-import { defaultGlobeSettings, saveLastZoom } from './globe-settings'
+import { defaultGlobeSettings, type GlobeStartView, saveLastZoom } from './globe-settings'
 import GlobeSettingsPanel from './globe-settings-panel'
 import type { GlobeCanvasProps } from './types'
 
@@ -69,11 +69,26 @@ const ZOOM_SAVE_INTERVAL_MS = 1000
 const WORLD_START_ZOOM = 0.65
 
 /**
+ * "Look > Style: Dotted": cobe's evenly spread dots like the Home card (`live-globe-canvas.tsx`),
+ * drawn as round anti-aliased sprites in the palette's land colour (`spriteDots` in
+ * `globe-renderer.ts`). cobe's fixed 32k dots and 4.5x brightness turned into blocky white
+ * blobs at this size, so the count follows the globe's size and the colour is used as is.
+ * `spacing` is the gap between dot centres at zoom 1 (CSS px), `fill` the dot radius as a share
+ * of it (cobe's is about 0.38). `diffuse` is cobe's: how fast dots dim towards the rim.
+ */
+const DOT_SIZES = {
+  fine: { spacing: 3.4, fill: 0.3 },
+  medium: { spacing: 4.4, fill: 0.34 },
+  bold: { spacing: 6, fill: 0.38 },
+} as const
+const DOT_DIFFUSE = 1.15
+
+/**
  * Our own WebGL globe for the Live view (cobe stays on the Home card). Same props, markers,
- * arcs, drag/tilt, zoom and reduced-motion behaviour as `LiveGlobeCanvas`, but land is drawn
- * as smooth filled continents from the land map with faint 15° grid lines instead of dots, so
- * it never shimmers (dots at 3-6 px beat against the screen's pixel grid) and stays sharp
- * when zoomed in on India.
+ * arcs, drag/tilt, zoom and reduced-motion behaviour as `LiveGlobeCanvas`. By default it looks
+ * like the Home card (round palette-coloured dots, `DOT_SIZES`); "Solid land" draws smooth filled continents
+ * from the land map instead, which stay sharp when zoomed in on India, with optional
+ * coastlines, borders and 15° grid lines.
  *
  * `settings` (the "Globe settings" panel, only ever passed by the Live view hero) is read every
  * frame from a ref, never as an effect dependency: every layer toggle, colour, style and data
@@ -102,6 +117,7 @@ export default function WebglGlobeCanvas({
   const activeIdRef = useRef(activeId)
   const motionRef = useRef<GlobeMotion | null>(null)
   const settingsRef = useRef(settings ?? defaultGlobeSettings(reducedMotion))
+  const startViewRef = useRef<GlobeStartView | null>(null)
 
   useEffect(() => {
     const canvas = canvasRef.current
@@ -113,11 +129,18 @@ export default function WebglGlobeCanvas({
     const s = createMotion(target, reducedMotion, ZOOM_MAX)
     const initial = settingsRef.current
     const defaultZoom = initial.motion.startView === 'world' ? WORLD_START_ZOOM : 1
-    // A theme or focus change rebuilds the globe; keep the zoom the merchant asked for, or (on
-    // first load, with "Remember last zoom" on) the one from their last visit.
+    // A theme or focus change rebuilds the globe; keep the zoom the merchant asked for. A new
+    // "Start view" starts from that view's own zoom; the first load, with "Remember last zoom"
+    // on, from the one saved on their last visit.
+    const previous = motionRef.current
+    const sameView = startViewRef.current === initial.motion.startView
+    startViewRef.current = initial.motion.startView
     s.zoomTarget =
-      motionRef.current?.zoomTarget ??
-      (initial.motion.rememberZoom ? clampZoom(initial.lastZoom, ZOOM_MAX) : defaultZoom)
+      previous && sameView
+        ? previous.zoomTarget
+        : !previous && initial.motion.rememberZoom
+          ? clampZoom(initial.lastZoom, ZOOM_MAX)
+          : defaultZoom
     motionRef.current = s
     let revealStartedAt = performance.now()
     let lastNewestId = markersRef.current.find((m) => m.isNewest)?.id ?? null
@@ -170,11 +193,13 @@ export default function WebglGlobeCanvas({
         canvas.width = Math.round(w * dpr)
         canvas.height = Math.round(h * dpr)
       }
-      const radius = RADIUS * h * s.zoom
+      const baseRadius = RADIUS * h
+      const radius = baseRadius * s.zoom
       const cx = w / 2 + shiftX * w
       const cy = h / 2
 
-      const palette = readPalette(dark, live.look)
+      // `brand`: "Store accent" is the Home card's palette exactly (deep accent land in dark).
+      const palette = readPalette(dark, live.look, true)
       const overlayPalette = {
         marker: palette.marker,
         arc: palette.arc,
@@ -210,10 +235,11 @@ export default function WebglGlobeCanvas({
 
       const m = rotation(s.phi, s.theta)
       const radiusDevicePx = radius * dpr
-      const dotRows = live.look.style === 'dotted' ? pickDotRows(radiusDevicePx, dpr) : 0
-      const sun = live.data.dayNightShadow
-        ? toVector(subsolarPoint(new Date()).lat, subsolarPoint(new Date()).lng)
-        : null
+      const dotSize = DOT_SIZES[live.look.dotSize]
+      // From the zoom-1 size, so zooming spreads the same dots apart instead of reshuffling them.
+      const dotSamples = pickSpriteDotSamples(baseRadius, dotSize.spacing)
+      const subsolar = live.data.dayNightShadow ? subsolarPoint(new Date()) : null
+      const sun = subsolar ? toVector(subsolar.lat, subsolar.lng) : null
 
       // Dashed borders replace the shader's own border line (coastlines are unaffected either
       // way); the "Country borders" layer toggle still gates both.
@@ -242,10 +268,17 @@ export default function WebglGlobeCanvas({
         base: palette.base,
         ocean: palette.ocean,
         glow: palette.glow,
+        line: palette.line ?? undefined,
         layers: { ...live.layers, borders: live.layers.borders && !dashedBorders },
         style: live.look.style,
-        dotRows,
-        dotRadiusPx: dotRows > 0 ? dotRadius(dotRows, radiusDevicePx, dpr) : 0,
+        dotRows: 0,
+        dotRadiusPx: 0,
+        spriteDots: {
+          samples: dotSamples,
+          radiusPx: spriteDotRadiusPx(dotSamples, radiusDevicePx, dotSize.fill, 0.6 * dpr),
+          diffuse: DOT_DIFFUSE,
+          color: palette.landDot,
+        },
         sun,
         dashPeriodPx: DASH_PERIOD_CSS_PX * dpr,
       })
@@ -310,6 +343,7 @@ export default function WebglGlobeCanvas({
     settings && onSettingsChange && onSettingsReset ? (
       <GlobeSettingsPanel
         settings={settings}
+        dark={dark}
         onChange={onSettingsChange}
         onReset={onSettingsReset}
       />
