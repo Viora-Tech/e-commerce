@@ -3,13 +3,13 @@
 import { Trash2 } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetFooter,
-  SheetHeader,
-  SheetTitle,
-} from '@commerce/ui/shadcn/sheet'
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@commerce/ui/shadcn/dialog'
 import type { ReactNode } from 'react'
 import AppAccessList from '@/components/apps/app-access-list'
 import AppLogo from '@/components/apps/app-logo'
@@ -19,8 +19,8 @@ import { useCopy, useFormat } from '@/hooks/use-copy'
 import { credentialKinds } from '@/lib/app-access'
 import type { AppSummary } from '@/lib/app-summary'
 
-type PermissionsSheetProps = {
-  /** The app whose access is open; null closes the sheet. */
+type PermissionsDialogProps = {
+  /** The app whose access is open; null closes the dialog. */
   app: AppSummary | null
   storeName: string | null
   byline: (app: AppSummary) => string
@@ -30,14 +30,14 @@ type PermissionsSheetProps = {
 
 const SECTION = 'text-caption font-medium tracking-wide text-muted-foreground uppercase'
 
-/** Figma "Installed apps · App permissions sheet": what an installed app can reach, what it sends out, its history. */
-export default function PermissionsSheet({
+/** Figma "Installed apps · App permissions": what an installed app can reach, what it sends out, its history. */
+export default function PermissionsDialog({
   app,
   storeName,
   byline,
   onClose,
   onRemove,
-}: PermissionsSheetProps) {
+}: PermissionsDialogProps) {
   // Hooks
   const copy = useCopy(installedAppsContent)
   const fmt = useFormat()
@@ -50,16 +50,16 @@ export default function PermissionsSheet({
       : null
 
   return (
-    <Sheet open={app !== null} onOpenChange={(open) => !open && onClose()}>
-      <SheetContent side="right" className="w-full sm:max-w-[30rem]">
+    <Dialog open={app !== null} onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="flex max-h-[calc(100dvh-2rem)] flex-col gap-0 p-0 sm:max-w-[30rem]">
         {app ? (
           <>
-            <SheetHeader>
-              <SheetTitle>{copy.sheet.title(app.name)}</SheetTitle>
-              <SheetDescription>
+            <DialogHeader className="gap-0.5 p-4 pr-12">
+              <DialogTitle>{copy.sheet.title(app.name)}</DialogTitle>
+              <DialogDescription>
                 {storeName ? copy.sheet.intro(storeName) : copy.sheet.introNoStore}
-              </SheetDescription>
-            </SheetHeader>
+              </DialogDescription>
+            </DialogHeader>
             <div className="flex flex-1 flex-col gap-6 overflow-y-auto px-4 pb-4">
               <div className="flex items-center gap-3">
                 <AppLogo id={app.id} icon={app.admin.icon} size={48} />
@@ -131,7 +131,7 @@ export default function PermissionsSheet({
                 <p className="text-body text-muted-foreground">{copy.sheet.removeAnyTime}</p>
               </section>
             </div>
-            <SheetFooter className="flex-row justify-end gap-2">
+            <DialogFooter className="m-0 flex-row justify-end gap-2">
               <Button variant="outline" onClick={onClose}>
                 {copy.sheet.close}
               </Button>
@@ -139,17 +139,17 @@ export default function PermissionsSheet({
                 <Trash2 aria-hidden="true" />
                 {copy.sheet.remove}
               </Button>
-            </SheetFooter>
+            </DialogFooter>
           </>
         ) : null}
-      </SheetContent>
-    </Sheet>
+      </DialogContent>
+    </Dialog>
   )
 }
 
 type RowProps = { label: string; end?: ReactNode; children: ReactNode }
 
-/** One labelled line of the sheet: label, the detail, and an optional value on the right. */
+/** One labelled line of the dialog: label, the detail, and an optional value on the right. */
 function Row({ label, end, children }: RowProps) {
   return (
     <li className="grid grid-cols-[minmax(0,6.5rem)_minmax(0,1fr)_auto] items-center gap-3 py-2">

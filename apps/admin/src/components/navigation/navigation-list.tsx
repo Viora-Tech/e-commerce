@@ -16,7 +16,7 @@ import { routes } from '@/lib/routes'
 import CreateMenuDialog from './create-menu-dialog'
 import MenuActions from './menu-actions'
 import { placementsFor } from './placements'
-import StorefrontNavigationSheet from './storefront-navigation-sheet'
+import StorefrontNavigationDialog from './storefront-navigation-dialog'
 
 type NavigationListProps = {
   initialMenus: MenuListItem[]
@@ -156,7 +156,7 @@ export default function NavigationList({ initialMenus, initialSettings }: Naviga
           action: addButton,
         }}
       />
-      <StorefrontNavigationSheet
+      <StorefrontNavigationDialog
         open={assigning}
         onOpenChange={setAssigning}
         menus={initialMenus}

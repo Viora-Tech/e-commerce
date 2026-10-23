@@ -8,56 +8,57 @@ import {
 } from '@commerce/ai/client'
 import { AiIcon } from '@commerce/ui/icons'
 import { Progress } from '@commerce/ui/shadcn/progress'
-import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetFooter,
-  SheetHeader,
-  SheetTitle,
-} from '@commerce/ui/shadcn/sheet'
 import { Spinner } from '@commerce/ui/shadcn/spinner'
+import { useRouter } from 'next/navigation'
 import { useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
 import KitButton from '@/components/kit/kit-button'
+import DataCard from '@/components/layout/data-card'
+import PageHeader from '@/components/layout/page-header'
 import { assistantContent } from '@/data/assistant'
 import { useCopy, useLocale } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { type BulkWriteFrom, routes } from '@/lib/routes'
 import BulkWriteOptions from './bulk-write-options'
 import BulkWriteReview from './bulk-write-review'
 
 type Job = Awaited<ReturnType<typeof api.ai.bulkJob>>
 
-type BulkWriteSheetProps = {
-  open: boolean
-  onOpenChange: (open: boolean) => void
+type BulkWritePageProps = {
   /** A new run for these products, or null to show `jobId`. */
   productIds: string[] | null
   jobId: string | null
-  onApplied: () => void
-  /** What to write when the sheet opens (the SEO report preselects what it found missing). */
+  /** What to write at first (the SEO report preselects what it found missing). */
   initialFields?: BulkWriteField[] | undefined
+  /** The page that sent the merchant here, for the back link and Close. */
+  from: BulkWriteFrom
 }
 
 const POLL_MS = 1_500
 const LIVE = new Set(['queued', 'running'])
 
+const BACK: Record<BulkWriteFrom, () => string> = {
+  products: routes.products.list,
+  seo: routes.onlineStore.seo,
+  readiness: routes.salesChannels.agenticReadiness,
+}
+
 /**
- * Bulk "Write with AI": pick what to write, start a background run, watch it go product by
- * product, then tick what to keep and apply. Nothing is saved until Apply, and an applied run
- * can be undone from Settings → AI → Activity.
+ * Products → Write with AI, on its own page: pick what to write, start a background run, watch
+ * it go product by product, then tick what to keep and apply. The run's id goes in the address,
+ * so leaving and coming back (or the products banner) reopens it. Nothing is saved until
+ * Apply, and an applied run can be undone from Settings → AI → Activity.
  */
-export default function BulkWriteSheet({
-  open,
-  onOpenChange,
+export default function BulkWritePage({
   productIds,
   jobId,
-  onApplied,
   initialFields,
-}: BulkWriteSheetProps) {
+  from,
+}: BulkWritePageProps) {
   // Hooks
   const copy = useCopy(assistantContent)
   const locale = useLocale()
+  const router = useRouter()
   const [fields, setFields] = useState<BulkWriteField[]>(
     initialFields ?? ['description', 'seo', 'tags'],
   )
@@ -70,22 +71,16 @@ export default function BulkWriteSheet({
   const seen = useRef(new Set<string>())
 
   useEffect(() => {
-    if (!open) return
-    setSelected([])
-    seen.current = new Set()
-    if (!jobId) {
-      setJob(null)
-      return
-    }
+    if (!jobId) return
     api.ai
       .bulkJob({ id: jobId })
       .then(setJob)
       .catch(() => setJob(null))
-  }, [open, jobId])
+  }, [jobId])
 
   // Polls while the run is writing; each answer is a new `job`, which schedules the next.
   useEffect(() => {
-    if (!open || !job || !LIVE.has(job.status)) return
+    if (!job || !LIVE.has(job.status)) return
     const timer = setTimeout(() => {
       api.ai
         .bulkJob({ id: job.id })
@@ -93,7 +88,7 @@ export default function BulkWriteSheet({
         .catch(() => undefined)
     }, POLL_MS)
     return () => clearTimeout(timer)
-  }, [open, job])
+  }, [job])
 
   // Ticks every newly written product by default.
   useEffect(() => {
@@ -109,7 +104,9 @@ export default function BulkWriteSheet({
     if (!productIds?.length || !fields.length) return
     setBusy(true)
     try {
-      setJob(await api.ai.bulkWrite({ productIds, fields, language, tone }))
+      const started = await api.ai.bulkWrite({ productIds, fields, language, tone })
+      setJob(started)
+      router.replace(routes.products.bulkWrite({ job: started.id, from }))
     } catch (err) {
       toast.error(err instanceof Error ? err.message : copy.bulk.failed)
     } finally {
@@ -133,7 +130,6 @@ export default function BulkWriteSheet({
         fields: job.options.fields,
       })
       toast.success(copy.bulk.applied(result.applied))
-      onApplied()
       setJob(await api.ai.bulkJob({ id: job.id }))
     } catch (err) {
       toast.error(err instanceof Error ? err.message : copy.bulk.failed)
@@ -146,70 +142,29 @@ export default function BulkWriteSheet({
   const live = job !== null && LIVE.has(job.status)
   const finished = (job?.done ?? 0) + (job?.failed ?? 0)
   const count = job?.total ?? productIds?.length ?? 0
+  const backHref = BACK[from]()
 
   return (
-    <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent className="flex flex-col gap-0 data-[side=right]:w-full data-[side=right]:sm:max-w-xl">
-        <SheetHeader className="border-line border-b pr-12">
-          <SheetTitle className="flex items-center gap-2">
-            <AiIcon className="size-5 text-primary" aria-hidden="true" />
-            {copy.bulk.title}
-          </SheetTitle>
-          <SheetDescription>{copy.bulk.subtitle(count)}</SheetDescription>
-        </SheetHeader>
-        <div className="flex flex-1 flex-col gap-5 overflow-y-auto p-4 md:p-5">
-          {job ? (
-            <>
-              <div className="flex flex-col gap-2 rounded-xl border border-border bg-muted/30 p-3.5">
-                <div className="flex items-center justify-between gap-3 text-body">
-                  <span className="flex items-center gap-2 font-medium text-ink-strong">
-                    {live ? <Spinner /> : null}
-                    {copy.bulk.runStatus[job.status] ?? job.status}
-                  </span>
-                  <span className="text-muted-foreground tabular-nums">
-                    {copy.bulk.progress(finished, job.total)}
-                  </span>
-                </div>
-                <Progress value={job.total ? (finished / job.total) * 100 : 0} />
-                {live ? (
-                  <p className="text-caption text-muted-foreground">{copy.bulk.background}</p>
-                ) : null}
-                {job.error ? <p className="text-caption text-destructive">{job.error}</p> : null}
-              </div>
-              <div className="flex flex-col gap-0.5">
-                <h3 className="text-body font-semibold text-ink-strong">
-                  {copy.bulk.reviewHeading}
-                </h3>
-                <p className="text-caption text-muted-foreground">{copy.bulk.reviewHint}</p>
-              </div>
-              <BulkWriteReview job={job} selected={selected} onSelected={setSelected} />
-            </>
-          ) : (
-            <>
-              <BulkWriteOptions
-                fields={fields}
-                language={language}
-                tone={tone}
-                disabled={busy}
-                onFields={setFields}
-                onLanguage={setLanguage}
-                onTone={setTone}
-              />
-              <p className="text-caption text-muted-foreground">
-                {copy.bulk.cost(count, bulkCallsPerProduct(fields))}
-              </p>
-            </>
-          )}
-        </div>
-        <SheetFooter className="flex-row flex-wrap justify-end border-line border-t">
-          {job ? (
+    <div className="flex flex-col gap-4">
+      <PageHeader
+        title={copy.bulk.title}
+        subtitle={copy.bulk.subtitle(count)}
+        back={{ label: copy.bulk.backTo[from], href: backHref }}
+      />
+      <DataCard
+        title={job ? copy.bulk.reviewHeading : copy.bulk.optionsHeading}
+        subtitle={job ? copy.bulk.reviewHint : undefined}
+        icon={<AiIcon aria-hidden="true" />}
+        bodyClassName="flex flex-col gap-5"
+        footer={
+          job ? (
             <>
               {live ? (
                 <KitButton variant="secondary" onClick={() => void handleStop()}>
                   {copy.bulk.cancelRun}
                 </KitButton>
               ) : (
-                <KitButton variant="secondary" onClick={() => onOpenChange(false)}>
+                <KitButton variant="secondary" onClick={() => router.push(backHref)}>
                   {copy.bulk.close}
                 </KitButton>
               )}
@@ -231,9 +186,46 @@ export default function BulkWriteSheet({
               {busy ? <Spinner /> : <AiIcon className="size-4" aria-hidden="true" />}
               {busy ? copy.bulk.starting : copy.bulk.start}
             </KitButton>
-          )}
-        </SheetFooter>
-      </SheetContent>
-    </Sheet>
+          )
+        }
+      >
+        {job ? (
+          <>
+            <div className="flex flex-col gap-2 rounded-xl border border-border bg-muted/30 p-3.5">
+              <div className="flex items-center justify-between gap-3 text-body">
+                <span className="flex items-center gap-2 font-medium text-ink-strong">
+                  {live ? <Spinner /> : null}
+                  {copy.bulk.runStatus[job.status] ?? job.status}
+                </span>
+                <span className="text-muted-foreground tabular-nums">
+                  {copy.bulk.progress(finished, job.total)}
+                </span>
+              </div>
+              <Progress value={job.total ? (finished / job.total) * 100 : 0} />
+              {live ? (
+                <p className="text-caption text-muted-foreground">{copy.bulk.background}</p>
+              ) : null}
+              {job.error ? <p className="text-caption text-destructive">{job.error}</p> : null}
+            </div>
+            <BulkWriteReview job={job} selected={selected} onSelected={setSelected} />
+          </>
+        ) : (
+          <>
+            <BulkWriteOptions
+              fields={fields}
+              language={language}
+              tone={tone}
+              disabled={busy}
+              onFields={setFields}
+              onLanguage={setLanguage}
+              onTone={setTone}
+            />
+            <p className="text-caption text-muted-foreground">
+              {copy.bulk.cost(count, bulkCallsPerProduct(fields))}
+            </p>
+          </>
+        )}
+      </DataCard>
+    </div>
   )
 }

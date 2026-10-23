@@ -65,9 +65,11 @@ describe('Create shipment entry points', () => {
   })
 
   it('book by order number hands its orders to the flow instead of booking them', () => {
-    const panel = read('components/shipments/book-shipments-panel.tsx')
-    expect(panel).toContain('onShip(')
-    expect(read('components/shipments/shipment-sheets.tsx')).toContain('onShip={onShip}')
+    const dialog = read('components/shipments/book-by-number-dialog.tsx')
+    expect(dialog).toContain('onShip(')
+    expect(read('components/shipments/shipments-workspace.tsx')).toContain(
+      'onShip={handleShipFound}',
+    )
   })
 
   it('the old one-off booking dialogs are gone', () => {

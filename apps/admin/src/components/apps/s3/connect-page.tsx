@@ -151,7 +151,11 @@ export default function ConnectPage() {
         </Card>
       ) : (
         <>
-          <DataCard title={copy.steps.one.title} subtitle={copy.steps.one.body}>
+          <DataCard
+            title={copy.steps.one.title}
+            subtitle={copy.steps.one.body}
+            bodyClassName="flex justify-end"
+          >
             <Button
               variant="outline"
               className="w-fit gap-1.5"

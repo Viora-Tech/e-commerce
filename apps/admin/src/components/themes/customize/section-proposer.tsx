@@ -151,7 +151,7 @@ export default function SectionProposer({ page }: SectionProposerProps) {
           />
           <Button
             size="sm"
-            className="self-start"
+            className="self-end"
             onClick={() => void handlePropose()}
             disabled={busy || request.trim().length < 3}
           >

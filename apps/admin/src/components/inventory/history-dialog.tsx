@@ -1,12 +1,12 @@
 'use client'
 
 import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetHeader,
-  SheetTitle,
-} from '@commerce/ui/shadcn/sheet'
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@commerce/ui/shadcn/dialog'
 import { Skeleton } from '@commerce/ui/shadcn/skeleton'
 import { useEffect, useState } from 'react'
 import RelativeTime from '@/components/layout/relative-time'
@@ -15,8 +15,8 @@ import { api } from '@/lib/api-client'
 
 type Entry = Awaited<ReturnType<typeof api.inventory.history>>[number]
 
-type HistorySheetProps = {
-  /** The variant whose log is open; null closes the sheet. */
+type HistoryDialogProps = {
+  /** The variant whose log is open; null closes the dialog. */
   variantId: string | null
   name: string
   sku: string | null
@@ -27,13 +27,13 @@ type HistorySheetProps = {
 const copy = inventoryContent.history
 
 /** Every stock change for one SKU at the selected location, newest first. */
-export default function HistorySheet({
+export default function HistoryDialog({
   variantId,
   name,
   sku,
   locationId,
   onClose,
-}: HistorySheetProps) {
+}: HistoryDialogProps) {
   // Hooks
   const [rows, setRows] = useState<Entry[] | null>(null)
 
@@ -52,15 +52,15 @@ export default function HistorySheet({
 
   // Render logic
   return (
-    <Sheet open={variantId !== null} onOpenChange={(open) => !open && onClose()}>
-      <SheetContent side="right" className="w-full sm:max-w-md">
-        <SheetHeader className="border-line border-b">
-          <SheetTitle>{copy.title}</SheetTitle>
-          <SheetDescription>
+    <Dialog open={variantId !== null} onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="flex max-h-[calc(100dvh-2rem)] flex-col gap-0 p-0 sm:max-w-md">
+        <DialogHeader className="gap-0.5 p-4 pr-12 border-line border-b">
+          <DialogTitle>{copy.title}</DialogTitle>
+          <DialogDescription>
             {name}
             {sku ? ` (${sku})` : ''}
-          </SheetDescription>
-        </SheetHeader>
+          </DialogDescription>
+        </DialogHeader>
         <div className="flex-1 overflow-y-auto px-4 pb-4">
           {rows === null ? (
             <div className="flex flex-col gap-3">
@@ -103,7 +103,7 @@ export default function HistorySheet({
             </ul>
           )}
         </div>
-      </SheetContent>
-    </Sheet>
+      </DialogContent>
+    </Dialog>
   )
 }

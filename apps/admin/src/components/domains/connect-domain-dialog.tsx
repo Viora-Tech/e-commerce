@@ -11,6 +11,7 @@ import FormDialog from '@/components/layout/form-dialog'
 import { domainsContent as copy } from '@/data/domains'
 import { useSetupNext } from '@/hooks/use-setup-next'
 import { api } from '@/lib/api-client'
+import { routes } from '@/lib/routes'
 
 type ConnectDomainDialogProps = {
   open: boolean
@@ -46,11 +47,18 @@ export default function ConnectDomainDialog({ open, onOpenChange }: ConnectDomai
         includeWwwTwin: includeTwin && wwwCounterpart(parsed.hostname) !== null,
       })
       const first = rows[0]
-      toast.success(copy.dialog.connected(parsed.hostname))
       void announceSetup('domain')
       onOpenChange(false)
-      if (first) router.push(`/settings/domains/${first.id}`)
+      // Stay on the list so it shows the new rows straight away; the toast leads to the records.
       router.refresh()
+      toast.success(copy.dialog.connected(parsed.hostname), {
+        action: first
+          ? {
+              label: copy.list.viewRecords,
+              onClick: () => router.push(routes.settings.domain(first.id)),
+            }
+          : undefined,
+      })
     } catch (err) {
       toast.error(err instanceof Error ? err.message : copy.dialog.failed)
     } finally {

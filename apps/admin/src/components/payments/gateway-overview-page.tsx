@@ -76,7 +76,7 @@ export default function GatewayOverviewPage({ providerId }: GatewayOverviewPageP
             <p className="text-body font-semibold text-foreground">{guides[providerId].intro}</p>
             {entry ? <p className="text-body text-muted-foreground">{entry.fees}</p> : null}
             <Button
-              className="w-fit"
+              className="w-fit self-end"
               nativeButton={false}
               render={<Link href={routes.apps.connect(providerId)} />}
             >

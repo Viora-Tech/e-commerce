@@ -131,7 +131,7 @@ export default function PoliciesSettings() {
               value={form.legalName}
               onChange={(legalName) => setForm({ ...form, legalName })}
             />
-            <div className="pt-5">
+            <div className="flex justify-end pt-5">
               <Button
                 variant="outline"
                 render={<Link href={routes.settings.store()} />}

@@ -79,7 +79,7 @@ export default function AdvancedSection({ devLog, onChanged }: AdvancedSectionPr
             </div>
             <Button
               variant="outline"
-              className="w-fit gap-1.5"
+              className="w-fit gap-1.5 self-end"
               nativeButton={false}
               render={<Link href="/dev/emails" />}
             >

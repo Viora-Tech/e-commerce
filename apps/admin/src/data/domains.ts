@@ -18,6 +18,8 @@ export const domainsContent = {
     redirects: 'Redirects to primary',
     serves: 'Serves the store',
     isPrimary: 'Primary',
+    addRecords: 'Add the DNS records at your registrar to finish',
+    viewRecords: 'See DNS records',
   },
   empty: {
     heading: 'Use your own domain',

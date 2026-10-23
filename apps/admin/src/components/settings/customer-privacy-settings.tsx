@@ -219,6 +219,7 @@ export default function CustomerPrivacySettings() {
             )}
             <Button
               variant="outline"
+              className="self-end"
               render={<Link href={`${routes.settings.policies()}#grievance`} />}
               nativeButton={false}
             >
@@ -230,6 +231,7 @@ export default function CustomerPrivacySettings() {
           <SettingsCard title={copy.accounts.heading} description={copy.accounts.body}>
             <Button
               variant="outline"
+              className="self-end"
               render={<Link href={routes.settings.customerAccounts()} />}
               nativeButton={false}
             >

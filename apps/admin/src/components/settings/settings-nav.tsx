@@ -21,7 +21,7 @@ const FOCUS =
   'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2'
 
 /* Proofly settings nav: 32px rows with the section's icon, the active one on a soft blue fill. */
-const TAB = `relative isolate flex h-[1.875rem] w-full min-w-0 items-center gap-2.5 rounded-[0.5rem] pr-3 pl-3 [&_svg]:size-4 [&_svg]:shrink-0 [&_svg]:text-muted-foreground text-nav text-ink-strong transition-colors hover:bg-muted ${FOCUS}`
+const TAB = `relative isolate flex h-8 w-full min-w-0 items-center gap-2.5 rounded-[0.5rem] pr-3 pl-3 [&_svg]:size-4 [&_svg]:shrink-0 [&_svg]:text-muted-foreground text-nav text-ink-strong transition-colors hover:bg-muted ${FOCUS}`
 const TAB_ACTIVE =
   'text-sidebar-accent-foreground hover:bg-transparent [&_svg]:text-sidebar-accent-foreground'
 
@@ -70,19 +70,19 @@ export default function SettingsNav() {
       <div className={cn(onHome ? 'block' : 'hidden', 'md:block')}>
         <SettingsSearch />
       </div>
-      <div className="hidden flex-col gap-3 md:flex">
-        <ul className="flex flex-col">
+      <div className="hidden flex-col gap-5 md:flex">
+        <ul className="flex flex-col gap-1">
           <NavTab section={SETTINGS_HOME} pathname={pathname} locale={locale} slide={slide} />
         </ul>
         {SETTINGS_GROUPS.map((group) => (
-          <div key={group.id} className="flex flex-col gap-1">
+          <div key={group.id} className="flex flex-col gap-1.5">
             <p
               id={`settings-group-${group.id}`}
               className="px-3 text-caption text-muted-foreground"
             >
               {copy.groups[group.id]}
             </p>
-            <ul aria-labelledby={`settings-group-${group.id}`} className="flex flex-col">
+            <ul aria-labelledby={`settings-group-${group.id}`} className="flex flex-col gap-1">
               {byNameLength(group.sections, locale).map((section) => (
                 <NavTab
                   key={section.href}

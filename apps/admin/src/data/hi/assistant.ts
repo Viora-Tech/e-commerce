@@ -159,7 +159,9 @@ export default [
           ? `${n} AI रिक्वेस्ट, हर प्रोडक्ट की एक।`
           : `${n * perProduct} AI रिक्वेस्ट, हर प्रोडक्ट की ${perProduct} (कीवर्ड, फिर लिखना)।`,
       progress: (done, total) => `${total} में से ${done} लिखे गए`,
-      background: 'इसे बंद करने पर भी काम चलता रहेगा। जांचने के लिए वापस आएं।',
+      background: 'यह पेज छोड़ने पर भी काम चलता रहेगा। जांचने के लिए वापस आएं।',
+      optionsHeading: 'इस रन की सेटिंग',
+      backTo: { products: 'प्रोडक्ट', seo: 'SEO', readiness: 'कैटलॉग की तैयारी' },
       cancelRun: 'रोकें',
       reviewHeading: 'जांचें और लगाएं',
       reviewHint: 'जो नहीं चाहिए उसका टिक हटा दें। Apply टिक किए हुए प्रोडक्ट में सेव कर देगा।',

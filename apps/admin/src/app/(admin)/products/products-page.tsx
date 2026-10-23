@@ -15,7 +15,6 @@ import ConfirmDialog from '@/components/layout/confirm-dialog'
 import ProoflyListPage from '@/components/layout/proofly-list-page'
 import BulkTagDialog from '@/components/products/bulk-tag-dialog'
 import BulkWriteBanner from '@/components/products/bulk-write/bulk-write-banner'
-import BulkWriteSheet from '@/components/products/bulk-write/bulk-write-sheet'
 import { downloadProductCsv } from '@/components/products/export-products'
 import ImportDialog from '@/components/products/import-dialog'
 import ProductBulkActions from '@/components/products/product-bulk-actions'
@@ -113,10 +112,6 @@ function ProductsContent({ initial }: { initial: ProductsInitial }) {
   const [tagging, setTagging] = useState<{ ids: string[]; clear: () => void } | null>(null)
   const [deleting, setDeleting] = useState<{ ids: string[]; clear: () => void } | null>(null)
   const [busy, setBusy] = useState(false)
-  const [writing, setWriting] = useState<{ ids: string[] | null; jobId: string | null } | null>(
-    null,
-  )
-  const [aiRefresh, setAiRefresh] = useState(0)
 
   const hydrated = useRef(false)
 
@@ -298,8 +293,7 @@ function ProductsContent({ initial }: { initial: ProductsInitial }) {
     >
       {initial.aiBulk ? (
         <BulkWriteBanner
-          refreshKey={aiRefresh}
-          onOpen={(jobId) => setWriting({ ids: null, jobId })}
+          onOpen={(jobId) => router.push(routes.products.bulkWrite({ job: jobId }))}
         />
       ) : null}
       <ResourceTable
@@ -367,7 +361,9 @@ function ProductsContent({ initial }: { initial: ProductsInitial }) {
             onTag={() => setTagging({ ids, clear })}
             onBulkEdit={() => router.push(routes.products.bulkEdit(ids))}
             onDelete={() => setDeleting({ ids, clear })}
-            onWriteAi={initial.aiBulk ? () => setWriting({ ids, jobId: null }) : undefined}
+            onWriteAi={
+              initial.aiBulk ? () => router.push(routes.products.bulkWrite({ ids })) : undefined
+            }
             onDone={() => {
               clear()
               void refresh()
@@ -387,19 +383,6 @@ function ProductsContent({ initial }: { initial: ProductsInitial }) {
       />
 
       <ImportDialog open={importing} onOpenChange={setImporting} onImported={refresh} />
-      {initial.aiBulk ? (
-        <BulkWriteSheet
-          open={writing !== null}
-          onOpenChange={(open) => {
-            if (open) return
-            setWriting(null)
-            setAiRefresh((n) => n + 1)
-          }}
-          productIds={writing?.ids ?? null}
-          jobId={writing?.jobId ?? null}
-          onApplied={() => void refresh()}
-        />
-      ) : null}
       <BulkTagDialog
         open={tagging !== null}
         onOpenChange={(open) => !open && setTagging(null)}

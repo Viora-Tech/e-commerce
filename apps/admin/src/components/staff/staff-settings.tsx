@@ -3,6 +3,7 @@
 import { permissions } from '@commerce/core/permissions'
 import { Plus, UserPlus } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
+import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import ConfirmDialog from '@/components/layout/confirm-dialog'
@@ -12,13 +13,13 @@ import SettingsSection from '@/components/settings/settings-section'
 import InviteDialog from '@/components/staff/invite-dialog'
 import MembersCard, { type StaffMemberRow } from '@/components/staff/members-card'
 import PendingInvitesCard, { type PendingInviteRow } from '@/components/staff/pending-invites-card'
-import RoleSheet from '@/components/staff/role-sheet'
 import RolesCard, { type RoleRow } from '@/components/staff/roles-card'
 import { SETTINGS_BACK } from '@/data/settings'
 import { staffContent } from '@/data/staff'
 import { useCopy } from '@/hooks/use-copy'
 import { refreshPermissions, usePermissions } from '@/hooks/use-permissions'
 import { api } from '@/lib/api-client'
+import { routes } from '@/lib/routes'
 
 type Team = { members: StaffMemberRow[]; roles: RoleRow[]; invites: PendingInviteRow[] }
 
@@ -44,8 +45,6 @@ export default function StaffSettings() {
   const [roles, setRoles] = useState<RoleRow[] | null>(null)
   const [invites, setInvites] = useState<PendingInviteRow[]>([])
   const [inviteOpen, setInviteOpen] = useState(false)
-  const [editing, setEditing] = useState<RoleRow | null>(null)
-  const [sheetOpen, setSheetOpen] = useState(false)
   const [pendingRemove, setPendingRemove] = useState<StaffMemberRow | null>(null)
   const [pendingDelete, setPendingDelete] = useState<RoleRow | null>(null)
 
@@ -110,16 +109,6 @@ export default function StaffSettings() {
     }
   }
 
-  const handleEdit = (role: RoleRow) => {
-    setEditing(role)
-    setSheetOpen(true)
-  }
-
-  const handleCreate = () => {
-    setEditing(null)
-    setSheetOpen(true)
-  }
-
   // Render logic
   const tabs = [copy.tabs.members, copy.tabs.roles]
   const canManage = hasPermission(permissions.STAFF_MANAGE)
@@ -152,18 +141,13 @@ export default function StaffSettings() {
         <SettingsSection id={copy.tabs.roles.id} className="flex flex-col gap-4">
           {canManage ? (
             <div className="flex justify-end">
-              <Button onClick={handleCreate}>
+              <Button nativeButton={false} render={<Link href={routes.settings.newRole()} />}>
                 <Plus aria-hidden="true" />
                 {copy.roles.create}
               </Button>
             </div>
           ) : null}
-          <RolesCard
-            roles={roles ?? []}
-            canManage={canManage}
-            onEdit={handleEdit}
-            onDelete={setPendingDelete}
-          />
+          <RolesCard roles={roles ?? []} canManage={canManage} onDelete={setPendingDelete} />
         </SettingsSection>
       </SectionTabs>
 
@@ -173,7 +157,6 @@ export default function StaffSettings() {
         onOpenChange={setInviteOpen}
         onInvited={reload}
       />
-      <RoleSheet open={sheetOpen} role={editing} onOpenChange={setSheetOpen} onSaved={reload} />
 
       <ConfirmDialog
         open={pendingRemove !== null}

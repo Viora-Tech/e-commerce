@@ -122,6 +122,17 @@ export default function DomainsSettings({ domains }: DomainsSettingsProps) {
                 {d.kind === 'platform' ? (
                   <span className="text-caption text-muted-foreground">{copy.list.platform}</span>
                 ) : null}
+                {d.kind === 'custom' && d.status === 'pending' ? (
+                  <span className="flex flex-wrap items-center gap-x-2 text-caption text-muted-foreground">
+                    {copy.list.addRecords}
+                    <Link
+                      href={routes.settings.domain(d.id)}
+                      className="font-medium text-ink-strong underline underline-offset-2"
+                    >
+                      {copy.list.viewRecords}
+                    </Link>
+                  </span>
+                ) : null}
                 {d.sslStatus === 'failed' && d.error ? (
                   <span className="text-caption text-destructive">{d.error}</span>
                 ) : null}
