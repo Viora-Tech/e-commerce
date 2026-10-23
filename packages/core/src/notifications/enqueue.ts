@@ -26,6 +26,12 @@ export type NotificationJob = {
   contactMessageId?: string | undefined
   /** For review_reply: the `review` the store answered (Reviews app). */
   reviewId?: string | undefined
+  /** For affiliate_update: the affiliate it goes to and what happened (Affiliates app). */
+  affiliateId?: string | undefined
+  affiliateNotice?: 'approved' | 'sale' | 'payout' | undefined
+  /** The commission (`sale`) or payout (`payout`) the message reports. */
+  commissionId?: string | undefined
+  payoutId?: string | undefined
 }
 
 /**

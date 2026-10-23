@@ -807,6 +807,8 @@ export type MarketingAttribution = {
   automationId?: string | undefined
   /** The short link (Growth → Links) the visit came through. */
   linkId?: string | undefined
+  /** An affiliate's referral code from `?ref=` (Affiliates app). */
+  ref?: string | undefined
   /** ISO time of the touch. */
   at: string
 }

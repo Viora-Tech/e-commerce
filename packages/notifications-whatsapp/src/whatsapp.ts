@@ -72,6 +72,19 @@ export function templateParams(template: TemplateId, d: TemplateData): string[] 
       return [d.customerName, d.storeName, n, d.totalLabel, d.orderUrl ?? '-']
     case 'unpaid_cancelled':
       return [d.customerName, d.storeName, n, d.totalLabel]
+    // One template for the three affiliate messages: {{1}} store, {{2}} what happened, {{3}} amount
+    // or code, {{4}} the dashboard link.
+    case 'affiliate_update':
+      return [
+        d.storeName,
+        d.affiliate?.kind === 'approved'
+          ? 'You are approved'
+          : d.affiliate?.kind === 'payout'
+            ? 'Your payout was sent'
+            : 'New sale through your link',
+        d.affiliate?.amountLabel ?? d.affiliate?.couponCode ?? '-',
+        d.affiliate?.portalUrl ?? '-',
+      ]
     case 'contact_message':
       return [d.storeName, d.contactMessage?.name || '-']
     case 'review_request':

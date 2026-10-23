@@ -28,6 +28,7 @@ export {
   storesWithBalanceDue,
   storesWithCertificateChecks,
   storesWithChannelConnections,
+  storesWithDueAffiliateCommissions,
   storesWithDueReviewRequests,
   storesWithMarketingWork,
   storesWithMemberDailySummaries,

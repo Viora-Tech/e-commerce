@@ -2,6 +2,7 @@ import type { TranslationPair } from '@/lib/i18n'
 import abandonedDetail from './abandoned-detail'
 import account from './account'
 import activity from './activity'
+import affiliates from './affiliates'
 import ai from './ai'
 import analytics from './analytics'
 import appInstall from './app-install'
@@ -118,6 +119,7 @@ import xpressbees from './xpressbees'
 export const hindiCopy: readonly TranslationPair[] = [
   ...activity,
   ...account,
+  ...affiliates,
   ...appInstall,
   ...apps,
   ...abandonedDetail,

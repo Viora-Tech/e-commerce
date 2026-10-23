@@ -20,6 +20,7 @@
     "@commerce/money": "workspace:*",
     "@commerce/observability": "workspace:*",
     "@commerce/payments": "workspace:*",
+    "@commerce/plugin-affiliates": "workspace:*",
     "@commerce/plugin-back-in-stock": "workspace:*",
     "@commerce/plugin-chatwoot": "workspace:*",
     "@commerce/plugin-emi": "workspace:*",

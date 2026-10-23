@@ -13,6 +13,7 @@ import { CONSENT_COOKIE } from '@commerce/core/preferences'
 import { logger } from '@commerce/observability/logging'
 import { recordVisit, sharedRedis } from '@commerce/queue'
 import { cookies, headers } from 'next/headers'
+import { countAffiliateClick } from '@/lib/affiliates'
 import {
   ATTRIBUTION_COOKIE,
   ATTRIBUTION_MAX_AGE,
@@ -47,7 +48,13 @@ async function readBody(request: Request): Promise<{ href: string; referrer: str
 function hasCampaignSignal(href: string): boolean {
   try {
     const p = new URL(href).searchParams
-    return p.has('utm_source') || p.has('utm_medium') || p.has('utm_campaign') || p.has('gclid')
+    return (
+      p.has('utm_source') ||
+      p.has('utm_medium') ||
+      p.has('utm_campaign') ||
+      p.has('gclid') ||
+      p.has('ref')
+    )
   } catch {
     return false
   }
@@ -126,6 +133,8 @@ export const POST = withEvlog(async (request: Request) => {
     await inStore(storeId, async (tx) => {
       await recordMarketingSession(tx, storeId, { visitorId, attribution: current })
       if (cartId) await setCartAttribution(tx, cartId, picked)
+      // An affiliate's link (Affiliates app): one click per session that landed on it.
+      if (current.ref) await countAffiliateClick(tx, storeId, current.ref)
     })
   } catch (err) {
     // A lost session row costs a report line, never the page view.

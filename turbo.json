@@ -24,6 +24,7 @@
         "@commerce/payments-cashfree#build",
         "@commerce/payments-decentro#build",
         "@commerce/payments-razorpay#build",
+        "@commerce/plugin-affiliates#build",
         "@commerce/plugin-back-in-stock#build",
         "@commerce/plugin-chatwoot#build",
         "@commerce/plugin-emi#build",

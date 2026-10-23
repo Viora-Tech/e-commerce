@@ -20,6 +20,7 @@ export const APP_PRICING: Readonly<Record<string, AppPrice>> = {
   reviews: { name: 'Reviews', includedFrom: 'growth', pricePaise: 199_00 },
   'back-in-stock': { name: 'Back in stock', includedFrom: 'growth', pricePaise: 149_00 },
   forms: { name: 'Forms', includedFrom: 'growth', pricePaise: 99_00 },
+  affiliates: { name: 'Affiliates', includedFrom: 'growth', pricePaise: 299_00 },
   'emi-pay-later': { name: 'EMI & pay later', includedFrom: 'pro', pricePaise: 149_00 },
   'google-search-console': {
     name: 'Google Search Console',

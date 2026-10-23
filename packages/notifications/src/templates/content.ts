@@ -138,6 +138,39 @@ ${d.review?.reply ?? ''}`,
     whatsapp: (d) =>
       `${d.storeName} replied to your review of ${d.review?.productTitle ?? 'your purchase'}.`,
   },
+  affiliate_update: {
+    subject: (d) => {
+      const a = d.affiliate
+      if (a?.kind === 'approved') return `You are in: the ${d.storeName} affiliate program`
+      if (a?.kind === 'payout') return `${d.storeName} sent your payout`
+      return `New sale through your ${d.storeName} link`
+    },
+    heading: (d) => `Hi ${d.affiliate?.name || 'there'}`,
+    intro: (d) => {
+      const a = d.affiliate
+      if (a?.kind === 'approved') {
+        return [
+          `Welcome to the ${d.storeName} affiliate program. Share your link and earn on every sale it brings.`,
+          a.link ? `Your link: ${a.link}` : '',
+          a.couponCode ? `Your code for followers: ${a.couponCode}` : '',
+        ]
+          .filter(Boolean)
+          .join('\n\n')
+      }
+      if (a?.kind === 'payout') {
+        return [
+          `${d.storeName} has paid you ${a.amountLabel ?? ''}.`,
+          a.tdsLabel ? `TDS deducted: ${a.tdsLabel}.` : '',
+          a.reference ? `Reference: ${a.reference}` : '',
+        ]
+          .filter(Boolean)
+          .join('\n\n')
+      }
+      return `Someone just ordered through your link or code. You earn ${a?.amountLabel ?? 'a commission'} once the order is delivered and the return window has passed.`
+    },
+    outro: () => 'Your dashboard shows your clicks, sales and earnings.',
+    whatsapp: (d) => `${d.storeName} affiliate program: ${d.affiliate?.portalUrl ?? ''}`,
+  },
   contact_message: {
     subject: (d) =>
       `${d.storeName}: new message from ${d.contactMessage?.name || d.contactMessage?.email || 'a shopper'}`,

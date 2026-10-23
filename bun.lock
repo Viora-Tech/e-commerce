@@ -16,6 +16,7 @@
         "@commerce/payments-cashfree": "workspace:*",
         "@commerce/payments-decentro": "workspace:*",
         "@commerce/payments-razorpay": "workspace:*",
+        "@commerce/plugin-affiliates": "workspace:*",
         "@commerce/plugin-back-in-stock": "workspace:*",
         "@commerce/plugin-chatwoot": "workspace:*",
         "@commerce/plugin-emi": "workspace:*",
@@ -71,6 +72,7 @@
         "@commerce/notifications": "workspace:*",
         "@commerce/observability": "workspace:*",
         "@commerce/payments": "workspace:*",
+        "@commerce/plugin-affiliates": "workspace:*",
         "@commerce/plugin-back-in-stock": "workspace:*",
         "@commerce/plugin-chatwoot": "workspace:*",
         "@commerce/plugin-emi": "workspace:*",
@@ -194,6 +196,7 @@
         "@commerce/money": "workspace:*",
         "@commerce/observability": "workspace:*",
         "@commerce/payments": "workspace:*",
+        "@commerce/plugin-affiliates": "workspace:*",
         "@commerce/plugin-back-in-stock": "workspace:*",
         "@commerce/plugin-chatwoot": "workspace:*",
         "@commerce/plugin-emi": "workspace:*",
@@ -245,6 +248,7 @@
         "@commerce/notifications": "workspace:*",
         "@commerce/observability": "workspace:*",
         "@commerce/payments": "workspace:*",
+        "@commerce/plugin-affiliates": "workspace:*",
         "@commerce/plugin-back-in-stock": "workspace:*",
         "@commerce/plugin-chatwoot": "workspace:*",
         "@commerce/plugin-forms": "workspace:*",
@@ -334,6 +338,7 @@
         "@commerce/payments": "workspace:*",
         "@commerce/payments-cashfree": "workspace:*",
         "@commerce/payments-razorpay": "workspace:*",
+        "@commerce/plugin-affiliates": "workspace:*",
         "@commerce/plugin-back-in-stock": "workspace:*",
         "@commerce/plugin-chatwoot": "workspace:*",
         "@commerce/plugin-emi": "workspace:*",
@@ -698,6 +703,33 @@
         "dotenv": "^18.0.1",
         "typescript": "~5.9.3",
         "vitest": "^4.1.11",
+      },
+    },
+    "packages/plugin-affiliates": {
+      "name": "@commerce/plugin-affiliates",
+      "version": "0.0.0",
+      "dependencies": {
+        "@commerce/blocks": "workspace:*",
+        "@commerce/core": "workspace:*",
+        "@commerce/dates": "workspace:*",
+        "@commerce/db": "workspace:*",
+        "@commerce/money": "workspace:*",
+        "@commerce/notifications": "workspace:*",
+        "@commerce/plugins": "workspace:*",
+        "drizzle-orm": "^0.45.2",
+        "zod": "^4.6.5",
+      },
+      "devDependencies": {
+        "@commerce/config": "workspace:*",
+        "@types/node": "^22.20.4",
+        "@types/react": "^19.2.8",
+        "dotenv": "^18.0.1",
+        "react": "^19.2.0",
+        "typescript": "~5.9.3",
+        "vitest": "^4.1.11",
+      },
+      "peerDependencies": {
+        "react": "^19.0.0",
       },
     },
     "packages/plugin-back-in-stock": {
@@ -1549,6 +1581,8 @@
     "@commerce/payments-decentro": ["@commerce/payments-decentro@workspace:packages/payments-decentro"],
 
     "@commerce/payments-razorpay": ["@commerce/payments-razorpay@workspace:packages/payments-razorpay"],
+
+    "@commerce/plugin-affiliates": ["@commerce/plugin-affiliates@workspace:packages/plugin-affiliates"],
 
     "@commerce/plugin-back-in-stock": ["@commerce/plugin-back-in-stock@workspace:packages/plugin-back-in-stock"],
 

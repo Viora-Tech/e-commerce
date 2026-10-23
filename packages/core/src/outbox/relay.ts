@@ -58,6 +58,13 @@ export type OutboxRelayDeps = {
   salesStoreId?: string | undefined
 }
 
+/** The Affiliates app's events that email the affiliate, and which message each one is. */
+const AFFILIATE_NOTICES: Partial<Record<OutboxEventType, 'approved' | 'sale' | 'payout'>> = {
+  'affiliate.approved': 'approved',
+  'affiliate.commission_created': 'sale',
+  'affiliate.payout_paid': 'payout',
+}
+
 /** Rows claimed per store per tick; the next tick (or the next store) picks up the rest. */
 const BATCH = 50
 
@@ -190,6 +197,20 @@ async function dispatchRow(deps: OutboxRelayDeps, row: Row): Promise<void> {
       template: 'review_reply',
       key: row.id,
       reviewId: payload.reviewId,
+    })
+  }
+  const affiliateNotice = AFFILIATE_NOTICES[type]
+  if (affiliateNotice && payload.affiliateId) {
+    // Affiliates app: to the affiliate, no order on the job; keyed by this row.
+    await enqueueNotification(deps.notifications, {
+      storeId: row.storeId,
+      orderId: '',
+      template: 'affiliate_update',
+      key: row.id,
+      affiliateId: payload.affiliateId,
+      affiliateNotice,
+      commissionId: payload.commissionId,
+      payoutId: payload.payoutId,
     })
   }
   if (type === 'domain.route_requested' && payload.domainId && deps.domainRoutes) {
