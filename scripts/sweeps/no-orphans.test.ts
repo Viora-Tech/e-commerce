@@ -20,7 +20,8 @@ const ALLOWLIST: AllowEntry[] = [
   {
     file: 'packages/ui/src/globe/webgl/sprite-dots.ts',
     names: ['MAX_SPRITE_DOT_SAMPLES', 'spriteDotSpacing'],
-    reason: 'the sample cap and dot spacing behind pickSpriteDotSamples and spriteDotRadiusPx; exported for their unit test',
+    reason:
+      'the sample cap and dot spacing behind pickSpriteDotSamples and spriteDotRadiusPx; exported for their unit test',
   },
   {
     file: 'packages/core/src/automations/engine/maintenance.ts',
