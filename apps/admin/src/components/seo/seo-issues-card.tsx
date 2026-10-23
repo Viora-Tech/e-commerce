@@ -51,63 +51,65 @@ export default function SeoIssuesCard({ issues }: SeoIssuesCardProps) {
 
   return (
     <SettingsCard title={copy.heading} description={copy.body}>
-      <div className="flex flex-wrap gap-1.5">
-        {FILTERS.map((f) => (
-          <button
-            key={f}
-            type="button"
-            aria-pressed={filter === f}
-            onClick={() => handleFilter(f)}
-            className={cn(
-              'h-8 rounded-md border px-3 text-body font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
-              filter === f
-                ? 'border-border-strong bg-muted text-foreground'
-                : 'border-input bg-card text-muted-foreground hover:text-foreground',
-            )}
-          >
-            {copy.filters[f]}
-          </button>
-        ))}
-      </div>
-      {matching.length === 0 ? (
-        <p className="text-body text-muted-foreground">{copy.empty}</p>
-      ) : (
-        <ul className="flex flex-col divide-y divide-border rounded-lg border border-border">
-          {visible.map((issue) => (
-            <li key={`${issue.kind}:${issue.id}`} className="flex items-start gap-3 px-3 py-2.5">
-              <StatusChip tone={SEVERITY_TONE[issue.severity]}>
-                {copy.severity[issue.severity]}
-              </StatusChip>
-              <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-                <span className="truncate text-body font-medium text-foreground">
-                  {issue.title}
-                  <span className="ml-2 text-caption font-normal text-muted-foreground">
-                    {copy.resource[issue.resource]}
-                  </span>
-                </span>
-                <span className="text-body text-muted-foreground">
-                  {kinds[issue.kind](issue.detail)}
-                </span>
-              </div>
-              <Link
-                href={editHref(issue)}
-                className="shrink-0 text-body font-medium text-foreground underline-offset-4 hover:underline"
-              >
-                {copy.edit}
-              </Link>
-            </li>
+      <div className="flex flex-col gap-3">
+        <div className="flex flex-wrap gap-1.5">
+          {FILTERS.map((f) => (
+            <button
+              key={f}
+              type="button"
+              aria-pressed={filter === f}
+              onClick={() => handleFilter(f)}
+              className={cn(
+                'h-8 rounded-md border px-3 text-body font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+                filter === f
+                  ? 'border-border-strong bg-muted text-foreground'
+                  : 'border-input bg-card text-muted-foreground hover:text-foreground',
+              )}
+            >
+              {copy.filters[f]}
+            </button>
           ))}
-        </ul>
-      )}
-      {rest > 0 ? (
-        <KitButton
-          variant="secondary"
-          className="self-end"
-          onClick={() => setShown((n) => n + PAGE)}
-        >
-          {copy.more(Math.min(rest, PAGE))}
-        </KitButton>
-      ) : null}
+        </div>
+        {matching.length === 0 ? (
+          <p className="text-body text-muted-foreground">{copy.empty}</p>
+        ) : (
+          <ul className="flex flex-col divide-y divide-border rounded-lg border border-border">
+            {visible.map((issue) => (
+              <li key={`${issue.kind}:${issue.id}`} className="flex items-start gap-3 px-3 py-2.5">
+                <StatusChip tone={SEVERITY_TONE[issue.severity]}>
+                  {copy.severity[issue.severity]}
+                </StatusChip>
+                <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+                  <span className="truncate text-body font-medium text-foreground">
+                    {issue.title}
+                    <span className="ml-2 text-caption font-normal text-muted-foreground">
+                      {copy.resource[issue.resource]}
+                    </span>
+                  </span>
+                  <span className="text-body text-muted-foreground">
+                    {kinds[issue.kind](issue.detail)}
+                  </span>
+                </div>
+                <Link
+                  href={editHref(issue)}
+                  className="shrink-0 text-body font-medium text-foreground underline-offset-4 hover:underline"
+                >
+                  {copy.edit}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        )}
+        {rest > 0 ? (
+          <KitButton
+            variant="secondary"
+            className="self-end"
+            onClick={() => setShown((n) => n + PAGE)}
+          >
+            {copy.more(Math.min(rest, PAGE))}
+          </KitButton>
+        ) : null}
+      </div>
     </SettingsCard>
   )
 }

@@ -42,6 +42,8 @@ export type GlobeLookSettings = {
   customLand: string | null
   customOcean: string | null
   customAccent: string | null
+  /** Country border and coastline colour, or null for the theme's own subtle tint. */
+  customBorder: string | null
 }
 
 export type GlobeTimeRange = '1h' | '24h' | '7d'
@@ -94,6 +96,7 @@ export function defaultGlobeSettings(prefersReducedMotion: boolean): GlobeSettin
       customLand: null,
       customOcean: null,
       customAccent: null,
+      customBorder: null,
     },
     data: { timeRange: '24h', highlightBigOrders: true, dayNightShadow: false },
     lastZoom: 1,
@@ -153,6 +156,7 @@ function sanitize(raw: unknown, fallback: GlobeSettings): GlobeSettings {
       customLand: hexOrNull(lookRaw.customLand),
       customOcean: hexOrNull(lookRaw.customOcean),
       customAccent: hexOrNull(lookRaw.customAccent),
+      customBorder: hexOrNull(lookRaw.customBorder),
     },
     data: {
       timeRange: oneOf(dataRaw.timeRange, TIME_RANGES, fallback.data.timeRange),

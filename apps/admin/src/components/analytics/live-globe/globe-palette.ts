@@ -13,6 +13,9 @@ export type GlobePalette = {
   /** "Border style: Dotted"'s dot colour: the same subtle tint as the shader's own solid
    * border line (`globe-renderer.ts`'s `line`), computed the same way from `base`. */
   borderDot: Rgb01
+  /** The picked border colour for the shader's solid border and coast lines, drawn as is; null
+   * keeps the shader's own tint of `base`. */
+  line: Rgb01 | null
   /** The cobe-style dotted land's colour (`GlobeFrame.cobeDots.color`): cobe's `baseColor` in
    * dark mode (a deep tone the shader brightens about 4.5x, so the dots come out roughly the
    * nominal land colour), the dots' ink in light mode. */
@@ -23,7 +26,7 @@ export type GlobePalette = {
   landDot: Rgb01
   /** What the settings panel's colour pickers show when no custom colour is set: roughly the
    * colour actually seen on the globe (land dots, the sea at the centre, the accent). */
-  swatches: { land: string; ocean: string; accent: string }
+  swatches: { land: string; ocean: string; accent: string; border: string }
 }
 
 /** The Home globe's deep tone in dark mode (Figma 227:549): the primary at about a third. In
@@ -75,6 +78,7 @@ export type GlobeLookColors = {
   customLand: string | null
   customOcean: string | null
   customAccent: string | null
+  customBorder: string | null
 }
 
 /** Globe colours as `[0,0,0]`..`[1,1,1]`. "Store accent" (the default) reads the tokens the
@@ -123,9 +127,12 @@ export function readPalette(dark: boolean, look?: GlobeLookColors, brand = false
     : dotColor
   const resolvedOcean = customOcean ? (customOcean.map((c) => c / seaGain(dark)) as Rgb01) : ocean
   const resolvedAccent = hexToRgb01(look?.customAccent ?? '') ?? accent
-  const borderDot: Rgb01 = dark
-    ? (resolvedBase.map((c) => clamp01(c * 2.3 + 0.2)) as Rgb01)
-    : (resolvedBase.map((c) => clamp01(c * 1.25 + 0.12)) as Rgb01)
+  const customBorder = hexToRgb01(look?.customBorder ?? '')
+  const borderDot: Rgb01 =
+    customBorder ??
+    (dark
+      ? (resolvedBase.map((c) => clamp01(c * 2.3 + 0.2)) as Rgb01)
+      : (resolvedBase.map((c) => clamp01(c * 1.25 + 0.12)) as Rgb01))
 
   return {
     base: resolvedBase,
@@ -135,12 +142,14 @@ export function readPalette(dark: boolean, look?: GlobeLookColors, brand = false
     arc: resolvedAccent,
     arcNewest: theme === 'accent' ? readCssColorVar('--chart-2', fallbackPrimary) : resolvedAccent,
     borderDot,
+    line: customBorder,
     dotColor,
     landDot,
     swatches: {
       land: toHex(landDot),
       ocean: toHex(resolvedOcean.map((c) => c * seaGain(dark)) as Rgb01),
       accent: toHex(resolvedAccent),
+      border: toHex(borderDot),
     },
   }
 }

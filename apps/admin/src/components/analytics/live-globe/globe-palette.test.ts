@@ -3,7 +3,13 @@ import { readPalette } from './globe-palette'
 
 /* Node, no `window`: `readCssColorVar` returns each token's fallback, so "Store accent" reads
    as the fallback primary (dark [0.19, 0.82, 0.34]) and muted ink (light [0.6, 0.6, 0.62]). */
-const accent = { theme: 'accent', customLand: null, customOcean: null, customAccent: null } as const
+const accent = {
+  theme: 'accent',
+  customLand: null,
+  customOcean: null,
+  customAccent: null,
+  customBorder: null,
+} as const
 
 describe('readPalette', () => {
   it('gives the Live view globe the Home card palette for "Store accent"', () => {
