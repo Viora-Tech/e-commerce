@@ -1,7 +1,7 @@
 /** SOURCE OF TRUTH: "Send order update" automation action — WHAT: tells the shopper about their own order without marketing consent, but only with an order email template (sent through `deliverNotification`, once per template per order) or a WhatsApp template the provider lists as an approved UTILITY one, only to the order's own contact, only on order subjects / WHY: owner answer Q4: the consent-free half of customer messaging must never carry marketing. Server-only. Design §8.4. */
-import { order, type StoreTx } from '@commerce/db'
+import { order, outboxEvent, type StoreTx } from '@commerce/db'
 import type { ChannelTemplate, NotificationChannel } from '@commerce/notifications'
-import { eq } from 'drizzle-orm'
+import { and, eq, sql } from 'drizzle-orm'
 import { normalisePhone } from '../../marketing/audience'
 import { marketingChannels, prepareMarketingWhatsapp } from '../../marketing/send'
 import type { WhatsappTemplateRef } from '../../marketing/whatsapp'
@@ -88,6 +88,25 @@ export function orderUpdate(depsFor: DepsFor): ActionExecutor<OrderUpdateConfig>
         }
         if (!o.email)
           return { kind: 'result', result: skipped('The order has no email', 'no_recipient') }
+        // Once per template per order, however many runs ask (a daily reminder workflow finds
+        // the same unpaid order again tomorrow).
+        const [queued] = await tx
+          .select({ id: outboxEvent.id })
+          .from(outboxEvent)
+          .where(
+            and(
+              eq(outboxEvent.type, 'automation.order_update'),
+              sql`${outboxEvent.payload}->>'orderId' = ${o.id}`,
+              sql`${outboxEvent.payload}->>'notificationTemplate' = ${config.template}`,
+            ),
+          )
+          .limit(1)
+        if (queued) {
+          return {
+            kind: 'result',
+            result: { noop: true, summary: `The ${config.template} email was already sent` },
+          }
+        }
         // The order email goes out on the notification queue, like every order email: once
         // per template per order, after this step commits, with no transaction held.
         await insertOutboxEvent(tx, ctx.storeId, 'automation.order_update', {
