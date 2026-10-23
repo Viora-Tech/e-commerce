@@ -49,10 +49,8 @@ export default function RunAutomationDialog({
   const [query, setQuery] = useState('')
   const [picked, setPicked] = useState<string | null>(null)
   const [requestId, setRequestId] = useState(() => crypto.randomUUID())
-  const open = ids !== null
-
   useEffect(() => {
-    if (!open) return
+    if (ids === null) return
     let live = true
     setWorkflows(null)
     setPicked(null)
@@ -72,7 +70,7 @@ export default function RunAutomationDialog({
     return () => {
       live = false
     }
-  }, [open, subjectType])
+  }, [ids, subjectType])
 
   // Event handlers
   const handleSubmit = async () => {
@@ -101,6 +99,7 @@ export default function RunAutomationDialog({
   }
 
   // Render logic
+  const open = ids !== null
   const count = ids?.length ?? 0
   const shown = (workflows ?? []).filter((w) => matches(w, query))
   const selected = workflows?.find((w) => w.id === picked)
