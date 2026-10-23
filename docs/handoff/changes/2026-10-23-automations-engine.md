@@ -31,12 +31,18 @@ without the app).
   uninstalled while Growth-origin workflows exist (`appUninstallBlocker`, apps router).
 - **Events, owner alerts, prune, uninstall pause**: from `feat/automations-extras` (see
   `2026-10-23-automations-extras.md`).
-- **External actions** run outside the run's transaction: the step is committed as in flight, the
-  call is made (HTTP: `prepare` in a short tx, `send` with none), the result recorded in a short tx.
+- **External actions** never hold a transaction while calling out: the step is committed as in
+  flight, then `prepare` (short tx: consent, recipient, message row claimed), `send` (provider
+  call, nothing open), `record` (short tx: outcome on the message row). HTTP, staff alerts,
+  marketing email/WhatsApp and the WhatsApp order update all use it; the order-update email
+  is queued on the notification path (`automation.order_update`).
+- **Find records + For each** (phase 5): `find` nodes (orders, customers or products matching
+  rules, ≤ 100, reading ≤ 500) and `forEach` nodes (body once per record, then `next`); loop
+  state on `automation_run.loop`, step rows per pass (iteration 1, 2, 3…). Editor support:
+  picker, canvas branches, Find / For each panels.
 - **Integration** (one PR): engine + `feat/automations-actions` (executors, condition evaluator,
   fulfilment hold) + `feat/automations-ui` (admin app; dev mock removed) +
   `feat/automations-pages` (Run automation, record history, Growth cut-over) +
   `feat/automations-extras`. See their own notes: `2026-10-23-automations-actions.md`,
   `-admin-ui.md`, `-records-growth-cutover.md`, `-extras.md`.
-- **Open**: messaging executors still call providers inside their own short transaction (only
-  HTTP is fully two-phase); Find records / For each.
+- **Open**: none planned in this PR.

@@ -6,9 +6,9 @@ import type { ConditionEvaluator, SubjectData, SubjectLoader } from '../executor
 import { moveTo, type RunLoop, type RunRow, type StepOutcome, stepRow, writeStep } from './steps'
 
 /** Records a Find records step reads before it stops looking (newest first). */
-export const FIND_SCAN_LIMIT = 500
+const FIND_SCAN_LIMIT = 500
 
-export const loopOf = (run: Pick<RunRow, 'loop'>): RunLoop | null =>
+const loopOf = (run: Pick<RunRow, 'loop'>): RunLoop | null =>
   (run.loop as RunLoop | null) ?? null
 
 /** The record the current pass is about, or null outside a loop. */

@@ -309,7 +309,7 @@ export async function sendMarketingWhatsapp(
 }
 
 /** Writes a send's outcome on its message row (sent with the provider ref, or failed). */
-export async function recordMarketingOutcome(
+async function recordMarketingOutcome(
   tx: StoreTx,
   messageId: string,
   channelId: string,

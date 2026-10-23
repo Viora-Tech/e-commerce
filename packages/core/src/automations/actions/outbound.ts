@@ -31,7 +31,7 @@ export type Planned =
 type Sent = { results: SendResult[] } | { refused: string } | null
 
 /** Sends each message in turn, stopping at the first refusal. No database is touched. */
-export async function sendPlanned(plan: Planned): Promise<Sent> {
+async function sendPlanned(plan: Planned): Promise<Sent> {
   if (plan.kind === 'result') return null
   const refused = plan.check ? await plan.check() : null
   if (refused) return { refused }
@@ -45,7 +45,7 @@ export async function sendPlanned(plan: Planned): Promise<Sent> {
 }
 
 /** Records the outcome on the message row; a refusal fails the step (retried when transient). */
-export async function recordPlanned(tx: StoreTx, plan: Planned, sent: Sent): Promise<ActionResult> {
+async function recordPlanned(tx: StoreTx, plan: Planned, sent: Sent): Promise<ActionResult> {
   if (plan.kind === 'result') return plan.result
   if (sent && 'refused' in sent) {
     await recordMessage(tx, plan.messageId, {
