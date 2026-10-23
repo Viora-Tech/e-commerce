@@ -15,6 +15,7 @@ import { recoveryUrl } from '../cart/abandoned'
 import { decryptCustomerPhone } from '../customers/phone-crypto'
 import { hasMarketingConsent } from '../privacy/client'
 import { normalisePhone } from './audience'
+import { legacyOwnsStore } from './automation-cutover'
 import {
   AutomationSettingsSchema,
   type AutomationStep,
@@ -259,6 +260,8 @@ export async function enrolDue(
   secret: string,
   now = new Date(),
 ): Promise<number> {
+  // Stores moved onto the Automations engine are enrolled by its sweep triggers.
+  if (!(await legacyOwnsStore(tx, storeId))) return 0
   let enrolled = 0
   for (const a of await activeAutomations(tx, 'checkout_abandoned')) {
     const after = parseAutomationSettings(a.settings).afterMinutes ?? 60
@@ -404,6 +407,7 @@ export async function enrolSubscriber(
   secret: string,
   now = new Date(),
 ): Promise<number> {
+  if (!(await legacyOwnsStore(tx, storeId))) return 0
   const [c] = await tx.select().from(customer).where(eq(customer.email, email.trim().toLowerCase()))
   if (!c) return 0
   let n = 0
@@ -437,6 +441,8 @@ export async function onOrderPlaced(
   orderId: string,
   now = new Date(),
 ): Promise<{ converted: number; enrolled: number }> {
+  // On the engine, conversions (`exitOnOrder`) and the order triggers come from the outbox.
+  if (!(await legacyOwnsStore(tx, storeId))) return { converted: 0, enrolled: 0 }
   const [o] = await tx.select().from(order).where(eq(order.id, orderId))
   if (!o || o.importedFrom || o.status === 'draft') return { converted: 0, enrolled: 0 }
   const converted = await markConversions(tx, o, now)
@@ -593,6 +599,7 @@ export async function processDueRuns(
   deps: MarketingDeps,
   now = new Date(),
 ): Promise<{ processed: number; sent: number }> {
+  if (!(await legacyOwnsStore(tx, storeId))) return { processed: 0, sent: 0 }
   const due = await tx
     .select({ run: marketingAutomationRun })
     .from(marketingAutomationRun)
