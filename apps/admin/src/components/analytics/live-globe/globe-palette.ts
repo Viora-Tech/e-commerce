@@ -17,6 +17,10 @@ export type GlobePalette = {
    * dark mode (a deep tone the shader brightens about 4.5x, so the dots come out roughly the
    * nominal land colour), the dots' ink in light mode. */
   dotColor: Rgb01
+  /** The sprite-dotted land's colour (`GlobeFrame.spriteDots.color`), drawn as is: the colour
+   * the land reads as (the theme's or the picked land colour; in dark mode with "Store accent",
+   * the accent), never brightened past it, so dots stay in the palette instead of going white. */
+  landDot: Rgb01
   /** What the settings panel's colour pickers show when no custom colour is set: roughly the
    * colour actually seen on the globe (land dots, the sea at the centre, the accent). */
   swatches: { land: string; ocean: string; accent: string }
@@ -109,6 +113,14 @@ export function readPalette(dark: boolean, look?: GlobeLookColors, brand = false
     : theme === 'accent' && !customLand
       ? (resolvedBase.map((c) => c * 0.1) as Rgb01)
       : resolvedBase
+  /* Dark "Store accent" lifts the deep accent back to the accent itself; the default neutral
+     accent is near-white there, so it is softened to a light grey like the Home card's dots
+     read on average. A picked or preset land colour is used exactly. */
+  const landDot: Rgb01 = dark
+    ? alreadyDeep
+      ? (lift(dotColor).map((c) => c * 0.8) as Rgb01)
+      : lift(dotColor)
+    : dotColor
   const resolvedOcean = customOcean ? (customOcean.map((c) => c / seaGain(dark)) as Rgb01) : ocean
   const resolvedAccent = hexToRgb01(look?.customAccent ?? '') ?? accent
   const borderDot: Rgb01 = dark
@@ -124,8 +136,9 @@ export function readPalette(dark: boolean, look?: GlobeLookColors, brand = false
     arcNewest: theme === 'accent' ? readCssColorVar('--chart-2', fallbackPrimary) : resolvedAccent,
     borderDot,
     dotColor,
+    landDot,
     swatches: {
-      land: toHex(dark ? lift(dotColor) : dotColor),
+      land: toHex(landDot),
       ocean: toHex(resolvedOcean.map((c) => c * seaGain(dark)) as Rgb01),
       accent: toHex(resolvedAccent),
     },

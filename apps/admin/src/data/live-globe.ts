@@ -16,6 +16,8 @@ export const globeSettingsContent = {
   title: 'Globe settings',
   subtitle: 'Saved on this device only.',
   reset: 'Reset to default',
+  /** The panel's tabs, in order. */
+  tabs: { look: 'Look', layers: 'Layers', data: 'Data', palette: 'Palette' } as const,
 
   layers: {
     heading: 'Layers',
@@ -48,6 +50,9 @@ export const globeSettingsContent = {
     borderStyle: 'Border style',
     borderStyles: { solid: 'Solid', dotted: 'Dashed' } as const,
     borderStyleOff: 'Turn on Country borders to see this.',
+    dotSize: 'Dot size',
+    dotSizes: { fine: 'Fine', medium: 'Medium', bold: 'Bold' } as const,
+    dotSizeOff: 'Only for the Dotted style.',
     theme: 'Colours',
     themes: {
       accent: 'Store accent',

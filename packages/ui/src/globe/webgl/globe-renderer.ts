@@ -59,6 +59,13 @@ export type GlobeFrame = {
    * dark mode a dot is `color` times that (so a deep `color` reads as a bright, saturated dot,
    * as on the Home card); in light mode it shades from the sea towards `color` (an ink). */
   cobeDots?: { samples: number; brightness: number; diffuse: number; color: Rgb }
+  /** Opt-in, takes precedence over `cobeDots` (with `style: 'dotted'`): cobe's even Fibonacci
+   * spacing, but each land dot drawn as a round, anti-aliased sprite of `radiusPx` device
+   * pixels (measured on screen, so it stays round and crisp at any size and never clips to a
+   * block), in `color` exactly (no brightness gain, so it never washes out to white), dimmed
+   * towards the rim by `pow(facing, diffuse)`. Pick `samples`/`radiusPx` with
+   * `webgl/sprite-dots.ts`. Up to 131071 samples. Unset: the looks above, unchanged. */
+  spriteDots?: { samples: number; radiusPx: number; diffuse: number; color: Rgb }
   /** Subsolar point as a unit vector in the globe's own axes (`toVector`), or `null` to turn
    * the day/night shadow off. */
   sun: Vec3 | null
@@ -86,7 +93,9 @@ const SPHERE_VS = 'attribute vec2 a;void main(){gl_Position=vec4(a,0,1);}'
 // cobe's nearest-dot lookup (MIT, shuding/cobe 2.0.1, `B` in its sphere shader), ported as is
 // apart from names: of `k` points on a Fibonacci sphere (pole along y), the one nearest the
 // unit vector `c`; `dist` is the straight-line distance to it. The chain of `if`s adds up
-// `fract(n * golden ratio)` bit by bit, which keeps float precision up to 32767 points.
+// `fract(n * golden ratio)` bit by bit, which keeps float precision up to 32767 points; the
+// two extra bits at the top (ours, not cobe's) take it to 131071 for the sprite dots and are
+// never taken below 32768, so cobe's own look is unchanged.
 const FIBONACCI_DOT = `vec3 fibDot(vec3 c,float k,out float dist){c=c.xzy;float iv=1./k;
 float lv=max(2.,floor(log2(2.236068*k*3.141593*(1.-c.z*c.z))*.72021));
 vec2 fg=floor(pow(1.618034,lv)/2.236068*vec2(1,1.618034)+.5),fd=fract((fg+1.)*.618034)*6.283185-3.883222,
@@ -95,6 +104,7 @@ fr=floor(vec2(fe.y*ff.x-fd.y*(ff.y*k+1.),-fe.x*ff.x+fd.x*(ff.y*k+1.))/(fd.x*fe.y
 float best=3.141593;vec3 near=vec3(0,0,1);
 for(float h=0.;h<4.;h+=1.){float j=dot(fg,fr+vec2(mod(h,2.),floor(h*.5)));if(j>k)continue;
 float a=j,b=0.;
+if(a>=65536.){a-=65536.;b+=.475487;}if(a>=32768.){a-=32768.;b+=.737743;}
 if(a>=16384.){a-=16384.;b+=.868872;}if(a>=8192.){a-=8192.;b+=.934436;}
 if(a>=4096.){a-=4096.;b+=.467218;}if(a>=2048.){a-=2048.;b+=.733609;}
 if(a>=1024.){a-=1024.;b+=.866804;}if(a>=512.){a-=512.;b+=.433402;}
@@ -110,8 +120,9 @@ dist=best;return near.xzy;}`
 // V = centre xy (GL pixels, y up), radius, dark. M turns a view vector back to the globe's own
 // axes (y north, z at longitude 0, x at 90 E). T = land map, H = 1 once it has loaded.
 // L = layer toggles (borders, coastlines, grid, glow), each 0 or 1. D = style (0 solid / 1
-// dotted rows / 2 cobe's dots), row count. R = dot radius, device px. K = cobe's dots: sample
-// count, brightness, diffuse; DC their colour. SUN = subsolar point, or the zero vector to
+// dotted rows / 2 cobe's dots / 3 sprite dots), row count. R = dot radius, device px. K =
+// cobe's dots: sample count, brightness, diffuse (sprite dots: count, radius px, diffuse); DC
+// their colour. SUN = subsolar point, or the zero vector to
 // turn the day/night shadow off.
 // The longitude seam: atan jumps from +pi to -pi at 180°, which would make the mipmap pick its
 // blurriest level along that meridian. Two u's with seams half a turn apart are computed and
@@ -129,7 +140,16 @@ float lat=asin(clamp(w.y,-1.,1.));float t=atan(w.x,w.z)/6.2831853;
 float u1=t+.5,u2=fract(t)+.5;float u=fwidth(u1)<=fwidth(u2)+1e-6?u1:u2;
 vec2 st=vec2(u,.5-lat/3.1415927);vec4 m=texture2D(T,st);
 vec3 glow=L.w*pow(1.-i,4.)*G;vec3 sea=O*(pow(i,.4)*(1.-V.w)+.1);vec3 col;
-if(D.x>1.5){
+if(D.x>2.5){
+float g;vec3 d=fibDot(w,K.x,g);
+vec2 ds=vec2(atan(d.x,d.z)/6.2831853+.5,.5-asin(clamp(d.y,-1.,1.))/3.1415927);
+float on=H*smoothstep(.3,.7,texture2D(T,ds,-8.).r);
+vec3 dv=d*M;float rad=K.y*(.6+.4*sqrt(max(dv.z,0.)));
+float px=length(dv.xy-b)*V.z;
+float q=on*(1.-smoothstep(rad-.6,rad+.6,px))*smoothstep(0.,.1,i);
+float lit=mix(.35,1.,pow(i,K.z));
+col=(V.w>.5?mix(sea,DC*lit,q):mix(sea,DC,q*lit))+glow;
+}else if(D.x>1.5){
 float g;vec3 d=fibDot(w,K.x,g);
 vec2 ds=vec2(atan(d.x,d.z)/6.2831853+.5,.5-asin(clamp(d.y,-1.,1.))/3.1415927);
 float q=H*texture2D(T,ds,-8.).r*smoothstep(8e-3,0.,g)*pow(i,K.z)*K.y;
@@ -303,17 +323,19 @@ export function createGlobeRenderer(canvas: HTMLCanvasElement): GlobeRenderer | 
         f.layers.grid ? 1 : 0,
         f.layers.glow ? 1 : 0,
       )
-      const cobeDots = f.style === 'dotted' ? f.cobeDots : undefined
-      gl.uniform2f(sphere.u('D'), cobeDots ? 2 : f.style === 'dotted' ? 1 : 0, f.dotRows)
+      const dotted = f.style === 'dotted'
+      const spriteDots = dotted ? f.spriteDots : undefined
+      const cobeDots = dotted && !spriteDots ? f.cobeDots : undefined
+      gl.uniform2f(sphere.u('D'), spriteDots ? 3 : cobeDots ? 2 : dotted ? 1 : 0, f.dotRows)
       gl.uniform1f(sphere.u('R'), f.dotRadiusPx)
       gl.uniform4f(
         sphere.u('K'),
-        cobeDots?.samples ?? 0,
-        cobeDots?.brightness ?? 0,
-        cobeDots?.diffuse ?? 1,
+        spriteDots?.samples ?? cobeDots?.samples ?? 0,
+        spriteDots?.radiusPx ?? cobeDots?.brightness ?? 0,
+        spriteDots?.diffuse ?? cobeDots?.diffuse ?? 1,
         0,
       )
-      gl.uniform3fv(sphere.u('DC'), cobeDots?.color ?? f.base)
+      gl.uniform3fv(sphere.u('DC'), spriteDots?.color ?? cobeDots?.color ?? f.base)
       gl.uniform3fv(sphere.u('SUN'), f.sun ?? [0, 0, 0])
       // Row-major upload read as column-major is the transpose: the inverse rotation.
       gl.uniformMatrix3fv(sphere.u('M'), false, f.rotation)
