@@ -18,7 +18,7 @@ export const privacyDoc: LegalDoc = {
       plain: [`We are the company behind ${domain}.`, 'This page follows India’s DPDP Act, 2023.'],
       body: [
         `${company} (“${brand}”, “we”) runs ${domain}, the ${brand} admin and the stores merchants build with it, from [OWNER: registered office address]. This policy explains how we handle personal data as a Data Fiduciary under the Digital Personal Data Protection Act, 2023 (DPDP Act) and the Information Technology Act, 2000 and its rules.`,
-        `It covers our website, the ${brand} admin (admin.${domain}) and the apps ${brand} registers on other platforms so merchants can connect them: our Meta app (WhatsApp, Facebook and Instagram catalog), our Google Cloud project (Google Merchant Center) and our Shopify app (Koomerce Migration).`,
+        `It covers our website, the ${brand} admin (admin.${domain}) and the apps ${brand} registers on other platforms so merchants can connect them: our Meta app (WhatsApp, Facebook and Instagram catalog), our Google Cloud project (Google Merchant Center) and our Shopify app (${brand} Migration).`,
       ],
     },
     {
@@ -60,10 +60,10 @@ export const privacyDoc: LegalDoc = {
       title: 'Data from Shopify (migration)',
       plain: [
         'Read once, on your request, to move your store.',
-        'Copied into your own Koomerce store, never back to Shopify.',
+        `Copied into your own ${brand} store, never back to Shopify.`,
       ],
       body: [
-        `When you install our Koomerce Migration app on your Shopify store, Shopify gives us a read-only access token for the scopes you approve. On your request we read your products, inventory, collections, pages and blog content, navigation, files, metaobjects, discounts, gift cards, shipping settings, policies, purchase options, customers and orders (including customer names, emails, phone numbers and addresses, and with your approval your full order history) and copy them into your new ${brand} store.`,
+        `When you install our ${brand} Migration app on your Shopify store, Shopify gives us a read-only access token for the scopes you approve. On your request we read your products, inventory, collections, pages and blog content, navigation, files, metaobjects, discounts, gift cards, shipping settings, policies, purchase options, customers and orders (including customer names, emails, phone numbers and addresses, and with your approval your full order history) and copy them into your new ${brand} store.`,
         `The imported records belong to your ${brand} store, which you control; for your customers’ data you are the Data Fiduciary and we are your Data Processor. We never write to your Shopify store and keep no separate copy of Shopify customer data. When you uninstall the app, Shopify’s access token is deleted. We answer Shopify’s customers/data_request, customers/redact and shop/redact privacy requests.`,
       ],
     },

@@ -43,9 +43,9 @@ export const dataDeletionDoc: LegalDoc = {
     },
     {
       title: 'Shopify',
-      plain: ['Uninstall the Koomerce Migration app.', 'Its access token is deleted at once.'],
+      plain: [`Uninstall the ${brand} Migration app.`, 'Its access token is deleted at once.'],
       body: [
-        `In Shopify admin: Settings → Apps and sales channels → Koomerce Migration → Uninstall. Shopify tells us and we delete the shop’s access token. Records you already imported stay in your ${brand} store because they are yours; delete them there, or ask us to delete your account.`,
+        `In Shopify admin: Settings → Apps and sales channels → ${brand} Migration → Uninstall. Shopify tells us and we delete the shop’s access token. Records you already imported stay in your ${brand} store because they are yours; delete them there, or ask us to delete your account.`,
       ],
     },
     {
@@ -58,7 +58,7 @@ export const dataDeletionDoc: LegalDoc = {
     {
       title: 'Customers of a store',
       plain: [
-        'Shopped at a store built on Koomerce? Ask that store first.',
+        `Shopped at a store built on ${brand}? Ask that store first.`,
         'We help the store delete your data.',
       ],
       body: [
