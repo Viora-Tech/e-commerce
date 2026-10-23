@@ -275,6 +275,7 @@
       "version": "0.0.0",
       "dependencies": {
         "@commerce/config": "workspace:*",
+        "@commerce/core": "workspace:*",
         "@commerce/ui": "workspace:*",
         "gsap": "3.15.0",
         "next": "16.4.2",

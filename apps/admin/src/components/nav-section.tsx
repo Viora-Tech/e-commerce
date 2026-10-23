@@ -1,6 +1,6 @@
 'use client'
 
-import { ChevronRight } from '@commerce/ui/icons'
+import { ChevronRight, ExternalLink } from '@commerce/ui/icons'
 import { cn } from '@commerce/ui/lib/utils'
 import {
   DropdownMenu,
@@ -52,6 +52,9 @@ const CHILD = `relative isolate flex h-7 w-full min-w-0 items-center rounded-[0.
    brightens for that row (owner: the marker sits on the rail, not inside the pill). */
 const CHILD_ACTIVE =
   'font-medium text-sidebar-foreground hover:bg-transparent before:absolute before:inset-y-1 before:-left-2.5 before:w-0.5 before:rounded-full before:bg-sidebar-foreground'
+
+/** A child that leaves the admin (the App Store website) opens in a new tab. */
+const EXTERNAL = { target: '_blank', rel: 'noopener noreferrer' } as const
 
 /** One rail entry: the section link, a chevron toggle when it has sub-pages, and the guided child list. */
 export default function NavSection({ item, pathname, count = 0 }: NavSectionProps) {
@@ -132,7 +135,7 @@ export default function NavSection({ item, pathname, count = 0 }: NavSectionProp
               {children.map((child) => (
                 <DropdownMenuItem
                   key={child.href}
-                  render={<Link href={child.href} />}
+                  render={<Link href={child.href} {...(child.external ? EXTERNAL : {})} />}
                   className={cn(child.href === activeHref && 'font-medium text-foreground')}
                 >
                   {child.label}
@@ -195,6 +198,7 @@ export default function NavSection({ item, pathname, count = 0 }: NavSectionProp
                 <li key={child.href}>
                   <Link
                     href={child.href}
+                    {...(child.external ? EXTERNAL : {})}
                     aria-current={active ? 'page' : undefined}
                     className={cn(CHILD, active && CHILD_ACTIVE)}
                   >
@@ -207,6 +211,9 @@ export default function NavSection({ item, pathname, count = 0 }: NavSectionProp
                       />
                     ) : null}
                     <span className="min-w-0 flex-1 truncate">{child.label}</span>
+                    {child.external ? (
+                      <ExternalLink aria-hidden="true" className="size-3.5 shrink-0" />
+                    ) : null}
                   </Link>
                 </li>
               )

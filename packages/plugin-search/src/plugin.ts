@@ -16,6 +16,15 @@ export const searchPlugin = definePlugin({
   category: 'search',
   description:
     'Tune your store’s search: words that mean the same thing, so shoppers find what they mean.',
+  listing: {
+    tagline: 'Words that mean the same thing, so shoppers find what they mean.',
+    highlights: [
+      'Synonyms for your store search',
+      'Works with the built-in search and Meilisearch',
+    ],
+    worksWith: ['The Meilisearch app'],
+    keywords: ['search', 'synonyms'],
+  },
   access: {
     resources: [
       { resource: 'products', level: 'read', why: 'Matches searches against your products' },

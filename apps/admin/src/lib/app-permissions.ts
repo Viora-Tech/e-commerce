@@ -1,5 +1,5 @@
-import type { AppSummary } from '@/components/apps/app-card'
 import type { AppKind, appsContent } from '@/data/apps'
+import type { AppSummary } from '@/lib/app-summary'
 
 const KINDS = ['payments', 'shipping', 'notifications', 'storage'] as const satisfies AppKind[]
 

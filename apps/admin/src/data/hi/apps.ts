@@ -5,7 +5,11 @@ import { translation } from '@/lib/i18n'
 export default [
   translation(appsContent, {
     title: 'ऐप्स',
-    browseStore: 'ऐप स्टोर देखें',
+    appStore: {
+      browse: 'ऐप स्टोर देखें',
+      more: 'और ऐप्स खोजें',
+      newTab: '(नए टैब में खुलेगा)',
+    },
     intro:
       'अपने स्टोर में इनवॉइसिंग, इम्पोर्टर और मार्केटिंग जैसे टूल जोड़ें। हर ऐप एक प्लगइन है जिसे आप कभी भी चालू या बंद कर सकते हैं।',
     summary: {
@@ -17,49 +21,8 @@ export default [
     active: 'चालू',
     settings: 'सेटिंग्स',
     needsSetup: 'सेटअप चाहिए',
-    featured: 'खास',
-    recommended: {
-      heading: (store: string) => `${store} के लिए सुझाव`,
-      intro: 'वे टूल जो आपके स्टोर में अभी नहीं हैं।',
-      reasons: {
-        delhivery: 'अभी कोई कूरियर जुड़ा नहीं है: एक क्लिक में पिकअप बुक करें और लेबल छापें।',
-        shiprocket: 'अभी कोई कूरियर जुड़ा नहीं है: कूरियर की तुलना करें और लेबल पर बचत करें।',
-        rapidshyp: 'अभी कोई कूरियर जुड़ा नहीं है: एक अकाउंट से भेजें और लेबल छापें।',
-        xpressbees: 'अभी कोई कूरियर जुड़ा नहीं है: Xpressbees के रेट, लेबल और अपने-आप पिकअप।',
-        ekart: 'अभी कोई कूरियर जुड़ा नहीं है: Ekart नेटवर्क पर भेजें और रिटर्न लें।',
-        shadowfax: 'अभी कोई कूरियर जुड़ा नहीं है: Shadowfax से महानगरों में तेज़ डिलीवरी।',
-        reviews: 'प्रोडक्ट पेज पर फ़ोटो रिव्यू देखकर ग्राहक ज़्यादा भरोसा करते हैं।',
-        whatsapp: 'ऑर्डर अपडेट WhatsApp पर भेजें ताकि ग्राहक पार्सल के बारे में कम पूछें।',
-        'gst-invoices': 'हर ऑर्डर का GST इनवॉइस बिना हाथ से लिखे बनाएं।',
-        'back-in-stock': 'जब बिक चुका प्रोडक्ट फिर आए तो ग्राहकों को बताएं।',
-        razorpay: 'ग्राहक को बाहर भेजे बिना UPI, कार्ड और नेटबैंकिंग से पेमेंट लें।',
-        cashfree: 'ग्राहक को बाहर भेजे बिना UPI, कार्ड और नेटबैंकिंग से पेमेंट लें।',
-      },
-    },
-    previous: 'पिछला ऐप',
-    next: 'अगला ऐप',
-    goTo: (n: number) => `ऐप ${n} दिखाएं`,
-    sections: {
-      installed: { title: 'इंस्टॉल किए हुए', intro: 'वे टूल जो आज आपका स्टोर चला रहे हैं।' },
-      store: {
-        title: 'ऐप स्टोर',
-        intro: (brand: string) =>
-          `${brand} और भरोसेमंद डेवलपर्स के बनाए ऐप। इंस्टॉल से पहले बताया जाता है कि ऐप क्या कर सकता है।`,
-      },
-    },
     store: {
-      categories: 'श्रेणियां',
-      all: 'सभी',
       builtBy: (brand: string) => `${brand} द्वारा बनाए`,
-      needsSetupFilter: 'सेटअप चाहिए',
-      noneInstalledHeading: 'अभी कुछ इंस्टॉल नहीं है',
-      noneInstalledBody: 'नीचे ऐप स्टोर से कोई ऐप चुनें। कुछ ही क्लिक में तैयार।',
-      installedBadge: 'इंस्टॉल है',
-      pricePerMonth: (price) => `${price} / महीना`,
-      includedFrom: (plan) => `${plan} और ऊपर के प्लान में शामिल`,
-      includedInPlan: 'आपके प्लान में शामिल',
-      boughtUntil: (date) => `${date} तक भरा हुआ`,
-      statusFilters: { all: 'सभी', installed: 'इंस्टॉल है', notInstalled: 'इंस्टॉल नहीं है' },
     },
     viewGuide: 'सेटअप गाइड देखें',
     connectedHeading: 'जुड़ गया',
@@ -79,7 +42,7 @@ export default [
     statusError: 'गड़बड़ी',
     allInstalled: 'सभी इंस्टॉल किए ऐप्स',
     listing: {
-      back: 'ऐप स्टोर',
+      back: 'इंस्टॉल किए ऐप्स',
       whatItDoes: 'यह क्या करता है',
       access: 'यह किस तक पहुंच सकता है',
       trust: 'आप कभी भी ऐप्स से इसकी पहुंच हटा सकते हैं।',
@@ -111,6 +74,13 @@ export default [
       confirm: 'इंस्टॉल करें',
     },
     installFirst: 'इस ऐप को इस स्टोर में इस्तेमाल करने के लिए पहले ऐप्स से इंस्टॉल करें।',
+    installStore: {
+      title: (app: string) => `${app} किस स्टोर में इंस्टॉल करें?`,
+      intro: 'आप एक से ज़्यादा स्टोर में हैं। वह स्टोर चुनें जिसमें यह ऐप जोड़ना है।',
+      choose: (store: string) => `${store} में इंस्टॉल करें`,
+      current: 'अभी खुला है',
+      failed: 'स्टोर नहीं बदल सका। फिर से कोशिश करें।',
+    },
     openApps: 'ऐप्स खोलें',
     install: 'इंस्टॉल करें',
     open: 'खोलें',
@@ -120,7 +90,6 @@ export default [
     version: (v: string) => `v${v}`,
     builtWith: 'इन पर बना',
     creditLabel: (name: string, license: string) => `${name} (${license})`,
-    empty: 'commerce.config.ts में कोई प्लगइन नहीं है।',
     loadFailed: 'ऐप्स लोड नहीं हो सके',
     actionFailed: 'ऐप अपडेट नहीं हो सका',
     installedToast: (name: string) => `${name} इंस्टॉल हो गया`,
@@ -131,7 +100,6 @@ export default [
       cancel: 'रहने दें',
       confirm: 'अनइंस्टॉल करें',
     },
-    emptyHeading: 'कोई ऐप उपलब्ध नहीं',
     kinds: {
       payments: { label: 'पेमेंट', href: '/settings/payments' },
       shipping: { label: 'शिपिंग', href: '/settings/shipping' },
@@ -139,13 +107,10 @@ export default [
       storage: { label: 'फ़ाइलें', href: '/content/files/storage' },
     },
     configure: (kind: string) => `${kind} में सेटअप करें`,
-    docs: 'FedEx, DHL या नया गेटवे चाहिए? प्लगइन लिखें: docs/plugins.md',
     builtByPlatform: `${siteConfig.brand.name} ऐप`,
     byCompany: (company: string) => `${company} की ओर से`,
     connection: { connected: 'जुड़ा है', notConnected: 'जुड़ा नहीं है' },
     gallery: {
-      searchPlaceholder: 'ऐप खोजें',
-      filters: { all: 'सभी', installed: 'इंस्टॉल है' },
       categories: {
         invoicing: 'इनवॉइसिंग',
         migration: 'डेटा इम्पोर्ट',
@@ -158,17 +123,7 @@ export default [
         search: 'सर्च',
       },
       categoryFallback: (slug: string) => slug.charAt(0).toUpperCase() + slug.slice(1),
-      noResultsHeading: 'कोई ऐप नहीं मिला',
-      noResultsBody: 'कोई दूसरी खोज या फ़िल्टर आज़माएं।',
       kebabLabel: (name: string) => `${name} के लिए और विकल्प`,
-      builtin: {
-        title: `${siteConfig.brand.name} ऐप`,
-        intro: `${siteConfig.brand.name} के बनाए, आपके स्टोर पर चलते हैं। चालू करें और इस्तेमाल करें: कोई अकाउंट, की या सर्वर नहीं चाहिए।`,
-      },
-      connections: {
-        title: 'कनेक्शन',
-        intro: 'स्टोरेज, पेमेंट, शिपिंग और मैसेज के लिए अपने स्टोर को किसी दूसरी कंपनी के अकाउंट से जोड़ें।',
-      },
     },
     storage: {
       migrate: {

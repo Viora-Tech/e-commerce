@@ -1,6 +1,6 @@
-import type { AccessLevel, AppSummary } from '@/components/apps/app-card'
 import type { ChipTone } from '@/components/status/tone'
 import type { installedAppsContent } from '@/data/installed-apps'
+import type { AccessLevel, AppSummary } from '@/lib/app-summary'
 import { routes } from '@/lib/routes'
 
 type Copy = typeof installedAppsContent

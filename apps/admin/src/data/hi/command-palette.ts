@@ -41,6 +41,7 @@ export default [
     toggleTheme: 'लाइट और डार्क के बीच बदलें',
     settings: 'सेटिंग्स',
     account: 'आपका अकाउंट',
+    appStore: 'ऐप स्टोर',
     breadcrumbSeparator: ' › ',
     order: { guest: 'गेस्ट' },
     product: {

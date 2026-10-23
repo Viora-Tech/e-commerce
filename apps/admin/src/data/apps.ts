@@ -2,8 +2,12 @@ import { siteConfig } from '@commerce/config/site'
 /** Copy for the Apps page: plugins from commerce.config.ts a store can install. */
 export const appsContent = {
   title: 'Apps',
-  /** Header button that jumps to the App Store section (Figma 328:21275). */
-  browseStore: 'Browse App Store',
+  /** The App Store website, where apps are browsed and installed. Links to it open a new tab. */
+  appStore: {
+    browse: 'Browse the App Store',
+    more: 'Find more apps',
+    newTab: '(opens in a new tab)',
+  },
   intro:
     'Add tools to your store, like invoicing, importers and marketing apps. Each one is a plugin you can turn on or off any time.',
   /** The plain-language line under the page title. Empty parts are left out. */
@@ -16,52 +20,8 @@ export const appsContent = {
   active: 'Active',
   settings: 'Settings',
   needsSetup: 'Needs setup',
-  featured: 'Featured',
-  /** "Recommended for <store>" strip: apps for what the store does not have yet. */
-  recommended: {
-    heading: (store: string) => `Recommended for ${store}`,
-    intro: 'Picked from the tools your store does not have yet.',
-    /** Why each app is suggested, by plugin id; an app without one shows its own description. */
-    reasons: {
-      delhivery: 'You have no courier connected yet: book pickups and print labels in one click.',
-      shiprocket: 'You have no courier connected yet: compare couriers and save on labels.',
-      rapidshyp: 'You have no courier connected yet: ship with one account and print labels.',
-      xpressbees: 'You have no courier connected yet: Xpressbees rates, labels and auto pickup.',
-      ekart: 'You have no courier connected yet: ship and take returns on Ekart’s network.',
-      shadowfax: 'You have no courier connected yet: fast metro delivery with Shadowfax.',
-      reviews: 'Shoppers trust a product more with photo reviews on its page.',
-      whatsapp: 'Send order updates on WhatsApp so shoppers ask you less where their parcel is.',
-      'gst-invoices': 'Make a GST invoice for every order without typing it out.',
-      'back-in-stock': 'Tell shoppers when a sold-out product is available again.',
-      razorpay: 'Take UPI, cards and netbanking without sending shoppers away.',
-      cashfree: 'Take UPI, cards and netbanking without sending shoppers away.',
-    } as Record<string, string>,
-  },
-  previous: 'Previous app',
-  next: 'Next app',
-  goTo: (n: number) => `Show app ${n}`,
-  sections: {
-    installed: { title: 'Installed', intro: 'The tools running your store today.' },
-    store: {
-      title: 'App Store',
-      intro: (brand: string) =>
-        `Built by ${brand} and by trusted developers. What an app can do is explained before you install.`,
-    },
-  },
   store: {
-    categories: 'Categories',
-    all: 'All',
     builtBy: (brand: string) => `Built by ${brand}`,
-    needsSetupFilter: 'Needs setup',
-    noneInstalledHeading: 'Nothing installed yet',
-    noneInstalledBody: 'Pick an app from the App Store below. It is ready in a few clicks.',
-    installedBadge: 'Installed',
-    /** Paid apps (Plan & billing): on a plan that does not include the app. */
-    pricePerMonth: (price: string) => `${price} / month`,
-    includedFrom: (plan: string) => `Included in ${plan} and up`,
-    includedInPlan: 'Included in your plan',
-    boughtUntil: (date: string) => `Paid until ${date}`,
-    statusFilters: { all: 'All', installed: 'Installed', notInstalled: 'Not installed' },
   },
   viewGuide: 'View setup guide',
   connectedHeading: 'Connected',
@@ -83,7 +43,7 @@ export const appsContent = {
   /** The installed app's ⋯ menu: back to the Installed apps list. */
   allInstalled: 'All installed apps',
   listing: {
-    back: 'App Store',
+    back: 'Installed apps',
     whatItDoes: 'What it does',
     access: 'What it can access',
     trust: 'You can remove its access any time from Apps.',
@@ -115,6 +75,14 @@ export const appsContent = {
     confirm: 'Install',
   },
   installFirst: 'Install this app from Apps to use it in this store.',
+  /** `/apps/install` for a member of several stores: which store the app goes into. */
+  installStore: {
+    title: (app: string) => `Install ${app} in which store?`,
+    intro: 'You belong to more than one store. Pick the one to add this app to.',
+    choose: (store: string) => `Install in ${store}`,
+    current: 'Open now',
+    failed: 'Could not switch stores. Try again.',
+  },
   openApps: 'Open Apps',
   install: 'Install',
   open: 'Open',
@@ -124,7 +92,6 @@ export const appsContent = {
   version: (v: string) => `v${v}`,
   builtWith: 'Built with',
   creditLabel: (name: string, license: string) => `${name} (${license})`,
-  empty: 'No plugins are listed in commerce.config.ts.',
   loadFailed: 'Could not load apps',
   actionFailed: 'Could not update app',
   installedToast: (name: string) => `${name} installed`,
@@ -135,7 +102,6 @@ export const appsContent = {
     cancel: 'Keep',
     confirm: 'Uninstall',
   },
-  emptyHeading: 'No apps available',
   kinds: {
     payments: { label: 'Payments', href: '/settings/payments' },
     shipping: { label: 'Shipping', href: '/settings/shipping' },
@@ -143,7 +109,6 @@ export const appsContent = {
     storage: { label: 'Files', href: '/content/files/storage' },
   },
   configure: (kind: string) => `Set up in ${kind}`,
-  docs: 'Want FedEx, DHL or a new gateway? Write a plugin: docs/plugins.md',
   /** Shown on a `kind: 'builtin'` card: made by us, nothing else to sign up for. */
   builtByPlatform: `${siteConfig.brand.name} app`,
   /** Shown on a `kind: 'connection'` card: which outside company this links to. */
@@ -153,8 +118,6 @@ export const appsContent = {
     notConnected: 'Not connected',
   },
   gallery: {
-    searchPlaceholder: 'Search apps',
-    filters: { all: 'All', installed: 'Installed' },
     /** Category slugs from a manifest's `category`, in plain words. */
     categories: {
       invoicing: 'Invoicing',
@@ -168,20 +131,7 @@ export const appsContent = {
       search: 'Search',
     } as Record<string, string>,
     categoryFallback: (slug: string) => slug.charAt(0).toUpperCase() + slug.slice(1),
-    noResultsHeading: 'No apps match',
-    noResultsBody: 'Try a different search or filter.',
     kebabLabel: (name: string) => `More actions for ${name}`,
-    /** Section 1: features we designed, no outside account. */
-    builtin: {
-      title: `${siteConfig.brand.name} apps`,
-      intro: `Made by ${siteConfig.brand.name} and run on your store. Turn one on and use it: no account, keys or server to set up.`,
-    },
-    /** Section 2: links to another company's service. */
-    connections: {
-      title: 'Connections',
-      intro:
-        "Link your store to another company's account for storage, payments, shipping and messages.",
-    },
   },
   storage: {
     migrate: {

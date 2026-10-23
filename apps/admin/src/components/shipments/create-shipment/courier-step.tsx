@@ -8,6 +8,7 @@ import { Input } from '@commerce/ui/shadcn/input'
 import { Spinner } from '@commerce/ui/shadcn/spinner'
 import Link from 'next/link'
 import { useState } from 'react'
+import AppStoreLink from '@/components/apps/app-store-link'
 import TrackingFields, { type TrackingDraft } from '@/components/orders/tracking-fields'
 import { createShipmentContent } from '@/data/create-shipment'
 import { useCopy, useFormat } from '@/hooks/use-copy'
@@ -179,15 +180,9 @@ export default function CourierStep({
       </div>
 
       {hasCouriers ? null : (
-        <Button
-          variant="outline"
-          className="w-fit"
-          nativeButton={false}
-          render={<Link href={routes.apps.store()} />}
-        >
-          <Plus aria-hidden />
+        <AppStoreLink category="shipping" className="w-fit">
           {copy.courier.connect}
-        </Button>
+        </AppStoreLink>
       )}
     </div>
   )

@@ -406,7 +406,8 @@ export async function oversizedFiles(): Promise<Record<string, number>> {
   const out: Record<string, number> = {}
   for (const f of files) {
     const rel = toRel(f)
-    if (!rel.endsWith('.ts') || rel.includes('/test/') || rel.includes('/migrations/')) continue
+    if (!rel.endsWith('.ts') || rel.endsWith('.generated.ts')) continue
+    if (rel.includes('/test/') || rel.includes('/migrations/')) continue
     const lines = readFileSync(f, 'utf8').split('\n').length
     if (lines > FILE_SIZE_MAX_LINES) out[rel] = lines
   }

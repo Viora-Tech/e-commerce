@@ -6,6 +6,7 @@ import Link from 'next/link'
 import type { ProductApp } from '@/apps/product-actions'
 import { PRODUCT_APP_SECTIONS, type ProductSectionProps } from '@/apps/product-sections'
 import AppLogo from '@/components/apps/app-logo'
+import AppStoreLink from '@/components/apps/app-store-link'
 import DataCard from '@/components/layout/data-card'
 import EmptyState from '@/components/layout/empty-state'
 import { productPageContent } from '@/data/product-page'
@@ -53,15 +54,7 @@ export default function ProductAppsPanel({
         icon={Blocks}
         heading={copy.apps.emptyHeading}
         body={copy.apps.emptyBody}
-        action={
-          <Button
-            variant="outline"
-            nativeButton={false}
-            render={<Link href={routes.apps.store()} />}
-          >
-            {copy.apps.browse}
-          </Button>
-        }
+        action={<AppStoreLink>{copy.apps.browse}</AppStoreLink>}
       />
     )
   }

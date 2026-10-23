@@ -17,6 +17,17 @@ export const umamiPlugin = definePlugin({
   company: 'Umami',
   description:
     'See who visits your store: visitors, top pages, where they came from, campaigns, devices and countries. Cookieless.',
+  listing: {
+    tagline: 'Visitor analytics without cookies, inside Analytics.',
+    highlights: [
+      'Visitors, pages and sources on the Analytics page',
+      'Campaigns, devices and countries',
+      'No cookie banner needed',
+    ],
+    guide: '/merchant-guide/analytics/visitor-analytics',
+    worksWith: ['An Umami Cloud account or your own Umami server'],
+    keywords: ['analytics', 'visitors', 'privacy'],
+  },
   access: {
     resources: [
       { resource: 'visits', level: 'read', why: 'Visitors, page views and where they came from' },

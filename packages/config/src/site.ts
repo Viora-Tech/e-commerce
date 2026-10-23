@@ -34,6 +34,11 @@ export type SiteConfig = {
     /** The merchant admin (sign in, sign up). */
     admin: string
     docs: string
+    /**
+     * The App Store website, where apps are browsed and installed from (apps/www `/apps`).
+     * `apps.<domain>` redirects here; see docs/handoff/changes/2026-10-23-app-store-site.md.
+     */
+    apps: string
     terms: string
     privacy: string
     refunds: string
@@ -85,6 +90,7 @@ export const siteConfig: SiteConfig = {
     site: 'https://koomerce.app',
     admin: 'https://admin.koomerce.app',
     docs: 'https://docs.koomerce.app',
+    apps: 'https://koomerce.app/apps',
     terms: 'https://koomerce.app/terms',
     privacy: 'https://koomerce.app/privacy',
     refunds: 'https://koomerce.app/refunds',
@@ -116,6 +122,16 @@ export const siteConfig: SiteConfig = {
     linkedin: 'https://linkedin.com/company/koomerce',
     github: 'https://github.com/koomerce',
   },
+}
+
+/**
+ * A page of the App Store website: the directory, one category (`{ category: 'shipping' }`) or
+ * one app (`{ app: 'reviews' }`). Opened in a new tab from the admin.
+ */
+export function appStoreUrl(to: { app?: string; category?: string } = {}): string {
+  if (to.app) return `${siteConfig.urls.apps}/${encodeURIComponent(to.app)}`
+  if (to.category) return `${siteConfig.urls.apps}/category/${encodeURIComponent(to.category)}`
+  return siteConfig.urls.apps
 }
 
 /** `https://wa.me/<number>?text=...`: the "Help on WhatsApp" link. */

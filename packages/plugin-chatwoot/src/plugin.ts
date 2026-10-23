@@ -56,6 +56,17 @@ export const chatwootPlugin = definePlugin({
   company: 'Chatwoot',
   description:
     'A support inbox for your store: live chat on every page, with each shopper’s orders beside the chat, and their conversations on the customer and order pages.',
+  listing: {
+    tagline: 'Live chat and a shared support inbox, with each shopper’s orders beside the chat.',
+    highlights: [
+      'Chat on every page of your store, in your own theme or an imported one',
+      'Signed-in shoppers arrive with their name, orders and total spent',
+      'Their conversations on the customer and order pages',
+    ],
+    guide: '/merchant-guide/apps/chatwoot',
+    worksWith: ['A Chatwoot Cloud account or your own Chatwoot server'],
+    keywords: ['chat', 'support', 'helpdesk'],
+  },
   access: {
     resources: [
       {
