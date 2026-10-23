@@ -1,4 +1,17 @@
-/** SOURCE OF TRUTH: Automations server barrel — WHAT: the engine's server surface as `@commerce/core/automations/server` (piece registry, executor contract, and the engine as it lands) / WHY: the API and the worker import one path; the pure parts stay importable from `@commerce/core/automations` for the browser. */
+/** SOURCE OF TRUTH: Automations server barrel — WHAT: the engine's server surface as `@commerce/core/automations/server` (piece registry, executor contract, interpreter, trigger matching, tick, services, queues) / WHY: the API and the worker import one path; the pure parts stay importable from `@commerce/core/automations` for the browser. */
+export * from './actions'
 export * from './client'
+export * from './conditions'
+export * from './engine/app-trigger'
+export * from './engine/dry-run'
+export * from './engine/interpreter'
+export * from './engine/jobs'
+export * from './engine/resolve'
+export * from './engine/runs'
+export * from './engine/tick'
+export * from './engine/trigger'
+export * from './engine/usage'
+export * from './engine/workflows'
 export * from './executor'
+export * from './merge-tags'
 export * from './registry'
