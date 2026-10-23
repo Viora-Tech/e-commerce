@@ -3,7 +3,7 @@
 import type { SavedAddress } from '@commerce/core'
 import { useState, useTransition } from 'react'
 import { accountContent } from '@/data/account'
-import { INDIAN_STATES } from '@/data/checkout'
+import { INDIAN_STATES } from '@/data/indian-states'
 import { defaultAddressAction, deleteAddressAction } from '@/lib/account-actions'
 import AddressForm from './address-form'
 import StatusPill from './status-pill'

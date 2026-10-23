@@ -1,3 +1,4 @@
+/** SOURCE OF TRUTH: MIME-from-extension tests — WHAT: every known extension, URLs and storage keys with query/hash / WHY: imported files without a stored type are sorted by this map */
 import { describe, expect, it } from 'vitest'
 import { contentTypeFromName } from './content-type'
 

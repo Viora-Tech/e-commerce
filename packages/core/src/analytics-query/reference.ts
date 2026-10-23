@@ -2,7 +2,7 @@
 import { QUERY_LIMIT_DEFAULT, QUERY_LIMIT_MAX, QUERY_TABLE_NAMES, QUERY_TABLES } from './schema'
 
 /** Queries the reference shows the model, each with what it answers. */
-export const QUERY_EXAMPLES: readonly { ask: string; query: string }[] = [
+const QUERY_EXAMPLES: readonly { ask: string; query: string }[] = [
   {
     ask: 'top 5 states by sales last month',
     query:

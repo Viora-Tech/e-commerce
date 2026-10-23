@@ -1,5 +1,6 @@
 import type { address, order } from '@commerce/db'
-import { thankYouContent as content, INDIAN_STATES } from '@/data/checkout'
+import { thankYouContent as content } from '@/data/checkout'
+import { INDIAN_STATES } from '@/data/indian-states'
 import { CK_HEADING } from '@/lib/checkout-classes'
 
 type OrderDetailsProps = {

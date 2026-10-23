@@ -24,6 +24,23 @@ const ALLOWLIST: AllowEntry[] = [
       'the pure who-sees-which-order-action rule behind apps.orderActions, exported for its unit test',
   },
   {
+    file: 'packages/api/src/services/ai/query-writer.ts',
+    names: ['writeValidQuery'],
+    reason:
+      'the write-parse-retry loop behind refineQuery, exported for its unit test (no AI call)',
+  },
+  {
+    file: 'packages/core/src/analytics-query/controls.ts',
+    names: ['setShow'],
+    reason: 'the metric-order rule behind toggleMetric, exported for its unit test',
+  },
+  {
+    file: 'packages/core/src/catalog/stock-state.ts',
+    names: ['STOCK_FILTER_PARAM', 'stockFilterState'],
+    reason:
+      'the state ↔ `?stock=` spelling map that STOCK_FILTERS must cover, exported for its unit test',
+  },
+  {
     file: 'packages/core/src/sender-email/platform.ts',
     names: ['platformEmailFromEnv'],
     reason:
@@ -273,7 +290,6 @@ const ALLOWLIST: AllowEntry[] = [
   {
     file: 'packages/core/src/cart/abandoned.ts',
     names: [
-      'ABANDONED_AFTER_MS',
       'RECOVERY_TTL_MS',
       'getAbandonedCart',
       'recoveryToken',
@@ -378,7 +394,6 @@ const ALLOWLIST: AllowEntry[] = [
   {
     file: 'packages/core/src/gift-cards/service.ts',
     names: [
-      'generateGiftCardCode',
       'hashGiftCardCode',
       'issueGiftCardsForOrder',
       'undeliveredGiftCards',
@@ -488,11 +503,6 @@ const ALLOWLIST: AllowEntry[] = [
   {
     file: 'packages/core/src/navigation/settings.ts',
     names: ['defaultNavigationSettings'],
-    reason: 'no external importer today — investigate before removing',
-  },
-  {
-    file: 'packages/core/src/notifications/deliver.ts',
-    names: ['buildCartTemplateData'],
     reason: 'no external importer today — investigate before removing',
   },
   {

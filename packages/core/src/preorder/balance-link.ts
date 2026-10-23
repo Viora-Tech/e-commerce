@@ -127,10 +127,10 @@ export function thankYouUrl(
 }
 
 /** A draft invoice's pay link: long enough for a customer to come back to it. */
-export const INVOICE_LINK_TTL_MS = 30 * 86_400_000
+const INVOICE_LINK_TTL_MS = 30 * 86_400_000
 
 /** The signed "pay this invoice" token in a draft invoice email (its own purpose prefix). */
-export function invoiceToken(orderId: string, secret: string, now = new Date()): string {
+function invoiceToken(orderId: string, secret: string, now = new Date()): string {
   return signOrderToken('draft-invoice', orderId, secret, INVOICE_LINK_TTL_MS, now)
 }
 
@@ -142,7 +142,7 @@ export function verifyInvoiceToken(
   return verifyOrderToken('draft-invoice', token, secret, now)
 }
 
-export const invoicePath = (token: string): string => `/checkout/invoice/${token}`
+const invoicePath = (token: string): string => `/checkout/invoice/${token}`
 
 /** The "Pay securely" button of a draft invoice email, on the store's own domain. */
 export function invoiceUrl(

@@ -6,7 +6,7 @@ import { and, desc, eq } from 'drizzle-orm'
 import { findReport } from './analytics-reports'
 
 /** The report slug a saved custom query is filed under; its text lives in `query`. */
-export const QUERY_REPORT_SLUG = 'query'
+const QUERY_REPORT_SLUG = 'query'
 
 const QUERY_REPORT_TITLE = 'Custom query'
 

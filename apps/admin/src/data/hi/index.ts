@@ -62,12 +62,14 @@ import notifications from './notifications'
 import onboarding from './onboarding'
 import orderAppActions from './order-app-actions'
 import orderCards from './order-cards'
+import orderDetail from './order-detail'
 import orders from './orders'
 import ordersBulk from './orders-bulk'
 import ordersBulkEdit from './orders-bulk-edit'
 import paymentModes from './payment-modes'
 import payments from './payments'
 import paymentsSetup from './payments-setup'
+import productForm from './product-form'
 import productPage from './product-page'
 import products from './products'
 import profitCosts from './profit-costs'
@@ -163,6 +165,7 @@ export const hindiCopy: readonly TranslationPair[] = [
   ...onboarding,
   ...orderAppActions,
   ...orderCards,
+  ...orderDetail,
   ...shopifyImportFiles,
   ...shopifyImportRun,
   ...shopifyImportSettings,
@@ -176,6 +179,7 @@ export const hindiCopy: readonly TranslationPair[] = [
   ...collections,
   ...commandPalette,
   ...inventory,
+  ...productForm,
   ...productPage,
   ...products,
   ...purchaseDocuments,
