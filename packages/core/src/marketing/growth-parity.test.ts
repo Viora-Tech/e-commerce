@@ -87,7 +87,7 @@ function received(): string[] {
         ? `email ${m.to.email} "${m.subject}"${m.html.includes('Glasspad') ? ' +cart' : ''}`
         : m.kind === 'whatsapp_template'
           ? `whatsapp ${m.to.phone} ${m.template.name}(${m.template.variables.join('|').replace(/\/checkout\/recover\/[^|]+/g, '/checkout/recover/<token>')})`
-          : m.kind,
+          : 'other',
     )
     .sort()
 }
@@ -160,7 +160,9 @@ class Driver {
       now: () => at,
     }
     for (let pass = 0; pass < 5; pass++) {
-      const t = await withStore(app, storeId, (tx) => engine.automationTick(tx, storeId, at))
+      const t: { due: { runId: string }[] } = await withStore(app, storeId, (tx) =>
+        engine.automationTick(tx, storeId, at),
+      )
       if (t.due.length === 0) break
       for (const d of t.due) await engine.advanceRun(app, storeId, d.runId, engineDeps)
     }
