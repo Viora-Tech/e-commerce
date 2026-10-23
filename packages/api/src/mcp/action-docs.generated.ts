@@ -230,17 +230,16 @@ export const ACTION_DOCS: Record<string, string> = {
     'Every order id the list\'s filters match (the table\'s "Select all N orders"), up to 5,000.',
   'orders.neighbours':
     'Order numbers either side of this one, for the arrows in the detail header.',
+  'orders.previewMessage':
+    'The email (and WhatsApp text) a hand-sent message would carry for this order, filled with the order\'s own details, for the "Review email" dialog before Send.',
   'orders.profit':
     'What the order earned: net sales less goods, courier, fees and RTO (order/profit.ts).',
   'orders.refund':
     'Send money back through the gateway (or record a cash/UPI refund); partial amounts allowed.',
-  'orders.requestBalance':
-    "Ask the shopper for a deposit pre-order's balance: email and WhatsApp (when set up) with a signed pay link.",
   'orders.sendPaymentReminder':
     '"Send payment reminder" on an unpaid UPI / bank transfer order: email, and WhatsApp when set up, with the QR and bank details.',
   'orders.setCourierCharge': 'What the courier charged for a consignment, typed by the merchant.',
   'orders.setStatus': '"Mark as paid / fulfilled / delivered", or cancel.',
-  'orders.sheet': 'Rows for the Orders bulk-edit spreadsheet, in the order the ids were given.',
   'orders.updateContact':
     "\"Edit\" on the order page's customer card: this order's contact and shipping address, optionally copied to the customer's saved address.",
   'payments.connect': 'Save pasted keys and make that gateway the main way to get paid.',
@@ -260,6 +259,12 @@ export const ACTION_DOCS: Record<string, string> = {
     'For the admin-wide "Test mode" banner: a gateway at checkout runs on test keys.',
   'payments.testOrderLink':
     '"Place a test order": a signed storefront link with only the ₹1 test product in the basket.',
+  'platformApps.completeWhatsapp':
+    "The popup finished: swap the code (it lives 30 seconds), subscribe, register the number, then save it as the store's WhatsApp channel and turn the channel on.",
+  'platformApps.disconnectWhatsapp':
+    'Forget the Embedded Signup account: the channel turns off and its saved access goes.',
+  'platformApps.whatsapp':
+    'Whether Embedded Signup is set up here, what the SDK needs, and the linked account.',
   'policies.template':
     "A policy's template filled from the store as it is now; the editor shows it, nothing is saved.",
   'products.adjustments': "Stock movements for the product form's inventory history.",
@@ -340,6 +345,10 @@ export const ACTION_DOCS: Record<string, string> = {
   'shipments.recordStatus':
     "A status set by hand, for a courier with no tracking feed (India Post): appended to the shipment's timeline and applied like a scan (delivered closes the order, RTO opens its task).",
   'shipments.wallets': 'One card per connected courier - each has its own account and balance.',
+  'shopifyImport.appInstall':
+    'Whether this deployment has the platform\'s own Shopify app, so "Install the app" can show.',
+  'shopifyImport.completeAppInstall':
+    "Shopify's redirect after the merchant approved the app (the callback route passes the whole query): Shopify's hmac, our state for this very store, then the code exchange.",
   'shopifyImport.createApiRun': 'Preview an API import of the chosen resources.',
   'shopifyImport.createCsvRun': 'Upload one Shopify CSV export; the preview runs straight away.',
   'shopifyImport.importRemaining':
@@ -353,6 +362,8 @@ export const ACTION_DOCS: Record<string, string> = {
   'shopifyImport.settingsPreview':
     'Store settings: what each part (store details, tax, locations, shipping, packages, policies, extra field definitions) would change here.',
   'shopifyImport.start': 'Import for real after a preview, or run a finished import again.',
+  'shopifyImport.startAppInstall':
+    "\"Install the app\" (the platform's own Shopify app): the URL on the merchant's shop that asks them to approve the app's read scopes.",
   'shopifyImport.status':
     '"What is left to import": Shopify\'s counts (cached a few minutes per store), what is here, and what is missing per resource, plus product images.',
   'shopifyImport.stop':

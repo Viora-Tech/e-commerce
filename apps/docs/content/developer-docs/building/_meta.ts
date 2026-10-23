@@ -13,6 +13,7 @@ export default {
   'ai-assistant': 'AI assistant',
   'mcp-and-api': 'MCP server and API tokens',
   'sales-channels': 'Sales channels (Meta, Google, ChatGPT)',
+  'platform-apps': 'Platform apps (Meta, Shopify, Google)',
   billing: 'Plans and billing',
   'media-pipeline': 'Image pipeline',
   'live-globe': 'Live view globe',

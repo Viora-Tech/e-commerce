@@ -54,10 +54,6 @@ const ALLOWLIST: Record<string, { lines: number; reason: string }> = {
   'packages/core/src/notifications/deliver.ts': { lines: 609, reason: SPLIT },
   'packages/core/src/order/place-order.ts': { lines: 1044, reason: SPLIT },
   'packages/core/src/returns/service.ts': { lines: 763, reason: SPLIT },
-  'packages/core/src/sales-channels/providers.ts': {
-    lines: 541,
-    reason: 'Meta and Google Merchant Center adapters in one module — split one file per provider',
-  },
   'packages/core/src/theme-code/files.ts': { lines: 550, reason: SPLIT },
   'packages/core/src/theme-import/resource-drops.ts': {
     lines: 568,
