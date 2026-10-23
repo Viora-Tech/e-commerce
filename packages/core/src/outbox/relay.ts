@@ -83,7 +83,8 @@ async function dispatchRow(deps: OutboxRelayDeps, row: Row): Promise<void> {
   // merchant-only by design (see `order.rto` in OUTBOX_NOTIFICATION_TEMPLATE). Either way,
   // a refund tagged with a return is not the generic `refund_issued` message's job.
   const isReturnRefund = type === 'refund.created' && Boolean(payload.returnId)
-  if (template && !isReturnRefund) {
+  // The caller chose not to tell the shopper (`notifyCustomer: false` on the event).
+  if (template && !isReturnRefund && payload.notifyCustomer !== false) {
     await enqueueNotification(deps.notifications, {
       storeId: row.storeId,
       orderId: payload.orderId as string,

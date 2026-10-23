@@ -1,0 +1,771 @@
+/** SOURCE OF TRUTH: built-in executor DB tests — WHAT: tags, notes, hold/release (blocking shipment booking), fulfil without notice, cancel with or without restock, metafields, collections and messages against a real store transaction, each run twice to prove idempotency / WHY: internal actions commit with their step row, so a re-run must change nothing. */
+import {
+  address,
+  automationRun,
+  automationVersion,
+  automationWorkflow,
+  cart,
+  cartLine,
+  collection,
+  collectionProduct,
+  createDb,
+  customer,
+  fulfillmentOrder,
+  fulfillmentOrderLine,
+  inventoryLevel,
+  location,
+  marketingMessage,
+  metafield,
+  metafieldDefinition,
+  order,
+  orderLine,
+  orderNote,
+  outboxEvent,
+  product,
+  type StoreTx,
+  store,
+  variant,
+  withStore,
+} from '@commerce/db'
+import { resetDb } from '@commerce/db/test'
+import type { MarketingSend, NotificationChannel } from '@commerce/notifications'
+import type { ShippingProvider } from '@commerce/shipping'
+import { eq } from 'drizzle-orm'
+import { afterAll, beforeEach, describe, expect, it } from 'vitest'
+import { createProduct } from '../../catalog/products'
+import { FulfillmentOnHold, heldParcels } from '../../order/fulfillment-hold'
+import { createShipmentForOrder } from '../../shipping/shipments'
+import { loadSubject } from '../conditions/loaders'
+import type { ActionContext, ActionExecutor, ActionResult } from '../executor'
+import { builtinExecutors } from './index'
+import type { BuiltinActionDeps } from './shared'
+
+const owner = createDb(process.env.DATABASE_URL_OWNER as string)
+const app = createDb(process.env.DATABASE_URL as string)
+
+beforeEach(async () => {
+  await resetDb(owner)
+})
+afterAll(async () => {
+  await owner.$client.end()
+  await app.$client.end()
+})
+
+/** A channel that records marketing sends, with an optional WhatsApp template list. */
+function channel(
+  id: string,
+  requires: 'email' | 'phone',
+  templates: { name: string; category: string; status?: string }[] = [],
+) {
+  const sent: MarketingSend[] = []
+  const c: NotificationChannel & { sent: MarketingSend[] } = {
+    id,
+    label: id,
+    requires,
+    sent,
+    async send() {
+      return { ok: true, providerRef: `${id}-order` }
+    },
+    async sendMarketing(m) {
+      sent.push(m)
+      return { ok: true, providerRef: `${id}-${sent.length}` }
+    },
+    async listTemplates() {
+      return templates.map((t) => ({
+        name: t.name,
+        language: 'en',
+        category: t.category,
+        status: t.status ?? 'APPROVED',
+        body: 'Hi {{1}}',
+        variableCount: 1,
+      }))
+    },
+  }
+  return c
+}
+
+const email = channel('ses', 'email')
+const whatsapp = channel('meta', 'phone', [
+  { name: 'order_ready', category: 'UTILITY' },
+  { name: 'sale', category: 'MARKETING' },
+])
+
+function executors(): Map<string, ActionExecutor> {
+  email.sent.length = 0
+  whatsapp.sent.length = 0
+  const deps: BuiltinActionDeps = {
+    registry: {} as BuiltinActionDeps['registry'],
+    settingsSecret: 'test-settings-secret',
+    storefrontUrl: 'https://shop.example',
+    channels: [email, whatsapp],
+  }
+  return new Map(builtinExecutors(async () => deps).map((e) => [e.id, e]))
+}
+
+type World = { storeId: string; tx: StoreTx; runId: string; workflowId: string; versionId: string }
+
+type Setup = {
+  workflow?: Partial<typeof automationWorkflow.$inferInsert>
+  definition?: Record<string, unknown>
+  run?: Partial<typeof automationRun.$inferInsert>
+}
+
+/** A store, inside one `withStore` transaction, with a workflow, version and run to attach steps to. */
+async function inStore<T>(
+  subject: (tx: StoreTx, storeId: string) => Promise<{ type: string; id: string }>,
+  fn: (w: World & { subject: { type: string; id: string } }) => Promise<T>,
+  setup: Setup = {},
+): Promise<T> {
+  const [s] = await owner
+    .insert(store)
+    .values({ slug: `s${Math.random().toString(36).slice(2, 8)}`, name: 'Chai Co' })
+    .returning()
+  const storeId = s?.id as string
+  return withStore(app, storeId, async (tx) => {
+    const subj = await subject(tx, storeId)
+    const [w] = await tx
+      .insert(automationWorkflow)
+      .values({ storeId, name: 'Test flow', triggerType: 'manual.order', ...setup.workflow })
+      .returning()
+    const [v] = await tx
+      .insert(automationVersion)
+      .values({
+        storeId,
+        workflowId: w?.id as string,
+        number: 1,
+        definition: setup.definition ?? {},
+      })
+      .returning()
+    const [r] = await tx
+      .insert(automationRun)
+      .values({
+        storeId,
+        workflowId: w?.id as string,
+        versionId: v?.id as string,
+        triggerType: 'manual.order',
+        triggerKey: 'manual:1',
+        subjectType: subj.type,
+        subjectId: subj.id,
+        ...setup.run,
+      })
+      .returning()
+    return fn({
+      storeId,
+      tx,
+      runId: r?.id as string,
+      workflowId: w?.id as string,
+      versionId: v?.id as string,
+      subject: subj,
+    })
+  })
+}
+
+function ctxFor(
+  w: World & { subject: { type: string; id: string } },
+  nodeId = 'n1',
+): ActionContext {
+  return {
+    storeId: w.storeId,
+    workflow: { id: w.workflowId, name: 'Test flow', versionId: w.versionId },
+    runId: w.runId,
+    nodeId,
+    stepKey: `${w.runId}:${nodeId}:0`,
+    attempt: 1,
+    subject: w.subject,
+    data: {},
+    triggerData: {},
+    cause: { runId: w.runId, workflowId: w.workflowId, depth: 1 },
+    dryRun: false,
+    render: (t) => t.replace('{order.number}', '7'),
+    log: () => {},
+  }
+}
+
+async function newCustomer(
+  tx: StoreTx,
+  storeId: string,
+  over: Partial<typeof customer.$inferInsert> = {},
+) {
+  const [c] = await tx
+    .insert(customer)
+    .values({ storeId, email: 'asha@example.com', name: 'Asha Rao', phone: '9876543210', ...over })
+    .returning()
+  return c?.id as string
+}
+
+async function newOrder(
+  tx: StoreTx,
+  storeId: string,
+  over: Partial<typeof order.$inferInsert> = {},
+) {
+  const [o] = await tx
+    .insert(order)
+    .values({
+      storeId,
+      number: 7,
+      subtotalPaise: 100_000,
+      totalPaise: 100_000,
+      email: 'asha@example.com',
+      phone: '9876543210',
+      ...over,
+    })
+    .returning()
+  return o?.id as string
+}
+
+const orderSubject =
+  (over: Partial<typeof order.$inferInsert> = {}) =>
+  async (tx: StoreTx, storeId: string) => ({
+    type: 'order',
+    id: await newOrder(tx, storeId, over),
+  })
+
+/** Courier stub for the hold guard: booking reaches it only when nothing is held. */
+const noBooking = {
+  id: 'stub',
+  async createShipment() {
+    throw new Error('should not book')
+  },
+} as unknown as ShippingProvider
+
+/** Order #7: 2 units of a tracked tea at Main (5 on hand, 2 committed), one open parcel, an address. */
+async function stockedOrder(tx: StoreTx, storeId: string) {
+  const [loc] = await tx
+    .insert(location)
+    .values({ storeId, name: 'Main', isDefault: true, fulfilsOnlineOrders: true })
+    .returning()
+  const productId = await createProduct(tx, storeId, {
+    title: 'Tea',
+    status: 'active',
+    options: [],
+    variants: [{ optionValues: [], pricePaise: 50_000 }],
+  })
+  const [v] = await tx.select().from(variant).where(eq(variant.productId, productId))
+  await tx.delete(inventoryLevel).where(eq(inventoryLevel.variantId, v?.id as string))
+  await tx.insert(inventoryLevel).values({
+    storeId,
+    variantId: v?.id as string,
+    locationId: loc?.id as string,
+    onHand: 5,
+    reserved: 2,
+  })
+  const [a] = await tx
+    .insert(address)
+    .values({
+      storeId,
+      name: 'Asha',
+      line1: 'x',
+      city: 'Pune',
+      stateCode: 'MH',
+      pincode: '411001',
+      phone: '9876543210',
+    })
+    .returning()
+  const orderId = await newOrder(tx, storeId, { shippingAddressId: a?.id })
+  const [line] = await tx
+    .insert(orderLine)
+    .values({
+      storeId,
+      orderId,
+      variantId: v?.id as string,
+      title: 'Tea',
+      quantity: 2,
+      unitPricePaise: 50_000,
+    })
+    .returning()
+  const [parcel] = await tx
+    .insert(fulfillmentOrder)
+    .values({ storeId, orderId, locationId: loc?.id as string, position: 1 })
+    .returning()
+  await tx.insert(fulfillmentOrderLine).values({
+    storeId,
+    fulfillmentOrderId: parcel?.id as string,
+    orderLineId: line?.id as string,
+    quantity: 2,
+  })
+  return { type: 'order', id: orderId }
+}
+
+async function run(
+  ex: Map<string, ActionExecutor>,
+  id: string,
+  w: Parameters<typeof ctxFor>[0],
+  config: unknown,
+  nodeId?: string,
+): Promise<ActionResult> {
+  return (ex.get(id) as ActionExecutor).run({
+    tx: w.tx,
+    ctx: ctxFor(w, nodeId),
+    config: config as never,
+  })
+}
+
+describe('tag actions', () => {
+  it('adds order tags once, with a timeline note, then is a no-op', async () => {
+    const ex = executors()
+    await inStore(orderSubject({ tags: ['vip'] }), async (w) => {
+      const first = await run(ex, 'order.add_tags', w, {
+        tags: ['VIP', 'High value', 'Order {order.number}'],
+      })
+      expect(first).toMatchObject({ output: { tags: ['High value', 'Order 7'] } })
+      const again = await run(ex, 'order.add_tags', w, { tags: ['High value'] })
+      expect(again.noop).toBe(true)
+      const [o] = await w.tx.select().from(order).where(eq(order.id, w.subject.id))
+      expect(o?.tags).toEqual(['vip', 'High value', 'Order 7'])
+      const notes = await w.tx.select().from(orderNote).where(eq(orderNote.orderId, w.subject.id))
+      expect(notes).toHaveLength(1)
+      expect(notes[0]?.body).toBe('Tags High value, Order 7 added by automation Test flow')
+      const removed = await run(ex, 'order.remove_tags', w, { tags: ['VIP'] })
+      expect(removed.output).toEqual({ tags: ['vip'] })
+      expect((await run(ex, 'order.remove_tags', w, { tags: ['VIP'] })).noop).toBe(true)
+    })
+  })
+
+  it("tags an order's customer lower-case and writes a loop-guarded tags_changed event", async () => {
+    const ex = executors()
+    await inStore(
+      async (tx, storeId) => ({
+        type: 'order',
+        id: await newOrder(tx, storeId, { customerId: await newCustomer(tx, storeId) }),
+      }),
+      async (w) => {
+        const r = await run(ex, 'customer.add_tags', w, { tags: ['Repeat'] })
+        expect(r.changed).toHaveLength(1)
+        const [c] = await w.tx.select().from(customer)
+        expect(c?.tags).toEqual(['repeat'])
+        const events = await w.tx
+          .select()
+          .from(outboxEvent)
+          .where(eq(outboxEvent.type, 'customer.tags_changed'))
+        expect(events[0]?.payload).toMatchObject({
+          tagsAdded: ['repeat'],
+          automation: { runId: w.runId, depth: 1 },
+        })
+        expect((await run(ex, 'customer.add_tags', w, { tags: ['REPEAT'] })).noop).toBe(true)
+      },
+    )
+  })
+
+  it('is a no-op on a guest order with no customer', async () => {
+    const ex = executors()
+    await inStore(orderSubject(), async (w) => {
+      const r = await run(ex, 'customer.add_tags', w, { tags: ['x'] })
+      expect(r.noop).toBe(true)
+      const p = await (ex.get('customer.add_tags') as ActionExecutor).preview({
+        tx: w.tx,
+        ctx: ctxFor(w),
+        config: { tags: ['x'] },
+      })
+      expect(p.wouldRun).toBe(false)
+    })
+  })
+
+  it('tags a product and notes the change for search and automations', async () => {
+    const ex = executors()
+    await inStore(
+      async (tx, storeId) => ({
+        type: 'product',
+        id: await createProduct(tx, storeId, {
+          title: 'Tea',
+          status: 'active',
+          options: [],
+          variants: [{ optionValues: [], pricePaise: 9_900 }],
+        }),
+      }),
+      async (w) => {
+        const p = await (ex.get('product.add_tags') as ActionExecutor).preview({
+          tx: w.tx,
+          ctx: ctxFor(w),
+          config: { tags: ['New'] },
+        })
+        expect(p).toMatchObject({ wouldRun: true, summary: 'Would add tags New.' })
+        await run(ex, 'product.add_tags', w, { tags: ['New'] })
+        const [row] = await w.tx.select().from(product)
+        expect(row?.tags).toEqual(['New'])
+        const types = (await w.tx.select().from(outboxEvent)).map((e) => e.type)
+        expect(types).toContain('product.updated')
+        await run(ex, 'product.remove_tags', w, { tags: ['new'] })
+        const [after] = await w.tx.select().from(product)
+        expect(after?.tags).toEqual([])
+      },
+    )
+  })
+})
+
+describe('order note, hold, release, cancel', () => {
+  it('adds a rendered note', async () => {
+    const ex = executors()
+    await inStore(orderSubject(), async (w) => {
+      await run(ex, 'order.add_note', w, { note: 'Check order {order.number}' })
+      const [n] = await w.tx.select().from(orderNote)
+      expect(n).toMatchObject({
+        body: 'Check order 7 (automation Test flow)',
+        author: 'automations',
+      })
+    })
+  })
+
+  it('holds every unshipped parcel so no shipment can be booked, and release lifts it', async () => {
+    const ex = executors()
+    await inStore(stockedOrder, async (w) => {
+      const book = () =>
+        createShipmentForOrder({ storeId: w.storeId, tx: w.tx }, noBooking, w.subject.id)
+      const held = await run(ex, 'order.hold', w, { reason: 'Risky COD' }, 'hold')
+      expect(held.output).toMatchObject({ reason: 'Risky COD' })
+      expect((held.output as { heldParcelIds: string[] }).heldParcelIds).toHaveLength(1)
+      expect((await run(ex, 'order.hold', w, { reason: '' }, 'hold2')).noop).toBe(true)
+      await expect(book()).rejects.toBeInstanceOf(FulfillmentOnHold)
+      await expect(book()).rejects.toThrow('Order #7 is on hold (Risky COD)')
+      await expect(
+        run(ex, 'order.fulfil', w, { notifyCustomer: true }, 'fulfil'),
+      ).rejects.toMatchObject({ retryable: false, code: 'FULFILLMENT_ON_HOLD' })
+      const data = await loadSubject(w.tx, w.storeId, w.subject)
+      expect(data?.order).toMatchObject({ fulfillment_status: 'on_hold' })
+
+      const released = await run(ex, 'order.release', w, {}, 'release')
+      expect((released.output as { releasedParcelIds: string[] }).releasedParcelIds).toHaveLength(1)
+      expect((await run(ex, 'order.release', w, {}, 'release2')).noop).toBe(true)
+      expect(await heldParcels(w.tx, w.subject.id)).toEqual([])
+      await expect(book()).rejects.toThrow('should not book')
+    })
+  })
+
+  it('fulfils without telling the shopper when notify is off', async () => {
+    const ex = executors()
+    await inStore(stockedOrder, async (w) => {
+      await run(ex, 'order.fulfil', w, { notifyCustomer: false })
+      const [o] = await w.tx.select().from(order)
+      expect(o?.fulfillmentStatus).toBe('fulfilled')
+      const event = (await w.tx.select().from(outboxEvent)).find(
+        (e) => e.type === 'order.fulfilled',
+      )
+      expect(event?.payload).toMatchObject({
+        notifyCustomer: false,
+        automation: { runId: w.runId },
+      })
+      expect((await run(ex, 'order.fulfil', w, { notifyCustomer: false })).noop).toBe(true)
+    })
+  })
+
+  it('cancels with restock off, leaving available stock as it was', async () => {
+    const ex = executors()
+    await inStore(stockedOrder, async (w) => {
+      await run(ex, 'order.cancel', w, { reason: 'fraud', notifyCustomer: false, restock: false })
+      const [level] = await w.tx.select().from(inventoryLevel)
+      // 5 on hand, 2 committed before: 3 available before and after.
+      expect(level).toMatchObject({ onHand: 3, reserved: 0 })
+    })
+    await inStore(stockedOrder, async (w) => {
+      await run(ex, 'order.cancel', w, { reason: 'other', notifyCustomer: false, restock: true })
+      const [level] = await w.tx.select().from(inventoryLevel)
+      expect(level).toMatchObject({ onHand: 5, reserved: 0 })
+    })
+  })
+
+  it('cancels once, stamping the run cause on the events cancelOrder wrote', async () => {
+    const ex = executors()
+    await inStore(orderSubject(), async (w) => {
+      const cfg = { reason: 'fraud', notifyCustomer: true, restock: true }
+      const p = await (ex.get('order.cancel') as ActionExecutor).preview({
+        tx: w.tx,
+        ctx: ctxFor(w),
+        config: cfg,
+      })
+      expect(p).toMatchObject({
+        wouldRun: true,
+        summary: 'Would cancel order #7 and tell the shopper.',
+      })
+      await run(ex, 'order.cancel', w, cfg)
+      const [o] = await w.tx.select().from(order)
+      expect(o?.status).toBe('cancelled')
+      const notice = (await w.tx.select().from(outboxEvent)).find(
+        (e) => e.type === 'order.cancel_notice',
+      )
+      expect(notice?.payload).toMatchObject({ automation: { runId: w.runId } })
+      expect((await run(ex, 'order.cancel', w, cfg)).noop).toBe(true)
+    })
+  })
+
+  it('fails a draft cancel without retry', async () => {
+    const ex = executors()
+    await inStore(orderSubject({ status: 'draft' }), async (w) => {
+      await expect(run(ex, 'order.cancel', w, { reason: 'other' })).rejects.toMatchObject({
+        retryable: false,
+      })
+    })
+  })
+})
+
+describe('metafields and collections', () => {
+  it('sets an order metafield through the validator, then is a no-op', async () => {
+    const ex = executors()
+    await inStore(orderSubject(), async (w) => {
+      await w.tx.insert(metafieldDefinition).values({
+        storeId: w.storeId,
+        ownerType: 'order',
+        namespace: 'custom',
+        key: 'risk',
+        name: 'Risk score',
+        type: 'number_integer',
+      })
+      const cfg = { namespace: 'custom', key: 'risk', value: '42' }
+      const r = await run(ex, 'order.set_metafield', w, cfg)
+      expect(r.output).toEqual({ field: 'custom.risk', value: 42 })
+      expect((await run(ex, 'order.set_metafield', w, cfg)).noop).toBe(true)
+      const [m] = await w.tx.select().from(metafield)
+      expect(m?.value).toBe(42)
+      await expect(
+        run(ex, 'order.set_metafield', w, { ...cfg, value: 'lots' }),
+      ).rejects.toMatchObject({ retryable: false })
+      await expect(
+        run(ex, 'order.set_metafield', w, { ...cfg, key: 'nope' }),
+      ).rejects.toMatchObject({ retryable: false })
+    })
+  })
+
+  it('adds the product to a manual collection once and removes it', async () => {
+    const ex = executors()
+    await inStore(
+      async (tx, storeId) => ({
+        type: 'product',
+        id: await createProduct(tx, storeId, {
+          title: 'Tea',
+          status: 'active',
+          options: [],
+          variants: [{ optionValues: [], pricePaise: 9_900 }],
+        }),
+      }),
+      async (w) => {
+        const [c] = await w.tx
+          .insert(collection)
+          .values({ storeId: w.storeId, handle: 'new', title: 'New arrivals' })
+          .returning()
+        const [auto] = await w.tx
+          .insert(collection)
+          .values({ storeId: w.storeId, handle: 'auto', title: 'Cheap', kind: 'automatic' })
+          .returning()
+        const cfg = { collectionId: c?.id }
+        const added = await run(ex, 'collection.add_product', w, cfg)
+        expect(added.changed).toEqual([{ type: 'collection', id: c?.id }])
+        expect((await run(ex, 'collection.add_product', w, cfg)).noop).toBe(true)
+        expect(await w.tx.select().from(collectionProduct)).toHaveLength(1)
+        await run(ex, 'collection.remove_product', w, cfg)
+        expect(await w.tx.select().from(collectionProduct)).toHaveLength(0)
+        expect((await run(ex, 'collection.remove_product', w, cfg)).noop).toBe(true)
+        await expect(
+          run(ex, 'collection.add_product', w, { collectionId: auto?.id }),
+        ).rejects.toMatchObject({ retryable: false })
+      },
+    )
+  })
+})
+
+describe('messages', () => {
+  it('sends a marketing WhatsApp only with consent, once per step', async () => {
+    const ex = executors()
+    const template = { name: 'sale', language: 'en', variables: ['{first_name}', '{order.number}'] }
+    await inStore(
+      async (tx, storeId) => ({
+        type: 'order',
+        id: await newOrder(tx, storeId, {
+          customerId: await newCustomer(tx, storeId, { acceptsWhatsapp: true }),
+        }),
+      }),
+      async (w) => {
+        const r = await run(ex, 'marketing.send_whatsapp', w, { template })
+        expect(r.noop).toBeFalsy()
+        expect(whatsapp.sent).toEqual([
+          {
+            kind: 'whatsapp_template',
+            to: { phone: '919876543210' },
+            template: { name: 'sale', language: 'en', variables: ['Asha', '7'] },
+          },
+        ])
+        expect((await run(ex, 'marketing.send_whatsapp', w, { template })).summary).toBe(
+          'Already sent',
+        )
+        expect(whatsapp.sent).toHaveLength(1)
+        const [m] = await w.tx.select().from(marketingMessage)
+        expect(m).toMatchObject({
+          status: 'sent',
+          automationRunId: w.runId,
+          automationNodeId: 'n1',
+        })
+      },
+    )
+  })
+
+  it('skips marketing email without consent, sending nothing', async () => {
+    const ex = executors()
+    await inStore(
+      async (tx, storeId) => ({ type: 'customer', id: await newCustomer(tx, storeId) }),
+      async (w) => {
+        const r = await run(ex, 'marketing.send_email', w, {
+          subject: 'Hi',
+          previewText: '',
+          blocks: [],
+        })
+        expect(r).toMatchObject({ noop: true, output: { skipped: 'no_consent' } })
+        expect(email.sent).toHaveLength(0)
+      },
+    )
+  })
+
+  it('sends an order update on a utility template without consent, refusing marketing ones', async () => {
+    const ex = executors()
+    await inStore(orderSubject(), async (w) => {
+      const utility = {
+        channel: 'whatsapp',
+        template: { name: 'order_ready', language: 'en', variables: [] },
+      }
+      await run(ex, 'customer.send_order_update', w, utility)
+      expect(whatsapp.sent).toHaveLength(1)
+      const marketing = {
+        channel: 'whatsapp',
+        template: { name: 'sale', language: 'en', variables: [] },
+      }
+      await expect(run(ex, 'customer.send_order_update', w, marketing, 'n2')).rejects.toMatchObject(
+        { retryable: false },
+      )
+      await expect(
+        run(
+          ex,
+          'customer.send_order_update',
+          w,
+          { channel: 'email', template: 'login_code' },
+          'n3',
+        ),
+      ).rejects.toMatchObject({ retryable: false })
+    })
+  })
+
+  it('alerts staff by email once per step', async () => {
+    const ex = executors()
+    await inStore(orderSubject(), async (w) => {
+      const cfg = {
+        to: ['ops@example.com', 'owner@example.com'],
+        subject: 'Order {order.number}',
+        body: '<b>Big</b> one',
+      }
+      await run(ex, 'staff.email', w, cfg)
+      expect(email.sent.map((m) => (m.kind === 'email' ? [m.to.email, m.subject] : null))).toEqual([
+        ['ops@example.com', 'Order 7'],
+        ['owner@example.com', 'Order 7'],
+      ])
+      const first = email.sent[0]
+      expect(first?.kind === 'email' && first.html).toContain('&lt;b&gt;Big&lt;/b&gt;')
+      expect((await run(ex, 'staff.email', w, cfg)).noop).toBe(true)
+      expect(email.sent).toHaveLength(2)
+    })
+  })
+})
+
+describe('marketing parity with Growth', () => {
+  const cod = {
+    workflow: {
+      origin: 'growth' as const,
+      templateId: 'cod_confirmation',
+      triggerType: 'order.cod_placed',
+    },
+    definition: { trigger: { type: 'order.cod_placed', config: {} }, start: 'n1', nodes: {} },
+  }
+  const template = { name: 'cod_confirm', language: 'en', variables: ['{order_number}'] }
+
+  it('sends the COD confirmation to the order phone without consent, even unsubscribed', async () => {
+    const ex = executors()
+    await inStore(
+      async (tx, storeId) => ({
+        type: 'order',
+        id: await newOrder(tx, storeId, {
+          phone: '9000000001',
+          customerId: await newCustomer(tx, storeId, { unsubscribedAt: new Date() }),
+        }),
+      }),
+      async (w) => {
+        const r = await run(ex, 'marketing.send_whatsapp', w, { template })
+        expect(r.output).toEqual({ to: '919000000001', transactional: true })
+        expect(whatsapp.sent).toHaveLength(1)
+        // Any later WhatsApp step of the same workflow is marketing again.
+        const later = await run(ex, 'marketing.send_whatsapp', w, { template }, 'n2')
+        expect(later).toMatchObject({ noop: true, output: { skipped: 'no_consent' } })
+      },
+      cod,
+    )
+  })
+
+  it("skips a typed contact that is not the consenting customer's own", async () => {
+    const ex = executors()
+    await inStore(
+      async (tx, storeId) => ({
+        type: 'customer',
+        id: await newCustomer(tx, storeId, { acceptsMarketing: true }),
+      }),
+      async (w) => {
+        const r = await run(ex, 'marketing.send_email', w, {
+          subject: 'Hi',
+          previewText: '',
+          blocks: [],
+        })
+        expect(r).toMatchObject({ noop: true, output: { skipped: 'recipient_mismatch' } })
+        const [m] = await w.tx.select().from(marketingMessage)
+        expect(m).toMatchObject({
+          status: 'skipped',
+          error: 'recipient_mismatch',
+          automationId: null,
+        })
+        expect(email.sent).toHaveLength(0)
+      },
+      { run: { email: 'someone-else@example.com' } },
+    )
+  })
+
+  it('emails an abandoned cart with its lines, discount code and Growth UTM, then marks it nudged', async () => {
+    const ex = executors()
+    await inStore(
+      async (tx, storeId) => {
+        const customerId = await newCustomer(tx, storeId, { acceptsMarketing: true })
+        const productId = await createProduct(tx, storeId, {
+          title: 'Masala tea',
+          status: 'active',
+          options: [],
+          variants: [{ optionValues: [], pricePaise: 25_000 }],
+        })
+        const [v] = await tx.select().from(variant).where(eq(variant.productId, productId))
+        const [c] = await tx
+          .insert(cart)
+          .values({ storeId, customerId, email: 'asha@example.com' })
+          .returning()
+        await tx.insert(cartLine).values({
+          storeId,
+          cartId: c?.id as string,
+          variantId: v?.id as string,
+          quantity: 2,
+          unitPricePaise: 25_000,
+        })
+        return { type: 'cart', id: c?.id as string }
+      },
+      async (w) => {
+        const blocks = [
+          { id: 'b1', type: 'text', text: 'Use {discount_code} on {cart_total}' },
+          { id: 'b2', type: 'cart' },
+          { id: 'b3', type: 'discount', code: 'COMEBACK10' },
+          { id: 'b4', type: 'button', label: 'Back to cart', url: '{checkout_url}' },
+        ]
+        await run(ex, 'marketing.send_email', w, {
+          subject: 'Hi {first_name}',
+          previewText: '',
+          blocks,
+        })
+        const sent = email.sent[0]
+        expect(sent?.kind === 'email' && sent.subject).toBe('Hi Asha')
+        const html = sent?.kind === 'email' ? sent.html : ''
+        expect(html).toContain('COMEBACK10')
+        expect(html).toContain('Masala tea')
+        expect(html).toContain('automation-abandoned_checkout')
+        const [k] = await w.tx.select().from(cart)
+        expect(k?.recoverySentAt).toBeInstanceOf(Date)
+      },
+      { workflow: { origin: 'growth', templateId: 'abandoned_checkout' } },
+    )
+  })
+})

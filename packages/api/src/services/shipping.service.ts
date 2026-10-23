@@ -5,6 +5,7 @@ import {
   createShipmentForOrder,
   decryptShippingSettings,
   estimateForStore,
+  FulfillmentOnHold,
   mergeMaskedSecrets,
   orderNumberLabel,
   parseShippingSettings,
@@ -197,6 +198,9 @@ export async function testShippingConnection(
 
 /** Courier failures become BAD_REQUEST with the app's wording; the courier's never reaches the UI raw. */
 const courierToRpc = (err: unknown): never => {
+  if (err instanceof FulfillmentOnHold) {
+    throw new ORPCError('PRECONDITION_FAILED', { message: err.message })
+  }
   if (err instanceof CourierError) {
     const detail = err.kind === 'rejected' ? err.message : describeCourierFailure(err)
     throw new ORPCError('BAD_REQUEST', { message: detail })

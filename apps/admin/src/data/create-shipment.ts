@@ -64,6 +64,7 @@ export const createShipmentContent = {
       no_address: 'No delivery address',
       closed: 'Cancelled or a draft',
       nothing_to_ship: 'Nothing left to ship',
+      on_hold: 'Fulfilment is on hold: release it to ship',
       several_parcels: 'Ships in several parcels: book it from the order page',
     },
     noneLeft: 'None of these orders can be booked here.',
