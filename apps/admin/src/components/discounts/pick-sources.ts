@@ -91,3 +91,81 @@ export async function loadPicked(
   )
   return pages.flatMap((r) => r.items).map((p) => productItem(p, copy, locale))
 }
+
+/** Who a discount is limited to: customer segments or individual customers. */
+export type PeopleKind = 'segments' | 'customers'
+
+type EligibilityCopy = (typeof discountFormContent)['eligibility']
+type SegmentRow = Awaited<ReturnType<typeof api.customers.segments>>[number]
+type CustomerRow = Awaited<ReturnType<typeof api.customers.list>>['items'][number]
+
+const segmentItem = (s: SegmentRow, copy: EligibilityCopy): PickItem => ({
+  id: s.id,
+  title: s.name,
+  thumb: 'none',
+  meta: copy.members(s.customerCount),
+})
+
+const customerItem = (c: CustomerRow, copy: EligibilityCopy): PickItem => ({
+  id: c.id,
+  title: c.name || c.email || c.phone || '—',
+  subtitle: c.name ? (c.email ?? c.phone ?? undefined) : undefined,
+  thumb: 'initial',
+  meta: copy.orders(c.orderCount),
+})
+
+/** The one tab the eligibility Browse dialog shows. */
+export function peopleTab(kind: PeopleKind, copy: EligibilityCopy): PickTab {
+  if (kind === 'segments') {
+    return {
+      key: 'segments',
+      label: copy.segmentsTab,
+      search: copy.segmentSearch,
+      empty: copy.noSegments,
+      // Segments are few; the API returns them all, searched and paged here.
+      load: async ({ page, search }) => {
+        const all = (await api.customers.segments()).filter((s) => matches(s.name, search))
+        return {
+          items: all.slice((page - 1) * PAGE, page * PAGE).map((s) => segmentItem(s, copy)),
+          total: all.length,
+        }
+      },
+    }
+  }
+  return {
+    key: 'customers',
+    label: copy.customersTab,
+    search: copy.customerSearch,
+    empty: copy.noCustomers,
+    load: async ({ page, search }) => {
+      const r = await api.customers.list({
+        page,
+        perPage: PAGE,
+        search: search || undefined,
+        sort: 'name',
+      })
+      return { items: r.items.map((c) => customerItem(c, copy)), total: r.total }
+    },
+  }
+}
+
+/** Rows for segment or customer ids already chosen. */
+export async function loadPeople(
+  kind: PeopleKind,
+  ids: string[],
+  copy: EligibilityCopy,
+): Promise<PickItem[]> {
+  if (ids.length === 0) return []
+  if (kind === 'segments') {
+    const wanted = new Set(ids)
+    return (await api.customers.segments())
+      .filter((s) => wanted.has(s.id))
+      .map((s) => segmentItem(s, copy))
+  }
+  const pages = await Promise.all(
+    chunks(ids, FETCH_MAX).map((part) =>
+      api.customers.list({ page: 1, perPage: part.length, ids: part }),
+    ),
+  )
+  return pages.flatMap((r) => r.items).map((c) => customerItem(c, copy))
+}

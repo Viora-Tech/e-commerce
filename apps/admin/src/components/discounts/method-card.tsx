@@ -15,29 +15,69 @@ import RequiredMark from '@/components/fields/required-mark'
 import DataCard from '@/components/layout/data-card'
 import { discountFormContent } from '@/data/discounts'
 import { useCopy } from '@/hooks/use-copy'
-import type { DiscountFormState } from './form-state'
+import type { DiscountFormState, DiscountType } from './form-state'
 import { randomCode } from './form-state'
 
 type MethodCardProps = {
-  form: Pick<DiscountFormState, 'title' | 'kind' | 'code' | 'method'>
+  form: Pick<DiscountFormState, 'type' | 'title' | 'kind' | 'code' | 'method'>
+  /** The type is picked once, when the discount is created. */
+  typeLocked: boolean
   titleError?: string | undefined
   codeError?: string | undefined
   onChange: (patch: Partial<DiscountFormState>) => void
 }
 
 const KINDS = ['code', 'automatic'] as const
-const METHODS = ['percent', 'fixed', 'free_shipping'] as const
+const TYPES = ['products', 'order', 'bxgy', 'shipping'] as const
 
-export default function MethodCard({ form, titleError, codeError, onChange }: MethodCardProps) {
+export default function MethodCard({
+  form,
+  typeLocked,
+  titleError,
+  codeError,
+  onChange,
+}: MethodCardProps) {
   // Hooks
-  const { method: copy } = useCopy(discountFormContent)
+  const { method: copy, type: typeCopy } = useCopy(discountFormContent)
 
   // Event handlers
   const handleGenerate = () => onChange({ code: randomCode() })
 
+  const handleType = (type: DiscountType) =>
+    onChange({
+      type,
+      method:
+        type === 'shipping'
+          ? 'free_shipping'
+          : form.method === 'free_shipping'
+            ? 'percent'
+            : form.method,
+    })
+
   return (
     <DataCard title={copy.heading}>
       <FieldGroup>
+        <Field>
+          <FieldLabel>{typeCopy.heading}</FieldLabel>
+          <RadioGroup
+            value={form.type}
+            onValueChange={(v) => handleType(v as DiscountType)}
+            disabled={typeLocked}
+            className="grid gap-3 md:grid-cols-2"
+          >
+            {TYPES.map((t) => (
+              <ChoiceTile
+                key={t}
+                name="type"
+                value={t}
+                checked={form.type === t}
+                label={typeCopy.options[t].label}
+                help={typeCopy.options[t].help}
+              />
+            ))}
+          </RadioGroup>
+          {typeLocked ? <FieldDescription>{typeCopy.locked}</FieldDescription> : null}
+        </Field>
         <Field>
           <FieldLabel>{copy.kindLabel}</FieldLabel>
           <RadioGroup
@@ -53,25 +93,6 @@ export default function MethodCard({ form, titleError, codeError, onChange }: Me
                 checked={form.kind === k}
                 label={copy.kinds[k].label}
                 help={copy.kinds[k].help}
-              />
-            ))}
-          </RadioGroup>
-        </Field>
-        <Field>
-          <FieldLabel>{copy.methodLabel}</FieldLabel>
-          <RadioGroup
-            value={form.method}
-            onValueChange={(v) => onChange({ method: v as DiscountFormState['method'] })}
-            className="grid gap-3 md:grid-cols-3"
-          >
-            {METHODS.map((m) => (
-              <ChoiceTile
-                key={m}
-                name="method"
-                value={m}
-                checked={form.method === m}
-                label={copy.methods[m].label}
-                help={copy.methods[m].help}
               />
             ))}
           </RadioGroup>

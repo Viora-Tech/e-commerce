@@ -325,9 +325,16 @@ const rupeeText = (paise: number): string => {
  */
 export function describeDiscountValue(
   d: Pick<DiscountRule, 'method' | 'value'> &
-    Partial<Pick<DiscountRule, 'appliesTo' | 'productValues'>>,
+    Partial<Pick<DiscountRule, 'appliesTo' | 'productValues' | 'type'>>,
 ): string {
   if (d.method === 'free_shipping') return 'Free shipping'
+  if (d.type === 'bxgy') {
+    const off =
+      d.method === 'percent' && d.value === 10_000
+        ? 'free'
+        : `${(d.method === 'percent' ? percentText : rupeeText)(d.value)} off`
+    return `Buy X get Y (${off})`
+  }
   const text = d.method === 'percent' ? percentText : rupeeText
   const perItem = perProductValues({
     appliesTo: d.appliesTo ?? 'all',
