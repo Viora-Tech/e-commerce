@@ -17,6 +17,8 @@ export type ActionContext = {
   /** `null` in a dry run (no run row exists). */
   runId: string | null
   nodeId: string
+  /** 0 outside a For each; the pass (1, 2, 3…) inside one. Part of `stepKey`. */
+  iteration: number
   /**
    * Idempotency key for this step: `<runId>:<nodeId>:<iteration>`. External actions pass it to
    * their provider (email/WhatsApp message key, HTTP `Idempotency-Key`, plugin `stepRunId`).
@@ -95,13 +97,18 @@ export type ActionExecutor<C = Record<string, unknown>> = {
   run(input: ActionRunInput<C>): Promise<ActionResult>
   preview(input: ActionRunInput<C>): Promise<ActionPreview>
   /**
-   * Optional two-phase form for slow outbound calls (HTTP): `prepare` reads what the call needs
-   * in a short transaction, `send` makes the call with no transaction open, and the engine
-   * records the result in another short one. Without it, an external action's `run` gets its
-   * own short transaction, never the run's lock (design §8.5).
+   * The two-phase form every outbound action uses (HTTP, email, WhatsApp): `prepare` reads and
+   * claims what the call needs in a short transaction, `send` makes the provider call with no
+   * transaction open, and `record` writes its outcome in another short one (throw there to fail
+   * or retry the step). Without `record`, `send` returns the step's result itself. Without
+   * `prepare`/`send`, an external action's `run` gets a short transaction of its own, never the
+   * run's lock (design §8.5). Every phase is keyed by `ctx.stepKey`.
    */
   prepare?: ((input: ActionRunInput<C>) => Promise<unknown>) | undefined
-  send?: ((prepared: unknown, ctx: ActionContext, config: C) => Promise<ActionResult>) | undefined
+  send?: ((prepared: unknown, ctx: ActionContext, config: C) => Promise<unknown>) | undefined
+  record?:
+    | ((input: ActionRunInput<C>, prepared: unknown, sent: unknown) => Promise<ActionResult>)
+    | undefined
 }
 
 /** Loads the data a subject's conditions and merge tags read; null when the record is gone. */

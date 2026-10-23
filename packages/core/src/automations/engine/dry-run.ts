@@ -164,6 +164,7 @@ export async function dryRun(
       workflow: { id: input.workflow.id, name: input.workflow.name, versionId: 'draft' },
       runId: null,
       nodeId: node.id,
+      iteration: 0,
       stepKey: `test:${node.id}`,
       attempt: 1,
       subject,

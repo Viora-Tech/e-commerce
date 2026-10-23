@@ -1,4 +1,5 @@
 import { type Db, outboxEvent, withStore } from '@commerce/db'
+import type { TemplateId } from '@commerce/notifications'
 import type { LoadedPlugins } from '@commerce/plugins'
 import { and, asc, eq, isNull } from 'drizzle-orm'
 import { type AutomationTriggerQueue, triggerJobId } from '../automations/engine/jobs'
@@ -235,6 +236,15 @@ async function dispatchRow(deps: OutboxRelayDeps, row: Row): Promise<void> {
         `products-${row.id}`,
       )
     }
+  }
+  if (type === 'automation.order_update' && payload.orderId && payload.notificationTemplate) {
+    // "Send order update": the order email the step chose, through the normal queue (it sends
+    // once per template per order, so a re-dispatch or a retried step sends nothing twice).
+    await enqueueNotification(deps.notifications, {
+      storeId: row.storeId,
+      orderId: payload.orderId,
+      template: payload.notificationTemplate as TemplateId,
+    })
   }
   if (AUTOMATION_OUTBOX_TYPES.has(type) && deps.automationTriggers) {
     // Keyed by the row: a re-dispatch is a no-op. The job finds the store's On workflows for

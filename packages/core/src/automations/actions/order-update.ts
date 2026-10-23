@@ -1,15 +1,16 @@
 /** SOURCE OF TRUTH: "Send order update" automation action — WHAT: tells the shopper about their own order without marketing consent, but only with an order email template (sent through `deliverNotification`, once per template per order) or a WhatsApp template the provider lists as an approved UTILITY one, only to the order's own contact, only on order subjects / WHY: owner answer Q4: the consent-free half of customer messaging must never carry marketing. Server-only. Design §8.4. */
 import { order, type StoreTx } from '@commerce/db'
-import type { ChannelTemplate, NotificationChannel, TemplateId } from '@commerce/notifications'
+import type { ChannelTemplate, NotificationChannel } from '@commerce/notifications'
 import { eq } from 'drizzle-orm'
 import { normalisePhone } from '../../marketing/audience'
-import { marketingChannels, sendMarketingWhatsapp } from '../../marketing/send'
+import { marketingChannels, prepareMarketingWhatsapp } from '../../marketing/send'
 import type { WhatsappTemplateRef } from '../../marketing/whatsapp'
-import { deliverNotification } from '../../notifications/deliver'
 import { messageDef } from '../../notifications/messages'
+import { insertOutboxEvent } from '../../outbox/write'
 import { type ActionContext, type ActionExecutor, AutomationActionError } from '../executor'
 import { fill, mergeValues, notConnected, skipped } from './messages'
-import { claimMessage, type DepsFor, gone, sendFailure, subjectId } from './shared'
+import { messageExecutor, type Planned } from './outbound'
+import { claimMessage, type DepsFor, gone, subjectId } from './shared'
 
 // ---------------------------------------------------------------------------------------------
 // Send order update (no consent: order email templates, utility WhatsApp templates)
@@ -71,9 +72,9 @@ export function orderUpdate(depsFor: DepsFor): ActionExecutor<OrderUpdateConfig>
     if (!o) throw gone('order')
     return o
   }
-  return {
-    id: 'customer.send_order_update',
-    async run({ tx, ctx, config }) {
+  return messageExecutor<OrderUpdateConfig>(
+    'customer.send_order_update',
+    async ({ tx, ctx, config }): Promise<Planned> => {
       const deps = await depsFor(tx, ctx.storeId)
       const o = await orderOf(tx, ctx)
       if (config.channel === 'email') {
@@ -82,46 +83,38 @@ export function orderUpdate(depsFor: DepsFor): ActionExecutor<OrderUpdateConfig>
             retryable: false,
           })
         }
-        if (!o.email) return skipped('The order has no email', 'no_recipient')
-        const results = await deliverNotification(
-          { storeId: ctx.storeId, tx },
-          { orderId: o.id, template: config.template as TemplateId },
-          {
-            registry: deps.registry,
-            settingsSecret: deps.settingsSecret,
-            storefrontUrl: deps.storefrontUrl,
-            requires: 'email',
-            channels: deps.channels,
+        if (!o.email)
+          return { kind: 'result', result: skipped('The order has no email', 'no_recipient') }
+        // The order email goes out on the notification queue, like every order email: once
+        // per template per order, after this step commits, with no transaction held.
+        await insertOutboxEvent(tx, ctx.storeId, 'automation.order_update', {
+          orderId: o.id,
+          notificationTemplate: config.template,
+        })
+        return {
+          kind: 'result',
+          result: {
+            summary: `Queued the ${config.template} email to ${o.email}`,
+            output: { to: o.email, template: config.template },
           },
-        )
-        // Nothing sent: already sent for this order (once per template), or switched off.
-        if (results.length === 0) {
-          return {
-            noop: true,
-            summary: 'Already sent, or switched off in Settings → Notifications',
-          }
         }
-        const failed = results.find((r) => !r.ok)
-        if (failed && !results.some((r) => r.ok)) throw sendFailure(failed.error ?? 'failed', true)
-        return { summary: `Emailed ${o.email}`, output: { to: o.email, template: config.template } }
       }
       // The order's own phone: an update about the shopper's own order needs no consent.
       const phone = normalisePhone(o.phone)
-      if (!phone) return skipped('The order has no phone', 'no_recipient')
+      if (!phone)
+        return { kind: 'result', result: skipped('The order has no phone', 'no_recipient') }
       const { whatsapp } = await marketingChannels(tx, ctx.storeId, deps)
       if (!whatsapp) throw notConnected('WhatsApp')
-      const checked = await utilityTemplate(whatsapp, config.template)
-      if (!checked.ok) throw new AutomationActionError(checked.reason, { retryable: false })
       const msg = await claimMessage(tx, ctx, {
         channel: 'whatsapp',
         to: phone,
         customerId: o.customerId,
       })
-      if (msg.alreadySent) return { noop: true, summary: 'Already sent' }
+      if (msg.alreadySent)
+        return { kind: 'result', result: { noop: true, summary: 'Already sent' } }
       const merge = await mergeValues(tx, ctx, deps, null)
-      const r = await sendMarketingWhatsapp(
+      const prepared = await prepareMarketingWhatsapp(
         tx,
-        whatsapp,
         {
           messageId: msg.id,
           to: phone,
@@ -130,12 +123,26 @@ export function orderUpdate(depsFor: DepsFor): ActionExecutor<OrderUpdateConfig>
           template: config.template,
           merge,
         },
-        (s, m) => fill(ctx, s, m),
+        (str, m) => fill(ctx, str, m),
       )
-      if (!r.ok) throw sendFailure(r.error, r.retryable)
-      return { summary: `Sent ${config.template.name} on WhatsApp`, output: { to: phone } }
+      if (prepared.kind === 'skipped') {
+        return { kind: 'result', result: skipped('Not allowed to send', 'no_consent') }
+      }
+      const ref = config.template
+      return {
+        kind: 'send',
+        messageId: msg.id,
+        channel: whatsapp,
+        messages: [prepared.message],
+        // The provider's template list is read outside the transaction too.
+        check: async () => {
+          const checked = await utilityTemplate(whatsapp, ref)
+          return checked.ok ? null : checked.reason
+        },
+        done: { summary: `Sent ${ref.name} on WhatsApp`, output: { to: phone } },
+      }
     },
-    async preview({ tx, ctx, config }) {
+    async ({ tx, ctx, config }) => {
       const deps = await depsFor(tx, ctx.storeId)
       const o = await orderOf(tx, ctx)
       if (config.channel === 'email') {
@@ -157,5 +164,5 @@ export function orderUpdate(depsFor: DepsFor): ActionExecutor<OrderUpdateConfig>
         warnings: checked ? undefined : ['Could not check the template right now'],
       }
     },
-  }
+  )
 }

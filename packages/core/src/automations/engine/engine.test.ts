@@ -391,6 +391,52 @@ describe('interpreter', () => {
     expect(steps.find((s) => s.nodeId === 'find')?.output).toMatchObject({ resource: 'order' })
   })
 
+  it('calls the provider only after the step is committed in flight, then records it', async () => {
+    const h = harness(true)
+    const seen: string[] = []
+    const twoPhase: ActionExecutor = {
+      id: 'staff.email',
+      run: async () => ({ summary: 'unused' }),
+      preview: async () => ({ summary: 'would', wouldRun: true }),
+      prepare: async ({ ctx }) => ({ key: ctx.stepKey }),
+      send: async (prepared) => {
+        // Read on another connection: visible only if the in-flight step already committed.
+        const [step] = await owner
+          .select()
+          .from(automationStepRun)
+          .where(eq(automationStepRun.nodeId, 'alert'))
+        seen.push(`${step?.status}:${JSON.stringify(step?.output)}`)
+        return { ok: true, key: (prepared as { key: string }).key }
+      },
+      record: async (_input, _prepared, sent) => ({
+        summary: `sent ${(sent as { key: string }).key}`,
+      }),
+    }
+    resetActionExecutorsForTest([twoPhase])
+    const storeId = await seedStore()
+    const orderId = await seedOrder(storeId)
+    await publish(storeId, {
+      ...tagThenNote,
+      start: 'alert',
+      nodes: {
+        alert: {
+          kind: 'action',
+          id: 'alert',
+          action: 'staff.email',
+          config: { to: ['ops@x.in'], subject: 'Hi', body: 'Pack it' },
+          next: null,
+          onError: 'stop',
+        },
+      },
+    })
+    const [run] = (await start(storeId, await outbox(storeId, 'order.paid', { orderId }))).started
+    const id = run?.runId as string
+    await advanceRun(app, storeId, id, h.deps)
+    expect(seen).toEqual(['running:{"inFlight":true}'])
+    const [step] = await stepsOf(id)
+    expect(step).toMatchObject({ status: 'succeeded', summary: `sent ${id}:alert:0` })
+  })
+
   it('stops on Otherwise when the condition says so', async () => {
     const h = harness(false)
     const storeId = await seedStore()

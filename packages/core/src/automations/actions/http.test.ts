@@ -27,6 +27,7 @@ function ctx(over: Partial<ActionContext> = {}): ActionContext {
     workflow: { id: 'wf-1', name: 'Hook', versionId: 'v1' },
     runId: 'run-1',
     nodeId: 'n1',
+    iteration: 0,
     stepKey: 'run-1:n1:0',
     attempt: 1,
     subject: { type: 'order', id: 'o1' },

@@ -87,6 +87,8 @@ export type OutboxEventType =
   | 'inventory.out'
   /** An installed app fired one of its Automations triggers (`ctx.triggerAutomation`). */
   | 'automation.app_trigger'
+  /** An automation's "Send order update" email: the relay queues the order email it names. */
+  | 'automation.order_update'
   /** Tell the store owner about Automations: 80% / 100% of the month's runs, a workflow switched off. */
   | 'automation.owner_alert'
   /**
@@ -164,6 +166,8 @@ export type OutboxPayload = {
         limit?: number | undefined
       }
     | undefined
+  /** For `automation.order_update`: the order email template to send. */
+  notificationTemplate?: string | undefined
   /** Set when an automation run caused this event (loop guard, design §8.5). */
   automation?: AutomationCause | undefined
   /** Platform-app events: the platform (`meta`, `google`, `openai`, `whatsapp`, `shopify`). */
@@ -254,6 +258,8 @@ export const OUTBOX_NOTIFICATION_TEMPLATE: Record<OutboxEventType, TemplateId | 
   'inventory.low': null,
   'inventory.out': null,
   'automation.app_trigger': null,
+  // The relay queues the named order email itself (`dispatchRow`).
+  'automation.order_update': null,
   'automation.owner_alert': null,
   // Platform-app events have no message or app hook yet: they are there for automations.
   'channel.sync_failed': null,
@@ -324,6 +330,7 @@ export const OUTBOX_APP_EVENT: Record<OutboxEventType, AppEvent | null> = {
   'inventory.low': null,
   'inventory.out': null,
   'automation.app_trigger': null,
+  'automation.order_update': null,
   'automation.owner_alert': null,
   'channel.sync_failed': null,
   'whatsapp.account_updated': null,

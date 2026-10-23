@@ -18,8 +18,8 @@ import type { EmailBlock, MergeValues } from '../../marketing/email'
 import { RECIPIENT_MISMATCH, recipientIsCustomers } from '../../marketing/recipient'
 import {
   marketingChannels,
-  sendMarketingEmail,
-  sendMarketingWhatsapp,
+  prepareMarketingEmail,
+  prepareMarketingWhatsapp,
   storeSender,
 } from '../../marketing/send'
 import type { WhatsappTemplateRef } from '../../marketing/whatsapp'
@@ -27,7 +27,8 @@ import { hasMarketingConsent } from '../../privacy/client'
 import { customerIdOf } from '../conditions/loaders'
 import type { ActionContext, ActionExecutor, ActionPreview, ActionResult } from '../executor'
 import { fill, mergeValues, renderBlocks, skipped } from './messages'
-import { type BuiltinActionDeps, claimMessage, type DepsFor, sendFailure } from './shared'
+import { messageExecutor, type Planned } from './outbound'
+import { type BuiltinActionDeps, claimMessage, type DepsFor } from './shared'
 
 type EmailConfig = { subject: string; previewText: string; blocks: EmailBlock[] }
 type WhatsappConfig = { template: WhatsappTemplateRef }
@@ -155,25 +156,31 @@ function emailPlan(a: Audience): { to: string } | { reason: string } {
 }
 
 function marketingEmail(depsFor: DepsFor): ActionExecutor<EmailConfig> {
-  return {
-    id: 'marketing.send_email',
-    async run({ tx, ctx, config }) {
+  return messageExecutor<EmailConfig>(
+    'marketing.send_email',
+    async ({ tx, ctx, config }): Promise<Planned> => {
       const deps = await depsFor(tx, ctx.storeId)
       const a = await audience(tx, ctx, deps)
       const plan = emailPlan(a)
-      if ('reason' in plan) return skipped(plan.reason, NO_CONSENT)
+      if ('reason' in plan) return { kind: 'result', result: skipped(plan.reason, NO_CONSENT) }
       const { email } = await marketingChannels(tx, ctx.storeId, deps)
-      if (!email) return skipped('No email channel can send marketing', 'no_channel')
+      if (!email) {
+        return {
+          kind: 'result',
+          result: skipped('No email channel can send marketing', 'no_channel'),
+        }
+      }
       const msg = await claimMessage(tx, ctx, {
         channel: 'email',
         to: plan.to,
         customerId: a.customer?.id ?? null,
       })
-      if (msg.alreadySent) return { noop: true, summary: 'Already sent' }
+      if (msg.alreadySent)
+        return { kind: 'result', result: { noop: true, summary: 'Already sent' } }
       // Consent is the customer's; the typed checkout email may be someone else's.
       if (!recipientIsCustomers('email', plan.to, a.customer)) {
         await markSkipped(tx, msg.id, RECIPIENT_MISMATCH)
-        return mismatch()
+        return { kind: 'result', result: mismatch() }
       }
       const discount = config.blocks.find((b) => b.type === 'discount')
       const merge: MergeValues = {
@@ -182,11 +189,10 @@ function marketingEmail(depsFor: DepsFor): ActionExecutor<EmailConfig> {
       }
       const facts = a.cartId ? await cartFacts(tx, a.cartId) : null
       const { utm } = await workflowFacts(tx, ctx)
-      const r = await sendMarketingEmail(
+      const prepared = await prepareMarketingEmail(
         tx,
         ctx.storeId,
         deps,
-        email,
         await storeSender(tx, ctx.storeId),
         {
           messageId: msg.id,
@@ -202,14 +208,19 @@ function marketingEmail(depsFor: DepsFor): ActionExecutor<EmailConfig> {
           utmCampaign: utm,
         },
       )
-      if (!r.ok) {
-        if (r.error === NO_CONSENT) return skipped('The customer withdrew consent', NO_CONSENT)
-        throw sendFailure(r.error, r.retryable)
+      if (prepared.kind === 'skipped') {
+        return { kind: 'result', result: skipped('The customer withdrew consent', NO_CONSENT) }
       }
-      await markRecoverySent(tx, a.cartId)
-      return { summary: `Emailed ${plan.to}`, output: { to: plan.to } }
+      return {
+        kind: 'send',
+        messageId: msg.id,
+        channel: email,
+        messages: [prepared.message],
+        done: { summary: `Emailed ${plan.to}`, output: { to: plan.to } },
+        after: (t) => markRecoverySent(t, a.cartId),
+      }
     },
-    async preview({ tx, ctx, config }): Promise<ActionPreview> {
+    async ({ tx, ctx, config }): Promise<ActionPreview> => {
       const deps = await depsFor(tx, ctx.storeId)
       const a = await audience(tx, ctx, deps)
       const plan = emailPlan(a)
@@ -224,7 +235,7 @@ function marketingEmail(depsFor: DepsFor): ActionExecutor<EmailConfig> {
         wouldRun: true,
       }
     },
-  }
+  )
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -241,32 +252,34 @@ function whatsappPlan(a: Audience, transactional: boolean): { to: string } | { r
 }
 
 function marketingWhatsapp(depsFor: DepsFor): ActionExecutor<WhatsappConfig> {
-  return {
-    id: 'marketing.send_whatsapp',
-    async run({ tx, ctx, config }) {
+  return messageExecutor<WhatsappConfig>(
+    'marketing.send_whatsapp',
+    async ({ tx, ctx, config }): Promise<Planned> => {
       const deps = await depsFor(tx, ctx.storeId)
       const a = await audience(tx, ctx, deps)
       const { codConfirmation: transactional } = await workflowFacts(tx, ctx)
       const plan = whatsappPlan(a, transactional)
-      if ('reason' in plan) return skipped(plan.reason, NO_CONSENT)
+      if ('reason' in plan) return { kind: 'result', result: skipped(plan.reason, NO_CONSENT) }
       const { whatsapp } = await marketingChannels(tx, ctx.storeId, deps)
-      if (!whatsapp) return skipped('WhatsApp is not connected', 'no_channel')
+      if (!whatsapp) {
+        return { kind: 'result', result: skipped('WhatsApp is not connected', 'no_channel') }
+      }
       const msg = await claimMessage(tx, ctx, {
         channel: 'whatsapp',
         to: plan.to,
         customerId: a.customer?.id ?? null,
       })
-      if (msg.alreadySent) return { noop: true, summary: 'Already sent' }
+      if (msg.alreadySent)
+        return { kind: 'result', result: { noop: true, summary: 'Already sent' } }
       // The COD confirmation goes to the order's own phone; marketing only to the phone
       // stored on the consenting customer, never a typed one.
       if (!transactional && !recipientIsCustomers('phone', plan.to, a.customer)) {
         await markSkipped(tx, msg.id, RECIPIENT_MISMATCH)
-        return mismatch()
+        return { kind: 'result', result: mismatch() }
       }
       const merge = await mergeValues(tx, ctx, deps, a.name, a.cartId)
-      const r = await sendMarketingWhatsapp(
+      const prepared = await prepareMarketingWhatsapp(
         tx,
-        whatsapp,
         {
           messageId: msg.id,
           to: plan.to,
@@ -275,19 +288,24 @@ function marketingWhatsapp(depsFor: DepsFor): ActionExecutor<WhatsappConfig> {
           template: config.template,
           merge,
         },
-        (s, m) => fill(ctx, s, m),
+        (str, m) => fill(ctx, str, m),
       )
-      if (!r.ok) {
-        if (r.error === NO_CONSENT) return skipped('The customer withdrew consent', NO_CONSENT)
-        throw sendFailure(r.error, r.retryable)
+      if (prepared.kind === 'skipped') {
+        return { kind: 'result', result: skipped('The customer withdrew consent', NO_CONSENT) }
       }
-      await markRecoverySent(tx, a.cartId)
       return {
-        summary: `Sent ${config.template.name} on WhatsApp`,
-        output: { to: plan.to, transactional },
+        kind: 'send',
+        messageId: msg.id,
+        channel: whatsapp,
+        messages: [prepared.message],
+        done: {
+          summary: `Sent ${config.template.name} on WhatsApp`,
+          output: { to: plan.to, transactional },
+        },
+        after: (t) => markRecoverySent(t, a.cartId),
       }
     },
-    async preview({ tx, ctx, config }) {
+    async ({ tx, ctx, config }) => {
       const deps = await depsFor(tx, ctx.storeId)
       const a = await audience(tx, ctx, deps)
       const { codConfirmation } = await workflowFacts(tx, ctx)
@@ -299,7 +317,7 @@ function marketingWhatsapp(depsFor: DepsFor): ActionExecutor<WhatsappConfig> {
       }
       return { summary: `Would send ${config.template.name} on WhatsApp`, wouldRun: true }
     },
-  }
+  )
 }
 
 export const marketingExecutors = (depsFor: DepsFor): ActionExecutor<never>[] =>

@@ -169,6 +169,7 @@ function ctxFor(
     workflow: { id: w.workflowId, name: 'Test flow', versionId: w.versionId },
     runId: w.runId,
     nodeId,
+    iteration: 0,
     stepKey: `${w.runId}:${nodeId}:0`,
     attempt: 1,
     subject: w.subject,
@@ -636,6 +637,24 @@ describe('messages', () => {
           'n3',
         ),
       ).rejects.toMatchObject({ retryable: false })
+    })
+  })
+
+  it('queues an order update email on the notification path instead of sending it in the step', async () => {
+    const ex = executors()
+    await inStore(orderSubject(), async (w) => {
+      const r = await run(ex, 'customer.send_order_update', w, {
+        channel: 'email',
+        template: 'order_shipped',
+      })
+      expect(r.summary).toMatch(/^Queued the order_shipped email/)
+      const rows = await w.tx
+        .select()
+        .from(outboxEvent)
+        .where(eq(outboxEvent.type, 'automation.order_update'))
+      expect(rows.map((x) => x.payload)).toEqual([
+        expect.objectContaining({ notificationTemplate: 'order_shipped' }),
+      ])
     })
   })
 

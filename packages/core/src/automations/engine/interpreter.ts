@@ -156,6 +156,7 @@ function actionContext(
     workflow: { id: run.workflowId, name, versionId: run.versionId },
     runId: run.id,
     nodeId: node.id,
+    iteration: iterationOf(run),
     stepKey: `${run.id}:${node.id}:${iterationOf(run)}`,
     attempt,
     subject: loopItem(run) ?? { type: run.subjectType, id: run.subjectId },
@@ -336,7 +337,7 @@ async function recordSuccess(
   return moveTo(tx, run.id, node.next)
 }
 
-type CallResult = { ok: true; result: ActionResult } | { ok: false; error: unknown }
+type CallResult = { ok: true; sent: unknown } | { ok: false; error: unknown }
 
 /**
  * Makes an external action's call with the run's transaction already committed: `send` with
@@ -346,12 +347,12 @@ type CallResult = { ok: true; result: ActionResult } | { ok: false; error: unkno
 async function callOut(db: Db, storeId: string, call: ExternalCall): Promise<CallResult> {
   try {
     const { executor } = call.resolved
-    const result = executor.send
+    const sent = executor.send
       ? await executor.send(call.prepared, call.ctx, call.config)
       : await withStore(db, storeId, (tx) =>
           executor.run({ tx, ctx: call.ctx, config: call.config }),
         )
-    return { ok: true, result }
+    return { ok: true, sent }
   } catch (error) {
     return { ok: false, error }
   }
@@ -374,8 +375,25 @@ async function recordCall(
   if (run?.status !== 'running' || run.cursor !== call.node.id) return { kind: 'done' }
   const step = await stepRow(tx, run, call.node.id)
   if (step?.status !== 'running' || step.attempt !== call.attempt) return { kind: 'done' }
-  if (outcome.ok) return recordSuccess(tx, run, call.node, call.attempt, outcome.result, now)
-  return onActionError(tx, run, call.node, call.resolved, call.attempt, outcome.error, now)
+  const { executor } = call.resolved
+  if (!outcome.ok) {
+    return onActionError(tx, run, call.node, call.resolved, call.attempt, outcome.error, now)
+  }
+  // `record` writes the provider's outcome (the message row) and may throw to fail the step;
+  // what it wrote before throwing stays, so a failed send is on record.
+  let result: ActionResult
+  try {
+    result = executor.record
+      ? await executor.record(
+          { tx, ctx: call.ctx, config: call.config },
+          call.prepared,
+          outcome.sent,
+        )
+      : (outcome.sent as ActionResult)
+  } catch (err) {
+    return onActionError(tx, run, call.node, call.resolved, call.attempt, err, now)
+  }
+  return recordSuccess(tx, run, call.node, call.attempt, result, now)
 }
 
 /** One node of one run, in the caller's transaction. */

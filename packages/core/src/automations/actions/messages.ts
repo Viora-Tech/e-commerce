@@ -13,13 +13,8 @@ import {
   type ActionResult,
   AutomationActionError,
 } from '../executor'
-import {
-  type BuiltinActionDeps,
-  claimMessage,
-  type DepsFor,
-  recordMessage,
-  sendFailure,
-} from './shared'
+import { messageExecutor } from './outbound'
+import { type BuiltinActionDeps, claimMessage, type DepsFor } from './shared'
 
 export const notConnected = (what: string) =>
   new AutomationActionError(`Connect ${what} in Settings → Notifications first`, {
@@ -99,9 +94,9 @@ type StaffEmailConfig = { to: string[]; subject: string; body: string }
 type StaffWhatsappConfig = { to: string[]; template: WhatsappTemplateRef }
 
 function staffEmail(depsFor: DepsFor): ActionExecutor<StaffEmailConfig> {
-  return {
-    id: 'staff.email',
-    async run({ tx, ctx, config }) {
+  return messageExecutor<StaffEmailConfig>(
+    'staff.email',
+    async ({ tx, ctx, config }) => {
       const deps = await depsFor(tx, ctx.storeId)
       const { email } = await marketingChannels(tx, ctx.storeId, deps)
       if (!email?.sendMarketing) throw notConnected('an email channel')
@@ -110,29 +105,26 @@ function staffEmail(depsFor: DepsFor): ActionExecutor<StaffEmailConfig> {
         to: config.to.join(', '),
         customerId: null,
       })
-      if (msg.alreadySent) return { noop: true, summary: 'Already sent' }
+      if (msg.alreadySent)
+        return { kind: 'result', result: { noop: true, summary: 'Already sent' } }
       const subject = ctx.render(config.subject).trim()
       const text = ctx.render(config.body)
       const html = `<div style="white-space:pre-wrap;font-family:sans-serif">${escapeHtml(text)}</div>`
-      let ref = ''
-      for (const to of config.to) {
-        const r = await email.sendMarketing({
-          kind: 'email',
+      return {
+        kind: 'send',
+        messageId: msg.id,
+        channel: email,
+        messages: config.to.map((to) => ({
+          kind: 'email' as const,
           to: { email: to },
           subject,
           html,
           text,
-        })
-        if (!r.ok) {
-          await recordMessage(tx, msg.id, { ok: false, channel: email.id, error: r.error })
-          throw sendFailure(r.error, r.retryable)
-        }
-        ref = r.providerRef
+        })),
+        done: { summary: `Emailed ${config.to.join(', ')}`, output: { to: config.to, subject } },
       }
-      await recordMessage(tx, msg.id, { ok: true, channel: email.id, providerRef: ref })
-      return { summary: `Emailed ${config.to.join(', ')}`, output: { to: config.to, subject } }
     },
-    async preview({ tx, ctx, config }) {
+    async ({ tx, ctx, config }) => {
       const deps = await depsFor(tx, ctx.storeId)
       const { email } = await marketingChannels(tx, ctx.storeId, deps)
       return {
@@ -142,13 +134,13 @@ function staffEmail(depsFor: DepsFor): ActionExecutor<StaffEmailConfig> {
         output: { body: ctx.render(config.body) },
       }
     },
-  }
+  )
 }
 
 function staffWhatsapp(depsFor: DepsFor): ActionExecutor<StaffWhatsappConfig> {
-  return {
-    id: 'staff.whatsapp',
-    async run({ tx, ctx, config }) {
+  return messageExecutor<StaffWhatsappConfig>(
+    'staff.whatsapp',
+    async ({ tx, ctx, config }) => {
       const deps = await depsFor(tx, ctx.storeId)
       const { whatsapp } = await marketingChannels(tx, ctx.storeId, deps)
       if (!whatsapp?.sendMarketing) throw notConnected('WhatsApp')
@@ -161,32 +153,29 @@ function staffWhatsapp(depsFor: DepsFor): ActionExecutor<StaffWhatsappConfig> {
         to: phones.join(', '),
         customerId: null,
       })
-      if (msg.alreadySent) return { noop: true, summary: 'Already sent' }
+      if (msg.alreadySent)
+        return { kind: 'result', result: { noop: true, summary: 'Already sent' } }
       const template = {
         name: config.template.name,
         language: config.template.language,
         variables: config.template.variables.map((v) => ctx.render(v)),
       }
-      let ref = ''
-      for (const phone of phones) {
-        const r = await whatsapp.sendMarketing({
-          kind: 'whatsapp_template',
+      return {
+        kind: 'send',
+        messageId: msg.id,
+        channel: whatsapp,
+        messages: phones.map((phone) => ({
+          kind: 'whatsapp_template' as const,
           to: { phone },
           template,
-        })
-        if (!r.ok) {
-          await recordMessage(tx, msg.id, { ok: false, channel: whatsapp.id, error: r.error })
-          throw sendFailure(r.error, r.retryable)
-        }
-        ref = r.providerRef
-      }
-      await recordMessage(tx, msg.id, { ok: true, channel: whatsapp.id, providerRef: ref })
-      return {
-        summary: `Sent ${template.name} on WhatsApp to ${phones.length} number(s)`,
-        output: { to: phones, template: template.name },
+        })),
+        done: {
+          summary: `Sent ${template.name} on WhatsApp to ${phones.length} number(s)`,
+          output: { to: phones, template: template.name },
+        },
       }
     },
-    async preview({ tx, ctx, config }) {
+    async ({ tx, ctx, config }) => {
       const deps = await depsFor(tx, ctx.storeId)
       const { whatsapp } = await marketingChannels(tx, ctx.storeId, deps)
       return {
@@ -196,7 +185,7 @@ function staffWhatsapp(depsFor: DepsFor): ActionExecutor<StaffWhatsappConfig> {
         output: { variables: config.template.variables.map((v) => ctx.render(v)) },
       }
     },
-  }
+  )
 }
 
 export const messageExecutors = (depsFor: DepsFor): ActionExecutor<never>[] =>

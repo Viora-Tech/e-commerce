@@ -190,6 +190,10 @@ export async function stampCause(tx: StoreTx, ctx: ActionContext): Promise<void>
 
 export type ClaimedMessage = { id: string; alreadySent: boolean }
 
+/** The message row's node key: the node, and inside a For each its pass (`notify#2`). */
+const messageNodeKey = (ctx: Pick<ActionContext, 'nodeId' | 'iteration'>) =>
+  ctx.iteration > 0 ? `${ctx.nodeId}#${ctx.iteration}` : ctx.nodeId
+
 /**
  * One `marketing_message` row per run step (unique `(automation_run_id, automation_node_id)`):
  * a retried step finds its row and does not send twice once it went out.
@@ -206,7 +210,7 @@ export async function claimMessage(
     .values({
       storeId: ctx.storeId,
       automationRunId: runId,
-      automationNodeId: ctx.nodeId,
+      automationNodeId: messageNodeKey(ctx),
       customerId: input.customerId,
       channel: input.channel,
       to: input.to.slice(0, 500),
@@ -220,7 +224,7 @@ export async function claimMessage(
     .where(
       and(
         eq(marketingMessage.automationRunId, runId),
-        eq(marketingMessage.automationNodeId, ctx.nodeId),
+        eq(marketingMessage.automationNodeId, messageNodeKey(ctx)),
       ),
     )
   if (!existing) throw new AutomationActionError('Message row vanished', { retryable: true })
