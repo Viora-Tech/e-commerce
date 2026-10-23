@@ -62,6 +62,37 @@ export const ACTION_DOCS: Record<string, string> = {
     "Actions installed apps add to orders (the order page's More actions, the Orders list's row menu and bulk bar), grouped by app, limited to what this member may run.",
   'apps.testConnection': 'Read-only check of the account typed in the install flow.',
   'apps.uninstallMany': 'Bulk uninstall from the Installed apps list: all or none.',
+  'automations.approvals.decide':
+    "Approves or declines a waiting step; needs the action's own permission.",
+  'automations.approvals.list': 'Steps waiting for approval ("Ask before running"), oldest first.',
+  'automations.catalogue':
+    'The triggers, actions and condition fields this store can use in the editor.',
+  'automations.create': 'Creates an Off workflow from a template or a trigger.',
+  'automations.delete': 'Deletes a workflow with its versions and runs; open runs are cancelled.',
+  'automations.duplicate': 'Copies a workflow as a new Off draft.',
+  'automations.get': 'One workflow with its draft, live definition, versions and open runs.',
+  'automations.history':
+    'Automations on this record: runs about it or that changed it, newest first.',
+  'automations.list':
+    "Every workflow in the store, Growth's marketing ones included (filter origin).",
+  'automations.listManual':
+    "On workflows with this record type's manual trigger, for the Run automation dialog.",
+  'automations.publish':
+    "Publishes the draft as a new version (checks pieces, plan and the publisher's permissions).",
+  'automations.restoreVersion': 'Copies a version back into the draft.',
+  'automations.runNow': 'Run automation on one record or a selection (up to 250).',
+  'automations.runs.cancel': 'Cancels a queued, waiting or approval-waiting run.',
+  'automations.runs.get':
+    "One run with each step's input, output and error, over the version it ran on.",
+  'automations.runs.list': 'Runs, newest first, filtered by workflow, status or record.',
+  'automations.runs.retry': 'Retries a failed run from its failed step.',
+  'automations.setStatus': 'Turns a workflow on or off; off can cancel or let waiting runs finish.',
+  'automations.templates':
+    "Template gallery: built-in, Growth's marketing ones and installed apps' templates.",
+  'automations.testRun': 'Test with a record: walks the draft against real data, writes nothing.',
+  'automations.update':
+    'Saves the name, description or draft; the live version keeps running until Publish.',
+  'automations.usage': "Monthly runs and active workflows against the plan's limits.",
   'billing.apps':
     "Paid apps: what each one costs on this plan, bought months, and the store's app bills.",
   'billing.autopay': "UPI AutoPay: whether it can be turned on here, and the store's mandate.",
@@ -230,17 +261,16 @@ export const ACTION_DOCS: Record<string, string> = {
     'Every order id the list\'s filters match (the table\'s "Select all N orders"), up to 5,000.',
   'orders.neighbours':
     'Order numbers either side of this one, for the arrows in the detail header.',
+  'orders.previewMessage':
+    'The email (and WhatsApp text) a hand-sent message would carry for this order, filled with the order\'s own details, for the "Review email" dialog before Send.',
   'orders.profit':
     'What the order earned: net sales less goods, courier, fees and RTO (order/profit.ts).',
   'orders.refund':
     'Send money back through the gateway (or record a cash/UPI refund); partial amounts allowed.',
-  'orders.requestBalance':
-    "Ask the shopper for a deposit pre-order's balance: email and WhatsApp (when set up) with a signed pay link.",
   'orders.sendPaymentReminder':
     '"Send payment reminder" on an unpaid UPI / bank transfer order: email, and WhatsApp when set up, with the QR and bank details.',
   'orders.setCourierCharge': 'What the courier charged for a consignment, typed by the merchant.',
   'orders.setStatus': '"Mark as paid / fulfilled / delivered", or cancel.',
-  'orders.sheet': 'Rows for the Orders bulk-edit spreadsheet, in the order the ids were given.',
   'orders.updateContact':
     "\"Edit\" on the order page's customer card: this order's contact and shipping address, optionally copied to the customer's saved address.",
   'payments.connect': 'Save pasted keys and make that gateway the main way to get paid.',

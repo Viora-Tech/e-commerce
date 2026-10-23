@@ -70,6 +70,11 @@ const CATEGORIES: Record<string, { label: string; title: string; description: st
     title: 'File storage apps',
     description: 'Keep your product images and files on your own bucket.',
   },
+  operations: {
+    label: 'Store operations',
+    title: 'Store operations apps',
+    description: 'Automate the small jobs on every order, customer and product.',
+  },
   migration: {
     label: 'Store migration',
     title: 'Store migration apps',

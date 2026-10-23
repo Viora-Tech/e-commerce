@@ -64,6 +64,7 @@ export function definePlugin(input: DefinePluginInput): PluginManifest {
     }
   }
   validateOrderActions(input)
+  validateAutomations(input)
   return {
     id: input.id,
     name: input.name,
@@ -84,12 +85,36 @@ export function definePlugin(input: DefinePluginInput): PluginManifest {
     access: input.access,
     listing: input.listing,
     setupState: input.setupState,
+    automations: input.automations,
     provides: {
       payments: input.provides.payments ?? [],
       shipping: input.provides.shipping ?? [],
       notifications: input.provides.notifications ?? [],
       storage: input.provides.storage ?? [],
     },
+  }
+}
+
+const PIECE_NAME = /^[a-z][a-z0-9_.-]*$/
+
+/** Automations pieces must be namespaced `<pluginId>/<name>` and unique within the app. */
+function validateAutomations(input: DefinePluginInput) {
+  const seen = new Set<string>()
+  const pieces = [
+    ...(input.automations?.triggers ?? []).map((t) => ['trigger', t.id] as const),
+    ...(input.automations?.actions ?? []).map((a) => ['action', a.id] as const),
+  ]
+  for (const [kind, id] of pieces) {
+    const [ns, name, ...rest] = id.split('/')
+    if (ns !== input.id || !name || rest.length > 0 || !PIECE_NAME.test(name)) {
+      throw new Error(
+        `automation ${kind} "${id}" on plugin "${input.id}" must be namespaced "${input.id}/<name>"`,
+      )
+    }
+    if (seen.has(`${kind}:${id}`)) {
+      throw new Error(`plugin "${input.id}" declares automation ${kind} "${id}" twice`)
+    }
+    seen.add(`${kind}:${id}`)
   }
 }
 

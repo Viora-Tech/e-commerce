@@ -56,6 +56,7 @@ export const APP_CATEGORIES = [
   'payments',
   'invoicing',
   'marketing',
+  'operations',
   'messages',
   'analytics',
   'search',

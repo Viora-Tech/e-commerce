@@ -26,6 +26,7 @@ const STAFF_PERMISSIONS: Permission[] = [
   permissions.INVENTORY_WRITE,
   permissions.CUSTOMERS_READ,
   permissions.ANALYTICS_READ,
+  permissions.AUTOMATIONS_READ,
 ]
 
 /** Seeded into every new store. `owner` is granted implicitly, never by row. */

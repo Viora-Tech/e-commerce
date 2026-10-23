@@ -953,6 +953,13 @@
       "when": 1792684539426,
       "tag": "0146_customer_business_details",
       "breakpoints": true
+    },
+    {
+      "idx": 136,
+      "version": "7",
+      "when": 1792734966445,
+      "tag": "0149_automations",
+      "breakpoints": true
     }
   ]
 }

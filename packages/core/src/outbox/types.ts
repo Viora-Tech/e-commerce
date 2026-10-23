@@ -1,5 +1,6 @@
 import type { CustomMessage, TemplateId } from '@commerce/notifications'
 import type { AppEvent } from '@commerce/plugins'
+import type { AutomationCause } from '../automations/types'
 
 /**
  * Reuses the event names already used by notifications and app hooks
@@ -72,6 +73,20 @@ export type OutboxEventType =
   | 'customer.created'
   /** A customer's profile changed (checkout details, account page, admin edit). */
   | 'customer.updated'
+  /** A customer's tags changed (admin edit, bulk tag, an automation); payload has the diff. */
+  | 'customer.tags_changed'
+  /** A shopper gave marketing consent (newsletter confirm, checkout tick). Growth's welcome trigger. */
+  | 'customer.subscribed'
+  /** A product was created (admin, import, API). Written beside `catalog.products_changed`. */
+  | 'product.created'
+  /** A product was edited. Written beside `catalog.products_changed`. */
+  | 'product.updated'
+  /** A variant's available stock fell to or below the store's low-stock threshold (a crossing). */
+  | 'inventory.low'
+  /** A variant's available stock reached 0 (a crossing). */
+  | 'inventory.out'
+  /** An installed app fired one of its Automations triggers (`ctx.triggerAutomation`). */
+  | 'automation.app_trigger'
 
 /**
  * `orderId` is required for every order-lifecycle type; `variantId` (and
@@ -107,6 +122,22 @@ export type OutboxPayload = {
   productIds?: string[] | undefined
   /** The customer a `customer.created` / `customer.updated` event is about. */
   customerId?: string | undefined
+  /** The product a `product.created` / `product.updated` / `inventory.*` event is about. */
+  productId?: string | undefined
+  /** For `customer.tags_changed`: what changed. */
+  tagsAdded?: string[] | undefined
+  tagsRemoved?: string[] | undefined
+  /** For `automation.app_trigger`: the plugin trigger, its idempotency key and event data. */
+  appTrigger?:
+    | {
+        trigger: string
+        key: string
+        subject?: { type: string; id: string } | undefined
+        data?: Record<string, unknown> | undefined
+      }
+    | undefined
+  /** Set when an automation run caused this event (loop guard, design §8.5). */
+  automation?: AutomationCause | undefined
 }
 
 /**
@@ -179,6 +210,14 @@ export const OUTBOX_NOTIFICATION_TEMPLATE: Record<OutboxEventType, TemplateId | 
   // App hooks only (`OUTBOX_APP_EVENT`): nobody is emailed about their own profile.
   'customer.created': null,
   'customer.updated': null,
+  // Automations triggers only (the relay's `{automations}-trigger` consumer).
+  'customer.tags_changed': null,
+  'customer.subscribed': null,
+  'product.created': null,
+  'product.updated': null,
+  'inventory.low': null,
+  'inventory.out': null,
+  'automation.app_trigger': null,
 }
 
 /**
@@ -236,4 +275,11 @@ export const OUTBOX_APP_EVENT: Record<OutboxEventType, AppEvent | null> = {
   'catalog.products_changed': null,
   'customer.created': 'customer.created',
   'customer.updated': 'customer.updated',
+  'customer.tags_changed': null,
+  'customer.subscribed': null,
+  'product.created': null,
+  'product.updated': null,
+  'inventory.low': null,
+  'inventory.out': null,
+  'automation.app_trigger': null,
 }

@@ -129,6 +129,7 @@ export const appsContent = {
       messages: 'Messages',
       analytics: 'Analytics',
       search: 'Search',
+      operations: 'Store operations',
     } as Record<string, string>,
     categoryFallback: (slug: string) => slug.charAt(0).toUpperCase() + slug.slice(1),
     kebabLabel: (name: string) => `More actions for ${name}`,
