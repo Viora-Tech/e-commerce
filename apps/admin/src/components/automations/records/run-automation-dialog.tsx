@@ -86,7 +86,7 @@ export default function RunAutomationDialog({
           label: copy.dialog.viewRuns,
           onClick: () =>
             router.push(
-              `${routes.apps.page('automations', 'runs')}?workflowId=${encodeURIComponent(picked)}`,
+              `${routes.apps.page('automations', 'runs')}?workflow=${encodeURIComponent(picked)}`,
             ),
         },
       })
