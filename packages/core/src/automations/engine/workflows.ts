@@ -557,3 +557,12 @@ export async function automationUsage(
     appInstalled: pieces.appInstalled,
   }
 }
+
+/** Where a workflow came from (Growth's keep marketing permissions); null when missing. */
+export async function workflowOrigin(tx: StoreTx, id: string): Promise<WorkflowOrigin | null> {
+  const [w] = await tx
+    .select({ origin: automationWorkflow.origin })
+    .from(automationWorkflow)
+    .where(eq(automationWorkflow.id, id))
+  return w?.origin ?? null
+}

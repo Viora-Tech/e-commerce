@@ -5,6 +5,7 @@ import {
   automationVersion,
   automationWorkflow,
   order,
+  outboxEvent,
   type StoreTx,
 } from '@commerce/db'
 import { and, eq, gte, inArray, isNotNull, isNull, ne, sql } from 'drizzle-orm'
@@ -362,4 +363,19 @@ export async function startRuns(
     out.started.push({ runId: row.id, workflowId: wf.id, nextAt: now })
   }
   return out
+}
+
+/** The trigger job: the outbox row's event, turned into runs. A missing row starts nothing. */
+export async function startRunsForOutboxRow(
+  tx: StoreTx,
+  storeId: string,
+  outboxId: string,
+  now = new Date(),
+): Promise<StartOutcome> {
+  const [row] = await tx
+    .select({ id: outboxEvent.id, type: outboxEvent.type, payload: outboxEvent.payload })
+    .from(outboxEvent)
+    .where(eq(outboxEvent.id, outboxId))
+  const ev = row ? eventForOutbox(row) : null
+  return ev ? startRuns(tx, storeId, ev, now) : NONE
 }

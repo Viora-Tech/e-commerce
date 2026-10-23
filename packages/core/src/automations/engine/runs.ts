@@ -11,7 +11,7 @@ import {
   type StoreTx,
 } from '@commerce/db'
 import type { PluginManifest } from '@commerce/plugins'
-import { and, asc, desc, eq, inArray, lt, sql } from 'drizzle-orm'
+import { and, asc, desc, eq, inArray, sql } from 'drizzle-orm'
 import { ALL_PERMISSIONS, type Permission, permissions } from '../../permissions/statement'
 import type {
   ApprovalItem,
@@ -490,20 +490,4 @@ export async function testWorkflow(
     result.subject = label({ subjectType: input.subject.type, subjectId: input.subject.id })
   }
   return result
-}
-
-/** Prunes step detail past 30 days and runs past 13 months (the daily job). */
-export async function pruneAutomationHistory(tx: StoreTx, now = new Date()) {
-  const stepCutoff = new Date(now.getTime() - 30 * 86_400_000)
-  const runCutoff = new Date(now)
-  runCutoff.setUTCMonth(runCutoff.getUTCMonth() - 13)
-  await tx.delete(automationStepRun).where(lt(automationStepRun.startedAt, stepCutoff))
-  await tx
-    .delete(automationRun)
-    .where(
-      and(
-        lt(automationRun.startedAt, runCutoff),
-        sql`${automationRun.status} not in ('queued','running','waiting','awaiting_approval')`,
-      ),
-    )
 }

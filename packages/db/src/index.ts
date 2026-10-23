@@ -23,6 +23,7 @@ export {
   resolveStoreForOrganization,
   storeIdForSlug,
   storesWithAbandonedCarts,
+  storesWithAutomationWork,
   storesWithBalanceDue,
   storesWithCertificateChecks,
   storesWithChannelConnections,

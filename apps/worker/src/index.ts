@@ -11,6 +11,7 @@ import { Hono } from 'hono'
 import { createAiBulkWriteWorker } from './ai-bulk-write'
 import { API_ACTIVITY_PRUNE_EVERY_MS, createApiActivityPrune } from './api-activity'
 import { createAppEventWorker, createAppJobWorker } from './app-events'
+import { AUTOMATIONS_TICK_MS, createAutomationsWorker } from './automations'
 import { createBackInStockWorker } from './back-in-stock'
 import { BILLING_EVERY_MS, createBillingSweep } from './billing'
 import { CHANNEL_SYNC_EVERY_MS, createChannelSync } from './channel-sync'
@@ -135,9 +136,15 @@ const channelSync = createChannelSync(redis, db, {
   adminUrl: env.ADMIN_URL,
   storefrontUrl: env.STOREFRONT_URL,
 })
+const automations = createAutomationsWorker(redis, db, {
+  settingsSecret: env.SETTINGS_SECRET,
+  storefrontUrl: env.STOREFRONT_URL,
+  mediaProcess: mediaProcess.queue,
+})
 const outboxRelay = createOutboxRelay(redis, db, {
   notifications,
   appEvents,
+  automationTriggers: automations.triggerQueue,
   inventoryRestock: backInStock.queue,
   domainRoutes: domainRoutes.queue,
 })
@@ -159,6 +166,9 @@ const watched = [
   [marketing.tick, 'marketing-tick'],
   [marketing.send, 'marketing-send'],
   [outboxRelay.worker, 'outbox-relay'],
+  [automations.trigger, 'automations-trigger'],
+  [automations.step, 'automations-step'],
+  [automations.tick, 'automations-tick'],
   [backInStock.worker, 'back-in-stock'],
   [mediaProcess.worker, 'media-process'],
   [storeExport.worker, 'store-export'],
@@ -232,6 +242,11 @@ await senderEmails.queue.upsertJobScheduler(
 await marketing.tickQueue.upsertJobScheduler(
   'marketing-tick',
   { every: MARKETING_TICK_MS },
+  { name: 'tick' },
+)
+await automations.tickQueue.upsertJobScheduler(
+  'automations-tick',
+  { every: AUTOMATIONS_TICK_MS },
   { name: 'tick' },
 )
 await outboxRelay.queue.upsertJobScheduler(
@@ -320,6 +335,12 @@ const shutdown = async () => {
   await senderEmails.worker.close()
   await senderEmails.queue.close()
   await marketing.tick.close()
+  await automations.trigger.close()
+  await automations.step.close()
+  await automations.tick.close()
+  await automations.triggerQueue.close()
+  await automations.stepQueue.close()
+  await automations.tickQueue.close()
   await marketing.send.close()
   await marketing.tickQueue.close()
   await marketing.sendQueue.close()

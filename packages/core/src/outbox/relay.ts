@@ -1,6 +1,8 @@
 import { type Db, outboxEvent, withStore } from '@commerce/db'
 import type { LoadedPlugins } from '@commerce/plugins'
 import { and, asc, eq, isNull } from 'drizzle-orm'
+import { type AutomationTriggerQueue, triggerJobId } from '../automations/engine/jobs'
+import { AUTOMATION_OUTBOX_TYPES } from '../automations/engine/trigger'
 import { cancelAppBill, markAppBillPaid } from '../billing/app-service'
 import { cancelAiTopup, markAiTopupPaid } from '../billing/credits-service'
 import { cancelPlanBill, markPlanBillPaid } from '../billing/service'
@@ -48,6 +50,8 @@ export type OutboxRelayDeps = {
   domainRoutes?: DomainRouteQueue | undefined
   /** Absent only in tests that do not exercise `catalog.products_changed`; that row is then just marked dispatched. */
   appJobs?: AppJobQueue | undefined
+  /** Absent only in tests that do not exercise Automations; those rows then start no runs. */
+  automationTriggers?: AutomationTriggerQueue | undefined
   log?: ((message: string) => void) | undefined
   /** The platform's own sales store (`PLATFORM_SALES_STORE_ID`): paid plan orders there grant a signup invite. */
   salesStoreId?: string | undefined
@@ -230,6 +234,21 @@ async function dispatchRow(deps: OutboxRelayDeps, row: Row): Promise<void> {
         `products-${row.id}`,
       )
     }
+  }
+  if (AUTOMATION_OUTBOX_TYPES.has(type) && deps.automationTriggers) {
+    // Keyed by the row: a re-dispatch is a no-op. The job finds the store's On workflows for
+    // this type and starts runs (or nothing, when none listen).
+    await deps.automationTriggers.add(
+      'trigger',
+      { storeId: row.storeId, outboxId: row.id },
+      {
+        jobId: triggerJobId(row.id),
+        attempts: 5,
+        backoff: { type: 'exponential', delay: 10_000 },
+        removeOnComplete: true,
+        removeOnFail: 1000,
+      },
+    )
   }
   if (type === 'inventory.restocked' && payload.variantId && deps.inventoryRestock) {
     await deps.inventoryRestock.add(
