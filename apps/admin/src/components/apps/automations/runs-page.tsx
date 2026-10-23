@@ -22,6 +22,20 @@ import { runColumns } from './run-columns'
 
 const PER_PAGE = 50
 
+/** The list's filter from the URL: `?workflow=<id>` and/or `?recordType=order&recordId=<id>`. */
+function filterOf(params: { get: (name: string) => string | null }): {
+  workflowId?: string
+  record?: { type: string; id: string }
+} {
+  const workflowId = params.get('workflow')
+  const type = params.get('recordType')
+  const id = params.get('recordId')
+  return {
+    ...(workflowId ? { workflowId } : {}),
+    ...(type && id ? { record: { type, id } } : {}),
+  }
+}
+
 /** Every run, newest first: status, workflow and trigger, the record it was about, when and how long. */
 export default function RunsPage() {
   // Hooks
@@ -40,11 +54,10 @@ export default function RunsPage() {
   const [loadingMore, setLoadingMore] = useState(false)
 
   useEffect(() => {
-    const workflowId = searchParams.get('workflow') ?? undefined
     let live = true
     setRuns(null)
     automationApi.runs
-      .list({ ...(workflowId ? { workflowId } : {}), ...(status ? { status } : {}) })
+      .list({ ...filterOf(searchParams), ...(status ? { status } : {}) })
       .then((p) => {
         if (!live) return
         setRuns(p.runs)
@@ -63,12 +76,11 @@ export default function RunsPage() {
 
   // Event handlers
   const handleMore = async () => {
-    const workflowId = searchParams.get('workflow') ?? undefined
     if (!cursor) return
     setLoadingMore(true)
     try {
       const p = await automationApi.runs.list({
-        ...(workflowId ? { workflowId } : {}),
+        ...filterOf(searchParams),
         ...(status ? { status } : {}),
         cursor,
       })

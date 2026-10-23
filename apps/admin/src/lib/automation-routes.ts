@@ -11,6 +11,9 @@ export const automationRoutes = {
   /** The runs list filtered to one workflow. */
   workflowRuns: (workflowId: string) =>
     `${routes.apps.page(APP, 'runs')}?workflow=${encodeURIComponent(workflowId)}`,
+  /** The runs list filtered to runs about or changing one record. */
+  recordRuns: (type: string, id: string) =>
+    `${routes.apps.page(APP, 'runs')}?recordType=${encodeURIComponent(type)}&recordId=${encodeURIComponent(id)}`,
   run: (id: string) => routes.apps.page(APP, 'runs', id),
   approvals: () => routes.apps.page(APP, 'approvals'),
   settings: () => routes.apps.page(APP, 'settings'),
