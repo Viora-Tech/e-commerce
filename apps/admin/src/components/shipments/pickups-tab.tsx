@@ -153,7 +153,7 @@ export default function PickupsTab() {
             </Field>
           </div>
           <Button
-            className="w-fit"
+            className="w-fit self-end"
             onClick={handleSchedule}
             disabled={busy || selected.length === 0 || !date}
           >

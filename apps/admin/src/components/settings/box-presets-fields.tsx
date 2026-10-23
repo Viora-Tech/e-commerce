@@ -138,7 +138,7 @@ export default function BoxPresetsFields({ value, onChange }: BoxPresetsFieldsPr
             ))}
           </div>
         )}
-        <Button variant="outline" size="sm" className="w-fit" onClick={handleAdd}>
+        <Button variant="outline" size="sm" className="w-fit self-end" onClick={handleAdd}>
           <Plus aria-hidden="true" />
           {copy.add}
         </Button>

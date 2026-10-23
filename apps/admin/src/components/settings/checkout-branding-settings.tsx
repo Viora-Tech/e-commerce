@@ -210,7 +210,12 @@ export default function CheckoutBrandingSettings({
         }
         className="xl:sticky xl:top-20"
       >
-        <CheckoutBrandingPreview branding={branding} device={device} storeName={storeName} />
+        <CheckoutBrandingPreview
+          branding={branding}
+          orderNotes={orderNotes}
+          device={device}
+          storeName={storeName}
+        />
       </DataCard>
     </div>
   )

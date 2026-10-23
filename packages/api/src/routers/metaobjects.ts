@@ -26,6 +26,7 @@ import {
   permissions,
   REFERENCE_KINDS,
   referenceOptions,
+  reorderMetafieldDefinitions,
   setMetafields,
   updateDefinition,
   updateEntry,
@@ -219,6 +220,13 @@ export const metaobjectsRouter = {
         return { ok: true as const }
       }),
     ),
+
+  reorderMetafieldDefinitions: manageTypes()
+    .input(z.object({ ownerType: MetafieldOwnerTypeSchema, ids: z.array(z.uuid()).max(BULK_MAX) }))
+    .handler(async ({ context, input }) => {
+      await reorderMetafieldDefinitions(context.tx, input.ownerType, input.ids)
+      return { ok: true as const }
+    }),
 
   deleteMetafieldDefinition: manageTypes()
     .input(id)

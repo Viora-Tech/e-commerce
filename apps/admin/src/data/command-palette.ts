@@ -1,9 +1,11 @@
 import { appStoreUrl, siteConfig } from '@commerce/config/site'
 import { type Permission, permissions } from '@commerce/core/permissions'
 import type { LucideIcon } from '@commerce/ui/icons'
-import { Blocks, Palette, Plus, Settings, TrendingUp } from '@commerce/ui/icons'
+import { Blocks, Braces, Palette, Plus, Settings, TrendingUp, Truck } from '@commerce/ui/icons'
 import { routes } from '@/lib/routes'
 import { ACCOUNT_NAV } from './account'
+import { CUSTOM_DATA_OWNERS } from './custom-data'
+import { customDataContent } from './metaobjects'
 import { NAV_GROUPS, SETTINGS_NAV } from './navigation'
 import { SETTINGS_SECTIONS } from './settings'
 
@@ -231,6 +233,30 @@ export const PAGE_LINKS: PaletteLink[] = [
       hintHref: routes.growth.home(),
       icon: TrendingUp,
       permission: permissions.MARKETING_READ,
+    }),
+  ),
+  // The queues beside the Shipments table, each on its own page.
+  ...[
+    { label: 'Pickups and manifests', href: routes.orders.shipmentPickups() },
+    { label: 'Deliveries that need you', href: routes.orders.shipmentProblems() },
+  ].map(
+    (p): PaletteLink => ({
+      ...p,
+      hint: 'Shipments',
+      hintHref: routes.orders.shipments(),
+      icon: Truck,
+      permission: permissions.ORDERS_READ,
+    }),
+  ),
+  // Settings → Custom data: each kind of record's extra fields has its own page.
+  ...CUSTOM_DATA_OWNERS.map(
+    (o): PaletteLink => ({
+      label: customDataContent.metafields.heading(customDataContent.owners[o.owner]),
+      hint: customDataContent.title,
+      hintHref: routes.settings.customData(),
+      href: routes.settings.customDataOwner(o.slug),
+      icon: Braces,
+      permission: permissions.SETTINGS_READ,
     }),
   ),
   { label: SETTINGS_NAV.label, href: SETTINGS_NAV.href, icon: SETTINGS_NAV.icon },

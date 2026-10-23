@@ -166,12 +166,7 @@ export default function McpActivityTab() {
             </section>
           ))}
           {next ? (
-            <KitButton
-              variant="link"
-              onClick={handleMore}
-              disabled={loading}
-              className="self-start"
-            >
+            <KitButton variant="link" onClick={handleMore} disabled={loading} className="self-end">
               {loading ? copy.activity.loading : copy.activity.loadOlder}
             </KitButton>
           ) : null}

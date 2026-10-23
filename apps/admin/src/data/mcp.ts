@@ -1,170 +1,243 @@
 import { siteConfig } from '@commerce/config/site'
-import type { ApiActivityFilter, ApiArea, McpClientId } from '@commerce/core/api-access'
+import type { ApiActivityFilter, ApiArea } from '@commerce/core/api-access'
 
 const brand = siteConfig.brand.name
+
+type GuideStep = { title: string; body: string }
 
 /** Copy for Settings → MCP & API (Figma 704:110463) and the OAuth consent page. */
 export const mcpContent = {
   title: 'MCP & API',
-  tabs: { overview: 'Overview', clients: 'Clients & tokens', activity: 'Activity log' },
-  subtitles: {
-    overview: (store: string) =>
-      `Let AI tools like Claude, ChatGPT and Cursor work with ${store}. They sign in with your ${brand} account and can use every admin action your role allows. Changes wait for your approval, and sensitive ones always do.`,
-    clients: (store: string) =>
-      `Who can reach ${store} through MCP or the API, and what they are allowed to do. Revoke anything you do not recognise.`,
-    activity: (store: string) =>
-      `Everything AI clients and tokens did in ${store} in the last 90 days. Changes link to their approval.`,
-  },
+  subtitle: (store: string) =>
+    `Let AI apps like Claude, Claude Code, ChatGPT and Cursor work with ${store}. They act as the person who connected them and never do more than that person's role allows.`,
   save: 'Save',
   saved: 'Saved',
   saveFailed: 'Could not save. Try again.',
+  status: {
+    connected: (n: number) => (n === 1 ? '1 AI app connected' : `${n} AI apps connected`),
+    notConnected: 'Not connected yet',
+    notConnectedBody: 'Pick your AI app below and follow the steps. It takes about 2 minutes.',
+    live: 'Live',
+    waiting: 'Waiting for an app',
+    lastRequest: (ago: string) => `Last request ${ago}`,
+    noRequests: 'No requests yet',
+    url: 'MCP server URL',
+    urlHelp:
+      'Each address has its own connections. An app you connected to another address (say, your live admin) shows on that admin, not here.',
+    signIn: 'Sign-in',
+    signInValue: `${brand} sign-in (OAuth) or an API token`,
+    limits: 'Limit',
+    limitsValue: (n: number) => `${n} requests a minute per app`,
+  },
   server: {
-    heading: 'MCP server',
-    help: (store: string) =>
-      `Give an AI tool this address. It signs in with a ${brand} account and only ever sees ${store}.`,
     url: 'Server URL',
     copy: 'Copy server URL',
     copied: 'Copied',
-    status: 'Status',
-    lastRequest: (ago: string) => `Last request ${ago}`,
-    noRequests: 'No requests yet',
-    online: (n: number) => (n === 1 ? 'Online · 1 client' : `Online · ${n} clients`),
-    waiting: 'Waiting for a client',
-    signIn: 'Sign-in',
-    signInHelp: `Clients open a ${brand} sign-in page; no passwords are shared`,
-    signInValue: 'OAuth',
-    limits: 'Limits',
-    limitsHelp: 'Per client, so one tool cannot slow your store',
-    limitsValue: (n: number) => `${n} requests / min`,
   },
-  connect: {
-    heading: 'Connect a client',
-    help: 'Pick your tool to see a 3-step guide.',
-    connected: 'Connected',
-    connect: 'Connect',
-  },
-  clients: {
+  guide: {
+    heading: 'Connect an AI app',
+    help: 'Pick the app you use. Every app uses the same server URL and the same approval rules.',
+    tabs: {
+      claude: 'Claude',
+      claudeCode: 'Claude Code',
+      chatgpt: 'ChatGPT',
+      cursor: 'Cursor',
+      vscode: 'VS Code',
+      other: 'Other MCP apps',
+    },
+    copyWhat: 'Command',
+    copyJson: 'Config',
+    copyHeader: 'Header',
+    privateUrl:
+      'This address only works on this computer, so web apps (claude.ai, ChatGPT) cannot reach it. Use Claude Code, Cursor or VS Code here, or connect web apps from your live admin.',
     claude: {
-      name: 'Claude',
-      by: 'by Anthropic',
-      blurb: 'Ask about your store and draft changes from Claude.',
       steps: [
         { title: 'Copy the server URL', body: '' },
         {
-          title: 'In Claude, add a custom connector',
-          body: 'Settings → Connectors → Add custom connector. Paste the URL and give it a name, like your store’s.',
+          title: 'Add a custom connector in Claude',
+          body: 'On claude.ai: Settings → Connectors → Add custom connector. Paste the URL and name it after your store. It also shows in Claude Desktop and the mobile app.',
         },
         {
           title: `Sign in with ${brand}`,
-          body: 'Choose what Claude can do. Changes still wait for approval here.',
+          body: 'Claude opens the sign-in page. Choose the areas Claude may use, then Allow.',
         },
-      ],
-      open: 'Open Claude',
+      ] as GuideStep[],
+      open: 'Open Claude connectors',
+    },
+    claudeCode: {
+      steps: [
+        {
+          title: 'Add the server',
+          body: 'Run this in your terminal. Add --scope user to use it in every project.',
+        },
+        {
+          title: `Sign in with ${brand}`,
+          body: 'Start Claude Code, type /mcp, pick the server and choose Authenticate. Your browser opens the sign-in page.',
+        },
+        {
+          title: 'Try it',
+          body: 'Ask "What sold yesterday?" Claude Code now shows the store tools.',
+        },
+      ] as GuideStep[],
     },
     chatgpt: {
-      name: 'ChatGPT',
-      by: 'by OpenAI',
-      blurb: 'Use your store’s data inside ChatGPT conversations.',
       steps: [
-        { title: 'Copy the server URL', body: '' },
         {
-          title: 'In ChatGPT, create a connector',
-          body: 'Settings → Apps & Connectors → Advanced settings → Developer mode, then Create. Paste the URL.',
+          title: 'Turn on developer mode',
+          body: 'In ChatGPT: Settings → Apps & Connectors → Advanced settings → Developer mode. It is on paid ChatGPT plans.',
+        },
+        {
+          title: 'Create a connector',
+          body: 'Click Create, paste the server URL and pick OAuth for authentication.',
         },
         {
           title: `Sign in with ${brand}`,
-          body: 'Choose what ChatGPT can do. Changes still wait for approval here.',
+          body: 'ChatGPT opens the sign-in page. ChatGPT also asks you to confirm each change before it sends it.',
         },
-      ],
-      open: 'Open ChatGPT',
+      ] as GuideStep[],
+      supported:
+        'Supported: the server speaks Streamable HTTP with OAuth sign-in, which ChatGPT developer mode needs.',
+      open: 'Open ChatGPT settings',
     },
     cursor: {
-      name: 'Cursor',
-      by: 'by Anysphere',
-      blurb: 'Build store tools and theme code with live data.',
       steps: [
-        { title: 'Copy the server URL', body: '' },
         {
-          title: 'Add it to Cursor',
-          body: 'Click "Add to Cursor" below, or Cursor Settings → MCP → Add new MCP server and paste the URL.',
+          title: 'Add the server',
+          body: 'Click Add to Cursor, or paste this into ~/.cursor/mcp.json.',
         },
         {
           title: `Sign in with ${brand}`,
-          body: 'Cursor opens the sign-in page the first time it uses the server.',
+          body: 'In Cursor Settings → MCP the server shows "Needs login". Click it and sign in.',
         },
-      ],
+      ] as GuideStep[],
       open: 'Add to Cursor',
     },
     vscode: {
-      name: 'VS Code',
-      by: 'by Microsoft',
-      blurb: 'Use Copilot agent mode with your store.',
       steps: [
-        { title: 'Copy the server URL', body: '' },
         {
-          title: 'Add it to VS Code',
-          body: 'Click "Add to VS Code" below, or run "MCP: Add Server" → HTTP and paste the URL.',
+          title: 'Add the server',
+          body: 'Click Add to VS Code, or paste this into .vscode/mcp.json in your project.',
         },
         {
           title: `Sign in with ${brand}`,
-          body: 'VS Code asks to sign in the first time Copilot uses the server.',
+          body: 'VS Code asks to sign in the first time Copilot agent mode uses the server.',
         },
-      ],
+      ] as GuideStep[],
       open: 'Add to VS Code',
     },
-  } satisfies Record<
-    McpClientId,
-    {
-      name: string
-      by: string
-      blurb: string
-      steps: { title: string; body: string }[]
-      open: string
-    }
-  >,
-  guide: {
-    title: (client: string) => `Connect ${client}`,
-    intro: (client: string) =>
-      `About 2 minutes. ${client} signs in with your ${brand} account, so your staff permissions apply.`,
-    others: 'ChatGPT, Cursor, Claude and VS Code use the same URL. Each has its own guide.',
-    close: 'Close',
+    other: {
+      steps: [
+        {
+          title: 'Add the server URL',
+          body: 'Transport: Streamable HTTP. Most apps take a config like this one.',
+        },
+        {
+          title: 'Apps that only run local servers',
+          body: 'Use mcp-remote, which needs Node.js, to bridge to the server.',
+        },
+        {
+          title: `Sign in with ${brand}`,
+          body: 'Apps that support MCP sign-in open the page on their own. Others can send an API token (below).',
+        },
+      ] as GuideStep[],
+    },
+    capabilities: {
+      heading: 'What AI apps can do',
+      tools: [
+        {
+          title: 'Quick reads',
+          body: 'findProducts, orderDetails, salesSummary, lowStock and more answer straight away.',
+        },
+        {
+          title: 'Proposals',
+          body: 'proposeProductUpdate, proposeDiscount, proposeCollection and others draft a change for you to approve.',
+        },
+        {
+          title: 'Every admin action',
+          body: 'searchActions finds it, describeAction shows its inputs and whether it waits, runAction runs it.',
+        },
+      ] as GuideStep[],
+      rules: [
+        { title: 'Reads', body: 'Run right away.' },
+        { title: 'Changes', body: 'Follow "Changes need approval" below.' },
+        {
+          title: 'Sensitive',
+          body: 'Refunds, cancellations, deletes, and payment, staff, billing and domain settings always wait for approval.',
+        },
+        {
+          title: 'Never',
+          body: 'Sign in as you, create or revoke tokens, or approve their own changes.',
+        },
+      ] as GuideStep[],
+      reconnect:
+        'Connected an app before this update? Reconnect it, or restart it, so it loads every action.',
+    },
+    token: {
+      heading: 'Use an API token instead',
+      body: 'For apps that cannot open a sign-in page. Create a token, then send it with every request in this header. Token changes run at once, without approval.',
+      withToken: 'With a token',
+      placeholder: 'YOUR_API_TOKEN',
+      create: 'Create API token',
+    },
+  },
+  connected: {
+    heading: 'Connected AI apps',
+    help: 'Every app that signed in, and every API token that has been used. Disconnect anything you do not recognise.',
+    app: 'App',
+    connectedBy: 'Connected by',
+    canDo: 'Can do',
+    lastUsed: 'Last used',
+    viaOAuth: 'Signed in with OAuth',
+    viaToken: (hint: string) => `API token · ${hint}`,
+    lapsed: 'Sign-in lapsed, reconnect in the app',
+    tokenRuns: 'changes run at once',
+    disconnect: 'Disconnect',
+    emptyTitle: 'No AI apps connected',
+    emptyBody: 'Connect one with the guide above. It shows here as soon as it signs in.',
+  },
+  permissions: {
+    heading: 'Permissions & approvals',
+    help: 'These apply to every app that signs in. API tokens follow their own areas.',
+    rules: {
+      reads: 'Reads run right away.',
+      changesOff: 'Changes are off, so apps can only read.',
+      changesApproval: 'Changes wait in AI approvals until someone approves them.',
+      changesDirect: 'Changes run as soon as the app asks.',
+      sensitive:
+        'Sensitive actions always wait for approval: refunds, cancellations, deletes, and payment, staff, billing and domain settings.',
+      customersOn: 'Apps can read customer names, phone numbers and addresses.',
+      customersOff: 'Customer names, phone numbers and addresses stay hidden.',
+    },
   },
   switches: {
-    heading: 'What AI clients can do',
-    allowChanges: 'Allow AI clients to make changes',
+    allowChanges: 'Allow AI apps to make changes',
     allowChangesHelp:
-      'When off, clients can only read. Turn on to let them use any admin action your role allows, from products and orders to themes and settings.',
+      'When off, apps can only read. Turn on to let them use any admin action your role allows, from products and orders to themes and settings.',
     requireApproval: `Changes need approval in ${brand}`,
     requireApprovalHelp:
       'Every change waits in AI approvals until you or a staff member approves it. Recommended. Refunds, cancellations, deletes, and payment, staff, billing and domain settings always wait, even when this is off.',
-    readCustomers: 'Let clients read customer details',
+    readCustomers: 'Let apps read customer details',
     readCustomersHelp:
       'Names, phone numbers and addresses. Off by default; orders still show the city.',
   },
   table: {
-    clientsHeading: 'Connected clients',
-    client: 'Client',
-    connectedBy: 'Connected by',
-    canDo: 'Can do',
-    lastUsed: 'Last used',
-    viaOAuth: 'MCP · OAuth',
     memberLine: (role: string, date: string) => `${role} · ${date}`,
     removedMember: 'No longer on the team',
     never: 'Not yet',
     from: (ip: string) => `From ${ip}`,
     stopped: 'Stopped working',
-    actions: (name: string) => `Actions for ${name}`,
     revoke: 'Revoke',
-    tokensHeading: 'Access tokens',
+    tokensHeading: 'API tokens',
+    tokensHelp:
+      'For scripts, servers and AI apps that cannot sign in. People should sign in instead, so their own staff permissions apply.',
     createToken: 'Create token',
     name: 'Name',
     scopes: 'Scopes',
     expires: 'Expires',
     expiresNever: 'Never',
     expired: (date: string) => `Expired ${date}`,
-    tokensNote:
-      'Tokens are for scripts and servers. People should connect a client instead, so their own staff permissions apply.',
-    noTokens: 'No access tokens yet',
+    lastUsed: 'Last used',
+    noTokens: 'No API tokens yet',
     noTokensBody: 'Create one for a script or server that needs to read or update your store.',
   },
   canDo: {
@@ -189,21 +262,15 @@ export const mcpContent = {
     settings: 'Settings',
   } satisfies Record<ApiArea, string>,
   access: { read: 'Read', write: 'Write' },
-  empty: {
-    title: 'No clients connected',
-    body: (store: string) =>
-      `Connect Claude, ChatGPT, Cursor or VS Code to work with ${store} from your AI tool.`,
-    action: 'Connect a client',
-  },
   create: {
-    title: 'Create access token',
-    intro: 'For a script or server. Give it only what it needs.',
+    title: 'Create API token',
+    intro: 'For a script, server or AI app. Give it only what it needs.',
     name: 'Name',
     namePlaceholder: 'Inventory sync script',
     canAccess: 'Can access',
     expires: 'Expires',
     expiry: { 30: 'In 30 days', 90: 'In 90 days', 365: 'In 1 year', never: 'Never' },
-    note: 'Tokens act at once and cannot run sensitive settings actions. AI clients follow "Changes need approval", and their sensitive actions always wait.',
+    note: 'Tokens act at once and cannot run sensitive settings actions. Apps that sign in follow "Changes need approval", and their sensitive actions always wait.',
     cancel: 'Cancel',
     create: 'Create token',
     creating: 'Creating…',
@@ -214,27 +281,37 @@ export const mcpContent = {
     title: 'Copy your token now',
     intro: 'You won’t see this again. Keep it in your server’s secret settings, never in code.',
     once: 'Shown once',
-    label: 'Access token',
+    label: 'API token',
     copy: 'Copy token',
     copied: 'Copied',
     name: 'Name',
     canAccess: 'Can access',
     expires: 'Expires',
+    use: 'Send it with every request as',
+    claudeCode: 'Or add it to Claude Code',
     done: 'Done',
   },
   revoke: {
     title: (name: string) => `Revoke ${name}?`,
+    disconnectTitle: (name: string) => `Disconnect ${name}?`,
     client: (name: string, store: string, member: string) =>
       `${name} loses access to ${store} right away. ${member} can connect it again later. Changes already waiting in AI approvals stay there.`,
     token: (name: string) =>
       `Anything using "${name}" stops working right away. This cannot be undone; create a new token if you need one.`,
     keep: 'Keep',
     confirm: 'Revoke',
-    done: (name: string) => `${name} revoked`,
-    failed: 'Could not revoke. Try again.',
+    disconnect: 'Disconnect',
+    done: (name: string) => `${name} disconnected`,
+    failed: 'Could not disconnect. Try again.',
   },
   activity: {
     heading: 'Activity',
+    help: 'Everything apps and tokens read or changed in the last 90 days. Changes link to their approval.',
+    open: 'View activity',
+    title: 'MCP activity',
+    subtitle: (store: string) =>
+      `Everything AI apps and tokens did in ${store} in the last 90 days. Changes link to their approval.`,
+    back: 'MCP & API',
     export: 'Export CSV',
     exportFailed: 'Could not export. Try again.',
     filters: {
@@ -250,7 +327,7 @@ export const mcpContent = {
     loadOlder: 'Load older activity',
     loading: 'Loading…',
     empty: 'Nothing yet',
-    emptyBody: 'When a client or token reads or changes something, it shows up here.',
+    emptyBody: 'When an app or token reads or changes something, it shows up here.',
     loadFailed: 'Could not load activity. Try again.',
   },
   consent: {

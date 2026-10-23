@@ -43,7 +43,7 @@ codes, readiness)` decides, and `quickSignInButtons` (storefront, tested) decide
 | Store-domain routes | `apps/storefront/src/app/-s/[storeId]/account/login/{social/[provider],complete,link}` |
 | Login-domain routes | `apps/storefront/src/app/-a/oauth/[provider]/{start,callback}`, `-a/truecaller/callback` |
 | Actions | `apps/storefront/src/lib/login-actions.ts` (+ `account-actions.ts`, `privacy-actions.ts` for codes) |
-| Admin | `packages/api/src/routers/customer-accounts.ts`, `apps/admin/src/components/settings/{sign-in-providers-card,sign-in-extras-card,login-app-sheet}.tsx` |
+| Admin | `packages/api/src/routers/customer-accounts.ts`, `apps/admin/src/components/settings/{sign-in-providers-card,sign-in-extras-card,login-app-dialog}.tsx` |
 
 ## Why not `betterAuth()` for shoppers
 

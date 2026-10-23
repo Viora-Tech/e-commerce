@@ -56,6 +56,7 @@ import { orderMessageRoutes } from './order-messages'
 const change = z.enum(ORDER_MARKS)
 
 export const ordersRouter = {
+  /** Orders, a page at a time, by list tab, status, payment, fulfilment, date or a search. */
   list: can(permissions.ORDERS_READ)
     .input(
       z.object({
@@ -103,12 +104,16 @@ export const ordersRouter = {
     deleted: await deleteTestOrders({ tx: context.tx, storeId: context.scope.storeId }),
   })),
 
+  /** The order stats for the last 7 days, against the 7 days before. */
   stats: can(permissions.ORDERS_READ).handler(({ context }) => orderStats(context.tx)),
 
+  /** The stat cards above the Orders list. */
   tiles: can(permissions.ORDERS_READ).handler(({ context }) => orderTiles(context.tx)),
 
+  /** How many orders are waiting to ship. */
   toShipCount: can(permissions.ORDERS_READ).handler(({ context }) => readyToShipCount(context.tx)),
 
+  /** One order with its lines, payments, shipment, balance due and the customer's order history. */
   get: can(permissions.ORDERS_READ)
     .input(z.object({ id: z.uuid() }))
     .handler(async ({ context, input }) => {
@@ -272,7 +277,7 @@ export const ordersRouter = {
         /** The article number from the counter receipt, for a courier booked at its counter (India Post). */
         trackingNumber: z.string().trim().min(1).max(40).optional(),
         fulfillmentOrderId: z.guid().optional(),
-        /** A location id, or null for Settings › Shipping's address; omitted picks for you. */
+        /** A location id, or null for Settings Ã¢â‚¬Âº Shipping's address; omitted picks for you. */
         pickupLocationId: z.uuid().nullish(),
         weightGrams: z.number().int().min(1).optional(),
         dimensionsCm: z
@@ -303,6 +308,7 @@ export const ordersRouter = {
       )
     }),
 
+  /** Fetch the latest tracking events for a shipment from its courier. */
   refreshTracking: can(permissions.ORDERS_READ)
     .input(z.object({ shipmentId: z.uuid() }))
     .handler(async ({ context, input }) => {
@@ -316,6 +322,7 @@ export const ordersRouter = {
       )
     }),
 
+  /** Cancel a booked shipment with its courier. */
   cancelShipment: can(permissions.ORDERS_FULFIL)
     .input(z.object({ shipmentId: z.uuid() }))
     .handler(async ({ context, input }) => {
@@ -390,6 +397,7 @@ export const ordersRouter = {
       }
     }),
 
+  /** Add a staff note to the order's timeline. */
   addNote: can(permissions.ORDERS_WRITE)
     .input(z.object({ orderId: z.uuid(), body: z.string().trim().min(1).max(2000) }))
     .handler(({ context, input }) =>

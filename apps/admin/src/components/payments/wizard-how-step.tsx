@@ -39,7 +39,7 @@ export default function WizardHowStep({ gateways, busy, onPick }: WizardHowStepP
           disabled={busy !== null}
           onClick={() => onPick(g.id)}
         >
-          <GatewayLogo monogram={g.monogram} size="lg" />
+          <GatewayLogo id={g.id} monogram={g.monogram} size="lg" />
           <span className="flex min-w-0 flex-1 flex-col gap-0.5">
             <span className="flex flex-wrap items-center gap-2 text-body font-semibold text-foreground">
               {g.name}

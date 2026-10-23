@@ -76,6 +76,7 @@ export default [
       save: 'रोल सेव करें',
       cancel: 'रद्द करें',
       readOnly: 'पहले से बने रोल बदले नहीं जा सकते।',
+      back: 'स्टाफ़',
     },
     status: {
       active: 'चालू',

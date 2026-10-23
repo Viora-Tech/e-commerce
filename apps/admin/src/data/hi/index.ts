@@ -24,6 +24,7 @@ import content from './content'
 import contentBlog from './content-blog'
 import contentFiles from './content-files'
 import createShipment from './create-shipment'
+import customData from './custom-data'
 import customers from './customers'
 import customersBulkEdit from './customers-bulk-edit'
 import customizeAi from './customize-ai'
@@ -136,6 +137,7 @@ export const hindiCopy: readonly TranslationPair[] = [
   ...contentBlog,
   ...contentFiles,
   ...createShipment,
+  ...customData,
   ...customers,
   ...customersBulkEdit,
   ...customizeAi,

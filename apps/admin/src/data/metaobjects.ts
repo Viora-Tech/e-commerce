@@ -406,7 +406,7 @@ export const customDataContent = {
     shop: { id: 'store', label: 'Store' },
     metaobjects: { id: 'metaobjects', label: 'Content types' },
   },
-  /** The Store tab: the store's own values under its fields. */
+  /** The Store page: the store's own values under its fields. */
   shopValues: 'Your store’s values',
   metafields: {
     heading: (owner: string) => `${owner} extra fields`,
@@ -415,6 +415,11 @@ export const customDataContent = {
     add: 'Add extra field',
     empty: (owner: string) =>
       `No ${owner.toLowerCase()} extra fields yet. Add one, like a care guide or a warranty.`,
+    emptyHeading: (owner: string) => `No ${owner.toLowerCase()} extra fields yet`,
+    emptyBody: (owner: string) =>
+      `An extra field adds your own box to every ${owner.toLowerCase()}, like a care guide or a warranty. Fill it in on the ${owner.toLowerCase()}’s page and your theme can show it.`,
+    reordered: 'Order saved',
+    reorderFailed: 'Could not save the new order. Try again.',
     values: (n: number) => (n === 1 ? '1 value' : `${n} values`),
     listOf: (label: string) => `List of ${label.toLowerCase()}`,
     hidden: 'Hidden from storefront',

@@ -136,6 +136,7 @@ export default function BillingPage({ view, apps, autopay }: BillingPageProps) {
         <DataCard
           title={copy.change.heading}
           subtitle={copy.change.body(copy.plans[lower].name, format.date(view.periodEnd))}
+          bodyClassName="flex justify-end"
         >
           <Button variant="outline" onClick={() => setDowngrading(true)}>
             {copy.change.action(copy.plans[lower].name)}

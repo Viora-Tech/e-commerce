@@ -78,7 +78,7 @@ export default function OtherBusinesses({
               </ul>
             )}
             {canManage ? (
-              <Button variant="outline" className="self-start" onClick={onAdd}>
+              <Button variant="outline" className="self-end" onClick={onAdd}>
                 <Plus aria-hidden="true" />
                 {copy.add}
               </Button>

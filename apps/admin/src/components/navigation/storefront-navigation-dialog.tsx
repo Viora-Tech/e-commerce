@@ -4,6 +4,15 @@ import type { NavigationSettings } from '@commerce/core/navigation'
 import { Plus, Save, Trash2 } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@commerce/ui/shadcn/dialog'
+import {
   Field,
   FieldDescription,
   FieldGroup,
@@ -18,15 +27,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@commerce/ui/shadcn/select'
-import {
-  Sheet,
-  SheetClose,
-  SheetContent,
-  SheetDescription,
-  SheetFooter,
-  SheetHeader,
-  SheetTitle,
-} from '@commerce/ui/shadcn/sheet'
 import { Spinner } from '@commerce/ui/shadcn/spinner'
 import { SortableList } from '@commerce/ui/sortable'
 import { useEffect, useState } from 'react'
@@ -37,10 +37,10 @@ import { useCopy } from '@/hooks/use-copy'
 import { useRowIds } from '@/hooks/use-row-ids'
 import { api } from '@/lib/api-client'
 
-/** A menu as far as this sheet cares: what it is called, and the handle a pointer stores. */
+/** A menu as far as this dialog cares: what it is called, and the handle a pointer stores. */
 export type MenuOption = { handle: string; title: string }
 
-type StorefrontNavigationSheetProps = {
+type StorefrontNavigationDialogProps = {
   open: boolean
   onOpenChange: (open: boolean) => void
   menus: MenuOption[]
@@ -60,13 +60,13 @@ function optionsFor(menus: MenuOption[], taken: readonly (string | null)[]): Men
   return menus.filter((m) => !taken.includes(m.handle))
 }
 
-export default function StorefrontNavigationSheet({
+export default function StorefrontNavigationDialog({
   open,
   onOpenChange,
   menus,
   settings,
   onSaved,
-}: StorefrontNavigationSheetProps) {
+}: StorefrontNavigationDialogProps) {
   // Hooks
   const copy = useCopy(storefrontContent)
   const sortLabels = useCopy(reorderLabels)
@@ -131,12 +131,12 @@ export default function StorefrontNavigationSheet({
   const columns = footer.map((_, index) => ({ id: rowIds.ids[index] ?? String(index), index }))
 
   return (
-    <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent className="flex w-full flex-col gap-0 sm:max-w-md">
-        <SheetHeader>
-          <SheetTitle>{copy.editTitle}</SheetTitle>
-          <SheetDescription>{copy.editDescription}</SheetDescription>
-        </SheetHeader>
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="flex max-h-[calc(100dvh-2rem)] flex-col gap-0 p-0 sm:max-w-md">
+        <DialogHeader className="gap-0.5 p-4 pr-12">
+          <DialogTitle>{copy.editTitle}</DialogTitle>
+          <DialogDescription>{copy.editDescription}</DialogDescription>
+        </DialogHeader>
         <div className="flex flex-1 flex-col gap-5 overflow-y-auto px-4 pb-4">
           <Field>
             <FieldLabel htmlFor="header-menu">{copy.headerLabel}</FieldLabel>
@@ -215,14 +215,14 @@ export default function StorefrontNavigationSheet({
             </FieldGroup>
           </FieldSet>
         </div>
-        <SheetFooter className="flex-row justify-end gap-2">
-          <SheetClose render={<Button variant="outline" />}>{copy.cancel}</SheetClose>
+        <DialogFooter className="m-0 flex-row justify-end gap-2">
+          <DialogClose render={<Button variant="outline" />}>{copy.cancel}</DialogClose>
           <Button type="button" onClick={handleSave} disabled={saving}>
             {saving ? <Spinner /> : <Save aria-hidden="true" />}
             {copy.save}
           </Button>
-        </SheetFooter>
-      </SheetContent>
-    </Sheet>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   )
 }

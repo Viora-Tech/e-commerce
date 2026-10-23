@@ -186,7 +186,7 @@ export default function AiSettings() {
             </div>
             <Button
               variant="outline"
-              className="self-start"
+              className="self-end"
               loading={buying}
               onClick={handleBuyCredits}
             >

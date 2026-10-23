@@ -120,7 +120,7 @@ export default function ShowSettings({ value, storeName, onChange }: ShowSetting
             />
             <span className="text-caption text-muted-foreground">{e.subjectHelp}</span>
           </div>
-          <Button variant="outline" className="self-start" onClick={() => setPreviewing(true)}>
+          <Button variant="outline" className="self-end" onClick={() => setPreviewing(true)}>
             <Eye aria-hidden="true" />
             {e.preview}
           </Button>
