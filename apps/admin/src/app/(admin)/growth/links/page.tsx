@@ -1,9 +1,7 @@
-import type { Metadata } from 'next'
-import LinksPage from '@/components/growth/links/links-page'
-import { storefrontOrigin } from '@/lib/storefront-origin'
+import { redirect } from 'next/navigation'
+import { routes } from '@/lib/routes'
 
-export const metadata: Metadata = { title: 'Links' }
-
-export default async function Page() {
-  return <LinksPage storefrontOrigin={await storefrontOrigin()} />
+/** Tracking links moved to a tab of Campaigns, as in Shopify. */
+export default function Page() {
+  redirect(routes.growth.trackingLinks())
 }
