@@ -1,3 +1,4 @@
+/** SOURCE OF TRUTH: Growth definition mapping tests — WHAT: each legacy automation and run maps to a valid engine workflow and run / WHY: the cut-over depends on the mapping being exact (design §10). */
 import { describe, expect, it } from 'vitest'
 import { WorkflowDefinitionSchema, walkNodes } from '../automations/definition'
 import { mapAutomation, mapRun, nodeIdsFor, ruleFor } from './automation-engine-map'

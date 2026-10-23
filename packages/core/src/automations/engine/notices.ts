@@ -21,7 +21,7 @@ import { storePlanId, usageMonth } from './usage'
 export type OwnerNotice = { subject: string; text: string }
 
 /** Step detail is kept this long; run summaries 13 months (design §8.3, owner: 90 days). */
-export const STEP_DETAIL_DAYS = 90
+const STEP_DETAIL_DAYS = 90
 const RUN_SUMMARY_MONTHS = 13
 
 /**

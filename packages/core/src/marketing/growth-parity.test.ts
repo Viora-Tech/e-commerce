@@ -1,3 +1,4 @@
+/** SOURCE OF TRUTH: Growth parity tests — WHAT: the same marketing timelines on the legacy runner, on the engine and across a mid-sequence cut-over send exactly the same messages / WHY: the migration promise (no double send, no lost run, design §4). */
 /**
  * Parity: the same fixture timelines run on the legacy marketing runner, on the Automations
  * engine (store cut over before anything happens) and across a cutover in the middle of a

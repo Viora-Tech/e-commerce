@@ -5,9 +5,6 @@ import {
   automationStepRun,
   automationVersion,
   automationWorkflow,
-  customer,
-  order,
-  product,
   type StoreTx,
 } from '@commerce/db'
 import type { PluginManifest } from '@commerce/plugins'
@@ -30,6 +27,7 @@ import type { ConditionEvaluator, SubjectLoader } from '../executor'
 import { pieceIssues } from '../registry'
 import { OPEN_RUN_STATUSES, type RunStatus } from '../types'
 import { dryRun } from './dry-run'
+import { subjectLabels } from './labels'
 import { actionResolver, storePieces } from './resolve'
 import { type StartedRun, startRuns } from './trigger'
 import { storePlanId } from './usage'
@@ -38,45 +36,6 @@ import { getWorkflow, type Member, WorkflowError } from './workflows'
 type RunRow = typeof automationRun.$inferSelect
 const iso = (d: Date | null) => (d ? d.toISOString() : null)
 const holds = (m: Member, p: Permission) => m.isOwner || m.permissions.includes(p)
-
-/** "#1042", "Asha Rao", "Cotton kurta": what the run log calls each subject. */
-async function subjectLabels(tx: StoreTx, runs: Pick<RunRow, 'subjectType' | 'subjectId'>[]) {
-  const ids = (type: string) => [
-    ...new Set(
-      runs.filter((r) => r.subjectType === type && r.subjectId).map((r) => r.subjectId as string),
-    ),
-  ]
-  const labels = new Map<string, string>()
-  const orderIds = ids('order')
-  if (orderIds.length) {
-    for (const o of await tx
-      .select({ id: order.id, number: order.number })
-      .from(order)
-      .where(inArray(order.id, orderIds)))
-      labels.set(o.id, `#${o.number}`)
-  }
-  const customerIds = ids('customer')
-  if (customerIds.length) {
-    for (const c of await tx
-      .select({ id: customer.id, name: customer.name, email: customer.email })
-      .from(customer)
-      .where(inArray(customer.id, customerIds)))
-      labels.set(c.id, c.name || c.email || 'Customer')
-  }
-  const productIds = ids('product')
-  if (productIds.length) {
-    for (const p of await tx
-      .select({ id: product.id, title: product.title })
-      .from(product)
-      .where(inArray(product.id, productIds)))
-      labels.set(p.id, p.title)
-  }
-  return (r: Pick<RunRow, 'subjectType' | 'subjectId'>): SubjectLabel => ({
-    type: r.subjectType,
-    id: r.subjectId,
-    label: r.subjectId ? (labels.get(r.subjectId) ?? 'Deleted record') : '',
-  })
-}
 
 type Joined = { run: RunRow; workflowName: string; versionNumber: number }
 

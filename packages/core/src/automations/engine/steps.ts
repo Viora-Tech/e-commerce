@@ -1,7 +1,13 @@
 /** SOURCE OF TRUTH: automation step bookkeeping — WHAT: step-run rows, run endings and moves, retry classification and backoff (internal ×3, external up to 24 h), output truncation, and the failure circuit breaker / WHY: the interpreter's node handlers share one way to record a step and decide retry vs fail, so the run log and the retry contract read the same for every action (design §8.5). */
-import { automationRun, automationStepRun, type StoreTx } from '@commerce/db'
+import {
+  automationRun,
+  automationStepRun,
+  automationVersion,
+  automationWorkflow,
+  type StoreTx,
+} from '@commerce/db'
 import { and, eq, gte, sql } from 'drizzle-orm'
-import type { ActionNode } from '../definition'
+import { type ActionNode, type WorkflowDefinition, WorkflowDefinitionSchema } from '../definition'
 import { AutomationActionError } from '../executor'
 import { MAX_FAILURES_PER_HOUR, type RunStatus } from '../types'
 import type { ResolvedAction } from './interpreter'
@@ -205,4 +211,38 @@ async function failureBreaker(tx: StoreTx, workflowId: string, now: Date) {
       `Switched off: more than ${MAX_FAILURES_PER_HOUR} runs failed in an hour`,
     )
   }
+}
+
+/** A run's pinned version, parsed once per job. */
+export async function loadDefinition(
+  tx: StoreTx,
+  versionId: string,
+  cache: Map<string, WorkflowDefinition | null>,
+): Promise<WorkflowDefinition | null> {
+  if (cache.has(versionId)) return cache.get(versionId) ?? null
+  const [v] = await tx
+    .select({ definition: automationVersion.definition })
+    .from(automationVersion)
+    .where(eq(automationVersion.id, versionId))
+  const parsed = v ? WorkflowDefinitionSchema.safeParse(v.definition) : null
+  const def = parsed?.success ? parsed.data : null
+  cache.set(versionId, def)
+  return def
+}
+
+export async function workflowName(tx: StoreTx, id: string): Promise<string> {
+  const [w] = await tx
+    .select({ name: automationWorkflow.name })
+    .from(automationWorkflow)
+    .where(eq(automationWorkflow.id, id))
+  return w?.name ?? ''
+}
+
+/** True for an Off Growth workflow: its runs wait, neither advancing nor ending. */
+export async function isHeld(tx: StoreTx, workflowId: string): Promise<boolean> {
+  const [w] = await tx
+    .select({ status: automationWorkflow.status, origin: automationWorkflow.origin })
+    .from(automationWorkflow)
+    .where(eq(automationWorkflow.id, workflowId))
+  return w?.status === 'off' && w.origin === 'growth'
 }

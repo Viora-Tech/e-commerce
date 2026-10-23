@@ -18,28 +18,46 @@ type AllowEntry = { file: string; names: string[]; reason: string }
 
 const ALLOWLIST: AllowEntry[] = [
   {
+    file: 'packages/core/src/automations/actions/index.ts',
+    names: ['builtinExecutors', 'missingBuiltinExecutors'],
+    reason:
+      'the executor list and its completeness check, exported for the catalogue-coverage test',
+  },
+  {
+    file: 'packages/core/src/automations/conditions/evaluate.ts',
+    names: ['readPath'],
+    reason: 'the dotted-path reader behind the evaluator, exported for its unit test',
+  },
+  {
+    file: 'packages/core/src/marketing/automation-cutover.ts',
+    names: ['lockAutomationsEngineMode', 'cutoverStoreToEngine', 'verifyCutover'],
+    reason:
+      'the Growth cut-over steps, run by scripts/migrate-marketing-automations.ts (scripts are not scanned)',
+  },
+  {
+    file: 'packages/core/src/marketing/automation-engine-map.ts',
+    names: ['ENGINE_SUBJECT', 'nodeIdsFor', 'ruleFor'],
+    reason: 'pieces of the legacy-to-engine mapping, exported for its unit test',
+  },
+  {
+    file: 'packages/core/src/marketing/growth-automations.ts',
+    names: ['stepsFromDefinition', 'engineAutomationStats'],
+    reason: 'the engine-to-Growth view helpers, exported for the cut-over and parity tests',
+  },
+  {
+    file: 'packages/core/src/marketing/growth-engine.ts',
+    names: ['SWEEP_TRIGGERS', 'isTransactionalNode'],
+    reason: 'the sweep trigger list and the COD transactional rule, exported for their unit tests',
+  },
+  {
     file: 'packages/core/src/automations/catalogue.ts',
-    names: [
-      'FIELD_TYPES',
-      'OPERATORS_BY_TYPE',
-      'UNARY_OPERATORS',
-      'isPluginPieceId',
-      'builtinTrigger',
-      'conditionFieldsFor',
-    ],
+    names: ['FIELD_TYPES', 'isPluginPieceId', 'builtinTrigger', 'conditionFieldsFor'],
     reason:
       'Automations contract (feat/automations, 2026-10-23): read by the admin editor and the conditions/actions work built in parallel on this branch',
   },
   {
     file: 'packages/core/src/automations/definition.ts',
-    names: [
-      'RULE_OPERATORS',
-      'RULE_QUANTIFIERS',
-      'RuleGroupSchema',
-      'isRuleGroup',
-      'definitionIssues',
-      'walkNodes',
-    ],
+    names: ['RULE_OPERATORS', 'RULE_QUANTIFIERS', 'RuleGroupSchema'],
     reason:
       'Automations contract (feat/automations, 2026-10-23): read by the admin editor and the conditions/actions work built in parallel on this branch',
   },
@@ -50,18 +68,11 @@ const ALLOWLIST: AllowEntry[] = [
       'Automations contract (feat/automations, 2026-10-23): read by the admin editor and the conditions/actions work built in parallel on this branch',
   },
   {
-    file: 'packages/core/src/automations/templates.ts',
-    names: ['TEMPLATE_CATEGORIES'],
-    reason:
-      'Automations contract (feat/automations, 2026-10-23): read by the admin editor and the conditions/actions work built in parallel on this branch',
-  },
-  {
     file: 'packages/core/src/automations/types.ts',
     names: [
       'WORKFLOW_STATUSES',
       'WORKFLOW_ORIGINS',
       'BUILTIN_SUBJECT_TYPES',
-      'isOpenRunStatus',
       'STEP_RUN_STATUSES',
       'ACTION_RISKS',
       'TRIGGER_SOURCES',
@@ -71,11 +82,6 @@ const ALLOWLIST: AllowEntry[] = [
     ],
     reason:
       'Automations contract (feat/automations, 2026-10-23): read by the admin editor and the conditions/actions work built in parallel on this branch',
-  },
-  {
-    file: 'packages/db/src/automation-schema.ts',
-    names: ['automationSecret'],
-    reason: 'HTTP action secrets (design §8.3); the HTTP request executor reads it',
   },
   {
     file: 'packages/core/src/automations/engine/trigger.ts',
@@ -397,7 +403,7 @@ const ALLOWLIST: AllowEntry[] = [
   },
   {
     file: 'packages/core/src/collections/rules.ts',
-    names: ['matchesCollectionCondition', 'evaluateRules'],
+    names: ['matchesCollectionCondition'],
     reason: 'no external importer today — investigate before removing',
   },
   {
@@ -500,11 +506,6 @@ const ALLOWLIST: AllowEntry[] = [
   {
     file: 'packages/core/src/marketing/automation-steps.ts',
     names: ['AutomationStepSchema'],
-    reason: 'no external importer today — investigate before removing',
-  },
-  {
-    file: 'packages/core/src/marketing/automations.ts',
-    names: ['CONVERSION_WINDOW_DAYS'],
     reason: 'no external importer today — investigate before removing',
   },
   {

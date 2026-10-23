@@ -1,3 +1,4 @@
+/** SOURCE OF TRUTH: Growth on the engine tests — WHAT: the sweep sources (abandoned checkout and cart, lapsed customers) and the marketing exit check / WHY: the engine keeps every Growth business rule. */
 import {
   automationRun,
   automationVersion,

@@ -1,3 +1,4 @@
+/** SOURCE OF TRUTH: Growth cut-over tests — WHAT: per-store cut-over copies workflows and runs with the same ids, in one transaction, and the legacy tick skips cut-over stores / WHY: no store is ever run by both runners (design §10). */
 import {
   automationRun,
   automationRunRecord,

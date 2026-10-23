@@ -9,6 +9,7 @@ import {
 import { and, desc, eq, inArray, sql } from 'drizzle-orm'
 import { type Rule, WorkflowDefinitionSchema, walkNodes } from '../automations/definition'
 import { isOpenRunStatus, type RunStatus } from '../automations/types'
+import { CommerceError } from '../errors'
 import { automationsEngineMode } from './automation-cutover'
 import {
   ENGINE_TRIGGER,
@@ -49,9 +50,12 @@ export type GrowthAutomation = AutomationRow & {
 export type GrowthRun = Awaited<ReturnType<typeof recentRuns>>[number]
 
 /** Thrown when Growth's linear editor saves a workflow it can only show. */
-export class GrowthAutomationNotEditable extends Error {
+export class GrowthAutomationNotEditable extends CommerceError {
   constructor() {
-    super('This automation has branches or other actions: edit it in Automations')
+    super(
+      'GROWTH_AUTOMATION_NOT_EDITABLE',
+      'This automation has branches or other actions: edit it in Automations',
+    )
   }
 }
 

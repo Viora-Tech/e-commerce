@@ -1,22 +1,8 @@
 /** SOURCE OF TRUTH: the automation interpreter — WHAT: advances one run node by node (condition → branch, action → executor with approval, retries and onError, wait → park), each node in its own store transaction with its step-run row, until the run waits, asks, ends or fails / WHY: the DB row is the run's only state, so a crash, a Redis loss or a duplicate job never loses or repeats an internal action (design §8.5). */
-import {
-  automationRun,
-  automationRunRecord,
-  automationVersion,
-  automationWorkflow,
-  type Db,
-  type StoreTx,
-  withStore,
-} from '@commerce/db'
+import { automationRun, automationRunRecord, type Db, type StoreTx, withStore } from '@commerce/db'
 import { eq } from 'drizzle-orm'
 import { type ActionDescriptor, builtinAction, nodeNeedsApproval } from '../catalogue'
-import {
-  type ActionNode,
-  type ConditionNode,
-  type WaitNode,
-  type WorkflowDefinition,
-  WorkflowDefinitionSchema,
-} from '../definition'
+import type { ActionNode, ConditionNode, WaitNode, WorkflowDefinition } from '../definition'
 import {
   type ActionContext,
   type ActionExecutor,
@@ -37,12 +23,15 @@ import {
 } from '../types'
 import {
   finish,
+  isHeld,
+  loadDefinition,
   moveTo,
   onActionError,
   type RunRow,
   type StepOutcome,
   stepRow,
   truncateOutput,
+  workflowName,
   writeStep,
 } from './steps'
 
@@ -87,39 +76,6 @@ async function defaultResolve(
   const descriptor = builtinAction(id)
   const executor = actionExecutor(id)
   return descriptor && executor ? { descriptor, executor } : null
-}
-
-async function loadDefinition(
-  tx: StoreTx,
-  versionId: string,
-  cache: Map<string, WorkflowDefinition | null>,
-): Promise<WorkflowDefinition | null> {
-  if (cache.has(versionId)) return cache.get(versionId) ?? null
-  const [v] = await tx
-    .select({ definition: automationVersion.definition })
-    .from(automationVersion)
-    .where(eq(automationVersion.id, versionId))
-  const parsed = v ? WorkflowDefinitionSchema.safeParse(v.definition) : null
-  const def = parsed?.success ? parsed.data : null
-  cache.set(versionId, def)
-  return def
-}
-
-async function workflowName(tx: StoreTx, id: string): Promise<string> {
-  const [w] = await tx
-    .select({ name: automationWorkflow.name })
-    .from(automationWorkflow)
-    .where(eq(automationWorkflow.id, id))
-  return w?.name ?? ''
-}
-
-/** True for an Off Growth workflow: its runs wait, neither advancing nor ending. */
-async function isHeld(tx: StoreTx, workflowId: string): Promise<boolean> {
-  const [w] = await tx
-    .select({ status: automationWorkflow.status, origin: automationWorkflow.origin })
-    .from(automationWorkflow)
-    .where(eq(automationWorkflow.id, workflowId))
-  return w?.status === 'off' && w.origin === 'growth'
 }
 
 /** Subject data plus the trigger snapshot under `trigger`. */

@@ -44,16 +44,16 @@ export type DepsFor = (tx: StoreTx, storeId: string) => Promise<BuiltinActionDep
 
 export function depsResolver(host: ActionHost = {}): DepsFor {
   return async (tx, storeId) => {
-    const settingsSecret = host.settingsSecret ?? process.env.SETTINGS_SECRET
+    const secret = host.settingsSecret ?? process.env.SETTINGS_SECRET
     const fallbackUrl = host.storefrontUrl ?? process.env.STOREFRONT_URL ?? ''
-    if (!settingsSecret) {
+    if (!secret) {
       throw new AutomationActionError('Automations are not configured on this server', {
         retryable: false,
       })
     }
     return {
       registry: host.registry ?? (await registriesForStore(tx, storeId)).notifications,
-      settingsSecret,
+      settingsSecret: secret,
       // Shop, click and unsubscribe links go to the store's own domain, as Growth's do.
       storefrontUrl: await storefrontOriginFor(tx, storeId, fallbackUrl),
       channels: host.channels,
