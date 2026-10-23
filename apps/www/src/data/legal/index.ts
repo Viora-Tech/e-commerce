@@ -1,6 +1,7 @@
 import { siteConfig } from '@commerce/config/site'
 import { acceptableUseDoc } from './acceptable-use'
 import { cookiesDoc } from './cookies'
+import { dataDeletionDoc } from './data-deletion'
 import { privacyDoc } from './privacy'
 import { refundsDoc } from './refunds'
 import { shippingDoc } from './shipping'
@@ -14,6 +15,7 @@ export const LEGAL_DOCS: readonly LegalDoc[] = [
   refundsDoc,
   shippingDoc,
   acceptableUseDoc,
+  dataDeletionDoc,
 ]
 
 export const legalContent = {
@@ -25,7 +27,8 @@ export const legalContent = {
   languageLabel: 'Language',
   downloadPdf: 'Download PDF',
   print: 'Print',
-  templateNotice: 'TEMPLATE — review with a lawyer before publishing. Replace every [placeholder].',
+  templateNotice:
+    'TEMPLATE — review with a lawyer before publishing. Replace every [placeholder] and [OWNER: …].',
   onThisPage: 'On this page',
   read: 'read',
   backToTop: 'Back to top',
