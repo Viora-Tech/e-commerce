@@ -1,7 +1,7 @@
 import { appStoreUrl, siteConfig } from '@commerce/config/site'
 import { type Permission, permissions } from '@commerce/core/permissions'
 import type { LucideIcon } from '@commerce/ui/icons'
-import { Blocks, Palette, Plus, Settings } from '@commerce/ui/icons'
+import { Blocks, Palette, Plus, Settings, TrendingUp } from '@commerce/ui/icons'
 import { routes } from '@/lib/routes'
 import { ACCOUNT_NAV } from './account'
 import { NAV_GROUPS, SETTINGS_NAV } from './navigation'
@@ -218,6 +218,20 @@ export const PAGE_LINKS: PaletteLink[] = [
         }
       }),
     ]),
+  ),
+  // Growth pages that left the rail: tracking links are a Campaigns tab, automations are
+  // moving to their own app.
+  ...[
+    { label: 'Tracking links', href: routes.growth.links() },
+    { label: 'Marketing automations', href: routes.growth.automations() },
+  ].map(
+    (p): PaletteLink => ({
+      ...p,
+      hint: 'Growth',
+      hintHref: routes.growth.home(),
+      icon: TrendingUp,
+      permission: permissions.MARKETING_READ,
+    }),
   ),
   { label: SETTINGS_NAV.label, href: SETTINGS_NAV.href, icon: SETTINGS_NAV.icon },
   ...ACCOUNT_NAV.map(

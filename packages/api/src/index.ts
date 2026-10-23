@@ -46,12 +46,14 @@ export {
   type ReportColumnKind,
   type ReportDefinition,
 } from './services/analytics-reports'
+export type { CampaignPerformanceRow } from './services/campaign-performance.service'
 export type { CustomerSheetRow } from './services/customer-sheet.service'
 export type {
   DashboardChartRange,
   DashboardChartsData,
   DashboardSummary,
 } from './services/dashboard.service'
+export type { AutopilotProposalView, AutopilotView } from './services/growth-autopilot.service'
 export type {
   GrowthOutcomes,
   OutcomeKind,

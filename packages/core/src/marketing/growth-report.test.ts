@@ -6,6 +6,7 @@ import {
   campaignRates,
   channelMatches,
   splitByCustomerType,
+  trafficType,
 } from './growth-report'
 
 const email: CampaignCounts = {
@@ -92,5 +93,18 @@ describe('campaign rates', () => {
     expect(r.open).toBeNull()
     expect(r.unsubscribe).toBeNull()
     expect(r.delivery?.rate).toBe(0.95)
+  })
+})
+
+describe('traffic type', () => {
+  it('buckets channels as Shopify does', () => {
+    expect(trafficType('direct')).toBe('direct')
+    expect(trafficType('paid_search')).toBe('paid')
+    expect(trafficType('paid_social')).toBe('paid')
+    expect(trafficType('organic_search')).toBe('organic')
+    expect(trafficType('email')).toBe('organic')
+    expect(trafficType('untracked')).toBe('unknown')
+    expect(trafficType(null)).toBe('unknown')
+    expect(trafficType('carrier_pigeon')).toBe('unknown')
   })
 })

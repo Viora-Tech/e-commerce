@@ -2,6 +2,7 @@ import { loadEnv } from '@commerce/config'
 import {
   AutomationInputSchema,
   type AutomationStats,
+  AutopilotSettingsSchema,
   automationStats,
   type CampaignInput,
   CampaignInputSchema,
@@ -36,7 +37,15 @@ import {
 import { compileEmailDesign } from '@commerce/core/email-design-compile'
 import { ORPCError } from '@orpc/server'
 import { z } from 'zod'
-import { can } from '../procedures'
+import { can, canDetached } from '../procedures'
+import { campaignPerformance } from '../services/campaign-performance.service'
+import {
+  approveAutopilotProposal,
+  autopilotView,
+  dismissAutopilotProposal,
+  planAutopilotCampaigns,
+  saveAutopilotSettings,
+} from '../services/growth-autopilot.service'
 import {
   dismissRecommendation,
   recommendationsFor,
@@ -163,8 +172,42 @@ const automationsRouter = {
     .handler(({ context, input }) => deleteAutomation(context.tx, input.id)),
 }
 
+const proposalId = z.object({ id: z.string().min(1).max(40) })
+
+/** Growth → Autopilot: settings, proposed campaigns, approve or dismiss each one. */
+const autopilotRouter = {
+  get: can(permissions.MARKETING_READ).handler(({ context }) =>
+    autopilotView(context.tx, context.scope.storeId),
+  ),
+
+  saveSettings: can(permissions.MARKETING_WRITE)
+    .input(AutopilotSettingsSchema)
+    .handler(({ context, input }) =>
+      saveAutopilotSettings(context.tx, context.scope.storeId, input),
+    ),
+
+  /** Writes draft campaigns for the goals that need one; the AI writer runs outside a transaction. */
+  plan: canDetached(permissions.MARKETING_WRITE).handler(({ context, signal }) =>
+    planAutopilotCampaigns(context, new Date(), signal),
+  ),
+
+  /** Schedules the draft (adding its discount code) or switches cart reminders on. */
+  approve: can(permissions.MARKETING_SEND)
+    .input(proposalId)
+    .handler(({ context, input }) =>
+      approveAutopilotProposal(context.tx, context.scope.storeId, input.id),
+    ),
+
+  dismiss: can(permissions.MARKETING_WRITE)
+    .input(proposalId)
+    .handler(({ context, input }) =>
+      dismissAutopilotProposal(context.tx, context.scope.storeId, input.id),
+    ),
+}
+
 export const marketingRouter = {
   automations: automationsRouter,
+  autopilot: autopilotRouter,
   emailTemplates: emailTemplatesRouter,
 
   /** Logo, colours and social links from the live theme, for the visual email builder. */
@@ -177,6 +220,11 @@ export const marketingRouter = {
   overview: can(permissions.MARKETING_READ)
     .input(z.object({ range: rangeInput.default({ key: '30d' }) }))
     .handler(({ context, input }) => marketingOverview(context.tx, { range: input.range })),
+
+  /** Every campaign (our sends and tracking-link campaigns) with sessions and sales this year. */
+  campaignPerformance: can(permissions.MARKETING_READ).handler(({ context }) =>
+    campaignPerformance(context.tx),
+  ),
 
   /** Growth overview recommendations: up to three rule-based next steps with their numbers. */
   recommendations: can(permissions.MARKETING_READ).handler(({ context }) =>

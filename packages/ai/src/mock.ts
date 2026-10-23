@@ -10,6 +10,7 @@
 import type { LanguageModelV4CallOptions, LanguageModelV4StreamPart } from '@ai-sdk/provider'
 import { simulateReadableStream } from 'ai'
 import { MockLanguageModelV4 } from 'ai/test'
+import { CAMPAIGN_WRITER_MARKER } from './campaign-writer'
 import type { AiFeature } from './features'
 import { mockPlan } from './mock-plan'
 import { MOCK_DOCUMENTS } from './purchase-documents/fixtures'
@@ -148,6 +149,15 @@ function generated(prompt: Prompt): string {
   if (system.includes(DOCUMENT_READ_MARKER)) return documentRead(system)
   if (system.includes(SEO_KEYWORDS_MARKER)) return seoKeywords(prompt)
   if (system.includes(QUERY_WRITER_MARKER)) return analyticsQuery(prompt)
+  if (system.includes(CAMPAIGN_WRITER_MARKER)) {
+    return JSON.stringify({
+      subject: 'Something new for you',
+      previewText: 'Fresh picks from the store, chosen for you.',
+      heading: 'Picked for you',
+      body: 'We have put together a few things we think you will like. Take a look while they last.',
+      button: 'Shop now',
+    })
+  }
   if (system.includes(REVIEW_REPLY_MARKER)) {
     return JSON.stringify({
       reply:

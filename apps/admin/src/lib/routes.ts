@@ -141,7 +141,11 @@ export const routes = {
 
   growth: {
     home: () => '/growth',
+    attribution: () => '/growth/attribution',
+    autopilot: () => '/growth/autopilot',
     campaigns: () => '/growth/campaigns',
+    /** The Campaigns page's Tracking links tab (`/growth/links` redirects here). */
+    trackingLinks: () => '/growth/campaigns?tab=links',
     newCampaign: () => '/growth/campaigns/new',
     campaign: (campaignId: string) => `/growth/campaigns/${id(campaignId)}`,
     automations: () => '/growth/automations',
