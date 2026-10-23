@@ -347,3 +347,18 @@ ledger, and discount-engine coupons. There is nothing worth adapting.
 - Store-credit payouts (v2, once a customer balance exists).
 - Two-sided customer referral ("give ₹100, get ₹100", ReferralCandy-style). That belongs to
   loyalty.
+
+### As built (PR feat/app-affiliates)
+
+The v1 that shipped follows this scope, with these differences:
+
+- Signup and dashboard share one route, `/affiliate`. Applying needs a store account, and the
+  account supplies the email and phone. PAN is optional and collected with the payout details.
+  GSTIN is not collected.
+- Approved and pending commissions are reversed or scaled down. A commission already in a payout
+  (or paid) is left alone: no negative adjustment rows yet, and the merchant settles any
+  clawback by hand.
+- Rejected applicants are not emailed. Only approved, new sale and payout sent are.
+- Link clicks are recorded only with analytics consent (the existing beacon). Codes always count.
+- TDS is deducted when a commission is approved (credited), at 2% with a PAN and 20% without,
+  once the financial year's total passes ₹20,000. All three are merchant-editable.
