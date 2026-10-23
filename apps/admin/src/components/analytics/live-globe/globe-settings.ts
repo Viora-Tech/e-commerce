@@ -25,6 +25,9 @@ export type GlobeMotionSettings = {
 
 export type GlobeStyle = 'solid' | 'dotted'
 export type GlobeThemePreset = 'accent' | 'night' | 'ocean' | 'mono'
+/** How fine the dotted land is: more, smaller dots (`fine`, the Home card's look) or fewer,
+ * bigger ones. */
+export type GlobeDotSize = 'fine' | 'medium' | 'bold'
 
 export type GlobeLookSettings = {
   /** Land: filled continents, or dots (drawn in the shader; `webgl/dot-layout.ts`). */
@@ -33,6 +36,7 @@ export type GlobeLookSettings = {
    * line, or small dots along it (`webgl/border-points.ts`, `webgl/border-dot-stride.ts`).
    * Coastlines are always the solid line either way. */
   borderStyle: GlobeStyle
+  dotSize: GlobeDotSize
   theme: GlobeThemePreset
   /** Hex colours (e.g. "#1c2b4a"), or null to use the theme preset's own. */
   customLand: string | null
@@ -65,6 +69,7 @@ const STORAGE_KEY = 'wc-live-globe-settings-v2'
 const MOTION_SPEEDS: readonly GlobeMotionSpeed[] = ['slow', 'normal', 'fast']
 const START_VIEWS: readonly GlobeStartView[] = ['india', 'mine', 'world']
 const STYLES: readonly GlobeStyle[] = ['solid', 'dotted']
+const DOT_SIZES: readonly GlobeDotSize[] = ['fine', 'medium', 'bold']
 const THEMES: readonly GlobeThemePreset[] = ['accent', 'night', 'ocean', 'mono']
 const TIME_RANGES: readonly GlobeTimeRange[] = ['1h', '24h', '7d']
 
@@ -84,6 +89,7 @@ export function defaultGlobeSettings(prefersReducedMotion: boolean): GlobeSettin
       /* Dotted land by default, like the Home card's globe (owner 2026-10-22). */
       style: 'dotted',
       borderStyle: 'solid',
+      dotSize: 'fine',
       theme: 'accent',
       customLand: null,
       customOcean: null,
@@ -142,6 +148,7 @@ function sanitize(raw: unknown, fallback: GlobeSettings): GlobeSettings {
     look: {
       style: oneOf(lookRaw.style, STYLES, fallback.look.style),
       borderStyle: oneOf(lookRaw.borderStyle, STYLES, fallback.look.borderStyle),
+      dotSize: oneOf(lookRaw.dotSize, DOT_SIZES, fallback.look.dotSize),
       theme: oneOf(lookRaw.theme, THEMES, fallback.look.theme),
       customLand: hexOrNull(lookRaw.customLand),
       customOcean: hexOrNull(lookRaw.customOcean),

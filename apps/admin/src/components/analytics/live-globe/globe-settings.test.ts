@@ -41,6 +41,7 @@ describe('defaultGlobeSettings', () => {
     expect(d.look.theme).toBe('accent')
     expect(d.look.style).toBe('dotted')
     expect(d.look.borderStyle).toBe('solid')
+    expect(d.look.dotSize).toBe('fine')
     expect(d.data.timeRange).toBe('24h')
     expect(d.motion.startView).toBe('india')
     expect(d.layers).toEqual({
@@ -87,6 +88,28 @@ describe('loadGlobeSettings / saveGlobeSettings', () => {
     const loaded = loadGlobeSettings(false)
     expect(loaded.look.theme).toBe('accent')
     expect(loaded.motion.speed).toBe('normal')
+  })
+
+  it('keeps the v2 storage key, so a save from before dot sizes loads with the default', () => {
+    storage.setItem(
+      'wc-live-globe-settings-v2',
+      JSON.stringify({ look: { style: 'solid', theme: 'night' } }),
+    )
+    const loaded = loadGlobeSettings(false)
+    expect(loaded.look.style).toBe('solid')
+    expect(loaded.look.theme).toBe('night')
+    expect(loaded.look.dotSize).toBe('fine')
+  })
+
+  it('round-trips a dot size and rejects an unknown one', () => {
+    const next = defaultGlobeSettings(false)
+    next.look.dotSize = 'bold'
+    saveGlobeSettings(next)
+    expect(loadGlobeSettings(false).look.dotSize).toBe('bold')
+    expect(storage.getItem('wc-live-globe-settings-v2')).toContain('"dotSize":"bold"')
+
+    storage.setItem('wc-live-globe-settings-v2', JSON.stringify({ look: { dotSize: 'huge' } }))
+    expect(loadGlobeSettings(false).look.dotSize).toBe('fine')
   })
 
   it('only accepts a well-formed hex colour for a custom override', () => {

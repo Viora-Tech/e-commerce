@@ -1,11 +1,12 @@
 'use client'
 
 import { Settings as GearIcon } from '@commerce/ui/icons'
+import { cn } from '@commerce/ui/lib/utils'
 import { Button } from '@commerce/ui/shadcn/button'
-import { Label } from '@commerce/ui/shadcn/label'
 import { Popover, PopoverContent, PopoverTrigger } from '@commerce/ui/shadcn/popover'
 import { Switch } from '@commerce/ui/shadcn/switch'
 import type { ReactNode } from 'react'
+import { useState } from 'react'
 import PillTabs from '@/components/layout/pill-tabs'
 import { globeSettingsContent as copy } from '@/data/live-globe'
 import { readPalette } from './globe-palette'
@@ -25,16 +26,24 @@ type GlobeSettingsPanelProps = {
   onReset: () => void
 }
 
+type Tab = keyof typeof copy.tabs
+
+const TABS: readonly Tab[] = ['look', 'layers', 'data', 'palette']
 const LAYER_KEYS = ['borders', 'coastlines', 'grid', 'arcs', 'glow'] as const
 const MOTION_SPEEDS = ['slow', 'normal', 'fast'] as const
 const START_VIEWS = ['india', 'mine', 'world'] as const
 const STYLES = ['solid', 'dotted'] as const
+const DOT_SIZES = ['fine', 'medium', 'bold'] as const
 const THEMES = ['accent', 'night', 'ocean', 'mono'] as const
 const TIME_RANGES = ['1h', '24h', '7d'] as const
 
+/** A segmented control that fills the panel's width, its options sharing it evenly, so longer
+ * labels ("Whole world") never run past the edge. */
+const FULL_WIDTH_SEGMENTED =
+  'flex w-full [&>button]:min-w-0 [&>button]:flex-1 [&>button]:justify-center [&>button]:px-2'
+
 /** Small preview swatches for each theme preset's chip (its land colour is enough to tell them
- * apart at a glance; "Store accent" shows the ring/pill instead, since its colour depends on
- * the merchant's own token). */
+ * apart at a glance; "Store accent" shows the accent token itself). */
 const THEME_SWATCH: Record<Exclude<GlobeThemePreset, 'accent'>, string> = {
   night: '#293548',
   ocean: '#3a6b66',
@@ -42,9 +51,11 @@ const THEME_SWATCH: Record<Exclude<GlobeThemePreset, 'accent'>, string> = {
 }
 
 /**
- * The gear button next to the zoom controls: a popover with every Live view globe setting
- * (layers, motion, look, data), applied instantly (the caller passes each change straight to
- * the renderer as uniforms, never rebuilding the WebGL context) and saved to this browser only.
+ * The gear button next to the zoom controls: a popover anchored to it with every Live view
+ * globe setting, split into Look / Layers / Data / Palette tabs so each fits without crowding.
+ * A fixed-height panel (header, tabs, a body that scrolls on its own, and a Reset footer that
+ * is always in reach). Changes apply instantly (the canvas reads them as uniforms each frame,
+ * never rebuilding the WebGL context) and are saved to this browser only.
  */
 export default function GlobeSettingsPanel({
   settings,
@@ -52,6 +63,9 @@ export default function GlobeSettingsPanel({
   onChange,
   onReset,
 }: GlobeSettingsPanelProps) {
+  // Hooks
+  const [tab, setTab] = useState<Tab>('look')
+
   // Helpers
   const setLayer = (key: keyof GlobeLayerSettings, value: boolean) =>
     onChange({ layers: { ...settings.layers, [key]: value } })
@@ -62,7 +76,7 @@ export default function GlobeSettingsPanel({
   const setData = (patch: Partial<GlobeSettings['data']>) =>
     onChange({ data: { ...settings.data, ...patch } })
 
-  // Derived
+  // Render logic
   /* The theme's own colours, as drawn (custom picks left out), for the pickers to start from. */
   const themeSwatches = readPalette(
     dark,
@@ -78,7 +92,7 @@ export default function GlobeSettingsPanel({
             type="button"
             variant="ghost"
             size="icon"
-            className="size-8"
+            className="size-7"
             aria-label={copy.openSettings}
           >
             <GearIcon className="size-4" />
@@ -91,189 +105,246 @@ export default function GlobeSettingsPanel({
       <PopoverContent
         align="end"
         sideOffset={8}
-        className="flex max-h-[min(48rem,calc(var(--available-height)-0.5rem))] w-80 flex-col gap-5 overflow-y-auto overscroll-contain bg-popover/95 p-4 backdrop-blur-md"
+        className="h-[min(34rem,calc(var(--available-height,34rem)-0.75rem))] w-[22rem] max-w-[calc(100vw-1.5rem)] gap-0 overflow-hidden bg-popover/95 p-0 backdrop-blur-md"
       >
-        <div>
-          <p className="text-body font-medium text-popover-foreground">{copy.title}</p>
-          <p className="text-caption text-muted-foreground">{copy.subtitle}</p>
+        <div className="flex shrink-0 flex-col gap-3 px-4 pt-4 pb-3">
+          <div className="flex flex-col gap-0.5">
+            <p className="text-body font-medium text-popover-foreground">{copy.title}</p>
+            <p className="text-caption text-muted-foreground">{copy.subtitle}</p>
+          </div>
+          <PillTabs
+            variant="segmented"
+            className={FULL_WIDTH_SEGMENTED}
+            tabs={TABS.map((t) => ({ value: t, label: copy.tabs[t] }))}
+            value={tab}
+            onChange={setTab}
+          />
         </div>
 
-        <Section heading={copy.layers.heading}>
-          {LAYER_KEYS.map((key) => (
-            <Row key={key} label={copy.layers[key]}>
-              <Switch
-                checked={settings.layers[key]}
-                onCheckedChange={(v) => setLayer(key, v)}
-                aria-label={copy.layers[key]}
-              />
-            </Row>
-          ))}
-        </Section>
+        <div className="flex min-h-0 flex-1 flex-col gap-5 overflow-y-auto overscroll-contain border-t border-border px-4 py-4">
+          {tab === 'look' ? (
+            <>
+              <Group>
+                <Field label={copy.look.style}>
+                  <PillTabs
+                    variant="segmented"
+                    className={FULL_WIDTH_SEGMENTED}
+                    tabs={STYLES.map((s) => ({ value: s, label: copy.look.styles[s] }))}
+                    value={settings.look.style}
+                    onChange={(v) => setLook('style', v)}
+                  />
+                </Field>
+                <Field
+                  label={copy.look.dotSize}
+                  help={settings.look.style === 'dotted' ? undefined : copy.look.dotSizeOff}
+                >
+                  <PillTabs
+                    variant="segmented"
+                    className={FULL_WIDTH_SEGMENTED}
+                    tabs={DOT_SIZES.map((s) => ({ value: s, label: copy.look.dotSizes[s] }))}
+                    value={settings.look.dotSize}
+                    onChange={(v) => setLook('dotSize', v)}
+                  />
+                </Field>
+                <Field
+                  label={copy.look.borderStyle}
+                  help={settings.layers.borders ? undefined : copy.look.borderStyleOff}
+                >
+                  <PillTabs
+                    variant="segmented"
+                    className={FULL_WIDTH_SEGMENTED}
+                    tabs={STYLES.map((s) => ({ value: s, label: copy.look.borderStyles[s] }))}
+                    value={settings.look.borderStyle}
+                    onChange={(v) => setLook('borderStyle', v)}
+                  />
+                </Field>
+              </Group>
+              <Group heading={copy.motion.heading}>
+                <SwitchRow
+                  label={copy.motion.autoRotate}
+                  checked={settings.motion.autoRotate}
+                  onChange={(v) => setMotion('autoRotate', v)}
+                />
+                <Field label={copy.motion.speed}>
+                  <PillTabs
+                    variant="segmented"
+                    className={FULL_WIDTH_SEGMENTED}
+                    tabs={MOTION_SPEEDS.map((s) => ({ value: s, label: copy.motion.speeds[s] }))}
+                    value={settings.motion.speed}
+                    onChange={(v) => setMotion('speed', v)}
+                  />
+                </Field>
+                <Field label={copy.motion.startView}>
+                  <PillTabs
+                    variant="segmented"
+                    className={FULL_WIDTH_SEGMENTED}
+                    tabs={START_VIEWS.map((s) => ({ value: s, label: copy.motion.startViews[s] }))}
+                    value={settings.motion.startView}
+                    onChange={(v) => setMotion('startView', v)}
+                  />
+                </Field>
+                <SwitchRow
+                  label={copy.motion.rememberZoom}
+                  checked={settings.motion.rememberZoom}
+                  onChange={(v) => setMotion('rememberZoom', v)}
+                />
+              </Group>
+            </>
+          ) : null}
 
-        <Section heading={copy.motion.heading}>
-          <Row label={copy.motion.autoRotate}>
-            <Switch
-              checked={settings.motion.autoRotate}
-              onCheckedChange={(v) => setMotion('autoRotate', v)}
-              aria-label={copy.motion.autoRotate}
-            />
-          </Row>
-          <Row label={copy.motion.speed} stack>
-            <PillTabs
-              variant="segmented"
-              tabs={MOTION_SPEEDS.map((s) => ({ value: s, label: copy.motion.speeds[s] }))}
-              value={settings.motion.speed}
-              onChange={(v) => v && setMotion('speed', v)}
-            />
-          </Row>
-          <Row label={copy.motion.startView} stack>
-            <PillTabs
-              variant="segmented"
-              tabs={START_VIEWS.map((s) => ({ value: s, label: copy.motion.startViews[s] }))}
-              value={settings.motion.startView}
-              onChange={(v) => v && setMotion('startView', v)}
-            />
-          </Row>
-          <Row label={copy.motion.rememberZoom}>
-            <Switch
-              checked={settings.motion.rememberZoom}
-              onCheckedChange={(v) => setMotion('rememberZoom', v)}
-              aria-label={copy.motion.rememberZoom}
-            />
-          </Row>
-        </Section>
-
-        <Section heading={copy.look.heading}>
-          <Row label={copy.look.style} stack>
-            <PillTabs
-              variant="segmented"
-              tabs={STYLES.map((s) => ({ value: s, label: copy.look.styles[s] }))}
-              value={settings.look.style}
-              onChange={(v) => v && setLook('style', v)}
-            />
-          </Row>
-          <Row
-            label={copy.look.borderStyle}
-            help={settings.layers.borders ? undefined : copy.look.borderStyleOff}
-            stack
-          >
-            <PillTabs
-              variant="segmented"
-              tabs={STYLES.map((s) => ({ value: s, label: copy.look.borderStyles[s] }))}
-              value={settings.look.borderStyle}
-              onChange={(v) => v && setLook('borderStyle', v)}
-            />
-          </Row>
-          <div className="flex flex-col gap-1.5">
-            <Label className="text-caption text-muted-foreground">{copy.look.theme}</Label>
-            <div className="flex flex-wrap gap-1.5">
-              {THEMES.map((t) => (
-                <ThemeChip
-                  key={t}
-                  theme={t}
-                  active={settings.look.theme === t}
-                  label={copy.look.themes[t]}
-                  onClick={() => setLook('theme', t)}
+          {tab === 'layers' ? (
+            <Group>
+              {LAYER_KEYS.map((key) => (
+                <SwitchRow
+                  key={key}
+                  label={copy.layers[key]}
+                  checked={settings.layers[key]}
+                  onChange={(v) => setLayer(key, v)}
                 />
               ))}
-            </div>
-          </div>
-          <ColorRow
-            label={copy.look.customLand}
-            value={settings.look.customLand}
-            fallback={themeSwatches.land}
-            onChange={(v) => setLook('customLand', v)}
-          />
-          <ColorRow
-            label={copy.look.customOcean}
-            value={settings.look.customOcean}
-            fallback={themeSwatches.ocean}
-            onChange={(v) => setLook('customOcean', v)}
-          />
-          <ColorRow
-            label={copy.look.customAccent}
-            value={settings.look.customAccent}
-            fallback={themeSwatches.accent}
-            onChange={(v) => setLook('customAccent', v)}
-          />
-        </Section>
+            </Group>
+          ) : null}
 
-        <Section heading={copy.data.heading}>
-          <Row label={copy.data.timeRange} stack>
-            <PillTabs
-              variant="segmented"
-              tabs={TIME_RANGES.map((r) => ({ value: r, label: copy.data.timeRanges[r] }))}
-              value={settings.data.timeRange}
-              onChange={(v) => v && setData({ timeRange: v })}
-            />
-          </Row>
-          <Row label={copy.data.highlightBigOrders} help={copy.data.highlightBigOrdersHelp}>
-            <Switch
-              checked={settings.data.highlightBigOrders}
-              onCheckedChange={(v) => setData({ highlightBigOrders: v })}
-              aria-label={copy.data.highlightBigOrders}
-            />
-          </Row>
-          <Row label={copy.data.dayNightShadow} help={copy.data.dayNightShadowHelp}>
-            <Switch
-              checked={settings.data.dayNightShadow}
-              onCheckedChange={(v) => setData({ dayNightShadow: v })}
-              aria-label={copy.data.dayNightShadow}
-            />
-          </Row>
-          <p className="text-caption text-muted-foreground">{copy.data.visitorsUnavailable}</p>
-        </Section>
+          {tab === 'data' ? (
+            <Group>
+              <Field label={copy.data.timeRange}>
+                <PillTabs
+                  variant="segmented"
+                  className={FULL_WIDTH_SEGMENTED}
+                  tabs={TIME_RANGES.map((r) => ({ value: r, label: copy.data.timeRanges[r] }))}
+                  value={settings.data.timeRange}
+                  onChange={(v) => setData({ timeRange: v })}
+                />
+              </Field>
+              <SwitchRow
+                label={copy.data.highlightBigOrders}
+                help={copy.data.highlightBigOrdersHelp}
+                checked={settings.data.highlightBigOrders}
+                onChange={(v) => setData({ highlightBigOrders: v })}
+              />
+              <SwitchRow
+                label={copy.data.dayNightShadow}
+                help={copy.data.dayNightShadowHelp}
+                checked={settings.data.dayNightShadow}
+                onChange={(v) => setData({ dayNightShadow: v })}
+              />
+              <p className="rounded-md bg-muted px-3 py-2 text-caption leading-relaxed text-muted-foreground">
+                {copy.data.visitorsUnavailable}
+              </p>
+            </Group>
+          ) : null}
 
-        <Button
-          type="button"
-          variant="ghost"
-          size="sm"
-          className="self-center text-muted-foreground"
-          onClick={onReset}
-        >
-          {copy.reset}
-        </Button>
+          {tab === 'palette' ? (
+            <>
+              <Group heading={copy.look.theme}>
+                <div className="grid grid-cols-2 gap-1.5">
+                  {THEMES.map((t) => (
+                    <ThemeChip
+                      key={t}
+                      theme={t}
+                      active={settings.look.theme === t}
+                      label={copy.look.themes[t]}
+                      onClick={() => setLook('theme', t)}
+                    />
+                  ))}
+                </div>
+              </Group>
+              <Group>
+                <ColorRow
+                  label={copy.look.customLand}
+                  value={settings.look.customLand}
+                  fallback={themeSwatches.land}
+                  onChange={(v) => setLook('customLand', v)}
+                />
+                <ColorRow
+                  label={copy.look.customOcean}
+                  value={settings.look.customOcean}
+                  fallback={themeSwatches.ocean}
+                  onChange={(v) => setLook('customOcean', v)}
+                />
+                <ColorRow
+                  label={copy.look.customAccent}
+                  value={settings.look.customAccent}
+                  fallback={themeSwatches.accent}
+                  onChange={(v) => setLook('customAccent', v)}
+                />
+              </Group>
+            </>
+          ) : null}
+        </div>
+
+        <div className="flex shrink-0 justify-end border-t border-border px-3 py-2">
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            className="text-muted-foreground"
+            onClick={onReset}
+          >
+            {copy.reset}
+          </Button>
+        </div>
       </PopoverContent>
     </Popover>
   )
 }
 
-type RowProps = { label: string; help?: string; stack?: boolean; children: ReactNode }
+type GroupProps = { heading?: string; children: ReactNode }
 
-/** One settings row: a label (and optional help line, which wraps under it) with its control
- * on the right, at least 32px tall — or, when `stack` (a segmented control needs more width
- * than fits beside a label), the control on its own line below. */
-function Row({ label, help, stack, children }: RowProps) {
-  if (stack) {
-    return (
-      <div className="flex flex-col gap-1.5">
-        <Label className="text-caption text-muted-foreground">{label}</Label>
-        {children}
-        {help ? <span className="text-caption text-muted-foreground">{help}</span> : null}
-      </div>
-    )
-  }
+/** A run of settings, optionally under a small eyebrow heading. */
+function Group({ heading, children }: GroupProps) {
   return (
-    <div className="flex min-h-8 items-center justify-between gap-3">
-      <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-        <Label>{label}</Label>
-        {help ? <span className="text-caption text-muted-foreground">{help}</span> : null}
-      </div>
-      <div className="shrink-0">{children}</div>
+    <section className="flex flex-col gap-3">
+      {heading ? <p className="text-eyebrow">{heading}</p> : null}
+      {children}
+    </section>
+  )
+}
+
+type FieldProps = { label: string; help?: string; children: ReactNode }
+
+/** A label with its (full-width) control on its own line below, and an optional help line. */
+function Field({ label, help, children }: FieldProps) {
+  return (
+    <div className="flex flex-col gap-1.5">
+      <span className="text-caption text-muted-foreground">{label}</span>
+      {children}
+      {help ? (
+        <span className="text-caption leading-snug text-muted-foreground">{help}</span>
+      ) : null}
     </div>
   )
 }
 
-type SectionProps = { heading: string; children: ReactNode }
+type LabelRowProps = { label: string; help?: string; children: ReactNode }
 
-/** A labelled group of rows, its heading the small muted eyebrow style also used on detail
- * pages' section labels. */
-function Section({ heading, children }: SectionProps) {
+/** A label (and an optional help line wrapping under it) with its control on the right. */
+function LabelRow({ label, help, children }: LabelRowProps) {
   return (
-    <div className="flex flex-col gap-3 border-t border-border pt-4">
-      <p className="text-eyebrow">{heading}</p>
-      <div className="flex flex-col gap-3">{children}</div>
+    <div className="flex min-h-8 items-center justify-between gap-4">
+      <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+        <span className="text-body leading-snug text-foreground">{label}</span>
+        {help ? (
+          <span className="text-caption leading-snug text-muted-foreground">{help}</span>
+        ) : null}
+      </div>
+      <div className="flex shrink-0 items-center">{children}</div>
     </div>
+  )
+}
+
+type SwitchRowProps = {
+  label: string
+  help?: string
+  checked: boolean
+  onChange: (value: boolean) => void
+}
+
+function SwitchRow({ label, help, checked, onChange }: SwitchRowProps) {
+  return (
+    <LabelRow label={label} help={help}>
+      <Switch checked={checked} onCheckedChange={onChange} aria-label={label} />
+    </LabelRow>
   )
 }
 
@@ -285,25 +356,26 @@ type ThemeChipProps = {
 }
 
 /** One theme preset as a small round swatch plus its name; "Store accent" shows the accent
- * token itself (via the ring utility class), the rest a fixed preview colour. */
+ * token itself, the rest a fixed preview colour. */
 function ThemeChip({ theme, label, active, onClick }: ThemeChipProps) {
   return (
     <button
       type="button"
       onClick={onClick}
       aria-pressed={active}
-      className={`flex items-center gap-1.5 rounded-full border px-2 py-1 text-caption transition-colors ${
+      className={cn(
+        'flex h-9 min-w-0 items-center gap-2 rounded-md border px-2.5 text-caption transition-[color,background-color,border-color] focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none',
         active
           ? 'border-ring bg-secondary text-ink-strong'
-          : 'border-border text-muted-foreground hover:text-foreground'
-      }`}
+          : 'border-border text-muted-foreground hover:text-foreground',
+      )}
     >
       <span
         aria-hidden
-        className={`size-3 rounded-full ${theme === 'accent' ? 'bg-primary' : ''}`}
+        className={cn('size-3 shrink-0 rounded-full', theme === 'accent' && 'bg-primary')}
         style={theme === 'accent' ? undefined : { backgroundColor: THEME_SWATCH[theme] }}
       />
-      {label}
+      <span className="truncate">{label}</span>
     </button>
   )
 }
@@ -319,7 +391,7 @@ type ColorRowProps = {
  * theme colour" once an override is picked. */
 function ColorRow({ label, value, fallback, onChange }: ColorRowProps) {
   return (
-    <Row label={label}>
+    <LabelRow label={label}>
       <div className="flex items-center gap-2">
         {value ? (
           <button
@@ -335,9 +407,9 @@ function ColorRow({ label, value, fallback, onChange }: ColorRowProps) {
           aria-label={label}
           value={value ?? fallback}
           onChange={(e) => onChange(e.target.value)}
-          className="size-6 cursor-pointer rounded-full border border-border bg-transparent p-0 [&::-webkit-color-swatch]:rounded-full [&::-webkit-color-swatch]:border-none [&::-webkit-color-swatch-wrapper]:rounded-full [&::-webkit-color-swatch-wrapper]:p-0"
+          className="size-7 cursor-pointer rounded-full border border-border bg-transparent p-0 [&::-webkit-color-swatch]:rounded-full [&::-webkit-color-swatch]:border-none [&::-webkit-color-swatch-wrapper]:rounded-full [&::-webkit-color-swatch-wrapper]:p-0"
         />
       </div>
-    </Row>
+    </LabelRow>
   )
 }

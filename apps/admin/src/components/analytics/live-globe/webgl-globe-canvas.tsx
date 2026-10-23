@@ -27,6 +27,7 @@ import {
   buildMarkerPoints,
   markerVector,
 } from '@commerce/ui/globe/webgl/overlay-points'
+import { pickSpriteDotSamples, spriteDotRadiusPx } from '@commerce/ui/globe/webgl/sprite-dots'
 import { subsolarPoint } from '@commerce/ui/globe/webgl/sun-position'
 import { cn } from '@commerce/ui/lib/utils'
 import { useEffect, useRef } from 'react'
@@ -68,15 +69,24 @@ const ZOOM_SAVE_INTERVAL_MS = 1000
 const WORLD_START_ZOOM = 0.65
 
 /**
- * "Look > Style: Dotted": cobe's own dots with the Home card's numbers (`live-globe-canvas.tsx`),
- * so both globes look the same. 32k is about the most cobe's Fibonacci lookup keeps precise.
+ * "Look > Style: Dotted": cobe's evenly spread dots like the Home card (`live-globe-canvas.tsx`),
+ * drawn as round anti-aliased sprites in the palette's land colour (`spriteDots` in
+ * `globe-renderer.ts`). cobe's fixed 32k dots and 4.5x brightness turned into blocky white
+ * blobs at this size, so the count follows the globe's size and the colour is used as is.
+ * `spacing` is the gap between dot centres at zoom 1 (CSS px), `fill` the dot radius as a share
+ * of it (cobe's is about 0.38). `diffuse` is cobe's: how fast dots dim towards the rim.
  */
-const COBE_DOTS = { samples: 32000, diffuse: 1.15, brightness: { dark: 4.5, light: 5.5 } }
+const DOT_SIZES = {
+  fine: { spacing: 3.4, fill: 0.3 },
+  medium: { spacing: 4.4, fill: 0.34 },
+  bold: { spacing: 6, fill: 0.38 },
+} as const
+const DOT_DIFFUSE = 1.15
 
 /**
  * Our own WebGL globe for the Live view (cobe stays on the Home card). Same props, markers,
  * arcs, drag/tilt, zoom and reduced-motion behaviour as `LiveGlobeCanvas`. By default it looks
- * like the Home card (cobe's dots, `COBE_DOTS`); "Solid land" draws smooth filled continents
+ * like the Home card (round palette-coloured dots, `DOT_SIZES`); "Solid land" draws smooth filled continents
  * from the land map instead, which stay sharp when zoomed in on India, with optional
  * coastlines, borders and 15° grid lines.
  *
@@ -183,7 +193,8 @@ export default function WebglGlobeCanvas({
         canvas.width = Math.round(w * dpr)
         canvas.height = Math.round(h * dpr)
       }
-      const radius = RADIUS * h * s.zoom
+      const baseRadius = RADIUS * h
+      const radius = baseRadius * s.zoom
       const cx = w / 2 + shiftX * w
       const cy = h / 2
 
@@ -224,6 +235,9 @@ export default function WebglGlobeCanvas({
 
       const m = rotation(s.phi, s.theta)
       const radiusDevicePx = radius * dpr
+      const dotSize = DOT_SIZES[live.look.dotSize]
+      // From the zoom-1 size, so zooming spreads the same dots apart instead of reshuffling them.
+      const dotSamples = pickSpriteDotSamples(baseRadius, dotSize.spacing)
       const subsolar = live.data.dayNightShadow ? subsolarPoint(new Date()) : null
       const sun = subsolar ? toVector(subsolar.lat, subsolar.lng) : null
 
@@ -258,11 +272,11 @@ export default function WebglGlobeCanvas({
         style: live.look.style,
         dotRows: 0,
         dotRadiusPx: 0,
-        cobeDots: {
-          samples: COBE_DOTS.samples,
-          brightness: dark ? COBE_DOTS.brightness.dark : COBE_DOTS.brightness.light,
-          diffuse: COBE_DOTS.diffuse,
-          color: palette.dotColor,
+        spriteDots: {
+          samples: dotSamples,
+          radiusPx: spriteDotRadiusPx(dotSamples, radiusDevicePx, dotSize.fill, 0.6 * dpr),
+          diffuse: DOT_DIFFUSE,
+          color: palette.landDot,
         },
         sun,
         dashPeriodPx: DASH_PERIOD_CSS_PX * dpr,

@@ -13,7 +13,18 @@ describe('readPalette', () => {
     expect(live.glow).toEqual(home.glow)
     // cobe's baseColor in dark mode is the deep accent, used as is for the dots.
     expect(live.dotColor).toEqual(home.base)
-    expect(live.swatches.land).toBe('#30d157')
+    // The sprite dots use the accent itself, softened, never brightened past it to white.
+    for (const [i, c] of live.landDot.entries()) {
+      expect(c).toBeCloseTo(Math.min(1, (live.dotColor[i] ?? 0) / 0.38) * 0.8)
+    }
+    expect(live.swatches.land).toBe('#27a745')
+  })
+
+  it('draws preset and picked land colours exactly in dark mode', () => {
+    const night = readPalette(true, { ...accent, theme: 'night' }, true)
+    for (const [i, c] of night.landDot.entries()) expect(c).toBeCloseTo(night.base[i] ?? 0)
+    const picked = readPalette(true, { ...accent, customLand: '#ff0000' }, true)
+    expect(picked.landDot).toEqual([1, 0, 0])
   })
 
   it("shades light-mode dots towards a tenth of the base, as cobe's light mode does", () => {
