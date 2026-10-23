@@ -15,6 +15,7 @@ import { usePermissions } from '@/hooks/use-permissions'
 import { openAssistant } from '@/lib/assistant-events'
 import { type PaletteRow, rowHref, rowRecent } from '@/lib/palette-rows'
 import { cycleScope, type PaletteScope } from '@/lib/palette-search'
+import { isExternalHref } from '@/lib/routes'
 import PaletteFooter from './palette-footer'
 import PaletteResults from './palette-results'
 import PaletteScopeChips from './palette-scope-chips'
@@ -73,7 +74,7 @@ export default function PaletteBody({ onClose }: PaletteBodyProps) {
       customer: copy.sections.customers,
     })
     if (recent) add(recent)
-    if (newTab) {
+    if (newTab || isExternalHref(href)) {
       window.open(href, '_blank', 'noopener')
       return
     }

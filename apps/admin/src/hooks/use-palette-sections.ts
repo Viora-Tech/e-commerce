@@ -34,15 +34,23 @@ import { searchSettings } from '@/lib/settings-search'
 const IDLE_PAGES = 8
 
 /** A page link named in the member's language, with its section as the trail. */
-function localizeLink(link: PaletteLink, locale: Locale, account: string): LinkRow {
+function localizeLink(
+  link: PaletteLink,
+  locale: Locale,
+  words: { account: string; appStore: string },
+): LinkRow {
   const hint = link.hintHref
     ? pageName(link.hintHref, link.hint ?? '', locale)
     : link.hint === paletteContent.account
-      ? account
+      ? words.account
       : link.hint
   return {
     href: link.href,
-    label: pageName(link.href, link.label, locale),
+    // The App Store is a website, not an admin route, so its name is not in the page names.
+    label:
+      link.label === paletteContent.appStore
+        ? words.appStore
+        : pageName(link.href, link.label, locale),
     icon: link.icon,
     ...(hint ? { hint } : {}),
     ...(link.shortcut ? { shortcut: link.shortcut } : {}),
@@ -81,9 +89,7 @@ export function usePaletteSections(input: {
   const { query, scope, search, aiEnabled, recents, can } = input
 
   // Render logic
-  const links = PAGE_LINKS.filter((l) => allowed(l, can)).map((l) =>
-    localizeLink(l, locale, copy.account),
-  )
+  const links = PAGE_LINKS.filter((l) => allowed(l, can)).map((l) => localizeLink(l, locale, copy))
   const pages =
     query || scope === 'pages'
       ? links.filter((l) => matchesWords([l.label, l.hint], query))
@@ -100,7 +106,7 @@ export function usePaletteSections(input: {
           hint: settingsBreadcrumb(e.where, copy.settings, copy.breadcrumbSeparator),
           icon: Settings,
         }))
-      : SETTINGS_LINKS.map((l) => localizeLink(l, locale, copy.account))
+      : SETTINGS_LINKS.map((l) => localizeLink(l, locale, copy))
   const sections = buildSections({
     query,
     scope,

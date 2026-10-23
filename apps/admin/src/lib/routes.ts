@@ -19,6 +19,9 @@ export function safeNext(value: string | string[] | undefined): string | null {
   return value
 }
 
+/** A full URL outside the admin (the App Store website): open it in a new tab, not the router. */
+export const isExternalHref = (href: string) => /^https?:\/\//.test(href)
+
 export const routes = {
   home: () => '/',
   /** `next`: where to go after signing in (an OAuth consent page); see `safeNext`. */
@@ -178,10 +181,12 @@ export const routes = {
 
   apps: {
     list: () => '/apps',
-    /** Every app this deployment offers, to install (the admin's App Store). */
-    store: () => '/apps/store',
-    /** The install flow for one app, also the entry point for an outside app store. */
-    install: (pluginId: string) => `/apps/install?app=${encodeURIComponent(pluginId)}`,
+    /**
+     * The install flow for one app: where the App Store website's Install button lands
+     * (`appStoreUrl` in `@commerce/config/site` is the store itself, outside the admin).
+     */
+    install: (pluginId: string, storeId?: string) =>
+      `/apps/install?app=${encodeURIComponent(pluginId)}${storeId ? `&store=${encodeURIComponent(storeId)}` : ''}`,
     /** An installed app's own screen: `/apps/<pluginId>/<...path>`. */
     page: (pluginId: string, ...path: string[]) =>
       ['/apps', id(pluginId), ...path.map(id)].join('/'),

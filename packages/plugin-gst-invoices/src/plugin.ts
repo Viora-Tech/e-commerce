@@ -175,6 +175,18 @@ export const gstInvoicesPlugin = definePlugin({
       note: 'Invoice templates and the live preview editor',
     },
   ],
+  listing: {
+    tagline: 'Tax invoices, credit notes and GSTR-1 export, per GST number.',
+    highlights: [
+      'Issues a GST invoice when an order is paid, numbered per GSTIN',
+      'Credit notes for returns and cancellations',
+      'Packing slips with your logo',
+      'GSTR-1 export for your accountant',
+    ],
+    guide: '/merchant-guide/money-and-gst/gst-invoices',
+    worksWith: ['Order emails, with the invoice attached', 'Returns, for credit notes'],
+    keywords: ['gst', 'invoice', 'tax', 'gstr-1'],
+  },
   access: {
     resources: [
       { resource: 'orders', level: 'read', why: 'Paid and shipped orders, to bill them' },

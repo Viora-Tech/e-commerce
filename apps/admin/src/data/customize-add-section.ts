@@ -106,7 +106,7 @@ export const addSectionContent = {
     appsEmpty: {
       title: 'No app blocks yet',
       body: "Install Back in stock, Delhivery or Shiprocket to add blocks like a 'Notify me' button or delivery-date checker here.",
-      link: 'Browse apps',
+      link: 'Browse the App Store',
     },
   },
   audit: {

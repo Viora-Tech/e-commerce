@@ -16,6 +16,17 @@ export const xpressbeesPlugin = definePlugin({
   company: 'Xpressbees (Busybees Logistics)',
   description:
     'Xpressbees Surface, Air and same-day rates, bookings with auto pickup, tracking, cancellation and NDR.',
+  listing: {
+    tagline: 'Surface, Air and same-day rates, labels with auto pickup, and live tracking.',
+    highlights: ['Rates per Xpressbees service', 'Labels and auto pickup', 'Tracking and NDR'],
+    guide: '/merchant-guide/apps/couriers',
+    worksWith: [
+      'The Shipments workspace, beside any other courier you install',
+      'Courier rules in Settings → Shipping',
+      'Delivery checker block in your theme',
+    ],
+    keywords: ['courier', 'shipping'],
+  },
   access: {
     resources: [
       {

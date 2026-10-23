@@ -18,6 +18,17 @@ export const reviewsPlugin = definePlugin({
   category: 'marketing',
   description:
     'Collect product reviews with photos, approve or hide them, reply, ask buyers by email after delivery and bring your Judge.me reviews over.',
+  listing: {
+    tagline: 'Product reviews with photos, verified buyer badges and review request emails.',
+    highlights: [
+      'Review request emails after delivery',
+      'Photos, verified buyer badges and your replies',
+      'Import your reviews from Judge.me',
+    ],
+    guide: '/merchant-guide/apps/reviews',
+    worksWith: ['Product pages in your theme', 'Judge.me exports'],
+    keywords: ['reviews', 'ratings', 'judge.me'],
+  },
   access: {
     resources: [
       { resource: 'products', level: 'read', why: 'Shows reviews on each product page' },

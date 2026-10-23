@@ -12,12 +12,12 @@ import {
 } from '@commerce/ui/shadcn/sheet'
 import type { ReactNode } from 'react'
 import AppAccessList from '@/components/apps/app-access-list'
-import type { AppSummary } from '@/components/apps/app-card'
 import AppLogo from '@/components/apps/app-logo'
 import RelativeTime from '@/components/layout/relative-time'
 import { installedAppsContent } from '@/data/installed-apps'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { credentialKinds } from '@/lib/app-access'
+import type { AppSummary } from '@/lib/app-summary'
 
 type PermissionsSheetProps = {
   /** The app whose access is open; null closes the sheet. */

@@ -1,3 +1,4 @@
+import { appStoreUrl } from '@commerce/config/site'
 import { describe, expect, it } from 'vitest'
 import { SETTINGS_SEARCH_INDEX } from '@/data/settings-search'
 import { SETTINGS_REDIRECTS } from './settings-redirects'
@@ -48,10 +49,14 @@ describe('searchSettings', () => {
     expect(first('business buyer')?.href).toBe('/settings/checkout?tab=branding#gstin')
   })
 
-  it('offers both Shipping and Apps for "courier"', () => {
+  it('offers both Shipping and the App Store for "courier"', () => {
     const hrefs = searchSettings(SETTINGS_SEARCH_INDEX, 'courier').map((e) => e.href)
     expect(hrefs).toContain('/settings/shipping#courier')
-    expect(hrefs).toContain('/apps')
+    expect(hrefs).toContain(appStoreUrl({ category: 'shipping' }))
+  })
+
+  it('finds the App Store website', () => {
+    expect(first('app store')?.href).toBe(appStoreUrl())
   })
 
   it('matches multi-word phrases and requires every word', () => {

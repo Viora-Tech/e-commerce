@@ -4,11 +4,11 @@ import { CircleCheck, Download } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { DialogDescription, DialogFooter, DialogTitle } from '@commerce/ui/shadcn/dialog'
 import AppAccessList from '@/components/apps/app-access-list'
-import type { AppSummary } from '@/components/apps/app-card'
 import { appInstallContent } from '@/data/app-install'
 import { appsContent } from '@/data/apps'
 import { useCopy } from '@/hooks/use-copy'
 import { permissionLines } from '@/lib/app-permissions'
+import type { AppSummary } from '@/lib/app-summary'
 
 type InstallPermissionsStepProps = {
   app: AppSummary

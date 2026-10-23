@@ -44,7 +44,8 @@ it, and its monthly price. Apps not listed are free.
 
 `storeAppAccess` gives each app one of four states: `free`, `included`, `bought` (until a date) or
 `buy`.
-- `apps.list` attaches it as `billing`, for the App Store cards and the install flow.
+- `apps.list` attaches it as `billing`, for the Installed apps list and the install flow. The
+  App Store website prices apps from the same `APP_PRICING` (`@commerce/core/app-catalogue`).
 - `apps.install` refuses a `buy` app with `FORBIDDEN` and `data.reason = 'app_not_in_plan'`.
 
 A purchase is an `app_purchase` row (migration `0132`) whose bill is a sales-store order with SKU

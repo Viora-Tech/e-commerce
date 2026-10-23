@@ -6,6 +6,7 @@ import { Input } from '@commerce/ui/shadcn/input'
 import { useRouter } from 'next/navigation'
 import { type KeyboardEvent, useId, useState } from 'react'
 import { settingsSearchContent as copy, SETTINGS_SEARCH_INDEX } from '@/data/settings-search'
+import { isExternalHref } from '@/lib/routes'
 import { searchSettings, settingsPageOf } from '@/lib/settings-search'
 
 const optionId = (listId: string, i: number) => `${listId}-option-${i}`
@@ -28,7 +29,8 @@ export default function SettingsSearch() {
     setQuery('')
     setOpen(false)
     setActive(0)
-    router.push(href)
+    if (isExternalHref(href)) window.open(href, '_blank', 'noopener')
+    else router.push(href)
   }
 
   // Event handlers

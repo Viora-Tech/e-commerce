@@ -10,6 +10,13 @@ export const sesPlugin = definePlugin({
   category: 'messages',
   company: 'Amazon Web Services',
   description: 'Order emails through Amazon SES.',
+  listing: {
+    tagline: 'Sends your order emails through your own Amazon SES account.',
+    highlights: ['Order emails from your own address', 'Your own sending limits'],
+    guide: '/merchant-guide/settings/sender-email',
+    worksWith: ['Every order and marketing email the store sends'],
+    keywords: ['email', 'aws'],
+  },
   access: {
     resources: [
       { resource: 'customers', level: 'read', why: 'Email address, to send order emails' },

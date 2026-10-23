@@ -3,7 +3,7 @@
 import { installedAppsContent } from '@/data/installed-apps'
 import { useCopy } from '@/hooks/use-copy'
 import { resourceLabel } from '@/lib/app-access'
-import type { AppSummary } from './app-card'
+import type { AppSummary } from '@/lib/app-summary'
 
 type AppAccessListProps = {
   app: AppSummary
