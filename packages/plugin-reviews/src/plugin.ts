@@ -28,6 +28,22 @@ export const reviewsPlugin = definePlugin({
     guide: '/merchant-guide/apps/reviews',
     worksWith: ['Product pages in your theme', 'Judge.me exports'],
     keywords: ['reviews', 'ratings', 'judge.me'],
+    faq: [
+      {
+        question: 'Do reviews go live straight away?',
+        answer:
+          'You choose. By default 4★ and 5★ reviews publish right away and the rest wait for you; reviews with photos always wait unless you turn that off.',
+      },
+      {
+        question: 'Who can write a review?',
+        answer:
+          'By default only customers who bought the product. You can open it to anyone in Settings.',
+      },
+      {
+        question: 'Can I bring my Judge.me reviews?',
+        answer: 'Yes. They come over with their stars, dates, photos and your replies.',
+      },
+    ],
   },
   access: {
     resources: [

@@ -24,6 +24,13 @@ export const searchPlugin = definePlugin({
     ],
     worksWith: ['The Meilisearch app'],
     keywords: ['search', 'synonyms'],
+    faq: [
+      {
+        question: 'Do I need Meilisearch for this?',
+        answer:
+          'No. Synonyms work with the built-in store search, and with Meilisearch if you add it.',
+      },
+    ],
   },
   access: {
     resources: [
