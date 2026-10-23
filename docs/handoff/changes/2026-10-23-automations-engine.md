@@ -18,9 +18,9 @@ without the app).
   `workflows.ts` and `runs.ts` (router services), `jobs.ts` / `jobs-run.ts` (queues, handlers).
 - **Seams for parallel work**: `conditions/index.ts` (`evaluateRules`, `loadSubjectData`) are
   stubs; executors go in `actions/**` and `actions/index.ts` (`order.add_tags` is the example).
-- **DB**: migration `0154_automations` (journal entry last, newest `when`) (workflow, version, run, step run, run record, secret,
+- **DB**: migration `0156_automations` (journal entry last, newest `when`; `0157_fulfillment_hold` follows it) (workflow, version, run, step run, run record, secret,
   usage; `marketing_message.automation_run_id` / `automation_node_id`; `automations.*` grants;
-  `stores_with_automation_work()`; Automations pre-installed on every existing store).
+  `stores_with_automation_work()`; Automations pre-installed on every existing store; `stores_with_old_automation_history()` for the prune).
 - **Wiring**: new outbox types (product created/updated, customer tags changed/subscribed,
   inventory low/out, `automation.app_trigger`) and `insertOutboxEvent(..., { cause })`; the relay
   queues `{automations}-trigger`; worker `apps/worker/src/automations.ts` (trigger, step, tick);
@@ -29,5 +29,18 @@ without the app).
 - **Pre-installed** (owner, 2026-10-23): marketing automations leave Growth for the Automations
   app, which every store has (`PREINSTALLED_APPS`, onboarding installs it). It cannot be
   uninstalled while Growth-origin workflows exist (`appUninstallBlocker`, apps router).
-- **Open**: writers for the new outbox types, Growth migration and sweeps, owner emails at
-  80%/100% usage and circuit breaker, retention prune job, admin UI.
+- **Events** (`record-events.ts`): product created/updated (single-product paths), customer tags
+  changed (edit and bulk tag), stock low/out on a crossing (`adjustStock`). `customer.subscribed`
+  comes from Growth's `enrolSubscriber` on cut-over stores.
+- **External actions** run outside the run's transaction: the step is committed as in flight, the
+  call is made (HTTP: `prepare` in a short tx, `send` with none), the result recorded in a short tx.
+- **Housekeeping**: owner emails at 80%/100% monthly runs and on a switched-off workflow (claimed in
+  the tick, sent after commit); daily `{automations}-prune` (step detail 90 days, runs 13 months);
+  uninstalling an app switches off the workflows using it.
+- **Integration** (one PR): engine + `feat/automations-actions` (executors, condition evaluator,
+  fulfilment hold) + `feat/automations-ui` (admin app; dev mock removed) +
+  `feat/automations-pages` (Run automation, record history, Growth cut-over). See their own notes:
+  `2026-10-23-automations-actions.md`, `-admin-ui.md`, `-records-growth-cutover.md`.
+- **Open**: product/customer bulk edits and the Shopify importer do not fire product/customer
+  events (by design for now); messaging executors still call providers inside their own short
+  transaction (only HTTP is fully two-phase).
